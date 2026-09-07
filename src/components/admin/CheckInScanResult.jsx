@@ -3,6 +3,7 @@ import AdminTicketAddonRedemption from './AdminTicketAddonRedemption.jsx'
 import { StatusBadge } from '../ui/DataTable.jsx'
 import { formatScheduleSummary, formatSessionDetail } from '../../lib/eventSchedule.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { checkinTypeLabel } from '../../services/checkinScanService.js'
 
 export default function CheckInScanResult({
   canCheckIn,
@@ -53,10 +54,21 @@ export default function CheckInScanResult({
         <dl className="admin-checkin-result__meta">
           <div>
             <dt>{t('admin.checkin.type')}</dt>
-            <dd>
-              {scanResult.row.type === 'atleta'
-                ? t('admin.checkin.athlete')
-                : t('admin.checkin.spectator')}
+            {/* La credencial concreta antes que la categoría: una compra de
+                entrenador emite dos con el mismo nombre y el mismo DNI, y
+                "Espectador" en las dos era justo lo que impedía diferenciarlas
+                en la puerta.
+                Cuando lo que se leyó ES una credencial nombrada, se marca para
+                que el estilo la destaque: es el dato sobre el que actúa quien
+                está en la puerta, y estaba siendo el más chico de la tarjeta. */}
+            <dd
+              className={
+                scanResult.row.type !== 'atleta' && scanResult.row.credentialLabel
+                  ? 'admin-checkin-result__credential'
+                  : undefined
+              }
+            >
+              {checkinTypeLabel(scanResult.row, t)}
             </dd>
           </div>
           {scanResult.status && (

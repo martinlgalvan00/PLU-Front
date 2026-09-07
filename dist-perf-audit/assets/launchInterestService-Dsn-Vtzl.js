@@ -1,0 +1,1 @@
+import{Vn as e,zn as t}from"./index-lk4NcJL4.js";async function n(t){return e(`/api/launch-interest`,{email:t.email,source:t.source??`launch_teaser`,eventSlug:t.eventSlug??null})}async function r(){return t(`/api/launch-interest/summary`)}async function i(t){return e(`/api/launch-interest/notify`,{source:t})}export{i as n,n as r,r as t};

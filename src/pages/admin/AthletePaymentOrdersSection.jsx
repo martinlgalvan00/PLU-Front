@@ -488,6 +488,7 @@ export default function AthletePaymentOrdersSection({
           <div className="admin-orders-block__toolbar-facets">
             <AdminFilterChipGroup
               id="athlete-orders-status"
+              label={t('admin.filters.status')}
               ariaLabel={t('admin.filters.status')}
               value={status}
               onChange={setStatus}
@@ -503,10 +504,10 @@ export default function AthletePaymentOrdersSection({
                 counts[value] ?? 0,
               ])}
             />
-            {/* Canal como riel secundario: misma lectura que el estado, sin
-                menú vertical que estire el toolbar. */}
+            <span className="admin-orders-block__facet-divider" aria-hidden="true" />
             <AdminFilterChipGroup
               id="athlete-orders-channel"
+              label={t('admin.athletePayments.channelLabel')}
               ariaLabel={t('admin.athletePayments.channelLabel')}
               value={channel}
               onChange={setChannel}
@@ -714,7 +715,7 @@ export default function AthletePaymentOrdersSection({
                       <StatusBadge value={row.status} />
                     )}
                     {row.manualPaymentDeclaredAt ? (
-                      <span className="status-pill status-pill--info">
+                      <span className="admin-orders-block__tag">
                         {t(
                           row.financingAllowed && row.financedEntitlementsAt
                             ? 'admin.athletePayments.financedActive'

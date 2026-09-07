@@ -1,4 +1,4 @@
-import logoPitbullWordmark from '../../assets/brand/logo-letra-transparente.png'
+import logoPitbullWordmark from '../../assets/brand/logo-letra-transparente-ui.png'
 import logoPitbullEmblem from '../../assets/brand/logo-pitbullclassic2.png'
 
 /**

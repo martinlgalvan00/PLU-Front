@@ -1,6 +1,7 @@
 import { Clock3, History, Trash2 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatDocumentWithKind } from '../../lib/format.js'
+import { checkinTypeLabel } from '../../services/checkinScanService.js'
 
 export default function AdminCheckinScanHistory({ items = [], onClear, onSelect }) {
   const { t } = useI18n()
@@ -71,9 +72,10 @@ export default function AdminCheckinScanHistory({ items = [], onClear, onSelect 
               </span>
               {item.type && (
                 <span className="admin-checkin-history__type">
-                  {item.type === 'atleta'
-                    ? t('admin.checkin.athlete')
-                    : t('admin.checkin.spectator')}
+                  {checkinTypeLabel(
+                    { type: item.type, credentialLabel: item.credentialLabel },
+                    t,
+                  )}
                 </span>
               )}
             </button>

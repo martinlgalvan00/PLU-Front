@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
+import { resolvePlacementBatches, sessionsPayloadFromBoard } from '../services/eventBoardPlanner.js'
 import {
   assignRegistrationSchedule,
-  autofillEventDay,
   fetchEventBoard,
   saveEventSessions,
 } from '../services/eventRegistrationApi.js'
@@ -107,24 +107,58 @@ export function useEventBoard(eventSlug, { enabled = true } = {}) {
     [eventSlug, load],
   )
 
-  const autofill = useCallback(
-    async ({ dayIndex, maxPerSession }) => {
-      if (!eventSlug) return null
+  /**
+   * Aplica un preview: crea las tandas nuevas (set completo) y asigna por
+   * lote. Un solo ciclo de busy; el tablero se reléé al final, no entre tandas.
+   */
+  const applyPlan = useCallback(
+    async (plan) => {
+      if (!eventSlug || !plan) return null
       setBusy(true)
       setError(null)
       try {
-        const result = await autofillEventDay(eventSlug, { dayIndex, maxPerSession })
-        setBoard(result.board)
+        if (plan.newSessions.length > 0) {
+          await saveEventSessions(
+            eventSlug,
+            sessionsPayloadFromBoard(board?.days ?? [], { extra: plan.newSessions }),
+          )
+        }
+
+        const latest = await fetchEventBoard(eventSlug)
+        const { batches, unresolved } = resolvePlacementBatches(latest, plan)
+        let updated = 0
+        let requested = 0
+        for (const batch of batches) {
+          const result = await assignRegistrationSchedule(eventSlug, {
+            registrationIds: batch.registrationIds,
+            dayIndex: batch.dayIndex,
+            sessionId: batch.sessionId,
+          })
+          updated += result.updated
+          requested += result.requested
+        }
+
+        setBoard(await fetchEventBoard(eventSlug))
         setStatus('ready')
-        return result
-      } catch (autofillError) {
-        setError(autofillError?.message ?? 'No se pudo repartir.')
+        return {
+          updated,
+          requested: requested + unresolved.length,
+          leftover: plan.leftover.length + unresolved.length,
+        }
+      } catch (applyError) {
+        setError(applyError?.message ?? 'No se pudo aplicar el reparto.')
+        try {
+          setBoard(await fetchEventBoard(eventSlug))
+          setStatus('ready')
+        } catch {
+          setStatus('error')
+        }
         return null
       } finally {
         setBusy(false)
       }
     },
-    [eventSlug],
+    [board?.days, eventSlug],
   )
 
   return {
@@ -135,7 +169,7 @@ export function useEventBoard(eventSlug, { enabled = true } = {}) {
     reload: load,
     assign,
     saveSessions,
-    autofill,
+    applyPlan,
     days: board?.days ?? [],
     unassigned: board?.unassigned ?? [],
     totals: board?.totals ?? { registered: 0, assigned: 0, unassigned: 0 },

@@ -3,13 +3,13 @@ import jsQR from 'jsqr'
 import { CameraOff, Smartphone, Volume2, VolumeX } from 'lucide-react'
 import SegmentedSwitch from '../ui/SegmentedSwitch.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { shouldAcceptScan } from '../../lib/checkinScanCooldown.js'
 
 // Frame de trabajo para el decoder de respaldo (jsQR) -- más chico que la
 // resolución real de la cámara para no cargar la CPU en celulares de gama
 // media, suficiente para leer un QR a distancia de escaneo normal.
 const FALLBACK_SCAN_WIDTH = 480
 
-const SCAN_COOLDOWN_MS = 2200
 const FEEDBACK_STORAGE_KEY = 'plu-checkin-feedback'
 
 function readFeedbackPrefs() {
@@ -35,7 +35,7 @@ export default function AdminQrScanner({
 }) {
   const { t } = useI18n()
   const videoRef = useRef(null)
-  const cooldownRef = useRef(false)
+  const lastScanRef = useRef({ value: '', at: 0 })
   const [mode, setMode] = useState('camera')
   const [manualValue, setManualValue] = useState('')
   const [cameraError, setCameraError] = useState(null)
@@ -76,15 +76,27 @@ export default function AdminQrScanner({
   }
 
   const emitScan = useCallback(
-    (raw) => {
+    (raw, source = 'camera') => {
       const value = raw?.trim()
-      if (!value || disabled || busy || cooldownRef.current) return
+      const now = Date.now()
+      const last = lastScanRef.current
+      if (
+        !shouldAcceptScan({
+          value,
+          disabled,
+          busy,
+          source,
+          lastValue: last.value,
+          lastAt: last.at,
+          now,
+        })
+      ) {
+        return false
+      }
 
-      cooldownRef.current = true
+      lastScanRef.current = { value, at: now }
       onScan?.(value)
-      window.setTimeout(() => {
-        cooldownRef.current = false
-      }, SCAN_COOLDOWN_MS)
+      return true
     },
     [busy, disabled, onScan],
   )
@@ -190,8 +202,7 @@ export default function AdminQrScanner({
 
   function handleManualSubmit(event) {
     event.preventDefault()
-    emitScan(manualValue)
-    setManualValue('')
+    if (emitScan(manualValue, 'manual')) setManualValue('')
   }
 
   const cameraBlocked = mode === 'camera' && cameraError === 'permission'

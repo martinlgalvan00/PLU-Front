@@ -72,6 +72,9 @@ export default function AdminFilterDateRange({
           .filter(Boolean)
           .join(' ')}
       >
+        {label ? (
+          <span className="admin-filters__date-range-label">{label}</span>
+        ) : null}
         <div
           className="admin-filters__date-range-presets"
           role="group"

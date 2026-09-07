@@ -1,0 +1,1 @@
+var e=`/assets/logo-letra-transparente-ui-CD6sHMf5.png`;export{e as t};

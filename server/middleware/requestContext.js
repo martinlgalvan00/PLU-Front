@@ -21,6 +21,9 @@ const SAFE_ID = /^[A-Za-z0-9._:-]{8,120}$/
 // Rutas de alto valor operativo: se loguean siempre, con latencia. El resto
 // solo cuando falla o en debug, para no inflar la salida con health checks.
 const AUDITED_PREFIXES = ['/api/payments', '/api/athletes', '/api/tickets']
+// Sondeos automáticos (Docker Desktop, favicon del browser) que no aportan
+// señal operativa en local.
+const QUIET_NOT_FOUND_PATHS = new Set(['/json/version', '/favicon.ico'])
 
 function inboundRequestId(req) {
   const header = req.get?.('x-request-id')
@@ -46,6 +49,7 @@ export function requestContext(req, res, next) {
     res.on('finish', () => {
       const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6
       const level = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info'
+      if (res.statusCode === 404 && QUIET_NOT_FOUND_PATHS.has(req.path)) return
       if (level === 'info' && !isAudited(req.path)) return
       logger[level]('http.request', {
         requestId,

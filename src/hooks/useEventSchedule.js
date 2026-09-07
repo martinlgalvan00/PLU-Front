@@ -14,7 +14,7 @@ import {
  * del lado del cliente: dos operadores repartiendo atletas al mismo tiempo
  * harían divergir cualquier conteo optimista.
  */
-export function useEventSchedule(eventSlug, { enabled = true } = {}) {
+export function useEventSchedule(eventSlug, { enabled = true, reloadToken = 0 } = {}) {
   const [schedule, setSchedule] = useState(null)
   const [status, setStatus] = useState('idle') // 'idle' | 'loading' | 'ready' | 'error'
   const [assigning, setAssigning] = useState(false)
@@ -44,7 +44,7 @@ export function useEventSchedule(eventSlug, { enabled = true } = {}) {
     return () => {
       active = false
     }
-  }, [enabled, eventSlug])
+  }, [enabled, eventSlug, reloadToken])
 
   const assign = useCallback(
     async ({ registrationIds, dayIndex = null, sessionId = null }) => {

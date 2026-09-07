@@ -221,18 +221,10 @@ describe('Inscripciones — rieles etiquetados', () => {
     )
   }
 
-  it('nombra evento y estado en su pill, con los chips adentro del popover', () => {
-    /*
-     * La barra pasó a pills + popover: cada faceta es un botón con su nombre
-     * visible, y el grupo de chips (con su nombre accesible para lectores de
-     * pantalla) vive dentro del popover que ese botón abre.
-     */
+  it('nombra evento y estado en rieles etiquetados', () => {
     renderRegistrations()
 
-    expect(screen.getByRole('button', { name: /^Evento/ })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /^Estado/ })).toBeTruthy()
-
-    fireEvent.click(screen.getByRole('button', { name: /^Estado/ }))
+    expect(screen.getByRole('group', { name: 'Evento' })).toBeTruthy()
     expect(screen.getByRole('group', { name: 'Estado' })).toBeTruthy()
   })
 

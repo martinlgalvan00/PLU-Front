@@ -1,0 +1,3196 @@
+/* Escritorio de cobro compartido: oferta, medio, total.
+   Prefijo .plu-checkout para no pelear con las filas stacked de register.css. */
+
+.plu-checkout {
+  display: grid;
+  gap: 28px;
+}
+
+.plu-checkout__offers,
+.plu-checkout__methods {
+  border: 0;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  min-inline-size: 0;
+  padding: 0;
+}
+
+.plu-checkout__offers legend,
+.plu-checkout__methods legend {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  font-family: var(--font-family);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  gap: 10px;
+  letter-spacing: 0.01em;
+  padding: 0;
+  text-transform: none;
+}
+
+.plu-checkout__offers legend strong {
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
+  border-radius: 2px;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  padding: 3px 7px;
+}
+
+.plu-checkout__offer.has-deal {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.plu-checkout__offer.has-deal .season-combo-offer {
+  grid-column: 1 / -1;
+}
+
+.plu-checkout__offer-list {
+  display: grid;
+  gap: 8px;
+}
+
+.plu-checkout__offer {
+  align-items: start;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+  border-radius: 2px;
+  cursor: pointer;
+  display: grid;
+  gap: 6px 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 52px;
+  padding: 14px 16px;
+  position: relative;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.plu-checkout__offer:hover {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
+}
+
+.plu-checkout__offer:not(:has(.plu-checkout__offer-control)) {
+  cursor: default;
+}
+
+/* La oferta que se destraba entra una vez (ver `CheckoutDesk`). Es el pago de la
+   exclusividad: hasta acá la tarjeta del paquete se sumaba a la lista sin que
+   nada lo dijera. Un solo acento —el oro que la tarjeta ya usa cuando está
+   elegida—, una sola secuencia y nada en loop. El aro va con `inset: -1px` y no
+   hacia adentro: esta tarjeta no tiene `overflow: hidden`, así que se dibuja
+   sobre el filo y no queda recortado en las esquinas. */
+.plu-checkout__offer.is-unlocked {
+  animation: checkout-offer-unlock var(--motion-slow) var(--ease-out) both;
+}
+
+.plu-checkout__offer.is-unlocked::after {
+  animation: checkout-offer-seal var(--motion-slow) var(--ease-out) 120ms both;
+  border: 1px solid var(--color-brand-gold);
+  border-radius: inherit;
+  content: '';
+  inset: -1px;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+[data-theme='light'] .plu-checkout__offer.is-unlocked::after {
+  border-color: var(--plu-gold-600);
+}
+
+@keyframes checkout-offer-unlock {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes checkout-offer-seal {
+  0% {
+    opacity: 0;
+    transform: scale(1.012);
+  }
+
+  40% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+.plu-checkout__offer.is-selected {
+  border-color: var(--color-brand-gold);
+}
+
+.plu-checkout__offer.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.plu-checkout__offer:has(:focus-visible) {
+  outline: 2px solid var(--color-brand-gold);
+  outline-offset: 3px;
+}
+
+.plu-checkout__offer-control {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.plu-checkout__offer-copy {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.plu-checkout__offer-name {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.plu-checkout__offer-save {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+
+.plu-checkout__deadline {
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
+  border-radius: 2px;
+  color: var(--color-brand-gold);
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  padding: 4px 8px;
+  width: fit-content;
+}
+
+.plu-checkout__offer-price-block {
+  align-items: end;
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+  text-align: right;
+}
+
+.plu-checkout__offer-price {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.plu-checkout__offer-compare {
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.plu-checkout__offer.is-selected .plu-checkout__offer-price {
+  color: var(--color-brand-gold);
+}
+
+.plu-checkout__offer.is-featured.is-selected .plu-checkout__offer-price {
+  font-size: clamp(1.7rem, 3.6vw, 2.35rem);
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+}
+
+.plu-checkout__offer.is-featured.is-selected .plu-checkout__offer-compare {
+  font-size: clamp(0.82rem, 1.5vw, 0.95rem);
+}
+
+.plu-checkout__ledger {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  display: grid;
+  gap: 6px;
+  grid-column: 1 / -1;
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 10px 0 0;
+}
+
+.plu-checkout__ledger li {
+  align-items: baseline;
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: 12.5px;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.plu-checkout__ledger li span:last-child {
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.plu-checkout__hint {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 48ch;
+}
+
+.plu-checkout__pills {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  width: 100%;
+}
+
+.plu-checkout__pill--selectable {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.plu-checkout__pill {
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+  border-radius: 2px;
+  cursor: pointer;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(76px, auto) minmax(0, 1fr);
+  min-height: 44px;
+  padding: 0 12px;
+  position: relative;
+  transition: border-color var(--motion-fast) var(--ease-out);
+}
+
+.plu-checkout__pill-price {
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.plu-checkout__pill.is-selected .plu-checkout__pill-price {
+  color: var(--color-brand-gold);
+}
+
+.plu-checkout__pill.has-detail {
+  align-items: flex-start;
+  min-height: 44px;
+  padding: 8px 12px;
+}
+
+.plu-checkout__pill:hover {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
+}
+
+.plu-checkout__pill.is-selected,
+.plu-checkout__pill:focus-within {
+  border-color: var(--color-brand-gold);
+}
+
+.plu-checkout__pill.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.plu-checkout__pill:has(:focus-visible) {
+  outline: 2px solid var(--color-brand-gold);
+  outline-offset: 3px;
+}
+
+.plu-checkout__pill input {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.plu-checkout__pill-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.plu-checkout__pill-label {
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.15;
+}
+
+.plu-checkout__pill-detail {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.plu-checkout__pill.is-selected .plu-checkout__pill-detail {
+  color: var(--color-brand-gold);
+}
+
+@media (pointer: coarse) {
+  .plu-checkout__pill {
+    padding: 0 14px;
+  }
+
+  .plu-checkout__pill.has-detail {
+    min-height: 48px;
+    padding: 10px 14px;
+  }
+}
+
+.plu-checkout__bar {
+  align-items: end;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  justify-content: space-between;
+  margin: 0;
+  padding-top: clamp(16px, 2.2vw, 22px);
+}
+
+.plu-checkout__summary {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 4px;
+  min-width: min(100%, 220px);
+}
+
+.plu-checkout__package {
+  color: var(--color-text-muted);
+  display: none;
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.plu-checkout__total {
+  align-items: baseline;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.plu-checkout__total > span:first-child {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.plu-checkout__total-amounts {
+  align-items: end;
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+  text-align: right;
+}
+
+.plu-checkout__total-compare {
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.plu-checkout__total strong {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 2.2vw, 1.5rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+/* El precio se vuelve a escribir — PLU ARG
+   ---------------------------------------------------------------------------
+   Aplicar un código cambia el número que se va a cobrar, y ese cambio era un
+   reemplazo de texto en un frame: el importe viejo aparecía tachado arriba y el
+   nuevo ya estaba escrito abajo, sin que nada dijera que uno vino del otro. Es
+   el dato que la persona que canjeó vino a ver, y era el único momento del
+   flujo sin tiempo.
+
+   Ahora el importe anterior entra desde arriba y el que se cobra baja a su
+   lugar: la lectura queda "esto era, esto es". Se dispara por `key` en
+   `CheckoutBar` —el nodo se vuelve a montar cuando el importe cambia—, así que
+   también corre al recotizar por medio de pago, que es el otro momento en que
+   el número se mueve. One-shot, `transform` y `opacity`, y nada en loop. */
+.plu-checkout__total-compare {
+  animation: checkout-compare-in var(--motion-base) var(--ease-out) both;
+}
+
+.plu-checkout__total strong {
+  animation: checkout-total-settle var(--motion-base) var(--ease-out) both;
+}
+
+@keyframes checkout-compare-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes checkout-total-settle {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+}
+
+.plu-checkout__submit {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  border-radius: 8px;
+  box-shadow: none;
+  color: var(--color-brand-action-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 14.5px;
+  font-weight: 700;
+  gap: 8px;
+  justify-content: center;
+  letter-spacing: -0.005em;
+  min-height: 52px;
+  min-width: min(100%, 240px);
+  padding: 0 22px;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+}
+
+.plu-checkout__submit:hover:not(:disabled) {
+  background: var(--color-brand-action-hover);
+  border-color: var(--color-brand-action-hover);
+  transform: translateY(-1px);
+}
+
+.plu-checkout__submit:hover:not(:disabled) .plu-checkout__submit-arrow {
+  transform: translateX(3px);
+}
+
+.plu-checkout__submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.plu-checkout__submit:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.plu-checkout__submit-arrow {
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+/* Spinner del submit — primitivo global `.plu-spinner` (states.css). */
+
+[data-theme='light'] .plu-checkout__offer,
+[data-theme='light'] .plu-checkout__pill,
+[data-theme='light'] .plu-checkout__bar,
+[data-theme='light'] .plu-checkout__ledger {
+  border-color: rgba(15, 17, 23, 0.12);
+}
+
+[data-theme='light'] .plu-checkout__offer.is-selected,
+[data-theme='light'] .plu-checkout__pill.is-selected,
+[data-theme='light'] .plu-checkout__pill:focus-within {
+  border-color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .plu-checkout__deadline,
+[data-theme='light'] .plu-checkout__offer.is-selected .plu-checkout__offer-price,
+[data-theme='light'] .plu-checkout__pill-detail,
+[data-theme='light'] .plu-checkout__pill.is-selected .plu-checkout__pill-detail,
+[data-theme='light'] .plu-checkout__total strong {
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .plu-checkout__deadline {
+  border-color: color-mix(in srgb, var(--plu-gold-600) 42%, transparent);
+}
+
+@media (max-width: 640px) {
+  .plu-checkout__offer.is-featured.is-selected {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .plu-checkout__offer-price-block {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .plu-checkout__bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .plu-checkout__package {
+    display: block;
+  }
+
+  .plu-checkout__submit {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plu-checkout__offer,
+  .plu-checkout__pill,
+  .plu-checkout__submit,
+  .plu-checkout__submit-arrow {
+    transition: none;
+  }
+
+  .plu-checkout__submit-spinner,
+  .plu-checkout__total-compare,
+  .plu-checkout__total strong,
+  .plu-checkout__offer.is-unlocked,
+  .plu-checkout__offer.is-unlocked::after {
+    animation: none;
+  }
+}
+.code-scan {
+  position: relative;
+}
+
+/* Selector doblemente calificado (`.code-scan .code-scan__toggle`, no
+   `.code-scan__toggle` solo): este botón se monta dentro de filas que ya
+   tienen su propia regla `button` genérica (`.account-discount__row button`,
+   `.register-discount__row button`, `.secret-code-redeemer__controls
+   button`) con más especificidad que una sola clase. Sin este refuerzo, esa
+   regla del host gana y el botón de escaneo pierde su propio estilo según
+   en qué pantalla esté montado. */
+.code-scan .code-scan__toggle {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--institution-radius-control);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: 600 13px/1 var(--font-family);
+  gap: 7px;
+  justify-content: center;
+  min-height: 44px;
+  padding-inline: 14px;
+  white-space: nowrap;
+}
+
+.code-scan .code-scan__toggle:hover:not(:disabled) {
+  border-color: var(--color-brand-celeste);
+  color: var(--color-text-primary);
+}
+
+.code-scan .code-scan__toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.code-scan .code-scan__toggle:focus-visible,
+.code-scan .code-scan__close:focus-visible {
+  outline: var(--institution-focus-width) solid var(--color-brand-celeste);
+  outline-offset: var(--institution-focus-offset);
+}
+
+.code-scan__panel {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 12px;
+  position: absolute;
+  top: 100%;
+  width: min(320px, 88vw);
+  z-index: 30;
+}
+
+.code-scan__panel-head {
+  align-items: center;
+  color: var(--color-text-primary);
+  display: flex;
+  font: 650 13px/1.2 var(--font-family);
+  justify-content: space-between;
+}
+
+.code-scan .code-scan__close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.code-scan .code-scan__close:hover {
+  color: var(--color-text-primary);
+}
+
+.code-scan__viewport {
+  aspect-ratio: 4 / 3;
+  background: #090a0d;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.code-scan__video {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.code-scan__reticle {
+  display: grid;
+  inset: 0;
+  place-items: center;
+  pointer-events: none;
+  position: absolute;
+}
+
+.code-scan__reticle span {
+  aspect-ratio: 1;
+  border: 1.5px solid color-mix(in srgb, var(--color-brand-celeste) 75%, transparent);
+  border-radius: 10px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.32);
+  width: 62%;
+}
+
+.code-scan__error {
+  align-items: center;
+  aspect-ratio: 4 / 3;
+  color: var(--color-text-muted);
+  display: grid;
+  font-size: 12.5px;
+  gap: 8px;
+  justify-items: center;
+  line-height: 1.45;
+  padding: 12px;
+  text-align: center;
+}
+
+.code-scan__status {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin: 0;
+  min-height: 16px;
+}
+
+.code-scan__invalid {
+  color: var(--color-danger-text);
+  font-size: 12px;
+  margin: 0;
+}
+
+@media (max-width: 430px) {
+  .code-scan__panel {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+/* Reveal del canje — la llave aceptada como emisión — PLU ARG
+   ---------------------------------------------------------------------------
+   El resultado de un canje aceptado. Antes vivía como un renglón debajo del
+   input: campaña en negrita, beneficio en gris, dos `small` con los medios de
+   pago. Todo al mismo peso, así que lo que decide —qué desbloqueó— no se
+   distinguía de las notas al pie.
+
+   El material es el que ya tiene la app para las piezas que emite la
+   federación: `credential-card.css` y `code-band.css`. Se toman con los mismos
+   valores la cara en degradé 158deg, el filo de oro al 34 %, el marco interior
+   al 7 % de blanco, el grano estático y el código en el mono espaciado 0.18em
+   del número de socio. No hay lenguaje nuevo: hay el de la credencial aplicado
+   a un documento distinto.
+
+   Presupuesto: un solo acento (oro; el celeste queda para el foco, que es
+   navegación), una sola acción plena, cero cards anidadas —el panel ES la
+   pieza, las condiciones van en filas regladas y no en tarjetas—, un solo
+   efecto atmosférico estático y una sola secuencia de entrada one-shot. Sin
+   ráfaga de papel: el confeti está reservado a los tres cierres de trámite, y
+   canjear un código abre uno.
+
+   Motion: overlay en opacidad, panel en transform, contenido en un stagger de
+   cuatro pasos por `animation-delay`. Nada anima layout ni fondo, no hay
+   `transition: all` y no queda ningún loop. Bajo `prefers-reduced-motion` la
+   pieza aparece completa.
+
+   La salida es la misma entrada al revés (`animation-direction: reverse`), más
+   corta: 160ms contra los 480 de la entrada. Entrar es el momento —vale la
+   pausa—; irse no, y una salida larga se siente como una pieza que no se deja
+   cerrar. El stagger no se reproduce al revés: las líneas se van con el panel,
+   no una por una. */
+
+.promotion-reveal__overlay {
+  align-items: center;
+  animation: promotion-reveal-fade var(--motion-fast, 160ms) var(--ease-out) both;
+  background: rgba(5, 6, 9, 0.78);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 20px;
+  position: fixed;
+  /* Sobre el header (200) y a la par del resto de los modales de checkout. */
+  z-index: 210;
+}
+
+.promotion-reveal {
+  /* Espejo de code-band.css. Local y no global: el rol es "documento de canje",
+     no un color de marca nuevo. */
+  --reveal-face: linear-gradient(158deg, #161820 0%, #0c0d12 52%, #08090c 100%);
+  --reveal-wash-gold: color-mix(in oklab, var(--plu-gold-500) 15%, transparent);
+  --reveal-wash-celeste: color-mix(in oklab, var(--color-brand-celeste) 8%, transparent);
+  --reveal-edge: color-mix(in oklab, var(--plu-gold-500) 34%, rgba(255, 255, 255, 0.1));
+  --reveal-frame: color-mix(in oklab, #fff 7%, transparent);
+  --reveal-lip: rgba(255, 255, 255, 0.08);
+  --reveal-grain-a: rgba(255, 255, 255, 0.03);
+  --reveal-grain-b: rgba(255, 255, 255, 0.01);
+  --reveal-ink: color-mix(in oklab, var(--plu-gold-400) 88%, #fff);
+  --reveal-label: color-mix(in oklab, #fff 38%, transparent);
+  --reveal-copy: color-mix(in oklab, #fff 92%, transparent);
+  --reveal-body: color-mix(in oklab, #fff 62%, transparent);
+  --reveal-rule: rgba(255, 255, 255, 0.08);
+
+  animation: promotion-reveal-rise var(--motion-slow, 480ms) var(--ease-cinematic) both;
+  background:
+    radial-gradient(70% 55% at 100% 0%, var(--reveal-wash-gold) 0%, transparent 55%),
+    radial-gradient(55% 45% at 0% 100%, var(--reveal-wash-celeste) 0%, transparent 50%),
+    var(--reveal-face);
+  border: 1px solid var(--reveal-edge);
+  border-radius: var(--institution-radius-surface);
+  box-shadow:
+    inset 0 1px 0 var(--reveal-lip),
+    0 32px 90px -30px rgba(0, 0, 0, 0.75);
+  isolation: isolate;
+  max-height: min(92vh, 720px);
+  max-width: 470px;
+  overflow: hidden auto;
+  padding: 4px;
+  position: relative;
+  width: 100%;
+}
+
+/* La credencial es oscura por definición; en light se traduce a papel cálido
+   conservando el filo de oro y el marco interior, que son lo que la identifica.
+   Mismos valores que `[data-theme='light'] .code-band`. */
+[data-theme='light'] .promotion-reveal {
+  --reveal-face: linear-gradient(158deg, #ffffff 0%, #fbfaf7 52%, #f6f4ef 100%);
+  --reveal-wash-gold: color-mix(in oklab, var(--color-brand-gold-dark) 9%, transparent);
+  --reveal-wash-celeste: color-mix(in oklab, var(--color-brand-celeste) 6%, transparent);
+  --reveal-edge: color-mix(in oklab, var(--color-brand-gold-dark) 38%, rgba(15, 17, 23, 0.08));
+  --reveal-frame: rgba(15, 17, 23, 0.05);
+  --reveal-lip: rgba(255, 255, 255, 0.9);
+  --reveal-grain-a: rgba(15, 17, 23, 0.02);
+  --reveal-grain-b: rgba(15, 17, 23, 0.012);
+  --reveal-ink: #8a5f08;
+  --reveal-label: rgba(13, 14, 18, 0.45);
+  --reveal-copy: #0f1117;
+  --reveal-body: rgba(13, 14, 18, 0.66);
+  --reveal-rule: rgba(15, 17, 23, 0.1);
+
+  box-shadow:
+    inset 0 1px 0 var(--reveal-lip),
+    0 32px 90px -34px rgba(15, 17, 23, 0.34);
+}
+
+/* El panel recibe el foco inicial: es el patrón de diálogo y, siendo el
+   contenedor scrolleable, evita que el navegador abra la pieza scrolleada hasta
+   la acción (ver `PromotionRevealModal`). Sin anillo propio —el foco programático
+   no es una navegación del atleta— y sin quitarle el anillo a nada de adentro:
+   los controles conservan el suyo. */
+.promotion-reveal:focus {
+  outline: none;
+}
+
+.promotion-reveal__grain {
+  background:
+    linear-gradient(122deg, transparent 36%, var(--reveal-grain-a) 50%, transparent 64%),
+    repeating-linear-gradient(135deg, var(--reveal-grain-b) 0 1px, transparent 1px 13px);
+  inset: 0;
+  opacity: 0.55;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.promotion-reveal__frame {
+  border: 1px solid var(--reveal-frame);
+  border-radius: 11px;
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  position: relative;
+  z-index: 2;
+}
+
+/* Stagger de entrada: cuatro pasos y se termina. El grano y el marco no entran
+   —son el material de la pieza, no contenido—. */
+.promotion-reveal__frame > * {
+  animation: promotion-reveal-line var(--motion-base, 240ms) var(--ease-out) both;
+}
+
+.promotion-reveal__frame > *:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.promotion-reveal__frame > *:nth-child(3) {
+  animation-delay: 100ms;
+}
+
+.promotion-reveal__frame > *:nth-child(4) {
+  animation-delay: 140ms;
+}
+
+.promotion-reveal__frame > *:nth-child(n + 5) {
+  animation-delay: 180ms;
+}
+
+.promotion-reveal__head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+/* El tracking de 0.28em es el de `.credential-card__mark` y `.code-band__mark`:
+   es lo que hace que la línea se lea como emisión y no como etiqueta. */
+.promotion-reveal__mark {
+  color: var(--reveal-label);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.promotion-reveal__close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--institution-radius-control);
+  color: var(--reveal-label);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  /* Target táctil completo sin agrandar el ícono ni descuadrar la fila. */
+  height: 44px;
+  justify-content: center;
+  margin: -12px -8px -12px 0;
+  padding: 0;
+  transition: color var(--transition-fast);
+  width: 44px;
+}
+
+.promotion-reveal__close:hover {
+  color: var(--reveal-copy);
+}
+
+.promotion-reveal__close:focus-visible,
+.promotion-reveal__continue:focus-visible,
+.promotion-reveal__dismiss:focus-visible {
+  outline: var(--institution-focus-width) solid var(--color-brand-celeste);
+  outline-offset: var(--institution-focus-offset);
+}
+
+.promotion-reveal__eyebrow {
+  color: var(--reveal-ink);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+/* El titular: el beneficio. Escala de H2 acotada porque la frase entra en el
+   ancho del panel, no en el de la página. */
+.promotion-reveal__headline {
+  color: var(--reveal-copy);
+  font-family: var(--font-display);
+  font-size: clamp(21px, 5.2vw, 27px);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.18;
+  margin: 0;
+  max-width: 24ch;
+}
+
+.promotion-reveal__lead {
+  color: var(--reveal-body);
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 46ch;
+}
+
+.promotion-reveal__key {
+  align-items: center;
+  border-block: 1px solid var(--reveal-rule);
+  display: flex;
+  gap: 11px;
+  margin: 2px 0 0;
+  padding-block: 12px;
+}
+
+.promotion-reveal__key-seal {
+  align-items: center;
+  border: 1px solid var(--reveal-edge);
+  border-radius: 6px;
+  color: var(--reveal-ink);
+  display: inline-flex;
+  flex: none;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+
+/* El código, con el mismo tratamiento que el número de socio de la credencial
+   (`.credential-card__code-value`) y que `.code-band__input`. */
+.promotion-reveal__key-value {
+  color: var(--reveal-ink);
+  font-family: var(--font-mono);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+
+/* Condiciones: filas regladas, no tarjetas. Es el registro de lo que el código
+   habilita, y se lee de un tirón. */
+.promotion-reveal__terms {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.promotion-reveal__term {
+  display: grid;
+  gap: 2px 16px;
+  grid-template-columns: minmax(0, 8.5rem) minmax(0, 1fr);
+  padding-block: 9px;
+}
+
+.promotion-reveal__term + .promotion-reveal__term {
+  border-block-start: 1px solid var(--reveal-rule);
+}
+
+.promotion-reveal__term dt {
+  color: var(--reveal-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+.promotion-reveal__term dd {
+  color: var(--reveal-body);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.promotion-reveal__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-top: 4px;
+}
+
+/* Chip metálico: el mismo degradé del chip de la credencial y de
+   `.code-band__chip`. Es la única acción plena de la pieza. */
+.promotion-reveal__continue {
+  align-items: center;
+  background: linear-gradient(145deg, #f8e7a8 0%, #e0b03a 42%, #a9790f 72%, #f3e6b0 100%);
+  border: 0;
+  border-radius: var(--institution-radius-control);
+  color: #14181f;
+  cursor: pointer;
+  display: inline-flex;
+  font: 700 12px/1 var(--font-family);
+  gap: 8px;
+  justify-content: center;
+  letter-spacing: 0.08em;
+  min-height: 44px;
+  padding-inline: 18px;
+  text-transform: uppercase;
+  transition:
+    filter var(--transition-fast),
+    transform var(--transition-fast);
+  white-space: nowrap;
+}
+
+.promotion-reveal__continue:hover {
+  filter: brightness(1.06);
+}
+
+.promotion-reveal__continue:active {
+  transform: translateY(1px);
+}
+
+.promotion-reveal__dismiss {
+  background: transparent;
+  border: 0;
+  color: var(--reveal-label);
+  cursor: pointer;
+  font: 400 12px/1 var(--font-family);
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast);
+}
+
+.promotion-reveal__dismiss:hover {
+  color: var(--reveal-copy);
+}
+
+/* Saliente. `reverse` sobre las mismas dos animaciones de entrada: una sola
+   definición por movimiento, en vez de un par de keyframes de salida que
+   después se desincronizan del de entrada cuando alguno se toca.
+
+   `pointer-events: none` porque la pieza sigue en el DOM esos 160ms: sin eso un
+   segundo click cae sobre un panel que ya se está yendo. */
+.promotion-reveal__overlay.is-closing {
+  animation: promotion-reveal-fade var(--motion-fast, 160ms) var(--ease-out) reverse both;
+  pointer-events: none;
+}
+
+.promotion-reveal__overlay.is-closing .promotion-reveal {
+  animation: promotion-reveal-rise var(--motion-fast, 160ms) var(--ease-out) reverse both;
+}
+
+.promotion-reveal__overlay.is-closing .promotion-reveal__frame > * {
+  animation: none;
+}
+
+@keyframes promotion-reveal-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes promotion-reveal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+}
+
+@keyframes promotion-reveal-line {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (max-width: 430px) {
+  .promotion-reveal__overlay {
+    /* En teléfono la pieza se apoya abajo: el pulgar llega a la acción sin
+       recorrer la pantalla. */
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .promotion-reveal {
+    border-block-end: 0;
+    border-radius: var(--institution-radius-surface) var(--institution-radius-surface) 0 0;
+    max-height: 92vh;
+  }
+
+  .promotion-reveal__term {
+    /* Etiqueta arriba del valor: dos columnas a 360px dejan el valor en tres
+       palabras por renglón. */
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .promotion-reveal__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .promotion-reveal__continue {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .promotion-reveal__overlay,
+  .promotion-reveal,
+  .promotion-reveal__frame > *,
+  .promotion-reveal__overlay.is-closing,
+  .promotion-reveal__overlay.is-closing .promotion-reveal {
+    animation: none;
+  }
+}
+/*
+ * transfer-proof.css — Comprobante de transferencia
+ *
+ * Lo importa `TransferProofUpload.jsx`, así que el CSS viaja en el chunk del
+ * componente y llega a las dos pantallas que lo montan.
+ */
+
+.account-transfer-proof {
+  display: grid;
+  gap: 8px;
+}
+
+.account-transfer-proof__input {
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  width: 0.1px;
+}
+
+.account-transfer-proof__drop {
+  align-items: center;
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 44px;
+  padding: 10px 0;
+  transition: color var(--motion-fast) var(--ease-out);
+}
+
+.account-transfer-proof__drop svg {
+  color: var(--color-brand-gold);
+  flex: none;
+}
+
+.account-transfer-proof__drop:hover,
+.account-transfer-proof__input:focus-visible + .account-transfer-proof__drop {
+  color: var(--color-text-primary);
+}
+
+.account-transfer-proof__drop:hover svg,
+.account-transfer-proof__input:focus-visible + .account-transfer-proof__drop svg {
+  color: var(--color-brand-gold);
+}
+
+.account-transfer-proof__input:focus-visible + .account-transfer-proof__drop {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 4px;
+}
+
+.account-transfer-proof__drop.is-busy {
+  cursor: wait;
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.account-transfer-proof__copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.account-transfer-proof__copy strong {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.account-transfer-proof__hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+/* Spinner de subida — primitivo `.plu-spinner` (states.css) en dorado. */
+.account-transfer-proof__spinner {
+  --spinner-accent: var(--color-brand-gold);
+  --spinner-track: color-mix(in oklab, var(--color-brand-gold) 28%, transparent);
+}
+
+.account-transfer-proof__error {
+  color: var(--color-brand-red);
+  font-size: 12.5px;
+  margin: 0;
+}
+
+.account-transfer-proof__done {
+  align-items: flex-start;
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 13.5px;
+  gap: 10px;
+  line-height: 1.45;
+  margin: 0;
+  padding-top: 14px;
+}
+
+.account-transfer-proof__done svg {
+  color: var(--color-brand-gold);
+  flex: none;
+  margin-top: 2px;
+}
+
+[data-theme='light'] .account-transfer-proof__drop svg,
+[data-theme='light'] .account-transfer-proof__done svg {
+  color: var(--plu-gold-600);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-transfer-proof__drop {
+    transition: none;
+  }
+}
+/*
+ * transfer-pay-modal.css — Recibo de transferencia
+ *
+ * Lo importa TransferPayModal para que el checkout de inscripción tenga los
+ * mismos estilos que la afiliación de cuenta, sin arrastrar account.css.
+ *
+ * Dos scopes alcanzan estas reglas: el modal (`.account-payment-modal--transfer`)
+ * y la liquidación en línea de la ficha del código-paquete
+ * (`.bundle-section__settle`). El segundo apuntaba a `.account-offer__manual`,
+ * el contenedor de la ficha de oferta exclusiva que se retiró: ninguna pantalla
+ * lo emitía más, así que el recibo de la ficha nueva se dibujaba sin sus
+ * reglas — datos bancarios sin grilla, textarea del navegador y el botón de
+ * copiar sin su área táctil de 44px.
+ */
+
+.account-payment-modal__overlay {
+  align-items: center;
+  animation: account-payment-modal-fade var(--motion-base, 280ms) var(--ease-out, ease) both;
+  background: rgba(5, 6, 9, 0.76);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 20px;
+  position: fixed;
+  z-index: var(--z-modal, 400);
+}
+
+.account-payment-modal {
+  animation: account-payment-modal-rise var(--motion-base, 280ms) var(--ease-out, ease) both;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+  max-width: 540px;
+  padding: 26px;
+  width: 100%;
+}
+
+.account-payment-modal--transfer {
+  display: grid;
+  gap: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: min(90vh, 720px);
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+}
+
+.account-payment-modal--transfer::before {
+  background: var(--plu-gradient-stripe, var(--gradient-brand));
+  content: '';
+  height: 2px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 1;
+}
+
+.account-payment-modal__header {
+  align-items: start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.account-payment-modal--transfer .account-payment-modal__header {
+  align-items: start;
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding: 22px 24px 16px;
+}
+
+.account-payment-modal--transfer .account-payment-modal__body {
+  display: grid;
+  gap: 16px;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 4px 24px 8px;
+}
+
+.account-payment-modal--transfer .account-payment-modal__footer {
+  border-top: 1px solid var(--color-border-subtle);
+  padding: 14px 24px calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+.account-payment-modal--transfer .account-transfer-receipt__heading {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.account-payment-modal--transfer .account-payment-modal__header h2 {
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  line-height: 1.3;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.account-payment-modal--transfer .account-transfer-receipt__total {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.account-payment-modal--transfer .account-transfer-receipt__total strong {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 4vw, 1.85rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.account-payment-modal__close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  flex: none;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.account-payment-modal--transfer .account-payment-modal__close {
+  margin-top: -6px;
+  margin-right: -6px;
+}
+
+.account-payment-modal--transfer .account-payment-modal__close:hover {
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  color: var(--color-text-primary);
+}
+
+.account-payment-modal--transfer .account-payment-modal__close:focus-visible,
+.account-payment-modal--transfer .account-secondary-action:focus-visible,
+:is(.account-payment-modal--transfer, .bundle-section__settle)
+  .account-transfer-data__copy:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-payment-modal__footnote {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 46ch;
+}
+
+.account-payment-modal--transfer .account-secondary-action {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 600;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 22px;
+  width: 100%;
+}
+
+.account-payment-modal--transfer .account-secondary-action:hover {
+  background: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+  color: var(--color-text-primary);
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-receipt {
+  display: grid;
+  gap: 0;
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data div {
+  align-items: center;
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 8px 16px;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  padding: 11px 0;
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data dt {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data dd {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle)
+  .account-transfer-data__row--alias
+  .account-transfer-data__text {
+  font-family: ui-monospace, 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data__value {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data__text {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data__meta {
+  color: var(--color-text-muted);
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data__copy {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  position: relative;
+  width: 28px;
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data__copy::after {
+  content: '';
+  inset: -8px;
+  position: absolute;
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data__copy::before {
+  background: var(--color-bg-elevated, var(--color-bg-surface));
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  content: attr(data-tooltip);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  opacity: 0;
+  padding: 5px 8px;
+  pointer-events: none;
+  position: absolute;
+  right: calc(100% + 8px);
+  text-transform: uppercase;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: opacity var(--motion-fast, 160ms) var(--ease-out);
+  white-space: nowrap;
+  z-index: 2;
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data__copy:hover,
+:is(.account-payment-modal--transfer, .bundle-section__settle)
+  .account-transfer-data__copy:focus-visible {
+  color: var(--color-brand-celeste);
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle)
+  .account-transfer-data__copy:focus-visible::before {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  :is(.account-payment-modal--transfer, .bundle-section__settle)
+    .account-transfer-data__copy:hover::before {
+    opacity: 1;
+  }
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-warning {
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: none;
+  padding: 14px 0 0;
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-notes {
+  display: grid;
+  gap: 6px;
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-notes span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-notes textarea {
+  background: var(--color-bg-inset, var(--color-bg-surface));
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: 13px;
+  min-height: 44px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+:is(.account-payment-modal--transfer, .bundle-section__settle)
+  .account-transfer-notes
+  textarea:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+[data-theme='light'] .account-payment-modal--transfer .account-transfer-receipt__total strong {
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light']
+  :is(.account-payment-modal--transfer, .bundle-section__settle)
+  .account-transfer-data__copy {
+  color: var(--color-brand-celeste);
+}
+
+.manual-payment-confirmation {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 8px;
+  margin-top: 2px;
+  padding-top: 12px;
+}
+
+.manual-payment-confirmation__financing {
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.manual-payment-confirmation__action {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  border-radius: 10px;
+  color: var(--color-brand-action-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: 650 14px/1 var(--font-family);
+  gap: 9px;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 18px;
+  width: 100%;
+}
+
+.manual-payment-confirmation__action:hover:not(:disabled) {
+  background: var(--color-brand-action-hover, var(--color-brand-action));
+}
+
+.manual-payment-confirmation__action:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.manual-payment-confirmation__action:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.manual-payment-confirmation__legal,
+.manual-payment-confirmation__error,
+.manual-payment-confirmation--done p {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.manual-payment-confirmation__error {
+  color: var(--color-danger, #e57373);
+}
+
+.manual-payment-confirmation--done {
+  align-items: start;
+  background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 28%, transparent);
+  border-radius: 10px;
+  color: var(--color-brand-celeste);
+  gap: 10px;
+  grid-template-columns: auto 1fr;
+  margin-top: 2px;
+  padding: 12px;
+}
+
+.manual-payment-confirmation--done strong {
+  color: var(--color-text-primary);
+  display: block;
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+
+/* El sello del cierre financiado hereda su propio bloque (confirmation-seal.css)
+   y sólo necesita separarse del recibo con la misma regla que el resto de los
+   estados de este panel. Sin borde ni fondo propios: dos superficies encimadas
+   dentro del recibo se leerían como una card anidada. */
+.manual-payment-confirmation__seal {
+  border-top: 1px solid var(--color-border-subtle);
+  margin-top: 2px;
+  padding-top: 14px;
+}
+
+.manual-payment-confirmation__granted {
+  display: grid;
+  gap: 14px;
+}
+
+/* Única acción que queda una vez estampado el sello: vuelve al perfil cuando
+   la persona esté lista, sin apurarla con una navegación automática que
+   se llevaba puesta la lectura del plazo. */
+.manual-payment-confirmation__profile-cta {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font: 650 13.5px/1 var(--font-family);
+  gap: 8px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  transition: background var(--motion-fast, 160ms) var(--ease-out);
+  width: 100%;
+}
+
+.manual-payment-confirmation__profile-cta:hover {
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+}
+
+.manual-payment-confirmation__profile-cta:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manual-payment-confirmation__profile-cta {
+    transition: none;
+  }
+}
+
+.manual-payment-confirmation__spinner {
+  animation: manual-payment-confirmation-spin 0.8s linear infinite;
+}
+
+@keyframes manual-payment-confirmation-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes account-payment-modal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes account-payment-modal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-payment-modal__overlay,
+  .account-payment-modal,
+  .manual-payment-confirmation__spinner {
+    animation: none;
+  }
+
+  :is(.account-payment-modal--transfer, .bundle-section__settle)
+    .account-transfer-data__copy::before {
+    transition: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .account-payment-modal__overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .account-payment-modal {
+    border-radius: 14px 14px 0 0;
+  }
+
+  .account-payment-modal--transfer {
+    max-height: min(92vh, 780px);
+  }
+
+  .account-payment-modal--transfer .account-payment-modal__header {
+    padding: 18px 18px 14px;
+  }
+
+  .account-payment-modal--transfer .account-payment-modal__body {
+    padding: 2px 18px 6px;
+  }
+
+  .account-payment-modal--transfer .account-payment-modal__footer {
+    padding: 12px 18px calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Pagar dentro del plazo — la segunda salida del financiamiento
+   ---------------------------------------------------------------------------
+   Sólo aparece con financiamiento encendido. Es secundaria por jerarquía —
+   pagar sigue siendo lo que cierra el trámite— pero no está escondida:
+   esconderla era lo que empujaba a declarar un pago inexistente para poder
+   competir. Fantasma sobre la misma columna que la acción plena, sin acento de
+   color propio: el oro ya está usado arriba. */
+.manual-payment-confirmation__defer {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font: 600 13px/1 var(--font-family);
+  gap: 8px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  transition: border-color var(--motion-fast) var(--ease-out);
+  width: 100%;
+}
+
+.manual-payment-confirmation__defer:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+}
+
+.manual-payment-confirmation__defer:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.manual-payment-confirmation__defer:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+.registration-access-code {
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 46%, transparent);
+  border-left: 2px solid var(--color-brand-celeste);
+  border-radius: 2px;
+  display: grid;
+  gap: 0.8rem;
+  margin: 0;
+  min-width: 0;
+  padding: 0.95rem;
+}
+
+.registration-access-code legend {
+  align-items: center;
+  color: var(--color-text-primary);
+  display: inline-flex;
+  font-size: 0.88rem;
+  font-weight: 700;
+  gap: 0.42rem;
+  padding: 0 0.35rem;
+}
+
+.registration-access-code > p {
+  color: var(--color-text-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 60ch;
+}
+
+.registration-access-code label {
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 650;
+  gap: 0.4rem;
+}
+
+.registration-access-code input {
+  background: var(--color-bg-secondary);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 18%, transparent);
+  border-radius: 2px;
+  color: var(--color-text-primary);
+  font: inherit;
+  min-height: 44px;
+  padding: 0 0.72rem;
+}
+
+.registration-access-code input:focus-visible {
+  border-color: var(--color-brand-celeste);
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 38%, transparent);
+  outline-offset: 2px;
+}
+
+/* Puerta de tanda privada — modal que corta el checkout hasta que el código
+   valide. Estilos propios y no los de `account.css`: el mismo modal lo usan la
+   página de inscripción y la sección de afiliación del perfil, que no comparten
+   hoja de estilos. */
+
+.registration-access-gate__overlay {
+  align-items: center;
+  animation: registration-access-gate-fade var(--motion-fast, 160ms) var(--ease-out, ease) both;
+  background: rgba(5, 6, 9, 0.78);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 20px;
+  position: fixed;
+  z-index: 210;
+}
+
+.registration-access-gate {
+  animation: registration-access-gate-rise var(--motion-base, 240ms) var(--ease-out, ease) both;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+  display: grid;
+  gap: 0.7rem;
+  max-height: min(92vh, 640px);
+  max-width: 460px;
+  overflow: auto;
+  padding: 22px 22px calc(18px + env(safe-area-inset-bottom, 0px));
+  width: 100%;
+}
+
+.registration-access-gate__header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.registration-access-gate__badge {
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 46%, transparent);
+  border-left: 2px solid var(--color-brand-celeste);
+  border-radius: 2px;
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 700;
+  gap: 0.4rem;
+  letter-spacing: 0.04em;
+  padding: 0.3rem 0.55rem;
+  text-transform: uppercase;
+}
+
+.registration-access-gate__close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 2px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  transition: color var(--motion-fast, 160ms) var(--ease-out, ease);
+  width: 44px;
+}
+
+.registration-access-gate__close:hover {
+  color: var(--color-text-primary);
+}
+
+.registration-access-gate h2 {
+  color: var(--color-text-primary);
+  font-size: 1.14rem;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.registration-access-gate__lead {
+  color: var(--color-text-muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 46ch;
+}
+
+.registration-access-gate__form {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+.registration-access-gate__form fieldset {
+  border: 0;
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.registration-access-gate__form label {
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 650;
+  gap: 0.4rem;
+}
+
+.registration-access-gate__form input {
+  background: var(--color-bg-secondary);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 18%, transparent);
+  border-radius: 2px;
+  color: var(--color-text-primary);
+  font: inherit;
+  min-height: 44px;
+  padding: 0 0.72rem;
+  width: 100%;
+}
+
+.registration-access-gate__form input:focus-visible {
+  border-color: var(--color-brand-celeste);
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 38%, transparent);
+  outline-offset: 2px;
+}
+
+.registration-access-gate__error {
+  background: var(--color-danger-bg);
+  border-left: 2px solid var(--color-danger-text);
+  color: var(--color-danger-text);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+}
+
+.registration-access-gate__actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
+.registration-access-gate__cancel,
+.registration-access-gate__submit {
+  align-items: center;
+  border-radius: 2px;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 650;
+  gap: 0.45rem;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 1rem;
+  transition:
+    background-color var(--motion-fast, 160ms) var(--ease-out, ease),
+    color var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.registration-access-gate__cancel {
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-secondary);
+}
+
+.registration-access-gate__cancel:hover:not(:disabled) {
+  color: var(--color-text-primary);
+}
+
+.registration-access-gate__submit {
+  background: var(--color-brand-celeste);
+  border: 1px solid var(--color-brand-celeste);
+  color: #05060a;
+}
+
+.registration-access-gate__submit:disabled,
+.registration-access-gate__cancel:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.registration-access-gate__spinner {
+  animation: registration-access-gate-spin 900ms linear infinite;
+}
+
+.registration-access-gate__footnote {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Aviso que queda en el checkout cuando cierran el modal sin desbloquear. */
+.registration-access-locked {
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 46%, transparent);
+  border-left: 2px solid var(--color-brand-celeste);
+  border-radius: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  justify-content: space-between;
+  padding: 0.85rem 0.95rem;
+}
+
+.registration-access-locked p {
+  color: var(--color-text-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 48ch;
+}
+
+.registration-access-locked strong {
+  color: var(--color-text-primary);
+  display: block;
+  font-size: 0.88rem;
+}
+
+.registration-access-locked button {
+  align-items: center;
+  background: var(--color-brand-celeste);
+  border: 1px solid var(--color-brand-celeste);
+  border-radius: 2px;
+  color: #05060a;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 650;
+  gap: 0.42rem;
+  min-height: 44px;
+  padding: 0 0.95rem;
+}
+
+.registration-access-unlocked {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: 0.82rem;
+  gap: 0.42rem;
+  margin: 0;
+}
+
+@keyframes registration-access-gate-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes registration-access-gate-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes registration-access-gate-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .registration-access-gate__overlay,
+  .registration-access-gate {
+    animation: none;
+  }
+
+  .registration-access-gate__spinner {
+    animation-duration: 2400ms;
+  }
+}
+
+@media (max-width: 520px) {
+  .registration-access-gate {
+    padding: 18px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .registration-access-gate__actions {
+    flex-direction: column-reverse;
+  }
+
+  .registration-access-gate__cancel,
+  .registration-access-gate__submit {
+    width: 100%;
+  }
+
+  .registration-access-locked button {
+    width: 100%;
+  }
+}
+.payment-recovery-panel {
+  background: color-mix(in srgb, var(--color-brand-gold) 6%, var(--color-bg-surface));
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 34%, transparent);
+  border-radius: 6px;
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.payment-recovery-panel__copy {
+  display: grid;
+  gap: 5px;
+}
+
+.payment-recovery-panel__eyebrow {
+  color: var(--color-brand-gold);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.payment-recovery-panel h2 {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.payment-recovery-panel p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 54ch;
+}
+
+.payment-recovery-panel__summary {
+  align-items: baseline;
+  border-block: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+
+.payment-recovery-panel__summary span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.payment-recovery-panel__summary strong {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.payment-recovery-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.payment-recovery-panel__transfer,
+.payment-recovery-panel__contact {
+  align-items: center;
+  border-radius: 3px;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 8px;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 14px;
+  text-decoration: none;
+}
+
+.payment-recovery-panel__transfer {
+  background: var(--color-brand-gold);
+  border: 1px solid var(--color-brand-gold);
+  color: var(--color-bg-page);
+  cursor: pointer;
+}
+
+.payment-recovery-panel__transfer:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.payment-recovery-panel__contact {
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+}
+
+.payment-recovery-panel__transfer:hover:not(:disabled),
+.payment-recovery-panel__contact:hover {
+  filter: brightness(1.08);
+}
+
+.payment-recovery-panel__note {
+  color: var(--color-text-muted) !important;
+  font-size: 11.5px !important;
+}
+
+@media (max-width: 540px) {
+  .payment-recovery-panel__actions > * {
+    flex: 1 1 100%;
+  }
+}
+/* Sello — el canje con el registro de la credencial — PLU ARG
+   ---------------------------------------------------------------------------
+   Una sola hoja para las superficies habilitadas de canje: la ficha Beneficios
+   de Mi cuenta (`SecretOfferCodeRedeemer`) y los campos integrados a los
+   checkouts de inscripción (`.register-discount`) y afiliación
+   (`.account-discount`). Antes cada una tenía su propia caja
+   rellena con el botón en oro macizo: tres formularios que no se distinguían de
+   un campo de contacto.
+
+   La tesis: la app ya tiene una pieza lujosa —la credencial digital— y el canje
+   no necesita un lenguaje nuevo, necesita el de ella. De `credential-card.css`
+   se toman, con los mismos valores: la cara en degradé 158deg, el filo de oro al
+   34 %, el marco interior al 7 % de blanco, el grano, y el código en el mismo
+   mono espaciado 0.18em que el número de socio. La acción es su chip metálico.
+
+   Presupuesto: un solo acento (oro; el celeste es navegación y acá no se usa),
+   una sola acción plena por bloque, cero cards anidadas —la banda es la única
+   superficie propia y va sin fondo detrás—, y ningún loop: el grano y los lavados
+   son estáticos.
+
+   El estado no se pinta, se dice: la ficha superior lleva el sello y el estado en
+   palabras (`Sin canjear`, `Validando`, `Aceptada`, `No reconocida`, `Aplicado`),
+   igual que un documento emitido. */
+
+.code-band {
+  /* Espejo de credential-card.css. Local y no global: el rol es "banda de
+     canje", no un color de marca nuevo. */
+  --band-face: linear-gradient(158deg, #161820 0%, #0c0d12 52%, #08090c 100%);
+  --band-wash-gold: color-mix(in oklab, var(--plu-gold-500) 14%, transparent);
+  --band-wash-celeste: color-mix(in oklab, var(--color-brand-celeste) 8%, transparent);
+  --band-edge: color-mix(in oklab, var(--plu-gold-500) 34%, rgba(255, 255, 255, 0.1));
+  --band-frame: color-mix(in oklab, #fff 7%, transparent);
+  --band-lip: rgba(255, 255, 255, 0.08);
+  --band-grain-a: rgba(255, 255, 255, 0.03);
+  --band-grain-b: rgba(255, 255, 255, 0.01);
+  --band-ink: color-mix(in oklab, var(--plu-gold-400) 88%, #fff);
+  --band-label: color-mix(in oklab, #fff 38%, transparent);
+  --band-shadow: 0 18px 34px -22px rgba(0, 0, 0, 0.7);
+
+  background:
+    radial-gradient(70% 55% at 100% 0%, var(--band-wash-gold) 0%, transparent 55%),
+    radial-gradient(55% 45% at 0% 100%, var(--band-wash-celeste) 0%, transparent 50%),
+    var(--band-face);
+  border: 1px solid var(--band-edge);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 1px 0 var(--band-lip),
+    var(--band-shadow);
+  isolation: isolate;
+  max-width: 470px;
+  overflow: hidden;
+  padding: 3px;
+  position: relative;
+  transition: border-color var(--transition-fast);
+  width: 100%;
+}
+
+/* La credencial es oscura por definición; en light se traduce a papel cálido
+   conservando el filo de oro y el marco interior, que son lo que la identifica.
+   `--color-brand-gold-dark` es el oro que este repo ya elige cuando el gold-500
+   no llega a contraste sobre blanco. */
+[data-theme='light'] .code-band {
+  --band-face: linear-gradient(158deg, #ffffff 0%, #fbfaf7 52%, #f6f4ef 100%);
+  --band-wash-gold: color-mix(in oklab, var(--color-brand-gold-dark) 8%, transparent);
+  --band-wash-celeste: color-mix(in oklab, var(--color-brand-celeste) 6%, transparent);
+  --band-edge: color-mix(in oklab, var(--color-brand-gold-dark) 38%, rgba(15, 17, 23, 0.08));
+  --band-frame: rgba(15, 17, 23, 0.05);
+  --band-lip: rgba(255, 255, 255, 0.9);
+  --band-grain-a: rgba(15, 17, 23, 0.02);
+  --band-grain-b: rgba(15, 17, 23, 0.012);
+  --band-ink: #8a5f08;
+  --band-label: rgba(13, 14, 18, 0.45);
+  --band-shadow: 0 14px 28px -20px rgba(15, 17, 23, 0.3);
+}
+
+/* Foco dentro de la banda: el filo sube a oro pleno. Es la única respuesta de
+   material que tiene la pieza, y reemplaza al típico anillo azul de input. */
+.code-band:focus-within {
+  --band-edge: color-mix(in oklab, var(--plu-gold-500) 58%, transparent);
+}
+
+[data-theme='light'] .code-band:focus-within {
+  --band-edge: color-mix(in oklab, var(--color-brand-gold-dark) 62%, transparent);
+}
+
+/* Rechazo. `[data-state='error']` además de la clase: los dos checkouts ponen
+   ambos y el canje de Mi cuenta también, así el contrato del atributo alcanza
+   solo —es el mismo que engancha el motion más abajo—. */
+.code-band--error,
+.code-band[data-state='error'] {
+  --band-edge: color-mix(in oklab, var(--color-danger-text) 46%, rgba(255, 255, 255, 0.1));
+}
+
+/* En tema claro el filo rojo no llegaba a pintarse: `[data-theme='light']
+   .code-band` es (0,2,0) y le ganaba a `.code-band--error`, que es (0,1,0), sin
+   importar el orden. El rechazo quedaba dicho sólo por la palabra de la ficha, y
+   la banda —que es la pieza— seguía con su filo de oro como si nada. Mismo
+   selector con tema para que empate y gane por orden. El foco sigue arriba de
+   los dos a propósito: si el atleta volvió al campo a corregir, la respuesta que
+   importa es la del campo. */
+[data-theme='light'] .code-band--error,
+[data-theme='light'] .code-band[data-state='error'] {
+  --band-edge: color-mix(in oklab, var(--color-danger-text) 58%, rgba(15, 17, 23, 0.08));
+}
+
+.code-band__grain {
+  background:
+    linear-gradient(122deg, transparent 36%, var(--band-grain-a) 50%, transparent 64%),
+    repeating-linear-gradient(135deg, var(--band-grain-b) 0 1px, transparent 1px 13px);
+  inset: 0;
+  opacity: 0.55;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.code-band__frame {
+  border: 1px solid var(--band-frame);
+  border-radius: 7px;
+  display: grid;
+  gap: 12px;
+  /* La columna implícita es `auto`, y su mínimo es el min-content de las filas:
+     una fila con un mínimo inflado (ver el chip en el media query de abajo)
+     empujaba la pista más allá de la banda y la banda —que es `overflow:
+     hidden`— recortaba el estado y el código. Con la pista libre de crecer por
+     mínimos, la fila envuelve como estaba previsto. */
+  grid-template-columns: minmax(0, 1fr);
+  padding: 15px 17px;
+  position: relative;
+  z-index: 2;
+}
+
+.code-band__head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  justify-content: space-between;
+}
+
+/* El tracking de 0.28em es el de `.credential-card__mark`: es lo que hace que
+   la línea se lea como emisión y no como etiqueta de formulario. */
+.code-band__mark {
+  color: var(--band-label);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.code-band__status {
+  color: var(--band-label);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.code-band__status--done {
+  color: var(--band-ink);
+}
+
+.code-band__status--error {
+  color: var(--color-danger-text);
+}
+
+/* Envuelve por ANCHO DISPONIBLE y no por viewport: el mismo widget se monta en
+   la tarjeta de Mi cuenta, en el panel de Entradas y a ancho completo en
+   Pitbull. Cuando el código y la acción no entran juntos, la acción baja a su
+   propio renglón en vez de salirse de la banda. */
+.code-band__row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+/* El código, con el mismo tratamiento que el número de socio de la credencial
+   (`.credential-card__code-value`): mono, 600, 0.18em, tinta de oro. */
+.code-band__input,
+.code-band__code {
+  background: transparent;
+  border: 0;
+  color: var(--band-ink);
+  /* 10ch de base: el código puede encogerse hasta ahí antes de que la fila
+     envuelva, y nunca fuerza el ancho de la banda. */
+  flex: 1 1 10ch;
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  min-width: 0;
+  text-transform: uppercase;
+}
+
+.code-band__input {
+  min-height: 44px;
+  padding: 0;
+}
+
+.code-band__input::placeholder {
+  color: var(--band-label);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.code-band__input:focus-visible {
+  outline: var(--institution-focus-width) solid var(--color-brand-celeste);
+  outline-offset: var(--institution-focus-offset);
+}
+
+.code-band__input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.code-band__amount {
+  color: var(--color-text-primary);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.code-band__amount span {
+  color: var(--band-label);
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+/* Chip metálico: el mismo degradé del chip de la credencial. Es la única
+   acción plena del bloque. */
+.code-band__chip {
+  align-items: center;
+  background: linear-gradient(145deg, #f8e7a8 0%, #e0b03a 42%, #a9790f 72%, #f3e6b0 100%);
+  border: 0;
+  border-radius: var(--institution-radius-control);
+  color: #14181f;
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font: 700 12px/1 var(--font-family);
+  gap: 7px;
+  justify-content: center;
+  letter-spacing: 0.08em;
+  /* Al final de la fila, y a la derecha también cuando quedó sola en su
+     renglón. */
+  margin-left: auto;
+  min-height: 44px;
+  padding-inline: 16px;
+  text-transform: uppercase;
+  transition:
+    filter var(--transition-fast),
+    transform var(--transition-fast);
+  white-space: nowrap;
+}
+
+.code-band__chip:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.code-band__chip:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.code-band__chip:focus-visible {
+  outline: var(--institution-focus-width) solid var(--color-brand-celeste);
+  outline-offset: var(--institution-focus-offset);
+}
+
+.code-band__chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Validando: el chip queda cuadrado, con el spinner solo (ver
+   `SecretOfferCodeRedeemer`). 44px es el target táctil completo, y le devuelve
+   al campo los ~120px que la palabra le sacaba —que es lo que hace que un
+   código largo se pueda leer justo mientras se valida, en vez de quedar cortado
+   a media palabra—. En teléfono la regla del final del archivo le deja el ancho
+   completo: ahí la fila ya envuelve y el campo no compite con nada. */
+.code-band[data-state='checking'] .code-band__chip {
+  padding-inline: 0;
+  width: 44px;
+}
+
+/* Escaneo dentro de la banda: sólo el ícono. El selector lleva tres clases
+   porque `code-scan.css` refuerza el suyo con dos (`.code-scan
+   .code-scan__toggle`) justamente para ganarle a las filas que lo hospedan. */
+.code-band .code-scan .code-scan__toggle {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  gap: 0;
+  min-height: 44px;
+  padding-inline: 0;
+  width: 30px;
+}
+
+.code-band .code-scan .code-scan__toggle:hover:not(:disabled) {
+  color: var(--band-ink);
+}
+
+.code-band .code-scan__label {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* La prosa que acompaña a la banda vive afuera: la banda es la pieza, no el
+   contenedor de todo el bloque. */
+.code-band-hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.code-band-error {
+  color: var(--color-danger-text);
+  font-size: 12px;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.code-band-done {
+  display: grid;
+  gap: 3px;
+}
+
+.code-band-done strong {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.code-band-done span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* Reabrir el anuncio del canje. Vive en esta hoja y no en la del canje
+   universal porque la usan las dos superficies vivas —Afiliación e
+   Inscripción—, y `secret-code-redeemer.css` no está importada en ninguna de
+   las dos: ahí el botón habría salido sin estilo. Va dentro del registro y no
+   en la fila de acciones a propósito: abajo compite con la acción plena, y acá
+   es lo que es —una forma de volver a leer el detalle—. */
+.code-band-detail {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: 600 11.5px/1 var(--font-family);
+  gap: 6px;
+  justify-self: start;
+  margin-block-start: 6px;
+  min-height: 32px;
+  padding: 0;
+  transition: color var(--transition-fast);
+}
+
+.code-band-detail:hover {
+  color: var(--color-brand-gold);
+}
+
+[data-theme='light'] .code-band-detail:hover {
+  color: var(--color-brand-gold-dark);
+}
+
+.code-band-detail:focus-visible {
+  outline: var(--institution-focus-width) solid var(--color-brand-celeste);
+  outline-offset: var(--institution-focus-offset);
+}
+
+/* Entrada al canje: el sello con el filo de oro y una línea, sin celeste —
+   esto no es navegación. */
+.code-band-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: 500 13px/1 var(--font-family);
+  gap: 10px;
+  letter-spacing: 0.02em;
+  min-height: 44px;
+  padding: 0;
+  transition: color var(--transition-fast);
+}
+
+.code-band-toggle:hover:not(:disabled) {
+  color: var(--color-text-primary);
+}
+
+.code-band-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.code-band-toggle:focus-visible {
+  outline: var(--institution-focus-width) solid var(--color-brand-celeste);
+  outline-offset: var(--institution-focus-offset);
+}
+
+.code-band-toggle__seal {
+  align-items: center;
+  background: linear-gradient(158deg, #161820 0%, #0c0d12 52%, #08090c 100%);
+  border: 1px solid color-mix(in oklab, var(--plu-gold-500) 34%, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  color: var(--color-brand-gold);
+  display: inline-flex;
+  flex: none;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+
+[data-theme='light'] .code-band-toggle__seal {
+  background: linear-gradient(158deg, #ffffff 0%, #f6f4ef 100%);
+  border-color: color-mix(in oklab, var(--color-brand-gold-dark) 38%, rgba(15, 17, 23, 0.08));
+  color: var(--color-brand-gold-dark);
+}
+
+.code-band-drop {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: 400 12px/1 var(--font-family);
+  justify-self: start;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast);
+}
+
+.code-band-drop:hover:not(:disabled) {
+  color: var(--color-text-primary);
+}
+
+.code-band-drop:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.code-band-drop:focus-visible {
+  outline: var(--institution-focus-width) solid var(--color-brand-celeste);
+  outline-offset: var(--institution-focus-offset);
+}
+
+@media (max-width: 430px) {
+  /* En teléfono la acción ocupa el ancho completo, como el resto de los
+     controles de la app.
+
+     Sin `width: 100%` y con `min-width: 0`: el `width` porcentual sobre un ítem
+     flex con `flex-shrink: 0` se resolvía como un mínimo intrínseco de 278px —
+     medido en el render, no deducido—, y ese piso convertía la banda entera en
+     un bloque de 278px dentro de un teléfono de 360 o 390. El resultado era la
+     banda recortando "Sin canjear" y el código, en las tres pantallas que la
+     usan. La base del 100 % ya hace que el chip ocupe su propio renglón; lo que
+     no puede hacer es fijar el ancho mínimo del bloque que lo contiene. */
+  .code-band__chip {
+    flex: 1 0 100%;
+    min-width: 0;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Motion del canje — la llave se lee, se valida y se sella
+   ---------------------------------------------------------------------------
+   Hasta acá la banda era material sin tiempo: el estado cambiaba de golpe. El
+   campo se convertía en registro en un frame, "Aceptada" aparecía ya escrita y
+   el rechazo era un cambio de color. La pieza se veía emitida pero no se
+   sentía emitida, y el canje es justamente el momento que le da sentido al
+   precio que se cobra abajo.
+
+   Cuatro momentos, uno por `data-state`, y cada uno dice algo que el texto no
+   alcanza a decir solo:
+
+   - `checking`  el pedido está en vuelo. Un barrido de luz recorre la cara de
+                 la banda. Es el ÚNICO loop de la hoja y está atado al estado:
+                 nace con la espera y muere con ella, así que no es decoración
+                 —es el equivalente material del spinner del chip—.
+   - `accepted`  / `applied`: la llave se sella. Un aro de oro se contrae sobre
+                 el filo (una vez), un barrido cruza la cara (una vez) y el
+                 registro —estado, código, importe— baja a su lugar en tres
+                 pasos de 40ms. Sin ráfaga de papel: el confeti está reservado a
+                 los tres cierres de trámite, y canjear un código abre uno.
+   - `error`     el rechazo se siente. Un desplazamiento amortiguado de 3px, dos
+                 oscilaciones, 240ms. No es un shake de formulario: es lo mínimo
+                 para que el ojo vuelva a la banda que ya cambió de palabra.
+
+   Todo es `transform` y `opacity`. Nada anima layout, fondo ni `border`, no hay
+   `transition: all`, y bajo `prefers-reduced-motion` la banda queda en su pose
+   final sin ninguna animación. */
+
+/* El aro del sello. Vive dentro del `overflow: hidden` de la banda, así que se
+   contrae hacia adentro (0.97 → 1) y nunca hacia afuera: escalar para afuera lo
+   dejaba recortado justo en las esquinas, que es donde se lo mira. */
+.code-band::before {
+  border: 1px solid color-mix(in oklab, var(--plu-gold-500) 72%, transparent);
+  border-radius: inherit;
+  content: '';
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 3;
+}
+
+[data-theme='light'] .code-band::before {
+  border-color: color-mix(in oklab, var(--color-brand-gold-dark) 70%, transparent);
+}
+
+/* El barrido. Debajo del marco (z-index 2) para que pase por atrás del código y
+   no lo lave: es luz sobre el material, no un highlight del texto. */
+.code-band::after {
+  background: linear-gradient(
+    100deg,
+    transparent 26%,
+    color-mix(in oklab, var(--plu-gold-300) 20%, transparent) 50%,
+    transparent 74%
+  );
+  content: '';
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-100%);
+  z-index: 1;
+}
+
+[data-theme='light'] .code-band::after {
+  background: linear-gradient(
+    100deg,
+    transparent 26%,
+    color-mix(in oklab, var(--color-brand-gold-dark) 12%, transparent) 50%,
+    transparent 74%
+  );
+}
+
+.code-band[data-state='checking']::after {
+  animation: code-band-scan 1400ms var(--ease-in-out) infinite;
+}
+
+/* Nombre propio y no `code-band-scan` con otra duración: cuando la lista de
+   `animation-name` no cambia, el navegador ACTUALIZA la animación en curso en
+   vez de reiniciarla, y conserva el tiempo transcurrido. Viniendo de `checking`
+   —un loop de 1400ms— el barrido del sello (700ms) podía aparecer ya terminado,
+   que es justo el frame que no hay que perderse. Con otro nombre, arranca. */
+.code-band[data-state='accepted']::after,
+.code-band[data-state='applied']::after {
+  animation: code-band-sweep var(--motion-cinematic) var(--ease-out) both;
+}
+
+.code-band[data-state='accepted']::before,
+.code-band[data-state='applied']::before {
+  animation: code-band-seal var(--motion-slow) var(--ease-out) both;
+}
+
+/* El registro baja a su lugar. Tres pasos de 40ms: es una firma, no una
+   secuencia de sección. */
+.code-band[data-state='accepted'] .code-band__status,
+.code-band[data-state='applied'] .code-band__status,
+.code-band[data-state='accepted'] .code-band__code,
+.code-band[data-state='applied'] .code-band__code,
+.code-band[data-state='accepted'] .code-band__amount,
+.code-band[data-state='applied'] .code-band__amount {
+  animation: code-band-stamp var(--motion-base) var(--ease-out) both;
+}
+
+.code-band[data-state='accepted'] .code-band__code,
+.code-band[data-state='applied'] .code-band__code {
+  animation-delay: 40ms;
+}
+
+.code-band[data-state='accepted'] .code-band__amount,
+.code-band[data-state='applied'] .code-band__amount {
+  animation-delay: 80ms;
+}
+
+.code-band--error,
+.code-band[data-state='error'] {
+  animation: code-band-reject var(--motion-base) var(--ease-out) both;
+}
+
+/* Spinner del chip. Vive acá y no en `secret-code-redeemer.css` porque las tres
+   superficies de canje comparten el chip: el canje de Mi cuenta lo tenía y los
+   dos checkouts se quedaban sin ninguna señal de que el pedido salió. */
+.code-band__spin {
+  animation: code-band-spin 800ms linear infinite;
+  flex: none;
+}
+
+@keyframes code-band-scan {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+
+  32% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes code-band-sweep {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+
+  32% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes code-band-seal {
+  0% {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+
+  38% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes code-band-stamp {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}
+
+@keyframes code-band-reject {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  22% {
+    transform: translateX(-3px);
+  }
+
+  58% {
+    transform: translateX(2px);
+  }
+
+  84% {
+    transform: translateX(-1px);
+  }
+}
+
+@keyframes code-band-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* La prosa y los controles que acompañan al registro entran con él: sin esto la
+   banda se sellaba con tiempo y el bloque de abajo —el beneficio, el detalle, la
+   acción— aparecía de golpe medio segundo antes de terminar el sello.
+
+   Dos formas porque las superficies difieren en DOM y no vale la pena
+   reescribirlas por una animación: en Mi cuenta el registro es un bloque
+   hermano de la banda (`code-band-record`, se anima él mismo), y en los dos
+   checkouts la banda y su prosa son hermanos dentro del mismo contenedor
+   (`code-band-record-group`, se animan los hermanos y la banda conserva su
+   propio sello). */
+.code-band-record,
+.code-band-record-group > *:not(.code-band) {
+  animation: code-band-stamp var(--motion-base) var(--ease-out) both;
+  animation-delay: 120ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .code-band::before,
+  .code-band::after,
+  .code-band[data-state='checking']::after,
+  .code-band[data-state='accepted']::before,
+  .code-band[data-state='applied']::before,
+  .code-band[data-state='accepted']::after,
+  .code-band[data-state='applied']::after,
+  .code-band[data-state='accepted'] .code-band__status,
+  .code-band[data-state='applied'] .code-band__status,
+  .code-band[data-state='accepted'] .code-band__code,
+  .code-band[data-state='applied'] .code-band__code,
+  .code-band[data-state='accepted'] .code-band__amount,
+  .code-band[data-state='applied'] .code-band__amount,
+  .code-band--error,
+  .code-band[data-state='error'],
+  .code-band__spin,
+  .code-band-record,
+  .code-band-record-group > *:not(.code-band) {
+    animation: none;
+  }
+}
+.gym-confirmation-dialog {
+  align-items: center;
+  display: grid;
+  inset: 0;
+  justify-items: center;
+  padding: var(--space-md, 16px);
+  position: fixed;
+  z-index: 1200;
+}
+
+.gym-confirmation-dialog__backdrop {
+  background: color-mix(in srgb, var(--color-bg-primary) 78%, transparent);
+  border: 0;
+  cursor: default;
+  inset: 0;
+  position: absolute;
+}
+
+.gym-confirmation-dialog__panel {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--elevation-lg);
+  color: var(--color-text-primary);
+  display: grid;
+  gap: var(--space-md, 16px);
+  grid-template-columns: auto minmax(0, 1fr);
+  max-width: 520px;
+  padding: clamp(20px, 4vw, 28px);
+  position: relative;
+  width: 100%;
+}
+
+.gym-confirmation-dialog__icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-gold) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 36%, transparent);
+  border-radius: var(--border-radius-md);
+  color: var(--color-brand-gold);
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.gym-confirmation-dialog__copy {
+  display: grid;
+  gap: var(--space-sm, 8px);
+  min-width: 0;
+}
+
+.gym-confirmation-dialog__copy h2 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.gym-confirmation-dialog__copy p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.gym-confirmation-dialog__copy .gym-confirmation-dialog__name {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.gym-confirmation-dialog__copy .gym-confirmation-dialog__warning {
+  color: var(--color-text-muted);
+}
+
+.gym-confirmation-dialog__actions {
+  display: flex;
+  gap: var(--space-sm, 8px);
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.gym-confirmation-dialog__actions .btn {
+  min-height: 44px;
+}
+
+@media (max-width: 540px) {
+  .gym-confirmation-dialog__panel {
+    grid-template-columns: 1fr;
+  }
+
+  .gym-confirmation-dialog__actions {
+    display: grid;
+  }
+
+  .gym-confirmation-dialog__actions .btn {
+    justify-content: center;
+    width: 100%;
+  }
+}

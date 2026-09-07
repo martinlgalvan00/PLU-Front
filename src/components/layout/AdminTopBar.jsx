@@ -37,8 +37,9 @@ export default function AdminTopBar({
   return (
     <header className="admin-page-toolbar admin-page-toolbar--dashboard">
       <div className="admin-page-toolbar__headline">
-        {(eyebrow || showDate) && (
-          <div className="admin-page-toolbar__meta">
+        <h1>{title}</h1>
+        {eyebrow || showDate || subtitle ? (
+          <p className="admin-page-toolbar__meta">
             {eyebrow ? <span className="admin-page-toolbar__eyebrow">{eyebrow}</span> : null}
             {showDate ? (
               <time
@@ -48,10 +49,9 @@ export default function AdminTopBar({
                 {dateLabel}
               </time>
             ) : null}
-          </div>
-        )}
-        <h1>{title}</h1>
-        {subtitle ? <p className="admin-page-toolbar__subtitle">{subtitle}</p> : null}
+            {subtitle ? <span className="admin-page-toolbar__subtitle">{subtitle}</span> : null}
+          </p>
+        ) : null}
       </div>
 
       {(showSearch || showAlerts) && (
@@ -77,8 +77,10 @@ export default function AdminTopBar({
               aria-label={alertLabel}
               onClick={onAlertClick}
             >
-              <Bell size={18} />
-              {alertCount > 0 && <span className="admin-page-toolbar__badge">{alertCount}</span>}
+              <Bell size={16} aria-hidden="true" />
+              {alertCount > 0 ? (
+                <span className="admin-page-toolbar__badge">{alertCount}</span>
+              ) : null}
             </button>
           )}
         </div>

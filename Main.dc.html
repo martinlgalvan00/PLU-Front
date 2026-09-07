@@ -1,0 +1,409 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --canvas: #0a0b0d;
+      --surface: #141518;
+      --surface-muted: #121316;
+      --elevated: #1e2026;
+      --hairline: rgba(255, 255, 255, 0.09);
+      --border: rgba(255, 255, 255, 0.14);
+      --ink: #ffffff;
+      --secondary: #d4d4dc;
+      --muted: #9a9aa8;
+      --brand: #9ec5eb;
+      --brand-deep: #1f5f9e;
+      --gold: #f2b705;
+      --gold-ink: #14181f;
+      --ok: #3d9a62;
+      --ok-soft: #8fd4a8;
+      --danger: #e10600;
+      --warn: #b45309;
+      --font: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); }
+    a { color: var(--brand); } a:hover { color: #c7dcf1; }
+    * { box-sizing: border-box; }
+
+    .shell { display: grid; grid-template-columns: 232px 1fr; min-height: 980px; }
+
+    /* ── Sidebar ── */
+    .side { background: var(--surface-muted); border-right: 1px solid var(--hairline); padding: 20px 12px; display: flex; flex-direction: column; gap: 22px; }
+    .side-brand { display: flex; align-items: center; gap: 9px; padding: 0 8px 4px; }
+    .side-mark { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, var(--brand-deep), var(--gold)); }
+    .side-name { font-size: 12.5px; font-weight: 700; letter-spacing: 0.02em; }
+    .side-group { display: flex; flex-direction: column; gap: 2px; }
+    .side-label { font-size: 10px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: #6f7280; padding: 0 8px 6px; }
+    .side-item { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 8px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+    .side-item.is-active { background: color-mix(in srgb, var(--brand) 10%, transparent); color: var(--ink); font-weight: 600; }
+    .side-item svg { flex: 0 0 auto; opacity: 0.75; }
+    .side-item.is-active svg { opacity: 1; color: var(--brand); }
+    .side-count { margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--muted); }
+
+    /* ── Header del evento ── */
+    .main { padding: 20px 32px 32px; display: flex; flex-direction: column; gap: 18px; max-width: 1280px; }
+    .back { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--muted); }
+    .hd { display: flex; flex-direction: column; gap: 14px; }
+    .hd-top { display: flex; align-items: flex-start; gap: 16px; }
+    .hd-copy { display: flex; flex-direction: column; gap: 7px; flex-grow: 1; min-width: 0; }
+    .hd-title-row { display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+    .hd-title { font-size: 23px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+    .pill-state { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: 11px; font-weight: 600; background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent); }
+    .dot { width: 5px; height: 5px; border-radius: 999px; background: currentColor; }
+    .hd-meta { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+    .sep { color: #4a4d57; }
+    .hd-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+    .icon-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: color-mix(in srgb, var(--elevated) 60%, transparent); color: var(--secondary); font-size: 12px; font-weight: 500; font-family: var(--font); }
+    .icon-btn--danger { color: #ff8a87; border-color: color-mix(in srgb, var(--danger) 26%, transparent); }
+    .icon-btn--square { width: 34px; padding: 0; }
+
+    /* ── Tabs (DetailTabs real) ── */
+    .tabs { display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 999px; background: color-mix(in srgb, var(--elevated) 70%, transparent); border: 1px solid rgba(255, 255, 255, 0.08); width: fit-content; max-width: 100%; }
+    .tab { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 6px 12px; border-radius: 999px; border: 1px solid transparent; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; font-family: var(--font); white-space: nowrap; }
+    .tab.is-active { background: color-mix(in srgb, var(--brand) 13%, transparent); border-color: color-mix(in srgb, var(--brand) 24%, transparent); color: var(--ink); }
+    .tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; padding: 2px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 700; background: color-mix(in srgb, var(--ink) 8%, transparent); }
+    .tab.is-active .tab-count { background: color-mix(in srgb, var(--brand) 20%, transparent); }
+    .tab-warn { width: 6px; height: 6px; border-radius: 999px; background: var(--warn); }
+
+    /* ── Cuerpo ── */
+    .body { display: grid; grid-template-columns: minmax(0, 1fr) 336px; gap: 20px; align-items: start; }
+    .stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .card { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; }
+    .card-h { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--hairline); }
+    .card-t { font-size: 13px; font-weight: 600; margin: 0; }
+    .card-hint { font-size: 11.5px; color: var(--muted); }
+    .card-b { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+
+    /* estado */
+    .state-result { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 600; }
+    .state-result .sub { font-weight: 400; color: var(--muted); font-size: 12.5px; }
+    .row-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+    .state-row { display: grid; grid-template-columns: 108px minmax(0, 1fr); gap: 14px; align-items: center; }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip { padding: 5px 11px; border-radius: 999px; border: 1px solid var(--hairline); background: transparent; color: var(--muted); font-size: 11.5px; font-weight: 500; font-family: var(--font); }
+    .chip.is-on { background: color-mix(in srgb, var(--brand) 14%, transparent); border-color: color-mix(in srgb, var(--brand) 30%, transparent); color: var(--ink); font-weight: 600; }
+    .live { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--ok-soft); }
+    .ghost-btn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); font-size: 11.5px; font-weight: 500; font-family: var(--font); }
+    .access { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .access-opt { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; text-align: left; font-family: var(--font); }
+    .access-opt.is-on { border-color: color-mix(in srgb, var(--brand) 34%, transparent); background: color-mix(in srgb, var(--brand) 8%, transparent); }
+    .access-opt strong { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+    .access-opt small { font-size: 11px; color: var(--muted); line-height: 1.45; }
+
+    /* formulario */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .field-l { font-size: 11.5px; font-weight: 500; color: var(--muted); }
+    .input { height: 38px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: #121218; color: var(--ink); font-size: 13px; font-family: var(--font); display: flex; align-items: center; }
+    .input .prefix { color: var(--muted); }
+    .save-bar { display: flex; align-items: center; gap: 12px; padding: 13px 18px; border-top: 1px solid var(--hairline); }
+    .btn-gold { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 16px; border-radius: 8px; border: none; background: var(--gold); color: var(--gold-ink); font-size: 12.5px; font-weight: 600; font-family: var(--font); }
+    .save-hint { font-size: 11.5px; color: var(--muted); margin-left: auto; }
+
+    /* rail */
+    .rail { display: flex; flex-direction: column; gap: 16px; }
+    .check-list { display: flex; flex-direction: column; gap: 0; }
+    .check { display: flex; align-items: center; gap: 10px; padding: 11px 0; font-size: 12.5px; border-bottom: 1px solid var(--hairline); }
+    .check:last-child { border-bottom: none; }
+    .check.is-ok { color: var(--secondary); }
+    .check.is-bad { color: var(--ink); }
+    .check-ico { width: 16px; height: 16px; flex: 0 0 auto; }
+    .check .fix { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--brand); }
+    .goto { display: flex; align-items: center; gap: 11px; padding: 12px 14px; border-bottom: 1px solid var(--hairline); }
+    .goto:last-child { border-bottom: none; }
+    .goto svg { color: var(--muted); flex: 0 0 auto; }
+    .goto-c { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex-grow: 1; }
+    .goto-t { font-size: 12.5px; font-weight: 600; }
+    .goto-s { font-size: 11px; color: var(--muted); }
+    .goto-n { font-size: 12px; font-weight: 700; color: var(--secondary); }
+    .meter { height: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+    .meter span { display: block; height: 100%; background: var(--brand); }
+  </style>
+</helmet>
+
+<div class="shell">
+  <!-- ══ Sidebar ══ -->
+  <aside class="side">
+    <div class="side-brand">
+      <div class="side-mark"></div>
+      <span class="side-name">PLU Argentina</span>
+    </div>
+
+    <div class="side-group">
+      <span class="side-label">Plantel</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span>Resumen</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.1 2.7-5.2 6-5.2s6 2.1 6 5.2"/><path d="M16 11.2a3 3 0 0 0 0-6"/><path d="M18 20c0-2.4-.9-4.1-2.4-5"/></svg><span>Personas</span></div>
+    </div>
+
+    <div class="side-group">
+      <span class="side-label">Competencia</span>
+      <div class="side-item is-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>Eventos</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Grilla</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M3 12h18"/></svg><span>Check-in</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M12 14v4M8 21h8"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span>Resultados</span></div>
+    </div>
+
+    <div class="side-group">
+      <span class="side-label">Cobros</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span>Shop</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg><span>Cobros</span><span class="side-count">3</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 10 12 4l9 6"/><path d="M5 10v9h14v-9M9 19v-5h6v5"/></svg><span>Libro de caja</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M14.5 9.5c-.6-.9-1.6-1.4-2.7-1.3-1.4 0-2.3.7-2.3 1.7 0 1 .8 1.5 2.5 1.9 1.9.4 2.8 1 2.8 2.2 0 1.2-1.1 2-2.7 2-1.3 0-2.4-.5-3-1.4M12 6v12"/></svg><span>Tarifas</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="8" cy="13" r="4"/><path d="M11 11l8-8 2 2-2 2 2 2-3 3-2-2-2 2"/></svg><span>Acceso y habilitación</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 4v11M8 11l4 4 4-4M4 19h16"/></svg><span>Exportaciones</span></div>
+    </div>
+
+    <div class="side-group">
+      <span class="side-label">Acceso</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 3l7 3v6c0 4.2-2.8 7.6-7 9-4.2-1.4-7-4.8-7-9V6z"/></svg><span>Usuarios</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="8" cy="13" r="4"/><path d="M11 11l8-8 2 2-2 2 2 2-3 3-2-2-2 2"/></svg><span>Roles y permisos</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 9h7M9 13h7M9 17h4"/></svg><span>Auditoría</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span>Analítica</span></div>
+    </div>
+  </aside>
+
+  <!-- ══ Contenido ══ -->
+  <main class="main">
+    <span class="back">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      Eventos
+    </span>
+
+    <header class="hd">
+      <div class="hd-top">
+        <div class="hd-copy">
+          <div class="hd-title-row">
+            <h1 class="hd-title">Pitbull Classic 2026</h1>
+            <span class="pill-state"><span class="dot"></span>Inscripción abierta</span>
+          </div>
+          <div class="hd-meta">
+            <span>14 – 15 de noviembre de 2026</span>
+            <span class="sep">·</span>
+            <span>Club Atlético Fénix, Pilar</span>
+            <span class="sep">·</span>
+            <span>plu.ar/eventos/pitbull-classic-2026</span>
+          </div>
+        </div>
+        <div class="hd-actions">
+          <button class="icon-btn" type="button">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M15 5H5v10"/></svg>
+            Copiar links
+          </button>
+          <button class="icon-btn icon-btn--square icon-btn--danger" type="button" aria-label="Eliminar evento">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <nav class="tabs" role="tablist" aria-label="Secciones del evento">
+        <button class="tab is-active" role="tab" aria-selected="true" type="button">Datos</button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Estructura<span class="tab-count">2</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Entradas<span class="tab-warn" aria-hidden="true"></span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Zonas y seguridad<span class="tab-count">4</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Pagos<span class="tab-count">3</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Vista pública</button>
+      </nav>
+    </header>
+
+    <div class="body">
+      <div class="stack">
+        <!-- Estado del evento -->
+        <section class="card">
+          <div class="card-h">
+            <h2 class="card-t">Estado del evento</h2>
+            <span class="card-hint">Lo que ve el atleta ahora mismo</span>
+          </div>
+          <div class="card-b">
+            <p class="state-result" style="margin: 0;">
+              <span>Inscripción abierta</span>
+              <span class="sep">·</span>
+              <span class="sub">46 de 180 cupos</span>
+              <span class="sep">·</span>
+              <span class="sub">Solo afiliados</span>
+            </p>
+
+            <div class="state-row">
+              <span class="row-label">Inscripciones</span>
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span class="live">
+                  <svg class="check-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>
+                  Habilitadas
+                </span>
+                <button class="ghost-btn" type="button">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+                  Editar ventana
+                </button>
+              </div>
+            </div>
+
+            <div class="state-row">
+              <span class="row-label">Estado</span>
+              <div class="chips">
+                <button class="chip" type="button">Próximamente</button>
+                <button class="chip is-on" type="button">Inscripción abierta</button>
+                <button class="chip" type="button">Cupos limitados</button>
+                <button class="chip" type="button">Cerrado</button>
+                <button class="chip" type="button">Finalizado</button>
+              </div>
+            </div>
+
+            <div class="state-row">
+              <span class="row-label">Acceso</span>
+              <div class="access">
+                <button class="access-opt is-on" type="button">
+                  <strong>Solo afiliados</strong>
+                  <small>Se exige afiliación vigente para inscribirse y para pasar la puerta.</small>
+                </button>
+                <button class="access-opt" type="button">
+                  <strong>Abierto</strong>
+                  <small>Cualquier atleta se inscribe sin afiliación. Alcanza la inscripción confirmada.</small>
+                </button>
+              </div>
+            </div>
+
+            <div class="state-row">
+              <span class="row-label">Sitio</span>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <button class="chip is-on" type="button">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" style="vertical-align: -2px; margin-right: 5px;"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg>
+                  Publicado
+                </button>
+                <span class="card-hint">Visible en el calendario y en la home</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Datos -->
+        <section class="card">
+          <div class="card-h">
+            <h2 class="card-t">Ficha del evento</h2>
+            <span class="card-hint">Nombre, fechas y sede</span>
+          </div>
+          <div class="card-b">
+            <div class="field">
+              <label class="field-l" for="ev-title">Título</label>
+              <div class="input" id="ev-title">Pitbull Classic 2026</div>
+            </div>
+            <div class="field">
+              <label class="field-l" for="ev-slug">Link público</label>
+              <div class="input" id="ev-slug"><span class="prefix">plu.ar/eventos/</span>pitbull-classic-2026</div>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label class="field-l" for="ev-start">Comienza</label>
+                <div class="input" id="ev-start">14/11/2026 09:00</div>
+              </div>
+              <div class="field">
+                <label class="field-l" for="ev-end">Termina</label>
+                <div class="input" id="ev-end">15/11/2026 20:00</div>
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label class="field-l" for="ev-venue">Sede</label>
+                <div class="input" id="ev-venue">Club Atlético Fénix</div>
+              </div>
+              <div class="field">
+                <label class="field-l" for="ev-city">Ciudad</label>
+                <div class="input" id="ev-city">Pilar, Buenos Aires</div>
+              </div>
+            </div>
+          </div>
+          <div class="save-bar">
+            <button class="btn-gold" type="button">Guardar cambios</button>
+            <button class="ghost-btn" type="button">Descartar</button>
+            <span class="save-hint">Sin cambios sin guardar</span>
+          </div>
+        </section>
+      </div>
+
+      <!-- Rail -->
+      <aside class="rail">
+        <section class="card">
+          <div class="card-h">
+            <h2 class="card-t">Listo para publicar</h2>
+          </div>
+          <div class="card-b" style="padding: 6px 18px 12px;">
+            <div class="check-list">
+              <div class="check is-ok">
+                <svg class="check-ico" viewBox="0 0 24 24" fill="none" stroke="var(--ok-soft)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>
+                Fecha y sede cargadas
+              </div>
+              <div class="check is-ok">
+                <svg class="check-ico" viewBox="0 0 24 24" fill="none" stroke="var(--ok-soft)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>
+                Inscripciones habilitadas
+              </div>
+              <div class="check is-ok">
+                <svg class="check-ico" viewBox="0 0 24 24" fill="none" stroke="var(--ok-soft)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>
+                2 jornadas con pesaje
+              </div>
+              <div class="check is-bad">
+                <svg class="check-ico" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2" stroke-linecap="round"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>
+                Entradas sin habilitar
+                <span class="fix">Abrir</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-h">
+            <h2 class="card-t">Operación</h2>
+          </div>
+          <div>
+            <div class="goto">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="9" y="2.5" width="6" height="4" rx="1"/><path d="M8 12h8M8 16h5"/></svg>
+              <span class="goto-c">
+                <span class="goto-t">Inscripciones</span>
+                <span class="goto-s">46 de 180 · 4 sin pagar</span>
+              </span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+            <div class="goto">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg>
+              <span class="goto-c">
+                <span class="goto-t">Pagos del meet</span>
+                <span class="goto-s">3 esperando a Finanzas</span>
+              </span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+            <div class="goto">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M3 12h18"/></svg>
+              <span class="goto-c">
+                <span class="goto-t">Check-in en puerta</span>
+                <span class="goto-s">Escáner y QR</span>
+              </span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-h">
+            <h2 class="card-t">Ocupación</h2>
+            <span class="card-hint" style="margin-left: auto;">26 %</span>
+          </div>
+          <div class="card-b" style="gap: 10px;">
+            <div class="meter"><span style="width: 26%;"></span></div>
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <strong style="font-size: 19px; font-weight: 700;">46</strong>
+              <span class="card-hint">de 180 cupos · quedan 134</span>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+</body>
+</html>

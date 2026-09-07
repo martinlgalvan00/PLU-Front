@@ -1,0 +1,7092 @@
+/**
+ * account.css — Perfil del atleta logueado (AthleteProfilePage y secciones
+ * de src/pages/profile/). Extraído de design-phase2.css para que el perfil
+ * tenga su propia hoja, igual que el resto de páginas de dominio.
+ */
+
+.account-page--design.page {
+  min-width: 0;
+  overflow-x: clip;
+  padding: 0;
+}
+
+.account-page--design .account-hero {
+  border-left: none;
+  border-radius: 0;
+  border-right: none;
+  border-top: none;
+  margin-top: 0;
+  max-width: none;
+  padding: clamp(36px, 5.5vw, 64px) clamp(20px, 5vw, 72px) clamp(40px, 5vw, 72px);
+}
+
+.account-hero {
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.03) 0%, transparent 38%),
+    linear-gradient(165deg, #16181d 0%, #101115 48%, #0c0d11 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 24px 60px rgba(0, 0, 0, 0.22);
+  margin: 34px auto 0;
+  max-width: 1200px;
+  overflow: hidden;
+  padding: clamp(32px, 4vw, 52px);
+  position: relative;
+}
+
+/* Halo suave detrás de la credencial + franja tricolor — sin ruido visual. */
+.account-hero::before {
+  background:
+    radial-gradient(ellipse 42% 55% at 88% 28%, rgba(242, 183, 5, 0.1), transparent 68%),
+    radial-gradient(ellipse 36% 48% at 100% 72%, rgba(116, 172, 223, 0.07), transparent 65%);
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.account-hero::after {
+  background: var(--plu-gradient-stripe, linear-gradient(90deg, #1f5f9e 0 50%, #f2b705 50% 100%));
+  content: '';
+  height: 2px;
+  inset: 0 0 auto 0;
+  opacity: 0.85;
+  position: absolute;
+}
+
+.account-hero__inner {
+  align-items: center;
+  display: grid;
+  gap: clamp(36px, 6vw, 80px);
+  grid-template-columns: minmax(280px, 1fr) minmax(340px, 400px);
+  margin: 0 auto;
+  max-width: 1080px;
+  min-width: 0;
+  position: relative;
+}
+
+.account-hero__identity-col {
+  container-name: account-identity;
+  container-type: inline-size;
+  display: grid;
+  gap: clamp(22px, 3.5vw, 36px);
+  min-width: 0;
+}
+
+.account-hero__identity {
+  align-items: center;
+  display: flex;
+  gap: clamp(14px, 2.5vw, 22px);
+  min-width: 0;
+}
+
+.account-hero__avatar {
+  align-items: center;
+  background: linear-gradient(155deg, var(--plu-gold-400), var(--plu-gold-600));
+  border: 1px solid rgba(242, 183, 5, 0.35);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-brand-gold) 16%, transparent),
+    0 10px 24px rgba(0, 0, 0, 0.22);
+  color: #141518;
+  display: flex;
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 23px;
+  font-weight: 600;
+  height: 84px;
+  justify-content: center;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  width: 84px;
+}
+
+.account-hero__avatar img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.account-hero__copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.account-hero__eyebrow {
+  color: color-mix(in srgb, var(--plu-gold-400, #f5c518) 55%, rgba(255, 255, 255, 0.42));
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.account-hero__role {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  margin: 6px 0 0;
+}
+
+.account-hero__name,
+.account-hero h1 {
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4.2vw, 40px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  margin: 8px 0 0;
+  max-width: 18ch;
+}
+
+.account-hero h1 small {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 14px;
+  font-weight: 300;
+}
+
+.account-hero__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.account-badge {
+  border-radius: var(--border-radius-pill);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  padding: 5px 12px;
+}
+
+.account-badge--active {
+  background: rgba(61, 154, 98, 0.18);
+  color: #8fd4a8;
+}
+
+.account-badge--code {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.58);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+.account-hero__logout {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--border-radius-pill);
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 10px 18px;
+}
+
+.account-hero__logout:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+/* Meta editorial bajo la identidad — regla superior en desktop;
+   en mobile vira a pulse glass (ver media queries). */
+.account-hero__stats {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  margin: 0;
+  padding-top: clamp(20px, 3vw, 28px);
+}
+
+.account-hero__stat {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 0 clamp(16px, 2.4vw, 22px) 0 0;
+  position: relative;
+}
+
+.account-hero__stat:not(:first-child)::before {
+  background: rgba(255, 255, 255, 0.08);
+  content: '';
+  height: 70%;
+  left: -12px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+}
+
+.account-hero__stat > span:first-child {
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.account-hero__stat-value {
+  color: rgba(255, 255, 255, 0.92);
+  font-family: var(--font-display);
+  font-size: clamp(14px, 1.9vw, 16px);
+  font-weight: 450;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+  min-width: 0;
+}
+
+.account-hero__stat--count .account-hero__stat-value {
+  font-size: clamp(24px, 3.4vw, 32px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.account-hero__stat--event .account-hero__stat-value {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.account-hero__edit-link {
+  align-items: center;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 500;
+  gap: 8px;
+  letter-spacing: 0.02em;
+  margin: 0;
+  min-height: 44px;
+  padding: 0 16px;
+  text-align: left;
+  transition:
+    border-color var(--transition-base),
+    color var(--transition-base),
+    background var(--transition-base);
+  width: fit-content;
+}
+
+.account-hero__edit-link svg {
+  color: var(--color-brand-celeste);
+  flex: none;
+}
+
+.account-hero__edit-link:hover {
+  background: rgba(116, 172, 223, 0.08);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+  color: #fff;
+}
+
+.account-hero__edit-link:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.account-hero__edit-link:active {
+  background: rgba(116, 172, 223, 0.12);
+}
+
+.account-cards {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin: 0 auto;
+  max-width: 960px;
+  padding: clamp(40px, 6vw, 56px) clamp(20px, 5vw, 64px);
+}
+
+.account-badge--pending {
+  background: rgba(242, 183, 5, 0.14);
+  border: 1px solid rgba(242, 183, 5, 0.28);
+  color: #d9c77f;
+}
+
+.account-hero .account-credential {
+  max-width: 400px;
+}
+
+[data-theme='light'] .account-hero {
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.65) 0%, transparent 40%),
+    linear-gradient(165deg, #ffffff 0%, #f7f8fa 52%, #f2f3f6 100%);
+  border-color: rgba(15, 17, 23, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 18px 44px rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .account-hero__name,
+[data-theme='light'] .account-hero h1 {
+  color: #15171c;
+}
+
+[data-theme='light'] .account-hero__eyebrow {
+  color: color-mix(in srgb, var(--plu-gold-500, #f2b705) 40%, rgba(15, 17, 23, 0.48));
+}
+
+[data-theme='light'] .account-hero__role {
+  color: rgba(15, 17, 23, 0.48);
+}
+
+[data-theme='light'] .account-badge--code {
+  border-color: rgba(15, 17, 23, 0.12);
+  color: rgba(15, 17, 23, 0.58);
+}
+
+[data-theme='light'] .account-hero__stats {
+  border-top-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .account-hero__stat:not(:first-child)::before {
+  background: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .account-hero__stat > span:first-child {
+  color: rgba(15, 17, 23, 0.42);
+}
+
+[data-theme='light'] .account-hero__stat-value {
+  color: #15171c;
+}
+
+[data-theme='light'] .account-hero__edit-link {
+  border-color: rgba(15, 17, 23, 0.14);
+  color: rgba(15, 17, 23, 0.7);
+}
+
+[data-theme='light'] .account-hero__edit-link:hover {
+  background: rgba(116, 172, 223, 0.1);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 45%, transparent);
+  color: #15171c;
+}
+
+@media (max-width: 820px) {
+  .account-hero {
+    margin-top: 18px;
+  }
+
+  .account-page--design .account-hero {
+    margin-top: 0;
+    padding-inline: var(--layout-gutter);
+  }
+
+  .account-hero__inner {
+    gap: clamp(28px, 6vw, 44px);
+    grid-template-columns: 1fr;
+  }
+
+  .account-hero .account-credential {
+    justify-self: center;
+    max-width: 440px;
+    width: 100%;
+  }
+
+  .account-hero__edit-link {
+    justify-self: start;
+  }
+
+  /* Pulse glass: una sola superficie, sin stack de cards. */
+  .account-hero__stats {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%),
+      color-mix(in srgb, rgba(255, 255, 255, 0.06) 55%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    gap: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+    padding: 14px 4px;
+  }
+
+  .account-hero__stat {
+    gap: 8px;
+    padding: 4px 14px;
+  }
+
+  .account-hero__stat:not(:first-child)::before {
+    background: rgba(255, 255, 255, 0.1);
+    height: 56%;
+    left: 0;
+  }
+
+  .account-hero__stat--event {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    grid-column: 1 / -1;
+    margin-top: 6px;
+    padding-top: 12px;
+  }
+
+  .account-hero__stat--event::before {
+    display: none;
+  }
+
+  .account-hero__stat > span:first-child {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  [data-theme='light'] .account-hero__stats {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.55) 100%),
+      color-mix(in srgb, #fff 70%, transparent);
+    border-color: rgba(15, 17, 23, 0.1);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      0 8px 20px rgba(15, 17, 23, 0.05);
+  }
+
+  [data-theme='light'] .account-hero__stat:not(:first-child)::before {
+    background: rgba(15, 17, 23, 0.1);
+  }
+
+  [data-theme='light'] .account-hero__stat--event {
+    border-top-color: rgba(15, 17, 23, 0.08);
+  }
+}
+
+@media (max-width: 520px) {
+  .account-page--design .account-hero {
+    padding-block: 24px 28px;
+  }
+
+  .account-hero__identity-col {
+    gap: 18px;
+  }
+
+  .account-hero__identity {
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .account-hero__avatar {
+    font-size: 18px;
+    height: 64px;
+    width: 64px;
+  }
+
+  .account-hero__name,
+  .account-hero h1 {
+    font-size: clamp(25px, 8vw, 32px);
+    max-width: none;
+    overflow-wrap: anywhere;
+  }
+
+  .account-hero__stats {
+    padding: 12px 2px;
+  }
+
+  .account-hero__stat {
+    padding-inline: 12px;
+  }
+
+  .account-hero__edit-link {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Columna de identidad angosta (desktop split ~317px): mismo pulse glass. */
+@container account-identity (max-width: 360px) {
+  .account-hero__stats {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%),
+      color-mix(in srgb, rgba(255, 255, 255, 0.06) 55%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    gap: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 12px 2px;
+  }
+
+  .account-hero__stat {
+    gap: 8px;
+    padding: 4px 12px;
+  }
+
+  .account-hero__stat:not(:first-child)::before {
+    background: rgba(255, 255, 255, 0.1);
+    height: 56%;
+    left: 0;
+  }
+
+  .account-hero__stat--event {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    grid-column: 1 / -1;
+    margin-top: 6px;
+    padding-top: 12px;
+  }
+
+  .account-hero__stat--event::before {
+    display: none;
+  }
+
+  [data-theme='light'] .account-hero__stats {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.55) 100%),
+      color-mix(in srgb, #fff 70%, transparent);
+    border-color: rgba(15, 17, 23, 0.1);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      0 8px 20px rgba(15, 17, 23, 0.05);
+  }
+
+  [data-theme='light'] .account-hero__stat:not(:first-child)::before {
+    background: rgba(15, 17, 23, 0.1);
+  }
+
+  [data-theme='light'] .account-hero__stat--event {
+    border-top-color: rgba(15, 17, 23, 0.08);
+  }
+
+  .account-hero__name,
+  .account-hero h1 {
+    max-width: none;
+  }
+}
+
+.account-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  padding: 26px;
+}
+
+.account-card__label {
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.account-card h2 {
+  color: var(--color-text-on-light, #1a1c22);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 10px 0 0;
+}
+
+.account-card p {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  margin: 4px 0 0;
+}
+
+.account-card__status {
+  background: rgba(61, 154, 98, 0.12);
+  border-radius: var(--border-radius-pill);
+  color: #3d9a62;
+  display: inline-block;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-top: 14px;
+  padding: 5px 11px;
+  text-transform: uppercase;
+}
+
+.account-card__link {
+  background: transparent;
+  color: var(--color-brand-celeste);
+  display: inline-block;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-top: 14px;
+  padding: 0;
+}
+
+/* ── Navegación sticky de secciones ──────────────────────────────
+   Cinta editorial: labels enteros, scroll horizontal, oro solo en el activo.
+   En mobile (<992) es un rail glass con fades + cues de overflow. */
+.account-nav {
+  margin: 26px auto 0;
+  max-width: 1080px;
+  min-width: 0;
+  padding: 0 clamp(20px, 5vw, 48px);
+  position: sticky;
+  top: calc(var(--header-height) + 10px);
+  z-index: 40;
+}
+
+.account-nav__viewport {
+  background: var(--color-bg-surface);
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  border-radius: 2px;
+  isolation: isolate;
+  min-width: 0;
+  position: relative;
+}
+
+.account-nav__viewport::before,
+.account-nav__viewport::after {
+  content: '';
+  inset: 0 auto 0 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity var(--motion-fast) var(--ease-out);
+  width: 36px;
+  z-index: 2;
+}
+
+.account-nav__viewport::before {
+  background: linear-gradient(90deg, var(--color-bg-surface) 12%, transparent);
+}
+
+.account-nav__viewport::after {
+  background: linear-gradient(270deg, var(--color-bg-surface) 12%, transparent);
+  inset: 0 0 0 auto;
+}
+
+.account-nav__viewport[data-overflow-start='true']::before,
+.account-nav__viewport[data-overflow-end='true']::after {
+  opacity: 1;
+}
+
+.account-nav__edge-cue {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: none;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: opacity var(--motion-fast) var(--ease-out);
+  z-index: 3;
+}
+
+.account-nav__edge-cue--start {
+  left: 6px;
+}
+
+.account-nav__edge-cue--end {
+  right: 6px;
+}
+
+.account-nav__viewport[data-overflow-start='true'] .account-nav__edge-cue--start,
+.account-nav__viewport[data-overflow-end='true'] .account-nav__edge-cue--end {
+  opacity: 0.72;
+}
+
+.account-nav__scroll-hint {
+  /* Solo lectura asistiva; el affordance visual son fades + chevrons. */
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.account-nav__inner {
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  gap: 0;
+  isolation: isolate;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 0 6px;
+  scroll-padding-inline: 16px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  touch-action: pan-x;
+  width: 100%;
+}
+
+.account-nav__inner::-webkit-scrollbar {
+  display: none;
+}
+
+.account-nav__item {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+  position: relative;
+  scroll-snap-align: start;
+  transition: color var(--motion-fast) var(--ease-out);
+  white-space: nowrap;
+}
+
+.account-nav__item:hover {
+  color: var(--color-text-primary);
+}
+
+.account-nav__item:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: -2px;
+}
+
+.account-nav__item.is-active {
+  color: var(--color-text-primary);
+}
+
+.account-nav__thumb {
+  background: var(--color-brand-gold);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  height: 2px;
+  inset: auto 14px 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.account-nav__thumb::after {
+  content: none;
+}
+
+.account-nav__item-content {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.account-nav__item-content svg {
+  color: inherit;
+  flex: none;
+}
+
+.account-nav__item.is-active .account-nav__item-content svg {
+  color: var(--color-brand-gold);
+}
+
+/* Ficha con algo que resolver (hoy: un cobro rechazado en Pagos) — un punto
+   real, no decorativo: cuenta lo mismo que ya muestra el aviso de la sección,
+   pero visible antes de entrar. Rojo porque es el mismo criterio de
+   error/peligro que ya usa el pill del cobro, no un acento nuevo. */
+.account-nav__item-icon {
+  display: inline-flex;
+  flex: none;
+  position: relative;
+}
+
+.account-nav__item-dot {
+  background: var(--color-brand-red);
+  border-radius: 50%;
+  height: 7px;
+  position: absolute;
+  right: -4px;
+  top: -3px;
+  width: 7px;
+}
+
+[data-theme='light'] .account-nav__viewport {
+  border-color: color-mix(in oklab, var(--color-text-primary) 12%, transparent);
+}
+
+[data-theme='light'] .account-nav__item.is-active {
+  color: var(--color-text-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-nav__viewport::before,
+  .account-nav__viewport::after,
+  .account-nav__item,
+  .account-nav__edge-cue {
+    transition: none;
+  }
+
+  .account-nav__inner {
+    scroll-behavior: auto;
+    scroll-snap-type: none;
+  }
+
+  .account-nav__thumb {
+    transition: none !important;
+  }
+}
+
+/* Mobile / tablet: rail glass sticky + affordance de scroll. */
+@media (max-width: 991px) {
+  .account-nav {
+    margin-top: 14px;
+    padding-inline: 12px;
+    top: calc(var(--header-height) + 8px);
+  }
+
+  .account-nav__viewport {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 48%),
+      color-mix(in srgb, var(--color-bg-elevated, var(--color-bg-surface)) 92%, transparent);
+    border: 1px solid color-mix(in oklab, var(--color-text-primary) 12%, transparent);
+    border-radius: 16px;
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, #fff 10%, transparent),
+      0 10px 28px rgba(0, 0, 0, 0.14);
+  }
+
+  .account-nav__viewport::before,
+  .account-nav__viewport::after {
+    width: 52px;
+  }
+
+  .account-nav__viewport::before {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-bg-elevated, var(--color-bg-surface)) 96%, transparent) 8%,
+      transparent
+    );
+    border-radius: 16px 0 0 16px;
+  }
+
+  .account-nav__viewport::after {
+    background: linear-gradient(
+      270deg,
+      color-mix(in srgb, var(--color-bg-elevated, var(--color-bg-surface)) 96%, transparent) 8%,
+      transparent
+    );
+    border-radius: 0 16px 16px 0;
+  }
+
+  .account-nav__edge-cue {
+    display: inline-flex;
+  }
+
+  .account-nav__inner {
+    gap: 2px;
+    padding: 4px 28px;
+    scroll-padding-inline: 28px;
+  }
+
+  .account-nav__item {
+    border-radius: 12px;
+  }
+
+  .account-nav__item.is-active {
+    color: var(--color-text-primary);
+  }
+
+  .account-nav__thumb {
+    background: color-mix(in srgb, var(--color-brand-gold) 22%, transparent);
+    border-radius: 12px;
+    height: auto;
+    inset: 2px;
+  }
+
+  .account-nav__thumb::after {
+    background: var(--color-brand-gold);
+    border-radius: 1px;
+    bottom: 5px;
+    content: '';
+    height: 2px;
+    left: 16px;
+    position: absolute;
+    right: 16px;
+  }
+
+  .account-nav__item-content {
+    min-height: 44px;
+    padding-inline: 14px;
+  }
+
+  [data-theme='light'] .account-nav__viewport {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.72) 100%),
+      color-mix(in srgb, #fff 88%, transparent);
+    border-color: rgba(15, 17, 23, 0.1);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.98),
+      0 8px 22px rgba(15, 17, 23, 0.07);
+  }
+
+  [data-theme='light'] .account-nav__viewport::before {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.96) 10%, transparent);
+  }
+
+  [data-theme='light'] .account-nav__viewport::after {
+    background: linear-gradient(270deg, rgba(255, 255, 255, 0.96) 10%, transparent);
+  }
+
+  [data-theme='light'] .account-nav__thumb {
+    background: color-mix(in srgb, var(--color-brand-gold) 18%, #fff);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .account-nav__viewport {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  @media (max-width: 991px) {
+    .account-nav__viewport {
+      background: var(--color-bg-elevated, var(--color-bg-surface));
+    }
+
+    [data-theme='light'] .account-nav__viewport {
+      background: #fff;
+    }
+  }
+}
+
+.account-sections {
+  display: grid;
+  gap: 22px;
+  margin: 0 auto;
+  max-width: 1080px;
+  padding: 22px clamp(20px, 5vw, 48px) 72px;
+  min-width: 0;
+}
+
+/* Durante el cambio de tab hay dos paneles montados a la vez
+   (MotionContentSwap en modo `sync`) y los dos tienen que ocupar la misma
+   celda. Sin esto la grilla le daría una fila a cada uno y la página se
+   estiraría al doble a mitad de la transición. Misma convención que
+   .auth-mode-swap y .register-wizard-swap. */
+.account-sections > .account-tab-panel {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+/* Un solo tab de cuenta a la vez (ver AccountNav.jsx). La entrada y la salida
+   las maneja MotionContentSwap desde AthleteProfilePage.jsx: entra por el lado
+   de la cinta desde el que se movió el foco, en vez del fade sin dirección que
+   había acá. */
+/* Settle interno: el encabezado y la bajada llegan un instante antes que el
+   cuerpo, así el panel no aparece como un bloque único. Son dos elementos y una
+   sola secuencia one-shot por sección — se replantea en cada cambio de tab
+   porque el panel se remonta con la clave del tab. */
+.account-tab-panel .account-section__heading,
+.account-tab-panel .account-section__lead {
+  animation: account-panel-settle var(--motion-base, 240ms) var(--ease-out, ease) both;
+}
+
+.account-tab-panel .account-section__lead {
+  animation-delay: 70ms;
+}
+
+@keyframes account-panel-settle {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-tab-panel .account-section__heading,
+  .account-tab-panel .account-section__lead {
+    animation: none;
+  }
+}
+
+.account-section {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.05);
+  padding: clamp(24px, 4vw, 36px);
+  transition:
+    box-shadow var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.account-section:hover {
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
+}
+
+.account-section--gold {
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.14);
+}
+
+.account-section--gold:hover {
+  box-shadow: 0 24px 52px rgba(0, 0, 0, 0.18);
+}
+
+.account-section__icon--gold {
+  background: color-mix(in srgb, var(--color-brand-gold) 16%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-gold) 34%, transparent);
+  color: var(--color-brand-gold-dark);
+}
+
+.account-section__icon--neutral {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-secondary);
+}
+
+.account-section__heading {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto 1fr auto;
+}
+
+.account-section__heading--simple {
+  grid-template-columns: 1fr;
+}
+
+.account-section__heading--personal {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.account-section__heading-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.account-section__eyebrow {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.account-section__heading--personal h2 {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+
+.account-section__icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 24%, transparent);
+  border-radius: 8px;
+  color: var(--color-brand-celeste);
+  display: flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.account-section__icon--celeste {
+  background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 26%, transparent);
+  color: var(--color-brand-celeste);
+}
+
+.account-section__heading span,
+.account-payment-options legend,
+.account-plan-options legend,
+.account-history-list span {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.account-section__heading h2 {
+  color: var(--color-text-primary);
+  font-size: clamp(20px, 3vw, 25px);
+  font-weight: 600;
+  margin: 3px 0 0;
+}
+
+.account-section__price {
+  color: var(--color-text-primary);
+  font-size: 23px;
+  font-weight: 600;
+}
+
+.account-section__price small {
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+.account-section__lead,
+.account-section__empty {
+  color: var(--color-text-secondary);
+  margin: 18px 0;
+}
+
+.account-empty {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  margin-top: 22px;
+  max-width: 42ch;
+  padding-top: 22px;
+}
+
+.account-empty__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.4vw, 22px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.account-empty__lead {
+  color: var(--color-text-secondary);
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.account-empty__action {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-brand-celeste) 45%, transparent);
+  color: var(--color-brand-celeste);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  margin-top: 6px;
+  min-height: 44px;
+  padding: 0 0 3px;
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.account-empty__action:hover {
+  border-bottom-color: var(--color-brand-celeste);
+  color: var(--color-brand-celeste-hover, var(--color-brand-celeste));
+}
+
+.account-empty__action:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 4px;
+}
+
+.account-membership__header,
+.account-membership__banner {
+  align-items: start;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.account-membership__banner {
+  border-bottom: 1px solid var(--color-border-subtle);
+  margin-bottom: 0;
+  padding-bottom: 22px;
+}
+
+.account-membership__banner:not(:has(.account-membership__price)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.account-membership__banner-copy {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.account-membership__banner-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+}
+
+.account-membership__eyebrow {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.account-membership__status-line {
+  align-items: baseline;
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  gap: 6px 8px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.account-membership__status-sep {
+  color: color-mix(in srgb, var(--color-text-muted) 70%, transparent);
+}
+
+.account-membership__status-line .account-membership-status__label {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+.account-membership__status-line .account-membership-status__value {
+  color: var(--color-text-secondary);
+  font-family: var(--font-family);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.account-membership__status-line--pending .account-membership-status__label {
+  color: var(--color-brand-gold);
+}
+
+.account-membership__status-line--expired .account-membership-status__label,
+.account-membership__status-line--cancelled .account-membership-status__label {
+  color: var(--color-brand-red);
+}
+
+.account-membership__status-pill {
+  align-items: center;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  font-size: 11px;
+  gap: 6px;
+  line-height: 1;
+  padding: 6px 10px;
+}
+
+.account-membership__status-pill .account-membership-status__label {
+  letter-spacing: 0.08em;
+}
+
+.account-membership__status-pill .account-membership-status__value {
+  font-size: 11px;
+  font-weight: 550;
+}
+
+.account-membership__status-pill--pending {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 40%, transparent);
+  background: color-mix(in srgb, var(--color-brand-gold) 8%, transparent);
+}
+
+.account-membership__status-pill--expired,
+.account-membership__status-pill--cancelled {
+  border-color: color-mix(in srgb, var(--color-brand-red) 34%, transparent);
+  background: color-mix(in srgb, var(--color-brand-red) 8%, transparent);
+}
+
+.account-membership__banner-copy h2 {
+  color: var(--color-text-primary);
+  font-size: clamp(24px, 3.4vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.account-membership__banner-next,
+.account-membership__banner-meta-line {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.account-membership__intro .account-section__heading,
+.account-membership__banner-copy .account-section__heading {
+  grid-template-columns: auto 1fr;
+}
+
+.account-membership__intro .account-section__lead,
+.account-membership__banner-copy .account-section__lead {
+  margin: 14px 0 0;
+  max-width: 52ch;
+}
+
+.account-membership__price {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  padding-top: 2px;
+  text-align: right;
+}
+
+.account-membership__price-label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.account-membership__price-value {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4.2vw, 44px);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  margin: 0;
+}
+
+.account-membership__decision {
+  align-items: start;
+  display: grid;
+  gap: clamp(28px, 4vw, 48px);
+  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
+  margin-top: 8px;
+}
+
+.account-membership__decision--solo {
+  gap: 26px;
+  grid-template-columns: minmax(0, 1fr);
+  margin-inline: auto;
+  max-width: 560px;
+  width: 100%;
+}
+
+.account-membership:has(.account-membership__decision--solo) .account-membership__banner {
+  margin-inline: auto;
+  max-width: 560px;
+}
+
+.account-membership__decision > .account-membership__checkout,
+.account-membership__decision--solo > .account-benefits,
+.account-membership__decision--solo > .account-membership__checkout {
+  animation: account-membership-rise var(--motion-base, 280ms) var(--ease-out, ease) both;
+}
+
+.account-membership__decision--solo > .account-membership__checkout {
+  animation-delay: 60ms;
+}
+
+@keyframes account-membership-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-membership__decision > .account-membership__checkout,
+  .account-membership__decision--solo > .account-benefits,
+  .account-membership__decision--solo > .account-membership__checkout {
+    animation: none;
+  }
+}
+
+.account-membership__combo {
+  border-bottom: 1px solid var(--color-border-subtle);
+  margin: 4px auto 20px;
+  max-width: 560px;
+  padding-bottom: 24px;
+  width: 100%;
+}
+
+.account-membership__combo-kicker {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.account-membership__plan-title {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  margin: 0 0 14px;
+  text-transform: uppercase;
+}
+
+.account-benefits {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Tres datos cortos que introducen el checkout: se leen como una línea de
+   crédito centrada y cierran con una regla breve, no con un borde de ancho
+   completo que los convertía en encabezado de tabla. */
+.account-benefits--inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 28px;
+  justify-content: center;
+  padding-bottom: 22px;
+  position: relative;
+  text-align: center;
+}
+
+.account-benefits--inline::after {
+  background: var(--color-border-subtle);
+  bottom: 0;
+  content: '';
+  height: 1px;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  width: 72px;
+}
+
+.account-benefits li,
+.account-benefits span {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 14px;
+  font-weight: 400;
+  gap: 10px;
+  line-height: 1.35;
+}
+
+.account-benefits--inline li {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  gap: 7px;
+  letter-spacing: 0.02em;
+}
+
+.account-benefits svg {
+  color: var(--color-brand-gold);
+  flex: none;
+}
+
+/* Los pasos de configuración (volver, modalidad, descuento) se agrupan con un
+   ritmo corto y el desk de cobro entra con más aire: es el cierre de la
+   decisión y ya trae su propia regla superior. */
+.account-membership__checkout {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  display: grid;
+  gap: 18px;
+  padding: 0;
+  position: static;
+}
+
+.account-membership__checkout > .plu-checkout {
+  margin-top: 8px;
+}
+
+/* Volver es el control más liviano de la pantalla, pero como hijo directo de
+   un grid se estiraba a todo el ancho y se leía como un campo vacío con el
+   texto arrinconado. Ocupa lo que mide su contenido, igual que en el settle. */
+.account-membership__checkout > .account-membership__settle-back {
+  justify-self: start;
+}
+
+.account-membership__decision--solo .account-membership__checkout {
+  border-top: 0;
+  padding-top: 0;
+}
+
+/* Pantalla de settle de Mercado Pago — mismo lenguaje visual que el settle
+   de inscripción a torneo (flecha para cambiar de método + link directo a
+   transferencia), pero como clases propias de esta sección. */
+.account-membership__settle {
+  display: grid;
+  gap: 20px;
+}
+
+.account-membership__settle-bar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.account-membership__settle-back {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  transition:
+    border-color var(--motion-fast, 160ms) var(--ease-out, ease),
+    color var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.account-membership__settle-back:hover {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
+  color: var(--color-text-primary);
+}
+
+.account-membership__settle-back:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.account-membership__settle-alt {
+  background: transparent;
+  border: 0;
+  color: var(--color-brand-celeste);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.account-membership__settle-alt:hover:not(:disabled) {
+  color: var(--color-text-primary);
+}
+
+.account-membership__settle-alt:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.account-membership__settle-alt:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.account-plan-options,
+.account-payment-options {
+  border: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr;
+  margin: 0;
+  padding: 0;
+}
+
+.account-payment-options--split {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.account-plan-options legend,
+.account-payment-options legend {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  grid-column: 1 / -1;
+  letter-spacing: 0.12em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.account-plan-options label,
+.account-payment-options label {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto auto 1fr;
+  min-height: 58px;
+  padding: 14px 16px;
+  transition:
+    border-color var(--motion-fast, 160ms) var(--ease-out, ease),
+    background-color var(--motion-fast, 160ms) var(--ease-out, ease),
+    color var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.account-plan-options label {
+  grid-template-columns: auto 1fr;
+  min-height: 52px;
+}
+
+.account-payment-options--split label {
+  min-height: 76px;
+}
+
+.account-plan-options label:hover,
+.account-payment-options label:hover {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
+}
+
+.account-plan-options label.is-selected,
+.account-payment-options label.is-selected {
+  background: color-mix(in srgb, var(--color-brand-gold) 9%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-gold) 58%, transparent);
+  color: var(--color-brand-gold);
+}
+
+.account-plan-options input,
+.account-payment-options input {
+  accent-color: var(--color-brand-gold);
+}
+
+.account-plan-options label span,
+.account-payment-options label span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.account-plan-options__label,
+.account-payment-options strong,
+.account-payment-options__label {
+  color: var(--color-text-primary);
+  font-size: 13.5px;
+  font-weight: 550;
+}
+
+.account-plan-options small,
+.account-payment-options small {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  font-weight: 400;
+}
+
+.account-membership__pay-note {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: -4px 0 0;
+}
+
+/* Cierre del checkout de afiliación. `CheckoutDesk` es compartido con registro
+   e inscripción, así que la presencia del precio se resuelve como variante
+   local: el total es el ancla de la decisión y se apila (etiqueta chica arriba,
+   monto grande abajo) en vez de repartirse a los extremos del renglón. El monto
+   va en texto primario porque el oro ya lo usa el CTA, que es la acción. */
+.account-membership__bar {
+  align-items: end;
+  gap: 16px 24px;
+}
+
+.account-membership__bar .plu-checkout__total {
+  display: grid;
+  gap: 3px;
+  justify-items: start;
+}
+
+.account-membership__bar .plu-checkout__total-amounts {
+  justify-items: start;
+  text-align: left;
+}
+
+.account-membership__bar .plu-checkout__total > span:first-child {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.account-membership__bar .plu-checkout__total-compare {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.account-membership__bar .plu-checkout__total strong,
+/* `checkout-desk.css` pinta el total en oro para el tema claro con la misma
+   especificidad que la regla de arriba, así que sin este selector el monto
+   quedaba blanco en dark y oro en light. */
+[data-theme='light'] .account-membership__bar .plu-checkout__total strong {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(28px, 3.4vw, 36px);
+  font-weight: 550;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.account-membership__billing {
+  display: grid;
+  gap: 16px;
+  max-width: none;
+  width: 100%;
+}
+
+.account-membership__billing.is-locked {
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.account-membership__billing-head {
+  display: grid;
+  gap: 6px;
+}
+
+.account-membership__billing-label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.account-membership__billing-hint {
+  color: var(--color-text-secondary);
+  font-size: 13.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 42ch;
+}
+
+/* Código de descuento — disclosure discreto en el checkout de afiliación.
+   Antes no tenía estilos: el input y el botón salían nativos del browser. */
+.account-discount {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.account-discount > div {
+  grid-area: 1 / 1;
+  min-width: 0;
+  width: 100%;
+}
+
+/* El aspecto del canje —sello, filo de oro, código en mono, chip metálico— lo
+   define components/code-band.css, compartido con el canje universal y con el
+   campo de inscripción. Acá queda sólo el sitio que ocupa en la ficha. */
+.account-discount__field {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  max-width: 470px;
+  width: 100%;
+}
+
+.account-discount__applied {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  width: 100%;
+}
+
+/* Promo que corre para todos: no la trajo el atleta con un codigo, asi que
+   se lee como informacion del catalogo (celeste) y no como un logro suyo
+   (oro), y no ofrece "quitar" porque no hay nada que quitar. */
+.account-discount__applied--public {
+  align-items: center;
+  color: var(--color-brand-celeste);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  margin: 0;
+}
+
+/* Estilos de .segmented-switch--membership: components/segmented-switch.css
+   (compartidos con MembersPage). */
+
+.account-primary-action {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  border-radius: 10px;
+  color: var(--color-brand-action-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13.5px;
+  font-weight: 550;
+  gap: 8px;
+  justify-content: center;
+  letter-spacing: 0.01em;
+  min-height: 48px;
+  padding: 0 22px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.account-primary-action--block {
+  width: 100%;
+}
+
+.account-primary-action:hover:not(:disabled) {
+  background: var(--color-brand-action-hover, var(--color-brand-action));
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--color-brand-action) 28%, transparent);
+  transform: translateY(-1px);
+}
+
+.account-primary-action:disabled {
+  box-shadow: none;
+  cursor: default;
+  opacity: 0.5;
+  transform: none;
+}
+
+.account-primary-action[aria-busy='true'] svg {
+  animation: spin 0.9s linear infinite;
+}
+
+/* Checkout membership: overrides after base primary-action so color/hover stick. */
+.account-primary-action.account-primary-action--checkout {
+  background: var(--color-brand-action);
+  border-color: color-mix(in srgb, var(--color-brand-action) 78%, #000);
+  border-radius: 10px;
+  box-shadow: none;
+  color: var(--color-brand-action-text, #141518);
+  gap: 10px;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 20px;
+  text-align: center;
+}
+
+.account-primary-action.account-primary-action--checkout:hover:not(:disabled) {
+  background: var(--color-brand-action-hover, var(--color-brand-action));
+  box-shadow: none;
+  transform: none;
+}
+
+.account-primary-action.account-primary-action--checkout .account-primary-action__label {
+  align-items: center;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: -0.015em;
+}
+
+.account-primary-action.account-primary-action--checkout .account-primary-action__arrow {
+  flex: none;
+  opacity: 0.8;
+  transition: transform var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.account-primary-action.account-primary-action--checkout:hover:not(:disabled)
+  .account-primary-action__arrow {
+  transform: translateX(3px);
+}
+
+.account-secondary-action {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 400;
+  gap: 8px;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.account-secondary-action:hover {
+  border-color: var(--color-text-secondary);
+}
+
+.account-secondary-action--success {
+  border-color: color-mix(in srgb, #3d9a62 45%, transparent);
+  color: #4fbe79;
+}
+
+.account-secondary-action--success:hover {
+  background: color-mix(in srgb, #3d9a62 10%, transparent);
+  border-color: #3d9a62;
+}
+
+.account-secondary-action--danger {
+  border-color: color-mix(in srgb, var(--color-brand-red) 40%, transparent);
+  color: var(--color-brand-red);
+}
+
+.account-secondary-action--danger:hover {
+  background: color-mix(in srgb, var(--color-brand-red) 8%, transparent);
+  border-color: var(--color-brand-red);
+}
+
+.account-checkout-message {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 16px 0 0;
+}
+
+/* Aumento programado del plan de afiliación: misma voz que el resto de los
+   mensajes operativos del checkout, sin acento nuevo. */
+.account-membership__upcoming-price {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 10px 0 0;
+}
+
+.account-checkout-message--error {
+  color: var(--color-brand-red-hover, var(--color-brand-red));
+}
+
+.account-photo {
+  align-items: center;
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex;
+  gap: 22px;
+  margin: 8px 0 28px;
+  padding-bottom: 28px;
+}
+
+.account-photo__ring {
+  align-items: center;
+  display: flex;
+  flex: none;
+  height: 104px;
+  justify-content: center;
+  position: relative;
+  width: 104px;
+}
+
+.account-photo__ring > svg {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: rotate(-90deg);
+}
+
+.account-photo__ring-track {
+  fill: none;
+  stroke: var(--color-border-strong);
+  stroke-width: 3;
+}
+
+.account-photo__ring-fill {
+  fill: none;
+  stroke: var(--color-brand-gold);
+  stroke-linecap: round;
+  stroke-width: 3;
+  transition: stroke-dashoffset var(--motion-slow) var(--ease-out);
+}
+
+.account-photo__avatar {
+  background: linear-gradient(155deg, var(--plu-gold-400), var(--plu-gold-600));
+  border: 1px solid rgba(242, 183, 5, 0.35);
+  border-radius: 50%;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  color: #141518;
+  cursor: pointer;
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  height: 88px;
+  letter-spacing: 0.04em;
+  padding: 0;
+  position: relative;
+  transition:
+    box-shadow var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+  width: 88px;
+}
+
+.account-photo__avatar-frame {
+  align-items: center;
+  border-radius: 50%;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  overflow: hidden;
+  position: absolute;
+}
+
+.account-photo__avatar:hover {
+  transform: translateY(-1px);
+}
+
+.account-photo__avatar:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.account-photo__avatar:disabled {
+  cursor: default;
+}
+
+.account-photo__avatar--dragging {
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
+  transform: scale(1.03);
+}
+
+.account-photo__avatar img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.account-photo__scrim {
+  align-items: center;
+  background: rgba(10, 11, 16, 0.55);
+  color: #fff;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  opacity: 0;
+  position: absolute;
+  transition: opacity var(--motion-fast) var(--ease-out);
+}
+
+.account-photo__avatar:hover .account-photo__scrim,
+.account-photo__avatar:focus-visible .account-photo__scrim,
+.account-photo__avatar--dragging .account-photo__scrim {
+  opacity: 1;
+}
+
+.account-photo__badge {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: 2px solid var(--color-bg-surface);
+  border-radius: 50%;
+  bottom: -2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  color: var(--color-brand-action-text, #141518);
+  display: flex;
+  height: 26px;
+  justify-content: center;
+  position: absolute;
+  right: -2px;
+  width: 26px;
+}
+
+.account-photo__avatar[aria-busy='true'] .account-photo__badge svg {
+  animation: spin 0.9s linear infinite;
+}
+
+.account-photo__actions {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.account-photo__hint {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 46ch;
+}
+
+.account-photo__input {
+  display: none;
+}
+
+.account-photo__error {
+  color: var(--color-brand-red-hover, var(--color-brand-red));
+  font-size: 12.5px;
+  margin: 0;
+}
+
+.account-data-group .form-grid {
+  margin: 0;
+}
+
+.account-membership-status {
+  align-items: start;
+  border-bottom: 0;
+  border-left: 2px solid color-mix(in srgb, var(--color-brand-gold) 55%, transparent);
+  border-top: 0;
+  display: grid;
+  gap: 4px 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  margin: 18px 0 8px;
+  padding: 2px 0 2px 16px;
+}
+
+.account-membership-status--compact {
+  align-items: baseline;
+  border-top: 0;
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  justify-content: flex-start;
+  margin: 0 0 28px;
+  padding: 14px 0 18px;
+}
+
+.account-membership-status__copy {
+  display: grid;
+  gap: 4px;
+}
+
+.account-membership-status__label {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+.account-membership-status--compact .account-membership-status__label {
+  flex: none;
+}
+
+.account-membership-status__value {
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.account-membership-status--compact .account-membership-status__value {
+  font-size: 13px;
+}
+
+.account-membership-status__meta {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+}
+
+.account-membership-status__aside {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  max-width: 48ch;
+  text-align: left;
+}
+
+.account-membership-status__next {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.account-membership-status--compact .account-membership-status__next {
+  flex: 1 1 100%;
+  margin-top: 2px;
+}
+
+.account-membership-status__sep {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.account-membership-status__sep--break {
+  display: none;
+}
+
+.account-membership-status--active {
+  border-left-color: var(--color-success-text);
+}
+
+.account-membership-status--active .account-membership-status__value {
+  color: var(--color-success-text);
+  font-family: ui-monospace, 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.account-membership-status--pending .account-membership-status__value {
+  color: var(--color-brand-gold);
+  font-family: var(--font-family);
+  font-variant-numeric: normal;
+  letter-spacing: 0;
+}
+
+.account-membership-status--scheduled {
+  border-left-color: var(--color-brand-celeste);
+}
+
+.account-membership-status--scheduled .account-membership-status__value {
+  color: var(--color-brand-celeste);
+  font-family: var(--font-family);
+  font-variant-numeric: normal;
+  letter-spacing: 0;
+}
+
+.account-membership-status--expired,
+.account-membership-status--cancelled {
+  border-left-color: var(--color-brand-red);
+}
+
+.account-membership-status--expired .account-membership-status__value,
+.account-membership-status--cancelled .account-membership-status__value {
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-variant-numeric: normal;
+  letter-spacing: 0;
+}
+
+.account-membership-status--expired .account-membership-status__label,
+.account-membership-status--cancelled .account-membership-status__label {
+  color: var(--color-brand-red);
+}
+
+.account-membership--hold .account-membership__banner {
+  border-bottom: 0;
+  margin-inline: auto;
+  max-width: 560px;
+  padding-bottom: 0;
+}
+
+.account-plan-feedback {
+  align-items: center;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 12.5px;
+  gap: 9px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+}
+
+.account-plan-feedback--error {
+  border-color: color-mix(in srgb, var(--color-brand-red) 34%, var(--color-border-subtle));
+}
+
+.account-plan-feedback--error > svg {
+  color: var(--color-brand-red);
+  flex: none;
+}
+
+.account-plan-feedback button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-brand-celeste);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 5px;
+  margin-left: auto;
+  padding: 3px;
+}
+
+.account-plan-options:disabled label,
+.account-payment-options:disabled label {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.account-combo-offer {
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  display: grid;
+  gap: 18px;
+  margin-top: 28px;
+  padding: 18px 20px;
+}
+
+.account-combo-offer__copy span {
+  color: var(--color-brand-gold);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.account-combo-offer__copy h3 {
+  color: var(--color-text-primary);
+  font-size: 16px;
+  font-weight: 550;
+  letter-spacing: -0.015em;
+  margin: 6px 0 8px;
+}
+
+.account-combo-offer__copy p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.account-combo-offer__prices {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-top: 14px;
+}
+
+.account-combo-offer__prices div {
+  align-items: baseline;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.account-combo-offer__prices dt {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.account-combo-offer__prices dd {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.account-combo-offer__prices div:nth-child(2) dd {
+  color: var(--color-brand-gold);
+  font-size: 16px;
+  font-weight: 550;
+}
+
+.account-membership__demo {
+  border-top: 1px solid var(--color-border-subtle);
+  margin-top: 28px;
+  padding-top: 18px;
+}
+
+.account-membership__demo-label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  margin: 0 0 12px;
+  text-transform: uppercase;
+}
+
+.account-demo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.account-membership-required {
+  align-items: flex-start;
+  background: color-mix(in srgb, var(--color-brand-red) 9%, var(--color-bg-elevated));
+  border: 1px solid color-mix(in srgb, var(--color-brand-red) 30%, transparent);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  display: flex;
+  gap: 12px;
+  margin: 18px 0 6px;
+  padding: 14px;
+}
+
+.account-membership-required svg {
+  color: var(--color-brand-red);
+  flex: none;
+  margin-top: 2px;
+}
+
+.account-membership-required strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 3px;
+}
+
+.account-membership-required p {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  margin: 0;
+}
+
+.account-event-membership-note {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  margin: 6px 0 0;
+  max-width: 42ch;
+}
+
+.account-events-list,
+.account-history-list {
+  display: grid;
+  margin-top: 24px;
+}
+
+.account-events-list article,
+.account-events-list__row {
+  align-items: center;
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 90px 1fr auto auto;
+  padding: 20px 0;
+}
+
+.account-events-list time {
+  color: var(--color-brand-celeste);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.account-events-list h3 {
+  color: var(--color-text-primary);
+  font-size: 16px;
+  margin: 0 0 5px;
+}
+
+.account-events-list p {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+.account-event-status,
+.account-history-status {
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.account-events-list button,
+.account-events-list__cta {
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 700;
+  min-height: 38px;
+  padding: 0 15px;
+}
+
+.account-events-list button:not(:disabled):hover,
+.account-events-list__cta:not(:disabled):hover {
+  border-color: var(--color-brand-celeste);
+  color: var(--color-brand-celeste);
+}
+
+.account-events-list button:disabled,
+.account-events-list__cta:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* Próximos torneos — lista editorial scoped (no toca otras account-section). */
+#account-events.account-section--events {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding-inline: 0;
+  position: relative;
+}
+
+#account-events.account-section--events:hover {
+  box-shadow: none;
+}
+
+#account-events .account-section__heading {
+  align-items: end;
+  border-bottom: 1px solid var(--color-border-subtle);
+  gap: 14px;
+  margin-bottom: 4px;
+  padding-bottom: 16px;
+}
+
+#account-events .account-section__icon--gold {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
+  border-radius: 10px;
+  color: var(--color-brand-gold);
+}
+
+#account-events .account-events-list {
+  margin-top: 0;
+}
+
+#account-events .account-events-list__row {
+  align-items: center;
+  border-top: 1px solid color-mix(in srgb, var(--color-border-subtle) 88%, transparent);
+  gap: 16px 22px;
+  grid-template-columns: minmax(68px, 92px) minmax(0, 1fr) auto auto;
+  padding: 20px 0;
+  transition: none;
+}
+
+#account-events .account-events-list__row:first-child {
+  border-top: none;
+  padding-top: 18px;
+}
+
+#account-events .account-events-list__row:last-child {
+  padding-bottom: 2px;
+}
+
+#account-events .account-events-list time {
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 550;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+}
+
+#account-events .account-events-list h3 {
+  font-size: 16px;
+  font-weight: 550;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+}
+
+#account-events .account-events-list__body p {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+#account-events .account-events-list__body .pitbull-brand-mark {
+  margin: 0 0 4px;
+  max-width: 100%;
+}
+
+#account-events .account-events-list__body .pitbull-brand-mark--sm .pitbull-brand-mark__emblem {
+  height: 36px;
+}
+
+#account-events .account-events-list__body .pitbull-brand-mark--sm .pitbull-brand-mark__wordmark {
+  height: 26px;
+  max-width: min(42vw, 148px);
+}
+
+#account-events .account-event-membership-note {
+  color: color-mix(in srgb, var(--color-brand-gold) 78%, var(--color-text-muted));
+  font-size: 12px;
+  margin-top: 8px;
+  max-width: 42ch;
+}
+
+#account-events .account-event-status {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 550;
+  letter-spacing: 0.06em;
+  padding: 0;
+  white-space: nowrap;
+}
+
+#account-events .account-events-list__cta {
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 550;
+  min-height: 40px;
+  padding: 0 16px;
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+#account-events .account-events-list__actions {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-self: end;
+}
+
+#account-events .account-events-list__change-method {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  min-height: 32px;
+  padding: 0 4px;
+  text-align: center;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+#account-events .account-events-list__change-method:hover {
+  border: none;
+  color: var(--color-brand-celeste);
+}
+
+#account-events .account-events-list__cta:not(:disabled):hover {
+  background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
+  border-color: var(--color-brand-celeste);
+  color: var(--color-brand-celeste);
+  transform: none;
+}
+
+/* Inscripción cargada sin pago acreditado: el estado se distingue del "abierta"
+   del calendario y el CTA queda habilitado para cerrar el pago, en vez de
+   bloquearse como si el cupo ya estuviera confirmado. */
+#account-events .account-event-status[data-state='registered'] {
+  color: var(--color-status-success);
+}
+
+#account-events .account-event-status[data-state='pending_payment'] {
+  color: var(--color-warning-text);
+}
+
+#account-events .account-events-list__cta.is-payment-pending {
+  border-color: color-mix(in srgb, var(--color-warning-text) 55%, transparent);
+  color: var(--color-warning-text);
+}
+
+/* `dark.css` declara sus tokens en `:root, [data-theme='dark']`, así que light
+   hereda el ámbar de dark (#f0b45e) y sobre la crema queda en 1.71:1. Acá se
+   toman los tonos de la paleta pensados para fondo claro. */
+[data-theme='light'] #account-events .account-event-status[data-state='registered'] {
+  color: var(--plu-success-600);
+}
+
+[data-theme='light'] #account-events .account-event-status[data-state='pending_payment'] {
+  color: var(--plu-warning-500);
+}
+
+[data-theme='light'] #account-events .account-events-list__cta.is-payment-pending {
+  border-color: color-mix(in srgb, var(--plu-warning-500) 55%, transparent);
+  color: var(--plu-warning-500);
+}
+
+#account-events .account-events-list__cta:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+#account-events .account-events-list__cta.is-registered,
+#account-events .account-events-list__cta:disabled {
+  background: transparent;
+  border-color: var(--color-border-subtle);
+  color: var(--color-text-muted);
+  line-height: 1.3;
+  opacity: 1;
+  padding-block: 8px;
+  text-align: center;
+  transform: none;
+  white-space: normal;
+}
+
+@media (min-width: 721px) {
+  #account-events .account-events-list__cta.is-registered {
+    max-width: 14.5rem;
+  }
+}
+
+#account-events .account-section__empty {
+  color: var(--color-text-muted);
+  margin-top: 18px;
+}
+
+[data-theme='light'] #account-events.account-section--events {
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (max-width: 720px) {
+  #account-events .account-events-list__row {
+    align-items: start;
+    grid-template-columns: minmax(64px, 84px) minmax(0, 1fr);
+  }
+
+  #account-events .account-event-status {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  #account-events .account-events-list__actions {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  #account-events .account-events-list__cta {
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  #account-events .account-events-list__cta.is-registered {
+    max-width: none;
+  }
+
+  #account-events .account-events-list__body .pitbull-brand-mark--sm .pitbull-brand-mark__wordmark {
+    max-width: min(48vw, 160px);
+  }
+}
+
+@media (max-width: 360px) {
+  #account-events .account-events-list__body .pitbull-brand-mark--sm .pitbull-brand-mark__emblem {
+    height: 32px;
+  }
+
+  #account-events .account-events-list__body .pitbull-brand-mark--sm .pitbull-brand-mark__wordmark {
+    height: 22px;
+    max-width: min(52vw, 128px);
+  }
+}
+
+.account-history-list article {
+  align-items: center;
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 1.4fr 1fr auto;
+  padding: 18px 0;
+}
+
+.account-history-list article > div {
+  display: grid;
+  gap: 4px;
+}
+
+.account-history-list strong {
+  color: var(--color-text-primary);
+  font-size: 13px;
+}
+
+.account-payment-modal__overlay {
+  align-items: center;
+  animation: account-payment-modal-fade var(--motion-base, 280ms) var(--ease-out, ease) both;
+  background: rgba(5, 6, 9, 0.76);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 20px;
+  position: fixed;
+  z-index: var(--z-modal, 400);
+}
+
+.account-payment-modal {
+  animation: account-payment-modal-rise var(--motion-base, 280ms) var(--ease-out, ease) both;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+  max-width: 540px;
+  padding: 26px;
+  width: 100%;
+}
+
+/* TransferPayModal: layout y z-index viven en transfer-pay-modal.css.
+   Acá sólo se mantienen utilidades compartidas con el recibo en línea. */
+.account-payment-modal--transfer .account-payment-modal__close {
+  height: 44px;
+  width: 44px;
+}
+
+.account-payment-modal--transfer .account-payment-modal__footnote {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 46ch;
+}
+
+.account-transfer-receipt {
+  display: grid;
+  gap: 0;
+}
+
+.account-transfer-receipt__total {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  justify-content: space-between;
+  margin: 0;
+  padding: 2px 0 12px;
+}
+
+.account-transfer-receipt__total span {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.account-transfer-receipt__total strong {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 4vw, 1.7rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.account-transfer-data--receipt div {
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  padding: 9px 0;
+}
+
+[data-theme='light'] .account-transfer-receipt__total strong {
+  color: var(--plu-gold-600);
+}
+
+@media (max-width: 480px) {
+  .account-transfer-data--receipt div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
+
+.account-payment-modal--checkout {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-strong);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+  color: var(--color-text-primary);
+  display: grid;
+  gap: 12px;
+  grid-template-rows: auto minmax(0, 1fr);
+  max-height: min(92vh, 820px);
+  max-width: 540px;
+  overflow: hidden;
+  padding: 20px 20px 16px;
+}
+
+.account-payment-modal header,
+.account-payment-modal__header {
+  align-items: start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.account-payment-modal--checkout .account-payment-modal__header {
+  align-items: start;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  padding-bottom: 12px;
+}
+
+.account-payment-modal__intro {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.account-payment-modal--checkout .account-payment-modal__intro {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.account-payment-modal__logo {
+  display: block;
+  height: 26px;
+  width: auto;
+}
+
+.account-payment-modal__titles {
+  min-width: 0;
+}
+
+.account-payment-modal header span,
+.account-payment-modal__titles span {
+  color: var(--color-brand-gold);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.account-payment-modal h2,
+.account-payment-modal__titles h2 {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.6vw, 24px);
+  font-weight: 550;
+  letter-spacing: -0.03em;
+  margin: 6px 0 0;
+}
+
+.account-payment-modal--checkout .account-payment-modal__intro h2 {
+  font-size: clamp(1.2rem, 3.2vw, 1.45rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  margin: 0;
+}
+
+.account-payment-modal--checkout .account-payment-modal__summary {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0;
+}
+
+.account-payment-modal--checkout .account-payment-modal__summary span {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.account-payment-modal--checkout .account-payment-modal__summary strong {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 4vw, 1.7rem);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+}
+
+[data-theme='light'] .account-payment-modal--checkout .account-payment-modal__summary strong {
+  color: var(--plu-gold-600);
+}
+
+.account-payment-modal--checkout header p,
+.account-payment-modal--checkout .account-payment-modal__lead {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.account-payment-modal--checkout .visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.account-payment-modal header button,
+.account-payment-modal__close {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  flex: none;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
+}
+
+.account-payment-modal--checkout .account-payment-modal__close {
+  height: 44px;
+  width: 44px;
+}
+
+.account-payment-modal--checkout .account-payment-modal__close:hover {
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+}
+
+.account-payment-modal--checkout .account-payment-modal__close:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.account-payment-modal__body {
+  margin-top: 18px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.account-payment-modal--checkout .account-payment-modal__body {
+  margin-top: 0;
+  overflow: auto;
+}
+
+.account-payment-modal__body .mp-embedded-checkout {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  gap: 12px;
+  padding: 0;
+}
+
+.account-payment-modal__body .mp-embedded-checkout__header {
+  display: none;
+}
+
+.account-payment-modal__body .mp-embedded-checkout--modal {
+  gap: 0;
+}
+
+.account-payment-modal--checkout [data-testid='payment-form'] [class*='button-container'] {
+  max-width: none;
+  width: 100%;
+}
+
+.account-payment-modal--checkout [data-testid='payment-form'] button[type='submit'] {
+  min-height: 48px;
+  width: 100%;
+}
+
+.account-payment-modal__body .mp-embedded-checkout__mock {
+  gap: 1rem;
+}
+
+.account-payment-modal__body .mp-embedded-checkout__mock-summary-top {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.account-payment-modal__body .mp-embedded-checkout__mock-chip {
+  background: color-mix(in srgb, var(--plu-gold-500) 10%, transparent);
+  border-color: color-mix(in srgb, var(--plu-gold-500) 26%, transparent);
+  color: var(--color-brand-gold);
+  flex: none;
+  font-size: 0.62rem;
+  padding: 0.28rem 0.6rem;
+}
+
+.account-payment-modal__body .mp-embedded-checkout__mock-summary {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  gap: 0.3rem;
+  padding-bottom: 0.9rem;
+}
+
+.account-payment-modal__body .mp-embedded-checkout__mock-summary-label {
+  color: var(--color-text-muted);
+}
+
+.account-payment-modal__body .mp-embedded-checkout__mock-amount {
+  color: var(--color-text-primary);
+  font-size: clamp(1.7rem, 3vw, 2rem);
+}
+
+.account-payment-modal__body .mp-embedded-checkout__mock-payer {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.account-payment-modal__body .mp-embedded-checkout__mock-panel {
+  gap: 0.7rem;
+}
+
+.account-payment-modal__body .mp-embedded-checkout__mock-cta {
+  background: var(--color-brand-action);
+  border-color: var(--color-brand-action);
+  color: var(--color-brand-action-text);
+  min-height: 46px;
+}
+
+.account-payment-modal__body .mp-embedded-checkout__mock-more {
+  margin: 0;
+}
+
+.account-payment-modal__body .mp-embedded-checkout__mock-more > summary {
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 450;
+  letter-spacing: 0.03em;
+  list-style: none;
+  min-height: 36px;
+  padding: 0.35rem 0;
+  text-align: center;
+}
+
+.account-payment-modal__body .mp-embedded-checkout__mock-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.account-payment-modal__body .mp-embedded-checkout__mock-more[open] > summary {
+  color: var(--color-text-secondary);
+}
+
+.account-payment-modal__body .mp-embedded-checkout__mock-alt {
+  color: var(--color-text-muted);
+}
+
+.account-payment-modal__body .mp-embedded-checkout__mock-alt:hover:not(:disabled) {
+  border-bottom-color: color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+  color: var(--color-brand-celeste);
+}
+
+.account-payment-modal__body .mp-embedded-checkout__loading,
+.account-payment-modal__body .mp-embedded-checkout__poll-followup {
+  color: var(--color-text-muted);
+}
+
+.account-payment-modal__body .mp-embedded-checkout__skeleton-bar {
+  background: color-mix(in srgb, var(--color-text-muted) 16%, transparent);
+}
+
+.account-payment-modal__body .mp-embedded-checkout__result {
+  border-radius: 10px;
+  margin: 0;
+}
+
+.account-payment-modal__body .mp-embedded-checkout__brick {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  max-height: none;
+  min-height: 0;
+  overflow: visible;
+  padding: 0;
+}
+
+@keyframes account-payment-modal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes account-payment-modal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-payment-modal__overlay,
+  .account-payment-modal {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .account-payment-modal__overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .account-payment-modal,
+  .account-payment-modal--checkout {
+    border-radius: 14px 14px 0 0;
+    max-height: min(94vh, 920px);
+    max-width: none;
+  }
+
+  .account-payment-modal--checkout {
+    padding: 16px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .account-payment-modal--checkout .account-payment-modal__intro {
+    align-items: flex-start;
+  }
+}
+
+.account-payment-modal__notice {
+  background: color-mix(in srgb, var(--plu-gold-500) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--plu-gold-500) 25%, transparent);
+  border-radius: 6px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  margin: 20px 0;
+  padding: 10px 12px;
+}
+
+.account-transfer-data {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.account-transfer-data div {
+  align-items: center;
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 15px;
+  grid-template-columns: 100px 1fr;
+  padding: 11px 0;
+}
+
+.account-transfer-data dt {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.account-transfer-data dd {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 650;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.account-transfer-data--receipt dt {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.account-transfer-data--receipt dd {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.account-payment-modal > p {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* ── "Mi QR" — credencial de afiliado (dos columnas: código + preview) ── */
+/* ── El acuse de credencial emitida ──
+   Aparece una sola vez, la primera vez que la persona entra a su cuenta con el
+   QR ya emitido, y después desaparece: el sello registra el momento, no es un
+   encabezado permanente de la sección. La regla inferior lo separa de la
+   bajada sin sumar otra card — la sección ya es una superficie. */
+.account-qr__issued-seal {
+  border-bottom: 1px solid var(--color-border-subtle);
+  margin-top: 18px;
+  padding-bottom: clamp(14px, 2vw, 20px);
+}
+
+/* Con el sello arriba, la bajada de la sección ya no necesita su margen
+   superior: quedaban dos bloques de aire seguidos entre el acuse y el texto. */
+.account-qr__issued-seal + .account-section__lead {
+  margin-top: 14px;
+}
+
+.account-qr {
+  align-items: center;
+  display: grid;
+  gap: 26px;
+  grid-template-columns: auto 1fr;
+  margin-top: 22px;
+}
+
+.account-qr--split {
+  align-items: start;
+  gap: clamp(28px, 4vw, 48px);
+  grid-template-columns: minmax(160px, 200px) minmax(0, 1fr);
+  margin-top: 28px;
+}
+
+.account-qr__code-col {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  text-align: center;
+}
+
+/* Variante con credencial física (flip) en lugar del chip QR suelto */
+.account-qr--with-credential {
+  grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+}
+
+.account-qr__credential-col {
+  min-width: 0;
+}
+
+.account-qr__chip {
+  background: #fff;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  display: grid;
+  padding: 14px;
+}
+
+.account-qr__chip img {
+  display: block;
+  height: 152px;
+  width: 152px;
+}
+
+.account-qr__code-label {
+  color: var(--color-text-primary);
+  font-family: ui-monospace, 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+
+.account-qr__code-meta {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  margin: 0;
+}
+
+.account-qr__preview-col {
+  align-content: start;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.account-qr__preview-caption {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.account-qr__preview {
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.03) 0%, transparent 42%),
+    linear-gradient(165deg, #17181d 0%, #111215 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: #fff;
+  padding: 22px 22px 20px;
+}
+
+.account-qr__preview-verdict {
+  align-items: center;
+  color: #8fd4a8;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: 0.08em;
+  margin-bottom: 18px;
+  text-transform: uppercase;
+}
+
+.account-qr__preview-name {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 550;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  margin: 0 0 6px;
+}
+
+.account-qr__preview-code {
+  color: rgba(255, 255, 255, 0.4);
+  font-family: ui-monospace, 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  margin: 0 0 18px;
+}
+
+.account-qr__preview-rows {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding-top: 4px;
+}
+
+.account-qr__preview-rows > div {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  display: grid;
+  gap: 4px;
+  padding: 12px 0;
+}
+
+.account-qr__preview-rows > div + div {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.account-qr__preview-rows dt {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.account-qr__preview-rows dd {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13.5px;
+  font-weight: 450;
+  margin: 0;
+}
+
+.account-qr__share {
+  align-items: center;
+  background: transparent;
+  border: 1px solid rgba(242, 183, 5, 0.4);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  justify-content: center;
+  justify-self: stretch;
+  letter-spacing: 0.02em;
+  min-height: 44px;
+  padding: 11px 18px;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    color var(--transition-base);
+}
+
+.account-qr__share:hover {
+  background: rgba(242, 183, 5, 0.1);
+  border-color: rgba(242, 183, 5, 0.55);
+  box-shadow: none;
+  transform: none;
+}
+
+.account-qr__share:focus-visible {
+  outline: 2px solid rgba(116, 172, 223, 0.5);
+  outline-offset: 2px;
+}
+
+.account-qr__share-hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 36ch;
+}
+
+/* Beneficio provisorio por financiamiento: la credencial ya está habilitada,
+   pero el plazo puede vencer y darla de baja sola. Mismos tokens que el aviso
+   de pago manual del checkout (register.css .manual-note), declarados acá
+   para no importar esa hoja de estilos en el perfil. */
+.account-qr__financing-note {
+  align-items: center;
+  background: var(--color-manual-note-bg);
+  border: 1px solid var(--color-manual-note-border);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  display: flex;
+  gap: 10px;
+  line-height: 1.45;
+  margin: 16px 0 0;
+  padding: 12px 14px;
+}
+
+.account-qr__financing-note svg {
+  color: var(--color-brand-gold);
+  flex: none;
+}
+
+[data-theme='light'] .account-qr__preview {
+  background:
+    radial-gradient(ellipse 70% 50% at 90% 0%, rgba(242, 183, 5, 0.1), transparent 55%),
+    linear-gradient(165deg, #1a1c22 0%, #121418 100%);
+}
+
+.account-verify--gate {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 48%),
+    color-mix(in srgb, var(--color-warning-bg, #3a2f12) 55%, var(--color-bg-surface) 45%);
+}
+
+.account-verify--gate::before {
+  background: linear-gradient(
+    180deg,
+    var(--color-brand-gold) 0%,
+    color-mix(in srgb, var(--color-brand-gold) 55%, #92400e) 100%
+  );
+}
+
+.account-qr-pass__gate {
+  margin: 0;
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.account-qr-pass__gate--ready {
+  color: var(--color-success-text, #7dcea0);
+}
+
+.account-qr-pass__gate--reserved {
+  color: var(--color-warning-text, #d4a017);
+}
+
+.account-qr__chip--muted {
+  opacity: 0.55;
+  filter: grayscale(0.35);
+}
+
+.account-qr-dual {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4, 1rem);
+  margin-block: var(--space-4, 1rem);
+}
+
+.account-qr-pass {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--space-4, 1rem);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md, 12px);
+  background: var(--color-bg-elevated);
+}
+
+.account-qr-pass h3 {
+  margin: 0;
+  font-size: var(--text-sm, 0.875rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.account-qr-pass__meta {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm, 0.875rem);
+}
+
+.account-qr-pass__note {
+  margin: 0;
+  color: var(--color-warning, #d4a017);
+  font-size: var(--text-sm, 0.875rem);
+}
+
+.account-qr-pass .account-qr__chip {
+  align-self: center;
+}
+
+.account-qr-pass .account-primary-action {
+  margin-top: auto;
+}
+
+.credential-merge {
+  display: grid;
+  gap: var(--space-3, 0.75rem);
+  padding-block: var(--space-4, 1rem);
+  text-align: center;
+}
+
+.credential-merge__title {
+  margin: 0;
+  font-size: var(--text-lg, 1.125rem);
+}
+
+.credential-merge__subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.credential-merge__stage {
+  position: relative;
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+}
+
+.credential-merge__pass {
+  position: absolute;
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+  width: min(42%, 160px);
+}
+
+.credential-merge__pass--meet {
+  left: 8%;
+}
+
+.credential-merge__pass--membership {
+  right: 8%;
+}
+
+.credential-merge__pass span {
+  font-size: var(--text-xs, 0.75rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.credential-merge__pass img,
+.credential-merge__final img,
+.credential-merge__placeholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.credential-merge__final {
+  position: relative;
+  z-index: 2;
+}
+
+/* Preview "bloqueada" cuando todavía no hay afiliación activa — mismo
+   layout que el QR real (chip + meta) para que se sienta como el mismo
+   componente esperando a desbloquearse, no un estado vacío aparte. */
+.account-qr__chip--locked {
+  align-items: center;
+  background: var(--color-bg-elevated);
+  border: 1.5px dashed var(--color-border-strong);
+  color: var(--color-text-muted);
+  display: flex;
+  height: 152px;
+  justify-content: center;
+  position: relative;
+  width: 152px;
+}
+
+.account-qr__lock {
+  align-items: center;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 50%;
+  bottom: -7px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.14);
+  color: var(--color-text-secondary);
+  display: flex;
+  height: 28px;
+  justify-content: center;
+  position: absolute;
+  right: -7px;
+  width: 28px;
+}
+
+.account-qr--locked .account-qr__meta {
+  gap: 0;
+}
+
+.account-qr__empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.account-qr--locked .account-section__empty {
+  margin: 0 0 14px;
+  max-width: 34ch;
+}
+
+.account-qr__meta {
+  display: grid;
+  gap: 4px;
+}
+
+.account-qr__meta strong {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.account-qr__meta span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.account-qr__meta .account-primary-action {
+  justify-self: start;
+  margin-top: 14px;
+}
+
+/* ── Sesión (SecuritySection) ── */
+.account-security-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  grid-column: 1 / -1;
+  margin-top: 2px;
+}
+
+.account-security-note {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  margin: 4px 0 0;
+}
+
+.account-section .account-transfer-data {
+  margin-top: 22px;
+}
+
+@media (max-width: 720px) {
+  .account-section__heading:not(.account-section__heading--personal):not(
+      .account-section__heading--simple
+    ) {
+    grid-template-columns: auto 1fr;
+  }
+
+  .account-section__price {
+    grid-column: 2;
+  }
+
+  .account-membership__header,
+  .account-membership__banner {
+    grid-template-columns: 1fr;
+  }
+
+  .account-membership__price {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .account-membership__price-value {
+    font-size: clamp(24px, 7vw, 30px);
+    font-weight: 550;
+  }
+
+  .account-membership__decision {
+    grid-template-columns: 1fr;
+  }
+
+  .account-membership__checkout {
+    position: static;
+  }
+
+  .account-discount__field {
+    max-width: none;
+  }
+
+  .account-membership-status {
+    grid-template-columns: 1fr;
+  }
+
+  .account-membership-status__aside {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .account-plan-options,
+  .account-payment-options,
+  .account-payment-options--split {
+    grid-template-columns: 1fr;
+  }
+
+  .account-combo-offer {
+    grid-template-columns: 1fr;
+  }
+
+  .account-events-list article,
+  .account-events-list__row,
+  .account-history-list article {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .account-events-list article,
+  .account-events-list__row {
+    gap: 9px;
+  }
+
+  .account-events-list button,
+  .account-events-list__cta {
+    width: 100%;
+  }
+
+  .account-qr,
+  .account-qr--split {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+    text-align: left;
+  }
+
+  .account-qr-dual {
+    grid-template-columns: 1fr;
+  }
+
+  .credential-merge__pass--meet,
+  .credential-merge__pass--membership {
+    left: auto;
+    right: auto;
+  }
+
+  .account-qr__code-col {
+    justify-items: center;
+  }
+
+  .account-qr__credential-col {
+    margin-inline: auto;
+    max-width: 460px;
+    width: 100%;
+  }
+
+  .account-qr__share {
+    justify-self: stretch;
+    justify-content: center;
+  }
+
+  .account-qr--locked {
+    justify-items: center;
+    text-align: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .account-nav {
+    margin-top: 12px;
+    padding-inline: 10px;
+    top: calc(var(--header-height) + 6px);
+  }
+
+  .account-nav__inner {
+    padding-inline: 24px;
+  }
+
+  .account-nav__item-content {
+    min-height: 44px;
+    padding-inline: 12px;
+  }
+
+  .account-sections {
+    padding: 22px 12px 48px;
+  }
+
+  .account-section {
+    border-radius: 12px;
+    padding: 20px 16px;
+  }
+
+  .account-photo {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .account-photo__actions {
+    width: 100%;
+  }
+}
+
+/* =============================================
+   AVISO DE VERIFICACIÓN DE CORREO
+   Notice glass compacto — no debe dominar el viewport.
+   ============================================= */
+
+.account-verify {
+  align-items: flex-start;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%),
+    color-mix(in srgb, var(--color-bg-surface) 82%, transparent);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 75%, rgba(255, 255, 255, 0.12));
+  border-radius: var(--border-radius-lg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 20px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin: 24px auto 32px;
+  max-width: 1080px;
+  overflow: visible;
+  padding: 10px 14px 10px 16px;
+  position: relative;
+  width: calc(100% - 2 * clamp(20px, 5vw, 48px));
+}
+
+.account-verify::before {
+  background: linear-gradient(
+    180deg,
+    var(--color-brand-gold) 0%,
+    color-mix(in srgb, var(--color-brand-gold) 40%, #92400e) 100%
+  );
+  border-radius: var(--border-radius-lg) 0 0 var(--border-radius-lg);
+  content: '';
+  inset: 0 auto 0 0;
+  position: absolute;
+  width: 3px;
+}
+
+/* Estado resuelto: el filete y el ícono pasan de oro (pendiente) a verde
+   (verificado), sin tocar el resto del material. */
+.account-verify--verified::before {
+  background: linear-gradient(
+    180deg,
+    var(--color-success-text) 0%,
+    color-mix(in srgb, var(--color-success-text) 45%, transparent) 100%
+  );
+}
+
+.account-verify--verified .account-verify__icon {
+  background: color-mix(in srgb, var(--color-success-text) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-success-text) 26%, transparent);
+  color: var(--color-success-text);
+}
+
+.account-verify__icon {
+  align-items: center;
+  margin-top: 2px;
+  background: color-mix(in srgb, var(--color-brand-gold) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
+  border-radius: 50%;
+  color: var(--color-brand-gold);
+  display: flex;
+  flex-shrink: 0;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.account-verify__icon svg {
+  height: 14px;
+  width: 14px;
+}
+
+.account-verify__copy {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.account-verify__title {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.account-verify__lead {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 2px 0 0;
+  max-width: 62ch;
+}
+
+.account-verify__email {
+  color: var(--color-text-muted);
+  display: inline;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  margin: 0 0 0 6px;
+  overflow-wrap: anywhere;
+}
+
+.account-verify__email::before {
+  content: '·';
+  margin-right: 6px;
+  opacity: 0.55;
+}
+
+.account-verify__otp {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  max-width: 320px;
+}
+
+.account-verify__otp-label {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.account-verify__otp-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.account-verify__otp-input {
+  background: color-mix(in srgb, var(--color-bg-elevated) 80%, transparent);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: 0.3em;
+  min-height: 44px;
+  padding: 0 12px;
+  text-align: center;
+  width: 13.5rem;
+}
+
+.account-verify__otp-input::placeholder {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: normal;
+  opacity: 0.5;
+}
+
+.account-verify__otp-input:focus-visible {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 55%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 40%, transparent);
+  outline-offset: 1px;
+}
+
+.account-verify__otp-submit {
+  background: var(--color-brand-action);
+  border: 1px solid color-mix(in srgb, var(--color-brand-action) 70%, #000);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-brand-action-text, #14181f);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 700;
+  min-height: 44px;
+  padding: 0 16px;
+}
+
+.account-verify__otp-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.account-verify__otp-error {
+  color: var(--color-danger-text, #ff6b66);
+  font-size: 11.5px;
+  margin: 0;
+}
+
+.account-verify__action {
+  background: color-mix(in srgb, var(--color-bg-elevated) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0 14px;
+  transition:
+    background var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+
+.account-verify__action:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-brand-gold) 16%, transparent);
+  border-color: var(--color-brand-gold);
+}
+
+.account-verify__action:disabled {
+  cursor: progress;
+  opacity: 0.65;
+}
+
+[data-theme='light'] .account-verify {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 248, 242, 0.9) 100%),
+    var(--color-bg-surface);
+  border-color: rgba(15, 17, 23, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 6px 16px rgba(15, 17, 23, 0.05);
+}
+
+[data-theme='light'] .account-verify__title {
+  color: #15171c;
+}
+
+[data-theme='light'] .account-verify__action {
+  background: #fff;
+  border-color: color-mix(in srgb, var(--color-brand-gold) 50%, rgba(15, 17, 23, 0.16));
+  color: #15171c;
+}
+
+.account-verify--email {
+  align-items: flex-start;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--color-bg-surface);
+  display: grid;
+  gap: 16px 20px;
+  grid-template-columns: auto minmax(0, 1fr);
+  overflow: visible;
+  padding: 24px 28px;
+}
+
+.account-verify--email .account-verify__copy {
+  display: grid;
+  flex: none;
+  gap: 12px;
+  justify-items: start;
+  width: 100%;
+}
+
+.account-verify--email .account-verify__lead {
+  margin: 0;
+}
+
+.account-verify--email .account-verify__email {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 24%, transparent);
+  border-radius: var(--border-radius-sm);
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  font-size: 12.5px;
+  margin: 2px 0 6px 0;
+  padding: 4px 10px;
+}
+
+[data-theme='light'] .account-verify--email .account-verify__email {
+  background: color-mix(in srgb, var(--color-brand-celeste) 15%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 30%, transparent);
+  color: color-mix(in srgb, var(--color-brand-celeste) 70%, #000);
+}
+
+.account-verify--email .account-verify__email::before {
+  content: none;
+  margin: 0;
+}
+
+.account-verify--email .account-verify__otp {
+  margin-top: 12px;
+  max-width: none;
+  width: 100%;
+}
+
+.account-verify--email .account-verify__otp-input,
+.account-verify--email .account-verify__otp-submit,
+.account-verify--email .account-verify__action {
+  min-height: 38px;
+}
+
+.account-verify--email .account-verify__action {
+  margin: 0;
+}
+
+.account-verify--email .account-verify__action--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  padding: 0 2px;
+}
+
+.account-verify--email .account-verify__action--ghost:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .account-verify--email {
+  background: var(--color-bg-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 6px 16px rgba(15, 17, 23, 0.05);
+}
+
+[data-theme='light'] .account-verify--email .account-verify__action--ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 720px) {
+  .account-verify--email {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .account-verify--email .account-verify__icon {
+    margin-top: 0;
+  }
+
+  .account-verify--email .account-verify__otp-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .account-verify--email .account-verify__otp-input {
+    width: 100%;
+  }
+}
+
+/* =============================================
+   COMPROBANTE DE TRANSFERENCIA
+   =============================================
+   Se mudó a components/transfer-proof.css: el control ahora también se monta
+   en la confirmación de afiliación del alta, que no carga esta hoja. Lo
+   importa el propio TransferProofUpload.jsx. */
+/* =============================================
+   PERFIL — COMPLETITUD Y WARNING
+   ============================================= */
+
+/* Estado de completitud — tipografía, sin pill */
+.account-profile-status {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+  margin: 0;
+}
+
+.account-profile-status--ok {
+  color: var(--color-brand-gold);
+  flex: none;
+}
+
+.account-profile-status--pending {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+/* Barra de progreso de completitud del perfil */
+.account-profile-progress {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr auto;
+  margin: 16px 0 0;
+}
+
+.account-profile-progress__track {
+  background: color-mix(in srgb, var(--color-brand-gold) 12%, transparent);
+  border-radius: 999px;
+  height: 4px;
+  overflow: hidden;
+}
+
+.account-profile-progress__bar {
+  background: linear-gradient(
+    90deg,
+    var(--color-brand-gold),
+    color-mix(in srgb, var(--color-brand-gold) 78%, #fff)
+  );
+  border-radius: 999px;
+  height: 100%;
+  width: 100%;
+  transform-origin: left;
+  transition: transform 500ms var(--ease-out);
+}
+
+.account-profile-progress__label {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Badge de completitud del perfil en el hero (junto al botón "Editar datos") */
+.account-hero__profile-badge {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 3px;
+  line-height: 1;
+  padding: 3px 7px;
+}
+
+.account-hero__profile-badge--ok {
+  background: color-mix(in srgb, #3d9a62 16%, transparent);
+  border: 1px solid color-mix(in srgb, #3d9a62 30%, transparent);
+  color: #4fbe79;
+}
+
+.account-hero__profile-badge--warn {
+  background: color-mix(in srgb, var(--color-brand-gold) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 36%, transparent);
+  color: var(--color-brand-gold);
+}
+
+/* Aviso inline reutilizable: perfil incompleto (UpcomingEventsSection, tono
+   dorado por defecto) y cobro rechazado (PaymentsSection, `--danger`). Mismo
+   cuerpo icono + título + texto — sólo cambia el tono y si hay acción. */
+.account-inline-alert {
+  align-items: flex-start;
+  animation: account-banner-appear 220ms var(--ease-out) both;
+  background: color-mix(in srgb, var(--color-brand-gold) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 36%, transparent);
+  border-radius: 10px;
+  display: flex;
+  gap: 14px;
+  margin: 18px 0 4px;
+  padding: 16px 18px;
+}
+
+@keyframes account-banner-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-inline-alert {
+    animation: none;
+  }
+}
+
+.account-inline-alert__icon {
+  color: var(--color-brand-gold);
+  flex: none;
+  margin-top: 1px;
+}
+
+.account-inline-alert__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.account-inline-alert__body strong {
+  color: var(--color-text-primary);
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.account-inline-alert__body p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.account-inline-alert__action {
+  align-items: center;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 48%, transparent);
+  border-radius: 8px;
+  color: var(--color-brand-gold);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 14px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.account-inline-alert__action:hover {
+  background: color-mix(in srgb, var(--color-brand-gold) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-gold) 68%, transparent);
+}
+
+.account-inline-alert__action:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Tono peligro real: cobro rechazado/vencido sin resolver (PaymentsSection).
+   Mismo layout, rojo en vez de dorado — el rojo del sistema es exclusivo de
+   error/peligro, así que acá es el uso correcto, no decorativo. */
+.account-inline-alert--danger {
+  background: color-mix(in srgb, var(--color-brand-red) 7%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-red) 32%, transparent);
+}
+
+.account-inline-alert--danger .account-inline-alert__icon {
+  color: var(--color-brand-red);
+}
+
+.account-inline-alert--danger .account-inline-alert__action {
+  border-color: color-mix(in srgb, var(--color-brand-red) 45%, transparent);
+  color: var(--color-brand-red);
+}
+
+.account-inline-alert--danger .account-inline-alert__action:hover {
+  background: color-mix(in srgb, var(--color-brand-red) 10%, transparent);
+  border-color: var(--color-brand-red);
+}
+
+/* Botón de inscribirse cuando el perfil está incompleto */
+.account-events-list__cta.is-profile-incomplete {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
+  color: var(--color-brand-gold);
+}
+
+.account-events-list__cta.is-profile-incomplete:hover {
+  background: color-mix(in srgb, var(--color-brand-gold) 10%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-gold) 60%, transparent);
+}
+
+/* Fila del evento con warning activo */
+.account-events-list__row.is-warning-active {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 30%, transparent);
+}
+
+/* Header de data-group con nota de requeridos */
+.account-data-group__header {
+  align-items: baseline;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.account-data-group__required-note {
+  color: color-mix(in srgb, var(--color-brand-gold) 80%, transparent);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Footer del formulario de datos personales */
+.account-data-group__footer {
+  align-items: center;
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 20px;
+  margin-top: 28px;
+  padding-top: 24px;
+}
+
+/* Mensaje de guardado con check */
+.account-save-result {
+  align-items: center;
+  color: #4fbe79;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 7px;
+  margin: 0;
+}
+
+.account-save-result--error {
+  color: var(--color-brand-red, #e05a5a);
+}
+
+/* Botón de foto con ícono */
+.account-secondary-action svg {
+  flex: none;
+}
+
+/* input file hidden */
+.account-photo__input {
+  display: none;
+}
+
+/* Photo error */
+.account-photo__error {
+  color: var(--color-brand-red, #e05a5a);
+  font-size: 12.5px;
+  margin: 0;
+}
+
+/* Campo readonly en grupos de datos */
+.field--readonly {
+  display: grid;
+  gap: 5px;
+}
+
+.field--readonly span:first-child {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.field--readonly .field__value {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* Responsive banner */
+@media (max-width: 600px) {
+  .account-incomplete-banner {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .account-incomplete-banner__action {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.account-data-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.account-data-group + .account-data-group {
+  border-top: 1px solid var(--color-border-subtle);
+  margin-top: 22px;
+  padding-top: 22px;
+}
+
+#account-personal-data .account-data-group--official-completion {
+  display: grid;
+  gap: 10px;
+}
+
+.account-data-group__meta {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+}
+
+.account-data-group__label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.account-data-group__title {
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+.account-data-group__note {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 56ch;
+}
+
+/* Chip circular que antecede cada título de grupo (foto de identidad
+   exceptuada): mismo lenguaje visual en el bloque de completar datos
+   oficiales y en las tres divulgaciones. */
+.account-data-group__icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  display: flex;
+  flex: none;
+  height: 34px;
+  justify-content: center;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+  width: 34px;
+}
+
+#account-personal-data .account-section__lead--compact,
+#account-security .account-section__lead--compact {
+  margin: 12px 0 18px;
+  max-width: 52ch;
+}
+
+#account-personal-data .account-data-group--disclosure {
+  display: block;
+  gap: 0;
+}
+
+#account-personal-data .account-data-group__summary {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 14px;
+  justify-content: space-between;
+  margin: 0 -12px;
+  min-height: 56px;
+  padding: 4px 12px;
+  text-align: left;
+  transition: background var(--transition-fast);
+  width: calc(100% + 24px);
+}
+
+#account-personal-data .account-data-group__summary:hover {
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+}
+
+#account-personal-data .account-data-group__summary-copy {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+}
+
+#account-personal-data .account-data-group__summary-text {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+#account-personal-data .account-data-group--disclosure.is-open .account-data-group__icon,
+#account-personal-data .account-data-group__summary:hover .account-data-group__icon {
+  background: color-mix(in srgb, var(--color-brand-gold) 16%, transparent);
+  color: var(--color-brand-gold);
+}
+
+#account-personal-data .account-data-group__summary-note {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+#account-personal-data .account-data-group__summary-side {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 10px;
+}
+
+#account-personal-data .account-data-group__summary-side svg {
+  color: var(--color-text-muted);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+#account-personal-data
+  .account-data-group--disclosure.is-open
+  .account-data-group__summary-side
+  svg {
+  transform: rotate(180deg);
+}
+
+#account-personal-data .account-data-group__optional-note {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+#account-personal-data .account-data-group__summary:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 4px;
+}
+
+#account-personal-data .account-data-group__content {
+  padding: 12px 0 4px;
+}
+
+#account-personal-data .account-data-group__content[hidden] {
+  display: none;
+}
+
+#account-personal-data .form-grid--account {
+  column-gap: 14px;
+  grid-template-columns: 1fr;
+  row-gap: 16px;
+}
+
+#account-personal-data .form-grid--account .form-grid__span-full {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 640px) {
+  #account-personal-data .form-grid--account {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Identity strip: photo + official readonly facts (editorial / credential) */
+.account-identity {
+  align-items: start;
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 22px;
+  margin: 0 0 10px;
+  padding-bottom: 28px;
+}
+
+.account-identity__photo {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  width: fit-content;
+}
+
+.account-identity__photo-actions {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  text-align: center;
+}
+
+.account-identity__photo-actions .account-photo__hint {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  max-width: 28ch;
+}
+
+.account-identity__official {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.account-identity__eyebrow {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.account-identity__name {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  margin: 0;
+  overflow-wrap: anywhere;
+  position: relative;
+}
+
+/* Single gold accent under the athlete name */
+.account-identity__name::after {
+  background: var(--color-brand-gold);
+  content: '';
+  display: block;
+  height: 2px;
+  margin-top: 10px;
+  opacity: 0.85;
+  width: 40px;
+}
+
+.account-identity__meta {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1fr;
+  margin: 4px 0 0;
+  min-width: 0;
+}
+
+.account-identity__meta-item {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.account-identity__meta-item dt {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.account-identity__meta-item dd {
+  color: var(--color-text-primary);
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1.3;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.account-identity__document {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  word-break: break-word;
+}
+
+.account-identity__note {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 2px 0 0;
+  max-width: none;
+  width: 100%;
+}
+
+@media (min-width: 720px) {
+  .account-identity {
+    align-items: center;
+    gap: 36px;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .account-identity__meta {
+    gap: 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .account-identity__meta-item {
+    padding-right: 18px;
+  }
+
+  .account-identity__meta-item + .account-identity__meta-item {
+    border-left: 1px solid var(--color-border-subtle);
+    padding-left: 18px;
+    padding-right: 0;
+  }
+
+  .account-identity__meta-item:last-child {
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 719px) {
+  .account-identity__meta-item + .account-identity__meta-item {
+    border-top: 1px solid var(--color-border-subtle);
+    padding-top: 12px;
+  }
+
+  .account-identity__photo {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  #account-personal-data .account-photo__ring {
+    height: 88px;
+    width: 88px;
+  }
+
+  #account-personal-data .account-photo__avatar {
+    height: 74px;
+    width: 74px;
+  }
+
+  #account-personal-data .account-photo__badge {
+    height: 22px;
+    width: 22px;
+  }
+
+  #account-personal-data .account-data-group__required-note {
+    display: none;
+  }
+
+  #account-personal-data .account-data-group__summary-side {
+    gap: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #account-personal-data .account-data-group__summary-side svg {
+    transition: none;
+  }
+}
+
+.account-personal-form {
+  display: grid;
+  gap: 0;
+}
+
+/* =============================================
+   SECURITY SECTION LAYOUT
+   ============================================= */
+.account-security {
+  align-items: start;
+  display: grid;
+  gap: 22px;
+  margin-top: 8px;
+}
+
+.account-security__form {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.account-security__pair {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+
+.account-security__session {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.account-security__session h3 {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.account-security__session dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.account-security__session dl > div {
+  display: grid;
+  gap: 2px;
+}
+
+.account-security__session dt {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.account-security__session dd {
+  color: var(--color-text-primary);
+  font-size: 13.5px;
+  font-weight: 450;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 720px) {
+  .account-security {
+    gap: 28px;
+    grid-template-columns: minmax(0, 1.35fr) minmax(200px, 0.75fr);
+  }
+
+  .account-security__pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* =============================================
+   QR LOCKED EMPTY STATE (plate + issue)
+   ============================================= */
+.account-qr--locked {
+  align-items: center;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 1fr;
+  justify-items: stretch;
+  margin-top: 20px;
+  text-align: left;
+}
+
+.account-qr__plate {
+  aspect-ratio: 1.58 / 1;
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, transparent 42%),
+    linear-gradient(165deg, #1a1c22 0%, #111215 100%);
+  border: 1px solid color-mix(in srgb, var(--color-border-strong) 70%, transparent);
+  border-radius: 14px;
+  isolation: isolate;
+  max-width: 340px;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.account-qr__plate-stripe {
+  background: var(
+    --plu-gradient-stripe,
+    linear-gradient(90deg, var(--color-brand-celeste), var(--color-brand-gold))
+  );
+  height: 3px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.account-qr__plate-grain {
+  inset: 0;
+  opacity: 0.18;
+  pointer-events: none;
+  position: absolute;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.05), transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(242, 183, 5, 0.06), transparent 45%);
+}
+
+.account-qr__plate-watermark {
+  bottom: -8px;
+  color: rgba(255, 255, 255, 0.04);
+  font-family: var(--font-display);
+  font-size: clamp(64px, 12vw, 96px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  pointer-events: none;
+  position: absolute;
+  right: 10px;
+  user-select: none;
+}
+
+.account-qr__plate-frame {
+  border: 1px dashed color-mix(in srgb, var(--color-border-strong) 80%, transparent);
+  border-radius: 10px;
+  inset: 14px;
+  pointer-events: none;
+  position: absolute;
+}
+
+.account-qr__plate-body {
+  display: grid;
+  gap: 18px;
+  height: 100%;
+  padding: 28px 24px 22px;
+  place-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+
+.account-qr__plate-head {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+}
+
+.account-qr__plate-mark {
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.account-qr__plate-sub {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.account-qr__plate-status {
+  align-items: center;
+  color: rgba(255, 255, 255, 0.72);
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+.account-qr__issue {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  max-width: 42ch;
+}
+
+.account-qr__issue-title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.4vw, 22px);
+  font-weight: 550;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.account-qr__issue-lead {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.account-qr__issue .account-primary-action,
+.account-qr__issue .account-empty__action {
+  justify-self: start;
+}
+
+.account-qr__issue .account-empty__action {
+  background: transparent;
+  border: 0;
+  color: var(--color-brand-celeste);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.account-qr__issue .account-empty__action:hover {
+  color: var(--color-text-primary);
+}
+
+@media (min-width: 720px) {
+  .account-qr--locked {
+    align-items: center;
+    gap: clamp(24px, 4vw, 40px);
+    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+    justify-items: stretch;
+    text-align: left;
+  }
+
+  .account-qr--locked .account-qr__plate {
+    margin: 0;
+  }
+}
+
+@media (max-width: 719px) {
+  .account-qr--locked {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .account-qr__issue {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .account-qr__issue .account-primary-action,
+  .account-qr__issue .account-empty__action {
+    justify-self: center;
+  }
+}
+
+[data-theme='light'] .account-qr__plate {
+  background:
+    radial-gradient(ellipse 70% 50% at 90% 0%, rgba(242, 183, 5, 0.1), transparent 55%),
+    linear-gradient(165deg, #1a1c22 0%, #121418 100%);
+}
+
+/* =============================================
+   DASHBOARD LAYOUT (DESKTOP)
+   ============================================= */
+@media (min-width: 992px) {
+  .account-dashboard {
+    align-items: start;
+    display: grid;
+    gap: 40px;
+    grid-template-columns: 280px 1fr;
+    margin: 0 auto;
+    max-width: 1200px;
+    padding: 48px;
+  }
+
+  .account-page--design .account-hero {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 24px;
+  }
+
+  /* La credencial se arma con un track de 340-400px (ver regla base más
+     arriba): dentro del sidebar de 280px eso la manda fuera del recorte
+     de .account-hero (overflow: hidden) y queda invisible. En este ancho
+     el sidebar ya es angosto, así que apilamos igual que en mobile
+     (<=820px) — la credencial ya sabe achicarse vía sus @container. */
+  .account-hero__inner {
+    gap: 24px;
+    grid-template-columns: 1fr;
+  }
+
+  .account-hero .account-credential {
+    /* margin-inline: 0 es necesario: los márgenes auto del componente
+       ganan sobre justify-self y la dejarían centrada en el hero. */
+    justify-self: start;
+    margin-inline: 0;
+    max-width: 440px;
+  }
+
+  .account-nav {
+    margin: 20px 0 0 0;
+    padding: 0;
+    position: static;
+  }
+
+  .account-nav__viewport {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .account-nav__viewport::before,
+  .account-nav__viewport::after {
+    display: none;
+  }
+
+  .account-nav__edge-cue {
+    display: none;
+  }
+
+  .account-nav__inner {
+    flex-direction: column;
+    gap: 4px;
+    padding: 0;
+  }
+
+  .account-nav__item-content {
+    justify-content: flex-start;
+    min-height: 44px;
+    padding: 0 12px;
+    width: 100%;
+  }
+
+  .account-nav__item {
+    border-radius: 8px;
+    transition: background-color var(--transition-fast);
+  }
+
+  .account-nav__item:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .account-nav__item.is-active {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .account-nav__thumb {
+    display: none;
+  }
+
+  .account-sections {
+    margin: 0;
+    max-width: none;
+    padding: 0;
+  }
+}
+
+/* =============================================
+   PAGOS DE LA CUENTA (#account-payments)
+   =============================================
+   Lista editorial de cobros, no grilla de cards: son registros comparables en
+   orden cronológico. Cada fila abre con una regla superior — mismo recurso que
+   .account-history-list — y sostiene una sola acción posible.
+
+   El tono del estado lo lleva el StatusPill (status.css). La cinta de etapas no
+   se colorea por tono a propósito: `--color-success-text` y compañía sólo están
+   declarados en dark.css, así que en claro heredarían el valor oscuro y el
+   contraste sobre el fondo de la página no estaría garantizado. Celeste es el
+   único acento acá, y está definido en los dos temas. */
+
+.account-payments-list {
+  /* Celeste como TEXTO necesita otra escala por tema. `--color-brand-celeste`
+     es `--plu-celeste-400` en los dos, y sobre el fondo claro da 2,04:1: muy
+     por debajo de AA. La 600 es la que el proyecto ya usa para celeste sobre
+     claro (`--institution-blue`, `--admin-brand`) y da 6,1:1. */
+  --account-payment-accent: var(--plu-celeste-400);
+
+  display: grid;
+  list-style: none;
+  margin: 24px 0 0;
+  padding: 0;
+}
+
+[data-theme='light'] .account-payments-list {
+  --account-payment-accent: var(--plu-celeste-600);
+}
+
+.account-payment {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding: 22px 0;
+}
+
+.account-payment__head {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  width: 100%;
+}
+
+.account-payment__identity h3 {
+  color: var(--color-text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.account-payment__detail {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 4px 0 0;
+}
+
+.account-payment__meta {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 6px 0 0;
+}
+
+.account-payment__figures {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.account-payment__amount {
+  color: var(--color-text-primary);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Cinta de etapas: sólo mientras el cobro sigue abierto. */
+.account-payment__track {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+}
+
+.account-payment__stage {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-size: 11.5px;
+  gap: 7px;
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.account-payment__stage-mark {
+  background: var(--color-border-subtle);
+  border-radius: 50%;
+  flex: none;
+  height: 7px;
+  width: 7px;
+}
+
+.account-payment__stage[data-done='true'] {
+  color: var(--color-text-secondary);
+}
+
+.account-payment__stage[data-done='true'] .account-payment__stage-mark {
+  background: var(--color-text-secondary);
+}
+
+.account-payment__stage[data-current='true'] {
+  color: var(--account-payment-accent);
+  font-weight: 600;
+}
+
+.account-payment__stage[data-current='true'] .account-payment__stage-mark {
+  background: var(--account-payment-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--account-payment-accent) 18%, transparent);
+}
+
+.account-payment__reason,
+.account-payment__note {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 62ch;
+}
+
+.account-payment__note {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+}
+
+.account-payment__note--alert {
+  color: var(--color-text-secondary);
+}
+
+/* Motivo de un cobro rechazado/vencido: el mismo texto que el resto de la
+   fila, pero con el ícono de estado real (rojo, no decorativo) para que el
+   ojo lo encuentre sin tener que leer el pill de arriba. */
+.account-payment__reason--alert {
+  align-items: flex-start;
+  display: flex;
+  gap: 7px;
+}
+
+.account-payment__reason--alert svg {
+  color: var(--color-brand-red);
+  flex: none;
+  margin-top: 2px;
+}
+
+.account-payment__meta code {
+  display: inline-block;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11.5px;
+  max-width: 100%;
+  /* La referencia es lo que el atleta copia en un reclamo: baja entera a la
+     línea siguiente en vez de partirse al medio (`MORD-0 / 07fe4e…`). Sólo se
+     parte si por sí sola no entra en el ancho. */
+  overflow-wrap: anywhere;
+}
+
+/* Acción de un cobro puntual: continuar / reintentar / cambiar medio. Es un
+   botón real (borde + relleno en hover), no un link de párrafo — antes se
+   confundía con metadata al pasar de largo. */
+.account-payment__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.account-payment__action {
+  align-items: center;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--account-payment-accent) 45%, transparent);
+  border-radius: 9px;
+  color: var(--account-payment-accent);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 7px;
+  /* 44px de alto real: es un target táctil, no un link de párrafo. */
+  min-height: 44px;
+  padding: 0 18px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.account-payment__action--secondary {
+  border-color: color-mix(in srgb, var(--text-muted) 35%, transparent);
+  color: var(--text-secondary, var(--text-muted));
+  font-weight: 500;
+}
+
+.account-payment__action:hover {
+  background: color-mix(in srgb, var(--account-payment-accent) 12%, transparent);
+  border-color: var(--account-payment-accent);
+}
+
+.account-payment__action--secondary:hover {
+  background: color-mix(in srgb, var(--text-muted) 8%, transparent);
+  border-color: color-mix(in srgb, var(--text-muted) 55%, transparent);
+  color: var(--text-primary, inherit);
+}
+
+.account-payment__action:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.account-payment__action svg {
+  flex: none;
+  transition: transform var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.account-payment__action:hover svg {
+  transform: translateX(2px);
+}
+
+@media (max-width: 560px) {
+  /* El monto y el estado bajan bajo el concepto: en 360px la columna derecha
+     dejaba el título en dos o tres líneas partidas. */
+  .account-payment__head {
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .account-payment__figures {
+    align-items: center;
+    flex-direction: row;
+    grid-auto-flow: column;
+    justify-content: start;
+    justify-items: start;
+  }
+}
+/* ═══════════════════════════════════════════════════════════════════
+   account-credential.css — PLU ARG
+   Credencial digital del atleta (DigitalCredential): documento onyx
+   grabado con flip 3D. Frente de identidad, reverso de datos.
+
+   Dirección: grafito casi negro, un único hairline oro como firma,
+   nombre grabado y el resto en microtipografía. El material se
+   construye con proporción y una sola especular, no con capas.
+
+   Vive junto al componente (y no en pages/account.css) para que la
+   pieza se pueda auditar aislada en Storybook.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.account-credential {
+  container-name: account-credential;
+  container-type: inline-size;
+  display: grid;
+  gap: 14px;
+  justify-items: end;
+  margin: 0 auto;
+  /* Techo de la pieza: pasado ese ancho deja de leerse como credencial y
+     empieza a leerse como panel (la microtipografía documental se pierde
+     en una superficie de 700px). */
+  max-width: 460px;
+  width: 100%;
+}
+
+.account-credential__tilt {
+  --cred-pad-inline: clamp(20px, 4.8cqi, 28px);
+  --cred-pad-block: clamp(18px, 4cqi, 24px);
+  --cred-radius: 16px;
+  --cred-avatar: clamp(42px, 12cqi, 50px);
+  --cred-name: clamp(21px, 6.6cqi, 28px);
+  --cred-hairline: rgba(255, 255, 255, 0.08);
+  /* 0.5 es el piso para AA (4.5:1) en microtipografía de 8.5-9px sobre
+     la zona más clara de la cara: con 0.36 quedaba en 3.3:1. */
+  --cred-label: rgba(255, 255, 255, 0.5);
+  --cred-value: rgba(255, 255, 255, 0.94);
+  --cred-gold: color-mix(in oklab, var(--plu-gold-400) 86%, #fff);
+  border-radius: var(--cred-radius);
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+}
+
+/* El tilt-card__inner pone backface-visibility:hidden y eso mata el rotateY. */
+.tilt-card .account-credential__tilt-inner {
+  backface-visibility: visible;
+  border-radius: var(--cred-radius);
+  width: 100%;
+}
+
+.account-credential__card {
+  aspect-ratio: 1.586;
+  cursor: pointer;
+  display: grid;
+  grid-template: 1fr / 1fr;
+  /* Sin isolation/overflow/filter acá: cualquier propiedad de agrupación
+     fuerza transform-style: flat y el flip se degrada a un espejo 2D
+     (el frente se veía invertido en lugar del dorso). */
+  min-height: 214px;
+  position: relative;
+  /* El giro va en la propiedad individual `rotate` y el peso del giro en
+     `scale` (keyframes de abajo): en la misma `transform` no caben las dos,
+     y con la rotación por keyframes un segundo click a mitad de camino
+     saltaba al arranque en vez de seguir desde donde estaba. */
+  rotate: y 0deg;
+  transform-style: preserve-3d;
+  /* Curva simétrica (no la cinematográfica): con una ease-out fuerte el giro
+     pasaba el ecuador en los primeros 40ms y el peso llegaba tarde, así que
+     la card se encogía cuando ya estaba dada vuelta. */
+  transition: rotate var(--motion-slow, 480ms) var(--ease-in-out, ease);
+  width: 100%;
+}
+
+.account-credential__card[data-flippable='0'] {
+  cursor: default;
+  transform-style: flat;
+}
+
+.account-credential__card[data-flipped='1'] {
+  rotate: y 180deg;
+}
+
+/* Peso del giro: la placa se aleja un filo en el ecuador y vuelve, como una
+   tarjeta que se da vuelta en la mano. Dos nombres alternados a propósito —
+   con un solo keyframe el navegador no reinicia la animación al cambiar de
+   estado y el peso solo se sentía en el primer giro. */
+.account-credential__card[data-flip-touched='1'][data-flipped='1'] {
+  animation: account-credential-flip-a var(--motion-slow, 480ms) var(--ease-in-out, ease) both;
+}
+
+.account-credential__card[data-flip-touched='1'][data-flipped='0'] {
+  animation: account-credential-flip-b var(--motion-slow, 480ms) var(--ease-in-out, ease) both;
+}
+
+@keyframes account-credential-flip-a {
+  0%,
+  100% {
+    scale: 1;
+  }
+
+  50% {
+    scale: 0.962;
+  }
+}
+
+@keyframes account-credential-flip-b {
+  0%,
+  100% {
+    scale: 1;
+  }
+
+  50% {
+    scale: 0.962;
+  }
+}
+
+/* Tier de rendimiento (JS, ver src/motion/deviceTier.ts): mismo criterio
+   que credential-card.css — el flip se mantiene, se acorta en equipos
+   limitados. Redefine --motion-slow local a la card, no el token global. */
+[data-motion-tier='mid'] .account-credential__card {
+  --motion-slow: 340ms;
+}
+
+[data-motion-tier='low'] .account-credential__card {
+  --motion-slow: 220ms;
+}
+
+.account-credential__card:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 4px;
+}
+
+/* ─── Material: onyx plano + una sola especular ─────────────────── */
+
+.account-credential__face {
+  background:
+    radial-gradient(120% 90% at 12% 0%, rgba(255, 255, 255, 0.05) 0%, transparent 58%),
+    linear-gradient(168deg, #14161c 0%, #0c0e12 58%, #08090c 100%);
+  border: 1px solid var(--cred-hairline);
+  border-radius: var(--cred-radius);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 26px 52px -26px rgba(0, 0, 0, 0.78);
+  color: var(--cred-value);
+  grid-area: 1 / 1;
+  height: 100%;
+  overflow: hidden;
+  padding: var(--cred-pad-block) var(--cred-pad-inline);
+  position: relative;
+  width: 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Firma: el único acento oro de la pieza, grabado al canto. */
+.account-credential__face::before {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--plu-gold-400) 92%, transparent) 0%,
+    color-mix(in oklab, var(--plu-gold-500) 78%, transparent) 52%,
+    color-mix(in oklab, var(--plu-gold-600, #a9790f) 62%, transparent) 100%
+  );
+  bottom: 0;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 3px;
+  z-index: 6;
+}
+
+/* Especular única, atada al tilt. Sin trama ni grain repetido. */
+.account-credential__grain {
+  background: radial-gradient(
+    420px 300px at var(--tilt-glare-x, 50%) var(--tilt-glare-y, 0%),
+    rgba(255, 255, 255, 0.07) 0%,
+    transparent 62%
+  );
+  inset: 0;
+  opacity: calc(0.5 + var(--tilt-active, 0) * 0.5);
+  pointer-events: none;
+  position: absolute;
+  transition: opacity var(--motion-base, 240ms) var(--ease-out, ease);
+  z-index: 1;
+}
+
+/* Año de emisión grabado al canto inferior: marca de documento, no adorno. */
+.account-credential__watermark {
+  color: transparent;
+  font-family: var(--font-display);
+  font-size: clamp(3.2rem, 20cqi, 5rem);
+  font-weight: 800;
+  letter-spacing: -0.08em;
+  line-height: 0.78;
+  pointer-events: none;
+  position: absolute;
+  right: -0.05em;
+  top: 46%;
+  transform: translateY(-50%);
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.05);
+  user-select: none;
+  z-index: 1;
+}
+
+/* ─── Frente ────────────────────────────────────────────────────── */
+
+.account-credential__face--front {
+  display: grid;
+  gap: clamp(12px, 3cqi, 18px);
+  grid-template-rows: auto 1fr auto;
+  z-index: 2;
+}
+
+.account-credential__brand {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+  position: relative;
+  z-index: 5;
+}
+
+.account-credential__monogram {
+  color: rgba(255, 255, 255, 0.92);
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.26em;
+  line-height: 1;
+}
+
+.account-credential__brand-copy {
+  border-left: 1px solid var(--cred-hairline);
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding-left: 12px;
+}
+
+.account-credential__brand-copy strong {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.11em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.account-credential__brand-copy span {
+  color: var(--cred-label);
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+}
+
+.account-credential__identity {
+  align-items: center;
+  align-self: center;
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+  position: relative;
+  z-index: 5;
+}
+
+.account-credential__identity-copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.account-credential__identity-copy small {
+  color: var(--cred-label);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.account-credential__identity-copy h2 {
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: var(--cred-name);
+  font-weight: 600;
+  letter-spacing: -0.032em;
+  line-height: 1.04;
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.account-credential__avatar {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.72);
+  display: inline-flex;
+  flex: 0 0 var(--cred-avatar);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  height: var(--cred-avatar);
+  justify-content: center;
+  letter-spacing: 0.06em;
+  overflow: hidden;
+  width: var(--cred-avatar);
+}
+
+.account-credential__avatar.has-photo {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.account-credential__avatar img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+/* Pie del frente: datos de documento (código + vigencia) y estado. */
+
+.account-credential__foot {
+  align-items: end;
+  border-top: 1px solid var(--cred-hairline);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  justify-content: space-between;
+  padding-top: clamp(10px, 2.4cqi, 14px);
+  position: relative;
+  z-index: 5;
+}
+
+.account-credential__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 22px;
+  margin: 0;
+  min-width: 0;
+}
+
+.account-credential__meta > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.account-credential__meta dt {
+  color: var(--cred-label);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.account-credential__meta dd {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 11px;
+  font-weight: 450;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  margin: 0;
+}
+
+.account-credential__meta dd.account-credential__code {
+  color: var(--cred-gold);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+}
+
+.account-credential__status {
+  align-items: center;
+  display: inline-flex;
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 550;
+  gap: 7px;
+  letter-spacing: 0.13em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.account-credential__status.is-active {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.account-credential__status.is-inactive {
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.account-credential__status-dot {
+  border-radius: 50%;
+  flex: none;
+  height: 5px;
+  width: 5px;
+}
+
+.account-credential__status.is-active .account-credential__status-dot {
+  background: #79d29b;
+  box-shadow: 0 0 0 3px rgba(121, 210, 155, 0.14);
+}
+
+.account-credential__status.is-inactive .account-credential__status-dot {
+  background: color-mix(in oklab, var(--plu-gold-500) 70%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--plu-gold-500) 12%, transparent);
+}
+
+/* ─── Reverso: documento de datos en grilla ─────────────────────── */
+
+.account-credential__face--back {
+  display: grid;
+  gap: clamp(12px, 3.2cqi, 18px);
+  grid-template-rows: auto 1fr auto;
+  transform: rotateY(180deg);
+  z-index: 1;
+}
+
+.account-credential__card[data-flipped='1'] .account-credential__face--front {
+  z-index: 1;
+}
+
+.account-credential__card[data-flipped='1'] .account-credential__face--back {
+  z-index: 2;
+}
+
+.account-credential__back-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+  position: relative;
+  z-index: 5;
+}
+
+.account-credential__back-eyebrow {
+  border-left: 1px solid var(--cred-hairline);
+  color: var(--cred-label);
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  min-width: 0;
+  padding-left: 12px;
+}
+
+/* Fila central del dorso: la grilla documental y, a su derecha, la cara
+   operativa (el QR que se escanea en la puerta). */
+.account-credential__back-main {
+  align-items: center;
+  display: grid;
+  gap: clamp(16px, 4cqi, 28px);
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 0;
+  position: relative;
+  z-index: 5;
+}
+
+.account-credential__fields {
+  align-content: center;
+  display: grid;
+  gap: clamp(12px, 3.2cqi, 18px) clamp(16px, 4cqi, 26px);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  min-height: 0;
+  /* Un valor muy largo (gimnasio, localidad) no debe empujar el pie
+     documental fuera de la cara: se recorta la grilla, no el pie. */
+  overflow: hidden;
+  position: relative;
+  z-index: 5;
+}
+
+.account-credential__back-qr {
+  /* Una sola fuente para el ancho de la columna: el chip toma la medida y el
+     caption no puede pasarla. Sin esto, "Escaneá para verificar" en una línea
+     ensanchaba la columna del QR y partía los labels de la grilla. */
+  --cred-qr: clamp(80px, 24cqi, 108px);
+  display: grid;
+  gap: 7px;
+  justify-items: center;
+}
+
+/* Asiento de la placa: anillo oro fino, passepartout y una sombra cálida que
+   la levanta del grafito. El marco blanco y el tamaño los aporta CredentialQr
+   (credential-qr.css); acá solo va cómo se apoya sobre la credencial. */
+/* Doble clase a propósito: `.credential-qr--sm` define la misma variable con
+   la misma especificidad y el orden de importación decide — acá no. */
+.credential-qr.account-credential__qr-chip {
+  --credential-qr-size: var(--cred-qr, 96px);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--plu-gold-500) 42%, transparent),
+    0 0 0 4px color-mix(in oklab, #fff 6%, transparent),
+    0 16px 34px -16px rgba(0, 0, 0, 0.75),
+    0 10px 30px -14px color-mix(in oklab, var(--plu-gold-500) 34%, transparent);
+}
+
+.account-credential__qr-caption {
+  color: var(--cred-label);
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  line-height: 1.25;
+  max-width: calc(var(--cred-qr, 96px) + 24px);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.account-credential__row {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.account-credential__row dt {
+  color: var(--cred-label);
+  font-size: 8.5px;
+  font-weight: 500;
+  /* Tracking corto: con 0.11em "Fecha de nacimiento" no entraba en su columna
+     una vez que el QR se llevó su parte del ancho. */
+  letter-spacing: 0.06em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.account-credential__row dd {
+  color: var(--cred-value);
+  font-size: 12.5px;
+  font-weight: 450;
+  letter-spacing: -0.005em;
+  line-height: 1.3;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.account-credential__back-foot {
+  align-items: center;
+  border-top: 1px solid var(--cred-hairline);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  justify-content: space-between;
+  padding-top: clamp(8px, 2cqi, 12px);
+  position: relative;
+  z-index: 5;
+}
+
+.account-credential__back-code {
+  color: var(--cred-gold);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  line-height: 1;
+}
+
+.account-credential__footer {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  margin: 0;
+  text-align: right;
+}
+
+/* ─── Controles fuera de la card ────────────────────────────────── */
+
+.account-credential__hint {
+  color: var(--color-text-muted);
+  display: none;
+  font-size: 11.5px;
+  font-weight: 450;
+  letter-spacing: 0.01em;
+  margin: 0;
+  text-align: center;
+  width: 100%;
+}
+
+.account-credential__flip {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-border-strong) 70%, transparent);
+  border-radius: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 450;
+  gap: 14px;
+  justify-content: space-between;
+  letter-spacing: 0.02em;
+  min-height: 44px;
+  padding: 12px 2px 2px;
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+  width: min(100%, 400px);
+}
+
+.account-credential__flip-label {
+  flex: 1;
+  text-align: left;
+}
+
+.account-credential__flip-faces {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.account-credential__flip-face {
+  background: color-mix(in srgb, var(--color-text-muted) 18%, transparent);
+  border-radius: 999px;
+  height: 4px;
+  transition:
+    background var(--transition-fast),
+    width var(--transition-fast);
+  width: 12px;
+}
+
+.account-credential__flip-face.is-active {
+  background: var(--color-brand-celeste);
+  width: 22px;
+}
+
+.account-credential__flip:hover {
+  border-top-color: var(--color-brand-celeste);
+  color: var(--color-brand-celeste);
+}
+
+.account-credential__flip:hover .account-credential__flip-face.is-active {
+  background: var(--color-brand-celeste);
+}
+
+.account-credential__flip:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 4px;
+}
+
+/* ─── Secuencia de presencia ─────────────────────────────────────
+   La credencial entra como una sola pieza y su contenido se graba en
+   orden: marca, identidad, banda documental. One-shot al montar, sin
+   nada girando después. La firma oro se traza de arriba a abajo — es el
+   gesto que dice "esto se acaba de emitir".
+
+   Todo en opacity/transform y en nodos que no pelean con el tilt (que
+   vive en .tilt-card__inner) ni con el flip (que vive en la card). */
+
+@media (prefers-reduced-motion: no-preference) {
+  .account-credential__tilt {
+    animation: account-credential-enter var(--motion-slow, 480ms) var(--ease-cinematic, ease) both;
+  }
+
+  /* La emisión se toma el presupuesto de showcase (700ms) y un recorrido más
+     largo: es la única vez que la pieza entra así. */
+  .account-credential[data-issued='1'] .account-credential__tilt {
+    animation-duration: var(--motion-cinematic, 700ms);
+    animation-name: account-credential-issue;
+  }
+
+  .account-credential__face--front::before {
+    animation: account-credential-sign 620ms var(--ease-out, ease) 140ms both;
+    transform-origin: 50% 0;
+  }
+
+  .account-credential__face--front > .account-credential__brand,
+  .account-credential__face--front > .account-credential__identity,
+  .account-credential__face--front > .account-credential__foot {
+    animation: account-credential-engrave var(--motion-slow, 480ms) var(--ease-out, ease) both;
+  }
+
+  .account-credential__face--front > .account-credential__brand {
+    animation-delay: 200ms;
+  }
+
+  .account-credential__face--front > .account-credential__identity {
+    animation-delay: 280ms;
+  }
+
+  .account-credential__face--front > .account-credential__foot {
+    animation-delay: 360ms;
+  }
+}
+
+@keyframes account-credential-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.99);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes account-credential-issue {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.972);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes account-credential-sign {
+  from {
+    scale: 1 0;
+  }
+
+  to {
+    scale: 1 1;
+  }
+}
+
+@keyframes account-credential-engrave {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── El giro al dorso ───────────────────────────────────────────
+   El dorso no aparece: se presenta. Su contenido entra en la segunda
+   mitad del giro (cuando la cara ya está de frente) y el QR imprime su
+   código recién ahí — el reveal de CredentialQr se dispara al cargar la
+   imagen, que pasa con el dorso oculto, así que el barrido de laminado
+   se gastaba sin testigos. Acá queda en pausa hasta que la card gira.
+   Mismo criterio que credential-card.css. */
+
+@media (prefers-reduced-motion: no-preference) {
+  .account-credential__face--back .credential-qr[data-state='ready'] .credential-qr__img,
+  .account-credential__face--back .credential-qr[data-state='ready'] .credential-qr__sweep {
+    animation-play-state: paused;
+  }
+
+  .account-credential__card[data-flipped='1']
+    .account-credential__face--back
+    .credential-qr[data-state='ready']
+    .credential-qr__img,
+  .account-credential__card[data-flipped='1']
+    .account-credential__face--back
+    .credential-qr[data-state='ready']
+    .credential-qr__sweep {
+    animation-play-state: running;
+  }
+
+  .account-credential__card[data-flipped='1'] .account-credential__back-head,
+  .account-credential__card[data-flipped='1'] .account-credential__back-main,
+  .account-credential__card[data-flipped='1'] .account-credential__back-foot {
+    animation: account-credential-engrave var(--motion-slow, 480ms) var(--ease-out, ease) both;
+  }
+
+  .account-credential__card[data-flipped='1'] .account-credential__back-head {
+    animation-delay: 200ms;
+  }
+
+  .account-credential__card[data-flipped='1'] .account-credential__back-main {
+    animation-delay: 260ms;
+  }
+
+  .account-credential__card[data-flipped='1'] .account-credential__back-foot {
+    animation-delay: 320ms;
+  }
+}
+
+/* ─── Rito de emisión (una sola vez por credencial) ───────────────
+   La primera vez que la persona ve su credencial acreditada, un barrido
+   de luz cruza la placa: el gesto de una pieza que sale del troquel.
+   Después de esa vez el nodo no se monta (ver DigitalCredential). */
+
+.account-credential__sheen {
+  background: linear-gradient(
+    104deg,
+    transparent 34%,
+    rgba(255, 255, 255, 0.06) 44%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0.06) 56%,
+    transparent 66%
+  );
+  inset: -30% -70%;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 7;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .account-credential__card[data-issued='1'] .account-credential__sheen {
+    animation: account-credential-sheen 980ms var(--ease-in-out, ease) 460ms both;
+  }
+
+  /* La banda documental se imprime después del barrido: el código es el
+     último dato que aparece, como en una credencial recién troquelada. */
+  .account-credential__card[data-issued='1']
+    .account-credential__face--front
+    > .account-credential__foot {
+    animation-delay: 620ms;
+  }
+}
+
+@keyframes account-credential-sheen {
+  from {
+    opacity: 0;
+    transform: translate3d(-42%, 0, 0);
+  }
+
+  22% {
+    opacity: 1;
+  }
+
+  78% {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(42%, 0, 0);
+  }
+}
+
+/* ─── Reduced motion: crossfade en lugar de rotación ────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .account-credential__card {
+    animation: none !important;
+    rotate: none !important;
+    scale: none !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .account-credential__tilt,
+  .account-credential__face--front > *,
+  .account-credential__face--front::before,
+  .account-credential__back-head,
+  .account-credential__back-main,
+  .account-credential__back-foot {
+    animation: none !important;
+  }
+
+  .account-credential__face {
+    transition: opacity var(--motion-base, 240ms) linear;
+  }
+
+  .account-credential__face--back {
+    opacity: 0;
+    transform: none;
+    visibility: hidden;
+  }
+
+  .account-credential__card[data-flipped='1'] .account-credential__face--front {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .account-credential__card[data-flipped='1'] .account-credential__face--back {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .account-credential__flip,
+  .account-credential__flip-face {
+    transition: none;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .account-credential__hint {
+    display: block;
+  }
+}
+
+/* ─── Light: la credencial mantiene su documento onyx ───────────── */
+
+[data-theme='light'] .account-credential__face {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 26px 52px -26px rgba(15, 17, 23, 0.4);
+}
+
+[data-theme='light'] .account-credential__flip {
+  border-top-color: rgba(15, 17, 23, 0.14);
+  color: rgba(15, 17, 23, 0.62);
+}
+
+[data-theme='light'] .account-credential__flip:hover {
+  border-top-color: var(--color-brand-celeste);
+  color: var(--color-brand-celeste);
+}
+
+[data-theme='light'] .account-credential__hint {
+  color: rgba(15, 17, 23, 0.48);
+}
+
+/* ─── Angostos: card más alta, reverso a una columna ────────────── */
+
+@container account-credential (max-width: 380px) {
+  /* Más alta que la proporción ID-1: en mobile el dorso tiene que sostener la
+     grilla documental y el QR juntos, y el ancho no da para nada más.
+     El umbral es de container y no de viewport a propósito: lo que decide es
+     el ancho de la pieza (en el hero de desktop mide 440, en mobile ~350). */
+  .account-credential__card {
+    aspect-ratio: 1.22;
+    min-height: 244px;
+  }
+
+  .account-credential__back-qr {
+    --cred-qr: 80px;
+  }
+
+  .account-credential__back-main {
+    gap: 12px;
+  }
+
+  .account-credential__qr-caption {
+    font-size: 7.5px;
+  }
+
+  .account-credential__fields {
+    align-content: start;
+    gap: 10px 14px;
+  }
+
+  .account-credential__row dt {
+    font-size: 8.5px;
+  }
+
+  .account-credential__row dd {
+    display: -webkit-box;
+    font-size: 11.5px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+
+  .account-credential__brand {
+    gap: 10px;
+  }
+
+  .account-credential__brand-copy,
+  .account-credential__back-eyebrow {
+    padding-left: 10px;
+  }
+
+  .account-credential__identity {
+    gap: 12px;
+  }
+
+  .account-credential__meta {
+    gap: 4px 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  .account-credential {
+    justify-items: stretch;
+  }
+
+  .account-credential__flip {
+    width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  /* Nada de proporción acá: la decidía este bloque y pisaba al @container por
+     orden de aparición, así que en mobile la card volvía a 1.4 y el dorso
+     quedaba sin aire para el QR. */
+  .account-credential__footer {
+    text-align: left;
+  }
+}
+/* La deuda del financiamiento, pegada al derecho que sostiene — PLU ARG
+   ---------------------------------------------------------------------------
+   Aparece debajo del estado de la afiliación y debajo de la inscripción, no en
+   una pantalla aparte: es la condición de ese derecho, no una notificación.
+
+   Material: la nota ámbar que la app ya usa para los pagos manuales
+   (`--color-manual-note-bg` / `--color-manual-note-border`). No es rojo a
+   propósito — mientras el plazo corre no hay nada roto, hay un acuerdo con
+   fecha. El rojo entra sólo cuando el plazo venció y la baja es inminente.
+
+   Presupuesto: un acento, una acción secundaria, cero cards anidadas (es una
+   fila reglada dentro de la sección que la contiene) y ningún motion. */
+
+.financed-debt {
+  align-items: center;
+  background: var(--color-manual-note-bg);
+  border: 1px solid var(--color-manual-note-border);
+  border-radius: var(--institution-radius-control);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding: 12px 14px;
+}
+
+.financed-debt__icon {
+  align-items: center;
+  color: var(--color-brand-gold);
+  display: inline-flex;
+  flex: none;
+}
+
+.financed-debt__copy {
+  display: grid;
+  flex: 1 1 220px;
+  gap: 2px;
+  min-width: 0;
+}
+
+.financed-debt__copy strong {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.financed-debt__copy p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.financed-debt__action {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--institution-radius-control);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  /* Target táctil completo: la fila es angosta y el botón es lo único que se
+     toca. */
+  min-height: 44px;
+  padding: 0 14px;
+  transition: border-color var(--motion-fast) var(--ease-out);
+}
+
+.financed-debt__action:hover {
+  border-color: var(--color-border-strong);
+}
+
+.financed-debt__action:focus-visible {
+  outline: var(--institution-focus-width) solid var(--color-brand-celeste);
+  outline-offset: var(--institution-focus-offset);
+}
+
+/* Plazo vencido: la baja ya corre por cuenta del reloj, así que acá sí es un
+   estado de peligro real. */
+.financed-debt--overdue {
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger-text);
+}
+
+.financed-debt--overdue .financed-debt__icon,
+.financed-debt--overdue .financed-debt__copy strong,
+.financed-debt--overdue .financed-debt__copy p {
+  color: var(--color-danger-text);
+}
+
+@media (max-width: 480px) {
+  .financed-debt__action {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}
+/* El paquete como documento emitido — PLU ARG
+   ---------------------------------------------------------------------------
+   Un código de combo es un acuerdo privado entre la federación y una persona.
+   Cuando se aplicaba adentro del checkout del torneo, sus seis condiciones
+   —afiliación, inscripción, precio, canales, financiamiento y plazo— quedaban
+   como renglones entre el formulario competitivo y el selector de medio de
+   pago: todo cierto, todo al mismo peso, y lo que decide sin distinguirse.
+
+   El material es el mismo que la app ya usa para lo que emite la federación
+   (`credential-card.css`, `code-band.css`, `promotion-reveal.css`): cara en
+   degradé 158deg, filo de oro al 34 %, marco interior al 7 % de blanco, grano
+   estático y el código en el mono espaciado 0.18em del número de socio. No hay
+   lenguaje nuevo — hay el de la credencial aplicado a otro documento.
+
+   Presupuesto: un solo acento (oro; el celeste queda para el foco, que es
+   navegación), cero cards anidadas —el ticket ES la pieza, las condiciones van
+   en filas regladas—, un efecto atmosférico estático y ninguna secuencia de
+   entrada propia: la pieza entra con el panel de la ficha
+   (`MotionContentSwap`), no con una animación aparte. */
+
+.bundle-ticket {
+  /* Espejo de promotion-reveal.css. Local y no global: el rol es "documento del
+     paquete", no un color de marca nuevo. */
+  --ticket-face: linear-gradient(158deg, #161820 0%, #0c0d12 52%, #08090c 100%);
+  --ticket-wash-gold: color-mix(in oklab, var(--plu-gold-500) 15%, transparent);
+  --ticket-wash-celeste: color-mix(in oklab, var(--color-brand-celeste) 8%, transparent);
+  --ticket-edge: color-mix(in oklab, var(--plu-gold-500) 34%, rgba(255, 255, 255, 0.1));
+  --ticket-frame: color-mix(in oklab, #fff 7%, transparent);
+  --ticket-lip: rgba(255, 255, 255, 0.08);
+  --ticket-grain-a: rgba(255, 255, 255, 0.03);
+  --ticket-grain-b: rgba(255, 255, 255, 0.01);
+  --ticket-ink: color-mix(in oklab, var(--plu-gold-400) 88%, #fff);
+  --ticket-label: color-mix(in oklab, #fff 38%, transparent);
+  --ticket-copy: color-mix(in oklab, #fff 92%, transparent);
+  --ticket-body: color-mix(in oklab, #fff 62%, transparent);
+  --ticket-rule: rgba(255, 255, 255, 0.08);
+
+  background:
+    radial-gradient(70% 55% at 100% 0%, var(--ticket-wash-gold) 0%, transparent 55%),
+    radial-gradient(55% 45% at 0% 100%, var(--ticket-wash-celeste) 0%, transparent 50%),
+    var(--ticket-face);
+  border: 1px solid var(--ticket-edge);
+  border-radius: var(--institution-radius-surface);
+  box-shadow:
+    inset 0 1px 0 var(--ticket-lip),
+    0 24px 70px -32px rgba(0, 0, 0, 0.72);
+  /* `isolation` y no `overflow: hidden`: el grano y el marco se recortan solos
+     con su propio border-radius, y aplanar el contexto acá rompería cualquier
+     transform del panel que la contiene. */
+  isolation: isolate;
+  padding: 4px;
+  position: relative;
+}
+
+/* La credencial es oscura por definición; en light se traduce a papel cálido
+   conservando el filo de oro y el marco interior, que son lo que la identifica.
+   Mismos valores que `[data-theme='light'] .promotion-reveal`. */
+[data-theme='light'] .bundle-ticket {
+  --ticket-face: linear-gradient(158deg, #fdfbf6 0%, #f6f1e6 54%, #efe7d7 100%);
+  --ticket-wash-gold: color-mix(in oklab, var(--plu-gold-500) 18%, transparent);
+  --ticket-wash-celeste: color-mix(in oklab, var(--color-brand-celeste) 10%, transparent);
+  --ticket-edge: color-mix(in oklab, var(--plu-gold-600) 42%, rgba(0, 0, 0, 0.08));
+  --ticket-frame: color-mix(in oklab, #1c1a15 8%, transparent);
+  --ticket-lip: rgba(255, 255, 255, 0.7);
+  --ticket-grain-a: rgba(28, 26, 21, 0.028);
+  --ticket-grain-b: rgba(28, 26, 21, 0.012);
+  --ticket-ink: var(--plu-gold-700);
+  --ticket-label: color-mix(in oklab, #1c1a15 46%, transparent);
+  --ticket-copy: color-mix(in oklab, #1c1a15 92%, transparent);
+  --ticket-body: color-mix(in oklab, #1c1a15 66%, transparent);
+  --ticket-rule: rgba(28, 26, 21, 0.1);
+
+  box-shadow:
+    inset 0 1px 0 var(--ticket-lip),
+    0 24px 60px -34px rgba(28, 26, 21, 0.36);
+}
+
+/* Grano y marco: dos capas estáticas, sin animación ni blur. Son el acabado
+   del papel, no un efecto. */
+.bundle-ticket__grain {
+  background-image: repeating-linear-gradient(
+    0deg,
+    var(--ticket-grain-a) 0px,
+    var(--ticket-grain-a) 1px,
+    var(--ticket-grain-b) 1px,
+    var(--ticket-grain-b) 2px
+  );
+  border-radius: inherit;
+  inset: 0;
+  opacity: 0.6;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.bundle-ticket__frame {
+  border: 1px solid var(--ticket-frame);
+  border-radius: calc(var(--institution-radius-surface) - 4px);
+  inset: 4px;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.bundle-ticket__body {
+  display: grid;
+  gap: var(--space-sm);
+  padding: clamp(20px, 4vw, 30px);
+  position: relative;
+  z-index: 1;
+}
+
+.bundle-ticket__head {
+  align-items: baseline;
+  border-bottom: 1px solid var(--ticket-rule);
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: space-between;
+  padding-bottom: var(--space-sm);
+}
+
+.bundle-ticket__mark {
+  color: var(--ticket-ink);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* El estado se dice, no se pinta: es la misma ficha de un documento emitido. */
+.bundle-ticket__status {
+  color: var(--ticket-label);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.bundle-ticket__code {
+  color: var(--ticket-copy);
+  font-family: var(--font-mono);
+  font-size: clamp(15px, 2.4vw, 18px);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  margin: 0;
+}
+
+.bundle-ticket__headline {
+  color: var(--ticket-copy);
+  font-family: var(--font-display);
+  font-size: clamp(20px, 3vw, 27px);
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.bundle-ticket__amount {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-sm);
+  margin: 0;
+}
+
+.bundle-ticket__amount strong {
+  color: var(--ticket-ink);
+  font-family: var(--font-display);
+  font-size: clamp(26px, 4vw, 36px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.bundle-ticket__amount s {
+  color: var(--ticket-label);
+  font-size: 14px;
+  text-decoration-thickness: 1px;
+}
+
+.bundle-ticket__amount span {
+  color: var(--ticket-body);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bundle-ticket__lead {
+  color: var(--ticket-body);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 52ch;
+}
+
+/* Las condiciones son el registro reglado del documento: etiqueta a la
+   izquierda, valor a la derecha, una regla entre filas. No son cards. */
+.bundle-ticket__terms {
+  border-top: 1px solid var(--ticket-rule);
+  display: grid;
+  margin: var(--space-xs) 0 0;
+  padding-top: var(--space-sm);
+}
+
+.bundle-ticket__terms > div {
+  align-items: baseline;
+  display: grid;
+  gap: var(--space-sm);
+  grid-template-columns: minmax(84px, 0.4fr) 1fr;
+  padding: 7px 0;
+}
+
+.bundle-ticket__terms > div + div {
+  border-top: 1px solid var(--ticket-rule);
+}
+
+.bundle-ticket__terms dt {
+  color: var(--ticket-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.bundle-ticket__terms dd {
+  color: var(--ticket-copy);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.bundle-ticket__footer {
+  border-top: 1px solid var(--ticket-rule);
+  color: var(--ticket-body);
+  font-size: 12px;
+  line-height: 1.5;
+  padding-top: var(--space-sm);
+}
+
+/* Mobile: la etiqueta pasa arriba del valor. Apilar la grilla de dos columnas a
+   360px dejaba `dt` en dos líneas y `dd` en una columna de 9 caracteres. */
+@media (max-width: 420px) {
+  .bundle-ticket__terms > div {
+    gap: 2px;
+    grid-template-columns: 1fr;
+  }
+}
+/* La ficha del código-paquete — el trámite debajo del documento — PLU ARG
+   ---------------------------------------------------------------------------
+   La sección tiene dos piezas y una sola jerarquía: arriba el documento
+   (`bundle-ticket.css`, que es lo que la persona vino a ver) y debajo lo que
+   falta para tenerlo. El trámite no compite con el documento —no es otra card,
+   no tiene fondo propio ni filo de oro— sino que se lee como el formulario al
+   pie de un papel emitido: fieldsets con regla superior, etiquetas chicas y una
+   sola acción plena al final.
+
+   Presupuesto: el acento de oro es del ticket; acá el único color es el foco
+   celeste, que es navegación. Cero cards anidadas: los fieldsets son bloques
+   reglados, no superficies elevadas. Sin motion propio — la sección entra con
+   el panel de la cuenta (`MotionContentSwap`). */
+
+.bundle-section {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.bundle-section__form {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.bundle-section__fieldset {
+  border: 0;
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: var(--space-md) 0 0;
+}
+
+.bundle-section__fieldset legend {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.bundle-section__hint {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 60ch;
+}
+
+.bundle-section__grid {
+  display: grid;
+  gap: var(--space-sm);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.bundle-section__grid label {
+  display: grid;
+  gap: 6px;
+}
+
+.bundle-section__grid label > span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bundle-section__grid select,
+.bundle-section__grid input {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--institution-radius-control);
+  color: var(--color-text-primary);
+  font: inherit;
+  /* 44px de alto real: el mínimo táctil, no un padding que lo aproxime. */
+  min-height: 44px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.bundle-section__grid select:focus-visible,
+.bundle-section__grid input:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+/* Los medios de pago son una elección entre pocas opciones comparables: fila
+   seleccionable con el radio visible, no cards. */
+.bundle-section__methods {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.bundle-section__method {
+  align-items: flex-start;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--institution-radius-control);
+  cursor: pointer;
+  display: flex;
+  gap: var(--space-sm);
+  min-height: 44px;
+  padding: 12px 14px;
+}
+
+.bundle-section__method:has(input:checked) {
+  border-color: color-mix(in oklab, var(--color-brand-gold) 55%, var(--color-border-subtle));
+}
+
+.bundle-section__method:has(input:focus-visible) {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.bundle-section__method input {
+  accent-color: var(--color-brand-gold);
+  margin-top: 3px;
+}
+
+.bundle-section__method span {
+  display: grid;
+  gap: 2px;
+}
+
+.bundle-section__method strong {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.bundle-section__method small {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.bundle-section__action {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: 0;
+  border-radius: var(--institution-radius-control);
+  color: var(--color-brand-action-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 15px;
+  font-weight: 700;
+  gap: var(--space-sm);
+  justify-content: center;
+  justify-self: start;
+  min-height: 46px;
+  padding: 0 22px;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    filter var(--motion-fast) var(--ease-out);
+}
+
+.bundle-section__action:hover:not(:disabled) {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.bundle-section__action:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.bundle-section__action:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+.bundle-section__action:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.bundle-section__spinner {
+  animation: bundle-section-spin 900ms linear infinite;
+}
+
+@keyframes bundle-section-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bundle-section__error {
+  color: var(--color-danger-text);
+  font-size: 13px;
+  margin: 0;
+}
+
+.bundle-section__settle {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: var(--space-md);
+  padding-top: var(--space-md);
+}
+
+.bundle-section__settled {
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+  padding-top: var(--space-md);
+}
+
+@media (max-width: 480px) {
+  .bundle-section__action {
+    justify-self: stretch;
+    width: 100%;
+  }
+}
+
+/* El spinner es el único loop de la sección y comunica estado operativo real
+   (una orden creándose). Bajo reduced motion se apaga: la etiqueta del botón y
+   su estado `disabled` ya dicen lo mismo. */
+@media (prefers-reduced-motion: reduce) {
+  .bundle-section__spinner {
+    animation: none;
+  }
+
+  .bundle-section__action:hover:not(:disabled) {
+    transform: none;
+  }
+}

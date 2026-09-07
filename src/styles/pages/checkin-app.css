@@ -737,3 +737,36 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ── Puesto asignado ────────────────────────────────────────────────────────
+   Qué abre esta zona, dicho antes de escanear. Va con la superficie del panel
+   y una regla al margen en vez de una card: es contexto permanente, no una
+   alerta, y no compite con el resultado del escaneo -- que es lo único que
+   tiene que gritar en esta pantalla. */
+.checkin-app__zone-notice {
+  align-items: flex-start;
+  background: var(--admin-surface, var(--color-bg-elevated));
+  border-left: 2px solid var(--admin-brand, var(--color-brand-celeste));
+  border-radius: 0 8px 8px 0;
+  color: var(--admin-text-secondary, var(--color-text-muted));
+  display: flex;
+  font-size: 12.5px;
+  gap: 8px;
+  line-height: 1.45;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+}
+
+.checkin-app__zone-notice > svg {
+  color: var(--admin-brand, var(--color-brand-celeste));
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+/* El nombre del puesto es el dato que se busca de un vistazo. */
+.checkin-app__zone-notice strong {
+  color: var(--admin-ink, var(--color-text-primary));
+  display: block;
+  font-size: 13px;
+  font-weight: 650;
+}

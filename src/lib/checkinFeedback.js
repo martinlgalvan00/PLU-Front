@@ -10,6 +10,7 @@ const FEEDBACK_BY_OUTCOME = {
   // checkin_ok (confirmado por el servidor) para que el operador note
   // auditivamente que todavía falta sincronizar este ingreso.
   queued_offline: 'offline',
+  wrong_zone: 'warning',
 }
 
 const VIBRATION_PATTERNS = {

@@ -101,25 +101,37 @@ describe('AdminEventEditor — estructura del formulario', () => {
 
   // El motivo del rediseño: las dos palancas de cierre estaban a distinta
   // profundidad y una ni figuraba en la navegación.
-  it('deja los dos cierres visibles en Ventas sin abrir ningún desplegable', () => {
+  it('deja los dos cierres a un clic de capítulo, sin desplegables', () => {
     renderEditor()
     activateEditorTab(/ventas y cupos/i)
 
-    const ids = ['#event-reg-opens', '#event-reg-closes', '#event-ticket-opens', '#event-ticket-closes']
-    for (const id of ids) {
+    const athleteIds = ['#event-reg-opens', '#event-reg-closes']
+    for (const id of athleteIds) {
       const field = document.querySelector(id)
       expect(field).not.toBeNull()
       expect(field.closest('details')).toBeNull()
+      expect(field.closest('[hidden]')).toBeNull()
     }
 
-    // Etiquetas distintas entre sí: cuatro campos "Abre"/"Cierra" en el mismo
-    // formulario son indistinguibles para un lector de pantalla.
-    const labels = ids.map(
+    fireEvent.click(screen.getByRole('tab', { name: /^entradas$/i }))
+
+    const ticketIds = ['#event-ticket-opens', '#event-ticket-closes']
+    for (const id of ticketIds) {
+      const field = document.querySelector(id)
+      expect(field).not.toBeNull()
+      expect(field.closest('details')).toBeNull()
+      expect(field.closest('[hidden]')).toBeNull()
+    }
+
+    const labels = [...athleteIds, ...ticketIds].map(
       (id) => document.querySelector(`label[for="${id.slice(1)}"] span`)?.textContent,
     )
 
     expect(labels.filter(Boolean).length).toBe(4)
     expect(new Set(labels).size).toBe(4)
+
+    expect(document.querySelector('#event-section-sales .admin-event-form__ticket-config')).not.toBeNull()
+    expect(screen.getByRole('button', { name: /agregar día/i })).toBeTruthy()
   })
 
   it('en Ventas muestra el día antes que el mes', () => {

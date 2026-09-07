@@ -1,0 +1,1572 @@
+/* ═══════════════════════════════════════════════════════════════════
+   event-share-card.css — PLU ARG
+   Card compartible (1080×1080 / 1080×1920) + Modal de preview
+
+   Composición: póster personal anclado al pie. El contenido se apoya en
+   el borde inferior y el aire superior lo ocupa el material — retrato a
+   sangre si el atleta tiene foto, sello de iniciales si no. Centrar el
+   cuerpo (como hacía la versión anterior) dejaba huecos muertos entre la
+   ficha y el footer en los dos formatos.
+
+   Regla técnica de toda la hoja: hex/rgba planos y gradientes CSS
+   estándar. html2canvas no rasteriza color-mix()/oklab, mask-image,
+   filter ni mix-blend-mode.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── Variables locales ─────────────────────────────────────────── */
+.share-card {
+  --card-bg: #0d0e11;
+  --card-deep: #08090c;
+  --card-surface: #141518;
+  --card-border: rgba(255, 255, 255, 0.08);
+  /* Acentos de marca planos (hex/rgba) — ver nota de arriba. */
+  --card-accent: #f2b705;
+  --card-accent-alt: #74acdf;
+  --card-text: #ffffff;
+  --card-muted: rgba(255, 255, 255, 0.55);
+  --card-size: 1080px;
+  --card-gutter: 76px;
+}
+
+/* ─── Wrapper base ──────────────────────────────────────────────── */
+.share-card {
+  position: relative;
+  width: var(--card-size);
+  height: var(--card-size);
+  background-color: var(--card-bg);
+  font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  color: var(--card-text);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0;
+  /* Marco interior fino — refuerza el aire "credencial impresa" en vez de
+     plantilla plana. Un solo box-shadow inset, sin variantes: barato de
+     mantener y html2canvas lo rasteriza sin sorpresas. */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Modo captura: en flujo normal — el contenedor padre (CardPreviewModal) es
+   quien la oculta recortándola a 0×0. Un position:fixed con offset negativo
+   acá rompe el rasterizado de texto/imágenes en html2canvas. */
+.share-card--capture {
+  position: relative;
+}
+
+/* Modo preview: se renderiza a tamaño real (1080×1080) y se reduce con
+   transform: scale() (calculado en JS vía ResizeObserver) — así el preview
+   es un espejo fiel del PNG final, no una reinterpretación a otro ancho. */
+.share-card--preview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+}
+
+/* Formato historia (9:16) — mismo ancho nativo (1080px), alto de Instagram
+   Story (1920px). Los deltas de espaciado están junto a cada sección. */
+.share-card--story {
+  height: 1920px;
+  --card-gutter: 80px;
+}
+
+.share-card-scale-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+}
+
+.share-card-scale-wrap--story {
+  aspect-ratio: 9 / 16;
+}
+
+/* ─── Fondo ───────────────────────────────────────────────────────
+   Mismo grafito que la credencial física. Un solo efecto atmosférico:
+   glow dorado arriba a la derecha + contra-glow del acento secundario
+   abajo. Con retrato el fondo queda tapado; se mantiene igual para no
+   duplicar reglas y porque es el color de respaldo si la foto no carga. */
+.share-card__bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 55% at 88% 4%, rgba(242, 183, 5, 0.15) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 4% 96%, rgba(116, 172, 223, 0.09) 0%, transparent 50%),
+    linear-gradient(158deg, #161820 0%, #0c0d12 52%, #08090c 100%);
+  z-index: 0;
+}
+
+.share-card--membership .share-card__bg {
+  background:
+    radial-gradient(ellipse 70% 55% at 88% 4%, rgba(242, 183, 5, 0.2) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 4% 96%, rgba(116, 172, 223, 0.07) 0%, transparent 50%),
+    linear-gradient(158deg, #161820 0%, #0c0d12 52%, #08090c 100%);
+}
+
+.share-card--ticket .share-card__bg {
+  background:
+    radial-gradient(ellipse 70% 55% at 88% 4%, rgba(116, 172, 223, 0.16) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 4% 96%, rgba(242, 183, 5, 0.07) 0%, transparent 50%),
+    linear-gradient(158deg, #161820 0%, #0c0d12 52%, #08090c 100%);
+}
+
+.share-card--story .share-card__bg {
+  background:
+    radial-gradient(ellipse 70% 30% at 88% 5%, rgba(242, 183, 5, 0.14) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 28% at 6% 97%, rgba(116, 172, 223, 0.1) 0%, transparent 50%),
+    linear-gradient(180deg, #161820 0%, #0c0d12 46%, #08090c 100%);
+}
+
+/* ─── Retrato a sangre ────────────────────────────────────────────
+   La foto de perfil como material de la pieza, no como accesorio: cubre
+   el lienzo entero y el velo la funde al grafito antes de llegar al
+   bloque de datos. `object-position` empuja el encuadre hacia arriba —
+   en fotos horizontales la cara vive en el tercio superior.
+
+   La imagen llega inlineada como data: URL desde el componente (ver
+   inlineImageAsDataUrl): un `<img>` cross-origin sin CORS se ve en el
+   preview y sale vacío en el PNG. */
+.share-card__photo {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.share-card__photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 28%;
+  display: block;
+}
+
+/* Velo: capa aparte en vez de mask-image (html2canvas ignora las máscaras).
+   Oscurece la franja del header para que la marca se lea sobre cualquier
+   foto, deja una ventana limpia sobre la cara y cierra opaco antes del
+   bloque de identidad. Los stops difieren por formato porque la ventana
+   útil cambia: en 9:16 hay casi el doble de alto libre. */
+/* Velo global: solo asienta la foto y garantiza el header. NO es responsable
+   de la legibilidad del bloque de datos — de eso se ocupa el plinto, que sí
+   conoce la altura real del contenido. Por eso puede quedarse suave y dejar
+   ver el retrato en vez de tapar medio lienzo por las dudas. */
+.share-card__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 9, 12, 0.88) 0%,
+    rgba(8, 9, 12, 0.46) 14%,
+    rgba(8, 9, 12, 0.24) 30%,
+    rgba(8, 9, 12, 0.3) 62%,
+    rgba(8, 9, 12, 0.45) 100%
+  );
+}
+
+.share-card--story .share-card__veil {
+  background: linear-gradient(
+    180deg,
+    rgba(8, 9, 12, 0.9) 0%,
+    rgba(8, 9, 12, 0.5) 10%,
+    rgba(8, 9, 12, 0.2) 24%,
+    rgba(8, 9, 12, 0.2) 46%,
+    rgba(8, 9, 12, 0.34) 70%,
+    rgba(8, 9, 12, 0.45) 100%
+  );
+}
+
+/* Filo de acento sobre el retrato: sólido, no degradado. Un fade a
+   transparente de 88px queda como una raya sucia sobre la foto. */
+.share-card--portrait .share-card__divider {
+  background: var(--card-accent);
+}
+
+.share-card--portrait.share-card--ticket .share-card__divider {
+  background: var(--card-accent-alt);
+}
+
+/* ─── Textura "foil" ─────────────────────────────────────────────
+   Solo las líneas finas repetidas: dan material metalizado sin dibujar
+   nada. No se monta sobre un retrato — la foto ya es el material, y una
+   trama encima se lee como ruido de compresión en el PNG. */
+.share-card__texture {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    115deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(255, 255, 255, 0.012) 3px,
+    rgba(255, 255, 255, 0.012) 4px
+  );
+}
+
+/* ─── Firma ───────────────────────────────────────────────────────
+   Barra oro grabada al canto izquierdo: la misma firma de la credencial
+   digital del atleta (ver account-credential.css). Reemplaza a la franja
+   superior + el marco interior — tres gestos de marca en una sola pieza
+   se leían como plantilla, y ninguno como firma. */
+.share-card__signature {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 10px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 210, 63, 0.95) 0%,
+    rgba(242, 183, 5, 0.8) 52%,
+    rgba(169, 121, 15, 0.62) 100%
+  );
+  z-index: 10;
+}
+
+.share-card--story .share-card__signature {
+  width: 12px;
+}
+
+.share-card--ticket .share-card__signature {
+  background: linear-gradient(
+    180deg,
+    rgba(116, 172, 223, 0.95) 0%,
+    rgba(87, 140, 190, 0.8) 52%,
+    rgba(52, 92, 133, 0.62) 100%
+  );
+}
+
+/* ─── Header ────────────────────────────────────────────────────── */
+.share-card__header {
+  position: relative;
+  z-index: 5;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 60px var(--card-gutter) 0;
+}
+
+/* En Story, Instagram superpone el avatar/usuario del que publica arriba a
+   la izquierda — bajamos el header para no quedar tapados. */
+.share-card--story .share-card__header {
+  padding-top: 178px;
+}
+
+.share-card__brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+}
+
+.share-card__logo {
+  height: 84px;
+  width: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  /* Sin filter: html2canvas + scale del preview lo ablandan y se ve pixelado. */
+  flex-shrink: 0;
+}
+
+.share-card--story .share-card__logo {
+  height: 100px;
+}
+
+/* Hairline entre escudo y nombre: el mismo divisor de la credencial. */
+.share-card__brand-name {
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 21px;
+  font-weight: 550;
+  letter-spacing: 0.2em;
+  padding-left: 22px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.share-card--story .share-card__brand-name {
+  font-size: 23px;
+}
+
+/* ─── Body ────────────────────────────────────────────────────────
+   Anclado al pie: el contenido se apoya sobre el footer y el aire queda
+   arriba, donde vive el material (retrato o sello). Es lo que elimina
+   los huecos muertos de la versión centrada. */
+.share-card__body {
+  position: relative;
+  z-index: 5;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 44px var(--card-gutter) 0;
+  gap: 34px;
+}
+
+.share-card--story .share-card__body {
+  padding-top: 56px;
+  gap: 44px;
+}
+
+/* ─── Sello de iniciales (sin foto) ───────────────────────────────
+   El material de la variante sin retrato: un disco grabado que ocupa el
+   aire superior en vez de dejarlo vacío. `margin-bottom: auto` lo empuja
+   arriba mientras el resto del cuerpo queda anclado al pie.
+
+   El anillo va como `border` real, NUNCA como box-shadow de spread:
+   html2canvas no rasteriza el spread como anillo — lo pinta como un disco
+   relleno del color del shadow DEBAJO del elemento, y el PNG salía como
+   una mancha dorada maciza con las letras encima. Mismo criterio que
+   .share-card__frame. */
+.share-card__seal-mark {
+  box-sizing: border-box;
+  /* Fuera del flujo: en el flex del cuerpo, un nombre de dos líneas lo
+     empujaba contra el borde superior y el monograma salía cortado. Como es
+     material y no contenido, se ancla al lienzo. */
+  position: absolute;
+  /* Arriba y chico: en 1:1 con un nombre de dos líneas, un monograma más
+     grande se cruzaba por detrás del nombre y ensuciaba el protagonista. */
+  top: 2.5%;
+  right: var(--card-gutter);
+  z-index: 4;
+  /* Iniciales grabadas en el material, no un disco con letras adentro: el
+     círculo con borde y relleno se leía como el avatar por defecto de
+     cualquier app. Acá el aire superior lo ocupa tipografía de la marca,
+     a escala de póster y en un tono que no compite con el nombre.
+
+     Relleno plano (sin -webkit-text-stroke): html2canvas no rasteriza el
+     trazo de texto y las letras salían macizas en el PNG. */
+  color: rgba(255, 255, 255, 0.06);
+  font-size: 220px;
+  /* Peso liviano y tracking abierto: a esta escala un 800 con tracking
+     negativo convierte dos iniciales en una masa rectangular (la lección ya
+     estaba aprendida en la versión de disco de esta misma pieza). El grabado
+     tiene que leerse como tipografía, no como mancha. */
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  user-select: none;
+}
+
+.share-card--ticket .share-card__seal-mark {
+  color: rgba(116, 172, 223, 0.07);
+}
+
+.share-card--membership .share-card__seal-mark {
+  color: rgba(242, 183, 5, 0.09);
+}
+
+.share-card--story .share-card__seal-mark {
+  font-size: 340px;
+  top: 13%;
+}
+
+/* ─── Plinto de contenido ─────────────────────────────────────────
+   Identidad + datos como una unidad. Sin retrato es un simple contenedor
+   de flujo; con retrato arrastra su propio degradado, que arranca en el
+   borde superior del bloque y cierra opaco 150px más abajo — antes de la
+   primera línea de texto, mida lo que mida el bloque.
+
+   Los stops van en px, no en %: en % el fade se estiraría con la altura
+   del plinto y volvería a caer sobre el nombre en las variantes con más
+   contenido, que es exactamente el bug que esto resuelve. */
+.share-card__plate {
+  position: relative;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+  min-width: 0;
+}
+
+.share-card--story .share-card__plate {
+  gap: 44px;
+}
+
+.share-card--portrait .share-card__plate {
+  padding-top: 150px;
+  margin-top: -116px;
+}
+
+.share-card__plate-veil {
+  position: absolute;
+  top: 0;
+  left: calc(var(--card-gutter) * -1);
+  right: calc(var(--card-gutter) * -1);
+  /* Alto fijo mayor que el lienzo: el plinto no sabe cuánto falta hasta el
+     pie, así que el degradado se derrama y lo recorta el overflow de la
+     card. Cubre también la franja del footer. */
+  height: 2000px;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 9, 12, 0) 0px,
+    rgba(8, 9, 12, 0.35) 60px,
+    rgba(8, 9, 12, 0.8) 130px,
+    rgba(8, 9, 12, 0.97) 190px,
+    #08090c 230px,
+    #08090c 100%
+  );
+}
+
+/* El contenido se apoya sobre el degradado del plinto, no debajo. */
+.share-card__plate > .share-card__identity,
+.share-card__plate > .share-card__divider,
+.share-card__plate > .share-card__fields,
+.share-card__plate > .share-card__event-section {
+  position: relative;
+}
+
+/* ─── Identidad ──────────────────────────────────────────────────── */
+.share-card__identity {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.share-card__eyebrow {
+  align-items: center;
+  display: flex;
+  font-size: 22px;
+  font-weight: 550;
+  gap: 14px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.share-card--story .share-card__eyebrow {
+  font-size: 24px;
+}
+
+/* El acento del bloque vive en el punto, no en el texto: sobre grafito el
+   oro a 22px con tracking amplio se leía como una etiqueta de oferta. */
+.share-card__eyebrow-dot {
+  border-radius: 50%;
+  flex: none;
+  height: 12px;
+  width: 12px;
+  background-color: var(--card-accent);
+}
+
+.share-card--ticket .share-card__eyebrow-dot {
+  background-color: var(--card-accent-alt);
+}
+
+.share-card__athlete-name {
+  /* Sin esto el h2 arrastra el margen del UA y abría ~90px de hueco entre el
+     nombre y el número de socio, rompiendo el gap del bloque. */
+  margin: 0;
+  font-size: 108px;
+  font-weight: 800;
+  line-height: 0.96;
+  letter-spacing: -0.035em;
+  color: var(--card-text);
+  /* Tres líneas: con dos, un nombre completo largo perdía el apellido — y el
+     apellido es justo lo que la persona quiere ver en su póster. El tamaño ya
+     baja por longitud (ver nameSize). */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.share-card__athlete-code {
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+.share-card--story .share-card__athlete-code {
+  font-size: 27px;
+}
+
+/* Divisor: firma fina de marca, corta y sin brillo. */
+.share-card__divider {
+  flex: none;
+  width: 88px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--card-accent) 0%, var(--card-accent-alt) 100%);
+  border-radius: 999px;
+}
+
+.share-card--ticket .share-card__divider {
+  background: linear-gradient(90deg, var(--card-accent-alt) 0%, var(--card-accent) 100%);
+}
+
+/* ─── Sección evento ──────────────────────────────────────────────
+   Tratamiento editorial abierto: filo de acento a la izquierda, sin caja.
+   Una sola caja por composición, y esa caja es el chip del QR. */
+.share-card__event-section {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-left: 2px solid var(--card-accent);
+  padding: 4px 0 4px 32px;
+}
+
+.share-card--ticket .share-card__event-section {
+  border-left-color: var(--card-accent-alt);
+}
+
+.share-card--story .share-card__event-section {
+  gap: 18px;
+  padding: 8px 0 8px 40px;
+}
+
+.share-card__event-eyebrow {
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--card-muted);
+}
+
+/* Título del evento en blanco: el nombre del atleta es el protagonista y el
+   dorado queda reservado para eyebrow, divisor y filos (un solo acento). */
+.share-card__event-title {
+  font-size: 50px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--card-text);
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.share-card--story .share-card__event-title {
+  font-size: 58px;
+}
+
+.share-card__event-meta {
+  font-size: 26px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0;
+}
+
+.share-card__event-category {
+  font-size: 21px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.66);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* ─── Ficha de datos de la afiliación ────────────────────────────
+   Label + valor en dos columnas: el lenguaje de una credencial oficial.
+   Sin caja ni filo — el chip del QR es la única caja de la composición. */
+.share-card__fields {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 48px;
+  margin: 0;
+}
+
+.share-card__field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.share-card__field-label {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.share-card__field-value {
+  margin: 0;
+  font-size: 44px;
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  color: var(--card-text);
+}
+
+/* 56px es el techo: más grande, "Temporada 2026" no entra en su columna
+   de 460px y parte en dos líneas. */
+.share-card--story .share-card__fields {
+  gap: 30px 56px;
+}
+
+.share-card--story .share-card__field-label {
+  font-size: 20px;
+  letter-spacing: 0.2em;
+}
+
+/* 46px: "Temporada 2026" mide ~455px a 52 y su columna es de 432, así que
+   partía en dos líneas. Medido, no estimado. */
+.share-card--story .share-card__field-value {
+  font-size: 46px;
+}
+
+/* ─── Footer ──────────────────────────────────────────────────────
+   Regla fina + QR + firma. Sin placa: la banda enmarcada que había antes
+   sumaba una segunda caja y encerraba el cierre de la composición en vez
+   de dejarlo respirar contra el borde. */
+.share-card__footer {
+  position: relative;
+  z-index: 5;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* 46px: las marcas de visor del QR sobresalen 11px del chip y necesitan aire
+     antes del texto de verificación. */
+  gap: 46px;
+  margin: 40px var(--card-gutter) 56px;
+  padding: 26px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* En Story, la barra de respuesta/stickers de Instagram vive abajo de todo —
+   dejamos un margen de seguridad extra para que el footer no quede tapado. */
+.share-card--story .share-card__footer {
+  margin-top: 52px;
+  margin-bottom: 176px;
+  padding-top: 32px;
+}
+
+.share-card__footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.share-card__tagline {
+  display: block;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.share-card--story .share-card__tagline {
+  font-size: 22px;
+}
+
+/* Fecha de emisión: dato de documento, en el peso más bajo de la pieza. */
+.share-card__issued {
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.36);
+}
+
+.share-card--story .share-card__issued {
+  font-size: 17px;
+}
+
+.share-card__qr-caption {
+  font-size: 16px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.02em;
+}
+
+.share-card--story .share-card__qr-caption {
+  font-size: 18px;
+}
+
+.share-card__url {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.44);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.share-card--story .share-card__url {
+  font-size: 18px;
+}
+
+/* ─── QR de verificación ──────────────────────────────────────────
+   Chip blanco con quiet-zone propia: garantiza contraste/lectura sin
+   importar el fondo oscuro de la card. Las marcas de visor viven en el
+   bloque de alrededor, nunca sobre el papel. */
+.share-card__qr-block {
+  flex: none;
+  position: relative;
+}
+
+.share-card__qr-mark {
+  border-color: rgba(242, 183, 5, 0.8);
+  border-style: solid;
+  border-width: 0;
+  height: 22px;
+  position: absolute;
+  width: 22px;
+}
+
+.share-card--ticket .share-card__qr-mark {
+  border-color: rgba(116, 172, 223, 0.82);
+}
+
+.share-card__qr-mark--tl {
+  border-left-width: 3px;
+  border-top-width: 3px;
+  left: -11px;
+  top: -11px;
+}
+
+.share-card__qr-mark--tr {
+  border-right-width: 3px;
+  border-top-width: 3px;
+  right: -11px;
+  top: -11px;
+}
+
+.share-card__qr-mark--bl {
+  border-bottom-width: 3px;
+  border-left-width: 3px;
+  bottom: -11px;
+  left: -11px;
+}
+
+.share-card__qr-mark--br {
+  border-bottom-width: 3px;
+  border-right-width: 3px;
+  bottom: -11px;
+  right: -11px;
+}
+
+.share-card--story .share-card__qr-mark {
+  height: 28px;
+  width: 28px;
+}
+
+.share-card--story .share-card__qr-mark--tl,
+.share-card--story .share-card__qr-mark--tr {
+  top: -14px;
+}
+
+.share-card--story .share-card__qr-mark--bl,
+.share-card--story .share-card__qr-mark--br {
+  bottom: -14px;
+}
+
+.share-card--story .share-card__qr-mark--tl,
+.share-card--story .share-card__qr-mark--bl {
+  left: -14px;
+}
+
+.share-card--story .share-card__qr-mark--tr,
+.share-card--story .share-card__qr-mark--br {
+  right: -14px;
+}
+
+.share-card__qr-chip {
+  box-sizing: border-box;
+  flex: none;
+  width: 140px;
+  height: 140px;
+  padding: 11px;
+  background-color: #ffffff;
+  border-radius: 14px;
+  /* Border real, no box-shadow de spread — ver .share-card__seal-mark. Con
+     shadow, html2canvas dibujaba un halo crema grueso alrededor del chip. */
+  border: 2px solid rgba(242, 183, 5, 0.3);
+}
+
+.share-card--ticket .share-card__qr-chip {
+  border-color: rgba(116, 172, 223, 0.32);
+}
+
+.share-card--story .share-card__qr-chip {
+  width: 188px;
+  height: 188px;
+  padding: 15px;
+  border-radius: 20px;
+}
+
+.share-card__qr-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MEMBERSHIP — la afiliación es la credencial, no un evento.
+   Marca más presente en el header y ficha de campos en vez de bloque
+   editorial. El resto lo hereda de la composición base.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.share-card--membership .share-card__identity {
+  gap: 22px;
+}
+
+/* El número de socio lleva su etiqueta inline ("Socio n.º …"): es un campo de
+   credencial, no un ID suelto flotando bajo el nombre. */
+.share-card--membership .share-card__athlete-code {
+  font-size: 23px;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.share-card--membership.share-card--story .share-card__athlete-code {
+  font-size: 26px;
+}
+
+/* Regla de credencial: cruza el ancho útil en vez del filo corto.
+   Separa al protagonista de sus datos y conserva la firma dorada, sin
+   brillo. `:not(--unified)` porque la credencial unificada comparte la
+   clase membership pero mantiene el bloque de evento con su filo. */
+.share-card--membership:not(.share-card--unified) .share-card__divider {
+  width: 100%;
+  height: 1px;
+  border-radius: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(242, 183, 5, 0.55) 0%,
+    rgba(255, 255, 255, 0.08) 62%,
+    transparent 100%
+  );
+}
+
+/* La afiliación con retrato usa el filo corto: una regla a todo el ancho
+   sobre la foto corta el retrato en dos. */
+.share-card--membership.share-card--portrait:not(.share-card--unified) .share-card__divider {
+  width: 88px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--card-accent);
+}
+
+.share-card--membership .share-card__event-section {
+  border-left-color: rgba(242, 183, 5, 0.55);
+}
+
+.share-card--membership .share-card__event-eyebrow {
+  font-size: 18px;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.share-card--membership .share-card__event-title {
+  font-size: 46px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.share-card--membership.share-card--story .share-card__event-title {
+  font-size: 60px;
+  letter-spacing: -0.03em;
+}
+
+.share-card--membership .share-card__event-category {
+  font-size: 19px;
+  margin-top: 4px;
+  color: rgba(242, 183, 5, 0.9);
+  letter-spacing: 0.08em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODAL DE PREVIEW
+   Siempre cabe en viewport: max-height + preview que encoge.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.card-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: safe center;
+  justify-content: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: rgba(10, 11, 13, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: card-modal-fade-in 200ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) forwards;
+  padding: max(12px, env(safe-area-inset-top, 0px)) 16px max(12px, env(safe-area-inset-bottom, 0px));
+}
+
+@keyframes card-modal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.card-modal {
+  width: min(480px, 100%);
+  max-height: min(92vh, 720px);
+  max-height: min(92dvh, 720px);
+  min-height: 0;
+  margin: auto;
+  background: #121316;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.03);
+  animation: card-modal-slide-up 280ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) forwards;
+}
+
+@keyframes card-modal-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header del modal — chrome compacto */
+.card-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.card-modal__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.card-modal__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition:
+    background 150ms var(--ease-out, ease),
+    color 150ms var(--ease-out, ease);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.card-modal__close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.card-modal__close:focus-visible {
+  outline: 2px solid rgba(116, 172, 223, 0.5);
+  outline-offset: 2px;
+}
+
+/* Selector de formato — track fino, tipografía quieta */
+.card-modal__format-switch {
+  flex-shrink: 0;
+  padding: 10px 16px 0;
+}
+
+.card-modal__format-switch .segmented-switch,
+[data-theme='light'] .card-modal__format-switch .segmented-switch {
+  --switch-pad: 2px;
+  --switch-track-bg: #1a1c22;
+  --switch-track-border: rgba(255, 255, 255, 0.08);
+  --switch-thumb-bg: rgba(255, 255, 255, 0.1);
+  --switch-thumb-border: rgba(255, 255, 255, 0.14);
+  --switch-thumb-shadow: none;
+  --switch-option-fg: rgba(255, 255, 255, 0.45);
+  --switch-option-active-fg: #ffffff;
+}
+
+.card-modal__format-switch .segmented-switch__thumb::after {
+  display: none;
+}
+
+.card-modal__format-switch .segmented-switch__option {
+  min-height: 30px;
+  padding: 4px 2px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+[data-theme='light'] .card-modal__format-switch .segmented-switch__option.is-active {
+  color: #ffffff;
+}
+
+/* Preview: ocupa el aire restante y se encoge antes de overflowar */
+.card-modal__preview-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+.card-modal__preview-inner {
+  width: 100%;
+  max-width: min(100%, 42vh);
+  max-width: min(100%, 42dvh);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+/* Historia 9:16: ancho acotado para no empujar el modal */
+.card-modal__preview-inner--story {
+  max-width: min(200px, 26vh);
+  max-width: min(200px, 26dvh);
+  margin: 0 auto;
+}
+
+/* Hint de compartir — una línea discreta */
+.card-modal__hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 8px 16px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.38);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.card-modal__hint-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #3d9a62;
+  flex-shrink: 0;
+}
+
+/* Acciones del modal */
+.card-modal__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 10px 16px 14px;
+}
+
+.card-modal__actions .btn {
+  justify-content: center;
+  min-height: 44px;
+}
+
+.card-modal__feedback {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0 16px 12px;
+  font-size: 12px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.card-modal__feedback--error {
+  color: #ff3b36;
+}
+
+.card-modal__feedback--done {
+  color: #8fd4a8;
+}
+
+/* Estado de generando */
+.card-modal__generating {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 28px 16px;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+}
+
+/* Spinner de generación — primitivo `.plu-spinner` (states.css) con acento
+   dorado sobre superficie oscura del modal. */
+.card-modal__spinner {
+  --spinner-accent: var(--color-brand-gold, #f2b705);
+  --spinner-track: rgba(255, 255, 255, 0.12);
+}
+
+/* Botón de generar card (ConfirmationScreen y perfil) */
+.card-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 12px 18px;
+  background: transparent;
+  border: 1px solid rgba(242, 183, 5, 0.38);
+  border-radius: 10px;
+  color: var(--color-text-primary, #fff);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition:
+    background 200ms var(--ease-out, ease),
+    border-color 200ms var(--ease-out, ease),
+    color 200ms var(--ease-out, ease);
+  width: 100%;
+  justify-content: center;
+}
+
+.card-trigger-btn:hover {
+  background: rgba(242, 183, 5, 0.1);
+  border-color: rgba(242, 183, 5, 0.55);
+}
+
+.card-trigger-btn:active {
+  background: rgba(242, 183, 5, 0.14);
+}
+
+.card-trigger-btn:focus-visible {
+  outline: 2px solid rgba(116, 172, 223, 0.45);
+  outline-offset: 2px;
+}
+
+.card-trigger-btn__icon {
+  color: var(--color-brand-gold, var(--plu-gold-500));
+  flex: none;
+}
+
+/* Sección "Mi card" en el perfil — strip editorial quieto */
+.account-card-share {
+  position: relative;
+  background: var(--color-bg-elevated, #141518);
+  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  padding: 22px 22px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.account-card-share__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-brand-gold, #f2b705);
+}
+
+.account-card-share h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #fff);
+  margin: 0;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.account-card-share p {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted, rgba(255, 255, 255, 0.55));
+  margin: 0 0 4px;
+  line-height: 1.5;
+  max-width: 36em;
+}
+
+.account-card-share .card-trigger-btn {
+  margin-top: 4px;
+}
+/* ────────────────────────────────────────────────────────────────────
+   ConfirmationSeal — el acuse de afiliación, inscripción y pago
+
+   Una sola secuencia one-shot de ~900 ms: el anillo se traza, el check se
+   dibuja, el texto entra atrás. Nada queda animándose después. El acento es
+   oro PLU (uno solo por bloque) y el sello no lleva glow, glass ni sombra
+   apilada: la jerarquía la hace la escala del trazo contra el peso del texto.
+   ──────────────────────────────────────────────────────────────────── */
+
+.confirmation-seal {
+  align-items: center;
+  display: flex;
+  gap: clamp(12px, 1.8vw, 18px);
+  text-align: left;
+}
+
+/* ─── Sello ──────────────────────────────────────────────────────────── */
+
+.confirmation-seal__mark {
+  display: grid;
+  flex: 0 0 auto;
+  height: var(--confirmation-seal-size, 52px);
+  place-items: center;
+  width: var(--confirmation-seal-size, 52px);
+}
+
+.confirmation-seal--payment {
+  --confirmation-seal-size: 44px;
+}
+
+.confirmation-seal--membership {
+  --confirmation-seal-size: clamp(52px, 6vw, 62px);
+}
+
+.confirmation-seal__glyph {
+  height: 100%;
+  overflow: visible;
+  width: 100%;
+}
+
+.confirmation-seal__ring {
+  fill: none;
+  stroke: color-mix(in oklab, var(--color-brand-gold) 58%, transparent);
+  stroke-width: 2;
+  /* El trazo arranca arriba y no a la derecha: el anillo se cierra como un
+     sello que gira, no como una barra de progreso. */
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+.confirmation-seal__check {
+  fill: none;
+  stroke: var(--color-brand-gold);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3.2;
+}
+
+/* ─── Texto ──────────────────────────────────────────────────────────── */
+
+.confirmation-seal__copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.confirmation-seal__eyebrow {
+  align-items: center;
+  color: var(--color-brand-gold);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 10px;
+  font-weight: 700;
+  gap: 8px;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.confirmation-seal__stamp {
+  border: 1px solid color-mix(in oklab, var(--color-brand-gold) 34%, transparent);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+}
+
+.confirmation-seal__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(17px, 2.4vw, 22px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.confirmation-seal__detail {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 44ch;
+}
+
+/* ─── Secuencia one-shot ─────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+  .confirmation-seal__mark {
+    animation: confirmation-seal-land var(--motion-slow, 480ms) var(--ease-spring, ease-out) both;
+  }
+
+  .confirmation-seal__ring {
+    /* 2πr con r=21 ≈ 132. */
+    stroke-dasharray: 132;
+    animation: confirmation-seal-trace 560ms var(--ease-out, ease) 60ms both;
+  }
+
+  .confirmation-seal__check {
+    stroke-dasharray: 30;
+    animation: confirmation-seal-trace-check 320ms var(--ease-out, ease) 300ms both;
+  }
+
+  .confirmation-seal__eyebrow {
+    animation: confirmation-seal-rise var(--motion-slow, 480ms) var(--ease-out, ease) 200ms both;
+  }
+
+  .confirmation-seal__title {
+    animation: confirmation-seal-rise var(--motion-slow, 480ms) var(--ease-out, ease) 280ms both;
+  }
+
+  .confirmation-seal__detail {
+    animation: confirmation-seal-rise var(--motion-slow, 480ms) var(--ease-out, ease) 360ms both;
+  }
+}
+
+@keyframes confirmation-seal-land {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes confirmation-seal-trace {
+  from {
+    stroke-dashoffset: 132;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes confirmation-seal-trace-check {
+  from {
+    stroke-dashoffset: 30;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes confirmation-seal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Mobile: el sello queda arriba y el texto respira ───────────────── */
+
+@media (max-width: 480px) {
+  .confirmation-seal {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .confirmation-seal__detail {
+    max-width: none;
+  }
+}
+/* ────────────────────────────────────────────────────────────────────
+   CelebrationBurst — la ráfaga de los tres momentos
+
+   Papel laminado en oro PLU, con celeste de acompañamiento y un plata que toma
+   el color del texto para leerse en los dos temas. Un solo disparo: cada pieza
+   sube en abanico hasta su apex y de ahí cae girando. Sin glow, sin blur, sin
+   sombra, sin loop — cuando termina no queda nada animándose.
+
+   La capa se monta por portal en <body> y es fija del tamaño del viewport con
+   overflow oculto: no participa del layout, no la captura ningún ancestro con
+   transform o backdrop-filter, y no puede generar scroll horizontal en ninguna
+   resolución. Los custom props llevan prefijo `--burst-` a propósito:
+   register.css ya usa `--piece-width` para el ancho de la card compartible.
+
+   Alcance y tamaño de papel salen de dos clamp(): a 360px la ráfaga es chica y
+   corta, a 1920 es amplia y el papel se ve como papel. Con tamaños fijos —la
+   primera versión— en desktop se leía como polvo.
+   ──────────────────────────────────────────────────────────────────── */
+
+/* Alcance de la ráfaga: cuánto viaja el papel desde el sello.
+
+   24vw y no un mínimo fijo: en 360px el sello vive a ~88px del borde izquierdo,
+   así que un alcance mayor manda un tercio del papel fuera de pantalla antes de
+   que se vea. El vw ata el alcance al ancho real y el máximo evita que en 1920
+   la ráfaga cruce media pantalla.
+
+   Vive en `:root` y no en `.celebration-burst` para que el componente pueda
+   leer su valor resuelto ANTES de montar la capa: el sesgo horizontal necesita
+   saber cuánto viaja el papel para calcular cuánto tiene que correr el abanico,
+   y duplicar el clamp() en JS habría dejado dos fuentes de verdad que se
+   desincronizan en el primer ajuste.
+
+   Va registrada con `@property` por la misma razón: `getPropertyValue()` sobre
+   una custom property sin registrar devuelve el valor *especificado* —el texto
+   `clamp(86px, 24vw, 300px)`, no el resultado—, así que el componente leía NaN
+   y el sesgo quedaba siempre en 0. Registrada con `syntax: '<length>'` la
+   propiedad computa a píxeles y se puede leer. Si un navegador no soporta
+   `@property`, el clamp sigue funcionando para el dibujo y el sesgo cae a 0:
+   el comportamiento previo, nunca peor. */
+@property --celebration-reach {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 96px;
+}
+
+/* El sesgo también se registra: así queda tipado como número para el calc() de
+   los keyframes y tiene un valor inicial válido si la capa se monta sin ancla
+   medida. */
+@property --celebration-bias-x {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+:root {
+  --celebration-reach: clamp(86px, 24vw, 300px);
+}
+
+.celebration-burst {
+  /* Sin ancla medida, la ráfaga sale del tercio superior del viewport. */
+  --celebration-origin-x: 50vw;
+  --celebration-origin-y: 32vh;
+  /* Corrimiento horizontal del abanico completo, en múltiplos del alcance. Lo
+     pone el componente cuando el sello está tan cerca de un borde que la mitad
+     del papel saldría de pantalla — el caso real: el sello abre el bloque de
+     confirmación contra el margen izquierdo, y en 390px eso dejaba media ráfaga
+     afuera. Corre el abanico entero en vez de recortarlo o de encogerlo: se lee
+     como viento, no como una explosión a la que le falta un lado. */
+  --celebration-bias-x: 0;
+  /* Unidad de papel: el ancho y el alto de cada pieza son múltiplos de esto. */
+  --celebration-unit: clamp(3.4px, 0.5vw, 6.6px);
+
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  /* Por debajo del header (--z-header: 200): papel volando sobre la
+     navegación se lee como banner publicitario, no como acuse. */
+  position: fixed;
+  z-index: 190;
+}
+
+.celebration-burst__origin {
+  height: 0;
+  left: var(--celebration-origin-x);
+  position: absolute;
+  top: var(--celebration-origin-y);
+  width: 0;
+}
+
+.celebration-burst__piece {
+  /* `ease-out` frenaría el papel al final, justo cuando la gravedad tiene que
+     acelerarlo: la curva del sistema que sirve acá es la estándar. */
+  animation: celebration-piece var(--burst-duration, 1100ms) var(--ease-standard, ease)
+    var(--burst-delay, 0ms) both;
+  border-radius: 1px;
+  display: block;
+  height: calc(var(--burst-height, 2.6) * var(--celebration-unit));
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: calc(var(--burst-width, 1.2) * var(--celebration-unit));
+}
+
+.celebration-burst__piece--gold {
+  background: var(--color-brand-gold);
+}
+
+.celebration-burst__piece--celeste {
+  background: var(--color-brand-celeste);
+}
+
+/* La tercera parte del reparto no es un acento: es el grafito de la marca
+   dando peso al papel. Sin él la ráfaga se lee como dos colores de fiesta. */
+/* El tercio que no es marca: papel plata. Toma el color del texto —casi blanco
+   en dark, grafito en light— porque `--color-text-muted` sobre grafito era
+   literalmente invisible y ese tercio de la ráfaga no existía. */
+.celebration-burst__piece--silver {
+  background: color-mix(in oklab, var(--color-text-primary) 62%, transparent);
+}
+
+@keyframes celebration-piece {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(0.5);
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  /* Apex: la pieza llegó a lo más alto de su arco y todavía no cae. El sesgo
+     entra con el mismo factor 0.68 que la componente horizontal para que el
+     abanico corrido siga siendo el mismo arco y no se quiebre a mitad de vuelo. */
+  46% {
+    opacity: 1;
+    transform: translate3d(
+        calc(
+          (var(--burst-px) * var(--burst-reach) + var(--celebration-bias-x)) *
+            var(--celebration-reach) * 0.68
+        ),
+        calc(var(--burst-py) * var(--burst-reach) * var(--celebration-reach)),
+        0
+      )
+      rotate(calc(var(--burst-spin, 240deg) * 0.42)) scale(1);
+  }
+
+  82% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(
+        calc(
+          (var(--burst-px) * var(--burst-reach) + var(--celebration-bias-x)) *
+            var(--celebration-reach)
+        ),
+        calc(
+          var(--burst-py) * var(--burst-reach) * var(--celebration-reach) + var(--burst-fall) *
+            var(--celebration-reach)
+        ),
+        0
+      )
+      rotate(var(--burst-spin, 240deg)) scale(0.94);
+  }
+}
+
+/* El componente ya no monta nada bajo prefers-reduced-motion (la puerta es
+   shouldCelebrate, no este media query). Queda como red: si la preferencia
+   cambia mientras la ráfaga está en vuelo, se apaga en el acto. */
+@media (prefers-reduced-motion: reduce) {
+  .celebration-burst {
+    display: none;
+  }
+}

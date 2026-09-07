@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowRight, Check } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { CONTACT_EMAIL } from '../../lib/contact.js'
 import { submitContactMessage } from '../../services/contactService.js'
 
 const MOTIVES = ['atleta', 'gimnasio', 'organizacion', 'pluusa']
@@ -150,7 +151,7 @@ export default function ContactForm() {
         {status === 'error' ? (
           <p className="contact-form__error" role="alert">
             <strong>{t('contact.errorTitle')}</strong>{' '}
-            {t('contact.errorDesc', { email: t('contact.sidebarEmail') })}
+            {t('contact.errorDesc', { email: CONTACT_EMAIL })}
           </p>
         ) : null}
       </div>

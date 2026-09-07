@@ -94,6 +94,26 @@ describe('eventSchema del backend', () => {
       expect.arrayContaining(['eventDays', 'ticketTypes']),
     )
   })
+
+  it('rechaza venta de entradas habilitada sin catálogo vendible', () => {
+    const result = eventSchema.safeParse(
+      validEvent({
+        eventDays: [],
+        ticketTypes: [],
+      }),
+    )
+
+    expect(result.success).toBe(false)
+    expect(result.error.issues.map((issue) => issue.path[0])).toEqual(
+      expect.arrayContaining(['eventDays', 'ticketTypes']),
+    )
+    expect(result.error.issues.map((issue) => issue.message)).toEqual(
+      expect.arrayContaining([
+        'La venta de entradas necesita al menos un día del evento.',
+        'La venta de entradas necesita al menos un tipo activo con precio.',
+      ]),
+    )
+  })
 })
 
 describe('validateAdminEventDraft del editor', () => {
@@ -168,5 +188,61 @@ describe('validateAdminEventDraft del editor', () => {
       'ticketTypes.0.dayIndexes': 'admin.eventEditor.validation.ticketTypeDayMissing',
       'ticketTypes.0.includedAddonIds': 'admin.eventEditor.validation.ticketTypeAddonMissing',
     })
+  })
+
+  it('exige día y tipo con precio si se habilita la venta de entradas', () => {
+    const missingDays = validateAdminEventDraft(
+      validDraft({
+        pricing: { membership: 75000, registration: 75000, combo: 120000, ticketsEnabled: true },
+        ticketTypes: [{ name: 'General', price: 12000, active: true, dayIndexes: [] }],
+      }),
+      t,
+    )
+    const missingType = validateAdminEventDraft(
+      validDraft({
+        pricing: { membership: 75000, registration: 75000, combo: 120000, ticketsEnabled: true },
+        eventDays: [{ dayIndex: 0, label: 'Día 1', date: '2026-08-15' }],
+        ticketTypes: [{ name: 'Cortesía', price: 0, active: true, dayIndexes: [0] }],
+      }),
+      t,
+    )
+
+    expect(missingDays.ok).toBe(false)
+    expect(missingDays.fieldErrors.eventDays).toBe('admin.eventEditor.validation.ticketsNeedDays')
+    expect(missingType.ok).toBe(false)
+    expect(missingType.fieldErrors.ticketTypes).toBe(
+      'admin.eventEditor.validation.ticketsNeedType',
+    )
+  })
+
+  it('rechaza una franja de pesaje incompleta o con cierre antes de la apertura', () => {
+    const incomplete = validateAdminEventDraft(
+      validDraft({
+        weighInWindows: [{ label: 'Viernes', date: '2026-08-14', startsAt: '', endsAt: '' }],
+      }),
+      t,
+    )
+    const inverted = validateAdminEventDraft(
+      validDraft({
+        weighInWindows: [
+          {
+            label: 'Viernes',
+            date: '2026-08-14',
+            startsAt: '2026-08-14T16:00',
+            endsAt: '2026-08-14T09:00',
+          },
+        ],
+      }),
+      t,
+    )
+
+    expect(incomplete.ok).toBe(false)
+    expect(incomplete.fieldErrors['weighInWindows.0.startsAt']).toBe(
+      'admin.eventEditor.validation.weighInStartsRequired',
+    )
+    expect(inverted.ok).toBe(false)
+    expect(inverted.fieldErrors['weighInWindows.0.endsAt']).toBe(
+      'admin.eventEditor.validation.weighInWindowInvalid',
+    )
   })
 })

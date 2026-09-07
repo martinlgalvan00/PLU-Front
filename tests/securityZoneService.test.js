@@ -10,6 +10,7 @@ import {
   getZoneScopeCredentials,
   groupSecurityTeamByZone,
   isValidZoneScope,
+  zonesTicketsCanOpen,
   validateZoneForm,
 } from '../src/services/securityZoneService.js'
 
@@ -35,10 +36,19 @@ const USERS = [
 ]
 
 describe('securityZoneService — alcance de escaneo', () => {
-  it('la puerta es el único alcance que abre entradas de público', () => {
+  /**
+   * Antes la puerta era el único alcance que leía entradas. Dejó de serlo
+   * cuando la entrada de entrenador pasó a emitir una credencial propia: esa
+   * credencial es un `ticket` y tiene que poder leerse en la entrada en calor.
+   * Pesaje y plataforma siguen sin leer entradas.
+   */
+  it('la puerta y la entrada en calor son las únicas que abren entradas', () => {
     expect(canZoneScanCredential('gate_tickets', 'ticket')).toBe(true)
+    expect(canZoneScanCredential('athletes_coaches', 'ticket')).toBe(true)
 
-    for (const scope of ZONE_SCOPES.filter((value) => value !== 'gate_tickets')) {
+    for (const scope of ZONE_SCOPES.filter(
+      (value) => value !== 'gate_tickets' && value !== 'athletes_coaches',
+    )) {
       expect(canZoneScanCredential(scope, 'ticket')).toBe(false)
     }
   })
@@ -46,6 +56,12 @@ describe('securityZoneService — alcance de escaneo', () => {
   it('pesaje lee inscripciones pero no credenciales de afiliación', () => {
     expect(canZoneScanCredential('athletes_only', 'registration')).toBe(true)
     expect(canZoneScanCredential('athletes_only', 'membership')).toBe(false)
+  })
+
+  /** La decisión que cierra el agujero: la entrada en calor deja de aceptar
+   *  afiliación, que era lo que hacía entrar a cualquier afiliado. */
+  it('la entrada en calor deja de aceptar afiliación', () => {
+    expect(canZoneScanCredential('athletes_coaches', 'membership')).toBe(false)
   })
 
   it('staff técnico no escanea nada: es control interno', () => {
@@ -190,5 +206,24 @@ describe('securityZoneService — iniciales', () => {
   it('sin nombre cae al mail antes de mostrar un signo de pregunta', () => {
     expect(getMemberInitials('', 's.barrios@segur.com')).toBe('SB')
     expect(getMemberInitials('', '')).toBe('?')
+  })
+})
+
+describe('zonesTicketsCanOpen', () => {
+  /**
+   * Es la lista que la comparación pública de entradas usa como filas. Sale de
+   * SCOPE_CREDENTIALS y no de una constante aparte, así que no puede ofrecer
+   * una zona que ninguna entrada habilite nunca.
+   */
+  it('sólo devuelve zonas que leen credenciales de entrada', () => {
+    expect(zonesTicketsCanOpen()).toEqual(['gate_tickets', 'athletes_coaches'])
+  })
+
+  it('deja afuera las zonas que no leen entradas', () => {
+    for (const scope of zonesTicketsCanOpen()) {
+      expect(canZoneScanCredential(scope, 'ticket')).toBe(true)
+    }
+    expect(zonesTicketsCanOpen()).not.toContain('athletes_only')
+    expect(zonesTicketsCanOpen()).not.toContain('staff_only')
   })
 })

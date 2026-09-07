@@ -291,9 +291,9 @@ describe('sección de auditoría', () => {
     expect(screen.queryByLabelText('Acción')).toBeNull()
     expect(screen.queryByLabelText('Actor')).toBeNull()
     expect(screen.queryByLabelText('Entidad')).toBeNull()
-    expect(screen.getByRole('button', { name: 'Más filtros' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Más criterios' })).toBeTruthy()
 
-    screen.getByRole('button', { name: 'Más filtros' }).click()
+    screen.getByRole('button', { name: 'Más criterios' }).click()
 
     // Por label y no por texto: "Acción", "Actor", "Entidad" y "Estado" son el
     // mismo literal en tres lugares distintos de esta pantalla —el filtro

@@ -56,56 +56,53 @@ function renderAthletes(props = {}) {
   return { ...utils, filterBar }
 }
 
-describe('Atletas — barra de filtros (panel único)', () => {
-  it('muestra search + Filtros sin exponer facetas hasta abrir el panel', () => {
+describe('Atletas — barra de filtros (facetas etiquetadas)', () => {
+  it('muestra búsqueda y rieles de afiliación/inscripción, con el resto en Más criterios', () => {
     const { filterBar } = renderAthletes()
 
-    expect(filterBar.classList.contains('admin-filters--panel')).toBe(true)
-    expect(within(filterBar).getByRole('button', { name: /Filtros/ })).toBeTruthy()
-    expect(filterBar.querySelector('.admin-filter-panel')).toBeNull()
-    expect(within(filterBar).queryByText('Afiliado activo')).toBeNull()
+    expect(filterBar.classList.contains('admin-filters--panel')).toBe(false)
+    expect(within(filterBar).getByPlaceholderText(/Buscar/i)).toBeTruthy()
+    expect(within(filterBar).getByText('Afiliación')).toBeTruthy()
+    expect(within(filterBar).getByText('Inscripción')).toBeTruthy()
+    expect(within(filterBar).getByRole('button', { name: /Afiliado activo/ })).toBeTruthy()
     expect(within(filterBar).queryByText('Maximal Power')).toBeNull()
+    expect(within(filterBar).getByRole('button', { name: /Más criterios/ })).toBeTruthy()
   })
 
-  it('abre el panel con rieles de chips y meta (gimnasio + fecha)', () => {
+  it('abre gimnasio y fecha detrás de Más criterios', () => {
     const { filterBar } = renderAthletes()
 
-    fireEvent.click(within(filterBar).getByRole('button', { name: /Filtros/ }))
-    const panel = filterBar.querySelector('.admin-filter-panel')
-    expect(panel).toBeTruthy()
-    expect(panel.querySelector('.admin-filter-panel__stack')).toBeTruthy()
-    expect(panel.querySelector('.admin-filter-panel__meta')).toBeTruthy()
-    expect(panel.querySelector('.admin-filter-panel__field--select')).toBeTruthy()
-    expect(panel.querySelector('.admin-filter-panel__field--date')).toBeTruthy()
-    expect(within(panel).getByText('Afiliación')).toBeTruthy()
-    expect(within(panel).getByText('Inscripción')).toBeTruthy()
-    expect(within(panel).getByRole('button', { name: /Afiliado activo/ })).toBeTruthy()
+    fireEvent.click(within(filterBar).getByRole('button', { name: /Más criterios/ }))
+    const advanced = filterBar.querySelector('.admin-filters__advanced-popover')
+    expect(advanced).toBeTruthy()
+    expect(within(advanced).getByLabelText('Gimnasio')).toBeTruthy()
+    expect(within(advanced).getByText('Fecha de alta')).toBeTruthy()
   })
 
-  it('elige un gimnasio desde el combobox del panel', () => {
+  it('elige un gimnasio desde Más criterios', () => {
     const { filterBar } = renderAthletes()
 
-    fireEvent.click(within(filterBar).getByRole('button', { name: /Filtros/ }))
-    const panel = filterBar.querySelector('.admin-filter-panel')
-    fireEvent.click(within(panel).getByRole('option', { name: 'Pitbull Barbell' }))
+    fireEvent.click(within(filterBar).getByRole('button', { name: /Más criterios/ }))
+    const advanced = filterBar.querySelector('.admin-filters__advanced-popover')
+    fireEvent.change(within(advanced).getByLabelText('Gimnasio'), {
+      target: { value: 'pitbull barbell' },
+    })
 
     expect(screen.getByText('Nicolás Aguirre')).toBeTruthy()
     expect(screen.queryByText('Martina Rivas')).toBeNull()
     expect(screen.queryByText('Florencia López')).toBeNull()
-    expect(within(filterBar).getByRole('button', { name: 'Quitar filtro' })).toBeTruthy()
+    expect(within(filterBar).getByRole('button', { name: /Limpiar filtros/ })).toBeTruthy()
   })
 
-  it('filtra por Afiliación y limpia con el chip activo del panel', () => {
+  it('filtra por Afiliación y limpia los criterios activos', () => {
     const { filterBar } = renderAthletes()
 
-    fireEvent.click(within(filterBar).getByRole('button', { name: /Filtros/ }))
-    const panel = filterBar.querySelector('.admin-filter-panel')
-    fireEvent.click(within(panel).getByRole('button', { name: /Afiliado activo/ }))
+    fireEvent.click(within(filterBar).getByRole('button', { name: /Afiliado activo/ }))
 
     expect(screen.getByText('Martina Rivas')).toBeTruthy()
     expect(screen.queryByText('Nicolás Aguirre')).toBeNull()
 
-    fireEvent.click(within(filterBar).getByRole('button', { name: 'Quitar filtro' }))
+    fireEvent.click(within(filterBar).getByRole('button', { name: /Limpiar filtros/ }))
     expect(screen.getByText('Nicolás Aguirre')).toBeTruthy()
   })
 })

@@ -1,4 +1,7 @@
 import AdminTopBar from './AdminTopBar.jsx'
+import '../../styles/layout/admin-shell.css'
+import '../../styles/pages/admin-institutional.css'
+import '../../styles/pages/admin-minimal.css'
 
 export default {
   title: 'Layout/AdminTopBar',
@@ -28,4 +31,21 @@ export const WithAlerts = {
 
 export const NoSearch = {
   args: { showSearch: false },
+}
+
+export const DashboardCompact = {
+  args: {
+    title: 'Operaciones',
+    subtitle: 'Lectura operativa y pendientes',
+    eyebrow: 'Hoy',
+    showSearch: false,
+    alertCount: 14,
+  },
+  decorators: [
+    (Story) => (
+      <div className="admin-shell admin-dashboard admin-dashboard--compact">
+        <Story />
+      </div>
+    ),
+  ],
 }

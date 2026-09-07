@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
-import { resolveLocalSupabase } from './e2e/local-supabase.js'
+import { resolveLocalSupabase, localPrismaDatabaseUrl } from './e2e/local-supabase.js'
 
 /**
  * E2E de checkout — corre contra Supabase LOCAL (Docker) + API con
@@ -31,10 +31,11 @@ const serverEnv = {
   MERCADO_PAGO_ACCESS_TOKEN: '',
   BREVO_API_KEY: '',
   BREVO_SENDER_EMAIL: '',
-  // Prisma (`plu_prisma`, staff/admin) no participa del checkout de atleta
-  // que ejercita este E2E; en blanco para que ningún job de fondo del server
-  // pueda tocar una base remota si alguna terminal ya la tenía exportada.
-  DATABASE_URL: '',
+  // Staff de puerta vive en el schema local `plu_prisma` (el server lo fuerza
+  // al arrancar). Vacío acá mandaría al job de ciclo de vida a la base remota
+  // si alguna terminal ya tenía DATABASE_URL exportada.
+  DATABASE_URL: localPrismaDatabaseUrl(supabase),
+  SECURITY_USER_LIFECYCLE_JOB_ENABLED: 'false',
   // El store de rate limit por defecto persiste en Postgres (sharedRateLimitStore.js)
   // para sobrevivir instancias serverless — pero eso significa que corridas
   // repetidas de este E2E dentro de la misma ventana de 15' comparten contador
@@ -49,6 +50,10 @@ const webEnv = {
   PORT: String(API_PORT),
   PAYMENTS_MOCK: 'true',
   APP_PRODUCTION: 'false',
+  // Interruptor global de venta de entradas. Sin él la página muestra
+  // "Próximamente" y nunca llega a renderizar el formulario: los tests de
+  // compra no podían ejercitar nada.
+  VITE_TICKET_SALES_ENABLED: 'true',
 }
 
 export default defineConfig({

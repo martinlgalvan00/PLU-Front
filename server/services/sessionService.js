@@ -148,6 +148,22 @@ export function serializeUser(user) {
     // Zona del meet a la que está asignada la cuenta de seguridad. El panel la
     // usa para agrupar el equipo por zona; nulo mientras nadie la asignó.
     securityZoneId: user.securityZoneId ?? null,
+    /**
+     * El puesto al que está asignada la cuenta, con nombre y alcance.
+     *
+     * Con sólo el id, quien escanea en la puerta no tenía forma de saber a qué
+     * sector está habilitado: leía un QR y o entraba o no, sin poder anticipar
+     * cuál. El alcance es además lo que la RPC de canje usa para decidir qué
+     * credencial abre ese puesto, así que mostrarlo es mostrar la regla real,
+     * no una etiqueta decorativa.
+     */
+    securityZone: user.securityZone
+      ? {
+          id: user.securityZone.id,
+          name: user.securityZone.name,
+          scope: user.securityZone.scope,
+        }
+      : null,
     lastLoginAt: user.lastLoginAt ?? null,
   }
 }
@@ -170,6 +186,9 @@ export async function readSession({ prisma, token, now = new Date() }) {
         include: {
           profile: true,
           accessRole: { include: ACCESS_ROLE_INCLUDE },
+          // Va en la misma consulta que ya resuelve la sesión: es un join más,
+          // no un request extra por cada escaneo.
+          securityZone: { select: { id: true, name: true, scope: true } },
         },
       },
     },

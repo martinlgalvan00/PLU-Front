@@ -297,6 +297,20 @@ describe('API administrativa de eventos', () => {
           p_actor: expect.stringContaining(':admin_maximal@events.test'),
         }),
       )
+      expect(supabase.rpc).toHaveBeenCalledWith(
+        'staff_merge_event_public_surface',
+        expect.objectContaining({
+          p_slug: payload.slug,
+          p_surface: {
+            calendar: true,
+            weighIns: true,
+            livestream: true,
+            experience: true,
+            categories: true,
+            location: true,
+          },
+        }),
+      )
     } finally {
       await target.close()
     }
@@ -647,8 +661,30 @@ describe('migración requiresMembership configurable', () => {
     expect(latest.sql).not.toMatch(
       /coalesce\(\(p_event ->> 'published'\)::boolean, false\),\s*true,/,
     )
+    expect(latest.sql).toContain("coalesce((v_pricing ->> 'ticketsEnabled')::boolean, false)")
+    expect(latest.sql).not.toContain("coalesce((v_pricing ->> 'ticketsEnabled')::boolean, true)")
+    expect(latest.sql).toContain("'weighInWindows'")
     expect(latest.sql).toContain('grant execute on function public.staff_upsert_event(jsonb, text)')
     expect(latest.sql).toContain('to service_role')
+  })
+})
+
+describe('migración vigente de create_ticket_order_v2', () => {
+  it('rechaza la compra si el evento no tiene ticketsEnabled', () => {
+    const migrationsDir = resolve('supabase/migrations')
+    const latest = readdirSync(migrationsDir)
+      .filter((name) => name.endsWith('.sql'))
+      .sort()
+      .map((name) => ({
+        name,
+        sql: readFileSync(resolve(migrationsDir, name), 'utf8'),
+      }))
+      .filter(({ sql }) => sql.includes('create or replace function public.create_ticket_order_v2'))
+      .at(-1)
+
+    expect(latest).toBeDefined()
+    expect(latest.sql).toContain("coalesce((v_event.rules ->> 'ticketsEnabled')::boolean, false)")
+    expect(latest.sql).toContain('La venta de entradas esta deshabilitada para este evento.')
   })
 })
 

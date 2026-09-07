@@ -1,0 +1,49 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1440, "h": 980, "title": "Datos" },
+    { "file": "Entradas.dc.html", "x": 1540, "y": 0, "w": 1440, "h": 1040, "title": "Entradas" },
+    { "file": "Estructura.dc.html", "x": 0, "y": 1180, "w": 1440, "h": 1040, "title": "Estructura" },
+    { "file": "ZonasSeguridad.dc.html", "x": 1540, "y": 1180, "w": 1440, "h": 1040, "title": "Zonas y seguridad" },
+    { "file": "Pagos.dc.html", "x": 0, "y": 2360, "w": 1440, "h": 1000, "title": "Pagos" },
+    { "file": "VistaPublica.dc.html", "x": 1540, "y": 2360, "w": 1440, "h": 1000, "title": "Vista pública" },
+    { "file": "Movil.dc.html", "x": 0, "y": 3540, "w": 390, "h": 844, "title": "Datos en teléfono" }
+  ],
+  "annotations": [
+    {
+      "id": "tesis",
+      "x": 0,
+      "y": -250,
+      "w": 620,
+      "text": "TESIS\n\nLa página del evento tiene que sentirse operativa y sin capas, porque ayuda al staff a llevar un meet de punta a punta.\n\nHoy todo vive en un modal con acordeones: nada se ve sin desplegarlo, y zonas y pagos reemplazan la lista entera. Acá son seis superficies planas, cada una completa, bajo un encabezado que siempre dice en qué estado real está el evento."
+    },
+    {
+      "id": "encabezado-persistente",
+      "x": 1540,
+      "y": -250,
+      "w": 620,
+      "text": "EL ENCABEZADO NO CAMBIA NUNCA\n\nTítulo, estado, fecha, sede y link público quedan fijos en las seis pestañas. Es la respuesta a \"qué evento estoy tocando y en qué estado está\", que en el modal actual se pierde al entrar a una sección.\n\nLas pestañas usan el mismo componente que ya existe para el detalle de un atleta (DetailTabs): pill, contador por pestaña y un punto de atención cuando algo falta."
+    },
+    {
+      "id": "estructura-en-pasos",
+      "x": 3080,
+      "y": 1180,
+      "w": 400,
+      "text": "POR QUÉ ESTRUCTURA NO TIENE SUB-PESTAÑAS\n\nJornadas, pesajes y tandas no son alternativas: son un orden. Sin jornadas no hay pesaje que cargar, y sin pesaje la tanda no cierra.\n\nEn Entradas sí hay sub-pestañas, porque cupo, precios, entradas y cobro sí son cuatro temas paralelos."
+    },
+    {
+      "id": "movil",
+      "x": 530,
+      "y": 3540,
+      "w": 420,
+      "text": "TELÉFONO\n\nSin barra de estado falsa. El rail de pestañas se corta a propósito con un degradado: se desplaza en horizontal, igual que el componente real.\n\nTodo lo tocable llega a 44px: los chips de estado, las opciones de acceso y el guardar, que queda fijo abajo en vez de al final del formulario."
+    },
+    {
+      "id": "fase-2",
+      "x": 1010,
+      "y": 3540,
+      "w": 520,
+      "text": "LO QUE FALTA PARA ENTRADAS DE ENTRENADOR (fase 2)\n\nNo es solo una pantalla. Hoy la base no lo soporta:\n\n· un tipo de entrada solo tiene nombre libre, no hay clase que distinga entrenador de espectador\n· una entrada es un QR y un ingreso único en todo el evento, así que no puede emitir dos credenciales\n· los puestos de control no filtran el ingreso: el escáner autoriza por permiso, no por zona\n\nCon cupo por evento definido, esto se diseña aparte."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

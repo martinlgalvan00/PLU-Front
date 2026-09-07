@@ -108,12 +108,21 @@
 .admin-event-editor-modal__backdrop,
 .admin-event-quick__backdrop,
 .security-credential-modal__backdrop,
-.admin-shop-modal__backdrop,
-.admin-action-drawer__backdrop {
+.admin-shop-modal__backdrop {
   -webkit-backdrop-filter: blur(var(--admin-modal-backdrop-blur));
   backdrop-filter: blur(var(--admin-modal-backdrop-blur));
   background: var(--admin-modal-backdrop);
 }
+
+/* El drawer de la cola operativa no necesita un velo tan opaco como los
+   modales de edición: el panel se desliza sobre el dashboard y el usuario
+   necesita mantener contexto visual de lo que hay debajo. */
+.admin-action-drawer__backdrop {
+  -webkit-backdrop-filter: blur(6px) saturate(1.1);
+  backdrop-filter: blur(6px) saturate(1.1);
+  background: rgba(4, 6, 10, 0.42);
+}
+
 
 /* Consola: blur del listado detrás, sin velo negro opaco. Tint liviano por tema. */
 .admin-event-console-modal__backdrop {
@@ -425,6 +434,13 @@
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
+
+  /* El drawer de la cola operativa mantiene un velo más suave
+     incluso sin blur, para no tapar completamente el dashboard. */
+  .admin-action-drawer__backdrop {
+    background: rgba(4, 6, 10, 0.52);
+  }
+
 
   .admin-event-console-modal__backdrop {
     background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 28%, transparent);

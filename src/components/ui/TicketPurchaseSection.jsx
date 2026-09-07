@@ -16,12 +16,14 @@ import FormSection from './FormSection.jsx'
 import { Field, Select } from './FormFields.jsx'
 import StatusPill from './StatusPill.jsx'
 import TicketPassPreview from './TicketPassPreview.jsx'
+import TicketTypeOptions, { zoneScopeList } from './TicketTypeOptions.jsx'
 import MercadoPagoEmbeddedCheckout from './MercadoPagoEmbeddedCheckout.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { env } from '../../config/env.js'
 import { getFormOptions } from '../../lib/formOptions.js'
 import { money } from '../../lib/format.js'
 import { toggleAttendeeAddon as applyAttendeeAddonToggle } from '../../lib/ticketAddons.js'
+import { groupCredentialsByBundle } from '../../lib/ticketCredentials.js'
 import { validateTicketAttendees } from '../../lib/validation.js'
 import { priceForAttendee, priceForOrder } from '../../services/ticketService.js'
 import { wisePriceLabel } from '../../services/checkoutPricing.js'
@@ -32,24 +34,36 @@ function emptyAttendee(pricing) {
   return { fullName: '', dni: '', ticketTypeId: pricing?.ticketTypes?.[0]?.id ?? '', addonIds: [] }
 }
 
-function TicketTypePicker({ compact = false, name, onChange, ticketTypes, value }) {
+/**
+ * Chips de tipo para la carga en lote, donde no entra la opción completa.
+ *
+ * El nombre solo no alcanza para distinguirlos, así que el chip lleva el
+ * nombre accesible con las zonas que abre: en la tabla se elige rápido, y quien
+ * navega con lector de pantalla no tiene que deducirlo del nombre. El detalle
+ * completo está una vez arriba, en `TicketTypeOptions`.
+ */
+function TicketTypePicker({ compact = false, name, onChange, t, ticketTypes, value }) {
   return (
     <div
       className={`ticket-purchase__day-picker${compact ? ' ticket-purchase__day-picker--compact' : ''}`}
       role="group"
       aria-label={name}
     >
-      {ticketTypes.map((type) => (
-        <button
-          key={type.id}
-          type="button"
-          className="ticket-purchase__day-chip"
-          aria-pressed={value === type.id}
-          onClick={() => onChange(type.id)}
-        >
-          {type.name}
-        </button>
-      ))}
+      {ticketTypes.map((type) => {
+        const zones = zoneScopeList(type.zoneScopes ?? [], t)
+        return (
+          <button
+            key={type.id}
+            type="button"
+            className="ticket-purchase__day-chip"
+            aria-pressed={value === type.id}
+            aria-label={zones ? `${type.name} — ${zones}` : type.name}
+            onClick={() => onChange(type.id)}
+          >
+            {type.name}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -141,6 +155,17 @@ function EditorialAttendeesBatch({
         </p>
       ) : null}
 
+      {/* En lote la elección vive en cada fila, pero lo que cada tipo abre se
+          dice una vez arriba: repetirlo por asistente sería la misma tabla
+          contada tres veces. */}
+      <TicketTypeOptions
+        className="ticket-purchase__type-guide"
+        locale={locale}
+        showAddons={false}
+        t={t}
+        ticketTypes={pricing.ticketTypes}
+      />
+
       <div className="ticket-purchase__attendees-batch-scroll">
         <div className="ticket-purchase__attendees-batch-table" role="table">
           <div className="ticket-purchase__attendees-batch-head" role="row">
@@ -213,7 +238,7 @@ function EditorialAttendeesBatch({
                   error={errors[`attendee-${index}-dni`]}
                   placeholder={t('pages.tickets.dniPlaceholder')}
                   inputMode="numeric"
-                  maxLength={8}
+                  maxLength={16}
                   autoComplete="off"
                 />
 
@@ -221,6 +246,7 @@ function EditorialAttendeesBatch({
                   <TicketTypePicker
                     compact
                     name={`attendee-${index}-ticketTypeId`}
+                    t={t}
                     ticketTypes={pricing.ticketTypes}
                     value={attendee.ticketTypeId}
                     onChange={(ticketTypeId) => onChange(index, 'ticketTypeId', ticketTypeId)}
@@ -318,16 +344,19 @@ function EditorialAttendeeFields({
           error={errors[`attendee-${index}-dni`]}
           placeholder={t('pages.tickets.dniPlaceholder')}
           inputMode="numeric"
-          maxLength={8}
+          maxLength={16}
           autoComplete="off"
         />
+        {/* Elegir el tipo es elegir qué zona se abre, así que la opción lo dice
+            en vez de mostrar sólo el nombre. */}
         <div className="ticket-purchase__field-day">
-          <span className="ticket-purchase__field-day-label">{t('pages.tickets.day')}</span>
-          <TicketTypePicker
+          <TicketTypeOptions
+            locale={locale}
             name={`attendee-${index}-ticketTypeId`}
+            onChange={(ticketTypeId) => onChange(index, 'ticketTypeId', ticketTypeId)}
+            t={t}
             ticketTypes={pricing.ticketTypes}
             value={attendee.ticketTypeId}
-            onChange={(ticketTypeId) => onChange(index, 'ticketTypeId', ticketTypeId)}
           />
         </div>
       </div>
@@ -500,6 +529,23 @@ export default function TicketPurchaseSection({
   const orderTickets = visibleOrder
     ? tickets.filter((item) => item.orderId === visibleOrder.orderId)
     : []
+  // Las credenciales que salieron de una misma compra van juntas: dos filas con
+  // el mismo nombre y el mismo DNI, sueltas, se leían como dos compras.
+  const ticketBundles = groupCredentialsByBundle(orderTickets)
+  // Qué dice cada pase impreso. La etiqueta de la credencial manda sólo cuando
+  // la compra emitió más de una, que es donde distingue; para una entrada común
+  // "Espectador" dice más que "Entrada general".
+  const passLabelById = new Map(
+    ticketBundles.flatMap((bundle) =>
+      bundle.credentials.map((ticket) => [
+        ticket.id,
+        (bundle.credentials.length > 1 ? ticket.credentialLabel : null) ??
+          ticket.ticketTypeName ??
+          ticketTypeNames[ticket.ticketTypeId] ??
+          '',
+      ]),
+    ),
+  )
   const activeTicket = orderTickets.find((item) => item.id === activeTicketId) ?? null
   const total = priceForOrder(attendees, pricing, ticketAddons)
 
@@ -519,7 +565,16 @@ export default function TicketPurchaseSection({
 
   function changeAttendee(index, field, value) {
     setAttendees((current) =>
-      current.map((attendee, i) => (i === index ? { ...attendee, [field]: value } : attendee)),
+      current.map((attendee, i) => {
+        if (i !== index) return attendee
+        const next = { ...attendee, [field]: value }
+        if (field === 'ticketTypeId') {
+          const included =
+            pricing.ticketTypes.find((type) => type.id === value)?.includedAddonIds ?? []
+          next.addonIds = (next.addonIds ?? []).filter((id) => !included.includes(id))
+        }
+        return next
+      }),
     )
     const errorKey = `attendee-${index}-${field}`
     if (errors[errorKey]) setErrors((current) => ({ ...current, [errorKey]: '' }))
@@ -733,45 +788,88 @@ export default function TicketPurchaseSection({
           </div>
         ) : null}
 
-        <ul className="ticket-purchase__list ticket-purchase__list--passes">
-          {orderTickets.map((ticket) => (
-            <li key={ticket.id} className="ticket-purchase__pass-item">
-              <TicketPassPreview
-                live
-                interactive={false}
-                attendeeName={ticket.attendeeName}
-                date={ticket.eventDate || event?.date}
-                dayPassLabel={ticket.ticketTypeName ?? ticketTypeNames[ticket.ticketTypeId] ?? ''}
-                eventSlug={ticket.eventSlug || event?.slug || ''}
-                eventTitle={ticket.eventTitle || visibleOrder.eventTitle}
-                qrCode={ticket.qrToken || ticket.ticketCode || ''}
-                venue={ticket.eventVenue || event?.venue}
-              />
-              <div className="ticket-purchase__pass-actions">
-                <div className="ticket-purchase__ticket-info">
-                  <span>
-                    {t('pages.tickets.dni')} {ticket.attendeeDni} · {ticket.ticketCode}
-                  </span>
-                  {ticket.addons?.length ? (
-                    <span className="ticket-purchase__ticket-benefits">
-                      {t('pages.tickets.redeemBenefits')}:{' '}
-                      {ticket.addons.map((addon) => addon.label).join(' · ')}
-                    </span>
-                  ) : null}
-                </div>
-                <StatusPill value={ticket.status} />
-                <button
-                  type="button"
-                  className="ticket-purchase__qr-btn"
-                  onClick={() => setActiveTicketId(ticket.id)}
-                >
-                  <QrCode size={14} aria-hidden />
-                  {t('pages.tickets.viewTicket')}
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <div className="ticket-purchase__bundles">
+          {ticketBundles.map((bundle) => {
+            // Una compra de entrenador emite dos credenciales con el mismo
+            // nombre y el mismo DNI. Sin agruparlas parecían dos compras
+            // distintas, y sin la etiqueta se leían idénticas.
+            const multi = bundle.credentials.length > 1
+            const holder = bundle.credentials[0]?.attendeeName ?? ''
+
+            return (
+              <section key={bundle.bundleId} className="ticket-purchase__bundle">
+                {multi ? (
+                  <header className="ticket-purchase__bundle-head">
+                    <h4>{t('pages.tickets.credentialsFor', { name: holder })}</h4>
+                    <p>
+                      {t('pages.tickets.bundleNote_other', {
+                        count: bundle.credentials.length,
+                      })}
+                    </p>
+                  </header>
+                ) : null}
+
+                <ul className="ticket-purchase__list ticket-purchase__list--passes">
+                  {bundle.credentials.map((ticket) => {
+                    const passLabel = passLabelById.get(ticket.id) ?? ''
+                    const scopes = ticket.credentialScopes ?? []
+                    // "Abre Puerta general" en una entrada común es ruido; en un
+                    // juego de dos, o cuando abre algo más que la puerta, es el
+                    // dato.
+                    const showZones =
+                      scopes.length > 0 &&
+                      (multi || scopes.some((scope) => scope !== 'gate_tickets'))
+
+                    return (
+                      <li key={ticket.id} className="ticket-purchase__pass-item">
+                        <TicketPassPreview
+                          live
+                          interactive={false}
+                          attendeeName={ticket.attendeeName}
+                          date={ticket.eventDate || event?.date}
+                          dayPassLabel={passLabel}
+                          eventSlug={ticket.eventSlug || event?.slug || ''}
+                          eventTitle={ticket.eventTitle || visibleOrder.eventTitle}
+                          qrCode={ticket.qrToken || ticket.ticketCode || ''}
+                          venue={ticket.eventVenue || event?.venue}
+                        />
+                        <div className="ticket-purchase__pass-actions">
+                          <div className="ticket-purchase__ticket-info">
+                            <span>
+                              {t('pages.tickets.dni')} {ticket.attendeeDni} · {ticket.ticketCode}
+                            </span>
+                            {showZones ? (
+                              <span className="ticket-purchase__ticket-zones">
+                                {t('pages.tickets.credentialOpens', {
+                                  zones: zoneScopeList(scopes, t),
+                                })}
+                              </span>
+                            ) : null}
+                            {ticket.addons?.length ? (
+                              <span className="ticket-purchase__ticket-benefits">
+                                {t('pages.tickets.redeemBenefits')}:{' '}
+                                {ticket.addons.map((addon) => addon.label).join(' · ')}
+                              </span>
+                            ) : null}
+                          </div>
+                          <StatusPill value={ticket.status} />
+                          <button
+                            type="button"
+                            className="ticket-purchase__qr-btn"
+                            onClick={() => setActiveTicketId(ticket.id)}
+                          >
+                            <QrCode size={14} aria-hidden />
+                            {t('pages.tickets.viewTicket')}
+                          </button>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </section>
+            )
+          })}
+        </div>
 
         <CardPreviewModal
           open={Boolean(activeTicket)}
@@ -788,8 +886,7 @@ export default function TicketPurchaseSection({
                   eventVenue: activeTicket.eventVenue,
                   eventLocation: activeTicket.eventLocation,
                   eventSlug: activeTicket.eventSlug,
-                  dayPassLabel:
-                    activeTicket.ticketTypeName ?? ticketTypeNames[activeTicket.ticketTypeId] ?? '',
+                  dayPassLabel: passLabelById.get(activeTicket.id) ?? '',
                   variant: 'ticket',
                 }
               : {}
@@ -923,7 +1020,7 @@ export default function TicketPurchaseSection({
                     error={errors[`attendee-${index}-dni`]}
                     placeholder={t('pages.tickets.dniPlaceholder')}
                     inputMode="numeric"
-                    maxLength={8}
+                    maxLength={16}
                   />
                   <Select
                     label={t('pages.tickets.day')}

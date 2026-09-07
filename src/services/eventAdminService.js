@@ -1,3 +1,9 @@
+import { normalizeWeighInWindows } from '../lib/weighInWindows.js'
+import { normalizeEventPublicCopy } from '../lib/eventPublicSurface.js'
+import {
+  DEFAULT_EVENT_PUBLIC_SURFACE,
+  normalizeEventPublicSurface,
+} from '../lib/eventPublicSurface.js'
 import {
   DEFAULT_EVENT_PRICING,
   isComboOfferLive,
@@ -8,6 +14,7 @@ import { UPCOMING_EVENTS } from '../lib/events.js'
 import { isRegistrationOpen } from '../lib/status.js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 import { apiDelete, apiGet, apiPost } from '../lib/api.js'
+import { normalizeTicketCredentials } from '../lib/ticketCredentials.js'
 
 const DEFAULT_SLOTS = 80
 
@@ -64,6 +71,7 @@ export function createAdminEventDraft() {
     pricing: clonePricing(ADMIN_EVENT_FORM_DEFAULT.pricing),
     eventDays: [],
     ticketTypes: [],
+    weighInWindows: [],
   }
 }
 
@@ -95,7 +103,17 @@ export function buildAdminEventDraft(event) {
       ...type,
       dayIndexes: [...(type.dayIndexes ?? [])],
       includedAddonIds: [...(type.includedAddonIds ?? [])],
+      // Copia profunda: el editor muta credenciales por índice, y compartir la
+      // referencia con el evento original rompía la comparación de "sin
+      // guardar" y el descarte.
+      credentials: normalizeTicketCredentials(type.credentials).map((credential) => ({
+        ...credential,
+        zoneScopes: [...credential.zoneScopes],
+      })),
     })),
+    weighInWindows: normalizeWeighInWindows(event.weighInWindows),
+    publicSurface: normalizeEventPublicSurface(event.publicSurface),
+    publicCopy: normalizeEventPublicCopy(event.publicCopy),
     liveStreamUrl: event.liveStreamUrl ?? '',
     liveStreamProvider: event.liveStreamProvider ?? 'youtube',
     liveStatus: event.liveStatus ?? 'offline',
@@ -142,6 +160,7 @@ export function mapDraftToPreviewEvent(draft, sourceEvent = null) {
     registered: sourceEvent?.registered ?? 0,
     published: draft.published === true,
     requiresMembership: draft.requiresMembership !== false,
+    publicCopy: normalizeEventPublicCopy(draft.publicCopy ?? sourceEvent?.publicCopy),
     slug:
       draft.slug ??
       sourceEvent?.slug ??
@@ -322,6 +341,9 @@ export function createAdminEvent(events, payload) {
     ticketSalesClosesAt: payload.ticketSalesClosesAt ?? '',
     eventDays: payload.eventDays ?? [],
     ticketTypes: payload.ticketTypes ?? [],
+    weighInWindows: normalizeWeighInWindows(payload.weighInWindows),
+    publicSurface: normalizeEventPublicSurface(payload.publicSurface),
+    publicCopy: normalizeEventPublicCopy(payload.publicCopy),
     liveStreamUrl: payload.liveStreamUrl ?? '',
     liveStreamProvider: payload.liveStreamProvider ?? 'youtube',
     liveStatus: payload.liveStatus ?? 'offline',
@@ -376,6 +398,9 @@ export function updateAdminEvent(events, eventId, payload) {
       ticketSalesClosesAt: payload.ticketSalesClosesAt ?? event.ticketSalesClosesAt ?? '',
       eventDays: payload.eventDays ?? event.eventDays ?? [],
       ticketTypes: payload.ticketTypes ?? event.ticketTypes ?? [],
+      weighInWindows: normalizeWeighInWindows(payload.weighInWindows ?? event.weighInWindows),
+      publicSurface: normalizeEventPublicSurface(payload.publicSurface ?? event.publicSurface),
+      publicCopy: normalizeEventPublicCopy(payload.publicCopy ?? event.publicCopy),
       liveStreamUrl: payload.liveStreamUrl ?? event.liveStreamUrl ?? '',
       liveStreamProvider: payload.liveStreamProvider ?? event.liveStreamProvider ?? 'youtube',
       liveStatus: payload.liveStatus ?? event.liveStatus ?? 'offline',
@@ -518,6 +543,9 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   ticketSalesClosesAt: '',
   eventDays: [],
   ticketTypes: [],
+  weighInWindows: [],
+  publicSurface: { ...DEFAULT_EVENT_PUBLIC_SURFACE },
+  publicCopy: { publicTitle: '', heroLead: '', ctaLabel: '' },
   liveStreamUrl: '',
   liveStreamProvider: 'youtube',
   liveStatus: 'offline',
@@ -586,6 +614,17 @@ function mapSupabaseTicketCatalog(row) {
         .map((link) => dayIndexById[link.event_day_id])
         .filter((value) => value !== undefined),
       includedAddonIds: (type.includedAddons ?? []).map((link) => link.addon_id),
+      // Subcategorías: qué credenciales emite una compra de este tipo. El
+      // orden es el de emisión, y la primera es la que lleva el precio.
+      credentials: normalizeTicketCredentials(
+        [...(type.credentials ?? [])]
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+          .map((credential) => ({
+            id: credential.id,
+            label: credential.label,
+            zoneScopes: credential.zone_scopes ?? [],
+          })),
+      ),
     }))
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
 
@@ -681,6 +720,9 @@ export function mapSupabaseEventRow(row) {
     updatedAt: row.updated_at ?? '',
     eventDays,
     ticketTypes,
+    weighInWindows: normalizeWeighInWindows(rules.weighInWindows),
+    publicSurface: normalizeEventPublicSurface(rules.publicSurface),
+    publicCopy: normalizeEventPublicCopy(rules.publicCopy),
     pricing: normalizeEventPricingInput({
       registration: row.price,
       registrationManual: row.manual_price,
@@ -746,7 +788,8 @@ const PUBLISHED_EVENTS_SELECT = `
   ticketTypes:ticket_types(
     id, name, price, quota, sort_order, active,
     ticketTypeDays:ticket_type_days(event_day_id),
-    includedAddons:ticket_type_included_addons(addon_id)
+    includedAddons:ticket_type_included_addons(addon_id),
+    credentials:ticket_type_credentials(id, label, zone_scopes, sort_order)
   )
 `
 
@@ -795,6 +838,9 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
     startsAt,
     endsAt,
     pricing: normalizeEventPricingInput(draft.pricing),
+    weighInWindows: normalizeWeighInWindows(draft.weighInWindows),
+    publicSurface: normalizeEventPublicSurface(draft.publicSurface),
+    publicCopy: normalizeEventPublicCopy(draft.publicCopy),
     paymentChannelOverrides: draft.paymentChannelOverrides ?? null,
     bankTransfer: {
       alias: draft.bankTransfer?.alias ?? '',

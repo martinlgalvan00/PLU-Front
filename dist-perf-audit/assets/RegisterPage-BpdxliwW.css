@@ -1,0 +1,6998 @@
+/* =============================================
+   REGISTER PAGE — minimal premium
+   ============================================= */
+
+.register-page--design.page {
+  background: var(--color-page-canvas);
+  overflow-x: clip;
+  padding: clamp(20px, 3.5vw, 40px) clamp(20px, 5vw, 64px) clamp(32px, 5vw, 56px);
+  position: relative;
+}
+
+.register-page--premium.page {
+  padding: clamp(12px, 2vw, 20px) clamp(20px, 5vw, 64px) clamp(32px, 5vw, 48px);
+}
+
+.register-page--premium::before {
+  display: none;
+}
+
+.register-page--design::before {
+  background:
+    radial-gradient(
+      circle at 10% 8%,
+      var(--register-page-glow, rgba(116, 172, 223, 0.1)),
+      transparent 44%
+    ),
+    radial-gradient(circle at 90% 92%, rgba(242, 183, 5, 0.06), transparent 42%);
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.register-shell {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(32px, 5vw, 64px);
+  width: 100%;
+}
+
+@media (min-width: 900px) {
+  .register-shell {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+}
+
+.register-topbar {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin: 0 0 clamp(12px, 2vw, 18px);
+  max-width: none;
+  position: relative;
+  width: 100%;
+  z-index: 1;
+}
+
+/* Dentro del shell en desktop (flex row): ocupar toda la fila */
+@media (min-width: 900px) {
+  .register-shell > .register-topbar {
+    flex: 1 0 100%;
+    margin-bottom: 0;
+  }
+}
+
+.register-topbar__back,
+.register-topbar__link {
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  padding: 6px 0;
+  transition: color var(--transition-fast);
+}
+
+.register-topbar__back:hover,
+.register-topbar__link:hover {
+  color: var(--color-text-primary);
+}
+
+.register-topbar__link {
+  color: var(--color-brand-celeste);
+}
+
+.register-aside {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(24px, 4vw, 32px);
+  width: 100%;
+}
+
+.register-aside-sentinel {
+  display: none;
+}
+
+.register-aside--desktop {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .register-aside--desktop {
+    display: flex;
+    flex: 0 0 clamp(280px, 35%, 340px);
+    position: sticky;
+    top: 24px;
+  }
+}
+
+.register-mobile-context {
+  display: none;
+}
+
+.register-page--premium .register-aside {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  gap: clamp(10px, 1.8vw, 14px);
+}
+
+.register-intro {
+  display: grid;
+  gap: 8px;
+}
+
+.register-page--premium .register-intro {
+  gap: 6px;
+}
+
+.register-page--premium .register-intro__panel,
+.register-intro__panel {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  display: grid;
+  gap: 8px;
+  overflow: visible;
+  padding: 0;
+  position: static;
+}
+
+.register-page--premium .register-intro__panel::before,
+.register-page--premium .register-intro__panel::after,
+.register-intro__panel::before,
+.register-intro__panel::after {
+  display: none;
+}
+
+.register-page--premium .register-intro__eyebrow,
+.register-intro__eyebrow {
+  display: none;
+}
+
+.register-page--premium .register-intro__title,
+.register-intro__title {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3.2vw, 28px);
+  font-weight: 600;
+  letter-spacing: -0.034em;
+  line-height: 1.12;
+  margin: 0;
+  max-width: none;
+}
+
+.register-page--premium .register-intro__desc,
+.register-intro__desc {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 42ch;
+}
+
+.register-perks--minimal {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.register-perks--minimal li {
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 500;
+  gap: 5px;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  padding: 0;
+}
+
+.register-perks--minimal li svg {
+  color: var(--color-brand-celeste);
+  flex: none;
+  opacity: 0.85;
+}
+
+.register-progress--compact {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  display: grid;
+  gap: 10px;
+  padding: 0;
+}
+
+.register-progress--compact::before {
+  display: none;
+}
+
+.register-progress__track {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.register-progress__percent {
+  color: var(--color-brand-celeste);
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.register-progress--compact .register-progress__bar {
+  background: var(--color-border-subtle);
+  flex: 1;
+  height: 3px;
+}
+
+.register-progress--compact .register-progress__bar span {
+  background: var(--color-brand-celeste);
+  transition: width 280ms var(--ease-out);
+}
+
+.register-progress__segments {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.register-progress__segments > li {
+  min-width: 0;
+}
+
+.register-progress__segment {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-left: 2px solid var(--border-neutral, rgba(255, 255, 255, 0.08));
+  border-radius: 0;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 16px;
+  text-align: left;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    color var(--transition-fast),
+    opacity var(--transition-fast),
+    transform var(--transition-fast);
+  width: 100%;
+  position: relative;
+}
+
+[data-theme='light'] .register-progress__segment {
+  border-left-color: rgba(0, 0, 0, 0.08);
+}
+
+.register-progress__segment:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.register-progress__segment:not(:disabled):hover {
+  background: color-mix(in srgb, var(--color-surface) 10%, transparent);
+  border-left-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme='light'] .register-progress__segment:not(:disabled):hover {
+  background: rgba(0, 0, 0, 0.03);
+  border-left-color: rgba(0, 0, 0, 0.2);
+}
+
+.register-progress__segment--complete {
+  border-left-color: var(--plu-gold-500);
+}
+
+.register-progress__segment--active {
+  background: color-mix(in srgb, var(--plu-gold-500) 5%, transparent);
+  border-left-color: var(--plu-gold-500);
+}
+
+.register-progress__segment-mark {
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--border-neutral, rgba(255, 255, 255, 0.12));
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+
+.register-progress__segment--complete .register-progress__segment-mark {
+  background: var(--plu-gold-500);
+  border-color: var(--plu-gold-500);
+  color: var(--color-page-canvas);
+}
+
+.register-progress__segment--active .register-progress__segment-mark {
+  background: color-mix(in srgb, var(--plu-gold-500) 15%, transparent);
+  border-color: var(--plu-gold-500);
+  color: var(--plu-gold-500);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--plu-gold-500) 10%, transparent);
+}
+
+.register-progress__segment-label {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.register-progress__segment-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.register-progress__segment-meta {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+.register-progress__segment--complete .register-progress__segment-meta {
+  color: #3d9a62;
+  opacity: 0.88;
+}
+
+.register-progress__segment--active .register-progress__segment-meta {
+  color: var(--color-brand-celeste);
+}
+
+.register-progress__segment--active .register-progress__segment-label {
+  color: var(--color-text-primary);
+}
+
+.register-page--premium .register-status {
+  background: var(--register-card-bg);
+  border: 1px solid var(--register-card-border);
+  border-radius: 14px;
+  box-shadow: var(--register-card-shadow);
+  padding: 16px 18px;
+}
+
+.register-page--premium .register-status::before {
+  display: none;
+}
+
+.register-page--premium .register-status__label {
+  display: none;
+}
+
+.register-page--premium .register-card {
+  background: var(--register-card-bg);
+  border: 1px solid var(--register-card-border);
+  border-radius: 16px;
+  box-shadow: var(--register-card-shadow);
+  gap: 0;
+  padding: clamp(16px, 2.5vw, 22px);
+}
+
+.register-page--premium .register-card::before {
+  display: none;
+}
+
+.register-page--premium .register-card .form-section-block {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0 0 clamp(18px, 2.5vw, 22px);
+}
+
+.register-page--premium .register-card .form-section-block + .form-section-block {
+  border-top: 1px solid var(--register-section-border);
+  padding-top: clamp(18px, 2.5vw, 22px);
+}
+
+.register-page--premium .register-card .form-section-block__header {
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.register-page--premium .register-card .form-section-block__step {
+  background: transparent;
+  border: 1px solid var(--register-section-border);
+  border-radius: 6px;
+  font-size: 9px;
+  min-width: 24px;
+  padding: 4px 6px;
+}
+
+.register-page--premium .register-card .form-section-block__title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.register-page--premium .register-card .form-section-block__desc {
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+.register-page--premium .register-card .field {
+  font-size: 12px;
+  font-weight: 500;
+  gap: 6px;
+  letter-spacing: 0.01em;
+}
+
+.register-page--premium .register-card .field input,
+.register-page--premium .register-card .field select {
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 400;
+  min-height: 42px;
+}
+
+.register-page--premium .register-card__footer {
+  border-top: 1px solid var(--register-section-border);
+  margin-top: 4px;
+  padding-top: 16px;
+}
+
+.register-page--premium .register-topbar {
+  margin-bottom: clamp(10px, 1.8vw, 14px);
+}
+
+.register-wizard {
+  min-height: 0;
+}
+
+.register-page--premium .register-card__footer--wizard {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr;
+}
+
+.register-page--premium .register-card__footer--wizard-back {
+  grid-template-columns: auto 1fr;
+}
+
+.register-card__back {
+  align-items: center;
+  border-radius: var(--border-radius-pill);
+  display: inline-flex;
+  font-size: 13px;
+  gap: 6px;
+  justify-content: center;
+  min-height: 46px;
+  padding-inline: 16px;
+}
+
+.register-page--premium .register-card__footer--wizard .register-card__submit {
+  min-width: 0;
+  width: 100%;
+}
+
+.register-page--premium .register-card__footer--wizard-back .register-card__submit {
+  grid-column: 2;
+}
+
+/* =============================================
+   PROFILE CREATE — editorial (alineado a login)
+   ============================================= */
+
+.register-page--profile::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse 60% 80% at 20% 40%,
+      color-mix(in srgb, var(--plu-gold-500) 8%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 50% 70% at 80% 20%,
+      color-mix(in srgb, var(--plu-celeste-500) 6%, transparent),
+      transparent 60%
+    );
+  z-index: 0;
+}
+
+.register-page--profile.page {
+  padding: clamp(20px, 3.5vh, 44px) clamp(20px, 5vw, 64px) clamp(24px, 4vh, 40px);
+}
+
+/* Dos correcciones sobre `.auth-immersive-page`:
+   — `min-height: 100vh` no descontaba el header, así que el alto total daba
+     siempre 100vh + header y la ficha scrolleaba aunque el formulario entrara;
+   — `align-items: center` recentraba todo al cambiar de paso (01 tiene 6
+     campos y 02 tiene 5), y el título "Perfil de atleta" saltaba ~50px. Un
+     wizard tiene que mantener el borde superior quieto. */
+.register-page--profile.auth-immersive-page {
+  align-items: flex-start;
+  min-height: calc(100dvh - var(--header-height));
+}
+
+.register-page--profile .register-topbar {
+  margin-bottom: clamp(4px, 1vw, 8px);
+  max-width: none;
+}
+
+.register-page--profile .register-topbar__link {
+  color: var(--color-brand-gold);
+}
+
+.register-page--profile .register-shell {
+  animation: register-shell-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  /* Columna y fila con presupuestos distintos: el aire entre aside y
+     formulario tiene que ser generoso, el que separa la barra superior del
+     contenido no — con 48px en ambos ejes la ficha se iba de viewport. */
+  column-gap: clamp(28px, 4vw, 48px);
+  row-gap: clamp(16px, 2.4vh, 24px);
+  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+  max-width: 1140px;
+  padding: clamp(12px, 2.5vw, 28px) 0;
+}
+
+.register-page--profile .register-shell.auth-immersive-glass,
+.register-page .register-shell.auth-immersive-glass {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.register-page--profile .register-shell.auth-immersive-glass::before,
+.register-page .register-shell.auth-immersive-glass::before {
+  display: none;
+}
+
+[data-theme='light'] .register-page--profile .register-shell.auth-immersive-glass,
+[data-theme='light'] .register-page .register-shell.auth-immersive-glass {
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (min-width: 900px) {
+  .register-page--profile .register-shell {
+    padding: clamp(18px, 3vh, 32px) 0;
+  }
+}
+
+@keyframes register-shell-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.register-page--profile .register-aside {
+  gap: clamp(24px, 3vw, 32px);
+}
+
+.register-page--profile .register-intro,
+.register-page--profile .register-intro--profile {
+  display: grid;
+  gap: 10px;
+  padding-left: clamp(14px, 2vw, 18px);
+  position: relative;
+}
+
+.register-page--profile .register-intro::before {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--plu-gold-500) 80%, transparent) 0%,
+    transparent 88%
+  );
+  bottom: 8%;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 8%;
+  width: 1px;
+}
+
+.register-page--profile .register-intro__eyebrow {
+  color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--color-text-muted));
+  display: block;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.register-page--profile .register-intro__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.85rem, 3.6vw, 2.55rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  margin: 0;
+  max-width: 12ch;
+  text-wrap: balance;
+}
+
+.register-page--profile .register-intro__desc {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 34ch;
+}
+
+.register-page--profile .register-progress--compact {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  gap: 18px;
+  overflow: visible;
+  padding: 0;
+}
+
+.register-page--profile .register-progress--compact::before {
+  display: none;
+}
+
+.register-page--profile .register-progress__track {
+  align-items: center;
+  gap: 14px;
+}
+
+.register-page--profile .register-progress__percent {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  min-width: 2.75ch;
+  text-align: right;
+  transition: color 220ms var(--ease-out);
+}
+
+.register-page--profile .register-progress--compact .register-progress__bar {
+  background: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-radius: 0;
+  flex: 1;
+  height: 1.5px;
+  overflow: hidden;
+  position: relative;
+}
+
+.register-page--profile .register-progress--compact .register-progress__bar span {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--plu-gold-500) 55%, transparent) 0%,
+    var(--plu-gold-500) 72%,
+    var(--plu-gold-400) 100%
+  );
+  display: block;
+  height: 100%;
+  transition: width 480ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.register-page--profile .register-progress__segments {
+  gap: 2px;
+  grid-template-columns: 1fr;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.register-page--profile .register-progress__segment {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  gap: 14px;
+  min-height: 0;
+  padding: 12px 0 12px 2px;
+  margin-left: 0;
+  position: relative;
+  transition:
+    color 220ms var(--ease-out),
+    opacity 220ms var(--ease-out),
+    transform 220ms var(--ease-out);
+}
+
+.register-page--profile .register-progress__segment::before {
+  background: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  bottom: 0;
+  content: '';
+  height: 1px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+
+.register-page--profile .register-progress__segment::after {
+  background: linear-gradient(
+    90deg,
+    var(--plu-gold-500) 0%,
+    color-mix(in srgb, var(--plu-gold-500) 35%, transparent) 100%
+  );
+  bottom: 0;
+  content: '';
+  height: 1.5px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 320ms var(--ease-out);
+}
+
+.register-page--profile .register-progress__segment:not(:disabled):hover {
+  background: transparent;
+  transform: translateX(2px);
+}
+
+.register-page--profile .register-progress__segment:not(:disabled):hover::after {
+  transform: scaleX(0.28);
+}
+
+.register-page--profile .register-progress__segment:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
+.register-page--profile .register-progress__segment--active,
+.register-page--profile .register-progress__segment--complete {
+  background: transparent;
+  box-shadow: none;
+}
+
+.register-page--profile .register-progress__segment--active::after,
+.register-page--profile .register-progress__segment--complete::after {
+  transform: scaleX(1);
+}
+
+.register-page--profile .register-progress__segment--complete::after {
+  background: color-mix(in srgb, var(--plu-gold-500) 55%, transparent);
+}
+
+.register-page--profile .register-progress__segment-mark {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  color: color-mix(in srgb, var(--color-text-muted) 88%, transparent);
+  display: inline-flex;
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  height: auto;
+  justify-content: flex-start;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  min-width: 2ch;
+  transition:
+    color 220ms var(--ease-out),
+    transform 240ms var(--ease-out);
+  width: auto;
+}
+
+.register-page--profile .register-progress__segment--complete .register-progress__segment-mark,
+.register-page--profile .register-progress__segment--active .register-progress__segment-mark {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: var(--color-brand-gold);
+}
+
+.register-page--profile .register-progress__segment--active .register-progress__segment-mark {
+  transform: translateX(1px) scale(1.06);
+}
+
+.register-page--profile .register-progress__segment-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.register-page--profile .register-progress__segment-label {
+  color: color-mix(in srgb, var(--color-text-primary) 62%, transparent);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  transition: color 220ms var(--ease-out);
+}
+
+.register-page--profile .register-progress__segment--active .register-progress__segment-label {
+  color: var(--color-text-primary);
+  font-weight: 650;
+}
+
+.register-page--profile .register-progress__segment-meta {
+  color: color-mix(in srgb, var(--color-text-muted) 78%, transparent);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  transition: color 220ms var(--ease-out);
+}
+
+.register-page--profile .register-progress__segment--active .register-progress__segment-meta,
+.register-page--profile .register-progress__segment--complete .register-progress__segment-meta {
+  color: color-mix(in srgb, var(--color-brand-gold) 88%, transparent);
+}
+
+.register-page--profile .register-card {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  padding: 0;
+  position: relative;
+}
+
+.register-page--profile .register-card::before {
+  display: none;
+}
+
+.register-page--profile .register-card .form-grid {
+  column-gap: clamp(20px, 2.8vw, 36px);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  row-gap: clamp(22px, 2.8vw, 30px);
+}
+
+.register-page--profile .register-card .field--span-2 {
+  grid-column: 1 / -1;
+}
+
+.register-page--profile .register-card .form-section-block {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.register-page--profile .register-card .form-section-block__header {
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  grid-template-columns: none;
+  margin-bottom: clamp(22px, 3vw, 30px);
+  padding-bottom: clamp(16px, 2.2vw, 22px);
+}
+
+.register-page--profile .register-card .form-section-block__header > div {
+  display: grid;
+  gap: 6px;
+}
+
+.register-page--profile .register-card .form-section-block__step {
+  background: transparent;
+  border: none;
+  color: color-mix(in oklab, var(--plu-gold-500) 82%, var(--color-text-muted));
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  min-width: 0;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.register-page--profile .register-card .form-section-block__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.4vw, 1.7rem);
+  font-weight: 700;
+  letter-spacing: -0.038em;
+  line-height: 1.12;
+  margin: 0;
+}
+
+.register-page--profile .register-card .form-section-block__desc {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 44ch;
+}
+
+.register-page--profile .register-wizard .form-section-block__header,
+.register-page--profile .register-wizard .field {
+  animation: register-field-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.register-page--profile .register-wizard .field:nth-child(1) {
+  animation-delay: 0.04s;
+}
+.register-page--profile .register-wizard .field:nth-child(2) {
+  animation-delay: 0.08s;
+}
+.register-page--profile .register-wizard .field:nth-child(3) {
+  animation-delay: 0.12s;
+}
+.register-page--profile .register-wizard .field:nth-child(4) {
+  animation-delay: 0.16s;
+}
+.register-page--profile .register-wizard .field:nth-child(5) {
+  animation-delay: 0.2s;
+}
+
+@keyframes register-field-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.register-page--profile .register-card .field {
+  font-size: 13px;
+  font-weight: 500;
+  gap: 7px;
+}
+
+.register-page--profile .register-card .field__label {
+  color: color-mix(in oklab, var(--color-text-muted) 92%, transparent);
+  font-family: var(--font-family);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.register-page--profile .register-card .field:focus-within .field__label {
+  color: color-mix(in oklab, var(--plu-gold-500) 72%, var(--color-text-muted));
+}
+
+.register-page--profile .register-card .field input,
+.register-page--profile .register-card .field select {
+  background: rgba(255, 255, 255, 0.02);
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px 4px 0 0;
+  box-shadow: none;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  min-height: 44px;
+  padding: 8px 12px 10px;
+  transition:
+    background 180ms var(--ease-out),
+    border-color 180ms var(--ease-out),
+    box-shadow 180ms var(--ease-out),
+    color 180ms var(--ease-out);
+}
+
+.register-page--profile .register-card .field input::placeholder,
+.register-page--profile .register-card .field select:invalid {
+  color: rgba(255, 255, 255, 0.28);
+}
+
+/* El documento espera la nacionalidad: el estado deshabilitado tiene que
+   leerse como "todavía no", no como un campo roto. La opacidad funciona
+   igual en light y dark sin duplicar la paleta. */
+.register-page--profile .register-card .field:has(input:disabled) {
+  opacity: 0.55;
+}
+
+.register-page--profile .register-card .field input:disabled {
+  cursor: not-allowed;
+}
+
+.register-page--profile .register-card .field--select .field__select select {
+  padding-right: 1.75rem;
+}
+
+.register-page--profile .register-card .field--select .field__select-chevron {
+  color: color-mix(in srgb, var(--color-brand-gold) 72%, transparent);
+  right: 0;
+}
+
+.register-page--profile
+  .register-card
+  .field--select
+  .field__select:focus-within
+  .field__select-chevron {
+  color: var(--color-brand-gold);
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.register-page--profile .register-card .field--choice .field__choice {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0;
+  min-height: 44px;
+  padding: 8px 0 10px;
+}
+
+.register-page--profile .register-card .field--choice .field__choice:hover {
+  border-bottom-color: rgba(255, 255, 255, 0.26);
+}
+
+.register-page--profile .register-card .field--choice .field__choice.is-active {
+  background: transparent;
+  border-bottom-color: color-mix(in srgb, var(--color-brand-gold) 75%, transparent);
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--color-brand-gold) 40%, transparent);
+}
+
+.register-page--profile .register-card .field--choice .field__choice.is-active .field__choice-text {
+  color: var(--color-text-primary);
+}
+
+.register-page--profile .register-card .field--choice .field__choice:focus-within {
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--color-brand-gold) 40%, transparent);
+}
+
+.register-page--profile .register-card .field--choice.is-invalid .field__choice {
+  border-bottom-color: var(--color-brand-red);
+}
+
+.register-page--profile .register-card .field--date .field__date input[type='date'] {
+  color-scheme: dark;
+}
+
+.register-page--profile
+  .register-card
+  .field--date
+  .field__date
+  input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(0.72) sepia(0.55) saturate(3.2) hue-rotate(5deg);
+  opacity: 0.85;
+}
+
+.register-page--profile .register-card .field input:hover:not(:focus),
+.register-page--profile .register-card .field select:hover:not(:focus) {
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom-color: rgba(255, 255, 255, 0.26);
+}
+
+.register-page--profile .register-card .field input:focus,
+.register-page--profile .register-card .field select:focus {
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom-color: color-mix(in srgb, var(--color-brand-gold) 72%, transparent);
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--color-brand-gold) 40%, transparent);
+  outline: none;
+}
+
+.register-page--profile .register-card .field input[aria-invalid='true'],
+.register-page--profile .register-card .field select[aria-invalid='true'] {
+  border-bottom-color: var(--color-brand-red);
+  box-shadow: none;
+}
+
+.register-page--profile .register-card__footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: clamp(8px, 1.5vw, 16px);
+  padding-top: clamp(18px, 2.4vw, 24px);
+}
+
+/* Color plano de marca: el gradiente + halo dorado (0 8px 24px) era el único
+   elemento con glow de toda la ficha y competía con la credencial en vivo.
+   Mismo tratamiento que el CTA de acceso, para que el flujo se lea continuo. */
+.register-page--profile .register-card__submit {
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  border-radius: 8px;
+  box-shadow: none;
+  color: var(--color-brand-action-text);
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  min-height: 52px;
+  text-transform: none;
+  transition:
+    background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.register-page--profile .register-card__submit-arrow {
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.register-page--profile .register-card__submit:hover:not(:disabled) {
+  background: var(--color-brand-action-hover);
+  border-color: var(--color-brand-action-hover);
+  box-shadow: none;
+  transform: translateY(-1px);
+}
+
+.register-page--profile .register-card__submit:hover:not(:disabled) .register-card__submit-arrow {
+  transform: translateX(3px);
+}
+
+.register-page--profile .register-card__submit:active:not(:disabled) {
+  box-shadow: none;
+  transform: translateY(0);
+}
+
+.register-page--profile .register-card__submit:disabled {
+  cursor: progress;
+  opacity: 0.78;
+  transform: none;
+}
+
+.register-page--profile .register-card__submit--ready,
+.register-page--profile .register-card__submit--ready:hover:not(:disabled) {
+  box-shadow: none;
+}
+
+/* Spinner del CTA — primitivo global `.plu-spinner` (states.css), mismo
+   lenguaje que el de acceso. */
+
+/* Los dos pasos comparten celda durante el crossfade (mode="sync"): apilados
+   en flujo normal la tarjeta duplicaba su alto en cada cambio de paso. */
+.register-wizard-swap {
+  display: grid;
+  min-width: 0;
+}
+
+.register-wizard-swap > .register-wizard {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.register-page--profile .register-card__back.btn--outline {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  min-height: 50px;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.register-page--profile .register-card__back.btn--outline:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--color-text-primary);
+}
+
+.register-page--profile .register-progress--rail .register-progress__segments {
+  border-top: none;
+  display: grid;
+  gap: 0 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: visible;
+}
+
+.register-page--profile .register-progress--rail .register-progress__segments > li {
+  min-width: 0;
+}
+
+.register-page--profile .register-progress--rail .register-progress__segment {
+  align-items: flex-start;
+  border: none;
+  border-bottom: none;
+  border-top: none;
+  gap: 10px;
+  padding: 16px 0 4px;
+}
+
+.register-page--profile .register-progress--rail .register-progress__segment::before {
+  bottom: auto;
+  height: 1px;
+  top: 0;
+}
+
+.register-page--profile .register-progress--rail .register-progress__segment::after {
+  bottom: auto;
+  height: 2px;
+  top: 0;
+}
+
+.register-page--profile .register-progress--rail .register-progress__segment--active {
+  border-top-color: transparent;
+}
+
+.register-page--profile .register-progress--rail .register-progress__segment--complete {
+  border-top-color: transparent;
+}
+
+.register-page--profile .register-progress--rail .register-progress__segment-mark {
+  font-size: clamp(1.45rem, 3.2vw, 1.75rem);
+  letter-spacing: -0.05em;
+  min-width: 2.2ch;
+}
+
+.register-page--profile .register-progress--rail .register-progress__segment-label {
+  font-size: 13.5px;
+  letter-spacing: -0.02em;
+}
+
+.register-page--profile
+  .register-progress--rail
+  .register-progress__segment--active
+  .register-progress__segment-label {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.register-page--profile .register-progress--rail .register-progress__segment-meta {
+  letter-spacing: 0.1em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .register-page--profile .register-shell,
+  .register-page--profile .register-wizard .form-section-block__header,
+  .register-page--profile .register-wizard .field {
+    animation: none;
+  }
+
+  .register-page--profile .register-progress--compact .register-progress__bar span,
+  .register-page--profile .register-card__submit-arrow,
+  .register-page--profile .register-progress__segment,
+  .register-page--profile .register-progress__segment::after,
+  .register-page--profile .register-progress__segment-mark {
+    transition: none;
+  }
+
+  .register-page--profile .register-progress__segment:not(:disabled):hover {
+    transform: none;
+  }
+
+  .register-page--profile .register-progress__segment--active .register-progress__segment-mark {
+    transform: none;
+  }
+}
+
+[data-theme='light'] .register-page--profile .register-intro::before {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--plu-gold-600) 75%, transparent) 0%,
+    transparent 88%
+  );
+}
+
+[data-theme='light'] .register-page--profile .register-intro__eyebrow {
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-page--profile .register-intro__title {
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-page--profile .register-intro__desc {
+  color: rgba(15, 17, 23, 0.68);
+}
+
+[data-theme='light'] .register-page--profile .register-progress__segments {
+  border-top-color: transparent;
+}
+
+[data-theme='light'] .register-page--profile .register-progress__segment {
+  border-bottom-color: transparent;
+}
+
+[data-theme='light'] .register-page--profile .register-progress__segment::before {
+  background: rgba(15, 17, 23, 0.1);
+}
+
+[data-theme='light'] .register-page--profile .register-progress__segment:not(:disabled):hover {
+  background: transparent;
+  border-bottom-color: transparent;
+}
+
+[data-theme='light'] .register-page--profile .register-progress__segment-label {
+  color: rgba(15, 17, 23, 0.62);
+}
+
+[data-theme='light']
+  .register-page--profile
+  .register-progress__segment--active
+  .register-progress__segment-label {
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-page--profile .register-progress__segment-meta {
+  color: rgba(15, 17, 23, 0.52);
+}
+
+[data-theme='light'] .register-page--profile .register-progress--compact .register-progress__bar {
+  background: rgba(15, 17, 23, 0.1);
+}
+
+[data-theme='light'] .register-page--profile .register-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+[data-theme='light'] .register-page--profile .register-card .form-section-block__header {
+  border-bottom-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .register-page--profile .register-card .form-section-block__step {
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-page--profile .register-card .form-section-block__title {
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-page--profile .register-card .field__label {
+  color: rgba(15, 17, 23, 0.62);
+}
+
+[data-theme='light'] .register-page--profile .register-card .field:focus-within .field__label {
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-page--profile .register-card .field input,
+[data-theme='light'] .register-page--profile .register-card .field select {
+  background: transparent;
+  border-bottom-color: rgba(15, 17, 23, 0.16);
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-page--profile .register-card .field input::placeholder {
+  color: rgba(15, 17, 23, 0.32);
+}
+
+[data-theme='light']
+  .register-page--profile
+  .register-card
+  .field--select
+  .field__select.is-empty
+  select {
+  color: rgba(15, 17, 23, 0.42);
+}
+
+[data-theme='light'] .register-page--profile .register-card .field--choice .field__choice {
+  border-bottom-color: rgba(15, 17, 23, 0.16);
+}
+
+[data-theme='light'] .register-page--profile .register-card .field--choice .field__choice:hover {
+  border-bottom-color: rgba(15, 17, 23, 0.28);
+}
+
+[data-theme='light']
+  .register-page--profile
+  .register-card
+  .field--choice
+  .field__choice.is-active {
+  border-bottom-color: color-mix(in srgb, var(--plu-gold-600) 72%, transparent);
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--plu-gold-600) 45%, transparent);
+}
+
+[data-theme='light'] .register-page--profile .register-card .field--choice .field__choice-text {
+  color: rgba(15, 17, 23, 0.62);
+}
+
+[data-theme='light']
+  .register-page--profile
+  .register-card
+  .field--choice
+  .field__choice.is-active
+  .field__choice-text {
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light']
+  .register-page--profile
+  .register-card
+  .field--date
+  .field__date
+  input[type='date'] {
+  color-scheme: light;
+}
+
+[data-theme='light']
+  .register-page--profile
+  .register-card
+  .field--date
+  .field__date
+  input[type='date']::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 0.6;
+}
+
+[data-theme='light'] .register-page--profile .register-card .field input:focus,
+[data-theme='light'] .register-page--profile .register-card .field select:focus {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--plu-gold-600) 65%, transparent);
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--plu-gold-600) 42%, transparent);
+}
+
+[data-theme='light'] .register-page--profile .register-card .field select option {
+  background: #fff;
+  color: rgba(15, 17, 23, 0.92);
+}
+
+[data-theme='light'] .register-page--profile .register-card__footer {
+  border-top-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .register-page--profile .register-card__submit {
+  box-shadow: none;
+}
+
+[data-theme='light'] .register-page--profile .register-card__back.btn--outline {
+  background: transparent;
+  border-color: rgba(15, 17, 23, 0.16);
+  color: rgba(15, 17, 23, 0.85);
+}
+
+[data-theme='light']
+  .register-page--profile
+  .register-card__back.btn--outline:hover:not(:disabled) {
+  background: rgba(15, 17, 23, 0.03);
+  border-color: rgba(15, 17, 23, 0.28);
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-page--profile .register-progress--rail .register-progress__segment {
+  border-top-color: transparent;
+}
+
+[data-theme='light']
+  .register-page--profile
+  .register-progress--rail
+  .register-progress__segment--active {
+  border-top-color: transparent;
+}
+
+[data-theme='light']
+  .register-page--profile
+  .register-progress--rail
+  .register-progress__segment::before {
+  background: rgba(15, 17, 23, 0.12);
+}
+
+@media (max-width: 1100px) {
+  .register-page--profile .register-shell {
+    gap: clamp(22px, 3vw, 32px);
+    grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+  }
+
+  .register-page--profile .register-intro__title {
+    font-size: clamp(1.65rem, 3.2vw, 2.15rem);
+  }
+
+  .register-page--profile .register-card .form-grid {
+    column-gap: 18px;
+    row-gap: 22px;
+  }
+
+  .register-page--profile .register-card .form-section-block__header {
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+  }
+
+  .register-page--profile .register-card .form-section-block__title {
+    font-size: clamp(1.25rem, 2.2vw, 1.5rem);
+  }
+
+  .register-page--profile .register-card .field input,
+  .register-page--profile .register-card .field select {
+    min-height: 46px;
+  }
+}
+
+@media (max-width: 960px) {
+  .register-page--profile .register-shell {
+    gap: clamp(18px, 3vw, 28px);
+    grid-template-columns: 1fr;
+  }
+
+  .register-page--profile .register-aside--desktop {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  /* Contexto mobile: en flujo normal (sin sticky) y compacto. */
+  .register-page--profile .register-mobile-context {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: transparent;
+    border-bottom: none;
+    gap: 14px;
+    margin-inline: 0;
+    padding: 0 0 18px;
+    position: static;
+    top: auto;
+    z-index: auto;
+  }
+
+  .register-page--profile .register-mobile-context .register-intro {
+    gap: 4px;
+    padding-left: 12px;
+  }
+
+  .register-page--profile .register-mobile-context .register-intro::before {
+    bottom: 12%;
+    top: 12%;
+    width: 1px;
+  }
+
+  .register-page--profile .register-mobile-context .register-intro__eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+  }
+
+  .register-page--profile .register-mobile-context .register-intro__title {
+    font-size: clamp(1.35rem, 4.8vw, 1.65rem);
+    letter-spacing: -0.04em;
+    max-width: none;
+  }
+
+  /* La descripción vive en el FormSection del card. */
+  .register-page--profile .register-mobile-context .register-intro__desc {
+    display: none;
+  }
+
+  .register-page--profile .register-progress--rail {
+    gap: 14px;
+  }
+
+  .register-page--profile .register-progress--rail .register-progress__track {
+    align-items: center;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .register-page--profile .register-progress--rail .register-progress__percent {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+
+  .register-page--profile .register-progress--rail .register-progress__bar {
+    height: 1.5px;
+  }
+
+  .register-page--profile .register-progress--rail .register-progress__segments {
+    display: grid;
+    gap: 0 18px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .register-page--profile .register-progress--rail .register-progress__segments > li {
+    min-width: 0;
+  }
+
+  .register-page--profile .register-progress--rail .register-progress__segment {
+    align-items: flex-start;
+    gap: 10px;
+    min-height: 0;
+    padding: 16px 0 2px;
+  }
+
+  .register-page--profile .register-progress--rail .register-progress__segment-mark {
+    font-size: clamp(1.4rem, 4.5vw, 1.7rem);
+    min-width: 2.1ch;
+    width: auto;
+  }
+
+  .register-page--profile .register-progress--rail .register-progress__segment-copy {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .register-page--profile .register-progress--rail .register-progress__segment-label {
+    font-size: 13px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .register-page--profile
+    .register-progress--rail
+    .register-progress__segment--active
+    .register-progress__segment-label {
+    font-size: 13.5px;
+    font-weight: 700;
+  }
+
+  /* Meta de campos solo en el paso activo — menos ruido. */
+  .register-page--profile .register-progress--rail .register-progress__segment-meta {
+    display: none;
+    font-size: 10.5px;
+  }
+
+  .register-page--profile
+    .register-progress--rail
+    .register-progress__segment--active
+    .register-progress__segment-meta {
+    display: block;
+  }
+
+  .register-page--profile .register-card {
+    padding: 0;
+    width: 100%;
+  }
+
+  .register-page--profile .register-card .form-grid {
+    column-gap: 18px;
+    row-gap: 20px;
+  }
+
+  .register-page--profile .register-card .form-section-block__header {
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+  }
+
+  .register-page--profile .register-card__footer--wizard,
+  .register-page--profile .register-card__footer--wizard-back {
+    gap: 12px;
+  }
+
+  /* Progreso sticky: el paso actual siempre a la vista en notebook/mobile */
+  .register-page--profile .register-mobile-context .register-progress--rail {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    background: color-mix(in srgb, var(--color-bg-primary) 88%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+    margin-inline: calc(-1 * var(--layout-gutter, var(--space-md)));
+    padding: 10px var(--layout-gutter, var(--space-md)) 12px;
+    position: sticky;
+    top: 0;
+    z-index: 4;
+  }
+
+  [data-theme='light'] .register-page--profile .register-mobile-context .register-progress--rail {
+    background: color-mix(in srgb, #fff 92%, transparent);
+    border-bottom-color: rgba(15, 17, 23, 0.08);
+  }
+
+  .register-page--profile .register-live-credential {
+    border-radius: 12px;
+    gap: 10px;
+    margin-bottom: 8px;
+    padding: 12px 14px;
+  }
+
+  .register-page--profile .register-live-credential__avatar {
+    height: 36px;
+    width: 36px;
+  }
+
+  .register-page--profile .register-live-credential__name {
+    font-size: 14px;
+  }
+
+  .register-page--profile .register-card .form-section-block__desc {
+    font-size: 12.5px;
+    max-width: 38ch;
+  }
+
+  /* Footer sticky: Continuar siempre a mano sin scroll extra */
+  .register-page--profile .register-card__footer--wizard,
+  .register-page--profile .register-card__footer--wizard-back {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: color-mix(in srgb, var(--color-bg-primary) 92%, transparent);
+    border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+    bottom: 0;
+    margin-inline: calc(-1 * var(--layout-gutter, var(--space-md)));
+    margin-top: 20px;
+    padding: 12px var(--layout-gutter, var(--space-md))
+      calc(12px + env(safe-area-inset-bottom, 0px));
+    position: sticky;
+    z-index: 5;
+  }
+
+  [data-theme='light'] .register-page--profile .register-card__footer--wizard,
+  [data-theme='light'] .register-page--profile .register-card__footer--wizard-back {
+    background: color-mix(in srgb, #fff 94%, transparent);
+    border-top-color: rgba(15, 17, 23, 0.08);
+  }
+}
+
+@media (max-width: 640px) {
+  .register-page--profile.page {
+    padding-inline: var(--layout-gutter, var(--space-md));
+  }
+
+  .register-page--profile .register-mobile-context {
+    margin-inline: 0;
+    padding-inline: 0;
+    margin-bottom: 12px;
+  }
+
+  .register-page--profile .register-card {
+    padding: 0;
+    border-radius: 0;
+  }
+
+  .register-page--profile .register-card .form-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .register-page--profile .register-progress--rail .register-progress__segments {
+    gap: 0 10px;
+  }
+
+  .register-page--profile .register-card__footer--wizard-back {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .register-page--profile .register-card__footer--wizard-back .register-card__submit,
+  .register-page--premium .register-card__footer--wizard-back .register-card__submit {
+    grid-column: 2;
+    width: 100%;
+    min-height: 46px;
+  }
+
+  .register-page--profile .register-card__back {
+    grid-column: 1;
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
+    padding: 0 10px;
+  }
+
+  .register-page--profile .register-progress--rail .register-progress__segment {
+    padding-right: 0;
+  }
+
+  .register-page--profile .register-progress--rail .register-progress__segment-label {
+    font-size: 12px;
+  }
+
+  .register-page--profile .register-live-credential__meta {
+    font-size: 10.5px;
+  }
+
+  .register-page--profile .register-card .form-section-block__header {
+    gap: 6px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+  }
+
+  .register-page--profile .register-card .form-section-block__title {
+    font-size: clamp(1.2rem, 5vw, 1.4rem);
+  }
+
+  .register-page--profile .register-card .field__label {
+    font-size: 10px;
+  }
+}
+
+[data-theme='light'] .register-page--profile .register-mobile-context {
+  background: transparent;
+  border-bottom-color: rgba(15, 17, 23, 0.08);
+}
+
+.register-intro__panel {
+  background: var(--register-intro-bg);
+  border: 1px solid var(--register-intro-border);
+  border-radius: 18px;
+  box-shadow: var(--register-intro-shadow);
+  display: grid;
+  gap: 12px;
+  overflow: hidden;
+  padding: calc(clamp(18px, 2.5vw, 22px) + 3px) clamp(18px, 2.5vw, 22px) clamp(18px, 2.5vw, 22px);
+  padding-left: clamp(20px, 2.5vw, 24px);
+  position: relative;
+}
+
+.register-intro__panel::before {
+  background: var(--register-intro-stripe);
+  content: '';
+  height: 3px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.register-intro__panel::after {
+  background: var(--register-editorial-rule);
+  border-radius: 99px;
+  bottom: 16px;
+  content: '';
+  left: 0;
+  opacity: 0.78;
+  position: absolute;
+  top: 16px;
+  width: 2px;
+}
+
+.register-intro__eyebrow {
+  align-items: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: var(--register-intro-eyebrow-bg);
+  border: 1px solid var(--register-intro-eyebrow-border);
+  border-bottom: 1px solid var(--register-intro-eyebrow-border);
+  border-radius: var(--border-radius-pill);
+  color: var(--register-eyebrow, var(--color-brand-celeste));
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 600;
+  gap: 10px;
+  letter-spacing: 0.16em;
+  margin-top: 4px;
+  padding: 7px 12px 7px 10px;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.register-intro__eyebrow-dot {
+  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  background: var(--register-eyebrow-dot, var(--plu-celeste-400));
+  border-radius: 50%;
+  display: block;
+  flex: none;
+  height: 6px;
+  width: 6px;
+}
+
+.register-intro__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(26px, 3.8vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.028em;
+  line-height: 1.1;
+  margin: 0;
+  max-width: 16ch;
+  text-wrap: balance;
+}
+
+.register-intro__desc {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 34ch;
+}
+
+.register-perks {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.register-perks li {
+  align-items: center;
+  background: var(--register-perk-bg);
+  border: 1px solid var(--register-perk-border);
+  border-radius: 12px;
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 12.5px;
+  gap: 10px;
+  line-height: 1.45;
+  padding: 10px 12px;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.register-perks li:hover {
+  background: color-mix(in srgb, var(--register-perk-bg) 70%, var(--register-perk-icon-bg) 30%);
+  border-color: var(--register-perk-icon-border);
+}
+
+.register-perks li + li {
+  border-top: none;
+}
+
+.register-perks__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.register-perks__icon {
+  align-items: center;
+  background: var(--register-perk-icon-bg, rgba(116, 172, 223, 0.1));
+  border: 1px solid var(--register-perk-icon-border, rgba(116, 172, 223, 0.18));
+  border-radius: 8px;
+  color: var(--register-eyebrow, var(--color-brand-celeste));
+  display: flex;
+  flex: none;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.register-progress {
+  background: var(--register-intro-bg);
+  border: 1px solid var(--register-intro-border);
+  border-radius: 14px;
+  box-shadow: var(--register-intro-shadow);
+  display: grid;
+  gap: 10px;
+  overflow: hidden;
+  padding: 14px 16px;
+  position: relative;
+}
+
+.register-progress::before {
+  background: var(--register-intro-stripe);
+  content: '';
+  height: 2px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+/* Compact / profile: sin tarjeta — prevalece sobre el bloque base de arriba */
+.register-progress.register-progress--compact {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  padding: 0;
+}
+
+.register-progress.register-progress--compact::before {
+  display: none;
+}
+
+.register-status {
+  background: var(--register-intro-bg);
+  border: 1px solid var(--register-intro-border);
+  border-radius: 14px;
+  box-shadow: var(--register-intro-shadow);
+  display: grid;
+  gap: 8px;
+  overflow: hidden;
+  padding: 14px 16px;
+  position: relative;
+}
+
+.register-status::before {
+  background: var(--register-intro-stripe);
+  content: '';
+  height: 2px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.register-progress__head {
+  align-items: baseline;
+  display: flex;
+  justify-content: space-between;
+}
+
+.register-progress__head span {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.register-progress__head strong {
+  color: var(--color-brand-celeste);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.register-progress__bar {
+  background: var(--color-border-subtle);
+  border-radius: var(--border-radius-pill);
+  height: 4px;
+  overflow: hidden;
+}
+
+.register-progress__bar span {
+  background: var(--gradient-brand);
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+  transition: width 0.35s var(--ease-out);
+}
+
+.register-progress__steps {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.register-progress__step {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto 1fr;
+}
+
+.register-progress__step-mark {
+  align-items: center;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--register-step-border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.register-progress__step--complete .register-progress__step-mark {
+  background: rgba(61, 154, 98, 0.14);
+  border-color: rgba(61, 154, 98, 0.28);
+  color: #3d9a62;
+}
+
+.register-progress__step--active .register-progress__step-mark {
+  background: rgba(116, 172, 223, 0.12);
+  border-color: rgba(116, 172, 223, 0.28);
+  color: var(--color-brand-celeste);
+}
+
+.register-progress__step-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.register-progress__step-copy strong {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.register-progress__step-copy span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.register-progress__hint {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.register-progress__hint strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.register-intro__meta {
+  background: var(--register-perk-bg);
+  border: 1px solid var(--register-perk-border);
+  border-left: 2px solid var(--color-brand-celeste);
+  border-radius: 12px;
+  display: grid;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 12px 14px;
+}
+
+.register-intro__meta strong {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.register-intro__meta span {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.register-main {
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .register-shell > .register-main {
+    flex: 1 1 0;
+  }
+}
+
+.register-status__label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.register-status__hint {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 13px;
+  gap: 10px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.register-status__live-dot {
+  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  background: var(--register-status-live, var(--color-brand-gold));
+  border-radius: 50%;
+  flex: none;
+  height: 7px;
+  width: 7px;
+}
+
+.register-status__body {
+  display: grid;
+  gap: 8px;
+}
+
+.register-status__body--success svg {
+  color: var(--plu-success-500);
+}
+
+.register-status__name {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.register-status__body strong {
+  font-size: 20px;
+}
+
+.register-status__body p {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  margin: 0;
+}
+
+.register-status__body code {
+  background: var(--color-bg-code);
+  border-radius: var(--border-radius-sm);
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+.register-page--competition .register-status--settle {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 4px 0 2px;
+}
+
+.register-page--competition .register-status--settle .register-status__body {
+  align-items: baseline;
+  column-gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  row-gap: 6px;
+}
+
+.register-page--competition .register-status--settle .register-status__body p {
+  grid-column: 1;
+}
+
+.register-page--competition .register-status--settle .register-status__body > .status-pill {
+  grid-column: 2;
+  justify-self: end;
+}
+
+.register-page--competition .register-status__amount {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(1.35rem, 3vw, 1.7rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  grid-column: 1 / -1;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.register-page--competition .register-status--settle .register-status__body code {
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  grid-column: 1 / -1;
+  letter-spacing: 0.04em;
+  padding: 0;
+}
+
+.register-page--competition .register-status--settle .register-status__manual-actions {
+  grid-column: 1 / -1;
+  margin-top: 2px;
+}
+
+.register-page--competition .register-status--settle .manual-note {
+  color: var(--color-text-secondary);
+  font-size: 13.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 48ch;
+}
+
+.register-page--competition .register-status--settle-rejected .manual-note {
+  color: var(--color-danger-text, #c53030);
+}
+
+.register-settle__rejected {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: grid;
+  gap: 16px;
+  justify-items: start;
+  padding-top: clamp(16px, 2.2vw, 22px);
+}
+
+.register-settle__rejected-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+}
+
+.register-settle__rejected p {
+  color: var(--color-text-secondary);
+  font-size: 14.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 48ch;
+}
+
+.register-settle__rejected strong {
+  color: var(--color-text-primary);
+  display: block;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+/* El acuse de inscripción admitida vivía acá, al pie de esta misma lista de
+   datos. Se mudó a `.register-confirmation--competition` en la columna
+   principal: el hecho va antes que la referencia de la orden, la card se ve
+   sin tener que abrir un modal y el papel sale de un sello centrado en vez de
+   uno pegado al borde izquierdo del viewport. */
+
+.register-settle {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.register-settle__toolbar {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 4px;
+}
+
+.register-settle__manual {
+  display: grid;
+  gap: 10px;
+}
+
+.register-settle__nav {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  justify-content: space-between;
+}
+
+.register-settle__back,
+.register-settle__alt,
+.register-settle__cancel {
+  min-height: 44px;
+}
+
+.register-settle__alt:disabled,
+.register-settle__cancel:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+/* Cancelar la orden cierra un cobro: se ofrece, no se propone. Queda en el tono
+   de texto secundario y sólo se tiñe de rojo al interactuar, para no competir
+   con "ver datos de transferencia", que es la acción que la mayoría quiere. */
+.register-settle__cancel {
+  color: var(--color-text-muted);
+}
+
+.register-settle__cancel:hover:not(:disabled),
+.register-settle__cancel:focus-visible:not(:disabled) {
+  color: var(--color-brand-red-hover);
+}
+
+/* La confirmación toma la fila entera: con `justify-content: space-between` en
+   la barra, la pregunta y sus dos salidas quedaban repartidas contra los bordes
+   y "Sí, cancelar" terminaba pegado a "Ver datos de transferencia". */
+.register-settle__confirm {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  width: 100%;
+}
+
+.register-settle__confirm-copy {
+  color: var(--color-text-muted);
+  flex: 1 1 240px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.register-competition-form--change-method {
+  display: grid;
+  gap: 16px;
+}
+
+.register-page--competition .register-settle .mp-embedded-checkout {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  gap: 0;
+  padding: 0;
+}
+
+.register-page--competition .register-settle .mp-embedded-checkout__icon {
+  display: none;
+}
+
+.register-page--competition .register-settle .mp-embedded-checkout__header {
+  gap: 0;
+  padding-bottom: 4px;
+}
+
+.register-page--competition .register-settle .mp-embedded-checkout__header h3 {
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 3.4vw, 1.4rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+
+.register-page--competition .register-settle .mp-embedded-checkout__header p {
+  font-size: 13px;
+}
+
+.register-settle-bar .plu-checkout__package {
+  display: block;
+}
+
+.register-page--settling .register-settle-bar {
+  background: var(--color-bg-primary);
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  margin: 12px 0 0;
+  padding: 14px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+}
+
+.register-page--settling-mp .register-settle-bar {
+  background: transparent;
+  border-top: 0;
+  margin: 0;
+  padding: 2px 0 8px;
+}
+
+.register-page--settling-mp .register-settle-bar .plu-checkout__total strong {
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 4vw, 1.85rem);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+}
+
+.register-page--settling-mp
+  .mp-embedded-checkout--settle
+  [data-testid='payment-form']
+  [class*='button-container'] {
+  max-width: none;
+  width: 100%;
+}
+
+.register-page--settling-mp
+  .mp-embedded-checkout--settle
+  [data-testid='payment-form']
+  button[type='submit'] {
+  min-height: 48px;
+  width: 100%;
+}
+
+.register-page--settling-mp .mp-embedded-checkout__header.visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+[data-theme='light'] .register-page--settling .register-settle-bar {
+  background: var(--color-bg-primary);
+  border-top-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .register-page--settling-mp .register-settle-bar {
+  background: transparent;
+  border-top-color: transparent;
+}
+
+.register-card {
+  background: var(--register-card-bg, rgba(24, 26, 31, 0.94));
+  border: 1px solid var(--register-card-border, rgba(255, 255, 255, 0.1));
+  border-radius: 20px;
+  box-shadow: var(--register-card-shadow, 0 16px 48px rgba(0, 0, 0, 0.22));
+  display: grid;
+  gap: 12px;
+  overflow: hidden;
+  padding: calc(clamp(18px, 2.5vw, 24px) + 3px) clamp(18px, 2.5vw, 24px) clamp(18px, 2.5vw, 24px);
+  position: relative;
+}
+
+.register-card::before {
+  background: var(--register-intro-stripe, var(--plu-gradient-stripe));
+  content: '';
+  height: 3px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 1;
+}
+
+.register-card .form-section-block {
+  background: var(--register-section-bg);
+  border: 1px solid var(--register-section-border);
+  border-radius: 14px;
+  margin-bottom: 0;
+  padding: clamp(16px, 2.2vw, 20px);
+}
+
+.register-card .form-section-block + .form-section-block {
+  border-top: none;
+  margin-top: 0;
+  padding-top: clamp(16px, 2.2vw, 20px);
+}
+
+.register-card .form-section-block__header {
+  align-items: start;
+  border-bottom: none;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto 1fr;
+  margin-bottom: var(--space-md);
+  padding-bottom: 0;
+}
+
+.register-card .form-section-block__step {
+  background: rgba(116, 172, 223, 0.1);
+  border: 1px solid rgba(116, 172, 223, 0.22);
+  border-radius: 999px;
+  color: var(--color-brand-celeste);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+  min-width: 32px;
+  padding: 5px 10px;
+  text-align: center;
+}
+
+.register-card .form-section-block__title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.register-card .form-section-block__desc {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+.register-card .field label {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.register-card .field input,
+.register-card .field select {
+  background: var(--register-field-bg, rgba(255, 255, 255, 0.04));
+  border-color: var(--register-field-border, rgba(255, 255, 255, 0.1));
+  border-radius: 10px;
+  min-height: 44px;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.register-card .field input:focus,
+.register-card .field select:focus {
+  background: var(--register-field-bg, rgba(255, 255, 255, 0.04));
+  border-color: var(--register-field-focus, rgba(116, 172, 223, 0.45));
+  box-shadow: 0 0 0 3px var(--register-field-focus-ring, rgba(116, 172, 223, 0.12));
+}
+
+.register-card .field select option {
+  background: #121419;
+  color: #f7f7f8;
+}
+
+.register-card .field select option:disabled {
+  color: rgba(247, 247, 248, 0.58);
+}
+
+.register-card__footer {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--register-section-border);
+  border-radius: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding: 14px 0 0;
+}
+
+.register-card__footer--profile {
+  justify-content: stretch;
+}
+
+.register-card__footer--checkout {
+  justify-content: space-between;
+}
+
+.register-card__total {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 2px;
+  min-width: 0;
+}
+
+.register-card__total span {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.register-card__total strong {
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.4vw, 22px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.register-card__summary {
+  display: grid;
+  flex: 1;
+  gap: 3px;
+  min-width: min(100%, 220px);
+}
+
+.register-card__summary strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.register-card__summary span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* Definición compartida del CTA del alta: color plano de marca. El halo dorado
+   + brillo interior + brightness() que traía antes era el único elemento con
+   glow de la pantalla y se filtraba a cualquier variante que no lo pisara. */
+.register-card__submit {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  border-radius: 8px;
+  box-shadow: none;
+  color: var(--color-brand-action-text);
+  display: inline-flex;
+  flex: none;
+  font-size: 14.5px;
+  font-weight: 700;
+  gap: 8px;
+  justify-content: center;
+  letter-spacing: -0.005em;
+  min-height: 48px;
+  min-width: min(100%, 200px);
+  padding: 0 22px;
+  transition:
+    background-color 0.2s var(--ease-design),
+    border-color 0.2s var(--ease-design),
+    color 0.2s var(--ease-design),
+    opacity 0.2s ease,
+    transform 0.2s var(--ease-design);
+}
+
+.register-card__footer--profile .register-card__submit {
+  max-width: none;
+  min-width: 0;
+  width: 100%;
+}
+
+.register-card__submit:hover:not(:disabled) {
+  background: var(--color-brand-action-hover);
+  border-color: var(--color-brand-action-hover);
+  box-shadow: none;
+  transform: translateY(-1px);
+}
+
+.register-card__submit:active:not(:disabled) {
+  box-shadow: none;
+  transform: translateY(0);
+}
+
+/* Formulario completo: el estado ya lo comunica el 100% de la barra de
+   progreso y el rótulo del botón. No necesita además un halo. */
+.register-card__submit--ready,
+.register-card__submit--ready:hover:not(:disabled) {
+  box-shadow: none;
+}
+
+.register-card__submit-arrow {
+  flex: none;
+  margin-left: 2px;
+  opacity: 0.9;
+  transition:
+    transform 0.25s var(--ease-design),
+    opacity 0.2s ease;
+}
+
+.register-card__submit:hover:not(:disabled) .register-card__submit-arrow {
+  opacity: 1;
+  transform: translateX(3px);
+}
+
+.register-card__submit:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.15);
+  opacity: 0.5;
+  transform: none;
+}
+
+.register-verify {
+  background: color-mix(in srgb, var(--color-warning-bg, #3a2a12) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-warning-text, #f2b705) 28%, transparent);
+  border-radius: 12px;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin: 0 0 clamp(18px, 2.4vw, 24px);
+  padding: 14px 16px 16px;
+}
+
+.register-verify--done {
+  background: color-mix(in srgb, var(--color-success-bg, #16321c) 72%, transparent);
+  border-color: color-mix(in srgb, var(--color-success-text, #37d67a) 28%, transparent);
+}
+
+.register-verify__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin: 2px 0 0;
+}
+
+.register-verify__lead,
+.register-verify__email {
+  margin: 0;
+  max-width: 52ch;
+}
+
+.register-verify__lead {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.register-verify__email {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.register-verify__otp {
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.register-verify__otp label {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.register-verify__otp-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.register-verify__otp input {
+  background: var(--color-bg-elevated);
+  border: 1px solid
+    var(--color-border-strong, color-mix(in srgb, var(--color-text-primary) 16%, transparent));
+  border-radius: 6px;
+  color: var(--color-text-primary);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.18em;
+  min-height: 44px;
+  padding: 0 12px;
+  text-align: center;
+  width: 10rem;
+}
+
+.register-verify__otp input:focus-visible,
+.register-verify__otp button:focus-visible,
+.register-verify__resend:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.register-verify__otp button {
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  border-radius: 6px;
+  color: var(--color-brand-action-text);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 44px;
+  padding: 0 16px;
+}
+
+.register-verify__otp button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.register-verify__otp-error {
+  color: var(--color-danger-text, var(--color-brand-red));
+  font-size: 12.5px;
+  margin: 0;
+}
+
+.register-verify__resend {
+  background: none;
+  border: 0;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.register-verify__resend:hover:not(:disabled) {
+  color: var(--color-brand-gold);
+}
+
+.register-verify__resend:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.register-checkout__options--pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.register-checkout__options--pills label {
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+  border-radius: 2px;
+  box-shadow: none;
+  display: inline-flex;
+  gap: 8px;
+  grid-template-columns: none;
+  min-height: 44px;
+  padding: 0 16px;
+}
+
+.register-checkout__options--pills label:last-child {
+  border-bottom-width: 1px;
+}
+
+.register-checkout__options--pills label.is-selected,
+.register-checkout__options--pills label:focus-within {
+  border-color: var(--color-brand-gold);
+  box-shadow: none;
+}
+
+.register-checkout__options--pills .register-checkout__method-label {
+  font-size: 13.5px;
+}
+
+.register-payment-modal {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.68);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 100;
+}
+
+.register-payment-modal__card {
+  background:
+    radial-gradient(circle at top, rgba(55, 214, 122, 0.14), transparent 44%),
+    var(--color-bg-surface);
+  border: 1px solid rgba(55, 214, 122, 0.28);
+  border-radius: 22px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+  display: grid;
+  gap: 12px;
+  max-width: 430px;
+  padding: clamp(24px, 4vw, 34px);
+  text-align: center;
+  width: min(100%, 430px);
+}
+
+.register-payment-modal__card > svg {
+  color: #37d67a;
+  justify-self: center;
+}
+
+.register-payment-modal__card > span {
+  color: #37d67a;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.register-payment-modal__card h2 {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 5vw, 34px);
+  margin: 0;
+}
+
+.register-payment-modal__card p {
+  color: var(--color-text-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.register-payment-modal__card dl {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  display: grid;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 14px;
+  text-align: left;
+}
+
+.register-payment-modal__card dl div {
+  display: grid;
+  gap: 3px;
+}
+
+.register-payment-modal__card dt {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.register-payment-modal__card dd {
+  color: var(--color-text-primary);
+  font-weight: 800;
+  margin: 0;
+}
+
+[data-theme='light'] .register-payment-modal__card {
+  background: radial-gradient(circle at top, rgba(55, 214, 122, 0.16), transparent 44%), #fff;
+}
+
+/* Legacy layout */
+.form-section {
+  align-items: start;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+
+.athlete-form:not(.register-card),
+.order-panel {
+  background: var(--color-bg-surface);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--border-radius-xl);
+}
+
+.athlete-form:not(.register-card) {
+  display: grid;
+  gap: 24px;
+  padding: 28px;
+}
+
+.order-panel {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  position: sticky;
+  top: 150px;
+}
+
+.order-panel h2 {
+  font-size: 28px;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.order-details {
+  display: grid;
+  gap: 12px;
+}
+
+.order-details strong {
+  font-size: 32px;
+}
+
+.order-details code {
+  background: var(--color-bg-code);
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+  padding: 10px;
+}
+
+.manual-note {
+  background: var(--color-manual-note-bg);
+  border: 1px solid var(--color-manual-note-border);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary) !important;
+  line-height: 1.45;
+  margin: 0;
+  padding: 12px;
+  width: 100%;
+}
+
+.register-status__manual-actions {
+  align-items: stretch;
+  display: grid;
+  gap: 12px;
+  grid-column: 1 / -1;
+  min-width: 0;
+  width: 100%;
+}
+
+.register-status__manual-actions .card-trigger-btn {
+  justify-content: center;
+  max-width: 100%;
+  min-height: 46px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  width: 100%;
+}
+
+.access-grid {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0 auto;
+  max-width: 900px;
+}
+.access-card {
+  align-content: start;
+  display: grid;
+  gap: var(--space-md);
+  min-height: 300px;
+  padding: var(--space-xl);
+}
+.access-card > svg {
+  color: var(--color-brand-gold);
+}
+.access-card h2 {
+  font-size: 28px;
+  margin: 0;
+}
+.access-card p {
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+.access-card .btn {
+  align-self: end;
+  margin-top: auto;
+}
+
+.athlete-portal .page__inner {
+  display: grid;
+  gap: var(--space-lg);
+}
+.athlete-welcome {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-xl);
+}
+.athlete-welcome span,
+.portal-section header span {
+  color: var(--color-brand-celeste);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: var(--letter-spacing-wider);
+  text-transform: uppercase;
+}
+.athlete-welcome h1 {
+  font-size: 38px;
+  margin: 6px 0 8px;
+}
+.athlete-welcome p,
+.portal-events p {
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+.athlete-overview {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: minmax(280px, 0.8fr) minmax(380px, 1.2fr);
+}
+.profile-summary {
+  align-content: start;
+  display: grid;
+  gap: var(--space-lg);
+  padding: var(--space-xl);
+}
+.profile-summary > svg,
+.portal-section header > svg {
+  color: var(--color-brand-celeste);
+}
+.profile-summary div,
+.membership-row div,
+.card-back div {
+  display: grid;
+  gap: 5px;
+}
+.profile-summary span,
+.membership-row div > span,
+.card-back span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.digital-card-block {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  perspective: 1200px;
+}
+.digital-card {
+  aspect-ratio: 1.586;
+  min-height: 250px;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform var(--duration-slow) var(--ease-out);
+  width: 100%;
+}
+.digital-card.is-flipped {
+  transform: rotateY(180deg);
+}
+.card-face {
+  backface-visibility: hidden;
+  border: 1px solid var(--color-brand-gold-dark);
+  border-radius: var(--border-radius-lg);
+  inset: 0;
+  overflow: hidden;
+  padding: var(--space-xl);
+  position: absolute;
+}
+.card-front {
+  align-items: end;
+  background: linear-gradient(
+    140deg,
+    var(--color-bg-primary),
+    var(--color-bg-steel),
+    var(--color-bg-primary)
+  );
+  display: grid;
+  grid-template-columns: 1fr auto;
+}
+.card-brand {
+  align-self: start;
+  display: grid;
+  grid-column: 1 / -1;
+  line-height: 0.9;
+}
+.card-brand span,
+.card-brand strong {
+  font-size: 19px;
+  font-weight: 800;
+}
+.card-brand small,
+.card-member span,
+.card-front > svg {
+  color: var(--color-brand-gold);
+}
+.card-member h2 {
+  font-size: 24px;
+  margin: 5px 0;
+}
+.card-member p {
+  color: var(--color-text-muted);
+  margin: 0;
+}
+.card-back {
+  align-content: center;
+  background: var(--color-bg-surface);
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  transform: rotateY(180deg);
+}
+.card-back small {
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+  grid-column: 1 / -1;
+  padding-top: 12px;
+}
+.card-flip {
+  justify-self: end;
+}
+.portal-section {
+  overflow: hidden;
+}
+.portal-section header {
+  align-items: center;
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-lg);
+}
+.portal-section h2 {
+  margin: 4px 0 0;
+}
+.membership-row {
+  align-items: center;
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: 0.7fr 1.5fr 0.7fr auto;
+  padding: var(--space-lg);
+}
+.portal-events {
+  display: grid;
+}
+.portal-events article {
+  align-items: center;
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: 80px 1fr auto;
+  padding: 20px var(--space-lg);
+}
+.portal-events article:last-child {
+  border-bottom: 0;
+}
+.portal-events time {
+  color: var(--color-brand-celeste);
+  font-size: 20px;
+  font-weight: 800;
+}
+.portal-events h3 {
+  margin: 0 0 4px;
+}
+
+.register-progress--rail .register-progress__segments {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.register-progress--rail .register-progress__segments::-webkit-scrollbar {
+  display: none;
+}
+
+.register-progress--rail .register-progress__segments > li {
+  flex: 1 1 auto;
+  min-width: max(148px, 44%);
+}
+
+.register-progress--rail .register-progress__segment {
+  min-height: 34px;
+}
+
+@media (max-width: 900px) {
+  .register-shell {
+    gap: 12px;
+    grid-template-columns: 1fr;
+  }
+
+  .register-aside--desktop {
+    display: none;
+  }
+
+  .register-mobile-context {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-bottom: none;
+    display: grid;
+    gap: 14px;
+    margin-inline: 0;
+    padding: 0 0 18px;
+    position: static;
+    top: auto;
+    z-index: auto;
+  }
+
+  .register-mobile-context .register-intro {
+    gap: 4px;
+  }
+
+  .register-mobile-context .register-intro__title {
+    font-size: 17px;
+    line-height: 1.15;
+  }
+
+  .register-mobile-context .register-intro__desc {
+    display: block;
+    font-size: 12px;
+    line-height: 1.45;
+    max-width: none;
+  }
+
+  .register-mobile-context .register-status {
+    margin-top: 2px;
+  }
+
+  .register-page--premium:not(.register-page--profile)
+    .register-card
+    .register-wizard
+    .form-section-block__header {
+    display: none;
+  }
+
+  .register-page--premium .register-card .form-section-block {
+    padding-bottom: 12px;
+  }
+}
+
+@media (max-width: 720px) {
+  .register-page--design.page {
+    padding-inline: var(--space-md);
+    padding-top: calc(var(--header-height) + 8px);
+  }
+
+  .register-topbar {
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+
+  .register-intro__title {
+    font-size: clamp(22px, 6vw, 28px);
+  }
+
+  .register-perks li {
+    font-size: 12.5px;
+    padding: 8px 0;
+  }
+
+  .register-card__footer {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .register-card__footer--checkout {
+    align-items: stretch;
+  }
+
+  .register-card__submit {
+    width: 100%;
+  }
+
+  .access-grid,
+  .membership-row,
+  .portal-events article {
+    grid-template-columns: 1fr;
+  }
+  .athlete-welcome {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  .digital-card {
+    min-height: 230px;
+  }
+  .card-face {
+    padding: var(--space-lg);
+  }
+}
+
+@media (max-width: 1060px) {
+  .form-section {
+    grid-template-columns: 1fr;
+  }
+
+  .order-panel {
+    position: static;
+  }
+
+  .athlete-overview {
+    grid-template-columns: 1fr;
+  }
+  .membership-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+[data-theme='light'] .register-card .field input:focus,
+[data-theme='light'] .register-card .field select:focus {
+  background: #fff;
+}
+
+[data-theme='light'] .register-card .field select option {
+  background: #fff;
+  color: rgba(15, 17, 23, 0.92);
+}
+
+[data-theme='light'] .register-card .field select option:disabled {
+  color: rgba(15, 17, 23, 0.46);
+}
+
+[data-theme='light'] .register-card__back.btn--outline {
+  background: rgba(255, 255, 255, 0.86);
+  border-color: rgba(15, 17, 23, 0.2);
+  color: rgba(15, 17, 23, 0.9);
+}
+
+[data-theme='light'] .register-card__back.btn--outline:hover:not(:disabled) {
+  background: #fff;
+  border-color: color-mix(in oklab, var(--color-brand-action) 34%, var(--color-border));
+  color: #1a2230;
+}
+
+[data-theme='light'] .register-card__submit {
+  box-shadow:
+    0 10px 24px var(--plu-gold-alpha-22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* =============================================
+   MEMBERSHIP CHECKOUT — premium institutional
+   ============================================= */
+
+.register-page--membership.register-page--premium .register-intro__eyebrow {
+  color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--color-text-muted));
+  display: block;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+  margin: 0;
+  padding: 0;
+  text-transform: uppercase;
+  width: auto;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+
+.register-page--membership .register-intro--membership {
+  display: grid;
+  gap: 8px;
+  padding-left: clamp(14px, 2vw, 18px);
+  position: relative;
+}
+
+.register-page--membership .register-intro--membership::before {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--plu-gold-500) 80%, transparent) 0%,
+    transparent 88%
+  );
+  border-radius: 0;
+  bottom: 12%;
+  content: '';
+  left: 0;
+  opacity: 1;
+  position: absolute;
+  top: 8%;
+  width: 1px;
+}
+
+.register-page--membership .register-intro--membership .register-intro__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4.2vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: -0.048em;
+  line-height: 0.98;
+  max-width: 14ch;
+  text-wrap: balance;
+}
+
+.register-page--membership .register-intro--membership .register-intro__desc {
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  max-width: 32ch;
+}
+
+.register-page--membership .register-intro__meta--membership {
+  align-items: baseline;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 4px;
+  padding: 12px 0 0;
+}
+
+.register-page--membership .register-intro__athlete {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.register-page--membership .register-card:not(.register-card--confirmation) {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  padding: 0;
+}
+
+.register-page--membership .register-card:not(.register-card--confirmation)::before {
+  display: none;
+}
+
+.register-membership-ticket {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: grid;
+  gap: 8px;
+  padding-top: 16px;
+}
+
+.register-membership-ticket__plan {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.register-membership-ticket__validity,
+.register-membership-ticket__athlete {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.register-membership-ticket__total {
+  align-items: baseline;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 12px;
+}
+
+.register-membership-ticket__total span {
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.register-membership-ticket__total strong {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 2.6vw, 1.8rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.register-page--membership .register-shell {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.register-page--membership .register-shell.auth-immersive-glass::before {
+  display: none;
+}
+
+.register-membership-aside {
+  min-width: 0;
+}
+
+.register-membership-summary {
+  background: var(--register-card-bg);
+  border: 1px solid var(--register-card-border);
+  border-radius: 16px;
+  box-shadow: var(--register-card-shadow);
+  display: grid;
+  gap: 12px;
+  overflow: hidden;
+  padding: 16px 18px 18px;
+  position: relative;
+}
+
+.register-membership-summary__stripe {
+  background: var(--plu-gradient-stripe);
+  display: block;
+  height: 2.5px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.register-membership-summary__head {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto 1fr auto;
+  padding-top: 4px;
+}
+
+.register-membership-summary__emblem {
+  border-radius: 50%;
+  flex: none;
+  height: 32px;
+  object-fit: cover;
+  width: 32px;
+}
+
+.register-membership-summary__identity {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.register-membership-summary__org {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.register-membership-summary__plan {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.register-membership-summary__price {
+  align-items: baseline;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 2px;
+  text-align: right;
+}
+
+.register-membership-summary__price span {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.register-membership-summary__price small {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.register-membership-summary__validity {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.register-membership-summary__benefits {
+  border-top: 1px solid var(--register-section-border);
+  display: grid;
+  gap: 7px;
+  list-style: none;
+  margin: 0;
+  padding: 12px 0 0;
+}
+
+.register-membership-summary__benefits li {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 11.5px;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.register-membership-summary__benefits li svg {
+  color: var(--color-brand-celeste);
+  flex: none;
+}
+
+.register-membership-summary__athlete {
+  align-items: baseline;
+  border-top: 1px solid var(--register-section-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding-top: 12px;
+}
+
+.register-membership-summary__athlete span {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.register-membership-summary__athlete strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.register-membership-steps {
+  display: grid;
+  gap: 10px;
+}
+
+.register-membership-steps__label {
+  color: var(--color-brand-celeste);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.register-membership-steps__list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.register-membership-steps__list li {
+  align-items: start;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 28px minmax(0, 1fr);
+}
+
+.register-membership-steps__num {
+  align-items: center;
+  background: rgba(116, 172, 223, 0.1);
+  border: 1px solid rgba(116, 172, 223, 0.22);
+  border-radius: 50%;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.register-membership-steps__copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.register-membership-steps__copy strong {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.register-membership-steps__copy p {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.register-membership-checkout {
+  background: rgba(116, 172, 223, 0.06);
+  border: 1px solid rgba(116, 172, 223, 0.16);
+  border-radius: 14px;
+  display: grid;
+  gap: 10px;
+  margin-bottom: 4px;
+  padding: 14px 16px;
+}
+
+.register-membership-checkout__eyebrow {
+  color: var(--color-brand-celeste);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.register-membership-checkout__row {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.register-membership-checkout__copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.register-membership-checkout__copy strong {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.register-membership-checkout__copy span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.register-membership-checkout__amount {
+  flex: none;
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.4vw, 22px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.register-membership-payment-hint {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--register-section-border);
+  border-radius: 10px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.55;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+}
+
+/* Mismo CTA que acceso y alta de ficha: color plano, sin gradiente, sin halo
+   ni brillo interior. Los tres pasos del flujo tienen que verse como el mismo
+   botón — el checkout no es un lugar para subir el volumen visual. */
+.register-page--membership .register-card__submit--membership {
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  border-radius: 8px;
+  box-shadow: none;
+  color: var(--color-brand-action-text);
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  min-height: 52px;
+  min-width: min(100%, 240px);
+}
+
+.register-page--membership .register-card__submit--membership:hover:not(:disabled) {
+  background: var(--color-brand-action-hover);
+  border-color: var(--color-brand-action-hover);
+  box-shadow: none;
+  color: var(--color-brand-action-text);
+  filter: none;
+  transform: translateY(-1px);
+}
+
+.register-page--membership .register-card__total strong {
+  color: var(--color-brand-gold);
+  font-size: clamp(1.25rem, 2.2vw, 1.5rem);
+}
+
+@media (max-width: 900px) {
+  .register-page--membership .register-membership-steps {
+    display: none;
+  }
+
+  .register-page--membership .register-mobile-context .register-intro--membership {
+    gap: 6px;
+    padding-left: 12px;
+  }
+
+  .register-page--membership .register-mobile-context .register-intro__title {
+    font-size: clamp(1.65rem, 6.2vw, 2.1rem);
+    max-width: none;
+  }
+}
+
+[data-theme='light'] .register-membership-summary {
+  background: #fff;
+}
+
+[data-theme='light'] .register-membership-checkout {
+  background: rgba(31, 95, 158, 0.05);
+  border-color: rgba(31, 95, 158, 0.14);
+}
+
+[data-theme='light'] .register-page--membership .register-intro__eyebrow {
+  background: none;
+  border: 0;
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-page--membership .register-intro--membership .register-intro__title,
+[data-theme='light'] .register-page--membership .register-intro__athlete,
+[data-theme='light'] .register-membership-ticket__plan {
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-page--membership .register-intro--membership .register-intro__desc {
+  color: rgba(15, 17, 23, 0.68);
+}
+
+[data-theme='light'] .register-page--membership .register-intro__meta--membership,
+[data-theme='light'] .register-membership-ticket,
+[data-theme='light'] .register-membership-ticket__total {
+  border-color: rgba(15, 17, 23, 0.1);
+}
+
+[data-theme='light'] .register-membership-ticket__total strong,
+[data-theme='light'] .register-page--membership .register-card__total strong {
+  color: var(--plu-gold-600);
+}
+
+/* ── Confirmación de trámite (post-order) ───────────────────────────
+   El momento de entrega: primero el sello, después la card real, la acción
+   de compartir pegada a ella, y los datos administrativos recién al cierre.
+
+   Bloque compartido. Afiliación e inscripción a un meet cierran el mismo
+   tipo de trámite y por lo tanto usan la misma gramática: `--membership` y
+   `--competition` solo agregan lo propio de cada uno. Antes la afiliación
+   tenía este bloque completo y la inscripción resolvía su acuse metiéndolo
+   al pie de la lista de datos de la orden, en el aside: el dato
+   administrativo se leía antes que el hecho, la card nunca se veía y el
+   papel salía del borde de la pantalla.
+
+   Una sola capa de reglas. Antes había dos bloques apilados en esta misma
+   hoja que se sobreescribían entre sí (el segundo pisaba radios, tamaños
+   y hasta el color del CTA principal), así que el estilo vigente no era
+   el que se leía primero. */
+
+.register-card--confirmation {
+  gap: 0;
+  padding: clamp(18px, 2.5vw, 24px);
+}
+
+.register-page--membership .register-intro--confirmed .register-intro__title,
+.register-page--competition .register-intro--confirmed .register-intro__title {
+  max-width: 20ch;
+}
+
+.register-confirmation {
+  display: grid;
+  gap: clamp(16px, 2.4vw, 22px);
+  /* El ancho de la pieza se declara en el bloque, no en `__piece`: así una
+     variante puede ensancharla desde arriba y el override mobile —que sí vive
+     en `__piece`— sigue ganando por proximidad al elemento. */
+  --piece-width: 380px;
+}
+
+/* ── El sello ──
+   Abre la confirmación: es la respuesta a lo que la persona vino a hacer,
+   sea afiliarse o tomar su lugar en un meet. Va contra el borde izquierdo
+   del bloque aunque la card de abajo esté centrada — el sello se lee, la
+   card se mira. */
+.register-confirmation__seal {
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-bottom: clamp(14px, 2vw, 20px);
+}
+
+/* ── La pieza ──
+   La card a tamaño real, reducida por su propio wrapper (mismo componente que
+   se descarga como PNG). El marco le da apoyo físico para que se lea como un
+   objeto entregado y no como una imagen incrustada en un form.
+
+   La card y su acción se leen como una sola unidad: mismo ancho, mismo eje. Un
+   CTA más ancho que la pieza la deja flotando sobre el bloque. */
+.register-confirmation__piece {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+}
+
+.register-confirmation__piece-frame,
+.register-confirmation__piece-lead,
+.register-confirmation__piece .register-confirmation__cta {
+  max-width: var(--piece-width);
+  width: 100%;
+}
+
+.register-confirmation__piece-frame {
+  border: 1px solid var(--register-card-border);
+  border-radius: 14px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
+  overflow: hidden;
+}
+
+/* Qué es la pieza que se está mirando, entre la card y su acción. En
+   afiliación esa explicación no hace falta —el sello ya dijo "sos socio" y la
+   card repite el dato—, pero en un meet la card lleva categoría, división y el
+   QR de ingreso: conviene decirlo antes de que el atleta decida descargarla.
+   El texto queda al ancho de la pieza para no romper el eje del bloque. */
+.register-confirmation__piece-lead {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: -2px 0 0;
+  text-align: center;
+}
+
+/* ── Inscripción a meet ──
+   La página de competencia no usa chrome de card (`.register-page--competition
+   .register-card` deja el bloque transparente y sin padding), así que la
+   confirmación se lee como composición abierta y la pieza puede ocupar más
+   ancho: es la protagonista y no compite con ningún marco. */
+.register-page--competition .register-confirmation--competition {
+  --piece-width: 420px;
+}
+
+/* ── Credencial (fallback sin card emitida) ── */
+
+.register-confirmation__credential {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--register-card-border);
+  border-radius: 12px;
+  overflow: hidden;
+  padding: 16px 16px 14px;
+  position: relative;
+}
+
+.register-confirmation__stripe {
+  background: var(--plu-gradient-stripe);
+  display: block;
+  height: 2.5px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.register-confirmation__credential-main {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  justify-content: space-between;
+}
+
+.register-confirmation__credential-meta {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.register-confirmation__credential-label {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.register-confirmation__credential-code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.register-confirmation__credential-name {
+  color: var(--color-brand-celeste);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.register-confirmation__credential-validity {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* ── Próximo paso / nota manual ── */
+
+.register-confirmation__next-inline {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.register-confirmation__manual {
+  background: var(--color-manual-note-bg);
+  border: 1px solid var(--color-manual-note-border);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  line-height: 1.55;
+  margin: 0;
+  padding: 12px 14px;
+}
+
+/* ── Cierre administrativo ── */
+
+.register-confirmation__ledger {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  padding-top: 14px;
+}
+
+/* Sin pieza entre el sello y el cierre administrativo —inscripción admitida a
+   la que todavía no se le emitió la card— las dos reglas horizontales quedaban
+   una encima de la otra, a 12px de distancia, y se leían como un separador
+   roto. El selector apunta exactamente a ese caso: si algo se monta en el medio
+   (la card, o la ficha de credencial de afiliación) la regla no aplica. */
+.register-confirmation__seal + * .register-confirmation__ledger {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.register-confirmation__ledger div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.register-confirmation__ledger dt {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.register-confirmation__ledger dd {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0;
+  min-width: 0;
+}
+
+.register-confirmation__ledger code {
+  background: var(--color-bg-code);
+  border-radius: var(--border-radius-sm);
+  display: inline-block;
+  font-size: 11px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 6px 8px;
+}
+
+/* ── Acciones ── */
+
+.register-confirmation__actions {
+  display: grid;
+  gap: 10px;
+}
+
+.register-confirmation__cta {
+  align-items: center;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 700;
+  gap: 8px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast);
+  width: 100%;
+}
+
+/* Acción principal en oro: es la acción del bloque, y el oro es el token
+   de acción de la marca. El celeste queda para identidad, links y foco. */
+.register-confirmation__cta--primary {
+  background: var(--color-brand-action);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #14181f;
+}
+
+.register-confirmation__cta--primary:hover {
+  background: var(--plu-gold-400);
+  transform: translateY(-1px);
+}
+
+.register-confirmation__cta--primary:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.register-confirmation__cta--ghost {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  justify-self: start;
+  margin-top: 12px;
+  min-height: 0;
+  padding: 6px 0;
+  width: auto;
+}
+
+.register-confirmation__cta--ghost:hover {
+  color: var(--color-text-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .register-confirmation__cta {
+    transition: none;
+  }
+
+  .register-confirmation__cta--primary:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .register-confirmation__ledger {
+    grid-template-columns: 1fr;
+  }
+
+  .register-confirmation__piece {
+    --piece-width: 320px;
+  }
+}
+
+[data-theme='light'] .register-confirmation__credential {
+  background: #fff;
+}
+
+/* La card es siempre oscura (es una pieza de marca, no una superficie de
+   la app): en light necesita un filo propio para no flotar sobre blanco. */
+[data-theme='light'] .register-confirmation__piece-frame {
+  border-color: rgba(15, 17, 23, 0.14);
+  box-shadow: 0 18px 44px rgba(15, 17, 23, 0.18);
+}
+
+/* =============================================
+   PROFILE WELCOME — pantalla de bienvenida tras crear la cuenta
+   ============================================= */
+
+.register-profile-welcome {
+  display: grid;
+  gap: clamp(18px, 2.6vw, 24px);
+}
+
+.register-profile-welcome__seal {
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-bottom: clamp(14px, 2vw, 20px);
+}
+
+.register-profile-welcome__list {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.register-profile-welcome__step {
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 0 14px;
+  grid-template-columns: 30px minmax(0, 1fr);
+  padding: 14px 0;
+}
+
+.register-profile-welcome__step:last-child {
+  border-bottom: none;
+}
+
+.register-profile-welcome__step-n {
+  color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--color-text-muted));
+  font-family: var(--font-mono, 'JetBrains Mono', 'Courier New', monospace);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.7;
+  padding-top: 1px;
+}
+
+.register-profile-welcome__step-title {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.register-profile-welcome__step-body {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin: 3px 0 0;
+}
+
+/* =============================================
+   COMPETITION ENTRY — editorial conversion
+   ============================================= */
+
+.register-page--competition.page {
+  padding: clamp(16px, 2.5vw, 28px) clamp(20px, 5vw, 64px) clamp(36px, 5vw, 56px);
+}
+
+.register-page--competition::before {
+  background:
+    radial-gradient(
+      ellipse 58% 72% at 18% 36%,
+      color-mix(in srgb, var(--plu-gold-500) 7%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 48% 64% at 86% 18%,
+      color-mix(in srgb, var(--plu-celeste-500) 7%, transparent),
+      transparent 62%
+    );
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.register-page--competition .register-shell {
+  animation: register-shell-in 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  gap: clamp(22px, 3.2vw, 40px);
+  max-width: 1080px;
+  padding: clamp(8px, 2vw, 20px) 0;
+}
+
+.register-page--competition .register-shell.auth-immersive-glass,
+.register-page--competition .register-shell.auth-immersive-glass::before {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.register-page--competition .register-shell.auth-immersive-glass::before {
+  display: none;
+}
+
+.register-page--competition .register-aside {
+  gap: clamp(18px, 2.6vw, 24px);
+}
+
+.register-page--competition .register-intro--competition {
+  display: grid;
+  gap: 8px;
+  padding-left: clamp(14px, 2vw, 18px);
+  position: relative;
+}
+
+.register-page--competition .register-intro--competition::before {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--plu-gold-500) 80%, transparent) 0%,
+    transparent 88%
+  );
+  bottom: 12%;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 8%;
+  width: 1px;
+}
+
+/* Sin la píldora heredada de `.register-intro__eyebrow`: el oro ya lo lleva el
+   total y el CTA, y tres acentos en el mismo viewport rompen la jerarquía. */
+.register-page--competition .register-intro__eyebrow {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--color-text-muted));
+  display: block;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+  margin: 0;
+  padding: 0;
+  text-transform: uppercase;
+  width: auto;
+}
+
+.register-page--competition .register-intro__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4.2vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: -0.048em;
+  line-height: 0.98;
+  margin: 0;
+  max-width: 14ch;
+  text-wrap: balance;
+}
+
+.register-page--competition .register-intro__desc {
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 32ch;
+}
+
+.register-page--competition .register-intro__meta--competition {
+  align-items: baseline;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 4px;
+  padding: 12px 0 0;
+}
+
+.register-page--competition .register-intro__athlete {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.register-page--competition .register-intro__meta--competition span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+}
+
+.register-page--competition .register-intro__meta--competition span:nth-of-type(1) {
+  color: color-mix(in srgb, var(--color-brand-gold) 88%, var(--color-text-primary));
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.register-competition-aside {
+  min-width: 0;
+}
+
+.register-competition-ticket {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: grid;
+  gap: 8px;
+  padding-top: 16px;
+}
+
+.register-competition-ticket__athlete {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.register-competition-ticket__package {
+  color: color-mix(in srgb, var(--color-brand-gold) 82%, var(--color-text-primary));
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.register-competition-ticket__picks {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.4;
+  margin: 0;
+  min-height: 1.4em;
+  transition: color 220ms var(--ease-out);
+}
+
+.register-competition-ticket__picks.is-pending {
+  color: color-mix(in srgb, var(--color-text-muted) 78%, transparent);
+}
+
+.register-competition-ticket__methods {
+  border: 0;
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  min-inline-size: 0;
+  padding: 0;
+}
+
+.register-competition-ticket__methods legend {
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.register-competition-ticket__methods-list {
+  display: grid;
+  gap: 6px;
+}
+
+.register-competition-ticket__methods-list .plu-checkout__pill {
+  cursor: default;
+  max-width: none;
+  min-height: 36px;
+  padding: 0 10px;
+  pointer-events: none;
+}
+
+.register-competition-ticket__methods-list .plu-checkout__pill.is-selected {
+  background: color-mix(in srgb, var(--color-brand-gold) 5%, transparent);
+  border-color: color-mix(in srgb, var(--color-text-primary) 20%, transparent);
+}
+
+.register-competition-ticket__methods-list .plu-checkout__pill.is-selected .plu-checkout__pill-price {
+  color: var(--color-text-secondary);
+}
+
+.register-competition-ticket__total {
+  align-items: baseline;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+}
+
+.register-competition-ticket__total span {
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.register-competition-ticket__total strong {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 2.6vw, 1.8rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.register-page--competition .register-card {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  padding: 0;
+}
+
+.register-page--competition .register-card::before {
+  display: none;
+}
+
+.register-competition-form {
+  display: grid;
+  gap: 18px;
+}
+
+.register-profile-readiness {
+  background: var(--color-bg-surface);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  border-inline-start: 3px solid var(--color-brand-gold);
+  border-radius: 8px;
+  display: grid;
+  gap: 18px;
+  padding: clamp(18px, 2.5vw, 24px);
+}
+
+.register-profile-readiness--incomplete {
+  border-inline-start-color: var(--color-warning-text);
+}
+
+.register-profile-readiness__header {
+  align-items: start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.register-profile-readiness__state {
+  align-items: center;
+  color: var(--color-brand-gold);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 700;
+  gap: 6px;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.register-profile-readiness--incomplete .register-profile-readiness__state {
+  color: var(--color-warning-text);
+}
+
+.register-profile-readiness h2 {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 2vw, 1.25rem);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 7px 0 0;
+}
+
+.register-profile-readiness p {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 5px 0 0;
+  max-width: 52ch;
+}
+
+.register-profile-readiness__details {
+  display: grid;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+  gap: 14px 24px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding-top: 17px;
+}
+
+.register-profile-readiness__details div {
+  min-width: 0;
+}
+
+.register-profile-readiness__details dt {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.075em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.register-profile-readiness__details dd {
+  color: var(--color-text-primary);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  margin: 4px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.register-profile-readiness__action {
+  align-items: center;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 45%, transparent);
+  border-radius: 6px;
+  color: var(--color-brand-gold);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  gap: 9px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 9px 13px;
+  transition:
+    background 180ms var(--ease-out),
+    border-color 180ms var(--ease-out),
+    color 180ms var(--ease-out),
+    transform 180ms var(--ease-out);
+  white-space: nowrap;
+}
+
+.register-profile-readiness__action:hover {
+  background: color-mix(in srgb, var(--color-brand-gold) 10%, transparent);
+  border-color: var(--color-brand-gold);
+  transform: translateX(2px);
+}
+
+.register-profile-readiness__action:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+@media (max-width: 620px) {
+  .register-profile-readiness__header {
+    flex-direction: column;
+  }
+
+  .register-profile-readiness__action {
+    width: 100%;
+  }
+
+  .register-profile-readiness__details {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .register-profile-readiness__action {
+    transition: none;
+  }
+
+  .register-profile-readiness__action:hover {
+    transform: none;
+  }
+}
+
+.register-competition-fields {
+  display: grid;
+  gap: clamp(22px, 3vw, 30px);
+}
+
+.register-competition-commitment {
+  border-left: 2px solid var(--plu-gold-500);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 0 20px;
+  padding-left: 12px;
+}
+
+.register-page--competition
+  .register-competition-fields
+  :is(input:disabled, .field__choice:has(input:disabled)) {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.register-page--competition .register-card .form-section-block {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.register-page--competition .register-card .form-section-block__header {
+  align-items: flex-start;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  grid-template-columns: none;
+  margin-bottom: clamp(16px, 2.4vw, 22px);
+  padding-bottom: clamp(12px, 1.8vw, 16px);
+}
+
+.register-page--competition .register-card .form-section-block__header > div {
+  display: grid;
+  gap: 4px;
+}
+
+.register-page--competition .register-card .form-section-block__step {
+  background: transparent;
+  border: none;
+  color: color-mix(in oklab, var(--plu-gold-500) 82%, var(--color-text-muted));
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  min-width: 0;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.register-page--competition .register-card .form-section-block__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.4vw, 1.7rem);
+  font-weight: 700;
+  letter-spacing: -0.038em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.register-page--competition .register-card .form-section-block__desc {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 40ch;
+}
+
+.register-page--competition .register-competition-form .form-section-block__header,
+.register-page--competition .register-competition-fields > * {
+  animation: register-field-in 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.register-page--competition .register-competition-fields > *:nth-child(1) {
+  animation-delay: 0.04s;
+}
+.register-page--competition .register-competition-fields > *:nth-child(2) {
+  animation-delay: 0.08s;
+}
+.register-page--competition .register-competition-fields > *:nth-child(3) {
+  animation-delay: 0.12s;
+}
+.register-page--competition .register-competition-fields > *:nth-child(4) {
+  animation-delay: 0.16s;
+}
+
+.register-page--competition .register-card .field {
+  font-size: 13px;
+  font-weight: 500;
+  gap: 8px;
+}
+
+.register-page--competition .register-card .field__label,
+.register-page--competition .register-card legend.field__label {
+  color: var(--color-text-muted);
+  font-family: var(--font-family);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  text-transform: none;
+}
+
+.register-page--competition .register-card .field:focus-within .field__label,
+.register-page--competition .register-card .field:focus-within legend.field__label {
+  color: color-mix(in oklab, var(--plu-gold-500) 72%, var(--color-text-muted));
+}
+
+.register-page--competition .register-competition-choice .field__choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  grid-template-columns: none;
+}
+
+.register-page--competition .register-competition-choice .field__choice {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+  border-radius: 2px;
+  flex: 0 1 auto;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 14px;
+  transition:
+    background-color 180ms var(--ease-out),
+    border-color 180ms var(--ease-out),
+    color 180ms var(--ease-out);
+}
+
+.register-page--competition .register-competition-choice .field__choice-text {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
+.register-page--competition .register-competition-choice .field__choice:hover {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
+}
+
+.register-page--competition .register-competition-choice .field__choice:hover .field__choice-text {
+  color: var(--color-text-primary);
+}
+
+.register-page--competition .register-competition-choice .field__choice.is-active {
+  background: transparent;
+  border-color: var(--color-brand-gold);
+  box-shadow: none;
+}
+
+.register-page--competition
+  .register-competition-choice
+  .field__choice.is-active
+  .field__choice-text {
+  color: var(--color-brand-gold);
+  font-weight: 650;
+}
+
+.register-page--competition .register-competition-choice .field__choice:focus-within {
+  border-color: var(--color-brand-gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--plu-gold-500) 16%, transparent);
+}
+
+/* El peso son dos o tres dígitos: la caja se dimensiona por contenido en vez
+   de estirarse hasta el borde del formulario. */
+.register-page--competition .register-competition-weight .field__control-shell {
+  max-width: 220px;
+}
+
+/* Filas etiquetadas: mientras la pantalla es de una sola columna, la etiqueta
+   ocupa una columna propia y los controles usan el ancho útil, así el
+   formulario deja de ser mobile estirado. Con el aside a la vista el eje visual
+   ya lo da el resumen, y esa columna solo le quitaría ancho a las opciones.
+   El `float: left` de `.field--choice legend` (forms.css) hace que el legend se
+   comporte como caja normal, por eso puede ser grid item. */
+@media (min-width: 640px) and (max-width: 899px) {
+  .register-page--competition .register-competition-fields > .field {
+    align-items: start;
+    column-gap: clamp(20px, 3vw, 36px);
+    grid-template-columns: minmax(0, 150px) minmax(0, 1fr);
+    row-gap: 6px;
+  }
+
+  .register-page--competition .register-competition-fields > .field > .field__label,
+  .register-page--competition .register-competition-fields > .field > legend.field__label {
+    grid-column: 1;
+    padding-top: 14px;
+    width: auto;
+  }
+
+  .register-page--competition .register-competition-fields > .field > .field__choices,
+  .register-page--competition .register-competition-fields > .field > .field__control-shell,
+  .register-page--competition .register-competition-fields > .field > .field__error {
+    grid-column: 2;
+  }
+
+  .register-page--competition .register-competition-fields {
+    gap: clamp(14px, 2vw, 18px);
+  }
+
+  /* Paquete y medio de pago comparten el eje de etiquetas de los campos: un
+     solo margen de lectura en toda la pantalla. */
+  .register-page--competition .register-competition-form .plu-checkout__offers,
+  .register-page--competition .register-competition-form .plu-checkout__methods {
+    align-items: start;
+    column-gap: clamp(20px, 3vw, 36px);
+    grid-template-columns: minmax(0, 150px) minmax(0, 1fr);
+    row-gap: 6px;
+  }
+
+  .register-page--competition .register-competition-form .plu-checkout__offers > legend,
+  .register-page--competition .register-competition-form .plu-checkout__methods > legend {
+    float: left;
+    grid-column: 1;
+    padding-top: 14px;
+  }
+
+  .register-page--competition .register-competition-form .plu-checkout__offer-list,
+  .register-page--competition .register-competition-form .plu-checkout__pills,
+  .register-page--competition .register-competition-form .plu-checkout__hint,
+  .register-page--competition .register-competition-form .plu-checkout__methods > .field__error {
+    grid-column: 2;
+  }
+}
+
+.register-page--competition .register-card .field input {
+  background: rgba(255, 255, 255, 0.02);
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px 4px 0 0;
+  box-shadow: none;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  min-height: 48px;
+  padding: 8px 4px 10px;
+  transition:
+    background 180ms var(--ease-out),
+    border-color 180ms var(--ease-out),
+    box-shadow 180ms var(--ease-out),
+    color 180ms var(--ease-out);
+}
+
+.register-page--competition .register-card .field input:hover:not(:focus) {
+  background: rgba(255, 255, 255, 0.035);
+  border-bottom-color: rgba(255, 255, 255, 0.26);
+}
+
+.register-page--competition .register-card .field input:focus {
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom-color: color-mix(in srgb, var(--color-brand-gold) 72%, transparent);
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--color-brand-gold) 40%, transparent);
+  outline: none;
+}
+
+.register-page--competition .register-card .field input[aria-invalid='true'] {
+  border-bottom-color: var(--color-brand-red);
+  box-shadow: none;
+}
+
+.register-page--competition .register-card__footer.register-checkout,
+.register-page--membership .register-card__footer.register-checkout {
+  align-items: stretch;
+  border: none;
+  display: grid;
+  gap: clamp(18px, 2.4vw, 24px);
+  justify-content: stretch;
+  margin-top: clamp(8px, 1.4vw, 16px);
+  padding-top: 0;
+}
+
+.register-page--competition .register-card__total strong {
+  color: var(--color-brand-gold);
+  font-size: clamp(1.25rem, 2.2vw, 1.5rem);
+}
+
+.register-page--competition .register-card__submit--competition {
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  border-radius: 8px;
+  box-shadow: none;
+  color: var(--color-brand-action-text);
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  min-height: 52px;
+  min-width: min(100%, 240px);
+  transition:
+    background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.register-page--competition .register-card__submit--competition:hover:not(:disabled) {
+  background: var(--color-brand-action-hover);
+  border-color: var(--color-brand-action-hover);
+  box-shadow: none;
+  filter: none;
+  transform: translateY(-1px);
+}
+
+.register-page--competition
+  .register-card__submit--competition:hover:not(:disabled)
+  .register-card__submit-arrow {
+  transform: translateX(3px);
+}
+
+.register-page--competition .register-card__submit--competition:active:not(:disabled) {
+  box-shadow: none;
+  transform: translateY(0);
+}
+
+.register-checkout__methods {
+  border: 0;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  min-inline-size: 0;
+  padding: 0;
+}
+
+.register-checkout__methods legend {
+  color: var(--color-text-muted);
+  font-family: var(--font-family);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  padding: 0;
+  text-transform: none;
+}
+
+.register-checkout__hint {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 48ch;
+}
+
+.register-checkout__options {
+  display: grid;
+  gap: 0;
+}
+
+.register-checkout__options label {
+  align-items: baseline;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-radius: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: grid;
+  gap: 2px 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 64px;
+  padding: 14px 4px 14px 12px;
+  transition:
+    box-shadow 180ms var(--ease-out),
+    color 180ms var(--ease-out);
+}
+
+.register-checkout__options label:last-child {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+}
+
+.register-checkout__options label:hover {
+  color: var(--color-text-primary);
+}
+
+.register-checkout__options label.is-selected {
+  background: transparent;
+  box-shadow: inset 2px 0 0 var(--color-brand-gold);
+}
+
+.register-checkout__options label:focus-within {
+  box-shadow: inset 2px 0 0 var(--color-brand-gold);
+}
+
+.register-checkout__options input {
+  accent-color: var(--color-brand-gold);
+  grid-row: 1 / span 2;
+  margin: 0;
+}
+
+.register-checkout .register-checkout__method-label {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.register-checkout__options small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  grid-column: 2;
+  line-height: 1.4;
+}
+
+.register-checkout__bar {
+  align-items: end;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  justify-content: space-between;
+  margin: 0;
+  padding-top: clamp(16px, 2.2vw, 22px);
+}
+
+.register-checkout .register-checkout__bar {
+  display: flex;
+}
+
+.register-checkout__summary {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 10px;
+  min-width: min(100%, 220px);
+}
+
+.register-checkout__lines {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.register-checkout__lines li {
+  align-items: baseline;
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: 12.5px;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.register-checkout__lines li span:last-child {
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.register-checkout .register-checkout__lines-save span,
+.register-checkout .register-checkout__lines-save span:last-child {
+  color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--color-text-muted));
+}
+
+.register-checkout__package {
+  color: var(--color-text-muted);
+  display: none;
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+/* Aumento programado de la inscripción: nota operativa en texto secundario,
+   pegada al checkout donde se decide cuándo pagar. */
+.register-price-upcoming {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 10px 0 0;
+}
+
+.register-discount {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  margin-top: var(--space-lg);
+}
+
+/* Aplicado: la banda del sello más la salida para quitarlo. Era un <p> en fila
+   con el texto compuesto; ahora el código y el importe son piezas separadas
+   dentro de la banda (ver code-band.css). */
+.register-discount__applied {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  width: 100%;
+}
+
+.register-discount__applied--public {
+  align-items: center;
+  display: flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  margin: 0;
+  color: var(--color-brand-celeste);
+}
+
+/* Combo cerrado: el paquete existe pero pide su codigo. Se lee como la puerta
+   de la tanda (celeste, candado) y no como un cupon (oro): no cambia el precio,
+   habilita el acceso. Reusa la caja del campo de descuento en vez de inventar
+   otro control de "codigo + boton" en la misma pantalla. */
+.register-combo-code {
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 30%, transparent);
+  border-radius: 12px;
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.register-combo-code__lead {
+  align-items: center;
+  color: var(--color-brand-celeste);
+  display: flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  margin: 0;
+}
+
+.register-combo-code__row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.register-combo-code__row label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  width: 100%;
+}
+
+.register-combo-code__row input {
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  flex: 1;
+  font: inherit;
+  letter-spacing: 0.04em;
+  min-height: 44px;
+  min-width: 12ch;
+  padding: 0 14px;
+  text-transform: uppercase;
+}
+
+.register-combo-code__row input:focus-visible {
+  border-color: var(--color-brand-celeste);
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.register-combo-code__row button {
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0 18px;
+  transition:
+    border-color 160ms var(--ease-out, ease),
+    color 160ms var(--ease-out, ease);
+}
+
+.register-combo-code__row button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 45%, transparent);
+  color: var(--color-brand-celeste);
+}
+
+.register-combo-code__row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.register-combo-code__error {
+  color: var(--color-brand-red);
+  font-size: 12px;
+  margin: 0;
+}
+
+.register-eligibility-note {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+
+.register-eligibility-note p {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 58ch;
+}
+
+.register-eligibility-note__action {
+  background: none;
+  border: 0;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.register-eligibility-note__action:hover {
+  color: var(--color-brand-gold);
+}
+
+.register-eligibility-note__action:focus-visible {
+  outline: 2px solid var(--color-brand-gold);
+  outline-offset: 3px;
+}
+
+.register-combo-choice {
+  border: 0;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  min-inline-size: 0;
+  padding: 0;
+}
+
+.register-combo-choice legend {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  font-family: var(--font-family);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  gap: 10px;
+  letter-spacing: 0.01em;
+  padding: 0;
+  text-transform: none;
+}
+
+.register-combo-choice legend strong {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
+  border-radius: 2px;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  padding: 3px 7px;
+}
+
+.register-combo-choice__options {
+  display: grid;
+  gap: 0;
+}
+
+.register-combo-choice__options label {
+  align-items: baseline;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-radius: 0;
+  cursor: pointer;
+  display: grid;
+  gap: 2px 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 64px;
+  padding: 14px 4px 14px 12px;
+  transition:
+    box-shadow 180ms var(--ease-out),
+    color 180ms var(--ease-out);
+}
+
+.register-combo-choice__options label:last-child {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+}
+
+.register-combo-choice__options label.is-selected {
+  background: transparent;
+  box-shadow: inset 2px 0 0 var(--color-brand-gold);
+}
+
+.register-combo-choice__options label:focus-within {
+  box-shadow: inset 2px 0 0 var(--color-brand-gold);
+}
+
+.register-combo-choice__options input {
+  accent-color: var(--color-brand-gold);
+  grid-row: 1 / span 2;
+  margin: 0;
+}
+
+.register-combo-choice__name {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.register-combo-choice__price {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 2vw, 1.2rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.register-combo-choice__options label.is-selected .register-combo-choice__price {
+  color: var(--color-brand-gold);
+}
+
+.register-combo-choice__meta {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  grid-column: 2 / span 2;
+  line-height: 1.4;
+}
+
+.register-combo-choice.is-coming-soon .register-combo-choice__options label:first-child {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.register-page--competition .register-status {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-radius: 14px;
+  box-shadow: none;
+  padding: 16px 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .register-page--competition .register-shell,
+  .register-page--competition .register-competition-form .form-section-block__header,
+  .register-page--competition .register-competition-fields > * {
+    animation: none;
+  }
+
+  .register-page--competition .register-card__submit-arrow,
+  .register-page--competition .register-competition-choice .field__choice,
+  .register-combo-choice__options label,
+  .register-checkout__options label,
+  .register-competition-ticket__picks {
+    transition: none;
+  }
+
+  .register-page--competition .register-competition-choice .field__choice:hover {
+    transform: none;
+  }
+}
+
+[data-theme='light'] .register-page--competition .register-intro--competition::before {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--plu-gold-600) 75%, transparent) 0%,
+    transparent 88%
+  );
+}
+
+[data-theme='light'] .register-page--competition .register-intro__eyebrow {
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-page--competition .register-intro__title,
+[data-theme='light'] .register-page--competition .register-intro__athlete,
+[data-theme='light'] .register-competition-ticket__athlete {
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-competition-ticket__package {
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-page--competition .register-intro__desc {
+  color: rgba(15, 17, 23, 0.68);
+}
+
+[data-theme='light'] .register-page--competition .register-intro__meta--competition,
+[data-theme='light'] .register-competition-ticket,
+[data-theme='light'] .register-competition-ticket__total {
+  border-color: rgba(15, 17, 23, 0.1);
+}
+
+[data-theme='light']
+  .register-page--competition
+  .register-intro__meta--competition
+  span:nth-of-type(1) {
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-competition-ticket__total strong {
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-page--competition .register-card .form-section-block__header,
+[data-theme='light'] .register-page--competition .register-card__footer {
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .register-page--competition .register-card .form-section-block__step {
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-page--competition .register-card .form-section-block__title {
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-page--competition .register-card .field__label,
+[data-theme='light'] .register-page--competition .register-card legend.field__label {
+  color: rgba(15, 17, 23, 0.62);
+}
+
+[data-theme='light'] .register-page--competition .register-card .field:focus-within .field__label,
+[data-theme='light']
+  .register-page--competition
+  .register-card
+  .field:focus-within
+  legend.field__label {
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-page--competition .register-competition-choice .field__choice {
+  border-color: rgba(15, 17, 23, 0.16);
+}
+
+[data-theme='light']
+  .register-page--competition
+  .register-competition-choice
+  .field__choice.is-active {
+  background: transparent;
+  border-color: var(--plu-gold-600);
+}
+
+[data-theme='light']
+  .register-page--competition
+  .register-competition-choice
+  .field__choice.is-active
+  .field__choice-text {
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-page--competition .register-card .field input {
+  background: transparent;
+  border-bottom-color: rgba(15, 17, 23, 0.16);
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-page--competition .register-card .field input:focus {
+  background: transparent;
+  border-bottom-color: color-mix(in srgb, var(--plu-gold-600) 65%, transparent);
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--plu-gold-600) 42%, transparent);
+}
+
+[data-theme='light'] .register-page--competition .register-card__submit--competition {
+  box-shadow: none;
+}
+
+[data-theme='light'] .register-eligibility-note p {
+  color: rgba(15, 17, 23, 0.62);
+}
+
+[data-theme='light'] .register-eligibility-note__action {
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-eligibility-note__action:hover {
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-checkout .register-checkout__lines-save span,
+[data-theme='light'] .register-checkout .register-checkout__lines-save span:last-child {
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-combo-choice__options label,
+[data-theme='light'] .register-combo-choice__options label:last-child,
+[data-theme='light'] .register-checkout__options label,
+[data-theme='light'] .register-checkout__options label:last-child,
+[data-theme='light'] .register-checkout__bar {
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .register-checkout__options label.is-selected,
+[data-theme='light'] .register-combo-choice__options label.is-selected {
+  box-shadow: inset 2px 0 0 var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-combo-choice legend {
+  color: rgba(15, 17, 23, 0.62);
+}
+
+[data-theme='light'] .register-verify {
+  background: color-mix(in srgb, var(--color-warning-bg, #fef3c7) 88%, #fff);
+  border-color: rgba(146, 64, 14, 0.22);
+}
+
+[data-theme='light'] .register-verify--done {
+  background: color-mix(in srgb, var(--color-success-bg, #dcfce7) 88%, #fff);
+  border-color: rgba(22, 101, 52, 0.22);
+}
+
+[data-theme='light'] .register-verify__title,
+[data-theme='light'] .register-verify__email,
+[data-theme='light'] .register-verify__resend {
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-verify__resend:hover:not(:disabled) {
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-verify__otp input {
+  background: #fff;
+  border-color: rgba(15, 17, 23, 0.2);
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-checkout__options--pills label {
+  border-color: rgba(15, 17, 23, 0.16);
+}
+
+[data-theme='light'] .register-checkout__options--pills label.is-selected {
+  border-color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-checkout .register-checkout__method-label,
+[data-theme='light'] .register-combo-choice__name,
+[data-theme='light'] .register-combo-choice__price {
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light']
+  .register-combo-choice__options
+  label.is-selected
+  .register-combo-choice__price {
+  color: var(--plu-gold-600);
+}
+
+@media (max-width: 900px) {
+  .register-page--competition .register-mobile-context {
+    gap: 10px;
+    padding: 0 0 14px;
+  }
+
+  .register-page--competition .register-mobile-context .register-intro--competition {
+    gap: 6px;
+    padding-left: 12px;
+  }
+
+  .register-page--competition .register-mobile-context .register-intro__title {
+    font-size: clamp(1.65rem, 6.2vw, 2.1rem);
+    max-width: none;
+  }
+
+  .register-page--competition .register-mobile-context .register-intro__meta--competition {
+    margin-top: 2px;
+    padding-top: 10px;
+  }
+
+  .register-checkout__hint {
+    display: none;
+  }
+
+  .register-checkout__lines {
+    display: none;
+  }
+
+  .register-checkout__package {
+    display: block;
+  }
+
+  .register-checkout .register-checkout__bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .register-checkout .register-checkout__bar .register-card__submit {
+    width: 100%;
+  }
+
+  .register-page--competition .register-checkout__bar.register-card__footer--checkout,
+  .register-page--membership .register-checkout__bar.register-card__footer--checkout {
+    background: var(--color-bg-primary);
+    border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+    bottom: 0;
+    margin-inline: calc(-1 * var(--layout-gutter, var(--space-md)));
+    margin-top: 18px;
+    padding: 12px var(--layout-gutter, var(--space-md))
+      calc(12px + env(safe-area-inset-bottom, 0px));
+    position: sticky;
+    z-index: 5;
+  }
+
+  [data-theme='light']
+    .register-page--competition
+    .register-checkout__bar.register-card__footer--checkout,
+  [data-theme='light']
+    .register-page--membership
+    .register-checkout__bar.register-card__footer--checkout {
+    background: var(--color-bg-primary);
+    border-top-color: rgba(15, 17, 23, 0.08);
+  }
+
+  .register-page--settling .register-settle {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .register-page--settling .register-settle-bar {
+    bottom: 0;
+    left: 0;
+    margin: 0;
+    padding: 12px var(--layout-gutter, var(--space-md))
+      calc(12px + env(safe-area-inset-bottom, 0px));
+    position: fixed;
+    right: 0;
+    z-index: 30;
+  }
+
+  .register-page--settling .register-settle-bar .plu-checkout__total strong {
+    font-size: clamp(1.35rem, 6vw, 1.7rem);
+  }
+
+  .register-page--settling-mp .register-mobile-context {
+    display: none;
+  }
+
+  /* Cuando la inscripción queda admitida, `mpSettling` se cierra en
+     RegisterPage y esta regla deja de aplicar sola: el contexto mobile vuelve a
+     mostrarse con el acuse, la ráfaga y el botón de la card. Ocultarlo ahí
+     dejaba al atleta en teléfono mirando el brick de pago de una orden ya paga.
+     En desktop nunca se notó porque ese bloque vive en el aside. */
+
+  .register-page--settling-mp .register-settle {
+    padding-bottom: 0;
+  }
+
+  .register-page--settling-mp .register-settle-bar {
+    padding: 2px 0 8px;
+    position: static;
+    z-index: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .register-page--competition.page {
+    padding-inline: var(--layout-gutter, var(--space-md));
+  }
+
+  /* En mobile el contexto del evento ya lo dan el título y la meta: la bajada
+     solo empuja los controles fuera del primer viewport. */
+  .register-page--competition .register-mobile-context .register-intro__desc {
+    display: none;
+  }
+
+  .register-page--competition .register-card .form-section-block__title {
+    font-size: clamp(1.25rem, 5.2vw, 1.45rem);
+  }
+
+  .register-page--competition .register-competition-choice .field__choice {
+    min-height: 44px;
+    padding: 0 12px;
+  }
+
+  .register-page--competition .register-competition-choice .field__choice-text {
+    font-size: 12.5px;
+  }
+}
+
+/* Tablet y ventanas angostas: una sola columna con medida acotada. Antes el
+   formulario se estiraba hasta el borde y se leía como mobile agrandado. */
+@media (min-width: 641px) and (max-width: 899px) {
+  .register-page--competition .register-shell {
+    margin-inline: auto;
+    max-width: 680px;
+  }
+
+  /* El full-bleed de la barra de cobro solo tiene sentido cuando el shell toca
+     los bordes; con el shell centrado se alinea con el formulario. */
+  .register-page--competition .register-checkout__bar.register-card__footer--checkout {
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+}
+
+/* Paquete: un solo grupo de superficie en vez de dos cards de distinto peso.
+   La opción elegida se marca con una regla lateral, no con un borde completo. */
+.register-page--competition .plu-checkout__offer-list {
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  border-radius: 4px;
+  gap: 0;
+  overflow: hidden;
+}
+
+.register-page--competition .plu-checkout__offer {
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  padding: 16px 18px;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
+}
+
+.register-page--competition .plu-checkout__offer + .plu-checkout__offer {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+}
+
+.register-page--competition .plu-checkout__offer:hover:not(.is-disabled) {
+  background: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+  border-left-color: color-mix(in srgb, var(--color-brand-gold) 45%, transparent);
+}
+
+.register-page--competition .plu-checkout__offer.is-selected {
+  background: color-mix(in srgb, var(--plu-gold-500) 6%, transparent);
+  border-left-color: var(--color-brand-gold);
+}
+
+[data-theme='light'] .register-page--competition .plu-checkout__offer-list,
+[data-theme='light'] .register-page--competition .plu-checkout__offer + .plu-checkout__offer {
+  border-color: rgba(15, 17, 23, 0.12);
+}
+
+[data-theme='light'] .register-page--competition .plu-checkout__offer.is-selected {
+  border-left-color: var(--plu-gold-600);
+}
+
+/* Con el aside sticky a la vista, el total de la barra de cobro es el que
+   acompaña la decisión: el del resumen queda como dato, no como titular. */
+@media (min-width: 900px) {
+  .register-competition-ticket__total strong {
+    font-size: 1.2rem;
+  }
+}
+
+/* =============================================
+   REGISTER LIVE CREDENTIAL & PASSWORD STRENGTH
+   ============================================= */
+
+.register-live-credential {
+  background: linear-gradient(135deg, rgba(20, 22, 28, 0.92) 0%, rgba(14, 16, 20, 0.96) 100%);
+  border: 1px solid rgba(242, 183, 5, 0.25);
+  border-radius: 14px;
+  box-shadow:
+    0 16px 36px -8px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(242, 183, 5, 0.08);
+  color: #f7f7f5;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  padding: 16px 18px;
+  position: relative;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+[data-theme='light'] .register-live-credential {
+  box-shadow:
+    0 14px 28px -16px rgba(15, 17, 23, 0.28),
+    0 0 0 1px rgba(242, 183, 5, 0.12);
+}
+
+.register-live-credential__header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.register-live-credential__brand {
+  color: var(--color-brand-gold);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.register-live-credential__badge {
+  background: rgba(242, 183, 5, 0.12);
+  border: 1px solid rgba(242, 183, 5, 0.3);
+  border-radius: 99px;
+  color: var(--color-brand-gold);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+}
+
+.register-live-credential__body {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+}
+
+.register-live-credential__avatar {
+  align-items: center;
+  background: rgba(242, 183, 5, 0.12);
+  border: 1px solid rgba(242, 183, 5, 0.28);
+  border-radius: 50%;
+  color: var(--color-brand-gold);
+  display: flex;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.register-live-credential__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.register-live-credential__name {
+  color: #f7f7f5;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.register-live-credential__doc {
+  color: rgba(247, 247, 245, 0.58);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.register-live-credential__meta {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(247, 247, 245, 0.72);
+  display: grid;
+  gap: 6px;
+  font-size: 11px;
+  min-width: 0;
+  padding-top: 10px;
+}
+
+.register-live-credential__gym,
+.register-live-credential__location {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.register-live-credential__gym.is-placeholder,
+.register-live-credential__location.is-placeholder {
+  opacity: 0.45;
+}
+
+/* Medidor de contraseña — tres tonos semánticos (error / atención / éxito)
+   en vez de un arcoíris de cuatro hex sueltos, y relleno animado por
+   transform en lugar de un salto de color. */
+.password-strength {
+  --password-strength-tone: color-mix(in oklab, var(--color-text-primary) 32%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.password-strength--score-1 {
+  --password-strength-tone: var(--color-brand-red);
+}
+
+.password-strength--score-2 {
+  --password-strength-tone: var(--color-brand-gold);
+}
+
+.password-strength--score-3,
+.password-strength--score-4 {
+  --password-strength-tone: var(--color-status-success);
+}
+
+.password-strength__bar {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(4, 1fr);
+  height: 4px;
+}
+
+.password-strength__segment {
+  background: color-mix(in oklab, var(--color-text-primary) 12%, transparent);
+  border-radius: 99px;
+  overflow: hidden;
+  position: relative;
+}
+
+.password-strength__segment::after {
+  background: var(--password-strength-tone);
+  border-radius: inherit;
+  content: '';
+  inset: 0;
+  position: absolute;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition:
+    background-color 200ms var(--ease-out),
+    transform 260ms var(--ease-out);
+}
+
+.password-strength__segment.is-active::after {
+  transform: scaleX(1);
+}
+
+.password-strength__meta {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.password-strength__label {
+  color: var(--password-strength-tone);
+  font-weight: 600;
+}
+
+.password-strength__hint {
+  color: var(--color-text-muted);
+}
+
+.password-strength__hint--valid {
+  align-items: center;
+  color: var(--color-status-success);
+  display: inline-flex;
+  font-weight: 600;
+  gap: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .password-strength__segment::after {
+    transition: none;
+  }
+
+  .register-card__submit-spinner {
+    animation: none;
+    border-top-color: color-mix(in oklab, currentColor 28%, transparent);
+    opacity: 0.6;
+  }
+}
+
+.field--has-icon .field__control-shell,
+.field--has-icon .field__date,
+.field--has-icon .field__select {
+  position: relative;
+}
+
+.field--has-icon input,
+.field--has-icon select {
+  padding-left: 40px !important;
+}
+
+.field--has-trailing input {
+  padding-right: 44px !important;
+}
+
+.field--has-icon .field__icon {
+  color: rgba(255, 255, 255, 0.38);
+  left: 14px;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+.field--has-icon:focus-within .field__icon {
+  color: var(--color-brand-gold);
+}
+
+.field__toggle {
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.42);
+  cursor: pointer;
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  padding: 0;
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: color var(--duration-base, 180ms) var(--ease-design, ease);
+  width: 36px;
+  z-index: 2;
+}
+
+.field__toggle:hover,
+.field--has-trailing:focus-within .field__toggle {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.field__toggle:focus-visible {
+  border-radius: 4px;
+  color: var(--color-brand-gold);
+  outline: 2px solid color-mix(in oklab, var(--color-brand-gold) 55%, transparent);
+  outline-offset: 1px;
+}
+
+[data-theme='light'] .field--has-icon .field__icon {
+  color: rgba(15, 17, 23, 0.4);
+}
+
+[data-theme='light'] .field--has-icon:focus-within .field__icon {
+  color: color-mix(
+    in oklab,
+    var(--plu-gold-500, var(--color-brand-gold)) 55%,
+    rgba(15, 17, 23, 0.55)
+  );
+}
+
+[data-theme='light'] .field__toggle {
+  color: rgba(15, 17, 23, 0.42);
+}
+
+[data-theme='light'] .field__toggle:hover,
+[data-theme='light'] .field--has-trailing:focus-within .field__toggle {
+  color: rgba(15, 17, 23, 0.8);
+}
+
+/* =========================================================================
+   TARGETS TÁCTILES DEL FLUJO DE ALTA
+   Al final de la hoja a propósito: `.field__toggle` (36px) y
+   `.register-progress__segment` se definen más abajo que el bloque del wizard,
+   así que una regla intermedia perdía por orden de cascada.
+   ========================================================================= */
+@media (pointer: coarse) {
+  .register-topbar__back,
+  .register-topbar__link {
+    align-items: center;
+    display: inline-flex;
+    min-height: 44px;
+  }
+
+  /* El rail mobile fija `min-height: 0` con tres clases; hay que igualarlo. */
+  .register-progress__segment,
+  .register-page--profile .register-progress--rail .register-progress__segment {
+    min-height: 44px;
+  }
+
+  .field__toggle {
+    height: 44px;
+    width: 44px;
+  }
+}
+/* Oferta exclusiva — PLU ARG
+   ---------------------------------------------------------------------------
+   Dos piezas, una hoja: el anuncio del canje (`.offer-unlocked`), que aparece
+   dentro de la tarjeta de compra de Afiliación y de Inscripción, y la ficha
+   "Oferta exclusiva" de Mi cuenta (`.account-offer`).
+
+   El anuncio está acá y no en `account.css` ni en `register.css` porque lo usan
+   las dos rutas: duplicar la regla dejaría los dos anuncios divergiendo en
+   cuanto alguien tocara uno.
+
+   Presupuesto: un solo acento por bloque (oro, que en PLU es distinción y
+   membresía — no celeste, que es navegación), sin superficie propia dentro de
+   una tarjeta (cero cards anidadas: una regla al costado hace el trabajo) y el
+   desglose de precios como filas con reglas, no como sub-tarjetas. */
+
+/* Oro legible sobre la superficie de cada tema.
+
+   `--color-brand-gold` es gold-500 (#f2b705): sobre el blanco de light da
+   1.82:1, así que el número más importante de la ficha —el precio de la
+   oferta— quedaba por debajo del mínimo AA de 3:1 para texto grande. En light
+   se usa gold-600, que es el mismo oro que este repo ya elige para este
+   problema en `--institution-gold` y `--admin-premium`.
+
+   Token local y no global: el rol es "importe/código destacado de la oferta",
+   no un color de marca nuevo. */
+.account-offer,
+.offer-unlocked {
+  --offer-gold: var(--color-brand-gold);
+}
+
+[data-theme='light'] .account-offer,
+[data-theme='light'] .offer-unlocked {
+  --offer-gold: var(--color-brand-gold-dark);
+}
+
+/* ---------------------------------------------------------------------------
+   Anuncio del canje
+   --------------------------------------------------------------------------- */
+
+.offer-unlocked {
+  border-left: 2px solid var(--offer-gold);
+  display: grid;
+  gap: 0.35rem;
+  justify-items: start;
+  margin: 0;
+  min-width: 0;
+  padding: 0.15rem 0 0.15rem 0.9rem;
+}
+
+.offer-unlocked__eyebrow {
+  color: var(--color-text-muted);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.offer-unlocked__code {
+  color: var(--offer-gold);
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 3vw, 1.65rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+}
+
+.offer-unlocked__lead {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 52ch;
+}
+
+/* Acción secundaria: la principal de esta pantalla sigue siendo pagar. */
+.offer-unlocked__link {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast);
+}
+
+.offer-unlocked__link:hover {
+  color: var(--color-text-primary);
+}
+
+.offer-unlocked__link:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+  outline-offset: 3px;
+}
+
+/* En Afiliación el canje SÍ es la conclusión de la pantalla —la afiliación
+   suelta deja de ser lo que conviene comprar—, así que la acción es plena. */
+.offer-unlocked__cta {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: 0;
+  border-radius: 6px;
+  color: var(--color-brand-action-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  gap: 0.5rem;
+  min-height: 44px;
+  margin-top: 0.35rem;
+  padding: 0 1.1rem;
+  transition:
+    background-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.offer-unlocked__cta:hover {
+  background: var(--color-brand-action-hover);
+}
+
+.offer-unlocked__cta:active {
+  transform: translateY(1px);
+}
+
+.offer-unlocked__cta:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 60%, transparent);
+  outline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------------------
+   Ficha "Oferta exclusiva" de Mi cuenta
+   --------------------------------------------------------------------------- */
+
+/* `.account-section__icon--gold` está declarado en account.css ANTES de la base
+   `.account-section__icon`, así que el celeste de la base lo pisa (misma
+   especificidad, gana la última). No se reordena la hoja compartida acá: eso
+   cambiaría también el icono de Historial, que está fuera de este alcance. Se
+   resuelve con el id de la ficha, el mismo recurso que ya usa `#account-events`.
+   Sin esto la ficha tenía DOS acentos compitiendo: el celeste del icono y el
+   oro del precio. */
+#account-offer .account-section__icon {
+  background: color-mix(in srgb, var(--offer-gold) 16%, transparent);
+  border-color: color-mix(in srgb, var(--offer-gold) 32%, transparent);
+  color: var(--offer-gold);
+}
+
+/* Sin cap propio: lo que se limita es la prosa (medida de lectura), no el
+   desglose. Un ancho único dejaba el contenido apretado en el tercio izquierdo
+   de una tarjeta bastante más ancha, con el total lejos del borde y la fila
+   sin leerse como una liquidación. */
+.account-offer {
+  display: grid;
+  gap: clamp(1.1rem, 2.4vw, 1.6rem);
+  margin-top: clamp(1.25rem, 3vw, 1.75rem);
+}
+
+/* El código es el título de la ficha: es lo que el atleta vino a confirmar. */
+.account-offer__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 3.4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.account-offer__key {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.75rem;
+  margin: 0;
+}
+
+.account-offer__key span {
+  color: var(--color-text-muted);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.account-offer__key code {
+  color: var(--offer-gold);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.account-offer__lead {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 46ch;
+}
+
+.account-offer__checkout-note {
+  border-left: 2px solid var(--offer-gold);
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 52ch;
+  padding-left: 0.8rem;
+}
+
+/* El paquete y el desglose comparten ancho: son la misma liquidación leída en
+   dos tiempos (qué se compra, cuánto sale). El tope evita que en una pantalla
+   muy ancha el concepto y el importe queden a media cuadra uno del otro. */
+.account-offer__package,
+.account-offer__ledger {
+  max-width: 40rem;
+}
+
+.account-offer__package {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 0.25rem;
+  padding-top: clamp(0.9rem, 2vw, 1.15rem);
+}
+
+.account-offer__package-label {
+  color: var(--color-text-muted);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.account-offer__package-event {
+  color: var(--color-text-primary);
+  font-size: clamp(1.05rem, 2.2vw, 1.3rem);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.account-offer__package-meta {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.account-offer__ledger {
+  display: grid;
+  margin: 0;
+}
+
+.account-offer__ledger-row {
+  align-items: baseline;
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.7rem 0;
+}
+
+.account-offer__ledger-row dt {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  min-width: 0;
+}
+
+.account-offer__ledger-row dd {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* Único acento del bloque: el precio que el código desbloqueó. La regla
+   superior más fuerte es lo que separa el total de las partes — no un fondo. */
+.account-offer__ledger-row--total {
+  border-bottom: 0;
+  border-top: 1px solid var(--color-border-strong);
+  margin-top: 0.25rem;
+  padding-top: 0.9rem;
+}
+
+.account-offer__ledger-row--total dt {
+  color: var(--color-text-primary);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.account-offer__ledger-row--total dd {
+  color: var(--offer-gold);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.account-offer__savings {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 46ch;
+}
+
+/* Una acción plena y una secundaria: el presupuesto de la ficha no admite dos
+   botones compitiendo, así que la salida al checkout general es un link. */
+.account-offer__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+}
+
+.account-offer__cta {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: 0;
+  border-radius: 8px;
+  color: var(--color-brand-action-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  gap: 0.625rem;
+  min-height: 48px;
+  padding: 0 1.4rem;
+  transition:
+    background-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.account-offer__cta:hover {
+  background: var(--color-brand-action-hover);
+}
+
+.account-offer__cta:active {
+  transform: translateY(1px);
+}
+
+.account-offer__cta:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 60%, transparent);
+  outline-offset: 3px;
+}
+
+/* Estado no comprable (ya canjeada, cerrada, sin combo vigente). Sin fondo ni
+   borde completo: dentro de la tarjeta de la ficha sería una card anidada. */
+.account-offer__notice {
+  border-left: 2px solid var(--color-border-strong);
+  display: grid;
+  gap: 0.55rem;
+  justify-items: start;
+  max-width: 40rem;
+  padding-left: 0.9rem;
+}
+
+.account-offer__notice p {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.account-offer__notice-action {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast);
+}
+
+.account-offer__notice-action:hover {
+  color: var(--color-text-primary);
+}
+
+.account-offer__notice-action:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+  outline-offset: 3px;
+}
+
+.account-offer__fine {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 46ch;
+}
+
+/* ---------------------------------------------------------------------------
+   Conclusión de la ficha: revisar y pagar en el mismo espacio
+
+   El cobro vive acá dentro, no en otra pantalla: la oferta sólo se entiende en
+   la pestaña que la desbloqueó, y mandar a buscarla al checkout general era
+   pedirle al atleta que volviera a explicarse qué estaba comprando.
+
+   `--stage` es una única celda de grilla con los dos paneles superpuestos
+   (`MotionContentSwap mode="sync"`), así el alto no salta al cambiar de paso.
+   Sin superficie propia ni borde completo: dentro de la tarjeta de la ficha
+   sería una card anidada.
+   --------------------------------------------------------------------------- */
+
+.account-offer__stage {
+  display: grid;
+  grid-template-areas: 'stage';
+  min-width: 0;
+}
+
+.account-offer__stage > * {
+  grid-area: stage;
+}
+
+.account-offer__buy,
+.account-offer__settle,
+.account-offer__settled {
+  display: grid;
+  gap: clamp(0.9rem, 2vw, 1.25rem);
+  min-width: 0;
+}
+
+/* Datos de la inscripción: parte de la liquidación, no un formulario aparte.
+   Sin `fieldset` visible —la regla superior ya separa— y con el mismo ancho del
+   desglose para que las tres cosas se lean como una sola columna. */
+.account-offer__entry {
+  border-top: 1px solid var(--color-border-subtle);
+  max-width: 40rem;
+  min-width: 0;
+  padding-top: clamp(0.9rem, 2vw, 1.15rem);
+}
+
+.account-offer__entry-form {
+  border: 0;
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+}
+
+/* Confirmación de un vistazo: división, categoría y peso en una línea, con la
+   acción de ajuste al costado. Es el estado por defecto porque estos datos
+   vienen del perfil — el formulario aparece sólo si hay algo que corregir. */
+.account-offer__entry-summary {
+  align-items: baseline;
+  column-gap: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 0.2rem;
+}
+
+.account-offer__entry-summary .account-offer__entry-legend {
+  flex-basis: 100%;
+}
+
+.account-offer__entry-value {
+  color: var(--color-text-primary);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.account-offer__entry-legend {
+  color: var(--color-text-muted);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.account-offer__entry-hint {
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 46ch;
+}
+
+/* Peso a la derecha de las dos elecciones cuando hay lugar; apilado cuando no.
+   `auto-fit` con un mínimo legible evita el breakpoint arbitrario. */
+.account-offer__entry-fields {
+  display: grid;
+  gap: 0.85rem clamp(0.85rem, 2vw, 1.4rem);
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+}
+
+.account-offer__entry-weight {
+  max-width: 14rem;
+}
+
+/* Escritorio de cobro. El Brick trae su propio ritmo interno: acá sólo se le
+   da encabezado, nota de seguridad y la salida hacia atrás. */
+.account-offer__settle-head {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.account-offer__settle-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 2.2vw, 1.3rem);
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.account-offer__settle-title:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+  outline-offset: 4px;
+}
+
+.account-offer__settle-note {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: 0.75rem;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.account-offer__settle-back {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md, 8px);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  gap: 0.4rem;
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.account-offer__settle-back:hover {
+  border-color: color-mix(in srgb, var(--offer-gold) 42%, transparent);
+  color: var(--color-text-primary);
+}
+
+.account-offer__settle-back:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+  outline-offset: 3px;
+}
+
+/* Compra iniciada y sin pagar: el estado va antes de la acción, con la misma
+   regla al costado que el resto de los avisos de la ficha. */
+.account-offer__pending {
+  border-left: 2px solid var(--offer-gold);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 52ch;
+  padding-left: 0.8rem;
+}
+
+.account-offer__error {
+  border-left: 2px solid var(--color-danger-border, var(--color-danger-text));
+  color: var(--color-danger-text);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 52ch;
+  padding-left: 0.8rem;
+}
+
+/* Recibo. El sello y la ráfaga de confirmación los pone el propio Brick al
+   aprobar: acá sólo queda lo que el atleta necesita leer después. */
+.account-offer__settled {
+  border-left: 2px solid var(--offer-gold);
+  gap: 0.5rem;
+  justify-items: start;
+  max-width: 40rem;
+  padding-left: 0.9rem;
+}
+
+.account-offer__settled-title {
+  align-items: center;
+  color: var(--color-text-primary);
+  display: flex;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.account-offer__settled-title svg {
+  color: var(--offer-gold);
+}
+
+.account-offer__settled p {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.account-offer__cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 560px) {
+  .account-offer__ledger-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .account-offer__ledger-row dd {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .account-offer__cta,
+  .offer-unlocked__cta {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .account-offer__entry-weight {
+    max-width: none;
+  }
+
+  .account-offer__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .account-offer__settle-back {
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+/* Con qué paga. El selector reusa el patrón de las elecciones de la
+   inscripción (`field--choice`) porque es la misma pregunta cerrada en la misma
+   ficha: dos controles distintos para lo mismo se leerían como dos formularios.
+   Aparece sólo cuando el código habilita más de un medio. */
+.account-offer__channel {
+  border-top: 1px solid var(--color-border-subtle);
+  margin: 0;
+  max-width: 40rem;
+  min-width: 0;
+  padding-top: clamp(0.9rem, 2vw, 1.15rem);
+}
+
+/* El rótulo se alinea con los del resto de la ficha (código, paquete, datos de
+   la inscripción): son cuatro bloques de la misma columna, y un label de
+   formulario en minúscula rompía esa serie. */
+.account-offer__channel > .field__label {
+  color: var(--color-text-muted);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Liquidación manual en línea. Las reglas del recibo (datos bancarios, botones
+   de copiado, comprobante) son las mismas del modal del checkout: viven en
+   `components/transfer-pay-modal.css`, alcanzadas también por esta clase, para
+   que no existan dos juegos de datos de cobro que se puedan desincronizar. */
+.account-offer__manual {
+  display: grid;
+  gap: 0.75rem;
+  /* Mismo ancho que el desglose y los datos de la inscripción: el recibo es la
+     conclusión de esa columna, no un bloque aparte. Sin el tope sobresalía
+     ~70px a la derecha y se leía como un desborde. */
+  max-width: 40rem;
+  min-width: 0;
+}
+
+/* Efectivo: no hay nada que cobrar acá, así que la conclusión es la referencia
+   que el atleta muestra en la mesa. Se compone como una constancia —regla,
+   importe, referencia en monoespaciado— y no como un aviso de color. */
+.account-offer__cash {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 0.6rem;
+  max-width: 40rem;
+  min-width: 0;
+  padding-top: clamp(0.9rem, 2vw, 1.15rem);
+}
+
+.account-offer__cash-lead {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.account-offer__cash-reference {
+  align-items: baseline;
+  column-gap: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  row-gap: 0.2rem;
+}
+
+.account-offer__cash-reference span {
+  color: var(--color-text-muted);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.account-offer__cash-reference code {
+  color: var(--color-text-primary);
+  font-family: ui-monospace, 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}

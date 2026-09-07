@@ -1,0 +1,302 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --canvas: #0a0b0d; --surface: #141518; --elevated: #1e2026;
+      --hairline: rgba(255,255,255,0.10); --hairline-soft: rgba(255,255,255,0.06);
+      --ink: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8; --ghost: #6f7280;
+      --brand: #74acdf; --brand-soft: #9ec5eb;
+      --gold: #f2b705; --gold-ink: #14181f;
+      --ok: #3d9a62; --ok-soft: #8fd4a8;
+      --font: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); }
+    a { color: var(--brand-soft); } a:hover { color: #c7dcf1; }
+
+    .page { padding: 40px 72px 56px; display: flex; flex-direction: column; gap: 40px; }
+    .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0; }
+    .rule { height: 1px; background: var(--hairline); }
+
+    .head { display: flex; flex-direction: column; gap: 14px; }
+    .head-title { font-size: 46px; font-weight: 700; letter-spacing: -.02em; line-height: 1.04; margin: 0; }
+    .dateline { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
+    .dateline strong { color: var(--secondary); font-weight: 500; }
+    .sep { color: #4a4d57; }
+    .lead { font-size: 15px; line-height: 1.6; color: var(--secondary); margin: 0; max-width: 62ch; }
+
+    .types { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; align-items: start; }
+    .type { display: flex; flex-direction: column; gap: 22px; padding: 30px 30px 32px; border: 1px solid var(--hairline); border-radius: 0; }
+    .type--featured { border-color: rgba(242,183,5,.42); }
+
+    .type-tag { display: inline-flex; align-items: center; align-self: flex-start; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 5px 10px; border-radius: 2px; }
+    .type-tag--plain { color: var(--muted); padding-left: 0; letter-spacing: .14em; font-weight: 600; }
+    .type-tag--gold { background: var(--gold); color: var(--gold-ink); }
+
+    .type-name { font-size: 30px; font-weight: 700; letter-spacing: -.015em; margin: 0; }
+    .type-sub { font-size: 13.5px; line-height: 1.6; color: var(--muted); margin: 4px 0 0; }
+
+    .price-row { display: flex; align-items: baseline; gap: 12px; }
+    .price { font-size: 34px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+    .price em { font-style: normal; color: var(--ghost); font-size: 22px; font-weight: 500; }
+    .price-note { font-size: 12px; color: var(--muted); }
+
+    .opens { display: flex; flex-direction: column; gap: 12px; }
+    .opens-label { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ghost); }
+    .zone { display: flex; align-items: flex-start; gap: 11px; }
+    .zone svg { flex: 0 0 auto; margin-top: 2px; }
+    .zone-c { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .zone-n { font-size: 14px; font-weight: 600; }
+    .zone-d { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+    .zone--on svg { color: var(--ok-soft); }
+    .zone--gold svg { color: var(--gold); }
+    .zone--off svg { color: #4a4d57; }
+    .zone--off .zone-n { color: var(--ghost); font-weight: 500; }
+
+    .issues { display: flex; align-items: flex-start; gap: 10px; padding: 13px 15px; background: rgba(255,255,255,.03); border-left: 2px solid var(--hairline); }
+    .issues--gold { border-left-color: var(--gold); background: rgba(242,183,5,.07); }
+    .issues svg { flex: 0 0 auto; color: var(--muted); margin-top: 1px; }
+    .issues--gold svg { color: var(--gold); }
+    .issues-t { font-size: 12.5px; line-height: 1.55; color: var(--secondary); margin: 0; }
+    .issues-t strong { color: var(--ink); font-weight: 600; }
+
+    .incl { display: flex; flex-direction: column; gap: 9px; }
+    .incl-item { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--secondary); }
+    .incl-item svg { flex: 0 0 auto; color: var(--ghost); }
+    .incl-item span { color: var(--muted); margin-left: auto; font-size: 12px; }
+
+    .cta { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 22px; border: 1px solid var(--hairline); border-radius: 2px; background: transparent; color: var(--ink); font-family: var(--font); font-size: 13.5px; font-weight: 600; }
+    .cta--gold { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); }
+
+    .matrix { display: flex; flex-direction: column; gap: 16px; }
+    .matrix-head { display: flex; flex-direction: column; gap: 6px; }
+    .matrix-title { font-size: 20px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+    .matrix-lead { font-size: 13px; color: var(--muted); margin: 0; max-width: 70ch; line-height: 1.6; }
+    .mx { display: flex; flex-direction: column; }
+    .mx-hr, .mx-r { display: grid; grid-template-columns: minmax(0,1fr) 168px 168px; align-items: center; gap: 24px; padding: 14px 4px; border-bottom: 1px solid var(--hairline-soft); }
+    .mx-hr { border-bottom: 1px solid var(--hairline); padding-bottom: 11px; }
+    .mx-hr span { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ghost); }
+    .mx-hr span:not(:first-child) { text-align: center; }
+    .mx-zone { display: flex; flex-direction: column; gap: 3px; }
+    .mx-zone strong { font-size: 13.5px; font-weight: 600; }
+    .mx-zone small { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .mx-cell { display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 12px; font-weight: 600; }
+    .mx-cell--yes { color: var(--ok-soft); }
+    .mx-cell--gold { color: var(--gold); }
+    .mx-cell--no { color: #55585f; }
+    .mx-r--muted .mx-zone strong { color: var(--ghost); font-weight: 500; }
+
+    .foot { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); }
+    .foot svg { color: var(--ghost); flex: 0 0 auto; }
+  </style>
+</helmet>
+
+<div class="page">
+
+  <div class="head">
+    <p class="eyebrow">Entradas</p>
+    <h1 class="head-title">Pitbull Classic</h1>
+    <div class="dateline">
+      <strong>12–13 Dic 2026</strong>
+      <span class="sep">·</span>
+      <strong>La Troupe Multiespacio</strong>
+      <span class="sep">·</span>
+      <span>Gallo 148, Banfield</span>
+    </div>
+    <p class="lead">Dos entradas, dos accesos distintos. Elegí según dónde necesitás estar durante el meet: en la tribuna, o al lado de tu atleta en la entrada en calor.</p>
+  </div>
+
+  <div class="types">
+
+    <div class="type">
+      <span class="type-tag type-tag--plain">Entrada</span>
+      <div>
+        <h2 class="type-name">Espectador</h2>
+        <p class="type-sub">Para ver el meet desde la tribuna, los dos días.</p>
+      </div>
+
+      <div class="price-row">
+        <span class="price"><em>$</em>[PRECIO]</span>
+        <span class="price-note">por persona</span>
+      </div>
+
+      <div class="rule"></div>
+
+      <div class="opens">
+        <span class="opens-label">Qué te abre</span>
+        <div class="zone zone--on">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M10 21v-6h4v6"/></svg>
+          <div class="zone-c">
+            <span class="zone-n">Puerta general</span>
+            <span class="zone-d">Ingreso al predio y a la tribuna.</span>
+          </div>
+        </div>
+        <div class="zone zone--off">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+          <div class="zone-c">
+            <span class="zone-n">Entrada en calor</span>
+            <span class="zone-d">No incluida.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="issues">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3z"/><path d="M19 19h2v2h-2z"/></svg>
+        <p class="issues-t">Emite <strong>1 credencial</strong> con su QR, para canjear una sola vez en la puerta.</p>
+      </div>
+
+      <div class="rule"></div>
+
+      <div class="incl">
+        <span class="opens-label">Adicionales disponibles</span>
+        <div class="incl-item">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v14H4z"/><path d="M8 8h8"/><path d="M8 12h5"/></svg>
+          Programa impreso del meet
+          <span>+ $[PRECIO]</span>
+        </div>
+        <div class="incl-item">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v13H4z"/><path d="M8 7V4h8v3"/></svg>
+          Remera del evento
+          <span>+ $[PRECIO]</span>
+        </div>
+      </div>
+
+      <button type="button" class="cta">Elegir espectador</button>
+    </div>
+
+    <div class="type type--featured">
+      <span class="type-tag type-tag--gold">Acceso a entrada en calor</span>
+      <div>
+        <h2 class="type-name">Entrenador</h2>
+        <p class="type-sub">Para acompañar a tu atleta detrás de plataforma, en la zona de calentamiento.</p>
+      </div>
+
+      <div class="price-row">
+        <span class="price"><em>$</em>[PRECIO]</span>
+        <span class="price-note">por entrenador</span>
+      </div>
+
+      <div class="rule"></div>
+
+      <div class="opens">
+        <span class="opens-label">Qué te abre</span>
+        <div class="zone zone--on">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M10 21v-6h4v6"/></svg>
+          <div class="zone-c">
+            <span class="zone-n">Puerta general</span>
+            <span class="zone-d">Ingreso al predio y a la tribuna.</span>
+          </div>
+        </div>
+        <div class="zone zone--gold">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9 9 4l2 2-5 5z"/><path d="M13 15l5-5 2 2-5 5z"/><path d="m7.5 7.5 9 9"/><path d="M2 12h2"/><path d="M20 12h2"/></svg>
+          <div class="zone-c">
+            <span class="zone-n">Entrada en calor</span>
+            <span class="zone-d">Acceso a la zona de calentamiento durante los flights de tu atleta.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="issues issues--gold">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3z"/><path d="M19 19h2v2h-2z"/></svg>
+        <p class="issues-t">Emite <strong>2 credenciales</strong> con su propio QR —Espectador y ENTRENADOR—, y ocupa <strong>un solo lugar</strong> del cupo.</p>
+      </div>
+
+      <div class="rule"></div>
+
+      <div class="incl">
+        <span class="opens-label">Adicionales disponibles</span>
+        <div class="incl-item">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v14H4z"/><path d="M8 8h8"/><path d="M8 12h5"/></svg>
+          Programa impreso del meet
+          <span>+ $[PRECIO]</span>
+        </div>
+        <div class="incl-item">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v13H4z"/><path d="M8 7V4h8v3"/></svg>
+          Remera del evento
+          <span>+ $[PRECIO]</span>
+        </div>
+      </div>
+
+      <button type="button" class="cta cta--gold">Elegir entrenador</button>
+    </div>
+
+  </div>
+
+  <div class="matrix">
+    <div class="matrix-head">
+      <p class="eyebrow">Habilitaciones</p>
+      <h2 class="matrix-title">Qué zona abre cada entrada</h2>
+      <p class="matrix-lead">Cada credencial se lee en el puesto de control de su zona y se canjea una sola vez. Lo que se compra es lo que abre: si después cambia la configuración del evento, tu entrada conserva el acceso con el que se vendió.</p>
+    </div>
+
+    <div class="mx">
+      <div class="mx-hr">
+        <span>Zona del meet</span>
+        <span>Espectador</span>
+        <span>Entrenador</span>
+      </div>
+
+      <div class="mx-r">
+        <div class="mx-zone">
+          <strong>Puerta general</strong>
+          <small>Ingreso al predio, tribuna y sectores comunes.</small>
+        </div>
+        <div class="mx-cell mx-cell--yes">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          Incluida
+        </div>
+        <div class="mx-cell mx-cell--yes">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          Incluida
+        </div>
+      </div>
+
+      <div class="mx-r">
+        <div class="mx-zone">
+          <strong>Entrada en calor</strong>
+          <small>Zona de calentamiento, detrás de plataforma.</small>
+        </div>
+        <div class="mx-cell mx-cell--no">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+          No
+        </div>
+        <div class="mx-cell mx-cell--gold">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          Incluida
+        </div>
+      </div>
+
+      <div class="mx-r mx-r--muted">
+        <div class="mx-zone">
+          <strong>Plataforma y pesaje</strong>
+          <small>Reservada a atletas inscriptos y staff técnico: ninguna entrada la habilita.</small>
+        </div>
+        <div class="mx-cell mx-cell--no">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+          No
+        </div>
+        <div class="mx-cell mx-cell--no">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+          No
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5"/><path d="M12 8h.01"/></svg>
+      Quedan [N] lugares para el Pitbull Classic. El cupo cuenta compras, no credenciales.
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

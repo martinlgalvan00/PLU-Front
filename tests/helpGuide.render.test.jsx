@@ -393,13 +393,13 @@ describe('HelpLayer', () => {
     expect(screen.getByRole('button', { name: /^abrir la ayuda paso a paso$/i })).toBeTruthy()
   })
 
-  it('abre y cierra el panel, y recuerda que la ayuda ya se mostró', () => {
+  it('abre y cierra el panel, y recuerda que la ayuda ya se mostró', async () => {
     renderLayer()
     expect(hasSeenHomeGuide()).toBe(false)
 
     const trigger = screen.getByRole('button', { name: /tenés un paso pendiente/i })
     fireEvent.click(trigger)
-    expect(screen.getByRole('dialog', { name: /qué tengo que hacer/i })).toBeTruthy()
+    expect(await screen.findByRole('dialog', { name: /qué tengo que hacer/i })).toBeTruthy()
     expect(trigger.getAttribute('aria-expanded')).toBe('true')
     expect(hasSeenHomeGuide()).toBe(true)
 
@@ -421,20 +421,20 @@ describe('HelpLayer', () => {
     expect(onSelectEvent).toHaveBeenCalledWith(EVENT)
   })
 
-  it('en modo simple el botón flotante se reemplaza por la barra recortada', () => {
+  it('en modo simple el botón flotante se reemplaza por la barra recortada', async () => {
     renderLayer()
 
     fireEvent.click(screen.getByRole('button', { name: /abrir la ayuda/i }))
     fireEvent.click(screen.getByRole('switch', { name: /modo simple/i }))
 
-    const bar = screen.getByRole('navigation', { name: /navegación simple/i })
+    const bar = await screen.findByRole('navigation', { name: /navegación simple/i })
     expect(bar).toBeTruthy()
     // Cuatro destinos y ni uno más: en eso consiste el recorte.
     expect(bar.querySelectorAll('.assist-nav__item')).toHaveLength(4)
     expect(screen.queryByRole('button', { name: /abrir la ayuda paso a paso/i })).toBeNull()
   })
 
-  it('la barra simple nombra el próximo paso real y lo ejecuta', () => {
+  it('la barra simple nombra el próximo paso real y lo ejecuta', async () => {
     const onSelectEvent = vi.fn()
     renderLayer({
       session: ATHLETE_SESSION,
@@ -445,7 +445,7 @@ describe('HelpLayer', () => {
     fireEvent.click(screen.getByRole('button', { name: /abrir la ayuda/i }))
     fireEvent.click(screen.getByRole('switch', { name: /modo simple/i }))
 
-    fireEvent.click(screen.getByRole('button', { name: /^inscribirme$/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /^inscribirme$/i }))
     expect(onSelectEvent).toHaveBeenCalledWith(EVENT)
   })
 })

@@ -1,0 +1,321 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --canvas: #0a0b0d; --surface: #141518; --surface-muted: #121316; --elevated: #1e2026;
+      --hairline: rgba(255,255,255,0.09); --ink: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8;
+      --brand: #9ec5eb; --brand-deep: #1f5f9e; --gold: #f2b705; --gold-ink: #14181f;
+      --ok: #3d9a62; --ok-soft: #8fd4a8; --danger: #e10600; --warn: #b45309;
+      --font: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); }
+    a { color: var(--brand); } a:hover { color: #c7dcf1; }
+    * { box-sizing: border-box; }
+    .shell { display: grid; grid-template-columns: 232px 1fr; min-height: 1000px; }
+    .side { background: var(--surface-muted); border-right: 1px solid var(--hairline); padding: 20px 12px; display: flex; flex-direction: column; gap: 22px; }
+    .side-brand { display: flex; align-items: center; gap: 9px; padding: 0 8px 4px; }
+    .side-mark { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, var(--brand-deep), var(--gold)); }
+    .side-name { font-size: 12.5px; font-weight: 700; }
+    .side-group { display: flex; flex-direction: column; gap: 2px; }
+    .side-label { font-size: 10px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: #6f7280; padding: 0 8px 6px; }
+    .side-item { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 8px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+    .side-item.is-active { background: color-mix(in srgb, var(--brand) 10%, transparent); color: var(--ink); font-weight: 600; }
+    .side-item svg { opacity: .75; flex: 0 0 auto; }
+    .side-item.is-active svg { opacity: 1; color: var(--brand); }
+    .side-count { margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--muted); }
+
+    .main { padding: 20px 32px 32px; display: flex; flex-direction: column; gap: 18px; max-width: 1280px; }
+    .back { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--muted); }
+    .hd { display: flex; flex-direction: column; gap: 14px; }
+    .hd-top { display: flex; align-items: flex-start; gap: 16px; }
+    .hd-copy { display: flex; flex-direction: column; gap: 7px; flex-grow: 1; min-width: 0; }
+    .hd-title-row { display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+    .hd-title { font-size: 23px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+    .pill-state { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: 11px; font-weight: 600; background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent); }
+    .dot { width: 5px; height: 5px; border-radius: 999px; background: currentColor; }
+    .hd-meta { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+    .sep { color: #4a4d57; }
+    .hd-actions { display: flex; align-items: center; gap: 8px; }
+    .icon-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: color-mix(in srgb, var(--elevated) 60%, transparent); color: var(--secondary); font-size: 12px; font-weight: 500; font-family: var(--font); }
+    .icon-btn--danger { color: #ff8a87; border-color: color-mix(in srgb, var(--danger) 26%, transparent); }
+    .icon-btn--square { width: 34px; padding: 0; }
+    .tabs { display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 999px; background: color-mix(in srgb, var(--elevated) 70%, transparent); border: 1px solid rgba(255,255,255,.08); width: fit-content; }
+    .tab { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 6px 12px; border-radius: 999px; border: 1px solid transparent; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; font-family: var(--font); white-space: nowrap; }
+    .tab.is-active { background: color-mix(in srgb, var(--brand) 13%, transparent); border-color: color-mix(in srgb, var(--brand) 24%, transparent); color: var(--ink); }
+    .tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; padding: 2px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 700; background: color-mix(in srgb, var(--ink) 8%, transparent); }
+    .tab.is-active .tab-count { background: color-mix(in srgb, var(--brand) 20%, transparent); }
+    .tab-warn { width: 6px; height: 6px; border-radius: 999px; background: var(--warn); }
+
+    .body { display: grid; grid-template-columns: minmax(0,1fr) 428px; gap: 22px; align-items: start; }
+    .stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .card { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; }
+    .card-h { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--hairline); }
+    .card-t { font-size: 13px; font-weight: 600; margin: 0; }
+    .card-hint { font-size: 11.5px; color: var(--muted); }
+    .card-b { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+    .ghost-btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); font-size: 11.5px; font-weight: 500; font-family: var(--font); }
+
+    /* módulos */
+    .mod { display: flex; align-items: center; gap: 13px; padding: 13px 18px; border-bottom: 1px solid var(--hairline); }
+    .mod:last-of-type { border-bottom: none; }
+    .mod-c { display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0; }
+    .mod-t { font-size: 12.5px; font-weight: 600; }
+    .mod-s { font-size: 11px; color: var(--muted); }
+    .sw { width: 36px; height: 20px; border-radius: 999px; background: rgba(255,255,255,.12); position: relative; flex: 0 0 auto; }
+    .sw::after { content: ''; position: absolute; top: 2.5px; left: 3px; width: 15px; height: 15px; border-radius: 999px; background: #8b8d97; }
+    .sw.is-on { background: color-mix(in srgb, var(--ok) 55%, transparent); }
+    .sw.is-on::after { left: auto; right: 3px; background: #eafff2; }
+    .mod-empty { font-size: 10.5px; font-weight: 600; color: #e8a33d; }
+
+    /* preview */
+    .prev-wrap { position: sticky; top: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .prev-bar { display: flex; align-items: center; gap: 9px; }
+    .prev-l { font-size: 10.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+    .prev-live { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; color: var(--ok-soft); }
+    .prev { border-radius: 12px; border: 1px solid var(--hairline); overflow: hidden; background: #101114; }
+    .prev-chrome { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--hairline); background: var(--surface-muted); }
+    .prev-url { flex-grow: 1; height: 22px; border-radius: 999px; background: rgba(255,255,255,.05); font-size: 10.5px; color: var(--muted); display: flex; align-items: center; padding: 0 10px; }
+    .prev-body { padding: 0; }
+    .prev-hero { padding: 22px 20px 18px; background: linear-gradient(200deg, #1a1d24, #0d0e11 68%); border-bottom: 1px solid var(--hairline); }
+    .prev-eyebrow { font-size: 9.5px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; color: var(--brand); }
+    .prev-h1 { font-size: 25px; font-weight: 700; line-height: 1.1; margin: 9px 0 8px; letter-spacing: -.015em; }
+    .prev-meta { font-size: 11.5px; color: var(--muted); }
+    .prev-cta { display: inline-flex; align-items: center; gap: 7px; margin-top: 15px; height: 36px; padding: 0 16px; border-radius: 8px; background: var(--gold); color: var(--gold-ink); font-size: 12px; font-weight: 600; }
+    .prev-sec { padding: 15px 20px; border-bottom: 1px solid var(--hairline); display: flex; flex-direction: column; gap: 9px; }
+    .prev-sec:last-child { border-bottom: none; }
+    .prev-st { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #6f7280; }
+    .prev-line { height: 7px; border-radius: 999px; background: rgba(255,255,255,.07); }
+    .prev-days { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .prev-day { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--hairline); background: rgba(255,255,255,.02); }
+    .prev-day strong { display: block; font-size: 11.5px; font-weight: 600; }
+    .prev-day small { font-size: 10px; color: var(--muted); }
+    .prev-cap { display: flex; flex-direction: column; gap: 7px; }
+    .meter { height: 5px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
+    .meter span { display: block; height: 100%; background: var(--brand); }
+    .prev-cap-t { font-size: 11px; color: var(--muted); }
+    .prev-off { padding: 13px 20px; font-size: 11px; color: #6f7280; display: flex; align-items: center; gap: 8px; }
+
+    /* readiness */
+    .check { display: flex; align-items: center; gap: 10px; padding: 11px 18px; font-size: 12.5px; border-bottom: 1px solid var(--hairline); }
+    .check:last-child { border-bottom: none; }
+    .check-ico { width: 16px; height: 16px; flex: 0 0 auto; }
+    .check .fix { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--brand); }
+  </style>
+</helmet>
+
+<div class="shell">
+  <aside class="side">
+    <div class="side-brand"><div class="side-mark"></div><span class="side-name">PLU Argentina</span></div>
+    <div class="side-group">
+      <span class="side-label">Plantel</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span>Resumen</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.1 2.7-5.2 6-5.2s6 2.1 6 5.2"/></svg><span>Personas</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Competencia</span>
+      <div class="side-item is-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>Eventos</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Grilla</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M3 12h18"/></svg><span>Check-in</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M12 14v4M8 21h8"/></svg><span>Resultados</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Cobros</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span>Shop</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg><span>Cobros</span><span class="side-count">3</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 10 12 4l9 6"/><path d="M5 10v9h14v-9"/></svg><span>Libro de caja</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 6v12"/></svg><span>Tarifas</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="8" cy="13" r="4"/><path d="M11 11l8-8 2 2-2 2 2 2-3 3-2-2-2 2"/></svg><span>Acceso y habilitación</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 4v11M8 11l4 4 4-4M4 19h16"/></svg><span>Exportaciones</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Acceso</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 3l7 3v6c0 4.2-2.8 7.6-7 9-4.2-1.4-7-4.8-7-9V6z"/></svg><span>Usuarios</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="8" cy="13" r="4"/><path d="M11 11l8-8 2 2-2 2 2 2-3 3-2-2-2 2"/></svg><span>Roles y permisos</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 9h7M9 13h7"/></svg><span>Auditoría</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span>Analítica</span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <span class="back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>Eventos</span>
+
+    <header class="hd">
+      <div class="hd-top">
+        <div class="hd-copy">
+          <div class="hd-title-row">
+            <h1 class="hd-title">Pitbull Classic 2026</h1>
+            <span class="pill-state"><span class="dot"></span>Inscripción abierta</span>
+          </div>
+          <div class="hd-meta">
+            <span>14 – 15 de noviembre de 2026</span><span class="sep">·</span>
+            <span>Club Atlético Fénix, Pilar</span><span class="sep">·</span>
+            <span>plu.ar/eventos/pitbull-classic-2026</span>
+          </div>
+        </div>
+        <div class="hd-actions">
+          <button class="icon-btn" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M15 5H5v10"/></svg>Copiar links</button>
+          <button class="icon-btn icon-btn--square icon-btn--danger" type="button" aria-label="Eliminar evento"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>
+        </div>
+      </div>
+      <nav class="tabs" role="tablist" aria-label="Secciones del evento">
+        <button class="tab" role="tab" aria-selected="false" type="button">Datos</button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Estructura<span class="tab-count">2</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Entradas<span class="tab-warn" aria-hidden="true"></span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Zonas y seguridad<span class="tab-count">4</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Pagos<span class="tab-count">3</span></button>
+        <button class="tab is-active" role="tab" aria-selected="true" type="button">Vista pública</button>
+      </nav>
+    </header>
+
+    <div class="body">
+      <div class="stack">
+        <section class="card">
+          <div class="card-h">
+            <h2 class="card-t">Bloques de la página</h2>
+            <span class="card-hint">Cada uno se apaga sin tocar el contenido; la preview de al lado se actualiza al instante</span>
+          </div>
+          <div>
+            <div class="mod">
+              <span class="mod-c"><span class="mod-t">Cronograma</span><span class="mod-s">Jornadas y horarios de la competencia</span></span>
+              <span class="sw is-on"></span>
+            </div>
+            <div class="mod">
+              <span class="mod-c"><span class="mod-t">Pesajes</span><span class="mod-s">Las 2 ventanas cargadas en Estructura</span></span>
+              <span class="sw is-on"></span>
+            </div>
+            <div class="mod">
+              <span class="mod-c"><span class="mod-t">Categorías</span><span class="mod-s">Divisiones y categorías que se compiten</span></span>
+              <span class="sw is-on"></span>
+            </div>
+            <div class="mod">
+              <span class="mod-c"><span class="mod-t">Cómo llegar</span><span class="mod-s">Sede, mapa y referencias</span></span>
+              <span class="sw is-on"></span>
+            </div>
+            <div class="mod">
+              <span class="mod-c"><span class="mod-t">Transmisión en vivo</span><span class="mod-s">Sin link cargado</span></span>
+              <span class="mod-empty">Sin contenido</span>
+              <span class="sw"></span>
+            </div>
+            <div class="mod">
+              <span class="mod-c"><span class="mod-t">La experiencia</span><span class="mod-s">Fotos y relato del meet anterior</span></span>
+              <span class="sw"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-h">
+            <h2 class="card-t">Qué más ve el público</h2>
+          </div>
+          <div>
+            <div class="mod">
+              <span class="mod-c"><span class="mod-t">Cupos ocupados</span><span class="mod-s">Muestra 46 de 180 en la página. Apagado, solo dice si hay lugar.</span></span>
+              <span class="sw is-on"></span>
+            </div>
+            <div class="mod">
+              <span class="mod-c"><span class="mod-t">Evento destacado</span><span class="mod-s">Lo pone arriba en la home. Solo puede haber uno destacado.</span></span>
+              <span class="sw is-on"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-h">
+            <h2 class="card-t">Listo para publicar</h2>
+            <span class="card-hint" style="margin-left: auto;">3 de 4</span>
+          </div>
+          <div>
+            <div class="check">
+              <svg class="check-ico" viewBox="0 0 24 24" fill="none" stroke="var(--ok-soft)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>
+              Publicado en el sitio
+            </div>
+            <div class="check">
+              <svg class="check-ico" viewBox="0 0 24 24" fill="none" stroke="var(--ok-soft)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>
+              Inscripciones habilitadas
+            </div>
+            <div class="check">
+              <svg class="check-ico" viewBox="0 0 24 24" fill="none" stroke="var(--ok-soft)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>
+              Sede y cronograma cargados
+            </div>
+            <div class="check">
+              <svg class="check-ico" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2" stroke-linecap="round"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>
+              Entradas de público sin habilitar
+              <span class="fix">Ir a Entradas</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Preview -->
+      <aside class="prev-wrap">
+        <div class="prev-bar">
+          <span class="prev-l">Como se ve ahora</span>
+          <span class="prev-live"><span class="dot" style="background: var(--ok-soft);"></span>En vivo</span>
+          <button class="ghost-btn" type="button" style="margin-left: auto;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></svg>
+            Abrir la página
+          </button>
+        </div>
+
+        <div class="prev">
+          <div class="prev-chrome">
+            <span class="prev-url">plu.ar/eventos/pitbull-classic-2026</span>
+          </div>
+          <div class="prev-body">
+            <div class="prev-hero">
+              <span class="prev-eyebrow">Powerlifting United Argentina</span>
+              <h3 class="prev-h1">Pitbull Classic 2026</h3>
+              <p class="prev-meta" style="margin: 0;">14 y 15 de noviembre · Club Atlético Fénix, Pilar</p>
+              <span class="prev-cta">
+                Inscribirme
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </span>
+            </div>
+
+            <div class="prev-sec prev-cap">
+              <span class="prev-st">Cupos</span>
+              <div class="meter"><span style="width: 26%;"></span></div>
+              <span class="prev-cap-t">46 de 180 inscriptos · quedan 134 lugares</span>
+            </div>
+
+            <div class="prev-sec">
+              <span class="prev-st">Cronograma</span>
+              <div class="prev-days">
+                <div class="prev-day"><strong>Sábado 14</strong><small>Pesaje 07:00 · Tandas A y B</small></div>
+                <div class="prev-day"><strong>Domingo 15</strong><small>Pesaje 07:00 · Tanda C</small></div>
+              </div>
+            </div>
+
+            <div class="prev-sec">
+              <span class="prev-st">Categorías</span>
+              <div class="prev-line" style="width: 82%;"></div>
+              <div class="prev-line" style="width: 64%;"></div>
+            </div>
+
+            <div class="prev-sec">
+              <span class="prev-st">Cómo llegar</span>
+              <div class="prev-line" style="width: 74%;"></div>
+              <div class="prev-line" style="width: 46%;"></div>
+            </div>
+
+            <div class="prev-off">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 3l18 18M10.6 6.2A9.8 9.8 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-2.2 2.9M6.4 8.4A17 17 0 0 0 2 12s3.6 6 10 6c1 0 1.9-.1 2.7-.4"/></svg>
+              Transmisión, experiencia y entradas están apagados: no aparecen en la página.
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+</body>
+</html>
