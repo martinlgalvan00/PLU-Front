@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { resolvePlacementBatches, sessionsPayloadFromBoard } from '../services/eventBoardPlanner.js'
 import {
   assignRegistrationSchedule,
+  autofillEventDay,
   fetchEventBoard,
   saveEventSessions,
 } from '../services/eventRegistrationApi.js'
@@ -75,6 +76,35 @@ export function useEventBoard(eventSlug, { enabled = true } = {}) {
         return result
       } catch (assignError) {
         setError(assignError?.message ?? 'No se pudo asignar.')
+        return null
+      } finally {
+        setBusy(false)
+      }
+    },
+    [eventSlug, load],
+  )
+
+  /**
+   * Reparto sugerido de un día. Solo ubica a los que todavía no tienen día:
+   * nunca mueve a alguien que la organización ya puso a mano. El botón del
+   * board llama esto; `applyPlan` es el preview de varias tandas nuevas.
+   */
+  const autofill = useCallback(
+    async ({ dayIndex, maxPerSession }) => {
+      if (!eventSlug) return null
+      setBusy(true)
+      setError(null)
+      try {
+        const result = await autofillEventDay(eventSlug, { dayIndex, maxPerSession })
+        if (result?.board) {
+          setBoard(result.board)
+          setStatus('ready')
+        } else {
+          await load()
+        }
+        return result
+      } catch (autofillError) {
+        setError(autofillError?.message ?? 'No se pudo repartir.')
         return null
       } finally {
         setBusy(false)
@@ -168,6 +198,7 @@ export function useEventBoard(eventSlug, { enabled = true } = {}) {
     error,
     reload: load,
     assign,
+    autofill,
     saveSessions,
     applyPlan,
     days: board?.days ?? [],

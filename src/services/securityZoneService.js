@@ -61,6 +61,25 @@ export function isValidZoneScope(scope) {
   return ZONE_SCOPES.includes(scope)
 }
 
+/**
+ * Misma pregunta que `staff_check_in_ticket` con `p_zone_scope`: si esta
+ * credencial abre el puesto de quien está escaneando.
+ *
+ * Sin zona asignada no se filtra (una cuenta vieja sigue operando). Sin
+ * scopes en la entrada se asume puerta general: el frontend aplana `null` a
+ * `[]` y el SQL hace `coalesce(..., gate_tickets)` — hay que tratar los dos
+ * como tribuna, si no un pase legado se lee como "habilitado" y después
+ * rebota al marcar ingreso.
+ */
+export function credentialOpensZone(credentialScopes, zoneScope) {
+  if (!zoneScope) return true
+  const scopes =
+    Array.isArray(credentialScopes) && credentialScopes.length > 0
+      ? credentialScopes
+      : ['gate_tickets']
+  return scopes.includes(zoneScope)
+}
+
 /** Opciones del selector de alcance, traducidas. */
 export function getZoneScopeOptions(t) {
   return ZONE_SCOPES.map((scope) => [scope, t(`admin.eventZones.scope.${scope}`)])

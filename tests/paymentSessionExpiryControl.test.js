@@ -122,4 +122,22 @@ describe('runDomainMaintenanceJob', () => {
     await runDomainMaintenanceJob({ client: clientWith() })
     expect(warn).not.toHaveBeenCalled()
   })
+
+  it('sigue venciendo órdenes si todavía no está el barrido de abandono', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const calls = []
+    const client = {
+      rpc: (name) => {
+        calls.push(name)
+        if (name === 'expire_stale_payment_attempts') {
+          return Promise.resolve({ data: null, error: { code: 'PGRST202', message: 'missing' } })
+        }
+        return Promise.resolve({ data: { orders: 0, reservations: 0, failedOrders: 0 }, error: null })
+      },
+    }
+    const result = await runDomainMaintenanceJob({ client })
+    expect(result.staleAttempts).toBeNull()
+    expect(calls).toContain('expire_domain_orders')
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('expire_stale_payment_attempts'))
+  })
 })

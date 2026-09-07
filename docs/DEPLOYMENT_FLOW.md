@@ -143,13 +143,10 @@ en ambos Supabase antes de considerar `/api/ready` aprobado.
 
 En Hobby, Vercel ejecuta una vez por día la recuperación de pagos, la
 revalidación de pagos, los avisos de renovación y el ciclo de vida de cuentas
-de seguridad. Es el máximo de frecuencia del plan gratuito. La revalidación
-de pagos no depende solo de esa corrida diaria: `.github/workflows/payment-revalidation-cron.yml`
-(cada hora) dispara el mismo endpoint autenticado desde afuera, así que el
-cron nativo de Vercel queda como red de contención mínima, no como única
-pasada del día. Si la operación exige más frecuencia todavía, se puede pasar
-a Pro sin cambiar endpoints. Las expiraciones que liberan cupos no esperan
-ningún cron: corren cada minuto dentro de Supabase.
+de seguridad. Es el máximo de frecuencia del plan gratuito. Si la operación
+exige más frecuencia, se puede pasar a Pro sin cambiar endpoints. Las
+expiraciones que liberan cupos no esperan ningún cron: corren cada minuto
+dentro de Supabase.
 
 `vercel.json` permite deployments automáticos solamente para `dev` y `main`.
 Los demás branches siguen teniendo CI mediante sus PRs, pero no crean previews.

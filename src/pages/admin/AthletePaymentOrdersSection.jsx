@@ -477,57 +477,68 @@ export default function AthletePaymentOrdersSection({
   }
 
   return (
-    <section id="admin-athlete-payments" className="admin-orders-block">
+    <section
+      id="admin-athlete-payments"
+      className="admin-orders-block admin-orders-block--athlete"
+    >
+      <header className="admin-orders-block__header">
+        <div>
+          <span className="admin-orders-block__eyebrow">
+            {t('admin.athletePayments.eyebrow')}
+          </span>
+          <h3 className="admin-orders-block__title">{t('admin.athletePayments.title')}</h3>
+          <p className="admin-orders-block__lead">{t('admin.athletePayments.subtitle')}</p>
+        </div>
+        <div className="admin-orders-block__summary" role="status">
+          <strong className="admin-orders-block__amount-value">
+            {money(counts.openAmount, locale)}
+            {counts.openAmountTruncated ? '+' : ''}
+          </strong>
+          <span className="admin-orders-block__amount-caption">
+            {(counts.pending ?? 0) === 1
+              ? t('admin.athletePayments.openQueueCaptionOne')
+              : t('admin.athletePayments.openQueueCaptionMany', { count: counts.pending ?? 0 })}
+          </span>
+        </div>
+      </header>
       <div className="admin-orders-block__toolbar admin-orders-block__toolbar--athlete">
-        <AdminFilterSearch
-          placeholder={t('admin.athletePayments.searchPlaceholder')}
-          query={query}
-          onQueryChange={setQuery}
-        />
-        <div className="admin-orders-block__toolbar-secondary">
-          <div className="admin-orders-block__toolbar-facets">
-            <AdminFilterChipGroup
-              id="athlete-orders-status"
-              label={t('admin.filters.status')}
-              ariaLabel={t('admin.filters.status')}
-              value={status}
-              onChange={setStatus}
-              compact
-              defaultValue="all"
-              omitNeutral
-              allLabel={t('admin.filters.showingAll')}
-              clearable
-              hideEmpty
-              options={STATUS_FILTERS.map(([value, key]) => [
-                value,
-                t(key),
-                counts[value] ?? 0,
-              ])}
-            />
-            <span className="admin-orders-block__facet-divider" aria-hidden="true" />
-            <AdminFilterChipGroup
-              id="athlete-orders-channel"
-              label={t('admin.athletePayments.channelLabel')}
-              ariaLabel={t('admin.athletePayments.channelLabel')}
-              value={channel}
-              onChange={setChannel}
-              compact
-              defaultValue="all"
-              omitNeutral
-              allLabel={t('admin.filters.showingAll')}
-              clearable
-              options={CHANNEL_FILTERS.map(([value, key]) => [value, t(key)])}
-            />
-          </div>
-          <div className="admin-orders-block__summary" role="status">
-            <strong className="admin-orders-block__amount-value">
-              {money(counts.openAmount, locale)}
-              {counts.openAmountTruncated ? '+' : ''}
-            </strong>
-            <span className="admin-orders-block__amount-caption">
-              {t('admin.athletePayments.openAmountCaption')}
+        <div className="admin-orders-block__toolbar-facets">
+          <div className="admin-filter-group admin-filter-group--rail admin-filter-group--labeled admin-orders-block__search-row">
+            <span id="athlete-orders-search-label" className="admin-filter-group__label">
+              {t('admin.athletePayments.searchLabel')}
             </span>
+            <AdminFilterSearch
+              labelledBy="athlete-orders-search-label"
+              placeholder={t('admin.athletePayments.searchPlaceholder')}
+              query={query}
+              onQueryChange={setQuery}
+            />
           </div>
+          <AdminFilterChipGroup
+            id="athlete-orders-status"
+            label={t('admin.filters.status')}
+            ariaLabel={t('admin.filters.status')}
+            value={status}
+            onChange={setStatus}
+            compact
+            defaultValue="all"
+            clearable
+            hideEmpty
+            options={STATUS_FILTERS.map(([value, key]) => [value, t(key), counts[value] ?? 0])}
+          />
+          <AdminFilterChipGroup
+            id="athlete-orders-channel"
+            label={t('admin.athletePayments.channelLabel')}
+            ariaLabel={t('admin.athletePayments.channelLabel')}
+            value={channel}
+            onChange={setChannel}
+            compact
+            defaultValue="all"
+            omitNeutral
+            allLabel={t('admin.athletePayments.channelAll')}
+            clearable
+            options={CHANNEL_FILTERS.map(([value, key]) => [value, t(key)])}
+          />
         </div>
       </div>
 

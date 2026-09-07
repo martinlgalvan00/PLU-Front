@@ -2,6 +2,26 @@ import { assertSupabaseResult } from '../lib/supabaseRpc.js'
 
 const DEFAULT_INTERVAL_MS = 60_000
 
+function isMissingRpc(error) {
+  return error?.code === 'PGRST202' || error?.details?.code === 'PGRST202'
+}
+
+/**
+ * El barrido de abandono se agregó en 20261110100000. Si el entorno todavía
+ * no aplicó esa migración, no se corta el resto del mantenimiento: las
+ * reservas y las órdenes siguen venciendo, y el log dice qué falta aplicar.
+ */
+async function rpcIfPresent(client, name, args, fallback) {
+  const result = await client.rpc(name, args)
+  if (isMissingRpc(result.error)) {
+    console.warn(
+      `domain-maintenance-job: falta ${name}. Aplicá las migraciones de Supabase (20261110100000).`,
+    )
+    return null
+  }
+  return assertSupabaseResult(result, fallback)
+}
+
 export async function runDomainMaintenanceJob({ client } = {}) {
   if (!client) throw new Error('Supabase no está configurado para mantenimiento de dominio.')
 
@@ -11,8 +31,10 @@ export async function runDomainMaintenanceJob({ client } = {}) {
   // `expire_domain_orders` puede cancelar recién después. En paralelo con él,
   // una orden abandonada esperaría hasta el próximo ciclo por nada — el mismo
   // orden que respeta el cron de `20261110100000_payment_session_expiry_control`.
-  const staleAttempts = assertSupabaseResult(
-    await client.rpc('expire_stale_payment_attempts', { p_now: now }),
+  const staleAttempts = await rpcIfPresent(
+    client,
+    'expire_stale_payment_attempts',
+    { p_now: now },
     'Falló el barrido de intentos de pago abandonados.',
   )
 

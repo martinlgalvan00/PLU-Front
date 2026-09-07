@@ -484,3 +484,40 @@ export async function assertEventInfo(page, { title, date, venue }) {
 }
 
 export { TICKET_CODE, QR_TOKEN }
+
+/** JPEG 1×1 válido: alcanza para el upload de comprobante. */
+export const MINIMAL_JPEG = Buffer.from(
+  'ffd8ffe000104a46494600010100000100010000ffdb004300080606070605080707070909080a0c140d0c0b0b0c1912130f141d1a1f1e1d1a1c1c20242e2720222c231c1c2837292c30313434341f27393d38323c2e333432ffc0000b080001000101011100ffc40014100100000000000000000000000000000affda00080001000100003f00aaffd9',
+  'hex',
+)
+
+export const OVERSIZED_JPEG = Buffer.concat([MINIMAL_JPEG, Buffer.alloc(2 * 1024 * 1024 + 1, 0xff)])
+
+export async function assertCustomerConfirmation(page, { eventTitle, name, dni, amount }) {
+  const confirmation = page.locator('.ticket-purchase--confirmation')
+  await expect(confirmation).toBeVisible({ timeout: 15_000 })
+  await expect(confirmation.getByRole('heading', { name: new RegExp(eventTitle, 'i') })).toBeVisible()
+  await expect(confirmation).toContainText(/pendiente/i)
+  await expect(confirmation).toContainText(name)
+  await expect(confirmation).toContainText(String(dni).replace(/\D/g, ''))
+  await expect(confirmation).toContainText(TICKET_CODE)
+  if (amount) await expect(confirmation).toContainText(amount)
+}
+
+export async function openTicketPassModal(page, { name } = {}) {
+  await page.getByRole('button', { name: /ver mi entrada/i }).first().click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toBeVisible()
+  if (name) await expect(dialog).toContainText(name)
+  return dialog
+}
+
+export async function chooseTicketProofFile(page, { name, mimeType, buffer }) {
+  const input = page.locator('.ticket-purchase__proof-upload input[type="file"]')
+  await input.setInputFiles({ name, mimeType, buffer })
+  await expect(page.locator('.ticket-purchase__proof-upload')).toContainText(name)
+}
+
+export async function submitTicketProof(page) {
+  await page.getByRole('button', { name: /enviar comprobante/i }).click()
+}

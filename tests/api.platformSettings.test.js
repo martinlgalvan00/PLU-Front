@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createApp } from '../server/app.js'
+import { HttpError } from '../server/lib/errors.js'
 import {
   PLATFORM_FEATURES,
   platformFeatureToggleSchema,
@@ -334,6 +335,91 @@ describe('matriz de canales — /api/platform-settings/channels', () => {
         headers: authHeaders(cookie),
       })
       expect((await response.json()).environmentHolds).toEqual([])
+    } finally {
+      await target.close()
+    }
+  })
+})
+
+describe('plazos de cobro — /api/platform-settings/windows', () => {
+  it('guarda un plazo en minutos', async () => {
+    let saved = null
+    const { cookie, target } = await setup({
+      setCheckoutWindow: async (window, minutes, actor) => {
+        saved = { window, minutes, actor }
+        return { manualCheckoutWindowMinutes: minutes }
+      },
+    })
+    try {
+      const response = await fetch(`${target.url}/api/platform-settings/windows`, {
+        method: 'PUT',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ window: 'manual', minutes: 4320 }),
+      })
+      expect(response.status).toBe(200)
+      expect(saved).toMatchObject({ window: 'manual', minutes: 4320 })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza un plazo de abandono por debajo del piso de 5 minutos', async () => {
+    const { cookie, target } = await setup({
+      setCheckoutWindow: async () => {
+        throw new Error('no debería persistir')
+      },
+    })
+    try {
+      const response = await fetch(`${target.url}/api/platform-settings/windows`, {
+        method: 'PUT',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ window: 'stale_attempt', minutes: 1 }),
+      })
+      expect(response.status).toBe(400)
+    } finally {
+      await target.close()
+    }
+  })
+})
+
+describe('vencimientos — /api/platform-settings/expiry-overview', () => {
+  it('devuelve el diagnóstico de abandono', async () => {
+    const overview = {
+      manualWindowMinutes: 7200,
+      staleAttemptGraceMinutes: 30,
+      blockedByProvider: 0,
+    }
+    const { cookie, target } = await setup({
+      expiryOverview: async () => overview,
+    })
+    try {
+      const response = await fetch(`${target.url}/api/platform-settings/expiry-overview`, {
+        headers: authHeaders(cookie),
+      })
+      expect(response.status).toBe(200)
+      expect(await response.json()).toMatchObject(overview)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('si falta la RPC responde 409 con el mensaje de migración', async () => {
+    const { cookie, target } = await setup({
+      expiryOverview: async () => {
+        throw new HttpError(
+          409,
+          'Falta aplicar la migración de vencimiento de órdenes (20261110100000).',
+        )
+      },
+    })
+    try {
+      const response = await fetch(`${target.url}/api/platform-settings/expiry-overview`, {
+        headers: authHeaders(cookie),
+      })
+      expect(response.status).toBe(409)
+      expect(await response.json()).toMatchObject({
+        error: expect.stringContaining('20261110100000'),
+      })
     } finally {
       await target.close()
     }

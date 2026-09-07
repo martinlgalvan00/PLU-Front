@@ -1,9 +1,19 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   easeHeaderScrollProgress,
   quantizeHeaderScrollProgress,
   resolveHeaderScrolled,
 } from '../src/hooks/useMotion.js'
+
+const motionSource = readFileSync(resolve(process.cwd(), 'src/hooks/useMotion.js'), 'utf8')
+
+function useScrolledSource() {
+  const start = motionSource.indexOf('export function useScrolled')
+  const next = motionSource.indexOf('\nexport function', start + 1)
+  return motionSource.slice(start, next === -1 ? undefined : next)
+}
 
 describe('resolveHeaderScrolled', () => {
   const band = { enterAt: 96, exitAt: 52 }
@@ -45,5 +55,17 @@ describe('quantizeHeaderScrollProgress', () => {
     expect(quantizeHeaderScrollProgress(1, 24)).toBe(1)
     expect(quantizeHeaderScrollProgress(0.51, 2)).toBe(0.5)
     expect(quantizeHeaderScrollProgress(0.76, 4)).toBe(0.75)
+  })
+})
+
+describe('useScrolled', () => {
+  /**
+   * Este hook no tiene un nodo: el early-return de parallax (`node.style`)
+   * copiado acá tiraba `node is not defined` en equipos low y rompía CI.
+   */
+  it('no toca un nodo del DOM que no tiene', () => {
+    const body = useScrolledSource()
+    expect(body).toContain('window.scrollY')
+    expect(body).not.toMatch(/\bnode\./)
   })
 })
