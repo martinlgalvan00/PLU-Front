@@ -94,6 +94,7 @@ export default function SecurityGatePage({
         onRefreshTickets={onRefreshTickets}
         registrations={registrations}
         roleLabel={getRoleLabel(session)}
+        securityZone={session?.securityZone ?? null}
         ticketTypes={event?.ticketTypes ?? []}
         tickets={tickets}
       />

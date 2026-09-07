@@ -554,7 +554,7 @@ export function createTicketRoutes({
       res.json(
         await repo().checkIn(
           req.params.qrToken,
-          req.body?.gate,
+          req.body?.gate || req.auth?.user?.securityZone?.name || 'Puerta',
           actor(req),
           await scannerZoneScope(req),
         ),

@@ -1,7 +1,9 @@
 import { readFile, rm } from 'node:fs/promises'
 import { createClient } from '@supabase/supabase-js'
 import { resolveLocalSupabase } from './local-supabase.js'
+import { deleteEventsByIds } from './fixture-cleanup.js'
 import { FIXTURE_PATH } from './global-setup.js'
+import { deleteSecurityStaff } from './staff-fixture.js'
 
 /** Borra todo lo que creó global-setup.js, corra lo que corra haya salido. */
 export default async function globalTeardown() {
@@ -36,13 +38,20 @@ export default async function globalTeardown() {
     for (const code of [fixture.discountCode, fixture.manualOnlyDiscountCode]) {
       if (code) await admin.from('discount_codes').delete().eq('code', code)
     }
-    for (const eventId of [fixture.eventId, fixture.manualOnlyEventId]) {
-      if (eventId) await admin.from('events').delete().eq('id', eventId)
-    }
+    await deleteSecurityStaff()
+    await deleteEventsByIds(admin, [
+      fixture.eventId,
+      fixture.manualOnlyEventId,
+      fixture.ticketEventId,
+      fixture.soldOutEventId,
+      fixture.pausedEventId,
+    ])
     await admin
       .from('domain_audit_logs')
       .delete()
-      .or(`actor_id.eq.e2e:checkout-coupon,actor_id.eq.${fixture.athleteId ?? 'x'}`)
+      .or(
+        `actor_id.eq.e2e:checkout-coupon,actor_id.eq.e2e:ticket-sales,actor_id.eq.${fixture.athleteId ?? 'x'}`,
+      )
   } catch (error) {
     console.warn(`Cleanup incompleto: ${error.message}`)
   } finally {

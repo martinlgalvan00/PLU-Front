@@ -238,7 +238,7 @@ function EditorialAttendeesBatch({
                   error={errors[`attendee-${index}-dni`]}
                   placeholder={t('pages.tickets.dniPlaceholder')}
                   inputMode="numeric"
-                  maxLength={8}
+                  maxLength={16}
                   autoComplete="off"
                 />
 
@@ -344,7 +344,7 @@ function EditorialAttendeeFields({
           error={errors[`attendee-${index}-dni`]}
           placeholder={t('pages.tickets.dniPlaceholder')}
           inputMode="numeric"
-          maxLength={8}
+          maxLength={16}
           autoComplete="off"
         />
         {/* Elegir el tipo es elegir qué zona se abre, así que la opción lo dice
@@ -565,7 +565,16 @@ export default function TicketPurchaseSection({
 
   function changeAttendee(index, field, value) {
     setAttendees((current) =>
-      current.map((attendee, i) => (i === index ? { ...attendee, [field]: value } : attendee)),
+      current.map((attendee, i) => {
+        if (i !== index) return attendee
+        const next = { ...attendee, [field]: value }
+        if (field === 'ticketTypeId') {
+          const included =
+            pricing.ticketTypes.find((type) => type.id === value)?.includedAddonIds ?? []
+          next.addonIds = (next.addonIds ?? []).filter((id) => !included.includes(id))
+        }
+        return next
+      }),
     )
     const errorKey = `attendee-${index}-${field}`
     if (errors[errorKey]) setErrors((current) => ({ ...current, [errorKey]: '' }))
@@ -1011,7 +1020,7 @@ export default function TicketPurchaseSection({
                     error={errors[`attendee-${index}-dni`]}
                     placeholder={t('pages.tickets.dniPlaceholder')}
                     inputMode="numeric"
-                    maxLength={8}
+                    maxLength={16}
                   />
                   <Select
                     label={t('pages.tickets.day')}

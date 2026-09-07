@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { buildTicketRow } from '../src/services/checkinScanService.js'
+import { buildTicketRow, checkinTypeLabel } from '../src/services/checkinScanService.js'
 
 const migration = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/20261108100000_scan_shows_credential.sql'),
@@ -36,6 +36,21 @@ describe('la puerta distingue las dos credenciales del entrenador', () => {
   it('sin credencial cargada no inventa una', () => {
     expect(buildTicketRow(base).credentialLabel).toBeNull()
     expect(buildTicketRow(base).credentialScopes).toEqual([])
+  })
+
+  it('la lista de puerta muestra la credencial, no un rótulo genérico', () => {
+    const t = (key) =>
+      ({
+        'admin.checkin.athlete': 'Atleta',
+        'admin.checkin.spectator': 'Espectador',
+      })[key]
+
+    expect(checkinTypeLabel({ type: 'espectador', credentialLabel: 'VIP' }, t)).toBe('VIP')
+    expect(checkinTypeLabel({ type: 'espectador', credentialLabel: 'ENTRENADOR' }, t)).toBe(
+      'ENTRENADOR',
+    )
+    expect(checkinTypeLabel({ type: 'atleta' }, t)).toBe('Atleta')
+    expect(checkinTypeLabel({ type: 'espectador' }, t)).toBe('Espectador')
   })
 
   it('la verificación y la lista offline devuelven la credencial', () => {
