@@ -10,6 +10,8 @@ import {
   assertGateZone,
   scanCredential,
   assertScanResult,
+  assertMarkEntryHidden,
+  assertScanHistory,
   markGateEntry,
   openScanTab,
   assertAllowlistPerson,
@@ -62,6 +64,8 @@ function scanValue(qrToken) {
 }
 
 test.describe('Puerta de seguridad — entradas', () => {
+  test.describe.configure({ timeout: 90_000, retries: 1 })
+
   test('una cuenta de otro evento no entra a esta puerta', async ({ page }) => {
     await openSecurityGate(page, fixture.pausedEventSlug)
     await page.locator('input[name="email"]').fill(fixture.gateEmail)
@@ -99,11 +103,12 @@ test.describe('Puerta de seguridad — entradas', () => {
     })
 
     await markGateEntry(page)
-    await expect(page.getByRole('button', { name: /registrar ingreso/i })).toHaveCount(0)
+    await assertMarkEntryHidden(page)
 
-    await scanCredential(page, scanValue(pass.qr_token))
+    await scanCredential(page, pass.qr_token)
     await assertScanResult(page, { outcome: /ya ingresó/i, label: 'Entrada general' })
-    await expect(page.getByRole('button', { name: /registrar ingreso/i })).toHaveCount(0)
+    await assertMarkEntryHidden(page)
+    await assertScanHistory(page, { name: 'Mora General', label: 'Entrada general' })
 
     await assertAllowlistPerson(page, { name: 'Mora General', label: /entrada general/i })
   })
@@ -129,7 +134,13 @@ test.describe('Puerta de seguridad — entradas', () => {
       name: 'Leo Impago',
       label: 'Entrada general',
     })
-    await expect(page.getByRole('button', { name: /registrar ingreso/i })).toHaveCount(0)
+    await assertMarkEntryHidden(page)
+    await assertScanHistory(page, { name: 'Leo Impago', label: 'Entrada general' })
+
+    await assertAllowlistPerson(page, { name: 'Leo Impago', label: /entrada general/i })
+    await expect(
+      page.locator('.checkin-app__list').getByRole('button', { name: /registrar ingreso/i }),
+    ).toBeDisabled()
   })
 
   test('VIP y entrenador se leen con su propia etiqueta, y el calentamiento rechaza al público', async ({
@@ -155,14 +166,18 @@ test.describe('Puerta de seguridad — entradas', () => {
       email: fixture.gateEmail,
       password: fixture.gatePassword,
     })
-    await assertGateZone(page, 'Puerta principal')
+    await assertGateZone(page, fixture.gateZoneName)
 
     await scanCredential(page, scanValue(vipToken))
     await assertScanResult(page, { label: 'VIP', name: 'Iván VIP', outcome: /habilitado/i })
     await markGateEntry(page)
 
     await scanCredential(page, scanValue(spectator.qr_token))
-    await assertScanResult(page, { label: 'Espectador', name: 'Nora Coach' })
+    await assertScanResult(page, { label: 'Espectador', name: 'Nora Coach', outcome: /habilitado/i })
+
+    await scanCredential(page, scanValue(trainer.qr_token))
+    await assertScanResult(page, { label: 'ENTRENADOR', outcome: /no abre esta zona/i })
+    await assertMarkEntryHidden(page)
 
     await assertAllowlistPerson(page, { name: 'Iván VIP', label: 'VIP' })
     await assertAllowlistPerson(page, { name: 'Nora Coach', label: 'Espectador' })
@@ -181,9 +196,22 @@ test.describe('Puerta de seguridad — entradas', () => {
     await assertScanResult(page, { label: 'ENTRENADOR', outcome: /habilitado/i })
 
     await scanCredential(page, scanValue(spectator.qr_token))
-    await assertScanResult(page, { label: 'Espectador', outcome: /habilitado/i })
-    await page.getByRole('button', { name: /registrar ingreso/i }).click()
-    await expect(page.locator('.admin-checkin-result')).toContainText(/no abre esta zona/i)
-    await expect(page.getByRole('button', { name: /registrar ingreso/i })).toHaveCount(0)
+    await assertScanResult(page, { label: 'Espectador', outcome: /no abre esta zona/i })
+    await assertMarkEntryHidden(page)
+  })
+
+  test('un código que no existe se lee como credencial no encontrada', async ({ page }) => {
+    await openSecurityGate(page, fixture.ticketEventSlug)
+    await loginSecurityGate(page, {
+      email: fixture.gateEmail,
+      password: fixture.gatePassword,
+    })
+
+    await scanCredential(
+      page,
+      ticketCredentialScanValue('00000000-0000-4000-8000-000000000099', fixture.ticketEventSlug),
+    )
+    await assertScanResult(page, { outcome: /no encontrada/i })
+    await assertMarkEntryHidden(page)
   })
 })

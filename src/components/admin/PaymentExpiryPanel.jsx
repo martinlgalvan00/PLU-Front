@@ -2,10 +2,18 @@ import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, Clock, FileClock, LoaderCircle, RefreshCw } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import {
+  checkoutWindowLimitsInUnit,
+  isCheckoutWindowDraftValid,
+  splitCheckoutWindowMinutes,
+  toCheckoutWindowMinutes,
+} from '../../lib/checkoutWindowUnits.js'
+import {
   CHECKOUT_WINDOW_LIMITS,
   fetchPaymentExpiryOverview,
   saveCheckoutWindow,
 } from '../../services/platformSettingsAdminService.js'
+import SegmentedSwitch from '../ui/SegmentedSwitch.jsx'
+import AdminIconButton from './AdminIconButton.jsx'
 
 /**
  * Cierre automático de órdenes: qué plazo rige, qué está trabado y por qué.
@@ -23,6 +31,17 @@ const WINDOW_FIELDS = [
   { key: 'stale_attempt', stateKey: 'staleAttemptGraceMinutes' },
 ]
 
+const UNIT_OPTION_KEYS = {
+  minutes: 'admin.paymentExpiry.unitOptionMinutes',
+  hours: 'admin.paymentExpiry.unitOptionHours',
+  days: 'admin.paymentExpiry.unitOptionDays',
+}
+
+function toDraft(minutes) {
+  const split = splitCheckoutWindowMinutes(minutes)
+  return { amount: String(split.amount), unit: split.unit }
+}
+
 /**
  * Minutos a algo legible. Un plazo de cobro se comunica en días cuando son
  * días: "7200 minutos" no le dice nada a quien tiene que decidir si acortarlo.
@@ -33,6 +52,10 @@ function formatWindow(minutes, t) {
   if (value % 1440 === 0) return t('admin.paymentExpiry.unitDays', { count: value / 1440 })
   if (value % 60 === 0) return t('admin.paymentExpiry.unitHours', { count: value / 60 })
   return t('admin.paymentExpiry.unitMinutes', { count: value })
+}
+
+function metricDisplay(overview, value) {
+  return overview ? value : '—'
 }
 
 export default function PaymentExpiryPanel({ canEdit = false }) {
@@ -51,8 +74,8 @@ export default function PaymentExpiryPanel({ canEdit = false }) {
       const next = await fetchPaymentExpiryOverview()
       setOverview(next)
       setDrafts({
-        manual: String(next.manualWindowMinutes),
-        stale_attempt: String(next.staleAttemptGraceMinutes),
+        manual: toDraft(next.manualWindowMinutes),
+        stale_attempt: toDraft(next.staleAttemptGraceMinutes),
       })
     } catch (loadError) {
       // Un rol acotado puede no tener `admin.registration_access.read`. Eso no
@@ -71,9 +94,10 @@ export default function PaymentExpiryPanel({ canEdit = false }) {
   }, [load])
 
   async function handleSave(key) {
-    const minutes = Number(drafts[key])
-    const { min, max } = CHECKOUT_WINDOW_LIMITS[key]
-    if (!Number.isInteger(minutes) || minutes < min || minutes > max) return
+    const draft = drafts[key]
+    const limits = CHECKOUT_WINDOW_LIMITS[key]
+    if (!isCheckoutWindowDraftValid(draft?.amount, draft?.unit, limits)) return
+    const minutes = toCheckoutWindowMinutes(draft.amount, draft.unit)
     setSavingKey(key)
     setError('')
     try {
@@ -90,6 +114,46 @@ export default function PaymentExpiryPanel({ canEdit = false }) {
   const held = overview?.heldForProof ?? 0
   const reapable = overview?.reapableAttempts ?? 0
   const expiredOpen = overview?.expiredStillOpen ?? 0
+  const unitOptions = [
+    [
+      'minutes',
+      t('admin.paymentExpiry.unitOptionMinutes'),
+      t('admin.paymentExpiry.minutesUnit'),
+    ],
+    ['hours', t('admin.paymentExpiry.unitOptionHours')],
+    ['days', t('admin.paymentExpiry.unitOptionDays')],
+  ]
+
+  const metrics = [
+    {
+      id: 'blocked',
+      value: metricDisplay(overview, blocked),
+      label: t('admin.paymentExpiry.blockedLabel'),
+      hint: t('admin.paymentExpiry.blockedHint'),
+      alert: blocked > 0,
+    },
+    {
+      id: 'held',
+      value: metricDisplay(overview, held),
+      label: t('admin.paymentExpiry.heldLabel'),
+      hint: t('admin.paymentExpiry.heldHint'),
+      alert: false,
+    },
+    {
+      id: 'reapable',
+      value: metricDisplay(overview, reapable),
+      label: t('admin.paymentExpiry.reapableLabel'),
+      hint: t('admin.paymentExpiry.reapableHint'),
+      alert: false,
+    },
+    {
+      id: 'expired',
+      value: metricDisplay(overview, expiredOpen),
+      label: t('admin.paymentExpiry.expiredLabel'),
+      hint: t('admin.paymentExpiry.expiredHint'),
+      alert: false,
+    },
+  ]
 
   if (forbidden) return null
 
@@ -105,19 +169,13 @@ export default function PaymentExpiryPanel({ canEdit = false }) {
           </h3>
           <p className="admin-payment-expiry__subtitle">{t('admin.paymentExpiry.subtitle')}</p>
         </div>
-        <button
-          type="button"
-          className="btn btn--ghost btn--small"
+        <AdminIconButton
+          icon={RefreshCw}
+          label={t('admin.paymentExpiry.refresh')}
           onClick={() => void load()}
           disabled={loading}
-        >
-          {loading ? (
-            <LoaderCircle size={14} aria-hidden className="is-spinning" />
-          ) : (
-            <RefreshCw size={14} aria-hidden />
-          )}{' '}
-          {t('admin.paymentExpiry.refresh')}
-        </button>
+          spinning={loading}
+        />
       </header>
 
       {error ? (
@@ -129,52 +187,25 @@ export default function PaymentExpiryPanel({ canEdit = false }) {
       <div className="admin-payment-expiry__grid">
         {/* El orden es el de la urgencia real, no el del esquema: lo que
             necesita a una persona primero. */}
-        <article
-          className={`admin-payment-expiry__metric${blocked > 0 ? ' is-alert' : ''}`}
-          data-metric="blocked"
-        >
-          <span className="admin-payment-expiry__metric-value">{blocked}</span>
-          <span className="admin-payment-expiry__metric-label">
-            {t('admin.paymentExpiry.blockedLabel')}
-          </span>
-          <p className="admin-payment-expiry__metric-hint">
-            {t('admin.paymentExpiry.blockedHint')}
-          </p>
-        </article>
-
-        <article className="admin-payment-expiry__metric" data-metric="held">
-          <span className="admin-payment-expiry__metric-value">{held}</span>
-          <span className="admin-payment-expiry__metric-label">
-            {t('admin.paymentExpiry.heldLabel')}
-          </span>
-          <p className="admin-payment-expiry__metric-hint">{t('admin.paymentExpiry.heldHint')}</p>
-        </article>
-
-        <article className="admin-payment-expiry__metric" data-metric="reapable">
-          <span className="admin-payment-expiry__metric-value">{reapable}</span>
-          <span className="admin-payment-expiry__metric-label">
-            {t('admin.paymentExpiry.reapableLabel')}
-          </span>
-          <p className="admin-payment-expiry__metric-hint">
-            {t('admin.paymentExpiry.reapableHint')}
-          </p>
-        </article>
-
-        <article className="admin-payment-expiry__metric" data-metric="expired">
-          <span className="admin-payment-expiry__metric-value">{expiredOpen}</span>
-          <span className="admin-payment-expiry__metric-label">
-            {t('admin.paymentExpiry.expiredLabel')}
-          </span>
-          <p className="admin-payment-expiry__metric-hint">
-            {t('admin.paymentExpiry.expiredHint')}
-          </p>
-        </article>
+        {metrics.map((metric) => (
+          <article
+            className={`admin-payment-expiry__metric${metric.alert ? ' is-alert' : ''}`}
+            data-metric={metric.id}
+            key={metric.id}
+          >
+            <span className="admin-payment-expiry__metric-value">{metric.value}</span>
+            <span className="admin-payment-expiry__metric-label">{metric.label}</span>
+            <p className="admin-payment-expiry__metric-hint" title={metric.hint}>
+              {metric.hint}
+            </p>
+          </article>
+        ))}
       </div>
 
       {/* Un total de vencidas-abiertas mayor a lo que se explica por retención
           o proveedor significa que el cron no está corriendo. Es la única
           lectura del panel que apunta a la infraestructura y no a una orden. */}
-      {expiredOpen > held + blocked ? (
+      {overview && expiredOpen > held + blocked ? (
         <p className="admin-payment-expiry__callout" role="status">
           <AlertTriangle size={15} aria-hidden />
           {t('admin.paymentExpiry.cronWarning', { count: expiredOpen - held - blocked })}
@@ -183,61 +214,98 @@ export default function PaymentExpiryPanel({ canEdit = false }) {
 
       <div className="admin-payment-expiry__windows">
         {WINDOW_FIELDS.map(({ key, stateKey }) => {
-          const { min, max } = CHECKOUT_WINDOW_LIMITS[key]
-          const draft = drafts[key] ?? ''
-          const parsed = Number(draft)
-          const invalid = !Number.isInteger(parsed) || parsed < min || parsed > max
-          const dirty = String(overview?.[stateKey] ?? '') !== draft
+          const limits = CHECKOUT_WINDOW_LIMITS[key]
+          const draft = drafts[key] ?? { amount: '', unit: 'minutes' }
+          const unitLimits = checkoutWindowLimitsInUnit(limits, draft.unit)
+          const invalid =
+            Boolean(overview) && !isCheckoutWindowDraftValid(draft.amount, draft.unit, limits)
+          const current = toDraft(overview?.[stateKey])
+          const dirty =
+            Boolean(overview) &&
+            (current.amount !== draft.amount || current.unit !== draft.unit)
           const inputId = `payment-expiry-window-${key}`
+          const unitId = `${inputId}-unit`
+          const unitsLocked = !canEdit || loading
+          const liveValue = overview ? formatWindow(overview[stateKey], t) : '—'
           return (
             <div className="admin-payment-expiry__window" key={key}>
-              <label className="admin-payment-expiry__window-label" htmlFor={inputId}>
-                {t(`admin.paymentExpiry.window.${key}.label`)}
-              </label>
-              <p className="admin-payment-expiry__window-hint">
-                {t(`admin.paymentExpiry.window.${key}.hint`)}
-              </p>
-              <div className="admin-payment-expiry__window-controls">
-                <input
-                  id={inputId}
-                  type="number"
-                  inputMode="numeric"
-                  className="admin-payment-expiry__window-input"
-                  min={min}
-                  max={max}
-                  step={1}
-                  value={draft}
-                  disabled={!canEdit || loading}
-                  aria-invalid={invalid || undefined}
-                  aria-describedby={`${inputId}-current`}
-                  onChange={(event) =>
-                    setDrafts((current) => ({ ...current, [key]: event.target.value }))
-                  }
-                />
-                <span className="admin-payment-expiry__window-unit">
-                  {t('admin.paymentExpiry.minutesUnit')}
-                </span>
-                {canEdit ? (
-                  <button
-                    type="button"
-                    className="btn btn--small"
-                    onClick={() => void handleSave(key)}
-                    disabled={invalid || !dirty || savingKey === key}
-                  >
-                    {savingKey === key ? (
-                      <LoaderCircle size={14} aria-hidden className="is-spinning" />
-                    ) : null}{' '}
-                    {t('admin.paymentExpiry.save')}
-                  </button>
-                ) : null}
+              <div className="admin-payment-expiry__window-copy">
+                <label className="admin-payment-expiry__window-label" htmlFor={inputId}>
+                  {t(`admin.paymentExpiry.window.${key}.label`)}
+                </label>
+                <p className="admin-payment-expiry__window-hint">
+                  {t(`admin.paymentExpiry.window.${key}.hint`)}
+                </p>
               </div>
-              <p className="admin-payment-expiry__window-current" id={`${inputId}-current`}>
-                {invalid
-                  ? t('admin.paymentExpiry.windowRange', { min, max })
-                  : t('admin.paymentExpiry.windowCurrent', {
-                      value: formatWindow(overview?.[stateKey], t),
-                    })}
+              <p className="admin-payment-expiry__window-figure" aria-hidden="true">
+                {liveValue}
               </p>
+              <div className="admin-payment-expiry__window-edit">
+                <div className="admin-payment-expiry__window-controls">
+                  <input
+                    id={inputId}
+                    type="number"
+                    inputMode="numeric"
+                    className="admin-payment-expiry__window-input"
+                    min={unitLimits.min}
+                    max={unitLimits.max}
+                    step={1}
+                    value={draft.amount}
+                    disabled={unitsLocked}
+                    aria-invalid={invalid || undefined}
+                    aria-describedby={`${inputId}-current`}
+                    onChange={(event) =>
+                      setDrafts((currentDrafts) => ({
+                        ...currentDrafts,
+                        [key]: { ...draft, amount: event.target.value },
+                      }))
+                    }
+                  />
+                  <div
+                    className={`admin-payment-expiry__window-units${unitsLocked ? ' is-readonly' : ''}`}
+                    id={unitId}
+                    inert={unitsLocked || undefined}
+                  >
+                    <SegmentedSwitch
+                      className="admin-payment-expiry__unit-switch"
+                      active={draft.unit}
+                      ariaLabel={t('admin.paymentExpiry.unitLabel')}
+                      onChange={(unit) => {
+                        if (unitsLocked) return
+                        setDrafts((currentDrafts) => ({
+                          ...currentDrafts,
+                          [key]: { ...draft, unit },
+                        }))
+                      }}
+                      options={unitOptions}
+                    />
+                  </div>
+                  {canEdit && dirty ? (
+                    <button
+                      type="button"
+                      className="btn btn--small"
+                      onClick={() => void handleSave(key)}
+                      disabled={invalid || savingKey === key}
+                    >
+                      {savingKey === key ? (
+                        <LoaderCircle size={14} aria-hidden className="is-spinning" />
+                      ) : null}{' '}
+                      {t('admin.paymentExpiry.save')}
+                    </button>
+                  ) : null}
+                </div>
+                <p className="admin-payment-expiry__window-current" id={`${inputId}-current`}>
+                  {invalid
+                    ? t('admin.paymentExpiry.windowRange', {
+                        min: unitLimits.min,
+                        max: unitLimits.max,
+                        unit: t(UNIT_OPTION_KEYS[draft.unit] ?? UNIT_OPTION_KEYS.minutes),
+                      })
+                    : t('admin.paymentExpiry.windowCurrent', {
+                        value: liveValue,
+                      })}
+                </p>
+              </div>
             </div>
           )
         })}

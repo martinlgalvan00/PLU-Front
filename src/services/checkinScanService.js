@@ -1,4 +1,5 @@
 import { ApiError } from '../lib/api.js'
+import { credentialOpensZone } from './securityZoneService.js'
 import { getMembershipByCodeOrToken, getStaffMembershipCredential } from './athleteApi.js'
 import { mapApiTicket, verifyTicketByQrToken } from './ticketApi.js'
 
@@ -84,6 +85,24 @@ function checkinOutcomeFromStatus(status) {
 }
 
 /**
+ * El canje en el servidor ya rechaza zona incorrecta. El escaneo también
+ * tiene que decirlo: si no, la puerta lee "habilitado" y recién falla al
+ * tocar Registrar ingreso.
+ */
+export function applyTicketZoneOutcome(resolved, zoneScope) {
+  if (resolved?.kind !== 'ticket' || resolved.outcome !== 'ready') return resolved
+  const scopes = resolved.row?.credentialScopes ?? resolved.ticket?.credentialScopes
+  if (credentialOpensZone(scopes, zoneScope)) return resolved
+  return { ...resolved, outcome: 'wrong_zone', canCheckIn: false }
+}
+
+export function canAdmitCheckinRow(row, { canCheckIn = false, zoneScope = null } = {}) {
+  if (!canCheckIn || row?.status !== 'pagada') return false
+  if (row.type === 'atleta') return true
+  return credentialOpensZone(row.credentialScopes, zoneScope)
+}
+
+/**
  * El operador en la puerta necesita el DNI para cotejarlo contra el documento
  * físico, pero la proyección pública dejó de exponerlo (el `member_code` es
  * correlativo, así que devolver PII ahí era una fuga enumerable). Con sesión
@@ -145,22 +164,25 @@ export async function resolveRegistrationScan({ code, eventSlug }, ctx) {
   }
 }
 
-export async function resolveTicketScan(qrToken) {
+export async function resolveTicketScan(qrToken, { zoneScope } = {}) {
   try {
     const { ticket } = await verifyTicketByQrToken(qrToken)
     const mapped = mapApiTicket(ticket)
     const status = mapped.checkedInAt ? 'usada' : mapped.status
     const outcome = checkinOutcomeFromStatus(status)
 
-    return {
-      kind: 'ticket',
-      outcome,
-      canCheckIn: outcome === 'ready',
-      ticket: mapped,
-      qrToken,
-      status,
-      row: buildTicketRow(mapped),
-    }
+    return applyTicketZoneOutcome(
+      {
+        kind: 'ticket',
+        outcome,
+        canCheckIn: outcome === 'ready',
+        ticket: mapped,
+        qrToken,
+        status,
+        row: buildTicketRow(mapped),
+      },
+      zoneScope,
+    )
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
       return { kind: 'ticket', outcome: 'not_found' }
@@ -173,11 +195,11 @@ export async function resolveTicketScan(qrToken) {
  * Resuelve un escaneo QR a atleta inscripto o entrada general.
  * @param {{ code: string, eventSlug: string | null, type: string | null }} parsed
  */
-export async function resolveCredentialScan(parsed, ctx) {
+export async function resolveCredentialScan(parsed, ctx = {}) {
   if (!parsed?.code) return { outcome: 'invalid' }
 
   if (parsed.type === 'ticket') {
-    return resolveTicketScan(parsed.code)
+    return resolveTicketScan(parsed.code, ctx)
   }
 
   const registrationResult = await resolveRegistrationScan(parsed, ctx)
@@ -185,5 +207,5 @@ export async function resolveCredentialScan(parsed, ctx) {
     return registrationResult
   }
 
-  return resolveTicketScan(parsed.code)
+  return resolveTicketScan(parsed.code, ctx)
 }

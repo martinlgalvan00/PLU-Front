@@ -6,8 +6,11 @@ import { buildEventTicketAddonReport } from '../lib/ticketAddons.js'
 import { parseCredentialScan } from '../lib/credentialQr.js'
 import { getFeedbackTone, playCheckinFeedback } from '../lib/checkinFeedback.js'
 import { enqueueCheckin, findInAllowlist } from '../lib/offlineCheckinDb.js'
+import { credentialOpensZone } from '../services/securityZoneService.js'
 import {
+  applyTicketZoneOutcome,
   buildTicketRow,
+  canAdmitCheckinRow,
   registrationCheckinStatus,
   resolveCredentialScan,
 } from '../services/checkinScanService.js'
@@ -60,7 +63,7 @@ function isNetworkError(error) {
   return error instanceof TypeError || error?.name === 'AuthRetryableFetchError'
 }
 
-function buildOfflineScanResult(found) {
+function buildOfflineScanResult(found, zoneScope) {
   if (!found) return { outcome: 'not_found', offline: true }
 
   const { kind, entry } = found
@@ -68,28 +71,31 @@ function buildOfflineScanResult(found) {
 
   if (kind === 'ticket') {
     const outcome = alreadyUsed ? 'already_used' : entry.status === 'pagada' ? 'ready' : 'not_ready'
-    return {
-      kind: 'ticket',
-      outcome,
-      offline: true,
-      canCheckIn: outcome === 'ready',
-      qrToken: entry.qrToken,
-      status: alreadyUsed ? 'usada' : entry.status,
-      row: {
-        id: `tkt-${entry.qrToken}`,
-        ticketCode: entry.ticketCode,
+    return applyTicketZoneOutcome(
+      {
+        kind: 'ticket',
+        outcome,
+        offline: true,
+        canCheckIn: outcome === 'ready',
         qrToken: entry.qrToken,
-        type: 'espectador',
-        name: entry.attendeeName,
-        document: entry.attendeeDni,
-        meta: entry.ticketTypeName ?? entry.ticketCode,
-        ticketTypeName: entry.ticketTypeName,
-        // Sin señal en la puerta esto es lo único que tiene el escáner.
-        credentialLabel: entry.credentialLabel ?? null,
-        credentialScopes: entry.credentialScopes ?? [],
         status: alreadyUsed ? 'usada' : entry.status,
+        row: {
+          id: `tkt-${entry.qrToken}`,
+          ticketCode: entry.ticketCode,
+          qrToken: entry.qrToken,
+          type: 'espectador',
+          name: entry.attendeeName,
+          document: entry.attendeeDni,
+          meta: entry.ticketTypeName ?? entry.ticketCode,
+          ticketTypeName: entry.ticketTypeName,
+          // Sin señal en la puerta esto es lo único que tiene el escáner.
+          credentialLabel: entry.credentialLabel ?? null,
+          credentialScopes: entry.credentialScopes ?? [],
+          status: alreadyUsed ? 'usada' : entry.status,
+        },
       },
-    }
+      zoneScope,
+    )
   }
 
   const status = registrationCheckinStatus({
@@ -170,6 +176,8 @@ export function useCheckInWorkspace({
   onRefreshTickets,
   payments = [],
   registrations,
+  /** Puesto de quien opera. Nulo = no filtra zona (misma regla que el API). */
+  securityZone = null,
   ticketTypes = [],
   tickets,
 }) {
@@ -188,6 +196,7 @@ export function useCheckInWorkspace({
   const [redeemBusyId, setRedeemBusyId] = useState(null)
   const [redeemError, setRedeemError] = useState('')
   const offlineSync = useOfflineCheckinSync(eventSlug)
+  const zoneScope = securityZone?.scope ?? null
 
   function persistFeedbackPrefs(next) {
     setFeedbackPrefs(next)
@@ -279,6 +288,7 @@ export function useCheckInWorkspace({
         const resolved = await resolveCredentialScan(parsed, {
           defaultEventSlug: eventSlug,
           staff: canCheckIn,
+          zoneScope,
         })
         const historyEntry = buildHistoryEntry(resolved, raw)
         setScanResult(resolved)
@@ -291,7 +301,7 @@ export function useCheckInWorkspace({
       } catch (error) {
         if (isNetworkError(error)) {
           const found = await findInAllowlist(eventSlug, parsed.code)
-          const offlineResult = buildOfflineScanResult(found)
+          const offlineResult = buildOfflineScanResult(found, zoneScope)
           setScanResult(offlineResult)
           setRedeemError('')
           prependHistoryEntry(buildHistoryEntry(offlineResult, raw))
@@ -310,7 +320,7 @@ export function useCheckInWorkspace({
         setScanBusy(false)
       }
     },
-    [canCheckIn, eventSlug, feedbackPrefs],
+    [canCheckIn, eventSlug, feedbackPrefs, zoneScope],
   )
 
   function handleHistorySelect(item) {
@@ -338,6 +348,19 @@ export function useCheckInWorkspace({
       return
     }
 
+    if (row.type !== 'atleta' && !credentialOpensZone(row.credentialScopes, zoneScope)) {
+      playCheckinFeedback('wrong_zone', feedbackPrefs)
+      setScanResult({
+        kind: 'ticket',
+        outcome: 'wrong_zone',
+        canCheckIn: false,
+        qrToken: row.qrToken,
+        status: row.status,
+        row,
+      })
+      return
+    }
+
     const result = await onCheckInTicket(row.qrToken)
     onRefreshTickets?.(eventSlug)
 
@@ -349,6 +372,20 @@ export function useCheckInWorkspace({
           ? { ...current, outcome: 'checked_in', canCheckIn: false, status: 'usada' }
           : current,
       )
+      return
+    }
+
+    if (result?.outcome === 'wrong_zone' || result?.outcome === 'not_paid') {
+      const outcome = result.outcome === 'wrong_zone' ? 'wrong_zone' : 'not_ready'
+      playCheckinFeedback(outcome, feedbackPrefs)
+      setScanResult({
+        kind: 'ticket',
+        outcome,
+        canCheckIn: false,
+        qrToken: row.qrToken,
+        status: row.status,
+        row,
+      })
     }
   }
 
@@ -492,6 +529,7 @@ export function useCheckInWorkspace({
     activeHistoryId,
     addonReport,
     allRows,
+    canAdmitRow: (row) => canAdmitCheckinRow(row, { canCheckIn, zoneScope }),
     canCheckIn,
     checkinStatus,
     day,

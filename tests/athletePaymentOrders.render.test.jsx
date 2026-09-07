@@ -79,6 +79,18 @@ async function renderSection(orders, props = {}) {
 }
 
 describe('Finanzas — comprobante y validación', () => {
+  it('explica qué es la bandeja y cuánto hay por acreditar', async () => {
+    await renderSection([order()])
+
+    expect(screen.getByRole('heading', { name: 'Órdenes de atleta' })).toBeTruthy()
+    expect(
+      screen.getByText('Transferencia, efectivo y Wise. Mercado Pago se acredita solo.'),
+    ).toBeTruthy()
+    expect(screen.getByText('1 orden por acreditar')).toBeTruthy()
+    expect(screen.getByLabelText('Buscar')).toBeTruthy()
+    expect(screen.getByPlaceholderText('Buscar por nombre, DNI o referencia')).toBeTruthy()
+  })
+
   it('el comprobante se abre desde la fecha, que ahora es un botón', async () => {
     await renderSection([order()])
 

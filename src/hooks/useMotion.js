@@ -52,10 +52,6 @@ export function useScrolled(threshold = 20) {
     }
 
     function onScroll() {
-      if (document.documentElement.dataset.motionTier === 'low') {
-        node.style.removeProperty('--hero-parallax-shift')
-        return
-      }
       if (rafId == null) rafId = requestAnimationFrame(tick)
     }
 

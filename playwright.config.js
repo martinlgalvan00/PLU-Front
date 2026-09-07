@@ -54,6 +54,10 @@ const webEnv = {
   // "Próximamente" y nunca llega a renderizar el formulario: los tests de
   // compra no podían ejercitar nada.
   VITE_TICKET_SALES_ENABLED: 'true',
+  // El cliente sube el comprobante con la anon key. Sin esto Vite hereda el
+  // .env hosteado y el signed URL del API local no coincide.
+  VITE_SUPABASE_URL: supabase.url,
+  VITE_SUPABASE_ANON_KEY: supabase.anonKey,
 }
 
 export default defineConfig({

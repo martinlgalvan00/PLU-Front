@@ -1,3 +1,4 @@
+import { HttpError } from '../../lib/errors.js'
 import { assertSupabaseResult, requireSupabaseClient } from '../../lib/supabaseRpc.js'
 
 export function createSupabasePlatformSettingsRepository(client) {
@@ -42,11 +43,22 @@ export function createSupabasePlatformSettingsRepository(client) {
 
     // Sólo lectura y sin efectos: cuántas órdenes están vencidas, cuántas
     // retiene el cron a propósito y cuántas va a cerrar el próximo barrido.
-    expiryOverview: () =>
-      rpc(
-        'staff_payment_expiry_overview',
-        {},
-        'No se pudo leer el estado de vencimientos.',
-      ),
+    expiryOverview: async () => {
+      try {
+        return await rpc(
+          'staff_payment_expiry_overview',
+          {},
+          'No se pudo leer el estado de vencimientos.',
+        )
+      } catch (error) {
+        if (error?.details?.code === 'PGRST202') {
+          throw new HttpError(
+            409,
+            'Falta aplicar la migración de vencimiento de órdenes (20261110100000).',
+          )
+        }
+        throw error
+      }
+    },
   }
 }
