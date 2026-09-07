@@ -71,6 +71,7 @@ export default function CheckInAppPage({
     onRedeemTicketAddon,
     onRefreshTickets,
     registrations,
+    securityZone,
     ticketTypes,
     tickets,
   })
@@ -382,7 +383,7 @@ export default function CheckInAppPage({
                       <button
                         type="button"
                         className="checkin-app__admit-btn"
-                        disabled={!canCheckIn || row.status !== 'pagada'}
+                        disabled={!workspace.canAdmitRow(row)}
                         onClick={() => workspace.handleCheckIn(row)}
                       >
                         <ShieldCheck size={14} aria-hidden />

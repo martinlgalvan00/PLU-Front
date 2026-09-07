@@ -465,6 +465,10 @@
   overflow: hidden;
 }
 
+.admin-shell:has(.admin-page > .admin-payments-operations) .admin-shell__content {
+  overflow: hidden;
+}
+
 .admin-shell .admin-page:has(> .admin-list-section--rails),
 .admin-shell .admin-page:has(> .admin-payments-operations) {
   flex: 1;
@@ -497,13 +501,23 @@
   flex: none;
 }
 
-.admin-shell .admin-payments-operations > .admin-payments-operations__panel {
+/* Un solo scroller para cierre automático + pestañas. Si el panel de
+   vencimiento queda fuera de `__panel`, overflow:hidden del shell lo recorta
+   y la rueda no mueve nada. */
+.admin-shell .admin-payments-operations > .admin-payments-operations__body {
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: auto;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+}
+
+.admin-shell .admin-payments-operations > .admin-payments-operations__panel,
+.admin-shell .admin-payments-operations__body > .admin-payments-operations__panel {
+  flex: none;
+  min-height: 0;
+  overflow: visible;
 }
 
 .admin-shell .admin-page > .admin-list-section--rails {
@@ -1406,6 +1420,10 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 4px;
   }
+
+  .admin-shell .admin-filters__chips-row > .admin-filters__advanced-toggle {
+    margin-left: 0;
+  }
 }
 
 .admin-shell .admin-filters--inline .admin-filter-group--inline + .admin-filter-group--inline,
@@ -2158,7 +2176,9 @@
 
 .admin-shell .admin-payments-operations > .admin-orders-block,
 .admin-shell .admin-payments-operations > * > .admin-orders-block,
-.admin-shell .admin-payments-operations > .admin-ticket-orders-anchor > .admin-list-section {
+.admin-shell .admin-payments-operations > .admin-payments-operations__body > * > .admin-orders-block,
+.admin-shell .admin-payments-operations > .admin-ticket-orders-anchor > .admin-list-section,
+.admin-shell .admin-payments-operations > .admin-payments-operations__body > .admin-ticket-orders-anchor > .admin-list-section {
   background: var(--admin-surface);
   border: 1px solid var(--admin-hairline);
   border-radius: 12px;
@@ -2185,7 +2205,8 @@
 }
 
 .admin-shell .admin-payments-operations > .admin-orders-block,
-.admin-shell .admin-payments-operations > * > .admin-orders-block {
+.admin-shell .admin-payments-operations > * > .admin-orders-block,
+.admin-shell .admin-payments-operations > .admin-payments-operations__body > * > .admin-orders-block {
   border-top: 0;
   gap: 0;
   margin-top: 0;
@@ -2254,38 +2275,105 @@
   padding: 14px clamp(14px, 2.4vw, 22px) 16px;
 }
 
+.admin-shell .admin-payments-operations .admin-orders-block--athlete > .admin-orders-block__header {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+  justify-content: space-between;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block--athlete .admin-orders-block__eyebrow {
+  color: var(--admin-brand, var(--color-brand-celeste));
+  letter-spacing: 0.08em;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block--athlete .admin-orders-block__title {
+  font-size: clamp(1.12rem, 2vw, 1.32rem);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 4px 0 0;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block--athlete .admin-orders-block__lead {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 6px 0 0;
+  max-width: 46ch;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block--athlete
+  > .admin-orders-block__header
+  .admin-orders-block__summary {
+  align-items: flex-end;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: auto;
+  text-align: right;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block--athlete
+  .admin-orders-block__amount-value {
+  color: var(--admin-ink);
+  font-size: clamp(1.2rem, 2.2vw, 1.5rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block--athlete
+  .admin-orders-block__amount-caption {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block__toolbar--athlete {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  gap: 10px;
+  padding: 12px clamp(14px, 2.4vw, 22px) 14px;
+}
+
 .admin-shell
   .admin-payments-operations
   .admin-orders-block__toolbar--athlete
   .admin-filters__search {
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--admin-ink) 14%, transparent);
-  border-radius: 0;
+  align-items: center;
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 3.5%, transparent);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 10px;
   box-shadow: none;
+  display: flex;
   flex: none;
+  gap: 10px;
   max-width: none;
-  min-height: 40px;
-  padding: 0 2px 8px;
+  min-height: 44px;
+  min-width: 0;
+  padding: 0 12px;
   width: 100%;
 }
 
 .admin-shell
   .admin-payments-operations
   .admin-orders-block__toolbar--athlete
-  .admin-orders-block__toolbar-secondary {
-  align-items: flex-start;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 24px;
-  width: 100%;
-}
-
-.admin-shell
-  .admin-payments-operations
-  .admin-orders-block__toolbar
   .admin-filters__search:focus-within {
-  border-bottom-color: color-mix(in srgb, var(--admin-ink) 42%, transparent);
+  background: var(--admin-surface, var(--color-bg-surface));
+  border-color: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 48%, transparent);
 }
 
 .admin-shell
@@ -2301,49 +2389,12 @@
 .admin-shell
   .admin-payments-operations
   .admin-orders-block__toolbar--athlete
-  .admin-orders-block__summary {
-  align-items: flex-end;
-  display: flex;
-  flex: 0 0 auto;
-  flex-direction: column;
-  gap: 2px;
-  margin-left: auto;
-  padding-top: 2px;
-  text-align: right;
-}
-
-.admin-shell
-  .admin-payments-operations
-  .admin-orders-block__toolbar--athlete
-  .admin-orders-block__amount-value {
-  color: var(--admin-ink);
-  font-size: clamp(1.15rem, 2.2vw, 1.45rem);
-  font-variant-numeric: tabular-nums;
-  font-weight: 650;
-  letter-spacing: -0.035em;
-  line-height: 1.1;
-}
-
-.admin-shell
-  .admin-payments-operations
-  .admin-orders-block__toolbar--athlete
-  .admin-orders-block__amount-caption {
-  color: var(--admin-muted);
-  font-size: 11px;
-  font-weight: 550;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.admin-shell
-  .admin-payments-operations
-  .admin-orders-block__toolbar--athlete
   .admin-orders-block__toolbar-facets {
   display: flex;
-  flex: 1 1 280px;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
+  width: 100%;
 }
 
 .admin-shell
@@ -2358,27 +2409,42 @@
   .admin-payments-operations
   .admin-orders-block__toolbar--athlete
   .admin-orders-block__toolbar-facets
-  .admin-filter-group:last-child
-  .admin-filter-chip {
-  color: color-mix(in srgb, var(--admin-muted) 88%, transparent);
-  font-size: 12.5px;
-  min-height: 30px;
-  padding: 4px 10px;
+  .admin-filter-group--labeled {
+  align-items: center;
+  display: grid;
+  gap: 6px 14px;
+  grid-template-columns: 5.25rem minmax(0, 1fr);
 }
 
 .admin-shell
   .admin-payments-operations
   .admin-orders-block__toolbar--athlete
   .admin-orders-block__toolbar-facets
-  .admin-filter-group:last-child
-  .admin-filter-chip.is-active,
-.admin-shell
-  .admin-payments-operations
-  .admin-orders-block__toolbar--athlete
-  .admin-orders-block__toolbar-facets
-  .admin-filter-group:last-child
-  .admin-filter-chip[aria-pressed='true'] {
-  color: var(--admin-ink);
+  .admin-filter-chips-rail {
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--athlete
+    > .admin-orders-block__header
+    .admin-orders-block__summary {
+    align-items: flex-start;
+    margin-left: 0;
+    text-align: left;
+    width: 100%;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block__toolbar--athlete
+    .admin-orders-block__toolbar-facets
+    .admin-filter-group--labeled {
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
 }
 
 /* Chips de la bandeja: activo por peso + subrayado, count tipográfico. */
@@ -2459,137 +2525,6 @@
   background: transparent;
   border: 0;
   border-radius: 0;
-}
-
-/* Rediseño de la barra de filtros: buscador con marco visible, Estado y
-   Canal agrupados lado a lado con un divisor, y el total anclado en su
-   propio bloque con borde en vez de flotar suelto. Antes no había ninguna
-   regla de marco para el buscador en esta pantalla -- salía como texto
-   suelto sobre el fondo. */
-.admin-shell .admin-payments-operations .admin-orders-block__toolbar--athlete {
-  background: var(--admin-surface, var(--color-bg-surface));
-  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: var(--border-radius-lg, 14px);
-  padding: 14px 18px 12px;
-}
-
-.admin-shell
-  .admin-payments-operations
-  .admin-orders-block__toolbar--athlete
-  .admin-filters__search {
-  background: var(--admin-canvas, var(--color-bg-canvas));
-  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: var(--border-radius-md, 10px);
-  padding: 8px 12px;
-}
-
-.admin-shell
-  .admin-payments-operations
-  .admin-orders-block__toolbar--athlete
-  .admin-filters__search:focus-within {
-  background: var(--admin-surface, var(--color-bg-surface));
-  border-color: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 45%, transparent);
-}
-
-.admin-shell
-  .admin-payments-operations
-  .admin-orders-block__toolbar--athlete
-  .admin-orders-block__toolbar-facets {
-  flex-direction: row;
-  align-items: stretch;
-  gap: 22px;
-}
-
-.admin-shell
-  .admin-payments-operations
-  .admin-orders-block__toolbar--athlete
-  .admin-orders-block__toolbar-facets
-  > .admin-filter-group {
-  width: auto;
-  min-width: 0;
-}
-
-/* Con Estado y Canal lado a lado ya no hay ancho para la grilla
-   etiqueta(116px) | chips que usa `.toolbar-facets .admin-filter-group--labeled`
-   en el layout apilado original -- acá la etiqueta pasa a vivir arriba de sus
-   chips, como corresponde cuando el grupo entero es angosto. */
-.admin-shell
-  .admin-payments-operations
-  .admin-orders-block__toolbar--athlete
-  .admin-orders-block__toolbar-facets
-  .admin-filter-group--labeled {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-/* El riel de chips compacto es horizontal-scroll por diseño (pensado para
-   columnas angostas): acá Estado y Canal comparten fila y ese scroll oculto
-   se comía la mitad de los chips sin avisar. Envuelve en dos líneas en vez
-   de esconder contenido detrás de un scroll que nadie ve que existe. */
-.admin-shell
-  .admin-payments-operations
-  .admin-orders-block__toolbar--athlete
-  .admin-orders-block__toolbar-facets
-  .admin-filter-chips {
-  flex-wrap: wrap;
-  overflow-x: visible;
-  width: auto;
-}
-
-.admin-shell
-  .admin-payments-operations
-  .admin-orders-block__toolbar--athlete
-  .admin-orders-block__facet-divider {
-  width: 1px;
-  align-self: stretch;
-  background: var(--admin-hairline, var(--color-border-subtle));
-  flex: none;
-}
-
-.admin-shell
-  .admin-payments-operations
-  .admin-orders-block__toolbar--athlete
-  .admin-orders-block__summary {
-  padding-left: 18px;
-  border-left: 1px solid var(--admin-hairline, var(--color-border-subtle));
-}
-
-/* Mobile: Estado y Canal vuelven a apilarse (no entran lado a lado), el
-   divisor vertical no tiene sentido apilado, y el total pasa arriba de los
-   filtros en vez de quedar abajo a la derecha. Va DESPUÉS de las reglas de
-   escritorio de arriba a propósito: mismo selector, misma especificidad --
-   si quedara antes, la regla de escritorio (que no está en un @media) la
-   pisaría igual dentro del breakpoint por venir después en la hoja. */
-@media (max-width: 720px) {
-  .admin-shell
-    .admin-payments-operations
-    .admin-orders-block__toolbar--athlete
-    .admin-orders-block__toolbar-secondary {
-    flex-direction: column;
-  }
-
-  .admin-shell
-    .admin-payments-operations
-    .admin-orders-block__toolbar--athlete
-    .admin-orders-block__summary {
-    align-items: flex-start;
-    margin-left: 0;
-    order: -1;
-    text-align: left;
-  }
-
-  .admin-shell
-    .admin-payments-operations
-    .admin-orders-block__toolbar--athlete
-    .admin-orders-block__toolbar-facets {
-    flex-direction: column;
-  }
-
-  .admin-shell
-    .admin-payments-operations
-    .admin-orders-block__toolbar--athlete
-    .admin-orders-block__facet-divider {
-    display: none;
-  }
 }
 
 /* Nota secundaria ("Declarado por atleta") junto al estado: metadata, no un
@@ -3709,8 +3644,8 @@
   align-items: center;
   align-self: center;
   background: transparent;
-  border: 0;
-  border-radius: 9px;
+  border: 1px solid color-mix(in srgb, var(--admin-hairline) 90%, transparent);
+  border-radius: 999px;
   color: var(--admin-muted, var(--color-text-muted));
   cursor: pointer;
   display: inline-flex;
@@ -3722,15 +3657,17 @@
   letter-spacing: 0.01em;
   min-height: 36px;
   min-width: max-content;
-  padding: 0 10px;
+  padding: 0 12px;
   transition:
     color var(--motion-fast, 160ms) var(--ease-standard, ease),
-    background var(--motion-fast, 160ms) var(--ease-standard, ease);
+    background var(--motion-fast, 160ms) var(--ease-standard, ease),
+    border-color var(--motion-fast, 160ms) var(--ease-standard, ease);
   white-space: nowrap;
 }
 
 .admin-shell .admin-filters__advanced-toggle:hover {
   background: var(--admin-row-hover);
+  border-color: color-mix(in srgb, var(--admin-ink) 18%, var(--admin-hairline));
   color: var(--admin-ink, var(--color-text-primary));
 }
 
@@ -3740,7 +3677,8 @@
 }
 
 .admin-shell .admin-filters__advanced-toggle.is-active:not(.is-open) {
-  color: var(--admin-brand);
+  border-color: color-mix(in srgb, var(--color-brand-action, var(--admin-brand)) 36%, var(--admin-hairline));
+  color: var(--color-brand-action, var(--admin-brand));
 }
 
 .admin-shell .admin-filters__advanced-toggle:focus-visible {
@@ -3757,49 +3695,124 @@
   transform: rotate(180deg);
 }
 
-/* Filtros avanzados: antes un bloque apilado en flujo (empujaba la tabla
-   hacia abajo apenas se abría); ahora un popover flotante anclado al botón
-   "Más filtros", mismo lenguaje visual que el popover de AdminSavedViews.
-   `.admin-filters__chips-row` es el ancla (position:relative, ver abajo). */
+/* Sheet editorial de criterios secundarios: flota anclado al botón
+   (placeAdvancedPopover), no a la esquina del panel. */
+@keyframes admin-filters-advanced-open {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .admin-shell .admin-filters__advanced-popover {
+  animation: admin-filters-advanced-open var(--motion-base, 240ms) var(--ease-out, ease) both;
   background: var(--admin-surface-raised, var(--color-bg-surface));
   border: 1px solid var(--admin-hairline);
   border-radius: 14px;
-  box-shadow:
-    0 4px 6px -1px color-mix(in srgb, var(--admin-ink) 8%, transparent),
-    0 16px 32px -8px color-mix(in srgb, var(--admin-ink) 18%, transparent);
+  box-shadow: 0 18px 40px -16px color-mix(in srgb, var(--admin-ink) 22%, transparent);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  max-width: min(340px, calc(100vw - 32px));
-  min-width: 260px;
-  padding: 16px;
-  position: absolute;
-  right: 0;
-  top: calc(100% + 8px);
-  z-index: 100;
+  gap: 0;
+  max-height: min(560px, calc(100vh - 120px));
+  max-width: min(520px, calc(100vw - 32px));
+  min-width: min(320px, calc(100vw - 32px));
+  overflow: hidden;
+  padding: 0;
+  position: fixed;
+  z-index: 80;
+  box-sizing: border-box;
 }
 
-.admin-shell .admin-filters__advanced-label {
-  color: var(--admin-muted);
-  font-size: 10px;
+.admin-shell .admin-filters__advanced-popover:not([data-placed]) {
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell .admin-filters__advanced-popover {
+    animation: none;
+  }
+}
+
+.admin-shell .admin-filters__advanced-header {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 14px 16px 12px;
+}
+
+.admin-shell .admin-filters__advanced-heading {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-shell .admin-filters__advanced-title {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-family: var(--font-family);
+  font-size: 14px;
   font-weight: 650;
-  letter-spacing: 0.08em;
-  opacity: 0.6;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  line-height: 1.25;
+  margin: 0;
+  text-transform: none;
+}
+
+.admin-shell .admin-filters__advanced-badge {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+.admin-shell .admin-filters__advanced-close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 36px;
+  justify-content: center;
+  margin: -4px -6px -4px 0;
+  width: 36px;
+}
+
+.admin-shell .admin-filters__advanced-close:hover {
+  background: var(--admin-row-hover);
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-shell .admin-filters__advanced-close:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
 }
 
 .admin-shell .admin-filters__advanced-search {
   align-items: center;
-  background: var(--admin-control-bg);
-  border: 1px solid var(--admin-hairline);
-  border-radius: 9px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--admin-ink) 14%, transparent);
+  border-radius: 0;
   color: var(--admin-muted);
   display: flex;
   flex: none;
   gap: 8px;
+  margin: 0 16px;
   min-height: 36px;
-  padding: 0 10px;
+  padding: 0 2px 8px;
+}
+
+.admin-shell .admin-filters__advanced-search:focus-within {
+  border-bottom-color: color-mix(in srgb, var(--admin-ink) 42%, transparent);
 }
 
 .admin-shell .admin-filters__advanced-search svg {
@@ -3812,7 +3825,7 @@
   color: var(--admin-ink);
   flex: 1 1 auto;
   font: inherit;
-  font-size: 12.5px;
+  font-size: 13px;
   min-width: 0;
   outline: none;
   padding: 8px 0;
@@ -3822,34 +3835,181 @@
   color: var(--admin-muted);
 }
 
+.admin-shell .admin-filters__advanced-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 16px 12px;
+}
+
 .admin-shell .admin-filters__advanced-empty {
   color: var(--admin-muted);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
   margin: 0;
-  padding: 2px;
+  padding: 8px 2px;
 }
 
-/* Los filtros avanzados se apilan en columna: el popover es angosto (~300px),
-   una fila por filtro se lee mejor que forzarlos a compartir el ancho. */
-.admin-shell .admin-filters__advanced-groups {
-  align-items: stretch;
+.admin-shell .admin-filters__advanced-footer {
+  align-items: center;
+  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex: none;
+  gap: 8px;
+  justify-content: space-between;
+  padding: 10px 16px 12px;
 }
 
-.admin-shell .admin-filters__advanced-groups .admin-filter-chip {
-  font-size: 11.5px;
-  min-height: 30px;
-  padding: 4px 10px;
+.admin-shell .admin-filters__advanced-footer-spacer {
+  flex: 1 1 auto;
 }
 
-.admin-shell .admin-filters__advanced-groups .admin-filter-group,
-.admin-shell .admin-filters__advanced-groups .admin-filters__select,
-.admin-shell .admin-filters__advanced-groups .admin-filters__date-range {
-  min-width: 0;
+.admin-shell .admin-filters__advanced-clear {
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 550;
+  min-height: 36px;
+  padding: 0 8px;
+}
+
+.admin-shell .admin-filters__advanced-clear:hover {
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-shell .admin-filters__advanced-clear:focus-visible,
+.admin-shell .admin-filters__advanced-done:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-shell .admin-filters__advanced-done {
+  background: color-mix(in srgb, var(--color-brand-action) 14%, transparent);
+  border: 0;
+  border-radius: 9px;
+  color: var(--color-brand-action);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.admin-shell .admin-filters__advanced-done:hover {
+  background: color-mix(in srgb, var(--color-brand-action) 22%, transparent);
+}
+
+/* El panel de tarjeta (margen negativo, borde superior) no aplica adentro
+   del sheet: acá es contenido, no una card anidada. */
+.admin-shell .admin-filters__advanced-popover .admin-filter-panel--sheet {
+  animation: none;
+  border-top: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-shell .admin-filters__advanced-popover .admin-filter-panel__meta {
+  border-top: 0;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.admin-shell .admin-filters__advanced-popover .admin-filter-panel__stack {
+  gap: 14px;
+}
+
+.admin-shell
+  .admin-filters__advanced-popover
+  .admin-filter-panel__meta
+  + .admin-filter-panel__stack,
+.admin-shell
+  .admin-filters__advanced-popover
+  .admin-filter-panel__stack
+  + .admin-filter-panel__meta {
+  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  margin-top: 16px;
+  padding-top: 16px;
+}
+
+.admin-shell .admin-filters__advanced-popover .admin-filter-panel__field {
+  gap: 8px;
+}
+
+.admin-shell .admin-filters__advanced-popover .admin-filter-panel__field-label {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.admin-shell
+  .admin-filters__advanced-popover
+  .admin-filter-panel__field--select
+  .admin-filter-popover__combobox {
+  gap: 8px;
   width: 100%;
+}
+
+.admin-shell
+  .admin-filters__advanced-popover
+  .admin-filter-panel__field--select
+  .admin-filter-popover__search {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--admin-ink) 14%, transparent);
+  border-radius: 0;
+  height: 36px;
+  padding: 0 2px 6px;
+}
+
+.admin-shell
+  .admin-filters__advanced-popover
+  .admin-filter-panel__field--select
+  .admin-filter-popover__search:focus-within {
+  border-bottom-color: color-mix(in srgb, var(--admin-ink) 42%, transparent);
+}
+
+.admin-shell
+  .admin-filters__advanced-popover
+  .admin-filter-panel__field--select
+  .admin-filter-popover__options {
+  gap: 0;
+  max-height: 160px;
+  padding: 4px 0 0;
+}
+
+.admin-shell
+  .admin-filters__advanced-popover
+  .admin-filter-panel__field--select
+  .admin-filter-popover__option {
+  border-radius: 0;
+  color: var(--admin-muted);
+  font-size: 13px;
+  font-weight: 500;
+  min-height: 34px;
+  padding: 6px 2px;
+}
+
+.admin-shell
+  .admin-filters__advanced-popover
+  .admin-filter-panel__field--select
+  .admin-filter-popover__option:hover,
+.admin-shell
+  .admin-filters__advanced-popover
+  .admin-filter-panel__field--select
+  .admin-filter-popover__option.is-selected {
+  background: transparent;
+  color: var(--admin-ink);
 }
 
 .admin-shell .admin-filters__panel .admin-filter-group--rail {
@@ -3860,6 +4020,24 @@
   gap: 4px;
   min-width: 0;
   width: 100%;
+}
+
+/* Label a la izquierda, chips en una sola línea. La regla de arriba los
+   apilaba en columna y el panel de Atletas se iba a 160px+ de alto. */
+.admin-shell .admin-filters__panel .admin-filter-group--rail.admin-filter-group--labeled,
+.admin-shell
+  .admin-filters__panel
+  .admin-filters__groups--multi
+  .admin-filter-group--rail.admin-filter-group--labeled {
+  align-items: center;
+  display: grid;
+  gap: 6px 14px;
+  grid-template-columns: 7.25rem minmax(0, 1fr);
+  width: 100%;
+}
+
+.admin-shell .admin-filters__chips-row > .admin-filters__advanced-toggle {
+  margin-left: calc(7.25rem + 14px);
 }
 
 .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group--rail {

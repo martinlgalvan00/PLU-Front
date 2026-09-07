@@ -10,7 +10,6 @@ import {
 } from 'lucide-react'
 import AdminCopyLinkMenu from './AdminCopyLinkMenu.jsx'
 import AdminIconButton from './AdminIconButton.jsx'
-import DetailTabs from './DetailTabs.jsx'
 import { AdminEventLivePreview } from './AdminEventEditor.jsx'
 import AdminEventDashboard from './AdminEventDashboard.jsx'
 import AdminEventStateControl from './AdminEventStateControl.jsx'

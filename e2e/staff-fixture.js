@@ -40,7 +40,12 @@ export async function ensurePrismaE2eSchema() {
 }
 
 async function wipeStaleGateStaff(prisma) {
-  await prisma.user.deleteMany({ where: { email: { startsWith: 'e2e-gate-' } } })
+  await prisma.user.deleteMany({
+    where: { email: { startsWith: 'e2e-gate-' } },
+  })
+  await prisma.user.deleteMany({
+    where: { email: { startsWith: 'e2e-admin-' } },
+  })
   await prisma.eventSecurityZone.deleteMany({ where: { eventSlug: { startsWith: 'e2e-' } } })
 }
 
@@ -114,12 +119,33 @@ export async function seedSecurityStaff({ run, eventId, eventSlug }) {
       },
     })
 
+    const adminRole = await prisma.accessRole.findUnique({
+      where: { key: 'admin_plu_arg' },
+    })
+    if (!adminRole) {
+      throw new Error('Falta AccessRole admin_plu_arg en el schema plu_prisma.')
+    }
+    const adminEmail = `e2e-admin-${run}@pluarg.test`
+    await prisma.user.create({
+      data: {
+        email: adminEmail,
+        passwordHash,
+        role: 'admin_plu_arg',
+        status: 'active',
+        mustChangePassword: false,
+        accessRoleId: adminRole.id,
+        profile: { create: { firstName: 'E2E', lastName: 'Admin', displayName: 'E2E Admin' } },
+      },
+    })
+
     return {
       gateEmail,
       warmupEmail,
       gatePassword: GATE_PASSWORD,
       gateZoneName: gateZone.name,
       warmupZoneName: warmupZone.name,
+      adminEmail,
+      adminPassword: GATE_PASSWORD,
     }
   } finally {
     await prisma.$disconnect()
