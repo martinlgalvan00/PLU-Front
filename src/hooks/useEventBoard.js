@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { resolvePlacementBatches, sessionsPayloadFromBoard } from '../services/eventBoardPlanner.js'
 import {
   assignRegistrationSchedule,
-  autofillEventDay,
   fetchEventBoard,
   saveEventSessions,
 } from '../services/eventRegistrationApi.js'
