@@ -32,7 +32,7 @@ export const UPCOMING_EVENTS = [
     longitude: PITBULL_VENUE_DATA.longitude,
     mapsUrl: PITBULL_VENUE_DATA.mapsUrl,
     slug: 'pitbull-classic-2026',
-    slots: 180,
+    slots: 200,
     status: 'proximamente',
     // Countdown de marketing; no condiciona la apertura de cobros.
     registrationOpensAt: '2026-09-01T10:00:00-03:00',

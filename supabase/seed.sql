@@ -53,7 +53,7 @@ insert into public.events (
       )
     )
   ),
-  '2020-01-01 00:00:00-03', '2026-12-13 18:00:00-03', 180
+  '2020-01-01 00:00:00-03', '2026-12-13 18:00:00-03', 200
 ), (
   'spring-classic-2025', 'Spring Classic 2025', 'Maximal Strength Club', 'Buenos Aires',
   '2025-05-18 10:00:00-03', '2025-05-18 20:00:00-03',
@@ -63,11 +63,11 @@ insert into public.events (
 );
 
 insert into public.event_capacity_rules (organization_id, event_id, scope, key, limit_count)
-select e.organization_id, e.id, 'event', '', 180
+select e.organization_id, e.id, 'event', '', 200
 from public.events e
 where e.slug = 'pitbull-classic-2026'
 on conflict (event_id, scope, key) do update
-set limit_count = 180,
+set limit_count = 200,
     updated_at = now();
 
 -- Oferta combo vigente (afiliación + inscripción) para checkout productivo.
