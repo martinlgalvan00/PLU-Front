@@ -91,6 +91,18 @@ describe('NavbarPublic profile menu', () => {
     expect(onLogout).toHaveBeenCalledTimes(1)
   })
 
+  it('opens an editorial empty state from the notice bell', () => {
+    renderNav({ name: 'Agustin Di Santo', role: 'athlete_plu' })
+
+    const trigger = document.getElementById('plu-notice-menu-trigger')
+    expect(trigger).toBeTruthy()
+    fireEvent.click(trigger)
+
+    expect(screen.getByRole('dialog', { name: /sin avisos/i })).toBeTruthy()
+    expect(screen.getByText(/^avisos$/i)).toBeTruthy()
+    expect(screen.getByText(/no tenés comunicados pendientes/i)).toBeTruthy()
+  })
+
   it('opens Administración for staff with role label', () => {
     renderNav({
       name: 'Agustin Di Santo',
@@ -103,5 +115,20 @@ describe('NavbarPublic profile menu', () => {
 
     expect(screen.getByRole('menuitem', { name: /^administración$/i })).toBeTruthy()
     expect(screen.getByText('Administrador')).toBeTruthy()
+  })
+
+  it('no muestra la campana de avisos para invitados ni staff', () => {
+    const { unmount } = renderNav(null)
+    expect(document.getElementById('plu-notice-menu-trigger')).toBeNull()
+    expect(document.getElementById('plu-notice-menu-trigger-mobile')).toBeNull()
+    unmount()
+
+    renderNav({
+      name: 'Agustin Di Santo',
+      role: 'admin_plu_arg',
+      roleKey: 'admin_plu_arg',
+    })
+    expect(document.getElementById('plu-notice-menu-trigger')).toBeNull()
+    expect(document.getElementById('plu-notice-menu-trigger-mobile')).toBeNull()
   })
 })

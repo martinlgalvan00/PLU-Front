@@ -8,6 +8,7 @@ import {
   IdCard,
   Loader2,
   Mail,
+  Medal,
   Trash2,
 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -15,13 +16,44 @@ import { AutocompleteField, DateField, Field, Select } from '../../components/ui
 import GymNameConfirmationDialog from '../../components/ui/GymNameConfirmationDialog.jsx'
 import { formatIdentityDocumentId, formatShortDate, initials } from '../../lib/format.js'
 import { isNewGymName } from '../../lib/gymNormalize.js'
-import { isProfileComplete } from '../../lib/athleteProfile.js'
+import { isProfileComplete, PROFILE_FIELD_GROUPS } from '../../lib/athleteProfile.js'
 import { getFormOptions } from '../../lib/formOptions.js'
 import { fetchGyms } from '../../services/athleteApi.js'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const RING_RADIUS = 48
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
+
+function filledSummary(parts, fallback) {
+  const filled = parts.map((value) => String(value ?? '').trim()).filter(Boolean)
+  return filled.length ? filled.join(' · ') : fallback
+}
+
+function exclusiveGroups(openKey) {
+  return {
+    contact: openKey === 'contact',
+    competition: openKey === 'competition',
+    sports: openKey === 'sports',
+    emergency: openKey === 'emergency',
+  }
+}
+
+function firstIncompleteGroup(missing) {
+  if (missing.some((field) => ['phone', 'city', 'province'].includes(field))) return 'contact'
+  if (missing.some((field) => ['division', 'category', 'estimatedWeight'].includes(field))) {
+    return 'competition'
+  }
+  if (missing.includes('gym')) return 'sports'
+  return null
+}
+
+function firstErrorGroup(nextErrors) {
+  if (nextErrors.email || nextErrors.phone) return 'contact'
+  if (nextErrors.division || nextErrors.category || nextErrors.estimatedWeight) return 'competition'
+  if (nextErrors.instagramHandle || nextErrors.bestTotalKg || nextErrors.sex) return 'sports'
+  if (nextErrors.emergencyContactPhone) return 'emergency'
+  return null
+}
 
 export default function PersonalDataSection({
   athlete,
@@ -47,6 +79,12 @@ export default function PersonalDataSection({
       athlete.bestTotalKg === null || athlete.bestTotalKg === undefined
         ? ''
         : String(athlete.bestTotalKg),
+    division: athlete.division ?? '',
+    category: athlete.category ?? '',
+    estimatedWeight:
+      athlete.estimatedWeight === null || athlete.estimatedWeight === undefined
+        ? ''
+        : String(athlete.estimatedWeight),
   })
   const [errors, setErrors] = useState({})
   const [message, setMessage] = useState('')
@@ -56,14 +94,10 @@ export default function PersonalDataSection({
   const [photoError, setPhotoError] = useState('')
   const [photoPreview, setPhotoPreview] = useState(null)
   const [isDraggingPhoto, setIsDraggingPhoto] = useState(false)
-  const [openGroups, setOpenGroups] = useState(() => {
-    const { missing } = isProfileComplete(athlete)
-    return {
-      contact: missing.some((field) => ['phone', 'city', 'province'].includes(field)),
-      sports: missing.includes('gym'),
-      emergency: false,
-    }
-  })
+  const [openGroups, setOpenGroups] = useState(() =>
+    exclusiveGroups(firstIncompleteGroup(isProfileComplete(athlete).missing)),
+  )
+  const formRef = useRef(null)
   const [gyms, setGyms] = useState([])
   const [gymsReady, setGymsReady] = useState(false)
   const [pendingGymConfirmation, setPendingGymConfirmation] = useState('')
@@ -103,6 +137,22 @@ export default function PersonalDataSection({
   const athleteWithForm = { ...athlete, ...form }
   const profileStatus = isProfileComplete(athleteWithForm)
   const formOptions = getFormOptions(t)
+  const contactSummary = filledSummary(
+    [form.phone, form.city, form.province],
+    t('account.personalData.contactSummary'),
+  )
+  const competitionSummary = filledSummary(
+    [
+      form.division,
+      form.category,
+      form.estimatedWeight ? `${String(form.estimatedWeight).trim()} kg` : '',
+    ],
+    t('account.personalData.competitionSummaryFallback'),
+  )
+  const teamSummary = filledSummary(
+    [form.gym, form.sex],
+    t('account.personalData.sportsSummary'),
+  )
   const missingOfficialFields = ['fullName', 'birthDate', 'country'].filter(
     (field) => !String(athlete[field] ?? '').trim(),
   )
@@ -176,7 +226,15 @@ export default function PersonalDataSection({
   }
 
   function toggleGroup(group) {
-    setOpenGroups((current) => ({ ...current, [group]: !current[group] }))
+    setOpenGroups((current) => exclusiveGroups(current[group] ? null : group))
+  }
+
+  function focusMissingField(field) {
+    const group = PROFILE_FIELD_GROUPS[field]
+    if (group) setOpenGroups(exclusiveGroups(group))
+    window.requestAnimationFrame(() => {
+      formRef.current?.querySelector(`[name="${field}"]`)?.focus()
+    })
   }
 
   function ensureGymNameConfirmed() {
@@ -239,15 +297,22 @@ export default function PersonalDataSection({
         nextErrors.bestTotalKg = t('account.personalData.errorBestTotal')
       }
     }
+    if (!formOptions.division.includes(form.division)) {
+      nextErrors.division = t('account.personalData.errorDivision')
+    }
+    if (!formOptions.category.includes(form.category)) {
+      nextErrors.category = t('account.personalData.errorCategory')
+    }
+    const estimatedWeight = Number(
+      String(form.estimatedWeight).replace(',', '.').replace(/\s*kg$/i, ''),
+    )
+    if (!Number.isFinite(estimatedWeight) || estimatedWeight < 10 || estimatedWeight > 250) {
+      nextErrors.estimatedWeight = t('account.personalData.errorEstimatedWeight')
+    }
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors)
-      setOpenGroups((current) => ({
-        ...current,
-        contact: current.contact || Boolean(nextErrors.email || nextErrors.phone),
-        sports: current.sports || Boolean(nextErrors.instagramHandle || nextErrors.bestTotalKg),
-        emergency: current.emergency || Boolean(nextErrors.emergencyContactPhone),
-      }))
+      setOpenGroups(exclusiveGroups(firstErrorGroup(nextErrors)))
       return
     }
 
@@ -258,7 +323,12 @@ export default function PersonalDataSection({
     const bestTotalKg = form.bestTotalKg.trim()
       ? Number(form.bestTotalKg.replace(',', '.').replace(/\s*kg$/i, ''))
       : null
-    const result = await onUpdateProfile(athlete.id, { ...form, instagramHandle, bestTotalKg })
+    const result = await onUpdateProfile(athlete.id, {
+      ...form,
+      instagramHandle,
+      bestTotalKg,
+      estimatedWeight,
+    })
     setSaving(false)
     if (result?.error) {
       setMessage(result.error)
@@ -271,6 +341,13 @@ export default function PersonalDataSection({
 
   const progressPercent = Math.round((profileStatus.filled / profileStatus.total) * 100)
   const ringOffset = RING_CIRCUMFERENCE * (1 - progressPercent / 100)
+  const contactPending = profileStatus.missing.some((field) =>
+    ['phone', 'city', 'province'].includes(field),
+  )
+  const competitionPending = profileStatus.missing.some((field) =>
+    ['division', 'category', 'estimatedWeight'].includes(field),
+  )
+  const teamPending = profileStatus.missing.includes('gym')
 
   return (
     <section id="account-personal-data" className="account-section account-section--gold">
@@ -302,27 +379,26 @@ export default function PersonalDataSection({
         </div>
       </header>
 
-      {!profileStatus.complete && (
-        <div
-          className="account-profile-progress"
-          role="progressbar"
-          aria-valuenow={progressPercent}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label={t('account.personalData.progressLabel')}
-        >
-          <div className="account-profile-progress__track">
-            <div
-              className="account-profile-progress__bar"
-              style={{ transform: `scaleX(${progressPercent / 100})` }}
-            />
-          </div>
-          <span className="account-profile-progress__label">
-            {profileStatus.filled}/{profileStatus.total}{' '}
-            {t('account.personalData.requiredForRegistration')}
-          </span>
+      {!profileStatus.complete ? (
+        <div className="account-profile-checklist" role="status">
+          <p className="account-profile-checklist__lead">
+            {t('account.personalData.checklistLead')}
+          </p>
+          <ul className="account-profile-checklist__list">
+            {profileStatus.missing.map((field) => (
+              <li key={field}>
+                <button
+                  type="button"
+                  className="account-profile-checklist__item"
+                  onClick={() => focusMissingField(field)}
+                >
+                  {t(`account.personalData.${field}`)}
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
-      )}
+      ) : null}
 
       <p className="account-section__lead account-section__lead--compact">
         {t('account.personalData.lead')}
@@ -433,7 +509,7 @@ export default function PersonalDataSection({
         </div>
       </div>
 
-      <form className="account-personal-form" onSubmit={handleSubmit} noValidate>
+      <form ref={formRef} className="account-personal-form" onSubmit={handleSubmit} noValidate>
         {missingOfficialFields.length ? (
           <section className="account-data-group account-data-group--official-completion account-data-group--required">
             <div className="account-data-group__meta">
@@ -500,14 +576,16 @@ export default function PersonalDataSection({
                   {t('account.personalData.contactGroup')}
                 </span>
                 <span className="account-data-group__summary-note">
-                  {t('account.personalData.contactSummary')}
+                  {contactSummary}
                 </span>
               </span>
             </span>
             <span className="account-data-group__summary-side">
-              <span className="account-data-group__required-note">
-                {t('account.personalData.requiredForRegistration')}
-              </span>
+              {contactPending ? (
+                <span className="account-data-group__pending-note">
+                  {t('account.personalData.pending')}
+                </span>
+              ) : null}
               <ChevronDown size={18} aria-hidden />
             </span>
           </button>
@@ -547,7 +625,73 @@ export default function PersonalDataSection({
         </section>
 
         <section
-          className={`account-data-group account-data-group--disclosure${openGroups.sports ? ' is-open' : ''}`}
+          className={`account-data-group account-data-group--disclosure account-data-group--required${openGroups.competition ? ' is-open' : ''}`}
+        >
+          <button
+            type="button"
+            className="account-data-group__summary"
+            aria-expanded={openGroups.competition}
+            aria-controls="account-competition-fields"
+            onClick={() => toggleGroup('competition')}
+          >
+            <span className="account-data-group__summary-copy">
+              <span className="account-data-group__icon" aria-hidden>
+                <Medal size={16} strokeWidth={1.75} />
+              </span>
+              <span className="account-data-group__summary-text">
+                <span className="account-data-group__title">
+                  {t('account.personalData.competitionGroup')}
+                </span>
+                <span className="account-data-group__summary-note">{competitionSummary}</span>
+              </span>
+            </span>
+            <span className="account-data-group__summary-side">
+              {competitionPending ? (
+                <span className="account-data-group__pending-note">
+                  {t('account.personalData.pending')}
+                </span>
+              ) : null}
+              <ChevronDown size={18} aria-hidden />
+            </span>
+          </button>
+          <div
+            id="account-competition-fields"
+            className="form-grid form-grid--account account-data-group__content"
+            hidden={!openGroups.competition}
+          >
+            <Select
+              error={errors.division}
+              label={`${t('account.personalData.division')} *`}
+              name="division"
+              options={[['', t('formOptions.selectPlaceholder')], ...formOptions.division]}
+              value={form.division}
+              onChange={changeField}
+            />
+            <Select
+              error={errors.category}
+              label={`${t('account.personalData.category')} *`}
+              name="category"
+              options={[['', t('formOptions.selectPlaceholder')], ...formOptions.category]}
+              value={form.category}
+              onChange={changeField}
+            />
+            <Field
+              error={errors.estimatedWeight}
+              inputMode="decimal"
+              label={`${t('account.personalData.estimatedWeight')} *`}
+              name="estimatedWeight"
+              placeholder={t('account.personalData.estimatedWeightPlaceholder')}
+              value={form.estimatedWeight}
+              onChange={changeField}
+            />
+            <p className="account-data-group__note form-grid__span-full">
+              {t('account.personalData.competitionDefaultsNote')}
+            </p>
+          </div>
+        </section>
+
+        <section
+          className={`account-data-group account-data-group--disclosure account-data-group--required${openGroups.sports ? ' is-open' : ''}`}
         >
           <button
             type="button"
@@ -564,15 +708,15 @@ export default function PersonalDataSection({
                 <span className="account-data-group__title">
                   {t('account.personalData.sportsGroup')}
                 </span>
-                <span className="account-data-group__summary-note">
-                  {t('account.personalData.sportsSummary')}
-                </span>
+                <span className="account-data-group__summary-note">{teamSummary}</span>
               </span>
             </span>
             <span className="account-data-group__summary-side">
-              <span className="account-data-group__required-note">
-                {t('account.personalData.requiredForRegistration')}
-              </span>
+              {teamPending ? (
+                <span className="account-data-group__pending-note">
+                  {t('account.personalData.pending')}
+                </span>
+              ) : null}
               <ChevronDown size={18} aria-hidden />
             </span>
           </button>
@@ -617,9 +761,6 @@ export default function PersonalDataSection({
               value={form.bestTotalKg}
               onChange={changeField}
             />
-            <p className="account-data-group__note form-grid__span-full">
-              {t('account.personalData.bestTotalNote')}
-            </p>
           </div>
         </section>
 

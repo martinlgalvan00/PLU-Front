@@ -95,6 +95,14 @@ import {
   assertAthleteOwnsPath,
   createSupabaseAthleteRepository,
 } from '../modules/athletes/supabaseAthleteRepository.js'
+import {
+  PROFILE_NOTICE_BULK_MAX,
+  PROFILE_NOTICE_MESSAGE_MAX,
+  resolveProfileNoticesIfComplete,
+  sendProfileNotice,
+  sendProfileNoticesBulk,
+} from '../modules/athletes/profileNoticeService.js'
+import { athleteProfileFromRow } from '../../shared/athleteProfile.js'
 import { createSupabaseRegistrationAccessRepository } from '../modules/registrationAccess/supabaseRegistrationAccessRepository.js'
 import {
   assertComboAccessCode,
@@ -284,6 +292,17 @@ const updateSchema = z.object({
       'Ingresá sólo tu usuario de Instagram, sin espacios ni enlace.',
     ),
   bestTotalKg: optionalDeclaredBestTotal,
+  division: z.enum(COMPETITION_DIVISIONS),
+  category: z.enum(COMPETITION_CATEGORIES),
+  estimatedWeight: z.preprocess((value) => {
+    if (value === undefined || value === null || String(value).trim() === '') return null
+    const parsed = Number(
+      String(value)
+        .replace(',', '.')
+        .replace(/\s*kg$/i, ''),
+    )
+    return Number.isFinite(parsed) ? parsed : null
+  }, z.number().min(10).max(250)),
   fullName: z.string().trim().min(3).max(160).optional(),
   birthDate: birthDateSchema.optional(),
   country: z.string().trim().min(2).max(80).optional(),
@@ -729,6 +748,13 @@ export function createAthleteRoutes({
     athleteIds: z.array(z.string().uuid()).min(1).max(100),
     patch: athletePatchFieldsSchema,
   })
+  const profileNoticeSchema = z.object({
+    message: z.string().trim().max(PROFILE_NOTICE_MESSAGE_MAX).optional(),
+  })
+  const profileNoticeBulkSchema = z.object({
+    athleteIds: z.array(z.string().uuid()).min(1).max(PROFILE_NOTICE_BULK_MAX),
+    message: z.string().trim().max(PROFILE_NOTICE_MESSAGE_MAX).optional(),
+  })
   // Mismo formato que usa el check-in (`server/routes/tickets.js`): el actor
   // queda identificable en `domain_audit_logs` sin depender de que el id de
   // usuario siga existiendo cuando se lea la auditoría.
@@ -936,9 +962,19 @@ export function createAthleteRoutes({
       phone: 'teléfono',
       country: 'país',
       province: 'provincia',
+      division: 'división',
+      category: 'categoría',
+      estimated_weight: 'peso estimado',
+    }
+    const isMissing = (field) => {
+      if (field === 'estimated_weight') {
+        const weight = Number(profile?.[field])
+        return !Number.isFinite(weight) || weight < 10 || weight > 250
+      }
+      return !String(profile?.[field] ?? '').trim()
     }
     const missing = Object.entries(labels)
-      .filter(([field]) => !String(profile?.[field] ?? '').trim())
+      .filter(([field]) => isMissing(field))
       .map(([, label]) => label)
 
     if (missing.length) {
@@ -947,7 +983,7 @@ export function createAthleteRoutes({
         `Completá tu perfil antes de inscribirte: falta ${missing.join(', ')}.`,
         {
           code: 'ATHLETE_PROFILE_INCOMPLETE',
-          missing: Object.keys(labels).filter((field) => !String(profile?.[field] ?? '').trim()),
+          missing: Object.keys(labels).filter((field) => isMissing(field)),
         },
       )
     }
@@ -1364,6 +1400,9 @@ export function createAthleteRoutes({
       }
 
       const data = await repo().snapshot(auth.athleteId)
+      if (data?.athlete && typeof repo().listOpenProfileNotices === 'function') {
+        data.athlete.profile_notices = await repo().listOpenProfileNotices(auth.athleteId)
+      }
       // Si convive la cookie de staff (puente staff→atleta), el front necesita
       // `staffAvailable` para mostrar "Administrador" en el menú de perfil.
       // Sin esto, un reload restauraba atleta puro y el acceso al panel
@@ -1424,11 +1463,64 @@ export function createAthleteRoutes({
       if (req.validatedBody.gym) {
         req.validatedBody.gym = await resolveGymName(req.validatedBody.gym)
       }
-      res.json({ athlete: await repo().update(auth.athleteId, req.validatedBody) })
+      const row = await repo().update(auth.athleteId, req.validatedBody)
+      if (typeof repo().resolveOpenProfileNotices === 'function') {
+        await resolveProfileNoticesIfComplete({
+          repository: repo(),
+          athlete: { id: auth.athleteId, ...athleteProfileFromRow(row) },
+        })
+      }
+      if (typeof repo().listOpenProfileNotices !== 'function') {
+        res.json({ athlete: row })
+        return
+      }
+      res.json({
+        athlete: {
+          ...row,
+          profile_notices: await repo().listOpenProfileNotices(auth.athleteId),
+        },
+      })
     } catch (error) {
       next(error)
     }
   })
+
+  router.post('/me/profile-notices/:noticeId/read', athleteWriteLimiter, async (req, res, next) => {
+    try {
+      const auth = await athlete(req)
+      const noticeId = z.string().uuid().safeParse(req.params.noticeId)
+      if (!noticeId.success) throw new HttpError(400, 'Aviso inválido.')
+      if (typeof repo().markProfileNotice !== 'function') {
+        throw new HttpError(503, 'Avisos de perfil no disponibles.')
+      }
+      res.json({ notice: await repo().markProfileNotice(noticeId.data, auth.athleteId, { read: true }) })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.post(
+    '/me/profile-notices/:noticeId/dismiss',
+    athleteWriteLimiter,
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        const noticeId = z.string().uuid().safeParse(req.params.noticeId)
+        if (!noticeId.success) throw new HttpError(400, 'Aviso inválido.')
+        if (typeof repo().markProfileNotice !== 'function') {
+          throw new HttpError(503, 'Avisos de perfil no disponibles.')
+        }
+        res.json({
+          notice: await repo().markProfileNotice(noticeId.data, auth.athleteId, {
+            read: true,
+            dismissed: true,
+          }),
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
   router.get(
     '/me/registration-access-requirements',
     athleteWriteLimiter,
@@ -3004,6 +3096,33 @@ export function createAthleteRoutes({
     },
   )
   router.post(
+    '/admin/registrations/:registrationId/competition-correction',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(
+      z.object({
+        division: z.enum(COMPETITION_DIVISIONS),
+        category: z.enum(COMPETITION_CATEGORIES),
+        bodyweightKg: z.number().min(10).max(250),
+      }),
+    ),
+    async (req, res, next) => {
+      try {
+        const registrationId = z.string().uuid().safeParse(req.params.registrationId)
+        if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
+        res.json({
+          registration: await repo().correctRegistrationCompetition(
+            registrationId.data,
+            req.validatedBody,
+            actorLabel(req),
+          ),
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
     '/admin/:athleteId/credential',
     ...accountGuard,
     staffLimiter,
@@ -3018,6 +3137,87 @@ export function createAthleteRoutes({
           actorLabel(req),
         )
         res.status(204).end()
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /**
+   * Aviso in-app de perfil incompleto. El segmento literal `profile-notices`
+   * tiene que ir antes de `/admin/:athleteId` para no caer en el param route.
+   */
+  router.post(
+    '/admin/profile-notices/bulk',
+    ...accountGuard,
+    staffLimiter,
+    validateBody(profileNoticeBulkSchema),
+    async (req, res, next) => {
+      try {
+        if (typeof repo().upsertProfileNotice !== 'function') {
+          throw new HttpError(503, 'Avisos de perfil no disponibles.')
+        }
+        const result = await sendProfileNoticesBulk({
+          repository: repo(),
+          athleteIds: req.validatedBody.athleteIds,
+          message: req.validatedBody.message,
+          createdBy: actorLabel(req),
+        })
+        await recordOperationalAuditEvent(auditClient(), {
+          source: 'identity',
+          action: 'athlete.profile_notice_sent',
+          entityType: 'athlete_profile_notice',
+          entityId: 'bulk',
+          actorType: 'staff',
+          actorId: req.auth.user.id,
+          status: 'sent',
+          severity: 'info',
+          metadata: requestAuditMetadata(req, {
+            sent: result.sent.length,
+            skipped: result.skipped.length,
+            failed: result.failed.length,
+          }),
+        })
+        res.status(201).json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.post(
+    '/admin/:athleteId/profile-notices',
+    ...accountGuard,
+    staffLimiter,
+    validateBody(profileNoticeSchema),
+    async (req, res, next) => {
+      try {
+        const athleteId = z.string().uuid().safeParse(req.params.athleteId)
+        if (!athleteId.success) throw new HttpError(400, 'Atleta inválido.')
+        if (typeof repo().upsertProfileNotice !== 'function') {
+          throw new HttpError(503, 'Avisos de perfil no disponibles.')
+        }
+        const result = await sendProfileNotice({
+          repository: repo(),
+          athleteId: athleteId.data,
+          message: req.validatedBody.message,
+          createdBy: actorLabel(req),
+        })
+        await recordOperationalAuditEvent(auditClient(), {
+          source: 'identity',
+          action: 'athlete.profile_notice_sent',
+          entityType: 'athlete_profile_notice',
+          entityId: result.notice?.id ?? athleteId.data,
+          actorType: 'staff',
+          actorId: req.auth.user.id,
+          status: 'sent',
+          severity: 'info',
+          metadata: requestAuditMetadata(req, {
+            athleteId: athleteId.data,
+            missing: result.missing,
+          }),
+        })
+        res.status(201).json(result)
       } catch (error) {
         next(error)
       }

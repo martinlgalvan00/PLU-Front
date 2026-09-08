@@ -20,6 +20,7 @@ import {
   UsersRound,
   X,
   LayoutDashboard,
+  Bell,
 } from 'lucide-react'
 import { PUBLIC_NAVIGATION } from '../../lib/constants.js'
 import { getFeaturedEventDestination } from '../../lib/eventNavigation.js'
@@ -69,6 +70,23 @@ const PROFILE_MENU_MAX_WIDTH = 272
 const PROFILE_MENU_GUTTER = 12
 /** Mismo corte que el chrome mobile de `.plu-global-nav` (cluster + avatar). */
 const PROFILE_MENU_CENTER_MAX_WIDTH = 799
+
+const NOTICE_FIELD_KEYS = {
+  phone: 'account.personalData.phone',
+  city: 'account.personalData.city',
+  province: 'account.personalData.province',
+  gym: 'account.personalData.gym',
+  division: 'account.personalData.division',
+  category: 'account.personalData.category',
+  estimatedWeight: 'account.personalData.estimatedWeight',
+}
+
+function noticeFieldLabels(notice, t) {
+  return (notice?.missingFields ?? [])
+    .map((field) => t(NOTICE_FIELD_KEYS[field] ?? field))
+    .filter(Boolean)
+    .join(', ')
+}
 
 function computeProfileMenuPosition(rect, viewportWidth) {
   const menuWidth = Math.min(PROFILE_MENU_MAX_WIDTH, viewportWidth - PROFILE_MENU_GUTTER * 2)
@@ -436,6 +454,9 @@ export default function NavbarPublic({
   onNavigate,
   session,
   sessionPending = false,
+  profileNotice = null,
+  profileNoticeUnread = false,
+  onReadProfileNotice,
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [dropdown, setDropdown] = useState(null)
@@ -447,6 +468,9 @@ export default function NavbarPublic({
   const profileMenuRef = useRef(null)
   const profileTriggerRef = useRef(null)
   const mobileProfileTriggerRef = useRef(null)
+  const noticeMenuRef = useRef(null)
+  const noticeTriggerRef = useRef(null)
+  const mobileNoticeTriggerRef = useRef(null)
   const [profileMenuPos, setProfileMenuPos] = useState(null)
   const restoreDrawerFocusRef = useRef(true)
   const suppressScrollRestoreRef = useRef(false)
@@ -474,6 +498,7 @@ export default function NavbarPublic({
   const sessionPhoto = session ? sessionPhotoUrl(session) : ''
   const hasActiveMembership =
     session?.role === 'athlete_plu' && hasCurrentMembership(memberships, session.athleteId)
+  const showNoticeBell = session?.role === 'athlete_plu'
   const competitionActive = Boolean(COMPETITION_NAVIGATION?.views?.includes(activeView))
   const moreActive = Boolean(MORE_NAVIGATION?.views?.includes(activeView))
 
@@ -527,6 +552,10 @@ export default function NavbarPublic({
 
   function toggleProfileMenu() {
     setDropdown((current) => (current === 'profile' ? null : 'profile'))
+  }
+
+  function toggleNoticeMenu() {
+    setDropdown((current) => (current === 'notices' ? null : 'notices'))
   }
 
   function handleLogout() {
@@ -642,13 +671,16 @@ export default function NavbarPublic({
   }, [])
 
   useLayoutEffect(() => {
-    if (dropdown !== 'profile') {
+    if (dropdown !== 'profile' && dropdown !== 'notices') {
       setProfileMenuPos(null)
       return undefined
     }
 
     function updatePosition() {
-      const trigger = getVisibleTrigger(mobileProfileTriggerRef.current, profileTriggerRef.current)
+      const trigger =
+        dropdown === 'notices'
+          ? getVisibleTrigger(mobileNoticeTriggerRef.current, noticeTriggerRef.current)
+          : getVisibleTrigger(mobileProfileTriggerRef.current, profileTriggerRef.current)
       if (!trigger) return
       setProfileMenuPos(
         computeProfileMenuPosition(trigger.getBoundingClientRect(), window.innerWidth),
@@ -665,19 +697,22 @@ export default function NavbarPublic({
   }, [dropdown])
 
   useEffect(() => {
-    if (dropdown !== 'profile') return undefined
-    function isInProfileUi(target) {
+    if (dropdown !== 'profile' && dropdown !== 'notices') return undefined
+    function isInMenuUi(target) {
       return Boolean(
         profileTriggerRef.current?.contains(target) ||
-        mobileProfileTriggerRef.current?.contains(target) ||
-        profileMenuRef.current?.contains(target),
+          mobileProfileTriggerRef.current?.contains(target) ||
+          profileMenuRef.current?.contains(target) ||
+          noticeTriggerRef.current?.contains(target) ||
+          mobileNoticeTriggerRef.current?.contains(target) ||
+          noticeMenuRef.current?.contains(target),
       )
     }
     function handlePointerDown(event) {
-      if (!isInProfileUi(event.target)) setDropdown(null)
+      if (!isInMenuUi(event.target)) setDropdown(null)
     }
     function handleFocusIn(event) {
-      if (!isInProfileUi(event.target)) setDropdown(null)
+      if (!isInMenuUi(event.target)) setDropdown(null)
     }
     document.addEventListener('pointerdown', handlePointerDown)
     document.addEventListener('focusin', handleFocusIn)
@@ -686,6 +721,13 @@ export default function NavbarPublic({
       document.removeEventListener('focusin', handleFocusIn)
     }
   }, [dropdown])
+
+  useEffect(() => {
+    if (dropdown !== 'notices' || !profileNotice?.id || profileNotice.readAt || !onReadProfileNotice) {
+      return
+    }
+    void onReadProfileNotice(profileNotice.id)
+  }, [dropdown, profileNotice, onReadProfileNotice])
 
   const overHero = ['home', 'pitbull', 'tickets'].includes(activeView)
 
@@ -834,6 +876,26 @@ export default function NavbarPublic({
               <ThemeToggle compact />
               <LanguageToggle compact />
             </div>
+            {showNoticeBell ? (
+              <button
+                type="button"
+                id="plu-notice-menu-trigger"
+                ref={noticeTriggerRef}
+                className={`plu-global-nav__notice-bell${dropdown === 'notices' ? ' is-active' : ''}`}
+                aria-controls="plu-notice-menu"
+                aria-expanded={dropdown === 'notices'}
+                aria-haspopup="dialog"
+                aria-label={
+                  profileNoticeUnread
+                    ? `${t('nav.notices')}. ${t('nav.profileNoticeUnread')}`
+                    : t('nav.notices')
+                }
+                onClick={toggleNoticeMenu}
+              >
+                <Bell size={16} strokeWidth={1.75} aria-hidden />
+                {profileNoticeUnread ? <span className="plu-global-nav__notice-dot" aria-hidden /> : null}
+              </button>
+            ) : null}
             {session ? (
               <div className="plu-global-nav__account">
                 <button
@@ -873,6 +935,30 @@ export default function NavbarPublic({
                 <LanguageToggle compact variant="segment" />
               </div>
               <span className="plu-global-nav__mobile-divider" aria-hidden />
+              {showNoticeBell ? (
+                <button
+                  type="button"
+                  id="plu-notice-menu-trigger-mobile"
+                  ref={mobileNoticeTriggerRef}
+                  className={`plu-global-nav__notice-bell plu-global-nav__notice-bell--cluster${
+                    dropdown === 'notices' ? ' is-active' : ''
+                  }`}
+                  aria-controls="plu-notice-menu"
+                  aria-expanded={dropdown === 'notices'}
+                  aria-haspopup="dialog"
+                  aria-label={
+                    profileNoticeUnread
+                      ? `${t('nav.notices')}. ${t('nav.profileNoticeUnread')}`
+                      : t('nav.notices')
+                  }
+                  onClick={toggleNoticeMenu}
+                >
+                  <Bell size={15} strokeWidth={1.75} aria-hidden />
+                  {profileNoticeUnread ? (
+                    <span className="plu-global-nav__notice-dot" aria-hidden />
+                  ) : null}
+                </button>
+              ) : null}
               {session ? (
                 <button
                   type="button"
@@ -1018,6 +1104,70 @@ export default function NavbarPublic({
                   <LogOut size={15} strokeWidth={1.6} aria-hidden />
                   <span>{t('nav.logout')}</span>
                 </button>
+              </div>
+            </m.div>
+          ) : null}
+        </AnimatePresence>,
+        document.body,
+      )}
+
+      {createPortal(
+        <AnimatePresence initial={false}>
+          {dropdown === 'notices' && profileMenuPos ? (
+            <m.div
+              className="plu-notice-menu"
+              id="plu-notice-menu"
+              ref={noticeMenuRef}
+              role="dialog"
+              aria-labelledby="plu-notice-menu-title"
+              style={{ top: profileMenuPos.top, left: profileMenuPos.left }}
+              initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={
+                reducedMotion
+                  ? { opacity: 0, transition: { duration: 0.01 } }
+                  : {
+                      opacity: 0,
+                      y: 4,
+                      scale: 0.99,
+                      transition: { duration: 0.14, ease: MOTION_EASE.out },
+                    }
+              }
+              transition={{ duration: reducedMotion ? 0.08 : 0.2, ease: MOTION_EASE.out }}
+            >
+              <div className="plu-notice-menu__header">
+                <p className="plu-notice-menu__eyebrow">{t('nav.notices')}</p>
+              </div>
+              <div className="plu-notice-menu__body">
+                {profileNotice ? (
+                  <>
+                    <h2 id="plu-notice-menu-title" className="plu-notice-menu__title">
+                      {t('account.profileNotice.title')}
+                    </h2>
+                    <p className="plu-notice-menu__lead">
+                      {t('account.profileNotice.lead', {
+                        fields: noticeFieldLabels(profileNotice, t) || '—',
+                      })}
+                    </p>
+                    {profileNotice.message ? (
+                      <p className="plu-notice-menu__message">{profileNotice.message}</p>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="plu-notice-menu__action"
+                      onClick={() => go('profile')}
+                    >
+                      {t('account.profileNotice.action')}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <h2 id="plu-notice-menu-title" className="plu-notice-menu__title">
+                      {t('nav.noticesEmptyTitle')}
+                    </h2>
+                    <p className="plu-notice-menu__lead">{t('nav.noticesEmpty')}</p>
+                  </>
+                )}
               </div>
             </m.div>
           ) : null}

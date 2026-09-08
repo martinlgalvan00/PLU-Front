@@ -83,6 +83,9 @@ export default function UpcomingEventsSection({
     city: t('account.personalData.city'),
     province: t('account.personalData.province'),
     gym: t('account.personalData.gym'),
+    division: t('account.personalData.division'),
+    category: t('account.personalData.category'),
+    estimatedWeight: t('account.personalData.estimatedWeight'),
   }
 
   function getMissingFieldsLabel() {

@@ -15,10 +15,12 @@ import {
 import { isRegistrationAdmitted } from '../lib/status.js'
 import { isPaymentActionable } from '../lib/paymentProgress.js'
 import { isMembershipCurrent } from '../services/membershipService.js'
+import { isProfileComplete, visibleProfileNotice } from '../lib/athleteProfile.js'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import EmailVerificationBanner from '../components/ui/EmailVerificationBanner.jsx'
 import GateMembershipBanner from '../components/ui/GateMembershipBanner.jsx'
+import ProfileIncompleteNoticeBanner from '../components/ui/ProfileIncompleteNoticeBanner.jsx'
 import AccountNav from './profile/AccountNav.jsx'
 import ProfileHero from './profile/ProfileHero.jsx'
 import QrCredentialSection from './profile/QrCredentialSection.jsx'
@@ -71,6 +73,8 @@ export default function AthleteProfilePage({
   onUpdateProfile,
   onUpdatePhoto,
   onRemovePhoto,
+  onReadProfileNotice,
+  onDismissProfileNotice,
   payments = [],
   registrations,
   session,
@@ -146,7 +150,13 @@ export default function AthleteProfilePage({
   // Cobro rechazado/vencido sin resolver: la ficha "Pagos" lo marca desde la
   // navegación para que se note sin tener que entrar a leer la lista.
   const paymentsNeedAttention = athletePayments.some((item) => isPaymentActionable(item.progress))
-  const navAttentionIds = paymentsNeedAttention ? ['account-payments'] : []
+  const profileNeedsAttention = Boolean(
+    visibleProfileNotice(athlete?.profileNotices) || (athlete && !isProfileComplete(athlete).complete),
+  )
+  const navAttentionIds = [
+    paymentsNeedAttention ? 'account-payments' : null,
+    profileNeedsAttention ? 'account-personal-data' : null,
+  ].filter(Boolean)
   const availableEvents = (events.length ? events : UPCOMING_EVENTS).filter(
     (event) => event.status !== 'finalizado',
   )
@@ -476,6 +486,12 @@ export default function AthleteProfilePage({
 
         <div className="account-main">
           <EmailVerificationBanner athlete={athlete} />
+          <ProfileIncompleteNoticeBanner
+            athlete={athlete}
+            onComplete={() => openTab('account-personal-data')}
+            onDismiss={onDismissProfileNotice}
+            onRead={onReadProfileNotice}
+          />
           <GateMembershipBanner
             pendingEvents={gatePendingRegistrations}
             onCompleteMembership={() => openTab(ACCOUNT_MEMBERSHIP_TAB)}

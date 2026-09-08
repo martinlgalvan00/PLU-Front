@@ -16,12 +16,26 @@ import {
 } from '../../lib/constants.js'
 import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
 import { matchesDateRange } from '../../lib/adminDateRangeFilter.js'
+import { isProfileComplete } from '../../lib/athleteProfile.js'
 import {
   createRegistrationPaymentIndex,
   groupRegistrationsByAthlete,
   matchesRegistrationStatusFilter,
   resolveRegistrationPayment,
 } from '../../services/registrationAdminService.js'
+
+function profileFieldLabel(field, t) {
+  const keys = {
+    phone: 'admin.athleteDetail.fields.phone',
+    city: 'admin.athleteDetail.fields.city',
+    province: 'admin.athleteDetail.fields.province',
+    gym: 'admin.athleteDetail.fields.gym',
+    division: 'admin.athleteDetail.fields.division',
+    category: 'admin.athleteDetail.fields.category',
+    estimatedWeight: 'admin.athleteDetail.fields.estimatedWeight',
+  }
+  return t(keys[field] ?? field)
+}
 
 function normalizeGymName(name) {
   if (!name) return ''
@@ -44,6 +58,7 @@ export default function AthletesSection({
   onSelectAthlete,
   canEdit = false,
   onBulkUpdate,
+  onNotifyIncomplete,
 }) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
@@ -51,9 +66,24 @@ export default function AthletesSection({
   const [registrationStatus, setRegistrationStatus] = useState('all')
   const [gym, setGym] = useState('all')
   const [division, setDivision] = useState('all')
+  const [profileCompleteness, setProfileCompleteness] = useState('all')
   const [registeredRange, setRegisteredRange] = useState({ from: '', to: '' })
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
+  const [picking, setPicking] = useState(false)
+  const [visibleRowKeys, setVisibleRowKeys] = useState([])
   const { startTour } = useAdminTour()
+
+  function handleVisibleRowKeysChange(keys) {
+    setVisibleRowKeys((current) => {
+      if (
+        current.length === keys.length &&
+        current.every((id, index) => id === keys[index])
+      ) {
+        return current
+      }
+      return keys
+    })
+  }
   const { views: savedViews, saveView, removeView } = useAdminSavedFilterViews('athletes')
 
   useEffect(() => {
@@ -172,9 +202,36 @@ export default function AthletesSection({
     [registrationStatusCounts, t],
   )
 
+  const profileCompletenessCounts = useMemo(() => {
+    let incomplete = 0
+    let complete = 0
+    for (const athlete of athletes) {
+      if (isProfileComplete(athlete).complete) complete += 1
+      else incomplete += 1
+    }
+    return { all: athletes.length, incomplete, complete }
+  }, [athletes])
+
+  const profileCompletenessOptions = useMemo(
+    () => [
+      ['all', t('admin.filters.profileAll'), profileCompletenessCounts.all],
+      ['incomplete', t('admin.filters.profileIncomplete'), profileCompletenessCounts.incomplete],
+      ['complete', t('admin.filters.profileComplete'), profileCompletenessCounts.complete],
+    ],
+    [profileCompletenessCounts, t],
+  )
+
   const savedViewSnapshot = useMemo(
-    () => ({ query, status, registrationStatus, gym, division, registeredRange }),
-    [query, status, registrationStatus, gym, division, registeredRange],
+    () => ({
+      query,
+      status,
+      registrationStatus,
+      gym,
+      division,
+      profileCompleteness,
+      registeredRange,
+    }),
+    [query, status, registrationStatus, gym, division, profileCompleteness, registeredRange],
   )
   const activeSavedView = useMemo(
     () => findMatchingView(savedViews, savedViewSnapshot),
@@ -186,6 +243,7 @@ export default function AthletesSection({
     registrationStatus !== 'all' ||
     gym !== 'all' ||
     division !== 'all' ||
+    profileCompleteness !== 'all' ||
     Boolean(registeredRange.from) ||
     Boolean(registeredRange.to)
 
@@ -209,6 +267,10 @@ export default function AthletesSection({
       const opt = divisionOptions.find(([v]) => v === division)
       if (opt) items.push({ label: t('admin.filters.division'), value: opt[1] })
     }
+    if (profileCompleteness !== 'all') {
+      const opt = profileCompletenessOptions.find(([v]) => v === profileCompleteness)
+      if (opt) items.push({ label: t('admin.filters.profileCompleteness'), value: opt[1] })
+    }
     if (registeredRange.from || registeredRange.to) {
       const value =
         registeredRange.from && registeredRange.to
@@ -225,11 +287,13 @@ export default function AthletesSection({
     registrationStatus,
     gym,
     division,
+    profileCompleteness,
     registeredRange,
     statusOptions,
     registrationStatusOptions,
     gymOptions,
     divisionOptions,
+    profileCompletenessOptions,
     t,
   ])
 
@@ -239,6 +303,7 @@ export default function AthletesSection({
     setRegistrationStatus(view.snapshot.registrationStatus ?? 'all')
     setGym(view.snapshot.gym ?? 'all')
     setDivision(view.snapshot.division ?? 'all')
+    setProfileCompleteness(view.snapshot.profileCompleteness ?? 'all')
     setRegisteredRange(view.snapshot.registeredRange ?? { from: '', to: '' })
   }
 
@@ -248,6 +313,7 @@ export default function AthletesSection({
     setRegistrationStatus('all')
     setGym('all')
     setDivision('all')
+    setProfileCompleteness('all')
     setRegisteredRange({ from: '', to: '' })
   }
 
@@ -260,6 +326,11 @@ export default function AthletesSection({
         const registrationMatch = athleteMatchesRegistrationFilter(athlete.id, registrationStatus)
         const gymMatch = gym === 'all' || normalizeGymName(athlete.gym) === gym
         const divisionMatch = division === 'all' || athlete.division === division
+        const profileMatch =
+          profileCompleteness === 'all' ||
+          (profileCompleteness === 'complete'
+            ? isProfileComplete(athlete).complete
+            : !isProfileComplete(athlete).complete)
         const dateMatch = matchesDateRange(athlete.createdAt, registeredRange)
         const queryMatch =
           !normalizedQuery ||
@@ -268,7 +339,13 @@ export default function AthletesSection({
           athlete.email.toLowerCase().includes(normalizedQuery) ||
           athlete.gym?.toLowerCase().includes(normalizedQuery)
         return (
-          statusMatch && registrationMatch && gymMatch && divisionMatch && dateMatch && queryMatch
+          statusMatch &&
+          registrationMatch &&
+          gymMatch &&
+          divisionMatch &&
+          profileMatch &&
+          dateMatch &&
+          queryMatch
         )
       })
       .map((athlete) => ({ ...athlete, id: athlete.id }))
@@ -280,11 +357,41 @@ export default function AthletesSection({
     registrationStatus,
     gym,
     division,
+    profileCompleteness,
     registeredRange,
     paymentIndex,
     registrationsByAthlete,
     gatePendingIds,
   ])
+
+  const incompleteVisibleIds = useMemo(
+    () => rows.filter((row) => !isProfileComplete(row).complete).map((row) => row.id),
+    [rows],
+  )
+  const incompleteIdSet = useMemo(() => new Set(incompleteVisibleIds), [incompleteVisibleIds])
+  const incompleteOnPageIds = useMemo(
+    () => visibleRowKeys.filter((id) => incompleteIdSet.has(id)),
+    [incompleteIdSet, visibleRowKeys],
+  )
+  const selectedRows = useMemo(
+    () => rows.filter((row) => selectedRowKeys.includes(row.id)),
+    [rows, selectedRowKeys],
+  )
+  const incompleteSelectedIds = useMemo(
+    () => selectedRows.filter((row) => !isProfileComplete(row).complete).map((row) => row.id),
+    [selectedRows],
+  )
+  const incompleteSelectedCount = incompleteSelectedIds.length
+  const completeSelectedCount = selectedRows.length - incompleteSelectedCount
+  const notifyMissingFields = useMemo(() => {
+    const fields = new Set()
+    for (const row of selectedRows) {
+      const status = isProfileComplete(row)
+      if (status.complete) continue
+      for (const field of status.missing) fields.add(field)
+    }
+    return [...fields].map((field) => profileFieldLabel(field, t)).join(', ')
+  }, [selectedRows, t])
 
   return (
     <AdminListSection
@@ -333,6 +440,14 @@ export default function AthletesSection({
           advanced: true,
         },
         {
+          id: 'profileCompleteness',
+          label: t('admin.filters.profileCompleteness'),
+          value: profileCompleteness,
+          onChange: setProfileCompleteness,
+          options: profileCompletenessOptions,
+          showLabel: true,
+        },
+        {
           id: 'registeredAt',
           label: t('admin.filters.registeredAt'),
           value: registeredRange,
@@ -368,8 +483,80 @@ export default function AthletesSection({
             .filter(([value]) => value !== 'all')
             .map(([value, label]) => [value, label])}
           onBulkUpdate={onBulkUpdate}
+          onNotifyIncomplete={onNotifyIncomplete}
+          notifyPreset={t('admin.athleteDetail.profileNotice.preset')}
+          incompleteSelectedCount={incompleteSelectedCount}
+          completeSelectedCount={completeSelectedCount}
+          notifyAthleteIds={incompleteSelectedIds}
+          notifyMissingFields={notifyMissingFields}
           onClearSelection={() => setSelectedRowKeys([])}
         />
+      ) : null}
+      {canEdit && picking ? (
+        <div className="admin-athletes-select-incomplete admin-athletes-select-incomplete--picking">
+          <p className="admin-athletes-select-incomplete__stat">
+            <span className="admin-athletes-select-incomplete__label">
+              {t('admin.sections.athletes.selectIncompletePicking')}
+            </span>
+          </p>
+          <div className="admin-athletes-select-incomplete__actions">
+            <button
+              type="button"
+              className="admin-athletes-select-incomplete__btn"
+              onClick={() => {
+                setSelectedRowKeys((current) => {
+                  const next = new Set(current)
+                  for (const id of incompleteOnPageIds) next.add(id)
+                  return [...next]
+                })
+              }}
+              disabled={incompleteOnPageIds.length === 0}
+              aria-label={t('admin.sections.athletes.selectIncompleteThisPageAria', {
+                count: incompleteOnPageIds.length,
+              })}
+            >
+              {t('admin.sections.athletes.selectIncompleteThisPage')}
+            </button>
+            <button
+              type="button"
+              className="admin-athletes-select-incomplete__ghost"
+              onClick={() => setPicking(false)}
+            >
+              {t('admin.sections.athletes.selectIncompleteDone')}
+            </button>
+            <button
+              type="button"
+              className="admin-athletes-select-incomplete__ghost"
+              onClick={() => {
+                setPicking(false)
+                setSelectedRowKeys([])
+              }}
+            >
+              {t('admin.sections.athletes.selectIncompleteCancel')}
+            </button>
+          </div>
+        </div>
+      ) : canEdit && incompleteVisibleIds.length > 0 ? (
+        <div className="admin-athletes-select-incomplete">
+          <p className="admin-athletes-select-incomplete__stat">
+            <strong className="admin-athletes-select-incomplete__n">
+              {incompleteVisibleIds.length}
+            </strong>
+            <span className="admin-athletes-select-incomplete__label">
+              {t('admin.sections.athletes.selectIncompleteLabel')}
+            </span>
+          </p>
+          <button
+            type="button"
+            className="admin-athletes-select-incomplete__btn"
+            onClick={() => setPicking(true)}
+            aria-label={t('admin.sections.athletes.selectIncompleteAria', {
+              count: incompleteVisibleIds.length,
+            })}
+          >
+            {t('admin.sections.athletes.selectIncompleteAction')}
+          </button>
+        </div>
       ) : null}
       <AdminDataTable
         variant="admin"
@@ -381,6 +568,11 @@ export default function AthletesSection({
                 preserveSelectedRowKeys: true,
               }
             : undefined
+        }
+        selectOnRowClick={picking}
+        onVisibleRowKeysChange={handleVisibleRowKeysChange}
+        getRowSelectLabel={(row) =>
+          t('admin.table.selectRow', { name: row.fullName ?? '' })
         }
         columns={[
           {
@@ -422,6 +614,35 @@ export default function AthletesSection({
             className: 'data-table__column--meta',
             sortable: true,
             mobileSortable: false,
+          },
+          {
+            key: 'profile',
+            label: t('admin.columns.profile'),
+            mobile: 'default',
+            className: 'data-table__column--meta',
+            sortable: false,
+            mobileSortable: false,
+            render: (row) => {
+              const status = isProfileComplete(row)
+              const labels = status.missing.map((field) => profileFieldLabel(field, t)).join(', ')
+              const pendingKey =
+                status.missing.length === 1
+                  ? 'admin.sections.athletes.profilePending_one'
+                  : 'admin.sections.athletes.profilePending_other'
+              return (
+                <span
+                  className={`admin-athlete-profile-flag${status.complete ? ' is-complete' : ' is-pending'}`}
+                  title={status.complete ? t('admin.sections.athletes.profileOk') : labels}
+                >
+                  {status.complete ? null : (
+                    <span className="admin-athlete-profile-flag__mark" aria-hidden="true" />
+                  )}
+                  {status.complete
+                    ? t('admin.sections.athletes.profileOk')
+                    : t(pendingKey, { count: status.missing.length })}
+                </span>
+              )
+            },
           },
           {
             key: 'status',

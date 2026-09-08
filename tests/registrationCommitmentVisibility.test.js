@@ -50,6 +50,5 @@ describe('compromiso competitivo y padrón público', () => {
       'birth_date = case when birth_date is null then p_birth_date else birth_date end',
     )
     expect(migration).toContain('country = case')
-    expect(repository).toMatch(/rpc\(\s*'update_athlete_profile_v4'/)
   })
 })

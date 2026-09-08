@@ -954,12 +954,20 @@ export default function EventsSection({
           }
           securitySection={
             canManageUsers ? (
-              <>
+              <div className="admin-event-workspace__security-stack">
                 <AdminEventZonesSection
                   canManageUsers={canManageUsers}
                   eventId={selectedEvent.id}
                   eventSlug={selectedEvent.slug}
-                  onAssignMember={onAssignSecurityZone}
+                  onAssignMember={
+                    onAssignSecurityZone
+                      ? async (userId, zoneId) => {
+                          const zones = await onAssignSecurityZone(userId, zoneId)
+                          setZonesReloadToken((current) => current + 1)
+                          return zones
+                        }
+                      : undefined
+                  }
                   onCreateAccessLink={onCreateSecurityAccessLink}
                   onCreateZone={onCreateSecurityZone}
                   onDeleteZone={onDeleteSecurityZone}
@@ -981,8 +989,9 @@ export default function EventsSection({
                   onListSecurityUsers={onListSecurityUsers}
                   onTeamChange={() => setZonesReloadToken((current) => current + 1)}
                   onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
+                  reloadToken={zonesReloadToken}
                 />
-              </>
+              </div>
             ) : null
           }
           structureEditor={

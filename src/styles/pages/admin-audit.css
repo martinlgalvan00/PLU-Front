@@ -11,8 +11,8 @@
    bitácora en sí. Es flujo editorial, no una tarjeta dentro de otra tarjeta. */
 .audit-flow-guide {
   border-bottom: 1px solid var(--color-border-subtle);
-  margin: 0 0 var(--space-lg);
-  padding: 0 0 var(--space-sm);
+  margin: 0 0 8px;
+  padding: 0 0 6px;
 }
 
 .audit-flow-guide summary {
@@ -147,8 +147,8 @@
   color: var(--color-text-muted);
 }
 
-/* Métricas: en desktop siempre visibles; en mobile (≤768) viven en un
-   <details> cerrado por default para no comer viewport. */
+/* Métricas: en desktop amplio siempre visibles; en notebook, viewport
+   bajo o mobile viven en un <details> para no comer la bitácora. */
 .audit-health__metrics {
   margin: 0;
   padding: 0;
@@ -218,7 +218,7 @@
   padding: 8px 12px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1100px), (max-height: 820px) {
   .audit-health__metrics-summary {
     display: flex;
   }
@@ -228,7 +228,7 @@
   }
 }
 
-@media (min-width: 769px) {
+@media (min-width: 1101px) and (min-height: 821px) {
   .audit-health__metrics-summary {
     display: none;
   }
@@ -495,15 +495,36 @@
   font-variant-numeric: tabular-nums;
 }
 
-@media (min-width: 769px) {
+/* Tablet / sidebar colapsado: cada faceta en su riel horizontal.
+   El grid de 3 columnas apretaba los chips hasta envolverlos en una
+   pared ilegible y comía el alto de la bitácora. */
+@media (max-width: 1100px) {
   .admin-shell .admin-filters--audit .admin-filters__groups--multi,
   .admin-shell .admin-list-section--audit .admin-filters__groups--multi {
-    grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(9rem, 0.7fr)) auto;
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px 12px;
+    grid-template-columns: none;
   }
 
-  .admin-shell .admin-filters--audit .admin-filters__advanced-toggle {
-    justify-self: start;
-    max-width: 11.5rem;
+  .admin-shell .admin-filters--audit .admin-filter-group,
+  .admin-shell .admin-list-section--audit .admin-filter-group {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .admin-shell .admin-filters--audit .admin-filter-chips,
+  .admin-shell .admin-list-section--audit .admin-filter-chips {
+    flex-wrap: nowrap;
+    max-width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+  }
+
+  .admin-shell .admin-list-section--audit .admin-filters__groups--multi > .admin-filter-group + .admin-filter-group {
+    border-top: 1px solid color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 80%, transparent);
+    padding-top: 10px;
   }
 }
 
@@ -538,13 +559,13 @@
     max-width: none;
   }
 
-  /* Chips visibles sin swipe oculto (pisa nowrap de --compact). */
+  /* Chips en riel: wrap solo en teléfono chico, no en tablet. */
   .admin-shell .admin-filters--audit .admin-filter-chips,
   .admin-shell .admin-list-section--audit .admin-filter-chips,
   .admin-shell .admin-filters--audit.admin-filters--compact .admin-filter-chips {
-    flex-wrap: wrap;
-    overflow-x: visible;
-    padding-bottom: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
     width: 100%;
   }
 
@@ -557,6 +578,10 @@
   .admin-shell .admin-filters--audit .admin-filter-chip,
   .admin-shell .admin-list-section--audit .admin-filter-chip {
     min-height: 36px;
+  }
+
+  .admin-shell .admin-filters--audit .admin-filters__advanced-toggle {
+    justify-self: start;
   }
 
   .audit-incidents-toggle {
@@ -982,6 +1007,14 @@
 }
 
 @media (max-width: 430px) {
+  .admin-shell .admin-filters--audit .admin-filter-chips,
+  .admin-shell .admin-list-section--audit .admin-filter-chips,
+  .admin-shell .admin-filters--audit.admin-filters--compact .admin-filter-chips {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding-bottom: 0;
+  }
+
   .audit-mobile-entry__head {
     align-items: stretch;
     flex-direction: column;
@@ -997,25 +1030,33 @@
   }
 }
 
-/* Auditoría: un scroll para las filas. El chrome (guía + salud + filtros)
-   crece a altura natural; solo con la guía abierta en desktop se aplica un
-   tope para no ahogar la bitácora. En ≤768 no hay scroll anidado. */
+/* Auditoría: la bitácora tiene que poder scrollearse. El chrome (guía +
+   salud + filtros) no puede crecer hasta tapar las filas en un viewport
+   corto o con sidebar colapsado. Tope + scroll propio en desktop; en
+   ≤768 un solo scroll de página. */
 .admin-shell .admin-list-section--audit > .admin-list-section__chrome {
   box-shadow: 0 10px 18px color-mix(in srgb, var(--admin-canvas, var(--color-bg-primary)) 82%, transparent);
-  flex: none;
+  flex: 0 1 auto;
+  gap: 10px;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: visible;
+  padding-bottom: 12px;
   position: relative;
   z-index: 6;
 }
 
 @media (min-width: 769px) {
-  .admin-shell
-    .admin-list-section--audit:has(> .admin-list-section__chrome .audit-flow-guide[open])
-    > .admin-list-section__chrome {
-    max-height: min(48vh, 420px);
+  .admin-shell .admin-list-section--audit > .admin-list-section__chrome {
+    max-height: min(42vh, 340px);
     overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .admin-shell .admin-page > .admin-list-section--audit.admin-list-section--rails > .admin-list-shell {
+    flex: 1 1 auto;
+    min-height: min(280px, 52%);
   }
 }
 
@@ -1065,7 +1106,7 @@
   }
 
   .admin-shell .admin-list-section--audit .audit-flow-guide {
-    margin-bottom: var(--space-md);
+    margin-bottom: 8px;
   }
 }
 

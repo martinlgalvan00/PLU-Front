@@ -124,7 +124,9 @@ export default function AdminPage({
   onDeleteUser,
   onDeleteAthlete,
   onBulkUpdateAthletes,
+  onNotifyAthletesIncomplete,
   onUpdateAthlete,
+  onNotifyAthleteProfile,
   onDeleteMembership,
   onDeleteRegistration,
   onSetRegistrationPublicVisibility,
@@ -348,6 +350,7 @@ export default function AdminPage({
               setSelectedAthleteId(null)
             }}
             onUpdate={onUpdateAthlete}
+            onNotifyProfile={onNotifyAthleteProfile}
             onApprovePayment={onApprovePayment}
             onRejectPayment={onRejectPayment}
           />
@@ -380,6 +383,7 @@ export default function AdminPage({
               onSelectAthlete={handleSelectAthlete}
               canEdit={hasPermission(authorization, 'admin.athletes.write')}
               onBulkUpdate={onBulkUpdateAthletes}
+              onNotifyIncomplete={onNotifyAthletesIncomplete}
             />
           )}
           {activePeopleTab === 'memberships' && (

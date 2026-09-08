@@ -120,6 +120,7 @@ export function buildAdminEventDraft(event) {
     published: event.published === true,
     requiresMembership: event.requiresMembership !== false,
     capacityProgressPublic: event.capacityProgressPublic !== false,
+    capacityTotalPublic: event.capacityTotalPublic !== false,
     paymentChannelOverrides: event.paymentChannelOverrides ?? null,
     bankTransfer: {
       alias: event.bankTransfer?.alias ?? '',
@@ -553,6 +554,7 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   requiresMembership: true,
   // El sitio muestra la ocupación salvo decisión contraria del organizador.
   capacityProgressPublic: true,
+  capacityTotalPublic: true,
   paymentChannelOverrides: null,
   bankTransfer: { alias: '', cbu: '', holder: '' },
   bankTransferProfileId: null,
@@ -665,6 +667,7 @@ export function mapSupabaseEventRow(row) {
     published: row.published,
     requiresMembership: row.requires_membership !== false,
     capacityProgressPublic: row.capacity_progress_public !== false,
+    capacityTotalPublic: row.capacity_total_public !== false,
     paymentChannelOverrides: row.payment_channel_overrides ?? null,
     bankTransfer: {
       alias: row.bank_transfer_alias ?? '',

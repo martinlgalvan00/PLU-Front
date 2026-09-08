@@ -1,3 +1,4 @@
+import { chunkProfileNoticeAthleteIds } from '../../shared/profileNotice.js'
 import { callRpc } from '../lib/rpcErrors.js'
 import { apiDelete, apiGet, apiGetMeta, apiPatch, apiPost, apiRequest } from '../lib/api.js'
 import { toCamelSchedule } from '../lib/eventSchedule.js'
@@ -53,6 +54,30 @@ function toCamelAthlete(row) {
     // `qrToken` de cada afiliación (que cambia con cada renovación y no existe
     // para un inscripto a un evento que no exige afiliación).
     credentialToken: row.credential_token ?? null,
+    ...(row.profile_notices !== undefined || row.profileNotices !== undefined
+      ? {
+          profileNotices: (row.profile_notices ?? row.profileNotices ?? []).map(
+            toCamelProfileNotice,
+          ),
+        }
+      : {}),
+  }
+}
+
+function toCamelProfileNotice(row) {
+  if (!row) return row
+  return {
+    id: row.id,
+    athleteId: row.athlete_id ?? row.athleteId,
+    kind: row.kind,
+    missingFields: row.missing_fields ?? row.missingFields ?? [],
+    message: row.message ?? '',
+    createdBy: row.created_by ?? row.createdBy ?? null,
+    createdAt: row.created_at ?? row.createdAt ?? null,
+    updatedAt: row.updated_at ?? row.updatedAt ?? null,
+    readAt: row.read_at ?? row.readAt ?? null,
+    dismissedAt: row.dismissed_at ?? row.dismissedAt ?? null,
+    resolvedAt: row.resolved_at ?? row.resolvedAt ?? null,
   }
 }
 
@@ -493,6 +518,81 @@ export async function updateAthleteProfile(_athleteId, updates) {
     body: JSON.stringify(updates),
   })
   return { athlete: toCamelAthlete(row) }
+}
+
+export async function sendAthleteProfileNotice(athleteId, message) {
+  const result = await apiPost(
+    `/api/athletes/admin/${encodeURIComponent(athleteId)}/profile-notices`,
+    message ? { message } : {},
+  )
+  return {
+    notice: toCamelProfileNotice(result.notice),
+    missing: result.missing ?? [],
+  }
+}
+
+function mapBulkProfileNoticeResult(result) {
+  return {
+    sent: (result.sent ?? []).map((item) => ({
+      athleteId: item.athleteId,
+      notice: toCamelProfileNotice(item.notice),
+    })),
+    skipped: result.skipped ?? [],
+    failed: result.failed ?? [],
+  }
+}
+
+async function sendAthleteProfileNoticesBulkChunk(athleteIds, message) {
+  const result = await apiPost('/api/athletes/admin/profile-notices/bulk', {
+    athleteIds,
+    ...(message ? { message } : {}),
+  })
+  return mapBulkProfileNoticeResult(result)
+}
+
+export async function sendAthleteProfileNoticesBulk(athleteIds, message, { onProgress } = {}) {
+  const chunks = chunkProfileNoticeAthleteIds(athleteIds)
+  const sent = []
+  const skipped = []
+  const failed = []
+  let processed = 0
+  const total = chunks.reduce((count, chunk) => count + chunk.length, 0)
+
+  for (const chunk of chunks) {
+    onProgress?.({
+      from: processed + 1,
+      to: processed + chunk.length,
+      total,
+    })
+    try {
+      const result = await sendAthleteProfileNoticesBulkChunk(chunk, message)
+      sent.push(...result.sent)
+      skipped.push(...result.skipped)
+      failed.push(...result.failed)
+      processed += chunk.length
+    } catch (error) {
+      error.partial = { sent, skipped, failed, remaining: total - processed }
+      throw error
+    }
+  }
+
+  return { sent, skipped, failed }
+}
+
+export async function markAthleteProfileNoticeRead(noticeId) {
+  const { notice } = await apiPost(
+    `/api/athletes/me/profile-notices/${encodeURIComponent(noticeId)}/read`,
+    {},
+  )
+  return { notice: toCamelProfileNotice(notice) }
+}
+
+export async function dismissAthleteProfileNotice(noticeId) {
+  const { notice } = await apiPost(
+    `/api/athletes/me/profile-notices/${encodeURIComponent(noticeId)}/dismiss`,
+    {},
+  )
+  return { notice: toCamelProfileNotice(notice) }
 }
 
 function toCamelMembershipPlan(row) {

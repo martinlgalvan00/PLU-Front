@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import {
   ChevronLeft,
   ChevronRight,
@@ -120,70 +120,27 @@ export default function AdminEventWorkspace({
 }) {
   const { locale, t } = useI18n()
   const stateDirtyRef = useRef(false)
-  const headRef = useRef(null)
   const sidebarRef = useRef(null)
-  const progressRef = useRef(null)
   const scrollHostRef = useRef(null)
-  const [headerCompact, setHeaderCompact] = useState(false)
 
-  // El scroll real de esta pantalla lo hace `.admin-shell__content` (un
-  // ancestro fuera de este componente), no un contenedor propio -- por eso se
-  // busca con `closest` en vez de recibirlo por prop. De acá salen dos cosas:
-  // 1) la clase `is-compact` del encabezado (se achica en vez de quedar fijo
-  // a tamaño completo todo el tiempo) y 2) el ancho de la línea de progreso,
-  // mutado directo por ref para no re-renderizar en cada evento de scroll.
   useEffect(() => {
-    const host = headRef.current?.closest('.admin-shell__content') ?? null
-    scrollHostRef.current = host
-    if (!host) return undefined
-    let frame = 0
-    function measure() {
-      frame = 0
-      const top = host.scrollTop
-      const max = host.scrollHeight - host.clientHeight
-      setHeaderCompact(top > 24)
-      if (progressRef.current) {
-        const pct = max > 0 ? Math.min(1, top / max) : 0
-        progressRef.current.style.transform = `scaleX(${pct})`
-      }
-    }
-    function onScroll() {
-      if (frame) return
-      frame = window.requestAnimationFrame(measure)
-    }
-    host.addEventListener('scroll', onScroll, { passive: true })
-    measure()
-    return () => {
-      host.removeEventListener('scroll', onScroll)
-      if (frame) window.cancelAnimationFrame(frame)
-    }
+    scrollHostRef.current = sidebarRef.current?.closest('.admin-shell__content') ?? null
   }, [])
 
-  // El rail se ancla con `--admin-event-head-h`. En mobile las pestañas del
-  // evento y la cabecera del panel son dos sticky apilados: el segundo usa
-  // `--admin-event-sidebar-h` para parar justo debajo, no encima.
+  // En mobile las pestañas del evento son sticky: el alto medido evita que el
+  // panel se meta debajo. En desktop la columna lateral ya llena el content.
   useEffect(() => {
-    const headEl = headRef.current
     const sidebarEl = sidebarRef.current
-    if (typeof ResizeObserver === 'undefined') return undefined
-    const workspaceEl =
-      headEl?.closest('.admin-event-workspace') ??
-      sidebarEl?.closest('.admin-event-workspace')
-    const panelEl = headEl?.closest('.admin-event-workspace__panel')
+    if (!sidebarEl || typeof ResizeObserver === 'undefined') return undefined
+    const workspaceEl = sidebarEl.closest('.admin-event-workspace')
     function applyHeight() {
-      if (headEl && panelEl) {
-        panelEl.style.setProperty('--admin-event-head-h', `${headEl.offsetHeight}px`)
-      }
-      if (sidebarEl && workspaceEl) {
-        workspaceEl.style.setProperty(
-          '--admin-event-sidebar-h',
-          `${sidebarEl.offsetHeight}px`,
-        )
-      }
+      workspaceEl?.style.setProperty(
+        '--admin-event-sidebar-h',
+        `${sidebarEl.offsetHeight}px`,
+      )
     }
     const observer = new ResizeObserver(applyHeight)
-    if (headEl) observer.observe(headEl)
-    if (sidebarEl) observer.observe(sidebarEl)
+    observer.observe(sidebarEl)
     applyHeight()
     return () => observer.disconnect()
   }, [])
@@ -422,16 +379,18 @@ export default function AdminEventWorkspace({
     if (activeTab === 'security') {
       return (
         <div className="admin-event-workspace__split">
-          <div className="admin-event-workspace__main-col">{securitySection}</div>
-          <aside className="admin-event-workspace__rail">
+          <div className="admin-event-workspace__main-col">
             <div className="admin-event-workspace__notice" role="note">
-              <ShieldAlert size={18} aria-hidden />
-              <div>
+              <ShieldAlert size={16} aria-hidden />
+              <div className="admin-event-workspace__notice-copy">
                 <h3>{t('admin.eventConsole.zoneScopeNoticeTitle')}</h3>
                 <p>{t('admin.eventConsole.zoneScopeNotice')}</p>
               </div>
             </div>
-            {onManageCheckin ? (
+            {securitySection}
+          </div>
+          {onManageCheckin ? (
+            <aside className="admin-event-workspace__rail">
               <section className="admin-event-workspace__card">
                 <header className="admin-event-workspace__card-head">
                   <h2 className="admin-event-workspace__card-title">
@@ -447,8 +406,8 @@ export default function AdminEventWorkspace({
                   })}
                 </div>
               </section>
-            ) : null}
-          </aside>
+            </aside>
+          ) : null}
         </div>
       )
     }
@@ -459,6 +418,12 @@ export default function AdminEventWorkspace({
       return (
         <div className="admin-event-workspace__split">
           <div className="admin-event-workspace__main-col">
+            {renderChapters(
+              salesChapters,
+              'sales',
+              'cupo',
+              t('admin.eventEditor.salesChapterNavAria'),
+            )}
             {editor}
           </div>
           <aside className="admin-event-workspace__rail">
@@ -640,46 +605,19 @@ export default function AdminEventWorkspace({
       </aside>
 
       <div className="admin-event-workspace__panel">
-        {/* Sticky de verdad (antes quedaba "static" por el modificador
-            --minimal, así que el offset de `.admin-event-workspace__rail` en
-            --admin-event-head-h apuntaba a un encabezado que ya se había ido
-            scrolleando). Se achica con `is-compact` en vez de ocupar banda fija
-            todo el tiempo, y los capítulos de Ventas viven acá adentro para no
-            perderse al bajar. */}
-        <header
-          ref={headRef}
-          className={`admin-event-workspace__head admin-event-workspace__head--minimal${
-            headerCompact ? ' is-compact' : ''
-          }`}
-        >
-          <div className="admin-event-workspace__head-row">
-            <h2 className="admin-event-workspace__section-title">
-              {tabs.find((tab) => tab.id === activeTab)?.label ?? ''}
-            </h2>
-            <div className="admin-event-workspace__head-actions">
-              <AdminCopyLinkMenu links={buildEventLinks(event, t)} />
-              {canDelete && onDelete ? (
-                <AdminIconButton
-                  icon={Trash2}
-                  label={t('admin.sections.events.delete.action')}
-                  onClick={() => onDelete?.(event)}
-                  variant="danger"
-                />
-              ) : null}
-            </div>
+        <div className="admin-event-workspace__toolbar">
+          <div className="admin-event-workspace__head-actions">
+            <AdminCopyLinkMenu links={buildEventLinks(event, t)} />
+            {canDelete && onDelete ? (
+              <AdminIconButton
+                icon={Trash2}
+                label={t('admin.sections.events.delete.action')}
+                onClick={() => onDelete?.(event)}
+                variant="danger"
+              />
+            ) : null}
           </div>
-          {activeTab === 'sales'
-            ? renderChapters(
-                salesChapters,
-                'sales',
-                'cupo',
-                t('admin.eventEditor.salesChapterNavAria'),
-              )
-            : null}
-          <span className="admin-event-workspace__head-progress" aria-hidden="true">
-            <span ref={progressRef} className="admin-event-workspace__head-progress-fill" />
-          </span>
-        </header>
+        </div>
 
         <div
           className="admin-event-workspace__body"

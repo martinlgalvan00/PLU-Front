@@ -1,3 +1,4 @@
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 import CheckInAppPage from './CheckInAppPage.jsx'
 
 const athletes = [
@@ -103,7 +104,33 @@ export const Scanner = {}
 
 export const DayOne = {
   play: async ({ canvasElement }) => {
-    canvasElement.querySelectorAll('.checkin-app__tab')[1]?.click()
+    const canvas = within(canvasElement)
+    const app = canvasElement.querySelector('.checkin-app')
+    // Reproduce el viewport angosto donde la tabla de 960px se salía de la card.
+    if (app) {
+      app.style.width = '768px'
+      app.style.maxWidth = '768px'
+    }
+
+    await userEvent.click(canvas.getByRole('button', { name: /día 1/i }))
+    const list = await waitFor(() => {
+      const section = canvasElement.querySelector('.checkin-app__list')
+      expect(section).toBeTruthy()
+      return section
+    })
+
+    await waitFor(() => {
+      expect(canvas.getByRole('group', { name: /tipo/i })).toBeVisible()
+      expect(canvas.getByRole('group', { name: /estado/i })).toBeVisible()
+    })
+
+    await waitFor(() => {
+      const toolbar = canvasElement.querySelector('.checkin-app__list-toolbar')
+      const tableShell = canvasElement.querySelector('.admin-data-table-shell')
+      const listWidth = list.getBoundingClientRect().width
+      expect(toolbar.getBoundingClientRect().width).toBeLessThanOrEqual(listWidth + 1)
+      expect(tableShell.getBoundingClientRect().width).toBeLessThanOrEqual(listWidth + 1)
+    })
   },
 }
 

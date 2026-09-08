@@ -235,8 +235,8 @@ export const VistaPublica = {
 }
 
 /**
- * Zonas: el aviso dice lo que el sistema todavía no hace. Un operador que
- * cree que el puesto filtra el ingreso deja la entrada en calor sin control.
+ * Zonas: el aviso dice qué filtra el puesto (qué se lee) y qué no
+ * (cuántas veces entra, inscripciones de atletas).
  */
 export const ZonasYSeguridad = {
   args: { ...baseArgs, activeSection: 'security', editor: null },

@@ -195,6 +195,8 @@ export const eventSchema = z
     // Si el sitio público muestra cuántos se anotaron y el progreso del cupo.
     // El panel lo ve siempre: sólo gobierna la proyección pública.
     capacityProgressPublic: z.boolean().default(true),
+    // Independiente: si el medidor también publica el número total (“de 200”).
+    capacityTotalPublic: z.boolean().default(true),
     slots: z.coerce.number().int().min(1).max(5000),
     pricing: pricingSchema,
     featured: z.boolean().optional(),
@@ -694,6 +696,16 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             },
           }),
           'No se pudo guardar el copy público del evento.',
+        )
+
+        // Misma razón: el upsert no escribe columnas nuevas. El total público
+        // viaja aparte para no redefinir staff_upsert_event.
+        assertSupabaseResult(
+          await client.rpc('staff_merge_event_capacity_total', {
+            p_slug: pEvent.slug,
+            p_total_public: pEvent.capacityTotalPublic !== false,
+          }),
+          'No se pudo guardar la visibilidad del cupo total.',
         )
 
         // Las subcategorías de entrada (qué credenciales emite cada tipo y qué

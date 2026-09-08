@@ -27,6 +27,8 @@ const ADMIN_PAYMENT_ORDERS_DEFAULT_LIMIT = 500
  * Un `limit` explícito lo puede subir hasta 1000 para exportar o auditar.
  */
 const ADMIN_SNAPSHOT_DEFAULT_LIMIT = 400
+/** PostgREST cuando la tabla todavía no está en el schema cache (migración pendiente). */
+const MISSING_RELATION_CODE = 'PGRST205'
 /** Estados que todavía esperan una decisión de Finanzas. */
 const OPEN_PAYMENT_ORDER_STATUSES = ['pendiente', 'validacion_manual']
 /**
@@ -341,10 +343,21 @@ export function createSupabaseAthleteRepository(
         return `${result.count ?? 0}:${rows?.[0]?.updated_at ?? '0'}`
       }
 
-      const [memberships, registrations, paymentOrders] = await Promise.all([
+      const stampNotices = async () => {
+        try {
+          return await stamp('athlete_profile_notices')
+        } catch (error) {
+          // La sesión no puede caerse si el código llegó antes que la migración.
+          if (error?.details?.code === MISSING_RELATION_CODE) return '0:0'
+          throw error
+        }
+      }
+
+      const [memberships, registrations, paymentOrders, notices] = await Promise.all([
         stamp('memberships'),
         stamp('event_registrations'),
         stamp('athlete_payment_orders'),
+        stampNotices(),
       ])
 
       const orderRows = assertSupabaseResult(
@@ -375,11 +388,12 @@ export function createSupabaseAthleteRepository(
         registrations,
         paymentOrders,
         payments,
+        notices,
       ].join('|')
     },
     async update(athleteId, data) {
       const row = await rpc(
-        'update_athlete_profile_v4',
+        'update_athlete_profile_v5',
         {
           p_athlete_id: athleteId,
           p_email: data.email,
@@ -391,6 +405,9 @@ export function createSupabaseAthleteRepository(
           p_emergency_contact_phone: data.emergencyContactPhone,
           p_instagram_handle: data.instagramHandle,
           p_declared_best_total_kg: data.bestTotalKg,
+          p_division: data.division,
+          p_category: data.category,
+          p_estimated_weight: data.estimatedWeight,
           p_sex: data.sex ?? null,
           p_full_name: data.fullName ?? null,
           p_birth_date: data.birthDate ?? null,
@@ -670,10 +687,141 @@ export function createSupabaseAthleteRepository(
       return assertSupabaseResult(
         await client
           .from('athletes')
-          .select('id, full_name, birth_date, phone, country, province, gym, sex')
+          .select(
+            'id, full_name, birth_date, phone, country, province, gym, sex, division, category, estimated_weight',
+          )
           .eq('id', athleteId)
           .maybeSingle(),
         'No se pudo leer el perfil competitivo.',
+      )
+    },
+
+    async findProfileCompleteness(athleteId) {
+      return assertSupabaseResult(
+        await client
+          .from('athletes')
+          .select('id, phone, city, province, gym, division, category, estimated_weight')
+          .eq('id', athleteId)
+          .eq('organization_id', organizationId)
+          .maybeSingle(),
+        'No se pudo leer el perfil.',
+      )
+    },
+
+    async findProfileCompletenessMany(athleteIds) {
+      if (!athleteIds?.length) return []
+      return assertSupabaseResult(
+        await client
+          .from('athletes')
+          .select('id, phone, city, province, gym, division, category, estimated_weight')
+          .eq('organization_id', organizationId)
+          .in('id', athleteIds),
+        'No se pudieron leer los perfiles.',
+      )
+    },
+
+    async listOpenProfileNotices(athleteId) {
+      const result = await client
+        .from('athlete_profile_notices')
+        .select(
+          'id, athlete_id, kind, missing_fields, message, created_by, created_at, updated_at, read_at, dismissed_at, resolved_at',
+        )
+        .eq('athlete_id', athleteId)
+        .eq('organization_id', organizationId)
+        .is('resolved_at', null)
+        .order('updated_at', { ascending: false })
+      if (result?.error?.code === MISSING_RELATION_CODE) return []
+      return assertSupabaseResult(result, 'No se pudieron leer los avisos de perfil.')
+    },
+
+    async upsertProfileNotice({ athleteId, missingFields, message, createdBy }) {
+      const existing = assertSupabaseResult(
+        await client
+          .from('athlete_profile_notices')
+          .select('id')
+          .eq('athlete_id', athleteId)
+          .eq('organization_id', organizationId)
+          .is('resolved_at', null)
+          .maybeSingle(),
+        'No se pudo leer el aviso de perfil.',
+      )
+      const payload = {
+        missing_fields: missingFields,
+        message,
+        created_by: createdBy ?? null,
+        updated_at: new Date().toISOString(),
+        read_at: null,
+        dismissed_at: null,
+      }
+      if (existing?.id) {
+        return assertSupabaseResult(
+          await client
+            .from('athlete_profile_notices')
+            .update(payload)
+            .eq('id', existing.id)
+            .eq('organization_id', organizationId)
+            .select(
+              'id, athlete_id, kind, missing_fields, message, created_by, created_at, updated_at, read_at, dismissed_at, resolved_at',
+            )
+            .single(),
+          'No se pudo actualizar el aviso de perfil.',
+        )
+      }
+      return assertSupabaseResult(
+        await client
+          .from('athlete_profile_notices')
+          .insert({
+            organization_id: organizationId,
+            athlete_id: athleteId,
+            kind: 'profile_incomplete',
+            ...payload,
+          })
+          .select(
+            'id, athlete_id, kind, missing_fields, message, created_by, created_at, updated_at, read_at, dismissed_at, resolved_at',
+          )
+          .single(),
+        'No se pudo crear el aviso de perfil.',
+      )
+    },
+
+    async markProfileNotice(noticeId, athleteId, { read = false, dismissed = false } = {}) {
+      const patch = { updated_at: new Date().toISOString() }
+      if (read) patch.read_at = new Date().toISOString()
+      if (dismissed) {
+        patch.dismissed_at = new Date().toISOString()
+        patch.read_at = patch.read_at ?? new Date().toISOString()
+      }
+      const row = assertSupabaseResult(
+        await client
+          .from('athlete_profile_notices')
+          .update(patch)
+          .eq('id', noticeId)
+          .eq('athlete_id', athleteId)
+          .eq('organization_id', organizationId)
+          .is('resolved_at', null)
+          .select(
+            'id, athlete_id, kind, missing_fields, message, created_by, created_at, updated_at, read_at, dismissed_at, resolved_at',
+          )
+          .maybeSingle(),
+        'No se pudo actualizar el aviso de perfil.',
+      )
+      if (!row) throw new HttpError(404, 'No se encontró el aviso.')
+      return row
+    },
+
+    async resolveOpenProfileNotices(athleteId) {
+      return assertSupabaseResult(
+        await client
+          .from('athlete_profile_notices')
+          .update({
+            resolved_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('athlete_id', athleteId)
+          .eq('organization_id', organizationId)
+          .is('resolved_at', null)
+          .select('id'),
+        'No se pudieron cerrar los avisos de perfil.',
       )
     },
 
@@ -1271,6 +1419,18 @@ export function createSupabaseAthleteRepository(
           p_actor: actor,
         },
         'No se pudo actualizar la visibilidad de la inscripción.',
+      ),
+    correctRegistrationCompetition: (registrationId, data, actor) =>
+      rpc(
+        'staff_correct_registration_competition',
+        {
+          p_registration_id: registrationId,
+          p_division: data.division,
+          p_category: data.category,
+          p_bodyweight_kg: data.bodyweightKg,
+          p_actor: actor,
+        },
+        'No se pudo corregir la inscripción.',
       ),
 
     rotateAthleteCredentialToken: (athleteId, actor) =>
