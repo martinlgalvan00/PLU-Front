@@ -1481,14 +1481,12 @@
 }
 
 .admin-shell .admin-event-zones__head {
-  align-items: flex-start;
+  align-items: center;
   display: flex;
-  gap: 16px;
+  gap: 12px;
 }
 
 .admin-shell .admin-event-zones__head-copy {
-  display: grid;
-  gap: 6px;
   min-width: 0;
 }
 
@@ -1497,30 +1495,14 @@
   margin-left: auto;
 }
 
-.admin-shell .admin-event-zones__eyebrow {
-  color: var(--admin-brand);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
 .admin-shell .admin-event-zones__head h3 {
   color: var(--admin-ink);
   font-family: var(--font-display, var(--font-family));
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.035em;
-  line-height: 1.1;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
   margin: 0;
-}
-
-.admin-shell .admin-event-zones__head p {
-  color: var(--admin-muted);
-  font-size: 13px;
-  line-height: 1.5;
-  margin: 0;
-  max-width: 68ch;
 }
 
 .admin-shell .admin-event-zones__tools {
@@ -2054,6 +2036,7 @@
    fijo adentro de ese scroller recorta el panel en vez de crecer con él. */
 .admin-event-workspace--sidebar {
   flex-direction: column;
+  --admin-event-sidebar-h: 7.5rem;
 }
 
 @media (min-width: 900px) {
@@ -2077,11 +2060,23 @@
     min-height: calc(100dvh - 64px);
   }
 
+  /* `align-items` y `overflow` no van declarados acá arriba, pero el selector
+     genérico `.admin-event-workspace__body` (heredado del modal viejo, más
+     abajo en la hoja) sigue poniendo `align-items: start` y `overflow: hidden`
+     a este mismo ancho -- la cascada es por propiedad, no por regla, así que
+     sin pisarlos acá se colaban igual. Con `align-items: start` el body (flex
+     column) dejaba de estirar a `.split` a su ancho completo: la columna
+     principal se achicaba al contenido (~300px en vez de los ~700px
+     disponibles), la tarjeta de entradas quedaba angosta y el dock de acciones,
+     sin lugar para sus tres elementos en una fila, pasaba a tres renglones y
+     tapaba el formulario. */
   .admin-event-workspace--sidebar .admin-event-workspace__body {
+    align-items: stretch;
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
     min-height: 0;
+    overflow: visible;
   }
 
   .admin-event-workspace--sidebar .admin-event-workspace__body > .admin-event-editor--embedded,
@@ -2252,11 +2247,24 @@
 }
 
 .admin-event-workspace__sidebar .admin-event-workspace__meta {
+  align-items: stretch;
   color: var(--admin-muted);
+  display: flex;
+  flex-direction: column;
   font-size: 12px;
+  gap: 2px;
   letter-spacing: 0.01em;
-  line-height: 1.4;
+  line-height: 1.35;
   margin: 0;
+  max-width: 100%;
+}
+
+.admin-event-workspace__meta-item {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-event-workspace__nav {
@@ -2414,16 +2422,90 @@
    título -- para contener sólo dos íconos. Es una barra de acciones. */
 /* Doble clase a propósito: es un modificador que tiene que pisar a
    `.admin-event-workspace__head`, y con una sola clase quedaba empatado en
-   especificidad y perdía por orden -- la cabecera seguía siendo sticky y en
-   mobile se superponía con la barra lateral, que también lo es. */
+   especificidad y perdía por orden. Sigue en `position: static` por debajo de
+   900px: ahí la barra lateral del evento es ella misma un sticky a top:0
+   (pestañas horizontales) y dos sticky compitiendo por el mismo top se
+   superponen. Desde 900px la barra pasa a columna lateral fija y acá sí puede
+   pegarse -- y AHORA la clase se lo permite: antes quedaba "static" también en
+   desktop, así que `--admin-event-head-h` (el offset del rail, más abajo)
+   apuntaba a un encabezado que en los hechos ya se había ido con el scroll. */
 .admin-event-workspace__head.admin-event-workspace__head--minimal {
-  align-items: center;
-  background: transparent;
+  align-items: stretch;
+  background: var(--admin-canvas);
+  background-color: var(--admin-canvas);
   border-bottom: 0;
-  justify-content: space-between;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
   min-height: 0;
   padding: 16px 20px 0;
   position: static;
+}
+
+.admin-event-workspace__head-row {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+@media (min-width: 900px) {
+  .admin-event-workspace__head.admin-event-workspace__head--minimal {
+    background: var(--admin-canvas);
+    background-color: var(--admin-canvas);
+    position: sticky;
+    top: 0;
+    z-index: 6;
+  }
+
+  /* Se achica en vez de quedar a tamaño completo todo el tiempo: menos banda
+     fija permanente, más lugar para el contenido real. Sin transición propia
+     a propósito -- son 6px, ya la esconde la del título (transform: scale) y
+     las de las márgenes de abajo; animar `padding` es layout, no lo que hace
+     falta acá. */
+  .admin-event-workspace__head.admin-event-workspace__head--minimal.is-compact {
+    padding-top: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-event-workspace__head.admin-event-workspace__head--minimal {
+    transition: none;
+  }
+}
+
+/* Línea de estado del scroll de la sección activa: reemplaza el borde inferior
+   que tenía la cabecera completa (acá no hace falta, ya separa del cuerpo) y
+   da una referencia real de posición sin agregar otro elemento de chrome. */
+.admin-event-workspace__head-progress {
+  background: var(--admin-hairline);
+  display: block;
+  height: 1px;
+  margin-top: 14px;
+  position: relative;
+}
+
+.admin-event-workspace__head.is-compact .admin-event-workspace__head-progress {
+  margin-top: 8px;
+}
+
+.admin-event-workspace__head-progress-fill {
+  background: var(--admin-brand);
+  display: block;
+  height: 2px;
+  left: 0;
+  position: absolute;
+  top: -0.5px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 120ms linear;
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-event-workspace__head-progress-fill {
+    transition: none;
+  }
 }
 
 .admin-event-workspace__section-title {
@@ -2436,7 +2518,30 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  transform-origin: left center;
+  transition: transform var(--motion-base, 240ms) var(--ease-standard, ease);
   white-space: nowrap;
+}
+
+@media (min-width: 900px) {
+  /* En desktop la pestaña activa ya está en el nav lateral. */
+  .admin-event-workspace__section-title {
+    display: none;
+  }
+
+  .admin-event-workspace__head-actions {
+    margin-left: auto;
+  }
+
+  .admin-event-workspace__head.is-compact .admin-event-workspace__section-title {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-event-workspace__section-title {
+    transition: none;
+  }
 }
 
 /* El pill es una etiqueta: en una columna angosta `stretch` lo estiraba de
@@ -2458,8 +2563,22 @@
     max-width: 38%;
   }
 
-  .admin-event-workspace__head.admin-event-workspace__head--minimal {
+  /* Dos sticky apilados, no superpuestos: las pestañas del evento se quedan
+     arriba; la cabecera del panel (acciones + capítulos de Ventas) para justo
+     debajo. Fondo opaco: si no, Cupo/Precios se leían cruzados con las tabs. */
+  .admin-event-workspace--sidebar .admin-event-workspace__sidebar {
+    z-index: 8;
+  }
+
+  .admin-event-workspace--sidebar
+    .admin-event-workspace__head.admin-event-workspace__head--minimal {
+    background: var(--admin-canvas);
+    background-color: var(--admin-canvas);
+    isolation: isolate;
     padding: 12px 14px 0;
+    position: sticky;
+    top: var(--admin-event-sidebar-h, 7.5rem);
+    z-index: 7;
   }
 
   /* La página llena el alto útil para que el dock (margin-top: auto + sticky)
@@ -2478,6 +2597,7 @@
     flex: 1 1 auto;
     flex-direction: column;
     min-height: 0;
+    z-index: 0;
   }
 
   .admin-event-workspace__body {
@@ -2558,18 +2678,10 @@
   }
 }
 
-/* Alto del encabezado, para anclar el rail debajo. Es medido, no estimado: el
-   encabezado wrappea a dos filas cuando el ancho no alcanza (130px hasta
-   1152px, 76px desde 1280px). Se declara acá para que el offset del sticky y
-   el alto real salgan del mismo lugar. */
+/* Fallback del alto del head --minimal (~48px). El ResizeObserver del
+   workspace lo pisa con el alto real (compacto, capítulos de Ventas). */
 .admin-event-workspace__panel {
-  --admin-event-head-h: 130px;
-}
-
-@media (min-width: 1280px) {
-  .admin-event-workspace__panel {
-    --admin-event-head-h: 76px;
-  }
+  --admin-event-head-h: 48px;
 }
 
 /* Opaco a propósito: es una barra sticky sobre contenido que scrollea debajo.
@@ -2797,55 +2909,6 @@
   font-weight: 500;
 }
 
-/* Visual Builder Iframe */
-.admin-event-visual-builder {
-  background: var(--admin-canvas);
-  border: 1px solid var(--admin-hairline);
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  height: 500px;
-  width: 100%;
-}
-
-.admin-event-visual-builder__header {
-  align-items: center;
-  background: var(--admin-surface);
-  border-bottom: 1px solid var(--admin-hairline);
-  display: flex;
-  gap: 6px;
-  padding: 10px 14px;
-}
-
-.admin-event-visual-builder__dot {
-  background: var(--admin-hairline);
-  border-radius: 50%;
-  height: 10px;
-  width: 10px;
-}
-
-.admin-event-visual-builder__url {
-  background: var(--admin-canvas);
-  border: 1px solid var(--admin-hairline);
-  border-radius: 6px;
-  color: var(--admin-muted);
-  flex: 1;
-  font-size: 11px;
-  margin-left: 8px;
-  padding: 4px 8px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.admin-event-visual-builder__iframe {
-  background: #fff;
-  border: 0;
-  flex: 1;
-  width: 100%;
-}
-
 .admin-event-workspace__edit {
   gap: 6px;
 }
@@ -2882,10 +2945,8 @@
   display: grid;
   gap: 16px;
   min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: visible;
   padding: 14px 20px max(20px, env(safe-area-inset-bottom, 0px));
-  scrollbar-width: thin;
 }
 
 .admin-event-workspace__main {
@@ -2903,7 +2964,7 @@
     align-items: start;
     gap: 20px 24px;
     grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
-    overflow: hidden;
+    overflow: visible;
   }
 
   .admin-event-workspace__main {
@@ -2952,7 +3013,7 @@
     align-items: start;
     gap: 20px 24px;
     grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
-    overflow: hidden;
+    overflow: visible;
   }
 
   .admin-event-workspace__main {
@@ -4231,19 +4292,16 @@
     grid-template-columns: minmax(0, 1fr) 320px;
   }
 
-  /* El rail mide ~340px y la columna principal puede medir varios miles: con el
-     scroll de la página el rail se iba de pantalla y dejaba media pantalla de
-     columna vacía. Pegado debajo del encabezado acompaña al formulario, que es
-     para lo que está (ocupación, accesos, vista previa).
-     El `max-height` es la válvula para un rail más alto que la pantalla -- la
-     vista previa del sitio, por ejemplo: recién ahí gana scroll propio, en vez
-     de quedar con el final inalcanzable debajo del sticky. */
+  /* El rail acompaña al formulario debajo del encabezado sticky. El offset
+     es el alto medido del head (sin +16px: el head ya no es estático).
+     `100dvh - 64px` es el alto del content del shell; restar el head deja
+     la preview con scroll propio solo si de verdad desborda el viewport. */
   .admin-event-workspace__rail {
     align-self: start;
-    max-height: calc(100dvh - var(--admin-event-head-h) - 32px);
+    max-height: calc(100dvh - 64px - var(--admin-event-head-h));
     overflow-y: auto;
     position: sticky;
-    top: calc(var(--admin-event-head-h) + 16px);
+    top: var(--admin-event-head-h);
   }
 }
 
@@ -4427,6 +4485,21 @@
   scrollbar-width: none;
 }
 
+/* Ahora viven en la cabecera del panel (antes, sueltos arriba del editor de
+   Ventas): separación propia del título, y su propio borde inferior alcanza
+   como línea de cierre -- la de progreso no necesita repetirla pegada abajo. */
+.admin-event-workspace__head-row + .admin-event-workspace__chapters {
+  margin-top: 18px;
+}
+
+.admin-event-workspace__head.is-compact .admin-event-workspace__head-row + .admin-event-workspace__chapters {
+  margin-top: 10px;
+}
+
+.admin-event-workspace__chapters + .admin-event-workspace__head-progress {
+  margin-top: 0;
+}
+
 .admin-event-workspace__chapters::-webkit-scrollbar {
   display: none;
 }
@@ -4491,6 +4564,7 @@
   gap: 12px;
   min-height: 44px;
   padding: 11px 16px;
+  position: relative;
   text-align: left;
   width: 100%;
 }
@@ -4517,9 +4591,14 @@
 }
 
 .admin-event-workspace__switch-row em {
-  color: var(--admin-muted, var(--color-text-muted));
-  font-size: 11px;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
   font-style: normal;
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 .admin-event-workspace__switch {
@@ -4560,42 +4639,16 @@
   }
 }
 
-/* La meta del encabezado: `__meta-line` era del modal y traía `max-width:
-   58ch`, que cortaba la línea. Acá fluye y envuelve. */
+/* La meta vive en el sidebar: dos líneas truncadas (fecha / sede). */
 .admin-event-workspace__meta {
-  align-items: center;
   color: var(--admin-muted, var(--color-text-muted));
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   font-size: 12.5px;
-  gap: 8px;
+  gap: 2px;
   line-height: 1.35;
   margin: 0;
-}
-
-/* En phone la meta va en una línea con ellipsis. La regla del modal apuntaba a
-   `__meta-line`, una clase que el componente no renderiza, así que nunca se
-   aplicó y la meta envolvía en cuatro líneas: con el encabezado sticky eso le
-   comía pantalla a TODO el scroll, no solo al primer viewport (medido a 390px:
-   el encabezado pasó de 204px a 149px con esto y con las pestañas en su fila).
-   Va acá, después de la regla base, porque un @media no suma especificidad. */
-@media (max-width: 719px) {
-  .admin-event-workspace__meta {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .admin-event-workspace__meta > * {
-    display: inline;
-  }
-
-  /* Al salir del flex se pierde el `gap`, y el separador queda pegado
-     ("14 nov·Club Atlético"). En línea el aire lo pone el margen. */
-  .admin-event-workspace__meta .admin-event-workspace__meta-sep {
-    margin-inline: 6px;
-  }
+  max-width: 100%;
 }
 
 

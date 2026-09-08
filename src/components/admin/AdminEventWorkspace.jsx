@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ChevronLeft,
   ChevronRight,
@@ -120,6 +120,73 @@ export default function AdminEventWorkspace({
 }) {
   const { locale, t } = useI18n()
   const stateDirtyRef = useRef(false)
+  const headRef = useRef(null)
+  const sidebarRef = useRef(null)
+  const progressRef = useRef(null)
+  const scrollHostRef = useRef(null)
+  const [headerCompact, setHeaderCompact] = useState(false)
+
+  // El scroll real de esta pantalla lo hace `.admin-shell__content` (un
+  // ancestro fuera de este componente), no un contenedor propio -- por eso se
+  // busca con `closest` en vez de recibirlo por prop. De acá salen dos cosas:
+  // 1) la clase `is-compact` del encabezado (se achica en vez de quedar fijo
+  // a tamaño completo todo el tiempo) y 2) el ancho de la línea de progreso,
+  // mutado directo por ref para no re-renderizar en cada evento de scroll.
+  useEffect(() => {
+    const host = headRef.current?.closest('.admin-shell__content') ?? null
+    scrollHostRef.current = host
+    if (!host) return undefined
+    let frame = 0
+    function measure() {
+      frame = 0
+      const top = host.scrollTop
+      const max = host.scrollHeight - host.clientHeight
+      setHeaderCompact(top > 24)
+      if (progressRef.current) {
+        const pct = max > 0 ? Math.min(1, top / max) : 0
+        progressRef.current.style.transform = `scaleX(${pct})`
+      }
+    }
+    function onScroll() {
+      if (frame) return
+      frame = window.requestAnimationFrame(measure)
+    }
+    host.addEventListener('scroll', onScroll, { passive: true })
+    measure()
+    return () => {
+      host.removeEventListener('scroll', onScroll)
+      if (frame) window.cancelAnimationFrame(frame)
+    }
+  }, [])
+
+  // El rail se ancla con `--admin-event-head-h`. En mobile las pestañas del
+  // evento y la cabecera del panel son dos sticky apilados: el segundo usa
+  // `--admin-event-sidebar-h` para parar justo debajo, no encima.
+  useEffect(() => {
+    const headEl = headRef.current
+    const sidebarEl = sidebarRef.current
+    if (typeof ResizeObserver === 'undefined') return undefined
+    const workspaceEl =
+      headEl?.closest('.admin-event-workspace') ??
+      sidebarEl?.closest('.admin-event-workspace')
+    const panelEl = headEl?.closest('.admin-event-workspace__panel')
+    function applyHeight() {
+      if (headEl && panelEl) {
+        panelEl.style.setProperty('--admin-event-head-h', `${headEl.offsetHeight}px`)
+      }
+      if (sidebarEl && workspaceEl) {
+        workspaceEl.style.setProperty(
+          '--admin-event-sidebar-h',
+          `${sidebarEl.offsetHeight}px`,
+        )
+      }
+    }
+    const observer = new ResizeObserver(applyHeight)
+    if (headEl) observer.observe(headEl)
+    if (sidebarEl) observer.observe(sidebarEl)
+    applyHeight()
+    return () => observer.disconnect()
+  }, [])
 
   const summarySource = previewDraft ?? event
 
@@ -140,7 +207,12 @@ export default function AdminEventWorkspace({
     if (canEdit) {
       list.push({
         id: 'sales',
-        label: t('admin.eventConsole.tickets'),
+        // Esta pestaña abre los cuatro capítulos (Cupo, Precios, Entradas,
+        // Cobro): llamarla "Entradas" -- como el capítulo de tickets ahí
+        // adentro -- hacía que el mismo nombre significara dos cosas
+        // distintas según el nivel, y era la confusión real que reportaban
+        // los operadores entre "entrada" (ticket) e "inscripción" (cupo).
+        label: t('admin.eventConsole.editSales'),
         // Mismo criterio que el checklist de "listo para publicar": sin ningún
         // tipo de entrada activo, el evento no puede vender.
         hasError: activeTicketTypeCount === 0,
@@ -179,7 +251,6 @@ export default function AdminEventWorkspace({
 
   const venueLine = formatEventVenueLine(event.venue, event.location)
   const dateLabel = event.dateISO ? formatDayMonth(event.dateISO, locale) : (event.date ?? '')
-  const publicPath = event.slug ? buildEventPagePath(event.slug) : ''
 
   const registered = Number(event.registered) || 0
   const slots = Number(event.slots) || 0
@@ -196,6 +267,10 @@ export default function AdminEventWorkspace({
   function handleSelectTab(tabId) {
     if (tabId === activeTab) return
     onSelectSection?.(event, tabId)
+    // Cada pestaña arranca arriba: sin esto, cambiar de sección mantenía el
+    // scroll donde había quedado la anterior, que casi nunca tiene sentido
+    // para contenido no relacionado.
+    scrollHostRef.current?.scrollTo({ top: 0 })
   }
 
   /**
@@ -384,16 +459,13 @@ export default function AdminEventWorkspace({
       return (
         <div className="admin-event-workspace__split">
           <div className="admin-event-workspace__main-col">
-            {renderChapters(
-              salesChapters,
-              'sales',
-              'cupo',
-              t('admin.eventEditor.salesChapterNavAria'),
-            )}
             {editor}
           </div>
           <aside className="admin-event-workspace__rail">
-            <AdminEventTicketInsights event={event} tickets={tickets} />
+            {/* `summarySource`, no `event`: si el operador acaba de prender el
+                toggle de venta y todavía no guardó, el rail no puede seguir
+                diciendo "deshabilitada" contra el toggle que tiene enfrente. */}
+            <AdminEventTicketInsights event={summarySource} tickets={tickets} />
             <AdminEventTicketAddonReport event={event} tickets={tickets} />
           </aside>
         </div>
@@ -424,7 +496,7 @@ export default function AdminEventWorkspace({
                   }}
                 >
                   <strong>{chapter.label}</strong>
-                  <em>
+                  <em className="visually-hidden">
                     {chapter.on
                       ? t('admin.eventConsole.surfaceOn')
                       : t('admin.eventConsole.surfaceOff')}
@@ -439,31 +511,13 @@ export default function AdminEventWorkspace({
             className="admin-event-workspace__rail"
             aria-label={t('admin.sections.events.publicPreviewLabel')}
           >
-            <div className="admin-event-visual-builder">
-              <div className="admin-event-visual-builder__header">
-                <span className="admin-event-visual-builder__dot" />
-                <span className="admin-event-visual-builder__dot" />
-                <span className="admin-event-visual-builder__dot" />
-                <span className="admin-event-visual-builder__url">
-                  {publicPath}
-                </span>
-              </div>
-              <iframe
-                src={publicPath}
-                className="admin-event-visual-builder__iframe"
-                title="Public Page Preview"
-              />
-            </div>
-            
-            <div style={{ marginTop: 24 }}>
-              <AdminEventLivePreview
-                embedded
-                draft={previewDraft ?? event}
-                live={Boolean(previewDraft)}
-                showReadiness
-                sourceEvent={event}
-              />
-            </div>
+            <AdminEventLivePreview
+              embedded
+              draft={previewDraft ?? event}
+              live={Boolean(previewDraft)}
+              showReadiness
+              sourceEvent={event}
+            />
           </aside>
         </div>
       )
@@ -518,7 +572,7 @@ export default function AdminEventWorkspace({
       className="admin-event-workspace admin-event-workspace--sidebar"
       aria-label={t('admin.sections.events.panelLabel')}
     >
-      <aside className="admin-event-workspace__sidebar">
+      <aside ref={sidebarRef} className="admin-event-workspace__sidebar">
         {/* Columna de chrome: el sticky vive en el aside (CSS). Este inner
             agrupa volver, identidad y nav sin un segundo ancla. */}
         <div className="admin-event-workspace__sidebar-inner">
@@ -535,22 +589,17 @@ export default function AdminEventWorkspace({
         <div className="admin-event-workspace__sidebar-head">
           <h1 className="admin-event-workspace__title">{event.title}</h1>
           <StatusPill value={event.status} />
-          {(dateLabel || venueLine || publicPath) && (
+          {(dateLabel || venueLine) && (
             <p className="admin-event-workspace__meta">
-              {dateLabel ? <span>{dateLabel}</span> : null}
-              {dateLabel && venueLine ? (
-                <span className="admin-event-workspace__meta-sep" aria-hidden>
-                  ·
+              {dateLabel ? (
+                <span className="admin-event-workspace__meta-item" title={dateLabel}>
+                  {dateLabel}
                 </span>
               ) : null}
-              {venueLine ? <span>{venueLine}</span> : null}
-              {publicPath && (dateLabel || venueLine) ? (
-                <span className="admin-event-workspace__meta-sep" aria-hidden>
-                  ·
+              {venueLine ? (
+                <span className="admin-event-workspace__meta-item" title={venueLine}>
+                  {venueLine}
                 </span>
-              ) : null}
-              {publicPath ? (
-                <span className="admin-event-workspace__meta-path">{publicPath}</span>
               ) : null}
             </p>
           )}
@@ -591,24 +640,45 @@ export default function AdminEventWorkspace({
       </aside>
 
       <div className="admin-event-workspace__panel">
-        <header className="admin-event-workspace__head admin-event-workspace__head--minimal">
-          {/* La barra traía sólo dos íconos contra la derecha: una banda vacía
-              que además no decía nada. Con el nombre de la pestaña se sabe
-              dónde se está incluso con la navegación fuera de pantalla. */}
-          <h2 className="admin-event-workspace__section-title">
-            {tabs.find((tab) => tab.id === activeTab)?.label ?? ''}
-          </h2>
-          <div className="admin-event-workspace__head-actions">
-            <AdminCopyLinkMenu links={buildEventLinks(event, t)} />
-            {canDelete && onDelete ? (
-              <AdminIconButton
-                icon={Trash2}
-                label={t('admin.sections.events.delete.action')}
-                onClick={() => onDelete?.(event)}
-                variant="danger"
-              />
-            ) : null}
+        {/* Sticky de verdad (antes quedaba "static" por el modificador
+            --minimal, así que el offset de `.admin-event-workspace__rail` en
+            --admin-event-head-h apuntaba a un encabezado que ya se había ido
+            scrolleando). Se achica con `is-compact` en vez de ocupar banda fija
+            todo el tiempo, y los capítulos de Ventas viven acá adentro para no
+            perderse al bajar. */}
+        <header
+          ref={headRef}
+          className={`admin-event-workspace__head admin-event-workspace__head--minimal${
+            headerCompact ? ' is-compact' : ''
+          }`}
+        >
+          <div className="admin-event-workspace__head-row">
+            <h2 className="admin-event-workspace__section-title">
+              {tabs.find((tab) => tab.id === activeTab)?.label ?? ''}
+            </h2>
+            <div className="admin-event-workspace__head-actions">
+              <AdminCopyLinkMenu links={buildEventLinks(event, t)} />
+              {canDelete && onDelete ? (
+                <AdminIconButton
+                  icon={Trash2}
+                  label={t('admin.sections.events.delete.action')}
+                  onClick={() => onDelete?.(event)}
+                  variant="danger"
+                />
+              ) : null}
+            </div>
           </div>
+          {activeTab === 'sales'
+            ? renderChapters(
+                salesChapters,
+                'sales',
+                'cupo',
+                t('admin.eventEditor.salesChapterNavAria'),
+              )
+            : null}
+          <span className="admin-event-workspace__head-progress" aria-hidden="true">
+            <span ref={progressRef} className="admin-event-workspace__head-progress-fill" />
+          </span>
         </header>
 
         <div

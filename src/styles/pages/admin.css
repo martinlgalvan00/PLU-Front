@@ -4218,6 +4218,21 @@
   resize: vertical;
 }
 
+/* Las flechitas nativas del spinner rompen el input a medida: son cromo del
+   navegador, no del sistema (radio, borde, tipografía) que arma el resto del
+   formulario. Subir/bajar con el teclado y tipear siguen andando igual. */
+.admin-event-form input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.admin-event-form input[type='number']::-webkit-inner-spin-button,
+.admin-event-form input[type='number']::-webkit-outer-spin-button {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .admin-event-form input:not([type='checkbox']):hover:not(:disabled),
 .admin-event-form select:hover:not(:disabled),
 .admin-event-form textarea:hover:not(:disabled) {
