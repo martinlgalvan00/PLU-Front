@@ -96,13 +96,28 @@ describe('últimos inscriptos de Pitbull', () => {
     expect(counter?.textContent).toMatch(/quedan 104 lugares/i)
   })
 
-  it('puede ocultar el total y seguir mostrando anotados y restantes', () => {
+  it('puede ocultar el total y seguir mostrando anotados y lugares que quedan', () => {
     const { container } = renderPitbull({ totalPublic: false })
     const counter = container.querySelector('.pitbull-inscription-counter')
+    expect(counter?.className).not.toContain('pitbull-inscription-counter--hidden')
+    expect(counter?.querySelector('.pitbull-inscription-counter__of')).toBeNull()
     expect(counter?.textContent ?? '').not.toMatch(/\/\s*180/)
     expect(counter?.textContent ?? '').not.toMatch(/\b180\b/)
-    expect(counter?.textContent).toMatch(/anotados/i)
-    expect(counter?.textContent).toMatch(/quedan 104 lugares/i)
+    expect(counter?.textContent ?? '').toMatch(/quedan 104 lugares/i)
+    expect(counter?.querySelector('.pitbull-inscription-counter__value')).not.toBeNull()
+  })
+
+  it('sin total y el cupo justo sigue diciendo cuántos quedan, sin el máximo', () => {
+    const { container } = renderPitbull({
+      totalPublic: false,
+      registered: 155,
+      slots: 180,
+    })
+    const counter = container.querySelector('.pitbull-inscription-counter')
+    expect(counter?.querySelector('.pitbull-inscription-counter__of')).toBeNull()
+    expect(counter?.textContent ?? '').toMatch(/quedan 25 lugares/i)
+    expect(counter?.textContent ?? '').not.toMatch(/\/\s*180/)
+    expect(counter?.textContent ?? '').not.toMatch(/\b180\b/)
   })
 
   it('sigue mostrando recientes cuando el progreso de cupos está oculto', () => {

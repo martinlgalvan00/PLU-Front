@@ -323,6 +323,39 @@ describe('API administrativa de eventos', () => {
     }
   })
 
+  it('no aborta el upsert si falta staff_merge_event_capacity_total', async () => {
+    const { target, cookie, supabase } = await setup()
+    supabase.rpc.mockImplementation(async (name) => {
+      if (name === 'staff_merge_event_capacity_total') {
+        return {
+          data: null,
+          error: {
+            code: 'PGRST202',
+            message:
+              'Could not find the function public.staff_merge_event_capacity_total(p_slug, p_total_public) in the schema cache',
+          },
+        }
+      }
+      return { data: { id: EVENT_ID }, error: null }
+    })
+
+    try {
+      const response = await fetch(`${target.url}/api/events/upsert`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify(eventPayload()),
+      })
+
+      expect(response.status).toBe(201)
+      expect(await response.json()).toMatchObject({
+        mode: 'created',
+        event: { id: EVENT_ID },
+      })
+    } finally {
+      await target.close()
+    }
+  })
+
   it('propaga conflictos de edición sin ocultar el código operativo', async () => {
     const { target, cookie } = await setup('admin_maximal', {
       rpcResult: {

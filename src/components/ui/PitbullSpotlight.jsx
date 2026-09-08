@@ -98,6 +98,13 @@ export default function PitbullSpotlight({
   const dateMonthLabel = `${PITBULL_CLASSIC.dateMonth} 2026`
   const capacityRegistered = registered ?? PITBULL_CLASSIC.registered
   const capacitySlots = slots ?? PITBULL_CLASSIC.slots
+  const occupancy = describePublicCapacity({
+    progressPublic,
+    totalPublic,
+    registered: capacityRegistered,
+    slots: capacitySlots,
+    remaining,
+  })
 
   if (isEvents) {
     // Todo lo visible sale de `event` (el próximo evento real, resuelto por
@@ -505,12 +512,18 @@ export default function PitbullSpotlight({
         </div>
 
         <div className="pitbull-spotlight__capacity">
-          <CapacityBar
-            current={capacityRegistered}
-            total={capacitySlots}
-            label={t('pages.pitbull.spotlight.slotsOccupied')}
-            showTotal={totalPublic !== false && progressPublic}
-          />
+          {occupancy.mode === 'meter' ? (
+            <CapacityBar
+              current={capacityRegistered}
+              total={capacitySlots}
+              label={t('pages.pitbull.spotlight.slotsOccupied')}
+              showTotal={occupancy.showTotal}
+            />
+          ) : (
+            <p className="pitbull-spotlight__capacity-note">
+              {t('pages.pitbull.inscriptionCounterHidden')}
+            </p>
+          )}
         </div>
 
         <div className="pitbull-spotlight__actions">

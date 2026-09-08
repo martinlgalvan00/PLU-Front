@@ -3498,6 +3498,7 @@
   padding-left: 12px;
 }
 
+.admin-event-form__toggle.is-disabled,
 .admin-event-form__toggle--nested.is-disabled {
   cursor: not-allowed;
   opacity: 0.55;
@@ -3799,13 +3800,19 @@
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--color-border-subtle);
   border-radius: 10px;
+  color: inherit;
   cursor: pointer;
   display: flex;
+  font: inherit;
   gap: 12px;
+  isolation: isolate;
   padding: 11px 14px;
+  position: relative;
+  text-align: left;
   transition:
     background var(--transition-fast),
     border-color var(--transition-fast);
+  width: 100%;
 }
 
 .admin-event-form__toggle:hover {
@@ -3813,24 +3820,36 @@
   border-color: rgba(255, 255, 255, 0.14);
 }
 
-/* Ocultar el checkbox nativo */
+.admin-event-form__toggle:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+/* Checkbox nativo: el label lo activa una sola vez. Cubrir la fila con el
+   input + htmlFor duplicaba el click y el switch no se movía. */
 .admin-event-form__toggle-input {
   clip: rect(0, 0, 0, 0);
   height: 1px;
   margin: -1px;
   overflow: hidden;
+  pointer-events: none;
   position: absolute;
   width: 1px;
+}
+
+.admin-event-form input.admin-event-form__toggle-input:disabled {
+  cursor: not-allowed;
+  opacity: 0;
 }
 
 /* Toggle switch pill */
 .admin-event-form__toggle-ui {
   background: rgba(255, 255, 255, 0.12);
   border-radius: 99px;
-  cursor: pointer;
   display: block;
   flex: 0 0 auto;
   height: 20px;
+  pointer-events: none;
   position: relative;
   transition: background var(--transition-fast);
   width: 36px;
@@ -3850,11 +3869,15 @@
   width: 14px;
 }
 
-.admin-event-form__toggle-input:checked ~ .admin-event-form__toggle-ui {
+.admin-event-form__toggle-input:checked ~ .admin-event-form__toggle-ui,
+.admin-event-form__toggle.is-on .admin-event-form__toggle-ui,
+.admin-event-form__toggle[aria-checked='true'] .admin-event-form__toggle-ui {
   background: var(--color-brand-celeste);
 }
 
-.admin-event-form__toggle-input:checked ~ .admin-event-form__toggle-ui::after {
+.admin-event-form__toggle-input:checked ~ .admin-event-form__toggle-ui::after,
+.admin-event-form__toggle.is-on .admin-event-form__toggle-ui::after,
+.admin-event-form__toggle[aria-checked='true'] .admin-event-form__toggle-ui::after {
   background: #fff;
   transform: translateX(16px);
 }
@@ -3864,7 +3887,8 @@
   outline-offset: 2px;
 }
 
-.admin-event-form__toggle-input:disabled ~ .admin-event-form__toggle-ui {
+.admin-event-form__toggle-input:disabled ~ .admin-event-form__toggle-ui,
+.admin-event-form__toggle:disabled .admin-event-form__toggle-ui {
   opacity: 0.4;
 }
 
@@ -3876,7 +3900,9 @@
   background: rgba(15, 17, 23, 0.55);
 }
 
-[data-theme='light'] .admin-event-form__toggle-input:checked ~ .admin-event-form__toggle-ui::after {
+[data-theme='light'] .admin-event-form__toggle-input:checked ~ .admin-event-form__toggle-ui::after,
+[data-theme='light'] .admin-event-form__toggle.is-on .admin-event-form__toggle-ui::after,
+[data-theme='light'] .admin-event-form__toggle[aria-checked='true'] .admin-event-form__toggle-ui::after {
   background: #fff;
 }
 
@@ -3885,6 +3911,7 @@
   flex: 1;
   gap: 2px;
   min-width: 0;
+  pointer-events: none;
 }
 
 .admin-event-form__toggle-copy strong {

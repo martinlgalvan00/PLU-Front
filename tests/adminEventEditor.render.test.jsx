@@ -141,7 +141,8 @@ describe('AdminEventEditor — estructura del formulario', () => {
 
     const toggle = document.querySelector('#event-capacity-progress-public')
     expect(toggle).not.toBeNull()
-    expect(toggle.checked).toBe(true)
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
+    expect(toggle.disabled).toBe(false)
     expect(toggle.closest('[hidden]')).toBeNull()
     expect(toggle.closest('.admin-event-form__cupo')?.querySelector('#event-slots')).not.toBeNull()
 
@@ -157,11 +158,45 @@ describe('AdminEventEditor — estructura del formulario', () => {
 
     const totalToggle = document.querySelector('#event-capacity-total-public')
     expect(totalToggle).not.toBeNull()
-    expect(totalToggle.checked).toBe(true)
+    expect(totalToggle.getAttribute('aria-checked')).toBe('true')
+    expect(totalToggle.disabled).toBe(false)
+    expect(totalToggle.textContent).toMatch(/solo oculta el total/i)
 
     fireEvent.click(totalToggle)
     expect(onChange.mock.calls.at(-1)[0].capacityTotalPublic).toBe(false)
     expect(onChange.mock.calls.at(-1)[0].capacityProgressPublic).not.toBe(false)
+  })
+
+  it('el preview sin total muestra anotados y restantes, no el máximo', () => {
+    renderEditor(
+      { capacityProgressPublic: true, capacityTotalPublic: false, slots: 200 },
+      { sourceEvent: { registered: 76 } },
+    )
+    activateEditorTab(/ventas y cupos/i)
+
+    const preview = document.querySelector('.admin-event-form__cupo-preview')
+    expect(preview?.textContent).toMatch(/76 anotados/i)
+    expect(preview?.textContent).toMatch(/quedan 124/i)
+    expect(preview?.textContent ?? '').not.toMatch(/\/\s*200/)
+    expect(preview?.textContent ?? '').not.toMatch(/\b200\b/)
+    expect(document.querySelector('.admin-event-form__occupancy-value')?.textContent).toMatch(
+      /76\/200/,
+    )
+  })
+
+  it('en Cupo el número total se puede apagar aunque la ocupación pública esté apagada', () => {
+    const onChange = vi.fn()
+    renderEditor({ capacityProgressPublic: false, capacityTotalPublic: true }, { onChange })
+    activateEditorTab(/ventas y cupos/i)
+
+    const progressToggle = document.querySelector('#event-capacity-progress-public')
+    const totalToggle = document.querySelector('#event-capacity-total-public')
+    expect(progressToggle.getAttribute('aria-checked')).toBe('false')
+    expect(totalToggle.disabled).toBe(false)
+    expect(totalToggle.getAttribute('aria-checked')).toBe('true')
+
+    fireEvent.click(totalToggle)
+    expect(onChange.mock.calls.at(-1)[0].capacityTotalPublic).toBe(false)
   })
 
   it('en el acordeón de Ventas el interruptor de ocupación sigue visible', () => {

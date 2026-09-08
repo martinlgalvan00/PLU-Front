@@ -6,7 +6,6 @@ export default function CapacityBar({
   showTotal = true,
 }) {
   const progress = total > 0 ? Math.round((current / total) * 100) : 0
-  const remaining = Math.max(0, total - current)
 
   return (
     <div className={`capacity-widget${compact ? ' capacity-widget--compact' : ''}`}>
@@ -33,9 +32,7 @@ export default function CapacityBar({
       </div>
       {!compact && (
         <small>
-          {showTotal
-            ? `${current} de ${total} plazas`
-            : `${current} plazas · quedan ${remaining}`}
+          {showTotal ? `${current} de ${total} plazas` : `${current} plazas`}
         </small>
       )}
     </div>

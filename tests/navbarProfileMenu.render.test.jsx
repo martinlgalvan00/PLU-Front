@@ -117,18 +117,21 @@ describe('NavbarPublic profile menu', () => {
     expect(screen.getByText('Administrador')).toBeTruthy()
   })
 
-  it('no muestra la campana de avisos para invitados ni staff', () => {
-    const { unmount } = renderNav(null)
+  it('no muestra la campana de avisos para invitados', () => {
+    renderNav(null)
     expect(document.getElementById('plu-notice-menu-trigger')).toBeNull()
     expect(document.getElementById('plu-notice-menu-trigger-mobile')).toBeNull()
-    unmount()
+  })
 
+  it('mantiene la campana de avisos fija en el chrome de cuenta para staff', () => {
     renderNav({
       name: 'Agustin Di Santo',
       role: 'admin_plu_arg',
       roleKey: 'admin_plu_arg',
     })
-    expect(document.getElementById('plu-notice-menu-trigger')).toBeNull()
-    expect(document.getElementById('plu-notice-menu-trigger-mobile')).toBeNull()
+    const trigger = document.getElementById('plu-notice-menu-trigger')
+    expect(trigger).toBeTruthy()
+    expect(trigger.closest('.plu-global-nav__actions')).toBeTruthy()
+    expect(document.getElementById('plu-notice-menu-trigger-mobile')).toBeTruthy()
   })
 })

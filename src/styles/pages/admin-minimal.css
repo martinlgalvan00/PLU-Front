@@ -450,6 +450,21 @@
   outline-color: var(--admin-focus);
 }
 
+.admin-shell .btn.admin-athletes-bulk__notify-submit,
+.admin-shell .btn.admin-athletes-bulk__block-confirm {
+  background: var(--color-brand-gold);
+  border-color: transparent;
+  border-radius: 2px;
+  box-shadow: none;
+  color: var(--color-brand-action-text);
+}
+
+.admin-shell .btn.admin-athletes-bulk__notify-submit:hover:not(:disabled),
+.admin-shell .btn.admin-athletes-bulk__block-confirm:hover:not(:disabled) {
+  background: var(--color-brand-gold-light, var(--color-brand-gold));
+  box-shadow: none;
+}
+
 /* ---- Listados: menos cabecera, mas informacion ---- */
 
 .admin-shell .admin-list-section {

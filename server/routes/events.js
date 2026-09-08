@@ -700,13 +700,23 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
 
         // Misma razón: el upsert no escribe columnas nuevas. El total público
         // viaja aparte para no redefinir staff_upsert_event.
-        assertSupabaseResult(
-          await client.rpc('staff_merge_event_capacity_total', {
-            p_slug: pEvent.slug,
-            p_total_public: pEvent.capacityTotalPublic !== false,
-          }),
-          'No se pudo guardar la visibilidad del cupo total.',
-        )
+        const totalPublicMerge = await client.rpc('staff_merge_event_capacity_total', {
+          p_slug: pEvent.slug,
+          p_total_public: pEvent.capacityTotalPublic !== false,
+        })
+
+        // Sin esta RPC el staff_save_event ya corrió y pisó `updated_at`.
+        // Abortar acá devolvía 500 y el reintento chocaba con PLU09.
+        if (totalPublicMerge.error && esRelacionFaltante(totalPublicMerge.error)) {
+          console.warn(
+            '[eventos] `staff_merge_event_capacity_total` no existe en esta base: el evento se guardó sin la visibilidad del cupo total. Aplicá la migración 20261116100000_event_capacity_total_public.sql.',
+          )
+        } else {
+          assertSupabaseResult(
+            totalPublicMerge,
+            'No se pudo guardar la visibilidad del cupo total.',
+          )
+        }
 
         // Las subcategorías de entrada (qué credenciales emite cada tipo y qué
         // zonas abre cada una) van en su propio merge por el mismo motivo que

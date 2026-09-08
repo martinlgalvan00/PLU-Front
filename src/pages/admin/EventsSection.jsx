@@ -279,7 +279,7 @@ export default function EventsSection({
     setConsoleOpen(true)
   }
 
-  function closeEventConsole() {
+  function resetEventConsole() {
     setConsoleOpen(false)
     setConsoleSection(null)
     setConsoleChapter(null)
@@ -288,6 +288,10 @@ export default function EventsSection({
     setDraft(createAdminEventDraft())
     pendingConsoleSectionRef.current = null
     pendingConsoleChapterRef.current = null
+  }
+
+  function closeEventConsole() {
+    resetEventConsole()
     clearAdminEventRoute()
   }
 
@@ -303,6 +307,14 @@ export default function EventsSection({
     openEditForm(match, 'basics')
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al resolver el slug
   }, [adminEventWorkspaceSlug, adminEvents])
+
+  const previousWorkspaceSlugRef = useRef(adminEventWorkspaceSlug)
+  useEffect(() => {
+    const previousSlug = previousWorkspaceSlugRef.current
+    previousWorkspaceSlugRef.current = adminEventWorkspaceSlug
+    if (!previousSlug || adminEventWorkspaceSlug) return
+    resetEventConsole()
+  }, [adminEventWorkspaceSlug])
 
   useEffect(() => {
     if (adminEvents.some((event) => event.id === selectedId)) return

@@ -47,3 +47,21 @@ export function clearAdminEventRoute() {
     window.dispatchEvent(new Event('popstate'))
   }
 }
+
+/**
+ * Mientras `/admin/eventos/:slug` está activo, el panel no puede cambiar de
+ * sección: el slug fuerza Eventos. Hay que soltarlo al ir a otro lugar, y
+ * también al volver a tocar Eventos para ver el listado.
+ *
+ * @param {{ workspaceSlug?: string | null, currentSection?: string | null, nextSection?: string | null }} params
+ * @returns {boolean}
+ */
+export function shouldClearAdminEventWorkspace({
+  workspaceSlug,
+  currentSection,
+  nextSection,
+} = {}) {
+  if (!workspaceSlug) return false
+  if (nextSection !== 'events') return true
+  return currentSection === 'events'
+}
