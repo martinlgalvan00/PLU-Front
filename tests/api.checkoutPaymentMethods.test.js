@@ -95,6 +95,9 @@ const COMPLETE_COMPETITION_PROFILE = {
   phone: '1122334455',
   country: 'Argentina',
   province: 'Buenos Aires',
+  division: 'Open',
+  category: 'Raw',
+  estimated_weight: 90,
 }
 
 function buildApp({ toggles = {}, channelPolicy = null } = {}) {

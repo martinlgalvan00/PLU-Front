@@ -24,6 +24,9 @@ const completeAthlete = {
   phone: '11 4567 8901',
   country: 'Argentina',
   province: 'Buenos Aires',
+  division: 'Open',
+  category: 'Raw',
+  estimatedWeight: 67.5,
 }
 
 describe('perfil reutilizable para inscripción', () => {
@@ -32,6 +35,14 @@ describe('perfil reutilizable para inscripción', () => {
     expect(
       getMissingCompetitionProfileFields({ ...completeAthlete, gym: '', province: null }),
     ).toEqual(['gym', 'province'])
+    expect(
+      getMissingCompetitionProfileFields({
+        ...completeAthlete,
+        division: 'Open',
+        category: '',
+        estimatedWeight: '',
+      }),
+    ).toEqual(['category', 'estimatedWeight'])
   })
 
   it('no convierte el contacto de emergencia ni Instagram en un bloqueo de adultos', () => {

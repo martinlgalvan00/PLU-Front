@@ -3521,6 +3521,63 @@
   );
 }
 
+.account-verify--profile-notice {
+  position: relative;
+  gap: 12px 16px;
+}
+
+.account-verify--profile-notice .account-verify__title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.account-verify--profile-notice .account-verify__lead {
+  font-size: 13px;
+  line-height: 1.45;
+  max-width: 52ch;
+}
+
+.account-verify--profile-notice .account-verify__email {
+  color: var(--color-text-primary);
+  display: block;
+  font-family: var(--font-family);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 8px 0 0;
+}
+
+.account-verify--profile-notice .account-verify__email::before {
+  content: none;
+}
+
+.account-verify__dismiss {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  margin-left: auto;
+  width: 36px;
+}
+
+.account-verify__dismiss:hover {
+  color: var(--color-text-primary);
+}
+
+.account-verify__dismiss:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.account-verify__action svg {
+  flex: none;
+}
+
 .account-qr-pass__gate {
   margin: 0;
   font-size: var(--text-sm, 0.875rem);
@@ -4252,7 +4309,62 @@
   text-transform: none;
 }
 
-/* Barra de progreso de completitud del perfil */
+/* Completitud: checklist de campos faltantes (reemplaza la barra N/7) */
+.account-profile-checklist {
+  border-left: 2px solid var(--color-brand-gold);
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 4px;
+  padding: 2px 0 2px 16px;
+}
+
+.account-profile-checklist__lead {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.account-profile-checklist__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.account-profile-checklist__item {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-brand-gold) 55%, transparent);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 2px 0;
+  text-align: left;
+}
+
+.account-profile-checklist__item:hover {
+  color: var(--color-brand-gold);
+}
+
+.account-profile-checklist__item:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.account-data-group__pending-note {
+  color: var(--color-brand-gold);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Barra de progreso de completitud del perfil (legado; el checklist la reemplaza) */
 .account-profile-progress {
   align-items: center;
   display: grid;
@@ -4659,6 +4771,10 @@
   color: var(--color-text-secondary);
   font-size: 12px;
   line-height: 1.35;
+  max-width: 42ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #account-personal-data .account-data-group__summary-side {
@@ -4682,10 +4798,10 @@
 
 #account-personal-data .account-data-group__optional-note {
   color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 #account-personal-data .account-data-group__summary:focus-visible {

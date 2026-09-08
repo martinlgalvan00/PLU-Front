@@ -195,6 +195,8 @@ export const eventSchema = z
     // Si el sitio público muestra cuántos se anotaron y el progreso del cupo.
     // El panel lo ve siempre: sólo gobierna la proyección pública.
     capacityProgressPublic: z.boolean().default(true),
+    // Independiente: si el medidor también publica el número total (“de 200”).
+    capacityTotalPublic: z.boolean().default(true),
     slots: z.coerce.number().int().min(1).max(5000),
     pricing: pricingSchema,
     featured: z.boolean().optional(),
@@ -695,6 +697,26 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           }),
           'No se pudo guardar el copy público del evento.',
         )
+
+        // Misma razón: el upsert no escribe columnas nuevas. El total público
+        // viaja aparte para no redefinir staff_upsert_event.
+        const totalPublicMerge = await client.rpc('staff_merge_event_capacity_total', {
+          p_slug: pEvent.slug,
+          p_total_public: pEvent.capacityTotalPublic !== false,
+        })
+
+        // Sin esta RPC el staff_save_event ya corrió y pisó `updated_at`.
+        // Abortar acá devolvía 500 y el reintento chocaba con PLU09.
+        if (totalPublicMerge.error && esRelacionFaltante(totalPublicMerge.error)) {
+          console.warn(
+            '[eventos] `staff_merge_event_capacity_total` no existe en esta base: el evento se guardó sin la visibilidad del cupo total. Aplicá la migración 20261116100000_event_capacity_total_public.sql.',
+          )
+        } else {
+          assertSupabaseResult(
+            totalPublicMerge,
+            'No se pudo guardar la visibilidad del cupo total.',
+          )
+        }
 
         // Las subcategorías de entrada (qué credenciales emite cada tipo y qué
         // zonas abre cada una) van en su propio merge por el mismo motivo que

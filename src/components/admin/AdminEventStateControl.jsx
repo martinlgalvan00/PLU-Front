@@ -340,10 +340,10 @@ export default function AdminEventStateControl({
                 aria-checked={option.selected}
                 aria-pressed={option.selected}
                 disabled={!canEdit || busy}
+                title={option.note}
                 onClick={() => handleAccessChange(option.id)}
               >
                 <strong>{option.label}</strong>
-                <small>{option.note}</small>
               </button>
             ))}
 

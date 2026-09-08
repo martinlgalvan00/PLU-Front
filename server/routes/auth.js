@@ -1078,7 +1078,10 @@ export function createAuthRoutes({
 
       const users = await prisma.user.findMany({
         where: { role: 'seguridad_plu_arg', eventId },
-        include: { profile: true },
+        include: {
+          profile: true,
+          securityZone: { select: { id: true, name: true, scope: true } },
+        },
         orderBy: { createdAt: 'desc' },
       })
 
@@ -1107,7 +1110,10 @@ export function createAuthRoutes({
         const updated = await prisma.user.update({
           where: { id: target.id },
           data: { status: req.validatedBody.status },
-          include: { profile: true },
+          include: {
+            profile: true,
+            securityZone: { select: { id: true, name: true, scope: true } },
+          },
         })
 
         res.json({ user: serializeUser(updated) })
@@ -1197,7 +1203,14 @@ export function createAuthRoutes({
 
         const user = await prisma.user.findUnique({
           where: { id: payload.uid },
-          include: { profile: true },
+          include: {
+            profile: true,
+            accessRole: { include: ACCESS_ROLE_INCLUDE },
+            // El puesto viaja en la respuesta del link mágico: sin esto, la
+            // consola de puerta no sabe qué zona está operando hasta un
+            // request posterior (y el aviso del puesto no se pinta).
+            securityZone: { select: { id: true, name: true, scope: true } },
+          },
         })
         if (
           !user ||

@@ -46,6 +46,9 @@ async function wipeStaleGateStaff(prisma) {
   await prisma.user.deleteMany({
     where: { email: { startsWith: 'e2e-admin-' } },
   })
+  await prisma.user.deleteMany({
+    where: { email: { startsWith: 'e2e-security-ui-' } },
+  })
   await prisma.eventSecurityZone.deleteMany({ where: { eventSlug: { startsWith: 'e2e-' } } })
 }
 

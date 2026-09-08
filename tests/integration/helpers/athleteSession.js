@@ -32,6 +32,10 @@ export async function createTestAthlete(client, overrides = {}) {
       phone: '+5491100000000',
       country: 'Argentina',
       province: 'Buenos Aires',
+      city: 'CABA',
+      division: 'Open',
+      category: 'Raw',
+      estimated_weight: 90,
       // Sin esto assertEmailVerified (server/routes/athletes.js) responde 403
       // y el test nunca llegaría a ejercitar el chequeo de cupo.
       email_verified_at: new Date().toISOString(),

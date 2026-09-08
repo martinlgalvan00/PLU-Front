@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import AdminCompactCard from './AdminCompactCard.jsx'
 import StatusBadge from '../ui/StatusBadge.jsx'
 import { useHorizontalScroll } from '../../hooks/useHorizontalScroll'
+import { useI18n } from '../../i18n/I18nProvider.jsx'
 
 const DEFAULT_PAGE_SIZE = 25
 const PAGE_SIZE_OPTIONS = ['10', '25', '50', '100']
@@ -95,7 +96,7 @@ function hasMobileLayout(columns) {
   return columns.some((col) => col.mobile)
 }
 
-function resolveTableScrollX(columns, preferCards) {
+function resolveTableScrollX(columns, preferCards, { minWidth = 960 } = {}) {
   const visible = columns.filter((col) => col.mobile !== 'hidden' || !preferCards)
   let total = 0
 
@@ -119,7 +120,7 @@ function resolveTableScrollX(columns, preferCards) {
     total += 120
   }
 
-  return Math.max(960, total)
+  return Math.max(minWidth, total)
 }
 
 function resolveRowClassName(rowClassName, getRowClassName, record, index) {
@@ -127,6 +128,58 @@ function resolveRowClassName(rowClassName, getRowClassName, record, index) {
     typeof rowClassName === 'function' ? rowClassName(record, index) : rowClassName
   const fromLegacy = typeof getRowClassName === 'function' ? getRowClassName(record) : ''
   return [fromProp, fromLegacy].filter(Boolean).join(' ')
+}
+
+function resolveRowKey(row) {
+  return row.id ?? row.key ?? JSON.stringify(row)
+}
+
+function mergeToggleKeys(selectedKeys, keys, { select } = {}) {
+  const current = Array.isArray(selectedKeys) ? selectedKeys : []
+  const currentSet = new Set(current)
+  const shouldSelect = select ?? !keys.every((key) => currentSet.has(key))
+  if (shouldSelect) {
+    const next = new Set(current)
+    for (const key of keys) next.add(key)
+    return [...next]
+  }
+  const remove = new Set(keys)
+  return current.filter((key) => !remove.has(key))
+}
+
+function sameRowKeys(left, right) {
+  if (left === right) return true
+  if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false
+  return left.every((key, index) => key === right[index])
+}
+
+const CARD_CLICK_IGNORE =
+  'button, a, input, label, .admin-icon-btn, .ant-checkbox-wrapper, .admin-table-actions__more'
+
+function SelectPageCheckbox({ checked, indeterminate, onChange, ariaLabel, label, count }) {
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    if (inputRef.current) inputRef.current.indeterminate = Boolean(indeterminate)
+  }, [indeterminate])
+
+  return (
+    <label className="admin-data-table-shell__select-page">
+      <span className="admin-data-table-shell__select-page-check">
+        <input
+          ref={inputRef}
+          type="checkbox"
+          checked={checked}
+          onChange={onChange}
+          aria-label={ariaLabel}
+        />
+      </span>
+      <span className="admin-data-table-shell__select-page-copy">
+        <span className="admin-data-table-shell__select-page-label">{label}</span>
+        <span className="admin-data-table-shell__select-page-count">{count}</span>
+      </span>
+    </label>
+  )
 }
 
 export default function AdminDataTable({
@@ -141,26 +194,46 @@ export default function AdminDataTable({
   pagination = true,
   pageSize: pageSizeProp = DEFAULT_PAGE_SIZE,
   rowSelection,
+  /**
+   * Si es true, el click en la fila/card tilda en vez de disparar `onRowClick`.
+   * El checkbox nativo sigue disponible. Pensado para un modo "elegir".
+   */
+  selectOnRowClick = false,
+  onVisibleRowKeysChange,
+  getRowSelectLabel,
+  selectVisibleAriaLabel,
+  selectVisibleLabel,
+  /** `table` fuerza la tabla también en anchos de celular (p. ej. puerta). */
+  layout = 'auto',
 }) {
+  const { t } = useI18n()
   const shellRef = useRef(null)
   const scrollRef = useHorizontalScroll()
   const selectedCount = rowSelection?.selectedRowKeys?.length ?? 0
   const preferCards = usePreferCompactCards(shellRef)
-  const useCompactCards = preferCards && hasMobileLayout(columns)
+  const useCompactCards = layout !== 'table' && preferCards && hasMobileLayout(columns)
+  const hideNarrowColumns = preferCards
   const [cardPage, setCardPage] = useState(1)
   const [cardPageSize, setCardPageSize] = useState(pageSizeProp)
+  const [tablePage, setTablePage] = useState(1)
+  const [tablePageSize, setTablePageSize] = useState(pageSizeProp)
 
   useEffect(() => {
     setCardPageSize(pageSizeProp)
+    setTablePageSize(pageSizeProp)
   }, [pageSizeProp])
 
   useEffect(() => {
     setCardPage(1)
   }, [rows, cardPageSize, useCompactCards])
 
+  useEffect(() => {
+    setTablePage(1)
+  }, [rows, tablePageSize, useCompactCards])
+
   const antdColumns = useMemo(() => {
     return columns
-      .filter((col) => col.mobile !== 'hidden' || !preferCards)
+      .filter((col) => col.mobile !== 'hidden' || !hideNarrowColumns)
       .map((col, index) => ({
         title: col.label,
         dataIndex: col.key,
@@ -184,6 +257,7 @@ export default function AdminDataTable({
           : isActionColumn(col)
             ? { width: 132 }
             : {}),
+        ...(col.fixed ? { fixed: col.fixed } : {}),
         render: (text, record) => (
           <div className="data-table__cell-content">
             {col.render ? col.render(record) : text}
@@ -191,7 +265,7 @@ export default function AdminDataTable({
         ),
         align: resolveAntdAlign(col.align),
       }))
-  }, [columns, preferCards])
+  }, [columns, hideNarrowColumns])
 
   const dataSource = useMemo(() => {
     return rows.map((row) => ({ ...row, key: row.id ?? JSON.stringify(row) }))
@@ -201,19 +275,27 @@ export default function AdminDataTable({
     () => new Set(rowSelection?.selectedRowKeys ?? []),
     [rowSelection?.selectedRowKeys],
   )
-  // A partir de 2 filas seleccionadas es "modo lote": la fila suma un acento
-  // y la tabla un borde celeste — la selección de una sola fila no necesita
-  // ese refuerzo visual, ya la marca el tinte de fondo.
+  // A partir de 2 filas seleccionadas es "modo lote": la tabla suma un borde
+  // celeste. En cards el tinte va en cada fila tildada, aunque sea una sola.
   const isBulkMode = selectedCount > 1
+  const hasRowSelection = Boolean(rowSelection)
 
-  const cardColumns = useMemo(
-    () => columns.filter((col) => col.mobile !== 'hidden'),
-    [columns],
-  )
+  function commitSelection(nextKeys) {
+    rowSelection?.onChange?.(nextKeys)
+  }
+
+  function toggleRowSelection(row) {
+    if (!rowSelection) return
+    if (rowSelection.getCheckboxProps?.(row)?.disabled) return
+    commitSelection(mergeToggleKeys(rowSelection.selectedRowKeys, [resolveRowKey(row)]))
+  }
 
   const tableScrollX = useMemo(
-    () => resolveTableScrollX(columns, preferCards),
-    [columns, preferCards],
+    () =>
+      resolveTableScrollX(columns, preferCards, {
+        minWidth: layout === 'table' && preferCards ? 0 : 960,
+      }),
+    [columns, layout, preferCards],
   )
 
   // En modo cards no hay Table de antd: paginamos acá para no montar
@@ -224,13 +306,106 @@ export default function AdminDataTable({
     return rows.slice(start, start + cardPageSize)
   }, [cardPage, cardPageSize, pagination, rows, useCompactCards])
 
+  const visibleRows = useMemo(() => {
+    if (useCompactCards) return cardRows
+    if (!pagination) return rows
+    const start = (tablePage - 1) * tablePageSize
+    return rows.slice(start, start + tablePageSize)
+  }, [cardRows, pagination, rows, tablePage, tablePageSize, useCompactCards])
+
+  const visibleRowKeys = useMemo(() => visibleRows.map(resolveRowKey), [visibleRows])
+  const onVisibleRowKeysChangeRef = useRef(onVisibleRowKeysChange)
+  const lastNotifiedVisibleKeysRef = useRef(null)
+  onVisibleRowKeysChangeRef.current = onVisibleRowKeysChange
+
+  useEffect(() => {
+    if (sameRowKeys(lastNotifiedVisibleKeysRef.current, visibleRowKeys)) return
+    lastNotifiedVisibleKeysRef.current = visibleRowKeys
+    onVisibleRowKeysChangeRef.current?.(visibleRowKeys)
+  }, [visibleRowKeys])
+
+  const visibleSelectedCount = visibleRowKeys.filter((key) => selectedKeySet.has(key)).length
+  const allVisibleSelected =
+    visibleRowKeys.length > 0 && visibleSelectedCount === visibleRowKeys.length
+  const someVisibleSelected = visibleSelectedCount > 0 && !allVisibleSelected
+
+  const cardColumns = useMemo(() => {
+    const visible = columns.filter((col) => col.mobile !== 'hidden')
+    if (!rowSelection || visible.some((col) => col.mobile === 'select')) return visible
+    return [
+      {
+        key: '__rowSelection',
+        mobile: 'select',
+        render: (row) => {
+          const rowKey = resolveRowKey(row)
+          const extra = rowSelection.getCheckboxProps?.(row) ?? {}
+          return (
+            <label className="admin-schedule-select" onClick={(event) => event.stopPropagation()}>
+              <input
+                type="checkbox"
+                checked={selectedKeySet.has(rowKey)}
+                disabled={Boolean(extra.disabled)}
+                aria-label={
+                  getRowSelectLabel?.(row) ??
+                  extra['aria-label'] ??
+                  extra.name ??
+                  t('admin.table.selectRow', { name: row.fullName ?? row.name ?? '' })
+                }
+                onChange={() => {
+                  if (extra.disabled) return
+                  rowSelection.onChange?.(
+                    mergeToggleKeys(rowSelection.selectedRowKeys, [rowKey]),
+                  )
+                }}
+              />
+            </label>
+          )
+        },
+      },
+      ...visible,
+    ]
+  }, [columns, getRowSelectLabel, rowSelection, selectedKeySet, t])
+
+  function handleCardActivate(row) {
+    if (selectOnRowClick && rowSelection) {
+      toggleRowSelection(row)
+      return
+    }
+    onRowClick?.(row)
+  }
+
+  const shellClass = [
+    'admin-data-table-shell',
+    useCompactCards ? 'admin-data-table-shell--cards' : '',
+    selectOnRowClick && hasRowSelection ? 'admin-data-table-shell--picking' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
   return (
-    <div
-      ref={shellRef}
-      className={`admin-data-table-shell${useCompactCards ? ' admin-data-table-shell--cards' : ''}`}
-    >
+    <div ref={shellRef} className={shellClass}>
+
       {useCompactCards ? (
         <>
+          {hasRowSelection && cardRows.length > 0 ? (
+            <SelectPageCheckbox
+              checked={allVisibleSelected}
+              indeterminate={someVisibleSelected}
+              label={selectVisibleLabel ?? t('admin.table.selectPage')}
+              count={visibleRowKeys.length}
+              ariaLabel={
+                selectVisibleAriaLabel ??
+                t('admin.table.selectPageAria', { count: visibleRowKeys.length })
+              }
+              onChange={() =>
+                commitSelection(
+                  mergeToggleKeys(rowSelection.selectedRowKeys, visibleRowKeys, {
+                    select: !allVisibleSelected,
+                  }),
+                )
+              }
+            />
+          ) : null}
           <div className="data-table-cards data-table-cards--admin" aria-busy={loading || undefined}>
             {loading && rows.length === 0 ? (
               <p className="admin-data-table-shell__empty">{emptyMessage || 'Sin datos'}</p>
@@ -239,39 +414,38 @@ export default function AdminDataTable({
               <p className="admin-data-table-shell__empty">{emptyMessage || 'Sin datos'}</p>
             ) : null}
             {cardRows.map((row) => {
-              const rowKey = row.id ?? JSON.stringify(row)
-              const bulkSelected = isBulkMode && selectedKeySet.has(rowKey)
+              const rowKey = resolveRowKey(row)
+              const isSelected = selectedKeySet.has(rowKey)
+              const canActivate = Boolean(onRowClick) || (selectOnRowClick && hasRowSelection)
               const articleClass = [
                 'data-table-card',
                 'data-table-card--admin',
                 'data-table-card--compact',
                 resolveRowClassName(rowClassName, getRowClassName, row),
-                bulkSelected ? 'data-table__row--bulk-selected' : '',
-                onRowClick ? 'data-table__row--clickable' : '',
+                isSelected ? 'data-table__row--bulk-selected' : '',
+                canActivate ? 'data-table__row--clickable' : '',
               ]
                 .filter(Boolean)
                 .join(' ')
 
-              const interactionProps = onRowClick
+              const interactionProps = canActivate
                 ? {
                     onClick: (event) => {
-                      if (
-                        event.target.closest(
-                          'button, a, input, label, .admin-icon-btn, .ant-checkbox-wrapper, .admin-table-actions__more',
-                        )
-                      ) {
-                        return
-                      }
-                      onRowClick(row)
+                      if (event.target.closest(CARD_CLICK_IGNORE)) return
+                      handleCardActivate(row)
                     },
-                    onKeyDown: (event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault()
-                        onRowClick(row)
-                      }
-                    },
-                    tabIndex: 0,
-                    role: 'button',
+                    ...(hasRowSelection
+                      ? {}
+                      : {
+                          onKeyDown: (event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault()
+                              handleCardActivate(row)
+                            }
+                          },
+                          tabIndex: 0,
+                          role: 'button',
+                        }),
                   }
                 : {}
 
@@ -317,11 +491,17 @@ export default function AdminDataTable({
                 onClick: (event) => {
                   // El checkbox de selección vive dentro de la fila: sin este guard,
                   // tildarlo también dispara onRowClick (ej. navegar a la ficha).
-                  if (onRowClick && !event.target.closest('.ant-checkbox-wrapper')) {
-                    onRowClick(record)
+                  if (event.target.closest('.ant-checkbox-wrapper')) return
+                  if (selectOnRowClick && rowSelection) {
+                    toggleRowSelection(record)
+                    return
                   }
+                  onRowClick?.(record)
                 },
-                style: { cursor: onRowClick ? 'pointer' : 'default' },
+                style: {
+                  cursor:
+                    onRowClick || (selectOnRowClick && hasRowSelection) ? 'pointer' : 'default',
+                },
               }
             }}
             rowClassName={(record, index) => {
@@ -335,11 +515,16 @@ export default function AdminDataTable({
             pagination={
               pagination
                 ? {
+                    current: tablePage,
+                    pageSize: tablePageSize,
                     placement: ['bottomCenter'],
                     hideOnSinglePage: true,
                     showSizeChanger: true,
-                    defaultPageSize: pageSizeProp,
                     pageSizeOptions: PAGE_SIZE_OPTIONS,
+                    onChange: (page, nextSize) => {
+                      setTablePage(page)
+                      if (nextSize && nextSize !== tablePageSize) setTablePageSize(nextSize)
+                    },
                   }
                 : false
             }

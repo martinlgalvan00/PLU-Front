@@ -84,11 +84,14 @@ describe('EventsSection — la página del evento', () => {
     expect(panel.querySelector('.admin-event-workspace__meta')?.textContent).toMatch(
       /Maximal Strength Club/,
     )
+    expect(panel.querySelector('.admin-event-workspace__meta')?.textContent).not.toMatch(
+      /\/evento\//,
+    )
     expect(within(panel).queryByRole('button', { name: 'Editar evento' })).toBeNull()
 
     const rail = within(panel).getByRole('tablist', { name: /secciones del evento/i })
     expect(within(rail).getByRole('tab', { name: /datos/i })).toBeTruthy()
-    expect(within(rail).getByRole('tab', { name: /^entradas/i })).toBeTruthy()
+    expect(within(rail).getByRole('tab', { name: /^ventas/i })).toBeTruthy()
   })
 
   it('cambia de evento tocando otra fila desde la lista', () => {
@@ -116,6 +119,7 @@ describe('EventsSection — la página del evento', () => {
     const meta = panel.querySelector('.admin-event-workspace__meta')?.textContent
     expect(meta).toMatch(/pit elite/)
     expect(meta).not.toMatch(/pit elite,\s*pit elite/)
+    expect(meta).not.toMatch(/\/evento\//)
   })
 
   it('vuelve a la lista con Volver, y Escape no se lleva el trabajo', () => {

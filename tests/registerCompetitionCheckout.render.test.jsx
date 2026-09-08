@@ -257,6 +257,9 @@ describe('RegisterPage competition profile summary', () => {
         country: 'Argentina',
         province: 'Buenos Aires',
         city: 'Quilmes',
+        division: 'Open',
+        category: 'Raw',
+        estimatedWeight: 83,
       },
     })
 

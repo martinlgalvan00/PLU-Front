@@ -4,7 +4,6 @@ import {
   ListChecks,
   QrCode,
   ScanLine,
-  Send,
   Shield,
   ShieldOff,
   UserPlus,
@@ -43,6 +42,7 @@ export default function AdminEventSecuritySection({
   // como pendiente de asignar hasta recargar la sección.
   onTeamChange,
   onUpdateSecurityUserStatus,
+  reloadToken = 0,
 }) {
   const { t } = useI18n()
   const memberIdRef = useRef(1)
@@ -95,7 +95,7 @@ export default function AdminEventSecuritySection({
     return () => {
       active = false
     }
-  }, [eventId, onListSecurityUsers, reloadKey])
+  }, [eventId, onListSecurityUsers, reloadKey, reloadToken])
 
   function handleMemberChange(id, field, value) {
     setMembers((current) =>
@@ -258,43 +258,13 @@ export default function AdminEventSecuritySection({
   }
 
   return (
-    <fieldset className="admin-event-form__pricing admin-event-security">
-      <legend>
-        <Shield size={14} aria-hidden />
-        {t('admin.eventEditor.security.title')}
-      </legend>
-      <p className="admin-event-form__pricing-lead">{t('admin.eventEditor.security.lead')}</p>
-
-      <ol
-        className="admin-event-security__flow"
-        aria-label={t('admin.eventEditor.security.flowLabel')}
-      >
-        <li className={activeCount > 0 ? 'is-complete' : 'is-current'}>
-          <UserPlus size={14} aria-hidden />
-          <span>
-            <strong>{activeCount > 0 ? '✓' : '1'}</strong>
-            {t('admin.eventEditor.security.flowCreate')}
-          </span>
-        </li>
-        <li
-          className={
-            teamResult?.created.length ? 'is-complete' : activeCount > 0 ? 'is-current' : ''
-          }
-        >
-          <Send size={14} aria-hidden />
-          <span>
-            <strong>{teamResult?.created.length ? '✓' : '2'}</strong>
-            {t('admin.eventEditor.security.flowShare')}
-          </span>
-        </li>
-        <li>
-          <ScanLine size={14} aria-hidden />
-          <span>
-            <strong>3</strong>
-            {t('admin.eventEditor.security.flowOperate')}
-          </span>
-        </li>
-      </ol>
+    <section className="admin-event-security" aria-labelledby="admin-event-security-title">
+      <header className="admin-event-security__head">
+        <div className="admin-event-security__head-copy">
+          <h3 id="admin-event-security-title">{t('admin.eventEditor.security.title')}</h3>
+          <p className="admin-event-security__lead">{t('admin.eventEditor.security.lead')}</p>
+        </div>
+      </header>
 
       {gateUrl && (
         <div className="admin-event-security__command">
@@ -450,6 +420,9 @@ export default function AdminEventSecuritySection({
                     name={user.name}
                     sub={user.email}
                   />
+                  <span className="admin-event-security__zone">
+                    {user.securityZone?.name || t('admin.eventEditor.security.rosterNoZone')}
+                  </span>
                   <Pill tone={active ? 'success' : 'neutral'}>
                     {active
                       ? t('admin.eventEditor.security.statusActive')
@@ -500,6 +473,6 @@ export default function AdminEventSecuritySection({
           onClose={() => setCredentialUser(null)}
         />
       )}
-    </fieldset>
+    </section>
   )
 }

@@ -9,12 +9,63 @@ export function createCsv(filename, rows) {
   ].join('\n')
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  triggerDownload(blob, filename)
+  return true
+}
+
+function escapeXml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+}
+
+function sanitizeSheetName(name) {
+  const cleaned = String(name ?? 'Hoja1')
+    .replaceAll(/[[\]:*?/\\]/g, ' ')
+    .trim()
+  return (cleaned || 'Hoja1').slice(0, 31)
+}
+
+function triggerDownload(blob, filename) {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
   link.download = filename
   link.click()
   URL.revokeObjectURL(url)
+}
+
+/** SpreadsheetML 2003 (.xls) que Excel, Numbers y Sheets abren sin dependencias. */
+export function createSpreadsheet(filename, rows, sheetName = 'Hoja1') {
+  if (!rows.length) return false
+
+  const headers = Object.keys(rows[0])
+  const headerRow = `<Row>${headers
+    .map((key) => `<Cell><Data ss:Type="String">${escapeXml(key)}</Data></Cell>`)
+    .join('')}</Row>`
+  const body = rows
+    .map(
+      (row) =>
+        `<Row>${headers
+          .map((key) => `<Cell><Data ss:Type="String">${escapeXml(row[key])}</Data></Cell>`)
+          .join('')}</Row>`,
+    )
+    .join('')
+  const xml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ <Worksheet ss:Name="${escapeXml(sanitizeSheetName(sheetName))}">
+  <Table>
+   ${headerRow}
+   ${body}
+  </Table>
+ </Worksheet>
+</Workbook>`
+
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' })
+  triggerDownload(blob, filename)
   return true
 }
 

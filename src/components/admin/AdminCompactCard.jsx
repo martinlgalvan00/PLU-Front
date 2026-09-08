@@ -1,4 +1,5 @@
 function cellValue(col, row) {
+  if (col.mobileRender) return col.mobileRender(row)
   return col.render ? col.render(row) : row[col.key]
 }
 
@@ -6,6 +7,7 @@ function cellValue(col, row) {
  * Card compacta mobile para listados admin.
  * Usa el contrato `mobile: 'select'|'primary'|'badge'|'default'|'action'|'hidden'`
  * y `mobileMeta: 'labeled'` declarado en las columnas de cada sección.
+ * `mobileRender` opcional: valor distinto al de la tabla (p. ej. código completo).
  */
 export default function AdminCompactCard({ columns, row, className, interactionProps }) {
   const primary = columns.filter((col) => col.mobile === 'primary')

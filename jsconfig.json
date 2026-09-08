@@ -9,5 +9,5 @@
     "moduleResolution": "bundler",
     "target": "ES2022"
   },
-  "include": ["src", "tests", "server"]
+  "include": ["src", "tests", "server", "shared"]
 }

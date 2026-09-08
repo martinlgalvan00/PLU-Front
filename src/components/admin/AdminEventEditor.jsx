@@ -25,6 +25,7 @@ import Button from '../ui/Button.jsx'
 import DateTimeLocalInput from '../ui/DateTimeLocalInput.jsx'
 import EventCard from '../ui/EventCard.jsx'
 import CapacityBar from '../ui/CapacityBar.jsx'
+import { describePublicCapacity } from '../../lib/eventCapacityPublic.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import {
@@ -66,6 +67,8 @@ export function getAdminEventDraftSignature(draft) {
 
 const SALES_FIELD_KEYS = new Set([
   'slots',
+  'capacityProgressPublic',
+  'capacityTotalPublic',
   'registrationOpensAt',
   'registrationClosesAt',
   'ticketSalesOpensAt',
@@ -124,6 +127,77 @@ function resolveTabForField(key) {
     return 'sales'
   if (VISIBILITY_FIELD_KEYS.has(key)) return 'visibility'
   return 'basics'
+}
+
+function CapacityVisibilityToggle({
+  canEdit,
+  checked,
+  hint,
+  id,
+  nested = false,
+  onChange,
+  t,
+  title,
+}) {
+  return (
+    <button
+      type="button"
+      id={id}
+      role="switch"
+      aria-checked={checked}
+      className={`admin-event-form__toggle${nested ? ' admin-event-form__toggle--nested' : ''}${checked ? ' is-on' : ''}${canEdit ? '' : ' is-disabled'}`}
+      disabled={!canEdit}
+      onClick={() => onChange(!checked)}
+    >
+      <span className="admin-event-form__toggle-ui" aria-hidden />
+      <span className="admin-event-form__toggle-copy">
+        <strong>
+          {nested ? null : <Eye size={13} aria-hidden />}
+          {title ?? t('admin.eventEditor.capacityVisibilityTitle')}
+        </strong>
+        <small>{hint ?? t('admin.eventEditor.capacityVisibilityHint')}</small>
+      </span>
+    </button>
+  )
+}
+
+function CapacityPublicBreakdown({
+  canEdit,
+  preview,
+  progressChecked,
+  progressId,
+  t,
+  totalChecked,
+  totalId,
+  onProgressChange,
+  onTotalChange,
+}) {
+  return (
+    <div className="admin-event-form__cupo-public">
+      <CapacityVisibilityToggle
+        canEdit={canEdit}
+        checked={progressChecked}
+        id={progressId}
+        t={t}
+        onChange={onProgressChange}
+      />
+      <CapacityVisibilityToggle
+        canEdit={canEdit}
+        checked={totalChecked}
+        hint={t('admin.eventEditor.capacityTotalVisibilityHint')}
+        id={totalId}
+        nested
+        t={t}
+        title={t('admin.eventEditor.capacityTotalVisibilityTitle')}
+        onChange={onTotalChange}
+      />
+      {preview ? (
+        <p className="admin-event-form__cupo-preview" aria-live="polite">
+          {preview}
+        </p>
+      ) : null}
+    </div>
+  )
 }
 
 function FormField({ children, error, htmlFor, label, wide = false }) {
@@ -800,17 +874,30 @@ export default function AdminEventEditor({
 
   const err = (key) => fieldErrors[key]
   const ticketSalesEnabled = draft.pricing?.ticketsEnabled === true
-  const configuredTicketTypes = (draft.ticketTypes ?? []).filter(
-    (ticketType) => ticketType.active !== false,
-  ).length
-  const ticketConfigurationSummary = t('admin.eventEditor.ticketConfigurationSummary', {
-    days: draft.eventDays?.length ?? 0,
-    types: configuredTicketTypes,
-  })
   const registeredCount = sourceEvent?.registered ?? 0
   const slotsTotal = Math.max(0, Number(draft.slots) || 0)
   const slotsRemaining = Math.max(slotsTotal - registeredCount, 0)
   const fillPercent = slotsTotal > 0 ? Math.round((registeredCount / slotsTotal) * 100) : 0
+  const publicCapacity = describePublicCapacity({
+    progressPublic: draft.capacityProgressPublic !== false,
+    totalPublic: draft.capacityTotalPublic !== false,
+    registered: registeredCount,
+    slots: slotsTotal,
+    remaining: slotsRemaining,
+  })
+  const publicCapacityPreview =
+    publicCapacity.mode === 'hidden'
+      ? t('admin.eventEditor.capacityPublicPreviewHidden')
+      : publicCapacity.showTotal
+        ? t('admin.eventEditor.capacityPublicPreviewFull', {
+            registered: publicCapacity.registered,
+            total: publicCapacity.slots,
+            remaining: publicCapacity.remaining,
+          })
+        : t('admin.eventEditor.capacityPublicPreviewNoTotal', {
+            registered: publicCapacity.registered,
+            remaining: publicCapacity.remaining,
+          })
   const activeTabHasError = tabsWithErrors.has(activeTab)
   const saveStateLabel = syncing
     ? t('admin.eventEditor.saving')
@@ -1170,24 +1257,48 @@ export default function AdminEventEditor({
                       </div>
                     </div>
 
-                    <FormField
-                      htmlFor="event-slots"
-                      label={t('admin.eventEditor.totalSlots')}
-                      error={err('slots')}
-                    >
-                      <input
-                        id="event-slots"
-                        name="slots"
-                        data-field="slots"
-                        min={1}
-                        required
-                        type="number"
-                        value={draft.slots}
-                        aria-invalid={Boolean(err('slots'))}
-                        onChange={(event) => patchDraft({ ...draft, slots: event.target.value })}
-                        disabled={!canEdit}
+                    <div className="admin-event-form__cupo">
+                      <FormField
+                        htmlFor="event-slots"
+                        label={t('admin.eventEditor.totalSlots')}
+                        error={err('slots')}
+                      >
+                        <input
+                          id="event-slots"
+                          name="slots"
+                          data-field="slots"
+                          min={1}
+                          required
+                          type="number"
+                          value={draft.slots}
+                          aria-invalid={Boolean(err('slots'))}
+                          onChange={(event) => patchDraft({ ...draft, slots: event.target.value })}
+                          disabled={!canEdit}
+                        />
+                      </FormField>
+
+                      <CapacityPublicBreakdown
+                        canEdit={canEdit}
+                        preview={publicCapacityPreview}
+                        progressChecked={draft.capacityProgressPublic !== false}
+                        progressId="event-capacity-progress-public"
+                        t={t}
+                        totalChecked={draft.capacityTotalPublic !== false}
+                        totalId="event-capacity-total-public"
+                        onProgressChange={(value) =>
+                          patchDraft({
+                            ...draft,
+                            capacityProgressPublic: value,
+                          })
+                        }
+                        onTotalChange={(value) =>
+                          patchDraft({
+                            ...draft,
+                            capacityTotalPublic: value,
+                          })
+                        }
                       />
-                    </FormField>
+                    </div>
 
                     <div className="admin-event-form__grid">
                       <FormField
@@ -1727,9 +1838,15 @@ export default function AdminEventEditor({
                       <span className="admin-event-form__toggle-copy">
                         <strong>
                           <Ticket size={13} aria-hidden />
-                          {t('admin.eventEditor.ticketsEnabledTitle')}
+                          {ticketSalesEnabled
+                            ? t('admin.eventEditor.ticketsOnSale')
+                            : t('admin.eventEditor.ticketsSell')}
                         </strong>
-                        <small>{t('admin.eventEditor.ticketsEnabledHint')}</small>
+                        <small>
+                          {ticketSalesEnabled
+                            ? t('admin.eventEditor.ticketsEnabledHint')
+                            : t('admin.eventEditor.ticketsDisabledNote')}
+                        </small>
                       </span>
                     </label>
 
@@ -1775,17 +1892,7 @@ export default function AdminEventEditor({
                           </FormField>
                         </div>
 
-                        {/* Antes vivía detrás de un <details>: con tabs reales cada
-                        pantalla ya está acotada a un solo tema, así que la
-                        config de entradas queda siempre a la vista. */}
                         <div className="admin-event-form__ticket-config">
-                          <div className="admin-event-form__ticket-config-summary admin-event-form__ticket-config-summary--static">
-                            <span>
-                              <strong>{t('admin.eventEditor.configureTickets')}</strong>
-                              <small>{ticketConfigurationSummary}</small>
-                            </span>
-                          </div>
-
                           <div className="admin-event-form__ticket-config-body">
                             <AdminTicketAddonsEditor
                               addons={draft.pricing?.ticketAddons ?? []}
@@ -1814,11 +1921,7 @@ export default function AdminEventEditor({
                           </div>
                         </div>
                       </>
-                    ) : (
-                      <p className="admin-event-form__section-note">
-                        {t('admin.eventEditor.ticketsDisabledNote')}
-                      </p>
-                    )}
+                    ) : null}
                   </div>
                 </section>
               )}
@@ -1831,18 +1934,13 @@ export default function AdminEventEditor({
                   aria-label={t('admin.eventEditor.navVisibility')}
                   tabIndex={-1}
                 >
-                  <header className="admin-event-form__section-head">
-                    <h4>{t('admin.eventEditor.sectionVisibility')}</h4>
-                    {essentials ? (
-                      <p>{t('admin.eventEditor.sectionVisibilityLeadEssentials')}</p>
-                    ) : null}
-                  </header>
+                  {essentials ? null : (
+                    <header className="admin-event-form__section-head">
+                      <h4>{t('admin.eventEditor.sectionVisibility')}</h4>
+                    </header>
+                  )}
 
-                  {essentials ? (
-                    <p className="admin-event-form__section-note">
-                      {t('admin.eventEditor.visibilityOwnedByConsole')}
-                    </p>
-                  ) : (
+                  {essentials ? null : (
                     <>
                       <AdminFilterChipGroup
                         compact
@@ -2006,28 +2104,27 @@ export default function AdminEventEditor({
                         </span>
                       </label>
                     ))}
-                    <label className="admin-event-form__toggle">
-                      <input
-                        checked={draft.capacityProgressPublic !== false}
-                        className="admin-event-form__toggle-input"
-                        type="checkbox"
-                        onChange={(event) =>
-                          patchDraft({
-                            ...draft,
-                            capacityProgressPublic: event.target.checked,
-                          })
-                        }
-                        disabled={!canEdit}
-                      />
-                      <span className="admin-event-form__toggle-ui" aria-hidden />
-                      <span className="admin-event-form__toggle-copy">
-                        <strong>
-                          <Eye size={13} aria-hidden />
-                          {t('admin.eventEditor.capacityVisibilityTitle')}
-                        </strong>
-                        <small>{t('admin.eventEditor.capacityVisibilityHint')}</small>
-                      </span>
-                    </label>
+                    <CapacityPublicBreakdown
+                      canEdit={canEdit}
+                      preview={publicCapacityPreview}
+                      progressChecked={draft.capacityProgressPublic !== false}
+                      progressId="event-capacity-progress-public-surface"
+                      t={t}
+                      totalChecked={draft.capacityTotalPublic !== false}
+                      totalId="event-capacity-total-public-surface"
+                      onProgressChange={(value) =>
+                        patchDraft({
+                          ...draft,
+                          capacityProgressPublic: value,
+                        })
+                      }
+                      onTotalChange={(value) =>
+                        patchDraft({
+                          ...draft,
+                          capacityTotalPublic: value,
+                        })
+                      }
+                    />
                   </fieldset>
                   )}
 

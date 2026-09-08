@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import {
   ChevronLeft,
   ChevronRight,
@@ -90,8 +90,8 @@ export function buildEventLinks(row, t) {
  *
  * Ya no es un diálogo: sin `role="dialog"`, sin trap de foco, sin bloqueo del
  * scroll del body y sin cerrar con Escape (perder cambios sin guardar por
- * apretar Escape en una página es peor que no tener el atajo). La única salida
- * es Volver, con su chequeo de cambios sin guardar.
+ * apretar Escape en una página es peor que no tener el atajo). Volver cierra
+ * el evento y vuelve al listado; el menú del panel también puede salir.
  */
 export default function AdminEventWorkspace({
   activeSection = 'basics',
@@ -120,6 +120,30 @@ export default function AdminEventWorkspace({
 }) {
   const { locale, t } = useI18n()
   const stateDirtyRef = useRef(false)
+  const sidebarRef = useRef(null)
+  const scrollHostRef = useRef(null)
+
+  useEffect(() => {
+    scrollHostRef.current = sidebarRef.current?.closest('.admin-shell__content') ?? null
+  }, [])
+
+  // En mobile las pestañas del evento son sticky: el alto medido evita que el
+  // panel se meta debajo. En desktop la columna lateral ya llena el content.
+  useEffect(() => {
+    const sidebarEl = sidebarRef.current
+    if (!sidebarEl || typeof ResizeObserver === 'undefined') return undefined
+    const workspaceEl = sidebarEl.closest('.admin-event-workspace')
+    function applyHeight() {
+      workspaceEl?.style.setProperty(
+        '--admin-event-sidebar-h',
+        `${sidebarEl.offsetHeight}px`,
+      )
+    }
+    const observer = new ResizeObserver(applyHeight)
+    observer.observe(sidebarEl)
+    applyHeight()
+    return () => observer.disconnect()
+  }, [])
 
   const summarySource = previewDraft ?? event
 
@@ -140,7 +164,12 @@ export default function AdminEventWorkspace({
     if (canEdit) {
       list.push({
         id: 'sales',
-        label: t('admin.eventConsole.tickets'),
+        // Esta pestaña abre los cuatro capítulos (Cupo, Precios, Entradas,
+        // Cobro): llamarla "Entradas" -- como el capítulo de tickets ahí
+        // adentro -- hacía que el mismo nombre significara dos cosas
+        // distintas según el nivel, y era la confusión real que reportaban
+        // los operadores entre "entrada" (ticket) e "inscripción" (cupo).
+        label: t('admin.eventConsole.editSales'),
         // Mismo criterio que el checklist de "listo para publicar": sin ningún
         // tipo de entrada activo, el evento no puede vender.
         hasError: activeTicketTypeCount === 0,
@@ -179,7 +208,6 @@ export default function AdminEventWorkspace({
 
   const venueLine = formatEventVenueLine(event.venue, event.location)
   const dateLabel = event.dateISO ? formatDayMonth(event.dateISO, locale) : (event.date ?? '')
-  const publicPath = event.slug ? buildEventPagePath(event.slug) : ''
 
   const registered = Number(event.registered) || 0
   const slots = Number(event.slots) || 0
@@ -196,6 +224,10 @@ export default function AdminEventWorkspace({
   function handleSelectTab(tabId) {
     if (tabId === activeTab) return
     onSelectSection?.(event, tabId)
+    // Cada pestaña arranca arriba: sin esto, cambiar de sección mantenía el
+    // scroll donde había quedado la anterior, que casi nunca tiene sentido
+    // para contenido no relacionado.
+    scrollHostRef.current?.scrollTo({ top: 0 })
   }
 
   /**
@@ -347,16 +379,18 @@ export default function AdminEventWorkspace({
     if (activeTab === 'security') {
       return (
         <div className="admin-event-workspace__split">
-          <div className="admin-event-workspace__main-col">{securitySection}</div>
-          <aside className="admin-event-workspace__rail">
+          <div className="admin-event-workspace__main-col">
             <div className="admin-event-workspace__notice" role="note">
-              <ShieldAlert size={18} aria-hidden />
-              <div>
+              <ShieldAlert size={16} aria-hidden />
+              <div className="admin-event-workspace__notice-copy">
                 <h3>{t('admin.eventConsole.zoneScopeNoticeTitle')}</h3>
                 <p>{t('admin.eventConsole.zoneScopeNotice')}</p>
               </div>
             </div>
-            {onManageCheckin ? (
+            {securitySection}
+          </div>
+          {onManageCheckin ? (
+            <aside className="admin-event-workspace__rail">
               <section className="admin-event-workspace__card">
                 <header className="admin-event-workspace__card-head">
                   <h2 className="admin-event-workspace__card-title">
@@ -372,8 +406,8 @@ export default function AdminEventWorkspace({
                   })}
                 </div>
               </section>
-            ) : null}
-          </aside>
+            </aside>
+          ) : null}
         </div>
       )
     }
@@ -393,7 +427,10 @@ export default function AdminEventWorkspace({
             {editor}
           </div>
           <aside className="admin-event-workspace__rail">
-            <AdminEventTicketInsights event={event} tickets={tickets} />
+            {/* `summarySource`, no `event`: si el operador acaba de prender el
+                toggle de venta y todavía no guardó, el rail no puede seguir
+                diciendo "deshabilitada" contra el toggle que tiene enfrente. */}
+            <AdminEventTicketInsights event={summarySource} tickets={tickets} />
             <AdminEventTicketAddonReport event={event} tickets={tickets} />
           </aside>
         </div>
@@ -424,7 +461,7 @@ export default function AdminEventWorkspace({
                   }}
                 >
                   <strong>{chapter.label}</strong>
-                  <em>
+                  <em className="visually-hidden">
                     {chapter.on
                       ? t('admin.eventConsole.surfaceOn')
                       : t('admin.eventConsole.surfaceOff')}
@@ -439,31 +476,13 @@ export default function AdminEventWorkspace({
             className="admin-event-workspace__rail"
             aria-label={t('admin.sections.events.publicPreviewLabel')}
           >
-            <div className="admin-event-visual-builder">
-              <div className="admin-event-visual-builder__header">
-                <span className="admin-event-visual-builder__dot" />
-                <span className="admin-event-visual-builder__dot" />
-                <span className="admin-event-visual-builder__dot" />
-                <span className="admin-event-visual-builder__url">
-                  {publicPath}
-                </span>
-              </div>
-              <iframe
-                src={publicPath}
-                className="admin-event-visual-builder__iframe"
-                title="Public Page Preview"
-              />
-            </div>
-            
-            <div style={{ marginTop: 24 }}>
-              <AdminEventLivePreview
-                embedded
-                draft={previewDraft ?? event}
-                live={Boolean(previewDraft)}
-                showReadiness
-                sourceEvent={event}
-              />
-            </div>
+            <AdminEventLivePreview
+              embedded
+              draft={previewDraft ?? event}
+              live={Boolean(previewDraft)}
+              showReadiness
+              sourceEvent={event}
+            />
           </aside>
         </div>
       )
@@ -518,7 +537,7 @@ export default function AdminEventWorkspace({
       className="admin-event-workspace admin-event-workspace--sidebar"
       aria-label={t('admin.sections.events.panelLabel')}
     >
-      <aside className="admin-event-workspace__sidebar">
+      <aside ref={sidebarRef} className="admin-event-workspace__sidebar">
         {/* Columna de chrome: el sticky vive en el aside (CSS). Este inner
             agrupa volver, identidad y nav sin un segundo ancla. */}
         <div className="admin-event-workspace__sidebar-inner">
@@ -535,22 +554,17 @@ export default function AdminEventWorkspace({
         <div className="admin-event-workspace__sidebar-head">
           <h1 className="admin-event-workspace__title">{event.title}</h1>
           <StatusPill value={event.status} />
-          {(dateLabel || venueLine || publicPath) && (
+          {(dateLabel || venueLine) && (
             <p className="admin-event-workspace__meta">
-              {dateLabel ? <span>{dateLabel}</span> : null}
-              {dateLabel && venueLine ? (
-                <span className="admin-event-workspace__meta-sep" aria-hidden>
-                  ·
+              {dateLabel ? (
+                <span className="admin-event-workspace__meta-item" title={dateLabel}>
+                  {dateLabel}
                 </span>
               ) : null}
-              {venueLine ? <span>{venueLine}</span> : null}
-              {publicPath && (dateLabel || venueLine) ? (
-                <span className="admin-event-workspace__meta-sep" aria-hidden>
-                  ·
+              {venueLine ? (
+                <span className="admin-event-workspace__meta-item" title={venueLine}>
+                  {venueLine}
                 </span>
-              ) : null}
-              {publicPath ? (
-                <span className="admin-event-workspace__meta-path">{publicPath}</span>
               ) : null}
             </p>
           )}
@@ -591,13 +605,7 @@ export default function AdminEventWorkspace({
       </aside>
 
       <div className="admin-event-workspace__panel">
-        <header className="admin-event-workspace__head admin-event-workspace__head--minimal">
-          {/* La barra traía sólo dos íconos contra la derecha: una banda vacía
-              que además no decía nada. Con el nombre de la pestaña se sabe
-              dónde se está incluso con la navegación fuera de pantalla. */}
-          <h2 className="admin-event-workspace__section-title">
-            {tabs.find((tab) => tab.id === activeTab)?.label ?? ''}
-          </h2>
+        <div className="admin-event-workspace__toolbar">
           <div className="admin-event-workspace__head-actions">
             <AdminCopyLinkMenu links={buildEventLinks(event, t)} />
             {canDelete && onDelete ? (
@@ -609,7 +617,7 @@ export default function AdminEventWorkspace({
               />
             ) : null}
           </div>
-        </header>
+        </div>
 
         <div
           className="admin-event-workspace__body"

@@ -142,6 +142,16 @@ describe('setEventStateRequest', () => {
     })
   })
 
+  it('manda capacityProgressPublic sin reescribir el evento entero', async () => {
+    apiPost.mockResolvedValue({ event: SUPABASE_EVENT_ROW, events: [SUPABASE_EVENT_ROW] })
+
+    await setEventStateRequest('pitbull-classic-2026', { capacityProgressPublic: false })
+
+    expect(apiPost).toHaveBeenCalledWith('/api/events/pitbull-classic-2026/state', {
+      capacityProgressPublic: false,
+    })
+  })
+
   it('rechaza sin slug antes de salir a la red', async () => {
     await expect(setEventStateRequest('', { published: true })).rejects.toThrow(/slug/i)
     expect(apiPost).not.toHaveBeenCalled()
