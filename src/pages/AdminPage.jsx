@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import '../styles/layout/admin-shell.css'
 import '../styles/pages/admin.css'
 import '../styles/pages/admin-institutional.css'
@@ -22,6 +22,10 @@ import ErrorState from '../components/ui/ErrorState.jsx'
 // operador que solo usa Atletas y Pagos no tiene por qué bajar el código de
 // Roles, Auditoría, Tienda o PLU USA.
 import DashboardSection from './admin/DashboardSection.jsx'
+import {
+  clearAdminEventRoute,
+  shouldClearAdminEventWorkspace,
+} from '../lib/adminEventRoute.js'
 import { hasAnyPermission, hasPermission } from '../lib/permissions.js'
 import { findUnreconciledApprovedPayments } from '../services/paymentReconciliationService.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
@@ -237,8 +241,12 @@ export default function AdminPage({
     [unreconciledPayments],
   )
 
+  const previousWorkspaceSlugRef = useRef(adminEventWorkspaceSlug)
   useEffect(() => {
-    if (adminEventWorkspaceSlug && allowedSections.includes('events') && section !== 'events') {
+    const previousSlug = previousWorkspaceSlugRef.current
+    previousWorkspaceSlugRef.current = adminEventWorkspaceSlug
+    const appeared = Boolean(adminEventWorkspaceSlug) && adminEventWorkspaceSlug !== previousSlug
+    if (appeared && allowedSections.includes('events') && section !== 'events') {
       setSection('events')
     }
   }, [adminEventWorkspaceSlug, allowedSections, section])
@@ -250,6 +258,19 @@ export default function AdminPage({
     }
   }, [allowedSections, section])
 
+  function leaveEventWorkspaceIfNeeded(nextSection) {
+    if (
+      !shouldClearAdminEventWorkspace({
+        workspaceSlug: adminEventWorkspaceSlug,
+        currentSection: section,
+        nextSection,
+      })
+    ) {
+      return
+    }
+    clearAdminEventRoute()
+  }
+
   function handleSectionChange(nextSection, focusId = null) {
     if (!allowedSections.includes(nextSection)) return
     // Deep links viejos (Dashboard, EventsSection) todavía piden 'athletes' /
@@ -257,6 +278,7 @@ export default function AdminPage({
     // pestaña correspondiente de 'people' en vez de tocar cada llamador.
     const isPeopleTab = PEOPLE_TABS.includes(nextSection)
     const targetSection = isPeopleTab ? 'people' : nextSection
+    leaveEventWorkspaceIfNeeded(targetSection)
     if (isPeopleTab) setPeopleTab(nextSection)
     if (nextSection === 'payments') setPaymentEventScope('')
     setPaymentFocusId(nextSection === 'payments' ? focusId : null)
@@ -268,6 +290,7 @@ export default function AdminPage({
 
   function handleSelectAthlete(athleteId) {
     if (!allowedSections.includes('athletes')) return
+    leaveEventWorkspaceIfNeeded('people')
     setSelectedAthleteId(athleteId)
     // Igual que antes de unificar el menú: cerrar la ficha siempre vuelve al
     // listado de Atletas, sin importar desde qué pestaña se abrió.
@@ -283,18 +306,21 @@ export default function AdminPage({
       query: '',
       status: 'all',
     }))
+    leaveEventWorkspaceIfNeeded('people')
     setPeopleTab('registrations')
     setSection('people')
   }
 
   function handleManageEventPayments(event) {
     if (!allowedSections.includes('payments')) return
+    leaveEventWorkspaceIfNeeded('payments')
     setPaymentEventScope(event.title)
     setSection('payments')
   }
 
   function handleManageEventCheckin(event) {
     if (!allowedSections.includes('checkin')) return
+    leaveEventWorkspaceIfNeeded('checkin')
     setCheckinEventSlug(event?.slug ?? null)
     setSection('checkin')
   }

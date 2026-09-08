@@ -817,8 +817,10 @@
   align-items: center;
   display: flex;
   flex: none;
+  flex-shrink: 0;
   gap: 6px;
   justify-self: end;
+  overflow: visible;
 }
 
 .plu-global-nav__preferences {
@@ -2875,7 +2877,7 @@ html.plu-drawer-open body {
     justify-content: flex-start;
     max-height: 54px;
     min-height: 54px;
-    overflow: hidden;
+    overflow: visible;
     padding: 0 14px 0 12px;
     width: 100%;
   }
@@ -2955,7 +2957,14 @@ html.plu-drawer-open body {
   .plu-global-nav__actions {
     display: flex;
     flex: none;
+    flex-shrink: 0;
     gap: 6px;
+    overflow: visible;
+  }
+
+  .plu-global-nav__notice-bell {
+    height: 38px;
+    width: 38px;
   }
 
   /* Tema/idioma quedan visibles acá (el nav completo ya está arriba) — sin
@@ -3962,6 +3971,7 @@ html.plu-drawer-open body {
   cursor: pointer;
   display: inline-flex;
   flex: none;
+  flex-shrink: 0;
   height: 40px;
   justify-content: center;
   position: relative;

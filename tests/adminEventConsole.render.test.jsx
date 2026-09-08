@@ -301,6 +301,44 @@ describe('EventsSection — página del evento', () => {
     expect(screen.getByRole('region', { name: 'Evento seleccionado' })).toBeTruthy()
   })
 
+  it('cierra el workspace si el padre suelta el slug (salida por el menú del panel)', async () => {
+    function Harness({ slug }) {
+      return (
+        <I18nProvider>
+          <EventsSection
+            adminEvents={[EVENT]}
+            adminEventWorkspaceSlug={slug}
+            athletes={[{ id: 'ath-1', fullName: 'Ana Pérez' }]}
+            canEdit
+            canManageUsers
+            canValidatePayments
+            onApprovePayment={async () => ({})}
+            onRejectPayment={async () => ({})}
+            onSaveEvent={async () => ({ event: EVENT, events: [EVENT] })}
+            onSetEventState={async () => ({ event: EVENT, events: [EVENT] })}
+            onListSecurityUsers={async () => []}
+            onListSecurityZones={async () => []}
+            payments={[]}
+            pendingTicketOrders={[]}
+            tickets={[]}
+          />
+        </I18nProvider>
+      )
+    }
+
+    const { rerender } = render(<Harness slug={EVENT.slug} />)
+    await waitFor(() =>
+      expect(screen.getByRole('region', { name: 'Evento seleccionado' })).toBeTruthy(),
+    )
+
+    rerender(<Harness slug={null} />)
+
+    await waitFor(() =>
+      expect(screen.queryByRole('region', { name: 'Evento seleccionado' })).toBeNull(),
+    )
+    expect(screen.getByTitle(/Pitbull Classic · pitbull-classic-2026/)).toBeTruthy()
+  })
+
   it('muestra la vista previa pública y el checklist en su pestaña', () => {
     renderEvents()
     const panel = workspace()
@@ -377,7 +415,7 @@ describe('EventsSection — página del evento', () => {
 
     expect(cupo?.hidden).toBe(false)
     expect(toggle).not.toBeNull()
-    expect(toggle.checked).toBe(true)
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
     expect(cupo.querySelector('.admin-event-form__cupo')?.contains(toggle)).toBe(true)
     expect(cupo.querySelector('.admin-event-form__cupo #event-slots')).not.toBeNull()
     expect(within(cupo).getByText(/mostrar ocupación en el sitio/i)).toBeTruthy()

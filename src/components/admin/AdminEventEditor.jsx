@@ -129,26 +129,35 @@ function resolveTabForField(key) {
   return 'basics'
 }
 
-function CapacityVisibilityToggle({ canEdit, checked, hint, id, onChange, t, title }) {
+function CapacityVisibilityToggle({
+  canEdit,
+  checked,
+  hint,
+  id,
+  nested = false,
+  onChange,
+  t,
+  title,
+}) {
   return (
-    <label className="admin-event-form__toggle" htmlFor={id}>
-      <input
-        id={id}
-        checked={checked}
-        className="admin-event-form__toggle-input"
-        type="checkbox"
-        onChange={onChange}
-        disabled={!canEdit}
-      />
+    <button
+      type="button"
+      id={id}
+      role="switch"
+      aria-checked={checked}
+      className={`admin-event-form__toggle${nested ? ' admin-event-form__toggle--nested' : ''}${checked ? ' is-on' : ''}${canEdit ? '' : ' is-disabled'}`}
+      disabled={!canEdit}
+      onClick={() => onChange(!checked)}
+    >
       <span className="admin-event-form__toggle-ui" aria-hidden />
       <span className="admin-event-form__toggle-copy">
         <strong>
-          <Eye size={13} aria-hidden />
+          {nested ? null : <Eye size={13} aria-hidden />}
           {title ?? t('admin.eventEditor.capacityVisibilityTitle')}
         </strong>
         <small>{hint ?? t('admin.eventEditor.capacityVisibilityHint')}</small>
       </span>
-    </label>
+    </button>
   )
 }
 
@@ -172,24 +181,16 @@ function CapacityPublicBreakdown({
         t={t}
         onChange={onProgressChange}
       />
-      <label
-        className={`admin-event-form__toggle admin-event-form__toggle--nested${progressChecked ? '' : ' is-disabled'}`}
-        htmlFor={totalId}
-      >
-        <input
-          id={totalId}
-          checked={totalChecked}
-          className="admin-event-form__toggle-input"
-          type="checkbox"
-          onChange={onTotalChange}
-          disabled={!canEdit || !progressChecked}
-        />
-        <span className="admin-event-form__toggle-ui" aria-hidden />
-        <span className="admin-event-form__toggle-copy">
-          <strong>{t('admin.eventEditor.capacityTotalVisibilityTitle')}</strong>
-          <small>{t('admin.eventEditor.capacityTotalVisibilityHint')}</small>
-        </span>
-      </label>
+      <CapacityVisibilityToggle
+        canEdit={canEdit}
+        checked={totalChecked}
+        hint={t('admin.eventEditor.capacityTotalVisibilityHint')}
+        id={totalId}
+        nested
+        t={t}
+        title={t('admin.eventEditor.capacityTotalVisibilityTitle')}
+        onChange={onTotalChange}
+      />
       {preview ? (
         <p className="admin-event-form__cupo-preview" aria-live="polite">
           {preview}
@@ -1284,16 +1285,16 @@ export default function AdminEventEditor({
                         t={t}
                         totalChecked={draft.capacityTotalPublic !== false}
                         totalId="event-capacity-total-public"
-                        onProgressChange={(event) =>
+                        onProgressChange={(value) =>
                           patchDraft({
                             ...draft,
-                            capacityProgressPublic: event.target.checked,
+                            capacityProgressPublic: value,
                           })
                         }
-                        onTotalChange={(event) =>
+                        onTotalChange={(value) =>
                           patchDraft({
                             ...draft,
-                            capacityTotalPublic: event.target.checked,
+                            capacityTotalPublic: value,
                           })
                         }
                       />
@@ -2111,16 +2112,16 @@ export default function AdminEventEditor({
                       t={t}
                       totalChecked={draft.capacityTotalPublic !== false}
                       totalId="event-capacity-total-public-surface"
-                      onProgressChange={(event) =>
+                      onProgressChange={(value) =>
                         patchDraft({
                           ...draft,
-                          capacityProgressPublic: event.target.checked,
+                          capacityProgressPublic: value,
                         })
                       }
-                      onTotalChange={(event) =>
+                      onTotalChange={(value) =>
                         patchDraft({
                           ...draft,
-                          capacityTotalPublic: event.target.checked,
+                          capacityTotalPublic: value,
                         })
                       }
                     />

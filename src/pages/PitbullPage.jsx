@@ -233,7 +233,7 @@ function PitbullInscriptionCounter({
     remaining,
   })
   const showMeter = capacityLive && !softLaunch && occupancy.mode === 'meter'
-  const progressHidden = capacityLive && !softLaunch && occupancy.mode === 'hidden'
+  const qualitative = capacityLive && !softLaunch && occupancy.mode === 'hidden'
   const pct = showMeter ? occupancy.percent : 0
   const isCompact = variant === 'compact'
   const remainingLabel =
@@ -242,7 +242,7 @@ function PitbullInscriptionCounter({
       : t('pages.pitbull.inscriptionCounterRemaining', { count: occupancy.remaining })
   const ariaLabel = softLaunch || !capacityLive
     ? t('pages.pitbull.inscriptionCounterPendingAria')
-    : progressHidden
+    : occupancy.mode === 'hidden'
       ? t('pages.pitbull.inscriptionCounterHiddenAria')
       : occupancy.showTotal
         ? t('pages.pitbull.inscriptionCounterAria', { registered, slots })
@@ -257,16 +257,16 @@ function PitbullInscriptionCounter({
         'pitbull-inscription-counter',
         isCompact ? 'pitbull-inscription-counter--compact' : '',
         softLaunch || !capacityLive ? 'pitbull-inscription-counter--soon' : '',
-        progressHidden ? 'pitbull-inscription-counter--hidden' : '',
+        qualitative ? 'pitbull-inscription-counter--hidden' : '',
         className,
       ]
         .filter(Boolean)
         .join(' ')}
-      role={showMeter ? 'meter' : undefined}
+      role={showMeter && occupancy.showTotal ? 'meter' : undefined}
       aria-label={ariaLabel}
-      aria-valuenow={showMeter ? (occupancy.showTotal ? registered : occupancy.percent) : undefined}
-      aria-valuemin={showMeter ? 0 : undefined}
-      aria-valuemax={showMeter ? (occupancy.showTotal ? slots || 0 : 100) : undefined}
+      aria-valuenow={showMeter && occupancy.showTotal ? registered : undefined}
+      aria-valuemin={showMeter && occupancy.showTotal ? 0 : undefined}
+      aria-valuemax={showMeter && occupancy.showTotal ? slots || 0 : undefined}
     >
       <div className="pitbull-inscription-counter__row">
         <div className="pitbull-inscription-counter__stat">
@@ -276,13 +276,9 @@ function PitbullInscriptionCounter({
               {occupancy.showTotal ? (
                 <span className="pitbull-inscription-counter__of">/ {slots}</span>
               ) : null}
-              <span className="pitbull-inscription-counter__unit">
-                {occupancy.showTotal
-                  ? t('pages.pitbull.slots')
-                  : t('pages.pitbull.inscriptionCounterRegistered')}
-              </span>
+              <span className="pitbull-inscription-counter__unit">{t('pages.pitbull.slots')}</span>
             </>
-          ) : progressHidden ? (
+          ) : qualitative ? (
             <>
               <span className="pitbull-inscription-counter__mark">
                 {t('pages.pitbull.inscriptionCounterHiddenMark')}
@@ -297,7 +293,7 @@ function PitbullInscriptionCounter({
             </span>
           )}
         </div>
-        {progressHidden ? null : reducedMotion ? (
+        {qualitative ? null : reducedMotion ? (
           <span
             className={`pitbull-inscription-counter__badge pitbull-inscription-counter__badge--${statusTone}`}
           >
@@ -339,7 +335,7 @@ function PitbullInscriptionCounter({
         </>
       ) : (
         <p className="pitbull-inscription-counter__hint">
-          {progressHidden
+          {occupancy.mode === 'hidden'
             ? t('pages.pitbull.inscriptionCounterHidden')
             : t('pages.pitbull.inscriptionCounterPending')}
         </p>

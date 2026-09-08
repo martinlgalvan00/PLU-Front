@@ -90,8 +90,8 @@ export function buildEventLinks(row, t) {
  *
  * Ya no es un diálogo: sin `role="dialog"`, sin trap de foco, sin bloqueo del
  * scroll del body y sin cerrar con Escape (perder cambios sin guardar por
- * apretar Escape en una página es peor que no tener el atajo). La única salida
- * es Volver, con su chequeo de cambios sin guardar.
+ * apretar Escape en una página es peor que no tener el atajo). Volver cierra
+ * el evento y vuelve al listado; el menú del panel también puede salir.
  */
 export default function AdminEventWorkspace({
   activeSection = 'basics',

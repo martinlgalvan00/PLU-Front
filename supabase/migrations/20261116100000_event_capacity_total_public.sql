@@ -10,6 +10,10 @@
 -- sumar un jsonb ahí mezclaba contratos. El upsert completo reconstruye
 -- `rules` y no toca columnas nuevas, así que el valor se persiste con un
 -- merge post-save, igual que publicSurface / publicCopy.
+--
+-- Timestamp propio: 20261108100000 ya lo usa `scan_shows_credential` y
+-- 20261115100000 ya lo usa `athlete_profile_notices`. Esas colisiones
+-- dejaban esta migración sin aplicar (PGRST202 al guardar el evento).
 
 alter table public.events
   add column if not exists capacity_total_public boolean not null default true;
@@ -66,11 +70,13 @@ begin
 
   v_capacity := v_event.capacity;
 
+  -- Cupo: sigue reservando mientras haya orden abierta.
   select count(*)::int into v_registered
   from public.event_registrations r
   where r.event_id = v_event.id
     and r.status in ('pendiente_pago', 'pagada', 'confirmada');
 
+  -- Social proof del día: solo quienes ya pagaron / quedaron confirmados.
   select count(*)::int into v_registered_today
   from public.event_registrations r
   where r.event_id = v_event.id

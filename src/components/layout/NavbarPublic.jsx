@@ -498,7 +498,7 @@ export default function NavbarPublic({
   const sessionPhoto = session ? sessionPhotoUrl(session) : ''
   const hasActiveMembership =
     session?.role === 'athlete_plu' && hasCurrentMembership(memberships, session.athleteId)
-  const showNoticeBell = session?.role === 'athlete_plu'
+  const showNoticeBell = Boolean(session)
   const competitionActive = Boolean(COMPETITION_NAVIGATION?.views?.includes(activeView))
   const moreActive = Boolean(MORE_NAVIGATION?.views?.includes(activeView))
 

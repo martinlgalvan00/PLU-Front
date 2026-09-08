@@ -4,6 +4,7 @@ import {
   clearAdminEventRoute,
   matchAdminEventRoute,
   pushAdminEventRoute,
+  shouldClearAdminEventWorkspace,
 } from '../src/lib/adminEventRoute.js'
 import { isCanonicalPathname } from '../src/lib/canonicalPaths.js'
 
@@ -56,6 +57,37 @@ describe('ruta de administración de un evento', () => {
     expect(matchAdminEventRoute()).toBeNull()
     expect(isCanonicalPathname(window.location.pathname)).toBe(true)
     expect(window.location.pathname).not.toBe('/admin')
+  })
+
+  it('suelta el workspace al ir a otra sección, o al volver a tocar Eventos', () => {
+    expect(
+      shouldClearAdminEventWorkspace({
+        workspaceSlug: 'pitbull-classic-2026',
+        currentSection: 'events',
+        nextSection: 'people',
+      }),
+    ).toBe(true)
+    expect(
+      shouldClearAdminEventWorkspace({
+        workspaceSlug: 'pitbull-classic-2026',
+        currentSection: 'events',
+        nextSection: 'events',
+      }),
+    ).toBe(true)
+    expect(
+      shouldClearAdminEventWorkspace({
+        workspaceSlug: 'pitbull-classic-2026',
+        currentSection: 'dashboard',
+        nextSection: 'events',
+      }),
+    ).toBe(false)
+    expect(
+      shouldClearAdminEventWorkspace({
+        workspaceSlug: null,
+        currentSection: 'events',
+        nextSection: 'people',
+      }),
+    ).toBe(false)
   })
 
   it('deja la ruta del evento como path canónico, y /admin como no canónico', () => {

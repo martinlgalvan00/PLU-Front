@@ -3029,7 +3029,7 @@ export default {
       'Barra de progreso y lugares que quedan. El panel siempre ve el número real.',
     capacityTotalVisibilityTitle: 'Mostrar el número total',
     capacityTotalVisibilityHint:
-      'Si lo apagás, el público no ve “de 200”: ve cuántos se anotaron y cuántos quedan.',
+      'Solo oculta el total (el /200). El público sigue viendo anotados, la barra y cuántos quedan.',
     capacityPublicPreviewHidden: 'En el sitio: Campo limitado',
     capacityPublicPreviewFull:
       'En el sitio: {{registered}}/{{total}} · quedan {{remaining}}',

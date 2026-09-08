@@ -2955,11 +2955,10 @@ export default {
       'Progress bar and spots left. The panel always sees the real number.',
     capacityTotalVisibilityTitle: 'Show the total number',
     capacityTotalVisibilityHint:
-      'When off, the public does not see “of 200”: they see how many signed up and how many spots are left.',
+      'Only hides the total (the /200). Signed-up count, the bar and spots left stay visible.',
     capacityPublicPreviewHidden: 'On the site: Limited field',
     capacityPublicPreviewFull: 'On the site: {{registered}}/{{total}} · {{remaining}} left',
-    capacityPublicPreviewNoTotal:
-      'On the site: {{registered}} registered · {{remaining}} left',
+    capacityPublicPreviewNoTotal: 'On the site: {{registered}} signed up · {{remaining}} left',
     liveSummary: 'Link, platform and status of the livestream.',
     consistency: {
       title: 'The public status does not match the configuration',
