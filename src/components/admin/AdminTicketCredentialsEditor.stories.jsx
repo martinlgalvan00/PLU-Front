@@ -1,3 +1,4 @@
+import { expect, waitFor, within } from 'storybook/test'
 import { useState } from 'react'
 import '../../styles/layout/admin-shell.css'
 import '../../styles/pages/admin.css'
@@ -17,7 +18,7 @@ export default {
   decorators: [
     (Story) => (
       <div className="admin-shell" style={{ display: 'block' }}>
-        <div className="admin-event-form" style={{ maxWidth: 720, padding: 24 }}>
+        <div className="admin-event-form" style={{ maxWidth: 465, padding: 16 }}>
           <Story />
         </div>
       </div>
@@ -42,6 +43,13 @@ function Editable({ initial, quota = null, canEdit = true }) {
 /** Entrada común: una credencial, y el atajo para armar la de entrenador. */
 export const EntradaComun = {
   render: () => <Editable initial={[defaultTicketCredential()]} quota={200} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await waitFor(() => {
+      expect(canvas.getByRole('checkbox', { name: /puerta general|main gate/i })).toBeChecked()
+    })
+    expect(canvas.getByText(/público general|general-admission/i)).toBeVisible()
+  },
 }
 
 /** El caso del pedido: dos credenciales, con el aviso de cupo vs. credenciales. */

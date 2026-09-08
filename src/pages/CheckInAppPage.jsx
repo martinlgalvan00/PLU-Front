@@ -1,16 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import '../styles/pages/admin.css'
 import '../styles/pages/checkin-app.css'
 import {
   CalendarDays,
   CheckCircle2,
-  Clock3,
   LogOut,
   ScanLine,
   Search,
   ShieldCheck,
   TicketCheck,
-  Users,
 } from 'lucide-react'
 import AdminCheckinScanHistory from '../components/admin/AdminCheckinScanHistory.jsx'
 import AdminDataTable, { StatusBadge } from '../components/admin/AdminDataTable.jsx'
@@ -24,17 +22,16 @@ import LanguageToggle from '../components/ui/LanguageToggle.jsx'
 import ThemeToggle from '../components/ui/ThemeToggle.jsx'
 import { useCheckInWorkspace } from '../hooks/useCheckInWorkspace.js'
 import { formatDocumentWithKind } from '../lib/format.js'
+import { downloadCheckinListExcel } from '../services/checkinExport.js'
 import { checkinTypeLabel } from '../services/checkinScanService.js'
+import { formatCheckinRowDay } from '../services/checkinWorkspaceService.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
-function CheckinMetric({ icon: Icon, label, tone = 'neutral', value }) {
+function CheckinMetric({ label, tone = 'neutral', value }) {
   return (
     <div className={`checkin-app__metric checkin-app__metric--${tone}`}>
-      <Icon size={15} aria-hidden />
-      <span>
-        <strong>{value}</strong>
-        <small>{label}</small>
-      </span>
+      <strong>{value}</strong>
+      <small>{label}</small>
     </div>
   )
 }
@@ -75,7 +72,7 @@ export default function CheckInAppPage({
     ticketTypes,
     tickets,
   })
-  const { setDay, setType } = workspace
+  const { setDay, setType, setCheckinStatus, setCredential } = workspace
 
   const eventLabel = useMemo(
     () =>
@@ -103,14 +100,17 @@ export default function CheckInAppPage({
   )
 
   useEffect(() => {
+    setCredential('all')
     if (tab.startsWith(DAY_TAB_PREFIX)) {
       setType('all')
       setDay(Number(tab.slice(DAY_TAB_PREFIX.length)))
+      setCheckinStatus('all')
     } else if (tab === 'tickets') {
       setType('espectador')
       setDay('all')
+      setCheckinStatus('ready')
     }
-  }, [setDay, setType, tab])
+  }, [setCheckinStatus, setCredential, setDay, setType, tab])
 
   const activeDayLabel = tab.startsWith(DAY_TAB_PREFIX)
     ? tabs.find((item) => item.id === tab)?.label
@@ -125,8 +125,18 @@ export default function CheckInAppPage({
     event.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
   }
 
+  const handleDownloadAllowlist = useCallback(async () => {
+    await workspace.offlineSync.downloadAllowlist()
+    downloadCheckinListExcel({
+      rows: workspace.allRows,
+      eventDays,
+      eventSlug,
+      t,
+    })
+  }, [eventDays, eventSlug, t, workspace.allRows, workspace.offlineSync])
+
   return (
-    <div className="checkin-app">
+    <div className={`checkin-app${tab === 'scan' ? ' checkin-app--scan' : ''}`}>
       <header className="checkin-app__top">
         <div className="checkin-app__brand">
           <BrandLogo variant="argentina" height={28} />
@@ -153,42 +163,32 @@ export default function CheckInAppPage({
         </div>
       </header>
 
-      <section className="checkin-app__overview" aria-label={t('admin.summary.aria')}>
-        <div className="checkin-app__overview-copy">
+      <div className="checkin-app__ops">
+        <section className="checkin-app__overview" aria-label={t('admin.summary.aria')}>
           <span className="checkin-app__live-dot" aria-hidden />
-          <div>
-            <strong>{t('admin.checkinApp.title')}</strong>
-            <span>{t('admin.checkinApp.overviewLead')}</span>
+          <div className="checkin-app__metrics">
+            <CheckinMetric
+              label={t('admin.checkinApp.totalPeople')}
+              value={workspace.statusCounts.total}
+            />
+            <CheckinMetric
+              label={t('admin.checkin.statReady')}
+              tone="success"
+              value={workspace.statusCounts.ready}
+            />
+            <CheckinMetric
+              label={t('admin.checkin.statDone')}
+              tone="brand"
+              value={workspace.statusCounts.done}
+            />
+            <CheckinMetric
+              label={t('admin.checkin.statPending')}
+              tone="warning"
+              value={workspace.statusCounts.pending}
+            />
           </div>
-        </div>
-        <div className="checkin-app__metrics">
-          <CheckinMetric
-            icon={Users}
-            label={t('admin.checkinApp.totalPeople')}
-            value={workspace.statusCounts.total}
-          />
-          <CheckinMetric
-            icon={CheckCircle2}
-            label={t('admin.checkin.statReady')}
-            tone="success"
-            value={workspace.statusCounts.ready}
-          />
-          <CheckinMetric
-            icon={ShieldCheck}
-            label={t('admin.checkin.statDone')}
-            tone="brand"
-            value={workspace.statusCounts.done}
-          />
-          <CheckinMetric
-            icon={Clock3}
-            label={t('admin.checkin.statPending')}
-            tone="warning"
-            value={workspace.statusCounts.pending}
-          />
-        </div>
-      </section>
+        </section>
 
-      <div className="checkin-app__tabs-shell">
         <nav className="checkin-app__tabs" aria-label={t('admin.checkinApp.title')}>
           {tabs.map(({ id, Icon, label, count }) => (
             <button
@@ -210,12 +210,16 @@ export default function CheckInAppPage({
         {tab === 'scan' ? (
           <div className="checkin-app__scan-layout">
             <section className="checkin-app__scan-primary">
+              <h1 className="visually-hidden">{t('admin.checkinApp.title')}</h1>
               {/* Qué abre este puesto, dicho antes de escanear y no después de
                   un rechazo. El alcance es la MISMA regla que aplica el canje
                   en el servidor, así que esto no es una etiqueta decorativa:
                   es lo que va a pasar cuando pase un QR. */}
               {securityZone ? (
-                <p className="checkin-app__zone-notice">
+                <p
+                  className="checkin-app__zone-notice"
+                  title={`${securityZone.name}. ${t(`admin.eventZones.scopeHint.${securityZone.scope}`)}`}
+                >
                   <ShieldCheck size={14} aria-hidden />
                   <span>
                     <strong>{securityZone.name}</strong>
@@ -226,6 +230,7 @@ export default function CheckInAppPage({
 
               <AdminQrScanner
                 busy={workspace.scanBusy}
+                compact
                 disabled={!canCheckIn}
                 feedbackPrefs={workspace.feedbackPrefs}
                 onFeedbackPrefsChange={workspace.persistFeedbackPrefs}
@@ -251,8 +256,9 @@ export default function CheckInAppPage({
 
             <aside className="checkin-app__scan-aside">
               <AdminOfflineSyncStatus
+                compact
                 conflictCount={workspace.offlineSync.conflictCount}
-                downloadAllowlist={workspace.offlineSync.downloadAllowlist}
+                downloadAllowlist={handleDownloadAllowlist}
                 isOnline={workspace.offlineSync.isOnline}
                 lastDownloadedAt={workspace.offlineSync.lastDownloadedAt}
                 lastSyncedAt={workspace.offlineSync.lastSyncedAt}
@@ -278,16 +284,19 @@ export default function CheckInAppPage({
           <section className="checkin-app__list" aria-labelledby="checkin-list-title">
             <header className="checkin-app__list-head">
               <div>
-                <span className="checkin-app__list-eyebrow">{t('admin.checkinApp.allowlist')}</span>
                 <h1 id="checkin-list-title">{listTitle}</h1>
-                <p>{t('admin.checkinApp.listLead')}</p>
+                <p>
+                  {tab === 'tickets'
+                    ? t('admin.checkinApp.ticketsLead')
+                    : t('admin.checkinApp.listLead')}
+                </p>
               </div>
               <span className="checkin-app__result-count">
                 {t('admin.checkinApp.visiblePeople', { count: workspace.rows.length })}
               </span>
             </header>
 
-            <div className="checkin-app__filters">
+            <div className="checkin-app__list-toolbar">
               <label className="checkin-app__search">
                 <Search size={16} aria-hidden />
                 <input
@@ -298,22 +307,54 @@ export default function CheckInAppPage({
                   onChange={(event) => workspace.setQuery(event.target.value)}
                 />
               </label>
-              <AdminFilterChipGroup
-                compact
-                id="checkin-status"
-                label={t('admin.checkin.statusLabelShort')}
-                value={workspace.checkinStatus}
-                onChange={workspace.setCheckinStatus}
-                options={workspace.statusOptions}
-                omitNeutral
-                allLabel={t('admin.filters.showingAll')}
-                clearable
-                hideEmpty
-              />
+              <div className="checkin-app__filters">
+                {tab === 'tickets' ? (
+                  workspace.credentialOptions.length > 0 ? (
+                    <AdminFilterChipGroup
+                      compact
+                      id="checkin-credential"
+                      label={t('admin.checkin.credentialFilter')}
+                      value={workspace.credential}
+                      onChange={workspace.setCredential}
+                      options={workspace.credentialOptions}
+                      omitNeutral
+                      allLabel={t('admin.checkin.filterAllCredentials')}
+                      clearable
+                      hideEmpty
+                    />
+                  ) : null
+                ) : (
+                  <AdminFilterChipGroup
+                    compact
+                    id="checkin-type"
+                    label={t('admin.checkin.type')}
+                    value={workspace.type}
+                    onChange={workspace.setType}
+                    options={workspace.typeOptions}
+                    omitNeutral
+                    allLabel={t('admin.filters.showingAll')}
+                    clearable
+                    hideEmpty
+                  />
+                )}
+                <AdminFilterChipGroup
+                  compact
+                  id="checkin-status"
+                  label={t('admin.checkin.statusLabelShort')}
+                  value={workspace.checkinStatus}
+                  onChange={workspace.setCheckinStatus}
+                  options={workspace.statusOptions}
+                  omitNeutral
+                  allLabel={t('admin.filters.showingAll')}
+                  clearable
+                  hideEmpty
+                />
+              </div>
             </div>
 
             <AdminDataTable
               ariaLabel={listTitle}
+              layout="table"
               getRowClassName={(row) =>
                 row.id === workspace.highlightRowId ? 'data-table__row--selected' : ''
               }
@@ -322,6 +363,8 @@ export default function CheckInAppPage({
                   key: 'name',
                   label: t('admin.columns.attendee'),
                   mobile: 'primary',
+                  fixed: 'left',
+                  width: 200,
                   render: (row) => (
                     <AdminIdentityCell
                       name={row.name}
@@ -333,46 +376,32 @@ export default function CheckInAppPage({
                 {
                   key: 'type',
                   label: t('admin.checkin.type'),
-                  mobile: 'default',
+                  mobile: 'hidden',
+                  width: 120,
                   render: (row) => checkinTypeLabel(row, t),
                 },
-                { key: 'meta', label: t('admin.columns.category'), mobile: 'default' },
+                { key: 'meta', label: t('admin.columns.category'), mobile: 'hidden', width: 140 },
                 {
                   key: 'day',
                   label: t('admin.checkin.dayLabel'),
-                  mobile: 'default',
-                  render: (row) => {
-                    if (row.dayIndexes === 'all' || !eventDays.length) {
-                      // Un atleta sin grilla asignada sigue entrando en
-                      // cualquier día -- no se lo saca del roster -- pero se
-                      // dice que todavía no tiene día, que no es lo mismo que
-                      // "compite los dos".
-                      return row.type === 'atleta'
-                        ? t('admin.checkin.scheduleUnassigned')
-                        : t('admin.checkin.bothDays')
-                    }
-                    const labels = row.dayIndexes
-                      .map(
-                        (dayIndex) => eventDays.find((item) => item.dayIndex === dayIndex)?.label,
-                      )
-                      .filter(Boolean)
-                    const dayLabel = labels.length ? labels.join(' · ') : '—'
-                    return row.schedule?.sessionName
-                      ? `${dayLabel} · ${row.schedule.sessionName}`
-                      : dayLabel
-                  },
+                  mobile: tab === 'tickets' ? 'default' : 'hidden',
+                  width: 140,
+                  render: (row) => formatCheckinRowDay(row, eventDays, t),
                 },
                 {
                   key: 'status',
                   label: t('admin.columns.status'),
                   mobile: 'badge',
                   mobileLabel: '',
+                  width: 108,
                   render: (row) => <StatusBadge value={row.status} />,
                 },
                 {
                   key: 'action',
                   label: t('admin.columns.action'),
                   mobile: 'action',
+                  fixed: 'right',
+                  width: 132,
                   render: (row) =>
                     row.status === 'usada' ? (
                       <span className="checkin-app__admitted">

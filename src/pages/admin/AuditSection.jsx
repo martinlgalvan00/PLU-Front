@@ -69,20 +69,28 @@ function formatDateTime(value) {
   })
 }
 
-function useMobileAuditLayout() {
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches,
+function useMatchMedia(query) {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia(query).matches,
   )
 
   useEffect(() => {
-    const media = window.matchMedia('(max-width: 768px)')
-    const sync = (event) => setIsMobile(event.matches)
+    const media = window.matchMedia(query)
+    const sync = (event) => setMatches(event.matches)
     sync(media)
     media.addEventListener('change', sync)
     return () => media.removeEventListener('change', sync)
-  }, [])
+  }, [query])
 
-  return isMobile
+  return matches
+}
+
+function useMobileAuditLayout() {
+  return useMatchMedia('(max-width: 768px)')
+}
+
+function useCompactAuditChrome() {
+  return useMatchMedia('(max-width: 1100px), (max-height: 820px)')
 }
 
 function AuditMobileList({
@@ -164,6 +172,7 @@ export default function AuditSection() {
   // evidencia y acciones sensibles, y se presentan siempre en español.
   const t = useCallback((key, vars) => translate(es, key, vars), [])
   const isMobileLayout = useMobileAuditLayout()
+  const compactChrome = useCompactAuditChrome()
   const [entries, setEntries] = useState([])
   const [facets, setFacets] = useState({
     actions: [],
@@ -643,7 +652,7 @@ export default function AuditSection() {
 
       <details
         className="audit-health__metrics"
-        {...(isMobileLayout ? {} : { open: true })}
+        {...(compactChrome ? {} : { open: true })}
       >
         <summary className="audit-health__metrics-summary">
           <span className="audit-health__metrics-label">{t('admin.audit.healthEyebrow')}</span>

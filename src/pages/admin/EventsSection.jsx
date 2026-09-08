@@ -279,7 +279,7 @@ export default function EventsSection({
     setConsoleOpen(true)
   }
 
-  function closeEventConsole() {
+  function resetEventConsole() {
     setConsoleOpen(false)
     setConsoleSection(null)
     setConsoleChapter(null)
@@ -288,6 +288,10 @@ export default function EventsSection({
     setDraft(createAdminEventDraft())
     pendingConsoleSectionRef.current = null
     pendingConsoleChapterRef.current = null
+  }
+
+  function closeEventConsole() {
+    resetEventConsole()
     clearAdminEventRoute()
   }
 
@@ -303,6 +307,14 @@ export default function EventsSection({
     openEditForm(match, 'basics')
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al resolver el slug
   }, [adminEventWorkspaceSlug, adminEvents])
+
+  const previousWorkspaceSlugRef = useRef(adminEventWorkspaceSlug)
+  useEffect(() => {
+    const previousSlug = previousWorkspaceSlugRef.current
+    previousWorkspaceSlugRef.current = adminEventWorkspaceSlug
+    if (!previousSlug || adminEventWorkspaceSlug) return
+    resetEventConsole()
+  }, [adminEventWorkspaceSlug])
 
   useEffect(() => {
     if (adminEvents.some((event) => event.id === selectedId)) return
@@ -954,12 +966,20 @@ export default function EventsSection({
           }
           securitySection={
             canManageUsers ? (
-              <>
+              <div className="admin-event-workspace__security-stack">
                 <AdminEventZonesSection
                   canManageUsers={canManageUsers}
                   eventId={selectedEvent.id}
                   eventSlug={selectedEvent.slug}
-                  onAssignMember={onAssignSecurityZone}
+                  onAssignMember={
+                    onAssignSecurityZone
+                      ? async (userId, zoneId) => {
+                          const zones = await onAssignSecurityZone(userId, zoneId)
+                          setZonesReloadToken((current) => current + 1)
+                          return zones
+                        }
+                      : undefined
+                  }
                   onCreateAccessLink={onCreateSecurityAccessLink}
                   onCreateZone={onCreateSecurityZone}
                   onDeleteZone={onDeleteSecurityZone}
@@ -981,8 +1001,9 @@ export default function EventsSection({
                   onListSecurityUsers={onListSecurityUsers}
                   onTeamChange={() => setZonesReloadToken((current) => current + 1)}
                   onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
+                  reloadToken={zonesReloadToken}
                 />
-              </>
+              </div>
             ) : null
           }
           structureEditor={

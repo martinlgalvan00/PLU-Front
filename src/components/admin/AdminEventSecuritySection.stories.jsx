@@ -7,6 +7,8 @@ const MOCK_USERS = [
     email: 'lucia.fernandez@pluarg.com.ar',
     role: 'seguridad_plu_arg',
     status: 'active',
+    securityZoneId: 'zone-gate',
+    securityZone: { id: 'zone-gate', name: 'Puerta principal', scope: 'gate_tickets' },
   },
   {
     id: 'usr-2',
@@ -14,6 +16,8 @@ const MOCK_USERS = [
     email: 'martin.sosa@pluarg.com.ar',
     role: 'seguridad_plu_arg',
     status: 'disabled',
+    securityZoneId: null,
+    securityZone: null,
   },
 ]
 

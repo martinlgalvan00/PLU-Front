@@ -29,6 +29,58 @@ function matchesStatus(row, status) {
   return row.status !== 'usada' && row.status !== 'pagada'
 }
 
+function isCoachCredential(label) {
+  return /entrenador/i.test(label ?? '')
+}
+
+function matchesType(row, type) {
+  if (type === 'all') return true
+  if (type === 'coach') return isCoachCredential(row.credentialLabel)
+  return row.type === type
+}
+
+function matchesCredential(row, credential) {
+  if (!credential || credential === 'all') return true
+  return (row.credentialLabel ?? '').toLocaleLowerCase('es') === credential.toLocaleLowerCase('es')
+}
+
+/**
+ * La puerta de seguridad no lee el snapshot admin (no tiene
+ * `admin.athletes.read`). Esta es la proyección que sí puede pedir:
+ * `staff_get_event_checkin_allowlist`.
+ */
+export function mapAllowlistToCheckinSources(allowlist, eventSlug) {
+  const registrations = (allowlist?.registrations ?? []).map((entry) => ({
+    id: entry.registrationId,
+    athleteId: entry.registrationId,
+    eventSlug,
+    category: entry.category ?? null,
+    division: entry.division ?? null,
+    status: entry.status,
+    checkedInAt: entry.checkedInAt ?? null,
+  }))
+  const athletes = (allowlist?.registrations ?? []).map((entry) => ({
+    id: entry.registrationId,
+    fullName: entry.athleteName,
+    documentId: entry.athleteDocument,
+  }))
+  const tickets = (allowlist?.tickets ?? []).map((entry) => ({
+    id: entry.qrToken ?? entry.ticketCode,
+    eventSlug,
+    qrToken: entry.qrToken,
+    ticketCode: entry.ticketCode,
+    attendeeName: entry.attendeeName,
+    attendeeDni: entry.attendeeDni,
+    ticketTypeId: entry.ticketTypeId,
+    ticketTypeName: entry.ticketTypeName,
+    credentialLabel: entry.credentialLabel ?? null,
+    credentialScopes: entry.credentialScopes ?? [],
+    status: entry.status,
+    checkedInAt: entry.checkedInAt ?? null,
+  }))
+  return { athletes, registrations, tickets }
+}
+
 const STATUS_ORDER = { pagada: 0, pendiente: 1, pendiente_pago: 1, confirmada: 1, usada: 2 }
 
 export function buildCheckinRows({
@@ -92,6 +144,19 @@ export function buildCheckinRows({
   })
 }
 
+export function formatCheckinRowDay(row, eventDays = [], t) {
+  if (row.dayIndexes === 'all' || !eventDays.length) {
+    return row.type === 'atleta'
+      ? t('admin.checkin.scheduleUnassigned')
+      : t('admin.checkin.bothDays')
+  }
+  const labels = row.dayIndexes
+    .map((dayIndex) => eventDays.find((item) => item.dayIndex === dayIndex)?.label)
+    .filter(Boolean)
+  const dayLabel = labels.length ? labels.join(' · ') : '—'
+  return row.schedule?.sessionName ? `${dayLabel} · ${row.schedule.sessionName}` : dayLabel
+}
+
 export function summarizeCheckinRows(rows = [], eventDays = []) {
   const count = (predicate) => rows.filter(predicate).length
 
@@ -112,14 +177,15 @@ export function summarizeCheckinRows(rows = [], eventDays = []) {
 
 export function filterCheckinRows(
   rows = [],
-  { query = '', type = 'all', day = 'all', status = 'all' } = {},
+  { query = '', type = 'all', day = 'all', status = 'all', credential = 'all' } = {},
 ) {
   const normalizedQuery = query.trim().toLocaleLowerCase('es')
 
   return rows.filter((row) => {
-    const typeMatch = type === 'all' || row.type === type
+    const typeMatch = matchesType(row, type)
     const dayMatch = matchesDay(row, day)
     const statusMatch = matchesStatus(row, status)
+    const credentialMatch = matchesCredential(row, credential)
     const queryMatch =
       !normalizedQuery ||
       row.name?.toLocaleLowerCase('es').includes(normalizedQuery) ||
@@ -127,6 +193,6 @@ export function filterCheckinRows(
       row.meta?.toLocaleLowerCase('es').includes(normalizedQuery) ||
       row.credentialLabel?.toLocaleLowerCase('es').includes(normalizedQuery)
 
-    return typeMatch && dayMatch && statusMatch && queryMatch
+    return typeMatch && dayMatch && statusMatch && credentialMatch && queryMatch
   })
 }

@@ -466,6 +466,9 @@ export default function MembershipsSection({
                   {formatShortMemberCode(row.memberCode)}
                 </AdminMonoCell>
               ),
+              mobileRender: (row) => (
+                <AdminMonoCell title={row.memberCode}>{row.memberCode}</AdminMonoCell>
+              ),
             },
             {
               key: 'expirationDate',

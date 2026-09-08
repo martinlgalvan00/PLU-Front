@@ -14,6 +14,9 @@ const athlete = {
   province: 'Buenos Aires',
   gym: 'Maximal Strength Club',
   sex: 'Masculino',
+  division: 'Open',
+  category: 'Raw',
+  estimatedWeight: 90,
   instagramHandle: 'agus.power',
   bestTotalKg: 625.5,
   emergencyContactName: '',
@@ -65,6 +68,9 @@ export const MissingOfficial = {
       province: '',
       gym: '',
       sex: '',
+      division: '',
+      category: '',
+      estimatedWeight: '',
     },
   },
 }
@@ -75,12 +81,49 @@ export const MobileProgressiveDisclosure = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    const sportsSummary = canvas.getByRole('button', { name: /Perfil deportivo/ })
+    await expect(canvas.getByRole('button', { name: /Open · Raw · 90 kg/i })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
+    const sportsSummary = canvas.getByRole('button', { name: /Equipo/ })
 
     await expect(sportsSummary).toBeTruthy()
     await expect(sportsSummary).toHaveAttribute('aria-expanded', 'false')
     await userEvent.click(sportsSummary)
     await expect(sportsSummary).toHaveAttribute('aria-expanded', 'true')
+    await waitFor(() => expect(canvas.getByLabelText(/Gimnasio o equipo/)).toBeVisible())
+  },
+}
+
+export const ExclusiveAccordion = {
+  args: {
+    athlete: {
+      ...athlete,
+      phone: '',
+      city: '',
+      province: '',
+      gym: '',
+      division: '',
+      category: '',
+      estimatedWeight: '',
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const contact = canvas.getByRole('button', { name: /Contacto Email, teléfono y ubicación/ })
+    const competition = canvas.getByRole('button', { name: /^Competencia/ })
+    const sports = canvas.getByRole('button', { name: /^Equipo/ })
+
+    await expect(contact).toHaveAttribute('aria-expanded', 'true')
+    await expect(competition).toHaveAttribute('aria-expanded', 'false')
+
+    await userEvent.click(competition)
+    await expect(competition).toHaveAttribute('aria-expanded', 'true')
+    await expect(contact).toHaveAttribute('aria-expanded', 'false')
+
+    await userEvent.click(canvas.getByRole('button', { name: 'Gimnasio o equipo' }))
+    await expect(sports).toHaveAttribute('aria-expanded', 'true')
+    await expect(competition).toHaveAttribute('aria-expanded', 'false')
     await waitFor(() => expect(canvas.getByLabelText(/Gimnasio o equipo/)).toBeVisible())
   },
 }

@@ -116,15 +116,14 @@ describe('AdminEventStateControl — acceso al meet', () => {
     expect(pendingSave()).toBeNull()
   })
 
-  it('escribe la consecuencia de cada opción, no solo su nombre', () => {
+  it('deja la consecuencia de cada puerta en title, no como un bloque aparte', () => {
     renderControl()
+    expect(accessChip(/solo afiliados/i).getAttribute('title')).toMatch(/afiliación vigente/i)
+    expect(accessChip(/^abierto$/i).getAttribute('title')).toMatch(/inscripción confirmada/i)
     expect(
-      screen.getByText(/en la puerta un inscripto sin afiliación queda bloqueado/i),
-    ).toBeDefined()
-
-    cleanup()
-    renderControl({ ...EVENT, requiresMembership: false })
-    expect(screen.getByText(/alcanza con la inscripción confirmada/i)).toBeDefined()
+      screen.queryByText(/en la puerta un inscripto sin afiliación queda bloqueado/i),
+    ).toBeNull()
+    expect(screen.queryByText(/alcanza con la inscripción confirmada/i)).toBeNull()
   })
 
   it('advierte por los inscriptos que ya están cargados', () => {

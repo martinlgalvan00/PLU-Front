@@ -366,7 +366,7 @@ export const PITBULL_CLASSIC = {
   dateMonth: 'Dec',
   venue: 'La Troupe Multiespacio',
   location: 'Banfield, Buenos Aires',
-  slots: 180,
+  slots: 200,
   registered: 48,
   modalities: [
     'Full Power',

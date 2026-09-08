@@ -103,6 +103,32 @@ describe('inscriptos reales en la landing', () => {
     expect(fill.style.inlineSize).toBe('29%')
   })
 
+  it('sin total muestra anotados y restantes, no el cupo máximo', async () => {
+    fetchSummary.mockResolvedValue({
+      capacity: 80,
+      registered: 23,
+      remaining: 57,
+      totalPublic: false,
+      recent: [
+        { displayName: 'Camila R.', gym: 'Iron House', registeredAt: '2026-08-12T12:00:00-03:00' },
+      ],
+    })
+
+    renderHome(eventFor('pitbull-sin-total', 'Pitbull sin total'))
+
+    const block = await waitFor(() => {
+      const node = document.querySelector('.pitbull-spotlight__home-live')
+      expect(node).toBeTruthy()
+      return node
+    })
+
+    expect(block.textContent).toContain('23')
+    expect(block.textContent).toMatch(/anotados/i)
+    expect(block.textContent).toMatch(/quedan 57/i)
+    expect(block.textContent).not.toContain('de 80')
+    expect(block.textContent).not.toMatch(/\b80\b/)
+  })
+
   it('oculta la ocupación cuando el organizador la desactivó en el evento', async () => {
     fetchSummary.mockResolvedValue({
       capacity: 180,

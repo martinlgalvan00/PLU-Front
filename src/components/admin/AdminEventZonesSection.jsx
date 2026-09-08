@@ -194,9 +194,8 @@ export default function AdminEventZonesSection({
     <section className="admin-event-zones" aria-labelledby="admin-event-zones-title">
       <header className="admin-event-zones__head">
         <div className="admin-event-zones__head-copy">
-          <span className="admin-event-zones__eyebrow">{t('admin.eventZones.eyebrow')}</span>
           <h3 id="admin-event-zones-title">{t('admin.eventZones.title')}</h3>
-          <p>{t('admin.eventZones.lead')}</p>
+          <p className="admin-event-zones__lead">{t('admin.eventZones.lead')}</p>
         </div>
         <AdminIconButton
           className={loading ? 'is-spinning' : undefined}
@@ -215,35 +214,23 @@ export default function AdminEventZonesSection({
         </p>
       ) : null}
 
-      <div className="admin-event-zones__tools">
-        {canManageUsers ? (
-          <>
+      {zones.length > 0 ? (
+        <div className="admin-event-zones__tools">
+          {canManageUsers ? (
             <button type="button" onClick={openCreateForm} disabled={busy}>
               <Plus size={14} aria-hidden />
               {t('admin.eventZones.addZone')}
             </button>
-            {zones.length === 0 && onPresetZones ? (
-              <button
-                type="button"
-                onClick={() =>
-                  void run(() => onPresetZones({ eventId, eventSlug }), 'admin.eventZones.presetDone')
-                }
-                disabled={busy}
-              >
-                <Layers size={14} aria-hidden />
-                {t('admin.eventZones.preset')}
-              </button>
-            ) : null}
-          </>
-        ) : null}
-        <span className="admin-event-zones__summary">
-          {t('admin.eventZones.summary', {
-            zones: summary.zoneCount,
-            members: summary.memberCount,
-            active: summary.activeCount,
-          })}
-        </span>
-      </div>
+          ) : null}
+          <span className="admin-event-zones__summary">
+            {t('admin.eventZones.summary', {
+              zones: summary.zoneCount,
+              members: summary.memberCount,
+              active: summary.activeCount,
+            })}
+          </span>
+        </div>
+      ) : null}
 
       {formOpen ? (
         <form className="admin-event-zones__form" onSubmit={handleSubmitZone}>
@@ -307,7 +294,34 @@ export default function AdminEventZonesSection({
       ) : null}
 
       {zones.length === 0 ? (
-        <p className="admin-event-zones__empty">{t('admin.eventZones.empty')}</p>
+        <div className="admin-event-zones__empty">
+          <p>{t('admin.eventZones.empty')}</p>
+          {canManageUsers ? (
+            <div className="admin-event-zones__empty-actions">
+              {onPresetZones ? (
+                <Button
+                  type="button"
+                  variant="gold"
+                  className="btn--small"
+                  disabled={busy}
+                  onClick={() =>
+                    void run(
+                      () => onPresetZones({ eventId, eventSlug }),
+                      'admin.eventZones.presetDone',
+                    )
+                  }
+                >
+                  <Layers size={14} aria-hidden />
+                  {t('admin.eventZones.preset')}
+                </Button>
+              ) : null}
+              <button type="button" onClick={openCreateForm} disabled={busy}>
+                <Plus size={14} aria-hidden />
+                {t('admin.eventZones.addZone')}
+              </button>
+            </div>
+          ) : null}
+        </div>
       ) : (
         <ul className="admin-event-zones__list">
           {grouped.zones.map((zone) => {

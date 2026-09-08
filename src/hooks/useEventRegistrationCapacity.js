@@ -179,6 +179,7 @@ export function useEventRegistrationCapacity(
     // no llegue el summary (loading/fallback) se conserva el comportamiento
     // histórico: mostrar.
     progressPublic: status === 'live' ? summary?.progressPublic !== false : true,
+    totalPublic: status === 'live' ? summary?.totalPublic !== false : true,
     inView,
     observeRef: observeNodeRef,
   }

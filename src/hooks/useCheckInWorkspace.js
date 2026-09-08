@@ -17,8 +17,10 @@ import {
 import {
   buildCheckinRows,
   filterCheckinRows,
+  mapAllowlistToCheckinSources,
   summarizeCheckinRows,
 } from '../services/checkinWorkspaceService.js'
+import { getEventCheckinAllowlist } from '../services/athleteApi.js'
 
 const MAX_SCAN_HISTORY = 15
 const FEEDBACK_STORAGE_KEY = 'plu-checkin-feedback'
@@ -27,6 +29,7 @@ export const TYPE_FILTERS = [
   ['all', 'admin.checkin.filterAllTypes'],
   ['atleta', 'admin.checkin.athlete'],
   ['espectador', 'admin.checkin.spectator'],
+  ['coach', 'admin.checkin.coach'],
 ]
 
 export const STATUS_FILTERS = [
@@ -186,6 +189,7 @@ export function useCheckInWorkspace({
   const [type, setType] = useState('all')
   const [day, setDay] = useState('all')
   const [checkinStatus, setCheckinStatus] = useState('all')
+  const [credential, setCredential] = useState('all')
   const [scanResult, setScanResult] = useState(null)
   const [scanBusy, setScanBusy] = useState(false)
   const checkInLockRef = useRef(false)
@@ -195,6 +199,7 @@ export function useCheckInWorkspace({
   const [feedbackPrefs, setFeedbackPrefs] = useState(readFeedbackPrefs)
   const [redeemBusyId, setRedeemBusyId] = useState(null)
   const [redeemError, setRedeemError] = useState('')
+  const [allowlistSources, setAllowlistSources] = useState(null)
   const offlineSync = useOfflineCheckinSync(eventSlug)
   const zoneScope = securityZone?.scope ?? null
 
@@ -224,9 +229,34 @@ export function useCheckInWorkspace({
     onRefreshTickets?.(eventSlug)
   }, [eventSlug, onRefreshTickets])
 
+  useEffect(() => {
+    if ((registrations?.length ?? 0) > 0 || !eventSlug) return undefined
+    let live = true
+    getEventCheckinAllowlist(eventSlug)
+      .then((data) => {
+        if (live) setAllowlistSources(mapAllowlistToCheckinSources(data, eventSlug))
+      })
+      .catch(() => {
+        if (live) setAllowlistSources(null)
+      })
+    return () => {
+      live = false
+    }
+  }, [eventSlug, registrations])
+
   const allRows = useMemo(
-    () => buildCheckinRows({ athletes, payments, registrations, tickets, eventSlug, ticketTypes }),
-    [athletes, eventSlug, payments, registrations, ticketTypes, tickets],
+    () =>
+      buildCheckinRows({
+        athletes: athletes?.length ? athletes : (allowlistSources?.athletes ?? []),
+        payments,
+        registrations: registrations?.length
+          ? registrations
+          : (allowlistSources?.registrations ?? []),
+        tickets: tickets?.length ? tickets : (allowlistSources?.tickets ?? []),
+        eventSlug,
+        ticketTypes,
+      }),
+    [allowlistSources, athletes, eventSlug, payments, registrations, ticketTypes, tickets],
   )
 
   const statusCounts = useMemo(() => summarizeCheckinRows(allRows, eventDays), [allRows, eventDays])
@@ -237,6 +267,16 @@ export function useCheckInWorkspace({
   )
 
   const typeOptions = useMemo(() => TYPE_FILTERS.map(([value, key]) => [value, t(key)]), [t])
+  const credentialOptions = useMemo(() => {
+    const labels = [...new Set(allRows.map((row) => row.credentialLabel).filter(Boolean))].sort(
+      (left, right) => left.localeCompare(right, 'es'),
+    )
+    if (!labels.length) return []
+    return [
+      ['all', t('admin.checkin.filterAllCredentials')],
+      ...labels.map((label) => [label, label]),
+    ]
+  }, [allRows, t])
   const dayOptions = useMemo(
     () => [
       ['all', t('admin.checkin.filterAllDays')],
@@ -263,8 +303,8 @@ export function useCheckInWorkspace({
   )
 
   const rows = useMemo(
-    () => filterCheckinRows(allRows, { query, type, day, status: checkinStatus }),
-    [allRows, checkinStatus, day, query, type],
+    () => filterCheckinRows(allRows, { query, type, day, status: checkinStatus, credential }),
+    [allRows, checkinStatus, credential, day, query, type],
   )
 
   const handleScan = useCallback(
@@ -532,6 +572,8 @@ export function useCheckInWorkspace({
     canAdmitRow: (row) => canAdmitCheckinRow(row, { canCheckIn, zoneScope }),
     canCheckIn,
     checkinStatus,
+    credential,
+    credentialOptions,
     day,
     dayOptions,
     feedbackPrefs,
@@ -555,6 +597,7 @@ export function useCheckInWorkspace({
     scanTicketPaid,
     scanVerdict,
     setCheckinStatus,
+    setCredential,
     setDay,
     setQuery,
     setScanHistory,

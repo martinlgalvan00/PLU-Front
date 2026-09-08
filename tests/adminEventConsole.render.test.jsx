@@ -55,8 +55,8 @@ beforeAll(() => {
 
 afterEach(() => cleanup())
 
-function renderEvents(overrides = {}) {
-  return render(
+function renderEvents(overrides = {}, { wrapAdminShellContent = false } = {}) {
+  const ui = (
     <I18nProvider>
       <EventsSection
         adminEvents={[EVENT]}
@@ -87,8 +87,14 @@ function renderEvents(overrides = {}) {
         tickets={[]}
         {...overrides}
       />
-    </I18nProvider>,
+    </I18nProvider>
   )
+  // El scroll real de esta pantalla lo hace `.admin-shell__content` (un
+  // ancestro que pone AdminShell, no EventsSection) -- los tests del
+  // encabezado sticky/compacto necesitan ese ancestro presente de verdad.
+  return wrapAdminShellContent
+    ? render(<div className="admin-shell__content">{ui}</div>)
+    : render(ui)
 }
 
 /**
@@ -106,6 +112,13 @@ function workspace() {
  *  el editor de Ventas dibuja con sus propios `role="tab"`. */
 function tabRail(panel) {
   return within(panel).getByRole('tablist', { name: /secciones del evento/i })
+}
+
+/** Los capítulos de Ventas viven in-flow en la columna principal, no en una
+ *  cabecera sticky -- y "Cupo" también matchea la pestaña "Ventas y cupos"
+ *  del rail si se busca sin acotar. */
+function chaptersRail(panel) {
+  return within(panel).getByRole('tablist', { name: /capítulos/i })
 }
 
 function openTab(panel, name) {
@@ -131,9 +144,33 @@ describe('EventsSection — página del evento', () => {
       within(tabRail(panel)).getByRole('tab', { name: /datos/i }).getAttribute('aria-selected'),
     ).toBe('true')
     expect(panel.querySelector('.admin-event-editor--accordion')).not.toBeNull()
-    expect(panel.querySelector('.admin-event-workspace__head')).not.toBeNull()
+    expect(panel.querySelector('.admin-event-workspace__toolbar')).not.toBeNull()
+    expect(panel.querySelector('.admin-event-workspace__section-title')).toBeNull()
     // Ya no es un diálogo: es la página del evento.
     expect(screen.queryAllByRole('dialog')).toHaveLength(0)
+  })
+
+  it('el panel no deja una banda de sección pegada al scrollear', () => {
+    renderEvents({}, { wrapAdminShellContent: true })
+    const panel = workspace()
+    const toolbar = panel.querySelector('.admin-event-workspace__toolbar')
+
+    expect(toolbar).not.toBeNull()
+    expect(toolbar.className).not.toMatch(/is-compact/)
+    expect(panel.querySelector('.admin-event-workspace__head-progress')).toBeNull()
+    expect(panel.querySelector('.admin-event-workspace__head')).toBeNull()
+  })
+
+  it('cambiar de pestaña vuelve a subir el scroll de la página', () => {
+    const { container } = renderEvents({}, { wrapAdminShellContent: true })
+    const panel = workspace()
+    const host = container.querySelector('.admin-shell__content')
+    const scrollTo = vi.fn()
+    host.scrollTo = scrollTo
+
+    fireEvent.click(within(tabRail(panel)).getByRole('tab', { name: /estructura/i }))
+
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0 })
   })
 
   it('ofrece las seis superficies con los valores reales del evento', () => {
@@ -147,7 +184,7 @@ describe('EventsSection — página del evento', () => {
 
     expect(within(rail).getByRole('tab', { name: /datos/i })).toBeTruthy()
     expect(within(rail).getByRole('tab', { name: /estructura/i })).toBeTruthy()
-    expect(within(rail).getByRole('tab', { name: /^entradas/i })).toBeTruthy()
+    expect(within(rail).getByRole('tab', { name: /^ventas/i })).toBeTruthy()
     expect(within(rail).getByRole('tab', { name: /zonas y seguridad/i })).toBeTruthy()
     expect(within(rail).getByRole('tab', { name: /pagos/i })).toBeTruthy()
     expect(within(rail).getByRole('tab', { name: /vista pública/i })).toBeTruthy()
@@ -201,9 +238,9 @@ describe('EventsSection — página del evento', () => {
     const panel = workspace()
     expect(panel.querySelector('.admin-event-editor--essentials')).not.toBeNull()
 
-    const after = openTab(panel, /^entradas/i)
+    const after = openTab(panel, /^ventas/i)
     expect(
-      within(tabRail(after)).getByRole('tab', { name: /^entradas/i }).getAttribute('aria-selected'),
+      within(tabRail(after)).getByRole('tab', { name: /^ventas/i }).getAttribute('aria-selected'),
     ).toBe('true')
     expect(
       within(tabRail(after)).getByRole('tab', { name: /datos/i }).getAttribute('aria-selected'),
@@ -233,6 +270,13 @@ describe('EventsSection — página del evento', () => {
 
     await waitFor(() => expect(document.querySelector('.admin-event-zones')).not.toBeNull())
     expect(document.querySelector('.admin-event-editor--accordion')).toBeNull()
+    expect(document.querySelector('.admin-event-zones__eyebrow')).toBeNull()
+    expect(document.body.textContent).not.toMatch(/Estructura operativa/)
+    expect(document.body.textContent).toMatch(/Cada zona define qué puede escanear/)
+    expect(document.body.textContent).toMatch(/El puesto filtra qué se lee/)
+    expect(document.body.textContent).toMatch(/link directo/)
+    expect(document.querySelector('fieldset.admin-event-form__pricing.admin-event-security')).toBeNull()
+    expect(document.querySelector('section.admin-event-security')).not.toBeNull()
   })
 
   it('no ofrece zonas a quien no puede gestionar usuarios', () => {
@@ -257,6 +301,44 @@ describe('EventsSection — página del evento', () => {
     expect(screen.getByRole('region', { name: 'Evento seleccionado' })).toBeTruthy()
   })
 
+  it('cierra el workspace si el padre suelta el slug (salida por el menú del panel)', async () => {
+    function Harness({ slug }) {
+      return (
+        <I18nProvider>
+          <EventsSection
+            adminEvents={[EVENT]}
+            adminEventWorkspaceSlug={slug}
+            athletes={[{ id: 'ath-1', fullName: 'Ana Pérez' }]}
+            canEdit
+            canManageUsers
+            canValidatePayments
+            onApprovePayment={async () => ({})}
+            onRejectPayment={async () => ({})}
+            onSaveEvent={async () => ({ event: EVENT, events: [EVENT] })}
+            onSetEventState={async () => ({ event: EVENT, events: [EVENT] })}
+            onListSecurityUsers={async () => []}
+            onListSecurityZones={async () => []}
+            payments={[]}
+            pendingTicketOrders={[]}
+            tickets={[]}
+          />
+        </I18nProvider>
+      )
+    }
+
+    const { rerender } = render(<Harness slug={EVENT.slug} />)
+    await waitFor(() =>
+      expect(screen.getByRole('region', { name: 'Evento seleccionado' })).toBeTruthy(),
+    )
+
+    rerender(<Harness slug={null} />)
+
+    await waitFor(() =>
+      expect(screen.queryByRole('region', { name: 'Evento seleccionado' })).toBeNull(),
+    )
+    expect(screen.getByTitle(/Pitbull Classic · pitbull-classic-2026/)).toBeTruthy()
+  })
+
   it('muestra la vista previa pública y el checklist en su pestaña', () => {
     renderEvents()
     const panel = workspace()
@@ -265,6 +347,7 @@ describe('EventsSection — página del evento', () => {
     const after = openTab(panel, /vista pública/i)
     expect(after.querySelector('.admin-event-preview')).not.toBeNull()
     expect(after.querySelector('.admin-event-preview__readiness')).not.toBeNull()
+    expect(after.querySelector('.admin-event-visual-builder')).toBeNull()
   })
 
   it('en Vista pública no duplica estado ni acceso', () => {
@@ -274,12 +357,13 @@ describe('EventsSection — página del evento', () => {
 
     expect(col.querySelector('#event-status')).toBeNull()
     expect(col.querySelector('#event-access')).toBeNull()
+    expect(within(col).queryByRole('heading', { name: /^publicación$/i })).toBeNull()
     expect(within(col).getByRole('group', { name: /qué se muestra en el sitio/i })).toBeTruthy()
   })
 
   it('en Entradas muestra cobro sin tipos de entrada', () => {
     renderEvents()
-    openTab(workspace(), /^entradas/i)
+    openTab(workspace(), /^ventas/i)
     const col = mainCol()
 
     expect(col.querySelector('#event-slots')).not.toBeNull()
@@ -296,34 +380,61 @@ describe('EventsSection — página del evento', () => {
 
   it('divide Entradas en Cupo, Precios, Entradas y Cobro, un capítulo a la vez', () => {
     renderEvents()
-    openTab(workspace(), /^entradas/i)
+    // Los capítulos viven in-flow arriba del formulario, en la columna
+    // principal: se buscan por el tablist de capítulos, no por el rail.
+    const panel = openTab(workspace(), /^ventas/i)
     const col = mainCol()
+    const chapters = chaptersRail(panel)
 
-    expect(within(col).getByRole('tab', { name: /cupo/i })).toBeTruthy()
-    expect(within(col).getByRole('tab', { name: /precios/i })).toBeTruthy()
-    expect(within(col).getByRole('tab', { name: /entradas/i })).toBeTruthy()
-    expect(within(col).getByRole('tab', { name: /cobro/i })).toBeTruthy()
+    expect(col.contains(chapters)).toBe(true)
+
+    expect(within(chapters).getByRole('tab', { name: /cupo/i })).toBeTruthy()
+    expect(within(chapters).getByRole('tab', { name: /precios/i })).toBeTruthy()
+    expect(within(chapters).getByRole('tab', { name: /entradas/i })).toBeTruthy()
+    expect(within(chapters).getByRole('tab', { name: /cobro/i })).toBeTruthy()
     expect(col.querySelector('.admin-event-form__lane--cupo').hidden).toBe(false)
     expect(col.querySelector('.admin-event-form__lane--prices').hidden).toBe(true)
     expect(col.querySelector('.admin-event-form__lane--tickets').hidden).toBe(true)
     expect(col.querySelector('.admin-event-form__lane--payment').hidden).toBe(true)
 
-    fireEvent.click(within(col).getByRole('tab', { name: /cobro/i }))
+    fireEvent.click(within(chapters).getByRole('tab', { name: /cobro/i }))
     expect(mainCol().querySelector('.admin-event-form__lane--payment').hidden).toBe(false)
     expect(mainCol().querySelector('.admin-event-form__lane--cupo').hidden).toBe(true)
 
-    fireEvent.click(within(mainCol()).getByRole('tab', { name: /entradas/i }))
+    fireEvent.click(within(chapters).getByRole('tab', { name: /entradas/i }))
     expect(mainCol().querySelector('.admin-event-form__lane--tickets').hidden).toBe(false)
+    expect(within(mainCol()).getByText(/vender entradas/i)).toBeTruthy()
+    expect(within(mainCol()).queryByText(/configurar entradas/i)).toBeNull()
+  })
+
+  it('en Cupo deja publicar u ocultar la ocupación del sitio', () => {
+    renderEvents()
+    openTab(workspace(), /^ventas/i)
+    const cupo = mainCol().querySelector('.admin-event-form__lane--cupo')
+    const toggle = cupo?.querySelector('#event-capacity-progress-public')
+
+    expect(cupo?.hidden).toBe(false)
+    expect(toggle).not.toBeNull()
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
+    expect(cupo.querySelector('.admin-event-form__cupo')?.contains(toggle)).toBe(true)
+    expect(cupo.querySelector('.admin-event-form__cupo #event-slots')).not.toBeNull()
+    expect(within(cupo).getByText(/mostrar ocupación en el sitio/i)).toBeTruthy()
+    expect(cupo.querySelector('#event-capacity-total-public')).not.toBeNull()
+    expect(within(cupo).getByText(/mostrar el número total/i)).toBeTruthy()
+    expect(within(cupo).getByText(/en el sitio:/i)).toBeTruthy()
   })
 
   it('con entradas habilitadas, Entradas muestra ventana, tipos y add-ons', () => {
     renderEvents({
       adminEvents: [{ ...EVENT, pricing: { ...EVENT.pricing, ticketsEnabled: true } }],
     })
-    openTab(workspace(), /^entradas/i)
+    const panel = openTab(workspace(), /^ventas/i)
+    fireEvent.click(within(chaptersRail(panel)).getByRole('tab', { name: /entradas/i }))
     const col = mainCol()
 
+    expect(within(col).getByText(/entradas en venta/i)).toBeTruthy()
     expect(col.querySelector('.admin-event-form__ticket-config')).not.toBeNull()
+    expect(col.querySelector('.admin-event-form__ticket-config-summary')).toBeNull()
     expect(col.querySelector('#event-ticket-opens')).not.toBeNull()
     expect(col.querySelector('#event-ticket-closes')).not.toBeNull()
     expect(col.querySelector('.admin-ticket-types')).not.toBeNull()
@@ -336,11 +447,11 @@ describe('EventsSection — página del evento', () => {
         { ...EVENT, eventDays: [], pricing: { ...EVENT.pricing, ticketsEnabled: true } },
       ],
     })
-    openTab(workspace(), /^entradas/i)
+    const panel = openTab(workspace(), /^ventas/i)
     const col = mainCol()
 
     expect(col.querySelector('.admin-ticket-types__need-days')).not.toBeNull()
-    fireEvent.click(within(col).getByRole('tab', { name: /entradas/i }))
+    fireEvent.click(within(chaptersRail(panel)).getByRole('tab', { name: /entradas/i }))
     expect(within(mainCol()).getByRole('button', { name: /ir a estructura/i })).toBeTruthy()
   })
 

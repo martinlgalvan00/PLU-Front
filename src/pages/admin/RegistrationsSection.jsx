@@ -19,6 +19,7 @@ import AdminSavedViews from '../../components/admin/AdminSavedViews.jsx'
 import PaymentRecoveryAction from '../../components/admin/PaymentRecoveryAction.jsx'
 import PaymentValidationAction from '../../components/admin/PaymentValidationAction.jsx'
 import {
+  AdminActionOverflow,
   AdminIdentityCell,
   AdminPaymentCell,
   AdminTableActions,
@@ -601,6 +602,109 @@ export default function RegistrationsSection({
     }))
   }
 
+  // En la card compacta las secundarias van al menú “más”: el footer no
+  // puede ser una franja de 44px. Validar/recuperar quedan a la vista.
+  function renderRowActions(row, { compact = false } = {}) {
+    const canValidate = canValidateRegistrationPayment(row, canValidatePayments)
+    const canRecover = canRecoverRegistrationPayment(row, canForceSettle)
+    const hasActions =
+      canValidate || canRecover || canManageVisibility || canSetStatus || canDelete
+    if (!hasActions) return compact ? null : <AdminTableActionsEmpty />
+
+    const paymentActions = [
+      canValidate ? (
+        <PaymentValidationAction
+          key="validate"
+          athlete={{ fullName: row.athlete, documentId: row.document }}
+          detail={[row.event, row.category].filter(Boolean).join(' · ')}
+          disabled={!validationEnabled || !canApproveManualOrder(row.payment)}
+          label={
+            validationEnabled
+              ? t('admin.actions.validate')
+              : t('admin.athletePayments.validationPaused')
+          }
+          onApprove={handleApprovePayment}
+          onReject={onRejectPayment}
+          order={row.payment}
+        />
+      ) : null,
+      canRecover ? (
+        <PaymentRecoveryAction
+          key="recover"
+          athlete={{ fullName: row.athlete, documentId: row.document }}
+          canForceSettle={canForceSettle}
+          detail={[row.event, row.category].filter(Boolean).join(' · ')}
+          onForceSettlePayment={onForceSettlePayment}
+          onRefreshAthleteData={onRefreshAthleteData}
+          order={row.payment}
+        />
+      ) : null,
+    ].filter(Boolean)
+
+    const secondary = [
+      <AdminIconButton
+        key="observations"
+        icon={MessageSquare}
+        label={t('admin.observations.open')}
+        onClick={() => setObservationsTarget(row)}
+        variant="ghost"
+      />,
+      canManageVisibility && onSetPublicVisibility ? (
+        <AdminIconButton
+          key="visibility"
+          disabled={visibilityChangingId === row.id}
+          icon={row.publicVisible ? EyeOff : Eye}
+          label={t(
+            row.publicVisible
+              ? 'admin.actions.hideRegistrationPublic'
+              : 'admin.actions.showRegistrationPublic',
+          )}
+          onClick={() => void togglePublicVisibility(row)}
+          spinning={visibilityChangingId === row.id}
+          variant="ghost"
+        />
+      ) : null,
+      canSetStatus && onSetRegistrationStatus ? (
+        <AdminIconButton
+          key="status"
+          icon={PencilLine}
+          label={t('admin.registrationStatus.action')}
+          onClick={() => {
+            setStatusError('')
+            setStatusTarget(row)
+          }}
+          variant="ghost"
+        />
+      ) : null,
+      canDelete ? (
+        <AdminIconButton
+          key="delete"
+          icon={Trash2}
+          label="Eliminar inscripción"
+          onClick={() => {
+            setDeleteError('')
+            setDeleteTarget(row)
+          }}
+          variant="danger"
+        />
+      ) : null,
+    ].filter(Boolean)
+
+    const compactPrimary = paymentActions.length > 0 ? paymentActions : secondary.slice(0, 1)
+    const compactOverflow = paymentActions.length > 0 ? secondary : secondary.slice(1)
+
+    return (
+      <AdminTableActions onClick={(event) => event.stopPropagation()}>
+        {compact ? compactPrimary : [...paymentActions, ...secondary]}
+        {compact && compactOverflow.length > 0 ? (
+          <AdminActionOverflow label={t('admin.actions.more')}>
+            {compactOverflow}
+          </AdminActionOverflow>
+        ) : null}
+      </AdminTableActions>
+    )
+  }
+
   return (
     <>
       <AdminPaymentReconciliationAlert
@@ -846,94 +950,8 @@ export default function RegistrationsSection({
                   key: 'action',
                   label: t('admin.columns.action'),
                   mobile: 'action',
-                  render: (row) => {
-                    const canValidate = canValidateRegistrationPayment(row, canValidatePayments)
-                    const canRecover = canRecoverRegistrationPayment(row, canForceSettle)
-                    const hasActions =
-                      canValidate || canRecover || canManageVisibility || canSetStatus || canDelete
-                    if (!hasActions) return <AdminTableActionsEmpty />
-                    return (
-                      <AdminTableActions onClick={(event) => event.stopPropagation()}>
-                        {canValidate ? (
-                          /* Antes acreditaba de un click, sin abrir el
-                             comprobante. Ahora es el mismo diálogo de Finanzas
-                             y de la puerta: la evidencia se mira siempre. */
-                          <PaymentValidationAction
-                            athlete={{ fullName: row.athlete, documentId: row.document }}
-                            detail={[row.event, row.category].filter(Boolean).join(' · ')}
-                            disabled={!validationEnabled || !canApproveManualOrder(row.payment)}
-                            label={
-                              validationEnabled
-                                ? t('admin.actions.validate')
-                                : t('admin.athletePayments.validationPaused')
-                            }
-                            onApprove={handleApprovePayment}
-                            onReject={onRejectPayment}
-                            order={row.payment}
-                          />
-                        ) : null}
-                        {canRecover ? (
-                          /* "El pago figura cancelado pero la plata entró":
-                             las mismas dos vías de Finanzas, sin tener que ir
-                             a buscar esta misma orden en otra pantalla. */
-                          <PaymentRecoveryAction
-                            athlete={{ fullName: row.athlete, documentId: row.document }}
-                            canForceSettle={canForceSettle}
-                            detail={[row.event, row.category].filter(Boolean).join(' · ')}
-                            onForceSettlePayment={onForceSettlePayment}
-                            onRefreshAthleteData={onRefreshAthleteData}
-                            order={row.payment}
-                          />
-                        ) : null}
-                        {canManageVisibility && onSetPublicVisibility ? (
-                          <AdminIconButton
-                            disabled={visibilityChangingId === row.id}
-                            icon={row.publicVisible ? EyeOff : Eye}
-                            label={t(
-                              row.publicVisible
-                                ? 'admin.actions.hideRegistrationPublic'
-                                : 'admin.actions.showRegistrationPublic',
-                            )}
-                            onClick={() => void togglePublicVisibility(row)}
-                            spinning={visibilityChangingId === row.id}
-                            variant="ghost"
-                          />
-                        ) : null}
-                        {/* Anotar sin mover el estado. Va antes que "corregir
-                            estado" porque es la acción menos invasiva de las
-                            dos y la que más se usa: la mayoría de los casos se
-                            resuelven anotando qué pasó, no cambiando nada. */}
-                        <AdminIconButton
-                          icon={MessageSquare}
-                          label={t('admin.observations.open')}
-                          onClick={() => setObservationsTarget(row)}
-                          variant="ghost"
-                        />
-                        {canSetStatus && onSetRegistrationStatus ? (
-                          <AdminIconButton
-                            icon={PencilLine}
-                            label={t('admin.registrationStatus.action')}
-                            onClick={() => {
-                              setStatusError('')
-                              setStatusTarget(row)
-                            }}
-                            variant="ghost"
-                          />
-                        ) : null}
-                        {canDelete ? (
-                          <AdminIconButton
-                            icon={Trash2}
-                            label="Eliminar inscripción"
-                            onClick={() => {
-                              setDeleteError('')
-                              setDeleteTarget(row)
-                            }}
-                            variant="danger"
-                          />
-                        ) : null}
-                      </AdminTableActions>
-                    )
-                  },
+                  render: (row) => renderRowActions(row),
+                  mobileRender: (row) => renderRowActions(row, { compact: true }),
                 },
               ]}
               rows={registrationRows}

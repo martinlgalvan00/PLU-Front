@@ -28,6 +28,7 @@ function readFeedbackPrefs() {
 
 export default function AdminQrScanner({
   busy = false,
+  compact = false,
   disabled = false,
   feedbackPrefs,
   onFeedbackPrefsChange,
@@ -35,6 +36,7 @@ export default function AdminQrScanner({
 }) {
   const { t } = useI18n()
   const videoRef = useRef(null)
+  const manualInputRef = useRef(null)
   const lastScanRef = useRef({ value: '', at: 0 })
   const [mode, setMode] = useState('camera')
   const [manualValue, setManualValue] = useState('')
@@ -106,6 +108,14 @@ export default function AdminQrScanner({
       setMode('manual')
     }
   }, [cameraError])
+
+  useEffect(() => {
+    if (mode !== 'manual' || disabled) return undefined
+    const node = manualInputRef.current
+    if (!node) return undefined
+    node.focus({ preventScroll: true })
+    return undefined
+  }, [disabled, mode])
 
   useEffect(() => {
     if (mode !== 'camera' || disabled) {
@@ -209,12 +219,17 @@ export default function AdminQrScanner({
   const showUnsupportedNote = cameraError === 'unsupported' && mode === 'manual'
 
   return (
-    <section className="admin-checkin-scanner" aria-label={t('admin.checkin.scanner.title')}>
+    <section
+      className={`admin-checkin-scanner${compact ? ' admin-checkin-scanner--compact' : ''}`}
+      aria-label={t('admin.checkin.scanner.title')}
+    >
       <div className="admin-checkin-scanner__top">
-        <div className="admin-checkin-scanner__intro">
-          <h2 className="admin-checkin-scanner__title">{t('admin.checkin.scanner.title')}</h2>
-          <p className="admin-checkin-scanner__hint">{t('admin.checkin.scanner.hint')}</p>
-        </div>
+        {compact ? null : (
+          <div className="admin-checkin-scanner__intro">
+            <h2 className="admin-checkin-scanner__title">{t('admin.checkin.scanner.title')}</h2>
+            <p className="admin-checkin-scanner__hint">{t('admin.checkin.scanner.hint')}</p>
+          </div>
+        )}
 
         <div className="admin-checkin-scanner__toolbar">
           <div className="admin-checkin-scanner__mode-switch">
@@ -322,9 +337,17 @@ export default function AdminQrScanner({
           <div className="admin-checkin-scanner__manual-row">
             <input
               id="admin-checkin-manual"
+              ref={manualInputRef}
               className="admin-checkin-scanner__manual-input"
+              autoCapitalize="none"
+              autoComplete="off"
+              autoCorrect="off"
               disabled={disabled || busy}
+              enterKeyHint="go"
+              inputMode="text"
+              name="checkin-manual"
               placeholder={t('admin.checkin.scanner.manualPlaceholder')}
+              spellCheck={false}
               value={manualValue}
               onChange={(event) => setManualValue(event.target.value)}
             />

@@ -20,3 +20,7 @@ export const Compact = {
 export const Full = {
   args: { current: 60, total: 60 },
 }
+
+export const HideTotal = {
+  args: { current: 42, total: 200, showTotal: false },
+}
