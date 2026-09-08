@@ -1,5 +1,12 @@
-export default function CapacityBar({ current, total, label = 'Cupos ocupados', compact = false }) {
+export default function CapacityBar({
+  current,
+  total,
+  label = 'Cupos ocupados',
+  compact = false,
+  showTotal = true,
+}) {
   const progress = total > 0 ? Math.round((current / total) * 100) : 0
+  const remaining = Math.max(0, total - current)
 
   return (
     <div className={`capacity-widget${compact ? ' capacity-widget--compact' : ''}`}>
@@ -7,9 +14,15 @@ export default function CapacityBar({ current, total, label = 'Cupos ocupados', 
         <span>{label}</span>
         <strong>
           {compact ? (
-            <>
-              {current}/{total} · {progress}%
-            </>
+            showTotal ? (
+              <>
+                {current}/{total} · {progress}%
+              </>
+            ) : (
+              <>
+                {current} · {progress}%
+              </>
+            )
           ) : (
             `${progress}%`
           )}
@@ -20,7 +33,9 @@ export default function CapacityBar({ current, total, label = 'Cupos ocupados', 
       </div>
       {!compact && (
         <small>
-          {current} de {total} plazas
+          {showTotal
+            ? `${current} de ${total} plazas`
+            : `${current} plazas · quedan ${remaining}`}
         </small>
       )}
     </div>

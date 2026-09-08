@@ -72,6 +72,20 @@ import {
   isStaffSession,
 } from './lib/roles.js'
 import { getAllowedAdminSections } from './lib/permissions.js'
+import { hasUnreadProfileNotice, visibleProfileNotice } from './lib/athleteProfile.js'
+
+function currentAthleteRecord(app) {
+  if (app.session?.role !== 'athlete_plu') return null
+  return app.athletes.find((item) => item.id === app.session.athleteId) ?? null
+}
+
+function athleteProfileNoticeUnread(app) {
+  return hasUnreadProfileNotice(currentAthleteRecord(app)?.profileNotices)
+}
+
+function athleteVisibleNotice(app) {
+  return visibleProfileNotice(currentAthleteRecord(app)?.profileNotices)
+}
 
 // Ant Design sólo existe en las superficies operativas. Cargar también su
 // ConfigProvider de forma diferida evita que un visitante de la web pública
@@ -718,7 +732,9 @@ export default function App() {
           onResetStaffPassword={app.resetStaffPasswordAction}
           onDeleteAthlete={app.deleteAthleteAction}
           onBulkUpdateAthletes={app.bulkUpdateAthletesAction}
+          onNotifyAthletesIncomplete={app.sendAthleteProfileNoticesBulkAction}
           onUpdateAthlete={app.updateAthleteAction}
+          onNotifyAthleteProfile={app.sendAthleteProfileNoticeAction}
           onDeleteMembership={app.deleteMembershipAction}
           onDeleteRegistration={app.deleteRegistrationAction}
           onSetRegistrationPublicVisibility={app.setRegistrationPublicVisibilityAction}
@@ -862,6 +878,8 @@ export default function App() {
             onUpdateProfile={app.updateAthleteProfileAction}
             onUpdatePhoto={app.updateAthletePhotoAction}
             onRemovePhoto={app.removeAthletePhotoAction}
+            onReadProfileNotice={app.markAthleteProfileNoticeReadAction}
+            onDismissProfileNotice={app.dismissAthleteProfileNoticeAction}
             payments={app.payments}
             registrations={app.registrations}
             session={app.session}
@@ -949,6 +967,9 @@ export default function App() {
         onNavigate={navigate}
         session={app.session}
         sessionPending={app.sessionPending}
+        profileNotice={athleteVisibleNotice(app)}
+        profileNoticeUnread={athleteProfileNoticeUnread(app)}
+        onReadProfileNotice={app.markAthleteProfileNoticeReadAction}
       />
       <PageTransition
         viewKey={view}
@@ -1009,6 +1030,9 @@ function PrivateLayout({
         onNavigate={navigate}
         sessionPending={app.sessionPending}
         session={app.session}
+        profileNotice={athleteVisibleNotice(app)}
+        profileNoticeUnread={athleteProfileNoticeUnread(app)}
+        onReadProfileNotice={app.markAthleteProfileNoticeReadAction}
       />
       <PageTransition
         viewKey={view}

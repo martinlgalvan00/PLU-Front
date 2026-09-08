@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test } from '@playwright/test'
 import { FIXTURE_PATH } from './global-setup.js'
-import { acceptCookies } from './ticket-purchase-helpers.js'
+import { loginAsAdmin } from './admin-helpers.js'
 
 let fixture
 
@@ -9,17 +9,8 @@ test.beforeAll(async () => {
   fixture = JSON.parse(await readFile(FIXTURE_PATH, 'utf8'))
 })
 
-async function loginAsAdmin(page) {
-  await page.addInitScript(() => {
-    localStorage.setItem('plu-tour-mode', 'off')
-    localStorage.setItem('plu-admin-sidebar-mode', 'expanded')
-  })
-  await page.goto('/acceder')
-  await acceptCookies(page)
-  await page.locator('input[name="email"]').fill(fixture.adminEmail)
-  await page.locator('input[name="password"]').fill(fixture.adminPassword)
-  await page.getByRole('button', { name: /^Ingresar$/i }).click()
-  await expect(page.locator('.admin-shell')).toBeVisible({ timeout: 20_000 })
+function adminCredentials() {
+  return { email: fixture.adminEmail, password: fixture.adminPassword }
 }
 
 function adminNavItem(page, label) {
@@ -59,12 +50,15 @@ test.describe('Admin — plazos, abandono y analítica', () => {
   test('se puede configurar el vencimiento en días y la gracia de abandono en horas', async ({
     page,
   }) => {
-    await loginAsAdmin(page)
+    await loginAsAdmin(page, adminCredentials())
     await adminNavItem(page, 'Cobros').click()
     const panel = page.locator('.admin-payment-expiry')
     await expect(panel).toBeVisible({ timeout: 20_000 })
     await expect(panel).toContainText(/Vencimiento de órdenes/)
     await expect(panel.getByText(/Error interno/)).toHaveCount(0)
+    await expect(panel.getByText(/Plazo de pago manual/)).toBeVisible()
+    await expect(panel.getByText(/Gracia de intentos abandonados/)).toBeVisible()
+    await expect(panel.getByText(/Trabadas por el proveedor/)).toBeVisible()
 
     const manualInput = page.locator('#payment-expiry-window-manual')
     await expect(manualInput).toBeEnabled()
@@ -94,7 +88,7 @@ test.describe('Admin — plazos, abandono y analítica', () => {
   })
 
   test('analítica abre sin error interno y muestra el informe', async ({ page }) => {
-    await loginAsAdmin(page)
+    await loginAsAdmin(page, adminCredentials())
     await adminNavItem(page, 'Analítica').click()
     await expect(page.getByRole('heading', { name: /Analítica/i })).toBeVisible({
       timeout: 20_000,

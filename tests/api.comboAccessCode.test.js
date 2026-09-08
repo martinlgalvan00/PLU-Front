@@ -149,6 +149,9 @@ describe('POST /me/registration-combos con combo restringido', () => {
             phone: '1122334455',
             country: 'Argentina',
             province: 'Buenos Aires',
+            division: 'Open',
+            category: 'Raw',
+            estimated_weight: 90,
           }),
           findEventPricing: vi.fn().mockResolvedValue({
             price: 85000,

@@ -397,6 +397,12 @@
   border-left-color: var(--admin-hairline);
 }
 
+.admin-shell .data-table-card--admin.data-table-card--compact.data-table__row--bulk-selected {
+  background: color-mix(in oklab, var(--color-brand-celeste) 10%, var(--color-bg-surface, transparent));
+  border-left-color: var(--color-brand-celeste);
+  border-left-width: 3px;
+}
+
 .admin-shell .data-table-card--compact .data-table__identity-copy {
   min-width: 0;
 }
@@ -1553,12 +1559,7 @@
 .admin-shell .admin-list-shell--registrations .data-table-card--compact {
   background: var(--admin-surface);
   border-color: var(--admin-hairline);
-  gap: 10px 14px;
-  padding: 12px 14px;
-}
-
-.admin-shell .admin-list-shell--registrations .data-table-card--admin.data-table-card--compact {
-  padding: 12px 14px;
+  overflow: visible;
 }
 
 .admin-shell .admin-list-shell--registrations .data-table-card--compact:hover,
@@ -1568,22 +1569,8 @@
   box-shadow: inset 2px 0 0 var(--admin-brand);
 }
 
-.admin-shell .admin-list-shell--registrations .data-table-card__meta {
-  display: grid;
-  gap: 8px 12px;
-  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, 0.7fr) minmax(0, 1fr);
-}
-
-.admin-shell .admin-list-shell--registrations .data-table-card__meta-label {
-  color: var(--admin-muted);
-  font-size: 9.5px;
-  font-weight: 650;
-  letter-spacing: 0.1em;
-}
-
 .admin-shell .admin-list-shell--registrations .data-table-card__meta-value {
   color: var(--admin-text-secondary);
-  white-space: nowrap;
 }
 
 .admin-shell .admin-list-shell--registrations .data-table-card__meta-value .admin-muted-text {
@@ -1592,6 +1579,40 @@
 
 .admin-shell .admin-list-shell--registrations .data-table__identity-copy strong {
   color: var(--admin-ink);
+}
+
+.admin-shell
+  .admin-list-shell--registrations
+  .data-table-card--compact
+  .data-table-card__action {
+  flex: 0 0 auto;
+}
+
+.admin-shell
+  .admin-list-shell--registrations
+  .data-table-card--compact
+  .data-table-card__footer
+  .admin-table-actions {
+  gap: 4px;
+  width: auto;
+}
+
+.admin-shell
+  .admin-list-shell--registrations
+  .data-table-card--compact
+  .data-table-card__footer
+  .admin-table-actions
+  > .admin-icon-btn,
+.admin-shell
+  .admin-list-shell--registrations
+  .data-table-card--compact
+  .data-table-card__footer
+  .admin-table-actions__more
+  > summary.admin-icon-btn {
+  height: 32px;
+  min-height: 32px;
+  min-width: 32px;
+  width: 32px;
 }
 
 .admin-shell .data-table__identity {
@@ -3114,6 +3135,48 @@
   .admin-shell .data-table-card__footer .admin-table-actions .admin-icon-btn {
     min-height: 44px;
     min-width: 44px;
+  }
+
+  .admin-shell
+    .admin-list-shell--registrations
+    .data-table-card--compact
+    .data-table-card__footer {
+    gap: 0;
+    justify-content: flex-end;
+    padding-top: 0;
+  }
+
+  .admin-shell
+    .admin-list-shell--registrations
+    .data-table-card--compact
+    .data-table-card__action {
+    flex: 0 0 auto;
+  }
+
+  .admin-shell
+    .admin-list-shell--registrations
+    .data-table-card--compact
+    .data-table-card__footer
+    .admin-table-actions {
+    width: auto;
+  }
+
+  .admin-shell
+    .admin-list-shell--registrations
+    .data-table-card--compact
+    .data-table-card__footer
+    .admin-table-actions
+    > .admin-icon-btn,
+  .admin-shell
+    .admin-list-shell--registrations
+    .data-table-card--compact
+    .data-table-card__footer
+    .admin-table-actions__more
+    > summary.admin-icon-btn {
+    height: 32px;
+    min-height: 32px;
+    min-width: 32px;
+    width: 32px;
   }
 
   .admin-shell .data-table-card__action {
@@ -4932,6 +4995,63 @@
   padding-top: 4px;
 }
 
+.admin-data-table-shell__select-page {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 2px;
+  margin: 0 0 4px;
+  min-height: 44px;
+  padding: 0 7px 0 7px;
+}
+
+.admin-data-table-shell__select-page-check {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.admin-data-table-shell__select-page-check input {
+  accent-color: var(--color-brand-celeste);
+  cursor: pointer;
+  height: 16px;
+  margin: 0;
+  width: 16px;
+}
+
+.admin-data-table-shell__select-page-check input:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-data-table-shell__select-page-copy {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-data-table-shell__select-page-label {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.admin-data-table-shell__select-page-count {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-data-table-shell__select-page-count::before {
+  content: '·';
+  margin-right: 8px;
+}
+
 /* Menú “más” en acciones de fila densas. */
 .admin-shell .admin-table-actions__more {
   position: relative;
@@ -5766,7 +5886,7 @@
   }
 
   .admin-shell .admin-list-shell--registrations .data-table-card--compact {
-    gap: 8px;
+    gap: 7px;
     padding: 10px;
   }
 
@@ -5777,26 +5897,12 @@
 
   .admin-shell .admin-list-shell--registrations .data-table-card__badges {
     align-items: flex-start;
-    flex-direction: row;
-    flex-wrap: wrap;
     max-width: 100%;
   }
 
-  .admin-shell .admin-list-shell--registrations .data-table-card__meta {
-    gap: 8px 10px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .admin-shell .admin-list-shell--registrations .data-table-card__meta-item[data-column='event'],
-  .admin-shell
-    .admin-list-shell--registrations
-    .data-table-card__meta-item[data-column='schedule'] {
-    grid-column: 1 / -1;
-  }
-
   .admin-shell .admin-list-shell--registrations .data-table-card__meta-value {
-    white-space: normal;
     overflow-wrap: anywhere;
+    white-space: normal;
   }
 }
 
@@ -6104,8 +6210,8 @@
   border: 1px solid var(--admin-hairline);
   border-radius: 12px;
   display: grid;
-  gap: 16px;
-  padding: 16px;
+  gap: 12px;
+  padding: 14px;
 }
 
 .security-team-builder__head,
@@ -8430,13 +8536,20 @@
   gap: 8px 12px;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__workflow-label,
-.admin-shell .admin-event-workspace .admin-event-state__workflow-label {
+.admin-shell .admin-list-shell--events .admin-event-state__workflow-label {
   color: var(--admin-muted);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.admin-shell .admin-event-workspace .admin-event-state__workflow-label {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-state__workflow-actions,
@@ -8532,13 +8645,20 @@
   width: 100%;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-group__label,
-.admin-shell .admin-event-workspace .admin-event-state .admin-filter-group__label {
+.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-group__label {
   color: var(--admin-muted);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.admin-shell .admin-event-workspace .admin-event-state .admin-filter-group__label {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip,
@@ -8641,11 +8761,17 @@
 
 /* Acceso + sus dos notas como un solo bloque: la consecuencia tiene que leerse
    como parte de la decisión, no como un pie de la banda entera. */
-.admin-shell .admin-list-shell--events .admin-event-state__access,
-.admin-shell .admin-event-workspace .admin-event-state__access {
+.admin-shell .admin-list-shell--events .admin-event-state__access {
   display: grid;
   gap: 2px;
   grid-template-columns: minmax(0, 1fr);
+}
+
+.admin-shell .admin-event-workspace .admin-event-state__access {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 2px;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-state__note,
@@ -9437,41 +9563,24 @@
       display: flex;
     }
 
-    /* Inscripciones: ficha premium cuando el panel muestra cards (< 900). */
-    .admin-shell .admin-list-shell--registrations .data-table-card--admin.data-table-card--compact {
-      gap: 10px 14px;
-      grid-template-columns: minmax(0, 1fr);
-      padding: 12px 14px;
-    }
-
+    /* Inscripciones: acciones al lado del contexto cuando el panel muestra cards. */
     .admin-shell
       .admin-list-shell--registrations
       .data-table-card--admin.data-table-card--compact:has(
-        .data-table-card__footer .admin-icon-btn
+        .data-table-card__footer .admin-table-actions
       ) {
       grid-template-columns: minmax(0, 1fr) auto;
     }
 
-    .admin-shell .admin-list-shell--registrations .data-table-card__top {
-      align-items: flex-start;
-    }
-
-    .admin-shell .admin-list-shell--registrations .data-table-card__meta {
-      display: grid;
-      gap: 8px 12px;
-      grid-column: 1 / -1;
-      grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, 0.7fr) minmax(0, 1fr);
-    }
-
     .admin-shell
       .admin-list-shell--registrations
-      .data-table-card--compact:has(.data-table-card__footer .admin-icon-btn)
+      .data-table-card--compact:has(.data-table-card__footer .admin-table-actions)
       .data-table-card__meta {
       grid-column: 1;
     }
 
     .admin-shell .admin-list-shell--registrations .data-table-card__footer {
-      align-self: end;
+      align-self: center;
       border-top: 0;
       grid-column: 2;
       grid-row: 2;
@@ -9560,49 +9669,36 @@
       padding: 8px 10px;
     }
 
-    .admin-shell .admin-list-shell--registrations .data-table-card--admin.data-table-card--compact,
-    .admin-shell
-      .admin-list-shell--registrations
-      .data-table-card--admin.data-table-card--compact:has(
-        .data-table-card__footer .admin-icon-btn
-      ) {
-      gap: 8px 10px;
-      grid-template-columns: minmax(0, 1fr);
+    .admin-shell .admin-list-shell--registrations .data-table-card--admin.data-table-card--compact {
+      gap: 7px 10px;
       padding: 10px 12px;
     }
 
-    .admin-shell .admin-list-shell--registrations .data-table-card__meta,
     .admin-shell
       .admin-list-shell--registrations
-      .data-table-card--compact:has(.data-table-card__footer .admin-icon-btn)
-      .data-table-card__meta {
-      display: grid;
-      gap: 8px 10px;
-      grid-column: 1 / -1;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      .data-table-card--admin.data-table-card--compact:has(
+        .data-table-card__footer .admin-table-actions
+      ) {
+      grid-template-columns: minmax(0, 1fr) auto;
     }
 
-    .admin-shell .admin-list-shell--registrations .data-table-card__meta-item[data-column='event'],
     .admin-shell
       .admin-list-shell--registrations
-      .data-table-card__meta-item[data-column='schedule'] {
-      grid-column: 1 / -1;
+      .data-table-card--compact:has(.data-table-card__footer .admin-table-actions)
+      .data-table-card__meta {
+      grid-column: 1;
     }
 
     .admin-shell .admin-list-shell--registrations .data-table-card__footer {
-      border-top: 1px solid var(--admin-hairline);
-      grid-column: 1 / -1;
-      grid-row: auto;
-      justify-content: flex-end;
-      margin-top: 2px;
-      padding-top: 8px;
+      border-top: 0;
+      grid-column: 2;
+      grid-row: 2;
+      margin-top: 0;
+      padding-top: 0;
     }
 
     .admin-shell .admin-list-shell--registrations .data-table-card__badges {
-      align-items: flex-start;
-      flex-direction: row;
-      flex-wrap: wrap;
-      max-width: min(58%, 220px);
+      max-width: min(68%, 280px);
     }
 
     .admin-shell .data-table-card--compact .data-table-card__top {

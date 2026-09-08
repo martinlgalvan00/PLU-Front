@@ -60,12 +60,21 @@ function AdminDataTableDemo({ selectable = true }) {
               console.log('bulk update', ids, patch)
               return { updated: ids, failed: [] }
             }}
+            onNotifyIncomplete={async (ids) => {
+              // eslint-disable-next-line no-console -- demo de Storybook, no hay backend real
+              console.log('notify incomplete', ids)
+              return { sent: ids, skipped: [] }
+            }}
+            notifyPreset="Para inscribirte a un evento oficial, completá en tu cuenta los datos de contacto y de competencia."
+            incompleteSelectedCount={selectedRowKeys.length}
+            notifyMissingFields="Teléfono, ciudad"
             onClearSelection={() => setSelectedRowKeys([])}
           />
         ) : null}
         <AdminDataTable
           columns={COLUMNS}
           rows={ROWS}
+          getRowSelectLabel={(row) => `Seleccionar a ${row.fullName}`}
           rowSelection={
             selectable
               ? { selectedRowKeys, onChange: setSelectedRowKeys, preserveSelectedRowKeys: true }
@@ -89,6 +98,15 @@ export default {
 /** Tabla estándar con selección de fila habilitada — tildá 2+ filas para ver el modo lote. */
 export const ConSeleccion = {
   render: () => <AdminDataTableDemo selectable />,
+}
+
+/** Misma tabla en el ancho de cards compactas: checkbox por persona. */
+export const ConSeleccionCards = {
+  render: () => (
+    <div style={{ maxWidth: 661 }}>
+      <AdminDataTableDemo selectable />
+    </div>
+  ),
 }
 
 /** Misma tabla sin selección (ej. Finanzas, pestañas de ficha de atleta). */

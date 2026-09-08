@@ -2,6 +2,7 @@ import { ScanLine } from 'lucide-react'
 import AdminTicketAddonRedemption from './AdminTicketAddonRedemption.jsx'
 import { StatusBadge } from '../ui/DataTable.jsx'
 import { formatScheduleSummary, formatSessionDetail } from '../../lib/eventSchedule.js'
+import { formatDocumentWithKind } from '../../lib/format.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { checkinTypeLabel } from '../../services/checkinScanService.js'
 
@@ -41,14 +42,19 @@ export default function CheckInScanResult({
         <ScanVerdictIcon size={22} aria-hidden />
         <div>
           <strong>{t(`admin.checkin.scanner.outcome.${scanResult.outcome}`)}</strong>
-          {scanPersonName && (
-            <p className="admin-checkin-result__person">
-              {scanPersonName}
-              {scanPersonDoc ? ` · ${scanPersonDoc}` : ''}
-            </p>
-          )}
         </div>
       </div>
+
+      {scanPersonName ? (
+        <p className="admin-checkin-result__person">
+          <strong className="admin-checkin-result__person-name">{scanPersonName}</strong>
+          {scanPersonDoc ? (
+            <span className="admin-checkin-result__person-doc">
+              {formatDocumentWithKind(scanPersonDoc)}
+            </span>
+          ) : null}
+        </p>
+      ) : null}
 
       {scanResult.row && (
         <dl className="admin-checkin-result__meta">
@@ -71,6 +77,18 @@ export default function CheckInScanResult({
               {checkinTypeLabel(scanResult.row, t)}
             </dd>
           </div>
+          {scanResult.kind === 'ticket' && (scanResult.row.ticketTypeName || scanResult.row.meta) ? (
+            <div>
+              <dt>{t('admin.checkin.ticketTypeLabel')}</dt>
+              <dd>{scanResult.row.ticketTypeName || scanResult.row.meta}</dd>
+            </div>
+          ) : null}
+          {isAthleteScan && scanResult.row?.meta ? (
+            <div>
+              <dt>{t('admin.columns.category')}</dt>
+              <dd>{scanResult.row.meta}</dd>
+            </div>
+          ) : null}
           {scanResult.status && (
             <div>
               <dt>{t('admin.columns.status')}</dt>

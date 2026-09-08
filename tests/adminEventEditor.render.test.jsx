@@ -134,6 +134,70 @@ describe('AdminEventEditor — estructura del formulario', () => {
     expect(screen.getByRole('button', { name: /agregar día/i })).toBeTruthy()
   })
 
+  it('en Cupo permite publicar u ocultar la ocupación del sitio', () => {
+    const onChange = vi.fn()
+    renderEditor({ capacityProgressPublic: true }, { onChange })
+    activateEditorTab(/ventas y cupos/i)
+
+    const toggle = document.querySelector('#event-capacity-progress-public')
+    expect(toggle).not.toBeNull()
+    expect(toggle.checked).toBe(true)
+    expect(toggle.closest('[hidden]')).toBeNull()
+    expect(toggle.closest('.admin-event-form__cupo')?.querySelector('#event-slots')).not.toBeNull()
+
+    fireEvent.click(toggle)
+    expect(onChange).toHaveBeenCalled()
+    expect(onChange.mock.calls.at(-1)[0].capacityProgressPublic).toBe(false)
+  })
+
+  it('en Cupo permite ocultar el número total sin apagar la ocupación', () => {
+    const onChange = vi.fn()
+    renderEditor({ capacityProgressPublic: true, capacityTotalPublic: true }, { onChange })
+    activateEditorTab(/ventas y cupos/i)
+
+    const totalToggle = document.querySelector('#event-capacity-total-public')
+    expect(totalToggle).not.toBeNull()
+    expect(totalToggle.checked).toBe(true)
+
+    fireEvent.click(totalToggle)
+    expect(onChange.mock.calls.at(-1)[0].capacityTotalPublic).toBe(false)
+    expect(onChange.mock.calls.at(-1)[0].capacityProgressPublic).not.toBe(false)
+  })
+
+  it('en el acordeón de Ventas el interruptor de ocupación sigue visible', () => {
+    const draft = buildAdminEventDraft({
+      id: 'evt-1',
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic',
+      venue: 'Maximal Strength Club',
+      location: 'Buenos Aires',
+      status: 'inscripcion_abierta',
+      slots: 120,
+      startsAt: '2026-09-15T12:00:00.000Z',
+      endsAt: '2026-09-15T23:00:00.000Z',
+      pricing: { membership: 75000, registration: 75000, combo: 120000, ticketsEnabled: true },
+    })
+
+    render(
+      <I18nProvider>
+        <AdminEventEditor
+          accordion
+          canEdit
+          draft={draft}
+          forcedTab="sales"
+          onCancel={() => {}}
+          onChange={() => {}}
+          onSubmit={() => {}}
+        />
+      </I18nProvider>,
+    )
+
+    const toggle = document.querySelector('#event-capacity-progress-public')
+    expect(toggle).not.toBeNull()
+    expect(toggle.closest('[hidden]')).toBeNull()
+    expect(toggle.closest('.admin-event-form__cupo')?.querySelector('#event-slots')).not.toBeNull()
+  })
+
   it('en Ventas muestra el día antes que el mes', () => {
     renderEditor({
       registrationOpensAt: '2026-09-03T07:48:00.000Z',

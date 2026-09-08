@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   buildCheckinRows,
   filterCheckinRows,
+  formatCheckinRowDay,
+  mapAllowlistToCheckinSources,
   summarizeCheckinRows,
 } from '../src/services/checkinWorkspaceService.js'
 
@@ -99,6 +101,42 @@ describe('checkinWorkspaceService', () => {
 
     expect(rows[0].credentialLabel).toBe('ENTRENADOR')
     expect(filterCheckinRows(rows, { query: 'entrenador' })).toHaveLength(1)
+    expect(filterCheckinRows(rows, { type: 'coach' })).toHaveLength(1)
+    expect(filterCheckinRows(rows, { credential: 'ENTRENADOR' })).toHaveLength(1)
+    expect(filterCheckinRows(rows, { credential: 'VIP' })).toHaveLength(0)
+  })
+
+  it('arma atletas y entradas desde la allowlist de puerta', () => {
+    const sources = mapAllowlistToCheckinSources(
+      {
+        tickets: [
+          {
+            qrToken: 'qr-1',
+            ticketCode: 'T-1',
+            attendeeName: 'Nora Coach',
+            attendeeDni: '41333444',
+            ticketTypeName: 'Entrenadores',
+            credentialLabel: 'ENTRENADOR',
+            status: 'pagada',
+          },
+        ],
+        registrations: [
+          {
+            registrationId: 'reg-9',
+            athleteName: 'Martina Rivas',
+            athleteDocument: '40111222',
+            category: 'Raw',
+            division: 'Open',
+            status: 'confirmada',
+          },
+        ],
+      },
+      'pitbull-2026',
+    )
+    const rows = buildCheckinRows({ ...sources, eventSlug: 'pitbull-2026', ticketTypes })
+    expect(rows.map((row) => row.name)).toEqual(
+      expect.arrayContaining(['Martina Rivas', 'Nora Coach']),
+    )
   })
 
   it('resuelve el día de acceso de cada ticket vía su tipo de entrada', () => {
@@ -134,5 +172,22 @@ describe('checkinWorkspaceService', () => {
       spectators: 1,
       byDay: { 0: 3, 1: 3 },
     })
+  })
+})
+
+describe('formatCheckinRowDay', () => {
+  const t = (key) =>
+    ({
+      'admin.checkin.scheduleUnassigned': 'Día a confirmar',
+      'admin.checkin.bothDays': 'Ambos',
+    })[key] ?? key
+
+  it('nombra el día de la grilla y deja claro cuando no hay asignación', () => {
+    expect(formatCheckinRowDay({ type: 'atleta', dayIndexes: 'all' }, eventDays, t)).toBe(
+      'Día a confirmar',
+    )
+    expect(formatCheckinRowDay({ type: 'espectador', dayIndexes: [0, 1] }, eventDays, t)).toBe(
+      'Día 1 · Día 2',
+    )
   })
 })

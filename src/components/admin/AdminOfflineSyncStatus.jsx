@@ -16,6 +16,7 @@ function formatTime(iso) {
  * y descarga de la allow-list offline del evento activo.
  */
 export default function AdminOfflineSyncStatus({
+  compact = false,
   conflictCount,
   downloadAllowlist,
   isOnline,
@@ -44,6 +45,7 @@ export default function AdminOfflineSyncStatus({
   const statusClass = [
     'admin-offline-sync-status',
     `admin-offline-sync-status--${isOnline ? 'online' : 'offline'}`,
+    compact ? 'admin-offline-sync-status--compact' : '',
     needsDownload ? 'admin-offline-sync-status--setup' : '',
     hasPending ? 'admin-offline-sync-status--pending' : '',
   ]

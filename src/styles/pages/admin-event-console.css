@@ -1163,6 +1163,19 @@
   padding: 4px 0;
 }
 
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__cupo .admin-event-form__toggle {
+  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  margin-top: 2px;
+  min-height: 44px;
+  padding: 12px 0 4px;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__toggle--nested {
+  border-top: 0;
+  margin-top: 0;
+  padding: 6px 0 4px 12px;
+}
+
 .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__bank-transfer {
   background: transparent;
   border: 0;
@@ -1481,26 +1494,45 @@
 }
 
 .admin-shell .admin-event-zones__head {
-  align-items: center;
+  align-items: flex-start;
   display: flex;
   gap: 12px;
 }
 
 .admin-shell .admin-event-zones__head-copy {
+  display: grid;
+  gap: 4px;
   min-width: 0;
+}
+
+.admin-shell .admin-event-zones__eyebrow {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 550;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-shell .admin-event-zones__lead {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 2px 0 0;
+  max-width: 46ch;
 }
 
 .admin-shell .admin-event-zones__head > button {
   flex: 0 0 auto;
   margin-left: auto;
+  margin-top: 2px;
 }
 
 .admin-shell .admin-event-zones__head h3 {
   color: var(--admin-ink);
   font-family: var(--font-display, var(--font-family));
-  font-size: 16px;
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
   line-height: 1.2;
   margin: 0;
 }
@@ -1624,14 +1656,58 @@
 }
 
 .admin-shell .admin-event-zones__empty {
-  border: 1px dashed var(--admin-hairline);
-  border-radius: 12px;
+  border: 0;
+  border-radius: 0;
   color: var(--admin-muted);
-  font-size: 13px;
+  font-size: 13.5px;
   line-height: 1.5;
   margin: 0;
-  padding: 24px;
-  text-align: center;
+  padding: 4px 0 2px;
+  text-align: left;
+}
+
+.admin-shell .admin-event-zones__empty > p {
+  margin: 0;
+  max-width: 42ch;
+}
+
+.admin-shell .admin-event-zones__empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-start;
+  margin-top: 16px;
+}
+
+.admin-shell .admin-event-zones__empty-actions > .btn {
+  display: inline-flex;
+  gap: 7px;
+}
+
+.admin-shell .admin-event-zones__empty-actions > button:not(.btn) {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline);
+  border-radius: var(--border-radius-pill);
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.admin-shell .admin-event-zones__empty-actions > button:not(.btn):hover:not(:disabled) {
+  border-color: var(--admin-brand-border);
+  color: var(--admin-brand);
+}
+
+.admin-shell .admin-event-zones__empty-actions > button:not(.btn):disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .admin-shell .admin-event-zones__list {
@@ -2417,131 +2493,26 @@
   }
 }
 
-/* Cabecera mínima del panel: no tenía ninguna regla, así que heredaba el
-   encabezado completo -- fondo opaco, borde y padding de una cabecera con
-   título -- para contener sólo dos íconos. Es una barra de acciones. */
-/* Doble clase a propósito: es un modificador que tiene que pisar a
-   `.admin-event-workspace__head`, y con una sola clase quedaba empatado en
-   especificidad y perdía por orden. Sigue en `position: static` por debajo de
-   900px: ahí la barra lateral del evento es ella misma un sticky a top:0
-   (pestañas horizontales) y dos sticky compitiendo por el mismo top se
-   superponen. Desde 900px la barra pasa a columna lateral fija y acá sí puede
-   pegarse -- y AHORA la clase se lo permite: antes quedaba "static" también en
-   desktop, así que `--admin-event-head-h` (el offset del rail, más abajo)
-   apuntaba a un encabezado que en los hechos ya se había ido con el scroll. */
-.admin-event-workspace__head.admin-event-workspace__head--minimal {
-  align-items: stretch;
-  background: var(--admin-canvas);
-  background-color: var(--admin-canvas);
-  border-bottom: 0;
+/* Acciones in-flow: copiar / borrar. El nav lateral ya nombra la pestaña;
+   no hay banda de título ni sticky. */
+.admin-event-workspace__toolbar {
+  align-items: center;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  min-height: 0;
-  padding: 16px 20px 0;
+  justify-content: flex-end;
+  padding: 12px 20px 0;
   position: static;
 }
 
-.admin-event-workspace__head-row {
-  align-items: center;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-}
-
-@media (min-width: 900px) {
-  .admin-event-workspace__head.admin-event-workspace__head--minimal {
-    background: var(--admin-canvas);
-    background-color: var(--admin-canvas);
-    position: sticky;
-    top: 0;
-    z-index: 6;
-  }
-
-  /* Se achica en vez de quedar a tamaño completo todo el tiempo: menos banda
-     fija permanente, más lugar para el contenido real. Sin transición propia
-     a propósito -- son 6px, ya la esconde la del título (transform: scale) y
-     las de las márgenes de abajo; animar `padding` es layout, no lo que hace
-     falta acá. */
-  .admin-event-workspace__head.admin-event-workspace__head--minimal.is-compact {
-    padding-top: 10px;
+@media (max-width: 899px) {
+  .admin-event-workspace__toolbar {
+    padding: 10px 14px 0;
+    padding-left: max(14px, env(safe-area-inset-left, 0px));
+    padding-right: max(14px, env(safe-area-inset-right, 0px));
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .admin-event-workspace__head.admin-event-workspace__head--minimal {
-    transition: none;
-  }
-}
-
-/* Línea de estado del scroll de la sección activa: reemplaza el borde inferior
-   que tenía la cabecera completa (acá no hace falta, ya separa del cuerpo) y
-   da una referencia real de posición sin agregar otro elemento de chrome. */
-.admin-event-workspace__head-progress {
-  background: var(--admin-hairline);
-  display: block;
-  height: 1px;
-  margin-top: 14px;
-  position: relative;
-}
-
-.admin-event-workspace__head.is-compact .admin-event-workspace__head-progress {
-  margin-top: 8px;
-}
-
-.admin-event-workspace__head-progress-fill {
-  background: var(--admin-brand);
-  display: block;
-  height: 2px;
-  left: 0;
-  position: absolute;
-  top: -0.5px;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 120ms linear;
-  width: 100%;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .admin-event-workspace__head-progress-fill {
-    transition: none;
-  }
-}
-
-.admin-event-workspace__section-title {
-  color: var(--admin-ink);
-  font-family: var(--font-display, var(--font-family));
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin: 0;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transform-origin: left center;
-  transition: transform var(--motion-base, 240ms) var(--ease-standard, ease);
-  white-space: nowrap;
-}
-
-@media (min-width: 900px) {
-  /* En desktop la pestaña activa ya está en el nav lateral. */
-  .admin-event-workspace__section-title {
-    display: none;
-  }
-
-  .admin-event-workspace__head-actions {
-    margin-left: auto;
-  }
-
-  .admin-event-workspace__head.is-compact .admin-event-workspace__section-title {
-    transform: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .admin-event-workspace__section-title {
-    transition: none;
-  }
+.admin-event-workspace__toolbar .admin-event-workspace__head-actions {
+  margin-left: auto;
 }
 
 /* El pill es una etiqueta: en una columna angosta `stretch` lo estiraba de
@@ -2563,22 +2534,9 @@
     max-width: 38%;
   }
 
-  /* Dos sticky apilados, no superpuestos: las pestañas del evento se quedan
-     arriba; la cabecera del panel (acciones + capítulos de Ventas) para justo
-     debajo. Fondo opaco: si no, Cupo/Precios se leían cruzados con las tabs. */
+  /* Las pestañas del evento (sidebar) sí quedan sticky; el panel scrollea. */
   .admin-event-workspace--sidebar .admin-event-workspace__sidebar {
     z-index: 8;
-  }
-
-  .admin-event-workspace--sidebar
-    .admin-event-workspace__head.admin-event-workspace__head--minimal {
-    background: var(--admin-canvas);
-    background-color: var(--admin-canvas);
-    isolation: isolate;
-    padding: 12px 14px 0;
-    position: sticky;
-    top: var(--admin-event-sidebar-h, 7.5rem);
-    z-index: 7;
   }
 
   /* La página llena el alto útil para que el dock (margin-top: auto + sticky)
@@ -2678,12 +2636,6 @@
   }
 }
 
-/* Fallback del alto del head --minimal (~48px). El ResizeObserver del
-   workspace lo pisa con el alto real (compacto, capítulos de Ventas). */
-.admin-event-workspace__panel {
-  --admin-event-head-h: 48px;
-}
-
 /* Opaco a propósito: es una barra sticky sobre contenido que scrollea debajo.
    Con 72% de superficie se leía el formulario a través del encabezado, y el
    `backdrop-filter` no rescata eso de forma confiable. */
@@ -2697,14 +2649,7 @@
   justify-content: space-between;
   padding: 16px 20px 14px;
   padding-top: max(16px, env(safe-area-inset-top, 0px));
-  position: sticky;
-  top: 0;
-  /* Por encima de TODO sticky del panel: el dock de acciones (4) y el rail. En
-     una columna el rail va debajo del formulario, así que al pasar el final del
-     form el dock vuelve a su posición natural y cruza la banda del encabezado;
-     con z-index menor le pintaba encima (medido: 95px de solapamiento al 98%
-     del scroll) y, al compartir superficie, se leía como un solo panel. */
-  z-index: 6;
+  position: static;
 }
 
 .admin-event-workspace__head-copy {
@@ -3133,12 +3078,12 @@
   color: var(--admin-ink);
   display: flex;
   flex-wrap: wrap;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 650;
   gap: 4px 6px;
-  letter-spacing: -0.01em;
-  line-height: 1.35;
-  margin: 0 0 2px;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  margin: 0 0 6px;
 }
 
 .admin-event-state__result-primary {
@@ -3324,10 +3269,10 @@
   .admin-event-state
   .admin-filter-group__label {
   color: var(--admin-muted);
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .admin-shell
@@ -3389,11 +3334,11 @@
   .admin-event-workspace__panel
   .admin-event-state__row-label {
   color: var(--admin-muted);
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: 0;
   line-height: 32px;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .admin-shell
@@ -3413,45 +3358,55 @@
 
 .admin-shell
   .admin-event-workspace__panel
+  .admin-event-state__row--access {
+  align-items: center;
+}
+
+.admin-shell
+  .admin-event-workspace__panel
   .admin-event-state__row--access
   .admin-event-state__row-label {
-  line-height: 1.2;
-  padding-top: 8px;
+  line-height: 32px;
+  padding-top: 0;
 }
 
 .admin-shell
   .admin-event-workspace__panel
   .admin-event-state__access {
-  display: grid;
-  gap: 2px;
-  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 2px;
   min-width: 0;
 }
 
 .admin-shell
   .admin-event-workspace__panel
   .admin-event-state__access-option {
-  align-items: start;
+  align-items: center;
   background: transparent;
   border: 0;
-  border-left: 2px solid transparent;
+  border-bottom: 2px solid transparent;
   border-radius: 0;
-  color: inherit;
+  box-shadow: none;
+  color: var(--admin-muted);
   cursor: pointer;
-  display: grid;
-  gap: 3px;
-  justify-items: start;
-  min-height: 44px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 0;
+  min-height: 32px;
   min-width: 0;
-  padding: 7px 8px 8px 10px;
+  padding: 4px 10px;
   text-align: left;
-  width: 100%;
+  width: auto;
 }
 
 .admin-shell
   .admin-event-workspace__panel
   .admin-event-state__access-option:hover:not(:disabled):not(.is-active) {
-  border-left-color: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 28%, transparent);
+  background: transparent;
+  box-shadow: none;
+  color: var(--admin-ink, var(--color-text-primary));
 }
 
 .admin-shell
@@ -3472,34 +3427,33 @@
   .admin-event-workspace__panel
   .admin-event-state__access-option.is-active {
   background: transparent;
-  border-left-color: var(--admin-brand, var(--color-brand-celeste));
+  border-bottom-color: var(--admin-brand, var(--color-brand-celeste));
+  box-shadow: none;
+  color: var(--admin-ink, var(--color-text-primary));
 }
 
 .admin-shell
   .admin-event-workspace__panel
   .admin-event-state__access-option strong {
-  color: var(--admin-ink, var(--color-text-primary));
-  font-size: 13px;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  color: inherit;
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: 0;
   line-height: 1.25;
 }
 
 .admin-shell
   .admin-event-workspace__panel
-  .admin-event-state__access-option small {
-  color: var(--admin-muted, var(--color-text-muted));
-  font-size: 12px;
-  font-weight: 450;
-  line-height: 1.45;
-  max-width: 62ch;
+  .admin-event-state__access-option.is-active strong {
+  font-weight: 650;
 }
 
 .admin-shell
   .admin-event-workspace__panel
   .admin-event-state__access
   .admin-event-state__note {
-  grid-column: 1 / -1;
+  flex: 1 1 100%;
+  margin-top: 4px;
 }
 
 .admin-shell
@@ -4281,10 +4235,12 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-@media (min-width: 1280px) {
-  .admin-event-workspace--sidebar .admin-event-workspace__split {
-    grid-template-columns: minmax(0, 1fr) 320px;
-  }
+/* Con barra lateral el split sigue en una columna hasta 1280px. Un rail
+   sticky en esa pila se montaba encima de zonas y del equipo. */
+.admin-event-workspace--sidebar .admin-event-workspace__rail {
+  max-height: none;
+  overflow: visible;
+  position: static;
 }
 
 @media (min-width: 1080px) {
@@ -4292,16 +4248,28 @@
     grid-template-columns: minmax(0, 1fr) 320px;
   }
 
-  /* El rail acompaña al formulario debajo del encabezado sticky. El offset
-     es el alto medido del head (sin +16px: el head ya no es estático).
-     `100dvh - 64px` es el alto del content del shell; restar el head deja
-     la preview con scroll propio solo si de verdad desborda el viewport. */
+  /* El rail acompaña al formulario. Offset chico: el panel ya no tiene
+     cabecera sticky. `100dvh - 64px` es el alto del content del shell. */
   .admin-event-workspace__rail {
     align-self: start;
-    max-height: calc(100dvh - 64px - var(--admin-event-head-h));
+    max-height: calc(100dvh - 64px - 16px);
     overflow-y: auto;
     position: sticky;
-    top: var(--admin-event-head-h);
+    top: 16px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .admin-event-workspace--sidebar .admin-event-workspace__split {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+
+  .admin-event-workspace--sidebar .admin-event-workspace__rail {
+    align-self: start;
+    max-height: calc(100dvh - 64px - 16px);
+    overflow-y: auto;
+    position: sticky;
+    top: 16px;
   }
 }
 
@@ -4448,56 +4416,118 @@
 /* ── Aviso honesto (zonas) ──────────────────────────────────────────────── */
 
 .admin-event-workspace__notice {
-  background: color-mix(in srgb, var(--plu-warning-500) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--plu-warning-500) 30%, transparent);
-  border-radius: var(--border-radius-md, 10px);
+  align-items: flex-start;
+  background: var(--admin-surface, var(--color-bg-surface));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-left: 2px solid var(--admin-brand, var(--color-brand-celeste));
+  border-radius: 0 10px 10px 0;
   display: flex;
-  gap: 11px;
-  padding: 14px 16px;
+  gap: 10px;
+  isolation: isolate;
+  padding: 10px 14px;
+  position: relative;
+}
+
+.admin-event-workspace__notice-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
 }
 
 .admin-event-workspace__notice > svg {
-  color: var(--plu-gold-400);
+  color: var(--admin-brand, var(--color-brand-celeste));
   flex: 0 0 auto;
-  margin-top: 1px;
+  margin-top: 2px;
 }
 
 .admin-event-workspace__notice h3 {
-  font-size: 12.5px;
-  font-weight: 600;
-  margin: 0 0 5px;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 0;
 }
 
 .admin-event-workspace__notice p {
   color: var(--color-text-secondary);
-  font-size: 11.5px;
-  line-height: 1.55;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 72ch;
+}
+
+.admin-event-workspace__security-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  isolation: isolate;
+  min-width: 0;
+  position: relative;
+}
+
+.admin-event-workspace__security-stack > .admin-event-zones,
+.admin-event-workspace__security-stack > .admin-event-security {
+  clear: both;
+  float: none;
+  isolation: isolate;
+  position: relative;
+  width: 100%;
+}
+
+.admin-event-workspace .admin-event-security {
+  background: var(--admin-surface-muted, var(--color-bg-surface));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 16px;
+}
+
+.admin-event-workspace .admin-event-security__head-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-event-workspace .admin-event-security__head h3 {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-family: var(--font-display, var(--font-family));
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
   margin: 0;
 }
 
-/* ── Capítulos de Ventas ────────────────────────────────────────────────── */
+.admin-event-workspace .admin-event-security__lead {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 68ch;
+}
+
+.admin-event-workspace .admin-event-security__zone {
+  color: var(--admin-text-secondary, var(--color-text-secondary));
+  font-size: 12px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Capítulos de Ventas ──────────────────────────────────────────────────
+   Strip editorial in-flow: label + valor, regla inferior, activo con el
+   mismo acento izquierdo del nav. No es una segunda tab bar. */
 
 .admin-event-workspace__chapters {
   border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: flex;
-  gap: 20px;
+  gap: 2px;
+  margin: 0 0 16px;
   overflow-x: auto;
   scrollbar-width: none;
-}
-
-/* Ahora viven en la cabecera del panel (antes, sueltos arriba del editor de
-   Ventas): separación propia del título, y su propio borde inferior alcanza
-   como línea de cierre -- la de progreso no necesita repetirla pegada abajo. */
-.admin-event-workspace__head-row + .admin-event-workspace__chapters {
-  margin-top: 18px;
-}
-
-.admin-event-workspace__head.is-compact .admin-event-workspace__head-row + .admin-event-workspace__chapters {
-  margin-top: 10px;
-}
-
-.admin-event-workspace__chapters + .admin-event-workspace__head-progress {
-  margin-top: 0;
 }
 
 .admin-event-workspace__chapters::-webkit-scrollbar {
@@ -4507,39 +4537,55 @@
 .admin-event-workspace__chapter {
   background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
+  box-shadow: inset 2px 0 0 transparent;
   color: var(--admin-muted, var(--color-text-muted));
   cursor: pointer;
   display: flex;
   flex: 0 0 auto;
   flex-direction: column;
   font-family: inherit;
-  gap: 3px;
-  margin-bottom: -1px;
+  gap: 2px;
   min-height: 44px;
-  padding: 0 0 10px;
+  padding: 8px 14px 10px 12px;
   text-align: left;
 }
 
 .admin-event-workspace__chapter strong {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .admin-event-workspace__chapter em {
   color: color-mix(in srgb, var(--admin-muted, var(--color-text-muted)) 80%, transparent);
-  font-size: 10.5px;
+  font-size: 11px;
   font-style: normal;
 }
 
 .admin-event-workspace__chapter.is-active {
-  border-bottom-color: var(--admin-brand, var(--color-brand-celeste));
+  box-shadow: inset 2px 0 0 var(--admin-brand, var(--color-brand-celeste));
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-event-workspace__chapter:hover:not(.is-active) {
   color: var(--admin-ink, var(--color-text-primary));
 }
 
 .admin-event-workspace__chapter:focus-visible {
   outline: 2px solid var(--admin-brand, var(--color-brand-celeste));
-  outline-offset: 2px;
+  outline-offset: -2px;
+}
+
+.admin-event-workspace__panel .admin-event-form__ticket-config {
+  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  margin-top: 4px;
+}
+
+.admin-event-workspace__panel .admin-event-form__ticket-config-body {
+  display: grid;
+  gap: 16px;
+  padding-top: 14px;
 }
 
 /* ── Interruptores de la página pública ─────────────────────────────────── */

@@ -82,6 +82,10 @@ import {
   setMembershipStatus as setMembershipStatusRequest,
   setRegistrationPublicVisibility as setRegistrationPublicVisibilityRequest,
   updateAthleteProfile as updateAthleteProfileRequest,
+  sendAthleteProfileNotice as sendAthleteProfileNoticeRequest,
+  sendAthleteProfileNoticesBulk as sendAthleteProfileNoticesBulkRequest,
+  markAthleteProfileNoticeRead as markAthleteProfileNoticeReadRequest,
+  dismissAthleteProfileNotice as dismissAthleteProfileNoticeRequest,
 } from '../services/athleteApi.js'
 import { uploadAthletePhoto } from '../services/athletePhotoService.js'
 import {
@@ -2018,6 +2022,121 @@ export function useAppData() {
     [session],
   )
 
+  const applyLocalProfileNotice = useCallback((athleteId, notice) => {
+    if (!notice) return
+    setAthletes((current) =>
+      current.map((item) => {
+        if (item.id !== athleteId) return item
+        const notices = item.profileNotices ?? []
+        const next = notices.some((entry) => entry.id === notice.id)
+          ? notices.map((entry) => (entry.id === notice.id ? { ...entry, ...notice } : entry))
+          : [notice, ...notices]
+        return { ...item, profileNotices: next }
+      }),
+    )
+  }, [])
+
+  const sendAthleteProfileNoticeAction = useCallback(
+    async (athleteId, message) => {
+      if (!hasPermission(session, 'admin.athletes.write')) {
+        throw new Error('Sin permisos para avisar a atletas.')
+      }
+      if (isDemoSession(session)) {
+        const notice = {
+          id: `demo-notice-${athleteId}`,
+          athleteId,
+          kind: 'profile_incomplete',
+          missingFields: [],
+          message: message ?? '',
+          createdAt: new Date().toISOString(),
+          readAt: null,
+          dismissedAt: null,
+          resolvedAt: null,
+        }
+        applyLocalProfileNotice(athleteId, notice)
+        return { notice, missing: [] }
+      }
+      const result = await sendAthleteProfileNoticeRequest(athleteId, message)
+      applyLocalProfileNotice(athleteId, result.notice)
+      return result
+    },
+    [applyLocalProfileNotice, session],
+  )
+
+  const sendAthleteProfileNoticesBulkAction = useCallback(
+    async (athleteIds, message, { onProgress } = {}) => {
+      if (!hasPermission(session, 'admin.athletes.write')) {
+        throw new Error('Sin permisos para avisar a atletas.')
+      }
+      if (isDemoSession(session)) {
+        const total = athleteIds.length
+        onProgress?.({ from: total ? 1 : 0, to: total, total })
+        return { sent: athleteIds.map((athleteId) => ({ athleteId })), skipped: [], failed: [] }
+      }
+      try {
+        const result = await sendAthleteProfileNoticesBulkRequest(athleteIds, message, {
+          onProgress,
+        })
+        for (const item of result.sent) {
+          applyLocalProfileNotice(item.athleteId, item.notice)
+        }
+        return result
+      } catch (error) {
+        for (const item of error.partial?.sent ?? []) {
+          applyLocalProfileNotice(item.athleteId, item.notice)
+        }
+        throw error
+      }
+    },
+    [applyLocalProfileNotice, session],
+  )
+
+  const markAthleteProfileNoticeReadAction = useCallback(async (noticeId) => {
+    if (isDemoSession(session)) {
+      const readAt = new Date().toISOString()
+      let updated = null
+      setAthletes((current) =>
+        current.map((item) => {
+          const notices = item.profileNotices ?? []
+          const found = notices.find((entry) => entry.id === noticeId)
+          if (!found) return item
+          updated = { ...found, readAt: found.readAt ?? readAt }
+          return {
+            ...item,
+            profileNotices: notices.map((entry) => (entry.id === noticeId ? updated : entry)),
+          }
+        }),
+      )
+      return updated
+    }
+    const { notice } = await markAthleteProfileNoticeReadRequest(noticeId)
+    applyLocalProfileNotice(notice.athleteId, notice)
+    return notice
+  }, [applyLocalProfileNotice, session])
+
+  const dismissAthleteProfileNoticeAction = useCallback(async (noticeId) => {
+    if (isDemoSession(session)) {
+      const now = new Date().toISOString()
+      let updated = null
+      setAthletes((current) =>
+        current.map((item) => {
+          const notices = item.profileNotices ?? []
+          const found = notices.find((entry) => entry.id === noticeId)
+          if (!found) return item
+          updated = { ...found, readAt: found.readAt ?? now, dismissedAt: now }
+          return {
+            ...item,
+            profileNotices: notices.map((entry) => (entry.id === noticeId ? updated : entry)),
+          }
+        }),
+      )
+      return updated
+    }
+    const { notice } = await dismissAthleteProfileNoticeRequest(noticeId)
+    applyLocalProfileNotice(notice.athleteId, notice)
+    return notice
+  }, [applyLocalProfileNotice, session])
+
   const createAccessRoleAction = useCallback(
     async (draft) => {
       let createdRole
@@ -2933,6 +3052,8 @@ export function useAppData() {
             status: changes.status ?? event.status,
             published: changes.published ?? event.published,
             requiresMembership: changes.requiresMembership ?? event.requiresMembership,
+            capacityProgressPublic:
+              changes.capacityProgressPublic ?? event.capacityProgressPublic,
             updatedAt: new Date().toISOString(),
           }
           // El demo replica la regla de la base: sin esto el cupo lleno se
@@ -3602,6 +3723,10 @@ export function useAppData() {
     deleteAthleteAction,
     bulkUpdateAthletesAction,
     updateAthleteAction,
+    sendAthleteProfileNoticeAction,
+    sendAthleteProfileNoticesBulkAction,
+    markAthleteProfileNoticeReadAction,
+    dismissAthleteProfileNoticeAction,
     deleteMembershipAction,
     deleteRegistrationAction,
     setRegistrationPublicVisibilityAction,

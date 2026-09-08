@@ -6662,6 +6662,14 @@
   width: 100%;
 }
 
+.pitbull-inscription-counter__remaining {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  font-weight: 550;
+  letter-spacing: 0.01em;
+  margin: 8px 0 0;
+}
+
 [data-theme='light'] .pitbull-inscription-counter__bar {
   background: rgba(15, 17, 23, 0.1);
 }
@@ -6716,9 +6724,13 @@
   margin: 0;
 }
 
-.pitbull-inscription-counter--hidden .pitbull-inscription-counter__value {
+.pitbull-inscription-counter--compact .pitbull-inscription-counter__remaining {
+  font-size: 11.5px;
+  margin-top: 6px;
+}
+
+.pitbull-inscription-counter--hidden .pitbull-inscription-counter__mark {
   color: var(--color-text-primary);
-  opacity: 0.92;
 }
 
 .pitbull-inscription-counter--hidden .pitbull-inscription-counter__hint,
@@ -7036,15 +7048,19 @@
 }
 
 .pitbull-inscription-counter--deck .pitbull-inscription-counter__row {
-  align-items: flex-start;
+  align-items: center;
   flex-direction: column;
   gap: 10px;
+  text-align: center;
+  width: 100%;
 }
 
 .pitbull-inscription-counter--deck .pitbull-inscription-counter__stat {
-  align-items: baseline;
+  align-items: center;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  justify-content: center;
+  width: 100%;
 }
 
 .pitbull-inscription-counter--deck .pitbull-inscription-counter__value {
@@ -7062,14 +7078,18 @@
   font-size: 10px;
   letter-spacing: 0.16em;
   max-width: 14ch;
+  text-align: center;
 }
 
 .pitbull-inscription-counter--deck .pitbull-inscription-counter__badge {
   font-size: 10px;
+  justify-content: center;
   letter-spacing: 0.12em;
+  width: 100%;
 }
 
 .pitbull-inscription-counter--deck .pitbull-inscription-counter__bar {
+  margin-inline: auto;
   margin-top: 4px;
   max-width: 12rem;
 }
@@ -7078,9 +7098,43 @@
   color: var(--color-text-muted);
   font-size: 11.5px;
   line-height: 1.5;
-  margin: 0;
-  max-width: 26ch;
+  margin: 0 auto;
+  max-width: 22ch;
   opacity: 0.78;
+  text-align: center;
+}
+
+.pitbull-inscription-counter--deck .pitbull-inscription-counter__remaining {
+  margin-inline: auto;
+  margin-top: 6px;
+  max-width: 22ch;
+  text-align: center;
+}
+
+.pitbull-inscription-counter__mark {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 2.2vw, 1.45rem);
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+  max-width: 10ch;
+  text-align: center;
+}
+
+.pitbull-inscription-counter--deck.pitbull-inscription-counter--hidden {
+  align-content: start;
+  gap: 16px;
+}
+
+.pitbull-inscription-counter--deck.pitbull-inscription-counter--hidden .pitbull-inscription-counter__unit {
+  max-width: none;
+}
+
+.pitbull-inscription-counter--deck.pitbull-inscription-counter--hidden .pitbull-inscription-counter__hint {
+  border-top: 1px solid color-mix(in oklab, var(--plu-gold-500) 32%, transparent);
+  max-width: 20ch;
+  padding-top: 12px;
 }
 
 .pitbull-inscription-deck__offer {
@@ -8841,6 +8895,45 @@
 .pitbull-tickets-band__cta:focus-visible {
   outline: 2px solid var(--color-brand-celeste);
   outline-offset: 3px;
+}
+
+.pitbull-tickets-band--soon {
+  min-height: clamp(360px, 56vw, 500px);
+}
+
+.pitbull-tickets-band--soon .pitbull-tickets-band__scrim {
+  background: linear-gradient(
+    105deg,
+    color-mix(in oklab, var(--plu-cool-950) 86%, transparent) 0%,
+    color-mix(in oklab, var(--plu-cool-950) 58%, transparent) 40%,
+    color-mix(in oklab, var(--plu-cool-950) 34%, transparent) 70%,
+    color-mix(in oklab, var(--plu-cool-950) 46%, transparent) 100%
+  );
+}
+
+.pitbull-tickets-band--soon .pitbull-tickets-band__title {
+  max-width: 12ch;
+}
+
+.pitbull-tickets-band__soon {
+  align-items: center;
+  color: var(--plu-gold-400, var(--color-brand-gold));
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  gap: 12px;
+  letter-spacing: 0.18em;
+  margin: 10px 0 0;
+  text-transform: uppercase;
+}
+
+.pitbull-tickets-band__soon::before {
+  background: currentColor;
+  content: '';
+  display: block;
+  height: 1px;
+  width: 1.75rem;
 }
 
 @media (min-width: 900px) {

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowLeft, Check, CircleAlert, Pencil, Route, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Bell, Check, CircleAlert, Pencil, Route, Trash2, X } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
@@ -19,6 +19,8 @@ import { ATHLETE_FILTER_STATUSES, PAYMENT_METHODS } from '../../lib/constants.js
 import { money } from '../../lib/format.js'
 import { actorLabel, formatStateDateTime } from '../../lib/stateProvenance.js'
 import { canApproveManualOrder } from '../../services/paymentValidationService.js'
+import { isProfileComplete } from '../../lib/athleteProfile.js'
+import { PROFILE_NOTICE_MESSAGE_MAX } from '../../../shared/profileNotice.js'
 import {
   findAthleteStateDivergences,
   isPlaceholderReason,
@@ -54,6 +56,7 @@ export default function AthleteDetailSection({
   canValidatePayments = false,
   onDelete,
   onUpdate,
+  onNotifyProfile,
   onApprovePayment,
   onRejectPayment,
 }) {
@@ -68,7 +71,13 @@ export default function AthleteDetailSection({
   const [editGym, setEditGym] = useState('')
   const [editBusy, setEditBusy] = useState(false)
   const [editError, setEditError] = useState('')
+  const [noticeMessage, setNoticeMessage] = useState('')
+  const [noticeBusy, setNoticeBusy] = useState(false)
+  const [noticeError, setNoticeError] = useState('')
+  const [noticeSent, setNoticeSent] = useState(false)
   const { athlete, memberships = [], registrations = [], payments = [] } = detail ?? {}
+  const noticePreset = t('admin.athleteDetail.profileNotice.preset')
+  const noticeDraft = noticeMessage || noticePreset
 
   const statusOptions = useMemo(
     () =>
@@ -106,6 +115,21 @@ export default function AthleteDetailSection({
   // La credencial vigente es la de la afiliación activa; si no hay ninguna, se
   // muestra la última emitida para poder cotejar un QR viejo.
   const credentialMembership = activeMembership ?? memberships[0] ?? null
+  const profileStatus = isProfileComplete(athlete)
+  const missingFieldLabels = profileStatus.missing
+    .map((field) => {
+      const keys = {
+        phone: 'admin.athleteDetail.fields.phone',
+        city: 'admin.athleteDetail.fields.city',
+        province: 'admin.athleteDetail.fields.province',
+        gym: 'admin.athleteDetail.fields.gym',
+        division: 'admin.athleteDetail.fields.division',
+        category: 'admin.athleteDetail.fields.category',
+        estimatedWeight: 'admin.athleteDetail.fields.estimatedWeight',
+      }
+      return t(keys[field] ?? field)
+    })
+    .join(', ')
 
   const tabs = useMemo(
     () => [
@@ -221,6 +245,26 @@ export default function AthleteDetailSection({
       setEditError(error?.message ?? t('admin.athleteDetail.edit.error'))
     } finally {
       setEditBusy(false)
+    }
+  }
+
+  async function handleSendNotice() {
+    if (!onNotifyProfile || !athlete?.id) return
+    setNoticeError('')
+    setNoticeSent(false)
+    setNoticeBusy(true)
+    try {
+      await onNotifyProfile(athlete.id, noticeDraft.trim())
+      setNoticeSent(true)
+    } catch (error) {
+      const complete = error?.body?.code === 'PROFILE_COMPLETE' || error?.status === 409
+      setNoticeError(
+        complete
+          ? t('admin.athleteDetail.profileNotice.alreadyComplete')
+          : (error?.message ?? t('admin.athleteDetail.profileNotice.error')),
+      )
+    } finally {
+      setNoticeBusy(false)
     }
   }
 
@@ -380,6 +424,51 @@ export default function AthleteDetailSection({
 
       {activeTab === 'profile' && (
         <>
+          <section className="athlete-detail__notice" aria-labelledby="athlete-profile-notice-title">
+            <h3 id="athlete-profile-notice-title" className="athlete-detail__group-title">
+              {t('admin.athleteDetail.profileNotice.title')}
+            </h3>
+            <p className="athlete-detail__notice-status">
+              {profileStatus.complete
+                ? t('admin.athleteDetail.profileNotice.complete')
+                : t('admin.athleteDetail.profileNotice.missing', { fields: missingFieldLabels })}
+            </p>
+            {canEdit && onNotifyProfile && !profileStatus.complete ? (
+              <div className="athlete-detail__notice-form">
+                <label className="athlete-detail__notice-label" htmlFor="athlete-profile-notice-note">
+                  {t('admin.athleteDetail.profileNotice.noteLabel')}
+                </label>
+                <textarea
+                  id="athlete-profile-notice-note"
+                  className="athlete-detail__notice-input"
+                  maxLength={PROFILE_NOTICE_MESSAGE_MAX}
+                  rows={2}
+                  value={noticeDraft}
+                  onChange={(event) => setNoticeMessage(event.target.value)}
+                  placeholder={t('admin.athleteDetail.profileNotice.notePlaceholder')}
+                  disabled={noticeBusy}
+                />
+                <div className="athlete-detail__notice-actions">
+                  <Button type="button" disabled={noticeBusy} onClick={handleSendNotice}>
+                    <Bell size={14} aria-hidden />
+                    {noticeBusy
+                      ? t('admin.athleteDetail.profileNotice.sending')
+                      : t('admin.athleteDetail.profileNotice.send')}
+                  </Button>
+                  {noticeSent ? (
+                    <p className="athlete-detail__notice-sent" role="status">
+                      {t('admin.athleteDetail.profileNotice.sent')}
+                    </p>
+                  ) : null}
+                  {noticeError ? (
+                    <p className="athlete-detail__notice-error" role="alert">
+                      {noticeError}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+          </section>
           <div className="athlete-detail__sheet">
             {profileGroups.map((group) => (
               <section

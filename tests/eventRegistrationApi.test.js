@@ -34,6 +34,7 @@ describe('fetchEventRegistrationSummary', () => {
       registeredToday: 0,
       remaining: 79,
       progressPublic: true,
+      totalPublic: true,
       recent: [
         {
           displayName: 'Ana T.',
@@ -63,6 +64,7 @@ describe('fetchEventRegistrationSummary', () => {
       registeredToday: 0,
       remaining: 130,
       progressPublic: false,
+      totalPublic: true,
       recent: [],
     })
   })

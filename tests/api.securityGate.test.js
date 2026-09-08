@@ -96,6 +96,8 @@ async function buildGuard(overrides = {}) {
     eventId: 'evt-1',
     eventSlug: 'pitbull-classic-2026',
     event: { id: 'evt-1', slug: 'pitbull-classic-2026', title: 'Pitbull Classic' },
+    securityZoneId: 'zone-door',
+    securityZone: { id: 'zone-door', name: 'Puerta principal', scope: 'door' },
     ...overrides,
   }
 }
@@ -170,6 +172,11 @@ describe('security-gate (login por credencial de acceso)', () => {
         id: 'usr-guard',
         role: 'seguridad_plu_arg',
         eventSlug: 'pitbull-classic-2026',
+        securityZone: {
+          id: 'zone-door',
+          name: 'Puerta principal',
+          scope: 'door',
+        },
       })
     } finally {
       await target.close()

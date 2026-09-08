@@ -671,6 +671,12 @@ export default function RegisterPage({
       [t('pages.register.country'), athlete.country],
       [t('account.personalData.province'), athlete.province],
       [t('account.personalData.city'), athlete.city],
+      [t('account.personalData.division'), athlete.division],
+      [t('account.personalData.category'), athlete.category],
+      [
+        t('account.personalData.estimatedWeight'),
+        athlete.estimatedWeight ? `${athlete.estimatedWeight} kg` : null,
+      ],
       [
         t('account.personalData.bestTotal'),
         athlete.bestTotalKg ? `${athlete.bestTotalKg} kg` : null,

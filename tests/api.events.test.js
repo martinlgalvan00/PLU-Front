@@ -311,6 +311,13 @@ describe('API administrativa de eventos', () => {
           },
         }),
       )
+      expect(supabase.rpc).toHaveBeenCalledWith(
+        'staff_merge_event_capacity_total',
+        expect.objectContaining({
+          p_slug: payload.slug,
+          p_total_public: true,
+        }),
+      )
     } finally {
       await target.close()
     }

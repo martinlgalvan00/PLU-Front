@@ -33,6 +33,7 @@ import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER } from '../../motion/token
 import BrandLogo from './BrandLogo.jsx'
 import Button from './Button.jsx'
 import CapacityBar from './CapacityBar.jsx'
+import { describePublicCapacity } from '../../lib/eventCapacityPublic.js'
 import EventCalendarActions from './EventCalendarActions.jsx'
 import ResponsivePhoto from './ResponsivePhoto.jsx'
 
@@ -80,11 +81,13 @@ export default function PitbullSpotlight({
   onProfile,
   onResults,
   progressPublic = true,
+  remaining = null,
   recent = [],
   registerLabel,
   registrationCheckoutEnabled = true,
   registered,
   slots,
+  totalPublic = true,
 }) {
   const { PITBULL_CLASSIC } = useContent()
   const { locale, t } = useI18n()
@@ -271,11 +274,16 @@ export default function PitbullSpotlight({
      * cupo de referencia del contenido estático como si fuera inscripción. */
     const liveRegistered = Number(registered ?? 0)
     const liveSlots = Number(slots ?? 0)
+    const occupancy = describePublicCapacity({
+      progressPublic,
+      totalPublic,
+      registered: liveRegistered,
+      slots: liveSlots,
+      remaining,
+    })
     const showLiveCapacity =
-      capacityStatus === 'live' && liveSlots > 0 && liveRegistered > 0 && progressPublic
-    const occupancyPct = showLiveCapacity
-      ? Math.min(100, Math.round((liveRegistered / liveSlots) * 100))
-      : 0
+      capacityStatus === 'live' && liveSlots > 0 && liveRegistered > 0 && occupancy.mode === 'meter'
+    const occupancyPct = showLiveCapacity ? occupancy.percent : 0
     // Tres nombres alcanzan para dar prueba real sin volver la portada una
     // lista; el resto queda como "+N" y el detalle completo vive en Pitbull.
     const recentShown = showLiveCapacity ? recent.slice(0, 3) : []
@@ -400,14 +408,27 @@ export default function PitbullSpotlight({
               <OverlayItem {...overlayItemProps}>
                 <div
                   className="pitbull-spotlight__home-live"
-                  aria-label={t('pages.home.liveRegisteredAria', {
-                    registered: liveRegistered,
-                    total: liveSlots,
-                  })}
+                  aria-label={
+                    occupancy.showTotal
+                      ? t('pages.home.liveRegisteredAria', {
+                          registered: liveRegistered,
+                          total: liveSlots,
+                        })
+                      : t('pages.home.liveRegisteredAriaNoTotal', {
+                          registered: liveRegistered,
+                          remaining: occupancy.remaining,
+                        })
+                  }
                 >
                   <p className="pitbull-spotlight__home-live-count">
                     <strong>{liveRegistered}</strong>
-                    <span>{t('pages.home.liveRegisteredCount', { total: liveSlots })}</span>
+                    <span>
+                      {occupancy.showTotal
+                        ? t('pages.home.liveRegisteredCount', { total: liveSlots })
+                        : t('pages.home.liveRegisteredCountNoTotal')}
+                      {' · '}
+                      {t('pages.home.liveRegisteredRemaining', { count: occupancy.remaining })}
+                    </span>
                   </p>
 
                   <span className="pitbull-spotlight__home-live-track" aria-hidden>
@@ -488,6 +509,7 @@ export default function PitbullSpotlight({
             current={capacityRegistered}
             total={capacitySlots}
             label={t('pages.pitbull.spotlight.slotsOccupied')}
+            showTotal={totalPublic !== false && progressPublic}
           />
         </div>
 

@@ -119,6 +119,9 @@ function completeCompetitionProfile() {
     phone: '1145678901',
     country: 'Argentina',
     province: 'Buenos Aires',
+    division: 'Open',
+    category: 'Raw',
+    estimated_weight: 67.5,
   }
 }
 

@@ -26,3 +26,16 @@ export const AdminSession = {
     session: { name: 'Admin PLU', role: 'admin' },
   },
 }
+
+export const ProfileNoticeUnread = {
+  args: {
+    session: { name: 'Juan Pérez', role: 'athlete_plu' },
+    profileNoticeUnread: true,
+    profileNotice: {
+      id: 'notice-1',
+      missingFields: ['phone', 'estimatedWeight'],
+      message:
+        'Para inscribirte a un evento oficial, completá en tu cuenta los datos de contacto y de competencia.',
+    },
+  },
+}
