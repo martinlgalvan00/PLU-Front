@@ -1831,18 +1831,13 @@ export default function AdminEventEditor({
                   aria-label={t('admin.eventEditor.navVisibility')}
                   tabIndex={-1}
                 >
-                  <header className="admin-event-form__section-head">
-                    <h4>{t('admin.eventEditor.sectionVisibility')}</h4>
-                    {essentials ? (
-                      <p>{t('admin.eventEditor.sectionVisibilityLeadEssentials')}</p>
-                    ) : null}
-                  </header>
+                  {essentials ? null : (
+                    <header className="admin-event-form__section-head">
+                      <h4>{t('admin.eventEditor.sectionVisibility')}</h4>
+                    </header>
+                  )}
 
-                  {essentials ? (
-                    <p className="admin-event-form__section-note">
-                      {t('admin.eventEditor.visibilityOwnedByConsole')}
-                    </p>
-                  ) : (
+                  {essentials ? null : (
                     <>
                       <AdminFilterChipGroup
                         compact

@@ -194,9 +194,7 @@ export default function AdminEventZonesSection({
     <section className="admin-event-zones" aria-labelledby="admin-event-zones-title">
       <header className="admin-event-zones__head">
         <div className="admin-event-zones__head-copy">
-          <span className="admin-event-zones__eyebrow">{t('admin.eventZones.eyebrow')}</span>
           <h3 id="admin-event-zones-title">{t('admin.eventZones.title')}</h3>
-          <p>{t('admin.eventZones.lead')}</p>
         </div>
         <AdminIconButton
           className={loading ? 'is-spinning' : undefined}
