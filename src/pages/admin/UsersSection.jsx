@@ -9,6 +9,7 @@ import {
   AdminTableActionsEmpty,
 } from '../../components/admin/AdminTableCells.jsx'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
+import AdminEmptyState from '../../components/admin/AdminEmptyState.jsx'
 import { Field, Select } from '../../components/ui/FormFields.jsx'
 import Pill from '../../components/ui/Pill.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -129,6 +130,30 @@ export default function UsersSection({
       )
     })
   }, [users, query, statusFilter])
+
+  function clearFilters() {
+    setQuery('')
+    setStatusFilter('all')
+  }
+
+  const isGloballyEmpty = users.length === 0
+  const isFilteredEmpty = !isGloballyEmpty && rows.length === 0
+  const emptyMessage = isGloballyEmpty ? (
+    <AdminEmptyState
+      icon={Shield}
+      title={t('admin.sections.users.emptyTitle')}
+      lead={t('admin.sections.users.emptyLead')}
+    />
+  ) : isFilteredEmpty ? (
+    <AdminEmptyState
+      icon={Shield}
+      filtered
+      title={t('admin.sections.users.emptyFilteredTitle')}
+      lead={t('admin.sections.users.emptyFiltered')}
+      actionLabel={t('admin.sections.users.clearFilters')}
+      onAction={clearFilters}
+    />
+  ) : null
 
   useEffect(() => {
     if (!isCreating) return undefined
@@ -594,7 +619,7 @@ export default function UsersSection({
           },
         ]}
         rows={rows}
-        emptyMessage={t('admin.sections.users.empty')}
+        emptyMessage={emptyMessage}
       />
       {pendingDeletion ? (
         <AdminDeleteConfirmDialog

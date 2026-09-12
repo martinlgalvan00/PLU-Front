@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Users } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminAthletesBulkBar from '../../components/admin/AdminAthletesBulkBar.jsx'
+import AdminEmptyState from '../../components/admin/AdminEmptyState.jsx'
 import AdminSavedViews from '../../components/admin/AdminSavedViews.jsx'
 import { AdminIdentityCell, AdminMonoCell } from '../../components/admin/AdminTableCells.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -364,6 +366,25 @@ export default function AthletesSection({
     gatePendingIds,
   ])
 
+  const isGloballyEmpty = athletes.length === 0
+  const isFilteredEmpty = !isGloballyEmpty && rows.length === 0
+  const emptyMessage = isGloballyEmpty ? (
+    <AdminEmptyState
+      icon={Users}
+      title={t('admin.sections.athletes.emptyTitle')}
+      lead={t('admin.sections.athletes.emptyLead')}
+    />
+  ) : isFilteredEmpty ? (
+    <AdminEmptyState
+      icon={Users}
+      filtered
+      title={t('admin.sections.athletes.emptyFilteredTitle')}
+      lead={t('admin.sections.athletes.emptyFiltered')}
+      actionLabel={t('admin.sections.athletes.clearFilters')}
+      onAction={clearSavedView}
+    />
+  ) : null
+
   const incompleteVisibleIds = useMemo(
     () => rows.filter((row) => !isProfileComplete(row).complete).map((row) => row.id),
     [rows],
@@ -404,6 +425,7 @@ export default function AthletesSection({
       eyebrow={t('admin.sections.athletes.eyebrow')}
       title={t('admin.sections.athletes.title')}
       subtitle={t('admin.sections.athletes.subtitle')}
+      readOnlyHint={!canEdit ? t('admin.sections.athletes.readOnlyHint') : null}
       totalCount={athletes.length}
       filters={[
         {
@@ -656,7 +678,7 @@ export default function AthletesSection({
           },
         ]}
         rows={rows}
-        emptyMessage={t('admin.sections.athletes.empty')}
+        emptyMessage={emptyMessage}
         onRowClick={(row) => onSelectAthlete?.(row.id)}
         rowClassName="data-table__row--clickable"
       />

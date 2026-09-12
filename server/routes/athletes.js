@@ -59,6 +59,8 @@ import {
   displayPaymentConcept,
 } from '../modules/notifications/paymentNotificationService.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
+import { getEmailDefinition, resolveTemplateId } from '../modules/notifications/emailCatalog.js'
+import { renderEmail } from '../modules/notifications/emailTemplates.js'
 import {
   anonymousIdentityId,
   recordOperationalAuditEvent,
@@ -442,6 +444,30 @@ const registrationStatusSchema = z.object({
   status: z.enum(['confirmada', 'observada', 'cancelada']),
   reason: z.string().trim().min(3).max(500),
 })
+// Envío manual, nunca automático: el admin elige a quién y cuándo avisar.
+// Tope de 50 para que un click no dispare una campaña masiva por error.
+const registrationNotifySchema = z.object({
+  registrationIds: z.array(z.string().uuid()).min(1).max(50),
+  type: z.enum(['registration_cancelled', 'registration_reminder']),
+  message: z.string().trim().max(600).optional(),
+})
+// Corrección masiva: el mismo motivo se aplica a todas las filas
+// seleccionadas. Tope de 50 por la misma razón que el aviso por mail — un
+// click no puede tocar de más por error.
+const registrationBulkStatusSchema = z.object({
+  registrationIds: z.array(z.string().uuid()).min(1).max(50),
+  status: z.enum(['confirmada', 'observada', 'cancelada']),
+  reason: z.string().trim().min(3).max(500),
+})
+const registrationNotifyPreviewSchema = z.object({
+  registrationId: z.string().uuid(),
+  type: z.enum(['registration_cancelled', 'registration_reminder']),
+  message: z.string().trim().max(600).optional(),
+})
+// Sin motivo guardado y sin que el operador escriba uno, el aviso de
+// cancelación no puede quedar bloqueado: es lo mínimo que el atleta necesita
+// saber, y siempre es cierto.
+const DEFAULT_CANCELLED_REASON = 'Tu inscripción fue cancelada.'
 // Una observación suelta no cambia nada de dominio: sólo deja algo escrito. Por
 // eso no pide estado ni canal, y por eso el largo es más generoso que el motivo
 // de un cambio de estado -- acá es donde se cuenta el caso completo.
@@ -2802,6 +2828,196 @@ export function createAthleteRoutes({
             actorLabel(req),
           ),
         )
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Corrección masiva: mismo motivo, mismo destino, para varias inscripciones
+   * a la vez -- pensado para vaciar de un lote a las que quedaron
+   * `pendiente_pago` y nunca volvieron a completar el pago, sin abrir el
+   * diálogo fila por fila. Cada fila se corrige con la misma RPC que la
+   * corrección individual (misma auditoría, mismo actor); una fila que falla
+   * no frena al resto del lote.
+   */
+  router.post(
+    '/admin/registrations/bulk-status',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(registrationBulkStatusSchema),
+    async (req, res, next) => {
+      try {
+        const { registrationIds, status, reason } = req.validatedBody
+        const results = []
+        for (const registrationId of registrationIds) {
+          try {
+            await repo().setRegistrationStatus(registrationId, status, reason, actorLabel(req))
+            results.push({ registrationId, status: 'updated' })
+          } catch (error) {
+            results.push({
+              registrationId,
+              status: 'failed',
+              error: error instanceof HttpError ? error.message : 'No se pudo actualizar.',
+            })
+          }
+        }
+        res.json({
+          results,
+          updated: results.filter((row) => row.status === 'updated').length,
+          failed: results.filter((row) => row.status === 'failed').length,
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Arma los params del mail de aviso de una inscripción a partir del tipo y
+   * de lo que haya escrito el operador. Compartido entre el envío real y la
+   * previsualización para que nunca se desalineen.
+   *
+   * Sin motivo guardado y sin mensaje del operador, `registration_cancelled`
+   * usa `DEFAULT_CANCELLED_REASON` en vez de bloquear el aviso: que la
+   * inscripción se canceló es siempre cierto, aunque nadie haya escrito por
+   * qué.
+   */
+  function buildRegistrationNotifyParams(registration, type, message) {
+    const eventUrl = registration.event?.slug ? `${appUrl}/eventos/${registration.event.slug}` : ''
+    const base = { name: registration.athlete.full_name, eventTitle: registration.event?.title ?? '', eventUrl }
+    if (type !== 'registration_cancelled') return base
+    const reason = (message || registration.manual_override_reason || DEFAULT_CANCELLED_REASON).trim()
+    return { ...base, reason }
+  }
+
+  function registrationNotifyIdempotencyKey(registration, type) {
+    return type === 'registration_cancelled'
+      ? `email:registration-cancelled:${registration.id}:manual:${
+          registration.manual_override_at ?? registration.updated_at
+        }`
+      : // Un recordatorio no está atado a una transición de estado: el
+        // tope es un envío por día, no por click.
+        `email:registration-reminder:${registration.id}:${new Date().toISOString().slice(0, 10)}`
+  }
+
+  /**
+   * Aviso manual por mail a inscripciones canceladas: el motivo de la baja o
+   * un recordatorio de que el lugar sigue libre. Nunca automático -- lo
+   * dispara el operador a propósito, uno por uno o en tandas chicas.
+   *
+   * Sólo se manda algo cuando la inscripción está efectivamente `cancelada`:
+   * el resto vuelve como `skipped` con el motivo, en vez de mandar un mail
+   * que no corresponde o fallar todo el lote por una fila mal elegida.
+   */
+  router.post(
+    '/admin/registrations/notify',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(registrationNotifySchema),
+    async (req, res, next) => {
+      try {
+        const { registrationIds, type, message } = req.validatedBody
+        const registrations = await repo().findRegistrationsForNotification(registrationIds)
+        const byId = new Map(registrations.map((row) => [row.id, row]))
+
+        const results = []
+        for (const registrationId of registrationIds) {
+          const registration = byId.get(registrationId)
+          if (!registration) {
+            results.push({ registrationId, status: 'skipped', reason: 'No encontrada.' })
+            continue
+          }
+          if (registration.status !== 'cancelada') {
+            results.push({
+              registrationId,
+              status: 'skipped',
+              reason: 'La inscripción no está cancelada.',
+            })
+            continue
+          }
+          if (!registration.athlete?.email) {
+            results.push({ registrationId, status: 'skipped', reason: 'Sin email de contacto.' })
+            continue
+          }
+
+          const sendResult = await sendBestEffort(type, {
+            to: registration.athlete.email,
+            toName: registration.athlete.full_name,
+            entityType: 'event_registration',
+            entityId: registration.id,
+            idempotencyKey: registrationNotifyIdempotencyKey(registration, type),
+            params: buildRegistrationNotifyParams(registration, type, message),
+          })
+
+          results.push({
+            registrationId,
+            status: emailWasSent(sendResult)
+              ? 'sent'
+              : sendResult?.status === 'skipped'
+                ? 'skipped'
+                : 'failed',
+          })
+        }
+
+        res.json({
+          results,
+          sent: results.filter((row) => row.status === 'sent').length,
+          skipped: results.filter((row) => row.status === 'skipped').length,
+          failed: results.filter((row) => row.status === 'failed').length,
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Previsualización del mail de aviso, sin mandar nada. Arma el mismo HTML
+   * que va a salir (`renderEmail`, el mismo que usa el dispatcher para el
+   * fallback) para que el operador vea exactamente lo que va a recibir el
+   * atleta antes de confirmar el envío real.
+   *
+   * Si el tipo tiene un template de Brevo cargado, acá no hay nada que
+   * mostrar -- ese HTML vive en el dashboard de Brevo, no en este repo -- y
+   * se avisa en vez de mentir con el fallback.
+   */
+  router.post(
+    '/admin/registrations/notify/preview',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(registrationNotifyPreviewSchema),
+    async (req, res, next) => {
+      try {
+        const { registrationId, type, message } = req.validatedBody
+        const [registration] = await repo().findRegistrationsForNotification([registrationId])
+        if (!registration) throw new HttpError(404, 'Inscripción no encontrada.')
+        if (!registration.athlete?.email) {
+          throw new HttpError(422, 'La inscripción no tiene email de contacto.')
+        }
+
+        if (resolveTemplateId(type, env)) {
+          res.json({
+            available: false,
+            reason: 'Este aviso usa un template cargado en Brevo: la vista previa no está disponible acá.',
+          })
+          return
+        }
+
+        const rendered = renderEmail(type, buildRegistrationNotifyParams(registration, type, message), {
+          subject: getEmailDefinition(type)?.subject,
+          appUrl,
+          logoUrl: env.EMAIL_LOGO_URL,
+        })
+        if (!rendered) {
+          res.json({ available: false, reason: 'No hay plantilla para este tipo de aviso.' })
+          return
+        }
+
+        res.json({
+          available: true,
+          to: registration.athlete.email,
+          subject: rendered.subject,
+          html: rendered.htmlContent,
+        })
       } catch (error) {
         next(error)
       }
