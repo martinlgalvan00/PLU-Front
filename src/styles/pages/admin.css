@@ -7647,6 +7647,39 @@
   justify-content: flex-end;
 }
 
+/* Genérico: mismo tratamiento que ya probó PLU USA (`.admin-list-section--
+   plu-usa .admin-readonly-tag`, sin tocar), disponible en cualquier fila de
+   acciones del panel vía `<AdminReadOnlyTag>`. */
+.admin-readonly-tag {
+  align-items: center;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 28%, transparent);
+  border-radius: 999px;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  flex: none;
+  font-size: 10px;
+  font-weight: 700;
+  gap: 5px;
+  letter-spacing: 0.08em;
+  min-height: 32px;
+  padding: 0 10px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 560px) {
+  .admin-readonly-tag span {
+    display: none;
+  }
+
+  .admin-readonly-tag {
+    justify-content: center;
+    min-width: 32px;
+    padding-inline: 0;
+    width: 32px;
+  }
+}
+
 .admin-list-shell__toolbar {
   align-items: center;
   border-bottom: 1px solid var(--color-border-subtle);
@@ -9947,10 +9980,56 @@
   outline: none;
 }
 
+.admin-status-dialog__checkbox {
+  align-items: center;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: var(--space-xs);
+}
+
+.admin-status-dialog__checkbox input {
+  accent-color: var(--color-brand-celeste);
+  height: 16px;
+  width: 16px;
+}
+
 .admin-status-dialog__error {
   color: var(--color-danger-text);
   font-size: 13px;
   margin: 0;
+}
+
+.admin-registration-notify__preview-block {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.admin-registration-notify__preview {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.admin-registration-notify__preview-meta {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  margin: 0;
+}
+
+.admin-registration-notify__preview-meta strong {
+  color: var(--color-text-primary);
+}
+
+/* El mail siempre se renderiza sobre fondo claro -- así lo va a ver el
+   destinatario en su bandeja, sin importar el tema del panel. */
+.admin-registration-notify__preview-frame {
+  background: #fff;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+  height: 360px;
+  width: 100%;
 }
 
 .admin-status-dialog__actions {
@@ -15415,7 +15494,8 @@
 }
 
 .action-queue__type--registration svg,
-.action-queue__type--registration_gate svg {
+.action-queue__type--registration_gate svg,
+.action-queue__type--cancelled_registration svg {
   color: color-mix(in oklab, var(--color-brand-gold) 80%, var(--color-text-primary));
 }
 
@@ -21156,6 +21236,31 @@ button.action-queue__proof:focus-visible {
    Aparece sobre la tabla cuando hay inscripciones seleccionadas.
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
+/* Tira liviana para la corrección masiva de estado: misma selección que el
+   asignador de grilla de arriba, pero sin repetir su superficie -- son dos
+   acciones sobre el mismo lote, no hace falta que compitan visualmente. */
+.admin-bulk-status-bar {
+  align-items: center;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+  padding: 10px var(--space-md);
+}
+
+.admin-bulk-status-bar__lead {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+}
+
 .admin-schedule-assigner {
   position: relative;
   display: grid;
@@ -21316,6 +21421,16 @@ button.action-queue__proof:focus-visible {
   cursor: not-allowed;
 }
 
+/* Otra acción masiva sobre la misma selección (ej. cambiar estado). Fila
+   propia a todo el ancho -- meterla en el `lead` competía por el mismo
+   espacio angosto que el contador y rompía en mobile. */
+.admin-schedule-assigner__extra {
+  border-top: 1px solid color-mix(in srgb, var(--color-brand-celeste) 18%, var(--color-border-subtle));
+  grid-column: 1 / -1;
+  margin-top: 2px;
+  padding-top: var(--space-sm);
+}
+
 .admin-schedule-assigner__dismiss {
   position: absolute;
   top: 8px;
@@ -21367,6 +21482,13 @@ button.action-queue__proof:focus-visible {
   .admin-schedule-assigner {
     grid-template-columns: 1fr auto;
     align-items: stretch;
+  }
+
+  /* Sin esto, el aviso ("no se pudo leer la grilla", "sin días cargados")
+     compartía la segunda columna angosta con el contador de arriba y los
+     dos textos terminaban superpuestos en vez de en su propia línea. */
+  .admin-schedule-assigner__notice {
+    grid-column: 1 / -1;
   }
 
   .admin-schedule-assigner__controls {
@@ -23592,6 +23714,14 @@ button.action-queue__proof:focus-visible {
   margin: 0;
 }
 
+.admin-ticket-credentials__preset-hint {
+  color: var(--admin-ink-muted, var(--color-text-muted));
+  display: block;
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: -2px;
+}
+
 .admin-ticket-credentials__list {
   display: flex;
   flex-direction: column;
@@ -23656,6 +23786,83 @@ button.action-queue__proof:focus-visible {
 .admin-ticket-credentials__zone-list {
   display: grid;
   gap: 6px;
+}
+
+.admin-ticket-credentials__zone {
+  align-items: flex-start;
+  background: var(--admin-control-bg, transparent);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 10px;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 44px;
+  padding: 10px 12px;
+}
+
+.admin-ticket-credentials__zone input[type='checkbox'] {
+  accent-color: var(--admin-brand, var(--color-brand-celeste));
+  flex: none;
+  height: 16px;
+  margin: 3px 0 0;
+  width: 16px;
+}
+
+.admin-ticket-credentials__zone:hover:not(:has(input:disabled)) {
+  border-color: var(--admin-hairline-strong, var(--color-border-subtle));
+}
+
+.admin-ticket-credentials__zone.is-active {
+  background: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 12%, transparent);
+  border-color: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 52%, transparent);
+}
+
+.admin-ticket-credentials__zone.is-legacy {
+  opacity: 0.78;
+}
+
+.admin-ticket-credentials__zone:has(input:focus-visible) {
+  outline: 2px solid var(--admin-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
+.admin-ticket-credentials__zone:has(input:disabled) {
+  cursor: default;
+}
+
+.admin-ticket-credentials__zone-copy {
+  min-width: 0;
+}
+
+.admin-ticket-credentials__zone-title {
+  align-items: center;
+  color: var(--admin-ink, var(--color-text-primary));
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 650;
+  gap: 6px;
+  line-height: 1.25;
+}
+
+.admin-ticket-credentials__zone-tag {
+  background: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 14%, transparent);
+  border-radius: 999px;
+  color: var(--admin-brand, var(--color-brand-celeste));
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  text-transform: uppercase;
+}
+
+.admin-ticket-credentials__zone-copy > small {
+  color: var(--admin-ink-muted, var(--color-text-muted));
+  display: block;
+  font-size: 12px;
+  line-height: 1.35;
+  margin-top: 3px;
 }
 
 .admin-ticket-credentials__zone {

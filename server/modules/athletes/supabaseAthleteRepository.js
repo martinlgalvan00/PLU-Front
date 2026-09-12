@@ -967,6 +967,29 @@ export function createSupabaseAthleteRepository(
       )
     },
     /**
+     * Datos mínimos para armar el mail manual de aviso de cancelación o de
+     * recordatorio: contacto del atleta, evento y el motivo que ya quedó
+     * asentado al cancelar. No usa get_athlete_snapshot por lo mismo que
+     * `findContact` — acá alcanza con lo que entra en el mail.
+     */
+    async findRegistrationsForNotification(registrationIds) {
+      if (!registrationIds?.length) return []
+      return assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .select(
+            `
+              id, status, updated_at, manual_override_reason, manual_override_at,
+              athlete:athletes(id, full_name, email),
+              event:events(id, title, slug, starts_at, venue)
+            `,
+          )
+          .eq('organization_id', organizationId)
+          .in('id', registrationIds),
+        'No se pudieron leer las inscripciones.',
+      )
+    },
+    /**
      * Observaciones sobre una inscripción o una afiliación.
      *
      * Existen aparte del cambio de estado porque son otra cosa: anotar "el pago

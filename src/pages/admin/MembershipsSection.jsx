@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, PencilLine, QrCode, Trash2 } from 'lucide-react'
+import { AlertTriangle, BadgeCheck, PencilLine, QrCode, Trash2 } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
+import AdminEmptyState from '../../components/admin/AdminEmptyState.jsx'
 import AdminPaymentReconciliationAlert from '../../components/admin/AdminPaymentReconciliationAlert.jsx'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import { EntitlementStateCell } from '../../components/admin/AdminStateCell.jsx'
@@ -341,6 +342,25 @@ export default function MembershipsSection({
     [projectedMemberships, payments, query, status, expiring, registeredToTournament, gym, division],
   )
 
+  const isGloballyEmpty = memberships.length === 0
+  const isFilteredEmpty = !isGloballyEmpty && rows.length === 0
+  const emptyMessage = isGloballyEmpty ? (
+    <AdminEmptyState
+      icon={BadgeCheck}
+      title={t('admin.sections.memberships.emptyTitle')}
+      lead={t('admin.sections.memberships.emptyLead')}
+    />
+  ) : isFilteredEmpty ? (
+    <AdminEmptyState
+      icon={BadgeCheck}
+      filtered
+      title={t('admin.sections.memberships.emptyFilteredTitle')}
+      lead={t('admin.sections.memberships.emptyFiltered')}
+      actionLabel={t('admin.sections.memberships.clearFilters')}
+      onAction={clearSavedView}
+    />
+  ) : null
+
   return (
     <>
       <AdminPaymentReconciliationAlert
@@ -366,6 +386,7 @@ export default function MembershipsSection({
         eyebrow={t('admin.sections.memberships.eyebrow')}
         title={t('admin.sections.memberships.title')}
         subtitle={t('admin.sections.memberships.subtitle')}
+        readOnlyHint={!canManage ? t('admin.sections.memberships.readOnlyHint') : null}
         totalCount={memberships.length}
         filters={[
           {
@@ -601,7 +622,7 @@ export default function MembershipsSection({
             },
           ]}
           rows={rows}
-          emptyMessage={t('admin.sections.memberships.empty')}
+          emptyMessage={emptyMessage}
           onRowClick={(row) => row.athleteId && onSelectAthlete?.(row.athleteId)}
           rowClassName="data-table__row--clickable data-table__row--membership"
         />

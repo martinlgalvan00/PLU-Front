@@ -745,6 +745,35 @@ const BODIES = {
     ].join(''),
   }),
 
+  registration_cancelled: (p) => ({
+    title: 'Inscripción cancelada',
+    preheader: `Tu inscripción a ${p.eventTitle} fue cancelada.`,
+    body: [
+      paragraph(`${greeting(p.name)} tu inscripción fue cancelada.`),
+      dataPanel([
+        ['Evento', p.eventTitle],
+        ['Motivo', p.reason],
+      ]),
+      p.eventUrl ? button(p.eventUrl, 'Volver a inscribirme') : '',
+      p.eventUrl ? fallbackLink(p.eventUrl) : '',
+      paragraph('Si tenés dudas sobre este cambio, respondé este correo.', { muted: true }),
+    ].join(''),
+  }),
+
+  registration_reminder: (p) => ({
+    title: 'Todavía no estás inscripto',
+    preheader: `Te está esperando un lugar en ${p.eventTitle}.`,
+    body: [
+      paragraph(`${greeting(p.name)} vimos que todavía no completaste tu inscripción.`),
+      dataPanel([['Evento', p.eventTitle]]),
+      p.eventUrl ? button(p.eventUrl, 'Inscribirme') : '',
+      p.eventUrl ? fallbackLink(p.eventUrl) : '',
+    ].join(''),
+    footerNote: p.unsubscribeUrl
+      ? `Si no querés recibir estos recordatorios, <a href="${safeUrl(p.unsubscribeUrl)}" style="color:${CELESTE_600};">cancelá la suscripción</a>.`
+      : '',
+  }),
+
   ticket_confirmation: (p) => ({
     title: 'Tu entrada',
     preheader: `Entrada para ${p.eventTitle}.`,

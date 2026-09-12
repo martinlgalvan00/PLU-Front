@@ -40,6 +40,7 @@ export default function AdminTicketCredentialsEditor({
   quota = null,
 }) {
   const { t } = useI18n()
+  const coachPresetHintId = `${fieldPrefix}-coach-preset-hint`
   const [touchedLabels, setTouchedLabels] = useState(() => new Set())
   const issues = validateTicketCredentials(credentials)
   const issueAt = (index, field) =>
@@ -101,6 +102,7 @@ export default function AdminTicketCredentialsEditor({
           <button
             type="button"
             className="admin-ticket-credentials__preset"
+            aria-describedby={coachPresetHintId}
             onClick={() => onChange(coachTicketCredentials())}
           >
             <Wand2 size={13} aria-hidden />
@@ -109,6 +111,11 @@ export default function AdminTicketCredentialsEditor({
         ) : null}
       </div>
       <p className="admin-ticket-credentials__lead">{t('admin.eventEditor.supabase.credentialLead')}</p>
+      {showCoachPreset ? (
+        <small id={coachPresetHintId} className="admin-ticket-credentials__preset-hint">
+          {t('admin.eventEditor.supabase.credentialCoachPresetHint')}
+        </small>
+      ) : null}
 
       <ul className="admin-ticket-credentials__list">
         {credentials.map((credential, index) => {

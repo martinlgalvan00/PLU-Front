@@ -314,6 +314,86 @@ export function getAccessGatesTourSteps(t) {
   ]
 }
 
+/**
+ * Puerta del evento: pantalla de alto riesgo (opera en vivo el día de la
+ * competencia, con gente esperando para entrar) que hasta ahora no tenía
+ * ningún recorrido guiado.
+ */
+export function getCheckInTourSteps(t) {
+  return [
+    {
+      target: '.admin-checkin-scanner',
+      placement: 'bottom',
+      title: t('admin.tour.checkin.scanner.title'),
+      body: t('admin.tour.checkin.scanner.body'),
+    },
+    {
+      target: '.admin-offline-sync-status',
+      placement: 'bottom',
+      title: t('admin.tour.checkin.offline.title'),
+      body: t('admin.tour.checkin.offline.body'),
+    },
+    {
+      target: '.admin-list-shell__stats-strip',
+      placement: 'bottom',
+      title: t('admin.tour.checkin.stats.title'),
+      body: t('admin.tour.checkin.stats.body'),
+    },
+    {
+      target: '.admin-checkin-history',
+      placement: 'top',
+      title: t('admin.tour.checkin.history.title'),
+      body: t('admin.tour.checkin.history.body'),
+    },
+    {
+      target: '.admin-list-shell__body',
+      placement: 'top',
+      title: t('admin.tour.checkin.table.title'),
+      body: t('admin.tour.checkin.table.body'),
+    },
+  ]
+}
+
+/**
+ * Matriz de permisos: pantalla de alto riesgo (define qué puede tocar cada
+ * rol en el resto del panel) que hasta ahora no tenía ningún recorrido
+ * guiado.
+ */
+export function getRolesTourSteps(t) {
+  return [
+    {
+      target: '.admin-roles__tabs-bar',
+      placement: 'bottom',
+      title: t('admin.tour.roles.tabs.title'),
+      body: t('admin.tour.roles.tabs.body'),
+    },
+    {
+      target: '.admin-roles__toolbar',
+      placement: 'bottom',
+      title: t('admin.tour.roles.search.title'),
+      body: t('admin.tour.roles.search.body'),
+    },
+    {
+      target: '.admin-roles__matrix-scroll',
+      placement: 'top',
+      title: t('admin.tour.roles.matrix.title'),
+      body: t('admin.tour.roles.matrix.body'),
+    },
+    {
+      target: '.admin-roles__matrix-actions',
+      placement: 'top',
+      title: t('admin.tour.roles.save.title'),
+      body: t('admin.tour.roles.save.body'),
+    },
+    {
+      target: '.admin-roles__activity',
+      placement: 'left',
+      title: t('admin.tour.roles.activity.title'),
+      body: t('admin.tour.roles.activity.body'),
+    },
+  ]
+}
+
 /** Sección activa (key de `ADMIN_SECTIONS`) -> id de tour + pasos. Usado por
  * el botón de ayuda del shell para repetir el tour de lo que se está viendo. */
 export const ADMIN_SECTION_TOURS = {
@@ -329,6 +409,8 @@ export const ADMIN_SECTION_TOURS = {
   payments: { id: 'admin-payments', getSteps: getPaymentsTourSteps },
   pricing: { id: 'admin-pricing', getSteps: getPricingTourSteps },
   'access-gates': { id: 'admin-access-gates', getSteps: getAccessGatesTourSteps },
+  checkin: { id: 'admin-checkin', getSteps: getCheckInTourSteps },
+  roles: { id: 'admin-roles', getSteps: getRolesTourSteps },
 }
 
 export function getTourForSection(sectionKey, t) {

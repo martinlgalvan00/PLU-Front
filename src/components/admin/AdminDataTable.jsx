@@ -408,10 +408,10 @@ export default function AdminDataTable({
           ) : null}
           <div className="data-table-cards data-table-cards--admin" aria-busy={loading || undefined}>
             {loading && rows.length === 0 ? (
-              <p className="admin-data-table-shell__empty">{emptyMessage || 'Sin datos'}</p>
+              <div className="admin-data-table-shell__empty">{emptyMessage || 'Sin datos'}</div>
             ) : null}
             {!loading && rows.length === 0 ? (
-              <p className="admin-data-table-shell__empty">{emptyMessage || 'Sin datos'}</p>
+              <div className="admin-data-table-shell__empty">{emptyMessage || 'Sin datos'}</div>
             ) : null}
             {cardRows.map((row) => {
               const rowKey = resolveRowKey(row)

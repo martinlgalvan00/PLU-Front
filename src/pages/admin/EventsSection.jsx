@@ -1032,6 +1032,7 @@ export default function EventsSection({
       showHeader
       showStats={false}
       title={t('admin.sections.events.title')}
+      readOnlyHint={!canEdit ? t('admin.sections.events.readOnlyHint') : null}
       totalCount={adminEvents.length}
       variant="events"
       beforeFilters={eventsKpis}
