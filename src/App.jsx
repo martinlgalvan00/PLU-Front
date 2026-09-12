@@ -677,6 +677,9 @@ export default function App() {
           onRejectPayment={app.handleRejectPayment}
           onSetMembershipStatus={app.setMembershipStatusAction}
           onSetRegistrationStatus={app.setRegistrationStatusAction}
+          onBulkSetRegistrationStatus={app.bulkSetRegistrationStatusAction}
+          onNotifyRegistrations={app.notifyRegistrationsAction}
+          onPreviewRegistrationNotification={app.previewRegistrationNotificationAction}
           onApproveTicketPurchase={app.approveTicketPurchase}
           onRejectTicketOrder={app.rejectTicketPurchase}
           onCheckInRegistration={app.checkInRegistrationAction}

@@ -85,6 +85,9 @@ export default function AdminPage({
   onRejectPayment,
   onSetMembershipStatus,
   onSetRegistrationStatus,
+  onBulkSetRegistrationStatus,
+  onNotifyRegistrations,
+  onPreviewRegistrationNotification,
   onApproveTicketPurchase,
   onRejectTicketOrder,
   onRefreshPendingTicketOrders,
@@ -447,6 +450,10 @@ export default function AdminPage({
               onForceSettlePayment={onForceSettlePayment}
               onRejectPayment={onRejectPayment}
               onSetRegistrationStatus={onSetRegistrationStatus}
+              onBulkSetRegistrationStatus={onBulkSetRegistrationStatus}
+              onNotifyRegistrations={onNotifyRegistrations}
+              onPreviewRegistrationNotification={onPreviewRegistrationNotification}
+              onDismissQueueItem={onDismissQueueItem}
               canSetStatus={hasPermission(authorization, 'admin.registrations.write')}
               canValidatePayments={hasPermission(authorization, 'admin.payments.approve')}
               canForceSettle={hasPermission(authorization, 'admin.payments.approve')}

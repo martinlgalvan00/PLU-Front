@@ -940,6 +940,46 @@ export async function setEventRegistrationStatus(registrationId, status, reason)
 }
 
 /**
+ * Aviso manual por mail a inscripciones canceladas (motivo de la baja o
+ * recordatorio de que el lugar sigue libre). Nunca automático: lo dispara el
+ * operador a propósito desde el panel. Devuelve el resultado real por
+ * destinatario, no un ok genérico.
+ */
+export async function notifyEventRegistrations(registrationIds, { type, message } = {}) {
+  return apiPost('/api/athletes/admin/registrations/notify', {
+    registrationIds,
+    type,
+    ...(message ? { message } : {}),
+  })
+}
+
+/**
+ * Corrige el estado de varias inscripciones a la vez con el mismo motivo --
+ * pensado para vaciar de un lote las que quedaron sin completar el pago.
+ * Devuelve el resultado real por fila, no un ok genérico.
+ */
+export async function bulkSetEventRegistrationStatus(registrationIds, status, reason) {
+  return apiPost('/api/athletes/admin/registrations/bulk-status', {
+    registrationIds,
+    status,
+    reason,
+  })
+}
+
+/**
+ * Arma el mismo HTML que saldría en un envío real, sin mandar nada. Devuelve
+ * `{ available: false, reason }` cuando el tipo usa un template de Brevo (ese
+ * HTML vive en su dashboard, no acá) en vez de un fallback engañoso.
+ */
+export async function previewRegistrationNotification(registrationId, { type, message } = {}) {
+  return apiPost('/api/athletes/admin/registrations/notify/preview', {
+    registrationId,
+    type,
+    ...(message ? { message } : {}),
+  })
+}
+
+/**
  * Observaciones sobre una inscripción o una afiliación.
  *
  * El hilo es independiente del estado: `addObservation` no mueve nada de

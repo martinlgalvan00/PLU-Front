@@ -5,6 +5,11 @@ import { getEventConsistencyWarnings } from './eventAdminService.js'
 import { isExpiringSoon } from './membershipService.js'
 
 const PENDING_PAYMENT_STATUSES = ['pendiente_pago', 'pendiente', 'validacion_manual', 'creado']
+// No hay una marca de "ya se avisó": la ventana acota la cola a bajas
+// recientes en vez de arrastrar años de canceladas históricas que nadie va a
+// avisar a esta altura. El ítem se autodescarta al mandar el mail (ver
+// `RegistrationsSection`) o vence solo al salir de la ventana.
+const UNNOTIFIED_CANCELLATION_WINDOW_DAYS = 14
 const EVENT_BREAKDOWN_STATUSES = [
   'inscripcion_abierta',
   'cupos_limitados',
@@ -27,6 +32,7 @@ export function buildPendingActions({
   registrations,
   pendingTicketOrders = [],
   events = [],
+  now = new Date(),
 }) {
   const actions = []
 
@@ -115,6 +121,29 @@ export function buildPendingActions({
       section: 'registrations',
     })
   })
+
+  registrations
+    .filter((registration) => {
+      if (registration.status !== 'cancelada') return false
+      const cancelledAt = registration.manualOverride?.at
+      if (!cancelledAt) return false
+      const daysSince = (now - new Date(cancelledAt)) / (24 * 60 * 60 * 1000)
+      return daysSince >= 0 && daysSince <= UNNOTIFIED_CANCELLATION_WINDOW_DAYS
+    })
+    .forEach((registration) => {
+      const athlete = athletes.find((item) => item.id === registration.athleteId)
+      actions.push({
+        id: `action-cancel-notify-${registration.id}`,
+        type: 'cancelled_registration',
+        priority: 'low',
+        subject: athlete?.fullName ?? 'Atleta',
+        summary: 'Cancelada sin avisar por mail',
+        detail: registration.event,
+        meta: registration.category,
+        section: 'registrations',
+        registrationId: registration.id,
+      })
+    })
 
   memberships
     .filter(

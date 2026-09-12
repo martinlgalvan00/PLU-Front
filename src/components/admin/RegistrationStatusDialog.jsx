@@ -1,6 +1,6 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { LoaderCircle, PencilLine } from 'lucide-react'
+import { Eye, LoaderCircle, PencilLine } from 'lucide-react'
 import Button from '../ui/Button.jsx'
 import StatusBadge from '../ui/StatusBadge.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -18,6 +18,10 @@ import { useAdminModal } from './useAdminModal.js'
  * Los tres estados son los que el panel puede corregir; `borrador` y
  * `pendiente_pago` quedan afuera a propósito para no pisar el flujo de
  * checkout, que tiene su propia reanudación.
+ *
+ * Al cancelar, el mismo motivo puede mandarse por mail en el mismo paso
+ * (checkbox "Avisar por mail", con vista previa antes de confirmar) en vez de
+ * exigir una segunda visita a la fila para avisarle al atleta.
  */
 const STATUS_OPTIONS = ['confirmada', 'observada', 'cancelada']
 
@@ -27,6 +31,7 @@ export default function RegistrationStatusDialog({
   error = '',
   onCancel,
   onConfirm,
+  onPreview,
 }) {
   const { t } = useI18n()
   const titleId = useId()
@@ -40,9 +45,48 @@ export default function RegistrationStatusDialog({
     () => STATUS_OPTIONS.find((option) => option !== registration?.status) ?? 'confirmada',
   )
   const [reason, setReason] = useState('')
+  const [notify, setNotify] = useState(false)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [preview, setPreview] = useState(null)
+  const [previewError, setPreviewError] = useState('')
   const reasonValid = reason.trim().length >= 3
 
+  // Salir de "cancelada" descarta la intención de avisar: no tiene sentido
+  // arrastrar el checkbox a un estado donde no se ofrece.
+  useEffect(() => {
+    if (status !== 'cancelada') {
+      setNotify(false)
+      setPreview(null)
+      setPreviewError('')
+    }
+  }, [status])
+
+  // El motivo mostrado en la vista previa tiene que ser el que se va a
+  // mandar: si cambió desde la última vez que se pidió, queda obsoleta.
+  useEffect(() => {
+    setPreview(null)
+    setPreviewError('')
+  }, [reason])
+
   if (!registration) return null
+
+  async function handlePreview() {
+    if (!onPreview || previewLoading) return
+    setPreviewLoading(true)
+    setPreviewError('')
+    try {
+      const response = await onPreview('registration_cancelled', reason.trim())
+      if (response?.error) {
+        setPreviewError(response.error)
+        return
+      }
+      setPreview(response)
+    } catch (err) {
+      setPreviewError(err?.message ?? t('admin.registrationNotify.previewError'))
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
 
   return createPortal(
     <div className="admin-status-dialog">
@@ -131,6 +175,72 @@ export default function RegistrationStatusDialog({
           ) : null}
         </div>
 
+        {status === 'cancelada' ? (
+          <div className="admin-status-dialog__field">
+            <label className="admin-status-dialog__checkbox">
+              <input
+                type="checkbox"
+                checked={notify}
+                disabled={busy}
+                onChange={(event) => setNotify(event.target.checked)}
+              />
+              <span>{t('admin.registrationStatus.notifyLabel')}</span>
+            </label>
+            <small className="admin-status-dialog__hint">
+              {t('admin.registrationStatus.notifyHint')}
+            </small>
+
+            {notify && onPreview ? (
+              <div className="admin-registration-notify__preview-block">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="btn--small"
+                  disabled={busy || previewLoading}
+                  onClick={handlePreview}
+                >
+                  {previewLoading ? (
+                    <LoaderCircle size={14} aria-hidden className="is-spinning" />
+                  ) : (
+                    <Eye size={14} aria-hidden />
+                  )}
+                  {previewLoading
+                    ? t('admin.registrationNotify.previewLoading')
+                    : t('admin.registrationNotify.preview')}
+                </Button>
+
+                {previewError ? (
+                  <p className="admin-status-dialog__error" role="alert">
+                    {previewError}
+                  </p>
+                ) : null}
+
+                {preview && preview.available === false ? (
+                  <p className="admin-status-dialog__hint">
+                    {t('admin.registrationNotify.previewUnavailable', { reason: preview.reason ?? '' })}
+                  </p>
+                ) : null}
+
+                {preview && preview.available !== false ? (
+                  <div className="admin-registration-notify__preview">
+                    <p className="admin-registration-notify__preview-meta">
+                      <strong>{t('admin.registrationNotify.previewTo')}:</strong> {preview.to}
+                    </p>
+                    <p className="admin-registration-notify__preview-meta">
+                      <strong>{t('admin.registrationNotify.previewSubject')}:</strong> {preview.subject}
+                    </p>
+                    <iframe
+                      title={t('admin.registrationNotify.preview')}
+                      srcDoc={preview.html}
+                      className="admin-registration-notify__preview-frame"
+                    />
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
         {error ? (
           <p className="admin-status-dialog__error" role="alert">
             {error}
@@ -144,7 +254,7 @@ export default function RegistrationStatusDialog({
           <Button
             type="button"
             disabled={busy || !reasonValid || status === registration.status}
-            onClick={() => onConfirm(status, reason.trim())}
+            onClick={() => onConfirm(status, reason.trim(), notify)}
           >
             {busy ? (
               <LoaderCircle size={15} aria-hidden className="is-spinning" />

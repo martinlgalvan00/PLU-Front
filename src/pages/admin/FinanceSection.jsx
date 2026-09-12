@@ -6,6 +6,7 @@ import AdminExpenseDialog from '../../components/admin/AdminExpenseDialog.jsx'
 import AdminFilterBar from '../../components/admin/AdminFilterBar.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
+import AdminReadOnlyTag from '../../components/admin/AdminReadOnlyTag.jsx'
 import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import ExportButton from '../../components/ui/ExportButton.jsx'
 import Pill from '../../components/ui/Pill.jsx'
@@ -515,6 +516,7 @@ export default function FinanceSection({ canEdit = false }) {
             <p className="admin-finance__lead">{t('admin.ledger.lead')}</p>
           </div>
           <div className="admin-finance__header-actions">
+            <AdminReadOnlyTag hint={!canEdit ? t('admin.sections.finance.readOnlyHint') : null} />
             {canEdit ? (
               <button
                 className="btn btn--small admin-finance__add"
