@@ -23,6 +23,8 @@ import AdminPageHeader from '../../components/admin/AdminPageHeader.jsx'
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
+import { getRolesTourSteps } from '../../lib/adminTourSteps.js'
 import {
   canManageRolePermissions,
   getRoleHierarchyLevel,
@@ -146,6 +148,12 @@ export default function RolesSection({
   roles = [],
 }) {
   const { locale, t } = useI18n()
+  const { startTour } = useAdminTour()
+
+  useEffect(() => {
+    startTour('admin-roles', getRolesTourSteps(t))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, [])
 
   const orderedRoles = useMemo(
     () =>

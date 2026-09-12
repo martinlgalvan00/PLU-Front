@@ -79,6 +79,9 @@ import {
   registerAthletePhoto as registerAthletePhotoRequest,
   rejectAthletePaymentOrder as rejectAthletePaymentOrderRequest,
   setEventRegistrationStatus as setRegistrationStatusRequest,
+  bulkSetEventRegistrationStatus as bulkSetRegistrationStatusRequest,
+  notifyEventRegistrations as notifyEventRegistrationsRequest,
+  previewRegistrationNotification as previewRegistrationNotificationRequest,
   setMembershipStatus as setMembershipStatusRequest,
   setRegistrationPublicVisibility as setRegistrationPublicVisibilityRequest,
   updateAthleteProfile as updateAthleteProfileRequest,
@@ -2840,6 +2843,64 @@ export function useAppData() {
     [refreshAthleteData, session],
   )
 
+  // Corrección masiva: mismo motivo para varias inscripciones a la vez (ej.
+  // vaciar de un lote las que quedaron sin completar el pago).
+  const bulkSetRegistrationStatusAction = useCallback(
+    async (registrationIds, status, reason) => {
+      if (!hasPermission(session, 'admin.registrations.write')) {
+        return { error: 'Sin permisos para editar inscripciones.' }
+      }
+      try {
+        const response = await bulkSetRegistrationStatusRequest(registrationIds, status, reason)
+        // Releer el snapshot entero: la RPC pudo tocar división/categoría/pago
+        // vinculado por fila, y actualizar cada una a mano en memoria arrastra
+        // el mismo riesgo de desalineación que ya se evitó en la corrección
+        // individual.
+        void refreshAthleteData({ silent: true })
+        publishAthleteSnapshotInvalidation()
+        return response
+      } catch (error) {
+        if (error instanceof ApiError) return { error: error.message }
+        return { error: error?.message ?? 'No se pudo cambiar el estado de las inscripciones.' }
+      }
+    },
+    [refreshAthleteData, session],
+  )
+
+  // Aviso manual por mail a inscripciones canceladas. No muta el padrón local:
+  // mandar un mail no cambia el estado de nada, solo informa.
+  const notifyRegistrationsAction = useCallback(
+    async (registrationIds, { type, message } = {}) => {
+      if (!hasPermission(session, 'admin.registrations.write')) {
+        return { error: 'Sin permisos para avisar a inscripciones.' }
+      }
+      try {
+        return await notifyEventRegistrationsRequest(registrationIds, { type, message })
+      } catch (error) {
+        if (error instanceof ApiError) return { error: error.message }
+        return { error: error?.message ?? 'No se pudo enviar el aviso.' }
+      }
+    },
+    [session],
+  )
+
+  // Vista previa del mail de aviso, sin mandar nada. Mismo permiso que
+  // enviarlo: quien no puede avisar tampoco necesita ver el borrador.
+  const previewRegistrationNotificationAction = useCallback(
+    async (registrationId, { type, message } = {}) => {
+      if (!hasPermission(session, 'admin.registrations.write')) {
+        return { error: 'Sin permisos para avisar a inscripciones.' }
+      }
+      try {
+        return await previewRegistrationNotificationRequest(registrationId, { type, message })
+      } catch (error) {
+        if (error instanceof ApiError) return { error: error.message }
+        return { error: error?.message ?? 'No se pudo generar la vista previa.' }
+      }
+    },
+    [session],
+  )
+
   // Activación/baja manual desde el panel. El servidor vuelve a validar el
   // permiso y audita al responsable; este chequeo solo evita ofrecer una
   // acción que iba a rebotar.
@@ -3699,6 +3760,9 @@ export function useAppData() {
     cancelDemoMembership,
     setMembershipStatusAction,
     setRegistrationStatusAction,
+    bulkSetRegistrationStatusAction,
+    notifyRegistrationsAction,
+    previewRegistrationNotificationAction,
     submitTicketPurchase,
     uploadTicketPaymentProofAction,
     approveTicketPurchase,

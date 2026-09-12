@@ -268,6 +268,24 @@ export const EMAIL_CATALOG = Object.freeze({
     optOutAllowed: true,
     critical: false,
   },
+  registration_cancelled: {
+    category: EMAIL_CATEGORIES.event,
+    templateEnv: 'BREVO_TEMPLATE_REGISTRATION_CANCELLED',
+    subject: 'Tu inscripción fue cancelada · PLU ARG',
+    entityType: 'event_registration',
+    requiredParams: ['name', 'eventTitle', 'reason'],
+    optOutAllowed: false,
+    critical: false,
+  },
+  registration_reminder: {
+    category: EMAIL_CATEGORIES.event,
+    templateEnv: 'BREVO_TEMPLATE_REGISTRATION_REMINDER',
+    subject: 'Todavía no estás inscripto · PLU ARG',
+    entityType: 'event_registration',
+    requiredParams: ['name', 'eventTitle'],
+    optOutAllowed: true,
+    critical: false,
+  },
 
   // ---------------------------------------------------------- operaciones
   admin_notification: {

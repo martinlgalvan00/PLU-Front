@@ -95,6 +95,69 @@ describe('buildPendingActions — gate sin afiliación', () => {
   })
 })
 
+describe('buildPendingActions — cancelaciones sin avisar', () => {
+  const now = new Date('2026-09-15T12:00:00Z')
+
+  it('incluye canceladas recientes con motivo guardado', () => {
+    const actions = buildPendingActions({
+      payments: [],
+      athletes: [{ id: 'a1', fullName: 'Ana Test' }],
+      memberships: [],
+      registrations: [
+        {
+          id: 'r1',
+          athleteId: 'a1',
+          status: 'cancelada',
+          event: 'Pitbull Classic',
+          category: 'Raw',
+          manualOverride: { at: '2026-09-10T12:00:00Z', reason: 'Falta de pago' },
+        },
+      ],
+      now,
+    })
+
+    expect(actions.find((item) => item.id === 'action-cancel-notify-r1')).toMatchObject({
+      type: 'cancelled_registration',
+      section: 'registrations',
+      registrationId: 'r1',
+    })
+  })
+
+  it('deja afuera canceladas fuera de la ventana o sin fecha de cancelación', () => {
+    const actions = buildPendingActions({
+      payments: [],
+      athletes: [{ id: 'a1', fullName: 'Ana Test' }],
+      memberships: [],
+      registrations: [
+        {
+          id: 'old',
+          athleteId: 'a1',
+          status: 'cancelada',
+          event: 'Pitbull Classic',
+          manualOverride: { at: '2026-01-01T12:00:00Z', reason: 'Vieja' },
+        },
+        {
+          id: 'sin-fecha',
+          athleteId: 'a1',
+          status: 'cancelada',
+          event: 'Pitbull Classic',
+          manualOverride: null,
+        },
+        {
+          id: 'no-cancelada',
+          athleteId: 'a1',
+          status: 'confirmada',
+          event: 'Pitbull Classic',
+          manualOverride: { at: '2026-09-10T12:00:00Z', reason: 'Otra cosa' },
+        },
+      ],
+      now,
+    })
+
+    expect(actions.some((item) => item.type === 'cancelled_registration')).toBe(false)
+  })
+})
+
 describe('buildPendingActions — hasProof', () => {
   it('marca hasProof en pagos de atleta y órdenes de entrada', () => {
     const actions = buildPendingActions({

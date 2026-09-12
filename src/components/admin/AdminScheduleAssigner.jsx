@@ -26,6 +26,10 @@ export default function AdminScheduleAssigner({
   scheduleStatus = 'idle',
   selectedCount = 0,
   targetEventName = '',
+  // Otra acción masiva sobre la misma selección (ej. cambiar estado). Va acá
+  // y no en una segunda barra aparte: repetir "N seleccionadas" dos veces
+  // para el mismo grupo lee como dos herramientas separadas cuando es una.
+  extraAction = null,
 }) {
   const { locale, t } = useI18n()
   const [dayIndex, setDayIndex] = useState(UNASSIGNED)
@@ -165,6 +169,8 @@ export default function AdminScheduleAssigner({
           </div>
         </div>
       )}
+
+      {extraAction ? <div className="admin-schedule-assigner__extra">{extraAction}</div> : null}
 
       <button
         type="button"

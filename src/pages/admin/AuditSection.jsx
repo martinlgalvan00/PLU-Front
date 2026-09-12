@@ -26,6 +26,8 @@ import {
   isAuditIncidentEntry,
 } from '../../services/auditService.js'
 import { buildAuditStatusFilterOptions } from '../../lib/auditFilterHelpers.js'
+import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
+import { getAuditTourSteps } from '../../lib/adminTourSteps.js'
 
 /** `entity_type` que `paymentAuditTrail.js` usa para órdenes de cobro: cubre
  * afiliación, combo, inscripción (`athlete_payment_order`) y entradas
@@ -171,6 +173,13 @@ export default function AuditSection() {
   // heredar un idioma guardado en otra parte del sitio: sus etiquetas explican
   // evidencia y acciones sensibles, y se presentan siempre en español.
   const t = useCallback((key, vars) => translate(es, key, vars), [])
+  const { startTour } = useAdminTour()
+
+  useEffect(() => {
+    startTour('admin-audit', getAuditTourSteps(t))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, [])
+
   const isMobileLayout = useMobileAuditLayout()
   const compactChrome = useCompactAuditChrome()
   const [entries, setEntries] = useState([])

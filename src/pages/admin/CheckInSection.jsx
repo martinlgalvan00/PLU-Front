@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { CheckCircle2, ScanLine } from 'lucide-react'
 import AdminCheckinScanHistory from '../../components/admin/AdminCheckinScanHistory.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
@@ -9,6 +10,8 @@ import PaymentValidationAction from '../../components/admin/PaymentValidationAct
 import { AdminIdentityCell, AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
+import { getCheckInTourSteps } from '../../lib/adminTourSteps.js'
 import { useCheckInWorkspace } from '../../hooks/useCheckInWorkspace.js'
 import { formatDocumentWithKind } from '../../lib/format.js'
 import { checkinTypeLabel } from '../../services/checkinScanService.js'
@@ -56,6 +59,13 @@ export default function CheckInSection({
   tickets,
 }) {
   const { locale, t } = useI18n()
+  const { startTour } = useAdminTour()
+
+  useEffect(() => {
+    startTour('admin-checkin', getCheckInTourSteps(t))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, [])
+
   const workspace = useCheckInWorkspace({
     athletes,
     canCheckIn,

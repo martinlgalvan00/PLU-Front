@@ -1,6 +1,7 @@
 import { Children, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import AdminFilterBar from './AdminFilterBar.jsx'
+import AdminReadOnlyTag from './AdminReadOnlyTag.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatRecordCount } from '../../i18n/adminHelpers.js'
 import { useHorizontalScroll } from '../../hooks/useHorizontalScroll.js'
@@ -56,6 +57,10 @@ export default function AdminListSection({
   onQueryChange,
   placeholder,
   query,
+  // Cuando el rol activo puede leer pero no escribir esta sección: el motivo
+  // puntual (ej. "Tu rol no puede aprobar pagos"), o `null`/vacío para no
+  // mostrar nada.
+  readOnlyHint = null,
   showHeader = true,
   showStats = true,
   showFilters = true,
@@ -80,7 +85,7 @@ export default function AdminListSection({
     .filter(Boolean)
     .join(' ')
 
-  const showActions = hasActions(actions)
+  const showActions = hasActions(actions) || Boolean(readOnlyHint)
   const relocateActionsToFilters = isNarrow && showActions && variant === 'registrations'
   const headerActionsVisible = showActions && !relocateActionsToFilters
   const filterBarActions = mergeActionSlots(
@@ -190,7 +195,10 @@ export default function AdminListSection({
                 )}
               </div>
               {headerActionsVisible ? (
-                <div className="admin-list-shell__actions">{actions}</div>
+                <div className="admin-list-shell__actions">
+                  <AdminReadOnlyTag hint={readOnlyHint} />
+                  {actions}
+                </div>
               ) : null}
             </header>
           ) : null}
@@ -203,7 +211,10 @@ export default function AdminListSection({
                 </span>
               )}
               {headerActionsVisible ? (
-                <div className="admin-list-shell__actions">{actions}</div>
+                <div className="admin-list-shell__actions">
+                  <AdminReadOnlyTag hint={readOnlyHint} />
+                  {actions}
+                </div>
               ) : null}
             </div>
           ) : null}

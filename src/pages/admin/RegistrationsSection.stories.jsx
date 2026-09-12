@@ -1,3 +1,4 @@
+import { within } from 'storybook/test'
 import RegistrationsSection from './RegistrationsSection.jsx'
 import { AppConfigProvider } from '../../providers/AppConfigProvider.jsx'
 // Mismo par de hojas que el resto de las stories del panel: `admin.css` trae la
@@ -108,13 +109,14 @@ function withPlatformToggles(Story) {
   return <Story />
 }
 
-function Frame({ rows }) {
+function Frame({ rows, canAssignSchedule = false, onBulkSetRegistrationStatus }) {
   return (
     <AppConfigProvider>
       <div className="admin-shell" style={{ background: 'var(--admin-canvas)', padding: '24px' }}>
         <RegistrationsSection
           canEdit
           canSetStatus
+          canAssignSchedule={canAssignSchedule}
           filters={{ event: 'all', status: 'all', query: '' }}
           filteredRegistrations={rows}
           payments={PAYMENTS}
@@ -125,6 +127,7 @@ function Frame({ rows }) {
           onExportPluUsa={() => {}}
           onSetFilters={() => {}}
           onSetRegistrationStatus={() => {}}
+          onBulkSetRegistrationStatus={onBulkSetRegistrationStatus}
         />
       </div>
     </AppConfigProvider>
@@ -141,4 +144,50 @@ export default {
 export const EstadoConObservacion = {
   decorators: [withPlatformToggles],
   render: () => <Frame rows={ROWS} />,
+}
+
+const PENDING_ROWS = [
+  registration({
+    id: 'a1a1a1a1-0000-4000-8000-000000000001',
+    athleteId: 'a1a1a1a1-0000-4000-8000-000000000011',
+    athlete: { fullName: 'Julian Ferreyra', documentId: '40111222', gym: 'Hierro Bruto' },
+    paymentOrderId: 'a1a1a1a1-0000-4000-8000-000000000021',
+    status: 'pendiente_pago',
+    manualOverride: null,
+  }),
+  registration({
+    id: 'a1a1a1a1-0000-4000-8000-000000000002',
+    athleteId: 'a1a1a1a1-0000-4000-8000-000000000012',
+    athlete: { fullName: 'Rocio Aguero', documentId: '40111223', gym: 'Fuerza Sur' },
+    paymentOrderId: 'a1a1a1a1-0000-4000-8000-000000000022',
+    status: 'pendiente_pago',
+    manualOverride: null,
+  }),
+  registration({
+    id: 'a1a1a1a1-0000-4000-8000-000000000003',
+    athleteId: 'a1a1a1a1-0000-4000-8000-000000000013',
+    athlete: { fullName: 'Braian Sosa', documentId: '40111224', gym: 'Hierro Bruto' },
+    paymentOrderId: 'a1a1a1a1-0000-4000-8000-000000000023',
+    status: 'confirmada',
+    manualOverride: null,
+  }),
+]
+
+/**
+ * Quien abrió el checkout y nunca completó el pago queda `pendiente_pago`
+ * hasta que el timeout técnico lo vence solo (30min Mercado Pago, 5 días
+ * transferencia). Este es el atajo manual para vaciar el lote antes de esa
+ * fecha: filtrar por el estado, seleccionar y cancelar de una.
+ */
+export const PendientesDePagoParaCancelar = {
+  decorators: [withPlatformToggles],
+  render: () => (
+    <Frame rows={PENDING_ROWS} canAssignSchedule onBulkSetRegistrationStatus={() => ({ updated: 2, failed: 0, results: [] })} />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const checkboxes = await canvas.findAllByRole('checkbox', { name: /seleccionar la inscripción/i })
+    checkboxes[0].click()
+    checkboxes[1].click()
+  },
 }

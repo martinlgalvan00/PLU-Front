@@ -6,6 +6,7 @@ import {
   CreditCard,
   Eye,
   EyeOff,
+  Mail,
   ShieldCheck,
   Ticket,
 } from 'lucide-react'
@@ -18,6 +19,7 @@ const TYPE_ORDER = [
   'payment',
   'registration',
   'registration_gate',
+  'cancelled_registration',
   'membership',
   'ticket_order',
 ]
@@ -26,6 +28,7 @@ const TYPE_ICONS = {
   payment: CreditCard,
   registration: ClipboardList,
   registration_gate: ShieldCheck,
+  cancelled_registration: Mail,
   membership: BadgeCheck,
   ticket_order: Ticket,
 }

@@ -4,14 +4,18 @@ import {
   ClipboardList,
   Eye,
   EyeOff,
+  Mail,
   MessageSquare,
   PencilLine,
   Trash2,
+  Users,
 } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import ObservationsDialog from '../../components/admin/ObservationsDialog.jsx'
 import RegistrationStatusDialog from '../../components/admin/RegistrationStatusDialog.jsx'
+import RegistrationNotifyDialog from '../../components/admin/RegistrationNotifyDialog.jsx'
+import AdminBulkRegistrationStatusDialog from '../../components/admin/AdminBulkRegistrationStatusDialog.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminPaymentReconciliationAlert from '../../components/admin/AdminPaymentReconciliationAlert.jsx'
 import AdminScheduleAssigner from '../../components/admin/AdminScheduleAssigner.jsx'
@@ -53,7 +57,8 @@ import {
   fetchPlatformFeatureToggles,
   VALIDATION_DISABLED_CODES,
 } from '../../services/platformSettingsAdminService.js'
-import { resolveStateBacking } from '../../services/stateCoherenceService.js'
+import { isPlaceholderReason, resolveStateBacking } from '../../services/stateCoherenceService.js'
+import { notifyError as toastError, notifySuccess as toastSuccess } from '../../lib/adminToast.js'
 import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
 import {
   buildAdminFacetOptions,
@@ -140,6 +145,10 @@ export default function RegistrationsSection({
   onSelectAthlete,
   onSetFilters,
   onSetRegistrationStatus,
+  onBulkSetRegistrationStatus,
+  onNotifyRegistrations,
+  onPreviewRegistrationNotification,
+  onDismissQueueItem,
   canForceSettle = false,
   canSetStatus = false,
   onDelete,
@@ -151,6 +160,11 @@ export default function RegistrationsSection({
   const { locale, t } = useI18n()
   const { startTour } = useAdminTour()
   const total = registrationsCount ?? registrations.length
+  // Ninguno de los permisos que habilitan una acción sobre esta lista: el rol
+  // activo la ve, pero no puede tocar nada en ella (ej. el rol "PLU" por
+  // defecto, que lee inscripciones sin poder editarlas ni validar pagos).
+  const hasAnyRegistrationEditCapability =
+    canSetStatus || canValidatePayments || canForceSettle || canManageVisibility || canDelete
   const [selectedIds, setSelectedIds] = useState(() => new Set())
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteError, setDeleteError] = useState('')
@@ -160,6 +174,13 @@ export default function RegistrationsSection({
   const [observationsTarget, setObservationsTarget] = useState(null)
   const [statusError, setStatusError] = useState('')
   const [savingStatus, setSavingStatus] = useState(false)
+  const [notifyTarget, setNotifyTarget] = useState(null)
+  const [notifyError, setNotifyError] = useState('')
+  const [notifyResult, setNotifyResult] = useState(null)
+  const [sendingNotify, setSendingNotify] = useState(false)
+  const [bulkStatusOpen, setBulkStatusOpen] = useState(false)
+  const [bulkStatusError, setBulkStatusError] = useState('')
+  const [savingBulkStatus, setSavingBulkStatus] = useState(false)
   const [validationEnabled, setValidationEnabled] = useState(true)
   const { views: savedViews, saveView, removeView } = useAdminSavedFilterViews('registrations')
 
@@ -289,6 +310,11 @@ export default function RegistrationsSection({
           // firma y su fecha. Sin esto la columna pintaba un "Observada" pelado
           // y el motivo -- que sí se guarda -- no se leía en ninguna pantalla.
           stateBacking: resolveStateBacking(reg, payments),
+          // Motivo ya guardado al cancelar, para precargar el aviso por mail.
+          reasonHint:
+            reg.manualOverride?.reason && !isPlaceholderReason(reg.manualOverride.reason)
+              ? reg.manualOverride.reason
+              : '',
           paymentStatus: payment?.status,
           paymentMethod: payment?.method,
           amount: payment ? money(payment.amount) : '—',
@@ -406,7 +432,7 @@ export default function RegistrationsSection({
     }
   }
 
-  async function saveRegistrationStatus(status, reason) {
+  async function saveRegistrationStatus(status, reason, notify) {
     if (!statusTarget || !onSetRegistrationStatus) return
     setSavingStatus(true)
     setStatusError('')
@@ -416,11 +442,138 @@ export default function RegistrationsSection({
         setStatusError(result.error)
         return
       }
+      const cancelledId = statusTarget.id
       setStatusTarget(null)
+      // El aviso va por toast porque el diálogo ya se cerró: cambiar el
+      // estado es la acción principal, avisar por mail es un paso opcional
+      // sobre esa misma acción, no algo que valga la pena bloquear la
+      // pantalla para confirmar.
+      if (notify && status === 'cancelada' && onNotifyRegistrations) {
+        void notifyAfterCancel(cancelledId, reason)
+      }
     } catch (error) {
       setStatusError(error?.message ?? 'No se pudo cambiar el estado de la inscripción.')
     } finally {
       setSavingStatus(false)
+    }
+  }
+
+  async function notifyAfterCancel(registrationId, reason) {
+    try {
+      const response = await onNotifyRegistrations([registrationId], {
+        type: 'registration_cancelled',
+        message: reason,
+      })
+      if (response?.error) {
+        toastError(response.error)
+        return
+      }
+      const outcome = response?.results?.[0]
+      if (outcome?.status === 'sent') {
+        toastSuccess(t('admin.toasts.registrationCancelledNotified'))
+        dismissCancelledNotifyQueueItem(registrationId)
+      } else if (outcome?.status === 'skipped') {
+        toastError(t('admin.toasts.registrationNotifySkipped', { reason: outcome.reason ?? '' }))
+      } else {
+        toastError(t('admin.toasts.registrationNotifyFailed'))
+      }
+    } catch (error) {
+      toastError(error?.message ?? t('admin.toasts.registrationNotifyFailed'))
+    }
+  }
+
+  // Best-effort: la cola de pendientes es una comodidad de navegación, no una
+  // fuente de verdad. Si falla (sin permiso, offline momentáneo) el aviso ya
+  // salió igual y el ítem cae solo de la cola cuando venza la ventana.
+  function dismissCancelledNotifyQueueItem(registrationId) {
+    onDismissQueueItem?.(`action-cancel-notify-${registrationId}`, 'cancelled_registration')?.catch?.(
+      () => {},
+    )
+  }
+
+  async function saveBulkStatus(status, reason, notify) {
+    if (!onBulkSetRegistrationStatus || visibleSelectedRows.length === 0) return
+    const ids = visibleSelectedRows.map((row) => row.id)
+    setSavingBulkStatus(true)
+    setBulkStatusError('')
+    try {
+      const response = await onBulkSetRegistrationStatus(ids, status, reason)
+      if (response?.error) {
+        setBulkStatusError(response.error)
+        return
+      }
+      const updated = response?.updated ?? 0
+      const failed = response?.failed ?? 0
+      setBulkStatusOpen(false)
+      clearSelection()
+      if (failed === 0) {
+        toastSuccess(t('admin.registrationBulkStatus.resultUpdated', { count: updated }))
+      } else if (updated > 0) {
+        toastError(t('admin.registrationBulkStatus.resultPartial', { updated, failed }))
+      } else {
+        toastError(t('admin.registrationBulkStatus.resultFailed'))
+      }
+      // El aviso por mail va sobre lo que efectivamente quedó cancelado, no
+      // sobre lo que se pidió cancelar -- una fila que falló acá tampoco
+      // tiene sentido avisarla.
+      if (notify && status === 'cancelada' && updated > 0 && onNotifyRegistrations) {
+        const updatedIds = (response?.results ?? [])
+          .filter((row) => row.status === 'updated')
+          .map((row) => row.registrationId)
+        void notifyManyAfterBulkCancel(updatedIds, reason)
+      }
+    } catch (error) {
+      setBulkStatusError(error?.message ?? 'No se pudo cambiar el estado de las inscripciones.')
+    } finally {
+      setSavingBulkStatus(false)
+    }
+  }
+
+  async function notifyManyAfterBulkCancel(registrationIds, reason) {
+    try {
+      const response = await onNotifyRegistrations(registrationIds, {
+        type: 'registration_cancelled',
+        message: reason,
+      })
+      if (response?.error) {
+        toastError(response.error)
+        return
+      }
+      const sent = (response?.results ?? []).filter((row) => row.status === 'sent').length
+      if (sent > 0) toastSuccess(t('admin.toasts.registrationCancelledNotified'))
+      if (sent < registrationIds.length) {
+        toastError(
+          t('admin.toasts.registrationNotifySkipped', {
+            reason: `${registrationIds.length - sent}/${registrationIds.length}`,
+          }),
+        )
+      }
+    } catch (error) {
+      toastError(error?.message ?? t('admin.toasts.registrationNotifyFailed'))
+    }
+  }
+
+  async function sendRegistrationNotify(type, message) {
+    if (!notifyTarget || !onNotifyRegistrations) return
+    setSendingNotify(true)
+    setNotifyError('')
+    setNotifyResult(null)
+    try {
+      const response = await onNotifyRegistrations([notifyTarget.id], { type, message })
+      if (response?.error) {
+        setNotifyError(response.error)
+        return
+      }
+      const outcome = response?.results?.[0] ?? null
+      setNotifyResult(outcome)
+      if (outcome?.status === 'sent') {
+        dismissCancelledNotifyQueueItem(notifyTarget.id)
+        setNotifyTarget(null)
+      }
+    } catch (error) {
+      setNotifyError(error?.message ?? 'No se pudo enviar el aviso.')
+    } finally {
+      setSendingNotify(false)
     }
   }
 
@@ -676,6 +829,19 @@ export default function RegistrationsSection({
           variant="ghost"
         />
       ) : null,
+      canSetStatus && onNotifyRegistrations && row.status === 'cancelada' ? (
+        <AdminIconButton
+          key="notify"
+          icon={Mail}
+          label={t('admin.registrationNotify.action')}
+          onClick={() => {
+            setNotifyError('')
+            setNotifyResult(null)
+            setNotifyTarget(row)
+          }}
+          variant="ghost"
+        />
+      ) : null,
       canDelete ? (
         <AdminIconButton
           key="delete"
@@ -731,6 +897,9 @@ export default function RegistrationsSection({
         showFilters={!isGloballyEmpty}
         title={t('admin.sections.registrations.title')}
         subtitle={t('admin.sections.registrations.subtitle')}
+        readOnlyHint={
+          !hasAnyRegistrationEditCapability ? t('admin.sections.registrations.readOnlyHint') : null
+        }
         totalCount={total}
         actions={
           isGloballyEmpty ? null : (
@@ -829,8 +998,52 @@ export default function RegistrationsSection({
                 scheduleStatus={scheduleStatus}
                 selectedCount={visibleSelectedRows.length}
                 targetEventName={visibleSelectedRows[0]?.event ?? ''}
+                extraAction={
+                  canSetStatus && onBulkSetRegistrationStatus ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="btn--small"
+                      onClick={() => {
+                        setBulkStatusError('')
+                        setBulkStatusOpen(true)
+                      }}
+                    >
+                      <Users size={14} aria-hidden />
+                      {t('admin.registrationBulkStatus.action')}
+                    </Button>
+                  ) : null
+                }
               />
             )}
+            {/* Sin permiso de grilla no hay barra de arriba que lleve la
+                cuenta de la selección -- esta es la única, no una segunda. */}
+            {!canAssignSchedule &&
+            canSetStatus &&
+            onBulkSetRegistrationStatus &&
+            visibleSelectedRows.length > 0 ? (
+              <div
+                className="admin-bulk-status-bar"
+                role="region"
+                aria-label={t('admin.registrationBulkStatus.action')}
+              >
+                <span className="admin-bulk-status-bar__lead">
+                  <Users size={15} aria-hidden />
+                  {t('admin.schedule.selectedCount', { count: visibleSelectedRows.length })}
+                </span>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="btn--small"
+                  onClick={() => {
+                    setBulkStatusError('')
+                    setBulkStatusOpen(true)
+                  }}
+                >
+                  {t('admin.registrationBulkStatus.action')}
+                </Button>
+              </div>
+            ) : null}
             <AdminDataTable
               className="admin-data-table--registrations"
               columns={[
@@ -990,6 +1203,12 @@ export default function RegistrationsSection({
                   if (!savingStatus) setStatusTarget(null)
                 }}
                 onConfirm={saveRegistrationStatus}
+                onPreview={
+                  onPreviewRegistrationNotification
+                    ? (type, message) =>
+                        onPreviewRegistrationNotification(statusTarget.id, { type, message })
+                    : undefined
+                }
               />
             ) : null}
             {observationsTarget ? (
@@ -998,6 +1217,35 @@ export default function RegistrationsSection({
                 registration={observationsTarget}
                 onClose={() => setObservationsTarget(null)}
                 onChange={onRefreshAthleteData}
+              />
+            ) : null}
+            {notifyTarget ? (
+              <RegistrationNotifyDialog
+                registration={notifyTarget}
+                busy={sendingNotify}
+                error={notifyError}
+                result={notifyResult}
+                onCancel={() => {
+                  if (!sendingNotify) setNotifyTarget(null)
+                }}
+                onConfirm={sendRegistrationNotify}
+                onPreview={
+                  onPreviewRegistrationNotification
+                    ? (type, message) =>
+                        onPreviewRegistrationNotification(notifyTarget.id, { type, message })
+                    : undefined
+                }
+              />
+            ) : null}
+            {bulkStatusOpen ? (
+              <AdminBulkRegistrationStatusDialog
+                count={visibleSelectedRows.length}
+                busy={savingBulkStatus}
+                error={bulkStatusError}
+                onCancel={() => {
+                  if (!savingBulkStatus) setBulkStatusOpen(false)
+                }}
+                onConfirm={saveBulkStatus}
               />
             ) : null}
           </>

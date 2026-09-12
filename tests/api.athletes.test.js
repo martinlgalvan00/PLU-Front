@@ -67,11 +67,13 @@ function createAthleteRepoDouble() {
   const updateCalls = []
   const visibilityCalls = []
   const adminDataScopes = []
+  const statusCalls = []
   return {
     calls,
     updateCalls,
     visibilityCalls,
     adminDataScopes,
+    statusCalls,
     adminDataRevision: async () => '1:2026-01-01T00:00:00.000Z|skip|skip|1:2026-01-01T00:00:00.000Z',
     adminData: async (scope) => {
       adminDataScopes.push(scope)
@@ -111,6 +113,13 @@ function createAthleteRepoDouble() {
     setRegistrationPublicVisibility: async (registrationId, publicVisible, actor) => {
       visibilityCalls.push({ registrationId, publicVisible, actor })
       return { id: registrationId, public_visible: publicVisible }
+    },
+    setRegistrationStatus: async (registrationId, status, reason, actor) => {
+      statusCalls.push({ registrationId, status, reason, actor })
+      if (registrationId === MISSING_ATHLETE_ID) {
+        throw new HttpError(404, 'Inscripción no encontrada.')
+      }
+      return { registration: { id: registrationId, status } }
     },
   }
 }
@@ -348,6 +357,85 @@ describe('visibilidad pública de inscripciones', () => {
           actor: 'usr-admin:admin@pluarg.test',
         },
       ])
+    } finally {
+      await target.close()
+    }
+  })
+})
+
+describe('corrección masiva de estado (POST /api/athletes/admin/registrations/bulk-status)', () => {
+  const OTHER_ID = '00000000-0000-4000-8000-000000000001'
+
+  it('aplica el mismo motivo a cada fila y reporta las que fallan sin frenar al resto', async () => {
+    const prisma = createPrismaDouble([await buildAdmin('admin_maximal')])
+    const athleteRepository = createAthleteRepoDouble()
+    const target = listen(createApp({ prisma, athleteRepository, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(`${target.url}/api/athletes/admin/registrations/bulk-status`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({
+          registrationIds: [ATHLETE_ID, MISSING_ATHLETE_ID, OTHER_ID],
+          status: 'cancelada',
+          reason: 'No completaron el pago dentro del plazo.',
+        }),
+      })
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(body.updated).toBe(2)
+      expect(body.failed).toBe(1)
+      expect(body.results).toEqual([
+        { registrationId: ATHLETE_ID, status: 'updated' },
+        { registrationId: MISSING_ATHLETE_ID, status: 'failed', error: 'Inscripción no encontrada.' },
+        { registrationId: OTHER_ID, status: 'updated' },
+      ])
+      expect(athleteRepository.statusCalls).toEqual([
+        {
+          registrationId: ATHLETE_ID,
+          status: 'cancelada',
+          reason: 'No completaron el pago dentro del plazo.',
+          actor: 'usr-admin:admin@pluarg.test',
+        },
+        {
+          registrationId: MISSING_ATHLETE_ID,
+          status: 'cancelada',
+          reason: 'No completaron el pago dentro del plazo.',
+          actor: 'usr-admin:admin@pluarg.test',
+        },
+        {
+          registrationId: OTHER_ID,
+          status: 'cancelada',
+          reason: 'No completaron el pago dentro del plazo.',
+          actor: 'usr-admin:admin@pluarg.test',
+        },
+      ])
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza un motivo demasiado corto antes de tocar el repositorio', async () => {
+    const prisma = createPrismaDouble([await buildAdmin('admin_maximal')])
+    const athleteRepository = createAthleteRepoDouble()
+    const target = listen(createApp({ prisma, athleteRepository, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(`${target.url}/api/athletes/admin/registrations/bulk-status`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({
+          registrationIds: [ATHLETE_ID],
+          status: 'cancelada',
+          reason: 'ok',
+        }),
+      })
+
+      expect(response.status).toBe(400)
+      expect(athleteRepository.statusCalls).toEqual([])
     } finally {
       await target.close()
     }
