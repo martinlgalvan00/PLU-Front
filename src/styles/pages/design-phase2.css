@@ -4079,8 +4079,16 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
   }
 
   .auth-layout__content .login-form {
-    gap: 20px;
+    gap: 16px;
     width: 100%;
+  }
+
+  .auth-layout--login.auth-layout--login-home .auth-layout__content .auth-immersive-glass .login-submit {
+    margin-top: 4px;
+  }
+
+  .auth-layout--login.auth-layout--login-home .auth-layout__content .login-remember {
+    margin: 0 -8px;
   }
 
   /* Campos sin icono en split (solo ingreso): más aire, menos ruido visual. */
@@ -5109,6 +5117,10 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
   line-height: 1.45;
   margin: 0;
   text-align: left;
+}
+
+.auth-layout--login .login-form__footer .login-join + .login-join {
+  margin-top: 8px;
 }
 
 .auth-layout--login .login-join__prompt {

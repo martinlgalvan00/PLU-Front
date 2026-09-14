@@ -3,6 +3,7 @@ import {
   EVENT_PAYMENT_CHANNELS,
   eventChannelOverridesFor,
 } from '../eventPaymentChannels.js'
+import { resolveTicketTypeChannels } from '../ticketTypePaymentChannels.js'
 
 /** Códigos de error → `admin.eventEditor.validation.*` en i18n. */
 const moneyField = z.coerce
@@ -104,6 +105,13 @@ const nullableWisePrice = z.preprocess(
     .nullable(),
 )
 
+const paymentChannelFlagsSchema = z.object({
+  mercado_pago: z.boolean().optional(),
+  bank_transfer: z.boolean().optional(),
+  cash_pitbull: z.boolean().optional(),
+  wise_transfer: z.boolean().optional(),
+})
+
 const ticketTypeSchema = z.object({
   id: z.string().uuid('ticketTypeIdInvalid').optional(),
   name: z.string().trim().min(1, 'ticketTypeNameRequired').max(100, 'ticketTypeNameMax'),
@@ -128,13 +136,10 @@ const ticketTypeSchema = z.object({
     .array(z.string().trim().min(1).max(80))
     .max(30, 'ticketTypeAddonsMax')
     .optional(),
-})
-
-const paymentChannelFlagsSchema = z.object({
-  mercado_pago: z.boolean().optional(),
-  bank_transfer: z.boolean().optional(),
-  cash_pitbull: z.boolean().optional(),
-  wise_transfer: z.boolean().optional(),
+  // Medios propios: `null`/ausente hereda los del evento, que es lo que tienen
+  // todas las entradas ya cargadas. Sólo puede cerrar; el cruce contra lo que
+  // el evento dejó abierto se valida abajo, donde se ve el evento entero.
+  paymentChannels: paymentChannelFlagsSchema.strict().nullable().optional(),
 })
 
 const paymentChannelsByConceptSchema = z
@@ -373,6 +378,27 @@ export const adminEventDraftSchema = z
           path: ['ticketTypes'],
           message: 'ticketsNeedType',
         })
+      }
+
+      // El override del tipo sólo puede cerrar debajo del evento, así que
+      // quedarse sin ninguno abierto es posible de dos maneras: cerrando los
+      // que quedaban, o dejando abierto sólo uno que el evento cerró después.
+      // Las dos dan la misma entrada incomprable, y el 409 aparecía recién al
+      // confirmar la compra.
+      for (const [index, ticketType] of (data.ticketTypes ?? []).entries()) {
+        if (ticketType.active === false) continue
+        if (!ticketType.paymentChannels) continue
+        const open = resolveTicketTypeChannels({
+          eventOverrides: data.paymentChannelOverrides,
+          typeChannels: ticketType.paymentChannels,
+        })
+        if (open.length === 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['ticketTypes', index, 'paymentChannels'],
+            message: 'ticketTypeNoChannel',
+          })
+        }
       }
     }
 

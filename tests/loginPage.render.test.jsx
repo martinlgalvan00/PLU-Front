@@ -170,4 +170,13 @@ describe('LoginPage', () => {
     expect(forgotAthletePassword).toHaveBeenCalled()
     expect(screen.getByText(/atleta@plu.test/)).toBeTruthy()
   })
+
+  it('desde el pie deja pedir el enlace si llegó una clave temporal', async () => {
+    renderLogin()
+    fireEvent.click(screen.getByRole('button', { name: /Pedir enlace de acceso/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Recuperar acceso' })).toBeTruthy()
+    })
+  })
 })

@@ -64,3 +64,11 @@ export const Confirmation = {
     ],
   },
 }
+
+/** Confirmación en el checkout público: acá vive "Compartir por WhatsApp". */
+export const ConfirmationEditorial = {
+  args: {
+    ...Confirmation.args,
+    editorial: true,
+  },
+}
