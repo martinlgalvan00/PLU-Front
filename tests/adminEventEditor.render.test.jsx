@@ -73,6 +73,16 @@ function activateEditorTab(name) {
   fireEvent.click(within(editorTablist()).getByRole('tab', { name }))
 }
 
+/**
+ * Los capítulos de Ventas y cupos llevan su dato al lado del nombre —
+ * "Entradas · 4 tipos"—, así que se buscan dentro de su propia tira y por
+ * prefijo: el nombre accesible ya no es sólo la etiqueta.
+ */
+function salesChapter(name) {
+  const nav = screen.getByRole('tablist', { name: /capítulos de ventas y cupos/i })
+  return within(nav).getByRole('tab', { name })
+}
+
 describe('AdminEventEditor — estructura del formulario', () => {
   it('muestra solo las secciones que se guardan con el evento', () => {
     renderEditor()
@@ -97,6 +107,8 @@ describe('AdminEventEditor — estructura del formulario', () => {
     expect(basics.querySelector('[name="startsAt"]')).not.toBeNull()
     expect(basics.querySelector('[name="endsAt"]')).not.toBeNull()
     expect(document.querySelector('[name="dateISO"]')).toBeNull()
+    expect(within(basics).getByRole('group', { name: /cuándo/i })).toBeTruthy()
+    expect(within(basics).getByRole('group', { name: /^lugar$/i })).toBeTruthy()
   })
 
   // El motivo del rediseño: las dos palancas de cierre estaban a distinta
@@ -113,7 +125,7 @@ describe('AdminEventEditor — estructura del formulario', () => {
       expect(field.closest('[hidden]')).toBeNull()
     }
 
-    fireEvent.click(screen.getByRole('tab', { name: /^entradas$/i }))
+    fireEvent.click(salesChapter(/^entradas/i))
 
     const ticketIds = ['#event-ticket-opens', '#event-ticket-closes']
     for (const id of ticketIds) {
@@ -415,9 +427,7 @@ describe('AdminEventEditor — venta de entradas bloqueada', () => {
 
     const sales = within(editorTablist()).getByRole('tab', { name: /ventas y cupos/i })
     expect(sales.getAttribute('aria-selected')).toBe('true')
-    expect(screen.getByRole('tab', { name: /^entradas$/i }).getAttribute('aria-selected')).toBe(
-      'true',
-    )
+    expect(salesChapter(/^entradas/i).getAttribute('aria-selected')).toBe('true')
   })
 
   it('hace lo mismo cuando lo que falta son las jornadas', () => {
@@ -439,29 +449,31 @@ describe('AdminEventEditor — venta de entradas bloqueada', () => {
 describe('AdminEventEditor — medios de cobro por concepto', () => {
   function openPaymentChapter() {
     activateEditorTab(/ventas y cupos/i)
-    fireEvent.click(screen.getByRole('tab', { name: /^cobro$/i }))
+    fireEvent.click(salesChapter(/^cobro/i))
   }
 
-  function customizeToggle() {
-    return screen.getByRole('checkbox', { name: /personalizar medios de cobro/i })
-  }
-
-  it('sin personalizar no muestra la matriz', () => {
+  it('sin override muestra igual la matriz, con los ocho medios abiertos', () => {
     renderEditor()
     openPaymentChapter()
 
-    expect(customizeToggle().checked).toBe(false)
-    expect(screen.queryByRole('group', { name: /medios de pago por concepto/i })).toBeNull()
+    const matrix = screen.getByRole('group', { name: /medios de pago por concepto/i })
+    const boxes = within(matrix).getAllByRole('checkbox')
+    expect(boxes).toHaveLength(8)
+    expect(boxes.every((box) => box.checked)).toBe(true)
+    // Heredar no es una decisión guardada: sin override no hay nada que
+    // devolver a los medios de la plataforma.
+    expect(screen.queryByRole('button', { name: /volver a los medios de la plataforma/i })).toBeNull()
   })
 
-  it('al personalizar ofrece los cuatro medios para inscripción y para entradas', () => {
+  it('destildar un medio crea el override sin cerrar ningún otro', () => {
     const onChange = vi.fn()
     renderEditor({}, { onChange })
     openPaymentChapter()
-    fireEvent.click(customizeToggle())
 
-    // El punto de partida es todo abierto: prender el interruptor no puede
-    // cerrar una venta por sí solo.
+    const matrix = screen.getByRole('group', { name: /medios de pago por concepto/i })
+    fireEvent.click(within(matrix).getByRole('checkbox', { name: /efectivo pitbull · entradas/i }))
+
+    // El punto de partida es todo abierto: cerrar uno no puede cerrar el resto.
     expect(onChange).toHaveBeenCalledTimes(1)
     expect(onChange.mock.calls[0][0].paymentChannelOverrides).toEqual({
       registration: {
@@ -473,10 +485,20 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
       ticket: {
         mercado_pago: true,
         bank_transfer: true,
-        cash_pitbull: true,
+        cash_pitbull: false,
         wise_transfer: true,
       },
     })
+  })
+
+  it('con override ofrece volver a heredar la matriz de plataforma', () => {
+    const onChange = vi.fn()
+    renderEditor({ paymentChannelOverrides: { ticket: { cash_pitbull: false } } }, { onChange })
+    openPaymentChapter()
+
+    fireEvent.click(screen.getByRole('button', { name: /volver a los medios de la plataforma/i }))
+    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(onChange.mock.calls[0][0].paymentChannelOverrides).toBeNull()
   })
 
   it('cierra un medio solo para entradas, sin tocar la inscripción', () => {

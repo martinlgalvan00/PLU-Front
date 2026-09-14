@@ -16,6 +16,7 @@ import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.j
 import { apiDelete, apiGet, apiPost } from '../lib/api.js'
 import { normalizeTicketCredentials } from '../lib/ticketCredentials.js'
 import { normalizeEventPaymentChannelOverrides } from '../lib/eventPaymentChannels.js'
+import { normalizeTicketTypePaymentChannels } from '../lib/ticketTypePaymentChannels.js'
 
 const DEFAULT_SLOTS = 80
 
@@ -109,6 +110,9 @@ export function buildAdminEventDraft(event) {
       salesClosesAt: toDateTimeLocal(type.salesClosesAt),
       dayIndexes: [...(type.dayIndexes ?? [])],
       includedAddonIds: [...(type.includedAddonIds ?? [])],
+      // Copia propia por el mismo motivo que las credenciales: el editor lo
+      // muta por canal y compartir la referencia rompía el "sin guardar".
+      paymentChannels: type.paymentChannels ? { ...type.paymentChannels } : null,
       // Copia profunda: el editor muta credenciales por índice, y compartir la
       // referencia con el evento original rompía la comparación de "sin
       // guardar" y el descarte.
@@ -593,6 +597,9 @@ function mapSupabaseTicketCatalog(row) {
         .map((link) => dayIndexById[link.event_day_id])
         .filter((value) => value !== undefined),
       includedAddonIds: (type.includedAddons ?? []).map((link) => link.addon_id),
+      // Medios propios de esta entrada. Null hereda los del evento, que es lo
+      // que tienen todas las filas anteriores a la columna.
+      paymentChannels: normalizeTicketTypePaymentChannels(type.payment_channels),
       // Subcategorías: qué credenciales emite una compra de este tipo. El
       // orden es el de emisión, y la primera es la que lleva el precio.
       credentials: normalizeTicketCredentials(
@@ -822,6 +829,10 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
     publicSurface: normalizeEventPublicSurface(draft.publicSurface),
     publicCopy: normalizeEventPublicCopy(draft.publicCopy),
     paymentChannelOverrides: normalizeEventPaymentChannelOverrides(draft.paymentChannelOverrides),
+    ticketTypes: (draft.ticketTypes ?? []).map((type) => ({
+      ...type,
+      paymentChannels: normalizeTicketTypePaymentChannels(type.paymentChannels),
+    })),
     bankTransfer: {
       alias: draft.bankTransfer?.alias ?? '',
       cbu: draft.bankTransfer?.cbu ?? '',

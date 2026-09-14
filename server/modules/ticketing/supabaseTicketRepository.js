@@ -55,6 +55,25 @@ export function createSupabaseTicketRepository(client) {
       )
       return { ...result, orderAccessToken: accessToken }
     },
+    /**
+     * Medios de cobro propios de los tipos que entran en una compra. Se lee
+     * antes de crear la orden porque el canal se elige una sola vez para toda
+     * la compra: si un tipo del carrito no lo acepta, la orden entera rebota
+     * ahí y no al confirmar el pago.
+     *
+     * `payment_channels` en `null` (todas las filas anteriores a la columna)
+     * significa "hereda el evento", y se devuelve tal cual.
+     */
+    async findTicketTypePaymentChannels(ticketTypeIds) {
+      const ids = [...new Set((ticketTypeIds ?? []).filter(Boolean))]
+      if (ids.length === 0) return []
+      return (
+        assertSupabaseResult(
+          await client.from('ticket_types').select('id, name, payment_channels').in('id', ids),
+          'No se pudieron leer los medios de pago de las entradas.',
+        ) ?? []
+      )
+    },
     verify: (qrToken) =>
       rpc('get_ticket_by_qr_token', { p_qr_token: qrToken }, 'No se pudo verificar la entrada.'),
     availability: (eventSlug) =>

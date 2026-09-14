@@ -204,6 +204,10 @@ export function ticketPricingFromEvent(event, now = new Date()) {
         wisePrice: Number.isFinite(Number(type.wisePrice)) ? Number(type.wisePrice) : null,
         salesOpensAt: type.salesOpensAt ?? null,
         salesClosesAt: type.salesClosesAt ?? null,
+        // Medios propios de esta entrada (null = hereda los del evento). El
+        // checkout lo cruza con lo que el evento ya dejaba abierto para no
+        // ofrecer un medio que el tipo elegido rechaza con 409 al confirmar.
+        paymentChannels: type.paymentChannels ?? null,
         quota: type.quota ?? null,
         dayIndexes: type.dayIndexes ?? [],
         includedAddonIds: type.includedAddonIds ?? [],

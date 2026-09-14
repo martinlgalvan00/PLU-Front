@@ -8,9 +8,15 @@
  * un segmento de ruta propio, para no tener que dar de alta una ruta nueva
  * por cada evento que se lanza: cualquier slug publicado en el catálogo de
  * eventos ya es válido acá.
+ *
+ * `/entradas` es un alias corto de la misma ruta, pensado para carteles, QR
+ * y links compartidos por WhatsApp — nadie tipea `/evento/entradas` a mano.
+ * Sin slug en la query, `TicketsPage` ya cae sola al próximo evento con
+ * venta habilitada, así que el alias no necesita resolver nada por su cuenta.
  */
 
 export const TICKETS_PATH = '/evento/entradas'
+export const SHORT_TICKETS_PATH = '/entradas'
 
 /**
  * @param {string} [pathname]
@@ -19,7 +25,7 @@ export const TICKETS_PATH = '/evento/entradas'
 export function matchTicketsRoute(
   pathname = typeof window !== 'undefined' ? window.location.pathname : '',
 ) {
-  return /^\/evento\/entradas\/?$/.test(pathname)
+  return /^\/evento\/entradas\/?$/.test(pathname) || /^\/entradas\/?$/.test(pathname)
 }
 
 /**

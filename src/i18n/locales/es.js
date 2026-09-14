@@ -1037,7 +1037,7 @@ export default {
     errorPasswordResetShort: 'Usá al menos 12 caracteres.',
     errorPasswordConfirmRequired: 'Confirmá la contraseña.',
     errorPasswordMismatch: 'Las contraseñas no coinciden.',
-    remember: 'Recordarme en este dispositivo',
+    remember: 'Recordarme',
     rememberHint: 'Sesión segura — nunca guardamos tu contraseña.',
     submit: 'Ingresar',
     submitting: 'Ingresando…',
@@ -3332,6 +3332,8 @@ export default {
       paymentTransfer: 'Transferencia bancaria',
       paymentMpHint: 'Pago automático · QR habilitado al confirmarse',
       paymentTransferHint: 'Validación manual por Administración · hasta 48 horas',
+      paymentNarrowedByType:
+        'El tipo de entrada elegido limita los medios de pago disponibles para esta compra.',
       buyerTitle: 'Tus datos',
       buyerLead: 'A este mail te mandamos las entradas con el QR y el aviso cuando se acredite el pago.',
       buyerName: 'Nombre y apellido',
@@ -3372,6 +3374,8 @@ export default {
       confirmationCount_other: '{{count}} entradas',
       confirmationQrLead:
         'Cuando el pago se confirma, cada entrada queda con su QR de ingreso listo para presentar en puerta.',
+      shareCta: 'Compartir por WhatsApp',
+      shareMessage: 'Ya tengo mi entrada para {{event}}. Conseguí la tuya acá: {{link}}',
       continueMercadoPago: 'Continuar en Mercado Pago',
       checkoutUnavailable:
         'No pudimos abrir el checkout. Reintentá la compra o contactá a administración.',

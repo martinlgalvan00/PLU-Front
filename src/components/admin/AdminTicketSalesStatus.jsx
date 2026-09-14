@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, CircleSlash, Loader2 } from 'lucide-react'
+import { ArrowRight, CheckCircle2, CircleSlash, Loader2 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { resolveTicketSalesState } from '../../lib/ticketSalesState.js'
 import { fetchPlatformFeatureToggles } from '../../services/platformSettingsAdminService.js'
@@ -19,7 +19,7 @@ import { fetchPlatformFeatureToggles } from '../../services/platformSettingsAdmi
  * costaría más de lo que aporta. Si la lectura falla, se muestra lo que
  * depende del evento y el catálogo en vez de no mostrar nada.
  */
-export default function AdminTicketSalesStatus({ draft }) {
+export default function AdminTicketSalesStatus({ draft, onGoToChapter = null }) {
   const { t } = useI18n()
   const [platform, setPlatform] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -79,20 +79,51 @@ export default function AdminTicketSalesStatus({ draft }) {
         </p>
       ) : (
         <ul className="admin-ticket-sales-status__blockers">
-          {state.blockers.map((blocker) => (
-            <li key={blocker.code} data-scope={blocker.scope}>
-              <span className="admin-ticket-sales-status__scope">
-                {t(`admin.eventEditor.ticketSalesState.scope.${blocker.scope}`)}
-              </span>
-              {t(`admin.eventEditor.ticketSalesState.blocker.${blocker.code}`, {
-                detail: blocker.detail ?? '',
-              })}
-            </li>
-          ))}
+          {state.blockers.map((blocker) => {
+            const chapter = CHAPTER_BY_BLOCKER[blocker.code]
+            return (
+              <li key={blocker.code} data-scope={blocker.scope}>
+                <span className="admin-ticket-sales-status__scope">
+                  {t(`admin.eventEditor.ticketSalesState.scope.${blocker.scope}`)}
+                </span>
+                <span className="admin-ticket-sales-status__reason">
+                  {t(`admin.eventEditor.ticketSalesState.blocker.${blocker.code}`, {
+                    detail: blocker.detail ?? '',
+                  })}
+                </span>
+                {chapter && onGoToChapter ? (
+                  <button
+                    className="admin-ticket-sales-status__go"
+                    type="button"
+                    onClick={() => onGoToChapter(chapter)}
+                  >
+                    {t('admin.eventEditor.ticketSalesState.goTo')}
+                    <ArrowRight aria-hidden size={12} />
+                  </button>
+                ) : null}
+              </li>
+            )
+          })}
         </ul>
       )}
     </section>
   )
+}
+
+/**
+ * A qué capítulo de Ventas y cupos lleva cada bloqueo. Sólo los que se
+ * arreglan acá: entorno y plataforma se tocan en Finanzas y las jornadas en
+ * Estructura, así que ésos siguen diciendo el motivo sin ofrecer un atajo que
+ * no llevaría a ninguna parte.
+ */
+const CHAPTER_BY_BLOCKER = {
+  eventDisabled: 'tickets',
+  windowUpcoming: 'tickets',
+  windowClosed: 'tickets',
+  noSellableType: 'tickets',
+  noTypeInWindow: 'tickets',
+  noTypeWithChannel: 'tickets',
+  noChannel: 'payment',
 }
 
 const CHANNEL_KEY = {
