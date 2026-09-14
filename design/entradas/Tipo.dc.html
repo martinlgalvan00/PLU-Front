@@ -1,0 +1,257 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --canvas: #0a0b0d; --surface: #141518; --surface-muted: #121316; --elevated: #1e2026;
+      --hairline: rgba(255,255,255,0.09); --border: rgba(255,255,255,0.14);
+      --ink: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8; --faint: #6f7280;
+      --brand: #9ec5eb; --brand-deep: #1f5f9e; --gold: #f2b705; --gold-ink: #14181f;
+      --ok: #3d9a62; --ok-soft: #8fd4a8; --danger: #e10600; --warn: #b45309;
+      --font: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); }
+    a { color: var(--brand); } a:hover { color: #c7dcf1; }
+    * { box-sizing: border-box; }
+    .shell { display: grid; grid-template-columns: 232px 1fr; min-height: 100%; }
+    .side { background: var(--surface-muted); border-right: 1px solid var(--hairline); padding: 20px 12px; display: flex; flex-direction: column; gap: 22px; }
+    .side-brand { display: flex; align-items: center; gap: 9px; padding: 0 8px 4px; }
+    .side-mark { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, var(--brand-deep), var(--gold)); }
+    .side-name { font-size: 12.5px; font-weight: 700; }
+    .side-group { display: flex; flex-direction: column; gap: 2px; }
+    .side-label { font-size: 10px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); padding: 0 8px 6px; }
+    .side-item { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 8px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+    .side-item.is-active { background: color-mix(in srgb, var(--brand) 10%, transparent); color: var(--ink); font-weight: 600; }
+    .side-item svg { opacity: .75; flex: 0 0 auto; }
+    .side-item.is-active svg { opacity: 1; color: var(--brand); }
+    .side-count { margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--muted); }
+
+    .main { padding: 20px 32px 32px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+    .back { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--muted); }
+    .hd { display: flex; flex-direction: column; gap: 14px; }
+    .hd-top { display: flex; align-items: flex-start; gap: 16px; }
+    .hd-copy { display: flex; flex-direction: column; gap: 7px; flex-grow: 1; min-width: 0; }
+    .hd-title-row { display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+    .hd-title { font-size: 23px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+    .pill-state { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: 11px; font-weight: 600; background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent); }
+    .dot { width: 5px; height: 5px; border-radius: 999px; background: currentColor; }
+    .hd-meta { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+    .sep { color: #4a4d57; }
+    .hd-actions { display: flex; align-items: center; gap: 8px; }
+    .icon-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: color-mix(in srgb, var(--elevated) 60%, transparent); color: var(--secondary); font-size: 12px; font-weight: 500; font-family: var(--font); }
+    .icon-btn--square { width: 34px; padding: 0; }
+
+    .tabs { display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 999px; background: color-mix(in srgb, var(--elevated) 70%, transparent); border: 1px solid rgba(255,255,255,.08); width: fit-content; }
+    .tab { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 6px 12px; border-radius: 999px; border: 1px solid transparent; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; font-family: var(--font); white-space: nowrap; }
+    .tab.is-active { background: color-mix(in srgb, var(--brand) 13%, transparent); border-color: color-mix(in srgb, var(--brand) 24%, transparent); color: var(--ink); }
+    .tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; padding: 2px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 700; background: color-mix(in srgb, var(--ink) 8%, transparent); }
+    .tab.is-active .tab-count { background: color-mix(in srgb, var(--brand) 20%, transparent); }
+
+    .chapters { display: flex; align-items: center; gap: 22px; border-bottom: 1px solid var(--hairline); }
+    .chapter { padding: 0 0 11px; border: none; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; font-family: var(--font); border-bottom: 2px solid transparent; margin-bottom: -1px; text-align: left; }
+    .chapter.is-active { color: var(--ink); border-bottom-color: var(--brand); }
+    .chapter small { display: block; font-size: 10.5px; font-weight: 400; color: var(--faint); margin-top: 3px; }
+
+    .card { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; }
+    .card-h { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--hairline); }
+    .card-t { font-size: 13px; font-weight: 600; margin: 0; }
+    .card-hint { font-size: 11.5px; color: var(--muted); }
+    .card-b { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 600; white-space: nowrap; }
+    .badge--on { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok-soft); }
+    .badge--off { background: rgba(255,255,255,.07); color: var(--muted); }
+    .badge--soft { background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand); }
+    .badge--gold { background: color-mix(in srgb, var(--gold) 15%, transparent); color: var(--gold); }
+    .badge--warn { background: color-mix(in srgb, var(--warn) 22%, transparent); color: #e8a33d; }
+    .num { font-variant-numeric: tabular-nums; }
+    .kebab { color: var(--muted); display: inline-flex; }
+    .btn-gold { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 16px; border-radius: 8px; border: none; background: var(--gold); color: var(--gold-ink); font-size: 12.5px; font-weight: 600; font-family: var(--font); }
+    .ghost-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); font-size: 11.5px; font-weight: 500; font-family: var(--font); }
+    body { background: rgba(6,7,9,.78); display: flex; justify-content: flex-end; min-height: 1160px; }
+    .drawer { width: 640px; min-height: 1160px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+    .dr-head { display: flex; align-items: flex-start; gap: 14px; padding: 20px 24px 16px; border-bottom: 1px solid var(--hairline); }
+    .dr-copy { display: flex; flex-direction: column; gap: 6px; flex-grow: 1; min-width: 0; }
+    .dr-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--faint); }
+    .dr-title { font-size: 19px; font-weight: 700; margin: 0; letter-spacing: -.01em; }
+    .dr-sub { display: flex; align-items: center; gap: 9px; font-size: 11.5px; color: var(--muted); flex-wrap: wrap; }
+    .dr-body { padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 22px; flex-grow: 1; }
+    .dr-foot { display: flex; align-items: center; gap: 10px; padding: 14px 24px; border-top: 1px solid var(--hairline); background: color-mix(in srgb, var(--elevated) 45%, transparent); position: sticky; bottom: 0; }
+
+    .blk { display: flex; flex-direction: column; gap: 12px; }
+    .blk-h { display: flex; align-items: baseline; gap: 10px; }
+    .blk-t { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--secondary); margin: 0; }
+    .blk-hint { font-size: 11px; color: var(--muted); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .field-l { font-size: 11.5px; font-weight: 500; color: var(--muted); }
+    .input { min-height: 40px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: #121218; color: var(--ink); font-size: 13px; display: flex; align-items: center; gap: 8px; }
+        .input-suffix { margin-left: auto; font-size: 11px; color: var(--muted); }
+    .field-hint { font-size: 10.5px; color: var(--faint); line-height: 1.5; }
+
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 9px; border: 1px solid var(--hairline); background: color-mix(in srgb, var(--elevated) 50%, transparent); font-size: 12.5px; color: var(--secondary); }
+    .chip.is-on { border-color: color-mix(in srgb, var(--brand) 38%, transparent); background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--ink); font-weight: 600; }
+    .box { width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid rgba(255,255,255,.28); flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; }
+    .chip.is-on .box { border-color: var(--brand); background: var(--brand); color: #0c1420; }
+
+    /* credenciales */
+    .cr { border: 1px solid var(--hairline); border-radius: 10px; overflow: hidden; }
+    .cr-head, .cr-row { display: grid; grid-template-columns: minmax(0,1fr) 200px 28px; gap: 12px; align-items: center; padding: 11px 14px; }
+    .cr-head { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); background: color-mix(in srgb, var(--elevated) 45%, transparent); border-bottom: 1px solid var(--hairline); }
+    .cr-row { border-bottom: 1px solid var(--hairline); }
+    .cr-row:last-of-type { border-bottom: none; }
+    .cr-name { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .cr-name strong { font-size: 13px; font-weight: 600; }
+    .cr-name small { font-size: 10.5px; color: var(--muted); }
+    .cr-zone { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 0 11px; border-radius: 8px; border: 1px solid var(--hairline); background: #121218; font-size: 12px; color: var(--secondary); }
+    .cr-zone svg { margin-left: auto; color: var(--muted); }
+    .cr-add { display: flex; align-items: center; gap: 10px; padding: 11px 14px; }
+    .calc { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 9px; background: color-mix(in srgb, var(--gold) 9%, transparent); border: 1px solid color-mix(in srgb, var(--gold) 24%, transparent); }
+    .calc svg { color: var(--gold); flex: 0 0 auto; margin-top: 1px; }
+    .calc p { margin: 0; font-size: 11.5px; line-height: 1.55; color: var(--secondary); }
+    .calc strong { color: var(--ink); font-weight: 600; }
+
+    /* beneficios */
+    .bn { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 9px 14px; border: 1px solid var(--hairline); border-radius: 9px; }
+    .bn.is-on { border-color: color-mix(in srgb, var(--brand) 30%, transparent); background: color-mix(in srgb, var(--brand) 8%, transparent); }
+    .bn-c { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .bn-c strong { font-size: 12.5px; font-weight: 600; }
+    .bn-c small { font-size: 10.5px; color: var(--muted); }
+    .bn-p { margin-left: auto; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .sw { width: 36px; height: 20px; border-radius: 999px; background: rgba(255,255,255,.12); position: relative; flex: 0 0 auto; }
+    .sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 999px; background: #8b8d97; }
+    .sw.is-on { background: color-mix(in srgb, var(--ok) 60%, transparent); }
+    .sw.is-on::after { left: auto; right: 3px; background: #eafff2; }
+    .sw-wrap { display: inline-flex; align-items: center; gap: 9px; min-height: 44px; font-size: 12px; font-weight: 600; color: var(--ok-soft); }
+    .link-danger { margin-left: auto; font-size: 11.5px; color: #ff8a87; }
+  </style>
+</helmet>
+
+<div class="drawer">
+  <div class="dr-head">
+    <div class="dr-copy">
+      <span class="dr-eyebrow">Tipo de entrada</span>
+      <h1 class="dr-title">Entrenador · dos días</h1>
+      <div class="dr-sub">
+        <span class="badge badge--gold">Entrenador</span>
+        <span class="sep">·</span>
+        <span>18 de 30 vendidas</span>
+        <span class="sep">·</span>
+        <span>36 credenciales emitidas</span>
+      </div>
+    </div>
+    <span class="sw-wrap"><span class="sw is-on"></span>En venta</span>
+    <button class="icon-btn icon-btn--square" type="button" aria-label="Cerrar">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+
+  <div class="dr-body">
+    <section class="blk">
+      <div class="blk-h"><h2 class="blk-t">Qué se vende</h2></div>
+      <div class="field">
+        <span class="field-l">Nombre</span>
+        <span class="input">Entrenador · dos días</span>
+      </div>
+      <div class="field">
+        <span class="field-l">Bajada para la página pública</span>
+        <span class="input">Tribuna las dos jornadas + acceso a la entrada en calor</span>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <span class="field-l">Precio</span>
+          <span class="input"><span>26.000</span><span class="input-suffix">ARS</span></span>
+        </div>
+        <div class="field">
+          <span class="field-l">Cupo</span>
+          <span class="input"><span>30</span><span class="input-suffix">compras</span></span>
+          <span class="field-hint">Vacío = sin límite.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="blk">
+      <div class="blk-h">
+        <h2 class="blk-t">A qué jornadas da acceso</h2>
+        <span class="blk-hint">Se cargan en Estructura</span>
+      </div>
+      <div class="chips">
+        <span class="chip is-on"><span class="box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>Sábado 14</span>
+        <span class="chip is-on"><span class="box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>Domingo 15</span>
+      </div>
+    </section>
+
+    <section class="blk">
+      <div class="blk-h">
+        <h2 class="blk-t">Credenciales que emite</h2>
+        <span class="blk-hint">Una compra, un QR por credencial</span>
+      </div>
+
+      <div class="cr">
+        <div class="cr-head"><span>Credencial</span><span>Puesto que la lee</span><span></span></div>
+        <div class="cr-row">
+          <span class="cr-name"><strong>Espectador</strong><small>Es la que lleva el precio y los beneficios</small></span>
+          <span class="cr-zone">Puerta general<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></span>
+          <span class="kebab"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></span>
+        </div>
+        <div class="cr-row">
+          <span class="cr-name"><strong>ENTRENADOR</strong><small>Se canjea una vez, detrás de plataforma</small></span>
+          <span class="cr-zone">Entrada en calor<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></span>
+          <span class="kebab"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></span>
+        </div>
+        <div class="cr-add">
+          <button class="ghost-btn" type="button">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Agregar credencial
+          </button>
+          <span class="card-hint" style="margin-left: auto;">2 de 4 credenciales</span>
+        </div>
+      </div>
+
+      <div class="calc">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+        <p>El cupo cuenta <strong>compras</strong>, no credenciales. Con cupo 30 y dos credenciales, son <strong>30 lugares</strong> y hasta <strong>60 QR</strong>.</p>
+      </div>
+    </section>
+
+    <section class="blk">
+      <div class="blk-h">
+        <h2 class="blk-t">Beneficios incluidos</h2>
+        <span class="blk-hint">Ya cobrados en el precio</span>
+      </div>
+      <div class="bn">
+        <span class="box"></span>
+        <span class="bn-c"><strong>Buffet</strong><small>Se canjea en la barra</small></span>
+        <span class="bn-p">$ 6.000</span>
+      </div>
+      <div class="bn is-on">
+        <span class="box" style="border-color: var(--brand); background: var(--brand); color: #0c1420;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>
+        <span class="bn-c"><strong>Programa impreso</strong><small>Se retira en acreditación</small></span>
+        <span class="bn-p">$ 2.500</span>
+      </div>
+      <div class="bn">
+        <span class="box"></span>
+        <span class="bn-c"><strong>Remera del meet</strong><small>Se retira en el stand</small></span>
+        <span class="bn-p">$ 14.000</span>
+      </div>
+    </section>
+  </div>
+
+  <div class="dr-foot">
+    <button class="btn-gold" type="button">Guardar cambios</button>
+    <button class="ghost-btn" type="button">Cancelar</button>
+    <span class="link-danger">Eliminar tipo</span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

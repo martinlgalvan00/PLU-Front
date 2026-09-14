@@ -166,10 +166,11 @@ describe('EventsSection — meets abiertos en el listado', () => {
     renderEvents({ adminEvents: [{ ...EVENT, requiresMembership: false }] })
     const dialog = openConsole(/Pitbull Classic · pitbull-classic-2026/)
 
-    const access = dialog.querySelector('.admin-event-state__access')
-    expect(access).not.toBeNull()
+    const options = [...dialog.querySelectorAll('.admin-event-state__option')]
+    expect(options.length).toBeGreaterThan(0)
     expect(
-      access.querySelector('[role="radio"][aria-pressed="true"]')?.textContent,
+      options.find((option) => option.getAttribute('aria-checked') === 'true'
+        && /afiliación/i.test(option.textContent))?.textContent,
     ).toContain('Sin afiliación')
   })
 })

@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+@@BASE@@
+    body { width: 390px; min-height: 844px; display: flex; flex-direction: column; }
+
+    .top { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--hairline); }
+    .top-back { width: 44px; height: 44px; margin-left: -12px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); flex: 0 0 auto; }
+    .top-c { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .top-c strong { font-size: 14px; font-weight: 700; letter-spacing: -.01em; }
+    .top-c small { font-size: 10.5px; color: var(--muted); }
+
+    .body { display: flex; flex-direction: column; gap: 16px; padding: 16px 16px 18px; flex-grow: 1; }
+
+    .m-step { display: flex; flex-direction: column; gap: 10px; }
+    .m-h { display: flex; align-items: center; gap: 9px; }
+    .m-t { font-size: 15px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+
+    .m-card { border: 1px solid var(--hairline); border-radius: var(--r-card); background: var(--surface); padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+    .m-qty { display: flex; align-items: center; gap: 14px; }
+    .m-line { font-size: 13.5px; font-weight: 600; line-height: 1.4; min-width: 0; }
+    .m-line b { color: var(--gold); }
+    .m-sub { font-size: 11.5px; color: var(--muted); line-height: 1.5; margin: 0; }
+
+    .strip { display: flex; flex-wrap: wrap; gap: 5px; }
+    .qr-tile { width: 27px; height: 27px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+    .qr-tile--on { background: color-mix(in srgb, var(--brand) 16%, transparent); border: 1px solid color-mix(in srgb, var(--brand) 32%, transparent); color: var(--brand-soft); }
+    .qr-tile--off { background: rgba(255,255,255,.02); border: 1px dashed rgba(255,255,255,.16); color: #4a4d57; }
+
+    .m-count { display: flex; align-items: center; gap: 10px; padding: 11px 13px; border-radius: 11px; border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent); background: color-mix(in srgb, var(--warn) 9%, transparent); }
+    .m-count svg { color: #e8a33d; flex: 0 0 auto; }
+    .m-count-c { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .m-count-c strong { font-size: 12.5px; font-weight: 600; }
+    .m-count-c small { font-size: 11px; color: var(--muted); }
+
+    .pcard { display: flex; flex-direction: column; gap: 9px; padding: 13px 14px; border: 1px solid var(--hairline); border-radius: var(--r-card); background: var(--surface); }
+    .pcard.is-dup { border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+    .pcard-h { display: flex; align-items: center; gap: 10px; }
+    .pcard-ix { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 7px; font-size: 11px; font-weight: 700; background: rgba(255,255,255,.05); color: var(--muted); flex: 0 0 auto; }
+    .pcard-h strong { font-size: 13.5px; font-weight: 600; min-width: 0; }
+    .pcard-h .tag { margin-left: auto; }
+    .m-field { min-height: 44px; padding: 0 12px; border-radius: var(--r-field); border: 1px solid var(--hairline); background: rgba(255,255,255,.02); font-size: 13.5px; display: flex; align-items: center; }
+    .m-field--dup { border-color: color-mix(in srgb, var(--warn) 45%, transparent); background: color-mix(in srgb, var(--warn) 9%, transparent); }
+    .m-field--empty { color: #55585f; border-style: dashed; }
+    .m-dup-note { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #e8a33d; line-height: 1.45; }
+
+    .m-pay { display: flex; gap: 8px; }
+        .m-pill { flex: 1 1 0; display: flex; align-items: center; gap: 9px; min-height: 56px; padding: 8px 11px; border: 1px solid var(--hairline); border-radius: 12px; background: var(--surface); min-width: 0; }
+        .m-pill.is-on { border-color: color-mix(in srgb, var(--brand) 38%, transparent); background: color-mix(in srgb, var(--brand) 8%, transparent); }
+        .m-pill .radio { width: 16px; height: 16px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.28); flex: 0 0 auto; }
+        .m-pill.is-on .radio { border: 5px solid var(--brand); }
+        .m-pill-c { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+        .m-pill-c strong { font-size: 12.5px; font-weight: 600; }
+        .m-pill-c small { font-size: 10.5px; color: var(--muted); }
+        .m-more { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 1px dashed var(--hairline); border-radius: var(--r-card); font-size: 12px; color: var(--muted); }
+
+    .foot { position: sticky; bottom: 0; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--hairline); background: #0d0e11; }
+    .foot-c { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .foot-c strong { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .foot-c small { font-size: 10.5px; color: var(--muted); }
+    .foot .btn-gold { margin-left: auto; min-height: 48px; padding: 0 18px; font-size: 13.5px; }
+  </style>
+</helmet>
+
+<div class="top">
+  <span class="top-back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></span>
+  <span class="top-c"><strong>Entradas</strong><small>Pitbull Classic 2026 · 14 y 15 nov</small></span>
+</div>
+
+<div class="body">
+  <section class="m-step">
+    <div class="m-h">
+      <span class="step-n">1</span>
+      <h2 class="m-t">¿Cuántas personas entran?</h2>
+    </div>
+    <div class="m-card">
+      <div class="m-qty">
+        <div class="stepper">
+          <button type="button">−</button>
+          <span class="stepper-v">10</span>
+          <button type="button">+</button>
+        </div>
+        <span class="m-line">Se emiten <b>10 credenciales</b>, una por persona.</span>
+      </div>
+      <div class="strip">
+        <span class="qr-tile qr-tile--on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+        <span class="qr-tile qr-tile--on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+        <span class="qr-tile qr-tile--on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+        <span class="qr-tile qr-tile--on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+        <span class="qr-tile qr-tile--on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+        <span class="qr-tile qr-tile--on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+        <span class="qr-tile qr-tile--off"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+        <span class="qr-tile qr-tile--off"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+        <span class="qr-tile qr-tile--off"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+        <span class="qr-tile qr-tile--off"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+      </div>
+      <p class="m-sub">Cada una entra con su propio QR. No hay uno que sirva para todo el grupo.</p>
+    </div>
+  </section>
+
+  <div class="m-count">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 4.5 21 19.5H3z"/><path d="M12 10v4M12 17h.01"/></svg>
+    <span class="m-count-c"><strong>6 de 10 personas listas</strong><small>1 DNI repetido · faltan 3</small></span>
+  </div>
+
+  <section class="m-step">
+    <div class="m-h">
+      <span class="step-n">2</span>
+      <h2 class="m-t">¿Cómo pagan?</h2>
+    </div>
+    <div class="m-pay">
+      <span class="m-pill is-on"><span class="radio"></span><span class="m-pill-c"><strong>Mercado Pago</strong><small>QR al instante</small></span></span>
+      <span class="m-pill"><span class="radio"></span><span class="m-pill-c"><strong>Transferencia</strong><small>QR al aprobarse</small></span></span>
+    </div>
+  </section>
+  <article class="pcard is-dup">
+    <div class="pcard-h">
+      <span class="pcard-ix">5</span>
+      <strong>Marina Oliveira</strong>
+      <span class="tag tag--warn">DNI repetido</span>
+    </div>
+    <span class="m-field m-field--dup">38.402.115</span>
+    <span class="m-dup-note">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+      Es el mismo DNI que la entrada 1. En la puerta se verifica contra el documento.
+    </span>
+  </article>
+
+  <div class="m-more">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+    9 personas más
+  </div>
+</div>
+
+<div class="foot">
+  <span class="foot-c"><strong>$ 200.000</strong><small>10 entradas · 10 QR</small></span>
+  <button type="button" class="btn-gold">Pagar</button>
+</div>
+</x-dc>
+</body>
+</html>

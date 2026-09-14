@@ -15,6 +15,7 @@ import { isRegistrationOpen } from '../lib/status.js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 import { apiDelete, apiGet, apiPost } from '../lib/api.js'
 import { normalizeTicketCredentials } from '../lib/ticketCredentials.js'
+import { normalizeEventPaymentChannelOverrides } from '../lib/eventPaymentChannels.js'
 
 const DEFAULT_SLOTS = 80
 
@@ -121,7 +122,7 @@ export function buildAdminEventDraft(event) {
     requiresMembership: event.requiresMembership !== false,
     capacityProgressPublic: event.capacityProgressPublic !== false,
     capacityTotalPublic: event.capacityTotalPublic !== false,
-    paymentChannelOverrides: event.paymentChannelOverrides ?? null,
+    paymentChannelOverrides: normalizeEventPaymentChannelOverrides(event.paymentChannelOverrides),
     bankTransfer: {
       alias: event.bankTransfer?.alias ?? '',
       cbu: event.bankTransfer?.cbu ?? '',
@@ -668,7 +669,7 @@ export function mapSupabaseEventRow(row) {
     requiresMembership: row.requires_membership !== false,
     capacityProgressPublic: row.capacity_progress_public !== false,
     capacityTotalPublic: row.capacity_total_public !== false,
-    paymentChannelOverrides: row.payment_channel_overrides ?? null,
+    paymentChannelOverrides: normalizeEventPaymentChannelOverrides(row.payment_channel_overrides),
     bankTransfer: {
       alias: row.bank_transfer_alias ?? '',
       cbu: row.bank_transfer_cbu ?? '',
@@ -844,7 +845,7 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
     weighInWindows: normalizeWeighInWindows(draft.weighInWindows),
     publicSurface: normalizeEventPublicSurface(draft.publicSurface),
     publicCopy: normalizeEventPublicCopy(draft.publicCopy),
-    paymentChannelOverrides: draft.paymentChannelOverrides ?? null,
+    paymentChannelOverrides: normalizeEventPaymentChannelOverrides(draft.paymentChannelOverrides),
     bankTransfer: {
       alias: draft.bankTransfer?.alias ?? '',
       cbu: draft.bankTransfer?.cbu ?? '',

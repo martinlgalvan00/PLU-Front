@@ -1071,7 +1071,7 @@ export default {
       registrationToggleAria: 'Habilitar inscripciones',
       ticketToggleTitle: 'Entradas',
       ticketToggleLead:
-        'Al cerrarlas, ningún evento vende entradas de público, sin tocar la configuración de cada torneo.',
+        'Interruptor de lanzamiento: abre o cierra la venta de entradas de público en todos los eventos. Se opera acá, no con una variable de entorno. Al cerrarlo, ningún evento vende aunque tenga catálogo.',
       ticketToggleAria: 'Habilitar venta de entradas',
       membershipValidationTitle: 'Validar afiliaciones',
       membershipValidationLead:
@@ -1319,10 +1319,11 @@ export default {
   },
   eventState: {
     label: 'Estado del evento',
+    sectionTitle: 'Estado y acceso',
+    sectionLead:
+      'En qué estado está el meet, quién puede inscribirse y si se ve en el sitio.',
     status: 'Estado',
-    registrationLabel: 'Inscripciones',
     openRegistration: 'Habilitar inscripciones',
-    registrationLive: 'Inscripciones habilitadas',
     registrationOpened: 'Inscripciones habilitadas y evento publicado.',
     setUpcoming: 'Poner próximamente',
     upcomingSaved: 'El evento quedó publicado como próximamente.',
@@ -1336,6 +1337,8 @@ export default {
       'La ventana de inscripción ya venci\u00f3. Editá “Ventas y cupos” antes de volver a habilitarla.',
     published: 'Publicado',
     hidden: 'Oculto',
+    publishedNote: 'El evento se ve en el sitio y aparece en el calendario público.',
+    hiddenNote: 'Nadie lo ve fuera del panel: no aparece en el sitio ni por link.',
     statusSaved: 'Estado actualizado.',
     publishedSaved: 'El evento ya es visible en el sitio.',
     unpublishedSaved: 'El evento dejó de mostrarse en el sitio.',
@@ -1462,6 +1465,13 @@ export default {
     attendanceRate: '{{percent}}% de asistencia',
     noAttendanceData: 'Sin datos todavía',
     viewPublicPage: 'Ver página pública',
+  },
+
+  // `formatRejectionActor` (src/lib/paymentAudit.js) busca esta clave en
+  // `admin.payments.*`. Existía sólo dentro de `tour.payments`, así que toda
+  // orden rechazada por Mercado Pago mostraba la clave cruda en la cola.
+  payments: {
+    rejectionActorProvider: 'Mercado Pago',
   },
 
   eventPayments: {
@@ -2844,6 +2854,13 @@ export default {
     paymentChannelBankTransfer: 'Transferencia',
     paymentChannelCashPitbull: 'Efectivo Pitbull',
     paymentChannelWise: 'Wise',
+    paymentChannelMatrixLabel: 'Medios de pago por concepto',
+    paymentChannelMatrixHint:
+      'Se define por separado: lo que cerrás para entradas no toca la inscripción de atletas.',
+    paymentChannelConcept: {
+      registration: 'Inscripción',
+      ticket: 'Entradas',
+    },
     bankTransferTitle: 'Transferencia bancaria de este evento',
     bankTransferHint:
       'Elegí un perfil del catálogo para reutilizarlo en otros eventos, o cargá alias/CBU acá (al guardar se crea el perfil).',
@@ -3768,8 +3785,11 @@ export default {
     channelWise: 'Wise',
     rejectedBy: 'Rechazada por {{actor}}',
     cancelledBy: 'Cancelada por {{actor}}',
-    columnProof: 'Comprobante',
-    columnCode: 'Código',
+    // Cobro reúne método y comprobante; Orden, referencia y fecha. Antes eran
+    // cuatro columnas que contaban dos cosas.
+    columnCharge: 'Cobro',
+    columnOrder: 'Orden',
+    methodTransfer: 'Transferencia',
     staffPill: 'Staff',
     proofMissing: 'Sin comprobante',
     proofArchived: 'Archivado',

@@ -243,20 +243,24 @@
 }
 
 .tickets-page__sales-paused {
-  align-items: center;
-  border-left: 2px solid var(--plu-gold-500);
-  color: color-mix(in oklab, var(--design-hero-fg, #fff) 78%, transparent);
-  display: inline-flex;
-  font-size: 12px;
+  align-items: flex-start;
+  color: var(--design-hero-desc, rgba(255, 255, 255, 0.72));
+  display: flex;
+  font-size: 13px;
   gap: 8px;
   line-height: 1.45;
-  margin: 4px 0 0;
-  padding-left: 10px;
+  margin: 6px 0 0;
+  max-width: 36em;
+}
+
+.tickets-page__sales-paused span {
+  min-width: 0;
 }
 
 .tickets-page__sales-paused svg {
   color: var(--plu-gold-400, var(--plu-gold-500));
   flex: none;
+  margin-top: 2px;
 }
 
 .tickets-page__hero-copy::before {
@@ -418,6 +422,10 @@
 
 [data-theme='light'] .tickets-page__dateline-venue {
   color: rgba(15, 17, 23, 0.55);
+}
+
+[data-theme='light'] .tickets-page__sales-paused {
+  color: rgba(15, 17, 23, 0.62);
 }
 
 [data-theme='light'] .tickets-page__hero-actions {
@@ -1016,12 +1024,17 @@
     padding-inline: 20px;
   }
 
-  .tickets-page__hero {
-    min-height: min(90vh, 760px);
+  .tickets-page__hero,
+  .tickets-page__hero-inner {
+    min-height: 0;
   }
 
   .tickets-page__hero-inner {
-    min-height: min(90vh, 760px);
+    padding-block: calc(var(--header-height, 72px) + 16px) 32px;
+  }
+
+  .tickets-page__hero-frame {
+    align-content: start;
   }
 
   .tickets-page__hero-watermark {

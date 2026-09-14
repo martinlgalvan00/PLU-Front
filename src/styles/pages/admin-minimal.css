@@ -2612,6 +2612,174 @@
   min-width: 34px;
 }
 
+/* ── Cola de cobros: la tabla que decide plata ──────────────────────────────
+   Siete columnas en vez de diez. Método + comprobante se fundieron en "Cobro"
+   y referencia + fecha en "Orden": contaban lo mismo dos veces y empujaban la
+   columna de acción fuera de pantalla, así que "Validar" —la única acción de
+   la pantalla— vivía detrás de un scroll horizontal que nadie hacía.
+   Con el ancho recuperado, la fila puede jerarquizar: el monto manda, la
+   identidad sigue, el resto es contexto. */
+
+.admin-shell .admin-payments-operations .admin-data-table--athlete-orders {
+  border-bottom: 0;
+}
+
+.admin-shell .admin-payments-operations .admin-data-table--athlete-orders table {
+  min-width: 940px;
+}
+
+/* Dos datos por celda: el que identifica arriba, el que matiza abajo. */
+.admin-shell .admin-payments-operations .admin-orders-block__stack {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block__concept,
+.admin-shell .admin-payments-operations .admin-orders-block__method {
+  color: var(--admin-text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block__proof-note,
+.admin-shell .admin-payments-operations .admin-orders-block__order-date {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+/* Una transferencia abierta sin comprobante no es un dato más: es lo que
+   frena la validación. Se marca acá, en la columna de la evidencia, y ya no
+   se repite como pill en Estado. */
+.admin-shell .admin-payments-operations .admin-orders-block__proof-note--warning {
+  color: var(--admin-status-warning);
+  font-weight: 600;
+}
+
+.admin-shell .admin-payments-operations .admin-data-table--athlete-orders .data-table__mono {
+  font-size: 11.5px;
+}
+
+/* El monto es el dato que decide: hasta acá pesaba lo mismo que "Link de pago
+   + validación manual". */
+.admin-shell .admin-payments-operations .admin-orders-block__amount-badge {
+  color: var(--admin-ink);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+.admin-shell .admin-payments-operations .admin-data-table--athlete-orders td {
+  height: 62px;
+  padding-block: 12px;
+  vertical-align: middle;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-data-table--athlete-orders
+  .data-table__column--numeric {
+  width: 1%;
+}
+
+/* Comprobante: enlace, no botón con caja. Dentro de la celda ya hay un método
+   arriba; una caja más convertía cada fila en tres rectángulos. */
+.admin-shell .admin-payments-operations .admin-orders-block__proof {
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: var(--admin-brand);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  gap: 5px;
+  letter-spacing: 0;
+  min-height: 22px;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--admin-brand) 40%, transparent);
+  text-underline-offset: 3px;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block__proof:hover:not(:disabled) {
+  color: var(--admin-ink);
+  text-decoration-color: currentcolor;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block__proof:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+/* Filete de atención a la izquierda, sólo en la fila que está trabada: una
+   transferencia abierta sin comprobante, o una financiada vencida. Marcar
+   también las que simplemente esperan turno dejaba las cinco filas con
+   filete, y entonces el filete no decía nada; una rechazada tampoco lo lleva
+   —ya está cerrada, no espera ninguna decisión. */
+.admin-shell
+  .admin-payments-operations
+  .admin-data-table--athlete-orders
+  tbody
+  tr:has(.admin-orders-block__proof-note--warning) {
+  box-shadow: inset 2px 0 0 var(--admin-status-warning);
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-data-table--athlete-orders
+  tbody
+  tr:has(.admin-orders-block__due.status-pill--danger) {
+  box-shadow: inset 2px 0 0 var(--admin-status-danger);
+}
+
+.admin-shell .admin-payments-operations .admin-data-table--athlete-orders tbody tr:hover {
+  box-shadow: inset 2px 0 0 var(--admin-brand);
+}
+
+/* La acción no se esconde: con siete columnas entra sin scroll, y queda
+   anclada a la derecha aunque el panel se angoste. */
+.admin-shell
+  .admin-payments-operations
+  .admin-data-table--athlete-orders
+  .data-table__column--actions {
+  background: var(--admin-surface);
+  position: sticky;
+  right: 0;
+  z-index: 1;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-data-table--athlete-orders
+  tbody
+  tr:hover
+  .data-table__column--actions {
+  background: color-mix(in srgb, var(--admin-brand) 6%, var(--admin-surface));
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-data-table--athlete-orders
+  thead
+  th.data-table__column--actions {
+  background: color-mix(in srgb, var(--admin-table-head) 88%, var(--admin-surface));
+}
+
+@media (max-width: 899px) {
+  .admin-shell
+    .admin-payments-operations
+    .admin-data-table--athlete-orders
+    .data-table__column--actions {
+    position: static;
+  }
+}
+
 .admin-shell .admin-payments-operations .admin-list-section--tickets {
   gap: 0;
 }

@@ -29,7 +29,11 @@ const paidCheckoutEnabled = ['true', '1', 'yes'].includes(paidCheckoutEnabledRaw
 const ticketSalesEnabledRaw = String(import.meta.env.VITE_TICKET_SALES_ENABLED ?? '')
   .trim()
   .toLowerCase()
-const ticketSalesEnabled = ['true', '1', 'yes'].includes(ticketSalesEnabledRaw)
+// Freno de emergencia, igual que el backend: sólo un `false` explícito corta
+// la venta. Ausente o true no opina — manda el interruptor "Entradas" del
+// panel (Acceso y habilitación). Antes era opt-in y el switch del panel se
+// podía prender sin efecto en la página pública.
+const ticketSalesEnabled = !['false', '0', 'no'].includes(ticketSalesEnabledRaw)
 const isConfiguredValue = (value) =>
   Boolean(value && !/^(?:replace|changeme|placeholder|your[_-]|xxx|test-x{4}$)/i.test(value))
 
@@ -39,8 +43,7 @@ export const env = {
   isDev: import.meta.env.DEV,
   // Kill switch operativo: sin valor el checkout público queda abierto.
   paidCheckoutEnabled,
-  // Lanzamiento explícito: mientras no se declare true, las entradas de
-  // espectadores permanecen en "Próximamente" aunque el evento tenga catálogo.
+  // Kill switch de entradas: sin valor o true, decide el panel.
   ticketSalesEnabled,
   demoMode: import.meta.env.VITE_DEMO_MODE === 'true',
   supabase: {

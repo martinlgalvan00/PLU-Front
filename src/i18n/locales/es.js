@@ -3798,6 +3798,7 @@ export default {
     invalid: 'Datos inválidos',
     attendeeName: 'Falta el nombre',
     attendeeDni: '7 u 8 dígitos',
+    attendeeDniDuplicate: 'Repetido con la entrada {{index}}',
     attendeeDay: 'Seleccioná un día válido.',
   },
 }

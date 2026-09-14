@@ -191,17 +191,34 @@ export function validateMembershipForm(form, t) {
  */
 export function validateTicketAttendees(attendees, t, validTicketTypeIds = []) {
   const errors = {}
-  const msg = (key, fallback) => (t ? t(`validation.${key}`) : fallback)
+  const msg = (key, fallback, params) => (t ? t(`validation.${key}`, params) : fallback)
+  /**
+   * Un DNI por persona. Dos entradas con el mismo documento emiten dos QR
+   * distintos, pero en la puerta los dos se verifican contra la misma persona:
+   * el segundo que llegue no entra. Se marca la fila repetida, no la primera,
+   * porque la primera es la que el comprador quiso cargar.
+   */
+  const dniRow = new Map()
 
   attendees.forEach((attendee, index) => {
     if (!attendee.fullName || attendee.fullName.trim().length < 3) {
       errors[`attendee-${index}-fullName`] = msg('attendeeName', 'Ingresá nombre y apellido.')
     }
-    if (!/^\d{7,8}$/.test(String(attendee.dni ?? '').trim())) {
+    const dni = String(attendee.dni ?? '').trim()
+    if (!/^\d{7,8}$/.test(dni)) {
       errors[`attendee-${index}-dni`] = msg(
         'attendeeDni',
         'DNI inválido (7 u 8 dígitos, sin puntos).',
       )
+    } else if (dniRow.has(dni)) {
+      const first = dniRow.get(dni) + 1
+      errors[`attendee-${index}-dni`] = msg(
+        'attendeeDniDuplicate',
+        `Repetido con la entrada ${first}`,
+        { index: first },
+      )
+    } else {
+      dniRow.set(dni, index)
     }
     if (!attendee.ticketTypeId || !validTicketTypeIds.includes(attendee.ticketTypeId)) {
       errors[`attendee-${index}-ticketTypeId`] = msg(

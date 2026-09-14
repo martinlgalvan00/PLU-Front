@@ -28,7 +28,7 @@ import { validateTicketAttendees } from '../../lib/validation.js'
 import { priceForAttendee, priceForOrder } from '../../services/ticketService.js'
 import { wisePriceLabel } from '../../services/checkoutPricing.js'
 
-const MAX_TICKETS = 8
+const MAX_TICKETS = 10
 
 function emptyAttendee(pricing) {
   return { fullName: '', dni: '', ticketTypeId: pricing?.ticketTypes?.[0]?.id ?? '', addonIds: [] }

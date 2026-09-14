@@ -601,16 +601,21 @@ export default function AthletePaymentOrdersSection({
               },
             },
             {
+              // Concepto y código de descuento son el mismo dato —qué se está
+              // cobrando—: el código tenía columna propia y venía vacío en
+              // casi todas las filas.
               key: 'concept',
               label: t('admin.columns.concept'),
               mobile: 'default',
-            },
-            {
-              key: 'discountCode',
-              label: t('admin.athletePayments.columnCode'),
-              mobile: 'hidden',
               sortable: true,
-              render: (row) => <AdminMonoCell>{row.discountCode}</AdminMonoCell>,
+              render: (row) => (
+                <div className="admin-orders-block__stack">
+                  <span className="admin-orders-block__concept">{row.concept}</span>
+                  {row.discountCode ? (
+                    <AdminMonoCell>{row.discountCode}</AdminMonoCell>
+                  ) : null}
+                </div>
+              ),
             },
             {
               key: 'amount',
@@ -626,79 +631,82 @@ export default function AthletePaymentOrdersSection({
               ),
             },
             {
-              key: 'method',
-              label: t('admin.columns.method'),
-              mobile: 'hidden',
-              render: (row) =>
-                row.manualPaymentChannel === 'cash_pitbull'
-                  ? t('formOptions.payment.cashPitbull')
-                  : row.manualPaymentChannel === 'wise_transfer'
-                    ? t('formOptions.payment.wiseTransfer')
-                    : (PAYMENT_METHODS[row.method]?.label ?? row.method),
-            },
-            {
-              key: 'proof',
-              label: t('admin.athletePayments.columnProof'),
+              // Cómo se cobra: método arriba, evidencia abajo. Eran dos
+              // columnas ("Método" y "Comprobante") que contaban la misma
+              // historia y obligaban a leer de a saltos; la de método, además,
+              // repetía "Link de pago + validación manual" en cada fila.
+              key: 'charge',
+              label: t('admin.athletePayments.columnCharge'),
               mobile: 'default',
               render: (row) => {
-                if (row.method !== 'manual_link') {
-                  return <span className="data-table__mono data-table__mono--empty">—</span>
-                }
-                if (row.manualPaymentChannel === 'cash_pitbull') {
-                  return (
-                    <span className="status-pill status-pill--info">
-                      {t('formOptions.payment.cashPitbull')}
-                    </span>
-                  )
-                }
-                if (!row.hasProof) {
-                  if (row.paymentProofPurgedAt) {
-                    return (
-                      <span className="status-pill status-pill--neutral">
-                        {t('admin.athletePayments.proofArchived')}
-                      </span>
-                    )
-                  }
-                  return (
-                    <span className="status-pill status-pill--warning">
-                      {t('admin.athletePayments.proofMissing')}
-                    </span>
-                  )
-                }
+                const methodLabel =
+                  row.manualPaymentChannel === 'cash_pitbull'
+                    ? t('formOptions.payment.cashPitbull')
+                    : row.manualPaymentChannel === 'wise_transfer'
+                      ? t('formOptions.payment.wiseTransfer')
+                      : row.method === 'manual_link'
+                        ? t('admin.athletePayments.methodTransfer')
+                        : (PAYMENT_METHODS[row.method]?.label ?? row.method)
+
                 return (
-                  // El comprobante se abre desde la fecha: era la única forma de
-                  // verlo y no estaba a la vista. `mode: 'view'` abre el diálogo
-                  // en modo lectura, sin ofrecer acreditar.
-                  //
-                  // Sin `style` inline: `.admin-orders-block__proof` ya está
-                  // estilada como botón (borde, celeste del panel, 32px de alto
-                  // táctil, hover y disabled). El inline la pisaba con
-                  // `padding: 0` y `height: auto`, que además rompía el target.
-                  <button
-                    type="button"
-                    className="admin-orders-block__proof"
-                    onClick={() => openReview(row, 'view')}
-                  >
-                    <Paperclip size={14} aria-hidden />
-                    {formatDateTime(row.paymentProofUploadedAt, locale)}
-                  </button>
+                  <div className="admin-orders-block__stack">
+                    <span className="admin-orders-block__method">{methodLabel}</span>
+                    {row.method !== 'manual_link' || row.manualPaymentChannel === 'cash_pitbull'
+                      ? null
+                      : row.hasProof
+                        ? (
+                            // El comprobante se abre desde su fecha: era la
+                            // única forma de verlo y no estaba a la vista.
+                            // `mode: 'view'` abre el diálogo en lectura, sin
+                            // ofrecer acreditar.
+                            <button
+                              type="button"
+                              className="admin-orders-block__proof"
+                              onClick={() => openReview(row, 'view')}
+                            >
+                              <Paperclip size={13} aria-hidden />
+                              {formatDateTime(row.paymentProofUploadedAt, locale)}
+                            </button>
+                          )
+                        : row.paymentProofPurgedAt
+                          ? (
+                              <span className="admin-orders-block__proof-note">
+                                {t('admin.athletePayments.proofArchived')}
+                              </span>
+                            )
+                          : (
+                              <span
+                                className={`admin-orders-block__proof-note${
+                                  requiresProofOverride(row)
+                                    ? ' admin-orders-block__proof-note--warning'
+                                    : ''
+                                }`}
+                              >
+                                {t('admin.athletePayments.proofMissing')}
+                              </span>
+                            )}
+                  </div>
                 )
               },
             },
             {
-              key: 'createdAt',
-              label: t('admin.columns.date'),
+              // Referencia y fecha identifican la misma orden: juntas se leen
+              // como un solo dato y liberan la columna que faltaba para que la
+              // acción entre en pantalla sin scroll horizontal.
+              key: 'order',
+              label: t('admin.athletePayments.columnOrder'),
               mobile: 'default',
               sortable: true,
               defaultSort: 'desc',
               sortAccessor: (row) => row.createdAt ?? '',
-              render: (row) => formatDateTime(row.createdAt, locale),
-            },
-            {
-              key: 'reference',
-              label: t('admin.columns.reference'),
-              mobile: 'hidden',
-              render: (row) => <AdminMonoCell>{row.reference}</AdminMonoCell>,
+              render: (row) => (
+                <div className="admin-orders-block__stack">
+                  <AdminMonoCell>{row.reference}</AdminMonoCell>
+                  <span className="admin-orders-block__order-date">
+                    {formatDateTime(row.createdAt, locale)}
+                  </span>
+                </div>
+              ),
             },
             {
               key: 'status',
@@ -725,6 +733,15 @@ export default function AthletePaymentOrdersSection({
                     ) : (
                       <StatusBadge value={row.status} />
                     )}
+                    {/* "Sin comprobante" ya no se repite acá: vive en Cobro,
+                        que es donde se mira la evidencia. */}
+                    {dueInfo ? (
+                      <span
+                        className={`admin-orders-block__due status-pill status-pill--${dueInfo.tone}`}
+                      >
+                        {dueInfo.label}
+                      </span>
+                    ) : null}
                     {row.manualPaymentDeclaredAt ? (
                       <span className="admin-orders-block__tag">
                         {t(
@@ -732,16 +749,6 @@ export default function AthletePaymentOrdersSection({
                             ? 'admin.athletePayments.financedActive'
                             : 'admin.athletePayments.declared',
                         )}
-                      </span>
-                    ) : null}
-                    {requiresProofOverride(row) ? (
-                      <span className="status-pill status-pill--warning">
-                        {t('admin.athletePayments.proofMissing')}
-                      </span>
-                    ) : null}
-                    {dueInfo ? (
-                      <span className={`status-pill status-pill--${dueInfo.tone}`}>
-                        {dueInfo.label}
                       </span>
                     ) : null}
                     {actorLine ? <p className="admin-state-cell__note">{actorLine}</p> : null}

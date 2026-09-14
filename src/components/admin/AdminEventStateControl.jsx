@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CalendarClock,
-  CheckCircle2,
   Eye,
   EyeOff,
   LockKeyhole,
   Unlock,
   UserCheck,
 } from 'lucide-react'
-import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import {
@@ -36,20 +34,26 @@ function diffAgainstBaseline(draft, baseline) {
 /**
  * AdminEventStateControl — PLU ARG
  *
- * Habilitar, deshabilitar y cambiar el estado público de un evento sin abrir el
- * editor completo. Los chips y atajos mutan un draft local; el PATCH parcial
- * corre al tocar Guardar, o —en el workspace (`deferSave`)— al “Guardar
- * cambios” genérico del editor.
+ * Las tres decisiones de estado de un evento —en qué estado está, quién puede
+ * inscribirse y si se ve en el sitio— escritas como tres campos del mismo
+ * formulario: etiqueta, opciones excluyentes y la consecuencia debajo. Mutan
+ * un draft local; el PATCH parcial corre al tocar Guardar, o —en el workspace
+ * (`deferSave`)— al “Guardar cambios” genérico del editor.
+ *
+ * Antes cada fila hablaba un idioma distinto (chips de filtro para el estado,
+ * subrayados tipo pestaña para el acceso, un toggle para el sitio) y las tres
+ * se leían como navegación; la consecuencia del acceso, además, vivía en un
+ * `title`: la información que decide el cambio no se veía.
  *
  * `agotado` no es una opción elegible: lo pone y lo saca la base según el cupo
- * (`sync_event_capacity_status`). Aparece como chip solo cuando el evento ya
- * está en ese estado, porque si no la fila quedaría sin ningún chip activo y
- * daría la impresión de que el estado se perdió.
+ * (`sync_event_capacity_status`). Aparece como opción solo cuando el evento ya
+ * está en ese estado, porque si no la fila quedaría sin ninguna activa y daría
+ * la impresión de que el estado se perdió.
  *
  * ── Acceso: solo afiliados o abierto ──
- * Son dos opciones excluyentes escritas como decisión, no como casilla, y cada
- * una dice su consecuencia real: el requisito no solo filtra la inscripción,
- * decide quién pasa la puerta el día del meet (`src/lib/gateAccess.js`).
+ * El requisito no solo filtra la inscripción: decide quién pasa la puerta el
+ * día del meet (`src/lib/gateAccess.js`), así que su consecuencia se escribe
+ * siempre, no al pasar el mouse.
  */
 export default function AdminEventStateControl({
   canEdit = false,
@@ -196,10 +200,6 @@ export default function AdminEventStateControl({
     patchDraft({ status: value })
   }
 
-  function handleVisibilityToggle() {
-    patchDraft({ published: !draft.published })
-  }
-
   function handleOpenRegistrations() {
     patchDraft({ status: 'inscripcion_abierta', published: true })
   }
@@ -240,37 +240,174 @@ export default function AdminEventStateControl({
     ? t('admin.eventState.accessMembers')
     : t('admin.eventState.accessOpen')
 
-  return (
-    <div className="admin-event-state" role="group" aria-label={t('admin.eventState.label')}>
-      <p
-        className={`admin-event-state__result${effectiveRegistration.isLive ? ' is-live' : ''}`}
-        role="status"
-      >
-        <span className="admin-event-state__result-primary">{resultPrimary}</span>
-        <span className="admin-event-state__result-sep" aria-hidden>
-          ·
-        </span>
-        <span>{resultCapacity}</span>
-        <span className="admin-event-state__result-sep" aria-hidden>
-          ·
-        </span>
-        <span className="admin-event-state__result-access">{resultAccess}</span>
-      </p>
 
-      <div
-        className="admin-event-state__workflow"
-        aria-label={t('admin.eventState.registrationLabel')}
-      >
-        <span className="admin-event-state__workflow-label">
-          {t('admin.eventState.registrationLabel')}
-        </span>
-        <div className="admin-event-state__workflow-actions">
-          {effectiveRegistration.isLive ? (
-            <span className="admin-event-state__registration-live" role="status">
-              <CheckCircle2 size={14} aria-hidden />
-              {t('admin.eventState.registrationLive')}
-            </span>
-          ) : (
+  const baseId = `event-state-${event?.id ?? 'none'}`
+  const statusLabelId = `${baseId}-status-label`
+  const accessLabelId = `${baseId}-access-label`
+  const siteLabelId = `${baseId}-site-label`
+  const accessNote = draft.requiresMembership
+    ? t('admin.eventState.accessMembersNote')
+    : t('admin.eventState.accessOpenNote')
+  const siteNote = draft.published
+    ? t('admin.eventState.publishedNote')
+    : t('admin.eventState.hiddenNote')
+
+  /**
+   * Las tres decisiones se escriben igual: una etiqueta, opciones excluyentes
+   * y la consecuencia debajo. Antes cada fila hablaba un idioma distinto
+   * —chips de filtro, subrayados tipo pestaña, un toggle— y la consecuencia
+   * del acceso vivía en un `title`, es decir, no se veía.
+   */
+  function renderOptions({ labelledBy, options }) {
+    // Un radiogroup se recorre con flechas y entra al tab una sola vez: sin
+    // esto el grupo declaraba el rol sin cumplir su contrato de teclado, y con
+    // cinco estados el tabulador pasaba cinco veces por la misma decisión.
+    const activeIndex = Math.max(
+      0,
+      options.findIndex((option) => option.selected),
+    )
+
+    function handleKeyDown(keyEvent, index) {
+      const step =
+        keyEvent.key === 'ArrowRight' || keyEvent.key === 'ArrowDown'
+          ? 1
+          : keyEvent.key === 'ArrowLeft' || keyEvent.key === 'ArrowUp'
+            ? -1
+            : 0
+      let next = null
+      if (step !== 0) next = (index + step + options.length) % options.length
+      else if (keyEvent.key === 'Home') next = 0
+      else if (keyEvent.key === 'End') next = options.length - 1
+      if (next === null || next === index) return
+      keyEvent.preventDefault()
+      keyEvent.currentTarget.parentElement?.children[next]?.focus()
+      options[next].onSelect()
+    }
+
+    return (
+      <div className="admin-event-state__options" role="radiogroup" aria-labelledby={labelledBy}>
+        {options.map((option, index) => (
+          <button
+            key={option.id}
+            type="button"
+            role="radio"
+            aria-checked={option.selected}
+            className={`admin-event-state__option${option.selected ? ' is-active' : ''}`}
+            disabled={!canEdit || busy}
+            tabIndex={index === activeIndex ? 0 : -1}
+            onClick={option.onSelect}
+            onKeyDown={(keyEvent) => handleKeyDown(keyEvent, index)}
+          >
+            {option.icon ? <option.icon size={14} aria-hidden /> : null}
+            <span>{option.label}</span>
+          </button>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <section className="admin-event-state" aria-label={t('admin.eventState.label')}>
+      <header className="admin-event-state__head">
+        <h4>{t('admin.eventState.sectionTitle')}</h4>
+        <p>{t('admin.eventState.sectionLead')}</p>
+      </header>
+
+      <div className="admin-event-state__fields">
+        <div className="admin-event-state__field">
+          <span className="admin-event-state__field-label" id={statusLabelId}>
+            {t('admin.eventState.status')}
+          </span>
+          {renderOptions({
+            labelledBy: statusLabelId,
+            options: statusOptions.map(([value, label]) => ({
+              id: value,
+              label,
+              selected: draft.status === value,
+              onSelect: () => handleStatusChange(value),
+            })),
+          })}
+        </div>
+
+        <div className="admin-event-state__field">
+          <span className="admin-event-state__field-label" id={accessLabelId}>
+            {t('admin.eventState.accessLabel')}
+          </span>
+          {renderOptions({
+            labelledBy: accessLabelId,
+            options: [
+              {
+                id: 'members',
+                label: t('admin.eventState.accessMembers'),
+                selected: draft.requiresMembership,
+                onSelect: () => handleAccessChange('members'),
+              },
+              {
+                id: 'open',
+                label: t('admin.eventState.accessOpen'),
+                selected: !draft.requiresMembership,
+                onSelect: () => handleAccessChange('open'),
+              },
+            ],
+          })}
+          <p className="admin-event-state__field-note">{accessNote}</p>
+          {draft.requiresMembership && registered > 0 ? (
+            <p className="admin-event-state__note admin-event-state__note--info">
+              <UserCheck size={13} aria-hidden />
+              <span>
+                {t('admin.eventState.accessMembersRegisteredNote', { count: registered })}
+              </span>
+            </p>
+          ) : null}
+        </div>
+
+        <div className="admin-event-state__field">
+          <span className="admin-event-state__field-label" id={siteLabelId}>
+            {t('admin.eventState.visibilityLabel')}
+          </span>
+          {renderOptions({
+            labelledBy: siteLabelId,
+            options: [
+              {
+                id: 'published',
+                icon: Eye,
+                label: t('admin.eventState.published'),
+                selected: draft.published,
+                onSelect: () => patchDraft({ published: true }),
+              },
+              {
+                id: 'hidden',
+                icon: EyeOff,
+                label: t('admin.eventState.hidden'),
+                selected: !draft.published,
+                onSelect: () => patchDraft({ published: false }),
+              },
+            ],
+          })}
+          <p className="admin-event-state__field-note">{siteNote}</p>
+        </div>
+      </div>
+
+      {/* Cómo queda el evento con las tres decisiones de arriba, y el único
+          atajo que cambia dos a la vez (habilitar publica y abre). */}
+      <div className="admin-event-state__result-bar">
+        <p
+          className={`admin-event-state__result${effectiveRegistration.isLive ? ' is-live' : ''}`}
+          role="status"
+        >
+          <span className="admin-event-state__result-primary">{resultPrimary}</span>
+          <span className="admin-event-state__result-sep" aria-hidden>
+            ·
+          </span>
+          <span>{resultCapacity}</span>
+          <span className="admin-event-state__result-sep" aria-hidden>
+            ·
+          </span>
+          <span className="admin-event-state__result-access">{resultAccess}</span>
+        </p>
+
+        <div className="admin-event-state__result-actions">
+          {effectiveRegistration.isLive ? null : (
             <button
               type="button"
               className="admin-event-state__registration-action admin-event-state__registration-action--open"
@@ -312,101 +449,6 @@ export default function AdminEventStateControl({
               {t('admin.eventState.editWindowAction')}
             </button>
           ) : null}
-        </div>
-      </div>
-
-      <div className="admin-event-state__controls">
-        <div className="admin-event-state__row">
-          <span className="admin-event-state__row-label" id={`event-state-${event?.id ?? 'none'}-row`}>
-            {t('admin.eventState.status')}
-          </span>
-          <AdminFilterChipGroup
-            compact
-            inline
-            disabled={!canEdit || busy}
-            id={`event-state-${event?.id ?? 'none'}`}
-            ariaLabel={t('admin.eventState.status')}
-            onChange={handleStatusChange}
-            options={statusOptions}
-            value={draft.status}
-          />
-        </div>
-
-        <div className="admin-event-state__row admin-event-state__row--access">
-          <span
-            className="admin-event-state__row-label"
-            id={`event-access-${event?.id ?? 'none'}-row`}
-          >
-            {t('admin.eventState.accessLabel')}
-          </span>
-          <div
-            className="admin-event-state__access"
-            role="radiogroup"
-            aria-labelledby={`event-access-${event?.id ?? 'none'}-row`}
-          >
-            {[
-              {
-                id: 'members',
-                label: t('admin.eventState.accessMembers'),
-                note: t('admin.eventState.accessMembersNote'),
-                selected: draft.requiresMembership,
-              },
-              {
-                id: 'open',
-                label: t('admin.eventState.accessOpen'),
-                note: t('admin.eventState.accessOpenNote'),
-                selected: !draft.requiresMembership,
-              },
-            ].map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                role="radio"
-                className={`admin-event-state__access-option${option.selected ? ' is-active' : ''}`}
-                aria-checked={option.selected}
-                aria-pressed={option.selected}
-                disabled={!canEdit || busy}
-                title={option.note}
-                onClick={() => handleAccessChange(option.id)}
-              >
-                <strong>{option.label}</strong>
-              </button>
-            ))}
-
-            {draft.requiresMembership && registered > 0 ? (
-              <p className="admin-event-state__note admin-event-state__note--info">
-                <UserCheck size={12} aria-hidden />
-                <span>
-                  {t('admin.eventState.accessMembersRegisteredNote', { count: registered })}
-                </span>
-              </p>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="admin-event-state__row admin-event-state__row--visibility">
-          <span className="admin-event-state__row-label">{t('admin.eventState.visibilityLabel')}</span>
-          <button
-            type="button"
-            className={[
-              'admin-event-state__visibility',
-              draft.published ? 'is-published' : 'is-hidden',
-            ].join(' ')}
-            aria-pressed={draft.published}
-            disabled={!canEdit || busy}
-            onClick={handleVisibilityToggle}
-          >
-            {busy ? (
-              <span className="plu-spinner plu-spinner--sm" aria-hidden="true" />
-            ) : draft.published ? (
-              <Eye size={14} aria-hidden />
-            ) : (
-              <EyeOff size={14} aria-hidden />
-            )}
-            <span>
-              {draft.published ? t('admin.eventState.published') : t('admin.eventState.hidden')}
-            </span>
-          </button>
         </div>
       </div>
 
@@ -473,6 +515,6 @@ export default function AdminEventStateControl({
           {notice.text}
         </p>
       ) : null}
-    </div>
+    </section>
   )
 }

@@ -3751,6 +3751,7 @@ export default {
     invalid: 'Invalid data',
     attendeeName: 'Name required',
     attendeeDni: '7 or 8 digits',
+    attendeeDniDuplicate: 'Same as ticket {{index}}',
     attendeeDay: 'Select a valid day.',
   },
 }

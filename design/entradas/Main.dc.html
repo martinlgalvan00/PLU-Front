@@ -1,0 +1,351 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --canvas: #0a0b0d; --surface: #141518; --surface-muted: #121316; --elevated: #1e2026;
+      --hairline: rgba(255,255,255,0.09); --border: rgba(255,255,255,0.14);
+      --ink: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8; --faint: #6f7280;
+      --brand: #9ec5eb; --brand-deep: #1f5f9e; --gold: #f2b705; --gold-ink: #14181f;
+      --ok: #3d9a62; --ok-soft: #8fd4a8; --danger: #e10600; --warn: #b45309;
+      --font: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); }
+    a { color: var(--brand); } a:hover { color: #c7dcf1; }
+    * { box-sizing: border-box; }
+    .shell { display: grid; grid-template-columns: 232px 1fr; min-height: 100%; }
+    .side { background: var(--surface-muted); border-right: 1px solid var(--hairline); padding: 20px 12px; display: flex; flex-direction: column; gap: 22px; }
+    .side-brand { display: flex; align-items: center; gap: 9px; padding: 0 8px 4px; }
+    .side-mark { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, var(--brand-deep), var(--gold)); }
+    .side-name { font-size: 12.5px; font-weight: 700; }
+    .side-group { display: flex; flex-direction: column; gap: 2px; }
+    .side-label { font-size: 10px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); padding: 0 8px 6px; }
+    .side-item { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 8px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+    .side-item.is-active { background: color-mix(in srgb, var(--brand) 10%, transparent); color: var(--ink); font-weight: 600; }
+    .side-item svg { opacity: .75; flex: 0 0 auto; }
+    .side-item.is-active svg { opacity: 1; color: var(--brand); }
+    .side-count { margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--muted); }
+
+    .main { padding: 20px 32px 32px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+    .back { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--muted); }
+    .hd { display: flex; flex-direction: column; gap: 14px; }
+    .hd-top { display: flex; align-items: flex-start; gap: 16px; }
+    .hd-copy { display: flex; flex-direction: column; gap: 7px; flex-grow: 1; min-width: 0; }
+    .hd-title-row { display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+    .hd-title { font-size: 23px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+    .pill-state { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: 11px; font-weight: 600; background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent); }
+    .dot { width: 5px; height: 5px; border-radius: 999px; background: currentColor; }
+    .hd-meta { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+    .sep { color: #4a4d57; }
+    .hd-actions { display: flex; align-items: center; gap: 8px; }
+    .icon-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: color-mix(in srgb, var(--elevated) 60%, transparent); color: var(--secondary); font-size: 12px; font-weight: 500; font-family: var(--font); }
+    .icon-btn--square { width: 34px; padding: 0; }
+
+    .tabs { display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 999px; background: color-mix(in srgb, var(--elevated) 70%, transparent); border: 1px solid rgba(255,255,255,.08); width: fit-content; }
+    .tab { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 6px 12px; border-radius: 999px; border: 1px solid transparent; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; font-family: var(--font); white-space: nowrap; }
+    .tab.is-active { background: color-mix(in srgb, var(--brand) 13%, transparent); border-color: color-mix(in srgb, var(--brand) 24%, transparent); color: var(--ink); }
+    .tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; padding: 2px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 700; background: color-mix(in srgb, var(--ink) 8%, transparent); }
+    .tab.is-active .tab-count { background: color-mix(in srgb, var(--brand) 20%, transparent); }
+
+    .chapters { display: flex; align-items: center; gap: 22px; border-bottom: 1px solid var(--hairline); }
+    .chapter { padding: 0 0 11px; border: none; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; font-family: var(--font); border-bottom: 2px solid transparent; margin-bottom: -1px; text-align: left; }
+    .chapter.is-active { color: var(--ink); border-bottom-color: var(--brand); }
+    .chapter small { display: block; font-size: 10.5px; font-weight: 400; color: var(--faint); margin-top: 3px; }
+
+    .card { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; }
+    .card-h { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--hairline); }
+    .card-t { font-size: 13px; font-weight: 600; margin: 0; }
+    .card-hint { font-size: 11.5px; color: var(--muted); }
+    .card-b { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 600; white-space: nowrap; }
+    .badge--on { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok-soft); }
+    .badge--off { background: rgba(255,255,255,.07); color: var(--muted); }
+    .badge--soft { background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand); }
+    .badge--gold { background: color-mix(in srgb, var(--gold) 15%, transparent); color: var(--gold); }
+    .badge--warn { background: color-mix(in srgb, var(--warn) 22%, transparent); color: #e8a33d; }
+    .num { font-variant-numeric: tabular-nums; }
+    .kebab { color: var(--muted); display: inline-flex; }
+    .btn-gold { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 16px; border-radius: 8px; border: none; background: var(--gold); color: var(--gold-ink); font-size: 12.5px; font-weight: 600; font-family: var(--font); }
+    .ghost-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); font-size: 11.5px; font-weight: 500; font-family: var(--font); }
+    /* barra de proceso */
+    .flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; overflow: hidden; }
+    .flow-step { display: flex; flex-direction: column; gap: 6px; padding: 15px 18px; border-left: 1px solid var(--hairline); min-width: 0; }
+    .flow-step:first-child { border-left: none; }
+    .flow-eyebrow { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+    .flow-ix { color: var(--gold); font-variant-numeric: tabular-nums; }
+    .flow-value { font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.35; }
+    .flow-hint { font-size: 11px; color: var(--muted); line-height: 1.45; }
+    .flow-state { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; margin-top: 2px; }
+    .flow-state--ok { color: var(--ok-soft); }
+    .flow-state--wait { color: #e8a33d; }
+    .flow-state--off { color: var(--muted); }
+
+    /* tabla de tipos */
+    .tt-head, .tt-row { display: grid; grid-template-columns: minmax(0,1fr) 118px 178px 84px 104px 140px 92px 28px; gap: 12px; align-items: center; padding: 12px 18px; }
+    .tt-head { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); border-bottom: 1px solid var(--hairline); padding-top: 10px; padding-bottom: 10px; }
+    .tt-row { border-bottom: 1px solid var(--hairline); font-size: 12.5px; }
+    .tt-row.is-off { opacity: .62; }
+    .tt-name { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .tt-name strong { font-size: 13px; font-weight: 600; }
+    .tt-name small { font-size: 11px; color: var(--muted); }
+    .tt-emits { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .tt-emits strong { font-size: 12px; font-weight: 600; }
+    .tt-emits small { font-size: 10.5px; color: var(--muted); }
+    .tt-emits.is-multi strong { color: var(--gold); }
+    .days { display: flex; gap: 4px; }
+    .day { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; font-size: 10.5px; font-weight: 700; background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand); }
+    .day.is-off { background: rgba(255,255,255,.05); color: #55585f; }
+    .price { text-align: right; font-size: 13px; font-weight: 600; }
+    .sold { display: flex; flex-direction: column; gap: 5px; }
+    .sold-l { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 12px; }
+    .sold-l strong { font-weight: 600; }
+    .sold-l span { font-size: 10.5px; color: var(--muted); }
+    .meter { height: 3px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
+    .meter i { display: block; height: 100%; background: var(--brand); }
+    .meter i.is-tight { background: var(--gold); }
+    .tt-foot { display: flex; align-items: center; gap: 18px; padding: 13px 18px; border-bottom: 1px solid var(--hairline); background: color-mix(in srgb, var(--elevated) 40%, transparent); }
+    .tt-foot-l { font-size: 11.5px; color: var(--muted); }
+    .totals { margin: 0 0 0 auto; display: flex; align-items: center; gap: 26px; }
+    .total { display: flex; flex-direction: column; gap: 2px; text-align: right; }
+    .total dt { font-size: 10px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--faint); }
+    .total dd { margin: 0; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .total dd.is-gold { color: var(--gold); }
+    .add-row { display: flex; align-items: center; gap: 10px; padding: 13px 18px; }
+
+    /* checklist */
+    .chk { display: flex; align-items: flex-start; gap: 11px; padding: 13px 18px; border-bottom: 1px solid var(--hairline); }
+    .chk:last-child { border-bottom: none; }
+    .chk svg { flex: 0 0 auto; margin-top: 1px; }
+    .chk--ok svg { color: var(--ok-soft); }
+    .chk--warn svg { color: #e8a33d; }
+    .chk-c { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .chk-t { font-size: 12.5px; font-weight: 500; }
+    .chk-p { font-size: 11.5px; color: var(--muted); margin: 0; line-height: 1.5; }
+    .chk-a { margin-left: auto; }
+  </style>
+</helmet>
+
+<div class="shell">
+  <aside class="side">
+    <div class="side-brand"><div class="side-mark"></div><span class="side-name">PLU Argentina</span></div>
+    <div class="side-group">
+      <span class="side-label">Plantel</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span>Resumen</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.1 2.7-5.2 6-5.2s6 2.1 6 5.2"/><path d="M16 11.2a3 3 0 0 0 0-6"/><path d="M18 20c0-2.4-.9-4.1-2.4-5"/></svg><span>Personas</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Competencia</span>
+      <div class="side-item is-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>Eventos</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Grilla</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M3 12h18"/></svg><span>Check-in</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M12 14v4M8 21h8"/></svg><span>Resultados</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Cobros</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span>Shop</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg><span>Cobros</span><span class="side-count">3</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 10 12 4l9 6"/><path d="M5 10v9h14v-9"/></svg><span>Libro de caja</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 6v12"/></svg><span>Tarifas</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Acceso</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 3l7 3v6c0 4.2-2.8 7.6-7 9-4.2-1.4-7-4.8-7-9V6z"/></svg><span>Usuarios</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="8" cy="13" r="4"/><path d="M11 11l8-8 2 2-2 2 2 2-3 3-2-2-2 2"/></svg><span>Roles y permisos</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 9h7M9 13h7"/></svg><span>Auditoría</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span>Analítica</span></div>
+    </div>
+  </aside>
+  <main class="main">
+    <span class="back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>Eventos</span>
+
+    <header class="hd">
+      <div class="hd-top">
+        <div class="hd-copy">
+          <div class="hd-title-row">
+            <h1 class="hd-title">Pitbull Classic 2026</h1>
+            <span class="pill-state"><span class="dot"></span>Inscripción abierta</span>
+          </div>
+          <div class="hd-meta">
+            <span>14 – 15 de noviembre de 2026</span><span class="sep">·</span>
+            <span>Club Atlético Fénix, Pilar</span><span class="sep">·</span>
+            <span>plu.ar/eventos/pitbull-classic-2026</span>
+          </div>
+        </div>
+        <div class="hd-actions">
+          <button class="icon-btn" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M15 5H5v10"/></svg>Copiar links</button>
+          <button class="icon-btn icon-btn--square" type="button" aria-label="Más acciones"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></button>
+        </div>
+      </div>
+
+      <nav class="tabs" role="tablist" aria-label="Secciones del evento">
+        <button class="tab" role="tab" aria-selected="false" type="button">Resumen</button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Datos</button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Estructura<span class="tab-count">2</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Inscripción</button>
+        <button class="tab is-active" role="tab" aria-selected="true" type="button">Entradas<span class="tab-count">4</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Zonas y seguridad<span class="tab-count">4</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Cobros<span class="tab-count">3</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Vista pública</button>
+      </nav>
+    </header>
+
+    <nav class="chapters" role="tablist" aria-label="Secciones de entradas">
+      <button class="chapter is-active" role="tab" aria-selected="true" type="button">Catálogo<small>5 tipos · 4 en venta</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Credenciales<small>Qué abre cada una</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Beneficios<small>3 para canjear</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Cobro<small>2 medios abiertos</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Compras<small>281 · 3 en proceso</small></button>
+    </nav>
+
+    <section class="flow" aria-label="Estado del proceso de entradas">
+      <div class="flow-step">
+        <span class="flow-eyebrow"><span class="flow-ix">01</span>Catálogo</span>
+        <span class="flow-value">5 tipos, 4 en venta</span>
+        <span class="flow-hint">Precio, cupo y qué credenciales emite cada uno.</span>
+        <span class="flow-state flow-state--ok"><span class="dot"></span>Listo</span>
+      </div>
+      <div class="flow-step">
+        <span class="flow-eyebrow"><span class="flow-ix">02</span>Ventana</span>
+        <span class="flow-value">1 oct – 14 nov</span>
+        <span class="flow-hint">Fuera de la ventana la página muestra precios, sin botón de compra.</span>
+        <span class="flow-state flow-state--ok"><span class="dot"></span>Abierta</span>
+      </div>
+      <div class="flow-step">
+        <span class="flow-eyebrow"><span class="flow-ix">03</span>Vidriera</span>
+        <span class="flow-value">Bloque apagado</span>
+        <span class="flow-hint">En la página del evento no aparece el botón de compra.</span>
+        <span class="flow-state flow-state--wait"><span class="dot"></span>Falta activar</span>
+      </div>
+      <div class="flow-step">
+        <span class="flow-eyebrow"><span class="flow-ix">04</span>Cobro</span>
+        <span class="flow-value">Mercado Pago y transferencia</span>
+        <span class="flow-hint">Perfil Fénix. La transferencia pasa por aprobación manual.</span>
+        <span class="flow-state flow-state--ok"><span class="dot"></span>Configurado</span>
+      </div>
+      <div class="flow-step">
+        <span class="flow-eyebrow"><span class="flow-ix">05</span>Acreditación</span>
+        <span class="flow-value">2 puestos leen entradas</span>
+        <span class="flow-hint">Puerta general y entrada en calor.</span>
+        <span class="flow-state flow-state--off"><span class="dot"></span>Desde el 14 nov</span>
+      </div>
+    </section>
+
+    <section class="card" aria-label="Tipos de entrada">
+      <div class="card-h">
+        <h2 class="card-t">Tipos de entrada</h2>
+        <span class="card-hint">Una fila por tipo. Se edita en el panel lateral, sin desplegar la tabla.</span>
+        <button class="ghost-btn" type="button" style="margin-left: auto;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+          Reordenar
+        </button>
+      </div>
+
+      <div class="tt-head">
+        <span>Entrada</span><span>Clase</span><span>Emite</span><span>Jornadas</span><span style="text-align: right;">Precio</span><span>Vendidas</span><span>Estado</span><span></span>
+      </div>
+
+      <div class="tt-row">
+        <span class="tt-name"><strong>General · sábado</strong><small>Tribuna, solo el sábado</small></span>
+        <span><span class="badge badge--soft">Público</span></span>
+        <span class="tt-emits"><strong>1 credencial</strong><small>Entrada general</small></span>
+        <span class="days"><span class="day">S</span><span class="day is-off">D</span></span>
+        <span class="price num">$ 12.000</span>
+        <span class="sold"><span class="sold-l"><strong class="num">128</strong><span>sin cupo</span></span></span>
+        <span><span class="badge badge--on">En venta</span></span>
+        <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+      </div>
+
+      <div class="tt-row">
+        <span class="tt-name"><strong>General · dos días</strong><small>Tribuna, sábado y domingo</small></span>
+        <span><span class="badge badge--soft">Público</span></span>
+        <span class="tt-emits"><strong>1 credencial</strong><small>Entrada general</small></span>
+        <span class="days"><span class="day">S</span><span class="day">D</span></span>
+        <span class="price num">$ 20.000</span>
+        <span class="sold"><span class="sold-l"><strong class="num">96</strong><span>sin cupo</span></span></span>
+        <span><span class="badge badge--on">En venta</span></span>
+        <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+      </div>
+
+      <div class="tt-row">
+        <span class="tt-name"><strong>Entrenador · dos días</strong><small>Tribuna + entrada en calor</small></span>
+        <span><span class="badge badge--gold">Entrenador</span></span>
+        <span class="tt-emits is-multi"><strong>2 credenciales</strong><small>Espectador · ENTRENADOR</small></span>
+        <span class="days"><span class="day">S</span><span class="day">D</span></span>
+        <span class="price num">$ 26.000</span>
+        <span class="sold"><span class="sold-l"><strong class="num">18 / 30</strong><span>60 %</span></span><span class="meter"><i style="width: 60%;"></i></span></span>
+        <span><span class="badge badge--on">En venta</span></span>
+        <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+      </div>
+
+      <div class="tt-row">
+        <span class="tt-name"><strong>Palco · dos días</strong><small>Incluye buffet y programa</small></span>
+        <span><span class="badge badge--soft">Público</span></span>
+        <span class="tt-emits"><strong>1 credencial</strong><small>Palco</small></span>
+        <span class="days"><span class="day">S</span><span class="day">D</span></span>
+        <span class="price num">$ 38.000</span>
+        <span class="sold"><span class="sold-l"><strong class="num">34 / 40</strong><span>85 %</span></span><span class="meter"><i class="is-tight" style="width: 85%;"></i></span></span>
+        <span><span class="badge badge--on">En venta</span></span>
+        <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+      </div>
+
+      <div class="tt-row is-off">
+        <span class="tt-name"><strong>Menores de 12</strong><small>Con adulto responsable</small></span>
+        <span><span class="badge badge--soft">Público</span></span>
+        <span class="tt-emits"><strong>1 credencial</strong><small>Entrada general</small></span>
+        <span class="days"><span class="day">S</span><span class="day">D</span></span>
+        <span class="price num">$ 0</span>
+        <span class="sold"><span class="sold-l"><strong class="num">0</strong><span>sin cupo</span></span></span>
+        <span><span class="badge badge--off">Pausada</span></span>
+        <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+      </div>
+
+      <div class="tt-foot">
+        <span class="tt-foot-l">El cupo cuenta compras, no credenciales. El precio siempre lo calcula el servidor.</span>
+        <dl class="totals">
+          <div class="total"><dt>Compras</dt><dd class="num">276</dd></div>
+          <div class="total"><dt>Credenciales emitidas</dt><dd class="num">294</dd></div>
+          <div class="total"><dt>Recaudado</dt><dd class="num is-gold">$ 5.216.000</dd></div>
+        </dl>
+      </div>
+
+      <div class="add-row">
+        <button class="btn-gold" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          Agregar tipo de entrada
+        </button>
+        <button class="ghost-btn" type="button">Duplicar uno existente</button>
+      </div>
+    </section>
+
+    <section class="card" aria-label="Antes de abrir la venta">
+      <div class="card-h">
+        <h2 class="card-t">Antes de abrir la venta</h2>
+        <span class="card-hint">Lo que el panel verifica solo</span>
+      </div>
+      <div class="chk chk--ok">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
+        <span class="chk-c"><span class="chk-t">Cada tipo emite al menos una credencial con acceso</span><p class="chk-p">Sin eso se vendería una entrada que no abre nada.</p></span>
+      </div>
+      <div class="chk chk--ok">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
+        <span class="chk-c"><span class="chk-t">Las dos jornadas están cargadas en Estructura</span><p class="chk-p">Las jornadas se cargan una sola vez; acá cada tipo elige a cuáles da acceso.</p></span>
+      </div>
+      <div class="chk chk--warn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4.5 21 19.5H3z"/><path d="M12 10v4M12 17h.01"/></svg>
+        <span class="chk-c"><span class="chk-t">La página del evento no muestra el bloque de entradas</span><p class="chk-p">Hay 4 tipos en venta y la ventana está abierta, pero nadie los ve todavía.</p></span>
+        <span class="chk-a"><button class="ghost-btn" type="button">Activar el bloque</button></span>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+</body>
+</html>

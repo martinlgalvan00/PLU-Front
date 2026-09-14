@@ -1,0 +1,160 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+@@BASE@@
+    .window { display: none; }
+    .done { display: flex; align-items: flex-start; gap: 16px; padding: 20px 22px; border-radius: var(--r-card); border: 1px solid color-mix(in srgb, var(--ok) 28%, transparent); background: color-mix(in srgb, var(--ok) 9%, transparent); }
+    .done svg { color: var(--ok-soft); flex: 0 0 auto; margin-top: 2px; }
+    .done-c { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex-grow: 1; }
+    .done-t { font-size: 20px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+    .done-p { margin: 0; font-size: 13px; color: var(--secondary); line-height: 1.6; }
+    .done-p strong { color: var(--ink); font-weight: 600; }
+    .done-a { display: flex; gap: 10px; flex-wrap: wrap; flex: 0 0 auto; }
+
+    .grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
+    .tk { display: flex; flex-direction: column; border: 1px solid var(--hairline); border-radius: var(--r-card); overflow: hidden; background: linear-gradient(160deg, rgba(31,95,158,.2), rgba(255,255,255,.02) 66%); }
+    .tk-top { display: flex; align-items: flex-start; gap: 10px; padding: 14px 14px 12px; }
+    .tk-c { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .tk-ix { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--brand-soft); }
+    .tk-name { font-size: 14px; font-weight: 700; letter-spacing: -.01em; }
+    .tk-dni { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .tk-qr { width: 46px; height: 46px; border-radius: 10px; background: #f7f6f3; color: #14181f; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; margin-left: auto; }
+    .tk-mid { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 14px 12px; font-size: 11.5px; color: var(--secondary); }
+    .tk-foot { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px dashed rgba(255,255,255,.14); }
+    .tk-send { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--hairline); background: rgba(255,255,255,.05); color: var(--ink); font-size: 12px; font-weight: 600; font-family: var(--font); }
+    .tk-code { margin-left: auto; font-size: 10.5px; color: var(--faint); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+
+    .gate { display: flex; align-items: flex-start; gap: 13px; padding: 16px 18px; border-radius: var(--r-card); border: 1px solid color-mix(in srgb, var(--brand) 24%, transparent); background: color-mix(in srgb, var(--brand) 7%, transparent); }
+    .gate svg { color: var(--brand-soft); flex: 0 0 auto; margin-top: 1px; }
+    .gate-c { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .gate-t { font-size: 13.5px; font-weight: 600; }
+    .gate-p { margin: 0; font-size: 12.5px; color: var(--secondary); line-height: 1.6; }
+  </style>
+</helmet>
+
+<div class="page">
+@@HEAD@@
+
+  <div class="done">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
+    <div class="done-c">
+      <h2 class="done-t">Listo: 10 entradas, 10 QR</h2>
+      <p class="done-p">Cada persona tiene el suyo, con su nombre y su DNI. <strong>Mandale a cada uno el que le corresponde</strong>: en la puerta se escanea uno por persona y el QR de otro no la deja pasar.</p>
+    </div>
+    <div class="done-a">
+      <button type="button" class="btn-ghost">Descargar las 10</button>
+      <button type="button" class="btn-gold" style="min-height: 44px; font-size: 13px;">Enviar a cada uno</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <article class="tk">
+      <div class="tk-top">
+        <span class="tk-c"><span class="tk-ix">Entrada 1 de 10</span><span class="tk-name">Camila Rearte</span><span class="tk-dni">DNI 38.402.115</span></span>
+        <span class="tk-qr"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+      </div>
+      <div class="tk-mid"><span class="tag tag--brand">General · dos días</span><span>Puerta general</span></div>
+      <div class="tk-foot"><button type="button" class="tk-send">Enviar</button><span class="tk-code">PLU-4821-01</span></div>
+    </article>
+
+    <article class="tk">
+      <div class="tk-top">
+        <span class="tk-c"><span class="tk-ix">Entrada 2 de 10</span><span class="tk-name">Julián Ferreyra</span><span class="tk-dni">DNI 41.908.330</span></span>
+        <span class="tk-qr"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+      </div>
+      <div class="tk-mid"><span class="tag tag--brand">General · dos días</span><span>Puerta general</span></div>
+      <div class="tk-foot"><button type="button" class="tk-send">Enviar</button><span class="tk-code">PLU-4821-02</span></div>
+    </article>
+
+    <article class="tk">
+      <div class="tk-top">
+        <span class="tk-c"><span class="tk-ix">Entrada 3 de 10</span><span class="tk-name">Sofía Benítez</span><span class="tk-dni">DNI 44.120.887</span></span>
+        <span class="tk-qr"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+      </div>
+      <div class="tk-mid"><span class="tag tag--brand">General · dos días</span><span>Puerta general</span></div>
+      <div class="tk-foot"><button type="button" class="tk-send">Enviar</button><span class="tk-code">PLU-4821-03</span></div>
+    </article>
+
+    <article class="tk">
+      <div class="tk-top">
+        <span class="tk-c"><span class="tk-ix">Entrada 4 de 10</span><span class="tk-name">Nicolás Paz</span><span class="tk-dni">DNI 35.771.204</span></span>
+        <span class="tk-qr"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+      </div>
+      <div class="tk-mid"><span class="tag tag--brand">General · dos días</span><span>Puerta general</span></div>
+      <div class="tk-foot"><button type="button" class="tk-send">Enviar</button><span class="tk-code">PLU-4821-04</span></div>
+    </article>
+
+    <article class="tk">
+      <div class="tk-top">
+        <span class="tk-c"><span class="tk-ix">Entrada 5 de 10</span><span class="tk-name">Marina Oliveira</span><span class="tk-dni">DNI 39.550.771</span></span>
+        <span class="tk-qr"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+      </div>
+      <div class="tk-mid"><span class="tag tag--brand">General · dos días</span><span>Puerta general</span></div>
+      <div class="tk-foot"><button type="button" class="tk-send">Enviar</button><span class="tk-code">PLU-4821-05</span></div>
+    </article>
+
+    <article class="tk">
+      <div class="tk-top">
+        <span class="tk-c"><span class="tk-ix">Entrada 6 de 10</span><span class="tk-name">Diego Salvatierra</span><span class="tk-dni">DNI 30.559.641</span></span>
+        <span class="tk-qr"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+      </div>
+      <div class="tk-mid"><span class="tag tag--brand">General · dos días</span><span>Puerta general</span></div>
+      <div class="tk-foot"><button type="button" class="tk-send">Enviar</button><span class="tk-code">PLU-4821-06</span></div>
+    </article>
+
+    <article class="tk">
+      <div class="tk-top">
+        <span class="tk-c"><span class="tk-ix">Entrada 7 de 10</span><span class="tk-name">Lucía Ferrari</span><span class="tk-dni">DNI 42.880.913</span></span>
+        <span class="tk-qr"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+      </div>
+      <div class="tk-mid"><span class="tag tag--brand">General · dos días</span><span>Puerta general</span></div>
+      <div class="tk-foot"><button type="button" class="tk-send">Enviar</button><span class="tk-code">PLU-4821-07</span></div>
+    </article>
+
+    <article class="tk">
+      <div class="tk-top">
+        <span class="tk-c"><span class="tk-ix">Entrada 8 de 10</span><span class="tk-name">Tomás Aguirre</span><span class="tk-dni">DNI 37.204.558</span></span>
+        <span class="tk-qr"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+      </div>
+      <div class="tk-mid"><span class="tag tag--brand">General · dos días</span><span>Puerta general</span></div>
+      <div class="tk-foot"><button type="button" class="tk-send">Enviar</button><span class="tk-code">PLU-4821-08</span></div>
+    </article>
+
+    <article class="tk">
+      <div class="tk-top">
+        <span class="tk-c"><span class="tk-ix">Entrada 9 de 10</span><span class="tk-name">Valentina Ruiz</span><span class="tk-dni">DNI 45.013.226</span></span>
+        <span class="tk-qr"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+      </div>
+      <div class="tk-mid"><span class="tag tag--brand">General · dos días</span><span>Puerta general</span></div>
+      <div class="tk-foot"><button type="button" class="tk-send">Enviar</button><span class="tk-code">PLU-4821-09</span></div>
+    </article>
+
+    <article class="tk">
+      <div class="tk-top">
+        <span class="tk-c"><span class="tk-ix">Entrada 10 de 10</span><span class="tk-name">Federico Lema</span><span class="tk-dni">DNI 33.987.140</span></span>
+        <span class="tk-qr"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+      </div>
+      <div class="tk-mid"><span class="tag tag--brand">General · dos días</span><span>Puerta general</span></div>
+      <div class="tk-foot"><button type="button" class="tk-send">Enviar</button><span class="tk-code">PLU-4821-10</span></div>
+    </article>
+  </div>
+
+  <div class="gate">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 3l7 3v6c0 4.2-2.8 7.6-7 9-4.2-1.4-7-4.8-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+    <div class="gate-c">
+      <span class="gate-t">Cómo funciona en la puerta</span>
+      <p class="gate-p">Cada QR se escanea una sola vez y se compara el DNI impreso con el documento de quien lo presenta. Si dos personas llegan con el mismo QR, la segunda no entra: no es un problema de fila, es que ese ingreso ya fue usado.</p>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

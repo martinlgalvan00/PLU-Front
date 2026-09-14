@@ -1,0 +1,136 @@
+{
+  "artboards": [
+    {
+      "file": "Hoy.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 2200,
+      "title": "Hoy · Ventas › Entradas"
+    },
+    {
+      "file": "Main.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 1300,
+      "title": "Entradas · Catálogo"
+    },
+    {
+      "file": "Tipo.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 780,
+      "h": 1180,
+      "title": "Editar un tipo"
+    },
+    {
+      "file": "Credenciales.dc.html",
+      "x": 0,
+      "y": 2560,
+      "w": 1440,
+      "h": 1160,
+      "title": "Entradas · Credenciales"
+    },
+    {
+      "file": "Compras.dc.html",
+      "x": 1560,
+      "y": 2560,
+      "w": 1440,
+      "h": 1040,
+      "title": "Entradas · Compras"
+    },
+    {
+      "file": "Beneficios.dc.html",
+      "x": 3120,
+      "y": 2560,
+      "w": 1440,
+      "h": 1320,
+      "title": "Entradas · Beneficios"
+    },
+    {
+      "file": "Cobro.dc.html",
+      "x": 0,
+      "y": 4280,
+      "w": 1440,
+      "h": 1120,
+      "title": "Entradas · Cobro"
+    },
+    {
+      "file": "Movil.dc.html",
+      "x": 1560,
+      "y": 4280,
+      "w": 390,
+      "h": 844,
+      "title": "Catálogo en teléfono"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "tesis",
+      "x": 0,
+      "y": -430,
+      "w": 680,
+      "text": "TESIS\n\nEntradas tiene que sentirse como un proceso de cinco pasos con estado visible, porque el operador necesita llegar del catálogo al torniquete sin adivinar qué emite cada entrada.\n\nDos cambios de raíz:\n\n1. Entradas deja de ser un capítulo adentro de Ventas y pasa a ser su propia pestaña. Ventas queda para inscripción (cupo, precios, cobro). Es la confusión que el propio código documenta: hoy \"Entradas\" significa dos cosas distintas según el nivel.\n\n2. Los tipos dejan de ser formularios apilados y pasan a una tabla. Editar es un panel lateral, no desplegar la fila."
+    },
+    {
+      "id": "hoy",
+      "x": 740,
+      "y": -430,
+      "w": 600,
+      "text": "LO QUE HAY HOY (el artboard de abajo)\n\nCada tipo de entrada es un formulario completo de cinco bloques: cabecera, tres campos, jornadas, beneficios y el editor de credenciales adentro.\n\nCon cinco tipos eso es una columna de scroll donde no se puede comparar nada: no se ve junto el precio, el cupo, las jornadas ni cuántos QR emite cada uno. Esa es, literalmente, la dificultad para distinguir entradas.\n\nY la credencial —lo único que separa una entrada de entrenador de una de espectador— está al fondo del todo, dos cajas anidadas adentro."
+    },
+    {
+      "id": "catalogo",
+      "x": 1560,
+      "y": -430,
+      "w": 660,
+      "text": "CATÁLOGO\n\nUna fila por tipo, con las seis cosas que se comparan: clase, qué credenciales emite, jornadas, precio, vendidas sobre cupo y estado.\n\nLa columna Emite es nueva y es la que resuelve el pedido: dice de una que Entrenador · dos días emite dos credenciales (Espectador + ENTRENADOR) y las demás una.\n\nEl pie de la tabla separa las tres cifras que se confunden: 276 compras, 294 credenciales, $ 5.216.000. El cupo cuenta compras.\n\nLa barra de proceso de arriba no es decoración: son los cinco estados reales que hoy hay que ir a buscar a cuatro pantallas distintas."
+    },
+    {
+      "id": "tipo",
+      "x": 3120,
+      "y": -430,
+      "w": 600,
+      "text": "EDITAR UN TIPO\n\nLo que hoy es una fila que crece hasta 600 px acá es un panel lateral: la tabla no se mueve y se puede saltar de un tipo a otro sin perder el contexto.\n\nLas credenciales son una tabla chica de dos columnas —nombre y puesto que la lee— en vez de dos fieldsets anidados con checkboxes de zona.\n\nLa aclaración de cupo deja de ser un <small> al final: es una línea de cálculo, cupo 30 → 30 lugares y hasta 60 QR."
+    },
+    {
+      "id": "credenciales",
+      "x": 0,
+      "y": 2230,
+      "w": 660,
+      "text": "CREDENCIALES\n\nEsta pantalla hoy no existe en ningún lado, y es la que hace entendible el proceso: cruza cada credencial emitida contra cada puesto de control.\n\nDos columnas están vacías a propósito. Zona de atletas y Staff técnico no leen entradas de público —lo decide SCOPE_CREDENTIALS en securityZoneService—, así que ni siquiera se ofrecen al armar una credencial. Mostrarlas apagadas explica por qué faltan mejor que no mostrarlas.\n\nLa fila ENTRENADOR es la única que abre Entrada en calor, y sale de la misma compra que la fila Espectador."
+    },
+    {
+      "id": "compras",
+      "x": 1560,
+      "y": 2230,
+      "w": 660,
+      "text": "COMPRAS\n\nHoy esto vive en Cobros, en otra sección del panel: quien configura las entradas no ve quién las compró.\n\nAcá la misma tabla entra al contexto del evento, con la columna QR al lado de las entradas para que se vea que una compra de entrenador emite dos.\n\nLos filtros separan tres cosas que hoy se mezclan en \"pendiente\": la que subió comprobante y espera aprobación, la que todavía no lo subió, y la que venció. Solo las 276 pagadas emiten credenciales y suman al recaudado."
+    },
+    {
+      "id": "beneficios",
+      "x": 3120,
+      "y": 2230,
+      "w": 660,
+      "text": "BENEFICIOS\n\nHoy la configuración está arriba de los tipos y el reporte en la barra lateral, con columnas Vendidos / Canjeados / Pendientes.\n\nJuntarlos deja ver algo que hoy se pierde: un beneficio incluido en una entrada ya está cobrado en el precio, y uno comprado aparte no. Son dos números distintos que se canjean igual, así que la tabla los separa y suma el total a entregar.\n\nLos tres pasos del final describen el canje real del día del evento, que hoy no está explicado en ninguna pantalla."
+    },
+    {
+      "id": "movil",
+      "x": 2080,
+      "y": 4280,
+      "w": 520,
+      "text": "TELÉFONO\n\nSin barra de estado falsa. El rail de pestañas se corta con un degradado: se desplaza en horizontal, igual que el componente real.\n\nLa tabla no se apila: a este ancho cada tipo es una tarjeta y las tres etiquetas que importan —clase, credenciales, estado— quedan en una sola línea.\n\nTodo lo tocable llega a 44 px, y el agregar queda fijo abajo en vez del final del scroll."
+    },
+    {
+      "id": "cobro",
+      "x": 0,
+      "y": 3950,
+      "w": 660,
+      "text": "COBRO\n\nYa está implementado: el override de canales pasó de {canal: bool} a {concepto: {canal: bool}}, así que ahora se puede dejar el efectivo abierto para la inscripción de atletas y cerrado para entradas.\n\nLas filas que ya existían guardan la forma plana vieja y se siguen leyendo como \"lo mismo para los dos conceptos\": no hubo que migrar datos ni tocar el checkout de los eventos vivos.\n\nLa matriz vive hoy en Ventas › Cobro, que es donde ya estaban el alias, el CBU y el perfil de Mercado Pago. Traerla a esta pestaña es la mudanza grande que dibuja el resto del lienzo, y no se hizo todavía.\n\nLa columna de la plataforma está porque la regla ya era esa: el evento solo puede cerrar, nunca abrir. Wise aparece apagado y bloqueado por eso."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}
