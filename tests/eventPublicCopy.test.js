@@ -29,13 +29,27 @@ describe('copy público del evento', () => {
       publicTitle: '',
       heroLead: '',
       ctaLabel: '',
+      inscriptionMark: '',
+      inscriptionNote: '',
     })
     expect(
       normalizeEventPublicCopy({ publicTitle: '  Pitbull  ', heroLead: '', ctaLabel: null }),
-    ).toEqual({ publicTitle: 'Pitbull', heroLead: '', ctaLabel: '' })
+    ).toEqual({
+      publicTitle: 'Pitbull',
+      heroLead: '',
+      ctaLabel: '',
+      inscriptionMark: '',
+      inscriptionNote: '',
+    })
     expect(normalizeEventPublicCopy({ publicTitle: 'x'.repeat(200) }).publicTitle).toHaveLength(120)
     expect(normalizeEventPublicCopy({ heroLead: 'y'.repeat(300) }).heroLead).toHaveLength(240)
     expect(normalizeEventPublicCopy({ ctaLabel: 'z'.repeat(80) }).ctaLabel).toHaveLength(40)
+    expect(
+      normalizeEventPublicCopy({ inscriptionMark: 'm'.repeat(80) }).inscriptionMark,
+    ).toHaveLength(40)
+    expect(
+      normalizeEventPublicCopy({ inscriptionNote: 'n'.repeat(200) }).inscriptionNote,
+    ).toHaveLength(160)
   })
 
   /** Vacío tiene que caer al título del evento, no dejar el hero en blanco. */
@@ -59,6 +73,8 @@ describe('copy público del evento', () => {
       publicTitle: 'La Clásica',
       heroLead: 'Fecha nacional.',
       ctaLabel: 'Competir',
+      inscriptionMark: '',
+      inscriptionNote: '',
     })
 
     // La preview de Vista pública tiene que mostrar lo mismo que se guarda.
@@ -82,5 +98,17 @@ describe('copy público del evento', () => {
 
     const server = readFileSync(resolve(process.cwd(), 'server/routes/events.js'), 'utf8')
     expect(server).toContain('staff_merge_event_public_copy')
+  })
+
+  it('el merge nuevo conserva título/hero/cta y agrega el copy de inscripción', () => {
+    const next = readFileSync(
+      resolve(process.cwd(), 'supabase/migrations/20261117100000_event_public_inscription_copy.sql'),
+      'utf8',
+    )
+    expect(next).toContain('inscriptionMark')
+    expect(next).toContain('inscriptionNote')
+    expect(next).toContain('publicTitle')
+    expect(next).toContain('heroLead')
+    expect(next).toContain('ctaLabel')
   })
 })

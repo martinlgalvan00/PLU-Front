@@ -7,6 +7,9 @@ export const loginSchema = z.object({
     .min(8, 'Ingresá una contraseña de al menos 8 caracteres.')
     .max(200, 'La contraseña es demasiado larga.'),
   eventSlug: z.string().trim().min(1).optional(),
+  // Default false: sin el flag la cookie es de sesión y se pierde al cerrar
+  // el navegador. No persistimos la contraseña; sólo alargamos la cookie.
+  remember: z.boolean().optional().default(false),
 })
 
 // Alta de cuentas de staff del panel (no atletas, no seguridad). Se crean con

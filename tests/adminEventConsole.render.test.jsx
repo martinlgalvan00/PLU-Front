@@ -570,4 +570,27 @@ describe('EventsSection — alta rápida', () => {
     expect(within(editor).getByRole('tablist')).toBeTruthy()
     expect(editor.querySelector('[name="title"]')?.value).toBe('Copa Norte')
   })
+
+  it('cambia el estado del meet con el Guardar del editor, sin upsert ni barra pending', async () => {
+    const onSaveEvent = vi.fn(async () => ({ event: EVENT, events: [EVENT] }))
+    const onSetEventState = vi.fn(async () => ({
+      event: { ...EVENT, status: 'cerrado' },
+      events: [{ ...EVENT, status: 'cerrado' }],
+    }))
+    renderEvents({ onSaveEvent, onSetEventState })
+    workspace()
+
+    fireEvent.click(screen.getByRole('button', { name: /^cerrado$/i }))
+
+    expect(onSetEventState).not.toHaveBeenCalled()
+    expect(document.querySelector('.admin-event-state__pending')).toBeNull()
+
+    const save = screen.getByRole('button', { name: /guardar cambios/i })
+    expect(save.disabled).toBe(false)
+    fireEvent.click(save)
+
+    await waitFor(() => expect(onSetEventState).toHaveBeenCalledTimes(1))
+    expect(onSetEventState).toHaveBeenCalledWith('pitbull-classic-2026', { status: 'cerrado' })
+    expect(onSaveEvent).not.toHaveBeenCalled()
+  })
 })

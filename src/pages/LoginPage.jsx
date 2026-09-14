@@ -426,6 +426,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
                       <span className="login-remember__control">
                         <input
                           type="checkbox"
+                          name="remember"
                           className="login-remember__input"
                           checked={rememberMe}
                           onChange={(event) => setRememberMe(event.target.checked)}

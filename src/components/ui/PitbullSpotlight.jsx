@@ -34,6 +34,7 @@ import BrandLogo from './BrandLogo.jsx'
 import Button from './Button.jsx'
 import CapacityBar from './CapacityBar.jsx'
 import { describePublicCapacity } from '../../lib/eventCapacityPublic.js'
+import { resolvePublicInscriptionCopy } from '../../lib/eventInscriptionCopy.js'
 import EventCalendarActions from './EventCalendarActions.jsx'
 import ResponsivePhoto from './ResponsivePhoto.jsx'
 
@@ -288,8 +289,19 @@ export default function PitbullSpotlight({
       slots: liveSlots,
       remaining,
     })
+    const inscription = resolvePublicInscriptionCopy({
+      status: eventStatus,
+      progressPublic,
+      checkoutLocked: !checkoutOpen && !isFinished,
+      publicCopy: event?.publicCopy,
+      t,
+    })
     const showLiveCapacity =
-      capacityStatus === 'live' && liveSlots > 0 && liveRegistered > 0 && occupancy.mode === 'meter'
+      inscription.showMeter &&
+      capacityStatus === 'live' &&
+      liveSlots > 0 &&
+      liveRegistered > 0 &&
+      occupancy.mode === 'meter'
     const occupancyPct = showLiveCapacity ? occupancy.percent : 0
     // Tres nombres alcanzan para dar prueba real sin volver la portada una
     // lista; el resto queda como "+N" y el detalle completo vive en Pitbull.
@@ -512,7 +524,8 @@ export default function PitbullSpotlight({
         </div>
 
         <div className="pitbull-spotlight__capacity">
-          {occupancy.mode === 'meter' ? (
+          {occupancy.mode === 'meter' &&
+          isRegistrationOpen(event?.status ?? 'proximamente') ? (
             <CapacityBar
               current={capacityRegistered}
               total={capacitySlots}
@@ -521,7 +534,14 @@ export default function PitbullSpotlight({
             />
           ) : (
             <p className="pitbull-spotlight__capacity-note">
-              {t('pages.pitbull.inscriptionCounterHidden')}
+              {
+                resolvePublicInscriptionCopy({
+                  status: event?.status,
+                  progressPublic,
+                  publicCopy: event?.publicCopy,
+                  t,
+                }).hint
+              }
             </p>
           )}
         </div>

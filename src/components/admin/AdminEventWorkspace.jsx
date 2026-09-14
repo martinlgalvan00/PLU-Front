@@ -107,6 +107,8 @@ export default function AdminEventWorkspace({
   onSelectChapter,
   onSelectSection,
   onSetEventState,
+  onStatePendingChange,
+  onRegisterStateDiscard,
   onToggleOccupancy,
   onTogglePublicModule,
   openChapter = null,
@@ -512,10 +514,13 @@ export default function AdminEventWorkspace({
           {onSetEventState ? (
             <AdminEventStateControl
               canEdit={canEdit}
+              deferSave
               event={event}
               onDirtyChange={(dirty) => {
                 stateDirtyRef.current = dirty
               }}
+              onPendingChange={onStatePendingChange}
+              onRegisterDiscard={onRegisterStateDiscard}
               onEditWindow={
                 onSelectChapter ? () => onSelectChapter(event, 'sales', 'cupo') : undefined
               }

@@ -71,14 +71,6 @@ const titleIn = {
     transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
   },
 }
-const descIn = {
-  hidden: { opacity: 0, y: 8 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out },
-  },
-}
 const indexIn = {
   hidden: { opacity: 0, y: 10 },
   visible: {
@@ -105,7 +97,6 @@ export default function HomeRulebookTeaser({ onNavigate, orchestrated = false })
   const Line = reducedMotion ? 'span' : m.span
   const Eyebrow = reducedMotion ? 'p' : m.p
   const Title = reducedMotion ? 'h2' : m.h2
-  const Desc = reducedMotion ? 'p' : m.p
   const Index = reducedMotion ? 'ul' : m.ul
   const Cta = reducedMotion ? 'button' : m.button
 
@@ -144,9 +135,6 @@ export default function HomeRulebookTeaser({ onNavigate, orchestrated = false })
         <Title {...withVariant(titleIn)} className="home-teaser-card__title">
           {HOME_RULEBOOK.title}
         </Title>
-        <Desc {...withVariant(descIn)} className="home-teaser-card__desc">
-          {HOME_RULEBOOK.description}
-        </Desc>
       </div>
 
       {HOME_RULEBOOK.topics?.length ? (

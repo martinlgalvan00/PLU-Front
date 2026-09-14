@@ -224,6 +224,8 @@ export const eventSchema = z
         publicTitle: z.string().trim().max(120).optional(),
         heroLead: z.string().trim().max(240).optional(),
         ctaLabel: z.string().trim().max(40).optional(),
+        inscriptionMark: z.string().trim().max(40).optional(),
+        inscriptionNote: z.string().trim().max(160).optional(),
       })
       .optional(),
     liveStreamUrl: z
@@ -693,6 +695,8 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
               publicTitle: pEvent.publicCopy?.publicTitle ?? '',
               heroLead: pEvent.publicCopy?.heroLead ?? '',
               ctaLabel: pEvent.publicCopy?.ctaLabel ?? '',
+              inscriptionMark: pEvent.publicCopy?.inscriptionMark ?? '',
+              inscriptionNote: pEvent.publicCopy?.inscriptionNote ?? '',
             },
           }),
           'No se pudo guardar el copy público del evento.',

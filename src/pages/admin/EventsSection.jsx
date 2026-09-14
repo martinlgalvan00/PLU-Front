@@ -262,6 +262,10 @@ export default function EventsSection({
   /** Si el editor dirty pide confirmación, abrir esta sección al descartar. */
   const pendingConsoleSectionRef = useRef(null)
   const pendingConsoleChapterRef = useRef(null)
+  /** PATCH de estado pendiente: el editor lo dispara con “Guardar cambios”. */
+  const [stateDirty, setStateDirty] = useState(false)
+  const statePendingRef = useRef({})
+  const discardStateRef = useRef(null)
 
   /**
    * Tocar una fila abre el workspace en Datos y sincroniza la URL. El orden
@@ -286,6 +290,8 @@ export default function EventsSection({
     setFormOpen(false)
     setEditorBaselineSignature(null)
     setDraft(createAdminEventDraft())
+    setStateDirty(false)
+    statePendingRef.current = {}
     pendingConsoleSectionRef.current = null
     pendingConsoleChapterRef.current = null
   }
@@ -637,6 +643,7 @@ export default function EventsSection({
     const pendingChapter = pendingConsoleChapterRef.current
     pendingConsoleSectionRef.current = null
     pendingConsoleChapterRef.current = null
+    discardStateRef.current?.()
     setFormOpen(false)
     setEditorBaselineSignature(null)
     setDraft(createAdminEventDraft())
@@ -694,6 +701,35 @@ export default function EventsSection({
         : t('admin.sections.events.created'),
     })
     return saved
+  }
+
+  /**
+   * Estado / acceso / visibilidad: PATCH parcial. No pasa por el upsert
+   * porque ese recrea días y tipos de entrada.
+   */
+  async function handleExtraStateSave() {
+    const pending = statePendingRef.current
+    const slug = selectedEvent?.slug
+    if (!slug || !pending || Object.keys(pending).length === 0) return null
+    const result = await onSetEventState?.(slug, pending)
+    if (result?.error) throw new Error(result.error)
+    const event = result?.event
+    const synced = {}
+    if (pending.status !== undefined) synced.status = event?.status ?? pending.status
+    if (pending.published !== undefined) synced.published = event?.published ?? pending.published
+    if (pending.requiresMembership !== undefined) {
+      synced.requiresMembership = event?.requiresMembership ?? pending.requiresMembership
+    }
+    const nextDraft = { ...draft, ...synced }
+    setDraft(nextDraft)
+    setEditorBaselineSignature((current) =>
+      current == null ? current : getAdminEventDraftSignature(nextDraft),
+    )
+    setMessage({
+      tone: 'success',
+      text: t('admin.sections.events.updated'),
+    })
+    return synced
   }
 
   async function handleStructureSave(submittedDraft) {
@@ -926,6 +962,9 @@ export default function EventsSection({
                   setConsoleChapter(section === 'sales' ? (consoleChapter ?? 'cupo') : null)
                 }}
                 onSubmit={handleSubmit}
+                extraDirty={stateDirty}
+                onExtraSave={handleExtraStateSave}
+                onExtraDiscard={() => discardStateRef.current?.()}
               />
             ) : null
           }
@@ -937,6 +976,14 @@ export default function EventsSection({
           onSelectChapter={selectConsoleChapter}
           onSelectSection={selectConsoleSection}
           onSetEventState={onSetEventState}
+          onStatePendingChange={(payload) => {
+            const next = payload && typeof payload === 'object' ? payload : {}
+            statePendingRef.current = next
+            setStateDirty(Object.keys(next).length > 0)
+          }}
+          onRegisterStateDiscard={(fn) => {
+            discardStateRef.current = fn
+          }}
           onToggleOccupancy={toggleOccupancy}
           onTogglePublicModule={togglePublicModule}
           openChapter={consoleChapter}

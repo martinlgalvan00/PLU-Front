@@ -139,6 +139,25 @@ describe('AdminEventStateControl — acceso al meet', () => {
     expect(screen.queryByText(/inscriptos:/i)).toBeNull()
   })
 
+  it('en deferSave no muestra la barra pending: el PATCH lo dispara el padre', () => {
+    render(
+      <I18nProvider>
+        <AdminEventStateControl
+          canEdit
+          deferSave
+          event={EVENT}
+          onSetState={vi.fn()}
+          onPendingChange={vi.fn()}
+        />
+      </I18nProvider>,
+    )
+
+    fireEvent.click(accessChip(/^abierto$/i))
+
+    expect(pendingSave()).toBeNull()
+    expect(screen.queryByText(/un cambio sin guardar/i)).toBeNull()
+  })
+
   it('sin permiso de escritura el control queda deshabilitado', () => {
     render(
       <I18nProvider>

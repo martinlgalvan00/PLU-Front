@@ -175,6 +175,45 @@ describe('últimos inscriptos de Pitbull', () => {
     expect(container.querySelector('.pitbull-inscription-counter--soon')).toBeTruthy()
   })
 
+  it('con el meet cerrado no dice que la inscripción está abierta', () => {
+    capacityMock.mockReturnValue({
+      status: 'live',
+      registered: 206,
+      registeredToday: 0,
+      slots: 250,
+      progressPublic: false,
+      recent: [],
+    })
+    const { container } = render(
+      <I18nProvider>
+        <PitbullPage
+          events={[
+            {
+              slug: 'pitbull-classic-2026',
+              title: 'Pitbull Classic',
+              featured: true,
+              status: 'cerrado',
+              price: 85000,
+              slots: 180,
+              publicCopy: {
+                inscriptionMark: 'Planilla cerrada',
+                inscriptionNote: 'Por el momento no se aceptan más inscripciones.',
+              },
+            },
+          ]}
+          onNavigate={vi.fn()}
+          onSelectEvent={vi.fn()}
+        />
+      </I18nProvider>,
+    )
+
+    const counter = container.querySelector('.pitbull-inscription-counter')
+    expect(counter?.textContent ?? '').toMatch(/planilla cerrada/i)
+    expect(counter?.textContent ?? '').toMatch(/no se aceptan más inscripciones/i)
+    expect(counter?.textContent ?? '').not.toMatch(/la inscripción está abierta/i)
+    expect(counter?.className).toContain('pitbull-inscription-counter--hidden')
+  })
+
   it('muestra la banda de entradas con hype cuando la venta todavía no abrió', () => {
     const { container } = renderPitbull()
 
