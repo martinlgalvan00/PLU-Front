@@ -11,6 +11,9 @@ const FOOTER_GROUPS = [
     items: [
       { key: 'members' },
       { key: 'events', children: [{ key: 'pitbull' }] },
+      // La tienda vivía sólo adentro del desplegable de escritorio: quien
+      // venía a comprar una entrada no la encontraba desde el pie.
+      { key: 'shop' },
       { key: 'results' },
       { key: 'records' },
       { key: 'standards' },

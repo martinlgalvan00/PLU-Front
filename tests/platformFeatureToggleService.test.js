@@ -313,3 +313,45 @@ describe('disponibilidad publicada al checkout', () => {
     expect(availability.registrationManualEnabled).toBe(true)
   })
 })
+
+/**
+ * Sin ningún canal abierto no hay venta posible. El assert del servidor ya lo
+ * trataba así, pero el payload público seguía diciendo que la venta estaba
+ * abierta: la pantalla mostraba el formulario entero y el 409 aparecía recién
+ * al confirmar, con los datos de todos los asistentes ya cargados.
+ */
+describe('entradas sin ningún medio de pago', () => {
+  const allClosed = {
+    mercado_pago: false,
+    bank_transfer: false,
+    cash_pitbull: false,
+    wise_transfer: false,
+  }
+
+  it('cierra la venta de entradas cuando se cerraron los cuatro canales', () => {
+    const availability = resolvePublicCheckoutAvailability({
+      ticketEnabled: true,
+      paymentChannels: { ticket: allClosed },
+    })
+    expect(availability.ticketEnabled).toBe(false)
+    expect(availability.ticketManualEnabled).toBe(false)
+  })
+
+  it('con un solo canal abierto la venta sigue en pie', () => {
+    const availability = resolvePublicCheckoutAvailability({
+      ticketEnabled: true,
+      paymentChannels: { ticket: { ...allClosed, mercado_pago: true } },
+    })
+    expect(availability.ticketEnabled).toBe(true)
+  })
+
+  it('no arrastra inscripción: ahí un cupón puede reabrir un canal manual', () => {
+    const availability = resolvePublicCheckoutAvailability({
+      registrationEnabled: true,
+      ticketEnabled: true,
+      paymentChannels: { registration: allClosed, ticket: allClosed },
+    })
+    expect(availability.ticketEnabled).toBe(false)
+    expect(availability.registrationEnabled).toBe(true)
+  })
+})

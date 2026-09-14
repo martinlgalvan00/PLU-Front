@@ -24,7 +24,9 @@ describe('navegación pública', () => {
     const primaryKeys = PUBLIC_NAVIGATION.primary.map(({ key }) => key)
 
     expect(new Set(primaryKeys).size).toBe(primaryKeys.length)
-    expect(primaryKeys).toEqual(['members', 'competition', 'results', 'records', 'more'])
+    // La tienda subió al primer nivel: era el único acceso de compra de la
+    // barra y vivía adentro del desplegable de Competencia.
+    expect(primaryKeys).toEqual(['members', 'competition', 'shop', 'results', 'records', 'more'])
   })
 
   it('solo referencia vistas públicas reales', () => {
@@ -43,9 +45,18 @@ describe('navegación pública', () => {
     const competition = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'competition')
     const more = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'more')
 
-    expect(competition.views).toEqual(['events', 'pitbull', 'shop', 'tickets'])
+    expect(competition.views).toEqual(['events', 'pitbull'])
     expect(competition.views).toContain('pitbull')
-    expect(competition.views).toContain('shop')
+
+    // La tienda es un acceso propio y queda marcada en las dos vistas del
+    // recorrido de compra: el catálogo y el checkout del evento.
+    const shop = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'shop')
+    expect(shop.type).toBeUndefined()
+    expect(shop.views).toEqual(['shop', 'tickets'])
+    // Y no queda duplicada adentro del desplegable.
+    expect(competition.groups.flatMap((group) => group.items.map(({ key }) => key))).not.toContain(
+      'shop',
+    )
 
     expect(more.views).toEqual([
       'rulebook',

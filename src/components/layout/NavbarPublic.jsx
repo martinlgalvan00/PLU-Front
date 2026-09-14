@@ -857,7 +857,9 @@ export default function NavbarPublic({
                 return (
                   <NavLink
                     key={item.key}
-                    active={activeView === item.key}
+                    active={
+                      item.views ? item.views.includes(activeView) : activeView === item.key
+                    }
                     hovered={hoveredNav === item.key}
                     onHover={() => setHoveredNav(item.key)}
                     onLeave={() => setHoveredNav(null)}

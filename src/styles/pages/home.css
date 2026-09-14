@@ -5031,6 +5031,36 @@
   transform: scaleX(1);
 }
 
+/* Puerta del espectador. Queda por debajo de la acción principal a propósito:
+   es otro público, no una tercera opción compitiendo con inscribirse. El
+   celeste la separa del oro, que en este bloque ya es la acción del atleta. */
+.pitbull-spotlight__home-cta-tickets {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-brand-celeste, #74acdf);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: 0.01em;
+  min-height: 44px;
+  padding: 0;
+  transition: color var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.pitbull-spotlight__home-cta-tickets:hover,
+.pitbull-spotlight__home-cta-tickets:focus-visible {
+  color: #c7dcf1;
+}
+
+.pitbull-spotlight__home-cta-tickets:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
 .pitbull-spotlight__home-cta-secondary:focus-visible {
   border-radius: 4px;
   outline: 2px solid color-mix(in srgb, var(--plu-gold-500) 55%, transparent);

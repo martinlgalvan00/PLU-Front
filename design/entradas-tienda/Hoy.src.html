@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+@@BASE@@
+    /* Lo que hay hoy, reconstruido desde TicketsPage.jsx / ShopPage.jsx
+       y sus hojas. Ambas portadas ya usan foto + parallax + una capa de
+       "atmósfera" + una marca de agua tipográfica detrás del título. */
+
+    .band-l { padding: 14px 40px; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); border-bottom: 1px solid var(--hairline); }
+
+    .hero { position: relative; min-height: 400px; display: flex; align-items: center; overflow: hidden; }
+    .hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .hero-atmos { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 0%, rgba(31,95,158,.3), transparent 62%), linear-gradient(180deg, rgba(10,11,13,.6), rgba(10,11,13,.92)); }
+    .hero-wm { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); font-size: 132px; font-weight: 700; letter-spacing: -.04em; color: rgba(255,255,255,.05); white-space: nowrap; }
+    .hero-in { position: relative; width: 100%; padding: 0 40px; display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: 36px; align-items: center; }
+    .hero-stripe { position: absolute; left: 40px; top: 0; width: 44px; height: 3px; background: linear-gradient(90deg, var(--celeste-deep), var(--gold)); }
+    .hero-c { display: flex; flex-direction: column; gap: 13px; min-width: 0; }
+    .hero-eyebrow { font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--celeste-soft); }
+    .hero-h1 { font-size: 46px; line-height: 1.06; font-weight: 700; letter-spacing: -.02em; margin: 0; }
+    .hero-lead { margin: 0; font-size: 14.5px; color: var(--secondary); line-height: 1.65; max-width: 48ch; }
+    .hero-act { display: flex; align-items: center; gap: 16px; padding-top: 8px; }
+    .hero-btn { display: inline-flex; align-items: center; gap: 9px; min-height: 46px; padding: 0 22px; border-radius: 999px; background: var(--gold); color: var(--gold-ink); font-size: 13.5px; font-weight: 600; }
+    .hero-link { font-size: 13px; color: var(--celeste-soft); }
+    .hero-pass { border: 1px solid var(--rule); border-radius: 16px; padding: 16px; background: rgba(255,255,255,.04); display: flex; flex-direction: column; gap: 10px; }
+    .hero-pass-t { font-size: 11px; color: var(--muted); }
+    .hero-pass-b { display: flex; align-items: center; gap: 12px; }
+    .hero-pass-qr { width: 52px; height: 52px; border-radius: 8px; background: #f7f6f3; color: #14181f; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+    .hero-pass-n { font-size: 13px; font-weight: 600; }
+
+    .types { padding: 34px 40px; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
+    .type { border: 1px solid var(--hairline); border-radius: 14px; padding: 16px; background: rgba(255,255,255,.03); display: flex; flex-direction: column; gap: 10px; }
+    .type.is-on { border-color: rgba(116,172,223,.4); background: rgba(116,172,223,.08); }
+    .type-h { display: flex; align-items: baseline; gap: 10px; }
+    .type-n { font-size: 14px; font-weight: 600; }
+    .type-p { margin-left: auto; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .type-z { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: rgba(116,172,223,.14); color: var(--celeste-soft); }
+    .type-d { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+
+    .shop-cards { padding: 30px 40px; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
+    .ev { border: 1px solid var(--hairline); border-radius: 16px; padding: 18px; background: rgba(255,255,255,.03); display: flex; flex-direction: column; gap: 12px; }
+    .ev-date { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 12px; background: rgba(255,255,255,.05); }
+    .ev-date strong { font-size: 19px; font-weight: 700; line-height: 1; }
+    .ev-date small { font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+    .ev-t { font-size: 15px; font-weight: 600; }
+    .ev-v { font-size: 12px; color: var(--muted); }
+    .ev-f { display: flex; align-items: baseline; gap: 10px; padding-top: 10px; border-top: 1px solid var(--hairline); }
+    .ev-f strong { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .ev-f small { font-size: 11px; color: var(--muted); }
+    .ev-f .chip { margin-left: auto; }
+
+    .panels { padding: 6px 40px 44px; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+    .panel { border: 1px solid var(--hairline); border-radius: 16px; padding: 22px; background: rgba(255,255,255,.03); display: flex; flex-direction: column; gap: 10px; }
+    .panel-b { align-self: flex-start; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; background: rgba(242,183,5,.14); color: var(--gold); }
+    .panel-t { font-size: 20px; font-weight: 700; letter-spacing: -.015em; }
+    .panel-p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .panel-a { display: flex; gap: 10px; padding-top: 6px; }
+    .panel-cta { display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--rule); font-size: 12.5px; color: var(--secondary); }
+  </style>
+</helmet>
+
+<div class="band-l">Hoy · Entradas del evento</div>
+
+<section class="hero">
+  <img class="hero-img" src="DSC00392-display-800.webp" alt="">
+  <span class="hero-atmos" aria-hidden></span>
+  <span class="hero-wm" aria-hidden>PITBULL CLASSIC</span>
+  <div class="hero-in">
+    <span class="hero-stripe" aria-hidden></span>
+    <div class="hero-c">
+      <span class="hero-eyebrow">Entradas de público</span>
+      <h1 class="hero-h1">Pitbull Classic 2026</h1>
+      <p class="hero-lead">Entradas de público para las dos jornadas. No requiere afiliación: comprás, cargás los datos y recibís el QR.</p>
+      <div class="hero-act">
+        <span class="hero-btn">Comprar entradas</span>
+        <span class="hero-link">Ver cómo es la entrada</span>
+      </div>
+    </div>
+    <div class="hero-pass">
+      <span class="hero-pass-t">Así se ve tu entrada</span>
+      <span class="hero-pass-b">
+        <span class="hero-pass-qr"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+        <span class="hero-pass-n">Tu nombre<br><small style="font-weight:400;color:var(--muted);font-size:11px;">General · dos días</small></span>
+      </span>
+    </div>
+  </div>
+</section>
+
+<div class="types">
+  <div class="type is-on">
+    <span class="type-h"><span class="type-n">General · un día</span><span class="type-p num">$ 12.000</span></span>
+    <span class="type-z"><span class="chip">Puerta general</span></span>
+    <p class="type-d">Acceso a la tribuna la jornada que elijas.</p>
+  </div>
+  <div class="type">
+    <span class="type-h"><span class="type-n">General · dos días</span><span class="type-p num">$ 20.000</span></span>
+    <span class="type-z"><span class="chip">Puerta general</span></span>
+    <p class="type-d">Sábado y domingo completos.</p>
+  </div>
+  <div class="type">
+    <span class="type-h"><span class="type-n">Entrenador · dos días</span><span class="type-p num">$ 26.000</span></span>
+    <span class="type-z"><span class="chip">Puerta general</span><span class="chip">Entrada en calor</span></span>
+    <p class="type-d">Emite 2 credenciales por compra.</p>
+  </div>
+</div>
+
+<div class="band-l">Hoy · Tienda</div>
+
+<section class="hero" style="min-height: 300px;">
+  <img class="hero-img" src="DSC00286-display-480.webp" alt="">
+  <span class="hero-atmos" aria-hidden></span>
+  <span class="hero-wm" style="font-size: 108px;" aria-hidden>TIENDA</span>
+  <div class="hero-in" style="grid-template-columns: minmax(0,1fr);">
+    <span class="hero-stripe" aria-hidden></span>
+    <div class="hero-c">
+      <span class="hero-eyebrow">PLU ARG · Temporada 26/27</span>
+      <h1 class="hero-h1" style="font-size: 38px;">Tienda</h1>
+      <p class="hero-lead">Entradas, merch y cursos. Sin afiliación para comprar entradas.</p>
+    </div>
+  </div>
+</section>
+
+<div class="shop-cards">
+  <article class="ev">
+    <span class="ev-date"><strong class="num">14</strong><small>Nov</small></span>
+    <span class="ev-t">Pitbull Classic 2026</span>
+    <span class="ev-v">Club Atlético Fénix, Pilar</span>
+    <span class="ev-f"><small>Desde</small><strong class="num">$ 12.000</strong><span class="chip">Disponibles</span></span>
+  </article>
+  <article class="ev">
+    <span class="ev-date"><strong class="num">07</strong><small>Mar</small></span>
+    <span class="ev-t">Nacional PLU 2027</span>
+    <span class="ev-v">Estadio Obras, CABA</span>
+    <span class="ev-f"><small>Desde</small><strong class="num">$ 15.000</strong><span class="chip">Disponibles</span></span>
+  </article>
+  <article class="ev">
+    <span class="ev-date"><strong class="num">23</strong><small>May</small></span>
+    <span class="ev-t">Copa Litoral</span>
+    <span class="ev-v">Club Regatas, Santa Fe</span>
+    <span class="ev-f"><small>Desde</small><strong class="num">$ 10.000</strong><span class="chip">Próximamente</span></span>
+  </article>
+</div>
+
+<div class="panels">
+  <div class="panel">
+    <span class="panel-b">Próximamente</span>
+    <span class="panel-t">Merch oficial</span>
+    <p class="panel-p">La línea oficial se publica con la temporada: remeras, accesorios y piezas de meet con la identidad de cancha. Sin fecha inventada de apertura.</p>
+    <span class="panel-a"><span class="panel-cta">Ver calendario</span><span class="panel-cta">Consultar merch</span></span>
+  </div>
+  <div class="panel">
+    <span class="panel-b">Próximamente</span>
+    <span class="panel-t">Cursos y formación</span>
+    <p class="panel-p">Formación oficial para jueces, coaches y staff operativo. El catálogo abre cuando esté listo.</p>
+    <span class="panel-a"><span class="panel-cta">Ver calendario</span></span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

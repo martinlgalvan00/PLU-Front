@@ -206,3 +206,56 @@ describe('ticketPricingFromEvent — subcategorías de entrada', () => {
     expect(type.credentialCount).toBe(1)
   })
 })
+
+/**
+ * Ventana propia del tipo y precio propio en USD. El filtro vive en
+ * `ticketPricingFromEvent` y no en la pantalla a propósito: `ticketService`
+ * cotiza sobre el mismo catálogo que se muestra, así que un tipo que no se
+ * ofrece tampoco puede entrar en un total.
+ */
+describe('ticketPricingFromEvent — ventana propia y precio Wise por tipo', () => {
+  const NOW = new Date('2026-03-10T12:00:00')
+
+  function eventWith(ticketTypes) {
+    return { pricing: { ticketsEnabled: true, ticketAddons: [] }, eventDays: [], ticketTypes }
+  }
+
+  it('deja fuera el tipo que todavía no abrió y el que ya cerró', () => {
+    const pricing = ticketPricingFromEvent(
+      eventWith([
+        { id: 'preventa', name: 'Preventa', price: 15000, salesClosesAt: '2026-03-01T23:59' },
+        { id: 'general', name: 'General', price: 20000 },
+        { id: 'puerta', name: 'En puerta', price: 25000, salesOpensAt: '2026-04-01T10:00' },
+      ]),
+      NOW,
+    )
+    expect(pricing.ticketTypes.map((type) => type.id)).toEqual(['general'])
+  })
+
+  it('una ventana vigente no saca nada del catálogo', () => {
+    const pricing = ticketPricingFromEvent(
+      eventWith([
+        {
+          id: 'general',
+          name: 'General',
+          price: 20000,
+          salesOpensAt: '2026-03-01T00:00',
+          salesClosesAt: '2026-03-20T23:59',
+        },
+      ]),
+      NOW,
+    )
+    expect(pricing.ticketTypes).toHaveLength(1)
+  })
+
+  it('el precio en USD viaja al checkout; sin cargar queda en null y se convierte', () => {
+    const pricing = ticketPricingFromEvent(
+      eventWith([
+        { id: 'general', name: 'General', price: 20000, wisePrice: 15 },
+        { id: 'coach', name: 'Entrenador', price: 40000 },
+      ]),
+      NOW,
+    )
+    expect(pricing.ticketTypes.map((type) => type.wisePrice)).toEqual([15, null])
+  })
+})

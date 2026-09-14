@@ -102,6 +102,11 @@ export function buildAdminEventDraft(event) {
     eventDays: (event.eventDays ?? []).map((day) => ({ ...day })),
     ticketTypes: (event.ticketTypes ?? []).map((type) => ({
       ...type,
+      // Mismo tratamiento que las fechas del evento: los `datetime-local` del
+      // editor no entienden ISO con zona, y sin esto la ventana del tipo se
+      // veía vacía y se borraba al primer guardado.
+      salesOpensAt: toDateTimeLocal(type.salesOpensAt),
+      salesClosesAt: toDateTimeLocal(type.salesClosesAt),
       dayIndexes: [...(type.dayIndexes ?? [])],
       includedAddonIds: [...(type.includedAddonIds ?? [])],
       // Copia profunda: el editor muta credenciales por índice, y compartir la
@@ -562,41 +567,6 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   mercadoPagoProfileId: null,
 }
 
-/**
- * Métricas de entradas (espectadores) para un evento en el panel admin.
- */
-export function buildEventTicketStats(tickets, eventSlug) {
-  const eventTickets = tickets.filter((ticket) => ticket.eventSlug === eventSlug)
-  const paid = eventTickets.filter(
-    (ticket) => ticket.status === 'pagada' || ticket.status === 'usada',
-  )
-  const pending = eventTickets.filter((ticket) => ticket.status === 'pendiente_pago')
-  const checkedIn = eventTickets.filter((ticket) => Boolean(ticket.checkedInAt))
-  const revenue = paid.reduce((sum, ticket) => sum + (ticket.unitPrice ?? 0), 0)
-  const byTicketType = {}
-
-  for (const ticket of paid) {
-    const key = ticket.ticketTypeId ?? 'sin-tipo'
-    if (!byTicketType[key]) {
-      byTicketType[key] = {
-        ticketTypeId: ticket.ticketTypeId,
-        name: ticket.ticketTypeName ?? key,
-        count: 0,
-      }
-    }
-    byTicketType[key].count += 1
-  }
-
-  return {
-    total: eventTickets.length,
-    sold: paid.length,
-    pending: pending.length,
-    checkedIn: checkedIn.length,
-    revenue,
-    byTicketType: Object.values(byTicketType),
-  }
-}
-
 /** Reconstruye eventDays/ticketTypes desde las filas joineadas de Supabase. */
 function mapSupabaseTicketCatalog(row) {
   const eventDays = (row.eventDays ?? [])
@@ -610,6 +580,12 @@ function mapSupabaseTicketCatalog(row) {
       id: type.id,
       name: type.name,
       price: type.price,
+      // USD propio para Wise y ventana propia de venta. Null en cualquiera de
+      // los tres = hereda lo del evento (conversión automática / ventana del
+      // evento), que es como se comportaba todo el catálogo hasta acá.
+      wisePrice: type.wise_price ?? null,
+      salesOpensAt: type.sales_opens_at ?? null,
+      salesClosesAt: type.sales_closes_at ?? null,
       quota: type.quota,
       sortOrder: type.sort_order,
       active: type.active,

@@ -3,6 +3,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { hasEventScopeAccess } from '../../src/lib/permissions.js'
 import { HttpError } from '../lib/errors.js'
+import { isMissingSchemaColumn } from '../lib/supabaseRpc.js'
 import {
   assertPaidCheckoutAvailable,
   resolvePaidCheckoutOverride,
@@ -21,44 +22,85 @@ async function resolveScopedRegistrationOpensAt(env, supabase, eventSlug) {
   return resolveEventRegistrationOpensAt(supabase, { eventSlug })
 }
 
-async function resolveTicketOrderArsTotal(supabase, { eventSlug, attendees }) {
+/**
+ * Cotiza la orden en USD para Wise.
+ *
+ * El monto sale de los precios cargados en el panel (`ticket_types.wise_price`
+ * y el `wisePrice` de cada beneficio) cuando están todos; si falta alguno cae a
+ * la conversión por dólar blue sobre el total en pesos, que es lo que hacía
+ * antes. La regla vive en `shared/ticketWisePricing.js` porque la pantalla de
+ * compra arma el mismo número para mostrarlo antes de pagar.
+ */
+async function resolveTicketOrderWiseQuote(supabase, { eventSlug, attendees }, env, eventRow = null) {
   if (!supabase) return null
-  const { data: event, error: eventError } = await supabase
-    .from('events')
-    .select('id,rules')
-    .eq('slug', eventSlug)
-    .maybeSingle()
-  if (eventError) throw new HttpError(500, 'No se pudo cotizar las entradas para Wise.')
+
+  // El id del evento ya lo trae el perfil de cobro que la ruta leyó un momento
+  // antes: repetir ese `select` era un viaje entero para volver a saber lo
+  // mismo. Con el id en mano, las reglas y los tipos se piden en paralelo.
+  const knownId = eventRow?.id ?? null
+  const rulesQuery = knownId
+    ? supabase.from('events').select('id,rules').eq('id', knownId).maybeSingle()
+    : supabase.from('events').select('id,rules').eq('slug', eventSlug).maybeSingle()
+
+  const typesQuery = knownId ? readActiveTicketTypes(supabase, knownId) : null
+
+  const [eventResult, typesResult] = await Promise.all([
+    rulesQuery,
+    // Sin id previo no se puede filtrar todavía: queda para después del primer
+    // resultado, que es el caso de los dobles de test, no el de producción.
+    typesQuery ?? Promise.resolve(null),
+  ])
+
+  if (eventResult.error) throw new HttpError(500, 'No se pudo cotizar las entradas para Wise.')
+  const event = eventResult.data
   if (!event) throw new HttpError(404, 'Evento no encontrado.')
 
-  const { data: ticketTypes, error: typeError } = await supabase
-    .from('ticket_types')
-    .select('id,price')
-    .eq('event_id', event.id)
-    .eq('active', true)
-  if (typeError) throw new HttpError(500, 'No se pudo cotizar las entradas para Wise.')
+  const types = typesResult ?? (await readActiveTicketTypes(supabase, event.id))
+  if (types.error) throw new HttpError(500, 'No se pudo cotizar las entradas para Wise.')
 
-  const { data: addonCatalog, error: addonError } = await supabase.rpc(
-    'event_ticket_addons_catalog',
-    { p_rules: event.rules ?? {} },
-  )
-  if (addonError) throw new HttpError(500, 'No se pudo cotizar los beneficios para Wise.')
-
-  const pricesByType = new Map((ticketTypes ?? []).map((type) => [type.id, Number(type.price) || 0]))
-  const pricesByAddon = new Map(
-    (Array.isArray(addonCatalog) ? addonCatalog : [])
-      .filter((addon) => addon?.enabled !== false && addon?.id)
-      .map((addon) => [addon.id, Number(addon.price) || 0]),
-  )
-  return attendees.reduce((sum, attendee) => {
-    const ticketPrice = pricesByType.get(attendee.ticketTypeId)
-    if (ticketPrice == null) throw new HttpError(400, 'Tipo de entrada invalido.')
-    const addonsTotal = (attendee.addonIds ?? []).reduce(
-      (addonSum, addonId) => addonSum + (pricesByAddon.get(addonId) ?? 0),
-      0,
+  try {
+    return resolveTicketOrderWisePricing(
+      attendees,
+      {
+        ticketTypes: (types.data ?? []).map((type) => ({
+          id: type.id,
+          name: type.name,
+          price: Number(type.price) || 0,
+          wisePrice: type.wise_price,
+        })),
+        addons: ticketAddonCatalog(event.rules),
+      },
+      env,
     )
-    return sum + ticketPrice + addonsTotal
-  }, 0)
+  } catch {
+    throw new HttpError(400, 'Tipo de entrada invalido.')
+  }
+}
+
+function readActiveTicketTypes(supabase, eventId) {
+  const run = (columns) =>
+    supabase.from('ticket_types').select(columns).eq('event_id', eventId).eq('active', true)
+
+  return run('id,name,price,wise_price').then((result) => {
+    if (!result.error || !isMissingSchemaColumn(result.error)) return result
+    return run('id,name,price')
+  })
+}
+
+/**
+ * Catálogo de beneficios del evento.
+ *
+ * `event_ticket_addons_catalog(rules)` es, literalmente, `rules -> 'ticketAddons'`:
+ * una función pura sobre un JSON que el servidor ya tiene en la mano. Llamarla
+ * gastaba un viaje a la base para que Postgres leyera una clave de un objeto,
+ * en el camino crítico de cada compra por Wise. La misma lectura acá no cambia
+ * ninguna semántica —se conserva el filtro de habilitados con id— y ahorra el
+ * viaje.
+ */
+function ticketAddonCatalog(rules) {
+  const addons = rules?.ticketAddons
+  if (!Array.isArray(addons)) return []
+  return addons.filter((addon) => addon?.enabled !== false && addon?.id)
 }
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
@@ -85,12 +127,15 @@ import {
 } from '../services/platformFeatureToggleService.js'
 import {
   applyEventPaymentChannelOverrides,
+  applyManualTicketDeadline,
   assertEventPaymentChannelEnabled,
+  assertManualTicketDeadline,
   resolveBankTransferDetails,
 } from '../modules/payments/eventPaymentProfile.js'
 import { createSupabasePaymentProfileRepository } from '../modules/payments/supabasePaymentProfileRepository.js'
 import { resolveMercadoPagoPublicKeyForProfileId } from '../modules/payments/mercadoPagoProfileRuntime.js'
 import { wisePriceFor } from '../modules/pricing/checkoutPricePolicy.js'
+import { resolveTicketOrderWisePricing } from '../../shared/ticketWisePricing.js'
 
 const attendeeSchema = z.object({
   fullName: z.string().trim().min(3),
@@ -115,7 +160,7 @@ export const createOrderSchema = z.object({
     })
     .optional(),
   provider: z.enum(['mercado_pago', 'manual']).default('mercado_pago'),
-  manualPaymentChannel: z.enum(['bank_transfer', 'wise_transfer']).optional(),
+  manualPaymentChannel: z.enum(['bank_transfer', 'cash_pitbull', 'wise_transfer']).optional(),
   idempotencyKey: z
     .string()
     .uuid()
@@ -199,6 +244,50 @@ export function createTicketRoutes({
       return { status: 'failed', created: false, emailLog: error?.emailLog ?? null }
     }
   }
+  /**
+   * "Tu entrada ya está paga". Se manda una sola vez por acreditación: la clave
+   * de idempotencia lleva el `updated_at` de la orden, así que reaprobar una
+   * orden ya aprobada (la RPC devuelve `duplicate`) no reenvía nada.
+   *
+   * El mail no linkea a una página de la entrada porque no existe: el QR vive
+   * en la pestaña donde se compró. Lo que sí sirve en la puerta es el documento
+   * de cada asistente, que el puesto de control puede buscar en la lista del
+   * evento — por eso el dato que viaja es ese y no un link que no llevaría a
+   * ningún lado.
+   */
+  async function sendTicketConfirmation(result) {
+    const order = result?.order
+    if (!order || result?.duplicate) return
+    if (order.status !== 'aprobado' || !order.buyer_email) return
+
+    const event = await athleteRepo()
+      .findEventSummary(order.event_id)
+      .catch(() => null)
+
+    // Una compra de entrenador emite dos credenciales y es UNA entrada: se
+    // cuentan las primarias, igual que el cupo.
+    const tickets = Array.isArray(result.tickets) ? result.tickets : []
+    const quantity =
+      tickets.filter((ticket) => ticket.is_primary_credential !== false).length || tickets.length
+
+    await sendBestEffort('ticket_confirmation', {
+      to: order.buyer_email,
+      toName: order.buyer_name,
+      entityType: 'ticket_order',
+      entityId: order.id,
+      idempotencyKey: `email:ticket-confirmation:${order.id}:${order.updated_at}`,
+      params: {
+        name: order.buyer_name,
+        eventTitle: event?.title ?? 'PLU ARG',
+        eventDate: event?.starts_at ?? null,
+        venue: event?.venue ?? null,
+        quantity: String(quantity),
+        reference: order.reference,
+        ticketUrl: event?.slug ? `${appUrl}${buildEventPagePath(event.slug)}` : appUrl,
+      },
+    })
+  }
+
   function parseOrderId(req) {
     const parsed = z.string().uuid().safeParse(req.params.orderId)
     if (!parsed.success) throw new HttpError(400, 'Orden invalida.')
@@ -249,8 +338,9 @@ export function createTicketRoutes({
         const toggles = await platformSettingsRepo().get()
         assertCheckoutEnabled(toggles)
         assertTicketCheckoutEnabled(toggles, env)
-        // Las entradas no tienen efectivo en Pitbull: `manual` es
-        // transferencia o Wise, según el canal que haya elegido el comprador.
+        // `manual` cubre los tres canales que se acreditan a mano:
+        // transferencia, efectivo en Pitbull y Wise. Cuál de ellos lo decide el
+        // comprador y lo autoriza la matriz plataforma + override del evento.
         const ticketChannel =
           req.validatedBody.provider === 'manual'
             ? (req.validatedBody.manualPaymentChannel ?? 'bank_transfer')
@@ -262,13 +352,32 @@ export function createTicketRoutes({
         assertEventPaymentChannelEnabled(toggles, 'ticket', ticketChannel, {
           eventOverrides: eventPricing?.payment_channel_overrides ?? null,
         })
-        const ticketArsTotal =
+        // Y contra el calendario: una transferencia vendida sobre la fecha no
+        // llega a ser un QR antes de que abra la puerta.
+        assertManualTicketDeadline(ticketChannel, eventPricing?.starts_at ?? null)
+        const ticketWiseQuote =
           ticketChannel === 'wise_transfer'
-            ? await resolveTicketOrderArsTotal(getSupabaseAdmin?.(), req.validatedBody)
+            ? await resolveTicketOrderWiseQuote(
+                getSupabaseAdmin?.(),
+                req.validatedBody,
+                env,
+                eventPricing,
+              )
             : null
+        // `wisePriceFor` sigue siendo el que valida y el que aplica el override
+        // de entorno; lo que cambió es de dónde sale el número que recibe. Con
+        // precios cargados en el panel entra ya resuelto (`configuredUsd`) y la
+        // conversión no se vuelve a usar.
         const ticketWisePrice =
           ticketChannel === 'wise_transfer'
-            ? wisePriceFor({ concept: 'ticket', arsAmount: ticketArsTotal })
+            ? wisePriceFor(
+                {
+                  concept: 'ticket',
+                  arsAmount: ticketWiseQuote?.arsTotal ?? null,
+                  configuredUsd: ticketWiseQuote?.source === 'configured' ? ticketWiseQuote.amount : null,
+                },
+                env,
+              )
             : null
         const created = await repo().createOrder({
           ...req.validatedBody,
@@ -361,19 +470,30 @@ export function createTicketRoutes({
         loadEventPaymentProfile(eventSlug),
       ])
       const platformAvailability = resolvePublicCheckoutAvailability(toggles, env)
-      const scoped = applyEventPaymentChannelOverrides(
-        platformAvailability,
-        eventPricing?.payment_channel_overrides,
+      const scoped = applyManualTicketDeadline(
+        applyEventPaymentChannelOverrides(
+          platformAvailability,
+          eventPricing?.payment_channel_overrides,
+        ),
+        eventPricing?.starts_at ?? null,
       )
-      let bankProfile = null
-      if (eventPricing?.bank_transfer_profile_id) {
-        const supabase = getSupabaseAdmin?.()
-        if (supabase) {
-          bankProfile = await createSupabasePaymentProfileRepository(supabase)
-            .findById(eventPricing.bank_transfer_profile_id)
-            .catch(() => null)
-        }
-      }
+      // Los dos perfiles de cobro son independientes entre sí: el alias del
+      // banco no condiciona la clave pública de Mercado Pago. Encadenarlos
+      // sumaba las dos latencias en la respuesta que la pantalla de entradas
+      // espera para dibujarse.
+      const supabase = getSupabaseAdmin?.()
+      const [bankProfile, mercadoPagoPublicKey] = await Promise.all([
+        eventPricing?.bank_transfer_profile_id && supabase
+          ? createSupabasePaymentProfileRepository(supabase)
+              .findById(eventPricing.bank_transfer_profile_id)
+              .catch(() => null)
+          : null,
+        resolveMercadoPagoPublicKeyForProfileId(
+          supabase,
+          eventPricing?.mercado_pago_profile_id,
+          env,
+        ),
+      ])
       // Ventana corta: el stock que se muestra acá decide una compra. La
       // reserva real se valida igual al crear la orden, así que 10 s de atraso
       // no habilitan una venta de más -- como mucho un 409 al confirmar.
@@ -387,11 +507,7 @@ export function createTicketRoutes({
           bankTransfer: resolveBankTransferDetails(eventPricing, env, bankProfile),
           bankTransferProfileId: eventPricing?.bank_transfer_profile_id ?? null,
           mercadoPagoProfileId: eventPricing?.mercado_pago_profile_id ?? null,
-          mercadoPagoPublicKey: await resolveMercadoPagoPublicKeyForProfileId(
-            getSupabaseAdmin?.(),
-            eventPricing?.mercado_pago_profile_id,
-            env,
-          ),
+          mercadoPagoPublicKey,
         },
       })
     } catch (error) {
@@ -418,7 +534,20 @@ export function createTicketRoutes({
     async (req, res, next) => {
       try {
         assertValidationEnabled(await platformSettingsRepo().get(), 'ticket')
-        res.json(await repo().approve(parseOrderId(req), actor(req)))
+        const result = await repo().approve(parseOrderId(req), actor(req))
+        // El comprador es anónimo: no tiene cuenta, y la orden vive en el
+        // `sessionStorage` de la pestaña en la que compró. Si la cerró —y entre
+        // la transferencia y la acreditación pueden pasar 48 horas, así que la
+        // cerró— este mail es la única forma de que se entere de que su entrada
+        // ya vale. El rechazo ya avisaba; la aprobación no, que era el lado que
+        // más importa.
+        await sendTicketConfirmation(result).catch((error) =>
+          logger.warn('email.ticket_confirmation_failed', {
+            orderId: result?.order?.id,
+            err: error,
+          }),
+        )
+        res.json(result)
       } catch (error) {
         next(error)
       }

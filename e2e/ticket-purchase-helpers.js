@@ -270,8 +270,8 @@ export async function purchaseTickets(
 /**
  * Selecciona un tipo de entrada para un asistente.
  *
- * En cantidad 1 (editorial) son radios de `TicketTypeOptions`. En lote son
- * chips `aria-pressed` dentro de la fila.
+ * En cantidad 1 (editorial) son radios de `TicketTypeOptions`. En lote es un
+ * `<select>` por fila.
  */
 export async function selectTicketType(page, index, typeName) {
   const form = page.locator('#checkout form.ticket-purchase')
@@ -283,12 +283,18 @@ export async function selectTicketType(page, index, typeName) {
     return
   }
 
-  const row = page
-    .locator('.ticket-purchase__attendee-row, .ticket-purchase__attendees-batch-row')
-    .nth(index)
-  const typeButton = row.getByRole('button', { name: new RegExp(typeName, 'i') })
-  await typeButton.click()
-  await expect(typeButton).toHaveAttribute('aria-pressed', 'true')
+  const select = form.locator(`select[name="attendee-${index}-ticketTypeId"]`)
+  await expect(select).toBeVisible()
+  const optionValue = await select.locator('option').evaluateAll((options, name) => {
+    const needle = String(name).toLowerCase()
+    const match = options.find((option) => (option.textContent ?? '').toLowerCase().includes(needle))
+    return match?.value ?? null
+  }, typeName)
+  if (!optionValue) {
+    throw new Error(`tipo "${typeName}" no está en el select de la entrada ${index + 1}`)
+  }
+  await select.selectOption(optionValue)
+  await expect(select).toHaveValue(optionValue)
 }
 
 /**

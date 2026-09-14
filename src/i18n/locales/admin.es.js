@@ -2516,6 +2516,7 @@ export default {
     proof: 'Comprobante',
     proofReceived: 'Recibido',
     proofMissing: 'Sin adjuntar',
+    proofNotApplicable: 'Cobro en caja',
     uploadedAt: 'Subido',
     viewProof: 'Ver comprobante',
     unknownBuyer: 'Comprador',
@@ -2854,6 +2855,36 @@ export default {
     paymentChannelBankTransfer: 'Transferencia',
     paymentChannelCashPitbull: 'Efectivo Pitbull',
     paymentChannelWise: 'Wise',
+    ticketSalesState: {
+      open: 'La venta está abierta',
+      closed: 'La venta está cerrada',
+      openDetail:
+        '{{types}} tipo(s) a la venta ahora · se cobra con {{channels}}',
+      noChannelsShort: 'ningún medio',
+      scope: {
+        environment: 'Entorno',
+        platform: 'Finanzas',
+        event: 'Este evento',
+        catalog: 'Catálogo',
+      },
+      blocker: {
+        environmentHold:
+          'La variable {{detail}} está frenando la venta por encima del panel. Hasta sacarla, ningún interruptor de acá tiene efecto.',
+        platformCheckout: 'Los cobros están pausados para toda la plataforma.',
+        platformTicket: 'La venta de entradas está pausada para toda la plataforma.',
+        noChannel:
+          'No queda ningún medio de pago abierto para entradas. Abrí al menos uno en la matriz de plataforma o en el bloque de cobro de este evento.',
+        eventDisabled: 'El interruptor de entradas de este evento está apagado.',
+        unpublished: 'El evento todavía no está publicado.',
+        eventStatus: 'El estado del evento ({{detail}}) no admite ventas.',
+        windowUpcoming: 'La ventana de venta del evento todavía no abrió.',
+        windowClosed: 'La ventana de venta del evento ya cerró.',
+        noDays: 'El evento no tiene jornadas cargadas.',
+        noSellableType: 'No hay ningún tipo de entrada activo con precio.',
+        noTypeInWindow:
+          'Los tipos cargados están fuera de su ventana propia: ninguno se puede comprar ahora.',
+      },
+    },
     paymentChannelMatrixLabel: 'Medios de pago por concepto',
     paymentChannelMatrixHint:
       'Se define por separado: lo que cerrás para entradas no toca la inscripción de atletas.',
@@ -2904,6 +2935,8 @@ export default {
     ticketAddonLabel: 'Nombre del beneficio',
     ticketAddonLabelPlaceholder: 'Ej. Bife + agua',
     ticketAddonPrice: 'Precio extra (ARS)',
+    ticketAddonWisePrice: 'Precio extra (USD)',
+    ticketAddonWisePricePlaceholder: 'Se calcula',
     ticketAddonDescription: 'Descripción corta',
     ticketAddonDescriptionPlaceholder: 'Combo gastronómico en el venue',
     ticketAddonRedeem: 'Texto de canje',
@@ -3043,12 +3076,6 @@ export default {
     manageTicketsLabel: 'Configurar entradas · {{count}} tipos activos',
     manageRegistrations: 'Inscripciones',
     managePayments: 'Cobros',
-    ticketInsightsTitle: 'Entradas · espectadores',
-    ticketSold: 'Vendidas',
-    ticketPending: '{{count}} pendientes',
-    ticketRevenue: 'Recaudación',
-    ticketCheckedIn: 'Ingresos',
-    ticketBreakdownAria: 'Desglose por tipo de pase',
     supabase: {
       sectionTitle: 'Calendario, directo y cupos',
       sectionLead:
@@ -3082,10 +3109,17 @@ export default {
       ticketTypeName: 'Nombre',
       ticketTypeNamePlaceholder: 'Ej. Día 1, Pase completo + choripán',
       ticketTypePrice: 'Precio',
+      ticketTypeWisePrice: 'Precio Wise',
+      ticketTypeWisePricePlaceholder: 'Se calcula',
       ticketTypeQuota: 'Máximo a vender',
       ticketTypeQuotaHint:
         'Tope de ventas para este tipo de entrada. Vacío = sin tope propio (solo aplica el cupo total del evento).',
       ticketTypeActive: 'A la venta',
+      ticketTypeWindowLabel: 'Ventana propia de venta',
+      ticketTypeSalesOpensAt: 'Abre',
+      ticketTypeSalesClosesAt: 'Cierra',
+      ticketTypeWindowHint:
+        'Vacías = vale la ventana del evento. Cargadas, sólo cierran antes: sirven para que una preventa se apague sola sin tocar el resto del catálogo.',
       ticketTypeDaysLabel: 'Días de acceso',
       ticketTypeAddonsLabel: 'Beneficios incluidos sin cargo (pack)',
       ticketTypeAddonsEmpty:
@@ -3270,9 +3304,12 @@ export default {
       ticketTypeAddonsMax: 'Un tipo de entrada no puede incluir más de 30 beneficios.',
       ticketTypeDayMissing: 'Este tipo de entrada referencia una jornada que ya no existe.',
       ticketTypeAddonMissing: 'Este tipo de entrada referencia un beneficio que ya no existe.',
+      ticketTypeSaleWindowInvalid: 'La venta de este tipo cierra antes de abrir.',
+      wisePriceInvalid: 'Ingresá un precio en USD válido (entero, entre 1 y 100.000).',
       ticketTypesMax: 'Podés configurar hasta 50 tipos de entrada.',
       ticketsNeedDays: 'Para vender entradas hace falta al menos un día del evento.',
       ticketsNeedType: 'Para vender entradas hace falta al menos un tipo activo con precio.',
+      ticketsNoChannel: 'Cerraste todos los medios de cobro de entradas. Con eso la venta no se puede publicar.',
       weighInLabelRequired: 'Cada franja de pesaje necesita un nombre.',
       weighInLabelMax: 'El nombre de la franja de pesaje es demasiado largo.',
       weighInNoteMax: 'La nota del pesaje es demasiado larga.',

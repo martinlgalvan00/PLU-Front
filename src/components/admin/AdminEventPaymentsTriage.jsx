@@ -111,6 +111,7 @@ export default function AdminEventPaymentsTriage({
       mode,
       type: 'ticket',
       orderId: ticket.orderId,
+      cashAtPitbull: ticket.manualPaymentChannel === 'cash_pitbull',
       hasProof: Boolean(ticket.paymentProofPath),
       paymentProofPath: ticket.paymentProofPath ?? null,
       subject: row.subject,
@@ -247,7 +248,7 @@ export default function AdminEventPaymentsTriage({
                           {t('admin.eventPayments.proofMissing')}
                         </span>
                       )}
-                      {canEdit && row.hasProof ? (
+                      {canEdit && (row.hasProof || row.cashAtPitbull) ? (
                         <AdminIconButton
                           icon={BadgeCheck}
                           label={t('admin.actions.validate')}

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { Fragment, useEffect, useMemo, useRef } from 'react'
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
@@ -14,7 +15,6 @@ import { AdminEventLivePreview } from './AdminEventEditor.jsx'
 import AdminEventDashboard from './AdminEventDashboard.jsx'
 import AdminEventStateControl from './AdminEventStateControl.jsx'
 import AdminEventTicketAddonReport from './AdminEventTicketAddonReport.jsx'
-import AdminEventTicketInsights from './AdminEventTicketInsights.jsx'
 import StatusPill from '../ui/StatusPill.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatDayMonth, money } from '../../lib/format.js'
@@ -86,7 +86,7 @@ export function buildEventLinks(row, t) {
  *    handler retornando temprano en la pestaña activa: el editor de Datos no
  *    se podía abrir nunca.
  * 3. Inscripciones y Check-in NO son pestañas: son otras secciones del panel.
- *    Viven como accesos en el rail, no como superficies del evento.
+ *    Viven como accesos en el Resumen, no como superficies del evento.
  *
  * Ya no es un diálogo: sin `role="dialog"`, sin trap de foco, sin bloqueo del
  * scroll del body y sin cerrar con Escape (perder cambios sin guardar por
@@ -166,15 +166,17 @@ export default function AdminEventWorkspace({
     if (canEdit) {
       list.push({
         id: 'sales',
-        // Esta pestaña abre los cuatro capítulos (Cupo, Precios, Entradas,
-        // Cobro): llamarla "Entradas" -- como el capítulo de tickets ahí
-        // adentro -- hacía que el mismo nombre significara dos cosas
-        // distintas según el nivel, y era la confusión real que reportaban
-        // los operadores entre "entrada" (ticket) e "inscripción" (cupo).
+        // Esta pestaña agrupa los cuatro capítulos (Cupo, Precios, Entradas,
+        // Cobro) en un submenú del rail: llamarla "Entradas" -- como el
+        // capítulo de tickets ahí adentro -- hacía que el mismo nombre
+        // significara dos cosas distintas según el nivel, y era la confusión
+        // real que reportaban los operadores entre "entrada" (ticket) e
+        // "inscripción" (cupo).
         label: t('admin.eventConsole.editSales'),
         // Mismo criterio que el checklist de "listo para publicar": sin ningún
         // tipo de entrada activo, el evento no puede vender.
         hasError: activeTicketTypeCount === 0,
+        hasSubnav: true,
       })
     }
     if (canManageUsers && securitySection) {
@@ -233,9 +235,9 @@ export default function AdminEventWorkspace({
   }
 
   /**
-   * Capítulos de Ventas. Los dibuja el workspace y no el editor: en modo
-   * acordeón el editor no renderiza su propia navegación -- la dictaba la
-   * consola, y perderla dejaba los cuatro capítulos inalcanzables.
+   * Capítulos de Ventas. En desktop los dibuja el submenú del rail; en mobile
+   * el rail es una tira horizontal y esta barra in-flow sigue siendo el
+   * selector. El editor en acordeón no renderiza su propia navegación.
    */
   const salesChapters = [
     {
@@ -252,6 +254,7 @@ export default function AdminEventWorkspace({
       id: 'tickets',
       label: t('admin.eventEditor.salesChapterTickets'),
       value: t('admin.eventConsole.ticketsValue', { count: activeTicketTypeCount }),
+      hasError: activeTicketTypeCount === 0,
     },
     {
       id: 'payment',
@@ -418,23 +421,15 @@ export default function AdminEventWorkspace({
     }
     if (activeTab === 'sales') {
       return (
-        <div className="admin-event-workspace__split">
-          <div className="admin-event-workspace__main-col">
-            {renderChapters(
-              salesChapters,
-              'sales',
-              'cupo',
-              t('admin.eventEditor.salesChapterNavAria'),
-            )}
-            {editor}
-          </div>
-          <aside className="admin-event-workspace__rail">
-            {/* `summarySource`, no `event`: si el operador acaba de prender el
-                toggle de venta y todavía no guardó, el rail no puede seguir
-                diciendo "deshabilitada" contra el toggle que tiene enfrente. */}
-            <AdminEventTicketInsights event={summarySource} tickets={tickets} />
-            <AdminEventTicketAddonReport event={event} tickets={tickets} />
-          </aside>
+        <div className="admin-event-workspace__main-col">
+          {renderChapters(
+            salesChapters,
+            'sales',
+            'cupo',
+            t('admin.eventEditor.salesChapterNavAria'),
+          )}
+          {editor}
+          <AdminEventTicketAddonReport event={event} tickets={tickets} />
         </div>
       )
     }
@@ -500,39 +495,44 @@ export default function AdminEventWorkspace({
               onSelectSection={(tabId) => handleSelectTab(tabId)} 
             />
           </div>
-          <aside className="admin-event-workspace__rail">
+          <aside
+            className="admin-event-workspace__rail"
+            aria-label={t('admin.sections.events.publicPreviewLabel')}
+          >
             {occupancyCard}
             {gotoCard}
+            <AdminEventLivePreview
+              embedded
+              draft={previewDraft ?? event}
+              live={Boolean(previewDraft)}
+              showReadiness
+              sourceEvent={event}
+            />
           </aside>
         </div>
       )
     }
-    // basics
+    // Datos: el formulario a ancho completo. Ocupación, operación y la ficha
+    // pública viven en el Resumen; acá solo se edita título, sede y estado.
     return (
-      <div className="admin-event-workspace__split">
-        <div className="admin-event-workspace__main-col">
-          {onSetEventState ? (
-            <AdminEventStateControl
-              canEdit={canEdit}
-              deferSave
-              event={event}
-              onDirtyChange={(dirty) => {
-                stateDirtyRef.current = dirty
-              }}
-              onPendingChange={onStatePendingChange}
-              onRegisterDiscard={onRegisterStateDiscard}
-              onEditWindow={
-                onSelectChapter ? () => onSelectChapter(event, 'sales', 'cupo') : undefined
-              }
-              onSetState={onSetEventState}
-            />
-          ) : null}
-          {editor}
-        </div>
-        <aside className="admin-event-workspace__rail">
-          {occupancyCard}
-          {gotoCard}
-        </aside>
+      <div className="admin-event-workspace__main-col">
+        {onSetEventState ? (
+          <AdminEventStateControl
+            canEdit={canEdit}
+            deferSave
+            event={event}
+            onDirtyChange={(dirty) => {
+              stateDirtyRef.current = dirty
+            }}
+            onPendingChange={onStatePendingChange}
+            onRegisterDiscard={onRegisterStateDiscard}
+            onEditWindow={
+              onSelectChapter ? () => onSelectChapter(event, 'sales', 'cupo') : undefined
+            }
+            onSetState={onSetEventState}
+          />
+        ) : null}
+        {editor}
       </div>
     )
   }
@@ -585,26 +585,79 @@ export default function AdminEventWorkspace({
           aria-orientation="vertical"
           aria-label={t('admin.eventConsole.tabsLabel')}
         >
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              id={`admin-event-tab-${tab.id}`}
-              aria-selected={activeTab === tab.id}
-              aria-controls="admin-event-tabpanel"
-              tabIndex={activeTab === tab.id ? 0 : -1}
-              className={`admin-event-workspace__nav-item ${
-                activeTab === tab.id ? 'is-active' : ''
-              } ${tab.hasError ? 'has-error' : ''}`}
-              onClick={() => handleSelectTab(tab.id)}
-            >
-              {tab.label}
-              {typeof tab.count === 'number' && tab.count > 0 ? (
-                <span className="admin-event-workspace__nav-count">{tab.count}</span>
-              ) : null}
-            </button>
-          ))}
+          {tabs.map((tab) => {
+            const selected = activeTab === tab.id
+            const expanded = Boolean(tab.hasSubnav) && selected
+            const tabButton = (
+              <button
+                type="button"
+                role="tab"
+                id={`admin-event-tab-${tab.id}`}
+                aria-selected={selected}
+                aria-expanded={tab.hasSubnav ? expanded : undefined}
+                aria-controls={
+                  tab.hasSubnav
+                    ? 'admin-event-tabpanel admin-event-sales-subnav'
+                    : 'admin-event-tabpanel'
+                }
+                tabIndex={selected ? 0 : -1}
+                className={`admin-event-workspace__nav-item${selected ? ' is-active' : ''}${
+                  tab.hasError ? ' has-error' : ''
+                }${expanded ? ' is-expanded' : ''}`}
+                onClick={() => handleSelectTab(tab.id)}
+              >
+                <span className="admin-event-workspace__nav-item-label">{tab.label}</span>
+                {typeof tab.count === 'number' && tab.count > 0 ? (
+                  <span className="admin-event-workspace__nav-count">{tab.count}</span>
+                ) : null}
+                {tab.hasSubnav ? (
+                  <ChevronDown
+                    size={14}
+                    aria-hidden
+                    className="admin-event-workspace__nav-chevron"
+                  />
+                ) : null}
+              </button>
+            )
+
+            if (!tab.hasSubnav) {
+              return <Fragment key={tab.id}>{tabButton}</Fragment>
+            }
+
+            const selectedChapter = openChapter ?? 'cupo'
+            return (
+              <div
+                key={tab.id}
+                className={`admin-event-workspace__nav-group${expanded ? ' is-open' : ''}`}
+              >
+                {tabButton}
+                <div
+                  id="admin-event-sales-subnav"
+                  className="admin-event-workspace__nav-sub"
+                  role="group"
+                  aria-label={t('admin.eventEditor.salesChapterNavAria')}
+                  hidden={!expanded}
+                >
+                  {salesChapters.map((chapter) => {
+                    const chapterSelected = selectedChapter === chapter.id
+                    return (
+                      <button
+                        key={chapter.id}
+                        type="button"
+                        className={`admin-event-workspace__nav-subitem${
+                          chapterSelected ? ' is-active' : ''
+                        }${chapter.hasError ? ' has-error' : ''}`}
+                        aria-current={chapterSelected ? 'true' : undefined}
+                        onClick={() => onSelectChapter?.(event, 'sales', chapter.id)}
+                      >
+                        {chapter.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
         </div>
         </div>
       </aside>

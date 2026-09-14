@@ -96,7 +96,7 @@ export const PUBLIC_NAVIGATION = {
       key: 'competition',
       labelKey: 'nav.moreCompetition',
       type: 'menu',
-      views: ['events', 'pitbull', 'shop', 'tickets'],
+      views: ['events', 'pitbull'],
       groups: [
         {
           labelKey: 'nav.moreCompetition',
@@ -114,11 +114,15 @@ export const PUBLIC_NAVIGATION = {
               hintKey: 'nav.pitbullHint',
               icon: 'trophy',
             },
-            { key: 'shop', labelKey: 'nav.shop', hintKey: 'nav.shopHint', icon: 'shop' },
           ],
         },
       ],
     },
+    // Comprar una entrada no puede vivir adentro de un desplegable: es la
+    // única acción de la barra para quien viene a mirar, no a competir.
+    // `views` cubre las dos vistas del recorrido de compra (catálogo y
+    // checkout del evento) para que la pestaña quede marcada en las dos.
+    { key: 'shop', labelKey: 'nav.shop', views: ['shop', 'tickets'] },
     { key: 'results', labelKey: 'nav.results' },
     { key: 'records', labelKey: 'nav.records' },
     {

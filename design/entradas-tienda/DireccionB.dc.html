@@ -1,0 +1,198 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+    /* Tokens reales de PLU: palette.css + themes/dark.css. */
+    :root {
+      --canvas: #0a0b0d; --bg-2: #121316; --surface: #141518; --elevated: #1e2026;
+      --hairline: rgba(255,255,255,0.08); --rule: rgba(255,255,255,0.14);
+      --ink: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8; --faint: #6f7280;
+      --celeste: #74acdf; --celeste-soft: #9ec5eb; --celeste-deep: #1f5f9e;
+      --gold: #f2b705; --gold-soft: #ffd23f; --gold-ink: #14181f;
+      --ok-soft: #8fd4a8;
+      --font: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); -webkit-font-smoothing: antialiased; }
+    a { color: var(--celeste-soft); } a:hover { color: #c7dcf1; }
+    * { box-sizing: border-box; }
+    img { display: block; max-width: 100%; }
+
+    .eyebrow { font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+    .num { font-variant-numeric: tabular-nums; }
+
+    .cta-gold { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 54px; padding: 0 30px; border: none; background: var(--gold); color: var(--gold-ink); font-family: var(--font); font-size: 15px; font-weight: 700; letter-spacing: -.01em; cursor: pointer; }
+    .cta-line { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 13px; font-weight: 500; color: var(--secondary); border-bottom: 1px solid var(--rule); }
+    /* ── DIRECCIÓN B · VITRINA ─────────────────────────────────────
+       Sin foto detrás del tipográfico. La entrada se trata como un
+       objeto en exhibición: mucho aire, reglas finas, y el número
+       —el precio, el cupo— como único elemento fuerte. Funciona igual
+       con o sin buena fotografía del evento. */
+
+    .wrap { max-width: 1152px; margin: 0 auto; padding: 0 56px; }
+
+    .open { padding: 88px 0 64px; display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 72px; align-items: end; border-bottom: 1px solid var(--rule); }
+    .open-c { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+    .open-rail { display: flex; align-items: center; gap: 12px; }
+    .open-rail .eyebrow { color: var(--celeste-soft); }
+    .open-rail span.sep { width: 26px; height: 1px; background: var(--rule); }
+    .open-rail small { font-size: 11px; color: var(--muted); letter-spacing: .06em; }
+    .open-h1 { font-size: 52px; line-height: 1.04; font-weight: 700; letter-spacing: -.03em; margin: 0; max-width: 16ch; }
+    .open-lead { margin: 0; font-size: 15px; line-height: 1.7; color: var(--secondary); max-width: 52ch; }
+
+    .facts { display: flex; flex-direction: column; }
+    .fact { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; padding: 13px 0; border-bottom: 1px solid var(--hairline); }
+    .fact:first-child { border-top: 1px solid var(--hairline); }
+    .fact dt { font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+    .fact dd { margin: 0; font-size: 14px; font-weight: 500; text-align: right; }
+
+    .cat { padding: 64px 0 80px; display: flex; flex-direction: column; gap: 40px; }
+    .cat-head { display: flex; align-items: baseline; gap: 20px; }
+    .cat-h2 { font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; margin: 0; color: var(--secondary); }
+    .cat-note { font-size: 12.5px; color: var(--muted); margin: 0 0 0 auto; }
+
+    .plinths { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+    .plinth { border: 1px solid var(--hairline); padding: 34px 32px 30px; display: flex; flex-direction: column; gap: 26px; min-width: 0; }
+    .plinth--pick { border-color: rgba(242,183,5,.4); }
+    .plinth-top { display: flex; align-items: flex-start; gap: 20px; }
+    .plinth-c { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .plinth-n { font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+    .plinth-name { font-size: 22px; font-weight: 600; letter-spacing: -.02em; line-height: 1.2; }
+    .plinth-desc { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.65; }
+    .plinth-price { margin-left: auto; text-align: right; flex: 0 0 auto; }
+    .plinth-price strong { display: block; font-size: 28px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+    .plinth-price small { display: block; font-size: 10.5px; color: var(--faint); letter-spacing: .08em; text-transform: uppercase; margin-top: 5px; }
+
+    .plinth-foot { display: flex; align-items: flex-end; gap: 16px; padding-top: 22px; border-top: 1px solid var(--hairline); }
+    .plinth-spec { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+    .spec-l { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+    .spec-v { display: flex; gap: 14px; flex-wrap: wrap; }
+    .spec-v span { font-size: 12px; color: var(--secondary); }
+    .plinth-stock { margin-left: auto; font-size: 11.5px; color: var(--muted); text-align: right; flex: 0 0 auto; }
+    .plinth-stock b { display: block; color: var(--gold); font-size: 13px; font-weight: 600; }
+
+    .cat-close { display: flex; align-items: center; gap: 24px; padding-top: 14px; border-top: 1px solid var(--rule); margin-top: 8px; }
+    .cat-close p { margin: 0; font-size: 13px; color: var(--muted); max-width: 54ch; line-height: 1.6; }
+  </style>
+</helmet>
+
+<div class="wrap">
+  <section class="open">
+    <div class="open-c">
+      <div class="open-rail">
+        <span class="eyebrow">Powerlifting United Argentina</span>
+        <span class="sep" aria-hidden></span>
+        <small>Temporada 26/27</small>
+      </div>
+      <h1 class="open-h1">Pitbull Classic 2026</h1>
+      <p class="open-lead">Dos jornadas de powerlifting oficial en Pilar. Entrada de público, sin afiliación: cada persona entra con su propio QR.</p>
+      <div style="display: flex; align-items: center; gap: 22px; padding-top: 6px;">
+        <button type="button" class="cta-gold">Comprar entradas</button>
+        <span class="cta-line">Ver ficha del evento</span>
+      </div>
+    </div>
+
+    <dl class="facts">
+      <div class="fact"><dt>Fecha</dt><dd>14 y 15 nov</dd></div>
+      <div class="fact"><dt>Sede</dt><dd>Club Atlético Fénix</dd></div>
+      <div class="fact"><dt>Ciudad</dt><dd>Pilar, Buenos Aires</dd></div>
+      <div class="fact"><dt>La venta cierra</dt><dd>14 nov · 08:00</dd></div>
+      <div class="fact"><dt>Desde</dt><dd class="num">$ 12.000</dd></div>
+    </dl>
+  </section>
+
+  <section class="cat">
+    <div class="cat-head">
+      <h2 class="cat-h2">Cuatro entradas</h2>
+      <p class="cat-note">Todas incluyen el QR de ingreso a nombre de quien entra.</p>
+    </div>
+
+    <div class="plinths">
+      <article class="plinth">
+        <div class="plinth-top">
+          <span class="plinth-c">
+            <span class="plinth-n">01</span>
+            <span class="plinth-name">General · sábado</span>
+            <p class="plinth-desc">Tribuna durante toda la primera jornada.</p>
+          </span>
+          <span class="plinth-price"><strong class="num">$ 12.000</strong><small>por persona</small></span>
+        </div>
+        <div class="plinth-foot">
+          <span class="plinth-spec">
+            <span class="spec-l">Abre</span>
+            <span class="spec-v"><span>Puerta general</span></span>
+          </span>
+          <span class="plinth-stock">Sin cupo</span>
+        </div>
+      </article>
+
+      <article class="plinth">
+        <div class="plinth-top">
+          <span class="plinth-c">
+            <span class="plinth-n">02</span>
+            <span class="plinth-name">General · dos días</span>
+            <p class="plinth-desc">Las dos jornadas, incluida la final de deadlift.</p>
+          </span>
+          <span class="plinth-price"><strong class="num">$ 20.000</strong><small>por persona</small></span>
+        </div>
+        <div class="plinth-foot">
+          <span class="plinth-spec">
+            <span class="spec-l">Abre</span>
+            <span class="spec-v"><span>Puerta general</span></span>
+          </span>
+          <span class="plinth-stock">Sin cupo</span>
+        </div>
+      </article>
+
+      <article class="plinth plinth--pick">
+        <div class="plinth-top">
+          <span class="plinth-c">
+            <span class="plinth-n">03</span>
+            <span class="plinth-name">Entrenador · dos días</span>
+            <p class="plinth-desc">Tribuna más entrada en calor. Emite dos credenciales.</p>
+          </span>
+          <span class="plinth-price"><strong class="num">$ 26.000</strong><small>por persona</small></span>
+        </div>
+        <div class="plinth-foot">
+          <span class="plinth-spec">
+            <span class="spec-l">Abre</span>
+            <span class="spec-v"><span>Puerta general</span><span>Entrada en calor</span></span>
+          </span>
+          <span class="plinth-stock">Quedan<b class="num">12</b></span>
+        </div>
+      </article>
+
+      <article class="plinth">
+        <div class="plinth-top">
+          <span class="plinth-c">
+            <span class="plinth-n">04</span>
+            <span class="plinth-name">Palco · dos días</span>
+            <p class="plinth-desc">Sobre plataforma, con buffet y programa incluidos.</p>
+          </span>
+          <span class="plinth-price"><strong class="num">$ 38.000</strong><small>por persona</small></span>
+        </div>
+        <div class="plinth-foot">
+          <span class="plinth-spec">
+            <span class="spec-l">Abre</span>
+            <span class="spec-v"><span>Puerta general</span></span>
+          </span>
+          <span class="plinth-stock">Quedan<b class="num">6</b></span>
+        </div>
+      </article>
+    </div>
+
+    <div class="cat-close">
+      <p>Comprás una vez y elegís para cuántas personas. Cada una recibe su credencial con su nombre y su documento.</p>
+      <button type="button" class="cta-gold" style="margin-left: auto;">Elegir mi entrada</button>
+    </div>
+  </section>
+</div>
+</x-dc>
+</body>
+</html>

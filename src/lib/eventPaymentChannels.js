@@ -106,6 +106,39 @@ export function openEventChannelsFor(overrides, concept) {
 }
 
 /**
+ * Un pago manual necesita tiempo para llegar a ser una entrada: 24 horas para
+ * que el comprador suba el comprobante y hasta 48 para que Administración lo
+ * apruebe. Vendido dentro de esa ventana, el QR no alcanza a emitirse antes de
+ * que abra la puerta, y lo que queda es una devolución.
+ *
+ * Por eso los canales manuales cierran antes que la venta: Mercado Pago sigue
+ * hasta `ticketSalesClosesAt`, la transferencia y Wise no.
+ *
+ * Es una constante y no un campo por evento a propósito: sale de los dos
+ * plazos que ya están escritos en el circuito. Hacerla configurable pide una
+ * columna nueva, y recién tiene sentido si una organización demuestra que
+ * aprueba más rápido.
+ */
+export const MANUAL_TICKET_LEAD_HOURS = 72
+
+/** Momento en que dejan de ofrecerse los canales manuales. */
+export function manualTicketChannelsCloseAt(startsAt) {
+  const start = startsAt ? new Date(startsAt) : null
+  if (!start || Number.isNaN(start.getTime())) return null
+  return new Date(start.getTime() - MANUAL_TICKET_LEAD_HOURS * 60 * 60 * 1000)
+}
+
+/**
+ * Sin fecha de inicio no se cierra nada: un evento sin fecha cargada no puede
+ * perder la venta por una regla de calendario.
+ */
+export function manualTicketChannelsOpen(startsAt, now = new Date()) {
+  const deadline = manualTicketChannelsCloseAt(startsAt)
+  if (!deadline) return true
+  return now.getTime() < deadline.getTime()
+}
+
+/**
  * Punto de partida al prender "personalizar": todo abierto en los dos
  * conceptos. Arrancar con algo cerrado sería cerrar una venta por el solo
  * hecho de haber tocado un interruptor.
