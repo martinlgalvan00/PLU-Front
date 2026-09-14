@@ -2775,6 +2775,24 @@ export default {
     priceRegistrationManualPlaceholder: 'Same as the Mercado Pago price',
     pricingCatalogHint:
       'Membership and combo offers are managed from Pricing to keep a single source of truth.',
+    priceScheduleOpen: 'Schedule a change',
+    priceScheduleChange: 'Edit schedule',
+    priceScheduleHide: 'Close',
+    priceSchedulePrice: 'New price',
+    priceScheduleManual: 'New price · bank transfer/cash',
+    priceScheduleFrom: 'Takes effect',
+    priceScheduleSubmit: 'Schedule',
+    priceScheduleSaving: 'Scheduling…',
+    priceScheduleCancel: 'Cancel scheduled change',
+    priceScheduleHint:
+      'The price above stays in effect until that date. The server applies it on its own — no need to save the event again.',
+    priceSchedulePending: 'From {{date}}: {{amount}}',
+    priceSchedulePendingManual: 'From {{date}}: {{amount}} · manual {{manual}}',
+    priceScheduleNeedDate: 'Choose when the new price takes effect.',
+    priceScheduleNeedFuture: 'The date has to be in the future.',
+    priceScheduleNeedPrice: 'The new price has to be an integer greater than 0.',
+    priceScheduleOverwriteHint:
+      'If you change today’s price and save the event, this scheduled change is cancelled.',
     paymentProfileTitle: 'Payment methods for this event',
     paymentProfileHint:
       'Leave untouched to inherit the platform matrix. Here you can only restrict channels or set your own bank details.',

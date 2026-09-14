@@ -3393,13 +3393,16 @@ export function useAppData() {
       }
       try {
         const event = await setEventRegistrationPriceRequest(eventSlug, payload)
-        await refreshPricingConfiguration()
+        await Promise.all([
+          refreshPricingConfiguration(),
+          refreshAdminEvents({ silent: true }),
+        ])
         return { event }
       } catch (error) {
         return { error: error?.message ?? 'No se pudo cambiar el precio de la inscripción.' }
       }
     },
-    [refreshPricingConfiguration, session],
+    [refreshAdminEvents, refreshPricingConfiguration, session],
   )
 
   const clearEventRegistrationPriceSchedule = useCallback(
@@ -3412,13 +3415,16 @@ export function useAppData() {
       }
       try {
         const event = await clearEventRegistrationPriceScheduleRequest(eventSlug)
-        await refreshPricingConfiguration()
+        await Promise.all([
+          refreshPricingConfiguration(),
+          refreshAdminEvents({ silent: true }),
+        ])
         return { event }
       } catch (error) {
         return { error: error?.message ?? 'No se pudo cancelar el cambio de precio programado.' }
       }
     },
-    [refreshPricingConfiguration, session],
+    [refreshAdminEvents, refreshPricingConfiguration, session],
   )
 
   const upsertDiscountCode = useCallback(

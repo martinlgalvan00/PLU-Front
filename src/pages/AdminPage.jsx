@@ -525,6 +525,8 @@ export default function AdminPage({
           canDeleteEvents={canDeleteEvents}
           onDeleteEvent={onDeleteEvent}
           onFetchDeleteImpact={onFetchEventDeleteImpact}
+          onSetEventRegistrationPrice={onSetEventRegistrationPrice}
+          onClearEventPriceSchedule={onClearEventPriceSchedule}
           onSetEventState={onSetEventState}
           onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
           payments={payments}
