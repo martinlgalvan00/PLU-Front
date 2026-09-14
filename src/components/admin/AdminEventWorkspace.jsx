@@ -212,6 +212,7 @@ export default function AdminEventWorkspace({
 
   const venueLine = formatEventVenueLine(event.venue, event.location)
   const dateLabel = event.dateISO ? formatDayMonth(event.dateISO, locale) : (event.date ?? '')
+  const sidebarMeta = [dateLabel, venueLine].filter(Boolean).join(' · ')
 
   const registered = Number(event.registered) || 0
   const slots = Number(event.slots) || 0
@@ -235,15 +236,18 @@ export default function AdminEventWorkspace({
   }
 
   /**
-   * Capítulos de Ventas. En desktop los dibuja el submenú del rail; en mobile
-   * el rail es una tira horizontal y esta barra in-flow sigue siendo el
-   * selector. El editor en acordeón no renderiza su propia navegación.
+   * Capítulos de Ventas: tira compacta en el chrome del panel. El submenú
+   * del rail queda en el DOM (tests y aria) pero no se dibuja. El editor
+   * en acordeón no renderiza su propia navegación.
    */
   const salesChapters = [
     {
       id: 'cupo',
       label: t('admin.eventEditor.salesChapterCapacity'),
-      value: t('admin.eventConsole.registrationsValue', { count: registered, slots }),
+      value:
+        slots > 0
+          ? t('admin.eventEditor.salesChapterCapacityValue', { count: registered, slots })
+          : null,
     },
     {
       id: 'prices',
@@ -253,13 +257,12 @@ export default function AdminEventWorkspace({
     {
       id: 'tickets',
       label: t('admin.eventEditor.salesChapterTickets'),
-      value: t('admin.eventConsole.ticketsValue', { count: activeTicketTypeCount }),
+      value: t('admin.eventEditor.salesChapterTicketsCount', { count: activeTicketTypeCount }),
       hasError: activeTicketTypeCount === 0,
     },
     {
       id: 'payment',
       label: t('admin.eventEditor.salesChapterPayment'),
-      value: t('admin.eventConsole.paymentChapterValue'),
     },
   ]
 
@@ -291,11 +294,13 @@ export default function AdminEventWorkspace({
               type="button"
               role="tab"
               aria-selected={selected}
-              className={`admin-event-workspace__chapter${selected ? ' is-active' : ''}`}
+              className={`admin-event-workspace__chapter${selected ? ' is-active' : ''}${
+                chapter.hasError ? ' has-error' : ''
+              }`}
               onClick={() => onSelectChapter?.(event, section, chapter.id)}
             >
               <strong>{chapter.label}</strong>
-              <em>{chapter.value}</em>
+              {chapter.value ? <em>{chapter.value}</em> : null}
             </button>
           )
         })}
@@ -422,12 +427,6 @@ export default function AdminEventWorkspace({
     if (activeTab === 'sales') {
       return (
         <div className="admin-event-workspace__main-col">
-          {renderChapters(
-            salesChapters,
-            'sales',
-            'cupo',
-            t('admin.eventEditor.salesChapterNavAria'),
-          )}
           {editor}
           <AdminEventTicketAddonReport event={event} tickets={tickets} />
         </div>
@@ -559,20 +558,13 @@ export default function AdminEventWorkspace({
         <div className="admin-event-workspace__sidebar-head">
           <h1 className="admin-event-workspace__title">{event.title}</h1>
           <StatusPill value={event.status} />
-          {(dateLabel || venueLine) && (
+          {sidebarMeta ? (
             <p className="admin-event-workspace__meta">
-              {dateLabel ? (
-                <span className="admin-event-workspace__meta-item" title={dateLabel}>
-                  {dateLabel}
-                </span>
-              ) : null}
-              {venueLine ? (
-                <span className="admin-event-workspace__meta-item" title={venueLine}>
-                  {venueLine}
-                </span>
-              ) : null}
+              <span className="admin-event-workspace__meta-item" title={venueLine || sidebarMeta}>
+                {sidebarMeta}
+              </span>
             </p>
-          )}
+          ) : null}
         </div>
 
         {/* Es un tablist, no una lista de botones: el panel de la derecha cambia
@@ -660,10 +652,23 @@ export default function AdminEventWorkspace({
           })}
         </div>
         </div>
+        <div id="admin-event-workspace-save" className="admin-event-workspace__save" />
       </aside>
 
       <div className="admin-event-workspace__panel">
-        <div className="admin-event-workspace__toolbar">
+        <div
+          className={`admin-event-workspace__toolbar${
+            activeTab === 'sales' ? ' admin-event-workspace__toolbar--chapters' : ''
+          }`}
+        >
+          {activeTab === 'sales'
+            ? renderChapters(
+                salesChapters,
+                'sales',
+                'cupo',
+                t('admin.eventEditor.salesChapterNavAria'),
+              )
+            : null}
           <div className="admin-event-workspace__head-actions">
             <AdminCopyLinkMenu links={buildEventLinks(event, t)} />
             {canDelete && onDelete ? (

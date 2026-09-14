@@ -9,6 +9,7 @@ import { requirePermission } from '../middleware/auth.js'
 import { publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
 import { sanitizePublicCatalogEvent } from '../services/publicEventCatalogService.js'
 import { buildTicketCredentialsPayload } from '../../src/lib/ticketCredentials.js'
+import { resolveTicketTypeChannels } from '../../src/lib/ticketTypePaymentChannels.js'
 import {
   assertEventBankTransferReady,
   normalizeBankTransferInput,
@@ -73,7 +74,7 @@ function catalogEventSelect(ticketTypeColumns) {
 }
 
 const CATALOG_EVENT_SELECT = catalogEventSelect(
-  'id, name, price, wise_price, quota, sort_order, active, sales_opens_at, sales_closes_at,',
+  'id, name, price, wise_price, quota, sort_order, active, sales_opens_at, sales_closes_at, payment_channels,',
 )
 const CATALOG_EVENT_SELECT_COMPAT = catalogEventSelect(
   'id, name, price, quota, sort_order, active,',
@@ -193,6 +194,13 @@ const nullableWisePrice = z.preprocess(
   z.coerce.number().int().min(1).max(100_000).nullable(),
 )
 
+const eventPaymentChannelFlagsSchema = z.object({
+  mercado_pago: z.boolean().optional(),
+  bank_transfer: z.boolean().optional(),
+  cash_pitbull: z.boolean().optional(),
+  wise_transfer: z.boolean().optional(),
+})
+
 const ticketTypeSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().trim().min(1).max(100),
@@ -208,13 +216,11 @@ const ticketTypeSchema = z.object({
   dayIndexes: z.array(z.coerce.number().int().min(0).max(30)).max(31).optional(),
   includedAddonIds: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
   credentials: z.array(ticketCredentialSchema).min(1).max(4).optional(),
-})
-
-const eventPaymentChannelFlagsSchema = z.object({
-  mercado_pago: z.boolean().optional(),
-  bank_transfer: z.boolean().optional(),
-  cash_pitbull: z.boolean().optional(),
-  wise_transfer: z.boolean().optional(),
+  // Medios de cobro propios de esta entrada. NULL = heredar los del evento,
+  // que es lo que tienen todas las filas anteriores a la columna. El objeto
+  // sólo puede CERRAR debajo del evento; que quede sin ninguno abierto se
+  // rechaza más abajo, donde se ve el override del evento.
+  paymentChannels: eventPaymentChannelFlagsSchema.strict().nullable().optional(),
 })
 
 const eventPaymentChannelsByConceptSchema = z
@@ -712,6 +718,27 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           profile: linkedProfile,
           env: process.env,
         })
+
+        // Un tipo de entrada sólo puede cerrar debajo del evento. Que no le
+        // quede ninguno abierto —porque cerró los últimos, o porque el evento
+        // cerró después el único que tenía— es una entrada que no se puede
+        // comprar por ningún lado, y el 409 aparecía recién al confirmar. El
+        // constraint de la tabla cubre el primer caso; el cruce contra el
+        // evento sólo se puede hacer acá, donde llegan los dos juntos.
+        for (const ticketType of req.validatedBody.ticketTypes ?? []) {
+          if (ticketType.active === false) continue
+          if (!ticketType.paymentChannels) continue
+          const open = resolveTicketTypeChannels({
+            eventOverrides: paymentChannelOverrides,
+            typeChannels: ticketType.paymentChannels,
+          })
+          if (open.length === 0) {
+            throw new HttpError(
+              400,
+              `La entrada "${ticketType.name}" no acepta ningún medio de pago.`,
+            )
+          }
+        }
 
         const pEvent = {
           ...req.validatedBody,

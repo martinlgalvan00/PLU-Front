@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { Router } from 'express'
 import { z } from 'zod'
 import { hasEventScopeAccess } from '../../src/lib/permissions.js'
+import { resolveTicketTypeChannels } from '../../src/lib/ticketTypePaymentChannels.js'
 import { HttpError } from '../lib/errors.js'
 import { isMissingSchemaColumn } from '../lib/supabaseRpc.js'
 import {
@@ -304,6 +305,30 @@ export function createTicketRoutes({
     return athleteRepo().findEventPricing(eventSlug)
   }
 
+  /**
+   * Los tipos de entrada del carrito tienen que aceptar el canal elegido. Se
+   * consulta sólo cuando el repositorio sabe responder: los dobles de test no
+   * conocen la tabla y el resto del circuito ya los cubre.
+   */
+  async function assertTicketTypesAcceptChannel(attendees, channel, eventOverrides) {
+    const ids = (attendees ?? []).map((attendee) => attendee?.ticketTypeId).filter(Boolean)
+    if (ids.length === 0) return
+    const rows = (await repo().findTicketTypePaymentChannels?.(ids)) ?? []
+    for (const row of rows) {
+      if (row?.payment_channels == null) continue
+      const open = resolveTicketTypeChannels({
+        eventOverrides,
+        typeChannels: row.payment_channels,
+      })
+      if (!open.includes(channel)) {
+        throw new HttpError(
+          409,
+          `La entrada "${row.name}" no se puede pagar con el medio elegido.`,
+        )
+      }
+    }
+  }
+
   const verifiedTicketEventId = (result) => result?.ticket?.event_id ?? result?.event_id
 
   // El alcance vive en la cuenta, no en el nombre del rol. Cualquier usuario
@@ -352,6 +377,16 @@ export function createTicketRoutes({
         assertEventPaymentChannelEnabled(toggles, 'ticket', ticketChannel, {
           eventOverrides: eventPricing?.payment_channel_overrides ?? null,
         })
+        // Y contra los medios propios de cada tipo del carrito. El canal se
+        // elige una vez para toda la compra, así que alcanza con que una
+        // entrada no lo acepte para que la orden entera no se pueda cobrar
+        // así. Sin esto la pantalla ofrecía transferencia para un palco que
+        // sólo acepta Mercado Pago y el rechazo llegaba al confirmar el pago.
+        await assertTicketTypesAcceptChannel(
+          req.validatedBody.attendees,
+          ticketChannel,
+          eventPricing?.payment_channel_overrides ?? null,
+        )
         // Y contra el calendario: una transferencia vendida sobre la fecha no
         // llega a ser un QR antes de que abra la puerta.
         assertManualTicketDeadline(ticketChannel, eventPricing?.starts_at ?? null)

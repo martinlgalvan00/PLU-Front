@@ -182,6 +182,56 @@ describe('resolveTicketSalesState', () => {
     expect(codes(state)).toEqual(['unpublished'])
   })
 
+  it('una entrada que cerró sus medios no cuenta como vendible', () => {
+    const state = resolveTicketSalesState({
+      event: baseEvent({
+        ticketTypes: [
+          {
+            id: 'palco',
+            name: 'Palco',
+            price: 38000,
+            active: true,
+            // Wise está cerrado en la plataforma, así que dejar sólo Wise
+            // abierto es quedarse sin ningún medio: la entrada sigue activa,
+            // en precio y en ventana, pero nadie la puede comprar.
+            paymentChannels: {
+              mercado_pago: false,
+              bank_transfer: false,
+              cash_pitbull: false,
+              wise_transfer: true,
+            },
+          },
+        ],
+      }),
+      platform: OPEN_PLATFORM,
+      now: NOW,
+    })
+    expect(codes(state)).toEqual(['noTypeWithChannel'])
+    expect(state.blockers[0].scope).toBe('catalog')
+    expect(state.typesWithChannel).toBe(0)
+  })
+
+  it('con un tipo sin medios y otro con medios la venta sigue abierta', () => {
+    const state = resolveTicketSalesState({
+      event: baseEvent({
+        ticketTypes: [
+          { id: 'general', name: 'General', price: 12000, active: true },
+          {
+            id: 'palco',
+            name: 'Palco',
+            price: 38000,
+            active: true,
+            paymentChannels: { wise_transfer: true, mercado_pago: false, bank_transfer: false, cash_pitbull: false },
+          },
+        ],
+      }),
+      platform: OPEN_PLATFORM,
+      now: NOW,
+    })
+    expect(state.open).toBe(true)
+    expect(state.typesWithChannel).toBe(1)
+  })
+
   it('acumula todos los motivos, no sólo el primero', () => {
     const state = resolveTicketSalesState({
       event: baseEvent({

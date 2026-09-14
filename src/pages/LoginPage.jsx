@@ -355,12 +355,18 @@ export default function LoginPage({ onLogin, onNavigate }) {
                       <span className="login-field__control">
                         <Mail size={16} className="login-field__icon" aria-hidden />
                         <input
+                          id="login-email"
                           type="text"
                           name="email"
                           value={email}
                           onChange={(event) => setEmail(event.target.value)}
                           placeholder={t('login.emailPlaceholder')}
                           autoComplete="username"
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          inputMode="email"
+                          enterKeyHint="next"
                           autoFocus
                           aria-invalid={Boolean(fieldErrors.email)}
                           required
@@ -398,6 +404,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
                           onBlur={() => setCapsLock(false)}
                           placeholder="••••••••"
                           autoComplete="current-password"
+                          enterKeyHint="go"
                           aria-invalid={Boolean(fieldErrors.password)}
                           required
                         />
@@ -422,23 +429,6 @@ export default function LoginPage({ onLogin, onNavigate }) {
                       ) : null}
                     </div>
 
-                    <label className="login-remember" title={t('login.rememberHint')}>
-                      <span className="login-remember__control">
-                        <input
-                          type="checkbox"
-                          name="remember"
-                          className="login-remember__input"
-                          checked={rememberMe}
-                          onChange={(event) => setRememberMe(event.target.checked)}
-                        />
-                        <span className="login-remember__box" aria-hidden="true">
-                          <Check size={12} strokeWidth={3} />
-                        </span>
-                      </span>
-                      <span className="login-remember__label">{t('login.remember')}</span>
-                      <span className="login-remember__hint">{t('login.rememberHint')}</span>
-                    </label>
-
                     <AuthSubmit
                       busy={isSubmitting}
                       busyLabel={t('login.submitting')}
@@ -456,6 +446,23 @@ export default function LoginPage({ onLogin, onNavigate }) {
                         <span>{submitError}</span>
                       </p>
                     ) : null}
+
+                    <label className="login-remember" title={t('login.rememberHint')}>
+                      <span className="login-remember__control">
+                        <input
+                          type="checkbox"
+                          name="remember"
+                          className="login-remember__input"
+                          checked={rememberMe}
+                          onChange={(event) => setRememberMe(event.target.checked)}
+                        />
+                        <span className="login-remember__box" aria-hidden="true">
+                          <Check size={12} strokeWidth={3} />
+                        </span>
+                      </span>
+                      <span className="login-remember__label">{t('login.remember')}</span>
+                      <span className="login-remember__hint">{t('login.rememberHint')}</span>
+                    </label>
 
                     {oauth.configured ? (
                       <>
@@ -490,6 +497,16 @@ export default function LoginPage({ onLogin, onNavigate }) {
                           onClick={() => onNavigate('members')}
                         >
                           {t('login.joinLink')}
+                        </button>
+                      </p>
+                      <p className="login-join">
+                        <span className="login-join__prompt">{t('login.howToStep2Title')}</span>
+                        <button
+                          type="button"
+                          className="login-join__link"
+                          onClick={openRecover}
+                        >
+                          {t('login.howToStep2Action')}
                         </button>
                       </p>
                     </div>
