@@ -4,13 +4,7 @@ import { m } from 'motion/react'
 import { LazyPhoto } from './LazyPhoto.jsx'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import {
-  fetchCommunitySpotlight,
-  formatMemberSince,
-  getCommunityStats,
-  getRecentMembers,
-  pickSpotlightMembers,
-} from '../../services/communityService.js'
+import { fetchCommunitySpotlight, formatMemberSince } from '../../services/communityService.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import {
   MOTION_DISTANCE,
@@ -22,6 +16,11 @@ import {
 import { staggerContainer } from '../../motion/variants.ts'
 
 const FEED_LIMIT = 5
+const EMPTY_STATS = Object.freeze({
+  activeGymCount: 0,
+  memberCount: 0,
+  provinceCount: 0,
+})
 
 function memberInitials(name = '') {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -132,13 +131,13 @@ export default function CommunitySpotlight({ onNavigate }) {
   const { HOME_COMMUNITY } = useContent()
   const { locale, t } = useI18n()
   const { reducedMotion } = useMotionConfig()
-  const [members, setMembers] = useState(() =>
-    pickSpotlightMembers(getRecentMembers(FEED_LIMIT, locale), FEED_LIMIT),
-  )
-  const [stats, setStats] = useState(() => getCommunityStats(locale))
+  const [members, setMembers] = useState([])
+  const [stats, setStats] = useState(EMPTY_STATS)
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     let active = true
+    setLoaded(false)
     fetchCommunitySpotlight(FEED_LIMIT, locale)
       .then((spotlight) => {
         if (!active) return
@@ -146,7 +145,12 @@ export default function CommunitySpotlight({ onNavigate }) {
         setStats(spotlight.stats)
       })
       .catch(() => {
-        // El servicio ya cae a fallback; este catch es por si el estado desmontó.
+        if (!active) return
+        setMembers([])
+        setStats(EMPTY_STATS)
+      })
+      .finally(() => {
+        if (active) setLoaded(true)
       })
     return () => {
       active = false
@@ -196,13 +200,15 @@ export default function CommunitySpotlight({ onNavigate }) {
         </button>
       </header>
 
-      <div className="community-spotlight__roster">
+      <div className="community-spotlight__roster" aria-busy={!loaded || undefined}>
         <p className="community-spotlight__roster-label">{HOME_COMMUNITY.recentLabel}</p>
 
         <RosterList
           members={members}
           recentLabel={HOME_COMMUNITY.recentLabel}
-          emptyLabel={HOME_COMMUNITY.emptyRecentLabel}
+          emptyLabel={
+            loaded ? HOME_COMMUNITY.emptyRecentLabel : HOME_COMMUNITY.loadingRecentLabel
+          }
           locale={locale}
           reducedMotion={reducedMotion}
           listVariants={listVariants}

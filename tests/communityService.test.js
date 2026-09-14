@@ -32,19 +32,25 @@ describe('communityService', () => {
     })
   })
 
-  it('usa fallback editorial solo cuando falla la API publica', async () => {
+  it('deja el roster vacio cuando falla la API publica, sin afiliados editoriales', async () => {
     vi.doMock('../src/lib/api.js', () => ({
       apiGet: vi.fn(async () => {
         throw new Error('offline')
       }),
     }))
 
-    const { fetchCommunitySpotlight, getRecentMembers, pickSpotlightMembers } =
+    const { fetchCommunitySpotlight, getRecentMembers } =
       await import('../src/services/communityService.js')
     const spotlight = await fetchCommunitySpotlight(5, 'es')
 
-    expect(spotlight.source).toBe('fallback')
-    expect(spotlight.members).toEqual(pickSpotlightMembers(getRecentMembers(5, 'es'), 5))
+    expect(spotlight.source).toBe('unavailable')
+    expect(spotlight.members).toEqual([])
+    expect(spotlight.members).not.toEqual(getRecentMembers(5, 'es'))
+    expect(spotlight.stats).toEqual({
+      activeGymCount: 0,
+      memberCount: 0,
+      provinceCount: 0,
+    })
   })
 
   it('respeta el orden del backend sin reordenar por foto', async () => {

@@ -25,6 +25,7 @@ import {
   getLaunchInterestSummary,
   notifyLaunchInterestSource,
 } from '../../services/launchInterestService.js'
+import { previewQueueByType } from '../../services/adminService.js'
 import { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import CollectionDonut from '../../components/admin/CollectionDonut.jsx'
 import AnimatedNumber from '../../motion/AnimatedNumber.tsx'
@@ -853,7 +854,10 @@ export default function DashboardSection({
 
   const primaryMetrics = useMemo(() => mapMetrics(primary, t, locale), [primary, t, locale])
 
-  const queuePreview = useMemo(() => pendingActions.slice(0, QUEUE_PREVIEW_LIMIT), [pendingActions])
+  const queuePreview = useMemo(
+    () => previewQueueByType(pendingActions, QUEUE_PREVIEW_LIMIT),
+    [pendingActions],
+  )
   const queueMix = useMemo(() => formatQueueMix(pendingActions, t), [pendingActions, t])
 
   const hasWork = pendingActions.length > 0 || finance.pendingItems.length > 0

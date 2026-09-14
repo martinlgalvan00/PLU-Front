@@ -639,7 +639,7 @@ export default function AthletePaymentOrdersSection({
             {
               key: 'proof',
               label: t('admin.athletePayments.columnProof'),
-              mobile: 'hidden',
+              mobile: 'default',
               render: (row) => {
                 if (row.method !== 'manual_link') {
                   return <span className="data-table__mono data-table__mono--empty">—</span>

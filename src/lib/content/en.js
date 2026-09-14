@@ -69,6 +69,7 @@ export const HOME_COMMUNITY = {
   cta: 'View community',
   recentLabel: 'Recent members',
   emptyRecentLabel: 'No active public members yet.',
+  loadingRecentLabel: 'Loading recent members…',
   liveLabel: 'Live',
   visualCaption: 'Community gallery · coming soon',
   stats: [],
