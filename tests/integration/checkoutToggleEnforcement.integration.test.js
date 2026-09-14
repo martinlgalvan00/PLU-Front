@@ -114,8 +114,10 @@ describe('interruptores de canal manual y validación por HTTP', () => {
         title: 'Toggle Tickets Event',
         venue: 'Test',
         location: 'Test',
-        starts_at: new Date(Date.now() + 86_400_000).toISOString(),
-        ends_at: new Date(Date.now() + 2 * 86_400_000).toISOString(),
+        // A 24h la transferencia ya cerró (72h de lead). Estos casos compran
+        // en efectivo/transferencia, así que el evento tiene que quedar lejos.
+        starts_at: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+        ends_at: new Date(Date.now() + 8 * 86_400_000).toISOString(),
         published: true,
         status: 'cupos_limitados',
         rules: { ticketsEnabled: true },

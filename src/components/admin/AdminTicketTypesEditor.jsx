@@ -414,37 +414,6 @@ export default function AdminTicketTypesEditor({
                       </small>
                     ) : null}
                   </label>
-                  {/* Precio en USD para Wise. Vacío = se deriva del precio en
-                      pesos por el dólar configurado, que es lo que pasaba antes
-                      de que esto se pudiera cargar. */}
-                  <label className="admin-event-form__field">
-                    <span>{t('admin.eventEditor.supabase.ticketTypeWisePrice')}</span>
-                    <span className="admin-event-form__rate-card-input">
-                      <input
-                        disabled={!canEdit}
-                        min={1}
-                        max={100000}
-                        type="number"
-                        value={type.wisePrice ?? ''}
-                        name={`ticketTypes.${index}.wisePrice`}
-                        data-field={`ticketTypes.${index}.wisePrice`}
-                        aria-invalid={Boolean(errors[`ticketTypes.${index}.wisePrice`])}
-                        onChange={(event) =>
-                          patchTicketType(index, {
-                            wisePrice:
-                              event.target.value === '' ? '' : Number(event.target.value),
-                          })
-                        }
-                        placeholder={t('admin.eventEditor.supabase.ticketTypeWisePricePlaceholder')}
-                      />
-                      <span aria-hidden>USD</span>
-                    </span>
-                    {errors[`ticketTypes.${index}.wisePrice`] ? (
-                      <small className="admin-event-form__error" role="alert">
-                        {errors[`ticketTypes.${index}.wisePrice`]}
-                      </small>
-                    ) : null}
-                  </label>
                   <label className="admin-event-form__field">
                     <span>{t('admin.eventEditor.supabase.ticketTypeQuota')}</span>
                     <input

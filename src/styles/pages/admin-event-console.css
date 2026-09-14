@@ -1222,6 +1222,103 @@
   padding: 12px 0 0;
 }
 
+/* Programación del precio: una fila operativa bajo las dos cifras, no una
+   tercera card. El formulario sólo aparece al pedirla. */
+.admin-event-form__price-schedule {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  max-width: 36rem;
+}
+
+.admin-event-form__price-schedule-pending {
+  align-items: flex-start;
+  color: var(--admin-ink, var(--color-text));
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 550;
+  gap: 8px 12px;
+  line-height: 1.4;
+}
+
+.admin-event-form__price-schedule-pending svg {
+  color: var(--color-brand-gold);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.admin-event-form__price-schedule-pending p {
+  flex: 1 1 12rem;
+  margin: 0;
+}
+
+.admin-event-form__price-schedule-cancel {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--admin-muted, var(--color-text-muted));
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0;
+}
+
+.admin-event-form__price-schedule-cancel:hover,
+.admin-event-form__price-schedule-cancel:focus-visible {
+  color: var(--admin-ink, var(--color-text));
+}
+
+.admin-event-form__price-schedule-warn,
+.admin-event-form__price-schedule-lead {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.admin-event-form__price-schedule-warn {
+  color: var(--color-text, var(--admin-ink));
+}
+
+.admin-event-form__price-schedule-form {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-event-form__price-schedule-grid {
+  display: grid;
+  gap: 12px 22px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-event-form__price-schedule-grid .admin-event-form__field--wide {
+  grid-column: 1 / -1;
+}
+
+.admin-event-form__price-schedule-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-event-form__price-schedule-open {
+  justify-self: start;
+}
+
+@container event-editor (max-width: 36rem) {
+  .admin-event-form__price-schedule,
+  .admin-event-form__price-schedule-grid {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: none;
+  }
+}
+
 @container event-editor (max-width: 36rem) {
   .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-cards {
     grid-template-columns: minmax(0, 1fr);

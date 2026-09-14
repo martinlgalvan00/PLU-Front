@@ -543,4 +543,47 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
       within(matrix).getByRole('checkbox', { name: /mercado pago · entradas/i }).checked,
     ).toBe(true)
   })
+
+  it('en Precios ofrece programar un cambio con el contrato de Tarifas', () => {
+    const onSetEventRegistrationPrice = vi.fn(async () => ({}))
+    const draft = buildAdminEventDraft({
+      id: 'evt-1',
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic',
+      venue: 'Maximal Strength Club',
+      location: 'Buenos Aires',
+      status: 'inscripcion_abierta',
+      slots: 120,
+      startsAt: '2026-09-15T12:00:00.000Z',
+      endsAt: '2026-09-15T23:00:00.000Z',
+      pricing: { membership: 75000, registration: 75000, combo: 120000, ticketsEnabled: true },
+    })
+
+    render(
+      <I18nProvider>
+        <AdminEventEditor
+          accordion
+          canEdit
+          draft={draft}
+          forcedTab="sales"
+          forcedChapter="prices"
+          sourceEvent={{
+            ...draft,
+            price: 75000,
+            scheduledPrice: null,
+            priceEffectiveAt: null,
+          }}
+          onCancel={() => {}}
+          onChange={() => {}}
+          onSetEventRegistrationPrice={onSetEventRegistrationPrice}
+          onSubmit={() => {}}
+        />
+      </I18nProvider>,
+    )
+
+    expect(screen.getByRole('button', { name: /programar un cambio/i })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /programar un cambio/i }))
+    expect(screen.getByLabelText(/rige desde/i)).toBeTruthy()
+    expect(onSetEventRegistrationPrice).not.toHaveBeenCalled()
+  })
 })

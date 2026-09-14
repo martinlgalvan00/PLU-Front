@@ -84,6 +84,7 @@ describe('AdminTicketTypesEditor', () => {
     expect(general.getAttribute('aria-selected')).toBe('true')
     expect(palco.getAttribute('aria-selected')).toBe('false')
     expect(screen.getByDisplayValue('Público general')).toBeTruthy()
+    expect(screen.getAllByRole('spinbutton', { name: /precio wise/i })).toHaveLength(1)
     expect(screen.queryByDisplayValue('Palco')).toBeNull()
     expect(screen.getByDisplayValue('Entrada general')).toBeTruthy()
     expect(screen.queryByDisplayValue('Palco VIP')).toBeNull()

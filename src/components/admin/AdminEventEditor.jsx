@@ -56,6 +56,7 @@ import {
   openEventChannelsFor,
 } from '../../lib/eventPaymentChannels.js'
 import { createPaymentProfile, fetchPaymentProfiles } from '../../services/paymentProfileService.js'
+import AdminEventPriceSchedule from './AdminEventPriceSchedule.jsx'
 import AdminTicketAddonsEditor from './AdminTicketAddonsEditor.jsx'
 import AdminTicketSalesStatus from './AdminTicketSalesStatus.jsx'
 import AdminTicketTypesEditor from './AdminTicketTypesEditor.jsx'
@@ -490,6 +491,12 @@ export default function AdminEventEditor({
   extraDirty = false,
   onExtraSave = null,
   onExtraDiscard = null,
+  /**
+   * Precio de inscripción programado: mismo contrato que Tarifas. No viaja
+   * en el upsert del evento — pisar `price` cancela la programación.
+   */
+  onSetEventRegistrationPrice = null,
+  onClearEventPriceSchedule = null,
   sourceEvent = null,
 }) {
   const { locale, t } = useI18n()
@@ -1583,6 +1590,35 @@ export default function AdminEventEditor({
                         {t('admin.eventEditor.pricingCatalogHint')}
                       </p>
                     </div>
+                    {draft.id &&
+                    draft.slug &&
+                    (onSetEventRegistrationPrice || sourceEvent?.priceEffectiveAt) ? (
+                      <AdminEventPriceSchedule
+                        canEdit={canEdit}
+                        currentManualPrice={draft.pricing?.registrationManual ?? null}
+                        currentPrice={
+                          draft.pricing?.registration ?? DEFAULT_EVENT_PRICING.registration
+                        }
+                        onClearSchedule={
+                          onClearEventPriceSchedule
+                            ? () => onClearEventPriceSchedule(draft.slug)
+                            : null
+                        }
+                        onSetSchedule={
+                          onSetEventRegistrationPrice
+                            ? (payload) => onSetEventRegistrationPrice(draft.slug, payload)
+                            : null
+                        }
+                        priceDirty={
+                          Number(draft.pricing?.registration) !== Number(sourceEvent?.price) ||
+                          Number(draft.pricing?.registrationManual ?? 0) !==
+                            Number(sourceEvent?.manualPrice ?? 0)
+                        }
+                        priceEffectiveAt={sourceEvent?.priceEffectiveAt ?? null}
+                        scheduledManualPrice={sourceEvent?.scheduledManualPrice ?? null}
+                        scheduledPrice={sourceEvent?.scheduledPrice ?? null}
+                      />
+                    ) : null}
                   </div>
 
                   <div
