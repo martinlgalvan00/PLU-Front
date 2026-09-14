@@ -5,6 +5,14 @@ import { getEventConsistencyWarnings } from './eventAdminService.js'
 import { isExpiringSoon } from './membershipService.js'
 
 const PENDING_PAYMENT_STATUSES = ['pendiente_pago', 'pendiente', 'validacion_manual', 'creado']
+const QUEUE_TYPE_ORDER = [
+  'payment',
+  'registration',
+  'registration_gate',
+  'cancelled_registration',
+  'membership',
+  'ticket_order',
+]
 // No hay una marca de "ya se avisó": la ventana acota la cola a bajas
 // recientes en vez de arrastrar años de canceladas históricas que nadie va a
 // avisar a esta altura. El ítem se autodescarta al mandar el mail (ver
@@ -23,6 +31,46 @@ const EVENT_TONE_BY_STATUS_TONE = {
   warning: 'warning',
   danger: 'alert',
   neutral: 'default',
+}
+
+function paymentCoversMembership(payment) {
+  const type = payment?.conceptType
+  if (type === 'membership' || type === 'combo') return true
+  const concept = String(payment?.concept ?? '').toLowerCase()
+  return (
+    concept.includes('afiliaci') || concept.includes('membership') || concept.includes('combo')
+  )
+}
+
+/**
+ * Recorte de la cola para el dashboard: un ítem de cada tipo por vuelta
+ * para que 7 inscripciones no tapen el pago de afiliación que hay que validar.
+ */
+export function previewQueueByType(items = [], limit = 6) {
+  if (!Array.isArray(items) || limit <= 0) return []
+  const buckets = new Map()
+  for (const type of QUEUE_TYPE_ORDER) buckets.set(type, [])
+  for (const item of items) {
+    const type = item?.type || 'other'
+    if (!buckets.has(type)) buckets.set(type, [])
+    buckets.get(type).push(item)
+  }
+  const queues = [...buckets.values()].filter((list) => list.length > 0)
+  const result = []
+  let index = 0
+  while (result.length < limit) {
+    let added = false
+    for (const list of queues) {
+      if (index < list.length) {
+        result.push(list[index])
+        added = true
+        if (result.length >= limit) break
+      }
+    }
+    if (!added) break
+    index += 1
+  }
+  return result
 }
 
 export function buildPendingActions({
@@ -142,6 +190,35 @@ export function buildPendingActions({
         meta: registration.category,
         section: 'registrations',
         registrationId: registration.id,
+      })
+    })
+
+  const athletesWithMembershipPayment = new Set(
+    payments
+      .filter(
+        (payment) =>
+          PENDING_PAYMENT_STATUSES.includes(payment.status) && paymentCoversMembership(payment),
+      )
+      .map((payment) => payment.athleteId),
+  )
+
+  memberships
+    .filter(
+      (membership) =>
+        membership.status === 'pendiente_pago' &&
+        !athletesWithMembershipPayment.has(membership.athleteId),
+    )
+    .forEach((membership) => {
+      const athlete = athletes.find((item) => item.id === membership.athleteId)
+      actions.push({
+        id: `action-mem-pending-${membership.id}`,
+        type: 'membership',
+        priority: 'high',
+        subject: athlete?.fullName ?? 'Atleta',
+        summary: 'Afiliación pendiente de acreditación',
+        detail: membership.planName ?? membership.plan ?? 'Afiliación PLU',
+        meta: membership.memberCode ? `Código ${membership.memberCode}` : null,
+        section: 'memberships',
       })
     })
 

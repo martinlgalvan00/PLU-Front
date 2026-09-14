@@ -71,6 +71,7 @@ export const HOME_COMMUNITY = {
   cta: 'Ver comunidad',
   recentLabel: 'Afiliados recientes',
   emptyRecentLabel: 'Todavía no hay afiliados activos publicados.',
+  loadingRecentLabel: 'Cargando afiliados recientes…',
   liveLabel: 'En vivo',
   visualCaption: 'Galería de la comunidad · próximamente',
   stats: [],
@@ -729,7 +730,7 @@ export const COMMUNITY_AFFILIATED_GYMS = [
   },
 ]
 
-/** Afiliaciones recientes visibles en la red pública (mock). */
+/** Catálogo editorial de ejemplo. El feed público usa `/api/community/spotlight`. */
 export const COMMUNITY_RECENT_MEMBERS = [
   {
     id: 'mem-feed-001',

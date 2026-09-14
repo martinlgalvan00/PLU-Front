@@ -15373,6 +15373,17 @@
   padding: 8px 0 4px;
 }
 
+.action-queue__type-label {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 650;
+  gap: 6px;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
 .action-queue__type-count {
   background: transparent;
   border: 0;
@@ -15382,6 +15393,16 @@
   font-weight: 650;
   line-height: 1;
   padding: 0;
+}
+
+/* El encabezado de bloque ya nombra el tipo: el chip de cada fila duplicaba
+   "Pago" / "Inscripción" y ensuciaba la lectura compacta. */
+.action-queue__type-block:has(.action-queue__type-head) .action-queue__type {
+  display: none;
+}
+
+.action-queue__type-block:has(.action-queue__type-head) .action-queue__card {
+  grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
 [data-theme='dark'] .action-queue__type-head {
