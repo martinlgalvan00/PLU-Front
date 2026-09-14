@@ -531,6 +531,13 @@
   letter-spacing: 0.04em;
 }
 
+.ticket-purchase__type-hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
+}
+
 .ticket-purchase--editorial .field {
   color: var(--color-text-muted);
   font-size: 11px;

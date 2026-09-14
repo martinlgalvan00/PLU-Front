@@ -10,11 +10,9 @@ import { money } from '../../lib/format.js'
  * está en cómo se llaman sino en que una abre la entrada en calor y la otra no,
  * y eso tiene que leerse antes de pagar, no después.
  *
- * La misma pieza sirve para elegir (checkout) y para mostrar (tienda, vista
- * rápida del evento, página de entradas). Es a propósito: cuando cada
- * superficie armaba su propia fila, la tienda decía "desde $X" y el checkout
- * un nombre suelto, y ninguna de las dos decía lo mismo que la credencial que
- * después se emitía.
+ * La misma pieza sirve para mostrar el catálogo (tienda, vista rápida del
+ * evento, página de entradas). El checkout no la vuelve a pintar: ahí se
+ * elige el tipo con un select por asistente, y esta lista queda como vidriera.
  *
  * Sin `onChange` es de sólo lectura: una lista, no un grupo de radios, para no
  * ofrecerle un control inerte a quien navega con teclado.

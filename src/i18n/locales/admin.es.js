@@ -2849,6 +2849,24 @@ export default {
     priceRegistrationManualPlaceholder: 'Igual que el precio de Mercado Pago',
     pricingCatalogHint:
       'La afiliación y las ofertas combo se administran desde Tarifas para mantener una única fuente de verdad.',
+    priceScheduleOpen: 'Programar un cambio',
+    priceScheduleChange: 'Cambiar programación',
+    priceScheduleHide: 'Cerrar',
+    priceSchedulePrice: 'Nuevo precio',
+    priceScheduleManual: 'Nuevo precio · transferencia/efectivo',
+    priceScheduleFrom: 'Rige desde',
+    priceScheduleSubmit: 'Programar',
+    priceScheduleSaving: 'Programando…',
+    priceScheduleCancel: 'Cancelar programación',
+    priceScheduleHint:
+      'El precio de arriba sigue vigente hasta esa fecha. El servidor lo aplica solo, sin volver a guardar el evento.',
+    priceSchedulePending: 'Desde {{date}}: {{amount}}',
+    priceSchedulePendingManual: 'Desde {{date}}: {{amount}} · manual {{manual}}',
+    priceScheduleNeedDate: 'Elegí desde cuándo rige el precio nuevo.',
+    priceScheduleNeedFuture: 'La fecha tiene que ser posterior a ahora.',
+    priceScheduleNeedPrice: 'El precio nuevo tiene que ser un entero mayor a 0.',
+    priceScheduleOverwriteHint:
+      'Si cambiás el precio de hoy y guardás el evento, esta programación se cancela.',
     paymentProfileTitle: 'Medios de cobro de este evento',
     paymentProfileHint:
       'Si no tocás nada, vale la configuración de la plataforma. Acá solo podés restringir canales o poner datos bancarios propios.',

@@ -215,6 +215,8 @@ export default function EventsSection({
   onRejectPayment,
   onRejectTicketOrder,
   onSaveEvent,
+  onSetEventRegistrationPrice,
+  onClearEventPriceSchedule,
   onSetEventState,
   onUpdateSecurityUserStatus,
   onUpdateSecurityZone,
@@ -960,6 +962,8 @@ export default function EventsSection({
                 forcedTab={consoleSection}
                 forcedChapter={consoleChapter}
                 sourceEvent={editingSource}
+                onSetEventRegistrationPrice={onSetEventRegistrationPrice}
+                onClearEventPriceSchedule={onClearEventPriceSchedule}
                 onCancel={() => closeForm({ returnToDashboard: true })}
                 onChange={setDraft}
                 onRegisterClose={(fn) => {
@@ -1175,6 +1179,8 @@ export default function EventsSection({
           draft={draft}
           initialFocus={editorFocus}
           sourceEvent={editingSource}
+          onSetEventRegistrationPrice={onSetEventRegistrationPrice}
+          onClearEventPriceSchedule={onClearEventPriceSchedule}
           onCancel={closeForm}
           onChange={setDraft}
           onSubmit={handleSubmit}

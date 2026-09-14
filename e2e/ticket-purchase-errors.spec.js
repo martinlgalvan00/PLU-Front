@@ -81,10 +81,10 @@ test.describe('Errores de compra de entradas', () => {
   test('el formulario arranca con un tipo de entrada seleccionado', async ({ page }) => {
     await navigateToTickets(page, fixture.ticketEventSlug, { title: fixture.ticketEventTitle })
 
-    // Los radios no se pueden dejar vacíos: el default es el primer tipo.
-    // "Enviar sin elegir tipo" no es un estado alcanzable en esta UI.
-    const checked = page.locator('input[name="attendee-0-ticketTypeId"]:checked')
-    await expect(checked).toHaveCount(1)
+    // El select arranca con el primer tipo; no hay estado "sin elegir".
+    const typeSelect = page.locator('select[name="attendee-0-ticketTypeId"]')
+    await expect(typeSelect).toBeVisible()
+    await expect(typeSelect).not.toHaveValue('')
   })
 
   test('un evento con la venta cerrada muestra Próximamente', async ({ page }) => {

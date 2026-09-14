@@ -18,7 +18,7 @@ import FormSection from './FormSection.jsx'
 import { Field, Select } from './FormFields.jsx'
 import StatusPill from './StatusPill.jsx'
 import TicketPassPreview from './TicketPassPreview.jsx'
-import TicketTypeOptions, { zoneScopeList } from './TicketTypeOptions.jsx'
+import { credentialCountLabel, zoneScopeList } from './TicketTypeOptions.jsx'
 import MercadoPagoEmbeddedCheckout from './MercadoPagoEmbeddedCheckout.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { env } from '../../config/env.js'
@@ -40,25 +40,53 @@ function emptyAttendee(pricing) {
   return { fullName: '', dni: '', ticketTypeId: pricing?.ticketTypes?.[0]?.id ?? '', addonIds: [] }
 }
 
+function ticketTypeOptionLabel(type, locale) {
+  return `${type.name} · ${money(type.price, locale)}`
+}
+
 /**
- * Select de tipo para la carga en lote.
- *
- * Seis nombres largos no entran en chips de una celda: acá se elige uno, y el
- * detalle de zonas / precio vive una sola vez arriba, en `TicketTypeOptions`.
+ * Select de tipo: el catálogo vive en la vidriera de ofertas, no se vuelve a
+ * pintar acá. En lote cabe en la fila; en una sola entrada es el mismo control.
  */
-function TicketTypePicker({ error, label, name, onChange, ticketTypes, value }) {
+function TicketTypePicker({
+  className,
+  error,
+  hideLabel = true,
+  label,
+  locale,
+  name,
+  onChange,
+  ticketTypes,
+  value,
+}) {
   return (
     <Select
-      hideLabel
-      className="ticket-purchase__field-batch ticket-purchase__field-type"
+      hideLabel={hideLabel}
+      className={['ticket-purchase__field-type', className].filter(Boolean).join(' ')}
       error={error}
       label={label}
       name={name}
-      options={ticketTypes.map((type) => [type.id, type.name])}
+      options={ticketTypes.map((type) => [type.id, ticketTypeOptionLabel(type, locale)])}
       value={value}
       onChange={(event) => onChange(event.target.value)}
     />
   )
+}
+
+function TicketTypeHint({ t, type }) {
+  if (!type) return null
+
+  const zones = zoneScopeList(type.zoneScopes, t)
+  const count = type.credentialCount ?? 1
+  const parts = [
+    zones ? t('pages.tickets.ticketTypes.soloZone', { zones }) : null,
+    credentialCountLabel(count, t),
+    count > 1 ? t('pages.tickets.ticketTypes.quotaNote') : null,
+  ].filter(Boolean)
+
+  if (!parts.length) return null
+
+  return <p className="ticket-purchase__type-hint">{parts.join(' · ')}</p>
 }
 
 function TicketAddonPicker({ addons, attendee, locale, onToggle, t, ticketTypes }) {
@@ -148,17 +176,6 @@ function EditorialAttendeesBatch({
         </p>
       ) : null}
 
-      {/* En lote la elección vive en cada fila, pero lo que cada tipo abre se
-          dice una vez arriba: repetirlo por asistente sería la misma tabla
-          contada tres veces. */}
-      <TicketTypeOptions
-        className="ticket-purchase__type-guide"
-        locale={locale}
-        showAddons={false}
-        t={t}
-        ticketTypes={pricing.ticketTypes}
-      />
-
       <div className="ticket-purchase__attendees-batch-scroll">
         <div className="ticket-purchase__attendees-batch-table" role="table">
           <div className="ticket-purchase__attendees-batch-head" role="row">
@@ -237,8 +254,10 @@ function EditorialAttendeesBatch({
 
                 <div className="ticket-purchase__attendees-batch-day">
                   <TicketTypePicker
+                    className="ticket-purchase__field-batch"
                     error={errors[`attendee-${index}-ticketTypeId`]}
                     label={`${t('pages.tickets.ticketTypes.legend')} · ${t('pages.tickets.attendee', { index: index + 1 })}`}
+                    locale={locale}
                     name={`attendee-${index}-ticketTypeId`}
                     ticketTypes={pricing.ticketTypes}
                     value={attendee.ticketTypeId}
@@ -335,16 +354,20 @@ function EditorialAttendeeFields({
           maxLength={16}
           autoComplete="off"
         />
-        {/* Elegir el tipo es elegir qué zona se abre, así que la opción lo dice
-            en vez de mostrar sólo el nombre. */}
         <div className="ticket-purchase__field-day">
-          <TicketTypeOptions
+          <TicketTypePicker
+            error={errors[`attendee-${index}-ticketTypeId`]}
+            hideLabel={false}
+            label={t('pages.tickets.ticketTypes.legend')}
             locale={locale}
             name={`attendee-${index}-ticketTypeId`}
-            onChange={(ticketTypeId) => onChange(index, 'ticketTypeId', ticketTypeId)}
-            t={t}
             ticketTypes={pricing.ticketTypes}
             value={attendee.ticketTypeId}
+            onChange={(ticketTypeId) => onChange(index, 'ticketTypeId', ticketTypeId)}
+          />
+          <TicketTypeHint
+            t={t}
+            type={pricing.ticketTypes.find((item) => item.id === attendee.ticketTypeId)}
           />
         </div>
       </div>
