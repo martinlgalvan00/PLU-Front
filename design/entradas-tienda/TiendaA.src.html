@@ -1,0 +1,153 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+@@BASE@@
+    /* ── DIRECCIÓN A · CARTEL, aplicada a la tienda ────────────────
+       La tienda como programa impreso: capítulos numerados separados
+       por reglas. Los eventos son renglones, no tarjetas. */
+
+    .poster { position: relative; min-height: 460px; display: flex; align-items: flex-end; overflow: hidden; }
+    .poster-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 42%; }
+    .poster-scrim { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,11,13,.95) 0%, rgba(10,11,13,.8) 42%, rgba(10,11,13,.2) 82%); }
+    .poster-body { position: relative; padding: 0 64px 48px; width: 100%; display: flex; align-items: flex-end; gap: 40px; }
+    .poster-c { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+    .poster-rail { display: flex; align-items: center; gap: 12px; }
+    .poster-rail .eyebrow { color: var(--celeste-soft); }
+    .poster-rail span.sep { width: 28px; height: 1px; background: var(--rule); }
+    .poster-rail small { font-size: 11px; color: var(--muted); letter-spacing: .06em; }
+    .poster-h1 { font-size: 92px; line-height: .9; font-weight: 700; letter-spacing: -.04em; margin: 0; }
+    .poster-lead { margin: 0; font-size: 16px; color: var(--secondary); line-height: 1.6; max-width: 44ch; }
+    .poster-index { margin-left: auto; display: flex; flex-direction: column; gap: 0; flex: 0 0 auto; min-width: 260px; }
+    .ix { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; padding: 12px 0; border-bottom: 1px solid var(--hairline); }
+    .ix:first-child { border-top: 1px solid var(--hairline); }
+    .ix-n { font-size: 15px; font-weight: 600; }
+    .ix-s { font-size: 11px; color: var(--muted); letter-spacing: .06em; }
+    .ix-s.is-live { color: var(--ok-soft); }
+
+    .chapter { padding: 62px 64px; border-bottom: 1px solid var(--rule); display: flex; flex-direction: column; gap: 30px; }
+    .chapter:last-of-type { border-bottom: none; }
+    .ch-head { display: flex; align-items: flex-end; gap: 26px; }
+    .ch-n { font-size: 12px; font-weight: 700; letter-spacing: .14em; color: var(--faint); padding-bottom: 8px; }
+    .ch-t { font-size: 34px; font-weight: 700; letter-spacing: -.025em; margin: 0; }
+    .ch-p { margin: 0 0 6px auto; font-size: 13.5px; color: var(--muted); line-height: 1.65; max-width: 48ch; text-align: right; }
+
+    .row { display: grid; grid-template-columns: 116px minmax(0, 1fr) 210px 170px; gap: 28px; align-items: baseline; padding: 24px 0; border-bottom: 1px solid var(--hairline); }
+    .row:last-child { border-bottom: none; }
+    .row-date { display: flex; flex-direction: column; gap: 2px; }
+    .row-date strong { font-size: 30px; font-weight: 700; letter-spacing: -.03em; line-height: 1; }
+    .row-date small { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+    .row-c { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .row-name { font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
+    .row-venue { font-size: 13px; color: var(--muted); }
+    .row-state { font-size: 12px; color: var(--ok-soft); font-weight: 600; }
+    .row-state.is-soon { color: var(--muted); font-weight: 500; }
+    .row-buy { text-align: right; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+    .row-buy strong { font-size: 13px; color: var(--faint); font-weight: 500; }
+    .row-buy strong b { color: var(--ink); font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; margin-left: 6px; }
+
+    .soon { display: flex; align-items: flex-end; gap: 36px; }
+    .soon-c { display: flex; flex-direction: column; gap: 12px; max-width: 58ch; }
+    .soon-p { margin: 0; font-size: 14px; color: var(--secondary); line-height: 1.7; }
+    .soon-tag { font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); }
+  </style>
+</helmet>
+
+<section class="poster">
+  <img class="poster-img" src="DSC00286-display-480.webp" alt="">
+  <span class="poster-scrim" aria-hidden></span>
+  <div class="poster-body">
+    <div class="poster-c">
+      <div class="poster-rail">
+        <span class="eyebrow">PLU ARG</span>
+        <span class="sep" aria-hidden></span>
+        <small>Temporada 26/27</small>
+      </div>
+      <h1 class="poster-h1">Tienda</h1>
+      <p class="poster-lead">Entradas, merch y cursos. Sin afiliación para comprar entradas.</p>
+    </div>
+    <div class="poster-index">
+      <div class="ix"><span class="ix-n">Entradas</span><span class="ix-s is-live">3 fechas abiertas</span></div>
+      <div class="ix"><span class="ix-n">Merch oficial</span><span class="ix-s">Próximamente</span></div>
+      <div class="ix"><span class="ix-n">Cursos</span><span class="ix-s">Próximamente</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="chapter">
+  <div class="ch-head">
+    <span class="ch-n">01</span>
+    <h2 class="ch-t">Entradas</h2>
+    <p class="ch-p">Próximas fechas con venta abierta. La entrada de público no requiere afiliación.</p>
+  </div>
+
+  <div>
+    <div class="row">
+      <span class="row-date"><strong class="num">14</strong><small>Nov</small></span>
+      <span class="row-c">
+        <span class="row-name">Pitbull Classic 2026</span>
+        <span class="row-venue">Club Atlético Fénix · Pilar, Buenos Aires</span>
+      </span>
+      <span class="row-state">Venta abierta · cierra el 14 nov</span>
+      <span class="row-buy"><strong>Desde<b class="num">$ 12.000</b></strong><span class="cta-line">Comprar</span></span>
+    </div>
+
+    <div class="row">
+      <span class="row-date"><strong class="num">07</strong><small>Mar</small></span>
+      <span class="row-c">
+        <span class="row-name">Nacional PLU 2027</span>
+        <span class="row-venue">Estadio Obras · Ciudad de Buenos Aires</span>
+      </span>
+      <span class="row-state">Venta abierta · cierra el 6 mar</span>
+      <span class="row-buy"><strong>Desde<b class="num">$ 15.000</b></strong><span class="cta-line">Comprar</span></span>
+    </div>
+
+    <div class="row">
+      <span class="row-date"><strong class="num">23</strong><small>May</small></span>
+      <span class="row-c">
+        <span class="row-name">Copa Litoral</span>
+        <span class="row-venue">Club Regatas · Santa Fe</span>
+      </span>
+      <span class="row-state is-soon">La venta abre el 1 de abril</span>
+      <span class="row-buy"><strong>Desde<b class="num">$ 10.000</b></strong><span class="cta-line">Ver ficha</span></span>
+    </div>
+  </div>
+</section>
+
+<section class="chapter">
+  <div class="ch-head">
+    <span class="ch-n">02</span>
+    <h2 class="ch-t">Merch oficial</h2>
+  </div>
+  <div class="soon">
+    <div class="soon-c">
+      <span class="soon-tag">Próximamente</span>
+      <p class="soon-p">La línea oficial se publica con la temporada: remeras, accesorios y piezas de meet con la identidad de cancha. Sin fecha inventada de apertura.</p>
+    </div>
+    <span class="cta-line" style="margin-left: auto;">Consultar merch</span>
+  </div>
+</section>
+
+<section class="chapter">
+  <div class="ch-head">
+    <span class="ch-n">03</span>
+    <h2 class="ch-t">Cursos y formación</h2>
+  </div>
+  <div class="soon">
+    <div class="soon-c">
+      <span class="soon-tag">Próximamente</span>
+      <p class="soon-p">Formación oficial para jueces, coaches y staff operativo. El catálogo abre cuando esté listo.</p>
+    </div>
+    <span class="cta-line" style="margin-left: auto;">Ver calendario</span>
+  </div>
+</section>
+</x-dc>
+</body>
+</html>

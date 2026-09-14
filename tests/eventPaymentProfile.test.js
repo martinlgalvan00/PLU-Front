@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { HttpError } from '../server/lib/errors.js'
 import {
   applyEventPaymentChannelOverrides,
+  applyManualTicketDeadline,
   assertEventBankTransferReady,
   assertEventPaymentChannelEnabled,
+  assertManualTicketDeadline,
   isEventChannelOpen,
   normalizePaymentChannelOverrides,
   resolveBankTransferDetails,
@@ -100,6 +102,23 @@ describe('applyEventPaymentChannelOverrides', () => {
 
   it('sin override deja la availability intacta', () => {
     expect(applyEventPaymentChannelOverrides(base, null)).toBe(base)
+  })
+
+  it('cierra la venta de entradas si el evento cerró los cuatro medios', () => {
+    const next = applyEventPaymentChannelOverrides(base, {
+      ticket: {
+        mercado_pago: false,
+        bank_transfer: false,
+        cash_pitbull: false,
+        wise_transfer: false,
+      },
+    })
+    // Sin esto la pantalla pública mostraba el formulario completo y el 409
+    // llegaba recién al confirmar.
+    expect(next.ticketEnabled).toBe(false)
+    expect(next.ticketManualEnabled).toBe(false)
+    // Inscripción no se arrastra: tiene cupones que saltean los canales manuales.
+    expect(next.registrationEnabled).toBe(true)
   })
 
   it('cierra un canal solo en el concepto que lo pide', () => {
@@ -321,5 +340,65 @@ describe('assertEventPaymentChannelEnabled', () => {
         eventOverrides: null,
       }),
     ).toThrow(HttpError)
+  })
+})
+
+/**
+ * Los canales manuales contra el calendario. Una transferencia necesita hasta
+ * 72 horas para convertirse en un QR (24 del comprobante + 48 de aprobación):
+ * vendida después de ese punto, la entrada no llega y lo que queda es una
+ * devolución.
+ */
+describe('plazo de los canales manuales de entradas', () => {
+  const STARTS = '2026-12-12T12:00:00.000Z'
+  const LEJOS = new Date('2026-12-01T00:00:00.000Z')
+  const CERCA = new Date('2026-12-11T00:00:00.000Z')
+
+  const availability = {
+    ticketEnabled: true,
+    ticketManualEnabled: true,
+    paymentChannels: {
+      ticket: { mercado_pago: true, bank_transfer: true, cash_pitbull: true, wise_transfer: true },
+    },
+  }
+
+  it('lejos del evento no toca nada', () => {
+    expect(applyManualTicketDeadline(availability, STARTS, LEJOS)).toBe(availability)
+  })
+
+  it('sobre la fecha cierra transferencia, efectivo y Wise, y deja Mercado Pago', () => {
+    const next = applyManualTicketDeadline(availability, STARTS, CERCA)
+    expect(next.paymentChannels.ticket.bank_transfer).toBe(false)
+    expect(next.paymentChannels.ticket.cash_pitbull).toBe(false)
+    expect(next.paymentChannels.ticket.wise_transfer).toBe(false)
+    expect(next.paymentChannels.ticket.mercado_pago).toBe(true)
+    expect(next.ticketManualEnabled).toBe(false)
+    expect(next.ticketEnabled).toBe(true)
+  })
+
+  it('si Mercado Pago ya estaba cerrado, cierra la venta entera', () => {
+    const soloManual = {
+      ...availability,
+      paymentChannels: { ticket: { ...availability.paymentChannels.ticket, mercado_pago: false } },
+    }
+    expect(applyManualTicketDeadline(soloManual, STARTS, CERCA).ticketEnabled).toBe(false)
+  })
+
+  it('un evento sin fecha no pierde la venta por una regla de calendario', () => {
+    expect(applyManualTicketDeadline(availability, null, CERCA)).toBe(availability)
+    expect(() => assertManualTicketDeadline('bank_transfer', null, CERCA)).not.toThrow()
+  })
+
+  it('la orden rebota con el motivo y la fecha de corte', () => {
+    expect(() => assertManualTicketDeadline('bank_transfer', STARTS, CERCA)).toThrowError(
+      expect.objectContaining({
+        status: 409,
+        details: expect.objectContaining({ code: 'TICKET_MANUAL_DEADLINE_PASSED' }),
+      }),
+    )
+  })
+
+  it('Mercado Pago pasa aunque falten horas', () => {
+    expect(() => assertManualTicketDeadline('mercado_pago', STARTS, CERCA)).not.toThrow()
   })
 })

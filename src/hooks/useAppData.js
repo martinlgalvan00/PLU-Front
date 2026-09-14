@@ -1564,21 +1564,32 @@ export function useAppData() {
   // "no se puede duplicar/reusar", y esa garantía no existe sin una base
   // de datos real arbitrando el check-in.
   const submitTicketPurchase = useCallback(
-    async (event, purchaseEvent, attendees, paymentMethod) => {
+    async (event, purchaseEvent, attendees, paymentMethod, buyer = null) => {
       event.preventDefault()
+      // Los tres canales que se acreditan a mano viajan como `manual`; cuál de
+      // ellos es lo dice `manualPaymentChannel`. La transferencia sigue sin
+      // mandarlo: la RPC ya la toma como default del provider manual.
       const provider =
         paymentMethod === 'transferencia' ||
         paymentMethod === 'manual_link' ||
+        paymentMethod === 'cash_pitbull' ||
         paymentMethod === 'wise_transfer'
           ? 'manual'
           : paymentMethod
-      const manualPaymentChannel = paymentMethod === 'wise_transfer' ? 'wise_transfer' : undefined
+      const manualPaymentChannel =
+        paymentMethod === 'wise_transfer' || paymentMethod === 'cash_pitbull'
+          ? paymentMethod
+          : undefined
       try {
         const attemptFingerprint = JSON.stringify([
           purchaseEvent.slug,
           attendees,
           provider,
           manualPaymentChannel,
+          // El comprador entra en la huella: corregir el mail y reenviar tiene
+          // que crear una orden nueva, no reusar la clave de idempotencia de la
+          // anterior y devolver la orden con la dirección equivocada.
+          buyer,
         ])
         if (ticketAttemptRef.current?.fingerprint !== attemptFingerprint) {
           ticketAttemptRef.current = {
@@ -1600,6 +1611,7 @@ export function useAppData() {
             ticketTypeId: attendee.ticketTypeId,
             addonIds: attendee.addonIds ?? [],
           })),
+          buyer: buyer ?? undefined,
           provider,
           manualPaymentChannel,
           idempotencyKey: ticketAttemptRef.current.idempotencyKey,

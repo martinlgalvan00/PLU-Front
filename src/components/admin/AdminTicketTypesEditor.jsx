@@ -1,5 +1,6 @@
 import { HelpCircle, Plus, Tag, Trash2 } from 'lucide-react'
 import Button from '../ui/Button.jsx'
+import DateTimeLocalInput from '../ui/DateTimeLocalInput.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
 import { defaultTicketCredential } from '../../lib/ticketCredentials.js'
@@ -10,6 +11,12 @@ function createEmptyTicketType(index) {
   return {
     name: '',
     price: 0,
+    // Vacío: sin USD propio el checkout convierte el precio en pesos, que es
+    // el comportamiento de siempre. Poner 0 sería un precio inválido.
+    wisePrice: '',
+    // Vacías: hereda la ventana del evento.
+    salesOpensAt: '',
+    salesClosesAt: '',
     quota: null,
     sortOrder: index,
     active: true,
@@ -196,6 +203,37 @@ export default function AdminTicketTypesEditor({
                       </small>
                     ) : null}
                   </label>
+                  {/* Precio en USD para Wise. Vacío = se deriva del precio en
+                      pesos por el dólar configurado, que es lo que pasaba antes
+                      de que esto se pudiera cargar. */}
+                  <label className="admin-event-form__field">
+                    <span>{t('admin.eventEditor.supabase.ticketTypeWisePrice')}</span>
+                    <span className="admin-event-form__rate-card-input">
+                      <input
+                        disabled={!canEdit}
+                        min={1}
+                        max={100000}
+                        type="number"
+                        value={type.wisePrice ?? ''}
+                        name={`ticketTypes.${index}.wisePrice`}
+                        data-field={`ticketTypes.${index}.wisePrice`}
+                        aria-invalid={Boolean(errors[`ticketTypes.${index}.wisePrice`])}
+                        onChange={(event) =>
+                          patchTicketType(index, {
+                            wisePrice:
+                              event.target.value === '' ? '' : Number(event.target.value),
+                          })
+                        }
+                        placeholder={t('admin.eventEditor.supabase.ticketTypeWisePricePlaceholder')}
+                      />
+                      <span aria-hidden>USD</span>
+                    </span>
+                    {errors[`ticketTypes.${index}.wisePrice`] ? (
+                      <small className="admin-event-form__error" role="alert">
+                        {errors[`ticketTypes.${index}.wisePrice`]}
+                      </small>
+                    ) : null}
+                  </label>
                   <label className="admin-event-form__field">
                     <span>{t('admin.eventEditor.supabase.ticketTypeQuota')}</span>
                     <input
@@ -223,6 +261,56 @@ export default function AdminTicketTypesEditor({
                       dejaba las otras dos columnas con un hueco al costado. */}
                   <small className="admin-ticket-types__grid-note">
                     {t('admin.eventEditor.supabase.ticketTypeQuotaHint')}
+                  </small>
+                </div>
+
+                {/* Ventana propia del tipo. Sólo cierra antes que la del
+                    evento: es para que una preventa se apague sola en vez de
+                    depender de que alguien entre al panel ese día. */}
+                <div className="admin-ticket-types__window">
+                  <span className="admin-ticket-types__days-label">
+                    {t('admin.eventEditor.supabase.ticketTypeWindowLabel')}
+                  </span>
+                  <div className="admin-ticket-types__window-grid">
+                    <label className="admin-event-form__field">
+                      <span>{t('admin.eventEditor.supabase.ticketTypeSalesOpensAt')}</span>
+                      <DateTimeLocalInput
+                        disabled={!canEdit}
+                        name={`ticketTypes.${index}.salesOpensAt`}
+                        data-field={`ticketTypes.${index}.salesOpensAt`}
+                        value={type.salesOpensAt ?? ''}
+                        aria-invalid={Boolean(errors[`ticketTypes.${index}.salesOpensAt`])}
+                        onChange={(event) =>
+                          patchTicketType(index, { salesOpensAt: event.target.value })
+                        }
+                      />
+                      {errors[`ticketTypes.${index}.salesOpensAt`] ? (
+                        <small className="admin-event-form__error" role="alert">
+                          {errors[`ticketTypes.${index}.salesOpensAt`]}
+                        </small>
+                      ) : null}
+                    </label>
+                    <label className="admin-event-form__field">
+                      <span>{t('admin.eventEditor.supabase.ticketTypeSalesClosesAt')}</span>
+                      <DateTimeLocalInput
+                        disabled={!canEdit}
+                        name={`ticketTypes.${index}.salesClosesAt`}
+                        data-field={`ticketTypes.${index}.salesClosesAt`}
+                        value={type.salesClosesAt ?? ''}
+                        aria-invalid={Boolean(errors[`ticketTypes.${index}.salesClosesAt`])}
+                        onChange={(event) =>
+                          patchTicketType(index, { salesClosesAt: event.target.value })
+                        }
+                      />
+                      {errors[`ticketTypes.${index}.salesClosesAt`] ? (
+                        <small className="admin-event-form__error" role="alert">
+                          {errors[`ticketTypes.${index}.salesClosesAt`]}
+                        </small>
+                      ) : null}
+                    </label>
+                  </div>
+                  <small className="admin-ticket-types__grid-note">
+                    {t('admin.eventEditor.supabase.ticketTypeWindowHint')}
                   </small>
                 </div>
 

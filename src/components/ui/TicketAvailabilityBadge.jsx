@@ -13,21 +13,39 @@ export default function TicketAvailabilityBadge({ remaining, className = '' }) {
   const low = !soldOut && remaining <= LOW_AVAILABILITY_THRESHOLD
   const tone = soldOut ? 'sold-out' : low ? 'low' : 'available'
 
+  const statusLabel = soldOut
+    ? t('ticketAvailability.soldOut')
+    : low
+      ? t('ticketAvailability.lowStock', { count: remaining })
+      : t('ticketAvailability.availableCount', { count: remaining })
+
   if (soldOut) {
     return (
-      <p className={`ticket-availability ticket-availability--${tone} ${className}`.trim()}>
-        <span className="ticket-availability__label">{t('ticketAvailability.soldOut')}</span>
+      <p
+        className={`ticket-availability ticket-availability--${tone} ${className}`.trim()}
+        aria-label={statusLabel}
+      >
+        <span className="ticket-availability__label" aria-hidden>
+          {t('ticketAvailability.soldOut')}
+        </span>
       </p>
     )
   }
 
   return (
-    <p className={`ticket-availability ticket-availability--${tone} ${className}`.trim()}>
-      <span className="ticket-availability__count">{remaining}</span>
-      <span className="ticket-availability__copy">
-        <span className="ticket-availability__eyebrow">
-          {low ? t('ticketAvailability.lowStockEyebrow') : t('ticketAvailability.availableEyebrow')}
-        </span>
+    <p
+      className={`ticket-availability ticket-availability--${tone} ${className}`.trim()}
+      aria-label={statusLabel}
+    >
+      <span className="ticket-availability__count" aria-hidden>
+        {remaining}
+      </span>
+      <span className="ticket-availability__copy" aria-hidden>
+        {low ? (
+          <span className="ticket-availability__eyebrow">
+            {t('ticketAvailability.lowStockEyebrow')}
+          </span>
+        ) : null}
         <span className="ticket-availability__label">{t('ticketAvailability.publicTickets')}</span>
       </span>
     </p>

@@ -559,6 +559,8 @@ export default {
     },
     haveAccountLabel: 'Already have an account?',
     haveAccountAction: 'Sign in with my email',
+    spectatorLabel: 'Just coming to watch?',
+    spectatorAction: 'Buy tickets',
     contact: 'I would rather talk to a person',
     assist: {
       title: 'Simple mode',
@@ -3062,6 +3064,7 @@ export default {
     },
     home: {
       viewResults: 'View results',
+      spectatorTickets: 'Buy tickets to watch it live',
       viewCalendar: 'View calendar',
       membershipBenefitsAria: 'What membership includes',
       membershipMetaAria: 'Season and category',
@@ -3257,6 +3260,7 @@ export default {
       dniWhy:
         'Your ID appears on the ticket and is verified at the door. No account or membership required.',
       day: 'Day',
+      ticketTypeCol: 'Type',
       day1: 'Day 1',
       day2: 'Day 2',
       bothDays: 'Both days',
@@ -3291,6 +3295,21 @@ export default {
       paymentTransfer: 'Bank transfer',
       paymentMpHint: 'Automatic payment · QR enabled once confirmed',
       paymentTransferHint: 'Manual validation by Administration · up to 48 hours',
+      buyerTitle: 'Your details',
+      buyerLead: 'We send the QR tickets to this address, plus a note when the payment clears.',
+      buyerName: 'Full name',
+      buyerNamePlaceholder: 'Who is buying',
+      buyerEmail: 'Email',
+      buyerEmailPlaceholder: 'name@mail.com',
+      buyerPhone: 'Phone (optional)',
+      buyerPhonePlaceholder: '11 5555 5555',
+      paymentCash: 'Cash at Pitbull',
+      paymentCashHint: 'Pay at the gym · no receipt to upload',
+      paymentWiseSoon: 'Coming soon',
+      cashNote:
+        'Drop by Pitbull with this code and pay at the desk. Administration credits the purchase on the spot and your QR is enabled.',
+      cashWhereLabel: 'Where to pay',
+      cashWhereValue: 'Pitbull Gym, during opening hours',
       paymentMpCheckout:
         'With Mercado Pago, confirmation is automatic and your QR is ready right away.',
       paymentMpPending:
@@ -3750,6 +3769,9 @@ export default {
     requiredForRegistration: 'Required to register',
     invalid: 'Invalid data',
     attendeeName: 'Name required',
+    buyerName: 'Enter your full name.',
+    buyerEmail: 'Enter a valid email: that is where the ticket goes.',
+    buyerPhone: 'Check the phone number or leave it empty.',
     attendeeDni: '7 or 8 digits',
     attendeeDniDuplicate: 'Same as ticket {{index}}',
     attendeeDay: 'Select a valid day.',

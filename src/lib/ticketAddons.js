@@ -13,6 +13,8 @@ export function createEmptyTicketAddon(overrides = {}) {
     label: '',
     description: '',
     price: 0,
+    // USD propio para pagos por Wise. Vacio = se convierte el precio en pesos.
+    wisePrice: '',
     redeemLabel: '',
     enabled: true,
     sortOrder: 0,
@@ -26,6 +28,9 @@ export function normalizeTicketAddon(raw = {}, index = 0) {
     label: String(raw.label ?? '').trim(),
     description: String(raw.description ?? '').trim(),
     price: Math.max(0, Number(raw.price) || 0),
+    // Se conserva tal cual lo cargo el panel: 0 o vacio significan "sin precio
+    // propio", y ahi manda la conversion. Redondearlo aca inventaria un monto.
+    wisePrice: Number(raw.wisePrice) > 0 ? Math.trunc(Number(raw.wisePrice)) : null,
     redeemLabel: String(raw.redeemLabel ?? '').trim(),
     enabled: raw.enabled !== false,
     sortOrder: Number.isFinite(Number(raw.sortOrder)) ? Number(raw.sortOrder) : index,

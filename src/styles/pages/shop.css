@@ -260,18 +260,45 @@
   text-transform: uppercase;
 }
 
-.shop-hero__price {
-  color: #fff;
-  font-family: var(--font-display);
-  font-size: clamp(20px, 2.5vw, 28px);
-  font-weight: 650;
-  letter-spacing: -0.03em;
-  margin: 0;
+.shop-hero__offer {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  min-width: 0;
   order: 1;
 }
 
+.shop-hero__price {
+  color: #fff;
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.shop-hero__price-caption {
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.shop-hero__price-amount {
+  font-family: var(--font-display);
+  font-feature-settings: 'tnum';
+  font-size: clamp(28px, 3.6vw, 42px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.92;
+}
+
+.shop-hero__price--status,
 .shop-hero--preview .shop-hero__price {
   color: color-mix(in srgb, var(--plu-gold-300, #ffe8a3) 88%, #fff);
+  display: block;
+  font-family: var(--font-display);
   font-size: clamp(15px, 1.8vw, 18px);
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -284,17 +311,17 @@
   line-height: 1.45;
   margin: 0;
   max-width: 28ch;
-  order: 2;
 }
 
 .shop-hero__availability {
   justify-self: start;
   max-width: 100%;
-  order: 2;
 }
 
 .shop-hero__availability .ticket-availability__count {
-  color: #fff;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: clamp(16px, 1.7vw, 20px);
+  font-weight: 550;
 }
 
 .shop-hero__availability .ticket-availability__eyebrow {
@@ -302,7 +329,8 @@
 }
 
 .shop-hero__availability .ticket-availability__label {
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
 }
 
 .shop-hero__availability.ticket-availability--low .ticket-availability__count {

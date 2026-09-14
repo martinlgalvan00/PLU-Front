@@ -215,7 +215,7 @@ export const DatosFormularioLargo = {
   },
 }
 
-/** Entradas: los cuatro capítulos como sub-pestañas, un tema a la vez. */
+/** Entradas: los cuatro capítulos como submenú del rail, un tema a la vez. */
 export const Entradas = {
   args: {
     ...baseArgs,

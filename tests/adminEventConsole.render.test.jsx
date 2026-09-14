@@ -114,11 +114,15 @@ function tabRail(panel) {
   return within(panel).getByRole('tablist', { name: /secciones del evento/i })
 }
 
-/** Los capítulos de Ventas viven in-flow en la columna principal, no en una
- *  cabecera sticky -- y "Cupo" también matchea la pestaña "Ventas y cupos"
- *  del rail si se busca sin acotar. */
+/** Los capítulos de Ventas viven en el submenú del rail (desktop) y en una
+ *  barra in-flow de la columna principal (mobile) -- y "Cupo" también
+ *  matchea la pestaña "Ventas y cupos" del rail si se busca sin acotar. */
 function chaptersRail(panel) {
   return within(panel).getByRole('tablist', { name: /capítulos/i })
+}
+
+function salesSubnav(panel) {
+  return within(tabRail(panel)).getByRole('group', { name: /capítulos/i })
 }
 
 function openTab(panel, name) {
@@ -189,11 +193,16 @@ describe('EventsSection — página del evento', () => {
     expect(within(rail).getByRole('tab', { name: /pagos/i })).toBeTruthy()
     expect(within(rail).getByRole('tab', { name: /vista pública/i })).toBeTruthy()
 
-    // Los números salen del evento, no son decorativos.
     expect(panel.textContent).toContain('Pitbull Classic')
-    expect(panel.textContent).toContain('48 de 80')
-    expect(panel.textContent).toContain('1 pendientes')
-    expect(panel.textContent).toContain('Ocupación')
+
+    // Ocupación y accesos viven en el Resumen, no en la pestaña que abre por
+    // defecto: la consola dejó de repartirlos en un rail al costado de cada
+    // superficie. Los números se siguen comprobando ahí, que es donde el
+    // operador los lee.
+    const resumen = openTab(panel, /resumen/i)
+    expect(resumen.textContent).toContain('48 de 80')
+    expect(resumen.textContent).toContain('1 pendientes')
+    expect(resumen.textContent).toContain('Ocupación')
   })
 
   it('mantiene Inscripciones y Check-in como accesos, no como pestañas', () => {
@@ -207,11 +216,18 @@ describe('EventsSection — página del evento', () => {
     expect(within(tabRail(panel)).queryByRole('tab', { name: /inscripciones/i })).toBeNull()
     expect(within(tabRail(panel)).queryByRole('tab', { name: /check-in/i })).toBeNull()
 
-    fireEvent.click(within(panel).getByRole('button', { name: /inscripciones/i }))
+    // Siguen siendo accesos, pero ahora agrupados en el Resumen en vez de
+    // repetirse en el rail de cada superficie.
+    const resumen = openTab(panel, /resumen/i)
+
+    fireEvent.click(within(resumen).getByRole('button', { name: /inscripciones/i }))
     expect(onManageRegistrations).toHaveBeenCalled()
+
+    // El Resumen ofrece dos caminos al mismo lugar (la acción rápida y la
+    // tarjeta de operación), así que se apunta a la tarjeta por su bajada.
     fireEvent.click(
       within(screen.getByRole('region', { name: 'Evento seleccionado' })).getByRole('button', {
-        name: /check-in/i,
+        name: /puerta y qr/i,
       }),
     )
     expect(onManageCheckin).toHaveBeenCalled()
@@ -399,13 +415,21 @@ describe('EventsSection — página del evento', () => {
 
   it('divide Entradas en Cupo, Precios, Entradas y Cobro, un capítulo a la vez', () => {
     renderEvents()
-    // Los capítulos viven in-flow arriba del formulario, en la columna
-    // principal: se buscan por el tablist de capítulos, no por el rail.
-    const panel = openTab(workspace(), /^ventas/i)
+    const panel = workspace()
+    expect(within(tabRail(panel)).queryByRole('group', { name: /capítulos/i })).toBeNull()
+    const after = openTab(panel, /^ventas/i)
     const col = mainCol()
-    const chapters = chaptersRail(panel)
+    const chapters = chaptersRail(after)
+    const subnav = salesSubnav(after)
 
     expect(col.contains(chapters)).toBe(true)
+    expect(
+      within(tabRail(after)).getByRole('tab', { name: /^ventas/i }).getAttribute('aria-expanded'),
+    ).toBe('true')
+    expect(within(subnav).getByRole('button', { name: /^cupo$/i })).toBeTruthy()
+    expect(within(subnav).getByRole('button', { name: /^precios$/i })).toBeTruthy()
+    expect(within(subnav).getByRole('button', { name: /^entradas$/i })).toBeTruthy()
+    expect(within(subnav).getByRole('button', { name: /^cobro$/i })).toBeTruthy()
 
     expect(within(chapters).getByRole('tab', { name: /cupo/i })).toBeTruthy()
     expect(within(chapters).getByRole('tab', { name: /precios/i })).toBeTruthy()
@@ -416,11 +440,16 @@ describe('EventsSection — página del evento', () => {
     expect(col.querySelector('.admin-event-form__lane--tickets').hidden).toBe(true)
     expect(col.querySelector('.admin-event-form__lane--payment').hidden).toBe(true)
 
-    fireEvent.click(within(chapters).getByRole('tab', { name: /cobro/i }))
+    fireEvent.click(within(subnav).getByRole('button', { name: /^cobro$/i }))
     expect(mainCol().querySelector('.admin-event-form__lane--payment').hidden).toBe(false)
     expect(mainCol().querySelector('.admin-event-form__lane--cupo').hidden).toBe(true)
 
-    fireEvent.click(within(chapters).getByRole('tab', { name: /entradas/i }))
+    fireEvent.click(
+      within(chaptersRail(screen.getByRole('region', { name: 'Evento seleccionado' }))).getByRole(
+        'tab',
+        { name: /entradas/i },
+      ),
+    )
     expect(mainCol().querySelector('.admin-event-form__lane--tickets').hidden).toBe(false)
     expect(within(mainCol()).getByText(/vender entradas/i)).toBeTruthy()
     expect(within(mainCol()).queryByText(/configurar entradas/i)).toBeNull()

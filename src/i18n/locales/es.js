@@ -571,6 +571,8 @@ export default {
     },
     haveAccountLabel: '¿Ya tenés cuenta?',
     haveAccountAction: 'Entrar con mi correo',
+    spectatorLabel: '¿Solo venís a mirar?',
+    spectatorAction: 'Comprar entradas',
     contact: 'Prefiero que me ayude una persona',
     assist: {
       title: 'Modo simple',
@@ -3095,6 +3097,7 @@ export default {
     },
     home: {
       viewResults: 'Ver resultados',
+      spectatorTickets: 'Comprar entradas para ir a verlo',
       viewCalendar: 'Ver calendario',
       membershipBenefitsAria: 'Qué incluye la afiliación',
       membershipMetaAria: 'Temporada y categoría',
@@ -3291,6 +3294,7 @@ export default {
       dniWhy:
         'Tu DNI va en la entrada y se verifica al ingreso. No hace falta cuenta ni afiliación.',
       day: 'Día',
+      ticketTypeCol: 'Tipo',
       day1: 'Día 1',
       day2: 'Día 2',
       bothDays: 'Ambos días',
@@ -3328,6 +3332,21 @@ export default {
       paymentTransfer: 'Transferencia bancaria',
       paymentMpHint: 'Pago automático · QR habilitado al confirmarse',
       paymentTransferHint: 'Validación manual por Administración · hasta 48 horas',
+      buyerTitle: 'Tus datos',
+      buyerLead: 'A este mail te mandamos las entradas con el QR y el aviso cuando se acredite el pago.',
+      buyerName: 'Nombre y apellido',
+      buyerNamePlaceholder: 'Quien compra',
+      buyerEmail: 'Email',
+      buyerEmailPlaceholder: 'nombre@mail.com',
+      buyerPhone: 'Teléfono (opcional)',
+      buyerPhonePlaceholder: '11 5555 5555',
+      paymentCash: 'Efectivo en Pitbull',
+      paymentCashHint: 'Pagás en el gimnasio · sin comprobante para subir',
+      paymentWiseSoon: 'Próximamente',
+      cashNote:
+        'Pasá por Pitbull con este código y pagá en caja. Administración acredita la compra en el momento y tu QR queda habilitado.',
+      cashWhereLabel: 'Dónde pagar',
+      cashWhereValue: 'Pitbull Gym, en horario de atención',
       paymentMpCheckout:
         'Al pagar con Mercado Pago, la confirmación es automática y tu QR queda listo enseguida.',
       paymentMpPending:
@@ -3797,6 +3816,9 @@ export default {
     weight: 'Ingresá un peso entre 10 y 250 kg.',
     invalid: 'Datos inválidos',
     attendeeName: 'Falta el nombre',
+    buyerName: 'Ingresá tu nombre y apellido.',
+    buyerEmail: 'Ingresá un email válido: ahí te llega la entrada.',
+    buyerPhone: 'Revisá el teléfono o dejalo vacío.',
     attendeeDni: '7 u 8 dígitos',
     attendeeDniDuplicate: 'Repetido con la entrada {{index}}',
     attendeeDay: 'Seleccioná un día válido.',

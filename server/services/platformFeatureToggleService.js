@@ -320,10 +320,21 @@ export function resolvePublicCheckoutAvailability(toggles, env = process.env) {
   )
   const manual = (concept) =>
     MANUAL_PAYMENT_CHANNELS.some((channel) => paymentChannels[concept][channel])
+  /**
+   * Sin ningún canal abierto no hay venta posible, y el assert del servidor ya
+   * lo trata así (`*_NO_PAYMENT_CHANNEL`). Faltaba que llegara al payload
+   * público: la pantalla mostraba el formulario completo y el 409 aparecía
+   * recién al confirmar, con los datos ya cargados.
+   *
+   * Sólo se aplica a entradas. Inscripción y afiliación tienen cupones que
+   * saltean los canales manuales (`override` en `assertPaymentChannelEnabled`),
+   * así que ahí "todo cerrado" no significa que nadie pueda comprar.
+   */
+  const ticketChannelOpen = PAYMENT_CHANNELS.some((channel) => paymentChannels.ticket[channel])
   return {
     membershipEnabled: intake.membership,
     registrationEnabled: intake.registration,
-    ticketEnabled: intake.ticket,
+    ticketEnabled: intake.ticket && ticketChannelOpen,
     membershipManualEnabled: manual('membership'),
     registrationManualEnabled: manual('registration'),
     ticketManualEnabled: manual('ticket'),

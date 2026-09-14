@@ -92,7 +92,11 @@ function QueueItemRow({
       ((item.paymentId &&
          item.method === 'manual_link' &&
          (hasProof || item.cashAtPitbull || canOverrideWithoutProof)) ||
-        (item.orderId && item.provider === 'manual' && hasProof)),
+        (item.orderId &&
+          item.provider === 'manual' &&
+          // El efectivo en caja no tiene comprobante que esperar, igual que del
+          // lado atleta: la orden ya está lista para acreditar.
+          (hasProof || item.cashAtPitbull))),
   )
 
   return (

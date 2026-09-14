@@ -196,6 +196,51 @@ describe('API administrativa de eventos', () => {
     }
   })
 
+  it('si ticket_types.wise_price no existe, lee el catalogo sin esa columna', async () => {
+    const staff = await buildStaffUser({ role: 'admin_maximal', email: 'catalog-compat@events.test' })
+    const prisma = createPrismaDouble([staff])
+    const published = [
+      {
+        ...canonicalEvent(),
+        published: true,
+        registration_opens_at: '2026-08-20T10:00:00-03:00',
+      },
+    ]
+    const orderCompat = vi.fn(async () => ({ data: published, error: null }))
+    const inCompat = vi.fn(() => ({ order: orderCompat }))
+    const eqCompat = vi.fn(() => ({ in: inCompat }))
+    const select = vi.fn((columns) => {
+      if (String(columns).includes('price, wise_price, quota')) {
+        return {
+          eq: () => ({
+            in: () => ({
+              order: async () => ({
+                data: null,
+                error: {
+                  code: '42703',
+                  message: 'column ticket_types_1.wise_price does not exist',
+                },
+              }),
+            }),
+          }),
+        }
+      }
+      return { order: vi.fn(async () => ({ data: published, error: null })), eq: eqCompat }
+    })
+    const supabase = { from: vi.fn(() => ({ select })), rpc: vi.fn(), storage: { from: vi.fn() } }
+    const target = listen(createApp({ prisma, supabaseAdmin: supabase }))
+    try {
+      const response = await fetch(`${target.url}/api/events/catalog`)
+      const body = await response.json()
+      expect(response.status).toBe(200)
+      expect(select).toHaveBeenCalledTimes(2)
+      expect(String(select.mock.calls[1][0])).not.toContain('price, wise_price, quota')
+      expect(body.events[0]).toMatchObject({ id: EVENT_ID, published: true })
+    } finally {
+      await target.close()
+    }
+  })
+
   it.each([
     ['apagado', { active: false, audience: 'public' }],
     ['restringido', { active: true, audience: 'code' }],

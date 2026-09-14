@@ -1934,44 +1934,6 @@
   display: none;
 }
 
-.admin-shell .admin-event-ticket-insights__stripe {
-  background: var(--admin-brand);
-}
-
-.admin-shell .admin-event-ticket-insights__head svg,
-.admin-shell .admin-event-ticket-insights__metric--celeste .admin-event-ticket-insights__icon,
-.admin-shell .admin-event-ticket-insights__metric--celeste .admin-event-ticket-insights__value {
-  color: var(--admin-brand);
-}
-
-.admin-shell .admin-event-ticket-insights__metric--gold .admin-event-ticket-insights__icon,
-.admin-shell .admin-event-ticket-insights__metric--gold .admin-event-ticket-insights__value {
-  color: var(--admin-premium);
-}
-
-.admin-shell .admin-event-ticket-insights__metric--success .admin-event-ticket-insights__icon,
-.admin-shell .admin-event-ticket-insights__metric--success .admin-event-ticket-insights__value {
-  color: var(--admin-status-success);
-}
-
-.admin-shell .admin-event-ticket-insights__metric--celeste,
-.admin-shell .admin-event-ticket-insights__metric--celeste .admin-event-ticket-insights__icon {
-  background: var(--admin-brand-soft);
-  border-color: var(--admin-brand-border);
-}
-
-.admin-shell .admin-event-ticket-insights__metric--gold,
-.admin-shell .admin-event-ticket-insights__metric--gold .admin-event-ticket-insights__icon {
-  background: var(--admin-premium-soft);
-  border-color: color-mix(in srgb, var(--admin-premium) 24%, transparent);
-}
-
-.admin-shell .admin-event-ticket-insights__metric--success,
-.admin-shell .admin-event-ticket-insights__metric--success .admin-event-ticket-insights__icon {
-  background: var(--admin-status-success-bg);
-  border-color: var(--admin-status-success-border);
-}
-
 /* El editor conserva preview lateral en desktop y prioriza edición limpia en pantallas compactas. */
 .admin-event-editor-modal__panel .admin-event-form--editor > *,
 .admin-event-editor-modal__panel .admin-event-form__body > *,
@@ -2955,40 +2917,6 @@
    modal al tocar una fila (admin-event-console.css §6). El split de dos
    columnas y su altura fija fueron retirados con el panel lateral. ---- */
 
-@media (min-width: 1200px) {
-  .admin-event-console-modal .admin-event-ticket-insights__metrics {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .admin-event-console-modal .admin-event-ticket-insights__metric {
-    align-items: start;
-    display: grid;
-    gap: 6px;
-    padding: 10px;
-  }
-
-  .admin-event-console-modal .admin-event-ticket-insights__metric dd {
-    margin-left: 0;
-    text-align: left;
-  }
-
-  .admin-event-console-modal .admin-event-ticket-insights__breakdown {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .admin-event-console-modal .admin-event-ticket-insights__breakdown li {
-    align-items: center;
-    border-left: 1px solid var(--admin-hairline);
-    border-top: 0;
-    flex-direction: column;
-    justify-content: center;
-    text-align: center;
-  }
-
-  .admin-event-console-modal .admin-event-ticket-insights__breakdown li:first-child {
-    border-left: 0;
-  }
-}
 
 @media (max-width: 1100px) {
   .admin-shell .admin-filters--inline.admin-filters--compact {
@@ -7994,80 +7922,6 @@
 .admin-event-console-modal__panel .admin-event-preview__meta strong,
 .admin-event-console-modal__panel .admin-event-preview__meta code {
   color: var(--admin-ink);
-}
-
-.admin-event-console-modal__panel .admin-event-ticket-insights {
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid var(--admin-hairline);
-  border-radius: 0;
-  box-shadow: none;
-  gap: 0;
-  padding: 18px 0;
-}
-
-.admin-event-console-modal__panel .admin-event-ticket-insights__head {
-  margin-bottom: 13px;
-}
-
-.admin-event-console-modal__panel .admin-event-ticket-insights__stripe {
-  background: var(--admin-brand);
-  height: 12px;
-  opacity: 0.82;
-  width: 1px;
-}
-
-.admin-event-console-modal__panel .admin-event-ticket-insights__metrics {
-  gap: 0;
-}
-
-.admin-event-console-modal__panel .admin-event-ticket-insights__metric {
-  background: transparent;
-  border: 0;
-  border-left: 1px solid var(--admin-hairline);
-  border-radius: 0;
-  box-shadow: none;
-  padding: 4px 12px;
-}
-
-.admin-event-console-modal__panel .admin-event-ticket-insights__metric:first-child {
-  border-left: 0;
-  padding-left: 0;
-}
-
-.admin-event-console-modal__panel .admin-event-ticket-insights__metric:last-child {
-  padding-right: 0;
-}
-
-.admin-event-console-modal__panel .admin-event-ticket-insights__metric::before {
-  display: none;
-}
-
-.admin-event-console-modal__panel .admin-event-ticket-insights__icon {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  height: auto;
-  width: auto;
-}
-
-.admin-event-console-modal__panel
-  .admin-event-ticket-insights__metric
-  .admin-event-ticket-insights__value {
-  color: var(--admin-ink);
-}
-
-.admin-event-console-modal__panel .admin-event-ticket-insights__breakdown {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  border-top: 1px solid var(--admin-hairline);
-  margin-top: 14px;
-}
-
-.admin-event-console-modal__panel .admin-event-ticket-insights__breakdown li {
-  border-color: var(--admin-hairline);
-  padding-block: 9px;
 }
 
 .admin-event-console-modal__panel .admin-event-addon-report {

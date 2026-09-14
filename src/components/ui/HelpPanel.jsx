@@ -98,6 +98,7 @@ export default function HelpPanel({
   onRunNext,
   onLogin,
   onStartTour = null,
+  onTickets = null,
 }) {
   const { locale, t } = useI18n()
   const { assist, toggleAssist } = useAssist()
@@ -142,6 +143,11 @@ export default function HelpPanel({
   function goToLogin() {
     onClose()
     onLogin?.()
+  }
+
+  function goToTickets() {
+    onClose()
+    onTickets?.()
   }
 
   function goToContact() {
@@ -252,6 +258,20 @@ export default function HelpPanel({
                 <span>{t('help.haveAccountLabel')}</span>
                 <button type="button" className="help-panel__door-link" onClick={goToLogin}>
                   {t('help.haveAccountAction')}
+                  <ArrowRight size={13} strokeWidth={2.25} aria-hidden />
+                </button>
+              </p>
+            ) : null}
+
+            {/* Los tres pasos son el trámite del atleta. Quien entra a mirar no
+                necesita ninguno —la entrada de público no pide afiliación— y
+                hasta acá el panel lo dejaba sin salida: en móvil se abre solo
+                en la primera visita y es lo primero que ve. */}
+            {onTickets ? (
+              <p className="help-panel__door">
+                <span>{t('help.spectatorLabel')}</span>
+                <button type="button" className="help-panel__door-link" onClick={goToTickets}>
+                  {t('help.spectatorAction')}
                   <ArrowRight size={13} strokeWidth={2.25} aria-hidden />
                 </button>
               </p>

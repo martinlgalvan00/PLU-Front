@@ -485,7 +485,7 @@ export function createSupabaseAthleteRepository(
         await client
           .from('events')
           .select(
-            'id, slug, price, manual_price, currency, payment_channel_overrides, bank_transfer_alias, bank_transfer_cbu, bank_transfer_holder, bank_transfer_profile_id, mercado_pago_profile_id',
+            'id, slug, starts_at, price, manual_price, currency, payment_channel_overrides, bank_transfer_alias, bank_transfer_cbu, bank_transfer_holder, bank_transfer_profile_id, mercado_pago_profile_id',
           )
           .eq('organization_id', organizationId)
           .eq('slug', eventSlug)

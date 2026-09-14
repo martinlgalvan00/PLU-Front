@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assertSupabaseResult, requireSupabaseClient } from '../server/lib/supabaseRpc.js'
+import { assertSupabaseResult, isMissingSchemaColumn, requireSupabaseClient } from '../server/lib/supabaseRpc.js'
 
 function statusOf(code) {
   try {
@@ -98,6 +98,16 @@ describe('assertSupabaseResult', () => {
       expect(error.message).toBe('Ya estas inscripto en este evento.')
       expect(error.details.raw).toBeUndefined()
     }
+  })
+})
+
+describe('isMissingSchemaColumn', () => {
+  it('reconoce columna ausente por codigo Postgres o PostgREST', () => {
+    expect(isMissingSchemaColumn({ code: '42703', message: 'column ticket_types_1.wise_price does not exist' })).toBe(
+      true,
+    )
+    expect(isMissingSchemaColumn({ code: 'PGRST204', message: 'column not found' })).toBe(true)
+    expect(isMissingSchemaColumn({ code: 'PGRST205', message: 'no table' })).toBe(false)
   })
 })
 

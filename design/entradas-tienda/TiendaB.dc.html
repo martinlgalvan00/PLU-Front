@@ -1,0 +1,183 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+    /* Tokens reales de PLU: palette.css + themes/dark.css. */
+    :root {
+      --canvas: #0a0b0d; --bg-2: #121316; --surface: #141518; --elevated: #1e2026;
+      --hairline: rgba(255,255,255,0.08); --rule: rgba(255,255,255,0.14);
+      --ink: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8; --faint: #6f7280;
+      --celeste: #74acdf; --celeste-soft: #9ec5eb; --celeste-deep: #1f5f9e;
+      --gold: #f2b705; --gold-soft: #ffd23f; --gold-ink: #14181f;
+      --ok-soft: #8fd4a8;
+      --font: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); -webkit-font-smoothing: antialiased; }
+    a { color: var(--celeste-soft); } a:hover { color: #c7dcf1; }
+    * { box-sizing: border-box; }
+    img { display: block; max-width: 100%; }
+
+    .eyebrow { font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+    .num { font-variant-numeric: tabular-nums; }
+
+    .cta-gold { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 54px; padding: 0 30px; border: none; background: var(--gold); color: var(--gold-ink); font-family: var(--font); font-size: 15px; font-weight: 700; letter-spacing: -.01em; cursor: pointer; }
+    .cta-line { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 13px; font-weight: 500; color: var(--secondary); border-bottom: 1px solid var(--rule); }
+    /* ── DIRECCIÓN B · VITRINA, aplicada a la tienda ───────────────
+       Índice de catálogo arriba, piezas abajo. Sin foto de portada:
+       el primer golpe de vista lo da el índice, no una imagen. */
+
+    .wrap { max-width: 1152px; margin: 0 auto; padding: 0 56px; }
+
+    .open { padding: 80px 0 40px; display: flex; align-items: flex-end; gap: 56px; }
+    .open-c { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+    .open-rail { display: flex; align-items: center; gap: 12px; }
+    .open-rail .eyebrow { color: var(--celeste-soft); }
+    .open-rail span.sep { width: 26px; height: 1px; background: var(--rule); }
+    .open-rail small { font-size: 11px; color: var(--muted); letter-spacing: .06em; }
+    .open-h1 { font-size: 56px; line-height: 1; font-weight: 700; letter-spacing: -.035em; margin: 0; }
+    .open-lead { margin: 0 0 6px auto; font-size: 14.5px; color: var(--secondary); line-height: 1.7; max-width: 40ch; text-align: right; }
+
+    /* índice de departamentos */
+    .index { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+    .dep { padding: 26px 28px 26px 0; display: flex; flex-direction: column; gap: 9px; border-right: 1px solid var(--hairline); min-width: 0; }
+    .dep:last-child { border-right: none; }
+    .dep:not(:first-child) { padding-left: 28px; }
+    .dep-t { display: flex; align-items: baseline; gap: 12px; }
+    .dep-t strong { font-size: 19px; font-weight: 600; letter-spacing: -.015em; }
+    .dep-state { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+    .dep-state.is-live { color: var(--ok-soft); }
+    .dep-p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+
+    .sec { padding: 56px 0 72px; display: flex; flex-direction: column; gap: 32px; }
+    .sec-head { display: flex; align-items: baseline; gap: 20px; }
+    .sec-h2 { font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; margin: 0; color: var(--secondary); }
+    .sec-note { margin: 0 0 0 auto; font-size: 12.5px; color: var(--muted); }
+
+    .plinths { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+    .plinth { border: 1px solid var(--hairline); padding: 28px 26px 24px; display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+    .plinth-date { display: flex; align-items: baseline; gap: 10px; }
+    .plinth-date strong { font-size: 34px; font-weight: 700; letter-spacing: -.035em; line-height: 1; font-variant-numeric: tabular-nums; }
+    .plinth-date small { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+    .plinth-c { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+    .plinth-name { font-size: 19px; font-weight: 600; letter-spacing: -.02em; line-height: 1.25; }
+    .plinth-venue { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+    .plinth-foot { display: flex; align-items: flex-end; gap: 14px; padding-top: 20px; border-top: 1px solid var(--hairline); margin-top: auto; }
+    .plinth-price { display: flex; flex-direction: column; gap: 3px; }
+    .plinth-price small { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+    .plinth-price strong { font-size: 21px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+    .plinth-state { margin-left: auto; font-size: 11px; color: var(--ok-soft); font-weight: 600; text-align: right; }
+    .plinth-state.is-soon { color: var(--muted); font-weight: 500; }
+
+    .soon-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+    .soon-box { border: 1px solid var(--hairline); padding: 28px 26px; display: flex; flex-direction: column; gap: 12px; }
+    .soon-tag { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); }
+    .soon-t { font-size: 19px; font-weight: 600; letter-spacing: -.015em; }
+    .soon-p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.65; }
+  </style>
+</helmet>
+
+<div class="wrap">
+  <section class="open">
+    <div class="open-c">
+      <div class="open-rail">
+        <span class="eyebrow">PLU ARG</span>
+        <span class="sep" aria-hidden></span>
+        <small>Temporada 26/27</small>
+      </div>
+      <h1 class="open-h1">Tienda</h1>
+    </div>
+    <p class="open-lead">Entradas, merch y cursos. Sin afiliación para comprar entradas.</p>
+  </section>
+
+  <div class="index">
+    <div class="dep">
+      <span class="dep-t"><strong>Entradas</strong><span class="dep-state is-live">3 fechas</span></span>
+      <p class="dep-p">Próximas fechas con venta abierta.</p>
+    </div>
+    <div class="dep">
+      <span class="dep-t"><strong>Merch oficial</strong><span class="dep-state">Próximamente</span></span>
+      <p class="dep-p">Remeras, accesorios y piezas de meet.</p>
+    </div>
+    <div class="dep">
+      <span class="dep-t"><strong>Cursos</strong><span class="dep-state">Próximamente</span></span>
+      <p class="dep-p">Formación para jueces, coaches y staff.</p>
+    </div>
+  </div>
+
+  <section class="sec">
+    <div class="sec-head">
+      <h2 class="sec-h2">Calendario</h2>
+      <p class="sec-note">La entrada de público no requiere afiliación.</p>
+    </div>
+
+    <div class="plinths">
+      <article class="plinth">
+        <span class="plinth-date"><strong>14</strong><small>Nov 2026</small></span>
+        <span class="plinth-c">
+          <span class="plinth-name">Pitbull Classic 2026</span>
+          <span class="plinth-venue">Club Atlético Fénix<br>Pilar, Buenos Aires</span>
+        </span>
+        <span class="plinth-foot">
+          <span class="plinth-price"><small>Desde</small><strong class="num">$ 12.000</strong></span>
+          <span class="plinth-state">Venta abierta</span>
+        </span>
+      </article>
+
+      <article class="plinth">
+        <span class="plinth-date"><strong>07</strong><small>Mar 2027</small></span>
+        <span class="plinth-c">
+          <span class="plinth-name">Nacional PLU 2027</span>
+          <span class="plinth-venue">Estadio Obras<br>Ciudad de Buenos Aires</span>
+        </span>
+        <span class="plinth-foot">
+          <span class="plinth-price"><small>Desde</small><strong class="num">$ 15.000</strong></span>
+          <span class="plinth-state">Venta abierta</span>
+        </span>
+      </article>
+
+      <article class="plinth">
+        <span class="plinth-date"><strong>23</strong><small>May 2027</small></span>
+        <span class="plinth-c">
+          <span class="plinth-name">Copa Litoral</span>
+          <span class="plinth-venue">Club Regatas<br>Santa Fe</span>
+        </span>
+        <span class="plinth-foot">
+          <span class="plinth-price"><small>Desde</small><strong class="num">$ 10.000</strong></span>
+          <span class="plinth-state is-soon">Abre el 1 de abril</span>
+        </span>
+      </article>
+    </div>
+  </section>
+
+  <section class="sec" style="padding-top: 0;">
+    <div class="sec-head">
+      <h2 class="sec-h2">Lo que viene</h2>
+      <p class="sec-note">Sin fecha inventada de apertura.</p>
+    </div>
+
+    <div class="soon-grid">
+      <div class="soon-box">
+        <span class="soon-tag">Próximamente</span>
+        <span class="soon-t">Merch oficial</span>
+        <p class="soon-p">La línea oficial se publica con la temporada: remeras, accesorios y piezas de meet con la identidad de cancha.</p>
+        <span class="cta-line" style="align-self: flex-start; margin-top: 6px;">Consultar merch</span>
+      </div>
+      <div class="soon-box">
+        <span class="soon-tag">Próximamente</span>
+        <span class="soon-t">Cursos y formación</span>
+        <p class="soon-p">Formación oficial para jueces, coaches y staff operativo. El catálogo abre cuando esté listo.</p>
+        <span class="cta-line" style="align-self: flex-start; margin-top: 6px;">Ver calendario</span>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+</body>
+</html>
