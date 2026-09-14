@@ -52,7 +52,7 @@ export default function HomeMembershipBand({
   gateEvent = null,
   checkoutAvailability = {},
 }) {
-  const { HOME_MEMBERSHIP, HOME_MEMBERSHIP_FEATURES } = useContent()
+  const { HOME_MEMBERSHIP } = useContent()
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
   const membershipCheckoutEnabled = checkoutAvailability.membershipEnabled !== false
@@ -144,29 +144,6 @@ export default function HomeMembershipBand({
         <CopyItem {...itemProps} className="home-membership-band__desc">
           {HOME_MEMBERSHIP.description}
         </CopyItem>
-
-        {HOME_MEMBERSHIP_FEATURES?.length ? (
-          <CopyItem {...itemProps}>
-            <ul
-              className="home-membership-band__benefits"
-              aria-label={t('pages.home.membershipBenefitsAria')}
-            >
-              {HOME_MEMBERSHIP_FEATURES.map((feature, index) => (
-                <CopyItem
-                  key={feature}
-                  role="listitem"
-                  {...itemProps}
-                  className="home-membership-band__benefit"
-                >
-                  <span className="home-membership-band__benefit-index" aria-hidden>
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                  <span className="home-membership-band__benefit-text">{feature}</span>
-                </CopyItem>
-              ))}
-            </ul>
-          </CopyItem>
-        ) : null}
 
         {showCombo ? (
           <CopyItem {...itemProps} className="home-membership-band__combo">

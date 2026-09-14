@@ -359,14 +359,14 @@ export default function MembersPage({
           </Reveal>
         ) : null}
 
-        <Reveal as="section" variant="up" className="members-plu-block members-plu-block--benefits">
+        <section className="members-plu-block members-plu-block--benefits">
           <MembersBenefitsShowcase
             items={MEMBERSHIP_BENEFITS}
             title={t('pages.members.introTitle')}
             lead={t('pages.members.introText')}
             ariaLabel={t('pages.members.benefitsAria')}
           />
-        </Reveal>
+        </section>
 
         <Reveal as="section" variant="up" className="members-plu-block members-plu-block--process">
           <MembersProcessStepper
@@ -378,9 +378,7 @@ export default function MembersPage({
           />
         </Reveal>
 
-        <Reveal
-          as="section"
-          variant="up"
+        <section
           className="members-plu-block members-plu-block--requirements"
           id="requisitos"
         >
@@ -413,7 +411,7 @@ export default function MembersPage({
               </ul>
             </aside>
           </div>
-        </Reveal>
+        </section>
 
         <Reveal as="section" variant="up" className="members-plu-block members-plu-block--note">
           <p className="members-plu-note__eyebrow">{MEMBERSHIP_INSTITUTIONAL.eyebrow}</p>

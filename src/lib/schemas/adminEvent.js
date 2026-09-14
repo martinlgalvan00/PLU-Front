@@ -191,6 +191,8 @@ export const adminEventDraftSchema = z
         publicTitle: z.string().trim().max(120, 'publicTitleMax').optional(),
         heroLead: z.string().trim().max(240, 'heroLeadMax').optional(),
         ctaLabel: z.string().trim().max(40, 'ctaLabelMax').optional(),
+        inscriptionMark: z.string().trim().max(40, 'inscriptionMarkMax').optional(),
+        inscriptionNote: z.string().trim().max(160, 'inscriptionNoteMax').optional(),
       })
       .optional(),
     paymentChannelOverrides: z

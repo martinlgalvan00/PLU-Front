@@ -546,7 +546,7 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   ticketTypes: [],
   weighInWindows: [],
   publicSurface: { ...DEFAULT_EVENT_PUBLIC_SURFACE },
-  publicCopy: { publicTitle: '', heroLead: '', ctaLabel: '' },
+  publicCopy: { publicTitle: '', heroLead: '', ctaLabel: '', inscriptionMark: '', inscriptionNote: '' },
   liveStreamUrl: '',
   liveStreamProvider: 'youtube',
   liveStatus: 'offline',

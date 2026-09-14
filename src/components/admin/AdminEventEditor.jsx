@@ -26,6 +26,10 @@ import DateTimeLocalInput from '../ui/DateTimeLocalInput.jsx'
 import EventCard from '../ui/EventCard.jsx'
 import CapacityBar from '../ui/CapacityBar.jsx'
 import { describePublicCapacity } from '../../lib/eventCapacityPublic.js'
+import {
+  defaultInscriptionCopy,
+  resolveInscriptionCopyVariant,
+} from '../../lib/eventInscriptionCopy.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import {
@@ -430,6 +434,13 @@ export default function AdminEventEditor({
    */
   onRequestSection = null,
   onSubmit,
+  /**
+   * Cambios de estado del meet que persisten por PATCH, no por el upsert
+   * del formulario. Habilitan “Guardar cambios” aunque el draft esté limpio.
+   */
+  extraDirty = false,
+  onExtraSave = null,
+  onExtraDiscard = null,
   sourceEvent = null,
 }) {
   const { t } = useI18n()
@@ -471,6 +482,7 @@ export default function AdminEventEditor({
   const previousFocusRef = useRef(null)
   const initialDraftSignatureRef = useRef(baselineSignature ?? draftSignature(draft))
   const dirty = draftSignature(draft) !== initialDraftSignatureRef.current
+  const hasUnsavedChanges = dirty || extraDirty
   onCancelRef.current = onCancel
 
   useEffect(() => {
@@ -703,7 +715,7 @@ export default function AdminEventEditor({
   }, [embedded, onRegisterClose])
 
   useEffect(() => {
-    if (!dirty) return undefined
+    if (!hasUnsavedChanges) return undefined
 
     function preventAccidentalExit(event) {
       event.preventDefault()
@@ -712,7 +724,7 @@ export default function AdminEventEditor({
 
     window.addEventListener('beforeunload', preventAccidentalExit)
     return () => window.removeEventListener('beforeunload', preventAccidentalExit)
-  }, [dirty])
+  }, [hasUnsavedChanges])
 
   useEffect(() => {
     if (forcedTab === 'basics' || forcedTab === 'sales' || forcedTab === 'visibility') {
@@ -753,7 +765,7 @@ export default function AdminEventEditor({
 
   function requestClose() {
     if (syncing) return
-    if (dirty) {
+    if (hasUnsavedChanges) {
       setConfirmDiscard(true)
       // El dock de confirmación reemplaza las acciones: hay que traerlo a la vista.
       requestAnimationFrame(() => {
@@ -804,7 +816,7 @@ export default function AdminEventEditor({
     setSyncError(null)
 
     const registered = sourceEvent?.registered ?? 0
-    if (draft.id && Number(draft.slots) < registered) {
+    if (dirty && draft.id && Number(draft.slots) < registered) {
       setFieldErrors({
         slots: t('admin.eventEditor.validation.slotsBelowRegistered', { count: registered }),
       })
@@ -818,7 +830,7 @@ export default function AdminEventEditor({
       return
     }
 
-    const validation = validateAdminEventDraft(draft, t)
+    const validation = dirty ? validateAdminEventDraft(draft, t) : { ok: true, fieldErrors: {} }
     if (!validation.ok) {
       setFieldErrors(validation.fieldErrors)
       setSalesChapter(resolveSalesChapterForField(validation.firstKey))
@@ -855,11 +867,21 @@ export default function AdminEventEditor({
     setConfirmDiscard(false)
     setSyncing(true)
     try {
-      const result = await onSubmit?.(draft)
-      if (result?.error) throw new Error(result.error)
+      let payload = draft
+      if (extraDirty) {
+        const synced = await onExtraSave?.()
+        if (synced && typeof synced === 'object') {
+          payload = { ...draft, ...synced }
+          onChange(payload)
+        }
+      }
+      if (dirty) {
+        const result = await onSubmit?.(payload)
+        if (result?.error) throw new Error(result.error)
+      }
       // El padre suele cerrar el fold al guardar; si no, reseteamos baseline
       // para que el dock vuelva a "Al día" sin remount.
-      initialDraftSignatureRef.current = draftSignature(draft)
+      initialDraftSignatureRef.current = draftSignature(payload)
     } catch (error) {
       setSyncError(
         error?.status === 409
@@ -901,15 +923,15 @@ export default function AdminEventEditor({
   const activeTabHasError = tabsWithErrors.has(activeTab)
   const saveStateLabel = syncing
     ? t('admin.eventEditor.saving')
-    : dirty
+    : hasUnsavedChanges
       ? t('admin.eventEditor.unsavedChanges')
       : t('admin.eventEditor.noPendingChanges')
   const saveStateShortLabel = syncing
     ? t('admin.eventEditor.savingShort')
-    : dirty
+    : hasUnsavedChanges
       ? t('admin.eventEditor.unsavedShort')
       : t('admin.eventEditor.readyShort')
-  const saveStateModifier = syncing ? 'is-syncing' : dirty ? 'is-dirty' : 'is-ready'
+  const saveStateModifier = syncing ? 'is-syncing' : hasUnsavedChanges ? 'is-dirty' : 'is-ready'
 
   const editorTree = (
     <div
@@ -2073,6 +2095,74 @@ export default function AdminEventEditor({
                         }
                       />
                     </FormField>
+
+                    <p className="admin-event-form__section-note">
+                      {t('admin.eventEditor.inscriptionCopyHint')}
+                    </p>
+
+                    <FormField
+                      htmlFor="event-inscription-mark"
+                      label={t('admin.eventEditor.inscriptionMarkField')}
+                      error={err('publicCopy.inscriptionMark')}
+                    >
+                      <input
+                        id="event-inscription-mark"
+                        name="publicCopy.inscriptionMark"
+                        data-field="publicCopy.inscriptionMark"
+                        type="text"
+                        maxLength={40}
+                        value={draft.publicCopy?.inscriptionMark ?? ''}
+                        placeholder={defaultInscriptionCopy(
+                          resolveInscriptionCopyVariant({
+                            status: draft.status,
+                            progressPublic: draft.capacityProgressPublic !== false,
+                          }),
+                          t,
+                        ).mark}
+                        disabled={!canEdit}
+                        onChange={(event) =>
+                          patchDraft({
+                            ...draft,
+                            publicCopy: {
+                              ...(draft.publicCopy ?? {}),
+                              inscriptionMark: event.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </FormField>
+
+                    <FormField
+                      htmlFor="event-inscription-note"
+                      label={t('admin.eventEditor.inscriptionNoteField')}
+                      error={err('publicCopy.inscriptionNote')}
+                    >
+                      <textarea
+                        id="event-inscription-note"
+                        name="publicCopy.inscriptionNote"
+                        data-field="publicCopy.inscriptionNote"
+                        rows={2}
+                        maxLength={160}
+                        value={draft.publicCopy?.inscriptionNote ?? ''}
+                        placeholder={defaultInscriptionCopy(
+                          resolveInscriptionCopyVariant({
+                            status: draft.status,
+                            progressPublic: draft.capacityProgressPublic !== false,
+                          }),
+                          t,
+                        ).hint}
+                        disabled={!canEdit}
+                        onChange={(event) =>
+                          patchDraft({
+                            ...draft,
+                            publicCopy: {
+                              ...(draft.publicCopy ?? {}),
+                              inscriptionNote: event.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </FormField>
                   </fieldset>
 
                   {essentials ? null : (
@@ -2313,7 +2403,10 @@ export default function AdminEventEditor({
                     variant="secondary"
                     className="btn--small"
                     disabled={syncing}
-                    onClick={onCancel}
+                    onClick={() => {
+                      onExtraDiscard?.()
+                      onCancel()
+                    }}
                   >
                     {t('admin.eventEditor.discard')}
                   </Button>
@@ -2346,7 +2439,7 @@ export default function AdminEventEditor({
                 <Button
                   type="submit"
                   variant="gold"
-                  disabled={!canEdit || syncing || (Boolean(draft.id) && !dirty)}
+                  disabled={!canEdit || syncing || (Boolean(draft.id) && !hasUnsavedChanges)}
                 >
                   <Save size={15} aria-hidden />
                   {syncing

@@ -136,7 +136,6 @@ export default function HomeResultsTeaser({ onNavigate, orchestrated = false }) 
   const Eyebrow = reducedMotion ? 'p' : m.p
   const Status = reducedMotion ? 'span' : m.span
   const Title = reducedMotion ? 'h2' : m.h2
-  const Desc = reducedMotion ? 'p' : m.p
   const Sheet = reducedMotion ? 'div' : m.div
   const Rule = reducedMotion ? 'span' : m.span
   const Meta = reducedMotion ? 'div' : m.div
@@ -176,9 +175,6 @@ export default function HomeResultsTeaser({ onNavigate, orchestrated = false }) 
         <Title {...withVariant(fadeUp())} className="home-teaser-card__title">
           {HOME_RESULTS.title}
         </Title>
-        <Desc {...withVariant(fadeUp())} className="home-teaser-card__desc">
-          {HOME_RESULTS.description}
-        </Desc>
       </div>
 
       <Sheet {...withVariant(sheetVariants)} className="home-teaser-card__sheet" aria-hidden>

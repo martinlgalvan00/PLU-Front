@@ -38,7 +38,8 @@ function diffAgainstBaseline(draft, baseline) {
  *
  * Habilitar, deshabilitar y cambiar el estado público de un evento sin abrir el
  * editor completo. Los chips y atajos mutan un draft local; el PATCH parcial
- * solo corre al tocar Guardar (Descartar vuelve al estado persistido).
+ * corre al tocar Guardar, o —en el workspace (`deferSave`)— al “Guardar
+ * cambios” genérico del editor.
  *
  * `agotado` no es una opción elegible: lo pone y lo saca la base según el cupo
  * (`sync_event_capacity_status`). Aparece como chip solo cuando el evento ya
@@ -52,9 +53,16 @@ function diffAgainstBaseline(draft, baseline) {
  */
 export default function AdminEventStateControl({
   canEdit = false,
+  /**
+   * En el workspace el PATCH lo dispara el “Guardar cambios” del editor.
+   * Acá no se muestra la barra Descartar/Guardar: los chips sólo mutan draft.
+   */
+  deferSave = false,
   event,
   onDirtyChange,
   onEditWindow,
+  onPendingChange,
+  onRegisterDiscard,
   onSetState,
 }) {
   const { locale, t } = useI18n()
@@ -62,6 +70,10 @@ export default function AdminEventStateControl({
   const [notice, setNotice] = useState(null)
   const onDirtyChangeRef = useRef(onDirtyChange)
   onDirtyChangeRef.current = onDirtyChange
+  const onPendingChangeRef = useRef(onPendingChange)
+  onPendingChangeRef.current = onPendingChange
+  const onRegisterDiscardRef = useRef(onRegisterDiscard)
+  onRegisterDiscardRef.current = onRegisterDiscard
   const baseline = useMemo(
     () => baselineFromEvent(event),
     [event?.published, event?.requiresMembership, event?.slug, event?.status],
@@ -79,7 +91,8 @@ export default function AdminEventStateControl({
 
   useEffect(() => {
     onDirtyChangeRef.current?.(dirty)
-  }, [dirty])
+    onPendingChangeRef.current?.(pending)
+  }, [dirty, pending])
 
   const full = isEventFull(event)
   const registration = getEventRegistrationAvailability(event)
@@ -142,6 +155,14 @@ export default function AdminEventStateControl({
     setDraft(baseline)
     setNotice(null)
   }
+
+  const handleDiscardRef = useRef(handleDiscard)
+  handleDiscardRef.current = handleDiscard
+
+  useEffect(() => {
+    onRegisterDiscardRef.current?.(() => handleDiscardRef.current?.())
+    return () => onRegisterDiscardRef.current?.(null)
+  }, [])
 
   async function handleSave() {
     if (!canEdit || busy || dirtyCount === 0) return
@@ -384,7 +405,7 @@ export default function AdminEventStateControl({
         </div>
       </div>
 
-      {dirty ? (
+      {dirty && !deferSave ? (
         <div className="admin-event-state__pending" role="status">
           <p className="admin-event-state__pending-hint">
             {dirtyCount === 1

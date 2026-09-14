@@ -22,6 +22,30 @@ const EMPTY_STATS = Object.freeze({
   provinceCount: 0,
 })
 
+function isPositiveStat(value) {
+  return Number(value) > 0
+}
+
+function visibleCommunityStats(stats, t) {
+  return [
+    {
+      key: 'gyms',
+      value: stats.activeGymCount,
+      label: t('pages.community.statsActiveGyms'),
+    },
+    {
+      key: 'members',
+      value: stats.memberCount,
+      label: t('pages.community.statsRecentMembers'),
+    },
+    {
+      key: 'provinces',
+      value: stats.provinceCount,
+      label: t('pages.community.statsProvinces'),
+    },
+  ].filter((item) => isPositiveStat(item.value))
+}
+
 function memberInitials(name = '') {
   const parts = name.trim().split(/\s+/).filter(Boolean)
   if (parts.length === 0) return '·'
@@ -168,6 +192,8 @@ export default function CommunitySpotlight({ onNavigate }) {
     },
   }
 
+  const visibleStats = visibleCommunityStats(stats, t)
+
   return (
     <article className="community-spotlight community-spotlight--editorial">
       <header className="community-spotlight__intro">
@@ -175,20 +201,20 @@ export default function CommunitySpotlight({ onNavigate }) {
         <h2 className="community-spotlight__title">{HOME_COMMUNITY.title}</h2>
         <p className="community-spotlight__desc">{HOME_COMMUNITY.description}</p>
 
-        <ul className="community-spotlight__stats" aria-label={t('pages.community.statsAria')}>
-          <li className="community-spotlight__stat-editorial">
-            <strong>{String(stats.activeGymCount).padStart(2, '0')}</strong>
-            <span>{t('pages.community.statsActiveGyms')}</span>
-          </li>
-          <li className="community-spotlight__stat-editorial">
-            <strong>{String(stats.memberCount).padStart(2, '0')}</strong>
-            <span>{t('pages.community.statsRecentMembers')}</span>
-          </li>
-          <li className="community-spotlight__stat-editorial">
-            <strong>{String(stats.provinceCount).padStart(2, '0')}</strong>
-            <span>{t('pages.community.statsProvinces')}</span>
-          </li>
-        </ul>
+        {visibleStats.length > 0 ? (
+          <ul
+            className="community-spotlight__stats"
+            data-count={visibleStats.length}
+            aria-label={t('pages.community.statsAria')}
+          >
+            {visibleStats.map((item) => (
+              <li key={item.key} className="community-spotlight__stat-editorial">
+                <strong>{String(item.value).padStart(2, '0')}</strong>
+                <span>{item.label}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
 
         <button
           type="button"

@@ -2182,8 +2182,26 @@ html.plu-drawer-open body {
   grid-template-columns: minmax(0, 1fr) minmax(230px, 0.38fr);
 }
 
+.institutional-hero--solo .institutional-hero__grid {
+  gap: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .institutional-hero__copy {
   max-width: 810px;
+}
+
+.institutional-hero--solo .institutional-hero__copy {
+  max-width: min(810px, 72ch);
+}
+
+.institutional-hero--solo h1 {
+  max-width: 18ch;
+}
+
+.institutional-hero--solo .institutional-hero__description {
+  margin-top: 22px;
+  max-width: 58ch;
 }
 
 .institutional-hero__eyebrow,
@@ -3595,6 +3613,10 @@ html.plu-drawer-open body {
     font-size: clamp(32px, 10vw, 42px);
     letter-spacing: -0.045em;
     max-width: 13ch;
+  }
+
+  .institutional-hero--solo h1 {
+    max-width: 18ch;
   }
 
   .institutional-hero__description {

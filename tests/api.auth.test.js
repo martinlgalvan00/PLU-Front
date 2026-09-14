@@ -133,6 +133,43 @@ describe('auth api', () => {
     await target.close()
   })
 
+  it('Recordarme pone Max-Age de 7 días; sin el flag la cookie es de sesión', async () => {
+    const prisma = createPrismaDouble([
+      {
+        id: 'usr-1',
+        email: 'admin@pluarg.com',
+        passwordHash: await hashPassword('clave-segura-123'),
+        role: 'admin_plu_arg',
+        status: 'active',
+        profile: { displayName: 'Admin PLU', firstName: 'Admin', lastName: 'PLU' },
+      },
+    ])
+    const target = listen(createApp({ prisma }))
+
+    const ephemeral = await fetch(`${target.url}/api/auth/login`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ email: 'admin@pluarg.com', password: 'clave-segura-123' }),
+    })
+    const ephemeralCookie = ephemeral.headers.get('set-cookie') ?? ''
+    expect(ephemeralCookie).toContain('HttpOnly')
+    expect(ephemeralCookie.toLowerCase()).not.toContain('max-age')
+
+    const remembered = await fetch(`${target.url}/api/auth/login`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        email: 'admin@pluarg.com',
+        password: 'clave-segura-123',
+        remember: true,
+      }),
+    })
+    const rememberedCookie = remembered.headers.get('set-cookie') ?? ''
+    expect(rememberedCookie.toLowerCase()).toContain('max-age=604800')
+
+    await target.close()
+  })
+
   it('rechaza credenciales invalidas y usuarios no activos con mensaje generico', async () => {
     const prisma = createPrismaDouble([
       {

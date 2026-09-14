@@ -20,9 +20,8 @@ export const ABOUT_INTRO = {
   title: 'One standard to affiliate, compete and publish.',
   titleLead: 'One standard to affiliate, compete',
   titleAccent: 'and publish.',
-  description:
-    'PLU Argentina connects athletes, gyms and referees with annual membership, an official calendar and PLU USA-aligned results.',
-  descriptionLead: 'PLU Argentina connects athletes, gyms and referees.',
+  description: 'PLU Argentina connects athletes, gyms and referees under the PLU USA standard.',
+  descriptionLead: 'PLU Argentina connects athletes, gyms and referees under the PLU USA standard.',
   descriptionMeta: 'Annual membership, an official calendar and PLU USA-aligned results.',
   cta: 'Explore our community',
 }
@@ -142,19 +141,19 @@ export const ABOUT_PILLARS = [
   {
     id: 'standard',
     icon: 'Globe2',
-    title: 'International standard',
+    title: 'PLU standard',
     text: 'Rules, divisions and categories aligned with the circuit recognized by PLU USA.',
   },
   {
     id: 'ops',
     icon: 'ClipboardList',
-    title: 'No spreadsheet management',
+    title: 'No spreadsheets',
     text: 'Membership, registration and payment in one place, for athletes and organizers.',
   },
   {
     id: 'community',
     icon: 'Users',
-    title: 'Growing community',
+    title: 'Community',
     text: 'Gyms and athletes nationwide competing under the same system.',
   },
 ]
