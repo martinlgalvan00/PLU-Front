@@ -3,7 +3,7 @@
 .ticket-availability {
   align-items: baseline;
   display: inline-flex;
-  gap: 10px;
+  gap: 8px;
   margin: 0;
   max-width: 100%;
   min-width: 0;

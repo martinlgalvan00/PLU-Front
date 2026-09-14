@@ -2,6 +2,7 @@ import '../../styles/components/ticket-purchase.css'
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowRight,
+  Banknote,
   CreditCard,
   IdCard,
   Landmark,
@@ -24,9 +25,10 @@ import { getFormOptions } from '../../lib/formOptions.js'
 import { money } from '../../lib/format.js'
 import { toggleAttendeeAddon as applyAttendeeAddonToggle } from '../../lib/ticketAddons.js'
 import { groupCredentialsByBundle } from '../../lib/ticketCredentials.js'
-import { validateTicketAttendees } from '../../lib/validation.js'
+import { validateTicketAttendees, validateTicketBuyer } from '../../lib/validation.js'
 import { priceForAttendee, priceForOrder } from '../../services/ticketService.js'
-import { wisePriceLabel } from '../../services/checkoutPricing.js'
+import { formatWisePrice } from '../../services/checkoutPricing.js'
+import { resolveTicketOrderWisePricing } from '../../../shared/ticketWisePricing.js'
 
 const MAX_TICKETS = 10
 
@@ -35,36 +37,23 @@ function emptyAttendee(pricing) {
 }
 
 /**
- * Chips de tipo para la carga en lote, donde no entra la opción completa.
+ * Select de tipo para la carga en lote.
  *
- * El nombre solo no alcanza para distinguirlos, así que el chip lleva el
- * nombre accesible con las zonas que abre: en la tabla se elige rápido, y quien
- * navega con lector de pantalla no tiene que deducirlo del nombre. El detalle
- * completo está una vez arriba, en `TicketTypeOptions`.
+ * Seis nombres largos no entran en chips de una celda: acá se elige uno, y el
+ * detalle de zonas / precio vive una sola vez arriba, en `TicketTypeOptions`.
  */
-function TicketTypePicker({ compact = false, name, onChange, t, ticketTypes, value }) {
+function TicketTypePicker({ error, label, name, onChange, ticketTypes, value }) {
   return (
-    <div
-      className={`ticket-purchase__day-picker${compact ? ' ticket-purchase__day-picker--compact' : ''}`}
-      role="group"
-      aria-label={name}
-    >
-      {ticketTypes.map((type) => {
-        const zones = zoneScopeList(type.zoneScopes ?? [], t)
-        return (
-          <button
-            key={type.id}
-            type="button"
-            className="ticket-purchase__day-chip"
-            aria-pressed={value === type.id}
-            aria-label={zones ? `${type.name} — ${zones}` : type.name}
-            onClick={() => onChange(type.id)}
-          >
-            {type.name}
-          </button>
-        )
-      })}
-    </div>
+    <Select
+      hideLabel
+      className="ticket-purchase__field-batch ticket-purchase__field-type"
+      error={error}
+      label={label}
+      name={name}
+      options={ticketTypes.map((type) => [type.id, type.name])}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
   )
 }
 
@@ -188,7 +177,7 @@ function EditorialAttendeesBatch({
               className="ticket-purchase__attendees-batch-col ticket-purchase__attendees-batch-col--day"
               role="columnheader"
             >
-              {t('pages.tickets.day')}
+              {t('pages.tickets.ticketTypeCol')}
             </span>
             <span
               className="ticket-purchase__attendees-batch-col ticket-purchase__attendees-batch-col--price"
@@ -244,18 +233,13 @@ function EditorialAttendeesBatch({
 
                 <div className="ticket-purchase__attendees-batch-day">
                   <TicketTypePicker
-                    compact
+                    error={errors[`attendee-${index}-ticketTypeId`]}
+                    label={`${t('pages.tickets.ticketTypes.legend')} · ${t('pages.tickets.attendee', { index: index + 1 })}`}
                     name={`attendee-${index}-ticketTypeId`}
-                    t={t}
                     ticketTypes={pricing.ticketTypes}
                     value={attendee.ticketTypeId}
                     onChange={(ticketTypeId) => onChange(index, 'ticketTypeId', ticketTypeId)}
                   />
-                  {errors[`attendee-${index}-ticketTypeId`] ? (
-                    <span className="ticket-purchase__batch-field-error">
-                      {errors[`attendee-${index}-ticketTypeId`]}
-                    </span>
-                  ) : null}
                 </div>
 
                 <span className="ticket-purchase__attendees-batch-price">
@@ -378,17 +362,67 @@ function isManualTicketPayment(method) {
     method === 'transferencia' ||
     method === 'manual' ||
     method === 'manual_link' ||
+    method === 'cash_pitbull' ||
     method === 'wise_transfer'
+  )
+}
+
+/**
+ * Datos de quien compra. Separados de los asistentes porque no son la misma
+ * persona: alguien compra seis entradas y entra ninguna.
+ *
+ * El email no es un dato de contacto más — es por donde llega el QR y el aviso
+ * de que Finanzas acreditó el pago. Antes no se pedía y la orden quedaba sin
+ * dirección: el comprador dependía de no cerrar la pestaña.
+ */
+function TicketBuyerFields({ buyer, errors, onChange, t }) {
+  return (
+    <fieldset className="ticket-purchase__buyer">
+      <legend>{t('pages.tickets.buyerTitle')}</legend>
+      <p className="ticket-purchase__buyer-lead">{t('pages.tickets.buyerLead')}</p>
+      <div className="form-grid form-grid--compact">
+        <Field
+          label={t('pages.tickets.buyerName')}
+          name="buyer-name"
+          value={buyer.name}
+          onChange={(event) => onChange('name', event.target.value)}
+          error={errors['buyer-name']}
+          placeholder={t('pages.tickets.buyerNamePlaceholder')}
+          autoComplete="name"
+        />
+        <Field
+          label={t('pages.tickets.buyerEmail')}
+          name="buyer-email"
+          type="email"
+          value={buyer.email}
+          onChange={(event) => onChange('email', event.target.value)}
+          error={errors['buyer-email']}
+          placeholder={t('pages.tickets.buyerEmailPlaceholder')}
+          autoComplete="email"
+          inputMode="email"
+        />
+        <Field
+          label={t('pages.tickets.buyerPhone')}
+          name="buyer-phone"
+          value={buyer.phone}
+          onChange={(event) => onChange('phone', event.target.value)}
+          error={errors['buyer-phone']}
+          placeholder={t('pages.tickets.buyerPhonePlaceholder')}
+          autoComplete="tel"
+          inputMode="tel"
+        />
+      </div>
+    </fieldset>
   )
 }
 
 function TicketPaymentOptions({
   manualEnabled = true,
   mercadoPagoEnabled = true,
+  cashEnabled = false,
   wiseEnabled = false,
   paymentMethod,
-  total = 0,
-  locale = 'es',
+  wiseLabel = '',
   onChange,
   t,
 }) {
@@ -431,24 +465,48 @@ function TicketPaymentOptions({
           </span>
         </label>
       ) : null}
-      {/* Wise depende de su propio interruptor, independiente del de
-          transferencia local. */}
-      {wiseEnabled ? (
-        <label className={paymentMethod === 'wise_transfer' ? 'is-selected' : ''}>
+      {/* Efectivo en Pitbull: el espectador que pasa por el gimnasio paga en
+          caja y no sube comprobante. Interruptor propio, igual que Wise. */}
+      {cashEnabled ? (
+        <label className={paymentMethod === 'cash_pitbull' ? 'is-selected' : ''}>
           <input
             type="radio"
             name="ticket-payment"
-            value="wise_transfer"
-            checked={paymentMethod === 'wise_transfer'}
+            value="cash_pitbull"
+            checked={paymentMethod === 'cash_pitbull'}
             onChange={(event) => onChange(event.target.value)}
           />
-          <Landmark size={18} aria-hidden />
+          <Banknote size={18} aria-hidden />
           <span>
-            <strong>{t('pages.register.paymentWiseLabel')}</strong>
-            <small>{wisePriceLabel(total, locale)}</small>
+            <strong>{t('pages.tickets.paymentCash')}</strong>
+            <small>{t('pages.tickets.paymentCashHint')}</small>
           </span>
         </label>
       ) : null}
+      {/* Wise se anuncia siempre. No se puede elegir hasta que Administración
+          abra el canal y cargue el USD de cada ítem: un monto convertido del
+          peso no es un precio, y mostrarlo acá prometía un cobro que nadie
+          decidió. */}
+      <label
+        className={
+          !wiseEnabled ? 'is-disabled' : paymentMethod === 'wise_transfer' ? 'is-selected' : ''
+        }
+      >
+        <input
+          type="radio"
+          name="ticket-payment"
+          value="wise_transfer"
+          checked={wiseEnabled && paymentMethod === 'wise_transfer'}
+          disabled={!wiseEnabled}
+          aria-disabled={!wiseEnabled}
+          onChange={(event) => onChange(event.target.value)}
+        />
+        <Landmark size={18} aria-hidden />
+        <span>
+          <strong>{t('pages.register.paymentWiseLabel')}</strong>
+          <small>{wiseEnabled && wiseLabel ? wiseLabel : t('pages.tickets.paymentWiseSoon')}</small>
+        </span>
+      </label>
     </fieldset>
   )
 }
@@ -463,8 +521,10 @@ export default function TicketPurchaseSection({
   // Mercado Pago también se cierra por concepto desde Administración. Default
   // abierto para no dejar la pantalla sin medios ante una lectura incompleta.
   mercadoPagoEnabled = true,
-  // Wise depende de su propio interruptor, independiente del anterior.
-  // Default cerrado: sin dato, no se ofrece un medio que puede rechazar 409.
+  // Efectivo en Pitbull y Wise tienen cada uno su interruptor, independiente
+  // del de transferencia. Default cerrado en los dos: sin dato, no se ofrece un
+  // medio que puede rechazar 409.
+  cashEnabled = false,
   wiseEnabled = false,
   // Datos bancarios del evento (alias/cbu/holder). Vacío = env global.
   accountDetails = null,
@@ -479,6 +539,10 @@ export default function TicketPurchaseSection({
   const [quantity, setQuantity] = useState(1)
   const [attendees, setAttendees] = useState([emptyAttendee(pricing)])
   const [paymentMethod, setPaymentMethod] = useState('mercado_pago')
+  // Quien compra no es necesariamente quien entra: una persona puede comprar
+  // seis entradas para otras seis. El email es la única vía por la que le llega
+  // el QR y el aviso de acreditación, así que vive acá y no por asistente.
+  const [buyer, setBuyer] = useState({ name: '', email: '', phone: '' })
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState('')
   const [activeTicketId, setActiveTicketId] = useState(null)
@@ -489,34 +553,97 @@ export default function TicketPurchaseSection({
   const [proofUploadError, setProofUploadError] = useState('')
   const [proofUploaded, setProofUploaded] = useState(false)
 
+  // Memoizado desde que la cotización en USD lo toma como dependencia: el `??
+  // []` devolvía un array nuevo por render y recalculaba el total en cada tecla.
+  const ticketAddons = useMemo(() => pricing?.addons ?? [], [pricing?.addons])
+
+  /**
+   * Cotización Wise de la orden, misma regla que la API. El canal abierto no
+   * alcanza: si falta el USD de algún ítem, la conversión no se ofrece como
+   * medio de pago. Es un piso, no un precio.
+   */
+  const wiseQuote = useMemo(() => {
+    try {
+      return resolveTicketOrderWisePricing(
+        attendees,
+        { ticketTypes: pricing?.ticketTypes ?? [], addons: ticketAddons },
+        {
+          VITE_WISE_BLUE_RATE_ARS: env.payments.wiseBlueRateArs,
+          VITE_WISE_ROUNDING_STEP_USD: env.payments.wiseRoundingStepUsd,
+        },
+      )
+    } catch {
+      // Un asistente sin tipo elegido todavía: el formulario recién arranca.
+      return null
+    }
+  }, [attendees, pricing?.ticketTypes, ticketAddons])
+  const wiseReady = wiseEnabled && wiseQuote?.source === 'configured'
+  const wiseLabel = wiseReady ? formatWisePrice(wiseQuote.amount, locale) : ''
+
   // Con el canal manual cerrado queda solo Mercado Pago, y una selección previa
   // de transferencia vuelve ahí sola en vez de mandar una compra que va a fallar.
   const manualPaymentOptions = useMemo(
     () =>
       formOptions.paymentMethod.filter(([value]) => {
-        if (value === 'wise_transfer') return wiseEnabled
+        if (value === 'wise_transfer') return wiseReady
+        if (value === 'cash_pitbull') return cashEnabled
         if (isManualTicketPayment(value)) return manualPaymentEnabled
         return value !== 'mercado_pago' || mercadoPagoEnabled
       }),
-    [formOptions.paymentMethod, manualPaymentEnabled, mercadoPagoEnabled, wiseEnabled],
+    [formOptions.paymentMethod, cashEnabled, manualPaymentEnabled, mercadoPagoEnabled, wiseReady],
   )
 
+  /**
+   * Un medio cerrado desde el panel no puede quedar seleccionado: el 409 llega
+   * recién al enviar la compra, con el formulario ya completo. La selección cae
+   * al primero que sí está abierto, en el orden en que se ofrecen.
+   */
   useEffect(() => {
-    if (!wiseEnabled && paymentMethod === 'wise_transfer' && mercadoPagoEnabled) {
-      setPaymentMethod('mercado_pago')
-      return
+    const open = {
+      mercado_pago: mercadoPagoEnabled,
+      // La variante editorial llama `transferencia` al mismo canal que el
+      // Select compacto llama `manual_link`. Las dos cuentan como el canal de
+      // transferencia, así que ninguna se descarta por el nombre.
+      transferencia: manualPaymentEnabled,
+      manual_link: manualPaymentEnabled,
+      cash_pitbull: cashEnabled,
+      wise_transfer: wiseReady,
     }
-    if (!manualPaymentEnabled && isManualTicketPayment(paymentMethod) && mercadoPagoEnabled) {
-      setPaymentMethod('mercado_pago')
-    }
-    // Pasarela cerrada con transferencia abierta: la selección se mueve al medio
-    // que sí se puede pagar en vez de quedar en uno que el backend rechaza.
-    if (!mercadoPagoEnabled && paymentMethod === 'mercado_pago' && manualPaymentEnabled) {
-      setPaymentMethod('transferencia')
-    }
-  }, [manualPaymentEnabled, mercadoPagoEnabled, paymentMethod, wiseEnabled])
+    if (open[paymentMethod]) return
+    const fallback = ['mercado_pago', 'transferencia', 'cash_pitbull', 'wise_transfer'].find(
+      (method) => open[method],
+    )
+    if (fallback) setPaymentMethod(fallback)
+  }, [cashEnabled, manualPaymentEnabled, mercadoPagoEnabled, paymentMethod, wiseReady])
 
-  const ticketAddons = pricing?.addons ?? []
+  /**
+   * Reconcilia lo elegido con el catálogo que efectivamente está a la venta.
+   *
+   * Pasa en dos momentos, y los dos terminaban igual de mal: el catálogo llega
+   * después del montaje (el asistente nace con `ticketTypeId` vacío), o un tipo
+   * sale de venta con el formulario abierto —se cerró su ventana propia, o
+   * alguien lo desactivó— y la opción desaparece del select. En los dos casos
+   * el asistente quedaba apuntando a algo que ya no está y el envío moría en
+   * "Seleccioná un tipo de entrada válido", sin nada marcado que explicara por
+   * qué: la opción que había elegido ya no figuraba en la lista.
+   *
+   * Se reasigna al primer tipo disponible en vez de vaciar: vaciar obliga a
+   * elegir de nuevo algo que en la mayoría de los casos es la única opción.
+   */
+  useEffect(() => {
+    const available = pricing?.ticketTypes ?? []
+    if (available.length === 0) return
+    const ids = new Set(available.map((type) => type.id))
+    setAttendees((current) => {
+      let changed = false
+      const next = current.map((attendee) => {
+        if (ids.has(attendee.ticketTypeId)) return attendee
+        changed = true
+        return { ...attendee, ticketTypeId: available[0].id, addonIds: [] }
+      })
+      return changed ? next : current
+    })
+  }, [pricing?.ticketTypes])
   const ticketTypeNames = useMemo(
     () => Object.fromEntries((pricing.ticketTypes ?? []).map((type) => [type.id, type.name])),
     [pricing.ticketTypes],
@@ -581,6 +708,13 @@ export default function TicketPurchaseSection({
     setSubmitError('')
   }
 
+  function changeBuyer(field, value) {
+    setBuyer((current) => ({ ...current, [field]: value }))
+    const errorKey = `buyer-${field}`
+    if (errors[errorKey]) setErrors((current) => ({ ...current, [errorKey]: '' }))
+    setSubmitError('')
+  }
+
   function handleAddonToggle(index, addonId) {
     setAttendees((current) =>
       current.map((attendee, i) =>
@@ -597,20 +731,28 @@ export default function TicketPurchaseSection({
       t,
       (pricing.ticketTypes ?? []).map((type) => type.id),
     )
-    if (!validation.success) {
-      setErrors(validation.errors)
+    const buyerValidation = validateTicketBuyer(buyer, t)
+    if (!validation.success || !buyerValidation.success) {
+      setErrors({ ...validation.errors, ...buyerValidation.errors })
       requestAnimationFrame(() => {
         document
           .querySelector(
-            '.ticket-purchase__attendees-batch-row.has-error, .ticket-purchase__attendee-row .field input[aria-invalid="true"]',
+            '.ticket-purchase__attendees-batch-row.has-error, .ticket-purchase__attendee-row .field input[aria-invalid="true"], .ticket-purchase__buyer .field input[aria-invalid="true"]',
           )
-          ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+          // El `?.` del método y no sólo del elemento: en jsdom (y en
+          // cualquier entorno sin scroll) el nodo existe y el método no, y una
+          // excepción acá tiraba abajo el aviso de error que estaba por mostrar.
+          ?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
       })
       return
     }
     setErrors({})
     setSubmitting(true)
-    const result = await onSubmit(domEvent, event, attendees, paymentMethod)
+    const result = await onSubmit(domEvent, event, attendees, paymentMethod, {
+      name: buyer.name.trim(),
+      email: buyer.email.trim(),
+      phone: buyer.phone.trim() || undefined,
+    })
     setSubmitting(false)
     if (result?.error) setSubmitError(result.error)
   }
@@ -662,10 +804,21 @@ export default function TicketPurchaseSection({
         ) : isManualTicketPayment(visibleOrder.paymentMethod) &&
           visibleOrder.status !== 'aprobado' ? (
           <div className="ticket-purchase__transfer-panel">
-            <p className="ticket-purchase__manual-note">{t('pages.tickets.manualNote')}</p>
+            <p className="ticket-purchase__manual-note">
+              {/* El efectivo no tiene destino de cobro que copiar: se paga en
+                  caja y Finanzas acredita sin comprobante. */}
+              {visibleOrder.manualPaymentChannel === 'cash_pitbull'
+                ? t('pages.tickets.cashNote')
+                : t('pages.tickets.manualNote')}
+            </p>
             <p className="ticket-purchase__payment-note">{t('pages.tickets.transferQrDelay')}</p>
             <dl className="ticket-purchase__transfer-data">
-              {visibleOrder.manualPaymentChannel === 'wise_transfer' ? (
+              {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? (
+                <div>
+                  <dt>{t('pages.tickets.cashWhereLabel')}</dt>
+                  <dd>{t('pages.tickets.cashWhereValue')}</dd>
+                </div>
+              ) : visibleOrder.manualPaymentChannel === 'wise_transfer' ? (
                 <>
                   <div>
                     <dt>{t('account.membership.transferHolder')}</dt>
@@ -746,7 +899,10 @@ export default function TicketPurchaseSection({
             <p className="ticket-purchase__transfer-warning" role="note">
               {t('account.membership.transferVerifyWarning')}
             </p>
-            {visibleOrder.paymentProofUploadedAt || proofUploaded ? (
+            {/* Efectivo: no hay archivo que subir, así que el bloque de
+                comprobante no aparece en vez de pedir algo que no existe. */}
+            {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? null : visibleOrder.paymentProofUploadedAt ||
+              proofUploaded ? (
               <p className="ticket-purchase__proof-success">{t('pages.tickets.proofUploaded')}</p>
             ) : (
               <div className="ticket-purchase__proof-upload">
@@ -1023,7 +1179,7 @@ export default function TicketPurchaseSection({
                     maxLength={16}
                   />
                   <Select
-                    label={t('pages.tickets.day')}
+                    label={t('pages.tickets.ticketTypes.legend')}
                     name={`attendee-${index}-ticketTypeId`}
                     value={attendee.ticketTypeId}
                     onChange={(e) => changeAttendee(index, 'ticketTypeId', e.target.value)}
@@ -1047,15 +1203,20 @@ export default function TicketPurchaseSection({
       <div
         className={`ticket-purchase__checkout${editorial ? ' ticket-purchase__checkout--editorial' : ''}`}
       >
+        {/* Va antes del medio de pago, no después: es el dato que decide a
+            dónde llega la entrada, y dejarlo al final lo volvía un trámite
+            posterior al pago en la lectura de la pantalla. */}
+        <TicketBuyerFields buyer={buyer} errors={errors} onChange={changeBuyer} t={t} />
+
         {editorial ? (
           <>
             <TicketPaymentOptions
               manualEnabled={manualPaymentEnabled}
               mercadoPagoEnabled={mercadoPagoEnabled}
-              wiseEnabled={wiseEnabled}
+              cashEnabled={cashEnabled}
+              wiseEnabled={wiseReady}
               paymentMethod={paymentMethod}
-              total={total}
-              locale={locale}
+              wiseLabel={wiseLabel}
               onChange={(value) => {
                 setPaymentMethod(value)
                 setSubmitError('')

@@ -194,12 +194,13 @@ export function DateField({
   )
 }
 
-export function Select({ className = '', error, icon: Icon, label, options, ...props }) {
+export function Select({ className = '', error, hideLabel = false, icon: Icon, label, options, ...props }) {
   const errorId = `${props.name}-error`
   const fieldClass = [
     'field',
     'field--select',
     className,
+    hideLabel ? 'field--headless' : '',
     error ? 'is-invalid' : '',
     Icon ? 'field--has-icon' : '',
   ]
@@ -209,11 +210,12 @@ export function Select({ className = '', error, icon: Icon, label, options, ...p
 
   return (
     <label className={fieldClass}>
-      <span className="field__label">{label}</span>
+      {!hideLabel ? <span className="field__label">{label}</span> : null}
       <span className={`field__select${emptySelected ? ' is-empty' : ''}`.trim()}>
         {Icon ? <Icon size={16} className="field__icon" aria-hidden /> : null}
         <select
           {...props}
+          aria-label={hideLabel ? label : undefined}
           aria-describedby={error ? errorId : undefined}
           aria-invalid={Boolean(error)}
         >

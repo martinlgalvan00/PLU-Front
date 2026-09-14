@@ -53,12 +53,20 @@ export default function TicketOrdersSection({
         channel:
           order.manualPaymentChannel === 'wise_transfer'
             ? t('formOptions.payment.wiseTransfer')
-            : order.provider === 'manual'
-              ? t('formOptions.payment.manualLink')
-              : null,
+            : order.manualPaymentChannel === 'cash_pitbull'
+              ? t('formOptions.payment.cashPitbull')
+              : order.provider === 'manual'
+                ? t('formOptions.payment.manualLink')
+                : null,
+        // El efectivo se cobró en caja y no genera archivo: pedirle un
+        // comprobante sería pedir algo que no existe, y el botón de validar
+        // quedaba deshabilitado para siempre.
+        cashAtPitbull: order.manualPaymentChannel === 'cash_pitbull',
         proofStatus: order.paymentProofPath
           ? t('admin.ticketOrders.proofReceived')
-          : t('admin.ticketOrders.proofMissing'),
+          : order.manualPaymentChannel === 'cash_pitbull'
+            ? t('admin.ticketOrders.proofNotApplicable')
+            : t('admin.ticketOrders.proofMissing'),
         proofUploadedAt: formatUploadedAt(order.paymentProofUploadedAt, locale),
         status: order.status,
         paymentProofPath: order.paymentProofPath,
@@ -212,6 +220,7 @@ export default function TicketOrdersSection({
                         mode: 'view',
                         type: 'ticket',
                         orderId: row.id,
+                        cashAtPitbull: row.cashAtPitbull,
                         hasProof: true,
                         paymentProofPath: row.paymentProofPath,
                         subject: row.attendees,
@@ -250,13 +259,13 @@ export default function TicketOrdersSection({
                 return (
                   <AdminTableActions>
                     {canEdit ? (
-                      !row.paymentProofPath && row.status !== 'aprobado' ? (
+                      !row.paymentProofPath && !row.cashAtPitbull && row.status !== 'aprobado' ? (
                         <span className="status-pill status-pill--warning">
                           {t('admin.ticketOrders.proofMissing')}
                         </span>
                       ) : (
                         <AdminIconButton
-                          disabled={approving || !row.paymentProofPath}
+                          disabled={approving || (!row.paymentProofPath && !row.cashAtPitbull)}
                           icon={BadgeCheck}
                           spinning={approving}
                           label={t('admin.actions.validate')}
@@ -265,6 +274,10 @@ export default function TicketOrdersSection({
                             setReviewRow({
                               type: 'ticket',
                               orderId: row.id,
+                              // El diálogo ya sabe acreditar un cobro presencial
+                              // sin archivo: es la misma excepción del lado
+                              // atleta, no una vía nueva.
+                              cashAtPitbull: row.cashAtPitbull,
                               hasProof: Boolean(row.paymentProofPath),
                               paymentProofPath: row.paymentProofPath ?? null,
                               subject: row.attendees,

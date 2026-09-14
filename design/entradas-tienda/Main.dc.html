@@ -1,0 +1,174 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+    /* Tokens reales de PLU: palette.css + themes/dark.css. */
+    :root {
+      --canvas: #0a0b0d; --bg-2: #121316; --surface: #141518; --elevated: #1e2026;
+      --hairline: rgba(255,255,255,0.08); --rule: rgba(255,255,255,0.14);
+      --ink: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8; --faint: #6f7280;
+      --celeste: #74acdf; --celeste-soft: #9ec5eb; --celeste-deep: #1f5f9e;
+      --gold: #f2b705; --gold-soft: #ffd23f; --gold-ink: #14181f;
+      --ok-soft: #8fd4a8;
+      --font: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); -webkit-font-smoothing: antialiased; }
+    a { color: var(--celeste-soft); } a:hover { color: #c7dcf1; }
+    * { box-sizing: border-box; }
+    img { display: block; max-width: 100%; }
+
+    .eyebrow { font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+    .num { font-variant-numeric: tabular-nums; }
+
+    .cta-gold { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 54px; padding: 0 30px; border: none; background: var(--gold); color: var(--gold-ink); font-family: var(--font); font-size: 15px; font-weight: 700; letter-spacing: -.01em; cursor: pointer; }
+    .cta-line { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 13px; font-weight: 500; color: var(--secondary); border-bottom: 1px solid var(--rule); }
+    /* ── DIRECCIÓN A · CARTEL ──────────────────────────────────────
+       El meet como afiche: una foto a sangre, un bloque tipográfico de
+       borde duro encima, y todo lo demás subordinado. Cero cards: la
+       información se separa con reglas, como en un programa impreso. */
+
+    .poster { position: relative; min-height: 720px; display: flex; align-items: flex-end; overflow: hidden; }
+    .poster-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; }
+    /* Único tratamiento atmosférico, estático: sostiene la lectura del
+       tipográfico sobre la foto. No hay glow ni blur encima. */
+    .poster-scrim { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,11,13,.94) 0%, rgba(10,11,13,.82) 38%, rgba(10,11,13,.18) 78%); }
+    .poster-body { position: relative; padding: 0 64px 56px; width: 100%; }
+    .poster-rail { display: flex; align-items: center; gap: 14px; padding-bottom: 22px; }
+    .poster-rail .eyebrow { color: var(--celeste-soft); }
+    .poster-rule { flex-grow: 1; height: 1px; background: var(--rule); }
+    .poster-season { font-size: 11px; color: var(--muted); letter-spacing: .06em; }
+
+    .poster-h1 { font-size: 88px; line-height: .92; font-weight: 700; letter-spacing: -.035em; margin: 0; max-width: 13ch; }
+    .poster-h1 em { font-style: normal; color: var(--gold); }
+    .poster-meta { display: flex; align-items: center; gap: 0; margin-top: 28px; border-top: 1px solid var(--rule); }
+    .poster-meta div { padding: 16px 28px 0 0; margin-right: 28px; border-right: 1px solid var(--hairline); display: flex; flex-direction: column; gap: 5px; }
+    .poster-meta div:last-of-type { border-right: none; }
+    .poster-meta dt { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+    .poster-meta dd { margin: 0; font-size: 15px; font-weight: 500; }
+    .poster-act { margin-left: auto; display: flex; align-items: center; gap: 22px; padding-top: 14px; }
+
+    /* ── Tipos de entrada: lista editorial, sin tarjetas ── */
+    .sheet { padding: 64px 64px 72px; display: flex; flex-direction: column; gap: 34px; }
+    .sheet-head { display: flex; align-items: flex-end; gap: 24px; border-bottom: 1px solid var(--rule); padding-bottom: 18px; }
+    .sheet-h2 { font-size: 30px; font-weight: 700; letter-spacing: -.02em; margin: 0; }
+    .sheet-lead { font-size: 13.5px; color: var(--muted); max-width: 46ch; line-height: 1.6; margin: 0 0 3px auto; text-align: right; }
+
+    .lot { display: grid; grid-template-columns: 72px minmax(0, 1fr) 200px 190px; gap: 28px; align-items: baseline; padding: 26px 0; border-bottom: 1px solid var(--hairline); }
+    .lot-n { font-size: 12px; font-weight: 700; color: var(--faint); letter-spacing: .08em; }
+    .lot-c { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .lot-name { font-size: 26px; font-weight: 600; letter-spacing: -.02em; line-height: 1.15; }
+    .lot-name .mark { color: var(--gold); }
+    .lot-desc { font-size: 13px; color: var(--muted); line-height: 1.6; max-width: 52ch; margin: 0; }
+    .lot-zones { display: flex; gap: 18px; padding-top: 2px; }
+    .lot-zone { font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--celeste-soft); }
+    .lot-days { font-size: 12.5px; color: var(--secondary); }
+    .lot-days small { display: block; font-size: 10.5px; color: var(--faint); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 5px; }
+    .lot-price { text-align: right; }
+    .lot-price strong { display: block; font-size: 34px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+    .lot-price small { display: block; font-size: 11px; color: var(--faint); margin-top: 4px; }
+    .lot-price .left { color: var(--gold); font-weight: 600; }
+
+    .closing { display: flex; align-items: center; gap: 20px; padding-top: 8px; }
+    .closing-c { display: flex; flex-direction: column; gap: 5px; }
+    .closing-t { font-size: 15px; font-weight: 600; }
+    .closing-p { margin: 0; font-size: 12.5px; color: var(--muted); }
+  </style>
+</helmet>
+
+<section class="poster">
+  <img class="poster-img" src="DSC00392-display-800.webp" alt="">
+  <span class="poster-scrim" aria-hidden></span>
+  <div class="poster-body">
+    <div class="poster-rail">
+      <span class="eyebrow">Powerlifting United Argentina</span>
+      <span class="poster-rule" aria-hidden></span>
+      <span class="poster-season">Temporada 26/27</span>
+    </div>
+
+    <h1 class="poster-h1">Pitbull <em>Classic</em> 2026</h1>
+
+    <dl class="poster-meta">
+      <div><dt>Fecha</dt><dd>14 y 15 de noviembre</dd></div>
+      <div><dt>Sede</dt><dd>Club Atlético Fénix, Pilar</dd></div>
+      <div><dt>Entradas desde</dt><dd class="num">$ 12.000</dd></div>
+      <div class="poster-act">
+        <button type="button" class="cta-gold">
+          Comprar entradas
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+        <span class="cta-line">Ver ficha del evento</span>
+      </div>
+    </dl>
+  </div>
+</section>
+
+<section class="sheet">
+  <div class="sheet-head">
+    <h2 class="sheet-h2">Entradas</h2>
+    <p class="sheet-lead">Entrada de público, no requiere afiliación. Cada persona entra con su propio QR.</p>
+  </div>
+
+  <div>
+    <div class="lot">
+      <span class="lot-n">01</span>
+      <span class="lot-c">
+        <span class="lot-name">General · sábado</span>
+        <p class="lot-desc">Tribuna durante toda la primera jornada: pesaje, squat y bench de las categorías femeninas.</p>
+        <span class="lot-zones"><span class="lot-zone">Puerta general</span></span>
+      </span>
+      <span class="lot-days"><small>Jornada</small>Sábado 14</span>
+      <span class="lot-price"><strong class="num">$ 12.000</strong><small>Sin cupo</small></span>
+    </div>
+
+    <div class="lot">
+      <span class="lot-n">02</span>
+      <span class="lot-c">
+        <span class="lot-name">General · dos días</span>
+        <p class="lot-desc">Las dos jornadas completas, incluida la final de deadlift del domingo.</p>
+        <span class="lot-zones"><span class="lot-zone">Puerta general</span></span>
+      </span>
+      <span class="lot-days"><small>Jornada</small>Sábado y domingo</span>
+      <span class="lot-price"><strong class="num">$ 20.000</strong><small>Sin cupo</small></span>
+    </div>
+
+    <div class="lot">
+      <span class="lot-n">03</span>
+      <span class="lot-c">
+        <span class="lot-name">Entrenador · <span class="mark">dos días</span></span>
+        <p class="lot-desc">Tribuna más acceso a la entrada en calor, detrás de plataforma. Emite dos credenciales: una para la tribuna y la de ENTRENADOR.</p>
+        <span class="lot-zones"><span class="lot-zone">Puerta general</span><span class="lot-zone">Entrada en calor</span></span>
+      </span>
+      <span class="lot-days"><small>Jornada</small>Sábado y domingo</span>
+      <span class="lot-price"><strong class="num">$ 26.000</strong><small class="left">Quedan 12 de 30</small></span>
+    </div>
+
+    <div class="lot">
+      <span class="lot-n">04</span>
+      <span class="lot-c">
+        <span class="lot-name">Palco · dos días</span>
+        <p class="lot-desc">Ubicación elevada sobre plataforma, con buffet y programa impreso incluidos.</p>
+        <span class="lot-zones"><span class="lot-zone">Puerta general</span></span>
+      </span>
+      <span class="lot-days"><small>Jornada</small>Sábado y domingo</span>
+      <span class="lot-price"><strong class="num">$ 38.000</strong><small class="left">Quedan 6 de 40</small></span>
+    </div>
+  </div>
+
+  <div class="closing">
+    <span class="closing-c">
+      <span class="closing-t">La venta cierra el 14 de noviembre a las 08:00</span>
+      <p class="closing-p">Después de esa hora las entradas se compran en puerta, sujeto a disponibilidad.</p>
+    </span>
+    <button type="button" class="cta-gold" style="margin-left: auto;">Elegir mi entrada</button>
+  </div>
+</section>
+</x-dc>
+</body>
+</html>

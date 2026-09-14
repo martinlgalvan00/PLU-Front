@@ -9,6 +9,9 @@ import {
   eventChannelOverridesFor,
   isEventChannelOpenAnywhere,
   isEventChannelOpenForConcept,
+  MANUAL_TICKET_LEAD_HOURS,
+  manualTicketChannelsCloseAt,
+  manualTicketChannelsOpen,
   normalizeEventPaymentChannelOverrides,
 } from '../../../src/lib/eventPaymentChannels.js'
 
@@ -81,12 +84,67 @@ export function applyEventPaymentChannelOverrides(availability, overrides) {
   const manual = (concept) =>
     MANUAL_PAYMENT_CHANNELS.some((channel) => paymentChannels[concept]?.[channel])
 
+  // Mismo criterio que la plataforma: si el evento cerró todos los medios de
+  // entradas, la venta queda cerrada en vez de mostrar un selector vacío.
+  // Inscripción no se toca, porque un cupón puede reabrir un canal manual.
+  const ticketChannelOpen = PAYMENT_CHANNELS.some((channel) => paymentChannels.ticket?.[channel])
+
   return {
     ...availability,
     paymentChannels,
+    ticketEnabled: availability.ticketEnabled !== false && ticketChannelOpen,
     registrationManualEnabled: manual('registration'),
     ticketManualEnabled: manual('ticket'),
   }
+}
+
+/**
+ * Canales manuales de entradas contra el calendario.
+ *
+ * Una transferencia necesita hasta 72 horas para convertirse en un QR (24 para
+ * el comprobante, 48 para la aprobación). Vendida después de ese punto, la
+ * entrada no llega: lo que queda es una devolución y alguien en la puerta
+ * explicando. Mercado Pago no tiene ese problema y sigue abierto hasta que
+ * cierra la venta.
+ *
+ * Es lo mismo que ya hacía el operador a mano, cerrando transferencia unos
+ * días antes; acá lo hace el calendario.
+ */
+export function applyManualTicketDeadline(availability, startsAt, now = new Date()) {
+  if (!availability?.paymentChannels?.ticket) return availability
+  if (manualTicketChannelsOpen(startsAt, now)) return availability
+
+  const paymentChannels = {
+    ...availability.paymentChannels,
+    ticket: {
+      ...availability.paymentChannels.ticket,
+      bank_transfer: false,
+      cash_pitbull: false,
+      wise_transfer: false,
+    },
+  }
+
+  return {
+    ...availability,
+    paymentChannels,
+    ticketManualEnabled: false,
+    // Si Mercado Pago también estaba cerrado, ya no queda nada que ofrecer.
+    ticketEnabled: availability.ticketEnabled !== false && paymentChannels.ticket.mercado_pago === true,
+  }
+}
+
+/** Corte del lado de la orden: la disponibilidad puede venir de una caché. */
+export function assertManualTicketDeadline(channel, startsAt, now = new Date()) {
+  if (channel === 'mercado_pago') return
+  if (manualTicketChannelsOpen(startsAt, now)) return
+
+  const closeAt = manualTicketChannelsCloseAt(startsAt)
+  const label = CHANNEL_LABEL[channel] ?? channel
+  throw new HttpError(
+    409,
+    `El pago con ${label} cierra ${MANUAL_TICKET_LEAD_HOURS} horas antes del evento, porque la acreditación puede demorar hasta 48. Podés pagar con Mercado Pago.`,
+    { code: 'TICKET_MANUAL_DEADLINE_PASSED', closesAt: closeAt ? closeAt.toISOString() : null },
+  )
 }
 
 function trimText(value) {

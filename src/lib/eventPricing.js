@@ -152,13 +152,43 @@ export function resolveEventPricing(event, now = new Date()) {
   }
 }
 
+/**
+ * Ventana propia del tipo de entrada. `null` en cualquiera de los dos extremos
+ * significa "hereda la del evento", así que sólo cierra antes, nunca reabre lo
+ * que el evento ya cerró — la RPC evalúa las dos y la primera que corta gana.
+ *
+ * Devuelve por qué está cerrada, no sólo si lo está: la pantalla de compra
+ * tiene que poder decir "abre el jueves" en vez de esconder el tipo sin
+ * explicación.
+ */
+export function resolveTicketTypeSaleWindow(type, now = new Date()) {
+  const opensAt = type?.salesOpensAt ? new Date(type.salesOpensAt) : null
+  const closesAt = type?.salesClosesAt ? new Date(type.salesClosesAt) : null
+  const time = now.getTime()
+  if (opensAt && Number.isFinite(opensAt.getTime()) && time < opensAt.getTime()) {
+    return { open: false, reason: 'upcoming', opensAt: type.salesOpensAt, closesAt: type.salesClosesAt ?? null }
+  }
+  if (closesAt && Number.isFinite(closesAt.getTime()) && time > closesAt.getTime()) {
+    return { open: false, reason: 'closed', opensAt: type?.salesOpensAt ?? null, closesAt: type.salesClosesAt }
+  }
+  return {
+    open: true,
+    reason: null,
+    opensAt: type?.salesOpensAt ?? null,
+    closesAt: type?.salesClosesAt ?? null,
+  }
+}
+
 /** Formato esperado por ticketService y TicketPurchaseSection. */
-export function ticketPricingFromEvent(event) {
+export function ticketPricingFromEvent(event, now = new Date()) {
   const pricing = resolveEventPricing(event)
   const catalog = getEnabledTicketAddons(pricing.ticketAddons)
   const eventDays = [...(event?.eventDays ?? [])].sort((a, b) => a.dayIndex - b.dayIndex)
   const ticketTypes = (event?.ticketTypes ?? [])
     .filter((type) => type.active !== false)
+    // Un tipo fuera de su ventana no se oferta. Se filtra acá y no en la
+    // pantalla para que ticketService cotice sobre lo mismo que se muestra.
+    .filter((type) => resolveTicketTypeSaleWindow(type, now).open)
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
     .map((type) => {
       // Subcategorías: qué credenciales emite una compra de este tipo y qué
@@ -169,6 +199,11 @@ export function ticketPricingFromEvent(event) {
         id: type.id,
         name: type.name,
         price: Number(type.price) || 0,
+        // USD cargado a mano para Wise. Sin esto, el checkout convertía el
+        // total en pesos y mostraba un número que el panel no decidió.
+        wisePrice: Number.isFinite(Number(type.wisePrice)) ? Number(type.wisePrice) : null,
+        salesOpensAt: type.salesOpensAt ?? null,
+        salesClosesAt: type.salesClosesAt ?? null,
         quota: type.quota ?? null,
         dayIndexes: type.dayIndexes ?? [],
         includedAddonIds: type.includedAddonIds ?? [],

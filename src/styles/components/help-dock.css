@@ -510,6 +510,13 @@
   margin-top: 4px;
 }
 
+/* Con el panel abierto, el CTA fijo de la portada queda detrás del velo y no
+   se puede tocar: levantar el dock por encima de él sólo lograba que la
+   píldora aterrizara en el medio del pie del panel y tapara un acceso. */
+.help-dock.is-open {
+  --sticky-cta-clearance: 0px;
+}
+
 .help-panel__link {
   align-items: center;
   background: transparent;
@@ -597,6 +604,12 @@
   .help-panel__anchor {
     padding-inline: var(--space-md);
     padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* El dock es fijo y vive sobre la hoja: se le reserva el alto de la píldora
+     más su separación para que no tape el último acceso del pie. */
+  .help-panel__foot {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
   }
 
   .help-panel__title {

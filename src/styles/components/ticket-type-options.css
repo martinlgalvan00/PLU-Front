@@ -2,9 +2,8 @@
  * TicketTypeOptions — PLU ARG
  *
  * Superficie de venta, no de panel: filete y radio corto, sin card dentro de
- * card. La selección usa el mismo celeste que ya tenían los chips de tipo
- * (`ticket-purchase__day-chip`), así que elegir se sigue viendo igual aunque la
- * opción ahora cuente qué abre.
+ * card. La selección usa el celeste de marca, así que elegir se sigue viendo
+ * igual aunque la opción ahora cuente qué abre.
  *
  * El único acento de contenido es el oro de la entrada en calor: es lo que
  * distingue la entrada de entrenador de la de espectador, y por eso se lo

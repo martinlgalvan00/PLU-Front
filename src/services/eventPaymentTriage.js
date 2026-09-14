@@ -102,6 +102,8 @@ export function buildEventPaymentTriage({
       athlete: null,
       ticket,
       hasProof: Boolean(ticket.paymentProofPath),
+      // Cobrada en caja: no espera comprobante, ya se puede acreditar.
+      cashAtPitbull: ticket.manualPaymentChannel === 'cash_pitbull',
       createdAt: ticket.createdAt ?? null,
     })
   }

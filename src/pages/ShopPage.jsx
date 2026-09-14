@@ -427,17 +427,24 @@ function ShopFeaturedHero({
               </p>
             ) : null}
 
-            <p className="shop-hero__price">
-              {shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t)}
-            </p>
+            <div className="shop-hero__offer">
+              {checkoutOpen && salesOpen && fromPrice != null ? (
+                <p className="shop-hero__price">
+                  <span className="shop-hero__price-caption">{t('pages.shop.fromPriceCaption')}</span>
+                  <span className="shop-hero__price-amount">{money(fromPrice, locale)}</span>
+                </p>
+              ) : (
+                <p className="shop-hero__price shop-hero__price--status">
+                  {shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t)}
+                </p>
+              )}
 
-            {salesOpen ? (
-              <TicketAvailabilityBadge remaining={remaining} className="shop-hero__availability" />
-            ) : (
-              <p className="shop-hero__soon-note">
-                {checkoutOpen ? t('pages.shop.salesClosed') : t('pages.shop.checkoutSoonNote')}
-              </p>
-            )}
+              {salesOpen ? (
+                <TicketAvailabilityBadge remaining={remaining} className="shop-hero__availability" />
+              ) : checkoutOpen ? null : (
+                <p className="shop-hero__soon-note">{t('pages.shop.checkoutSoonNote')}</p>
+              )}
+            </div>
 
             {!checkoutOpen ? (
               <LaunchInterestForm source="shop_hero" eventSlug={event.slug} />

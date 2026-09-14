@@ -246,3 +246,148 @@ describe('validateAdminEventDraft del editor', () => {
     )
   })
 })
+
+/**
+ * Cerrar los cuatro medios de cobro de entradas equivale a cerrar la venta,
+ * pero por un camino que no se ve: el evento queda publicado y la pantalla
+ * pública deja de ofrecer la compra sin que nadie lo haya decidido así.
+ */
+describe('medios de cobro de entradas', () => {
+  const closed = {
+    mercado_pago: false,
+    bank_transfer: false,
+    cash_pitbull: false,
+    wise_transfer: false,
+  }
+
+  function draftWith(paymentChannelOverrides) {
+    return {
+      title: 'Pitbull Classic',
+      description: '',
+      slots: 120,
+      venue: 'La Troupé',
+      location: 'Banfield',
+      status: 'inscripcion_abierta',
+      startsAt: '2026-12-12T12:00:00.000Z',
+      endsAt: '2026-12-13T23:00:00.000Z',
+      pricing: { membership: 0, registration: 85000, combo: 0, ticketsEnabled: true },
+      eventDays: [{ dayIndex: 0, label: 'Sábado' }],
+      ticketTypes: [{ name: 'General', price: 15000, active: true, dayIndexes: [0] }],
+      paymentChannelOverrides,
+    }
+  }
+
+  it('rechaza el evento con los cuatro medios de entradas cerrados', () => {
+    const result = validateAdminEventDraft(draftWith({ ticket: closed }), (key) => key)
+    expect(result.ok).toBe(false)
+    expect(result.fieldErrors['paymentChannelOverrides.ticket']).toMatch(/ticketsNoChannel/)
+  })
+
+  it('con un solo medio abierto no dice nada', () => {
+    const result = validateAdminEventDraft(
+      draftWith({ ticket: { ...closed, mercado_pago: true } }),
+      (key) => key,
+    )
+    expect(result.fieldErrors['paymentChannelOverrides.ticket']).toBeUndefined()
+  })
+
+  it('no se mete con inscripción', () => {
+    const result = validateAdminEventDraft(
+      draftWith({ registration: closed, ticket: { ...closed, bank_transfer: true } }),
+      (key) => key,
+    )
+    expect(result.fieldErrors['paymentChannelOverrides.ticket']).toBeUndefined()
+    expect(result.fieldErrors['paymentChannelOverrides.registration']).toBeUndefined()
+  })
+
+  it('sin override no hay nada que validar', () => {
+    const result = validateAdminEventDraft(draftWith(null), (key) => key)
+    expect(result.fieldErrors['paymentChannelOverrides.ticket']).toBeUndefined()
+  })
+})
+
+/**
+ * Precio propio en USD y ventana propia por tipo de entrada: los dos esquemas
+ * —el del editor y el de la API— tienen que aceptar y rechazar lo mismo. Si uno
+ * es más laxo, el guardado pasa la validación del panel y rebota en el backend
+ * con un error que no apunta a ninguna fila.
+ */
+describe('tipo de entrada: precio Wise y ventana propia', () => {
+  const t = (key) => key
+
+  function draftWithType(type) {
+    return {
+      title: 'Pitbull Classic',
+      slots: 120,
+      venue: 'Maximal Strength Club',
+      location: 'Buenos Aires',
+      status: 'proximamente',
+      startsAt: '2026-08-15T09:00',
+      endsAt: '2026-08-15T20:00',
+      pricing: { membership: 75000, registration: 75000, combo: 120000 },
+      ticketTypes: [{ name: 'Pase general', price: 20000, ...type }],
+    }
+  }
+
+  function apiWithType(type) {
+    return validEvent({
+      ticketTypes: [
+        {
+          name: 'Pase general',
+          price: 20000,
+          quota: 100,
+          dayIndexes: [0],
+          includedAddonIds: ['food'],
+          ...type,
+        },
+      ],
+    })
+  }
+
+  it('vacío es válido en los dos: significa heredar la conversión y la ventana del evento', () => {
+    expect(validateAdminEventDraft(draftWithType({ wisePrice: '' }), t).ok).toBe(true)
+    expect(eventSchema.safeParse(apiWithType({ wisePrice: '' })).success).toBe(true)
+  })
+
+  it('acepta un USD cargado a mano', () => {
+    expect(validateAdminEventDraft(draftWithType({ wisePrice: 15 }), t).ok).toBe(true)
+    const parsed = eventSchema.safeParse(apiWithType({ wisePrice: '15' }))
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.ticketTypes[0].wisePrice).toBe(15)
+  })
+
+  it('rechaza un USD que no se puede cobrar', () => {
+    for (const wisePrice of [0, -5, 100001]) {
+      expect(validateAdminEventDraft(draftWithType({ wisePrice }), t).ok).toBe(false)
+      expect(eventSchema.safeParse(apiWithType({ wisePrice })).success).toBe(false)
+    }
+  })
+
+  it('rechaza una ventana que cierra antes de abrir, señalando la fila', () => {
+    const draft = validateAdminEventDraft(
+      draftWithType({ salesOpensAt: '2026-08-10T10:00', salesClosesAt: '2026-08-01T10:00' }),
+      t,
+    )
+    expect(draft.ok).toBe(false)
+    expect(draft.fieldErrors['ticketTypes.0.salesClosesAt']).toBe(
+      'admin.eventEditor.validation.ticketTypeSaleWindowInvalid',
+    )
+
+    const api = eventSchema.safeParse(
+      apiWithType({ salesOpensAt: '2026-08-10T10:00', salesClosesAt: '2026-08-01T10:00' }),
+    )
+    expect(api.success).toBe(false)
+    expect(api.error.issues.some((issue) => issue.path.join('.') === 'ticketTypes.0.salesClosesAt')).toBe(
+      true,
+    )
+  })
+
+  it('acepta una ventana abierta de un solo lado', () => {
+    expect(validateAdminEventDraft(draftWithType({ salesClosesAt: '2026-08-01T10:00' }), t).ok).toBe(
+      true,
+    )
+    expect(eventSchema.safeParse(apiWithType({ salesOpensAt: '2026-08-01T10:00' })).success).toBe(
+      true,
+    )
+  })
+})

@@ -1,4 +1,4 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Ticket } from 'lucide-react'
 import { m } from 'motion/react'
 import photoLiftAvif from '../../assets/DSC00346-display.avif'
 import photoLiftAvif640 from '../../assets/DSC00346-display-640.avif'
@@ -32,6 +32,7 @@ import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER } from '../../motion/tokens.ts'
 import BrandLogo from './BrandLogo.jsx'
 import Button from './Button.jsx'
+import { isTicketSalesEnabled } from '../../lib/eventPricing.js'
 import CapacityBar from './CapacityBar.jsx'
 import { describePublicCapacity } from '../../lib/eventCapacityPublic.js'
 import { resolvePublicInscriptionCopy } from '../../lib/eventInscriptionCopy.js'
@@ -81,6 +82,7 @@ export default function PitbullSpotlight({
   onJoin,
   onProfile,
   onResults,
+  onTickets,
   progressPublic = true,
   remaining = null,
   recent = [],
@@ -490,6 +492,23 @@ export default function PitbullSpotlight({
                     onClick={() => onDetail?.()}
                   >
                     {t('pages.pitbull.spotlight.viewFullCard')}
+                  </button>
+                ) : null}
+                {/* Puerta del espectador. Va como enlace y no como botón a
+                    propósito: el bloque ya tiene su acción principal, y esto
+                    es para otro público —el que viene a mirar, no a competir—
+                    que hasta acá no tenía ninguna entrada desde la portada.
+                    Sólo aparece si el evento tiene la venta prendida: un link
+                    a una compra cerrada es peor que no tenerlo. */}
+                {onTickets && isTicketSalesEnabled(event) ? (
+                  <button
+                    type="button"
+                    className="pitbull-spotlight__home-cta-tickets motion-icon-shift"
+                    onClick={() => onTickets?.()}
+                  >
+                    <Ticket size={15} aria-hidden />
+                    {t('pages.home.spectatorTickets')}
+                    <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
                   </button>
                 ) : null}
               </footer>

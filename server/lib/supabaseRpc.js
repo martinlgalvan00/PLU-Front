@@ -122,6 +122,17 @@ export function assertSupabaseResult(result, fallback = 'No se pudo completar la
   })
 }
 
+/**
+ * Columna o relación que PostgREST pide y Postgres no tiene. Típico de una
+ * migración escrita en el repo y todavía no aplicada: el catálogo público no
+ * puede caerse entero por `ticket_types.wise_price` u otra columna nueva.
+ */
+export function isMissingSchemaColumn(error) {
+  const code = resolveErrorCode(error)
+  if (code === '42703' || code === 'PGRST204') return true
+  return /column .* does not exist/i.test(String(error?.message ?? ''))
+}
+
 export function requireSupabaseClient(client) {
   if (!client) throw new HttpError(503, 'Supabase Admin no esta configurado.')
   return client

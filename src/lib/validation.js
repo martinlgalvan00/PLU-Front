@@ -230,3 +230,41 @@ export function validateTicketAttendees(attendees, t, validTicketTypeIds = []) {
 
   return { success: Object.keys(errors).length === 0, errors }
 }
+
+/**
+ * Datos de quien compra, que no son los de quien entra.
+ *
+ * Hasta acá no se pedían: la orden viajaba sin `buyer`, así que
+ * `ticket_orders.buyer_email` quedaba en null y no había a quién mandarle la
+ * entrada ni a quién avisarle cuando Finanzas la acreditaba. El comprador
+ * dependía de no cerrar la pestaña -- la orden vive en `sessionStorage` -- y de
+ * volver a mirarla él mismo.
+ *
+ * El email es el único obligatorio: es la dirección a la que va el QR. El
+ * teléfono queda opcional porque sólo sirve para que Administración pueda
+ * llamar si el comprobante no cierra.
+ */
+export function validateTicketBuyer(buyer, t) {
+  const errors = {}
+  const msg = (key, fallback) => (t ? t(`validation.${key}`) : fallback)
+
+  const name = String(buyer?.name ?? '').trim()
+  if (name.length < 3) {
+    errors['buyer-name'] = msg('buyerName', 'Ingresá tu nombre y apellido.')
+  }
+
+  const email = String(buyer?.email ?? '').trim()
+  // Mismo criterio que la RPC (`create_ticket_order_v2`): algo@algo.algo sin
+  // espacios. Validar más fino acá y menos allá deja pasar direcciones que la
+  // base rechaza recién al confirmar la compra.
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    errors['buyer-email'] = msg('buyerEmail', 'Ingresá un email válido: ahí te llega la entrada.')
+  }
+
+  const phone = String(buyer?.phone ?? '').trim()
+  if (phone && phone.replace(/\D/g, '').length < 8) {
+    errors['buyer-phone'] = msg('buyerPhone', 'Revisá el teléfono o dejalo vacío.')
+  }
+
+  return { success: Object.keys(errors).length === 0, errors }
+}
