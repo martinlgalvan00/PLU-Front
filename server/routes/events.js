@@ -157,6 +157,20 @@ const ticketTypeSchema = z.object({
   credentials: z.array(ticketCredentialSchema).min(1).max(4).optional(),
 })
 
+const eventPaymentChannelFlagsSchema = z.object({
+  mercado_pago: z.boolean().optional(),
+  bank_transfer: z.boolean().optional(),
+  cash_pitbull: z.boolean().optional(),
+  wise_transfer: z.boolean().optional(),
+})
+
+const eventPaymentChannelsByConceptSchema = z
+  .object({
+    registration: eventPaymentChannelFlagsSchema.strict().optional(),
+    ticket: eventPaymentChannelFlagsSchema.strict().optional(),
+  })
+  .strict()
+
 const weighInWindowSchema = z.object({
   id: z.string().trim().min(1).max(80).optional(),
   label: z.string().trim().min(1).max(80),
@@ -224,6 +238,8 @@ export const eventSchema = z
         publicTitle: z.string().trim().max(120).optional(),
         heroLead: z.string().trim().max(240).optional(),
         ctaLabel: z.string().trim().max(40).optional(),
+        inscriptionMark: z.string().trim().max(40).optional(),
+        inscriptionNote: z.string().trim().max(160).optional(),
       })
       .optional(),
     liveStreamUrl: z
@@ -239,13 +255,14 @@ export const eventSchema = z
     liveStatus: z.enum(['offline', 'live', 'ended']).optional(),
     // NULL = heredar matriz de plataforma. Objeto = restringir canales del
     // evento (solo puede cerrar; no reabre lo que Finanzas cerró).
+    //
+    // Se acepta por concepto —`{registration, ticket}`, que es lo que manda el
+    // panel— y también la forma plana vieja, que vale para los dos. Los dos
+    // esquemas son `strict()` a propósito: sin eso un objeto por concepto
+    // entraría por la rama plana, zod descartaría las claves desconocidas y el
+    // override llegaría vacío al guardado.
     paymentChannelOverrides: z
-      .object({
-        mercado_pago: z.boolean().optional(),
-        bank_transfer: z.boolean().optional(),
-        cash_pitbull: z.boolean().optional(),
-        wise_transfer: z.boolean().optional(),
-      })
+      .union([eventPaymentChannelsByConceptSchema, eventPaymentChannelFlagsSchema.strict()])
       .nullable()
       .optional(),
     bankTransfer: z
@@ -693,6 +710,8 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
               publicTitle: pEvent.publicCopy?.publicTitle ?? '',
               heroLead: pEvent.publicCopy?.heroLead ?? '',
               ctaLabel: pEvent.publicCopy?.ctaLabel ?? '',
+              inscriptionMark: pEvent.publicCopy?.inscriptionMark ?? '',
+              inscriptionNote: pEvent.publicCopy?.inscriptionNote ?? '',
             },
           }),
           'No se pudo guardar el copy público del evento.',

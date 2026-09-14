@@ -1,7 +1,7 @@
 import '../styles/pages/community.css'
 import '../styles/layout/design-page-notebook.css'
 import '../styles/pages/institutional-pages.css'
-import { ArrowRight, BookOpen, CalendarDays, CircleCheck, Mail, MapPin, Trophy } from 'lucide-react'
+import { ArrowRight, BookOpen, CalendarDays, Mail, MapPin, Trophy } from 'lucide-react'
 import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import StaggerGroup from '../motion/StaggerGroup.tsx'
@@ -79,7 +79,11 @@ export default function CommunityPage({ onNavigate }) {
                 <div>
                   <h3>{t(`pages.community.participation.${key}Title`)}</h3>
                   <p>{t(`pages.community.participation.${key}Desc`)}</p>
-                  <button type="button" onClick={() => onNavigate?.(key)}>
+                  <button
+                    type="button"
+                    className="community-participation__cta"
+                    onClick={() => onNavigate?.(key)}
+                  >
                     {t(`pages.community.participation.${key}Cta`)}
                     <ArrowRight size={14} aria-hidden />
                   </button>
@@ -152,17 +156,14 @@ export default function CommunityPage({ onNavigate }) {
             className="community-honest-state"
             aria-labelledby="community-directory-empty-title"
           >
-            <span className="community-honest-state__icon">
-              <CircleCheck size={22} aria-hidden />
-            </span>
-            <div>
+            <div className="community-honest-state__copy">
               <p className="institutional-kicker">{t('pages.community.directoryEyebrow')}</p>
               <h2 id="community-directory-empty-title">{t('pages.community.directoryTitle')}</h2>
               <p>{t('pages.community.directoryDesc')}</p>
             </div>
             <button
               type="button"
-              className="institutional-button institutional-button--primary"
+              className="community-honest-state__cta"
               onClick={() => onNavigate?.('contact')}
             >
               {t('pages.community.directoryCta')}

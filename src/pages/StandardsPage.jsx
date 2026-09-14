@@ -28,7 +28,7 @@ export default function StandardsPage({ onNavigate }) {
         title={t('pages.standards.heroTitle')}
       />
 
-      <div className="institutional-page__inner">
+      <div className="institutional-page__inner standards-page__inner">
         <Reveal variant="fade">
           <section className="institutional-manifesto" aria-labelledby="standards-intro-title">
             <p className="institutional-kicker">{t('pages.standards.introEyebrow')}</p>
@@ -61,7 +61,7 @@ export default function StandardsPage({ onNavigate }) {
           <div className="standards-grid__doc">
             {CLASSIFICATION_STANDARDS.pdfUrl ? (
               <a
-                className="institutional-cta"
+                className="team-close__primary"
                 href={CLASSIFICATION_STANDARDS.pdfUrl}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -86,43 +86,45 @@ export default function StandardsPage({ onNavigate }) {
             </div>
           </header>
 
-          <label className="standards-lookup__search">
-            <Search size={16} aria-hidden />
-            <span className="visually-hidden">{t('pages.standards.lookupLabel')}</span>
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={t('pages.standards.lookupPlaceholder')}
-              autoComplete="off"
-            />
-          </label>
+          <div className="standards-lookup__finder">
+            <label className="standards-lookup__search">
+              <Search size={18} aria-hidden />
+              <span className="visually-hidden">{t('pages.standards.lookupLabel')}</span>
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={t('pages.standards.lookupPlaceholder')}
+                autoComplete="off"
+              />
+            </label>
 
-          {hasQuery ? (
-            lifters.length > 0 ? (
-              <ul className="standards-lookup__results">
-                {lifters.map((lifter) => (
-                  <li key={lifter.id}>
-                    <strong>{lifter.name}</strong>
-                    <span>{lifter.division}</span>
-                    <span>{lifter.meet}</span>
-                    <span className="standards-lookup__total">{lifter.totalLabel}</span>
-                  </li>
-                ))}
-              </ul>
+            {hasQuery ? (
+              lifters.length > 0 ? (
+                <ul className="standards-lookup__results">
+                  {lifters.map((lifter) => (
+                    <li key={lifter.id}>
+                      <strong>{lifter.name}</strong>
+                      <span>{lifter.division}</span>
+                      <span>{lifter.meet}</span>
+                      <span className="standards-lookup__total">{lifter.totalLabel}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="standards-lookup__empty">{t('pages.standards.lookupEmpty')}</p>
+              )
             ) : (
-              <p className="standards-lookup__empty">{t('pages.standards.lookupEmpty')}</p>
-            )
-          ) : (
-            <p className="standards-lookup__hint">{t('pages.standards.lookupHint')}</p>
-          )}
+              <p className="standards-lookup__hint">{t('pages.standards.lookupHint')}</p>
+            )}
+          </div>
         </section>
 
         <Reveal delay={40}>
           <div className="institutional-cta-row">
             <button
               type="button"
-              className="institutional-cta"
+              className="team-close__primary"
               onClick={() => onNavigate?.('rulebook')}
             >
               <span>{t('pages.standards.ctaRulebook')}</span>
@@ -130,11 +132,11 @@ export default function StandardsPage({ onNavigate }) {
             </button>
             <button
               type="button"
-              className="institutional-cta institutional-cta--ghost"
+              className="team-close__secondary"
               onClick={() => onNavigate?.('records')}
             >
               <span>{t('pages.standards.ctaRecords')}</span>
-              <ArrowRight size={14} aria-hidden />
+              <ArrowRight size={13} aria-hidden />
             </button>
           </div>
         </Reveal>

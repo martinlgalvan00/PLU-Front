@@ -5,15 +5,19 @@ import { ACCESS_ROLE_INCLUDE, permissionKeysFromAccessRole } from './accessContr
 
 export const SESSION_COOKIE_NAME = 'plu_session'
 
-const SESSION_DURATION_MS = 1000 * 60 * 60 * 8
+export const SESSION_DURATION_MS = 1000 * 60 * 60 * 8
 /**
  * Tope absoluto de una sesión staff desde su creación. La duración de 8 h es
  * un timeout de inactividad que se renueva con el uso (ver
  * `extendSessionIfActive`); sin un tope absoluto, una sesión que nunca duerme
  * sería infinita, y la contraseña cambiada o el rol recortado deben poder
  * vencer solos aunque la persona siga activa.
+ *
+ * También es la vigencia de “Recordarme en este dispositivo”: cookie y fila
+ * nacen con este techo. Sin el flag, la cookie es de sesión y la fila vence
+ * a las 8 h (renovables por actividad hasta este mismo tope).
  */
-const SESSION_ABSOLUTE_MS = 1000 * 60 * 60 * 24 * 7
+export const SESSION_ABSOLUTE_MS = 1000 * 60 * 60 * 24 * 7
 
 export function hashToken(token) {
   return createHash('sha256').update(token).digest('hex')
@@ -32,8 +36,8 @@ function secureCookieEnabled(env = process.env) {
   return env.NODE_ENV === 'production'
 }
 
-export function getSessionCookieOptions(env = process.env) {
-  return {
+export function getSessionCookieOptions(env = process.env, { remember = false } = {}) {
+  const options = {
     httpOnly: true,
     // 'strict' y no 'lax': esta cookie abre el panel operativo, y con 'lax'
     // viaja en cualquier navegación top-level entrante (un link en un mail, un
@@ -45,8 +49,12 @@ export function getSessionCookieOptions(env = process.env) {
     sameSite: 'strict',
     secure: secureCookieEnabled(env),
     path: '/',
-    maxAge: SESSION_DURATION_MS,
   }
+  // Sin remember la cookie es de sesión: al cerrar el browser se pierde,
+  // aunque la fila en DB siga viva unas horas. Con remember, Max-Age iguala
+  // el tope absoluto de 7 días.
+  if (remember) options.maxAge = SESSION_ABSOLUTE_MS
+  return options
 }
 
 export function getClearSessionCookieOptions(env = process.env) {
@@ -98,14 +106,31 @@ export async function extendSessionIfActive({ prisma, result, req, res, now = ne
   // ya hubiera extendido la sesión: sin este refresh el navegador la tira y
   // el siguiente request llega anónimo.
   const token = req.cookies?.[SESSION_COOKIE_NAME]
-  if (token) res.cookie(SESSION_COOKIE_NAME, token, getSessionCookieOptions())
+  if (token) {
+    // Remaining > 8 h sólo ocurre en sesiones “recordarme” (nacen a 7 días).
+    // Las demás nunca tienen más de 8 h por delante porque la renovación
+    // deslizante recorta a `now + SESSION_DURATION_MS`.
+    const remaining = nextExpiresMs - nowMs
+    res.cookie(
+      SESSION_COOKIE_NAME,
+      token,
+      getSessionCookieOptions(process.env, { remember: remaining > SESSION_DURATION_MS }),
+    )
+  }
 
   return nextExpiresAt
 }
 
-export async function createSession({ prisma, userId, req, now = new Date() }) {
+export async function createSession({
+  prisma,
+  userId,
+  req,
+  now = new Date(),
+  remember = false,
+}) {
   const token = randomBytes(32).toString('base64url')
-  const expiresAt = new Date(now.getTime() + SESSION_DURATION_MS)
+  const durationMs = remember ? SESSION_ABSOLUTE_MS : SESSION_DURATION_MS
+  const expiresAt = new Date(now.getTime() + durationMs)
 
   await prisma.session.create({
     data: {

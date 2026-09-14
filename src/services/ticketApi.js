@@ -193,14 +193,19 @@ export async function verifyTicketByQrToken(qrToken) {
  */
 export async function fetchTicketAvailability(eventSlug) {
   const result = await apiGet(`/api/tickets/availability/${encodeURIComponent(eventSlug)}`)
+  const checkout = result?.checkout
   return {
     availability: result?.availability ?? null,
     // Interruptores de la plataforma: viajan con la disponibilidad porque la
     // pantalla de entradas necesita las dos cosas para armarse. Ausentes =
     // abiertos, para no cerrar la compra por una respuesta vieja del API.
+    // `channels` y `bankTransfer` también: sin ellos el formulario no puede
+    // ofrecer Wise/transferencia aunque el panel los tenga abiertos.
     checkout: {
-      ticketEnabled: result?.checkout?.ticketEnabled !== false,
-      ticketManualEnabled: result?.checkout?.ticketManualEnabled !== false,
+      ticketEnabled: checkout?.ticketEnabled !== false,
+      ticketManualEnabled: checkout?.ticketManualEnabled !== false,
+      channels: checkout?.channels,
+      bankTransfer: checkout?.bankTransfer ?? null,
     },
   }
 }

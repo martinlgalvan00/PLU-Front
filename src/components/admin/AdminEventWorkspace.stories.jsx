@@ -99,7 +99,7 @@ function EditorStubAcordeon({ bloques = 8 }) {
           </div>
           <div className="admin-event-form__action-buttons">
             <Button type="button" variant="outline">
-              Cerrar sección
+              Volver al resumen
             </Button>
             <Button type="button" variant="gold">
               <Save size={15} aria-hidden />

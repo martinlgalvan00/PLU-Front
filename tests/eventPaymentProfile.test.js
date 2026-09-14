@@ -17,14 +17,32 @@ describe('normalizePaymentChannelOverrides', () => {
     expect(normalizePaymentChannelOverrides({ foo: true })).toBeNull()
   })
 
-  it('conserva solo booleanos conocidos', () => {
+  it('expande la forma plana vieja a los dos conceptos', () => {
+    // Las filas que ya existen guardan un solo juego de banderas. Significaba
+    // "lo mismo para inscripción y entradas", y tiene que seguir significando
+    // eso: si no, cambiar el formato cambiaría el cobro de eventos vivos.
     expect(
       normalizePaymentChannelOverrides({
         mercado_pago: false,
         bank_transfer: true,
         junk: true,
       }),
-    ).toEqual({ mercado_pago: false, bank_transfer: true })
+    ).toEqual({
+      registration: { mercado_pago: false, bank_transfer: true },
+      ticket: { mercado_pago: false, bank_transfer: true },
+    })
+  })
+
+  it('conserva la forma por concepto', () => {
+    expect(
+      normalizePaymentChannelOverrides({
+        registration: { cash_pitbull: true },
+        ticket: { cash_pitbull: false, junk: true },
+      }),
+    ).toEqual({
+      registration: { cash_pitbull: true },
+      ticket: { cash_pitbull: false },
+    })
   })
 })
 
@@ -82,6 +100,19 @@ describe('applyEventPaymentChannelOverrides', () => {
 
   it('sin override deja la availability intacta', () => {
     expect(applyEventPaymentChannelOverrides(base, null)).toBe(base)
+  })
+
+  it('cierra un canal solo en el concepto que lo pide', () => {
+    const next = applyEventPaymentChannelOverrides(base, {
+      ticket: { bank_transfer: false },
+    })
+    expect(next.paymentChannels.registration.bank_transfer).toBe(true)
+    expect(next.paymentChannels.ticket.bank_transfer).toBe(false)
+    expect(next.paymentChannels.ticket.mercado_pago).toBe(true)
+    expect(next.registrationManualEnabled).toBe(true)
+    // Entradas se queda sin ningún canal manual: la transferencia era el único
+    // abierto en la plataforma para ese concepto.
+    expect(next.ticketManualEnabled).toBe(false)
   })
 })
 
@@ -143,6 +174,34 @@ describe('assertEventBankTransferReady', () => {
         env: {},
       }),
     ).toThrowError(expect.objectContaining({ status: 400 }))
+  })
+
+  it('sigue exigiendo alias si la transferencia queda abierta en un solo concepto', () => {
+    // El alias es uno solo para todo el evento: alcanza con que la
+    // transferencia siga en pie para la inscripción.
+    expect(() =>
+      assertEventBankTransferReady({
+        overrides: {
+          registration: { bank_transfer: true },
+          ticket: { bank_transfer: false },
+        },
+        bankTransfer: { alias: '' },
+        env: {},
+      }),
+    ).toThrowError(expect.objectContaining({ status: 400 }))
+  })
+
+  it('no exige alias si la transferencia está cerrada en los dos', () => {
+    expect(() =>
+      assertEventBankTransferReady({
+        overrides: {
+          registration: { bank_transfer: false },
+          ticket: { bank_transfer: false },
+        },
+        bankTransfer: { alias: '' },
+        env: {},
+      }),
+    ).not.toThrow()
   })
 
   it('acepta alias del env', () => {
@@ -207,6 +266,42 @@ describe('assertEventPaymentChannelEnabled', () => {
         eventOverrides: { mercado_pago: false },
       }),
     ).not.toThrow()
+  })
+
+  it('cerrar efectivo en entradas no lo cierra en inscripción', () => {
+    const eventOverrides = { ticket: { cash_pitbull: false } }
+
+    expect(() =>
+      assertEventPaymentChannelEnabled(toggles, 'registration', 'cash_pitbull', {
+        eventOverrides,
+      }),
+    ).not.toThrow()
+
+    expect(() =>
+      assertEventPaymentChannelEnabled(toggles, 'ticket', 'cash_pitbull', { eventOverrides }),
+    ).toThrowError(
+      expect.objectContaining({
+        status: 409,
+        details: { code: 'TICKET_CASH_PITBULL_DISABLED' },
+      }),
+    )
+  })
+
+  it('avisa cuando el concepto se quedó sin ningún medio', () => {
+    expect(() =>
+      assertEventPaymentChannelEnabled(toggles, 'ticket', 'mercado_pago', {
+        eventOverrides: {
+          ticket: {
+            mercado_pago: false,
+            bank_transfer: false,
+            cash_pitbull: false,
+            wise_transfer: false,
+          },
+        },
+      }),
+    ).toThrowError(
+      expect.objectContaining({ status: 409, details: { code: 'TICKET_NO_PAYMENT_CHANNEL' } }),
+    )
   })
 
   it('sigue respetando la plataforma cerrada', () => {

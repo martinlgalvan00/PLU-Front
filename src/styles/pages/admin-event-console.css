@@ -1007,7 +1007,7 @@
 
 .admin-event-editor--essentials .admin-event-form__channel-grid {
   gap: 8px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .admin-event-editor--essentials .admin-event-form__bank-transfer {
@@ -1035,8 +1035,7 @@
 }
 
 @media (max-width: 560px) {
-  .admin-event-editor--essentials .admin-event-form__rate-cards,
-  .admin-event-editor--essentials .admin-event-form__channel-grid {
+  .admin-event-editor--essentials .admin-event-form__rate-cards {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -1158,9 +1157,8 @@
   border-color: transparent;
 }
 
-.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-grid .admin-event-form__toggle {
-  min-height: 40px;
-  padding: 4px 0;
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-row {
+  padding: 2px 10px;
 }
 
 .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__cupo .admin-event-form__toggle {
@@ -3236,441 +3234,248 @@
   }
 }
 
-/* ── 7. State control: banda operativa compacta y editorial ─
-   Menos aire vertical, una sola lectura: workflow → estado → acceso.
-   Sin cajas; underline brand como único acento.
-   Especificidad ≥ admin-minimal (.admin-shell .admin-list-shell--events …). */
+/* ── 7. Estado y acceso: tres campos del mismo formulario ─
+   La ficha del evento y estas tres decisiones comparten vocabulario —etiqueta
+   de 10px en versalitas y un control debajo— para que cambiar el estado no se
+   lea como navegar. Antes eran cinco filas con tres idiomas distintos (chips
+   de filtro, subrayados tipo pestaña y un toggle suelto), todas con aspecto de
+   pestaña, y la consecuencia de cada decisión vivía en un `title`.
+   Especificidad ≥ admin-minimal (.admin-shell .admin-event-workspace …). */
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state {
-  border-bottom: 1px solid color-mix(in srgb, var(--admin-hairline) 85%, transparent);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.admin-shell .admin-event-workspace__panel .admin-event-state {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 12px;
+  display: grid;
+  gap: 16px;
   margin: 0;
-  padding: 2px 0 14px;
+  padding: 24px;
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__workflow {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 10px;
+.admin-shell .admin-event-workspace__panel .admin-event-state__head {
+  display: grid;
+  gap: 4px;
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__workflow-label,
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state
-  .admin-filter-group__label {
+.admin-shell .admin-event-workspace__panel .admin-event-state__head h4 {
+  color: var(--admin-ink);
+  font-size: clamp(15px, 1.5vw, 16px);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.admin-shell .admin-event-workspace__panel .admin-event-state__head p {
   color: var(--admin-muted);
-  font-size: 12px;
-  font-weight: 550;
-  letter-spacing: 0;
-  text-transform: none;
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 62ch;
+  text-wrap: pretty;
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__workflow-actions {
-  align-items: center;
-  display: inline-flex;
-  flex-wrap: wrap;
+.admin-shell .admin-event-workspace__panel .admin-event-state__fields {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-shell .admin-event-workspace__panel .admin-event-state__field {
+  display: grid;
   gap: 6px;
+  justify-items: start;
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__registration-action,
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__registration-live {
-  font-size: 11px;
-  gap: 5px;
-  min-height: 30px;
-  padding: 4px 10px;
-}
-
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__registration-action--open {
-  background: var(--admin-action, var(--color-brand-action));
-  border-color: var(--admin-action, var(--color-brand-action));
-  color: var(--color-on-brand-action, var(--color-bg-primary));
-}
-
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__controls {
-  display: grid;
-  gap: 0;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row {
-  align-items: start;
-  border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 70%, transparent);
-  display: grid;
-  gap: 6px 14px;
-  grid-template-columns: 4.5rem minmax(0, 1fr);
-  padding: 8px 0;
-}
-
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row:first-child {
-  border-top: 0;
-  padding-top: 2px;
-}
-
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row-label {
+/* Mismo rótulo que `.admin-event-form__field > span`: 10px / 550 / 0.06em. */
+.admin-shell .admin-event-workspace__panel .admin-event-state__field-label {
   color: var(--admin-muted);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 550;
-  letter-spacing: 0;
-  line-height: 32px;
-  text-transform: none;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row
-  .admin-filter-group {
-  min-width: 0;
-  width: 100%;
-}
-
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row
-  .admin-filter-group__label {
-  display: none;
-}
-
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row--access {
-  align-items: center;
-}
-
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row--access
-  .admin-event-state__row-label {
-  line-height: 32px;
-  padding-top: 0;
-}
-
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__access {
-  align-items: center;
+/* Control segmentado: pista hundida, opción elegida en relieve. Envuelve en
+   vez de scrollear — con la barra lateral la columna principal baja a ~230px
+   y los cinco estados detrás de un riel horizontal no se anunciaban. */
+.admin-shell .admin-event-workspace__panel .admin-event-state__options {
+  background: color-mix(in srgb, var(--admin-ink) 4%, transparent);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 10px;
   display: flex;
   flex-wrap: wrap;
-  gap: 0 2px;
-  min-width: 0;
+  gap: 2px;
+  max-width: 100%;
+  padding: 3px;
+  width: fit-content;
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__access-option {
+.admin-shell .admin-event-workspace__panel .admin-event-state__option {
   align-items: center;
   background: transparent;
   border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  box-shadow: none;
+  border-radius: 7px;
   color: var(--admin-muted);
   cursor: pointer;
   display: inline-flex;
   flex: 0 0 auto;
-  gap: 0;
-  min-height: 32px;
-  min-width: 0;
-  padding: 4px 10px;
-  text-align: left;
-  width: auto;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 550;
+  gap: 6px;
+  letter-spacing: 0;
+  min-height: 34px;
+  padding: 4px 12px;
+  transition:
+    background var(--motion-fast, 160ms) var(--ease-standard, ease),
+    color var(--motion-fast, 160ms) var(--ease-standard, ease);
+  white-space: nowrap;
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__access-option:hover:not(:disabled):not(.is-active) {
-  background: transparent;
-  box-shadow: none;
-  color: var(--admin-ink, var(--color-text-primary));
+.admin-shell .admin-event-workspace__panel .admin-event-state__option svg {
+  flex: 0 0 auto;
+  opacity: 0.8;
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__access-option:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
+.admin-shell .admin-event-workspace__panel .admin-event-state__option:hover:not(:disabled) {
+  color: var(--admin-ink);
+}
+
+.admin-shell .admin-event-workspace__panel .admin-event-state__option:focus-visible {
+  outline: 2px solid var(--admin-focus, var(--color-brand-celeste));
   outline-offset: 2px;
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__access-option:disabled {
+.admin-shell .admin-event-workspace__panel .admin-event-state__option:disabled {
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__access-option.is-active {
-  background: transparent;
-  border-bottom-color: var(--admin-brand, var(--color-brand-celeste));
-  box-shadow: none;
-  color: var(--admin-ink, var(--color-text-primary));
-}
-
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__access-option strong {
-  color: inherit;
-  font-size: 12px;
-  font-weight: 550;
-  letter-spacing: 0;
-  line-height: 1.25;
-}
-
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__access-option.is-active strong {
+.admin-shell .admin-event-workspace__panel .admin-event-state__option.is-active {
+  background: var(--admin-surface-raised, var(--admin-surface));
+  box-shadow:
+    inset 0 0 0 1px var(--admin-hairline),
+    var(--admin-shadow-soft, 0 1px 2px rgba(0, 0, 0, 0.16));
+  color: var(--admin-ink);
   font-weight: 650;
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__access
-  .admin-event-state__note {
-  flex: 1 1 100%;
-  margin-top: 4px;
+.admin-shell .admin-event-workspace__panel .admin-event-state__option.is-active svg {
+  opacity: 1;
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row--visibility {
+/* La consecuencia de la decisión, escrita. No es decoración: el requisito de
+   afiliación decide quién pasa la puerta el día del meet. */
+.admin-shell .admin-event-workspace__panel .admin-event-state__field-note {
+  color: var(--admin-muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 60ch;
+}
+
+/* Cómo queda el evento con las tres decisiones, y el único atajo que cambia
+   dos a la vez (habilitar publica y abre inscripciones). */
+.admin-shell .admin-event-workspace__panel .admin-event-state__result-bar {
   align-items: center;
-}
-
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row--visibility
-  .admin-event-state__visibility {
-  justify-self: start;
-  margin-top: 0;
-}
-
-@media (max-width: 519px) {
-  .admin-shell
-    .admin-event-workspace__panel
-    .admin-event-state__row {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 2px;
-  }
-
-  .admin-shell
-    .admin-event-workspace__panel
-    .admin-event-state__row-label {
-    line-height: 1.2;
-    padding-top: 2px;
-  }
-
-}
-
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row:not(.admin-event-state__row--access)
-  .admin-filter-chips,
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row:not(.admin-event-state__row--access)
-  .admin-filter-chips-rail {
-  /* Envuelve en vez de scrollear. El riel horizontal con degradado venía del
-     modal, donde la fila era ancha; con la barra lateral la columna principal
-     baja a ~230px y ahí quedaban 3 de 5 estados detrás de un scroll que no se
-     anuncia. Los cinco juntos ocupan 462px: entran en dos líneas y se ven
-     todos, que es lo que importa en un selector de estado. */
+  border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 70%, transparent);
   display: flex;
   flex-wrap: wrap;
-  gap: 0 2px;
-  overflow-x: visible;
+  gap: 10px 16px;
+  justify-content: space-between;
+  padding-top: 14px;
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state
-  .admin-filter-chips-rail::-webkit-scrollbar {
-  display: none;
+.admin-shell .admin-event-workspace__panel .admin-event-state__result {
+  margin: 0;
+  min-width: 0;
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row:not(.admin-event-state__row--access)
-  .admin-filter-chip {
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  box-shadow: none;
-  color: var(--admin-muted);
-  /* Cada chip al ancho de su texto. Sin esto se estiraban al ancho COMPLETO
-     del riel -- medido: 371px cuando "Próximamente" ocupa 98 -- así que entraba
-     uno solo y había que scrollear cinco pantallas para llegar a "Finalizado".
-     Con la barra lateral ocupando 260px el riel se angostó y el problema pasó
-     de molesto a bloqueante. */
-  flex: 0 0 auto;
-  width: max-content;
-  font-size: 12px;
+.admin-shell .admin-event-workspace__panel .admin-event-state__result-access {
+  color: var(--admin-text-secondary);
   font-weight: 550;
-  min-height: 32px;
-  padding: 4px 10px;
-  white-space: nowrap;
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row:not(.admin-event-state__row--access)
-  .admin-filter-chip:hover {
-  background: transparent;
-  color: var(--admin-ink);
-}
-
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row:not(.admin-event-state__row--access)
-  .admin-filter-chip.is-active,
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row:not(.admin-event-state__row--access)
-  .admin-filter-chip[aria-pressed='true'] {
-  background: transparent;
-  border-bottom-color: var(--admin-brand);
-  box-shadow: none;
-  color: var(--admin-ink);
-  font-weight: 650;
-}
-
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state
-  .admin-filter-chip__indicator {
-  display: none;
-}
-
-/* Acceso: par segmentado denso (después del riel de estado para ganar cascada). */
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row--access
-  .admin-filter-chips,
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row--access
-  .admin-filter-chips-rail {
-  -webkit-mask-image: none;
-  mask-image: none;
-  background: color-mix(in srgb, var(--admin-ink) 4%, transparent);
-  border: 1px solid var(--admin-hairline);
-  border-radius: 8px;
+.admin-shell .admin-event-workspace__panel .admin-event-state__result-actions {
+  align-items: center;
   display: inline-flex;
-  flex-wrap: nowrap;
-  gap: 0;
-  max-width: 100%;
-  overflow: hidden;
-  padding: 2px;
-  width: fit-content;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row--access
-  .admin-filter-chip {
+.admin-shell .admin-event-workspace__panel .admin-event-state__registration-action {
+  align-items: center;
   background: transparent;
-  border: 0;
-  border-radius: 6px;
-  box-shadow: none;
-  color: var(--admin-muted);
-  flex: 0 0 auto;
-  font-size: 12px;
-  font-weight: 550;
-  min-height: 30px;
-  padding: 4px 12px;
-  white-space: nowrap;
-}
-
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row--access
-  .admin-filter-chip:hover {
+  border: 1px solid var(--admin-hairline);
+  border-radius: 999px;
   color: var(--admin-ink);
-}
-
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row--access
-  .admin-filter-chip.is-active,
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__row--access
-  .admin-filter-chip[aria-pressed='true'] {
-  background: color-mix(in srgb, var(--admin-brand) 16%, transparent);
-  border-bottom-color: transparent;
-  color: var(--admin-ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 11.5px;
   font-weight: 650;
+  gap: 6px;
+  min-height: 34px;
+  padding: 4px 12px;
+  transition:
+    background var(--motion-fast, 160ms) var(--ease-standard, ease),
+    border-color var(--motion-fast, 160ms) var(--ease-standard, ease);
 }
 
 .admin-shell
   .admin-event-workspace__panel
-  .admin-event-state__note {
+  .admin-event-state__registration-action:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--admin-ink) 5%, transparent);
+  border-color: var(--admin-hairline-strong);
+}
+
+.admin-shell .admin-event-workspace__panel .admin-event-state__registration-action:focus-visible {
+  outline: 2px solid var(--admin-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
+.admin-shell .admin-event-workspace__panel .admin-event-state__registration-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-shell .admin-event-workspace__panel .admin-event-state__registration-action--open {
+  background: var(--admin-action, var(--color-brand-action));
+  border-color: var(--admin-action, var(--color-brand-action));
+  color: var(--admin-on-action, var(--color-bg-primary));
+}
+
+.admin-shell
+  .admin-event-workspace__panel
+  .admin-event-state__registration-action--open:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--admin-action) 86%, var(--admin-ink));
+  border-color: color-mix(in srgb, var(--admin-action) 86%, var(--admin-ink));
+}
+
+.admin-shell .admin-event-workspace__panel .admin-event-state__note {
   align-items: flex-start;
   color: var(--admin-muted);
   display: flex;
-  font-size: 11px;
+  font-size: 11.5px;
   gap: 6px;
-  line-height: 1.4;
+  line-height: 1.45;
   margin: 0;
-  max-width: 56ch;
+  max-width: 62ch;
+  text-wrap: pretty;
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__note
-  svg {
+.admin-shell .admin-event-workspace__panel .admin-event-state__note svg {
   flex: 0 0 auto;
-  margin-top: 1px;
+  margin-top: 2px;
   opacity: 0.85;
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__visibility {
-  color: var(--admin-muted);
-  font-size: 12px;
-  font-weight: 550;
-  gap: 6px;
-  min-height: 32px;
-  padding: 0 2px;
+.admin-shell .admin-event-workspace__panel .admin-event-state__note--error {
+  color: var(--admin-status-danger);
 }
 
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__visibility.is-published {
-  color: var(--admin-brand);
-  font-weight: 650;
-}
-
-.admin-shell
-  .admin-event-workspace__panel
-  .admin-event-state__pending {
+.admin-shell .admin-event-workspace__panel .admin-event-state__pending {
   background: color-mix(in srgb, var(--admin-brand, var(--color-brand-action)) 12%, transparent);
   border-color: color-mix(in srgb, var(--admin-brand, var(--color-brand-action)) 36%, transparent);
   gap: 8px;
@@ -3679,29 +3484,51 @@
 }
 
 @media (max-width: 719px), (pointer: coarse) {
-  .admin-shell
-    .admin-event-workspace__panel
-    .admin-event-state
-    .admin-filter-chip,
-  .admin-shell
-    .admin-event-workspace__panel
-    .admin-event-state__visibility,
-  .admin-shell
-    .admin-event-workspace__panel
-    .admin-event-state__registration-action,
-  .admin-shell
-    .admin-event-workspace__panel
-    .admin-event-state__registration-live {
+  .admin-shell .admin-event-workspace__panel .admin-event-state__option,
+  .admin-shell .admin-event-workspace__panel .admin-event-state__registration-action,
+  .admin-shell .admin-event-workspace__panel .admin-event-state__pending-discard,
+  .admin-shell .admin-event-workspace__panel .admin-event-state__pending-save {
     min-height: 44px;
   }
+}
 
+@media (max-width: 719px) {
+  .admin-shell .admin-event-workspace__panel .admin-event-state {
+    padding: 18px 16px;
+  }
+
+  /* En phone el segmentado se reparte en dos columnas parejas. Con `flex` y
+     `fit-content` los cinco estados caían en filas de ancho distinto —uno
+     entero, dos, uno centrado— y el grupo dejaba de leerse como un selector. */
+  .admin-shell .admin-event-workspace__panel .admin-event-state__options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .admin-shell .admin-event-workspace__panel .admin-event-state__option {
+    justify-content: center;
+  }
+
+  /* Cantidad impar: la última ocupa la fila entera en vez de dejar un hueco. */
   .admin-shell
     .admin-event-workspace__panel
-    .admin-event-state__pending-discard,
-  .admin-shell
-    .admin-event-workspace__panel
-    .admin-event-state__pending-save {
-    min-height: 44px;
+    .admin-event-state__option:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .admin-shell .admin-event-workspace__panel .admin-event-state__result-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-shell .admin-event-workspace__panel .admin-event-state__result-actions,
+  .admin-shell .admin-event-workspace__panel .admin-event-state__registration-action {
+    width: 100%;
+  }
+
+  .admin-shell .admin-event-workspace__panel .admin-event-state__registration-action {
+    justify-content: center;
   }
 }
 

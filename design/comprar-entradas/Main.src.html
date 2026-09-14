@@ -1,0 +1,360 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+@@BASE@@
+    /* paso 1 — cuántas personas */
+    .qty { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+    .qty-copy { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .qty-line { font-size: 15px; font-weight: 600; line-height: 1.4; }
+    .qty-line b { color: var(--gold); }
+    .qty-sub { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+
+    .strip { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 4px; }
+    .qr-tile { width: 38px; height: 38px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+    .qr-tile--on { background: color-mix(in srgb, var(--brand) 16%, transparent); border: 1px solid color-mix(in srgb, var(--brand) 32%, transparent); color: var(--brand-soft); }
+    .qr-tile--off { background: rgba(255,255,255,.02); border: 1px dashed rgba(255,255,255,.16); color: #4a4d57; }
+    .strip-note { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--muted); padding-top: 2px; }
+
+    /* paso 2 — pago */
+    .pay { display: flex; flex-direction: column; gap: 10px; }
+    .opt { display: flex; align-items: flex-start; gap: 13px; min-height: 64px; padding: 14px 16px; border: 1px solid var(--hairline); border-radius: 12px; background: var(--surface); }
+    .opt.is-on { border-color: color-mix(in srgb, var(--brand) 38%, transparent); background: color-mix(in srgb, var(--brand) 8%, transparent); }
+    .radio { width: 18px; height: 18px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.28); flex: 0 0 auto; margin-top: 2px; }
+    .opt.is-on .radio { border: 5px solid var(--brand); }
+    .opt-c { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .opt-t { font-size: 14px; font-weight: 600; }
+    .opt-p { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .opt-when { margin-left: auto; text-align: right; display: flex; flex-direction: column; gap: 3px; flex: 0 0 auto; }
+    .opt-when strong { font-size: 12px; font-weight: 600; }
+    .opt-when small { font-size: 10.5px; color: var(--muted); }
+    .opt-when.is-now strong { color: var(--ok-soft); }
+    .opt-when.is-wait strong { color: #e8a33d; }
+
+    /* paso 3 — personas */
+    .roster { border: 1px solid var(--hairline); border-radius: var(--r-card); overflow: hidden; }
+    .roster-head { display: flex; align-items: center; gap: 12px; padding: 13px 18px; border-bottom: 1px solid var(--hairline); background: rgba(255,255,255,.02); }
+    .roster-count { font-size: 12.5px; font-weight: 600; }
+    .roster-count b { color: var(--ok-soft); }
+    .roster-warn { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; color: #e8a33d; }
+    .roster-warn.is-ok { color: var(--ok-soft); }
+    .roster-warn.is-ok svg { display: none; }
+
+    .r-head, .r-row { display: grid; grid-template-columns: 34px minmax(0,1fr) 148px 178px 96px 96px; gap: 12px; align-items: center; padding: 10px 18px; }
+    .r-head { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); border-bottom: 1px solid var(--hairline); }
+    .r-head .is-end { text-align: right; }
+    .r-row { border-bottom: 1px solid var(--hairline); }
+    .r-row:last-child { border-bottom: none; }
+    .r-ix { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 7px; font-size: 11px; font-weight: 700; background: rgba(255,255,255,.05); color: var(--muted); font-variant-numeric: tabular-nums; }
+    .r-in { min-height: 44px; padding: 0 12px; border-radius: var(--r-field); border: 1px solid var(--hairline); background: rgba(255,255,255,.02); color: var(--ink); font-size: 13.5px; display: flex; align-items: center; }
+    .r-in--empty { color: #55585f; border-style: dashed; }
+    .r-in--dup { border-color: color-mix(in srgb, var(--warn) 45%, transparent); background: color-mix(in srgb, var(--warn) 9%, transparent); }
+    .r-sel { min-height: 44px; padding: 0 12px; border-radius: var(--r-field); border: 1px solid var(--hairline); background: rgba(255,255,255,.02); color: var(--secondary); font-size: 12.5px; display: flex; align-items: center; gap: 8px; }
+    .r-sel svg { margin-left: auto; color: var(--muted); }
+    .r-price { text-align: right; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .r-state { display: flex; justify-content: flex-end; }
+
+    /* cierre */
+    .checkout { display: flex; align-items: center; gap: 20px; padding: 18px 20px; border: 1px solid var(--hairline); border-radius: var(--r-card); background: var(--surface-2); flex-wrap: wrap; }
+    .checkout-c { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .checkout-t { font-size: 24px; font-weight: 700; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+    .checkout-s { font-size: 12px; color: var(--muted); }
+    .checkout .btn-gold { margin-left: auto; }
+
+    /* columna derecha */
+    .aside { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 20px; }
+    .sum { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--hairline); }
+    .sum:last-child { border-bottom: none; }
+    .sum-l { font-size: 12.5px; color: var(--muted); }
+    .sum-v { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .sum-v.is-gold { color: var(--gold); }
+
+    .pass { border: 1px solid var(--hairline); border-radius: var(--r-card); overflow: hidden; background: linear-gradient(160deg, rgba(31,95,158,.22), rgba(255,255,255,.02) 62%); }
+    .pass-top { display: flex; align-items: flex-start; gap: 12px; padding: 16px 18px 14px; }
+    .pass-c { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .pass-ev { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--brand-soft); }
+    .pass-name { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+    .pass-dni { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .pass-qr { width: 62px; height: 62px; border-radius: 10px; background: #f7f6f3; color: #14181f; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; margin-left: auto; }
+    .pass-foot { display: flex; align-items: center; gap: 10px; padding: 11px 18px; border-top: 1px dashed rgba(255,255,255,.14); font-size: 11px; color: var(--muted); }
+    .pass-of { margin-left: auto; font-weight: 600; color: var(--secondary); font-variant-numeric: tabular-nums; }
+
+    .gate { display: flex; align-items: flex-start; gap: 11px; padding: 14px 16px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--brand) 26%, transparent); background: color-mix(in srgb, var(--brand) 8%, transparent); }
+    .gate svg { color: var(--brand-soft); flex: 0 0 auto; margin-top: 1px; }
+    .gate p { margin: 0; font-size: 12px; color: var(--secondary); line-height: 1.6; }
+    .gate strong { color: var(--ink); font-weight: 600; }
+  </style>
+</helmet>
+
+<div class="page">
+@@HEAD@@
+
+  <div class="stage">
+    <div class="form-col">
+
+      <section class="step">
+        <div class="step-h">
+          <span class="step-n">1</span>
+          <h2 class="step-t">¿Cuántas personas van a entrar?</h2>
+        </div>
+        <div class="card">
+          <div class="card-b">
+            <div class="qty">
+              <div class="stepper">
+                <button type="button" class="{{decCls}}" onClick="{{dec}}" aria-label="Quitar una persona">−</button>
+                <span class="stepper-v">{{qty}}</span>
+                <button type="button" class="{{incCls}}" onClick="{{inc}}" aria-label="Agregar una persona">+</button>
+              </div>
+              <div class="qty-copy">
+                <span class="qty-line">Se emiten <b>{{qrLine}}</b>, una por persona.</span>
+                <span class="qty-sub">Cada una entra con su propio QR. No hay un QR que sirva para todo el grupo.</span>
+              </div>
+            </div>
+
+            <div class="strip">
+              <sc-for list="{{tiles}}" as="tile" hint-placeholder-count="10">
+                <span class="qr-tile {{tile.cls}}">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg>
+                </span>
+              </sc-for>
+            </div>
+            <span class="strip-note">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+              {{tileNote}}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section class="step">
+        <div class="step-h">
+          <span class="step-n">2</span>
+          <h2 class="step-t">¿Cómo pagan?</h2>
+          <span class="step-hint">Elegilo antes de cargar los datos: cambia cuándo llegan los QR</span>
+        </div>
+        <div class="pay">
+          <div class="opt is-on">
+            <span class="radio"></span>
+            <span class="opt-c">
+              <span class="opt-t">Mercado Pago</span>
+              <p class="opt-p">Tarjeta, débito o dinero en cuenta.</p>
+            </span>
+            <span class="opt-when is-now">
+              <strong>QR al instante</strong>
+              <small>apenas se acredita</small>
+            </span>
+          </div>
+          <div class="opt">
+            <span class="radio"></span>
+            <span class="opt-c">
+              <span class="opt-t">Transferencia bancaria</span>
+              <p class="opt-p">Transferís y subís el comprobante. Tenés 24 horas antes de que se libere el lugar.</p>
+            </span>
+            <span class="opt-when is-wait">
+              <strong>QR al aprobarse</strong>
+              <small>hasta 48 horas</small>
+            </span>
+          </div>
+          <div class="opt">
+            <span class="radio"></span>
+            <span class="opt-c">
+              <span class="opt-t">Wise</span>
+              <p class="opt-p">Para quien paga desde afuera del país.</p>
+            </span>
+            <span class="opt-when is-wait">
+              <strong>QR al aprobarse</strong>
+              <small>hasta 48 horas</small>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section class="step">
+        <div class="step-h">
+          <span class="step-n">3</span>
+          <h2 class="step-t">¿Quiénes entran?</h2>
+          <span class="step-hint">El nombre y el DNI van impresos en cada QR y se verifican en la puerta</span>
+        </div>
+
+        <div class="roster">
+          <div class="roster-head">
+            <span class="roster-count"><b>{{readyCount}}</b> {{readyLabel}}</span>
+            <span class="roster-warn {{warnCls}}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 4.5 21 19.5H3z"/><path d="M12 10v4M12 17h.01"/></svg>
+              {{warnText}}
+            </span>
+          </div>
+
+          <div class="r-head">
+            <span></span><span>Nombre y apellido</span><span>DNI</span><span>Entrada</span><span class="is-end">Precio</span><span class="is-end">Estado</span>
+          </div>
+
+          <sc-for list="{{people}}" as="p" hint-placeholder-count="10">
+            <div class="r-row">
+              <span class="r-ix">{{p.n}}</span>
+              <span class="r-in {{p.nameCls}}">{{p.name}}</span>
+              <span class="r-in {{p.dniCls}}">{{p.dni}}</span>
+              <span class="r-sel">General · dos días<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></span>
+              <span class="r-price">$ 20.000</span>
+              <span class="r-state"><span class="tag {{p.tagCls}}">{{p.tagText}}</span></span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <div class="checkout">
+        <div class="checkout-c">
+          <span class="checkout-t">{{totalText}}</span>
+          <span class="checkout-s">{{checkoutSub}}</span>
+        </div>
+        <button type="button" class="btn-gold">
+          {{buyLabel}}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <aside class="aside">
+      <div class="card">
+        <div class="sum"><span class="sum-l">Personas</span><span class="sum-v">{{qty}}</span></div>
+        <div class="sum"><span class="sum-l">Credenciales con QR</span><span class="sum-v">{{qty}}</span></div>
+        <div class="sum"><span class="sum-l">Total</span><span class="sum-v is-gold">{{totalText}}</span></div>
+      </div>
+
+      <div class="pass">
+        <div class="pass-top">
+          <span class="pass-c">
+            <span class="pass-ev">Pitbull Classic 2026</span>
+            <span class="pass-name">{{firstName}}</span>
+            <span class="pass-dni">{{firstDni}}</span>
+          </span>
+          <span class="pass-qr">
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg>
+          </span>
+        </div>
+        <div class="pass-foot">
+          <span>General · dos días</span>
+          <span class="pass-of">{{passOf}}</span>
+        </div>
+      </div>
+
+      <div class="gate">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 3l7 3v6c0 4.2-2.8 7.6-7 9-4.2-1.4-7-4.8-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+        <p>En la puerta se escanea <strong>un QR por persona</strong> y se compara el DNI con el documento. Mandale a cada uno el suyo: con el QR de otro no entra.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1440,"height":1560}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props)
+    // Arranca en 10 porque es el caso que se quiere explicar: diez entradas
+    // son diez personas, no una compra de diez.
+    this.state = { qty: 10 }
+  }
+
+  roster() {
+    return [
+      ['Camila Rearte', '38.402.115'],
+      ['Julián Ferreyra', '41.908.330'],
+      ['Sofía Benítez', '44.120.887'],
+      ['Nicolás Paz', '35.771.204'],
+      ['Marina Oliveira', '38.402.115'],
+      ['Diego Salvatierra', '30.559.641'],
+      ['Lucía Ferrari', '42.880.913'],
+      ['', ''],
+      ['', ''],
+      ['', ''],
+    ]
+  }
+
+  renderVals() {
+    const qty = this.state.qty
+    const rows = this.roster().slice(0, qty)
+
+    // Se compara sólo con los dígitos: 38.402.115 y 38402115 son el mismo
+    // documento, y el aviso se evadiría tipeando distinto.
+    const dniRow = new Map()
+    const people = rows.map(([name, dni], i) => {
+      const filled = name !== '' && dni !== ''
+      const key = dni.replace(/\D/g, '')
+      const duplicate = filled && dniRow.has(key)
+      if (filled && !dniRow.has(key)) dniRow.set(key, i)
+      let tagCls = 'tag--todo'
+      let tagText = 'Falta'
+      if (duplicate) {
+        tagCls = 'tag--warn'
+        // Dice contra cuál choca: con diez filas iguales, "repetido" solo no
+        // alcanza para encontrar la otra.
+        tagText = 'Repite la ' + (dniRow.get(key) + 1)
+      } else if (filled) {
+        tagCls = 'tag--ok'
+        tagText = 'Lista'
+      }
+      return {
+        n: String(i + 1),
+        name: name || 'Nombre y apellido',
+        dni: dni || 'DNI',
+        nameCls: name ? '' : 'r-in--empty',
+        dniCls: duplicate ? 'r-in--dup' : dni ? '' : 'r-in--empty',
+        tagCls,
+        tagText,
+      }
+    })
+
+    const ready = people.filter((p) => p.tagCls === 'tag--ok').length
+    const dups = people.filter((p) => p.tagCls === 'tag--warn').length
+    const missing = qty - ready - dups
+
+    const tiles = people.map((p) => ({
+      cls: p.tagCls === 'tag--ok' ? 'qr-tile--on' : 'qr-tile--off',
+    }))
+
+    const total = qty * 20000
+    const totalText = '$ ' + total.toLocaleString('es-AR')
+
+    const warnParts = []
+    if (dups > 0) warnParts.push(dups === 1 ? '1 DNI repetido' : dups + ' DNI repetidos')
+    if (missing > 0) warnParts.push(missing === 1 ? 'falta 1' : 'faltan ' + missing)
+
+    return {
+      qty: String(qty),
+      // El límite se muestra apagando el botón, no con `disabled`: el atributo
+      // recibe el valor crudo y `disabled="false"` igual desactiva.
+      decCls: qty <= 1 ? 'is-limit' : '',
+      incCls: qty >= 10 ? 'is-limit' : '',
+      inc: () => this.setState({ qty: Math.min(10, this.state.qty + 1) }),
+      dec: () => this.setState({ qty: Math.max(1, this.state.qty - 1) }),
+      qrLine: qty === 1 ? '1 credencial' : qty + ' credenciales',
+      tileNote:
+        qty === 1
+          ? 'Ese recuadro es el QR de esa persona.'
+          : 'Los recuadros llenos ya pueden emitirse. Los punteados esperan nombre y DNI.',
+      tiles,
+      people,
+      readyCount: ready + ' de ' + qty,
+      readyLabel: ready === 1 ? 'persona lista' : 'personas listas',
+      warnText: warnParts.length ? warnParts.join(' · ') : 'Todo en orden',
+      warnCls: warnParts.length ? '' : 'is-ok',
+      totalText,
+      checkoutSub:
+        qty === 1 ? '1 entrada · 1 QR' : qty + ' entradas · ' + qty + ' QR, uno por persona',
+      buyLabel: qty === 1 ? 'Pagar 1 entrada' : 'Pagar ' + qty + ' entradas',
+      firstName: rows[0] && rows[0][0] ? rows[0][0] : 'Nombre y apellido',
+      firstDni: rows[0] && rows[0][1] ? 'DNI ' + rows[0][1] : 'DNI',
+      passOf: '1 de ' + qty,
+    }
+  }
+}
+</script>
+</body>
+</html>

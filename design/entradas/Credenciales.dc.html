@@ -1,0 +1,321 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --canvas: #0a0b0d; --surface: #141518; --surface-muted: #121316; --elevated: #1e2026;
+      --hairline: rgba(255,255,255,0.09); --border: rgba(255,255,255,0.14);
+      --ink: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8; --faint: #6f7280;
+      --brand: #9ec5eb; --brand-deep: #1f5f9e; --gold: #f2b705; --gold-ink: #14181f;
+      --ok: #3d9a62; --ok-soft: #8fd4a8; --danger: #e10600; --warn: #b45309;
+      --font: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); }
+    a { color: var(--brand); } a:hover { color: #c7dcf1; }
+    * { box-sizing: border-box; }
+    .shell { display: grid; grid-template-columns: 232px 1fr; min-height: 100%; }
+    .side { background: var(--surface-muted); border-right: 1px solid var(--hairline); padding: 20px 12px; display: flex; flex-direction: column; gap: 22px; }
+    .side-brand { display: flex; align-items: center; gap: 9px; padding: 0 8px 4px; }
+    .side-mark { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, var(--brand-deep), var(--gold)); }
+    .side-name { font-size: 12.5px; font-weight: 700; }
+    .side-group { display: flex; flex-direction: column; gap: 2px; }
+    .side-label { font-size: 10px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); padding: 0 8px 6px; }
+    .side-item { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 8px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+    .side-item.is-active { background: color-mix(in srgb, var(--brand) 10%, transparent); color: var(--ink); font-weight: 600; }
+    .side-item svg { opacity: .75; flex: 0 0 auto; }
+    .side-item.is-active svg { opacity: 1; color: var(--brand); }
+    .side-count { margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--muted); }
+
+    .main { padding: 20px 32px 32px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+    .back { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--muted); }
+    .hd { display: flex; flex-direction: column; gap: 14px; }
+    .hd-top { display: flex; align-items: flex-start; gap: 16px; }
+    .hd-copy { display: flex; flex-direction: column; gap: 7px; flex-grow: 1; min-width: 0; }
+    .hd-title-row { display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+    .hd-title { font-size: 23px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+    .pill-state { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: 11px; font-weight: 600; background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent); }
+    .dot { width: 5px; height: 5px; border-radius: 999px; background: currentColor; }
+    .hd-meta { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+    .sep { color: #4a4d57; }
+    .hd-actions { display: flex; align-items: center; gap: 8px; }
+    .icon-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: color-mix(in srgb, var(--elevated) 60%, transparent); color: var(--secondary); font-size: 12px; font-weight: 500; font-family: var(--font); }
+    .icon-btn--square { width: 34px; padding: 0; }
+
+    .tabs { display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 999px; background: color-mix(in srgb, var(--elevated) 70%, transparent); border: 1px solid rgba(255,255,255,.08); width: fit-content; }
+    .tab { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 6px 12px; border-radius: 999px; border: 1px solid transparent; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; font-family: var(--font); white-space: nowrap; }
+    .tab.is-active { background: color-mix(in srgb, var(--brand) 13%, transparent); border-color: color-mix(in srgb, var(--brand) 24%, transparent); color: var(--ink); }
+    .tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; padding: 2px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 700; background: color-mix(in srgb, var(--ink) 8%, transparent); }
+    .tab.is-active .tab-count { background: color-mix(in srgb, var(--brand) 20%, transparent); }
+
+    .chapters { display: flex; align-items: center; gap: 22px; border-bottom: 1px solid var(--hairline); }
+    .chapter { padding: 0 0 11px; border: none; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; font-family: var(--font); border-bottom: 2px solid transparent; margin-bottom: -1px; text-align: left; }
+    .chapter.is-active { color: var(--ink); border-bottom-color: var(--brand); }
+    .chapter small { display: block; font-size: 10.5px; font-weight: 400; color: var(--faint); margin-top: 3px; }
+
+    .card { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; }
+    .card-h { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--hairline); }
+    .card-t { font-size: 13px; font-weight: 600; margin: 0; }
+    .card-hint { font-size: 11.5px; color: var(--muted); }
+    .card-b { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 600; white-space: nowrap; }
+    .badge--on { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok-soft); }
+    .badge--off { background: rgba(255,255,255,.07); color: var(--muted); }
+    .badge--soft { background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand); }
+    .badge--gold { background: color-mix(in srgb, var(--gold) 15%, transparent); color: var(--gold); }
+    .badge--warn { background: color-mix(in srgb, var(--warn) 22%, transparent); color: #e8a33d; }
+    .num { font-variant-numeric: tabular-nums; }
+    .kebab { color: var(--muted); display: inline-flex; }
+    .btn-gold { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 16px; border-radius: 8px; border: none; background: var(--gold); color: var(--gold-ink); font-size: 12.5px; font-weight: 600; font-family: var(--font); }
+    .ghost-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); font-size: 11.5px; font-weight: 500; font-family: var(--font); }
+    .band { display: flex; align-items: center; gap: 16px; padding: 15px 18px; border-radius: 10px; border: 1px solid var(--hairline); background: var(--surface); }
+    .band-c { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .band-t { font-size: 13px; font-weight: 600; margin: 0; }
+    .band-p { font-size: 11.5px; color: var(--muted); margin: 0; line-height: 1.55; }
+    .band-n { display: flex; align-items: center; gap: 26px; margin-left: auto; }
+    .band-n div { display: flex; flex-direction: column; gap: 2px; text-align: right; }
+    .band-n dt { font-size: 10px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--faint); }
+    .band-n dd { margin: 0; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .mx-head, .mx-row, .mx-foot { display: grid; grid-template-columns: minmax(0,1fr) 204px 112px 112px 124px 104px 88px 92px; gap: 12px; align-items: center; padding: 12px 18px; }
+    .mx-head { border-bottom: 1px solid var(--hairline); padding-top: 11px; padding-bottom: 11px; }
+    .mx-head span { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+    .mx-head .zone { display: flex; flex-direction: column; gap: 3px; align-items: center; text-align: center; }
+    .mx-head .zone small { font-size: 9.5px; font-weight: 500; letter-spacing: 0; text-transform: none; color: #55585f; }
+    .mx-head .zone.is-dead { color: #55585f; }
+    .mx-head .is-end { text-align: right; }
+    .mx-row { border-bottom: 1px solid var(--hairline); font-size: 12.5px; }
+    .mx-row.is-off { opacity: .55; }
+    .mx-name { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .mx-name strong { font-size: 13px; font-weight: 600; }
+    .mx-name small { font-size: 10.5px; color: var(--muted); }
+    .mx-name strong.is-coach { color: var(--gold); }
+    .mx-from { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--secondary); min-width: 0; }
+    .cell { display: flex; align-items: center; justify-content: center; }
+    .yes { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 7px; background: color-mix(in srgb, var(--ok) 17%, transparent); color: var(--ok-soft); }
+    .yes.is-gold { background: color-mix(in srgb, var(--gold) 16%, transparent); color: var(--gold); }
+    .no { color: #44474e; font-size: 13px; }
+    .col-dead { background: rgba(255,255,255,.016); }
+    .mx-n { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; }
+    .mx-n.is-muted { color: var(--muted); font-weight: 500; }
+    .mx-foot { background: color-mix(in srgb, var(--elevated) 40%, transparent); font-size: 11.5px; color: var(--muted); }
+    .mx-foot strong { color: var(--ink); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .lg { display: flex; align-items: flex-start; gap: 12px; padding: 13px 18px; border-bottom: 1px solid var(--hairline); }
+    .lg:last-child { border-bottom: none; }
+    .lg-k { width: 148px; flex: 0 0 auto; font-size: 12px; font-weight: 600; }
+    .lg-k.is-dead { color: var(--muted); }
+    .lg-p { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.55; }
+    .lg-p strong { color: var(--secondary); font-weight: 600; }
+  </style>
+</helmet>
+
+<div class="shell">
+  <aside class="side">
+    <div class="side-brand"><div class="side-mark"></div><span class="side-name">PLU Argentina</span></div>
+    <div class="side-group">
+      <span class="side-label">Plantel</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span>Resumen</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.1 2.7-5.2 6-5.2s6 2.1 6 5.2"/><path d="M16 11.2a3 3 0 0 0 0-6"/><path d="M18 20c0-2.4-.9-4.1-2.4-5"/></svg><span>Personas</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Competencia</span>
+      <div class="side-item is-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>Eventos</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Grilla</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M3 12h18"/></svg><span>Check-in</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M12 14v4M8 21h8"/></svg><span>Resultados</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Cobros</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span>Shop</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg><span>Cobros</span><span class="side-count">3</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 10 12 4l9 6"/><path d="M5 10v9h14v-9"/></svg><span>Libro de caja</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 6v12"/></svg><span>Tarifas</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Acceso</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 3l7 3v6c0 4.2-2.8 7.6-7 9-4.2-1.4-7-4.8-7-9V6z"/></svg><span>Usuarios</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="8" cy="13" r="4"/><path d="M11 11l8-8 2 2-2 2 2 2-3 3-2-2-2 2"/></svg><span>Roles y permisos</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 9h7M9 13h7"/></svg><span>Auditoría</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span>Analítica</span></div>
+    </div>
+  </aside>
+  <main class="main">
+    <span class="back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>Eventos</span>
+
+    <header class="hd">
+      <div class="hd-top">
+        <div class="hd-copy">
+          <div class="hd-title-row">
+            <h1 class="hd-title">Pitbull Classic 2026</h1>
+            <span class="pill-state"><span class="dot"></span>Inscripción abierta</span>
+          </div>
+          <div class="hd-meta">
+            <span>14 – 15 de noviembre de 2026</span><span class="sep">·</span>
+            <span>Club Atlético Fénix, Pilar</span><span class="sep">·</span>
+            <span>plu.ar/eventos/pitbull-classic-2026</span>
+          </div>
+        </div>
+        <div class="hd-actions">
+          <button class="icon-btn" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M15 5H5v10"/></svg>Copiar links</button>
+          <button class="icon-btn icon-btn--square" type="button" aria-label="Más acciones"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></button>
+        </div>
+      </div>
+
+      <nav class="tabs" role="tablist" aria-label="Secciones del evento">
+        <button class="tab" role="tab" aria-selected="false" type="button">Resumen</button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Datos</button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Estructura<span class="tab-count">2</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Inscripción</button>
+        <button class="tab is-active" role="tab" aria-selected="true" type="button">Entradas<span class="tab-count">4</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Zonas y seguridad<span class="tab-count">4</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Cobros<span class="tab-count">3</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Vista pública</button>
+      </nav>
+    </header>
+
+    <nav class="chapters" role="tablist" aria-label="Secciones de entradas">
+      <button class="chapter" role="tab" aria-selected="false" type="button">Catálogo<small>5 tipos · 4 en venta</small></button>
+      <button class="chapter is-active" role="tab" aria-selected="true" type="button">Credenciales<small>Qué abre cada una</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Beneficios<small>3 para canjear</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Cobro<small>2 medios abiertos</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Compras<small>281 · 3 en proceso</small></button>
+    </nav>
+
+    <section class="band">
+      <div class="band-c">
+        <h2 class="band-t">276 compras emitieron 294 credenciales</h2>
+        <p class="band-p">La diferencia son las 18 entradas de entrenador: cada una emite dos QR y se canjea en dos puestos distintos.</p>
+      </div>
+      <dl class="band-n">
+        <div><dt>Compras</dt><dd class="num">276</dd></div>
+        <div><dt>Credenciales</dt><dd class="num">294</dd></div>
+        <div><dt>Acreditadas</dt><dd class="num" style="color: var(--muted);">0</dd></div>
+      </dl>
+    </section>
+
+    <section class="card" aria-label="Qué abre cada credencial">
+      <div class="card-h">
+        <h2 class="card-t">Qué abre cada credencial</h2>
+        <span class="card-hint">Una fila por credencial emitida. Las columnas son los puestos de control del evento.</span>
+      </div>
+
+      <div class="mx-head">
+        <span>Credencial</span>
+        <span>La emite</span>
+        <span class="zone">Puerta general<small>tribuna y predio</small></span>
+        <span class="zone is-dead col-dead">Zona de atletas<small>no lee entradas</small></span>
+        <span class="zone">Entrada en calor<small>detrás de plataforma</small></span>
+        <span class="zone is-dead col-dead">Staff técnico<small>no escanea</small></span>
+        <span class="is-end">Emitidas</span>
+        <span class="is-end">Acreditadas</span>
+      </div>
+
+      <div class="mx-row">
+        <span class="mx-name"><strong>Entrada general</strong><small>Credencial única de la compra</small></span>
+        <span class="mx-from"><span class="badge badge--soft">Público</span>General · sábado</span>
+        <span class="cell"><span class="yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="cell"><span class="no">—</span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="mx-n">128</span>
+        <span class="mx-n is-muted">0</span>
+      </div>
+
+      <div class="mx-row">
+        <span class="mx-name"><strong>Entrada general</strong><small>Credencial única de la compra</small></span>
+        <span class="mx-from"><span class="badge badge--soft">Público</span>General · dos días</span>
+        <span class="cell"><span class="yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="cell"><span class="no">—</span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="mx-n">96</span>
+        <span class="mx-n is-muted">0</span>
+      </div>
+
+      <div class="mx-row">
+        <span class="mx-name"><strong>Espectador</strong><small>Primera credencial de la compra</small></span>
+        <span class="mx-from"><span class="badge badge--gold">Entrenador</span>Entrenador · dos días</span>
+        <span class="cell"><span class="yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="cell"><span class="no">—</span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="mx-n">18</span>
+        <span class="mx-n is-muted">0</span>
+      </div>
+
+      <div class="mx-row">
+        <span class="mx-name"><strong class="is-coach">ENTRENADOR</strong><small>Segunda credencial de la misma compra</small></span>
+        <span class="mx-from"><span class="badge badge--gold">Entrenador</span>Entrenador · dos días</span>
+        <span class="cell"><span class="no">—</span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="cell"><span class="yes is-gold"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="mx-n">18</span>
+        <span class="mx-n is-muted">0</span>
+      </div>
+
+      <div class="mx-row">
+        <span class="mx-name"><strong>Palco</strong><small>Credencial única de la compra</small></span>
+        <span class="mx-from"><span class="badge badge--soft">Público</span>Palco · dos días</span>
+        <span class="cell"><span class="yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="cell"><span class="no">—</span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="mx-n">34</span>
+        <span class="mx-n is-muted">0</span>
+      </div>
+
+      <div class="mx-row is-off">
+        <span class="mx-name"><strong>Entrada general</strong><small>El tipo está pausado</small></span>
+        <span class="mx-from"><span class="badge badge--soft">Público</span>Menores de 12</span>
+        <span class="cell"><span class="yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="cell"><span class="no">—</span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="mx-n">0</span>
+        <span class="mx-n is-muted">0</span>
+      </div>
+
+      <div class="mx-foot">
+        <span>6 credenciales configuradas en 5 tipos</span>
+        <span></span>
+        <span style="text-align: center;">276</span>
+        <span class="col-dead"></span>
+        <span style="text-align: center;">18</span>
+        <span class="col-dead"></span>
+        <span style="text-align: right;"><strong>294</strong></span>
+        <span style="text-align: right;"><strong>0</strong></span>
+      </div>
+    </section>
+
+    <section class="card" aria-label="Qué lee cada puesto">
+      <div class="card-h">
+        <h2 class="card-t">Qué lee cada puesto</h2>
+        <span class="card-hint">Lo define la zona en Zonas y seguridad, no la entrada</span>
+      </div>
+      <div class="lg">
+        <span class="lg-k">Puerta general</span>
+        <p class="lg-p">Lee <strong>entradas de público</strong>, inscripciones y credenciales de afiliación. Es el acceso al predio y a la tribuna.</p>
+      </div>
+      <div class="lg">
+        <span class="lg-k">Entrada en calor</span>
+        <p class="lg-p">Lee inscripciones y <strong>credenciales de entrenador con entrada paga</strong>. Ya no abre por afiliación sola.</p>
+      </div>
+      <div class="lg">
+        <span class="lg-k is-dead">Zona de atletas · Staff técnico</span>
+        <p class="lg-p">No leen entradas de público: por eso esas dos columnas están vacías para toda la tabla y no se ofrecen al armar una credencial.</p>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+</body>
+</html>

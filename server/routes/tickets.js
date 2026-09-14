@@ -101,9 +101,12 @@ const attendeeSchema = z.object({
   ticketTypeId: z.string().uuid(),
   addonIds: z.array(z.string().trim().min(1)).optional().default([]),
 })
-const createOrderSchema = z.object({
+/** Igual que `MAX_TICKETS` en TicketPurchaseSection: una compra, diez personas. */
+const MAX_ATTENDEES_PER_ORDER = 10
+
+export const createOrderSchema = z.object({
   eventSlug: z.string().trim().min(1),
-  attendees: z.array(attendeeSchema).min(1).max(8),
+  attendees: z.array(attendeeSchema).min(1).max(MAX_ATTENDEES_PER_ORDER),
   buyer: z
     .object({
       name: z.string().trim().optional(),
@@ -119,6 +122,26 @@ const createOrderSchema = z.object({
     .default(() => randomUUID()),
   accessToken: z.string().trim().min(32).optional(),
 })
+  /**
+   * Un DNI por persona, también acá: el cliente ya lo marca, pero la orden se
+   * puede armar sin pasar por el formulario. Dos entradas con el mismo
+   * documento emiten dos QR que en la puerta se verifican contra la misma
+   * persona, y el segundo rebota.
+   */
+  .superRefine((data, ctx) => {
+    const dniRow = new Map()
+    data.attendees.forEach((attendee, index) => {
+      if (dniRow.has(attendee.dni)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['attendees', index, 'dni'],
+          message: `El DNI ${attendee.dni} está repetido en las entradas ${dniRow.get(attendee.dni) + 1} y ${index + 1}. Cada persona entra con su propio QR.`,
+        })
+        return
+      }
+      dniRow.set(attendee.dni, index)
+    })
+  })
 const accessSchema = z.object({ accessToken: z.string().trim().min(32) })
 const rejectOrderSchema = z.object({ reason: z.string().trim().min(3).max(500) })
 

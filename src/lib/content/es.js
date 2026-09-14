@@ -20,9 +20,8 @@ export const ABOUT_INTRO = {
   title: 'Un estándar para afiliar, competir y publicar.',
   titleLead: 'Un estándar para afiliar, competir',
   titleAccent: 'y publicar.',
-  description:
-    'PLU Argentina conecta atletas, gimnasios y jueces con afiliación anual, calendario oficial y resultados alineados a PLU USA.',
-  descriptionLead: 'PLU Argentina conecta atletas, gimnasios y jueces.',
+  description: 'PLU Argentina conecta atletas, gimnasios y jueces bajo el estándar PLU USA.',
+  descriptionLead: 'PLU Argentina conecta atletas, gimnasios y jueces bajo el estándar PLU USA.',
   descriptionMeta: 'Afiliación anual, calendario oficial y resultados alineados a PLU USA.',
   cta: 'Conocer nuestra comunidad',
 }
@@ -71,6 +70,7 @@ export const HOME_COMMUNITY = {
   cta: 'Ver comunidad',
   recentLabel: 'Afiliados recientes',
   emptyRecentLabel: 'Todavía no hay afiliados activos publicados.',
+  loadingRecentLabel: 'Cargando afiliados recientes…',
   liveLabel: 'En vivo',
   visualCaption: 'Galería de la comunidad · próximamente',
   stats: [],
@@ -143,19 +143,19 @@ export const ABOUT_PILLARS = [
   {
     id: 'standard',
     icon: 'Globe2',
-    title: 'Estándar internacional',
+    title: 'Estándar PLU',
     text: 'Reglas, divisiones y categorías alineadas al circuito reconocido por PLU USA.',
   },
   {
     id: 'ops',
     icon: 'ClipboardList',
-    title: 'Gestión sin planillas',
+    title: 'Sin planillas',
     text: 'Afiliación, inscripción y pago en un solo lugar, para el atleta y para quien organiza.',
   },
   {
     id: 'community',
     icon: 'Users',
-    title: 'Comunidad en crecimiento',
+    title: 'Comunidad',
     text: 'Gimnasios y atletas de todo el país compitiendo bajo un mismo sistema.',
   },
 ]
@@ -729,7 +729,7 @@ export const COMMUNITY_AFFILIATED_GYMS = [
   },
 ]
 
-/** Afiliaciones recientes visibles en la red pública (mock). */
+/** Catálogo editorial de ejemplo. El feed público usa `/api/community/spotlight`. */
 export const COMMUNITY_RECENT_MEMBERS = [
   {
     id: 'mem-feed-001',

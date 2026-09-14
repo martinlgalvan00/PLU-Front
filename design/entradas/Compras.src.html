@@ -1,0 +1,188 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+@@BASE@@
+    .alert { display: flex; align-items: flex-start; gap: 13px; padding: 15px 18px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--warn) 34%, transparent); background: color-mix(in srgb, var(--warn) 11%, transparent); }
+    .alert svg { flex: 0 0 auto; color: #e8a33d; margin-top: 1px; }
+    .alert-c { display: flex; flex-direction: column; gap: 5px; flex-grow: 1; min-width: 0; }
+    .alert-t { font-size: 13px; font-weight: 600; margin: 0; }
+    .alert-p { font-size: 11.5px; color: var(--secondary); margin: 0; line-height: 1.55; }
+
+    .filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .search { display: flex; align-items: center; gap: 9px; min-height: 38px; width: 300px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: #121218; color: #5f626c; font-size: 12.5px; }
+    .pill { display: inline-flex; align-items: center; gap: 7px; min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--hairline); background: transparent; color: var(--muted); font-size: 12px; font-weight: 500; font-family: var(--font); }
+    .pill.is-on { border-color: color-mix(in srgb, var(--brand) 34%, transparent); background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--ink); font-weight: 600; }
+    .pill-n { font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: rgba(255,255,255,.08); }
+    .pill-n.is-warn { background: color-mix(in srgb, var(--warn) 30%, transparent); color: #f0b35a; }
+
+    .or-head, .or-row, .or-foot { display: grid; grid-template-columns: minmax(0,1fr) 180px 220px 72px 112px 142px 132px; gap: 12px; align-items: center; padding: 12px 18px; }
+    .or-head { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); border-bottom: 1px solid var(--hairline); padding-top: 11px; padding-bottom: 11px; }
+    .or-row { border-bottom: 1px solid var(--hairline); font-size: 12.5px; }
+    .or-row.is-flag { background: color-mix(in srgb, var(--warn) 6%, transparent); }
+    .stack-2 { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .stack-2 strong { font-size: 12.5px; font-weight: 600; }
+    .stack-2 small { font-size: 10.5px; color: var(--muted); }
+    .ref { font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+    .lines { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 11.5px; color: var(--secondary); }
+    .lines span { display: flex; gap: 7px; }
+    .lines b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .qr { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .qr.is-multi { color: var(--gold); }
+    .amount { text-align: right; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .st { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+    .st small { font-size: 10.5px; color: var(--muted); }
+    .acts { display: flex; align-items: center; gap: 7px; justify-content: flex-end; }
+    .mini { display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 11px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--ok) 34%, transparent); background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok-soft); font-size: 11.5px; font-weight: 600; font-family: var(--font); }
+    .mini-sq { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); }
+    .or-foot { background: color-mix(in srgb, var(--elevated) 40%, transparent); font-size: 11.5px; color: var(--muted); }
+    .or-foot strong { color: var(--ink); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .pager { display: flex; align-items: center; gap: 10px; padding: 13px 18px; font-size: 11.5px; color: var(--muted); }
+  </style>
+</helmet>
+
+<div class="shell">
+@@SIDE@@
+  <main class="main">
+@@HEAD@@
+
+    <nav class="chapters" role="tablist" aria-label="Secciones de entradas">
+      <button class="chapter" role="tab" aria-selected="false" type="button">Catálogo<small>5 tipos · 4 en venta</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Credenciales<small>Qué abre cada una</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Beneficios<small>3 para canjear</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Cobro<small>2 medios abiertos</small></button>
+      <button class="chapter is-active" role="tab" aria-selected="true" type="button">Compras<small>281 · 3 en proceso</small></button>
+    </nav>
+
+    <section class="alert" aria-label="Compras frenadas">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.5l3.5 2"/></svg>
+      <div class="alert-c">
+        <h2 class="alert-t">3 compras frenadas antes de emitir las entradas</h2>
+        <p class="alert-p">Dos subieron el comprobante y esperan aprobación; una todavía no lo subió. Mientras tanto el lugar queda reservado 24 horas: si nadie aprueba, la reserva se libera sola y el cupo vuelve a la venta.</p>
+      </div>
+      <button class="ghost-btn" type="button">Ver solo esas</button>
+    </section>
+
+    <div class="filters">
+      <span class="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+        Buscar por referencia, nombre o DNI
+      </span>
+      <button class="pill is-on" type="button">Todas<span class="pill-n">281</span></button>
+      <button class="pill" type="button">A revisar<span class="pill-n is-warn">2</span></button>
+      <button class="pill" type="button">Falta comprobante<span class="pill-n is-warn">1</span></button>
+      <button class="pill" type="button">Pagadas<span class="pill-n">276</span></button>
+      <button class="pill" type="button">Vencidas<span class="pill-n">2</span></button>
+      <button class="ghost-btn" type="button" style="margin-left: auto; min-height: 38px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 4v11M8 11l4 4 4-4M4 19h16"/></svg>
+        Exportar
+      </button>
+    </div>
+
+    <section class="card" aria-label="Compras de entradas">
+      <div class="or-head">
+        <span>Compra</span><span>Comprador</span><span>Entradas</span><span>QR</span><span style="text-align: right;">Monto</span><span>Estado</span><span></span>
+      </div>
+
+      <div class="or-row is-flag">
+        <span class="stack-2"><strong class="ref">PLU-4821</strong><small>12 oct · Transferencia</small></span>
+        <span class="stack-2"><strong>Camila Rearte</strong><small>DNI 38.402.115</small></span>
+        <span class="lines"><span><b>1 ×</b>Entrenador · dos días</span></span>
+        <span class="qr is-multi">2</span>
+        <span class="amount">$ 26.000</span>
+        <span class="st"><span class="badge badge--warn">A revisar</span><small>Comprobante · hoy 09:14</small></span>
+        <span class="acts">
+          <button class="mini-sq" type="button" aria-label="Ver comprobante"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M15.5 8.5 9 15a2.5 2.5 0 0 0 3.5 3.5l7-7a4.5 4.5 0 0 0-6.4-6.4l-7 7a6.5 6.5 0 0 0 9.2 9.2l4.7-4.7"/></svg></button>
+          <button class="mini" type="button">Aprobar</button>
+        </span>
+      </div>
+
+      <div class="or-row is-flag">
+        <span class="stack-2"><strong class="ref">PLU-4818</strong><small>12 oct · Transferencia</small></span>
+        <span class="stack-2"><strong>Julián Ferreyra</strong><small>DNI 41.908.330</small></span>
+        <span class="lines"><span><b>2 ×</b>General · dos días</span><span><b>1 ×</b>Palco · dos días</span></span>
+        <span class="qr">3</span>
+        <span class="amount">$ 78.000</span>
+        <span class="st"><span class="badge badge--warn">A revisar</span><small>Comprobante · hoy 08:02</small></span>
+        <span class="acts">
+          <button class="mini-sq" type="button" aria-label="Ver comprobante"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M15.5 8.5 9 15a2.5 2.5 0 0 0 3.5 3.5l7-7a4.5 4.5 0 0 0-6.4-6.4l-7 7a6.5 6.5 0 0 0 9.2 9.2l4.7-4.7"/></svg></button>
+          <button class="mini" type="button">Aprobar</button>
+        </span>
+      </div>
+
+      <div class="or-row is-flag">
+        <span class="stack-2"><strong class="ref">PLU-4815</strong><small>11 oct · Wise</small></span>
+        <span class="stack-2"><strong>Marina Oliveira</strong><small>Pasaporte FH829114</small></span>
+        <span class="lines"><span><b>1 ×</b>General · dos días</span></span>
+        <span class="qr">1</span>
+        <span class="amount">$ 20.000</span>
+        <span class="st"><span class="badge badge--warn">Falta comprobante</span><small>Vence en 6 horas</small></span>
+        <span class="acts">
+          <button class="ghost-btn" type="button">Recordar</button>
+        </span>
+      </div>
+
+      <div class="or-row">
+        <span class="stack-2"><strong class="ref">PLU-4812</strong><small>11 oct · Mercado Pago</small></span>
+        <span class="stack-2"><strong>Nicolás Paz</strong><small>DNI 35.771.204</small></span>
+        <span class="lines"><span><b>1 ×</b>Entrenador · dos días</span></span>
+        <span class="qr is-multi">2</span>
+        <span class="amount">$ 26.000</span>
+        <span class="st"><span class="badge badge--on">Pagada</span><small>Acreditada al instante</small></span>
+        <span class="acts">
+          <button class="mini-sq" type="button" aria-label="Más acciones"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></button>
+        </span>
+      </div>
+
+      <div class="or-row">
+        <span class="stack-2"><strong class="ref">PLU-4809</strong><small>10 oct · Mercado Pago</small></span>
+        <span class="stack-2"><strong>Sofía Benítez</strong><small>DNI 44.120.887</small></span>
+        <span class="lines"><span><b>4 ×</b>General · sábado</span></span>
+        <span class="qr">4</span>
+        <span class="amount">$ 48.000</span>
+        <span class="st"><span class="badge badge--on">Pagada</span><small>Acreditada al instante</small></span>
+        <span class="acts">
+          <button class="mini-sq" type="button" aria-label="Más acciones"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></button>
+        </span>
+      </div>
+
+      <div class="or-row">
+        <span class="stack-2"><strong class="ref">PLU-4803</strong><small>9 oct · Mercado Pago</small></span>
+        <span class="stack-2"><strong>Diego Salvatierra</strong><small>DNI 30.559.641</small></span>
+        <span class="lines"><span><b>2 ×</b>Palco · dos días</span></span>
+        <span class="qr">2</span>
+        <span class="amount">$ 76.000</span>
+        <span class="st"><span class="badge badge--on">Pagada</span><small>Acreditada al instante</small></span>
+        <span class="acts">
+          <button class="mini-sq" type="button" aria-label="Más acciones"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></button>
+        </span>
+      </div>
+
+      <div class="or-foot">
+        <span>276 pagadas · 3 en proceso · 2 vencidas</span>
+        <span></span>
+        <span></span>
+        <span><strong>294</strong></span>
+        <span style="text-align: right;"><strong>$ 5.216.000</strong></span>
+        <span></span>
+        <span></span>
+      </div>
+
+      <div class="pager">
+        <span>Las 6 más recientes</span>
+        <span class="sep">·</span>
+        <span>281 compras en total</span>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+</body>
+</html>

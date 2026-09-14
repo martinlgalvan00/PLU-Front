@@ -84,8 +84,6 @@ function QueueItemRow({
   onOpenReview,
   onDismissItem,
 }) {
-  const TypeIcon = TYPE_ICONS[item.type] ?? ClipboardList
-  const typeLabel = t(`admin.actionQueue.types.${item.type}`)
   const hasProof = itemHasProof(item)
   const isPaymentTask = Boolean(item.paymentId || item.orderId)
   const canOverrideWithoutProof = Boolean(item.paymentId && item.requiresProofOverride)
@@ -99,15 +97,10 @@ function QueueItemRow({
 
   return (
     <li className={`action-queue__card action-queue__card--${item.priority}`}>
-      <span className={`action-queue__type action-queue__type--${item.type}`}>
-        <TypeIcon size={14} aria-hidden />
-        {typeLabel}
-      </span>
-
       <div className="action-queue__card-body">
         <strong className="action-queue__subject">{item.subject}</strong>
         <span className="action-queue__meta">
-          {!hasPrimaryAction && item.summary ? (
+          {item.summary ? (
             <span className="action-queue__meta-item">{item.summary}</span>
           ) : null}
           {item.detail ? <span className="action-queue__meta-item">{item.detail}</span> : null}
@@ -334,24 +327,38 @@ export default function ActionQueue({
             ) : null}
 
             <div className="action-queue__type-blocks">
-              {types.map(({ type, items: typeItems }) => (
-                <div key={type} className="action-queue__type-block">
-                  <ul className="action-queue__list action-queue__list--compact">
-                    {typeItems.map((item) => (
-                      <QueueItemRow
-                        key={item.id}
-                        item={item}
-                        canEdit={canEdit}
-                        canDismiss={canDismiss}
-                        t={t}
-                        onOpenItem={openItem}
-                        onOpenReview={openReview}
-                        onDismissItem={onDismissItem}
-                      />
-                    ))}
-                  </ul>
-                </div>
-              ))}
+              {types.map(({ type, items: typeItems }) => {
+                const typeHeadId = `action-queue-type-${key}-${type}`
+                const TypeIcon = TYPE_ICONS[type] ?? ClipboardList
+                return (
+                  <div key={type} className="action-queue__type-block">
+                    <header className="action-queue__type-head" id={typeHeadId}>
+                      <span className="action-queue__type-label">
+                        <TypeIcon size={14} aria-hidden />
+                        {t(`admin.actionQueue.types.${type}`)}
+                      </span>
+                      <span className="action-queue__type-count">{typeItems.length}</span>
+                    </header>
+                    <ul
+                      className="action-queue__list action-queue__list--compact"
+                      aria-labelledby={typeHeadId}
+                    >
+                      {typeItems.map((item) => (
+                        <QueueItemRow
+                          key={item.id}
+                          item={item}
+                          canEdit={canEdit}
+                          canDismiss={canDismiss}
+                          t={t}
+                          onOpenItem={openItem}
+                          onOpenReview={openReview}
+                          onDismissItem={onDismissItem}
+                        />
+                      ))}
+                    </ul>
+                  </div>
+                )
+              })}
             </div>
           </section>
         ))}

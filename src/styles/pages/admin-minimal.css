@@ -2612,6 +2612,174 @@
   min-width: 34px;
 }
 
+/* ── Cola de cobros: la tabla que decide plata ──────────────────────────────
+   Siete columnas en vez de diez. Método + comprobante se fundieron en "Cobro"
+   y referencia + fecha en "Orden": contaban lo mismo dos veces y empujaban la
+   columna de acción fuera de pantalla, así que "Validar" —la única acción de
+   la pantalla— vivía detrás de un scroll horizontal que nadie hacía.
+   Con el ancho recuperado, la fila puede jerarquizar: el monto manda, la
+   identidad sigue, el resto es contexto. */
+
+.admin-shell .admin-payments-operations .admin-data-table--athlete-orders {
+  border-bottom: 0;
+}
+
+.admin-shell .admin-payments-operations .admin-data-table--athlete-orders table {
+  min-width: 940px;
+}
+
+/* Dos datos por celda: el que identifica arriba, el que matiza abajo. */
+.admin-shell .admin-payments-operations .admin-orders-block__stack {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block__concept,
+.admin-shell .admin-payments-operations .admin-orders-block__method {
+  color: var(--admin-text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block__proof-note,
+.admin-shell .admin-payments-operations .admin-orders-block__order-date {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+/* Una transferencia abierta sin comprobante no es un dato más: es lo que
+   frena la validación. Se marca acá, en la columna de la evidencia, y ya no
+   se repite como pill en Estado. */
+.admin-shell .admin-payments-operations .admin-orders-block__proof-note--warning {
+  color: var(--admin-status-warning);
+  font-weight: 600;
+}
+
+.admin-shell .admin-payments-operations .admin-data-table--athlete-orders .data-table__mono {
+  font-size: 11.5px;
+}
+
+/* El monto es el dato que decide: hasta acá pesaba lo mismo que "Link de pago
+   + validación manual". */
+.admin-shell .admin-payments-operations .admin-orders-block__amount-badge {
+  color: var(--admin-ink);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+.admin-shell .admin-payments-operations .admin-data-table--athlete-orders td {
+  height: 62px;
+  padding-block: 12px;
+  vertical-align: middle;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-data-table--athlete-orders
+  .data-table__column--numeric {
+  width: 1%;
+}
+
+/* Comprobante: enlace, no botón con caja. Dentro de la celda ya hay un método
+   arriba; una caja más convertía cada fila en tres rectángulos. */
+.admin-shell .admin-payments-operations .admin-orders-block__proof {
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: var(--admin-brand);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  gap: 5px;
+  letter-spacing: 0;
+  min-height: 22px;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--admin-brand) 40%, transparent);
+  text-underline-offset: 3px;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block__proof:hover:not(:disabled) {
+  color: var(--admin-ink);
+  text-decoration-color: currentcolor;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block__proof:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+/* Filete de atención a la izquierda, sólo en la fila que está trabada: una
+   transferencia abierta sin comprobante, o una financiada vencida. Marcar
+   también las que simplemente esperan turno dejaba las cinco filas con
+   filete, y entonces el filete no decía nada; una rechazada tampoco lo lleva
+   —ya está cerrada, no espera ninguna decisión. */
+.admin-shell
+  .admin-payments-operations
+  .admin-data-table--athlete-orders
+  tbody
+  tr:has(.admin-orders-block__proof-note--warning) {
+  box-shadow: inset 2px 0 0 var(--admin-status-warning);
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-data-table--athlete-orders
+  tbody
+  tr:has(.admin-orders-block__due.status-pill--danger) {
+  box-shadow: inset 2px 0 0 var(--admin-status-danger);
+}
+
+.admin-shell .admin-payments-operations .admin-data-table--athlete-orders tbody tr:hover {
+  box-shadow: inset 2px 0 0 var(--admin-brand);
+}
+
+/* La acción no se esconde: con siete columnas entra sin scroll, y queda
+   anclada a la derecha aunque el panel se angoste. */
+.admin-shell
+  .admin-payments-operations
+  .admin-data-table--athlete-orders
+  .data-table__column--actions {
+  background: var(--admin-surface);
+  position: sticky;
+  right: 0;
+  z-index: 1;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-data-table--athlete-orders
+  tbody
+  tr:hover
+  .data-table__column--actions {
+  background: color-mix(in srgb, var(--admin-brand) 6%, var(--admin-surface));
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-data-table--athlete-orders
+  thead
+  th.data-table__column--actions {
+  background: color-mix(in srgb, var(--admin-table-head) 88%, var(--admin-surface));
+}
+
+@media (max-width: 899px) {
+  .admin-shell
+    .admin-payments-operations
+    .admin-data-table--athlete-orders
+    .data-table__column--actions {
+    position: static;
+  }
+}
+
 .admin-shell .admin-payments-operations .admin-list-section--tickets {
   gap: 0;
 }
@@ -3410,6 +3578,7 @@
 
   .admin-shell .admin-list-section--events .admin-events__header-actions {
     display: inline-flex;
+    flex-wrap: nowrap;
     gap: 6px;
     width: auto;
   }
@@ -3424,13 +3593,15 @@
 
   .admin-shell .admin-list-section--events .admin-events__header-actions .btn,
   .admin-shell .admin-list-section--events .admin-list-shell__actions .btn {
-    min-height: 36px;
+    flex: 0 0 auto;
+    min-height: 44px;
+    white-space: nowrap;
     width: auto;
   }
 
   .admin-shell .admin-list-section--events .admin-events__refresh-btn {
-    min-height: 36px;
-    width: 36px;
+    min-height: 44px;
+    width: 44px;
   }
 }
 
@@ -7166,8 +7337,15 @@
   align-items: center;
   align-self: end;
   display: flex;
+  flex: 0 0 auto;
   gap: 8px;
   padding-bottom: 2px;
+  width: auto;
+}
+
+.admin-shell .admin-list-section--events .admin-list-shell__actions > * {
+  min-height: unset;
+  width: auto;
 }
 
 .admin-shell .admin-list-section--events .admin-filters--inline.admin-filters--compact {
@@ -7245,12 +7423,18 @@
   align-items: center;
   display: inline-flex;
   flex: none;
+  flex-wrap: nowrap;
   gap: 6px;
+  max-width: 100%;
+  width: auto;
 }
 
 .admin-shell .admin-list-section--events .admin-events__header-actions .btn {
+  flex: 0 0 auto;
   min-height: 36px;
   padding-inline: 12px;
+  white-space: nowrap;
+  width: auto;
 }
 
 @media (max-width: 1024px) {
@@ -8345,7 +8529,7 @@
   }
 
   /* El layout de 2 líneas de la fila vive en max-width: 900px.
-     Acá el header sigue en una sola fila (título + CTA) hasta 430px. */
+     El header operativo queda en una sola fila (título + CTA compacto). */
   .admin-shell .admin-list-section--events .admin-list-shell__header,
   .admin-shell
     .admin-list-section--events
@@ -8360,26 +8544,36 @@
     display: none;
   }
 
-  .admin-shell .admin-list-section--events .admin-list-shell__actions {
+  .admin-shell .admin-list-section--events .admin-list-shell__intro {
+    min-width: 0;
+  }
+
+  .admin-shell .admin-list-section--events .admin-list-shell__actions,
+  .admin-shell .admin-list-section--events .admin-list-shell__actions > * {
     display: flex;
+    flex: none;
     justify-content: flex-end;
     width: auto;
   }
 
   .admin-shell .admin-list-section--events .admin-events__header-actions {
     display: inline-flex;
+    flex-wrap: nowrap;
     width: auto;
   }
 
   .admin-shell .admin-list-section--events .admin-events__header-actions .btn,
   .admin-shell .admin-list-section--events .admin-list-shell__actions .btn {
-    min-height: 36px;
+    flex: 0 0 auto;
+    justify-content: center;
+    min-height: 44px;
+    white-space: nowrap;
     width: auto;
   }
 
   .admin-shell .admin-list-section--events .admin-events__refresh-btn {
-    min-height: 36px;
-    width: 36px;
+    min-height: 44px;
+    width: 44px;
   }
 
   .admin-shell .admin-list-shell--events .admin-event-list {
@@ -8427,19 +8621,30 @@
     > .admin-list-section__chrome
     > .admin-list-shell__header,
   .admin-shell .admin-list-section--events .admin-list-shell__header {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-shell .admin-list-section--events .admin-list-shell__intro {
+    min-width: 0;
   }
 
   .admin-shell .admin-list-section--events .admin-list-shell__actions,
+  .admin-shell .admin-list-section--events .admin-list-shell__actions > *,
   .admin-shell .admin-list-section--events .admin-events__header-actions {
-    justify-content: stretch;
-    width: 100%;
+    display: flex;
+    flex: none;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    max-width: 100%;
+    width: auto;
   }
 
   .admin-shell .admin-list-section--events .admin-events__header-actions .btn,
   .admin-shell .admin-list-section--events .admin-list-shell__actions .btn {
+    flex: 0 0 auto;
     min-height: 44px;
-    width: 100%;
+    white-space: nowrap;
+    width: auto;
   }
 
   .admin-shell .admin-list-shell--events .admin-event-preview__head-actions .admin-icon-btn {
@@ -9828,10 +10033,11 @@
     .admin-shell
       .admin-list-section--events
       .admin-events__header-actions:has(.admin-events__refresh-btn) {
-      display: grid;
-      gap: 8px;
-      grid-template-columns: 44px minmax(0, 1fr);
-      width: 100%;
+      display: inline-flex;
+      flex-wrap: nowrap;
+      gap: 6px;
+      grid-template-columns: none;
+      width: auto;
     }
 
     .admin-shell .admin-list-shell--events .admin-event-row__meta-item:nth-child(2) {
@@ -10116,21 +10322,29 @@
       .admin-list-section--events
       > .admin-list-section__chrome
       > .admin-list-shell__header {
-      grid-template-columns: minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr) auto;
     }
 
-    .admin-shell .admin-list-section--events .admin-list-shell__actions {
-      justify-content: stretch;
-      width: 100%;
+    .admin-shell .admin-list-section--events .admin-list-shell__intro {
+      min-width: 0;
+    }
+
+    .admin-shell .admin-list-section--events .admin-list-shell__actions,
+    .admin-shell .admin-list-section--events .admin-list-shell__actions > *,
+    .admin-shell .admin-list-section--events .admin-events__header-actions {
+      justify-content: flex-end;
+      max-width: 100%;
+      width: auto;
     }
 
     .admin-shell
       .admin-list-section--events
       .admin-events__header-actions:has(.admin-events__refresh-btn) {
-      display: grid;
-      gap: 8px;
-      grid-template-columns: 44px minmax(0, 1fr);
-      width: 100%;
+      display: inline-flex;
+      flex-wrap: nowrap;
+      gap: 6px;
+      grid-template-columns: none;
+      width: auto;
     }
 
     .admin-shell .admin-list-shell--events .admin-event-preview__head-actions {
@@ -10195,8 +10409,10 @@
 
     .admin-shell .admin-list-section--events .admin-events__header-actions .btn,
     .admin-shell .admin-list-section--events .admin-list-shell__actions .btn {
+      flex: 0 0 auto;
       min-height: 44px;
-      width: 100%;
+      white-space: nowrap;
+      width: auto;
     }
 
     /* Ancho útil ~300–430: rail horizontal para no comprimir estados largos. */

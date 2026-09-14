@@ -26,6 +26,19 @@ describe('Eventos en teléfono', () => {
     )
   })
 
+  it('mantiene el CTA de eventos compacto al lado del título, no como barra full-width', () => {
+    const phone = mediaBlock('@media (max-width: 430px)')
+    expect(phone).toMatch(
+      /\.admin-list-section--events \.admin-list-shell__header[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\) auto/,
+    )
+    expect(phone).not.toMatch(
+      /\.admin-events__header-actions \.btn[^{]*\{[^}]*width:\s*100%/,
+    )
+    expect(phone).toMatch(
+      /\.admin-list-section--events \.admin-events__header-actions \.btn[\s\S]*?width:\s*auto/,
+    )
+  })
+
   it('vuelve al rail horizontal bajo 430px para no comprimir etiquetas', () => {
     const phone = mediaBlock('@media (max-width: 430px)')
     expect(phone).toMatch(

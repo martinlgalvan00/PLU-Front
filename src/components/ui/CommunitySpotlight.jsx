@@ -4,13 +4,7 @@ import { m } from 'motion/react'
 import { LazyPhoto } from './LazyPhoto.jsx'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import {
-  fetchCommunitySpotlight,
-  formatMemberSince,
-  getCommunityStats,
-  getRecentMembers,
-  pickSpotlightMembers,
-} from '../../services/communityService.js'
+import { fetchCommunitySpotlight, formatMemberSince } from '../../services/communityService.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import {
   MOTION_DISTANCE,
@@ -22,6 +16,35 @@ import {
 import { staggerContainer } from '../../motion/variants.ts'
 
 const FEED_LIMIT = 5
+const EMPTY_STATS = Object.freeze({
+  activeGymCount: 0,
+  memberCount: 0,
+  provinceCount: 0,
+})
+
+function isPositiveStat(value) {
+  return Number(value) > 0
+}
+
+function visibleCommunityStats(stats, t) {
+  return [
+    {
+      key: 'gyms',
+      value: stats.activeGymCount,
+      label: t('pages.community.statsActiveGyms'),
+    },
+    {
+      key: 'members',
+      value: stats.memberCount,
+      label: t('pages.community.statsRecentMembers'),
+    },
+    {
+      key: 'provinces',
+      value: stats.provinceCount,
+      label: t('pages.community.statsProvinces'),
+    },
+  ].filter((item) => isPositiveStat(item.value))
+}
 
 function memberInitials(name = '') {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -132,13 +155,13 @@ export default function CommunitySpotlight({ onNavigate }) {
   const { HOME_COMMUNITY } = useContent()
   const { locale, t } = useI18n()
   const { reducedMotion } = useMotionConfig()
-  const [members, setMembers] = useState(() =>
-    pickSpotlightMembers(getRecentMembers(FEED_LIMIT, locale), FEED_LIMIT),
-  )
-  const [stats, setStats] = useState(() => getCommunityStats(locale))
+  const [members, setMembers] = useState([])
+  const [stats, setStats] = useState(EMPTY_STATS)
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     let active = true
+    setLoaded(false)
     fetchCommunitySpotlight(FEED_LIMIT, locale)
       .then((spotlight) => {
         if (!active) return
@@ -146,7 +169,12 @@ export default function CommunitySpotlight({ onNavigate }) {
         setStats(spotlight.stats)
       })
       .catch(() => {
-        // El servicio ya cae a fallback; este catch es por si el estado desmontó.
+        if (!active) return
+        setMembers([])
+        setStats(EMPTY_STATS)
+      })
+      .finally(() => {
+        if (active) setLoaded(true)
       })
     return () => {
       active = false
@@ -164,6 +192,8 @@ export default function CommunitySpotlight({ onNavigate }) {
     },
   }
 
+  const visibleStats = visibleCommunityStats(stats, t)
+
   return (
     <article className="community-spotlight community-spotlight--editorial">
       <header className="community-spotlight__intro">
@@ -171,20 +201,20 @@ export default function CommunitySpotlight({ onNavigate }) {
         <h2 className="community-spotlight__title">{HOME_COMMUNITY.title}</h2>
         <p className="community-spotlight__desc">{HOME_COMMUNITY.description}</p>
 
-        <ul className="community-spotlight__stats" aria-label={t('pages.community.statsAria')}>
-          <li className="community-spotlight__stat-editorial">
-            <strong>{String(stats.activeGymCount).padStart(2, '0')}</strong>
-            <span>{t('pages.community.statsActiveGyms')}</span>
-          </li>
-          <li className="community-spotlight__stat-editorial">
-            <strong>{String(stats.memberCount).padStart(2, '0')}</strong>
-            <span>{t('pages.community.statsRecentMembers')}</span>
-          </li>
-          <li className="community-spotlight__stat-editorial">
-            <strong>{String(stats.provinceCount).padStart(2, '0')}</strong>
-            <span>{t('pages.community.statsProvinces')}</span>
-          </li>
-        </ul>
+        {visibleStats.length > 0 ? (
+          <ul
+            className="community-spotlight__stats"
+            data-count={visibleStats.length}
+            aria-label={t('pages.community.statsAria')}
+          >
+            {visibleStats.map((item) => (
+              <li key={item.key} className="community-spotlight__stat-editorial">
+                <strong>{String(item.value).padStart(2, '0')}</strong>
+                <span>{item.label}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
 
         <button
           type="button"
@@ -196,13 +226,15 @@ export default function CommunitySpotlight({ onNavigate }) {
         </button>
       </header>
 
-      <div className="community-spotlight__roster">
+      <div className="community-spotlight__roster" aria-busy={!loaded || undefined}>
         <p className="community-spotlight__roster-label">{HOME_COMMUNITY.recentLabel}</p>
 
         <RosterList
           members={members}
           recentLabel={HOME_COMMUNITY.recentLabel}
-          emptyLabel={HOME_COMMUNITY.emptyRecentLabel}
+          emptyLabel={
+            loaded ? HOME_COMMUNITY.emptyRecentLabel : HOME_COMMUNITY.loadingRecentLabel
+          }
           locale={locale}
           reducedMotion={reducedMotion}
           listVariants={listVariants}

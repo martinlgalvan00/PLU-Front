@@ -1,0 +1,227 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+@@BASE@@
+    /* barra de proceso */
+    .flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; overflow: hidden; }
+    .flow-step { display: flex; flex-direction: column; gap: 6px; padding: 15px 18px; border-left: 1px solid var(--hairline); min-width: 0; }
+    .flow-step:first-child { border-left: none; }
+    .flow-eyebrow { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+    .flow-ix { color: var(--gold); font-variant-numeric: tabular-nums; }
+    .flow-value { font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.35; }
+    .flow-hint { font-size: 11px; color: var(--muted); line-height: 1.45; }
+    .flow-state { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; margin-top: 2px; }
+    .flow-state--ok { color: var(--ok-soft); }
+    .flow-state--wait { color: #e8a33d; }
+    .flow-state--off { color: var(--muted); }
+
+    /* tabla de tipos */
+    .tt-head, .tt-row { display: grid; grid-template-columns: minmax(0,1fr) 118px 178px 84px 104px 140px 92px 28px; gap: 12px; align-items: center; padding: 12px 18px; }
+    .tt-head { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); border-bottom: 1px solid var(--hairline); padding-top: 10px; padding-bottom: 10px; }
+    .tt-row { border-bottom: 1px solid var(--hairline); font-size: 12.5px; }
+    .tt-row.is-off { opacity: .62; }
+    .tt-name { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .tt-name strong { font-size: 13px; font-weight: 600; }
+    .tt-name small { font-size: 11px; color: var(--muted); }
+    .tt-emits { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .tt-emits strong { font-size: 12px; font-weight: 600; }
+    .tt-emits small { font-size: 10.5px; color: var(--muted); }
+    .tt-emits.is-multi strong { color: var(--gold); }
+    .days { display: flex; gap: 4px; }
+    .day { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; font-size: 10.5px; font-weight: 700; background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand); }
+    .day.is-off { background: rgba(255,255,255,.05); color: #55585f; }
+    .price { text-align: right; font-size: 13px; font-weight: 600; }
+    .sold { display: flex; flex-direction: column; gap: 5px; }
+    .sold-l { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 12px; }
+    .sold-l strong { font-weight: 600; }
+    .sold-l span { font-size: 10.5px; color: var(--muted); }
+    .meter { height: 3px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
+    .meter i { display: block; height: 100%; background: var(--brand); }
+    .meter i.is-tight { background: var(--gold); }
+    .tt-foot { display: flex; align-items: center; gap: 18px; padding: 13px 18px; border-bottom: 1px solid var(--hairline); background: color-mix(in srgb, var(--elevated) 40%, transparent); }
+    .tt-foot-l { font-size: 11.5px; color: var(--muted); }
+    .totals { margin: 0 0 0 auto; display: flex; align-items: center; gap: 26px; }
+    .total { display: flex; flex-direction: column; gap: 2px; text-align: right; }
+    .total dt { font-size: 10px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--faint); }
+    .total dd { margin: 0; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .total dd.is-gold { color: var(--gold); }
+    .add-row { display: flex; align-items: center; gap: 10px; padding: 13px 18px; }
+
+    /* checklist */
+    .chk { display: flex; align-items: flex-start; gap: 11px; padding: 13px 18px; border-bottom: 1px solid var(--hairline); }
+    .chk:last-child { border-bottom: none; }
+    .chk svg { flex: 0 0 auto; margin-top: 1px; }
+    .chk--ok svg { color: var(--ok-soft); }
+    .chk--warn svg { color: #e8a33d; }
+    .chk-c { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .chk-t { font-size: 12.5px; font-weight: 500; }
+    .chk-p { font-size: 11.5px; color: var(--muted); margin: 0; line-height: 1.5; }
+    .chk-a { margin-left: auto; }
+  </style>
+</helmet>
+
+<div class="shell">
+@@SIDE@@
+  <main class="main">
+@@HEAD@@
+
+    <nav class="chapters" role="tablist" aria-label="Secciones de entradas">
+      <button class="chapter is-active" role="tab" aria-selected="true" type="button">Catálogo<small>5 tipos · 4 en venta</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Credenciales<small>Qué abre cada una</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Beneficios<small>3 para canjear</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Cobro<small>2 medios abiertos</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Compras<small>281 · 3 en proceso</small></button>
+    </nav>
+
+    <section class="flow" aria-label="Estado del proceso de entradas">
+      <div class="flow-step">
+        <span class="flow-eyebrow"><span class="flow-ix">01</span>Catálogo</span>
+        <span class="flow-value">5 tipos, 4 en venta</span>
+        <span class="flow-hint">Precio, cupo y qué credenciales emite cada uno.</span>
+        <span class="flow-state flow-state--ok"><span class="dot"></span>Listo</span>
+      </div>
+      <div class="flow-step">
+        <span class="flow-eyebrow"><span class="flow-ix">02</span>Ventana</span>
+        <span class="flow-value">1 oct – 14 nov</span>
+        <span class="flow-hint">Fuera de la ventana la página muestra precios, sin botón de compra.</span>
+        <span class="flow-state flow-state--ok"><span class="dot"></span>Abierta</span>
+      </div>
+      <div class="flow-step">
+        <span class="flow-eyebrow"><span class="flow-ix">03</span>Vidriera</span>
+        <span class="flow-value">Bloque apagado</span>
+        <span class="flow-hint">En la página del evento no aparece el botón de compra.</span>
+        <span class="flow-state flow-state--wait"><span class="dot"></span>Falta activar</span>
+      </div>
+      <div class="flow-step">
+        <span class="flow-eyebrow"><span class="flow-ix">04</span>Cobro</span>
+        <span class="flow-value">Mercado Pago y transferencia</span>
+        <span class="flow-hint">Perfil Fénix. La transferencia pasa por aprobación manual.</span>
+        <span class="flow-state flow-state--ok"><span class="dot"></span>Configurado</span>
+      </div>
+      <div class="flow-step">
+        <span class="flow-eyebrow"><span class="flow-ix">05</span>Acreditación</span>
+        <span class="flow-value">2 puestos leen entradas</span>
+        <span class="flow-hint">Puerta general y entrada en calor.</span>
+        <span class="flow-state flow-state--off"><span class="dot"></span>Desde el 14 nov</span>
+      </div>
+    </section>
+
+    <section class="card" aria-label="Tipos de entrada">
+      <div class="card-h">
+        <h2 class="card-t">Tipos de entrada</h2>
+        <span class="card-hint">Una fila por tipo. Se edita en el panel lateral, sin desplegar la tabla.</span>
+        <button class="ghost-btn" type="button" style="margin-left: auto;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+          Reordenar
+        </button>
+      </div>
+
+      <div class="tt-head">
+        <span>Entrada</span><span>Clase</span><span>Emite</span><span>Jornadas</span><span style="text-align: right;">Precio</span><span>Vendidas</span><span>Estado</span><span></span>
+      </div>
+
+      <div class="tt-row">
+        <span class="tt-name"><strong>General · sábado</strong><small>Tribuna, solo el sábado</small></span>
+        <span><span class="badge badge--soft">Público</span></span>
+        <span class="tt-emits"><strong>1 credencial</strong><small>Entrada general</small></span>
+        <span class="days"><span class="day">S</span><span class="day is-off">D</span></span>
+        <span class="price num">$ 12.000</span>
+        <span class="sold"><span class="sold-l"><strong class="num">128</strong><span>sin cupo</span></span></span>
+        <span><span class="badge badge--on">En venta</span></span>
+        <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+      </div>
+
+      <div class="tt-row">
+        <span class="tt-name"><strong>General · dos días</strong><small>Tribuna, sábado y domingo</small></span>
+        <span><span class="badge badge--soft">Público</span></span>
+        <span class="tt-emits"><strong>1 credencial</strong><small>Entrada general</small></span>
+        <span class="days"><span class="day">S</span><span class="day">D</span></span>
+        <span class="price num">$ 20.000</span>
+        <span class="sold"><span class="sold-l"><strong class="num">96</strong><span>sin cupo</span></span></span>
+        <span><span class="badge badge--on">En venta</span></span>
+        <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+      </div>
+
+      <div class="tt-row">
+        <span class="tt-name"><strong>Entrenador · dos días</strong><small>Tribuna + entrada en calor</small></span>
+        <span><span class="badge badge--gold">Entrenador</span></span>
+        <span class="tt-emits is-multi"><strong>2 credenciales</strong><small>Espectador · ENTRENADOR</small></span>
+        <span class="days"><span class="day">S</span><span class="day">D</span></span>
+        <span class="price num">$ 26.000</span>
+        <span class="sold"><span class="sold-l"><strong class="num">18 / 30</strong><span>60 %</span></span><span class="meter"><i style="width: 60%;"></i></span></span>
+        <span><span class="badge badge--on">En venta</span></span>
+        <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+      </div>
+
+      <div class="tt-row">
+        <span class="tt-name"><strong>Palco · dos días</strong><small>Incluye buffet y programa</small></span>
+        <span><span class="badge badge--soft">Público</span></span>
+        <span class="tt-emits"><strong>1 credencial</strong><small>Palco</small></span>
+        <span class="days"><span class="day">S</span><span class="day">D</span></span>
+        <span class="price num">$ 38.000</span>
+        <span class="sold"><span class="sold-l"><strong class="num">34 / 40</strong><span>85 %</span></span><span class="meter"><i class="is-tight" style="width: 85%;"></i></span></span>
+        <span><span class="badge badge--on">En venta</span></span>
+        <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+      </div>
+
+      <div class="tt-row is-off">
+        <span class="tt-name"><strong>Menores de 12</strong><small>Con adulto responsable</small></span>
+        <span><span class="badge badge--soft">Público</span></span>
+        <span class="tt-emits"><strong>1 credencial</strong><small>Entrada general</small></span>
+        <span class="days"><span class="day">S</span><span class="day">D</span></span>
+        <span class="price num">$ 0</span>
+        <span class="sold"><span class="sold-l"><strong class="num">0</strong><span>sin cupo</span></span></span>
+        <span><span class="badge badge--off">Pausada</span></span>
+        <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+      </div>
+
+      <div class="tt-foot">
+        <span class="tt-foot-l">El cupo cuenta compras, no credenciales. El precio siempre lo calcula el servidor.</span>
+        <dl class="totals">
+          <div class="total"><dt>Compras</dt><dd class="num">276</dd></div>
+          <div class="total"><dt>Credenciales emitidas</dt><dd class="num">294</dd></div>
+          <div class="total"><dt>Recaudado</dt><dd class="num is-gold">$ 5.216.000</dd></div>
+        </dl>
+      </div>
+
+      <div class="add-row">
+        <button class="btn-gold" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          Agregar tipo de entrada
+        </button>
+        <button class="ghost-btn" type="button">Duplicar uno existente</button>
+      </div>
+    </section>
+
+    <section class="card" aria-label="Antes de abrir la venta">
+      <div class="card-h">
+        <h2 class="card-t">Antes de abrir la venta</h2>
+        <span class="card-hint">Lo que el panel verifica solo</span>
+      </div>
+      <div class="chk chk--ok">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
+        <span class="chk-c"><span class="chk-t">Cada tipo emite al menos una credencial con acceso</span><p class="chk-p">Sin eso se vendería una entrada que no abre nada.</p></span>
+      </div>
+      <div class="chk chk--ok">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
+        <span class="chk-c"><span class="chk-t">Las dos jornadas están cargadas en Estructura</span><p class="chk-p">Las jornadas se cargan una sola vez; acá cada tipo elige a cuáles da acceso.</p></span>
+      </div>
+      <div class="chk chk--warn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4.5 21 19.5H3z"/><path d="M12 10v4M12 17h.01"/></svg>
+        <span class="chk-c"><span class="chk-t">La página del evento no muestra el bloque de entradas</span><p class="chk-p">Hay 4 tipos en venta y la ventana está abierta, pero nadie los ve todavía.</p></span>
+        <span class="chk-a"><button class="ghost-btn" type="button">Activar el bloque</button></span>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+</body>
+</html>

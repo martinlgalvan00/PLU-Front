@@ -29,10 +29,10 @@ test.beforeAll(async () => {
 /**
  * Compra pública de entradas — el formulario, no la RPC.
  *
- * El arnés tiene que entregar tres cosas para que esto corra: el flag Vite
- * (`VITE_TICKET_SALES_ENABLED`), el proxy de `/api` al puerto E2E, y el
- * interruptor `ticket` de la org QA. Sin cualquiera de las tres la página
- * muestra "Próximamente" y estos tests no ejercitan nada.
+ * El arnés tiene que entregar el proxy de `/api` al puerto E2E y el
+ * interruptor `ticket` de la org QA. El flag Vite es solo un freno de
+ * emergencia: si está en `false` la página muestra "Próximamente" aunque
+ * el panel esté abierto.
  *
  * La emisión por RPC y el canje por zona siguen en `ticket-credentials.spec.js`.
  * El pack de entrenador (2 QR) se cubre en `ticket-credential-verify.spec.js`.

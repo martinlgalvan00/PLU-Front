@@ -1052,7 +1052,7 @@ export default {
       registrationToggleAria: 'Enable registrations',
       ticketToggleTitle: 'Tickets',
       ticketToggleLead:
-        'When closed, no event sells spectator tickets, without touching each event settings.',
+        'Launch switch: opens or closes spectator ticket sales across every event. Operate it here, not with an environment variable. When closed, no event sells even if it has a catalog.',
       ticketToggleAria: 'Enable ticket sales',
       membershipValidationTitle: 'Validate memberships',
       membershipValidationLead:
@@ -1272,10 +1272,10 @@ export default {
   },
   eventState: {
     label: 'Event state',
+    sectionTitle: 'State and access',
+    sectionLead: 'What state the meet is in, who can register and whether it shows on the site.',
     status: 'Status',
-    registrationLabel: 'Registrations',
     openRegistration: 'Enable registrations',
-    registrationLive: 'Registrations enabled',
     registrationOpened: 'Registrations enabled and event published.',
     setUpcoming: 'Set as upcoming',
     upcomingSaved: 'The event is published as upcoming.',
@@ -1289,6 +1289,8 @@ export default {
     editWindowAction: 'Edit registration window',
     published: 'Published',
     hidden: 'Hidden',
+    publishedNote: 'The event shows on the site and in the public calendar.',
+    hiddenNote: 'Nobody sees it outside the panel: not on the site, not by link.',
     statusSaved: 'Status updated.',
     publishedSaved: 'The event is now visible on the site.',
     unpublishedSaved: 'The event is no longer shown on the site.',
@@ -1309,7 +1311,7 @@ export default {
     hiddenBadge: 'Unpublished',
     accessLabel: 'Access',
     accessMembers: 'Members only',
-    accessOpen: 'Open',
+    accessOpen: 'No membership',
     visibilityLabel: 'Site',
     accessMembersNote:
       'An active membership is required to register, and a registered athlete without one is blocked at the gate.',
@@ -1357,7 +1359,7 @@ export default {
     back: 'Back',
     backAria: 'Back to the event list',
     backToConsole: 'Back to the console',
-    closeSection: 'Close section',
+    closeSection: 'Back to overview',
     editBasics: 'Details',
     editBasicsValue: 'Title, date and venue',
     editSales: 'Sales and capacity',
@@ -1411,6 +1413,12 @@ export default {
     attendanceRate: '{{percent}}% attendance',
     noAttendanceData: 'No data yet',
     viewPublicPage: 'View public page',
+  },
+
+  // `formatRejectionActor` (src/lib/paymentAudit.js) looks this key up under
+  // `admin.payments.*`; it only existed inside `tour.payments`.
+  payments: {
+    rejectionActorProvider: 'Mercado Pago',
   },
 
   eventPayments: {
@@ -2772,6 +2780,13 @@ export default {
     paymentChannelBankTransfer: 'Bank transfer',
     paymentChannelCashPitbull: 'Cash at Pitbull',
     paymentChannelWise: 'Wise',
+    paymentChannelMatrixLabel: 'Payment methods by concept',
+    paymentChannelMatrixHint:
+      'Set separately: closing a method for tickets does not affect athlete registration.',
+    paymentChannelConcept: {
+      registration: 'Registration',
+      ticket: 'Tickets',
+    },
     bankTransferTitle: 'Bank transfer for this event',
     bankTransferHint:
       'Pick a catalog profile to reuse it on other events, or enter alias/CBU here (saving creates the profile).',
@@ -3105,6 +3120,10 @@ export default {
     heroLeadPlaceholder: 'One line saying what the meet is',
     ctaLabelField: 'Button label',
     ctaLabelPlaceholder: 'Sign me up',
+    inscriptionMarkField: 'Public occupancy title',
+    inscriptionNoteField: 'Public occupancy text',
+    inscriptionCopyHint:
+      'Empty uses the status default (closed, open, full). The public sees it on the registration block.',
     publicSurfaceLegend: 'What the site shows',
     publicSurfaceCalendarTitle: 'Calendar',
     publicSurfaceCalendarHint: 'Buttons to add the meet to Google Calendar or download the .ics.',
@@ -3145,6 +3164,8 @@ export default {
       ticketSalesWindowInvalid: 'Ticket sales close must be after open.',
       liveUrlInvalid: 'Use a URL starting with http:// or https://.',
       dateTimeInvalid: 'Check the date and time.',
+      inscriptionMarkMax: 'The public occupancy title cannot exceed 40 characters.',
+      inscriptionNoteMax: 'The public occupancy text cannot exceed 160 characters.',
       dayLabelRequired: 'Every event day needs a name.',
       dayLabelMax: 'The event day name is too long.',
       dayDateInvalid: 'Check the event day date.',
@@ -3639,8 +3660,9 @@ export default {
     channelWise: 'Wise',
     rejectedBy: 'Rejected by {{actor}}',
     cancelledBy: 'Cancelled by {{actor}}',
-    columnProof: 'Receipt',
-    columnCode: 'Code',
+    columnCharge: 'Charge',
+    columnOrder: 'Order',
+    methodTransfer: 'Bank transfer',
     staffPill: 'Staff',
     proofMissing: 'No receipt',
     proofArchived: 'Archived',

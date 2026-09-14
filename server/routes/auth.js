@@ -408,7 +408,7 @@ export function createAuthRoutes({
     async (req, res, next) => {
       try {
         const prisma = getPrisma()
-        const { email, password, eventSlug } = req.validatedBody
+        const { email, password, eventSlug, remember = false } = req.validatedBody
         const identity = {
           scope: IDENTITY_SCOPES.staffLogin,
           identity: email,
@@ -471,7 +471,7 @@ export function createAuthRoutes({
         // quien dio con la contraseña, no motivo para perdonarle el historial.
         await clearIdentityFailures(identity)
 
-        const session = await createSession({ prisma, userId: user.id, req })
+        const session = await createSession({ prisma, userId: user.id, req, remember })
 
         await prisma.user.update({
           where: { id: user.id },
@@ -495,13 +495,13 @@ export function createAuthRoutes({
             actorId: user.id,
             status: 'succeeded',
             severity: 'success',
-            metadata: { method: 'password', roleKey: serialized.roleKey },
+            metadata: { method: 'password', roleKey: serialized.roleKey, remember },
           },
           req,
         )
 
         res
-          .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())
+          .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions(env, { remember }))
           .json({ user: serialized, supabaseAuth })
       } catch (error) {
         next(error)
@@ -555,8 +555,13 @@ export function createAuthRoutes({
           client,
           athleteId: athlete.id,
           req,
+          remember: true,
         })
-        res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
+        res.cookie(
+          ATHLETE_SESSION_COOKIE_NAME,
+          session.token,
+          getAthleteSessionCookieOptions(env, { remember: true }),
+        )
 
         await recordIdentity(
           {

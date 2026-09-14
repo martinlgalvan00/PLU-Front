@@ -30,6 +30,31 @@ describe('sesion opaca de atleta', () => {
       sameSite: 'lax',
       secure: true,
     })
+    expect(getAthleteSessionCookieOptions({ NODE_ENV: 'production' }).maxAge).toBeUndefined()
+    expect(
+      getAthleteSessionCookieOptions({ NODE_ENV: 'production' }, { remember: true }).maxAge,
+    ).toBe(30 * 24 * 60 * 60 * 1000)
+    expect(inserted.expires_at).toBe('2026-07-16T08:00:00.000Z')
+  })
+
+  it('con remember persiste 30 días', async () => {
+    let inserted
+    const client = {
+      from: () => ({
+        insert: async (data) => {
+          inserted = data
+          return { data: null, error: null }
+        },
+      }),
+    }
+    await createAthleteSession({
+      client,
+      athleteId: '11111111-1111-4111-8111-111111111111',
+      req: { get: () => 'vitest', ip: '127.0.0.1' },
+      now: new Date('2026-07-16T00:00:00Z'),
+      remember: true,
+    })
+    expect(inserted.expires_at).toBe('2026-08-15T00:00:00.000Z')
   })
 
   it('rechaza una sesion vencida', async () => {

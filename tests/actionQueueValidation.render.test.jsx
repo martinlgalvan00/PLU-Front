@@ -346,7 +346,7 @@ describe('ActionQueue — Ver inspecciona el comprobante', () => {
 })
 
 describe('ActionQueue — lectura compacta por tipo', () => {
-  it('agrupa el mismo tipo aunque cambie la prioridad y no arma cajas de encabezado', () => {
+  it('agrupa el mismo tipo aunque cambie la prioridad y nombra el bloque', () => {
     renderQueue([
       PAYMENT_ITEM,
       { ...PAYMENT_ITEM, id: 'action-pay-p3', paymentId: 'p3', priority: 'medium' },
@@ -361,9 +361,9 @@ describe('ActionQueue — lectura compacta por tipo', () => {
       },
     ])
 
-    expect(document.querySelectorAll('.action-queue__type-head')).toHaveLength(0)
+    expect(document.querySelectorAll('.action-queue__type-head')).toHaveLength(2)
     expect(document.querySelectorAll('.action-queue__type-block')).toHaveLength(2)
-    expect(screen.getAllByText('Pago')).toHaveLength(2)
+    expect(screen.getAllByText('Pago')).toHaveLength(1)
     expect(screen.getAllByText('Inscripción')).toHaveLength(1)
     expect(screen.queryByText('Urgente')).toBeNull()
     expect(screen.queryByText('Pendiente')).toBeNull()

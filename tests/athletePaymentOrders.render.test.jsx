@@ -107,9 +107,11 @@ describe('Finanzas — comprobante y validación', () => {
   it('avisa que falta el comprobante y sigue ofreciendo validar con override', async () => {
     await renderSection([order({ paymentProofPath: null })])
 
-    // Columna de comprobante + meta de estado. El CTA Validar queda disponible:
-    // el diálogo pide motivo de override antes de acreditar.
-    expect(screen.getAllByText('Sin comprobante')).toHaveLength(2)
+    // Una sola vez, en la columna Cobro: la evidencia se mira ahí. Antes el
+    // aviso salía también como pill en Estado y la misma falta se leía dos
+    // veces por fila. El CTA Validar queda disponible: el diálogo pide motivo
+    // de override antes de acreditar.
+    expect(screen.getAllByText('Sin comprobante')).toHaveLength(1)
     expect(screen.getByRole('button', { name: 'Validar' })).toBeTruthy()
   })
 

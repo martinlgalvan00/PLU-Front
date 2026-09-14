@@ -24,7 +24,7 @@ export default function SponsorsPage({ onNavigate }) {
         title={t('pages.sponsors.heroTitle')}
       />
 
-      <div className="institutional-page__inner">
+      <div className="institutional-page__inner sponsors-page__inner">
         <Reveal variant="fade">
           <section className="institutional-manifesto" aria-labelledby="sponsors-intro-title">
             <p className="institutional-kicker">{t('pages.sponsors.introEyebrow')}</p>
@@ -70,7 +70,10 @@ export default function SponsorsPage({ onNavigate }) {
             {SPONSOR_TIERS.map((tier) => {
               const partners = listSponsorsByTier(tier)
               return (
-                <li key={tier} className="sponsors-tiers__item">
+                <li
+                  key={tier}
+                  className={`sponsors-tiers__item${tier === 'title' ? ' sponsors-tiers__item--title' : ''}`}
+                >
                   <p className="sponsors-tiers__label">{t(`pages.sponsors.tiers.${tier}.label`)}</p>
                   <h3>{t(`pages.sponsors.tiers.${tier}.title`)}</h3>
                   <p>{t(`pages.sponsors.tiers.${tier}.desc`)}</p>

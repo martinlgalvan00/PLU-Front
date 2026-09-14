@@ -260,6 +260,9 @@ button:disabled {
     .site-footer__bottom,
     .cookie-consent__card,
     .email-verification-notice__card,
+    .help-dock,
+    .help-dock__button,
+    .help-panel,
     :where(
       .institutional-page,
       .institutional-hero,

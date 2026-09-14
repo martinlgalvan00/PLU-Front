@@ -4,6 +4,13 @@ import {
   MANUAL_PAYMENT_CHANNELS,
   PAYMENT_CHANNELS,
 } from '../../services/platformFeatureToggleService.js'
+import {
+  EVENT_PAYMENT_CONCEPTS,
+  eventChannelOverridesFor,
+  isEventChannelOpenAnywhere,
+  isEventChannelOpenForConcept,
+  normalizeEventPaymentChannelOverrides,
+} from '../../../src/lib/eventPaymentChannels.js'
 
 const CHANNEL_LABEL = {
   mercado_pago: 'Mercado Pago',
@@ -26,32 +33,29 @@ const CONCEPT_LABEL = {
 }
 
 /**
- * Normaliza el override de canales guardado en `events.payment_channel_overrides`
- * o mandado por el editor. `null` = heredar plataforma. Solo se conservan
- * booleanos conocidos; el resto se ignora.
+ * Normaliza el override guardado en `events.payment_channel_overrides` o
+ * mandado por el editor. `null` = heredar plataforma.
+ *
+ * Devuelve la forma por concepto (`{registration, ticket}`); la forma plana
+ * vieja se sigue aceptando y vale para los dos. La lógica está en
+ * `src/lib/eventPaymentChannels.js` porque la comparte el panel.
  */
 export function normalizePaymentChannelOverrides(raw) {
-  if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) return null
-  const out = {}
-  let any = false
-  for (const channel of PAYMENT_CHANNELS) {
-    if (typeof raw[channel] === 'boolean') {
-      out[channel] = raw[channel]
-      any = true
-    }
-  }
-  return any ? out : null
+  return normalizeEventPaymentChannelOverrides(raw)
 }
 
 /**
  * ¿El canal queda abierto para este evento?
- * `plataforma AND (override[canal] ?? true)` — el evento solo puede cerrar.
+ * `plataforma AND (override[concepto][canal] ?? true)` — el evento solo cierra.
+ *
+ * Sin `concept` responde por el evento entero: abierto si lo está en alguno de
+ * los dos conceptos. Es lo que necesitan los bloques que configuran el canal
+ * (alias de transferencia, perfil de MP), no el checkout.
  */
-export function isEventChannelOpen(platformOpen, overrides, channel) {
+export function isEventChannelOpen(platformOpen, overrides, channel, concept = null) {
   if (!platformOpen) return false
-  const normalized = normalizePaymentChannelOverrides(overrides)
-  if (!normalized) return true
-  return normalized[channel] !== false
+  if (concept) return isEventChannelOpenForConcept(overrides, concept, channel)
+  return isEventChannelOpenAnywhere(overrides, channel)
 }
 
 /**
@@ -63,12 +67,13 @@ export function applyEventPaymentChannelOverrides(availability, overrides) {
   if (!normalized || !availability?.paymentChannels) return availability
 
   const paymentChannels = { ...availability.paymentChannels }
-  for (const concept of ['registration', 'ticket']) {
+  for (const concept of EVENT_PAYMENT_CONCEPTS) {
+    const flags = normalized[concept]
     const base = paymentChannels[concept] ?? {}
     paymentChannels[concept] = Object.fromEntries(
       PAYMENT_CHANNELS.map((channel) => [
         channel,
-        Boolean(base[channel]) && normalized[channel] !== false,
+        Boolean(base[channel]) && flags?.[channel] !== false,
       ]),
     )
   }
@@ -145,7 +150,9 @@ export function assertEventBankTransferReady({
 } = {}) {
   const normalized = normalizePaymentChannelOverrides(overrides)
   if (!normalized) return
-  if (normalized.bank_transfer === false) return
+  // Alcanza con que la transferencia siga abierta en alguno de los dos
+  // conceptos: el alias es uno solo para todo el evento.
+  if (!isEventChannelOpenAnywhere(normalized, 'bank_transfer')) return
 
   const details = resolveBankTransferDetails(
     {
@@ -201,12 +208,14 @@ export function assertEventPaymentChannelEnabled(
 ) {
   assertPaymentChannelEnabled(toggles, concept, channel, { override })
 
-  if (concept !== 'registration' && concept !== 'ticket') return
+  if (!EVENT_PAYMENT_CONCEPTS.includes(concept)) return
 
-  const normalized = normalizePaymentChannelOverrides(eventOverrides)
-  if (!normalized) return
+  // Por concepto: cerrar el efectivo para entradas no puede cerrarlo también
+  // para la inscripción de atletas.
+  const flags = eventChannelOverridesFor(eventOverrides, concept)
+  if (!flags) return
 
-  const remaining = PAYMENT_CHANNELS.filter((item) => normalized[item] !== false)
+  const remaining = PAYMENT_CHANNELS.filter((item) => flags[item] !== false)
   if (remaining.length === 0) {
     const upper = concept.toUpperCase()
     throw new HttpError(
@@ -216,7 +225,7 @@ export function assertEventPaymentChannelEnabled(
     )
   }
 
-  if (normalized[channel] === false) {
+  if (flags[channel] === false) {
     const upper = concept.toUpperCase()
     const openLabels = remaining.map((item) => CHANNEL_LABEL[item])
     const head = `El pago con ${CHANNEL_LABEL[channel]} no está habilitado para este evento.`

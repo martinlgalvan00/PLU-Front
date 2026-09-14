@@ -1,0 +1,199 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+@@BASE@@
+    .band { display: flex; align-items: flex-start; gap: 16px; padding: 15px 18px; border-radius: 10px; border: 1px solid var(--hairline); background: var(--surface); }
+    .band svg { flex: 0 0 auto; color: var(--brand); margin-top: 1px; }
+    .band-c { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+    .band-t { font-size: 13px; font-weight: 600; margin: 0; }
+    .band-p { font-size: 11.5px; color: var(--muted); margin: 0; line-height: 1.6; }
+    .band-p strong { color: var(--secondary); font-weight: 600; }
+
+    .ch-head, .ch-row { display: grid; grid-template-columns: minmax(0,1fr) 148px 126px 126px 304px; gap: 12px; align-items: center; padding: 13px 18px; }
+    .ch-head { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); border-bottom: 1px solid var(--hairline); padding-top: 11px; padding-bottom: 11px; }
+    .ch-head .is-mid { text-align: center; }
+    .ch-row { border-bottom: 1px solid var(--hairline); font-size: 12.5px; }
+    .ch-row.is-locked { background: rgba(255,255,255,.014); }
+    .ch-name { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .ch-mark { width: 30px; height: 30px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--brand); }
+    .ch-mark.is-manual { background: rgba(255,255,255,.06); color: var(--secondary); }
+    .ch-mark.is-locked { background: rgba(255,255,255,.04); color: #55585f; }
+    .ch-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .ch-copy strong { font-size: 13px; font-weight: 600; }
+    .ch-copy small { font-size: 10.5px; color: var(--muted); }
+    .ch-plat { display: flex; align-items: center; justify-content: center; }
+    .ch-cell { display: flex; align-items: center; justify-content: center; }
+    .sw { width: 36px; height: 20px; border-radius: 999px; background: rgba(255,255,255,.12); position: relative; flex: 0 0 auto; }
+    .sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 999px; background: #8b8d97; }
+    .sw.is-on { background: color-mix(in srgb, var(--ok) 60%, transparent); }
+    .sw.is-on::after { left: auto; right: 3px; background: #eafff2; }
+    .sw.is-locked { opacity: .35; }
+    .ch-how { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+    .ch-how strong { color: var(--secondary); font-weight: 600; }
+    .ch-foot { display: flex; align-items: center; gap: 10px; padding: 13px 18px; background: color-mix(in srgb, var(--elevated) 40%, transparent); font-size: 11.5px; color: var(--muted); }
+    .ch-foot svg { color: var(--faint); flex: 0 0 auto; }
+
+    .cols { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 20px; align-items: start; }
+
+    .rq { display: flex; align-items: flex-start; gap: 12px; padding: 13px 18px; border-bottom: 1px solid var(--hairline); }
+    .rq:last-child { border-bottom: none; }
+    .rq svg { flex: 0 0 auto; margin-top: 1px; }
+    .rq--ok svg { color: var(--ok-soft); }
+    .rq--todo svg { color: #e8a33d; }
+    .rq-c { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .rq-t { font-size: 12.5px; font-weight: 600; }
+    .rq-p { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.55; }
+    .rq-p code { font-family: var(--font); color: var(--secondary); }
+
+    .pv { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+    .pv-lead { margin: 0 0 2px; font-size: 11px; color: var(--faint); }
+    .opt { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 11px 14px; border: 1px solid var(--hairline); border-radius: 10px; }
+    .opt.is-picked { border-color: color-mix(in srgb, var(--brand) 36%, transparent); background: color-mix(in srgb, var(--brand) 9%, transparent); }
+    .radio { width: 16px; height: 16px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.28); flex: 0 0 auto; }
+    .opt.is-picked .radio { border-color: var(--brand); border-width: 5px; }
+    .opt-c { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .opt-c strong { font-size: 12.5px; font-weight: 600; }
+    .opt-c small { font-size: 10.5px; color: var(--muted); }
+    .opt-p { margin-left: auto; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .pv-note { margin: 4px 0 0; font-size: 11px; color: var(--muted); line-height: 1.55; }
+  </style>
+</helmet>
+
+<div class="shell">
+@@SIDE@@
+  <main class="main">
+@@HEAD@@
+
+    <nav class="chapters" role="tablist" aria-label="Secciones de entradas">
+      <button class="chapter" role="tab" aria-selected="false" type="button">Catálogo<small>5 tipos · 4 en venta</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Credenciales<small>Qué abre cada una</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Beneficios<small>3 para canjear</small></button>
+      <button class="chapter is-active" role="tab" aria-selected="true" type="button">Cobro<small>2 medios abiertos</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Compras<small>281 · 3 en proceso</small></button>
+    </nav>
+
+    <section class="band">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg>
+      <div class="band-c">
+        <h2 class="band-t">Quien compra una entrada ve dos formas de pagar</h2>
+        <p class="band-p">Mercado Pago y transferencia bancaria. El efectivo está abierto para la inscripción de atletas pero cerrado para entradas: nadie del staff está en el gimnasio para cobrarle a un espectador. <strong>Un medio cerrado acá no aparece en el checkout.</strong></p>
+      </div>
+    </section>
+
+    <section class="card" aria-label="Medios de pago de las entradas">
+      <div class="card-h">
+        <h2 class="card-t">Medios de pago</h2>
+        <span class="card-hint">Se define por separado para inscripción y para entradas</span>
+      </div>
+
+      <div class="ch-head">
+        <span>Medio</span>
+        <span class="is-mid">En la plataforma</span>
+        <span class="is-mid">Inscripción</span>
+        <span class="is-mid">Entradas</span>
+        <span>Cómo se acredita</span>
+      </div>
+
+      <div class="ch-row">
+        <span class="ch-name">
+          <span class="ch-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6 15h4"/></svg></span>
+          <span class="ch-copy"><strong>Mercado Pago</strong><small>Tarjeta, débito y dinero en cuenta</small></span>
+        </span>
+        <span class="ch-plat"><span class="badge badge--on">Abierto</span></span>
+        <span class="ch-cell"><span class="sw is-on"></span></span>
+        <span class="ch-cell"><span class="sw is-on"></span></span>
+        <span class="ch-how"><strong>Al instante.</strong> La credencial se emite sola apenas se acredita el pago.</span>
+      </div>
+
+      <div class="ch-row">
+        <span class="ch-name">
+          <span class="ch-mark is-manual"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 10 12 4l9 6"/><path d="M5 10v9h14v-9M9 19v-5h6v5"/></svg></span>
+          <span class="ch-copy"><strong>Transferencia bancaria</strong><small>Alias, CBU y titular del evento</small></span>
+        </span>
+        <span class="ch-plat"><span class="badge badge--on">Abierto</span></span>
+        <span class="ch-cell"><span class="sw is-on"></span></span>
+        <span class="ch-cell"><span class="sw is-on"></span></span>
+        <span class="ch-how"><strong>A mano.</strong> El comprador sube el comprobante y alguien lo aprueba en Compras. El lugar queda reservado 24 horas.</span>
+      </div>
+
+      <div class="ch-row">
+        <span class="ch-name">
+          <span class="ch-mark is-manual"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/></svg></span>
+          <span class="ch-copy"><strong>Efectivo en Pitbull</strong><small>Se paga en el gimnasio</small></span>
+        </span>
+        <span class="ch-plat"><span class="badge badge--on">Abierto</span></span>
+        <span class="ch-cell"><span class="sw is-on"></span></span>
+        <span class="ch-cell"><span class="sw"></span></span>
+        <span class="ch-how"><strong>A mano.</strong> Alguien tiene que marcar el pago recibido. Cerrado para entradas en este evento.</span>
+      </div>
+
+      <div class="ch-row is-locked">
+        <span class="ch-name">
+          <span class="ch-mark is-locked"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3.5 9h17M3.5 15h17M12 3c-2.2 2.6-2.2 15.4 0 18 2.2-2.6 2.2-15.4 0-18z"/></svg></span>
+          <span class="ch-copy"><strong>Wise</strong><small>Para quien paga desde afuera del país</small></span>
+        </span>
+        <span class="ch-plat"><span class="badge badge--off">Cerrado</span></span>
+        <span class="ch-cell"><span class="sw is-locked"></span></span>
+        <span class="ch-cell"><span class="sw is-locked"></span></span>
+        <span class="ch-how">La plataforma lo tiene cerrado, así que el evento no puede abrirlo. Se habilita en <strong>Acceso y habilitación</strong>.</span>
+      </div>
+
+      <div class="ch-foot">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="5" y="10.5" width="14" height="9" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>
+        El evento solo puede cerrar un medio, nunca abrir uno que la plataforma tiene cerrado. Si cerrás los dos que quedan, la venta de entradas no se puede publicar.
+      </div>
+    </section>
+
+    <div class="cols">
+      <section class="card" aria-label="Lo que necesita cada medio">
+        <div class="card-h">
+          <h2 class="card-t">Lo que necesita cada medio</h2>
+        </div>
+        <div class="rq rq--ok">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
+          <span class="rq-c"><span class="rq-t">Mercado Pago · perfil de cobro</span><p class="rq-p">Cobra el perfil <code>Fénix</code>. La plata entra a esa cuenta, no a la de PLU.</p></span>
+        </div>
+        <div class="rq rq--ok">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
+          <span class="rq-c"><span class="rq-t">Transferencia · datos bancarios</span><p class="rq-p">Alias <code>fenix.meet.plu</code> · CBU cargado · titular <code>Club Atlético Fénix</code>. Es lo que ve el comprador para transferir.</p></span>
+        </div>
+        <div class="rq rq--todo">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4.5 21 19.5H3z"/><path d="M12 10v4M12 17h.01"/></svg>
+          <span class="rq-c"><span class="rq-t">Transferencia · alguien que apruebe</span><p class="rq-p">Hay 3 compras esperando. Sin aprobación no se emite la credencial y a las 24 horas la reserva se libera.</p></span>
+        </div>
+      </section>
+
+      <section class="card" aria-label="Lo que ve el comprador">
+        <div class="card-h">
+          <h2 class="card-t">Lo que ve el comprador</h2>
+          <span class="card-hint">Palco · dos días</span>
+        </div>
+        <div class="pv">
+          <p class="pv-lead">Elegí cómo pagar</p>
+          <div class="opt is-picked">
+            <span class="radio"></span>
+            <span class="opt-c"><strong>Mercado Pago</strong><small>La entrada llega al instante</small></span>
+            <span class="opt-p">$ 38.000</span>
+          </div>
+          <div class="opt">
+            <span class="radio"></span>
+            <span class="opt-c"><strong>Transferencia bancaria</strong><small>Subís el comprobante y lo revisamos</small></span>
+            <span class="opt-p">$ 38.000</span>
+          </div>
+          <p class="pv-note">Con Mercado Pago el lugar se retiene 20 minutos. Con transferencia, 24 horas para subir el comprobante. Pasado el plazo, la reserva se libera sola.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+</body>
+</html>

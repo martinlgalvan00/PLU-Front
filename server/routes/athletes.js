@@ -244,6 +244,7 @@ const registerSchema = z
 const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(1).max(72),
+  remember: z.boolean().optional().default(false),
 })
 const forgotPasswordSchema = z.object({
   email: z.string().trim().toLowerCase().email('Ingresá un correo válido.'),
@@ -1062,8 +1063,17 @@ export function createAthleteRoutes({
           form.gym = await resolveGymName(form.gym)
         }
         const row = await repo().register(form, await hashPassword(password))
-        const session = await createAthleteSession({ client: client(), athleteId: row.id, req })
-        res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
+        const session = await createAthleteSession({
+          client: client(),
+          athleteId: row.id,
+          req,
+          remember: true,
+        })
+        res.cookie(
+          ATHLETE_SESSION_COOKIE_NAME,
+          session.token,
+          getAthleteSessionCookieOptions(env, { remember: true }),
+        )
         // La operación de negocio ya quedó confirmada. El dispatcher reserva el
         // outbox antes de llamar a Brevo; esperar este best-effort garantiza que
         // el email crítico quede enviado o programado para reintento antes de que
@@ -1322,8 +1332,18 @@ export function createAthleteRoutes({
           throw new HttpError(401, 'Credenciales invalidas.')
         }
         await clearIdentityFailures(identity)
-        const session = await createAthleteSession({ client: client(), athleteId: row.id, req })
-        res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
+        const remember = req.validatedBody.remember === true
+        const session = await createAthleteSession({
+          client: client(),
+          athleteId: row.id,
+          req,
+          remember,
+        })
+        res.cookie(
+          ATHLETE_SESSION_COOKIE_NAME,
+          session.token,
+          getAthleteSessionCookieOptions(env, { remember }),
+        )
         res.json({
           user: { role: 'athlete_plu', athleteId: row.id, name: row.full_name, email: row.email },
         })
@@ -2374,8 +2394,13 @@ export function createAthleteRoutes({
           client: client(),
           athleteId: auth.athleteId,
           req,
+          remember: true,
         })
-        res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
+        res.cookie(
+          ATHLETE_SESSION_COOKIE_NAME,
+          session.token,
+          getAthleteSessionCookieOptions(env, { remember: true }),
+        )
         res.status(204).end()
       } catch (error) {
         next(error)

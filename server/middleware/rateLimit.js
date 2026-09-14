@@ -108,7 +108,7 @@ export const publicWriteLimiter = buildLimiter(
 )
 
 // Compra de tickets -- más alto que publicWriteLimiter a propósito: una
-// compra cubre hasta 8 asistentes en un solo flujo.
+// compra cubre hasta 10 asistentes en un solo flujo.
 export const ticketPublicWriteLimiter = buildLimiter(
   10 * 60 * 1000,
   40,
