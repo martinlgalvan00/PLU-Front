@@ -1169,6 +1169,19 @@
   border-color: var(--admin-hairline);
 }
 
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card-input input {
+  font-size: clamp(22px, 3.2vw, 32px);
+}
+
+@container event-editor (max-width: 36rem) {
+  .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card + .admin-event-form__rate-card {
+    border-left: 0;
+    border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 70%, transparent);
+    padding-left: 0;
+    padding-top: 16px;
+  }
+}
+
 .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card:focus-within {
   background: transparent;
 }
@@ -4842,6 +4855,15 @@
   overflow-x: auto;
   padding: 0;
   scrollbar-width: none;
+}
+
+@media (min-width: 900px) {
+  /* En desktop los capítulos viven en el submenú del rail. En mobile
+     el rail es una tira horizontal y no admite anidado, así que esta
+     barra in-flow sigue siendo el selector. */
+  .admin-event-workspace__chapters {
+    display: none;
+  }
 }
 
 .admin-event-workspace__chapters::-webkit-scrollbar {

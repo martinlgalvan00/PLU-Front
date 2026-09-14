@@ -2053,6 +2053,11 @@ export default function AdminEventEditor({
                       </span>
                     </label>
 
+                    {/* El switch de arriba es uno de seis controles. Esta tira
+                        dice cuál está cortando de verdad y dónde se toca: sin
+                        ella, prenderlo y que no pase nada era lo habitual. */}
+                    <AdminTicketSalesStatus draft={draft} />
+
                     {/* Los dos bloqueos de "prendiste la venta pero falta algo"
                         llegan como claves de raíz, sin un input al que colgarse:
                         sin estos carteles el Guardar no hacía nada visible. */}
