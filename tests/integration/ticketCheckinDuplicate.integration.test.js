@@ -53,8 +53,9 @@ describe('check-in de tickets rechaza un segundo escaneo (unique constraint real
           title: 'Checkin Smoke Event',
           venue: 'Test',
           location: 'Test',
-          starts_at: new Date(Date.now() + 86400000).toISOString(),
-          ends_at: new Date(Date.now() + 2 * 86400000).toISOString(),
+          // Transferencia cierra 72h antes: a 24h el POST de la orden da 409.
+          starts_at: new Date(Date.now() + 7 * 86400000).toISOString(),
+          ends_at: new Date(Date.now() + 8 * 86400000).toISOString(),
           published: true,
           status: 'cupos_limitados',
           rules: { ticketsEnabled: true },
