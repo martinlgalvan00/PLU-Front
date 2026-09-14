@@ -3410,6 +3410,7 @@
 
   .admin-shell .admin-list-section--events .admin-events__header-actions {
     display: inline-flex;
+    flex-wrap: nowrap;
     gap: 6px;
     width: auto;
   }
@@ -3424,13 +3425,15 @@
 
   .admin-shell .admin-list-section--events .admin-events__header-actions .btn,
   .admin-shell .admin-list-section--events .admin-list-shell__actions .btn {
-    min-height: 36px;
+    flex: 0 0 auto;
+    min-height: 44px;
+    white-space: nowrap;
     width: auto;
   }
 
   .admin-shell .admin-list-section--events .admin-events__refresh-btn {
-    min-height: 36px;
-    width: 36px;
+    min-height: 44px;
+    width: 44px;
   }
 }
 
@@ -7166,8 +7169,15 @@
   align-items: center;
   align-self: end;
   display: flex;
+  flex: 0 0 auto;
   gap: 8px;
   padding-bottom: 2px;
+  width: auto;
+}
+
+.admin-shell .admin-list-section--events .admin-list-shell__actions > * {
+  min-height: unset;
+  width: auto;
 }
 
 .admin-shell .admin-list-section--events .admin-filters--inline.admin-filters--compact {
@@ -7245,12 +7255,18 @@
   align-items: center;
   display: inline-flex;
   flex: none;
+  flex-wrap: nowrap;
   gap: 6px;
+  max-width: 100%;
+  width: auto;
 }
 
 .admin-shell .admin-list-section--events .admin-events__header-actions .btn {
+  flex: 0 0 auto;
   min-height: 36px;
   padding-inline: 12px;
+  white-space: nowrap;
+  width: auto;
 }
 
 @media (max-width: 1024px) {
@@ -8345,7 +8361,7 @@
   }
 
   /* El layout de 2 líneas de la fila vive en max-width: 900px.
-     Acá el header sigue en una sola fila (título + CTA) hasta 430px. */
+     El header operativo queda en una sola fila (título + CTA compacto). */
   .admin-shell .admin-list-section--events .admin-list-shell__header,
   .admin-shell
     .admin-list-section--events
@@ -8360,26 +8376,36 @@
     display: none;
   }
 
-  .admin-shell .admin-list-section--events .admin-list-shell__actions {
+  .admin-shell .admin-list-section--events .admin-list-shell__intro {
+    min-width: 0;
+  }
+
+  .admin-shell .admin-list-section--events .admin-list-shell__actions,
+  .admin-shell .admin-list-section--events .admin-list-shell__actions > * {
     display: flex;
+    flex: none;
     justify-content: flex-end;
     width: auto;
   }
 
   .admin-shell .admin-list-section--events .admin-events__header-actions {
     display: inline-flex;
+    flex-wrap: nowrap;
     width: auto;
   }
 
   .admin-shell .admin-list-section--events .admin-events__header-actions .btn,
   .admin-shell .admin-list-section--events .admin-list-shell__actions .btn {
-    min-height: 36px;
+    flex: 0 0 auto;
+    justify-content: center;
+    min-height: 44px;
+    white-space: nowrap;
     width: auto;
   }
 
   .admin-shell .admin-list-section--events .admin-events__refresh-btn {
-    min-height: 36px;
-    width: 36px;
+    min-height: 44px;
+    width: 44px;
   }
 
   .admin-shell .admin-list-shell--events .admin-event-list {
@@ -8427,19 +8453,30 @@
     > .admin-list-section__chrome
     > .admin-list-shell__header,
   .admin-shell .admin-list-section--events .admin-list-shell__header {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-shell .admin-list-section--events .admin-list-shell__intro {
+    min-width: 0;
   }
 
   .admin-shell .admin-list-section--events .admin-list-shell__actions,
+  .admin-shell .admin-list-section--events .admin-list-shell__actions > *,
   .admin-shell .admin-list-section--events .admin-events__header-actions {
-    justify-content: stretch;
-    width: 100%;
+    display: flex;
+    flex: none;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    max-width: 100%;
+    width: auto;
   }
 
   .admin-shell .admin-list-section--events .admin-events__header-actions .btn,
   .admin-shell .admin-list-section--events .admin-list-shell__actions .btn {
+    flex: 0 0 auto;
     min-height: 44px;
-    width: 100%;
+    white-space: nowrap;
+    width: auto;
   }
 
   .admin-shell .admin-list-shell--events .admin-event-preview__head-actions .admin-icon-btn {
@@ -9828,10 +9865,11 @@
     .admin-shell
       .admin-list-section--events
       .admin-events__header-actions:has(.admin-events__refresh-btn) {
-      display: grid;
-      gap: 8px;
-      grid-template-columns: 44px minmax(0, 1fr);
-      width: 100%;
+      display: inline-flex;
+      flex-wrap: nowrap;
+      gap: 6px;
+      grid-template-columns: none;
+      width: auto;
     }
 
     .admin-shell .admin-list-shell--events .admin-event-row__meta-item:nth-child(2) {
@@ -10116,21 +10154,29 @@
       .admin-list-section--events
       > .admin-list-section__chrome
       > .admin-list-shell__header {
-      grid-template-columns: minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr) auto;
     }
 
-    .admin-shell .admin-list-section--events .admin-list-shell__actions {
-      justify-content: stretch;
-      width: 100%;
+    .admin-shell .admin-list-section--events .admin-list-shell__intro {
+      min-width: 0;
+    }
+
+    .admin-shell .admin-list-section--events .admin-list-shell__actions,
+    .admin-shell .admin-list-section--events .admin-list-shell__actions > *,
+    .admin-shell .admin-list-section--events .admin-events__header-actions {
+      justify-content: flex-end;
+      max-width: 100%;
+      width: auto;
     }
 
     .admin-shell
       .admin-list-section--events
       .admin-events__header-actions:has(.admin-events__refresh-btn) {
-      display: grid;
-      gap: 8px;
-      grid-template-columns: 44px minmax(0, 1fr);
-      width: 100%;
+      display: inline-flex;
+      flex-wrap: nowrap;
+      gap: 6px;
+      grid-template-columns: none;
+      width: auto;
     }
 
     .admin-shell .admin-list-shell--events .admin-event-preview__head-actions {
@@ -10195,8 +10241,10 @@
 
     .admin-shell .admin-list-section--events .admin-events__header-actions .btn,
     .admin-shell .admin-list-section--events .admin-list-shell__actions .btn {
+      flex: 0 0 auto;
       min-height: 44px;
-      width: 100%;
+      white-space: nowrap;
+      width: auto;
     }
 
     /* Ancho útil ~300–430: rail horizontal para no comprimir estados largos. */

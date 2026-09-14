@@ -5473,28 +5473,31 @@
   }
 
   .admin-list-section--events .admin-list-shell__header {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
     padding: 14px 14px 12px;
   }
 
   .admin-list-shell--events .admin-list-shell__actions {
-    justify-content: stretch;
-    width: 100%;
+    justify-content: flex-end;
+    width: auto;
   }
 
   .admin-list-shell--events .admin-list-shell__subtitle {
     display: none;
   }
 
+  .admin-events__header-actions,
   .admin-events__header-actions:has(.admin-events__refresh-btn) {
-    display: grid;
-    grid-template-columns: 44px minmax(0, 1fr);
-    width: 100%;
+    display: inline-flex;
+    flex-wrap: nowrap;
+    width: auto;
   }
 
   .admin-events__header-actions .btn {
+    flex: 0 0 auto;
     min-height: 44px;
-    width: 100%;
+    white-space: nowrap;
+    width: auto;
   }
 
   .admin-events__header-actions .admin-events__refresh-btn {

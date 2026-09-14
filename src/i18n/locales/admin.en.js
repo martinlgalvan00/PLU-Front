@@ -1309,7 +1309,7 @@ export default {
     hiddenBadge: 'Unpublished',
     accessLabel: 'Access',
     accessMembers: 'Members only',
-    accessOpen: 'Open',
+    accessOpen: 'No membership',
     visibilityLabel: 'Site',
     accessMembersNote:
       'An active membership is required to register, and a registered athlete without one is blocked at the gate.',
@@ -1357,7 +1357,7 @@ export default {
     back: 'Back',
     backAria: 'Back to the event list',
     backToConsole: 'Back to the console',
-    closeSection: 'Close section',
+    closeSection: 'Back to overview',
     editBasics: 'Details',
     editBasicsValue: 'Title, date and venue',
     editSales: 'Sales and capacity',

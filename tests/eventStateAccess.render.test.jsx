@@ -58,13 +58,13 @@ describe('AdminEventStateControl — acceso al meet', () => {
     renderControl()
 
     expect(accessChip(/solo afiliados/i).getAttribute('aria-pressed')).toBe('true')
-    expect(accessChip(/^abierto$/i).getAttribute('aria-pressed')).toBe('false')
+    expect(accessChip(/^sin afiliación$/i).getAttribute('aria-pressed')).toBe('false')
   })
 
   it('no guarda al tocar el chip: deja el cambio pendiente hasta Guardar', async () => {
     const onSetState = renderControl(EVENT, vi.fn(async () => ({ event: EVENT, events: [] })))
 
-    fireEvent.click(accessChip(/^abierto$/i))
+    fireEvent.click(accessChip(/^sin afiliación$/i))
 
     expect(onSetState).not.toHaveBeenCalled()
     expect(pendingSave()).toBeTruthy()
@@ -80,8 +80,8 @@ describe('AdminEventStateControl — acceso al meet', () => {
   it('descarta el cambio pendiente y vuelve al acceso persistido', () => {
     const onSetState = renderControl()
 
-    fireEvent.click(accessChip(/^abierto$/i))
-    expect(accessChip(/^abierto$/i).getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(accessChip(/^sin afiliación$/i))
+    expect(accessChip(/^sin afiliación$/i).getAttribute('aria-pressed')).toBe('true')
     expect(pendingSave()).toBeTruthy()
 
     fireEvent.click(pendingDiscard())
@@ -119,7 +119,7 @@ describe('AdminEventStateControl — acceso al meet', () => {
   it('deja la consecuencia de cada puerta en title, no como un bloque aparte', () => {
     renderControl()
     expect(accessChip(/solo afiliados/i).getAttribute('title')).toMatch(/afiliación vigente/i)
-    expect(accessChip(/^abierto$/i).getAttribute('title')).toMatch(/inscripción confirmada/i)
+    expect(accessChip(/^sin afiliación$/i).getAttribute('title')).toMatch(/inscripción confirmada/i)
     expect(
       screen.queryByText(/en la puerta un inscripto sin afiliación queda bloqueado/i),
     ).toBeNull()
@@ -152,7 +152,7 @@ describe('AdminEventStateControl — acceso al meet', () => {
       </I18nProvider>,
     )
 
-    fireEvent.click(accessChip(/^abierto$/i))
+    fireEvent.click(accessChip(/^sin afiliación$/i))
 
     expect(pendingSave()).toBeNull()
     expect(screen.queryByText(/un cambio sin guardar/i)).toBeNull()
@@ -165,7 +165,37 @@ describe('AdminEventStateControl — acceso al meet', () => {
       </I18nProvider>,
     )
 
-    expect(accessChip(/^abierto$/i).disabled).toBe(true)
+    expect(accessChip(/^sin afiliación$/i).disabled).toBe(true)
+  })
+
+  it('el resumen muestra el estado elegido, no el acceso como si fuera el estado', () => {
+    renderControl({
+      ...EVENT,
+      status: 'cerrado',
+      requiresMembership: false,
+      registered: 206,
+      slots: 250,
+    })
+
+    const result = document.querySelector('.admin-event-state__result')
+    expect(result?.querySelector('.admin-event-state__result-primary')?.textContent).toBe('Cerrado')
+    expect(result?.querySelector('.admin-event-state__result-access')?.textContent).toBe(
+      'Sin afiliación',
+    )
+    expect(result?.textContent).not.toMatch(/·\s*Abierto\s*$/)
+  })
+
+  it('al pasar a Cerrado el resumen deja de decir que está abierto', () => {
+    renderControl({ ...EVENT, requiresMembership: false })
+
+    fireEvent.click(screen.getByRole('button', { name: /^cerrado$/i }))
+
+    expect(document.querySelector('.admin-event-state__result-primary')?.textContent).toBe(
+      'Cerrado',
+    )
+    expect(document.querySelector('.admin-event-state__result-access')?.textContent).toBe(
+      'Sin afiliación',
+    )
   })
 
   it('agrupa el cambio de estado en draft hasta Guardar', async () => {

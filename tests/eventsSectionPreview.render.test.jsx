@@ -170,6 +170,6 @@ describe('EventsSection — meets abiertos en el listado', () => {
     expect(access).not.toBeNull()
     expect(
       access.querySelector('[role="radio"][aria-pressed="true"]')?.textContent,
-    ).toContain('Abierto')
+    ).toContain('Sin afiliación')
   })
 })

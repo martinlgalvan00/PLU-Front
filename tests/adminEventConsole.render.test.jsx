@@ -248,6 +248,25 @@ describe('EventsSection — página del evento', () => {
     expect(after.querySelectorAll('.admin-event-editor--accordion')).toHaveLength(1)
   })
 
+  it('volver al resumen cierra la sección del editor y no la reabre', () => {
+    renderEvents()
+    const panel = workspace()
+
+    expect(
+      within(tabRail(panel)).getByRole('tab', { name: /datos/i }).getAttribute('aria-selected'),
+    ).toBe('true')
+    expect(panel.querySelector('.admin-event-editor--accordion')).not.toBeNull()
+
+    fireEvent.click(within(panel).getByRole('button', { name: /volver al resumen/i }))
+
+    const after = screen.getByRole('region', { name: 'Evento seleccionado' })
+    expect(
+      within(tabRail(after)).getByRole('tab', { name: /resumen/i }).getAttribute('aria-selected'),
+    ).toBe('true')
+    expect(after.querySelector('.admin-event-editor--accordion')).toBeNull()
+    expect(after.querySelector('.admin-event-dashboard')).not.toBeNull()
+  })
+
   it('abre el triage de pagos como pestaña, sin salir del evento', async () => {
     renderEvents({ onOpenFinanceForEvent: () => {} })
     const panel = workspace()
@@ -502,7 +521,7 @@ describe('EventsSection — alta rápida', () => {
     expect(within(dialog).getByRole('button', { name: /solo afiliados/i })).toBeTruthy()
     expect(dialog.textContent).toContain('afiliación vigente')
 
-    fireEvent.click(within(dialog).getByRole('button', { name: /^abierto$/i }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /sin afiliación/i }))
     expect(dialog.textContent).toContain('sin afiliación')
   })
 
@@ -538,7 +557,7 @@ describe('EventsSection — alta rápida', () => {
     })
     fireEvent.change(dialog.querySelector('[name="location"]'), { target: { value: 'Rosario' } })
     fireEvent.change(dialog.querySelector('[name="slots"]'), { target: { value: '40' } })
-    fireEvent.click(within(dialog).getByRole('button', { name: /^abierto$/i }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /sin afiliación/i }))
 
     fireEvent.click(within(dialog).getByRole('button', { name: /crear y abrir consola/i }))
 
