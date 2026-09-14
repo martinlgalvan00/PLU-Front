@@ -70,13 +70,14 @@ const TYPES = [
   },
 ]
 
-function Editable({ tipos = TYPES, addons = [], canEdit = true }) {
+function Editable({ tipos = TYPES, addons = [], canEdit = true, eventOverrides = null }) {
   const [ticketTypes, setTicketTypes] = useState(tipos)
   return (
     <AdminTicketTypesEditor
       addonsCatalog={addons}
       canEdit={canEdit}
       eventDays={EVENT_DAYS}
+      eventPaymentChannelOverrides={eventOverrides}
       ticketTypes={ticketTypes}
       onChangeTicketTypes={setTicketTypes}
     />
@@ -88,6 +89,36 @@ export const Default = { render: () => <Editable /> }
 
 /** Sin tipos cargados todavía. */
 export const Vacio = { render: () => <Editable tipos={[]} /> }
+
+/**
+ * Medios de cobro propios: el palco se cobra sólo por Mercado Pago —se acredita
+ * solo, sin comprobante que aprobar a mano— y la general sigue aceptando todo.
+ * El evento tiene Wise cerrado, así que ese medio aparece apagado y explicado.
+ */
+export const MediosPorEntrada = {
+  render: () => (
+    <Editable
+      eventOverrides={{
+        ticket: {
+          mercado_pago: true,
+          bank_transfer: true,
+          cash_pitbull: true,
+          wise_transfer: false,
+        },
+      }}
+      tipos={[
+        TYPES[0],
+        {
+          ...TYPES[1],
+          id: 'tt-palco',
+          name: 'Palco',
+          price: 38000,
+          paymentChannels: { mercado_pago: true, bank_transfer: false, cash_pitbull: false },
+        },
+      ]}
+    />
+  ),
+}
 
 /** Con catálogo de beneficios disponible para armar packs. */
 export const ConBeneficios = {

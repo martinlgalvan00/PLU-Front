@@ -114,9 +114,9 @@ function tabRail(panel) {
   return within(panel).getByRole('tablist', { name: /secciones del evento/i })
 }
 
-/** Los capítulos de Ventas viven en el submenú del rail (desktop) y en una
- *  barra in-flow de la columna principal (mobile) -- y "Cupo" también
- *  matchea la pestaña "Ventas y cupos" del rail si se busca sin acotar. */
+/** Los capítulos de Ventas viven en el chrome del panel (junto a copiar/
+ *  borrar). "Cupo" también matchea "Ventas y cupos" del rail si se busca
+ *  sin acotar. */
 function chaptersRail(panel) {
   return within(panel).getByRole('tablist', { name: /capítulos/i })
 }
@@ -422,7 +422,8 @@ describe('EventsSection — página del evento', () => {
     const chapters = chaptersRail(after)
     const subnav = salesSubnav(after)
 
-    expect(col.contains(chapters)).toBe(true)
+    expect(after.contains(chapters)).toBe(true)
+    expect(after.querySelector('.admin-event-workspace__toolbar')?.contains(chapters)).toBe(true)
     expect(
       within(tabRail(after)).getByRole('tab', { name: /^ventas/i }).getAttribute('aria-expanded'),
     ).toBe('true')

@@ -10,6 +10,12 @@ describe('canonicalPaths', () => {
     expect(isCanonicalPathname('/evento/pitbull-classic/seguridad')).toBe(true)
   })
 
+  it('reconoce el alias corto /entradas para compartir', () => {
+    expect(isCanonicalPathname('/entradas')).toBe(true)
+    expect(isCanonicalPathname('/entradas/')).toBe(true)
+    expect(resolvePathnamePublicView('/entradas')).toBe('tickets')
+  })
+
   it('reconoce deep links publicos de vistas', () => {
     expect(isCanonicalPathname('/afiliacion')).toBe(true)
     expect(isCanonicalPathname('/calendario')).toBe(true)

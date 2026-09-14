@@ -139,3 +139,49 @@ describe('instrucciones posteriores a la compra en efectivo', () => {
     expect(document.querySelector('.ticket-purchase__proof-upload')).not.toBeNull()
   })
 })
+
+describe('medios de pago acotados por tipo de entrada', () => {
+  const palcoPricing = {
+    eventDays: [],
+    ticketTypes: [
+      {
+        id: 'palco',
+        name: 'Palco',
+        price: 80000,
+        // El palco sólo se acredita solo: sin comprobante que aprobar a mano.
+        paymentChannels: {
+          mercado_pago: true,
+          bank_transfer: false,
+          cash_pitbull: false,
+          wise_transfer: false,
+        },
+      },
+    ],
+    addons: [],
+  }
+
+  it('el tipo cierra un medio que el evento sí ofrece: no se muestra, y avisa por qué', () => {
+    renderSection({
+      pricing: palcoPricing,
+      mercadoPagoEnabled: true,
+      manualPaymentEnabled: true,
+      cashEnabled: true,
+    })
+    expect(radio('mercado_pago')).not.toBeNull()
+    expect(radio('mercado_pago').checked).toBe(true)
+    expect(radio('transferencia')).toBeNull()
+    expect(radio('cash_pitbull')).toBeNull()
+    expect(
+      screen.getByText(/limita los medios de pago disponibles para esta compra/),
+    ).toBeTruthy()
+  })
+
+  it('sin override de tipo, el aviso no aparece y todo sigue igual que antes', () => {
+    renderSection({ mercadoPagoEnabled: true, manualPaymentEnabled: true, cashEnabled: true })
+    expect(radio('transferencia')).not.toBeNull()
+    expect(radio('cash_pitbull')).not.toBeNull()
+    expect(
+      screen.queryByText(/limita los medios de pago disponibles para esta compra/),
+    ).toBeNull()
+  })
+})

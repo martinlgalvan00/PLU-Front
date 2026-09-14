@@ -1002,11 +1002,12 @@
 }
 
 .admin-event-editor--essentials .admin-event-form__bank-transfer > .admin-event-form__lane-head {
-  display: none;
+  display: grid;
+  gap: 0;
 }
 
 .admin-event-editor--essentials .admin-event-form__channel-grid {
-  gap: 8px;
+  gap: 0;
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -1015,10 +1016,15 @@
   border: 0;
   border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 70%, transparent);
   border-radius: 0;
-  gap: 10px;
-  margin-top: 4px;
-  padding: 12px 0 0;
+  gap: 8px;
+  margin-top: 2px;
+  padding: 14px 0 0;
   box-shadow: none;
+}
+
+.admin-event-editor--essentials .admin-event-form__provider-status,
+.admin-event-editor--essentials .admin-event-form__bank-transfer .admin-event-form__field-hint {
+  display: none;
 }
 
 .admin-event-editor--essentials .admin-event-form__lane--tickets-essentials {
@@ -1037,13 +1043,6 @@
 @media (max-width: 560px) {
   .admin-event-editor--essentials .admin-event-form__rate-cards {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card + .admin-event-form__rate-card {
-    border-left: 0;
-    border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 70%, transparent);
-    padding-left: 0;
-    padding-top: 10px;
   }
 }
 
@@ -1110,55 +1109,326 @@
   gap: 12px;
 }
 
+/* Precios: dos cifras editoriales. El número es el protagonista; la caja
+   de input competía con él y en notebook se inflaba a “hero price”. */
 .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-cards {
   background: transparent;
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  /* El panel del workspace suele medir ~500px: dos columnas dejan cada precio
-     en ~240px. auto-fit apila a una columna y cada campo usa el ancho entero. */
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
-  max-width: none;
+  gap: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 36rem;
+  overflow: visible;
+  padding: 2px 0 0;
   width: 100%;
 }
 
 .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card {
-  padding: 16px 0 12px;
+  gap: 8px;
+  padding: 2px 22px 6px 0;
 }
 
 .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card + .admin-event-form__rate-card {
-  border-left: 1px solid color-mix(in srgb, var(--admin-hairline) 70%, transparent);
-  padding-left: 16px;
+  border-left: 1px solid var(--admin-hairline);
+  padding-left: 22px;
+  padding-right: 0;
 }
 
-.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card-input input {
-  font-size: clamp(22px, 3.2vw, 32px);
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-cards .admin-event-form__rate-card-input {
+  align-items: baseline;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  gap: 10px;
+  max-width: none;
+  padding: 0 0 8px;
+  transition: border-color var(--motion-fast, 160ms) var(--ease-standard, ease);
 }
 
-@container event-editor (max-width: 36rem) {
-  .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card + .admin-event-form__rate-card {
-    border-left: 0;
-    border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 70%, transparent);
-    padding-left: 0;
-    padding-top: 16px;
-  }
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-cards .admin-event-form__rate-card-input input {
+  font-family: var(--font-display, var(--font-family));
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  min-height: 40px;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-cards .admin-event-form__rate-card-input > span {
+  color: var(--color-brand-gold);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+[data-theme='light'] .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-cards .admin-event-form__rate-card-input {
+  background: transparent;
+  border-color: var(--admin-hairline);
 }
 
 .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card:focus-within {
-  background: color-mix(in srgb, var(--admin-ink) 5%, transparent);
+  background: transparent;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card:focus-within .admin-event-form__rate-card-input {
+  border-bottom-color: var(--color-brand-gold);
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card.is-invalid .admin-event-form__rate-card-input {
+  border-bottom-color: var(--admin-status-danger, var(--color-danger-text, #c0392b));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-cards .admin-event-form__rate-card-input {
+    transition: none;
+  }
 }
 
 .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card-label {
   color: var(--admin-muted);
-  letter-spacing: 0.02em;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
   text-transform: none;
 }
 
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card--featured .admin-event-form__rate-card-input input {
+  color: var(--admin-ink);
+}
+
 .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__pricing-note {
-  border-top: 0;
+  border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 80%, transparent);
   color: var(--admin-muted);
   font-size: 12px;
-  padding: 4px 0 0;
+  grid-column: 1 / -1;
+  margin-top: 6px;
+  max-width: 52ch;
+  padding: 12px 0 0;
+}
+
+@container event-editor (max-width: 36rem) {
+  .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-cards {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: none;
+  }
+
+  .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card + .admin-event-form__rate-card {
+    border-left: 0;
+    border-top: 1px solid var(--admin-hairline);
+    margin-top: 10px;
+    padding: 14px 0 0;
+  }
+}
+
+/* El tabpanel scrollea; el form no recorta. Ver contrato al final de esta hoja. */
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__body {
+  flex: 1 0 auto;
+  gap: 14px;
+  min-height: auto;
+  overflow: visible;
+  padding: 16px 16px 20px;
+}
+
+.admin-event-workspace__panel .admin-event-editor--embedded.admin-event-editor--accordion .admin-event-form__body {
+  padding-bottom: 20px;
+}
+
+.admin-event-workspace__panel .admin-event-editor--embedded {
+  min-height: auto;
+  overflow: visible;
+}
+
+.admin-event-workspace__panel .admin-event-editor--embedded .admin-event-form--editor {
+  min-height: auto;
+  overflow: visible;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__actions {
+  bottom: 0;
+  flex-wrap: nowrap;
+  gap: 8px 10px;
+  margin-top: auto;
+  padding: 8px 16px 10px;
+  position: sticky;
+}
+
+.admin-event-workspace__panel .admin-event-form__action-buttons {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.admin-event-workspace__panel .admin-event-form__action-buttons .btn {
+  min-height: 36px;
+  min-width: 0;
+  padding-inline: 12px;
+}
+
+.admin-event-workspace__panel .admin-event-form__save-state--actions .admin-event-form__save-label--full {
+  display: none;
+}
+
+.admin-event-workspace__panel .admin-event-form__save-state--actions .admin-event-form__save-label--short {
+  display: inline;
+}
+
+@container event-editor (max-width: 28rem) {
+  .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__actions,
+  .admin-event-workspace__panel .admin-event-form__action-buttons {
+    flex-wrap: wrap;
+  }
+}
+
+.admin-event-workspace__panel .admin-event-form__grid {
+  gap: 12px 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@container event-editor (max-width: 35rem) {
+  .admin-event-workspace__panel .admin-event-form__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.admin-event-workspace__panel .admin-event-form__section-head h4 {
+  font-family: var(--font-display, var(--font-family));
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.admin-event-workspace__panel .admin-event-form__section-head p {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.admin-event-workspace__panel .admin-event-form__field > span:first-child,
+.admin-event-workspace__panel .admin-event-form .form-field__label,
+.admin-event-workspace__panel .admin-event-form label > span:first-child {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-event-workspace__panel .admin-event-form__error {
+  font-size: 11.5px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-event-workspace__panel .admin-event-form textarea {
+  min-height: 72px;
+}
+
+.admin-event-workspace__panel .admin-event-form__grid--basics {
+  gap: 12px;
+}
+
+.admin-event-workspace__panel .admin-event-form__grid--basics > .admin-event-form__field--wide:first-child input {
+  min-height: 38px;
+}
+
+.admin-event-workspace__panel .admin-event-form__cluster {
+  gap: 6px;
+  padding-top: 10px;
+}
+
+.admin-event-workspace__panel .admin-event-form__cluster-label {
+  color: var(--admin-ink);
+}
+
+.admin-event-workspace__panel .admin-event-form input:not([type='checkbox']),
+.admin-event-workspace__panel .admin-event-form select {
+  min-height: 36px;
+}
+
+.admin-event-workspace__panel .admin-ticket-types__row {
+  padding: 6px 12px;
+}
+
+.admin-event-workspace__panel .admin-ticket-types__head {
+  padding: 8px 12px 6px;
+}
+
+.admin-event-workspace__panel .admin-ticket-types .admin-event-form__rate-card-input {
+  padding: 0 8px;
+}
+
+.admin-event-workspace__panel .admin-ticket-types .admin-event-form__rate-card-input input,
+.admin-event-workspace__panel .admin-ticket-types .admin-event-form__field input:not([type='checkbox']) {
+  font-size: 13px;
+  min-height: 32px;
+}
+
+@container event-editor (max-width: 40rem) {
+  .admin-event-workspace__panel .admin-ticket-types__head {
+    display: none;
+  }
+
+  .admin-event-workspace__panel .admin-ticket-types__row {
+    gap: 2px 10px;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-event-workspace__panel .admin-ticket-types__row-name {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .admin-event-workspace__panel .admin-ticket-types__row-state {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .admin-event-workspace__panel .admin-ticket-types__row-price {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .admin-event-workspace__panel .admin-ticket-types__row-quota {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+  }
+
+  .admin-event-workspace__panel .admin-ticket-types__row-channels {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  .admin-event-workspace__panel .admin-ticket-types__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .admin-event-workspace__panel .admin-ticket-types__grid > .admin-event-form__field:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@container event-editor (max-width: 28rem) {
+  .admin-event-workspace__panel .admin-ticket-types__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@container event-editor (max-width: 640px) {
+  .admin-event-workspace__panel .admin-event-form input:not([type='checkbox']),
+  .admin-event-workspace__panel .admin-event-form select,
+  .admin-event-workspace__panel .admin-event-form textarea {
+    min-height: 36px;
+  }
+
+  .admin-event-workspace__panel .admin-ticket-types .admin-event-form__rate-card-input input,
+  .admin-event-workspace__panel .admin-ticket-types .admin-event-form__field input:not([type='checkbox']) {
+    min-height: 34px;
+  }
 }
 
 .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__bank-transfer .admin-event-form__pricing-note {
@@ -1180,7 +1450,7 @@
 }
 
 .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-row {
-  padding: 2px 10px;
+  padding: 5px 0;
 }
 
 .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__cupo .admin-event-form__toggle {
@@ -2130,9 +2400,12 @@
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
+  height: 100%;
   margin: 0;
+  max-height: 100%;
   max-width: none;
-  min-height: 100%;
+  min-height: 0;
+  overflow: hidden;
   padding: 0;
 }
 
@@ -2148,7 +2421,7 @@
   --admin-event-sidebar-h: 7.5rem;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 720px) {
   .admin-event-workspace--sidebar {
     align-items: stretch;
     flex-direction: row;
@@ -2158,7 +2431,9 @@
     justify-content: flex-start;
     /* 100% del admin-page (que llena el content), no 100dvh − 64px: ese calc
        ignoraba el padding de la página y dejaba un resto scrolleable vacío. */
-    min-height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    overflow: hidden;
     padding: 0;
   }
 
@@ -2166,7 +2441,8 @@
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
-    min-height: 100%;
+    min-height: 0;
+    overflow: hidden;
   }
 
   /* `align-items` y `overflow` no van declarados acá arriba, pero el selector
@@ -2185,29 +2461,32 @@
     flex: 1 1 auto;
     flex-direction: column;
     min-height: 0;
-    overflow: visible;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .admin-event-workspace--sidebar .admin-event-workspace__main-col,
   .admin-event-workspace--sidebar .admin-event-workspace__wide {
-    flex: 1 1 auto;
-    min-height: 0;
+    flex: 1 0 auto;
+    min-height: auto;
   }
 
-  /* `min-height: 100%` acá inflaba el formulario: la columna suma editor +
-     reporte de addons, el editor pedía el 100% de esa suma, y el body llegaba
-     a miles de px vacíos. Flex estira el form corto; el contenido largo crece. */
+  /* El editor no puede encoger por debajo del contenido: si shrinkea, el
+     tabpanel no desborda y `overscroll-behavior: contain` se come el wheel. */
   .admin-event-workspace--sidebar .admin-event-workspace__body > .admin-event-editor--embedded,
   .admin-event-workspace--sidebar .admin-event-workspace__main-col > .admin-event-editor--embedded {
-    flex: 1 1 auto;
-    min-height: 0;
+    flex: 1 0 auto;
+    min-height: auto;
+    overflow: visible;
   }
 
   .admin-event-workspace--sidebar
     .admin-event-editor--embedded
     .admin-event-form--editor {
-    flex: 1 1 auto;
-    min-height: 0;
+    flex: 1 0 auto;
+    min-height: auto;
+    overflow: visible;
   }
 }
 
@@ -2221,27 +2500,36 @@
   backdrop-filter: none;
   display: flex;
   flex-direction: column;
-  flex: 0 0 260px;
+  flex: 0 0 212px;
   isolation: isolate;
-  padding: 24px 20px;
+  padding: 16px 14px 16px;
   z-index: 2;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 720px) {
   /* Un solo ancla: la columna entera, no un sticky anidado en __sidebar-inner.
      Altura del content (viewport − header). Sin padding extra en `.admin-page`
      este calc coincide con el área visible: el rail llena la columna y no
      empuja un segundo scroller. */
   .admin-event-workspace__sidebar {
-    align-self: flex-start;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
     height: calc(100dvh - 64px);
     max-height: calc(100dvh - 64px);
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow: hidden;
     overscroll-behavior: contain;
-    padding: 24px 20px 32px;
+    padding: 12px 12px 10px;
     position: sticky;
     top: 0;
+  }
+}
+
+@media (min-width: 1280px) {
+  .admin-event-workspace__sidebar {
+    flex-basis: 240px;
+    padding: 16px 16px 12px;
+    width: 240px;
   }
 }
 
@@ -2251,14 +2539,84 @@
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
+  min-height: 0;
   min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
-/* En pantallas chicas una columna de 260px se come el ancho: la barra pasa a
+/* Pie del rail: Guardar no tapa el formulario. El slot vacío no reserva alto. */
+.admin-event-workspace__save:empty {
+  display: none;
+}
+
+.admin-event-workspace__save {
+  background: var(--admin-canvas);
+  border-top: 1px solid var(--admin-hairline);
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.admin-event-workspace__save .admin-event-form__actions {
+  align-items: stretch;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  position: static;
+  width: 100%;
+}
+
+.admin-event-workspace__save .admin-event-form__action-buttons {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 6px;
+  width: 100%;
+}
+
+.admin-event-workspace__save .admin-event-form__action-buttons .btn {
+  flex: 1 1 0;
+  font-size: 12px;
+  gap: 0;
+  justify-content: center;
+  min-height: 28px;
+  min-width: 0;
+  padding: 0 8px;
+  width: auto;
+}
+
+.admin-event-workspace__save .admin-event-form__action-buttons .btn svg {
+  display: none;
+}
+
+.admin-event-workspace__save .admin-event-form__action-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-event-workspace__save .admin-event-form__action-label--full {
+  display: none;
+}
+
+.admin-event-workspace__save .admin-event-form__action-label--short {
+  display: inline;
+}
+
+.admin-event-workspace__save .admin-event-form__save-state--actions {
+  display: none;
+}
+
+/* En pantallas chicas una columna de 212px se come el ancho: la barra pasa a
    ser una cabecera, y la navegación una tira horizontal deslizable.
    El compacto del head va DESPUÉS de las reglas base de `__sidebar-head`
    (más abajo): si `display: none` queda acá, el `display: flex` base lo pisa. */
-@media (max-width: 899px) {
+@media (max-width: 719px) {
   .admin-event-workspace__sidebar {
     background: var(--admin-canvas);
     background-color: var(--admin-canvas);
@@ -2279,7 +2637,7 @@
   }
 }
 
-/* `align-items: flex-start` y no `center`: en una columna de 260px el texto
+/* `align-items: flex-start` y no `center`: en una columna de 212px el texto
    envuelve en dos líneas, y centrado el chevron quedaba flotando a media altura
    en vez de apoyado en la primera línea. `text-align: left` porque el botón
    hereda el centrado del contenedor. */
@@ -2296,7 +2654,7 @@
   gap: 4px;
   letter-spacing: 0.06em;
   line-height: 1.2;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
   padding: 0;
   text-align: left;
   text-transform: uppercase;
@@ -2325,9 +2683,9 @@
 .admin-event-workspace__sidebar-head {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 28px;
-  padding-bottom: 22px;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
   position: relative;
 }
 
@@ -2351,10 +2709,10 @@
 .admin-event-workspace__sidebar-head .admin-event-workspace__title {
   color: var(--admin-ink);
   font-family: var(--font-display, var(--font-family));
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.04em;
-  line-height: 1.12;
+  line-height: 1.15;
   margin: 0;
 }
 
@@ -2401,11 +2759,12 @@
   color: var(--admin-muted);
   cursor: pointer;
   display: flex;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 500;
   gap: 8px;
   justify-content: space-between;
-  padding: 9px 10px 9px 12px;
+  min-height: 36px;
+  padding: 8px 10px;
   text-align: left;
   transition:
     color var(--motion-fast, 150ms) var(--ease-standard, ease),
@@ -2418,12 +2777,11 @@
   min-width: 0;
 }
 
-.admin-event-workspace__nav-chevron {
-  color: inherit;
-  flex: 0 0 auto;
-  opacity: 0.72;
-  transform: rotate(0deg);
-  transition: transform var(--motion-fast, 150ms) var(--ease-standard, ease);
+.admin-event-workspace__nav-chevron,
+.admin-event-workspace__nav-sub {
+  /* Los capítulos se eligen en la tira métrica del panel: el submenú del rail
+     queda en el DOM (tests y aria) pero no se dibuja, para no duplicar. */
+  display: none;
 }
 
 .admin-event-workspace__nav-item.is-expanded .admin-event-workspace__nav-chevron {
@@ -2437,7 +2795,7 @@
 }
 
 .admin-event-workspace__nav-sub {
-  display: flex;
+  display: none;
   flex-direction: column;
   gap: 1px;
   margin: 0 0 4px;
@@ -2518,8 +2876,8 @@
   font-size: 10px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  min-width: 18px;
-  padding: 2px 6px;
+  min-width: 16px;
+  padding: 1px 5px;
   text-align: center;
 }
 
@@ -2554,7 +2912,7 @@
 
 /* En pantallas chicas: masthead compacto + tabs con subrayado (editorial).
    Va DESPUÉS del `display: flex` base del head: si no, ese flex lo anula. */
-@media (max-width: 899px) {
+@media (max-width: 719px) {
   .admin-event-workspace__back {
     margin-bottom: 10px;
   }
@@ -2616,6 +2974,7 @@
     font-weight: 550;
     gap: 6px;
     justify-content: flex-start;
+    min-height: 44px;
     padding: 10px 12px 11px;
     white-space: nowrap;
   }
@@ -2634,33 +2993,41 @@
   .admin-event-workspace__nav-group {
     display: contents;
   }
-
-  .admin-event-workspace__nav-chevron,
-  .admin-event-workspace__nav-sub {
-    display: none;
-  }
 }
 
-/* Acciones in-flow: copiar / borrar. El nav lateral ya nombra la pestaña;
-   no hay banda de título ni sticky. */
+/* Acciones in-flow: copiar / borrar. En Ventas la tira de capítulos comparte
+   esta fila para no gastar una banda extra ni tapar el último tab. */
 .admin-event-workspace__toolbar {
-  align-items: center;
+  align-items: flex-end;
   display: flex;
+  gap: 12px;
   justify-content: flex-end;
-  padding: 12px 20px 0;
+  padding: 8px 20px 0;
   position: static;
 }
 
-@media (max-width: 899px) {
-  .admin-event-workspace__toolbar {
-    padding: 10px 14px 0;
-    padding-left: max(14px, env(safe-area-inset-left, 0px));
-    padding-right: max(14px, env(safe-area-inset-right, 0px));
-  }
+.admin-event-workspace__toolbar--chapters {
+  justify-content: space-between;
+}
+
+.admin-event-workspace__toolbar .admin-event-workspace__chapters {
+  flex: 1 1 auto;
+  margin: 0;
+  min-width: 0;
 }
 
 .admin-event-workspace__toolbar .admin-event-workspace__head-actions {
+  flex: 0 0 auto;
   margin-left: auto;
+  padding-bottom: 8px;
+}
+
+@media (max-width: 719px) {
+  .admin-event-workspace__toolbar {
+    padding: 8px 14px 0;
+    padding-left: max(14px, env(safe-area-inset-left, 0px));
+    padding-right: max(14px, env(safe-area-inset-right, 0px));
+  }
 }
 
 /* El pill es una etiqueta: en una columna angosta `stretch` lo estiraba de
@@ -2670,7 +3037,60 @@
   max-width: 100%;
 }
 
-@media (max-width: 899px) {
+@media (min-width: 720px) {
+  .admin-event-workspace__sidebar .admin-event-workspace__back {
+    margin-bottom: 8px;
+  }
+
+  .admin-event-workspace__sidebar-head {
+    display: grid;
+    gap: 4px 8px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+
+  .admin-event-workspace__sidebar-head .admin-event-workspace__title {
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    display: -webkit-box;
+    font-size: 15px;
+    letter-spacing: -0.03em;
+    line-clamp: 2;
+    line-height: 1.2;
+    overflow: hidden;
+  }
+
+  .admin-event-workspace__sidebar-head .status-pill {
+    align-self: start;
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .admin-event-workspace__sidebar .admin-event-workspace__meta {
+    font-size: 11px;
+    grid-column: 1 / -1;
+    line-height: 1.3;
+  }
+
+  .admin-event-workspace__nav {
+    gap: 0;
+  }
+
+  .admin-event-workspace__nav-item {
+    font-size: 12.5px;
+    min-height: 32px;
+    padding: 5px 8px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .admin-event-workspace__sidebar-head .admin-event-workspace__title {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 719px) {
   /* Override del stretch/max-width base: en fila el título cede y el pill no. */
   .admin-event-workspace__sidebar-head > .admin-event-workspace__title {
     align-self: baseline;
@@ -2695,7 +3115,8 @@
 
   .admin-event-workspace--sidebar {
     flex: 1 1 auto;
-    min-height: calc(100dvh - 64px - 24px);
+    max-height: 100%;
+    min-height: 0;
   }
 
   .admin-event-workspace__panel {
@@ -2711,29 +3132,32 @@
     flex: 1 1 auto;
     flex-direction: column;
     min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .admin-event-workspace__body > .admin-event-editor--embedded,
   .admin-event-workspace__main-col > .admin-event-editor--embedded {
-    flex: 1 1 auto;
-    min-height: 0;
+    flex: 1 0 auto;
+    min-height: auto;
   }
 
   .admin-event-workspace__panel .admin-event-editor--embedded .admin-event-form--editor {
-    flex: 1 1 auto;
-    min-height: 0;
+    flex: 1 0 auto;
+    min-height: auto;
   }
 }
 
-/* Sin `overflow: hidden` a propósito: además de recortar, convertía al panel en
-   scrollport, y entonces el header y el dock de acciones quedaban pegados a una
-   caja que no scrollea en vez de a la página. `min-height: 0` era del modal
-   (dejaba encoger por debajo del contenido); acá el alto lo pone el contenido. */
+/* El panel recorta al tabpanel: ese sí scrollea. Sin overflow acá el alto
+   se iba con el formulario y el wheel no tenía scrollport. */
 .admin-event-workspace__panel {
   background: var(--admin-canvas);
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   width: 100%;
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -2774,10 +3198,14 @@
 
   .admin-event-workspace--sidebar .admin-event-workspace__panel {
     border-radius: 0;
+    height: auto;
+    max-height: 100%;
+    min-height: 0;
+    overflow: hidden;
   }
 }
 
-@media (min-width: 900px) {
+@media (min-width: 720px) {
   .admin-event-workspace__panel {
     height: auto;
     width: 100%;
@@ -3800,6 +4228,11 @@
   letter-spacing: -0.03em;
 }
 
+.admin-event-workspace__panel .admin-event-editor--embedded .admin-event-form__section-head h4 {
+  font-size: 16px;
+  font-weight: 650;
+}
+
 .admin-event-editor--embedded .admin-event-form__section-head p {
   color: var(--admin-muted);
   max-width: 46ch;
@@ -4152,6 +4585,8 @@
 
 .admin-event-workspace__main-col,
 .admin-event-workspace__wide {
+  container-name: event-workspace-main;
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -4395,25 +4830,18 @@
 }
 
 /* ── Capítulos de Ventas ──────────────────────────────────────────────────
-   Strip editorial in-flow: label + valor, regla inferior, activo con el
-   mismo acento izquierdo del nav. No es una segunda tab bar. */
+   Selector compacto, no dashboard: el label es la pestaña, el valor es
+   caption corto. Las métricas grandes viven en el formulario. */
 
 .admin-event-workspace__chapters {
   border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: flex;
-  gap: 2px;
-  margin: 0 0 16px;
+  gap: 0;
+  margin: 0;
+  min-width: 0;
   overflow-x: auto;
+  padding: 0;
   scrollbar-width: none;
-}
-
-@media (min-width: 900px) {
-  /* En desktop los capítulos viven en el submenú del rail. En mobile
-     el rail es una tira horizontal y no admite anidado, así que esta
-     barra in-flow sigue siendo el selector. */
-  .admin-event-workspace__chapters {
-    display: none;
-  }
 }
 
 .admin-event-workspace__chapters::-webkit-scrollbar {
@@ -4423,35 +4851,63 @@
 .admin-event-workspace__chapter {
   background: transparent;
   border: none;
-  box-shadow: inset 2px 0 0 transparent;
+  box-shadow: inset 0 -2px 0 transparent;
   color: var(--admin-muted, var(--color-text-muted));
   cursor: pointer;
   display: flex;
-  flex: 0 0 auto;
+  flex: 1 1 0;
   flex-direction: column;
   font-family: inherit;
-  gap: 2px;
+  gap: 1px;
+  justify-content: flex-start;
   min-height: 44px;
-  padding: 8px 14px 10px 12px;
+  min-width: 4.5rem;
+  padding: 8px 12px 10px 0;
   text-align: left;
+  transition:
+    color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    box-shadow var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-event-workspace__chapter:last-child {
+  padding-right: 8px;
 }
 
 .admin-event-workspace__chapter strong {
+  color: inherit;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 550;
   letter-spacing: 0;
   text-transform: none;
 }
 
 .admin-event-workspace__chapter em {
-  color: color-mix(in srgb, var(--admin-muted, var(--color-text-muted)) 80%, transparent);
-  font-size: 11px;
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11.5px;
   font-style: normal;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .admin-event-workspace__chapter.is-active {
-  box-shadow: inset 2px 0 0 var(--admin-brand, var(--color-brand-celeste));
+  box-shadow: inset 0 -2px 0 var(--admin-brand, var(--color-brand-celeste));
   color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-event-workspace__chapter.is-active strong {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-weight: 650;
+}
+
+.admin-event-workspace__chapter.is-active em {
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-event-workspace__chapter.has-error,
+.admin-event-workspace__chapter.has-error em {
+  color: var(--admin-status-danger);
 }
 
 .admin-event-workspace__chapter:hover:not(.is-active) {
@@ -4461,6 +4917,12 @@
 .admin-event-workspace__chapter:focus-visible {
   outline: 2px solid var(--admin-brand, var(--color-brand-celeste));
   outline-offset: -2px;
+}
+
+@media (max-width: 560px) {
+  .admin-event-workspace__chapter {
+    flex: 0 0 auto;
+  }
 }
 
 .admin-event-workspace__panel .admin-event-form__ticket-config {
@@ -4593,12 +5055,10 @@
 }
 
 /* El cuerpo del modal era una grilla de dos columnas (main + aside de 340px)
-   con scroll propio. Como página no corresponde ninguna de las dos cosas: el
-   split de cada pestaña define sus columnas, y el scroll es el de la página.
-   Sin esto la columna principal quedaba en ~330px con el resto vacío. */
+   con scroll propio. Como página el split de cada pestaña define las columnas;
+   el scroll vive en el tabpanel (contrato al final de esta hoja). */
 .admin-event-workspace__body {
   display: block;
-  overflow: visible;
   padding: 16px 20px 24px;
 }
 
@@ -4710,4 +5170,64 @@
   .admin-event-structure__step-body {
     padding-bottom: var(--space-md, 16px);
   }
+}
+
+/* ── Contrato de scroll del workspace ──────────────────────────────────────
+   Un solo scrollport: el tabpanel. Guardar vive al pie del rail en desktop.
+.admin-shell .admin-page:has(> .admin-event-workspace--sidebar) {
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.admin-shell .admin-event-workspace--sidebar {
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.admin-shell .admin-event-workspace--sidebar .admin-event-workspace__panel {
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.admin-shell .admin-event-workspace--sidebar .admin-event-workspace__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.admin-shell .admin-event-workspace--sidebar .admin-event-workspace__main-col,
+.admin-shell .admin-event-workspace--sidebar .admin-event-workspace__wide,
+.admin-shell .admin-event-workspace--sidebar .admin-event-workspace__split {
+  flex: 1 0 auto;
+  min-height: auto;
+}
+
+.admin-shell .admin-event-workspace--sidebar .admin-event-editor--embedded,
+.admin-shell .admin-event-workspace--sidebar .admin-event-editor--embedded .admin-event-form--editor {
+  flex: 1 0 auto;
+  max-height: none;
+  min-height: auto;
+  overflow: visible;
+}
+
+.admin-shell .admin-event-workspace--sidebar .admin-event-workspace__panel .admin-event-form__body,
+.admin-shell .admin-event-workspace--sidebar .admin-event-editor--embedded.admin-event-editor--accordion .admin-event-form__body {
+  flex: 1 0 auto;
+  max-height: none;
+  min-height: auto;
+  overflow: visible;
+  padding-bottom: 20px;
+}
+
+.admin-shell .admin-event-workspace--sidebar .admin-event-editor--accordion .admin-event-form__actions {
+  bottom: 0;
+  position: sticky;
 }

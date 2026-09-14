@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   AlertTriangle,
@@ -46,12 +46,14 @@ import {
   publicSurfaceModulesForEvent,
 } from '../../lib/eventPublicSurface.js'
 import { validateAdminEventDraft } from '../../lib/schemas/adminEvent.js'
+import { money } from '../../lib/format.js'
 import {
   allOpenEventPaymentChannelOverrides,
   EVENT_PAYMENT_CONCEPTS,
   isEventChannelOpenAnywhere,
   isEventChannelOpenForConcept,
   normalizeEventPaymentChannelOverrides,
+  openEventChannelsFor,
 } from '../../lib/eventPaymentChannels.js'
 import { createPaymentProfile, fetchPaymentProfiles } from '../../services/paymentProfileService.js'
 import AdminTicketAddonsEditor from './AdminTicketAddonsEditor.jsx'
@@ -429,6 +431,33 @@ function AdminEventLivePreview({
   )
 }
 
+const EVENT_EDITOR_FORM_ID = 'admin-event-editor-form'
+const WORKSPACE_SAVE_SLOT_ID = 'admin-event-workspace-save'
+
+/** En desktop el dock de Guardar vive al pie del rail, no encima del form. */
+function useWorkspaceSaveHost(enabled) {
+  const [host, setHost] = useState(null)
+
+  useLayoutEffect(() => {
+    if (!enabled || typeof document === 'undefined') {
+      setHost(null)
+      return undefined
+    }
+
+    const media =
+      typeof window.matchMedia === 'function' ? window.matchMedia('(min-width: 720px)') : null
+    const sync = () => {
+      const desktop = media ? media.matches : true
+      setHost(desktop ? document.getElementById(WORKSPACE_SAVE_SLOT_ID) : null)
+    }
+    sync()
+    media?.addEventListener('change', sync)
+    return () => media?.removeEventListener('change', sync)
+  }, [enabled])
+
+  return host
+}
+
 export default function AdminEventEditor({
   canEdit,
   draft,
@@ -463,7 +492,9 @@ export default function AdminEventEditor({
   onExtraDiscard = null,
   sourceEvent = null,
 }) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
+  const workspaceSaveHost = useWorkspaceSaveHost(embedded && accordion)
+  const saveFormId = workspaceSaveHost ? EVENT_EDITOR_FORM_ID : undefined
   // En el acordeón de la consola se recortan barra de tabs, live y alta inline
   // de perfil MP. El catálogo de entradas (ventanas, tipos, precios) sí viaja
   // acá: es el único lugar para configurar la venta de un evento ya creado.
@@ -933,6 +964,11 @@ export default function AdminEventEditor({
   const registeredCount = sourceEvent?.registered ?? 0
   const slotsTotal = Math.max(0, Number(draft.slots) || 0)
   const slotsRemaining = Math.max(slotsTotal - registeredCount, 0)
+  // Cada capítulo lleva su dato al lado del nombre. Cuatro pestañas mudas
+  // obligaban a entrar en las cuatro para saber cuánto cupo hay, a qué precio
+  // se inscribe, cuántas entradas existen y con qué se cobran.
+  const ticketTypeCount = (draft.ticketTypes ?? []).length
+  const ticketChannelCount = openEventChannelsFor(draft.paymentChannelOverrides, 'ticket').length
   const fillPercent = slotsTotal > 0 ? Math.round((registeredCount / slotsTotal) * 100) : 0
   const publicCapacity = describePublicCapacity({
     progressPublic: draft.capacityProgressPublic !== false,
@@ -976,6 +1012,7 @@ export default function AdminEventEditor({
     >
       <form
         ref={formRef}
+        id={EVENT_EDITOR_FORM_ID}
         className="admin-event-form admin-event-form--editor"
         onSubmit={handleFormSubmit}
         noValidate
@@ -1070,12 +1107,14 @@ export default function AdminEventEditor({
                   aria-label={t('admin.eventEditor.navBasics')}
                   tabIndex={-1}
                 >
-                  <header className="admin-event-form__section-head">
-                    <h4>{t('admin.eventEditor.sectionBasics')}</h4>
-                    {!essentials ? <p>{t('admin.eventEditor.sectionBasicsLead')}</p> : null}
-                  </header>
+                  {essentials ? null : (
+                    <header className="admin-event-form__section-head">
+                      <h4>{t('admin.eventEditor.sectionBasics')}</h4>
+                      <p>{t('admin.eventEditor.sectionBasicsLead')}</p>
+                    </header>
+                  )}
 
-                  <div className="admin-event-form__grid">
+                  <div className="admin-event-form__grid admin-event-form__grid--basics">
                     <FormField
                       wide
                       htmlFor="event-title"
@@ -1109,7 +1148,7 @@ export default function AdminEventEditor({
                         id="event-description"
                         name="description"
                         data-field="description"
-                        rows={4}
+                        rows={3}
                         maxLength={1000}
                         value={draft.description ?? ''}
                         aria-invalid={Boolean(err('description'))}
@@ -1121,75 +1160,105 @@ export default function AdminEventEditor({
                       />
                     </FormField>
 
-                      <FormField
-                      htmlFor="event-starts-at"
-                      label={t('admin.eventEditor.supabase.startsAt')}
-                      error={err('startsAt')}
+                    <div
+                      className="admin-event-form__cluster"
+                      role="group"
+                      aria-labelledby="event-basics-when"
                     >
-                      <DateTimeLocalInput
-                        id="event-starts-at"
-                        name="startsAt"
-                        data-field="startsAt"
-                        required
-                        value={draft.startsAt ?? ''}
-                        aria-invalid={Boolean(err('startsAt'))}
-                        onChange={(event) => patchDraft(withEventStart(draft, event.target.value))}
-                        disabled={!canEdit}
-                      />
-                    </FormField>
+                      <p id="event-basics-when" className="admin-event-form__cluster-label">
+                        {t('admin.eventEditor.basicsWhen')}
+                      </p>
+                      <div className="admin-event-form__cluster-fields">
+                        <FormField
+                          htmlFor="event-starts-at"
+                          label={t('admin.eventEditor.basicsStart')}
+                          error={err('startsAt')}
+                        >
+                          <DateTimeLocalInput
+                            id="event-starts-at"
+                            name="startsAt"
+                            data-field="startsAt"
+                            required
+                            value={draft.startsAt ?? ''}
+                            aria-invalid={Boolean(err('startsAt'))}
+                            onChange={(event) =>
+                              patchDraft(withEventStart(draft, event.target.value))
+                            }
+                            disabled={!canEdit}
+                          />
+                        </FormField>
 
-                    <FormField
-                      htmlFor="event-ends-at"
-                      label={t('admin.eventEditor.supabase.endsAt')}
-                      error={err('endsAt')}
-                    >
-                      <DateTimeLocalInput
-                        id="event-ends-at"
-                        name="endsAt"
-                        data-field="endsAt"
-                        required
-                        value={draft.endsAt ?? ''}
-                        aria-invalid={Boolean(err('endsAt'))}
-                        onChange={(event) => patchDraft({ ...draft, endsAt: event.target.value })}
-                        disabled={!canEdit}
-                      />
-                    </FormField>
+                        <FormField
+                          htmlFor="event-ends-at"
+                          label={t('admin.eventEditor.basicsEnd')}
+                          error={err('endsAt')}
+                        >
+                          <DateTimeLocalInput
+                            id="event-ends-at"
+                            name="endsAt"
+                            data-field="endsAt"
+                            required
+                            value={draft.endsAt ?? ''}
+                            aria-invalid={Boolean(err('endsAt'))}
+                            onChange={(event) =>
+                              patchDraft({ ...draft, endsAt: event.target.value })
+                            }
+                            disabled={!canEdit}
+                          />
+                        </FormField>
+                      </div>
+                    </div>
 
-                    <FormField
-                      htmlFor="event-venue"
-                      label={t('admin.eventEditor.venue')}
-                      error={err('venue')}
+                    <div
+                      className="admin-event-form__cluster"
+                      role="group"
+                      aria-labelledby="event-basics-where"
                     >
-                      <input
-                        id="event-venue"
-                        name="venue"
-                        data-field="venue"
-                        required
-                        value={draft.venue}
-                        aria-invalid={Boolean(err('venue'))}
-                        onChange={(event) => patchDraft({ ...draft, venue: event.target.value })}
-                        placeholder={t('admin.eventEditor.venuePlaceholder')}
-                        disabled={!canEdit}
-                      />
-                    </FormField>
+                      <p id="event-basics-where" className="admin-event-form__cluster-label">
+                        {t('admin.eventEditor.basicsWhere')}
+                      </p>
+                      <div className="admin-event-form__cluster-fields">
+                        <FormField
+                          htmlFor="event-venue"
+                          label={t('admin.eventEditor.venue')}
+                          error={err('venue')}
+                        >
+                          <input
+                            id="event-venue"
+                            name="venue"
+                            data-field="venue"
+                            required
+                            value={draft.venue}
+                            aria-invalid={Boolean(err('venue'))}
+                            onChange={(event) =>
+                              patchDraft({ ...draft, venue: event.target.value })
+                            }
+                            placeholder={t('admin.eventEditor.venuePlaceholder')}
+                            disabled={!canEdit}
+                          />
+                        </FormField>
 
-                    <FormField
-                      htmlFor="event-location"
-                      label={t('admin.eventEditor.location')}
-                      error={err('location')}
-                    >
-                      <input
-                        id="event-location"
-                        name="location"
-                        data-field="location"
-                        required
-                        value={draft.location}
-                        aria-invalid={Boolean(err('location'))}
-                        onChange={(event) => patchDraft({ ...draft, location: event.target.value })}
-                        placeholder={t('admin.eventEditor.locationPlaceholder')}
-                        disabled={!canEdit}
-                      />
-                    </FormField>
+                        <FormField
+                          htmlFor="event-location"
+                          label={t('admin.eventEditor.location')}
+                          error={err('location')}
+                        >
+                          <input
+                            id="event-location"
+                            name="location"
+                            data-field="location"
+                            required
+                            value={draft.location}
+                            aria-invalid={Boolean(err('location'))}
+                            onChange={(event) =>
+                              patchDraft({ ...draft, location: event.target.value })
+                            }
+                            placeholder={t('admin.eventEditor.locationPlaceholder')}
+                            disabled={!canEdit}
+                          />
+                        </FormField>
+                      </div>
+                    </div>
                   </div>
                 </section>
               )}
@@ -1217,21 +1286,33 @@ export default function AdminEventEditor({
                         {
                           id: 'cupo',
                           label: t('admin.eventEditor.salesChapterCapacity'),
+                          meta: t('admin.eventEditor.salesChapterCapacityMeta', {
+                            count: slotsTotal,
+                          }),
                           panelId: 'event-section-sales-cupo',
                         },
                         {
                           id: 'prices',
                           label: t('admin.eventEditor.salesChapterPrices'),
+                          meta: money(draft.pricing?.registration ?? 0, locale),
                           panelId: 'event-section-sales-prices',
                         },
                         {
                           id: 'tickets',
                           label: t('admin.eventEditor.salesChapterTickets'),
+                          meta: ticketSalesEnabled
+                            ? t('admin.eventEditor.salesChapterTicketsMeta', {
+                                count: ticketTypeCount,
+                              })
+                            : t('admin.eventEditor.salesChapterTicketsOff'),
                           panelId: 'event-section-tickets',
                         },
                         {
                           id: 'payment',
                           label: t('admin.eventEditor.salesChapterPayment'),
+                          meta: t('admin.eventEditor.salesChapterPaymentMeta', {
+                            count: ticketChannelCount,
+                          }),
                           panelId: 'event-section-sales-payment',
                         },
                       ].map((chapter) => {
@@ -1247,7 +1328,12 @@ export default function AdminEventEditor({
                             aria-controls={chapter.panelId}
                             onClick={() => handleSalesChapterChange(chapter.id)}
                           >
-                            {chapter.label}
+                            <span className="admin-event-form__sales-nav-label">
+                              {chapter.label}
+                            </span>
+                            <small className="admin-event-form__sales-nav-meta">
+                              {chapter.meta}
+                            </small>
                           </button>
                         )
                       })}
@@ -1263,6 +1349,18 @@ export default function AdminEventEditor({
                             : t('admin.eventEditor.laneAthletesLead')}
                     </p>
                   </header>
+
+                  {/* El estado real de la venta es de la sección entera, no del
+                      capítulo Entradas: el switch que la prende es uno de seis
+                      controles y los otros cinco viven en Cobro, en Finanzas o
+                      en el entorno. Acá arriba también dice dónde se arregla y
+                      lleva al capítulo que corresponde. */}
+                  {essentials ? null : (
+                    <AdminTicketSalesStatus
+                      draft={draft}
+                      onGoToChapter={handleSalesChapterChange}
+                    />
+                  )}
 
                   <div
                     id="event-section-sales-cupo"
@@ -1416,7 +1514,7 @@ export default function AdminEventEditor({
 
                     <div className="admin-event-form__rate-cards">
                       <label
-                        className={`admin-event-form__rate-card${err('pricing.registration') ? ' is-invalid' : ''}`}
+                        className={`admin-event-form__rate-card admin-event-form__rate-card--featured${err('pricing.registration') ? ' is-invalid' : ''}`}
                       >
                         <span className="admin-event-form__rate-card-label">
                           {t('admin.eventEditor.priceRegistration')}
@@ -1505,94 +1603,99 @@ export default function AdminEventEditor({
                         </header>
                       )}
 
-                      <label className="admin-event-form__toggle">
-                        <input
-                          checked={draft.paymentChannelOverrides != null}
-                          className="admin-event-form__toggle-input"
-                          type="checkbox"
-                          onChange={(event) =>
-                            patchDraft({
-                              ...draft,
-                              paymentChannelOverrides: event.target.checked
-                                ? allOpenEventPaymentChannelOverrides()
-                                : null,
-                            })
-                          }
-                          disabled={!canEdit}
-                        />
-                        <span className="admin-event-form__toggle-ui" aria-hidden />
-                        <span className="admin-event-form__toggle-copy">
-                          <strong>{t('admin.eventEditor.paymentProfileCustomize')}</strong>
-                          <small>{t('admin.eventEditor.paymentProfileCustomizeHint')}</small>
-                        </span>
-                      </label>
+                      {/* La matriz ya no vive detrás de un interruptor de
+                          "personalizar". Escondida, la pregunta "¿con qué se
+                          pagan las entradas de este evento?" no se podía
+                          responder sin prender algo, y prenderlo era ya un
+                          cambio a guardar. Sin override marcado, se muestran
+                          los cuatro abiertos —que es lo que hereda— y destildar
+                          uno crea el override solo. */}
 
                       {/* Una fila por medio y una columna por concepto: cerrar
                           el efectivo para entradas no puede cerrarlo también
                           para la inscripción de atletas, que era lo que pasaba
                           cuando el override era un solo juego de banderas. */}
-                      {draft.paymentChannelOverrides != null ? (
-                        <div
-                          className="admin-event-form__channel-grid admin-event-form__channel-matrix"
-                          role="group"
-                          aria-label={t('admin.eventEditor.paymentChannelMatrixLabel')}
-                        >
-                          <p className="admin-event-form__channel-lead">
-                            {t('admin.eventEditor.paymentChannelMatrixHint')}
+                      <div
+                        className="admin-event-form__channel-grid admin-event-form__channel-matrix"
+                        role="group"
+                        aria-label={t('admin.eventEditor.paymentChannelMatrixLabel')}
+                      >
+                        <p className="admin-event-form__channel-lead">
+                          {t('admin.eventEditor.paymentChannelMatrixHint')}
+                        </p>
+                        {/* Cerrar los cuatro es cerrar la venta por un camino
+                            que no se ve en ningún otro lado. */}
+                        {err('paymentChannelOverrides.ticket') ? (
+                          <p
+                            className="admin-event-form__alert"
+                            role="alert"
+                            data-field="paymentChannelOverrides.ticket"
+                            tabIndex={-1}
+                          >
+                            {err('paymentChannelOverrides.ticket')}
                           </p>
-                          {/* Cerrar los cuatro es cerrar la venta por un camino
-                              que no se ve en ningún otro lado. */}
-                          {err('paymentChannelOverrides.ticket') ? (
-                            <p
-                              className="admin-event-form__alert"
-                              role="alert"
-                              data-field="paymentChannelOverrides.ticket"
-                              tabIndex={-1}
-                            >
-                              {err('paymentChannelOverrides.ticket')}
-                            </p>
-                          ) : null}
-                          {[
-                            ['mercado_pago', 'paymentChannelMercadoPago'],
-                            ['bank_transfer', 'paymentChannelBankTransfer'],
-                            ['cash_pitbull', 'paymentChannelCashPitbull'],
-                            ['wise_transfer', 'paymentChannelWise'],
-                          ].map(([channel, labelKey]) => (
-                            <div className="admin-event-form__channel-row" key={channel}>
-                              <span className="admin-event-form__channel-name">
-                                {t(`admin.eventEditor.${labelKey}`)}
-                              </span>
-                              <div className="admin-event-form__channel-cells">
-                                {EVENT_PAYMENT_CONCEPTS.map((concept) => (
-                                  <label className="admin-event-form__channel-cell" key={concept}>
-                                    <input
-                                      checked={isEventChannelOpenForConcept(
-                                        draft.paymentChannelOverrides,
-                                        concept,
-                                        channel,
-                                      )}
-                                      type="checkbox"
-                                      aria-label={`${t(`admin.eventEditor.${labelKey}`)} · ${t(
-                                        `admin.eventEditor.paymentChannelConcept.${concept}`,
-                                      )}`}
-                                      onChange={(changeEvent) =>
-                                        patchPaymentChannel(
-                                          concept,
-                                          channel,
-                                          changeEvent.target.checked,
-                                        )
-                                      }
-                                      disabled={!canEdit}
-                                    />
-                                    <span>
-                                      {t(`admin.eventEditor.paymentChannelConcept.${concept}`)}
-                                    </span>
-                                  </label>
-                                ))}
-                              </div>
-                            </div>
+                        ) : null}
+                        <div className="admin-event-form__channel-head" aria-hidden="true">
+                          <span />
+                          {EVENT_PAYMENT_CONCEPTS.map((concept) => (
+                            <span key={concept}>
+                              {t(`admin.eventEditor.paymentChannelConcept.${concept}`)}
+                            </span>
                           ))}
                         </div>
+                        {[
+                          ['mercado_pago', 'paymentChannelMercadoPago'],
+                          ['bank_transfer', 'paymentChannelBankTransfer'],
+                          ['cash_pitbull', 'paymentChannelCashPitbull'],
+                          ['wise_transfer', 'paymentChannelWise'],
+                        ].map(([channel, labelKey]) => (
+                          <div className="admin-event-form__channel-row" key={channel}>
+                            <span className="admin-event-form__channel-name">
+                              {t(`admin.eventEditor.${labelKey}`)}
+                            </span>
+                            {EVENT_PAYMENT_CONCEPTS.map((concept) => (
+                              <label className="admin-event-form__channel-cell" key={concept}>
+                                <input
+                                  checked={isEventChannelOpenForConcept(
+                                    draft.paymentChannelOverrides,
+                                    concept,
+                                    channel,
+                                  )}
+                                  type="checkbox"
+                                  aria-label={`${t(`admin.eventEditor.${labelKey}`)} · ${t(
+                                    `admin.eventEditor.paymentChannelConcept.${concept}`,
+                                  )}`}
+                                  onChange={(changeEvent) =>
+                                    patchPaymentChannel(
+                                      concept,
+                                      channel,
+                                      changeEvent.target.checked,
+                                    )
+                                  }
+                                  disabled={!canEdit}
+                                />
+                                <span>
+                                  {t(`admin.eventEditor.paymentChannelConcept.${concept}`)}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Sin override el evento hereda la matriz de plataforma
+                          y sigue tomando lo que Finanzas abra mañana. Con
+                          override queda fijo, así que conviene poder volver. */}
+                      {canEdit && draft.paymentChannelOverrides != null ? (
+                        <button
+                          className="button button--ghost admin-event-form__channel-reset"
+                          type="button"
+                          onClick={() =>
+                            patchDraft({ ...draft, paymentChannelOverrides: null })
+                          }
+                        >
+                          {t('admin.eventEditor.paymentChannelReset')}
+                        </button>
                       ) : null}
 
                       {isEventChannelOpenAnywhere(
@@ -1602,13 +1705,17 @@ export default function AdminEventEditor({
                         <div className="admin-event-form__bank-transfer">
                           <header className="admin-event-form__lane-head">
                             <h5 className="admin-event-form__lane-title">
-                              {t('admin.eventEditor.mercadoPagoProfileTitle')}
+                              {essentials
+                                ? t('admin.eventEditor.paymentChannelMercadoPago')
+                                : t('admin.eventEditor.mercadoPagoProfileTitle')}
                             </h5>
-                            <p>{t('admin.eventEditor.mercadoPagoProfileHint')}</p>
+                            {essentials ? null : (
+                              <p>{t('admin.eventEditor.mercadoPagoProfileHint')}</p>
+                            )}
                           </header>
 
                           {!mpSecretsKeyConfigured ? (
-                            <p className="admin-event-form__pricing-note" role="status">
+                            <p className="admin-event-form__notice" role="status">
                               {t('admin.eventEditor.mercadoPagoSecretsKeyMissing')}
                             </p>
                           ) : null}
@@ -1644,7 +1751,7 @@ export default function AdminEventEditor({
                           </FormField>
 
                           {selectedMpProfile ? (
-                            <p className="admin-event-form__pricing-note" role="status">
+                            <p className="admin-event-form__provider-status" role="status">
                               {t('admin.eventEditor.mercadoPagoProfileSelected', {
                                 name: selectedMpProfile.name,
                                 publicKey: selectedMpProfile.config?.publicKey
@@ -1752,9 +1859,13 @@ export default function AdminEventEditor({
                         <div className="admin-event-form__bank-transfer">
                           <header className="admin-event-form__lane-head">
                             <h5 className="admin-event-form__lane-title">
-                              {t('admin.eventEditor.bankTransferTitle')}
+                              {essentials
+                                ? t('admin.eventEditor.paymentChannelBankTransfer')
+                                : t('admin.eventEditor.bankTransferTitle')}
                             </h5>
-                            <p>{t('admin.eventEditor.bankTransferHint')}</p>
+                            {essentials ? null : (
+                              <p>{t('admin.eventEditor.bankTransferHint')}</p>
+                            )}
                           </header>
 
                           <FormField
@@ -1789,7 +1900,7 @@ export default function AdminEventEditor({
                           </FormField>
 
                           {selectedBankProfile ? (
-                            <p className="admin-event-form__pricing-note" role="status">
+                            <p className="admin-event-form__provider-status" role="status">
                               {t('admin.eventEditor.bankTransferProfileSelected', {
                                 name: selectedBankProfile.name,
                                 alias: selectedBankProfile.config?.alias || '—',
@@ -1942,11 +2053,6 @@ export default function AdminEventEditor({
                       </span>
                     </label>
 
-                    {/* El switch de arriba es uno de seis controles. Esta tira
-                        dice cuál está cortando de verdad y dónde se toca: sin
-                        ella, prenderlo y que no pase nada era lo habitual. */}
-                    <AdminTicketSalesStatus draft={draft} />
-
                     {/* Los dos bloqueos de "prendiste la venta pero falta algo"
                         llegan como claves de raíz, sin un input al que colgarse:
                         sin estos carteles el Guardar no hacía nada visible. */}
@@ -2030,6 +2136,7 @@ export default function AdminEventEditor({
                               canEdit={canEdit}
                               errors={fieldErrors}
                               eventDays={draft.eventDays ?? []}
+                              eventPaymentChannelOverrides={draft.paymentChannelOverrides ?? null}
                               onChangeEventDays={(eventDays) => patchDraft({ ...draft, eventDays })}
                               onChangeTicketTypes={(ticketTypes) =>
                                 patchDraft({ ...draft, ticketTypes })
@@ -2468,7 +2575,8 @@ export default function AdminEventEditor({
               </p>
             ) : null}
 
-            {confirmDiscard ? (
+            {(() => {
+              const dock = confirmDiscard ? (
               <div
                 className="admin-event-form__actions admin-event-form__actions--discard"
                 role="alert"
@@ -2488,6 +2596,7 @@ export default function AdminEventEditor({
                   </Button>
                   <Button
                     type="submit"
+                    form={saveFormId}
                     variant="gold"
                     className="btn--small"
                     disabled={!canEdit || syncing}
@@ -2511,7 +2620,7 @@ export default function AdminEventEditor({
                   </Button>
                 </div>
               </div>
-            ) : (
+              ) : (
             <div className="admin-event-form__actions">
               {accordion ? (
                 <div
@@ -2532,26 +2641,58 @@ export default function AdminEventEditor({
                 </div>
               ) : null}
               <div className="admin-event-form__action-buttons">
-                <Button type="button" variant="outline" onClick={requestClose} disabled={syncing}>
-                  {accordion ? t('admin.eventConsole.closeSection') : t('common.cancel')}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={requestClose}
+                  disabled={syncing}
+                  aria-label={accordion ? t('admin.eventConsole.closeSection') : t('common.cancel')}
+                >
+                  <span className="admin-event-form__action-label admin-event-form__action-label--full">
+                    {accordion ? t('admin.eventConsole.closeSection') : t('common.cancel')}
+                  </span>
+                  <span className="admin-event-form__action-label admin-event-form__action-label--short" aria-hidden>
+                    {accordion ? t('admin.eventConsole.closeSectionShort') : t('common.cancel')}
+                  </span>
                 </Button>
                 <Button
                   type="submit"
+                  form={saveFormId}
                   variant="gold"
                   disabled={!canEdit || syncing || (Boolean(draft.id) && !hasUnsavedChanges)}
+                  aria-label={
+                    syncing
+                      ? t('admin.eventEditor.saving')
+                      : draft.id
+                        ? t('admin.eventEditor.saveChanges')
+                        : draft.published
+                          ? t('admin.eventEditor.createAndPublish')
+                          : t('admin.eventEditor.createDraft')
+                  }
                 >
-                  <Save size={15} aria-hidden />
-                  {syncing
-                    ? t('admin.eventEditor.saving')
-                    : draft.id
-                      ? t('admin.eventEditor.saveChanges')
-                      : draft.published
-                        ? t('admin.eventEditor.createAndPublish')
+                  <Save size={14} aria-hidden />
+                  <span className="admin-event-form__action-label admin-event-form__action-label--full">
+                    {syncing
+                      ? t('admin.eventEditor.saving')
+                      : draft.id
+                        ? t('admin.eventEditor.saveChanges')
+                        : draft.published
+                          ? t('admin.eventEditor.createAndPublish')
+                          : t('admin.eventEditor.createDraft')}
+                  </span>
+                  <span className="admin-event-form__action-label admin-event-form__action-label--short" aria-hidden>
+                    {syncing
+                      ? t('admin.eventEditor.savingShort')
+                      : draft.id
+                        ? t('admin.eventEditor.saveChangesShort')
                         : t('admin.eventEditor.createDraft')}
+                  </span>
                 </Button>
               </div>
             </div>
-            )}
+              )
+              return workspaceSaveHost ? createPortal(dock, workspaceSaveHost) : dock
+            })()}
           </form>
 
           {embedded ? null : <AdminEventLivePreview draft={draft} live sourceEvent={sourceEvent} />}

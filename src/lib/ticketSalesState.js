@@ -17,6 +17,7 @@
  */
 
 import { isEventChannelOpenForConcept } from './eventPaymentChannels.js'
+import { resolveTicketTypeChannels } from './ticketTypePaymentChannels.js'
 import { resolveTicketTypeSaleWindow } from './eventPricing.js'
 
 /** Estados del evento en los que la base rechaza cualquier compra. */
@@ -46,6 +47,7 @@ export const TICKET_SALES_BLOCKER_SCOPES = {
   noDays: 'catalog',
   noSellableType: 'catalog',
   noTypeInWindow: 'catalog',
+  noTypeWithChannel: 'catalog',
 }
 
 function parseLocal(value) {
@@ -60,7 +62,8 @@ function parseLocal(value) {
  * @param {object|null} [input.platform] Respuesta de `fetchPlatformFeatureToggles`.
  * @param {Date} [input.now]
  * @returns {{open: boolean, blockers: Array<{code: string, scope: string, detail?: string}>,
- *   openChannels: string[], sellableTypes: number, typesInWindow: number}}
+ *   openChannels: string[], sellableTypes: number, typesInWindow: number,
+ *   typesWithChannel: number}}
  */
 export function resolveTicketSalesState({ event, platform = null, now = new Date() } = {}) {
   const blockers = []
@@ -106,11 +109,28 @@ export function resolveTicketSalesState({ event, platform = null, now = new Date
   })
   if (openChannels.length === 0) add('noChannel')
 
+  // 6. Y el mismo corte, una vez por tipo: una entrada que cerró los medios
+  //    que le quedaban sigue activa, en precio y en ventana, pero no se puede
+  //    comprar. Con todas así la venta está cerrada aunque el evento tenga
+  //    canales abiertos.
+  const typesWithChannel = inWindow.filter(
+    (type) =>
+      resolveTicketTypeChannels({
+        eventOverrides: event?.paymentChannelOverrides,
+        typeChannels: type.paymentChannels,
+        platformChannels: platform ? platform.paymentChannels?.ticket : null,
+      }).length > 0,
+  )
+  if (openChannels.length > 0 && inWindow.length > 0 && typesWithChannel.length === 0) {
+    add('noTypeWithChannel')
+  }
+
   return {
     open: blockers.length === 0,
     blockers,
     openChannels,
     sellableTypes: sellable.length,
     typesInWindow: inWindow.length,
+    typesWithChannel: typesWithChannel.length,
   }
 }

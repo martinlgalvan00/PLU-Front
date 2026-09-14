@@ -1024,7 +1024,7 @@ export default {
     errorPasswordResetShort: 'Use at least 12 characters.',
     errorPasswordConfirmRequired: 'Confirm your password.',
     errorPasswordMismatch: 'Passwords do not match.',
-    remember: 'Remember me on this device',
+    remember: 'Remember me',
     rememberHint: 'Secure session — we never store your password.',
     submit: 'Sign in',
     submitting: 'Signing in…',
@@ -3295,6 +3295,7 @@ export default {
       paymentTransfer: 'Bank transfer',
       paymentMpHint: 'Automatic payment · QR enabled once confirmed',
       paymentTransferHint: 'Manual validation by Administration · up to 48 hours',
+      paymentNarrowedByType: 'The ticket type you picked limits the payment methods for this purchase.',
       buyerTitle: 'Your details',
       buyerLead: 'We send the QR tickets to this address, plus a note when the payment clears.',
       buyerName: 'Full name',
@@ -3335,6 +3336,8 @@ export default {
       confirmationCount_other: '{{count}} tickets',
       confirmationQrLead:
         'Once payment is confirmed, each ticket gets its entry QR ready to show at the door.',
+      shareCta: 'Share on WhatsApp',
+      shareMessage: "I've got my ticket for {{event}}. Get yours here: {{link}}",
       continueMercadoPago: 'Continue to Mercado Pago',
       checkoutUnavailable:
         'We could not open checkout. Retry the purchase or contact the administration team.',

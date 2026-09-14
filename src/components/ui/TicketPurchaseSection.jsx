@@ -9,6 +9,7 @@ import {
   Minus,
   Plus,
   QrCode,
+  Share2,
   Ticket as TicketIcon,
 } from 'lucide-react'
 import Button from './Button.jsx'
@@ -25,12 +26,15 @@ import { getFormOptions } from '../../lib/formOptions.js'
 import { money } from '../../lib/format.js'
 import { toggleAttendeeAddon as applyAttendeeAddonToggle } from '../../lib/ticketAddons.js'
 import { groupCredentialsByBundle } from '../../lib/ticketCredentials.js'
+import { TICKETS_PATH } from '../../lib/ticketsRoute.js'
+import { isTicketTypeChannelOpen } from '../../lib/ticketTypePaymentChannels.js'
 import { validateTicketAttendees, validateTicketBuyer } from '../../lib/validation.js'
 import { priceForAttendee, priceForOrder } from '../../services/ticketService.js'
 import { formatWisePrice } from '../../services/checkoutPricing.js'
 import { resolveTicketOrderWisePricing } from '../../../shared/ticketWisePricing.js'
 
 const MAX_TICKETS = 10
+const CHANNEL_KEYS = ['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer']
 
 function emptyAttendee(pricing) {
   return { fullName: '', dni: '', ticketTypeId: pricing?.ticketTypes?.[0]?.id ?? '', addonIds: [] }
@@ -580,41 +584,85 @@ export default function TicketPurchaseSection({
   const wiseReady = wiseEnabled && wiseQuote?.source === 'configured'
   const wiseLabel = wiseReady ? formatWisePrice(wiseQuote.amount, locale) : ''
 
+  // Tipos elegidos entre los asistentes: la orden es una sola, así que un
+  // medio sólo se ofrece si TODOS los tipos del carrito lo aceptan. Mostrarlo
+  // igual sería prometer un pago que el backend rechaza con 409 recién al
+  // confirmar — el mismo modo de fallo que el resto del circuito evita.
+  const selectedTicketTypeIds = useMemo(
+    () => [...new Set(attendees.map((attendee) => attendee.ticketTypeId).filter(Boolean))],
+    [attendees],
+  )
+  const openChannelsForSelection = useMemo(() => {
+    const open = {}
+    for (const channel of CHANNEL_KEYS) {
+      open[channel] = selectedTicketTypeIds.every((id) => {
+        const type = pricing.ticketTypes?.find((item) => item.id === id)
+        return isTicketTypeChannelOpen(type?.paymentChannels ?? null, channel)
+      })
+    }
+    return open
+  }, [selectedTicketTypeIds, pricing.ticketTypes])
+
+  const effectiveMercadoPagoEnabled = mercadoPagoEnabled && openChannelsForSelection.mercado_pago
+  const effectiveManualPaymentEnabled = manualPaymentEnabled && openChannelsForSelection.bank_transfer
+  const effectiveCashEnabled = cashEnabled && openChannelsForSelection.cash_pitbull
+  const effectiveWiseEnabled = wiseReady && openChannelsForSelection.wise_transfer
+  // El panel dice que el medio está abierto, pero el tipo elegido lo cierra:
+  // sin este aviso el radio simplemente desaparece y no queda claro por qué.
+  const paymentNarrowedByType =
+    (mercadoPagoEnabled && !effectiveMercadoPagoEnabled) ||
+    (manualPaymentEnabled && !effectiveManualPaymentEnabled) ||
+    (cashEnabled && !effectiveCashEnabled) ||
+    (wiseReady && !effectiveWiseEnabled)
+
   // Con el canal manual cerrado queda solo Mercado Pago, y una selección previa
   // de transferencia vuelve ahí sola en vez de mandar una compra que va a fallar.
   const manualPaymentOptions = useMemo(
     () =>
       formOptions.paymentMethod.filter(([value]) => {
-        if (value === 'wise_transfer') return wiseReady
-        if (value === 'cash_pitbull') return cashEnabled
-        if (isManualTicketPayment(value)) return manualPaymentEnabled
-        return value !== 'mercado_pago' || mercadoPagoEnabled
+        if (value === 'wise_transfer') return effectiveWiseEnabled
+        if (value === 'cash_pitbull') return effectiveCashEnabled
+        if (isManualTicketPayment(value)) return effectiveManualPaymentEnabled
+        return value !== 'mercado_pago' || effectiveMercadoPagoEnabled
       }),
-    [formOptions.paymentMethod, cashEnabled, manualPaymentEnabled, mercadoPagoEnabled, wiseReady],
+    [
+      formOptions.paymentMethod,
+      effectiveCashEnabled,
+      effectiveManualPaymentEnabled,
+      effectiveMercadoPagoEnabled,
+      effectiveWiseEnabled,
+    ],
   )
 
   /**
-   * Un medio cerrado desde el panel no puede quedar seleccionado: el 409 llega
-   * recién al enviar la compra, con el formulario ya completo. La selección cae
-   * al primero que sí está abierto, en el orden en que se ofrecen.
+   * Un medio cerrado desde el panel (o por el tipo de entrada elegido) no
+   * puede quedar seleccionado: el 409 llega recién al enviar la compra, con
+   * el formulario ya completo. La selección cae al primero que sí está
+   * abierto, en el orden en que se ofrecen.
    */
   useEffect(() => {
     const open = {
-      mercado_pago: mercadoPagoEnabled,
+      mercado_pago: effectiveMercadoPagoEnabled,
       // La variante editorial llama `transferencia` al mismo canal que el
       // Select compacto llama `manual_link`. Las dos cuentan como el canal de
       // transferencia, así que ninguna se descarta por el nombre.
-      transferencia: manualPaymentEnabled,
-      manual_link: manualPaymentEnabled,
-      cash_pitbull: cashEnabled,
-      wise_transfer: wiseReady,
+      transferencia: effectiveManualPaymentEnabled,
+      manual_link: effectiveManualPaymentEnabled,
+      cash_pitbull: effectiveCashEnabled,
+      wise_transfer: effectiveWiseEnabled,
     }
     if (open[paymentMethod]) return
     const fallback = ['mercado_pago', 'transferencia', 'cash_pitbull', 'wise_transfer'].find(
       (method) => open[method],
     )
     if (fallback) setPaymentMethod(fallback)
-  }, [cashEnabled, manualPaymentEnabled, mercadoPagoEnabled, paymentMethod, wiseReady])
+  }, [
+    effectiveCashEnabled,
+    effectiveManualPaymentEnabled,
+    effectiveMercadoPagoEnabled,
+    effectiveWiseEnabled,
+    paymentMethod,
+  ])
 
   /**
    * Reconcilia lo elegido con el catálogo que efectivamente está a la venta.
@@ -777,6 +825,15 @@ export default function TicketPurchaseSection({
         ? t('pages.tickets.confirmationCount_one', { count: visibleOrder.quantity })
         : t('pages.tickets.confirmationCount_other', { count: visibleOrder.quantity })
 
+    const shareUrl = `${env.appUrl || (typeof window !== 'undefined' ? window.location.origin : '')}${TICKETS_PATH}${
+      event?.slug ? `?evento=${encodeURIComponent(event.slug)}` : ''
+    }`
+    const shareText = t('pages.tickets.shareMessage', {
+      event: visibleOrder.eventTitle,
+      link: shareUrl,
+    })
+    const shareHref = `https://wa.me/?text=${encodeURIComponent(shareText)}`
+
     return (
       <div className="ticket-purchase ticket-purchase--confirmation ticket-purchase--confirmation-editorial">
         <div className="ticket-purchase__confirmation-head">
@@ -793,6 +850,18 @@ export default function TicketPurchaseSection({
         <p className="ticket-purchase__confirmation-lead">
           {t('pages.tickets.confirmationQrLead')}
         </p>
+
+        {editorial ? (
+          <a
+            className="ticket-purchase__share-cta"
+            href={shareHref}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Share2 size={15} aria-hidden />
+            <span>{t('pages.tickets.shareCta')}</span>
+          </a>
+        ) : null}
 
         {visibleOrder.paymentMethod === 'mercado_pago' && visibleOrder.status !== 'aprobado' ? (
           <>
@@ -1211,10 +1280,10 @@ export default function TicketPurchaseSection({
         {editorial ? (
           <>
             <TicketPaymentOptions
-              manualEnabled={manualPaymentEnabled}
-              mercadoPagoEnabled={mercadoPagoEnabled}
-              cashEnabled={cashEnabled}
-              wiseEnabled={wiseReady}
+              manualEnabled={effectiveManualPaymentEnabled}
+              mercadoPagoEnabled={effectiveMercadoPagoEnabled}
+              cashEnabled={effectiveCashEnabled}
+              wiseEnabled={effectiveWiseEnabled}
               paymentMethod={paymentMethod}
               wiseLabel={wiseLabel}
               onChange={(value) => {
@@ -1223,6 +1292,11 @@ export default function TicketPurchaseSection({
               }}
               t={t}
             />
+            {paymentNarrowedByType ? (
+              <p className="ticket-purchase__payment-note ticket-purchase__payment-note--narrowed">
+                {t('pages.tickets.paymentNarrowedByType')}
+              </p>
+            ) : null}
             {paymentMethod === 'transferencia' ? (
               <p className="ticket-purchase__payment-note ticket-purchase__payment-note--transfer">
                 {t('pages.tickets.transferCheckoutNote')}
