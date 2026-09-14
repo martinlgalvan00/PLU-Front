@@ -1357,7 +1357,7 @@ export default {
     hiddenBadge: 'Sin publicar',
     accessLabel: 'Acceso',
     accessMembers: 'Solo afiliados',
-    accessOpen: 'Abierto',
+    accessOpen: 'Sin afiliación',
     visibilityLabel: 'Sitio',
     accessMembersNote:
       'Para inscribirse hace falta afiliación vigente, y en la puerta un inscripto sin afiliación queda bloqueado.',
@@ -1408,7 +1408,7 @@ export default {
     back: 'Volver',
     backAria: 'Volver a la lista de eventos',
     backToConsole: 'Volver a la consola',
-    closeSection: 'Cerrar sección',
+    closeSection: 'Volver al resumen',
     editBasics: 'Datos',
     editBasicsValue: 'Título, fecha y sede',
     editSales: 'Ventas y cupos',

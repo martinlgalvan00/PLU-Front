@@ -216,16 +216,21 @@ export default function AdminEventStateControl({
 
   const slots = Number(event?.slots) || 0
   const resultPrimary = (() => {
-    if (effectiveRegistration.isLive) return t('admin.eventState.resultLive')
-    if (effectiveRegistration.scheduled) {
-      return t('admin.eventState.resultScheduled', { date: scheduledDate })
-    }
     if (!draft.published) return t('admin.eventState.resultHidden')
     if (effectiveRegistration.full || draft.status === 'agotado') {
       return t('admin.eventState.resultFull')
     }
-    if (effectiveRegistration.closedByWindow) return t('admin.eventState.resultWindowClosed')
-    return t('admin.eventState.resultClosed')
+    if (effectiveRegistration.scheduled) {
+      return t('admin.eventState.resultScheduled', { date: scheduledDate })
+    }
+    if (
+      effectiveRegistration.closedByWindow &&
+      draft.status !== 'cerrado' &&
+      draft.status !== 'finalizado'
+    ) {
+      return t('admin.eventState.resultWindowClosed')
+    }
+    return t(`status.${draft.status}`)
   })()
   const resultCapacity = t('admin.eventState.resultCapacity', {
     registered,
@@ -249,7 +254,7 @@ export default function AdminEventStateControl({
         <span className="admin-event-state__result-sep" aria-hidden>
           ·
         </span>
-        <span>{resultAccess}</span>
+        <span className="admin-event-state__result-access">{resultAccess}</span>
       </p>
 
       <div

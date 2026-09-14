@@ -302,7 +302,7 @@ describe('AdminEventEditor — acceso al meet', () => {
     const chips = [...group.querySelectorAll('.admin-filter-chip')].map((chip) =>
       chip.textContent.trim(),
     )
-    expect(chips).toEqual(['Solo afiliados', 'Abierto'])
+    expect(chips).toEqual(['Solo afiliados', 'Sin afiliación'])
     // El default del negocio: un meet pide afiliación salvo que se diga lo
     // contrario (eventAdminService normaliza `requiresMembership !== false`).
     expect(
@@ -338,7 +338,7 @@ describe('AdminEventEditor — acceso al meet', () => {
     const group = document.querySelector('.admin-event-form__access')
     fireEvent.click(
       [...group.querySelectorAll('.admin-filter-chip')].find((chip) =>
-        /abierto/i.test(chip.textContent),
+        /sin afiliación/i.test(chip.textContent),
       ),
     )
 
