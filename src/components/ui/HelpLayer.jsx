@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef } from 'react'
 import HelpDock from './HelpDock.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useHelp } from '../../providers/HelpProvider.jsx'
+import { isTicketSalesEnabled } from '../../lib/eventPricing.js'
 import { useAssist } from '../../providers/AssistProvider.jsx'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { isJourneyActionRedundant, resolveAthleteJourney } from '../../lib/athleteJourney.js'
@@ -113,6 +114,11 @@ export default function HelpLayer({
             onRunNext={runJourneyAction}
             onLogin={() => onNavigate?.('login')}
             onStartTour={tour ? runTour : null}
+            onTickets={
+              isTicketSalesEnabled(event)
+                ? () => onNavigate?.('tickets', { eventSlug: event?.slug ?? event?.id })
+                : null
+            }
           />
         </Suspense>
       ) : null}

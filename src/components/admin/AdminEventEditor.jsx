@@ -55,6 +55,7 @@ import {
 } from '../../lib/eventPaymentChannels.js'
 import { createPaymentProfile, fetchPaymentProfiles } from '../../services/paymentProfileService.js'
 import AdminTicketAddonsEditor from './AdminTicketAddonsEditor.jsx'
+import AdminTicketSalesStatus from './AdminTicketSalesStatus.jsx'
 import AdminTicketTypesEditor from './AdminTicketTypesEditor.jsx'
 
 function updatePricingField(draft, field, value) {
@@ -144,6 +145,7 @@ function resolveTabForField(key) {
     key.startsWith('pricing.') ||
     key.startsWith('eventDays.') ||
     key.startsWith('ticketTypes.') ||
+    key.startsWith('paymentChannelOverrides') ||
     SALES_FIELD_KEYS.has(key)
   )
     return 'sales'
@@ -1538,6 +1540,18 @@ export default function AdminEventEditor({
                           <p className="admin-event-form__channel-lead">
                             {t('admin.eventEditor.paymentChannelMatrixHint')}
                           </p>
+                          {/* Cerrar los cuatro es cerrar la venta por un camino
+                              que no se ve en ningún otro lado. */}
+                          {err('paymentChannelOverrides.ticket') ? (
+                            <p
+                              className="admin-event-form__alert"
+                              role="alert"
+                              data-field="paymentChannelOverrides.ticket"
+                              tabIndex={-1}
+                            >
+                              {err('paymentChannelOverrides.ticket')}
+                            </p>
+                          ) : null}
                           {[
                             ['mercado_pago', 'paymentChannelMercadoPago'],
                             ['bank_transfer', 'paymentChannelBankTransfer'],
@@ -1927,6 +1941,11 @@ export default function AdminEventEditor({
                         </small>
                       </span>
                     </label>
+
+                    {/* El switch de arriba es uno de seis controles. Esta tira
+                        dice cuál está cortando de verdad y dónde se toca: sin
+                        ella, prenderlo y que no pase nada era lo habitual. */}
+                    <AdminTicketSalesStatus draft={draft} />
 
                     {/* Los dos bloqueos de "prendiste la venta pero falta algo"
                         llegan como claves de raíz, sin un input al que colgarse:

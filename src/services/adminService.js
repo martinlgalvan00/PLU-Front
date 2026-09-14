@@ -88,17 +88,25 @@ export function buildPendingActions({
     const attendeeLabel = order.attendees?.[0]?.name ?? 'Comprador'
     const paymentProofPath = order.paymentProofPath?.trim() || null
     const hasProof = Boolean(paymentProofPath)
+    // El efectivo se cobró en caja: no hay comprobante que esperar, así que la
+    // orden ya está lista para acreditar y no es una que "falta que suban algo".
+    const cashAtPitbull = order.manualPaymentChannel === 'cash_pitbull'
     actions.push({
       id: `action-tord-${order.orderId}`,
       type: 'ticket_order',
-      priority: hasProof ? 'high' : 'medium',
+      priority: hasProof || cashAtPitbull ? 'high' : 'medium',
       subject: attendeeLabel,
-      summary: hasProof ? 'Validar transferencia de entrada' : 'Entrada pendiente de pago',
+      summary: cashAtPitbull
+        ? 'Acreditar entrada pagada en efectivo'
+        : hasProof
+          ? 'Validar transferencia de entrada'
+          : 'Entrada pendiente de pago',
       detail: order.eventTitle ?? order.reference,
       meta: money(order.amount),
       section: 'payments',
       orderId: order.orderId,
       provider: order.provider,
+      cashAtPitbull,
       hasProof,
       paymentProofPath,
       paymentProofUploadedAt: order.paymentProofUploadedAt ?? null,

@@ -167,6 +167,9 @@ export default function HomePage({
             onJoin={() => onNavigate?.('members')}
             onProfile={() => onNavigate?.('profile')}
             onResults={() => onNavigate?.('results')}
+            onTickets={() =>
+              onNavigate?.('tickets', { eventSlug: launchEvent?.slug ?? launchEvent?.id })
+            }
             progressPublic={progressPublic}
             remaining={liveRemaining}
             registrationCheckoutEnabled={registrationCheckoutEnabled}

@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
 import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
 import { PROOF_BUCKET } from '../lib/supabaseAdmin.js'
-import { assertSupabaseResult, requireSupabaseClient } from '../lib/supabaseRpc.js'
+import { assertSupabaseResult, isMissingSchemaColumn, requireSupabaseClient } from '../lib/supabaseRpc.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import { publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
@@ -45,7 +45,14 @@ const EVENT_SELECT = `
  * antes de pagar. No autoriza nada — el alcance que vale es el congelado en la
  * entrada emitida, que valida `staff_check_in_ticket` en el servidor.
  */
-const CATALOG_EVENT_SELECT = `
+const CATALOG_TICKET_TYPE_EMBED = `
+    ticketTypeDays:ticket_type_days(event_day_id),
+    includedAddons:ticket_type_included_addons(addon_id),
+    credentials:ticket_type_credentials(id, label, zone_scopes, sort_order)
+`
+
+function catalogEventSelect(ticketTypeColumns) {
+  return `
   id, slug, title, description, venue, location,
   starts_at, ends_at,
   registration_opens_at, registration_closes_at,
@@ -59,12 +66,38 @@ const CATALOG_EVENT_SELECT = `
     id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience, financed, archived_at
   ),
   ticketTypes:ticket_types(
-    id, name, price, quota, sort_order, active,
-    ticketTypeDays:ticket_type_days(event_day_id),
-    includedAddons:ticket_type_included_addons(addon_id),
-    credentials:ticket_type_credentials(id, label, zone_scopes, sort_order)
+    ${ticketTypeColumns}
+    ${CATALOG_TICKET_TYPE_EMBED}
   )
 `
+}
+
+const CATALOG_EVENT_SELECT = catalogEventSelect(
+  'id, name, price, wise_price, quota, sort_order, active, sales_opens_at, sales_closes_at,',
+)
+const CATALOG_EVENT_SELECT_COMPAT = catalogEventSelect(
+  'id, name, price, quota, sort_order, active,',
+)
+
+async function readPublishedCatalog(client) {
+  const run = (select) =>
+    client
+      .from('events')
+      .select(select)
+      .eq('published', true)
+      .in('event_registrations.status', ACTIVE_REGISTRATION_STATUSES)
+      .order('starts_at')
+
+  const primary = await run(CATALOG_EVENT_SELECT)
+  if (!primary.error) return primary.data
+  if (!isMissingSchemaColumn(primary.error)) {
+    return assertSupabaseResult(primary, 'No se pudieron leer los eventos públicos.')
+  }
+  return assertSupabaseResult(
+    await run(CATALOG_EVENT_SELECT_COMPAT),
+    'No se pudieron leer los eventos públicos.',
+  )
+}
 
 const ACTIVE_REGISTRATION_STATUSES = ['pendiente_pago', 'pagada', 'confirmada']
 
@@ -102,6 +135,11 @@ const ticketAddonSchema = z.object({
   label: z.string().trim().min(1).max(100),
   description: z.string().trim().max(240).optional(),
   price: boundedMoney,
+  // Igual que el tipo de entrada: USD propio para Wise, o vacío y se convierte.
+  wisePrice: z.preprocess(
+    (value) => (value === '' || value === undefined ? null : value),
+    z.coerce.number().int().min(1).max(100_000).nullable(),
+  ).optional(),
   redeemLabel: z.string().trim().max(160).optional(),
   enabled: z.boolean().optional(),
   sortOrder: z.coerce.number().int().min(0).max(1000).optional(),
@@ -145,13 +183,28 @@ const ticketCredentialSchema = z.object({
     .max(4),
 })
 
+/**
+ * Precio en USD del tipo de entrada para pagos por Wise. Vacío = se deriva del
+ * precio en ARS por el dólar configurado, que es el comportamiento anterior.
+ * El techo es espejo de `ticket_types_wise_price_check`.
+ */
+const nullableWisePrice = z.preprocess(
+  (value) => (value === '' || value === undefined ? null : value),
+  z.coerce.number().int().min(1).max(100_000).nullable(),
+)
+
 const ticketTypeSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().trim().min(1).max(100),
   price: boundedMoney,
+  wisePrice: nullableWisePrice.optional(),
   quota: nullableQuota.optional(),
   sortOrder: z.coerce.number().int().min(0).max(1000).optional(),
   active: z.boolean().optional(),
+  // Ventana propia del tipo. Sólo cierra antes que la del evento: la RPC
+  // evalúa las dos y la primera que corta gana.
+  salesOpensAt: optionalDateTime,
+  salesClosesAt: optionalDateTime,
   dayIndexes: z.array(z.coerce.number().int().min(0).max(30)).max(31).optional(),
   includedAddonIds: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
   credentials: z.array(ticketCredentialSchema).min(1).max(4).optional(),
@@ -329,6 +382,20 @@ export const eventSchema = z
           code: z.ZodIssueCode.custom,
           path: ['ticketTypes', index, 'includedAddonIds'],
           message: 'El tipo de entrada referencia un beneficio inexistente.',
+        })
+      }
+      // Ventana propia invertida: el tipo nunca se podría comprar. Espejo del
+      // check de `ticket_types_sales_window_check`, pero acá el error apunta a
+      // la fila que lo causó en vez de rebotar la RPC entera.
+      if (
+        ticketType.salesOpensAt &&
+        ticketType.salesClosesAt &&
+        ticketType.salesOpensAt >= ticketType.salesClosesAt
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['ticketTypes', index, 'salesClosesAt'],
+          message: 'La venta de este tipo cierra antes de abrir.',
         })
       }
     }
@@ -565,15 +632,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
   router.get('/catalog', publicReadLimiter, async (_req, res, next) => {
     try {
       const client = requireSupabaseClient(getSupabaseAdmin())
-      const events = assertSupabaseResult(
-        await client
-          .from('events')
-          .select(CATALOG_EVENT_SELECT)
-          .eq('published', true)
-          .in('event_registrations.status', ACTIVE_REGISTRATION_STATUSES)
-          .order('starts_at'),
-        'No se pudieron leer los eventos públicos.',
-      )
+      const events = await readPublishedCatalog(client)
       // Cambiar una oferta es una accion deliberada del staff: no puede quedar
       // visible por stale-while-revalidate despues de apagarla o borrarla.
       res.set('Cache-Control', 'no-store')

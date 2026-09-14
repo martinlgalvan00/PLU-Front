@@ -56,3 +56,37 @@ describe('createOrderSchema', () => {
     expect(result.success).toBe(true)
   })
 })
+
+/**
+ * El efectivo en Pitbull existía en la matriz de plataforma y en el override
+ * del evento desde antes, pero la orden no lo podía guardar: el schema lo
+ * rechazaba y el CHECK de `ticket_orders` también. Un canal que se puede
+ * habilitar y no se puede usar es peor que no tenerlo.
+ */
+describe('createOrderSchema: canales manuales', () => {
+  function manualOrder(manualPaymentChannel) {
+    return {
+      ...order([attendee('30000001')]),
+      provider: 'manual',
+      ...(manualPaymentChannel ? { manualPaymentChannel } : {}),
+    }
+  }
+
+  it('acepta los tres canales que se acreditan a mano', () => {
+    for (const channel of ['bank_transfer', 'cash_pitbull', 'wise_transfer']) {
+      const result = createOrderSchema.safeParse(manualOrder(channel))
+      expect(result.success, channel).toBe(true)
+      expect(result.data.manualPaymentChannel).toBe(channel)
+    }
+  })
+
+  it('sin canal explícito la orden manual queda sin declararlo: la RPC asume transferencia', () => {
+    const result = createOrderSchema.safeParse(manualOrder(null))
+    expect(result.success).toBe(true)
+    expect(result.data.manualPaymentChannel).toBeUndefined()
+  })
+
+  it('rechaza un canal inventado', () => {
+    expect(createOrderSchema.safeParse(manualOrder('crypto')).success).toBe(false)
+  })
+})

@@ -103,6 +103,35 @@ export default function AdminTicketAddonsEditor({ addons = [], canEdit, errors =
                     </small>
                   ) : null}
                 </label>
+                {/* Igual que el tipo de entrada: USD propio para Wise. Vacío
+                    manda toda la orden a la conversión por dólar, así que un
+                    beneficio sin cargar arrastra al tipo que sí lo tiene. */}
+                <label className="admin-event-form__field">
+                  <span>{t('admin.eventEditor.ticketAddonWisePrice')}</span>
+                  <input
+                    disabled={!canEdit}
+                    min={1}
+                    max={100000}
+                    type="number"
+                    value={addon.wisePrice ?? ''}
+                    name={`pricing.ticketAddons.${index}.wisePrice`}
+                    data-field={`pricing.ticketAddons.${index}.wisePrice`}
+                    aria-invalid={Boolean(errors[`pricing.ticketAddons.${index}.wisePrice`])}
+                    onChange={(event) =>
+                      patchAddon(
+                        index,
+                        'wisePrice',
+                        event.target.value === '' ? '' : Number(event.target.value),
+                      )
+                    }
+                    placeholder={t('admin.eventEditor.ticketAddonWisePricePlaceholder')}
+                  />
+                  {errors[`pricing.ticketAddons.${index}.wisePrice`] ? (
+                    <small className="admin-event-form__error" role="alert">
+                      {errors[`pricing.ticketAddons.${index}.wisePrice`]}
+                    </small>
+                  ) : null}
+                </label>
                 <label className="admin-event-form__field admin-event-form__field--wide">
                   <span>{t('admin.eventEditor.ticketAddonDescription')}</span>
                   <input

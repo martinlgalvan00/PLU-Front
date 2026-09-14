@@ -1,0 +1,47 @@
+{
+  "artboards": [
+    { "file": "Hoy.dc.html", "x": 0, "y": 0, "w": 1440, "h": 1560, "title": "Hoy · entradas y tienda" },
+    { "file": "Main.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 1400, "title": "Dirección A · Entradas" },
+    { "file": "DireccionB.dc.html", "x": 3120, "y": 0, "w": 1440, "h": 1160, "title": "Dirección B · Entradas" },
+    { "file": "TiendaA.dc.html", "x": 1560, "y": 1980, "w": 1440, "h": 1560, "title": "Dirección A · Tienda" },
+    { "file": "TiendaB.dc.html", "x": 3120, "y": 1980, "w": 1440, "h": 1320, "title": "Dirección B · Tienda" }
+  ],
+  "annotations": [
+    {
+      "id": "elegir",
+      "x": 0,
+      "y": -540,
+      "w": 700,
+      "text": "HAY QUE ELEGIR UNA\n\nSon dos direcciones distintas para las MISMAS dos pantallas, no dos versiones de la misma idea. El eje es de dónde viene el impacto:\n\nA · CARTEL — de la fotografía y de la escala tipográfica.\nB · VITRINA — del aire, la retícula y el número.\n\nLas dos respetan la skill de marca: nada de glow, glass, gradientes decorativos ni fondos animados. Lujo por proporción, tipografía y restricción, que es como está escrito ahí.\n\nCuando elijas una, la construyo en las dos superficies y borro la otra del lienzo.\n\nLas fotos son las que ya están en el repo (DSC00392, DSC00286). Las fechas y precios de Nacional y Copa Litoral son de ejemplo: los reales los ponés vos."
+    },
+    {
+      "id": "hoy",
+      "x": 760,
+      "y": -540,
+      "w": 620,
+      "text": "LO QUE HAY HOY\n\nReconstruido desde TicketsPage y ShopPage. Las dos portadas ya hacen lo mismo: foto de fondo, una capa de atmósfera con degradado azul, una marca de agua tipográfica gigante detrás del título, una barra de degradado azul-oro, y el contenido en tarjetas redondeadas.\n\nEs mucho recurso trabajando en la misma dirección, y el resultado se lee genérico: se parece a cualquier landing con hero oscuro. El título queda chico contra su propia marca de agua, y el precio —lo que la persona vino a buscar— es el elemento más chico de la tarjeta.\n\nLa skill de marca nombra esto textualmente: no apilar glow, glass y blur para compensar jerarquía."
+    },
+    {
+      "id": "dirA",
+      "x": 1560,
+      "y": -540,
+      "w": 660,
+      "text": "DIRECCIÓN A · CARTEL\n\nEl meet como afiche impreso. La foto va a sangre y el título ocupa 88 px sobre ella; no hay marca de agua compitiendo con el título ni barra de degradado. Un solo tratamiento sobre la foto —un velo lineal, estático— para que el texto se lea.\n\nLos tipos de entrada dejan de ser tarjetas: son renglones numerados separados por reglas, con el precio a 34 px alineado a la derecha. Es la composición de un programa de competencia, no de un e-commerce.\n\nA FAVOR: impacta de entrada y se siente de federación. Cada fecha del calendario se vuelve una pieza.\n\nEN CONTRA: depende de tener una buena foto de cada evento. Con una foto floja, se cae. Y el título largo obliga a revisar el corte en cada nombre de meet."
+    },
+    {
+      "id": "dirB",
+      "x": 3120,
+      "y": -540,
+      "w": 660,
+      "text": "DIRECCIÓN B · VITRINA\n\nLa entrada tratada como objeto en exhibición. Sin foto detrás del tipográfico: el primer golpe de vista lo dan el aire y la retícula. Ancho de lectura acotado a 1152, reglas de 1 px, versalitas para los metadatos y el número —precio, cupo, fecha— como único elemento fuerte.\n\nCada tipo de entrada es una pieza con borde fino y mucho margen interno. El oro aparece una sola vez, en la acción.\n\nA FAVOR: no depende de la fotografía, escala a muchos productos sin ensuciarse y envejece bien. Es la que mejor va a sostener la tienda cuando entren merch y cursos.\n\nEN CONTRA: es más silenciosa. Impresiona por oficio, no por impacto: alguien que entra tres segundos puede no registrar nada."
+    },
+    {
+      "id": "tiendas",
+      "x": 1560,
+      "y": 1640,
+      "w": 660,
+      "text": "LA MISMA DIRECCIÓN, EN LA TIENDA\n\nAcá se ve cuál aguanta mejor el caso difícil: hoy la tienda tiene un solo departamento con algo para vender y dos en \"próximamente\". Eso, en tarjetas, se lee como una tienda vacía.\n\nEn A los departamentos son capítulos numerados de un programa, y un capítulo que dice \"próximamente\" sigue siendo parte del programa.\n\nEn B hay un índice arriba —Entradas 3 fechas, Merch próximamente, Cursos próximamente— que convierte el vacío en información de catálogo en vez de en un hueco.\n\nLa copy es la real del sitio, incluida la línea de que no se inventa fecha de apertura."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

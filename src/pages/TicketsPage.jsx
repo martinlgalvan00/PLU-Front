@@ -438,8 +438,16 @@ export default function TicketsPage({
                 editorial
                 showPassPreview={false}
                 event={selectedEvent}
-                manualPaymentEnabled={ticketCheckout.ticketManualEnabled}
+                manualPaymentEnabled={
+                  ticketCheckout.channels
+                    ? ticketCheckout.channels.bank_transfer === true
+                    : ticketCheckout.ticketManualEnabled !== false
+                }
                 mercadoPagoEnabled={ticketCheckout.channels?.mercado_pago !== false}
+                // Efectivo y Wise sólo si la celda viene explícitamente abierta:
+                // ofrecerlos por omisión es prometer un medio que rebota al
+                // confirmar la compra.
+                cashEnabled={ticketCheckout.channels?.cash_pitbull === true}
                 wiseEnabled={ticketCheckout.channels?.wise_transfer === true}
                 accountDetails={ticketCheckout.bankTransfer ?? null}
                 pricing={pricing}

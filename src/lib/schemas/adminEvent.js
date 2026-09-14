@@ -1,4 +1,8 @@
 import { z } from 'zod'
+import {
+  EVENT_PAYMENT_CHANNELS,
+  eventChannelOverridesFor,
+} from '../eventPaymentChannels.js'
 
 /** Códigos de error → `admin.eventEditor.validation.*` en i18n. */
 const moneyField = z.coerce
@@ -54,6 +58,18 @@ const ticketAddonSchema = z.object({
   label: z.string().trim().min(1, 'addonLabelRequired').max(100, 'addonLabelMax'),
   description: optionalText(240, 'addonDescriptionMax'),
   price: moneyField,
+  // Igual que el tipo de entrada: USD propio, o vacío y se convierte.
+  wisePrice: z
+    .preprocess(
+      (value) => (value === '' || value === undefined ? null : value),
+      z.coerce
+        .number()
+        .int('wisePriceInvalid')
+        .min(1, 'wisePriceInvalid')
+        .max(100_000, 'wisePriceInvalid')
+        .nullable(),
+    )
+    .optional(),
   redeemLabel: optionalText(160, 'addonRedeemMax'),
   enabled: z.boolean().optional(),
   sortOrder: z.coerce
@@ -74,10 +90,28 @@ const nullableQuota = z.preprocess(
     .nullable(),
 )
 
+/**
+ * Precio en USD del tipo para pagos por Wise. Vacío = se deriva del precio en
+ * ARS, como venía pasando. Techo espejo de `ticket_types_wise_price_check`.
+ */
+const nullableWisePrice = z.preprocess(
+  (value) => (value === '' || value === undefined ? null : value),
+  z.coerce
+    .number()
+    .int('wisePriceInvalid')
+    .min(1, 'wisePriceInvalid')
+    .max(100_000, 'wisePriceInvalid')
+    .nullable(),
+)
+
 const ticketTypeSchema = z.object({
   id: z.string().uuid('ticketTypeIdInvalid').optional(),
   name: z.string().trim().min(1, 'ticketTypeNameRequired').max(100, 'ticketTypeNameMax'),
   price: moneyField,
+  wisePrice: nullableWisePrice.optional(),
+  // Ventana propia del tipo: sólo cierra antes que la del evento.
+  salesOpensAt: optionalDateTime(),
+  salesClosesAt: optionalDateTime(),
   quota: nullableQuota.optional(),
   sortOrder: z.coerce
     .number()
@@ -298,6 +332,17 @@ export const adminEventDraftSchema = z
           message: 'ticketTypeAddonMissing',
         })
       }
+      if (
+        ticketType.salesOpensAt &&
+        ticketType.salesClosesAt &&
+        ticketType.salesOpensAt > ticketType.salesClosesAt
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['ticketTypes', index, 'salesClosesAt'],
+          message: 'ticketTypeSaleWindowInvalid',
+        })
+      }
     }
 
     if (data.pricing.ticketsEnabled === true) {
@@ -306,6 +351,17 @@ export const adminEventDraftSchema = z
           code: z.ZodIssueCode.custom,
           path: ['eventDays'],
           message: 'ticketsNeedDays',
+        })
+      }
+      // Cerrar los cuatro medios de cobro de entradas equivale a cerrar la
+      // venta, pero por un camino que no se ve: el evento queda publicado y
+      // la pantalla pública deja de ofrecer la compra.
+      const ticketChannels = eventChannelOverridesFor(data.paymentChannelOverrides, 'ticket')
+      if (ticketChannels && EVENT_PAYMENT_CHANNELS.every((channel) => ticketChannels[channel] === false)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['paymentChannelOverrides', 'ticket'],
+          message: 'ticketsNoChannel',
         })
       }
       const sellableTypes = (data.ticketTypes ?? []).filter(
@@ -384,6 +440,7 @@ export function validateAdminEventDraft(draft, t) {
     weighInWindows: draft?.weighInWindows ?? [],
     publicSurface: draft?.publicSurface,
     publicCopy: draft?.publicCopy,
+    paymentChannelOverrides: draft?.paymentChannelOverrides ?? null,
   })
 
   if (result.success) {

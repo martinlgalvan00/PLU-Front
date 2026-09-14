@@ -98,3 +98,46 @@ describe('eventPaymentTriage', () => {
     )
   })
 })
+
+/**
+ * El efectivo en Pitbull nunca sube un comprobante: el cobro pasó por caja.
+ * Sin esta marca la fila quedaba en "falta adjuntar" para siempre y el botón de
+ * acreditar nunca se habilitaba, así que el canal se podía habilitar y no se
+ * podía cerrar.
+ */
+describe('eventPaymentTriage — entradas pagadas en efectivo', () => {
+  function triageWith(manualPaymentChannel) {
+    return buildEventPaymentTriage({
+      event: EVENT,
+      athletes: [],
+      payments: [],
+      pendingTicketOrders: [
+        {
+          orderId: 'tord-1',
+          eventSlug: 'pitbull-classic-2026',
+          status: 'pendiente',
+          amount: 20000,
+          currency: 'ARS',
+          reference: 'TORD-abc',
+          provider: 'manual',
+          manualPaymentChannel,
+          paymentProofPath: null,
+          attendees: [{ name: 'Camila Rearte', dni: '30000001' }],
+        },
+      ],
+    })
+  }
+
+  it('marca la orden en efectivo como lista para acreditar sin archivo', () => {
+    const [row] = triageWith('cash_pitbull').rows
+    expect(row.kind).toBe('ticket')
+    expect(row.hasProof).toBe(false)
+    expect(row.cashAtPitbull).toBe(true)
+  })
+
+  it('la transferencia sin comprobante sigue esperando el archivo', () => {
+    const [row] = triageWith('bank_transfer').rows
+    expect(row.hasProof).toBe(false)
+    expect(row.cashAtPitbull).toBe(false)
+  })
+})

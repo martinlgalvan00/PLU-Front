@@ -29,7 +29,7 @@ export default function HelpDock({ open = false, pending = false, onToggle }) {
   if (typeof document === 'undefined') return null
 
   return createPortal(
-    <div className="help-dock" data-tour="help-dock">
+    <div className={`help-dock${open ? ' is-open' : ''}`} data-tour="help-dock">
       {/* Botón de divulgación: un solo nombre accesible y el estado contado
           por `aria-expanded`. Con un "Cerrar la ayuda" acá quedaban dos
           controles distintos con el mismo nombre que la X del panel. */}
