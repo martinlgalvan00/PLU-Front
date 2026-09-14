@@ -2182,8 +2182,26 @@ html.plu-drawer-open body {
   grid-template-columns: minmax(0, 1fr) minmax(230px, 0.38fr);
 }
 
+.institutional-hero--solo .institutional-hero__grid {
+  gap: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .institutional-hero__copy {
   max-width: 810px;
+}
+
+.institutional-hero--solo .institutional-hero__copy {
+  max-width: min(810px, 72ch);
+}
+
+.institutional-hero--solo h1 {
+  max-width: 18ch;
+}
+
+.institutional-hero--solo .institutional-hero__description {
+  margin-top: 22px;
+  max-width: 58ch;
 }
 
 .institutional-hero__eyebrow,
@@ -3148,6 +3166,8 @@ html.plu-drawer-open body {
     --brand-wordmark-track: var(--brand-wordmark-size);
     /* 36→~40 entre phones anchos y tablet angosta (≤799). */
     --nav-mobile-control: clamp(36px, 32px + 1vw, 40px);
+    /* Campana y avatar de sesión: mismo disco. */
+    --nav-mobile-session: 34px;
     --brand-shell-slot: calc(var(--nav-mobile-control) + 14px);
     max-width: calc(100% - 18px);
     top: 8px;
@@ -3409,8 +3429,12 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__mobile-login--account {
-    padding: 0 4px;
+    height: var(--nav-mobile-session);
+    min-height: var(--nav-mobile-session);
+    min-width: var(--nav-mobile-session);
+    padding: 0;
     position: relative;
+    width: var(--nav-mobile-session);
   }
 
   .plu-global-nav__mobile-login-avatar {
@@ -3420,14 +3444,14 @@ html.plu-drawer-open body {
     border-radius: 999px;
     color: var(--institution-text);
     display: inline-flex;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
-    height: clamp(26px, 3.2vw, 28px);
+    height: var(--nav-mobile-session);
     justify-content: center;
     letter-spacing: 0;
     overflow: hidden;
     text-transform: none;
-    width: clamp(26px, 3.2vw, 28px);
+    width: var(--nav-mobile-session);
   }
 
   .plu-global-nav__mobile-login-avatar img {
@@ -3437,9 +3461,9 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__session-skeleton {
-    height: clamp(26px, 3.2vw, 28px);
+    height: var(--nav-mobile-session);
     margin-inline: 2px;
-    width: clamp(26px, 3.2vw, 28px);
+    width: var(--nav-mobile-session);
   }
 
   /* Afiliar — único acento: hairline dorada */
@@ -3595,6 +3619,10 @@ html.plu-drawer-open body {
     font-size: clamp(32px, 10vw, 42px);
     letter-spacing: -0.045em;
     max-width: 13ch;
+  }
+
+  .institutional-hero--solo h1 {
+    max-width: 18ch;
   }
 
   .institutional-hero__description {
@@ -4114,8 +4142,8 @@ html.plu-drawer-open body {
 
   .plu-global-nav__notice-bell--cluster {
     flex: none;
-    height: 34px;
+    height: var(--nav-mobile-session, 34px);
     margin-inline: 0;
-    width: 34px;
+    width: var(--nav-mobile-session, 34px);
   }
 }

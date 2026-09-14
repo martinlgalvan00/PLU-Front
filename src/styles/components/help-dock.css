@@ -1,8 +1,8 @@
 /* =============================================
    AYUDA GUIADA PÚBLICA — botón persistente + panel del trámite
 
-   Base = tema oscuro (dark.css declara sobre :root); el tema claro sólo
-   sobrescribe lo que cambia, al final del archivo.
+   Colores del chip: tokens semánticos, así light y dark quedan al mismo
+   nivel. El tema claro sólo refuerza la sombra al final del archivo.
 
    Escala de apilamiento: el botón queda por DEBAJO de los diálogos públicos
    (200) y del navbar, para no flotar encima de un checkout abierto; el panel
@@ -13,21 +13,27 @@
 .help-dock {
   /* `--sticky-cta-clearance` lo publica StickyMobileCta mientras su barra está
      visible en la portada: sin esto el botón quedaba pisado por el CTA fijo.
-     Portal a `document.body` + `top`/`left: auto` + safe-area fijan la
-     esquina al viewport aunque `.app-shell` tenga overflow/isolation. */
-  --help-dock-bg: var(--plu-cool-850, #141518);
-  --help-dock-bg-hover: var(--plu-cool-750, #1e2026);
-  --help-dock-border: color-mix(in srgb, #ffffff 14%, transparent);
-  --help-dock-ink: var(--plu-ink-inverse, #ffffff);
+     Portal a `document.body` + `position: fixed` + `right`/`bottom` (y sus
+     equivalentes lógicos) fijan la esquina al viewport aunque `.app-shell`
+     tenga overflow/isolation. Los colores salen de tokens semánticos para
+     que el chip siga light y dark, no un grafito permanente. */
+  --help-dock-bg: var(--color-bg-elevated);
+  --help-dock-bg-hover: color-mix(in srgb, var(--color-text-primary) 8%, var(--color-bg-elevated));
+  --help-dock-border: var(--color-border);
+  --help-dock-ink: var(--color-text-primary);
   --help-dock-shadow: var(--elevation-md);
   bottom: calc(
     var(--space-lg) + env(safe-area-inset-bottom, 0px) + var(--sticky-cta-clearance, 0px)
   );
+  inset-block-start: auto;
   inset-inline-end: calc(var(--space-lg) + env(safe-area-inset-right, 0px));
   inset-inline-start: auto;
-  inset-block-start: auto;
+  left: auto;
+  margin: 0;
   pointer-events: none;
   position: fixed;
+  right: calc(var(--space-lg) + env(safe-area-inset-right, 0px));
+  top: auto;
   z-index: 120;
 }
 
@@ -38,7 +44,7 @@
   border: 1px solid var(--help-dock-border);
   border-radius: var(--border-radius-pill);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #ffffff 8%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--help-dock-ink) 10%, transparent),
     var(--help-dock-shadow);
   color: var(--help-dock-ink);
   cursor: pointer;
@@ -93,7 +99,7 @@
 }
 
 .help-dock__icon {
-  color: color-mix(in srgb, var(--color-brand-celeste) 88%, #ffffff);
+  color: var(--color-brand-celeste);
   display: block;
 }
 
@@ -121,9 +127,9 @@
 
 .help-dock__button:hover {
   background: var(--help-dock-bg-hover);
-  border-color: color-mix(in srgb, #ffffff 22%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 32%, var(--help-dock-border));
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--help-dock-ink) 12%, transparent),
     var(--elevation-lg);
   transform: translateY(-1px);
 }
@@ -563,6 +569,7 @@
       var(--space-md) + env(safe-area-inset-bottom, 0px) + var(--sticky-cta-clearance, 0px)
     );
     inset-inline-end: calc(var(--space-md) + env(safe-area-inset-right, 0px));
+    right: calc(var(--space-md) + env(safe-area-inset-right, 0px));
   }
 
   .help-panel__scrim {
@@ -627,18 +634,11 @@
 }
 
 /* ── Tema claro ────────────────────────────────
-   El chip permanece oscuro a propósito: es un control de utilidad que tiene
-   que leerse sobre fondos claros y oscuros sin cambiar de personalidad. */
+   El chip hereda tokens semánticos; acá sólo se refuerza la sombra para
+   que no se funda con el canvas claro. */
 
 [data-theme='light'] .help-dock {
-  --help-dock-bg: var(--plu-cool-900, #121316);
-  --help-dock-bg-hover: var(--plu-cool-800, #181a1f);
-  --help-dock-border: color-mix(in srgb, #ffffff 16%, transparent);
-  --help-dock-shadow: 0 10px 28px color-mix(in srgb, #000 22%, transparent);
-}
-
-[data-theme='light'] .help-dock__icon {
-  color: color-mix(in srgb, var(--color-brand-celeste) 88%, #ffffff);
+  --help-dock-shadow: 0 10px 28px color-mix(in srgb, #000 16%, transparent);
 }
 
 [data-theme='light'] .help-dock__pending {

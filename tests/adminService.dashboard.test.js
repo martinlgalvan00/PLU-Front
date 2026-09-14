@@ -3,7 +3,67 @@ import {
   buildDashboardOverview,
   buildPendingActions,
   getAdminNavBadges,
+  previewQueueByType,
 } from '../src/services/adminService.js'
+
+describe('buildPendingActions — afiliación pendiente', () => {
+  it('incluye memberships pendiente_pago si no hay cobro de afiliación en cola', () => {
+    const actions = buildPendingActions({
+      payments: [],
+      athletes: [{ id: 'a1', fullName: 'Ana Test' }],
+      memberships: [
+        { id: 'm1', athleteId: 'a1', status: 'pendiente_pago', memberCode: 'PLU-1' },
+      ],
+      registrations: [],
+    })
+
+    expect(actions.find((item) => item.id === 'action-mem-pending-m1')).toMatchObject({
+      type: 'membership',
+      priority: 'high',
+      summary: 'Afiliación pendiente de acreditación',
+      section: 'memberships',
+    })
+  })
+
+  it('no duplica la afiliación si ya hay un pago de membership en cola', () => {
+    const actions = buildPendingActions({
+      payments: [
+        {
+          id: 'p1',
+          athleteId: 'a1',
+          status: 'validacion_manual',
+          conceptType: 'membership',
+          concept: 'Afiliación PLU anual',
+          amount: 75000,
+          method: 'manual_link',
+        },
+      ],
+      athletes: [{ id: 'a1', fullName: 'Ana Test' }],
+      memberships: [{ id: 'm1', athleteId: 'a1', status: 'pendiente_pago' }],
+      registrations: [],
+    })
+
+    expect(actions.some((item) => item.id === 'action-mem-pending-m1')).toBe(false)
+    expect(actions.some((item) => item.id === 'action-pay-p1')).toBe(true)
+  })
+})
+
+describe('previewQueueByType', () => {
+  it('mezcla tipos para que las inscripciones no tapen los pagos', () => {
+    const items = [
+      { id: 'p1', type: 'payment' },
+      { id: 'p2', type: 'payment' },
+      { id: 'p3', type: 'payment' },
+      { id: 'r1', type: 'registration' },
+      { id: 'r2', type: 'registration' },
+      { id: 'r3', type: 'registration' },
+      { id: 'r4', type: 'registration' },
+    ]
+
+    const preview = previewQueueByType(items, 4)
+    expect(preview.map((item) => item.id)).toEqual(['p1', 'r1', 'p2', 'r2'])
+  })
+})
 
 describe('buildDashboardOverview — estados de inscripción', () => {
   it('cuenta acreditada como confirmada y no la muestra aparte', () => {

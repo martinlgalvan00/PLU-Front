@@ -23,6 +23,16 @@ describe('browser env', () => {
     expect(source).toContain("demoMode: import.meta.env.VITE_DEMO_MODE === 'true'")
   })
 
+  it('trata VITE_TICKET_SALES_ENABLED como freno, no como alta de entradas', () => {
+    const source = readFileSync(join(process.cwd(), 'src/config/env.js'), 'utf8')
+    expect(source).toContain('VITE_TICKET_SALES_ENABLED')
+    expect(source).toContain('ticketSalesEnabled')
+    expect(source).toContain("['false', '0', 'no']")
+    expect(source).not.toMatch(
+      /ticketSalesEnabled = \['true', '1', 'yes'\]\.includes\(ticketSalesEnabledRaw\)/,
+    )
+  })
+
   it('no expone secretos privados en config cliente', () => {
     const source = readFileSync(join(process.cwd(), 'src/config/env.js'), 'utf8')
 

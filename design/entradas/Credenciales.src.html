@@ -1,0 +1,197 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+@@BASE@@
+    .band { display: flex; align-items: center; gap: 16px; padding: 15px 18px; border-radius: 10px; border: 1px solid var(--hairline); background: var(--surface); }
+    .band-c { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .band-t { font-size: 13px; font-weight: 600; margin: 0; }
+    .band-p { font-size: 11.5px; color: var(--muted); margin: 0; line-height: 1.55; }
+    .band-n { display: flex; align-items: center; gap: 26px; margin-left: auto; }
+    .band-n div { display: flex; flex-direction: column; gap: 2px; text-align: right; }
+    .band-n dt { font-size: 10px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--faint); }
+    .band-n dd { margin: 0; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .mx-head, .mx-row, .mx-foot { display: grid; grid-template-columns: minmax(0,1fr) 204px 112px 112px 124px 104px 88px 92px; gap: 12px; align-items: center; padding: 12px 18px; }
+    .mx-head { border-bottom: 1px solid var(--hairline); padding-top: 11px; padding-bottom: 11px; }
+    .mx-head span { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+    .mx-head .zone { display: flex; flex-direction: column; gap: 3px; align-items: center; text-align: center; }
+    .mx-head .zone small { font-size: 9.5px; font-weight: 500; letter-spacing: 0; text-transform: none; color: #55585f; }
+    .mx-head .zone.is-dead { color: #55585f; }
+    .mx-head .is-end { text-align: right; }
+    .mx-row { border-bottom: 1px solid var(--hairline); font-size: 12.5px; }
+    .mx-row.is-off { opacity: .55; }
+    .mx-name { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .mx-name strong { font-size: 13px; font-weight: 600; }
+    .mx-name small { font-size: 10.5px; color: var(--muted); }
+    .mx-name strong.is-coach { color: var(--gold); }
+    .mx-from { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--secondary); min-width: 0; }
+    .cell { display: flex; align-items: center; justify-content: center; }
+    .yes { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 7px; background: color-mix(in srgb, var(--ok) 17%, transparent); color: var(--ok-soft); }
+    .yes.is-gold { background: color-mix(in srgb, var(--gold) 16%, transparent); color: var(--gold); }
+    .no { color: #44474e; font-size: 13px; }
+    .col-dead { background: rgba(255,255,255,.016); }
+    .mx-n { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; }
+    .mx-n.is-muted { color: var(--muted); font-weight: 500; }
+    .mx-foot { background: color-mix(in srgb, var(--elevated) 40%, transparent); font-size: 11.5px; color: var(--muted); }
+    .mx-foot strong { color: var(--ink); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .lg { display: flex; align-items: flex-start; gap: 12px; padding: 13px 18px; border-bottom: 1px solid var(--hairline); }
+    .lg:last-child { border-bottom: none; }
+    .lg-k { width: 148px; flex: 0 0 auto; font-size: 12px; font-weight: 600; }
+    .lg-k.is-dead { color: var(--muted); }
+    .lg-p { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.55; }
+    .lg-p strong { color: var(--secondary); font-weight: 600; }
+  </style>
+</helmet>
+
+<div class="shell">
+@@SIDE@@
+  <main class="main">
+@@HEAD@@
+
+    <nav class="chapters" role="tablist" aria-label="Secciones de entradas">
+      <button class="chapter" role="tab" aria-selected="false" type="button">Catálogo<small>5 tipos · 4 en venta</small></button>
+      <button class="chapter is-active" role="tab" aria-selected="true" type="button">Credenciales<small>Qué abre cada una</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Beneficios<small>3 para canjear</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Cobro<small>2 medios abiertos</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Compras<small>281 · 3 en proceso</small></button>
+    </nav>
+
+    <section class="band">
+      <div class="band-c">
+        <h2 class="band-t">276 compras emitieron 294 credenciales</h2>
+        <p class="band-p">La diferencia son las 18 entradas de entrenador: cada una emite dos QR y se canjea en dos puestos distintos.</p>
+      </div>
+      <dl class="band-n">
+        <div><dt>Compras</dt><dd class="num">276</dd></div>
+        <div><dt>Credenciales</dt><dd class="num">294</dd></div>
+        <div><dt>Acreditadas</dt><dd class="num" style="color: var(--muted);">0</dd></div>
+      </dl>
+    </section>
+
+    <section class="card" aria-label="Qué abre cada credencial">
+      <div class="card-h">
+        <h2 class="card-t">Qué abre cada credencial</h2>
+        <span class="card-hint">Una fila por credencial emitida. Las columnas son los puestos de control del evento.</span>
+      </div>
+
+      <div class="mx-head">
+        <span>Credencial</span>
+        <span>La emite</span>
+        <span class="zone">Puerta general<small>tribuna y predio</small></span>
+        <span class="zone is-dead col-dead">Zona de atletas<small>no lee entradas</small></span>
+        <span class="zone">Entrada en calor<small>detrás de plataforma</small></span>
+        <span class="zone is-dead col-dead">Staff técnico<small>no escanea</small></span>
+        <span class="is-end">Emitidas</span>
+        <span class="is-end">Acreditadas</span>
+      </div>
+
+      <div class="mx-row">
+        <span class="mx-name"><strong>Entrada general</strong><small>Credencial única de la compra</small></span>
+        <span class="mx-from"><span class="badge badge--soft">Público</span>General · sábado</span>
+        <span class="cell"><span class="yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="cell"><span class="no">—</span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="mx-n">128</span>
+        <span class="mx-n is-muted">0</span>
+      </div>
+
+      <div class="mx-row">
+        <span class="mx-name"><strong>Entrada general</strong><small>Credencial única de la compra</small></span>
+        <span class="mx-from"><span class="badge badge--soft">Público</span>General · dos días</span>
+        <span class="cell"><span class="yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="cell"><span class="no">—</span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="mx-n">96</span>
+        <span class="mx-n is-muted">0</span>
+      </div>
+
+      <div class="mx-row">
+        <span class="mx-name"><strong>Espectador</strong><small>Primera credencial de la compra</small></span>
+        <span class="mx-from"><span class="badge badge--gold">Entrenador</span>Entrenador · dos días</span>
+        <span class="cell"><span class="yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="cell"><span class="no">—</span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="mx-n">18</span>
+        <span class="mx-n is-muted">0</span>
+      </div>
+
+      <div class="mx-row">
+        <span class="mx-name"><strong class="is-coach">ENTRENADOR</strong><small>Segunda credencial de la misma compra</small></span>
+        <span class="mx-from"><span class="badge badge--gold">Entrenador</span>Entrenador · dos días</span>
+        <span class="cell"><span class="no">—</span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="cell"><span class="yes is-gold"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="mx-n">18</span>
+        <span class="mx-n is-muted">0</span>
+      </div>
+
+      <div class="mx-row">
+        <span class="mx-name"><strong>Palco</strong><small>Credencial única de la compra</small></span>
+        <span class="mx-from"><span class="badge badge--soft">Público</span>Palco · dos días</span>
+        <span class="cell"><span class="yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="cell"><span class="no">—</span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="mx-n">34</span>
+        <span class="mx-n is-muted">0</span>
+      </div>
+
+      <div class="mx-row is-off">
+        <span class="mx-name"><strong>Entrada general</strong><small>El tipo está pausado</small></span>
+        <span class="mx-from"><span class="badge badge--soft">Público</span>Menores de 12</span>
+        <span class="cell"><span class="yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="cell"><span class="no">—</span></span>
+        <span class="cell col-dead"><span class="no">—</span></span>
+        <span class="mx-n">0</span>
+        <span class="mx-n is-muted">0</span>
+      </div>
+
+      <div class="mx-foot">
+        <span>6 credenciales configuradas en 5 tipos</span>
+        <span></span>
+        <span style="text-align: center;">276</span>
+        <span class="col-dead"></span>
+        <span style="text-align: center;">18</span>
+        <span class="col-dead"></span>
+        <span style="text-align: right;"><strong>294</strong></span>
+        <span style="text-align: right;"><strong>0</strong></span>
+      </div>
+    </section>
+
+    <section class="card" aria-label="Qué lee cada puesto">
+      <div class="card-h">
+        <h2 class="card-t">Qué lee cada puesto</h2>
+        <span class="card-hint">Lo define la zona en Zonas y seguridad, no la entrada</span>
+      </div>
+      <div class="lg">
+        <span class="lg-k">Puerta general</span>
+        <p class="lg-p">Lee <strong>entradas de público</strong>, inscripciones y credenciales de afiliación. Es el acceso al predio y a la tribuna.</p>
+      </div>
+      <div class="lg">
+        <span class="lg-k">Entrada en calor</span>
+        <p class="lg-p">Lee inscripciones y <strong>credenciales de entrenador con entrada paga</strong>. Ya no abre por afiliación sola.</p>
+      </div>
+      <div class="lg">
+        <span class="lg-k is-dead">Zona de atletas · Staff técnico</span>
+        <p class="lg-p">No leen entradas de público: por eso esas dos columnas están vacías para toda la tabla y no se ofrecen al armar una credencial.</p>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+@@BASE@@
+    .bf-head, .bf-row { display: grid; grid-template-columns: minmax(0,1fr) 188px 248px 110px 104px 28px; gap: 12px; align-items: center; padding: 12px 18px; }
+    .bf-head { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); border-bottom: 1px solid var(--hairline); padding-top: 11px; padding-bottom: 11px; }
+    .bf-row { border-bottom: 1px solid var(--hairline); font-size: 12.5px; }
+    .bf-name { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .bf-name strong { font-size: 13px; font-weight: 600; }
+    .bf-name small { font-size: 11px; color: var(--muted); }
+    .bf-in { display: flex; gap: 6px; flex-wrap: wrap; }
+    .bf-loose { font-size: 11.5px; color: var(--muted); }
+    .rp { text-align: right; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .rd-head, .rd-row, .rd-foot { display: grid; grid-template-columns: minmax(0,1fr) 130px 148px 140px 150px; gap: 12px; align-items: center; padding: 12px 18px; }
+    .rd-head { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); border-bottom: 1px solid var(--hairline); padding-top: 11px; padding-bottom: 11px; }
+    .rd-head .is-end { text-align: right; }
+    .rd-row { border-bottom: 1px solid var(--hairline); font-size: 12.5px; }
+    .rd-n { text-align: right; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .rd-n.is-muted { color: var(--muted); font-weight: 500; }
+    .rd-n.is-gold { color: var(--gold); }
+    .rd-foot { background: color-mix(in srgb, var(--elevated) 40%, transparent); font-size: 11.5px; color: var(--muted); }
+    .rd-foot strong { color: var(--ink); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .rd-note { display: flex; align-items: center; gap: 10px; padding: 13px 18px; font-size: 11.5px; color: var(--muted); }
+    .rd-note svg { color: var(--faint); flex: 0 0 auto; }
+
+    .step { display: flex; align-items: flex-start; gap: 13px; padding: 14px 18px; border-bottom: 1px solid var(--hairline); }
+    .step:last-child { border-bottom: none; }
+    .step-ix { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; background: color-mix(in srgb, var(--brand) 13%, transparent); color: var(--brand); font-variant-numeric: tabular-nums; }
+    .step-c { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .step-t { font-size: 12.5px; font-weight: 600; }
+    .step-p { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.55; }
+  </style>
+</helmet>
+
+<div class="shell">
+@@SIDE@@
+  <main class="main">
+@@HEAD@@
+
+    <nav class="chapters" role="tablist" aria-label="Secciones de entradas">
+      <button class="chapter" role="tab" aria-selected="false" type="button">Catálogo<small>5 tipos · 4 en venta</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Credenciales<small>Qué abre cada una</small></button>
+      <button class="chapter is-active" role="tab" aria-selected="true" type="button">Beneficios<small>3 para canjear</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Cobro<small>2 medios abiertos</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Compras<small>281 · 3 en proceso</small></button>
+    </nav>
+
+    <section class="card" aria-label="Catálogo de beneficios">
+      <div class="card-h">
+        <h2 class="card-t">Qué se puede canjear</h2>
+        <span class="card-hint">Se cobran con la entrada y se canjean una sola vez en el predio</span>
+      </div>
+
+      <div class="bf-head">
+        <span>Beneficio</span><span>Se canjea en</span><span>Incluido en</span><span style="text-align: right;">Precio suelto</span><span>Estado</span><span></span>
+      </div>
+
+      <div class="bf-row">
+        <span class="bf-name"><strong>Buffet</strong><small>Una consumición del menú del evento</small></span>
+        <span>Barra del club</span>
+        <span class="bf-in"><span class="badge badge--soft">Palco · dos días</span></span>
+        <span class="rp">$ 6.000</span>
+        <span><span class="badge badge--on">Activo</span></span>
+        <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+      </div>
+
+      <div class="bf-row">
+        <span class="bf-name"><strong>Programa impreso</strong><small>Grilla de tandas y nóminas</small></span>
+        <span>Acreditación</span>
+        <span class="bf-in"><span class="badge badge--soft">Palco · dos días</span><span class="badge badge--gold">Entrenador · dos días</span></span>
+        <span class="rp">$ 2.500</span>
+        <span><span class="badge badge--on">Activo</span></span>
+        <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+      </div>
+
+      <div class="bf-row">
+        <span class="bf-name"><strong>Remera del meet</strong><small>Talles S a XXL, hasta agotar</small></span>
+        <span>Stand de merch</span>
+        <span class="bf-loose">Ninguna entrada lo incluye</span>
+        <span class="rp">$ 14.000</span>
+        <span><span class="badge badge--on">Activo</span></span>
+        <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px; padding: 13px 18px;">
+        <button class="ghost-btn" type="button">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          Agregar beneficio
+        </button>
+        <span class="card-hint" style="margin-left: auto;">Un beneficio incluido no se cobra aparte: ya está en el precio de la entrada.</span>
+      </div>
+    </section>
+
+    <section class="card" aria-label="Venta y canje de beneficios">
+      <div class="card-h">
+        <h2 class="card-t">Cuántos hay que entregar</h2>
+        <span class="card-hint">Incluidos en una entrada y comprados aparte se canjean igual</span>
+      </div>
+
+      <div class="rd-head">
+        <span>Beneficio</span><span class="is-end">Incluidos</span><span class="is-end">Comprados aparte</span><span class="is-end">Total a entregar</span><span class="is-end">Cobrado aparte</span>
+      </div>
+
+      <div class="rd-row">
+        <span class="bf-name"><strong>Buffet</strong><small>Barra del club</small></span>
+        <span class="rd-n is-muted">34</span>
+        <span class="rd-n">18</span>
+        <span class="rd-n">52</span>
+        <span class="rd-n is-gold">$ 108.000</span>
+      </div>
+
+      <div class="rd-row">
+        <span class="bf-name"><strong>Programa impreso</strong><small>Acreditación</small></span>
+        <span class="rd-n is-muted">52</span>
+        <span class="rd-n">0</span>
+        <span class="rd-n">52</span>
+        <span class="rd-n is-muted">$ 0</span>
+      </div>
+
+      <div class="rd-row">
+        <span class="bf-name"><strong>Remera del meet</strong><small>Stand de merch</small></span>
+        <span class="rd-n is-muted">0</span>
+        <span class="rd-n">27</span>
+        <span class="rd-n">27</span>
+        <span class="rd-n is-gold">$ 378.000</span>
+      </div>
+
+      <div class="rd-foot">
+        <span>3 beneficios activos</span>
+        <span class="rd-n" style="color: var(--muted);">86</span>
+        <span class="rd-n" style="color: var(--muted);">45</span>
+        <span style="text-align: right;"><strong>131</strong></span>
+        <span style="text-align: right;"><strong style="color: var(--gold);">$ 486.000</strong></span>
+      </div>
+
+      <div class="rd-note">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+        Todavía no se entregó ninguno: el canje abre junto con la puerta, el 14 de noviembre.
+      </div>
+    </section>
+
+    <section class="card" aria-label="Cómo se canjea">
+      <div class="card-h">
+        <h2 class="card-t">Cómo se canjea el día del evento</h2>
+        <span class="card-hint">Mismo escáner que la puerta, otro puesto</span>
+      </div>
+      <div class="step">
+        <span class="step-ix">1</span>
+        <span class="step-c"><span class="step-t">El puesto escanea el QR de la credencial</span><p class="step-p">La pantalla muestra el nombre, la entrada y qué beneficios trae esa compra.</p></span>
+      </div>
+      <div class="step">
+        <span class="step-ix">2</span>
+        <span class="step-c"><span class="step-t">Se marca el beneficio como entregado</span><p class="step-p">Cada beneficio se canjea una sola vez. Si ya se entregó, el escáner lo dice y no deja repetir.</p></span>
+      </div>
+      <div class="step">
+        <span class="step-ix">3</span>
+        <span class="step-c"><span class="step-t">El contador de esta tabla baja en vivo</span><p class="step-p">Sirve para saber cuántas remeras y cuántas consumiciones quedan por entregar sin contar a mano.</p></span>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+</body>
+</html>

@@ -66,11 +66,13 @@ export function eventShowsPublicLocation(event) {
   return eventPublicSurfaceFromEvent(event).location
 }
 
-/** Los tres textos del hero que cambian por evento. Vacío = cae al default. */
+/** Los textos del hero y del cupo público que cambian por evento. Vacío = cae al default. */
 export const EMPTY_EVENT_PUBLIC_COPY = Object.freeze({
   publicTitle: '',
   heroLead: '',
   ctaLabel: '',
+  inscriptionMark: '',
+  inscriptionNote: '',
 })
 
 /**
@@ -85,6 +87,8 @@ export function normalizeEventPublicCopy(source) {
     publicTitle: text('publicTitle', 120),
     heroLead: text('heroLead', 240),
     ctaLabel: text('ctaLabel', 40),
+    inscriptionMark: text('inscriptionMark', 40),
+    inscriptionNote: text('inscriptionNote', 160),
   }
 }
 

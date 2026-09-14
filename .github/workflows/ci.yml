@@ -119,6 +119,9 @@ jobs:
         run: npm run supabase:assert
       - run: npm run test:integration
       - run: npm run db:verify:payments
+      - name: Install Playwright Chromium for checkout E2E
+        run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
       # Postura de seguridad contra el catalogo real: RLS activo, el navegador
       # sin escritura, las RPC de cobro cerradas y toda funcion definer con
       # search_path. Los tests estaticos auditan lo que dicen las migraciones;

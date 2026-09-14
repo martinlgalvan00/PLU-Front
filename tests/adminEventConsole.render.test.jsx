@@ -248,6 +248,25 @@ describe('EventsSection — página del evento', () => {
     expect(after.querySelectorAll('.admin-event-editor--accordion')).toHaveLength(1)
   })
 
+  it('volver al resumen cierra la sección del editor y no la reabre', () => {
+    renderEvents()
+    const panel = workspace()
+
+    expect(
+      within(tabRail(panel)).getByRole('tab', { name: /datos/i }).getAttribute('aria-selected'),
+    ).toBe('true')
+    expect(panel.querySelector('.admin-event-editor--accordion')).not.toBeNull()
+
+    fireEvent.click(within(panel).getByRole('button', { name: /volver al resumen/i }))
+
+    const after = screen.getByRole('region', { name: 'Evento seleccionado' })
+    expect(
+      within(tabRail(after)).getByRole('tab', { name: /resumen/i }).getAttribute('aria-selected'),
+    ).toBe('true')
+    expect(after.querySelector('.admin-event-editor--accordion')).toBeNull()
+    expect(after.querySelector('.admin-event-dashboard')).not.toBeNull()
+  })
+
   it('abre el triage de pagos como pestaña, sin salir del evento', async () => {
     renderEvents({ onOpenFinanceForEvent: () => {} })
     const panel = workspace()
@@ -502,7 +521,7 @@ describe('EventsSection — alta rápida', () => {
     expect(within(dialog).getByRole('button', { name: /solo afiliados/i })).toBeTruthy()
     expect(dialog.textContent).toContain('afiliación vigente')
 
-    fireEvent.click(within(dialog).getByRole('button', { name: /^abierto$/i }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /sin afiliación/i }))
     expect(dialog.textContent).toContain('sin afiliación')
   })
 
@@ -538,7 +557,7 @@ describe('EventsSection — alta rápida', () => {
     })
     fireEvent.change(dialog.querySelector('[name="location"]'), { target: { value: 'Rosario' } })
     fireEvent.change(dialog.querySelector('[name="slots"]'), { target: { value: '40' } })
-    fireEvent.click(within(dialog).getByRole('button', { name: /^abierto$/i }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /sin afiliación/i }))
 
     fireEvent.click(within(dialog).getByRole('button', { name: /crear y abrir consola/i }))
 
@@ -569,5 +588,32 @@ describe('EventsSection — alta rápida', () => {
     const editor = await screen.findByRole('dialog', { name: /nuevo evento/i })
     expect(within(editor).getByRole('tablist')).toBeTruthy()
     expect(editor.querySelector('[name="title"]')?.value).toBe('Copa Norte')
+  })
+
+  it('cambia el estado del meet con el Guardar del editor, sin upsert ni barra pending', async () => {
+    const onSaveEvent = vi.fn(async () => ({ event: EVENT, events: [EVENT] }))
+    const onSetEventState = vi.fn(async () => ({
+      event: { ...EVENT, status: 'cerrado' },
+      events: [{ ...EVENT, status: 'cerrado' }],
+    }))
+    renderEvents({ onSaveEvent, onSetEventState })
+    workspace()
+
+    fireEvent.click(
+      [...document.querySelectorAll('.admin-event-state__option')].find((option) =>
+        /^cerrado$/i.test(option.textContent ?? ''),
+      ),
+    )
+
+    expect(onSetEventState).not.toHaveBeenCalled()
+    expect(document.querySelector('.admin-event-state__pending')).toBeNull()
+
+    const save = screen.getByRole('button', { name: /guardar cambios/i })
+    expect(save.disabled).toBe(false)
+    fireEvent.click(save)
+
+    await waitFor(() => expect(onSetEventState).toHaveBeenCalledTimes(1))
+    expect(onSetEventState).toHaveBeenCalledWith('pitbull-classic-2026', { status: 'cerrado' })
+    expect(onSaveEvent).not.toHaveBeenCalled()
   })
 })

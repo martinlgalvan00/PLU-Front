@@ -176,6 +176,10 @@ function EventListRow({ row, selected, locale, onSelect, t }) {
 
 /** Pestañas del workspace que no montan el editor del evento. */
 const NON_EDITOR_SECTIONS = new Set(['structure', 'security', 'payments'])
+/** Pestañas que sí viven del draft del editor. El resumen no entra: si
+ *  “Cerrar sección” va a dashboard y la invariante rearma el form, el botón
+ *  no cierra nada. */
+const EDITOR_SECTIONS = new Set(['basics', 'sales', 'visibility'])
 
 export default function EventsSection({
   adminEvents,
@@ -262,6 +266,10 @@ export default function EventsSection({
   /** Si el editor dirty pide confirmación, abrir esta sección al descartar. */
   const pendingConsoleSectionRef = useRef(null)
   const pendingConsoleChapterRef = useRef(null)
+  /** PATCH de estado pendiente: el editor lo dispara con “Guardar cambios”. */
+  const [stateDirty, setStateDirty] = useState(false)
+  const statePendingRef = useRef({})
+  const discardStateRef = useRef(null)
 
   /**
    * Tocar una fila abre el workspace en Datos y sincroniza la URL. El orden
@@ -286,6 +294,8 @@ export default function EventsSection({
     setFormOpen(false)
     setEditorBaselineSignature(null)
     setDraft(createAdminEventDraft())
+    setStateDirty(false)
+    statePendingRef.current = {}
     pendingConsoleSectionRef.current = null
     pendingConsoleChapterRef.current = null
   }
@@ -396,12 +406,13 @@ export default function EventsSection({
    */
   useEffect(() => {
     if (!consoleOpen || !canEdit || !selectedEvent) return
-    if (consoleSection && NON_EDITOR_SECTIONS.has(consoleSection)) return
+    const section = consoleSection ?? 'basics'
+    if (!EDITOR_SECTIONS.has(section)) return
     if (formOpen && draft.id === selectedEvent.id) {
       if (!consoleSection) setConsoleSection('basics')
       return
     }
-    armEditor(selectedEvent, consoleSection ?? 'basics', consoleChapter)
+    armEditor(selectedEvent, section, consoleChapter)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- invariante: no reacciona al capítulo
   }, [canEdit, consoleOpen, consoleSection, draft.id, formOpen, selectedEvent?.id])
 
@@ -631,12 +642,13 @@ export default function EventsSection({
     setFormOpen(true)
   }
 
-  function closeForm() {
+  function closeForm({ returnToDashboard = false } = {}) {
     const wasEditingExisting = Boolean(draft.id)
     const pendingSection = pendingConsoleSectionRef.current
     const pendingChapter = pendingConsoleChapterRef.current
     pendingConsoleSectionRef.current = null
     pendingConsoleChapterRef.current = null
+    discardStateRef.current?.()
     setFormOpen(false)
     setEditorBaselineSignature(null)
     setDraft(createAdminEventDraft())
@@ -652,11 +664,15 @@ export default function EventsSection({
       setConsoleOpen(true)
       return
     }
-    // En el workspace la pestaña NO se cierra al descartar: se queda donde
-    // está y la invariante vuelve a armar el draft desde el evento. Cerrar la
-    // sección acá era lo que dejaba la pestaña Datos sin formulario.
+    // En el workspace la pestaña del editor no se “pliega”: si nos quedamos
+    // en Datos/Ventas, la invariante vuelve a armar el draft y el botón no
+    // cierra nada. Volver al resumen es la salida de la sección.
     if (wasEditingExisting) {
       setConsoleOpen(true)
+      if (returnToDashboard) {
+        setConsoleSection('dashboard')
+        setConsoleChapter(null)
+      }
       return
     }
     setConsoleChapter(null)
@@ -694,6 +710,35 @@ export default function EventsSection({
         : t('admin.sections.events.created'),
     })
     return saved
+  }
+
+  /**
+   * Estado / acceso / visibilidad: PATCH parcial. No pasa por el upsert
+   * porque ese recrea días y tipos de entrada.
+   */
+  async function handleExtraStateSave() {
+    const pending = statePendingRef.current
+    const slug = selectedEvent?.slug
+    if (!slug || !pending || Object.keys(pending).length === 0) return null
+    const result = await onSetEventState?.(slug, pending)
+    if (result?.error) throw new Error(result.error)
+    const event = result?.event
+    const synced = {}
+    if (pending.status !== undefined) synced.status = event?.status ?? pending.status
+    if (pending.published !== undefined) synced.published = event?.published ?? pending.published
+    if (pending.requiresMembership !== undefined) {
+      synced.requiresMembership = event?.requiresMembership ?? pending.requiresMembership
+    }
+    const nextDraft = { ...draft, ...synced }
+    setDraft(nextDraft)
+    setEditorBaselineSignature((current) =>
+      current == null ? current : getAdminEventDraftSignature(nextDraft),
+    )
+    setMessage({
+      tone: 'success',
+      text: t('admin.sections.events.updated'),
+    })
+    return synced
   }
 
   async function handleStructureSave(submittedDraft) {
@@ -904,7 +949,7 @@ export default function EventsSection({
           canEdit={canEdit}
           canManageUsers={canManageUsers}
           editor={
-            formOpen && draft.id && consoleSection && !NON_EDITOR_SECTIONS.has(consoleSection) ? (
+            formOpen && draft.id && EDITOR_SECTIONS.has(consoleSection) ? (
               <AdminEventEditor
                 key={draft.id}
                 accordion
@@ -915,7 +960,7 @@ export default function EventsSection({
                 forcedTab={consoleSection}
                 forcedChapter={consoleChapter}
                 sourceEvent={editingSource}
-                onCancel={closeForm}
+                onCancel={() => closeForm({ returnToDashboard: true })}
                 onChange={setDraft}
                 onRegisterClose={(fn) => {
                   exitEditRef.current = fn
@@ -926,6 +971,9 @@ export default function EventsSection({
                   setConsoleChapter(section === 'sales' ? (consoleChapter ?? 'cupo') : null)
                 }}
                 onSubmit={handleSubmit}
+                extraDirty={stateDirty}
+                onExtraSave={handleExtraStateSave}
+                onExtraDiscard={() => discardStateRef.current?.()}
               />
             ) : null
           }
@@ -937,6 +985,14 @@ export default function EventsSection({
           onSelectChapter={selectConsoleChapter}
           onSelectSection={selectConsoleSection}
           onSetEventState={onSetEventState}
+          onStatePendingChange={(payload) => {
+            const next = payload && typeof payload === 'object' ? payload : {}
+            statePendingRef.current = next
+            setStateDirty(Object.keys(next).length > 0)
+          }}
+          onRegisterStateDiscard={(fn) => {
+            discardStateRef.current = fn
+          }}
           onToggleOccupancy={toggleOccupancy}
           onTogglePublicModule={togglePublicModule}
           openChapter={consoleChapter}

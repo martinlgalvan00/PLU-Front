@@ -1,0 +1,20 @@
+    /* Tokens reales de PLU: palette.css + themes/dark.css. */
+    :root {
+      --canvas: #0a0b0d; --bg-2: #121316; --surface: #141518; --elevated: #1e2026;
+      --hairline: rgba(255,255,255,0.08); --rule: rgba(255,255,255,0.14);
+      --ink: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8; --faint: #6f7280;
+      --celeste: #74acdf; --celeste-soft: #9ec5eb; --celeste-deep: #1f5f9e;
+      --gold: #f2b705; --gold-soft: #ffd23f; --gold-ink: #14181f;
+      --ok-soft: #8fd4a8;
+      --font: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); -webkit-font-smoothing: antialiased; }
+    a { color: var(--celeste-soft); } a:hover { color: #c7dcf1; }
+    * { box-sizing: border-box; }
+    img { display: block; max-width: 100%; }
+
+    .eyebrow { font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+    .num { font-variant-numeric: tabular-nums; }
+
+    .cta-gold { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 54px; padding: 0 30px; border: none; background: var(--gold); color: var(--gold-ink); font-family: var(--font); font-size: 15px; font-weight: 700; letter-spacing: -.01em; cursor: pointer; }
+    .cta-line { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 13px; font-weight: 500; color: var(--secondary); border-bottom: 1px solid var(--rule); }

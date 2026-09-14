@@ -2,11 +2,15 @@ import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
 import { useContent } from '../../hooks/useContent.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
+import { useCssViewTimeline } from '../../motion/useCssViewTimeline.ts'
+import TiltCard from '../../motion/TiltCard.tsx'
+import { hasFinePointer } from '../../motion/useReducedMotion.ts'
 import {
   MOTION_DURATION,
   MOTION_EASE,
   MOTION_STAGGER,
   MOTION_VIEWPORT,
+  TILT_MAX_DEG,
 } from '../../motion/tokens.ts'
 
 const aboutSequence = {
@@ -28,7 +32,7 @@ const aboutIntroIn = {
   },
 }
 
-const aboutPillarSequence = {
+const aboutPlateSequence = {
   hidden: {},
   visible: {
     transition: {
@@ -38,7 +42,17 @@ const aboutPillarSequence = {
   },
 }
 
-const aboutPillarIn = {
+const aboutPlateIn3d = {
+  hidden: { opacity: 0, y: 16, rotateX: TILT_MAX_DEG },
+  visible: {
+    opacity: 1,
+    y: 0,
+    rotateX: 0,
+    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
+  },
+}
+
+const aboutPlateIn2d = {
   hidden: { opacity: 0, y: 10 },
   visible: {
     opacity: 1,
@@ -58,19 +72,25 @@ const aboutLinkIn = {
 
 export default function AboutSection({ onNavigate }) {
   const { ABOUT_INTRO, ABOUT_PILLARS } = useContent()
-  const { reducedMotion } = useMotionConfig()
+  const { reducedMotion, tier } = useMotionConfig()
+  const cssViewTimeline = useCssViewTimeline()
+  const theaterOff = reducedMotion || tier === 'low'
+  const cssTheater = !theaterOff && cssViewTimeline
+  const jsTheater = !theaterOff && !cssViewTimeline
+  const plateMotion = jsTheater && hasFinePointer() ? aboutPlateIn3d : aboutPlateIn2d
   const lead = ABOUT_INTRO.descriptionLead ?? ABOUT_INTRO.description
-  const meta = ABOUT_INTRO.descriptionMeta
-  const Root = reducedMotion ? 'div' : m.div
-  const Header = reducedMotion ? 'header' : m.header
-  const PillarList = reducedMotion ? 'ul' : m.ul
-  const Pillar = reducedMotion ? 'li' : m.li
-  const Link = reducedMotion ? 'button' : m.button
-  const withVariant = (variants) => (reducedMotion ? {} : { variants })
-  const rootProps = reducedMotion
-    ? { className: 'about-section' }
+  const Root = theaterOff ? 'div' : m.div
+  const Header = theaterOff ? 'header' : m.header
+  const Link = theaterOff ? 'button' : m.button
+  const withVariant = (variants) => (theaterOff ? {} : { variants })
+  const rootClass = ['about-section', 'about-section--ledger', cssTheater ? 'about-section--theater' : '']
+    .filter(Boolean)
+    .join(' ')
+  const rootProps = theaterOff
+    ? { className: rootClass, 'data-theater': 'off' }
     : {
-        className: 'about-section',
+        className: rootClass,
+        'data-theater': cssTheater ? 'css' : 'js',
         variants: aboutSequence,
         initial: 'hidden',
         whileInView: 'visible',
@@ -91,27 +111,33 @@ export default function AboutSection({ onNavigate }) {
             </h2>
           </div>
 
-          <div className="about-section__copy">
-            <p className="about-section__desc">{lead}</p>
-            {meta ? <p className="about-section__meta">{meta}</p> : null}
-          </div>
+          <p className="about-section__desc">{lead}</p>
         </Header>
 
-        <PillarList {...withVariant(aboutPillarSequence)} className="about-section__pillars">
-          {ABOUT_PILLARS.map(({ id, title, text }, index) => (
-            <Pillar
-              {...withVariant(aboutPillarIn)}
-              key={id ?? title}
-              className="about-section__pillar"
-            >
-              <span className="about-section__pillar-index" aria-hidden>
-                {String(index + 1).padStart(2, '0')}
-              </span>
-              <h3 className="about-section__pillar-title">{title}</h3>
-              <p className="about-section__pillar-text">{text}</p>
-            </Pillar>
-          ))}
-        </PillarList>
+        {jsTheater ? (
+          <m.ul
+            className="about-section__plates"
+            variants={aboutPlateSequence}
+          >
+            {ABOUT_PILLARS.map((pillar, index) => (
+              <m.li
+                key={pillar.id ?? pillar.title}
+                className={plateItemClass(pillar.id)}
+                variants={plateMotion}
+              >
+                <AboutPlate pillar={pillar} index={index} />
+              </m.li>
+            ))}
+          </m.ul>
+        ) : (
+          <ul className="about-section__plates">
+            {ABOUT_PILLARS.map((pillar, index) => (
+              <li key={pillar.id ?? pillar.title} className={plateItemClass(pillar.id)}>
+                <AboutPlate pillar={pillar} index={index} />
+              </li>
+            ))}
+          </ul>
+        )}
 
         {onNavigate ? (
           <Link
@@ -126,5 +152,30 @@ export default function AboutSection({ onNavigate }) {
         ) : null}
       </div>
     </Root>
+  )
+}
+
+function plateItemClass(id) {
+  return ['about-section__plate-item', id === 'standard' ? 'about-section__plate-item--lead' : '']
+    .filter(Boolean)
+    .join(' ')
+}
+
+function AboutPlate({ pillar, index }) {
+  return (
+    <TiltCard
+      className="about-section__plate-tilt"
+      innerClassName="tilt-card__inner about-section__plate"
+      maxTilt={3}
+    >
+      <span className="about-section__plate-index" aria-hidden>
+        {String(index + 1).padStart(2, '0')}
+      </span>
+      <div className="about-section__plate-copy">
+        <h3 className="about-section__plate-title">{pillar.title}</h3>
+        {pillar.text ? <p className="about-section__plate-text">{pillar.text}</p> : null}
+      </div>
+      <span className="about-section__plate-rule" aria-hidden />
+    </TiltCard>
   )
 }

@@ -79,6 +79,7 @@ describe('extendSessionIfActive', () => {
     const [, , options] = res.cookie.mock.calls[0]
     expect(options.httpOnly).toBe(true)
     expect(options.sameSite).toBe('strict')
+    expect(options.maxAge).toBeUndefined()
   })
 
   it('el tope absoluto de 7 días manda sobre la renovación', async () => {

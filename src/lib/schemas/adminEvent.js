@@ -96,6 +96,20 @@ const ticketTypeSchema = z.object({
     .optional(),
 })
 
+const paymentChannelFlagsSchema = z.object({
+  mercado_pago: z.boolean().optional(),
+  bank_transfer: z.boolean().optional(),
+  cash_pitbull: z.boolean().optional(),
+  wise_transfer: z.boolean().optional(),
+})
+
+const paymentChannelsByConceptSchema = z
+  .object({
+    registration: paymentChannelFlagsSchema.strict().optional(),
+    ticket: paymentChannelFlagsSchema.strict().optional(),
+  })
+  .strict()
+
 const weighInWindowSchema = z.object({
   id: z.string().trim().min(1).max(80).optional(),
   label: z.string().trim().min(1, 'weighInLabelRequired').max(80, 'weighInLabelMax'),
@@ -191,15 +205,15 @@ export const adminEventDraftSchema = z
         publicTitle: z.string().trim().max(120, 'publicTitleMax').optional(),
         heroLead: z.string().trim().max(240, 'heroLeadMax').optional(),
         ctaLabel: z.string().trim().max(40, 'ctaLabelMax').optional(),
+        inscriptionMark: z.string().trim().max(40, 'inscriptionMarkMax').optional(),
+        inscriptionNote: z.string().trim().max(160, 'inscriptionNoteMax').optional(),
       })
       .optional(),
+    // Por concepto (`{registration, ticket}`) o la forma plana vieja, que vale
+    // para los dos. Ambas `strict()`: si no, un objeto por concepto entraría
+    // por la rama plana y zod lo vaciaría al descartar claves desconocidas.
     paymentChannelOverrides: z
-      .object({
-        mercado_pago: z.boolean().optional(),
-        bank_transfer: z.boolean().optional(),
-        cash_pitbull: z.boolean().optional(),
-        wise_transfer: z.boolean().optional(),
-      })
+      .union([paymentChannelsByConceptSchema, paymentChannelFlagsSchema.strict()])
       .nullable()
       .optional(),
     bankTransfer: z

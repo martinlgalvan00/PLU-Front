@@ -86,6 +86,30 @@ describe('LoginPage', () => {
 
     resolveLogin()
     await waitFor(() => expect(onLogin).toHaveBeenCalledTimes(1))
+    expect(onLogin).toHaveBeenCalledWith({
+      email: 'atleta@plu.test',
+      password: 'secreta123',
+      remember: false,
+    })
+  })
+
+  it('manda remember: true cuando se marca Recordarme', async () => {
+    const onLogin = vi.fn(async () => ({ role: 'athlete_plu' }))
+    renderLogin({ onLogin })
+
+    fireEvent.change(screen.getByPlaceholderText('tu@email.com'), {
+      target: { value: 'atleta@plu.test' },
+    })
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'secreta123' } })
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('button', { name: /Ingresar/i }))
+
+    await waitFor(() => expect(onLogin).toHaveBeenCalledTimes(1))
+    expect(onLogin).toHaveBeenCalledWith({
+      email: 'atleta@plu.test',
+      password: 'secreta123',
+      remember: true,
+    })
   })
 
   it('el botón de OAuth vive dentro del form pero no lo envía', async () => {

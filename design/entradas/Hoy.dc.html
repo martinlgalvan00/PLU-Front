@@ -1,0 +1,349 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --canvas: #0a0b0d; --surface: #141518; --surface-muted: #121316; --elevated: #1e2026;
+      --hairline: rgba(255,255,255,0.09); --border: rgba(255,255,255,0.14);
+      --ink: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8; --faint: #6f7280;
+      --brand: #9ec5eb; --brand-deep: #1f5f9e; --gold: #f2b705; --gold-ink: #14181f;
+      --ok: #3d9a62; --ok-soft: #8fd4a8; --danger: #e10600; --warn: #b45309;
+      --font: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); }
+    a { color: var(--brand); } a:hover { color: #c7dcf1; }
+    * { box-sizing: border-box; }
+    .shell { display: grid; grid-template-columns: 232px 1fr; min-height: 100%; }
+    .side { background: var(--surface-muted); border-right: 1px solid var(--hairline); padding: 20px 12px; display: flex; flex-direction: column; gap: 22px; }
+    .side-brand { display: flex; align-items: center; gap: 9px; padding: 0 8px 4px; }
+    .side-mark { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, var(--brand-deep), var(--gold)); }
+    .side-name { font-size: 12.5px; font-weight: 700; }
+    .side-group { display: flex; flex-direction: column; gap: 2px; }
+    .side-label { font-size: 10px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); padding: 0 8px 6px; }
+    .side-item { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 8px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+    .side-item.is-active { background: color-mix(in srgb, var(--brand) 10%, transparent); color: var(--ink); font-weight: 600; }
+    .side-item svg { opacity: .75; flex: 0 0 auto; }
+    .side-item.is-active svg { opacity: 1; color: var(--brand); }
+    .side-count { margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--muted); }
+
+    .main { padding: 20px 32px 32px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+    .back { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--muted); }
+    .hd { display: flex; flex-direction: column; gap: 14px; }
+    .hd-top { display: flex; align-items: flex-start; gap: 16px; }
+    .hd-copy { display: flex; flex-direction: column; gap: 7px; flex-grow: 1; min-width: 0; }
+    .hd-title-row { display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+    .hd-title { font-size: 23px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+    .pill-state { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: 11px; font-weight: 600; background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent); }
+    .dot { width: 5px; height: 5px; border-radius: 999px; background: currentColor; }
+    .hd-meta { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+    .sep { color: #4a4d57; }
+    .hd-actions { display: flex; align-items: center; gap: 8px; }
+    .icon-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: color-mix(in srgb, var(--elevated) 60%, transparent); color: var(--secondary); font-size: 12px; font-weight: 500; font-family: var(--font); }
+    .icon-btn--square { width: 34px; padding: 0; }
+
+    .tabs { display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 999px; background: color-mix(in srgb, var(--elevated) 70%, transparent); border: 1px solid rgba(255,255,255,.08); width: fit-content; }
+    .tab { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 6px 12px; border-radius: 999px; border: 1px solid transparent; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; font-family: var(--font); white-space: nowrap; }
+    .tab.is-active { background: color-mix(in srgb, var(--brand) 13%, transparent); border-color: color-mix(in srgb, var(--brand) 24%, transparent); color: var(--ink); }
+    .tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; padding: 2px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 700; background: color-mix(in srgb, var(--ink) 8%, transparent); }
+    .tab.is-active .tab-count { background: color-mix(in srgb, var(--brand) 20%, transparent); }
+
+    .chapters { display: flex; align-items: center; gap: 22px; border-bottom: 1px solid var(--hairline); }
+    .chapter { padding: 0 0 11px; border: none; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; font-family: var(--font); border-bottom: 2px solid transparent; margin-bottom: -1px; text-align: left; }
+    .chapter.is-active { color: var(--ink); border-bottom-color: var(--brand); }
+    .chapter small { display: block; font-size: 10.5px; font-weight: 400; color: var(--faint); margin-top: 3px; }
+
+    .card { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; }
+    .card-h { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--hairline); }
+    .card-t { font-size: 13px; font-weight: 600; margin: 0; }
+    .card-hint { font-size: 11.5px; color: var(--muted); }
+    .card-b { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 600; white-space: nowrap; }
+    .badge--on { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok-soft); }
+    .badge--off { background: rgba(255,255,255,.07); color: var(--muted); }
+    .badge--soft { background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand); }
+    .badge--gold { background: color-mix(in srgb, var(--gold) 15%, transparent); color: var(--gold); }
+    .badge--warn { background: color-mix(in srgb, var(--warn) 22%, transparent); color: #e8a33d; }
+    .num { font-variant-numeric: tabular-nums; }
+    .kebab { color: var(--muted); display: inline-flex; }
+    .btn-gold { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 16px; border-radius: 8px; border: none; background: var(--gold); color: var(--gold-ink); font-size: 12.5px; font-weight: 600; font-family: var(--font); }
+    .ghost-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); font-size: 11.5px; font-weight: 500; font-family: var(--font); }
+    .body { display: grid; grid-template-columns: minmax(0,1fr) 336px; gap: 20px; align-items: start; }
+    .stack { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+    .lane-head { display: flex; flex-direction: column; gap: 5px; }
+    .lane-t { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; margin: 0; }
+    .lane-p { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.55; }
+
+    .toggle { display: flex; align-items: center; gap: 11px; padding: 13px 15px; border: 1px solid var(--hairline); border-radius: 9px; background: var(--surface); }
+    .sw { width: 36px; height: 20px; border-radius: 999px; background: rgba(255,255,255,.12); position: relative; flex: 0 0 auto; }
+    .sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 999px; background: #8b8d97; }
+    .sw.is-on { background: color-mix(in srgb, var(--ok) 60%, transparent); }
+    .sw.is-on::after { left: auto; right: 3px; background: #eafff2; }
+    .toggle-c { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .toggle-c strong { font-size: 12.5px; font-weight: 600; }
+    .toggle-c small { font-size: 11px; color: var(--muted); }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .field-l { font-size: 11.5px; font-weight: 500; color: var(--muted); }
+    .input { min-height: 38px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: #121218; color: var(--ink); font-size: 12.5px; display: flex; align-items: center; }
+    .hint { font-size: 10.5px; color: var(--faint); line-height: 1.5; }
+
+    fieldset.fs { margin: 0; border: 1px solid var(--hairline); border-radius: 10px; padding: 16px; background: var(--surface); display: flex; flex-direction: column; gap: 14px; }
+    fieldset.fs > legend { display: inline-flex; align-items: center; gap: 7px; padding: 0 7px; font-size: 12px; font-weight: 600; }
+    .fs-lead { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.55; }
+
+    .item { border: 1px solid var(--hairline); border-radius: 10px; background: var(--surface); display: flex; flex-direction: column; gap: 14px; padding: 15px; }
+    .item-head { display: flex; align-items: center; gap: 11px; }
+    .item-head .toggle-c strong { font-size: 13px; }
+    .trash { margin-left: auto; color: var(--muted); display: inline-flex; }
+    .sub-l { font-size: 11px; font-weight: 600; color: var(--muted); }
+    .chips { display: flex; gap: 7px; flex-wrap: wrap; }
+    .chip { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 0 11px; border-radius: 8px; border: 1px solid var(--hairline); font-size: 11.5px; color: var(--secondary); }
+    .box { width: 13px; height: 13px; border-radius: 3px; border: 1.5px solid rgba(255,255,255,.26); flex: 0 0 auto; }
+    .box.is-on { border-color: var(--brand); background: var(--brand); }
+
+    .nested { border: 1px solid var(--hairline); border-radius: 9px; padding: 13px; display: flex; flex-direction: column; gap: 11px; background: color-mix(in srgb, var(--elevated) 38%, transparent); }
+    .nested-h { display: flex; align-items: center; gap: 9px; }
+    .nested-t { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; }
+    .preset { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--brand); }
+    .nested2 { border: 1px solid var(--hairline); border-radius: 8px; padding: 11px; display: flex; flex-direction: column; gap: 10px; background: var(--surface); }
+    .zone { display: flex; align-items: flex-start; gap: 9px; padding: 9px 10px; border: 1px solid var(--hairline); border-radius: 8px; }
+    .zone.is-on { border-color: color-mix(in srgb, var(--brand) 32%, transparent); background: color-mix(in srgb, var(--brand) 9%, transparent); }
+    .zone-c { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .zone-c span { font-size: 11.5px; font-weight: 600; }
+    .zone-c small { font-size: 10.5px; color: var(--muted); line-height: 1.45; }
+
+    .more { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 15px; border: 1px dashed var(--hairline); border-radius: 10px; font-size: 11.5px; color: var(--muted); }
+
+    /* rail */
+    .ins-h { display: flex; align-items: center; gap: 9px; padding: 13px 16px; border-bottom: 1px solid var(--hairline); font-size: 12.5px; font-weight: 600; }
+    .ins-m { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 11px 16px; border-bottom: 1px solid var(--hairline); }
+    .ins-m:last-child { border-bottom: none; }
+    .ins-l { font-size: 11.5px; color: var(--muted); }
+    .ins-v { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .ins-v.is-gold { color: var(--gold); }
+    .rep-t { width: 100%; border-collapse: collapse; }
+    .rep-t th, .rep-t td { padding: 8px 16px; font-size: 11.5px; text-align: right; border-bottom: 1px solid var(--hairline); }
+    .rep-t th[scope="col"] { font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+    .rep-t th[scope="row"] { text-align: left; font-weight: 600; }
+  </style>
+</helmet>
+
+<div class="shell">
+  <aside class="side">
+    <div class="side-brand"><div class="side-mark"></div><span class="side-name">PLU Argentina</span></div>
+    <div class="side-group">
+      <span class="side-label">Plantel</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span>Resumen</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.1 2.7-5.2 6-5.2s6 2.1 6 5.2"/><path d="M16 11.2a3 3 0 0 0 0-6"/><path d="M18 20c0-2.4-.9-4.1-2.4-5"/></svg><span>Personas</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Competencia</span>
+      <div class="side-item is-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>Eventos</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Grilla</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M3 12h18"/></svg><span>Check-in</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M12 14v4M8 21h8"/></svg><span>Resultados</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Cobros</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span>Shop</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg><span>Cobros</span><span class="side-count">3</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 10 12 4l9 6"/><path d="M5 10v9h14v-9"/></svg><span>Libro de caja</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 6v12"/></svg><span>Tarifas</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Acceso</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 3l7 3v6c0 4.2-2.8 7.6-7 9-4.2-1.4-7-4.8-7-9V6z"/></svg><span>Usuarios</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="8" cy="13" r="4"/><path d="M11 11l8-8 2 2-2 2 2 2-3 3-2-2-2 2"/></svg><span>Roles y permisos</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 9h7M9 13h7"/></svg><span>Auditoría</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span>Analítica</span></div>
+    </div>
+  </aside>
+  <main class="main">
+    <span class="back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>Eventos</span>
+
+    <header class="hd">
+      <div class="hd-top">
+        <div class="hd-copy">
+          <div class="hd-title-row">
+            <h1 class="hd-title">Pitbull Classic 2026</h1>
+            <span class="pill-state"><span class="dot"></span>Inscripción abierta</span>
+          </div>
+          <div class="hd-meta">
+            <span>14 – 15 de noviembre de 2026</span><span class="sep">·</span>
+            <span>Club Atlético Fénix, Pilar</span><span class="sep">·</span>
+            <span>plu.ar/eventos/pitbull-classic-2026</span>
+          </div>
+        </div>
+        <div class="hd-actions">
+          <button class="icon-btn" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M15 5H5v10"/></svg>Copiar links</button>
+        </div>
+      </div>
+
+      <nav class="tabs" role="tablist" aria-label="Secciones del evento">
+        <button class="tab" role="tab" aria-selected="false" type="button">Resumen</button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Datos</button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Estructura<span class="tab-count">2</span></button>
+        <button class="tab is-active" role="tab" aria-selected="true" type="button">Ventas</button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Zonas y seguridad<span class="tab-count">4</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Cobros<span class="tab-count">3</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Vista pública</button>
+      </nav>
+    </header>
+
+    <nav class="chapters" role="tablist" aria-label="Capítulos de ventas">
+      <button class="chapter" role="tab" aria-selected="false" type="button">Cupo e inscripción</button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Precios</button>
+      <button class="chapter is-active" role="tab" aria-selected="true" type="button">Entradas</button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Cobro</button>
+    </nav>
+
+    <div class="body">
+      <div class="stack">
+        <div class="lane-head">
+          <h2 class="lane-t"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 9a2 2 0 0 0 0 6v3h18v-3a2 2 0 0 1 0-6V6H3z"/></svg>Público</h2>
+          <p class="lane-p">Entradas para quien viene a mirar. La inscripción de atletas se configura en Cupo.</p>
+        </div>
+
+        <div class="toggle">
+          <span class="sw is-on"></span>
+          <span class="toggle-c"><strong>Entradas en venta</strong><small>La página del evento puede mostrar el bloque de compra.</small></span>
+        </div>
+
+        <div class="grid-2">
+          <div class="field"><span class="field-l">La venta abre</span><span class="input">01/10/2026 10:00</span></div>
+          <div class="field"><span class="field-l">La venta cierra</span><span class="input">14/11/2026 08:00</span></div>
+        </div>
+
+        <fieldset class="fs">
+          <legend><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7S9.5 3 7.5 4.5 9 7 12 7zM12 7s2.5-4 4.5-2.5S15 7 12 7z"/></svg>Beneficios</legend>
+          <p class="fs-lead">Se cobran con la entrada y se canjean en el predio.</p>
+          <div class="item" style="padding: 13px;">
+            <div class="item-head">
+              <span class="sw is-on"></span>
+              <span class="toggle-c"><strong>Buffet</strong><small>$ 6.000</small></span>
+              <span class="trash"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></span>
+            </div>
+            <div class="grid-2">
+              <div class="field"><span class="field-l">Nombre</span><span class="input">Buffet</span></div>
+              <div class="field"><span class="field-l">Precio</span><span class="input">6000</span></div>
+              <div class="field" style="grid-column: 1 / -1;"><span class="field-l">Descripción</span><span class="input">Una consumición del menú del evento</span></div>
+              <div class="field" style="grid-column: 1 / -1;"><span class="field-l">Dónde se canjea</span><span class="input">Barra del club</span></div>
+            </div>
+          </div>
+          <button class="ghost-btn" type="button" style="align-self: flex-start;">+ Agregar beneficio</button>
+        </fieldset>
+
+        <div class="lane-head">
+          <h2 class="lane-t"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 12V5h7l9 9-7 7z"/><circle cx="8" cy="9" r="1"/></svg>Tipos de entrada</h2>
+        </div>
+
+        <div class="item">
+          <div class="item-head">
+            <span class="sw is-on"></span>
+            <span class="toggle-c"><strong>Entrenador · dos días</strong><small>$ 26.000</small></span>
+            <span class="trash"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></span>
+          </div>
+          <div class="grid-3">
+            <div class="field"><span class="field-l">Nombre</span><span class="input">Entrenador · dos días</span></div>
+            <div class="field"><span class="field-l">Precio</span><span class="input">26000</span></div>
+            <div class="field"><span class="field-l">Cupo</span><span class="input">30</span></div>
+          </div>
+          <span class="hint">Vacío = sin límite. El cupo se descuenta por compra.</span>
+
+          <span class="sub-l">Jornadas a las que da acceso</span>
+          <div class="chips">
+            <span class="chip"><span class="box is-on"></span>Sábado 14</span>
+            <span class="chip"><span class="box is-on"></span>Domingo 15</span>
+          </div>
+
+          <span class="sub-l">Beneficios incluidos</span>
+          <div class="chips">
+            <span class="chip"><span class="box"></span>Buffet</span>
+            <span class="chip"><span class="box is-on"></span>Programa impreso</span>
+            <span class="chip"><span class="box"></span>Remera del meet</span>
+          </div>
+
+          <div class="nested">
+            <div class="nested-h">
+              <span class="nested-t"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 3l7 3v6c0 4.2-2.8 7.6-7 9-4.2-1.4-7-4.8-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Credenciales</span>
+              <span class="preset"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M5 19 16 8M14 4l6 6M17 3l1 2 2 1-2 1-1 2-1-2-2-1 2-1z"/></svg>Usar el par de entrenador</span>
+            </div>
+            <p class="fs-lead">Una entrada es lo que se compra; las credenciales son lo que esa compra emite.</p>
+
+            <div class="nested2">
+              <div class="field"><span class="field-l">Nombre de la credencial principal</span><span class="input">Espectador</span><span class="hint">Es lo que seguridad lee impreso en el QR.</span></div>
+              <span class="sub-l">Qué abre</span>
+              <div class="zone is-on"><span class="box is-on"></span><span class="zone-c"><span>Puerta general</span><small>Ingreso al predio y a la tribuna. Es el acceso de una entrada de público.</small></span></div>
+              <div class="zone"><span class="box"></span><span class="zone-c"><span>Entrada en calor</span><small>Calentamiento, detrás de plataforma. Usalo en la credencial de entrenador.</small></span></div>
+            </div>
+
+            <div class="nested2">
+              <div class="field"><span class="field-l">Nombre de la credencial</span><span class="input">ENTRENADOR</span><span class="hint">Es lo que seguridad lee impreso en el QR.</span></div>
+              <span class="sub-l">Qué abre</span>
+              <div class="zone"><span class="box"></span><span class="zone-c"><span>Puerta general</span><small>Ingreso al predio y a la tribuna. Es el acceso de una entrada de público.</small></span></div>
+              <div class="zone is-on"><span class="box is-on"></span><span class="zone-c"><span>Entrada en calor</span><small>Calentamiento, detrás de plataforma. Usalo en la credencial de entrenador.</small></span></div>
+            </div>
+
+            <span class="hint">Esta entrada emite 2 credenciales por compra. Con cupo 30 son 30 lugares y 60 credenciales.</span>
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="item-head">
+            <span class="sw is-on"></span>
+            <span class="toggle-c"><strong>Palco · dos días</strong><small>$ 38.000</small></span>
+            <span class="trash"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></span>
+          </div>
+          <div class="grid-3">
+            <div class="field"><span class="field-l">Nombre</span><span class="input">Palco · dos días</span></div>
+            <div class="field"><span class="field-l">Precio</span><span class="input">38000</span></div>
+            <div class="field"><span class="field-l">Cupo</span><span class="input">40</span></div>
+          </div>
+          <span class="hint">Vacío = sin límite. El cupo se descuenta por compra.</span>
+        </div>
+
+        <div class="more">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+          Siguen 3 tipos más, cada uno con el mismo formulario completo
+        </div>
+      </div>
+
+      <aside class="stack">
+        <div class="card">
+          <div class="ins-h"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 19V10M10 19V5M16 19v-6M22 19H2"/></svg>Venta de entradas</div>
+          <div class="ins-m"><span class="ins-l">Vendidas</span><span class="ins-v">276</span></div>
+          <div class="ins-m"><span class="ins-l">Recaudado</span><span class="ins-v is-gold">$ 5.216.000</span></div>
+          <div class="ins-m"><span class="ins-l">Acreditadas</span><span class="ins-v">0</span></div>
+        </div>
+
+        <div class="card">
+          <div class="ins-h"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 11h16v9H4zM3 7h18v4H3zM12 7v13"/></svg>Beneficios</div>
+          <table class="rep-t">
+            <thead>
+              <tr><th scope="col" style="text-align: left;">Beneficio</th><th scope="col">Vend.</th><th scope="col">Canj.</th><th scope="col">Pend.</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">Buffet</th><td>52</td><td>0</td><td>52</td></tr>
+              <tr><th scope="row">Programa</th><td>52</td><td>0</td><td>52</td></tr>
+              <tr><th scope="row">Remera</th><td>27</td><td>0</td><td>27</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+</body>
+</html>

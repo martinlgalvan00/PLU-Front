@@ -12,7 +12,19 @@ describe('loginSchema', () => {
     expect(result.data).toEqual({
       email: 'admin@pluarg.com',
       password: 'clave-segura-123',
+      remember: false,
     })
+  })
+
+  it('conserva remember cuando el cliente lo manda', () => {
+    const result = loginSchema.safeParse({
+      email: 'admin@pluarg.com',
+      password: 'clave-segura-123',
+      remember: true,
+    })
+
+    expect(result.success).toBe(true)
+    expect(result.data.remember).toBe(true)
   })
 
   it('rechaza email invalido y password corto', () => {

@@ -2,10 +2,11 @@ import { createHash, randomBytes } from 'node:crypto'
 import { HttpError } from '../lib/errors.js'
 import { athleteSessionCache } from '../lib/sessionCache.js'
 import { assertSupabaseResult, requireSupabaseClient } from '../lib/supabaseRpc.js'
-import { hashToken } from './sessionService.js'
+import { hashToken, SESSION_DURATION_MS } from './sessionService.js'
 
 export const ATHLETE_SESSION_COOKIE_NAME = 'plu_athlete_session'
-const DURATION_MS = 30 * 24 * 60 * 60 * 1000
+/** Con “Recordarme”: 30 días, el default histórico de la cuenta del atleta. */
+export const ATHLETE_SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000
 
 function secureCookieEnabled(env = process.env) {
   if (env.SESSION_COOKIE_SECURE === 'true') return true
@@ -17,14 +18,17 @@ function hashOptional(value) {
   return value ? createHash('sha256').update(String(value)).digest('hex') : null
 }
 
-export function getAthleteSessionCookieOptions(env = process.env) {
-  return {
+export function getAthleteSessionCookieOptions(env = process.env, { remember = false } = {}) {
+  const options = {
     httpOnly: true,
     sameSite: 'lax',
     secure: secureCookieEnabled(env),
     path: '/',
-    maxAge: DURATION_MS,
   }
+  // Sin remember: cookie de sesión. Con remember: 30 días, igual que el
+  // vencimiento de la fila. No guardamos la contraseña en el dispositivo.
+  if (remember) options.maxAge = ATHLETE_SESSION_DURATION_MS
+  return options
 }
 
 export function getClearAthleteSessionCookieOptions(env = process.env) {
@@ -33,10 +37,17 @@ export function getClearAthleteSessionCookieOptions(env = process.env) {
   return options
 }
 
-export async function createAthleteSession({ client, athleteId, req, now = new Date() }) {
+export async function createAthleteSession({
+  client,
+  athleteId,
+  req,
+  now = new Date(),
+  remember = false,
+}) {
   requireSupabaseClient(client)
   const token = randomBytes(32).toString('base64url')
-  const expiresAt = new Date(now.getTime() + DURATION_MS)
+  const durationMs = remember ? ATHLETE_SESSION_DURATION_MS : SESSION_DURATION_MS
+  const expiresAt = new Date(now.getTime() + durationMs)
   assertSupabaseResult(
     await client.from('athlete_sessions').insert({
       athlete_id: athleteId,

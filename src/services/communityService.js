@@ -35,18 +35,26 @@ export function getCommunityStats(locale = 'es') {
   }
 }
 
-function fallbackSpotlight(limit = FEED_LIMIT, locale = 'es') {
+const EMPTY_STATS = Object.freeze({
+  activeGymCount: 0,
+  memberCount: 0,
+  provinceCount: 0,
+})
+
+function emptySpotlight() {
   return {
-    members: pickSpotlightMembers(getRecentMembers(SPOTLIGHT_FETCH_LIMIT, locale), limit),
-    stats: getCommunityStats(locale),
-    source: 'fallback',
+    members: [],
+    stats: { ...EMPTY_STATS },
+    source: 'unavailable',
   }
 }
 
 /**
- * Spotlight del home: intenta Supabase vía API; si falla, usa el mock editorial.
+ * Spotlight del home: solo afiliados activos reales.
+ * Si la API falla o todavía no hay nadie publicado, el roster queda vacío.
+ * El catálogo editorial (`getRecentMembers`) no se muestra como si fueran socios.
  */
-export async function fetchCommunitySpotlight(limit = FEED_LIMIT, locale = 'es') {
+export async function fetchCommunitySpotlight(limit = FEED_LIMIT, _locale = 'es') {
   try {
     const data = await apiGet(
       `/api/community/spotlight?limit=${encodeURIComponent(SPOTLIGHT_FETCH_LIMIT)}`,
@@ -62,7 +70,7 @@ export async function fetchCommunitySpotlight(limit = FEED_LIMIT, locale = 'es')
       source: 'supabase',
     }
   } catch {
-    return fallbackSpotlight(limit, locale)
+    return emptySpotlight()
   }
 }
 

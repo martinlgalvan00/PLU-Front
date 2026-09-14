@@ -1,0 +1,242 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --canvas: #0a0b0d; --surface: rgba(255,255,255,0.03); --surface-2: rgba(255,255,255,0.05);
+      --hairline: rgba(255,255,255,0.08); --border: rgba(255,255,255,0.14);
+      --ink: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8; --faint: #6f7280;
+      --brand: #74acdf; --brand-soft: #9ec5eb; --brand-deep: #1f5f9e;
+      --gold: #f2b705; --gold-soft: #ffd23f; --gold-ink: #14181f;
+      --ok: #3d9a62; --ok-soft: #8fd4a8; --danger: #e10600; --danger-soft: #ff8a87; --warn: #b45309;
+      --font: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+      --r-card: 14px; --r-field: 10px;
+    }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); }
+    a { color: var(--brand-soft); } a:hover { color: #c7dcf1; }
+    * { box-sizing: border-box; }
+
+    .page { padding: 28px 40px 40px; display: flex; flex-direction: column; gap: 22px; }
+    .back { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+
+    .hd { display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap; padding-bottom: 20px; border-bottom: 1px solid var(--hairline); }
+    .hd-c { display: flex; flex-direction: column; gap: 8px; min-width: 0; flex-grow: 1; }
+    .eyebrow { font-size: 10.5px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; color: var(--brand-soft); }
+    .h1 { font-size: 34px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; margin: 0; }
+    .hd-meta { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+    .sep { color: #4a4d57; }
+    .window { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; font-size: 11.5px; font-weight: 600; background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 28%, transparent); }
+    .dot { width: 5px; height: 5px; border-radius: 999px; background: currentColor; }
+
+    .stage { display: grid; grid-template-columns: minmax(0,1fr) 352px; gap: 28px; align-items: start; }
+    .form-col { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+
+    .step { display: flex; flex-direction: column; gap: 14px; }
+    .step-h { display: flex; align-items: baseline; gap: 11px; flex-wrap: wrap; }
+    .step-n { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 999px; font-size: 11px; font-weight: 700; background: color-mix(in srgb, var(--brand) 16%, transparent); color: var(--brand-soft); flex: 0 0 auto; align-self: center; }
+    .step-t { font-size: 17px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+    .step-hint { font-size: 12.5px; color: var(--muted); }
+
+    .card { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-card); }
+    .card-b { padding: 18px 20px; display: flex; flex-direction: column; gap: 16px; }
+
+    .stepper { display: inline-flex; align-items: center; gap: 4px; padding: 3px; border-radius: 999px; background: rgba(255,255,255,.03); border: 1px solid var(--hairline); }
+    .stepper button { width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--hairline); background: rgba(255,255,255,.04); color: var(--ink); font-family: var(--font); font-size: 18px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+    .stepper button.is-limit { opacity: .3; }
+    .stepper-v { min-width: 52px; text-align: center; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .btn-gold { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 52px; padding: 0 26px; border-radius: 12px; border: none; background: var(--gold); color: var(--gold-ink); font-size: 15px; font-weight: 700; font-family: var(--font); cursor: pointer; }
+    .btn-ghost { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); font-size: 12.5px; font-weight: 500; font-family: var(--font); cursor: pointer; }
+
+    .num { font-variant-numeric: tabular-nums; }
+    .tag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 600; white-space: nowrap; }
+    .tag--ok { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok-soft); }
+    .tag--todo { background: rgba(255,255,255,.07); color: var(--muted); }
+    .tag--warn { background: color-mix(in srgb, var(--warn) 24%, transparent); color: #e8a33d; }
+    .tag--brand { background: color-mix(in srgb, var(--brand) 15%, transparent); color: var(--brand-soft); }
+    .window { display: none; }
+    .col { max-width: 880px; display: flex; flex-direction: column; gap: 22px; }
+
+    .hold { display: flex; align-items: flex-start; gap: 14px; padding: 18px 20px; border-radius: var(--r-card); border: 1px solid color-mix(in srgb, var(--warn) 32%, transparent); background: color-mix(in srgb, var(--warn) 10%, transparent); }
+    .hold svg { color: #e8a33d; flex: 0 0 auto; margin-top: 2px; }
+    .hold-c { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex-grow: 1; }
+    .hold-t { font-size: 17px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+    .hold-p { margin: 0; font-size: 13px; color: var(--secondary); line-height: 1.6; }
+    .hold-clock { display: flex; flex-direction: column; gap: 2px; text-align: right; flex: 0 0 auto; }
+    .hold-clock strong { font-size: 20px; font-weight: 700; color: #e8a33d; font-variant-numeric: tabular-nums; }
+    .hold-clock small { font-size: 11px; color: var(--muted); }
+
+    .bank { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--hairline); border: 1px solid var(--hairline); border-radius: var(--r-card); overflow: hidden; }
+    .bank-cell { background: #0d0e11; padding: 15px 18px; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+    .bank-cell--wide { grid-column: 1 / -1; }
+    .bank-l { font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+    .bank-v { display: flex; align-items: center; gap: 12px; }
+    .bank-v strong { font-size: 17px; font-weight: 600; letter-spacing: -.01em; font-variant-numeric: tabular-nums; word-break: break-all; }
+    .bank-v.is-amount strong { color: var(--gold); font-size: 22px; font-weight: 700; }
+    .copy { margin-left: auto; display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; flex-shrink: 0; padding: 0 14px; border-radius: 10px; border: 1px solid var(--hairline); background: rgba(255,255,255,.04); color: var(--secondary); font-size: 12px; font-weight: 500; font-family: var(--font); flex: 0 0 auto; }
+
+    .drop { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 20px; border: 1px dashed rgba(255,255,255,.2); border-radius: var(--r-card); background: rgba(255,255,255,.02); }
+    .drop-ic { width: 46px; height: 46px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--brand) 13%, transparent); color: var(--brand-soft); flex: 0 0 auto; }
+    .drop-c { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .drop-t { font-size: 14px; font-weight: 600; }
+    .drop-p { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    .after { border: 1px solid var(--hairline); border-radius: var(--r-card); overflow: hidden; }
+    .after-h { padding: 14px 18px; border-bottom: 1px solid var(--hairline); font-size: 13px; font-weight: 600; background: rgba(255,255,255,.02); }
+    .after-row { display: flex; align-items: flex-start; gap: 13px; padding: 14px 18px; border-bottom: 1px solid var(--hairline); }
+    .after-row:last-child { border-bottom: none; }
+    .after-n { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand-soft); }
+    .after-c { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .after-t { font-size: 13px; font-weight: 600; }
+    .after-p { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.55; }
+
+    .queue { border: 1px solid var(--hairline); border-radius: var(--r-card); overflow: hidden; }
+    .queue-h { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--hairline); background: rgba(255,255,255,.02); }
+    .queue-t { font-size: 13px; font-weight: 600; }
+    .queue-hint { font-size: 11.5px; color: var(--muted); margin-left: auto; }
+    .q-row { display: grid; grid-template-columns: 30px minmax(0,1fr) 150px 140px; gap: 12px; align-items: center; padding: 11px 18px; border-bottom: 1px solid var(--hairline); }
+    .q-row:last-child { border-bottom: none; }
+    .q-ix { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 7px; font-size: 11px; font-weight: 700; background: rgba(255,255,255,.05); color: var(--muted); font-variant-numeric: tabular-nums; }
+    .q-name { font-size: 13px; font-weight: 500; min-width: 0; }
+    .q-dni { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .q-state { display: flex; justify-content: flex-end; }
+    .q-more { padding: 12px 18px; font-size: 11.5px; color: var(--muted); }
+  </style>
+</helmet>
+
+<div class="page">
+  <span class="back"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>Pitbull Classic 2026</span>
+
+  <header class="hd">
+    <div class="hd-c">
+      <span class="eyebrow">Entradas de público</span>
+      <h1 class="h1">Pitbull Classic 2026</h1>
+      <div class="hd-meta">
+        <span>14 y 15 de noviembre</span><span class="sep">·</span>
+        <span>Club Atlético Fénix, Pilar</span>
+      </div>
+    </div>
+    <span class="window"><span class="dot"></span>La venta cierra el 14 de noviembre a las 08:00</span>
+  </header>
+
+  <div class="col">
+    <div class="hold">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.5l3.5 2"/></svg>
+      <div class="hold-c">
+        <h2 class="hold-t">Te guardamos 10 lugares</h2>
+        <p class="hold-p">Tenés 24 horas para transferir y subir el comprobante. Si se vence, los 10 lugares vuelven a la venta y hay que empezar de nuevo.</p>
+      </div>
+      <span class="hold-clock">
+        <strong>23 h 41 m</strong>
+        <small>vence mañana a las 14:30</small>
+      </span>
+    </div>
+
+    <section class="step">
+      <div class="step-h">
+        <span class="step-n">1</span>
+        <h2 class="step-t">Transferí el importe exacto</h2>
+      </div>
+      <div class="bank">
+        <div class="bank-cell bank-cell--wide">
+          <span class="bank-l">Importe</span>
+          <span class="bank-v is-amount">
+            <strong>$ 200.000</strong>
+            <button type="button" class="copy">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M15 5H5v10"/></svg>
+              Copiar
+            </button>
+          </span>
+        </div>
+        <div class="bank-cell">
+          <span class="bank-l">Alias</span>
+          <span class="bank-v">
+            <strong>fenix.meet.plu</strong>
+            <button type="button" class="copy">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M15 5H5v10"/></svg>
+              Copiar
+            </button>
+          </span>
+        </div>
+        <div class="bank-cell">
+          <span class="bank-l">Titular</span>
+          <span class="bank-v"><strong>Club Atlético Fénix</strong></span>
+        </div>
+        <div class="bank-cell bank-cell--wide">
+          <span class="bank-l">CBU</span>
+          <span class="bank-v">
+            <strong>0000003100010000000001</strong>
+            <button type="button" class="copy">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M15 5H5v10"/></svg>
+              Copiar
+            </button>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="step-h">
+        <span class="step-n">2</span>
+        <h2 class="step-t">Subí el comprobante</h2>
+        <span class="step-hint">Captura o PDF</span>
+      </div>
+      <div class="drop">
+        <span class="drop-ic">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 16V5M8 9l4-4 4 4"/><path d="M4 16v3h16v-3"/></svg>
+        </span>
+        <span class="drop-c">
+          <span class="drop-t">Arrastrá el archivo o elegilo</span>
+          <p class="drop-p">Que se lean el importe, la fecha y el destinatario. Es lo único que mira Administración.</p>
+        </span>
+        <button type="button" class="btn-gold" style="margin-left: auto;">Elegir archivo</button>
+      </div>
+    </section>
+
+    <div class="after">
+      <div class="after-h">Qué pasa después</div>
+      <div class="after-row">
+        <span class="after-n">1</span>
+        <span class="after-c">
+          <span class="after-t">Administración revisa el comprobante</span>
+          <p class="after-p">Hasta 48 horas. Te avisamos por mail al aprobarse o si algo no cierra.</p>
+        </span>
+      </div>
+      <div class="after-row">
+        <span class="after-n">2</span>
+        <span class="after-c">
+          <span class="after-t">Se emiten los 10 QR juntos</span>
+          <p class="after-p">Uno por persona, con su nombre y su DNI. Ninguno sirve para dos.</p>
+        </span>
+      </div>
+      <div class="after-row">
+        <span class="after-n">3</span>
+        <span class="after-c">
+          <span class="after-t">Le mandás a cada uno el suyo</span>
+          <p class="after-p">Desde esta misma pantalla, uno por uno. En la puerta cada persona muestra el suyo.</p>
+        </span>
+      </div>
+    </div>
+
+    <div class="queue">
+      <div class="queue-h">
+        <span class="queue-t">Las 10 entradas de esta compra</span>
+        <span class="queue-hint">Los QR se habilitan todos juntos, al aprobarse el pago</span>
+      </div>
+      <div class="q-row"><span class="q-ix">1</span><span class="q-name">Camila Rearte</span><span class="q-dni">38.402.115</span><span class="q-state"><span class="tag tag--todo">QR en espera</span></span></div>
+      <div class="q-row"><span class="q-ix">2</span><span class="q-name">Julián Ferreyra</span><span class="q-dni">41.908.330</span><span class="q-state"><span class="tag tag--todo">QR en espera</span></span></div>
+      <div class="q-row"><span class="q-ix">3</span><span class="q-name">Sofía Benítez</span><span class="q-dni">44.120.887</span><span class="q-state"><span class="tag tag--todo">QR en espera</span></span></div>
+      <div class="q-more">y 7 más</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
