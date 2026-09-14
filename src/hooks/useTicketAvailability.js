@@ -26,19 +26,16 @@ export function useTicketAvailability(eventSlug) {
  * arma completa y el 409 del backend sigue siendo la última palabra. Cerrar por
  * falta de dato dejaría la venta caída por un problema de red.
  */
-// `channels` viaja junto a los dos booleanos: la pantalla necesita saber qué
-// medios están abiertos, no sólo si hay venta. Cerrado por defecto salvo la
-// pasarela, que se deja abierta para no caer la venta por falta de dato.
-const CHECKOUT_CLOSED = {
-  ticketEnabled: false,
+const CHECKOUT_PENDING = {
+  ticketEnabled: true,
   ticketManualEnabled: false,
   channels: { mercado_pago: true, bank_transfer: false, cash_pitbull: false, wise_transfer: false },
   bankTransfer: { alias: '', cbu: '', holder: '' },
 }
-const selectCheckout = (data) => data?.checkout ?? CHECKOUT_CLOSED
+const selectCheckout = (data) => data?.checkout ?? CHECKOUT_PENDING
 
 export function useTicketCheckoutAvailability(eventSlug) {
-  return useAvailabilitySlice(eventSlug, selectCheckout, CHECKOUT_CLOSED)
+  return useAvailabilitySlice(eventSlug, selectCheckout, CHECKOUT_PENDING)
 }
 
 function useAvailabilitySlice(eventSlug, select, fallback) {

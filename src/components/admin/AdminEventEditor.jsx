@@ -46,6 +46,13 @@ import {
   publicSurfaceModulesForEvent,
 } from '../../lib/eventPublicSurface.js'
 import { validateAdminEventDraft } from '../../lib/schemas/adminEvent.js'
+import {
+  allOpenEventPaymentChannelOverrides,
+  EVENT_PAYMENT_CONCEPTS,
+  isEventChannelOpenAnywhere,
+  isEventChannelOpenForConcept,
+  normalizeEventPaymentChannelOverrides,
+} from '../../lib/eventPaymentChannels.js'
 import { createPaymentProfile, fetchPaymentProfiles } from '../../services/paymentProfileService.js'
 import AdminTicketAddonsEditor from './AdminTicketAddonsEditor.jsx'
 import AdminTicketTypesEditor from './AdminTicketTypesEditor.jsx'
@@ -77,16 +84,27 @@ const SALES_FIELD_KEYS = new Set([
   'registrationClosesAt',
   'ticketSalesOpensAt',
   'ticketSalesClosesAt',
+  // Claves de raíz, sin índice: `ticketsNeedType` y `ticketsNeedDays` las
+  // emiten como `ticketTypes` y `eventDays` pelados, y `startsWith('x.')` no
+  // los agarra. Sin esto el guardado rebotaba a Datos -- otra pestaña, sin
+  // ningún campo marcado -- y el motivo real no se mostraba en ningún lado.
+  'ticketTypes',
+  'eventDays',
 ])
 
 function resolveSalesChapterForField(key) {
   if (!key) return 'cupo'
   if (
+    key === 'ticketTypes' ||
+    key === 'eventDays' ||
     key.startsWith('ticketTypes.') ||
     key.startsWith('pricing.ticketAddons') ||
     key === 'ticketSalesOpensAt' ||
     key === 'ticketSalesClosesAt'
   ) {
+    // `eventDays` cae acá y no en Estructura a propósito: el error lo dispara
+    // haber prendido la venta de entradas, y el capítulo ya ofrece el atajo a
+    // Estructura para cargar las jornadas que faltan.
     return 'tickets'
   }
   if (
@@ -763,6 +781,20 @@ export default function AdminEventEditor({
     if (syncError) setSyncError(null)
   }
 
+  /** Un medio, para un concepto. El resto de la matriz queda como estaba. */
+  function patchPaymentChannel(concept, channel, enabled) {
+    const current =
+      normalizeEventPaymentChannelOverrides(draft.paymentChannelOverrides) ??
+      allOpenEventPaymentChannelOverrides()
+    patchDraft({
+      ...draft,
+      paymentChannelOverrides: {
+        ...current,
+        [concept]: { ...(current[concept] ?? {}), [channel]: enabled },
+      },
+    })
+  }
+
   function requestClose() {
     if (syncing) return
     if (hasUnsavedChanges) {
@@ -1061,29 +1093,31 @@ export default function AdminEventEditor({
                       />
                     </FormField>
 
-                    {!essentials ? (
-                      <FormField
-                        wide
-                        htmlFor="event-description"
-                        label={t('admin.eventEditor.description')}
-                        error={err('description')}
-                      >
-                        <textarea
-                          id="event-description"
-                          name="description"
-                          data-field="description"
-                          rows={4}
-                          maxLength={1000}
-                          value={draft.description ?? ''}
-                          aria-invalid={Boolean(err('description'))}
-                          onChange={(event) =>
-                            patchDraft({ ...draft, description: event.target.value })
-                          }
-                          placeholder={t('admin.eventEditor.descriptionPlaceholder')}
-                          disabled={!canEdit}
-                        />
-                      </FormField>
-                    ) : null}
+                    {/* La descripción viaja también en el editor embebido: es
+                        el texto que lee el atleta en la página del evento y,
+                        mientras estuvo recortada por `essentials`, un evento ya
+                        creado no tenía ningún lugar donde editarla. */}
+                    <FormField
+                      wide
+                      htmlFor="event-description"
+                      label={t('admin.eventEditor.description')}
+                      error={err('description')}
+                    >
+                      <textarea
+                        id="event-description"
+                        name="description"
+                        data-field="description"
+                        rows={4}
+                        maxLength={1000}
+                        value={draft.description ?? ''}
+                        aria-invalid={Boolean(err('description'))}
+                        onChange={(event) =>
+                          patchDraft({ ...draft, description: event.target.value })
+                        }
+                        placeholder={t('admin.eventEditor.descriptionPlaceholder')}
+                        disabled={!canEdit}
+                      />
+                    </FormField>
 
                       <FormField
                       htmlFor="event-starts-at"
@@ -1478,12 +1512,7 @@ export default function AdminEventEditor({
                             patchDraft({
                               ...draft,
                               paymentChannelOverrides: event.target.checked
-                                ? {
-                                    mercado_pago: true,
-                                    bank_transfer: true,
-                                    cash_pitbull: true,
-                                    wise_transfer: true,
-                                  }
+                                ? allOpenEventPaymentChannelOverrides()
                                 : null,
                             })
                           }
@@ -1496,41 +1525,66 @@ export default function AdminEventEditor({
                         </span>
                       </label>
 
+                      {/* Una fila por medio y una columna por concepto: cerrar
+                          el efectivo para entradas no puede cerrarlo también
+                          para la inscripción de atletas, que era lo que pasaba
+                          cuando el override era un solo juego de banderas. */}
                       {draft.paymentChannelOverrides != null ? (
-                        <div className="admin-event-form__channel-grid" role="group">
+                        <div
+                          className="admin-event-form__channel-grid admin-event-form__channel-matrix"
+                          role="group"
+                          aria-label={t('admin.eventEditor.paymentChannelMatrixLabel')}
+                        >
+                          <p className="admin-event-form__channel-lead">
+                            {t('admin.eventEditor.paymentChannelMatrixHint')}
+                          </p>
                           {[
                             ['mercado_pago', 'paymentChannelMercadoPago'],
                             ['bank_transfer', 'paymentChannelBankTransfer'],
                             ['cash_pitbull', 'paymentChannelCashPitbull'],
                             ['wise_transfer', 'paymentChannelWise'],
                           ].map(([channel, labelKey]) => (
-                            <label className="admin-event-form__toggle" key={channel}>
-                              <input
-                                checked={draft.paymentChannelOverrides?.[channel] !== false}
-                                className="admin-event-form__toggle-input"
-                                type="checkbox"
-                                onChange={(changeEvent) =>
-                                  patchDraft({
-                                    ...draft,
-                                    paymentChannelOverrides: {
-                                      ...draft.paymentChannelOverrides,
-                                      [channel]: changeEvent.target.checked,
-                                    },
-                                  })
-                                }
-                                disabled={!canEdit}
-                              />
-                              <span className="admin-event-form__toggle-ui" aria-hidden />
-                              <span className="admin-event-form__toggle-copy">
-                                <strong>{t(`admin.eventEditor.${labelKey}`)}</strong>
+                            <div className="admin-event-form__channel-row" key={channel}>
+                              <span className="admin-event-form__channel-name">
+                                {t(`admin.eventEditor.${labelKey}`)}
                               </span>
-                            </label>
+                              <div className="admin-event-form__channel-cells">
+                                {EVENT_PAYMENT_CONCEPTS.map((concept) => (
+                                  <label className="admin-event-form__channel-cell" key={concept}>
+                                    <input
+                                      checked={isEventChannelOpenForConcept(
+                                        draft.paymentChannelOverrides,
+                                        concept,
+                                        channel,
+                                      )}
+                                      type="checkbox"
+                                      aria-label={`${t(`admin.eventEditor.${labelKey}`)} · ${t(
+                                        `admin.eventEditor.paymentChannelConcept.${concept}`,
+                                      )}`}
+                                      onChange={(changeEvent) =>
+                                        patchPaymentChannel(
+                                          concept,
+                                          channel,
+                                          changeEvent.target.checked,
+                                        )
+                                      }
+                                      disabled={!canEdit}
+                                    />
+                                    <span>
+                                      {t(`admin.eventEditor.paymentChannelConcept.${concept}`)}
+                                    </span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
                           ))}
                         </div>
                       ) : null}
 
-                      {draft.paymentChannelOverrides == null ||
-                      draft.paymentChannelOverrides.mercado_pago !== false ? (
+                      {isEventChannelOpenAnywhere(
+                        draft.paymentChannelOverrides,
+                        'mercado_pago',
+                      ) ? (
                         <div className="admin-event-form__bank-transfer">
                           <header className="admin-event-form__lane-head">
                             <h5 className="admin-event-form__lane-title">
@@ -1677,8 +1731,10 @@ export default function AdminEventEditor({
                         </div>
                       ) : null}
 
-                      {draft.paymentChannelOverrides == null ||
-                      draft.paymentChannelOverrides.bank_transfer !== false ? (
+                      {isEventChannelOpenAnywhere(
+                        draft.paymentChannelOverrides,
+                        'bank_transfer',
+                      ) ? (
                         <div className="admin-event-form__bank-transfer">
                           <header className="admin-event-form__lane-head">
                             <h5 className="admin-event-form__lane-title">
@@ -1871,6 +1927,30 @@ export default function AdminEventEditor({
                         </small>
                       </span>
                     </label>
+
+                    {/* Los dos bloqueos de "prendiste la venta pero falta algo"
+                        llegan como claves de raíz, sin un input al que colgarse:
+                        sin estos carteles el Guardar no hacía nada visible. */}
+                    {err('eventDays') ? (
+                      <p
+                        className="admin-event-form__alert"
+                        role="alert"
+                        data-field="eventDays"
+                        tabIndex={-1}
+                      >
+                        {err('eventDays')}
+                      </p>
+                    ) : null}
+                    {err('ticketTypes') ? (
+                      <p
+                        className="admin-event-form__alert"
+                        role="alert"
+                        data-field="ticketTypes"
+                        tabIndex={-1}
+                      >
+                        {err('ticketTypes')}
+                      </p>
+                    ) : null}
 
                     {ticketSalesEnabled ? (
                       <>

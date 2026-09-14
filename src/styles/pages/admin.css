@@ -18178,6 +18178,63 @@ button.action-queue__proof:focus-visible {
   gap: var(--space-2, 0.5rem);
 }
 
+/* Matriz medio × concepto: una fila por medio de pago, una casilla por
+   concepto. El concepto va escrito al lado de cada casilla en vez de en una
+   cabecera de columna, así la fila se apila sola en pantallas angostas sin
+   perder a qué corresponde cada tilde. */
+.admin-event-form__channel-lead {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11.5px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.admin-event-form__channel-row {
+  align-items: center;
+  border: 1px solid
+    color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 80%, transparent);
+  border-radius: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1, 0.25rem) var(--space-3, 0.75rem);
+  padding: 4px 12px;
+}
+
+.admin-event-form__channel-name {
+  color: var(--admin-ink, var(--color-text));
+  flex: 1 1 150px;
+  font-size: 12.5px;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.admin-event-form__channel-cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3, 0.75rem);
+}
+
+.admin-event-form__channel-cell {
+  align-items: center;
+  color: var(--admin-text-secondary, var(--color-text-secondary));
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  gap: 7px;
+  min-height: 44px;
+}
+
+.admin-event-form__channel-cell input {
+  accent-color: var(--color-brand-celeste);
+  block-size: 16px;
+  cursor: inherit;
+  inline-size: 16px;
+}
+
+.admin-event-form__channel-cell input:disabled {
+  cursor: not-allowed;
+}
+
 .admin-event-form__bank-transfer {
   display: grid;
   gap: var(--space-3, 0.75rem);

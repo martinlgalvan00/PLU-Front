@@ -16,8 +16,7 @@ export default defineConfig(({ mode }) => {
     // Flags compartidas front/back: PAYMENTS_MOCK / PAID_CHECKOUT_*
     envPrefix: ['VITE_', 'PAYMENTS_', 'APP_', 'PAID_'],
     // Vite no inyecta VITE_* desde process.env, sólo desde archivos .env.
-    // El arnés E2E setea el flag en el entorno del proceso: sin esto la
-    // página de entradas queda en "Próximamente" aunque el evento esté abierto.
+    // El arnés E2E puede setear el freno en el entorno del proceso.
     define: {
       'import.meta.env.VITE_TICKET_SALES_ENABLED': JSON.stringify(ticketSalesEnabled),
     },

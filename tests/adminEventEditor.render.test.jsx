@@ -350,3 +350,175 @@ describe('AdminEventEditor — acceso al meet', () => {
     })
   })
 })
+
+/**
+ * Regresión: prender la venta de entradas sin ningún tipo vendible bloquea el
+ * guardado, y el motivo llega como clave de raíz (`ticketTypes`, `eventDays`),
+ * sin un input al que colgar el error. Antes eso mandaba al operador a Datos
+ * -- otra pestaña, sin nada marcado -- y el mensaje no se mostraba en ningún
+ * lado: el botón Guardar parecía no hacer nada.
+ */
+describe('AdminEventEditor — venta de entradas bloqueada', () => {
+  function renderTicketsDraft(overrides = {}) {
+    const draft = buildAdminEventDraft({
+      id: 'evt-9',
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic',
+      venue: 'Maximal Strength Club',
+      location: 'Buenos Aires',
+      status: 'inscripcion_abierta',
+      slots: 120,
+      startsAt: '2026-09-15T12:00:00.000Z',
+      endsAt: '2026-09-15T23:00:00.000Z',
+      pricing: { membership: 75000, registration: 75000, combo: 120000, ticketsEnabled: true },
+      eventDays: [{ dayIndex: 0, label: 'Sábado' }],
+      ticketTypes: [],
+      ...overrides,
+    })
+
+    return render(
+      <I18nProvider>
+        <AdminEventEditor
+          canEdit
+          canManageUsers={false}
+          // Distinta de la firma del draft: sin `dirty` el editor ni valida.
+          baselineSignature="baseline-vieja"
+          draft={draft}
+          sourceEvent={null}
+          onCancel={() => {}}
+          onChange={() => {}}
+          onListSecurityUsers={async () => []}
+          onSubmit={() => {}}
+        />
+      </I18nProvider>,
+    )
+  }
+
+  function save() {
+    fireEvent.submit(document.querySelector('form.admin-event-form'))
+  }
+
+  it('muestra el motivo dentro del capítulo Entradas', () => {
+    renderTicketsDraft()
+    save()
+
+    const alert = document.querySelector('[data-field="ticketTypes"]')
+    expect(alert).not.toBeNull()
+    expect(alert.textContent).toMatch(/al menos un tipo activo con precio/i)
+    // Visible de verdad: no adentro del panel oculto de otro capítulo.
+    expect(alert.closest('[hidden]')).toBeNull()
+  })
+
+  it('no rebota a Datos: deja abierta la sección donde está el problema', () => {
+    renderTicketsDraft()
+    save()
+
+    const sales = within(editorTablist()).getByRole('tab', { name: /ventas y cupos/i })
+    expect(sales.getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByRole('tab', { name: /^entradas$/i }).getAttribute('aria-selected')).toBe(
+      'true',
+    )
+  })
+
+  it('hace lo mismo cuando lo que falta son las jornadas', () => {
+    renderTicketsDraft({ eventDays: [] })
+    save()
+
+    const alert = document.querySelector('[data-field="eventDays"]')
+    expect(alert).not.toBeNull()
+    expect(alert.textContent).toMatch(/al menos un día del evento/i)
+    expect(alert.closest('[hidden]')).toBeNull()
+  })
+})
+
+/**
+ * Los medios de cobro del evento eran un solo juego de interruptores para todo:
+ * cerrar el efectivo para entradas lo cerraba también para la inscripción de
+ * atletas. Ahora es una matriz medio × concepto.
+ */
+describe('AdminEventEditor — medios de cobro por concepto', () => {
+  function openPaymentChapter() {
+    activateEditorTab(/ventas y cupos/i)
+    fireEvent.click(screen.getByRole('tab', { name: /^cobro$/i }))
+  }
+
+  function customizeToggle() {
+    return screen.getByRole('checkbox', { name: /personalizar medios de cobro/i })
+  }
+
+  it('sin personalizar no muestra la matriz', () => {
+    renderEditor()
+    openPaymentChapter()
+
+    expect(customizeToggle().checked).toBe(false)
+    expect(screen.queryByRole('group', { name: /medios de pago por concepto/i })).toBeNull()
+  })
+
+  it('al personalizar ofrece los cuatro medios para inscripción y para entradas', () => {
+    const onChange = vi.fn()
+    renderEditor({}, { onChange })
+    openPaymentChapter()
+    fireEvent.click(customizeToggle())
+
+    // El punto de partida es todo abierto: prender el interruptor no puede
+    // cerrar una venta por sí solo.
+    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(onChange.mock.calls[0][0].paymentChannelOverrides).toEqual({
+      registration: {
+        mercado_pago: true,
+        bank_transfer: true,
+        cash_pitbull: true,
+        wise_transfer: true,
+      },
+      ticket: {
+        mercado_pago: true,
+        bank_transfer: true,
+        cash_pitbull: true,
+        wise_transfer: true,
+      },
+    })
+  })
+
+  it('cierra un medio solo para entradas, sin tocar la inscripción', () => {
+    const onChange = vi.fn()
+    renderEditor(
+      {
+        paymentChannelOverrides: {
+          registration: { cash_pitbull: true },
+          ticket: { cash_pitbull: true },
+        },
+      },
+      { onChange },
+    )
+    openPaymentChapter()
+
+    const matrix = screen.getByRole('group', { name: /medios de pago por concepto/i })
+    expect(within(matrix).getAllByRole('checkbox')).toHaveLength(8)
+
+    fireEvent.click(
+      within(matrix).getByRole('checkbox', { name: /efectivo pitbull · entradas/i }),
+    )
+
+    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(onChange.mock.calls[0][0].paymentChannelOverrides).toEqual({
+      registration: { cash_pitbull: true },
+      ticket: { cash_pitbull: false },
+    })
+  })
+
+  it('lee la forma plana vieja como "lo mismo para los dos"', () => {
+    renderEditor({ paymentChannelOverrides: { cash_pitbull: false } })
+    openPaymentChapter()
+
+    const matrix = screen.getByRole('group', { name: /medios de pago por concepto/i })
+    expect(
+      within(matrix).getByRole('checkbox', { name: /efectivo pitbull · inscripción/i }).checked,
+    ).toBe(false)
+    expect(
+      within(matrix).getByRole('checkbox', { name: /efectivo pitbull · entradas/i }).checked,
+    ).toBe(false)
+    expect(
+      within(matrix).getByRole('checkbox', { name: /mercado pago · entradas/i }).checked,
+    ).toBe(true)
+  })
+})

@@ -599,7 +599,11 @@ describe('EventsSection — alta rápida', () => {
     renderEvents({ onSaveEvent, onSetEventState })
     workspace()
 
-    fireEvent.click(screen.getByRole('button', { name: /^cerrado$/i }))
+    fireEvent.click(
+      [...document.querySelectorAll('.admin-event-state__option')].find((option) =>
+        /^cerrado$/i.test(option.textContent ?? ''),
+      ),
+    )
 
     expect(onSetEventState).not.toHaveBeenCalled()
     expect(document.querySelector('.admin-event-state__pending')).toBeNull()

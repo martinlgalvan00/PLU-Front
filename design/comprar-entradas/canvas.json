@@ -1,0 +1,92 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1700,
+      "title": "Comprar · el formulario",
+      "is_interactive": true
+    },
+    {
+      "file": "Hoy.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 1220,
+      "title": "Hoy"
+    },
+    {
+      "file": "Transferencia.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 1440,
+      "title": "Pagar por transferencia"
+    },
+    {
+      "file": "Confirmacion.dc.html",
+      "x": 0,
+      "y": 2060,
+      "w": 1440,
+      "h": 980,
+      "title": "Las 10 entradas emitidas"
+    },
+    {
+      "file": "Movil.dc.html",
+      "x": 1560,
+      "y": 2060,
+      "w": 390,
+      "h": 844,
+      "title": "En el teléfono"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "tesis",
+      "x": 0,
+      "y": -470,
+      "w": 700,
+      "text": "TESIS\n\nComprar 10 entradas tiene que sentirse como cargar 10 personas, no como elegir una cantidad, porque el QR se emite por persona y en la puerta se valida contra su DNI.\n\nEl formulario de la izquierda es el único artboard que funciona de verdad: movés el + y el − y se rearman la tira de QR, la lista de personas, el contador y el total. Es la forma más directa de contestar \"si compro 10, ¿qué pasa?\".\n\nTres cambios sobre lo que hay hoy:\n\n1. El compromiso se dice mientras elegís, no antes. \"Se emiten 10 credenciales, una por persona\" cambia con el stepper.\n2. La tira de QR hace visible lo invisible: 10 recuadros, y los punteados son los que todavía no tienen nombre y DNI.\n3. El medio de pago se elige antes de cargar 10 formularios, porque decide cuándo llegan los QR."
+    },
+    {
+      "id": "topes",
+      "x": 760,
+      "y": -470,
+      "w": 620,
+      "text": "LOS DOS LÍMITES, YA IMPLEMENTADOS\n\n· El tope pasó de 8 a 10 entradas por compra, en el formulario (MAX_TICKETS) y en el schema de la orden del servidor. Once entradas se rechazan.\n\n· El DNI repetido ahora corta la compra. Se marca la fila repetida —no la primera— y dice contra cuál choca. La validación está en los dos lados: validateTicketAttendees para el formulario, y un superRefine en el schema de la orden, porque una orden se puede armar sin pasar por la pantalla.\n\nLa comparación ignora los puntos: 38.402.115 y 38402115 son el mismo documento."
+    },
+    {
+      "id": "hoy",
+      "x": 1560,
+      "y": -470,
+      "w": 660,
+      "text": "LO QUE HAY HOY\n\nNo está mal: el formulario ya pide nombre y DNI por entrada, y ya existe la frase \"Una entrada = un QR\".\n\nEl problema es cuándo y cómo se dice. Es una línea de 12 px en un cartel arriba de la tabla, escrita antes de que el comprador toque el stepper, y no vuelve a aparecer. Cuando sube a 8 nada cambia: el cartel dice lo mismo, el total cambia, y recién al hacer scroll aparecen ocho pares de campos vacíos.\n\nEl stepper dice \"Cantidad de entradas\". Eso invita a pensar en unidades de un producto, no en personas."
+    },
+    {
+      "id": "transferencia",
+      "x": 3120,
+      "y": -470,
+      "w": 660,
+      "text": "PAGAR POR TRANSFERENCIA\n\nEs el camino más frágil y hoy el que menos se explica: la orden se crea, hay 24 horas para subir el comprobante y hasta 48 para que Administración lo apruebe, y eso recién se lee en un párrafo después de comprar.\n\nAcá el plazo es lo primero que se ve, con el reloj al costado. Los datos bancarios son cuatro celdas copiables, con el importe exacto arriba de todo porque es lo que más se equivoca.\n\nY la lista del final contesta la pregunta que queda colgada: las 10 credenciales existen, en espera, y se habilitan todas juntas al aprobarse el pago."
+    },
+    {
+      "id": "confirmacion",
+      "x": 0,
+      "y": 1760,
+      "w": 660,
+      "text": "LAS 10 ENTRADAS EMITIDAS\n\nUna tarjeta por persona, con su nombre, su DNI y su QR, y un botón de enviar en cada una. Eso es lo que convierte \"compré 10\" en \"cada uno tiene el suyo\".\n\nEl código de abajo a la derecha (PLU-4821-03) existe para el caso incómodo: alguien perdió el mensaje y hay que encontrar su entrada entre diez iguales.\n\nLa nota del final explica el modo de falla real, sin tecnicismo: un QR se escanea una sola vez, así que la segunda persona que llegue con el mismo no entra."
+    },
+    {
+      "id": "movil",
+      "x": 2080,
+      "y": 2060,
+      "w": 520,
+      "text": "TELÉFONO\n\nSin barra de estado falsa. Acá se compra de verdad, así que la tira de QR y el contador van arriba de todo, antes de cualquier campo.\n\nEl medio de pago entra como segundo paso, igual que en escritorio: si en el teléfono se saltea, el argumento de \"elegilo antes de cargar los datos\" se cae.\n\nLa tabla de diez columnas no se apila: cada persona es una tarjeta, y la lista arranca colapsada mostrando sólo la que tiene el problema. Buscar el error entre diez tarjetas era el otro modo de fallar.\n\nTodo lo tocable llega a 44 px, y el total con el \"10 entradas · 10 QR\" queda fijo abajo."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

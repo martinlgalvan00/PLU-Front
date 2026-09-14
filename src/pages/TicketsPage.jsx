@@ -20,7 +20,11 @@ import {
   useTicketCheckoutAvailability,
 } from '../hooks/useTicketAvailability.js'
 import { getUpcomingEventsByDate } from '../lib/eventNavigation.js'
-import { cheapestTicketTypePrice, ticketPricingFromEvent } from '../lib/eventPricing.js'
+import {
+  cheapestTicketTypePrice,
+  isTicketSalesEnabled,
+  ticketPricingFromEvent,
+} from '../lib/eventPricing.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { money } from '../lib/format.js'
@@ -138,7 +142,7 @@ export default function TicketsPage({
     checkoutKind: 'ticket',
   })
   const eventSalesOpen =
-    env.ticketSalesEnabled && paidCheckoutOpen && selectedEvent?.pricing?.ticketsEnabled === true
+    env.ticketSalesEnabled && paidCheckoutOpen && isTicketSalesEnabled(selectedEvent)
   // El interruptor global del panel se pide con el mismo request que el cupo, así
   // que se consulta con el slug del evento aunque la venta ya esté cerrada por
   // fecha o por configuración del torneo.
@@ -262,7 +266,7 @@ export default function TicketsPage({
                 <Item {...itemProps}>
                   <p className="tickets-page__sales-paused" role="status">
                     <Clock3 size={15} aria-hidden />
-                    {t('pages.ticketsPage.salesPaused')}
+                    <span>{t('pages.ticketsPage.salesPaused')}</span>
                   </p>
                 </Item>
               ) : null}
