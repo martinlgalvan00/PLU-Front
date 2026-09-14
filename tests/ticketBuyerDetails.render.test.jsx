@@ -212,17 +212,43 @@ describe('validateTicketBuyer', () => {
 })
 
 describe('lote de asistentes', () => {
-  it('elige el tipo con un select por fila, no con chips', () => {
-    renderSection(() => {}, {
-      pricing: {
-        eventDays: [],
-        addons: [],
-        ticketTypes: [
-          { id: 'publico-d1', name: 'Público general día 1', price: 15000 },
-          { id: 'entrenador-d1', name: 'Entrenador día 1', price: 18000 },
-        ],
+  const multiTypePricing = {
+    eventDays: [],
+    addons: [],
+    ticketTypes: [
+      {
+        id: 'publico-d1',
+        name: 'Público general día 1',
+        price: 15000,
+        zoneScopes: ['gate_tickets'],
+        credentialCount: 1,
       },
-    })
+      {
+        id: 'entrenador-d1',
+        name: 'Entrenador día 1',
+        price: 18000,
+        zoneScopes: ['gate_tickets', 'athletes_coaches'],
+        credentialCount: 2,
+      },
+    ],
+  }
+
+  it('elige el tipo con un select, sin repetir el catálogo de ofertas', () => {
+    renderSection(() => {}, { pricing: multiTypePricing })
+
+    const solo = document.querySelector('select[name="attendee-0-ticketTypeId"]')
+    expect(solo).not.toBeNull()
+    expect(document.querySelectorAll('input[name="attendee-0-ticketTypeId"]')).toHaveLength(0)
+    expect(document.querySelector('.ticket-purchase__type-guide')).toBeNull()
+    expect(document.querySelector('.ticket-type-options')).toBeNull()
+    expect(solo.value).toBe('publico-d1')
+    expect(solo.textContent).toContain('Público general día 1')
+    expect(solo.textContent).toContain('15.000')
+    expect(document.body.textContent).toContain('Abre Puerta general')
+  })
+
+  it('elige el tipo con un select por fila, no con chips', () => {
+    renderSection(() => {}, { pricing: multiTypePricing })
 
     fireEvent.click(screen.getByRole('button', { name: 'Sumar entrada' }))
 
@@ -231,6 +257,8 @@ describe('lote de asistentes', () => {
     expect(first).not.toBeNull()
     expect(second).not.toBeNull()
     expect(first.value).toBe('publico-d1')
+    expect(document.querySelector('.ticket-purchase__type-guide')).toBeNull()
+    expect(document.querySelector('.ticket-type-options')).toBeNull()
     expect(document.querySelectorAll('.ticket-purchase__day-chip')).toHaveLength(0)
 
     fireEvent.change(first, { target: { value: 'entrenador-d1' } })

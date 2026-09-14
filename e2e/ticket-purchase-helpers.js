@@ -270,19 +270,11 @@ export async function purchaseTickets(
 /**
  * Selecciona un tipo de entrada para un asistente.
  *
- * En cantidad 1 (editorial) son radios de `TicketTypeOptions`. En lote es un
- * `<select>` por fila.
+ * El checkout editorial elige el tipo con un `<select>` por asistente.
+ * El catálogo de ofertas queda en la vidriera, no se vuelve a pintar acá.
  */
 export async function selectTicketType(page, index, typeName) {
   const form = page.locator('#checkout form.ticket-purchase')
-  const radios = form.locator(`input[type="radio"][name="attendee-${index}-ticketTypeId"]`)
-  if ((await radios.count()) > 0) {
-    const option = form.locator('label.ticket-type-options__option').filter({ hasText: typeName })
-    await option.click()
-    await expect(option.locator('input[type="radio"]')).toBeChecked()
-    return
-  }
-
   const select = form.locator(`select[name="attendee-${index}-ticketTypeId"]`)
   await expect(select).toBeVisible()
   const optionValue = await select.locator('option').evaluateAll((options, name) => {
