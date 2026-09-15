@@ -1,42 +1,54 @@
-import { ArrowRight, Ticket } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getStatusMeta } from '../../lib/status.js'
 
 /**
  * Proof del hero — invitación al próximo meet.
- * El panel es fecha + sede. Si hay entradas en venta, esa señal cuelga
- * debajo (no adentro): "Cerrado" era la inscripción de atletas.
+ * El panel es fecha + sede. Si hay entradas en venta, esa señal cierra
+ * la misma ficha y es la acción primaria: abre la compra, no el evento.
  */
 export default function HeroStatusCard({
   event,
   onSelect,
+  onSelectTickets,
   statusLabelOverride,
   ticketsAvailable = false,
 }) {
   const { PITBULL_CLASSIC } = useContent()
   const { t } = useI18n()
-  const isButton = typeof onSelect === 'function'
-  const Tag = isButton ? 'button' : 'aside'
+  const ticketsAction = typeof onSelectTickets === 'function' ? onSelectTickets : onSelect
+  const eventAction = typeof onSelect === 'function' ? onSelect : undefined
+  const hasSplitActions = ticketsAvailable && typeof ticketsAction === 'function'
+  const Tag = hasSplitActions ? 'div' : eventAction ? 'button' : 'aside'
+  const PanelTag = hasSplitActions && eventAction ? 'button' : 'span'
+  const TicketsTag = hasSplitActions ? 'button' : 'span'
   const { label: fallbackStatusLabel } = getStatusMeta(event?.status ?? 'proximamente', t)
   const statusLabel = statusLabelOverride || fallbackStatusLabel
-  const ariaLabel = ticketsAvailable ? t('hero.statusTicketsAria') : t('hero.statusNextMeet')
+  const ticketsAria = t('hero.statusTicketsAria')
+  const eventAria = t('hero.statusNextMeet')
+  const cueLabel = ticketsAvailable ? t('hero.statusViewTickets') : t('hero.statusViewEvent')
 
   return (
     <Tag
       className={[
         'hero-meta',
         'hero-meta--note',
-        isButton ? 'hero-meta--action' : '',
+        !hasSplitActions && eventAction ? 'hero-meta--action' : '',
         ticketsAvailable ? 'hero-meta--tickets' : '',
       ]
         .filter(Boolean)
         .join(' ')}
-      aria-label={ariaLabel}
-      type={isButton ? 'button' : undefined}
-      onClick={isButton ? onSelect : undefined}
+      aria-label={hasSplitActions ? undefined : ticketsAvailable ? ticketsAria : eventAria}
+      type={!hasSplitActions && eventAction ? 'button' : undefined}
+      onClick={!hasSplitActions && eventAction ? onSelect : undefined}
     >
-      <span className="hero-meta__panel">
+      <PanelTag
+        className="hero-meta__panel"
+        type={PanelTag === 'button' ? 'button' : undefined}
+        aria-label={PanelTag === 'button' ? eventAria : undefined}
+        onClick={PanelTag === 'button' ? eventAction : undefined}
+      >
         <span className="hero-meta__date" aria-hidden>
           <span className="hero-meta__date-day">{PITBULL_CLASSIC.dateDay}</span>
           <span className="hero-meta__date-month">{PITBULL_CLASSIC.dateMonth}</span>
@@ -50,7 +62,7 @@ export default function HeroStatusCard({
           {ticketsAvailable ? null : (
             <span className="hero-meta__invite">
               <span className="hero-meta__status">{statusLabel}</span>
-              {isButton ? (
+              {eventAction ? (
                 <span className="hero-meta__go" aria-hidden>
                   <span className="hero-meta__cue">{t('hero.statusViewEvent')}</span>
                   <ArrowRight size={14} className="hero-meta__arrow" />
@@ -59,23 +71,23 @@ export default function HeroStatusCard({
             </span>
           )}
         </span>
-      </span>
+      </PanelTag>
 
       {ticketsAvailable ? (
-        <span className="hero-meta__tickets">
-          <span className="hero-meta__tickets-mark" aria-hidden>
-            <Ticket size={14} strokeWidth={2} />
-          </span>
-          <span className="hero-meta__tickets-copy">
-            <span className="hero-meta__status">{statusLabel}</span>
-            {isButton ? (
-              <span className="hero-meta__go" aria-hidden>
-                <span className="hero-meta__cue">{t('hero.statusViewEvent')}</span>
-                <ArrowRight size={14} className="hero-meta__arrow" />
-              </span>
-            ) : null}
-          </span>
-        </span>
+        <TicketsTag
+          className="hero-meta__tickets"
+          type={TicketsTag === 'button' ? 'button' : undefined}
+          aria-label={TicketsTag === 'button' ? ticketsAria : undefined}
+          onClick={TicketsTag === 'button' ? ticketsAction : undefined}
+        >
+          <span className="hero-meta__status">{statusLabel}</span>
+          {hasSplitActions || eventAction ? (
+            <span className="hero-meta__go" aria-hidden>
+              <span className="hero-meta__cue">{cueLabel}</span>
+              <ArrowRight size={14} className="hero-meta__arrow" />
+            </span>
+          ) : null}
+        </TicketsTag>
       ) : null}
 
       <time className="hero-meta__sr-date" dateTime="2026-12-12">

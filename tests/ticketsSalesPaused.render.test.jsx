@@ -94,4 +94,48 @@ describe('TicketsPage con ventas habilitadas', () => {
     expect(screen.getAllByText(/próximamente/i).length).toBeGreaterThan(0)
     expect(screen.queryByRole('link', { name: /comprar entradas/i })).toBeNull()
   })
+
+  it('compara accesos por zona, sin repetir Incluida por cada tipo', () => {
+    checkoutState.ticketEnabled = true
+
+    render(
+      <I18nProvider>
+        <TicketsPage
+          event={{
+            ...event,
+            ticketTypes: [
+              {
+                id: 'tt-publico',
+                name: 'Público',
+                price: 15000,
+                credentials: [{ label: 'General', zoneScopes: ['gate_tickets'] }],
+              },
+              {
+                id: 'tt-entrenador',
+                name: 'Entrenador',
+                price: 35000,
+                credentials: [
+                  { label: 'General', zoneScopes: ['gate_tickets'] },
+                  { label: 'ENTRENADOR', zoneScopes: ['athletes_coaches'] },
+                ],
+              },
+            ],
+          }}
+          onNavigate={() => {}}
+        />
+      </I18nProvider>,
+    )
+
+    const board = document.querySelector('.tickets-page__access-board')
+    expect(board).not.toBeNull()
+    expect(board.textContent).toContain('Puerta general')
+    expect(board.textContent).toContain('Todas las entradas')
+    expect(board.textContent).toContain('Entrada en calor')
+    expect(board.textContent).toContain('Entrenador')
+    expect(board.textContent).toContain('No la abren')
+    expect(board.textContent).toContain('Público')
+    expect(board.querySelectorAll('.tickets-page__access-cell')).toHaveLength(0)
+    expect(board.querySelector('.tickets-page__access-zone--all')).not.toBeNull()
+    expect(board.querySelectorAll('.tickets-page__access-opens li').length).toBeGreaterThan(0)
+  })
 })

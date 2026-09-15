@@ -105,6 +105,22 @@ const nullableWisePrice = z.preprocess(
     .nullable(),
 )
 
+/**
+ * Precio en ARS del tipo para transferencia y efectivo (mismo valor para los
+ * dos). Vacío = cobra igual que `price` en cualquier canal. Techo espejo de
+ * `ticket_types_manual_price_check`; que no supere `price` se valida en el
+ * refine de `ticketTypeSchema`, no acá.
+ */
+const nullableManualPrice = z.preprocess(
+  (value) => (value === '' || value === undefined ? null : value),
+  z.coerce
+    .number()
+    .int('manualPriceInvalid')
+    .min(1, 'manualPriceInvalid')
+    .max(10_000_000, 'manualPriceInvalid')
+    .nullable(),
+)
+
 const paymentChannelFlagsSchema = z.object({
   mercado_pago: z.boolean().optional(),
   bank_transfer: z.boolean().optional(),
@@ -112,35 +128,50 @@ const paymentChannelFlagsSchema = z.object({
   wise_transfer: z.boolean().optional(),
 })
 
-const ticketTypeSchema = z.object({
-  id: z.string().uuid('ticketTypeIdInvalid').optional(),
-  name: z.string().trim().min(1, 'ticketTypeNameRequired').max(100, 'ticketTypeNameMax'),
-  price: moneyField,
-  wisePrice: nullableWisePrice.optional(),
-  // Ventana propia del tipo: sólo cierra antes que la del evento.
-  salesOpensAt: optionalDateTime(),
-  salesClosesAt: optionalDateTime(),
-  quota: nullableQuota.optional(),
-  sortOrder: z.coerce
-    .number()
-    .int('sortOrderInvalid')
-    .min(0, 'sortOrderInvalid')
-    .max(1000, 'sortOrderInvalid')
-    .optional(),
-  active: z.boolean().optional(),
-  dayIndexes: z
-    .array(z.coerce.number().int().min(0).max(30))
-    .max(31, 'ticketTypeDaysMax')
-    .optional(),
-  includedAddonIds: z
-    .array(z.string().trim().min(1).max(80))
-    .max(30, 'ticketTypeAddonsMax')
-    .optional(),
-  // Medios propios: `null`/ausente hereda los del evento, que es lo que tienen
-  // todas las entradas ya cargadas. Sólo puede cerrar; el cruce contra lo que
-  // el evento dejó abierto se valida abajo, donde se ve el evento entero.
-  paymentChannels: paymentChannelFlagsSchema.strict().nullable().optional(),
-})
+const ticketTypeSchema = z
+  .object({
+    id: z.string().uuid('ticketTypeIdInvalid').optional(),
+    name: z.string().trim().min(1, 'ticketTypeNameRequired').max(100, 'ticketTypeNameMax'),
+    price: moneyField,
+    wisePrice: nullableWisePrice.optional(),
+    manualPrice: nullableManualPrice.optional(),
+    // Ventana propia del tipo: sólo cierra antes que la del evento.
+    salesOpensAt: optionalDateTime(),
+    salesClosesAt: optionalDateTime(),
+    quota: nullableQuota.optional(),
+    sortOrder: z.coerce
+      .number()
+      .int('sortOrderInvalid')
+      .min(0, 'sortOrderInvalid')
+      .max(1000, 'sortOrderInvalid')
+      .optional(),
+    active: z.boolean().optional(),
+    dayIndexes: z
+      .array(z.coerce.number().int().min(0).max(30))
+      .max(31, 'ticketTypeDaysMax')
+      .optional(),
+    includedAddonIds: z
+      .array(z.string().trim().min(1).max(80))
+      .max(30, 'ticketTypeAddonsMax')
+      .optional(),
+    // Medios propios: `null`/ausente hereda los del evento, que es lo que tienen
+    // todas las entradas ya cargadas. Sólo puede cerrar; el cruce contra lo que
+    // el evento dejó abierto se valida abajo, donde se ve el evento entero.
+    paymentChannels: paymentChannelFlagsSchema.strict().nullable().optional(),
+  })
+  .superRefine((type, ctx) => {
+    // Un "descuento" por encima del precio de lista rompe el supuesto de las
+    // vidrieras (siempre anuncian el precio de Mercado Pago, el techo).
+    // Espejo del refine en `server/routes/events.js` y de la validación en
+    // `staff_upsert_event`.
+    if (type.manualPrice != null && type.manualPrice > type.price) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['manualPrice'],
+        message: 'manualPriceAbovePrice',
+      })
+    }
+  })
 
 const paymentChannelsByConceptSchema = z
   .object({

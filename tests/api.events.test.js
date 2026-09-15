@@ -210,7 +210,7 @@ describe('API administrativa de eventos', () => {
     const inCompat = vi.fn(() => ({ order: orderCompat }))
     const eqCompat = vi.fn(() => ({ in: inCompat }))
     const select = vi.fn((columns) => {
-      if (String(columns).includes('price, wise_price, quota')) {
+      if (String(columns).includes('price, wise_price, manual_price, quota')) {
         return {
           eq: () => ({
             in: () => ({
@@ -234,7 +234,7 @@ describe('API administrativa de eventos', () => {
       const body = await response.json()
       expect(response.status).toBe(200)
       expect(select).toHaveBeenCalledTimes(2)
-      expect(String(select.mock.calls[1][0])).not.toContain('price, wise_price, quota')
+      expect(String(select.mock.calls[1][0])).not.toContain('price, wise_price, manual_price, quota')
       expect(body.events[0]).toMatchObject({ id: EVENT_ID, published: true })
     } finally {
       await target.close()
