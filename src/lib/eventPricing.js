@@ -202,6 +202,12 @@ export function ticketPricingFromEvent(event, now = new Date()) {
         // USD cargado a mano para Wise. Sin esto, el checkout convertía el
         // total en pesos y mostraba un número que el panel no decidió.
         wisePrice: Number.isFinite(Number(type.wisePrice)) ? Number(type.wisePrice) : null,
+        // Precio para transferencia/efectivo. Null = cobra igual que `price`
+        // en cualquier canal, que es el comportamiento de siempre.
+        manualPrice:
+          Number.isFinite(Number(type.manualPrice)) && Number(type.manualPrice) > 0
+            ? Number(type.manualPrice)
+            : null,
         salesOpensAt: type.salesOpensAt ?? null,
         salesClosesAt: type.salesClosesAt ?? null,
         // Medios propios de esta entrada (null = hereda los del evento). El

@@ -12,6 +12,7 @@ import HeroStatusCard from '../ui/HeroStatusCard.jsx'
 import HomeQuickBand from '../ui/HomeQuickBand.jsx'
 import ResponsivePhoto from '../ui/ResponsivePhoto.jsx'
 import { env } from '../../config/env.js'
+import TiltCard from '../../motion/TiltCard.tsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { isTicketSalesEnabled } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
@@ -100,6 +101,27 @@ export default function HeroSection({ onNavigate, event }) {
     </>
   )
 
+  const proofCard = (
+    <HeroStatusCard
+      event={event}
+      onSelect={() => onNavigate('pitbull')}
+      onSelectTickets={
+        ticketsAvailable
+          ? () => onNavigate('tickets', { eventSlug: event?.slug ?? event?.id })
+          : undefined
+      }
+      statusLabelOverride={statusLabelOverride}
+      ticketsAvailable={ticketsAvailable}
+    />
+  )
+  const proofBody = ticketsAvailable ? (
+    <TiltCard className="hero-proof-tilt" maxTilt={3}>
+      {proofCard}
+    </TiltCard>
+  ) : (
+    proofCard
+  )
+
   const actions = (
     <>
       <div className="hero__cta-row">
@@ -164,14 +186,7 @@ export default function HeroSection({ onNavigate, event }) {
                 </div>
                 <div className="hero__actions">{actions}</div>
               </div>
-              <div className="hero__proof">
-                <HeroStatusCard
-                  event={event}
-                  onSelect={() => onNavigate('pitbull')}
-                  statusLabelOverride={statusLabelOverride}
-                  ticketsAvailable={ticketsAvailable}
-                />
-              </div>
+              <div className="hero__proof">{proofBody}</div>
             </div>
           ) : (
             <div className="hero__copy-inner">
@@ -208,12 +223,7 @@ export default function HeroSection({ onNavigate, event }) {
                 animate="visible"
                 variants={heroProofItem}
               >
-                <HeroStatusCard
-                  event={event}
-                  onSelect={() => onNavigate('pitbull')}
-                  statusLabelOverride={statusLabelOverride}
-                  ticketsAvailable={ticketsAvailable}
-                />
+                {proofBody}
               </m.div>
             </div>
           )}

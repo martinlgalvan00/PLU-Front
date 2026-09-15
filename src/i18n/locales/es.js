@@ -495,7 +495,8 @@ export default {
     statusRegistrationOpen: 'Ya podés inscribirte',
     statusTicketsOpen: 'Entradas disponibles',
     statusViewEvent: 'Ver evento',
-    statusTicketsAria: 'Pitbull Classic. Entradas disponibles. Ver el evento.',
+    statusViewTickets: 'Ver entradas',
+    statusTicketsAria: 'Pitbull Classic. Entradas disponibles. Ver las entradas.',
     stat2026: '2026',
     stat2026Label: 'Temporada en curso',
     statPluUsa: 'PLU USA',
@@ -3176,10 +3177,14 @@ export default {
         'Cada tipo de entrada emite su propia credencial con QR, y cada credencial abre la zona que declara.',
       includesBadge: 'Incluye',
       accessTitle: 'Qué zona abre cada una',
+      accessEyebrow: 'Accesos',
       accessLead:
         'Lo que comprás es lo que abre: si después cambia la configuración del evento, tu entrada conserva el acceso con el que se vendió.',
       accessAria: 'Comparación de accesos por tipo de entrada',
       accessZoneColumn: 'Zona del meet',
+      accessOpens: 'La abren',
+      accessAll: 'Todas las entradas',
+      accessClosed: 'No la abren',
       accessIncluded: 'Incluida',
       accessExcluded: 'No incluida',
       accessFootnote:
@@ -3335,6 +3340,7 @@ export default {
       paymentTransfer: 'Transferencia bancaria',
       paymentMpHint: 'Pago automático · QR habilitado al confirmarse',
       paymentTransferHint: 'Validación manual por Administración · hasta 48 horas',
+      paymentSavings: 'Ahorrás {{amount}} pagando así',
       paymentNarrowedByType:
         'El tipo de entrada elegido limita los medios de pago disponibles para esta compra.',
       buyerTitle: 'Tus datos',

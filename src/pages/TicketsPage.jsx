@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ArrowRight, Check, Clock3, Minus, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Clock3, ShieldCheck } from 'lucide-react'
 import { m } from 'motion/react'
 import heroPhoto from '../assets/DSC00392-display.jpg'
 import heroPhotoAvif from '../assets/DSC00392-display.avif'
@@ -47,55 +47,54 @@ function TicketAccessMatrix({ ticketTypes = [], t }) {
 
   return (
     <div className="tickets-page__access">
-      <div className="tickets-page__access-head">
+      <header className="tickets-page__access-head">
+        <span className="tickets-page__eyebrow">{t('pages.ticketsPage.accessEyebrow')}</span>
         <h3>{t('pages.ticketsPage.accessTitle')}</h3>
         <p>{t('pages.ticketsPage.accessLead')}</p>
-      </div>
+      </header>
 
-      <div className="tickets-page__access-scroll">
-        <table className="tickets-page__access-table">
-          <caption className="visually-hidden">{t('pages.ticketsPage.accessAria')}</caption>
-          <thead>
-            <tr>
-              <th scope="col">{t('pages.ticketsPage.accessZoneColumn')}</th>
-              {ticketTypes.map((type) => (
-                <th key={type.id} scope="col">
-                  {type.name}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {zones.map((scope) => (
-              <tr key={scope}>
-                <th scope="row">
-                  <strong>{zoneScopeLabel(scope, t)}</strong>
-                  <small>{t(`pages.tickets.ticketTypes.zoneHint.${scope}`)}</small>
-                </th>
-                {ticketTypes.map((type) => {
-                  const included = (type.zoneScopes ?? []).includes(scope)
-                  return (
-                    <td
-                      key={type.id}
-                      className={
-                        included
-                          ? 'tickets-page__access-cell tickets-page__access-cell--in'
-                          : 'tickets-page__access-cell'
-                      }
-                    >
-                      {/* El estado no se dice sólo con el ícono ni sólo con el
-                          color: va escrito. */}
-                      {included ? <Check size={14} aria-hidden /> : <Minus size={14} aria-hidden />}
-                      {included
-                        ? t('pages.ticketsPage.accessIncluded')
-                        : t('pages.ticketsPage.accessExcluded')}
-                    </td>
-                  )
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="tickets-page__access-board" aria-label={t('pages.ticketsPage.accessAria')}>
+        {zones.map((scope) => {
+          const included = ticketTypes.filter((type) => (type.zoneScopes ?? []).includes(scope))
+          const excluded = ticketTypes.filter((type) => !(type.zoneScopes ?? []).includes(scope))
+          const opensAll = included.length === ticketTypes.length
+
+          return (
+            <article
+              key={scope}
+              className={[
+                'tickets-page__access-zone',
+                opensAll ? 'tickets-page__access-zone--all' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            >
+              <header className="tickets-page__access-zone-head">
+                <h4>{zoneScopeLabel(scope, t)}</h4>
+                <p>{t(`pages.tickets.ticketTypes.zoneHint.${scope}`)}</p>
+              </header>
+
+              <div className="tickets-page__access-grant">
+                <p className="tickets-page__access-kicker">{t('pages.ticketsPage.accessOpens')}</p>
+                {opensAll ? (
+                  <p className="tickets-page__access-all">{t('pages.ticketsPage.accessAll')}</p>
+                ) : (
+                  <ul className="tickets-page__access-opens">
+                    {included.map((type) => (
+                      <li key={type.id}>{type.name}</li>
+                    ))}
+                  </ul>
+                )}
+                {excluded.length ? (
+                  <p className="tickets-page__access-closed">
+                    <span>{t('pages.ticketsPage.accessClosed')}</span>
+                    {excluded.map((type) => type.name).join(' · ')}
+                  </p>
+                ) : null}
+              </div>
+            </article>
+          )
+        })}
       </div>
 
       <p className="tickets-page__access-note">{t('pages.ticketsPage.accessFootnote')}</p>
