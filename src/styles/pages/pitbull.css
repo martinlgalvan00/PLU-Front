@@ -7047,19 +7047,20 @@
   padding: 0;
 }
 
-.pitbull-inscription-counter--deck .pitbull-inscription-counter__row {
-  align-items: center;
+.pitbull-inscription-counter--deck .pitbull-inscription-counter__row,
+.pitbull-inscription-counter--deck.pitbull-inscription-counter--compact .pitbull-inscription-counter__row {
+  align-items: flex-start;
   flex-direction: column;
   gap: 10px;
-  text-align: center;
+  text-align: left;
   width: 100%;
 }
 
 .pitbull-inscription-counter--deck .pitbull-inscription-counter__stat {
-  align-items: center;
+  align-items: flex-start;
   flex-direction: column;
   gap: 6px;
-  justify-content: center;
+  justify-content: flex-start;
   width: 100%;
 }
 
@@ -7077,19 +7078,19 @@
 .pitbull-inscription-counter--deck .pitbull-inscription-counter__unit {
   font-size: 10px;
   letter-spacing: 0.16em;
-  max-width: 14ch;
-  text-align: center;
+  max-width: none;
+  text-align: left;
 }
 
 .pitbull-inscription-counter--deck .pitbull-inscription-counter__badge {
   font-size: 10px;
-  justify-content: center;
+  justify-content: flex-start;
   letter-spacing: 0.12em;
-  width: 100%;
+  width: auto;
 }
 
 .pitbull-inscription-counter--deck .pitbull-inscription-counter__bar {
-  margin-inline: auto;
+  margin-inline: 0;
   margin-top: 4px;
   max-width: 12rem;
 }
@@ -7098,17 +7099,17 @@
   color: var(--color-text-muted);
   font-size: 11.5px;
   line-height: 1.5;
-  margin: 0 auto;
-  max-width: 22ch;
+  margin: 0;
+  max-width: 36ch;
   opacity: 0.78;
-  text-align: center;
+  text-align: left;
 }
 
 .pitbull-inscription-counter--deck .pitbull-inscription-counter__remaining {
-  margin-inline: auto;
+  margin-inline: 0;
   margin-top: 6px;
-  max-width: 22ch;
-  text-align: center;
+  max-width: 36ch;
+  text-align: left;
 }
 
 .pitbull-inscription-counter__mark {
@@ -7118,8 +7119,8 @@
   font-weight: 650;
   letter-spacing: -0.04em;
   line-height: 1.08;
-  max-width: 10ch;
-  text-align: center;
+  max-width: 22ch;
+  text-align: left;
 }
 
 .pitbull-inscription-counter--deck.pitbull-inscription-counter--hidden {
@@ -7133,7 +7134,7 @@
 
 .pitbull-inscription-counter--deck.pitbull-inscription-counter--hidden .pitbull-inscription-counter__hint {
   border-top: 1px solid color-mix(in oklab, var(--plu-gold-500) 32%, transparent);
-  max-width: 20ch;
+  max-width: 36ch;
   padding-top: 12px;
 }
 
@@ -7306,6 +7307,51 @@
 
   .pitbull-inscription-deck__actions .pitbull-inscription__cta--primary {
     min-width: 14rem;
+  }
+
+  .pitbull-inscription-counter--deck .pitbull-inscription-counter__row,
+  .pitbull-inscription-counter--deck.pitbull-inscription-counter--compact .pitbull-inscription-counter__row {
+    align-items: center;
+    text-align: center;
+  }
+
+  .pitbull-inscription-counter--deck .pitbull-inscription-counter__stat {
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pitbull-inscription-counter--deck .pitbull-inscription-counter__unit {
+    max-width: 14ch;
+    text-align: center;
+  }
+
+  .pitbull-inscription-counter--deck .pitbull-inscription-counter__badge {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .pitbull-inscription-counter--deck .pitbull-inscription-counter__bar,
+  .pitbull-inscription-counter--deck .pitbull-inscription-counter__hint,
+  .pitbull-inscription-counter--deck .pitbull-inscription-counter__remaining {
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .pitbull-inscription-counter--deck .pitbull-inscription-counter__hint {
+    max-width: 22ch;
+  }
+
+  .pitbull-inscription-counter--deck .pitbull-inscription-counter__remaining {
+    max-width: 22ch;
+  }
+
+  .pitbull-inscription-counter--deck .pitbull-inscription-counter__mark {
+    max-width: 10ch;
+    text-align: center;
+  }
+
+  .pitbull-inscription-counter--deck.pitbull-inscription-counter--hidden .pitbull-inscription-counter__hint {
+    max-width: 20ch;
   }
 }
 

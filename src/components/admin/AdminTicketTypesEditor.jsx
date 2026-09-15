@@ -15,6 +15,9 @@ function createEmptyTicketType(index) {
   return {
     name: '',
     price: 0,
+    // Vacío: sin precio manual propio, transferencia y efectivo cobran igual
+    // que Mercado Pago (comportamiento de siempre). Poner 0 sería inválido.
+    manualPrice: '',
     // Vacío: sin USD propio el checkout convierte el precio en pesos, que es
     // el comportamiento de siempre. Poner 0 sería un precio inválido.
     wisePrice: '',
@@ -360,30 +363,70 @@ export default function AdminTicketTypesEditor({
                       </small>
                     ) : null}
                   </label>
-                  <label className="admin-event-form__field">
-                    <span>{t('admin.eventEditor.supabase.ticketTypePrice')}</span>
-                    <span className="admin-event-form__rate-card-input">
-                      <input
-                        disabled={!canEdit}
-                        min={0}
-                        required
-                        type="number"
-                        value={current.price}
-                        name={`ticketTypes.${index}.price`}
-                        data-field={`ticketTypes.${index}.price`}
-                        aria-invalid={Boolean(errorFor('price'))}
-                        onChange={(event) =>
-                          patchTicketType(index, { price: Number(event.target.value) || 0 })
-                        }
-                      />
-                      <span aria-hidden>{t('admin.eventEditor.priceCurrency')}</span>
-                    </span>
-                    {errorFor('price') ? (
-                      <small className="admin-event-form__error" role="alert">
-                        {errorFor('price')}
-                      </small>
-                    ) : null}
-                  </label>
+                  {/* Los dos precios en pesos van juntos: son el mismo
+                      concepto (cuánto sale la entrada) y se leen comparados.
+                      Ocupan una sola celda de la grilla — agregar una columna
+                      nueva por esto habría forzado un quinto ancho fijo para
+                      un campo que se entiende mejor al lado del que ya existe. */}
+                  <div className="admin-ticket-types__price-stack">
+                    <label className="admin-event-form__field">
+                      <span>{t('admin.eventEditor.supabase.ticketTypePrice')}</span>
+                      <span className="admin-event-form__rate-card-input">
+                        <input
+                          disabled={!canEdit}
+                          min={0}
+                          required
+                          type="number"
+                          value={current.price}
+                          name={`ticketTypes.${index}.price`}
+                          data-field={`ticketTypes.${index}.price`}
+                          aria-invalid={Boolean(errorFor('price'))}
+                          onChange={(event) =>
+                            patchTicketType(index, { price: Number(event.target.value) || 0 })
+                          }
+                        />
+                        <span aria-hidden>{t('admin.eventEditor.priceCurrency')}</span>
+                      </span>
+                      {errorFor('price') ? (
+                        <small className="admin-event-form__error" role="alert">
+                          {errorFor('price')}
+                        </small>
+                      ) : null}
+                    </label>
+                    {/* Precio para transferencia/efectivo. Vacío = cobra igual
+                        que Mercado Pago, que es el comportamiento de siempre. */}
+                    <label className="admin-event-form__field">
+                      <span>{t('admin.eventEditor.supabase.ticketTypeManualPrice')}</span>
+                      <span className="admin-event-form__rate-card-input">
+                        <input
+                          disabled={!canEdit}
+                          min={1}
+                          max={10000000}
+                          type="number"
+                          value={current.manualPrice ?? ''}
+                          name={`ticketTypes.${index}.manualPrice`}
+                          data-field={`ticketTypes.${index}.manualPrice`}
+                          aria-invalid={Boolean(errorFor('manualPrice'))}
+                          onChange={(event) =>
+                            patchTicketType(index, {
+                              manualPrice: event.target.value === '' ? '' : Number(event.target.value),
+                            })
+                          }
+                          placeholder={t('admin.eventEditor.supabase.ticketTypeManualPricePlaceholder')}
+                        />
+                        <span aria-hidden>{t('admin.eventEditor.priceCurrency')}</span>
+                      </span>
+                      {errorFor('manualPrice') ? (
+                        <small className="admin-event-form__error" role="alert">
+                          {errorFor('manualPrice')}
+                        </small>
+                      ) : (
+                        <small className="admin-event-form__field-hint">
+                          {t('admin.eventEditor.supabase.ticketTypeManualPriceHint')}
+                        </small>
+                      )}
+                    </label>
+                  </div>
                   {/* Precio en USD para Wise. Vacío = se deriva del precio en
                       pesos por el dólar configurado, que es lo que pasaba antes
                       de que esto se pudiera cargar. */}

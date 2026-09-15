@@ -927,6 +927,17 @@
   line-height: 1.45;
 }
 
+.ticket-purchase--editorial .ticket-purchase__payment-options .ticket-purchase__payment-price {
+  color: var(--color-text-price, var(--color-text-primary));
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+.ticket-purchase--editorial .ticket-purchase__payment-options .ticket-purchase__payment-savings {
+  color: var(--color-success-text);
+  font-weight: 600;
+}
+
 .ticket-purchase--editorial .ticket-purchase__payment-options label.is-disabled {
   cursor: not-allowed;
   opacity: 0.62;

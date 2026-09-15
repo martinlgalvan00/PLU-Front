@@ -18819,6 +18819,14 @@ button.action-queue__proof:focus-visible {
     minmax(104px, 0.8fr);
 }
 
+/* Precio Mercado Pago + precio transferencia/efectivo: mismo concepto, una
+   sola celda de la grilla. Apilados en vez de una columna nueva. */
+.admin-ticket-types__price-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 @media (max-width: 980px) {
   .admin-ticket-types__head {
     display: none;
