@@ -193,6 +193,17 @@
   --home-hero-status-value: rgba(255, 255, 255, 0.78);
   --home-hero-status-live: rgba(255, 255, 255, 0.42);
   --home-hero-status-live-border: rgba(255, 255, 255, 0.06);
+  --home-hero-status-tickets-bg: color-mix(in oklab, var(--plu-cool-900) 78%, transparent);
+  --home-hero-status-tickets-border: var(--home-hero-status-panel-border);
+  --home-hero-status-tickets-rule: color-mix(in oklab, var(--plu-gold-500) 40%, transparent);
+  --home-hero-status-tickets-muted: var(--home-hero-status-value);
+  --home-hero-status-tickets-action: var(--plu-gold-400);
+  --home-hero-status-tickets-hover-bg: color-mix(
+    in oklab,
+    var(--plu-gold-500) 10%,
+    var(--home-hero-status-tickets-bg)
+  );
+  --home-hero-status-tickets-hover-rule: color-mix(in oklab, var(--plu-gold-400) 72%, transparent);
   --home-hero-proof-bg: rgba(255, 255, 255, 0.04);
   --home-hero-eyebrow-dot: var(--plu-celeste-400);
   --home-spotlight-section-bg: var(--home-immersive-bg);
@@ -725,6 +736,17 @@
   --home-hero-status-value: rgba(15, 17, 23, 0.82);
   --home-hero-status-live: rgba(15, 17, 23, 0.52);
   --home-hero-status-live-border: rgba(15, 17, 23, 0.1);
+  --home-hero-status-tickets-bg: rgba(255, 255, 255, 0.82);
+  --home-hero-status-tickets-border: var(--home-hero-status-panel-border);
+  --home-hero-status-tickets-rule: color-mix(in oklab, var(--plu-gold-600) 42%, transparent);
+  --home-hero-status-tickets-muted: var(--home-hero-status-value);
+  --home-hero-status-tickets-action: var(--plu-gold-600);
+  --home-hero-status-tickets-hover-bg: color-mix(
+    in oklab,
+    var(--plu-gold-500) 8%,
+    var(--home-hero-status-tickets-bg)
+  );
+  --home-hero-status-tickets-hover-rule: color-mix(in oklab, var(--plu-gold-600) 70%, transparent);
   --home-hero-proof-bg: transparent;
   --home-hero-eyebrow-dot: var(--plu-celeste-600);
   --home-spotlight-section-bg: var(--color-page-canvas);

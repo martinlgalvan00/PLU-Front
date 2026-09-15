@@ -5,6 +5,7 @@ import {
   orderTicketTotal,
   ticketAddonsTotal,
 } from '../lib/ticketAddons.js'
+import { previewCheckoutPrice } from './checkoutPricing.js'
 import { createPaymentReference, getPaymentStatusForMethod } from './paymentService.js'
 
 /**
@@ -27,7 +28,11 @@ function buildTicketCode(sequence) {
 }
 
 /**
- * Precio base de un asistente según el tipo de entrada elegido.
+ * Precio base de un asistente según el tipo de entrada elegido, siempre al
+ * precio de Mercado Pago (el de lista). Es el pricer por defecto: vidrieras,
+ * el selector de tipo de entrada y cualquier lugar que todavía no sabe qué
+ * medio de pago va a elegir el comprador muestran este precio, nunca uno que
+ * después pueda subir.
  * @param {{ ticketTypeId: string }} attendee
  * @param {{ ticketTypes: {id:string, price:number}[] }} pricing
  */
@@ -36,12 +41,41 @@ export function priceForTicketType(attendee, pricing) {
   return type?.price ?? 0
 }
 
-export function priceForAttendee(attendee, pricing, catalog = pricing?.addons ?? []) {
-  return attendeeTicketTotal(attendee, pricing, catalog, priceForTicketType)
+/**
+ * Pricer por canal: Mercado Pago cobra `price`; transferencia y efectivo
+ * cobran `manualPrice` si el tipo lo tiene cargado, si no caen a `price`
+ * (mismo comportamiento de siempre). Wise no pasa por acá — su total lo fija
+ * el server en USD.
+ * @param {string} paymentMethod 'mercado_pago' | 'transferencia' | 'cash_pitbull' | 'wise_transfer'
+ */
+export function makeTicketTypePricer(paymentMethod) {
+  return (attendee, pricing) => {
+    const type = (pricing?.ticketTypes ?? []).find((item) => item.id === attendee.ticketTypeId)
+    if (!type) return 0
+    return previewCheckoutPrice({
+      paymentMethod,
+      manualPrice: type.manualPrice,
+      fallback: type.price ?? 0,
+    })
+  }
 }
 
-export function priceForOrder(attendees, pricing, catalog = pricing?.addons ?? []) {
-  return orderTicketTotal(attendees, pricing, catalog, priceForTicketType)
+export function priceForAttendee(
+  attendee,
+  pricing,
+  catalog = pricing?.addons ?? [],
+  paymentMethod = 'mercado_pago',
+) {
+  return attendeeTicketTotal(attendee, pricing, catalog, makeTicketTypePricer(paymentMethod))
+}
+
+export function priceForOrder(
+  attendees,
+  pricing,
+  catalog = pricing?.addons ?? [],
+  paymentMethod = 'mercado_pago',
+) {
+  return orderTicketTotal(attendees, pricing, catalog, makeTicketTypePricer(paymentMethod))
 }
 
 /**

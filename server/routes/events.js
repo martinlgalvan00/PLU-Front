@@ -74,7 +74,7 @@ function catalogEventSelect(ticketTypeColumns) {
 }
 
 const CATALOG_EVENT_SELECT = catalogEventSelect(
-  'id, name, price, wise_price, quota, sort_order, active, sales_opens_at, sales_closes_at, payment_channels,',
+  'id, name, price, wise_price, manual_price, quota, sort_order, active, sales_opens_at, sales_closes_at, payment_channels,',
 )
 const CATALOG_EVENT_SELECT_COMPAT = catalogEventSelect(
   'id, name, price, quota, sort_order, active,',
@@ -194,6 +194,17 @@ const nullableWisePrice = z.preprocess(
   z.coerce.number().int().min(1).max(100_000).nullable(),
 )
 
+/**
+ * Precio en ARS del tipo de entrada para transferencia y efectivo (mismo
+ * valor para los dos). Vacío = cobra igual que `price` en cualquier canal. El
+ * techo es espejo de `ticket_types_manual_price_check`; que no supere `price`
+ * se valida en el refine de `ticketTypeSchema`, no acá.
+ */
+const nullableManualPrice = z.preprocess(
+  (value) => (value === '' || value === undefined ? null : value),
+  z.coerce.number().int().min(1).max(10_000_000).nullable(),
+)
+
 const eventPaymentChannelFlagsSchema = z.object({
   mercado_pago: z.boolean().optional(),
   bank_transfer: z.boolean().optional(),
@@ -201,27 +212,42 @@ const eventPaymentChannelFlagsSchema = z.object({
   wise_transfer: z.boolean().optional(),
 })
 
-const ticketTypeSchema = z.object({
-  id: z.string().uuid().optional(),
-  name: z.string().trim().min(1).max(100),
-  price: boundedMoney,
-  wisePrice: nullableWisePrice.optional(),
-  quota: nullableQuota.optional(),
-  sortOrder: z.coerce.number().int().min(0).max(1000).optional(),
-  active: z.boolean().optional(),
-  // Ventana propia del tipo. Sólo cierra antes que la del evento: la RPC
-  // evalúa las dos y la primera que corta gana.
-  salesOpensAt: optionalDateTime,
-  salesClosesAt: optionalDateTime,
-  dayIndexes: z.array(z.coerce.number().int().min(0).max(30)).max(31).optional(),
-  includedAddonIds: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
-  credentials: z.array(ticketCredentialSchema).min(1).max(4).optional(),
-  // Medios de cobro propios de esta entrada. NULL = heredar los del evento,
-  // que es lo que tienen todas las filas anteriores a la columna. El objeto
-  // sólo puede CERRAR debajo del evento; que quede sin ninguno abierto se
-  // rechaza más abajo, donde se ve el override del evento.
-  paymentChannels: eventPaymentChannelFlagsSchema.strict().nullable().optional(),
-})
+const ticketTypeSchema = z
+  .object({
+    id: z.string().uuid().optional(),
+    name: z.string().trim().min(1).max(100),
+    price: boundedMoney,
+    wisePrice: nullableWisePrice.optional(),
+    manualPrice: nullableManualPrice.optional(),
+    quota: nullableQuota.optional(),
+    sortOrder: z.coerce.number().int().min(0).max(1000).optional(),
+    active: z.boolean().optional(),
+    // Ventana propia del tipo. Sólo cierra antes que la del evento: la RPC
+    // evalúa las dos y la primera que corta gana.
+    salesOpensAt: optionalDateTime,
+    salesClosesAt: optionalDateTime,
+    dayIndexes: z.array(z.coerce.number().int().min(0).max(30)).max(31).optional(),
+    includedAddonIds: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
+    credentials: z.array(ticketCredentialSchema).min(1).max(4).optional(),
+    // Medios de cobro propios de esta entrada. NULL = heredar los del evento,
+    // que es lo que tienen todas las filas anteriores a la columna. El objeto
+    // sólo puede CERRAR debajo del evento; que quede sin ninguno abierto se
+    // rechaza más abajo, donde se ve el override del evento.
+    paymentChannels: eventPaymentChannelFlagsSchema.strict().nullable().optional(),
+  })
+  .superRefine((type, ctx) => {
+    // Un "descuento" por encima del precio de lista no tiene sentido
+    // comercial y rompe el supuesto de las vidrieras (que siempre anuncian el
+    // precio de Mercado Pago, el techo). Espejo de la validación en
+    // `staff_upsert_event`.
+    if (type.manualPrice != null && type.manualPrice > type.price) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['manualPrice'],
+        message: 'El precio con descuento no puede superar el precio de lista.',
+      })
+    }
+  })
 
 const eventPaymentChannelsByConceptSchema = z
   .object({

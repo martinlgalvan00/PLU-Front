@@ -391,3 +391,80 @@ describe('tipo de entrada: precio Wise y ventana propia', () => {
     )
   })
 })
+
+/**
+ * Precio manual (transferencia/efectivo) por tipo de entrada: mismo criterio
+ * que el bloque de Wise — el editor y la API tienen que aceptar y rechazar lo
+ * mismo, y acá además hay una regla de negocio (no puede superar el precio de
+ * lista) que se repite en las dos capas y en la migración.
+ */
+describe('tipo de entrada: precio manual (transferencia/efectivo)', () => {
+  const t = (key) => key
+
+  function draftWithType(type) {
+    return {
+      title: 'Pitbull Classic',
+      slots: 120,
+      venue: 'Maximal Strength Club',
+      location: 'Buenos Aires',
+      status: 'proximamente',
+      startsAt: '2026-08-15T09:00',
+      endsAt: '2026-08-15T20:00',
+      pricing: { membership: 75000, registration: 75000, combo: 120000 },
+      ticketTypes: [{ name: 'Pase general', price: 20000, ...type }],
+    }
+  }
+
+  function apiWithType(type) {
+    return validEvent({
+      ticketTypes: [
+        {
+          name: 'Pase general',
+          price: 20000,
+          quota: 100,
+          dayIndexes: [0],
+          includedAddonIds: ['food'],
+          ...type,
+        },
+      ],
+    })
+  }
+
+  it('vacío es válido en los dos: cobra igual que Mercado Pago en cualquier canal', () => {
+    expect(validateAdminEventDraft(draftWithType({ manualPrice: '' }), t).ok).toBe(true)
+    expect(eventSchema.safeParse(apiWithType({ manualPrice: '' })).success).toBe(true)
+  })
+
+  it('acepta un precio manual por debajo del de lista', () => {
+    expect(validateAdminEventDraft(draftWithType({ manualPrice: 17000 }), t).ok).toBe(true)
+    const parsed = eventSchema.safeParse(apiWithType({ manualPrice: '17000' }))
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.ticketTypes[0].manualPrice).toBe(17000)
+  })
+
+  it('acepta un precio manual igual al de lista (sin descuento, pero válido)', () => {
+    expect(validateAdminEventDraft(draftWithType({ manualPrice: 20000 }), t).ok).toBe(true)
+    expect(eventSchema.safeParse(apiWithType({ manualPrice: 20000 })).success).toBe(true)
+  })
+
+  it('rechaza un precio manual por encima del precio de lista en las dos capas', () => {
+    const draft = validateAdminEventDraft(draftWithType({ manualPrice: 25000 }), t)
+    expect(draft.ok).toBe(false)
+    expect(draft.fieldErrors['ticketTypes.0.manualPrice']).toBe(
+      'admin.eventEditor.validation.manualPriceAbovePrice',
+    )
+
+    const api = eventSchema.safeParse(apiWithType({ manualPrice: 25000 }))
+    expect(api.success).toBe(false)
+    expect(api.error.issues.some((issue) => issue.path.join('.') === 'ticketTypes.0.manualPrice')).toBe(
+      true,
+    )
+  })
+
+  it('rechaza un precio manual que no se puede cobrar', () => {
+    for (const manualPrice of [0, -5, 10_000_001]) {
+      expect(validateAdminEventDraft(draftWithType({ manualPrice }), t).ok).toBe(false)
+      expect(eventSchema.safeParse(apiWithType({ manualPrice })).success).toBe(false)
+    }
+  })
+})

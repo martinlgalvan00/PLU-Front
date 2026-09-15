@@ -20,26 +20,33 @@ describe('HeroStatusCard', () => {
     expect(document.body.textContent).not.toContain('Entradas disponibles')
   })
 
-  it('si hay entradas en venta lo dice y lleva a ver el evento', () => {
+  it('si hay entradas en venta lo dice y abre la compra, no el evento', () => {
     const onSelect = vi.fn()
+    const onSelectTickets = vi.fn()
     renderCard({
       onSelect,
+      onSelectTickets,
       ticketsAvailable: true,
       statusLabelOverride: 'Entradas disponibles',
     })
 
-    const button = document.querySelector('button.hero-meta--tickets')
-    const hanging = button?.querySelector('.hero-meta__tickets')
-    const panel = button?.querySelector('.hero-meta__panel')
-    expect(button).not.toBeNull()
+    const shell = document.querySelector('.hero-meta--tickets')
+    const hanging = shell?.querySelector('.hero-meta__tickets')
+    const panel = shell?.querySelector('.hero-meta__panel')
+    expect(shell?.tagName).toBe('DIV')
     expect(hanging).not.toBeNull()
-    expect(button.getAttribute('aria-label')).toContain('Entradas disponibles')
+    expect(hanging.getAttribute('aria-label')).toContain('Entradas disponibles')
     expect(hanging.textContent).toContain('Entradas disponibles')
-    expect(hanging.textContent).toContain('Ver evento')
+    expect(hanging.textContent).toContain('Ver entradas')
+    expect(hanging.textContent).not.toContain('Ver evento')
     expect(panel.textContent).not.toContain('Entradas disponibles')
-    expect(button.textContent).not.toContain('Cerrado')
+    expect(shell.textContent).not.toContain('Cerrado')
 
-    fireEvent.click(button)
+    fireEvent.click(hanging)
+    expect(onSelectTickets).toHaveBeenCalledTimes(1)
+    expect(onSelect).not.toHaveBeenCalled()
+
+    fireEvent.click(panel)
     expect(onSelect).toHaveBeenCalledTimes(1)
   })
 })

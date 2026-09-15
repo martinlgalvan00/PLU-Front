@@ -105,6 +105,23 @@ describe('AdminTicketTypesEditor', () => {
     expect(screen.getByRole('alert').textContent).toBe('Poné un nombre.')
   })
 
+  it('edita el precio manual (transferencia/efectivo) junto al de Mercado Pago', () => {
+    render(<CatalogHarness />)
+
+    const manualPriceInput = screen.getByRole('spinbutton', { name: /transferencia/i })
+    expect(manualPriceInput.value).toBe('')
+
+    fireEvent.change(manualPriceInput, { target: { value: '13000' } })
+
+    expect(screen.getByRole('spinbutton', { name: /transferencia/i }).value).toBe('13000')
+  })
+
+  it('muestra el error de validación del precio manual en su propio campo', () => {
+    render(<CatalogHarness errors={{ 'ticketTypes.0.manualPrice': 'Supera el precio de lista.' }} />)
+
+    expect(screen.getByRole('alert').textContent).toBe('Supera el precio de lista.')
+  })
+
   it('hereda los medios del evento y sólo muestra el picker al restringir', () => {
     render(<CatalogHarness />)
 

@@ -30,6 +30,7 @@ import { TICKETS_PATH } from '../../lib/ticketsRoute.js'
 import { isTicketTypeChannelOpen } from '../../lib/ticketTypePaymentChannels.js'
 import { validateTicketAttendees, validateTicketBuyer } from '../../lib/validation.js'
 import { priceForAttendee, priceForOrder } from '../../services/ticketService.js'
+import { buildTicketPaymentPriceLabels } from '../../lib/ticketPaymentMethods.js'
 import { formatWisePrice } from '../../services/checkoutPricing.js'
 import { resolveTicketOrderWisePricing } from '../../../shared/ticketWisePricing.js'
 
@@ -161,6 +162,7 @@ function EditorialAttendeesBatch({
   locale,
   onAddonToggle,
   onChange,
+  paymentMethod,
   pricing,
   t,
 }) {
@@ -209,7 +211,7 @@ function EditorialAttendeesBatch({
           </div>
 
           {attendees.map((attendee, index) => {
-            const rowPrice = priceForAttendee(attendee, pricing, addons)
+            const rowPrice = priceForAttendee(attendee, pricing, addons, paymentMethod)
             const rowError = attendeeRowHasError(errors, index)
 
             return (
@@ -305,12 +307,13 @@ function EditorialAttendeeFields({
   locale,
   onAddonToggle,
   onChange,
+  paymentMethod,
   pricing,
   quantity,
   t,
 }) {
   const showIndex = quantity > 1
-  const rowPrice = priceForAttendee(attendee, pricing, addons)
+  const rowPrice = priceForAttendee(attendee, pricing, addons, paymentMethod)
 
   return (
     <div className="ticket-purchase__attendee-row">
@@ -449,6 +452,7 @@ function TicketPaymentOptions({
   cashEnabled = false,
   wiseEnabled = false,
   paymentMethod,
+  priceLabels = null,
   wiseLabel = '',
   onChange,
   t,
@@ -471,6 +475,11 @@ function TicketPaymentOptions({
           <span>
             <strong>{t('formOptions.payment.mercadoPago')}</strong>
             <small>{t('pages.tickets.paymentMpHint')}</small>
+            {priceLabels?.mercado_pago ? (
+              <strong className="ticket-purchase__payment-price">
+                {priceLabels.mercado_pago.priceLabel}
+              </strong>
+            ) : null}
           </span>
         </label>
       ) : null}
@@ -489,6 +498,16 @@ function TicketPaymentOptions({
           <span>
             <strong>{t('pages.tickets.paymentTransfer')}</strong>
             <small>{t('pages.tickets.paymentTransferHint')}</small>
+            {priceLabels?.transferencia ? (
+              <strong className="ticket-purchase__payment-price">
+                {priceLabels.transferencia.priceLabel}
+              </strong>
+            ) : null}
+            {priceLabels?.transferencia?.savingsLabel ? (
+              <small className="ticket-purchase__payment-savings">
+                {priceLabels.transferencia.savingsLabel}
+              </small>
+            ) : null}
           </span>
         </label>
       ) : null}
@@ -507,6 +526,16 @@ function TicketPaymentOptions({
           <span>
             <strong>{t('pages.tickets.paymentCash')}</strong>
             <small>{t('pages.tickets.paymentCashHint')}</small>
+            {priceLabels?.cash_pitbull ? (
+              <strong className="ticket-purchase__payment-price">
+                {priceLabels.cash_pitbull.priceLabel}
+              </strong>
+            ) : null}
+            {priceLabels?.cash_pitbull?.savingsLabel ? (
+              <small className="ticket-purchase__payment-savings">
+                {priceLabels.cash_pitbull.savingsLabel}
+              </small>
+            ) : null}
           </span>
         </label>
       ) : null}
@@ -583,6 +612,14 @@ export default function TicketPurchaseSection({
   // Memoizado desde que la cotización en USD lo toma como dependencia: el `??
   // []` devolvía un array nuevo por render y recalculaba el total en cada tecla.
   const ticketAddons = useMemo(() => pricing?.addons ?? [], [pricing?.addons])
+
+  // Precio de cada medio de pago para esta orden puntual, para que el
+  // comprador compare antes de elegir en vez de descubrir el total recién
+  // después de tocar un radio.
+  const paymentPriceLabels = useMemo(
+    () => buildTicketPaymentPriceLabels({ attendees, pricing, addons: ticketAddons, locale, t }),
+    [attendees, pricing, ticketAddons, locale, t],
+  )
 
   /**
    * Cotización Wise de la orden, misma regla que la API. El canal abierto no
@@ -745,7 +782,7 @@ export default function TicketPurchaseSection({
     ),
   )
   const activeTicket = orderTickets.find((item) => item.id === activeTicketId) ?? null
-  const total = priceForOrder(attendees, pricing, ticketAddons)
+  const total = priceForOrder(attendees, pricing, ticketAddons, paymentMethod)
 
   function changeQuantity(next) {
     const clamped = Math.min(MAX_TICKETS, Math.max(1, next))
@@ -1220,6 +1257,7 @@ export default function TicketPurchaseSection({
             locale={locale}
             onAddonToggle={handleAddonToggle}
             onChange={changeAttendee}
+            paymentMethod={paymentMethod}
             pricing={pricing}
             t={t}
           />
@@ -1235,6 +1273,7 @@ export default function TicketPurchaseSection({
                 locale={locale}
                 onAddonToggle={handleAddonToggle}
                 onChange={changeAttendee}
+                paymentMethod={paymentMethod}
                 pricing={pricing}
                 quantity={quantity}
                 t={t}
@@ -1246,7 +1285,7 @@ export default function TicketPurchaseSection({
                     {t('pages.tickets.attendee', { index: index + 1 })}
                   </span>
                   <span className="ticket-purchase__attendee-price">
-                    {money(priceForAttendee(attendee, pricing, ticketAddons), locale)}
+                    {money(priceForAttendee(attendee, pricing, ticketAddons, paymentMethod), locale)}
                   </span>
                 </div>
                 <div className="form-grid form-grid--compact">
@@ -1308,6 +1347,7 @@ export default function TicketPurchaseSection({
               cashEnabled={effectiveCashEnabled}
               wiseEnabled={effectiveWiseEnabled}
               paymentMethod={paymentMethod}
+              priceLabels={paymentPriceLabels}
               wiseLabel={wiseLabel}
               onChange={(value) => {
                 setPaymentMethod(value)

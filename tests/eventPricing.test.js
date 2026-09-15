@@ -258,4 +258,27 @@ describe('ticketPricingFromEvent — ventana propia y precio Wise por tipo', () 
     )
     expect(pricing.ticketTypes.map((type) => type.wisePrice)).toEqual([15, null])
   })
+
+  it('el precio manual (transferencia/efectivo) viaja al checkout; sin cargar queda en null', () => {
+    const pricing = ticketPricingFromEvent(
+      eventWith([
+        { id: 'general', name: 'General', price: 20000, manualPrice: 17000 },
+        { id: 'coach', name: 'Entrenador', price: 40000 },
+      ]),
+      NOW,
+    )
+    expect(pricing.ticketTypes.map((type) => type.manualPrice)).toEqual([17000, null])
+  })
+
+  it('un manualPrice inválido (0, negativo, no numérico) también queda en null', () => {
+    const pricing = ticketPricingFromEvent(
+      eventWith([
+        { id: 'a', name: 'A', price: 20000, manualPrice: 0 },
+        { id: 'b', name: 'B', price: 20000, manualPrice: -5 },
+        { id: 'c', name: 'C', price: 20000, manualPrice: 'no-numero' },
+      ]),
+      NOW,
+    )
+    expect(pricing.ticketTypes.map((type) => type.manualPrice)).toEqual([null, null, null])
+  })
 })

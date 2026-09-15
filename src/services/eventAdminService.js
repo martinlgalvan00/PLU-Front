@@ -588,6 +588,9 @@ function mapSupabaseTicketCatalog(row) {
       // los tres = hereda lo del evento (conversión automática / ventana del
       // evento), que es como se comportaba todo el catálogo hasta acá.
       wisePrice: type.wise_price ?? null,
+      // Precio para transferencia/efectivo. Null = cobra igual que `price` en
+      // cualquier canal.
+      manualPrice: type.manual_price ?? null,
       salesOpensAt: type.sales_opens_at ?? null,
       salesClosesAt: type.sales_closes_at ?? null,
       quota: type.quota,
