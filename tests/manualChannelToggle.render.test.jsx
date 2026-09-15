@@ -5,8 +5,8 @@ import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 /**
  * Con el canal manual cerrado desde el panel, transferencia y efectivo no
  * pueden quedar visibles: el backend devuelve 409 y el atleta se enteraría
- * recién al enviar el formulario. Estos casos cubren las tres superficies que
- * ofrecen medio de pago.
+ * recién al enviar el formulario. Wise es independiente: se anuncia siempre
+ * (deshabilitado si el canal no está listo) y no entra en este interruptor.
  */
 vi.mock('../src/config/env.js', () => ({
   env: {
@@ -81,6 +81,7 @@ const SETTLE_GROUP = 'paymentMethod'
 const TICKET_GROUP = 'ticket-payment'
 
 const values = (name) => paymentRadios(name).map((radio) => radio.value)
+const radioByValue = (name, value) => paymentRadios(name).find((radio) => radio.value === value)
 
 describe('canal manual en el checkout de afiliación e inscripción', () => {
   it('ofrece Mercado Pago, transferencia y efectivo con el canal abierto', () => {
@@ -132,11 +133,14 @@ describe('canal manual en el checkout de afiliación e inscripción', () => {
 describe('canal manual en la compra de entradas', () => {
   it('ofrece transferencia con el canal abierto', () => {
     renderTickets(true)
-    expect(values(TICKET_GROUP)).toEqual(['mercado_pago', 'transferencia'])
+    expect(values(TICKET_GROUP)).toEqual(['mercado_pago', 'transferencia', 'wise_transfer'])
+    expect(radioByValue(TICKET_GROUP, 'wise_transfer')?.disabled).toBe(true)
   })
 
-  it('deja solo Mercado Pago con el canal cerrado', () => {
+  it('deja transferencia oculta con el canal cerrado', () => {
     renderTickets(false)
-    expect(values(TICKET_GROUP)).toEqual(['mercado_pago'])
+    expect(values(TICKET_GROUP)).toEqual(['mercado_pago', 'wise_transfer'])
+    expect(radioByValue(TICKET_GROUP, 'transferencia')).toBeUndefined()
+    expect(radioByValue(TICKET_GROUP, 'wise_transfer')?.disabled).toBe(true)
   })
 })
