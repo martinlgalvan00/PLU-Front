@@ -13,6 +13,7 @@ import HomeQuickBand from '../ui/HomeQuickBand.jsx'
 import ResponsivePhoto from '../ui/ResponsivePhoto.jsx'
 import { env } from '../../config/env.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { isTicketSalesEnabled } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { isRegistrationOpen } from '../../lib/status.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
@@ -32,7 +33,14 @@ export default function HeroSection({ onNavigate, event }) {
     checkoutKind: 'registration',
   })
   const registrationAvailable = registrationCheckoutOpen && isRegistrationOpen(eventStatus)
-  const statusLabelOverride = registrationAvailable ? t('hero.statusRegistrationOpen') : undefined
+  // Mismo interruptor que PitbullSpotlight: si el evento vende entradas, el
+  // hero no puede seguir diciendo "Cerrado" (eso es la inscripción de atletas).
+  const ticketsAvailable = env.ticketSalesEnabled && isTicketSalesEnabled(event)
+  const statusLabelOverride = ticketsAvailable
+    ? t('hero.statusTicketsOpen')
+    : registrationAvailable
+      ? t('hero.statusRegistrationOpen')
+      : undefined
   // Cascada propia del hero (no la heroStaggerContainer compartida con
   // Tickets/PluPageHero/PitbullHero) para escalarla por tier de dispositivo
   // sin afectar esas otras páginas. Ver src/motion/deviceTier.ts.
@@ -161,6 +169,7 @@ export default function HeroSection({ onNavigate, event }) {
                   event={event}
                   onSelect={() => onNavigate('pitbull')}
                   statusLabelOverride={statusLabelOverride}
+                  ticketsAvailable={ticketsAvailable}
                 />
               </div>
             </div>
@@ -203,6 +212,7 @@ export default function HeroSection({ onNavigate, event }) {
                   event={event}
                   onSelect={() => onNavigate('pitbull')}
                   statusLabelOverride={statusLabelOverride}
+                  ticketsAvailable={ticketsAvailable}
                 />
               </m.div>
             </div>

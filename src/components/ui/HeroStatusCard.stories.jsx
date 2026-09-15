@@ -7,3 +7,12 @@ export default {
 }
 
 export const Default = {}
+
+export const TicketsOnSale = {
+  args: {
+    event: { status: 'cerrado', pricing: { ticketsEnabled: true } },
+    ticketsAvailable: true,
+    statusLabelOverride: 'Entradas disponibles',
+    onSelect: () => {},
+  },
+}
