@@ -264,31 +264,47 @@
   padding-top: 0;
 }
 
-/* Invitación compacta — fecha + copy. Superficie suave, no card glass. */
+/* Shell: el panel es la ficha; las entradas cuelgan debajo, no adentro. */
 .hero-meta--note {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  clip-path: none;
+  display: grid;
+  gap: 0;
+  justify-items: stretch;
+  max-width: 100%;
+  padding: 0;
+  position: relative;
+  text-align: left;
+  width: fit-content;
+}
+
+.hero-meta--note::before,
+.hero-meta--note::after {
+  display: none;
+}
+
+.hero-meta--tickets {
+  gap: 7px;
+}
+
+.hero-meta__panel {
   align-items: center;
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in oklab, var(--plu-gold-500, var(--color-brand-gold)) 7%, transparent) 0%,
-      transparent 42%
-    ),
-    var(--home-hero-status-panel-bg);
+  background: var(--home-hero-status-panel-bg);
   border: 1px solid var(--home-hero-status-panel-border);
   border-radius: 2px;
   box-shadow: var(--home-hero-status-panel-shadow);
-  clip-path: none;
   display: grid;
-  gap: 14px 16px;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  max-width: min(100%, 28rem);
-  padding: 14px 14px 14px 16px;
+  gap: 10px 14px;
+  grid-template-columns: auto auto;
+  padding: 12px 16px 12px 16px;
   position: relative;
-  text-align: left;
-  width: 100%;
+  transition: border-color var(--motion-fast, 160ms) var(--ease-out, ease);
 }
 
-.hero-meta--note::before {
+.hero-meta__panel::before {
   background: linear-gradient(
     180deg,
     transparent 0%,
@@ -305,23 +321,14 @@
   width: 2px;
 }
 
-.hero-meta--note::after {
-  display: none;
-}
-
 .hero-meta--action {
   color: inherit;
   cursor: pointer;
   font: inherit;
-  transition:
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast),
-    transform var(--transition-fast);
 }
 
-.hero-meta--action:hover {
+.hero-meta--action:hover .hero-meta__panel {
   border-color: color-mix(in oklab, var(--plu-gold-500) 38%, var(--home-hero-status-panel-border));
-  transform: translateY(-1px);
 }
 
 .hero-meta--action:hover .hero-meta__arrow {
@@ -400,45 +407,116 @@
 }
 
 .hero-meta__line {
-  align-items: center;
   color: var(--home-hero-status-value);
-  display: flex;
-  flex-wrap: wrap;
   font-size: 12.5px;
   font-weight: 400;
-  gap: 7px;
   line-height: 1.35;
   margin-top: 2px;
   opacity: 0.88;
 }
 
-.hero-meta__dot {
-  background: color-mix(in oklab, var(--plu-gold-500, var(--color-brand-gold)) 65%, transparent);
-  border-radius: 50%;
-  flex: none;
-  height: 3px;
-  width: 3px;
-}
-
-.hero-meta__status {
+.hero-meta__invite {
+  align-items: center;
   color: color-mix(
     in oklab,
     var(--plu-gold-400, var(--plu-gold-500)) 48%,
     var(--home-hero-status-live)
   );
-  font-size: 11.5px;
+  display: inline-flex;
+  flex-wrap: wrap;
+  font-size: 12px;
   font-weight: 500;
+  gap: 6px 8px;
   letter-spacing: 0.01em;
+  margin-top: 6px;
+}
+
+.hero-meta__status {
+  min-width: 0;
 }
 
 .hero-meta__go {
   align-items: center;
-  align-self: center;
   color: var(--home-hero-status-year);
   display: inline-flex;
-  justify-content: center;
-  min-height: 32px;
-  min-width: 32px;
+  gap: 5px;
+}
+
+.hero-meta__go::before {
+  background: color-mix(in oklab, var(--plu-gold-500, var(--color-brand-gold)) 55%, transparent);
+  border-radius: 50%;
+  content: '';
+  flex: none;
+  height: 3px;
+  width: 3px;
+}
+
+.hero-meta__cue {
+  color: var(--home-hero-status-eyebrow);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.hero-meta__tickets {
+  align-items: center;
+  background: var(--plu-gold-500);
+  border-radius: 2px;
+  box-shadow:
+    0 1px 0 color-mix(in oklab, #fff 24%, transparent) inset,
+    0 1px 3px color-mix(in oklab, var(--plu-gold-500) 35%, transparent);
+  color: #0d1018;
+  display: flex;
+  gap: 10px;
+  min-height: 40px;
+  padding: 8px 14px 8px 16px;
+  transition: background-color var(--motion-fast, 160ms) var(--ease-out, ease);
+  width: 100%;
+}
+
+.hero-meta--action:hover .hero-meta__tickets {
+  background: var(--plu-gold-400);
+}
+
+.hero-meta__tickets-mark {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+}
+
+.hero-meta__tickets-copy {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.hero-meta__tickets .hero-meta__status {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero-meta__tickets .hero-meta__go {
+  color: #0d1018;
+}
+
+.hero-meta__tickets .hero-meta__go::before {
+  background: color-mix(in oklab, #0d1018 35%, transparent);
+}
+
+.hero-meta__tickets .hero-meta__cue {
+  color: color-mix(in oklab, #0d1018 72%, transparent);
+}
+
+.hero-meta__tickets .hero-meta__arrow {
+  opacity: 0.72;
 }
 
 .hero-meta__arrow {
@@ -460,36 +538,48 @@
 
 @media (min-width: 900px) {
   .hero-meta--note {
-    gap: 14px 18px;
-    max-width: none;
-    padding: 16px 16px 16px 18px;
+    width: 100%;
+  }
+
+  .hero-meta--tickets {
+    gap: 8px;
+  }
+
+  .hero-meta__panel {
+    gap: 10px 16px;
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 14px 16px 14px 18px;
+    width: 100%;
   }
 
   .hero-meta__meet {
     font-size: clamp(1.2rem, 1.4vw, 1.4rem);
   }
-}
 
-@media (max-width: 899px) {
-  .hero-meta--note {
-    max-width: none;
-    width: 100%;
+  .hero-meta__tickets {
+    min-height: 48px;
+    padding: 11px 16px 11px 18px;
+  }
+
+  .hero-meta__tickets .hero-meta__status {
+    font-size: 12px;
+    letter-spacing: 0.12em;
   }
 }
 
 @media (max-width: 420px) {
-  .hero-meta--note {
-    gap: 10px 12px;
-    grid-template-columns: auto minmax(0, 1fr);
+  .hero-meta__panel {
+    gap: 8px 12px;
     padding: 12px 12px 12px 14px;
   }
 
-  .hero-meta__go {
-    display: none;
+  .hero-meta__line,
+  .hero-meta__invite {
+    font-size: 12px;
   }
 
-  .hero-meta__line {
-    font-size: 12px;
+  .hero-meta__tickets {
+    padding: 8px 12px 8px 14px;
   }
 }
 
@@ -1144,7 +1234,7 @@
 
 .hero__proof {
   margin-top: 0;
-  max-width: min(100%, 100%);
+  max-width: min(100%, 34rem);
 }
 
 .hero__status {
@@ -1360,6 +1450,10 @@
 
   .hero__cta:hover,
   .hero__cta:active {
+    transform: none;
+  }
+
+  .hero-meta--action:hover .hero-meta__arrow {
     transform: none;
   }
 }
@@ -5800,15 +5894,8 @@
   background: var(--home-hero-bg);
 }
 
-[data-theme='light'] .hero-meta--note {
-  backdrop-filter: blur(10px);
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in oklab, var(--plu-gold-500) 8%, transparent) 0%,
-      transparent 44%
-    ),
-    var(--home-hero-status-panel-bg);
+[data-theme='light'] .hero-meta__panel {
+  background: var(--home-hero-status-panel-bg);
   border-color: var(--home-hero-status-panel-border);
   box-shadow: var(--home-hero-status-panel-shadow);
 }
