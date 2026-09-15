@@ -47,4 +47,16 @@ describe('scroll del AdminEventWorkspace', () => {
       /\.admin-event-workspace__save \.admin-event-form__action-buttons \.btn\s*\{[^}]*min-height:\s*28px/s,
     )
   })
+
+  it('deja los capítulos de Ventas visibles en notebook y desktop', () => {
+    const chaptersBlock = css.slice(css.lastIndexOf('Capítulos de Ventas'))
+    const nineHundred = chaptersBlock.match(
+      /@media \(min-width: 900px\) \{[\s\S]*?\.admin-event-workspace__chapters\s*\{[\s\S]*?\}/,
+    )
+
+    expect(chaptersBlock).toMatch(
+      /\.admin-event-workspace__chapters\s*\{[^}]*display:\s*flex/s,
+    )
+    expect(nineHundred).toBeNull()
+  })
 })
