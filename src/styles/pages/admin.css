@@ -18642,10 +18642,10 @@ button.action-queue__proof:focus-visible {
   display: grid;
   gap: 8px 12px;
   grid-template-columns:
-    minmax(0, 1.6fr)
-    minmax(5.5rem, 7rem)
+    minmax(0, 1.35fr)
+    minmax(7.5rem, 9.5rem)
     minmax(4.25rem, 5.5rem)
-    minmax(0, 1.15fr)
+    minmax(0, 1.05fr)
     minmax(5rem, 6.5rem);
   min-width: 0;
   padding: 8px 14px;
@@ -18720,7 +18720,24 @@ button.action-queue__proof:focus-visible {
   vertical-align: -2px;
 }
 
-.admin-ticket-types__row-price,
+.admin-ticket-types__row-price {
+  display: grid;
+  font-variant-numeric: tabular-nums;
+  gap: 1px;
+  min-width: 0;
+}
+
+.admin-ticket-types__row-price strong {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.admin-ticket-types__row-price small {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  line-height: 1.3;
+}
+
 .admin-ticket-types__row-quota {
   font-variant-numeric: tabular-nums;
 }
@@ -18814,17 +18831,75 @@ button.action-queue__proof:focus-visible {
   align-items: start;
   display: grid;
   gap: 12px 16px;
-  grid-template-columns:
-    minmax(0, 1.4fr) minmax(128px, 1fr) minmax(112px, 0.85fr)
-    minmax(104px, 0.8fr);
+  grid-template-columns: minmax(0, 1.6fr) minmax(112px, 0.7fr);
 }
 
-/* Precio Mercado Pago + precio transferencia/efectivo: mismo concepto, una
-   sola celda de la grilla. Apilados en vez de una columna nueva. */
-.admin-ticket-types__price-stack {
+.admin-ticket-types__prices {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-ticket-types__prices-grid {
+  display: grid;
+  gap: 12px 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-ticket-types__wise-note {
+  border-left: 2px solid color-mix(in srgb, var(--plu-gold-500) 70%, transparent);
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  padding: 2px 0 2px 12px;
+}
+
+.admin-ticket-types__fold {
+  border-top: 1px solid color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 80%, transparent);
+  min-width: 0;
+  padding-top: 8px;
+}
+
+.admin-ticket-types__fold > summary {
+  align-items: baseline;
+  color: var(--color-text-primary);
+  cursor: pointer;
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px 12px;
+  list-style: none;
+  min-height: 36px;
+}
+
+.admin-ticket-types__fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-ticket-types__fold > summary::before {
+  color: var(--admin-muted, var(--color-text-muted));
+  content: '▸';
+  font-size: 11px;
+}
+
+.admin-ticket-types__fold[open] > summary::before {
+  content: '▾';
+}
+
+.admin-ticket-types__fold > summary:focus-visible {
+  outline: 2px solid var(--admin-focus, var(--admin-brand, var(--color-brand-celeste)));
+  outline-offset: 2px;
+}
+
+.admin-ticket-types__fold > summary small {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.admin-ticket-types__fold > *:not(summary) {
+  margin-top: 10px;
 }
 
 @media (max-width: 980px) {
@@ -18865,11 +18940,13 @@ button.action-queue__proof:focus-visible {
   }
 
   .admin-ticket-types__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
   }
+}
 
-  .admin-ticket-types__grid > .admin-event-form__field:first-child {
-    grid-column: 1 / -1;
+@media (max-width: 720px) {
+  .admin-ticket-types__prices-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -19520,12 +19597,9 @@ button.action-queue__proof:focus-visible {
 }
 
 @media (max-width: 640px) {
-  .admin-ticket-types__grid {
+  .admin-ticket-types__grid,
+  .admin-ticket-types__prices-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .admin-ticket-types__grid > .admin-event-form__field:first-child {
-    grid-column: auto;
   }
 
   .admin-ticket-types__window-grid {

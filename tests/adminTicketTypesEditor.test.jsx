@@ -31,7 +31,7 @@ function Harness() {
   )
 }
 
-function CatalogHarness({ errors } = {}) {
+function CatalogHarness({ addonsCatalog = [], errors } = {}) {
   const [types, setTypes] = useState([
     {
       name: 'Público general',
@@ -54,6 +54,7 @@ function CatalogHarness({ errors } = {}) {
   return (
     <I18nProvider>
       <AdminTicketTypesEditor
+        addonsCatalog={addonsCatalog}
         canEdit
         errors={errors}
         eventDays={[{ dayIndex: 0, label: 'Día 1', date: '2026-08-15' }]}
@@ -83,6 +84,9 @@ describe('AdminTicketTypesEditor', () => {
 
     expect(general.getAttribute('aria-selected')).toBe('true')
     expect(palco.getAttribute('aria-selected')).toBe('false')
+    expect(general.textContent).toMatch(/15.?000/)
+    expect(general.textContent).toMatch(/=\s*MP/)
+    expect(general.textContent).toMatch(/se calcula/i)
     expect(screen.getByDisplayValue('Público general')).toBeTruthy()
     expect(screen.getAllByRole('spinbutton', { name: /precio wise/i })).toHaveLength(1)
     expect(screen.queryByDisplayValue('Palco')).toBeNull()
@@ -114,6 +118,28 @@ describe('AdminTicketTypesEditor', () => {
     fireEvent.change(manualPriceInput, { target: { value: '13000' } })
 
     expect(screen.getByRole('spinbutton', { name: /transferencia/i }).value).toBe('13000')
+    expect(document.getElementById('ticket-type-row-0').textContent).toMatch(/13.?000/)
+  })
+
+  it('editar Wise actualiza la fila del catálogo', () => {
+    render(<CatalogHarness />)
+
+    fireEvent.change(screen.getByRole('spinbutton', { name: /precio wise/i }), {
+      target: { value: '15' },
+    })
+
+    expect(screen.getByRole('spinbutton', { name: /precio wise/i }).value).toBe('15')
+    expect(document.getElementById('ticket-type-row-0').textContent).toMatch(/15/)
+  })
+
+  it('avisa cuando hay beneficios pagos sin USD y Wise del tipo no va a aplicarse', () => {
+    render(
+      <CatalogHarness
+        addonsCatalog={[{ id: 'chori', label: 'Choripán', price: 5000, enabled: true }]}
+      />,
+    )
+
+    expect(screen.getByRole('status').textContent).toMatch(/beneficios pagos sin USD/i)
   })
 
   it('muestra el error de validación del precio manual en su propio campo', () => {
