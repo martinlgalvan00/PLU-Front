@@ -558,10 +558,29 @@
 }
 
 .ticket-purchase--editorial .field--select select {
+  background-color: var(--color-bg-input);
+  color-scheme: dark;
   overflow: hidden;
   padding-right: 2.2rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* El menú de un select nativo no hereda de forma confiable el fondo de la
+   superficie en Chrome/Windows. Sin estos colores la lista abría blanca con
+   texto claro, aunque el control cerrado se viera bien. */
+.ticket-purchase--editorial .field--select select option {
+  background-color: var(--color-bg-input);
+  color: var(--color-text-primary);
+}
+
+.ticket-purchase--editorial .field--select select option:checked {
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .ticket-purchase--editorial .field--select select {
+  color-scheme: light;
 }
 
 .ticket-purchase--editorial .ticket-purchase__field-dni input {
