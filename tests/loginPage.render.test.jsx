@@ -112,6 +112,23 @@ describe('LoginPage', () => {
     })
   })
 
+  it('muestra el error del servidor en lugar de culpar a las credenciales', async () => {
+    const onLogin = vi.fn(async () => {
+      const error = new Error('El servidor tuvo un problema.')
+      error.status = 500
+      throw error
+    })
+    renderLogin({ onLogin })
+
+    fireEvent.change(screen.getByPlaceholderText('tu@email.com'), {
+      target: { value: 'atleta@plu.test' },
+    })
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'secreta123' } })
+    fireEvent.click(screen.getByRole('button', { name: /Ingresar/i }))
+
+    expect(await screen.findByText('El servidor tuvo un problema.')).toBeTruthy()
+  })
+
   it('el botón de OAuth vive dentro del form pero no lo envía', async () => {
     const onLogin = vi.fn()
     const oauthLogin = vi.fn(async () => {})

@@ -162,7 +162,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
       // o proxy de Vite sin backend) tampoco: el mensaje genérico de
       // "revisá email/contraseña" escondía que el servicio no estaba arriba.
       const status = error?.status
-      const showsServerMessage = status === 0 || status === 429 || status === 502 || status === 503
+      const showsServerMessage = status === 0 || status === 429 || status >= 500
       setSubmitError(
         showsServerMessage ? error.message || t('login.errorUnavailable') : t('login.errorInvalid'),
       )
