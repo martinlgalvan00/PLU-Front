@@ -386,6 +386,7 @@
   height: 100%;
   justify-content: center;
   min-width: 0;
+  padding-inline-end: var(--space-sm);
   position: relative;
 }
 
@@ -820,6 +821,7 @@
   flex-shrink: 0;
   gap: 6px;
   justify-self: end;
+  margin-inline-start: var(--space-sm);
   overflow: visible;
 }
 
@@ -2842,32 +2844,6 @@ html.plu-drawer-open body {
   }
 }
 
-/* Mid estrecho 800–899: set completo compacto (sin ocultar Competencias/Recursos). */
-@media (min-width: 800px) and (max-width: 899px) {
-  .plu-global-nav {
-    gap: 8px;
-    padding: 0 12px 0 10px;
-  }
-
-  .plu-global-nav__desktop {
-    gap: 2px;
-  }
-
-  .plu-global-nav__link {
-    font-size: 11px;
-    letter-spacing: 0.022em;
-    padding-inline: 8px;
-  }
-
-  .plu-global-nav__link--affiliate {
-    letter-spacing: 0.02em;
-  }
-
-  .plu-global-nav__login {
-    padding-inline: 12px;
-  }
-}
-
 /* Notebook mid 800–1099: nav desktop + Acceder + menú (no chrome de celular). */
 @media (min-width: 800px) and (max-width: 1099px) {
   .site-header-shell--institutional {
@@ -2940,9 +2916,10 @@ html.plu-drawer-open body {
   .plu-global-nav__desktop {
     display: flex;
     flex: 1 1 auto;
-    gap: 4px;
+    gap: 2px;
     justify-content: center;
     min-width: 0;
+    padding-inline-end: var(--space-sm);
   }
 
   .plu-global-nav__link {
@@ -2950,14 +2927,14 @@ html.plu-drawer-open body {
     font-weight: 650;
     letter-spacing: 0.02em;
     min-height: 44px;
-    padding-inline: 10px;
+    padding-inline: 8px;
   }
 
   .site-header--scrolled .plu-global-nav__link {
     font-size: 11px;
     letter-spacing: 0.018em;
     min-height: 42px;
-    padding-inline: 9px;
+    padding-inline: 7px;
   }
 
   .plu-global-nav__link--affiliate {
@@ -2977,6 +2954,7 @@ html.plu-drawer-open body {
     flex: none;
     flex-shrink: 0;
     gap: 6px;
+    margin-inline-start: var(--space-sm);
     overflow: visible;
   }
 
@@ -3028,6 +3006,33 @@ html.plu-drawer-open body {
   .plu-global-nav__mobile-affiliate,
   .plu-global-nav__mobile-actions .plu-global-nav__session-skeleton {
     display: none;
+  }
+}
+
+/* Mid estrecho 800–899: compacta de más (va después de 800–1099 para no quedar pisado). */
+@media (min-width: 800px) and (max-width: 899px) {
+  .plu-global-nav {
+    gap: 8px;
+    padding: 0 12px 0 10px;
+  }
+
+  .plu-global-nav__desktop {
+    gap: 0;
+    padding-inline-end: var(--space-sm);
+  }
+
+  .plu-global-nav__link {
+    font-size: 11px;
+    letter-spacing: 0.022em;
+    padding-inline: 7px;
+  }
+
+  .plu-global-nav__link--affiliate {
+    letter-spacing: 0.02em;
+  }
+
+  .plu-global-nav__login {
+    padding-inline: 12px;
   }
 }
 

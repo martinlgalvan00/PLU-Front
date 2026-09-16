@@ -7,6 +7,10 @@ import { money } from '../../lib/format.js'
 import { defaultTicketCredential } from '../../lib/ticketCredentials.js'
 import { openEventChannelsFor } from '../../lib/eventPaymentChannels.js'
 import { resolveTicketTypeChannels } from '../../lib/ticketTypePaymentChannels.js'
+import {
+  optionalTicketChannelPrice,
+  paidAddonsMissingWise,
+} from '../../lib/ticketTypePrices.js'
 import AdminEventDaysEditor from './AdminEventDaysEditor.jsx'
 import AdminTicketCredentialsEditor from './AdminTicketCredentialsEditor.jsx'
 import AdminTicketTypeChannels from './AdminTicketTypeChannels.jsx'
@@ -48,6 +52,32 @@ function firstTicketTypeWithError(errors) {
     if (found === -1 || index < found) found = index
   }
   return found
+}
+
+function TicketTypeRowPrices({ locale, t, type }) {
+  const manual = optionalTicketChannelPrice(type.manualPrice)
+  const wise = optionalTicketChannelPrice(type.wisePrice)
+  return (
+    <span className="admin-ticket-types__row-price">
+      <strong>{money(type.price, locale)}</strong>
+      <small>
+        {t('admin.eventEditor.supabase.ticketTypeRowManual', {
+          amount:
+            manual != null
+              ? money(manual, locale)
+              : t('admin.eventEditor.supabase.ticketTypeRowManualSame'),
+        })}
+      </small>
+      <small>
+        {t('admin.eventEditor.supabase.ticketTypeRowWise', {
+          amount:
+            wise != null
+              ? money(wise, locale, 'USD')
+              : t('admin.eventEditor.supabase.ticketTypeRowWiseCalculated'),
+        })}
+      </small>
+    </span>
+  )
 }
 
 /**
@@ -165,6 +195,16 @@ export default function AdminTicketTypesEditor({
   }
 
   const errorFor = (key) => errors[`ticketTypes.${index}.${key}`] ?? ''
+  const windowHasError = Boolean(errorFor('salesOpensAt') || errorFor('salesClosesAt'))
+  const accessHasError = Boolean(
+    errorFor('dayIndexes') ||
+      errorFor('includedAddonIds') ||
+      Object.keys(errors ?? {}).some((key) => key.startsWith(`ticketTypes.${index}.credentials`)),
+  )
+  const addonsWithoutWise = useMemo(
+    () => paidAddonsMissingWise(addonsCatalog),
+    [addonsCatalog],
+  )
 
   return (
     <>
@@ -276,9 +316,7 @@ export default function AdminTicketTypesEditor({
                       ) : null}
                       {type.name || t('admin.eventEditor.supabase.ticketTypeUntitled')}
                     </span>
-                    <span className="admin-ticket-types__row-price">
-                      {money(type.price, locale)}
-                    </span>
+                    <TicketTypeRowPrices locale={locale} t={t} type={type} />
                     <span className="admin-ticket-types__row-quota">
                       {type.quota == null || type.quota === ''
                         ? t('admin.eventEditor.supabase.ticketTypeQuotaUnlimited')
@@ -363,100 +401,6 @@ export default function AdminTicketTypesEditor({
                       </small>
                     ) : null}
                   </label>
-                  {/* Los dos precios en pesos van juntos: son el mismo
-                      concepto (cuánto sale la entrada) y se leen comparados.
-                      Ocupan una sola celda de la grilla — agregar una columna
-                      nueva por esto habría forzado un quinto ancho fijo para
-                      un campo que se entiende mejor al lado del que ya existe. */}
-                  <div className="admin-ticket-types__price-stack">
-                    <label className="admin-event-form__field">
-                      <span>{t('admin.eventEditor.supabase.ticketTypePrice')}</span>
-                      <span className="admin-event-form__rate-card-input">
-                        <input
-                          disabled={!canEdit}
-                          min={0}
-                          required
-                          type="number"
-                          value={current.price}
-                          name={`ticketTypes.${index}.price`}
-                          data-field={`ticketTypes.${index}.price`}
-                          aria-invalid={Boolean(errorFor('price'))}
-                          onChange={(event) =>
-                            patchTicketType(index, { price: Number(event.target.value) || 0 })
-                          }
-                        />
-                        <span aria-hidden>{t('admin.eventEditor.priceCurrency')}</span>
-                      </span>
-                      {errorFor('price') ? (
-                        <small className="admin-event-form__error" role="alert">
-                          {errorFor('price')}
-                        </small>
-                      ) : null}
-                    </label>
-                    {/* Precio para transferencia/efectivo. Vacío = cobra igual
-                        que Mercado Pago, que es el comportamiento de siempre. */}
-                    <label className="admin-event-form__field">
-                      <span>{t('admin.eventEditor.supabase.ticketTypeManualPrice')}</span>
-                      <span className="admin-event-form__rate-card-input">
-                        <input
-                          disabled={!canEdit}
-                          min={1}
-                          max={10000000}
-                          type="number"
-                          value={current.manualPrice ?? ''}
-                          name={`ticketTypes.${index}.manualPrice`}
-                          data-field={`ticketTypes.${index}.manualPrice`}
-                          aria-invalid={Boolean(errorFor('manualPrice'))}
-                          onChange={(event) =>
-                            patchTicketType(index, {
-                              manualPrice: event.target.value === '' ? '' : Number(event.target.value),
-                            })
-                          }
-                          placeholder={t('admin.eventEditor.supabase.ticketTypeManualPricePlaceholder')}
-                        />
-                        <span aria-hidden>{t('admin.eventEditor.priceCurrency')}</span>
-                      </span>
-                      {errorFor('manualPrice') ? (
-                        <small className="admin-event-form__error" role="alert">
-                          {errorFor('manualPrice')}
-                        </small>
-                      ) : (
-                        <small className="admin-event-form__field-hint">
-                          {t('admin.eventEditor.supabase.ticketTypeManualPriceHint')}
-                        </small>
-                      )}
-                    </label>
-                  </div>
-                  {/* Precio en USD para Wise. Vacío = se deriva del precio en
-                      pesos por el dólar configurado, que es lo que pasaba antes
-                      de que esto se pudiera cargar. */}
-                  <label className="admin-event-form__field">
-                    <span>{t('admin.eventEditor.supabase.ticketTypeWisePrice')}</span>
-                    <span className="admin-event-form__rate-card-input">
-                      <input
-                        disabled={!canEdit}
-                        min={1}
-                        max={100000}
-                        type="number"
-                        value={current.wisePrice ?? ''}
-                        name={`ticketTypes.${index}.wisePrice`}
-                        data-field={`ticketTypes.${index}.wisePrice`}
-                        aria-invalid={Boolean(errorFor('wisePrice'))}
-                        onChange={(event) =>
-                          patchTicketType(index, {
-                            wisePrice: event.target.value === '' ? '' : Number(event.target.value),
-                          })
-                        }
-                        placeholder={t('admin.eventEditor.supabase.ticketTypeWisePricePlaceholder')}
-                      />
-                      <span aria-hidden>USD</span>
-                    </span>
-                    {errorFor('wisePrice') ? (
-                      <small className="admin-event-form__error" role="alert">
-                        {errorFor('wisePrice')}
-                      </small>
-                    ) : null}
-                  </label>
                   <label className="admin-event-form__field">
                     <span>{t('admin.eventEditor.supabase.ticketTypeQuota')}</span>
                     <input
@@ -477,65 +421,179 @@ export default function AdminTicketTypesEditor({
                       <small className="admin-event-form__error" role="alert">
                         {errorFor('quota')}
                       </small>
-                    ) : null}
+                    ) : (
+                      <small className="admin-event-form__field-hint">
+                        {t('admin.eventEditor.supabase.ticketTypeQuotaHint')}
+                      </small>
+                    )}
                   </label>
-                  {/* La aclaración del cupo sale de la celda y va debajo, a todo
-                      el ancho: adentro medía tres líneas, estiraba la fila y
-                      dejaba las otras dos columnas con un hueco al costado. */}
-                  <small className="admin-ticket-types__grid-note">
-                    {t('admin.eventEditor.supabase.ticketTypeQuotaHint')}
-                  </small>
                 </div>
 
-                {/* Ventana propia del tipo. Sólo cierra antes que la del
-                    evento: es para que una preventa se apague sola en vez de
-                    depender de que alguien entre al panel ese día. */}
-                <div className="admin-ticket-types__window">
+                <div className="admin-ticket-types__prices">
                   <span className="admin-ticket-types__days-label">
-                    {t('admin.eventEditor.supabase.ticketTypeWindowLabel')}
+                    {t('admin.eventEditor.supabase.ticketTypePricesLabel')}
                   </span>
-                  <div className="admin-ticket-types__window-grid">
+                  <div className="admin-ticket-types__prices-grid">
                     <label className="admin-event-form__field">
-                      <span>{t('admin.eventEditor.supabase.ticketTypeSalesOpensAt')}</span>
-                      <DateTimeLocalInput
-                        disabled={!canEdit}
-                        name={`ticketTypes.${index}.salesOpensAt`}
-                        data-field={`ticketTypes.${index}.salesOpensAt`}
-                        value={current.salesOpensAt ?? ''}
-                        aria-invalid={Boolean(errorFor('salesOpensAt'))}
-                        onChange={(event) =>
-                          patchTicketType(index, { salesOpensAt: event.target.value })
-                        }
-                      />
-                      {errorFor('salesOpensAt') ? (
+                      <span>{t('admin.eventEditor.supabase.ticketTypePrice')}</span>
+                      <span className="admin-event-form__rate-card-input">
+                        <input
+                          disabled={!canEdit}
+                          min={0}
+                          required
+                          step={1}
+                          type="number"
+                          value={current.price}
+                          name={`ticketTypes.${index}.price`}
+                          data-field={`ticketTypes.${index}.price`}
+                          aria-invalid={Boolean(errorFor('price'))}
+                          onChange={(event) =>
+                            patchTicketType(index, { price: Number(event.target.value) || 0 })
+                          }
+                        />
+                        <span aria-hidden>{t('admin.eventEditor.priceCurrency')}</span>
+                      </span>
+                      {errorFor('price') ? (
                         <small className="admin-event-form__error" role="alert">
-                          {errorFor('salesOpensAt')}
+                          {errorFor('price')}
                         </small>
                       ) : null}
                     </label>
                     <label className="admin-event-form__field">
-                      <span>{t('admin.eventEditor.supabase.ticketTypeSalesClosesAt')}</span>
-                      <DateTimeLocalInput
-                        disabled={!canEdit}
-                        name={`ticketTypes.${index}.salesClosesAt`}
-                        data-field={`ticketTypes.${index}.salesClosesAt`}
-                        value={current.salesClosesAt ?? ''}
-                        aria-invalid={Boolean(errorFor('salesClosesAt'))}
-                        onChange={(event) =>
-                          patchTicketType(index, { salesClosesAt: event.target.value })
-                        }
-                      />
-                      {errorFor('salesClosesAt') ? (
+                      <span>{t('admin.eventEditor.supabase.ticketTypeManualPrice')}</span>
+                      <span className="admin-event-form__rate-card-input">
+                        <input
+                          disabled={!canEdit}
+                          min={1}
+                          max={10000000}
+                          step={1}
+                          type="number"
+                          value={current.manualPrice ?? ''}
+                          name={`ticketTypes.${index}.manualPrice`}
+                          data-field={`ticketTypes.${index}.manualPrice`}
+                          aria-invalid={Boolean(errorFor('manualPrice'))}
+                          onChange={(event) =>
+                            patchTicketType(index, {
+                              manualPrice:
+                                event.target.value === '' ? '' : Number(event.target.value),
+                            })
+                          }
+                          placeholder={t(
+                            'admin.eventEditor.supabase.ticketTypeManualPricePlaceholder',
+                          )}
+                        />
+                        <span aria-hidden>{t('admin.eventEditor.priceCurrency')}</span>
+                      </span>
+                      {errorFor('manualPrice') ? (
                         <small className="admin-event-form__error" role="alert">
-                          {errorFor('salesClosesAt')}
+                          {errorFor('manualPrice')}
                         </small>
-                      ) : null}
+                      ) : (
+                        <small className="admin-event-form__field-hint">
+                          {t('admin.eventEditor.supabase.ticketTypeManualPriceHint')}
+                        </small>
+                      )}
+                    </label>
+                    <label className="admin-event-form__field">
+                      <span>{t('admin.eventEditor.supabase.ticketTypeWisePrice')}</span>
+                      <span className="admin-event-form__rate-card-input">
+                        <input
+                          disabled={!canEdit}
+                          min={1}
+                          max={100000}
+                          step={1}
+                          type="number"
+                          value={current.wisePrice ?? ''}
+                          name={`ticketTypes.${index}.wisePrice`}
+                          data-field={`ticketTypes.${index}.wisePrice`}
+                          aria-invalid={Boolean(errorFor('wisePrice'))}
+                          onChange={(event) =>
+                            patchTicketType(index, {
+                              wisePrice:
+                                event.target.value === '' ? '' : Number(event.target.value),
+                            })
+                          }
+                          placeholder={t(
+                            'admin.eventEditor.supabase.ticketTypeWisePricePlaceholder',
+                          )}
+                        />
+                        <span aria-hidden>USD</span>
+                      </span>
+                      {errorFor('wisePrice') ? (
+                        <small className="admin-event-form__error" role="alert">
+                          {errorFor('wisePrice')}
+                        </small>
+                      ) : (
+                        <small className="admin-event-form__field-hint">
+                          {t('admin.eventEditor.supabase.ticketTypeWisePriceHint')}
+                        </small>
+                      )}
                     </label>
                   </div>
-                  <small className="admin-ticket-types__grid-note">
-                    {t('admin.eventEditor.supabase.ticketTypeWindowHint')}
-                  </small>
+                  {addonsWithoutWise.length > 0 ? (
+                    <p className="admin-ticket-types__wise-note" role="status">
+                      {t('admin.eventEditor.supabase.ticketTypeWiseAddonsMissing')}
+                    </p>
+                  ) : null}
                 </div>
+
+                <details
+                  key={`window-${index}`}
+                  className="admin-ticket-types__fold"
+                  open={windowHasError || undefined}
+                >
+                  <summary>
+                    {t('admin.eventEditor.supabase.ticketTypeFoldWindow')}
+                    <small>
+                      {current.salesOpensAt || current.salesClosesAt
+                        ? `${current.salesOpensAt || '—'} → ${current.salesClosesAt || '—'}`
+                        : t('admin.eventEditor.supabase.ticketTypeWindowInherit')}
+                    </small>
+                  </summary>
+                  <div className="admin-ticket-types__window">
+                    <div className="admin-ticket-types__window-grid">
+                      <label className="admin-event-form__field">
+                        <span>{t('admin.eventEditor.supabase.ticketTypeSalesOpensAt')}</span>
+                        <DateTimeLocalInput
+                          disabled={!canEdit}
+                          name={`ticketTypes.${index}.salesOpensAt`}
+                          data-field={`ticketTypes.${index}.salesOpensAt`}
+                          value={current.salesOpensAt ?? ''}
+                          aria-invalid={Boolean(errorFor('salesOpensAt'))}
+                          onChange={(event) =>
+                            patchTicketType(index, { salesOpensAt: event.target.value })
+                          }
+                        />
+                        {errorFor('salesOpensAt') ? (
+                          <small className="admin-event-form__error" role="alert">
+                            {errorFor('salesOpensAt')}
+                          </small>
+                        ) : null}
+                      </label>
+                      <label className="admin-event-form__field">
+                        <span>{t('admin.eventEditor.supabase.ticketTypeSalesClosesAt')}</span>
+                        <DateTimeLocalInput
+                          disabled={!canEdit}
+                          name={`ticketTypes.${index}.salesClosesAt`}
+                          data-field={`ticketTypes.${index}.salesClosesAt`}
+                          value={current.salesClosesAt ?? ''}
+                          aria-invalid={Boolean(errorFor('salesClosesAt'))}
+                          onChange={(event) =>
+                            patchTicketType(index, { salesClosesAt: event.target.value })
+                          }
+                        />
+                        {errorFor('salesClosesAt') ? (
+                          <small className="admin-event-form__error" role="alert">
+                            {errorFor('salesClosesAt')}
+                          </small>
+                        ) : null}
+                      </label>
+                    </div>
+                    <small className="admin-ticket-types__grid-note">
+                      {t('admin.eventEditor.supabase.ticketTypeWindowHint')}
+                    </small>
+                  </div>
+                </details>
 
                 <AdminTicketTypeChannels
                   canEdit={canEdit}
@@ -546,77 +604,85 @@ export default function AdminTicketTypesEditor({
                   onChange={(paymentChannels) => patchTicketType(index, { paymentChannels })}
                 />
 
-                {eventDays.length > 0 ? (
-                  <div
-                    className="admin-ticket-types__days"
-                    data-field={`ticketTypes.${index}.dayIndexes`}
-                    tabIndex={errorFor('dayIndexes') ? -1 : undefined}
-                  >
-                    <span className="admin-ticket-types__days-label">
-                      {t('admin.eventEditor.supabase.ticketTypeDaysLabel')}
-                    </span>
-                    <div className="admin-ticket-types__days-list">
-                      {eventDays.map((day) => (
-                        <label key={day.dayIndex} className="admin-ticket-types__day-chip">
-                          <input
-                            checked={(current.dayIndexes ?? []).includes(day.dayIndex)}
-                            disabled={!canEdit}
-                            type="checkbox"
-                            onChange={() => toggleTicketTypeDay(index, day.dayIndex)}
-                          />
-                          <span>{day.label || `#${day.dayIndex + 1}`}</span>
-                        </label>
-                      ))}
-                    </div>
-                    {errorFor('dayIndexes') ? (
-                      <small className="admin-event-form__error" role="alert">
-                        {errorFor('dayIndexes')}
-                      </small>
-                    ) : null}
-                  </div>
-                ) : null}
+                <details
+                  key={`access-${index}`}
+                  className="admin-ticket-types__fold"
+                  open={accessHasError || undefined}
+                >
+                  <summary>{t('admin.eventEditor.supabase.ticketTypeFoldAccess')}</summary>
 
-                {addonsCatalog.length > 0 ? (
-                  <div
-                    className="admin-ticket-types__addons"
-                    data-field={`ticketTypes.${index}.includedAddonIds`}
-                    tabIndex={errorFor('includedAddonIds') ? -1 : undefined}
-                  >
-                    <span className="admin-ticket-types__days-label">
-                      {t('admin.eventEditor.supabase.ticketTypeAddonsLabel')}
-                    </span>
-                    <div className="admin-ticket-types__days-list">
-                      {addonsCatalog.map((addon) => (
-                        <label key={addon.id} className="admin-ticket-types__day-chip">
-                          <input
-                            checked={(current.includedAddonIds ?? []).includes(addon.id)}
-                            disabled={!canEdit}
-                            type="checkbox"
-                            onChange={() => toggleTicketTypeAddon(index, addon.id)}
-                          />
-                          <span>{addon.label}</span>
-                        </label>
-                      ))}
+                  {eventDays.length > 0 ? (
+                    <div
+                      className="admin-ticket-types__days"
+                      data-field={`ticketTypes.${index}.dayIndexes`}
+                      tabIndex={errorFor('dayIndexes') ? -1 : undefined}
+                    >
+                      <span className="admin-ticket-types__days-label">
+                        {t('admin.eventEditor.supabase.ticketTypeDaysLabel')}
+                      </span>
+                      <div className="admin-ticket-types__days-list">
+                        {eventDays.map((day) => (
+                          <label key={day.dayIndex} className="admin-ticket-types__day-chip">
+                            <input
+                              checked={(current.dayIndexes ?? []).includes(day.dayIndex)}
+                              disabled={!canEdit}
+                              type="checkbox"
+                              onChange={() => toggleTicketTypeDay(index, day.dayIndex)}
+                            />
+                            <span>{day.label || `#${day.dayIndex + 1}`}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {errorFor('dayIndexes') ? (
+                        <small className="admin-event-form__error" role="alert">
+                          {errorFor('dayIndexes')}
+                        </small>
+                      ) : null}
                     </div>
-                    {errorFor('includedAddonIds') ? (
-                      <small className="admin-event-form__error" role="alert">
-                        {errorFor('includedAddonIds')}
-                      </small>
-                    ) : null}
-                  </div>
-                ) : (
-                  <p className="admin-ticket-types__empty">
-                    {t('admin.eventEditor.supabase.ticketTypeAddonsEmpty')}
-                  </p>
-                )}
+                  ) : null}
 
-                <AdminTicketCredentialsEditor
-                  canEdit={canEdit}
-                  credentials={current.credentials ?? [defaultTicketCredential()]}
-                  fieldPrefix={`ticketTypes.${index}`}
-                  quota={current.quota}
-                  onChange={(credentials) => patchTicketType(index, { credentials })}
-                />
+                  {addonsCatalog.length > 0 ? (
+                    <div
+                      className="admin-ticket-types__addons"
+                      data-field={`ticketTypes.${index}.includedAddonIds`}
+                      tabIndex={errorFor('includedAddonIds') ? -1 : undefined}
+                    >
+                      <span className="admin-ticket-types__days-label">
+                        {t('admin.eventEditor.supabase.ticketTypeAddonsLabel')}
+                      </span>
+                      <div className="admin-ticket-types__days-list">
+                        {addonsCatalog.map((addon) => (
+                          <label key={addon.id} className="admin-ticket-types__day-chip">
+                            <input
+                              checked={(current.includedAddonIds ?? []).includes(addon.id)}
+                              disabled={!canEdit}
+                              type="checkbox"
+                              onChange={() => toggleTicketTypeAddon(index, addon.id)}
+                            />
+                            <span>{addon.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {errorFor('includedAddonIds') ? (
+                        <small className="admin-event-form__error" role="alert">
+                          {errorFor('includedAddonIds')}
+                        </small>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="admin-ticket-types__empty">
+                      {t('admin.eventEditor.supabase.ticketTypeAddonsEmpty')}
+                    </p>
+                  )}
+
+                  <AdminTicketCredentialsEditor
+                    canEdit={canEdit}
+                    credentials={current.credentials ?? [defaultTicketCredential()]}
+                    fieldPrefix={`ticketTypes.${index}`}
+                    quota={current.quota}
+                    onChange={(credentials) => patchTicketType(index, { credentials })}
+                  />
+                </details>
               </div>
             ) : null}
           </>

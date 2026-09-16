@@ -10,6 +10,7 @@ import {
   mapDraftToPreviewEvent,
   mapPublishedEventRow,
   mapSupabaseEventRow,
+  PUBLISHED_EVENTS_SELECT,
   removeAdminEvent,
   withEventStart,
 } from '../src/services/eventAdminService.js'
@@ -499,5 +500,122 @@ describe('removeAdminEvent', () => {
     expect(result.event).toBeNull()
     expect(result.events).toBe(events)
     expect(result.auditLog).toBeNull()
+  })
+})
+
+describe('catálogo de tipos de entrada: precios por canal', () => {
+  const day = { id: 'day-1', day_index: 0, label: 'Día 1', date: '2026-08-15' }
+
+  function rowWithTypes(ticketTypes) {
+    return {
+      id: '11111111-1111-4111-8111-111111111111',
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic',
+      venue: 'Maximal',
+      location: 'Buenos Aires',
+      starts_at: '2026-08-15T12:00:00.000Z',
+      ends_at: '2026-08-15T20:00:00.000Z',
+      capacity: 120,
+      status: 'proximamente',
+      published: false,
+      price: 75000,
+      currency: 'ARS',
+      rules: {},
+      eventDays: [day],
+      ticketTypes,
+    }
+  }
+
+  it('mapea wise_price y manual_price desde snake_case de Supabase', () => {
+    const event = mapSupabaseEventRow(
+      rowWithTypes([
+        {
+          id: 'tt-1',
+          name: 'General',
+          price: 20000,
+          wise_price: 15,
+          manual_price: 17000,
+          quota: null,
+          sort_order: 0,
+          active: true,
+          sales_opens_at: '2026-08-01T12:00:00.000Z',
+          sales_closes_at: '2026-08-10T12:00:00.000Z',
+          payment_channels: { mercado_pago: true, bank_transfer: false },
+          ticketTypeDays: [{ event_day_id: 'day-1' }],
+          includedAddons: [],
+          credentials: [{ id: 'c1', label: 'Entrada general', zone_scopes: ['gate_tickets'], sort_order: 0 }],
+        },
+      ]),
+    )
+
+    expect(event.ticketTypes[0]).toMatchObject({
+      wisePrice: 15,
+      manualPrice: 17000,
+      salesOpensAt: '2026-08-01T12:00:00.000Z',
+      salesClosesAt: '2026-08-10T12:00:00.000Z',
+    })
+  })
+
+  it('no pierde los precios si la fila ya venía en camelCase', () => {
+    const once = mapSupabaseEventRow(
+      rowWithTypes([
+        {
+          id: 'tt-1',
+          name: 'General',
+          price: 20000,
+          wise_price: 15,
+          manual_price: 17000,
+          quota: null,
+          sort_order: 0,
+          active: true,
+          ticketTypeDays: [{ event_day_id: 'day-1' }],
+          includedAddons: [],
+          credentials: [{ label: 'Entrada general', zone_scopes: ['gate_tickets'] }],
+        },
+      ]),
+    )
+    const twice = mapSupabaseEventRow({
+      ...rowWithTypes(once.ticketTypes),
+      eventDays: once.eventDays,
+    })
+
+    expect(twice.ticketTypes[0]).toMatchObject({
+      wisePrice: 15,
+      manualPrice: 17000,
+    })
+  })
+
+  it('el draft de edición conserva Wise y transferencia para el próximo guardado', () => {
+    const event = mapSupabaseEventRow(
+      rowWithTypes([
+        {
+          id: 'tt-1',
+          name: 'General',
+          price: 20000,
+          wise_price: 40,
+          manual_price: 17000,
+          quota: null,
+          sort_order: 0,
+          active: true,
+          ticketTypeDays: [{ event_day_id: 'day-1' }],
+          includedAddons: [],
+          credentials: [{ label: 'Entrada general', zone_scopes: ['gate_tickets'] }],
+        },
+      ]),
+    )
+    const draft = buildAdminEventDraft(event)
+
+    expect(draft.ticketTypes[0]).toMatchObject({
+      wisePrice: 40,
+      manualPrice: 17000,
+    })
+  })
+
+  it('el fallback público pide las columnas de precio y ventana del tipo', () => {
+    expect(PUBLISHED_EVENTS_SELECT).toContain('wise_price')
+    expect(PUBLISHED_EVENTS_SELECT).toContain('manual_price')
+    expect(PUBLISHED_EVENTS_SELECT).toContain('sales_opens_at')
+    expect(PUBLISHED_EVENTS_SELECT).toContain('sales_closes_at')
+    expect(PUBLISHED_EVENTS_SELECT).toContain('payment_channels')
   })
 })
