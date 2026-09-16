@@ -53,18 +53,21 @@ test.describe('Venta de Entradas', () => {
       includes: fixture.ticketAddonLabel,
     })
 
-    const matrix = page.locator('.tickets-page__access-table')
-    await expect(matrix).toBeVisible()
-    await expect(matrix).toContainText('Entrenadores')
-    await expect(matrix).toContainText('Público general')
-    await expect(matrix).toContainText('VIP')
-    await expect(matrix).toContainText('Entrada en calor')
-    const warmupRow = matrix.locator('tr', { hasText: 'Entrada en calor' })
-    await expect(warmupRow.locator('th')).toContainText('Entrada en calor')
-    // Entrenadores abre calentamiento; general y VIP no.
-    await expect(warmupRow.locator('td').nth(0)).toContainText(/incluida/i)
-    await expect(warmupRow.locator('td').nth(1)).toContainText(/no incluida/i)
-    await expect(warmupRow.locator('td').nth(2)).toContainText(/no incluida/i)
+    const access = page.locator('.tickets-page__access')
+    await expect(access).toBeVisible()
+
+    const generalZone = access.locator('.tickets-page__access-zone', {
+      has: page.getByRole('heading', { name: 'Puerta general' }),
+    })
+    await expect(generalZone).toContainText(/todas las entradas/i)
+
+    const warmupZone = access.locator('.tickets-page__access-zone', {
+      has: page.getByRole('heading', { name: 'Entrada en calor' }),
+    })
+    await expect(warmupZone).toContainText('Entrenadores')
+    await expect(warmupZone).toContainText(/no la abren/i)
+    await expect(warmupZone).toContainText('Público general')
+    await expect(warmupZone).toContainText('VIP')
   })
 
   test('el total sigue al tipo, a la cantidad y al beneficio extra', async ({ page }) => {

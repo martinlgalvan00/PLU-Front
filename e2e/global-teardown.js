@@ -46,6 +46,19 @@ export default async function globalTeardown() {
       fixture.soldOutEventId,
       fixture.pausedEventId,
     ])
+    if (fixture.bankTransferProfileId) {
+      await admin.from('payment_profiles').delete().eq('id', fixture.bankTransferProfileId)
+    }
+    for (const channel of ['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer']) {
+      const previous = fixture.previousTicketPaymentChannels?.[channel]
+      if (typeof previous !== 'boolean') continue
+      await admin.rpc('staff_set_payment_channel', {
+        p_concept: 'ticket',
+        p_channel: channel,
+        p_enabled: previous,
+        p_actor: 'e2e:ticket-payment-matrix-cleanup',
+      })
+    }
     await admin
       .from('domain_audit_logs')
       .delete()
