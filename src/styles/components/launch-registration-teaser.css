@@ -487,26 +487,79 @@
   border-radius: 4px;
 }
 
-/* Desktop split: copy | countdown */
+/* Hero scoreboard: el reloj es el artefacto, no un aside. El split lateral
+   achicaba el ticker en tablet (~788px) y competía con el título. */
+
+.launch-teaser--hero .launch-teaser__layout {
+  display: grid;
+  gap: clamp(0.95rem, 2.2vw, 1.45rem);
+  max-width: none;
+  width: 100%;
+}
+
+.launch-teaser--hero .launch-teaser__copy {
+  gap: 0.55rem;
+}
+
+.launch-teaser--hero .launch-teaser__countdown,
+.launch-teaser--hero .launch-teaser__actions {
+  grid-column: 1;
+}
+
+.launch-teaser--hero .launch-teaser__countdown {
+  align-self: stretch;
+  border: 0;
+  border-block: 1px solid var(--motif-line);
+  padding-block: clamp(0.85rem, 2vw, 1.15rem);
+  padding-left: 0;
+}
+
+.launch-teaser--hero .launch-teaser__sep {
+  display: none;
+}
+
+.launch-teaser--hero .launch-teaser__ticker {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: 100%;
+  gap: 0;
+  align-items: start;
+}
+
+.launch-teaser--hero .launch-teaser__unit {
+  min-width: 0;
+  padding-right: clamp(0.65rem, 2vw, 1.25rem);
+}
+
+.launch-teaser--hero .launch-teaser__unit + .launch-teaser__unit {
+  border-left: 1px solid color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
+  padding-left: clamp(0.65rem, 2vw, 1.25rem);
+}
+
+.launch-teaser--hero .launch-teaser__unit-body {
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.launch-teaser--hero .launch-teaser__value {
+  font-size: clamp(2.35rem, 7vw, 4.25rem);
+}
 
 @media (min-width: 900px) {
-  .launch-teaser--full .launch-teaser__layout,
-  .launch-teaser--hero .launch-teaser__layout {
+  .launch-teaser--full .launch-teaser__layout {
     grid-template-columns: minmax(0, 1.05fr) minmax(16rem, 0.95fr);
     column-gap: clamp(2.5rem, 6vw, 4.5rem);
     row-gap: clamp(1.5rem, 3vw, 2rem);
     align-items: end;
   }
 
-  .launch-teaser--full .launch-teaser__copy,
-  .launch-teaser--hero .launch-teaser__copy {
+  .launch-teaser--full .launch-teaser__copy {
     grid-column: 1;
     grid-row: 1;
     padding-bottom: 0.35rem;
   }
 
-  .launch-teaser--full .launch-teaser__countdown,
-  .launch-teaser--hero .launch-teaser__countdown {
+  .launch-teaser--full .launch-teaser__countdown {
     grid-column: 2;
     grid-row: 1;
     justify-self: stretch;
@@ -515,24 +568,12 @@
     border-left: 1px solid color-mix(in srgb, var(--color-brand-gold) 35%, transparent);
   }
 
-  .launch-teaser--hero.launch-teaser--inauguration .launch-teaser__countdown {
-    padding-top: 0.35rem;
-  }
-
-  /* Hero: la regla vertical sigue el mismo acento calibrado que el resto
-     de la marca (oro en dark, celeste en light — ver --motif-line). */
-  .launch-teaser--hero .launch-teaser__countdown {
-    border-left-color: var(--motif-line);
-  }
-
-  .launch-teaser--full .launch-teaser__actions,
-  .launch-teaser--hero .launch-teaser__actions {
+  .launch-teaser--full .launch-teaser__actions {
     grid-column: 1 / -1;
     grid-row: 2;
   }
 
-  .launch-teaser--full .launch-teaser__value,
-  .launch-teaser--hero .launch-teaser__value {
+  .launch-teaser--full .launch-teaser__value {
     font-size: clamp(2.4rem, 4.2vw, 3.6rem);
   }
 }
@@ -904,7 +945,9 @@
   color: color-mix(in srgb, var(--color-brand-gold) 62%, var(--color-text-secondary));
 }
 
-.launch-teaser--inauguration .launch-teaser__title-line--accent {
+.launch-teaser--inauguration .launch-teaser__title-line--accent,
+.launch-teaser--hero.launch-teaser--armed .launch-teaser__title-line--accent,
+.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__title-line--accent {
   color: color-mix(in srgb, var(--color-brand-gold) 72%, var(--color-text-primary));
 }
 
@@ -1106,6 +1149,10 @@
   .launch-teaser--inauguration .launch-teaser__stage-mark::after {
     animation: none;
   }
+
+  .launch-teaser__title-mask {
+    overflow: visible;
+  }
 }
 
 /* ── Hero (Home) — cortina de apertura ──────────────────────────
@@ -1117,9 +1164,14 @@
   font-size: clamp(2.35rem, 6vw, 4.1rem);
 }
 
+.launch-teaser__title-mask {
+  display: block;
+  overflow: hidden;
+}
+
 .launch-teaser--hero .launch-teaser__lead {
-  max-width: 38rem;
-  font-size: clamp(1rem, 1.5vw, 1.15rem);
+  max-width: 42rem;
+  font-size: clamp(0.95rem, 1.4vw, 1.08rem);
 }
 
 .launch-teaser--hero .launch-teaser__atmosphere {
@@ -1185,7 +1237,9 @@
 }
 
 /* Hero inauguración: reloj + captura como cortina de lanzamiento */
-.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__event {
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__event,
+.launch-teaser--hero.launch-teaser--armed .launch-teaser__event,
+.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__event {
   color: color-mix(in srgb, var(--color-brand-gold) 78%, #fff);
   font-family: var(--font-display);
   font-size: 0.84rem;
@@ -1203,48 +1257,64 @@
   letter-spacing: 0.16em;
 }
 
-.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__value {
-  font-size: clamp(2.55rem, 5vw, 4rem);
+.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__value,
+.launch-teaser--hero.launch-teaser--armed .launch-teaser__value {
+  font-size: clamp(2.5rem, 7.2vw, 4.4rem);
   letter-spacing: -0.06em;
+  overflow: visible;
 }
 
-.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__sep {
-  color: color-mix(in srgb, var(--color-brand-gold) 70%, transparent);
-  font-size: clamp(2rem, 4.2vw, 3.2rem);
-  margin-inline: clamp(0.2rem, 1.2vw, 0.55rem);
-  opacity: 0.85;
+.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__sep,
+.launch-teaser--hero.launch-teaser--armed .launch-teaser__sep {
+  display: none;
 }
 
-.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__actions {
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__actions,
+.launch-teaser--hero.launch-teaser--armed .launch-teaser__actions,
+.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__actions {
   border-top-color: color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
   gap: 1.1rem;
   padding-top: 1.15rem;
 }
 
-.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__form {
-  width: min(100%, 32rem);
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__form,
+.launch-teaser--hero.launch-teaser--armed .launch-teaser__form,
+.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__form {
+  width: min(100%, 38rem);
   gap: 0.55rem;
 }
 
 .launch-teaser--hero.launch-teaser--inauguration .launch-teaser__input,
 .launch-teaser--hero.launch-teaser--inauguration .launch-teaser__form .launch-teaser__cta--primary,
-.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__cta {
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__cta,
+.launch-teaser--hero.launch-teaser--armed .launch-teaser__input,
+.launch-teaser--hero.launch-teaser--armed .launch-teaser__form .launch-teaser__cta--primary,
+.launch-teaser--hero.launch-teaser--armed .launch-teaser__cta,
+.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__input,
+.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__form .launch-teaser__cta--primary,
+.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__cta {
   border-radius: 2px;
 }
 
-.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__input {
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__input,
+.launch-teaser--hero.launch-teaser--armed .launch-teaser__input,
+.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__input {
   background: color-mix(in srgb, #fff 6%, transparent);
   border-color: color-mix(in srgb, #fff 18%, transparent);
   height: 3rem;
   letter-spacing: 0.01em;
 }
 
-.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__input:focus {
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__input:focus,
+.launch-teaser--hero.launch-teaser--armed .launch-teaser__input:focus,
+.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__input:focus {
   border-color: color-mix(in srgb, var(--color-brand-gold) 55%, #fff);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-gold) 22%, transparent);
 }
 
-.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__cta--primary {
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__cta--primary,
+.launch-teaser--hero.launch-teaser--armed .launch-teaser__cta--primary,
+.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__cta--primary {
   min-height: 3rem;
   padding-inline: 1.35rem;
   letter-spacing: 0.03em;
@@ -1252,11 +1322,15 @@
   font-size: 0.78rem;
 }
 
-.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__secondary {
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__secondary,
+.launch-teaser--hero.launch-teaser--armed .launch-teaser__secondary,
+.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__secondary {
   gap: 0.45rem 0.85rem;
 }
 
-.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__link {
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__link,
+.launch-teaser--hero.launch-teaser--armed .launch-teaser__link,
+.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__link {
   font-size: 0.84rem;
   letter-spacing: 0.01em;
 }
@@ -1277,6 +1351,77 @@
   color: var(--color-text-tertiary, var(--color-text-secondary));
 }
 
+/* Scoreboard tipográfico — sin card, sin tilt: el lujo lo lleva la escala. */
+.launch-teaser--hero .launch-teaser__board {
+  display: grid;
+  gap: 0.85rem;
+  justify-items: stretch;
+  width: 100%;
+}
+
+.launch-teaser--hero .launch-teaser__board-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 1.5rem;
+  width: 100%;
+}
+
+.launch-teaser--hero.launch-teaser--armed .launch-teaser__countdown-label,
+.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__countdown-label {
+  color: var(--color-brand-gold);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.launch-teaser__armed-digits {
+  display: inline-block;
+  color: color-mix(in srgb, var(--color-brand-gold) 82%, var(--color-text-primary));
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 0.85;
+}
+
+.launch-teaser--hero.launch-teaser--armed .launch-teaser__pending,
+.launch-teaser--hero .launch-teaser__when {
+  margin: 0;
+  max-width: none;
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.launch-teaser--hero.launch-teaser--armed .launch-teaser__unit-label {
+  color: var(--color-text-tertiary, var(--color-text-secondary));
+}
+
+.launch-teaser--hero .launch-teaser__actions {
+  border-top: 0;
+  padding-top: 0.15rem;
+}
+
+@media (max-width: 430px) {
+  .launch-teaser--hero.launch-teaser--armed .launch-teaser__value,
+  .launch-teaser--hero.launch-teaser--live-clock .launch-teaser__value {
+    font-size: clamp(1.85rem, 11vw, 2.55rem);
+  }
+
+  .launch-teaser--hero .launch-teaser__unit,
+  .launch-teaser--hero .launch-teaser__unit + .launch-teaser__unit {
+    padding-left: 0.55rem;
+    padding-right: 0.55rem;
+  }
+
+  .launch-teaser--hero .launch-teaser__unit:first-child {
+    padding-left: 0;
+  }
+}
+
 /* Hero en tema claro — recalibra los valores que el modo oscuro dejaba
    fijos en blanco/negro (el resto ya hereda de los tokens --color-text
    y --motif, que son theme-aware). */
@@ -1284,7 +1429,9 @@
   color: #1a6bb0;
 }
 
-[data-theme='light'] .launch-teaser--hero.launch-teaser--inauguration .launch-teaser__event {
+[data-theme='light'] .launch-teaser--hero.launch-teaser--inauguration .launch-teaser__event,
+[data-theme='light'] .launch-teaser--hero.launch-teaser--armed .launch-teaser__event,
+[data-theme='light'] .launch-teaser--hero.launch-teaser--live-clock .launch-teaser__event {
   color: color-mix(in srgb, var(--plu-gold-600) 78%, var(--plu-ink-900));
 }
 
@@ -1292,7 +1439,14 @@
   color: rgba(15, 17, 23, 0.5);
 }
 
-[data-theme='light'] .launch-teaser--hero.launch-teaser--inauguration .launch-teaser__input {
+[data-theme='light'] .launch-teaser--hero.launch-teaser--armed .launch-teaser__countdown-label,
+[data-theme='light'] .launch-teaser--hero.launch-teaser--live-clock .launch-teaser__countdown-label {
+  color: var(--color-brand-gold);
+}
+
+[data-theme='light'] .launch-teaser--hero.launch-teaser--inauguration .launch-teaser__input,
+[data-theme='light'] .launch-teaser--hero.launch-teaser--armed .launch-teaser__input,
+[data-theme='light'] .launch-teaser--hero.launch-teaser--live-clock .launch-teaser__input {
   background: color-mix(in srgb, #000 4%, transparent);
   border-color: color-mix(in srgb, #000 14%, transparent);
 }
@@ -1316,16 +1470,17 @@
 }
 
 @media (min-width: 1200px) {
-  .home-section--launch .launch-teaser--hero .launch-teaser__layout {
-    column-gap: clamp(2.75rem, 5vw, 5.5rem);
-  }
-
   .home-section--launch .launch-teaser--hero .launch-teaser__title {
-    font-size: clamp(2.35rem, 3.4vw, 3.6rem);
+    font-size: clamp(2.6rem, 4vw, 4.25rem);
   }
 
   .home-section--launch .launch-teaser--hero .launch-teaser__lead {
-    max-width: min(42rem, 100%);
+    max-width: min(44rem, 100%);
+  }
+
+  .home-section--launch .launch-teaser--hero.launch-teaser--armed .launch-teaser__value,
+  .home-section--launch .launch-teaser--hero.launch-teaser--live-clock .launch-teaser__value {
+    font-size: clamp(3rem, 4.6vw, 4.75rem);
   }
 }
 
@@ -1356,7 +1511,7 @@
   color: #fff;
   isolation: isolate;
   overflow: clip;
-  padding-block: clamp(4rem, 9vw, 6.5rem) !important;
+  padding-block: clamp(2.75rem, 6vw, 4.75rem) !important;
   padding-inline: clamp(20px, 5vw, 64px);
   width: 100%;
 }

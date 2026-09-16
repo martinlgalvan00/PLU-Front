@@ -50,6 +50,8 @@ const TYPES = [
     id: 'tt-1',
     name: 'Día 1',
     price: 12000,
+    manualPrice: 10000,
+    wisePrice: 12,
     quota: 8,
     sortOrder: 0,
     active: true,
@@ -123,7 +125,12 @@ export const MediosPorEntrada = {
 /** Con catálogo de beneficios disponible para armar packs. */
 export const ConBeneficios = {
   render: () => (
-    <Editable addons={[{ id: 'bife', label: 'Bife + agua' }, { id: 'remera', label: 'Remera' }]} />
+    <Editable
+      addons={[
+        { id: 'bife', label: 'Bife + agua', price: 8000 },
+        { id: 'remera', label: 'Remera', price: 12000, wisePrice: 10 },
+      ]}
+    />
   ),
 }
 

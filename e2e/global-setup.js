@@ -204,6 +204,45 @@ export default async function globalSetup() {
     throw new Error(`No se pudo abrir el canal manual de entradas: ${ticketManualError.message}`)
   }
 
+  // La matriz de medios es la que realmente decide que opciones llegan al
+  // checkout. El fixture abre las cuatro para recorrerlas de punta a punta;
+  // el teardown restaura exactamente el estado local anterior.
+  const { data: platformBefore, error: platformBeforeError } = await admin.rpc(
+    'staff_get_platform_feature_toggles',
+  )
+  if (platformBeforeError) {
+    throw new Error(`No se pudo leer la matriz de pagos: ${platformBeforeError.message}`)
+  }
+  const previousTicketPaymentChannels = platformBefore?.paymentChannels?.ticket ?? {}
+  for (const channel of ['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer']) {
+    const { error } = await admin.rpc('staff_set_payment_channel', {
+      p_concept: 'ticket',
+      p_channel: channel,
+      p_enabled: true,
+      p_actor: 'e2e:ticket-payment-matrix',
+    })
+    if (error) throw new Error(`No se pudo habilitar ${channel} para entradas: ${error.message}`)
+  }
+
+  const { data: bankTransferProfile, error: bankTransferProfileError } = await admin
+    .from('payment_profiles')
+    .insert({
+      organization_id: ORG_ID,
+      name: `Transferencia E2E ${run}`,
+      kind: 'bank_transfer',
+      config: {
+        alias: 'plu.e2e.qa',
+        cbu: '0000000000000000000000',
+        holder: 'PLU E2E QA',
+      },
+      active: true,
+    })
+    .select('id')
+    .single()
+  if (bankTransferProfileError) {
+    throw new Error(`No se pudo crear el perfil bancario de QA: ${bankTransferProfileError.message}`)
+  }
+
   const ticketEventSlug = `e2e-tickets-${run}`
   const ticketEventTitle = `E2E Entradas ${run}`
 
@@ -238,6 +277,24 @@ export default async function globalSetup() {
           },
         ],
       },
+      payment_channel_overrides: {
+        registration: {
+          mercado_pago: true,
+          bank_transfer: true,
+          cash_pitbull: true,
+          wise_transfer: true,
+        },
+        ticket: {
+          mercado_pago: true,
+          bank_transfer: true,
+          cash_pitbull: true,
+          wise_transfer: true,
+        },
+      },
+      bank_transfer_alias: 'plu.e2e.qa',
+      bank_transfer_cbu: '0000000000000000000000',
+      bank_transfer_holder: 'PLU E2E QA',
+      bank_transfer_profile_id: bankTransferProfile.id,
     })
     .select('id')
     .single()
@@ -255,6 +312,8 @@ export default async function globalSetup() {
         // entrenador comparten este evento. El caso de agotado vive en otro.
         quota: 12,
         price: 10000,
+        manual_price: 10000,
+        wise_price: 15,
         sort_order: 1,
         active: true,
       },
@@ -262,6 +321,8 @@ export default async function globalSetup() {
         event_id: ticketEvent.id,
         name: 'Público general',
         price: 20000,
+        manual_price: 20000,
+        wise_price: 25,
         sort_order: 2,
         active: true,
       },
@@ -270,6 +331,8 @@ export default async function globalSetup() {
         name: 'VIP',
         quota: 20,
         price: 35000,
+        manual_price: 35000,
+        wise_price: 40,
         sort_order: 3,
         active: true,
       },
@@ -284,6 +347,29 @@ export default async function globalSetup() {
   const vipTypeId = ticketTypes.find((type) => type.name === 'VIP')?.id
   if (!coachTypeId || !generalTypeId || !vipTypeId) {
     throw new Error('Faltó crear alguno de los tipos de entrada de QA.')
+  }
+
+  const { data: ticketDay, error: ticketDayError } = await admin
+    .from('event_days')
+    .insert({
+      event_id: ticketEvent.id,
+      day_index: 0,
+      label: 'Jornada E2E',
+      date: startsAt.slice(0, 10),
+    })
+    .select('id')
+    .single()
+  if (ticketDayError) {
+    throw new Error(`No se pudo crear la jornada de entradas: ${ticketDayError.message}`)
+  }
+  const { error: ticketTypeDaysError } = await admin.from('ticket_type_days').insert(
+    [coachTypeId, generalTypeId, vipTypeId].map((ticketTypeId) => ({
+      ticket_type_id: ticketTypeId,
+      event_day_id: ticketDay.id,
+    })),
+  )
+  if (ticketTypeDaysError) {
+    throw new Error(`No se pudieron vincular las entradas a la jornada: ${ticketTypeDaysError.message}`)
   }
 
   // Subcategorías: el entrenador paga una vez y recibe DOS credenciales -- la
@@ -369,6 +455,27 @@ export default async function globalSetup() {
   }
   const soldOutTypeId = soldOutTypes[0]?.id
 
+  const { data: soldOutDay, error: soldOutDayError } = await admin
+    .from('event_days')
+    .insert({
+      event_id: soldOutEvent.id,
+      day_index: 0,
+      label: 'Jornada E2E',
+      date: startsAt.slice(0, 10),
+    })
+    .select('id')
+    .single()
+  if (soldOutDayError) {
+    throw new Error(`No se pudo crear la jornada de cupo 1: ${soldOutDayError.message}`)
+  }
+  const { error: soldOutTypeDayError } = await admin.from('ticket_type_days').insert({
+    ticket_type_id: soldOutTypeId,
+    event_day_id: soldOutDay.id,
+  })
+  if (soldOutTypeDayError) {
+    throw new Error(`No se pudo vincular la entrada de cupo 1: ${soldOutTypeDayError.message}`)
+  }
+
   const { error: soldOutCredentialsError } = await admin.rpc('staff_merge_ticket_type_credentials', {
     p_event_slug: soldOutEventSlug,
     p_credentials: [
@@ -410,15 +517,40 @@ export default async function globalSetup() {
     throw new Error(`No se pudo crear el evento pausado: ${pausedEventError.message}`)
   }
 
-  const { error: pausedTypeError } = await admin.from('ticket_types').insert({
-    event_id: pausedEvent.id,
-    name: 'Público general',
-    price: 15000,
-    sort_order: 1,
-    active: true,
-  })
+  const { data: pausedType, error: pausedTypeError } = await admin
+    .from('ticket_types')
+    .insert({
+      event_id: pausedEvent.id,
+      name: 'Público general',
+      price: 15000,
+      sort_order: 1,
+      active: true,
+    })
+    .select('id')
+    .single()
   if (pausedTypeError) {
     throw new Error(`No se pudo crear el tipo del evento pausado: ${pausedTypeError.message}`)
+  }
+
+  const { data: pausedDay, error: pausedDayError } = await admin
+    .from('event_days')
+    .insert({
+      event_id: pausedEvent.id,
+      day_index: 0,
+      label: 'Jornada E2E',
+      date: startsAt.slice(0, 10),
+    })
+    .select('id')
+    .single()
+  if (pausedDayError) {
+    throw new Error(`No se pudo crear la jornada pausada: ${pausedDayError.message}`)
+  }
+  const { error: pausedTypeDayError } = await admin.from('ticket_type_days').insert({
+    ticket_type_id: pausedType.id,
+    event_day_id: pausedDay.id,
+  })
+  if (pausedTypeDayError) {
+    throw new Error(`No se pudo vincular la entrada pausada: ${pausedTypeDayError.message}`)
   }
 
   const securityStaff = await seedSecurityStaff({
@@ -455,6 +587,8 @@ export default async function globalSetup() {
       pausedEventSlug,
       pausedEventTitle,
       pausedEventId: pausedEvent.id,
+      bankTransferProfileId: bankTransferProfile.id,
+      previousTicketPaymentChannels,
       ...securityStaff,
     }),
     'utf8',

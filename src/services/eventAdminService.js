@@ -17,6 +17,7 @@ import { apiDelete, apiGet, apiPost } from '../lib/api.js'
 import { normalizeTicketCredentials } from '../lib/ticketCredentials.js'
 import { normalizeEventPaymentChannelOverrides } from '../lib/eventPaymentChannels.js'
 import { normalizeTicketTypePaymentChannels } from '../lib/ticketTypePaymentChannels.js'
+import { catalogPriceFromRow, normalizeTicketTypePrices } from '../lib/ticketTypePrices.js'
 
 const DEFAULT_SLOTS = 80
 
@@ -574,7 +575,12 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
 /** Reconstruye eventDays/ticketTypes desde las filas joineadas de Supabase. */
 function mapSupabaseTicketCatalog(row) {
   const eventDays = (row.eventDays ?? [])
-    .map((day) => ({ id: day.id, dayIndex: day.day_index, label: day.label, date: day.date }))
+    .map((day) => ({
+      id: day.id,
+      dayIndex: day.day_index ?? day.dayIndex,
+      label: day.label,
+      date: day.date,
+    }))
     .sort((a, b) => a.dayIndex - b.dayIndex)
 
   const dayIndexById = Object.fromEntries(eventDays.map((day) => [day.id, day.dayIndex]))
@@ -587,31 +593,39 @@ function mapSupabaseTicketCatalog(row) {
       // USD propio para Wise y ventana propia de venta. Null en cualquiera de
       // los tres = hereda lo del evento (conversión automática / ventana del
       // evento), que es como se comportaba todo el catálogo hasta acá.
-      wisePrice: type.wise_price ?? null,
+      // Snake y camel: si el mapper corre dos veces (o el select ya venía
+      // proyectado), mirar sólo `wise_price` reabre el draft vacío y el
+      // próximo Guardar borra el monto.
+      wisePrice: catalogPriceFromRow(type, 'wise_price', 'wisePrice'),
       // Precio para transferencia/efectivo. Null = cobra igual que `price` en
       // cualquier canal.
-      manualPrice: type.manual_price ?? null,
-      salesOpensAt: type.sales_opens_at ?? null,
-      salesClosesAt: type.sales_closes_at ?? null,
+      manualPrice: catalogPriceFromRow(type, 'manual_price', 'manualPrice'),
+      salesOpensAt: type.sales_opens_at ?? type.salesOpensAt ?? null,
+      salesClosesAt: type.sales_closes_at ?? type.salesClosesAt ?? null,
       quota: type.quota,
-      sortOrder: type.sort_order,
+      sortOrder: type.sort_order ?? type.sortOrder,
       active: type.active,
-      dayIndexes: (type.ticketTypeDays ?? [])
-        .map((link) => dayIndexById[link.event_day_id])
-        .filter((value) => value !== undefined),
-      includedAddonIds: (type.includedAddons ?? []).map((link) => link.addon_id),
+      dayIndexes:
+        type.dayIndexes ??
+        (type.ticketTypeDays ?? [])
+          .map((link) => dayIndexById[link.event_day_id ?? link.eventDayId])
+          .filter((value) => value !== undefined),
+      includedAddonIds:
+        type.includedAddonIds ?? (type.includedAddons ?? []).map((link) => link.addon_id ?? link.addonId),
       // Medios propios de esta entrada. Null hereda los del evento, que es lo
       // que tienen todas las filas anteriores a la columna.
-      paymentChannels: normalizeTicketTypePaymentChannels(type.payment_channels),
+      paymentChannels: normalizeTicketTypePaymentChannels(
+        type.payment_channels ?? type.paymentChannels,
+      ),
       // Subcategorías: qué credenciales emite una compra de este tipo. El
       // orden es el de emisión, y la primera es la que lleva el precio.
       credentials: normalizeTicketCredentials(
         [...(type.credentials ?? [])]
-          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+          .sort((a, b) => (a.sort_order ?? a.sortOrder ?? 0) - (b.sort_order ?? b.sortOrder ?? 0))
           .map((credential) => ({
             id: credential.id,
             label: credential.label,
-            zoneScopes: credential.zone_scopes ?? [],
+            zoneScopes: credential.zone_scopes ?? credential.zoneScopes ?? [],
           })),
       ),
     }))
@@ -765,7 +779,7 @@ function mapAdminEventRow(row, index = 0) {
   }
 }
 
-const PUBLISHED_EVENTS_SELECT = `
+export const PUBLISHED_EVENTS_SELECT = `
   id, slug, title, description, venue, location,
   starts_at, ends_at,
   registration_opens_at, registration_closes_at,
@@ -776,7 +790,8 @@ const PUBLISHED_EVENTS_SELECT = `
   eventDays:event_days(id, day_index, label, date),
   comboOffer:event_combo_offers(id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience, financed, archived_at),
   ticketTypes:ticket_types(
-    id, name, price, quota, sort_order, active,
+    id, name, price, wise_price, manual_price, quota, sort_order, active,
+    sales_opens_at, sales_closes_at, payment_channels,
     ticketTypeDays:ticket_type_days(event_day_id),
     includedAddons:ticket_type_included_addons(addon_id),
     credentials:ticket_type_credentials(id, label, zone_scopes, sort_order)
@@ -834,6 +849,7 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
     paymentChannelOverrides: normalizeEventPaymentChannelOverrides(draft.paymentChannelOverrides),
     ticketTypes: (draft.ticketTypes ?? []).map((type) => ({
       ...type,
+      ...normalizeTicketTypePrices(type),
       paymentChannels: normalizeTicketTypePaymentChannels(type.paymentChannels),
     })),
     bankTransfer: {

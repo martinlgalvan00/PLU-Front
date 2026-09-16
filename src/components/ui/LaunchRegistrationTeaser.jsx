@@ -22,6 +22,19 @@ function resolveEventLabel(event) {
   return title
 }
 
+function ArmedSlots() {
+  return (
+    <span className="launch-teaser__armed-digits" aria-hidden>
+      ––
+    </span>
+  )
+}
+
+function LaunchTeaserBoard({ enabled, children }) {
+  if (!enabled) return children
+  return <div className="launch-teaser__board">{children}</div>
+}
+
 function CountdownDigits({ value, reducedMotion }) {
   const digits = String(value).padStart(2, '0').split('')
 
@@ -177,6 +190,8 @@ export default function LaunchRegistrationTeaser({
   const ContainerTag = reducedMotion ? 'div' : m.div
   const ItemTag = reducedMotion ? 'div' : m.div
   const RuleTag = reducedMotion ? 'div' : m.div
+  const TickerTag = reducedMotion ? 'div' : m.div
+  const UnitTag = reducedMotion ? 'div' : m.div
   const isCompact = variant === 'compact'
   const isHero = variant === 'hero'
   const isDossier = /\blaunch-teaser--dossier\b/.test(className)
@@ -222,6 +237,8 @@ export default function LaunchRegistrationTeaser({
       : t('launchTeaser.countdownPendingAria')
   // Precio estático en stage: solo si no hay ticker (el countdown gana siempre).
   const showStagePrice = Boolean(stage?.price) && !showTicker
+  const showArmedClock = isHero && !showTicker && !showStagePrice && !scheduleHeld
+  const leadCopy = intro?.lead ?? (isCompact ? t('launchTeaser.leadCompact') : t('launchTeaser.lead'))
 
   const childVariants = reducedMotion
     ? undefined
@@ -233,6 +250,61 @@ export default function LaunchRegistrationTeaser({
           transition: {
             duration: isHero ? MOTION_DURATION.cinematic : MOTION_DURATION.slow,
             ease: MOTION_EASE.cinematic ?? MOTION_EASE.out,
+          },
+        },
+      }
+
+  const copyVariants = reducedMotion
+    ? undefined
+    : isHero
+      ? {
+          hidden: {},
+          show: {
+            transition: {
+              staggerChildren: MOTION_STAGGER.step,
+              delayChildren: 0.04,
+            },
+          },
+        }
+      : childVariants
+
+  const titleLineVariants = reducedMotion
+    ? undefined
+    : {
+        hidden: { opacity: 0, y: '0.72em' },
+        show: (index = 0) => ({
+          opacity: 1,
+          y: 0,
+          transition: {
+            duration: MOTION_DURATION.cinematic,
+            ease: MOTION_EASE.cinematic,
+            delay: index * 0.1,
+          },
+        }),
+      }
+
+  const tickerVariants = reducedMotion || !isHero
+    ? undefined
+    : {
+        hidden: {},
+        show: {
+          transition: {
+            staggerChildren: MOTION_STAGGER.stepFast,
+            delayChildren: 0.06,
+          },
+        },
+      }
+
+  const unitVariants = reducedMotion || !isHero
+    ? undefined
+    : {
+        hidden: { opacity: 0, y: 12 },
+        show: {
+          opacity: 1,
+          y: 0,
+          transition: {
+            duration: MOTION_DURATION.slow,
+            ease: MOTION_EASE.cinematic,
           },
         },
       }
@@ -261,6 +333,7 @@ export default function LaunchRegistrationTeaser({
         `launch-teaser--${variant}`,
         inauguration ? 'launch-teaser--inauguration' : '',
         showTicker ? 'launch-teaser--live-clock' : '',
+        showArmedClock ? 'launch-teaser--armed' : '',
         className,
       ]
         .filter(Boolean)
@@ -298,7 +371,7 @@ export default function LaunchRegistrationTeaser({
       />
 
       <div className="launch-teaser__layout">
-        <ItemTag className="launch-teaser__copy" variants={childVariants}>
+        <ItemTag className="launch-teaser__copy" variants={copyVariants}>
           <p className="launch-teaser__eyebrow">
             {indexLabel ? (
               <span className="launch-teaser__index-group" aria-hidden>
@@ -320,95 +393,141 @@ export default function LaunchRegistrationTeaser({
               ) : null}
 
               <h2 className="launch-teaser__title">
-                <span className="launch-teaser__title-line">{t('launchTeaser.headlineLine1')}</span>
-                <span className="launch-teaser__title-line launch-teaser__title-line--accent">
-                  {t('launchTeaser.headlineLine2')}
-                </span>
+                {isHero && !reducedMotion ? (
+                  <>
+                    <span className="launch-teaser__title-mask">
+                      <m.span
+                        className="launch-teaser__title-line"
+                        variants={titleLineVariants}
+                        custom={0}
+                      >
+                        {t('launchTeaser.headlineLine1')}
+                      </m.span>
+                    </span>
+                    <span className="launch-teaser__title-mask">
+                      <m.span
+                        className="launch-teaser__title-line launch-teaser__title-line--accent"
+                        variants={titleLineVariants}
+                        custom={1}
+                      >
+                        {t('launchTeaser.headlineLine2')}
+                      </m.span>
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="launch-teaser__title-line">{t('launchTeaser.headlineLine1')}</span>
+                    <span className="launch-teaser__title-line launch-teaser__title-line--accent">
+                      {t('launchTeaser.headlineLine2')}
+                    </span>
+                  </>
+                )}
               </h2>
             </>
           )}
 
-          <p className="launch-teaser__lead">
-            {intro?.lead ?? (isCompact ? t('launchTeaser.leadCompact') : t('launchTeaser.lead'))}
-          </p>
+          {isHero ? null : (
+            <p className="launch-teaser__lead">{leadCopy}</p>
+          )}
         </ItemTag>
 
         {showCountdownBlock ? (
           <ItemTag
             className="launch-teaser__countdown"
-            role="timer"
+            role={showTicker ? 'timer' : 'status'}
             aria-live="polite"
             aria-atomic="true"
             aria-label={countdownAria}
             variants={childVariants}
           >
-            {showTicker ? (
-              <>
-                <p className="launch-teaser__countdown-label">{statusLabel}</p>
-                <div className="launch-teaser__ticker">
-                  {units.map(({ value, label }, index) => (
-                    <div key={label} className="launch-teaser__unit">
-                      {index > 0 ? (
-                        <span className="launch-teaser__sep" aria-hidden>
-                          :
-                        </span>
-                      ) : null}
-                      <div className="launch-teaser__unit-body">
-                        <span className="launch-teaser__value" aria-hidden>
-                          <CountdownDigits value={value} reducedMotion={reducedMotion} />
-                        </span>
-                        <span className="launch-teaser__unit-label">{label}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {showOpenMoment ? (
-                  <p className="launch-teaser__when">
-                    {t('launchTeaser.opensOn', { date: openMoment.day, time: openMoment.time })}
-                  </p>
-                ) : null}
-              </>
-            ) : (
-              <div className="launch-teaser__stage">
-                {isHero ? (
-                  <svg
-                    className="launch-teaser__stage-icon"
-                    aria-hidden
-                    width="30"
-                    height="30"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.4"
-                  >
-                    <circle cx="12" cy="12" r="9.2" />
-                    <circle cx="12" cy="12" r="5.4" />
-                    <path d="M12 2.8v2M12 19.2v2M21.2 12h-2M4.8 12h-2" strokeLinecap="round" />
-                  </svg>
-                ) : null}
-                {showStagePrice ? (
-                  <>
-                    <p className="launch-teaser__stage-mark">
-                      <span className="launch-teaser__stage-mark-text">
-                        {stage?.mark ?? t('launchTeaser.stageMark')}
-                      </span>
-                    </p>
-                    <p className="launch-teaser__stage-price">{stage.price}</p>
-                  </>
-                ) : (
-                  <>
-                    {isHero && statusLabel ? (
-                      <p className="launch-teaser__stage-label">{statusLabel}</p>
+            <LaunchTeaserBoard enabled={isHero}>
+              {showTicker || showArmedClock ? (
+                <>
+                  <div className="launch-teaser__board-head">
+                    <p className="launch-teaser__countdown-label">{statusLabel}</p>
+                    {showOpenMoment ? (
+                      <p className="launch-teaser__when">
+                        {t('launchTeaser.opensOn', { date: openMoment.day, time: openMoment.time })}
+                      </p>
                     ) : null}
-                    <p className="launch-teaser__pending">{stage?.mark ?? statusCopy}</p>
-                  </>
-                )}
-              </div>
-            )}
+                    {showArmedClock ? (
+                      <p className="launch-teaser__pending">{stage?.mark ?? statusCopy}</p>
+                    ) : null}
+                  </div>
+                  <TickerTag
+                    className={[
+                      'launch-teaser__ticker',
+                      showArmedClock ? 'launch-teaser__ticker--armed' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    variants={tickerVariants}
+                  >
+                    {units.map(({ value, label }, index) => (
+                      <UnitTag key={label} className="launch-teaser__unit" variants={unitVariants}>
+                        {index > 0 ? (
+                          <span className="launch-teaser__sep" aria-hidden>
+                            :
+                          </span>
+                        ) : null}
+                        <div className="launch-teaser__unit-body">
+                          <span className="launch-teaser__value" aria-hidden>
+                            {showArmedClock ? (
+                              <ArmedSlots />
+                            ) : (
+                              <CountdownDigits value={value} reducedMotion={reducedMotion} />
+                            )}
+                          </span>
+                          <span className="launch-teaser__unit-label">{label}</span>
+                        </div>
+                      </UnitTag>
+                    ))}
+                  </TickerTag>
+                </>
+              ) : (
+                <div className="launch-teaser__stage">
+                  {isHero && !showStagePrice ? (
+                    <svg
+                      className="launch-teaser__stage-icon"
+                      aria-hidden
+                      width="30"
+                      height="30"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                    >
+                      <circle cx="12" cy="12" r="9.2" />
+                      <circle cx="12" cy="12" r="5.4" />
+                      <path d="M12 2.8v2M12 19.2v2M21.2 12h-2M4.8 12h-2" strokeLinecap="round" />
+                    </svg>
+                  ) : null}
+                  {showStagePrice ? (
+                    <>
+                      <p className="launch-teaser__stage-mark">
+                        <span className="launch-teaser__stage-mark-text">
+                          {stage?.mark ?? t('launchTeaser.stageMark')}
+                        </span>
+                      </p>
+                      <p className="launch-teaser__stage-price">{stage.price}</p>
+                    </>
+                  ) : (
+                    <>
+                      {isHero && statusLabel ? (
+                        <p className="launch-teaser__stage-label">{statusLabel}</p>
+                      ) : null}
+                      <p className="launch-teaser__pending">{stage?.mark ?? statusCopy}</p>
+                    </>
+                  )}
+                </div>
+              )}
+            </LaunchTeaserBoard>
           </ItemTag>
         ) : null}
 
         <ItemTag className="launch-teaser__actions" variants={childVariants}>
+          {isHero ? <p className="launch-teaser__lead">{leadCopy}</p> : null}
+
           <AnimatePresence mode="wait" initial={false}>
             {isNotified ? (
               <m.p
@@ -456,7 +575,14 @@ export default function LaunchRegistrationTeaser({
                   disabled={isSubmitting}
                   className="launch-teaser__cta launch-teaser__cta--primary"
                 >
-                  {isSubmitting ? t('launchTeaser.modalSubmitting') : t('launchTeaser.modalSubmit')}
+                  {isSubmitting ? (
+                    t('launchTeaser.modalSubmitting')
+                  ) : (
+                    <>
+                      {isHero ? <Bell size={15} aria-hidden /> : null}
+                      <span>{t('launchTeaser.modalSubmit')}</span>
+                    </>
+                  )}
                 </button>
               </m.form>
             ) : (

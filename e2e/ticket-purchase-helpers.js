@@ -40,8 +40,8 @@ async function waitForTicketsHero(page, timeout) {
  * viaja como query param, no como segmento.
  *
  * Si Vite tarda el chunk lazy de TicketsPage, el shell se queda en
- * "Cargando…" y el hero nunca aparece. Un reload alcanza: no es un fallo
- * de producto, es el arnés pidiendo el mismo módulo después de muchos tests.
+ * "Cargando…" y el hero nunca aparece. Reintentar la navegación recupera el
+ * arnés cuando el servidor local está ocupado después de muchos tests.
  */
 export async function navigateToTickets(page, eventSlug, { title, expectCheckout = true } = {}) {
   const availabilityPath = `/api/tickets/availability/${encodeURIComponent(eventSlug)}`
@@ -64,13 +64,19 @@ export async function navigateToTickets(page, eventSlug, { title, expectCheckout
     return { catalogReady, availabilityReady }
   }
 
-  let pending = await openTicketsPage()
-  try {
-    await waitForTicketsHero(page, 8_000)
-  } catch {
+  let pending
+  let lastHeroError
+  for (const timeout of [8_000, 20_000, 30_000]) {
     pending = await openTicketsPage()
-    await waitForTicketsHero(page, 20_000)
+    try {
+      await waitForTicketsHero(page, timeout)
+      lastHeroError = null
+      break
+    } catch (error) {
+      lastHeroError = error
+    }
   }
+  if (lastHeroError) throw lastHeroError
   await Promise.all([pending.catalogReady, pending.availabilityReady])
 
   if (title) {
@@ -201,14 +207,17 @@ export async function fillAttendeeForm(page, index, attendee) {
  */
 export async function fillReadyTicketCheckout(
   page,
-  { attendees, paymentMethod = 'transferencia', quantity } = {},
+  { attendees, buyer, paymentMethod = 'transferencia', quantity } = {},
 ) {
   await expect(async () => {
-    await applyTicketCheckout(page, { attendees, paymentMethod, quantity })
+    await applyTicketCheckout(page, { attendees, buyer, paymentMethod, quantity })
   }).toPass({ timeout: 20_000 })
 }
 
-async function applyTicketCheckout(page, { attendees, paymentMethod = 'transferencia', quantity }) {
+async function applyTicketCheckout(
+  page,
+  { attendees, buyer, paymentMethod = 'transferencia', quantity },
+) {
   const targetQuantity = quantity ?? attendees.length
   if (targetQuantity > 1) await setTicketQuantity(page, targetQuantity)
 
@@ -216,6 +225,20 @@ async function applyTicketCheckout(page, { attendees, paymentMethod = 'transfere
     await typeAttendee(page, index, attendee)
     if (attendee.type) await selectTicketType(page, index, attendee.type)
     if (attendee.addon) await toggleTicketAddon(page, attendee.addon, { index, selected: true })
+  }
+
+  // El comprador es quien recibe el QR por email y puede ser distinto de los
+  // asistentes. Los tests que no necesitan ese caso usan un contacto válido
+  // derivado del primer asistente; así recorren el formulario real completo.
+  const first = attendees[0]
+  const buyerData = buyer ?? {
+    name: first.fullName,
+    email: `e2e-ticket-${String(first.dni).replace(/\D/g, '')}@pluarg.test`,
+  }
+  await page.locator('#checkout input[name="buyer-name"]').fill(buyerData.name)
+  await page.locator('#checkout input[name="buyer-email"]').fill(buyerData.email)
+  if (buyerData.phone) {
+    await page.locator('#checkout input[name="buyer-phone"]').fill(buyerData.phone)
   }
 
   await selectPaymentMethod(page, paymentMethod)
@@ -234,12 +257,12 @@ async function applyTicketCheckout(page, { attendees, paymentMethod = 'transfere
  */
 export async function purchaseTickets(
   page,
-  { attendees, paymentMethod = 'transferencia', quantity, expectOk = true } = {},
+  { attendees, buyer, paymentMethod = 'transferencia', quantity, expectOk = true } = {},
 ) {
   await expect(async () => {
     if (expectOk && (await page.locator('.ticket-purchase--confirmation').isVisible())) return
 
-    await applyTicketCheckout(page, { attendees, paymentMethod, quantity })
+    await applyTicketCheckout(page, { attendees, buyer, paymentMethod, quantity })
     const submit = page.locator('#checkout form.ticket-purchase .ticket-purchase__submit')
     const responsePromise = page.waitForResponse(isTicketOrderPost, { timeout: 8_000 })
     await submit.click()
@@ -417,8 +440,27 @@ export async function assertTransferPanelVisible(page) {
 export async function openTicketCredential(page, { qrToken, eventSlug }) {
   const params = new URLSearchParams({ credencial: qrToken, tipo: 'ticket' })
   if (eventSlug) params.set('evento', eventSlug)
-  await page.goto(`/?${params.toString()}`)
-  await page.waitForSelector('.credential-page', { timeout: 15_000 })
+  const verificationPath = `/api/tickets/verify/${encodeURIComponent(qrToken)}`
+  let lastVerificationError
+
+  for (const timeout of [15_000, 20_000, 30_000]) {
+    const response = page
+      .waitForResponse((candidate) => candidate.url().includes(verificationPath), { timeout })
+      .catch(() => null)
+    await page.goto(`/?${params.toString()}`)
+    await page.waitForSelector('.credential-page', { timeout })
+    await response
+    try {
+      await expect(page.locator('.credential-page__verdict-label')).not.toHaveText('Verificando…', {
+        timeout,
+      })
+      return
+    } catch (error) {
+      lastVerificationError = error
+    }
+  }
+
+  throw lastVerificationError
 }
 
 export async function assertCredentialPage(

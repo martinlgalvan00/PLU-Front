@@ -1513,17 +1513,8 @@
     grid-row: 3;
   }
 
-  .admin-event-workspace__panel .admin-ticket-types__grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .admin-event-workspace__panel .admin-ticket-types__grid > .admin-event-form__field:first-child {
-    grid-column: 1 / -1;
-  }
-}
-
-@container event-editor (max-width: 28rem) {
-  .admin-event-workspace__panel .admin-ticket-types__grid {
+  .admin-event-workspace__panel .admin-ticket-types__grid,
+  .admin-event-workspace__panel .admin-ticket-types__prices-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
