@@ -1,8 +1,9 @@
 import '../../styles/components/ticket-purchase.css'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowRight,
   Banknote,
+  FileText,
   CreditCard,
   IdCard,
   Landmark,
@@ -11,6 +12,8 @@ import {
   QrCode,
   Share2,
   Ticket as TicketIcon,
+  Upload,
+  X,
 } from 'lucide-react'
 import Button from './Button.jsx'
 import CardPreviewModal from './CardPreviewModal.jsx'
@@ -36,6 +39,14 @@ import { resolveTicketOrderWisePricing } from '../../../shared/ticketWisePricing
 
 const MAX_TICKETS = 10
 const CHANNEL_KEYS = ['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer']
+const MAX_PROOF_FILE_BYTES = 2 * 1024 * 1024
+const PROOF_FILE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
+
+function formatProofFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return ''
+  const megabytes = bytes / (1024 * 1024)
+  return megabytes >= 1 ? `${megabytes.toFixed(1)} MB` : `${Math.ceil(bytes / 1024)} KB`
+}
 
 function emptyAttendee(pricing) {
   return { fullName: '', dni: '', ticketTypeId: pricing?.ticketTypes?.[0]?.id ?? '', addonIds: [] }
@@ -608,6 +619,7 @@ export default function TicketPurchaseSection({
   const [proofUploading, setProofUploading] = useState(false)
   const [proofUploadError, setProofUploadError] = useState('')
   const [proofUploaded, setProofUploaded] = useState(false)
+  const proofInputRef = useRef(null)
 
   // Memoizado desde que la cotización en USD lo toma como dependencia: el `??
   // []` devolvía un array nuevo por render y recalculaba el total en cada tecla.
@@ -879,6 +891,30 @@ export default function TicketPurchaseSection({
     setProofFile(null)
   }
 
+  function clearProofFile() {
+    setProofFile(null)
+    setProofFileName('')
+    setProofUploadError('')
+    if (proofInputRef.current) proofInputRef.current.value = ''
+  }
+
+  function selectProofFile(file) {
+    if (!file) return
+    if (!PROOF_FILE_TYPES.has(file.type)) {
+      clearProofFile()
+      setProofUploadError(t('pages.tickets.proofInvalidType'))
+      return
+    }
+    if (file.size > MAX_PROOF_FILE_BYTES) {
+      clearProofFile()
+      setProofUploadError(t('pages.tickets.proofTooLarge'))
+      return
+    }
+    setProofFile(file)
+    setProofFileName(file.name)
+    setProofUploadError('')
+  }
+
   if (visibleOrder) {
     const countLabel =
       visibleOrder.quantity === 1
@@ -1035,38 +1071,70 @@ export default function TicketPurchaseSection({
               <p className="ticket-purchase__proof-success">{t('pages.tickets.proofUploaded')}</p>
             ) : (
               <div className="ticket-purchase__proof-upload">
-                <label>
+                <div className="ticket-purchase__proof-heading">
                   <span>{t('pages.tickets.proofLabel')}</span>
+                  <small>{t('pages.tickets.proofHelp')}</small>
+                </div>
+                <label
+                  className={`ticket-purchase__proof-dropzone${proofFile ? ' is-selected' : ''}`}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={(event) => {
+                    event.preventDefault()
+                    selectProofFile(event.dataTransfer.files?.[0] ?? null)
+                  }}
+                >
                   <input
+                    ref={proofInputRef}
                     type="file"
-                    accept="image/*,.pdf"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0] ?? null
-                      setProofFile(file)
-                      setProofFileName(file?.name ?? '')
-                      setProofUploadError('')
-                    }}
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    onChange={(event) => selectProofFile(event.target.files?.[0] ?? null)}
                   />
-                  <small>
-                    {proofFileName
-                      ? t('pages.tickets.proofSelected', { name: proofFileName })
-                      : t('pages.tickets.proofHelp')}
-                  </small>
+                  <span className="ticket-purchase__proof-dropzone-icon" aria-hidden>
+                    {proofFile ? <FileText size={20} /> : <Upload size={20} />}
+                  </span>
+                  <span className="ticket-purchase__proof-dropzone-copy">
+                    <strong>
+                      {proofFile ? proofFileName : t('pages.tickets.proofDropTitle')}
+                    </strong>
+                    <small>
+                      {proofFile
+                        ? formatProofFileSize(proofFile.size)
+                        : t('pages.tickets.proofDropHint')}
+                    </small>
+                  </span>
+                  <span className="ticket-purchase__proof-change">
+                    {proofFile ? t('pages.tickets.proofChange') : t('pages.tickets.proofSelect')}
+                  </span>
                 </label>
                 {proofFile ? (
-                  <button
-                    type="button"
-                    className="ticket-purchase__proof-submit"
-                    disabled={proofUploading}
-                    onClick={handleProofUpload}
-                  >
-                    {proofUploading
-                      ? t('pages.tickets.proofSubmitting')
-                      : t('pages.tickets.proofSubmit')}
-                  </button>
+                  <div className="ticket-purchase__proof-actions">
+                    <button
+                      type="button"
+                      className="ticket-purchase__proof-remove"
+                      disabled={proofUploading}
+                      aria-label={t('pages.tickets.proofRemove')}
+                      title={t('pages.tickets.proofRemove')}
+                      onClick={clearProofFile}
+                    >
+                      <X size={16} aria-hidden />
+                    </button>
+                    <button
+                      type="button"
+                      className="ticket-purchase__proof-submit"
+                      disabled={proofUploading}
+                      onClick={handleProofUpload}
+                    >
+                      <Upload size={16} aria-hidden />
+                      {proofUploading
+                        ? t('pages.tickets.proofSubmitting')
+                        : t('pages.tickets.proofSubmit')}
+                    </button>
+                  </div>
                 ) : null}
                 {proofUploadError ? (
-                  <p className="ticket-purchase__submit-error">{proofUploadError}</p>
+                  <p className="ticket-purchase__submit-error" role="alert">
+                    {proofUploadError}
+                  </p>
                 ) : null}
               </div>
             )}

@@ -3331,6 +3331,13 @@ export default {
       proofLabel: 'Transfer receipt',
       proofHelp: 'Attach a screenshot or PDF of the receipt to speed up validation.',
       proofSelected: 'Selected file: {{name}}',
+      proofDropTitle: 'Choose or drop your receipt',
+      proofDropHint: 'JPG, PNG, WEBP or PDF · up to 2 MB',
+      proofSelect: 'Choose file',
+      proofChange: 'Change',
+      proofRemove: 'Remove file',
+      proofInvalidType: 'Choose a JPG, PNG, WEBP image or a PDF file.',
+      proofTooLarge: 'The file exceeds the 2 MB limit.',
       proofSubmit: 'Send receipt',
       proofSubmitting: 'Uploading…',
       proofUploaded:
