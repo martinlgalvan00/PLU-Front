@@ -55,6 +55,7 @@ import {
   hasPermission,
   PERMISSION_CATALOG,
 } from '../lib/permissions.js'
+import { checkinRejectionOutcome } from '../services/checkinScanService.js'
 import { usePluOAuth } from '../providers/oauthContext.js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 import {
@@ -123,6 +124,7 @@ import {
   approveTicketOrder as approveTicketOrderRequest,
   checkInTicket as checkInTicketRequest,
   createTicketOrder as createTicketOrderRequest,
+  getEventScanReport,
   listPendingTicketOrders as listPendingTicketOrdersRequest,
   listTicketsForEvent as listTicketsForEventRequest,
   mapApiTicket,
@@ -1795,11 +1797,7 @@ export function useAppData() {
         return { outcome: 'ok', ticket: updated }
       } catch (error) {
         if (error instanceof ApiError && error.status === 409) {
-          if (error.body?.alreadyUsed) return { outcome: 'already_used' }
-          if (/no habilita esta zona/i.test(error.message ?? '')) {
-            return { outcome: 'wrong_zone', error: error.message }
-          }
-          return { outcome: 'not_paid', error: error.message }
+          return { outcome: checkinRejectionOutcome(error), error: error.message }
         }
         if (error instanceof ApiError && error.status === 404) {
           return { outcome: 'not_found' }
@@ -2393,6 +2391,26 @@ export function useAppData() {
       return securityUsers
     },
     [session, users],
+  )
+
+  // Informe de errores de escaneo para el panel de detección del evento
+  // (admin.audit.read, no admin.checkin.execute -- ver server/routes/tickets.js).
+  // Nunca se llama desde la sesión demo: no hay evento real para el que
+  // pedirle un informe al backend.
+  const getEventScanReportAction = useCallback(
+    async (eventSlug, options) => {
+      if (isDemoSession(session)) {
+        return {
+          summary: { total: 0, admitted: 0, rejected: 0, byOutcome: [] },
+          byGate: [],
+          byHour: [],
+          repeated: [],
+          recent: [],
+        }
+      }
+      return getEventScanReport(eventSlug, options)
+    },
+    [session],
   )
 
   const updateSecurityUserStatusAction = useCallback(async (userId, status) => {
@@ -3827,6 +3845,7 @@ export function useAppData() {
     createSecurityAccessLinkAction,
     deactivateAllSecurityUsersAction,
     listSecurityUsersForEventAction,
+    getEventScanReportAction,
     updateSecurityUserStatusAction,
     loginWithGateToken,
     handleApprovePayment,

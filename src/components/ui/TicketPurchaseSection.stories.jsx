@@ -58,7 +58,13 @@ export default {
 export const Standard = {}
 
 export const Editorial = {
-  args: { editorial: true },
+  args: {
+    editorial: true,
+    manualPaymentEnabled: true,
+    mercadoPagoEnabled: true,
+    cashEnabled: false,
+    wiseEnabled: false,
+  },
 }
 
 export const Confirmation = {

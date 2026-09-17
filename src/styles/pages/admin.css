@@ -24967,6 +24967,26 @@ button.action-queue__proof:focus-visible {
   align-items: end;
 }
 
+/* La fecha del rechazo, pegada a la decisión. Un QR vencido o todavía no
+   vigente se resuelve por esa fecha -- antes vivía enterrada entre seis
+   metadatos genéricos (tipo de entrada, categoría, día de competencia…) en
+   vez de al lado de por qué se lo está rechazando. */
+.admin-checkin-result__reason {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-checkin-result--warning .admin-checkin-result__reason {
+  color: var(--admin-status-warning, var(--color-text-secondary));
+}
+
+.admin-checkin-result--danger .admin-checkin-result__reason {
+  color: var(--admin-status-danger, var(--color-text-secondary));
+}
+
 /* ---------------------------------------------------------------------------
    Cierre automático de órdenes (PaymentExpiryPanel)
 

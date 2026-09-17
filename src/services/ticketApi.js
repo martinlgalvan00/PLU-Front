@@ -231,6 +231,25 @@ export async function checkInTicket(qrToken, gate) {
   return { ticket: toCamelTicket(result.ticket), checkIn: toCamelCheckIn(result.checkIn) }
 }
 
+/**
+ * Telemetría de escaneos resueltos en el navegador que nunca llegaron a
+ * `checkInTicket` (vencido, zona incorrecta, no encontrado…). Fire-and-forget
+ * desde el caller -- ver `src/services/checkinTelemetry.js`.
+ */
+export async function reportScanTelemetry(payload) {
+  return apiPost('/api/tickets/checkin/scan-events', payload)
+}
+
+/** Informe de errores de escaneo para el panel de detección de un evento. */
+export async function getEventScanReport(eventSlug, { from, until, limit } = {}) {
+  const params = new URLSearchParams()
+  if (from) params.set('from', from)
+  if (until) params.set('until', until)
+  if (limit) params.set('limit', String(limit))
+  const query = params.toString()
+  return apiGet(`/api/tickets/checkin/scan-report/${eventSlug}${query ? `?${query}` : ''}`)
+}
+
 export async function redeemTicketAddon(qrToken, addonId) {
   const result = await apiPost(`/api/tickets/checkin/${qrToken}/addons/${addonId}/redeem`, {})
   return {

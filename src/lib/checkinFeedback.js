@@ -11,6 +11,11 @@ const FEEDBACK_BY_OUTCOME = {
   // auditivamente que todavía falta sincronizar este ingreso.
   queued_offline: 'offline',
   wrong_zone: 'warning',
+  // Antes caían al 'warning' por defecto -- el mismo pitido que "ya usada" o
+  // "sin pago". Un QR vencido tiene que sonar distinto de un simple "todavía
+  // no": es un rechazo definitivo, no un "esperá".
+  expired: 'error',
+  not_yet_valid: 'warning',
 }
 
 const VIBRATION_PATTERNS = {

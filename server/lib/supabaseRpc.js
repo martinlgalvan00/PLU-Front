@@ -14,6 +14,15 @@ const STATUS_BY_CODE = {
   PLU11: 409,
   PLU12: 409,
   PLU13: 409,
+  // Check-in de entradas en la puerta: motivos de rechazo antes compartían
+  // PLU05 (no vigente todavía y vencido) o no tenían código propio (zona
+  // incorrecta), así que el cliente los adivinaba con una regex sobre el
+  // mensaje en español y todo lo que no matcheara cara como "sin pago" — un
+  // QR vencido rechazado por el servidor se mostraba como impago en la
+  // puerta (20261124100000_checkin_scan_rejection_codes).
+  PLU14: 409, // QR todavía no vigente
+  PLU15: 409, // QR vencido
+  PLU16: 409, // credencial no habilita esta zona
   // Canje de códigos de descuento/promoción: inválido, sin cupo, ya usado por
   // este atleta, con canjes registrados (no se puede borrar) y sin mejora de
   // precio. Son conflictos de negocio con mensaje propio; sin este mapeo caían

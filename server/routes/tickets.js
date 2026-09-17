@@ -112,6 +112,7 @@ import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import {
   publicReadLimiter,
+  scanTelemetryLimiter,
   staffLimiter,
   ticketPublicWriteLimiter,
 } from '../middleware/rateLimit.js'
@@ -142,6 +143,7 @@ import { createSupabasePaymentProfileRepository } from '../modules/payments/supa
 import { resolveMercadoPagoPublicKeyForProfileId } from '../modules/payments/mercadoPagoProfileRuntime.js'
 import { wisePriceFor } from '../modules/pricing/checkoutPricePolicy.js'
 import { resolveTicketOrderWisePricing } from '../../shared/ticketWisePricing.js'
+import { recordScanEvent, recordScanEvents } from '../modules/checkin/scanEventRecorder.js'
 
 const attendeeSchema = z.object({
   fullName: z.string().trim().min(3),
@@ -164,12 +166,30 @@ function assertTicketValidity(verified) {
   const now = Date.now()
   const from = new Date(validFrom).getTime()
   const until = new Date(validUntil).getTime()
+  // Mismos códigos que staff_check_in_ticket (20261124100000): sin esto el
+  // pre-chequeo de Node devolvía un 409 sin código y el cliente lo clasificaba
+  // adivinando por texto, igual que pasaba con el rechazo de la RPC.
   if (Number.isFinite(from) && now < from) {
-    throw new HttpError(409, 'Este QR todavía no está vigente.')
+    throw new HttpError(409, 'Este QR todavía no está vigente.', { code: 'PLU14' })
   }
   if (Number.isFinite(until) && now >= until) {
-    throw new HttpError(409, 'Este QR ya venció.')
+    throw new HttpError(409, 'Este QR ya venció.', { code: 'PLU15' })
   }
+}
+
+// Mismo mapeo que `checkinRejectionOutcome` en checkinScanService.js
+// (src/), del lado del servidor: el código PLU del rechazo es la fuente de
+// verdad para clasificar la fila de telemetría, no el texto del mensaje.
+const SCAN_OUTCOME_BY_ERROR_CODE = Object.freeze({
+  PLU05: 'not_ready',
+  PLU06: 'already_used',
+  PLU14: 'not_yet_valid',
+  PLU15: 'expired',
+  PLU16: 'wrong_zone',
+})
+
+function scanOutcomeFromError(error) {
+  return SCAN_OUTCOME_BY_ERROR_CODE[error?.details?.code] ?? 'invalid'
 }
 
 export const createOrderSchema = z
@@ -214,6 +234,38 @@ export const createOrderSchema = z
 const accessSchema = z.object({ accessToken: z.string().trim().min(32) })
 const rejectOrderSchema = z.object({ reason: z.string().trim().min(3).max(500) })
 
+// Outcomes que puede resolver el navegador para un escaneo (checkinScanService.js
+// / useCheckInWorkspace.js). Cerrado a propósito: un dispositivo de puerta no
+// puede inventar un outcome nuevo para la telemetría.
+const SCAN_TELEMETRY_OUTCOMES = [
+  'checked_in',
+  'ready',
+  'already_used',
+  'not_ready',
+  'not_found',
+  'invalid',
+  'wrong_zone',
+  'not_yet_valid',
+  'expired',
+  'no_registration',
+]
+const MAX_SCAN_TELEMETRY_BATCH = 50
+
+const scanTelemetryAttemptSchema = z.object({
+  clientId: z.string().uuid(),
+  scannedAt: z.string().trim().min(1),
+  kind: z.enum(['ticket', 'registration', 'unknown']).default('unknown'),
+  outcome: z.enum(SCAN_TELEMETRY_OUTCOMES),
+  qrToken: z.string().trim().max(200).optional(),
+  offline: z.boolean().optional().default(false),
+})
+
+const reportScanTelemetrySchema = z.object({
+  eventSlug: z.string().trim().min(1),
+  deviceId: z.string().trim().min(1).max(120),
+  attempts: z.array(scanTelemetryAttemptSchema).min(1).max(MAX_SCAN_TELEMETRY_BATCH),
+})
+
 export function createTicketRoutes({
   getPrisma,
   getSupabaseAdmin,
@@ -241,6 +293,17 @@ export function createTicketRoutes({
   }
   const prisma = getPrisma()
   const guard = requirePermission('admin.checkin.execute', { prisma })
+  // El informe de errores de escaneo es lectura de auditoría, no operación de
+  // puerta: `admin.audit.read` deja afuera al preset seguridad_plu_arg
+  // (sólo admin.events.read + admin.checkin.execute) a propósito -- quien
+  // escanea en el puesto no necesita ver el panel de detección del evento.
+  // Nota: `assertEventSlugScope` (más abajo) reusa `hasEventScopeAccess`, que
+  // hoy exige `admin.checkin.execute` para CUALQUIER cuenta con eventId/
+  // eventSlug asignado -- una cuenta acotada a un evento necesita ambos
+  // permisos para leer este informe. Ninguna cuenta acotada tiene hoy
+  // `admin.audit.read` (ver permissions.js), así que en la práctica esto es
+  // "admin global"; se documenta para no sorprender el día que exista una.
+  const scanAuditGuard = requirePermission('admin.audit.read', { prisma })
   const financeReadGuard = requirePermission('admin.payments.read', { prisma })
   const financeWriteGuard = requirePermission('admin.payments.approve', { prisma })
   const actor = (req) => `${req.auth.user.id}:${req.auth.user.email}`
@@ -755,20 +818,116 @@ export function createTicketRoutes({
     return zone?.scope ?? null
   }
 
+  /**
+   * Telemetría de escaneos que el navegador resolvió y que nunca llegaron a
+   * `POST /checkin/:qrToken` -- el operador vio "vencido" o "zona incorrecta"
+   * y nunca tocó Registrar ingreso. El servidor no confía en nada del cuerpo
+   * salvo el outcome (enum cerrado) y el token: evento, puerta, zona y actor
+   * SIEMPRE se resuelven de la cuenta autenticada, nunca del payload -- si no,
+   * cualquier dispositivo podría escribir telemetría de otro evento o
+   * atribuírsela a otra puerta. Estas filas quedan `evidence: 'operator'`,
+   * nunca `'server'`: son lo que el dispositivo dice haber visto, no lo que
+   * la base confirmó.
+   *
+   * Registrada ANTES de `/checkin/:qrToken`: Express matchea por orden de
+   * alta, y `:qrToken` capturaría literalmente "scan-events" como si fuera
+   * un token si esta ruta quedara después.
+   */
+  router.post(
+    '/checkin/scan-events',
+    ...guard,
+    scanTelemetryLimiter,
+    validateBody(reportScanTelemetrySchema),
+    async (req, res, next) => {
+      try {
+        const { eventSlug, deviceId, attempts } = req.validatedBody
+        assertEventSlugScope(req, eventSlug)
+        const eventId = await repo().resolveEventIdBySlug(eventSlug)
+        if (!eventId) throw new HttpError(404, 'Evento no encontrado.')
+
+        const gate = req.auth?.user?.securityZone?.name || null
+        const zoneScope = await scannerZoneScope(req)
+        const actorLabel = actor(req)
+
+        const resolvedTickets = await Promise.all(
+          attempts.map((attempt) =>
+            attempt.kind === 'ticket' && attempt.outcome !== 'not_found' && attempt.outcome !== 'invalid'
+              ? repo().resolveTicketByQrToken(attempt.qrToken)
+              : Promise.resolve(null),
+          ),
+        )
+
+        const rows = attempts.map((attempt, index) => {
+          const resolvedTicket = resolvedTickets[index]
+          return {
+            eventId,
+            outcome: attempt.outcome,
+            kind: attempt.kind,
+            evidence: 'operator',
+            ticketId: resolvedTicket?.event_id === eventId ? resolvedTicket.id : null,
+            qrToken: attempt.kind === 'ticket' ? attempt.qrToken : null,
+            gate,
+            zoneScope,
+            actorLabel,
+            deviceId,
+            clientId: attempt.clientId,
+            offline: attempt.offline,
+            scannedAt: attempt.scannedAt,
+          }
+        })
+
+        await recordScanEvents(getSupabaseAdmin?.(), rows)
+        res.status(202).json({ accepted: rows.length })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
   router.post('/checkin/:qrToken', ...guard, staffLimiter, async (req, res, next) => {
+    let ticket
+    const gate = req.body?.gate || req.auth?.user?.securityZone?.name || 'Puerta'
     try {
-      const ticket = await repo().verify(req.params.qrToken)
-      assertEventScope(req, verifiedTicketEventId(ticket))
+      ticket = await repo().verify(req.params.qrToken)
+      const eventId = verifiedTicketEventId(ticket)
+      assertEventScope(req, eventId)
       assertTicketValidity(ticket)
-      res.json(
-        await repo().checkIn(
-          req.params.qrToken,
-          req.body?.gate || req.auth?.user?.securityZone?.name || 'Puerta',
-          actor(req),
-          await scannerZoneScope(req),
-        ),
-      )
+      const zoneScope = await scannerZoneScope(req)
+      const result = await repo().checkIn(req.params.qrToken, gate, actor(req), zoneScope)
+      // Autoritativo: el servidor observó el ingreso. No bloquea la
+      // respuesta -- un rastro de puerta perdido no puede volver a fallar
+      // un check-in que ya se acreditó.
+      void recordScanEvent(getSupabaseAdmin?.(), {
+        eventId,
+        outcome: 'checked_in',
+        kind: 'ticket',
+        evidence: 'server',
+        ticketId: ticket?.ticket?.id ?? null,
+        qrToken: req.params.qrToken,
+        gate,
+        zoneScope,
+        actorLabel: actor(req),
+      })
+      res.json(result)
     } catch (error) {
+      // Un token que no resolvió a ninguna entrada no tiene event_id que
+      // atribuirle acá (la tabla es por evento): ese caso lo cubre el
+      // reporte del dispositivo (`evidence: 'operator'`), que sí conoce el
+      // evento en el que está parado aunque el token no exista.
+      const eventId = verifiedTicketEventId(ticket)
+      if (eventId) {
+        void recordScanEvent(getSupabaseAdmin?.(), {
+          eventId,
+          outcome: scanOutcomeFromError(error),
+          kind: 'ticket',
+          evidence: 'server',
+          ticketId: ticket?.ticket?.id ?? null,
+          qrToken: req.params.qrToken,
+          gate,
+          actorLabel: actor(req),
+          errorCode: error?.details?.code ?? null,
+        })
+      }
       next(error)
     }
   })
@@ -811,5 +970,32 @@ export function createTicketRoutes({
       }
     },
   )
+
+  /**
+   * Informe de errores de escaneo para el panel de detección del evento.
+   * Guardado por `admin.audit.read`, no `admin.checkin.execute`: es análisis
+   * para quien administra el evento, no una operación de puerta.
+   */
+  router.get(
+    '/checkin/scan-report/:eventSlug',
+    ...scanAuditGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        assertEventSlugScope(req, req.params.eventSlug)
+        const { from, until, limit } = req.query
+        res.json(
+          await repo().scanReport(req.params.eventSlug, {
+            from: from ? String(from) : null,
+            until: until ? String(until) : null,
+            limit: limit ? Number(limit) : null,
+          }),
+        )
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
   return router
 }

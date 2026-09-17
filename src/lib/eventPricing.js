@@ -243,6 +243,24 @@ export function ticketPricingFromEvent(event, now = new Date()) {
   return { eventDays, ticketTypes, addons: catalog }
 }
 
+/**
+ * Formato compacto para listas (matriz de accesos): sin el paréntesis que
+ * muchos tipos copian de la descripción, y sin gritar si el panel cargó el
+ * nombre en mayúsculas.
+ */
+export function shortTicketTypeName(name, locale = 'es') {
+  const raw = String(name ?? '').trim()
+  if (!raw) return ''
+  const withoutNote = raw.replace(/\s*\([^()]*\)\s*$/u, '').trim() || raw
+  const letters = withoutNote.replace(/[^\p{L}]/gu, '')
+  if (!letters) return withoutNote
+  const localeTag = locale === 'en' ? 'en-US' : 'es-AR'
+  if (letters !== letters.toLocaleUpperCase(localeTag)) return withoutNote
+  return withoutNote
+    .toLocaleLowerCase(localeTag)
+    .replace(/(^|[^\p{L}])(\p{L})/gu, (_, sep, letter) => sep + letter.toLocaleUpperCase(localeTag))
+}
+
 /** Precio del tipo de entrada más barato activo, o null si no hay ninguno. */
 export function cheapestTicketTypePrice(pricing) {
   const prices = (pricing?.ticketTypes ?? []).map((type) => type.price)

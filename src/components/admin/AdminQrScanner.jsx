@@ -10,6 +10,13 @@ import { shouldAcceptScan } from '../../lib/checkinScanCooldown.js'
 // media, suficiente para leer un QR a distancia de escaneo normal.
 const FALLBACK_SCAN_WIDTH = 480
 
+// Un QR quieto en el recuadro no necesita 60 intentos de decodificación por
+// segundo (el ritmo de requestAnimationFrame): eso es todo el frame a 480px
+// (getImageData + jsQR) corriendo en el hilo principal en cada tick. ~9 Hz
+// sigue siendo instantáneo para quien escanea y corta ese costo casi un
+// orden de magnitud.
+const DECODE_INTERVAL_MS = 110
+
 const FEEDBACK_STORAGE_KEY = 'plu-checkin-feedback'
 
 function readFeedbackPrefs() {
@@ -46,6 +53,25 @@ export default function AdminQrScanner({
 
   const activeFeedbackPrefs = feedbackPrefs ?? localFeedbackPrefs
 
+  // `busy` cambia en cada escaneo (setScanBusy true/false). Si emitScan
+  // dependiera de él directamente, el efecto de cámara de más abajo se
+  // desmontaría y volvería a pedir getUserMedia() en cada escaneo -- stream
+  // cortado, permiso re-otorgado, viewport en negro un instante, en cada
+  // persona que pasa por la puerta. Leer desde refs mantiene a emitScan con
+  // identidad estable sin perder el valor actual de busy/disabled/onScan.
+  const busyRef = useRef(busy)
+  const disabledRef = useRef(disabled)
+  const onScanRef = useRef(onScan)
+  useEffect(() => {
+    busyRef.current = busy
+  }, [busy])
+  useEffect(() => {
+    disabledRef.current = disabled
+  }, [disabled])
+  useEffect(() => {
+    onScanRef.current = onScan
+  }, [onScan])
+
   const modeOptions = useMemo(
     () => [
       ['camera', t('admin.checkin.scanner.modeCamera'), t('admin.checkin.scanner.modeCameraShort')],
@@ -77,31 +103,28 @@ export default function AdminQrScanner({
     })
   }
 
-  const emitScan = useCallback(
-    (raw, source = 'camera') => {
-      const value = raw?.trim()
-      const now = Date.now()
-      const last = lastScanRef.current
-      if (
-        !shouldAcceptScan({
-          value,
-          disabled,
-          busy,
-          source,
-          lastValue: last.value,
-          lastAt: last.at,
-          now,
-        })
-      ) {
-        return false
-      }
+  const emitScan = useCallback((raw, source = 'camera') => {
+    const value = raw?.trim()
+    const now = Date.now()
+    const last = lastScanRef.current
+    if (
+      !shouldAcceptScan({
+        value,
+        disabled: disabledRef.current,
+        busy: busyRef.current,
+        source,
+        lastValue: last.value,
+        lastAt: last.at,
+        now,
+      })
+    ) {
+      return false
+    }
 
-      lastScanRef.current = { value, at: now }
-      onScan?.(value)
-      return true
-    },
-    [busy, disabled, onScan],
-  )
+    lastScanRef.current = { value, at: now }
+    onScanRef.current?.(value)
+    return true
+  }, [])
 
   useEffect(() => {
     if (cameraError === 'unsupported') {
@@ -127,6 +150,7 @@ export default function AdminQrScanner({
     let raf
     let detector
     let cancelled = false
+    let lastDecodeAt = 0
     // Canvas fuera de pantalla para el decoder de respaldo (jsQR) -- no
     // necesita estar en el DOM, solo sirve para extraer ImageData del frame.
     const canvas = document.createElement('canvas')
@@ -134,18 +158,30 @@ export default function AdminQrScanner({
 
     function scanFrameWithFallback(video) {
       const scale = FALLBACK_SCAN_WIDTH / video.videoWidth
-      canvas.width = FALLBACK_SCAN_WIDTH
-      canvas.height = Math.round(video.videoHeight * scale)
+      const width = FALLBACK_SCAN_WIDTH
+      const height = Math.round(video.videoHeight * scale)
+      // El video no cambia de resolución entre frames -- redimensionar el
+      // canvas en cada tick fuerza una realocación que no hace falta.
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width
+        canvas.height = height
+      }
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
       const frame = ctx.getImageData(0, 0, canvas.width, canvas.height)
       return jsQR(frame.data, frame.width, frame.height, { inversionAttempts: 'dontInvert' })
     }
 
-    async function scanLoop() {
-      if (cancelled || !videoRef.current || videoRef.current.readyState < 2) {
+    async function scanLoop(timestamp = 0) {
+      if (cancelled) return
+      if (!videoRef.current || videoRef.current.readyState < 2) {
         raf = requestAnimationFrame(scanLoop)
         return
       }
+      if (timestamp - lastDecodeAt < DECODE_INTERVAL_MS) {
+        raf = requestAnimationFrame(scanLoop)
+        return
+      }
+      lastDecodeAt = timestamp
 
       try {
         if (detector) {

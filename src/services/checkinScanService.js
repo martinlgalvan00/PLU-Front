@@ -4,6 +4,30 @@ import { getMembershipByCodeOrToken, getStaffMembershipCredential } from './athl
 import { mapApiTicket, verifyTicketByQrToken } from './ticketApi.js'
 import { TICKET_VALIDITY_STATUS, ticketValidityStatus } from '../lib/ticketValidity.js'
 
+/**
+ * Código PLU del rechazo del servidor → outcome de escaneo. El código es la
+ * fuente de verdad: antes se adivinaba con una regex sobre el mensaje en
+ * español (`no habilita esta zona`), y todo lo que no matcheara caía en "sin
+ * pago" — un QR vencido rechazado por el servidor se le mostraba al operador
+ * en la puerta como si la entrada no tuviera el pago acreditado.
+ */
+const CHECKIN_REJECTION_OUTCOME_BY_CODE = Object.freeze({
+  PLU06: 'already_used',
+  PLU14: 'not_yet_valid',
+  PLU15: 'expired',
+  PLU16: 'wrong_zone',
+})
+
+/** Clasifica el rechazo de `POST /api/tickets/checkin/:qrToken` por código PLU. */
+export function checkinRejectionOutcome(error) {
+  const code = error?.body?.code
+  if (code && CHECKIN_REJECTION_OUTCOME_BY_CODE[code]) {
+    return CHECKIN_REJECTION_OUTCOME_BY_CODE[code]
+  }
+  if (error?.body?.alreadyUsed) return 'already_used'
+  return 'not_paid'
+}
+
 /** Estado sintético unificado para atletas (pagos) y tickets (ciclo de entrada). */
 export function registrationCheckinStatus(registration) {
   if (registration.checkedInAt) return 'usada'
