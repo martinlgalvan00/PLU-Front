@@ -161,6 +161,15 @@ evento debe devolver la inscripción de ese torneo y ambos derechos tienen que
 habilitar el check-in cuando el evento exige afiliación. Un ticket de público
 general no comparte este token y mantiene su QR opaco ligado al evento.
 
+Cada tipo de entrada puede definir un título comercial y una descripción breve,
+pero un tipo activo y pago sólo se vende si tiene al menos una jornada asignada.
+Al emitir cada entrada se congelan `valid_from` y `valid_until`: el QR no cambia
+si luego se edita el catálogo. La vigencia empieza a las 00:00 de la primera
+jornada asignada, hora de Argentina, y termina con límite exclusivo a las 00:00
+del día siguiente a la última jornada. Por lo tanto, una entrada de Día 1 vence
+exactamente al comenzar el Día 2. Tanto el check-in online como la allowlist
+offline deben rechazar una entrada todavía no vigente o vencida.
+
 Los planes con `collection_mode=recurring` representan afiliación automática
 por Mercado Pago. Con `APP_PRODUCTION=true` no se publican en `/api/payments/plans`
 y Express rechaza tanto la creación de su orden como el procesamiento de la

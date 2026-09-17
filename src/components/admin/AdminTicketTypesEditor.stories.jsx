@@ -23,7 +23,10 @@ export default {
   parameters: { layout: 'fullscreen' },
   decorators: [
     (Story) => (
-      <div className="admin-shell" style={{ display: 'block' }}>
+      <div
+        className="admin-shell"
+        style={{ display: 'block', height: 'auto', minHeight: '100vh', overflow: 'visible' }}
+      >
         <div className="admin-event-workspace__panel">
           <div className="admin-event-workspace__body">
             <div className="admin-event-editor admin-event-editor--embedded admin-event-editor--accordion">
@@ -49,6 +52,7 @@ const TYPES = [
   {
     id: 'tt-1',
     name: 'Día 1',
+    description: 'Acceso general válido únicamente durante la jornada inaugural.',
     price: 12000,
     manualPrice: 10000,
     wisePrice: 12,
@@ -62,6 +66,7 @@ const TYPES = [
   {
     id: 'tt-2',
     name: 'Entrenador',
+    description: 'Pase para acompañar al atleta durante ambas jornadas.',
     price: 25000,
     quota: 20,
     sortOrder: 1,

@@ -2401,7 +2401,8 @@ export function useAppData() {
   }, [])
 
   const createSecurityAccessLinkAction = useCallback(
-    (userId, sendEmail = false) => createSecurityAccessLinkRequest(userId, sendEmail),
+    (userId, { sendEmail = false, expiresAt } = {}) =>
+      createSecurityAccessLinkRequest(userId, { sendEmail, expiresAt }),
     [],
   )
 

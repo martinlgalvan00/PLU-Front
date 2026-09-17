@@ -56,6 +56,7 @@ function toCamelTicket(row, { event, checkIn } = {}) {
     attendeeDni: row.attendee_dni,
     ticketTypeId: row.ticket_type_id,
     ticketTypeName: row.ticketTypeName ?? row.ticket_type_name ?? null,
+    ticketTypeDescription: row.ticketTypeDescription ?? row.ticket_type_description ?? null,
     // La credencial emitida: qué dice impresa y qué zonas abre. Viene
     // congelada en la fila, no por join con el tipo, así que una entrada ya
     // vendida conserva el acceso con el que se vendió. Sin esto, las dos
@@ -71,6 +72,9 @@ function toCamelTicket(row, { event, checkIn } = {}) {
     unitPrice: row.unit_price,
     addons: Array.isArray(row.addons) ? row.addons : [],
     status: row.status,
+    validFrom: row.valid_from ?? row.validFrom ?? null,
+    validUntil: row.valid_until ?? row.validUntil ?? null,
+    validityStatus: row.validity_status ?? row.validityStatus ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     event: toCamelEvent(event),
@@ -251,6 +255,7 @@ export function mapApiTicket(apiTicket, purchaseEvent) {
     attendeeDni: apiTicket.attendeeDni,
     ticketTypeId: apiTicket.ticketTypeId,
     ticketTypeName: apiTicket.ticketTypeName,
+    ticketTypeDescription: apiTicket.ticketTypeDescription ?? null,
     // Lo que separa una credencial de la otra dentro de la misma compra. Sin
     // esto la verificación pública mostraba el nombre del TIPO ("Entrenador")
     // para las dos, que es lo mismo que no distinguirlas.
@@ -261,6 +266,9 @@ export function mapApiTicket(apiTicket, purchaseEvent) {
     unitPrice: apiTicket.unitPrice,
     addons: Array.isArray(apiTicket.addons) ? apiTicket.addons : [],
     status: apiTicket.status,
+    validFrom: apiTicket.validFrom ?? null,
+    validUntil: apiTicket.validUntil ?? null,
+    validityStatus: apiTicket.validityStatus ?? null,
     checkedInAt: apiTicket.checkIn?.scannedAt ?? null,
     eventSlug: purchaseEvent?.slug ?? apiTicket.event?.slug ?? apiTicket.eventSlug,
     eventTitle: purchaseEvent?.title ?? apiTicket.event?.title,

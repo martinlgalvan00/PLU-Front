@@ -238,7 +238,7 @@ export default {
       },
       stats: {
         title: 'Live counters',
-        body: "Ready, already checked in, and pending for the day, updated with every scan.",
+        body: 'Ready, already checked in, and pending for the day, updated with every scan.',
       },
       history: {
         title: 'Recent scans',
@@ -246,7 +246,7 @@ export default {
       },
       table: {
         title: 'Search manually',
-        body: "The full roster for the day, to find someone by name or document if the QR fails.",
+        body: 'The full roster for the day, to find someone by name or document if the QR fails.',
       },
     },
     roles: {
@@ -591,8 +591,7 @@ export default {
         notify: 'Send notice',
         notifying: 'Sending…',
         notifyResult: 'Notices sent: {{sent}}. Already complete skipped: {{skipped}}.',
-        notifyResultWithFailed:
-          'Notices sent: {{sent}}. Skipped: {{skipped}}. Failed: {{failed}}.',
+        notifyResultWithFailed: 'Notices sent: {{sent}}. Skipped: {{skipped}}. Failed: {{failed}}.',
         notifyError: 'The notice could not be sent.',
         notifyPartialError: '{{sent}} notices were sent and the rest failed.',
         notifyLimit:
@@ -788,7 +787,8 @@ export default {
       redemptionsShow: 'View redemptions',
       redemptionsHide: 'Hide redemptions',
       redemptionsLoading: 'Loading redemptions…',
-      redemptionsEmpty: 'No current redemptions: the orders that used them were cancelled or expired.',
+      redemptionsEmpty:
+        'No current redemptions: the orders that used them were cancelled or expired.',
       redemptionsTitle: 'Redemptions ({{count}})',
       redemptionUnknownAthlete: 'Deleted athlete',
       redemptionSaved: 'discount {{amount}}',
@@ -847,7 +847,8 @@ export default {
       codeFinancingTerm: 'Payment deadline (days)',
       codeFinancingTermHint:
         "If Finance doesn't credit the payment within this deadline, the platform revokes the membership and registration it had enabled on its own.",
-      codeFinancingTermInvalid: 'The payment deadline must be a whole number between 1 and 90 days.',
+      codeFinancingTermInvalid:
+        'The payment deadline must be a whole number between 1 and 90 days.',
       batchPartialError:
         '{{created}} of {{total}} codes were created. The rest did not go through: {{reason}}',
       codeChannelsEmpty:
@@ -1540,8 +1541,7 @@ export default {
     stepDaysTitle: 'Competition days',
     stepDaysHint: 'The days the meet runs. Tickets are sold against these days.',
     stepWeighInsTitle: 'Weigh-ins',
-    stepWeighInsHint:
-      'Weigh-in windows per day. Each one can be shown on the public event page.',
+    stepWeighInsHint: 'Weigh-in windows per day. Each one can be shown on the public event page.',
     stepSessionsTitle: 'Sessions',
     stepSessionsHint:
       'Athletes lifting together, by platform and time. Fine-grained ordering lives in Grid.',
@@ -1611,6 +1611,8 @@ export default {
     credentialFilter: 'Credential',
     filterAllCredentials: 'All',
     ticketTypeLabel: 'Ticket',
+    validFrom: 'Valid from',
+    validUntil: 'Expires',
     statReady: 'Eligible',
     statDone: 'Checked in',
     statPending: 'Not eligible',
@@ -1652,6 +1654,8 @@ export default {
         invalid: 'Invalid code',
         queued_offline: 'Validated offline, pending sync',
         wrong_zone: 'This credential does not open this zone',
+        not_yet_valid: 'This QR code is not valid yet',
+        expired: 'This QR code has expired',
       },
     },
     offline: {
@@ -2168,7 +2172,8 @@ export default {
     open: 'Observations',
     openWithCount: 'Observations ({{count}})',
     dialogTitle: 'Registration observations',
-    dialogLead: 'Add a note without changing the status. Every correction reason joins this thread.',
+    dialogLead:
+      'Add a note without changing the status. Every correction reason joins this thread.',
     close: 'Close',
   },
 
@@ -2230,7 +2235,8 @@ export default {
     },
     resolvedElsewhere: {
       membership: 'The membership is active through another route: do not charge this again.',
-      registration: 'The registration is confirmed through another route: do not charge this again.',
+      registration:
+        'The registration is confirmed through another route: do not charge this again.',
     },
     manual: {
       stamp: 'Manually by {{actor}} · {{date}}',
@@ -2530,8 +2536,7 @@ export default {
   paymentExpiry: {
     eyebrow: 'Automatic close',
     title: 'Order expiry',
-    subtitle:
-      'How long an unpaid order lives, and what got stuck. The sweep runs every 3 minutes.',
+    subtitle: 'How long an unpaid order lives, and what got stuck. The sweep runs every 3 minutes.',
     refresh: 'Refresh',
     loadError: 'Could not read the expiry status.',
     saveError: 'Could not save the window.',
@@ -2630,8 +2635,7 @@ export default {
     loading: 'Checking the integration…',
     empty: 'No events match this filter.',
     emptyHealthyTitle: 'All clear',
-    emptyHealthyLead:
-      'No failed notices or pending reconciliations. Nothing technical to review.',
+    emptyHealthyLead: 'No failed notices or pending reconciliations. Nothing technical to review.',
     emptyHealthyCompact: 'All clear. Nothing to review.',
     type: 'Type',
     reconciliation: 'Payment reconciliation',
@@ -3059,8 +3063,13 @@ export default {
       ticketTypeAdd: 'Add ticket type',
       ticketTypeRemove: 'Remove ticket type',
       ticketTypeUntitled: 'Untitled ticket type',
-      ticketTypeName: 'Name',
-      ticketTypeNamePlaceholder: 'E.g. Day 1, Full pass + sandwich',
+      ticketTypeName: 'Ticket title',
+      ticketTypeNamePlaceholder: 'E.g. General admission · Saturday',
+      ticketTypeDescription: 'Public description',
+      ticketTypeDescriptionPlaceholder:
+        'E.g. Grandstand access for Saturday. Bring your ID to the gate.',
+      ticketTypeDescriptionHint:
+        'Shown before payment. Explain what is included and which day it covers.',
       ticketTypePrice: 'Mercado Pago price',
       ticketTypeManualPrice: 'Bank transfer / cash price',
       ticketTypeManualPricePlaceholder: 'Same as Mercado Pago',
@@ -3093,8 +3102,7 @@ export default {
       ticketTypeChannelsCustom: 'Pick for this ticket',
       ticketTypeChannelsInheritSummary:
         'Sold with the event payment methods. Those are set in Payments, not on each type.',
-      ticketTypeChannelsCustomLead:
-        'This ticket only. The rest still uses the event methods.',
+      ticketTypeChannelsCustomLead: 'This ticket only. The rest still uses the event methods.',
       ticketTypeChannelsRestrict: 'Restrict this one',
       ticketTypeChannelsUseEvent: 'Use event methods',
       ticketTypeChannelsHint:
@@ -3110,6 +3118,8 @@ export default {
       ticketTypeFoldWindow: 'Own window',
       ticketTypeFoldAccess: 'Days, packs and credentials',
       ticketTypeDaysLabel: 'Access days',
+      ticketTypeValiditySummary: 'QR valid: {{days}}',
+      ticketTypeValidityMissing: 'QR validity has not been set',
       ticketTypeAddonsLabel: 'Perks included at no charge (pack)',
       ticketTypeAddonsEmpty:
         'Configure the perks catalog first to be able to bundle them into a pack.',
@@ -3118,7 +3128,8 @@ export default {
         'Each purchase issues these credentials. The name is what security reads; the zones are what the QR opens.',
       credentialName: 'Credential name',
       credentialNamePrimary: 'Name at the gate',
-      credentialNameHint: 'This is what appears when scanned. For the public, “General admission” is enough.',
+      credentialNameHint:
+        'This is what appears when scanned. For the public, “General admission” is enough.',
       credentialNamePlaceholder: 'General admission',
       credentialNamePlaceholderExtra: 'e.g. COACH',
       credentialZones: 'What it opens when scanned',
@@ -3132,7 +3143,8 @@ export default {
       },
       credentialZoneHint: {
         gate_tickets: 'Venue and stands. This is the access for a public ticket.',
-        athletes_only: 'This zone does not read public tickets: the scanner only accepts registrations.',
+        athletes_only:
+          'This zone does not read public tickets: the scanner only accepts registrations.',
         athletes_coaches: 'Warm-up, behind the platform. Use it on the coach credential.',
         staff_only: 'Internal control: a ticket does not open it.',
       },
@@ -3180,11 +3192,13 @@ export default {
     salesChapterTicketsMeta: '{{count}} types',
     salesChapterTicketsOff: 'Not enabled',
     salesChapterPaymentMeta: '{{count}} methods',
-    sectionSalesLead: 'Athlete registration and spectator tickets, each with its own capacity and prices.',
+    sectionSalesLead:
+      'Athlete registration and spectator tickets, each with its own capacity and prices.',
     sectionSalesLeadEssentials:
       'Capacity, registration window, prices, payment methods and ticket catalog.',
     laneAthletes: 'Athlete registration',
-    laneAthletesLead: 'Capacity and registration window. Past the deadline or full, new sign-ups are rejected.',
+    laneAthletesLead:
+      'Capacity and registration window. Past the deadline or full, new sign-ups are rejected.',
     lanePricesLead:
       'Registration fee for this meet. Membership and combo are managed from platform Pricing.',
     laneSpectators: 'Spectator tickets',
@@ -3194,8 +3208,7 @@ export default {
     occupancyPulse: '{{registered}}/{{total}}',
     occupancyPercent: '{{percent}}%',
     capacityVisibilityTitle: 'Show occupancy on the site',
-    capacityVisibilityHint:
-      'Progress bar and spots left. The panel always sees the real number.',
+    capacityVisibilityHint: 'Progress bar and spots left. The panel always sees the real number.',
     capacityTotalVisibilityTitle: 'Show the total number',
     capacityTotalVisibilityHint:
       'Only hides the total (the /200). Signed-up count, the bar and spots left stay visible.',
@@ -3237,11 +3250,13 @@ export default {
     publicSurfaceCalendarTitle: 'Calendar',
     publicSurfaceCalendarHint: 'Buttons to add the meet to Google Calendar or download the .ics.',
     publicSurfaceWeighInsTitle: 'Weigh-ins',
-    publicSurfaceWeighInsHint: 'Weigh-in times on the public page. With no windows loaded, nothing appears.',
+    publicSurfaceWeighInsHint:
+      'Weigh-in times on the public page. With no windows loaded, nothing appears.',
     publicSurfaceLivestreamTitle: 'Livestream',
     publicSurfaceLivestreamHint: 'Live player on the event page, if a link is set.',
     publicSurfaceExperienceTitle: 'Experience',
-    publicSurfaceExperienceHint: 'Editorial block on the custom landing (equipment, judges, media).',
+    publicSurfaceExperienceHint:
+      'Editorial block on the custom landing (equipment, judges, media).',
     publicSurfaceCategoriesTitle: 'Categories',
     publicSurfaceCategoriesHint: 'Modalities and divisions on the event’s own landing.',
     publicSurfaceLocationTitle: 'Venue',
@@ -3292,6 +3307,8 @@ export default {
       ticketTypeIdInvalid: 'The ticket type has an invalid identifier.',
       ticketTypeNameRequired: 'Every ticket type needs a name.',
       ticketTypeNameMax: 'The ticket type name is too long.',
+      ticketTypeDescriptionMax: 'Descriptions can be up to 240 characters.',
+      ticketTypeDayRequired: 'Pick at least one day so the QR has a defined validity window.',
       quotaInvalid: 'Enter a valid ticket type quota.',
       sortOrderInvalid: 'The configured order is invalid.',
       ticketTypeDaysMax: 'A ticket type cannot include more than 31 event days.',
@@ -3306,8 +3323,7 @@ export default {
       ticketsNeedDays: 'Ticket sales need at least one event day.',
       ticketsNeedType: 'Ticket sales need at least one active type with a price.',
       ticketsNoChannel: 'Every ticket payment method is closed. Sales cannot go live like this.',
-      ticketTypeNoChannel:
-        'This ticket has no open payment method left: nobody could buy it.',
+      ticketTypeNoChannel: 'This ticket has no open payment method left: nobody could buy it.',
       weighInLabelRequired: 'Every weigh-in window needs a name.',
       weighInLabelMax: 'The weigh-in window name is too long.',
       weighInNoteMax: 'The weigh-in note is too long.',
@@ -3425,8 +3441,7 @@ export default {
     },
     metricsEngagedHint: '{{rate}} of sessions · 10s in view, 2 pages, or a conversion',
     metricsDeltaAria: '{{value}} versus the previous period',
-    metricsDeltaAriaRich:
-      '{{value}} ({{absolute}}). Previously {{previous}}, now {{current}}.',
+    metricsDeltaAriaRich: '{{value}} ({{absolute}}). Previously {{previous}}, now {{current}}.',
     metricsDeltaDetail: 'Previously {{previous}} · now {{current}}',
     metricsDeltaCaption: 'vs. previous period',
     metricsComparisonNote:

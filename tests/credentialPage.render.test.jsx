@@ -31,7 +31,7 @@ vi.mock('../src/services/credentialCache.js', () => ({
 
 const { getMembershipByCodeOrToken } = await import('../src/services/athleteApi.js')
 const { verifyTicketByQrToken } = await import('../src/services/ticketApi.js')
- const { recallCredential } = await import('../src/services/credentialCache.js')
+const { recallCredential } = await import('../src/services/credentialCache.js')
 const CredentialPage = (await import('../src/pages/CredentialPage.jsx')).default
 
 const CODE = 'a4f1c0de-0000-4000-8000-000000000001'
@@ -279,6 +279,7 @@ describe('verificación de una entrada', () => {
       attendeeDni: '28999111',
       ticketTypeId: 'tt-entrenador',
       ticketTypeName: 'Entrenador',
+      ticketTypeDescription: 'Acceso operativo a la entrada en calor.',
       credentialLabel: 'ENTRENADOR',
       credentialScopes: ['athletes_coaches'],
       bundleId: 'bundle-1',
@@ -311,6 +312,35 @@ describe('verificación de una entrada', () => {
     renderPage({ type: 'ticket' })
 
     expect(await screen.findByText('Entrada en calor')).toBeTruthy()
+    expect(screen.getByText('Acceso operativo a la entrada en calor.')).toBeTruthy()
+  })
+
+  it('marca un QR vencido y no ofrece registrar el ingreso', async () => {
+    verifyTicketByQrToken.mockResolvedValue({
+      ticket: ticket({
+        validFrom: '2000-01-01T03:00:00.000Z',
+        validUntil: '2000-01-02T03:00:00.000Z',
+      }),
+    })
+    renderPage({ type: 'ticket', onCheckIn: vi.fn() })
+
+    expect(await screen.findByText('Entrada vencida')).toBeTruthy()
+    expect(screen.getByText('Vence')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /marcar ingreso/i })).toBeNull()
+  })
+
+  it('marca un QR futuro como todavía no vigente', async () => {
+    verifyTicketByQrToken.mockResolvedValue({
+      ticket: ticket({
+        validFrom: '2100-01-01T03:00:00.000Z',
+        validUntil: '2100-01-02T03:00:00.000Z',
+      }),
+    })
+    renderPage({ type: 'ticket', onCheckIn: vi.fn() })
+
+    expect(await screen.findByText('Entrada todavía no vigente')).toBeTruthy()
+    expect(screen.getByText('Válida desde')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /marcar ingreso/i })).toBeNull()
   })
 
   it('la otra credencial del mismo juego abre otra zona', async () => {

@@ -1,5 +1,6 @@
 import { registrationCheckinStatus, scheduleDayIndexes } from './checkinScanService.js'
 import { findOpenManualOrderForRegistration } from './paymentValidationService.js'
+import { ticketIsCurrentlyValid } from '../lib/ticketValidity.js'
 
 function belongsToEvent(record, eventSlug) {
   if (!eventSlug) return true
@@ -23,10 +24,12 @@ function matchesDay(row, dayIndex) {
 function matchesStatus(row, status) {
   if (status === 'all') return true
   if (status === 'done') return row.status === 'usada'
-  if (status === 'ready') return row.status === 'pagada'
+  const isReady =
+    row.status === 'pagada' && (row.type === 'atleta' || ticketIsCurrentlyValid(row))
+  if (status === 'ready') return isReady
   // Subconjunto de "sin habilitar": los que la puerta puede resolver cobrando.
   if (status === 'to_validate') return Boolean(row.pendingOrder)
-  return row.status !== 'usada' && row.status !== 'pagada'
+  return row.status !== 'usada' && !isReady
 }
 
 function isCoachCredential(label) {
@@ -73,10 +76,13 @@ export function mapAllowlistToCheckinSources(allowlist, eventSlug) {
     attendeeDni: entry.attendeeDni,
     ticketTypeId: entry.ticketTypeId,
     ticketTypeName: entry.ticketTypeName,
+    ticketTypeDescription: entry.ticketTypeDescription ?? null,
     credentialLabel: entry.credentialLabel ?? null,
     credentialScopes: entry.credentialScopes ?? [],
     status: entry.status,
     checkedInAt: entry.checkedInAt ?? null,
+    validFrom: entry.validFrom ?? null,
+    validUntil: entry.validUntil ?? null,
   }))
   return { athletes, registrations, tickets }
 }
@@ -129,12 +135,15 @@ export function buildCheckinRows({
       name: ticket.attendeeName,
       document: ticket.attendeeDni,
       meta: ticket.ticketTypeName ?? ticket.ticketCode,
+      ticketTypeDescription: ticket.ticketTypeDescription ?? null,
       credentialLabel: ticket.credentialLabel ?? null,
       credentialScopes: ticket.credentialScopes ?? [],
       dayIndexes: ticketDayIndexes(ticket, ticketTypes),
       status: ticket.checkedInAt ? 'usada' : ticket.status,
       checkedInAt: ticket.checkedInAt,
       addons: ticket.addons ?? [],
+      validFrom: ticket.validFrom ?? null,
+      validUntil: ticket.validUntil ?? null,
     }))
 
   return [...athleteRows, ...ticketRows].sort((left, right) => {
@@ -162,9 +171,15 @@ export function summarizeCheckinRows(rows = [], eventDays = []) {
 
   return {
     total: rows.length,
-    ready: count((row) => row.status === 'pagada'),
+    ready: count(
+      (row) => row.status === 'pagada' && (row.type === 'atleta' || ticketIsCurrentlyValid(row)),
+    ),
     done: count((row) => row.status === 'usada'),
-    pending: count((row) => row.status !== 'usada' && row.status !== 'pagada'),
+    pending: count(
+      (row) =>
+        row.status !== 'usada' &&
+        !(row.status === 'pagada' && (row.type === 'atleta' || ticketIsCurrentlyValid(row))),
+    ),
     // Cuántos de los que no pueden ingresar se destraban cobrando en la puerta.
     toValidate: count((row) => Boolean(row.pendingOrder)),
     athletes: count((row) => row.type === 'atleta'),

@@ -1517,6 +1517,10 @@
   .admin-event-workspace__panel .admin-ticket-types__prices-grid {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  .admin-event-workspace__panel .admin-ticket-types__prices-grid > .admin-event-form__field:not(:last-child) {
+    margin-bottom: 8px;
+  }
 }
 
 @container event-editor (max-width: 640px) {

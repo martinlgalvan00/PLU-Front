@@ -32,7 +32,12 @@ async function resolveScopedRegistrationOpensAt(env, supabase, eventSlug) {
  * antes. La regla vive en `shared/ticketWisePricing.js` porque la pantalla de
  * compra arma el mismo número para mostrarlo antes de pagar.
  */
-async function resolveTicketOrderWiseQuote(supabase, { eventSlug, attendees }, env, eventRow = null) {
+async function resolveTicketOrderWiseQuote(
+  supabase,
+  { eventSlug, attendees },
+  env,
+  eventRow = null,
+) {
   if (!supabase) return null
 
   // El id del evento ya lo trae el perfil de cobro que la ruta leyó un momento
@@ -150,24 +155,42 @@ const attendeeSchema = z.object({
 /** Igual que `MAX_TICKETS` en TicketPurchaseSection: una compra, diez personas. */
 const MAX_ATTENDEES_PER_ORDER = 10
 
-export const createOrderSchema = z.object({
-  eventSlug: z.string().trim().min(1),
-  attendees: z.array(attendeeSchema).min(1).max(MAX_ATTENDEES_PER_ORDER),
-  buyer: z
-    .object({
-      name: z.string().trim().optional(),
-      email: z.string().trim().email().optional(),
-      phone: z.string().trim().optional(),
-    })
-    .optional(),
-  provider: z.enum(['mercado_pago', 'manual']).default('mercado_pago'),
-  manualPaymentChannel: z.enum(['bank_transfer', 'cash_pitbull', 'wise_transfer']).optional(),
-  idempotencyKey: z
-    .string()
-    .uuid()
-    .default(() => randomUUID()),
-  accessToken: z.string().trim().min(32).optional(),
-})
+function assertTicketValidity(verified) {
+  const ticket = verified?.ticket ?? verified
+  const validFrom = ticket?.valid_from ?? ticket?.validFrom
+  const validUntil = ticket?.valid_until ?? ticket?.validUntil
+  if (!validFrom || !validUntil) return
+
+  const now = Date.now()
+  const from = new Date(validFrom).getTime()
+  const until = new Date(validUntil).getTime()
+  if (Number.isFinite(from) && now < from) {
+    throw new HttpError(409, 'Este QR todavía no está vigente.')
+  }
+  if (Number.isFinite(until) && now >= until) {
+    throw new HttpError(409, 'Este QR ya venció.')
+  }
+}
+
+export const createOrderSchema = z
+  .object({
+    eventSlug: z.string().trim().min(1),
+    attendees: z.array(attendeeSchema).min(1).max(MAX_ATTENDEES_PER_ORDER),
+    buyer: z
+      .object({
+        name: z.string().trim().optional(),
+        email: z.string().trim().email().optional(),
+        phone: z.string().trim().optional(),
+      })
+      .optional(),
+    provider: z.enum(['mercado_pago', 'manual']).default('mercado_pago'),
+    manualPaymentChannel: z.enum(['bank_transfer', 'cash_pitbull', 'wise_transfer']).optional(),
+    idempotencyKey: z
+      .string()
+      .uuid()
+      .default(() => randomUUID()),
+    accessToken: z.string().trim().min(32).optional(),
+  })
   /**
    * Un DNI por persona, también acá: el cliente ya lo marca, pero la orden se
    * puede armar sin pasar por el formulario. Dos entradas con el mismo
@@ -321,10 +344,7 @@ export function createTicketRoutes({
         typeChannels: row.payment_channels,
       })
       if (!open.includes(channel)) {
-        throw new HttpError(
-          409,
-          `La entrada "${row.name}" no se puede pagar con el medio elegido.`,
-        )
+        throw new HttpError(409, `La entrada "${row.name}" no se puede pagar con el medio elegido.`)
       }
     }
   }
@@ -409,7 +429,8 @@ export function createTicketRoutes({
                 {
                   concept: 'ticket',
                   arsAmount: ticketWiseQuote?.arsTotal ?? null,
-                  configuredUsd: ticketWiseQuote?.source === 'configured' ? ticketWiseQuote.amount : null,
+                  configuredUsd:
+                    ticketWiseQuote?.source === 'configured' ? ticketWiseQuote.amount : null,
                 },
                 env,
               )
@@ -738,6 +759,7 @@ export function createTicketRoutes({
     try {
       const ticket = await repo().verify(req.params.qrToken)
       assertEventScope(req, verifiedTicketEventId(ticket))
+      assertTicketValidity(ticket)
       res.json(
         await repo().checkIn(
           req.params.qrToken,
@@ -758,6 +780,7 @@ export function createTicketRoutes({
       try {
         const ticket = await repo().verify(req.params.qrToken)
         assertEventScope(req, verifiedTicketEventId(ticket))
+        assertTicketValidity(ticket)
         res.json(await repo().redeemAddon(req.params.qrToken, req.params.addonId, actor(req)))
       } catch (error) {
         next(error)

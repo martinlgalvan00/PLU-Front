@@ -441,8 +441,10 @@ export default {
     add: 'Guardar filtros actuales',
     namePlaceholder: 'Nombre de la vista',
     remove: 'Eliminar vista {{label}}',
-    limitReached: 'Llegaste al máximo de {{count}} vistas guardadas. Eliminá una para guardar otra.',
-    saveFailed: 'No se pudo guardar la vista. El almacenamiento del navegador puede estar lleno o bloqueado.',
+    limitReached:
+      'Llegaste al máximo de {{count}} vistas guardadas. Eliminá una para guardar otra.',
+    saveFailed:
+      'No se pudo guardar la vista. El almacenamiento del navegador puede estar lleno o bloqueado.',
     removeFailed: 'No se pudo eliminar la vista. Probá de nuevo.',
   },
   table: {
@@ -550,8 +552,7 @@ export default {
       selectIncompleteAria: 'Elegir entre {{count}} perfiles incompletos',
       selectIncompletePicking: 'Elegí en la lista',
       selectIncompleteThisPage: 'Esta página',
-      selectIncompleteThisPageAria:
-        'Seleccionar {{count}} perfiles incompletos de esta página',
+      selectIncompleteThisPageAria: 'Seleccionar {{count}} perfiles incompletos de esta página',
       selectIncompleteDone: 'Listo',
       selectIncompleteCancel: 'Cancelar',
       selectVisibleAria: 'Seleccionar las filas visibles',
@@ -757,8 +758,7 @@ export default {
           'No hay ninguna afiliación de pago único vigente para empaquetar. Activá una en Planes de afiliación y volvé.',
         noEvent:
           'Elegí a qué inscripción aplica el combo: el precio y el canje se resuelven contra ese torneo.',
-        pickPlan:
-          'Hay más de una afiliación de pago único vigente: elegí cuál empaqueta el combo.',
+        pickPlan: 'Hay más de una afiliación de pago único vigente: elegí cuál empaqueta el combo.',
         noSavings:
           'El precio del combo tiene que ser menor a lo que cuesta comprar afiliación e inscripción por separado.',
       },
@@ -771,8 +771,7 @@ export default {
       bundlePlanPick: 'Elegí una afiliación',
       comboEventLabel: 'Inscripción que empaqueta',
       comboEventPick: 'Elegí una inscripción',
-      comboEventHint:
-        'Obligatoria: el combo se arma contra un torneo, y ahí es donde se canjea.',
+      comboEventHint: 'Obligatoria: el combo se arma contra un torneo, y ahí es donde se canjea.',
       newDiscountCode: 'Nuevo código',
       publishDiscountCode: 'Publicar código',
       formTitleNewCode: 'Nuevo código',
@@ -801,7 +800,8 @@ export default {
       redemptionsShow: 'Ver canjes',
       redemptionsHide: 'Ocultar canjes',
       redemptionsLoading: 'Leyendo canjes…',
-      redemptionsEmpty: 'Sin canjes vigentes: las órdenes que los usaban se cancelaron o vencieron.',
+      redemptionsEmpty:
+        'Sin canjes vigentes: las órdenes que los usaban se cancelaron o vencieron.',
       redemptionsTitle: 'Canjes ({{count}})',
       redemptionUnknownAthlete: 'Atleta eliminado',
       redemptionSaved: 'descuento {{amount}}',
@@ -861,7 +861,8 @@ export default {
       codeFinancingTerm: 'Plazo para pagar (días)',
       codeFinancingTermHint:
         'Si Finanzas no acredita el pago dentro de este plazo, la plataforma da de baja sola la afiliación y la inscripción que había habilitado.',
-      codeFinancingTermInvalid: 'El plazo de pago tiene que ser un número entero de entre 1 y 90 días.',
+      codeFinancingTermInvalid:
+        'El plazo de pago tiene que ser un número entero de entre 1 y 90 días.',
       batchPartialError:
         'Se crearon {{created}} de {{total}} códigos. Los que faltan no entraron: {{reason}}',
       codeChannelsEmpty:
@@ -1306,8 +1307,7 @@ export default {
     plan: 'Repartir',
     planAria: 'Armar el reparto sugerido',
     previewTitle: 'Reparto sugerido',
-    previewLead:
-      '{{count}} atletas en {{sessions}} tandas. Nadie que ya esté ubicado se mueve.',
+    previewLead: '{{count}} atletas en {{sessions}} tandas. Nadie que ya esté ubicado se mueve.',
     previewNew: 'Nueva',
     previewAdded: '+{{count}}',
     previewConfirm: 'Confirmar reparto',
@@ -1320,8 +1320,7 @@ export default {
   eventState: {
     label: 'Estado del evento',
     sectionTitle: 'Estado y acceso',
-    sectionLead:
-      'En qué estado está el meet, quién puede inscribirse y si se ve en el sitio.',
+    sectionLead: 'En qué estado está el meet, quién puede inscribirse y si se ve en el sitio.',
     status: 'Estado',
     openRegistration: 'Habilitar inscripciones',
     registrationOpened: 'Inscripciones habilitadas y evento publicado.',
@@ -1349,8 +1348,7 @@ export default {
     save: 'Guardar',
     saving: 'Guardando…',
     discard: 'Descartar',
-    discardUnsavedConfirm:
-      'Hay cambios de estado sin guardar. ¿Descartarlos y cerrar?',
+    discardUnsavedConfirm: 'Hay cambios de estado sin guardar. ¿Descartarlos y cerrar?',
     overridden:
       'El evento sigue con el cupo lleno, así que quedó en "Cupo lleno". Subí el cupo desde el editor para reabrir la inscripción.',
     fullNote:
@@ -1516,7 +1514,8 @@ export default {
     preset: 'Armar zonas de un meet estándar',
     presetDone: 'Zonas del meet estándar creadas.',
     summary: '{{zones}} zonas · {{members}} personas · {{active}} con cuenta activa',
-    empty: 'Todavía no hay zonas. El meet estándar arma puerta, pesaje, calentamiento y plataforma.',
+    empty:
+      'Todavía no hay zonas. El meet estándar arma puerta, pesaje, calentamiento y plataforma.',
     created: 'Zona creada.',
     updated: 'Zona actualizada.',
     deleted: 'Zona eliminada. Las personas asignadas quedaron sin zona.',
@@ -1665,6 +1664,8 @@ export default {
     credentialFilter: 'Credencial',
     filterAllCredentials: 'Todas',
     ticketTypeLabel: 'Entrada',
+    validFrom: 'Válida desde',
+    validUntil: 'Vence',
     statReady: 'Habilitados',
     statDone: 'Ingresados',
     statPending: 'Sin habilitar',
@@ -1706,6 +1707,8 @@ export default {
         invalid: 'Código inválido',
         queued_offline: 'Validado sin conexión, pendiente de sincronizar',
         wrong_zone: 'Esta credencial no abre esta zona',
+        not_yet_valid: 'Este QR todavía no está vigente',
+        expired: 'Este QR ya venció',
       },
     },
     offline: {
@@ -2256,7 +2259,8 @@ export default {
       expired_after_attempt: 'Venció el {{date}}; ningún intento llegó a acreditarse.',
       closed_without_attempt: 'Se cerró sin un solo intento de pago registrado.',
       closed_after_attempt: 'Se cerró sin que ningún intento llegara a acreditarse.',
-      closed_before_expiry: 'Se cerró antes de vencer, probablemente reemplazada por un cobro nuevo.',
+      closed_before_expiry:
+        'Se cerró antes de vencer, probablemente reemplazada por un cobro nuevo.',
       superseded_by_new_order: 'Se reemplazó por un cobro nuevo del mismo concepto.',
       provider_cancelled: 'Mercado Pago dio el pago por cancelado.',
       staff_rejected: 'Cerrada por la organización.',
@@ -2301,7 +2305,8 @@ export default {
     },
     resolvedElsewhere: {
       membership: 'La afiliación quedó activa por otra vía: no hay que volver a cobrar esto.',
-      registration: 'La inscripción quedó confirmada por otra vía: no hay que volver a cobrar esto.',
+      registration:
+        'La inscripción quedó confirmada por otra vía: no hay que volver a cobrar esto.',
     },
     manual: {
       stamp: 'A mano por {{actor}} · {{date}}',
@@ -2374,7 +2379,8 @@ export default {
     },
   },
   registrationStatus: {
-    reasonHint: 'Para guardar el cambio, elegí un estado y escribí un motivo de al menos 3 caracteres.',
+    reasonHint:
+      'Para guardar el cambio, elegí un estado y escribí un motivo de al menos 3 caracteres.',
     title: 'Corregir estado de la inscripción',
     lead: 'Cambia el estado sin borrar la inscripción: se conservan división, categoría y horario asignado.',
     athlete: 'Atleta',
@@ -2389,7 +2395,8 @@ export default {
     reasonLabel: 'Motivo del cambio',
     reasonPlaceholder: 'Ej.: cancelada por error al validar el comprobante.',
     notifyLabel: 'Avisar por mail al cancelar',
-    notifyHint: 'Le llega el motivo de arriba. Podés revisarlo con la vista previa antes de confirmar.',
+    notifyHint:
+      'Le llega el motivo de arriba. Podés revisarlo con la vista previa antes de confirmar.',
     confirm: 'Guardar estado',
     saving: 'Guardando…',
     cancel: 'Cancelar',
@@ -2495,8 +2502,7 @@ export default {
     overrideReasonLabel: 'Motivo del override',
     overrideReasonPlaceholder:
       'Ej.: cobro verificado en extracto bancario del 30/08; el atleta no pudo subir el archivo.',
-    overrideReasonHint:
-      'Mínimo 8 caracteres. Explicá por qué acreditás sin archivo adjunto.',
+    overrideReasonHint: 'Mínimo 8 caracteres. Explicá por qué acreditás sin archivo adjunto.',
     reject: 'Rechazar',
     rejectRevokesFinancing:
       'Esta orden ya habilitó afiliación e inscripción por financiamiento. Rechazarla las da de baja ahora mismo.',
@@ -2594,8 +2600,7 @@ export default {
     saveChanges: 'Guardar cambios',
     deleteExpense: 'Eliminar egreso',
     deleteExpenseTitle: 'Eliminar egreso',
-    deleteExpenseDescription:
-      'Se quita "{{description}}" ({{amount}}) de la caja del período.',
+    deleteExpenseDescription: 'Se quita "{{description}}" ({{amount}}) de la caja del período.',
     deleteExpenseWarning: 'La auditoría conserva el asiento original.',
     deleteExpenseConfirm: 'Eliminar',
     deleteExpenseBusy: 'Eliminando…',
@@ -2880,8 +2885,7 @@ export default {
     ticketSalesState: {
       open: 'La venta está abierta',
       closed: 'La venta está cerrada',
-      openDetail:
-        '{{types}} tipo(s) a la venta ahora · se cobra con {{channels}}',
+      openDetail: '{{types}} tipo(s) a la venta ahora · se cobra con {{channels}}',
       noChannelsShort: 'ningún medio',
       scope: {
         environment: 'Entorno',
@@ -3007,8 +3011,7 @@ export default {
       rosterNoZone: 'Sin zona',
       builderEyebrow: 'Equipo del evento',
       builderTitle: '¿Quiénes van a controlar el ingreso?',
-      builderLead:
-        'Nombre y email. Cada persona recibe un acceso propio, limitado a este meet.',
+      builderLead: 'Nombre y email. Cada persona recibe un acceso propio, limitado a este meet.',
       builderCountOne: '1 persona',
       builderCountMany: '{{count}} personas',
       duplicateEmail: 'Este email ya está cargado en el equipo.',
@@ -3138,8 +3141,13 @@ export default {
       ticketTypeAdd: 'Agregar tipo de entrada',
       ticketTypeRemove: 'Quitar tipo de entrada',
       ticketTypeUntitled: 'Tipo de entrada sin nombre',
-      ticketTypeName: 'Nombre',
-      ticketTypeNamePlaceholder: 'Ej. Día 1, Pase completo + choripán',
+      ticketTypeName: 'Título de la entrada',
+      ticketTypeNamePlaceholder: 'Ej. Público general · Sábado',
+      ticketTypeDescription: 'Descripción para el público',
+      ticketTypeDescriptionPlaceholder:
+        'Ej. Acceso a tribuna durante la jornada del sábado. Presentá DNI en puerta.',
+      ticketTypeDescriptionHint:
+        'Se muestra antes de pagar. Explicá qué incluye y para qué jornada vale.',
       ticketTypePrice: 'Precio Mercado Pago',
       ticketTypeManualPrice: 'Precio transferencia / efectivo',
       ticketTypeManualPricePlaceholder: 'Igual que Mercado Pago',
@@ -3172,8 +3180,7 @@ export default {
       ticketTypeChannelsCustom: 'Elegir para esta entrada',
       ticketTypeChannelsInheritSummary:
         'Se cobra con los medios del evento. Se configuran en Cobro, no en cada tipo.',
-      ticketTypeChannelsCustomLead:
-        'Sólo esta entrada. El resto sigue con los medios de Cobro.',
+      ticketTypeChannelsCustomLead: 'Sólo esta entrada. El resto sigue con los medios de Cobro.',
       ticketTypeChannelsRestrict: 'Restringir esta',
       ticketTypeChannelsUseEvent: 'Usar los del evento',
       ticketTypeChannelsHint:
@@ -3189,6 +3196,8 @@ export default {
       ticketTypeFoldWindow: 'Ventana propia',
       ticketTypeFoldAccess: 'Días, packs y credenciales',
       ticketTypeDaysLabel: 'Días de acceso',
+      ticketTypeValiditySummary: 'QR válido: {{days}}',
+      ticketTypeValidityMissing: 'Falta definir la vigencia del QR',
       ticketTypeAddonsLabel: 'Beneficios incluidos sin cargo (pack)',
       ticketTypeAddonsEmpty:
         'Configurá primero el catálogo de beneficios para poder incluirlos en un pack.',
@@ -3211,8 +3220,10 @@ export default {
       },
       credentialZoneHint: {
         gate_tickets: 'Ingreso al predio y a la tribuna. Es el acceso de una entrada de público.',
-        athletes_only: 'Esta zona no lee entradas de público: el escáner sólo acepta inscripciones.',
-        athletes_coaches: 'Calentamiento, detrás de plataforma. Usalo en la credencial de entrenador.',
+        athletes_only:
+          'Esta zona no lee entradas de público: el escáner sólo acepta inscripciones.',
+        athletes_coaches:
+          'Calentamiento, detrás de plataforma. Usalo en la credencial de entrenador.',
         staff_only: 'Control interno: no abre con una entrada.',
       },
       credentialZonePublicTag: 'Público',
@@ -3259,11 +3270,12 @@ export default {
     salesChapterTicketsMeta: '{{count}} tipos',
     salesChapterTicketsOff: 'Sin habilitar',
     salesChapterPaymentMeta: '{{count}} medios',
-    sectionSalesLead: 'Inscripción de atletas y entradas de público, cada una con su cupo y precios.',
-    sectionSalesLeadEssentials:
-      'Cupo, ventana, precios, medios de cobro y catálogo de entradas.',
+    sectionSalesLead:
+      'Inscripción de atletas y entradas de público, cada una con su cupo y precios.',
+    sectionSalesLeadEssentials: 'Cupo, ventana, precios, medios de cobro y catálogo de entradas.',
     laneAthletes: 'Inscripción de atletas',
-    laneAthletesLead: 'Cupo y ventana de inscripción. Fuera de plazo o sin lugares, se rechazan altas.',
+    laneAthletesLead:
+      'Cupo y ventana de inscripción. Fuera de plazo o sin lugares, se rechazan altas.',
     lanePricesLead:
       'Arancel de inscripción de este meet. Afiliación y combo se definen en Precios de la plataforma.',
     laneSpectators: 'Entradas de público',
@@ -3279,10 +3291,8 @@ export default {
     capacityTotalVisibilityHint:
       'Solo oculta el total (el /200). El público sigue viendo anotados, la barra y cuántos quedan.',
     capacityPublicPreviewHidden: 'En el sitio: Campo limitado',
-    capacityPublicPreviewFull:
-      'En el sitio: {{registered}}/{{total}} · quedan {{remaining}}',
-    capacityPublicPreviewNoTotal:
-      'En el sitio: {{registered}} anotados · quedan {{remaining}}',
+    capacityPublicPreviewFull: 'En el sitio: {{registered}}/{{total}} · quedan {{remaining}}',
+    capacityPublicPreviewNoTotal: 'En el sitio: {{registered}} anotados · quedan {{remaining}}',
     liveSummary: 'Link, plataforma y estado de la transmisión en vivo.',
     consistency: {
       title: 'El estado público no coincide con la configuración',
@@ -3317,9 +3327,11 @@ export default {
       'Vacío usa el texto del estado (cerrado, abierto, cupo lleno). El público lo ve en la ficha de inscripción.',
     publicSurfaceLegend: 'Qué se muestra en el sitio',
     publicSurfaceCalendarTitle: 'Calendario',
-    publicSurfaceCalendarHint: 'Botones para agregar el meet a Google Calendar o descargar el .ics.',
+    publicSurfaceCalendarHint:
+      'Botones para agregar el meet a Google Calendar o descargar el .ics.',
     publicSurfaceWeighInsTitle: 'Pesajes',
-    publicSurfaceWeighInsHint: 'Horarios de pesaje en la ficha pública. Sin ventanas cargadas, no aparece nada.',
+    publicSurfaceWeighInsHint:
+      'Horarios de pesaje en la ficha pública. Sin ventanas cargadas, no aparece nada.',
     publicSurfaceLivestreamTitle: 'Transmisión',
     publicSurfaceLivestreamHint: 'Reproductor en vivo en la ficha, si hay un link cargado.',
     publicSurfaceExperienceTitle: 'Experiencia',
@@ -3374,6 +3386,8 @@ export default {
       ticketTypeIdInvalid: 'El tipo de entrada no tiene un identificador válido.',
       ticketTypeNameRequired: 'Cada tipo de entrada necesita un nombre.',
       ticketTypeNameMax: 'El nombre del tipo de entrada es demasiado largo.',
+      ticketTypeDescriptionMax: 'La descripción admite hasta 240 caracteres.',
+      ticketTypeDayRequired: 'Elegí al menos un día: el QR necesita una vigencia definida.',
       quotaInvalid: 'Ingresá un cupo válido para el tipo de entrada.',
       sortOrderInvalid: 'El orden configurado no es válido.',
       ticketTypeDaysMax: 'Un tipo de entrada no puede incluir más de 31 jornadas.',
@@ -3387,7 +3401,8 @@ export default {
       ticketTypesMax: 'Podés configurar hasta 50 tipos de entrada.',
       ticketsNeedDays: 'Para vender entradas hace falta al menos un día del evento.',
       ticketsNeedType: 'Para vender entradas hace falta al menos un tipo activo con precio.',
-      ticketsNoChannel: 'Cerraste todos los medios de cobro de entradas. Con eso la venta no se puede publicar.',
+      ticketsNoChannel:
+        'Cerraste todos los medios de cobro de entradas. Con eso la venta no se puede publicar.',
       ticketTypeNoChannel:
         'Esta entrada se quedó sin ningún medio de pago abierto: nadie la podría comprar.',
       weighInLabelRequired: 'Cada franja de pesaje necesita un nombre.',
@@ -3508,15 +3523,15 @@ export default {
     },
     metricsEngagedHint: '{{rate}} de las sesiones · 10s a la vista, 2 páginas o una conversión',
     metricsDeltaAria: '{{value}} contra el período anterior',
-    metricsDeltaAriaRich:
-      '{{value}} ({{absolute}}). Antes {{previous}}, ahora {{current}}.',
+    metricsDeltaAriaRich: '{{value}} ({{absolute}}). Antes {{previous}}, ahora {{current}}.',
     metricsDeltaDetail: 'Antes {{previous}} · ahora {{current}}',
     metricsDeltaCaption: 'vs. período anterior',
     metricsComparisonNote:
       'Los porcentajes comparan este período con los {{days}} días inmediatamente anteriores.',
     traffic: {
       title: 'Tráfico diario',
-      subtitle: 'Visitantes por día de los últimos {{days}} días. Pasá el cursor o usá las flechas para leer un día puntual.',
+      subtitle:
+        'Visitantes por día de los últimos {{days}} días. Pasá el cursor o usá las flechas para leer un día puntual.',
       metricLabel: 'Métrica de la serie',
       empty: 'Sin visitas registradas en este período.',
       peak: 'Pico histórico',
