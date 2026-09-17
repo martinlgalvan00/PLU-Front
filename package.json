@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "npm run dev:services",
     "dev:web": "vite",
+    "predev:api": "node scripts/prisma-supabase.mjs generate",
     "dev:api": "node --watch server/index.js",
     "dev:services": "concurrently -n web,api -c cyan,magenta \"npm run dev:web\" \"npm run dev:api\"",
     "dev:all": "node scripts/bootstrap-all.mjs --start",
