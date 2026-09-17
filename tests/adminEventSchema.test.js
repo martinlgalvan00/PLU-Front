@@ -71,6 +71,39 @@ describe('eventSchema del backend', () => {
     expect(result.data.description).toBe('Torneo abierto.')
   })
 
+  it('acepta y normaliza la descripción de cada tipo de entrada', () => {
+    const result = eventSchema.safeParse(
+      validEvent({
+        ticketTypes: [
+          {
+            name: 'Pase general',
+            description: '  Acceso exclusivo a la jornada inaugural.  ',
+            price: 20000,
+            dayIndexes: [0],
+          },
+        ],
+      }),
+    )
+
+    expect(result.success).toBe(true)
+    expect(result.data.ticketTypes[0].description).toBe('Acceso exclusivo a la jornada inaugural.')
+  })
+
+  it('rechaza descripciones de entrada mayores a 240 caracteres', () => {
+    const result = eventSchema.safeParse(
+      validEvent({
+        ticketTypes: [
+          { name: 'Pase general', description: 'x'.repeat(241), price: 20000, dayIndexes: [0] },
+        ],
+      }),
+    )
+
+    expect(result.success).toBe(false)
+    expect(
+      result.error.issues.some((issue) => issue.path.join('.') === 'ticketTypes.0.description'),
+    ).toBe(true)
+  })
+
   it('rechaza jornadas duplicadas y referencias inexistentes', () => {
     const result = eventSchema.safeParse(
       validEvent({
@@ -209,9 +242,24 @@ describe('validateAdminEventDraft del editor', () => {
 
     expect(missingDays.ok).toBe(false)
     expect(missingDays.fieldErrors.eventDays).toBe('admin.eventEditor.validation.ticketsNeedDays')
+    expect(missingDays.fieldErrors['ticketTypes.0.dayIndexes']).toBe(
+      'admin.eventEditor.validation.ticketTypeDayRequired',
+    )
     expect(missingType.ok).toBe(false)
-    expect(missingType.fieldErrors.ticketTypes).toBe(
-      'admin.eventEditor.validation.ticketsNeedType',
+    expect(missingType.fieldErrors.ticketTypes).toBe('admin.eventEditor.validation.ticketsNeedType')
+  })
+
+  it('valida la descripción editable del tipo en el editor', () => {
+    const result = validateAdminEventDraft(
+      validDraft({
+        ticketTypes: [{ name: 'General', description: 'x'.repeat(241), price: 12000 }],
+      }),
+      t,
+    )
+
+    expect(result.ok).toBe(false)
+    expect(result.fieldErrors['ticketTypes.0.description']).toBe(
+      'admin.eventEditor.validation.ticketTypeDescriptionMax',
     )
   })
 
@@ -377,15 +425,15 @@ describe('tipo de entrada: precio Wise y ventana propia', () => {
       apiWithType({ salesOpensAt: '2026-08-10T10:00', salesClosesAt: '2026-08-01T10:00' }),
     )
     expect(api.success).toBe(false)
-    expect(api.error.issues.some((issue) => issue.path.join('.') === 'ticketTypes.0.salesClosesAt')).toBe(
-      true,
-    )
+    expect(
+      api.error.issues.some((issue) => issue.path.join('.') === 'ticketTypes.0.salesClosesAt'),
+    ).toBe(true)
   })
 
   it('acepta una ventana abierta de un solo lado', () => {
-    expect(validateAdminEventDraft(draftWithType({ salesClosesAt: '2026-08-01T10:00' }), t).ok).toBe(
-      true,
-    )
+    expect(
+      validateAdminEventDraft(draftWithType({ salesClosesAt: '2026-08-01T10:00' }), t).ok,
+    ).toBe(true)
     expect(eventSchema.safeParse(apiWithType({ salesOpensAt: '2026-08-01T10:00' })).success).toBe(
       true,
     )
@@ -456,9 +504,9 @@ describe('tipo de entrada: precio manual (transferencia/efectivo)', () => {
 
     const api = eventSchema.safeParse(apiWithType({ manualPrice: 25000 }))
     expect(api.success).toBe(false)
-    expect(api.error.issues.some((issue) => issue.path.join('.') === 'ticketTypes.0.manualPrice')).toBe(
-      true,
-    )
+    expect(
+      api.error.issues.some((issue) => issue.path.join('.') === 'ticketTypes.0.manualPrice'),
+    ).toBe(true)
   })
 
   it('rechaza un precio manual que no se puede cobrar', () => {

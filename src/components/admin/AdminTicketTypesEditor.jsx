@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertCircle, HelpCircle, Plus, Tag, Trash2 } from 'lucide-react'
+import { AlertCircle, ChevronRight, HelpCircle, Plus, Tag, Trash2 } from 'lucide-react'
 import Button from '../ui/Button.jsx'
 import DateTimeLocalInput from '../ui/DateTimeLocalInput.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -7,10 +7,7 @@ import { money } from '../../lib/format.js'
 import { defaultTicketCredential } from '../../lib/ticketCredentials.js'
 import { openEventChannelsFor } from '../../lib/eventPaymentChannels.js'
 import { resolveTicketTypeChannels } from '../../lib/ticketTypePaymentChannels.js'
-import {
-  optionalTicketChannelPrice,
-  paidAddonsMissingWise,
-} from '../../lib/ticketTypePrices.js'
+import { optionalTicketChannelPrice, paidAddonsMissingWise } from '../../lib/ticketTypePrices.js'
 import AdminEventDaysEditor from './AdminEventDaysEditor.jsx'
 import AdminTicketCredentialsEditor from './AdminTicketCredentialsEditor.jsx'
 import AdminTicketTypeChannels from './AdminTicketTypeChannels.jsx'
@@ -18,6 +15,7 @@ import AdminTicketTypeChannels from './AdminTicketTypeChannels.jsx'
 function createEmptyTicketType(index) {
   return {
     name: '',
+    description: '',
     price: 0,
     // Vacío: sin precio manual propio, transferencia y efectivo cobran igual
     // que Mercado Pago (comportamiento de siempre). Poner 0 sería inválido.
@@ -52,6 +50,26 @@ function firstTicketTypeWithError(errors) {
     if (found === -1 || index < found) found = index
   }
   return found
+}
+
+function TicketTypeFold({ hint, open, title, children }) {
+  return (
+    <details className="admin-ticket-types__fold" open={open}>
+      <summary>
+        <ChevronRight
+          aria-hidden
+          className="admin-ticket-types__fold-chevron"
+          size={14}
+          strokeWidth={2}
+        />
+        <span className="admin-ticket-types__fold-copy">
+          <span className="admin-ticket-types__fold-title">{title}</span>
+          {hint ? <small>{hint}</small> : null}
+        </span>
+      </summary>
+      <div className="admin-ticket-types__fold-body">{children}</div>
+    </details>
+  )
 }
 
 function TicketTypeRowPrices({ locale, t, type }) {
@@ -196,15 +214,16 @@ export default function AdminTicketTypesEditor({
 
   const errorFor = (key) => errors[`ticketTypes.${index}.${key}`] ?? ''
   const windowHasError = Boolean(errorFor('salesOpensAt') || errorFor('salesClosesAt'))
+  const validityHasError = Boolean(errorFor('validFrom') || errorFor('validUntil'))
   const accessHasError = Boolean(
     errorFor('dayIndexes') ||
-      errorFor('includedAddonIds') ||
-      Object.keys(errors ?? {}).some((key) => key.startsWith(`ticketTypes.${index}.credentials`)),
+    errorFor('includedAddonIds') ||
+    Object.keys(errors ?? {}).some((key) => key.startsWith(`ticketTypes.${index}.credentials`)),
   )
-  const addonsWithoutWise = useMemo(
-    () => paidAddonsMissingWise(addonsCatalog),
-    [addonsCatalog],
-  )
+  const selectedDayLabels = (current?.dayIndexes ?? [])
+    .map((dayIndex) => eventDays.find((day) => day.dayIndex === dayIndex)?.label)
+    .filter(Boolean)
+  const addonsWithoutWise = useMemo(() => paidAddonsMissingWise(addonsCatalog), [addonsCatalog])
 
   return (
     <>
@@ -329,9 +348,7 @@ export default function AdminTicketTypesEditor({
                     >
                       {summary.label}
                     </span>
-                    <span
-                      className={`admin-ticket-types__row-state${isActive ? ' is-on' : ''}`}
-                    >
+                    <span className={`admin-ticket-types__row-state${isActive ? ' is-on' : ''}`}>
                       {isActive
                         ? t('admin.eventEditor.supabase.ticketTypeStateActive')
                         : t('admin.eventEditor.supabase.ticketTypeStatePaused')}
@@ -428,6 +445,32 @@ export default function AdminTicketTypesEditor({
                     )}
                   </label>
                 </div>
+
+                <label className="admin-event-form__field admin-ticket-types__description">
+                  <span>{t('admin.eventEditor.supabase.ticketTypeDescription')}</span>
+                  <textarea
+                    disabled={!canEdit}
+                    maxLength={240}
+                    rows={3}
+                    value={current.description ?? ''}
+                    name={`ticketTypes.${index}.description`}
+                    data-field={`ticketTypes.${index}.description`}
+                    aria-invalid={Boolean(errorFor('description'))}
+                    onChange={(event) =>
+                      patchTicketType(index, { description: event.target.value })
+                    }
+                    placeholder={t('admin.eventEditor.supabase.ticketTypeDescriptionPlaceholder')}
+                  />
+                  {errorFor('description') ? (
+                    <small className="admin-event-form__error" role="alert">
+                      {errorFor('description')}
+                    </small>
+                  ) : (
+                    <small className="admin-event-form__field-hint">
+                      {t('admin.eventEditor.supabase.ticketTypeDescriptionHint')}
+                    </small>
+                  )}
+                </label>
 
                 <div className="admin-ticket-types__prices">
                   <span className="admin-ticket-types__days-label">
@@ -537,19 +580,16 @@ export default function AdminTicketTypesEditor({
                   ) : null}
                 </div>
 
-                <details
+                <TicketTypeFold
                   key={`window-${index}`}
-                  className="admin-ticket-types__fold"
                   open={windowHasError || undefined}
+                  title={t('admin.eventEditor.supabase.ticketTypeFoldWindow')}
+                  hint={
+                    current.salesOpensAt || current.salesClosesAt
+                      ? `${current.salesOpensAt || '—'} → ${current.salesClosesAt || '—'}`
+                      : t('admin.eventEditor.supabase.ticketTypeWindowInherit')
+                  }
                 >
-                  <summary>
-                    {t('admin.eventEditor.supabase.ticketTypeFoldWindow')}
-                    <small>
-                      {current.salesOpensAt || current.salesClosesAt
-                        ? `${current.salesOpensAt || '—'} → ${current.salesClosesAt || '—'}`
-                        : t('admin.eventEditor.supabase.ticketTypeWindowInherit')}
-                    </small>
-                  </summary>
                   <div className="admin-ticket-types__window">
                     <div className="admin-ticket-types__window-grid">
                       <label className="admin-event-form__field">
@@ -593,7 +633,7 @@ export default function AdminTicketTypesEditor({
                       {t('admin.eventEditor.supabase.ticketTypeWindowHint')}
                     </small>
                   </div>
-                </details>
+                </TicketTypeFold>
 
                 <AdminTicketTypeChannels
                   canEdit={canEdit}
@@ -604,12 +644,18 @@ export default function AdminTicketTypesEditor({
                   onChange={(paymentChannels) => patchTicketType(index, { paymentChannels })}
                 />
 
-                <details
+                <TicketTypeFold
                   key={`access-${index}`}
-                  className="admin-ticket-types__fold"
-                  open={accessHasError || undefined}
+                  open={accessHasError || selectedDayLabels.length === 0 || undefined}
+                  title={t('admin.eventEditor.supabase.ticketTypeFoldAccess')}
+                  hint={
+                    selectedDayLabels.length
+                      ? t('admin.eventEditor.supabase.ticketTypeValiditySummary', {
+                          days: selectedDayLabels.join(' · '),
+                        })
+                      : t('admin.eventEditor.supabase.ticketTypeValidityMissing')
+                  }
                 >
-                  <summary>{t('admin.eventEditor.supabase.ticketTypeFoldAccess')}</summary>
 
                   {eventDays.length > 0 ? (
                     <div
@@ -682,7 +728,57 @@ export default function AdminTicketTypesEditor({
                     quota={current.quota}
                     onChange={(credentials) => patchTicketType(index, { credentials })}
                   />
-                </details>
+
+                  <div className="admin-ticket-types__qr-validity">
+                    <div className="admin-ticket-types__qr-validity-head">
+                      <strong>Vigencia del QR</strong>
+                      <small>
+                        {current.validFrom || current.validUntil
+                          ? 'Ventana personalizada para nuevas acreditaciones.'
+                          : 'Hereda las jornadas seleccionadas. Las acreditaciones ya emitidas no cambian.'}
+                      </small>
+                    </div>
+                    <div className="admin-ticket-types__window-grid">
+                      <label className="admin-event-form__field">
+                        <span>Habilitar desde</span>
+                        <DateTimeLocalInput
+                          disabled={!canEdit}
+                          name={`ticketTypes.${index}.validFrom`}
+                          data-field={`ticketTypes.${index}.validFrom`}
+                          value={current.validFrom ?? ''}
+                          aria-invalid={Boolean(errorFor('validFrom'))}
+                          onChange={(event) => patchTicketType(index, { validFrom: event.target.value })}
+                        />
+                        {errorFor('validFrom') ? (
+                          <small className="admin-event-form__error" role="alert">
+                            {errorFor('validFrom')}
+                          </small>
+                        ) : null}
+                      </label>
+                      <label className="admin-event-form__field">
+                        <span>Vence al comenzar</span>
+                        <DateTimeLocalInput
+                          disabled={!canEdit}
+                          name={`ticketTypes.${index}.validUntil`}
+                          data-field={`ticketTypes.${index}.validUntil`}
+                          value={current.validUntil ?? ''}
+                          aria-invalid={Boolean(errorFor('validUntil'))}
+                          onChange={(event) => patchTicketType(index, { validUntil: event.target.value })}
+                        />
+                        {errorFor('validUntil') ? (
+                          <small className="admin-event-form__error" role="alert">
+                            {errorFor('validUntil')}
+                          </small>
+                        ) : null}
+                      </label>
+                    </div>
+                    {!validityHasError ? (
+                      <small className="admin-ticket-types__grid-note">
+                        Completá ambas fechas para reemplazar la vigencia por jornadas. El límite final es exclusivo.
+                      </small>
+                    ) : null}
+                  </div>
+                </TicketTypeFold>
               </div>
             ) : null}
           </>

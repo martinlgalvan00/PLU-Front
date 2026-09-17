@@ -3,7 +3,11 @@ import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
 import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
 import { PROOF_BUCKET } from '../lib/supabaseAdmin.js'
-import { assertSupabaseResult, isMissingSchemaColumn, requireSupabaseClient } from '../lib/supabaseRpc.js'
+import {
+  assertSupabaseResult,
+  isMissingSchemaColumn,
+  requireSupabaseClient,
+} from '../lib/supabaseRpc.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import { publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
@@ -74,7 +78,7 @@ function catalogEventSelect(ticketTypeColumns) {
 }
 
 const CATALOG_EVENT_SELECT = catalogEventSelect(
-  'id, name, price, wise_price, manual_price, quota, sort_order, active, sales_opens_at, sales_closes_at, payment_channels,',
+  'id, name, description, price, wise_price, manual_price, quota, sort_order, active, sales_opens_at, sales_closes_at, valid_from, valid_until, payment_channels,',
 )
 const CATALOG_EVENT_SELECT_COMPAT = catalogEventSelect(
   'id, name, price, quota, sort_order, active,',
@@ -137,10 +141,12 @@ const ticketAddonSchema = z.object({
   description: z.string().trim().max(240).optional(),
   price: boundedMoney,
   // Igual que el tipo de entrada: USD propio para Wise, o vacío y se convierte.
-  wisePrice: z.preprocess(
-    (value) => (value === '' || value === undefined ? null : value),
-    z.coerce.number().int().min(1).max(100_000).nullable(),
-  ).optional(),
+  wisePrice: z
+    .preprocess(
+      (value) => (value === '' || value === undefined ? null : value),
+      z.coerce.number().int().min(1).max(100_000).nullable(),
+    )
+    .optional(),
   redeemLabel: z.string().trim().max(160).optional(),
   enabled: z.boolean().optional(),
   sortOrder: z.coerce.number().int().min(0).max(1000).optional(),
@@ -216,6 +222,7 @@ const ticketTypeSchema = z
   .object({
     id: z.string().uuid().optional(),
     name: z.string().trim().min(1).max(100),
+    description: z.string().trim().max(240).optional(),
     price: boundedMoney,
     wisePrice: nullableWisePrice.optional(),
     manualPrice: nullableManualPrice.optional(),
@@ -226,6 +233,8 @@ const ticketTypeSchema = z
     // evalúa las dos y la primera que corta gana.
     salesOpensAt: optionalDateTime,
     salesClosesAt: optionalDateTime,
+    validFrom: optionalDateTime,
+    validUntil: optionalDateTime,
     dayIndexes: z.array(z.coerce.number().int().min(0).max(30)).max(31).optional(),
     includedAddonIds: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
     credentials: z.array(ticketCredentialSchema).min(1).max(4).optional(),
@@ -245,6 +254,19 @@ const ticketTypeSchema = z
         code: z.ZodIssueCode.custom,
         path: ['manualPrice'],
         message: 'El precio con descuento no puede superar el precio de lista.',
+      })
+    }
+    if (Boolean(type.validFrom) !== Boolean(type.validUntil)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['validUntil'],
+        message: 'Completá inicio y fin de vigencia del QR, o dejá ambos vacíos.',
+      })
+    } else if (type.validFrom && type.validUntil && type.validFrom >= type.validUntil) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['validUntil'],
+        message: 'El vencimiento del QR debe ser posterior a su inicio.',
       })
     }
   })
@@ -402,6 +424,18 @@ export const eventSchema = z
 
     const addonIds = new Set((event.pricing.ticketAddons ?? []).map((addon) => addon.id))
     for (const [index, ticketType] of (event.ticketTypes ?? []).entries()) {
+      if (
+        event.pricing.ticketsEnabled === true &&
+        ticketType.active !== false &&
+        Number(ticketType.price) > 0 &&
+        (ticketType.dayIndexes ?? []).length === 0
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['ticketTypes', index, 'dayIndexes'],
+          message: 'Cada entrada a la venta necesita al menos un día de validez.',
+        })
+      }
       if ((ticketType.dayIndexes ?? []).some((dayIndex) => !dayIndexes.has(dayIndex))) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
@@ -854,6 +888,26 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
         // las dos de arriba, y además porque cuelgan de tipos de entrada cuyos
         // ids recién existen después del guardado.
         if (Array.isArray(pEvent.ticketTypes) && pEvent.ticketTypes.length > 0) {
+          const descriptions = await client.rpc('staff_merge_ticket_type_descriptions', {
+            p_event_slug: pEvent.slug,
+            p_types: pEvent.ticketTypes.map((type, index) => ({
+              ...(type?.id ? { ticketTypeId: type.id } : { sortOrder: type?.sortOrder ?? index }),
+              description: type?.description ?? '',
+            })),
+            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          })
+
+          if (descriptions.error && esRelacionFaltante(descriptions.error)) {
+            console.warn(
+              '[eventos] `staff_merge_ticket_type_descriptions` no existe en esta base: el evento se guardó sin las descripciones de entrada. Aplicá la migración 20261122100000_ticket_type_description_and_validity.sql.',
+            )
+          } else {
+            assertSupabaseResult(
+              descriptions,
+              'No se pudieron guardar las descripciones de las entradas.',
+            )
+          }
+
           const credenciales = await client.rpc('staff_merge_ticket_type_credentials', {
             p_event_slug: pEvent.slug,
             p_credentials: buildTicketCredentialsPayload(pEvent.ticketTypes),
@@ -871,6 +925,24 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
               credenciales,
               'No se pudieron guardar las credenciales de las entradas.',
             )
+          }
+
+          const validity = await client.rpc('staff_merge_ticket_type_validity', {
+            p_event_slug: pEvent.slug,
+            p_types: pEvent.ticketTypes.map((type, index) => ({
+              ...(type?.id ? { ticketTypeId: type.id } : { sortOrder: type?.sortOrder ?? index }),
+              validFrom: type?.validFrom || null,
+              validUntil: type?.validUntil || null,
+            })),
+            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          })
+
+          if (validity.error && esRelacionFaltante(validity.error)) {
+            console.warn(
+              '[eventos] `staff_merge_ticket_type_validity` no existe en esta base: aplicá la migración de vigencia personalizable de QR.',
+            )
+          } else {
+            assertSupabaseResult(validity, 'No se pudo guardar la vigencia de los QR.')
           }
         }
 

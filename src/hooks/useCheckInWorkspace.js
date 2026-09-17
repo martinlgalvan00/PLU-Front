@@ -7,6 +7,7 @@ import { parseCredentialScan } from '../lib/credentialQr.js'
 import { getFeedbackTone, playCheckinFeedback } from '../lib/checkinFeedback.js'
 import { enqueueCheckin, findInAllowlist } from '../lib/offlineCheckinDb.js'
 import { credentialOpensZone } from '../services/securityZoneService.js'
+import { TICKET_VALIDITY_STATUS, ticketValidityStatus } from '../lib/ticketValidity.js'
 import {
   applyTicketZoneOutcome,
   buildTicketRow,
@@ -60,6 +61,8 @@ export const SCAN_VERDICT_META = {
   invalid: { Icon: XCircle, tone: 'danger' },
   queued_offline: { Icon: Clock, tone: 'warning' },
   wrong_zone: { Icon: AlertTriangle, tone: 'warning' },
+  not_yet_valid: { Icon: Clock, tone: 'warning' },
+  expired: { Icon: XCircle, tone: 'danger' },
 }
 
 function isNetworkError(error) {
@@ -73,7 +76,16 @@ function buildOfflineScanResult(found, zoneScope) {
   const alreadyUsed = Boolean(entry.checkedInAt) || entry.checkedInLocally
 
   if (kind === 'ticket') {
-    const outcome = alreadyUsed ? 'already_used' : entry.status === 'pagada' ? 'ready' : 'not_ready'
+    const validity = ticketValidityStatus(entry)
+    const outcome = alreadyUsed
+      ? 'already_used'
+      : entry.status !== 'pagada'
+        ? 'not_ready'
+        : validity === TICKET_VALIDITY_STATUS.UPCOMING
+          ? 'not_yet_valid'
+          : validity === TICKET_VALIDITY_STATUS.EXPIRED
+            ? 'expired'
+            : 'ready'
     return applyTicketZoneOutcome(
       {
         kind: 'ticket',
@@ -91,10 +103,13 @@ function buildOfflineScanResult(found, zoneScope) {
           document: entry.attendeeDni,
           meta: entry.ticketTypeName ?? entry.ticketCode,
           ticketTypeName: entry.ticketTypeName,
+          ticketTypeDescription: entry.ticketTypeDescription ?? null,
           // Sin señal en la puerta esto es lo único que tiene el escáner.
           credentialLabel: entry.credentialLabel ?? null,
           credentialScopes: entry.credentialScopes ?? [],
           status: alreadyUsed ? 'usada' : entry.status,
+          validFrom: entry.validFrom ?? null,
+          validUntil: entry.validUntil ?? null,
         },
       },
       zoneScope,

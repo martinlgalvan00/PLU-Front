@@ -31,6 +31,10 @@ export default function CheckInScanResult({
     weighIn: t('admin.checkin.weighIn'),
     starts: t('admin.checkin.sessionStarts'),
   })
+  const validityFormatter = new Intl.DateTimeFormat(locale, {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  })
 
   return (
     <div
@@ -77,10 +81,17 @@ export default function CheckInScanResult({
               {checkinTypeLabel(scanResult.row, t)}
             </dd>
           </div>
-          {scanResult.kind === 'ticket' && (scanResult.row.ticketTypeName || scanResult.row.meta) ? (
+          {scanResult.kind === 'ticket' &&
+          (scanResult.row.ticketTypeName || scanResult.row.meta) ? (
             <div>
               <dt>{t('admin.checkin.ticketTypeLabel')}</dt>
               <dd>{scanResult.row.ticketTypeName || scanResult.row.meta}</dd>
+            </div>
+          ) : null}
+          {scanResult.kind === 'ticket' && scanResult.row.ticketTypeDescription ? (
+            <div>
+              <dt>{t('admin.eventEditor.supabase.ticketTypeDescription')}</dt>
+              <dd>{scanResult.row.ticketTypeDescription}</dd>
             </div>
           ) : null}
           {isAthleteScan && scanResult.row?.meta ? (
@@ -97,6 +108,18 @@ export default function CheckInScanResult({
               </dd>
             </div>
           )}
+          {scanResult.kind === 'ticket' && scanResult.row?.validFrom ? (
+            <div>
+              <dt>{t('admin.checkin.validFrom')}</dt>
+              <dd>{validityFormatter.format(new Date(scanResult.row.validFrom))}</dd>
+            </div>
+          ) : null}
+          {scanResult.kind === 'ticket' && scanResult.row?.validUntil ? (
+            <div>
+              <dt>{t('admin.checkin.validUntil')}</dt>
+              <dd>{validityFormatter.format(new Date(scanResult.row.validUntil))}</dd>
+            </div>
+          ) : null}
           {/* Qué día compite: es lo que seguridad necesita resolver en la
               puerta, y sin asignar se dice explícitamente en vez de omitirse. */}
           {isAthleteScan && (

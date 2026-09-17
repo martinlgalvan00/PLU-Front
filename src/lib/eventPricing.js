@@ -166,10 +166,20 @@ export function resolveTicketTypeSaleWindow(type, now = new Date()) {
   const closesAt = type?.salesClosesAt ? new Date(type.salesClosesAt) : null
   const time = now.getTime()
   if (opensAt && Number.isFinite(opensAt.getTime()) && time < opensAt.getTime()) {
-    return { open: false, reason: 'upcoming', opensAt: type.salesOpensAt, closesAt: type.salesClosesAt ?? null }
+    return {
+      open: false,
+      reason: 'upcoming',
+      opensAt: type.salesOpensAt,
+      closesAt: type.salesClosesAt ?? null,
+    }
   }
   if (closesAt && Number.isFinite(closesAt.getTime()) && time > closesAt.getTime()) {
-    return { open: false, reason: 'closed', opensAt: type?.salesOpensAt ?? null, closesAt: type.salesClosesAt }
+    return {
+      open: false,
+      reason: 'closed',
+      opensAt: type?.salesOpensAt ?? null,
+      closesAt: type.salesClosesAt,
+    }
   }
   return {
     open: true,
@@ -198,6 +208,7 @@ export function ticketPricingFromEvent(event, now = new Date()) {
       return {
         id: type.id,
         name: type.name,
+        description: type.description?.trim() ?? '',
         price: Number(type.price) || 0,
         // USD cargado a mano para Wise. Sin esto, el checkout convertía el
         // total en pesos y mostraba un número que el panel no decidió.
@@ -216,6 +227,9 @@ export function ticketPricingFromEvent(event, now = new Date()) {
         paymentChannels: type.paymentChannels ?? null,
         quota: type.quota ?? null,
         dayIndexes: type.dayIndexes ?? [],
+        accessDays: (type.dayIndexes ?? [])
+          .map((dayIndex) => eventDays.find((day) => day.dayIndex === dayIndex))
+          .filter(Boolean),
         includedAddonIds: type.includedAddonIds ?? [],
         includedAddons: catalog.filter((addon) => (type.includedAddonIds ?? []).includes(addon.id)),
         credentials,

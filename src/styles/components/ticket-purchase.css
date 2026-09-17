@@ -533,9 +533,15 @@
 
 .ticket-purchase__type-hint {
   color: var(--color-text-muted);
+  display: grid;
   font-size: 12px;
+  gap: 4px;
   line-height: 1.4;
   margin: 0;
+}
+
+.ticket-purchase__type-description {
+  color: var(--color-text-secondary);
 }
 
 .ticket-purchase--editorial .field {
@@ -724,7 +730,10 @@
     grid-area: price;
   }
 
-  .ticket-purchase--editorial .ticket-purchase__attendees-batch-row .ticket-purchase__field-dni input {
+  .ticket-purchase--editorial
+    .ticket-purchase__attendees-batch-row
+    .ticket-purchase__field-dni
+    input {
     text-align: left;
   }
 }
@@ -947,7 +956,10 @@
   border-color: rgba(255, 255, 255, 0.08);
 }
 
-[data-theme='light'] .ticket-purchase--editorial .ticket-purchase__payment-options label.is-disabled:hover {
+[data-theme='light']
+  .ticket-purchase--editorial
+  .ticket-purchase__payment-options
+  label.is-disabled:hover {
   border-color: rgba(15, 17, 23, 0.08);
 }
 

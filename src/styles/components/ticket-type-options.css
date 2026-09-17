@@ -96,6 +96,27 @@ label.ticket-type-options__option:hover {
   white-space: nowrap;
 }
 
+.ticket-type-options__description {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.55;
+  max-width: 62ch;
+}
+
+.ticket-type-options__validity {
+  align-items: center;
+  color: var(--color-text-accent);
+  display: inline-flex;
+  font-size: 11.5px;
+  font-weight: 600;
+  gap: 7px;
+  line-height: 1.4;
+}
+
+.ticket-type-options__validity svg {
+  flex: 0 0 auto;
+}
+
 .ticket-type-options__zones {
   display: flex;
   flex-wrap: wrap;

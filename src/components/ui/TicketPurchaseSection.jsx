@@ -79,15 +79,24 @@ function TicketTypeHint({ t, type }) {
 
   const zones = zoneScopeList(type.zoneScopes, t)
   const count = type.credentialCount ?? 1
+  const accessDays = (type.accessDays ?? []).map((day) => day.label).join(' · ')
   const parts = [
+    accessDays ? t('pages.tickets.ticketTypes.validity', { days: accessDays }) : null,
     zones ? t('pages.tickets.ticketTypes.soloZone', { zones }) : null,
     credentialCountLabel(count, t),
     count > 1 ? t('pages.tickets.ticketTypes.quotaNote') : null,
   ].filter(Boolean)
 
-  if (!parts.length) return null
+  if (!parts.length && !type.description) return null
 
-  return <p className="ticket-purchase__type-hint">{parts.join(' · ')}</p>
+  return (
+    <p className="ticket-purchase__type-hint">
+      {type.description ? (
+        <span className="ticket-purchase__type-description">{type.description}</span>
+      ) : null}
+      {parts.length ? <span>{parts.join(' · ')}</span> : null}
+    </p>
+  )
 }
 
 function TicketAddonPicker({ addons, attendee, locale, onToggle, t, ticketTypes }) {
@@ -664,7 +673,8 @@ export default function TicketPurchaseSection({
   }, [selectedTicketTypeIds, pricing.ticketTypes])
 
   const effectiveMercadoPagoEnabled = mercadoPagoEnabled && openChannelsForSelection.mercado_pago
-  const effectiveManualPaymentEnabled = manualPaymentEnabled && openChannelsForSelection.bank_transfer
+  const effectiveManualPaymentEnabled =
+    manualPaymentEnabled && openChannelsForSelection.bank_transfer
   const effectiveCashEnabled = cashEnabled && openChannelsForSelection.cash_pitbull
   const effectiveWiseEnabled = wiseReady && openChannelsForSelection.wise_transfer
   // El panel dice que el medio está abierto, pero el tipo elegido lo cierra:
@@ -1030,8 +1040,8 @@ export default function TicketPurchaseSection({
             </p>
             {/* Efectivo: no hay archivo que subir, así que el bloque de
                 comprobante no aparece en vez de pedir algo que no existe. */}
-            {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? null : visibleOrder.paymentProofUploadedAt ||
-              proofUploaded ? (
+            {visibleOrder.manualPaymentChannel ===
+            'cash_pitbull' ? null : visibleOrder.paymentProofUploadedAt || proofUploaded ? (
               <p className="ticket-purchase__proof-success">{t('pages.tickets.proofUploaded')}</p>
             ) : (
               <div className="ticket-purchase__proof-upload">
@@ -1285,7 +1295,10 @@ export default function TicketPurchaseSection({
                     {t('pages.tickets.attendee', { index: index + 1 })}
                   </span>
                   <span className="ticket-purchase__attendee-price">
-                    {money(priceForAttendee(attendee, pricing, ticketAddons, paymentMethod), locale)}
+                    {money(
+                      priceForAttendee(attendee, pricing, ticketAddons, paymentMethod),
+                      locale,
+                    )}
                   </span>
                 </div>
                 <div className="form-grid form-grid--compact">

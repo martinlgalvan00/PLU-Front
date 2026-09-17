@@ -80,12 +80,23 @@ const ACCESS_LINK_DEFAULT_TTL_MS = 1000 * 60 * 60 * 24 * 30
 
 const invalidCredentials = () => new HttpError(401, 'Credenciales invalidas.')
 
-function resolveAccessLinkExpiry(event, now = new Date()) {
+function resolveAccessLinkExpiry(event, requestedExpiresAt = null, now = new Date()) {
   const eventEnd = event?.endsAt ? new Date(event.endsAt) : null
-  if (eventEnd && !Number.isNaN(eventEnd.getTime()) && eventEnd > now) {
-    return new Date(eventEnd.getTime() + ACCESS_LINK_POST_EVENT_MS)
+  const latestAllowed =
+    eventEnd && !Number.isNaN(eventEnd.getTime()) && eventEnd > now
+      ? new Date(eventEnd.getTime() + ACCESS_LINK_POST_EVENT_MS)
+      : new Date(now.getTime() + ACCESS_LINK_DEFAULT_TTL_MS)
+
+  if (!requestedExpiresAt) return latestAllowed
+
+  const requested = new Date(requestedExpiresAt)
+  if (Number.isNaN(requested.getTime()) || requested <= now) {
+    throw new HttpError(400, 'El vencimiento de la credencial debe ser futuro.')
   }
-  return new Date(now.getTime() + ACCESS_LINK_DEFAULT_TTL_MS)
+  if (requested > latestAllowed) {
+    throw new HttpError(400, 'El vencimiento supera la ventana segura del evento.')
+  }
+  return requested
 }
 
 function splitName(name) {
@@ -190,8 +201,8 @@ export function createAuthRoutes({
     return /^https?:\/\//i.test(origin) ? origin.replace(/\/$/, '') : ''
   }
 
-  function createPersonalAccess(user, event, req) {
-    const expiresAt = resolveAccessLinkExpiry(event)
+  function createPersonalAccess(user, event, req, requestedExpiresAt = null) {
+    const expiresAt = resolveAccessLinkExpiry(event, requestedExpiresAt)
     const token = createAccessToken({
       userId: user.id,
       eventId: user.eventId,
@@ -1155,7 +1166,12 @@ export function createAuthRoutes({
         const event = (await fetchSupabaseEvent(getSupabaseAdmin?.(), user.eventId)) ?? {
           slug: user.eventSlug,
         }
-        const access = createPersonalAccess(serializeUser(user), event, req)
+        const access = createPersonalAccess(
+          serializeUser(user),
+          event,
+          req,
+          req.validatedBody.expiresAt,
+        )
 
         const emailed = req.validatedBody.sendEmail
           ? await dispatchAccessEmail({

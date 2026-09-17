@@ -1099,6 +1099,8 @@ model Ticket {
   ticketCode       String
   qrToken          String       @unique @default(cuid())
   status           TicketStatus @default(pendiente_pago)
+  validFrom        DateTime
+  validUntil       DateTime
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
@@ -1113,6 +1115,7 @@ model Ticket {
 
   @@unique([organizationId, ticketCode])
   @@index([eventId, status])
+  @@index([eventId, validFrom, validUntil])
   @@index([ticketTypeId, status])
   @@index([saleWindowId, status])
   @@index([attendeeDocument])

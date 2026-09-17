@@ -203,7 +203,8 @@ export default {
     manualConfirmation: {
       deferAction: 'I will pay within the term',
       deferredTitle: 'You are enabled',
-      deferredHint: 'You are already enabled: PLU fronted your membership and registration. Once you pay, let us know here so Finance can credit it.',
+      deferredHint:
+        'You are already enabled: PLU fronted your membership and registration. Once you pay, let us know here so Finance can credit it.',
       transferAction: 'I sent the transfer',
       cashAction: 'I handed over the cash',
       financingHint:
@@ -223,7 +224,8 @@ export default {
       financedGranted:
         'Your membership and registration are enabled. The balance is still pending validation.',
       financedActiveNow: 'Your benefits are already active.',
-      financedCountdownDaysHours: 'You have {{days}} and {{hours}} left for Finance to credit your payment.',
+      financedCountdownDaysHours:
+        'You have {{days}} and {{hours}} left for Finance to credit your payment.',
       financedCountdownDaysOnly: 'You have {{days}} left for Finance to credit your payment.',
       financedCountdownHoursOnly: 'You have {{hours}} left for Finance to credit your payment.',
       financedCountdownExpiring: 'The window for Finance to credit your payment is about to close.',
@@ -512,7 +514,7 @@ export default {
     stateClosed: 'Closed',
     stateUnavailable: 'No open date',
     steps: {
-  account: {
+      account: {
         title: 'Create your account',
         done: 'You already have an account.',
         todo: 'You enter your details once: name, ID, date of birth and a password.',
@@ -809,10 +811,12 @@ export default {
     save: 'Save preferences',
     close: 'Close',
     necessaryTitle: 'Necessary',
-    necessaryDetail: 'They keep your session open. The site cannot work without them and they cannot be disabled.',
+    necessaryDetail:
+      'They keep your session open. The site cannot work without them and they cannot be disabled.',
     alwaysOn: 'Always on',
     analyticsTitle: 'Usage measurement',
-    analyticsDetail: 'Aggregated navigation statistics. Linked to your account only while signed in.',
+    analyticsDetail:
+      'Aggregated navigation statistics. Linked to your account only while signed in.',
     analyticsOn: 'Enabled',
     analyticsOff: 'Disabled',
     reopen: 'Cookies',
@@ -908,7 +912,8 @@ export default {
     transferAction: 'Pay by bank transfer',
     contactAction: 'Contact PLU',
     contactSubject: 'Problem with a PLU payment',
-    contactBody: 'Hello, I had a problem paying through Mercado Pago. I need help with my operation.',
+    contactBody:
+      'Hello, I had a problem paying through Mercado Pago. I need help with my operation.',
     note: 'If Mercado Pago shows the payment as pending, wait for confirmation or contact us to avoid paying twice.',
   },
   confirmation: {
@@ -1213,7 +1218,8 @@ export default {
         'The amount of this purchase was returned. If the refund was not what you expected, contact PLU staff.',
       form: {
         competitionLegend: 'Your competition details',
-        competitionHint: 'We pulled them from your profile. You can correct them here for this registration.',
+        competitionHint:
+          'We pulled them from your profile. You can correct them here for this registration.',
         division: 'Division',
         category: 'Category',
         weight: 'Declared bodyweight (kg)',
@@ -1222,7 +1228,8 @@ export default {
         gatewayNote: 'Paid at the meet checkout, with a card or account money.',
         transferNote: 'We give you the bank details and you let us know once you transferred.',
         cashNote: 'Paid in cash to the PLU staff.',
-        financedHint: 'With this code you can pay now or later: you are enabled either way while the term runs.',
+        financedHint:
+          'With this code you can pay now or later: you are enabled either way while the term runs.',
         submit: 'Confirm and pay {{amount}}',
         goToGateway: 'Pay with Mercado Pago',
         incomplete: 'Fill in division, category and declared bodyweight to continue.',
@@ -1329,7 +1336,8 @@ export default {
         cc_rejected_invalid_installments: 'The card does not support that number of installments.',
         cc_rejected_card_type_not_allowed: 'That card type is not enabled.',
         cc_rejected_blacklist: 'Mercado Pago blocked that card. Use another payment method.',
-        cc_rejected_card_error: 'The card could not process the payment. Try again in a few minutes.',
+        cc_rejected_card_error:
+          'The card could not process the payment. Try again in a few minutes.',
         cc_rejected_3ds_challenge:
           'The bank security verification was not completed. Retry and complete it.',
         cc_rejected_3ds_mandatory:
@@ -1339,7 +1347,8 @@ export default {
           'The amount exceeds your payment method limit. Try another method.',
         rejected_by_bank: 'Your bank rejected the payment. Contact them or try another method.',
         rejected_insufficient_data: 'Payer data was missing. Retry filling in everything.',
-        rejected_by_regulations: 'The payment could not be processed due to regulations. Try another method.',
+        rejected_by_regulations:
+          'The payment could not be processed due to regulations. Try another method.',
         bank_error: 'The bank failed while processing the payment. Try later.',
         pending_challenge: 'Your bank security verification is still pending.',
         expired: 'The operation expired before completion.',
@@ -1780,7 +1789,8 @@ export default {
       category: 'Category',
       estimatedWeight: 'Estimated weight (kg)',
       estimatedWeightPlaceholder: 'e.g. 90 kg',
-      competitionDefaultsNote: 'Used when you register. A confirmed entry does not change by itself.',
+      competitionDefaultsNote:
+        'Used when you register. A confirmed entry does not change by itself.',
       save: 'Save changes',
       saved: 'Your data was saved.',
       errorEmail: 'Enter a valid email.',
@@ -1876,11 +1886,7 @@ export default {
       plansLead:
         'One annual membership per season. A single payment to compete on the official calendar.',
       plansLeadCheckoutSoon: 'We are preparing the 26/27 season opening.',
-      planIncludes: [
-        'Digital credential',
-        'PLU ARG calendar events',
-        'Status and QR at check-in',
-      ],
+      planIncludes: ['Digital credential', 'PLU ARG calendar events', 'Status and QR at check-in'],
       promoSoonEyebrow: 'Official opening',
       promoSoonTitle: 'Annual membership + Pitbull Classic registration',
       promoSoonLead:
@@ -2135,7 +2141,8 @@ export default {
       athleteStatusHint: {
         guest: 'With an athlete account you can finish membership and registration in one flow.',
         registered: 'Your slot is confirmed. Check credential and meet details in your profile.',
-        pending_payment: 'Your spot is reserved. Continue payment or choose another method to close it.',
+        pending_payment:
+          'Your spot is reserved. Continue payment or choose another method to close it.',
         needs_membership: 'This meet requires an active membership before gate check-in.',
         can_register: 'You are ready to complete registration.',
         closed: 'This event no longer accepts new entries.',
@@ -2804,8 +2811,7 @@ export default {
       ticketsClosed: 'Coming soon. Spectator ticket sales are not enabled yet.',
       ticketsSoonEyebrow: 'Spectators',
       ticketsSoonTitle: 'The crowd gets in too',
-      ticketsSoonLead:
-        'Two days in Banfield, up close, same platform standard. Sales open here.',
+      ticketsSoonLead: 'Two days in Banfield, up close, same platform standard. Sales open here.',
       ticketsSoonMark: 'Coming soon',
       ctaFirstTimeTitle: "Don't have a PLU ARG profile yet?",
       ctaFirstTimeDesc:
@@ -3277,6 +3283,7 @@ export default {
         legend: 'Ticket type',
         opens: 'What it opens',
         includes: 'Includes',
+        validity: 'Valid only: {{days}}',
         credentials_one: '1 credential · 1 QR',
         credentials_other: '{{count}} credentials · {{count}} QR codes',
         quotaNote: 'Takes a single spot',
@@ -3304,7 +3311,8 @@ export default {
       paymentMpHint: 'Automatic payment · QR enabled once confirmed',
       paymentTransferHint: 'Manual validation by Administration · up to 48 hours',
       paymentSavings: 'Save {{amount}} paying this way',
-      paymentNarrowedByType: 'The ticket type you picked limits the payment methods for this purchase.',
+      paymentNarrowedByType:
+        'The ticket type you picked limits the payment methods for this purchase.',
       buyerTitle: 'Your details',
       buyerLead: 'We send the QR tickets to this address, plus a note when the payment clears.',
       buyerName: 'Full name',
@@ -3496,8 +3504,7 @@ export default {
       settleRejectedTitle: 'This order was rejected.',
       settleRejectedLead:
         ' You cannot report a payment on it. You can start a new registration if the event is still open.',
-      settleRejectedNote:
-        'Finance rejected this order. Start a new registration to pay again.',
+      settleRejectedNote: 'Finance rejected this order. Start a new registration to pay again.',
       settleRejectedRetry: 'Register again',
       settleRejectedAction: 'Go to my meets',
       cashFinancingActiveNote:

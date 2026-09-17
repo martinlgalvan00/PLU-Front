@@ -126,6 +126,11 @@ export const deactivateAllSecurityUsersSchema = z.object({
 
 export const createSecurityAccessLinkSchema = z.object({
   sendEmail: z.boolean().optional().default(false),
+  expiresAt: z
+    .string()
+    .trim()
+    .optional()
+    .refine((value) => !value || !Number.isNaN(Date.parse(value)), 'Vencimiento inválido.'),
 })
 
 export const securityGateSchema = z.object({

@@ -198,9 +198,10 @@ export function deactivateAllSecurityUsersRequest(eventId) {
   return apiPost('/api/auth/security-users/deactivate-all', { eventId })
 }
 
-export function createSecurityAccessLinkRequest(userId, sendEmail = false) {
+export function createSecurityAccessLinkRequest(userId, { sendEmail = false, expiresAt } = {}) {
   return apiPost(`/api/auth/security-users/${encodeURIComponent(userId)}/access-link`, {
     sendEmail,
+    ...(expiresAt ? { expiresAt } : {}),
   })
 }
 
