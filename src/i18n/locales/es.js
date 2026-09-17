@@ -3385,6 +3385,13 @@ export default {
       proofLabel: 'Comprobante de transferencia',
       proofHelp: 'Adjuntá captura o PDF del comprobante para acelerar la validación.',
       proofSelected: 'Archivo seleccionado: {{name}}',
+      proofDropTitle: 'Elegí o arrastrá el comprobante',
+      proofDropHint: 'JPG, PNG, WEBP o PDF · hasta 2 MB',
+      proofSelect: 'Elegir archivo',
+      proofChange: 'Cambiar',
+      proofRemove: 'Quitar archivo',
+      proofInvalidType: 'Elegí una imagen JPG, PNG, WEBP o un archivo PDF.',
+      proofTooLarge: 'El archivo supera el máximo de 2 MB.',
       proofSubmit: 'Enviar comprobante',
       proofSubmitting: 'Enviando…',
       proofUploaded:

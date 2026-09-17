@@ -564,10 +564,29 @@
 }
 
 .ticket-purchase--editorial .field--select select {
+  background-color: var(--color-bg-input);
+  color-scheme: dark;
   overflow: hidden;
   padding-right: 2.2rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* El menú de un select nativo no hereda de forma confiable el fondo de la
+   superficie en Chrome/Windows. Sin estos colores la lista abría blanca con
+   texto claro, aunque el control cerrado se viera bien. */
+.ticket-purchase--editorial .field--select select option {
+  background-color: var(--color-bg-input);
+  color: var(--color-text-primary);
+}
+
+.ticket-purchase--editorial .field--select select option:checked {
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .ticket-purchase--editorial .field--select select {
+  color-scheme: light;
 }
 
 .ticket-purchase--editorial .ticket-purchase__field-dni input {
@@ -1117,22 +1136,140 @@
 
 .ticket-purchase__proof-upload {
   display: grid;
-  gap: 6px;
+  gap: 10px;
+  margin-top: 4px;
 }
 
-.ticket-purchase__proof-upload span {
+.ticket-purchase__proof-heading {
+  display: grid;
+  gap: 3px;
+}
+
+.ticket-purchase__proof-heading > span {
   font-size: 12px;
   font-weight: 600;
 }
 
-.ticket-purchase__proof-upload small {
+.ticket-purchase__proof-heading small {
   color: var(--color-text-muted);
   font-size: 11px;
   line-height: 1.45;
 }
 
+.ticket-purchase__proof-dropzone {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-bg-elevated) 84%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--color-text-muted) 42%, transparent);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 76px;
+  padding: 12px;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.ticket-purchase__proof-dropzone:hover,
+.ticket-purchase__proof-dropzone:focus-within {
+  background: color-mix(in srgb, var(--color-brand-celeste) 8%, var(--color-bg-elevated));
+  border-color: var(--color-brand-celeste);
+}
+
+.ticket-purchase__proof-dropzone.is-selected {
+  background: color-mix(in srgb, var(--color-status-success) 8%, var(--color-bg-elevated));
+  border-color: color-mix(in srgb, var(--color-status-success) 58%, transparent);
+}
+
+.ticket-purchase__proof-dropzone input {
+  block-size: 1px;
+  clip-path: inset(50%);
+  inline-size: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+}
+
+.ticket-purchase__proof-dropzone-icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
+  border-radius: 50%;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.ticket-purchase__proof-dropzone.is-selected .ticket-purchase__proof-dropzone-icon {
+  background: color-mix(in srgb, var(--color-status-success) 16%, transparent);
+  color: var(--color-status-success);
+}
+
+.ticket-purchase__proof-dropzone-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.ticket-purchase__proof-dropzone-copy strong {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ticket-purchase__proof-dropzone-copy small {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.ticket-purchase__proof-change {
+  color: var(--color-brand-celeste);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ticket-purchase__proof-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.ticket-purchase__proof-remove {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
+}
+
+.ticket-purchase__proof-remove:hover:not(:disabled) {
+  border-color: var(--color-danger-text);
+  color: var(--color-danger-text);
+}
+
+.ticket-purchase__proof-remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .ticket-purchase__proof-submit {
-  justify-self: start;
+  align-items: center;
+  display: inline-flex;
+  gap: 7px;
+  justify-content: center;
+  min-height: 36px;
   padding: 8px 14px;
   border-radius: var(--border-radius-md);
   border: 1px solid var(--color-brand-celeste);
@@ -1157,6 +1294,20 @@
   color: var(--color-text-secondary);
   font-size: 12px;
   line-height: 1.45;
+}
+
+@media (max-width: 480px) {
+  .ticket-purchase__proof-dropzone {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .ticket-purchase__proof-change {
+    grid-column: 2;
+  }
+
+  .ticket-purchase__proof-submit {
+    flex: 1;
+  }
 }
 
 .ticket-purchase--editorial .ticket-purchase__payment {
