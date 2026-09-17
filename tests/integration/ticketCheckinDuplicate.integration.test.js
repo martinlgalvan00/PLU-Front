@@ -2,7 +2,11 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '../../server/app.js'
 import { buildStaffUser, createPrismaDouble, loginStaff } from './helpers/staffSession.js'
-import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
+import {
+  createSupabaseTestClient,
+  listen,
+  markTicketReadyForCheckin,
+} from './helpers/supabaseTestClient.js'
 
 const mutationHeaders = {
   Origin: 'http://localhost:5173',
@@ -92,14 +96,10 @@ describe('check-in de tickets rechaza un segundo escaneo (unique constraint real
       createdTicketIds.push(orderBody.tickets[0].id)
       const qrToken = orderBody.tickets[0].qr_token
 
-      // Salteamos el flujo de comprobante/aprobación manual (no es lo que
-      // este test ejercita) y llevamos el ticket a 'pagada' directo con el
-      // cliente service_role real -- mismo patrón que ya usa
-      // supabase/tests/payment_state_machine.sql para fixtures.
-      const { error: updateError } = await supabaseAdmin
-        .from('tickets')
-        .update({ status: 'pagada' })
-        .eq('id', orderBody.tickets[0].id)
+      // Salteamos el flujo de comprobante/aprobación y la vigencia futura del
+      // QR (el evento arranca en 7 días para que el POST de la orden no dé
+      // 409 por transferencia). Este test ejercita el unique de check-in.
+      const updateError = await markTicketReadyForCheckin(supabaseAdmin, orderBody.tickets[0].id)
       expect(updateError).toBeNull()
 
       const first = await fetch(`${target.url}/api/tickets/checkin/${qrToken}`, {
@@ -107,7 +107,8 @@ describe('check-in de tickets rechaza un segundo escaneo (unique constraint real
         headers: authHeaders(cookie),
         body: JSON.stringify({ gate: 'principal' }),
       })
-      expect(first.status).toBe(200)
+      const firstBody = await first.json()
+      expect(first.status, JSON.stringify(firstBody)).toBe(200)
 
       const second = await fetch(`${target.url}/api/tickets/checkin/${qrToken}`, {
         method: 'POST',
