@@ -1,10 +1,22 @@
-import { ScanLine } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Clock, ScanLine, XCircle } from 'lucide-react'
 import AdminTicketAddonRedemption from './AdminTicketAddonRedemption.jsx'
 import { StatusBadge } from '../ui/DataTable.jsx'
 import { formatScheduleSummary, formatSessionDetail } from '../../lib/eventSchedule.js'
 import { formatDocumentWithKind } from '../../lib/format.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { checkinTypeLabel } from '../../services/checkinScanService.js'
+import { TICKET_VALIDITY_STATUS, ticketValidityTiming } from '../../lib/ticketValidity.js'
+
+function formatRelativeValidityTime(milliseconds, direction, locale) {
+  const absolute = Math.max(0, Number(milliseconds) || 0)
+  const unit = absolute < 60_000 ? ['second', 1_000] : absolute < 60 * 60_000 ? ['minute', 60_000] : ['hour', 60 * 60_000]
+  const amount = Math.max(1, Math.ceil(absolute / unit[1]))
+  return new Intl.RelativeTimeFormat(locale, { numeric: 'always' }).format(
+    direction === 'future' ? amount : -amount,
+    unit[0],
+  )
+}
 
 export default function CheckInScanResult({
   canCheckIn,
@@ -22,9 +34,38 @@ export default function CheckInScanResult({
   scanVerdict,
 }) {
   const { t } = useI18n()
+  const [clockNow, setClockNow] = useState(() => Date.now())
+  const hasTicketWindow = Boolean(
+    scanResult?.kind === 'ticket' && scanResult.row?.validFrom && scanResult.row?.validUntil,
+  )
+
+  useEffect(() => {
+    if (!hasTicketWindow) return undefined
+    setClockNow(Date.now())
+    const intervalId = window.setInterval(() => setClockNow(Date.now()), 1_000)
+    return () => window.clearInterval(intervalId)
+  }, [hasTicketWindow, scanResult?.row?.validFrom, scanResult?.row?.validUntil])
+
   if (!scanResult || !scanVerdict) return null
 
-  const ScanVerdictIcon = scanVerdict.Icon
+  const isTicket = scanResult.kind === 'ticket'
+  const timing = isTicket && hasTicketWindow ? ticketValidityTiming(scanResult.row, new Date(clockNow)) : null
+  const timingOverridesReady =
+    scanResult.outcome === 'ready' &&
+    [TICKET_VALIDITY_STATUS.UPCOMING, TICKET_VALIDITY_STATUS.EXPIRED].includes(timing?.status)
+  const effectiveOutcome = timingOverridesReady
+    ? timing.status === TICKET_VALIDITY_STATUS.EXPIRED
+      ? 'expired'
+      : 'not_yet_valid'
+    : scanResult.outcome
+  const effectiveVerdict = timingOverridesReady
+    ? {
+        Icon: effectiveOutcome === 'expired' ? XCircle : Clock,
+        tone: effectiveOutcome === 'expired' ? 'danger' : 'warning',
+      }
+    : scanVerdict
+
+  const ScanVerdictIcon = effectiveVerdict.Icon
   const isAthleteScan = scanResult.kind === 'registration' && scanResult.row?.type === 'atleta'
   const scheduleSummary = formatScheduleSummary(scanResult.row?.schedule, locale)
   const sessionDetail = formatSessionDetail(scanResult.row?.schedule, locale, {
@@ -36,16 +77,35 @@ export default function CheckInScanResult({
     timeStyle: 'short',
   })
 
+  const liveValidityLabel =
+    timing?.status === TICKET_VALIDITY_STATUS.VALID
+      ? timing.isExpiringSoon
+        ? t('admin.checkin.validity.expiresIn', {
+            time: formatRelativeValidityTime(timing.remainingMs, 'future', locale),
+          })
+        : t('admin.checkin.validity.validUntil', {
+            time: validityFormatter.format(new Date(scanResult.row.validUntil)),
+          })
+      : timing?.status === TICKET_VALIDITY_STATUS.EXPIRED
+        ? t('admin.checkin.validity.expiredAgo', {
+            time: formatRelativeValidityTime(timing.expiredForMs, 'past', locale),
+          })
+        : timing?.status === TICKET_VALIDITY_STATUS.UPCOMING
+          ? t('admin.checkin.validity.startsIn', {
+              time: formatRelativeValidityTime(timing.startsInMs, 'future', locale),
+            })
+          : null
+
   // La fecha se resuelve pegada a la decisión sólo cuando el motivo del
   // veredicto ES la vigencia -- si no, sigue como un dato más entre los
   // metadatos generales de la entrada.
   const validityReason =
-    scanResult.kind === 'ticket' && scanResult.outcome === 'expired' && scanResult.row?.validUntil
+    scanResult.kind === 'ticket' && effectiveOutcome === 'expired' && scanResult.row?.validUntil
       ? t('admin.checkin.expiredOn', {
           date: validityFormatter.format(new Date(scanResult.row.validUntil)),
         })
       : scanResult.kind === 'ticket' &&
-          scanResult.outcome === 'not_yet_valid' &&
+          effectiveOutcome === 'not_yet_valid' &&
           scanResult.row?.validFrom
         ? t('admin.checkin.validFromOn', {
             date: validityFormatter.format(new Date(scanResult.row.validFrom)),
@@ -54,14 +114,14 @@ export default function CheckInScanResult({
 
   return (
     <div
-      className={`admin-checkin-result admin-checkin-result--${scanVerdict.tone}${scanResult.offline ? ' admin-checkin-result--offline' : ''}`}
+      className={`admin-checkin-result admin-checkin-result--${effectiveVerdict.tone}${scanResult.offline ? ' admin-checkin-result--offline' : ''}`}
       role="status"
       aria-live="polite"
     >
       <div className="admin-checkin-result__header">
         <ScanVerdictIcon size={22} aria-hidden />
         <div>
-          <strong>{t(`admin.checkin.scanner.outcome.${scanResult.outcome}`)}</strong>
+          <strong>{t(`admin.checkin.scanner.outcome.${effectiveOutcome}`)}</strong>
           {validityReason ? (
             <span className="admin-checkin-result__reason">{validityReason}</span>
           ) : null}
@@ -170,6 +230,18 @@ export default function CheckInScanResult({
         </dl>
       )}
 
+      {liveValidityLabel ? (
+        <p
+          className={`admin-checkin-result__live-validity${timing?.isExpiringSoon ? ' is-expiring' : ''}${
+            timing?.status === TICKET_VALIDITY_STATUS.EXPIRED ? ' is-expired' : ''
+          }`}
+          role="status"
+        >
+          <Clock size={16} aria-hidden />
+          <span>{liveValidityLabel}</span>
+        </p>
+      ) : null}
+
       {scanResult.kind === 'ticket' && (scanResult.ticket?.addons?.length ?? 0) > 0 ? (
         <AdminTicketAddonRedemption
           addons={scanResult.ticket.addons}
@@ -187,7 +259,7 @@ export default function CheckInScanResult({
           <button
             type="button"
             className="btn btn--primary btn--sm"
-            disabled={!canCheckIn || scanBusy}
+            disabled={!canCheckIn || scanBusy || timingOverridesReady}
             onClick={onScanCheckIn}
           >
             <ScanLine size={15} aria-hidden />

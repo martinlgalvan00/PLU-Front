@@ -52,6 +52,34 @@ describe('buildScanEventRow', () => {
     const row = buildScanEventRow({ eventId: 'evt-1', outcome: 'ready', evidence: 'operator', scannedAt: reasonable })
     expect(row.scanned_at).toBe(new Date(reasonable).toISOString())
   })
+
+  it('guarda el snapshot temporal sin aceptar datos ajenos al contrato', () => {
+    const row = buildScanEventRow({
+      eventId: 'evt-1',
+      outcome: 'expired',
+      evidence: 'server',
+      metadata: {
+        validity: {
+          status: 'expired',
+          validFrom: '2026-08-15T10:00:00.000Z',
+          validUntil: '2026-08-15T12:00:00.000Z',
+          expiredForSeconds: 60,
+          attendeeDni: '30111222',
+        },
+      },
+    })
+
+    expect(row.metadata).toEqual({
+      validity: {
+        status: 'expired',
+        validFrom: '2026-08-15T10:00:00.000Z',
+        validUntil: '2026-08-15T12:00:00.000Z',
+        remainingSeconds: null,
+        expiredForSeconds: 60,
+      },
+    })
+    expect(JSON.stringify(row.metadata)).not.toContain('30111222')
+  })
 })
 
 describe('recordScanEvents', () => {

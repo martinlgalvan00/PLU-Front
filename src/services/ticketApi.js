@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from '../lib/api.js'
+import { apiGet, apiPost, apiRequest } from '../lib/api.js'
 
 /**
  * ticketApi.js — PLU ARG
@@ -75,6 +75,8 @@ function toCamelTicket(row, { event, checkIn } = {}) {
     validFrom: row.valid_from ?? row.validFrom ?? null,
     validUntil: row.valid_until ?? row.validUntil ?? null,
     validityStatus: row.validity_status ?? row.validityStatus ?? null,
+    accessUsageMode: row.access_usage_mode ?? row.accessUsageMode ?? 'once_total',
+    accessWindowKey: row.access_window_key ?? row.accessWindowKey ?? 'once_total',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     event: toCamelEvent(event),
@@ -226,6 +228,15 @@ export async function listTicketsForEvent(eventSlug) {
   }
 }
 
+/** Excepción individual de una entrada; el QR no se reemplaza ni se reemite. */
+export async function setTicketAccessOverride(ticketId, { enabled, validFrom = null, validUntil = null }) {
+  const result = await apiRequest(`/api/tickets/${encodeURIComponent(ticketId)}/access-override`, {
+    method: 'PUT',
+    body: JSON.stringify({ enabled: Boolean(enabled), validFrom, validUntil }),
+  })
+  return { ticket: toCamelTicket(result.ticket) }
+}
+
 export async function checkInTicket(qrToken, gate) {
   const result = await apiPost(`/api/tickets/checkin/${qrToken}`, { gate })
   return { ticket: toCamelTicket(result.ticket), checkIn: toCamelCheckIn(result.checkIn) }
@@ -288,6 +299,8 @@ export function mapApiTicket(apiTicket, purchaseEvent) {
     validFrom: apiTicket.validFrom ?? null,
     validUntil: apiTicket.validUntil ?? null,
     validityStatus: apiTicket.validityStatus ?? null,
+    accessUsageMode: apiTicket.accessUsageMode ?? 'once_total',
+    accessWindowKey: apiTicket.accessWindowKey ?? 'once_total',
     checkedInAt: apiTicket.checkIn?.scannedAt ?? null,
     eventSlug: purchaseEvent?.slug ?? apiTicket.event?.slug ?? apiTicket.eventSlug,
     eventTitle: purchaseEvent?.title ?? apiTicket.event?.title,
