@@ -7,7 +7,11 @@ import {
   createPrismaDouble,
   loginStaff,
 } from './helpers/staffSession.js'
-import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
+import {
+  createSupabaseTestClient,
+  listen,
+  markTicketReadyForCheckin,
+} from './helpers/supabaseTestClient.js'
 
 const EVENT_SLUG = 'pitbull-classic-2026'
 
@@ -117,10 +121,9 @@ describe('check-in respeta el evento asignado a una cuenta seguridad_plu_arg', (
       const qrToken = orderBody.tickets[0].qr_token
       const ticketEventId = orderBody.tickets[0].event_id
 
-      const { error: updateError } = await supabaseAdmin
-        .from('tickets')
-        .update({ status: 'pagada' })
-        .eq('id', orderBody.tickets[0].id)
+      // Pitbull Classic es diciembre: sin reabrir la vigencia el check-in
+      // del evento propio cae en 409/PLU14 antes de ejercitar el alcance.
+      const updateError = await markTicketReadyForCheckin(supabaseAdmin, orderBody.tickets[0].id)
       expect(updateError).toBeNull()
 
       // La cuenta de seguridad de OTRO evento no puede marcar el ingreso.
@@ -150,7 +153,8 @@ describe('check-in respeta el evento asignado a una cuenta seguridad_plu_arg', (
         headers: authHeaders(rightEventCookie),
         body: JSON.stringify({ gate: 'principal' }),
       })
-      expect(allowed.status).toBe(200)
+      const allowedBody = await allowed.json()
+      expect(allowed.status, JSON.stringify(allowedBody)).toBe(200)
     } finally {
       await target.close()
     }

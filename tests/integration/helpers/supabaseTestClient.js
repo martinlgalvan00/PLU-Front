@@ -21,3 +21,24 @@ export function listen(app) {
     close: () => new Promise((resolve) => server.close(resolve)),
   }
 }
+
+/**
+ * Fixture de puerta: saltea comprobante/aprobación y abre la vigencia del QR
+ * para el instante del test. `staff_check_in_ticket` (y el pre-chequeo de
+ * Node) rechazan con 409/PLU14 si `now` está antes de `valid_from`. Un evento
+ * futuro —necesario para que el POST de la orden no cierre por transferencia—
+ * congela esa ventana al emitir, así que un test que compra hoy y escanea hoy
+ * tiene que reabrirla.
+ */
+export async function markTicketReadyForCheckin(supabaseAdmin, ticketId) {
+  const now = Date.now()
+  const { error } = await supabaseAdmin
+    .from('tickets')
+    .update({
+      status: 'pagada',
+      valid_from: new Date(now - 60_000).toISOString(),
+      valid_until: new Date(now + 86_400_000).toISOString(),
+    })
+    .eq('id', ticketId)
+  return error
+}
