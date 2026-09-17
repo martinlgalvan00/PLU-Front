@@ -757,6 +757,11 @@
   font-size: clamp(1.05rem, 1.9vw, 1.25rem);
 }
 
+.tickets-page .ticket-type-options__description {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
 .tickets-page .ticket-type-options__price {
   font-family: var(--font-display);
   font-size: clamp(1.4rem, 3vw, 1.9rem);

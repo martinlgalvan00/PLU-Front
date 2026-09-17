@@ -90,7 +90,9 @@ describe('TicketTypeOptions', () => {
     renderChooser()
 
     const espectador = screen.getByRole('radio', { name: /^Espectador/ }).closest('label')
-    expect(espectador.textContent).toContain('Acceso a tribuna durante la primera jornada.')
+    const description = espectador.querySelector('.ticket-type-options__description')
+    expect(description?.tagName).toBe('P')
+    expect(description?.textContent).toBe('Acceso a tribuna durante la primera jornada.')
     expect(espectador.textContent).toContain('Válida únicamente: Día 1')
 
     const entrenador = screen.getByRole('radio', { name: /Entrenador/ }).closest('label')
