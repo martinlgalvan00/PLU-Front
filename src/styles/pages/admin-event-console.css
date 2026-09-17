@@ -1358,7 +1358,7 @@
 
 .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__actions {
   bottom: 0;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 8px 10px;
   margin-top: auto;
   padding: 8px 16px 10px;
@@ -1367,12 +1367,15 @@
 
 .admin-event-workspace__panel .admin-event-form__action-buttons {
   display: flex;
-  flex-shrink: 0;
-  flex-wrap: nowrap;
+  flex: 1 1 12rem;
+  flex-shrink: 1;
+  flex-wrap: wrap;
   gap: 8px;
+  min-width: 0;
 }
 
 .admin-event-workspace__panel .admin-event-form__action-buttons .btn {
+  flex: 1 1 9rem;
   min-height: 36px;
   min-width: 0;
   padding-inline: 12px;
@@ -1386,10 +1389,29 @@
   display: inline;
 }
 
+@container event-editor (max-width: 42rem) {
+  .admin-event-workspace__panel .admin-event-form__action-label--full,
+  .admin-event-workspace__panel .admin-event-form__save-label--full {
+    display: none;
+  }
+
+  .admin-event-workspace__panel .admin-event-form__action-label--short,
+  .admin-event-workspace__panel .admin-event-form__save-label--short {
+    display: inline;
+  }
+}
+
 @container event-editor (max-width: 28rem) {
   .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__actions,
   .admin-event-workspace__panel .admin-event-form__action-buttons {
+    flex-direction: column;
     flex-wrap: wrap;
+  }
+
+  .admin-event-workspace__panel .admin-event-form__action-buttons,
+  .admin-event-workspace__panel .admin-event-form__action-buttons .btn {
+    flex: 1 1 auto;
+    width: 100%;
   }
 }
 
@@ -5347,7 +5369,7 @@
 }
 
 /* ── Contrato de scroll del workspace ──────────────────────────────────────
-   Un solo scrollport: el tabpanel. Guardar vive al pie del rail en desktop.
+   Un solo scrollport: el tabpanel. Guardar vive al pie del rail en desktop. */
 .admin-shell .admin-page:has(> .admin-event-workspace--sidebar) {
   height: 100%;
   max-height: 100%;

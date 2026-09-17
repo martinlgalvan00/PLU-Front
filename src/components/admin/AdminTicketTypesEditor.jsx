@@ -17,9 +17,15 @@ import {
   TICKET_ACCESS_POLICY_MODES,
   TICKET_ACCESS_USAGE_MODE,
   TICKET_ACCESS_USAGE_MODES,
+  isTicketDurationValidityMode,
   summarizeTicketQrValidity,
   ticketValidityDurationParts,
 } from '../../lib/ticketValidityPolicy.js'
+
+const USUAL_TICKET_VALIDITY_MODES = Object.freeze([TICKET_ACCESS_POLICY_MODE.EVENT_DAYS])
+const OTHER_TICKET_VALIDITY_MODES = Object.freeze(
+  TICKET_ACCESS_POLICY_MODES.filter((mode) => mode !== TICKET_ACCESS_POLICY_MODE.EVENT_DAYS),
+)
 import AdminEventDaysEditor from './AdminEventDaysEditor.jsx'
 import AdminTicketCredentialsEditor from './AdminTicketCredentialsEditor.jsx'
 import AdminTicketTypeChannels from './AdminTicketTypeChannels.jsx'
@@ -85,6 +91,10 @@ function ticketTypeValidityRowCopy(t, summary) {
       return t('admin.eventEditor.supabase.ticketTypeRowValidityFromPayment', {
         duration: formatValidityDuration(t, summary.durationMinutes),
       })
+    case 'from_first_scan':
+      return t('admin.eventEditor.supabase.ticketTypeRowValidityFromFirstScan', {
+        duration: formatValidityDuration(t, summary.durationMinutes),
+      })
     default:
       return t('admin.eventEditor.supabase.ticketTypeRowValidityMissing')
   }
@@ -127,16 +137,28 @@ function ticketTypeValidityPreviewCopy(t, summary) {
       detail: t('admin.eventEditor.supabase.ticketTypeValidityPreviewFromPaymentDetail'),
     }
   }
+  if (summary.kind === 'from_first_scan') {
+    return {
+      title: t('admin.eventEditor.supabase.ticketTypeValidityPreviewFromFirstScanTitle', {
+        duration: formatValidityDuration(t, summary.durationMinutes),
+      }),
+      detail: t('admin.eventEditor.supabase.ticketTypeValidityPreviewFromFirstScanDetail'),
+    }
+  }
   if (summary.mode === TICKET_ACCESS_POLICY_MODE.FIXED_WINDOW) {
     return {
       title: t('admin.eventEditor.supabase.ticketTypeValidityPreviewFixedTitle'),
       detail: t('admin.eventEditor.supabase.ticketTypeValidityPreviewFixedMissing'),
     }
   }
-  if (summary.mode === TICKET_ACCESS_POLICY_MODE.FROM_PAYMENT) {
+  if (isTicketDurationValidityMode(summary.mode)) {
     return {
       title: t('admin.eventEditor.supabase.ticketTypeValidityPreviewMissingTitle'),
-      detail: t('admin.eventEditor.supabase.ticketTypeValidityDurationHint'),
+      detail: t(
+        summary.mode === TICKET_ACCESS_POLICY_MODE.FROM_FIRST_SCAN
+          ? 'admin.eventEditor.supabase.ticketTypeValidityDurationHintFromScan'
+          : 'admin.eventEditor.supabase.ticketTypeValidityDurationHint',
+      ),
     }
   }
   return {
@@ -154,6 +176,84 @@ function ticketTypeValidityUsageCopy(t, summary) {
     return t('admin.eventEditor.supabase.ticketTypeValidityPreviewUsageOnceTotal')
   }
   return null
+}
+
+function ticketTypeValidityNoteKey(mode) {
+  if (mode === TICKET_ACCESS_POLICY_MODE.EVENT_DAYS) {
+    return 'admin.eventEditor.supabase.ticketTypeValidityNoteDays'
+  }
+  if (mode === TICKET_ACCESS_POLICY_MODE.FIXED_WINDOW) {
+    return 'admin.eventEditor.supabase.ticketTypeValidityNoteFixed'
+  }
+  if (mode === TICKET_ACCESS_POLICY_MODE.FROM_FIRST_SCAN) {
+    return 'admin.eventEditor.supabase.ticketTypeValidityNoteFromFirstScan'
+  }
+  return 'admin.eventEditor.supabase.ticketTypeValidityNoteFromPayment'
+}
+
+function ticketTypeValidityDurationHintKey(mode) {
+  return mode === TICKET_ACCESS_POLICY_MODE.FROM_FIRST_SCAN
+    ? 'admin.eventEditor.supabase.ticketTypeValidityDurationHintFromScan'
+    : 'admin.eventEditor.supabase.ticketTypeValidityDurationHint'
+}
+
+function nextTicketValidityPatch(validityMode, current) {
+  if (validityMode === TICKET_ACCESS_POLICY_MODE.EVENT_DAYS) {
+    return {
+      validityMode,
+      validityDurationMinutes: null,
+      validFrom: '',
+      validUntil: '',
+    }
+  }
+  if (validityMode === TICKET_ACCESS_POLICY_MODE.FIXED_WINDOW) {
+    return {
+      validityMode,
+      validityDurationMinutes: null,
+      accessUsageMode: TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL,
+    }
+  }
+  return {
+    validityMode,
+    validityDurationMinutes: current.validityDurationMinutes ?? 12 * 60,
+    validFrom: '',
+    validUntil: '',
+    accessUsageMode: TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL,
+  }
+}
+
+function TicketValidityModeOption({
+  validityMode,
+  selected,
+  canEdit,
+  name,
+  onSelect,
+  t,
+}) {
+  return (
+    <label
+      className={`admin-ticket-types__policy-option${selected ? ' is-active' : ''}`}
+    >
+      <input
+        checked={selected}
+        disabled={!canEdit}
+        name={name}
+        type="radio"
+        value={validityMode}
+        onChange={() => onSelect(validityMode)}
+      />
+      <span>
+        <strong>
+          {t(`admin.eventEditor.supabase.ticketTypeValidityMode.${validityMode}`)}
+        </strong>
+        {selected ? (
+          <small>
+            {t(`admin.eventEditor.supabase.ticketTypeValidityModeHint.${validityMode}`)}
+          </small>
+        ) : null}
+      </span>
+    </label>
+  )
 }
 
 function credentialFoldHint(t, credentials) {
@@ -842,59 +942,35 @@ export default function AdminTicketTypesEditor({
 
                   <div className="admin-ticket-types__qr-validity">
                     <fieldset className="admin-ticket-types__policy">
-                      <legend>{t('admin.eventEditor.supabase.ticketTypeValidityModeLabel')}</legend>
-                      {TICKET_ACCESS_POLICY_MODES.map((validityMode) => (
-                        <label
+                      <legend>{t('admin.eventEditor.supabase.ticketTypeValidityModeUsual')}</legend>
+                      {USUAL_TICKET_VALIDITY_MODES.map((validityMode) => (
+                        <TicketValidityModeOption
                           key={validityMode}
-                          className={`admin-ticket-types__policy-option${
-                            currentAccessPolicyMode === validityMode ? ' is-active' : ''
-                          }`}
-                        >
-                          <input
-                            checked={currentAccessPolicyMode === validityMode}
-                            disabled={!canEdit}
-                            name={`ticketTypes.${index}.validityMode`}
-                            type="radio"
-                            value={validityMode}
-                            onChange={() => {
-                              if (validityMode === TICKET_ACCESS_POLICY_MODE.EVENT_DAYS) {
-                                patchTicketType(index, {
-                                  validityMode,
-                                  validityDurationMinutes: null,
-                                  validFrom: '',
-                                  validUntil: '',
-                                })
-                              } else if (validityMode === TICKET_ACCESS_POLICY_MODE.FIXED_WINDOW) {
-                                patchTicketType(index, {
-                                  validityMode,
-                                  validityDurationMinutes: null,
-                                  accessUsageMode: TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL,
-                                })
-                              } else {
-                                patchTicketType(index, {
-                                  validityMode,
-                                  validityDurationMinutes:
-                                    current.validityDurationMinutes ?? 12 * 60,
-                                  validFrom: '',
-                                  validUntil: '',
-                                  accessUsageMode: TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL,
-                                })
-                              }
-                            }}
-                          />
-                          <span>
-                            <strong>
-                              {t(
-                                `admin.eventEditor.supabase.ticketTypeValidityMode.${validityMode}`,
-                              )}
-                            </strong>
-                            <small>
-                              {t(
-                                `admin.eventEditor.supabase.ticketTypeValidityModeHint.${validityMode}`,
-                              )}
-                            </small>
-                          </span>
-                        </label>
+                          validityMode={validityMode}
+                          selected={currentAccessPolicyMode === validityMode}
+                          canEdit={canEdit}
+                          name={`ticketTypes.${index}.validityMode`}
+                          t={t}
+                          onSelect={(mode) =>
+                            patchTicketType(index, nextTicketValidityPatch(mode, current))
+                          }
+                        />
+                      ))}
+                    </fieldset>
+                    <fieldset className="admin-ticket-types__policy admin-ticket-types__policy--other">
+                      <legend>{t('admin.eventEditor.supabase.ticketTypeValidityModeOther')}</legend>
+                      {OTHER_TICKET_VALIDITY_MODES.map((validityMode) => (
+                        <TicketValidityModeOption
+                          key={validityMode}
+                          validityMode={validityMode}
+                          selected={currentAccessPolicyMode === validityMode}
+                          canEdit={canEdit}
+                          name={`ticketTypes.${index}.validityMode`}
+                          t={t}
+                          onSelect={(mode) =>
+                            patchTicketType(index, nextTicketValidityPatch(mode, current))
+                          }
+                        />
                       ))}
                     </fieldset>
 
@@ -903,21 +979,19 @@ export default function AdminTicketTypesEditor({
                         <legend>
                           {t('admin.eventEditor.supabase.ticketTypeAccessUsageLabel')}
                         </legend>
-                        {TICKET_ACCESS_USAGE_MODES.map((usageMode) => (
+                        {TICKET_ACCESS_USAGE_MODES.map((usageMode) => {
+                          const selected =
+                            (current.accessUsageMode ?? TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL) ===
+                            usageMode
+                          return (
                           <label
                             key={usageMode}
                             className={`admin-ticket-types__policy-option${
-                              (current.accessUsageMode ?? TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL) ===
-                              usageMode
-                                ? ' is-active'
-                                : ''
+                              selected ? ' is-active' : ''
                             }`}
                           >
                             <input
-                              checked={
-                                (current.accessUsageMode ?? TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL) ===
-                                usageMode
-                              }
+                              checked={selected}
                               disabled={!canEdit}
                               name={`ticketTypes.${index}.accessUsageMode`}
                               type="radio"
@@ -930,14 +1004,17 @@ export default function AdminTicketTypesEditor({
                               <strong>
                                 {t(`admin.eventEditor.supabase.ticketTypeAccessUsage.${usageMode}`)}
                               </strong>
-                              <small>
-                                {t(
-                                  `admin.eventEditor.supabase.ticketTypeAccessUsageHint.${usageMode}`,
-                                )}
-                              </small>
+                              {selected ? (
+                                <small>
+                                  {t(
+                                    `admin.eventEditor.supabase.ticketTypeAccessUsageHint.${usageMode}`,
+                                  )}
+                                </small>
+                              ) : null}
                             </span>
                           </label>
-                        ))}
+                          )
+                        })}
                       </fieldset>
                     ) : null}
 
@@ -982,7 +1059,7 @@ export default function AdminTicketTypesEditor({
                       </div>
                     ) : null}
 
-                    {currentAccessPolicyMode === TICKET_ACCESS_POLICY_MODE.FROM_PAYMENT ? (
+                    {isTicketDurationValidityMode(currentAccessPolicyMode) ? (
                       <div className="admin-ticket-types__window-grid">
                         <label className="admin-event-form__field">
                           <span>
@@ -1045,7 +1122,7 @@ export default function AdminTicketTypesEditor({
                             </small>
                           ) : (
                             <small className="admin-event-form__field-hint">
-                              {t('admin.eventEditor.supabase.ticketTypeValidityDurationHint')}
+                              {t(ticketTypeValidityDurationHintKey(currentAccessPolicyMode))}
                             </small>
                           )}
                         </label>
@@ -1056,13 +1133,7 @@ export default function AdminTicketTypesEditor({
                       {t('admin.eventEditor.supabase.ticketTypeValidityFrozen')}
                       {validityHasError
                         ? null
-                        : ` ${
-                            currentAccessPolicyMode === TICKET_ACCESS_POLICY_MODE.EVENT_DAYS
-                              ? t('admin.eventEditor.supabase.ticketTypeValidityNoteDays')
-                              : currentAccessPolicyMode === TICKET_ACCESS_POLICY_MODE.FIXED_WINDOW
-                                ? t('admin.eventEditor.supabase.ticketTypeValidityNoteFixed')
-                                : t('admin.eventEditor.supabase.ticketTypeValidityNoteFromPayment')
-                          }`}
+                        : ` ${t(ticketTypeValidityNoteKey(currentAccessPolicyMode))}`}
                     </small>
                   </div>
                 </TicketTypeFold>

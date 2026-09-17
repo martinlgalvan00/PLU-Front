@@ -88,7 +88,7 @@ describe('AdminTicketTypesEditor', () => {
     expect(palco.getAttribute('aria-selected')).toBe('false')
     expect(general.textContent).toMatch(/15.?000/)
     expect(general.textContent).toMatch(/=\s*MP/)
-    expect(general.textContent).toMatch(/se calcula/i)
+    expect(general.textContent).toMatch(/qr:.*día 1/i)
     expect(screen.getByDisplayValue('Público general')).toBeTruthy()
     expect(screen.getByDisplayValue('Acceso válido durante la jornada inaugural.')).toBeTruthy()
     expect(screen.getAllByRole('spinbutton', { name: /precio wise/i })).toHaveLength(1)
@@ -120,7 +120,7 @@ describe('AdminTicketTypesEditor', () => {
   it('configura la duración desde pago en el tipo, sin crear otro QR', () => {
     render(<CatalogHarness />)
 
-    fireEvent.click(screen.getByRole('radio', { name: /tiempo desde que se acredita el pago/i }))
+    fireEvent.click(screen.getByRole('radio', { name: /desde que se acredita el pago/i }))
 
     const duration = screen.getByRole('spinbutton', { name: /duración/i })
     expect(duration.value).toBe('12')
@@ -137,6 +137,19 @@ describe('AdminTicketTypesEditor', () => {
     expect(JSON.parse(screen.getByTestId('catalog-state').textContent)[0]).toMatchObject({
       validityMode: 'from_payment',
       validityDurationMinutes: 2 * 24 * 60,
+    })
+  })
+
+  it('configura la duración desde el primer escaneo', () => {
+    render(<CatalogHarness />)
+
+    fireEvent.click(screen.getByRole('radio', { name: /desde el primer escaneo/i }))
+
+    expect(screen.getByRole('spinbutton', { name: /duración/i }).value).toBe('12')
+    expect(screen.getByText(/el reloj arranca cuando seguridad lo lee/i)).toBeTruthy()
+    expect(JSON.parse(screen.getByTestId('catalog-state').textContent)[0]).toMatchObject({
+      validityMode: 'from_first_scan',
+      validityDurationMinutes: 12 * 60,
     })
   })
 

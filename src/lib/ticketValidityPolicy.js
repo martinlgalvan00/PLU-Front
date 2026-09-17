@@ -13,6 +13,13 @@ export const TICKET_ACCESS_POLICY_MODE = Object.freeze({
 
 export const TICKET_ACCESS_POLICY_MODES = Object.freeze(Object.values(TICKET_ACCESS_POLICY_MODE))
 
+export function isTicketDurationValidityMode(mode) {
+  return (
+    mode === TICKET_ACCESS_POLICY_MODE.FROM_PAYMENT ||
+    mode === TICKET_ACCESS_POLICY_MODE.FROM_FIRST_SCAN
+  )
+}
+
 export const MAX_TICKET_ACCESS_DURATION_MINUTES = 366 * 24 * 60
 
 /**
@@ -120,10 +127,7 @@ export function summarizeTicketQrValidity(type = {}, eventDays = []) {
     return { ...base, kind: 'fixed_window' }
   }
 
-  if (
-    validityMode === TICKET_ACCESS_POLICY_MODE.FROM_PAYMENT ||
-    validityMode === TICKET_ACCESS_POLICY_MODE.FROM_FIRST_SCAN
-  ) {
+  if (isTicketDurationValidityMode(validityMode)) {
     if (durationMinutes == null) {
       return { ...base, kind: 'missing' }
     }

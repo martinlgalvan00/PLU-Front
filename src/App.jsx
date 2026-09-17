@@ -725,6 +725,7 @@ export default function App() {
           onDeactivateAllSecurityUsers={app.deactivateAllSecurityUsersAction}
           onListSecurityUsers={app.listSecurityUsersForEventAction}
           onGetEventScanReport={app.getEventScanReportAction}
+          onSetTicketAccessOverride={app.setTicketAccessOverrideAction}
           onUpdateSecurityUserStatus={app.updateSecurityUserStatusAction}
           onListSecurityZones={app.listSecurityZonesAction}
           onCreateSecurityZone={app.createSecurityZoneAction}
