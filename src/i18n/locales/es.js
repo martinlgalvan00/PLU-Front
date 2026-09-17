@@ -212,7 +212,8 @@ export default {
     manualConfirmation: {
       deferAction: 'Voy a pagar dentro del plazo',
       deferredTitle: 'Quedás habilitado',
-      deferredHint: 'Ya estás habilitado: PLU te adelantó la afiliación y la inscripción. Cuando pagues, avisanos acá para que Finanzas lo acredite.',
+      deferredHint:
+        'Ya estás habilitado: PLU te adelantó la afiliación y la inscripción. Cuando pagues, avisanos acá para que Finanzas lo acredite.',
       transferAction: 'Ya transferí',
       cashAction: 'Ya entregué el efectivo',
       financingHint:
@@ -524,7 +525,7 @@ export default {
     stateClosed: 'Cerrado',
     stateUnavailable: 'Sin fecha abierta',
     steps: {
-  account: {
+      account: {
         title: 'Crear tu cuenta',
         done: 'Ya tenés cuenta.',
         todo: 'Cargás tus datos una sola vez: nombre, documento, fecha de nacimiento y una contraseña.',
@@ -820,10 +821,12 @@ export default {
     save: 'Guardar preferencias',
     close: 'Cerrar',
     necessaryTitle: 'Necesarias',
-    necessaryDetail: 'Mantienen tu sesión iniciada. Sin ellas el sitio no funciona y no se pueden apagar.',
+    necessaryDetail:
+      'Mantienen tu sesión iniciada. Sin ellas el sitio no funciona y no se pueden apagar.',
     alwaysOn: 'Siempre activas',
     analyticsTitle: 'Medición de uso',
-    analyticsDetail: 'Estadísticas agregadas de navegación. Se vinculan a tu cuenta solo con sesión iniciada.',
+    analyticsDetail:
+      'Estadísticas agregadas de navegación. Se vinculan a tu cuenta solo con sesión iniciada.',
     analyticsOn: 'Activada',
     analyticsOff: 'Desactivada',
     reopen: 'Cookies',
@@ -919,7 +922,8 @@ export default {
     transferAction: 'Pagar por transferencia',
     contactAction: 'Contactar a PLU',
     contactSubject: 'Problema con un pago de PLU',
-    contactBody: 'Hola, tuve un problema al pagar mediante Mercado Pago. Necesito ayuda con mi operación.',
+    contactBody:
+      'Hola, tuve un problema al pagar mediante Mercado Pago. Necesito ayuda con mi operación.',
     note: 'Si el pago de Mercado Pago figura pendiente, esperá la confirmación o escribinos para evitar pagar dos veces.',
   },
   confirmation: {
@@ -1223,7 +1227,8 @@ export default {
       gatewayNote:
         'Mercado Pago se cobra en el checkout del torneo, con el paquete ya aplicado. No hace falta que avises nada: acredita solo.',
       resumeGateway: 'Retomar el pago con Mercado Pago',
-      settled: 'No queda nada pendiente. Tu credencial y tu inscripción están en las fichas de siempre.',
+      settled:
+        'No queda nada pendiente. Tu credencial y tu inscripción están en las fichas de siempre.',
       refunded:
         'El importe de esta compra se devolvió. Si el reembolso no fue lo que esperabas, contactá al staff de PLU.',
       form: {
@@ -1238,7 +1243,8 @@ export default {
         gatewayNote: 'Se paga en el checkout del torneo, con tarjeta o dinero en cuenta.',
         transferNote: 'Te damos los datos bancarios y avisás cuando transferiste.',
         cashNote: 'Se paga en efectivo al staff de PLU.',
-        financedHint: 'Con este código podés pagarlo ahora o más tarde: quedás habilitado igual mientras corra el plazo.',
+        financedHint:
+          'Con este código podés pagarlo ahora o más tarde: quedás habilitado igual mientras corra el plazo.',
         submit: 'Confirmar y pagar {{amount}}',
         goToGateway: 'Ir a pagar con Mercado Pago',
         incomplete: 'Completá división, categoría y peso declarado para seguir.',
@@ -1346,7 +1352,8 @@ export default {
         cc_rejected_invalid_installments: 'La tarjeta no admite esa cantidad de cuotas.',
         cc_rejected_card_type_not_allowed: 'Ese tipo de tarjeta no está habilitado.',
         cc_rejected_blacklist: 'Mercado Pago bloqueó esa tarjeta. Usá otro medio de pago.',
-        cc_rejected_card_error: 'La tarjeta no pudo procesar el pago. Probá de nuevo en unos minutos.',
+        cc_rejected_card_error:
+          'La tarjeta no pudo procesar el pago. Probá de nuevo en unos minutos.',
         cc_rejected_3ds_challenge:
           'No se completó la verificación de seguridad del banco. Reintentá y completala.',
         cc_rejected_3ds_mandatory:
@@ -1804,7 +1811,8 @@ export default {
       category: 'Categoría',
       estimatedWeight: 'Peso estimado (kg)',
       estimatedWeightPlaceholder: 'Ej.: 90 kg',
-      competitionDefaultsNote: 'Se usan al inscribirte. Una inscripción ya confirmada no cambia sola.',
+      competitionDefaultsNote:
+        'Se usan al inscribirte. Una inscripción ya confirmada no cambia sola.',
       save: 'Guardar cambios',
       saved: 'Tus datos se guardaron correctamente.',
       errorEmail: 'Ingresá un email válido.',
@@ -2185,7 +2193,8 @@ export default {
       athleteStatusHint: {
         guest: 'Con cuenta de atleta resolvés afiliación e inscripción en un solo flujo.',
         registered: 'Tu cupo está confirmado. Revisá credencial y detalle del meet en tu perfil.',
-        pending_payment: 'Tu cupo está reservado. Continuá el pago o elegí otro medio para cerrarlo.',
+        pending_payment:
+          'Tu cupo está reservado. Continuá el pago o elegí otro medio para cerrarlo.',
         needs_membership: 'Este meet exige afiliación vigente antes del check-in.',
         can_register: 'Tenés todo listo para completar la inscripción.',
         closed: 'Este evento ya no admite altas nuevas.',
@@ -3124,7 +3133,8 @@ export default {
       liveRegisteredCountNoTotal: 'anotados',
       liveRegisteredRemaining: 'Quedan {{count}}',
       liveRegisteredAria: '{{registered}} de {{total}} atletas inscriptos al torneo',
-      liveRegisteredAriaNoTotal: '{{registered}} atletas inscriptos al torneo. Quedan {{remaining}} lugares.',
+      liveRegisteredAriaNoTotal:
+        '{{registered}} atletas inscriptos al torneo. Quedan {{remaining}} lugares.',
       liveRegisteredRecentLabel: 'Últimos:',
       liveRegisteredMore: '+{{count}}',
     },
@@ -3203,7 +3213,7 @@ export default {
       checkoutStep1: 'Cantidad',
       checkoutStep2: 'Datos',
       checkoutStep3: 'Pago',
-      secureFlow: 'Pago seguro · QR al confirmar',
+      secureFlow: 'Ingreso con QR · se habilita al confirmar',
       closed: 'La venta de entradas para este evento no está habilitada.',
       checkoutSoon:
         'La venta de entradas abre junto con las inscripciones. Pedí aviso desde la home o Pitbull Classic.',
@@ -3314,6 +3324,7 @@ export default {
         legend: 'Tipo de entrada',
         opens: 'Qué abre',
         includes: 'Incluye',
+        validity: 'Válida únicamente: {{days}}',
         credentials_one: '1 credencial · 1 QR',
         credentials_other: '{{count}} credenciales · {{count}} QR',
         quotaNote: 'Ocupa un solo lugar del cupo',
@@ -3338,13 +3349,16 @@ export default {
       credentialsFor: 'Credenciales de {{name}}',
       paymentMethod: 'Método de pago',
       paymentTransfer: 'Transferencia bancaria',
-      paymentMpHint: 'Pago automático · QR habilitado al confirmarse',
-      paymentTransferHint: 'Validación manual por Administración · hasta 48 horas',
-      paymentSavings: 'Ahorrás {{amount}} pagando así',
+      paymentMpHint: 'Acreditación automática',
+      paymentMpAssurance: 'Tu QR abre la puerta al confirmarse',
+      paymentTransferHint: 'Validación por Administración · hasta 48 horas',
+      paymentTransferAssurance: 'QR al aprobarse, no al pagar',
+      paymentSavings: 'Ahorrás {{amount}}',
       paymentNarrowedByType:
         'El tipo de entrada elegido limita los medios de pago disponibles para esta compra.',
       buyerTitle: 'Tus datos',
-      buyerLead: 'A este mail te mandamos las entradas con el QR y el aviso cuando se acredite el pago.',
+      buyerLead:
+        'A este mail te mandamos las entradas con el QR y el aviso cuando se acredite el pago.',
       buyerName: 'Nombre y apellido',
       buyerNamePlaceholder: 'Quien compra',
       buyerEmail: 'Email',
@@ -3353,13 +3367,15 @@ export default {
       buyerPhonePlaceholder: '11 5555 5555',
       paymentCash: 'Efectivo en Pitbull',
       paymentCashHint: 'Pagás en el gimnasio · sin comprobante para subir',
+      paymentCashAssurance: 'QR habilitado cuando acreditamos el pago en caja',
       paymentWiseSoon: 'Próximamente',
+      paymentWiseHint: 'Transferencia internacional · QR al acreditarse',
+      paymentWiseAssurance: 'QR de ingreso al acreditarse la transferencia',
       cashNote:
         'Pasá por Pitbull con este código y pagá en caja. Administración acredita la compra en el momento y tu QR queda habilitado.',
       cashWhereLabel: 'Dónde pagar',
       cashWhereValue: 'Pitbull Gym, en horario de atención',
-      paymentMpCheckout:
-        'Al pagar con Mercado Pago, la confirmación es automática y tu QR queda listo enseguida.',
+      paymentMpCheckout: 'Pagás, Mercado Pago acredita solo y tu QR abre la puerta.',
       paymentMpPending:
         'Pagá con Mercado Pago para confirmar al instante. Tu entrada con QR se habilita automáticamente.',
       transferCheckoutNote:
@@ -3567,7 +3583,8 @@ export default {
       transferHint: 'Adjuntá el comprobante. Administración valida en hasta 48 horas.',
       transferOpen: 'Ver datos de transferencia',
       cancelOrderAction: 'Cancelar esta orden',
-      cancelOrderMissing: 'No encontramos la orden a cancelar. Recargá la página e intentá de nuevo.',
+      cancelOrderMissing:
+        'No encontramos la orden a cancelar. Recargá la página e intentá de nuevo.',
       cancelOrderBusy: 'Cancelando…',
       cancelOrderDone:
         'Cancelamos tu orden. Ya podés elegir otro medio de pago y volver a aplicar tu código.',

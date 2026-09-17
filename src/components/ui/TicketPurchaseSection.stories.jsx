@@ -1,11 +1,34 @@
 import TicketPurchaseSection from './TicketPurchaseSection.jsx'
 
-const event = { title: 'Apertura Nacional 2026', slug: 'apertura-nacional-2026' }
+const event = {
+  title: 'Apertura Nacional 2026',
+  slug: 'apertura-nacional-2026',
+  eventDays: [
+    { dayIndex: 0, label: 'Día 1', date: '2026-12-11' },
+    { dayIndex: 1, label: 'Día 2', date: '2026-12-12' },
+  ],
+}
 
 const pricing = {
   ticketTypes: [
-    { id: 'day1', name: 'Día 1', price: 15000, quota: null, includedAddonIds: [] },
-    { id: 'both', name: 'Ambos días', price: 25000, quota: null, includedAddonIds: [] },
+    {
+      id: 'day1',
+      name: 'Jornada inaugural',
+      description: 'Acceso general válido únicamente durante el primer día del torneo.',
+      price: 15000,
+      quota: null,
+      includedAddonIds: [],
+      accessDays: [event.eventDays[0]],
+    },
+    {
+      id: 'both',
+      name: 'Experiencia completa',
+      description: 'Viví las dos jornadas y todas las finales desde la tribuna general.',
+      price: 25000,
+      quota: null,
+      includedAddonIds: [],
+      accessDays: event.eventDays,
+    },
   ],
   addons: [
     {
@@ -35,7 +58,13 @@ export default {
 export const Standard = {}
 
 export const Editorial = {
-  args: { editorial: true },
+  args: {
+    editorial: true,
+    manualPaymentEnabled: true,
+    mercadoPagoEnabled: true,
+    cashEnabled: false,
+    wiseEnabled: false,
+  },
 }
 
 export const Confirmation = {

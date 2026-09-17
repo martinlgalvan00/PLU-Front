@@ -35,12 +35,12 @@ Los componentes solo renderizan y delegan eventos.
 
 ## MVP actual vs. target
 
-| Capa | MVP actual | Target |
-|------|------------|--------|
-| Persistencia | Supabase detrás de Express | Multi-organización completa |
-| Auth | Cookie HTTP-only staff/atleta + Auth0 opcional | SSO institucional completo |
-| Pagos | Bricks embebido + persistencia Supabase | Validación sandbox y operación productiva |
-| Emails | Mock console | Brevo templates |
+| Capa         | MVP actual                                     | Target                                    |
+| ------------ | ---------------------------------------------- | ----------------------------------------- |
+| Persistencia | Supabase detrás de Express                     | Multi-organización completa               |
+| Auth         | Cookie HTTP-only staff/atleta + Auth0 opcional | SSO institucional completo                |
+| Pagos        | Bricks embebido + persistencia Supabase        | Validación sandbox y operación productiva |
+| Emails       | Mock console                                   | Brevo templates                           |
 
 ## Infraestructura de datos v3
 
@@ -137,21 +137,21 @@ UI / proveedor externo
 
 Componentes actuales:
 
-| Capa | Archivos |
-|------|----------|
-| Store de eventos | `payment_integration_events`, `embedded_payment_attempts` (Supabase) |
-| Auditoría operativa | `operational_event_logs`: identidad, Brick, ledger, webhooks y emails |
-| Pagos | `server/modules/payments/paymentWorkflow.js`, `embeddedPaymentWorkflow.js` |
-| Suscripciones | `server/modules/subscriptions/subscriptionWorkflow.js` |
-| Combo afiliación + evento | `create_membership_registration_combo_order` (RPC Supabase) |
-| Campañas y códigos | `promotion_campaigns`, `promotion_campaign_benefits`, `discount_codes` |
-| Canje universal | `athlete_redeem_promotion_code` (RPC Supabase) + `promotionCodeService.js` |
-| Embudo promocional | `promotion_campaign_events`, unlocks, redenciones y órdenes aprobadas |
-| Credencial única | `athletes.credential_token` + `get_membership_by_code_or_token` (RPC Supabase) |
-| Recuperación | `server/modules/payments/paymentRecoveryWorkflow.js`, `server/jobs/paymentRecoveryJob.js` |
-| Notificaciones | `server/modules/notifications/notificationWorkflow.js` |
-| Controllers | `server/routes/payments.js`, `server/routes/emails.js` |
-| Contrato de DB | `prisma/schema.prisma` + migraciones versionadas en `supabase/migrations/` hasta `20260812160000_*` |
+| Capa                      | Archivos                                                                                            |
+| ------------------------- | --------------------------------------------------------------------------------------------------- |
+| Store de eventos          | `payment_integration_events`, `embedded_payment_attempts` (Supabase)                                |
+| Auditoría operativa       | `operational_event_logs`: identidad, Brick, ledger, webhooks y emails                               |
+| Pagos                     | `server/modules/payments/paymentWorkflow.js`, `embeddedPaymentWorkflow.js`                          |
+| Suscripciones             | `server/modules/subscriptions/subscriptionWorkflow.js`                                              |
+| Combo afiliación + evento | `create_membership_registration_combo_order` (RPC Supabase)                                         |
+| Campañas y códigos        | `promotion_campaigns`, `promotion_campaign_benefits`, `discount_codes`                              |
+| Canje universal           | `athlete_redeem_promotion_code` (RPC Supabase) + `promotionCodeService.js`                          |
+| Embudo promocional        | `promotion_campaign_events`, unlocks, redenciones y órdenes aprobadas                               |
+| Credencial única          | `athletes.credential_token` + `get_membership_by_code_or_token` (RPC Supabase)                      |
+| Recuperación              | `server/modules/payments/paymentRecoveryWorkflow.js`, `server/jobs/paymentRecoveryJob.js`           |
+| Notificaciones            | `server/modules/notifications/notificationWorkflow.js`                                              |
+| Controllers               | `server/routes/payments.js`, `server/routes/emails.js`                                              |
+| Contrato de DB            | `prisma/schema.prisma` + migraciones versionadas en `supabase/migrations/` hasta `20260812160000_*` |
 
 El checkout crea la orden primero. El navegador tokeniza el medio de pago con
 MercadoPago.js, pero el backend vuelve a leer monto, moneda, concepto y referencia
@@ -169,6 +169,12 @@ cambia al acreditar el combo o renovar. Al escanear, Supabase proyecta la
 afiliación y las inscripciones vigentes; el puesto de seguridad aporta el evento
 que está acreditando. Las entradas generales conservan un token opaco separado,
 con `tipo=ticket` y contexto de evento.
+
+El alcance temporal de cada QR de entrada también se persiste como snapshot
+inmutable (`tickets.valid_from` / `tickets.valid_until`) al emitirlo, derivado de
+las jornadas asignadas al tipo. La RPC autoritativa de check-in valida esa
+ventana con fin exclusivo y la allowlist offline transporta los mismos límites;
+editar el catálogo después de una venta no amplía ni reduce un acceso ya emitido.
 
 Para cobros únicos se usa `Payment Brick`. Para planes mensuales o anuales
 recurrentes se usa `Card Payment Brick`, que entrega el token efímero requerido

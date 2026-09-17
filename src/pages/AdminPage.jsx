@@ -68,6 +68,7 @@ export default function AdminPage({
   canDeleteRegistrations,
   canDeleteUsers,
   canManageUsers,
+  canViewScanReport,
   dashboardOverview,
   filters,
   filteredRegistrations,
@@ -120,6 +121,7 @@ export default function AdminPage({
   onCreateSecurityAccessLink,
   onDeactivateAllSecurityUsers,
   onListSecurityUsers,
+  onGetEventScanReport,
   onUpdateSecurityUserStatus,
   onListSecurityZones,
   onCreateSecurityZone,
@@ -494,6 +496,7 @@ export default function AdminPage({
           loadError={adminEventsError}
           canEdit={hasPermission(authorization, 'admin.events.write')}
           canManageUsers={canManageUsers}
+          canViewScanReport={canViewScanReport}
           canValidatePayments={hasPermission(authorization, 'admin.payments.approve')}
           onApprovePayment={onApprovePayment}
           onApproveTicketOrder={onApproveTicketPurchase}
@@ -502,6 +505,7 @@ export default function AdminPage({
           onCreateSecurityAccessLink={onCreateSecurityAccessLink}
           onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
           onListSecurityUsers={onListSecurityUsers}
+          onGetEventScanReport={onGetEventScanReport}
           onManageCheckin={
             allowedSections.includes('checkin') ? handleManageEventCheckin : undefined
           }

@@ -1,8 +1,5 @@
 import { z } from 'zod'
-import {
-  EVENT_PAYMENT_CHANNELS,
-  eventChannelOverridesFor,
-} from '../eventPaymentChannels.js'
+import { EVENT_PAYMENT_CHANNELS, eventChannelOverridesFor } from '../eventPaymentChannels.js'
 import { resolveTicketTypeChannels } from '../ticketTypePaymentChannels.js'
 
 /** Códigos de error → `admin.eventEditor.validation.*` en i18n. */
@@ -132,12 +129,15 @@ const ticketTypeSchema = z
   .object({
     id: z.string().uuid('ticketTypeIdInvalid').optional(),
     name: z.string().trim().min(1, 'ticketTypeNameRequired').max(100, 'ticketTypeNameMax'),
+    description: optionalText(240, 'ticketTypeDescriptionMax'),
     price: moneyField,
     wisePrice: nullableWisePrice.optional(),
     manualPrice: nullableManualPrice.optional(),
     // Ventana propia del tipo: sólo cierra antes que la del evento.
     salesOpensAt: optionalDateTime(),
     salesClosesAt: optionalDateTime(),
+    validFrom: optionalDateTime(),
+    validUntil: optionalDateTime(),
     quota: nullableQuota.optional(),
     sortOrder: z.coerce
       .number()
@@ -169,6 +169,19 @@ const ticketTypeSchema = z
         code: z.ZodIssueCode.custom,
         path: ['manualPrice'],
         message: 'manualPriceAbovePrice',
+      })
+    }
+    if (Boolean(type.validFrom) !== Boolean(type.validUntil)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['validUntil'],
+        message: 'ticketTypeValidityBothRequired',
+      })
+    } else if (type.validFrom && type.validUntil && type.validFrom >= type.validUntil) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['validUntil'],
+        message: 'ticketTypeValidityWindowInvalid',
       })
     }
   })
@@ -354,6 +367,18 @@ export const adminEventDraftSchema = z
     }
 
     for (const [index, ticketType] of (data.ticketTypes ?? []).entries()) {
+      if (
+        data.pricing.ticketsEnabled === true &&
+        ticketType.active !== false &&
+        Number(ticketType.price) > 0 &&
+        (ticketType.dayIndexes ?? []).length === 0
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['ticketTypes', index, 'dayIndexes'],
+          message: 'ticketTypeDayRequired',
+        })
+      }
       if ((ticketType.dayIndexes ?? []).some((dayIndex) => !dayIndexes.has(dayIndex))) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -393,7 +418,10 @@ export const adminEventDraftSchema = z
       // venta, pero por un camino que no se ve: el evento queda publicado y
       // la pantalla pública deja de ofrecer la compra.
       const ticketChannels = eventChannelOverridesFor(data.paymentChannelOverrides, 'ticket')
-      if (ticketChannels && EVENT_PAYMENT_CHANNELS.every((channel) => ticketChannels[channel] === false)) {
+      if (
+        ticketChannels &&
+        EVENT_PAYMENT_CHANNELS.every((channel) => ticketChannels[channel] === false)
+      ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['paymentChannelOverrides', 'ticket'],

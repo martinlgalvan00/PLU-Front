@@ -2,11 +2,8 @@ import '../../styles/components/ticket-purchase.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowRight,
-  Banknote,
   FileText,
-  CreditCard,
   IdCard,
-  Landmark,
   Minus,
   Plus,
   QrCode,
@@ -90,15 +87,24 @@ function TicketTypeHint({ t, type }) {
 
   const zones = zoneScopeList(type.zoneScopes, t)
   const count = type.credentialCount ?? 1
+  const accessDays = (type.accessDays ?? []).map((day) => day.label).join(' · ')
   const parts = [
+    accessDays ? t('pages.tickets.ticketTypes.validity', { days: accessDays }) : null,
     zones ? t('pages.tickets.ticketTypes.soloZone', { zones }) : null,
     credentialCountLabel(count, t),
     count > 1 ? t('pages.tickets.ticketTypes.quotaNote') : null,
   ].filter(Boolean)
 
-  if (!parts.length) return null
+  if (!parts.length && !type.description) return null
 
-  return <p className="ticket-purchase__type-hint">{parts.join(' · ')}</p>
+  return (
+    <p className="ticket-purchase__type-hint">
+      {type.description ? (
+        <span className="ticket-purchase__type-description">{type.description}</span>
+      ) : null}
+      {parts.length ? <span>{parts.join(' · ')}</span> : null}
+    </p>
+  )
 }
 
 function TicketAddonPicker({ addons, attendee, locale, onToggle, t, ticketTypes }) {
@@ -457,7 +463,68 @@ function TicketBuyerFields({ buyer, errors, onChange, t }) {
   )
 }
 
-function TicketPaymentOptions({
+/**
+ * Una fila de medio de pago: misma lengua que TicketTypeOptions (nombre |
+ * precio, hint, certeza de QR sólo en la seleccionada). El radio real sigue
+ * en el DOM para teclado y para los e2e que apuntan a `ticket-payment`.
+ */
+function TicketPaymentOption({
+  assurance = '',
+  checked,
+  compact = false,
+  disabled = false,
+  hint = '',
+  onChange,
+  priceLabel = '',
+  savingsLabel = '',
+  title,
+  value,
+}) {
+  const className = [
+    'ticket-purchase__payment-option',
+    checked ? 'is-selected' : '',
+    disabled ? 'is-disabled' : '',
+    compact ? 'ticket-purchase__payment-option--soon' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  return (
+    <label className={className}>
+      <input
+        type="radio"
+        name="ticket-payment"
+        value={value}
+        checked={checked}
+        disabled={disabled}
+        aria-disabled={disabled || undefined}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      <span className="ticket-purchase__payment-head">
+        <span className="ticket-purchase__payment-name">{title}</span>
+        {priceLabel || savingsLabel ? (
+          <span className="ticket-purchase__payment-amounts">
+            {priceLabel ? (
+              <span className="ticket-purchase__payment-price">{priceLabel}</span>
+            ) : null}
+            {savingsLabel ? (
+              <span className="ticket-purchase__payment-savings">{savingsLabel}</span>
+            ) : null}
+          </span>
+        ) : null}
+      </span>
+      {hint ? <span className="ticket-purchase__payment-hint">{hint}</span> : null}
+      {checked && assurance ? (
+        <span className="ticket-purchase__payment-assurance">
+          <QrCode size={14} strokeWidth={1.8} aria-hidden />
+          {assurance}
+        </span>
+      ) : null}
+    </label>
+  )
+}
+
+export function TicketPaymentOptions({
   manualEnabled = true,
   mercadoPagoEnabled = true,
   cashEnabled = false,
@@ -474,106 +541,59 @@ function TicketPaymentOptions({
       {/* La pasarela dejó de ser incondicional: se cierra por concepto igual que
           el canal manual. */}
       {mercadoPagoEnabled ? (
-        <label className={paymentMethod === 'mercado_pago' ? 'is-selected' : ''}>
-          <input
-            type="radio"
-            name="ticket-payment"
-            value="mercado_pago"
-            checked={paymentMethod === 'mercado_pago'}
-            onChange={(event) => onChange(event.target.value)}
-          />
-          <CreditCard size={18} aria-hidden />
-          <span>
-            <strong>{t('formOptions.payment.mercadoPago')}</strong>
-            <small>{t('pages.tickets.paymentMpHint')}</small>
-            {priceLabels?.mercado_pago ? (
-              <strong className="ticket-purchase__payment-price">
-                {priceLabels.mercado_pago.priceLabel}
-              </strong>
-            ) : null}
-          </span>
-        </label>
+        <TicketPaymentOption
+          value="mercado_pago"
+          checked={paymentMethod === 'mercado_pago'}
+          title={t('formOptions.payment.mercadoPago')}
+          hint={t('pages.tickets.paymentMpHint')}
+          priceLabel={priceLabels?.mercado_pago?.priceLabel}
+          assurance={t('pages.tickets.paymentMpAssurance')}
+          onChange={onChange}
+        />
       ) : null}
       {/* Canal manual cerrado desde el panel: la opción no se muestra, en vez de
           aparecer y fallar con 409 al enviar la compra. */}
       {manualEnabled ? (
-        <label className={paymentMethod === 'transferencia' ? 'is-selected' : ''}>
-          <input
-            type="radio"
-            name="ticket-payment"
-            value="transferencia"
-            checked={paymentMethod === 'transferencia'}
-            onChange={(event) => onChange(event.target.value)}
-          />
-          <Landmark size={18} aria-hidden />
-          <span>
-            <strong>{t('pages.tickets.paymentTransfer')}</strong>
-            <small>{t('pages.tickets.paymentTransferHint')}</small>
-            {priceLabels?.transferencia ? (
-              <strong className="ticket-purchase__payment-price">
-                {priceLabels.transferencia.priceLabel}
-              </strong>
-            ) : null}
-            {priceLabels?.transferencia?.savingsLabel ? (
-              <small className="ticket-purchase__payment-savings">
-                {priceLabels.transferencia.savingsLabel}
-              </small>
-            ) : null}
-          </span>
-        </label>
+        <TicketPaymentOption
+          value="transferencia"
+          checked={paymentMethod === 'transferencia'}
+          title={t('pages.tickets.paymentTransfer')}
+          hint={t('pages.tickets.paymentTransferHint')}
+          priceLabel={priceLabels?.transferencia?.priceLabel}
+          savingsLabel={priceLabels?.transferencia?.savingsLabel}
+          assurance={t('pages.tickets.paymentTransferAssurance')}
+          onChange={onChange}
+        />
       ) : null}
       {/* Efectivo en Pitbull: el espectador que pasa por el gimnasio paga en
           caja y no sube comprobante. Interruptor propio, igual que Wise. */}
       {cashEnabled ? (
-        <label className={paymentMethod === 'cash_pitbull' ? 'is-selected' : ''}>
-          <input
-            type="radio"
-            name="ticket-payment"
-            value="cash_pitbull"
-            checked={paymentMethod === 'cash_pitbull'}
-            onChange={(event) => onChange(event.target.value)}
-          />
-          <Banknote size={18} aria-hidden />
-          <span>
-            <strong>{t('pages.tickets.paymentCash')}</strong>
-            <small>{t('pages.tickets.paymentCashHint')}</small>
-            {priceLabels?.cash_pitbull ? (
-              <strong className="ticket-purchase__payment-price">
-                {priceLabels.cash_pitbull.priceLabel}
-              </strong>
-            ) : null}
-            {priceLabels?.cash_pitbull?.savingsLabel ? (
-              <small className="ticket-purchase__payment-savings">
-                {priceLabels.cash_pitbull.savingsLabel}
-              </small>
-            ) : null}
-          </span>
-        </label>
+        <TicketPaymentOption
+          value="cash_pitbull"
+          checked={paymentMethod === 'cash_pitbull'}
+          title={t('pages.tickets.paymentCash')}
+          hint={t('pages.tickets.paymentCashHint')}
+          priceLabel={priceLabels?.cash_pitbull?.priceLabel}
+          savingsLabel={priceLabels?.cash_pitbull?.savingsLabel}
+          assurance={t('pages.tickets.paymentCashAssurance')}
+          onChange={onChange}
+        />
       ) : null}
       {/* Wise se anuncia siempre. No se puede elegir hasta que Administración
           abra el canal y cargue el USD de cada ítem: un monto convertido del
           peso no es un precio, y mostrarlo acá prometía un cobro que nadie
-          decidió. */}
-      <label
-        className={
-          !wiseEnabled ? 'is-disabled' : paymentMethod === 'wise_transfer' ? 'is-selected' : ''
-        }
-      >
-        <input
-          type="radio"
-          name="ticket-payment"
-          value="wise_transfer"
-          checked={wiseEnabled && paymentMethod === 'wise_transfer'}
-          disabled={!wiseEnabled}
-          aria-disabled={!wiseEnabled}
-          onChange={(event) => onChange(event.target.value)}
-        />
-        <Landmark size={18} aria-hidden />
-        <span>
-          <strong>{t('pages.register.paymentWiseLabel')}</strong>
-          <small>{wiseEnabled && wiseLabel ? wiseLabel : t('pages.tickets.paymentWiseSoon')}</small>
-        </span>
-      </label>
+          decidió. Cerrado se degrada a fila, no a card competidora. */}
+      <TicketPaymentOption
+        value="wise_transfer"
+        checked={wiseEnabled && paymentMethod === 'wise_transfer'}
+        compact={!wiseEnabled}
+        disabled={!wiseEnabled}
+        title={t('pages.register.paymentWiseLabel')}
+        hint={wiseEnabled ? t('pages.tickets.paymentWiseHint') : t('pages.tickets.paymentWiseSoon')}
+        priceLabel={wiseEnabled ? wiseLabel : ''}
+        assurance={wiseEnabled ? t('pages.tickets.paymentWiseAssurance') : ''}
+        onChange={onChange}
+      />
     </fieldset>
   )
 }
@@ -676,7 +696,8 @@ export default function TicketPurchaseSection({
   }, [selectedTicketTypeIds, pricing.ticketTypes])
 
   const effectiveMercadoPagoEnabled = mercadoPagoEnabled && openChannelsForSelection.mercado_pago
-  const effectiveManualPaymentEnabled = manualPaymentEnabled && openChannelsForSelection.bank_transfer
+  const effectiveManualPaymentEnabled =
+    manualPaymentEnabled && openChannelsForSelection.bank_transfer
   const effectiveCashEnabled = cashEnabled && openChannelsForSelection.cash_pitbull
   const effectiveWiseEnabled = wiseReady && openChannelsForSelection.wise_transfer
   // El panel dice que el medio está abierto, pero el tipo elegido lo cierra:
@@ -1066,8 +1087,8 @@ export default function TicketPurchaseSection({
             </p>
             {/* Efectivo: no hay archivo que subir, así que el bloque de
                 comprobante no aparece en vez de pedir algo que no existe. */}
-            {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? null : visibleOrder.paymentProofUploadedAt ||
-              proofUploaded ? (
+            {visibleOrder.manualPaymentChannel ===
+            'cash_pitbull' ? null : visibleOrder.paymentProofUploadedAt || proofUploaded ? (
               <p className="ticket-purchase__proof-success">{t('pages.tickets.proofUploaded')}</p>
             ) : (
               <div className="ticket-purchase__proof-upload">
@@ -1353,7 +1374,10 @@ export default function TicketPurchaseSection({
                     {t('pages.tickets.attendee', { index: index + 1 })}
                   </span>
                   <span className="ticket-purchase__attendee-price">
-                    {money(priceForAttendee(attendee, pricing, ticketAddons, paymentMethod), locale)}
+                    {money(
+                      priceForAttendee(attendee, pricing, ticketAddons, paymentMethod),
+                      locale,
+                    )}
                   </span>
                 </div>
                 <div className="form-grid form-grid--compact">
@@ -1432,11 +1456,7 @@ export default function TicketPurchaseSection({
               <p className="ticket-purchase__payment-note ticket-purchase__payment-note--transfer">
                 {t('pages.tickets.transferCheckoutNote')}
               </p>
-            ) : (
-              <p className="ticket-purchase__payment-note ticket-purchase__payment-note--auto">
-                {t('pages.tickets.paymentMpCheckout')}
-              </p>
-            )}
+            ) : null}
             <div className="ticket-purchase__checkout-action">
               <div className="ticket-purchase__checkout-total" aria-live="polite">
                 <span>{t('pages.tickets.total')}</span>

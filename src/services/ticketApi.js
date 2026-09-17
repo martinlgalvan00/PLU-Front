@@ -56,6 +56,7 @@ function toCamelTicket(row, { event, checkIn } = {}) {
     attendeeDni: row.attendee_dni,
     ticketTypeId: row.ticket_type_id,
     ticketTypeName: row.ticketTypeName ?? row.ticket_type_name ?? null,
+    ticketTypeDescription: row.ticketTypeDescription ?? row.ticket_type_description ?? null,
     // La credencial emitida: qué dice impresa y qué zonas abre. Viene
     // congelada en la fila, no por join con el tipo, así que una entrada ya
     // vendida conserva el acceso con el que se vendió. Sin esto, las dos
@@ -71,6 +72,9 @@ function toCamelTicket(row, { event, checkIn } = {}) {
     unitPrice: row.unit_price,
     addons: Array.isArray(row.addons) ? row.addons : [],
     status: row.status,
+    validFrom: row.valid_from ?? row.validFrom ?? null,
+    validUntil: row.valid_until ?? row.validUntil ?? null,
+    validityStatus: row.validity_status ?? row.validityStatus ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     event: toCamelEvent(event),
@@ -227,6 +231,25 @@ export async function checkInTicket(qrToken, gate) {
   return { ticket: toCamelTicket(result.ticket), checkIn: toCamelCheckIn(result.checkIn) }
 }
 
+/**
+ * Telemetría de escaneos resueltos en el navegador que nunca llegaron a
+ * `checkInTicket` (vencido, zona incorrecta, no encontrado…). Fire-and-forget
+ * desde el caller -- ver `src/services/checkinTelemetry.js`.
+ */
+export async function reportScanTelemetry(payload) {
+  return apiPost('/api/tickets/checkin/scan-events', payload)
+}
+
+/** Informe de errores de escaneo para el panel de detección de un evento. */
+export async function getEventScanReport(eventSlug, { from, until, limit } = {}) {
+  const params = new URLSearchParams()
+  if (from) params.set('from', from)
+  if (until) params.set('until', until)
+  if (limit) params.set('limit', String(limit))
+  const query = params.toString()
+  return apiGet(`/api/tickets/checkin/scan-report/${eventSlug}${query ? `?${query}` : ''}`)
+}
+
 export async function redeemTicketAddon(qrToken, addonId) {
   const result = await apiPost(`/api/tickets/checkin/${qrToken}/addons/${addonId}/redeem`, {})
   return {
@@ -251,6 +274,7 @@ export function mapApiTicket(apiTicket, purchaseEvent) {
     attendeeDni: apiTicket.attendeeDni,
     ticketTypeId: apiTicket.ticketTypeId,
     ticketTypeName: apiTicket.ticketTypeName,
+    ticketTypeDescription: apiTicket.ticketTypeDescription ?? null,
     // Lo que separa una credencial de la otra dentro de la misma compra. Sin
     // esto la verificación pública mostraba el nombre del TIPO ("Entrenador")
     // para las dos, que es lo mismo que no distinguirlas.
@@ -261,6 +285,9 @@ export function mapApiTicket(apiTicket, purchaseEvent) {
     unitPrice: apiTicket.unitPrice,
     addons: Array.isArray(apiTicket.addons) ? apiTicket.addons : [],
     status: apiTicket.status,
+    validFrom: apiTicket.validFrom ?? null,
+    validUntil: apiTicket.validUntil ?? null,
+    validityStatus: apiTicket.validityStatus ?? null,
     checkedInAt: apiTicket.checkIn?.scannedAt ?? null,
     eventSlug: purchaseEvent?.slug ?? apiTicket.event?.slug ?? apiTicket.eventSlug,
     eventTitle: purchaseEvent?.title ?? apiTicket.event?.title,

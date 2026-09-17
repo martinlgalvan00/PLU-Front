@@ -74,6 +74,15 @@ export function canManageUsers(subject) {
   return hasPermission(subject, 'admin.users.write')
 }
 
+// El panel de detección de errores de escaneo es lectura de auditoría, no
+// gestión de cuentas: permiso propio, no `canManageUsers`. El preset
+// seguridad_plu_arg (sólo admin.events.read + admin.checkin.execute) queda
+// afuera a propósito -- quien escanea en el puesto no necesita ver el
+// análisis del evento.
+export function canViewScanReport(subject) {
+  return hasPermission(subject, 'admin.audit.read')
+}
+
 export function canDeleteUsers(subject) {
   return hasPermission(subject, 'admin.users.delete')
 }

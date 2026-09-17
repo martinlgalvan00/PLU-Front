@@ -37,6 +37,7 @@ function eventPayload(overrides = {}) {
     ticketTypes: [
       {
         name: 'Pase general',
+        description: 'Acceso general válido durante la jornada.',
         price: 20000,
         quota: 100,
         dayIndexes: [0],
@@ -87,6 +88,7 @@ function canonicalEvent() {
       {
         id: '33333333-3333-4333-8333-333333333333',
         name: 'Pase general',
+        description: 'Acceso general válido durante la jornada.',
         price: 20000,
         quota: 100,
         sort_order: 0,
@@ -361,6 +363,19 @@ describe('API administrativa de eventos', () => {
         expect.objectContaining({
           p_slug: payload.slug,
           p_total_public: true,
+        }),
+      )
+      expect(supabase.rpc).toHaveBeenCalledWith(
+        'staff_merge_ticket_type_descriptions',
+        expect.objectContaining({
+          p_event_slug: payload.slug,
+          p_types: [
+            expect.objectContaining({
+              sortOrder: 0,
+              description: 'Acceso general válido durante la jornada.',
+            }),
+          ],
+          p_actor: expect.stringContaining(':admin_maximal@events.test'),
         }),
       )
     } finally {
