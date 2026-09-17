@@ -271,6 +271,20 @@ export const webhookLimiter = buildLimiter(
   { name: 'webhook', mode: 'sampled' },
 )
 
+/**
+ * Telemetría de escaneos rechazados (`POST /api/tickets/checkin/scan-events`).
+ * Limiter propio y NO `staffLimiter`, mismo motivo que `liveLimiter`: el
+ * dispositivo de puerta manda esto en lotes cada pocos segundos además de
+ * escanear, y compartir balde con el resto del panel dejaría a un operador
+ * sin cupo para el check-in real por reportar sus propios rechazos.
+ */
+export const scanTelemetryLimiter = buildLimiter(
+  60 * 1000,
+  120,
+  'Demasiados reportes de escaneo. Proba de nuevo en un momento.',
+  { name: 'scan-telemetry', mode: 'sampled' },
+)
+
 // Todo lo staff-only: ya protegido por rol (requireRole), este límite es
 // defensa en profundidad ante una cuenta comprometida o un script/bug de
 // polling descontrolado en el panel admin, no control de abuso primario --

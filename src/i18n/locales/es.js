@@ -3213,7 +3213,7 @@ export default {
       checkoutStep1: 'Cantidad',
       checkoutStep2: 'Datos',
       checkoutStep3: 'Pago',
-      secureFlow: 'Pago seguro · QR al confirmar',
+      secureFlow: 'Ingreso con QR · se habilita al confirmar',
       closed: 'La venta de entradas para este evento no está habilitada.',
       checkoutSoon:
         'La venta de entradas abre junto con las inscripciones. Pedí aviso desde la home o Pitbull Classic.',
@@ -3349,9 +3349,11 @@ export default {
       credentialsFor: 'Credenciales de {{name}}',
       paymentMethod: 'Método de pago',
       paymentTransfer: 'Transferencia bancaria',
-      paymentMpHint: 'Pago automático · QR habilitado al confirmarse',
-      paymentTransferHint: 'Validación manual por Administración · hasta 48 horas',
-      paymentSavings: 'Ahorrás {{amount}} pagando así',
+      paymentMpHint: 'Acreditación automática',
+      paymentMpAssurance: 'Tu QR abre la puerta al confirmarse',
+      paymentTransferHint: 'Validación por Administración · hasta 48 horas',
+      paymentTransferAssurance: 'QR al aprobarse, no al pagar',
+      paymentSavings: 'Ahorrás {{amount}}',
       paymentNarrowedByType:
         'El tipo de entrada elegido limita los medios de pago disponibles para esta compra.',
       buyerTitle: 'Tus datos',
@@ -3365,13 +3367,15 @@ export default {
       buyerPhonePlaceholder: '11 5555 5555',
       paymentCash: 'Efectivo en Pitbull',
       paymentCashHint: 'Pagás en el gimnasio · sin comprobante para subir',
+      paymentCashAssurance: 'QR habilitado cuando acreditamos el pago en caja',
       paymentWiseSoon: 'Próximamente',
+      paymentWiseHint: 'Transferencia internacional · QR al acreditarse',
+      paymentWiseAssurance: 'QR de ingreso al acreditarse la transferencia',
       cashNote:
         'Pasá por Pitbull con este código y pagá en caja. Administración acredita la compra en el momento y tu QR queda habilitado.',
       cashWhereLabel: 'Dónde pagar',
       cashWhereValue: 'Pitbull Gym, en horario de atención',
-      paymentMpCheckout:
-        'Al pagar con Mercado Pago, la confirmación es automática y tu QR queda listo enseguida.',
+      paymentMpCheckout: 'Pagás, Mercado Pago acredita solo y tu QR abre la puerta.',
       paymentMpPending:
         'Pagá con Mercado Pago para confirmar al instante. Tu entrada con QR se habilita automáticamente.',
       transferCheckoutNote:

@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock, XCircle } from 'lucide-react'
 import '../../styles/layout/admin-shell.css'
 import '../../styles/pages/admin.css'
 import '../../styles/pages/admin-minimal.css'
@@ -119,6 +119,69 @@ export const YaUtilizada = {
         credentialScopes: ['athletes_coaches'],
         status: 'usada',
         addons: [],
+      },
+    },
+  },
+}
+
+/**
+ * Vencida: el motivo tiene que leerse pegado a la decisión, no enterrado
+ * entre el resto de los metadatos de la entrada.
+ */
+export const Vencida = {
+  args: {
+    ...base,
+    scanPersonName: 'Juana Pérez',
+    scanPersonDoc: '30111222',
+    scanTicketPaid: true,
+    scanVerdict: { Icon: XCircle, tone: 'danger' },
+    scanResult: {
+      kind: 'ticket',
+      outcome: 'expired',
+      canCheckIn: false,
+      status: 'pagada',
+      row: {
+        id: 'tkt-3',
+        type: 'espectador',
+        name: 'Juana Pérez',
+        document: '30111222',
+        ticketTypeName: 'Público general — Día 1',
+        credentialLabel: 'Entrada general',
+        credentialScopes: ['gate_tickets'],
+        status: 'pagada',
+        addons: [],
+        validFrom: '2026-08-15T03:00:00.000Z',
+        validUntil: '2026-08-16T03:00:00.000Z',
+      },
+    },
+  },
+}
+
+/** Todavía no vigente: el QR es de un día posterior al de hoy. */
+export const TodaviaNoVigente = {
+  args: {
+    ...base,
+    scanPersonName: 'Juana Pérez',
+    scanPersonDoc: '30111222',
+    scanTicketPaid: true,
+    scanVerdict: { Icon: Clock, tone: 'warning' },
+    scanResult: {
+      kind: 'ticket',
+      outcome: 'not_yet_valid',
+      canCheckIn: false,
+      status: 'pagada',
+      row: {
+        id: 'tkt-4',
+        type: 'espectador',
+        name: 'Juana Pérez',
+        document: '30111222',
+        ticketTypeName: 'Público general — Día 2',
+        credentialLabel: 'Entrada general',
+        credentialScopes: ['gate_tickets'],
+        status: 'pagada',
+        addons: [],
+        validFrom: '2026-08-16T03:00:00.000Z',
+        validUntil: '2026-08-17T03:00:00.000Z',
       },
     },
   },

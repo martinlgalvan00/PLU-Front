@@ -23,6 +23,7 @@ import { getUpcomingEventsByDate } from '../lib/eventNavigation.js'
 import {
   cheapestTicketTypePrice,
   isTicketSalesEnabled,
+  shortTicketTypeName,
   ticketPricingFromEvent,
 } from '../lib/eventPricing.js'
 import { env } from '../config/env.js'
@@ -41,9 +42,10 @@ import '../styles/pages/tickets.css'
  * una zona que ninguna entrada habilite. Con un solo tipo no hay nada que
  * comparar y no se dibuja.
  */
-function TicketAccessMatrix({ ticketTypes = [], t }) {
+function TicketAccessMatrix({ locale, ticketTypes = [], t }) {
   const zones = zonesTicketsCanOpen()
   if (ticketTypes.length < 2 || zones.length === 0) return null
+  const labelOf = (type) => shortTicketTypeName(type.name, locale)
 
   return (
     <div className="tickets-page__access">
@@ -81,14 +83,14 @@ function TicketAccessMatrix({ ticketTypes = [], t }) {
                 ) : (
                   <ul className="tickets-page__access-opens">
                     {included.map((type) => (
-                      <li key={type.id}>{type.name}</li>
+                      <li key={type.id}>{labelOf(type)}</li>
                     ))}
                   </ul>
                 )}
                 {excluded.length ? (
                   <p className="tickets-page__access-closed">
                     <span>{t('pages.ticketsPage.accessClosed')}</span>
-                    {excluded.map((type) => type.name).join(' · ')}
+                    {excluded.map((type) => labelOf(type)).join(' · ')}
                   </p>
                 ) : null}
               </div>
@@ -395,7 +397,7 @@ export default function TicketsPage({
             ticketTypes={pricing.ticketTypes}
           />
 
-          <TicketAccessMatrix ticketTypes={pricing.ticketTypes} t={t} />
+          <TicketAccessMatrix locale={locale} ticketTypes={pricing.ticketTypes} t={t} />
         </section>
       ) : null}
 

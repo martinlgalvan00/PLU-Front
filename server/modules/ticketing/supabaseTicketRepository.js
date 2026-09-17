@@ -95,6 +95,45 @@ export function createSupabaseTicketRepository(client) {
         'No se pudo descargar la lista de ingreso.',
       ),
     /**
+     * Resuelve el evento server-side a partir del slug. La ingesta de
+     * telemetría de escaneo (`POST /checkin/scan-events`) nunca acepta un
+     * eventId del cuerpo del request -- lo derivable de una cuenta cuyo
+     * scope ya validó `assertEventSlugScope`.
+     */
+    async resolveEventIdBySlug(eventSlug) {
+      const event = assertSupabaseResult(
+        await client.from('events').select('id').eq('slug', eventSlug).maybeSingle(),
+        'No se pudo resolver el evento.',
+      )
+      return event?.id ?? null
+    },
+    /**
+     * Ídem para el ticket: un dispositivo de puerta reporta el código que
+     * escaneó, pero el ticketId que se guarda en la telemetría siempre sale
+     * de resolverlo acá, nunca de confiar en lo que mandó el cliente.
+     */
+    async resolveTicketByQrToken(qrToken) {
+      if (!qrToken) return null
+      try {
+        const ticket = assertSupabaseResult(
+          await client.from('tickets').select('id, event_id').eq('qr_token', qrToken).maybeSingle(),
+          'No se pudo resolver la entrada.',
+        )
+        return ticket ?? null
+      } catch {
+        // Un código de puerta con formato inválido no puede tumbar la
+        // ingesta de telemetría entera -- se guarda como intento sin
+        // ticketId resuelto, igual que un token que no existe.
+        return null
+      }
+    },
+    scanReport: (eventSlug, { from, until, limit } = {}) =>
+      rpc(
+        'staff_get_event_scan_error_report',
+        { p_event_slug: eventSlug, p_from: from ?? null, p_until: until ?? null, p_limit: limit ?? null },
+        'No se pudo leer el informe de escaneos.',
+      ),
+    /**
      * `zoneScope` es el alcance de la zona de quien escanea. Con él, la RPC
      * exige que la credencial habilite esa zona -- así la de ENTRENADOR abre la
      * entrada en calor y la de espectador no. Nulo no valida zona: una cuenta

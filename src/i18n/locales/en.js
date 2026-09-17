@@ -3174,7 +3174,7 @@ export default {
       checkoutStep1: 'Quantity',
       checkoutStep2: 'Details',
       checkoutStep3: 'Payment',
-      secureFlow: 'Secure payment · QR on confirmation',
+      secureFlow: 'Entry with QR · enabled on confirmation',
       closed: 'Ticket sales are not enabled for this event.',
       checkoutSoon:
         'Ticket sales open with registration. Ask for a notification from Home or Pitbull Classic.',
@@ -3308,9 +3308,11 @@ export default {
       credentialsFor: 'Credentials for {{name}}',
       paymentMethod: 'Payment method',
       paymentTransfer: 'Bank transfer',
-      paymentMpHint: 'Automatic payment · QR enabled once confirmed',
-      paymentTransferHint: 'Manual validation by Administration · up to 48 hours',
-      paymentSavings: 'Save {{amount}} paying this way',
+      paymentMpHint: 'Automatic confirmation',
+      paymentMpAssurance: 'Your QR opens the door once confirmed',
+      paymentTransferHint: 'Validation by Administration · up to 48 hours',
+      paymentTransferAssurance: 'QR once approved, not when you pay',
+      paymentSavings: 'Save {{amount}}',
       paymentNarrowedByType:
         'The ticket type you picked limits the payment methods for this purchase.',
       buyerTitle: 'Your details',
@@ -3323,13 +3325,15 @@ export default {
       buyerPhonePlaceholder: '11 5555 5555',
       paymentCash: 'Cash at Pitbull',
       paymentCashHint: 'Pay at the gym · no receipt to upload',
+      paymentCashAssurance: 'QR enabled when we credit the cash payment',
       paymentWiseSoon: 'Coming soon',
+      paymentWiseHint: 'International transfer · QR once credited',
+      paymentWiseAssurance: 'Entry QR once the transfer is credited',
       cashNote:
         'Drop by Pitbull with this code and pay at the desk. Administration credits the purchase on the spot and your QR is enabled.',
       cashWhereLabel: 'Where to pay',
       cashWhereValue: 'Pitbull Gym, during opening hours',
-      paymentMpCheckout:
-        'With Mercado Pago, confirmation is automatic and your QR is ready right away.',
+      paymentMpCheckout: 'You pay, Mercado Pago credits it, and your QR opens the door.',
       paymentMpPending:
         'Pay with Mercado Pago for instant confirmation. Your QR ticket is enabled automatically.',
       transferCheckoutNote:

@@ -4,6 +4,7 @@ import {
   resolveEventPricing,
   resolveLiveComboOffer,
   resolveUpcomingPriceChange,
+  shortTicketTypeName,
   ticketPricingFromEvent,
 } from '../src/lib/eventPricing.js'
 
@@ -280,5 +281,22 @@ describe('ticketPricingFromEvent — ventana propia y precio Wise por tipo', () 
       NOW,
     )
     expect(pricing.ticketTypes.map((type) => type.manualPrice)).toEqual([null, null, null])
+  })
+})
+
+describe('shortTicketTypeName', () => {
+  it('saca el paréntesis descriptivo y deja de gritar el nombre del panel', () => {
+    expect(
+      shortTicketTypeName(
+        'ENTRENADOR 1 DÍA (Incluye el ingreso solamente para un día del evento, sea día 1 o día 2)',
+      ),
+    ).toBe('Entrenador 1 Día')
+    expect(
+      shortTicketTypeName('ENTRENADOR 2 DÍAS (Incluye el ingreso los dos días del evento)'),
+    ).toBe('Entrenador 2 Días')
+  })
+
+  it('no toca un nombre que ya venía corto y en oración', () => {
+    expect(shortTicketTypeName('Público general')).toBe('Público general')
   })
 })

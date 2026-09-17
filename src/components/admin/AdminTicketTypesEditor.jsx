@@ -740,7 +740,7 @@ export default function AdminTicketTypesEditor({
                     </div>
                     <div className="admin-ticket-types__window-grid">
                       <label className="admin-event-form__field">
-                        <span>Habilitar desde</span>
+                        <span>{t('admin.eventEditor.supabase.ticketTypeQrValidFrom')}</span>
                         <DateTimeLocalInput
                           disabled={!canEdit}
                           name={`ticketTypes.${index}.validFrom`}
@@ -756,7 +756,7 @@ export default function AdminTicketTypesEditor({
                         ) : null}
                       </label>
                       <label className="admin-event-form__field">
-                        <span>Vence al comenzar</span>
+                        <span>{t('admin.eventEditor.supabase.ticketTypeQrValidUntil')}</span>
                         <DateTimeLocalInput
                           disabled={!canEdit}
                           name={`ticketTypes.${index}.validUntil`}

@@ -22,6 +22,7 @@ import {
   summarizeCheckinRows,
 } from '../services/checkinWorkspaceService.js'
 import { getEventCheckinAllowlist } from '../services/athleteApi.js'
+import { reportScanAttempt } from '../services/checkinTelemetry.js'
 
 const MAX_SCAN_HISTORY = 15
 const FEEDBACK_STORAGE_KEY = 'plu-checkin-feedback'
@@ -64,6 +65,19 @@ export const SCAN_VERDICT_META = {
   not_yet_valid: { Icon: Clock, tone: 'warning' },
   expired: { Icon: XCircle, tone: 'danger' },
 }
+
+/**
+ * `checkInTicketAction` (useAppData.js) devuelve el outcome que clasificó
+ * `checkinRejectionOutcome` por código PLU. Acá sólo se traduce al outcome de
+ * UI que ya sabe render `SCAN_VERDICT_META` — `not_paid` sigue llamándose
+ * `not_ready` en la UI por compatibilidad con el resto del workspace.
+ */
+const CHECKIN_REJECTION_UI_OUTCOME = Object.freeze({
+  wrong_zone: 'wrong_zone',
+  not_paid: 'not_ready',
+  expired: 'expired',
+  not_yet_valid: 'not_yet_valid',
+})
 
 function isNetworkError(error) {
   return error instanceof TypeError || error?.name === 'AuthRetryableFetchError'
@@ -330,6 +344,7 @@ export function useCheckInWorkspace({
         setScanResult(invalidResult)
         prependHistoryEntry(buildHistoryEntry(invalidResult, raw))
         playCheckinFeedback('invalid', feedbackPrefs)
+        reportScanAttempt({ eventSlug, kind: 'unknown', outcome: 'invalid' })
         return
       }
 
@@ -353,6 +368,12 @@ export function useCheckInWorkspace({
         if (resolved.row?.id) {
           setHighlightRowId(resolved.row.id)
         }
+        reportScanAttempt({
+          eventSlug,
+          kind: resolved.kind ?? 'unknown',
+          outcome: resolved.outcome ?? 'invalid',
+          qrToken: resolved.qrToken ?? null,
+        })
       } catch (error) {
         if (isNetworkError(error)) {
           const found = await findInAllowlist(eventSlug, parsed.code)
@@ -362,6 +383,13 @@ export function useCheckInWorkspace({
           prependHistoryEntry(buildHistoryEntry(offlineResult, raw))
           playCheckinFeedback(offlineResult.outcome ?? 'invalid', feedbackPrefs)
           if (offlineResult.row?.id) setHighlightRowId(offlineResult.row.id)
+          reportScanAttempt({
+            eventSlug,
+            kind: offlineResult.kind ?? 'unknown',
+            outcome: offlineResult.outcome ?? 'invalid',
+            qrToken: offlineResult.qrToken ?? null,
+            offline: true,
+          })
           setScanBusy(false)
           return
         }
@@ -371,6 +399,7 @@ export function useCheckInWorkspace({
         setScanResult(notFoundResult)
         prependHistoryEntry(buildHistoryEntry(notFoundResult, raw))
         playCheckinFeedback('not_found', feedbackPrefs)
+        reportScanAttempt({ eventSlug, kind: 'unknown', outcome: 'not_found' })
       } finally {
         setScanBusy(false)
       }
@@ -430,12 +459,12 @@ export function useCheckInWorkspace({
       return
     }
 
-    if (result?.outcome === 'wrong_zone' || result?.outcome === 'not_paid') {
-      const outcome = result.outcome === 'wrong_zone' ? 'wrong_zone' : 'not_ready'
-      playCheckinFeedback(outcome, feedbackPrefs)
+    const uiOutcome = CHECKIN_REJECTION_UI_OUTCOME[result?.outcome]
+    if (uiOutcome) {
+      playCheckinFeedback(uiOutcome, feedbackPrefs)
       setScanResult({
         kind: 'ticket',
-        outcome,
+        outcome: uiOutcome,
         canCheckIn: false,
         qrToken: row.qrToken,
         status: row.status,
@@ -513,12 +542,12 @@ export function useCheckInWorkspace({
         })
         return
       }
-      if (result?.outcome === 'wrong_zone' || result?.outcome === 'not_paid') {
-        const outcome = result.outcome === 'wrong_zone' ? 'wrong_zone' : 'not_ready'
-        playCheckinFeedback(outcome === 'wrong_zone' ? 'wrong_zone' : 'not_ready', feedbackPrefs)
+      const uiOutcome = CHECKIN_REJECTION_UI_OUTCOME[result?.outcome]
+      if (uiOutcome) {
+        playCheckinFeedback(uiOutcome, feedbackPrefs)
         setScanResult({
           ...scanResult,
-          outcome,
+          outcome: uiOutcome,
           canCheckIn: false,
         })
       }

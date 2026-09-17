@@ -20,6 +20,11 @@ const ALLOWLIST_KEY = (eventSlug) => `allowlist:${eventSlug}`
 const PENDING_KEY = 'pendingQueue'
 const CONFLICTS_KEY = 'resolvedConflicts'
 const DEVICE_ID_KEY = 'plu-checkin-device-id'
+const SCAN_TELEMETRY_KEY = 'scanTelemetryQueue'
+// Tope de la cola: sin señal por mucho tiempo, un escaneo repetido no puede
+// crecer sin límite. Se descarta lo más viejo primero -- el detalle exacto de
+// un escaneo de hace tres días importa menos que no perder los recientes.
+const SCAN_TELEMETRY_MAX = 500
 
 export function getDeviceId() {
   if (typeof window === 'undefined') return 'server'
@@ -132,6 +137,33 @@ export async function addResolvedConflict(entry) {
   await set(
     CONFLICTS_KEY,
     [{ ...entry, resolvedAt: new Date().toISOString() }, ...conflicts].slice(0, 50),
+    store,
+  )
+}
+
+/**
+ * Cola de telemetría de escaneo (`src/services/checkinTelemetry.js`) para
+ * cuando `flush()` no tiene señal -- el mismo patrón que `pendingQueue`, pero
+ * para intentos, no para check-ins reales. Se drena cuando vuelve la
+ * conexión (`useOfflineCheckinSync.js`).
+ */
+export async function enqueueScanEvent(attempt) {
+  const queue = (await get(SCAN_TELEMETRY_KEY, store)) ?? []
+  const next = [...queue, attempt].slice(-SCAN_TELEMETRY_MAX)
+  await set(SCAN_TELEMETRY_KEY, next, store)
+}
+
+export async function listPendingScanEvents() {
+  return (await get(SCAN_TELEMETRY_KEY, store)) ?? []
+}
+
+/** Saca del disco sólo los intentos ya confirmados por el servidor. */
+export async function clearScanEvents(clientIds) {
+  const ids = new Set(clientIds)
+  const queue = (await get(SCAN_TELEMETRY_KEY, store)) ?? []
+  await set(
+    SCAN_TELEMETRY_KEY,
+    queue.filter((item) => !ids.has(item.clientId)),
     store,
   )
 }
