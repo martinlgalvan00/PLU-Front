@@ -3505,6 +3505,10 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
   gap: 4px;
 }
 
+.auth-layout--login .auth-immersive-glass .login-field {
+  gap: 6px;
+}
+
 .auth-layout .auth-immersive-glass .login-field__control input {
   min-height: clamp(40px, 5.5vh, 48px);
 }
@@ -4573,6 +4577,26 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
   color: color-mix(in oklab, var(--plu-gold-500) 72%, var(--color-text-muted));
 }
 
+/* Login: labels en sentence case. Uppercase + tracking competía con el
+   eyebrow institucional y hacía leer el formulario como plantilla. */
+.auth-layout--login .auth-immersive-glass .login-field__label {
+  color: var(--color-text-muted);
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  margin-bottom: 0;
+  text-transform: none;
+}
+
+.auth-layout--login .auth-immersive-glass .login-field:focus-within .login-field__label {
+  color: color-mix(in oklab, var(--plu-gold-500) 72%, var(--color-text-muted));
+}
+
+.auth-layout--login .auth-immersive-glass .login-field__forgot {
+  font-size: 13px;
+}
+
 .auth-immersive-glass .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -5100,12 +5124,12 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
       declara el estado, el anillo queda estático. */
 }
 
-/* Pie del formulario de login: afiliación en bloque secundario. */
+/* Pie del formulario: una secundaria (afiliarse) y un enlace de servicio. */
 .auth-immersive-glass .login-form__footer {
-  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 6%, transparent);
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
   display: grid;
-  gap: 0;
-  margin-top: 6px;
+  gap: 2px;
+  margin-top: 8px;
   padding-top: 16px;
 }
 
@@ -5120,41 +5144,55 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
 }
 
 .auth-layout--login .login-form__footer .login-join + .login-join {
-  margin-top: 8px;
+  margin-top: 0;
 }
 
 .auth-layout--login .login-join__prompt {
-  color: color-mix(in srgb, var(--color-text-muted) 88%, transparent);
-  font-size: 12.5px;
+  color: var(--color-text-muted);
+  font-size: 13px;
   font-weight: 400;
 }
 
 .auth-layout--login .login-form__footer .login-join__link {
   background: none;
   border: none;
-  color: var(--color-text-primary);
+  color: var(--color-brand-celeste);
   cursor: pointer;
   font: inherit;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: -0.01em;
-  padding: 0;
+  letter-spacing: 0;
+  padding: 6px 0;
   text-decoration: none;
   transition: color 180ms var(--ease-out);
 }
 
 .auth-layout--login .login-form__footer .login-join__link:hover {
+  color: color-mix(in oklab, var(--color-brand-celeste) 82%, var(--color-text-primary));
+}
+
+.auth-layout--login .login-join--service {
+  margin-top: 2px;
+}
+
+.auth-layout--login .login-form__footer .login-join__link--service {
+  color: var(--color-text-muted);
+  font-weight: 500;
+  min-height: 40px;
+  padding: 8px 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--color-text-muted) 34%, transparent);
+  text-underline-offset: 3px;
+}
+
+.auth-layout--login .login-form__footer .login-join__link--service:hover {
   color: var(--color-brand-celeste);
+  text-decoration-color: color-mix(in oklab, var(--color-brand-celeste) 55%, transparent);
 }
 
 @media (min-width: 600px) {
   .auth-layout--login .login-form__footer {
-    margin-top: 8px;
-    padding-top: 18px;
-  }
-
-  .auth-layout--login .login-join__prompt,
-  .auth-layout--login .login-form__footer .login-join__link {
-    font-size: 13px;
+    margin-top: 10px;
+    padding-top: 20px;
   }
 }

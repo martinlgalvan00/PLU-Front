@@ -75,10 +75,16 @@ label.ticket-type-options__option:hover {
 }
 
 .ticket-type-options__head {
-  align-items: baseline;
-  display: flex;
+  align-items: start;
+  display: grid;
   gap: 12px;
-  justify-content: space-between;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.ticket-type-options__copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
 }
 
 .ticket-type-options__name {
@@ -98,9 +104,10 @@ label.ticket-type-options__option:hover {
 
 .ticket-type-options__description {
   color: var(--color-text-secondary);
-  font-size: 12.5px;
+  font-size: 13px;
+  font-weight: 400;
   line-height: 1.55;
-  max-width: 62ch;
+  margin: 0;
 }
 
 .ticket-type-options__validity {
@@ -170,8 +177,8 @@ label.ticket-type-options__option:hover {
   }
 
   .ticket-type-options__head {
-    flex-direction: column;
-    gap: 3px;
+    gap: 4px;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

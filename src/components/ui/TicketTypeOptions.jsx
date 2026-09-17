@@ -73,14 +73,15 @@ function TicketTypeBody({ type, locale, t, showAddons }) {
 
   return (
     <>
-      <span className="ticket-type-options__head">
-        <span className="ticket-type-options__name">{type.name}</span>
+      <div className="ticket-type-options__head">
+        <div className="ticket-type-options__copy">
+          <span className="ticket-type-options__name">{type.name}</span>
+          {type.description ? (
+            <p className="ticket-type-options__description">{type.description}</p>
+          ) : null}
+        </div>
         <span className="ticket-type-options__price">{money(type.price, locale)}</span>
-      </span>
-
-      {type.description ? (
-        <span className="ticket-type-options__description">{type.description}</span>
-      ) : null}
+      </div>
 
       {(type.accessDays ?? []).length ? (
         <span className="ticket-type-options__validity">
