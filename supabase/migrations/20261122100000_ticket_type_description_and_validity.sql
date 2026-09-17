@@ -80,9 +80,9 @@ begin
     return new;
   end if;
 
-  select window.valid_from, window.valid_until
+  select w.valid_from, w.valid_until
     into v_from, v_until
-  from plu_private.resolve_ticket_validity_window(new.ticket_type_id, new.event_id) window;
+  from plu_private.resolve_ticket_validity_window(new.ticket_type_id, new.event_id) w;
 
   if v_from is null or v_until is null or v_until <= v_from then
     raise exception 'No se pudo determinar la vigencia del QR de la entrada.'
@@ -104,9 +104,9 @@ before insert on public.tickets
 for each row execute function plu_private.set_ticket_validity_snapshot();
 
 with validity as (
-  select t.id, window.valid_from, window.valid_until
+  select t.id, w.valid_from, w.valid_until
   from public.tickets t
-  cross join lateral plu_private.resolve_ticket_validity_window(t.ticket_type_id, t.event_id) window
+  cross join lateral plu_private.resolve_ticket_validity_window(t.ticket_type_id, t.event_id) w
 )
 update public.tickets t
 set valid_from = validity.valid_from,
