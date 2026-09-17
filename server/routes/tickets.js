@@ -3,6 +3,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { hasEventScopeAccess } from '../../src/lib/permissions.js'
 import { resolveTicketTypeChannels } from '../../src/lib/ticketTypePaymentChannels.js'
+import { ticketValidityTiming } from '../../src/lib/ticketValidity.js'
 import { HttpError } from '../lib/errors.js'
 import { isMissingSchemaColumn } from '../lib/supabaseRpc.js'
 import {
@@ -177,6 +178,27 @@ function assertTicketValidity(verified) {
   }
 }
 
+/** Contexto temporal que queda junto al intento de puerta, sin PII ni token. */
+function ticketScanValidityMetadata(verified) {
+  const ticket = verified?.ticket ?? verified
+  const timing = ticketValidityTiming(ticket)
+  const validFrom = ticket?.valid_from ?? ticket?.validFrom ?? null
+  const validUntil = ticket?.valid_until ?? ticket?.validUntil ?? null
+  if (!validFrom || !validUntil || timing.status === 'unknown') return {}
+
+  return {
+    validity: {
+      status: timing.status,
+      validFrom,
+      validUntil,
+      remainingSeconds:
+        timing.remainingMs == null ? null : Math.max(0, Math.ceil(timing.remainingMs / 1_000)),
+      expiredForSeconds:
+        timing.expiredForMs == null ? null : Math.max(0, Math.floor(timing.expiredForMs / 1_000)),
+    },
+  }
+}
+
 // Mismo mapeo que `checkinRejectionOutcome` en checkinScanService.js
 // (src/), del lado del servidor: el código PLU del rechazo es la fuente de
 // verdad para clasificar la fila de telemetría, no el texto del mensaje.
@@ -306,6 +328,7 @@ export function createTicketRoutes({
   const scanAuditGuard = requirePermission('admin.audit.read', { prisma })
   const financeReadGuard = requirePermission('admin.payments.read', { prisma })
   const financeWriteGuard = requirePermission('admin.payments.approve', { prisma })
+  const ticketAccessOverrideGuard = requirePermission('admin.events.write', { prisma })
   const actor = (req) => `${req.auth.user.id}:${req.auth.user.email}`
   const mailer = brevo ?? createBrevoAdapter({ env })
   const appUrl = (resolveDeploymentAppUrl(env) || env.VITE_APP_URL || '').replace(/\/$/, '')
@@ -413,6 +436,19 @@ export function createTicketRoutes({
   }
 
   const verifiedTicketEventId = (result) => result?.ticket?.event_id ?? result?.event_id
+
+  const ticketAccessOverrideSchema = z
+    .object({
+      enabled: z.boolean(),
+      validFrom: z.string().datetime().nullable().optional(),
+      validUntil: z.string().datetime().nullable().optional(),
+    })
+    .superRefine((value, context) => {
+      if (!value.enabled) return
+      if (!value.validFrom || !value.validUntil || value.validUntil <= value.validFrom) {
+        context.addIssue({ code: z.ZodIssueCode.custom, message: 'La vigencia individual es inválida.' })
+      }
+    })
 
   // El alcance vive en la cuenta, no en el nombre del rol. Cualquier usuario
   // con eventId/eventSlug asignado queda limitado a ese evento; los roles
@@ -772,6 +808,25 @@ export function createTicketRoutes({
       next(error)
     }
   })
+
+  router.put(
+    '/:ticketId/access-override',
+    ...ticketAccessOverrideGuard,
+    staffLimiter,
+    validateBody(ticketAccessOverrideSchema),
+    async (req, res, next) => {
+      try {
+        const ticketId = z.string().uuid().parse(req.params.ticketId)
+        const ticket = await repo().resolveTicketById?.(ticketId)
+        if (!ticket) throw new HttpError(404, 'Entrada no encontrada.')
+        assertEventScope(req, ticket.event_id ?? ticket.eventId)
+        const result = await repo().setAccessOverride(ticketId, req.validatedBody, actor(req))
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
   /**
    * Credencial de socio para el scanner de staff. La proyección pública dejó
    * de exponer el documento (el member_code es enumerable, así que devolver
@@ -873,6 +928,10 @@ export function createTicketRoutes({
             clientId: attempt.clientId,
             offline: attempt.offline,
             scannedAt: attempt.scannedAt,
+            metadata:
+              resolvedTicket?.event_id === eventId
+                ? ticketScanValidityMetadata(resolvedTicket)
+                : {},
           }
         })
 
@@ -907,6 +966,7 @@ export function createTicketRoutes({
         gate,
         zoneScope,
         actorLabel: actor(req),
+        metadata: ticketScanValidityMetadata(ticket),
       })
       res.json(result)
     } catch (error) {
@@ -926,6 +986,7 @@ export function createTicketRoutes({
           gate,
           actorLabel: actor(req),
           errorCode: error?.details?.code ?? null,
+          metadata: ticketScanValidityMetadata(ticket),
         })
       }
       next(error)

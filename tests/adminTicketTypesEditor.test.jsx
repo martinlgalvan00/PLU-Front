@@ -62,6 +62,7 @@ function CatalogHarness({ addonsCatalog = [], errors } = {}) {
         onChangeTicketTypes={setTypes}
         ticketTypes={types}
       />
+      <div data-testid="catalog-state">{JSON.stringify(types)}</div>
     </I18nProvider>
   )
 }
@@ -92,6 +93,8 @@ describe('AdminTicketTypesEditor', () => {
     expect(screen.getByDisplayValue('Acceso válido durante la jornada inaugural.')).toBeTruthy()
     expect(screen.getAllByRole('spinbutton', { name: /precio wise/i })).toHaveLength(1)
     expect(screen.queryByDisplayValue('Palco')).toBeNull()
+    expect(screen.getByText(/emite 1 QR de espectador/i)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /personalizar/i }))
     expect(screen.getByDisplayValue('Entrada general')).toBeTruthy()
     expect(screen.queryByDisplayValue('Palco VIP')).toBeNull()
 
@@ -110,7 +113,42 @@ describe('AdminTicketTypesEditor', () => {
     fireEvent.change(description, { target: { value: 'Incluye tribuna y sector gastronómico.' } })
 
     expect(description.value).toBe('Incluye tribuna y sector gastronómico.')
-    expect(screen.getByText(/qr válido.*día 1/i)).toBeTruthy()
+    expect(screen.getAllByText(/qr:.*día 1/i).length).toBeGreaterThan(0)
+    expect(screen.getByText(/el qr de esta entrada vale el día 1/i)).toBeTruthy()
+  })
+
+  it('configura la duración desde pago en el tipo, sin crear otro QR', () => {
+    render(<CatalogHarness />)
+
+    fireEvent.click(screen.getByRole('radio', { name: /tiempo desde que se acredita el pago/i }))
+
+    const duration = screen.getByRole('spinbutton', { name: /duración/i })
+    expect(duration.value).toBe('12')
+    expect(screen.getByRole('combobox', { name: /unidad de duración/i }).value).toBe('hours')
+
+    fireEvent.change(screen.getByRole('combobox', { name: /unidad de duración/i }), {
+      target: { value: 'days' },
+    })
+    fireEvent.change(screen.getByRole('spinbutton', { name: /duración/i }), {
+      target: { value: '2' },
+    })
+
+    expect(screen.getByRole('spinbutton', { name: /duración/i }).value).toBe('2')
+    expect(JSON.parse(screen.getByTestId('catalog-state').textContent)[0]).toMatchObject({
+      validityMode: 'from_payment',
+      validityDurationMinutes: 2 * 24 * 60,
+    })
+  })
+
+  it('permite que una única credencial ingrese una vez por cada jornada', () => {
+    render(<CatalogHarness />)
+
+    fireEvent.click(screen.getByRole('radio', { name: /un ingreso por cada jornada/i }))
+
+    expect(JSON.parse(screen.getByTestId('catalog-state').textContent)[0]).toMatchObject({
+      accessUsageMode: 'once_per_event_day',
+    })
+    expect(screen.getByText(/no se generan qr por fecha/i)).toBeTruthy()
   })
 
   it('abre el tipo con error de validación', () => {

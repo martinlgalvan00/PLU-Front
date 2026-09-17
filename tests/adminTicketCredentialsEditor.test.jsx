@@ -23,8 +23,17 @@ function Harness({ initial = [defaultTicketCredential()] } = {}) {
 }
 
 describe('AdminTicketCredentialsEditor', () => {
+  it('resume el QR de espectador sin pedir zonas', () => {
+    render(<Harness />)
+
+    expect(screen.getByText(/1 qr de espectador/i)).toBeTruthy()
+    expect(screen.queryByRole('checkbox', { name: /puerta general/i })).toBeNull()
+  })
+
   it('deja claro el acceso de público y no ofrece zonas que una entrada no abre', () => {
     render(<Harness />)
+
+    fireEvent.click(screen.getByRole('button', { name: /personalizar/i }))
 
     expect(screen.getByText(/para una entrada de público general/i)).toBeTruthy()
     expect(screen.getByRole('checkbox', { name: /puerta general/i }).checked).toBe(true)
@@ -37,6 +46,7 @@ describe('AdminTicketCredentialsEditor', () => {
   it('una credencial nueva ya abre la puerta, para no dejar el acceso vacío', () => {
     render(<Harness />)
 
+    fireEvent.click(screen.getByRole('button', { name: /personalizar/i }))
     fireEvent.click(screen.getByRole('button', { name: /agregar credencial/i }))
     const items = screen.getAllByRole('listitem')
     expect(items).toHaveLength(2)
@@ -47,6 +57,7 @@ describe('AdminTicketCredentialsEditor', () => {
   it('permite personalizar el nombre y el acceso de una credencial extra', () => {
     render(<Harness />)
 
+    fireEvent.click(screen.getByRole('button', { name: /personalizar/i }))
     fireEvent.click(screen.getByRole('button', { name: /agregar credencial/i }))
     const extra = screen.getAllByRole('listitem')[1]
     const name = within(extra).getByPlaceholderText(/entrenador/i)

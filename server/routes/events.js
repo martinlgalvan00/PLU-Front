@@ -15,6 +15,13 @@ import { sanitizePublicCatalogEvent } from '../services/publicEventCatalogServic
 import { buildTicketCredentialsPayload } from '../../src/lib/ticketCredentials.js'
 import { resolveTicketTypeChannels } from '../../src/lib/ticketTypePaymentChannels.js'
 import {
+  MAX_TICKET_QR_VALIDITY_MINUTES,
+  TICKET_ACCESS_USAGE_MODE,
+  TICKET_ACCESS_USAGE_MODES,
+  TICKET_QR_VALIDITY_MODE,
+  TICKET_QR_VALIDITY_MODES,
+} from '../../src/lib/ticketValidityPolicy.js'
+import {
   assertEventBankTransferReady,
   normalizeBankTransferInput,
   normalizePaymentChannelOverrides,
@@ -78,7 +85,7 @@ function catalogEventSelect(ticketTypeColumns) {
 }
 
 const CATALOG_EVENT_SELECT = catalogEventSelect(
-  'id, name, description, price, wise_price, manual_price, quota, sort_order, active, sales_opens_at, sales_closes_at, valid_from, valid_until, payment_channels,',
+  'id, name, description, price, wise_price, manual_price, quota, sort_order, active, sales_opens_at, sales_closes_at, valid_from, valid_until, qr_validity_mode, qr_validity_duration_minutes, access_usage_mode, payment_channels,',
 )
 const CATALOG_EVENT_SELECT_COMPAT = catalogEventSelect(
   'id, name, price, quota, sort_order, active,',
@@ -235,6 +242,15 @@ const ticketTypeSchema = z
     salesClosesAt: optionalDateTime,
     validFrom: optionalDateTime,
     validUntil: optionalDateTime,
+    validityMode: z.enum(TICKET_QR_VALIDITY_MODES).optional(),
+    validityDurationMinutes: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_TICKET_QR_VALIDITY_MINUTES)
+      .nullable()
+      .optional(),
+    accessUsageMode: z.enum(TICKET_ACCESS_USAGE_MODES).optional(),
     dayIndexes: z.array(z.coerce.number().int().min(0).max(30)).max(31).optional(),
     includedAddonIds: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
     credentials: z.array(ticketCredentialSchema).min(1).max(4).optional(),
@@ -256,17 +272,60 @@ const ticketTypeSchema = z
         message: 'El precio con descuento no puede superar el precio de lista.',
       })
     }
-    if (Boolean(type.validFrom) !== Boolean(type.validUntil)) {
+    const validityMode =
+      type.validityMode ??
+      (type.validFrom || type.validUntil
+        ? TICKET_QR_VALIDITY_MODE.FIXED_WINDOW
+        : TICKET_QR_VALIDITY_MODE.EVENT_DAYS)
+    if (
+      validityMode === TICKET_QR_VALIDITY_MODE.FIXED_WINDOW &&
+      Boolean(type.validFrom) !== Boolean(type.validUntil)
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['validUntil'],
         message: 'Completá inicio y fin de vigencia del QR, o dejá ambos vacíos.',
       })
-    } else if (type.validFrom && type.validUntil && type.validFrom >= type.validUntil) {
+    } else if (
+      validityMode === TICKET_QR_VALIDITY_MODE.FIXED_WINDOW &&
+      type.validFrom &&
+      type.validUntil &&
+      type.validFrom >= type.validUntil
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['validUntil'],
         message: 'El vencimiento del QR debe ser posterior a su inicio.',
+      })
+    }
+    if (
+      [TICKET_QR_VALIDITY_MODE.FROM_PAYMENT, TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN].includes(validityMode) &&
+      !type.validityDurationMinutes
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['validityDurationMinutes'],
+        message: 'Indicá cuánto dura el QR desde la acreditación del pago.',
+      })
+    }
+    if (
+      [TICKET_QR_VALIDITY_MODE.FROM_PAYMENT, TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN].includes(validityMode) &&
+      (type.validFrom || type.validUntil)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['validFrom'],
+        message: 'La duración desde pago no puede combinarse con una ventana fija.',
+      })
+    }
+    if (
+      type.accessUsageMode === TICKET_ACCESS_USAGE_MODE.ONCE_PER_EVENT_DAY &&
+      validityMode !== TICKET_QR_VALIDITY_MODE.EVENT_DAYS
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['accessUsageMode'],
+        message: 'Un ingreso por jornada sólo puede usarse con jornadas asignadas.',
       })
     }
   })
@@ -933,6 +992,9 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
               ...(type?.id ? { ticketTypeId: type.id } : { sortOrder: type?.sortOrder ?? index }),
               validFrom: type?.validFrom || null,
               validUntil: type?.validUntil || null,
+              validityMode: type?.validityMode ?? null,
+              validityDurationMinutes: type?.validityDurationMinutes ?? null,
+              accessUsageMode: type?.accessUsageMode ?? null,
             })),
             p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
           })
@@ -944,6 +1006,55 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           } else {
             assertSupabaseResult(validity, 'No se pudo guardar la vigencia de los QR.')
           }
+
+          // Una base todavía en la migración anterior entiende las fechas,
+          // pero ignora los campos extra del JSON. Para no guardar en silencio
+          // una duración relativa como si fueran jornadas, exigir la función
+          // nueva cuando se elige este modo.
+          if (
+            pEvent.ticketTypes.some(
+              (type) =>
+                [TICKET_QR_VALIDITY_MODE.FROM_PAYMENT, TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN].includes(
+                  type?.validityMode,
+                ),
+            )
+          ) {
+            const relativePolicy = await client.rpc('staff_merge_ticket_type_validity_policy', {
+              p_event_slug: pEvent.slug,
+              p_types: pEvent.ticketTypes.map((type, index) => ({
+                ...(type?.id ? { ticketTypeId: type.id } : { sortOrder: type?.sortOrder ?? index }),
+                validityMode: type?.validityMode ?? null,
+                validityDurationMinutes: type?.validityDurationMinutes ?? null,
+              })),
+              p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+            })
+            if (relativePolicy.error && esRelacionFaltante(relativePolicy.error)) {
+              throw new HttpError(
+                503,
+                'La vigencia desde acreditación requiere aplicar la migración de políticas QR.',
+              )
+            }
+            assertSupabaseResult(
+              relativePolicy,
+              'No se pudo guardar la política de vigencia desde acreditación.',
+            )
+          }
+
+          const accessPolicy = await client.rpc('staff_merge_ticket_type_access_policy', {
+            p_event_slug: pEvent.slug,
+            p_types: pEvent.ticketTypes.map((type, index) => ({
+              ...(type?.id ? { ticketTypeId: type.id } : { sortOrder: type?.sortOrder ?? index }),
+              accessUsageMode: type?.accessUsageMode ?? TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL,
+            })),
+            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          })
+          if (accessPolicy.error && esRelacionFaltante(accessPolicy.error)) {
+            throw new HttpError(
+              503,
+              'La política de acceso por tipo requiere aplicar la migración de entradas unívocas.',
+            )
+          }
+          assertSupabaseResult(accessPolicy, 'No se pudo guardar la política de acceso de las entradas.')
         }
 
         const events = await readEvents(client)

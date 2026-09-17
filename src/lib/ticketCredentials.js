@@ -33,6 +33,23 @@ export function defaultTicketCredential() {
 }
 
 /**
+ * Una sola credencial de espectador, la de siempre. El editor compacta este
+ * caso: no hace falta pedir nombre y zonas para vender público general.
+ */
+export function isDefaultSpectatorCredentials(credentials) {
+  const list = Array.isArray(credentials) ? credentials : []
+  if (list.length === 0) return true
+  if (list.length !== 1) return false
+  const credential = normalizeTicketCredential(list[0])
+  const fallback = defaultTicketCredential()
+  return (
+    credential.label === fallback.label &&
+    credential.zoneScopes.length === fallback.zoneScopes.length &&
+    fallback.zoneScopes.every((scope, index) => credential.zoneScopes[index] === scope)
+  )
+}
+
+/**
  * El par del entrenador. No es una plantilla estética: es el reparto real
  * —tribuna + entrada en calor— y tenerlo en un botón evita que alguien arme
  * la mitad y venda una entrada de entrenador que no abre el calentamiento.

@@ -1,4 +1,4 @@
-import { expect, waitFor, within } from 'storybook/test'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { useState } from 'react'
 import '../../styles/layout/admin-shell.css'
 import '../../styles/pages/admin.css'
@@ -45,6 +45,10 @@ export const EntradaComun = {
   render: () => <Editable initial={[defaultTicketCredential()]} quota={200} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
+    await waitFor(() => {
+      expect(canvas.getByText(/1 qr de espectador|1 spectator qr/i)).toBeVisible()
+    })
+    await userEvent.click(canvas.getByRole('button', { name: /personalizar|customize/i }))
     await waitFor(() => {
       expect(canvas.getByRole('checkbox', { name: /puerta general|main gate/i })).toBeChecked()
     })

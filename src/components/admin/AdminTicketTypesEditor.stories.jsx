@@ -94,6 +94,11 @@ function Editable({ tipos = TYPES, addons = [], canEdit = true, eventOverrides =
 /** El caso real: dos tipos, uno de ellos con las dos credenciales. */
 export const Default = { render: () => <Editable /> }
 
+/** Público de un día: el QR vale el Día 1 y la credencial queda compacta. */
+export const PublicoUnDia = {
+  render: () => <Editable tipos={[TYPES[0]]} />,
+}
+
 /** Sin tipos cargados todavía. */
 export const Vacio = { render: () => <Editable tipos={[]} /> }
 

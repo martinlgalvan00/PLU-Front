@@ -1615,6 +1615,12 @@ export default {
     validUntil: 'Expires',
     expiredOn: 'Expired on {{date}}',
     validFromOn: 'Valid starting {{date}}',
+    validity: {
+      validUntil: 'Valid now · expires {{time}}',
+      expiresIn: 'Expires {{time}}',
+      expiredAgo: 'Expired {{time}}',
+      startsIn: 'Becomes valid {{time}}',
+    },
     statReady: 'Eligible',
     statDone: 'Checked in',
     statPending: 'Not eligible',
@@ -3141,18 +3147,102 @@ export default {
       ticketTypeWindowHint: 'Empty = the event window. When set, they only close earlier.',
       ticketTypeWindowInherit: 'Uses the event window',
       ticketTypeFoldWindow: 'Own window',
-      ticketTypeFoldAccess: 'Days, packs and credentials',
-      ticketTypeDaysLabel: 'Access days',
-      ticketTypeValiditySummary: 'QR valid: {{days}}',
-      ticketTypeValidityMissing: 'QR validity has not been set',
+      ticketTypeFoldAccess: 'QR access and validity',
+      ticketTypeFoldPacks: 'Packs',
+      ticketTypeFoldCredentials: 'What each purchase issues',
+      ticketTypeDaysLabel: 'Which days it covers',
+      ticketTypeDaysHint:
+        'For a one-day public ticket, pick one. If you pick more, the same QR covers all of them.',
+      ticketTypeValiditySummary: 'QR: {{days}}',
+      ticketTypeValidityMissing: 'Pick a day for the QR',
+      ticketTypeRowValidityMissing: 'Validity missing',
+      ticketTypeRowValidityDays: 'QR: {{days}}',
+      ticketTypeRowValidityFixed: 'QR: fixed window',
+      ticketTypeRowValidityFromPayment: 'QR: {{duration}} from payment',
+      ticketTypeValidityDurationValue: {
+        minutes: '{{count}} min',
+        hours: '{{count}} h',
+        days: '{{count}} days',
+      },
+      ticketTypeValidityPreviewMissingTitle: 'Set how long the QR lasts',
+      ticketTypeValidityPreviewMissingDetail:
+        'Pick the days for a one-day ticket or for the whole event.',
+      ticketTypeValidityPreviewOneDayTitle: 'This ticket’s QR is valid on {{days}}',
+      ticketTypeValidityPreviewOneDayDetail:
+        'Security can scan it from 00:00 that day until 00:00 the next day.',
+      ticketTypeValidityPreviewManyDaysTitle: 'The same QR covers {{days}}',
+      ticketTypeValidityPreviewManyDaysDetail:
+        'It enables from 00:00 on the first marked day until 00:00 the day after the last.',
+      ticketTypeValidityPreviewAllDaysTitle: 'The same QR covers the whole event',
+      ticketTypeValidityPreviewAllDaysDetail:
+        'It covers {{days}}, from 00:00 on the first day until 00:00 the day after the last.',
+      ticketTypeValidityPreviewFixedTitle: 'The QR is valid between two times',
+      ticketTypeValidityPreviewFixedDetail: 'Enables at {{from}} and expires at {{until}}.',
+      ticketTypeValidityPreviewFixedMissing: 'Set when scanning can start and when it must stop.',
+      ticketTypeValidityPreviewFromPaymentTitle:
+        'The QR lasts {{duration}} from payment approval',
+      ticketTypeValidityPreviewFromPaymentDetail:
+        'It starts when payment is approved and expires at the exact limit. It does not run from the scan.',
+      ticketTypeValidityPreviewUsageOnceTotal: 'A single entry, on any of those days.',
+      ticketTypeValidityPreviewUsageOncePerDay:
+        'It can be scanned once on each marked day. The credential stays the same.',
+      ticketTypeValidityModeLabel: 'How validity is calculated',
+      ticketTypeValidityMode: {
+        event_days: 'The days you mark',
+        fixed_window: 'A fixed date and time',
+        from_payment: 'A duration from payment approval',
+      },
+      ticketTypeValidityModeHint: {
+        event_days: 'One day marked = a one-day QR. This is the usual public ticket.',
+        fixed_window: 'A specific window, for example a session or weigh-in.',
+        from_payment: 'For example 12 hours or 2 days from approval.',
+      },
+      ticketTypeAccessUsageLabel: 'How it is consumed',
+      ticketTypeAccessUsage: {
+        once_total: 'One entry in total',
+        once_per_event_day: 'One entry per event day',
+      },
+      ticketTypeAccessUsageHint: {
+        once_total: 'Valid on any of the marked days, once.',
+        once_per_event_day:
+          'The same credential is scanned on each day; no extra QR codes are issued per date.',
+      },
+      ticketTypeValidityDurationLabel: 'Duration',
+      ticketTypeValidityDurationUnit: 'Duration unit',
+      ticketTypeValidityUnit: {
+        minutes: 'minutes',
+        hours: 'hours',
+        days: 'days',
+      },
+      ticketTypeValidityDurationHint:
+        'Example: 12 hours, 2 days or 90 minutes. It starts when payment is approved and expires at the exact limit.',
+      ticketTypeValidityFrozen:
+        'Already issued tickets keep their validity. This applies to the next ones.',
+      ticketTypeValidityNoteDays: 'Validity is derived from the selected event days.',
+      ticketTypeValidityNoteFixed:
+        'The end is exclusive: when that date and time arrive, the QR has already expired.',
+      ticketTypeValidityNoteFromPayment:
+        'The duration is frozen when payment is approved; editing this type does not change issued QRs.',
+      ticketTypeValidityDurationRequired: 'Set how long access lasts from payment approval.',
+      ticketTypeValidityDurationInvalid: 'Duration must be between 1 minute and 366 days.',
+      ticketTypeValidityDurationConflictsFixedWindow:
+        'Duration from payment cannot be combined with a fixed window.',
       ticketTypeQrValidFrom: 'QR enable date and time',
       ticketTypeQrValidUntil: 'QR disable date and time',
       ticketTypeAddonsLabel: 'Perks included at no charge (pack)',
       ticketTypeAddonsEmpty:
         'Configure the perks catalog first to be able to bundle them into a pack.',
+      ticketTypePacksHintIncluded: '{{count}} included',
+      ticketTypePacksHintNone: 'None included',
+      ticketTypeCredentialHintSpectator: '1 spectator QR · gate',
+      ticketTypeCredentialHintCustom: '{{names}}',
+      ticketTypeCredentialHintMissing: 'Credential missing',
       credentialsLabel: 'Credentials issued',
       credentialLead:
         'Each purchase issues these credentials. The name is what security reads; the zones are what the QR opens.',
+      credentialCompactLead:
+        'This purchase issues 1 spectator QR. Security reads “General admission” and opens the public gate.',
+      credentialCustomize: 'Customize',
       credentialName: 'Credential name',
       credentialNamePrimary: 'Name at the gate',
       credentialNameHint:
