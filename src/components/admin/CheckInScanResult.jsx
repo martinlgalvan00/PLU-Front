@@ -31,6 +31,26 @@ export default function CheckInScanResult({
     weighIn: t('admin.checkin.weighIn'),
     starts: t('admin.checkin.sessionStarts'),
   })
+  const validityFormatter = new Intl.DateTimeFormat(locale, {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  })
+
+  // La fecha se resuelve pegada a la decisión sólo cuando el motivo del
+  // veredicto ES la vigencia -- si no, sigue como un dato más entre los
+  // metadatos generales de la entrada.
+  const validityReason =
+    scanResult.kind === 'ticket' && scanResult.outcome === 'expired' && scanResult.row?.validUntil
+      ? t('admin.checkin.expiredOn', {
+          date: validityFormatter.format(new Date(scanResult.row.validUntil)),
+        })
+      : scanResult.kind === 'ticket' &&
+          scanResult.outcome === 'not_yet_valid' &&
+          scanResult.row?.validFrom
+        ? t('admin.checkin.validFromOn', {
+            date: validityFormatter.format(new Date(scanResult.row.validFrom)),
+          })
+        : null
 
   return (
     <div
@@ -42,6 +62,9 @@ export default function CheckInScanResult({
         <ScanVerdictIcon size={22} aria-hidden />
         <div>
           <strong>{t(`admin.checkin.scanner.outcome.${scanResult.outcome}`)}</strong>
+          {validityReason ? (
+            <span className="admin-checkin-result__reason">{validityReason}</span>
+          ) : null}
         </div>
       </div>
 
@@ -77,10 +100,17 @@ export default function CheckInScanResult({
               {checkinTypeLabel(scanResult.row, t)}
             </dd>
           </div>
-          {scanResult.kind === 'ticket' && (scanResult.row.ticketTypeName || scanResult.row.meta) ? (
+          {scanResult.kind === 'ticket' &&
+          (scanResult.row.ticketTypeName || scanResult.row.meta) ? (
             <div>
               <dt>{t('admin.checkin.ticketTypeLabel')}</dt>
               <dd>{scanResult.row.ticketTypeName || scanResult.row.meta}</dd>
+            </div>
+          ) : null}
+          {scanResult.kind === 'ticket' && scanResult.row.ticketTypeDescription ? (
+            <div>
+              <dt>{t('admin.eventEditor.supabase.ticketTypeDescription')}</dt>
+              <dd>{scanResult.row.ticketTypeDescription}</dd>
             </div>
           ) : null}
           {isAthleteScan && scanResult.row?.meta ? (
@@ -97,6 +127,18 @@ export default function CheckInScanResult({
               </dd>
             </div>
           )}
+          {scanResult.kind === 'ticket' && scanResult.row?.validFrom && !validityReason ? (
+            <div>
+              <dt>{t('admin.checkin.validFrom')}</dt>
+              <dd>{validityFormatter.format(new Date(scanResult.row.validFrom))}</dd>
+            </div>
+          ) : null}
+          {scanResult.kind === 'ticket' && scanResult.row?.validUntil && !validityReason ? (
+            <div>
+              <dt>{t('admin.checkin.validUntil')}</dt>
+              <dd>{validityFormatter.format(new Date(scanResult.row.validUntil))}</dd>
+            </div>
+          ) : null}
           {/* Qué día compite: es lo que seguridad necesita resolver en la
               puerta, y sin asignar se dice explícitamente en vez de omitirse. */}
           {isAthleteScan && (

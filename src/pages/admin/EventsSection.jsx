@@ -17,6 +17,7 @@ import AdminEventEditor, {
 } from '../../components/admin/AdminEventEditor.jsx'
 import AdminEventPaymentsTriage from '../../components/admin/AdminEventPaymentsTriage.jsx'
 import AdminEventQuickCreate from '../../components/admin/AdminEventQuickCreate.jsx'
+import AdminEventScanReportSection from '../../components/admin/AdminEventScanReportSection.jsx'
 import AdminEventSecuritySection from '../../components/admin/AdminEventSecuritySection.jsx'
 import AdminEventStructureEditor from '../../components/admin/AdminEventStructureEditor.jsx'
 import AdminEventZonesSection from '../../components/admin/AdminEventZonesSection.jsx'
@@ -189,6 +190,7 @@ export default function EventsSection({
   canEdit,
   canDeleteEvents = false,
   canManageUsers,
+  canViewScanReport = false,
   canValidatePayments = false,
   isLoading = false,
   loadError = null,
@@ -203,6 +205,7 @@ export default function EventsSection({
   onDeleteEvent,
   onDeleteSecurityZone,
   onFetchDeleteImpact,
+  onGetEventScanReport,
   onListSecurityUsers,
   onListSecurityZones,
   onManageCheckin,
@@ -1063,6 +1066,12 @@ export default function EventsSection({
                   onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
                   reloadToken={zonesReloadToken}
                 />
+                {canViewScanReport ? (
+                  <AdminEventScanReportSection
+                    eventSlug={selectedEvent.slug}
+                    onGetReport={onGetEventScanReport}
+                  />
+                ) : null}
               </div>
             ) : null
           }

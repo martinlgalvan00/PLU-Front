@@ -168,7 +168,7 @@ export default function AdminEventSecuritySection({
               expiresAt: item.expiresAt,
               emailed: item.emailed,
             })
-          : onCreateSecurityAccessLink(item.user.id, sendEmail),
+          : onCreateSecurityAccessLink(item.user.id, { sendEmail }),
       ),
     )
 
@@ -467,8 +467,8 @@ export default function AdminEventSecuritySection({
       {credentialUser && (
         <SecurityCredentialModal
           user={credentialUser}
-          onGenerate={(shouldSendEmail) =>
-            onCreateSecurityAccessLink(credentialUser.id, shouldSendEmail)
+          onGenerate={(options) =>
+            onCreateSecurityAccessLink(credentialUser.id, options)
           }
           onClose={() => setCredentialUser(null)}
         />

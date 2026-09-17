@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  applyTicketZoneOutcome,
-  canAdmitCheckinRow,
-} from '../src/services/checkinScanService.js'
+import { applyTicketZoneOutcome, canAdmitCheckinRow } from '../src/services/checkinScanService.js'
 
 function ticketResult(scopes, outcome = 'ready') {
   return {
@@ -74,5 +71,18 @@ describe('la lista no deja marcar ingreso fuera de zona', () => {
         { canCheckIn: true, zoneScope: 'athletes_coaches' },
       ),
     ).toBe(true)
+  })
+
+  it('una entrada vencida no puede ingresar aunque esté pagada y sea de la zona', () => {
+    expect(
+      canAdmitCheckinRow(
+        {
+          ...paidSpectator,
+          validFrom: '2000-01-01T03:00:00.000Z',
+          validUntil: '2000-01-02T03:00:00.000Z',
+        },
+        { canCheckIn: true, zoneScope: 'gate_tickets' },
+      ),
+    ).toBe(false)
   })
 })

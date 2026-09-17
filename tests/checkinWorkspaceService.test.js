@@ -116,7 +116,10 @@ describe('checkinWorkspaceService', () => {
             attendeeName: 'Nora Coach',
             attendeeDni: '41333444',
             ticketTypeName: 'Entrenadores',
+            ticketTypeDescription: 'Acceso de coach durante la jornada.',
             credentialLabel: 'ENTRENADOR',
+            validFrom: '2026-08-15T03:00:00.000Z',
+            validUntil: '2026-08-16T03:00:00.000Z',
             status: 'pagada',
           },
         ],
@@ -137,6 +140,12 @@ describe('checkinWorkspaceService', () => {
     expect(rows.map((row) => row.name)).toEqual(
       expect.arrayContaining(['Martina Rivas', 'Nora Coach']),
     )
+    const ticketRow = rows.find((row) => row.name === 'Nora Coach')
+    expect(ticketRow).toMatchObject({
+      ticketTypeDescription: 'Acceso de coach durante la jornada.',
+      validFrom: '2026-08-15T03:00:00.000Z',
+      validUntil: '2026-08-16T03:00:00.000Z',
+    })
   })
 
   it('resuelve el día de acceso de cada ticket vía su tipo de entrada', () => {
@@ -172,6 +181,22 @@ describe('checkinWorkspaceService', () => {
       spectators: 1,
       byDay: { 0: 3, 1: 3 },
     })
+  })
+
+  it('clasifica una entrada vencida como sin habilitar, no como lista', () => {
+    const rows = [
+      {
+        type: 'espectador',
+        dayIndexes: [0],
+        status: 'pagada',
+        validFrom: '2000-01-01T03:00:00.000Z',
+        validUntil: '2000-01-02T03:00:00.000Z',
+      },
+    ]
+
+    expect(summarizeCheckinRows(rows, eventDays)).toMatchObject({ ready: 0, pending: 1 })
+    expect(filterCheckinRows(rows, { status: 'ready' })).toHaveLength(0)
+    expect(filterCheckinRows(rows, { status: 'pending' })).toHaveLength(1)
   })
 })
 

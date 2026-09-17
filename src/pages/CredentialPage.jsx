@@ -14,6 +14,7 @@ import { verifyTicketByQrToken } from '../services/ticketApi.js'
 import { zoneScopeLabel } from '../components/ui/TicketTypeOptions.jsx'
 import { getMembershipByCodeOrToken } from '../services/athleteApi.js'
 import { isMembershipCurrent } from '../services/membershipService.js'
+import { ticketValidityStatus } from '../lib/ticketValidity.js'
 
 const VERDICT_META = {
   valid: {
@@ -39,6 +40,16 @@ const VERDICT_META = {
   used: {
     Icon: AlertTriangle,
     label: 'Entrada ya utilizada',
+    className: 'credential-page__verdict--invalid',
+  },
+  upcoming: {
+    Icon: HelpCircle,
+    label: 'Entrada todavía no vigente',
+    className: 'credential-page__verdict--warning',
+  },
+  expired: {
+    Icon: XCircle,
+    label: 'Entrada vencida',
     className: 'credential-page__verdict--invalid',
   },
   // Sin respuesta del backend. Deliberadamente NO es "inválida": el estado de
@@ -761,8 +772,17 @@ function TicketCredential({ code, onCheckIn }) {
   // antes de las subcategorías, llega sin ellas: no se inventa la puerta, se
   // omite la línea.
   const ticketZones = Array.isArray(ticket.credentialScopes) ? ticket.credentialScopes : []
+  const validityStatus = ticketValidityStatus(ticket)
   const verdictKey =
-    effectiveStatus === 'pagada' ? 'valid' : effectiveStatus === 'usada' ? 'used' : 'warning'
+    effectiveStatus === 'usada'
+      ? 'used'
+      : effectiveStatus === 'pagada' && validityStatus === 'upcoming'
+        ? 'upcoming'
+        : effectiveStatus === 'pagada' && validityStatus === 'expired'
+          ? 'expired'
+          : effectiveStatus === 'pagada'
+            ? 'valid'
+            : 'warning'
   const {
     Icon,
     label: verdictLabel,
@@ -829,7 +849,9 @@ function TicketCredential({ code, onCheckIn }) {
             // El tipo baja a dato: una compra de entrenador emite dos
             // credenciales del mismo tipo, así que acá abajo ubica y arriba
             // confundiría.
-            ticket.ticketTypeName ? { label: 'Tipo de entrada', value: ticket.ticketTypeName } : null,
+            ticket.ticketTypeName
+              ? { label: 'Tipo de entrada', value: ticket.ticketTypeName }
+              : null,
           ].filter(Boolean)}
         />
 
@@ -848,6 +870,9 @@ function TicketCredential({ code, onCheckIn }) {
           {ticket.event?.title && (
             <p className="credential-page__schedule-detail">{ticket.event.title}</p>
           )}
+          {ticket.ticketTypeDescription ? (
+            <p className="credential-page__schedule-detail">{ticket.ticketTypeDescription}</p>
+          ) : null}
           {ticketZones.length ? (
             <ul className="credential-page__zones">
               {ticketZones.map((scope) => (
@@ -877,6 +902,28 @@ function TicketCredential({ code, onCheckIn }) {
               </dd>
             </div>
           )}
+
+          {ticket.validFrom ? (
+            <div className="credential-page__row">
+              <dt>Válida desde</dt>
+              <dd>
+                <span className="credential-page__row-value">
+                  {dateTime.format(new Date(ticket.validFrom))}
+                </span>
+              </dd>
+            </div>
+          ) : null}
+
+          {ticket.validUntil ? (
+            <div className="credential-page__row">
+              <dt>Vence</dt>
+              <dd>
+                <span className="credential-page__row-value">
+                  {dateTime.format(new Date(ticket.validUntil))}
+                </span>
+              </dd>
+            </div>
+          ) : null}
         </dl>
 
         {checkInError && (
@@ -887,17 +934,21 @@ function TicketCredential({ code, onCheckIn }) {
 
         {/* Sin verificación fresca no se ofrece marcar: aceptar el toque y
             perderlo es peor que decir que ahora no se puede. */}
-        {ticket.status === 'pagada' && !checkedInAt && onCheckIn && !isStale && (
-          <button
-            type="button"
-            className="credential-page__checkin-btn"
-            onClick={handleCheckIn}
-            disabled={checkingIn}
-          >
-            <CheckCircle2 size={17} aria-hidden />
-            {checkingIn ? 'Marcando…' : 'Marcar ingreso'}
-          </button>
-        )}
+        {ticket.status === 'pagada' &&
+          !checkedInAt &&
+          onCheckIn &&
+          !isStale &&
+          (validityStatus === 'valid' || validityStatus === 'unknown') && (
+            <button
+              type="button"
+              className="credential-page__checkin-btn"
+              onClick={handleCheckIn}
+              disabled={checkingIn}
+            >
+              <CheckCircle2 size={17} aria-hidden />
+              {checkingIn ? 'Marcando…' : 'Marcar ingreso'}
+            </button>
+          )}
 
         {ticket.status === 'pendiente_pago' && (
           <p className="credential-page__row-meta">

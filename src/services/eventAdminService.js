@@ -109,6 +109,8 @@ export function buildAdminEventDraft(event) {
       // veía vacía y se borraba al primer guardado.
       salesOpensAt: toDateTimeLocal(type.salesOpensAt),
       salesClosesAt: toDateTimeLocal(type.salesClosesAt),
+      validFrom: toDateTimeLocal(type.validFrom),
+      validUntil: toDateTimeLocal(type.validUntil),
       dayIndexes: [...(type.dayIndexes ?? [])],
       includedAddonIds: [...(type.includedAddonIds ?? [])],
       // Copia propia por el mismo motivo que las credenciales: el editor lo
@@ -557,7 +559,13 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   ticketTypes: [],
   weighInWindows: [],
   publicSurface: { ...DEFAULT_EVENT_PUBLIC_SURFACE },
-  publicCopy: { publicTitle: '', heroLead: '', ctaLabel: '', inscriptionMark: '', inscriptionNote: '' },
+  publicCopy: {
+    publicTitle: '',
+    heroLead: '',
+    ctaLabel: '',
+    inscriptionMark: '',
+    inscriptionNote: '',
+  },
   liveStreamUrl: '',
   liveStreamProvider: 'youtube',
   liveStatus: 'offline',
@@ -589,6 +597,7 @@ function mapSupabaseTicketCatalog(row) {
     .map((type) => ({
       id: type.id,
       name: type.name,
+      description: type.description ?? '',
       price: type.price,
       // USD propio para Wise y ventana propia de venta. Null en cualquiera de
       // los tres = hereda lo del evento (conversión automática / ventana del
@@ -602,6 +611,8 @@ function mapSupabaseTicketCatalog(row) {
       manualPrice: catalogPriceFromRow(type, 'manual_price', 'manualPrice'),
       salesOpensAt: type.sales_opens_at ?? type.salesOpensAt ?? null,
       salesClosesAt: type.sales_closes_at ?? type.salesClosesAt ?? null,
+      validFrom: type.valid_from ?? type.validFrom ?? null,
+      validUntil: type.valid_until ?? type.validUntil ?? null,
       quota: type.quota,
       sortOrder: type.sort_order ?? type.sortOrder,
       active: type.active,
@@ -611,7 +622,8 @@ function mapSupabaseTicketCatalog(row) {
           .map((link) => dayIndexById[link.event_day_id ?? link.eventDayId])
           .filter((value) => value !== undefined),
       includedAddonIds:
-        type.includedAddonIds ?? (type.includedAddons ?? []).map((link) => link.addon_id ?? link.addonId),
+        type.includedAddonIds ??
+        (type.includedAddons ?? []).map((link) => link.addon_id ?? link.addonId),
       // Medios propios de esta entrada. Null hereda los del evento, que es lo
       // que tienen todas las filas anteriores a la columna.
       paymentChannels: normalizeTicketTypePaymentChannels(
@@ -790,8 +802,8 @@ export const PUBLISHED_EVENTS_SELECT = `
   eventDays:event_days(id, day_index, label, date),
   comboOffer:event_combo_offers(id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience, financed, archived_at),
   ticketTypes:ticket_types(
-    id, name, price, wise_price, manual_price, quota, sort_order, active,
-    sales_opens_at, sales_closes_at, payment_channels,
+    id, name, description, price, wise_price, manual_price, quota, sort_order, active,
+    sales_opens_at, sales_closes_at, valid_from, valid_until, payment_channels,
     ticketTypeDays:ticket_type_days(event_day_id),
     includedAddons:ticket_type_included_addons(addon_id),
     credentials:ticket_type_credentials(id, label, zone_scopes, sort_order)

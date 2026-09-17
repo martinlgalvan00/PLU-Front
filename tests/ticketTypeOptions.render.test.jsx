@@ -11,12 +11,18 @@ import { ticketPricingFromEvent } from '../src/lib/eventPricing.js'
  * que el evento trae sus tipos hasta lo que lee el comprador.
  */
 const EVENT = {
+  eventDays: [
+    { dayIndex: 0, label: 'Día 1', date: '2026-08-15' },
+    { dayIndex: 1, label: 'Día 2', date: '2026-08-16' },
+  ],
   ticketTypes: [
     {
       id: 'tt-espectador',
       name: 'Espectador',
+      description: 'Acceso a tribuna durante la primera jornada.',
       price: 20000,
       sortOrder: 0,
+      dayIndexes: [0],
       credentials: [{ label: 'Entrada general', zoneScopes: ['gate_tickets'] }],
     },
     {
@@ -24,6 +30,7 @@ const EVENT = {
       name: 'Entrenador',
       price: 35000,
       sortOrder: 1,
+      dayIndexes: [0, 1],
       credentials: [
         { label: 'Espectador', zoneScopes: ['gate_tickets'] },
         { label: 'ENTRENADOR', zoneScopes: ['athletes_coaches'] },
@@ -77,6 +84,19 @@ describe('TicketTypeOptions', () => {
     const espectador = screen.getByRole('radio', { name: /^Espectador/ })
     expect(espectador.closest('label').textContent).toContain('Puerta general')
     expect(espectador.closest('label').textContent).not.toContain('Entrada en calor')
+  })
+
+  it('explica la propuesta y la vigencia exacta antes de comprar', () => {
+    renderChooser()
+
+    const espectador = screen.getByRole('radio', { name: /^Espectador/ }).closest('label')
+    const description = espectador.querySelector('.ticket-type-options__description')
+    expect(description?.tagName).toBe('P')
+    expect(description?.textContent).toBe('Acceso a tribuna durante la primera jornada.')
+    expect(espectador.textContent).toContain('Válida únicamente: Día 1')
+
+    const entrenador = screen.getByRole('radio', { name: /Entrenador/ }).closest('label')
+    expect(entrenador.textContent).toContain('Válida únicamente: Día 1 · Día 2')
   })
 
   /**

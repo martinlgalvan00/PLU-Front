@@ -35,6 +35,7 @@ function CatalogHarness({ addonsCatalog = [], errors } = {}) {
   const [types, setTypes] = useState([
     {
       name: 'Público general',
+      description: 'Acceso válido durante la jornada inaugural.',
       price: 15000,
       dayIndexes: [0],
       includedAddonIds: [],
@@ -88,6 +89,7 @@ describe('AdminTicketTypesEditor', () => {
     expect(general.textContent).toMatch(/=\s*MP/)
     expect(general.textContent).toMatch(/se calcula/i)
     expect(screen.getByDisplayValue('Público general')).toBeTruthy()
+    expect(screen.getByDisplayValue('Acceso válido durante la jornada inaugural.')).toBeTruthy()
     expect(screen.getAllByRole('spinbutton', { name: /precio wise/i })).toHaveLength(1)
     expect(screen.queryByDisplayValue('Palco')).toBeNull()
     expect(screen.getByDisplayValue('Entrada general')).toBeTruthy()
@@ -99,6 +101,16 @@ describe('AdminTicketTypesEditor', () => {
     expect(screen.getByDisplayValue('Palco')).toBeTruthy()
     expect(screen.queryByDisplayValue('Público general')).toBeNull()
     expect(screen.getByDisplayValue('Palco VIP')).toBeTruthy()
+  })
+
+  it('permite personalizar la descripción y explicita la vigencia por jornada', () => {
+    render(<CatalogHarness />)
+
+    const description = screen.getByRole('textbox', { name: /descripción/i })
+    fireEvent.change(description, { target: { value: 'Incluye tribuna y sector gastronómico.' } })
+
+    expect(description.value).toBe('Incluye tribuna y sector gastronómico.')
+    expect(screen.getByText(/qr válido.*día 1/i)).toBeTruthy()
   })
 
   it('abre el tipo con error de validación', () => {
@@ -143,7 +155,9 @@ describe('AdminTicketTypesEditor', () => {
   })
 
   it('muestra el error de validación del precio manual en su propio campo', () => {
-    render(<CatalogHarness errors={{ 'ticketTypes.0.manualPrice': 'Supera el precio de lista.' }} />)
+    render(
+      <CatalogHarness errors={{ 'ticketTypes.0.manualPrice': 'Supera el precio de lista.' }} />,
+    )
 
     expect(screen.getByRole('alert').textContent).toBe('Supera el precio de lista.')
   })

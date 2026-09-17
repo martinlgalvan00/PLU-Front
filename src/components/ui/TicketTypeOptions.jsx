@@ -1,5 +1,5 @@
 import '../../styles/components/ticket-type-options.css'
-import { DoorOpen, Flame, ShieldCheck, Users } from 'lucide-react'
+import { CalendarDays, DoorOpen, Flame, ShieldCheck, Users } from 'lucide-react'
 import { money } from '../../lib/format.js'
 
 /**
@@ -54,7 +54,10 @@ function ZoneChips({ zoneScopes = [], t }) {
       {zoneScopes.map((scope) => {
         const Icon = ZONE_ICONS[scope] ?? DoorOpen
         return (
-          <li key={scope} className={`ticket-type-options__zone ticket-type-options__zone--${scope}`}>
+          <li
+            key={scope}
+            className={`ticket-type-options__zone ticket-type-options__zone--${scope}`}
+          >
             <Icon size={13} strokeWidth={1.9} aria-hidden />
             {zoneScopeLabel(scope, t)}
           </li>
@@ -70,10 +73,24 @@ function TicketTypeBody({ type, locale, t, showAddons }) {
 
   return (
     <>
-      <span className="ticket-type-options__head">
-        <span className="ticket-type-options__name">{type.name}</span>
+      <div className="ticket-type-options__head">
+        <div className="ticket-type-options__copy">
+          <span className="ticket-type-options__name">{type.name}</span>
+          {type.description ? (
+            <p className="ticket-type-options__description">{type.description}</p>
+          ) : null}
+        </div>
         <span className="ticket-type-options__price">{money(type.price, locale)}</span>
-      </span>
+      </div>
+
+      {(type.accessDays ?? []).length ? (
+        <span className="ticket-type-options__validity">
+          <CalendarDays size={14} strokeWidth={1.8} aria-hidden />
+          {t('pages.tickets.ticketTypes.validity', {
+            days: type.accessDays.map((day) => day.label).join(' · '),
+          })}
+        </span>
+      ) : null}
 
       <ZoneChips zoneScopes={type.zoneScopes} t={t} />
 

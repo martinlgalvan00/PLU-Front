@@ -66,6 +66,7 @@ import {
   canDeleteUsers,
   canManageUsers,
   canViewAdmin,
+  canViewScanReport,
   getRoleLabel,
   isCheckinOnly,
   isPluUsaPartner,
@@ -648,6 +649,7 @@ export default function App() {
           authorization={app.session}
           allowedSections={getAllowedAdminSections(app.session)}
           canManageUsers={canManageUsers(app.session)}
+          canViewScanReport={canViewScanReport(app.session)}
           canDeleteUsers={canDeleteUsers(app.session)}
           canDeleteAthletes={canDeleteAthletes(app.session)}
           canDeleteEvents={canDeleteEvents(app.session)}
@@ -722,6 +724,7 @@ export default function App() {
           onCreateSecurityAccessLink={app.createSecurityAccessLinkAction}
           onDeactivateAllSecurityUsers={app.deactivateAllSecurityUsersAction}
           onListSecurityUsers={app.listSecurityUsersForEventAction}
+          onGetEventScanReport={app.getEventScanReportAction}
           onUpdateSecurityUserStatus={app.updateSecurityUserStatusAction}
           onListSecurityZones={app.listSecurityZonesAction}
           onCreateSecurityZone={app.createSecurityZoneAction}

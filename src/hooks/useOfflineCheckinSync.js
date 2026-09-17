@@ -4,6 +4,7 @@ import {
   downloadAllowlist as downloadAllowlistRequest,
   syncPendingCheckins,
 } from '../services/offlineCheckinSync.js'
+import { syncPendingScanEvents } from '../services/checkinTelemetry.js'
 
 const SYNC_INTERVAL_MS = 25000
 
@@ -37,13 +38,16 @@ export function useOfflineCheckinSync(eventSlug) {
     setSyncing(true)
     try {
       await syncPendingCheckins()
+      // Best-effort y aparte del check-in real: si la telemetría falla, no
+      // puede tumbar la sincronización de ingresos que sí importan.
+      if (eventSlug) await syncPendingScanEvents(eventSlug).catch(() => {})
       setLastSyncedAt(new Date().toISOString())
     } finally {
       syncingRef.current = false
       setSyncing(false)
       await refreshCounts()
     }
-  }, [refreshCounts])
+  }, [eventSlug, refreshCounts])
 
   const downloadAllowlist = useCallback(async () => {
     if (!eventSlug) return

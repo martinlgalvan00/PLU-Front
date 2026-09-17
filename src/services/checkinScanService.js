@@ -2,6 +2,31 @@ import { ApiError } from '../lib/api.js'
 import { credentialOpensZone } from './securityZoneService.js'
 import { getMembershipByCodeOrToken, getStaffMembershipCredential } from './athleteApi.js'
 import { mapApiTicket, verifyTicketByQrToken } from './ticketApi.js'
+import { TICKET_VALIDITY_STATUS, ticketValidityStatus } from '../lib/ticketValidity.js'
+
+/**
+ * Código PLU del rechazo del servidor → outcome de escaneo. El código es la
+ * fuente de verdad: antes se adivinaba con una regex sobre el mensaje en
+ * español (`no habilita esta zona`), y todo lo que no matcheara caía en "sin
+ * pago" — un QR vencido rechazado por el servidor se le mostraba al operador
+ * en la puerta como si la entrada no tuviera el pago acreditado.
+ */
+const CHECKIN_REJECTION_OUTCOME_BY_CODE = Object.freeze({
+  PLU06: 'already_used',
+  PLU14: 'not_yet_valid',
+  PLU15: 'expired',
+  PLU16: 'wrong_zone',
+})
+
+/** Clasifica el rechazo de `POST /api/tickets/checkin/:qrToken` por código PLU. */
+export function checkinRejectionOutcome(error) {
+  const code = error?.body?.code
+  if (code && CHECKIN_REJECTION_OUTCOME_BY_CODE[code]) {
+    return CHECKIN_REJECTION_OUTCOME_BY_CODE[code]
+  }
+  if (error?.body?.alreadyUsed) return 'already_used'
+  return 'not_paid'
+}
 
 /** Estado sintético unificado para atletas (pagos) y tickets (ciclo de entrada). */
 export function registrationCheckinStatus(registration) {
@@ -67,6 +92,7 @@ export function buildTicketRow(ticket) {
     document: ticket.attendeeDni,
     meta: ticket.ticketTypeName ?? ticket.ticketCode,
     ticketTypeName: ticket.ticketTypeName,
+    ticketTypeDescription: ticket.ticketTypeDescription ?? null,
     // Qué credencial es, no sólo de qué tipo de entrada salió. Una compra de
     // entrenador emite dos con el mismo nombre y el mismo DNI: sin esto, en la
     // puerta son indistinguibles.
@@ -75,6 +101,8 @@ export function buildTicketRow(ticket) {
     status: ticket.checkedInAt ? 'usada' : ticket.status,
     checkedInAt: ticket.checkedInAt,
     addons: ticket.addons ?? [],
+    validFrom: ticket.validFrom ?? null,
+    validUntil: ticket.validUntil ?? null,
   }
 }
 
@@ -99,6 +127,10 @@ export function applyTicketZoneOutcome(resolved, zoneScope) {
 export function canAdmitCheckinRow(row, { canCheckIn = false, zoneScope = null } = {}) {
   if (!canCheckIn || row?.status !== 'pagada') return false
   if (row.type === 'atleta') return true
+  const validity = ticketValidityStatus(row)
+  if (validity === TICKET_VALIDITY_STATUS.UPCOMING || validity === TICKET_VALIDITY_STATUS.EXPIRED) {
+    return false
+  }
   return credentialOpensZone(row.credentialScopes, zoneScope)
 }
 
@@ -169,7 +201,13 @@ export async function resolveTicketScan(qrToken, { zoneScope } = {}) {
     const { ticket } = await verifyTicketByQrToken(qrToken)
     const mapped = mapApiTicket(ticket)
     const status = mapped.checkedInAt ? 'usada' : mapped.status
-    const outcome = checkinOutcomeFromStatus(status)
+    const validity = ticketValidityStatus(mapped)
+    const outcome =
+      status === 'pagada' && validity === TICKET_VALIDITY_STATUS.UPCOMING
+        ? 'not_yet_valid'
+        : status === 'pagada' && validity === TICKET_VALIDITY_STATUS.EXPIRED
+          ? 'expired'
+          : checkinOutcomeFromStatus(status)
 
     return applyTicketZoneOutcome(
       {
@@ -179,6 +217,7 @@ export async function resolveTicketScan(qrToken, { zoneScope } = {}) {
         ticket: mapped,
         qrToken,
         status,
+        validity,
         row: buildTicketRow(mapped),
       },
       zoneScope,

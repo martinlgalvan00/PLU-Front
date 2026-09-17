@@ -14,6 +14,7 @@ import { useAdminModal } from './useAdminModal.js'
 export default function SecurityCredentialModal({ user, onGenerate, onClose }) {
   const { t } = useI18n()
   const [state, setState] = useState({ status: 'loading', url: '', expiresAt: null, qr: '' })
+  const [expiresAt, setExpiresAt] = useState('')
   const [copied, setCopied] = useState(false)
   const [emailState, setEmailState] = useState('idle') // idle | sending | sent | error
   const requestedRef = useRef(false)
@@ -22,7 +23,7 @@ export default function SecurityCredentialModal({ user, onGenerate, onClose }) {
     if (requestedRef.current) return
     requestedRef.current = true
     let active = true
-    onGenerate(false)
+    onGenerate({ sendEmail: false })
       .then(async ({ url, expiresAt }) => {
         const qr = await generateCredentialQr(url)
         if (active) setState({ status: 'ready', url, expiresAt, qr })
@@ -50,7 +51,7 @@ export default function SecurityCredentialModal({ user, onGenerate, onClose }) {
   async function handleEmail() {
     setEmailState('sending')
     try {
-      const { emailed } = await onGenerate(true)
+      const { emailed } = await onGenerate({ sendEmail: true, expiresAt })
       setEmailState(emailed ? 'sent' : 'error')
     } catch {
       setEmailState('error')
@@ -58,6 +59,18 @@ export default function SecurityCredentialModal({ user, onGenerate, onClose }) {
   }
 
   const expiryLabel = state.expiresAt ? new Date(state.expiresAt).toLocaleDateString() : ''
+
+  async function handleRegenerate() {
+    setState((current) => ({ ...current, status: 'loading' }))
+    setEmailState('idle')
+    try {
+      const result = await onGenerate({ sendEmail: false, expiresAt })
+      const qr = await generateCredentialQr(result.url)
+      setState({ status: 'ready', url: result.url, expiresAt: result.expiresAt, qr })
+    } catch {
+      setState((current) => ({ ...current, status: 'error' }))
+    }
+  }
 
   return createPortal(
     <div className="security-credential-modal">
@@ -133,7 +146,24 @@ export default function SecurityCredentialModal({ user, onGenerate, onClose }) {
               </p>
             )}
 
+            <label className="security-credential-modal__expiry-control">
+              <span>Vencimiento personalizado</span>
+              <input
+                type="datetime-local"
+                value={expiresAt}
+                onChange={(event) => setExpiresAt(event.target.value)}
+              />
+              <small>Vacío: usa la ventana segura del evento. No puede extenderse más allá de ella.</small>
+            </label>
+
             <div className="security-credential-modal__actions">
+              <button
+                type="button"
+                className="admin-event-security__toggle admin-event-security__toggle--celeste"
+                onClick={handleRegenerate}
+              >
+                Generar QR
+              </button>
               <button
                 type="button"
                 className="admin-event-security__toggle admin-event-security__toggle--celeste"
