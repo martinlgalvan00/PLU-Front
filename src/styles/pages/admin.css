@@ -19336,7 +19336,7 @@ button.action-queue__proof:focus-visible {
 .admin-ticket-types__validity-preview {
   display: grid;
   gap: 4px;
-  margin: 0;
+  margin: 10px 0 0;
 }
 
 .admin-ticket-types__validity-preview strong {
@@ -19355,6 +19355,7 @@ button.action-queue__proof:focus-visible {
 .admin-ticket-types__qr-validity {
   display: grid;
   gap: 12px;
+  min-width: 0;
 }
 
 .admin-ticket-types__policy {
@@ -19364,6 +19365,13 @@ button.action-queue__proof:focus-visible {
   margin: 0;
   min-width: 0;
   padding: 0;
+  text-transform: none;
+}
+
+.admin-ticket-types__policy--other {
+  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  margin-top: 8px;
+  padding-top: 10px;
 }
 
 .admin-ticket-types__policy legend {
@@ -19375,40 +19383,79 @@ button.action-queue__proof:focus-visible {
   text-transform: uppercase;
 }
 
-.admin-ticket-types__policy-option {
+/* Gana a `.admin-event-form label:not(...)` (grid de campos) y a
+   `input:not([type=checkbox])` (caja de 38px): si no, las radios se
+   estiran como inputs y heredan versalitas del `label span`. */
+.admin-event-form label.admin-ticket-types__policy-option:not(.admin-event-form__field) {
   align-items: flex-start;
+  background: transparent;
+  border: 0;
   border-radius: 8px;
   color: var(--color-text-primary);
   cursor: pointer;
   display: flex;
   gap: 10px;
-  min-height: 44px;
-  padding: 8px 6px;
-}
-
-.admin-ticket-types__policy-option input {
-  accent-color: var(--admin-brand, var(--color-brand-celeste));
-  flex: 0 0 auto;
-  margin-top: 3px;
-}
-
-.admin-ticket-types__policy-option span {
-  display: grid;
-  gap: 2px;
+  letter-spacing: 0;
+  min-height: 36px;
   min-width: 0;
+  padding: 6px 6px;
+  text-transform: none;
 }
 
-.admin-ticket-types__policy-option strong {
+.admin-event-form label.admin-ticket-types__policy-option:not(.admin-event-form__field).is-active {
+  background: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 8%, transparent);
+  min-height: 44px;
+  padding: 8px 8px;
+}
+
+.admin-event-form .admin-ticket-types__policy-option input[type='radio'] {
+  accent-color: var(--admin-brand, var(--color-brand-celeste));
+  align-self: flex-start;
+  appearance: auto;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  flex: 0 0 auto;
+  height: 16px;
+  margin: 3px 0 0;
+  max-width: none;
+  min-height: 0;
+  padding: 0;
+  width: 16px;
+}
+
+.admin-event-form .admin-ticket-types__policy-option span {
+  color: inherit;
+  display: grid;
+  font-size: inherit;
+  font-weight: inherit;
+  gap: 2px;
+  letter-spacing: 0;
+  min-width: 0;
+  text-transform: none;
+}
+
+.admin-event-form .admin-ticket-types__policy-option strong,
+.admin-event-form .admin-ticket-types__policy-option small {
+  overflow-wrap: anywhere;
+  text-transform: none;
+  white-space: normal;
+}
+
+.admin-event-form .admin-ticket-types__policy-option strong {
+  color: var(--color-text-primary);
   font-size: 13px;
   font-weight: 550;
+  letter-spacing: 0;
   line-height: 1.3;
 }
 
-.admin-ticket-types__policy-option.is-active strong {
+.admin-event-form .admin-ticket-types__policy-option.is-active strong {
   font-weight: 650;
 }
 
-.admin-ticket-types__policy-option small {
+.admin-event-form .admin-ticket-types__policy-option small {
   color: var(--admin-muted, var(--color-text-muted));
   font-size: 12px;
   font-weight: 400;

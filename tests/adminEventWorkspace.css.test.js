@@ -15,6 +15,13 @@ const css = fs.readFileSync(
 const contract = css.slice(css.lastIndexOf('Contrato de scroll del workspace'))
 
 describe('scroll del AdminEventWorkspace', () => {
+  it('deja el contrato de scroll activo, no comentado', () => {
+    const heading = css.lastIndexOf('Contrato de scroll del workspace')
+    const afterHeading = css.slice(heading, heading + 280)
+
+    expect(afterHeading).toMatch(/\*\/\s*\.admin-shell/)
+  })
+
   it('deja el tabpanel como único scrollport del evento', () => {
     expect(contract).toMatch(
       /\.admin-event-workspace--sidebar \.admin-event-workspace__body\s*\{[^}]*overflow-y:\s*auto/s,
@@ -46,6 +53,13 @@ describe('scroll del AdminEventWorkspace', () => {
     expect(css).toMatch(
       /\.admin-event-workspace__save \.admin-event-form__action-buttons \.btn\s*\{[^}]*min-height:\s*28px/s,
     )
+  })
+
+  it('envuelve el dock de acciones cuando el panel es angosto', () => {
+    expect(css).toMatch(
+      /\.admin-event-workspace__panel \.admin-event-form__action-buttons\s*\{[^}]*flex-wrap:\s*wrap/s,
+    )
+    expect(css).toMatch(/@container event-editor \(max-width: 42rem\)/)
   })
 
   it('deja los capítulos de Ventas visibles en notebook y desktop', () => {

@@ -3046,9 +3046,26 @@ export default {
         columnCredential: 'Ticket',
         columnGate: 'Gate',
         columnEvidence: 'Source',
+        columnAction: 'Action',
         evidence: {
           server: 'Confirmed by the server',
           operator: 'Reported by the device',
+        },
+        accessOverride: {
+          action: 'Access override',
+          title: 'Access override',
+          lead: 'Replaces, only for this ticket, the time window that decides whether the QR grants entry. It never reissues the QR or changes the ticket type.',
+          close: 'Close',
+          ticketCode: 'Code',
+          enableLabel: 'Enable override for this ticket',
+          enableHintOn: 'While active, this window overrides the ticket type’s policy.',
+          enableHintOff: 'Without an active override, the ticket goes back to its type’s policy.',
+          validFrom: 'Grants access from',
+          validUntil: 'Grants access until',
+          windowHint: 'Fill in a start and an end, with the end after the start.',
+          saving: 'Saving…',
+          confirm: 'Save override',
+          error: 'Could not save the access override.',
         },
       },
     },
@@ -3159,6 +3176,7 @@ export default {
       ticketTypeRowValidityDays: 'QR: {{days}}',
       ticketTypeRowValidityFixed: 'QR: fixed window',
       ticketTypeRowValidityFromPayment: 'QR: {{duration}} from payment',
+      ticketTypeRowValidityFromFirstScan: 'QR: {{duration}} from first scan',
       ticketTypeValidityDurationValue: {
         minutes: '{{count}} min',
         hours: '{{count}} h',
@@ -3183,19 +3201,27 @@ export default {
         'The QR lasts {{duration}} from payment approval',
       ticketTypeValidityPreviewFromPaymentDetail:
         'It starts when payment is approved and expires at the exact limit. It does not run from the scan.',
+      ticketTypeValidityPreviewFromFirstScanTitle:
+        'The QR lasts {{duration}} from the first scan',
+      ticketTypeValidityPreviewFromFirstScanDetail:
+        'The clock starts when security reads it for the first time and expires at the exact limit.',
       ticketTypeValidityPreviewUsageOnceTotal: 'A single entry, on any of those days.',
       ticketTypeValidityPreviewUsageOncePerDay:
         'It can be scanned once on each marked day. The credential stays the same.',
       ticketTypeValidityModeLabel: 'How validity is calculated',
+      ticketTypeValidityModeUsual: 'Usual',
+      ticketTypeValidityModeOther: 'Other rules',
       ticketTypeValidityMode: {
         event_days: 'The days you mark',
-        fixed_window: 'A fixed date and time',
-        from_payment: 'A duration from payment approval',
+        fixed_window: 'Fixed window',
+        from_payment: 'From payment approval',
+        from_first_scan: 'From the first scan',
       },
       ticketTypeValidityModeHint: {
         event_days: 'One day marked = a one-day QR. This is the usual public ticket.',
-        fixed_window: 'A specific window, for example a session or weigh-in.',
-        from_payment: 'For example 12 hours or 2 days from approval.',
+        fixed_window: 'A specific date and time, for example a session or weigh-in.',
+        from_payment: 'For example 12 hours or 2 days from Mercado Pago approval.',
+        from_first_scan: 'For example 12 hours or 2 days from the first entry.',
       },
       ticketTypeAccessUsageLabel: 'How it is consumed',
       ticketTypeAccessUsage: {
@@ -3216,6 +3242,8 @@ export default {
       },
       ticketTypeValidityDurationHint:
         'Example: 12 hours, 2 days or 90 minutes. It starts when payment is approved and expires at the exact limit.',
+      ticketTypeValidityDurationHintFromScan:
+        'Example: 12 hours, 2 days or 90 minutes. It starts at the first scan and expires at the exact limit.',
       ticketTypeValidityFrozen:
         'Already issued tickets keep their validity. This applies to the next ones.',
       ticketTypeValidityNoteDays: 'Validity is derived from the selected event days.',
@@ -3223,6 +3251,8 @@ export default {
         'The end is exclusive: when that date and time arrive, the QR has already expired.',
       ticketTypeValidityNoteFromPayment:
         'The duration is frozen when payment is approved; editing this type does not change issued QRs.',
+      ticketTypeValidityNoteFromFirstScan:
+        'The duration is frozen at the first scan; editing this type does not change issued QRs.',
       ticketTypeValidityDurationRequired: 'Set how long access lasts from payment approval.',
       ticketTypeValidityDurationInvalid: 'Duration must be between 1 minute and 366 days.',
       ticketTypeValidityDurationConflictsFixedWindow:

@@ -131,6 +131,7 @@ import {
   redeemTicketAddon as redeemTicketAddonRequest,
   registerTicketPaymentProof as registerTicketPaymentProofRequest,
   rejectTicketOrder as rejectTicketOrderRequest,
+  setTicketAccessOverride as setTicketAccessOverrideRequest,
 } from '../services/ticketApi.js'
 import { uploadTicketPaymentProof } from '../services/ticketProofService.js'
 import {
@@ -2413,6 +2414,21 @@ export function useAppData() {
     [session],
   )
 
+  // Excepción individual de acceso sobre una entrada ya emitida (nunca
+  // reemite el QR). Sin sesión demo: no hay ticketId real contra el que
+  // llamar al backend.
+  const setTicketAccessOverrideAction = useCallback(
+    async (ticketId, override) => {
+      if (isDemoSession(session)) {
+        throw new Error('La excepción de acceso no está disponible en la sesión de demostración.')
+      }
+      const { ticket } = await setTicketAccessOverrideRequest(ticketId, override)
+      setTickets((current) => current.map((item) => (item.id === ticket.id ? ticket : item)))
+      return ticket
+    },
+    [session],
+  )
+
   const updateSecurityUserStatusAction = useCallback(async (userId, status) => {
     const { user } = await updateSecurityUserStatusRequest(userId, status)
     return user
@@ -3846,6 +3862,7 @@ export function useAppData() {
     deactivateAllSecurityUsersAction,
     listSecurityUsersForEventAction,
     getEventScanReportAction,
+    setTicketAccessOverrideAction,
     updateSecurityUserStatusAction,
     loginWithGateToken,
     handleApprovePayment,

@@ -118,4 +118,27 @@ describe('ticketValidityPolicy', () => {
       durationMinutes: 12 * 60,
     })
   })
+
+  it('duración desde el primer escaneo exige minutos', () => {
+    expect(
+      summarizeTicketQrValidity(
+        { validityMode: TICKET_ACCESS_POLICY_MODE.FROM_FIRST_SCAN, dayIndexes: [0] },
+        EVENT_DAYS,
+      ).kind,
+    ).toBe('missing')
+
+    expect(
+      summarizeTicketQrValidity(
+        {
+          validityMode: TICKET_ACCESS_POLICY_MODE.FROM_FIRST_SCAN,
+          validityDurationMinutes: 6 * 60,
+          dayIndexes: [0],
+        },
+        EVENT_DAYS,
+      ),
+    ).toMatchObject({
+      kind: 'from_first_scan',
+      durationMinutes: 6 * 60,
+    })
+  })
 })

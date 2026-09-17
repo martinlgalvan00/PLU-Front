@@ -3126,9 +3126,26 @@ export default {
         columnCredential: 'Entrada',
         columnGate: 'Puerta',
         columnEvidence: 'Origen',
+        columnAction: 'Acción',
         evidence: {
           server: 'Confirmado por el servidor',
           operator: 'Reportado por el dispositivo',
+        },
+        accessOverride: {
+          action: 'Excepción de acceso',
+          title: 'Excepción de acceso',
+          lead: 'Reemplaza, sólo para esta entrada, la ventana horaria que decide si el QR habilita el ingreso. Nunca reemite el QR ni cambia el tipo de entrada.',
+          close: 'Cerrar',
+          ticketCode: 'Código',
+          enableLabel: 'Habilitar excepción para esta entrada',
+          enableHintOn: 'Mientras esté activa, esta ventana manda por sobre la política del tipo de entrada.',
+          enableHintOff: 'Sin excepción activa, la entrada vuelve a regirse por la política de su tipo.',
+          validFrom: 'Habilita desde',
+          validUntil: 'Habilita hasta',
+          windowHint: 'Completá inicio y fin, con el fin después del inicio.',
+          saving: 'Guardando…',
+          confirm: 'Guardar excepción',
+          error: 'No se pudo guardar la excepción de acceso.',
         },
       },
     },
@@ -3239,6 +3256,7 @@ export default {
       ticketTypeRowValidityDays: 'QR: {{days}}',
       ticketTypeRowValidityFixed: 'QR: ventana fija',
       ticketTypeRowValidityFromPayment: 'QR: {{duration}} desde el pago',
+      ticketTypeRowValidityFromFirstScan: 'QR: {{duration}} desde el 1.er escaneo',
       ticketTypeValidityDurationValue: {
         minutes: '{{count}} min',
         hours: '{{count}} h',
@@ -3263,19 +3281,27 @@ export default {
         'El QR vale {{duration}} desde que se acredita el pago',
       ticketTypeValidityPreviewFromPaymentDetail:
         'Empieza al acreditarse y vence en el límite exacto. No corre desde el escaneo.',
+      ticketTypeValidityPreviewFromFirstScanTitle:
+        'El QR vale {{duration}} desde el primer escaneo',
+      ticketTypeValidityPreviewFromFirstScanDetail:
+        'El reloj arranca cuando seguridad lo lee la primera vez y vence en el límite exacto.',
       ticketTypeValidityPreviewUsageOnceTotal: 'Un solo ingreso, en cualquiera de esas jornadas.',
       ticketTypeValidityPreviewUsageOncePerDay:
         'Se puede ingresar una vez por cada jornada marcada. La credencial es la misma.',
       ticketTypeValidityModeLabel: 'Cómo se calcula la vigencia',
+      ticketTypeValidityModeUsual: 'Lo habitual',
+      ticketTypeValidityModeOther: 'Otras reglas',
       ticketTypeValidityMode: {
         event_days: 'Los días que marques',
-        fixed_window: 'Fecha y hora fijas',
-        from_payment: 'Tiempo desde que se acredita el pago',
+        fixed_window: 'Ventana fija',
+        from_payment: 'Desde que se acredita el pago',
+        from_first_scan: 'Desde el primer escaneo',
       },
       ticketTypeValidityModeHint: {
         event_days: 'Un día marcado = QR de un día. Es lo habitual para público.',
-        fixed_window: 'Una ventana concreta, por ejemplo una sesión o un pesaje.',
-        from_payment: 'Por ejemplo 12 horas o 2 días desde que se acredita.',
+        fixed_window: 'Una fecha y hora concretas, por ejemplo una sesión o un pesaje.',
+        from_payment: 'Por ejemplo 12 horas o 2 días desde que Mercado Pago acredita.',
+        from_first_scan: 'Por ejemplo 12 horas o 2 días desde el primer ingreso.',
       },
       ticketTypeAccessUsageLabel: 'Cómo se consume',
       ticketTypeAccessUsage: {
@@ -3296,6 +3322,8 @@ export default {
       },
       ticketTypeValidityDurationHint:
         'Ejemplo: 12 horas, 2 días o 90 minutos. Empieza al acreditarse el pago y vence en el límite exacto.',
+      ticketTypeValidityDurationHintFromScan:
+        'Ejemplo: 12 horas, 2 días o 90 minutos. Empieza al primer escaneo y vence en el límite exacto.',
       ticketTypeValidityFrozen:
         'Las entradas ya emitidas conservan su vigencia. Esto aplica a las próximas.',
       ticketTypeValidityNoteDays: 'La vigencia se deriva de las jornadas seleccionadas.',
@@ -3303,6 +3331,8 @@ export default {
         'El límite final es exclusivo: al llegar esa fecha y hora, el QR ya venció.',
       ticketTypeValidityNoteFromPayment:
         'La duración queda congelada al acreditarse el pago; editar este tipo no modifica QR ya emitidos.',
+      ticketTypeValidityNoteFromFirstScan:
+        'La duración queda congelada al primer escaneo; editar este tipo no modifica QR ya emitidos.',
       ticketTypeValidityDurationRequired: 'Indicá cuánto dura el acceso desde la acreditación.',
       ticketTypeValidityDurationInvalid: 'La duración debe ser entre 1 minuto y 366 días.',
       ticketTypeValidityDurationConflictsFixedWindow:
