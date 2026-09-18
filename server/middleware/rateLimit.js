@@ -116,6 +116,18 @@ export const ticketPublicWriteLimiter = buildLimiter(
   { name: 'ticket-write', mode: 'strict' },
 )
 
+// Recuperar una entrada por referencia + mail (link del mail de confirmación,
+// sin sesión). Mismo criterio que registrationAccessCodeLimiter: la
+// referencia sola tiene 48 bits de entropía, pero exigir además el mail del
+// comprador no evita que alguien la reintente -- el balde corta ese barrido
+// sin frenar a quien perdió la pestaña original.
+export const ticketOrderLookupLimiter = buildLimiter(
+  15 * 60 * 1000,
+  15,
+  'Demasiados intentos. Proba de nuevo en unos minutos.',
+  { name: 'ticket-order-lookup', mode: 'strict' },
+)
+
 // Lecturas públicas sin auth (verificación de QR, estado de pago con
 // polling durante checkout, catálogo de planes) -- ventana corta y volumen
 // generoso, pensado para no frenar el polling legítimo del frontend.

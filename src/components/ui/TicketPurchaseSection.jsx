@@ -2,6 +2,7 @@ import '../../styles/components/ticket-purchase.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowRight,
+  Download,
   FileText,
   IdCard,
   Minus,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react'
 import Button from './Button.jsx'
 import CardPreviewModal from './CardPreviewModal.jsx'
+import ConfirmationSeal from './ConfirmationSeal.jsx'
 import FormSection from './FormSection.jsx'
 import { Field, Select } from './FormFields.jsx'
 import StatusPill from './StatusPill.jsx'
@@ -33,6 +35,34 @@ import { priceForAttendee, priceForOrder } from '../../services/ticketService.js
 import { buildTicketPaymentPriceLabels } from '../../lib/ticketPaymentMethods.js'
 import { formatWisePrice } from '../../services/checkoutPricing.js'
 import { resolveTicketOrderWisePricing } from '../../../shared/ticketWisePricing.js'
+import {
+  buildCardFilename,
+  downloadCard,
+  generateEventCard,
+  preloadEventCardCapture,
+} from '../../services/eventCardService.js'
+
+/**
+ * Espera a que las imágenes dentro del nodo (QR, logo) terminen de cargar
+ * antes de rasterizar — sin esto, un tap muy rápido después de abrir la
+ * confirmación podía descargar la entrada con el QR todavía en blanco.
+ */
+async function waitForPassImagesReady(node, { timeoutMs = 4000 } = {}) {
+  if (!node) return
+  const images = [...node.querySelectorAll('img')]
+  await Promise.race([
+    Promise.all(
+      images.map((img) => {
+        if (img.complete) return Promise.resolve()
+        return new Promise((resolve) => {
+          img.addEventListener('load', resolve, { once: true })
+          img.addEventListener('error', resolve, { once: true })
+        })
+      }),
+    ),
+    new Promise((resolve) => setTimeout(resolve, timeoutMs)),
+  ])
+}
 
 const MAX_TICKETS = 10
 const CHANNEL_KEYS = ['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer']
@@ -640,6 +670,9 @@ export default function TicketPurchaseSection({
   const [proofUploadError, setProofUploadError] = useState('')
   const [proofUploaded, setProofUploaded] = useState(false)
   const proofInputRef = useRef(null)
+  const [downloadingPassId, setDownloadingPassId] = useState(null)
+  const [downloadPassError, setDownloadPassError] = useState('')
+  const passNodesRef = useRef({})
 
   // Memoizado desde que la cotización en USD lo toma como dependencia: el `??
   // []` devolvía un array nuevo por render y recalculaba el total en cada tecla.
@@ -794,6 +827,13 @@ export default function TicketPurchaseSection({
     [pricing.ticketTypes],
   )
   const visibleOrder = createdOrder?.type === 'tickets' ? createdOrder : null
+
+  // Precarga el chunk de html2canvas apenas se ve la confirmación, para que
+  // el primer tap en "Descargar entrada" no espere el import.
+  useEffect(() => {
+    if (visibleOrder) preloadEventCardCapture().catch(() => {})
+  }, [visibleOrder])
+
   const orderTickets = visibleOrder
     ? tickets.filter((item) => item.orderId === visibleOrder.orderId)
     : []
@@ -919,6 +959,28 @@ export default function TicketPurchaseSection({
     if (proofInputRef.current) proofInputRef.current.value = ''
   }
 
+  async function handleDownloadPass(ticket) {
+    const node = passNodesRef.current[ticket.id]
+    if (!node) return
+    setDownloadingPassId(ticket.id)
+    setDownloadPassError('')
+    try {
+      await waitForPassImagesReady(node)
+      const blob = await generateEventCard(node)
+      const filename = buildCardFilename(
+        ticket.attendeeName,
+        ticket.eventSlug || event?.slug || 'evento',
+        ticket.ticketCode || '',
+      )
+      downloadCard(blob, filename)
+    } catch (err) {
+      console.error('TicketPurchaseSection: descarga de entrada', err)
+      setDownloadPassError(t('pages.tickets.downloadPassError'))
+    } finally {
+      setDownloadingPassId(null)
+    }
+  }
+
   function selectProofFile(file) {
     if (!file) return
     if (!PROOF_FILE_TYPES.has(file.type)) {
@@ -953,20 +1015,41 @@ export default function TicketPurchaseSection({
 
     return (
       <div className="ticket-purchase ticket-purchase--confirmation ticket-purchase--confirmation-editorial">
-        <div className="ticket-purchase__confirmation-head">
-          <TicketIcon size={22} aria-hidden />
-          <div>
-            <h3>{t('pages.tickets.confirmationTitle', { event: visibleOrder.eventTitle })}</h3>
-            <p>
-              {countLabel} · {money(visibleOrder.amount, locale, visibleOrder.currency)}
-            </p>
+        {visibleOrder.status === 'aprobado' ? (
+          // El pago ya está acreditado: es uno de los momentos que cierra un
+          // trámite (ver celebration.js), así que el sello reemplaza al
+          // encabezado plano y festeja una sola vez por orden (`celebrateKey`
+          // evita que se repita si la persona recarga la página o vuelve a
+          // encontrar esta misma compra desde TicketOrderLookup).
+          <ConfirmationSeal
+            variant="payment"
+            celebrate
+            celebrateKey={`ticket-order:${visibleOrder.orderId}`}
+            eyebrow={t('pages.tickets.sealEyebrow')}
+            seal={countLabel}
+            title={t('pages.tickets.confirmationTitle', { event: visibleOrder.eventTitle })}
+            detail={t('pages.tickets.sealDetail', {
+              amount: money(visibleOrder.amount, locale, visibleOrder.currency),
+            })}
+          />
+        ) : (
+          <div className="ticket-purchase__confirmation-head">
+            <TicketIcon size={22} aria-hidden />
+            <div>
+              <h3>{t('pages.tickets.confirmationTitle', { event: visibleOrder.eventTitle })}</h3>
+              <p>
+                {countLabel} · {money(visibleOrder.amount, locale, visibleOrder.currency)}
+              </p>
+            </div>
+            <StatusPill value={visibleOrder.status} />
           </div>
-          <StatusPill value={visibleOrder.status} />
-        </div>
+        )}
 
-        <p className="ticket-purchase__confirmation-lead">
-          {t('pages.tickets.confirmationQrLead')}
-        </p>
+        {visibleOrder.status !== 'aprobado' ? (
+          <p className="ticket-purchase__confirmation-lead">
+            {t('pages.tickets.confirmationQrLead')}
+          </p>
+        ) : null}
 
         {editorial ? (
           <a
@@ -1194,19 +1277,23 @@ export default function TicketPurchaseSection({
                       scopes.length > 0 &&
                       (multi || scopes.some((scope) => scope !== 'gate_tickets'))
 
+                    const isDownloading = downloadingPassId === ticket.id
+
                     return (
                       <li key={ticket.id} className="ticket-purchase__pass-item">
-                        <TicketPassPreview
-                          live
-                          interactive={false}
-                          attendeeName={ticket.attendeeName}
-                          date={ticket.eventDate || event?.date}
-                          dayPassLabel={passLabel}
-                          eventSlug={ticket.eventSlug || event?.slug || ''}
-                          eventTitle={ticket.eventTitle || visibleOrder.eventTitle}
-                          qrCode={ticket.qrToken || ticket.ticketCode || ''}
-                          venue={ticket.eventVenue || event?.venue}
-                        />
+                        <div ref={(el) => (passNodesRef.current[ticket.id] = el)}>
+                          <TicketPassPreview
+                            live
+                            interactive={false}
+                            attendeeName={ticket.attendeeName}
+                            date={ticket.eventDate || event?.date}
+                            dayPassLabel={passLabel}
+                            eventSlug={ticket.eventSlug || event?.slug || ''}
+                            eventTitle={ticket.eventTitle || visibleOrder.eventTitle}
+                            qrCode={ticket.qrToken || ticket.ticketCode || ''}
+                            venue={ticket.eventVenue || event?.venue}
+                          />
+                        </div>
                         <div className="ticket-purchase__pass-actions">
                           <div className="ticket-purchase__ticket-info">
                             <span>
@@ -1235,6 +1322,17 @@ export default function TicketPurchaseSection({
                             <QrCode size={14} aria-hidden />
                             {t('pages.tickets.viewTicket')}
                           </button>
+                          <button
+                            type="button"
+                            className="ticket-purchase__qr-btn"
+                            disabled={isDownloading}
+                            onClick={() => handleDownloadPass(ticket)}
+                          >
+                            <Download size={14} aria-hidden />
+                            {isDownloading
+                              ? t('pages.tickets.downloadingPass')
+                              : t('pages.tickets.downloadPass')}
+                          </button>
                         </div>
                       </li>
                     )
@@ -1244,6 +1342,12 @@ export default function TicketPurchaseSection({
             )
           })}
         </div>
+
+        {downloadPassError ? (
+          <p className="ticket-purchase__submit-error" role="alert">
+            {downloadPassError}
+          </p>
+        ) : null}
 
         <CardPreviewModal
           open={Boolean(activeTicket)}

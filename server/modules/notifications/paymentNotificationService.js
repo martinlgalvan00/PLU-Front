@@ -1,5 +1,6 @@
 import { createEmailDispatcher } from './emailDispatcher.js'
 import { buildEventPagePath } from '../../../src/lib/eventPageRoute.js'
+import { SHORT_TICKETS_PATH } from '../../../src/lib/ticketsRoute.js'
 import { resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
 
 export function displayPaymentConcept(concept) {
@@ -77,7 +78,12 @@ export function buildPaymentConfirmationParams({
     eventUrl,
 
     ticketQuantity: Array.isArray(result?.tickets) ? result.tickets.length : '',
-    ticketUrl: includesTicket ? eventUrl : '',
+    // El link no puede llevar directo al QR (no hay cuenta que lo guarde):
+    // lleva a /entradas?ref=..., donde TicketOrderLookup pide el mail del
+    // comprador como segundo factor y recupera la entrada con ese código.
+    ticketUrl: includesTicket
+      ? `${baseUrl}${SHORT_TICKETS_PATH}?ref=${encodeURIComponent(order?.reference ?? '')}`
+      : '',
   }
 }
 

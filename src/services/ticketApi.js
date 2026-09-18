@@ -261,6 +261,21 @@ export async function getEventScanReport(eventSlug, { from, until, limit } = {})
   return apiGet(`/api/tickets/checkin/scan-report/${eventSlug}${query ? `?${query}` : ''}`)
 }
 
+/**
+ * Recuperar una compra ya hecha desde el link del mail de confirmación
+ * (referencia + mail del comprador, sin sesión ni token). Sin coincidencia,
+ * `apiGet` tira un `ApiError` con `status: 404` -- el caller decide el
+ * mensaje, no esta capa.
+ */
+export async function lookupTicketOrder(reference, email) {
+  const params = new URLSearchParams({ reference, email })
+  const result = await apiGet(`/api/tickets/orders/lookup?${params.toString()}`)
+  return {
+    order: result.order,
+    tickets: result.tickets.map((ticket) => toCamelTicket(ticket)),
+  }
+}
+
 export async function redeemTicketAddon(qrToken, addonId) {
   const result = await apiPost(`/api/tickets/checkin/${qrToken}/addons/${addonId}/redeem`, {})
   return {
