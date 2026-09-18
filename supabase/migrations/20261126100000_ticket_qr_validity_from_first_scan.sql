@@ -411,7 +411,8 @@ begin
   select jsonb_build_object(
     'total', coalesce(sum(total), 0),
     'admitted', coalesce(sum(total) filter (where outcome in ('checked_in', 'ready')), 0),
-    'rejected', coalesce(sum(total) filter (where outcome not in ('checked_in', 'ready')), 0)
+    'rejected', coalesce(sum(total) filter (where outcome not in ('checked_in', 'ready')), 0),
+    'byOutcome', v_by_outcome
   )
   into v_summary
   from (
