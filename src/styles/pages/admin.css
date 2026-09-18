@@ -2740,6 +2740,273 @@
   }
 }
 
+.admin-manual-ticket-sale {
+  align-items: center;
+  display: grid;
+  inset: 0;
+  justify-items: center;
+  padding: var(--space-md);
+  position: fixed;
+  z-index: 1300;
+}
+
+.admin-manual-ticket-sale__backdrop {
+  background: color-mix(in srgb, var(--color-bg-primary) 78%, transparent);
+  border: 0;
+  cursor: default;
+  inset: 0;
+  position: absolute;
+}
+
+.admin-manual-ticket-sale__panel {
+  background: var(--admin-surface-raised, var(--color-bg-elevated));
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--elevation-lg);
+  color: var(--admin-ink, var(--color-text-primary));
+  display: grid;
+  gap: var(--space-md);
+  max-height: min(92vh, 880px);
+  overflow: auto;
+  padding: clamp(var(--space-lg), 3.5vw, calc(var(--space-lg) + var(--space-sm)));
+  position: relative;
+  width: min(100%, 640px);
+}
+
+.admin-manual-ticket-sale__head {
+  align-items: start;
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: auto 1fr;
+}
+
+.admin-manual-ticket-sale__head h2 {
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.admin-manual-ticket-sale__icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 8%, transparent);
+  border-radius: 10px;
+  color: var(--admin-muted, var(--color-text-muted));
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
+}
+
+.admin-manual-ticket-sale__lead {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 4px 0 0;
+}
+
+.admin-manual-ticket-sale__form {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.admin-manual-ticket-sale__field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-manual-ticket-sale__field--wide {
+  grid-column: 1 / -1;
+}
+
+.admin-manual-ticket-sale__field span:first-child {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.admin-manual-ticket-sale__field input,
+.admin-manual-ticket-sale__field select {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 8px;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  min-height: 40px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.admin-manual-ticket-sale__field input:focus-visible,
+.admin-manual-ticket-sale__field select:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-manual-ticket-sale__field-error {
+  color: var(--admin-status-danger, var(--color-status-danger));
+  font-size: 11.5px;
+  margin: 0;
+}
+
+.admin-manual-ticket-sale__hint {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11.5px;
+  margin: 0;
+}
+
+.admin-manual-ticket-sale__attendees {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-manual-ticket-sale__attendee {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 10px;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+}
+
+.admin-manual-ticket-sale__attendee legend {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 2px;
+}
+
+.admin-manual-ticket-sale__attendee-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-manual-ticket-sale__add-attendee,
+.admin-manual-ticket-sale__remove-attendee {
+  align-items: center;
+  background: transparent;
+  border: 1px dashed var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 8px;
+  color: var(--admin-muted, var(--color-text-muted));
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 6px;
+  justify-self: start;
+  padding: 6px 10px;
+}
+
+.admin-manual-ticket-sale__remove-attendee {
+  border-color: transparent;
+  border-style: solid;
+  color: var(--admin-status-danger, var(--color-status-danger));
+  padding: 4px 6px;
+}
+
+.admin-manual-ticket-sale__add-attendee:hover,
+.admin-manual-ticket-sale__remove-attendee:hover {
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 6%, transparent);
+}
+
+.admin-manual-ticket-sale__buyer {
+  border: 0;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-manual-ticket-sale__buyer legend {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+}
+
+.admin-manual-ticket-sale__channels {
+  border: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+}
+
+.admin-manual-ticket-sale__channels legend {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 13px;
+  font-weight: 600;
+  grid-column: 1 / -1;
+  padding: 0;
+}
+
+.admin-manual-ticket-sale__channel {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 10px;
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: auto 1fr;
+  padding: 10px 12px;
+}
+
+.admin-manual-ticket-sale__channel.is-selected {
+  border-color: var(--color-brand-celeste);
+  box-shadow: 0 0 0 1px var(--color-brand-celeste) inset;
+}
+
+.admin-manual-ticket-sale__channel input {
+  grid-row: 1 / 3;
+  margin-top: 2px;
+}
+
+.admin-manual-ticket-sale__channel-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-manual-ticket-sale__channel-hint {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.admin-manual-ticket-sale__error {
+  color: var(--admin-status-danger, var(--color-status-danger));
+  font-size: 12.5px;
+  margin: 0;
+}
+
+.admin-manual-ticket-sale__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 620px) {
+  .admin-manual-ticket-sale__attendee-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-manual-ticket-sale__channels {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-manual-ticket-sale__actions {
+    flex-direction: column-reverse;
+  }
+
+  .admin-manual-ticket-sale__actions .btn {
+    width: 100%;
+  }
+}
+
 .admin-finance--compact {
   gap: 8px;
 }

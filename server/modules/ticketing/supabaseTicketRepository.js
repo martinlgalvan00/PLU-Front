@@ -37,7 +37,7 @@ export function createSupabaseTicketRepository(client) {
     async createOrder(data) {
       const accessToken = data.accessToken ?? randomBytes(32).toString('base64url')
       const result = await rpc(
-        'create_ticket_order_v2',
+        'create_ticket_order_v3',
         {
           p_event_slug: data.eventSlug,
           p_attendees: data.attendees,
@@ -50,6 +50,10 @@ export function createSupabaseTicketRepository(client) {
           },
           p_idempotency_key: data.idempotencyKey,
           p_access_token_hash: hash(accessToken),
+          // Sólo una carga manual desde el panel manda esto. Cuando viene,
+          // create_ticket_order_v3 saltea las ventanas de venta online y
+          // audita como staff en vez de público.
+          p_staff_actor: data.staffActor ?? null,
         },
         'No se pudo crear la orden de entradas.',
       )
