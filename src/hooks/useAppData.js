@@ -127,6 +127,7 @@ import {
   getEventScanReport,
   listPendingTicketOrders as listPendingTicketOrdersRequest,
   listTicketsForEvent as listTicketsForEventRequest,
+  lookupTicketOrder as lookupTicketOrderRequest,
   mapApiTicket,
   redeemTicketAddon as redeemTicketAddonRequest,
   registerTicketPaymentProof as registerTicketPaymentProofRequest,
@@ -1633,6 +1634,7 @@ export function useAppData() {
           type: 'tickets',
           orderId: order.id,
           orderAccessToken,
+          eventSlug: purchaseEvent.slug,
           eventTitle: purchaseEvent.title,
           quantity: createdTickets.length,
           amount: order.amount,
@@ -1665,6 +1667,39 @@ export function useAppData() {
   const clearCreatedOrder = useCallback(() => {
     setCreatedOrder(null)
     writeCurrentOrder(null)
+  }, [])
+
+  /**
+   * Recupera una compra de entradas ya hecha por referencia + mail (link del
+   * mail de confirmación, sin sesión). Alimenta el mismo `createdOrder` que
+   * usa una compra recién hecha, así que `TicketPurchaseSection` la muestra
+   * con el mismo render -- QR incluido -- sin código nuevo.
+   */
+  const lookupTicketOrderAction = useCallback(async (reference, email) => {
+    const { order, tickets: foundTickets } = await lookupTicketOrderRequest(reference, email)
+    if (order.status !== 'aprobado') {
+      return { order }
+    }
+    const purchaseEvent = { slug: order.eventSlug, title: order.eventTitle }
+    const mappedTickets = foundTickets.map((ticket) => mapApiTicket(ticket, purchaseEvent))
+    setTickets((current) => {
+      const byId = new Map(mappedTickets.map((ticket) => [ticket.id, ticket]))
+      const merged = current.map((item) => byId.get(item.id) ?? item)
+      const newOnes = mappedTickets.filter((ticket) => !current.some((item) => item.id === ticket.id))
+      return [...newOnes, ...merged]
+    })
+    const nextOrder = {
+      type: 'tickets',
+      orderId: mappedTickets[0]?.orderId ?? null,
+      eventSlug: order.eventSlug,
+      eventTitle: order.eventTitle,
+      quantity: mappedTickets.length,
+      reference: order.reference,
+      status: order.status,
+      tickets: mappedTickets,
+    }
+    setCreatedOrder(nextOrder)
+    return { order, createdOrder: nextOrder }
   }, [])
 
   // Aprobación operativa reservada a transferencias manuales. Las órdenes
@@ -3744,6 +3779,7 @@ export function useAppData() {
     pendingTicketOrdersError,
     createdOrder,
     clearCreatedOrder,
+    lookupTicketOrderAction,
     form,
     filters,
     setFilters,

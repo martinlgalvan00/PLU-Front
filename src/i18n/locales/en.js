@@ -3364,6 +3364,8 @@ export default {
       confirmationCount_other: '{{count}} tickets',
       confirmationQrLead:
         'Once payment is confirmed, each ticket gets its entry QR ready to show at the door.',
+      sealEyebrow: 'Purchase confirmed',
+      sealDetail: '{{amount}} charged. You can already show the QR at the door.',
       shareCta: 'Share on WhatsApp',
       shareMessage: "I've got my ticket for {{event}}. Get yours here: {{link}}",
       continueMercadoPago: 'Continue to Mercado Pago',
@@ -3372,6 +3374,9 @@ export default {
       manualNote:
         'Transfer the amount and attach your receipt within 24 hours: after that the order is cancelled. Administration validates it within up to 48 hours before enabling your QR.',
       viewTicket: 'View my ticket',
+      downloadPass: 'Download ticket',
+      downloadingPass: 'Generating…',
+      downloadPassError: "We couldn't generate the image. Please try again.",
       addonsTitle: 'Optional perks',
       addonIncluded: 'Included',
       addonsForAttendee: 'Extras · ticket {{index}}',
@@ -3380,6 +3385,22 @@ export default {
       attendeesFix_one: 'Complete the highlighted ticket details.',
       attendeesFix_other: 'Complete details for {{count}} highlighted tickets.',
       rowPrice: 'Price',
+      lookup: {
+        toggleLabel: 'Already bought? Find your ticket',
+        title: 'Find your ticket',
+        lead: "With your purchase code and the email you paid with, you'll see your QR again.",
+        referenceLabel: 'Purchase code',
+        referencePlaceholder: 'TORD-XXXXXXXXXXXX',
+        emailLabel: 'Email you purchased with',
+        emailPlaceholder: 'you@email.com',
+        submit: 'Find my ticket',
+        submitting: 'Searching…',
+        notFound: "We couldn't find a purchase with that info. Check the code and the email.",
+        pending:
+          "We found your purchase: it's still pending confirmation. You'll get an email as soon as it's approved.",
+        rejected: 'This purchase was rejected. You can try purchasing again from above.',
+        genericError: "We couldn't find your ticket. Try again in a moment.",
+      },
     },
     register: {
       navAria: 'Registration navigation',

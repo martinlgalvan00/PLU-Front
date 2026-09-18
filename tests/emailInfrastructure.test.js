@@ -908,6 +908,9 @@ describe('emails de pago (vía Mercado Pago)', () => {
     })
     expect(calls.map(([type]) => type)).toEqual(['payment_confirmation'])
     expect(calls[0][1].params).toMatchObject({ includesTicket: true, eventTitle: 'Pitbull' })
+    // Sin cuenta que guarde el QR, el link tiene que llevar a la recuperación
+    // por referencia (TicketOrderLookup), no a la ficha pública del evento.
+    expect(calls[0][1].params.ticketUrl).toMatch(/\/entradas\?ref=T1$/)
   })
 
   it('avisa el rechazo y el pendiente sin mandar comprobante', async () => {
