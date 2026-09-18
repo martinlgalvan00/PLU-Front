@@ -47,6 +47,7 @@ scripts/.visual-check-output/
 e2e/.auth/
 e2e/.report/
 e2e/.fixture.json
+e2e/.test-results/
 test-results/
 playwright-report/
 blob-report/
