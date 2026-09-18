@@ -57,6 +57,11 @@ declare
   v_first date;
   v_last date;
   v_today date;
+  -- Distingue "la ventana salió del calendario de jornadas" de "salió de una
+  -- excepción de acceso / from_payment / from_first_scan / fixed_window",
+  -- que también pueden convivir con qr_validity_mode = 'event_days' (la
+  -- excepción no cambia el modo del tipo, solo pisa la ventana calculada).
+  v_from_event_days boolean := false;
 begin
   select * into v_ticket from public.tickets where id = p_ticket_id;
 
@@ -89,6 +94,7 @@ begin
     valid_until := v_type.valid_until;
     access_window_key := 'once_total';
   else
+    v_from_event_days := true;
     select min(d.date), max(d.date)
       into v_first, v_last
     from public.ticket_type_days td
@@ -109,7 +115,7 @@ begin
     when valid_from is null or valid_until is null or valid_until <= valid_from then 'unknown'
     when p_now < valid_from then 'upcoming'
     when p_now >= valid_until then 'expired'
-    when v_type.qr_validity_mode = 'event_days' and not exists (
+    when v_from_event_days and not exists (
       select 1 from public.ticket_type_days td
       join public.event_days d on d.id = td.event_day_id
       where td.ticket_type_id = v_type.id

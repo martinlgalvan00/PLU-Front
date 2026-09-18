@@ -24,11 +24,14 @@ export function listen(app) {
 
 /**
  * Fixture de puerta: saltea comprobante/aprobación y abre la vigencia del QR
- * para el instante del test. `staff_check_in_ticket` (y el pre-chequeo de
- * Node) rechazan con 409/PLU14 si `now` está antes de `valid_from`. Un evento
- * futuro —necesario para que el POST de la orden no cierre por transferencia—
- * congela esa ventana al emitir, así que un test que compra hoy y escanea hoy
- * tiene que reabrirla.
+ * para el instante del test. `staff_check_in_ticket` y `get_ticket_by_qr_token`
+ * (el pre-chequeo de Node lee de ahí) ya no miran `tickets.valid_from/until`
+ * -- esas columnas quedan congeladas al emitir la entrada y no se tocan más.
+ * La vigencia efectiva sale, siempre en vivo, de
+ * `resolve_ticket_type_access_window`, que primero chequea
+ * `access_override_enabled`: exactamente el mecanismo de excepción de acceso
+ * (staff_set_ticket_access_override) que un test usa para forzar la entrada
+ * a vigente sin depender del calendario del tipo de entrada.
  */
 export async function markTicketReadyForCheckin(supabaseAdmin, ticketId) {
   const now = Date.now()
@@ -36,8 +39,9 @@ export async function markTicketReadyForCheckin(supabaseAdmin, ticketId) {
     .from('tickets')
     .update({
       status: 'pagada',
-      valid_from: new Date(now - 60_000).toISOString(),
-      valid_until: new Date(now + 86_400_000).toISOString(),
+      access_override_enabled: true,
+      access_override_valid_from: new Date(now - 60_000).toISOString(),
+      access_override_valid_until: new Date(now + 86_400_000).toISOString(),
     })
     .eq('id', ticketId)
   return error
