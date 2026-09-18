@@ -123,6 +123,7 @@ import { readStorage, writeCurrentOrder, writeStorage } from '../services/storag
 import {
   approveTicketOrder as approveTicketOrderRequest,
   checkInTicket as checkInTicketRequest,
+  createManualTicketOrder as createManualTicketOrderRequest,
   createTicketOrder as createTicketOrderRequest,
   getEventScanReport,
   listPendingTicketOrders as listPendingTicketOrdersRequest,
@@ -1808,6 +1809,31 @@ export function useAppData() {
       setPendingTicketOrdersLoading(false)
     }
   }, [session])
+
+  /**
+   * Venta de mostrador cargada por un operador (efectivo en la puerta o
+   * transferencia recibida por privado), no por el comprador desde el
+   * checkout público. Efectivo vuelve ya aprobado (`approved: true`); en
+   * ese caso no hay fila nueva en la cola de pendientes, pero se refresca
+   * igual para no dejar `pendingTicketOrders` desactualizado si había otra
+   * en curso.
+   */
+  const createManualTicketSale = useCallback(
+    async (payload) => {
+      if (!hasPermission(session, 'admin.payments.approve') || isDemoSession(session)) {
+        return { error: 'Sin permisos para cargar una venta manual.' }
+      }
+      try {
+        const result = await createManualTicketOrderRequest(payload)
+        await refreshPendingTicketOrders()
+        return result
+      } catch (error) {
+        console.error('createManualTicketSale:', error)
+        return { error: error?.message ?? 'No se pudo cargar la venta.' }
+      }
+    },
+    [session, refreshPendingTicketOrders],
+  )
 
   // Check-in en la puerta: el backend valida el qrToken y lo marca como
   // usado de forma atómica — dos escaneos simultáneos del mismo QR no
@@ -3857,6 +3883,7 @@ export function useAppData() {
     approveTicketPurchase,
     rejectTicketPurchase,
     refreshPendingTicketOrders,
+    createManualTicketSale,
     checkInTicketAction,
     redeemTicketAddonAction,
     refreshTickets,

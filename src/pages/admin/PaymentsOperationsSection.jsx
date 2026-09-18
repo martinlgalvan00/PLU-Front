@@ -68,11 +68,13 @@ export default function PaymentsOperationsSection({
   pendingTicketOrders,
   isLoading: manualLoading,
   loadError: manualError,
+  ticketEvents = [],
   onApprovePayment,
   onForceSettlePayment,
   onRejectPayment,
   onApproveTicketOrder,
   onRejectTicketOrder,
+  onCreateManualTicketOrder,
   onRefresh: onRefreshManual,
 }) {
   const { locale, t } = useI18n()
@@ -663,8 +665,10 @@ export default function PaymentsOperationsSection({
           pendingTicketOrders={pendingTicketOrders}
           isLoading={manualLoading}
           loadError={manualError}
+          events={ticketEvents}
           onApproveTicketOrder={onApproveTicketOrder}
           onRejectTicketOrder={onRejectTicketOrder}
+          onCreateManualTicketOrder={onCreateManualTicketOrder}
           onRefresh={onRefreshManual}
         />
       </div>

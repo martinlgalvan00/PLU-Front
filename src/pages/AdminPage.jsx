@@ -91,6 +91,7 @@ export default function AdminPage({
   onPreviewRegistrationNotification,
   onApproveTicketPurchase,
   onRejectTicketOrder,
+  onCreateManualTicketOrder,
   onRefreshPendingTicketOrders,
   canCheckIn = false,
   onCheckInRegistration,
@@ -586,11 +587,13 @@ export default function AdminPage({
           pendingTicketOrders={pendingTicketOrders}
           isLoading={pendingTicketOrdersLoading}
           loadError={pendingTicketOrdersError}
+          ticketEvents={adminEvents}
           onApprovePayment={onApprovePayment}
           onForceSettlePayment={onForceSettlePayment}
           onRejectPayment={onRejectPayment}
           onApproveTicketOrder={onApproveTicketPurchase}
           onRejectTicketOrder={onRejectTicketOrder}
+          onCreateManualTicketOrder={onCreateManualTicketOrder}
           onRefresh={onRefreshPendingTicketOrders}
         />
       )

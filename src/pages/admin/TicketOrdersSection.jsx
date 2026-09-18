@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BadgeCheck, Paperclip } from 'lucide-react'
+import { BadgeCheck, Paperclip, Plus } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminFilterBar from '../../components/admin/AdminFilterBar.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
@@ -10,6 +10,7 @@ import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import PaymentValidationDialog from '../../components/admin/PaymentValidationDialog.jsx'
+import ManualTicketSaleDialog from '../../components/admin/ManualTicketSaleDialog.jsx'
 
 function formatUploadedAt(value, locale) {
   if (!value) return '—'
@@ -25,8 +26,10 @@ export default function TicketOrdersSection({
   pendingTicketOrders = [],
   isLoading = false,
   loadError = null,
+  events = [],
   onApproveTicketOrder,
   onRejectTicketOrder,
+  onCreateManualTicketOrder,
   onRefresh,
 }) {
   const { locale, t } = useI18n()
@@ -34,6 +37,9 @@ export default function TicketOrdersSection({
   const [actionError, setActionError] = useState(null)
   const [query, setQuery] = useState(initialQuery)
   const [reviewRow, setReviewRow] = useState(null)
+  const [manualSaleOpen, setManualSaleOpen] = useState(false)
+  const [manualSaleBusy, setManualSaleBusy] = useState(false)
+  const [manualSaleError, setManualSaleError] = useState('')
 
   useEffect(() => {
     setQuery(initialQuery)
@@ -130,6 +136,34 @@ export default function TicketOrdersSection({
     }
   }
 
+  async function handleCreateManualSale(payload) {
+    if (!canEdit) return
+    setManualSaleBusy(true)
+    setManualSaleError('')
+    try {
+      const result = await onCreateManualTicketOrder?.(payload)
+      if (result?.error) {
+        setManualSaleError(result.error)
+        notifyError(result.error)
+        return
+      }
+      await onRefresh?.()
+      notifySuccess(
+        result?.approved
+          ? t('admin.toasts.manualTicketSaleApproved')
+          : t('admin.toasts.manualTicketSalePending'),
+      )
+      setManualSaleOpen(false)
+    } catch (error) {
+      console.error('create manual ticket sale:', error)
+      const message = error.message ?? t('admin.ticketOrders.approveErrorFallback')
+      setManualSaleError(message)
+      notifyError(message)
+    } finally {
+      setManualSaleBusy(false)
+    }
+  }
+
   const withProofCount = useMemo(
     () => allRows.filter((row) => row.paymentProofPath).length,
     [allRows],
@@ -152,6 +186,19 @@ export default function TicketOrdersSection({
           <span className="admin-orders-block__amount admin-orders-block__amount--hero">
             {withProofCount} {t('admin.ticketOrders.statsWithProof')}
           </span>
+          {canEdit ? (
+            <button
+              type="button"
+              className="btn btn--ghost btn--small"
+              onClick={() => {
+                setManualSaleError('')
+                setManualSaleOpen(true)
+              }}
+            >
+              <Plus size={14} aria-hidden />
+              {t('admin.ticketOrders.manualSaleButton')}
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -316,6 +363,19 @@ export default function TicketOrdersSection({
               if (done) setReviewRow(null)
             })
           }}
+        />
+      ) : null}
+
+      {manualSaleOpen ? (
+        <ManualTicketSaleDialog
+          events={events}
+          busy={manualSaleBusy}
+          error={manualSaleError}
+          onCancel={() => {
+            if (manualSaleBusy) return
+            setManualSaleOpen(false)
+          }}
+          onConfirm={handleCreateManualSale}
         />
       ) : null}
     </section>

@@ -132,6 +132,36 @@ export async function createTicketOrder({
   }
 }
 
+/**
+ * Venta de mostrador: la carga un operador desde el panel para una venta
+ * que se cerró por fuera del checkout público (efectivo en la puerta,
+ * transferencia recibida por privado). A diferencia de `createTicketOrder`,
+ * no manda `provider` (siempre `'manual'` del lado del servidor) ni
+ * `accessToken` (el comprador no tiene pestaña propia). `approved` indica
+ * si la respuesta ya viene acreditada (efectivo) o quedó `pendiente`
+ * (transferencia, sigue el circuito de `listPendingTicketOrders`).
+ */
+export async function createManualTicketOrder({
+  eventSlug,
+  attendees,
+  buyer,
+  manualPaymentChannel,
+  idempotencyKey = crypto.randomUUID(),
+}) {
+  const result = await apiPost('/api/tickets/orders/manual', {
+    eventSlug,
+    attendees,
+    buyer,
+    manualPaymentChannel,
+    idempotencyKey,
+  })
+  return {
+    order: toCamelOrder(result.order),
+    tickets: result.tickets.map((ticket) => toCamelTicket(ticket)),
+    approved: Boolean(result.approved),
+  }
+}
+
 export async function approveTicketOrder(orderId) {
   const result = await apiPost(`/api/tickets/orders/${orderId}/approve`, {})
   return {
