@@ -18,6 +18,9 @@ describe('status', () => {
     expect(getStatusMeta('rechazado').tone).toBe('danger')
     expect(getStatusMeta('registrado').tone).toBe('info')
     expect(getStatusMeta('proximamente').tone).toBe('info')
+    expect(getStatusMeta('processed').tone).toBe('success')
+    expect(getStatusMeta('failed').tone).toBe('danger')
+    expect(getStatusMeta('processing').tone).toBe('warning')
   })
 
   it('isRegistrationAdmitted solo para pagada/confirmada', () => {

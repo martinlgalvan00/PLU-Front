@@ -260,6 +260,45 @@ export const createOrderSchema = z
 const accessSchema = z.object({ accessToken: z.string().trim().min(32) })
 const rejectOrderSchema = z.object({ reason: z.string().trim().min(3).max(500) })
 
+const ticketOrderStatusEnum = z.enum([
+  'creado',
+  'pendiente',
+  'aprobado',
+  'rechazado',
+  'cancelado',
+  'reembolsado',
+])
+const booleanQueryParam = z
+  .union([z.boolean(), z.enum(['true', 'false']).transform((value) => value === 'true')])
+  .optional()
+/**
+ * Filtros del historial de ventas (`GET /orders`). `statuses` llega como CSV
+ * desde el navegador -- misma convención que
+ * `GET /api/athletes/admin/payment-orders` -- para no traer más filas de las
+ * que el chip activo necesita.
+ */
+const ticketOrdersQuerySchema = z.object({
+  statuses: z
+    .union([
+      z.array(ticketOrderStatusEnum),
+      z
+        .string()
+        .transform((value) =>
+          value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean),
+        )
+        .pipe(z.array(ticketOrderStatusEnum).min(1).max(6)),
+    ])
+    .optional(),
+  channel: z.enum(['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer']).optional(),
+  query: z.string().trim().min(1).max(120).optional(),
+  sort: z.enum(['recent', 'aging']).optional().default('recent'),
+  limit: z.coerce.number().int().min(1).max(200).optional().default(200),
+  withCounts: booleanQueryParam.default(false),
+})
+
 /**
  * Venta de mostrador: la carga un operador desde el panel, no el comprador
  * desde el checkout público. Sin `provider` (siempre `manual`) ni
@@ -764,6 +803,66 @@ export function createTicketRoutes({
     async (_req, res, next) => {
       try {
         res.json({ orders: await repo().listPending() })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Historial de ventas para Finanzas: a diferencia de `/orders/pending-manual`
+   * (solo transferencias por validar), trae cualquier estado y cualquier
+   * proveedor -- es la vista que responde "cuánto se vendió" de un evento, no
+   * solo "qué falta validar". Mismos filtros y forma de respuesta que
+   * `GET /api/athletes/admin/payment-orders`.
+   */
+  router.get('/orders', ...financeReadGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const parsed = ticketOrdersQuerySchema.safeParse(req.query)
+      if (!parsed.success) throw new HttpError(400, 'Filtros de órdenes inválidos.')
+      const { withCounts, ...filters } = parsed.data
+      // Los contadores solo viajan si se piden: la tabla se relee en cada
+      // cambio de chip y los cinco `count` no cambian por eso.
+      const [orders, counts] = await Promise.all([
+        repo().listOrders(filters),
+        withCounts ? repo().orderCounts() : Promise.resolve(null),
+      ])
+      res.json(counts ? { orders, counts } : { orders })
+    } catch (error) {
+      next(error)
+    }
+  })
+  /**
+   * KPIs de ventas de entradas para el tab "Análisis" de Pagos: cuántas se
+   * vendieron, recaudado por canal/moneda, cupo restante y tendencia diaria.
+   * A diferencia del Libro de caja (`GET /api/finance`, sólo Mercado Pago vía
+   * `ticket_payments`), acá entra todo lo manual también -- da distinto a
+   * propósito.
+   */
+  router.get(
+    '/sales-summary/:eventSlug',
+    ...financeReadGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const eventId = await repo().resolveEventIdBySlug(req.params.eventSlug)
+        if (!eventId) throw new HttpError(404, 'Evento no encontrado.')
+        const event = await athleteRepo().findEventSummary(eventId)
+        const days = Math.min(Math.max(Number(req.query.days) || 30, 1), 90)
+        const to = new Date()
+        const from = new Date(to.getTime() - days * 86_400_000)
+        const range = { fromISO: from.toISOString(), toISO: to.toISOString() }
+        const [capacity, revenue, daily] = await Promise.all([
+          repo().capacitySummary(eventId),
+          repo().revenueSummary(eventId, range),
+          repo().dailyTicketsSold(eventId, range),
+        ])
+        res.json({
+          event: { slug: event?.slug ?? req.params.eventSlug, title: event?.title ?? null },
+          capacity,
+          revenue,
+          daily,
+          rangeDays: days,
+        })
       } catch (error) {
         next(error)
       }

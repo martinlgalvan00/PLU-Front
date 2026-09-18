@@ -197,6 +197,11 @@ const revalidateOrderSchema = z.object({
   providerPaymentId: z.coerce.string().trim().regex(/^\d+$/).optional(),
 })
 
+const searchOrdersQuerySchema = z.object({
+  q: z.string().trim().min(2).max(120),
+  limit: z.coerce.number().int().min(1).max(50).optional().default(15),
+})
+
 const mockNotifySchema = z.object({
   paymentId: z.string().trim().min(1),
   orderId: z.string().uuid().optional(),
@@ -603,6 +608,51 @@ export function createPaymentRoutes(deps = {}) {
           recoveryIntervalMs: PAYMENT_RECOVERY_JOB_INTERVAL_MS,
         },
       })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Buscador cruzado por persona/referencia: Finanzas hoy tiene que elegir de
+   * antemano la pantalla correcta (Entradas o Afiliaciones) porque son colas
+   * separadas. Esto responde "¿hay un pago de esta persona?" sin esa
+   * suposición previa, devolviendo lo que haya en cualquiera de los tres
+   * conceptos ordenado por fecha.
+   */
+  router.get('/search', ...financeReadGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const { q, limit } = parseInput(searchOrdersQuerySchema, req.query)
+      const { athleteOrders, ticketOrders } = await repository().searchOrders(q, { limit })
+      const results = [
+        ...athleteOrders.map((order) => ({
+          kind: 'athlete',
+          concept: order.concept,
+          id: order.id,
+          reference: order.reference,
+          amount: order.amount,
+          currency: order.currency,
+          status: order.status,
+          createdAt: order.created_at,
+          personName: order.athlete?.full_name ?? null,
+          personDetail: order.athlete?.document_id ?? order.athlete?.email ?? null,
+          eventTitle: null,
+        })),
+        ...ticketOrders.map((order) => ({
+          kind: 'ticket',
+          concept: 'ticket',
+          id: order.id,
+          reference: order.reference,
+          amount: order.amount,
+          currency: order.currency,
+          status: order.status,
+          createdAt: order.created_at,
+          personName: order.buyer_name ?? null,
+          personDetail: order.buyer_email ?? null,
+          eventTitle: order.event?.title ?? null,
+        })),
+      ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      res.json({ results })
     } catch (error) {
       next(error)
     }

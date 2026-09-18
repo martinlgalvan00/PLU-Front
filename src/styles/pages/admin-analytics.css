@@ -1988,3 +1988,57 @@
     right: auto;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Análisis de ventas de entradas (tab "Análisis" de Pagos)
+ * --------------------------------------------------------------------------- */
+
+.admin-ticket-sales-analytics {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.admin-ticket-sales-analytics__head {
+  margin: 0;
+}
+
+.admin-ticket-sales-analytics__event-field {
+  display: grid;
+  gap: 6px;
+  max-width: 360px;
+}
+
+.admin-ticket-sales-analytics__event-field span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.admin-ticket-sales-analytics__event-field select {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-sm);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  min-height: 40px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.admin-ticket-sales-analytics__event-field select:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-ticket-sales-analytics__grid {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 720px) {
+  .admin-ticket-sales-analytics__grid {
+    grid-template-columns: 1fr;
+  }
+}

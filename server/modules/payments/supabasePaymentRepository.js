@@ -786,5 +786,65 @@ export function createSupabasePaymentRepository(
         'No se pudo aplicar el pago recurrente.',
       )
     },
+
+    /**
+     * Buscador cruzado por persona/referencia: Finanzas hoy tiene que saber de
+     * antemano si un cobro es de entradas o de afiliación/inscripción para
+     * elegir la pantalla correcta. Esto responde "¿hay algún pago de esta
+     * persona?" sin esa suposición previa -- mismo criterio dual que
+     * `getOrder` (mira las dos tablas), pero por texto en vez de por id.
+     *
+     * El match por nombre/documento/email de atleta va en dos pasos porque
+     * PostgREST no resuelve un `.or()` con columnas de una tabla embebida: se
+     * busca primero el atleta y despues se filtra la orden por esos ids.
+     */
+    async searchOrders(query, { limit = 15 } = {}) {
+      const term = String(query ?? '').trim()
+      if (!term) return { athleteOrders: [], ticketOrders: [] }
+      const like = `%${term}%`
+
+      const matchedAthletes =
+        assertResult(
+          await client
+            .from('athletes')
+            .select('id')
+            .eq('organization_id', organizationId)
+            .or(`full_name.ilike.${like},document_id.ilike.${like},email.ilike.${like}`)
+            .limit(50),
+          'No se pudieron buscar atletas.',
+        ) ?? []
+      const athleteIds = matchedAthletes.map((row) => row.id)
+
+      let athleteOrdersQuery = client
+        .from('athlete_payment_orders')
+        .select(
+          'id, concept, amount, currency, status, reference, created_at, athlete:athletes(full_name, document_id, email)',
+        )
+        .eq('organization_id', organizationId)
+      athleteOrdersQuery =
+        athleteIds.length > 0
+          ? athleteOrdersQuery.or(`reference.ilike.${like},athlete_id.in.(${athleteIds.join(',')})`)
+          : athleteOrdersQuery.ilike('reference', like)
+
+      const [athleteOrders, ticketOrders] = await Promise.all([
+        assertResult(
+          await athleteOrdersQuery.order('created_at', { ascending: false }).limit(limit),
+          'No se pudieron buscar ordenes de afiliacion/inscripcion.',
+        ),
+        assertResult(
+          await client
+            .from('ticket_orders')
+            .select(
+              'id, amount, currency, status, reference, buyer_name, buyer_email, created_at, event:events(title, slug)',
+            )
+            .or(`reference.ilike.${like},buyer_name.ilike.${like},buyer_email.ilike.${like}`)
+            .order('created_at', { ascending: false })
+            .limit(limit),
+          'No se pudieron buscar ordenes de entradas.',
+        ),
+      ])
+
+      return { athleteOrders: athleteOrders ?? [], ticketOrders: ticketOrders ?? [] }
+    },
   }
 }
