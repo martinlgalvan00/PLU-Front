@@ -1670,6 +1670,12 @@ export default {
     // metadatos generales -- ver CheckInScanResult.jsx.
     expiredOn: 'Venció el {{date}}',
     validFromOn: 'Habilita desde el {{date}}',
+    validity: {
+      validUntil: 'Válido ahora · vence el {{time}}',
+      expiresIn: 'Vence {{time}}',
+      expiredAgo: 'Venció {{time}}',
+      startsIn: 'Se habilita {{time}}',
+    },
     statReady: 'Habilitados',
     statDone: 'Ingresados',
     statPending: 'Sin habilitar',
@@ -3120,9 +3126,26 @@ export default {
         columnCredential: 'Entrada',
         columnGate: 'Puerta',
         columnEvidence: 'Origen',
+        columnAction: 'Acción',
         evidence: {
           server: 'Confirmado por el servidor',
           operator: 'Reportado por el dispositivo',
+        },
+        accessOverride: {
+          action: 'Excepción de acceso',
+          title: 'Excepción de acceso',
+          lead: 'Reemplaza, sólo para esta entrada, la ventana horaria que decide si el QR habilita el ingreso. Nunca reemite el QR ni cambia el tipo de entrada.',
+          close: 'Cerrar',
+          ticketCode: 'Código',
+          enableLabel: 'Habilitar excepción para esta entrada',
+          enableHintOn: 'Mientras esté activa, esta ventana manda por sobre la política del tipo de entrada.',
+          enableHintOff: 'Sin excepción activa, la entrada vuelve a regirse por la política de su tipo.',
+          validFrom: 'Habilita desde',
+          validUntil: 'Habilita hasta',
+          windowHint: 'Completá inicio y fin, con el fin después del inicio.',
+          saving: 'Guardando…',
+          confirm: 'Guardar excepción',
+          error: 'No se pudo guardar la excepción de acceso.',
         },
       },
     },
@@ -3221,18 +3244,115 @@ export default {
       ticketTypeWindowHint: 'Vacías = ventana del evento. Cargadas, sólo cierran antes.',
       ticketTypeWindowInherit: 'Hereda la del evento',
       ticketTypeFoldWindow: 'Ventana propia',
-      ticketTypeFoldAccess: 'Días, packs y credenciales',
-      ticketTypeDaysLabel: 'Días de acceso',
-      ticketTypeValiditySummary: 'QR válido: {{days}}',
-      ticketTypeValidityMissing: 'Falta definir la vigencia del QR',
+      ticketTypeFoldAccess: 'Acceso y vigencia del QR',
+      ticketTypeFoldPacks: 'Packs',
+      ticketTypeFoldCredentials: 'Qué emite cada compra',
+      ticketTypeDaysLabel: 'Qué días vale',
+      ticketTypeDaysHint:
+        'Para público de un solo día, marcá uno. Si marcás más de uno, el mismo QR vale todos esos días.',
+      ticketTypeValiditySummary: 'QR: {{days}}',
+      ticketTypeValidityMissing: 'Falta marcar un día para el QR',
+      ticketTypeRowValidityMissing: 'Falta vigencia',
+      ticketTypeRowValidityDays: 'QR: {{days}}',
+      ticketTypeRowValidityFixed: 'QR: ventana fija',
+      ticketTypeRowValidityFromPayment: 'QR: {{duration}} desde el pago',
+      ticketTypeRowValidityFromFirstScan: 'QR: {{duration}} desde el 1.er escaneo',
+      ticketTypeValidityDurationValue: {
+        minutes: '{{count}} min',
+        hours: '{{count}} h',
+        days: '{{count}} días',
+      },
+      ticketTypeValidityPreviewMissingTitle: 'Falta definir cuánto vale el QR',
+      ticketTypeValidityPreviewMissingDetail:
+        'Marcás los días para una entrada de un día o de todo el evento.',
+      ticketTypeValidityPreviewOneDayTitle: 'El QR de esta entrada vale el {{days}}',
+      ticketTypeValidityPreviewOneDayDetail:
+        'Seguridad puede escanearlo desde las 00:00 de ese día hasta las 00:00 del siguiente.',
+      ticketTypeValidityPreviewManyDaysTitle: 'El mismo QR vale {{days}}',
+      ticketTypeValidityPreviewManyDaysDetail:
+        'Habilita desde las 00:00 del primer día marcado hasta las 00:00 del día posterior al último.',
+      ticketTypeValidityPreviewAllDaysTitle: 'El mismo QR vale todo el evento',
+      ticketTypeValidityPreviewAllDaysDetail:
+        'Cubre {{days}}, de 00:00 del primero a 00:00 del día siguiente al último.',
+      ticketTypeValidityPreviewFixedTitle: 'El QR vale entre dos fechas',
+      ticketTypeValidityPreviewFixedDetail: 'Habilita el {{from}} y vence el {{until}}.',
+      ticketTypeValidityPreviewFixedMissing: 'Indicá desde cuándo y hasta cuándo se puede escanear.',
+      ticketTypeValidityPreviewFromPaymentTitle:
+        'El QR vale {{duration}} desde que se acredita el pago',
+      ticketTypeValidityPreviewFromPaymentDetail:
+        'Empieza al acreditarse y vence en el límite exacto. No corre desde el escaneo.',
+      ticketTypeValidityPreviewFromFirstScanTitle:
+        'El QR vale {{duration}} desde el primer escaneo',
+      ticketTypeValidityPreviewFromFirstScanDetail:
+        'El reloj arranca cuando seguridad lo lee la primera vez y vence en el límite exacto.',
+      ticketTypeValidityPreviewUsageOnceTotal: 'Un solo ingreso, en cualquiera de esas jornadas.',
+      ticketTypeValidityPreviewUsageOncePerDay:
+        'Se puede ingresar una vez por cada jornada marcada. La credencial es la misma.',
+      ticketTypeValidityModeLabel: 'Cómo se calcula la vigencia',
+      ticketTypeValidityModeUsual: 'Lo habitual',
+      ticketTypeValidityModeOther: 'Otras reglas',
+      ticketTypeValidityMode: {
+        event_days: 'Los días que marques',
+        fixed_window: 'Ventana fija',
+        from_payment: 'Desde que se acredita el pago',
+        from_first_scan: 'Desde el primer escaneo',
+      },
+      ticketTypeValidityModeHint: {
+        event_days: 'Un día marcado = QR de un día. Es lo habitual para público.',
+        fixed_window: 'Una fecha y hora concretas, por ejemplo una sesión o un pesaje.',
+        from_payment: 'Por ejemplo 12 horas o 2 días desde que Mercado Pago acredita.',
+        from_first_scan: 'Por ejemplo 12 horas o 2 días desde el primer ingreso.',
+      },
+      ticketTypeAccessUsageLabel: 'Cómo se consume',
+      ticketTypeAccessUsage: {
+        once_total: 'Un ingreso en total',
+        once_per_event_day: 'Un ingreso por cada jornada',
+      },
+      ticketTypeAccessUsageHint: {
+        once_total: 'Vale para cualquiera de los días marcados, una sola vez.',
+        once_per_event_day:
+          'La misma credencial se escanea en cada jornada; no se generan QR por fecha.',
+      },
+      ticketTypeValidityDurationLabel: 'Duración',
+      ticketTypeValidityDurationUnit: 'Unidad de duración',
+      ticketTypeValidityUnit: {
+        minutes: 'minutos',
+        hours: 'horas',
+        days: 'días',
+      },
+      ticketTypeValidityDurationHint:
+        'Ejemplo: 12 horas, 2 días o 90 minutos. Empieza al acreditarse el pago y vence en el límite exacto.',
+      ticketTypeValidityDurationHintFromScan:
+        'Ejemplo: 12 horas, 2 días o 90 minutos. Empieza al primer escaneo y vence en el límite exacto.',
+      ticketTypeValidityFrozen:
+        'Las entradas ya emitidas conservan su vigencia. Esto aplica a las próximas.',
+      ticketTypeValidityNoteDays: 'La vigencia se deriva de las jornadas seleccionadas.',
+      ticketTypeValidityNoteFixed:
+        'El límite final es exclusivo: al llegar esa fecha y hora, el QR ya venció.',
+      ticketTypeValidityNoteFromPayment:
+        'La duración queda congelada al acreditarse el pago; editar este tipo no modifica QR ya emitidos.',
+      ticketTypeValidityNoteFromFirstScan:
+        'La duración queda congelada al primer escaneo; editar este tipo no modifica QR ya emitidos.',
+      ticketTypeValidityDurationRequired: 'Indicá cuánto dura el acceso desde la acreditación.',
+      ticketTypeValidityDurationInvalid: 'La duración debe ser entre 1 minuto y 366 días.',
+      ticketTypeValidityDurationConflictsFixedWindow:
+        'La duración desde acreditación no se combina con una ventana fija.',
       ticketTypeQrValidFrom: 'Día y hora de habilitación del QR',
       ticketTypeQrValidUntil: 'Día y hora de deshabilitación del QR',
       ticketTypeAddonsLabel: 'Beneficios incluidos sin cargo (pack)',
       ticketTypeAddonsEmpty:
         'Configurá primero el catálogo de beneficios para poder incluirlos en un pack.',
+      ticketTypePacksHintIncluded: '{{count}} incluidos',
+      ticketTypePacksHintNone: 'Ninguno incluido',
+      ticketTypeCredentialHintSpectator: '1 QR de espectador · puerta',
+      ticketTypeCredentialHintCustom: '{{names}}',
+      ticketTypeCredentialHintMissing: 'Falta la credencial',
       credentialsLabel: 'Credenciales que emite',
       credentialLead:
         'Cada compra emite estas credenciales. El nombre es lo que lee seguridad; las zonas son lo que abre el QR.',
+      credentialCompactLead:
+        'Esta compra emite 1 QR de espectador. Seguridad lee “Entrada general” y abre la puerta de público.',
+      credentialCustomize: 'Personalizar',
       credentialName: 'Nombre de la credencial',
       credentialNamePrimary: 'Nombre en la puerta',
       credentialNameHint: 'Es lo que aparece al escanear. Para público, “Entrada general” alcanza.',

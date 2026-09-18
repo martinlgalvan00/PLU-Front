@@ -3406,6 +3406,8 @@ export default {
       confirmationCount_other: '{{count}} entradas',
       confirmationQrLead:
         'Cuando el pago se confirma, cada entrada queda con su QR de ingreso listo para presentar en puerta.',
+      sealEyebrow: 'Compra confirmada',
+      sealDetail: '{{amount}} acreditados. Ya podés presentar el QR en la puerta.',
       shareCta: 'Compartir por WhatsApp',
       shareMessage: 'Ya tengo mi entrada para {{event}}. Conseguí la tuya acá: {{link}}',
       continueMercadoPago: 'Continuar en Mercado Pago',
@@ -3414,6 +3416,9 @@ export default {
       manualNote:
         'Transferí el monto y adjuntá el comprobante dentro de las 24 horas: pasado ese plazo la orden se cancela. Administración lo valida en hasta 48 horas antes de habilitar tu QR.',
       viewTicket: 'Ver mi entrada',
+      downloadPass: 'Descargar entrada',
+      downloadingPass: 'Generando…',
+      downloadPassError: 'No pudimos generar la imagen. Probá de nuevo.',
       addonsTitle: 'Beneficios opcionales',
       addonIncluded: 'Incluido',
       addonsForAttendee: 'Extras · entrada {{index}}',
@@ -3423,6 +3428,22 @@ export default {
       attendeesFix_one: 'Completá los datos de la entrada marcada.',
       attendeesFix_other: 'Completá los datos de {{count}} entradas marcadas.',
       rowPrice: 'Precio',
+      lookup: {
+        toggleLabel: '¿Ya compraste? Buscá tu entrada',
+        title: 'Buscá tu entrada',
+        lead: 'Con el código de tu compra y el mail con el que pagaste, volvés a ver tu QR.',
+        referenceLabel: 'Código de la compra',
+        referencePlaceholder: 'TORD-XXXXXXXXXXXX',
+        emailLabel: 'Mail con el que compraste',
+        emailPlaceholder: 'tu@mail.com',
+        submit: 'Buscar mi entrada',
+        submitting: 'Buscando…',
+        notFound: 'No encontramos una compra con esos datos. Revisá el código y el mail.',
+        pending:
+          'Encontramos tu compra: todavía está pendiente de acreditación. Te va a llegar un mail apenas se confirme.',
+        rejected: 'Esta compra fue rechazada. Podés volver a intentar la compra desde arriba.',
+        genericError: 'No pudimos buscar tu entrada. Intentá de nuevo en un momento.',
+      },
     },
     register: {
       navAria: 'Navegación del registro',

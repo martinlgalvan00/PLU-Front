@@ -79,6 +79,14 @@ const CHECKIN_REJECTION_UI_OUTCOME = Object.freeze({
   not_yet_valid: 'not_yet_valid',
 })
 
+/** Rechequeo local previo a admitir: el backend repite esta misma barrera. */
+function ticketTemporalOutcome(ticket) {
+  const validity = ticketValidityStatus(ticket)
+  if (validity === TICKET_VALIDITY_STATUS.EXPIRED) return 'expired'
+  if (validity === TICKET_VALIDITY_STATUS.UPCOMING) return 'not_yet_valid'
+  return null
+}
+
 function isNetworkError(error) {
   return error instanceof TypeError || error?.name === 'AuthRetryableFetchError'
 }
@@ -445,6 +453,23 @@ export function useCheckInWorkspace({
       return
     }
 
+    const temporalOutcome = ticketTemporalOutcome(row)
+    if (temporalOutcome) {
+      const temporalResult = {
+        kind: 'ticket',
+        outcome: temporalOutcome,
+        canCheckIn: false,
+        qrToken: row.qrToken,
+        status: row.status,
+        row,
+      }
+      playCheckinFeedback(temporalOutcome, feedbackPrefs)
+      setScanResult(temporalResult)
+      prependHistoryEntry(buildHistoryEntry(temporalResult, row.qrToken ?? ''))
+      reportScanAttempt({ eventSlug, kind: 'ticket', outcome: temporalOutcome, qrToken: row.qrToken })
+      return
+    }
+
     const result = await onCheckInTicket(row.qrToken)
     onRefreshTickets?.(eventSlug)
 
@@ -475,6 +500,23 @@ export function useCheckInWorkspace({
 
   async function handleScanCheckIn() {
     if (!scanResult?.canCheckIn || !canCheckIn || checkInLockRef.current) return
+
+    if (scanResult.kind === 'ticket') {
+      const temporalOutcome = ticketTemporalOutcome(scanResult.row ?? scanResult.ticket)
+      if (temporalOutcome) {
+        const temporalResult = { ...scanResult, outcome: temporalOutcome, canCheckIn: false }
+        playCheckinFeedback(temporalOutcome, feedbackPrefs)
+        setScanResult(temporalResult)
+        prependHistoryEntry(buildHistoryEntry(temporalResult, scanResult.qrToken ?? ''))
+        reportScanAttempt({
+          eventSlug,
+          kind: 'ticket',
+          outcome: temporalOutcome,
+          qrToken: scanResult.qrToken,
+        })
+        return
+      }
+    }
 
     checkInLockRef.current = true
     setScanBusy(true)

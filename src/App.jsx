@@ -297,6 +297,20 @@ export default function App() {
               },
             }),
           )
+          // Una entrada no tiene "perfil" al que volver -- quien compra no
+          // tiene cuenta. El QR ya está en `createdOrder` (sobrevivió el
+          // redirect por sessionStorage): mandarla a la genérica de "gracias"
+          // la dejaba sin ver su entrada. Vuelve directo a la pantalla que ya
+          // sabe mostrarla.
+          const ticketOrder =
+            createdOrderMatches && app.createdOrder?.type === 'tickets' ? app.createdOrder : null
+          if (ticketOrder && orderStatus !== 'rechazado') {
+            pushTicketsRoute(ticketOrder.eventSlug)
+            setTicketEventSlug(ticketOrder.eventSlug ?? null)
+            setTransitionDirection(getTransitionDirection(view, 'tickets'))
+            setView('tickets')
+            return
+          }
           const thanksTarget = orderStatus === 'rechazado'
             ? null
             : `/gracias?payment=${encodeURIComponent(paymentReturn)}&order=${encodeURIComponent(orderId)}`
@@ -725,6 +739,7 @@ export default function App() {
           onDeactivateAllSecurityUsers={app.deactivateAllSecurityUsersAction}
           onListSecurityUsers={app.listSecurityUsersForEventAction}
           onGetEventScanReport={app.getEventScanReportAction}
+          onSetTicketAccessOverride={app.setTicketAccessOverrideAction}
           onUpdateSecurityUserStatus={app.updateSecurityUserStatusAction}
           onListSecurityZones={app.listSecurityZonesAction}
           onCreateSecurityZone={app.createSecurityZoneAction}
@@ -843,6 +858,7 @@ export default function App() {
                       createdOrder: app.createdOrder,
                       onSubmitTicketPurchase: app.submitTicketPurchase,
                       onUploadPaymentProof: app.uploadTicketPaymentProofAction,
+                      onLookupTicketOrder: app.lookupTicketOrderAction,
                     }
                   : view === 'results'
                     ? { onNavigate: navigate, events: publicEvents }

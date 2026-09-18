@@ -1,12 +1,17 @@
 import '../../styles/components/ticket-pass-preview.css'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { m } from 'motion/react'
 import { QrCode } from 'lucide-react'
 import BrandLogo from './BrandLogo.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
 import { getDeviceTier } from '../../motion/deviceTier.ts'
-import { MOTION_TIER_SCALE } from '../../motion/tokens.ts'
+import { MOTION_DURATION, MOTION_EASE, MOTION_TIER_SCALE, TILT_MAX_DEG } from '../../motion/tokens.ts'
 import { hasFinePointer } from '../../motion/useReducedMotion.ts'
+
+/** Reposo elegante: la entrada queda apenas inclinada, como un objeto
+ * fotografiado en ángulo, siempre dentro de TILT_MAX_DEG. */
+const RESTING_TILT = { rx: TILT_MAX_DEG * 0.5, ry: -TILT_MAX_DEG * 0.66 }
 
 function hashSeed(value) {
   let hash = 2166136261
@@ -43,7 +48,7 @@ export default function TicketPassPreview({
   const labelId = useId()
   const stageRef = useRef(null)
   const [qrSrc, setQrSrc] = useState('')
-  const [tilt, setTilt] = useState({ rx: 8, ry: -12, mx: 58, my: 28 })
+  const [tilt, setTilt] = useState(RESTING_TILT)
   const reducedMotion = useMemo(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return false
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -91,17 +96,17 @@ export default function TicketPassPreview({
     const py = (event.clientY - rect.top) / rect.height
     const clampedX = Math.min(1, Math.max(0, px))
     const clampedY = Math.min(1, Math.max(0, py))
+    // Amplitud tope TILT_MAX_DEG (6°) a cada lado del centro — pieza
+    // protagonista, pero sin pasarse del presupuesto de 3D contenido.
     setTilt({
-      rx: (0.5 - clampedY) * 16 * tiltScale,
-      ry: (clampedX - 0.5) * 22 * tiltScale,
-      mx: clampedX * 100,
-      my: clampedY * 100,
+      rx: (0.5 - clampedY) * TILT_MAX_DEG * 2 * tiltScale,
+      ry: (clampedX - 0.5) * TILT_MAX_DEG * 2 * tiltScale,
     })
   }
 
   function handlePointerLeave() {
     if (!interactive || !canTilt) return
-    setTilt({ rx: 8, ry: -12, mx: 58, my: 28 })
+    setTilt(RESTING_TILT)
   }
 
   const cardStyle = reducedMotion
@@ -109,19 +114,27 @@ export default function TicketPassPreview({
     : {
         '--ticket-rx': `${tilt.rx.toFixed(2)}deg`,
         '--ticket-ry': `${tilt.ry.toFixed(2)}deg`,
-        '--ticket-mx': `${tilt.mx.toFixed(1)}%`,
-        '--ticket-my': `${tilt.my.toFixed(1)}%`,
+      }
+
+  const Root = reducedMotion ? 'div' : m.div
+  const rootMotionProps = reducedMotion
+    ? {}
+    : {
+        initial: { opacity: 0, y: 24, scale: 0.96 },
+        animate: { opacity: 1, y: 0, scale: 1 },
+        transition: { duration: MOTION_DURATION.cinematic, ease: MOTION_EASE.cinematic },
       }
 
   return (
-    <div
+    <Root
       className={[
         'ticket-pass-preview',
-        live ? 'ticket-pass-preview--live' : '',
+        !isPreviewQr ? 'ticket-pass-preview--ready' : '',
         interactive && canTilt ? 'ticket-pass-preview--interactive' : '',
       ]
         .filter(Boolean)
         .join(' ')}
+      {...rootMotionProps}
     >
       <div
         ref={stageRef}
@@ -130,8 +143,6 @@ export default function TicketPassPreview({
         onPointerLeave={handlePointerLeave}
       >
         <article className="ticket-pass-preview__card" style={cardStyle} aria-labelledby={labelId}>
-          <div className="ticket-pass-preview__shine" aria-hidden />
-
           <div className="ticket-pass-preview__stub">
             <header className="ticket-pass-preview__stub-head">
               <div className="ticket-pass-preview__brand-row">
@@ -140,6 +151,7 @@ export default function TicketPassPreview({
                   letterheadBlend
                   imgClassName="ticket-pass-preview__logo"
                   height={18}
+                  crossOrigin="anonymous"
                 />
                 <span className="ticket-pass-preview__brand">
                   {t('pages.ticketsPage.passBrand')}
@@ -215,6 +227,6 @@ export default function TicketPassPreview({
       {interactive && showHint && canTilt ? (
         <p className="ticket-pass-preview__hint">{t('pages.ticketsPage.passMoveHint')}</p>
       ) : null}
-    </div>
+    </Root>
   )
 }

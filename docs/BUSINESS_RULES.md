@@ -163,12 +163,36 @@ general no comparte este token y mantiene su QR opaco ligado al evento.
 
 Cada tipo de entrada puede definir un título comercial y una descripción breve,
 pero un tipo activo y pago sólo se vende si tiene al menos una jornada asignada.
-Al emitir cada entrada se congelan `valid_from` y `valid_until`: el QR no cambia
-si luego se edita el catálogo. La vigencia empieza a las 00:00 de la primera
-jornada asignada, hora de Argentina, y termina con límite exclusivo a las 00:00
-del día siguiente a la última jornada. Por lo tanto, una entrada de Día 1 vence
-exactamente al comenzar el Día 2. Tanto el check-in online como la allowlist
-offline deben rechazar una entrada todavía no vigente o vencida.
+El QR es una credencial unívoca que identifica la entrada: no contiene ni es
+dueño de sus fechas. La política de acceso pertenece al tipo de entrada y se
+resuelve al escanearla:
+
+- **Jornadas asignadas** (predeterminado): empieza a las 00:00 de la primera
+  jornada, hora de Argentina, y vence al comenzar el día posterior a la última.
+- **Ventana fija**: habilita y deshabilita exactamente en las fechas y horas
+  configuradas.
+- **Duración desde acreditación**: el tipo define la duración en minutos,
+  horas o días (por ejemplo, 12 horas o 2 días) y cada entrada sólo conserva
+  el instante en que su derecho fue acreditado.
+
+La regla de consumo también pertenece al tipo: puede ser **un ingreso total**
+en cualquiera de sus jornadas o **un ingreso por jornada asignada**. En ambos
+casos se conserva la misma credencial QR; no se emite un QR distinto por fecha.
+
+El límite superior siempre es exclusivo. Los cambios de política se aplican al
+tipo de entrada y se reflejan al próximo escaneo; la auditoría conserva la
+ventana efectiva y la jornada de cada ingreso. La duración relativa se cuenta
+desde la acreditación —no desde el escaneo que la consume—.
+Tanto el check-in online como la allowlist offline deben rechazar una entrada
+todavía no vigente o vencida.
+
+En puerta, Seguridad ve un reloj operativo calculado sobre ese mismo snapshot:
+avisa cuando faltan 15 minutos o menos, actualiza cada segundo y muestra tanto
+“vence en …” como “venció hace …”. Es informativo, nunca una gracia: al llegar
+al `valid_until` exclusivo, incluso si pasó sólo un minuto, el ingreso queda
+bloqueado en cliente y servidor. Cada intento guarda en la telemetría de puerta
+el estado temporal calculado por el servidor (ventana, restante o tiempo desde
+el vencimiento), sin QR crudo ni DNI.
 
 Los planes con `collection_mode=recurring` representan afiliación automática
 por Mercado Pago. Con `APP_PRODUCTION=true` no se publican en `/api/payments/plans`

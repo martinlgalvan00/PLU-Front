@@ -5,6 +5,7 @@ import {
   CREDENTIALS_PER_TYPE_MAX,
   coachTicketCredentials,
   defaultTicketCredential,
+  isDefaultSpectatorCredentials,
   validateTicketCredentials,
 } from '../../lib/ticketCredentials.js'
 import { zonesTicketsCanOpen } from '../../services/securityZoneService.js'
@@ -42,6 +43,7 @@ export default function AdminTicketCredentialsEditor({
   const { t } = useI18n()
   const coachPresetHintId = `${fieldPrefix}-coach-preset-hint`
   const [touchedLabels, setTouchedLabels] = useState(() => new Set())
+  const [expanded, setExpanded] = useState(false)
   const issues = validateTicketCredentials(credentials)
   const issueAt = (index, field) =>
     issues.find((issue) => issue.index === index && issue.field === field)?.code ?? null
@@ -58,7 +60,9 @@ export default function AdminTicketCredentialsEditor({
   }
 
   function patch(index, next) {
-    onChange(credentials.map((credential, i) => (i === index ? { ...credential, ...next } : credential)))
+    onChange(
+      credentials.map((credential, i) => (i === index ? { ...credential, ...next } : credential)),
+    )
   }
 
   function toggleScope(index, scope) {
@@ -83,9 +87,48 @@ export default function AdminTicketCredentialsEditor({
   // El atajo sólo aparece cuando todavía no se armó nada: una vez que el admin
   // editó las credenciales, sobreescribirlas con un preset sería destructivo.
   const showCoachPreset =
-    canEdit &&
-    credentials.length === 1 &&
-    credentials[0]?.label === defaultTicketCredential().label
+    canEdit && credentials.length === 1 && credentials[0]?.label === defaultTicketCredential().label
+  const compact = isDefaultSpectatorCredentials(credentials) && issues.length === 0 && !expanded
+
+  if (compact) {
+    return (
+      <div
+        className="admin-ticket-credentials admin-ticket-credentials--compact"
+        data-field={`${fieldPrefix}.credentials`}
+      >
+        <p className="admin-ticket-credentials__summary">
+          {t('admin.eventEditor.supabase.credentialCompactLead')}
+        </p>
+        {canEdit ? (
+          <div className="admin-ticket-credentials__actions">
+            {showCoachPreset ? (
+              <button
+                type="button"
+                className="admin-ticket-credentials__preset"
+                aria-describedby={coachPresetHintId}
+                onClick={() => onChange(coachTicketCredentials())}
+              >
+                <Wand2 size={13} aria-hidden />
+                {t('admin.eventEditor.supabase.credentialCoachPreset')}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="admin-ticket-credentials__customize"
+              onClick={() => setExpanded(true)}
+            >
+              {t('admin.eventEditor.supabase.credentialCustomize')}
+            </button>
+          </div>
+        ) : null}
+        {showCoachPreset ? (
+          <small id={coachPresetHintId} className="admin-ticket-credentials__preset-hint">
+            {t('admin.eventEditor.supabase.credentialCoachPresetHint')}
+          </small>
+        ) : null}
+      </div>
+    )
+  }
 
   return (
     <div
@@ -110,7 +153,9 @@ export default function AdminTicketCredentialsEditor({
           </button>
         ) : null}
       </div>
-      <p className="admin-ticket-credentials__lead">{t('admin.eventEditor.supabase.credentialLead')}</p>
+      <p className="admin-ticket-credentials__lead">
+        {t('admin.eventEditor.supabase.credentialLead')}
+      </p>
       {showCoachPreset ? (
         <small id={coachPresetHintId} className="admin-ticket-credentials__preset-hint">
           {t('admin.eventEditor.supabase.credentialCoachPresetHint')}
@@ -206,7 +251,9 @@ export default function AdminTicketCredentialsEditor({
                               </span>
                             ) : null}
                           </span>
-                          <small>{t(`admin.eventEditor.supabase.credentialZoneHint.${scope}`)}</small>
+                          <small>
+                            {t(`admin.eventEditor.supabase.credentialZoneHint.${scope}`)}
+                          </small>
                         </span>
                       </label>
                     )
@@ -233,9 +280,7 @@ export default function AdminTicketCredentialsEditor({
         <button
           type="button"
           className="admin-ticket-credentials__add"
-          onClick={() =>
-            onChange([...credentials, { label: '', zoneScopes: ['gate_tickets'] }])
-          }
+          onClick={() => onChange([...credentials, { label: '', zoneScopes: ['gate_tickets'] }])}
         >
           <Plus size={13} aria-hidden />
           {t('admin.eventEditor.supabase.credentialAdd')}

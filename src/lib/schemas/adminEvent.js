@@ -1,6 +1,13 @@
 import { z } from 'zod'
 import { EVENT_PAYMENT_CHANNELS, eventChannelOverridesFor } from '../eventPaymentChannels.js'
 import { resolveTicketTypeChannels } from '../ticketTypePaymentChannels.js'
+import {
+  MAX_TICKET_QR_VALIDITY_MINUTES,
+  TICKET_ACCESS_USAGE_MODE,
+  TICKET_ACCESS_USAGE_MODES,
+  TICKET_QR_VALIDITY_MODE,
+  TICKET_QR_VALIDITY_MODES,
+} from '../ticketValidityPolicy.js'
 
 /** Códigos de error → `admin.eventEditor.validation.*` en i18n. */
 const moneyField = z.coerce
@@ -138,6 +145,15 @@ const ticketTypeSchema = z
     salesClosesAt: optionalDateTime(),
     validFrom: optionalDateTime(),
     validUntil: optionalDateTime(),
+    validityMode: z.enum(TICKET_QR_VALIDITY_MODES).optional(),
+    validityDurationMinutes: z.coerce
+      .number()
+      .int('ticketTypeValidityDurationInvalid')
+      .min(1, 'ticketTypeValidityDurationInvalid')
+      .max(MAX_TICKET_QR_VALIDITY_MINUTES, 'ticketTypeValidityDurationInvalid')
+      .nullable()
+      .optional(),
+    accessUsageMode: z.enum(TICKET_ACCESS_USAGE_MODES).optional(),
     quota: nullableQuota.optional(),
     sortOrder: z.coerce
       .number()
@@ -171,17 +187,60 @@ const ticketTypeSchema = z
         message: 'manualPriceAbovePrice',
       })
     }
-    if (Boolean(type.validFrom) !== Boolean(type.validUntil)) {
+    const validityMode =
+      type.validityMode ??
+      (type.validFrom || type.validUntil
+        ? TICKET_QR_VALIDITY_MODE.FIXED_WINDOW
+        : TICKET_QR_VALIDITY_MODE.EVENT_DAYS)
+    if (
+      validityMode === TICKET_QR_VALIDITY_MODE.FIXED_WINDOW &&
+      Boolean(type.validFrom) !== Boolean(type.validUntil)
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['validUntil'],
         message: 'ticketTypeValidityBothRequired',
       })
-    } else if (type.validFrom && type.validUntil && type.validFrom >= type.validUntil) {
+    } else if (
+      validityMode === TICKET_QR_VALIDITY_MODE.FIXED_WINDOW &&
+      type.validFrom &&
+      type.validUntil &&
+      type.validFrom >= type.validUntil
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['validUntil'],
         message: 'ticketTypeValidityWindowInvalid',
+      })
+    }
+    if (
+      [TICKET_QR_VALIDITY_MODE.FROM_PAYMENT, TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN].includes(validityMode) &&
+      !type.validityDurationMinutes
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['validityDurationMinutes'],
+        message: 'ticketTypeValidityDurationRequired',
+      })
+    }
+    if (
+      [TICKET_QR_VALIDITY_MODE.FROM_PAYMENT, TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN].includes(validityMode) &&
+      (type.validFrom || type.validUntil)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['validFrom'],
+        message: 'ticketTypeValidityDurationConflictsFixedWindow',
+      })
+    }
+    if (
+      type.accessUsageMode === TICKET_ACCESS_USAGE_MODE.ONCE_PER_EVENT_DAY &&
+      validityMode !== TICKET_QR_VALIDITY_MODE.EVENT_DAYS
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['accessUsageMode'],
+        message: 'ticketTypeUsageRequiresEventDays',
       })
     }
   })

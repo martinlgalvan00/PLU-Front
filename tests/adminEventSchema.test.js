@@ -440,6 +440,78 @@ describe('tipo de entrada: precio Wise y ventana propia', () => {
   })
 })
 
+describe('tipo de entrada: políticas de vigencia QR', () => {
+  const t = (key) => key
+
+  function draftWithType(type) {
+    return {
+      title: 'Pitbull Classic',
+      slots: 120,
+      venue: 'Maximal Strength Club',
+      location: 'Buenos Aires',
+      status: 'proximamente',
+      startsAt: '2026-08-15T09:00',
+      endsAt: '2026-08-15T20:00',
+      pricing: { membership: 75000, registration: 75000, combo: 120000 },
+      ticketTypes: [{ name: 'Pase general', price: 20000, ...type }],
+    }
+  }
+
+  function apiWithType(type) {
+    return validEvent({
+      ticketTypes: [
+        {
+          name: 'Pase general',
+          price: 20000,
+          quota: 100,
+          dayIndexes: [0],
+          includedAddonIds: ['food'],
+          ...type,
+        },
+      ],
+    })
+  }
+
+  it('acepta una duración en minutos desde que se acredita el pago', () => {
+    const type = { validityMode: 'from_payment', validityDurationMinutes: 12 * 60 }
+    expect(validateAdminEventDraft(draftWithType(type), t).ok).toBe(true)
+    expect(eventSchema.safeParse(apiWithType(type)).success).toBe(true)
+  })
+
+  it('requiere una duración para la política desde acreditación', () => {
+    const type = { validityMode: 'from_payment' }
+    const draft = validateAdminEventDraft(draftWithType(type), t)
+    expect(draft.ok).toBe(false)
+    expect(draft.fieldErrors['ticketTypes.0.validityDurationMinutes']).toBe(
+      'admin.eventEditor.validation.ticketTypeValidityDurationRequired',
+    )
+    expect(eventSchema.safeParse(apiWithType(type)).success).toBe(false)
+  })
+
+  it('no permite mezclar duración desde acreditación con fechas fijas', () => {
+    const type = {
+      validityMode: 'from_payment',
+      validityDurationMinutes: 120,
+      validFrom: '2026-08-15T09:00',
+      validUntil: '2026-08-15T21:00',
+    }
+    expect(validateAdminEventDraft(draftWithType(type), t).ok).toBe(false)
+    expect(eventSchema.safeParse(apiWithType(type)).success).toBe(false)
+  })
+
+  it('permite un ingreso por jornada sobre una misma credencial', () => {
+    const type = { validityMode: 'event_days', accessUsageMode: 'once_per_event_day' }
+    expect(validateAdminEventDraft(draftWithType(type), t).ok).toBe(true)
+    expect(eventSchema.safeParse(apiWithType(type)).success).toBe(true)
+  })
+
+  it('no permite un ingreso por jornada sin jornadas asignadas', () => {
+    const type = { validityMode: 'from_payment', validityDurationMinutes: 60, accessUsageMode: 'once_per_event_day' }
+    expect(validateAdminEventDraft(draftWithType(type), t).ok).toBe(false)
+    expect(eventSchema.safeParse(apiWithType(type)).success).toBe(false)
+  })
+})
+
 /**
  * Precio manual (transferencia/efectivo) por tipo de entrada: mismo criterio
  * que el bloque de Wise — el editor y la API tienen que aceptar y rechazar lo

@@ -20,6 +20,7 @@ const VALID_KINDS = new Set(['ticket', 'registration', 'unknown'])
 // casi siempre un reloj mal puesto, no un escaneo real de hace una semana.
 const MAX_FUTURE_SKEW_MS = 5 * 60 * 1000
 const MAX_PAST_SKEW_MS = 7 * 24 * 60 * 60 * 1000
+const VALID_VALIDITY_STATUSES = new Set(['unknown', 'upcoming', 'valid', 'expired'])
 
 function clampScannedAt(value) {
   const now = Date.now()
@@ -28,6 +29,33 @@ function clampScannedAt(value) {
   if (parsed > now + MAX_FUTURE_SKEW_MS) return new Date(now).toISOString()
   if (parsed < now - MAX_PAST_SKEW_MS) return new Date(now).toISOString()
   return new Date(parsed).toISOString()
+}
+
+/** Sólo persiste contexto temporal no sensible, calculado por el servidor. */
+function validityMetadata(value) {
+  const validity = value?.validity
+  if (!validity || !VALID_VALIDITY_STATUSES.has(validity.status)) return {}
+
+  const timestamp = (candidate) => {
+    const parsed = candidate ? new Date(candidate).getTime() : NaN
+    return Number.isFinite(parsed) ? new Date(parsed).toISOString() : null
+  }
+  const seconds = (candidate) => {
+    const numeric = Number(candidate)
+    return Number.isInteger(numeric) && numeric >= 0 && numeric <= 366 * 24 * 60 * 60
+      ? numeric
+      : null
+  }
+
+  return {
+    validity: {
+      status: validity.status,
+      validFrom: timestamp(validity.validFrom),
+      validUntil: timestamp(validity.validUntil),
+      remainingSeconds: seconds(validity.remainingSeconds),
+      expiredForSeconds: seconds(validity.expiredForSeconds),
+    },
+  }
 }
 
 /**
@@ -52,6 +80,7 @@ export function buildScanEventRow({
   offline = false,
   errorCode = null,
   scannedAt = null,
+  metadata = {},
   organizationId = PRIMARY_ORGANIZATION_ID,
 } = {}) {
   if (!eventId || !VALID_OUTCOMES.has(outcome) || (evidence !== 'server' && evidence !== 'operator')) {
@@ -74,6 +103,7 @@ export function buildScanEventRow({
     offline: Boolean(offline),
     error_code: errorCode ? String(errorCode).slice(0, 20) : null,
     scanned_at: clampScannedAt(scannedAt),
+    metadata: validityMetadata(metadata),
   }
 }
 

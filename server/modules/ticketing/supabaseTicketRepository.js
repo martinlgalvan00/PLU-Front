@@ -88,6 +88,18 @@ export function createSupabaseTicketRepository(client) {
         { p_event_slug: eventSlug },
         'No se pudieron listar las entradas.',
       ),
+    setAccessOverride: (ticketId, override, actor) =>
+      rpc(
+        'staff_set_ticket_access_override',
+        {
+          p_ticket_id: ticketId,
+          p_enabled: Boolean(override.enabled),
+          p_valid_from: override.enabled ? override.validFrom : null,
+          p_valid_until: override.enabled ? override.validUntil : null,
+          p_actor: actor,
+        },
+        'No se pudo actualizar la excepción de acceso de la entrada.',
+      ),
     allowlist: (eventSlug) =>
       rpc(
         'staff_get_event_checkin_allowlist',
@@ -116,7 +128,11 @@ export function createSupabaseTicketRepository(client) {
       if (!qrToken) return null
       try {
         const ticket = assertSupabaseResult(
-          await client.from('tickets').select('id, event_id').eq('qr_token', qrToken).maybeSingle(),
+          await client
+            .from('tickets')
+            .select('id, event_id, valid_from, valid_until')
+            .eq('qr_token', qrToken)
+            .maybeSingle(),
           'No se pudo resolver la entrada.',
         )
         return ticket ?? null
@@ -124,6 +140,18 @@ export function createSupabaseTicketRepository(client) {
         // Un código de puerta con formato inválido no puede tumbar la
         // ingesta de telemetría entera -- se guarda como intento sin
         // ticketId resuelto, igual que un token que no existe.
+        return null
+      }
+    },
+    async resolveTicketById(ticketId) {
+      if (!ticketId) return null
+      try {
+        const ticket = assertSupabaseResult(
+          await client.from('tickets').select('id, event_id').eq('id', ticketId).maybeSingle(),
+          'No se pudo resolver la entrada.',
+        )
+        return ticket ?? null
+      } catch {
         return null
       }
     },
@@ -170,6 +198,38 @@ export function createSupabaseTicketRepository(client) {
         { p_qr_token: qrToken, p_addon_id: addonId, p_actor: actor },
         'No se pudo canjear el beneficio.',
       ),
+    /**
+     * Recuperación pública de una compra ya hecha: el link del mail de
+     * confirmación no lleva un token propio (el servidor nunca guarda el
+     * `orderAccessToken` original, sólo su hash) -- referencia + mail del
+     * comprador hace de credencial en su lugar. `reference` tiene 48 bits de
+     * aleatoriedad (`TORD-` + 6 bytes al azar); exigir también el mail evita
+     * que alcance con adivinarla sola.
+     */
+    async findOrderByReferenceAndEmail(reference, email) {
+      const order = assertSupabaseResult(
+        await client
+          .from('ticket_orders')
+          .select('id, status, reference, buyer_email, event:events(title, slug)')
+          .eq('reference', reference)
+          .ilike('buyer_email', email)
+          .maybeSingle(),
+        'No se pudo buscar la orden.',
+      )
+      if (!order) return null
+      const tickets =
+        assertSupabaseResult(
+          await client
+            .from('tickets')
+            .select(
+              'id, order_id, bundle_id, ticket_code, qr_token, attendee_name, status, credential_label, credential_scopes, is_primary_credential, addons, ticket_types(name)',
+            )
+            .eq('order_id', order.id)
+            .order('created_at'),
+          'No se pudieron leer las entradas de la orden.',
+        ) ?? []
+      return { order, tickets }
+    },
     async listPending() {
       const rows = assertSupabaseResult(
         await client

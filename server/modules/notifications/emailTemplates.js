@@ -611,7 +611,10 @@ const BODIES = {
           ]),
           p.ticketUrl ? button(p.ticketUrl, 'Ver entradas') : '',
           p.ticketUrl ? fallbackLink(p.ticketUrl) : '',
-          paragraph('Presentá el QR desde el celular al ingresar.', { muted: true }),
+          paragraph(
+            'Te va a pedir el mail con el que compraste para mostrarte el QR. Presentalo desde el celular al ingresar.',
+            { muted: true },
+          ),
         ].join('')
       : ''
 
@@ -789,7 +792,10 @@ const BODIES = {
       ]),
       button(p.ticketUrl, 'Ver entrada'),
       fallbackLink(p.ticketUrl),
-      paragraph('Presentá el QR desde el celular.', { muted: true }),
+      paragraph(
+        'Te va a pedir el mail con el que compraste para mostrarte el QR. Presentalo desde el celular.',
+        { muted: true },
+      ),
     ].join(''),
   }),
 
