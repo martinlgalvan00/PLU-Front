@@ -28,6 +28,10 @@ export const STATUS_LABELS = {
   cerrado: 'Cerrado',
   finalizado: 'Finalizado',
   usada: 'Ingresó ✓',
+  processed: 'Procesado',
+  processing: 'Procesando',
+  failed: 'Fallido',
+  pending: 'Pendiente',
 }
 
 const SUCCESS = new Set([
@@ -38,11 +42,14 @@ const SUCCESS = new Set([
   'aprobado',
   'inscripcion_abierta',
   'usada',
+  'processed',
 ])
 
 const WARNING = new Set([
   'pendiente_pago',
   'pendiente',
+  'pending',
+  'processing',
   'validacion_manual',
   'observada',
   'borrador',
@@ -63,6 +70,7 @@ const DANGER = new Set([
   'afiliado_vencido',
   'cerrado',
   'agotado',
+  'failed',
 ])
 
 const INFO = new Set(['pre_registrado', 'registrado', 'proximamente', 'programada'])

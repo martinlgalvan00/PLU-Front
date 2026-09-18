@@ -183,7 +183,10 @@ export async function registerTicketPaymentProof(orderId, accessToken, proofPath
   return { order: toCamelOrder(result.order) }
 }
 
-function mapPendingTicketOrderRow(row) {
+// Misma forma de fila para la cola de pendientes y para el historial
+// completo -- lo único que cambia entre las dos pantallas es qué le pide cada
+// una al backend, no cómo se lee la respuesta.
+function mapTicketOrderRow(row) {
   const order = toCamelOrder(row.order ?? row)
   const event = row.event ?? {}
   return {
@@ -196,6 +199,8 @@ function mapPendingTicketOrderRow(row) {
     manualPaymentChannel: order.manualPaymentChannel,
     paymentProofPath: order.paymentProofPath,
     paymentProofUploadedAt: order.paymentProofUploadedAt,
+    buyerName: order.buyerName,
+    buyerEmail: order.buyerEmail,
     createdAt: order.createdAt,
     eventSlug: event.slug,
     eventTitle: event.title,
@@ -206,7 +211,28 @@ function mapPendingTicketOrderRow(row) {
 
 export async function listPendingTicketOrders() {
   const { orders } = await apiGet('/api/tickets/orders/pending-manual')
-  return { orders: orders.map(mapPendingTicketOrderRow) }
+  return { orders: orders.map(mapTicketOrderRow) }
+}
+
+/**
+ * Historial de ventas para Finanzas: a diferencia de `listPendingTicketOrders`
+ * (solo transferencias por validar), trae cualquier estado/canal según los
+ * chips activos en `TicketOrdersSection`. Misma convención de query params
+ * que `listAthletePaymentOrders`.
+ */
+export async function listTicketOrders(filters = {}) {
+  const params = new URLSearchParams()
+  if (Array.isArray(filters.statuses) && filters.statuses.length > 0) {
+    params.set('statuses', filters.statuses.join(','))
+  }
+  if (filters.channel) params.set('channel', filters.channel)
+  if (filters.query) params.set('query', filters.query)
+  if (filters.sort) params.set('sort', filters.sort)
+  if (filters.limit) params.set('limit', String(filters.limit))
+  if (filters.withCounts) params.set('withCounts', 'true')
+  const search = params.toString()
+  const { orders, counts } = await apiGet(`/api/tickets/orders${search ? `?${search}` : ''}`)
+  return { orders: (orders ?? []).map(mapTicketOrderRow), counts: counts ?? null }
 }
 
 export async function getTicketPaymentProofUrl(orderId) {

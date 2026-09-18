@@ -6558,6 +6558,33 @@
   justify-content: flex-end;
 }
 
+.admin-payments-operations__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.admin-payments-operations__expiry {
+  flex: 0 0 auto;
+  min-height: min-content;
+  min-width: 0;
+}
+
+.admin-payments-operations__body > [hidden] {
+  display: none !important;
+}
+
+.admin-payments-operations .admin-data-table-shell--cards .data-table-cards,
+.admin-payments-operations .admin-data-table-shell--cards .data-table-cards--admin {
+  gap: 12px;
+  padding: 4px 0 12px;
+}
+
+.admin-payments-operations .data-table-card__footer:has(.admin-table-actions__empty) {
+  display: none;
+}
+
 .admin-payments-ops-callout {
   align-items: flex-start;
   background: transparent;
@@ -6572,9 +6599,45 @@
   padding: 14px 0 14px 12px;
 }
 
+.admin-payments-ops-callout--strip {
+  align-items: center;
+  padding-block: 10px;
+}
+
+.admin-payments-ops-callout--strip .admin-payments-ops-callout__body {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  justify-content: space-between;
+}
+
+.admin-payments-ops-callout__lead {
+  display: grid;
+  flex: 1 1 16rem;
+  gap: 2px;
+  margin: 0;
+  min-width: min(100%, 28ch);
+}
+
+.admin-payments-ops-callout__issues {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.admin-payments-ops-callout--strip .admin-payments-ops-callout__actions {
+  margin-top: 0;
+}
+
 .admin-payments-ops-callout > svg {
   color: var(--admin-status-warning, #c9a227);
   margin-top: 2px;
+}
+
+.admin-payments-ops-callout--strip > svg {
+  margin-top: 0;
 }
 
 .admin-payments-ops-callout__body {
@@ -6694,6 +6757,16 @@
     grid-row: auto;
     justify-self: start;
     margin-top: 6px;
+    min-height: 44px;
+  }
+
+  .admin-payments-ops-callout--strip .admin-payments-ops-callout__actions {
+    width: 100%;
+  }
+
+  .admin-payments-ops-callout--strip .admin-payments-ops-callout__actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
     min-height: 44px;
   }
 }
@@ -6826,6 +6899,46 @@
 .admin-orders-block__toolbar .admin-orders-block__actions .btn {
   border-radius: 9px;
   min-height: 34px;
+}
+
+.admin-orders-empty {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  padding: 48px 24px 56px;
+  text-align: center;
+}
+
+.admin-orders-empty__icon {
+  align-items: center;
+  color: var(--admin-muted, var(--color-text-muted));
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  margin-bottom: 4px;
+  opacity: 0.78;
+  width: 40px;
+}
+
+.admin-orders-empty__title {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.admin-orders-empty p {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 42ch;
+}
+
+.admin-orders-empty .btn {
+  margin-top: 8px;
 }
 
 @media (max-width: 720px) {
@@ -20916,6 +21029,27 @@ button.action-queue__proof:focus-visible {
   color: var(--color-status-success);
 }
 
+.admin-proof-pill--link {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 6px;
+  height: auto;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.admin-proof-pill--link:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid var(--admin-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
 @media (max-width: 720px) {
   .admin-event-addon-report__metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -25481,8 +25615,11 @@ button.action-queue__proof:focus-visible {
   border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: grid;
   gap: 12px;
+  isolation: isolate;
   margin-bottom: 16px;
+  min-height: min-content;
   padding: 0 2px 16px;
+  position: relative;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -25616,7 +25753,8 @@ button.action-queue__proof:focus-visible {
   align-items: center;
   display: grid;
   gap: 10px 20px;
-  grid-template-columns: minmax(0, 1.2fr) auto minmax(14rem, 1fr);
+  grid-template-columns: minmax(0, 1.2fr) auto minmax(20rem, 1fr);
+  min-width: 0;
   padding: 12px 0;
 }
 
@@ -25759,11 +25897,30 @@ button.action-queue__proof:focus-visible {
 
 .admin-payment-expiry__next {
   align-items: center;
+  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
   color: var(--admin-muted);
   display: flex;
-  font-size: 12px;
-  gap: 6px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  gap: 8px;
+  line-height: 1.4;
   margin: 0;
+  padding-top: 12px;
+}
+
+.admin-payment-expiry__next svg {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+@media (max-width: 1100px) {
+  .admin-payment-expiry__window {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-payment-expiry__window-edit {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 640px) {
@@ -25784,6 +25941,10 @@ button.action-queue__proof:focus-visible {
   .admin-payment-expiry__window {
     align-items: start;
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-payment-expiry__window-edit {
+    grid-column: auto;
   }
 
   .admin-payment-expiry__window-input {

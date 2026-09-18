@@ -522,11 +522,14 @@
   flex: none;
 }
 
-/* Un solo scroller para cierre automático + pestañas. Si el panel de
-   vencimiento queda fuera de `__panel`, overflow:hidden del shell lo recorta
-   y la rueda no mueve nada. */
+/* Un solo scroller para cierre automático + pestañas. Columna, no grilla:
+   los `__panel` de tab se muestran con display:block y si el body es grid
+   con min-height:0 se pisan entre sí y contra el vencimiento. */
 .admin-shell .admin-payments-operations > .admin-payments-operations__body {
+  display: flex;
   flex: 1 1 auto;
+  flex-direction: column;
+  gap: 16px;
   min-height: 0;
   overflow-x: auto;
   overflow-y: auto;
@@ -534,11 +537,28 @@
   -webkit-overflow-scrolling: touch;
 }
 
+.admin-shell .admin-payments-operations > .admin-payments-operations__expiry,
+.admin-shell .admin-payments-operations__body > .admin-payments-operations__expiry {
+  flex: 0 0 auto;
+  min-height: min-content;
+  overflow: visible;
+}
+
 .admin-shell .admin-payments-operations > .admin-payments-operations__panel,
 .admin-shell .admin-payments-operations__body > .admin-payments-operations__panel {
-  flex: none;
-  min-height: 0;
+  flex: 0 0 auto;
+  min-height: min-content;
   overflow: visible;
+}
+
+.admin-shell .admin-payments-operations .admin-data-table-shell--cards .data-table-cards,
+.admin-shell .admin-payments-operations .admin-data-table-shell--cards .data-table-cards--admin {
+  gap: 12px;
+  padding: 4px 0 12px;
+}
+
+.admin-shell .admin-payments-operations .data-table-card__footer:has(.admin-table-actions__empty) {
+  display: none;
 }
 
 .admin-shell .admin-page > .admin-list-section--rails {
@@ -2273,6 +2293,116 @@
   padding: 14px clamp(14px, 2.4vw, 22px) 16px;
 }
 
+.admin-shell .admin-payments-operations .admin-orders-block__toolbar--tickets {
+  align-items: stretch;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 10px;
+  overflow: visible;
+  padding: 10px clamp(14px, 2.4vw, 22px) 12px;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--tickets
+  .admin-orders-block__toolbar-primary {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  min-width: 0;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--tickets
+  .admin-orders-block__toolbar-filters {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--tickets
+  .admin-filters__search {
+  align-items: center;
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 3.5%, transparent);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 10px;
+  box-shadow: none;
+  display: flex;
+  flex: 1 1 16rem;
+  gap: 10px;
+  max-width: 28rem;
+  min-height: 40px;
+  min-width: 0;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--tickets
+  .admin-filters__search:focus-within {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border-color: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 48%, transparent);
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--tickets
+  .admin-orders-block__actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--tickets
+  .admin-orders-block__toolbar-facets {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  min-width: 0;
+  overflow: visible;
+  width: 100%;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--tickets
+  .admin-orders-block__toolbar-facets
+  .admin-filter-group {
+  flex: 1 1 12rem;
+  min-width: 0;
+  width: auto;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--tickets
+  .admin-filter-pillrow {
+  flex: 0 0 auto;
+  margin-left: auto;
+  overflow: visible;
+  padding-bottom: 0;
+  width: auto;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--tickets
+  .admin-filter-pill
+  .admin-filter-popover {
+  left: auto;
+  right: 0;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-empty {
+  padding: 52px 24px 60px;
+}
+
 .admin-shell .admin-payments-operations .admin-orders-block--athlete > .admin-orders-block__header {
   align-items: flex-end;
   display: flex;
@@ -2337,6 +2467,21 @@
   font-weight: 500;
   letter-spacing: 0;
   text-transform: none;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block--tickets
+  .admin-orders-block__toolbar--tickets
+  .admin-orders-block__actions {
+  align-self: center;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block--tickets
+  .admin-empty {
+  padding-block: 40px 48px;
 }
 
 .admin-shell .admin-payments-operations .admin-orders-block__toolbar--athlete {
@@ -2442,6 +2587,56 @@
     align-items: start;
     grid-template-columns: minmax(0, 1fr);
     gap: 4px;
+  }
+
+  .admin-shell .admin-payments-operations .admin-orders-block__toolbar--tickets {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block__toolbar--tickets
+    .admin-orders-block__toolbar-primary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block__toolbar--tickets
+    .admin-filters__search {
+    max-width: none;
+    min-height: 44px;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block__toolbar--tickets
+    .admin-orders-block__actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block__toolbar--tickets
+    .admin-orders-block__actions
+    .btn {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block__toolbar--tickets
+    .admin-filter-pillrow {
+    margin-left: 0;
+  }
+
+  .admin-shell .admin-payments-operations .admin-orders-empty .btn {
+    min-height: 44px;
+    width: min(100%, 22rem);
   }
 }
 

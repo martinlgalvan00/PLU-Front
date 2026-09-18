@@ -22,6 +22,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getPaymentsTourSteps } from '../../lib/adminTourSteps.js'
 import { money } from '../../lib/format.js'
+import { formatPaymentOperationType } from '../../services/paymentOperationsDisplay.js'
 import {
   getPaymentOperations,
   recoverPaymentOperations,
@@ -33,6 +34,8 @@ import {
 import { fetchPlatformFeatureToggles } from '../../services/platformSettingsAdminService.js'
 import AthletePaymentOrdersSection from './AthletePaymentOrdersSection.jsx'
 import TicketOrdersSection from './TicketOrdersSection.jsx'
+import TicketSalesAnalyticsPanel from '../../components/admin/TicketSalesAnalyticsPanel.jsx'
+import PaymentOrderSearch from '../../components/admin/PaymentOrderSearch.jsx'
 
 /**
  * Interruptores de validación por concepto. Todo habilitado es el estado por
@@ -92,6 +95,11 @@ export default function PaymentsOperationsSection({
   const [validation, setValidation] = useState(VALIDATION_OPEN)
   const [athleteRefreshKey, setAthleteRefreshKey] = useState(0)
   const [athleteStatusRequest, _setAthleteStatusRequest] = useState(null)
+  // Elegido desde el buscador cruzado (`PaymentOrderSearch`): saltea a la
+  // pestaña del concepto correcto y marca la orden puntual, sin que el
+  // buscador tenga que saber cómo se resalta una fila en cada cola.
+  const [searchHighlightOrderId, setSearchHighlightOrderId] = useState(null)
+  const [searchTicketQuery, setSearchTicketQuery] = useState('')
   const [athleteSummary, setAthleteSummary] = useState({
     pending: null,
     openAmount: null,
@@ -215,9 +223,49 @@ export default function PaymentsOperationsSection({
     }
   }
 
+  function renderLedgerRowActions(row, { compact = false } = {}) {
+    if (!['failed', 'pending'].includes(row.status) || !canEdit) {
+      return compact ? null : <AdminTableActionsEmpty />
+    }
+
+    const retrying = retryingId === row.id
+
+    return (
+      <AdminTableActions>
+        <AdminIconButton
+          disabled={retrying}
+          icon={RotateCcw}
+          spinning={retrying}
+          label={t('admin.paymentOperations.retry')}
+          onClick={() => handleRetry(row)}
+          variant="ghost"
+        />
+      </AdminTableActions>
+    )
+  }
+
   const handleAthleteSummaryChange = useCallback((summary) => {
     setAthleteSummary(summary)
   }, [])
+
+  /**
+   * Entradas no tiene un `highlightOrderId` propio (esa cola filtra por
+   * texto libre en vez de resaltar una fila): reusar `initialQuery` con la
+   * referencia exacta consigue el mismo efecto -- aterrizar en la orden
+   * puntual -- sin tocar `TicketOrdersSection`.
+   */
+  function handleSelectSearchResult(result) {
+    if (!result) return
+    if (result.kind === 'athlete') {
+      setActiveTab('athletes')
+      setSearchHighlightOrderId(result.id)
+      window.requestAnimationFrame(() => scrollToId('admin-athlete-payments'))
+      return
+    }
+    setActiveTab('tickets')
+    setSearchTicketQuery(result.reference ?? '')
+    window.requestAnimationFrame(() => scrollToId('admin-ticket-orders'))
+  }
 
   const ticketsPending = pendingTicketOrders?.length ?? 0
 
@@ -382,6 +430,7 @@ export default function PaymentsOperationsSection({
           }
         : null,
     ],
+    ['analysis', t('admin.paymentOperations.tabAnalysis'), undefined, null],
   ]
 
   return (
@@ -439,19 +488,25 @@ export default function PaymentsOperationsSection({
         </div>
       </div>
 
-      <div className="admin-payments-operations__body">      {showHealthCallout ? (
-        <div className="admin-payments-ops-callout" role="status">
+      <div className="admin-payments-operations__body">
+      <PaymentOrderSearch onSelectResult={handleSelectSearchResult} />
+
+      {showHealthCallout && activeTab !== 'tickets' && activeTab !== 'analysis' ? (
+        <div
+          className={`admin-payments-ops-callout${
+            blockers.length === 0 ? ' admin-payments-ops-callout--strip' : ''
+          }`}
+          role="status"
+        >
           <AlertTriangle size={16} aria-hidden />
           <div className="admin-payments-ops-callout__body">
             {healthBreakdown.length > 0 ? (
-              <>
+              <p className="admin-payments-ops-callout__lead">
                 <strong>{t('admin.paymentOperations.healthCalloutTitle')}</strong>
-                <ul>
-                  {healthBreakdown.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </>
+                <span className="admin-payments-ops-callout__issues">
+                  {healthBreakdown.join(' · ')}
+                </span>
+              </p>
             ) : null}
             {blockers.length > 0 ? (
               <>
@@ -512,15 +567,20 @@ export default function PaymentsOperationsSection({
         </div>
       ) : null}
 
-      {/* Cierre automático: va antes de las divergencias porque responde una
-          pregunta anterior —"¿se están cerrando solas?"— y porque una orden
-          trabada acá es justamente la que después aparece como divergencia. */}
-      <PaymentExpiryPanel canEdit={canEdit} />
+      {/* Cierre automático: vive arriba de las pestañas, no como un `__panel`
+          más. Esos paneles se apilan en la misma celda (display none/block);
+          si el vencimiento entra en esa pila, Órdenes/Diagnóstico se pintan
+          encima y el plazo queda ilegible. */}
+      <div
+        className="admin-payments-operations__expiry"
+        hidden={activeTab === 'tickets' || activeTab === 'analysis'}
+      >
+        <PaymentExpiryPanel canEdit={canEdit} />
+      </div>
 
-      {/* Divergencias contra Mercado Pago: qué estado figura acá y cuál dice el
-          proveedor, enfrentados. Es el bloque que responde "figura cancelado
-          pero la plata entró" sin salir del panel. */}
-      {revalidation ? (
+      {/* Divergencias contra Mercado Pago: viven en Diagnóstico, que es a
+          donde ya manda el callout al comparar. */}
+      {revalidation && activeTab === 'ledger' ? (
         <section className="admin-payment-ops" aria-labelledby="payment-revalidation-title">
           <header className="admin-payment-ops__header admin-payment-ops__header--compact">
             <div className="admin-payment-ops__intro">
@@ -643,7 +703,7 @@ export default function PaymentsOperationsSection({
         canEdit={canEdit}
         canForceSettle={canEdit && Boolean(onForceSettlePayment)}
         validationEnabled={validation}
-        highlightOrderId={highlightOrderId}
+        highlightOrderId={searchHighlightOrderId ?? highlightOrderId}
         onApprovePayment={onApprovePayment}
         onForceSettlePayment={onForceSettlePayment}
         onRejectPayment={onRejectPayment}
@@ -661,7 +721,7 @@ export default function PaymentsOperationsSection({
       >
         <TicketOrdersSection
           canEdit={canEdit && validation.ticket}
-          initialQuery={ticketOrderEventScope}
+          initialQuery={searchTicketQuery || ticketOrderEventScope}
           pendingTicketOrders={pendingTicketOrders}
           isLoading={manualLoading}
           loadError={manualError}
@@ -858,6 +918,7 @@ export default function PaymentsOperationsSection({
                 label: t('admin.paymentOperations.type'),
                 mobile: 'primary',
                 sortable: true,
+                render: (row) => formatPaymentOperationType(row, t),
               },
               {
                 key: 'resource_id',
@@ -891,7 +952,7 @@ export default function PaymentsOperationsSection({
               {
                 key: 'error',
                 label: t('admin.paymentOperations.detail'),
-                mobile: 'hidden',
+                mobile: 'default',
                 // El texto crudo del proveedor no le dice nada al operador. El
                 // diagnóstico va adelante y el mensaje original queda como
                 // título, para quien necesite el detalle textual.
@@ -905,37 +966,35 @@ export default function PaymentsOperationsSection({
                     </span>
                   )
                 },
+                mobileRender: (row) => {
+                  if (!row.error) return null
+                  if (!row.diagnosis) return row.error
+                  return (
+                    <span className="admin-payment-ops__diagnosis" title={row.error}>
+                      <strong>{row.diagnosis.title}</strong>
+                    </span>
+                  )
+                },
               },
               {
                 key: 'actions',
                 label: t('admin.columns.action'),
                 mobile: 'action',
                 className: 'data-table__column--actions',
-                render: (row) => {
-                  if (!['failed', 'pending'].includes(row.status) || !canEdit) {
-                    return <AdminTableActionsEmpty />
-                  }
-
-                  const retrying = retryingId === row.id
-
-                  return (
-                    <AdminTableActions>
-                      <AdminIconButton
-                        disabled={retrying}
-                        icon={RotateCcw}
-                        spinning={retrying}
-                        label={t('admin.paymentOperations.retry')}
-                        onClick={() => handleRetry(row)}
-                        variant="ghost"
-                      />
-                    </AdminTableActions>
-                  )
-                },
+                render: (row) => renderLedgerRowActions(row),
+                mobileRender: (row) => renderLedgerRowActions(row, { compact: true }),
               },
             ]}
           />
         )}
       </section>
+
+      <div
+        className="admin-payments-operations__panel"
+        style={{ display: activeTab === 'analysis' ? 'block' : 'none' }}
+      >
+        <TicketSalesAnalyticsPanel events={ticketEvents} />
+      </div>
       </div>
     </div>
   )

@@ -212,6 +212,17 @@ export async function recoverPaymentOperations() {
 }
 
 /**
+ * Buscador cruzado por persona/referencia: responde "¿hay un pago de esta
+ * persona?" sin saber de antemano si es una entrada, una inscripción o una
+ * afiliación -- hoy son tres colas separadas (`TicketOrdersSection`,
+ * `AthletePaymentOrdersSection`) sin búsqueda en común.
+ */
+export async function searchPaymentOrders(query, { limit = 15 } = {}) {
+  const params = new URLSearchParams({ q: query, limit: String(limit) })
+  return apiGet(`/api/payments/search?${params.toString()}`)
+}
+
+/**
  * Vuelve a preguntarle a Mercado Pago qué pasó con una orden y corrige el
  * estado local con lo que contesta el proveedor. Es lo que resuelve "figura
  * cancelada pero la plata entró": no acredita nada por su cuenta — si Mercado

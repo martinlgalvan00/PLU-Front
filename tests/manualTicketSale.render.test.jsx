@@ -3,6 +3,34 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import { ADMIN_TOAST_EVENT } from '../src/lib/adminToast.js'
 import TicketOrdersSection from '../src/pages/admin/TicketOrdersSection.jsx'
+import { listTicketOrders } from '../src/services/ticketApi.js'
+
+const EMPTY_TICKET_ORDERS = {
+  orders: [],
+  counts: {
+    pending: 0,
+    aprobado: 0,
+    rechazado: 0,
+    cancelado: 0,
+    all: 0,
+    openAmount: 0,
+  },
+}
+
+vi.mock('../src/services/ticketApi.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  listTicketOrders: vi.fn().mockResolvedValue({
+    orders: [],
+    counts: {
+      pending: 0,
+      aprobado: 0,
+      rechazado: 0,
+      cancelado: 0,
+      all: 0,
+      openAmount: 0,
+    },
+  }),
+}))
 
 // notifySuccess/notifyError disparan un CustomEvent que consume un host de
 // toasts que no está montado en este render test -- se escucha el evento
@@ -35,7 +63,11 @@ beforeAll(() => {
   }
 })
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  listTicketOrders.mockReset()
+  listTicketOrders.mockResolvedValue(EMPTY_TICKET_ORDERS)
+})
 
 function renderSection(props = {}) {
   return render(
@@ -181,5 +213,55 @@ describe('TicketOrdersSection · venta manual', () => {
 
     expect(onCreateManualTicketOrder).not.toHaveBeenCalled()
     expect(dialog.getByText(/elegí un evento/i)).toBeTruthy()
+  })
+})
+
+describe('TicketOrdersSection · filtros', () => {
+  it('si no hay cola, abre Todas y guarda el canal en un pill', async () => {
+    listTicketOrders.mockResolvedValue({
+      orders: [],
+      counts: {
+        pending: 0,
+        aprobado: 3,
+        rechazado: 1,
+        cancelado: 1,
+        all: 5,
+        openAmount: 0,
+      },
+    })
+
+    renderSection()
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^todas$/i }).getAttribute('aria-pressed')).toBe(
+        'true',
+      )
+    })
+    expect(screen.queryByRole('button', { name: /por validar/i })).toBeNull()
+    expect(screen.getByRole('button', { name: /^canal$/i })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /^transferencia$/i })).toBeNull()
+  })
+
+  it('si hay órdenes por validar, se queda en esa cola', async () => {
+    listTicketOrders.mockResolvedValue({
+      orders: [],
+      counts: {
+        pending: 2,
+        aprobado: 3,
+        rechazado: 0,
+        cancelado: 0,
+        all: 5,
+        openAmount: 0,
+      },
+    })
+
+    renderSection()
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /por validar/i }).getAttribute('aria-pressed'),
+      ).toBe('true')
+    })
+    expect(screen.queryByRole('button', { name: /^rechazadas$/i })).toBeNull()
   })
 })
