@@ -18782,7 +18782,24 @@ button.action-queue__proof:focus-visible {
 }
 
 .admin-ticket-types__row-name {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-ticket-types__row-title {
   font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-ticket-types__row-validity {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.3;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -19316,27 +19333,154 @@ button.action-queue__proof:focus-visible {
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
 }
 
-.admin-ticket-types__qr-validity {
-  border-top: 1px solid var(--color-border-subtle);
+.admin-ticket-types__validity-preview {
   display: grid;
-  gap: 12px;
-  margin-top: 18px;
-  padding-top: 16px;
+  gap: 4px;
+  margin: 10px 0 0;
 }
 
-.admin-ticket-types__qr-validity-head {
-  display: grid;
-  gap: 3px;
-}
-
-.admin-ticket-types__qr-validity-head strong {
+.admin-ticket-types__validity-preview strong {
   color: var(--color-text-primary);
   font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
 }
 
-.admin-ticket-types__qr-validity-head small {
-  color: var(--color-text-muted);
+.admin-ticket-types__validity-preview small {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12px;
   line-height: 1.45;
+}
+
+.admin-ticket-types__qr-validity {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.admin-ticket-types__policy {
+  border: 0;
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+  text-transform: none;
+}
+
+.admin-ticket-types__policy--other {
+  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  margin-top: 8px;
+  padding-top: 10px;
+}
+
+.admin-ticket-types__policy legend {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+/* Gana a `.admin-event-form label:not(...)` (grid de campos) y a
+   `input:not([type=checkbox])` (caja de 38px): si no, las radios se
+   estiran como inputs y heredan versalitas del `label span`. */
+.admin-event-form label.admin-ticket-types__policy-option:not(.admin-event-form__field) {
+  align-items: flex-start;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  letter-spacing: 0;
+  min-height: 36px;
+  min-width: 0;
+  padding: 6px 6px;
+  text-transform: none;
+}
+
+.admin-event-form label.admin-ticket-types__policy-option:not(.admin-event-form__field).is-active {
+  background: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 8%, transparent);
+  min-height: 44px;
+  padding: 8px 8px;
+}
+
+.admin-event-form .admin-ticket-types__policy-option input[type='radio'] {
+  accent-color: var(--admin-brand, var(--color-brand-celeste));
+  align-self: flex-start;
+  appearance: auto;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  flex: 0 0 auto;
+  height: 16px;
+  margin: 3px 0 0;
+  max-width: none;
+  min-height: 0;
+  padding: 0;
+  width: 16px;
+}
+
+.admin-event-form .admin-ticket-types__policy-option span {
+  color: inherit;
+  display: grid;
+  font-size: inherit;
+  font-weight: inherit;
+  gap: 2px;
+  letter-spacing: 0;
+  min-width: 0;
+  text-transform: none;
+}
+
+.admin-event-form .admin-ticket-types__policy-option strong,
+.admin-event-form .admin-ticket-types__policy-option small {
+  overflow-wrap: anywhere;
+  text-transform: none;
+  white-space: normal;
+}
+
+.admin-event-form .admin-ticket-types__policy-option strong {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 550;
+  letter-spacing: 0;
+  line-height: 1.3;
+}
+
+.admin-event-form .admin-ticket-types__policy-option.is-active strong {
+  font-weight: 650;
+}
+
+.admin-event-form .admin-ticket-types__policy-option small {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.admin-ticket-types__policy-option:has(input:focus-visible) {
+  outline: 2px solid var(--admin-focus, var(--admin-brand, var(--color-brand-celeste)));
+  outline-offset: 2px;
+}
+
+.admin-ticket-types__policy-option:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.admin-ticket-types__duration-control {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(110px, auto);
+}
+
+.admin-ticket-types__duration-control input,
+.admin-ticket-types__duration-control select {
+  min-width: 0;
 }
 
 /* ── Estado efectivo de la venta de entradas ────────────────────────────────
@@ -19807,6 +19951,10 @@ button.action-queue__proof:focus-visible {
   }
 
   .admin-ticket-types__window-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-ticket-types__duration-control {
     grid-template-columns: 1fr;
   }
 
@@ -24608,6 +24756,26 @@ button.action-queue__proof:focus-visible {
   padding-left: 12px;
 }
 
+.admin-ticket-credentials--compact {
+  border-left: 0;
+  gap: 10px;
+  margin-top: 0;
+  padding-left: 0;
+}
+
+.admin-ticket-credentials__summary {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.admin-ticket-credentials__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .admin-ticket-credentials__head {
   align-items: center;
   display: flex;
@@ -24862,7 +25030,8 @@ button.action-queue__proof:focus-visible {
 }
 
 .admin-ticket-credentials__preset,
-.admin-ticket-credentials__add {
+.admin-ticket-credentials__add,
+.admin-ticket-credentials__customize {
   align-items: center;
   align-self: flex-start;
   background: transparent;
@@ -24881,13 +25050,15 @@ button.action-queue__proof:focus-visible {
 }
 
 .admin-ticket-credentials__preset:hover:not(:disabled),
-.admin-ticket-credentials__add:hover:not(:disabled) {
+.admin-ticket-credentials__add:hover:not(:disabled),
+.admin-ticket-credentials__customize:hover:not(:disabled) {
   background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
   border-color: color-mix(in srgb, var(--color-brand-celeste) 45%, transparent);
 }
 
 .admin-ticket-credentials__preset:focus-visible,
-.admin-ticket-credentials__add:focus-visible {
+.admin-ticket-credentials__add:focus-visible,
+.admin-ticket-credentials__customize:focus-visible {
   outline: 2px solid var(--color-brand-celeste);
   outline-offset: 2px;
 }
@@ -24901,7 +25072,8 @@ button.action-queue__proof:focus-visible {
 
 @media (pointer: coarse) {
   .admin-ticket-credentials__preset,
-  .admin-ticket-credentials__add {
+  .admin-ticket-credentials__add,
+  .admin-ticket-credentials__customize {
     min-height: 44px;
   }
 }
@@ -24985,6 +25157,36 @@ button.action-queue__proof:focus-visible {
 
 .admin-checkin-result--danger .admin-checkin-result__reason {
   color: var(--admin-status-danger, var(--color-text-secondary));
+}
+
+/* Reloj operativo de vigencia: no es un permiso ni un segundo veredicto.
+   Sólo adelanta a Seguridad que una entrada lista puede vencer mientras se
+   coteja el documento. El backend mantiene el corte exclusivo al milisegundo. */
+.admin-checkin-result__live-validity {
+  align-items: center;
+  background: color-mix(in srgb, var(--admin-status-success, var(--color-brand-celeste)) 10%, transparent);
+  border-left: 2px solid var(--admin-status-success, var(--color-brand-celeste));
+  color: var(--admin-status-success, var(--admin-ink, var(--color-text-primary)));
+  display: flex;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  gap: 8px;
+  line-height: 1.35;
+  margin: 2px 0 0;
+  padding: 9px 10px;
+}
+
+.admin-checkin-result__live-validity.is-expiring {
+  background: var(--admin-status-warning-bg, transparent);
+  border-left-color: var(--admin-status-warning, var(--color-brand-gold));
+  color: var(--admin-status-warning, var(--admin-ink, var(--color-text-primary)));
+}
+
+.admin-checkin-result__live-validity.is-expired {
+  background: var(--admin-status-danger-bg, transparent);
+  border-left-color: var(--admin-status-danger, var(--color-brand-red));
+  color: var(--admin-status-danger, var(--admin-ink, var(--color-text-primary)));
 }
 
 /* ---------------------------------------------------------------------------

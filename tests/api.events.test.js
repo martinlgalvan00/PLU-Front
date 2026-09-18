@@ -383,6 +383,62 @@ describe('API administrativa de eventos', () => {
     }
   })
 
+  it('persiste una vigencia de QR de 12 horas desde la acreditación', async () => {
+    const { target, cookie, supabase } = await setup()
+    const payload = eventPayload({
+      ticketTypes: [
+        {
+          ...eventPayload().ticketTypes[0],
+          validityMode: 'from_payment',
+          validityDurationMinutes: 12 * 60,
+        },
+      ],
+    })
+
+    try {
+      const response = await fetch(`${target.url}/api/events/upsert`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify(payload),
+      })
+
+      expect(response.status).toBe(201)
+      expect(supabase.rpc).toHaveBeenCalledWith(
+        'staff_merge_ticket_type_validity',
+        expect.objectContaining({
+          p_event_slug: payload.slug,
+          p_types: [
+            expect.objectContaining({
+              validityMode: 'from_payment',
+              validityDurationMinutes: 12 * 60,
+            }),
+          ],
+        }),
+      )
+      expect(supabase.rpc).toHaveBeenCalledWith(
+        'staff_merge_ticket_type_validity_policy',
+        expect.objectContaining({
+          p_event_slug: payload.slug,
+          p_types: [
+            expect.objectContaining({
+              validityMode: 'from_payment',
+              validityDurationMinutes: 12 * 60,
+            }),
+          ],
+        }),
+      )
+      expect(supabase.rpc).toHaveBeenCalledWith(
+        'staff_merge_ticket_type_access_policy',
+        expect.objectContaining({
+          p_event_slug: payload.slug,
+          p_types: [expect.objectContaining({ accessUsageMode: 'once_total' })],
+        }),
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
   it('no aborta el upsert si falta staff_merge_event_capacity_total', async () => {
     const { target, cookie, supabase } = await setup()
     supabase.rpc.mockImplementation(async (name) => {

@@ -202,8 +202,9 @@ export async function resolveTicketScan(qrToken, { zoneScope } = {}) {
     const mapped = mapApiTicket(ticket)
     const status = mapped.checkedInAt ? 'usada' : mapped.status
     const validity = ticketValidityStatus(mapped)
+    const unavailableToday = mapped.validityStatus === 'not_available_today'
     const outcome =
-      status === 'pagada' && validity === TICKET_VALIDITY_STATUS.UPCOMING
+      status === 'pagada' && (validity === TICKET_VALIDITY_STATUS.UPCOMING || unavailableToday)
         ? 'not_yet_valid'
         : status === 'pagada' && validity === TICKET_VALIDITY_STATUS.EXPIRED
           ? 'expired'

@@ -3,6 +3,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { hasEventScopeAccess } from '../../src/lib/permissions.js'
 import { resolveTicketTypeChannels } from '../../src/lib/ticketTypePaymentChannels.js'
+import { ticketValidityTiming } from '../../src/lib/ticketValidity.js'
 import { HttpError } from '../lib/errors.js'
 import { isMissingSchemaColumn } from '../lib/supabaseRpc.js'
 import {
@@ -114,6 +115,7 @@ import {
   publicReadLimiter,
   scanTelemetryLimiter,
   staffLimiter,
+  ticketOrderLookupLimiter,
   ticketPublicWriteLimiter,
 } from '../middleware/rateLimit.js'
 import { createSupabaseAthleteRepository } from '../modules/athletes/supabaseAthleteRepository.js'
@@ -123,6 +125,7 @@ import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
 import { displayPaymentConcept } from '../modules/notifications/paymentNotificationService.js'
 import { buildEventPagePath } from '../../src/lib/eventPageRoute.js'
+import { SHORT_TICKETS_PATH } from '../../src/lib/ticketsRoute.js'
 import { resolveDeploymentAppUrl } from '../lib/deploymentEnvironment.js'
 import { logger } from '../lib/logger.js'
 import { createSupabasePlatformSettingsRepository } from '../modules/settings/supabasePlatformSettingsRepository.js'
@@ -174,6 +177,27 @@ function assertTicketValidity(verified) {
   }
   if (Number.isFinite(until) && now >= until) {
     throw new HttpError(409, 'Este QR ya venció.', { code: 'PLU15' })
+  }
+}
+
+/** Contexto temporal que queda junto al intento de puerta, sin PII ni token. */
+function ticketScanValidityMetadata(verified) {
+  const ticket = verified?.ticket ?? verified
+  const timing = ticketValidityTiming(ticket)
+  const validFrom = ticket?.valid_from ?? ticket?.validFrom ?? null
+  const validUntil = ticket?.valid_until ?? ticket?.validUntil ?? null
+  if (!validFrom || !validUntil || timing.status === 'unknown') return {}
+
+  return {
+    validity: {
+      status: timing.status,
+      validFrom,
+      validUntil,
+      remainingSeconds:
+        timing.remainingMs == null ? null : Math.max(0, Math.ceil(timing.remainingMs / 1_000)),
+      expiredForSeconds:
+        timing.expiredForMs == null ? null : Math.max(0, Math.floor(timing.expiredForMs / 1_000)),
+    },
   }
 }
 
@@ -306,6 +330,7 @@ export function createTicketRoutes({
   const scanAuditGuard = requirePermission('admin.audit.read', { prisma })
   const financeReadGuard = requirePermission('admin.payments.read', { prisma })
   const financeWriteGuard = requirePermission('admin.payments.approve', { prisma })
+  const ticketAccessOverrideGuard = requirePermission('admin.events.write', { prisma })
   const actor = (req) => `${req.auth.user.id}:${req.auth.user.email}`
   const mailer = brevo ?? createBrevoAdapter({ env })
   const appUrl = (resolveDeploymentAppUrl(env) || env.VITE_APP_URL || '').replace(/\/$/, '')
@@ -336,11 +361,11 @@ export function createTicketRoutes({
    * de idempotencia lleva el `updated_at` de la orden, así que reaprobar una
    * orden ya aprobada (la RPC devuelve `duplicate`) no reenvía nada.
    *
-   * El mail no linkea a una página de la entrada porque no existe: el QR vive
-   * en la pestaña donde se compró. Lo que sí sirve en la puerta es el documento
-   * de cada asistente, que el puesto de control puede buscar en la lista del
-   * evento — por eso el dato que viaja es ese y no un link que no llevaría a
-   * ningún lado.
+   * El QR sigue viviendo sólo en la pestaña donde se compró (no hay cuenta
+   * que lo guarde), así que el link no puede llevar directo a él. Lleva a
+   * `/entradas?ref=...`: ahí `TicketOrderLookup` pide el mail del comprador
+   * como segundo factor y, si coincide, recupera la entrada con el mismo
+   * render que una compra recién hecha (ver GET /orders/lookup).
    */
   async function sendTicketConfirmation(result) {
     const order = result?.order
@@ -370,7 +395,7 @@ export function createTicketRoutes({
         venue: event?.venue ?? null,
         quantity: String(quantity),
         reference: order.reference,
-        ticketUrl: event?.slug ? `${appUrl}${buildEventPagePath(event.slug)}` : appUrl,
+        ticketUrl: `${appUrl}${SHORT_TICKETS_PATH}?ref=${encodeURIComponent(order.reference)}`,
       },
     })
   }
@@ -413,6 +438,19 @@ export function createTicketRoutes({
   }
 
   const verifiedTicketEventId = (result) => result?.ticket?.event_id ?? result?.event_id
+
+  const ticketAccessOverrideSchema = z
+    .object({
+      enabled: z.boolean(),
+      validFrom: z.string().datetime().nullable().optional(),
+      validUntil: z.string().datetime().nullable().optional(),
+    })
+    .superRefine((value, context) => {
+      if (!value.enabled) return
+      if (!value.validFrom || !value.validUntil || value.validUntil <= value.validFrom) {
+        context.addIssue({ code: z.ZodIssueCode.custom, message: 'La vigencia individual es inválida.' })
+      }
+    })
 
   // El alcance vive en la cuenta, no en el nombre del rol. Cualquier usuario
   // con eventId/eventSlug asignado queda limitado a ese evento; los roles
@@ -570,6 +608,59 @@ export function createTicketRoutes({
   router.get('/verify/:qrToken', publicReadLimiter, async (req, res, next) => {
     try {
       res.json({ ticket: await repo().verify(req.params.qrToken) })
+    } catch (error) {
+      next(error)
+    }
+  })
+  /**
+   * Recuperar una compra desde el link del mail de confirmación, sin sesión.
+   * `reference` sale de la URL (`?ref=`) y el mail nunca pide el mail del
+   * comprador -- lo tipea la persona acá, como segundo factor.
+   */
+  router.get('/orders/lookup', ticketOrderLookupLimiter, async (req, res, next) => {
+    try {
+      const referenceResult = z.string().trim().min(1).max(60).safeParse(req.query.reference)
+      const emailResult = z.string().trim().email().safeParse(req.query.email)
+      if (!referenceResult.success || !emailResult.success) {
+        throw new HttpError(400, 'Referencia o mail invalidos.')
+      }
+      const reference = referenceResult.data
+      const email = emailResult.data
+      const found = await repo().findOrderByReferenceAndEmail(reference, email)
+      if (!found) throw new HttpError(404, 'No encontramos una compra con esos datos.')
+      const paid = found.order.status === 'aprobado'
+      res.json({
+        order: {
+          reference: found.order.reference,
+          status: found.order.status,
+          eventTitle: found.order.event?.title ?? null,
+          eventSlug: found.order.event?.slug ?? null,
+        },
+        // Sin acreditar todavía no hay nada que mostrar en la puerta: el QR
+        // de una entrada `pendiente_pago` no habilita nada igual.
+        //
+        // Snake_case a propósito, igual que cualquier otra fila de `tickets`
+        // que devuelve esta API (ver `verify`/`createOrder`): `toCamelTicket`
+        // en ticketApi.js espera este shape para id/ticketCode/qrToken/
+        // orderId/attendeeName -- no tienen fallback camelCase como sí tienen
+        // credentialLabel o ticketTypeName.
+        tickets: paid
+          ? found.tickets.map((ticket) => ({
+              id: ticket.id,
+              order_id: ticket.order_id,
+              bundle_id: ticket.bundle_id,
+              ticket_code: ticket.ticket_code,
+              qr_token: ticket.qr_token,
+              attendee_name: ticket.attendee_name,
+              status: ticket.status,
+              credential_label: ticket.credential_label,
+              credential_scopes: ticket.credential_scopes,
+              is_primary_credential: ticket.is_primary_credential !== false,
+              addons: Array.isArray(ticket.addons) ? ticket.addons : [],
+              ticket_type_name: ticket.ticket_types?.name ?? null,
+            }))
+          : [],
+      })
     } catch (error) {
       next(error)
     }
@@ -772,6 +863,25 @@ export function createTicketRoutes({
       next(error)
     }
   })
+
+  router.put(
+    '/:ticketId/access-override',
+    ...ticketAccessOverrideGuard,
+    staffLimiter,
+    validateBody(ticketAccessOverrideSchema),
+    async (req, res, next) => {
+      try {
+        const ticketId = z.string().uuid().parse(req.params.ticketId)
+        const ticket = await repo().resolveTicketById?.(ticketId)
+        if (!ticket) throw new HttpError(404, 'Entrada no encontrada.')
+        assertEventScope(req, ticket.event_id ?? ticket.eventId)
+        const result = await repo().setAccessOverride(ticketId, req.validatedBody, actor(req))
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
   /**
    * Credencial de socio para el scanner de staff. La proyección pública dejó
    * de exponer el documento (el member_code es enumerable, así que devolver
@@ -873,6 +983,10 @@ export function createTicketRoutes({
             clientId: attempt.clientId,
             offline: attempt.offline,
             scannedAt: attempt.scannedAt,
+            metadata:
+              resolvedTicket?.event_id === eventId
+                ? ticketScanValidityMetadata(resolvedTicket)
+                : {},
           }
         })
 
@@ -907,6 +1021,7 @@ export function createTicketRoutes({
         gate,
         zoneScope,
         actorLabel: actor(req),
+        metadata: ticketScanValidityMetadata(ticket),
       })
       res.json(result)
     } catch (error) {
@@ -926,6 +1041,7 @@ export function createTicketRoutes({
           gate,
           actorLabel: actor(req),
           errorCode: error?.details?.code ?? null,
+          metadata: ticketScanValidityMetadata(ticket),
         })
       }
       next(error)

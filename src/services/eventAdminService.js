@@ -18,6 +18,7 @@ import { normalizeTicketCredentials } from '../lib/ticketCredentials.js'
 import { normalizeEventPaymentChannelOverrides } from '../lib/eventPaymentChannels.js'
 import { normalizeTicketTypePaymentChannels } from '../lib/ticketTypePaymentChannels.js'
 import { catalogPriceFromRow, normalizeTicketTypePrices } from '../lib/ticketTypePrices.js'
+import { TICKET_ACCESS_USAGE_MODE, TICKET_QR_VALIDITY_MODE } from '../lib/ticketValidityPolicy.js'
 
 const DEFAULT_SLOTS = 80
 
@@ -111,6 +112,12 @@ export function buildAdminEventDraft(event) {
       salesClosesAt: toDateTimeLocal(type.salesClosesAt),
       validFrom: toDateTimeLocal(type.validFrom),
       validUntil: toDateTimeLocal(type.validUntil),
+      validityMode:
+        type.validityMode ??
+        (type.validFrom || type.validUntil
+          ? TICKET_QR_VALIDITY_MODE.FIXED_WINDOW
+          : TICKET_QR_VALIDITY_MODE.EVENT_DAYS),
+      validityDurationMinutes: type.validityDurationMinutes ?? null,
       dayIndexes: [...(type.dayIndexes ?? [])],
       includedAddonIds: [...(type.includedAddonIds ?? [])],
       // Copia propia por el mismo motivo que las credenciales: el editor lo
@@ -613,6 +620,16 @@ function mapSupabaseTicketCatalog(row) {
       salesClosesAt: type.sales_closes_at ?? type.salesClosesAt ?? null,
       validFrom: type.valid_from ?? type.validFrom ?? null,
       validUntil: type.valid_until ?? type.validUntil ?? null,
+      validityMode:
+        type.qr_validity_mode ??
+        type.validityMode ??
+        ((type.valid_from ?? type.validFrom) || (type.valid_until ?? type.validUntil)
+          ? TICKET_QR_VALIDITY_MODE.FIXED_WINDOW
+          : TICKET_QR_VALIDITY_MODE.EVENT_DAYS),
+      validityDurationMinutes:
+        type.qr_validity_duration_minutes ?? type.validityDurationMinutes ?? null,
+      accessUsageMode:
+        type.access_usage_mode ?? type.accessUsageMode ?? TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL,
       quota: type.quota,
       sortOrder: type.sort_order ?? type.sortOrder,
       active: type.active,
@@ -803,7 +820,8 @@ export const PUBLISHED_EVENTS_SELECT = `
   comboOffer:event_combo_offers(id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience, financed, archived_at),
   ticketTypes:ticket_types(
     id, name, description, price, wise_price, manual_price, quota, sort_order, active,
-    sales_opens_at, sales_closes_at, valid_from, valid_until, payment_channels,
+    sales_opens_at, sales_closes_at, valid_from, valid_until,
+    qr_validity_mode, qr_validity_duration_minutes, access_usage_mode, payment_channels,
     ticketTypeDays:ticket_type_days(event_day_id),
     includedAddons:ticket_type_included_addons(addon_id),
     credentials:ticket_type_credentials(id, label, zone_scopes, sort_order)

@@ -206,6 +206,7 @@ export default function EventsSection({
   onDeleteSecurityZone,
   onFetchDeleteImpact,
   onGetEventScanReport,
+  onSetTicketAccessOverride,
   onListSecurityUsers,
   onListSecurityZones,
   onManageCheckin,
@@ -1068,8 +1069,10 @@ export default function EventsSection({
                 />
                 {canViewScanReport ? (
                   <AdminEventScanReportSection
+                    canManageAccessOverride={canEdit}
                     eventSlug={selectedEvent.slug}
                     onGetReport={onGetEventScanReport}
+                    onSetTicketAccessOverride={onSetTicketAccessOverride}
                   />
                 ) : null}
               </div>

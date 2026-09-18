@@ -1,14 +1,18 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import AdminEventScanReportSection from '../src/components/admin/AdminEventScanReportSection.jsx'
 
 afterEach(cleanup)
 
-function renderSection(onGetReport) {
+function renderSection(onGetReport, extraProps = {}) {
   return render(
     <I18nProvider>
-      <AdminEventScanReportSection eventSlug="pitbull-classic-2026" onGetReport={onGetReport} />
+      <AdminEventScanReportSection
+        eventSlug="pitbull-classic-2026"
+        onGetReport={onGetReport}
+        {...extraProps}
+      />
     </I18nProvider>,
   )
 }
@@ -47,6 +51,7 @@ const REPORT_WITH_DATA = {
       gate: 'Puerta norte',
       zoneScope: 'gate_tickets',
       offline: false,
+      ticketId: 'ticket-abc-1',
       ticketCode: 'TCK-1',
       credentialLabel: 'Entrada general',
       ticketTypeName: 'Público general — Día 1',
@@ -112,5 +117,53 @@ describe('AdminEventScanReportSection', () => {
       </I18nProvider>,
     )
     expect(onGetReport).not.toHaveBeenCalled()
+  })
+
+  it('no ofrece excepción de acceso sin permiso ni handler', async () => {
+    renderSection(async () => REPORT_WITH_DATA)
+    await waitFor(() => screen.getByText('Escaneos totales'))
+    expect(screen.queryByText('Excepción de acceso')).toBeNull()
+  })
+
+  it('no ofrece excepción de acceso para un outcome que no la resuelve', async () => {
+    const alreadyUsed = {
+      ...REPORT_WITH_DATA,
+      recent: [{ ...REPORT_WITH_DATA.recent[0], outcome: 'already_used' }],
+    }
+    renderSection(async () => alreadyUsed, {
+      canManageAccessOverride: true,
+      onSetTicketAccessOverride: vi.fn(),
+    })
+    await waitFor(() => screen.getByText('Escaneos totales'))
+    expect(screen.queryByText('Excepción de acceso')).toBeNull()
+  })
+
+  it('otorga una excepción de acceso desde una fila vencida', async () => {
+    const onSetTicketAccessOverride = vi.fn().mockResolvedValue(undefined)
+    renderSection(async () => REPORT_WITH_DATA, {
+      canManageAccessOverride: true,
+      onSetTicketAccessOverride,
+    })
+    await waitFor(() => screen.getByText('Escaneos totales'))
+
+    fireEvent.click(screen.getByText('Excepción de acceso'))
+    await screen.findByRole('dialog')
+
+    const dateInputs = screen.getAllByPlaceholderText('dd/mm/aaaa')
+    const timeInputs = screen.getAllByPlaceholderText('hh:mm')
+    fireEvent.change(dateInputs[0], { target: { value: '17/09/2026' } })
+    fireEvent.change(timeInputs[0], { target: { value: '10:00' } })
+    fireEvent.change(dateInputs[1], { target: { value: '18/09/2026' } })
+    fireEvent.change(timeInputs[1], { target: { value: '10:00' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar excepción' }))
+
+    await waitFor(() => expect(onSetTicketAccessOverride).toHaveBeenCalledTimes(1))
+    const [ticketId, payload] = onSetTicketAccessOverride.mock.calls[0]
+    expect(ticketId).toBe('ticket-abc-1')
+    expect(payload.enabled).toBe(true)
+    expect(payload.validFrom).toEqual(expect.any(String))
+    expect(payload.validUntil).toEqual(expect.any(String))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
 })

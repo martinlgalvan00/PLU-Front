@@ -1,0 +1,72 @@
+/* ═══════════════════════════════════════════════════════════════════
+   ticket-order-lookup.css — PLU ARG
+   Recuperar una compra de entradas ya hecha (sin sesión, por referencia + mail)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.ticket-order-lookup__toggle {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--color-brand-celeste);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ticket-order-lookup__toggle:hover {
+  color: var(--color-brand-celeste-dim);
+}
+
+.ticket-order-lookup {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+}
+
+.ticket-order-lookup__title {
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.ticket-order-lookup__lead {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  margin: 0;
+}
+
+.ticket-order-lookup__form {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ticket-order-lookup__form .field {
+  flex: 1 1 200px;
+}
+
+.ticket-order-lookup__form .btn {
+  flex-shrink: 0;
+}
+
+.ticket-order-lookup__feedback {
+  font-size: 13px;
+  margin: 0;
+}
+
+.ticket-order-lookup__feedback--error {
+  color: var(--color-danger-text);
+}
+
+.ticket-order-lookup__feedback--info {
+  color: var(--color-text-muted);
+}

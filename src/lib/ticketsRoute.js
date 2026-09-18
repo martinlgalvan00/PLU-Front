@@ -39,6 +39,17 @@ export function getTicketsRouteEventSlug(
 }
 
 /**
+ * Referencia de una compra ya hecha (`?ref=`), la que trae el link del mail
+ * de confirmación. Sólo precarga el campo del formulario de recuperación:
+ * el mail del comprador nunca viaja en la URL, lo tipea la persona.
+ */
+export function getTicketsRouteOrderReference(
+  search = typeof window !== 'undefined' ? window.location.search : '',
+) {
+  return new URLSearchParams(search).get('ref') || null
+}
+
+/**
  * @param {string} [eventSlug] Evento a preseleccionar en la página de entradas.
  */
 export function pushTicketsRoute(eventSlug) {

@@ -1,11 +1,11 @@
 /**
  * celebration.js — PLU ARG
  *
- * Reglas de cuándo la federación festeja. Son tres momentos y solo tres:
+ * Reglas de cuándo la federación festeja. Son cuatro momentos y solo cuatro:
  * la afiliación queda acreditada, la credencial con QR se emite, la
- * inscripción a un meet queda confirmada. Ninguno es un estado pendiente:
- * festejar un pago que el banco todavía puede rechazar es peor que no
- * festejar nada.
+ * inscripción a un meet queda confirmada, la compra de entradas queda paga.
+ * Ninguno es un estado pendiente: festejar un pago que el banco todavía puede
+ * rechazar es peor que no festejar nada.
  *
  * El módulo existe para que la decisión no viva repartida en cinco
  * componentes. `shouldCelebrate()` es la única puerta: si devuelve false no
@@ -20,7 +20,7 @@
 export const CELEBRATION_ENABLED = true
 
 /** Momentos que la federación reconoce como cierre de un trámite. */
-export const CELEBRATION_MOMENTS = ['membership', 'credential', 'registration']
+export const CELEBRATION_MOMENTS = ['membership', 'credential', 'registration', 'tickets']
 
 const STORAGE_PREFIX = 'plu.celebrated.'
 

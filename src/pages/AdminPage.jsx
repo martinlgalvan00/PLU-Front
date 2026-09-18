@@ -122,6 +122,7 @@ export default function AdminPage({
   onDeactivateAllSecurityUsers,
   onListSecurityUsers,
   onGetEventScanReport,
+  onSetTicketAccessOverride,
   onUpdateSecurityUserStatus,
   onListSecurityZones,
   onCreateSecurityZone,
@@ -506,6 +507,7 @@ export default function AdminPage({
           onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
           onListSecurityUsers={onListSecurityUsers}
           onGetEventScanReport={onGetEventScanReport}
+          onSetTicketAccessOverride={onSetTicketAccessOverride}
           onManageCheckin={
             allowedSections.includes('checkin') ? handleManageEventCheckin : undefined
           }

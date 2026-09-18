@@ -725,6 +725,29 @@
     clamp(18px, 2.6vw, 26px);
   position: relative;
   transform: translateZ(0);
+  transition:
+    border-color var(--motion-fast, 160ms) var(--ease-out, ease),
+    box-shadow 280ms var(--ease-out, ease),
+    transform 220ms var(--ease-out, ease);
+}
+
+/* Lift al pasar el mouse: la entrada se siente un objeto, no una fila de
+   tabla — pero acotado (2.5°, bien debajo del tope de 6° de las piezas
+   protagonistas) porque acá conviven dos o tres cards a la vez, no una sola.
+   Solo con puntero fino y sin reduced-motion: en touch el hover no se
+   sostiene, y sería el mismo efecto quedando pegado en la card que tocaste. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  /* El perspective vive en la grilla (el padre), no en la card: rotateX en el
+     propio elemento sin un ancestro con perspective se ve como un achatado
+     plano, no como profundidad real. */
+  .tickets-page .tickets-page__offers-grid {
+    perspective: 1400px;
+  }
+
+  .tickets-page .ticket-type-options--readonly .ticket-type-options__option:hover {
+    box-shadow: 0 28px 52px -30px rgba(0, 0, 0, 0.34);
+    transform: translateY(-6px) rotateX(2.5deg);
+  }
 }
 
 .tickets-page .ticket-type-options__option::before {

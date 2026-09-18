@@ -10,6 +10,7 @@ import heroPhotoWebp480 from '../assets/DSC00392-display-480.webp'
 import heroPhotoWebp800 from '../assets/DSC00392-display-800.webp'
 import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.jsx'
+import TicketOrderLookup from '../components/ui/TicketOrderLookup.jsx'
 import TicketPassPreview from '../components/ui/TicketPassPreview.jsx'
 import TicketPurchaseSection from '../components/ui/TicketPurchaseSection.jsx'
 import TicketTypeOptions, { zoneScopeLabel } from '../components/ui/TicketTypeOptions.jsx'
@@ -119,6 +120,7 @@ export default function TicketsPage({
   tickets = [],
   createdOrder,
   onNavigate,
+  onLookupTicketOrder,
   onSubmitTicketPurchase,
   onUploadPaymentProof,
 }) {
@@ -160,6 +162,21 @@ export default function TicketsPage({
       .trim()
       .split(/\s+/)[0]
       ?.toUpperCase() || t('pages.ticketsPage.heroWatermark')
+
+  // `visibleCreatedOrder` matchea por evento seleccionado: si la entrada
+  // recuperada es de otro evento en venta (dos eventos con venta simultánea),
+  // sin este ajuste el QR quedaba encontrado pero invisible -- la pantalla
+  // seguía mostrando el evento por defecto.
+  async function handleLookupTicketOrder(reference, email) {
+    const result = await onLookupTicketOrder?.(reference, email)
+    if (result?.order?.eventSlug) {
+      const match = ticketEvents.find(
+        (item) => (item.slug ?? item.id) === result.order.eventSlug,
+      )
+      if (match) setSelectedEventId(match.id ?? match.slug ?? match.title)
+    }
+    return result
+  }
 
   useEffect(() => {
     setSelectedEventId(resolveInitialEventId(initialEventSlug, ticketEvents, event))
@@ -432,6 +449,10 @@ export default function TicketsPage({
               </p>
             ) : null}
           </header>
+
+          {!visibleCreatedOrder ? (
+            <TicketOrderLookup onLookup={handleLookupTicketOrder} />
+          ) : null}
 
           <div className="tickets-page__checkout-panel">
             {ticketSalesOpen ? (

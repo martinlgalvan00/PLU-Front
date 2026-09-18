@@ -26,6 +26,7 @@ export default function BrandLogo({
   showText = false,
   textClassName = '',
   alt,
+  crossOrigin,
 }) {
   const { t } = useI18n()
   const config = LOGO_VARIANTS[variant] ?? LOGO_VARIANTS.letterhead
@@ -47,6 +48,7 @@ export default function BrandLogo({
         height={height}
         width={Math.round(height * config.aspect)}
         decoding="async"
+        crossOrigin={crossOrigin}
       />
       {showText && <span className={textClassName}>{t('brand.name')}</span>}
     </>

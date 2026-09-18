@@ -9,6 +9,7 @@ import {
   credentialsPerPurchase,
   defaultTicketCredential,
   groupCredentialsByBundle,
+  isDefaultSpectatorCredentials,
   normalizeTicketCredentials,
   summarizeTicketCredentials,
   validateTicketCredentials,
@@ -70,6 +71,15 @@ describe('credenciales por tipo de entrada', () => {
     expect(espectador.zoneScopes).toEqual(['gate_tickets'])
     expect(entrenador.zoneScopes).toEqual(['athletes_coaches'])
     expect(credentialsPerPurchase(coachTicketCredentials())).toBe(2)
+  })
+
+  it('reconoce la credencial de espectador de siempre', () => {
+    expect(isDefaultSpectatorCredentials([defaultTicketCredential()])).toBe(true)
+    expect(isDefaultSpectatorCredentials([])).toBe(true)
+    expect(isDefaultSpectatorCredentials(coachTicketCredentials())).toBe(false)
+    expect(
+      isDefaultSpectatorCredentials([{ label: 'Palco VIP', zoneScopes: ['gate_tickets'] }]),
+    ).toBe(false)
   })
 
   describe('validación', () => {
