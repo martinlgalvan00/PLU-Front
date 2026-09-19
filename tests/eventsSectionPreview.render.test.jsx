@@ -151,6 +151,28 @@ describe('EventsSection — meets abiertos en el listado', () => {
     expect(mark.getAttribute('aria-label')).toBe('Abierto sin afiliación')
   })
 
+  it('pone el próximo vigente como fila protagonista', () => {
+    renderEvents({
+      adminEvents: [
+        { ...EVENT, featured: true },
+        {
+          ...EVENT,
+          id: 'evt-2',
+          slug: 'copa-norte-2026',
+          title: 'Copa Norte',
+          dateISO: '2026-03-01',
+          featured: false,
+        },
+      ],
+    })
+
+    const lead = document.querySelector('.admin-event-row--lead')
+    expect(lead).not.toBeNull()
+    expect(lead.textContent).toMatch(/Destacado/)
+    expect(lead.textContent).toMatch(/Pitbull Classic/)
+    expect(document.querySelectorAll('.admin-event-row').length).toBe(2)
+  })
+
   it('no marca las filas que sí piden afiliación', () => {
     renderEvents({ adminEvents: [{ ...EVENT, requiresMembership: true }] })
     expect(document.querySelector('.admin-event-row__open-mark')).toBeNull()

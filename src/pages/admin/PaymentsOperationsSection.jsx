@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
+  ChevronDown,
   LoaderCircle,
   RefreshCw,
   RotateCcw,
   ScanSearch,
   ShieldCheck,
+  X,
 } from 'lucide-react'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
@@ -22,10 +24,16 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getPaymentsTourSteps } from '../../lib/adminTourSteps.js'
 import { money } from '../../lib/format.js'
-import { formatPaymentOperationType } from '../../services/paymentOperationsDisplay.js'
 import {
+  formatPaymentOperationCardCopy,
+  formatPaymentOperationType,
+} from '../../services/paymentOperationsDisplay.js'
+import {
+  dismissPaymentDrift,
   getPaymentOperations,
+  listPaymentDriftDismissals,
   recoverPaymentOperations,
+  restorePaymentDriftDismissal,
   retryPaymentEvent,
   retryPaymentReconciliation,
   revalidatePaymentOrder,
@@ -52,6 +60,49 @@ function formatDate(value, locale) {
     dateStyle: 'short',
     timeStyle: 'short',
   })
+}
+
+function formatAttempts(row, t) {
+  if (row?.attempts_count == null && row?.max_attempts == null) return null
+  return t('admin.paymentOperations.attemptsOf', {
+    current: row.attempts_count ?? 0,
+    max: row.max_attempts ?? '—',
+  })
+}
+
+function formatOperationWhenStack(row, locale, t) {
+  const items = []
+  if (row?.received_at) {
+    items.push([t('admin.paymentOperations.receivedAt'), formatDate(row.received_at, locale)])
+  }
+  if (row?.processed_at) {
+    items.push([t('admin.paymentOperations.processedAt'), formatDate(row.processed_at, locale)])
+  } else if (row?.last_attempt_at && row.last_attempt_at !== row.received_at) {
+    items.push([t('admin.paymentOperations.lastAttempt'), formatDate(row.last_attempt_at, locale)])
+  }
+  if (row?.status === 'failed' && row?.next_retry_at) {
+    items.push([t('admin.paymentOperations.nextRetry'), formatDate(row.next_retry_at, locale)])
+  }
+  if (items.length === 0) {
+    const fallback = row?.last_attempt_at || row?.received_at || row?.processed_at
+    return fallback ? formatDate(fallback, locale) : null
+  }
+  if (items.length === 1) return items[0][1]
+  return (
+    <span className="admin-payment-ops__when-stack">
+      {items.map(([label, value]) => (
+        <span key={label}>
+          <em>{label}</em>
+          <time>{value}</time>
+        </span>
+      ))}
+    </span>
+  )
+}
+
+function tPlural(t, key, count) {
+  const n = Number(count) || 0
+  return t(n === 1 ? `${key}_one` : `${key}_other`, { count: n })
 }
 
 function scrollToId(id) {
@@ -90,6 +141,16 @@ export default function PaymentsOperationsSection({
   const [revalidating, setRevalidating] = useState(false)
   const [revalidation, setRevalidation] = useState(null)
   const [fixingOrderId, setFixingOrderId] = useState(null)
+  // Descarte de drift no crítico: un motivo por vez, atado a
+  // `orderKind:orderId` para que dos filas no compartan el mismo textbox.
+  const [dismissingKey, setDismissingKey] = useState(null)
+  const [dismissReason, setDismissReason] = useState('')
+  const [dismissBusy, setDismissBusy] = useState(false)
+  const [dismissError, setDismissError] = useState('')
+  const [auditOpen, setAuditOpen] = useState(false)
+  const [auditLoading, setAuditLoading] = useState(false)
+  const [auditError, setAuditError] = useState('')
+  const [dismissals, setDismissals] = useState([])
   const [status, setStatus] = useState('')
   const [activeTab, setActiveTab] = useState('athletes')
   const [validation, setValidation] = useState(VALIDATION_OPEN)
@@ -209,6 +270,70 @@ export default function PaymentsOperationsSection({
     }
   }
 
+  const loadDismissals = useCallback(async () => {
+    setAuditLoading(true)
+    setAuditError('')
+    try {
+      const result = await listPaymentDriftDismissals()
+      setDismissals(result?.dismissals ?? [])
+    } catch (loadDismissalsError) {
+      setAuditError(loadDismissalsError?.message ?? t('admin.paymentOperations.auditLoadError'))
+    } finally {
+      setAuditLoading(false)
+    }
+  }, [t])
+
+  function startDismiss(orderKind, orderId) {
+    setDismissingKey(`${orderKind}:${orderId}`)
+    setDismissReason('')
+    setDismissError('')
+  }
+
+  function cancelDismiss() {
+    setDismissingKey(null)
+    setDismissReason('')
+    setDismissError('')
+  }
+
+  /**
+   * Descarta una orden desalineada: no borra el hallazgo, lo saca de acá y lo
+   * deja en la auditoría con el motivo. Si vuelve a desalinearse después de
+   * restaurarlo, `get_payment_system_health` la vuelve a contar.
+   */
+  async function confirmDismiss(orderKind, orderId) {
+    const reason = dismissReason.trim()
+    if (reason.length < 3) return
+    setDismissBusy(true)
+    setDismissError('')
+    try {
+      await dismissPaymentDrift(orderKind, orderId, reason)
+      setDismissingKey(null)
+      setDismissReason('')
+      await loadOps()
+      if (auditOpen) await loadDismissals()
+    } catch (dismissErrorCaught) {
+      setDismissError(dismissErrorCaught?.message ?? t('admin.paymentOperations.dismissError'))
+    } finally {
+      setDismissBusy(false)
+    }
+  }
+
+  async function toggleAudit() {
+    const next = !auditOpen
+    setAuditOpen(next)
+    if (next) await loadDismissals()
+  }
+
+  async function restoreDismissal(dismissalId) {
+    setAuditError('')
+    try {
+      await restorePaymentDriftDismissal(dismissalId)
+      await Promise.all([loadDismissals(), loadOps()])
+    } catch (restoreError) {
+      setAuditError(restoreError?.message ?? t('admin.paymentOperations.auditRestoreError'))
+    }
+  }
+
   async function handleRetry(row) {
     setRetryingId(row.id)
     setError('')
@@ -278,6 +403,16 @@ export default function PaymentsOperationsSection({
       Number(health.staleReconciliationLocks ?? 0) +
       Number(health.exhaustedEvents ?? 0)
     : null
+  const openDriftFindings = [
+    ...(Array.isArray(health?.openAthleteDrift) ? health.openAthleteDrift : []).map((item) => ({
+      ...item,
+      orderKind: 'athlete',
+    })),
+    ...(Array.isArray(health?.openTicketDrift) ? health.openTicketDrift : []).map((item) => ({
+      ...item,
+      orderKind: 'ticket',
+    })),
+  ]
   const failedCount = summary.events?.failed ?? 0
   const pendingReconciliations = summary.attempts?.reconciliationPending ?? 0
   const pastDue = summary.subscriptions?.pastDue ?? 0
@@ -360,29 +495,31 @@ export default function PaymentsOperationsSection({
   if (health && health.healthy === false) {
     if (Number(health.athleteOrderDrift ?? 0) > 0) {
       healthBreakdown.push(
-        t('admin.paymentOperations.healthAthleteDrift', { count: health.athleteOrderDrift }),
+        tPlural(t, 'admin.paymentOperations.healthAthleteDrift', health.athleteOrderDrift),
       )
     }
     if (Number(health.ticketOrderDrift ?? 0) > 0) {
       healthBreakdown.push(
-        t('admin.paymentOperations.healthTicketDrift', { count: health.ticketOrderDrift }),
+        tPlural(t, 'admin.paymentOperations.healthTicketDrift', health.ticketOrderDrift),
       )
     }
     if (Number(health.staleEventLocks ?? 0) > 0) {
       healthBreakdown.push(
-        t('admin.paymentOperations.healthStaleEventLocks', { count: health.staleEventLocks }),
+        tPlural(t, 'admin.paymentOperations.healthStaleEventLocks', health.staleEventLocks),
       )
     }
     if (Number(health.staleReconciliationLocks ?? 0) > 0) {
       healthBreakdown.push(
-        t('admin.paymentOperations.healthStaleReconciliationLocks', {
-          count: health.staleReconciliationLocks,
-        }),
+        tPlural(
+          t,
+          'admin.paymentOperations.healthStaleReconciliationLocks',
+          health.staleReconciliationLocks,
+        ),
       )
     }
     if (Number(health.exhaustedEvents ?? 0) > 0) {
       healthBreakdown.push(
-        t('admin.paymentOperations.healthExhaustedEvents', { count: health.exhaustedEvents }),
+        tPlural(t, 'admin.paymentOperations.healthExhaustedEvents', health.exhaustedEvents),
       )
     }
   }
@@ -442,37 +579,38 @@ export default function PaymentsOperationsSection({
               <span className="admin-list-shell__eyebrow">{t('admin.paymentOperations.eyebrow')}</span>
               <h1 className="admin-list-shell__title">{t('admin.paymentOperations.title')}</h1>
               <p className="admin-list-shell__subtitle">{t('admin.paymentOperations.subtitle')}</p>
-              <p
-                className={`admin-payments-ops-pulse${
-                  (athletesPending ?? 0) > 0 ? ' admin-payments-ops-pulse--warning' : ''
-                }`}
-                aria-label={t('admin.paymentOperations.opsStripAria')}
-              >
-                <span className="admin-payments-ops-pulse__value">
+            </div>
+            <p
+              className={`admin-payments-ops-pulse${
+                (athletesPending ?? 0) > 0 ? ' admin-payments-ops-pulse--warning' : ''
+              }`}
+              aria-label={t('admin.paymentOperations.opsStripAria')}
+            >
+              <span className="admin-payments-ops-pulse__stat">
+                <strong className="admin-payments-ops-pulse__value">
                   {athletesPending == null ? '—' : athletesPending}
-                </span>
+                </strong>
                 <span className="admin-payments-ops-pulse__label">
                   {t('admin.paymentOperations.pulseLabel')}
                 </span>
-                <span className="admin-payments-ops-pulse__sep" aria-hidden="true">
-                  ·
+              </span>
+              <span className="admin-payments-ops-pulse__stat">
+                <strong className="admin-payments-ops-pulse__value admin-payments-ops-pulse__value--amount">
+                  {money(athleteSummary.openAmount ?? 0, locale)}
+                </strong>
+                <span className="admin-payments-ops-pulse__label">
+                  {t('admin.paymentOperations.pulseAmountCaption')}
                 </span>
-                <span className="admin-payments-ops-pulse__hint">
-                  {t('admin.paymentOperations.pulseAmount', {
-                    amount: money(athleteSummary.openAmount ?? 0, locale),
-                  })}
-                </span>
-              </p>
-            </div>
+              </span>
+            </p>
             <div className="admin-list-shell__actions admin-payments-ops-top__actions">
-              <button
-                type="button"
-                className="btn btn--ghost btn--small"
-                onClick={() => void refreshAll()}
+              <AdminIconButton
+                icon={RefreshCw}
+                label={t('admin.paymentOperations.refresh')}
+                spinning={loading || recovering}
                 disabled={loading || recovering}
-              >
-                <RefreshCw size={14} aria-hidden /> {t('admin.paymentOperations.refresh')}
-              </button>
+                onClick={() => void refreshAll()}
+              />
             </div>
           </header>
 
@@ -507,62 +645,80 @@ export default function PaymentsOperationsSection({
                   {healthBreakdown.join(' · ')}
                 </span>
               </p>
+            ) : blockers.length > 0 ? (
+              <p className="admin-payments-ops-callout__lead">
+                <strong>{t('admin.paymentOperations.diagnosisTitle')}</strong>
+              </p>
             ) : null}
             {blockers.length > 0 ? (
-              <>
-                <strong>{t('admin.paymentOperations.diagnosisTitle')}</strong>
-                <ul className="admin-payments-ops-callout__diagnoses">
-                  {blockers.map((item) => (
+              <ul className="admin-payments-ops-callout__diagnoses admin-payments-ops-callout__diagnoses--compact">
+                {blockers.map((item) => {
+                  const hasPlaybook =
+                    Boolean(item.cause) || (Array.isArray(item.fix) && item.fix.length > 0)
+                  return (
                     <li key={`${item.code}-${item.cause}`}>
-                      <span className="admin-payments-ops-callout__diagnosis-title">
-                        {item.title}
+                      <div className="admin-payments-ops-callout__diagnosis-head">
+                        <span className="admin-payments-ops-callout__diagnosis-title">
+                          {item.title}
+                        </span>
                         {item.affected > 1 ? (
                           <span className="admin-payments-ops-callout__diagnosis-count">
-                            {t('admin.paymentOperations.diagnosisAffected', {
-                              count: item.affected,
-                            })}
+                            {tPlural(
+                              t,
+                              'admin.paymentOperations.diagnosisAffected',
+                              item.affected,
+                            )}
                           </span>
                         ) : null}
-                      </span>
-                      <span className="admin-payments-ops-callout__diagnosis-cause">
-                        {item.cause}
-                      </span>
-                      {Array.isArray(item.fix) && item.fix.length > 0 ? (
-                        <ol className="admin-payments-ops-callout__diagnosis-fix">
-                          {item.fix.map((step) => (
-                            <li key={step}>{step}</li>
-                          ))}
-                        </ol>
+                      </div>
+                      {hasPlaybook ? (
+                        <details className="admin-payments-ops-callout__diagnosis-more">
+                          <summary>{t('admin.paymentOperations.diagnosisFix')}</summary>
+                          {item.cause ? (
+                            <p className="admin-payments-ops-callout__diagnosis-cause">
+                              {item.cause}
+                            </p>
+                          ) : null}
+                          {Array.isArray(item.fix) && item.fix.length > 0 ? (
+                            <ol className="admin-payments-ops-callout__diagnosis-fix">
+                              {item.fix.map((step) => (
+                                <li key={step}>{step}</li>
+                              ))}
+                            </ol>
+                          ) : null}
+                        </details>
                       ) : null}
                     </li>
-                  ))}
-                </ul>
-              </>
+                  )
+                })}
+              </ul>
             ) : null}
-            <div className="admin-payments-ops-callout__actions">
-              <button
-                type="button"
-                className="btn btn--ghost btn--small"
-                onClick={openDiagnostics}
-              >
-                {t('admin.paymentOperations.healthCalloutCta')}
-              </button>
-              {canEdit ? (
+            {activeTab !== 'ledger' ? (
+              <div className="admin-payments-ops-callout__actions">
                 <button
                   type="button"
-                  className="btn btn--small"
-                  onClick={openDiagnosticsAndCompare}
-                  disabled={revalidating}
+                  className="btn btn--ghost btn--small"
+                  onClick={openDiagnostics}
                 >
-                  {revalidating ? (
-                    <LoaderCircle size={14} aria-hidden className="is-spinning" />
-                  ) : (
-                    <ScanSearch size={14} aria-hidden />
-                  )}{' '}
-                  {t('admin.paymentOperations.healthCalloutCompare')}
+                  {t('admin.paymentOperations.healthCalloutCta')}
                 </button>
-              ) : null}
-            </div>
+                {canEdit ? (
+                  <button
+                    type="button"
+                    className="btn btn--small"
+                    onClick={openDiagnosticsAndCompare}
+                    disabled={revalidating}
+                  >
+                    {revalidating ? (
+                      <LoaderCircle size={14} aria-hidden className="is-spinning" />
+                    ) : (
+                      <ScanSearch size={14} aria-hidden />
+                    )}{' '}
+                    {t('admin.paymentOperations.healthCalloutCompare')}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -743,7 +899,7 @@ export default function PaymentsOperationsSection({
           <div className="admin-payment-ops__chrome">
             {data?.configuration ? (
               <ul
-                className="admin-payment-ops__signals"
+                className="admin-payment-ops__signals admin-payment-ops__signals--line"
                 aria-label={t('admin.paymentOperations.runtimeSignalsAria')}
               >
                 <li className="admin-payment-ops__chip">
@@ -873,20 +1029,184 @@ export default function PaymentsOperationsSection({
               ['processed', t('admin.paymentOperations.processed'), summary.events?.processed],
             ]}
           />
-          <small className="admin-payment-ops__filter-meta">
-            {summary.updatedAt
-              ? t('admin.paymentOperations.updatedAt', {
-                  date: formatDate(summary.updatedAt, locale),
-                })
-              : null}
-            {summary.events?.processed != null ? (
-              <>
-                {summary.updatedAt ? ' · ' : null}
-                {t('admin.paymentOperations.processedEvents')}: {summary.events.processed}
-              </>
-            ) : null}
-          </small>
+          {summary.updatedAt ? (
+            <small className="admin-payment-ops__filter-meta">
+              {t('admin.paymentOperations.updatedAt', {
+                date: formatDate(summary.updatedAt, locale),
+              })}
+            </small>
+          ) : null}
         </div>
+
+        {data ? (
+          <div className="admin-payment-ops__drift">
+            <div className="admin-payment-ops__drift-head">
+              {openDriftFindings.length > 0 ? (
+                <>
+                  <AlertTriangle size={15} aria-hidden className="admin-payment-ops__drift-icon" />
+                  <strong>{t('admin.paymentOperations.driftTitle')}</strong>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck
+                    size={15}
+                    aria-hidden
+                    className="admin-payment-ops__drift-icon admin-payment-ops__drift-icon--ok"
+                  />
+                  <strong>{t('admin.paymentOperations.driftHealthyTitle')}</strong>
+                </>
+              )}
+              <button
+                type="button"
+                className="admin-payment-ops__audit-toggle"
+                onClick={() => void toggleAudit()}
+                aria-expanded={auditOpen}
+              >
+                {t('admin.paymentOperations.auditToggle', {
+                  count: dismissals.filter((item) => !item.restored_at).length,
+                })}
+                <ChevronDown
+                  size={12}
+                  aria-hidden
+                  style={{ transform: auditOpen ? 'rotate(180deg)' : undefined }}
+                />
+              </button>
+            </div>
+
+            {openDriftFindings.length > 0 ? (
+              <ul className="admin-payment-ops__drift-list">
+                {openDriftFindings.map((finding) => {
+                  const key = `${finding.orderKind}:${finding.orderId}`
+                  const isConfirming = dismissingKey === key
+                  const titleKey =
+                    finding.orderKind === 'athlete'
+                      ? 'admin.paymentOperations.driftAthleteRow'
+                      : 'admin.paymentOperations.driftTicketRow'
+                  return (
+                    <li key={key} className="admin-payment-ops__drift-row">
+                      <div className="admin-payment-ops__drift-row-head">
+                        <div className="admin-payment-ops__drift-row-copy">
+                          <div className="admin-payment-ops__drift-row-title">
+                            {t(titleKey, { reference: finding.reference ?? finding.orderId })}
+                          </div>
+                          <div className="admin-payment-ops__drift-row-meta">
+                            {t('admin.paymentOperations.driftRowMeta', {
+                              local: finding.localStatus,
+                              expected: finding.expectedStatus,
+                            })}
+                          </div>
+                        </div>
+                        {canEdit ? (
+                          <button
+                            type="button"
+                            className="admin-payment-ops__drift-dismiss-btn"
+                            onClick={() => startDismiss(finding.orderKind, finding.orderId)}
+                            aria-label={t('admin.paymentOperations.dismissDrift')}
+                          >
+                            <X size={14} aria-hidden />
+                          </button>
+                        ) : null}
+                      </div>
+
+                      {isConfirming ? (
+                        <div className="admin-payment-ops__drift-confirm">
+                          <label htmlFor={`dismiss-reason-${key}`}>
+                            {t('admin.paymentOperations.dismissReasonLabel')}
+                          </label>
+                          <input
+                            id={`dismiss-reason-${key}`}
+                            type="text"
+                            className="admin-payment-ops__drift-confirm-input"
+                            value={dismissReason}
+                            onChange={(event) => setDismissReason(event.target.value)}
+                            placeholder={t('admin.paymentOperations.dismissReasonPlaceholder')}
+                          />
+                          {dismissError ? (
+                            <p className="admin-payment-ops__drift-confirm-error">{dismissError}</p>
+                          ) : null}
+                          <div className="admin-payment-ops__drift-confirm-actions">
+                            <button
+                              type="button"
+                              className="btn btn--ghost btn--small"
+                              onClick={cancelDismiss}
+                            >
+                              {t('common.cancel')}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn--small"
+                              disabled={dismissBusy || dismissReason.trim().length < 3}
+                              onClick={() => void confirmDismiss(finding.orderKind, finding.orderId)}
+                            >
+                              {dismissBusy ? (
+                                <LoaderCircle size={14} aria-hidden className="is-spinning" />
+                              ) : null}{' '}
+                              {t('admin.paymentOperations.dismissConfirm')}
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : null}
+
+            {auditOpen ? (
+              <div className="admin-payment-ops__audit-panel">
+                {auditLoading ? (
+                  <LoadingState label={t('admin.paymentOperations.loading')} />
+                ) : auditError ? (
+                  <ErrorState
+                    message={auditError}
+                    onRetry={loadDismissals}
+                    retryLabel={t('common.retry')}
+                  />
+                ) : dismissals.length === 0 ? (
+                  <p className="admin-payment-ops__audit-empty">
+                    {t('admin.paymentOperations.auditEmpty')}
+                  </p>
+                ) : (
+                  <ul className="admin-payment-ops__audit-list">
+                    {dismissals.map((item) => {
+                      const titleKey =
+                        item.order_kind === 'athlete'
+                          ? 'admin.paymentOperations.driftAthleteRow'
+                          : 'admin.paymentOperations.driftTicketRow'
+                      return (
+                        <li key={item.id} className="admin-payment-ops__audit-row">
+                          <div className="admin-payment-ops__audit-row-copy">
+                            <div className="admin-payment-ops__audit-row-title">
+                              {t(titleKey, { reference: item.reference ?? item.order_id })}
+                            </div>
+                            <div className="admin-payment-ops__audit-row-meta">
+                              {t('admin.paymentOperations.auditRowMeta', {
+                                reason: item.reason,
+                                date: formatDate(item.dismissed_at, locale),
+                              })}
+                              {item.restored_at
+                                ? ` · ${t('admin.paymentOperations.auditRestored')}`
+                                : ''}
+                            </div>
+                          </div>
+                          {canEdit && !item.restored_at ? (
+                            <button
+                              type="button"
+                              className="admin-payment-ops__restore-btn"
+                              onClick={() => void restoreDismissal(item.id)}
+                            >
+                              {t('admin.paymentOperations.auditRestore')}
+                            </button>
+                          ) : null}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {error ? (
           <ErrorState message={error} onRetry={loadOps} retryLabel={t('common.retry')} />
@@ -919,12 +1239,24 @@ export default function PaymentsOperationsSection({
                 mobile: 'primary',
                 sortable: true,
                 render: (row) => formatPaymentOperationType(row, t),
+                mobileRender: (row) => {
+                  const { headline, context } = formatPaymentOperationCardCopy(row, t)
+                  return (
+                    <span className="data-table__identity-copy">
+                      <strong>{headline}</strong>
+                      {context ? <span className="data-table__sub">{context}</span> : null}
+                    </span>
+                  )
+                },
               },
               {
                 key: 'resource_id',
                 label: t('admin.paymentOperations.resource'),
                 mobile: 'default',
+                mobileMeta: 'labeled',
                 sortable: true,
+                render: (row) => row.resource_id || '—',
+                mobileRender: (row) => row.resource_id || null,
               },
               {
                 key: 'status',
@@ -937,22 +1269,31 @@ export default function PaymentsOperationsSection({
                 key: 'attempts_count',
                 label: t('admin.paymentOperations.attempts'),
                 mobile: 'default',
+                mobileMeta: 'labeled',
                 desktop: 'numeric',
                 align: 'end',
                 sortable: true,
                 render: (row) => `${row.attempts_count}/${row.max_attempts}`,
+                mobileRender: (row) => formatAttempts(row, t),
               },
               {
                 key: 'last_attempt_at',
-                label: t('admin.paymentOperations.lastAttempt'),
+                label: t('admin.paymentOperations.when'),
                 mobile: 'default',
+                mobileMeta: 'labeled',
                 sortable: true,
-                render: (row) => formatDate(row.last_attempt_at, locale),
+                render: (row) =>
+                  formatDate(
+                    row.processed_at || row.last_attempt_at || row.received_at,
+                    locale,
+                  ),
+                mobileRender: (row) => formatOperationWhenStack(row, locale, t),
               },
               {
                 key: 'error',
                 label: t('admin.paymentOperations.detail'),
                 mobile: 'default',
+                mobileMeta: 'labeled',
                 // El texto crudo del proveedor no le dice nada al operador. El
                 // diagnóstico va adelante y el mensaje original queda como
                 // título, para quien necesite el detalle textual.
@@ -967,11 +1308,12 @@ export default function PaymentsOperationsSection({
                   )
                 },
                 mobileRender: (row) => {
-                  if (!row.error) return null
+                  if (!row.error && !row.diagnosis) return null
                   if (!row.diagnosis) return row.error
                   return (
                     <span className="admin-payment-ops__diagnosis" title={row.error}>
                       <strong>{row.diagnosis.title}</strong>
+                      {row.diagnosis.cause ? <small>{row.diagnosis.cause}</small> : null}
                     </span>
                   )
                 },

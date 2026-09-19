@@ -219,7 +219,7 @@ export function getEventsTourSteps(t) {
       body: t('admin.tour.events.list.body'),
     },
     {
-      target: '.admin-event-preview',
+      target: '.admin-event-row',
       placement: 'left',
       title: t('admin.tour.events.preview.title'),
       body: t('admin.tour.events.preview.body'),

@@ -321,6 +321,12 @@ function AdminEventLivePreview({
         </div>
       )}
 
+      {embedded ? (
+        <p className="admin-event-preview__site-caption">
+          {t('admin.eventEditor.sitePreviewCaption')}
+        </p>
+      ) : null}
+
       {embedded && live ? (
         <p className="admin-event-preview__live-caption" role="status">
           <span className="admin-event-preview__live-dot" aria-hidden />

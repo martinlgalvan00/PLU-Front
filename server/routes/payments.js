@@ -197,6 +197,10 @@ const revalidateOrderSchema = z.object({
   providerPaymentId: z.coerce.string().trim().regex(/^\d+$/).optional(),
 })
 
+const dismissDriftSchema = z.object({
+  reason: z.string().trim().min(3).max(500),
+})
+
 const searchOrdersQuerySchema = z.object({
   q: z.string().trim().min(2).max(120),
   limit: z.coerce.number().int().min(1).max(50).optional().default(15),
@@ -873,6 +877,66 @@ export function createPaymentRoutes(deps = {}) {
           reconciliationLimit: 50,
         })
         res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /**
+   * Descartar un hallazgo de drift (orden desalineada) no crítico: no borra
+   * nada, lo saca de Diagnóstico y lo deja en la auditoría con motivo y
+   * quién lo descartó. Si la orden vuelve a desalinearse después de
+   * restaurar el descarte, `get_payment_system_health` la vuelve a contar.
+   */
+  router.post(
+    '/operations/drift/:orderKind/:orderId/dismiss',
+    ...financeWriteGuard,
+    staffLimiter,
+    validateBody(dismissDriftSchema),
+    async (req, res, next) => {
+      try {
+        const orderKind = parseInput(z.enum(['athlete', 'ticket']), req.params.orderKind)
+        const orderId = parseInput(z.string().uuid(), req.params.orderId)
+        const result = await repository().dismissPaymentDrift(
+          orderKind,
+          orderId,
+          req.validatedBody.reason,
+          `${req.auth.user.id}:${req.auth.user.email}`,
+        )
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.post(
+    '/operations/drift/dismissals/:dismissalId/restore',
+    ...financeWriteGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const dismissalId = parseInput(z.string().uuid(), req.params.dismissalId)
+        const result = await repository().restorePaymentDriftDismissal(
+          dismissalId,
+          `${req.auth.user.id}:${req.auth.user.email}`,
+        )
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.get(
+    '/operations/drift/dismissals',
+    ...financeReadGuard,
+    staffLimiter,
+    async (_req, res, next) => {
+      try {
+        const dismissals = await repository().listPaymentDriftDismissals(50)
+        res.json({ dismissals })
       } catch (error) {
         next(error)
       }

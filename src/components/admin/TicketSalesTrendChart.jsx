@@ -14,7 +14,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
  */
 
 const WIDTH = 100
-const HEIGHT = 44
+const HEIGHT = 56
 
 function parseDay(day) {
   // `YYYY-MM-DD` sin zona: parsearlo con `new Date(str)` lo clava en

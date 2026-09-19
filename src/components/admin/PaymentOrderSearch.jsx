@@ -39,6 +39,10 @@ export default function PaymentOrderSearch({ onSelectResult }) {
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // `setQuery(current => current)` no dispara el efecto de abajo -- React
+  // descarta un set-state con el mismo valor (Object.is), así que "Reintentar"
+  // necesita su propia señal de cambio, no depender de reescribir `query`.
+  const [retryKey, setRetryKey] = useState(0)
   const timerRef = useRef(null)
 
   useEffect(() => {
@@ -64,7 +68,7 @@ export default function PaymentOrderSearch({ onSelectResult }) {
       }
     }, SEARCH_DEBOUNCE_MS)
     return () => window.clearTimeout(timerRef.current)
-  }, [query, t])
+  }, [query, retryKey, t])
 
   const rows = (results ?? []).map((result) => ({
     id: `${result.kind}-${result.id}`,
@@ -78,9 +82,15 @@ export default function PaymentOrderSearch({ onSelectResult }) {
   }))
 
   const belowMinChars = query.trim().length > 0 && query.trim().length < MIN_QUERY_LENGTH
+  const idle = !belowMinChars && !error && results === null && !loading
 
   return (
-    <section className="admin-orders-block" aria-label={t('admin.paymentSearch.title')}>
+    <section
+      className={['admin-orders-block', 'admin-orders-block--search', idle ? 'is-idle' : '']
+        .filter(Boolean)
+        .join(' ')}
+      aria-label={t('admin.paymentSearch.title')}
+    >
       <header className="admin-orders-block__header">
         <div>
           <span className="admin-orders-block__eyebrow">{t('admin.paymentSearch.eyebrow')}</span>
@@ -89,9 +99,13 @@ export default function PaymentOrderSearch({ onSelectResult }) {
         </div>
       </header>
 
-      <div className="admin-orders-block__toolbar">
-        <div className="admin-orders-block__toolbar-filters">
+      <div className="admin-orders-block__toolbar admin-orders-block__toolbar--search">
+        <div className="admin-filter-group admin-filter-group--rail admin-filter-group--labeled admin-orders-block__search-row">
+          <span id="payment-order-search-label" className="admin-filter-group__label">
+            {t('admin.paymentSearch.searchLabel')}
+          </span>
           <AdminFilterSearch
+            labelledBy="payment-order-search-label"
             placeholder={t('admin.paymentSearch.placeholder')}
             query={query}
             onQueryChange={setQuery}
@@ -100,14 +114,14 @@ export default function PaymentOrderSearch({ onSelectResult }) {
       </div>
 
       {belowMinChars ? (
-        <p className="admin-orders-block__lead">{t('admin.paymentSearch.minChars')}</p>
+        <p className="admin-orders-block__hint">{t('admin.paymentSearch.minChars')}</p>
       ) : error ? (
         <ErrorState
           message={error}
-          onRetry={() => setQuery((current) => current)}
+          onRetry={() => setRetryKey((key) => key + 1)}
           retryLabel={t('common.retry')}
         />
-      ) : (
+      ) : idle ? null : (
         <AdminDataTable
           loading={loading}
           columns={[
