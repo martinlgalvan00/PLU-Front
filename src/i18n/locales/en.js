@@ -890,6 +890,10 @@ export default {
     cerrado: 'Closed',
     finalizado: 'Finished',
     usada: 'Checked in ✓',
+    processed: 'Processed',
+    processing: 'Processing',
+    failed: 'Failed',
+    pending: 'Pending',
   },
   payment: {
     amount: 'Amount',

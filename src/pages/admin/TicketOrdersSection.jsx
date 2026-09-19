@@ -1,15 +1,45 @@
-import { useEffect, useMemo, useState } from 'react'
-import { BadgeCheck, Paperclip } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { BadgeCheck, Paperclip, Plus, Ticket } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
-import AdminFilterBar from '../../components/admin/AdminFilterBar.jsx'
+import AdminEmptyState from '../../components/admin/AdminEmptyState.jsx'
+import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
+import AdminFilterSearch from '../../components/admin/AdminFilterSearch.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import TableSkeleton from '../../components/ui/TableSkeleton.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
 import { notifyError, notifySuccess } from '../../lib/adminToast.js'
-import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
+import { AdminTableActions, AdminTableActionsEmpty } from '../../components/admin/AdminTableCells.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import PaymentValidationDialog from '../../components/admin/PaymentValidationDialog.jsx'
+import ManualTicketSaleDialog from '../../components/admin/ManualTicketSaleDialog.jsx'
+import { listTicketOrders } from '../../services/ticketApi.js'
+
+const OPEN_TICKET_STATUSES = ['creado', 'pendiente']
+
+const STATUS_FILTERS = [
+  ['pending', 'admin.ticketOrders.filterPending'],
+  ['aprobado', 'admin.ticketOrders.filterApproved'],
+  ['rechazado', 'admin.ticketOrders.filterRejected'],
+  ['cancelado', 'admin.ticketOrders.filterCancelled'],
+  ['all', 'admin.ticketOrders.filterAll'],
+]
+
+const DB_STATUSES_BY_FILTER = Object.freeze({
+  pending: OPEN_TICKET_STATUSES,
+  aprobado: ['aprobado'],
+  rechazado: ['rechazado'],
+  cancelado: ['cancelado'],
+  all: null,
+})
+
+const CHANNEL_FILTERS = [
+  ['all', 'admin.ticketOrders.channelAll'],
+  ['bank_transfer', 'admin.ticketOrders.channelBankTransfer'],
+  ['cash_pitbull', 'admin.ticketOrders.channelCash'],
+  ['wise_transfer', 'admin.ticketOrders.channelWise'],
+  ['mercado_pago', 'admin.ticketOrders.channelMercadoPago'],
+]
 
 function formatUploadedAt(value, locale) {
   if (!value) return '—'
@@ -19,67 +49,168 @@ function formatUploadedAt(value, locale) {
   })
 }
 
+function formatTicketAttendees(order, t) {
+  const seen = new Set()
+  const people = []
+  for (const item of order.attendees ?? []) {
+    const name = String(item.name ?? '').trim()
+    if (!name) continue
+    const dni = String(item.dni ?? '').trim()
+    const key = dni || name.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    people.push(dni ? `${name} (${dni})` : name)
+  }
+  if (people.length) return people.join(' · ')
+  return order.buyerName || t('admin.ticketOrders.unknownBuyer')
+}
+
+function channelLabel(order, t) {
+  if (order.manualPaymentChannel === 'wise_transfer') return t('admin.ticketOrders.channelWise')
+  if (order.manualPaymentChannel === 'cash_pitbull') return t('admin.ticketOrders.channelCash')
+  if (order.manualPaymentChannel === 'bank_transfer') return t('admin.ticketOrders.channelBankTransfer')
+  if (order.provider === 'mercado_pago') return t('admin.ticketOrders.channelMercadoPago')
+  if (order.provider === 'manual') return t('admin.ticketOrders.channelBankTransfer')
+  return null
+}
+
 export default function TicketOrdersSection({
   canEdit,
   initialQuery = '',
   pendingTicketOrders = [],
-  isLoading = false,
-  loadError = null,
+  loadError: pendingError = null,
+  events = [],
   onApproveTicketOrder,
   onRejectTicketOrder,
+  onCreateManualTicketOrder,
   onRefresh,
 }) {
   const { locale, t } = useI18n()
+  const [orders, setOrders] = useState(pendingTicketOrders)
+  const [status, setStatus] = useState('pending')
+  const [channel, setChannel] = useState('all')
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(pendingError)
+  const [serverCounts, setServerCounts] = useState(null)
   const [approvingId, setApprovingId] = useState(null)
   const [actionError, setActionError] = useState(null)
   const [query, setQuery] = useState(initialQuery)
   const [reviewRow, setReviewRow] = useState(null)
+  const [manualSaleOpen, setManualSaleOpen] = useState(false)
+  const [manualSaleBusy, setManualSaleBusy] = useState(false)
+  const [manualSaleError, setManualSaleError] = useState('')
+  const loadedRef = useRef(false)
+  const statusTouchedRef = useRef(false)
+  const loadGenerationRef = useRef(0)
 
   useEffect(() => {
     setQuery(initialQuery)
   }, [initialQuery])
 
+  const load = useCallback(
+    async (statusFilterKey, channelFilterKey = 'all') => {
+      const generation = ++loadGenerationRef.current
+      if (!loadedRef.current) setLoading(true)
+      setLoadError(null)
+      try {
+        const result = await listTicketOrders({
+          limit: 200,
+          statuses: DB_STATUSES_BY_FILTER[statusFilterKey] ?? undefined,
+          channel: channelFilterKey === 'all' ? undefined : channelFilterKey,
+          sort: statusFilterKey === 'pending' ? 'aging' : 'recent',
+          withCounts: true,
+        })
+        if (generation !== loadGenerationRef.current) return
+        loadedRef.current = true
+        setOrders(result.orders)
+        if (result.counts) setServerCounts(result.counts)
+      } catch (error) {
+        if (generation !== loadGenerationRef.current) return
+        setLoadError(error?.message ?? t('admin.ticketOrders.loadError'))
+      } finally {
+        if (generation === loadGenerationRef.current) setLoading(false)
+      }
+    },
+    [t],
+  )
+
+  useEffect(() => {
+    void load(status, channel)
+  }, [channel, load, status])
+
+  useEffect(() => {
+    if (statusTouchedRef.current || !serverCounts) return
+    if (status !== 'pending') return
+    if ((serverCounts.pending ?? 0) > 0) return
+    if ((serverCounts.all ?? 0) === 0) return
+    setLoading(true)
+    setStatus('all')
+  }, [serverCounts, status])
+
+  const statusRef = useRef(status)
+  statusRef.current = status
+  const channelRef = useRef(channel)
+  channelRef.current = channel
+
+  function handleStatusChange(next) {
+    statusTouchedRef.current = true
+    setStatus(next)
+  }
+
+  const refreshList = useCallback(async () => {
+    await Promise.all([
+      load(statusRef.current, channelRef.current),
+      onRefresh?.() ?? Promise.resolve(),
+    ])
+  }, [load, onRefresh])
+
+  const counts = useMemo(() => {
+    if (serverCounts) return serverCounts
+    const open = orders.filter((order) => OPEN_TICKET_STATUSES.includes(order.status))
+    return {
+      pending: open.length,
+      aprobado: orders.filter((order) => order.status === 'aprobado').length,
+      rechazado: orders.filter((order) => order.status === 'rechazado').length,
+      cancelado: orders.filter((order) => order.status === 'cancelado').length,
+      all: orders.length,
+    }
+  }, [orders, serverCounts])
+
   const allRows = useMemo(
     () =>
-      pendingTicketOrders.map((order) => ({
-        id: order.orderId,
-        reference: order.reference,
-        event: order.eventTitle,
-        attendees:
-          order.attendees?.map((item) => `${item.name} (${item.dni})`).join(' · ') ??
-          t('admin.ticketOrders.unknownBuyer'),
-        ticketCount: order.ticketCount,
-        amount: money(order.amount, locale, order.currency),
-        channel:
-          order.manualPaymentChannel === 'wise_transfer'
-            ? t('formOptions.payment.wiseTransfer')
+      orders.map((order) => {
+        const attendees = formatTicketAttendees(order, t)
+        return {
+          id: order.orderId,
+          reference: order.reference,
+          event: order.eventTitle,
+          attendees,
+          buyerEmail: order.buyerEmail,
+          ticketCount: order.ticketCount,
+          amount: money(order.amount, locale, order.currency),
+          channel: channelLabel(order, t),
+          cashAtPitbull: order.manualPaymentChannel === 'cash_pitbull',
+          provider: order.provider,
+          proofStatus: order.paymentProofPath
+            ? t('admin.ticketOrders.proofReceived')
             : order.manualPaymentChannel === 'cash_pitbull'
-              ? t('formOptions.payment.cashPitbull')
-              : order.provider === 'manual'
-                ? t('formOptions.payment.manualLink')
-                : null,
-        // El efectivo se cobró en caja y no genera archivo: pedirle un
-        // comprobante sería pedir algo que no existe, y el botón de validar
-        // quedaba deshabilitado para siempre.
-        cashAtPitbull: order.manualPaymentChannel === 'cash_pitbull',
-        proofStatus: order.paymentProofPath
-          ? t('admin.ticketOrders.proofReceived')
-          : order.manualPaymentChannel === 'cash_pitbull'
-            ? t('admin.ticketOrders.proofNotApplicable')
-            : t('admin.ticketOrders.proofMissing'),
-        proofUploadedAt: formatUploadedAt(order.paymentProofUploadedAt, locale),
-        status: order.status,
-        paymentProofPath: order.paymentProofPath,
-      })),
-    [locale, pendingTicketOrders, t],
+              ? t('admin.ticketOrders.proofNotApplicable')
+              : order.provider === 'mercado_pago'
+                ? '—'
+                : t('admin.ticketOrders.proofMissing'),
+          proofUploadedAt: formatUploadedAt(order.paymentProofUploadedAt, locale),
+          status: order.status,
+          paymentProofPath: order.paymentProofPath,
+        }
+      }),
+    [locale, orders, t],
   )
 
   const rows = useMemo(() => {
     const normalized = query.trim().toLowerCase()
     if (!normalized) return allRows
-
     return allRows.filter((row) =>
-      [row.reference, row.event, row.attendees].some((field) =>
+      [row.reference, row.event, row.attendees, row.buyerEmail].some((field) =>
         field?.toLowerCase().includes(normalized),
       ),
     )
@@ -91,7 +222,7 @@ export default function TicketOrdersSection({
     setActionError(null)
     try {
       await onApproveTicketOrder?.(orderId)
-      await onRefresh?.()
+      await refreshList()
       notifySuccess(t('admin.toasts.ticketApproved'))
       return true
     } catch (error) {
@@ -116,7 +247,7 @@ export default function TicketOrdersSection({
         notifyError(result.error)
         return false
       }
-      await onRefresh?.()
+      await refreshList()
       notifySuccess(t('admin.toasts.ticketRejected'))
       return true
     } catch (error) {
@@ -130,36 +261,223 @@ export default function TicketOrdersSection({
     }
   }
 
-  const withProofCount = useMemo(
-    () => allRows.filter((row) => row.paymentProofPath).length,
-    [allRows],
-  )
+  async function handleCreateManualSale(payload) {
+    if (!canEdit) return
+    setManualSaleBusy(true)
+    setManualSaleError('')
+    try {
+      const result = await onCreateManualTicketOrder?.(payload)
+      if (result?.error) {
+        setManualSaleError(result.error)
+        notifyError(result.error)
+        return
+      }
+      await refreshList()
+      notifySuccess(
+        result?.approved
+          ? t('admin.toasts.manualTicketSaleApproved')
+          : t('admin.toasts.manualTicketSalePending'),
+      )
+      setManualSaleOpen(false)
+    } catch (error) {
+      console.error('create manual ticket sale:', error)
+      const message = error.message ?? t('admin.ticketOrders.approveErrorFallback')
+      setManualSaleError(message)
+      notifyError(message)
+    } finally {
+      setManualSaleBusy(false)
+    }
+  }
+
+  const openManualSale = () => {
+    setManualSaleError('')
+    setManualSaleOpen(true)
+  }
+
+  const narrowingFilters =
+    channel !== 'all' || Boolean(query.trim()) || (status !== 'pending' && status !== 'all')
+  const openingCatalog =
+    !statusTouchedRef.current &&
+    status === 'pending' &&
+    serverCounts != null &&
+    (serverCounts.pending ?? 0) === 0 &&
+    (serverCounts.all ?? 0) > 0
+  const showInitialSkeleton = (loading && rows.length === 0) || openingCatalog
+  const queueEmpty = !showInitialSkeleton && !loadError && rows.length === 0
+
+  function emptyState() {
+    if (query.trim()) {
+      return (
+        <AdminEmptyState
+          filtered
+          icon={Ticket}
+          title={t('admin.ticketOrders.emptySearch')}
+          actionLabel={t('admin.ticketOrders.clearSearch')}
+          onAction={() => setQuery('')}
+        />
+      )
+    }
+    if (narrowingFilters) {
+      return (
+        <AdminEmptyState
+          filtered
+          icon={Ticket}
+          title={t('admin.ticketOrders.emptyFiltered')}
+          actionLabel={t('admin.ticketOrders.clearFilters')}
+          onAction={() => {
+            statusTouchedRef.current = true
+            setStatus('all')
+            setChannel('all')
+          }}
+        />
+      )
+    }
+    if (status === 'all') {
+      return (
+        <AdminEmptyState
+          icon={Ticket}
+          title={t('admin.ticketOrders.emptyNone')}
+          lead={t('admin.ticketOrders.emptyNoneHint')}
+        />
+      )
+    }
+    if ((counts.aprobado ?? 0) > 0 || (counts.all ?? 0) > 0) {
+      return (
+        <AdminEmptyState
+          icon={Ticket}
+          title={t('admin.ticketOrders.empty')}
+          lead={t('admin.ticketOrders.emptyApprovedHint')}
+          actionLabel={t('admin.ticketOrders.viewApproved')}
+          onAction={() => handleStatusChange('aprobado')}
+        />
+      )
+    }
+    return (
+      <AdminEmptyState
+        icon={Ticket}
+        title={t('admin.ticketOrders.emptyNone')}
+        lead={t('admin.ticketOrders.emptyNoneHint')}
+      />
+    )
+  }
+
+  function openProof(row, mode = 'validate') {
+    setActionError(null)
+    setReviewRow({
+      mode,
+      type: 'ticket',
+      orderId: row.id,
+      cashAtPitbull: row.cashAtPitbull,
+      hasProof: Boolean(row.paymentProofPath),
+      paymentProofPath: row.paymentProofPath ?? null,
+      subject: row.attendees,
+      detail: `${row.event} · ${row.reference}`,
+      meta: row.amount,
+    })
+  }
+
+  function renderTicketRowActions(row, { compact = false } = {}) {
+    const approving = approvingId === row.id
+    const isOpen = OPEN_TICKET_STATUSES.includes(row.status)
+    if (!canEdit || !isOpen) return compact ? null : <AdminTableActionsEmpty />
+
+    return (
+      <AdminTableActions>
+        {!row.paymentProofPath && !row.cashAtPitbull ? (
+          <span className="status-pill status-pill--warning">
+            {t('admin.ticketOrders.proofMissing')}
+          </span>
+        ) : (
+          <AdminIconButton
+            disabled={approving}
+            icon={BadgeCheck}
+            spinning={approving}
+            label={t('admin.actions.validate')}
+            onClick={() => openProof(row)}
+            variant="celeste"
+          />
+        )}
+      </AdminTableActions>
+    )
+  }
 
   return (
-    <section id="admin-ticket-orders" className="admin-orders-block">
-      <div className="admin-orders-block__toolbar">
-        <div className="admin-orders-block__toolbar-filters">
-          <AdminFilterBar
-            className="admin-filters--external"
-            compact
-            inline
+    <section
+      id="admin-ticket-orders"
+      className="admin-orders-block admin-orders-block--athlete admin-orders-block--tickets"
+    >
+      <header className="admin-orders-block__header">
+        <div>
+          <span className="admin-orders-block__eyebrow">{t('admin.ticketOrders.eyebrow')}</span>
+          <h3 className="admin-orders-block__title">{t('admin.ticketOrders.title')}</h3>
+          <p className="admin-orders-block__lead">{t('admin.ticketOrders.subtitle')}</p>
+        </div>
+        <div className="admin-orders-block__summary" role="status">
+          <strong className="admin-orders-block__amount-value">{counts.pending ?? 0}</strong>
+          <span className="admin-orders-block__amount-caption">
+            {(counts.pending ?? 0) === 1
+              ? t('admin.ticketOrders.openQueueCaptionOne')
+              : t('admin.ticketOrders.openQueueCaptionMany', { count: counts.pending ?? 0 })}
+          </span>
+        </div>
+      </header>
+
+      <div className="admin-orders-block__toolbar admin-orders-block__toolbar--tickets">
+        <div className="admin-orders-block__toolbar-primary">
+          <AdminFilterSearch
             placeholder={t('admin.ticketOrders.search')}
             query={query}
             onQueryChange={setQuery}
           />
+          {canEdit ? (
+            <div className="admin-orders-block__actions">
+              <button
+                type="button"
+                className="btn btn--ghost btn--small admin-orders-block__manual-sale"
+                onClick={openManualSale}
+              >
+                <Plus size={14} aria-hidden />
+                <span className="admin-orders-block__manual-sale-label">
+                  {t('admin.ticketOrders.manualSaleButton')}
+                </span>
+              </button>
+            </div>
+          ) : null}
         </div>
-        <div className="admin-orders-block__actions">
-          <span className="admin-orders-block__amount admin-orders-block__amount--hero">
-            {withProofCount} {t('admin.ticketOrders.statsWithProof')}
-          </span>
+        <div className="admin-orders-block__toolbar-facets">
+          <AdminFilterChipGroup
+            id="ticket-orders-status"
+            ariaLabel={t('admin.filters.status')}
+            value={status}
+            onChange={handleStatusChange}
+            compact
+            defaultValue="all"
+            clearable
+            hideEmpty
+            options={STATUS_FILTERS.map(([value, key]) => [value, t(key), counts[value] ?? 0])}
+          />
+          <AdminFilterChipGroup
+            id="ticket-orders-channel"
+            ariaLabel={t('admin.ticketOrders.channelLabel')}
+            value={channel}
+            onChange={setChannel}
+            compact
+            defaultValue="all"
+            omitNeutral
+            allLabel={t('admin.ticketOrders.channelAll')}
+            clearable
+            options={CHANNEL_FILTERS.map(([value, key]) => [value, t(key)])}
+          />
         </div>
       </div>
 
       {actionError && <p className="form-submit-error">{actionError}</p>}
-      {isLoading && rows.length === 0 ? (
+      {showInitialSkeleton ? (
         <TableSkeleton rows={6} columns={7} label={t('admin.ticketOrders.loading')} />
       ) : loadError ? (
-        <ErrorState message={loadError} onRetry={onRefresh} retryLabel={t('common.retry')} />
+        <ErrorState message={loadError} onRetry={() => void load(status, channel)} retryLabel={t('common.retry')} />
+      ) : queueEmpty ? (
+        emptyState()
       ) : (
         <AdminDataTable
           columns={[
@@ -212,22 +530,8 @@ export default function TicketOrdersSection({
                 return (
                   <button
                     type="button"
-                    className="admin-proof-pill admin-proof-pill--ok btn btn--ghost"
-                    style={{ padding: '0', height: 'auto', textDecoration: 'underline', color: 'inherit', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                    onClick={() => {
-                      setActionError(null)
-                      setReviewRow({
-                        mode: 'view',
-                        type: 'ticket',
-                        orderId: row.id,
-                        cashAtPitbull: row.cashAtPitbull,
-                        hasProof: true,
-                        paymentProofPath: row.paymentProofPath,
-                        subject: row.attendees,
-                        detail: `${row.event} · ${row.reference}`,
-                        meta: row.amount,
-                      })
-                    }}
+                    className="admin-proof-pill admin-proof-pill--ok admin-proof-pill--link"
+                    onClick={() => openProof(row, 'view')}
                   >
                     <Paperclip size={14} aria-hidden />
                     {row.proofStatus}
@@ -253,49 +557,12 @@ export default function TicketOrdersSection({
               label: t('admin.columns.action'),
               mobile: 'action',
               className: 'data-table__column--actions',
-              render: (row) => {
-                const approving = approvingId === row.id
-
-                return (
-                  <AdminTableActions>
-                    {canEdit ? (
-                      !row.paymentProofPath && !row.cashAtPitbull && row.status !== 'aprobado' ? (
-                        <span className="status-pill status-pill--warning">
-                          {t('admin.ticketOrders.proofMissing')}
-                        </span>
-                      ) : (
-                        <AdminIconButton
-                          disabled={approving || (!row.paymentProofPath && !row.cashAtPitbull)}
-                          icon={BadgeCheck}
-                          spinning={approving}
-                          label={t('admin.actions.validate')}
-                          onClick={() => {
-                            setActionError(null)
-                            setReviewRow({
-                              type: 'ticket',
-                              orderId: row.id,
-                              // El diálogo ya sabe acreditar un cobro presencial
-                              // sin archivo: es la misma excepción del lado
-                              // atleta, no una vía nueva.
-                              cashAtPitbull: row.cashAtPitbull,
-                              hasProof: Boolean(row.paymentProofPath),
-                              paymentProofPath: row.paymentProofPath ?? null,
-                              subject: row.attendees,
-                              detail: `${row.event} · ${row.reference}`,
-                              meta: row.amount,
-                            })
-                          }}
-                          variant="celeste"
-                        />
-                      )
-                    ) : null}
-                  </AdminTableActions>
-                )
-              },
+              render: (row) => renderTicketRowActions(row),
+              mobileRender: (row) => renderTicketRowActions(row, { compact: true }),
             },
           ]}
           rows={rows}
-          emptyMessage={`${t('admin.ticketOrders.empty')}. ${t('admin.ticketOrders.emptyHint')}`}
+          emptyMessage={t('admin.ticketOrders.emptySearch')}
         />
       )}
 
@@ -316,6 +583,19 @@ export default function TicketOrdersSection({
               if (done) setReviewRow(null)
             })
           }}
+        />
+      ) : null}
+
+      {manualSaleOpen ? (
+        <ManualTicketSaleDialog
+          events={events}
+          busy={manualSaleBusy}
+          error={manualSaleError}
+          onCancel={() => {
+            if (manualSaleBusy) return
+            setManualSaleOpen(false)
+          }}
+          onConfirm={handleCreateManualSale}
         />
       ) : null}
     </section>

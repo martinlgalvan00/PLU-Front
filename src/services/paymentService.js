@@ -212,6 +212,17 @@ export async function recoverPaymentOperations() {
 }
 
 /**
+ * Buscador cruzado por persona/referencia: responde "¿hay un pago de esta
+ * persona?" sin saber de antemano si es una entrada, una inscripción o una
+ * afiliación -- hoy son tres colas separadas (`TicketOrdersSection`,
+ * `AthletePaymentOrdersSection`) sin búsqueda en común.
+ */
+export async function searchPaymentOrders(query, { limit = 15 } = {}) {
+  const params = new URLSearchParams({ q: query, limit: String(limit) })
+  return apiGet(`/api/payments/search?${params.toString()}`)
+}
+
+/**
  * Vuelve a preguntarle a Mercado Pago qué pasó con una orden y corrige el
  * estado local con lo que contesta el proveedor. Es lo que resuelve "figura
  * cancelada pero la plata entró": no acredita nada por su cuenta — si Mercado
@@ -240,6 +251,30 @@ export async function retryPaymentReconciliation(attemptId) {
     `/api/payments/operations/reconciliations/${encodeURIComponent(attemptId)}/retry`,
     {},
   )
+}
+
+/**
+ * Descarta un hallazgo de drift no crítico (orden ya resuelta a mano, de
+ * prueba) para que deje de mostrarse en Diagnóstico. No borra nada: queda en
+ * la auditoría con motivo, y `get_payment_system_health` vuelve a mostrarlo
+ * si la orden se desalinea de nuevo después de restaurarlo.
+ */
+export async function dismissPaymentDrift(orderKind, orderId, reason) {
+  return apiPost(
+    `/api/payments/operations/drift/${encodeURIComponent(orderKind)}/${encodeURIComponent(orderId)}/dismiss`,
+    { reason },
+  )
+}
+
+export async function restorePaymentDriftDismissal(dismissalId) {
+  return apiPost(
+    `/api/payments/operations/drift/dismissals/${encodeURIComponent(dismissalId)}/restore`,
+    {},
+  )
+}
+
+export async function listPaymentDriftDismissals() {
+  return apiGet('/api/payments/operations/drift/dismissals')
 }
 
 /**

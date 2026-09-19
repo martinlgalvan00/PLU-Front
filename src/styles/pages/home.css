@@ -330,14 +330,21 @@
 }
 
 .hero-meta--action {
+  appearance: none;
   color: inherit;
   cursor: pointer;
   font: inherit;
+  text-align: left;
+  width: 100%;
 }
 
 .hero-proof-tilt {
   max-width: 100%;
   width: fit-content;
+}
+
+.hero-proof-tilt:has(.hero-meta--action) {
+  cursor: pointer;
 }
 
 .hero-proof-tilt .tilt-card__inner {
@@ -348,29 +355,16 @@
   width: 100%;
 }
 
-button.hero-meta__panel,
-button.hero-meta__tickets {
-  appearance: none;
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
-}
-
-.hero-meta--action:hover .hero-meta__panel,
-button.hero-meta__panel:hover {
+.hero-meta--action:hover .hero-meta__panel {
   border-color: color-mix(in oklab, var(--plu-gold-500) 38%, var(--home-hero-status-panel-border));
 }
 
-.hero-meta--action:hover .hero-meta__arrow,
-.hero-meta__tickets:hover .hero-meta__arrow {
+.hero-meta--action:hover .hero-meta__arrow {
   opacity: 1;
   transform: translateX(3px);
 }
 
-.hero-meta--action:focus-visible,
-button.hero-meta__panel:focus-visible,
-button.hero-meta__tickets:focus-visible {
+.hero-meta--action:focus-visible {
   outline: 2px solid var(--color-brand-celeste);
   outline-offset: 3px;
 }
@@ -515,14 +509,11 @@ button.hero-meta__tickets:focus-visible {
   width: 100%;
 }
 
-.hero-meta--action:hover .hero-meta__tickets,
-.hero-meta__tickets:hover,
-.hero-meta__tickets:focus-visible {
+.hero-meta--action:hover .hero-meta__tickets {
   background: var(--home-hero-status-tickets-hover-bg);
 }
 
-.hero-meta--tickets:has(.hero-meta__tickets:hover) .hero-meta__panel,
-.hero-meta--tickets:has(.hero-meta__tickets:focus-visible) .hero-meta__panel {
+.hero-meta--action.hero-meta--tickets:hover .hero-meta__panel {
   border-bottom-color: var(--home-hero-status-tickets-hover-rule);
 }
 
@@ -559,12 +550,6 @@ button.hero-meta__tickets:focus-visible {
   transition:
     opacity var(--motion-fast, 160ms) var(--ease-out, ease),
     transform var(--motion-fast, 160ms) var(--ease-out, ease);
-}
-
-.hero-meta__tickets:hover .hero-meta__arrow,
-.hero-meta__tickets:focus-visible .hero-meta__arrow {
-  opacity: 1;
-  transform: translateX(3px);
 }
 
 @media (prefers-reduced-motion: reduce) {

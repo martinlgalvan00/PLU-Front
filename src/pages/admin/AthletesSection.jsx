@@ -418,6 +418,7 @@ export default function AthletesSection({
     <AdminListSection
       variant="athletes"
       filteredCount={rows.length}
+      filterLayout="popover"
       placeholder={t('admin.search.athlete')}
       query={query}
       showHeader
@@ -430,11 +431,22 @@ export default function AthletesSection({
       filters={[
         {
           id: 'status',
+          surface: 'rail',
           label: t('admin.filters.affiliation'),
+          ariaLabel: t('admin.filters.affiliation'),
+          showLabel: false,
+          allLabel: '',
           value: status,
           onChange: setStatus,
           options: statusOptions,
-          showLabel: true,
+        },
+        {
+          id: 'profileCompleteness',
+          label: t('admin.filters.profileCompleteness'),
+          value: profileCompleteness,
+          onChange: setProfileCompleteness,
+          options: profileCompletenessOptions,
+          attentionCount: profileCompletenessCounts.incomplete,
         },
         {
           id: 'registrationStatus',
@@ -442,7 +454,10 @@ export default function AthletesSection({
           value: registrationStatus,
           onChange: setRegistrationStatus,
           options: registrationStatusOptions,
-          showLabel: true,
+          attentionCount:
+            (registrationStatusCounts.pendiente_pago ?? 0) > 0
+              ? registrationStatusCounts.pendiente_pago
+              : (registrationStatusCounts.observada ?? 0),
         },
         {
           id: 'gym',
@@ -460,14 +475,6 @@ export default function AthletesSection({
           onChange: setDivision,
           options: divisionOptions,
           advanced: true,
-        },
-        {
-          id: 'profileCompleteness',
-          label: t('admin.filters.profileCompleteness'),
-          value: profileCompleteness,
-          onChange: setProfileCompleteness,
-          options: profileCompletenessOptions,
-          showLabel: true,
         },
         {
           id: 'registeredAt',

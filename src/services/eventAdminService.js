@@ -301,11 +301,45 @@ export function getInitialAdminEvents(storedEvents, { allowStoredEvents = true }
   return merged.sort((a, b) => new Date(a.dateISO) - new Date(b.dateISO))
 }
 
-export function filterAdminEvents(events, { query = '', status = 'all' } = {}) {
+export function eventYearFromIso(dateISO) {
+  const year = String(dateISO ?? '').slice(0, 4)
+  return /^\d{4}$/.test(year) ? year : ''
+}
+
+export function listAdminEventYears(events = []) {
+  return [
+    ...new Set(events.map((event) => eventYearFromIso(event.dateISO)).filter(Boolean)),
+  ].sort((left, right) => right.localeCompare(left))
+}
+
+export function defaultAdminEventYear(events = []) {
+  const upcoming = events.filter((event) => event?.status !== 'finalizado')
+  const pool = upcoming.length ? upcoming : events
+  const next = [...pool].sort((left, right) =>
+    String(left?.dateISO ?? '').localeCompare(String(right?.dateISO ?? '')),
+  )[0]
+  return eventYearFromIso(next?.dateISO) || listAdminEventYears(events)[0] || ''
+}
+
+export function pickLeadAdminEvent(events = []) {
+  const upcoming = events.filter((event) => event?.status !== 'finalizado')
+  if (!upcoming.length) return null
+  const featured = upcoming.filter((event) => event.featured)
+  const pool = featured.length ? featured : upcoming
+  return (
+    [...pool].sort((left, right) =>
+      String(left?.dateISO ?? '').localeCompare(String(right?.dateISO ?? '')),
+    )[0] ?? null
+  )
+}
+
+export function filterAdminEvents(events, { query = '', status = 'all', year = '' } = {}) {
   const normalizedQuery = query.trim().toLowerCase()
+  const yearKey = year && year !== 'all' ? year : ''
 
   return events.filter((event) => {
     const statusMatch = status === 'all' || event.status === status
+    const yearMatch = !yearKey || eventYearFromIso(event.dateISO) === yearKey
     const title = String(event.title ?? '').toLowerCase()
     const venue = String(event.venue ?? '').toLowerCase()
     const location = String(event.location ?? '').toLowerCase()
@@ -317,7 +351,7 @@ export function filterAdminEvents(events, { query = '', status = 'all' } = {}) {
       location.includes(normalizedQuery) ||
       slug.includes(normalizedQuery)
 
-    return statusMatch && queryMatch
+    return statusMatch && yearMatch && queryMatch
   })
 }
 

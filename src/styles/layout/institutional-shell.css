@@ -827,12 +827,12 @@
 
 .plu-global-nav__preferences {
   align-items: center;
-  border-right: 1px solid var(--institution-border);
+  border-right: 1px solid color-mix(in srgb, var(--institution-text) 12%, transparent);
   display: flex;
-  gap: 2px;
-  margin-right: 2px;
-  opacity: 0.84;
-  padding-right: 10px;
+  gap: 4px;
+  margin-right: 4px;
+  opacity: 0.9;
+  padding-right: 12px;
   transition: opacity var(--motion-fast) var(--ease-out);
 }
 
@@ -840,30 +840,37 @@
   min-height: 36px;
 }
 
-/* ThemeToggle: cuadrado institucional (no pill ovalado) */
+/* Tema: ícono quieto, sin caja. El acento de esta franja es Acceder. */
 .plu-global-nav__preferences .pref-toggle {
   background: transparent;
-  border: 1px solid var(--institution-border);
-  border-radius: var(--institution-radius-control);
+  border: 0;
+  border-radius: 8px;
   box-shadow: none;
   color: var(--institution-text-secondary);
   height: 36px;
   justify-content: center;
   min-height: 36px;
   padding: 0;
+  position: relative;
+  transform: none;
   width: 36px;
 }
 
 .plu-global-nav__preferences .pref-toggle:hover {
-  background: var(--institution-blue-soft);
-  border-color: color-mix(in srgb, var(--institution-blue) 28%, var(--institution-border));
+  background: color-mix(in srgb, var(--institution-text) 6%, transparent);
+  border: 0;
   box-shadow: none;
   color: var(--institution-text);
   transform: none;
 }
 
 .plu-global-nav__preferences .pref-toggle:active {
-  transform: none;
+  transform: scale(0.94);
+}
+
+.plu-global-nav__preferences .pref-toggle:focus-visible {
+  outline: 2px solid var(--institution-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
 }
 
 .plu-global-nav__preferences .pref-toggle svg {
@@ -873,6 +880,76 @@
 
 .plu-global-nav__preferences:hover {
   opacity: 1;
+}
+
+/* ES / EN — meta tipográfica, mismo criterio que el cluster mobile. */
+.plu-global-nav__preferences .locale-switch--segment,
+.plu-global-nav__preferences .locale-switch--segment:hover,
+.plu-global-nav__preferences .locale-switch--segment:focus-within {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: inline-flex;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  position: relative;
+  transform: none;
+  width: auto;
+}
+
+.plu-global-nav__preferences .locale-switch__segment-thumb {
+  display: none;
+}
+
+.plu-global-nav__preferences .locale-switch__segment-option {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: color-mix(in srgb, var(--institution-text) 42%, transparent);
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 500;
+  height: 36px;
+  justify-content: center;
+  letter-spacing: 0.12em;
+  min-height: 36px;
+  min-width: 0;
+  padding: 0 6px;
+  position: relative;
+  transition: color var(--motion-fast) var(--ease-out);
+  width: auto;
+}
+
+.plu-global-nav__preferences
+  .locale-switch__segment-option
+  + .locale-switch__segment-option::before {
+  color: color-mix(in srgb, var(--institution-text) 22%, transparent);
+  content: '/';
+  font-weight: 400;
+  left: -1px;
+  pointer-events: none;
+  position: absolute;
+}
+
+.plu-global-nav__preferences .locale-switch__segment-option:hover:not(.is-active) {
+  background: transparent;
+  color: var(--institution-text-secondary);
+}
+
+.plu-global-nav__preferences .locale-switch__segment-option.is-active {
+  background: transparent;
+  color: var(--institution-text);
+  font-weight: 700;
+}
+
+.plu-global-nav__preferences .locale-switch__segment-option:focus-visible {
+  outline: 2px solid var(--institution-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
 }
 
 /* Acceder: CTA ghost dorado, ancla de acción sin pelear con los links */
@@ -887,29 +964,29 @@
   display: inline-flex;
   flex: none;
   font-family: var(--font-display);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
-  height: 42px;
+  height: 36px;
   justify-content: center;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   line-height: 1;
-  min-height: 42px;
-  padding: 0 18px;
+  min-height: 36px;
+  padding: 0 16px;
+  position: relative;
   text-decoration: none;
   text-transform: uppercase;
   transition:
     background-color var(--motion-fast) var(--ease-out),
     border-color var(--motion-fast) var(--ease-out),
-    color var(--motion-fast) var(--ease-out),
-    box-shadow var(--motion-fast) var(--ease-out);
+    color var(--motion-fast) var(--ease-out);
   white-space: nowrap;
   width: auto;
 }
 
 .site-header--scrolled .plu-global-nav__login {
-  height: 38px;
-  min-height: 38px;
-  padding: 0 16px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 14px;
 }
 
 .plu-global-nav__login:hover,
@@ -923,6 +1000,25 @@
 
 .plu-global-nav__login:active {
   transform: none;
+}
+
+.plu-global-nav__login:focus-visible {
+  outline: 2px solid var(--institution-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .plu-global-nav__login::before {
+    content: '';
+    height: 100%;
+    left: 50%;
+    min-height: 44px;
+    min-width: 44px;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+  }
 }
 
 .site-header--institutional.site-header--over-hero:not(.site-header--scrolled)
@@ -2833,14 +2929,14 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__login {
-    height: 40px;
-    min-height: 40px;
-    padding-inline: 16px;
+    height: 36px;
+    min-height: 36px;
+    padding-inline: 14px;
   }
 
   .site-header--scrolled .plu-global-nav__login {
-    height: 38px;
-    min-height: 38px;
+    height: 36px;
+    min-height: 36px;
   }
 }
 

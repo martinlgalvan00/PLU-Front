@@ -197,6 +197,15 @@ const revalidateOrderSchema = z.object({
   providerPaymentId: z.coerce.string().trim().regex(/^\d+$/).optional(),
 })
 
+const dismissDriftSchema = z.object({
+  reason: z.string().trim().min(3).max(500),
+})
+
+const searchOrdersQuerySchema = z.object({
+  q: z.string().trim().min(2).max(120),
+  limit: z.coerce.number().int().min(1).max(50).optional().default(15),
+})
+
 const mockNotifySchema = z.object({
   paymentId: z.string().trim().min(1),
   orderId: z.string().uuid().optional(),
@@ -609,6 +618,51 @@ export function createPaymentRoutes(deps = {}) {
   })
 
   /**
+   * Buscador cruzado por persona/referencia: Finanzas hoy tiene que elegir de
+   * antemano la pantalla correcta (Entradas o Afiliaciones) porque son colas
+   * separadas. Esto responde "¿hay un pago de esta persona?" sin esa
+   * suposición previa, devolviendo lo que haya en cualquiera de los tres
+   * conceptos ordenado por fecha.
+   */
+  router.get('/search', ...financeReadGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const { q, limit } = parseInput(searchOrdersQuerySchema, req.query)
+      const { athleteOrders, ticketOrders } = await repository().searchOrders(q, { limit })
+      const results = [
+        ...athleteOrders.map((order) => ({
+          kind: 'athlete',
+          concept: order.concept,
+          id: order.id,
+          reference: order.reference,
+          amount: order.amount,
+          currency: order.currency,
+          status: order.status,
+          createdAt: order.created_at,
+          personName: order.athlete?.full_name ?? null,
+          personDetail: order.athlete?.document_id ?? order.athlete?.email ?? null,
+          eventTitle: null,
+        })),
+        ...ticketOrders.map((order) => ({
+          kind: 'ticket',
+          concept: 'ticket',
+          id: order.id,
+          reference: order.reference,
+          amount: order.amount,
+          currency: order.currency,
+          status: order.status,
+          createdAt: order.created_at,
+          personName: order.buyer_name ?? null,
+          personDetail: order.buyer_email ?? null,
+          eventTitle: order.event?.title ?? null,
+        })),
+      ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      res.json({ results })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
    * Cuántos cobros se cortaron por cada motivo en un rango de fechas, de
    * mayor a menor frecuencia. Reusa el diagnóstico que `paymentAuditTrail`
    * ya guardó en cada asiento fallido — no reclasifica nada de nuevo.
@@ -823,6 +877,66 @@ export function createPaymentRoutes(deps = {}) {
           reconciliationLimit: 50,
         })
         res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /**
+   * Descartar un hallazgo de drift (orden desalineada) no crítico: no borra
+   * nada, lo saca de Diagnóstico y lo deja en la auditoría con motivo y
+   * quién lo descartó. Si la orden vuelve a desalinearse después de
+   * restaurar el descarte, `get_payment_system_health` la vuelve a contar.
+   */
+  router.post(
+    '/operations/drift/:orderKind/:orderId/dismiss',
+    ...financeWriteGuard,
+    staffLimiter,
+    validateBody(dismissDriftSchema),
+    async (req, res, next) => {
+      try {
+        const orderKind = parseInput(z.enum(['athlete', 'ticket']), req.params.orderKind)
+        const orderId = parseInput(z.string().uuid(), req.params.orderId)
+        const result = await repository().dismissPaymentDrift(
+          orderKind,
+          orderId,
+          req.validatedBody.reason,
+          `${req.auth.user.id}:${req.auth.user.email}`,
+        )
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.post(
+    '/operations/drift/dismissals/:dismissalId/restore',
+    ...financeWriteGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const dismissalId = parseInput(z.string().uuid(), req.params.dismissalId)
+        const result = await repository().restorePaymentDriftDismissal(
+          dismissalId,
+          `${req.auth.user.id}:${req.auth.user.email}`,
+        )
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.get(
+    '/operations/drift/dismissals',
+    ...financeReadGuard,
+    staffLimiter,
+    async (_req, res, next) => {
+      try {
+        const dismissals = await repository().listPaymentDriftDismissals(50)
+        res.json({ dismissals })
       } catch (error) {
         next(error)
       }

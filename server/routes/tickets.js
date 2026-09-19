@@ -216,6 +216,27 @@ function scanOutcomeFromError(error) {
   return SCAN_OUTCOME_BY_ERROR_CODE[error?.details?.code] ?? 'invalid'
 }
 
+/**
+ * Un DNI por persona: el cliente ya lo marca, pero la orden se puede armar
+ * sin pasar por el formulario (pública o de mostrador). Dos entradas con el
+ * mismo documento emiten dos QR que en la puerta se verifican contra la
+ * misma persona, y el segundo rebota.
+ */
+function assertNoDuplicateDni(data, ctx) {
+  const dniRow = new Map()
+  data.attendees.forEach((attendee, index) => {
+    if (dniRow.has(attendee.dni)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['attendees', index, 'dni'],
+        message: `El DNI ${attendee.dni} está repetido en las entradas ${dniRow.get(attendee.dni) + 1} y ${index + 1}. Cada persona entra con su propio QR.`,
+      })
+      return
+    }
+    dniRow.set(attendee.dni, index)
+  })
+}
+
 export const createOrderSchema = z
   .object({
     eventSlug: z.string().trim().min(1),
@@ -235,28 +256,78 @@ export const createOrderSchema = z
       .default(() => randomUUID()),
     accessToken: z.string().trim().min(32).optional(),
   })
-  /**
-   * Un DNI por persona, también acá: el cliente ya lo marca, pero la orden se
-   * puede armar sin pasar por el formulario. Dos entradas con el mismo
-   * documento emiten dos QR que en la puerta se verifican contra la misma
-   * persona, y el segundo rebota.
-   */
-  .superRefine((data, ctx) => {
-    const dniRow = new Map()
-    data.attendees.forEach((attendee, index) => {
-      if (dniRow.has(attendee.dni)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['attendees', index, 'dni'],
-          message: `El DNI ${attendee.dni} está repetido en las entradas ${dniRow.get(attendee.dni) + 1} y ${index + 1}. Cada persona entra con su propio QR.`,
-        })
-        return
-      }
-      dniRow.set(attendee.dni, index)
-    })
-  })
+  .superRefine(assertNoDuplicateDni)
 const accessSchema = z.object({ accessToken: z.string().trim().min(32) })
 const rejectOrderSchema = z.object({ reason: z.string().trim().min(3).max(500) })
+
+const ticketOrderStatusEnum = z.enum([
+  'creado',
+  'pendiente',
+  'aprobado',
+  'rechazado',
+  'cancelado',
+  'reembolsado',
+])
+const booleanQueryParam = z
+  .union([z.boolean(), z.enum(['true', 'false']).transform((value) => value === 'true')])
+  .optional()
+/**
+ * Filtros del historial de ventas (`GET /orders`). `statuses` llega como CSV
+ * desde el navegador -- misma convención que
+ * `GET /api/athletes/admin/payment-orders` -- para no traer más filas de las
+ * que el chip activo necesita.
+ */
+const ticketOrdersQuerySchema = z.object({
+  statuses: z
+    .union([
+      z.array(ticketOrderStatusEnum),
+      z
+        .string()
+        .transform((value) =>
+          value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean),
+        )
+        .pipe(z.array(ticketOrderStatusEnum).min(1).max(6)),
+    ])
+    .optional(),
+  channel: z.enum(['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer']).optional(),
+  query: z.string().trim().min(1).max(120).optional(),
+  sort: z.enum(['recent', 'aging']).optional().default('recent'),
+  limit: z.coerce.number().int().min(1).max(200).optional().default(200),
+  withCounts: booleanQueryParam.default(false),
+})
+
+/**
+ * Venta de mostrador: la carga un operador desde el panel, no el comprador
+ * desde el checkout público. Sin `provider` (siempre `manual`) ni
+ * `accessToken` (el comprador es anónimo y no tiene pestaña propia; el token
+ * lo genera el repositorio igual que en el flujo público). El límite de 8
+ * asistentes es el real: la RPC corta ahí aunque el schema público anuncie
+ * hasta 10 (`MAX_ATTENDEES_PER_ORDER`), así que acá no se hereda esa
+ * discrepancia. Wise queda afuera: es cobro del exterior en USD con
+ * cotización propia, no una venta de mostrador.
+ */
+export const createManualOrderSchema = z
+  .object({
+    eventSlug: z.string().trim().min(1),
+    attendees: z.array(attendeeSchema).min(1).max(8),
+    buyer: z.object({
+      // El comprador de mostrador no tiene cuenta: el mail es la única forma
+      // de entregarle el QR, así que acá es obligatorio (a diferencia del
+      // checkout público, donde es opcional).
+      name: z.string().trim().min(3),
+      email: z.string().trim().email(),
+      phone: z.string().trim().optional(),
+    }),
+    manualPaymentChannel: z.enum(['bank_transfer', 'cash_pitbull']),
+    idempotencyKey: z
+      .string()
+      .uuid()
+      .default(() => randomUUID()),
+  })
+  .superRefine(assertNoDuplicateDni)
 
 // Outcomes que puede resolver el navegador para un escaneo (checkinScanService.js
 // / useCheckInWorkspace.js). Cerrado a propósito: un dispositivo de puerta no
@@ -732,6 +803,128 @@ export function createTicketRoutes({
     async (_req, res, next) => {
       try {
         res.json({ orders: await repo().listPending() })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Historial de ventas para Finanzas: a diferencia de `/orders/pending-manual`
+   * (solo transferencias por validar), trae cualquier estado y cualquier
+   * proveedor -- es la vista que responde "cuánto se vendió" de un evento, no
+   * solo "qué falta validar". Mismos filtros y forma de respuesta que
+   * `GET /api/athletes/admin/payment-orders`.
+   */
+  router.get('/orders', ...financeReadGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const parsed = ticketOrdersQuerySchema.safeParse(req.query)
+      if (!parsed.success) throw new HttpError(400, 'Filtros de órdenes inválidos.')
+      const { withCounts, ...filters } = parsed.data
+      // Los contadores solo viajan si se piden: la tabla se relee en cada
+      // cambio de chip y los cinco `count` no cambian por eso.
+      const [orders, counts] = await Promise.all([
+        repo().listOrders(filters),
+        withCounts ? repo().orderCounts() : Promise.resolve(null),
+      ])
+      res.json(counts ? { orders, counts } : { orders })
+    } catch (error) {
+      next(error)
+    }
+  })
+  /**
+   * KPIs de ventas de entradas para el tab "Análisis" de Pagos: cuántas se
+   * vendieron, recaudado por canal/moneda, cupo restante y tendencia diaria.
+   * A diferencia del Libro de caja (`GET /api/finance`, sólo Mercado Pago vía
+   * `ticket_payments`), acá entra todo lo manual también -- da distinto a
+   * propósito.
+   */
+  router.get(
+    '/sales-summary/:eventSlug',
+    ...financeReadGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const eventId = await repo().resolveEventIdBySlug(req.params.eventSlug)
+        if (!eventId) throw new HttpError(404, 'Evento no encontrado.')
+        const event = await athleteRepo().findEventSummary(eventId)
+        const days = Math.min(Math.max(Number(req.query.days) || 30, 1), 90)
+        const to = new Date()
+        const from = new Date(to.getTime() - days * 86_400_000)
+        const range = { fromISO: from.toISOString(), toISO: to.toISOString() }
+        const [capacity, revenue, daily] = await Promise.all([
+          repo().capacitySummary(eventId),
+          repo().revenueSummary(eventId, range),
+          repo().dailyTicketsSold(eventId, range),
+        ])
+        res.json({
+          event: { slug: event?.slug ?? req.params.eventSlug, title: event?.title ?? null },
+          capacity,
+          revenue,
+          daily,
+          rangeDays: days,
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Venta de mostrador: un operador carga una venta que se cerró por fuera
+   * del checkout público (efectivo en la puerta, transferencia recibida por
+   * privado). A diferencia de `POST /orders`, no pasa por
+   * `assertPaidCheckoutAvailable` ni `assertManualTicketDeadline` -- son las
+   * guardas de agenda pública y el corte de 72 h, justo lo que el mostrador
+   * necesita saltear (`create_ticket_order_v3` hace lo mismo con las
+   * ventanas de venta online). El resto de las reglas de negocio se
+   * mantienen: interruptor maestro de cobros, medios habilitados por evento
+   * y por tipo de entrada, cupo y precio de catálogo -- un operador no
+   * evade eso, lo hace desde la configuración del evento.
+   *
+   * Efectivo se auto-aprueba en el mismo request (el operador ya cobró en
+   * mano); transferencia queda `pendiente` y sigue el circuito de
+   * validación existente (`/orders/pending-manual` + `/approve`).
+   */
+  router.post(
+    '/orders/manual',
+    ...financeWriteGuard,
+    staffLimiter,
+    validateBody(createManualOrderSchema),
+    async (req, res, next) => {
+      try {
+        const toggles = await platformSettingsRepo().get()
+        assertCheckoutEnabled(toggles)
+        assertTicketCheckoutEnabled(toggles, env)
+        const { manualPaymentChannel } = req.validatedBody
+        const eventPricing = await loadEventPaymentProfile(req.validatedBody.eventSlug)
+        if (getSupabaseAdmin?.() && !eventPricing) {
+          throw new HttpError(404, 'Evento no encontrado.')
+        }
+        assertEventPaymentChannelEnabled(toggles, 'ticket', manualPaymentChannel, {
+          eventOverrides: eventPricing?.payment_channel_overrides ?? null,
+        })
+        await assertTicketTypesAcceptChannel(
+          req.validatedBody.attendees,
+          manualPaymentChannel,
+          eventPricing?.payment_channel_overrides ?? null,
+        )
+        const created = await repo().createOrder({
+          ...req.validatedBody,
+          provider: 'manual',
+          staffActor: actor(req),
+        })
+        if (manualPaymentChannel !== 'cash_pitbull') {
+          res.status(201).json({ ...created, approved: false })
+          return
+        }
+        assertValidationEnabled(toggles, 'ticket')
+        const approveResult = await repo().approve(created.order.id, actor(req))
+        await sendTicketConfirmation(approveResult).catch((error) =>
+          logger.warn('email.ticket_confirmation_failed', {
+            orderId: approveResult?.order?.id,
+            err: error,
+          }),
+        )
+        res.status(201).json({ ...approveResult, approved: true })
       } catch (error) {
         next(error)
       }

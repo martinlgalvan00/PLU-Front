@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
 // jsdom no implementa matchMedia y `AdminListSection` la usa para colapsar el
@@ -43,6 +43,7 @@ vi.mock('../src/services/athleteApi.js', () => ({
 
 vi.mock('../src/services/paymentService.js', () => ({
   getPaymentOrderAudit: vi.fn(),
+  getPaymentOperations: vi.fn(),
 }))
 
 vi.mock('../src/lib/credentialQr.js', () => ({
@@ -55,7 +56,7 @@ const { fetchAuditEntries, fetchAuditFacets, fetchAuditOverview, normalizeAuditE
   '../src/services/auditService.js'
 )
 const { getMembershipCredential } = await import('../src/services/athleteApi.js')
-const { getPaymentOrderAudit } = await import('../src/services/paymentService.js')
+const { getPaymentOrderAudit, getPaymentOperations } = await import('../src/services/paymentService.js')
 const AuditSection = (await import('../src/pages/admin/AuditSection.jsx')).default
 const AdminMembershipCredential = (
   await import('../src/components/admin/AdminMembershipCredential.jsx')
@@ -91,6 +92,13 @@ function healthyOverview(overrides = {}) {
 }
 
 describe('sección de auditoría', () => {
+  beforeEach(() => {
+    getPaymentOperations.mockResolvedValue({
+      summary: { health: { healthy: true } },
+      blockers: [],
+    })
+  })
+
   it('muestra la bitácora con la acción traducida y el detalle operativo', async () => {
     fetchAuditOverview.mockResolvedValue(healthyOverview())
     fetchAuditFacets.mockResolvedValue({
@@ -492,6 +500,60 @@ describe('sección de auditoría', () => {
     expect(await screen.findByText('Detalle del vencimiento')).toBeTruthy()
     expect(screen.queryByText(/\{expiresAt\}/)).toBeNull()
     expect(await screen.findByText(/No se registr/)).toBeTruthy()
+  })
+
+  it('muestra el playbook de integridad de cobros y deja ir al diagnóstico', async () => {
+    fetchAuditOverview.mockResolvedValue(healthyOverview())
+    fetchAuditFacets.mockResolvedValue({
+      actions: [],
+      entityTypes: [],
+      actorTypes: [],
+    })
+    fetchAuditEntries.mockResolvedValue({ entries: [], nextCursor: null })
+    getPaymentOperations.mockResolvedValue({
+      summary: {
+        health: {
+          healthy: false,
+          athleteOrderDrift: 0,
+          ticketOrderDrift: 1,
+          staleEventLocks: 0,
+          staleReconciliationLocks: 0,
+          exhaustedEvents: 0,
+          openAthleteDrift: [],
+          openTicketDrift: [
+            {
+              orderId: 'tk-order-1',
+              reference: 'TORD-ABC123',
+              localStatus: 'cancelado',
+              expectedStatus: 'aprobado',
+            },
+          ],
+        },
+      },
+      blockers: [
+        {
+          code: 'external_ref_mismatch',
+          title: 'El pago no referencia esta orden',
+          affected: 5,
+          cause: 'El external_reference del pago no es el id de la orden.',
+          fix: ['Revisar el cobro suelto en Mercado Pago'],
+        },
+      ],
+    })
+
+    renderWithI18n(<AuditSection />)
+
+    expect(await screen.findByText('El pago no referencia esta orden')).toBeTruthy()
+    expect(screen.getByText(/Hay cobros que pueden no coincidir con Mercado Pago/)).toBeTruthy()
+    expect(screen.getByText(/1 orden de entrada desalineada/)).toBeTruthy()
+
+    // La CTA se queda en Auditoría: abre la pestaña Diagnóstico en vez de
+    // navegar a otra sección -- el detalle completo (incluida esta misma
+    // orden) ya vive acá.
+    fireEvent.click(screen.getByRole('button', { name: 'Ver diagnóstico' }))
+
+    expect(await screen.findByRole('tab', { name: /Diagnóstico/, selected: true })).toBeTruthy()
+    expect(await screen.findByText('Orden de entrada TORD-ABC123 desalineada')).toBeTruthy()
   })
 })
 

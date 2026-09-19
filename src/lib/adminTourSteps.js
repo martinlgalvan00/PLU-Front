@@ -166,6 +166,12 @@ export function getRegistrationsTourSteps(t) {
 export function getAuditTourSteps(t) {
   return [
     {
+      target: '.admin-audit-top__tabs',
+      placement: 'bottom',
+      title: t('admin.tour.audit.tabs.title'),
+      body: t('admin.tour.audit.tabs.body'),
+    },
+    {
       target: '.audit-flow-guide',
       placement: 'bottom',
       title: t('admin.tour.audit.guide.title'),
@@ -219,7 +225,7 @@ export function getEventsTourSteps(t) {
       body: t('admin.tour.events.list.body'),
     },
     {
-      target: '.admin-event-preview',
+      target: '.admin-event-row',
       placement: 'left',
       title: t('admin.tour.events.preview.title'),
       body: t('admin.tour.events.preview.body'),
@@ -246,12 +252,6 @@ export function getPaymentsTourSteps(t) {
       placement: 'top',
       title: t('admin.tour.payments.tickets.title'),
       body: t('admin.tour.payments.tickets.body'),
-    },
-    {
-      target: '#admin-payment-ledger',
-      placement: 'top',
-      title: t('admin.tour.payments.ledger.title'),
-      body: t('admin.tour.payments.ledger.body'),
     },
   ]
 }
