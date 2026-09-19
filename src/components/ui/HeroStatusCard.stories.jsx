@@ -14,5 +14,6 @@ export const TicketsOnSale = {
     ticketsAvailable: true,
     statusLabelOverride: 'Entradas disponibles',
     onSelect: () => {},
+    onSelectTickets: () => {},
   },
 }

@@ -128,6 +128,35 @@ describe('TicketSalesAnalyticsPanel', () => {
     expect(within(byChannelBlock).queryByText('US$ 120,00')).toBeNull()
   })
 
+  it('acorta el nombre del tipo y cuenta las ventas por medio', async () => {
+    fetchSummary.mockResolvedValue(
+      summaryFixture({
+        capacity: {
+          byType: [
+            {
+              ticketTypeId: 'tt-day',
+              name: 'PÚBLICO GENERAL 1 DÍA (Incluye el ingreso solamente para un día del evento)',
+              quota: 100,
+              sold: 2,
+              reserved: 2,
+              pending: 0,
+            },
+          ],
+          totals: { sold: 2, reserved: 2, pending: 0, eventLimit: 100, remaining: 98 },
+        },
+      }),
+    )
+    renderPanel()
+
+    await waitFor(() => expect(screen.queryByText(/cargando/i)).toBeNull())
+
+    expect(screen.getByText('PÚBLICO GENERAL 1 DÍA')).toBeTruthy()
+    expect(screen.getByText('Incluye el ingreso solamente para un día del evento')).toBeTruthy()
+    expect(screen.getByText('30 ventas')).toBeTruthy()
+    expect(screen.getByText('Pitbull Classic 2026')).toBeTruthy()
+    expect(screen.queryByRole('combobox')).toBeNull()
+  })
+
   it('sin ninguna venta todavía, muestra el estado vacío en vez de tiles en cero', async () => {
     fetchSummary.mockResolvedValue(
       summaryFixture({

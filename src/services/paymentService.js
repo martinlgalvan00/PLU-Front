@@ -254,6 +254,30 @@ export async function retryPaymentReconciliation(attemptId) {
 }
 
 /**
+ * Descarta un hallazgo de drift no crítico (orden ya resuelta a mano, de
+ * prueba) para que deje de mostrarse en Diagnóstico. No borra nada: queda en
+ * la auditoría con motivo, y `get_payment_system_health` vuelve a mostrarlo
+ * si la orden se desalinea de nuevo después de restaurarlo.
+ */
+export async function dismissPaymentDrift(orderKind, orderId, reason) {
+  return apiPost(
+    `/api/payments/operations/drift/${encodeURIComponent(orderKind)}/${encodeURIComponent(orderId)}/dismiss`,
+    { reason },
+  )
+}
+
+export async function restorePaymentDriftDismissal(dismissalId) {
+  return apiPost(
+    `/api/payments/operations/drift/dismissals/${encodeURIComponent(dismissalId)}/restore`,
+    {},
+  )
+}
+
+export async function listPaymentDriftDismissals() {
+  return apiGet('/api/payments/operations/drift/dismissals')
+}
+
+/**
  * Vida completa de una orden: orden, intentos, notificaciones de MP, ledger,
  * efecto de dominio y fallas con su diagnóstico. Es lo que responde "por qué
  * este cobro no se acreditó" sin salir del panel.

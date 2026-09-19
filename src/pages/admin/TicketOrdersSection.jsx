@@ -3,7 +3,6 @@ import { BadgeCheck, Paperclip, Plus, Ticket } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminEmptyState from '../../components/admin/AdminEmptyState.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
-import AdminFilterPillRow from '../../components/admin/AdminFilterPillRow.jsx'
 import AdminFilterSearch from '../../components/admin/AdminFilterSearch.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import TableSkeleton from '../../components/ui/TableSkeleton.jsx'
@@ -48,6 +47,22 @@ function formatUploadedAt(value, locale) {
     dateStyle: 'short',
     timeStyle: 'short',
   })
+}
+
+function formatTicketAttendees(order, t) {
+  const seen = new Set()
+  const people = []
+  for (const item of order.attendees ?? []) {
+    const name = String(item.name ?? '').trim()
+    if (!name) continue
+    const dni = String(item.dni ?? '').trim()
+    const key = dni || name.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    people.push(dni ? `${name} (${dni})` : name)
+  }
+  if (people.length) return people.join(' · ')
+  return order.buyerName || t('admin.ticketOrders.unknownBuyer')
 }
 
 function channelLabel(order, t) {
@@ -164,10 +179,7 @@ export default function TicketOrdersSection({
   const allRows = useMemo(
     () =>
       orders.map((order) => {
-        const attendees =
-          order.attendees?.map((item) => `${item.name} (${item.dni})`).join(' · ') ||
-          order.buyerName ||
-          t('admin.ticketOrders.unknownBuyer')
+        const attendees = formatTicketAttendees(order, t)
         return {
           id: order.orderId,
           reference: order.reference,
@@ -429,6 +441,7 @@ export default function TicketOrdersSection({
         <div className="admin-orders-block__toolbar-facets">
           <AdminFilterChipGroup
             id="ticket-orders-status"
+            label={t('admin.filters.status')}
             ariaLabel={t('admin.filters.status')}
             value={status}
             onChange={handleStatusChange}
@@ -438,18 +451,18 @@ export default function TicketOrdersSection({
             hideEmpty
             options={STATUS_FILTERS.map(([value, key]) => [value, t(key), counts[value] ?? 0])}
           />
-          <AdminFilterPillRow
-            filters={[
-              {
-                id: 'channel',
-                label: t('admin.ticketOrders.channelLabel'),
-                value: channel,
-                onChange: setChannel,
-                options: CHANNEL_FILTERS.map(([value, key]) => [value, t(key)]),
-                defaultValue: 'all',
-                allLabel: t('admin.ticketOrders.channelAll'),
-              },
-            ]}
+          <AdminFilterChipGroup
+            id="ticket-orders-channel"
+            label={t('admin.ticketOrders.channelLabel')}
+            ariaLabel={t('admin.ticketOrders.channelLabel')}
+            value={channel}
+            onChange={setChannel}
+            compact
+            defaultValue="all"
+            omitNeutral
+            allLabel={t('admin.ticketOrders.channelAll')}
+            clearable
+            options={CHANNEL_FILTERS.map(([value, key]) => [value, t(key)])}
           />
         </div>
       </div>

@@ -44,7 +44,7 @@ function toCamelCheckIn(row) {
   }
 }
 
-function toCamelTicket(row, { event, checkIn } = {}) {
+function toCamelTicket(row, { event, checkIn, order } = {}) {
   if (!row) return row
   return {
     id: row.id,
@@ -81,6 +81,11 @@ function toCamelTicket(row, { event, checkIn } = {}) {
     updatedAt: row.updated_at,
     event: toCamelEvent(event),
     checkIn: toCamelCheckIn(checkIn),
+    // Comprador y canal de pago de la orden que emitió esta entrada -- sólo
+    // viaja cuando el caller lo pide (staff_list_tickets_for_event); nulo en
+    // el resto de las lecturas (verificación pública, scanner), que no
+    // necesitan exponer quién compró.
+    order: toCamelOrder(order),
   }
 }
 
@@ -278,6 +283,7 @@ export async function listTicketsForEvent(eventSlug) {
     tickets: rows.map((row) =>
       toCamelTicket(row.ticket, {
         checkIn: row.checkIn,
+        order: row.order,
         event: row.event ?? { slug: eventSlug },
       }),
     ),

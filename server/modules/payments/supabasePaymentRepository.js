@@ -846,5 +846,43 @@ export function createSupabasePaymentRepository(
 
       return { athleteOrders: athleteOrders ?? [], ticketOrders: ticketOrders ?? [] }
     },
+
+    /**
+     * Descarta un hallazgo de drift no crítico (orden ya resuelta a mano, de
+     * prueba, etc.) para que deje de contaminar Diagnóstico. No borra nada:
+     * el hallazgo queda en la auditoría con motivo y quién lo descartó, y
+     * `get_payment_system_health` vuelve a contarlo si la orden se desalinea
+     * de nuevo después de restaurarlo.
+     */
+    async dismissPaymentDrift(orderKind, orderId, reason, actor) {
+      return assertResult(
+        await client.rpc('staff_dismiss_payment_drift', {
+          p_order_kind: orderKind,
+          p_order_id: orderId,
+          p_reason: reason,
+          p_actor: actor,
+        }),
+        'No se pudo descartar el hallazgo.',
+      )
+    },
+
+    async restorePaymentDriftDismissal(dismissalId, actor) {
+      return assertResult(
+        await client.rpc('staff_restore_payment_drift_dismissal', {
+          p_dismissal_id: dismissalId,
+          p_actor: actor,
+        }),
+        'No se pudo restaurar el hallazgo descartado.',
+      )
+    },
+
+    async listPaymentDriftDismissals(limit = 50) {
+      return (
+        assertResult(
+          await client.rpc('list_payment_drift_dismissals', { p_limit: limit }),
+          'No se pudo leer la auditoría de diagnóstico.',
+        ) ?? []
+      )
+    },
   }
 }

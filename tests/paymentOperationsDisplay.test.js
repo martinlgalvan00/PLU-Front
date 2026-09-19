@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { formatPaymentOperationType } from '../src/services/paymentOperationsDisplay.js'
+import {
+  formatPaymentOperationCardCopy,
+  formatPaymentOperationType,
+} from '../src/services/paymentOperationsDisplay.js'
 
 const MESSAGES = {
   'admin.paymentOperations.reconciliation': 'Conciliación de pago',
@@ -54,5 +57,19 @@ describe('formatPaymentOperationType', () => {
 
   it('devuelve un guión si no hay fila', () => {
     expect(formatPaymentOperationType(null, t)).toBe('—')
+  })
+})
+
+describe('formatPaymentOperationCardCopy', () => {
+  it('separa el tipo del aviso para la ficha compacta', () => {
+    expect(
+      formatPaymentOperationCardCopy(
+        { event_type: 'payment', action: 'payment.updated', operationKind: 'webhook' },
+        t,
+      ),
+    ).toEqual({
+      headline: 'Cobro de Mercado Pago',
+      context: 'actualización',
+    })
   })
 })

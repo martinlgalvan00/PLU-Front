@@ -16,6 +16,34 @@ function translateOrNull(t, key) {
   return typeof value === 'string' && value !== key ? value : null
 }
 
+function formatPaymentOperationHeadline(row, t) {
+  if (!row) return '—'
+
+  if (row.operationKind === 'reconciliation') {
+    return translateOrNull(t, 'admin.paymentOperations.reconciliation') ?? 'Conciliación de pago'
+  }
+
+  return (
+    translateOrNull(t, EVENT_TYPE_KEYS[row.event_type]) ||
+    (typeof row.event_type === 'string' && row.event_type.trim() ? row.event_type : '—')
+  )
+}
+
+function formatPaymentOperationContext(row, t) {
+  if (!row) return null
+
+  const parts = []
+  const kindLabel = translateOrNull(t, ORDER_KIND_KEYS[row.order_kind])
+  if (kindLabel) parts.push(kindLabel)
+
+  if (row.operationKind !== 'reconciliation' && row.action) {
+    const actionLabel = translateOrNull(t, `admin.paymentOperations.eventAction.${row.action}`)
+    if (actionLabel) parts.push(actionLabel)
+  }
+
+  return parts.length ? parts.join(' · ') : null
+}
+
 /**
  * Título operativo de un aviso o conciliación. El panel no puede mostrar el
  * `event_type` crudo de Mercado Pago ("payment"): el operador necesita saber
@@ -23,24 +51,15 @@ function translateOrNull(t, key) {
  * el backend lo manda— si es de atleta o de entrada.
  */
 export function formatPaymentOperationType(row, t) {
-  if (!row) return '—'
+  const headline = formatPaymentOperationHeadline(row, t)
+  const context = formatPaymentOperationContext(row, t)
+  if (headline === '—' && !context) return '—'
+  return context ? `${headline} · ${context}` : headline
+}
 
-  const kindLabel = translateOrNull(t, ORDER_KIND_KEYS[row.order_kind])
-
-  if (row.operationKind === 'reconciliation') {
-    const base =
-      translateOrNull(t, 'admin.paymentOperations.reconciliation') ?? 'Conciliación de pago'
-    return kindLabel ? `${base} · ${kindLabel}` : base
+export function formatPaymentOperationCardCopy(row, t) {
+  return {
+    headline: formatPaymentOperationHeadline(row, t),
+    context: formatPaymentOperationContext(row, t),
   }
-
-  const typeLabel =
-    translateOrNull(t, EVENT_TYPE_KEYS[row.event_type]) ||
-    (typeof row.event_type === 'string' && row.event_type.trim() ? row.event_type : '—')
-
-  const subject = kindLabel ? `${typeLabel} · ${kindLabel}` : typeLabel
-  const actionLabel = row.action
-    ? translateOrNull(t, `admin.paymentOperations.eventAction.${row.action}`)
-    : null
-
-  return actionLabel ? `${subject} · ${actionLabel}` : subject
 }

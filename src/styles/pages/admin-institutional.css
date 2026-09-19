@@ -1816,7 +1816,10 @@
   color: var(--admin-ink);
 }
 
-.admin-shell .admin-payments-ops-pulse--warning .admin-payments-ops-pulse__value {
+.admin-shell
+  .admin-payments-ops-pulse--warning
+  .admin-payments-ops-pulse__stat:first-child
+  .admin-payments-ops-pulse__value {
   color: var(--admin-status-warning, var(--color-warning, #c9a227));
 }
 
@@ -1832,9 +1835,9 @@
 .admin-shell .admin-payments-operations > .admin-payments-operations__body > * > .admin-orders-block,
 .admin-shell .admin-payments-operations > .admin-ticket-orders-anchor > .admin-list-section,
 .admin-shell .admin-payments-operations > .admin-payments-operations__body > .admin-ticket-orders-anchor > .admin-list-section {
-  background: var(--admin-surface);
-  border: 1px solid var(--admin-hairline);
-  border-radius: 14px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   box-shadow: none;
 }
 
@@ -1859,11 +1862,11 @@
 }
 
 .admin-shell .admin-payment-ops {
-  background: var(--admin-surface);
-  border: 1px solid var(--admin-hairline);
-  border-radius: 14px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   box-shadow: none;
-  overflow: hidden;
+  overflow: visible;
   padding: 0;
 }
 

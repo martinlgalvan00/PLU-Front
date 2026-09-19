@@ -98,4 +98,21 @@ describe('PaymentOrderSearch', () => {
       expect(screen.getByText('No se encontró ningún pago con esa búsqueda.')).toBeTruthy(),
     )
   })
+
+  it('"Reintentar" después de un error vuelve a pedir la misma búsqueda', async () => {
+    searchPaymentOrders.mockRejectedValueOnce(new Error('offline'))
+    renderSearch()
+
+    fireEvent.change(screen.getByPlaceholderText(/Buscar por nombre/), {
+      target: { value: 'ana' },
+    })
+    await waitFor(() => expect(screen.getByText('offline')).toBeTruthy())
+    expect(searchPaymentOrders).toHaveBeenCalledTimes(1)
+
+    searchPaymentOrders.mockResolvedValueOnce({ results: [] })
+    fireEvent.click(screen.getByRole('button', { name: /reintentar/i }))
+
+    await waitFor(() => expect(searchPaymentOrders).toHaveBeenCalledTimes(2))
+    expect(searchPaymentOrders).toHaveBeenLastCalledWith('ana')
+  })
 })

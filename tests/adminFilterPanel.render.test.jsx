@@ -56,101 +56,37 @@ function renderAthletes(props = {}) {
   return { ...utils, filterBar }
 }
 
-describe('Atletas — barra de filtros (facetas etiquetadas)', () => {
-  it('muestra búsqueda y rieles de afiliación/inscripción, con el resto en Más criterios', () => {
+describe('Atletas — barra de filtros (búsqueda + riel + pills)', () => {
+  it('deja búsqueda, afiliación y colas a la vista; el catálogo va a Más criterios', () => {
     const { filterBar } = renderAthletes()
 
-    expect(filterBar.classList.contains('admin-filters--panel')).toBe(false)
-    expect(within(filterBar).getByPlaceholderText(/Buscar/i)).toBeTruthy()
-    expect(within(filterBar).getByText('Afiliación')).toBeTruthy()
-    expect(within(filterBar).getByText('Inscripción')).toBeTruthy()
+    expect(filterBar.classList.contains('admin-filters--popover')).toBe(true)
+    expect(within(filterBar).getByPlaceholderText(/nombre, gimnasio, DNI o email/i)).toBeTruthy()
     expect(within(filterBar).getByRole('button', { name: /Afiliado activo/ })).toBeTruthy()
-    expect(within(filterBar).queryByText('Maximal Power')).toBeNull()
+    expect(within(filterBar).getByRole('button', { name: /^perfil/i })).toBeTruthy()
+    expect(within(filterBar).getByRole('button', { name: /^inscripción/i })).toBeTruthy()
     expect(within(filterBar).getByRole('button', { name: /Más criterios/ })).toBeTruthy()
+    expect(within(filterBar).queryByRole('button', { name: /^gimnasio/i })).toBeNull()
+    expect(within(filterBar).queryByRole('button', { name: /^pendiente de pago$/i })).toBeNull()
+    expect(within(filterBar).queryByText('Maximal Power')).toBeNull()
+    expect(within(filterBar).queryByText(/registros/i)).toBeNull()
   })
 
-  it('abre Más criterios debajo del botón, no en la esquina del panel', () => {
-    const { filterBar } = renderAthletes()
-    const button = within(filterBar).getByRole('button', { name: /Más criterios/ })
-    vi.spyOn(button, 'getBoundingClientRect').mockReturnValue({
-      x: 400,
-      y: 180,
-      top: 180,
-      left: 400,
-      bottom: 216,
-      right: 520,
-      width: 120,
-      height: 36,
-      toJSON() {},
-    })
-    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1024)
-    vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(800)
-    fireEvent.click(button)
-    const advanced = filterBar.querySelector('.admin-filters__advanced-popover')
-    expect(advanced.style.position).toBe('fixed')
-    expect(advanced.dataset.placed).toBe('true')
-    expect(advanced.style.top).toBe('224px')
-    expect(advanced.style.left).toBe('400px')
-  })
-
-  it('no mete Más criterios debajo del sidebar: respeta el main de admin', () => {
-    const { filterBar } = renderAthletes()
-    const button = within(filterBar).getByRole('button', { name: /Más criterios/ })
-    const main = document.createElement('div')
-    main.id = 'admin-main-content'
-    vi.spyOn(main, 'getBoundingClientRect').mockReturnValue({
-      x: 80,
-      y: 0,
-      top: 0,
-      left: 80,
-      bottom: 800,
-      right: 1024,
-      width: 944,
-      height: 800,
-      toJSON() {},
-    })
-    vi.spyOn(button, 'closest').mockImplementation((selector) =>
-      selector === '#admin-main-content' ? main : null,
-    )
-    vi.spyOn(button, 'getBoundingClientRect').mockReturnValue({
-      x: 120,
-      y: 180,
-      top: 180,
-      left: 120,
-      bottom: 216,
-      right: 240,
-      width: 120,
-      height: 36,
-      toJSON() {},
-    })
-    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1024)
-    vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(800)
-    fireEvent.click(button)
-    const advanced = filterBar.querySelector('.admin-filters__advanced-popover')
-    expect(Number.parseInt(advanced.style.left, 10)).toBeGreaterThanOrEqual(92)
-    expect(advanced.style.left).toBe('120px')
-  })
-
-  it('abre gimnasio y fecha detrás de Más criterios', () => {
+  it('abre gimnasio desde Más criterios y no usa un select nativo', () => {
     const { filterBar } = renderAthletes()
 
     fireEvent.click(within(filterBar).getByRole('button', { name: /Más criterios/ }))
-    const advanced = filterBar.querySelector('.admin-filters__advanced-popover')
-    expect(advanced).toBeTruthy()
-    expect(within(advanced).getByRole('heading', { name: 'Más criterios' })).toBeTruthy()
-    expect(within(advanced).getByLabelText('Gimnasio')).toBeTruthy()
-    expect(within(advanced).getByRole('listbox', { name: 'Gimnasio' })).toBeTruthy()
-    expect(within(advanced).getByText('Fecha de alta')).toBeTruthy()
-    expect(within(advanced).getByRole('button', { name: 'Listo' })).toBeTruthy()
-    expect(advanced.querySelector('select')).toBeNull()
+    const dialog = within(filterBar).getByRole('dialog', { name: /Más criterios/ })
+    expect(within(dialog).getByRole('listbox', { name: 'Gimnasio' })).toBeTruthy()
+    expect(dialog.querySelector('select')).toBeNull()
   })
 
   it('elige un gimnasio desde Más criterios', () => {
     const { filterBar } = renderAthletes()
 
     fireEvent.click(within(filterBar).getByRole('button', { name: /Más criterios/ }))
-    const advanced = filterBar.querySelector('.admin-filters__advanced-popover')
-    fireEvent.click(within(advanced).getByRole('option', { name: 'Pitbull Barbell' }))
+    const dialog = within(filterBar).getByRole('dialog', { name: /Más criterios/ })
+    fireEvent.click(within(dialog).getByRole('option', { name: 'Pitbull Barbell' }))
 
     expect(screen.getByText('Nicolás Aguirre')).toBeTruthy()
     expect(screen.queryByText('Martina Rivas')).toBeNull()
@@ -158,7 +94,7 @@ describe('Atletas — barra de filtros (facetas etiquetadas)', () => {
     expect(within(filterBar).getByRole('button', { name: /Limpiar filtros/ })).toBeTruthy()
   })
 
-  it('filtra por Afiliación y limpia los criterios activos', () => {
+  it('filtra por Afiliación en un clic y limpia los criterios activos', () => {
     const { filterBar } = renderAthletes()
 
     fireEvent.click(within(filterBar).getByRole('button', { name: /Afiliado activo/ }))
@@ -168,5 +104,16 @@ describe('Atletas — barra de filtros (facetas etiquetadas)', () => {
 
     fireEvent.click(within(filterBar).getByRole('button', { name: /Limpiar filtros/ }))
     expect(screen.getByText('Nicolás Aguirre')).toBeTruthy()
+  })
+
+  it('filtra perfiles incompletos desde el pill de Perfil', () => {
+    const { filterBar } = renderAthletes()
+
+    fireEvent.click(within(filterBar).getByRole('button', { name: /^perfil/i }))
+    const dialog = within(filterBar).getByRole('dialog', { name: /^perfil/i })
+    fireEvent.click(within(dialog).getByRole('button', { name: /perfil incompleto/i }))
+
+    expect(screen.getByText('Martina Rivas')).toBeTruthy()
+    expect(within(filterBar).getByRole('button', { name: /Limpiar filtros/ })).toBeTruthy()
   })
 })

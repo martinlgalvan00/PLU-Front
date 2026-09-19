@@ -502,7 +502,7 @@ export default function AthletePaymentOrdersSection({
         </div>
       </header>
       <div className="admin-orders-block__toolbar admin-orders-block__toolbar--athlete">
-        <div className="admin-orders-block__toolbar-facets">
+        <div className="admin-orders-block__toolbar-primary">
           <div className="admin-filter-group admin-filter-group--rail admin-filter-group--labeled admin-orders-block__search-row">
             <span id="athlete-orders-search-label" className="admin-filter-group__label">
               {t('admin.athletePayments.searchLabel')}
@@ -514,6 +514,8 @@ export default function AthletePaymentOrdersSection({
               onQueryChange={setQuery}
             />
           </div>
+        </div>
+        <div className="admin-orders-block__toolbar-facets">
           <AdminFilterChipGroup
             id="athlete-orders-status"
             label={t('admin.filters.status')}
