@@ -2610,20 +2610,10 @@
 
 .admin-shell .admin-payments-operations .admin-orders-block--search .admin-orders-block__toolbar--search {
   border: 0;
-  flex-direction: column;
+  display: flex;
+  flex-direction: row;
   gap: 8px;
-  padding: 4px clamp(14px, 2.4vw, 22px) 12px;
-}
-
-.admin-shell
-  .admin-payments-operations
-  .admin-orders-block--search
-  .admin-orders-block__search-row {
-  align-items: center;
-  display: grid;
-  gap: 6px 12px;
-  grid-template-columns: 4.25rem minmax(0, 1fr);
-  width: 100%;
+  padding: 0 clamp(14px, 2.4vw, 22px) 10px;
 }
 
 .admin-shell
@@ -2636,8 +2626,12 @@
   border-radius: 10px;
   box-shadow: none;
   display: flex;
+  flex: 1 1 auto;
   gap: 10px;
-  min-height: 44px;
+  height: 40px;
+  max-height: 44px;
+  max-width: 28rem;
+  min-height: 40px;
   min-width: 0;
   padding: 0 12px;
   width: 100%;
@@ -2656,13 +2650,7 @@
   font-size: 12.5px;
   line-height: 1.4;
   margin: 0;
-  padding: 0 clamp(14px, 2.4vw, 22px) 14px calc(4.25rem + 12px + clamp(14px, 2.4vw, 22px));
-}
-
-@media (max-width: 720px) {
-  .admin-shell .admin-payments-operations .admin-orders-block__hint {
-    padding-left: clamp(14px, 2.4vw, 22px);
-  }
+  padding: 0 clamp(14px, 2.4vw, 22px) 12px;
 }
 
 .admin-shell .admin-payments-operations .admin-orders-block__toolbar--tickets {
@@ -2680,8 +2668,8 @@
   .admin-orders-block__toolbar-primary {
   align-items: center;
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px 12px;
+  flex-wrap: nowrap;
+  gap: 8px 10px;
   min-width: 0;
 }
 
@@ -2698,18 +2686,24 @@
   .admin-orders-block__toolbar--tickets
   .admin-filters__search {
   align-items: center;
+  align-self: center;
   background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 3.5%, transparent);
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
   border-radius: 10px;
   box-shadow: none;
   display: flex;
-  flex: 1 1 16rem;
+  flex: 1 1 12rem;
+  flex-grow: 1;
+  flex-shrink: 1;
   gap: 10px;
-  max-width: 28rem;
+  height: 40px;
+  max-height: 44px;
+  max-width: 22rem;
   min-height: 40px;
   min-width: 0;
+  overflow: hidden;
   padding: 0 12px;
-  width: 100%;
+  width: auto;
 }
 
 .admin-shell
@@ -2725,7 +2719,7 @@
   .admin-orders-block__toolbar--tickets
   .admin-orders-block__actions {
   flex: 0 0 auto;
-  margin-left: auto;
+  margin-left: 0;
 }
 
 .admin-shell
@@ -2733,7 +2727,7 @@
   .admin-orders-block__toolbar--tickets
   .admin-orders-block__toolbar-facets
   .admin-filter-group {
-  flex: 1 1 36rem;
+  flex: 1 1 14rem;
   min-width: 0;
   width: auto;
 }
@@ -2831,9 +2825,88 @@
 .admin-shell
   .admin-payments-operations
   .admin-orders-block--tickets
-  .admin-orders-block__toolbar--tickets
-  .admin-orders-block__actions {
-  align-self: center;
+  > .admin-orders-block__header {
+  align-items: center;
+  display: grid;
+  gap: 8px 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 10px clamp(14px, 2.4vw, 22px);
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block--tickets
+  .admin-orders-block__title {
+  font-size: clamp(1.05rem, 2vw, 1.22rem);
+  margin-top: 2px;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block--tickets
+  .admin-orders-block__lead {
+  max-width: 42ch;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block--tickets
+  > .admin-orders-block__header
+  .admin-orders-block__summary {
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block--tickets
+  .admin-orders-block__amount-value {
+  font-size: clamp(1.05rem, 1.8vw, 1.28rem);
+}
+
+@media (max-width: 520px) {
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    .admin-orders-block__manual-sale-label {
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    .admin-orders-block__manual-sale {
+    justify-content: center;
+    padding-inline: 0;
+    width: 44px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    .admin-orders-block__eyebrow,
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    .admin-orders-block__lead {
+    display: none;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    > .admin-orders-block__header {
+    padding-block: 8px;
+  }
 }
 
 .admin-shell
@@ -2907,6 +2980,10 @@
   font-size: 14px;
   font-weight: 500;
   letter-spacing: -0.015em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-shell
@@ -3000,30 +3077,60 @@
   .admin-shell .admin-payments-operations .admin-orders-block__toolbar--tickets {
     align-items: stretch;
     flex-direction: column;
+    gap: 8px;
+    padding: 8px clamp(12px, 2.4vw, 18px) 10px;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    > .admin-orders-block__header {
+    align-items: center;
+    display: grid;
+    flex-direction: unset;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-block: 8px;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    > .admin-orders-block__header
+    .admin-orders-block__summary {
+    align-items: flex-end;
+    margin-left: 0;
+    text-align: right;
+    width: auto;
   }
 
   .admin-shell
     .admin-payments-operations
     .admin-orders-block__toolbar--tickets
     .admin-orders-block__toolbar-primary {
-    align-items: stretch;
-    flex-direction: column;
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: nowrap;
   }
 
   .admin-shell
     .admin-payments-operations
     .admin-orders-block__toolbar--tickets
     .admin-filters__search {
+    flex: 1 1 auto;
+    height: 44px;
+    max-height: 44px;
     max-width: none;
     min-height: 44px;
+    width: auto;
   }
 
   .admin-shell
     .admin-payments-operations
     .admin-orders-block__toolbar--tickets
     .admin-orders-block__actions {
+    flex: 0 0 auto;
     margin-left: 0;
-    width: 100%;
+    width: auto;
   }
 
   .admin-shell
@@ -3032,7 +3139,19 @@
     .admin-orders-block__actions
     .btn {
     min-height: 44px;
-    width: 100%;
+    min-width: 44px;
+    padding-inline: 10px;
+    width: auto;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--search
+    .admin-filters__search {
+    height: 44px;
+    max-height: 44px;
+    max-width: none;
+    min-height: 44px;
   }
 
   .admin-shell

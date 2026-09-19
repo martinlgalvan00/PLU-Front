@@ -100,17 +100,11 @@ export default function PaymentOrderSearch({ onSelectResult }) {
       </header>
 
       <div className="admin-orders-block__toolbar admin-orders-block__toolbar--search">
-        <div className="admin-filter-group admin-filter-group--rail admin-filter-group--labeled admin-orders-block__search-row">
-          <span id="payment-order-search-label" className="admin-filter-group__label">
-            {t('admin.paymentSearch.searchLabel')}
-          </span>
-          <AdminFilterSearch
-            labelledBy="payment-order-search-label"
-            placeholder={t('admin.paymentSearch.placeholder')}
-            query={query}
-            onQueryChange={setQuery}
-          />
-        </div>
+        <AdminFilterSearch
+          placeholder={t('admin.paymentSearch.placeholder')}
+          query={query}
+          onQueryChange={setQuery}
+        />
       </div>
 
       {belowMinChars ? (

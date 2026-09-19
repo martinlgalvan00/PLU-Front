@@ -1494,6 +1494,33 @@
     flex-direction: column;
   }
 
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    > .admin-orders-block__header {
+    align-items: center;
+    display: grid;
+    flex-direction: unset;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    .admin-orders-block__actions {
+    justify-content: flex-end;
+    width: auto;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    .admin-orders-block__actions
+    .btn {
+    flex: 0 0 auto;
+    width: auto;
+  }
+
   .admin-orders-block__actions {
     justify-content: space-between;
     width: 100%;
