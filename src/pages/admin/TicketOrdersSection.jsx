@@ -431,9 +431,15 @@ export default function TicketOrdersSection({
           />
           {canEdit ? (
             <div className="admin-orders-block__actions">
-              <button type="button" className="btn btn--ghost btn--small" onClick={openManualSale}>
+              <button
+                type="button"
+                className="btn btn--ghost btn--small admin-orders-block__manual-sale"
+                onClick={openManualSale}
+              >
                 <Plus size={14} aria-hidden />
-                {t('admin.ticketOrders.manualSaleButton')}
+                <span className="admin-orders-block__manual-sale-label">
+                  {t('admin.ticketOrders.manualSaleButton')}
+                </span>
               </button>
             </div>
           ) : null}
@@ -441,7 +447,6 @@ export default function TicketOrdersSection({
         <div className="admin-orders-block__toolbar-facets">
           <AdminFilterChipGroup
             id="ticket-orders-status"
-            label={t('admin.filters.status')}
             ariaLabel={t('admin.filters.status')}
             value={status}
             onChange={handleStatusChange}
@@ -453,7 +458,6 @@ export default function TicketOrdersSection({
           />
           <AdminFilterChipGroup
             id="ticket-orders-channel"
-            label={t('admin.ticketOrders.channelLabel')}
             ariaLabel={t('admin.ticketOrders.channelLabel')}
             value={channel}
             onChange={setChannel}

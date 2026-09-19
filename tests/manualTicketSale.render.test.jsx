@@ -217,7 +217,7 @@ describe('TicketOrdersSection · venta manual', () => {
 })
 
 describe('TicketOrdersSection · filtros', () => {
-  it('si no hay cola, abre Todas y guarda el canal en un pill', async () => {
+  it('si no hay cola, abre Todas y deja los chips de canal a la vista', async () => {
     listTicketOrders.mockResolvedValue({
       orders: [],
       counts: {
@@ -238,8 +238,8 @@ describe('TicketOrdersSection · filtros', () => {
       )
     })
     expect(screen.queryByRole('button', { name: /por validar/i })).toBeNull()
-    expect(screen.getByRole('button', { name: /^canal$/i })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: /^transferencia$/i })).toBeNull()
+    expect(screen.getByRole('group', { name: /^canal$/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^transferencia$/i })).toBeTruthy()
   })
 
   it('si hay órdenes por validar, se queda en esa cola', async () => {
