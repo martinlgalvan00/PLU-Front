@@ -11,10 +11,14 @@ import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminSavedViews from '../../components/admin/AdminSavedViews.jsx'
 import AuditEventBody from '../../components/admin/AuditEventBody.jsx'
 import AuditEventDialog from '../../components/admin/AuditEventDialog.jsx'
+import PaymentDiagnosticsPanel from '../../components/admin/PaymentDiagnosticsPanel.jsx'
+import PaymentIntegrityCallout from '../../components/admin/PaymentIntegrityCallout.jsx'
 import PaymentTraceDialog from '../../components/admin/PaymentTraceDialog.jsx'
+import TicketSalesAnalyticsPanel from '../../components/admin/TicketSalesAnalyticsPanel.jsx'
 import { AdminMonoCell } from '../../components/admin/AdminTableCells.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
+import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
 import { auditLabels } from '../../i18n/adminHelpers.js'
 import es from '../../i18n/locales/es.js'
 import { translate } from '../../i18n/translate.js'
@@ -25,6 +29,7 @@ import {
   fetchAuditOverview,
   isAuditIncidentEntry,
 } from '../../services/auditService.js'
+import { getPaymentOperations } from '../../services/paymentService.js'
 import { buildAuditStatusFilterOptions } from '../../lib/auditFilterHelpers.js'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getAuditTourSteps } from '../../lib/adminTourSteps.js'
@@ -168,7 +173,7 @@ function AuditMobileList({
   )
 }
 
-export default function AuditSection() {
+export default function AuditSection({ canEdit = false, ticketEvents = [] }) {
   // La auditoría es una herramienta operativa para el equipo local. No debe
   // heredar un idioma guardado en otra parte del sitio: sus etiquetas explican
   // evidencia y acciones sensibles, y se presentan siempre en español.
@@ -212,6 +217,12 @@ export default function AuditSection() {
   const [onlyIncidents, setOnlyIncidents] = useState(false)
   const [onlyIncidentsTouched, setOnlyIncidentsTouched] = useState(false)
   const [detailEventId, setDetailEventId] = useState(null)
+  const [paymentOps, setPaymentOps] = useState(null)
+  // Bitácora / Diagnóstico de cobros / Ventas de entradas: tres lecturas de
+  // "qué hizo el sistema" que antes vivían repartidas (la bitácora acá, el
+  // resto adentro de Cobros). `trail` es el default porque es la evidencia
+  // cruda; las otras dos son vistas derivadas sobre el mismo dominio.
+  const [activeAuditTab, setActiveAuditTab] = useState('trail')
   const { views: savedViews, saveView, removeView } = useAdminSavedFilterViews('audit')
 
   const savedViewSnapshot = useMemo(
@@ -296,9 +307,20 @@ export default function AuditSection() {
     [t],
   )
 
+  const loadPaymentOps = useCallback(async () => {
+    try {
+      const ops = await getPaymentOperations()
+      setPaymentOps(ops)
+    } catch {
+      // Sin `admin.payments.read` el endpoint responde 403: la bitácora
+      // sigue siendo útil y este panel simplemente no aparece.
+      setPaymentOps(null)
+    }
+  }, [])
+
   const refresh = useCallback(async () => {
-    await Promise.all([loadEntries(), loadOverview(true)])
-  }, [loadEntries, loadOverview])
+    await Promise.all([loadEntries(), loadOverview(true), loadPaymentOps()])
+  }, [loadEntries, loadOverview, loadPaymentOps])
 
   useEffect(() => {
     // La búsqueda pega contra la API, no contra un array en memoria: la
@@ -312,6 +334,10 @@ export default function AuditSection() {
   useEffect(() => {
     void loadOverview()
   }, [loadOverview])
+
+  useEffect(() => {
+    void loadPaymentOps()
+  }, [loadPaymentOps])
 
   useEffect(() => {
     fetchAuditFacets()
@@ -701,22 +727,51 @@ export default function AuditSection() {
     </section>
   )
 
+  const auditTabOptions = [
+    ['trail', t('admin.audit.tabTrail')],
+    ['diagnostics', t('admin.audit.tabDiagnostics')],
+    ['sales', t('admin.audit.tabSales')],
+  ]
+
   return (
-    <AdminListSection
+    <div className="admin-audit-shell">
+      <header className="admin-list-section__header admin-list-shell__header admin-audit-top">
+        <div className="admin-list-shell__intro">
+          <span className="admin-list-shell__eyebrow">{t('admin.audit.eyebrow')}</span>
+          <h1 className="admin-list-shell__title">{t('admin.audit.title')}</h1>
+          <p className="admin-list-shell__subtitle">{t('admin.audit.subtitle')}</p>
+        </div>
+      </header>
+
+      <div className="admin-audit-top__tabs">
+        <SegmentedSwitch
+          className="segmented-switch--ops"
+          active={activeAuditTab}
+          ariaLabel={t('admin.audit.title')}
+          onChange={setActiveAuditTab}
+          options={auditTabOptions}
+        />
+      </div>
+
+      <div style={{ display: activeAuditTab === 'trail' ? 'block' : 'none' }}>
+      <AdminListSection
       variant="audit"
       filteredCount={displayedEntries.length}
       placeholder={t('admin.audit.searchPlaceholder')}
       query={query}
-      showHeader
+      showHeader={false}
       showStats={false}
-      eyebrow={t('admin.audit.eyebrow')}
-      title={t('admin.audit.title')}
-      subtitle={t('admin.audit.subtitle')}
       totalCount={entries.length}
       beforeFilters={
         <>
           {auditGuide}
           {health}
+          <PaymentIntegrityCallout
+            health={paymentOps?.summary?.health}
+            blockers={Array.isArray(paymentOps?.blockers) ? paymentOps.blockers : []}
+            t={t}
+            onOpenPayments={() => setActiveAuditTab('diagnostics')}
+          />
           <AdminSavedViews
             views={savedViews}
             activeViewId={activeSavedView?.id ?? null}
@@ -832,6 +887,12 @@ export default function AuditSection() {
       {traceOrderId ? (
         <PaymentTraceDialog orderId={traceOrderId} onClose={() => setTraceOrderId(null)} />
       ) : null}
-    </AdminListSection>
+      </AdminListSection>
+      </div>
+
+      {activeAuditTab === 'diagnostics' ? <PaymentDiagnosticsPanel canEdit={canEdit} t={t} /> : null}
+
+      {activeAuditTab === 'sales' ? <TicketSalesAnalyticsPanel events={ticketEvents} /> : null}
+    </div>
   )
 }

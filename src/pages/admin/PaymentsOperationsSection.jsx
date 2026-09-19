@@ -1,38 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  AlertTriangle,
-  LoaderCircle,
-  RefreshCw,
-  RotateCcw,
-  ScanSearch,
-  ShieldCheck,
-} from 'lucide-react'
-import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
+import { useCallback, useEffect, useState } from 'react'
+import { RefreshCw } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
-import {
-  AdminTableActions,
-  AdminTableActionsEmpty,
-} from '../../components/admin/AdminTableCells.jsx'
-import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import PaymentExpiryPanel from '../../components/admin/PaymentExpiryPanel.jsx'
-import ErrorState from '../../components/ui/ErrorState.jsx'
-import LoadingState from '../../components/ui/LoadingState.jsx'
 import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getPaymentsTourSteps } from '../../lib/adminTourSteps.js'
 import { money } from '../../lib/format.js'
-import {
-  getPaymentOperations,
-  recoverPaymentOperations,
-  retryPaymentEvent,
-  retryPaymentReconciliation,
-  revalidatePaymentOrder,
-  revalidatePaymentOrders,
-} from '../../services/paymentService.js'
 import { fetchPlatformFeatureToggles } from '../../services/platformSettingsAdminService.js'
 import AthletePaymentOrdersSection from './AthletePaymentOrdersSection.jsx'
 import TicketOrdersSection from './TicketOrdersSection.jsx'
+import PaymentOrderSearch from '../../components/admin/PaymentOrderSearch.jsx'
 
 /**
  * Interruptores de validación por concepto. Todo habilitado es el estado por
@@ -42,14 +20,6 @@ import TicketOrdersSection from './TicketOrdersSection.jsx'
  * preferible a bloquear la caja de Finanzas por una lectura que falló.
  */
 const VALIDATION_OPEN = Object.freeze({ membership: true, registration: true, ticket: true })
-
-function formatDate(value, locale) {
-  if (!value) return '—'
-  return new Date(value).toLocaleString(locale === 'en' ? 'en-US' : 'es-AR', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  })
-}
 
 function scrollToId(id) {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -68,45 +38,32 @@ export default function PaymentsOperationsSection({
   pendingTicketOrders,
   isLoading: manualLoading,
   loadError: manualError,
+  ticketEvents = [],
   onApprovePayment,
   onForceSettlePayment,
   onRejectPayment,
   onApproveTicketOrder,
   onRejectTicketOrder,
+  onCreateManualTicketOrder,
   onRefresh: onRefreshManual,
 }) {
   const { locale, t } = useI18n()
   const { startTour } = useAdminTour()
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [recovering, setRecovering] = useState(false)
-  const [retryingId, setRetryingId] = useState(null)
-  const [revalidating, setRevalidating] = useState(false)
-  const [revalidation, setRevalidation] = useState(null)
-  const [fixingOrderId, setFixingOrderId] = useState(null)
-  const [status, setStatus] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab] = useState('athletes')
   const [validation, setValidation] = useState(VALIDATION_OPEN)
   const [athleteRefreshKey, setAthleteRefreshKey] = useState(0)
   const [athleteStatusRequest, _setAthleteStatusRequest] = useState(null)
+  // Elegido desde el buscador cruzado (`PaymentOrderSearch`): saltea a la
+  // pestaña del concepto correcto y marca la orden puntual, sin que el
+  // buscador tenga que saber cómo se resalta una fila en cada cola.
+  const [searchHighlightOrderId, setSearchHighlightOrderId] = useState(null)
+  const [searchTicketQuery, setSearchTicketQuery] = useState('')
   const [athleteSummary, setAthleteSummary] = useState({
     pending: null,
     openAmount: null,
     loading: true,
   })
-
-  const loadOps = useCallback(async () => {
-    setLoading(true)
-    setError('')
-    try {
-      setData(await getPaymentOperations(status || undefined))
-    } catch (loadError) {
-      setError(loadError?.message ?? t('admin.paymentOperations.loadError'))
-    } finally {
-      setLoading(false)
-    }
-  }, [status, t])
 
   const loadValidation = useCallback(async () => {
     try {
@@ -122,13 +79,14 @@ export default function PaymentsOperationsSection({
   }, [])
 
   const refreshAll = useCallback(async () => {
+    setRefreshing(true)
     setAthleteRefreshKey((key) => key + 1)
-    await Promise.all([loadOps(), loadValidation(), onRefreshManual?.() ?? Promise.resolve()])
-  }, [loadOps, loadValidation, onRefreshManual])
-
-  useEffect(() => {
-    void loadOps()
-  }, [loadOps])
+    try {
+      await Promise.all([loadValidation(), onRefreshManual?.() ?? Promise.resolve()])
+    } finally {
+      setRefreshing(false)
+    }
+  }, [loadValidation, onRefreshManual])
 
   useEffect(() => {
     void loadValidation()
@@ -140,213 +98,40 @@ export default function PaymentsOperationsSection({
   }, [])
 
   useEffect(() => {
-    if (!ticketOrderEventScope || loading) return undefined
+    if (!ticketOrderEventScope) return undefined
     const frame = window.requestAnimationFrame(() => {
       scrollToId('admin-ticket-orders')
     })
     return () => window.cancelAnimationFrame(frame)
-  }, [loading, ticketOrderEventScope])
-
-  async function handleRecover() {
-    setRecovering(true)
-    setError('')
-    try {
-      await recoverPaymentOperations()
-      await refreshAll()
-    } catch (recoverError) {
-      setError(recoverError?.message ?? t('admin.paymentOperations.recoverError'))
-    } finally {
-      setRecovering(false)
-    }
-  }
-
-  /**
-   * Barrido de diagnóstico: le pregunta a Mercado Pago por cada orden no
-   * aprobada de la ventana y lista las que no coinciden. No escribe nada — la
-   * corrección se decide fila por fila, con el estado del proveedor a la vista.
-   */
-  async function handleRevalidate() {
-    setRevalidating(true)
-    setError('')
-    try {
-      setRevalidation(await revalidatePaymentOrders({ sinceDays: 30, limit: 50 }))
-    } catch (revalidateError) {
-      setError(revalidateError?.message ?? t('admin.paymentOperations.revalidateError'))
-    } finally {
-      setRevalidating(false)
-    }
-  }
-
-  async function handleFixDivergence(orderId) {
-    setFixingOrderId(orderId)
-    setError('')
-    try {
-      const result = await revalidatePaymentOrder(orderId)
-      setRevalidation((current) => {
-        if (!current) return current
-        return {
-          ...current,
-          divergences: current.divergences.map((item) =>
-            item.order?.id === orderId ? { ...item, ...result } : item,
-          ),
-        }
-      })
-      setAthleteRefreshKey((key) => key + 1)
-    } catch (fixError) {
-      setError(fixError?.message ?? t('admin.paymentOperations.revalidateError'))
-    } finally {
-      setFixingOrderId(null)
-    }
-  }
-
-  async function handleRetry(row) {
-    setRetryingId(row.id)
-    setError('')
-    try {
-      if (row.operationKind === 'reconciliation') await retryPaymentReconciliation(row.id)
-      else await retryPaymentEvent(row.id)
-      await loadOps()
-    } catch (retryError) {
-      setError(retryError?.message ?? t('admin.paymentOperations.retryError'))
-    } finally {
-      setRetryingId(null)
-    }
-  }
+  }, [ticketOrderEventScope])
 
   const handleAthleteSummaryChange = useCallback((summary) => {
     setAthleteSummary(summary)
   }, [])
 
+  /**
+   * Entradas no tiene un `highlightOrderId` propio (esa cola filtra por
+   * texto libre en vez de resaltar una fila): reusar `initialQuery` con la
+   * referencia exacta consigue el mismo efecto -- aterrizar en la orden
+   * puntual -- sin tocar `TicketOrdersSection`.
+   */
+  function handleSelectSearchResult(result) {
+    if (!result) return
+    if (result.kind === 'athlete') {
+      setActiveTab('athletes')
+      setSearchHighlightOrderId(result.id)
+      window.requestAnimationFrame(() => scrollToId('admin-athlete-payments'))
+      return
+    }
+    setActiveTab('tickets')
+    setSearchTicketQuery(result.reference ?? '')
+    window.requestAnimationFrame(() => scrollToId('admin-ticket-orders'))
+  }
+
   const ticketsPending = pendingTicketOrders?.length ?? 0
-
-  const summary = data?.summary ?? {}
-  const health = summary.health ?? null
-  const healthIssues = health
-    ? Number(health.athleteOrderDrift ?? 0) +
-      Number(health.ticketOrderDrift ?? 0) +
-      Number(health.staleEventLocks ?? 0) +
-      Number(health.staleReconciliationLocks ?? 0) +
-      Number(health.exhaustedEvents ?? 0)
-    : null
-  const failedCount = summary.events?.failed ?? 0
-  const pendingReconciliations = summary.attempts?.reconciliationPending ?? 0
-  const pastDue = summary.subscriptions?.pastDue ?? 0
-  const runtimeReady = data?.configuration?.ready !== false
-  const isLedgerHealthy =
-    Boolean(data) &&
-    runtimeReady &&
-    failedCount === 0 &&
-    pendingReconciliations === 0 &&
-    pastDue === 0 &&
-    health?.healthy !== false
-
-  function openDiagnostics() {
-    setActiveTab('ledger')
-    window.requestAnimationFrame(() => scrollToId('admin-payment-ledger'))
-  }
-
-  function openDiagnosticsAndCompare() {
-    openDiagnostics()
-    void handleRevalidate()
-  }
-
-  const primaryMetrics = [
-    {
-      id: 'integrity',
-      label: t('admin.paymentOperations.integrity'),
-      value: health?.healthy
-        ? runtimeReady
-          ? t('admin.paymentOperations.integrityOk')
-          : t('admin.paymentOperations.configurationBlocked')
-        : (healthIssues ?? '—'),
-      tone: health?.healthy && runtimeReady ? 'success' : 'danger',
-    },
-    {
-      id: 'failed',
-      label: t('admin.paymentOperations.failedEvents'),
-      value: failedCount,
-      tone: failedCount > 0 ? 'danger' : 'neutral',
-    },
-    {
-      id: 'pending',
-      label: t('admin.paymentOperations.pendingReconciliations'),
-      value: pendingReconciliations,
-      tone: pendingReconciliations > 0 ? 'warning' : 'neutral',
-    },
-    {
-      id: 'pastDue',
-      label: t('admin.paymentOperations.pastDueSubscriptions'),
-      value: pastDue,
-      tone: pastDue > 0 ? 'warning' : 'neutral',
-    },
-  ]
-
-  const operationRows = useMemo(
-    () =>
-      [
-        ...(data?.events ?? []).map((event) => ({ ...event, operationKind: 'webhook' })),
-        ...(data?.reconciliations ?? []).map((attempt) => ({
-          ...attempt,
-          operationKind: 'reconciliation',
-          event_type: t('admin.paymentOperations.reconciliation'),
-          resource_id: attempt.external_payment_id,
-          status: attempt.reconciliation_status,
-          attempts_count: attempt.reconciliation_attempts,
-          max_attempts: 12,
-          last_attempt_at: attempt.updated_at,
-        })),
-      ].filter((row) => !status || row.status === status),
-    [data?.events, data?.reconciliations, status, t],
-  )
-
-  const showHealthyEmpty =
-    !loading &&
-    !error &&
-    operationRows.length === 0 &&
-    isLedgerHealthy &&
-    (!status || status === 'failed')
-
-  const healthBreakdown = []
-  if (health && health.healthy === false) {
-    if (Number(health.athleteOrderDrift ?? 0) > 0) {
-      healthBreakdown.push(
-        t('admin.paymentOperations.healthAthleteDrift', { count: health.athleteOrderDrift }),
-      )
-    }
-    if (Number(health.ticketOrderDrift ?? 0) > 0) {
-      healthBreakdown.push(
-        t('admin.paymentOperations.healthTicketDrift', { count: health.ticketOrderDrift }),
-      )
-    }
-    if (Number(health.staleEventLocks ?? 0) > 0) {
-      healthBreakdown.push(
-        t('admin.paymentOperations.healthStaleEventLocks', { count: health.staleEventLocks }),
-      )
-    }
-    if (Number(health.staleReconciliationLocks ?? 0) > 0) {
-      healthBreakdown.push(
-        t('admin.paymentOperations.healthStaleReconciliationLocks', {
-          count: health.staleReconciliationLocks,
-        }),
-      )
-    }
-    if (Number(health.exhaustedEvents ?? 0) > 0) {
-      healthBreakdown.push(
-        t('admin.paymentOperations.healthExhaustedEvents', { count: health.exhaustedEvents }),
-      )
-    }
-  }
-
-  // Diagnóstico accionable que arma el servidor: causa concreta y pasos, ya
-  // agrupados por código para no repetir cincuenta veces el mismo problema.
-  const blockers = Array.isArray(data?.blockers) ? data.blockers : []
-  const showHealthCallout = Boolean(data) && (healthBreakdown.length > 0 || blockers.length > 0)
 
   const athletesPending =
     athleteSummary.loading && athleteSummary.pending == null ? null : (athleteSummary.pending ?? 0)
-  const diagnosticsSignal = failedCount + pendingReconciliations + (healthIssues || 0)
-  const showDiagnosticsBadge =
-    Boolean(data) && (failedCount > 0 || pendingReconciliations > 0 || !isLedgerHealthy)
 
   const tabOptions = [
     [
@@ -369,17 +154,6 @@ export default function PaymentsOperationsSection({
         tone: ticketsPending > 0 ? 'warning' : null,
       },
     ],
-    [
-      'ledger',
-      t('admin.paymentOperations.tabLedger'),
-      undefined,
-      showDiagnosticsBadge
-        ? {
-            value: diagnosticsSignal,
-            tone: 'danger',
-          }
-        : null,
-    ],
   ]
 
   return (
@@ -391,37 +165,38 @@ export default function PaymentsOperationsSection({
               <span className="admin-list-shell__eyebrow">{t('admin.paymentOperations.eyebrow')}</span>
               <h1 className="admin-list-shell__title">{t('admin.paymentOperations.title')}</h1>
               <p className="admin-list-shell__subtitle">{t('admin.paymentOperations.subtitle')}</p>
-              <p
-                className={`admin-payments-ops-pulse${
-                  (athletesPending ?? 0) > 0 ? ' admin-payments-ops-pulse--warning' : ''
-                }`}
-                aria-label={t('admin.paymentOperations.opsStripAria')}
-              >
-                <span className="admin-payments-ops-pulse__value">
+            </div>
+            <p
+              className={`admin-payments-ops-pulse${
+                (athletesPending ?? 0) > 0 ? ' admin-payments-ops-pulse--warning' : ''
+              }`}
+              aria-label={t('admin.paymentOperations.opsStripAria')}
+            >
+              <span className="admin-payments-ops-pulse__stat">
+                <strong className="admin-payments-ops-pulse__value">
                   {athletesPending == null ? '—' : athletesPending}
-                </span>
+                </strong>
                 <span className="admin-payments-ops-pulse__label">
                   {t('admin.paymentOperations.pulseLabel')}
                 </span>
-                <span className="admin-payments-ops-pulse__sep" aria-hidden="true">
-                  ·
+              </span>
+              <span className="admin-payments-ops-pulse__stat">
+                <strong className="admin-payments-ops-pulse__value admin-payments-ops-pulse__value--amount">
+                  {money(athleteSummary.openAmount ?? 0, locale)}
+                </strong>
+                <span className="admin-payments-ops-pulse__label">
+                  {t('admin.paymentOperations.pulseAmountCaption')}
                 </span>
-                <span className="admin-payments-ops-pulse__hint">
-                  {t('admin.paymentOperations.pulseAmount', {
-                    amount: money(athleteSummary.openAmount ?? 0, locale),
-                  })}
-                </span>
-              </p>
-            </div>
+              </span>
+            </p>
             <div className="admin-list-shell__actions admin-payments-ops-top__actions">
-              <button
-                type="button"
-                className="btn btn--ghost btn--small"
+              <AdminIconButton
+                icon={RefreshCw}
+                label={t('admin.paymentOperations.refresh')}
+                spinning={refreshing}
+                disabled={refreshing}
                 onClick={() => void refreshAll()}
-                disabled={loading || recovering}
-              >
-                <RefreshCw size={14} aria-hidden /> {t('admin.paymentOperations.refresh')}
-              </button>
+              />
             </div>
           </header>
 
@@ -437,201 +212,16 @@ export default function PaymentsOperationsSection({
         </div>
       </div>
 
-      <div className="admin-payments-operations__body">      {showHealthCallout ? (
-        <div className="admin-payments-ops-callout" role="status">
-          <AlertTriangle size={16} aria-hidden />
-          <div className="admin-payments-ops-callout__body">
-            {healthBreakdown.length > 0 ? (
-              <>
-                <strong>{t('admin.paymentOperations.healthCalloutTitle')}</strong>
-                <ul>
-                  {healthBreakdown.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </>
-            ) : null}
-            {blockers.length > 0 ? (
-              <>
-                <strong>{t('admin.paymentOperations.diagnosisTitle')}</strong>
-                <ul className="admin-payments-ops-callout__diagnoses">
-                  {blockers.map((item) => (
-                    <li key={`${item.code}-${item.cause}`}>
-                      <span className="admin-payments-ops-callout__diagnosis-title">
-                        {item.title}
-                        {item.affected > 1 ? (
-                          <span className="admin-payments-ops-callout__diagnosis-count">
-                            {t('admin.paymentOperations.diagnosisAffected', {
-                              count: item.affected,
-                            })}
-                          </span>
-                        ) : null}
-                      </span>
-                      <span className="admin-payments-ops-callout__diagnosis-cause">
-                        {item.cause}
-                      </span>
-                      {Array.isArray(item.fix) && item.fix.length > 0 ? (
-                        <ol className="admin-payments-ops-callout__diagnosis-fix">
-                          {item.fix.map((step) => (
-                            <li key={step}>{step}</li>
-                          ))}
-                        </ol>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : null}
-            <div className="admin-payments-ops-callout__actions">
-              <button
-                type="button"
-                className="btn btn--ghost btn--small"
-                onClick={openDiagnostics}
-              >
-                {t('admin.paymentOperations.healthCalloutCta')}
-              </button>
-              {canEdit ? (
-                <button
-                  type="button"
-                  className="btn btn--small"
-                  onClick={openDiagnosticsAndCompare}
-                  disabled={revalidating}
-                >
-                  {revalidating ? (
-                    <LoaderCircle size={14} aria-hidden className="is-spinning" />
-                  ) : (
-                    <ScanSearch size={14} aria-hidden />
-                  )}{' '}
-                  {t('admin.paymentOperations.healthCalloutCompare')}
-                </button>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <div className="admin-payments-operations__body">
+      <PaymentOrderSearch onSelectResult={handleSelectSearchResult} />
 
-      {/* Cierre automático: va antes de las divergencias porque responde una
-          pregunta anterior —"¿se están cerrando solas?"— y porque una orden
-          trabada acá es justamente la que después aparece como divergencia. */}
-      <PaymentExpiryPanel canEdit={canEdit} />
-
-      {/* Divergencias contra Mercado Pago: qué estado figura acá y cuál dice el
-          proveedor, enfrentados. Es el bloque que responde "figura cancelado
-          pero la plata entró" sin salir del panel. */}
-      {revalidation ? (
-        <section className="admin-payment-ops" aria-labelledby="payment-revalidation-title">
-          <header className="admin-payment-ops__header admin-payment-ops__header--compact">
-            <div className="admin-payment-ops__intro">
-              <span className="admin-payment-ops__eyebrow">
-                <ScanSearch size={14} aria-hidden />{' '}
-                {t('admin.paymentOperations.revalidateEyebrow')}
-              </span>
-              <h2 id="payment-revalidation-title">
-                {t('admin.paymentOperations.revalidateTitle')}
-              </h2>
-              <p className="admin-payment-ops__subtitle">
-                {t('admin.paymentOperations.revalidateSummary', {
-                  checked: revalidation.summary?.checked ?? 0,
-                  days: revalidation.summary?.sinceDays ?? 30,
-                  divergent: revalidation.summary?.divergent ?? 0,
-                })}
-              </p>
-            </div>
-          </header>
-
-          {(revalidation.divergences?.length ?? 0) === 0 ? (
-            <p className="admin-payment-ops__healthy-line" role="status">
-              <ShieldCheck size={16} aria-hidden />
-              <span>{t('admin.paymentOperations.revalidateHealthy')}</span>
-            </p>
-          ) : (
-            <AdminDataTable
-              variant="admin"
-              rows={revalidation.divergences.map((item) => ({
-                id: item.order?.id,
-                reference: item.order?.reference ?? item.order?.id,
-                athlete: item.order?.athleteName ?? '—',
-                amount: item.order?.amount ?? null,
-                localStatus: item.localStatus,
-                providerStatus: item.providerStatus,
-                outcome: item.outcome,
-                corrected: item.corrected,
-                resultStatus: item.resultStatus,
-              }))}
-              emptyMessage={t('admin.paymentOperations.revalidateHealthy')}
-              columns={[
-                {
-                  key: 'reference',
-                  label: t('admin.columns.reference'),
-                  mobile: 'primary',
-                  sortable: true,
-                },
-                {
-                  key: 'athlete',
-                  label: t('admin.columns.athlete'),
-                  mobile: 'default',
-                },
-                {
-                  key: 'amount',
-                  label: t('admin.columns.amount'),
-                  mobile: 'hidden',
-                  desktop: 'numeric',
-                  align: 'end',
-                  render: (row) => (row.amount == null ? '—' : money(row.amount, locale)),
-                },
-                {
-                  key: 'localStatus',
-                  label: t('admin.paymentOperations.revalidateLocal'),
-                  mobile: 'badge',
-                  render: (row) => <StatusBadge value={row.localStatus} />,
-                },
-                {
-                  key: 'providerStatus',
-                  label: t('admin.paymentOperations.revalidateProvider'),
-                  mobile: 'badge',
-                  render: (row) =>
-                    row.providerStatus ? (
-                      <StatusBadge value={row.providerStatus} />
-                    ) : (
-                      <span className="data-table__mono data-table__mono--empty">—</span>
-                    ),
-                },
-                {
-                  key: 'outcome',
-                  label: t('admin.paymentOperations.detail'),
-                  mobile: 'default',
-                  render: (row) => t(`admin.paymentOperations.revalidateOutcome.${row.outcome}`),
-                },
-                {
-                  key: 'actions',
-                  label: t('admin.columns.action'),
-                  mobile: 'action',
-                  className: 'data-table__column--actions',
-                  render: (row) => {
-                    // Solo se corrige lo que el proveedor puede resolver solo.
-                    // Un monto distinto o una orden ilegible se miran a mano.
-                    if (!canEdit || row.corrected || row.outcome !== 'divergent') {
-                      return <AdminTableActionsEmpty />
-                    }
-                    const fixing = fixingOrderId === row.id
-                    return (
-                      <AdminTableActions>
-                        <AdminIconButton
-                          disabled={fixing}
-                          icon={fixing ? LoaderCircle : ScanSearch}
-                          label={t('admin.paymentOperations.revalidateApply')}
-                          onClick={() => void handleFixDivergence(row.id)}
-                          variant="celeste"
-                        />
-                      </AdminTableActions>
-                    )
-                  },
-                },
-              ]}
-            />
-          )}
-        </section>
-      ) : null}
+      {/* Cierre automático: vive arriba de las pestañas, no como un `__panel`
+          más. Esos paneles se apilan en la misma celda (display none/block);
+          si el vencimiento entra en esa pila, Órdenes se pinta encima y el
+          plazo queda ilegible. */}
+      <div className="admin-payments-operations__expiry" hidden={activeTab === 'tickets'}>
+        <PaymentExpiryPanel canEdit={canEdit} />
+      </div>
 
       <div
         className="admin-payments-operations__panel"
@@ -641,7 +231,7 @@ export default function PaymentsOperationsSection({
         canEdit={canEdit}
         canForceSettle={canEdit && Boolean(onForceSettlePayment)}
         validationEnabled={validation}
-        highlightOrderId={highlightOrderId}
+        highlightOrderId={searchHighlightOrderId ?? highlightOrderId}
         onApprovePayment={onApprovePayment}
         onForceSettlePayment={onForceSettlePayment}
         onRejectPayment={onRejectPayment}
@@ -659,279 +249,18 @@ export default function PaymentsOperationsSection({
       >
         <TicketOrdersSection
           canEdit={canEdit && validation.ticket}
-          initialQuery={ticketOrderEventScope}
+          initialQuery={searchTicketQuery || ticketOrderEventScope}
           pendingTicketOrders={pendingTicketOrders}
           isLoading={manualLoading}
           loadError={manualError}
+          events={ticketEvents}
           onApproveTicketOrder={onApproveTicketOrder}
           onRejectTicketOrder={onRejectTicketOrder}
+          onCreateManualTicketOrder={onCreateManualTicketOrder}
           onRefresh={onRefreshManual}
         />
       </div>
 
-      <section
-        id="admin-payment-ledger"
-        className="admin-payment-ops admin-payments-operations__panel"
-        aria-label={t('admin.paymentOperations.tabLedger')}
-        style={{ display: activeTab === 'ledger' ? 'block' : 'none' }}
-      >
-        {(canEdit || data?.configuration) ? (
-          <div className="admin-payment-ops__chrome">
-            {data?.configuration ? (
-              <ul
-                className="admin-payment-ops__signals"
-                aria-label={t('admin.paymentOperations.runtimeSignalsAria')}
-              >
-                <li className="admin-payment-ops__chip">
-                  <span className="admin-payment-ops__chip-label">
-                    {t('admin.paymentOperations.provider')}
-                  </span>
-                  <strong className="admin-payment-ops__chip-value">
-                    {data.configuration.provider === 'mock' ? 'Mock' : 'Mercado Pago'}
-                  </strong>
-                </li>
-                <li
-                  className={[
-                    'admin-payment-ops__chip',
-                    data.configuration.webhookConfigured
-                      ? 'admin-payment-ops__chip--ok'
-                      : 'admin-payment-ops__chip--warn',
-                  ].join(' ')}
-                >
-                  <span className="admin-payment-ops__chip-label">
-                    {t('admin.paymentOperations.webhook')}
-                  </span>
-                  <strong className="admin-payment-ops__chip-value">
-                    {t(
-                      data.configuration.webhookConfigured
-                        ? 'admin.paymentOperations.configured'
-                        : 'admin.paymentOperations.missing',
-                    )}
-                  </strong>
-                </li>
-                <li className="admin-payment-ops__chip">
-                  <span className="admin-payment-ops__chip-label">
-                    {t('admin.paymentOperations.processingMode')}
-                  </span>
-                  <strong className="admin-payment-ops__chip-value">
-                    {t(
-                      data.configuration.webhookProcessingMode === 'deferred'
-                        ? 'admin.paymentOperations.deferred'
-                        : 'admin.paymentOperations.inline',
-                    )}
-                  </strong>
-                </li>
-                <li
-                  className={[
-                    'admin-payment-ops__chip',
-                    data.configuration.recoveryEnabled
-                      ? 'admin-payment-ops__chip--ok'
-                      : 'admin-payment-ops__chip--warn',
-                  ].join(' ')}
-                >
-                  <span className="admin-payment-ops__chip-label">
-                    {t('admin.paymentOperations.recovery')}
-                  </span>
-                  <strong className="admin-payment-ops__chip-value">
-                    {t(
-                      data.configuration.recoveryEnabled
-                        ? 'admin.paymentOperations.recoveryOn'
-                        : 'admin.paymentOperations.recoveryOff',
-                    )}
-                  </strong>
-                </li>
-              </ul>
-            ) : null}
-
-            {canEdit ? (
-              <div
-                className="admin-payment-ops__tools"
-                aria-label={t('admin.paymentOperations.toolsLabel')}
-              >
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--small"
-                  onClick={() => void handleRevalidate()}
-                  disabled={revalidating || recovering}
-                >
-                  {revalidating ? (
-                    <LoaderCircle size={14} aria-hidden className="is-spinning" />
-                  ) : (
-                    <ScanSearch size={14} aria-hidden />
-                  )}{' '}
-                  {t('admin.paymentOperations.revalidate')}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--small"
-                  onClick={() => void handleRecover()}
-                  disabled={recovering || revalidating}
-                >
-                  <RotateCcw size={14} aria-hidden /> {t('admin.paymentOperations.recover')}
-                </button>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-
-        <div
-          className="admin-payment-ops__ledger"
-          aria-label={t('admin.paymentOperations.signalAria')}
-        >
-          {primaryMetrics.map((metric) => (
-            <article
-              key={metric.id}
-              className={`admin-payment-ops__metric admin-payment-ops__metric--${metric.tone}`}
-            >
-              <strong>{metric.value}</strong>
-              <span>{metric.label}</span>
-            </article>
-          ))}
-        </div>
-
-        <div className="admin-payment-ops__filter">
-          <AdminFilterChipGroup
-            id="payment-ops-status"
-            label={t('admin.filters.status')}
-            value={status}
-            onChange={setStatus}
-            compact
-            inline
-            defaultValue=""
-            omitNeutral
-            allLabel={t('admin.filters.showingAll')}
-            clearable
-            hideEmpty
-            options={[
-              ['', t('admin.paymentOperations.allEvents')],
-              ['failed', t('admin.paymentOperations.failed'), summary.events?.failed],
-              ['processing', t('admin.paymentOperations.processing'), summary.events?.processing],
-              ['processed', t('admin.paymentOperations.processed'), summary.events?.processed],
-            ]}
-          />
-          <small className="admin-payment-ops__filter-meta">
-            {summary.updatedAt
-              ? t('admin.paymentOperations.updatedAt', {
-                  date: formatDate(summary.updatedAt, locale),
-                })
-              : null}
-            {summary.events?.processed != null ? (
-              <>
-                {summary.updatedAt ? ' · ' : null}
-                {t('admin.paymentOperations.processedEvents')}: {summary.events.processed}
-              </>
-            ) : null}
-          </small>
-        </div>
-
-        {error ? (
-          <ErrorState message={error} onRetry={loadOps} retryLabel={t('common.retry')} />
-        ) : loading && !data ? (
-          <LoadingState label={t('admin.paymentOperations.loading')} />
-        ) : showHealthyEmpty ? (
-          <div className="admin-payment-ops__healthy" role="status">
-            <ShieldCheck size={20} aria-hidden />
-            <div>
-              <strong>{t('admin.paymentOperations.emptyHealthyTitle')}</strong>
-              <p>{t('admin.paymentOperations.emptyHealthyLead')}</p>
-              {summary.updatedAt ? (
-                <small>
-                  {t('admin.paymentOperations.updatedAt', {
-                    date: formatDate(summary.updatedAt, locale),
-                  })}
-                </small>
-              ) : null}
-            </div>
-          </div>
-        ) : (
-          <AdminDataTable
-            variant="admin"
-            emptyMessage={t('admin.paymentOperations.empty')}
-            rows={operationRows}
-            columns={[
-              {
-                key: 'event_type',
-                label: t('admin.paymentOperations.type'),
-                mobile: 'primary',
-                sortable: true,
-              },
-              {
-                key: 'resource_id',
-                label: t('admin.paymentOperations.resource'),
-                mobile: 'default',
-                sortable: true,
-              },
-              {
-                key: 'status',
-                label: t('admin.columns.status'),
-                mobile: 'badge',
-                sortable: true,
-                render: (row) => <StatusBadge value={row.status} />,
-              },
-              {
-                key: 'attempts_count',
-                label: t('admin.paymentOperations.attempts'),
-                mobile: 'default',
-                desktop: 'numeric',
-                align: 'end',
-                sortable: true,
-                render: (row) => `${row.attempts_count}/${row.max_attempts}`,
-              },
-              {
-                key: 'last_attempt_at',
-                label: t('admin.paymentOperations.lastAttempt'),
-                mobile: 'default',
-                sortable: true,
-                render: (row) => formatDate(row.last_attempt_at, locale),
-              },
-              {
-                key: 'error',
-                label: t('admin.paymentOperations.detail'),
-                mobile: 'hidden',
-                // El texto crudo del proveedor no le dice nada al operador. El
-                // diagnóstico va adelante y el mensaje original queda como
-                // título, para quien necesite el detalle textual.
-                render: (row) => {
-                  if (!row.error) return '—'
-                  if (!row.diagnosis) return row.error
-                  return (
-                    <span className="admin-payment-ops__diagnosis" title={row.error}>
-                      <strong>{row.diagnosis.title}</strong>
-                      <small>{row.diagnosis.fix?.[0] ?? row.diagnosis.cause}</small>
-                    </span>
-                  )
-                },
-              },
-              {
-                key: 'actions',
-                label: t('admin.columns.action'),
-                mobile: 'action',
-                className: 'data-table__column--actions',
-                render: (row) => {
-                  if (!['failed', 'pending'].includes(row.status) || !canEdit) {
-                    return <AdminTableActionsEmpty />
-                  }
-
-                  const retrying = retryingId === row.id
-
-                  return (
-                    <AdminTableActions>
-                      <AdminIconButton
-                        disabled={retrying}
-                        icon={RotateCcw}
-                        spinning={retrying}
-                        label={t('admin.paymentOperations.retry')}
-                        onClick={() => handleRetry(row)}
-                        variant="ghost"
-                      />
-                    </AdminTableActions>
-                  )
-                },
-              },
-            ]}
-          />
-        )}
-      </section>
       </div>
     </div>
   )

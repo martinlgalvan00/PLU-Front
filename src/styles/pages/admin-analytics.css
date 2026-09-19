@@ -1988,3 +1988,272 @@
     right: auto;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Análisis de ventas de entradas (tab "Análisis" de Pagos)
+ * Informe editorial: cifras en franja, listas sin caja y la curva como
+ * bloque principal. No reusa el cromado de tiles de Analítica.
+ * --------------------------------------------------------------------------- */
+
+.admin-ticket-sales-analytics {
+  display: grid;
+  gap: 28px;
+}
+
+.admin-ticket-sales-analytics__head {
+  align-items: end;
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  justify-content: space-between;
+  margin: 0;
+  padding-bottom: 16px;
+}
+
+.admin-ticket-sales-analytics__heading {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-ticket-sales-analytics__head h3 {
+  font-size: clamp(1.2rem, 2vw, 1.45rem);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.admin-ticket-sales-analytics__head h3 svg {
+  display: none;
+}
+
+.admin-ticket-sales-analytics__event-meta {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.admin-ticket-sales-analytics__event-field {
+  display: grid;
+  gap: 4px;
+  max-width: 280px;
+  min-width: min(100%, 200px);
+}
+
+.admin-ticket-sales-analytics__event-field span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-ticket-sales-analytics__event-field select {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  border-radius: 0;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 550;
+  min-height: 36px;
+  padding: 0 0 6px;
+  width: 100%;
+}
+
+.admin-ticket-sales-analytics__event-field select:focus-visible {
+  border-bottom-color: var(--color-brand-celeste);
+  outline: none;
+}
+
+.admin-ticket-sales-analytics .admin-analytics__stat-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 0;
+}
+
+.admin-ticket-sales-analytics .admin-analytics__stat,
+.admin-ticket-sales-analytics .admin-analytics__stat--compact {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  flex: 1 1 9rem;
+  gap: 4px;
+  min-height: 0;
+  padding: 4px 20px 4px 0;
+}
+
+.admin-ticket-sales-analytics .admin-analytics__stat + .admin-analytics__stat {
+  border-left: 1px solid var(--color-border-subtle);
+  padding-left: 20px;
+}
+
+.admin-ticket-sales-analytics .admin-analytics__stat::before {
+  display: none;
+}
+
+.admin-ticket-sales-analytics .admin-analytics__stat-number {
+  font-size: clamp(1.35rem, 2.2vw, 1.7rem);
+}
+
+.admin-ticket-sales-analytics .admin-analytics__stat-label {
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-ticket-sales-analytics .admin-analytics__stat-hint {
+  font-size: 11px;
+  max-width: 16rem;
+}
+
+.admin-ticket-sales-analytics .admin-analytics__block {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+
+.admin-ticket-sales-analytics .admin-analytics__block h4 {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  margin: 0 0 12px;
+  text-transform: uppercase;
+}
+
+.admin-ticket-sales-analytics .admin-analytics__bar-list {
+  gap: 0;
+}
+
+.admin-ticket-sales-analytics .admin-analytics__bar-list li {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border-subtle) 88%, transparent);
+  border-radius: 0;
+  gap: 6px;
+  padding: 12px 0;
+}
+
+.admin-ticket-sales-analytics .admin-analytics__bar-list li:nth-child(odd) {
+  background: transparent;
+}
+
+.admin-ticket-sales-analytics .admin-analytics__bar-list li:last-child {
+  border-bottom: 0;
+}
+
+.admin-ticket-sales-analytics .admin-analytics__bar-list-label {
+  display: grid;
+  gap: 2px;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+}
+
+.admin-ticket-sales-analytics .admin-analytics__bar-list-hint {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 450;
+  line-height: 1.4;
+}
+
+.admin-ticket-sales-analytics .admin-analytics__bar-list-value {
+  align-items: flex-end;
+  display: grid;
+  font-size: 14px;
+  justify-items: end;
+}
+
+.admin-ticket-sales-analytics__channel-value {
+  align-items: flex-end;
+  display: grid;
+  gap: 1px;
+  justify-items: end;
+}
+
+.admin-ticket-sales-analytics__channel-value small {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 550;
+}
+
+.admin-ticket-sales-analytics .admin-analytics__bar-list-track {
+  background: color-mix(in srgb, var(--color-text-muted) 16%, transparent);
+  height: 3px;
+}
+
+.admin-ticket-sales-analytics__grid {
+  display: grid;
+  gap: 32px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr);
+}
+
+.admin-ticket-sales-analytics__trend .admin-analytics__traffic-chart {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 8px 0 0;
+}
+
+.admin-ticket-sales-analytics__trend .admin-analytics__traffic-chart svg {
+  height: min(240px, 32vw);
+  min-height: 160px;
+}
+
+.admin-ticket-sales-analytics__trend .admin-analytics__traffic-axis {
+  border-top-color: color-mix(in srgb, var(--color-border-subtle) 80%, transparent);
+  padding: 8px 0 0;
+}
+
+@media (max-width: 720px) {
+  .admin-ticket-sales-analytics {
+    gap: 22px;
+  }
+
+  .admin-ticket-sales-analytics__head {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .admin-ticket-sales-analytics .admin-analytics__stat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 0;
+  }
+
+  .admin-ticket-sales-analytics .admin-analytics__stat,
+  .admin-ticket-sales-analytics .admin-analytics__stat--compact {
+    padding: 0 16px 0 0;
+  }
+
+  .admin-ticket-sales-analytics .admin-analytics__stat:nth-child(2n) {
+    border-left: 1px solid var(--color-border-subtle);
+    padding-left: 16px;
+  }
+
+  .admin-ticket-sales-analytics .admin-analytics__stat:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .admin-ticket-sales-analytics .admin-analytics__stat:nth-child(n + 3) {
+    padding-top: 4px;
+  }
+
+  .admin-ticket-sales-analytics__grid {
+    gap: 24px;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-ticket-sales-analytics__trend .admin-analytics__traffic-chart svg {
+    height: 160px;
+    min-height: 140px;
+  }
+}

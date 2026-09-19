@@ -20,7 +20,7 @@ describe('HeroStatusCard', () => {
     expect(document.body.textContent).not.toContain('Entradas disponibles')
   })
 
-  it('si hay entradas en venta lo dice y abre la compra, no el evento', () => {
+  it('si hay entradas en venta, toda la ficha abre la compra y no el evento', () => {
     const onSelect = vi.fn()
     const onSelectTickets = vi.fn()
     renderCard({
@@ -33,20 +33,21 @@ describe('HeroStatusCard', () => {
     const shell = document.querySelector('.hero-meta--tickets')
     const hanging = shell?.querySelector('.hero-meta__tickets')
     const panel = shell?.querySelector('.hero-meta__panel')
-    expect(shell?.tagName).toBe('DIV')
+    expect(shell?.tagName).toBe('BUTTON')
     expect(hanging).not.toBeNull()
-    expect(hanging.getAttribute('aria-label')).toContain('Entradas disponibles')
+    expect(shell.getAttribute('aria-label')).toContain('Entradas disponibles')
     expect(hanging.textContent).toContain('Entradas disponibles')
     expect(hanging.textContent).toContain('Ver entradas')
     expect(hanging.textContent).not.toContain('Ver evento')
     expect(panel.textContent).not.toContain('Entradas disponibles')
     expect(shell.textContent).not.toContain('Cerrado')
 
-    fireEvent.click(hanging)
+    fireEvent.click(panel)
     expect(onSelectTickets).toHaveBeenCalledTimes(1)
     expect(onSelect).not.toHaveBeenCalled()
 
-    fireEvent.click(panel)
-    expect(onSelect).toHaveBeenCalledTimes(1)
+    fireEvent.click(hanging)
+    expect(onSelectTickets).toHaveBeenCalledTimes(2)
+    expect(onSelect).not.toHaveBeenCalled()
   })
 })

@@ -15,6 +15,7 @@ import { AdminEventLivePreview } from './AdminEventEditor.jsx'
 import AdminEventDashboard from './AdminEventDashboard.jsx'
 import AdminEventStateControl from './AdminEventStateControl.jsx'
 import AdminEventTicketAddonReport from './AdminEventTicketAddonReport.jsx'
+import AdminEventTicketsSoldSection from './AdminEventTicketsSoldSection.jsx'
 import StatusPill from '../ui/StatusPill.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatDayMonth, money } from '../../lib/format.js'
@@ -264,6 +265,10 @@ export default function AdminEventWorkspace({
       id: 'payment',
       label: t('admin.eventEditor.salesChapterPayment'),
     },
+    {
+      id: 'sold',
+      label: t('admin.eventEditor.salesChapterSold'),
+    },
   ]
 
   /** Bloques de la página pública, con su interruptor de un toque. */
@@ -425,9 +430,17 @@ export default function AdminEventWorkspace({
       return <div className="admin-event-workspace__wide">{paymentsSection}</div>
     }
     if (activeTab === 'sales') {
+      // "Entradas vendidas" vive fuera del acordeón (`editor`): ese acordeón
+      // sólo conoce cupo/precios/entradas/cobro -- no tiene un capítulo
+      // definido para "sold", así que se reemplaza el nodo entero en vez de
+      // pedirle al acordeón algo que no sabe mostrar.
       return (
         <div className="admin-event-workspace__main-col">
-          {editor}
+          {openChapter === 'sold' ? (
+            <AdminEventTicketsSoldSection event={event} />
+          ) : (
+            editor
+          )}
           <AdminEventTicketAddonReport event={event} tickets={tickets} />
         </div>
       )

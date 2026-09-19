@@ -2,16 +2,37 @@ import { createHash, randomBytes } from 'node:crypto'
 import { HttpError } from '../../lib/errors.js'
 import { assertSupabaseResult, requireSupabaseClient } from '../../lib/supabaseRpc.js'
 import { PROOF_BUCKET } from '../../lib/supabaseAdmin.js'
+import { aggregateCapacity, aggregateRevenue, bucketByDay } from './ticketSalesAggregation.js'
 
 const hash = (value) => createHash('sha256').update(value).digest('hex')
 const ORDER_ACCESS_SELECT = 'id,provider'
-const PENDING_MANUAL_ORDER_SELECT = `
+// Misma proyección para la cola de pendientes y para el historial completo:
+// las dos pantallas arman la misma fila (orden + evento + asistentes), solo
+// cambia el filtro de estado/proveedor con el que se consulta.
+const TICKET_ORDER_SELECT = `
   id, event_id, buyer_name, buyer_email, buyer_phone, amount, currency,
   provider, manual_payment_channel, status, reference, payment_proof_path,
   payment_proof_uploaded_at, created_at, updated_at,
   event:events(slug,title),
   tickets(attendee_name,attendee_dni)
 `
+const PENDING_MANUAL_ORDER_SELECT = TICKET_ORDER_SELECT
+const OPEN_TICKET_ORDER_STATUSES = ['creado', 'pendiente']
+// Igual que en el repo de atletas: sumar el importe pendiente sobre una
+// muestra acotada en vez de traer la tabla entera para un número.
+const OPEN_AMOUNT_SAMPLE_LIMIT = 500
+
+function mapTicketOrderRow(order) {
+  return {
+    order,
+    event: order.event,
+    ticketCount: order.tickets?.length ?? 0,
+    attendees: (order.tickets ?? []).map((ticket) => ({
+      name: ticket.attendee_name,
+      dni: ticket.attendee_dni,
+    })),
+  }
+}
 
 export function createSupabaseTicketRepository(client) {
   requireSupabaseClient(client)
@@ -37,7 +58,7 @@ export function createSupabaseTicketRepository(client) {
     async createOrder(data) {
       const accessToken = data.accessToken ?? randomBytes(32).toString('base64url')
       const result = await rpc(
-        'create_ticket_order_v2',
+        'create_ticket_order_v3',
         {
           p_event_slug: data.eventSlug,
           p_attendees: data.attendees,
@@ -50,6 +71,10 @@ export function createSupabaseTicketRepository(client) {
           },
           p_idempotency_key: data.idempotencyKey,
           p_access_token_hash: hash(accessToken),
+          // Sólo una carga manual desde el panel manda esto. Cuando viene,
+          // create_ticket_order_v3 saltea las ventanas de venta online y
+          // audita como staff en vez de público.
+          p_staff_actor: data.staffActor ?? null,
         },
         'No se pudo crear la orden de entradas.',
       )
@@ -236,19 +261,155 @@ export function createSupabaseTicketRepository(client) {
           .from('ticket_orders')
           .select(PENDING_MANUAL_ORDER_SELECT)
           .eq('provider', 'manual')
-          .in('status', ['creado', 'pendiente'])
+          .in('status', OPEN_TICKET_ORDER_STATUSES)
           .order('created_at', { ascending: false }),
         'No se pudieron listar las ordenes pendientes.',
       )
-      return rows.map((order) => ({
-        order,
-        event: order.event,
-        ticketCount: order.tickets?.length ?? 0,
-        attendees: (order.tickets ?? []).map((ticket) => ({
-          name: ticket.attendee_name,
-          dni: ticket.attendee_dni,
-        })),
-      }))
+      return rows.map(mapTicketOrderRow)
+    },
+    /**
+     * Historial completo para Finanzas: a diferencia de `listPending`, no se
+     * restringe a `provider = 'manual'` -- una vista de administración de
+     * ventas que sólo mostrara transferencias no serviría para responder
+     * "cuánto se vendió" de un evento. El filtro de estado sí viaja a la
+     * consulta (mismo criterio que `listPaymentOrders` del lado atleta): quien
+     * mira "aprobadas" no necesita que le lleguen las 500 pendientes primero.
+     */
+    async listOrders({ statuses, channel, query, sort = 'recent', limit = 200 } = {}) {
+      let builder = client.from('ticket_orders').select(TICKET_ORDER_SELECT)
+
+      if (Array.isArray(statuses) && statuses.length > 0) builder = builder.in('status', statuses)
+
+      // El canal sólo tiene sentido para `manual`: fijarlo sin fijar el
+      // proveedor dejaría pasar filas de Mercado Pago con el campo en null.
+      if (channel === 'mercado_pago') builder = builder.eq('provider', 'mercado_pago')
+      else if (channel) builder = builder.eq('provider', 'manual').eq('manual_payment_channel', channel)
+
+      if (query) {
+        const like = `%${query.trim()}%`
+        builder = builder.or(
+          `reference.ilike.${like},buyer_name.ilike.${like},buyer_email.ilike.${like}`,
+        )
+      }
+
+      // "Antiguas primero" prioriza el comprobante que más tiempo lleva
+      // esperando -- mismo argumento que `sort=aging` en afiliaciones.
+      builder =
+        sort === 'aging'
+          ? builder.order('created_at', { ascending: true })
+          : builder.order('created_at', { ascending: false })
+
+      const rows = assertSupabaseResult(
+        await builder.limit(limit),
+        'No se pudieron listar las ordenes de entradas.',
+      )
+      return rows.map(mapTicketOrderRow)
+    },
+    /**
+     * Contadores y monto pendiente para los chips de estado, calculados en la
+     * base y no sobre las filas que ya viajaron al navegador -- mismo patrón
+     * que `paymentOrderCounts` del lado atleta.
+     */
+    async orderCounts() {
+      const scoped = () => client.from('ticket_orders').select('id', { count: 'exact', head: true })
+
+      const [pendingRes, approvedRes, rejectedRes, cancelledRes, totalRes, pendingAmounts] =
+        await Promise.all([
+          scoped().in('status', OPEN_TICKET_ORDER_STATUSES),
+          scoped().eq('status', 'aprobado'),
+          scoped().eq('status', 'rechazado'),
+          scoped().eq('status', 'cancelado'),
+          scoped(),
+          client
+            .from('ticket_orders')
+            .select('amount')
+            .in('status', OPEN_TICKET_ORDER_STATUSES)
+            .limit(OPEN_AMOUNT_SAMPLE_LIMIT),
+        ])
+
+      for (const response of [pendingRes, approvedRes, rejectedRes, cancelledRes, totalRes]) {
+        assertSupabaseResult(response, 'No se pudieron contar las ordenes de entradas.')
+      }
+      const amounts = assertSupabaseResult(
+        pendingAmounts,
+        'No se pudo sumar lo pendiente de cobro.',
+      )
+
+      return {
+        pending: pendingRes.count ?? 0,
+        aprobado: approvedRes.count ?? 0,
+        rechazado: rejectedRes.count ?? 0,
+        cancelado: cancelledRes.count ?? 0,
+        all: totalRes.count ?? 0,
+        openAmount: (amounts ?? []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0),
+        openAmountTruncated: (pendingRes.count ?? 0) > (amounts?.length ?? 0),
+      }
+    },
+    /**
+     * KPIs de ventas para el tab "Análisis" de Pagos. Sólo lectura -- sin
+     * `SECURITY DEFINER` ni RPC: el server ya usa la service-role key
+     * (bypassea RLS), así que un reporte no tiene la razón de negocio (locks,
+     * idempotencia) que sí justifica una RPC en las mutaciones de este
+     * dominio. La agregación es pura, en `ticketSalesAggregation.js` --
+     * testeable sin Supabase.
+     */
+    async capacitySummary(eventId) {
+      const [typesRes, limitRes, ticketsRes] = await Promise.all([
+        client.from('ticket_types').select('id, name, quota').eq('event_id', eventId).eq('active', true),
+        client
+          .from('event_capacity_rules')
+          .select('limit_count')
+          .eq('event_id', eventId)
+          .eq('scope', 'event')
+          .eq('key', '')
+          .maybeSingle(),
+        // `is_primary_credential`: una compra de entrenador emite 2
+        // credenciales por 1 sola entrada -- contarlas todas duplicaría
+        // "vendidas" (mismo criterio que create_ticket_order_v3).
+        client
+          .from('tickets')
+          .select('ticket_type_id, status')
+          .eq('event_id', eventId)
+          .eq('is_primary_credential', true),
+      ])
+      const types = assertSupabaseResult(typesRes, 'No se pudieron leer los tipos de entrada.')
+      const limit = assertSupabaseResult(limitRes, 'No se pudo leer el cupo del evento.')
+      const ticketRows = assertSupabaseResult(ticketsRes, 'No se pudieron leer las entradas.')
+      return aggregateCapacity(types ?? [], limit?.limit_count ?? null, ticketRows ?? [])
+    },
+    /**
+     * Plata recaudada por moneda y canal, `ticket_orders.amount` -- nunca
+     * `sum(tickets.unit_price)`: en una orden Wise los tickets quedan con el
+     * precio en ARS pero la orden vale en USD (`ticket_orders.currency`).
+     */
+    async revenueSummary(eventId, { fromISO, toISO } = {}) {
+      let builder = client
+        .from('ticket_orders')
+        .select('provider, manual_payment_channel, currency, amount, created_at')
+        .eq('event_id', eventId)
+        .eq('status', 'aprobado')
+      if (fromISO) builder = builder.gte('created_at', fromISO)
+      if (toISO) builder = builder.lt('created_at', toISO)
+      const rows = assertSupabaseResult(await builder, 'No se pudo calcular lo recaudado.')
+      return aggregateRevenue(rows ?? [])
+    },
+    /**
+     * Entradas vendidas por día -- eje `created_at`, no `approved_at`:
+     * `approved_at` queda `null` en toda orden manual (sólo lo pueblan los
+     * paths de Mercado Pago), así que no sirve como fecha de acreditación
+     * para transferencia/efectivo/Wise.
+     */
+    async dailyTicketsSold(eventId, { fromISO, toISO } = {}) {
+      let builder = client
+        .from('tickets')
+        .select('created_at')
+        .eq('event_id', eventId)
+        .eq('is_primary_credential', true)
+        .eq('status', 'pagada')
+      if (fromISO) builder = builder.gte('created_at', fromISO)
+      if (toISO) builder = builder.lt('created_at', toISO)
+      const rows = assertSupabaseResult(await builder, 'No se pudo leer la serie de ventas.')
+      return bucketByDay(rows ?? [], fromISO, toISO)
     },
     async approve(orderId, actor) {
       return rpc(

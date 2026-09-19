@@ -45,6 +45,8 @@ export default function AdminFilterPillRow({ filters }) {
         const open = openId === filter.id
         const valueText = active ? filterValueText(filter, t) : null
         const accessibleName = filter.ariaLabel ?? filter.label
+        const attentionCount = Number(filter.attentionCount)
+        const showAttention = !active && Number.isFinite(attentionCount) && attentionCount > 0
 
         return (
           <div
@@ -70,6 +72,9 @@ export default function AdminFilterPillRow({ filters }) {
                   <span className="admin-filter-pill__divider" aria-hidden="true" />
                   <span className="admin-filter-pill__value">{valueText}</span>
                 </>
+              ) : null}
+              {showAttention ? (
+                <span className="admin-filter-pill__count">{attentionCount}</span>
               ) : null}
               <ChevronDown className="admin-filter-pill__chevron" size={13} aria-hidden />
             </button>

@@ -4,6 +4,7 @@ import AdminFilterBar from './AdminFilterBar.jsx'
 import AdminReadOnlyTag from './AdminReadOnlyTag.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatRecordCount } from '../../i18n/adminHelpers.js'
+import { isFilterActive } from '../../lib/adminFilterValue.js'
 import { useHorizontalScroll } from '../../hooks/useHorizontalScroll.js'
 
 const COMPACT_STATS_MQ = '(max-width: 1100px)'
@@ -117,10 +118,18 @@ export default function AdminListSection({
     collapseStatsOnMobile && isNarrow && showStatsStrip && stats.length > 0
   const statsExpanded = !useCollapsibleStats || statsOpen
   const hasActiveQuery = Boolean(query && String(query).trim())
+  const filtersAreActive = filters.some(isFilterActive)
   // En angosto el título se oculta: el censo vive en el chip "Todos".
-  // "N registros" solo aparece si la búsqueda recorta el listado.
+  // En popover, "N registros" solo aparece cuando la búsqueda o un filtro
+  // recorta el padrón — si no, los chips ya dicen el total.
   const filterCount =
-    (isNarrow || !showHeader) && (hasActiveQuery || !filtersCarryCounts) ? resultLabel : null
+    filterLayout === 'popover'
+      ? hasActiveQuery || filtersAreActive
+        ? resultLabel
+        : null
+      : (isNarrow || !showHeader) && (hasActiveQuery || !filtersCarryCounts)
+        ? resultLabel
+        : null
 
   const filterSignature = useMemo(
     () =>

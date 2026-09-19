@@ -44,7 +44,7 @@ function toCamelCheckIn(row) {
   }
 }
 
-function toCamelTicket(row, { event, checkIn } = {}) {
+function toCamelTicket(row, { event, checkIn, order } = {}) {
   if (!row) return row
   return {
     id: row.id,
@@ -81,6 +81,11 @@ function toCamelTicket(row, { event, checkIn } = {}) {
     updatedAt: row.updated_at,
     event: toCamelEvent(event),
     checkIn: toCamelCheckIn(checkIn),
+    // Comprador y canal de pago de la orden que emitió esta entrada -- sólo
+    // viaja cuando el caller lo pide (staff_list_tickets_for_event); nulo en
+    // el resto de las lecturas (verificación pública, scanner), que no
+    // necesitan exponer quién compró.
+    order: toCamelOrder(order),
   }
 }
 
@@ -132,6 +137,36 @@ export async function createTicketOrder({
   }
 }
 
+/**
+ * Venta de mostrador: la carga un operador desde el panel para una venta
+ * que se cerró por fuera del checkout público (efectivo en la puerta,
+ * transferencia recibida por privado). A diferencia de `createTicketOrder`,
+ * no manda `provider` (siempre `'manual'` del lado del servidor) ni
+ * `accessToken` (el comprador no tiene pestaña propia). `approved` indica
+ * si la respuesta ya viene acreditada (efectivo) o quedó `pendiente`
+ * (transferencia, sigue el circuito de `listPendingTicketOrders`).
+ */
+export async function createManualTicketOrder({
+  eventSlug,
+  attendees,
+  buyer,
+  manualPaymentChannel,
+  idempotencyKey = crypto.randomUUID(),
+}) {
+  const result = await apiPost('/api/tickets/orders/manual', {
+    eventSlug,
+    attendees,
+    buyer,
+    manualPaymentChannel,
+    idempotencyKey,
+  })
+  return {
+    order: toCamelOrder(result.order),
+    tickets: result.tickets.map((ticket) => toCamelTicket(ticket)),
+    approved: Boolean(result.approved),
+  }
+}
+
 export async function approveTicketOrder(orderId) {
   const result = await apiPost(`/api/tickets/orders/${orderId}/approve`, {})
   return {
@@ -153,7 +188,10 @@ export async function registerTicketPaymentProof(orderId, accessToken, proofPath
   return { order: toCamelOrder(result.order) }
 }
 
-function mapPendingTicketOrderRow(row) {
+// Misma forma de fila para la cola de pendientes y para el historial
+// completo -- lo único que cambia entre las dos pantallas es qué le pide cada
+// una al backend, no cómo se lee la respuesta.
+function mapTicketOrderRow(row) {
   const order = toCamelOrder(row.order ?? row)
   const event = row.event ?? {}
   return {
@@ -166,6 +204,8 @@ function mapPendingTicketOrderRow(row) {
     manualPaymentChannel: order.manualPaymentChannel,
     paymentProofPath: order.paymentProofPath,
     paymentProofUploadedAt: order.paymentProofUploadedAt,
+    buyerName: order.buyerName,
+    buyerEmail: order.buyerEmail,
     createdAt: order.createdAt,
     eventSlug: event.slug,
     eventTitle: event.title,
@@ -176,7 +216,28 @@ function mapPendingTicketOrderRow(row) {
 
 export async function listPendingTicketOrders() {
   const { orders } = await apiGet('/api/tickets/orders/pending-manual')
-  return { orders: orders.map(mapPendingTicketOrderRow) }
+  return { orders: orders.map(mapTicketOrderRow) }
+}
+
+/**
+ * Historial de ventas para Finanzas: a diferencia de `listPendingTicketOrders`
+ * (solo transferencias por validar), trae cualquier estado/canal según los
+ * chips activos en `TicketOrdersSection`. Misma convención de query params
+ * que `listAthletePaymentOrders`.
+ */
+export async function listTicketOrders(filters = {}) {
+  const params = new URLSearchParams()
+  if (Array.isArray(filters.statuses) && filters.statuses.length > 0) {
+    params.set('statuses', filters.statuses.join(','))
+  }
+  if (filters.channel) params.set('channel', filters.channel)
+  if (filters.query) params.set('query', filters.query)
+  if (filters.sort) params.set('sort', filters.sort)
+  if (filters.limit) params.set('limit', String(filters.limit))
+  if (filters.withCounts) params.set('withCounts', 'true')
+  const search = params.toString()
+  const { orders, counts } = await apiGet(`/api/tickets/orders${search ? `?${search}` : ''}`)
+  return { orders: (orders ?? []).map(mapTicketOrderRow), counts: counts ?? null }
 }
 
 export async function getTicketPaymentProofUrl(orderId) {
@@ -222,6 +283,7 @@ export async function listTicketsForEvent(eventSlug) {
     tickets: rows.map((row) =>
       toCamelTicket(row.ticket, {
         checkIn: row.checkIn,
+        order: row.order,
         event: row.event ?? { slug: eventSlug },
       }),
     ),

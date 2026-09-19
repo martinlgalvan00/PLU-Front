@@ -522,11 +522,14 @@
   flex: none;
 }
 
-/* Un solo scroller para cierre automático + pestañas. Si el panel de
-   vencimiento queda fuera de `__panel`, overflow:hidden del shell lo recorta
-   y la rueda no mueve nada. */
+/* Un solo scroller para cierre automático + pestañas. Columna, no grilla:
+   los `__panel` de tab se muestran con display:block y si el body es grid
+   con min-height:0 se pisan entre sí y contra el vencimiento. */
 .admin-shell .admin-payments-operations > .admin-payments-operations__body {
+  display: flex;
   flex: 1 1 auto;
+  flex-direction: column;
+  gap: 16px;
   min-height: 0;
   overflow-x: auto;
   overflow-y: auto;
@@ -534,11 +537,29 @@
   -webkit-overflow-scrolling: touch;
 }
 
+.admin-shell .admin-payments-operations > .admin-payments-operations__expiry,
+.admin-shell .admin-payments-operations__body > .admin-payments-operations__expiry {
+  flex: 0 0 auto;
+  min-height: min-content;
+  overflow: visible;
+}
+
 .admin-shell .admin-payments-operations > .admin-payments-operations__panel,
 .admin-shell .admin-payments-operations__body > .admin-payments-operations__panel {
-  flex: none;
-  min-height: 0;
+  flex: 0 0 auto;
+  min-height: min-content;
   overflow: visible;
+}
+
+.admin-shell .admin-payments-operations .admin-data-table-shell--cards .data-table-cards,
+.admin-shell .admin-payments-operations .admin-data-table-shell--cards .data-table-cards--admin {
+  background: transparent;
+  gap: 12px;
+  padding: 8px clamp(14px, 2.4vw, 22px) 16px;
+}
+
+.admin-shell .admin-payments-operations .data-table-card__footer:has(.admin-table-actions__empty) {
+  display: none;
 }
 
 .admin-shell .admin-page > .admin-list-section--rails {
@@ -570,9 +591,9 @@
 
 .admin-shell .admin-list-section--events > .admin-list-section__chrome {
   border-bottom: 1px solid var(--admin-hairline);
-  gap: 8px;
-  margin-bottom: 12px;
-  padding: 2px 0 14px;
+  gap: 2px;
+  margin-bottom: 8px;
+  padding: 0 0 10px;
 }
 
 .admin-shell
@@ -581,7 +602,7 @@
   > .admin-filters--external.admin-filters--popover
   .admin-filter-popoverbar {
   border-bottom: 0;
-  gap: 10px;
+  gap: 8px;
   padding: 2px 2px 0;
 }
 
@@ -591,6 +612,278 @@
   > .admin-filters--external.admin-filters--popover
   .admin-filter-popoverbar__toolbar {
   gap: 10px;
+  min-height: 36px;
+}
+
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filters__search {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--admin-ink) 14%, transparent);
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  flex: 1 1 16rem;
+  gap: 10px;
+  max-width: 28rem;
+  min-height: 36px;
+  min-width: 0;
+  padding: 0 2px 8px;
+}
+
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filters__search:focus-within {
+  background: transparent;
+  border-bottom-color: color-mix(in srgb, var(--admin-ink) 42%, transparent);
+}
+
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-popoverbar__count {
+  align-self: flex-end;
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  padding-bottom: 8px;
+}
+
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-popoverbar__criteria {
+  align-items: center;
+  gap: 6px 0;
+  min-height: 32px;
+}
+
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-popoverbar__rail {
+  flex: 1 1 18rem;
+  width: auto;
+}
+
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-popoverbar__rail
+  .admin-filter-group {
+  flex: 1 1 auto;
+  width: auto;
+}
+
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-popoverbar__facets {
+  flex: 1 1 14rem;
+  gap: 2px 4px;
+}
+
+@media (min-width: 900px) {
+  .admin-shell
+    .admin-list-section--athletes
+    > .admin-list-section__chrome
+    > .admin-filters--external.admin-filters--popover
+    .admin-filter-popoverbar__facets {
+    border-left: 1px solid color-mix(in srgb, var(--admin-ink) 10%, transparent);
+    margin-left: 8px;
+    padding-left: 18px;
+  }
+}
+
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-chip {
+  min-height: 32px;
+  padding: 4px 8px;
+}
+
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-chip.is-active::after,
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-chip[aria-pressed='true']::after {
+  bottom: 2px;
+  left: 8px;
+  right: 8px;
+}
+
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-chip--hint-danger
+  .admin-filter-chip__count,
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-chip--tone-danger
+  .admin-filter-chip__count {
+  color: color-mix(in oklab, var(--plu-gold-500) 82%, var(--admin-ink));
+  font-weight: 650;
+}
+
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-pill {
+  border: 0;
+  border-radius: 0;
+  min-height: 32px;
+}
+
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-pill__trigger {
+  color: var(--admin-muted, var(--color-text-muted));
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 6px;
+}
+
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-pill:hover .admin-filter-pill__trigger,
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-pill.is-open .admin-filter-pill__trigger,
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-pill.is-active .admin-filter-pill__trigger {
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-pill.is-open,
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-pill.is-active {
+  box-shadow: inset 0 -1px 0 var(--admin-ink);
+}
+
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-pill__count {
+  color: color-mix(in oklab, var(--plu-gold-500) 82%, var(--admin-ink));
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-pill:not(.is-open):not(.is-active)
+  .admin-filter-pill__chevron {
+  opacity: 0.35;
+}
+
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-popoverbar__more {
+  border: 0;
+  border-radius: 0;
+  letter-spacing: 0.06em;
+  min-height: 32px;
+  padding: 0 4px;
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 550;
+}
+
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-popoverbar__more:hover,
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-popoverbar__more.is-open,
+.admin-shell
+  .admin-list-section--athletes
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-popoverbar__more.is-active {
+  background: transparent;
+  border: 0;
+}
+
+@media (max-width: 720px) {
+  .admin-shell
+    .admin-list-section--athletes
+    > .admin-list-section__chrome
+    > .admin-filters--external.admin-filters--popover
+    .admin-filters__search {
+    max-width: none;
+    min-height: 44px;
+  }
+
+  .admin-shell
+    .admin-list-section--athletes
+    > .admin-list-section__chrome
+    > .admin-filters--external.admin-filters--popover
+    .admin-filter-popoverbar__facets,
+  .admin-shell
+    .admin-list-section--athletes
+    > .admin-list-section__chrome
+    > .admin-filters--external.admin-filters--popover
+    .admin-filter-popoverbar__facets .admin-filter-pillrow {
+    justify-content: flex-start;
+  }
+
+  .admin-shell
+    .admin-list-section--athletes
+    > .admin-list-section__chrome
+    > .admin-filters--external.admin-filters--popover
+    .admin-filter-popoverbar__facets {
+    border-left: 0;
+    margin-left: 0;
+    padding-left: 0;
+  }
 }
 
 /* People / rails + panel: una sola franja search + Filtros (mismo chrome en
@@ -2073,11 +2366,11 @@
 /* ---- Formularios y paneles de dominio ---- */
 
 .admin-shell .admin-payment-ops {
-  background: var(--admin-surface);
-  border: 1px solid var(--admin-hairline);
-  border-radius: 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   box-shadow: none;
-  overflow: hidden;
+  overflow: visible;
   padding: 0;
 }
 
@@ -2140,6 +2433,18 @@
   border-color: var(--admin-hairline);
 }
 
+.admin-shell .admin-payment-ops__chrome .admin-payment-ops__chip,
+.admin-shell .admin-payment-ops__chrome .admin-payment-ops__chip--ok,
+.admin-shell .admin-payment-ops__chrome .admin-payment-ops__chip--warn {
+  background: transparent;
+  border-color: transparent;
+  flex-direction: row;
+}
+
+.admin-shell .admin-payment-ops__chrome .admin-payment-ops__chip + .admin-payment-ops__chip {
+  border-left-color: var(--admin-hairline);
+}
+
 .admin-shell .admin-payment-ops__chip-label {
   color: var(--admin-muted);
 }
@@ -2177,11 +2482,11 @@
 .admin-shell .admin-payments-operations > .admin-payments-operations__body > * > .admin-orders-block,
 .admin-shell .admin-payments-operations > .admin-ticket-orders-anchor > .admin-list-section,
 .admin-shell .admin-payments-operations > .admin-payments-operations__body > .admin-ticket-orders-anchor > .admin-list-section {
-  background: var(--admin-surface);
-  border: 1px solid var(--admin-hairline);
-  border-radius: 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   box-shadow: none;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .admin-shell .admin-payments-ops-strip {
@@ -2194,7 +2499,10 @@
   color: var(--admin-ink);
 }
 
-.admin-shell .admin-payments-ops-pulse--warning .admin-payments-ops-pulse__value {
+.admin-shell
+  .admin-payments-ops-pulse--warning
+  .admin-payments-ops-pulse__stat:first-child
+  .admin-payments-ops-pulse__value {
   color: var(--admin-status-warning, var(--color-warning, #c9a227));
 }
 
@@ -2225,6 +2533,17 @@
   gap: 8px 24px;
   margin: 0;
   padding: 0;
+}
+
+@media (max-width: 720px) {
+  .admin-shell .admin-payments-operations .admin-payments-ops-top.admin-list-shell__header,
+  .admin-shell .admin-payments-operations .admin-payments-ops-top.admin-list-section__header {
+    align-items: center;
+    display: grid;
+    flex-direction: unset;
+    gap: 6px 12px;
+    padding: 0;
+  }
 }
 
 .admin-shell .admin-payments-operations .admin-payments-ops-top .admin-list-shell__eyebrow {
@@ -2271,6 +2590,170 @@
   flex-wrap: nowrap;
   gap: 14px;
   padding: 14px clamp(14px, 2.4vw, 22px) 16px;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block__toolbar-filters {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block--search .admin-orders-block__header {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block--search .admin-orders-block__toolbar--search {
+  border: 0;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  padding: 0 clamp(14px, 2.4vw, 22px) 10px;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block--search
+  .admin-filters__search {
+  align-items: center;
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 3.5%, transparent);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 10px;
+  box-shadow: none;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 10px;
+  height: 40px;
+  max-height: 44px;
+  max-width: 28rem;
+  min-height: 40px;
+  min-width: 0;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block--search
+  .admin-filters__search:focus-within {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border-color: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 48%, transparent);
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block__hint {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12.5px;
+  line-height: 1.4;
+  margin: 0;
+  padding: 0 clamp(14px, 2.4vw, 22px) 12px;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block__toolbar--tickets {
+  align-items: stretch;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 10px;
+  overflow: visible;
+  padding: 10px clamp(14px, 2.4vw, 22px) 12px;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--tickets
+  .admin-orders-block__toolbar-primary {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px 10px;
+  min-width: 0;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--tickets
+  .admin-orders-block__toolbar-filters {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--tickets
+  .admin-filters__search {
+  align-items: center;
+  align-self: center;
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 3.5%, transparent);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 10px;
+  box-shadow: none;
+  display: flex;
+  flex: 1 1 12rem;
+  flex-grow: 1;
+  flex-shrink: 1;
+  gap: 10px;
+  height: 40px;
+  max-height: 44px;
+  max-width: 22rem;
+  min-height: 40px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 12px;
+  width: auto;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--tickets
+  .admin-filters__search:focus-within {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border-color: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 48%, transparent);
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--tickets
+  .admin-orders-block__actions {
+  flex: 0 0 auto;
+  margin-left: 0;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--tickets
+  .admin-orders-block__toolbar-facets
+  .admin-filter-group {
+  flex: 1 1 14rem;
+  min-width: 0;
+  width: auto;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--tickets
+  .admin-filter-pillrow {
+  flex: 0 0 auto;
+  margin-left: auto;
+  overflow: visible;
+  padding-bottom: 0;
+  width: auto;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--tickets
+  .admin-filter-pill
+  .admin-filter-popover {
+  left: auto;
+  right: 0;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-empty {
+  padding: 52px 24px 60px;
 }
 
 .admin-shell .admin-payments-operations .admin-orders-block--athlete > .admin-orders-block__header {
@@ -2339,12 +2822,127 @@
   text-transform: none;
 }
 
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block--tickets
+  > .admin-orders-block__header {
+  align-items: center;
+  display: grid;
+  gap: 8px 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 10px clamp(14px, 2.4vw, 22px);
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block--tickets
+  .admin-orders-block__title {
+  font-size: clamp(1.05rem, 2vw, 1.22rem);
+  margin-top: 2px;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block--tickets
+  .admin-orders-block__lead {
+  max-width: 42ch;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block--tickets
+  > .admin-orders-block__header
+  .admin-orders-block__summary {
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block--tickets
+  .admin-orders-block__amount-value {
+  font-size: clamp(1.05rem, 1.8vw, 1.28rem);
+}
+
+@media (max-width: 520px) {
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    .admin-orders-block__manual-sale-label {
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    .admin-orders-block__manual-sale {
+    justify-content: center;
+    padding-inline: 0;
+    width: 44px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    .admin-orders-block__eyebrow,
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    .admin-orders-block__lead {
+    display: none;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    > .admin-orders-block__header {
+    padding-block: 8px;
+  }
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block--tickets
+  .admin-empty {
+  padding-block: 40px 48px;
+}
+
 .admin-shell .admin-payments-operations .admin-orders-block__toolbar--athlete {
   background: transparent;
   border: 0;
   border-radius: 0;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  padding: 12px clamp(14px, 2.4vw, 22px) 14px;
+  padding: 10px clamp(14px, 2.4vw, 22px) 12px;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--athlete
+  .admin-orders-block__toolbar-primary {
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--athlete
+  .admin-orders-block__search-row {
+  align-items: center;
+  display: grid;
+  gap: 6px 12px;
+  grid-template-columns: 4.25rem minmax(0, 1fr);
+  width: 100%;
 }
 
 .admin-shell
@@ -2382,44 +2980,68 @@
   font-size: 14px;
   font-weight: 500;
   letter-spacing: -0.015em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-shell
   .admin-payments-operations
   .admin-orders-block__toolbar--athlete
+  .admin-orders-block__toolbar-facets,
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--tickets
   .admin-orders-block__toolbar-facets {
+  align-items: center;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px 20px;
   min-width: 0;
+  overflow: visible;
   width: 100%;
 }
 
 .admin-shell
   .admin-payments-operations
-  .admin-orders-block__toolbar--athlete
+  .admin-orders-block__toolbar
   .admin-orders-block__toolbar-facets
   .admin-filter-group {
-  width: 100%;
+  flex: 1 1 36rem;
+  min-width: 0;
+  width: auto;
 }
 
 .admin-shell
   .admin-payments-operations
-  .admin-orders-block__toolbar--athlete
+  .admin-orders-block__toolbar
   .admin-orders-block__toolbar-facets
   .admin-filter-group--labeled {
   align-items: center;
   display: grid;
-  gap: 6px 14px;
-  grid-template-columns: 5.25rem minmax(0, 1fr);
+  gap: 6px 12px;
+  grid-template-columns: 4.25rem minmax(0, 1fr);
 }
 
 .admin-shell
   .admin-payments-operations
-  .admin-orders-block__toolbar--athlete
+  .admin-orders-block__toolbar
   .admin-orders-block__toolbar-facets
   .admin-filter-chips-rail {
   min-width: 0;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar
+  .admin-filter-group__label {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
 @media (max-width: 720px) {
@@ -2437,11 +3059,111 @@
   .admin-shell
     .admin-payments-operations
     .admin-orders-block__toolbar--athlete
+    .admin-orders-block__search-row,
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--search
+    .admin-orders-block__search-row,
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block__toolbar
     .admin-orders-block__toolbar-facets
     .admin-filter-group--labeled {
     align-items: start;
     grid-template-columns: minmax(0, 1fr);
     gap: 4px;
+  }
+
+  .admin-shell .admin-payments-operations .admin-orders-block__toolbar--tickets {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px clamp(12px, 2.4vw, 18px) 10px;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    > .admin-orders-block__header {
+    align-items: center;
+    display: grid;
+    flex-direction: unset;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-block: 8px;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    > .admin-orders-block__header
+    .admin-orders-block__summary {
+    align-items: flex-end;
+    margin-left: 0;
+    text-align: right;
+    width: auto;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block__toolbar--tickets
+    .admin-orders-block__toolbar-primary {
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: nowrap;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block__toolbar--tickets
+    .admin-filters__search {
+    flex: 1 1 auto;
+    height: 44px;
+    max-height: 44px;
+    max-width: none;
+    min-height: 44px;
+    width: auto;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block__toolbar--tickets
+    .admin-orders-block__actions {
+    flex: 0 0 auto;
+    margin-left: 0;
+    width: auto;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block__toolbar--tickets
+    .admin-orders-block__actions
+    .btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding-inline: 10px;
+    width: auto;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--search
+    .admin-filters__search {
+    height: 44px;
+    max-height: 44px;
+    max-width: none;
+    min-height: 44px;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block__toolbar--tickets
+    .admin-filter-pillrow {
+    margin-left: 0;
+  }
+
+  .admin-shell .admin-payments-operations .admin-orders-empty .btn {
+    min-height: 44px;
+    width: min(100%, 22rem);
   }
 }
 
@@ -2453,6 +3175,14 @@
 .admin-shell
   .admin-payments-operations
   .admin-orders-block__toolbar
+  .admin-filter-chip[aria-pressed='true'],
+.admin-shell
+  .admin-payments-operations
+  .admin-payment-ops__filter
+  .admin-filter-chip.is-active,
+.admin-shell
+  .admin-payments-operations
+  .admin-payment-ops__filter
   .admin-filter-chip[aria-pressed='true'] {
   background: transparent !important;
   border: 0 !important;
@@ -2469,6 +3199,14 @@
 .admin-shell
   .admin-payments-operations
   .admin-orders-block__toolbar
+  .admin-filter-chip[aria-pressed='true']::after,
+.admin-shell
+  .admin-payments-operations
+  .admin-payment-ops__filter
+  .admin-filter-chip.is-active::after,
+.admin-shell
+  .admin-payments-operations
+  .admin-payment-ops__filter
   .admin-filter-chip[aria-pressed='true']::after {
   background: var(--admin-ink);
   bottom: 4px;
@@ -2484,6 +3222,10 @@
 .admin-shell
   .admin-payments-operations
   .admin-orders-block__toolbar
+  .admin-filter-chip__count,
+.admin-shell
+  .admin-payments-operations
+  .admin-payment-ops__filter
   .admin-filter-chip__count {
   background: transparent;
   border-radius: 0;
@@ -2504,8 +3246,60 @@
   .admin-payments-operations
   .admin-orders-block__toolbar
   .admin-filter-chip[aria-pressed='true']
+  .admin-filter-chip__count,
+.admin-shell
+  .admin-payments-operations
+  .admin-payment-ops__filter
+  .admin-filter-chip.is-active
+  .admin-filter-chip__count,
+.admin-shell
+  .admin-payments-operations
+  .admin-payment-ops__filter
+  .admin-filter-chip[aria-pressed='true']
   .admin-filter-chip__count {
   color: color-mix(in srgb, var(--admin-ink) 72%, transparent);
+}
+
+.admin-shell .admin-payments-operations .admin-data-table-shell,
+.admin-shell .admin-payments-operations .admin-data-table-shell--cards {
+  background: transparent;
+}
+
+.admin-shell .admin-payments-operations .data-table-card--admin.data-table-card--compact {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border-color: color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 86%, transparent);
+  box-shadow: none;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.admin-shell .admin-payments-operations .data-table-card--compact .data-table__identity-copy strong,
+.admin-shell .admin-payments-operations .data-table-card--compact .data-table__identity-copy .data-table__sub {
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+}
+
+.admin-shell .admin-payments-operations .data-table-card--compact .data-table__identity-copy .data-table__sub {
+  color: var(--admin-muted, var(--color-text-muted));
+  display: block;
+  font-size: 12px;
+  line-height: 1.35;
+  margin-top: 2px;
+}
+
+.admin-shell .admin-payments-operations .data-table-card--compact .data-table-card__meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 88%, transparent);
+  gap: 10px 16px;
+  margin-top: 2px;
+  padding-top: 10px;
+}
+
+.admin-shell .admin-payments-operations .data-table-card--compact .data-table-card__meta-item[data-column='last_attempt_at'],
+.admin-shell .admin-payments-operations .data-table-card--compact .data-table-card__meta-item[data-column='error'] {
+  grid-column: 1 / -1;
 }
 
 .admin-shell .admin-payments-operations .admin-orders-block__status-cell {
@@ -2782,55 +3576,50 @@
 }
 
 .admin-shell .admin-payment-ops__ledger {
-  background: color-mix(in srgb, var(--admin-surface-muted) 55%, transparent);
+  align-items: start;
+  background: transparent;
   border-bottom: 1px solid var(--admin-hairline);
-  display: grid;
-  gap: 0;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-@media (max-width: 719px) {
-  .admin-shell .admin-payment-ops__ledger .admin-payment-ops__metric:last-child:nth-child(odd) {
-    grid-column: 1 / -1;
-  }
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 0;
+  padding: 12px clamp(14px, 2.4vw, 22px) 14px;
 }
 
 @media (min-width: 720px) {
   .admin-shell .admin-payment-ops__ledger {
-    grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
-  }
-}
-
-@media (min-width: 1100px) {
-  .admin-shell .admin-payment-ops__ledger {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    flex-wrap: nowrap;
   }
 }
 
 .admin-shell .admin-payment-ops__ledger .admin-payment-ops__metric {
   background: transparent;
   border: 0;
-  border-right: 1px solid var(--admin-hairline);
-  border-bottom: 1px solid var(--admin-hairline);
-  gap: 6px;
-  padding: 14px 16px;
+  flex: 1 1 9rem;
+  gap: 2px;
+  min-width: 0;
+  padding: 0 18px 0 0;
+}
+
+.admin-shell .admin-payment-ops__ledger .admin-payment-ops__metric + .admin-payment-ops__metric {
+  border-left: 1px solid var(--admin-hairline);
+  padding-left: 18px;
 }
 
 .admin-shell .admin-payment-ops__ledger .admin-payment-ops__metric strong {
   color: var(--admin-ink);
-  font-size: clamp(1.2rem, 2vw, 1.45rem);
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-weight: 650;
+  letter-spacing: -0.04em;
   line-height: 1.05;
 }
 
 .admin-shell .admin-payment-ops__ledger .admin-payment-ops__metric span {
   color: var(--admin-muted);
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .admin-shell .admin-payment-ops__ledger .admin-payment-ops__metric--success strong {
@@ -2852,19 +3641,32 @@
   border-bottom: 1px solid var(--admin-hairline);
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 14px;
+  gap: 8px 16px;
   justify-content: space-between;
-  padding: 12px clamp(14px, 2.4vw, 22px);
+  padding: 8px clamp(14px, 2.4vw, 22px) 10px;
 }
 
 .admin-shell .admin-payment-ops__filter .admin-filter-group--rail {
+  align-items: center;
+  display: grid;
   flex: 1 1 auto;
+  gap: 6px 12px;
+  grid-template-columns: 4.25rem minmax(0, 1fr);
   min-width: 0;
   width: auto;
 }
 
 .admin-shell .admin-payment-ops__filter .admin-filter-group__label {
-  display: none;
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.admin-shell .admin-payment-ops__filter .admin-filter-chip {
+  min-height: 34px;
 }
 
 .admin-shell .admin-payment-ops__filter-meta {
@@ -2999,6 +3801,26 @@
     display: flex;
     justify-content: flex-end;
     width: auto;
+  }
+
+  /* Cobros: el hide global dejaba solo el pulso. El h1 vuelve y el
+     encabezado queda título + refresco, con el pulso debajo. */
+  .admin-shell .admin-payments-operations .admin-payments-ops-top .admin-list-shell__title {
+    display: block !important;
+    font-size: clamp(1.25rem, 5vw, 1.5rem);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1.08;
+  }
+
+  .admin-shell .admin-payments-operations .admin-payments-ops-top .admin-list-shell__eyebrow,
+  .admin-shell .admin-payments-operations .admin-payments-ops-top .admin-list-shell__subtitle {
+    display: none !important;
+  }
+
+  .admin-shell .admin-payments-operations .admin-payments-ops-top .admin-list-shell__intro {
+    display: block !important;
+    min-width: 0;
   }
 }
 
@@ -3454,6 +4276,12 @@
 
   .admin-shell .admin-event-row {
     grid-template-columns: 40px minmax(0, 1fr) auto;
+  }
+
+  .admin-shell .admin-event-row--lead {
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+    margin-bottom: 12px;
+    padding-bottom: 16px;
   }
 
   .admin-shell .admin-event-row__badge {
@@ -7227,7 +8055,14 @@
 }
 
 .admin-shell .admin-list-shell--events .admin-list-shell__subtitle {
-  display: none;
+  color: var(--admin-muted);
+  display: block;
+  font-size: 13px;
+  font-weight: 450;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  margin: 2px 0 0;
+  max-width: 46ch;
 }
 
 .admin-shell .admin-list-shell--events .admin-list-shell__title {
@@ -7277,23 +8112,25 @@
 }
 
 .admin-shell .admin-list-section--events .admin-filters--inline.admin-filters--compact {
-  align-items: stretch;
+  align-items: flex-end;
   background: transparent;
   border-bottom: 0;
   border-top: 0;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 2px 2px 2px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding: 2px 0 0;
 }
 
 .admin-shell
   .admin-list-section--events
   .admin-filters--inline.admin-filters--compact
   > .admin-filters__panel {
+  flex: 2 1 18rem;
   min-width: 0;
   order: 2;
-  width: 100%;
+  width: auto;
 }
 
 .admin-shell
@@ -7301,11 +8138,13 @@
   .admin-filters--inline.admin-filters--compact
   > .admin-filters__primary {
   align-items: center;
+  flex: 1 1 14rem;
   gap: 10px;
   justify-content: flex-start;
+  max-width: 22rem;
   min-width: 0;
   order: 1;
-  width: 100%;
+  width: auto;
 }
 
 .admin-shell .admin-list-section--events .admin-filters__primary .admin-filters__search,
@@ -7316,14 +8155,14 @@
   border-radius: 0;
   box-shadow: none;
   flex: 1 1 auto;
-  height: 40px;
+  height: 36px;
   margin-left: 0;
-  min-height: 40px;
+  min-height: 36px;
   min-width: 0;
   order: 0;
   padding-inline: 2px;
   transition: border-color var(--transition-fast);
-  width: auto;
+  width: 100%;
 }
 
 .admin-shell
@@ -7339,12 +8178,19 @@
 }
 
 .admin-shell .admin-list-section--events .admin-filters__groups {
+  align-items: center;
   flex: none;
-  gap: 8px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px 16px;
   max-width: 100%;
   order: 0;
   overflow: visible;
-  width: 100%;
+  width: auto;
+}
+
+.admin-shell .admin-list-section--events .admin-filters__groups .admin-filter-group--rail {
+  width: auto;
 }
 
 .admin-shell .admin-list-section--events .admin-events__header-actions {
@@ -7363,6 +8209,37 @@
   padding-inline: 12px;
   white-space: nowrap;
   width: auto;
+}
+
+@media (max-width: 720px) {
+  .admin-shell .admin-list-section--events .admin-filters--inline.admin-filters--compact {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 0 0;
+  }
+
+  .admin-shell
+    .admin-list-section--events
+    .admin-filters--inline.admin-filters--compact
+    > .admin-filters__primary,
+  .admin-shell
+    .admin-list-section--events
+    .admin-filters--inline.admin-filters--compact
+    > .admin-filters__panel {
+    max-width: none;
+    width: 100%;
+  }
+
+  .admin-shell .admin-list-section--events .admin-filters__primary .admin-filters__search,
+  .admin-shell .admin-list-section--events .admin-filters__search {
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .admin-shell .admin-list-section--events .admin-filters__groups {
+    width: 100%;
+  }
 }
 
 @media (max-width: 1024px) {
@@ -7432,6 +8309,7 @@
   border: 0;
   border-block: 0;
   border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 70%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--admin-hairline) 70%, transparent);
   border-radius: 0;
   box-shadow: none;
   display: flex;
@@ -7440,7 +8318,7 @@
   grid-template-columns: none;
   margin: 0;
   overflow: visible;
-  padding: 12px 0 4px;
+  padding: 8px 0 6px;
   scrollbar-width: auto;
 }
 
@@ -7487,7 +8365,7 @@
 .admin-shell .admin-list-section--events .admin-events-kpi__value {
   color: var(--admin-ink);
   font-family: var(--font-display, var(--font-family));
-  font-size: clamp(1.2rem, 2vw, 1.4rem);
+  font-size: clamp(1.05rem, 1.7vw, 1.25rem);
   font-variant-numeric: tabular-nums;
   font-weight: 650;
   letter-spacing: -0.045em;
@@ -7497,7 +8375,7 @@
 }
 
 .admin-shell .admin-list-section--events .admin-events-kpi--primary .admin-events-kpi__value {
-  font-size: clamp(1.6rem, 2.4vw, 2rem);
+  font-size: clamp(1.25rem, 2vw, 1.55rem);
   font-weight: 700;
   letter-spacing: -0.05em;
 }
@@ -7523,8 +8401,79 @@
   max-height: none;
   overflow: visible;
   overscroll-behavior: auto;
-  padding: 0 0 8px;
+  padding: 8px 0 12px;
   scrollbar-width: auto;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-list__empty-lead {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 4px 0 12px;
+  max-width: 36ch;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-chapter {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-chapter + .admin-event-chapter {
+  margin-top: 28px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-chapter__label {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  margin: 0 0 4px;
+  padding: 0 2px;
+  text-transform: uppercase;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-chapter__groups {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row--lead {
+  align-items: start;
+  border-bottom: 1px solid var(--admin-hairline);
+  gap: 8px 18px;
+  grid-template-columns: 64px minmax(0, 1fr) minmax(88px, 132px) auto;
+  margin: 0 0 18px;
+  padding: 6px 4px 20px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row--lead .admin-event-row__day {
+  font-size: clamp(1.7rem, 3vw, 2.15rem);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row--lead .admin-event-row__title {
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(1.2rem, 2.1vw, 1.55rem);
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row__kicker {
+  color: var(--admin-brand, var(--color-brand-celeste));
+  display: block;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
 @media (min-width: 900px) {

@@ -3,7 +3,10 @@ import { DEFAULT_EVENT_PUBLIC_SURFACE } from '../src/lib/eventPublicSurface.js'
 import {
   buildAdminEventDraft,
   createAdminEventDraft,
+  defaultAdminEventYear,
   filterAdminEvents,
+  listAdminEventYears,
+  pickLeadAdminEvent,
   getEventRegistrationAvailability,
   getInitialAdminEvents,
   getEventConsistencyWarnings,
@@ -318,6 +321,26 @@ describe('eventAdminService', () => {
 
     expect(filterAdminEvents(events, { query: 'open' })).toHaveLength(1)
     expect(filterAdminEvents(events, { query: 'maximal' })).toHaveLength(0)
+  })
+
+  it('recorta el catálogo por año y elige el meet protagonista', () => {
+    const events = [
+      { id: 'past', title: 'Open 2025', dateISO: '2025-05-10', status: 'finalizado' },
+      { id: 'next', title: 'Copa Norte', dateISO: '2026-03-01', status: 'proximamente' },
+      {
+        id: 'star',
+        title: 'Pitbull',
+        dateISO: '2026-12-11',
+        status: 'inscripcion_abierta',
+        featured: true,
+      },
+    ]
+
+    expect(listAdminEventYears(events)).toEqual(['2026', '2025'])
+    expect(defaultAdminEventYear(events)).toBe('2026')
+    expect(filterAdminEvents(events, { year: '2025' }).map((event) => event.id)).toEqual(['past'])
+    expect(pickLeadAdminEvent(events)?.id).toBe('star')
+    expect(pickLeadAdminEvent(events.filter((event) => event.id !== 'star'))?.id).toBe('next')
   })
 })
 

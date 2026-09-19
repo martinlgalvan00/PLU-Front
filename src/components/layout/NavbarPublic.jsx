@@ -876,7 +876,7 @@ export default function NavbarPublic({
           <div className="plu-global-nav__actions">
             <div className="plu-global-nav__preferences">
               <ThemeToggle compact />
-              <LanguageToggle compact />
+              <LanguageToggle compact variant="segment" />
             </div>
             {showNoticeBell ? (
               <button

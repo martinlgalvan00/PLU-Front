@@ -7,6 +7,23 @@
 
 /* ---------- Auditoría ---------- */
 
+/* Bitácora / Diagnóstico / Ventas: tres lecturas del mismo dominio ("qué
+   hizo el sistema"), no tres páginas distintas. El header es fijo -- solo
+   cambia qué hay debajo de las pestañas. */
+.admin-audit-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-audit-top {
+  padding-bottom: 2px;
+}
+
+.admin-audit-top__tabs {
+  margin-bottom: 4px;
+}
+
 /* Guía de lectura: separa con claridad el método de investigación de la
    bitácora en sí. Es flujo editorial, no una tarjeta dentro de otra tarjeta. */
 .audit-flow-guide {
@@ -122,6 +139,64 @@
 
 .audit-health--healthy {
   border-left: 3px solid color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+}
+
+.audit-payment-integrity {
+  border: 1px solid var(--color-border-subtle);
+  border-left: 3px solid var(--plu-warning-500, #c9a227);
+  border-radius: 8px;
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+}
+
+.audit-payment-integrity__summary {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  padding: 10px 12px;
+}
+
+.audit-payment-integrity__intro {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+
+.audit-payment-integrity__intro h3 {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.audit-payment-integrity__lead {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.audit-payment-integrity__issues {
+  color: var(--color-text-muted);
+}
+
+.audit-payment-integrity__diagnoses {
+  border-top: 1px solid var(--color-border-subtle);
+  margin: 0;
+  padding: 0 12px 8px;
+}
+
+.audit-payment-integrity__diagnoses > li {
+  padding: 8px 0 4px;
+}
+
+.audit-payment-integrity .btn {
+  margin-top: 2px;
 }
 
 .audit-health__summary {
@@ -1417,6 +1492,33 @@
   .admin-orders-block__header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    > .admin-orders-block__header {
+    align-items: center;
+    display: grid;
+    flex-direction: unset;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    .admin-orders-block__actions {
+    justify-content: flex-end;
+    width: auto;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block--tickets
+    .admin-orders-block__actions
+    .btn {
+    flex: 0 0 auto;
+    width: auto;
   }
 
   .admin-orders-block__actions {

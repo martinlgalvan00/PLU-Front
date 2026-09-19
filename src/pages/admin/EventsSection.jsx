@@ -6,7 +6,6 @@ import {
   MapPin,
   Plus,
   RefreshCw,
-  Star,
   Unlock,
   Users,
 } from 'lucide-react'
@@ -37,7 +36,10 @@ import {
   ADMIN_EVENT_STATUS_OPTIONS,
   buildAdminEventDraft,
   createAdminEventDraft,
+  defaultAdminEventYear,
   filterAdminEvents,
+  listAdminEventYears,
+  pickLeadAdminEvent,
 } from '../../services/eventAdminService.js'
 import {
   buildEventPaymentTriage,
@@ -66,7 +68,18 @@ function groupByMonthKey(list) {
   return byMonth
 }
 
-function EventListRow({ row, selected, locale, onSelect, t }) {
+function groupByYearKey(list) {
+  const byYear = new Map()
+  for (const row of list) {
+    const key = row.dateISO?.slice(0, 4) || 'sin-fecha'
+    if (!byYear.has(key)) byYear.set(key, [])
+    byYear.get(key).push(row)
+  }
+  return byYear
+}
+
+function EventListRow({ row, selected, locale, onSelect, t, variant = 'catalog' }) {
+  const isLead = variant === 'lead'
   const rawFill = row.slots > 0 ? Math.round((row.registered / row.slots) * 100) : 0
   const fill = Math.min(rawFill, 100)
   const capacityTone = rawFill >= 100 ? 'full' : rawFill >= 80 ? 'high' : 'available'
@@ -81,6 +94,7 @@ function EventListRow({ row, selected, locale, onSelect, t }) {
       className={[
         'admin-event-row',
         `admin-event-row--${tone}`,
+        isLead ? 'admin-event-row--lead' : '',
         selected ? 'admin-event-row--selected' : '',
       ]
         .filter(Boolean)
@@ -103,19 +117,15 @@ function EventListRow({ row, selected, locale, onSelect, t }) {
       </div>
 
       <div className="admin-event-row__body">
+        {isLead ? (
+          <span className="admin-event-row__kicker">
+            {row.featured
+              ? t('admin.sections.events.featuredBadge')
+              : t('admin.sections.events.nextKicker')}
+          </span>
+        ) : null}
         <div className="admin-event-row__title-wrap">
-          {row.featured ? (
-            <span
-              className="admin-event-row__featured-mark"
-              title={t('admin.sections.events.featuredBadge')}
-              aria-label={t('admin.sections.events.featuredBadge')}
-            >
-              <Star size={12} aria-hidden />
-            </span>
-          ) : null}
           <strong className="admin-event-row__title">{row.title}</strong>
-          {/* Un evento despublicado se veía idéntico a uno visible: el único
-              dato que lo distinguía vivía dentro del editor. */}
           {row.published === false ? (
             <span
               className="admin-event-row__hidden-mark"
@@ -125,10 +135,6 @@ function EventListRow({ row, selected, locale, onSelect, t }) {
               <EyeOff size={12} aria-hidden />
             </span>
           ) : null}
-          {/* Se marca la excepción, no la regla: casi todos los meets piden
-              afiliación, así que un sello en la mayoría sería ruido. El que
-              está abierto es el que cambia cómo se lo controla en la puerta, y
-              hasta acá eso solo se veía entrando al editor. */}
           {row.requiresMembership === false ? (
             <span
               className="admin-event-row__open-mark"
@@ -170,7 +176,6 @@ function EventListRow({ row, selected, locale, onSelect, t }) {
       <div className="admin-event-row__badge">
         <StatusPill value={row.status} />
       </div>
-
     </li>
   )
 }
@@ -232,6 +237,7 @@ export default function EventsSection({
   const { startTour } = useAdminTour()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
+  const [year, setYear] = useState('')
   const [selectedId, setSelectedId] = useState(adminEvents[0]?.id ?? null)
 
   useEffect(() => {
@@ -337,70 +343,107 @@ export default function EventsSection({
     setSelectedId(adminEvents[0]?.id ?? null)
   }, [adminEvents, selectedId])
 
+  const years = useMemo(() => listAdminEventYears(adminEvents), [adminEvents])
+  const suggestedYear = useMemo(() => defaultAdminEventYear(adminEvents), [adminEvents])
+  const yearFilter = years.length > 1 ? year || suggestedYear || 'all' : 'all'
+
+  const scopedEvents = useMemo(
+    () => filterAdminEvents(adminEvents, { query, year: yearFilter, status: 'all' }),
+    [adminEvents, query, yearFilter],
+  )
+
   const statusCounts = useMemo(() => {
     const counts = Object.create(null)
-    for (const event of adminEvents) {
+    for (const event of scopedEvents) {
       const key = event.status
       if (!key) continue
       counts[key] = (counts[key] ?? 0) + 1
     }
     return counts
-  }, [adminEvents])
+  }, [scopedEvents])
 
   const statusOptions = useMemo(
     () =>
       translateFilterOptions(ADMIN_EVENT_STATUS_OPTIONS, t).map(([value, label]) => [
         value,
         label,
-        value === 'all' ? adminEvents.length : (statusCounts[value] ?? 0),
+        value === 'all' ? scopedEvents.length : (statusCounts[value] ?? 0),
       ]),
-    [adminEvents.length, statusCounts, t],
+    [scopedEvents.length, statusCounts, t],
+  )
+
+  const yearOptions = useMemo(
+    () => [
+      ['all', t('admin.sections.events.yearAll'), adminEvents.length],
+      ...years.map((value) => [
+        value,
+        value,
+        adminEvents.filter((event) => (event.dateISO ?? '').startsWith(value)).length,
+      ]),
+    ],
+    [adminEvents, t, years],
   )
 
   const rows = useMemo(
-    () => filterAdminEvents(adminEvents, { query, status }),
-    [adminEvents, query, status],
+    () => filterAdminEvents(adminEvents, { query, status, year: yearFilter }),
+    [adminEvents, query, status, yearFilter],
   )
 
-  const eventGroups = useMemo(() => {
+  const leadEvent = useMemo(() => pickLeadAdminEvent(rows), [rows])
+
+  const eventCatalog = useMemo(() => {
+    const rest = rows.filter((row) => row.id !== leadEvent?.id)
     const upcoming = []
     const finished = []
-
-    for (const row of rows) {
+    for (const row of rest) {
       if (isFinishedEvent(row)) finished.push(row)
       else upcoming.push(row)
     }
 
-    const upcomingByMonth = [...groupByMonthKey(upcoming).entries()].sort(([left], [right]) =>
-      left.localeCompare(right),
-    )
-    const finishedByMonth = [...groupByMonthKey(finished).entries()].sort(([left], [right]) =>
-      right.localeCompare(left),
-    )
+    function monthGroups(list, tone, direction, prefix) {
+      const entries = [...groupByMonthKey(list).entries()].sort(([left], [right]) =>
+        direction === 'asc' ? left.localeCompare(right) : right.localeCompare(left),
+      )
+      return entries.map(([monthKey, monthRows]) => ({
+        id: `${prefix}-${monthKey}`,
+        tone,
+        label:
+          monthKey === 'sin-fecha'
+            ? tone === 'finished'
+              ? t('admin.sections.events.archive')
+              : t('admin.sections.events.groupUpcoming')
+            : formatMonthYear(monthKey, locale),
+        rows: sortByDate(monthRows, direction),
+      }))
+    }
 
-    const finishedLabel = t('admin.sections.events.groupFinished')
-    const upcomingGroups = upcomingByMonth.map(([monthKey, list]) => ({
-      id: `upcoming-${monthKey}`,
-      tone: 'upcoming',
-      label:
-        upcomingByMonth.length === 1
-          ? t('admin.sections.events.groupUpcoming')
-          : formatMonthYear(monthKey, locale),
-      rows: sortByDate(list, 'asc'),
-    }))
+    const chapters = []
+    const upcomingByYear = groupByYearKey(upcoming)
+    const upcomingYears = [...upcomingByYear.keys()].sort((left, right) => left.localeCompare(right))
+    for (const yearKey of upcomingYears) {
+      chapters.push({
+        id: `year-${yearKey}`,
+        heading: upcomingYears.length > 1 ? yearKey : null,
+        groups: monthGroups(upcomingByYear.get(yearKey), 'upcoming', 'asc', `up-${yearKey}`),
+      })
+    }
 
-    const finishedGroups = finishedByMonth.map(([monthKey, list]) => ({
-      id: `finished-${monthKey}`,
-      tone: 'finished',
-      label:
-        monthKey === 'sin-fecha'
-          ? finishedLabel
-          : `${finishedLabel} · ${formatMonthYear(monthKey, locale)}`,
-      rows: sortByDate(list, 'desc'),
-    }))
+    if (finished.length) {
+      const finishedByYear = groupByYearKey(finished)
+      const finishedYears = [...finishedByYear.keys()].sort((left, right) =>
+        right.localeCompare(left),
+      )
+      chapters.push({
+        id: 'archive',
+        heading: t('admin.sections.events.archive'),
+        groups: finishedYears.flatMap((yearKey) =>
+          monthGroups(finishedByYear.get(yearKey), 'finished', 'desc', `fin-${yearKey}`),
+        ),
+      })
+    }
 
-    return [...upcomingGroups, ...finishedGroups].filter((group) => group.rows.length > 0)
-  }, [locale, rows, t])
+    return chapters.filter((chapter) => chapter.groups.some((group) => group.rows.length > 0))
+  }, [leadEvent?.id, locale, rows, t])
 
   const selectedEvent = adminEvents.find((event) => event.id === selectedId) ?? rows[0] ?? null
 
@@ -446,7 +489,7 @@ export default function EventsSection({
     let totalSlots = 0
     let upcomingCount = 0
 
-    for (const ev of adminEvents) {
+    for (const ev of rows) {
       totalRegistered += ev.registered ?? 0
       totalSlots += ev.slots ?? 0
       if (!isFinishedEvent(ev)) {
@@ -459,10 +502,10 @@ export default function EventsSection({
     return {
       upcomingCount,
       totalRegistered,
-      totalSlots,
       fillPercent,
+      inView: rows.length,
     }
-  }, [adminEvents])
+  }, [rows])
 
   function openCreateForm() {
     setMessage(null)
@@ -897,7 +940,7 @@ export default function EventsSection({
         <span className="admin-events-kpi__label">{t('admin.sections.events.kpiFill')}</span>
       </div>
       <div className="admin-events-kpi admin-events-kpi--quiet">
-        <strong className="admin-events-kpi__value">{adminEvents.length}</strong>
+        <strong className="admin-events-kpi__value">{kpiStats.inView}</strong>
         <span className="admin-events-kpi__label">{t('admin.sections.events.kpiTotal')}</span>
       </div>
     </div>
@@ -1096,7 +1139,7 @@ export default function EventsSection({
 
   return (
     <AdminListSection
-      eyebrow={t('admin.sections.events.eyebrow')}
+      eyebrow={null}
       actions={headerActions}
       filteredCount={rows.length}
       placeholder={t('admin.search.event')}
@@ -1104,6 +1147,7 @@ export default function EventsSection({
       showHeader
       showStats={false}
       title={t('admin.sections.events.title')}
+      subtitle={null}
       readOnlyHint={!canEdit ? t('admin.sections.events.readOnlyHint') : null}
       totalCount={adminEvents.length}
       variant="events"
@@ -1115,7 +1159,21 @@ export default function EventsSection({
           value: status,
           onChange: setStatus,
           options: statusOptions,
+          showLabel: false,
         },
+        ...(years.length > 1
+          ? [
+              {
+                id: 'year',
+                label: t('admin.sections.events.year'),
+                value: yearFilter,
+                onChange: setYear,
+                defaultValue: suggestedYear,
+                options: yearOptions,
+                showLabel: true,
+              },
+            ]
+          : []),
       ]}
       onQueryChange={setQuery}
     >
@@ -1153,7 +1211,14 @@ export default function EventsSection({
                   <CalendarDays size={20} strokeWidth={1.5} />
                 </span>
                 <p className="data-table__empty data-table__empty--admin admin-event-list__empty">
-                  {t('admin.sections.events.empty')}
+                  {adminEvents.length === 0
+                    ? t('admin.sections.events.empty')
+                    : t('admin.sections.events.emptyFiltered')}
+                </p>
+                <p className="admin-event-list__empty-lead">
+                  {adminEvents.length === 0
+                    ? t('admin.sections.events.emptyLead')
+                    : t('admin.sections.events.emptyFilteredLead')}
                 </p>
                 {canEdit && adminEvents.length === 0 ? (
                   <Button
@@ -1166,10 +1231,52 @@ export default function EventsSection({
                     {t('admin.sections.events.createFirst')}
                   </Button>
                 ) : null}
+                {adminEvents.length > 0 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="btn--small"
+                    onClick={() => {
+                      setQuery('')
+                      setStatus('all')
+                      setYear(suggestedYear || 'all')
+                    }}
+                  >
+                    {t('admin.sections.events.clearFilters')}
+                  </Button>
+                ) : null}
               </div>
             ) : (
               <ul className="admin-event-list" aria-label={t('admin.columns.event')}>
-                {eventGroups.map(renderEventGroup)}
+                {leadEvent ? (
+                  <EventListRow
+                    key={`lead-${leadEvent.id}`}
+                    row={leadEvent}
+                    selected={leadEvent.id === selectedEvent?.id}
+                    locale={locale}
+                    onSelect={handleSelectEvent}
+                    t={t}
+                    variant="lead"
+                  />
+                ) : null}
+                {eventCatalog.map((chapter) => (
+                  <li
+                    key={chapter.id}
+                    className={[
+                      'admin-event-chapter',
+                      chapter.id === 'archive' ? 'admin-event-chapter--archive' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                    {chapter.heading ? (
+                      <h3 className="admin-event-chapter__label">{chapter.heading}</h3>
+                    ) : null}
+                    <ul className="admin-event-chapter__groups">
+                      {chapter.groups.map(renderEventGroup)}
+                    </ul>
+                  </li>
+                ))}
               </ul>
             )}
           </div>

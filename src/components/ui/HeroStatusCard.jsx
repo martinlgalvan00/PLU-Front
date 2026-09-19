@@ -5,8 +5,8 @@ import { getStatusMeta } from '../../lib/status.js'
 
 /**
  * Proof del hero — invitación al próximo meet.
- * El panel es fecha + sede. Si hay entradas en venta, esa señal cierra
- * la misma ficha y es la acción primaria: abre la compra, no el evento.
+ * El panel es fecha + sede. Si hay entradas en venta, toda la ficha es la
+ * acción primaria: abre la compra, no el evento.
  */
 export default function HeroStatusCard({
   event,
@@ -19,10 +19,9 @@ export default function HeroStatusCard({
   const { t } = useI18n()
   const ticketsAction = typeof onSelectTickets === 'function' ? onSelectTickets : onSelect
   const eventAction = typeof onSelect === 'function' ? onSelect : undefined
-  const hasSplitActions = ticketsAvailable && typeof ticketsAction === 'function'
-  const Tag = hasSplitActions ? 'div' : eventAction ? 'button' : 'aside'
-  const PanelTag = hasSplitActions && eventAction ? 'button' : 'span'
-  const TicketsTag = hasSplitActions ? 'button' : 'span'
+  const primaryAction = ticketsAvailable ? ticketsAction : eventAction
+  const isAction = typeof primaryAction === 'function'
+  const Tag = isAction ? 'button' : 'aside'
   const { label: fallbackStatusLabel } = getStatusMeta(event?.status ?? 'proximamente', t)
   const statusLabel = statusLabelOverride || fallbackStatusLabel
   const ticketsAria = t('hero.statusTicketsAria')
@@ -34,21 +33,16 @@ export default function HeroStatusCard({
       className={[
         'hero-meta',
         'hero-meta--note',
-        !hasSplitActions && eventAction ? 'hero-meta--action' : '',
+        isAction ? 'hero-meta--action' : '',
         ticketsAvailable ? 'hero-meta--tickets' : '',
       ]
         .filter(Boolean)
         .join(' ')}
-      aria-label={hasSplitActions ? undefined : ticketsAvailable ? ticketsAria : eventAria}
-      type={!hasSplitActions && eventAction ? 'button' : undefined}
-      onClick={!hasSplitActions && eventAction ? onSelect : undefined}
+      aria-label={ticketsAvailable ? ticketsAria : eventAria}
+      type={isAction ? 'button' : undefined}
+      onClick={isAction ? primaryAction : undefined}
     >
-      <PanelTag
-        className="hero-meta__panel"
-        type={PanelTag === 'button' ? 'button' : undefined}
-        aria-label={PanelTag === 'button' ? eventAria : undefined}
-        onClick={PanelTag === 'button' ? eventAction : undefined}
-      >
+      <span className="hero-meta__panel">
         <span className="hero-meta__date" aria-hidden>
           <span className="hero-meta__date-day">{PITBULL_CLASSIC.dateDay}</span>
           <span className="hero-meta__date-month">{PITBULL_CLASSIC.dateMonth}</span>
@@ -62,7 +56,7 @@ export default function HeroStatusCard({
           {ticketsAvailable ? null : (
             <span className="hero-meta__invite">
               <span className="hero-meta__status">{statusLabel}</span>
-              {eventAction ? (
+              {isAction ? (
                 <span className="hero-meta__go" aria-hidden>
                   <span className="hero-meta__cue">{t('hero.statusViewEvent')}</span>
                   <ArrowRight size={14} className="hero-meta__arrow" />
@@ -71,23 +65,18 @@ export default function HeroStatusCard({
             </span>
           )}
         </span>
-      </PanelTag>
+      </span>
 
       {ticketsAvailable ? (
-        <TicketsTag
-          className="hero-meta__tickets"
-          type={TicketsTag === 'button' ? 'button' : undefined}
-          aria-label={TicketsTag === 'button' ? ticketsAria : undefined}
-          onClick={TicketsTag === 'button' ? ticketsAction : undefined}
-        >
+        <span className="hero-meta__tickets">
           <span className="hero-meta__status">{statusLabel}</span>
-          {hasSplitActions || eventAction ? (
+          {isAction ? (
             <span className="hero-meta__go" aria-hidden>
               <span className="hero-meta__cue">{cueLabel}</span>
               <ArrowRight size={14} className="hero-meta__arrow" />
             </span>
           ) : null}
-        </TicketsTag>
+        </span>
       ) : null}
 
       <time className="hero-meta__sr-date" dateTime="2026-12-12">
