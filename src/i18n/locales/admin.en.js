@@ -137,6 +137,10 @@ export default {
       },
     },
     audit: {
+      tabs: {
+        title: 'Trail, Diagnostics and Sales',
+        body: 'The trail is raw evidence. Diagnostics groups what does not match Mercado Pago -- it used to live inside Collections. Sales is the per-event ticket report.',
+      },
       guide: {
         title: 'How to read this section',
         body: 'Start with the overall status, then find the specific event with the filters, and finally open its full context.',
@@ -176,7 +180,7 @@ export default {
       rejectionActorProvider: 'Mercado Pago',
       kpis: {
         title: 'Collections queue',
-        body: 'How many payments still need validation, how much money is open, and which ticket orders already have a receipt. Tap a metric to jump to that queue.',
+        body: 'How many payments still need validation and how much money is open. Mismatches with Mercado Pago live in Audit.',
       },
       athletes: {
         title: 'Athlete orders',
@@ -185,10 +189,6 @@ export default {
       tickets: {
         title: 'Tickets and transfers',
         body: 'Manual ticket purchase orders waiting for proof or validation.',
-      },
-      ledger: {
-        title: 'Diagnostics',
-        body: 'Only when something does not match Mercado Pago: failed notices, reconciliations, and technical tools.',
       },
     },
     pricing: {
@@ -2709,7 +2709,7 @@ export default {
   },
   paymentOperations: {
     eyebrow: 'Cash desk',
-    title: 'Payments to validate',
+    title: 'Collections',
     subtitle:
       'Bank transfers, cash and Wise. Mercado Pago settles on its own; here you clear what still needs review.',
     tabAthletes: 'Athletes',
@@ -3940,6 +3940,12 @@ export default {
     healthBreakdownAffiliation: 'Memberships',
     healthBreakdownOrdersGap: 'Approved orders without an active membership',
     healthBreakdownMembershipEmails: 'Active memberships without delivered confirmation (30 d)',
+    paymentIntegrityTitle: 'Payment integrity',
+    paymentIntegrityCta: 'View diagnostics',
+    tabTrail: 'Trail',
+    tabDiagnostics: 'Diagnostics',
+    tabSales: 'Sales',
+    paymentIntegrityAria: 'Payment integrity against Mercado Pago',
     actions: {
       'account.created': 'Account created',
       'account.reactivated': 'Account reactivated',

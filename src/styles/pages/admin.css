@@ -6263,32 +6263,31 @@
 .admin-payments-operations > .admin-payments-ops-chrome {
   border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: grid;
-  gap: 14px;
-  margin-bottom: 14px;
-  padding: 0 2px 14px;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 0 2px 12px;
 }
 
 .admin-payments-ops-masthead {
   display: grid;
-  gap: 14px;
+  gap: 10px;
   min-width: 0;
 }
 
 .admin-payments-operations .admin-payments-ops-top {
-  align-items: flex-end;
+  align-items: end;
   background: transparent;
   border: 0;
   border-radius: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 24px;
-  justify-content: space-between;
+  display: grid;
+  gap: 8px 24px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   margin: 0;
   padding: 0;
 }
 
 .admin-payments-operations .admin-payments-ops-top .admin-list-shell__intro {
-  flex: 1 1 16rem;
+  grid-column: 1;
   min-width: 0;
 }
 
@@ -6308,11 +6307,11 @@
 }
 
 .admin-payments-ops-pulse {
-  align-items: flex-end;
+  align-items: end;
   display: flex;
-  flex: 0 1 auto;
   flex-wrap: wrap;
   gap: 8px 28px;
+  grid-column: 2;
   margin: 0;
   min-width: 0;
 }
@@ -6321,14 +6320,14 @@
   align-items: flex-end;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
   text-align: right;
 }
 
 .admin-payments-ops-pulse__value {
   color: var(--admin-ink, var(--color-text-primary));
-  font-size: clamp(1.2rem, 2.2vw, 1.5rem);
+  font-size: clamp(1.05rem, 1.8vw, 1.35rem);
   font-variant-numeric: tabular-nums;
   font-weight: 650;
   letter-spacing: -0.04em;
@@ -6341,9 +6340,9 @@
 
 .admin-payments-ops-pulse__label {
   color: var(--admin-muted, var(--color-text-muted));
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0;
+  letter-spacing: 0.01em;
   line-height: 1.2;
 }
 
@@ -6401,6 +6400,7 @@
   flex: 0 0 auto;
   flex-wrap: wrap;
   gap: 8px;
+  grid-column: 3;
   justify-content: flex-end;
   padding: 0;
 }
@@ -6411,22 +6411,31 @@
 }
 
 @media (max-width: 1024px) {
+  .admin-payments-operations .admin-payments-ops-top {
+    align-items: center;
+    gap: 6px 12px;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
   .admin-payments-operations .admin-payments-ops-top .admin-list-shell__intro {
+    display: block;
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .admin-payments-operations .admin-payments-ops-top .admin-list-shell__eyebrow,
+  .admin-payments-operations .admin-payments-ops-top .admin-list-shell__subtitle {
     display: none;
   }
 
-  .admin-payments-operations .admin-payments-ops-top {
-    align-items: center;
-    flex-wrap: nowrap;
-    gap: 12px 16px;
-  }
-
   .admin-payments-operations .admin-payments-ops-top__actions {
-    flex: 0 0 auto;
+    grid-column: 2;
+    grid-row: 1;
   }
 
   .admin-payments-ops-pulse {
-    flex: 1 1 auto;
+    grid-column: 1 / -1;
+    grid-row: 2;
     justify-content: flex-start;
   }
 
@@ -6438,16 +6447,20 @@
 
 @media (max-width: 720px) {
   .admin-payments-operations > .admin-payments-ops-chrome {
-    gap: 12px;
-    padding-bottom: 12px;
+    gap: 10px;
+    padding-bottom: 10px;
   }
 
   .admin-payments-ops-masthead {
-    gap: 12px;
+    gap: 10px;
   }
 
   .admin-payments-operations .admin-payments-ops-top {
-    gap: 10px 14px;
+    gap: 6px 12px;
+  }
+
+  .admin-payments-ops-pulse {
+    gap: 8px 20px;
   }
 
   .admin-payments-operations .admin-payments-ops-top__actions .admin-icon-btn {

@@ -2535,6 +2535,17 @@
   padding: 0;
 }
 
+@media (max-width: 720px) {
+  .admin-shell .admin-payments-operations .admin-payments-ops-top.admin-list-shell__header,
+  .admin-shell .admin-payments-operations .admin-payments-ops-top.admin-list-section__header {
+    align-items: center;
+    display: grid;
+    flex-direction: unset;
+    gap: 6px 12px;
+    padding: 0;
+  }
+}
+
 .admin-shell .admin-payments-operations .admin-payments-ops-top .admin-list-shell__eyebrow {
   color: var(--admin-brand);
 }
@@ -3671,6 +3682,26 @@
     display: flex;
     justify-content: flex-end;
     width: auto;
+  }
+
+  /* Cobros: el hide global dejaba solo el pulso. El h1 vuelve y el
+     encabezado queda título + refresco, con el pulso debajo. */
+  .admin-shell .admin-payments-operations .admin-payments-ops-top .admin-list-shell__title {
+    display: block !important;
+    font-size: clamp(1.25rem, 5vw, 1.5rem);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1.08;
+  }
+
+  .admin-shell .admin-payments-operations .admin-payments-ops-top .admin-list-shell__eyebrow,
+  .admin-shell .admin-payments-operations .admin-payments-ops-top .admin-list-shell__subtitle {
+    display: none !important;
+  }
+
+  .admin-shell .admin-payments-operations .admin-payments-ops-top .admin-list-shell__intro {
+    display: block !important;
+    min-width: 0;
   }
 }
 

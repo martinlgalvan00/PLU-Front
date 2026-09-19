@@ -669,7 +669,12 @@ export default function AdminPage({
     }
 
     if (section === 'audit') {
-      return <AuditSection />
+      return (
+        <AuditSection
+          canEdit={hasPermission(authorization, 'admin.payments.approve')}
+          ticketEvents={adminEvents}
+        />
+      )
     }
 
     if (section === 'analytics') {
