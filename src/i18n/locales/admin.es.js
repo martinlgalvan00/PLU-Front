@@ -139,6 +139,10 @@ export default {
       },
     },
     audit: {
+      tabs: {
+        title: 'Bitácora, Diagnóstico y Ventas',
+        body: 'La bitácora es la evidencia cruda. Diagnóstico junta lo que no cuadra con Mercado Pago -- antes vivía adentro de Cobros. Ventas es el reporte de entradas por evento.',
+      },
       guide: {
         title: 'Cómo leer esta sección',
         body: 'Primero el estado general, después encontrás el hecho puntual con los filtros y por último abrís el contexto completo del evento.',
@@ -178,7 +182,7 @@ export default {
       rejectionActorProvider: 'Mercado Pago',
       kpis: {
         title: 'Cola de cobros',
-        body: 'Cuántos cobros faltan validar, cuánta plata está abierta y qué entradas tienen comprobante. Tocá un indicador para ir a esa cola.',
+        body: 'Cuántos cobros faltan validar y cuánta plata está abierta. Lo que no cuadra con Mercado Pago se lee en Auditoría.',
       },
       athletes: {
         title: 'Órdenes de atleta',
@@ -187,10 +191,6 @@ export default {
       tickets: {
         title: 'Entradas y transferencias',
         body: 'Órdenes manuales de compra de entradas esperando comprobante o validación.',
-      },
-      ledger: {
-        title: 'Diagnóstico',
-        body: 'Solo cuando algo no cuadra con Mercado Pago: avisos fallidos, conciliaciones y herramientas técnicas.',
       },
     },
     pricing: {
@@ -2785,7 +2785,7 @@ export default {
   },
   paymentOperations: {
     eyebrow: 'Caja',
-    title: 'Cobros por validar',
+    title: 'Cobros',
     subtitle:
       'Transferencias, efectivo y Wise. Mercado Pago se acredita solo; acá resolvés lo que falta revisar.',
     tabAthletes: 'Atletas',
@@ -4066,6 +4066,12 @@ export default {
     healthBreakdownAffiliation: 'Afiliaciones',
     healthBreakdownOrdersGap: 'Órdenes aprobadas sin afiliación activa',
     healthBreakdownMembershipEmails: 'Afiliaciones activas sin confirmación entregada (30 d)',
+    paymentIntegrityTitle: 'Integridad de cobros',
+    paymentIntegrityCta: 'Ver diagnóstico',
+    tabTrail: 'Bitácora',
+    tabDiagnostics: 'Diagnóstico',
+    tabSales: 'Ventas',
+    paymentIntegrityAria: 'Integridad de cobros contra Mercado Pago',
     actions: {
       'account.created': 'Cuenta creada',
       'account.reactivated': 'Cuenta reactivada',

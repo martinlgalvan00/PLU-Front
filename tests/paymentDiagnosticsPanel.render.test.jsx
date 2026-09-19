@@ -1,13 +1,19 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
-import PaymentsOperationsSection from '../src/pages/admin/PaymentsOperationsSection.jsx'
+import es from '../src/i18n/locales/es.js'
+import { translate } from '../src/i18n/translate.js'
+import PaymentDiagnosticsPanel from '../src/components/admin/PaymentDiagnosticsPanel.jsx'
 
 /**
- * Diagnóstico: un drift no crítico se puede descartar sin borrarlo -- sale
- * de acá y queda en la auditoría con motivo, y vuelve a aparecer si la
- * orden se desalinea de nuevo después de restaurarlo.
+ * Diagnóstico: se mudó de la pestaña "Ledger" de Cobros a su propia pestaña
+ * dentro de Auditoría (`AuditSection`). Vive siempre en español -- igual que
+ * el resto de Auditoría -- así que `t` se resuelve contra el diccionario fijo
+ * en vez de `useI18n()`. El provider igual hace falta como ancestro: lo usan
+ * `LoadingState`/`ErrorState` para su propio copy genérico.
  */
+
+const t = (key, vars) => translate(es, key, vars)
 
 const {
   getPaymentOperations,
@@ -32,22 +38,6 @@ vi.mock('../src/services/paymentService.js', () => ({
   restorePaymentDriftDismissal,
   listPaymentDriftDismissals,
 }))
-
-vi.mock('../src/services/platformSettingsAdminService.js', () => ({
-  fetchPlatformFeatureToggles: vi.fn().mockResolvedValue({
-    membershipValidationEnabled: true,
-    registrationValidationEnabled: true,
-    ticketValidationEnabled: true,
-  }),
-}))
-
-// Subsecciones ajenas al diagnóstico: se mockean para no arrastrar sus
-// propias llamadas a servicios que no vienen al caso acá.
-vi.mock('../src/pages/admin/AthletePaymentOrdersSection.jsx', () => ({ default: () => null }))
-vi.mock('../src/pages/admin/TicketOrdersSection.jsx', () => ({ default: () => null }))
-vi.mock('../src/components/admin/TicketSalesAnalyticsPanel.jsx', () => ({ default: () => null }))
-vi.mock('../src/components/admin/PaymentExpiryPanel.jsx', () => ({ default: () => null }))
-vi.mock('../src/components/admin/PaymentOrderSearch.jsx', () => ({ default: () => null }))
 
 const OPEN_TICKET_DRIFT = {
   orderId: 'tk-order-1',
@@ -125,37 +115,25 @@ afterEach(() => {
   listPaymentDriftDismissals.mockReset()
 })
 
-function renderSection() {
+// `LoadingState`/`ErrorState` llaman a `useI18n()` para su propio copy
+// genérico, aunque el panel les pase su `t` fijo en español -- necesitan
+// el provider como ancestro igual que en `AuditSection`.
+function renderPanel(props) {
   return render(
     <I18nProvider>
-      <PaymentsOperationsSection
-        canEdit
-        pendingTicketOrders={[]}
-        ticketEvents={[]}
-        onApprovePayment={async () => {}}
-        onForceSettlePayment={async () => {}}
-        onRejectPayment={async () => {}}
-        onApproveTicketOrder={async () => {}}
-        onRejectTicketOrder={async () => {}}
-        onCreateManualTicketOrder={async () => {}}
-      />
+      <PaymentDiagnosticsPanel t={t} {...props} />
     </I18nProvider>,
   )
 }
 
-async function openDiagnosticsTab() {
-  fireEvent.click(await screen.findByRole('tab', { name: /Diagnóstico/ }))
-}
-
-describe('PaymentsOperationsSection — descarte de drift en Diagnóstico', () => {
+describe('PaymentDiagnosticsPanel — Diagnóstico dentro de Auditoría', () => {
   it('lista la orden desalineada y descarta el hallazgo con motivo', async () => {
     getPaymentOperations
       .mockResolvedValueOnce(opsResponse(driftedHealth()))
       .mockResolvedValueOnce(opsResponse(cleanHealth()))
     dismissPaymentDrift.mockResolvedValue({ id: 'dismissal-1' })
 
-    renderSection()
-    await openDiagnosticsTab()
+    renderPanel({ canEdit: true })
 
     await screen.findByText('Orden de entrada TORD-ABC123 desalineada')
     expect(
@@ -184,11 +162,18 @@ describe('PaymentsOperationsSection — descarte de drift en Diagnóstico', () =
       ),
     )
 
-    // Tras descartar, el diagnóstico vuelve a consultarse y la orden ya no
-    // contamina la vista.
     await screen.findByText('Sin hallazgos abiertos. Integridad del ledger sin desvíos.')
     expect(screen.queryByText('Orden de entrada TORD-ABC123 desalineada')).toBeNull()
     expect(getPaymentOperations).toHaveBeenCalledTimes(2)
+  })
+
+  it('sin permiso de edición no ofrece descartar', async () => {
+    getPaymentOperations.mockResolvedValue(opsResponse(driftedHealth()))
+
+    renderPanel({ canEdit: false })
+
+    await screen.findByText('Orden de entrada TORD-ABC123 desalineada')
+    expect(screen.queryByLabelText('Descartar hallazgo')).toBeNull()
   })
 
   it('la auditoría lista lo descartado y permite restaurarlo', async () => {
@@ -208,13 +193,13 @@ describe('PaymentsOperationsSection — descarte de drift en Diagnóstico', () =
     })
     restorePaymentDriftDismissal.mockResolvedValue({ id: 'dismissal-1' })
 
-    renderSection()
-    await openDiagnosticsTab()
+    renderPanel({ canEdit: true })
     await screen.findByText('Sin hallazgos abiertos. Integridad del ledger sin desvíos.')
 
     fireEvent.click(screen.getByRole('button', { name: /Auditoría/ }))
 
-    await screen.findByText('“se corrigió a mano” — 18/9/2026, 00:05')
+    await screen.findByText('Orden de entrada TORD-ABC123 desalineada')
+    expect(screen.getByText(/se corrigió a mano/)).toBeTruthy()
     const restoreButton = screen.getByRole('button', { name: 'Volver a mostrar' })
 
     fireEvent.click(restoreButton)
