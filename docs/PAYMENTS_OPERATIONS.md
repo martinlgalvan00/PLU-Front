@@ -269,8 +269,10 @@ que para Mercado Pago.
   `plu_private.manual_link_checkout_window()`). A diferencia de
   `membership-renewal` (opt-in), este es opt-out: es puramente DB + dispatcher
   idempotente, sin riesgo de doble-cobro contra un proveedor externo. Cron
-  `/api/internal/jobs/payment-order-expiry`, diario en Vercel y complementado
-  cada hora por `.github/workflows/payment-order-expiry-cron.yml`.
+  `/api/internal/jobs/payment-order-expiry`, diario en Vercel: alcanza de
+  sobra frente a una ventana de días (recordatorio ~2 días antes, aviso final
+  a los 5), así que ya no hace falta un workflow externo que lo complemente
+  cada hora.
 - `PAYMENT_PROOF_RETENTION_JOB_ENABLED` (default on): borra de Storage los
   comprobantes de ordenes ya `aprobado`/`rechazado` pasadas
   `PROOF_RETENTION_HOURS` (default 24). No toca pendientes. Cron
