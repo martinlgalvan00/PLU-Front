@@ -4,7 +4,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { CONTACT_EMAIL } from '../../lib/contact.js'
 import { submitContactMessage } from '../../services/contactService.js'
 
-const MOTIVES = ['atleta', 'gimnasio', 'organizacion', 'pluusa']
+const MOTIVES = ['atleta', 'gimnasio', 'organizacion', 'pluusa', 'sponsor']
 
 export default function ContactForm() {
   const { t } = useI18n()
@@ -48,6 +48,7 @@ export default function ContactForm() {
         <p className="contact-form__intro-eyebrow">{t('contact.formEyebrow')}</p>
         <h2 id="contact-form-title">{t('contact.formTitle')}</h2>
         <p>{t('contact.formDesc')}</p>
+        <p className="contact-form__assurance">{t('contact.sidebarNote')}</p>
       </header>
 
       <section className="contact-form__section" aria-labelledby="contact-motive-label">

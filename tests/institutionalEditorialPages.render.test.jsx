@@ -65,14 +65,24 @@ afterEach(cleanup)
 
 describe('páginas institucionales editoriales', () => {
   it('muestra tiers de sponsors como ranking con slots vacíos honestos', () => {
-    const { container, onNavigate } = renderPage(SponsorsPage)
+    const { container } = renderPage(SponsorsPage)
 
-    expect(screen.getByRole('heading', { name: /sponsors oficiales/i })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 1, name: /sumá tu marca/i })).toBeTruthy()
     expect(container.querySelector('.sponsors-tiers__item--title')).toBeTruthy()
     expect(screen.getAllByText(/slot disponible/i).length).toBeGreaterThan(0)
+  })
 
-    fireEvent.click(screen.getByRole('button', { name: /proponer alianza/i }))
-    expect(onNavigate).toHaveBeenCalledWith('contact')
+  it('lleva de los CTA de sponsors al formulario y preselecciona el nivel elegido', () => {
+    const scrollIntoView = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoView
+    renderPage(SponsorsPage)
+
+    expect(screen.getByRole('button', { name: /^proponer alianza$/i })).toBeTruthy()
+    fireEvent.click(screen.getAllByRole('button', { name: /consultar este nivel/i })[1])
+
+    expect(scrollIntoView).toHaveBeenCalled()
+    expect(screen.getByLabelText(/nivel de interés/i).value).toBe('official')
+    expect(screen.getByRole('button', { name: /enviar propuesta/i })).toBeTruthy()
   })
 
   it('busca atletas en el lookup de estándares y conserva el cierre al reglamento', () => {

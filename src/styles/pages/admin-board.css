@@ -375,9 +375,8 @@
 }
 
 /* ── Layout ─────────────────────────────────────────────────────────
-   Desktop (≥900 del tablero): pendientes sticky a la izquierda.
-   Tablet/notebook: bolsa arriba y días apilados a 100% — se opera
-   desde la sede y el riel de 76px no puede dejar columnas a 36rem. */
+   Desktop (≥900 del tablero): cola sticky a la izquierda + días a la
+   derecha. La bolsa es el trabajo pendiente; los días son destino. */
 .admin-board__layout {
   display: grid;
   grid-template-columns: 1fr;
@@ -391,16 +390,35 @@
   flex-direction: column;
   gap: var(--space-sm);
   padding: var(--space-md) var(--space-lg) var(--space-lg);
-  border-radius: 16px;
+  border-radius: 14px;
   transition:
     background var(--transition-fast),
     border-color var(--transition-fast),
     box-shadow var(--transition-fast);
 }
 
+/* Cola pendiente: acento único (oro) + scroll interno con head fijo. */
 .admin-board__pool {
-  max-height: min(42vh, 320px);
+  gap: 0;
+  max-height: min(48vh, 380px);
+  overflow: hidden;
+  padding-bottom: var(--space-md);
+  border-inline-start: 2px solid
+    color-mix(in srgb, var(--color-brand-gold, var(--plu-gold-500)) 70%, transparent);
+}
+
+.admin-board__pool-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-inline-end: 2px;
+  margin-top: 2px;
+}
+
+.admin-board__pool > .admin-board__empty {
+  margin-top: var(--space-sm);
 }
 
 .admin-board__days {
@@ -424,6 +442,64 @@
   min-width: 0;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.admin-board__panel-head--pool {
+  flex-wrap: wrap;
+  align-items: center;
+  flex: none;
+  gap: 6px var(--space-sm);
+  margin-bottom: 2px;
+  padding-bottom: 10px;
+  border-bottom-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+}
+
+.admin-board__pool-head-main {
+  align-items: center;
+  display: flex;
+  flex: 1 1 100%;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.admin-board__panel-head--pool .admin-board__panel-title {
+  flex: 1 1 auto;
+  font-size: 14px;
+  letter-spacing: -0.015em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-board__panel-head--pool .admin-board__count {
+  color: var(--color-text-primary);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  min-width: 2.5ch;
+}
+
+.admin-board__pool-toggle-all {
+  flex: none;
+  margin-inline-start: auto;
+  min-height: 28px;
+  padding: 2px 0;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-brand-celeste);
+  white-space: nowrap;
+}
+
+.admin-board__pool-toggle-all:hover {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .admin-board__panel-icon {
@@ -459,32 +535,89 @@
   color: var(--color-text-muted);
 }
 
+/* Pool: lista vertical escaneable. */
 .admin-board__pool .admin-board__list {
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 0;
+  margin: 0;
+  padding: 4px 0 2px;
 }
 
 .admin-board__pool .admin-board__athlete {
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
-  flex: 0 1 auto;
-  min-height: 44px;
-  padding: 4px 10px;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border-subtle) 65%, transparent);
+  border-radius: 0;
+  flex: none;
+  gap: 10px;
+  min-height: 48px;
+  padding: 9px 2px;
 }
 
 .admin-board__pool .admin-board__athlete:last-child {
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: none;
+}
+
+.admin-board__pool .admin-board__athlete:hover {
+  background: color-mix(in srgb, var(--color-brand-celeste) 5%, transparent);
+}
+
+.admin-board__pool .admin-board__athlete-body {
+  display: grid;
+  gap: 1px 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'name specs'
+    'gym specs';
+  align-items: baseline;
+}
+
+.admin-board__pool .admin-board__athlete-name {
+  grid-area: name;
+  font-size: 13.5px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
+.admin-board__pool .admin-board__athlete-meta--specs {
+  grid-area: specs;
+  align-self: center;
+  color: var(--color-text-secondary, var(--color-text-muted));
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.admin-board__athlete-gym {
+  grid-area: gym;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  line-height: 1.3;
+  margin-top: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-board__pool .admin-board__athlete-meta {
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
 }
 
 @container admin-board (min-width: 900px) {
   .admin-board__layout {
-    grid-template-columns: minmax(260px, 320px) 1fr;
+    gap: var(--space-xl);
+    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
   }
 
   .admin-board__pool {
-    max-height: calc(100vh - var(--space-2xl));
+    max-height: calc(100vh - 7.5rem);
     position: sticky;
     top: var(--space-md);
   }
@@ -493,22 +626,22 @@
     gap: var(--space-lg);
   }
 
-  .admin-board__pool .admin-board__list {
-    flex-direction: column;
-    flex-wrap: nowrap;
-    gap: 0;
-  }
-
   .admin-board__pool .admin-board__athlete {
-    border-inline: 0;
-    border-radius: 0;
-    border-top: 0;
-    flex: none;
-    padding: 6px 0;
+    padding: 8px 2px;
+  }
+}
+
+@container admin-board (max-width: 899px) {
+  .admin-board__pool .admin-board__athlete-body {
+    grid-template-areas:
+      'name name'
+      'specs specs'
+      'gym gym';
+    grid-template-columns: 1fr;
   }
 
-  .admin-board__pool .admin-board__athlete:last-child {
-    border-bottom: none;
+  .admin-board__pool .admin-board__athlete-meta--specs {
+    text-align: left;
   }
 }
 
@@ -929,6 +1062,12 @@
     align-self: stretch;
     min-height: 44px;
     padding: 10px 4px;
+  }
+
+  .admin-board__pool-toggle-all {
+    align-self: center;
+    min-height: 36px;
+    padding: 6px 2px;
   }
 
   .admin-board__layout {

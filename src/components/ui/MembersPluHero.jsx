@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { ArrowDown } from 'lucide-react'
 import Button from './Button.jsx'
 import CredentialCard from './CredentialCard.jsx'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { money } from '../../lib/format.js'
 import {
   buildCredentialUrl,
   buildRandomPreviewCredentialCode,
@@ -21,8 +23,10 @@ export default function MembersPluHero({
   affiliationCta,
   ctaDisabled,
   onAffiliate,
+  price,
+  pricePeriod,
 }) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const { MEMBERSHIP_CREDENTIAL_SAMPLE } = useContent()
   const isLoggedInAthlete = session?.role === 'athlete_plu'
   const [previewCode] = useState(() => buildRandomPreviewCredentialCode())
@@ -44,25 +48,7 @@ export default function MembersPluHero({
     }
   }, [previewCode])
 
-  const quickLinks = [
-    {
-      id: 'afiliarme',
-      label: t('pages.members.quickNavAffiliate'),
-      onClick: () => scrollToId('planes'),
-    },
-    { id: 'cuenta', label: t('pages.members.quickNavAccount'), onClick: () => onNavigate('login') },
-    {
-      id: 'comunidad',
-      label: t('pages.members.quickNavCommunity'),
-      onClick: () => onNavigate('community'),
-    },
-    {
-      id: 'reglamento',
-      label: t('pages.members.quickNavRulebook'),
-      onClick: () => onNavigate('rulebook'),
-    },
-    { id: 'faq', label: t('pages.members.quickNavFaq'), onClick: () => scrollToId('members-faq') },
-  ]
+  const hasPrice = Number.isFinite(price)
 
   return (
     <header className="members-plu-hero">
@@ -81,12 +67,25 @@ export default function MembersPluHero({
           <p className="members-plu-hero__desc">{t('pages.members.heroDesc')}</p>
 
           <div className="members-plu-hero__cta-row">
-            <Button variant="gold" disabled={ctaDisabled} onClick={onAffiliate}>
-              {affiliationCta}
-            </Button>
-            <Button variant="outline" onClick={() => scrollToId('requisitos')}>
+            <div className="members-plu-hero__buy">
+              <Button variant="gold" disabled={ctaDisabled} onClick={onAffiliate}>
+                {affiliationCta}
+              </Button>
+              {hasPrice ? (
+                <p className="members-plu-hero__price">
+                  <strong className="members-plu-hero__price-amount">{money(price, locale)}</strong>
+                  <span className="members-plu-hero__price-period">{pricePeriod}</span>
+                </p>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              className="members-plu-hero__secondary motion-icon-shift"
+              onClick={() => scrollToId('requisitos')}
+            >
               {t('pages.members.heroCtaSecondary')}
-            </Button>
+              <ArrowDown size={15} aria-hidden className="motion-icon-shift__target" />
+            </button>
           </div>
 
           <div className="members-plu-hero__account">
@@ -143,21 +142,6 @@ export default function MembersPluHero({
           <p className="members-cred__caption">{t('pages.members.credentialPreviewNote')}</p>
         </div>
       </div>
-
-      <nav className="members-plu-quicknav" aria-label={t('pages.members.quickNavAria')}>
-        {quickLinks.map((link, index) => (
-          <span key={link.id} className="members-plu-quicknav__item">
-            {index > 0 && (
-              <span className="members-plu-quicknav__sep" aria-hidden>
-                /
-              </span>
-            )}
-            <button type="button" className="members-plu-quicknav__link" onClick={link.onClick}>
-              {link.label}
-            </button>
-          </span>
-        ))}
-      </nav>
     </header>
   )
 }

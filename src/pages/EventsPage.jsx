@@ -311,10 +311,10 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = 
         className="events-public-tickets events-public-tickets--minimal"
         aria-labelledby="events-public-tickets-title"
       >
-        <h3 id="events-public-tickets-title" className="events-public-tickets__title">
-          {t('pages.events.publicTicketsTitleShort')}
-        </h3>
-        <div className="events-public-tickets__row">
+        <div className="events-public-tickets__band">
+          <h3 id="events-public-tickets-title" className="events-public-tickets__title">
+            {t('pages.events.publicTicketsTitleShort')}
+          </h3>
           <p className="events-public-tickets__price">
             {hasPublishedPrice ? (
               <>

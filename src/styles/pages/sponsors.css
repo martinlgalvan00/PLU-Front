@@ -1,0 +1,583 @@
+/* =============================================
+   SPONSORS — captación de marcas
+   Hero CTA, evidencia real, CTA por nivel, proceso y formulario de propuesta.
+   Base tipográfica y de filas en institutional-pages.css.
+   ============================================= */
+
+.sponsors-page--institutional #niveles,
+.sponsors-page--institutional #propuesta {
+  scroll-margin-top: calc(var(--header-height, 72px) + 24px);
+}
+
+/* Hero: una acción primaria y un link */
+.institutional-hero__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-top: clamp(24px, 3vw, 32px);
+}
+
+.sponsors-cta {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 8px;
+  justify-content: center;
+  min-height: 48px;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+}
+
+.sponsors-cta--primary {
+  background: var(--color-brand-action, var(--institution-gold));
+  border-radius: 999px;
+  color: var(--color-bg-canvas, #0b0d10);
+  font-size: 14px;
+  font-weight: 650;
+  padding: 12px 22px;
+}
+
+.sponsors-cta--primary:hover {
+  background: color-mix(in srgb, var(--color-brand-action, var(--institution-gold)) 88%, #fff);
+}
+
+.sponsors-cta--primary:active {
+  transform: scale(0.99);
+}
+
+.sponsors-cta--link {
+  color: var(--institution-text-secondary, var(--institution-text-muted));
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--institution-gold) 55%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
+}
+
+.sponsors-cta--link:hover {
+  color: var(--institution-text);
+}
+
+.sponsors-cta:focus-visible,
+.sponsors-tiers__cta:focus-visible,
+.sponsor-form__submit:focus-visible,
+.sponsor-form__mail:focus-visible {
+  outline: var(--institution-focus-width, 3px) solid var(--institution-focus, var(--institution-gold));
+  outline-offset: var(--institution-focus-offset, 3px);
+}
+
+/* Evidencia: próximo meet + cifras reales de la red */
+.sponsors-audience {
+  border-top: 1px solid var(--institution-border-strong);
+  display: grid;
+  gap: clamp(20px, 3vw, 32px);
+  padding-top: clamp(24px, 3vw, 32px);
+}
+
+.sponsors-audience__head h2 {
+  color: var(--institution-text);
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.8vw, 30px);
+  font-weight: 740;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.sponsors-audience__head .institutional-kicker {
+  margin-bottom: 12px;
+}
+
+.sponsors-audience__body {
+  align-items: end;
+  display: grid;
+  gap: clamp(24px, 4vw, 56px);
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+}
+
+.sponsors-audience__meet {
+  display: grid;
+  gap: 6px;
+}
+
+.sponsors-audience__meet-label {
+  color: var(--institution-text-muted);
+  font-family: var(--font-mono, var(--font-display));
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.sponsors-audience__meet-title {
+  color: var(--institution-text);
+  font-family: var(--font-display);
+  font-size: clamp(30px, 4.4vw, 52px);
+  font-weight: 760;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  margin: 0;
+}
+
+.sponsors-audience__meet-meta {
+  color: var(--institution-text-muted);
+  display: grid;
+  font-size: 14.5px;
+  gap: 2px;
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+
+.sponsors-audience__stats {
+  display: grid;
+  gap: 16px;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  margin: 0;
+}
+
+.sponsors-audience__stat {
+  border-left: 1px solid var(--institution-border-strong);
+  display: grid;
+  gap: 4px;
+  padding-left: 16px;
+}
+
+.sponsors-audience__stat dt {
+  color: var(--institution-text-muted);
+  font-family: var(--font-mono, var(--font-display));
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  order: 2;
+  text-transform: uppercase;
+}
+
+.sponsors-audience__stat dd {
+  color: var(--institution-text);
+  font-family: var(--font-display);
+  font-size: clamp(28px, 3.6vw, 40px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 760;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin: 0;
+}
+
+/* CTA por nivel */
+.sponsors-tiers__cta {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--institution-text-secondary, var(--institution-text-muted));
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 7px;
+  justify-self: start;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--institution-gold) 55%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
+  transition: color var(--motion-fast) var(--ease-out);
+}
+
+.sponsors-tiers__cta:hover {
+  color: var(--institution-text);
+}
+
+.sponsors-tiers__cta svg {
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.sponsors-tiers__cta:hover svg {
+  transform: translateX(3px);
+}
+
+/* Proceso en 3 pasos */
+.sponsors-process__list {
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 28px 0 0;
+  padding: 0;
+}
+
+.sponsors-process__item {
+  border-top: 1px solid var(--institution-border);
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 22px clamp(16px, 2.4vw, 32px) 8px 0;
+}
+
+.sponsors-process__index {
+  color: var(--institution-gold);
+  font-family: var(--font-mono, var(--font-display));
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.sponsors-process__item h3 {
+  color: var(--institution-text);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.sponsors-process__item p {
+  color: var(--institution-text-muted);
+  font-size: 14px;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 34ch;
+  text-wrap: pretty;
+}
+
+/* Propuesta: copy a la izquierda, formulario a la derecha */
+.sponsors-proposal {
+  align-items: start;
+  border-top: 1px solid var(--institution-border-strong);
+  display: grid;
+  gap: clamp(24px, 5vw, 64px);
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  padding-top: clamp(28px, 4vw, 40px);
+}
+
+.sponsors-proposal__copy {
+  display: grid;
+  gap: 12px;
+  max-width: 40ch;
+}
+
+.sponsors-proposal__copy .institutional-kicker {
+  margin-bottom: 0;
+}
+
+.sponsors-proposal__copy h2 {
+  color: var(--institution-text);
+  font-family: var(--font-display);
+  font-size: clamp(26px, 3.4vw, 36px);
+  font-weight: 760;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.sponsors-proposal__copy > p:not(.institutional-kicker) {
+  color: var(--institution-text-muted);
+  font-size: 14.5px;
+  line-height: 1.65;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.sponsor-form {
+  display: grid;
+  gap: 24px;
+}
+
+.sponsor-form__grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sponsor-form__field,
+.sponsor-form__scope {
+  border: 0;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.sponsor-form__field--wide {
+  grid-column: 1 / -1;
+}
+
+.sponsor-form__field > span,
+.sponsor-form__scope legend {
+  color: var(--institution-text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 0;
+}
+
+.sponsor-form__scope legend {
+  margin-bottom: 8px;
+}
+
+.sponsor-form__field input,
+.sponsor-form__field select,
+.sponsor-form__field textarea {
+  background: var(--institution-surface);
+  border: 1px solid var(--institution-border-strong);
+  border-radius: var(--institution-radius-control, 8px);
+  color: var(--institution-text);
+  font: inherit;
+  font-size: 16px;
+  min-height: var(--institution-control-height, 44px);
+  padding: 10px 14px;
+  transition: border-color var(--motion-fast) var(--ease-out);
+  width: 100%;
+}
+
+.sponsor-form__field textarea {
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.sponsor-form__field input::placeholder,
+.sponsor-form__field textarea::placeholder {
+  color: var(--institution-text-muted);
+}
+
+.sponsor-form__field input:hover,
+.sponsor-form__field select:hover,
+.sponsor-form__field textarea:hover {
+  border-color: color-mix(in srgb, var(--institution-text) 40%, var(--institution-border-strong));
+}
+
+.sponsor-form__field input:focus-visible,
+.sponsor-form__field select:focus-visible,
+.sponsor-form__field textarea:focus-visible {
+  border-color: var(--institution-focus);
+  outline: 2px solid var(--institution-focus);
+  outline-offset: 1px;
+}
+
+.sponsor-form__field :disabled,
+.sponsor-form__scope:disabled {
+  opacity: 0.6;
+}
+
+.sponsor-form__scope-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sponsor-form__scope-option {
+  align-items: center;
+  border: 1px solid var(--institution-border-strong);
+  border-radius: 999px;
+  color: var(--institution-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13.5px;
+  font-weight: 550;
+  min-height: var(--institution-control-height, 44px);
+  padding: 0 16px;
+  position: relative;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.sponsor-form__scope-option input {
+  appearance: none;
+  height: 0;
+  margin: 0;
+  opacity: 0;
+  position: absolute;
+  width: 0;
+}
+
+.sponsor-form__scope-option:hover {
+  border-color: color-mix(in srgb, var(--institution-text) 40%, var(--institution-border-strong));
+}
+
+.sponsor-form__scope-option:has(input:checked) {
+  background: var(--institution-gold-soft);
+  border-color: var(--institution-gold);
+  color: var(--institution-text);
+}
+
+.sponsor-form__scope-option:has(input:focus-visible) {
+  outline: 2px solid var(--institution-focus);
+  outline-offset: 2px;
+}
+
+.sponsor-form__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+}
+
+.sponsor-form__submit {
+  align-items: center;
+  background: var(--color-brand-action, var(--institution-gold));
+  border: 0;
+  border-radius: 999px;
+  color: var(--color-bg-canvas, #0b0d10);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  gap: 8px;
+  justify-content: center;
+  min-height: 48px;
+  padding: 12px 22px;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+}
+
+.sponsor-form__submit:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-brand-action, var(--institution-gold)) 88%, #fff);
+}
+
+.sponsor-form__submit:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.sponsor-form__submit:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.sponsor-form__mail {
+  align-items: center;
+  color: var(--institution-text-secondary);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 7px;
+  min-height: 44px;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--institution-gold) 55%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
+}
+
+.sponsor-form__mail:hover {
+  color: var(--institution-text);
+}
+
+.sponsor-form__note {
+  color: var(--institution-text-muted);
+  flex: 1 1 100%;
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.sponsor-form__error {
+  color: var(--color-danger-text);
+  flex: 1 1 100%;
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.sponsor-form__success {
+  border-top: 1px solid var(--institution-gold);
+  display: grid;
+  gap: 10px;
+  padding-top: 24px;
+}
+
+.sponsor-form__success-icon {
+  color: var(--institution-gold);
+  display: inline-flex;
+}
+
+.sponsor-form__success h3 {
+  color: var(--institution-text);
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.8vw, 28px);
+  font-weight: 740;
+  letter-spacing: -0.035em;
+  margin: 0;
+}
+
+.sponsor-form__success p {
+  color: var(--institution-text-muted);
+  font-size: 14.5px;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 48ch;
+}
+
+@media (max-width: 899px) {
+  .sponsors-proposal {
+    grid-template-columns: 1fr;
+  }
+
+  .sponsors-proposal__copy {
+    max-width: 54ch;
+  }
+}
+
+@media (max-width: 760px) {
+  .sponsors-audience__body {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .sponsors-process__list {
+    grid-template-columns: 1fr;
+  }
+
+  .sponsors-process__item {
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .sponsor-form__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .institutional-hero__actions {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .sponsors-cta--primary,
+  .sponsor-form__submit {
+    width: 100%;
+  }
+
+  .sponsors-audience__stats {
+    gap: 12px;
+  }
+
+  .sponsors-audience__stat {
+    padding-left: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sponsors-cta,
+  .sponsors-tiers__cta svg,
+  .sponsor-form__submit {
+    transition: none;
+  }
+
+  .sponsors-tiers__cta:hover svg {
+    transform: none;
+  }
+}

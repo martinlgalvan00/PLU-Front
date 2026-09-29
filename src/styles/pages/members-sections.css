@@ -1,0 +1,368 @@
+/* ── Afiliación — oferta, guía (pasos + requisitos) y salidas ── */
+
+/* Oferta: compra a la izquierda, lo que incluye a la derecha. */
+.members-plu-offer {
+  display: grid;
+  gap: clamp(32px, 5vw, 44px);
+  grid-template-columns: minmax(0, 1fr);
+  max-width: var(--members-plans-col-max, 68rem);
+}
+
+.members-plu-offer__buy {
+  display: grid;
+  align-content: start;
+  gap: 0;
+  min-width: 0;
+}
+
+.membership-card--plu.membership-card--plu-compact .membership-card__body {
+  grid-template-areas:
+    'offer'
+    'renew'
+    'foot';
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.membership-card--plu.membership-card--plu-compact .membership-card__foot {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+}
+
+.membership-card--plu.membership-card--plu-compact .membership-card__cta {
+  min-width: min(100%, 16.5rem);
+  padding-inline: 24px;
+  width: auto;
+}
+
+@container members-plans (max-width: 479px) {
+  .membership-card--plu.membership-card--plu-compact .membership-card__cta {
+    width: 100%;
+  }
+}
+
+.members-plu-offer__terms {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 4px;
+  margin: clamp(24px, 3vw, 32px) 0 0;
+  padding-top: 16px;
+}
+
+.members-plu-offer__terms dt {
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.members-plu-offer__terms dd {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 44ch;
+}
+
+.members-plu-offer__terms .members-plu-offer__terms-notes {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+}
+
+.members-plu-offer__includes {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.members-plu-offer__includes-title {
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.members-plu-offer__list {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.members-plu-offer__item {
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 4px;
+  padding: 16px 0;
+}
+
+.members-plu-offer__item:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.members-plu-offer__item-title {
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.members-plu-offer__item-text {
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 46ch;
+}
+
+@container members-plans (min-width: 640px) {
+  .members-plu-offer {
+    column-gap: clamp(36px, 6cqi, 80px);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .members-plu-offer__includes {
+    border-left: 1px solid var(--color-border-subtle);
+    padding-left: clamp(28px, 4cqi, 44px);
+    padding-top: clamp(24px, 3.4vw, 32px);
+  }
+}
+
+/* Guía: cómo funciona + qué necesitás, lado a lado. */
+.members-plu-block--guide,
+.members-plu-block--flow {
+  padding-block: clamp(40px, 6vw, 64px);
+}
+
+.members-guide {
+  display: grid;
+  gap: clamp(40px, 6vw, 56px);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.members-guide__col {
+  align-content: start;
+  display: grid;
+  gap: clamp(20px, 3vw, 28px);
+  min-width: 0;
+}
+
+.members-guide__head {
+  align-content: start;
+  display: grid;
+  gap: 8px;
+  max-width: 40ch;
+}
+
+.members-guide__eyebrow {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.members-guide__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 3vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.members-guide__lead {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.members-guide__list {
+  align-content: start;
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.members-guide__item {
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  padding: 18px 0;
+}
+
+.members-guide__list--plain .members-guide__item {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.members-guide__index {
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.6;
+}
+
+.members-guide__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.members-guide__item-title {
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: 15.5px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+  margin: 0;
+  text-transform: none;
+}
+
+.members-guide__item-text {
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 46ch;
+}
+
+@container members-page-body (min-width: 640px) {
+  .members-guide {
+    column-gap: clamp(40px, 7cqi, 96px);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto;
+  }
+
+  .members-guide__col {
+    grid-row: span 2;
+    grid-template-rows: subgrid;
+  }
+}
+
+/* Salidas: evento y tienda desde la misma página. */
+.members-plu-block--flow {
+  gap: clamp(24px, 3.5vw, 32px);
+}
+
+.members-flow {
+  display: grid;
+  gap: 0;
+  grid-template-columns: minmax(0, 1fr);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.members-flow__door {
+  align-content: start;
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  padding: 20px 0;
+}
+
+.members-flow__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  margin: 0;
+  text-transform: none;
+}
+
+.members-flow__text {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 40ch;
+}
+
+.members-flow__link {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  gap: 6px;
+  margin-top: 6px;
+  min-height: 44px;
+  padding: 0;
+  transition: color var(--motion-fast, 0.16s) var(--ease-out, ease);
+}
+
+.members-flow__link:hover {
+  color: var(--color-brand-gold);
+}
+
+.members-flow__link:focus-visible {
+  border-radius: var(--border-radius-sm);
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 4px;
+}
+
+@container members-page-body (min-width: 640px) {
+  .members-flow {
+    column-gap: clamp(32px, 6cqi, 80px);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+/* FAQ: la nota institucional cierra la página. */
+.members-plu-faq__note {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 4px 0 0;
+  max-width: 68ch;
+}
+
+.members-plu-faq__note .members-plu-note__eyebrow {
+  display: block;
+  margin-bottom: 4px;
+}
+
+@media (max-width: 759px) {
+  .members-plu-hero__showcase {
+    justify-self: center;
+    max-width: 360px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .members-flow__link,
+  .members-plu-hero__secondary {
+    transition: none;
+  }
+}

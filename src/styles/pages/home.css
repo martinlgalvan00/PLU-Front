@@ -338,23 +338,6 @@
   width: 100%;
 }
 
-.hero-proof-tilt {
-  max-width: 100%;
-  width: fit-content;
-}
-
-.hero-proof-tilt:has(.hero-meta--action) {
-  cursor: pointer;
-}
-
-.hero-proof-tilt .tilt-card__inner {
-  transform-origin: center left;
-}
-
-.hero-proof-tilt .hero-meta--note {
-  width: 100%;
-}
-
 .hero-meta--action:hover .hero-meta__panel {
   border-color: color-mix(in oklab, var(--plu-gold-500) 38%, var(--home-hero-status-panel-border));
 }
@@ -576,9 +559,7 @@
 }
 
 @media (min-width: 900px) {
-  .hero-meta--note,
-  .hero-proof-tilt,
-  .hero-proof-tilt .tilt-card__inner {
+  .hero-meta--note {
     width: 100%;
   }
 
@@ -758,8 +739,7 @@
   }
 
   .hero__cta--primary,
-  .hero__cta--outline,
-  .hero__cta--featured {
+  .hero__cta--outline {
     min-height: 54px;
     padding-inline: 24px;
   }
@@ -1054,42 +1034,86 @@
   transform: none;
 }
 
-/* Featured event CTA (Pitbull) — gold soft fill, subordinated to primary */
-.hero__cta--featured {
-  background: color-mix(in oklab, var(--plu-gold-500) 12%, transparent);
-  border: 1px solid color-mix(in oklab, var(--plu-gold-500) 55%, transparent);
-  border-radius: 2px;
-  color: color-mix(in oklab, var(--plu-gold-300) 78%, #fff);
-  font-size: 13px;
-  font-weight: 700;
-  justify-content: center;
-  letter-spacing: 0.06em;
+/* Enlace de eventos — subordinado al botón principal: texto, sin caja ni
+   mayúsculas. El subrayado dorado se dibuja al hover/foco (mismo gesto que
+   los enlaces secundarios del Pitbull). */
+.hero__events-link {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--home-hero-secondary-link);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 13.5px;
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: 0.01em;
   min-height: 44px;
-  padding: 0 22px;
-  text-transform: uppercase;
-  width: auto;
+  padding: 0 4px;
+  position: relative;
+  transition: color var(--transition-fast);
+}
+
+.hero__events-link::after {
+  background: color-mix(in oklab, var(--plu-gold-500) 75%, transparent);
+  bottom: 9px;
+  content: '';
+  height: 1px;
+  left: 4px;
+  opacity: 0.55;
+  position: absolute;
+  right: 4px;
+  transform: scaleX(0.35);
+  transform-origin: left center;
   transition:
-    background var(--transition-base),
-    border-color var(--transition-base),
-    color var(--transition-base),
-    box-shadow var(--transition-base);
+    transform var(--motion-fast) var(--ease-out),
+    opacity var(--motion-fast) var(--ease-out);
 }
 
-.hero__cta--featured:hover {
-  background: color-mix(in oklab, var(--plu-gold-500) 20%, transparent);
-  border-color: color-mix(in oklab, var(--plu-gold-500) 78%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--plu-gold-500) 28%, transparent);
-  color: var(--plu-gold-300);
+.hero__events-link:hover,
+.hero__events-link:focus-visible {
+  color: var(--home-hero-secondary-link-hover);
 }
 
-.hero__cta--featured:active {
-  transform: none;
-  background: color-mix(in oklab, var(--plu-gold-500) 16%, transparent);
+.hero__events-link:hover::after,
+.hero__events-link:focus-visible::after {
+  opacity: 1;
+  transform: scaleX(1);
 }
 
-.hero__cta--featured:focus-visible {
+.hero__events-link:focus-visible {
+  border-radius: 4px;
   outline: 2px solid var(--plu-gold-500);
   outline-offset: 3px;
+}
+
+.hero__events-link-icon {
+  flex: none;
+  opacity: 0.6;
+  transition:
+    opacity var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+}
+
+.hero__events-link:hover .hero__events-link-icon,
+.hero__events-link:focus-visible .hero__events-link-icon {
+  opacity: 1;
+  transform: translateX(3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__events-link::after,
+  .hero__events-link-icon {
+    transition: none;
+  }
+
+  .hero__events-link:hover::after,
+  .hero__events-link:focus-visible::after,
+  .hero__events-link:hover .hero__events-link-icon,
+  .hero__events-link:focus-visible .hero__events-link-icon {
+    transform: none;
+  }
 }
 
 .hero__cta-stack {
@@ -1224,43 +1248,6 @@
 .hero__secondary-link:hover .hero__secondary-link-icon {
   opacity: 0.9;
   transform: translateX(2px);
-}
-
-.hero__account-pill {
-  align-items: center;
-  background: transparent;
-  border: none;
-  border-left: 1px solid var(--home-hero-metrics-border);
-  border-radius: 0;
-  color: var(--home-hero-secondary-link);
-  cursor: pointer;
-  display: inline-flex;
-  font-family: var(--font-family);
-  font-size: 13.5px;
-  font-weight: 500;
-  gap: 6px;
-  margin-left: 2px;
-  min-height: 44px;
-  opacity: 0.88;
-  padding: 4px 0 4px 16px;
-  transition:
-    color var(--transition-fast),
-    opacity var(--transition-fast);
-}
-
-.hero__account-pill:hover {
-  background: transparent;
-  border-color: var(--home-hero-metrics-border);
-  color: var(--home-hero-secondary-link-hover);
-  opacity: 1;
-}
-
-[data-theme='light'] .hero__account-pill:hover {
-  color: var(--home-hero-secondary-link-hover);
-}
-
-.hero__account-pill-icon {
-  display: none;
 }
 
 .hero__proof {
@@ -1526,20 +1513,19 @@
   }
 
   .hero__cta-row {
-    display: grid;
-    gap: 10px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 22px;
     width: 100%;
   }
 
   .hero__cta--primary,
-  .hero__cta--outline,
-  .hero__cta--featured {
+  .hero__cta--outline {
     justify-content: center;
     min-height: 46px;
     min-width: 0;
-    padding: 12px 14px;
-    width: 100%;
+    padding: 12px 26px;
   }
 
   .hero__cta-label--full {
@@ -1587,21 +1573,20 @@
   }
 
   .hero__cta-row {
-    display: grid;
-    gap: 12px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
     width: 100%;
   }
 
   .hero__cta--primary,
-  .hero__cta--outline,
-  .hero__cta--featured {
+  .hero__cta--outline {
     font-size: 13.5px;
     justify-content: center;
     min-height: 44px;
     min-width: 0;
-    padding: 12px 18px;
-    width: 100%;
+    padding: 12px 28px;
   }
 
   .hero__cta--primary {
@@ -1631,20 +1616,6 @@
     font-size: 12.5px;
     white-space: nowrap;
   }
-
-  .hero__account-pill {
-    font-size: 12px;
-    margin-left: 2px;
-    padding: 4px 0 4px 14px;
-    white-space: nowrap;
-  }
-}
-
-@media (min-width: 900px) and (max-width: 1199px) {
-  .hero__main .hero__cta-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    max-width: none;
-  }
 }
 
 /* Laptop / notebook angosto: CTAs en grilla, sin achicar tanto */
@@ -1664,18 +1635,18 @@
   }
 
   .hero__cta-row {
-    display: grid;
-    gap: 12px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
     width: 100%;
   }
 
   .hero__cta--primary,
-  .hero__cta--outline,
-  .hero__cta--featured {
+  .hero__cta--outline {
     justify-content: center;
     min-height: 52px;
-    width: 100%;
+    padding-inline: 32px;
   }
 
   .hero__cta--outline .hero__cta-hint {
@@ -1692,10 +1663,6 @@
     margin-top: 0;
     padding-top: 14px;
     width: 100%;
-  }
-
-  .hero__account-pill {
-    margin-left: 2px;
   }
 }
 
@@ -1724,10 +1691,13 @@
   }
 
   .hero__cta--primary,
-  .hero__cta--outline,
-  .hero__cta--featured {
+  .hero__cta--outline {
     font-size: 15px;
     min-height: 56px;
+  }
+
+  .hero__events-link {
+    font-size: 15px;
   }
 
   .hero__cta--outline .hero__cta-stack {
@@ -1841,13 +1811,11 @@
   }
 
   .hero__cta--primary,
-  .hero__cta--outline,
-  .hero__cta--featured {
-    flex: 1 1 calc(50% - 6px);
+  .hero__cta--outline {
     font-size: 13px;
     justify-content: center;
     min-width: 0;
-    padding: 11px 14px;
+    padding: 11px 28px;
   }
 
   .hero__secondary-links {
@@ -1863,10 +1831,6 @@
     grid-template-columns: 1fr;
     margin-top: 14px;
     padding-top: 12px;
-  }
-
-  .hero__account-pill {
-    display: none;
   }
 
   .hero__proof {
@@ -4875,12 +4839,7 @@
   height: 100%;
   object-fit: cover;
   object-position: center 38%;
-  transition: transform 900ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
   width: 100%;
-}
-
-.pitbull-spotlight--home:hover .pitbull-spotlight__home-hero-img {
-  transform: scale(1.03);
 }
 
 .pitbull-spotlight__home-hero-scrim {
@@ -5156,9 +5115,9 @@
   transform: scaleX(1);
 }
 
-/* Puerta del espectador. Queda por debajo de la acción principal a propósito:
-   es otro público, no una tercera opción compitiendo con inscribirse. El
-   celeste la separa del oro, que en este bloque ya es la acción del atleta. */
+/* Puerta del espectador. Enlace de texto celeste: otro público, sin competir
+   con el oro del atleta ni con la otra acción secundaria (una principal, el
+   resto son enlaces). El subrayado se dibuja igual que en "ver ficha". */
 .pitbull-spotlight__home-cta-tickets {
   align-items: center;
   background: transparent;
@@ -5173,7 +5132,24 @@
   letter-spacing: 0.01em;
   min-height: 44px;
   padding: 0;
+  position: relative;
   transition: color var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.pitbull-spotlight__home-cta-tickets::after {
+  background: color-mix(in srgb, var(--color-brand-celeste, #74acdf) 70%, transparent);
+  bottom: 10px;
+  content: '';
+  height: 1px;
+  left: 0;
+  opacity: 0.55;
+  position: absolute;
+  right: 0;
+  transform: scaleX(0.35);
+  transform-origin: left center;
+  transition:
+    transform var(--motion-fast, 160ms) var(--ease-out, ease),
+    opacity var(--motion-fast, 160ms) var(--ease-out, ease);
 }
 
 .pitbull-spotlight__home-cta-tickets:hover,
@@ -5181,9 +5157,16 @@
   color: #c7dcf1;
 }
 
+.pitbull-spotlight__home-cta-tickets:hover::after,
+.pitbull-spotlight__home-cta-tickets:focus-visible::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
 .pitbull-spotlight__home-cta-tickets:focus-visible {
+  border-radius: 4px;
   outline: 2px solid var(--color-brand-celeste);
-  outline-offset: 3px;
+  outline-offset: 4px;
 }
 
 .pitbull-spotlight__home-cta-secondary:focus-visible {
@@ -5312,17 +5295,16 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pitbull-spotlight__home-hero-img,
-  .pitbull-spotlight__home-cta-secondary::after {
+  .pitbull-spotlight__home-cta-secondary::after,
+  .pitbull-spotlight__home-cta-tickets,
+  .pitbull-spotlight__home-cta-tickets::after {
     transition: none;
   }
 
-  .pitbull-spotlight--home:hover .pitbull-spotlight__home-hero-img {
-    transform: none;
-  }
-
   .pitbull-spotlight__home-cta-secondary:hover::after,
-  .pitbull-spotlight__home-cta-secondary:focus-visible::after {
+  .pitbull-spotlight__home-cta-secondary:focus-visible::after,
+  .pitbull-spotlight__home-cta-tickets:hover::after,
+  .pitbull-spotlight__home-cta-tickets:focus-visible::after {
     transform: none;
   }
 }
@@ -5939,19 +5921,6 @@
   background: #fff;
 }
 
-[data-theme='light'] .hero__cta--featured {
-  background: color-mix(in oklab, var(--plu-gold-500) 14%, var(--color-surface, #f7f4ee));
-  border-color: color-mix(in oklab, var(--plu-gold-600) 58%, transparent);
-  color: color-mix(in oklab, var(--plu-gold-700, #8a6a1a) 72%, #1a1208);
-}
-
-[data-theme='light'] .hero__cta--featured:hover {
-  background: color-mix(in oklab, var(--plu-gold-500) 22%, var(--color-surface, #f7f4ee));
-  border-color: color-mix(in oklab, var(--plu-gold-600) 78%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--plu-gold-600) 22%, transparent);
-  color: color-mix(in oklab, var(--plu-gold-800, #6b5214) 65%, #1a1208);
-}
-
 @media (max-width: 520px) {
   .hero-meta__meet {
     font-size: clamp(1.05rem, 4.4vw, 1.2rem);
@@ -5963,12 +5932,17 @@
 
   .hero__cta-row {
     display: grid;
+    gap: 6px;
     grid-template-columns: 1fr;
+    justify-items: stretch;
   }
 
   .hero__cta--primary,
-  .hero__cta--outline,
-  .hero__cta--featured {
+  .hero__cta--outline {
     width: 100%;
+  }
+
+  .hero__events-link {
+    justify-content: center;
   }
 }

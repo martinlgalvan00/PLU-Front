@@ -15098,8 +15098,7 @@
   width: 100%;
 }
 
-.data-table__avatar .lazy-photo-slot,
-.admin-ops__recent-avatar .lazy-photo-slot {
+.data-table__avatar .lazy-photo-slot {
   display: block;
   height: 100%;
   inset: 0;
@@ -16576,58 +16575,6 @@ button.action-queue__proof:focus-visible {
 /* En rail colapsado el contenido baja a ~685px sin que el viewport
    cruce 640. Apilar por ancho útil, no solo por media de ventana. */
 @media (max-width: 900px) {
-  .action-queue__card,
-  .action-queue__row {
-    align-items: start;
-    grid-template-columns: minmax(0, 1fr) auto;
-    padding: 12px 14px;
-  }
-
-  .action-queue__card .action-queue__type {
-    grid-column: 1 / -1;
-  }
-
-  .action-queue__card .action-queue__card-body,
-  .action-queue__row .action-queue__card-body {
-    grid-column: 1;
-    min-width: 0;
-  }
-
-  .action-queue__card .action-queue__subject,
-  .action-queue__row .action-queue__subject {
-    white-space: normal;
-  }
-
-  .action-queue__card .action-queue__amount,
-  .action-queue__row .action-queue__amount {
-    align-self: start;
-    grid-column: 2;
-    justify-self: end;
-    padding-top: 1px;
-  }
-
-  .action-queue__card .action-queue__actions,
-  .action-queue__row .action-queue__actions {
-    gap: 8px;
-    grid-column: 1 / -1;
-    justify-content: flex-start;
-    padding-left: 0;
-  }
-
-  .action-queue__card .action-queue__btn,
-  .action-queue__row .action-queue__btn {
-    flex: 0 0 auto;
-    min-height: 44px;
-    width: auto;
-  }
-
-  button.action-queue__proof {
-    min-height: 32px;
-    padding-inline: 10px;
-  }
-}
-
-@container admin-ops (max-width: 899px) {
   .action-queue__card,
   .action-queue__row {
     align-items: start;
