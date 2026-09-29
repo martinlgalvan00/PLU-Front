@@ -37,82 +37,51 @@
   z-index: 120;
 }
 
+/* Rectángulo sólido con un solo ícono: sin texto visible, filete ni halo. */
 .help-dock__button {
   align-items: center;
   animation: help-dock-in var(--motion-slow) var(--ease-standard) both;
   background: var(--help-dock-bg);
   border: 1px solid var(--help-dock-border);
-  border-radius: var(--border-radius-pill);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--help-dock-ink) 10%, transparent),
-    var(--help-dock-shadow);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--help-dock-shadow);
   color: var(--help-dock-ink);
   cursor: pointer;
   display: inline-flex;
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 600;
-  gap: 9px;
-  isolation: isolate;
-  letter-spacing: 0.06em;
-  min-height: 44px;
-  padding: 0 15px 0 8px;
+  height: 44px;
+  justify-content: center;
+  padding: 0;
   pointer-events: auto;
   position: relative;
-  text-transform: uppercase;
   transition:
     background var(--motion-fast) var(--ease-standard),
     border-color var(--motion-fast) var(--ease-standard),
-    box-shadow var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard),
     transform var(--motion-fast) var(--ease-standard);
-}
-
-/* Filete superior institucional — material sólido, no glass */
-.help-dock__button::before {
-  background: linear-gradient(
-    90deg,
-    transparent 6%,
-    color-mix(in srgb, var(--color-brand-celeste) 55%, transparent) 42%,
-    color-mix(in srgb, var(--color-brand-gold) 42%, transparent) 68%,
-    transparent 94%
-  );
-  content: '';
-  height: 1px;
-  left: 12px;
-  opacity: 0.7;
-  pointer-events: none;
-  position: absolute;
-  right: 12px;
-  top: 0;
-}
-
-.help-dock__glyph {
-  align-items: center;
-  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 28%, transparent);
-  border-radius: 999px;
-  display: inline-flex;
-  flex: none;
-  height: 28px;
-  justify-content: center;
-  width: 28px;
+  width: 48px;
 }
 
 .help-dock__icon {
-  color: var(--color-brand-celeste);
   display: block;
+  flex: none;
 }
 
 .help-dock__label {
-  line-height: 1;
-  padding-inline-end: 2px;
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 .help-dock__pending {
   background: var(--color-brand-gold);
   border-radius: 999px;
   box-shadow: 0 0 0 2px var(--help-dock-bg);
-  flex: none;
   height: 7px;
   position: absolute;
   right: 7px;
@@ -120,22 +89,12 @@
   width: 7px;
 }
 
-.help-dock__button.has-pending:not(.is-open) {
-  border-color: color-mix(in srgb, var(--color-brand-gold) 38%, var(--help-dock-border));
-  padding-inline-end: 18px;
-}
-
-.help-dock__button:hover {
-  background: var(--help-dock-bg-hover);
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 32%, var(--help-dock-border));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--help-dock-ink) 12%, transparent),
-    var(--elevation-lg);
-  transform: translateY(-1px);
-}
-
-.help-dock__button.has-pending:not(.is-open):hover {
-  border-color: color-mix(in srgb, var(--color-brand-gold) 48%, var(--help-dock-border));
+@media (hover: hover) and (pointer: fine) {
+  .help-dock__button:hover {
+    background: var(--help-dock-bg-hover);
+    color: var(--color-brand-celeste);
+    transform: translateY(-1px);
+  }
 }
 
 .help-dock__button:focus-visible {
@@ -146,11 +105,7 @@
 .help-dock__button.is-open {
   background: var(--help-dock-bg-hover);
   border-color: color-mix(in srgb, var(--color-brand-celeste) 42%, var(--help-dock-border));
-}
-
-.help-dock__button.is-open .help-dock__glyph {
-  background: color-mix(in srgb, var(--color-brand-celeste) 22%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 44%, transparent);
+  color: var(--color-brand-celeste);
 }
 
 @keyframes help-dock-in {
@@ -165,20 +120,22 @@
 }
 
 /* ── Panel ─────────────────────────────────────
-   Centrado en el viewport (desktop). En viewports chicos el anclaje
-   abajo-derecha empujaba el diálogo fuera de pantalla (top negativo). */
+   Desktop: asistente anclado arriba del botón, en la misma esquina. El alto
+   se acota al espacio libre (`max-height: 100%` dentro del padding del velo),
+   así que en viewports bajos scrollea el cuerpo en vez de salirse por arriba.
+   Mobile: hoja inferior (ver media query). */
 
 .help-panel__scrim {
-  align-items: center;
+  align-items: flex-end;
   animation: help-scrim-in var(--motion-fast) var(--ease-standard) both;
-  background: rgba(5, 6, 10, 0.48);
+  background: rgba(5, 6, 10, 0.32);
   display: flex;
   inset: 0;
-  justify-content: center;
+  justify-content: flex-end;
   padding:
     max(var(--space-lg), env(safe-area-inset-top, 0px))
-    max(var(--space-lg), env(safe-area-inset-right, 0px))
-    max(var(--space-lg), env(safe-area-inset-bottom, 0px))
+    calc(var(--space-lg) + env(safe-area-inset-right, 0px))
+    calc(var(--space-lg) + 44px + var(--space-sm) + env(safe-area-inset-bottom, 0px))
     max(var(--space-lg), env(safe-area-inset-left, 0px));
   position: fixed;
   z-index: 880;
@@ -193,19 +150,28 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  max-height: min(720px, 100%);
-  max-width: 440px;
+  max-height: min(680px, 100%);
+  max-width: 400px;
   overflow: hidden;
   padding: 0;
   position: relative;
-  width: min(440px, 100%);
+  transform-origin: bottom right;
+  width: min(400px, 100%);
   z-index: 881;
+}
+
+/* Con el asistente abierto el botón queda encima del velo: es el mismo
+   control que lo abrió y ahora lo cierra, como un lanzador. */
+@media (min-width: 641px) {
+  .help-dock.is-open {
+    z-index: 882;
+  }
 }
 
 @keyframes help-panel-in {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.985);
+    transform: translateY(8px) scale(0.98);
   }
   to {
     opacity: 1;
@@ -223,19 +189,39 @@
 }
 
 .help-panel__head {
+  border-bottom: 1px solid var(--color-border-subtle);
   display: grid;
   flex: none;
-  gap: 6px;
+  gap: 8px;
   padding: var(--space-lg) var(--space-lg) var(--space-md);
   padding-right: calc(var(--space-lg) + 28px);
   position: relative;
 }
 
-.help-panel__eyebrow {
+.help-panel__identity {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  margin: 0 0 4px;
+}
+
+.help-panel__avatar {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
+  border-radius: var(--border-radius-sm);
   color: var(--color-brand-celeste);
-  font-size: 10px;
+  display: inline-flex;
+  flex: none;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.help-panel__eyebrow {
+  color: var(--color-text-secondary);
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
   margin: 0;
   text-transform: uppercase;
 }
@@ -245,8 +231,8 @@
   font-family: var(--font-display);
   font-size: 22px;
   font-weight: 700;
-  letter-spacing: -0.015em;
-  line-height: 1.2;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
   margin: 0;
 }
 
@@ -290,27 +276,43 @@
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-lg);
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 var(--space-lg) var(--space-md);
+  padding: var(--space-md) var(--space-lg) var(--space-lg);
+}
+
+.help-panel__section {
+  display: grid;
+  gap: 8px;
+}
+
+.help-panel__section-title {
+  color: var(--color-text-muted);
+  font-family: var(--font-family);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin: 0;
+  text-transform: uppercase;
 }
 
 .help-panel__assist-hint {
   color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.45;
-  margin: -2px 0 0;
+  margin: 0;
 }
 
-.help-panel__anchor {
+.help-panel__settings {
   background: var(--color-bg-surface);
   border-top: 1px solid var(--color-border-subtle);
+  display: grid;
   flex: none;
-  padding: var(--space-md) var(--space-lg)
-    calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+  gap: 2px;
+  padding: 6px var(--space-lg) calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
 }
 
 /* ── Los tres pasos ──────────────────────────── */
@@ -470,32 +472,31 @@
 .help-panel__cta {
   align-items: center;
   background: var(--color-brand-action);
-  border: 1px solid color-mix(in oklab, var(--color-brand-gold-dark) 42%, var(--color-brand-action));
-  border-radius: 2px;
-  box-shadow:
-    0 1px 0 color-mix(in oklab, #fff 30%, transparent) inset,
-    0 -1px 0 color-mix(in oklab, #000 16%, transparent) inset;
+  border: 0;
+  border-radius: var(--border-radius-md);
   color: var(--color-brand-action-text);
   cursor: pointer;
   display: flex;
   font-family: var(--font-family);
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: 14.5px;
+  font-weight: 650;
   gap: 10px;
-  justify-content: center;
-  letter-spacing: 0.07em;
-  line-height: 1;
-  min-height: 50px;
-  padding: 0 20px;
-  text-transform: uppercase;
+  justify-content: space-between;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  min-height: 52px;
+  padding: 0 18px 0 20px;
+  text-align: left;
   transition:
     background var(--transition-fast),
     transform var(--transition-fast);
 }
 
-.help-panel__cta:hover {
-  background: var(--color-brand-action-hover);
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  .help-panel__cta:hover {
+    background: var(--color-brand-action-hover);
+    transform: translateY(-1px);
+  }
 }
 
 .help-panel__cta:focus-visible {
@@ -503,11 +504,10 @@
   outline-offset: 3px;
 }
 
-/* ── Salidas secundarias ─────────────────────── */
+/* ── Atajos ──────────────────────────────────── */
 
-.help-panel__foot {
+.help-panel__links {
   display: grid;
-  margin-top: 4px;
 }
 
 /* Con el panel abierto, el CTA fijo de la portada queda detrás del velo y no
@@ -521,15 +521,94 @@
   align-items: center;
   background: transparent;
   border: 0;
+  border-top: 1px solid var(--color-border-subtle);
   color: var(--color-text-muted);
   cursor: pointer;
-  display: flex;
+  display: grid;
   font-family: var(--font-family);
-  gap: 11px;
-  min-height: 44px;
-  padding: 6px 0;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 52px;
+  padding: 10px 0;
   text-align: left;
   width: 100%;
+}
+
+.help-panel__link:last-child {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.help-panel__link-arrow {
+  color: var(--color-text-muted);
+  transition: transform var(--transition-fast);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .help-panel__link:hover .help-panel__link-arrow {
+    transform: translateX(2px);
+  }
+}
+
+/* ── Preguntas frecuentes ────────────────────── */
+
+.help-panel__faq {
+  display: grid;
+}
+
+.help-panel__faq-item {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.help-panel__faq-item:last-child {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.help-panel__faq-item summary {
+  align-items: center;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  font-size: 13.5px;
+  font-weight: 600;
+  gap: 12px;
+  justify-content: space-between;
+  line-height: 1.35;
+  list-style: none;
+  min-height: 48px;
+  padding: 10px 0;
+}
+
+.help-panel__faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.help-panel__faq-item summary:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.help-panel__faq-chevron {
+  color: var(--color-text-muted);
+  flex: none;
+  transition: transform var(--transition-fast);
+}
+
+.help-panel__faq-item[open] .help-panel__faq-chevron {
+  transform: rotate(180deg);
+}
+
+.help-panel__faq-item p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 60ch;
+  padding: 0 0 12px;
+}
+
+.help-panel__faq + .help-panel__door-link {
+  justify-self: start;
+  margin-top: 4px;
 }
 
 .help-panel__link:focus-visible {
@@ -601,15 +680,8 @@
     padding-inline: var(--space-md);
   }
 
-  .help-panel__anchor {
+  .help-panel__settings {
     padding-inline: var(--space-md);
-    padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
-  }
-
-  /* El dock es fijo y vive sobre la hoja: se le reserva el alto de la píldora
-     más su separación para que no tape el último acceso del pie. */
-  .help-panel__foot {
-    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
   }
 
   .help-panel__title {
@@ -625,7 +697,9 @@
   }
 
   .help-dock__button,
-  .help-panel__cta {
+  .help-panel__cta,
+  .help-panel__link-arrow,
+  .help-panel__faq-chevron {
     transition: none;
   }
 
@@ -723,7 +797,6 @@
 /* Fila superior: dónde estás, y el interruptor del modo simple a la derecha. */
 .help-panel__bar {
   align-items: center;
-  border-block: 1px solid var(--color-border-subtle);
   column-gap: var(--space-md);
   display: flex;
   flex-wrap: wrap;

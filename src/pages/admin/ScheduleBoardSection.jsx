@@ -69,6 +69,17 @@ function athleteMeta(athlete) {
     .join(' · ')
 }
 
+/** Specs operativos (categoría/división/peso) vs club, para lectura en 2 niveles. */
+function athleteSpecs(athlete) {
+  return [
+    athlete.category,
+    athlete.division,
+    athlete.bodyweightKg ? `${athlete.bodyweightKg} kg` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}
+
 /** datetime-local trabaja en hora local; el backend guarda ISO con zona. */
 function toLocalInputValue(iso) {
   if (!iso) return ''
@@ -561,12 +572,25 @@ function AthletePool({ athletes, canDrag, onToggle, onToggleMany, selected, t })
       ref={setNodeRef}
       className={`admin-board__pool admin-glass${isOver ? ' is-drop-active' : ''}`}
     >
-      <div className="admin-board__panel-head">
-        <span className="admin-board__panel-icon" aria-hidden>
-          <Users size={15} strokeWidth={1.8} />
-        </span>
-        <h2 className="admin-board__panel-title">{t('admin.board.poolTitle')}</h2>
-        <span className="admin-board__count">{athletes.length}</span>
+      <div className="admin-board__panel-head admin-board__panel-head--pool">
+        <div className="admin-board__pool-head-main">
+          <span className="admin-board__panel-icon" aria-hidden>
+            <Users size={15} strokeWidth={1.8} />
+          </span>
+          <h2 className="admin-board__panel-title">{t('admin.board.poolTitle')}</h2>
+          <span className="admin-board__count" aria-label={String(athletes.length)}>
+            {athletes.length}
+          </span>
+        </div>
+        {athletes.length > 0 ? (
+          <button
+            type="button"
+            className="admin-board__text-btn admin-board__pool-toggle-all"
+            onClick={() => onToggleMany(ids)}
+          >
+            {t('admin.board.toggleAll')}
+          </button>
+        ) : null}
       </div>
 
       {athletes.length === 0 ? (
@@ -574,19 +598,17 @@ function AthletePool({ athletes, canDrag, onToggle, onToggleMany, selected, t })
           {t('admin.board.poolEmptyReady')}
         </p>
       ) : (
-        <>
-          <button type="button" className="admin-board__text-btn" onClick={() => onToggleMany(ids)}>
-            {t('admin.board.toggleAll')}
-          </button>
+        <div className="admin-board__pool-scroll">
           <AthleteList
             athletes={athletes}
             canDrag={canDrag}
             location={{ dayIndex: null, sessionId: null }}
             onToggle={onToggle}
             selected={selected}
+            splitMeta
             t={t}
           />
-        </>
+        </div>
       )}
     </div>
   )
@@ -829,7 +851,7 @@ function SessionBlock({ canDrag, dayIndex, isEditing, session, children }) {
   )
 }
 
-function AthleteList({ athletes, canDrag, location, onToggle, selected, t }) {
+function AthleteList({ athletes, canDrag, location, onToggle, selected, splitMeta = false, t }) {
   return (
     <ul className="admin-board__list">
       {athletes.map((athlete) => (
@@ -840,6 +862,7 @@ function AthleteList({ athletes, canDrag, location, onToggle, selected, t }) {
           location={location}
           onToggle={onToggle}
           selected={selected}
+          splitMeta={splitMeta}
           t={t}
         />
       ))}
@@ -852,12 +875,15 @@ function AthleteList({ athletes, canDrag, location, onToggle, selected, t }) {
  * el MouseSensor pide 6px de recorrido antes de activar el arrastre, así que
  * clic y drag no se pisan. El camino de teclado es la barra de movimiento.
  */
-function AthleteRow({ athlete, canDrag, location, onToggle, selected, t }) {
+function AthleteRow({ athlete, canDrag, location, onToggle, selected, splitMeta = false, t }) {
   const { listeners, setNodeRef, isDragging } = useDraggable({
     id: `athlete|${athlete.registrationId}`,
     data: { athlete, location },
     disabled: !canDrag,
   })
+
+  const specs = athleteSpecs(athlete)
+  const gym = athlete.gym || ''
 
   return (
     <li ref={setNodeRef} {...(canDrag ? listeners : {})}>
@@ -874,7 +900,22 @@ function AthleteRow({ athlete, canDrag, location, onToggle, selected, t }) {
         />
         <span className="admin-board__athlete-body">
           <span className="admin-board__athlete-name">{athlete.fullName}</span>
-          <span className="admin-board__athlete-meta">{athleteMeta(athlete)}</span>
+          {splitMeta ? (
+            <>
+              {specs ? (
+                <span className="admin-board__athlete-meta admin-board__athlete-meta--specs">
+                  {specs}
+                </span>
+              ) : null}
+              {gym ? (
+                <span className="admin-board__athlete-gym" title={gym}>
+                  {gym}
+                </span>
+              ) : null}
+            </>
+          ) : (
+            <span className="admin-board__athlete-meta">{athleteMeta(athlete)}</span>
+          )}
         </span>
         {athlete.checkedIn && (
           <span className="admin-board__athlete-flag" title={t('admin.board.checkedIn')}>

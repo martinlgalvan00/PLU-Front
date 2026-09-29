@@ -1,5 +1,6 @@
 import '../styles/pages/faq.css'
 import '../styles/pages/institutional-pages.css'
+import '../styles/pages/institutional-editorial.css'
 import { useMemo, useState } from 'react'
 import { ArrowRight, Search, X } from 'lucide-react'
 import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'
@@ -46,6 +47,7 @@ export default function FAQPage({ onNavigate }) {
           </dl>
         }
         breadcrumb={t('pages.faq.heroBreadcrumbShort')}
+        className="institutional-hero--editorial"
         description={t('pages.faq.heroDesc')}
         eyebrow={t('pages.faq.heroChapter')}
         index="F / 01"
@@ -145,20 +147,22 @@ export default function FAQPage({ onNavigate }) {
           )}
         </div>
 
-        <section className="faq-support-band" aria-labelledby="faq-support-title">
-          <div>
-            <p className="institutional-kicker">{t('pages.faq.supportEyebrow')}</p>
+        <section className="institutional-closing" aria-labelledby="faq-support-title">
+          <div className="institutional-closing__copy">
+            <p className="institutional-closing__kicker">{t('pages.faq.supportEyebrow')}</p>
             <h2 id="faq-support-title">{t('pages.faq.notFoundTitle')}</h2>
             <p>{t('pages.faq.supportDesc')}</p>
           </div>
-          <button
-            type="button"
-            className="institutional-button institutional-button--primary"
-            onClick={() => onNavigate?.('contact')}
-          >
-            {t('pages.faq.notFoundCta')}
-            <ArrowRight size={16} aria-hidden />
-          </button>
+          <div className="institutional-closing__actions">
+            <button
+              type="button"
+              className="institutional-closing__primary"
+              onClick={() => onNavigate?.('contact')}
+            >
+              <span>{t('pages.faq.notFoundCta')}</span>
+              <ArrowRight size={14} aria-hidden />
+            </button>
+          </div>
         </section>
       </div>
     </main>

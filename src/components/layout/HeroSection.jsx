@@ -12,7 +12,8 @@ import HeroStatusCard from '../ui/HeroStatusCard.jsx'
 import HomeQuickBand from '../ui/HomeQuickBand.jsx'
 import ResponsivePhoto from '../ui/ResponsivePhoto.jsx'
 import { env } from '../../config/env.js'
-import TiltCard from '../../motion/TiltCard.tsx'
+import { hasFinePointer } from '../../motion/useReducedMotion.ts'
+import { useMagneticHover } from '../../motion/useMagneticHover.ts'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { isTicketSalesEnabled } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
@@ -26,9 +27,29 @@ import {
   heroTitleLine,
 } from '../../motion/variants.ts'
 
+/** Título del hero: cada línea sube desde debajo de una máscara (wipe editorial).
+ * El clip usa insets negativos en % para no recortar descendentes ni la panza
+ * de la G (ver `.hero__title--design`). Todas las unidades son % para que
+ * Motion pueda interpolar. En touch se conserva el fade+rise de `heroTitleLine`
+ * porque clip-path pesa en la GPU de mobile. */
+const heroTitleLineWipe = {
+  hidden: { clipPath: 'inset(100% 0% 0% 0%)', opacity: 0, y: '38%' },
+  visible: {
+    clipPath: 'inset(-12% -12% -28% -12%)',
+    opacity: 1,
+    y: '0%',
+    transition: { duration: MOTION_DURATION.cinematic, ease: MOTION_EASE.cinematic },
+  },
+}
+
 export default function HeroSection({ onNavigate, event }) {
   const { t } = useI18n()
   const { reducedMotion, tier } = useMotionConfig()
+  const magneticProps = useMagneticHover()
+  const titleLineVariants = useMemo(
+    () => (tier !== 'low' && hasFinePointer() ? heroTitleLineWipe : heroTitleLine),
+    [tier],
+  )
   const eventStatus = event?.status ?? 'proximamente'
   const registrationCheckoutOpen = isPaidCheckoutOpen(event, env, new Date(), {
     checkoutKind: 'registration',
@@ -69,10 +90,13 @@ export default function HeroSection({ onNavigate, event }) {
 
   const animatedTitle = (
     <>
-      <m.span className="hero__title-line" variants={heroTitleLine}>
+      <m.span className="hero__title-line" variants={titleLineVariants}>
         {t('hero.titleLead')}
       </m.span>{' '}
-      <m.span className="hero__title-line hero__title-line--accent" variants={heroTitleLine}>
+      <m.span
+        className="hero__title-line hero__title-line--accent"
+        variants={titleLineVariants}
+      >
         {t('hero.titleAccent')}
       </m.span>
     </>
@@ -114,32 +138,28 @@ export default function HeroSection({ onNavigate, event }) {
       ticketsAvailable={ticketsAvailable}
     />
   )
-  const proofBody = ticketsAvailable ? (
-    <TiltCard className="hero-proof-tilt" maxTilt={3}>
-      {proofCard}
-    </TiltCard>
-  ) : (
-    proofCard
-  )
+  // Un solo protagonista en el primer viewport: la ficha del meet queda quieta
+  // (dato operativo); el 3D vive en la credencial de la banda de afiliación.
+  const proofBody = proofCard
 
   const actions = (
     <>
       <div className="hero__cta-row">
         <button
           type="button"
-          className="hero__cta hero__cta--primary motion-icon-shift"
+          className="hero__cta hero__cta--primary motion-icon-shift magnetic"
           onClick={() => onNavigate('members')}
+          {...magneticProps}
         >
           {t('hero.ctaAffiliate')}
           <ArrowRight size={16} aria-hidden className="hero__cta-icon motion-icon-shift__target" />
         </button>
-        <button
-          type="button"
-          className="hero__cta hero__cta--featured"
-          onClick={() => onNavigate('events')}
-        >
+        {/* Una sola acción principal (Afiliarme); "eventos" es un enlace de
+            texto subordinado. El acceso a la cuenta vive en el header. */}
+        <button type="button" className="hero__events-link" onClick={() => onNavigate('events')}>
           <span className="hero__cta-label hero__cta-label--full">{t('hero.ctaEvents')}</span>
           <span className="hero__cta-label hero__cta-label--short">{t('hero.ctaEventsShort')}</span>
+          <ArrowRight size={13} aria-hidden className="hero__events-link-icon" />
         </button>
       </div>
 
@@ -152,9 +172,6 @@ export default function HeroSection({ onNavigate, event }) {
           {t('hero.ctaPitbull')}
           <ArrowRight size={12} aria-hidden className="hero__secondary-link-icon" />
         </button>
-        <button type="button" className="hero__account-pill" onClick={() => onNavigate('login')}>
-          {t('hero.ctaAccount')}
-        </button>
       </div>
     </>
   )
@@ -163,7 +180,7 @@ export default function HeroSection({ onNavigate, event }) {
     <section className="hero hero--design hero--motion">
       <div className="hero__backdrop" aria-hidden>
         <ResponsivePhoto
-          className="hero__backdrop-img"
+          className="hero__backdrop-img hero__backdrop-img--depth"
           avif={{ 640: heroPhotoAvif640, 1280: heroPhotoAvif1280, 2048: heroPhotoAvif }}
           webp={{ 640: heroPhotoWebp640, 1280: heroPhotoWebp1280, 2048: heroPhotoWebp }}
           src={heroPhoto}

@@ -64,6 +64,7 @@ export default function MembershipCard({
           'membership-card--plu',
           'membership-card--plu-band',
           highlighted ? 'membership-card--plu-featured' : '',
+          features.length ? '' : 'membership-card--plu-compact',
         ]
           .filter(Boolean)
           .join(' ')}
@@ -87,18 +88,23 @@ export default function MembershipCard({
             </header>
           </div>
 
-          <div className="membership-card__includes">
-            <p className="membership-card__includes-label" id={`${id}-includes-label`}>
-              {t('pages.membershipCard.includesLabel')}
-            </p>
-            <ul className="membership-card__features-list" aria-labelledby={`${id}-includes-label`}>
-              {features.map((feature, i) => (
-                <li key={`${id}-${i}`} className="membership-card__feature">
-                  <span className="membership-card__feature-text">{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {features.length ? (
+            <div className="membership-card__includes">
+              <p className="membership-card__includes-label" id={`${id}-includes-label`}>
+                {t('pages.membershipCard.includesLabel')}
+              </p>
+              <ul
+                className="membership-card__features-list"
+                aria-labelledby={`${id}-includes-label`}
+              >
+                {features.map((feature, i) => (
+                  <li key={`${id}-${i}`} className="membership-card__feature">
+                    <span className="membership-card__feature-text">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           {billingToggleEnabled ? (
             <div className="membership-card__renew">
