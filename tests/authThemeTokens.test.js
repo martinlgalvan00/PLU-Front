@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 /**
  * El flujo de acceso (login, recuperar, restablecer, invitación de staff,
  * cambio de contraseña obligatorio y puerta de seguridad) comparte el bloque
- * `.login-*` de `pages/design-phase2.css`.
+ * `.login-*` de `pages/auth.css`.
  *
  * Ese bloque fijaba `color: #fff` y `rgba(255,255,255,…)`, y una segunda hoja
  * (`themes/design-pages-theme.css`) lo repintaba entero para light. Cuando las
@@ -15,10 +15,7 @@ import { describe, expect, it } from 'vitest'
  */
 
 // `import.meta.url` no es un file:// URL bajo el entorno jsdom del proyecto.
-const designPhase2 = readFileSync(
-  resolve(process.cwd(), 'src/styles/pages/design-phase2.css'),
-  'utf8',
-)
+const authCss = readFileSync(resolve(process.cwd(), 'src/styles/pages/auth.css'), 'utf8')
 const designPagesTheme = readFileSync(
   resolve(process.cwd(), 'src/styles/themes/design-pages-theme.css'),
   'utf8',
@@ -33,12 +30,12 @@ function ruleBody(css, selector) {
 
 describe('tokens de tema del flujo de acceso', () => {
   it('el texto tipeado y el placeholder salen de tokens, no de blanco fijo', () => {
-    const input = ruleBody(designPhase2, '.login-field__control input')
+    const input = ruleBody(authCss, '.login-field__control input')
     expect(input).toBeTruthy()
     expect(input).toContain('var(--color-text-primary)')
     expect(input).not.toMatch(/#fff\b|rgba\(255,\s*255,\s*255/)
 
-    const placeholder = ruleBody(designPhase2, '.login-field__control input::placeholder')
+    const placeholder = ruleBody(authCss, '.login-field__control input::placeholder')
     expect(placeholder).toBeTruthy()
     expect(placeholder).not.toMatch(/#fff\b|rgba\(255,\s*255,\s*255/)
   })
@@ -51,7 +48,7 @@ describe('tokens de tema del flujo de acceso', () => {
       '.login-page__footer',
       '.login-submit--oauth',
     ]) {
-      const body = ruleBody(designPhase2, selector)
+      const body = ruleBody(authCss, selector)
       expect(body, `falta la regla ${selector}`).toBeTruthy()
       expect(body, `${selector} volvió a fijar blanco`).not.toMatch(
         /#fff\b|rgba\(255,\s*255,\s*255/,

@@ -24,6 +24,7 @@ import { getAdminIntroTourSteps } from '../../lib/adminTourSteps.js'
 import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { METRIC_LABEL_KEYS } from '../../i18n/adminHelpers.js'
 import { getStatusMeta } from '../../lib/status.js'
+import { selectBreakdownLegendItems } from '../../lib/adminOpsBreakdown.js'
 import { formatDayMonth, formatShortMemberCode, initials, money } from '../../lib/format.js'
 
 const QUEUE_PREVIEW_LIMIT = 6
@@ -138,13 +139,13 @@ const BREAKDOWN_ROWS = [
   { key: 'events', titleKey: 'admin.dashboard.breakdownEvents' },
 ]
 
-function BreakdownPanel({ breakdowns, onNavigate, getLabel, t }) {
+function BreakdownPanel({ breakdowns, onNavigate, getLabel, locale, t }) {
   return (
     <section className="admin-ops__mix" aria-labelledby="admin-ops-mix-title">
       <header className="admin-ops__section-head">
         <div className="admin-ops__chart-copy">
-          <p className="admin-ops__eyebrow">{t('admin.dashboard.breakdownTitle')}</p>
-          <h3 id="admin-ops-mix-title">{t('admin.dashboard.breakdownPanelTitle')}</h3>
+          <h3 id="admin-ops-mix-title">{t('admin.dashboard.breakdownTitle')}</h3>
+          <p className="admin-ops__section-sub">{t('admin.dashboard.breakdownSubtitle')}</p>
         </div>
       </header>
       <ul className="admin-ops__mix-list">
@@ -160,6 +161,7 @@ function BreakdownPanel({ breakdowns, onNavigate, getLabel, t }) {
               section={data.section}
               onNavigate={onNavigate}
               getLabel={getLabel}
+              locale={locale}
               t={t}
             />
           )
@@ -169,8 +171,8 @@ function BreakdownPanel({ breakdowns, onNavigate, getLabel, t }) {
   )
 }
 
-function BreakdownRow({ title, total, items, section, onNavigate, getLabel, t }) {
-  const activeItems = items.filter((item) => item.value > 0)
+function BreakdownRow({ title, total, items, section, onNavigate, getLabel, locale, t }) {
+  const { activeItems, visibleItems, hiddenItems } = selectBreakdownLegendItems(items)
   const isEmpty = activeItems.length === 0
   const chartTotal = Math.max(
     total,
@@ -187,6 +189,10 @@ function BreakdownRow({ title, total, items, section, onNavigate, getLabel, t })
         .join(', ')
     : t('admin.dashboard.breakdownEmpty')
   const stackLabel = `${title}: ${totalLabel}. ${segmentSummary}`
+  const hiddenSummary =
+    hiddenItems.length > 0
+      ? hiddenItems.map((item) => `${getLabel(item)}: ${item.value}`).join(', ')
+      : ''
 
   return (
     <li className={`admin-ops__mix-row${isEmpty ? ' admin-ops__mix-row--empty' : ''}`}>
@@ -222,22 +228,33 @@ function BreakdownRow({ title, total, items, section, onNavigate, getLabel, t })
 
       {!isEmpty ? (
         <ul className="admin-ops__legend">
-          {activeItems.map((item) => {
-            const percent = Math.round((item.value / chartTotal) * 100)
+          {visibleItems.map((item) => {
+            const showAmount =
+              typeof item.amount === 'number' &&
+              item.amount > 0 &&
+              (item.tone === 'warning' || item.tone === 'alert' || item.tone === 'gold')
             return (
               <li
                 key={item.status}
-                className={`admin-ops__legend-item admin-ops__legend-item--${item.tone}`}
+                className={`admin-ops__legend-item admin-ops__legend-item--${item.tone}${
+                  showAmount ? ' admin-ops__legend-item--with-amount' : ''
+                }`}
               >
-                <span>{getLabel(item)}</span>
-                <strong>{item.value}</strong>
-                <em>{percent}%</em>
-                {typeof item.amount === 'number' && item.amount > 0 ? (
-                  <small>{money(item.amount)}</small>
+                <span className="admin-ops__legend-line">
+                  <span>{getLabel(item)}</span>
+                  <strong>{item.value}</strong>
+                </span>
+                {showAmount ? (
+                  <span className="admin-ops__legend-amount">{money(item.amount, locale)}</span>
                 ) : null}
               </li>
             )
           })}
+          {hiddenItems.length > 0 ? (
+            <li className="admin-ops__legend-item admin-ops__legend-item--more">
+              <span title={hiddenSummary}>+{hiddenItems.length}</span>
+            </li>
+          ) : null}
         </ul>
       ) : (
         <p className="admin-ops__chart-empty">{t('admin.dashboard.breakdownEmpty')}</p>
@@ -1131,145 +1148,156 @@ export default function DashboardSection({
             <h2 id="admin-ops-board-title">{t('admin.dashboard.analyticsTitle')}</h2>
           </header>
 
-          <div className="admin-ops__period">
-            <section className="admin-ops__finance" aria-labelledby="admin-ops-finance-title">
-              <header className="admin-ops__section-head">
-                <div className="admin-ops__chart-copy">
-                  <p className="admin-ops__eyebrow">{t('admin.dashboard.financeEyebrow')}</p>
-                  <h3 id="admin-ops-finance-title">{t('admin.dashboard.financeTitle')}</h3>
-                </div>
-                <button
-                  type="button"
-                  className="admin-dashboard-link"
-                  onClick={() => onNavigate?.('payments')}
-                >
-                  {t('admin.actions.payments')}
-                  <ArrowRight size={12} aria-hidden />
-                </button>
-              </header>
-
-              <div className="admin-ops__finance-hero">
-                <span className="admin-ops__finance-hero-label">
-                  {t('admin.dashboard.financeCollected')}
-                </span>
-                <strong className="admin-ops__finance-hero-value">
-                  {money(finance.collectedAmount)}
-                </strong>
-              </div>
-
-              <div className="admin-ops__finance-rate">
-                <div
-                  className="admin-ops__finance-rail"
-                  role="img"
-                  aria-label={`${t('admin.dashboard.financeRate')}: ${finance.collectionRate}%`}
-                >
-                  <span
-                    className="admin-ops__finance-rail-seg admin-ops__finance-rail-seg--collected"
-                    style={{ width: `${collectedShare}%` }}
-                  />
-                  {pendingShare > 0 ? (
-                    <span
-                      className="admin-ops__finance-rail-seg admin-ops__finance-rail-seg--pending"
-                      style={{ width: `${Math.max(pendingShare, 1)}%` }}
-                    />
-                  ) : null}
-                </div>
-                <p className="admin-ops__finance-rate-copy" aria-hidden>
-                  <strong>{finance.collectionRate}%</strong> {t('admin.dashboard.financeRate')}
-                </p>
-              </div>
-
-              <dl className="admin-ops__finance-metrics">
-                <div className="admin-ops__finance-metric admin-ops__finance-metric--pending">
-                  <dt>{t('admin.dashboard.financePending')}</dt>
-                  <dd>{money(finance.pendingAmount)}</dd>
-                </div>
-                <div className="admin-ops__finance-metric">
-                  <dt>{t('admin.dashboard.financeOperated')}</dt>
-                  <dd>{money(finance.totalAmount)}</dd>
-                </div>
-              </dl>
-            </section>
-
-            <BreakdownPanel
-              breakdowns={breakdowns}
-              onNavigate={onNavigate}
-              getLabel={breakdownLabel}
-              t={t}
-            />
-          </div>
-
-          <RecentActivityTabs
-            recentAthletes={recentAthletes}
-            recentMemberships={recentMemberships}
-            recentRegistrations={recentRegistrations}
-            locale={locale}
-            onNavigate={onNavigate}
-            onSelectAthlete={onSelectAthlete}
-            canDeleteAthlete={canDeleteAthletes}
-            onDeleteAthlete={onDeleteAthlete}
-            getAthleteDetail={getAthleteDetail}
-            t={t}
-          />
-
-          {canViewAnalytics ? <DashboardTrafficCard onNavigate={onNavigate} /> : null}
-
-          <div className="admin-ops__stats-row">
-            <LeaderboardCard
-              featured
-              eyebrow={t('admin.dashboard.eventLeaderboardEyebrow')}
-              title={t('admin.dashboard.eventLeaderboardTitle')}
-              items={eventLeaderboard.items}
-              navigateSection="events"
-              onNavigate={onNavigate}
-              t={t}
-              renderItem={(event) => (
-                <li key={event.id} className="admin-ops__leaderboard-item">
-                  <div className="admin-ops__leaderboard-main">
-                    <span className="admin-ops__leaderboard-title">{event.title}</span>
-                    <span className="admin-ops__leaderboard-value">
-                      {event.registered}/{event.slots}
-                      <span className="admin-ops__leaderboard-pct">{event.fillPercent}%</span>
-                    </span>
-                  </div>
-                  <span className="admin-ops__leaderboard-bar" aria-hidden>
-                    <span style={{ width: `${event.fillPercent}%` }} />
-                  </span>
-                </li>
-              )}
-            />
-            <LeaderboardCard
-              eyebrow={t('admin.dashboard.topGymsEyebrow')}
-              title={t('admin.dashboard.topGymsTitle')}
-              items={topGyms.items}
-              navigateSection="athletes"
-              onNavigate={onNavigate}
-              t={t}
-              renderItem={(gym, index) => {
-                const peak = Math.max(topGyms.items[0]?.count ?? 1, 1)
-                const share = Math.round((gym.count / peak) * 100)
-                return (
-                  <li
-                    key={gym.gym}
-                    className="admin-ops__leaderboard-item admin-ops__leaderboard-item--rank"
-                  >
-                    <span className="admin-ops__leaderboard-rank">{index + 1}</span>
-                    <div className="admin-ops__leaderboard-main">
-                      <span className="admin-ops__leaderboard-title">{gym.gym}</span>
-                      <span className="admin-ops__leaderboard-value">{gym.count}</span>
+          <div className="admin-ops__layout">
+            <div className="admin-ops__main">
+              <div className="admin-ops__period">
+                <section className="admin-ops__finance" aria-labelledby="admin-ops-finance-title">
+                  <header className="admin-ops__section-head">
+                    <div className="admin-ops__chart-copy">
+                      <h3 id="admin-ops-finance-title">{t('admin.dashboard.financeEyebrow')}</h3>
                     </div>
-                    <span className="admin-ops__leaderboard-bar" aria-hidden>
-                      <span style={{ width: `${share}%` }} />
+                    <button
+                      type="button"
+                      className="admin-dashboard-link"
+                      onClick={() => onNavigate?.('payments')}
+                    >
+                      {t('admin.actions.payments')}
+                      <ArrowRight size={12} aria-hidden />
+                    </button>
+                  </header>
+
+                  <div className="admin-ops__finance-hero">
+                    <span className="admin-ops__finance-hero-label">
+                      {t('admin.dashboard.financeCollected')}
                     </span>
-                  </li>
-                )
-              }}
-            />
+                    <strong className="admin-ops__finance-hero-value">
+                      {money(finance.collectedAmount, locale)}
+                    </strong>
+                  </div>
+
+                  <div className="admin-ops__finance-rate">
+                    <div
+                      className="admin-ops__finance-rail"
+                      role="img"
+                      aria-label={`${t('admin.dashboard.financeRate')}: ${finance.collectionRate}%`}
+                    >
+                      <span
+                        className="admin-ops__finance-rail-seg admin-ops__finance-rail-seg--collected"
+                        style={{ width: `${collectedShare}%` }}
+                      />
+                      {pendingShare > 0 ? (
+                        <span
+                          className="admin-ops__finance-rail-seg admin-ops__finance-rail-seg--pending"
+                          style={{ width: `${Math.max(pendingShare, 1)}%` }}
+                        />
+                      ) : null}
+                    </div>
+                    <p className="admin-ops__finance-rate-copy" aria-hidden>
+                      <strong>{finance.collectionRate}%</strong> {t('admin.dashboard.financeRate')}
+                    </p>
+                  </div>
+
+                  <dl className="admin-ops__finance-metrics">
+                    <div className="admin-ops__finance-metric admin-ops__finance-metric--pending">
+                      <dt>{t('admin.dashboard.financePending')}</dt>
+                      <dd>{money(finance.pendingAmount, locale)}</dd>
+                    </div>
+                    <div className="admin-ops__finance-metric">
+                      <dt>{t('admin.dashboard.financeOperated')}</dt>
+                      <dd>{money(finance.totalAmount, locale)}</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <BreakdownPanel
+                  breakdowns={breakdowns}
+                  onNavigate={onNavigate}
+                  getLabel={breakdownLabel}
+                  locale={locale}
+                  t={t}
+                />
+              </div>
+
+              <RecentActivityTabs
+                recentAthletes={recentAthletes}
+                recentMemberships={recentMemberships}
+                recentRegistrations={recentRegistrations}
+                locale={locale}
+                onNavigate={onNavigate}
+                onSelectAthlete={onSelectAthlete}
+                canDeleteAthlete={canDeleteAthletes}
+                onDeleteAthlete={onDeleteAthlete}
+                getAthleteDetail={getAthleteDetail}
+                t={t}
+              />
+            </div>
+
+            <div className="admin-ops__rail">
+              <SpotlightInline
+                event={spotlightEvent}
+                locale={locale}
+                onNavigate={onNavigate}
+                t={t}
+              />
+
+              {canViewAnalytics ? <DashboardTrafficCard onNavigate={onNavigate} /> : null}
+
+              <div className="admin-ops__stats-row">
+                <LeaderboardCard
+                  featured
+                  eyebrow={t('admin.dashboard.eventLeaderboardEyebrow')}
+                  title={t('admin.dashboard.eventLeaderboardTitle')}
+                  items={eventLeaderboard.items}
+                  navigateSection="events"
+                  onNavigate={onNavigate}
+                  t={t}
+                  renderItem={(event) => (
+                    <li key={event.id} className="admin-ops__leaderboard-item">
+                      <div className="admin-ops__leaderboard-main">
+                        <span className="admin-ops__leaderboard-title">{event.title}</span>
+                        <span className="admin-ops__leaderboard-value">
+                          {event.registered}/{event.slots}
+                          <span className="admin-ops__leaderboard-pct">{event.fillPercent}%</span>
+                        </span>
+                      </div>
+                      <span className="admin-ops__leaderboard-bar" aria-hidden>
+                        <span style={{ width: `${event.fillPercent}%` }} />
+                      </span>
+                    </li>
+                  )}
+                />
+                <LeaderboardCard
+                  eyebrow={t('admin.dashboard.topGymsEyebrow')}
+                  title={t('admin.dashboard.topGymsTitle')}
+                  items={topGyms.items}
+                  navigateSection="athletes"
+                  onNavigate={onNavigate}
+                  t={t}
+                  renderItem={(gym, index) => {
+                    const peak = Math.max(topGyms.items[0]?.count ?? 1, 1)
+                    const share = Math.round((gym.count / peak) * 100)
+                    return (
+                      <li
+                        key={gym.gym}
+                        className="admin-ops__leaderboard-item admin-ops__leaderboard-item--rank"
+                      >
+                        <span className="admin-ops__leaderboard-rank">{index + 1}</span>
+                        <div className="admin-ops__leaderboard-main">
+                          <span className="admin-ops__leaderboard-title">{gym.gym}</span>
+                          <span className="admin-ops__leaderboard-value">{gym.count}</span>
+                        </div>
+                        <span className="admin-ops__leaderboard-bar" aria-hidden>
+                          <span style={{ width: `${share}%` }} />
+                        </span>
+                      </li>
+                    )
+                  }}
+                />
+              </div>
+
+              <LaunchInterestWidget />
+            </div>
           </div>
-
-          <LaunchInterestWidget />
-
-          <SpotlightInline event={spotlightEvent} locale={locale} onNavigate={onNavigate} t={t} />
         </section>
       </div>
     </div>

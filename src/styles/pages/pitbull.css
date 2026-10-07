@@ -8991,6 +8991,85 @@
   }
 }
 
+/* Datos de acceso como línea reglada: el separador es una regla vertical,
+   no un punto tipográfico. */
+.pitbull-tickets-band__facts {
+  align-items: center;
+  border-top: 1px solid color-mix(in oklab, var(--plu-warm-50) 16%, transparent);
+  column-gap: 14px;
+  padding-top: 14px;
+}
+
+.pitbull-tickets-band__facts span[aria-hidden] {
+  align-self: stretch;
+  background: currentColor;
+  font-size: 0;
+  opacity: 0.4;
+  width: 1px;
+}
+
+.pitbull-tickets-band__pass {
+  display: none;
+}
+
+/* Desktop: copy a la izquierda, el pase como objeto a la derecha. */
+@media (min-width: 900px) {
+  .pitbull-tickets-band {
+    align-items: center;
+    column-gap: clamp(32px, 5vw, 80px);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, clamp(26rem, 40vw, 35rem));
+  }
+
+  .pitbull-tickets-band__content {
+    padding-inline-end: 0;
+  }
+
+  /* En esta columna el talón queda angosto: titular y código apilados,
+     igual que el pase en mobile, para no cortar el nombre. */
+  .pitbull-tickets-band__pass .ticket-pass-preview__stub-foot {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-tickets-band__pass {
+    display: block;
+    padding-block: clamp(36px, 5vw, 56px);
+    padding-inline-end: max(
+      var(--layout-gutter-lg),
+      calc((100vw - var(--max-width-content)) / 2 + var(--layout-gutter-lg))
+    );
+    position: relative;
+    z-index: 2;
+  }
+}
+
+@keyframes pitbull-tickets-photo-depth {
+  from {
+    transform: translate3d(0, -5%, 0) scale(1.12);
+  }
+
+  to {
+    transform: translate3d(0, 5%, 0) scale(1.12);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  /* `hidden` crea un scroll container y view() se ataría a la banda; `clip`
+     recorta igual sin capturar la timeline del documento. */
+  .pitbull-tickets-band {
+    overflow: clip;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    [data-motion-tier]:not([data-motion-tier='low']) .pitbull-tickets-band__img {
+      animation: pitbull-tickets-photo-depth linear both;
+      animation-range: cover 0% cover 100%;
+      animation-timeline: view();
+      will-change: transform;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pitbull-tickets-band__cta {
     transition: none;
@@ -9595,6 +9674,81 @@
 
 .pitbull-hero-masthead--bleed .pitbull-hero-masthead__cta-fee {
   color: color-mix(in oklab, #14181f 74%, transparent);
+}
+
+/* CTA de decisión: acción y precio como dos datos, separados por una regla
+   fina en lugar del punto medio. */
+.pitbull-hero-masthead__cta--decision .pitbull-hero-masthead__cta-body {
+  align-items: center;
+  gap: 0 12px;
+}
+
+.pitbull-hero-masthead__cta--decision .pitbull-hero-masthead__cta-sep {
+  align-self: stretch;
+  background: currentColor;
+  font-size: 0;
+  min-height: 1.1em;
+  opacity: 0.22;
+  width: 1px;
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__cta--decision .pitbull-hero-masthead__cta-fee {
+  color: #14181f;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pitbull-hero-masthead__cta.pitbull-hero-masthead__cta--primary {
+  transition-property: background, border-color, box-shadow, color, transform;
+}
+
+.pitbull-hero-masthead__cta--primary:active {
+  transform: scale(0.97);
+}
+
+/* Profundidad del collage: cada placa se desplaza distinto al scrollear,
+   así el masthead se lee en planos sin recurrir a 3D. */
+@keyframes pitbull-plate-depth {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.08);
+  }
+
+  to {
+    transform: translate3d(0, var(--plate-depth, 4%), 0) scale(1.08);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  /* Mismo motivo que la banda de entradas: `clip` en vez de `hidden` para
+     que view() mida contra el documento. */
+  .pitbull-hero-masthead.pitbull-hero-masthead--bleed,
+  .pitbull-hero-masthead.pitbull-hero-masthead--bleed .pitbull-hero-masthead__layout.pitbull-hero-masthead__layout--bleed,
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__collage,
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-plate {
+    overflow: clip;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    [data-motion-tier]:not([data-motion-tier='low']) .pitbull-hero-masthead__frame-img {
+      animation: pitbull-plate-depth linear both;
+      animation-range: exit 0% exit 100%;
+      animation-timeline: view();
+    }
+
+    .pitbull-hero-masthead__plate--secondary {
+      --plate-depth: -3%;
+    }
+
+    .pitbull-hero-masthead__plate--accent {
+      --plate-depth: 7%;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-hero-masthead__cta--primary:active {
+    transform: none;
+  }
 }
 
 /* <900: una sola imagen LCP a sangre. */
@@ -13028,70 +13182,90 @@
   color: rgba(15, 17, 23, 0.62);
 }
 
+/* Desde tablet, cada pilar es un capítulo: número | título | texto en una
+   misma fila reglada, en lugar de una grilla de bloques. */
 @media (min-width: 720px) {
-  .pitbull-experience__pillars {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .pitbull-experience__pillar {
-    align-content: start;
-    border-top: 0;
-    border-left: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-    gap: 8px;
-    grid-template-columns: none;
-    padding: clamp(20px, 2.6vw, 28px) clamp(16px, 2vw, 22px);
+    align-items: baseline;
+    column-gap: clamp(20px, 3vw, 44px);
+    grid-template-columns: 3ch minmax(0, 15rem) minmax(0, 1fr);
+    padding-block: clamp(20px, 2.4vw, 28px);
   }
 
   .pitbull-experience__pillar::before {
     grid-row: auto;
-    margin-bottom: 2px;
     padding-top: 0;
   }
 
-  .pitbull-experience__label,
+  .pitbull-experience__label {
+    grid-column: 2;
+  }
+
   .pitbull-experience__text {
-    grid-column: auto;
-  }
-
-  .pitbull-experience__pillar:nth-child(odd) {
-    border-left: 0;
-    padding-left: 0;
-  }
-
-  .pitbull-experience__pillar:nth-child(-n + 2) {
-    border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-  }
-
-  [data-theme='light'] .pitbull-experience__pillar,
-  [data-theme='light'] .pitbull-experience__pillar:nth-child(-n + 2) {
-    border-color: rgba(15, 17, 23, 0.08);
+    font-size: 14px;
+    grid-column: 3;
+    max-width: 48ch;
   }
 }
 
-@media (min-width: 1100px) {
-  .pitbull-experience__pillars {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+/* Foto con profundidad por scroll y regla de oro que se dibuja al entrar. */
+@keyframes pitbull-experience-photo-depth {
+  from {
+    transform: translate3d(0, -4%, 0) scale(1.1);
   }
 
-  .pitbull-experience__pillar,
-  .pitbull-experience__pillar:nth-child(odd) {
-    border-bottom: 0;
-    border-left: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-    padding: clamp(22px, 2.6vw, 30px) clamp(14px, 1.5vw, 20px);
+  to {
+    transform: translate3d(0, 4%, 0) scale(1.1);
+  }
+}
+
+@keyframes pitbull-experience-wipe {
+  from {
+    clip-path: inset(38% 0 0 0);
   }
 
-  .pitbull-experience__pillar:first-child {
-    border-left: 0;
-    padding-left: 0;
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes pitbull-rule-draw {
+  from {
+    transform: scaleX(0);
   }
 
-  .pitbull-experience__text {
-    max-width: 28ch;
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .pitbull-experience__stage,
+  .pitbull-experience__media {
+    overflow: clip;
   }
 
-  [data-theme='light'] .pitbull-experience__pillar,
-  [data-theme='light'] .pitbull-experience__pillar:nth-child(odd) {
-    border-left-color: rgba(15, 17, 23, 0.08);
+  @media (prefers-reduced-motion: no-preference) {
+    [data-motion-tier]:not([data-motion-tier='low']) .pitbull-experience__img {
+      animation: pitbull-experience-photo-depth linear both;
+      animation-range: cover 0% cover 100%;
+      animation-timeline: view();
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      [data-motion-tier]:not([data-motion-tier='low']) .pitbull-experience__stage {
+        animation: pitbull-experience-wipe linear both;
+        animation-range: entry 0% entry 90%;
+        animation-timeline: view();
+      }
+    }
+
+    [data-motion-tier]:not([data-motion-tier='low']) .pitbull-experience__pillars::before {
+      animation: pitbull-rule-draw linear both;
+      animation-range: entry 20% cover 35%;
+      animation-timeline: view();
+      transform-origin: left center;
+    }
   }
 }
 

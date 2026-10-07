@@ -1283,6 +1283,7 @@ export function createSupabaseAthleteRepository(
         approvedResponse,
         totalResponse,
         openAmounts,
+        approvedAmounts,
       ] = await Promise.all([
         scoped().in('status', OPEN_PAYMENT_ORDER_STATUSES),
         scoped().eq('status', 'validacion_manual'),
@@ -1299,6 +1300,15 @@ export function createSupabaseAthleteRepository(
           .eq('organization_id', organizationId)
           .in('status', OPEN_PAYMENT_ORDER_STATUSES)
           .limit(OPEN_AMOUNT_SAMPLE_LIMIT),
+        // Cobrado del dashboard: mismo techo de muestra que lo abierto. Sin
+        // esto el hero sumaba solo el snapshot acotado y quedaba chico frente
+        // a `openAmount` de la base.
+        client
+          .from('athlete_payment_orders')
+          .select('amount')
+          .eq('organization_id', organizationId)
+          .eq('status', 'aprobado')
+          .limit(OPEN_AMOUNT_SAMPLE_LIMIT),
       ])
 
       for (const response of [
@@ -1312,6 +1322,10 @@ export function createSupabaseAthleteRepository(
         assertSupabaseResult(response, 'No se pudieron contar las órdenes de pago.')
       }
       const amounts = assertSupabaseResult(openAmounts, 'No se pudo sumar lo pendiente de cobro.')
+      const collected = assertSupabaseResult(
+        approvedAmounts,
+        'No se pudo sumar lo cobrado.',
+      )
 
       return {
         pending: openResponse.count ?? 0,
@@ -1324,6 +1338,8 @@ export function createSupabaseAthleteRepository(
         // El importe queda truncado si hay más órdenes abiertas que la muestra:
         // la pantalla lo dice en vez de mostrar un total que no es el total.
         openAmountTruncated: (openResponse.count ?? 0) > (amounts?.length ?? 0),
+        approvedAmount: (collected ?? []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0),
+        approvedAmountTruncated: (approvedResponse.count ?? 0) > (collected?.length ?? 0),
       }
     },
 

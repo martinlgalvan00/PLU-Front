@@ -475,7 +475,7 @@ export default {
     headlineLead: 'Afiliaciones y',
     headlineAccent: 'calendario oficial',
     headlineAccentOn: 'accent',
-    description: 'Afiliaciones, calendario oficial e inscripciones a meets.',
+    description: 'Afiliate. Competí. Resultados oficiales.',
     descriptionMeta: 'Credenciales digitales y resultados publicados.',
     ctaAffiliate: 'Afiliarme',
     ctaPitbull: 'Inscribirme a Pitbull Classic',
@@ -1486,7 +1486,8 @@ export default {
     },
     hero: {
       memberSince: 'Socio desde',
-      activeRegistrations: 'Inscripciones activas',
+      activeRegistrations_one: '{{count}} inscripción activa',
+      activeRegistrations_other: '{{count}} inscripciones activas',
       nextEvent: 'Próximo evento',
       editData: 'Editar mis datos',
     },
@@ -1891,8 +1892,8 @@ export default {
       heroDesc:
         'Pagá online, activá tu afiliación y recibí la credencial QR en tu perfil. Sin comprobantes por WhatsApp.',
       heroCtaSecondary: 'Ver requisitos',
-      heroSignedIn: 'Sesión iniciada como {{name}}.',
-      existingMember: '¿Ya tenés cuenta?',
+      heroSignedIn: '{{name}}',
+      existingMember: 'Acceso a cuenta',
       loginLink: 'Ingresá',
       registerLink: 'Registrate',
       quickNavAria: 'Accesos de afiliación',
@@ -1902,8 +1903,7 @@ export default {
       quickNavRulebook: 'Reglamento',
       quickNavFaq: 'Preguntas frecuentes',
       credentialPreviewLabel: 'Vista previa de credencial',
-      credentialPreviewNote:
-        'Así se ve tu credencial digital cuando la afiliación está activa. Tocá para ver el QR — si lo escaneás, te mostramos cómo lo vería el staff.',
+      credentialPreviewNote: 'Vista previa · tocá para ver el QR',
       credentialAthleteLabel: 'Atleta',
       credentialCodeLabel: 'Código',
       credentialSeasonLabel: 'Temporada',
@@ -2004,6 +2004,8 @@ export default {
       benefitsEyebrow: 'Beneficios',
       benefitsNavAria: 'Elegir beneficio',
       requirementsAria: 'Requisitos de afiliación',
+      requirementsPrev: 'Requisito anterior',
+      requirementsNext: 'Requisito siguiente',
       institutionalAria: 'Conexión con Powerlifting United',
       heroRail: {
         metricsAria: 'Precios y vigencia de la afiliación',

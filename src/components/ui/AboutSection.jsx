@@ -104,7 +104,7 @@ export default function AboutSection({ onNavigate }) {
           <div className="about-section__intro">
             <p className="about-section__label">{ABOUT_INTRO.eyebrow}</p>
             <h2 className="about-section__title">
-              <span className="about-section__title-line">{ABOUT_INTRO.titleLead}</span>{' '}
+              <span className="about-section__title-line">{ABOUT_INTRO.titleLead}</span>
               <span className="about-section__title-line about-section__title-line--accent">
                 {ABOUT_INTRO.titleAccent}
               </span>

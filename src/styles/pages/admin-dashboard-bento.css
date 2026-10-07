@@ -53,11 +53,21 @@
 .admin-ops__section-head h3 {
   color: var(--admin-ink);
   font-family: var(--font-display, var(--font-family));
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 650;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
   line-height: 1.2;
   margin: 0;
+}
+
+.admin-ops__section-sub {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 450;
+  letter-spacing: -0.005em;
+  line-height: 1.35;
+  margin: 0;
+  max-width: 36ch;
 }
 
 .admin-dashboard--ops .admin-dashboard-link {
@@ -752,9 +762,34 @@
   margin: 0;
 }
 
-.admin-ops__period {
+/* Columna principal (cobros, distribución, actividad) y riel de contexto
+   (próxima competencia, tráfico, rankings, avisos). Cada una es su propio
+   contenedor: los bloques se acomodan al ancho de su columna. */
+.admin-ops__layout,
+.admin-ops__main,
+.admin-ops__rail {
+  align-content: start;
   display: grid;
   gap: var(--space-xl);
+  min-width: 0;
+}
+
+.admin-ops__main {
+  container: ops-main / inline-size;
+}
+
+.admin-ops__rail {
+  container: ops-rail / inline-size;
+}
+
+.admin-ops__rail:empty,
+.admin-ops__stats-row:empty {
+  display: none;
+}
+
+.admin-ops__period {
+  display: grid;
+  gap: var(--space-2xl, 32px);
   grid-template-columns: minmax(0, 1fr);
   min-width: 0;
 }
@@ -763,7 +798,7 @@
 .admin-ops__mix {
   align-content: start;
   display: grid;
-  gap: 18px;
+  gap: 14px;
   min-width: 0;
 }
 
@@ -773,8 +808,8 @@
 
 .admin-ops__finance-hero {
   display: grid;
-  gap: 8px;
-  padding-top: 6px;
+  gap: 6px;
+  padding-top: 4px;
 }
 
 .admin-ops__finance-hero-label,
@@ -789,17 +824,17 @@
 .admin-ops__finance-hero-value {
   color: var(--admin-ink);
   font-family: var(--font-display, var(--font-family));
-  font-size: clamp(28px, 11cqi, 44px);
+  font-size: clamp(28px, 9cqi, 40px);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  letter-spacing: -0.045em;
-  line-height: 1;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
   overflow-wrap: anywhere;
 }
 
 .admin-ops__finance-rate {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .admin-ops__finance-rail {
@@ -807,7 +842,7 @@
   border-radius: var(--border-radius-pill);
   display: flex;
   gap: 2px;
-  height: 4px;
+  height: 3px;
   overflow: hidden;
 }
 
@@ -835,7 +870,7 @@
 .admin-ops__finance-rate-copy strong {
   color: var(--admin-ink);
   font-variant-numeric: tabular-nums;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .admin-ops__finance-metrics {
@@ -848,9 +883,9 @@
 
 .admin-ops__finance-metric {
   display: grid;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
-  padding: 16px 0 0;
+  padding: 14px 0 0;
 }
 
 .admin-ops__finance-metric + .admin-ops__finance-metric {
@@ -861,12 +896,17 @@
 .admin-ops__finance-metric dd {
   color: var(--admin-ink);
   font-family: var(--font-display, var(--font-family));
-  font-size: clamp(16px, 5.4cqi, 20px);
+  font-size: clamp(15px, 5cqi, 18px);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: 650;
   letter-spacing: -0.03em;
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+.admin-ops__finance-metric:not(.admin-ops__finance-metric--pending) dd {
+  color: var(--admin-text-secondary, var(--admin-muted));
+  font-weight: 600;
 }
 
 .admin-ops__finance-metric--pending dd {
@@ -883,8 +923,8 @@
 .admin-ops__mix-row {
   border-top: 1px solid var(--admin-hairline);
   display: grid;
-  gap: 10px;
-  padding: 14px 0;
+  gap: 8px;
+  padding: 12px 0;
 }
 
 .admin-ops__mix-row:last-child {
@@ -946,7 +986,7 @@
 .admin-ops__mix-total {
   color: var(--admin-ink);
   font-family: var(--font-display, var(--font-family));
-  font-size: 20px;
+  font-size: 18px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   letter-spacing: -0.04em;
@@ -962,7 +1002,7 @@
   border-radius: var(--border-radius-pill);
   display: flex;
   gap: 2px;
-  height: 4px;
+  height: 3px;
   overflow: hidden;
   width: 100%;
 }
@@ -976,32 +1016,32 @@
 
 /* El estado sano va en tinta; el color queda para lo que pide atención. */
 .admin-ops__stack-seg--success,
-.admin-ops__legend-item--success span::before {
+.admin-ops__legend-item--success .admin-ops__legend-line::before {
   background: var(--admin-ink);
 }
 
 .admin-ops__stack-seg--warning,
-.admin-ops__legend-item--warning span::before {
+.admin-ops__legend-item--warning .admin-ops__legend-line::before {
   background: var(--admin-status-warning);
 }
 
 .admin-ops__stack-seg--alert,
-.admin-ops__legend-item--alert span::before {
+.admin-ops__legend-item--alert .admin-ops__legend-line::before {
   background: var(--admin-status-danger);
 }
 
 .admin-ops__stack-seg--celeste,
-.admin-ops__legend-item--celeste span::before {
+.admin-ops__legend-item--celeste .admin-ops__legend-line::before {
   background: var(--admin-accent);
 }
 
 .admin-ops__stack-seg--gold,
-.admin-ops__legend-item--gold span::before {
+.admin-ops__legend-item--gold .admin-ops__legend-line::before {
   background: var(--admin-premium);
 }
 
 .admin-ops__stack-seg--default,
-.admin-ops__legend-item--default span::before {
+.admin-ops__legend-item--default .admin-ops__legend-line::before {
   background: var(--admin-hairline-strong);
 }
 
@@ -1014,27 +1054,35 @@
 .admin-ops__legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 18px;
+  gap: 6px 18px;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
 .admin-ops__legend-item {
+  align-items: flex-start;
+  display: inline-flex;
+  flex-direction: column;
+  font-size: 12px;
+  gap: 1px;
+  max-width: 100%;
+}
+
+.admin-ops__legend-line {
   align-items: baseline;
   display: inline-flex;
-  font-size: 12px;
-  gap: 6px;
+  gap: 5px;
+  padding-left: 12px;
+  position: relative;
   white-space: nowrap;
 }
 
-.admin-ops__legend-item span {
+.admin-ops__legend-line > span {
   color: var(--admin-text-secondary);
-  padding-left: 12px;
-  position: relative;
 }
 
-.admin-ops__legend-item span::before {
+.admin-ops__legend-line::before {
   border-radius: 50%;
   content: '';
   height: 6px;
@@ -1045,18 +1093,33 @@
   width: 6px;
 }
 
+.admin-ops__legend-item--more .admin-ops__legend-line,
+.admin-ops__legend-item--more > span {
+  color: var(--admin-muted);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding-left: 0;
+}
+
+.admin-ops__legend-item--more .admin-ops__legend-line::before,
+.admin-ops__legend-item--more > span::before {
+  content: none;
+}
+
 .admin-ops__legend-item strong {
   color: var(--admin-ink);
   font-variant-numeric: tabular-nums;
   font-weight: 650;
 }
 
-.admin-ops__legend-item em,
-.admin-ops__legend-item small {
+.admin-ops__legend-amount {
   color: var(--admin-muted);
-  font-size: 12px;
-  font-style: normal;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  padding-left: 12px;
+  white-space: nowrap;
 }
 
 .admin-ops__chart-empty {
@@ -1601,7 +1664,9 @@
   .admin-ops__links {
     padding-left: 24px;
   }
+}
 
+@container ops-rail (min-width: 600px) {
   .admin-ops__stats-row {
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
   }
@@ -1638,9 +1703,62 @@
   }
 }
 
-@container admin-ops (min-width: 700px) {
+/* Cobros en dos tiempos: cifra cobrada y desglose lado a lado, el riel de
+   tasa debajo a todo el ancho. */
+@container ops-main (min-width: 560px) {
+  .admin-ops__finance {
+    column-gap: var(--space-xl);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
+  }
+
+  .admin-ops__finance > .admin-ops__section-head,
+  .admin-ops__finance-rate {
+    grid-column: 1 / -1;
+  }
+
+  .admin-ops__finance-hero {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .admin-ops__finance-metrics {
+    align-self: end;
+    border-top: 0;
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .admin-ops__finance-metric {
+    padding-top: 0;
+  }
+
+  .admin-ops__finance-rate {
+    grid-row: 3;
+  }
+}
+
+@container ops-main (min-width: 860px) {
   .admin-ops__period {
     grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  }
+
+  .admin-ops__finance {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-ops__finance-hero,
+  .admin-ops__finance-metrics,
+  .admin-ops__finance-rate {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .admin-ops__finance-metrics {
+    border-top: 1px solid var(--admin-hairline);
+  }
+
+  .admin-ops__finance-metric {
+    padding-top: 16px;
   }
 
   .admin-ops__mix {
@@ -1657,6 +1775,23 @@
   .admin-ops__work {
     border-left: 1px solid var(--admin-hairline);
     border-top: 0;
+  }
+
+  .admin-ops__layout:has(> .admin-ops__rail:not(:empty)) {
+    column-gap: 40px;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.52fr);
+  }
+
+  .admin-ops__layout > .admin-ops__rail {
+    border-left: 1px solid var(--admin-hairline);
+    padding-left: 40px;
+  }
+
+  /* El riel arranca a la altura de Cobros: su primer bloque no lleva la
+     hairline de separación que usa en la columna única. */
+  .admin-ops__rail > :first-child {
+    border-top: 0;
+    padding-top: 0;
   }
 }
 
@@ -1952,7 +2087,7 @@
   margin: 0 10px 0 8px;
 }
 
-@container admin-ops (min-width: 700px) {
+@container ops-rail (min-width: 640px) {
   .admin-ops__traffic-readout {
     align-items: start;
     grid-template-columns: minmax(11rem, 0.36fr) minmax(0, 1fr);

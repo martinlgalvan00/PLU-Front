@@ -6301,9 +6301,7 @@
 }
 
 .admin-payments-operations .admin-payments-ops-top .admin-list-shell__subtitle {
-  color: var(--admin-muted, var(--color-text-muted));
-  font-size: 12.5px;
-  max-width: 52ch;
+  display: none;
 }
 
 .admin-payments-ops-pulse {
@@ -16545,11 +16543,11 @@ button.action-queue__proof:focus-visible {
 }
 
 .action-queue__btn--primary {
-  color: var(--color-brand-celeste) !important;
+  color: var(--admin-accent) !important;
 }
 
 .action-queue__btn--primary:hover {
-  color: color-mix(in srgb, var(--color-brand-celeste) 80%, white) !important;
+  color: var(--color-text-primary) !important;
 }
 
 .action-queue__btn svg {
@@ -22299,7 +22297,7 @@ button.action-queue__proof:focus-visible {
    Acá solo layout base del strip y del split.
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* KPIs de eventos: pulse editorial dentro del chrome (sin glass / cards).
+/* KPIs de eventos: un dato protagonista + dos de contexto (sin glass / cards).
    El hairline de cierre vive en el chrome; acá solo layout tipográfico. */
 .admin-events-kpis {
   align-items: end;
@@ -22308,7 +22306,7 @@ button.action-queue__proof:focus-visible {
   flex-wrap: wrap;
   gap: 0;
   margin: 0;
-  padding: 10px 0 12px;
+  padding: 12px 0 10px;
 }
 
 .admin-events-kpi {
@@ -22316,64 +22314,55 @@ button.action-queue__proof:focus-visible {
   display: inline-flex;
   flex: 0 1 auto;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
-  padding: 0 18px 0 0;
+  padding: 0 22px 0 0;
 }
 
 .admin-events-kpi + .admin-events-kpi {
   border-left: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  padding-left: 18px;
+  padding-left: 22px;
 }
 
 .admin-events-kpi__label {
   color: var(--admin-muted, var(--color-text-muted));
   font-size: 10.5px;
   font-weight: 650;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   order: 2;
   text-transform: uppercase;
 }
 
 .admin-events-kpi__value {
   color: var(--admin-ink, var(--color-text-primary));
-  font-size: 1.15rem;
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(1.15rem, 1.8vw, 1.35rem);
   font-variant-numeric: tabular-nums;
   font-weight: 650;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
   margin-left: 0;
   order: 1;
 }
 
 .admin-events-kpi--primary .admin-events-kpi__value {
-  font-size: clamp(1.35rem, 2.2vw, 1.65rem);
-  font-weight: 650;
-  letter-spacing: -0.045em;
-}
-
-.admin-events-kpi--quiet .admin-events-kpi__value,
-.admin-events-kpi--quiet .admin-events-kpi__label {
-  color: var(--admin-muted, var(--color-text-muted));
-  font-weight: 500;
+  font-size: clamp(1.8rem, 3vw, 2.35rem);
+  font-weight: 700;
+  letter-spacing: -0.055em;
 }
 
 @media (max-width: 720px) {
   .admin-events-kpis {
     gap: 8px 0;
-    padding: 8px 0 10px;
+    padding: 10px 0 8px;
   }
 
   .admin-events-kpi {
-    padding-right: 12px;
+    padding-right: 14px;
   }
 
   .admin-events-kpi + .admin-events-kpi {
-    padding-left: 12px;
-  }
-
-  .admin-events-kpi--quiet {
-    display: none;
+    padding-left: 14px;
   }
 }
 
@@ -25967,14 +25956,7 @@ button.action-queue__proof:focus-visible {
 }
 
 .admin-payment-expiry__eyebrow {
-  align-items: center;
-  color: var(--admin-brand, var(--color-brand-celeste));
-  display: inline-flex;
-  font-size: 11px;
-  font-weight: 700;
-  gap: 6px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  display: none;
 }
 
 .admin-payment-expiry__title {
@@ -25985,10 +25967,7 @@ button.action-queue__proof:focus-visible {
 }
 
 .admin-payment-expiry__subtitle {
-  color: var(--admin-text-secondary, var(--admin-muted));
-  font-size: 13px;
-  margin: 4px 0 0;
-  max-width: 48ch;
+  display: none;
 }
 
 .admin-payment-expiry__error {
@@ -26038,14 +26017,7 @@ button.action-queue__proof:focus-visible {
 }
 
 .admin-payment-expiry__metric-hint {
-  color: var(--admin-muted);
-  font-size: 12px;
-  line-height: 1.4;
-  margin: 2px 0 0;
-  max-width: 28ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: none;
 }
 
 .admin-payment-expiry__callout {
@@ -26078,9 +26050,9 @@ button.action-queue__proof:focus-visible {
   align-items: center;
   display: grid;
   gap: 10px 20px;
-  grid-template-columns: minmax(0, 1.2fr) auto minmax(20rem, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 1.1fr);
   min-width: 0;
-  padding: 12px 0;
+  padding: 10px 0;
 }
 
 .admin-payment-expiry__window + .admin-payment-expiry__window {
@@ -26099,22 +26071,11 @@ button.action-queue__proof:focus-visible {
 }
 
 .admin-payment-expiry__window-hint {
-  color: var(--admin-muted);
-  font-size: 12px;
-  line-height: 1.45;
-  margin: 4px 0 0;
-  max-width: 42ch;
+  display: none;
 }
 
 .admin-payment-expiry__window-figure {
-  color: var(--color-brand-gold);
-  font-size: clamp(20px, 2.2vw, 28px);
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1;
-  margin: 0;
-  white-space: nowrap;
+  display: none;
 }
 
 [data-theme='light'] .admin-payment-expiry__window-figure {

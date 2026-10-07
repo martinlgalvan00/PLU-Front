@@ -17,8 +17,8 @@ const MIN_RESUME_MS = 800
  * Toast compacto de sesión. El flag vive en sessionStorage para sobrevivir el
  * cambio de layout privado → público; el evento cubre el logout sin remount.
  *
- * Una sola fila: iniciales, eyebrow + mensaje, acción opcional y cierre.
- * El filete superior marca la cuenta regresiva; DISMISS_MS viaja a CSS.
+ * Iniciales, eyebrow + mensaje con la acción opcional debajo, y cierre.
+ * El filete inferior marca la cuenta regresiva; DISMISS_MS viaja a CSS.
  */
 export default function SessionNotice({ onNavigate }) {
   const { t } = useI18n()
@@ -31,7 +31,6 @@ export default function SessionNotice({ onNavigate }) {
     return outFlag ? { type: 'out', name: outFlag.name } : false
   })
   const [leaving, setLeaving] = useState(false)
-  const [secondsLeft, setSecondsLeft] = useState(() => Math.ceil(DISMISS_MS / 1000))
   const cardRef = useRef(null)
   const intervalRef = useRef(null)
   const leaveTimeoutRef = useRef(null)
@@ -41,14 +40,12 @@ export default function SessionNotice({ onNavigate }) {
     function showOut(event) {
       if (leaveTimeoutRef.current) window.clearTimeout(leaveTimeoutRef.current)
       setLeaving(false)
-      setSecondsLeft(Math.ceil(DISMISS_MS / 1000))
       setNotice({ type: 'out', name: String(event?.detail?.name ?? '').trim() })
     }
 
     function showIn(event) {
       if (leaveTimeoutRef.current) window.clearTimeout(leaveTimeoutRef.current)
       setLeaving(false)
-      setSecondsLeft(Math.ceil(DISMISS_MS / 1000))
       setNotice({ type: 'in', name: String(event?.detail?.name ?? '').trim() })
     }
 
@@ -76,15 +73,11 @@ export default function SessionNotice({ onNavigate }) {
     const node = cardRef.current
     if (!node) return undefined
 
-    // Pausa al leer: hover o foco congela el cierre y el número; al salir se
+    // Pausa al leer: hover o foco congela el cierre y el filete; al salir se
     // reanuda con el tiempo restante, no desde cero.
     let remaining = DISMISS_MS
     let deadline = Date.now() + remaining
     let paused = false
-
-    function syncSeconds() {
-      setSecondsLeft(Math.max(Math.ceil(remaining / 1000), 0))
-    }
 
     function tick() {
       remaining = deadline - Date.now()
@@ -93,17 +86,13 @@ export default function SessionNotice({ onNavigate }) {
           clearInterval(intervalRef.current)
           intervalRef.current = null
         }
-        setSecondsLeft(0)
         dismissRef.current?.()
-        return
       }
-      syncSeconds()
     }
 
     function start() {
       if (intervalRef.current) return
       deadline = Date.now() + remaining
-      syncSeconds()
       intervalRef.current = setInterval(tick, TICK_MS)
     }
 
@@ -113,7 +102,6 @@ export default function SessionNotice({ onNavigate }) {
       clearInterval(intervalRef.current)
       intervalRef.current = null
       remaining = Math.max(deadline - Date.now(), 0)
-      syncSeconds()
     }
 
     function resume() {
@@ -181,35 +169,28 @@ export default function SessionNotice({ onNavigate }) {
               {t(isLogin ? 'nav.loginEyebrow' : 'nav.logoutEyebrow')}
             </p>
             <p className="session-notice__title">{title}</p>
+            {showLogin ? (
+              <button
+                type="button"
+                className="session-notice__login"
+                onClick={() => {
+                  dismiss()
+                  onNavigate('login')
+                }}
+              >
+                {t('nav.loginAgain')}
+                <ArrowRight size={12} strokeWidth={2} aria-hidden />
+              </button>
+            ) : null}
           </div>
-          {showLogin ? (
-            <button
-              type="button"
-              className="session-notice__login"
-              onClick={() => {
-                dismiss()
-                onNavigate('login')
-              }}
-            >
-              {t('nav.loginAgain')}
-              <ArrowRight size={12} strokeWidth={2} aria-hidden />
-            </button>
-          ) : null}
-          <div className="session-notice__corner">
-            <span className="session-notice__countdown" aria-hidden>
-              <span key={secondsLeft} className="session-notice__countdown-digit">
-                {secondsLeft}
-              </span>
-            </span>
-            <button
-              type="button"
-              className="session-notice__close"
-              aria-label={t('nav.logoutDismissAria')}
-              onClick={dismiss}
-            >
-              <X size={14} strokeWidth={1.75} aria-hidden />
-            </button>
-          </div>
+          <button
+            type="button"
+            className="session-notice__close"
+            aria-label={t('nav.logoutDismissAria')}
+            onClick={dismiss}
+          >
+            <X size={14} strokeWidth={1.75} aria-hidden />
+          </button>
         </div>
       </div>
     </div>
