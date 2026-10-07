@@ -1,10 +1,33 @@
 /* ── Records page — padrón federativo ─── */
 
+.records-page--soon .records-page__hero.plu-page-hero {
+  padding-block: clamp(36px, 5vw, 56px) clamp(20px, 3vw, 32px);
+}
+
+.records-page--soon .records-page__hero .plu-page-hero__copy {
+  max-width: min(36rem, 100%);
+}
+
+.records-page--soon .records-page__hero .plu-page-hero__title {
+  font-size: clamp(2rem, 4.2vw, 3.25rem);
+  letter-spacing: -0.045em;
+  max-width: 14ch;
+}
+
+.records-page--soon .records-page__hero .plu-page-hero__desc {
+  font-size: clamp(14.5px, 1.4vw, 16px);
+  max-width: 42ch;
+}
+
 .records-page--plu-ref .records-page__body {
   margin: 0 auto;
   max-width: var(--max-width-content);
   padding: clamp(48px, 6vw, 72px) clamp(20px, 5vw, 64px);
   width: 100%;
+}
+
+.records-page--soon .records-page__body {
+  padding-top: clamp(28px, 4vw, 48px);
 }
 
 .records-sheet {
@@ -15,30 +38,9 @@
   width: 100%;
 }
 
-/* Empty state: una columna editorial centrada en cualquier viewport. */
 .records-sheet:has(.records-soon) {
-  gap: clamp(24px, 3.2vw, 36px);
-  justify-items: center;
-}
-
-.records-sheet:has(.records-soon) .records-sheet__head {
-  align-items: center;
-  flex-direction: column;
-  gap: clamp(14px, 2vw, 20px);
-  justify-content: center;
-  max-width: min(48rem, 100%);
-  text-align: center;
-  width: 100%;
-}
-
-.records-sheet:has(.records-soon) .records-sheet__head-meta {
-  justify-content: center;
-  padding-top: 2px;
-}
-
-.records-sheet:has(.records-soon) .records-sheet__titles {
-  gap: 8px;
-  justify-items: center;
+  gap: 0;
+  justify-items: stretch;
 }
 
 .records-sheet__head {
@@ -588,18 +590,26 @@
   width: 100%;
 }
 
-/* Empty editorial — padrón aún no publicado */
+/* Empty editorial — split medalla + copy */
 .records-soon {
+  align-items: center;
   border-block: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
   display: grid;
-  gap: clamp(14px, 2vw, 20px);
+  gap: clamp(28px, 4vw, 48px);
+  grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   margin-inline: auto;
-  margin-top: 0;
-  max-width: min(42rem, 100%);
-  padding-block: clamp(28px, 4vw, 48px);
+  max-width: min(56rem, 100%);
+  padding-block: clamp(32px, 5vw, 64px);
   text-align: center;
   width: 100%;
+}
+
+.records-soon__copy {
+  display: grid;
+  gap: clamp(12px, 1.6vw, 18px);
+  justify-items: center;
+  max-width: min(36rem, 100%);
 }
 
 .records-soon__badge {
@@ -625,7 +635,7 @@
   letter-spacing: -0.04em;
   line-height: 1.05;
   margin: 0;
-  max-width: 18ch;
+  max-width: 16ch;
   text-wrap: balance;
 }
 
@@ -634,7 +644,7 @@
   font-size: clamp(15px, 1.55vw, 17px);
   line-height: 1.55;
   margin: 0;
-  max-width: 46ch;
+  max-width: 42ch;
   text-wrap: pretty;
 }
 
@@ -643,29 +653,167 @@
   margin-top: 4px;
 }
 
-@media (min-width: 1200px) {
+/* Medalla CSS 3D */
+.records-medal {
+  --records-medal-size: clamp(168px, 28vw, 220px);
+  display: grid;
+  justify-items: center;
+  width: var(--records-medal-size);
+}
+
+.records-medal__tilt {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  width: 100%;
+}
+
+.records-medal__tilt.tilt-card--interactive::after {
+  border-radius: 50%;
+}
+
+.records-medal__plate {
+  aspect-ratio: 1;
+  background:
+    radial-gradient(
+      circle at 32% 28%,
+      color-mix(in srgb, var(--color-bg-elevated, #1a1d22) 88%, #fff) 0%,
+      var(--color-bg-surface, #12151a) 52%,
+      color-mix(in srgb, var(--color-bg-canvas, #0b0d10) 92%, #000) 100%
+    );
+  border-radius: 50%;
+  box-shadow:
+    0 18px 40px color-mix(in srgb, #000 42%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 12%, transparent);
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+  transform-style: preserve-3d;
+  width: 100%;
+}
+
+.records-medal__rim {
+  border: 1.5px solid color-mix(in srgb, var(--color-brand-gold) 72%, transparent);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 5px color-mix(in srgb, var(--color-bg-canvas, #0b0d10) 55%, transparent),
+    inset 0 0 0 6.5px color-mix(in srgb, var(--color-brand-gold) 38%, transparent);
+  inset: 7%;
+  pointer-events: none;
+  position: absolute;
+  transform: translateZ(12px);
+}
+
+.records-medal__face {
+  align-content: center;
+  display: grid;
+  gap: 4px;
+  inset: 0;
+  justify-items: center;
+  place-content: center;
+  pointer-events: none;
+  position: absolute;
+  transform: translateZ(18px);
+  z-index: 1;
+}
+
+.records-medal__ring {
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
+  border-radius: 50%;
+  inset: 18%;
+  position: absolute;
+}
+
+.records-medal__mark {
+  color: color-mix(in srgb, var(--color-brand-gold) 92%, #fff);
+  font-family: var(--font-display);
+  font-size: clamp(1.65rem, 4.2vw, 2.15rem);
+  font-weight: 780;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  position: relative;
+}
+
+.records-medal__sub {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono, var(--font-display));
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.22em;
+  position: relative;
+  text-transform: uppercase;
+}
+
+.records-medal__year {
+  color: color-mix(in srgb, var(--color-brand-gold) 78%, var(--color-text-muted));
+  font-family: var(--font-mono, var(--font-display));
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  margin-top: 6px;
+  position: relative;
+}
+
+.records-medal__glare {
+  background: linear-gradient(
+    125deg,
+    transparent 34%,
+    color-mix(in srgb, #fff 14%, transparent) 48%,
+    transparent 62%
+  );
+  inset: 0;
+  opacity: 0.7;
+  pointer-events: none;
+  position: absolute;
+  transform: translateZ(24px) translate(var(--tilt-shift-x, 0), var(--tilt-shift-y, 0));
+  transition: transform 140ms var(--ease-out, ease);
+  z-index: 2;
+}
+
+.records-medal__tilt[data-tilt-active='0'] .records-medal__glare {
+  transition-duration: 420ms;
+}
+
+@media (min-width: 760px) {
   .records-soon {
-    max-width: min(48rem, 100%);
-    padding-block: clamp(36px, 5vw, 64px);
+    align-items: center;
+    grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+    justify-items: start;
+    max-width: min(58rem, 100%);
+    padding-block: clamp(40px, 5.5vw, 72px);
+    text-align: start;
+  }
+
+  .records-soon__copy {
+    justify-items: start;
+    max-width: 34rem;
+  }
+
+  .records-soon__actions {
+    justify-content: flex-start;
   }
 
   .records-soon__title {
-    font-size: clamp(2.1rem, 2.8vw, 3.15rem);
+    font-size: clamp(2rem, 3vw, 3rem);
+    max-width: 14ch;
+  }
+}
+
+@media (min-width: 1200px) {
+  .records-soon {
+    gap: clamp(40px, 5vw, 64px);
+    max-width: min(62rem, 100%);
   }
 
   .records-soon__text {
     font-size: clamp(16px, 1.15vw, 18px);
-    max-width: 50ch;
+    max-width: 44ch;
   }
 }
 
 @media (min-width: 1600px) {
   .records-page--plu-ref .records-page__body {
     padding-inline: clamp(32px, 4vw, 72px);
-  }
-
-  .records-soon {
-    max-width: min(52rem, 100%);
   }
 }
 
@@ -675,6 +823,34 @@
 
 [data-theme='light'] .records-soon__badge {
   color: color-mix(in oklab, var(--plu-gold-500, var(--color-brand-gold)) 78%, #4b5563);
+}
+
+[data-theme='light'] .records-medal__plate {
+  background:
+    radial-gradient(
+      circle at 32% 28%,
+      color-mix(in srgb, #fff 88%, var(--color-bg-elevated, #e8eaee)) 0%,
+      var(--color-bg-surface, #f3f4f6) 55%,
+      color-mix(in srgb, var(--color-bg-canvas, #eceef2) 90%, #c5c9d0) 100%
+    );
+  box-shadow:
+    0 16px 36px color-mix(in srgb, #000 12%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 80%, transparent);
+}
+
+[data-theme='light'] .records-medal__rim {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 68%, #8a6a1a);
+  box-shadow:
+    inset 0 0 0 5px color-mix(in srgb, #fff 70%, transparent),
+    inset 0 0 0 6.5px color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .records-medal__glare {
+    opacity: 0.35;
+    transform: none;
+    transition: none;
+  }
 }
 
 .records-sheet__hint {
@@ -734,11 +910,6 @@
     align-items: start;
     flex-direction: column;
     gap: 14px;
-  }
-
-  .records-sheet:has(.records-soon) .records-sheet__head {
-    align-items: center;
-    gap: 16px;
   }
 
   .records-sheet__head-meta {

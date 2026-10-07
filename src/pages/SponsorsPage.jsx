@@ -1,6 +1,5 @@
 import '../styles/pages/institutional-pages.css'
 import '../styles/pages/sponsors.css'
-import '../styles/layout/design-page-notebook.css'
 import { useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'
@@ -186,8 +185,10 @@ export default function SponsorsPage({ onNavigate }) {
                 <span className="sponsors-process__index" aria-hidden>
                   {String(index + 1).padStart(2, '0')}
                 </span>
-                <h3>{step.title}</h3>
-                <p>{step.desc}</p>
+                <div className="sponsors-process__body">
+                  <h3>{step.title}</h3>
+                  <p>{step.desc}</p>
+                </div>
               </li>
             ))}
           </ol>

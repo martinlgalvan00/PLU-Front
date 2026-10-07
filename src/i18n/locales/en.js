@@ -2406,8 +2406,7 @@ export default {
       heroTitle: 'Official records',
       heroDesc:
         'All-time best marks for PLU Argentina, aligned with the global Powerlifting United standard.',
-      heroDescSoon:
-        'The official register publishes with verified marks from PLU ARG meets. Meet sheets live in Results today.',
+      heroDescSoon: 'Verified marks from PLU ARG meets. Meet sheets live in Results today.',
       sheetTitle: 'Records register',
       sheetSubtitle: 'Squat, bench, deadlift, and total by category.',
       sheetStamp: 'Coming soon · 2026',
@@ -2417,6 +2416,7 @@ export default {
       soonHeadline: 'New marks waiting to be broken',
       soonLead:
         'The official register is built from verified marks. Until then, each meet sheet lives in Results.',
+      medalChapter: 'ARG',
       sheetColumns: {
         category: 'Category',
         division: 'Division',
@@ -2444,7 +2444,7 @@ export default {
       sheetEmpty: 'No official records published yet.',
       filterEmpty: 'No marks match that filter.',
       sheetHint:
-        'We publish the register with verified marks from PLU ARG meets. Check Results sheets or join for the next meet.',
+        'We publish the register with verified marks. Check Results sheets or the next meet on the calendar.',
       sheetHintLive:
         'Best marks derived from published sheets: {{meets}}. The register grows with each official meet.',
       searchLabel: 'Search records',
@@ -3025,7 +3025,7 @@ export default {
           desc: 'Equipment, venue, or services that make the meet possible. Operational mention and thanks in event communication.',
         },
       },
-      slotEmpty: 'Open slot · no partner published yet.',
+      slotEmpty: 'Open slot.',
       catalogNote:
         'When agreements are signed, partners are loaded into the catalog and appear here with logo and link.',
       tierCta: 'Ask about this tier',
@@ -3052,7 +3052,7 @@ export default {
       form: {
         eyebrow: 'Proposal',
         title: 'Propose a partnership',
-        lead: 'Fill in the basics. We reply with the tier that matches your reach — no invented presence.',
+        lead: 'Just the essentials. We reply with the tier that matches your reach.',
         brand: 'Brand or company',
         brandPlaceholder: 'Brand name',
         name: 'Your name',

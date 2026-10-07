@@ -2436,8 +2436,7 @@ export default {
       heroTitle: 'Récords oficiales',
       heroDesc:
         'Las mejores marcas históricas de PLU Argentina, alineadas al estándar global de Powerlifting United.',
-      heroDescSoon:
-        'El padrón oficial se publica con marcas verificadas de meets PLU ARG. Hoy el archivo vive en Resultados.',
+      heroDescSoon: 'Marcas verificadas de meets PLU ARG. Hoy el archivo vive en Resultados.',
       sheetTitle: 'Padrón de récords',
       sheetSubtitle: 'Sentadillas, banca, peso muerto y total por categoría.',
       sheetStamp: 'Próximamente · 2026',
@@ -2447,6 +2446,7 @@ export default {
       soonHeadline: 'Nuevas marcas por romper',
       soonLead:
         'El padrón oficial se arma con marcas verificadas. Mientras tanto, las planillas de cada meet están en Resultados.',
+      medalChapter: 'ARG',
       sheetColumns: {
         category: 'Categoría',
         division: 'División',
@@ -2474,7 +2474,7 @@ export default {
       sheetEmpty: 'Todavía no hay récords oficiales publicados.',
       filterEmpty: 'Ninguna marca coincide con ese filtro.',
       sheetHint:
-        'Publicamos el padrón con marcas verificadas de meets PLU ARG. Consultá las planillas en Resultados o afiliate para el próximo meet.',
+        'Publicamos el padrón con marcas verificadas. Consultá las planillas en Resultados o el calendario del próximo meet.',
       sheetHintLive:
         'Mejores marcas derivadas de planillas publicadas: {{meets}}. El padrón crece con cada meet oficial.',
       searchLabel: 'Buscar en récords',
@@ -3061,7 +3061,7 @@ export default {
           desc: 'Equipamiento, sede o servicios que hacen posible el meet. Mención operativa y agradecimiento en comunicación del evento.',
         },
       },
-      slotEmpty: 'Slot disponible · sin partner publicado todavía.',
+      slotEmpty: 'Slot disponible.',
       catalogNote:
         'Cuando haya acuerdos firmados, los partners se cargan en el catálogo y aparecen acá con logo y link.',
       tierCta: 'Consultar este nivel',
@@ -3088,7 +3088,7 @@ export default {
       form: {
         eyebrow: 'Propuesta',
         title: 'Proponé una alianza',
-        lead: 'Completá lo básico. Te respondemos con el nivel que corresponde a tu alcance, sin inventar presencia.',
+        lead: 'Lo esencial. Respondemos con el nivel que corresponde a tu alcance.',
         brand: 'Marca o empresa',
         brandPlaceholder: 'Nombre de la marca',
         name: 'Tu nombre',
