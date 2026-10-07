@@ -1,0 +1,7 @@
+interface:
+  display_name: "Diseño Frontend PLU"
+  short_description: "Diseño premium, minimalista y verificable"
+  default_prompt: "Usá $plu-frontend-design para auditar e implementar una mejora visual elegante, minimalista y coherente con PLU."
+
+policy:
+  allow_implicit_invocation: true
