@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowDown } from 'lucide-react'
+import { m } from 'motion/react'
 import Button from './Button.jsx'
 import CredentialCard from './CredentialCard.jsx'
 import { useContent } from '../../hooks/useContent.js'
@@ -10,6 +11,13 @@ import {
   buildRandomPreviewCredentialCode,
   generateCredentialQr,
 } from '../../lib/credentialQr.js'
+import { useMotionConfig } from '../../motion/MotionProvider.tsx'
+import { MOTION_STAGGER_BY_TIER } from '../../motion/tokens.ts'
+import {
+  heroProofItem,
+  heroSequenceItem,
+  heroTitleLine,
+} from '../../motion/variants.ts'
 
 function scrollToId(id) {
   const target = document.getElementById(id)
@@ -27,10 +35,21 @@ export default function MembersPluHero({
   pricePeriod,
 }) {
   const { locale, t } = useI18n()
+  const { reducedMotion, tier } = useMotionConfig()
   const { MEMBERSHIP_CREDENTIAL_SAMPLE } = useContent()
   const isLoggedInAthlete = session?.role === 'athlete_plu'
   const [previewCode] = useState(() => buildRandomPreviewCredentialCode())
   const [credentialQrSrc, setCredentialQrSrc] = useState(null)
+
+  // Cascada propia del hero (paridad con Home): escala por tier sin tocar
+  // heroStaggerContainer compartido con PluPageHero / Pitbull.
+  const heroStagger = useMemo(() => {
+    const { step, delayChildren } = MOTION_STAGGER_BY_TIER[tier]
+    return {
+      hidden: {},
+      visible: { transition: { staggerChildren: step, delayChildren } },
+    }
+  }, [tier])
 
   useEffect(() => {
     let cancelled = false
@@ -49,24 +68,48 @@ export default function MembersPluHero({
   }, [previewCode])
 
   const hasPrice = Number.isFinite(price)
+  const Main = reducedMotion ? 'div' : m.div
+  const Chapter = reducedMotion ? 'p' : m.p
+  const Title = reducedMotion ? 'h1' : m.h1
+  const TitleLine = reducedMotion ? 'span' : m.span
+  const Desc = reducedMotion ? 'p' : m.p
+  const CtaRow = reducedMotion ? 'div' : m.div
+  const Account = reducedMotion ? 'div' : m.div
+  const Showcase = reducedMotion ? 'div' : m.div
+  const itemProps = reducedMotion ? {} : { variants: heroSequenceItem }
+  const titleLineProps = reducedMotion ? {} : { variants: heroTitleLine }
+  const mainProps = reducedMotion
+    ? {}
+    : { initial: 'hidden', animate: 'visible', variants: heroStagger }
+  const titleProps = reducedMotion ? {} : { variants: heroStagger }
+  const showcaseProps = reducedMotion
+    ? {}
+    : { initial: 'hidden', animate: 'visible', variants: heroProofItem }
 
   return (
-    <header className="members-plu-hero">
+    <header className="members-plu-hero members-plu-hero--motion">
       <div className="members-plu-hero__grid">
-        <div className="members-plu-hero__main">
-          <p className="members-plu-hero__chapter">
+        <Main className="members-plu-hero__main" {...mainProps}>
+          <Chapter className="members-plu-hero__chapter" {...itemProps}>
             <span className="members-plu-hero__chapter-dot" aria-hidden />
             {t('pages.members.heroChapter')}
-          </p>
-          <h1 className="members-plu-hero__title">
-            <span className="members-plu-hero__title-line">{t('pages.members.heroTitleLead')}</span>
-            <span className="members-plu-hero__title-line members-plu-hero__title-line--accent">
+          </Chapter>
+          <Title className="members-plu-hero__title" {...titleProps}>
+            <TitleLine className="members-plu-hero__title-line" {...titleLineProps}>
+              {t('pages.members.heroTitleLead')}
+            </TitleLine>
+            <TitleLine
+              className="members-plu-hero__title-line members-plu-hero__title-line--accent"
+              {...titleLineProps}
+            >
               {t('pages.members.heroTitleAccent')}
-            </span>
-          </h1>
-          <p className="members-plu-hero__desc">{t('pages.members.heroDesc')}</p>
+            </TitleLine>
+          </Title>
+          <Desc className="members-plu-hero__desc" {...itemProps}>
+            {t('pages.members.heroDesc')}
+          </Desc>
 
-          <div className="members-plu-hero__cta-row">
+          <CtaRow className="members-plu-hero__cta-row" {...itemProps}>
             <div className="members-plu-hero__buy">
               <Button variant="gold" disabled={ctaDisabled} onClick={onAffiliate}>
                 {affiliationCta}
@@ -86,18 +129,21 @@ export default function MembersPluHero({
               {t('pages.members.heroCtaSecondary')}
               <ArrowDown size={15} aria-hidden className="motion-icon-shift__target" />
             </button>
-          </div>
+          </CtaRow>
 
-          <div className="members-plu-hero__account">
+          <Account
+            className="members-plu-hero__account"
+            aria-label={
+              isLoggedInAthlete ? undefined : t('pages.members.existingMember')
+            }
+            {...itemProps}
+          >
             {isLoggedInAthlete ? (
               <p className="members-plu-hero__signed-in">
                 {t('pages.members.heroSignedIn', { name: session?.name ?? session?.email ?? '' })}
               </p>
             ) : (
               <>
-                <span className="members-plu-hero__account-label">
-                  {t('pages.members.existingMember')}
-                </span>
                 <button
                   type="button"
                   className="members-plu-hero__account-link"
@@ -117,10 +163,10 @@ export default function MembersPluHero({
                 </button>
               </>
             )}
-          </div>
-        </div>
+          </Account>
+        </Main>
 
-        <div className="members-plu-hero__showcase">
+        <Showcase className="members-plu-hero__showcase" {...showcaseProps}>
           <CredentialCard
             className="members-plu-hero__card-tilt"
             eyebrow={t('pages.members.credentialAthleteLabel')}
@@ -137,10 +183,10 @@ export default function MembersPluHero({
             flipAriaLabel={t('pages.members.credentialFlipAria', {
               name: MEMBERSHIP_CREDENTIAL_SAMPLE.athlete,
             })}
-            maxTilt={4.5}
+            maxTilt={3.5}
           />
           <p className="members-cred__caption">{t('pages.members.credentialPreviewNote')}</p>
-        </div>
+        </Showcase>
       </div>
     </header>
   )

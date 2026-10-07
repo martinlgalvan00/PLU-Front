@@ -30,7 +30,7 @@ import { hasCurrentMembership } from '../../services/membershipService.js'
 import { useHeaderScroll } from '../../hooks/useMotion.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
-import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
+import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER } from '../../motion/tokens.ts'
 import BrandLogo from '../ui/BrandLogo.jsx'
 import LanguageToggle from '../ui/LanguageToggle.jsx'
 import ThemeToggle from '../ui/ThemeToggle.jsx'
@@ -148,9 +148,41 @@ function SharedActiveIndicator() {
       transition={
         reducedMotion
           ? { duration: 0.01 }
-          : { type: 'spring', stiffness: 320, damping: 36, mass: 0.85 }
+          : { type: 'spring', stiffness: 280, damping: 34, mass: 0.9 }
       }
     />
+  )
+}
+
+/** Hairline dorado compartido: viaje entre links vía layoutId; fade al salir del rail. */
+function NavHoverPill({ show }) {
+  const { reducedMotion } = useMotionConfig()
+
+  return (
+    <AnimatePresence initial={false}>
+      {show ? (
+        <m.span
+          key="plu-nav-hover-pill"
+          layoutId="plu-nav-hover-pill"
+          className="plu-global-nav__hover-pill"
+          aria-hidden
+          initial={false}
+          animate={{ opacity: 1 }}
+          exit={{
+            opacity: 0,
+            transition: {
+              duration: reducedMotion ? 0.01 : MOTION_DURATION.instant,
+              ease: MOTION_EASE.standard,
+            },
+          }}
+          transition={
+            reducedMotion
+              ? { duration: 0.01 }
+              : { type: 'spring', stiffness: 300, damping: 32, mass: 0.75 }
+          }
+        />
+      ) : null}
+    </AnimatePresence>
   )
 }
 
@@ -161,11 +193,8 @@ function NavLink({
   icon: Icon,
   onClick,
   onHover,
-  onLeave,
   tone = 'default',
 }) {
-  const { reducedMotion } = useMotionConfig()
-
   return (
     <button
       type="button"
@@ -173,20 +202,9 @@ function NavLink({
       aria-current={active ? 'page' : undefined}
       onClick={onClick}
       onMouseEnter={onHover}
-      onMouseLeave={onLeave}
+      onFocus={onHover}
     >
-      {hovered ? (
-        <m.span
-          layoutId="plu-nav-hover-pill"
-          className="plu-global-nav__hover-pill"
-          aria-hidden
-          transition={
-            reducedMotion
-              ? { duration: 0.01 }
-              : { type: 'spring', stiffness: 340, damping: 34, mass: 0.7 }
-          }
-        />
-      ) : null}
+      <NavHoverPill show={hovered} />
       <span className="plu-global-nav__link-content">
         {Icon ? <Icon className="plu-global-nav__link-icon" size={14} aria-hidden /> : null}
         {children}
@@ -223,7 +241,7 @@ function NavDropdownItem({
         <strong>{label}</strong>
         {description ? <small>{description}</small> : null}
       </span>
-      <ArrowRight size={14} aria-hidden />
+      <ArrowRight className="plu-nav-menu__item-arrow" size={14} aria-hidden />
     </button>
   )
 }
@@ -232,7 +250,6 @@ function NavDropdown({
   active,
   hovered,
   onHover,
-  onLeave,
   children,
   label,
   menuId,
@@ -292,11 +309,12 @@ function NavDropdown({
     }
   }
 
-  /* Shell CSS lleva el translate; Motion solo anima opacity en el panel interno. */
+  /* Shell CSS lleva translate X (-50%); Motion anima opacity + y sin pelear el eje. */
   const panelVariants = {
-    hidden: { opacity: 0 },
+    hidden: { opacity: 0, y: reducedMotion ? 0 : 6 },
     visible: {
       opacity: 1,
+      y: 0,
       transition: {
         duration: reducedMotion ? 0.01 : MOTION_DURATION.fast,
         ease: MOTION_EASE.out,
@@ -304,8 +322,9 @@ function NavDropdown({
     },
     exit: {
       opacity: 0,
+      y: reducedMotion ? 0 : 4,
       transition: {
-        duration: reducedMotion ? 0.01 : 0.12,
+        duration: reducedMotion ? 0.01 : MOTION_DURATION.instant,
         ease: MOTION_EASE.standard,
       },
     },
@@ -329,20 +348,9 @@ function NavDropdown({
         onClick={onToggle}
         onKeyDown={handleTriggerKeyDown}
         onMouseEnter={onHover}
-        onMouseLeave={onLeave}
+        onFocus={onHover}
       >
-        {hovered ? (
-          <m.span
-            layoutId="plu-nav-hover-pill"
-            className="plu-global-nav__hover-pill"
-            aria-hidden
-            transition={
-              reducedMotion
-                ? { duration: 0.01 }
-                : { type: 'spring', stiffness: 340, damping: 34, mass: 0.7 }
-            }
-          />
-        ) : null}
+        <NavHoverPill show={hovered} />
         <span className="plu-global-nav__link-content">
           {label}
           <ChevronDown size={13} aria-hidden className="plu-global-nav__chevron" />
@@ -412,9 +420,9 @@ function DrawerRow({
         initial: reducedMotion ? false : { opacity: 0, y: 8 },
         animate: { opacity: 1, y: 0 },
         transition: {
-          duration: reducedMotion ? 0.01 : 0.26,
-          ease: [0.22, 1, 0.36, 1],
-          delay: reducedMotion ? 0 : Math.min(delay, 0.12),
+          duration: reducedMotion ? 0.01 : MOTION_DURATION.base,
+          ease: MOTION_EASE.out,
+          delay: reducedMotion ? 0 : Math.min(delay, MOTION_STAGGER.stepFast * 2),
         },
       }
     : {}
@@ -765,7 +773,16 @@ export default function NavbarPublic({
 
           <span className="plu-global-nav__rail" aria-hidden />
 
-          <nav className="plu-global-nav__desktop" aria-label={t('nav.mainAria')}>
+          <nav
+            className="plu-global-nav__desktop"
+            aria-label={t('nav.mainAria')}
+            onMouseLeave={() => setHoveredNav(null)}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) {
+                setHoveredNav(null)
+              }
+            }}
+          >
             <LayoutGroup id={`plu-public-navigation-${locale}`}>
               {PUBLIC_NAVIGATION.primary.map((item) => {
                 if (item.type === 'menu' && item.key === 'competition') {
@@ -775,7 +792,6 @@ export default function NavbarPublic({
                       active={competitionActive}
                       hovered={hoveredNav === 'competition'}
                       onHover={() => setHoveredNav('competition')}
-                      onLeave={() => setHoveredNav(null)}
                       label={t(item.labelKey)}
                       menuId="plu-competition-menu"
                       open={dropdown === 'competition'}
@@ -807,7 +823,6 @@ export default function NavbarPublic({
                       active={moreActive}
                       hovered={hoveredNav === 'more'}
                       onHover={() => setHoveredNav('more')}
-                      onLeave={() => setHoveredNav(null)}
                       label={t(item.labelKey)}
                       menuId="plu-more-menu"
                       open={dropdown === 'more'}
@@ -825,7 +840,7 @@ export default function NavbarPublic({
                         </div>
                         <button type="button" role="menuitem" onClick={() => go('resources')}>
                           {t('nav.viewResources')}
-                          <ArrowRight size={14} aria-hidden />
+                          <ArrowRight className="plu-resources-menu__head-arrow" size={14} aria-hidden />
                         </button>
                       </div>
                       <div className="plu-resources-menu__groups" role="presentation">
@@ -862,7 +877,6 @@ export default function NavbarPublic({
                     }
                     hovered={hoveredNav === item.key}
                     onHover={() => setHoveredNav(item.key)}
-                    onLeave={() => setHoveredNav(null)}
                     tone={item.key === 'members' ? 'affiliate' : 'default'}
                     onClick={() => go(item.key)}
                   >
@@ -1064,10 +1078,13 @@ export default function NavbarPublic({
                       opacity: 0,
                       y: 4,
                       scale: 0.99,
-                      transition: { duration: 0.14, ease: MOTION_EASE.out },
+                      transition: { duration: MOTION_DURATION.fast, ease: MOTION_EASE.out },
                     }
               }
-              transition={{ duration: reducedMotion ? 0.08 : 0.2, ease: MOTION_EASE.out }}
+              transition={{
+                duration: reducedMotion ? MOTION_DURATION.instant : MOTION_DURATION.base,
+                ease: MOTION_EASE.out,
+              }}
             >
               <div className="plu-profile-menu__header">
                 <div className="plu-profile-menu__avatar" aria-hidden>
@@ -1132,10 +1149,13 @@ export default function NavbarPublic({
                       opacity: 0,
                       y: 4,
                       scale: 0.99,
-                      transition: { duration: 0.14, ease: MOTION_EASE.out },
+                      transition: { duration: MOTION_DURATION.fast, ease: MOTION_EASE.out },
                     }
               }
-              transition={{ duration: reducedMotion ? 0.08 : 0.2, ease: MOTION_EASE.out }}
+              transition={{
+                duration: reducedMotion ? MOTION_DURATION.instant : MOTION_DURATION.base,
+                ease: MOTION_EASE.out,
+              }}
             >
               <div className="plu-notice-menu__header">
                 <p className="plu-notice-menu__eyebrow">{t('nav.notices')}</p>
@@ -1187,8 +1207,14 @@ export default function NavbarPublic({
                 aria-hidden
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0, transition: { duration: reducedMotion ? 0.01 : 0.2 } }}
-                transition={{ duration: reducedMotion ? 0.01 : 0.24, ease: [0.2, 0, 0, 1] }}
+                exit={{
+                  opacity: 0,
+                  transition: { duration: reducedMotion ? 0.01 : MOTION_DURATION.base },
+                }}
+                transition={{
+                  duration: reducedMotion ? 0.01 : MOTION_DURATION.base,
+                  ease: MOTION_EASE.standard,
+                }}
                 onClick={() => closeDrawer(true)}
               />
               <m.aside
@@ -1207,22 +1233,25 @@ export default function NavbarPublic({
                     : {
                         opacity: 0,
                         x: '100%',
-                        transition: { duration: 0.22, ease: [0.4, 0, 1, 1] },
+                        transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.standard },
                       }
                 }
                 // Settle cinematográfico: el panel desliza y frena suave, sin
                 // rebote — la superficie es grande y un spring se leería
                 // elástico, no lujoso.
-                transition={{ duration: reducedMotion ? 0.01 : 0.34, ease: MOTION_EASE.cinematic }}
+                transition={{
+                  duration: reducedMotion ? 0.01 : MOTION_DURATION.page,
+                  ease: MOTION_EASE.cinematic,
+                }}
               >
                 <m.header
                   className="plu-drawer__head"
                   initial={reducedMotion ? false : { opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{
-                    duration: reducedMotion ? 0.01 : 0.22,
+                    duration: reducedMotion ? 0.01 : MOTION_DURATION.base,
                     ease: MOTION_EASE.out,
-                    delay: reducedMotion ? 0 : 0.04,
+                    delay: reducedMotion ? 0 : MOTION_STAGGER.stepFast,
                   }}
                 >
                   <div className="plu-drawer__head-bar">
@@ -1259,9 +1288,9 @@ export default function NavbarPublic({
                     initial={reducedMotion ? false : { opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{
-                      duration: reducedMotion ? 0.01 : 0.22,
+                      duration: reducedMotion ? 0.01 : MOTION_DURATION.base,
                       ease: MOTION_EASE.out,
-                      delay: reducedMotion ? 0 : 0.04,
+                      delay: reducedMotion ? 0 : MOTION_STAGGER.stepFast,
                     }}
                   >
                     <span className="plu-drawer__cta-copy">
@@ -1283,7 +1312,7 @@ export default function NavbarPublic({
                       <div className="plu-drawer__nav-primary">
                         <DrawerRow
                           active={latestEventActive}
-                          delay={0.02}
+                          delay={MOTION_STAGGER.stepFast}
                           description={latestEvent?.date ?? t('nav.pitbullHint')}
                           onClick={() => go(latestEventView, latestEventOptions)}
                         >
@@ -1291,7 +1320,7 @@ export default function NavbarPublic({
                         </DrawerRow>
                         <DrawerRow
                           active={['shop', 'tickets'].includes(activeView)}
-                          delay={0.04}
+                          delay={MOTION_STAGGER.stepFast * 2}
                           description={t('nav.shopHint')}
                           onClick={() => go('shop')}
                         >
@@ -1299,21 +1328,21 @@ export default function NavbarPublic({
                         </DrawerRow>
                         <DrawerRow
                           active={activeView === 'events'}
-                          delay={0.06}
+                          delay={MOTION_STAGGER.stepFast * 3}
                           onClick={() => go('events')}
                         >
                           {t('nav.calendarOfficial')}
                         </DrawerRow>
                         <DrawerRow
                           active={activeView === 'results'}
-                          delay={0.08}
+                          delay={MOTION_STAGGER.stepFast * 4}
                           onClick={() => go('results')}
                         >
                           {t('nav.results')}
                         </DrawerRow>
                         <DrawerRow
                           active={activeView === 'records'}
-                          delay={0.1}
+                          delay={MOTION_STAGGER.stepFast * 5}
                           onClick={() => go('records')}
                         >
                           {t('nav.records')}
@@ -1333,7 +1362,7 @@ export default function NavbarPublic({
                             ) : null}
                             <DrawerRow
                               active={item.active}
-                              delay={0.08 + index * 0.02}
+                              delay={MOTION_STAGGER.stepFast * (2 + index)}
                               onClick={() => go(item.key)}
                             >
                               {item.label}

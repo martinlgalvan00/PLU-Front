@@ -459,7 +459,7 @@ export default {
     headlineLead: 'Official',
     headlineAccent: 'memberships and calendar',
     headlineAccentOn: 'lead',
-    description: 'Official memberships, calendar and meet registration.',
+    description: 'Join. Compete. Official results.',
     descriptionMeta: 'Digital credentials and published results.',
     ctaAffiliate: 'Become a member',
     ctaPitbull: 'Register for Pitbull Classic',
@@ -1471,7 +1471,8 @@ export default {
     },
     hero: {
       memberSince: 'Member since',
-      activeRegistrations: 'Active registrations',
+      activeRegistrations_one: '{{count}} active registration',
+      activeRegistrations_other: '{{count}} active registrations',
       nextEvent: 'Next event',
       editData: 'Edit my data',
     },
@@ -1869,8 +1870,8 @@ export default {
       heroDesc:
         'Pay online, activate your membership, and get the QR credential on your profile. No WhatsApp receipts.',
       heroCtaSecondary: 'View requirements',
-      heroSignedIn: 'Signed in as {{name}}.',
-      existingMember: 'Existing member?',
+      heroSignedIn: '{{name}}',
+      existingMember: 'Account access',
       loginLink: 'Log in',
       registerLink: 'Register',
       quickNavAria: 'Membership quick access',
@@ -1880,8 +1881,7 @@ export default {
       quickNavRulebook: 'Rulebook',
       quickNavFaq: 'FAQ',
       credentialPreviewLabel: 'Credential preview',
-      credentialPreviewNote:
-        'This is how your digital credential looks once membership is active. Tap to see the QR — scan it to preview how staff would see it.',
+      credentialPreviewNote: 'Preview · tap for QR',
       credentialAthleteLabel: 'Athlete',
       credentialCodeLabel: 'Code',
       credentialSeasonLabel: 'Season',
@@ -1978,6 +1978,8 @@ export default {
       benefitsEyebrow: 'Benefits',
       benefitsNavAria: 'Choose a benefit',
       requirementsAria: 'Membership requirements',
+      requirementsPrev: 'Previous requirement',
+      requirementsNext: 'Next requirement',
       institutionalAria: 'Connection with Powerlifting United',
       heroRail: {
         metricsAria: 'Membership pricing and validity',

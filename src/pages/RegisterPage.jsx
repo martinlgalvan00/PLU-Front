@@ -1,4 +1,5 @@
 import '../styles/pages/design-phase2.css'
+import '../styles/pages/auth.css'
 import '../styles/pages/register.css'
 import '../styles/components/exclusive-offer.css'
 import '../styles/components/code-band.css'

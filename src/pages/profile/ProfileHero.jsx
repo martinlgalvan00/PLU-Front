@@ -1,7 +1,7 @@
-import { Pencil, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Pencil, AlertCircle } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import DigitalCredential from '../../components/ui/DigitalCredential.jsx'
-import { formatShortDate, initials } from '../../lib/format.js'
+import { formatShortDate } from '../../lib/format.js'
 import { isProfileComplete } from '../../lib/athleteProfile.js'
 import { resolveSessionIdentity } from '../../lib/roles.js'
 
@@ -14,7 +14,6 @@ export default function ProfileHero({
   session = null,
 }) {
   const { t } = useI18n()
-  const membershipActive = membership?.status === 'activa'
   const activeRegistrations = athleteRegistrations.filter((item) => item.status !== 'cancelada')
   const profileStatus = isProfileComplete(athlete)
   const identity = resolveSessionIdentity(session)
@@ -23,66 +22,47 @@ export default function ProfileHero({
       ? (identity.roleLabel ?? t('nav.roleAdmin'))
       : t('nav.roleAthlete')
 
+  const registrationCount = activeRegistrations.length
+  const memberSince = membership?.startDate ? formatShortDate(membership.startDate) : null
+
   return (
     <section className="account-hero">
       <div className="account-hero__inner">
         <div className="account-hero__identity-col">
-          <div className="account-hero__identity">
-            <div className="account-hero__avatar" aria-hidden>
-              {athlete.photoUrl ? (
-                <img
-                  src={athlete.photoUrl}
-                  alt=""
-                  width={84}
-                  height={84}
-                  decoding="async"
-                  loading="eager"
-                />
-              ) : (
-                initials(athlete.fullName)
-              )}
-            </div>
-            <div className="account-hero__copy">
-              <span className="account-hero__eyebrow">{roleEyebrow}</span>
-              <h1 className="account-hero__name">{athlete.fullName}</h1>
-              {identity.staffAccess ? (
-                <p className="account-hero__role">{t('nav.roleStaffAccess')}</p>
-              ) : null}
-              <div className="account-hero__badges">
-                <span
-                  className={`account-badge ${membershipActive ? 'account-badge--active' : 'account-badge--pending'}`}
-                >
-                  {membershipActive
-                    ? t('account.membershipActive')
-                    : t('account.membershipInactive')}
-                </span>
-                {membership?.memberCode && (
-                  <span className="account-badge account-badge--code">{membership.memberCode}</span>
-                )}
-              </div>
-            </div>
+          <div className="account-hero__copy">
+            <span className="account-hero__eyebrow">{roleEyebrow}</span>
+            <h1 className="account-hero__name">{athlete.fullName}</h1>
+            {identity.staffAccess ? (
+              <p className="account-hero__role">{t('nav.roleStaffAccess')}</p>
+            ) : null}
           </div>
 
-          <div className="account-hero__stats" role="list">
-            {membership?.startDate && (
-              <div className="account-hero__stat" role="listitem">
-                <span>{t('account.hero.memberSince')}</span>
-                <span className="account-hero__stat-value">
-                  {formatShortDate(membership.startDate)}
+          <p className="account-hero__meta">
+            <span className="account-hero__meta-regs">
+              {t(
+                `account.hero.activeRegistrations_${registrationCount === 1 ? 'one' : 'other'}`,
+                { count: registrationCount },
+              )}
+            </span>
+            {nextEvent?.title ? (
+              <>
+                <span className="account-hero__meta-sep" aria-hidden>
+                  ·
                 </span>
-              </div>
-            )}
-            <div className="account-hero__stat account-hero__stat--count" role="listitem">
-              <span>{t('account.hero.activeRegistrations')}</span>
-              <span className="account-hero__stat-value">{activeRegistrations.length}</span>
-            </div>
-            {nextEvent && (
-              <div className="account-hero__stat account-hero__stat--event" role="listitem">
-                <span>{t('account.hero.nextEvent')}</span>
-                <span className="account-hero__stat-value">{nextEvent.title}</span>
-              </div>
-            )}
-          </div>
+                <span className="account-hero__meta-event">{nextEvent.title}</span>
+              </>
+            ) : null}
+            {memberSince ? (
+              <>
+                <span className="account-hero__meta-sep" aria-hidden>
+                  ·
+                </span>
+                <span className="account-hero__meta-since">
+                  {t('account.hero.memberSince')} {memberSince}
+                </span>
+              </>
+            ) : null}
+          </p>
 
           <button
             type="button"
@@ -91,15 +71,7 @@ export default function ProfileHero({
           >
             <Pencil size={14} strokeWidth={1.75} aria-hidden />
             <span>{t('account.hero.editData')}</span>
-            {/* Badge inline de completitud en el botón */}
-            {profileStatus.complete ? (
-              <span
-                className="account-hero__profile-badge account-hero__profile-badge--ok"
-                aria-label={t('account.personalData.profileComplete')}
-              >
-                <CheckCircle2 size={12} aria-hidden />
-              </span>
-            ) : (
+            {!profileStatus.complete ? (
               <span
                 className="account-hero__profile-badge account-hero__profile-badge--warn"
                 aria-label={t(
@@ -110,7 +82,7 @@ export default function ProfileHero({
                 <AlertCircle size={12} aria-hidden />
                 {profileStatus.missing.length}
               </span>
-            )}
+            ) : null}
           </button>
         </div>
 

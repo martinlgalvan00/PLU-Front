@@ -24,6 +24,9 @@ const copyContainer = {
   },
 }
 
+/** Qué incluye la afiliación, en el mismo orden que la bajada original. */
+const INCLUDED_BENEFIT_IDS = ['checkout', 'credential', 'events']
+
 const copyItem = {
   hidden: { opacity: 0, y: 16 },
   visible: {
@@ -52,7 +55,10 @@ export default function HomeMembershipBand({
   gateEvent = null,
   checkoutAvailability = {},
 }) {
-  const { HOME_MEMBERSHIP } = useContent()
+  const { HOME_MEMBERSHIP, HOME_MEMBERSHIP_BENEFITS } = useContent()
+  const includedBenefits = INCLUDED_BENEFIT_IDS.map((id) =>
+    HOME_MEMBERSHIP_BENEFITS?.find((benefit) => benefit.id === id),
+  ).filter(Boolean)
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
   const membershipCheckoutEnabled = checkoutAvailability.membershipEnabled !== false
@@ -141,9 +147,27 @@ export default function HomeMembershipBand({
           </h2>
         </CopyItem>
 
-        <CopyItem {...itemProps} className="home-membership-band__desc">
-          {HOME_MEMBERSHIP.description}
-        </CopyItem>
+        {includedBenefits.length ? (
+          <CopyItem {...itemProps}>
+            <ul className="home-membership-band__includes">
+              {includedBenefits.map((benefit, index) => (
+                <li key={benefit.id} className="home-membership-band__include">
+                  <span className="home-membership-band__include-index" aria-hidden>
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <span className="home-membership-band__include-copy">
+                    <strong className="home-membership-band__include-title">{benefit.title}</strong>
+                    <span className="home-membership-band__include-text">{benefit.text}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CopyItem>
+        ) : (
+          <CopyItem {...itemProps} className="home-membership-band__desc">
+            {HOME_MEMBERSHIP.description}
+          </CopyItem>
+        )}
 
         {showCombo ? (
           <CopyItem {...itemProps} className="home-membership-band__combo">

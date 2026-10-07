@@ -32,6 +32,7 @@ import EventWeighInSchedule, {
 } from '../components/ui/EventWeighInSchedule.jsx'
 import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import SeasonComboOffer from '../components/ui/SeasonComboOffer.jsx'
+import TicketPassPreview from '../components/ui/TicketPassPreview.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
 import { useTicketCheckoutAvailability } from '../hooks/useTicketAvailability.js'
@@ -58,6 +59,7 @@ import { hasCurrentMembership } from '../services/membershipService.js'
 import AnimatedNumber from '../motion/AnimatedNumber.tsx'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER, MOTION_VIEWPORT } from '../motion/tokens.ts'
+import { hasFinePointer } from '../motion/useReducedMotion.ts'
 import { staggerContainer, staggerItem } from '../motion/variants.ts'
 
 function scrollToSection(id) {
@@ -377,14 +379,18 @@ function PitbullExperienceSection({ t }) {
   const StageTag = reducedMotion ? 'div' : m.div
   const PillarsTag = reducedMotion ? 'ul' : m.ul
   const PillarTag = reducedMotion ? 'li' : m.li
-  const stageMotion = reducedMotion
-    ? {}
-    : {
-        initial: { opacity: 0, y: 18 },
-        whileInView: { opacity: 1, y: 0 },
-        viewport: MOTION_VIEWPORT,
-        transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
-      }
+  // Con puntero fino la portada del capítulo se descubre con un wipe atado al
+  // scroll (pitbull.css, `pitbull-experience-wipe`); sumarle el fade de JS
+  // duplicaría la entrada. En touch queda el fade.
+  const stageMotion =
+    reducedMotion || hasFinePointer()
+      ? {}
+      : {
+          initial: { opacity: 0, y: 18 },
+          whileInView: { opacity: 1, y: 0 },
+          viewport: MOTION_VIEWPORT,
+          transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
+        }
   const pillarsMotion = reducedMotion
     ? {}
     : {
@@ -557,7 +563,7 @@ function PitbullLocationSection({ event, venue, t }) {
   )
 }
 
-function PitbullTicketsBand({ onOpen, soon = false, t }) {
+function PitbullTicketsBand({ event, onOpen, soon = false, t }) {
   return (
     <section
       id="entradas"
@@ -613,6 +619,17 @@ function PitbullTicketsBand({ onOpen, soon = false, t }) {
             <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
           </button>
         )}
+      </div>
+      {/* Pieza 3D de la banda: el mismo pase que entrega la compra, con QR de
+          vista previa (PREV-, no habilita ingreso). Solo desktop. */}
+      <div className="pitbull-tickets-band__pass" aria-hidden>
+        <TicketPassPreview
+          date={event?.date}
+          eventSlug={event?.slug ?? ''}
+          eventTitle={event?.title}
+          showHint={false}
+          venue={event?.venue}
+        />
       </div>
     </section>
   )
@@ -1133,12 +1150,6 @@ function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
                     {String(rowIndex + 1).padStart(2, '0')}
                   </span>
                   <span className="pitbull-cat__featured-row-name">{row}</span>
-                  <span
-                    className="pitbull-cat__featured-row-ghost motif-num motif-num--ghost"
-                    aria-hidden
-                  >
-                    {String(rowIndex + 1).padStart(2, '0')}
-                  </span>
                 </ItemTag>
               ))}
             </ListTag>
@@ -1412,6 +1423,7 @@ export default function PitbullPage({
 
           <Reveal as="div" direction="up" className="pitbull-tickets-band-wrap">
             <PitbullTicketsBand
+              event={pitbullEvent}
               soon={!ticketsOpen}
               onOpen={goToTicketsPage}
               t={t}

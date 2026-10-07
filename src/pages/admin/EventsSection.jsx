@@ -503,7 +503,6 @@ export default function EventsSection({
       upcomingCount,
       totalRegistered,
       fillPercent,
-      inView: rows.length,
     }
   }, [rows])
 
@@ -938,10 +937,6 @@ export default function EventsSection({
       <div className="admin-events-kpi">
         <strong className="admin-events-kpi__value">{kpiStats.fillPercent}%</strong>
         <span className="admin-events-kpi__label">{t('admin.sections.events.kpiFill')}</span>
-      </div>
-      <div className="admin-events-kpi admin-events-kpi--quiet">
-        <strong className="admin-events-kpi__value">{kpiStats.inView}</strong>
-        <span className="admin-events-kpi__label">{t('admin.sections.events.kpiTotal')}</span>
       </div>
     </div>
   )

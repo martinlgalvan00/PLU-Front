@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AlertCircle, ArrowRight, CheckCircle2, LoaderCircle } from 'lucide-react'
 import '../styles/pages/design-phase2.css'
+import '../styles/pages/auth.css'
 import BrandLogo from '../components/ui/BrandLogo.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { confirmEmailChangeRequest } from '../lib/api.js'

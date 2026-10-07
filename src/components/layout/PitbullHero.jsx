@@ -25,6 +25,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getStatusMeta } from '../../lib/status.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
+import { hasFinePointer } from '../../motion/useReducedMotion.ts'
 import { heroSequenceItem, heroStaggerContainer } from '../../motion/variants.ts'
 import PitbullBrandMark from '../ui/PitbullBrandMark.jsx'
 import ResponsivePhoto from '../ui/ResponsivePhoto.jsx'
@@ -187,9 +188,22 @@ function PitbullHeroPanel({
   )
 }
 
+/** Wipe editorial de las placas secundarias: la foto se descubre de abajo
+ * hacia arriba. La placa LCP no arranca recortada para no demorar su pintado,
+ * y en touch todas usan fade + rise (clip-path pesa en la GPU de mobile). */
+const PLATE_WIPE = {
+  initial: { clipPath: 'inset(100% 0% 0% 0%)' },
+  animate: { clipPath: 'inset(0% 0% 0% 0%)' },
+}
+const PLATE_RISE = {
+  initial: { opacity: 0, y: 14 },
+  animate: { opacity: 1, y: 0 },
+}
+
 /** Collage editorial a sangre: 1 dominante + 2 secundarias (desktop). Mobile: solo LCP. */
 function PitbullHeroFrame({ reducedMotion = false }) {
   const Plate = reducedMotion ? 'div' : m.div
+  const finePointer = hasFinePointer()
 
   return (
     <div className="pitbull-hero-masthead__frame" aria-hidden>
@@ -201,12 +215,12 @@ function PitbullHeroFrame({ reducedMotion = false }) {
             {...(reducedMotion
               ? {}
               : {
-                  initial: { opacity: 0, y: 14 },
-                  animate: { opacity: 1, y: 0 },
+                  ...(finePointer && !plate.eager ? PLATE_WIPE : PLATE_RISE),
                   transition: {
-                    duration: MOTION_DURATION.slow,
-                    ease: MOTION_EASE.out,
-                    delay: 0.12 + index * 0.08,
+                    duration:
+                      finePointer && !plate.eager ? MOTION_DURATION.cinematic : MOTION_DURATION.slow,
+                    ease: MOTION_EASE.cinematic,
+                    delay: 0.12 + index * 0.1,
                   },
                 })}
           >

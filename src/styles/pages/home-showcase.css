@@ -1,8 +1,9 @@
 /* =============================================
    HOME — piezas de presencia (showcase)
    Se importa después de home.css. Reglas de movimiento de la portada:
-   una sola pieza 3D (la credencial), profundidad por scroll en las fotos y
-   una entrada editorial común para los títulos de sección.
+   una pieza 3D por viewport (ficha del meet en el hero, credencial en la
+   banda de afiliación), profundidad por scroll en las fotos y una entrada
+   editorial común para los títulos de sección.
 
    Presupuesto: solo transform / opacity / clip-path, sin loops, sin blur.
    Todo lo que depende del scroll vive dentro de
@@ -60,6 +61,32 @@
   }
 }
 
+/* El copy del hero cede el paso al scrollear: baja de opacidad y sube un
+   poco, más rápido que la foto, para que la portada se lea como un plano. */
+@keyframes home-hero-copy-exit {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    opacity: 0.2;
+    transform: translate3d(0, -40px, 0);
+  }
+}
+
+/* La regla entre copy y credencial se dibuja de arriba hacia abajo a
+   medida que la banda entra en pantalla. */
+@keyframes home-spine-draw {
+  from {
+    transform: scaleY(0);
+  }
+
+  to {
+    transform: scaleY(1);
+  }
+}
+
 /* Wipe de abajo hacia arriba. Insets negativos y todos en %: no recortan
    descendentes ni la panza de la G, y son interpolables. */
 @keyframes home-title-wipe {
@@ -75,6 +102,12 @@
 }
 
 @supports (animation-timeline: view()) {
+  /* `overflow: hidden` crea un scroll container y view() mediría contra él
+     (timeline congelada); `clip` recorta igual sin capturarla. */
+  .hero__backdrop {
+    overflow: clip;
+  }
+
   @media (prefers-reduced-motion: no-preference) {
     /* Hero: la foto sale más lento que el contenido (parallax). Sin soporte
        o en tier low queda estática, como antes. */
@@ -83,6 +116,19 @@
       animation-range: exit 0% exit 100%;
       animation-timeline: view();
       will-change: transform;
+    }
+
+    [data-motion-tier]:not([data-motion-tier='low']) .hero--statement .hero__copy-inner {
+      animation: home-hero-copy-exit linear both;
+      animation-range: exit 0% exit 100%;
+      animation-timeline: view();
+    }
+
+    [data-motion-tier]:not([data-motion-tier='low']) .home-membership-band__spine {
+      animation: home-spine-draw linear both;
+      animation-range: entry 10% cover 45%;
+      animation-timeline: view();
+      transform-origin: top center;
     }
 
     /* Pitbull: reemplaza el zoom por hover; la escala acompaña el scroll. */

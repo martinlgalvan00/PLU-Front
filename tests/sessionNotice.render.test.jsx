@@ -68,14 +68,18 @@ describe('aviso de cierre de sesión', () => {
     expect(screen.getByRole('button', { name: /volver a ingresar/i })).toBeTruthy()
   })
 
-  it('muestra el contador inicial oculto a lectores de pantalla', () => {
+  it('marca el tiempo restante con un filete oculto a lectores de pantalla', () => {
     markSignedOut()
     render(wrap(<SessionNotice />))
 
-    const countdown = document.querySelector('.session-notice__countdown')
-    expect(countdown).toBeTruthy()
-    expect(countdown.getAttribute('aria-hidden')).toBe('true')
-    expect(countdown.textContent).toBe('8')
+    const timer = document.querySelector('.session-notice__timer')
+    expect(timer).toBeTruthy()
+    expect(timer.getAttribute('aria-hidden')).toBe('true')
+    expect(
+      document.querySelector('.session-notice__card').style.getPropertyValue(
+        '--session-notice-duration',
+      ),
+    ).toBe('8000ms')
   })
 
   it('se cierra desde el control de esquina', async () => {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AlertCircle, ArrowRight, Eye, EyeOff, Lock, LogOut } from 'lucide-react'
 import '../styles/pages/design-phase2.css'
+import '../styles/pages/auth.css'
 import authVisualPhoto from '../assets/DSC00286-display.jpg'
 import authVisualPhotoAvif from '../assets/DSC00286-display.avif'
 import authVisualPhotoAvif480 from '../assets/DSC00286-display-480.avif'

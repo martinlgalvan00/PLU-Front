@@ -379,6 +379,8 @@ describe('buildDashboardOverview — agregados del servidor', () => {
           all: 241,
           openAmount: 412000,
           openAmountTruncated: false,
+          approvedAmount: 9_850_000,
+          approvedAmountTruncated: false,
         },
       },
     })
@@ -387,6 +389,9 @@ describe('buildDashboardOverview — agregados del servidor', () => {
     expect(overview.primary.find((item) => item.labelKey === 'registrations').value).toBe(210)
     expect(overview.primary.find((item) => item.labelKey === 'pendingPayments').value).toBe(45)
     expect(overview.finance.pendingAmount).toBe(412000)
+    // Cobrado también prefiere la base: el array truncado no trae aprobados.
+    expect(overview.finance.collectedAmount).toBe(9_850_000)
+    expect(overview.finance.totalAmount).toBe(10_262_000)
     // "Pendiente" del desglose = abiertas sin declaración: 45 - 8.
     expect(
       overview.breakdowns.payments.items.find((item) => item.status === 'pendiente').value,
@@ -408,8 +413,33 @@ describe('buildDashboardOverview — agregados del servidor', () => {
     expect(overview.primary.find((item) => item.labelKey === 'athletes').value).toBe(2)
     expect(overview.primary.find((item) => item.labelKey === 'pendingPayments').value).toBe(1)
     expect(overview.finance.pendingAmount).toBe(75000)
+    expect(overview.finance.collectedAmount).toBe(0)
     expect(
       overview.breakdowns.registrations.items.find((item) => item.status === 'confirmada').value,
     ).toBe(1)
+  })
+
+  it('sin approvedAmount en el summary sigue sumando aprobados del array', () => {
+    const overview = buildDashboardOverview({
+      ...truncatedArrays,
+      payments: [
+        { id: 'p1', athleteId: 'a1', status: 'aprobado', amount: 120000 },
+        { id: 'p2', athleteId: 'a2', status: 'aprobado', amount: 80000 },
+        { id: 'p3', athleteId: 'a1', status: 'validacion_manual', amount: 50000 },
+      ],
+      serverSummary: {
+        payments: {
+          pending: 1,
+          validacion_manual: 1,
+          aprobado: 40,
+          all: 41,
+          openAmount: 50000,
+          openAmountTruncated: false,
+        },
+      },
+    })
+
+    expect(overview.finance.pendingAmount).toBe(50000)
+    expect(overview.finance.collectedAmount).toBe(200000)
   })
 })

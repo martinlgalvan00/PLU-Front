@@ -18,8 +18,8 @@ export const HOME_QUICK_LINKS = [
 export const ABOUT_INTRO = {
   eyebrow: 'Quiénes somos',
   title: 'Un estándar para afiliar, competir y publicar.',
-  titleLead: 'Un estándar para afiliar, competir',
-  titleAccent: 'y publicar.',
+  titleLead: 'Un estándar',
+  titleAccent: 'para afiliar,\ncompetir y publicar.',
   description: 'PLU Argentina conecta atletas, gimnasios y jueces bajo el estándar PLU USA.',
   descriptionLead: 'PLU Argentina conecta atletas, gimnasios y jueces bajo el estándar PLU USA.',
   descriptionMeta: 'Afiliación anual, calendario oficial y resultados alineados a PLU USA.',

@@ -510,9 +510,10 @@ export function buildDashboardOverview({
   )
   const totalRegistrations = pick(summaryRegistrations?.total, registrations.length)
   const totalPendingPayments = pick(summaryPayments?.pending, pendingPayments.length)
-  // `openAmount` de la base puede venir truncado por muestra
-  // (`openAmountTruncated`): aún así es una muestra más amplia que la ventana
-  // del array, y la pantalla ya sabe marcar ese importe como parcial.
+  // Importes de la base pueden venir truncados por muestra
+  // (`openAmountTruncated` / `approvedAmountTruncated`): aún así son una
+  // muestra más amplia que la ventana del array, y la pantalla ya sabe marcar
+  // lo abierto como parcial.
   const totalPendingAmount = Number.isFinite(summaryPayments?.openAmount)
     ? summaryPayments.openAmount
     : pendingPayments.reduce((sum, payment) => sum + (payment.amount ?? 0), 0)
@@ -522,7 +523,9 @@ export function buildDashboardOverview({
   )
 
   const pendingAmount = totalPendingAmount
-  const collectedAmount = approvedPayments.reduce((sum, payment) => sum + (payment.amount ?? 0), 0)
+  const collectedAmount = Number.isFinite(summaryPayments?.approvedAmount)
+    ? summaryPayments.approvedAmount
+    : approvedPayments.reduce((sum, payment) => sum + (payment.amount ?? 0), 0)
   const totalAmount = pendingAmount + collectedAmount
   const spotlightEvent =
     [...events]
@@ -530,9 +533,10 @@ export function buildDashboardOverview({
       .sort((a, b) => new Date(a.dateISO) - new Date(b.dateISO))[0] ?? null
 
   // `acreditada` se pliega a `confirmada` (alias legacy; el backend no lo
-  // escribe). Los conteos de la base ganan cuando existen; los importes
-  // siguen saliendo del array — sumarlos en la base sería una RPC nueva para
-  // un desglose que ya se lee completo en Finanzas.
+  // escribe). Los conteos de la base ganan cuando existen; Cobrado/Pendiente
+  // también prefieren `approvedAmount` / `openAmount` del summary cuando
+  // vienen. Los montos por ítem del desglose (pendiente blando / manual)
+  // siguen saliendo del array acotado.
   const legacyFold = (status) => (status === 'acreditada' ? 'confirmada' : status)
   const registrationsByStatus = (status) =>
     registrations.filter((registration) => legacyFold(registration.status) === status).length

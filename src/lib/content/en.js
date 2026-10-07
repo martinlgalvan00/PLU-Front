@@ -18,8 +18,8 @@ export const HOME_QUICK_LINKS = [
 export const ABOUT_INTRO = {
   eyebrow: 'About us',
   title: 'One standard to affiliate, compete and publish.',
-  titleLead: 'One standard to affiliate, compete',
-  titleAccent: 'and publish.',
+  titleLead: 'One standard',
+  titleAccent: 'to affiliate,\ncompete and publish.',
   description: 'PLU Argentina connects athletes, gyms and referees under the PLU USA standard.',
   descriptionLead: 'PLU Argentina connects athletes, gyms and referees under the PLU USA standard.',
   descriptionMeta: 'Annual membership, an official calendar and PLU USA-aligned results.',

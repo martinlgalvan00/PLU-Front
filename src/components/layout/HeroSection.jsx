@@ -12,6 +12,7 @@ import HeroStatusCard from '../ui/HeroStatusCard.jsx'
 import HomeQuickBand from '../ui/HomeQuickBand.jsx'
 import ResponsivePhoto from '../ui/ResponsivePhoto.jsx'
 import { env } from '../../config/env.js'
+import TiltCard from '../../motion/TiltCard.tsx'
 import { hasFinePointer } from '../../motion/useReducedMotion.ts'
 import { useMagneticHover } from '../../motion/useMagneticHover.ts'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -118,11 +119,19 @@ export default function HeroSection({ onNavigate, event }) {
     />
   )
 
+  // "Afiliate. Competí. Resultados oficiales." se lee como tres tiempos: cada
+  // frase en su propia línea tipográfica, separadas por reglas finas.
+  const leadBeats = t('hero.description')
+    .split(/(?<=\.)\s+/)
+    .filter(Boolean)
   const lead = (
-    <>
-      <span className="hero__lead-text">{t('hero.description')}</span>
-      <span className="hero__lead-meta">{t('hero.descriptionMeta')}</span>
-    </>
+    <span className="hero__lead-text hero__lead-text--beats">
+      {leadBeats.map((beat) => (
+        <span key={beat} className="hero__lead-beat">
+          {beat}
+        </span>
+      ))}
+    </span>
   )
 
   const proofCard = (
@@ -138,46 +147,37 @@ export default function HeroSection({ onNavigate, event }) {
       ticketsAvailable={ticketsAvailable}
     />
   )
-  // Un solo protagonista en el primer viewport: la ficha del meet queda quieta
-  // (dato operativo); el 3D vive en la credencial de la banda de afiliación.
-  const proofBody = proofCard
+  // La ficha del meet es la única pieza 3D del primer viewport; la credencial
+  // de afiliación vive en otro viewport y no compite con ella.
+  const proofBody = (
+    <TiltCard className="hero__proof-tilt" maxTilt={3}>
+      {proofCard}
+    </TiltCard>
+  )
 
   const actions = (
-    <>
-      <div className="hero__cta-row">
-        <button
-          type="button"
-          className="hero__cta hero__cta--primary motion-icon-shift magnetic"
-          onClick={() => onNavigate('members')}
-          {...magneticProps}
-        >
-          {t('hero.ctaAffiliate')}
-          <ArrowRight size={16} aria-hidden className="hero__cta-icon motion-icon-shift__target" />
-        </button>
-        {/* Una sola acción principal (Afiliarme); "eventos" es un enlace de
-            texto subordinado. El acceso a la cuenta vive en el header. */}
-        <button type="button" className="hero__events-link" onClick={() => onNavigate('events')}>
-          <span className="hero__cta-label hero__cta-label--full">{t('hero.ctaEvents')}</span>
-          <span className="hero__cta-label hero__cta-label--short">{t('hero.ctaEventsShort')}</span>
-          <ArrowRight size={13} aria-hidden className="hero__events-link-icon" />
-        </button>
-      </div>
-
-      <div className="hero__secondary-links">
-        <button
-          type="button"
-          className="hero__secondary-link"
-          onClick={() => onNavigate('pitbull')}
-        >
-          {t('hero.ctaPitbull')}
-          <ArrowRight size={12} aria-hidden className="hero__secondary-link-icon" />
-        </button>
-      </div>
-    </>
+    <div className="hero__cta-row">
+      <button
+        type="button"
+        className="hero__cta hero__cta--primary motion-icon-shift magnetic"
+        onClick={() => onNavigate('members')}
+        {...magneticProps}
+      >
+        {t('hero.ctaAffiliate')}
+        <ArrowRight size={16} aria-hidden className="hero__cta-icon motion-icon-shift__target" />
+      </button>
+      {/* Una sola acción principal (Afiliarme); "eventos" es enlace subordinado.
+          Pitbull vive en la ficha del meet — no se repite acá. */}
+      <button type="button" className="hero__events-link" onClick={() => onNavigate('events')}>
+        <span className="hero__cta-label hero__cta-label--full">{t('hero.ctaEvents')}</span>
+        <span className="hero__cta-label hero__cta-label--short">{t('hero.ctaEventsShort')}</span>
+        <ArrowRight size={13} aria-hidden className="hero__events-link-icon" />
+      </button>
+    </div>
   )
 
   return (
-    <section className="hero hero--design hero--motion">
+    <section className="hero hero--design hero--motion hero--statement">
       <div className="hero__backdrop" aria-hidden>
         <ResponsivePhoto
           className="hero__backdrop-img hero__backdrop-img--depth"
