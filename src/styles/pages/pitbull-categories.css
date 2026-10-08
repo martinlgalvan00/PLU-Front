@@ -1,58 +1,33 @@
 /* =============================================
    PITBULL — CATEGORÍAS
-   Catálogo normativo editorial: toolbar liviano, modalidades
-   protagonistas con regla dorada, referencia compacta al lado.
+   Catálogo editorial: modalidades como ancla,
+   equipamiento/divisiones como ledger quieto.
    ============================================= */
 
 .pitbull-cat {
   display: flex;
   flex-direction: column;
-  gap: clamp(24px, 3.5vw, 36px);
+  gap: clamp(20px, 3vw, 28px);
   width: 100%;
 }
 
-/* —— Toolbar: estado + reglamento —— */
+/* —— Toolbar: metadato + acción secundaria —— */
 .pitbull-cat__toolbar {
-  align-items: center;
-  border-bottom: 1px solid var(--pitbull-chapter-border, var(--color-border-subtle));
+  align-items: baseline;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 9%, transparent);
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 20px;
+  gap: 8px 20px;
   justify-content: space-between;
-  padding-bottom: clamp(14px, 2vw, 18px);
-  position: relative;
+  padding-bottom: 12px;
 }
 
-.pitbull-cat__toolbar::after {
-  background: var(--color-brand-gold);
-  bottom: -1px;
-  content: '';
-  height: 1.5px;
-  left: 0;
-  position: absolute;
-  width: 2.75rem;
-}
-
-/* Estado como metadato de línea, no como pill. */
 .pitbull-cat__status {
-  align-items: center;
   color: var(--color-text-muted);
-  display: inline-flex;
-  font-size: 10px;
-  font-weight: 650;
-  gap: 8px;
-  letter-spacing: 0.12em;
-  min-height: 32px;
-  text-transform: uppercase;
-}
-
-.pitbull-cat__status-dot {
-  background: var(--plu-gold-400, var(--color-brand-gold));
-  border-radius: 50%;
-  flex: none;
-  height: 5px;
-  opacity: 0.85;
-  width: 5px;
+  font-size: 11px;
+  font-weight: 550;
+  letter-spacing: 0.04em;
+  margin: 0;
 }
 
 .pitbull-cat__rulebook {
@@ -64,20 +39,20 @@
   display: inline-flex;
   font-family: var(--font-family);
   font-size: 12.5px;
-  font-weight: 500;
+  font-weight: 600;
   gap: 6px;
   letter-spacing: 0.01em;
-  min-height: 44px;
+  min-height: 40px;
   padding: 0;
-  text-decoration: none;
-  transition:
-    color var(--motion-fast, 160ms) var(--ease-standard, ease),
-    gap var(--motion-fast, 160ms) var(--ease-standard, ease);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-brand-gold) 45%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  transition: color var(--motion-fast, 160ms) var(--ease-standard, ease);
 }
 
 .pitbull-cat__rulebook:hover {
   color: var(--color-text-primary);
-  gap: 8px;
 }
 
 .pitbull-cat__rulebook:focus-visible {
@@ -85,68 +60,47 @@
   outline-offset: 3px;
 }
 
-/* —— Spread: modalidades + referencia —— */
+/* —— Spread —— */
 .pitbull-cat__spread {
   display: grid;
-  gap: clamp(28px, 4vw, 44px);
+  gap: clamp(28px, 4vw, 40px);
   grid-template-columns: 1fr;
 }
 
-.pitbull-cat__headline {
-  align-items: baseline;
-  display: flex;
-  gap: 10px 14px;
-  justify-content: space-between;
-  min-width: 0;
-}
-
-.pitbull-cat__count {
-  color: var(--color-brand-gold);
-  font-family: var(--font-display);
-  font-size: clamp(1.5rem, 2.8vw, 1.85rem);
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: -0.05em;
-  line-height: 1;
-  opacity: 0.88;
-}
-
-.pitbull-cat__count--lane {
-  font-size: clamp(1.1rem, 2vw, 1.25rem);
-  opacity: 0.72;
-}
-
-/* —— Columna destacada: Modalidades —— */
+/* —— Modalidades (ancla) —— */
 .pitbull-cat__featured {
-  border-left: 2px solid var(--color-brand-gold);
+  border-left: 1.5px solid var(--color-brand-gold);
   display: flex;
   flex-direction: column;
+  gap: clamp(14px, 2vw, 18px);
   min-width: 0;
-  padding-inline-start: clamp(16px, 2.4vw, 22px);
+  padding-inline-start: clamp(14px, 2.2vw, 22px);
 }
 
 .pitbull-cat__featured-head {
-  margin-bottom: clamp(10px, 1.6vw, 14px);
-}
-
-.pitbull-cat__featured-hint {
-  color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  margin: 0 0 8px;
-  text-transform: uppercase;
+  display: grid;
+  gap: 6px;
 }
 
 .pitbull-cat__featured-title {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(1.35rem, 2.4vw, 1.65rem);
-  font-weight: 650;
-  letter-spacing: -0.03em;
-  line-height: 1.08;
+  font-size: clamp(1.35rem, 2.4vw, 1.7rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
   margin: 0;
-  min-width: 0;
+}
+
+.pitbull-cat__featured-hint {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 450;
+  letter-spacing: 0;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 36ch;
+  text-transform: none;
 }
 
 .pitbull-cat__featured-list {
@@ -158,45 +112,48 @@
 }
 
 .pitbull-cat__featured-row {
-  align-items: center;
+  align-items: baseline;
   border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 7%, transparent);
   display: grid;
-  gap: 12px 16px;
-  grid-template-columns: 2.2ch minmax(0, 1fr);
-  min-height: 52px;
-  padding: clamp(12px, 1.8vw, 16px) 0;
-  position: relative;
+  gap: 14px 18px;
+  grid-template-columns: 2.6ch minmax(0, 1fr);
+  padding: clamp(13px, 1.8vw, 16px) 0;
+}
+
+.pitbull-cat__featured-row:first-child {
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 7%, transparent);
 }
 
 .pitbull-cat__featured-row:last-child {
   border-bottom: none;
+  padding-bottom: 2px;
 }
 
 .pitbull-cat__featured-row-index {
-  color: var(--color-text-muted);
+  color: var(--color-brand-gold);
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: 650;
   letter-spacing: 0.06em;
-  opacity: 0.45;
+  opacity: 0.8;
+  padding-top: 0.2em;
 }
 
 .pitbull-cat__featured-row-name {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(1.02rem, 1.7vw, 1.18rem);
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-size: clamp(1.12rem, 2vw, 1.35rem);
+  font-weight: 650;
+  letter-spacing: -0.028em;
   line-height: 1.2;
   min-width: 0;
 }
 
-/* —— Columna secundaria: Equipamiento + Divisiones ——
-   Columnas regladas abiertas, sin caja: el frame del dossier ya contiene. */
+/* —— Ledger secundario —— */
 .pitbull-cat__secondary {
   display: grid;
-  gap: clamp(24px, 3vw, 32px);
+  gap: clamp(22px, 3vw, 28px);
   grid-template-columns: 1fr;
   min-width: 0;
 }
@@ -204,33 +161,21 @@
 .pitbull-cat__lane {
   display: flex;
   flex-direction: column;
+  gap: 10px;
   min-width: 0;
-}
-
-.pitbull-cat__lane-hint {
-  color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  margin: 0 0 8px;
-  text-transform: uppercase;
-}
-
-.pitbull-cat__headline--lane {
-  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-  margin-bottom: 8px;
-  padding-bottom: 10px;
 }
 
 .pitbull-cat__lane-title {
-  color: var(--color-text-primary);
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  color: var(--color-text-muted);
   font-family: var(--font-display);
-  font-size: clamp(1rem, 1.5vw, 1.08rem);
-  font-weight: 650;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
   margin: 0;
-  min-width: 0;
+  padding-bottom: 8px;
+  text-transform: uppercase;
 }
 
 .pitbull-cat__list {
@@ -242,12 +187,9 @@
 }
 
 .pitbull-cat__row {
-  align-items: baseline;
-  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 6%, transparent);
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 2ch minmax(0, 1fr);
-  padding: 10px 0;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 5%, transparent);
+  margin: 0;
+  padding: 8px 0;
 }
 
 .pitbull-cat__row:last-child {
@@ -255,107 +197,115 @@
   padding-bottom: 0;
 }
 
-.pitbull-cat__row-index {
-  color: var(--color-text-muted);
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  opacity: 0.42;
-}
-
 .pitbull-cat__row-name {
   color: var(--color-text-primary);
-  font-size: 14px;
-  font-weight: 550;
-  letter-spacing: -0.01em;
-  line-height: 1.4;
+  font-size: 14.5px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
 }
 
-/* —— Marco dossier (categorías) —— */
+/* —— Marco dossier —— */
 .pitbull-dossier__section--categories .pitbull-dossier__frame {
-  padding: clamp(22px, 3.2vw, 40px);
+  border-color: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  padding: clamp(18px, 2.8vw, 32px);
 }
 
-/* Índice tipográfico: sin escuadras ni numeral fantasma; el índice del
-   kicker ya numera el capítulo. */
 .pitbull-dossier__section--categories .pitbull-dossier__frame-mark,
 .pitbull-dossier__section--categories .pitbull-dossier__ghost-index {
   display: none;
 }
 
 .pitbull-dossier__section--categories .pitbull-dossier__head {
-  margin-bottom: clamp(14px, 2vw, 20px);
+  margin-bottom: clamp(10px, 1.6vw, 16px);
+  max-width: 34rem;
+}
+
+.pitbull-dossier__section--categories .pitbull-dossier__title {
+  font-size: clamp(1.65rem, 3.2vw, 2.25rem);
+  font-weight: 740;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
 }
 
 .pitbull-dossier__section--categories .pitbull-dossier__lead {
   color: var(--color-text-muted);
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.55;
   margin-top: 8px;
-  max-width: 48ch;
+  max-width: 40ch;
+  text-wrap: pretty;
+}
+
+.pitbull-dossier__section--categories .pitbull-dossier__body {
+  margin-top: 4px;
 }
 
 [data-theme='light'] .pitbull-cat__toolbar {
-  border-bottom-color: rgba(15, 17, 23, 0.09);
-}
-
-[data-theme='light'] .pitbull-cat__status {
-  color: rgba(15, 17, 23, 0.55);
+  border-bottom-color: rgba(15, 17, 23, 0.08);
 }
 
 [data-theme='light'] .pitbull-cat__featured-row,
 [data-theme='light'] .pitbull-cat__row,
-[data-theme='light'] .pitbull-cat__headline--lane {
+[data-theme='light'] .pitbull-cat__lane-title {
   border-color: rgba(15, 17, 23, 0.07);
 }
 
-[data-theme='light'] .pitbull-cat__featured-hint,
-[data-theme='light'] .pitbull-cat__lane-hint {
-  color: rgba(15, 17, 23, 0.55);
+[data-theme='light'] .pitbull-cat__featured-row:first-child {
+  border-top-color: rgba(15, 17, 23, 0.07);
 }
 
 /* —— Mobile —— */
-@media (max-width: 719px) {
-  .pitbull-cat {
-    gap: 24px;
-  }
-
+@media (max-width: 559px) {
   .pitbull-cat__toolbar {
     align-items: flex-start;
     flex-direction: column;
+    gap: 4px;
   }
 
   .pitbull-cat__rulebook {
     min-height: 40px;
   }
-
 }
 
-/* —— Tablet: Equipamiento y Divisiones lado a lado —— */
+/* —— Tablet: ledger en 2 columnas —— */
 @media (min-width: 560px) {
   .pitbull-cat__secondary {
-    column-gap: clamp(24px, 4vw, 40px);
+    column-gap: clamp(28px, 4vw, 40px);
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-/* —— Desktop —— */
+/* —— Desktop: modalidades + ledger —— */
 @media (min-width: 900px) {
   .pitbull-cat__spread {
     align-items: start;
-    gap: clamp(28px, 3.5vw, 48px);
-    grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.9fr);
+    gap: clamp(36px, 5vw, 64px);
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.9fr);
   }
 
   .pitbull-cat__featured {
     padding-inline-start: clamp(18px, 2.6vw, 26px);
   }
 
-  /* Al lado de Modalidades la columna es angosta: vuelve a apilarse. */
   .pitbull-cat__secondary {
+    gap: clamp(26px, 3vw, 34px);
     grid-template-columns: 1fr;
+    padding-top: 4px;
+  }
+
+  .pitbull-cat__featured-row-name {
+    font-size: clamp(1.2rem, 1.6vw, 1.4rem);
+  }
+
+  .pitbull-cat__row-name {
+    font-size: 15px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .pitbull-dossier__section--categories .pitbull-dossier__frame {
+    padding: clamp(28px, 3.2vw, 40px) clamp(32px, 3.6vw, 48px);
   }
 }
 
