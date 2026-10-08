@@ -9,6 +9,8 @@ describe('getCountdownParts', () => {
 
     expect(parts.expired).toBe(false)
     expect(parts.days).toBe(16)
+    expect(parts.weeks).toBe(2)
+    expect(parts.daysRemainder).toBe(2)
     expect(parts.hours).toBe(11)
     expect(parts.minutes).toBe(59)
     expect(parts.seconds).toBe(59)
@@ -34,7 +36,9 @@ describe('getCountdownParts', () => {
 
     expect(parts).toEqual({
       totalMs: 0,
+      weeks: 0,
       days: 0,
+      daysRemainder: 0,
       hours: 0,
       minutes: 0,
       seconds: 0,

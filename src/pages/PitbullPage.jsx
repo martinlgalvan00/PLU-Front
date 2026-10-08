@@ -26,6 +26,7 @@ import PitbullHero from '../components/layout/PitbullHero.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import EventVenueMap from '../components/ui/EventVenueMap.jsx'
 import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.jsx'
+import PitbullMeetCountdown from '../components/ui/PitbullMeetCountdown.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import EventWeighInSchedule, {
   eventHasWeighInWindows,
@@ -1071,20 +1072,18 @@ function PitbullInscriptionSection({
   )
 }
 
-/** Catálogo editorial — Modalidades como columna destacada (numeral fantasma
- * por fila), Equipamiento y Divisiones como referencia compacta al lado. */
+/** Catálogo editorial — Modalidades como ancla; Equipamiento y Divisiones
+ * como ledger compacto al lado (sin índices ni counts competidores). */
 function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
   const { reducedMotion } = useMotionConfig()
   const secondaryGroups = [
     {
       id: 'equipment',
-      hint: t('pages.pitbull.categoriesEquipmentHint'),
       label: t('pages.pitbull.categoriesEquipment'),
       rows: pitbullClassic.categories,
     },
     {
       id: 'divisions',
-      hint: t('pages.pitbull.categoriesDivisionsHint'),
       label: t('pages.pitbull.categoriesDivisions'),
       rows: pitbullClassic.divisions,
     },
@@ -1101,6 +1100,7 @@ function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
   const itemMotion = reducedMotion ? {} : { variants: staggerItem }
   const ListTag = reducedMotion ? 'ol' : m.ol
   const ItemTag = reducedMotion ? 'li' : m.li
+  const SecondaryListTag = reducedMotion ? 'ul' : m.ul
 
   return (
     <PitbullDossierSection
@@ -1115,10 +1115,7 @@ function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
     >
       <div className="pitbull-cat">
         <div className="pitbull-cat__toolbar">
-          <span className="pitbull-cat__status">
-            <span className="pitbull-cat__status-dot" aria-hidden />
-            {t('pages.pitbull.categoriesPendingLabel')}
-          </span>
+          <p className="pitbull-cat__status">{t('pages.pitbull.categoriesPendingLabel')}</p>
           <button
             type="button"
             className="pitbull-cat__rulebook motion-icon-shift motif-tap-target"
@@ -1132,15 +1129,10 @@ function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
         <div className="pitbull-cat__spread" aria-label={t('pages.pitbull.categoriesListAria')}>
           <section className="pitbull-cat__featured" aria-labelledby="pitbull-cat-modalities">
             <header className="pitbull-cat__featured-head">
+              <h3 id="pitbull-cat-modalities" className="pitbull-cat__featured-title">
+                {t('pages.pitbull.categoriesModalities')}
+              </h3>
               <p className="pitbull-cat__featured-hint">{t('pages.pitbull.categoriesModalitiesHint')}</p>
-              <div className="pitbull-cat__headline">
-                <h3 id="pitbull-cat-modalities" className="pitbull-cat__featured-title">
-                  {t('pages.pitbull.categoriesModalities')}
-                </h3>
-                <span className="pitbull-cat__count" aria-hidden>
-                  {pitbullClassic.modalities.length}
-                </span>
-              </div>
             </header>
 
             <ListTag className="pitbull-cat__featured-list" {...listMotion}>
@@ -1155,32 +1147,22 @@ function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
             </ListTag>
           </section>
 
-          <div className="pitbull-cat__secondary">
+          <aside className="pitbull-cat__secondary" aria-label={t('pages.pitbull.categoriesSecondaryAria')}>
             {secondaryGroups.map((group) => (
               <section key={group.id} className="pitbull-cat__lane" aria-labelledby={`pitbull-cat-${group.id}`}>
-                <p className="pitbull-cat__lane-hint">{group.hint}</p>
-                <div className="pitbull-cat__headline pitbull-cat__headline--lane">
-                  <h3 id={`pitbull-cat-${group.id}`} className="pitbull-cat__lane-title">
-                    {group.label}
-                  </h3>
-                  <span className="pitbull-cat__count pitbull-cat__count--lane" aria-hidden>
-                    {group.rows.length}
-                  </span>
-                </div>
-
-                <ListTag className="pitbull-cat__list" {...listMotion}>
-                  {group.rows.map((row, rowIndex) => (
+                <h3 id={`pitbull-cat-${group.id}`} className="pitbull-cat__lane-title">
+                  {group.label}
+                </h3>
+                <SecondaryListTag className="pitbull-cat__list" {...listMotion}>
+                  {group.rows.map((row) => (
                     <ItemTag key={row} className="pitbull-cat__row" {...itemMotion}>
-                      <span className="pitbull-cat__row-index motif-num" aria-hidden>
-                        {String(rowIndex + 1).padStart(2, '0')}
-                      </span>
                       <span className="pitbull-cat__row-name">{row}</span>
                     </ItemTag>
                   ))}
-                </ListTag>
+                </SecondaryListTag>
               </section>
             ))}
-          </div>
+          </aside>
         </div>
       </div>
     </PitbullDossierSection>
@@ -1375,6 +1357,12 @@ export default function PitbullPage({
 
       <div className="pitbull-page__body">
         <div className="pitbull-dossier pitbull-dossier--minimal">
+          <PitbullMeetCountdown
+            dateLabel={PITBULL_CLASSIC.date}
+            event={pitbullEvent}
+            onScrollToInscription={() => scrollToSection('inscripcion')}
+          />
+
           <PitbullInscriptionSection
             athleteEventStatus={athleteEventStatus}
             canRegister={canRegister}
