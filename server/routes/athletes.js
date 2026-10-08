@@ -428,6 +428,48 @@ const proofSchema = z.object({
   proofPath: z.string().trim().min(3).max(300),
   notes: z.string().trim().max(300).optional(),
 })
+const staffApplicationUploadSchema = z.object({
+  purpose: z.enum(['photo', 'certificate']),
+  fileName: z.string().trim().min(1).max(120),
+  contentType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
+  size: z
+    .number()
+    .int()
+    .positive()
+    .max(5 * 1024 * 1024),
+})
+// `technicalTrainingStatus` se exige en el `.refine` (no en el campo) porque
+// solo aplica al cuerpo técnico — la RPC vuelve a validar esto mismo, pero
+// el error acá es el que ve el formulario antes de gastar una llamada.
+const submitStaffApplicationSchema = z
+  .object({
+    firstName: z.string().trim().min(2).max(80),
+    lastName: z.string().trim().min(2).max(80),
+    documentId: z.string().trim().min(6).max(20),
+    birthDate: birthDateSchema,
+    streetAddress: z.string().trim().min(5).max(160),
+    city: z.string().trim().min(2).max(80),
+    province: z.string().trim().min(2).max(80),
+    postalCode: z.string().trim().min(3).max(12),
+    email: z.string().trim().toLowerCase().email(),
+    phone: z.string().trim().min(6).max(30),
+    staffBody: z.enum(['operativo', 'tecnico']),
+    technicalTrainingStatus: z.enum(['aprobada', 'en_curso', 'no_realizada']).optional(),
+    shirtSize: z.enum(['XS', 'S', 'M', 'L', 'XL', 'XXL']),
+    photoPath: z.string().trim().min(3).max(300),
+    backgroundCheckPath: z.string().trim().min(3).max(300),
+    backgroundCheckIssuedAt: birthDateSchema,
+    dataAccuracyDeclared: z.literal(true),
+    dataProcessingConsent: z.literal(true),
+  })
+  .refine((value) => value.staffBody !== 'tecnico' || Boolean(value.technicalTrainingStatus), {
+    message: 'Falta el estado de capacitación técnica.',
+    path: ['technicalTrainingStatus'],
+  })
+const reviewStaffApplicationSchema = z.object({
+  status: z.enum(['aprobada', 'rechazada']),
+  notes: z.string().trim().max(500).optional(),
+})
 const rejectPaymentSchema = z.object({ reason: z.string().trim().min(3).max(500) })
 // El motivo es obligatorio: acreditar a mano una orden que el proveedor dio por
 // perdida es la única operación del panel que crea dinero en el reporte
@@ -753,6 +795,10 @@ export function createAthleteRoutes({
   )
   const financeGuard = requirePermission('admin.payments.approve', { prisma })
   const financeReadGuard = requirePermission('admin.payments.read', { prisma })
+  const staffApplicationsReadGuard = requirePermission('admin.staff_applications.read', { prisma })
+  const staffApplicationsApproveGuard = requirePermission('admin.staff_applications.approve', {
+    prisma,
+  })
   const membershipWriteGuard = requirePermission('admin.memberships.write', { prisma })
   const registrationWriteGuard = requirePermission('admin.registrations.write', { prisma })
   const membershipDeleteGuard = requirePermission('admin.memberships.delete', { prisma })
@@ -2268,6 +2314,43 @@ export function createAthleteRoutes({
       }
     },
   )
+  /**
+   * Postulación al Cuerpo de Staff. La página es pública, pero enviarla exige
+   * sesión de atleta (`athlete(req)` abajo) — mismo gate que cualquier otra
+   * escritura de `/me/*`.
+   */
+  router.post(
+    '/me/staff-applications/upload-url',
+    athleteWriteLimiter,
+    validateBody(staffApplicationUploadSchema),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        res.json(
+          await repo().createStaffApplicationUpload(
+            auth.athleteId,
+            req.validatedBody.purpose,
+            req.validatedBody.fileName,
+          ),
+        )
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/me/staff-applications',
+    athleteWriteLimiter,
+    validateBody(submitStaffApplicationSchema),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        res.json(await repo().submitStaffApplication(auth.athleteId, req.validatedBody))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   /**
    * Binario del retrato autenticado. URL estable + ETag/LRU: If-None-Match
@@ -2708,6 +2791,96 @@ export function createAthleteRoutes({
           path,
           bucket: 'athlete-payment-proofs',
           // Corto: el comprobante es evidencia operativa, no un asset público.
+          cacheControl: 'private, max-age=300, stale-while-revalidate=60',
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Postulaciones al Cuerpo de Staff. Lectura y revisión con permisos
+   * propios (`admin.staff_applications.*`) — no reusa `admin.payments.*`,
+   * son dominios distintos aunque comparten el patrón de archivo + revisión.
+   */
+  router.get(
+    '/admin/staff-applications',
+    ...staffApplicationsReadGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const status = ['pendiente', 'aprobada', 'rechazada'].includes(req.query.status)
+          ? req.query.status
+          : null
+        const limit = Number(req.query.limit) || 50
+        res.json({ applications: await repo().listStaffApplications({ status, limit }) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/admin/staff-applications/:applicationId/review',
+    ...staffApplicationsApproveGuard,
+    staffLimiter,
+    validateBody(reviewStaffApplicationSchema),
+    async (req, res, next) => {
+      try {
+        const applicationId = z.string().uuid().safeParse(req.params.applicationId)
+        if (!applicationId.success) throw new HttpError(400, 'Postulación inválida.')
+        res.json(
+          await repo().reviewStaffApplication(
+            applicationId.data,
+            req.validatedBody,
+            actorLabel(req),
+          ),
+        )
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.get(
+    '/admin/staff-applications/:applicationId/photo',
+    ...staffApplicationsReadGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const applicationId = z.string().uuid().safeParse(req.params.applicationId)
+        if (!applicationId.success) throw new HttpError(400, 'Postulación inválida.')
+        const supabase = getSupabaseAdmin?.()
+        if (!supabase) throw new HttpError(503, 'Supabase no está configurado en el servidor.')
+        const path = await repo().staffApplicationDocumentPath(applicationId.data, 'photo')
+        await sendPortraitBinary({
+          req,
+          res,
+          client: supabase,
+          path,
+          bucket: 'staff-application-documents',
+          cacheControl: 'private, max-age=300, stale-while-revalidate=60',
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.get(
+    '/admin/staff-applications/:applicationId/certificate',
+    ...staffApplicationsReadGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const applicationId = z.string().uuid().safeParse(req.params.applicationId)
+        if (!applicationId.success) throw new HttpError(400, 'Postulación inválida.')
+        const supabase = getSupabaseAdmin?.()
+        if (!supabase) throw new HttpError(503, 'Supabase no está configurado en el servidor.')
+        const path = await repo().staffApplicationDocumentPath(applicationId.data, 'certificate')
+        await sendPortraitBinary({
+          req,
+          res,
+          client: supabase,
+          path,
+          bucket: 'staff-application-documents',
           cacheControl: 'private, max-age=300, stale-while-revalidate=60',
         })
       } catch (error) {

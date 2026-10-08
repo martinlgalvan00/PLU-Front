@@ -116,6 +116,7 @@ const DRAWER_SECONDARY = [
   { key: 'sponsors', labelKey: 'nav.sponsors' },
   { key: 'standards', labelKey: 'nav.standards' },
   { key: 'community', labelKey: 'nav.community' },
+  { key: 'staffApplication', labelKey: 'nav.staffApplication' },
   { key: 'resources', labelKey: 'nav.resources' },
   { key: 'faq', labelKey: 'nav.faq' },
   { key: 'contact', labelKey: 'nav.contact' },

@@ -1,0 +1,172 @@
+/* =============================================
+   POSTULACIONES AL CUERPO DE STAFF — panel admin
+   Reusa AdminDataTable/status/surface tokens. Acá solo vive lo específico:
+   filtros por estado, celdas compuestas y la acción de revisión inline.
+   ============================================= */
+
+.admin-staff-applications {
+  display: grid;
+  gap: var(--space-md, 16px);
+}
+
+.admin-staff-applications__header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm, 10px);
+  justify-content: space-between;
+}
+
+.admin-staff-applications__header h2 {
+  font-size: 18px;
+  font-weight: 650;
+  margin: 0;
+}
+
+.admin-staff-applications__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-staff-applications__filters button {
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.admin-staff-applications__filters button.is-active {
+  background: var(--color-brand-celeste);
+  border-color: var(--color-brand-celeste);
+  color: var(--color-bg-canvas, #0b0d10);
+}
+
+.admin-staff-applications__error {
+  color: var(--color-danger-text);
+  font-size: 13px;
+  margin: 0;
+}
+
+.admin-staff-applications__applicant,
+.admin-staff-applications__contact {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-staff-applications__applicant span,
+.admin-staff-applications__contact span {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+}
+
+.admin-staff-applications__whatsapp {
+  align-items: center;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 4px;
+  margin-top: 2px;
+  text-decoration: none;
+}
+
+.admin-staff-applications__docs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-staff-applications__doc-link {
+  color: var(--color-brand-celeste);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.admin-staff-applications__status {
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 650;
+  padding: 3px 10px;
+}
+
+.admin-staff-applications__status.is-pendiente {
+  background: color-mix(in srgb, var(--color-brand-gold) 20%, transparent);
+  color: var(--color-brand-gold);
+}
+
+.admin-staff-applications__status.is-aprobada {
+  background: color-mix(in srgb, var(--color-success-text, #2fae5e) 20%, transparent);
+  color: var(--color-success-text, #2fae5e);
+}
+
+.admin-staff-applications__status.is-rechazada {
+  background: color-mix(in srgb, var(--color-danger-text) 20%, transparent);
+  color: var(--color-danger-text);
+}
+
+.admin-staff-applications__actions {
+  display: flex;
+  gap: 6px;
+}
+
+.admin-staff-applications__actions button,
+.admin-staff-applications__reject button {
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.admin-staff-applications__actions button:first-child {
+  background: var(--color-brand-gold);
+  border: 0;
+  color: var(--color-bg-canvas, #0b0d10);
+}
+
+.admin-staff-applications__actions button:last-child,
+.admin-staff-applications__reject button:not(.is-danger) {
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+}
+
+.admin-staff-applications__reject {
+  display: grid;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.admin-staff-applications__reject textarea {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+  padding: 6px 8px;
+  resize: vertical;
+}
+
+.admin-staff-applications__reject div {
+  display: flex;
+  gap: 6px;
+}
+
+.admin-staff-applications__reject button.is-danger {
+  background: var(--color-danger-text);
+  border: 0;
+  color: #fff;
+}
+
+.admin-staff-applications__reviewed-note {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+}

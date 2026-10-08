@@ -1,0 +1,227 @@
+/* =============================================
+   SUMATE AL STAFF — postulación al Cuerpo de Staff
+   Hero: institutional-editorial.css. Campos: Field/Select (forms.css) sin
+   overrides — misma caja que PersonalDataSection/RegisterPage. Acá solo vive
+   el layout (secciones, grilla, archivos, checkboxes, acciones).
+   ============================================= */
+
+.staff-application-page.page {
+  background: var(--color-page-canvas);
+  padding: 0;
+}
+
+.staff-application-page .staff-application-page__inner {
+  margin: 0 auto;
+  max-width: var(--institution-content-max, 860px);
+  padding: clamp(40px, 6vw, 80px) var(--institution-gutter, clamp(18px, 4.6vw, 64px))
+    clamp(64px, 8vw, 104px);
+}
+
+.staff-application-form {
+  display: grid;
+  gap: clamp(32px, 4vw, 44px);
+}
+
+.staff-application-form__section {
+  display: grid;
+  gap: 20px;
+}
+
+.staff-application-form__section + .staff-application-form__section {
+  border-top: 1px solid var(--institution-border);
+  padding-top: clamp(28px, 3.6vw, 40px);
+}
+
+.staff-application-form__section h2 {
+  color: var(--institution-text);
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.2vw, 22px);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.staff-application-form__grid {
+  display: grid;
+  gap: 20px 24px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.staff-application-form__wide {
+  grid-column: 1 / -1;
+}
+
+.staff-application__file {
+  display: grid;
+  gap: 6px;
+}
+
+.staff-application__file input[type='file'] {
+  height: 1px;
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.staff-application__file-drop {
+  align-items: center;
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 550;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 14px;
+  transition: border-color var(--motion-fast) var(--ease-out);
+}
+
+.staff-application__file-drop:hover {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 42%, var(--color-border));
+}
+
+.staff-application__file-drop.is-busy {
+  cursor: progress;
+  opacity: 0.75;
+}
+
+.staff-application-form__checkbox {
+  align-items: start;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.staff-application-form__checkbox input {
+  accent-color: var(--color-brand-gold);
+  height: 18px;
+  margin-top: 2px;
+  width: 18px;
+}
+
+.staff-application-form__checkbox span {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.staff-application-form__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  justify-content: space-between;
+}
+
+.staff-application-form__submit {
+  align-items: center;
+  background: var(--color-brand-action, var(--institution-gold));
+  border: 0;
+  border-radius: 999px;
+  color: var(--color-bg-canvas, #0b0d10);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 650;
+  gap: 12px;
+  justify-content: center;
+  min-height: 54px;
+  padding: 0 30px;
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.staff-application-form__submit:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-brand-action, var(--institution-gold)) 88%, #fff);
+}
+
+.staff-application-form__submit:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.staff-application-form__submit:focus-visible {
+  outline: var(--institution-focus-width, 3px) solid var(--institution-focus);
+  outline-offset: var(--institution-focus-offset, 3px);
+}
+
+.staff-application-form__error {
+  color: var(--color-danger-text);
+  flex: 1 1 100%;
+  font-size: 13.5px;
+  margin: 0;
+}
+
+.staff-application-form__login-gate {
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  border: 1px solid var(--institution-border);
+  border-radius: var(--border-radius-md);
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.staff-application-form__login-gate p {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.staff-application-form__login-gate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.staff-application-form__login-gate-actions button {
+  background: transparent;
+  border: 1px solid var(--institution-border-strong);
+  border-radius: 999px;
+  color: var(--institution-text);
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0 22px;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.staff-application-form__login-gate-actions button:first-child {
+  background: var(--color-brand-action, var(--institution-gold));
+  border-color: transparent;
+  color: var(--color-bg-canvas, #0b0d10);
+}
+
+.staff-application-form__login-gate-actions button:hover {
+  opacity: 0.88;
+}
+
+@media (max-width: 640px) {
+  .staff-application-form__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .staff-application-form__actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .staff-application-form__submit {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .staff-application__file-drop,
+  .staff-application-form__submit,
+  .staff-application-form__login-gate-actions button {
+    transition: none;
+  }
+}

@@ -21,7 +21,13 @@ const FOOTER_GROUPS = [
   },
   {
     labelKey: 'navResources',
-    items: [{ key: 'resources' }, { key: 'rulebook' }, { key: 'faq' }, { key: 'community' }],
+    items: [
+      { key: 'resources' },
+      { key: 'rulebook' },
+      { key: 'faq' },
+      { key: 'community' },
+      { key: 'staffApplication' },
+    ],
   },
   {
     labelKey: 'navInstitution',

@@ -17,6 +17,7 @@ const PUBLIC_VIEWS = new Set([
   'team',
   'sponsors',
   'standards',
+  'staffApplication',
 ])
 
 describe('navegación pública', () => {
@@ -67,6 +68,7 @@ describe('navegación pública', () => {
       'team',
       'sponsors',
       'standards',
+      'staffApplication',
     ])
     expect(more.views).toContain('rulebook')
     expect(more.views).toContain('standards')

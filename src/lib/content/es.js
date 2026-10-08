@@ -802,6 +802,7 @@ export const ADMIN_NAV_GROUPS = [
     items: [
       ['dashboard', 'admin.nav.dashboard', 'LayoutDashboard'],
       ['people', 'admin.nav.people', 'Users'],
+      ['staff_applications', 'admin.nav.staffApplications', 'ClipboardList'],
     ],
   },
   {

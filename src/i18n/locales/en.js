@@ -422,6 +422,8 @@ export default {
     athleteInfo: 'Athlete information',
     athleteInfoHint: 'Membership, credential and meet access',
     communityHintNew: 'Participation and official channels',
+    staffApplication: 'Join the Staff',
+    staffApplicationHint: 'Apply to the Operational or Technical Staff Corps',
     viewAllEvents: 'View all events',
     highlightedEvent: 'Featured event',
     buyTickets: 'Buy tickets',
