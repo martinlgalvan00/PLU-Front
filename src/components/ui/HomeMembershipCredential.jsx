@@ -10,7 +10,7 @@ import {
   MOTION_DURATION,
   MOTION_EASE,
   MOTION_STAGGER,
-  TILT_MAX_DEG,
+  SHOWCASE_TILT_MAX_DEG,
 } from '../../motion/tokens.ts'
 import { hasFinePointer } from '../../motion/useReducedMotion.ts'
 
@@ -19,16 +19,20 @@ const SETTLE_PERSPECTIVE = 1200
 
 /** Shell: ancla espacial liviana (opacity + transform). El tilt 3D lleva la presencia.
  * Con puntero fino y tier no bajo, la tarjeta se asienta desde una pose
- * inclinada (TILT_MAX_DEG) hasta quedar plana: es la única pieza 3D de la home.
- * En touch / tier bajo queda el settle plano de siempre. */
+ * inclinada (SHOWCASE_TILT_MAX_DEG) hasta quedar plana: es la única pieza 3D
+ * de la banda de afiliación. En touch / tier bajo queda el settle plano. */
 function getCardShell({ withDepth }) {
   return {
     hidden: {
       opacity: 0,
-      y: withDepth ? 28 : 16,
-      scale: 0.985,
+      y: withDepth ? 20 : 14,
+      scale: 0.988,
       ...(withDepth
-        ? { rotateX: TILT_MAX_DEG, rotateY: -TILT_MAX_DEG, transformPerspective: SETTLE_PERSPECTIVE }
+        ? {
+            rotateX: SHOWCASE_TILT_MAX_DEG,
+            rotateY: -SHOWCASE_TILT_MAX_DEG,
+            transformPerspective: SETTLE_PERSPECTIVE,
+          }
         : {}),
     },
     visible: {
@@ -145,7 +149,7 @@ export default function HomeMembershipCredential() {
     <TiltCard
       className="home-credential__tilt"
       innerClassName="tilt-card__inner home-credential__card"
-      maxTilt={TILT_MAX_DEG}
+      maxTilt={SHOWCASE_TILT_MAX_DEG}
     >
       {body}
     </TiltCard>
@@ -198,7 +202,7 @@ function CredentialFaceContent({ seasonYear, qrSrc, t, motion = false }) {
       <Item className="home-credential__main" {...itemProps}>
         <div className="home-credential__identity">
           <span className="home-credential__photo" aria-hidden>
-            <Camera size={18} strokeWidth={1.6} />
+            <Camera size={16} strokeWidth={1.35} />
             <span className="home-credential__photo-label">
               {t('pages.home.credentialPhotoLabel')}
             </span>

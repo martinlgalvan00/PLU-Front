@@ -47,6 +47,15 @@ const copyItemSubtle = {
   },
 }
 
+const decisionItem = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
+  },
+}
+
 export default function HomeMembershipBand({
   onNavigate,
   onSelectEvent,
@@ -116,15 +125,32 @@ export default function HomeMembershipBand({
     onNavigate(isLoggedInAthlete ? 'competition' : 'register')
   }
 
-  const CopyShell = reducedMotion ? 'div' : m.div
-  const copyProps = reducedMotion
-    ? { className: 'home-membership-band__copy' }
+  const LedeShell = reducedMotion ? 'div' : m.div
+  const ledeProps = reducedMotion
+    ? { className: 'home-membership-band__lede' }
     : {
-        className: 'home-membership-band__copy',
+        className: 'home-membership-band__lede',
         variants: copyContainer,
         initial: 'hidden',
         whileInView: 'visible',
         viewport: { once: true, amount: 0.35 },
+      }
+
+  const DecisionShell = reducedMotion ? 'div' : m.div
+  const decisionProps = reducedMotion
+    ? {
+        className: showCombo
+          ? 'home-membership-band__decision home-membership-band__combo'
+          : 'home-membership-band__decision home-membership-band__actions',
+      }
+    : {
+        className: showCombo
+          ? 'home-membership-band__decision home-membership-band__combo'
+          : 'home-membership-band__decision home-membership-band__actions',
+        variants: decisionItem,
+        initial: 'hidden',
+        whileInView: 'visible',
+        viewport: { once: true, amount: 0.4 },
       }
 
   const CopyItem = reducedMotion ? 'div' : m.div
@@ -133,7 +159,7 @@ export default function HomeMembershipBand({
 
   return (
     <div className="home-membership-band home-membership-band--editorial">
-      <CopyShell {...copyProps}>
+      <LedeShell {...ledeProps}>
         <CopyItem {...itemProps} className="home-membership-band__eyebrow">
           {HOME_MEMBERSHIP.eyebrow}
         </CopyItem>
@@ -146,6 +172,21 @@ export default function HomeMembershipBand({
             </span>
           </h2>
         </CopyItem>
+
+        {showCombo ? null : (
+          <CopyItem {...subtleItemProps}>
+            <p
+              className="home-membership-band__meta"
+              aria-label={t('pages.home.membershipMetaAria')}
+            >
+              <span>{HOME_MEMBERSHIP.seasonNote}</span>
+              <span aria-hidden className="home-membership-band__meta-sep">
+                ·
+              </span>
+              <span>{HOME_MEMBERSHIP.planLabel}</span>
+            </p>
+          </CopyItem>
+        )}
 
         {includedBenefits.length ? (
           <CopyItem {...itemProps}>
@@ -168,25 +209,30 @@ export default function HomeMembershipBand({
             {HOME_MEMBERSHIP.description}
           </CopyItem>
         )}
+      </LedeShell>
 
+      {/* Spine entre copy y credencial — desktop: lede+decision | spine | card */}
+      <span className="home-membership-band__spine" aria-hidden />
+
+      <HomeMembershipCredential />
+
+      <DecisionShell {...decisionProps}>
         {showCombo ? (
-          <CopyItem {...itemProps} className="home-membership-band__combo">
-            <SeasonComboOffer
-              variant="band"
-              membershipPrice={comboDeal.membership}
-              registrationPrice={comboDeal.registration}
-              comboPrice={comboDeal.combo}
-              endsAt={liveComboOffer.endsAt}
-              ctaDisabled={!comboCheckoutOpen}
-              ctaLabel={comboCheckoutOpen ? t('comboDeal.cta') : t('pages.members.ctaCheckoutSoon')}
-              onCta={goToCombo}
-              secondaryCtaLabel={primaryCta}
-              secondaryCtaDisabled={hasActiveMembership || !paidCheckoutOpen}
-              onSecondaryCta={goToAffiliation}
-            />
-          </CopyItem>
+          <SeasonComboOffer
+            variant="band"
+            membershipPrice={comboDeal.membership}
+            registrationPrice={comboDeal.registration}
+            comboPrice={comboDeal.combo}
+            endsAt={liveComboOffer.endsAt}
+            ctaDisabled={!comboCheckoutOpen}
+            ctaLabel={comboCheckoutOpen ? t('comboDeal.cta') : t('pages.members.ctaCheckoutSoon')}
+            onCta={goToCombo}
+            secondaryCtaLabel={primaryCta}
+            secondaryCtaDisabled={hasActiveMembership || !paidCheckoutOpen}
+            onSecondaryCta={goToAffiliation}
+          />
         ) : (
-          <CopyItem {...itemProps} className="home-membership-band__actions">
+          <>
             <button
               type="button"
               className="btn btn--gold home-membership-band__cta"
@@ -202,29 +248,9 @@ export default function HomeMembershipBand({
             >
               {t('pages.home.viewCalendar')}
             </button>
-          </CopyItem>
+          </>
         )}
-
-        {showCombo ? null : (
-          <CopyItem {...subtleItemProps}>
-            <p
-              className="home-membership-band__meta"
-              aria-label={t('pages.home.membershipMetaAria')}
-            >
-              <span>{HOME_MEMBERSHIP.seasonNote}</span>
-              <span aria-hidden className="home-membership-band__meta-sep">
-                ·
-              </span>
-              <span>{HOME_MEMBERSHIP.planLabel}</span>
-            </p>
-          </CopyItem>
-        )}
-      </CopyShell>
-
-      {/* Spine entre copy y credencial — el grid es copy | spine | card */}
-      <span className="home-membership-band__spine" aria-hidden />
-
-      <HomeMembershipCredential />
+      </DecisionShell>
     </div>
   )
 }

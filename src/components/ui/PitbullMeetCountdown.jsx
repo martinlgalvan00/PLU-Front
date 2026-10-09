@@ -12,6 +12,7 @@ import {
   MOTION_EASE,
   MOTION_STAGGER,
   MOTION_VIEWPORT,
+  SHOWCASE_TILT_MAX_DEG,
 } from '../../motion/tokens.ts'
 import { hasFinePointer } from '../../motion/useReducedMotion.ts'
 import '../../styles/components/pitbull-meet-countdown.css'
@@ -261,7 +262,7 @@ export default function PitbullMeetCountdown({ event, dateLabel, onScrollToInscr
     <TiltCard
       className="pitbull-meet-countdown__tilt"
       innerClassName="tilt-card__inner pitbull-meet-countdown__plate"
-      maxTilt={3}
+      maxTilt={SHOWCASE_TILT_MAX_DEG}
     >
       {body}
     </TiltCard>

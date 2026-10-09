@@ -9,7 +9,9 @@ Este proyecto usa **agent skills** internas en [`/agent-skills`](./agent-skills/
    (autoridad de marca y jerarquía frente a cualquier otra guía), después las skills tácticas
    de `/agent-skills/` (`design-upgrade` proceso/QA, `design-system-plu` inventario de
    componentes, `design-ux-ui` refinar una sección puntual, `motion-premium` para
-   TiltCard / showcases / transiciones elegantes)
+   TiltCard / showcases / transiciones elegantes). Skills externas en `.claude/skills/`
+   (`landing-page-design`, `scroll-world`) son **método opcional**: leer su `PLU.md` y
+   nunca pisar tokens/marca.
 3. Seguir el procedimiento de la skill paso a paso
 
 ## Skills disponibles
@@ -23,6 +25,8 @@ Este proyecto usa **agent skills** internas en [`/agent-skills`](./agent-skills/
 | `design-upgrade` | Mejora visual, UX, responsive y QA por pantalla |
 | `design-ux-ui` | Refinar sección concreta: CSS moderno, navegación y composición editorial |
 | `motion-premium` | Motion de presencia: credencial, TiltCard, stagger, settle |
+| `landing-page-design` | Método de conversión/estructura de landings (`.claude/skills/…`; ver `PLU.md`) |
+| `scroll-world` | Landing cinematic scroll-3D opcional (costo APIs; ver `PLU.md`; no default) |
 | `auth-rbac` | Roles y permisos |
 | `database-modeling` | Prisma schema y migraciones |
 | `mercado-pago` | Pagos Checkout Pro |

@@ -1,0 +1,17 @@
+---
+description: Método de landings (estructura/conversión). Subordinado a plu-frontend-design.
+globs:
+  - src/pages/**/*
+  - src/styles/pages/**/*
+alwaysApply: false
+---
+
+# landing-page-design (PLU)
+
+Skill completa: `.claude/skills/landing-page-design/SKILL.md`  
+Adaptador obligatorio: `.claude/skills/landing-page-design/PLU.md`
+
+1. Invocar primero `plu-frontend-design`.
+2. Usar Part A (intake, estructura, copy, conversión).
+3. No aplicar Part B como identidad (Geist/Tailwind/spacing ajeno).
+4. Implementar con tokens y CSS modular del repo.

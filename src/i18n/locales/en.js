@@ -946,6 +946,7 @@ export default {
     locationShort: 'Buenos Aires',
     copyright: 'All rights reserved.',
     poweredBy: 'Powerlifting United standard',
+    privacyNav: 'Privacy and preferences',
     chapterLine: 'Argentina Chapter · local operation by Maximal',
     actionEyebrow: 'Next attempt',
     actionTitle: 'Begin your path.',

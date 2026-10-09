@@ -105,11 +105,18 @@ export default function Footer({ onNavigate }) {
           </div>
 
           <div className="institutional-footer__bottom">
-            <span>
+            <p className="institutional-footer__legal">
               © {year} {t('brand.name')}
-            </span>
-            <div className="institutional-footer__privacy">
+            </p>
+
+            <nav
+              className="institutional-footer__privacy"
+              aria-label={t('footer.privacyNav')}
+            >
               <AnalyticsOptOut className="institutional-footer__optout" />
+              <span className="institutional-footer__privacy-sep" aria-hidden>
+                ·
+              </span>
               <button
                 type="button"
                 className="institutional-footer__cookies"
@@ -117,8 +124,9 @@ export default function Footer({ onNavigate }) {
               >
                 {t('cookies.reopen')}
               </button>
-            </div>
-            <span>{t('footer.poweredBy')}</span>
+            </nav>
+
+            <p className="institutional-footer__powered">{t('footer.poweredBy')}</p>
           </div>
         </div>
       </div>

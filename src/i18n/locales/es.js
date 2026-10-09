@@ -956,6 +956,7 @@ export default {
     locationShort: 'Buenos Aires',
     copyright: 'Todos los derechos reservados.',
     poweredBy: 'Estándar Powerlifting United',
+    privacyNav: 'Privacidad y preferencias',
     chapterLine: 'Capítulo Argentina · operación local Maximal',
     actionEyebrow: 'Próximo intento',
     actionTitle: 'Empezá tu recorrido.',
