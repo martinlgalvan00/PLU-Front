@@ -65,7 +65,12 @@ export const MOTION_VIEWPORT = {
   margin: '0px 0px -8% 0px',
 } as const
 
+/** Tilt genérico (placas, podio). En showcases de home/credencial usar
+ * `SHOWCASE_TILT_MAX_DEG` — menos ángulo = más lujoso (motion-premium). */
 export const TILT_MAX_DEG = 6
+
+/** Tilt de piezas protagonistas (credencial home, hero proof, digital card). */
+export const SHOWCASE_TILT_MAX_DEG = 3
 
 /**
  * Escalado de motion por capacidad de dispositivo (ver src/motion/deviceTier.ts).

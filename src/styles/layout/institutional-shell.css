@@ -2814,21 +2814,63 @@ html.plu-drawer-open body {
   font-size: 13px;
 }
 
+/* Meta del pie: tres roles — copyright | privacidad | estándar.
+   Evita que controles de 44px y textos legales peleen en un solo wrap. */
 .institutional-footer__bottom {
+  align-items: center;
   border-top: 1px solid color-mix(in srgb, var(--institution-text) 8%, transparent);
   color: var(--footer-heading, var(--institution-text-muted));
-  display: flex;
-  flex-wrap: wrap;
+  column-gap: clamp(16px, 3vw, 28px);
+  display: grid;
   font-size: 11px;
-  gap: 16px 32px;
-  justify-content: space-between;
-  letter-spacing: 0.05em;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  letter-spacing: 0.02em;
   margin-top: 32px;
-  padding-top: 32px;
+  padding-top: 28px;
+  row-gap: 10px;
 }
 
-/* Salida de la medición de uso. Vive en el pie porque es una preferencia, no
-   una acción de marca: tiene que estar accesible y no competir con nada. */
+.institutional-footer__legal,
+.institutional-footer__powered {
+  margin: 0;
+}
+
+.institutional-footer__legal {
+  color: color-mix(in srgb, var(--footer-heading, var(--institution-text-muted)) 88%, transparent);
+  justify-self: start;
+}
+
+.institutional-footer__powered {
+  color: color-mix(in srgb, var(--footer-heading, var(--institution-text-muted)) 64%, transparent);
+  justify-self: end;
+  text-align: right;
+}
+
+/* Las dos preferencias viajan juntas, como links quietos del mismo nivel. */
+.institutional-footer__privacy {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0 10px;
+  justify-content: center;
+  justify-self: center;
+  max-width: 100%;
+}
+
+.institutional-footer__privacy-sep {
+  color: color-mix(in srgb, currentColor 45%, transparent);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Si AnalyticsOptOut no monta (tracker off), el · no debe quedar huérfano. */
+.institutional-footer__privacy-sep:first-child,
+.institutional-footer__privacy-sep:last-child {
+  display: none;
+}
+
+/* Salida de la medición de uso. Preferencia accesible, sin pelear con marca. */
 .analytics-optout {
   align-items: center;
   background: none;
@@ -2840,20 +2882,10 @@ html.plu-drawer-open body {
   font-size: inherit;
   gap: 6px;
   letter-spacing: inherit;
-  /* El texto del pie mide 11px; el target táctil no puede medir eso. */
   min-height: 44px;
-  opacity: 0.72;
+  opacity: 0.78;
   padding: 0;
   transition: opacity var(--motion-fast, 160ms) var(--ease-out, ease);
-}
-
-/* Las dos preferencias de privacidad viajan juntas: medición y cookies
-   comparten el mismo nivel de acceso y el mismo lenguaje. */
-.institutional-footer__privacy {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 18px;
 }
 
 .institutional-footer__cookies {
@@ -2865,40 +2897,33 @@ html.plu-drawer-open body {
   font-size: inherit;
   letter-spacing: inherit;
   min-height: 44px;
-  opacity: 0.72;
+  opacity: 0.78;
   padding: 0;
   text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-decoration-color: color-mix(in srgb, currentColor 32%, transparent);
   text-underline-offset: 3px;
   transition: opacity var(--motion-fast, 160ms) var(--ease-out, ease);
 }
 
-.institutional-footer__cookies:hover {
-  opacity: 1;
-}
-
-.institutional-footer__cookies:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
-  outline-offset: 3px;
-}
-
+.institutional-footer__cookies:hover,
 .analytics-optout:hover {
   opacity: 1;
 }
 
+.institutional-footer__cookies:focus-visible,
 .analytics-optout:focus-visible {
+  border-radius: 2px;
   outline: 2px solid var(--color-brand-celeste);
   outline-offset: 3px;
 }
 
 .analytics-optout span {
   text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-decoration-color: color-mix(in srgb, currentColor 32%, transparent);
   text-underline-offset: 3px;
 }
 
-/* Activo: el estado se lee sin depender del color (el ícono cambia a un tilde
-   y `aria-pressed` lo expone), pero además se quita el subrayado de acción. */
+/* Activo: el estado se lee sin depender del color (ícono + aria-pressed). */
 .analytics-optout--active {
   opacity: 1;
 }
@@ -2907,8 +2932,32 @@ html.plu-drawer-open body {
   text-decoration: none;
 }
 
+@media (max-width: 720px) {
+  .institutional-footer__bottom {
+    grid-template-columns: 1fr;
+    justify-items: start;
+    padding-top: 24px;
+  }
+
+  .institutional-footer__legal,
+  .institutional-footer__privacy,
+  .institutional-footer__powered {
+    justify-self: start;
+    text-align: left;
+  }
+
+  .institutional-footer__privacy {
+    justify-content: flex-start;
+  }
+
+  .institutional-footer__powered {
+    order: 3;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .analytics-optout {
+  .analytics-optout,
+  .institutional-footer__cookies {
     transition: none;
   }
 }

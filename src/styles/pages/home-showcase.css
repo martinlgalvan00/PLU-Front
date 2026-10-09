@@ -19,7 +19,7 @@
    y la tarjeta queda quieta. */
 .home-credential__qr,
 .home-credential__status {
-  transform: translate3d(calc(var(--tilt-px, 0) * 5px), calc(var(--tilt-py, 0) * 3px), 0);
+  transform: translate3d(calc(var(--tilt-px, 0) * 3px), calc(var(--tilt-py, 0) * 2px), 0);
   transition: transform 140ms var(--ease-out);
 }
 

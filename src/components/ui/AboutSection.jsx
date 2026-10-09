@@ -10,7 +10,7 @@ import {
   MOTION_EASE,
   MOTION_STAGGER,
   MOTION_VIEWPORT,
-  TILT_MAX_DEG,
+  SHOWCASE_TILT_MAX_DEG,
 } from '../../motion/tokens.ts'
 
 const aboutSequence = {
@@ -43,7 +43,7 @@ const aboutPlateSequence = {
 }
 
 const aboutPlateIn3d = {
-  hidden: { opacity: 0, y: 16, rotateX: TILT_MAX_DEG },
+  hidden: { opacity: 0, y: 16, rotateX: SHOWCASE_TILT_MAX_DEG },
   visible: {
     opacity: 1,
     y: 0,
@@ -166,7 +166,7 @@ function AboutPlate({ pillar, index }) {
     <TiltCard
       className="about-section__plate-tilt"
       innerClassName="tilt-card__inner about-section__plate"
-      maxTilt={3}
+      maxTilt={SHOWCASE_TILT_MAX_DEG}
     >
       <span className="about-section__plate-index" aria-hidden>
         {String(index + 1).padStart(2, '0')}

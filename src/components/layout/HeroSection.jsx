@@ -20,7 +20,12 @@ import { isTicketSalesEnabled } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { isRegistrationOpen } from '../../lib/status.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
-import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER_BY_TIER } from '../../motion/tokens.ts'
+import {
+  MOTION_DURATION,
+  MOTION_EASE,
+  MOTION_STAGGER_BY_TIER,
+  SHOWCASE_TILT_MAX_DEG,
+} from '../../motion/tokens.ts'
 import {
   heroActionsItem,
   heroProofItem,
@@ -150,7 +155,7 @@ export default function HeroSection({ onNavigate, event }) {
   // La ficha del meet es la única pieza 3D del primer viewport; la credencial
   // de afiliación vive en otro viewport y no compite con ella.
   const proofBody = (
-    <TiltCard className="hero__proof-tilt" maxTilt={3}>
+    <TiltCard className="hero__proof-tilt" maxTilt={SHOWCASE_TILT_MAX_DEG}>
       {proofCard}
     </TiltCard>
   )

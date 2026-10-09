@@ -26,7 +26,9 @@ Para cualquier tarea relacionada con UI, UX, estilos, componentes, responsive o 
 
 1. Invocar primero la skill `plu-frontend-design` (`.claude/skills/plu-frontend-design/SKILL.md`)
    — es la autoridad de marca, producto y restricciones del frontend. Fija además la jerarquía
-   frente a cualquier metodología externa.
+   frente a cualquier metodología externa. Skills externas instaladas
+   (`landing-page-design`, `scroll-world` en `.claude/skills/`) son método opcional: leer su
+   `PLU.md` y no pisar tokens/marca. `scroll-world` exige OK explícito antes de gastar APIs.
 2. Dentro de esa skill, el ground truth de color/tokens es el código (`palette.css`,
    `variables.css`, `themes/dark.css`, `themes/light.css`), no los `.md` de `docs/` — varios
    quedaron desincronizados tras la corrección de paleta de julio 2026 (ver la skill para el
