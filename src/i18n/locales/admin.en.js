@@ -282,6 +282,7 @@ export default {
     },
     dashboard: 'Overview',
     people: 'People',
+    staffApplications: 'Staff applications',
     athletes: 'Athletes',
     memberships: 'Memberships',
     events: 'Events',

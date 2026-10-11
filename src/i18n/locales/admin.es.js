@@ -284,6 +284,7 @@ export default {
     },
     dashboard: 'Resumen',
     people: 'Personas',
+    staffApplications: 'Postulaciones de staff',
     athletes: 'Atletas',
     memberships: 'Afiliaciones',
     events: 'Eventos',
