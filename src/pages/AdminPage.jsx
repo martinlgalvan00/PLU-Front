@@ -9,6 +9,7 @@ import '../styles/pages/admin-analytics.css'
 import '../styles/pages/admin-pricing.css'
 import '../styles/pages/admin-event-console.css'
 import '../styles/pages/admin-modals.css'
+import '../styles/pages/admin-staff-applications.css'
 import AdminShell from '../components/layout/AdminShell.jsx'
 import AccountDialog from '../components/admin/AccountDialog.jsx'
 import AdminActionToasts from '../components/admin/AdminActionToasts.jsx'
@@ -34,6 +35,7 @@ const AthleteDetailSection = lazy(() => import('./admin/AthleteDetailSection.jsx
 const AthletesSection = lazy(() => import('./admin/AthletesSection.jsx'))
 const PeopleSection = lazy(() => import('./admin/PeopleSection.jsx'))
 const AuditSection = lazy(() => import('./admin/AuditSection.jsx'))
+const StaffApplicationsSection = lazy(() => import('./admin/StaffApplicationsSection.jsx'))
 const AnalyticsSection = lazy(() => import('./admin/AnalyticsSection.jsx'))
 const EventsSection = lazy(() => import('./admin/EventsSection.jsx'))
 const MembershipsSection = lazy(() => import('./admin/MembershipsSection.jsx'))
@@ -665,6 +667,12 @@ export default function AdminPage({
           registrations={registrations}
           onExportPluUsa={onExportPluUsa}
         />
+      )
+    }
+
+    if (section === 'staff_applications') {
+      return (
+        <StaffApplicationsSection canEdit={hasPermission(authorization, 'admin.staff_applications.approve')} />
       )
     }
 

@@ -438,6 +438,8 @@ export default {
     athleteInfo: 'Información para atletas',
     athleteInfoHint: 'Afiliación, credencial y acceso a meets',
     communityHintNew: 'Participación y canales oficiales',
+    staffApplication: 'Sumate al Staff',
+    staffApplicationHint: 'Postulate al Cuerpo de Staff Operativo o Técnico',
     viewAllEvents: 'Ver todos los eventos',
     highlightedEvent: 'Evento destacado',
     buyTickets: 'Comprar entrada',

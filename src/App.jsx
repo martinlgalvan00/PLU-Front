@@ -136,6 +136,7 @@ const ResultsPage = lazy(() => import('./pages/ResultsPage.jsx'))
 const RulebookPage = lazy(() => import('./pages/RulebookPage.jsx'))
 const ShopPage = lazy(() => import('./pages/ShopPage.jsx'))
 const SponsorsPage = lazy(() => import('./pages/SponsorsPage.jsx'))
+const StaffApplicationPage = lazy(() => import('./pages/StaffApplicationPage.jsx'))
 const StaffEmailChangePage = lazy(() => import('./pages/StaffEmailChangePage.jsx'))
 const StaffInvitationPage = lazy(() => import('./pages/StaffInvitationPage.jsx'))
 const StaffPasswordChangePage = lazy(() => import('./pages/StaffPasswordChangePage.jsx'))
@@ -162,6 +163,7 @@ const PUBLIC_VIEWS = {
   team: TeamPage,
   sponsors: SponsorsPage,
   standards: StandardsPage,
+  staffApplication: StaffApplicationPage,
   register: RegisterPage,
   login: LoginPage,
   thanks: ThankYouPage,
@@ -872,7 +874,13 @@ export default function App() {
                           events: publicEvents,
                           checkoutAvailability: app.checkoutAvailability,
                         }
-                      : { onNavigate: navigate }
+                      : view === 'staffApplication'
+                        ? {
+                            onNavigate: navigate,
+                            session: app.session,
+                            athletes: app.athletes,
+                          }
+                        : { onNavigate: navigate }
 
   const showAthleteAccount =
     app.session?.role === 'athlete_plu' && (view === 'profile' || view === 'membership')
