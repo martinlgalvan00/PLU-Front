@@ -100,6 +100,7 @@ export function buildTicketRow(ticket) {
     credentialScopes: ticket.credentialScopes ?? [],
     status: ticket.checkedInAt ? 'usada' : ticket.status,
     checkedInAt: ticket.checkedInAt,
+    checkedInGate: ticket.checkedInGate ?? null,
     addons: ticket.addons ?? [],
     validFrom: ticket.validFrom ?? null,
     validUntil: ticket.validUntil ?? null,

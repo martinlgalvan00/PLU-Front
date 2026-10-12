@@ -1675,6 +1675,7 @@ export default {
     ticketTypeLabel: 'Entrada',
     validFrom: 'Válida desde',
     validUntil: 'Vence',
+    admittedAt: 'Ingresó',
     // Pegadas a la decisión en el encabezado del veredicto, no a los
     // metadatos generales -- ver CheckInScanResult.jsx.
     expiredOn: 'Venció el {{date}}',

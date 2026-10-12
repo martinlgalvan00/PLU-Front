@@ -379,6 +379,7 @@ export function mapApiTicket(apiTicket, purchaseEvent) {
     accessUsageMode: apiTicket.accessUsageMode ?? 'once_total',
     accessWindowKey: apiTicket.accessWindowKey ?? 'once_total',
     checkedInAt: apiTicket.checkIn?.scannedAt ?? null,
+    checkedInGate: apiTicket.checkIn?.gate ?? null,
     eventSlug: purchaseEvent?.slug ?? apiTicket.event?.slug ?? apiTicket.eventSlug,
     eventTitle: purchaseEvent?.title ?? apiTicket.event?.title,
     eventDate: purchaseEvent?.date ?? apiTicket.event?.eventDate,
