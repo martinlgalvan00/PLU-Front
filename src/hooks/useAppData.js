@@ -2692,6 +2692,10 @@ export function useAppData() {
       // El nombre del toast se captura antes de limpiar la sesión: el aviso
       // tiene que decir quién salió, no un genérico.
       if (notify) markSignedOut(sessionDisplayName(currentSession ?? {}, { short: true }))
+      // Las listas de la puerta (nombre y DNI) no se quedan en el equipo al salir.
+      void import('../lib/offlineCheckinDb.js')
+        .then((offlineDb) => offlineDb.purgeOfflineCheckinData())
+        .catch(() => {})
 
       if (!isDemoSession(currentSession) && currentSession) {
         // Con el puente staff↔atleta pueden coexistir ambas cookies: limpiar las dos.
