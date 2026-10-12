@@ -763,6 +763,29 @@
   opacity: 0.55;
 }
 
+.admin-site-teaser__retry {
+  background: transparent;
+  border: 1px solid var(--admin-hairline);
+  border-radius: 999px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.admin-site-teaser__retry:disabled {
+  cursor: progress;
+  opacity: 0.55;
+}
+
+.admin-site-teaser__retry:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
 .admin-site-teaser__switch-btn:focus-visible {
   outline: 2px solid var(--admin-focus);
   outline-offset: 2px;

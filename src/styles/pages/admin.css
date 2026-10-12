@@ -17283,10 +17283,13 @@ button.action-queue__proof:focus-visible {
 }
 
 .admin-shop-modal__panel {
+  /* Theme-native: hereda tinta del canvas admin (no grafito). */
   background: var(--admin-surface, var(--color-bg-surface));
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
   border-radius: calc(var(--border-radius-lg) + 4px);
   box-shadow: var(--elevation-lg);
+  color: var(--admin-ink, var(--color-text-primary));
+  color-scheme: light dark;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   left: 50%;
@@ -17409,6 +17412,72 @@ button.action-queue__proof:focus-visible {
   max-height: 460px;
   overflow: hidden;
   position: relative;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.admin-shop-modal__preview.is-dropzone {
+  cursor: pointer;
+}
+
+.admin-shop-modal__preview.is-dropzone:hover,
+.admin-shop-modal__preview.is-dropzone:focus-visible {
+  border-color: color-mix(in oklab, var(--plu-gold-500) 48%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--plu-gold-500) 14%, transparent);
+  outline: none;
+}
+
+.admin-shop-modal__preview.is-drag {
+  border-color: color-mix(in oklab, var(--plu-gold-500) 62%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--plu-gold-500) 18%, transparent);
+}
+
+.admin-shop-modal__preview.is-uploading {
+  pointer-events: none;
+}
+
+.admin-shop-modal__preview-busy,
+.admin-shop-modal__preview-drop-hint {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.admin-shop-modal__preview-busy {
+  background: color-mix(in srgb, #05070b 72%, transparent);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  min-height: 36px;
+  padding: 0 14px;
+  top: 14px;
+}
+
+.admin-shop-modal__preview-drop-hint {
+  background: color-mix(in srgb, #05070b 58%, transparent);
+  border: 1px dashed color-mix(in oklab, var(--plu-gold-400) 55%, transparent);
+  border-radius: 999px;
+  bottom: 58px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0;
+  padding: 6px 12px;
+  pointer-events: none;
+  transition: opacity var(--motion-fast) var(--ease-out);
+}
+
+.admin-shop-modal__preview.is-drag .admin-shop-modal__preview-drop-hint,
+.admin-shop-modal__preview:hover .admin-shop-modal__preview-drop-hint {
+  opacity: 1;
 }
 
 .admin-shop-modal__preview img {
@@ -17494,6 +17563,64 @@ button.action-queue__proof:focus-visible {
   padding-bottom: 10px;
 }
 
+.admin-shop-modal__families {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-shop-modal__families-label {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.admin-shop-modal__family-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-shop-modal__family-chip {
+  align-items: center;
+  background: color-mix(in oklab, var(--color-text-primary) 2.5%, transparent);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 999px;
+  color: var(--admin-muted, var(--color-text-muted));
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  transition:
+    background var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.admin-shop-modal__family-chip:hover:not(:disabled) {
+  border-color: color-mix(in oklab, var(--color-text-primary) 22%, transparent);
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-shop-modal__family-chip.is-active {
+  background: color-mix(in oklab, var(--plu-gold-500) 10%, transparent);
+  border-color: color-mix(in oklab, var(--plu-gold-500) 42%, transparent);
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-shop-modal__family-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.admin-shop-modal__family-chip:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
 .admin-shop-modal__group {
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
   border-radius: calc(var(--border-radius-lg) - 2px);
@@ -17505,12 +17632,13 @@ button.action-queue__proof:focus-visible {
 }
 
 .admin-shop-modal__group legend {
-  color: color-mix(in oklab, var(--plu-gold-500) 72%, var(--admin-muted, var(--color-text-muted)));
+  color: var(--admin-ink, var(--color-text-primary));
   font-family: var(--font-display);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.14em;
   margin-left: -2px;
+  opacity: 0.72;
   padding: 0 4px;
   text-transform: uppercase;
 }
@@ -17723,6 +17851,49 @@ button.action-queue__proof:focus-visible {
 [data-theme='light'] .admin-shop-modal__panel {
   background: #fff;
   box-shadow: 0 24px 64px -28px rgba(15, 17, 23, 0.28);
+  color: var(--admin-ink, #0a0a0a);
+  color-scheme: light;
+}
+
+[data-theme='light'] .admin-shop-modal__eyebrow {
+  color: color-mix(in oklab, var(--plu-gold-600, #b8860b) 55%, var(--admin-ink, #0a0a0a));
+}
+
+[data-theme='light'] .admin-shop-modal__head h2,
+[data-theme='light'] .admin-shop-modal__preview-label,
+[data-theme='light'] .admin-shop-modal__check-title,
+[data-theme='light'] .admin-shop-modal__group legend {
+  color: var(--admin-ink, #0a0a0a);
+  opacity: 1;
+}
+
+[data-theme='light'] .admin-shop-modal__lead,
+[data-theme='light'] .admin-shop-modal__preview-hint,
+[data-theme='light'] .admin-shop-modal__fields label:not(.admin-shop-modal__check) > span,
+[data-theme='light'] .admin-shop-modal__families-label,
+[data-theme='light'] .admin-shop-modal__check-hint,
+[data-theme='light'] .admin-shop-modal__close {
+  color: var(--admin-muted, #6b6b6b);
+}
+
+[data-theme='light'] .admin-shop-modal__fields input,
+[data-theme='light'] .admin-shop-modal__fields select,
+[data-theme='light'] .admin-shop-modal__fields textarea {
+  background: #fff;
+  border-color: color-mix(in srgb, #0a0a0a 14%, transparent);
+  color: var(--admin-ink, #0a0a0a);
+}
+
+[data-theme='light'] .admin-shop-modal__family-chip {
+  background: color-mix(in oklab, #0a0a0a 3%, #fff);
+  border-color: color-mix(in srgb, #0a0a0a 12%, transparent);
+  color: var(--admin-muted, #6b6b6b);
+}
+
+[data-theme='light'] .admin-shop-modal__family-chip.is-active {
+  background: color-mix(in oklab, var(--plu-gold-500) 12%, #fff);
+  border-color: color-mix(in oklab, var(--plu-gold-500) 38%, transparent);
+  color: var(--admin-ink, #0a0a0a);
 }
 
 [data-theme='light'] .admin-shop-modal__preview {
@@ -17750,7 +17921,10 @@ button.action-queue__proof:focus-visible {
   .admin-shop-modal__fields input,
   .admin-shop-modal__fields select,
   .admin-shop-modal__fields textarea,
-  .admin-shop-modal__check {
+  .admin-shop-modal__check,
+  .admin-shop-modal__family-chip,
+  .admin-shop-modal__preview,
+  .admin-shop-modal__preview-drop-hint {
     transition: none;
   }
 }

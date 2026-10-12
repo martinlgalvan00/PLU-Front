@@ -532,23 +532,56 @@
 }
 
 /* Próximamente: sección sin productos publicados.
-   Panel de grafito (en ambos temas): reservado a las piezas por venir, para que
-   la espera se lea como lanzamiento y no como página vacía. Los tokens de texto
-   se redefinen adentro para que el formulario compartido herede el contraste. */
+   Superficie editorial temática (light + dark). No pisa tokens globales
+   para que el formulario de aviso herede el contraste del tema. */
 .shop-soon {
-  --color-text-primary: #f4f3ef;
-  --color-text-muted: rgba(244, 243, 239, 0.62);
-  background:
-    radial-gradient(60% 90% at 100% 0%, rgba(242, 183, 5, 0.1), transparent 70%),
-    var(--plu-cool-900, #121316);
-  border-radius: 4px;
-  color: var(--color-text-primary);
+  --shop-soon-fg: var(--color-text-primary);
+  --shop-soon-muted: var(--color-text-muted);
+  --shop-soon-line: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  --shop-soon-input-line: color-mix(in srgb, var(--color-text-primary) 32%, transparent);
+  --shop-soon-wash: radial-gradient(
+    70% 100% at 100% 0%,
+    color-mix(in srgb, var(--color-brand-gold) 10%, transparent),
+    transparent 72%
+  );
+  --shop-soon-surface: var(--color-bg-elevated, var(--color-bg-surface));
+  background: var(--shop-soon-wash), var(--shop-soon-surface);
+  border: 1px solid var(--shop-soon-line);
+  border-radius: 2px;
+  color: var(--shop-soon-fg);
   display: grid;
   gap: clamp(36px, 6vw, 80px);
   grid-template-columns: minmax(0, 1fr);
   overflow: hidden;
   padding: clamp(32px, 6vw, 88px) clamp(24px, 5vw, 80px);
   position: relative;
+}
+
+[data-theme='dark'] .shop-soon {
+  --shop-soon-surface: color-mix(in srgb, var(--plu-cool-800, #1a1c22) 88%, var(--plu-cool-950, #0b0d12));
+  --shop-soon-line: color-mix(in srgb, #f4f3ef 10%, transparent);
+  --shop-soon-input-line: color-mix(in srgb, #f4f3ef 36%, transparent);
+  --shop-soon-wash: radial-gradient(
+    60% 90% at 100% 0%,
+    color-mix(in srgb, var(--color-brand-gold) 12%, transparent),
+    transparent 70%
+  );
+  border-color: transparent;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 4%, transparent);
+}
+
+[data-theme='light'] .shop-soon {
+  --shop-soon-surface: color-mix(in srgb, #fff 78%, var(--plu-warm-100, #f0efec));
+  --shop-soon-line: color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+  --shop-soon-input-line: color-mix(in srgb, var(--color-text-primary) 28%, transparent);
+  --shop-soon-wash: radial-gradient(
+    68% 95% at 100% 0%,
+    color-mix(in srgb, var(--color-brand-gold) 9%, transparent),
+    transparent 74%
+  );
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #fff 70%, transparent),
+    0 18px 40px -28px color-mix(in srgb, var(--color-text-primary) 18%, transparent);
 }
 
 .shop-soon__rule {
@@ -589,33 +622,34 @@
 }
 
 .shop-soon__title {
-  color: var(--color-text-primary);
+  color: var(--shop-soon-fg);
   font-family: var(--font-display);
-  font-size: clamp(2rem, 4.4vw, 3.5rem);
+  font-size: clamp(1.7rem, 5.2vw, 3.25rem);
   font-weight: 300;
-  letter-spacing: -0.04em;
-  line-height: 1.02;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
   margin: 0;
+  max-width: 16ch;
   text-wrap: balance;
 }
 
 .shop-soon__text {
-  color: var(--color-text-muted);
+  color: var(--shop-soon-muted);
   font-size: 15px;
   font-weight: 300;
-  line-height: 1.75;
+  line-height: 1.7;
   margin: 0;
   max-width: 42ch;
 }
 
 .shop-soon__stale {
-  color: var(--color-text-muted);
+  color: var(--shop-soon-muted);
   font-size: 13px;
   margin: 0;
 }
 
 .shop-soon__stale .shop-link {
-  color: var(--color-text-primary);
+  color: var(--shop-soon-fg);
 }
 
 .shop-soon__aside {
@@ -633,8 +667,8 @@
 }
 
 .shop-soon__list li {
-  border-top: 1px solid rgba(244, 243, 239, 0.14);
-  color: var(--color-text-primary);
+  border-top: 1px solid var(--shop-soon-line);
+  color: var(--shop-soon-fg);
   font-size: 15px;
   font-weight: 300;
   letter-spacing: 0.01em;
@@ -642,16 +676,109 @@
 }
 
 .shop-soon__list li:last-child {
-  border-bottom: 1px solid rgba(244, 243, 239, 0.14);
+  border-bottom: 1px solid var(--shop-soon-line);
+}
+
+.shop-soon .shop-interest-form__label {
+  color: var(--shop-soon-muted);
 }
 
 .shop-soon .shop-interest-form input {
-  border-bottom-color: rgba(244, 243, 239, 0.4);
+  border-bottom-color: var(--shop-soon-input-line);
+  color: var(--shop-soon-fg);
+}
+
+.shop-soon .shop-interest-form input::placeholder {
+  color: var(--shop-soon-muted);
+}
+
+.shop-soon .shop-interest-form {
+  gap: 12px;
+  max-width: none;
+}
+
+.shop-soon .shop-interest-form__error,
+.shop-soon .shop-interest-form--success {
+  color: var(--shop-soon-fg);
+}
+
+/* Mobile: título más respirable + form en columna full-width. */
+@media (max-width: 639px) {
+  .shop-soon {
+    gap: 28px;
+    padding: 28px 20px 32px;
+  }
+
+  .shop-soon__copy {
+    gap: 14px;
+  }
+
+  .shop-soon__badge {
+    gap: 10px;
+    letter-spacing: 0.28em;
+  }
+
+  .shop-soon__title {
+    font-size: clamp(1.65rem, 8.2vw, 2.15rem);
+    letter-spacing: -0.03em;
+    line-height: 1.12;
+    max-width: none;
+  }
+
+  .shop-soon__text {
+    font-size: 14.5px;
+    line-height: 1.65;
+    max-width: none;
+  }
+
+  .shop-soon__aside {
+    gap: 22px;
+  }
+
+  .shop-soon__list li {
+    font-size: 14.5px;
+    padding: 13px 0;
+  }
+
+  .shop-soon .shop-interest-form__row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .shop-soon .shop-interest-form input {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .shop-soon .shop-interest-form button {
+    letter-spacing: 0.14em;
+    min-height: 48px;
+    width: 100%;
+  }
 }
 
 @media (min-width: 900px) {
   .shop-soon {
     grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  }
+
+  .shop-soon__title {
+    line-height: 1.06;
+  }
+
+  .shop-soon .shop-interest-form__row {
+    align-items: stretch;
+    flex-wrap: nowrap;
+    gap: 10px;
+  }
+
+  .shop-soon .shop-interest-form input {
+    flex: 1 1 auto;
+  }
+
+  .shop-soon .shop-interest-form button {
+    flex: 0 0 auto;
+    padding-inline: 24px;
   }
 }
 

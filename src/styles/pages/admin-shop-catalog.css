@@ -260,6 +260,16 @@
   margin: 0;
 }
 
+[data-theme='light'] .admin-shop-modal__note,
+[data-theme='light'] .admin-shop-media__lead,
+[data-theme='light'] .admin-shop-media__add {
+  color: var(--admin-muted, #6b6b6b);
+}
+
+[data-theme='light'] .admin-shop-sizes__presets button {
+  color: var(--admin-ink, #0a0a0a);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .admin-shop-media__make-cover {
     transition: none;

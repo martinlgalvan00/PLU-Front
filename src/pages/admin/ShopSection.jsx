@@ -1,6 +1,18 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Edit3, ImagePlus, Plus, Search, Shirt, Star, Trash2, X } from 'lucide-react'
+import {
+  Award,
+  Edit3,
+  GraduationCap,
+  ImagePlus,
+  Plus,
+  Search,
+  Shirt,
+  Star,
+  Trash2,
+  Watch,
+  X,
+} from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import Button from '../../components/ui/Button.jsx'
 import ShopCheckoutSettingsPanel from './ShopCheckoutSettingsPanel.jsx'
@@ -29,6 +41,17 @@ const STATUS_OPTIONS = [
 ]
 const SIZE_PRESETS = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
 
+const CATEGORY_ICONS = {
+  apparel: Shirt,
+  accessories: Watch,
+  exclusive: Award,
+  course: GraduationCap,
+}
+
+function categoryIcon(category) {
+  return CATEGORY_ICONS[category] ?? Shirt
+}
+
 function emptyDraft(overrides = {}) {
   return { ...SHOP_PRODUCT_DEFAULT, imagePaths: [], imageUrls: [], sizes: [], ...overrides }
 }
@@ -53,31 +76,111 @@ function formatCourseDate(value, locale) {
   })
 }
 
-/** Fotos del producto: la primera es la portada. Suben directo a Storage. */
-function ShopImagesField({ canEdit, draft, onChange, onError, t }) {
+/** Subida compartida: preview dropzone + galería. Comprime a WebP antes de Storage. */
+function useShopImageUploader({ canEdit, draft, onChange, onError, t }) {
   const inputRef = useRef(null)
   const [uploading, setUploading] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
   const remaining = SHOP_MAX_IMAGES - draft.imagePaths.length
 
-  async function handleFiles(event) {
-    const files = Array.from(event.target.files ?? []).slice(0, Math.max(0, remaining))
-    event.target.value = ''
-    if (files.length === 0) return
-    setUploading(true)
-    onError('')
-    try {
-      const uploaded = []
-      for (const file of files) {
-        uploaded.push(await uploadShopProductImage(file))
+  const uploadFiles = useCallback(
+    async (fileList) => {
+      const files = Array.from(fileList ?? []).slice(0, Math.max(0, remaining))
+      if (!canEdit || files.length === 0) return
+      setUploading(true)
+      onError('')
+      try {
+        const uploaded = []
+        for (const file of files) {
+          uploaded.push(await uploadShopProductImage(file))
+        }
+        onChange('imagePaths', [...draft.imagePaths, ...uploaded.map((item) => item.path)])
+        onChange('imageUrls', [...draft.imageUrls, ...uploaded.map((item) => item.url)])
+      } catch (error) {
+        onError(error?.message ?? t('admin.shop.saveError'))
+      } finally {
+        setUploading(false)
       }
-      onChange('imagePaths', [...draft.imagePaths, ...uploaded.map((item) => item.path)])
-      onChange('imageUrls', [...draft.imageUrls, ...uploaded.map((item) => item.url)])
-    } catch (error) {
-      onError(error?.message ?? t('admin.shop.saveError'))
-    } finally {
-      setUploading(false)
-    }
+    },
+    [
+      canEdit,
+      draft.imagePaths,
+      draft.imageUrls,
+      onChange,
+      onError,
+      remaining,
+      t,
+    ],
+  )
+
+  function openPicker() {
+    if (!canEdit || remaining <= 0 || uploading) return
+    inputRef.current?.click()
   }
+
+  function onInputChange(event) {
+    const files = event.target.files
+    event.target.value = ''
+    void uploadFiles(files)
+  }
+
+  function onDragEnter(event) {
+    event.preventDefault()
+    event.stopPropagation()
+    if (!canEdit || remaining <= 0 || uploading) return
+    setDragOver(true)
+  }
+
+  function onDragOver(event) {
+    event.preventDefault()
+    event.stopPropagation()
+    if (!canEdit || remaining <= 0 || uploading) return
+    event.dataTransfer.dropEffect = 'copy'
+    setDragOver(true)
+  }
+
+  function onDragLeave(event) {
+    event.preventDefault()
+    event.stopPropagation()
+    if (event.currentTarget.contains(event.relatedTarget)) return
+    setDragOver(false)
+  }
+
+  function onDrop(event) {
+    event.preventDefault()
+    event.stopPropagation()
+    setDragOver(false)
+    if (!canEdit || remaining <= 0 || uploading) return
+    void uploadFiles(event.dataTransfer.files)
+  }
+
+  return {
+    inputRef,
+    uploading,
+    dragOver,
+    remaining,
+    openPicker,
+    onInputChange,
+    dropHandlers: { onDragEnter, onDragOver, onDragLeave, onDrop },
+  }
+}
+
+/** Fotos del producto: la primera es la portada. Suben directo a Storage. */
+function ShopImagesField({
+  canEdit,
+  draft,
+  onChange,
+  t,
+  uploading,
+  remaining,
+  onOpenPicker,
+}) {
+  const imagesLeadKey = `admin.shop.imagesLeadByCategory.${draft.category}`
+  const imagesLeadRaw = t(imagesLeadKey, { max: SHOP_MAX_IMAGES })
+  const imagesLead =
+    imagesLeadRaw === imagesLeadKey
+      ? t('admin.shop.imagesLead', { max: SHOP_MAX_IMAGES })
+      : imagesLeadRaw
 
   function removeAt(index) {
     onChange(
@@ -98,9 +201,7 @@ function ShopImagesField({ canEdit, draft, onChange, onError, t }) {
 
   return (
     <div className="admin-shop-media">
-      <p className="admin-shop-media__lead">
-        {t('admin.shop.imagesLead', { max: SHOP_MAX_IMAGES })}
-      </p>
+      <p className="admin-shop-media__lead">{imagesLead}</p>
       <ul className="admin-shop-media__list">
         {draft.imageUrls.map((url, index) => (
           <li key={draft.imagePaths[index] ?? url} className="admin-shop-media__item">
@@ -134,7 +235,7 @@ function ShopImagesField({ canEdit, draft, onChange, onError, t }) {
               type="button"
               className="admin-shop-media__add"
               disabled={uploading}
-              onClick={() => inputRef.current?.click()}
+              onClick={onOpenPicker}
             >
               {uploading ? (
                 <span className="plu-spinner" aria-hidden />
@@ -146,14 +247,6 @@ function ShopImagesField({ canEdit, draft, onChange, onError, t }) {
           </li>
         ) : null}
       </ul>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        multiple
-        hidden
-        onChange={handleFiles}
-      />
     </div>
   )
 }
@@ -236,6 +329,13 @@ function ShopSizesField({ canEdit, draft, onChange, t }) {
   )
 }
 
+function shopCopy(t, key, category, fallbackKey, vars) {
+  const scoped = `${key}.${category}`
+  const value = t(scoped, vars)
+  if (value !== scoped) return value
+  return fallbackKey ? t(fallbackKey, vars) : value
+}
+
 function ShopProductModal({
   canEdit,
   draft,
@@ -259,6 +359,40 @@ function ShopProductModal({
   const supportsSizes = categorySupportsSizes(draft.category)
   const hasSizes = supportsSizes && draft.sizes.length > 0
   const coverUrl = draft.imageUrls[0] ?? ''
+  const CategoryIcon = categoryIcon(draft.category)
+  const modalTitle = shopCopy(
+    t,
+    isEdit ? 'admin.shop.editTitleByCategory' : 'admin.shop.createTitleByCategory',
+    draft.category,
+    isEdit ? 'admin.shop.editTitle' : 'admin.shop.createTitle',
+  )
+  const modalLead = shopCopy(
+    t,
+    'admin.shop.hintByCategory',
+    draft.category,
+    'admin.shop.hintText',
+  )
+  const previewEmpty = shopCopy(
+    t,
+    'admin.shop.previewEmptyByCategory',
+    draft.category,
+    'admin.shop.previewEmpty',
+  )
+  const titlePlaceholder = shopCopy(
+    t,
+    'admin.shop.placeholders.titleByCategory',
+    draft.category,
+    'admin.shop.placeholders.title',
+  )
+  const descriptionPlaceholder = shopCopy(
+    t,
+    'admin.shop.placeholders.descriptionByCategory',
+    draft.category,
+    'admin.shop.placeholders.description',
+  )
+  const images = useShopImageUploader({ canEdit, draft, onChange, onError, t })
+  const canUploadImages = canEdit && images.remaining > 0 && !images.uploading
+  const stageInteractive = canUploadImages && !coverUrl
 
   useEffect(() => {
     function handleKey(event) {
@@ -290,11 +424,11 @@ function ShopProductModal({
         <header className="admin-shop-modal__head">
           <div className="admin-shop-modal__head-copy">
             <span className="admin-shop-modal__eyebrow">
-              <Shirt size={12} strokeWidth={1.75} aria-hidden />
+              <CategoryIcon size={12} strokeWidth={1.75} aria-hidden />
               {isEdit ? t('admin.shop.editMode') : t('admin.shop.createMode')}
             </span>
-            <h2 id={titleId}>{isEdit ? t('admin.shop.editTitle') : t('admin.shop.createTitle')}</h2>
-            <p className="admin-shop-modal__lead">{t('admin.shop.hintText')}</p>
+            <h2 id={titleId}>{modalTitle}</h2>
+            <p className="admin-shop-modal__lead">{modalLead}</p>
           </div>
           <button
             type="button"
@@ -307,32 +441,70 @@ function ShopProductModal({
         </header>
 
         <form className="admin-shop-modal__form" onSubmit={onSubmit}>
+          <input
+            ref={images.inputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            hidden
+            onChange={images.onInputChange}
+          />
           <div className="admin-shop-modal__layout">
             <aside className="admin-shop-modal__stage">
-              <div className="admin-shop-modal__preview" aria-label={t('admin.shop.previewLabel')}>
+              <div
+                className={`admin-shop-modal__preview${images.dragOver ? ' is-drag' : ''}${images.uploading ? ' is-uploading' : ''}${stageInteractive ? ' is-dropzone' : ''}`}
+                aria-label={t('admin.shop.previewLabel')}
+                {...(canUploadImages ? images.dropHandlers : {})}
+                {...(stageInteractive
+                  ? {
+                      role: 'button',
+                      tabIndex: 0,
+                      onClick: images.openPicker,
+                      onKeyDown: (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          images.openPicker()
+                        }
+                      },
+                    }
+                  : {})}
+              >
                 {coverUrl ? (
                   <img src={coverUrl} alt="" />
                 ) : (
                   <div className="admin-shop-modal__preview-empty">
                     <span className="admin-shop-modal__preview-icon" aria-hidden>
-                      <ImagePlus size={22} strokeWidth={1.5} />
+                      {images.uploading ? (
+                        <span className="plu-spinner" />
+                      ) : (
+                        <ImagePlus size={22} strokeWidth={1.5} />
+                      )}
                     </span>
-                    {!hasPreviewMeta ? (
-                      <>
-                        <span className="admin-shop-modal__preview-label">
-                          {t('admin.shop.previewLabel')}
-                        </span>
-                        <span className="admin-shop-modal__preview-hint">
-                          {t('admin.shop.previewEmpty')}
-                        </span>
-                      </>
-                    ) : null}
+                    <span className="admin-shop-modal__preview-label">
+                      {images.uploading
+                        ? t('admin.shop.uploading')
+                        : t('admin.shop.previewDropLabel')}
+                    </span>
+                    <span className="admin-shop-modal__preview-hint">
+                      {images.uploading ? t('admin.shop.compressingHint') : previewEmpty}
+                    </span>
                   </div>
                 )}
+                {coverUrl && images.uploading ? (
+                  <div className="admin-shop-modal__preview-busy" aria-live="polite">
+                    <span className="plu-spinner" aria-hidden />
+                    <span>{t('admin.shop.uploading')}</span>
+                  </div>
+                ) : null}
+                {coverUrl && canUploadImages && !images.uploading ? (
+                  <div className="admin-shop-modal__preview-drop-hint" aria-hidden>
+                    {t('admin.shop.previewDropMore')}
+                  </div>
+                ) : null}
                 {hasPreviewMeta ? (
                   <div className="admin-shop-modal__preview-meta">
                     <span className="admin-shop-modal__preview-title">
-                      {draft.title?.trim() || t('admin.shop.createTitle')}
+                      {draft.title?.trim() || modalTitle}
                     </span>
                     {Number.isFinite(previewPrice) && previewPrice > 0 ? (
                       <span className="admin-shop-modal__preview-price">
@@ -346,33 +518,49 @@ function ShopProductModal({
 
             <div className="admin-shop-modal__fields">
               <fieldset className="admin-shop-modal__group">
-                <legend>{t('admin.shop.groupCommerce')}</legend>
-                <div className="admin-shop-modal__row">
-                  <label>
-                    <span>{t('admin.shop.fields.category')}</span>
-                    <select
-                      value={draft.category}
-                      onChange={(event) => onChange('category', event.target.value)}
-                      disabled={!canEdit}
-                    >
-                      {SHOP_PRODUCT_CATEGORIES.map(([value]) => (
-                        <option key={value} value={value}>
+                <legend>{t('admin.shop.groupFamily')}</legend>
+                <div
+                  className="admin-shop-modal__families"
+                  role="group"
+                  aria-label={t('admin.shop.fields.category')}
+                >
+                  <span className="admin-shop-modal__families-label">
+                    {t('admin.shop.fields.category')}
+                  </span>
+                  <div className="admin-shop-modal__family-chips">
+                    {SHOP_PRODUCT_CATEGORIES.map(([value]) => {
+                      const ChipIcon = categoryIcon(value)
+                      const active = draft.category === value
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          className={`admin-shop-modal__family-chip${active ? ' is-active' : ''}`}
+                          aria-pressed={active}
+                          disabled={!canEdit}
+                          onClick={() => onChange('category', value)}
+                        >
+                          <ChipIcon size={14} strokeWidth={1.75} aria-hidden />
                           {t(`admin.shop.categories.${value}`)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    <span>{t('admin.shop.fields.price')}</span>
-                    <input
-                      min="0"
-                      type="number"
-                      value={draft.price}
-                      onChange={(event) => onChange('price', event.target.value)}
-                      disabled={!canEdit}
-                    />
-                  </label>
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
+              </fieldset>
+
+              <fieldset className="admin-shop-modal__group">
+                <legend>{t('admin.shop.groupCommerce')}</legend>
+                <label>
+                  <span>{t('admin.shop.fields.price')}</span>
+                  <input
+                    min="0"
+                    type="number"
+                    value={draft.price}
+                    onChange={(event) => onChange('price', event.target.value)}
+                    disabled={!canEdit}
+                  />
+                </label>
               </fieldset>
 
               <fieldset className="admin-shop-modal__group">
@@ -382,7 +570,7 @@ function ShopProductModal({
                   <input
                     value={draft.title}
                     onChange={(event) => onChange('title', event.target.value)}
-                    placeholder={t('admin.shop.placeholders.title')}
+                    placeholder={titlePlaceholder}
                     disabled={!canEdit}
                     maxLength={120}
                     autoFocus
@@ -393,7 +581,7 @@ function ShopProductModal({
                   <textarea
                     value={draft.description}
                     onChange={(event) => onChange('description', event.target.value)}
-                    placeholder={t('admin.shop.placeholders.description')}
+                    placeholder={descriptionPlaceholder}
                     disabled={!canEdit}
                     maxLength={4000}
                     rows={3}
@@ -407,8 +595,10 @@ function ShopProductModal({
                   canEdit={canEdit}
                   draft={draft}
                   onChange={onChange}
-                  onError={onError}
                   t={t}
+                  uploading={images.uploading}
+                  remaining={images.remaining}
+                  onOpenPicker={images.openPicker}
                 />
               </fieldset>
 
@@ -464,7 +654,9 @@ function ShopProductModal({
                 </fieldset>
               ) : (
                 <fieldset className="admin-shop-modal__group">
-                  <legend>{t('admin.shop.groupSizes')}</legend>
+                  <legend>
+                    {supportsSizes ? t('admin.shop.groupSizes') : t('admin.shop.groupStock')}
+                  </legend>
                   {supportsSizes ? (
                     <ShopSizesField canEdit={canEdit} draft={draft} onChange={onChange} t={t} />
                   ) : null}

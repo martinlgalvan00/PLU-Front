@@ -967,13 +967,13 @@
   width: 100%;
 }
 
-/* Tres tiempos: Afiliate / Competí / Resultados oficiales. Reglas finas
-   entre frases en lugar de una línea corrida. */
+/* Tres tiempos: Afiliate / Competí / Resultados oficiales. */
 .hero--statement .hero__lead-text--beats {
   align-items: baseline;
+  column-gap: 0.65em;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35em 0;
+  gap: 0.35em 0.65em;
 }
 
 .hero__lead-beat {
@@ -984,26 +984,11 @@
   white-space: nowrap;
 }
 
-.hero__lead-beat + .hero__lead-beat::before {
-  align-self: center;
-  background: currentColor;
-  content: '';
-  display: inline-block;
-  height: 1px;
-  margin-inline: 0.75em;
-  opacity: 0.35;
-  width: 1.4em;
-}
-
-/* Angosto: las frases saltan de línea y la regla quedaría colgada al inicio;
-   fluyen como texto separadas por un espacio. */
+/* Angosto: las frases saltan de línea y fluyen con gap más chico. */
 @media (max-width: 639px) {
   .hero--statement .hero__lead-text--beats {
     column-gap: 0.32em;
-  }
-
-  .hero__lead-beat + .hero__lead-beat::before {
-    display: none;
+    gap: 0.35em 0.32em;
   }
 }
 

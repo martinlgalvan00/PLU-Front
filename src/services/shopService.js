@@ -1,5 +1,5 @@
 import { ApiError, apiDelete, apiGet, apiPatch, apiPost } from '../lib/api.js'
-import { compressPaymentProofFile } from '../lib/compressImageFile.js'
+import { compressShopProductImage } from '../lib/compressImageFile.js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 
 /**
@@ -194,11 +194,16 @@ export async function uploadShopProductImage(file) {
     })
   }
 
-  const prepared = await compressPaymentProofFile(file)
+  const prepared = await compressShopProductImage(file)
+  if (prepared.size > SHOP_IMAGE_MAX_BYTES) {
+    throw new ApiError('La imagen sigue siendo demasiado pesada después de comprimirla.', {
+      status: 400,
+    })
+  }
   const supabase = await getSupabaseClient()
   const upload = await apiPost('/api/shop/admin/images/upload-url', {
     fileName: prepared.name,
-    contentType: prepared.type,
+    contentType: prepared.type || 'image/webp',
     size: prepared.size,
   })
   const { error } = await supabase.storage
