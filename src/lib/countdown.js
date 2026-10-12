@@ -50,3 +50,46 @@ export function getCountdownParts(endsAt, now = new Date()) {
 
   return { totalMs, weeks, days, daysRemainder, hours, minutes, seconds, expired }
 }
+
+/**
+ * Inicio de un evento como instante parseable. Prioriza `startsAt`; si solo hay
+ * fecha de calendario asume las 09:00 de Argentina (UTC-3), igual que el resto
+ * de los contadores de Pitbull.
+ *
+ * @param {{ startsAt?: string, dateISO?: string } | null | undefined} event
+ * @returns {string|null}
+ */
+export function resolveEventStartsAt(event) {
+  if (event?.startsAt) return event.startsAt
+  if (event?.dateISO) return `${event.dateISO}T09:00:00-03:00`
+  return null
+}
+
+/**
+ * Unidad dominante de la cuenta regresiva: semanas mientras falte al menos una,
+ * después días y, en el último día, horas. Es la misma regla que usa la card
+ * de Pitbull, así "FALTAN 8 SEMANAS" se actualiza solo a "FALTAN 6 DÍAS", etc.
+ *
+ * @param {ReturnType<typeof getCountdownParts>} parts
+ * @returns {{ unit: 'weeks'|'days'|'hours', value: number }}
+ */
+export function getCountdownHeadline(parts) {
+  if (parts.weeks > 0) return { unit: 'weeks', value: parts.weeks }
+  if (parts.days > 0) return { unit: 'days', value: parts.days }
+  return { unit: 'hours', value: Math.max(1, parts.hours) }
+}
+
+/**
+ * Titular de cuenta regresiva ("8 semanas") para un inicio dado, o `null` si
+ * no hay fecha o el evento ya empezó. Es lo que comparten la entrada de
+ * Pitbull, la card "Hasta el Classic" y la ficha del hero.
+ *
+ * @param {string|null|undefined} startsAt
+ * @param {Date|number} [now]
+ * @returns {{ unit: 'weeks'|'days'|'hours', value: number } | null}
+ */
+export function getEventCountdownHeadline(startsAt, now = new Date()) {
+  if (!startsAt) return null
+  const parts = getCountdownParts(startsAt, now)
+  return parts.expired ? null : getCountdownHeadline(parts)
+}

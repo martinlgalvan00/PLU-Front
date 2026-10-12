@@ -194,3 +194,37 @@ describe('AdminDataTable — selección en cards', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 })
+
+describe('AdminDataTable — densidad y cabecera fija', () => {
+  it('no aplica clases de densidad ni cabecera fija por defecto', () => {
+    setViewportWidth(1280)
+    const { container } = renderTable(
+      <AdminDataTable columns={columns} rows={rows} pagination={false} />,
+    )
+
+    expect(container.querySelector('.admin-data-table')).toBeTruthy()
+    expect(container.querySelector('.admin-data-table--compact')).toBeNull()
+    expect(container.querySelector('.admin-data-table--sticky-head')).toBeNull()
+  })
+
+  it('density="compact" y stickyHeader agregan sus clases modificadoras', () => {
+    setViewportWidth(1280)
+    const { container } = renderTable(
+      <AdminDataTable columns={columns} rows={rows} pagination={false} density="compact" stickyHeader />,
+    )
+
+    const table = container.querySelector('.admin-data-table')
+    expect(table.classList.contains('admin-data-table--compact')).toBe(true)
+    expect(table.classList.contains('admin-data-table--sticky-head')).toBe(true)
+  })
+
+  it('en cards móviles no hay tabla, así que la densidad no aplica', () => {
+    setViewportWidth(480)
+    const { container } = renderTable(
+      <AdminDataTable columns={columns} rows={rows} pagination={false} density="compact" stickyHeader />,
+    )
+
+    expect(container.querySelector('.admin-data-table')).toBeNull()
+    expect(container.querySelector('.data-table-card')).toBeTruthy()
+  })
+})

@@ -41,33 +41,25 @@
   overflow: hidden;
 }
 
-/* El Menu de antd no oculta el título de grupo en modo inline-collapsed --
-   en el rail de 88px el texto completo ("Competencia", "Convenio") se
-   desborda contra el ícono. Los grupos igual quedan separados por el
-   margen entre bloques del propio Menu. */
-.ant-menu-inline-collapsed .ant-menu-item-group-title {
-  display: none;
+/* =============================================
+   CROMO DEL PANEL: sidebar, rail, drawer y barra superior
+   Un solo bloque. Los selectores del sidebar no cuelgan de `.admin-shell`
+   porque el Drawer de antd monta el mismo contenido en un portal, fuera
+   del shell. Color: todo sale de los `--admin-*` (monocromo); el único
+   énfasis es la tinta (`--admin-brand`).
+   ============================================= */
+
+.admin-shell {
+  --admin-sidebar-width: 248px;
+  --admin-sidebar-rail-width: 72px;
 }
 
-.admin-shell__sidebar {
-  background: var(--color-bg-secondary);
-  border-right: 1px solid var(--color-border-subtle);
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-  position: sticky;
-  top: 0;
-  transition: width var(--transition-base);
-  width: var(--admin-sidebar-width);
-  z-index: 200;
-}
+/* ---- Sider ---- */
 
 .admin-shell__sidebar-component.ant-layout-sider,
 .admin-shell__sidebar-component.ant-layout-sider-collapsed {
-  border-right: 1px solid var(--color-border-subtle);
+  background: var(--admin-sidebar);
+  border-right: 1px solid var(--admin-sidebar-border);
   height: 100%;
   max-height: 100dvh;
   overflow: hidden;
@@ -75,10 +67,10 @@
   top: 0;
   z-index: 100;
   transition:
-    width var(--motion-cinematic, 700ms) var(--ease-out),
-    min-width var(--motion-cinematic, 700ms) var(--ease-out),
-    max-width var(--motion-cinematic, 700ms) var(--ease-out),
-    flex var(--motion-cinematic, 700ms) var(--ease-out) !important;
+    width var(--motion-base, 240ms) var(--ease-out),
+    min-width var(--motion-base, 240ms) var(--ease-out),
+    max-width var(--motion-base, 240ms) var(--ease-out),
+    flex var(--motion-base, 240ms) var(--ease-out) !important;
 }
 
 .admin-shell__sidebar-component .ant-layout-sider-children {
@@ -90,6 +82,8 @@
 }
 
 .admin-shell__sidebar-inner {
+  background: var(--admin-sidebar);
+  color: var(--admin-sidebar-text);
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
@@ -99,13 +93,63 @@
   width: 100%;
 }
 
-.admin-shell__sidebar-component .admin-shell__brand,
-.admin-shell__drawer .admin-shell__brand {
+/* ---- Marca ---- */
+
+.admin-shell__brand {
   align-items: center;
   display: flex;
   flex-shrink: 0;
-  gap: 10px;
+  gap: 12px;
+  height: 64px;
+  padding-inline: 20px;
 }
+
+.admin-shell--collapsed .admin-shell__brand {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.admin-shell__brand-mark {
+  align-items: center;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.admin-shell__brand-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-shell__brand-name,
+.admin-shell__brand-subtitle {
+  display: block;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-shell__brand-name {
+  color: var(--admin-ink);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.admin-shell__brand-subtitle {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ---- Navegación ---- */
 
 .admin-shell__nav-body {
   display: flex;
@@ -115,54 +159,358 @@
 }
 
 .admin-shell__nav-pin {
-  background: var(--color-bg-secondary);
-  border-bottom: 1px solid var(--color-border-subtle);
   flex-shrink: 0;
+  padding-inline: 12px;
 }
 
-.admin-shell__pin-menu.ant-menu,
-.admin-shell__scroll-menu.ant-menu {
+.admin-shell__nav-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-inline: 12px;
+  /* Sin barra de scroll (en Windows dibujaba flechas clásicas sobre el rail):
+     el borde inferior se desvanece para avisar que hay más ítems. */
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
+  scrollbar-width: none;
+}
+
+.admin-shell__nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-shell__pin-menu.ant-menu.ant-menu-root,
+.admin-shell__scroll-menu.ant-menu.ant-menu-root {
   background: transparent;
   border-inline-end: 0;
+  color: var(--admin-text-secondary);
+  font-size: 13.5px;
 }
 
 .admin-shell__pin-menu.ant-menu {
-  padding-block: 4px;
+  padding-block: 4px 0;
+}
+
+.admin-shell__scroll-menu.ant-menu {
+  padding-bottom: 28px;
+}
+
+/* Grupo: eyebrow tipográfico. En el rail no hay lugar para el texto, así
+   que cada grupo se separa del anterior con un filete. */
+.admin-shell__scroll-menu .ant-menu-item-group-title {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  padding: 20px 12px 6px;
+  text-transform: uppercase;
+}
+
+.admin-shell__scroll-menu.ant-menu-inline-collapsed .ant-menu-item-group-title {
+  display: none;
+}
+
+.admin-shell__scroll-menu.ant-menu-inline-collapsed .ant-menu-item-group + .ant-menu-item-group {
+  border-top: 1px solid var(--admin-hairline);
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.admin-shell__pin-menu .ant-menu-item,
+.admin-shell__scroll-menu .ant-menu-item {
+  align-items: center;
+  border-radius: 8px;
+  color: var(--admin-text-secondary);
+  display: flex;
+  height: 36px;
+  line-height: 36px;
+  margin: 1px 0;
+  padding-inline: 12px !important;
+  position: relative;
+  width: 100%;
+}
+
+.admin-shell__pin-menu .ant-menu-item:hover,
+.admin-shell__scroll-menu .ant-menu-item:hover {
+  background: var(--admin-sidebar-hover);
+  color: var(--admin-ink);
+}
+
+.admin-shell__pin-menu .ant-menu-item-selected,
+.admin-shell__scroll-menu .ant-menu-item-selected {
+  background: var(--admin-sidebar-hover);
+  color: var(--admin-ink);
+  font-weight: 600;
+}
+
+/* Filete de la sección activa: es lo que se lee de reojo, no el fondo. */
+.admin-shell__pin-menu .ant-menu-item-selected::before,
+.admin-shell__scroll-menu .ant-menu-item-selected::before {
+  background: var(--admin-brand);
+  border-radius: 2px;
+  bottom: 9px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 9px;
+  width: 2px;
+}
+
+.admin-shell__pin-menu .ant-menu-item:focus-visible,
+.admin-shell__scroll-menu .ant-menu-item:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: -2px;
+}
+
+.admin-shell__pin-menu .ant-menu-item-icon,
+.admin-shell__scroll-menu .ant-menu-item-icon {
+  color: var(--admin-muted);
+  min-width: 17px;
+  transition: color var(--motion-fast, 160ms) var(--ease-out);
+}
+
+.admin-shell__pin-menu .ant-menu-item:hover .ant-menu-item-icon,
+.admin-shell__scroll-menu .ant-menu-item:hover .ant-menu-item-icon,
+.admin-shell__pin-menu .ant-menu-item-selected .ant-menu-item-icon,
+.admin-shell__scroll-menu .ant-menu-item-selected .ant-menu-item-icon {
+  color: var(--admin-ink);
+}
+
+.admin-shell__pin-menu .ant-menu-title-content,
+.admin-shell__scroll-menu .ant-menu-title-content {
+  flex: 1 1 auto;
+  margin-inline-start: 12px;
+  min-width: 0;
+}
+
+.admin-shell__icon {
+  display: inline-flex;
+  line-height: 0;
+  position: relative;
 }
 
 .admin-shell__menu-label {
   align-items: center;
   display: flex;
+  gap: 8px;
   justify-content: space-between;
   min-width: 0;
   width: 100%;
 }
 
+.admin-shell__menu-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Contadores: neutros. Lo que pide atención va relleno de tinta; el resto,
+   sólo con filete. El rojo queda reservado para errores reales. */
+.admin-shell__count {
+  align-items: center;
+  border: 1px solid var(--admin-sidebar-border);
+  border-radius: 999px;
+  color: var(--admin-sidebar-muted);
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  height: 20px;
+  justify-content: center;
+  line-height: 1;
+  min-width: 20px;
+  padding-inline: 6px;
+}
+
+.admin-shell__count--alert {
+  background: var(--admin-brand);
+  border-color: transparent;
+  color: var(--admin-on-brand);
+}
+
+/* Punto sobre el ícono: sólo existe en el rail colapsado. */
+.admin-shell__dot {
+  background: var(--admin-muted);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--admin-sidebar);
+  display: none;
+  height: 7px;
+  position: absolute;
+  right: -3px;
+  top: -3px;
+  width: 7px;
+}
+
+.admin-shell__dot--alert {
+  background: var(--admin-brand);
+}
+
+.admin-shell--collapsed .admin-shell__dot {
+  display: block;
+}
+
+.admin-shell--collapsed .admin-shell__nav-pin,
+.admin-shell--collapsed .admin-shell__nav-scroll {
+  padding-inline: 12px;
+}
+
+.admin-shell--collapsed .ant-menu.ant-menu-inline-collapsed {
+  width: 100% !important;
+}
+
+.admin-shell--collapsed .ant-menu .ant-menu-item .ant-menu-title-content {
+  display: none !important;
+  margin: 0;
+}
+
+.admin-shell--collapsed .admin-shell__pin-menu .ant-menu-item,
+.admin-shell--collapsed .admin-shell__scroll-menu .ant-menu-item {
+  justify-content: center !important;
+  padding-inline: 0 !important;
+  width: 100% !important;
+}
+
+/* ---- Pie: cuenta y salida ---- */
+
+.admin-shell__footer {
+  border-top: 1px solid var(--admin-sidebar-border);
+  display: grid;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 12px;
+}
+
+.admin-shell__account,
+.admin-shell__exit {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 12px;
+  min-height: 44px;
+  padding: 6px 8px;
+  text-align: left;
+  transition:
+    background var(--motion-fast, 160ms) var(--ease-out),
+    color var(--motion-fast, 160ms) var(--ease-out);
+  width: 100%;
+}
+
+.admin-shell__account--static {
+  cursor: default;
+}
+
+button.admin-shell__account:hover,
+.admin-shell__exit:hover {
+  background: var(--admin-sidebar-hover);
+  color: var(--admin-ink);
+}
+
+.admin-shell__account:focus-visible,
+.admin-shell__exit:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: -2px;
+}
+
+.admin-shell__avatar {
+  align-items: center;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 50%;
+  color: var(--admin-ink);
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  height: 32px;
+  justify-content: center;
+  letter-spacing: 0.04em;
+  width: 32px;
+}
+
+.admin-shell__account-copy {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-shell__account-name {
+  color: var(--admin-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-shell__account-hint {
+  color: var(--admin-muted);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.admin-shell__account-chevron {
+  color: var(--admin-muted);
+  flex-shrink: 0;
+}
+
+.admin-shell__exit {
+  color: var(--admin-muted);
+  font-size: 13px;
+  min-height: 36px;
+  padding-inline: 14px 8px;
+}
+
+.admin-shell--collapsed .admin-shell__account,
+.admin-shell--collapsed .admin-shell__exit {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+/* ---- Barra superior ---- */
+
 .admin-shell__header.ant-layout-header {
   align-items: center;
-  background: var(--color-bg-secondary);
-  border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--admin-canvas);
+  border-bottom: 1px solid var(--admin-hairline);
   display: flex;
   flex-shrink: 0;
-  height: auto;
-  line-height: normal;
-  padding: 12px 24px;
   gap: 24px;
+  height: 56px;
+  line-height: normal;
+  padding: 0 20px;
+}
+
+.admin-shell__header-lead {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+  min-width: 0;
 }
 
 .admin-shell__header-copy {
   line-height: normal;
-  margin-left: 8px;
-}
-
-.admin-shell__breadcrumb {
-  color: var(--color-text-muted);
-  font-size: 12px;
-  line-height: 1.3;
+  min-width: 0;
 }
 
 /* Breadcrumb semántico: nav + ol + aria-current="page" en el ítem activo.
    El separador es decorativo y vive solo en CSS. */
+.admin-shell__breadcrumb {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
 .admin-shell__breadcrumb-list {
   display: flex;
   list-style: none;
@@ -172,30 +520,121 @@
 
 .admin-shell__breadcrumb-item + .admin-shell__breadcrumb-item::before {
   content: '/';
-  margin: 0 6px;
+  margin: 0 8px;
+  opacity: 0.5;
 }
 
 .admin-shell__breadcrumb-item[aria-current='page'] {
-  color: var(--color-text-secondary);
+  color: var(--admin-ink);
+  font-weight: 600;
 }
 
-.admin-shell__header-title {
-  font-size: 16px;
-  line-height: 1.3;
+.admin-shell__header-search {
+  flex: 1 1 320px;
+  margin-inline: auto;
+  max-width: 560px;
+  min-width: 0;
 }
 
 .admin-shell__header-actions {
   align-items: center;
   display: flex;
-  gap: 12px;
+  flex-shrink: 0;
+  gap: 8px;
   margin-left: auto;
 }
 
-.admin-shell__header-search {
-  flex: 1 1 300px;
-  margin: 0 0 0 32px;
-  max-width: 640px;
-  min-width: 0;
+/* El idioma es una preferencia, no una acción: en el panel el segmento
+   activo va en tinta, igual que el resto del cromo. */
+.admin-shell__header-actions .locale-switch {
+  --locale-thumb-bg: var(--admin-sidebar-hover);
+  --locale-thumb-border: var(--admin-hairline-strong);
+  --locale-code: var(--admin-muted);
+  --locale-code-active: var(--admin-ink);
+  --locale-hover-border: var(--admin-hairline-strong);
+  --locale-focus-ring: var(--admin-focus);
+  --locale-track-bg: transparent;
+  --locale-track-border: var(--admin-hairline);
+  --locale-track-shadow: none;
+  --locale-thumb-shadow: none;
+}
+
+.admin-shell__icon-button {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 36px;
+  justify-content: center;
+  padding: 0;
+  transition:
+    background var(--motion-fast, 160ms) var(--ease-out),
+    color var(--motion-fast, 160ms) var(--ease-out);
+  width: 36px;
+}
+
+.admin-shell__icon-button:hover {
+  background: var(--admin-sidebar-hover);
+  color: var(--admin-ink);
+}
+
+.admin-shell__icon-button:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+/* ---- Drawer (teléfono) ---- */
+
+.admin-shell__drawer .ant-drawer-content,
+.admin-shell__drawer .ant-drawer-body {
+  background: var(--admin-sidebar);
+}
+
+.admin-shell__drawer .ant-drawer-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.admin-shell__drawer .admin-shell__nav-pin,
+.admin-shell__drawer .admin-shell__nav-scroll {
+  padding-inline: 12px;
+}
+
+@media (max-width: 767px) {
+  .admin-shell__header.ant-layout-header {
+    gap: 12px;
+    padding: 0 12px;
+  }
+
+  .admin-shell__breadcrumb-item:first-child,
+  .admin-shell__breadcrumb-item + .admin-shell__breadcrumb-item::before {
+    display: none;
+  }
+
+  .admin-shell__breadcrumb {
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell__sidebar-component.ant-layout-sider,
+  .admin-shell__sidebar-component.ant-layout-sider-collapsed,
+  .admin-shell__account,
+  .admin-shell__exit,
+  .admin-shell__icon-button,
+  .admin-shell__pin-menu .ant-menu-item-icon,
+  .admin-shell__scroll-menu .ant-menu-item-icon {
+    transition: none !important;
+  }
 }
 
 .admin-global-search {
@@ -359,916 +798,6 @@
   overflow: auto;
 }
 
-.admin-shell__drawer .ant-drawer-body {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  padding: 0;
-}
-
-.admin-shell__collapse-toggle {
-  align-items: center;
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
-  box-shadow: var(--elevation-sm);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  display: inline-flex;
-  height: 24px;
-  justify-content: center;
-  left: calc(var(--admin-sidebar-width) - 12px);
-  position: fixed;
-  top: 56px;
-  transition:
-    left var(--motion-cinematic, 700ms) var(--ease-out),
-    background var(--motion-fast, 160ms) var(--ease-out),
-    border-color var(--motion-fast, 160ms) var(--ease-out),
-    color var(--motion-fast, 160ms) var(--ease-out),
-    box-shadow var(--motion-fast, 160ms) var(--ease-out),
-    transform var(--motion-base, 240ms) var(--ease-spring);
-  width: 24px;
-  z-index: 210;
-}
-
-.admin-shell__collapse-icon {
-  transition: transform var(--motion-cinematic, 700ms) var(--ease-out);
-}
-
-.admin-shell--collapsed .admin-shell__collapse-toggle {
-  left: calc(var(--admin-sidebar-rail-width) - 12px);
-}
-
-/* Sidebar oculto al 100%: el contenido usa todo el ancho.
-   El control para volver vive en la barra superior del main, no flotando. */
-.admin-shell--sidebar-hidden .admin-shell__sidebar {
-  border-right-width: 0;
-  opacity: 0;
-  overflow: hidden;
-  pointer-events: none;
-  width: 0;
-}
-
-.admin-shell--sidebar-hidden .admin-shell__main {
-  min-width: 0;
-  width: 100%;
-}
-
-/* Desktop: con nav oculto, la barra de chrome reemplaza al toggle flotante. */
-@media (min-width: 1025px) {
-  .admin-shell--sidebar-hidden .admin-mobile-bar {
-    align-items: center;
-    background: var(--color-bg-secondary);
-    border-bottom: 1px solid var(--color-border-subtle);
-    display: flex;
-    gap: 14px;
-    min-height: 48px;
-    padding: 6px clamp(14px, 2vw, 24px);
-    position: sticky;
-    top: 0;
-    z-index: 120;
-  }
-
-  .admin-shell--sidebar-hidden .admin-mobile-bar__menu {
-    display: inline-flex;
-  }
-
-  .admin-shell--sidebar-hidden .admin-mobile-bar__title {
-    color: var(--admin-ink, var(--color-text-primary));
-    flex: 1;
-    font-family: var(--font-display);
-    font-size: 15px;
-    font-weight: 650;
-    letter-spacing: -0.025em;
-    line-height: 1.2;
-    margin: 0;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .admin-shell--sidebar-hidden .admin-mobile-bar__actions {
-    align-items: center;
-    display: flex;
-    flex-shrink: 0;
-    gap: 4px;
-    opacity: 0.78;
-  }
-
-  .admin-shell--sidebar-hidden .admin-mobile-bar__actions:hover,
-  .admin-shell--sidebar-hidden .admin-mobile-bar__actions:focus-within {
-    opacity: 1;
-  }
-}
-
-.admin-mobile-bar__menu--reveal {
-  align-items: center;
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  display: inline-flex;
-  flex-shrink: 0;
-  height: 34px;
-  justify-content: center;
-  line-height: 0;
-  min-height: 34px;
-  min-width: 34px;
-  padding: 0;
-  transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast),
-    color var(--transition-fast);
-  width: 34px;
-}
-
-.admin-mobile-bar__menu--reveal svg {
-  display: block;
-  flex-shrink: 0;
-  opacity: 0.88;
-  transition: opacity var(--transition-fast);
-}
-
-.admin-mobile-bar__menu--reveal:hover {
-  background: var(
-    --admin-glass-bg,
-    color-mix(in srgb, var(--admin-accent, var(--color-brand-celeste)) 10%, transparent)
-  );
-  border-color: color-mix(
-    in srgb,
-    var(--admin-accent, var(--color-brand-celeste)) 28%,
-    var(--admin-glass-border, var(--color-border-subtle))
-  );
-  color: var(--admin-accent, var(--color-brand-celeste));
-}
-
-.admin-mobile-bar__menu--reveal:hover svg {
-  opacity: 1;
-}
-
-.admin-mobile-bar__menu--reveal:focus-visible {
-  outline: 2px solid
-    color-mix(in srgb, var(--admin-focus, var(--color-brand-celeste)) 45%, transparent);
-  outline-offset: 2px;
-}
-
-.admin-mobile-bar__menu--reveal:active {
-  background: color-mix(in srgb, var(--admin-accent, var(--color-brand-celeste)) 14%, transparent);
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .admin-mobile-bar__menu--reveal {
-    background: var(--admin-glass-bg-strong, var(--color-bg-surface));
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    box-shadow: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .admin-mobile-bar__menu--reveal,
-  .admin-mobile-bar__menu--reveal svg,
-  .admin-shell__sidebar-component.ant-layout-sider,
-  .admin-shell__sidebar-component.ant-layout-sider-collapsed {
-    transition: none;
-  }
-}
-
-.admin-shell__collapse-toggle:hover {
-  background: var(--admin-glass-bg, var(--color-bg-surface));
-  border-color: color-mix(
-    in srgb,
-    var(--color-brand-celeste) 40%,
-    var(--admin-glass-border, var(--color-border-light))
-  );
-  box-shadow: var(--elevation-md);
-  color: var(--color-brand-celeste);
-  transform: scale(1.08);
-}
-
-.admin-shell__collapse-toggle:active {
-  transform: scale(0.95);
-}
-
-.admin-shell__collapse-toggle:focus-visible {
-  outline: 2px solid rgba(116, 172, 223, 0.45);
-  outline-offset: 2px;
-}
-
-.admin-shell--collapsed .admin-shell__sidebar {
-  width: var(--admin-sidebar-rail-width);
-}
-
-/* ---- Brand ---- */
-
-.admin-shell__brand {
-  border-bottom: 1px solid var(--color-border-subtle);
-  flex-shrink: 0;
-  padding: 18px 16px 16px;
-  position: relative;
-}
-
-.admin-shell__brand::before {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--color-brand-gold) 55%, transparent),
-    transparent 42%,
-    transparent 58%,
-    color-mix(in srgb, var(--color-brand-celeste) 40%, transparent)
-  );
-  content: '';
-  height: 1px;
-  left: 0;
-  position: absolute;
-  right: 0;
-  top: 0;
-}
-
-.admin-shell__brand-inner {
-  align-items: center;
-  display: flex;
-  gap: 10px;
-  padding-right: 36px;
-}
-
-.admin-shell__brand-home {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: 50%;
-  cursor: pointer;
-  display: inline-flex;
-  flex-shrink: 0;
-  justify-content: center;
-  min-height: 40px;
-  min-width: 40px;
-  padding: 0;
-  transition: opacity var(--transition-fast);
-}
-
-.admin-shell__brand-home:hover {
-  opacity: 0.88;
-}
-
-.admin-shell__brand-home:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
-  outline-offset: 2px;
-}
-
-.admin-shell__brand-mark {
-  align-items: center;
-  display: flex;
-  flex-shrink: 0;
-  height: 40px;
-  justify-content: center;
-  overflow: hidden;
-  width: 40px;
-}
-
-.admin-shell__brand-mark img,
-.admin-shell__brand-logo {
-  display: block;
-  height: 28px;
-  object-fit: contain;
-  width: 28px;
-}
-
-.admin-shell__brand-copy {
-  display: grid;
-  flex: 1 1 auto;
-  gap: 1px;
-  line-height: 1.2;
-  min-width: 0;
-}
-
-.admin-shell__brand-name,
-.admin-shell__brand-subtitle {
-  display: block;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.admin-shell__brand-name {
-  color: var(--color-text-primary);
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.admin-shell__brand-subtitle {
-  color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.admin-shell__close {
-  display: none;
-}
-
-.admin-shell--collapsed .admin-shell__brand {
-  align-items: center;
-  display: flex;
-  justify-content: center;
-  padding-inline: 12px;
-}
-
-.admin-shell--collapsed .admin-shell__brand-inner {
-  justify-content: center;
-  padding-right: 0;
-  width: auto;
-}
-
-.admin-shell--collapsed .admin-shell__brand-copy {
-  display: none;
-}
-
-.admin-shell--collapsed .admin-shell__brand-home,
-.admin-shell--collapsed .admin-shell__brand-mark {
-  height: 40px;
-  min-height: 40px;
-  min-width: 40px;
-  width: 40px;
-}
-
-/* ---- Nav scroll region ---- */
-
-.admin-shell__nav-scroll {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  position: relative;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-  scrollbar-width: thin;
-}
-
-.admin-shell__nav-scroll::-webkit-scrollbar {
-  width: 4px;
-}
-
-.admin-shell__nav-scroll::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 0;
-}
-
-.admin-shell__nav {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 12px 10px 16px;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-  scrollbar-width: thin;
-}
-
-.admin-shell__nav::-webkit-scrollbar {
-  width: 4px;
-}
-
-.admin-shell__nav::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 0;
-}
-
-.admin-shell__nav::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
-}
-
-.admin-shell__group {
-  display: grid;
-  gap: 1px;
-}
-
-.admin-shell__group + .admin-shell__group {
-  margin-top: 2px;
-}
-
-.admin-shell__group-label {
-  color: var(--color-text-muted);
-  display: block;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  margin: 0 0 6px 10px;
-  text-transform: uppercase;
-}
-
-.admin-shell--collapsed .admin-shell__group + .admin-shell__group {
-  border-top: 1px solid
-    color-mix(in srgb, var(--admin-glass-border, var(--color-border-subtle)) 70%, transparent);
-  margin-top: 6px;
-  padding-top: 6px;
-  width: 100%;
-}
-
-.admin-shell--collapsed .admin-shell__group-label {
-  display: none;
-}
-
-.admin-shell--collapsed .admin-shell__group {
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 100%;
-}
-
-.admin-shell__nav button {
-  align-items: center;
-  background: transparent;
-  border-radius: 2px;
-  color: var(--color-text-secondary);
-  display: flex;
-  font-size: 13px;
-  font-weight: 500;
-  gap: 10px;
-  min-height: 34px;
-  padding: 0 10px;
-  position: relative;
-  text-align: left;
-  transition:
-    background var(--motion-fast, 160ms) var(--ease-out),
-    color var(--motion-fast, 160ms) var(--ease-out),
-    transform var(--motion-fast, 160ms) var(--ease-spring);
-  width: 100%;
-}
-
-.admin-shell__nav button:active {
-  transform: scale(0.97);
-}
-
-.admin-shell__nav-icon {
-  align-items: center;
-  color: var(--color-text-muted);
-  display: inline-flex;
-  flex-shrink: 0;
-  height: 16px;
-  justify-content: center;
-  opacity: 0.85;
-  transition: color var(--transition-fast);
-  width: 16px;
-}
-
-.admin-shell__nav-label {
-  align-items: baseline;
-  display: inline-flex;
-  flex: 1;
-  gap: 0;
-  min-width: 0;
-}
-
-.admin-shell__nav-label-meta {
-  display: none;
-}
-
-.admin-shell__nav-label-text {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.admin-shell--collapsed .admin-shell__sidebar {
-  overflow-x: hidden;
-  overflow-y: hidden;
-}
-
-.admin-shell--collapsed .admin-shell__nav-scroll {
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-.admin-shell--collapsed .admin-shell__nav {
-  align-items: center;
-  box-sizing: border-box;
-  gap: 6px;
-  max-width: 100%;
-  overflow-x: hidden;
-  overflow-y: visible;
-  padding-inline: 8px;
-  width: 100%;
-}
-
-.admin-shell--collapsed .admin-shell__nav button {
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  gap: 0;
-  height: 40px;
-  justify-content: center;
-  margin-inline: auto;
-  min-height: 40px;
-  overflow: visible;
-  padding: 0;
-  width: 40px;
-  z-index: 0;
-}
-
-.admin-shell--collapsed .admin-shell__nav button:hover,
-.admin-shell--collapsed .admin-shell__nav button:focus-visible {
-  z-index: 5;
-}
-
-.admin-shell--collapsed .admin-shell__nav-icon {
-  height: 20px;
-  margin: 0 auto;
-  width: 20px;
-}
-
-/* Flyout desactivado en rail: overflow visible + labels absolutas
-   generaban scroll horizontal. El `title` del botón cubre el label. */
-.admin-shell--collapsed .admin-shell__nav-label {
-  display: none;
-}
-
-@media (min-width: 768px) {
-  /* Activo: solo barra inferior — el tint queda mínimo para no pelear con el vidrio */
-  .admin-shell--collapsed .admin-shell__nav button::before {
-    background: transparent;
-    border-radius: 0 0 3px 3px;
-    bottom: 3px;
-    content: '';
-    height: 2px;
-    left: 10px;
-    position: absolute;
-    right: 10px;
-    top: auto;
-    width: auto;
-  }
-
-  .admin-shell--collapsed .admin-shell__nav button.active::before {
-    background: var(--color-brand-celeste);
-  }
-
-  .admin-shell--collapsed .admin-shell__nav button.active {
-    background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
-    border-color: transparent;
-  }
-
-  .admin-shell--collapsed .admin-shell__nav button:hover {
-    background: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
-    border-color: transparent;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .admin-shell--collapsed .admin-shell__nav-label {
-    transition: none;
-  }
-}
-
-.admin-shell__nav button:hover {
-  background: rgba(255, 255, 255, 0.035);
-  color: var(--color-text-primary);
-}
-
-.admin-shell__nav button:hover .admin-shell__nav-icon {
-  color: var(--color-text-secondary);
-}
-
-.admin-shell__nav button.active {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--color-text-primary);
-  font-weight: 600;
-}
-
-.admin-shell__nav button.active .admin-shell__nav-icon {
-  color: var(--color-text-primary);
-  opacity: 1;
-}
-
-.admin-shell__badge {
-  align-items: center;
-  background: color-mix(in srgb, var(--color-text-muted) 16%, transparent);
-  border: 0;
-  border-radius: 999px;
-  color: var(--color-text-muted);
-  display: inline-flex;
-  font-size: 10px;
-  font-style: normal;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  justify-content: center;
-  line-height: 1;
-  min-height: 18px;
-  min-width: 18px;
-  padding: 0 6px;
-  text-align: center;
-}
-
-.admin-shell__badge--alert {
-  background: color-mix(in srgb, var(--color-brand-red) 16%, transparent);
-  color: var(--color-brand-red);
-}
-
-.admin-shell--collapsed .admin-shell__badge {
-  background: var(--color-brand-celeste);
-  box-shadow: 0 0 0 2px var(--admin-sidebar, var(--color-bg-secondary));
-  color: #fff;
-  font-size: 10px;
-  height: 16px;
-  min-height: 16px;
-  min-width: 16px;
-  padding: 0 4px;
-  position: absolute;
-  right: 0;
-  top: 0;
-  width: auto;
-}
-
-.admin-shell--collapsed .admin-shell__badge--alert {
-  background: var(--color-brand-red);
-  color: #fff;
-}
-
-/* ---- Footer (sesión + prefs + salida) ---- */
-
-.admin-shell__footer {
-  border-top: 1px solid var(--color-border-subtle);
-  display: grid;
-  flex-shrink: 0;
-  gap: 10px;
-  padding: 12px 12px max(14px, env(safe-area-inset-bottom, 0px));
-}
-
-.admin-shell__session {
-  background: color-mix(in srgb, var(--color-text-primary) 3.5%, transparent);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 14px;
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-}
-
-.admin-shell__account {
-  align-items: center;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: auto minmax(0, 1fr);
-  min-width: 0;
-  width: 100%;
-}
-
-/* Variante interactiva: abre Mi cuenta. Hereda la caja del bloque estático y
-   sólo agrega affordance -- el botón no debe leerse como una acción más del
-   panel, sino como el mismo bloque de sesión, ahora accionable. */
-.admin-shell__account--action {
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--border-radius-sm, 6px);
-  cursor: pointer;
-  font: inherit;
-  margin: -6px -8px;
-  min-height: 44px;
-  padding: 6px 8px;
-  text-align: left;
-  transition:
-    border-color var(--motion-fast, 150ms) var(--ease-out, ease),
-    background-color var(--motion-fast, 150ms) var(--ease-out, ease);
-}
-
-.admin-shell__account--action:hover,
-.admin-shell__account--action:focus-visible {
-  background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 32%, transparent);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .admin-shell__account--action {
-    transition: none;
-  }
-}
-
-.admin-shell__account-mark {
-  background: var(--plu-success-400, #3ecf8e);
-  border-radius: 50%;
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--plu-success-500, #22a06b) 14%, transparent);
-  flex: none;
-  height: 8px;
-  width: 8px;
-}
-
-.admin-shell__account-copy {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.admin-shell__account-role {
-  color: var(--color-text-primary);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.admin-shell__account-hint {
-  color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.admin-shell__prefs {
-  align-items: center;
-  border-top: 1px solid color-mix(in srgb, var(--color-border-subtle) 85%, transparent);
-  display: grid;
-  flex: none;
-  gap: 8px;
-  grid-template-columns: auto minmax(0, 1fr);
-  justify-content: stretch;
-  padding-top: 10px;
-  width: 100%;
-}
-
-.admin-shell__prefs .pref-toggle--compact {
-  height: 30px;
-  min-width: 30px;
-  padding: 0;
-  width: 30px;
-}
-
-.admin-shell__exit {
-  align-items: center;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  display: inline-flex;
-  font-size: 12px;
-  font-weight: 600;
-  gap: 8px;
-  justify-content: flex-start;
-  min-height: 40px;
-  padding: 0 10px;
-  transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast),
-    color var(--transition-fast);
-  width: 100%;
-}
-
-.admin-shell__exit:hover {
-  background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 28%, var(--color-border-subtle));
-  color: var(--color-text-primary);
-}
-
-.admin-shell__exit:focus-visible {
-  outline: 2px solid var(--color-brand-gold);
-  outline-offset: 2px;
-}
-
-.admin-shell__exit-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.admin-shell--collapsed .admin-shell__footer {
-  align-items: center;
-  border-top-color: color-mix(
-    in srgb,
-    var(--admin-glass-border, var(--color-border-subtle)) 75%,
-    transparent
-  );
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  justify-content: flex-start;
-  padding: 8px 6px max(10px, env(safe-area-inset-bottom, 0px));
-}
-
-/* Ant Space del footer: en rail colapsado los hijos (cuenta + salida) van al
-   eje, no pegados al padding izquierdo del sider de 88px. */
-.admin-shell--collapsed .admin-shell__footer .ant-space {
-  align-items: center;
-}
-
-.admin-shell--collapsed .admin-shell__footer .ant-space-item {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-}
-
-.admin-shell--collapsed .admin-shell__session {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 0;
-  width: 100%;
-}
-
-.admin-shell--collapsed .admin-shell__account {
-  display: flex;
-  justify-content: center;
-  min-height: 16px;
-  padding: 2px 0;
-  width: auto;
-}
-
-.admin-shell--collapsed .admin-shell__account-copy {
-  display: none;
-}
-
-.admin-shell--collapsed .admin-shell__account-mark {
-  display: block;
-}
-
-.admin-shell--collapsed .admin-shell__prefs {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  justify-content: center;
-  min-height: 0;
-  padding: 0;
-  width: auto;
-}
-
-.admin-shell--collapsed .admin-shell__prefs .pref-toggle--compact,
-.admin-shell--collapsed .admin-shell__prefs .locale-switch--glyph {
-  align-items: center;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  display: inline-flex;
-  height: 36px;
-  justify-content: center;
-  min-height: 36px;
-  min-width: 36px;
-  padding: 0;
-  width: 36px;
-}
-
-.admin-shell--collapsed .admin-shell__prefs .pref-toggle--compact:hover,
-.admin-shell--collapsed .admin-shell__prefs .locale-switch--glyph:hover {
-  background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
-  border-color: transparent;
-}
-
-.admin-shell--collapsed .admin-shell__prefs .locale-switch__glyph {
-  display: block;
-  line-height: 1;
-  text-align: center;
-}
-
-.admin-shell--collapsed .admin-shell__prefs .locale-switch--segment {
-  display: none;
-}
-
-.admin-shell--collapsed .admin-shell__exit {
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  height: 36px;
-  justify-content: center;
-  margin-inline: 0;
-  min-height: 36px;
-  padding: 0;
-  width: 36px;
-}
-
-.admin-shell--collapsed .admin-shell__exit:hover {
-  background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
-  border-color: transparent;
-}
-
-.admin-shell--collapsed .admin-shell__exit-label {
-  display: none;
-}
-
 .admin-shell__main {
   display: flex;
   flex: 1;
@@ -1277,20 +806,6 @@
   min-width: 0;
   overflow: hidden;
   padding-inline: max(0px, env(safe-area-inset-left, 0px)) max(0px, env(safe-area-inset-right, 0px));
-}
-
-.admin-shell__backdrop {
-  background: rgba(5, 5, 8, 0.72);
-  backdrop-filter: blur(6px);
-  border: 0;
-  display: none;
-  inset: 0;
-  position: fixed;
-  z-index: 150;
-}
-
-.admin-mobile-bar {
-  display: none;
 }
 
 /* =============================================
@@ -1449,182 +964,14 @@
 
 /* ---- Tablet / notebook: rail persistente; expand solo con collapse-toggle ---- */
 @media (max-width: 1024px) and (min-width: 768px) {
-  .admin-shell__sidebar,
-  .admin-shell--collapsed .admin-shell__sidebar {
-    background: var(--admin-glass-sidebar-bg, var(--admin-sidebar, var(--color-bg-secondary)));
-    border-radius: 0;
-    border-right: 1px solid
-      var(--admin-glass-border, var(--admin-sidebar-border, var(--color-border-subtle)));
-    box-shadow: inset 0 1px 0 var(--admin-glass-highlight, transparent);
-    left: 0;
-    position: fixed;
-    top: 0;
-    transform: none;
-    transition: width var(--transition-base);
-    width: var(--admin-sidebar-rail-width);
-    -webkit-backdrop-filter: blur(var(--admin-glass-blur, 0px)) saturate(1.12);
-    backdrop-filter: blur(var(--admin-glass-blur, 0px)) saturate(1.12);
-  }
-
-  .admin-shell:not(.admin-shell--collapsed):not(.admin-shell--sidebar-hidden)
-    .admin-shell__sidebar {
-    width: var(--admin-sidebar-width);
-  }
 
   /* El Sider de antd es un hijo flex normal (no position: fixed), así que
      Layout ya reserva su ancho real -- un padding-left manual acá duplicaba
      el espacio y generaba un hueco muerto entre el rail y el contenido. */
 
-  .admin-shell--sidebar-hidden .admin-shell__sidebar,
-  .admin-shell--sidebar-hidden.admin-shell--collapsed .admin-shell__sidebar {
-    border-right-width: 0;
-    opacity: 0;
-    pointer-events: none;
-    transform: none;
-    width: 0;
-  }
-
-  .admin-shell--sidebar-hidden .admin-shell__main {
-    padding-left: 0;
-  }
-
-  .admin-shell--sidebar-hidden .admin-shell__collapse-toggle {
-    display: none;
-  }
-
   /* Con nav oculto, la barra muestra el botón para restaurar el rail. */
-  .admin-shell--sidebar-hidden .admin-mobile-bar {
-    display: flex;
-  }
-
-  .admin-shell--sidebar-hidden .admin-mobile-bar__menu {
-    display: inline-flex;
-  }
-
-  .admin-shell__collapse-toggle {
-    display: inline-flex;
-  }
-
-  .admin-shell__close {
-    display: none;
-  }
-
-  .admin-shell__brand {
-    padding-top: max(var(--space-md), env(safe-area-inset-top, 0px));
-  }
-
-  .admin-shell__backdrop {
-    display: none;
-  }
-
-  .admin-mobile-bar {
-    align-items: center;
-    background: var(--admin-glass-sidebar-bg, var(--admin-canvas, var(--color-bg-secondary)));
-    -webkit-backdrop-filter: blur(var(--admin-glass-blur, 0px)) saturate(1.12);
-    backdrop-filter: blur(var(--admin-glass-blur, 0px)) saturate(1.12);
-    border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
-    display: flex;
-    gap: 12px;
-    min-height: 48px;
-    padding: max(6px, env(safe-area-inset-top, 0px)) 16px 6px;
-    position: sticky;
-    top: 0;
-    z-index: 120;
-  }
 
   /* Rail + collapse-toggle alcanzan; el hamburguesa sobra en tablet/notebook. */
-  .admin-mobile-bar__menu {
-    display: none;
-  }
-
-  .admin-mobile-bar__title {
-    color: var(--admin-ink, var(--color-text-primary));
-    flex: 1;
-    font-family: var(--font-display);
-    font-size: 15px;
-    font-weight: 650;
-    letter-spacing: -0.025em;
-    line-height: 1.2;
-    margin: 0;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .admin-mobile-bar__actions {
-    align-items: center;
-    display: flex;
-    flex-shrink: 0;
-    gap: 4px;
-    opacity: 0.78;
-  }
-
-  .admin-mobile-bar__actions:hover,
-  .admin-mobile-bar__actions:focus-within {
-    opacity: 1;
-  }
-
-  .admin-mobile-bar__actions .locale-switch--segment {
-    --locale-segment-pad: 2px;
-    --locale-track-bg: color-mix(
-      in srgb,
-      var(--admin-ink, var(--color-text-primary)) 3.5%,
-      transparent
-    );
-    --locale-track-border: var(--admin-hairline, var(--color-border-subtle));
-    --locale-track-shadow: none;
-    --locale-thumb-bg: color-mix(
-      in srgb,
-      var(--admin-premium, var(--color-brand-gold)) 18%,
-      transparent
-    );
-    --locale-thumb-border: color-mix(
-      in srgb,
-      var(--admin-premium, var(--color-brand-gold)) 36%,
-      transparent
-    );
-    --locale-thumb-shadow: none;
-    --locale-code: color-mix(in srgb, var(--admin-muted, var(--color-text-muted)) 88%, transparent);
-    --locale-code-active: color-mix(
-      in srgb,
-      var(--admin-premium, var(--color-brand-gold)) 78%,
-      var(--admin-ink, var(--color-text-primary))
-    );
-    --locale-hover-border: color-mix(
-      in srgb,
-      var(--admin-premium, var(--color-brand-gold)) 28%,
-      transparent
-    );
-    --locale-focus-ring: color-mix(
-      in srgb,
-      var(--admin-focus, var(--color-brand-celeste)) 36%,
-      transparent
-    );
-    background: var(--locale-track-bg);
-    border: 1px solid var(--locale-track-border);
-    border-radius: 999px;
-    box-shadow: none;
-    height: 30px;
-    min-height: 30px;
-    width: 64px;
-  }
-
-  .admin-mobile-bar__actions .locale-switch__segment-option {
-    color: var(--locale-code);
-    font-size: 9.5px;
-    font-weight: 650;
-    letter-spacing: 0.08em;
-  }
-
-  .admin-mobile-bar__actions .locale-switch__segment-option.is-active {
-    color: var(--locale-code-active);
-    font-weight: 700;
-  }
-
-  .admin-mobile-bar__actions .locale-switch__segment-thumb {
-    box-shadow: none;
-  }
 
   .admin-page-toolbar {
     align-items: stretch;
@@ -1653,464 +1000,16 @@
 
   /* Tema e idioma ya viven en la barra superior. El footer del rail
      no duplica ES/EN ni el toggle de tema en 768–1024. */
-  .admin-shell__prefs,
-  .admin-shell--collapsed .admin-shell__prefs {
-    display: none;
-  }
 }
 
 /* ---- Phone: drawer completo ---- */
 @media (max-width: 767px) {
-  .admin-shell__sidebar,
-  .admin-shell--collapsed .admin-shell__sidebar,
-  .admin-shell--sidebar-hidden .admin-shell__sidebar,
-  .admin-shell--sidebar-hidden.admin-shell--collapsed .admin-shell__sidebar {
-    background: var(--admin-glass-sidebar-bg, var(--admin-sidebar, var(--color-bg-secondary)));
-    border-radius: 0 14px 14px 0;
-    border-right: 1px solid
-      var(--admin-glass-border, var(--admin-sidebar-border, var(--color-border-subtle)));
-    box-shadow:
-      inset 0 1px 0 var(--admin-glass-highlight, transparent),
-      28px 0 72px rgba(0, 0, 0, 0.45);
-    left: 0;
-    opacity: 1;
-    pointer-events: auto;
-    position: fixed;
-    top: 0;
-    transform: translateX(-100%);
-    transition: transform var(--duration-base) var(--ease-out);
-    width: min(88vw, var(--admin-sidebar-width));
-    -webkit-backdrop-filter: blur(var(--admin-glass-blur, 0px)) saturate(1.12);
-    backdrop-filter: blur(var(--admin-glass-blur, 0px)) saturate(1.12);
-  }
-
-  .admin-shell__sidebar.is-open {
-    transform: translateX(0);
-  }
-
-  .admin-shell__collapse-toggle {
-    display: none;
-  }
-
-  .admin-shell--collapsed .admin-shell__brand {
-    display: block;
-    justify-content: flex-start;
-    padding-inline: 16px;
-  }
-
-  .admin-shell--collapsed .admin-shell__brand-inner {
-    justify-content: flex-start;
-    padding-right: 52px;
-    width: 100%;
-  }
 
   /* No volver a meter brand-copy en un `display: block` agrupado: los
      spans quedan en línea y "PLU ARG" se pega a "OPERATIVO". */
-  .admin-shell--collapsed .admin-shell__brand-copy {
-    display: grid;
-  }
-
-  .admin-shell--collapsed .admin-shell__brand-name,
-  .admin-shell--collapsed .admin-shell__brand-subtitle {
-    display: block;
-  }
-
-  .admin-shell--collapsed .admin-shell__group-label,
-  .admin-shell--collapsed .admin-shell__account-mark,
-  .admin-shell--collapsed .admin-shell__account-copy,
-  .admin-shell--collapsed .admin-shell__account-role,
-  .admin-shell--collapsed .admin-shell__account-hint,
-  .admin-shell--collapsed .admin-shell__exit-label {
-    display: block;
-  }
-
-  .admin-shell--collapsed .admin-shell__account-copy {
-    display: grid;
-  }
-
-  .admin-shell--collapsed .admin-shell__sidebar,
-  .admin-shell--collapsed .admin-shell__nav-scroll {
-    overflow: hidden;
-  }
-
-  .admin-shell--collapsed .admin-shell__nav {
-    align-items: stretch;
-    overflow-x: hidden;
-    overflow-y: auto;
-    padding-inline: var(--space-md);
-  }
-
-  .admin-shell--collapsed .admin-shell__group {
-    align-items: stretch;
-    display: grid;
-    gap: 3px;
-  }
-
-  .admin-shell--collapsed .admin-shell__nav button {
-    border-radius: 9px;
-    gap: 10px;
-    height: auto;
-    justify-content: flex-start;
-    margin-inline: 0;
-    min-height: 40px;
-    overflow: hidden;
-    padding: 0 10px;
-    width: 100%;
-    z-index: auto;
-  }
-
-  .admin-shell--collapsed .admin-shell__nav-icon {
-    height: 16px;
-    margin: 0;
-    width: 16px;
-  }
-
-  .admin-shell--collapsed .admin-shell__nav-label {
-    align-items: baseline;
-    background: transparent;
-    border: 0;
-    box-shadow: none;
-    color: inherit;
-    display: inline-flex;
-    flex: 1;
-    font-size: inherit;
-    font-weight: inherit;
-    gap: 0;
-    left: auto;
-    max-width: none;
-    opacity: 1;
-    padding: 0;
-    pointer-events: auto;
-    position: static;
-    top: auto;
-    transform: none;
-    transition: none;
-    white-space: nowrap;
-    width: auto;
-  }
-
-  .admin-shell--collapsed .admin-shell__nav-label-meta {
-    display: none;
-  }
-
-  .admin-shell--collapsed .admin-shell__nav-label-meta::after {
-    content: none;
-  }
-
-  .admin-shell--collapsed .admin-shell__nav button:hover .admin-shell__nav-label,
-  .admin-shell--collapsed .admin-shell__nav button:focus-visible .admin-shell__nav-label {
-    opacity: 1;
-    transform: none;
-  }
-
-  .admin-shell--collapsed .admin-shell__badge {
-    background: color-mix(in srgb, var(--color-text-muted) 16%, transparent);
-    box-shadow: none;
-    color: var(--color-text-muted);
-    font-size: 10px;
-    height: auto;
-    min-height: 18px;
-    min-width: 18px;
-    padding: 0 6px;
-    position: static;
-    width: auto;
-  }
-
-  .admin-shell--collapsed .admin-shell__badge--alert {
-    background: color-mix(in srgb, var(--color-brand-red) 16%, transparent);
-    color: var(--color-brand-red);
-  }
-
-  .admin-shell--collapsed .admin-shell__footer {
-    align-items: stretch;
-    display: grid;
-    gap: 10px;
-    justify-items: stretch;
-    padding-inline: var(--space-md);
-  }
-
-  .admin-shell--collapsed .admin-shell__session {
-    align-items: stretch;
-    background: color-mix(
-      in srgb,
-      var(--admin-sidebar-text, var(--color-text-primary)) 3.5%,
-      transparent
-    );
-    border: 1px solid var(--admin-sidebar-border, var(--color-border-subtle));
-    border-radius: 14px;
-    display: grid;
-    gap: 10px;
-    flex-direction: unset;
-    padding: 12px;
-    width: 100%;
-  }
-
-  .admin-shell--collapsed .admin-shell__account {
-    display: grid;
-    gap: 10px;
-    grid-template-columns: auto minmax(0, 1fr);
-    justify-items: stretch;
-    min-height: 0;
-    padding: 0;
-    width: 100%;
-  }
-
-  .admin-shell--collapsed .admin-shell__account-copy {
-    display: grid;
-  }
-
-  .admin-shell--collapsed .admin-shell__prefs {
-    align-items: center;
-    background: transparent;
-    border: 0;
-    border-top: 1px solid
-      color-mix(in srgb, var(--admin-sidebar-border, var(--color-border-subtle)) 85%, transparent);
-    border-radius: 0;
-    display: grid;
-    flex-direction: unset;
-    gap: 8px;
-    grid-template-columns: auto minmax(0, 1fr);
-    min-height: 0;
-    padding: 10px 0 0;
-    width: 100%;
-  }
-
-  .admin-shell--collapsed .admin-shell__prefs .pref-toggle--compact,
-  .admin-shell--collapsed .admin-shell__prefs .locale-switch--glyph {
-    border-radius: 9px;
-    height: 32px;
-    min-height: 32px;
-    min-width: 32px;
-    width: 32px;
-  }
-
-  .admin-shell--collapsed .admin-shell__prefs .locale-switch--segment {
-    height: 30px;
-    justify-self: end;
-    min-height: 30px;
-    width: 64px;
-  }
-
-  .admin-shell--collapsed .admin-shell__exit {
-    border: 1px solid transparent;
-    height: auto;
-    justify-content: flex-start;
-    margin-inline: 0;
-    min-height: 40px;
-    padding: 0 10px;
-    width: 100%;
-  }
-
-  .admin-shell--collapsed .admin-shell__exit-label {
-    display: inline;
-  }
-
-  .admin-shell--collapsed .admin-shell__group + .admin-shell__group {
-    border-top: 0;
-    margin-top: 1px;
-    padding-top: 0;
-  }
 
   /* Tema e idioma ya viven en la barra superior. El footer del drawer
      queda en cuenta + salir, para no comerse el nav en 360–430px. */
-  .admin-shell__footer,
-  .admin-shell--collapsed .admin-shell__footer {
-    gap: 8px;
-    min-width: 0;
-    padding: 8px 12px max(10px, env(safe-area-inset-bottom, 0px));
-  }
-
-  .admin-shell__prefs,
-  .admin-shell--collapsed .admin-shell__prefs {
-    display: none;
-  }
-
-  .admin-shell--collapsed .admin-shell__session {
-    gap: 0;
-    min-width: 0;
-    padding: 10px 12px;
-  }
-
-  .admin-shell--collapsed .admin-shell__account,
-  .admin-shell--collapsed .admin-shell__account--action {
-    min-height: 44px;
-    min-width: 0;
-    width: 100%;
-  }
-
-  .admin-shell--collapsed .admin-shell__exit {
-    min-width: 0;
-  }
-
-  .admin-shell__close {
-    align-items: center;
-    background: rgba(255, 255, 255, 0.04);
-    border-radius: var(--border-radius-md);
-    color: var(--color-text-secondary);
-    display: inline-flex;
-    height: 44px;
-    justify-content: center;
-    min-height: 44px;
-    min-width: 44px;
-    position: absolute;
-    right: 8px;
-    top: max(10px, env(safe-area-inset-top, 0px));
-    width: 44px;
-  }
-
-  .admin-shell__brand {
-    padding-top: max(var(--space-md), env(safe-area-inset-top, 0px));
-  }
-
-  .admin-shell__backdrop {
-    background: rgba(0, 0, 0, 0.62);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    display: block;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--transition-base);
-  }
-
-  .admin-shell--nav-open .admin-shell__backdrop {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .admin-mobile-bar {
-    align-items: center;
-    background: var(--admin-glass-sidebar-bg, var(--admin-canvas, var(--color-bg-secondary)));
-    -webkit-backdrop-filter: blur(var(--admin-glass-blur, 0px)) saturate(1.12);
-    backdrop-filter: blur(var(--admin-glass-blur, 0px)) saturate(1.12);
-    border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
-    display: flex;
-    gap: 12px;
-    min-height: 48px;
-    padding: max(6px, env(safe-area-inset-top, 0px)) 14px 6px;
-    position: sticky;
-    top: 0;
-    z-index: 120;
-  }
-
-  .admin-mobile-bar__menu {
-    align-items: center;
-    background: transparent;
-    border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-    border-radius: 8px;
-    color: var(--admin-ink, var(--color-text-primary));
-    display: inline-flex;
-    flex-shrink: 0;
-    height: 36px;
-    justify-content: center;
-    transition:
-      background var(--transition-fast),
-      border-color var(--transition-fast),
-      color var(--transition-fast);
-    width: 36px;
-  }
-
-  .admin-mobile-bar__menu.is-active {
-    background: color-mix(
-      in srgb,
-      var(--admin-accent, var(--color-brand-celeste)) 10%,
-      transparent
-    );
-    border-color: color-mix(
-      in srgb,
-      var(--admin-accent, var(--color-brand-celeste)) 32%,
-      transparent
-    );
-    color: var(--admin-ink, var(--color-text-primary));
-  }
-
-  .admin-mobile-bar__title {
-    color: var(--admin-ink, var(--color-text-primary));
-    flex: 1;
-    font-family: var(--font-display);
-    font-size: 15px;
-    font-weight: 650;
-    letter-spacing: -0.025em;
-    line-height: 1.2;
-    margin: 0;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .admin-mobile-bar__actions {
-    align-items: center;
-    display: flex;
-    flex-shrink: 0;
-    gap: 4px;
-    opacity: 0.78;
-  }
-
-  .admin-mobile-bar__actions:hover,
-  .admin-mobile-bar__actions:focus-within {
-    opacity: 1;
-  }
-
-  .admin-mobile-bar__actions .locale-switch--segment {
-    --locale-segment-pad: 2px;
-    --locale-track-bg: color-mix(
-      in srgb,
-      var(--admin-ink, var(--color-text-primary)) 3.5%,
-      transparent
-    );
-    --locale-track-border: var(--admin-hairline, var(--color-border-subtle));
-    --locale-track-shadow: none;
-    --locale-thumb-bg: color-mix(
-      in srgb,
-      var(--admin-premium, var(--color-brand-gold)) 18%,
-      transparent
-    );
-    --locale-thumb-border: color-mix(
-      in srgb,
-      var(--admin-premium, var(--color-brand-gold)) 36%,
-      transparent
-    );
-    --locale-thumb-shadow: none;
-    --locale-code: color-mix(in srgb, var(--admin-muted, var(--color-text-muted)) 88%, transparent);
-    --locale-code-active: color-mix(
-      in srgb,
-      var(--admin-premium, var(--color-brand-gold)) 78%,
-      var(--admin-ink, var(--color-text-primary))
-    );
-    --locale-hover-border: color-mix(
-      in srgb,
-      var(--admin-premium, var(--color-brand-gold)) 28%,
-      transparent
-    );
-    --locale-focus-ring: color-mix(
-      in srgb,
-      var(--admin-focus, var(--color-brand-celeste)) 36%,
-      transparent
-    );
-    background: var(--locale-track-bg);
-    border: 1px solid var(--locale-track-border);
-    border-radius: 999px;
-    box-shadow: none;
-    height: 30px;
-    min-height: 30px;
-    width: 64px;
-  }
-
-  .admin-mobile-bar__actions .locale-switch__segment-option {
-    color: var(--locale-code);
-    font-size: 9.5px;
-    font-weight: 650;
-    letter-spacing: 0.08em;
-  }
-
-  .admin-mobile-bar__actions .locale-switch__segment-option.is-active {
-    color: var(--locale-code-active);
-    font-weight: 700;
-  }
-
-  .admin-mobile-bar__actions .locale-switch__segment-thumb {
-    box-shadow: none;
-  }
 
   .admin-page-toolbar {
     align-items: stretch;
@@ -2145,10 +1044,5 @@
 
   .admin-page-toolbar__tools {
     flex-direction: row;
-  }
-
-  .admin-mobile-bar__title {
-    font-size: 14.5px;
-    letter-spacing: -0.02em;
   }
 }

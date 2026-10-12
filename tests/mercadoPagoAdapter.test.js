@@ -128,6 +128,62 @@ describe('adaptador de Mercado Pago', () => {
     )
   })
 
+  it('la preferencia de la tienda usa su webhook y sus propios parametros de retorno', async () => {
+    mpMocks.preferenceCreate.mockResolvedValueOnce({
+      id: 'pref-shop',
+      init_point: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-shop',
+      sandbox_init_point: 'https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-shop',
+    })
+    const adapter = createMercadoPagoAdapter({
+      env: {
+        MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
+        MERCADO_PAGO_ENV: 'production',
+        APP_URL: 'https://powerliftingunited.ar',
+      },
+    })
+
+    await adapter.createPreference({
+      order: {
+        ...order,
+        id: 'shop-order-1',
+        kind: 'shop',
+        displayConcept: 'Tienda PLU · pedido TND-ABC123',
+        notificationPath: '/api/shop/webhook/mercadopago',
+      },
+      idempotencyKey: 'shop-pref-shop-order-1',
+    })
+
+    const { body } = mpMocks.preferenceCreate.mock.calls[0][0]
+    expect(body.notification_url).toBe('https://www.powerliftingunited.ar/api/shop/webhook/mercadopago')
+    // Sin `payment=` ni `order=`: App.jsx concilia esas URLs contra otro motor de pagos.
+    expect(body.back_urls.success).toBe(
+      'https://www.powerliftingunited.ar/tienda?pedido=shop-order-1&pago=success',
+    )
+    expect(body.back_urls.failure).not.toMatch(/payment=|order=/)
+    expect(body.items[0].category_id).toBe('others')
+    expect(body.external_reference).toBe('shop-order-1')
+  })
+
+  it('ignora un notificationPath que no cuelgue de /api/', async () => {
+    mpMocks.preferenceCreate.mockResolvedValueOnce({ id: 'pref-x', init_point: 'https://mp.test/x' })
+    const adapter = createMercadoPagoAdapter({
+      env: {
+        MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
+        MERCADO_PAGO_ENV: 'production',
+        APP_URL: 'https://powerliftingunited.ar',
+      },
+    })
+
+    await adapter.createPreference({
+      order: { ...order, notificationPath: 'https://evil.example.com/hook' },
+      idempotencyKey: 'membership-order-evil',
+    })
+
+    expect(mpMocks.preferenceCreate.mock.calls[0][0].body.notification_url).toBe(
+      'https://www.powerliftingunited.ar/api/payments/webhook/mercadopago',
+    )
+  })
+
   it('la preferencia expira junto con la orden para no cobrar ordenes ya canceladas', async () => {
     mpMocks.preferenceCreate.mockResolvedValueOnce({
       id: 'pref-exp',

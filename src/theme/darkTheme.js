@@ -7,15 +7,17 @@ export const darkTheme = {
   token: {
     ...sharedThemeTokens,
     // Superficies base en dark mode
-    colorBgBase: '#0a0b0d', // --plu-cool-950
-    colorBgContainer: '#181a1f', // --plu-cool-800
-    colorBgElevated: '#1e2026', // --plu-cool-750
-    colorBgLayout: '#0a0b0d',
+    colorPrimary: '#fafafa',
+    colorInfo: '#fafafa',
+    colorBgBase: '#0a0a0a',
+    colorBgContainer: '#111111',
+    colorBgElevated: '#161616',
+    colorBgLayout: '#0a0a0a',
 
     // Texto
     colorTextBase: '#ffffff', // --plu-ink-inverse
-    colorTextSecondary: '#d4d4dc', // --color-text-secondary
-    colorTextQuaternary: '#9a9aa8', // --color-text-muted
+    colorTextSecondary: '#cfcfcf',
+    colorTextQuaternary: '#8f8f8f',
 
     // Bordes
     colorBorder: 'rgba(255, 255, 255, 0.14)',

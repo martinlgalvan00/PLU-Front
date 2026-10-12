@@ -98,7 +98,7 @@ describe('Finanzas — comprobante y validación', () => {
     expect(proof).toBeTruthy()
     // La fecha sigue siendo el texto: es el dato con el que se cruza el
     // comprobante contra el extracto.
-    expect(proof.textContent).toContain('20/8/26')
+    expect(proof.textContent).toMatch(/20 ago/i)
     // Sin `style` inline: la clase ya trae el botón resuelto. Un inline con
     // `height: auto` rompía el target táctil de 32px.
     expect(proof.getAttribute('style')).toBeNull()

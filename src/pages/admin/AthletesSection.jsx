@@ -418,9 +418,10 @@ export default function AthletesSection({
     <AdminListSection
       variant="athletes"
       filteredCount={rows.length}
-      filterLayout="popover"
+      filterLayout="toolbar"
       placeholder={t('admin.search.athlete')}
       query={query}
+      compactHeader
       showHeader
       showStats={false}
       eyebrow={t('admin.sections.athletes.eyebrow')}
@@ -446,7 +447,7 @@ export default function AthletesSection({
           value: profileCompleteness,
           onChange: setProfileCompleteness,
           options: profileCompletenessOptions,
-          attentionCount: profileCompletenessCounts.incomplete,
+          quickOption: 'incomplete',
         },
         {
           id: 'registrationStatus',
@@ -454,10 +455,7 @@ export default function AthletesSection({
           value: registrationStatus,
           onChange: setRegistrationStatus,
           options: registrationStatusOptions,
-          attentionCount:
-            (registrationStatusCounts.pendiente_pago ?? 0) > 0
-              ? registrationStatusCounts.pendiente_pago
-              : (registrationStatusCounts.observada ?? 0),
+          quickOption: 'pendiente_pago',
         },
         {
           id: 'gym',
@@ -589,6 +587,8 @@ export default function AthletesSection({
       ) : null}
       <AdminDataTable
         variant="admin"
+        density="compact"
+        fit
         rowSelection={
           canEdit
             ? {
@@ -622,6 +622,7 @@ export default function AthletesSection({
           {
             key: 'documentId',
             label: t('admin.columns.document'),
+            width: 128,
             mobile: 'hidden',
             className: 'data-table__column--mono',
             sortable: true,
@@ -629,16 +630,9 @@ export default function AthletesSection({
             render: (row) => <AdminMonoCell>{row.documentId}</AdminMonoCell>,
           },
           {
-            key: 'gym',
-            label: t('admin.columns.gym'),
-            mobile: 'default',
-            className: 'data-table__column--meta',
-            sortable: true,
-            mobileSortable: false,
-          },
-          {
             key: 'division',
             label: t('admin.columns.division'),
+            width: 120,
             mobile: 'default',
             className: 'data-table__column--meta',
             sortable: true,
@@ -647,6 +641,7 @@ export default function AthletesSection({
           {
             key: 'profile',
             label: t('admin.columns.profile'),
+            width: 140,
             mobile: 'default',
             className: 'data-table__column--meta',
             sortable: false,
@@ -676,6 +671,7 @@ export default function AthletesSection({
           {
             key: 'status',
             label: t('admin.columns.status'),
+            width: 160,
             mobile: 'badge',
             mobileLabel: '',
             desktop: 'status',

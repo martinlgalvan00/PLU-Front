@@ -26,6 +26,8 @@ import PitbullHero from '../components/layout/PitbullHero.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import EventVenueMap from '../components/ui/EventVenueMap.jsx'
 import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.jsx'
+import PitbullCategoriesFilm from '../components/ui/PitbullCategoriesFilm.jsx'
+import PitbullCountdownIntro from '../components/ui/PitbullCountdownIntro.jsx'
 import PitbullMeetCountdown from '../components/ui/PitbullMeetCountdown.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import EventWeighInSchedule, {
@@ -51,7 +53,13 @@ import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { getPitbullClassicEvent } from '../lib/eventNavigation.js'
 import { buildExternalMapUrl, buildWazeUrl } from '../lib/eventMap.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
-import { formatRelativeTime, formatShortStamp, money } from '../lib/format.js'
+import {
+  formatRelativeTime,
+  formatShortStamp,
+  initials,
+  money,
+  tidyPersonName,
+} from '../lib/format.js'
 import { getStatusMeta, isRegistrationOpen } from '../lib/status.js'
 import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
 import { describePublicCapacity } from '../lib/eventCapacityPublic.js'
@@ -636,9 +644,13 @@ function PitbullTicketsBand({ event, onOpen, soon = false, t }) {
   )
 }
 
+const RECENT_REGISTRANTS_VISIBLE = 6
+
 function PitbullRecentRegistrants({ capacityStatus, locale, recent, registeredToday = 0, t }) {
   const { reducedMotion } = useMotionConfig()
-  const isEmpty = recent.length === 0
+  // Son los últimos: seis alcanzan para leer el pulso sin alargar la sección.
+  const visible = recent.slice(0, RECENT_REGISTRANTS_VISIBLE)
+  const isEmpty = visible.length === 0
   const isLive = capacityStatus === 'live'
   const todayCount = Number(registeredToday) || 0
   const ListTag = reducedMotion ? 'ol' : m.ol
@@ -696,45 +708,46 @@ function PitbullRecentRegistrants({ capacityStatus, locale, recent, registeredTo
           </p>
         </div>
       ) : (
-        <ListTag className="pitbull-recent__list" {...listMotion}>
-          {recent.map((item, index) => {
-            const initial = item.displayName?.trim()?.charAt(0)?.toUpperCase() ?? '?'
-            return (
-              <RowTag
-                key={`${item.displayName}-${item.registeredAt ?? index}`}
-                className="pitbull-recent__row"
-                {...rowMotion}
-              >
-                <span className="pitbull-recent__portrait" aria-hidden="true">
-                  {item.photoUrl ? (
-                    <LazyPhoto
-                      src={item.photoUrl}
-                      alt=""
-                      onError={(event) => {
-                        event.currentTarget.hidden = true
-                      }}
-                    />
-                  ) : null}
-                  <span>{initial}</span>
-                </span>
-                <span className="pitbull-recent__identity">
-                  <strong className="pitbull-recent__name" title={item.displayName}>
-                    {item.displayName}
-                  </strong>
-                  {item.gym ? (
-                    <span className="pitbull-recent__gym" title={item.gym}>
-                      {item.gym}
-                    </span>
-                  ) : null}
-                </span>
-                <span className="pitbull-recent__when">
-                  <time className="pitbull-recent__time" dateTime={item.registeredAt ?? undefined}>
-                    {formatRelativeTime(item.registeredAt, locale)}
-                  </time>
-                </span>
-              </RowTag>
-            )
-          })}
+        <ListTag
+          className="pitbull-recent__list"
+          {...listMotion}
+        >
+          {visible.map((item, index) => (
+            <RowTag
+              key={`${item.displayName}-${item.registeredAt ?? index}`}
+              className="pitbull-recent__row"
+              {...rowMotion}
+            >
+              {/* Con foto, la foto; sin foto, las iniciales: la fila siempre tiene
+                  el mismo ancho de marca y la lista se lee alineada. */}
+              <span className="pitbull-recent__portrait" aria-hidden="true">
+                {item.photoUrl ? (
+                  <LazyPhoto
+                    src={item.photoUrl}
+                    alt=""
+                    onError={(event) => {
+                      event.currentTarget.hidden = true
+                    }}
+                  />
+                ) : (
+                  <span className="pitbull-recent__initials">{initials(item.displayName)}</span>
+                )}
+              </span>
+              <span className="pitbull-recent__identity">
+                <strong className="pitbull-recent__name" title={item.displayName}>
+                  {tidyPersonName(item.displayName)}
+                </strong>
+                {item.gym ? (
+                  <span className="pitbull-recent__gym" title={item.gym}>
+                    {item.gym}
+                  </span>
+                ) : null}
+              </span>
+              <time className="pitbull-recent__time" dateTime={item.registeredAt ?? undefined}>
+                {formatRelativeTime(item.registeredAt, locale)}
+              </time>
+            </RowTag>
+          ))}
         </ListTag>
       )}
     </div>
@@ -1072,35 +1085,30 @@ function PitbullInscriptionSection({
   )
 }
 
-/** Catálogo editorial — Modalidades como ancla; Equipamiento y Divisiones
- * como ledger compacto al lado (sin índices ni counts competidores). */
+/** Categorías contadas como un film: el reproductor fijo acompaña la lectura de
+ * tres capítulos (Modalidades, Equipamiento, Divisiones). Ver
+ * `PitbullCategoriesFilm`. */
 function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
-  const { reducedMotion } = useMotionConfig()
-  const secondaryGroups = [
+  const acts = [
+    {
+      id: 'modalities',
+      label: t('pages.pitbull.categoriesModalities'),
+      hint: t('pages.pitbull.categoriesModalitiesHint'),
+      rows: pitbullClassic.modalities,
+    },
     {
       id: 'equipment',
       label: t('pages.pitbull.categoriesEquipment'),
+      hint: t('pages.pitbull.categoriesEquipmentHint'),
       rows: pitbullClassic.categories,
     },
     {
       id: 'divisions',
       label: t('pages.pitbull.categoriesDivisions'),
+      hint: t('pages.pitbull.categoriesDivisionsHint'),
       rows: pitbullClassic.divisions,
     },
-  ]
-
-  const listMotion = reducedMotion
-    ? {}
-    : {
-        variants: staggerContainer,
-        initial: 'hidden',
-        whileInView: 'visible',
-        viewport: MOTION_VIEWPORT,
-      }
-  const itemMotion = reducedMotion ? {} : { variants: staggerItem }
-  const ListTag = reducedMotion ? 'ol' : m.ol
-  const ItemTag = reducedMotion ? 'li' : m.li
-  const SecondaryListTag = reducedMotion ? 'ul' : m.ul
+  ].filter((act) => act.rows?.length)
 
   return (
     <PitbullDossierSection
@@ -1126,44 +1134,7 @@ function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
           </button>
         </div>
 
-        <div className="pitbull-cat__spread" aria-label={t('pages.pitbull.categoriesListAria')}>
-          <section className="pitbull-cat__featured" aria-labelledby="pitbull-cat-modalities">
-            <header className="pitbull-cat__featured-head">
-              <h3 id="pitbull-cat-modalities" className="pitbull-cat__featured-title">
-                {t('pages.pitbull.categoriesModalities')}
-              </h3>
-              <p className="pitbull-cat__featured-hint">{t('pages.pitbull.categoriesModalitiesHint')}</p>
-            </header>
-
-            <ListTag className="pitbull-cat__featured-list" {...listMotion}>
-              {pitbullClassic.modalities.map((row, rowIndex) => (
-                <ItemTag key={row} className="pitbull-cat__featured-row" {...itemMotion}>
-                  <span className="pitbull-cat__featured-row-index motif-num" aria-hidden>
-                    {String(rowIndex + 1).padStart(2, '0')}
-                  </span>
-                  <span className="pitbull-cat__featured-row-name">{row}</span>
-                </ItemTag>
-              ))}
-            </ListTag>
-          </section>
-
-          <aside className="pitbull-cat__secondary" aria-label={t('pages.pitbull.categoriesSecondaryAria')}>
-            {secondaryGroups.map((group) => (
-              <section key={group.id} className="pitbull-cat__lane" aria-labelledby={`pitbull-cat-${group.id}`}>
-                <h3 id={`pitbull-cat-${group.id}`} className="pitbull-cat__lane-title">
-                  {group.label}
-                </h3>
-                <SecondaryListTag className="pitbull-cat__list" {...listMotion}>
-                  {group.rows.map((row) => (
-                    <ItemTag key={row} className="pitbull-cat__row" {...itemMotion}>
-                      <span className="pitbull-cat__row-name">{row}</span>
-                    </ItemTag>
-                  ))}
-                </SecondaryListTag>
-              </section>
-            ))}
-          </aside>
-        </div>
+        <PitbullCategoriesFilm acts={acts} />
       </div>
     </PitbullDossierSection>
   )
@@ -1340,6 +1311,8 @@ export default function PitbullPage({
 
   return (
     <main className="page page--design pitbull-page pitbull-page--premium">
+      <PitbullCountdownIntro dateLabel={PITBULL_CLASSIC.date} event={pitbullEvent} />
+
       <PitbullHero
         athleteStatus={athleteEventStatus}
         canRegister={canRegister}

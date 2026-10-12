@@ -2610,11 +2610,6 @@
       margin-bottom: 14px;
     }
 
-    .events-page--plu-ref .events-page__hero .plu-page-hero__title {
-      font-size: clamp(30px, 7.5vw, 40px);
-      max-width: 14ch;
-    }
-
     .events-page--plu-ref .events-page__hero .plu-page-hero__desc {
       font-size: 14.5px;
       line-height: 1.55;
@@ -6417,28 +6412,6 @@
   color: var(--color-text-muted);
   font-size: 12px;
   margin: 0;
-}
-
-.sponsors-tiers__partners {
-  display: grid;
-  gap: 10px;
-  list-style: none;
-  margin: 14px 0 0;
-  padding: 0;
-}
-
-.sponsors-tiers__partners a,
-.sponsors-tiers__partners strong {
-  color: var(--institution-text);
-  font-size: 14px;
-}
-
-.sponsors-tiers__logo {
-  display: block;
-  height: 28px;
-  margin-bottom: 6px;
-  object-fit: contain;
-  width: auto;
 }
 
 .sponsors-tiers__catalog-note,

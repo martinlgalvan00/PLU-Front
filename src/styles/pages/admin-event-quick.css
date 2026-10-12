@@ -1,0 +1,474 @@
+/* =============================================
+   ALTA DE EVENTO (AdminEventQuickCreate)
+   Página propia (/admin/eventos/nuevo), no un panel sobre un fondo oscuro: usa
+   los tokens nativos del admin, así que claro y oscuro salen del mismo código.
+   Dos columnas: el formulario (título → cuándo → dónde → cupo y acceso) y, al
+   lado, la card pública armándose con lo que se va cargando. Una sola acción
+   dorada: «Crear y abrir consola».
+   ============================================= */
+
+.admin-event-quick {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-inline: auto;
+  max-width: 1120px;
+  width: 100%;
+}
+
+.admin-event-quick__form {
+  display: grid;
+  gap: 32px;
+  min-width: 0;
+}
+
+/* ---- Volver ---- */
+
+.admin-event-quick__back {
+  align-items: center;
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 2px;
+  letter-spacing: 0.02em;
+  margin-left: -6px;
+  min-height: 32px;
+  padding: 0 8px 0 4px;
+  transition: color var(--motion-fast) var(--ease-out);
+}
+
+.admin-event-quick__back:hover {
+  color: var(--admin-ink);
+}
+
+.admin-event-quick__back:focus-visible,
+.admin-event-quick__cancel:focus-visible,
+.admin-event-quick__advanced:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .admin-event-quick__back {
+    min-height: 44px;
+  }
+}
+
+/* ---- Composición ---- */
+
+.admin-event-quick__layout {
+  align-items: start;
+  display: grid;
+  gap: 48px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
+}
+
+.admin-event-quick__main {
+  display: grid;
+  gap: 28px;
+  max-width: 40rem;
+  min-width: 0;
+}
+
+/* ---- Cabecera ---- */
+
+.admin-event-quick__head {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-event-quick__eyebrow {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-event-quick__head h2 {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(1.6rem, 2.6vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  margin: 0;
+}
+
+.admin-event-quick__lead {
+  color: var(--admin-muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 44ch;
+}
+
+/* ---- Cuerpo ---- */
+
+.admin-event-quick__body {
+  display: grid;
+  gap: 28px;
+}
+
+/* El título: protagonista. Sin caja, con un solo filete que se enciende al foco. */
+.admin-event-quick__hero {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-event-quick__label {
+  color: var(--admin-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.admin-event-quick__hero input {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline-strong);
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(1.5rem, 2.4vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  outline: none;
+  padding: 6px 0 12px;
+  transition: border-color var(--motion-fast) var(--ease-out);
+  width: 100%;
+}
+
+.admin-event-quick__hero input::placeholder {
+  color: color-mix(in srgb, var(--admin-ink) 28%, transparent);
+  font-weight: 600;
+}
+
+.admin-event-quick__hero input:focus-visible {
+  border-bottom-color: var(--admin-ink);
+  box-shadow: 0 1px 0 0 var(--admin-ink);
+}
+
+.admin-event-quick__slug {
+  align-items: center;
+  color: var(--admin-muted);
+  display: flex;
+  font-size: 12.5px;
+  gap: 8px;
+  margin: -18px 0 0;
+}
+
+.admin-event-quick__slug svg {
+  flex: none;
+}
+
+.admin-event-quick__slug code {
+  color: var(--admin-text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-event-quick__slug code.is-pending {
+  color: var(--admin-muted);
+  font-family: var(--font-family);
+  font-style: italic;
+}
+
+/* ---- Secciones ---- */
+
+.admin-event-quick__section {
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 14px;
+  padding-top: 18px;
+}
+
+.admin-event-quick__section-title {
+  color: var(--admin-text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.admin-event-quick__row {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-event-quick__row--capacity {
+  align-items: end;
+  grid-template-columns: 8rem minmax(0, 1fr);
+}
+
+.admin-event-quick__field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.admin-event-quick__field input {
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 10px;
+  box-shadow: none;
+  color: var(--admin-ink);
+  font-size: 14px;
+  height: 46px;
+  padding: 0 14px;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
+  width: 100%;
+}
+
+.admin-event-quick__field input::placeholder {
+  color: color-mix(in srgb, var(--admin-ink) 32%, transparent);
+}
+
+.admin-event-quick__field input:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--admin-ink) 30%, transparent);
+}
+
+.admin-event-quick__field input:focus-visible {
+  border-color: var(--admin-ink);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-ink) 14%, transparent);
+  outline: none;
+}
+
+.admin-event-quick__field.is-invalid input,
+.admin-event-quick__hero.is-invalid input {
+  border-color: var(--admin-status-danger);
+}
+
+.admin-event-quick__field small,
+.admin-event-quick__hero small {
+  color: var(--admin-status-danger);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.admin-event-quick__access {
+  min-width: 0;
+}
+
+/* El grupo de acceso comparte renglón con el cupo: sin su rótulo a la izquierda. */
+.admin-event-quick__access .admin-filter-group {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.admin-event-quick__access .admin-filter-group__label {
+  color: var(--admin-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.admin-event-quick__access-note {
+  align-items: flex-start;
+  color: var(--admin-muted);
+  display: flex;
+  font-size: 12.5px;
+  gap: 8px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.admin-event-quick__access-note svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.admin-event-quick__alert {
+  background: var(--admin-status-danger-bg);
+  border-radius: 10px;
+  color: var(--admin-status-danger);
+  font-size: 13px;
+  margin: 0;
+  padding: 10px 14px;
+}
+
+/* ---- Vista previa ---- */
+
+.admin-event-quick__aside {
+  /* Queda a la vista mientras se baja por el formulario. */
+  align-self: start;
+  display: grid;
+  gap: 14px;
+  position: sticky;
+  top: 24px;
+}
+
+.admin-event-quick__preview-label {
+  align-items: center;
+  color: var(--admin-muted);
+  display: flex;
+  font-size: 11px;
+  font-weight: 650;
+  gap: 7px;
+  letter-spacing: 0.1em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+/* La card pública es de sólo lectura acá: no se clickea ni se enfoca. Se
+   enciende a medida que se completan los cuatro datos que muestra. */
+.admin-event-quick__preview-card {
+  opacity: calc(0.42 + var(--quick-filled, 0) * 0.58);
+  pointer-events: none;
+  user-select: none;
+}
+
+.admin-event-quick__preview-hint {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Lo que queda para después: una línea, no una lista de pendientes. */
+.admin-event-quick__pending {
+  border-top: 1px solid var(--admin-hairline);
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin: 6px 0 0;
+  padding-top: 14px;
+}
+
+.admin-event-quick__pending-label {
+  color: var(--admin-text-secondary);
+  display: block;
+  font-weight: 600;
+}
+
+/* ---- Pie ---- */
+
+.admin-event-quick__foot {
+  align-items: center;
+  border-top: 1px solid var(--admin-hairline);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 18px;
+}
+
+.admin-event-quick__foot-copy {
+  display: grid;
+  flex: 1 1 16rem;
+  gap: 6px;
+}
+
+.admin-event-quick__foot-note {
+  align-items: center;
+  color: var(--admin-muted);
+  display: flex;
+  font-size: 12.5px;
+  gap: 8px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.admin-event-quick__foot-note svg {
+  flex: none;
+}
+
+.admin-event-quick__advanced {
+  align-items: center;
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 550;
+  gap: 6px;
+  padding: 4px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-event-quick__advanced:hover:not(:disabled) {
+  color: var(--admin-ink);
+}
+
+.admin-event-quick__cancel {
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 550;
+  min-height: 44px;
+  padding: 0 14px;
+}
+
+.admin-event-quick__cancel:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--admin-ink) 8%, transparent);
+  color: var(--admin-ink);
+}
+
+.admin-event-quick__foot .btn {
+  min-height: 44px;
+}
+
+/* ---- Pantallas angostas ---- */
+
+@media (max-width: 960px) {
+  .admin-event-quick__layout {
+    gap: 32px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-event-quick__aside {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-event-quick__row,
+  .admin-event-quick__row--capacity {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-event-quick__foot .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-event-quick__preview-card {
+    transition: opacity var(--motion-base) var(--ease-out);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-event-quick__back,
+  .admin-event-quick__hero input,
+  .admin-event-quick__field input {
+    transition: none;
+  }
+}

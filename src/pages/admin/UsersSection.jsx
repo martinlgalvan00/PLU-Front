@@ -1,45 +1,35 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { Ban, CheckCircle2, KeyRound, PauseCircle, Shield, Trash2, UserPlus, X } from 'lucide-react'
-import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
-import AdminListSection from '../../components/admin/AdminListSection.jsx'
-import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import {
-  AdminIdentityCell,
-  AdminTableActions,
-  AdminTableActionsEmpty,
-} from '../../components/admin/AdminTableCells.jsx'
+  Ban,
+  CircleCheck,
+  ChevronDown,
+  KeyRound,
+  CirclePause,
+  Search,
+  Shield,
+  Trash2,
+  UserPlus,
+  X,
+} from 'lucide-react'
+import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import AdminEmptyState from '../../components/admin/AdminEmptyState.jsx'
 import { Field, Select } from '../../components/ui/FormFields.jsx'
-import Pill from '../../components/ui/Pill.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { formatRecordCount } from '../../i18n/adminHelpers.js'
 import { getRoleLabel } from '../../lib/roles.js'
+import UsersRowMenu from './UsersRowMenu.jsx'
+import '../../styles/pages/admin-users.css'
 
 const EMPTY_DRAFT = { name: '', email: '', role: 'plu_arg', eventId: '' }
 
 const STATUS_FILTERS = [
-  ['all', 'admin.users.filterAll'],
   ['active', 'admin.users.statusActive'],
   ['invited', 'admin.users.statusInvited'],
   ['suspended', 'admin.users.statusSuspended'],
   ['disabled', 'admin.users.statusDisabled'],
 ]
-
-function statusTone(status) {
-  switch (status) {
-    case 'active':
-      return 'success'
-    case 'invited':
-      return 'info'
-    case 'suspended':
-      return 'warning'
-    case 'disabled':
-      return 'danger'
-    default:
-      return 'neutral'
-  }
-}
 
 function statusLabel(t, status) {
   switch (status) {
@@ -73,6 +63,7 @@ export default function UsersSection({
   const { t } = useI18n()
   const formId = useId()
   const formRef = useRef(null)
+  const newButtonRef = useRef(null)
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [isCreating, setIsCreating] = useState(false)
@@ -108,15 +99,20 @@ export default function UsersSection({
     return counts
   }, [users])
 
+  // Solo se ofrecen los estados que existen en el padrón: con un único estado
+  // el filtro no separa nada, así que el control ni se dibuja (salvo que haya
+  // quedado uno aplicado, para poder soltarlo).
   const statusOptions = useMemo(
-    () =>
-      STATUS_FILTERS.map(([value, key]) => [
-        value,
-        t(key),
-        value === 'all' ? users.length : (statusCounts[value] ?? 0),
-      ]),
-    [statusCounts, t, users.length],
+    () => [
+      ['all', t('admin.users.allStatuses')],
+      ...STATUS_FILTERS.filter(
+        ([value]) => (statusCounts[value] ?? 0) > 0 || value === statusFilter,
+      ).map(([value, key]) => [value, `${t(key)} · ${statusCounts[value] ?? 0}`]),
+    ],
+    [statusCounts, statusFilter, t],
   )
+  const distinctStatuses = Object.keys(statusCounts).length
+  const showStatusFilter = distinctStatuses > 1 || statusFilter !== 'all'
 
   const rows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -182,6 +178,8 @@ export default function UsersSection({
     setIsCreating(false)
     setDraft(EMPTY_DRAFT)
     setFormError('')
+    // El botón "Cancelar" desaparece al cerrar: el foco vuelve a "Nuevo usuario".
+    window.requestAnimationFrame(() => newButtonRef.current?.focus())
   }
 
   function openCreateForm() {
@@ -314,75 +312,293 @@ export default function UsersSection({
     )
   }
 
-  const filterActions = canManageUsers ? (
-    <div className="admin-users__toolbar-actions">
-      {onNavigateRoles ? (
-        <Button
-          type="button"
-          variant="secondary"
-          className="btn--small admin-users__toolbar-btn admin-users__toolbar-btn--roles"
-          aria-label={t('admin.users.managePermissions')}
-          title={t('admin.users.managePermissions')}
-          onClick={onNavigateRoles}
-        >
-          <Shield size={15} aria-hidden />
-          <span>{t('admin.users.managePermissions')}</span>
-        </Button>
-      ) : null}
-      <Button
-        type="button"
-        variant={isCreating ? 'secondary' : 'gold'}
-        className="btn--small admin-users__toolbar-btn admin-users__toolbar-btn--primary"
-        aria-controls={formId}
-        aria-expanded={isCreating}
-        onClick={() => {
-          if (isCreating) {
-            if (!isSubmitting) closeCreateForm()
-            return
-          }
-          openCreateForm()
-        }}
-      >
-        {isCreating ? <X size={15} aria-hidden /> : <UserPlus size={15} aria-hidden />}
-        <span>{isCreating ? t('admin.users.cancel') : t('admin.users.newUser')}</span>
-      </Button>
-    </div>
-  ) : null
+  const isFiltering = query.trim() !== '' || statusFilter !== 'all'
+  const showActionsColumn = users.some(canMutateUser)
+
+  function toggleCreateForm() {
+    if (isCreating) {
+      if (!isSubmitting) closeCreateForm()
+      return
+    }
+    openCreateForm()
+  }
+
+  // Lo menos frecuente y lo irreversible van al menú. "Dar de baja" pide un
+  // segundo toque dentro del propio menú; "Eliminar" abre su diálogo.
+  function buildMenuItems(row) {
+    const status = row.status ?? 'active'
+    const canUpdateStatus = canManageUsers && Boolean(onUpdateStatus)
+    const canDelete = canDeleteUsers && Boolean(onDeleteUser)
+    const canReset = canManageUsers && Boolean(onResetPassword)
+    const items = []
+
+    if (canUpdateStatus && (status === 'active' || status === 'suspended')) {
+      const isActive = status === 'active'
+      items.push({
+        key: 'toggle',
+        label: isActive ? t('admin.users.actionSuspend') : t('admin.users.actionActivate'),
+        icon: isActive ? CirclePause : CircleCheck,
+        onSelect: () => void handleStatusChange(row.id, isActive ? 'suspended' : 'active'),
+      })
+    }
+    if (status === 'disabled' && canUpdateStatus) {
+      items.push({
+        key: 'activate',
+        label: t('admin.users.actionActivate'),
+        icon: CircleCheck,
+        onSelect: () => void handleStatusChange(row.id, 'active'),
+      })
+    }
+    if (canReset) {
+      items.push({
+        key: 'reset',
+        label: t('admin.users.actionReset'),
+        icon: KeyRound,
+        onSelect: () => void handleResetPassword(row),
+      })
+    }
+    if (canUpdateStatus && status !== 'disabled') {
+      items.push({
+        key: 'disable',
+        label: t('admin.users.actionDisable'),
+        confirmLabel: t('admin.users.confirmDisable'),
+        icon: Ban,
+        tone: 'danger',
+        onSelect: () => void handleStatusChange(row.id, 'disabled'),
+      })
+    }
+    if (canDelete) {
+      items.push({
+        key: 'delete',
+        label: t('admin.users.actionDelete'),
+        icon: Trash2,
+        tone: 'danger',
+        onSelect: () => openDeleteDialog(row),
+      })
+    }
+    return items
+  }
+
+  const columns = [
+    {
+      key: 'name',
+      label: t('admin.columns.user'),
+      mobile: 'primary',
+      sortable: true,
+      render: (row) => (
+        <div className="admin-users__who">
+          <span
+            className={`admin-users__monogram${row.role === 'admin_maximal' ? ' is-owner' : ''}`}
+            aria-hidden
+          >
+            {row.name?.trim()?.charAt(0)?.toUpperCase() ?? '?'}
+          </span>
+          <span className="admin-users__who-copy">
+            <strong className="admin-users__who-name">{row.name ?? '—'}</strong>
+            <span className="admin-users__who-email" title={row.email}>
+              {row.email}
+            </span>
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'role',
+      label: t('admin.columns.role'),
+      mobile: 'badge',
+      sortable: true,
+      className: 'data-table__column--role',
+      width: 190,
+      render: (row) => {
+        const roleKey = row.roleKey ?? row.role
+        const canEditRole =
+          canManageUsers &&
+          row.role !== 'admin_maximal' &&
+          roleOptions.some(([optionKey]) => optionKey === roleKey)
+
+        if (!canEditRole) {
+          return <span className="admin-users__role-text">{getRoleLabel(row)}</span>
+        }
+
+        const busy = updatingUserId === row.id
+
+        return (
+          <label
+            className={`admin-users__role-select${busy ? ' is-busy' : ''}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <select
+              name={`role-${row.id}`}
+              value={roleKey}
+              disabled={busy}
+              aria-label={`${t('admin.columns.role')}: ${row.name}`}
+              onChange={(event) => handleRoleChange(row.id, event.target.value)}
+            >
+              {roleOptions.map(([optionValue, optionLabel]) => (
+                <option key={optionValue} value={optionValue}>
+                  {optionLabel}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={13} aria-hidden />
+          </label>
+        )
+      },
+    },
+    {
+      key: 'status',
+      label: t('admin.columns.status'),
+      mobile: 'badge',
+      sortable: true,
+      width: 140,
+      sortAccessor: (row) => row.status ?? 'active',
+      render: (row) => {
+        const status = row.status ?? 'active'
+        return (
+          <span className={`admin-users__status admin-users__status--${status}`}>
+            <span className="admin-users__status-dot" aria-hidden />
+            {statusLabel(t, status)}
+          </span>
+        )
+      },
+    },
+    ...(showActionsColumn
+      ? [
+          {
+            key: 'actions',
+            label: t('admin.columns.action'),
+            mobile: 'action',
+            sortable: false,
+            mobileSortable: false,
+            width: 64,
+            className: 'data-table__column--actions admin-users__column-actions',
+            render: (row) => {
+              if (!canMutateUser(row)) return null
+
+              const busy = updatingUserId === row.id
+
+              return (
+                <div
+                  className="admin-users__row-actions"
+                  role="group"
+                  aria-label={t('admin.users.actionsAria', { name: row.name })}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  {busy ? <span className="plu-spinner plu-spinner--sm" aria-hidden="true" /> : null}
+                  <UsersRowMenu
+                    label={t('admin.actions.more')}
+                    items={buildMenuItems(row)}
+                    disabled={busy}
+                  />
+                </div>
+              )
+            },
+          },
+        ]
+      : []),
+  ]
 
   return (
-    <AdminListSection
-      variant="users"
-      filteredCount={rows.length}
-      filterActions={filterActions}
-      filters={[
-        {
-          id: 'status',
-          label: t('admin.filters.status'),
-          value: statusFilter,
-          onChange: setStatusFilter,
-          options: statusOptions,
-        },
-      ]}
-      placeholder={t('admin.search.users')}
-      query={query}
-      showHeader={false}
-      showStats={false}
-      totalCount={users.length}
-      onQueryChange={setQuery}
-    >
+    <section className="admin-users" aria-label={t('admin.sections.users.title')}>
+      <div className="admin-users__toolbar">
+        {!isGloballyEmpty ? (
+          <div className="admin-users__search" role="search">
+            <Search size={15} aria-hidden />
+            <input
+              type="search"
+              name="users-search"
+              value={query}
+              placeholder={t('admin.search.users')}
+              aria-label={t('admin.search.users')}
+              autoComplete="off"
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            {query ? (
+              <button
+                type="button"
+                className="admin-users__search-clear"
+                aria-label={t('admin.filters.clearFilter')}
+                onClick={() => setQuery('')}
+              >
+                <X size={13} aria-hidden />
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {showStatusFilter ? (
+          <label className={`admin-users__filter${statusFilter !== 'all' ? ' is-active' : ''}`}>
+            <select
+              name="users-status"
+              value={statusFilter}
+              aria-label={t('admin.filters.status')}
+              onChange={(event) => setStatusFilter(event.target.value)}
+            >
+              {statusOptions.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={13} aria-hidden />
+          </label>
+        ) : null}
+
+        <span className="admin-users__count" aria-live="polite">
+          {isFiltering
+            ? formatRecordCount(t, rows.length, users.length)
+            : users.length === 1
+              ? t('admin.users.totalOne')
+              : t('admin.users.total', { count: users.length })}
+        </span>
+
+        {canManageUsers ? (
+          <div className="admin-users__toolbar-actions">
+            {onNavigateRoles ? (
+              <button type="button" className="admin-users__link" onClick={onNavigateRoles}>
+                <Shield size={15} aria-hidden />
+                <span>{t('admin.users.managePermissions')}</span>
+              </button>
+            ) : null}
+            {isCreating ? (
+              <button
+                type="button"
+                className="admin-users__link"
+                aria-controls={formId}
+                aria-expanded
+                onClick={toggleCreateForm}
+              >
+                <X size={15} aria-hidden />
+                <span>{t('admin.users.cancel')}</span>
+              </button>
+            ) : (
+              <Button
+                ref={newButtonRef}
+                type="button"
+                variant="gold"
+                className="btn--small admin-users__new-btn"
+                aria-controls={formId}
+                aria-expanded={false}
+                onClick={toggleCreateForm}
+              >
+                <UserPlus size={15} aria-hidden />
+                <span>{t('admin.users.newUser')}</span>
+              </Button>
+            )}
+          </div>
+        ) : null}
+      </div>
+
       {canManageUsers && isCreating ? (
         <form
           ref={formRef}
           id={formId}
-          className={`admin-users__add-form admin-users__add-form--compact${isSecurityRole ? ' admin-users__add-form--security' : ''}`}
+          className={`admin-users__form${isSecurityRole ? ' admin-users__form--security' : ''}`}
           onSubmit={handleAddUser}
         >
-          <header className="admin-users__add-form-head">
-            <h3 className="admin-users__add-form-title">{t('admin.users.formTitle')}</h3>
-            <p className="admin-users__add-form-lead">{t('admin.users.formLead')}</p>
-          </header>
+          <h3 className="admin-users__form-title">{t('admin.users.formTitle')}</h3>
 
-          <div className="admin-users__add-form-fields">
+          <div className="admin-users__form-fields">
             <Field
               label={t('admin.users.name')}
               name="name"
@@ -418,10 +634,11 @@ export default function UsersSection({
                 options={[['', t('admin.users.eventPlaceholder')], ...eventOptions]}
               />
             ) : null}
-            <div className="admin-users__add-form-actions">
+            <div className="admin-users__form-actions">
               <Button
                 type="submit"
-                className="btn--small admin-users__add-btn"
+                variant="gold"
+                className="btn--small admin-users__submit"
                 disabled={isSubmitting}
               >
                 <UserPlus size={14} aria-hidden />
@@ -431,31 +648,31 @@ export default function UsersSection({
           </div>
 
           {isSecurityRole ? (
-            <p className="admin-users__add-form-hint">{t('admin.users.securityHint')}</p>
+            <p className="admin-users__form-hint">{t('admin.users.securityHint')}</p>
           ) : null}
         </form>
       ) : null}
 
-      {formError && (
-        <p className="admin-users__form-error" role="alert">
+      {formError ? (
+        <p className="admin-users__notice admin-users__notice--error" role="alert">
           {formError}
         </p>
-      )}
+      ) : null}
       {deleteNotice ? (
-        <p className="admin-users__delete-notice" role="status">
+        <p className="admin-users__notice" role="status">
           {deleteNotice}
         </p>
       ) : null}
-      {tempPassword && (
-        <div className="admin-users__temp-password" role="status">
-          <p className="admin-users__temp-password-title">
+      {tempPassword ? (
+        <div className="admin-users__credential" role="status">
+          <p className="admin-users__credential-title">
             {tempPassword.mode === 'security'
               ? t('admin.users.tempPasswordTitle')
               : tempPassword.mode === 'reset'
                 ? t('admin.users.resetTitle')
                 : t('admin.users.inviteTitle')}
           </p>
-          <dl className="admin-users__temp-password-meta">
+          <dl className="admin-users__credential-meta">
             <div>
               <dt>{t('admin.users.email')}</dt>
               <dd>{tempPassword.email}</dd>
@@ -469,7 +686,7 @@ export default function UsersSection({
               </div>
             ) : null}
           </dl>
-          <p className="admin-users__temp-password-note">
+          <p className="admin-users__credential-note">
             {tempPassword.mode === 'security'
               ? t('admin.users.tempPasswordWarn')
               : tempPassword.emailed
@@ -477,150 +694,21 @@ export default function UsersSection({
                 : t('admin.users.credentialNotEmailed')}
           </p>
         </div>
+      ) : null}
+
+      {isGloballyEmpty ? (
+        <div className="admin-users__empty">{emptyMessage}</div>
+      ) : (
+        <AdminDataTable
+          variant="admin"
+          density="compact"
+          className="admin-users__table"
+          columns={columns}
+          rows={rows}
+          emptyMessage={emptyMessage}
+        />
       )}
 
-      <AdminDataTable
-        variant="admin"
-        columns={[
-          {
-            key: 'name',
-            label: t('admin.columns.user'),
-            mobile: 'primary',
-            sortable: true,
-            render: (row) => <AdminIdentityCell name={row.name} sub={row.email} />,
-          },
-          {
-            key: 'role',
-            label: t('admin.columns.role'),
-            mobile: 'badge',
-            sortable: true,
-            className: 'data-table__column--role',
-            render: (row) => {
-              const roleKey = row.roleKey ?? row.role
-              const canEditRole =
-                canManageUsers &&
-                row.role !== 'admin_maximal' &&
-                roleOptions.some(([optionKey]) => optionKey === roleKey)
-
-              if (!canEditRole) {
-                return <span className="admin-users__role-pill">{getRoleLabel(row)}</span>
-              }
-
-              const busy = updatingUserId === row.id
-
-              return (
-                <label
-                  className={`admin-users__role-select${busy ? ' is-busy' : ''}`}
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <select
-                    name={`role-${row.id}`}
-                    value={roleKey}
-                    disabled={busy}
-                    aria-label={`${t('admin.columns.role')}: ${row.name}`}
-                    onChange={(event) => handleRoleChange(row.id, event.target.value)}
-                  >
-                    {roleOptions.map(([optionValue, optionLabel]) => (
-                      <option key={optionValue} value={optionValue}>
-                        {optionLabel}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )
-            },
-          },
-          {
-            key: 'status',
-            label: t('admin.columns.status'),
-            mobile: 'badge',
-            sortable: true,
-            sortAccessor: (row) => row.status ?? 'active',
-            render: (row) => (
-              <Pill tone={statusTone(row.status ?? 'active')}>
-                {statusLabel(t, row.status ?? 'active')}
-              </Pill>
-            ),
-          },
-          {
-            key: 'actions',
-            label: t('admin.columns.action'),
-            mobile: 'action',
-            sortable: false,
-            mobileSortable: false,
-            className: 'data-table__column--actions',
-            render: (row) => {
-              if (!canMutateUser(row)) {
-                return <AdminTableActionsEmpty />
-              }
-
-              const status = row.status ?? 'active'
-              const busy = updatingUserId === row.id
-              const canUpdateStatus = canManageUsers && Boolean(onUpdateStatus)
-              const canDelete = canDeleteUsers && Boolean(onDeleteUser)
-              const canReset = canManageUsers && Boolean(onResetPassword)
-
-              return (
-                <AdminTableActions
-                  aria-label={t('admin.users.actionsAria', { name: row.name })}
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  {canReset ? (
-                    <AdminIconButton
-                      disabled={busy}
-                      icon={KeyRound}
-                      spinning={busy}
-                      label={t('admin.users.actionReset')}
-                      onClick={() => void handleResetPassword(row)}
-                      variant="ghost"
-                    />
-                  ) : null}
-                  {canUpdateStatus && status !== 'active' ? (
-                    <AdminIconButton
-                      disabled={busy}
-                      icon={CheckCircle2}
-                      spinning={busy}
-                      label={t('admin.users.actionActivate')}
-                      onClick={() => void handleStatusChange(row.id, 'active')}
-                      variant="celeste"
-                    />
-                  ) : null}
-                  {canUpdateStatus && status === 'active' ? (
-                    <AdminIconButton
-                      disabled={busy}
-                      icon={PauseCircle}
-                      spinning={busy}
-                      label={t('admin.users.actionSuspend')}
-                      onClick={() => void handleStatusChange(row.id, 'suspended')}
-                      variant="ghost"
-                    />
-                  ) : null}
-                  {canUpdateStatus && status !== 'disabled' ? (
-                    <AdminIconButton
-                      disabled={busy}
-                      icon={Ban}
-                      label={t('admin.users.actionDisable')}
-                      onClick={() => void handleStatusChange(row.id, 'disabled')}
-                      variant="danger"
-                    />
-                  ) : null}
-                  {canDelete ? (
-                    <AdminIconButton
-                      disabled={busy}
-                      icon={Trash2}
-                      label={t('admin.users.actionDelete')}
-                      onClick={() => openDeleteDialog(row)}
-                      variant="danger"
-                    />
-                  ) : null}
-                </AdminTableActions>
-              )
-            },
-          },
-        ]}
-        rows={rows}
-        emptyMessage={emptyMessage}
-      />
       {pendingDeletion ? (
         <AdminDeleteConfirmDialog
           busy={updatingUserId === pendingDeletion.id}
@@ -638,6 +726,6 @@ export default function UsersSection({
           busyLabel={t('admin.users.deleting')}
         />
       ) : null}
-    </AdminListSection>
+    </section>
   )
 }

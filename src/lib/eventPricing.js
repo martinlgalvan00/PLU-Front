@@ -261,6 +261,24 @@ export function shortTicketTypeName(name, locale = 'es') {
     .replace(/(^|[^\p{L}])(\p{L})/gu, (_, sep, letter) => sep + letter.toLocaleUpperCase(localeTag))
 }
 
+/**
+ * Parte el nombre de un tipo de entrada en título y nota.
+ *
+ * Muchos tipos se cargan como "PÚBLICO GENERAL 1 DÍA (Incluye el ingreso ...)":
+ * la descripción viaja pegada al nombre. En la vidriera eso convierte el título
+ * en un párrafo de tres líneas. Acá se separa la nota entre paréntesis del
+ * final para mostrarla como descripción secundaria; el dato en base no cambia.
+ *
+ * @returns {{ title: string, note: string }}
+ */
+export function ticketTypeNameParts(name, locale = 'es') {
+  const raw = String(name ?? '').trim()
+  const match = raw.match(/\s*\(([^()]*)\)\s*$/u)
+  const inner = match ? match[1].trim() : ''
+  const note = inner ? inner.charAt(0).toLocaleUpperCase(locale === 'en' ? 'en-US' : 'es-AR') + inner.slice(1) : ''
+  return { title: shortTicketTypeName(raw, locale), note }
+}
+
 /** Precio del tipo de entrada más barato activo, o null si no hay ninguno. */
 export function cheapestTicketTypePrice(pricing) {
   const prices = (pricing?.ticketTypes ?? []).map((type) => type.price)

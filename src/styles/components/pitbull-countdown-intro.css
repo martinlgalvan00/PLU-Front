@@ -1,0 +1,208 @@
+/* Pantalla de entrada a Pitbull: "FALTAN 8 SEMANAS", contada en una barra.
+   Cortina grafito fija; el movimiento es solo transform + opacity y la
+   tipografía sale de máscaras (overflow: clip), nunca de blur ni filtros. */
+
+.pitbull-intro {
+  align-items: center;
+  /* El fondo lo ponen las dos hojas del telón (o la raíz en modo quieto). */
+  background: transparent;
+  color: var(--meet-fg);
+  cursor: pointer;
+  display: grid;
+  inset: 0;
+  justify-items: start;
+  padding: clamp(24px, 6vw, 96px);
+  position: fixed;
+  z-index: calc(var(--z-modal, 400) + 50);
+}
+
+.pitbull-intro__sr {
+  block-size: 1px;
+  clip-path: inset(50%);
+  inline-size: 1px;
+  margin: 0;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+}
+
+.pitbull-intro__stage {
+  z-index: 1;
+  display: grid;
+  gap: clamp(2px, 1vw, 10px);
+  justify-items: start;
+  max-width: 100%;
+  position: relative;
+  width: min(100%, 60rem);
+}
+
+.pitbull-intro__stage p {
+  margin: 0;
+}
+
+.pitbull-intro__mask {
+  display: block;
+  overflow: clip;
+  padding-block: 0.06em 0.14em;
+  margin-block: -0.06em -0.14em;
+}
+
+.pitbull-intro__mask--unit {
+  align-self: end;
+}
+
+.pitbull-intro__line {
+  display: block;
+}
+
+.pitbull-intro__stage .pitbull-intro__eyebrow {
+  color: var(--meet-muted);
+  font-family: var(--font-display);
+  font-size: clamp(10px, 1.3vw, 12px);
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  margin-bottom: clamp(18px, 4vw, 40px);
+  text-transform: uppercase;
+}
+
+.pitbull-intro__lead {
+  font-family: var(--font-display);
+  font-size: clamp(0.85rem, 2.2vw, 1.3rem);
+  font-weight: 500;
+  letter-spacing: 0.4em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.pitbull-intro__lead::after {
+  background: var(--meet-accent);
+  content: '';
+  display: block;
+  height: 1px;
+  margin-top: clamp(14px, 2.4vw, 24px);
+  width: 3rem;
+}
+
+.pitbull-intro__count {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 clamp(12px, 2.4vw, 32px);
+  line-height: 0.9;
+}
+
+.pitbull-intro__value {
+  color: var(--meet-fg);
+  font-family: var(--font-display);
+  font-size: clamp(5.5rem, min(32vw, 28vh), 17rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 300;
+  letter-spacing: -0.06em;
+  line-height: 0.88;
+}
+
+.pitbull-intro__unit {
+  font-family: var(--font-display);
+  color: var(--meet-muted);
+  font-size: clamp(0.85rem, 2.2vw, 1.3rem);
+  font-weight: 500;
+  letter-spacing: 0.4em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.pitbull-intro__trail {
+  color: var(--meet-muted);
+  font-family: var(--font-display);
+  font-size: clamp(0.8rem, 1.8vw, 1.1rem);
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+/* Barra de discos: el visual central. Cada disco que aterriza suma uno al número. */
+.pitbull-intro__bar {
+  --barbell-h: clamp(5rem, min(20vw, 17vh), 10rem);
+  margin-top: clamp(20px, 4vw, 44px);
+  width: min(100%, 46rem);
+}
+
+.pitbull-intro__skip {
+  background: none;
+  border: 1px solid var(--meet-chip-border);
+  border-radius: 999px;
+  color: var(--meet-fg);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  min-height: 44px;
+  padding: 0 22px;
+  position: absolute;
+  right: clamp(24px, 6vw, 96px);
+  top: max(24px, env(safe-area-inset-top));
+  z-index: 1;
+  text-transform: uppercase;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.pitbull-intro__skip:hover {
+  border-color: var(--meet-accent);
+  color: var(--meet-accent);
+}
+
+.pitbull-intro__skip:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-intro__skip {
+    transition: none;
+  }
+}
+
+/* Telón en dos hojas: se abren hacia los lados al terminar la secuencia. */
+.pitbull-intro__leaf {
+  background: var(--meet-bg);
+  bottom: 0;
+  position: absolute;
+  top: 0;
+  width: 50.3%;
+}
+
+.pitbull-intro__leaf--left {
+  left: 0;
+}
+
+.pitbull-intro__leaf--right {
+  right: 0;
+}
+
+/* Sin telón (tier bajo): la raíz lleva el fondo. */
+.pitbull-intro:not(:has(.pitbull-intro__leaf)) {
+  background: var(--meet-bg);
+}
+
+@keyframes pitbull-intro-push {
+  from {
+    transform: scale(1.035);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+.pitbull-intro__stage[style*='--intro-push'] {
+  animation: pitbull-intro-push var(--intro-push) cubic-bezier(0.25, 0.1, 0.25, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-intro__stage[style*='--intro-push'] {
+    animation: none;
+  }
+}

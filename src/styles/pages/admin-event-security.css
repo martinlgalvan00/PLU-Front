@@ -1,0 +1,667 @@
+/* =============================================
+   EQUIPO DE PUERTA (Zonas y seguridad)
+   Hoja propia de la sección. Una sola composición abierta, sin tarjetas
+   dentro de tarjetas: encabezado, consola de ingreso, alta de personal y
+   listado, separados por filetes. Monocromo: el único acento es el botón
+   que crea los accesos (acción principal).
+   ============================================= */
+
+.admin-event-security {
+  display: grid;
+  gap: var(--space-xl);
+  min-width: 0;
+}
+
+.admin-event-security__head {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  justify-content: space-between;
+}
+
+.admin-event-security__head > .admin-event-security__toggle {
+  white-space: nowrap;
+}
+
+.admin-event-security__head h3 {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.admin-event-security__lead {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 4px 0 0;
+  max-width: 60ch;
+  text-wrap: pretty;
+}
+
+/* ---- Consola de ingreso (se dibuja en el encabezado del tab) ---- */
+
+/* Secundario: el único primario del bloque es la acción de alta (dorado). */
+.admin-event-security__launch {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 999px;
+  color: var(--admin-ink);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 18px;
+  text-decoration: none;
+  transition: background-color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-event-security__launch:hover {
+  background: var(--admin-row-hover);
+}
+
+.admin-event-security__lifecycle-note {
+  align-items: center;
+  color: var(--admin-muted);
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+  margin: 0;
+}
+
+/* ---- Alta de personal ---- */
+
+.security-team-builder {
+  display: grid;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+
+.security-team-builder__head {
+  align-items: flex-start;
+  display: flex;
+  gap: var(--space-md);
+  justify-content: space-between;
+}
+
+.security-team-builder__head > div > span {
+  color: var(--admin-muted);
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.security-team-builder__head h3 {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 1.15rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.security-team-builder__head p {
+  color: var(--admin-muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin: 6px 0 0;
+  max-width: 52ch;
+}
+
+.security-team-builder__count {
+  align-items: center;
+  color: var(--admin-muted);
+  display: inline-flex;
+  flex: none;
+  font-size: 12.5px;
+  gap: 6px;
+}
+
+.security-team-builder__rows {
+  display: grid;
+  gap: 12px;
+}
+
+.security-team-builder__row {
+  align-items: end;
+  display: grid;
+  gap: 12px 16px;
+  grid-template-columns: 24px minmax(0, 1fr) minmax(0, 1.3fr) 40px;
+}
+
+.security-team-builder__index {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  padding-bottom: 12px;
+}
+
+.security-team-builder__row label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.security-team-builder__row label > span {
+  color: var(--admin-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.security-team-builder__row input,
+.security-team-builder__import textarea {
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 10px;
+  color: var(--admin-ink);
+  font: inherit;
+  font-size: 14px;
+  min-height: 44px;
+  padding: 0 14px;
+  width: 100%;
+}
+
+.security-team-builder__import textarea {
+  padding-block: 12px;
+  resize: vertical;
+}
+
+.security-team-builder__row input:focus-visible,
+.security-team-builder__import textarea:focus-visible,
+.security-team-builder__tools button:focus-visible,
+.security-team-builder__remove:focus-visible,
+.security-team-builder__import button:focus-visible,
+.security-team-delivery button:focus-visible,
+.admin-event-security__toggle:focus-visible,
+.admin-event-security__launch:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.security-team-builder__row small,
+.security-team-builder__import small {
+  color: var(--admin-status-danger);
+  font-size: 12px;
+}
+
+.security-team-builder__import small {
+  color: var(--admin-muted);
+}
+
+.security-team-builder__remove {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.security-team-builder__remove:hover:not(:disabled) {
+  background: var(--admin-row-hover);
+  color: var(--admin-status-danger);
+}
+
+.security-team-builder__remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.security-team-builder__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.security-team-builder__tools button,
+.security-team-builder__import button,
+.security-team-delivery__head > button,
+.security-team-delivery__copy-all,
+.security-team-delivery__access button,
+.security-team-delivery__fallback button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 999px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  transition:
+    background-color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    border-color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.security-team-builder__tools button:hover,
+.security-team-builder__import button:hover,
+.security-team-delivery__head > button:hover,
+.security-team-delivery__copy-all:hover,
+.security-team-delivery__access button:hover,
+.security-team-delivery__fallback button:hover {
+  background: var(--admin-row-hover);
+  border-color: var(--admin-ink);
+}
+
+.security-team-builder__import {
+  display: grid;
+  gap: 12px;
+}
+
+.security-team-builder__import label {
+  display: grid;
+  gap: 6px;
+}
+
+.security-team-builder__import label > span {
+  color: var(--admin-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.security-team-builder__import div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.security-team-builder__import p {
+  color: var(--admin-status-danger);
+  font-size: 13px;
+  margin: 0;
+}
+
+/* Envío del acceso por email: una fila con filete, sin caja. */
+.security-team-builder__delivery {
+  align-items: center;
+  border-top: 1px solid var(--admin-hairline);
+  cursor: pointer;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  padding-top: var(--space-md);
+}
+
+.security-team-builder__delivery input {
+  accent-color: var(--admin-ink);
+  height: 18px;
+  margin: 0;
+  width: 18px;
+}
+
+.security-team-builder__delivery-icon {
+  color: var(--admin-muted);
+  display: inline-flex;
+}
+
+.security-team-builder__delivery strong {
+  color: var(--admin-ink);
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.security-team-builder__delivery small {
+  color: var(--admin-muted);
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.security-team-builder__recommended {
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+
+.security-team-builder__submit {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  justify-content: space-between;
+}
+
+.security-team-builder__submit > div {
+  align-items: center;
+  color: var(--admin-muted);
+  display: inline-flex;
+  font-size: 12.5px;
+  gap: 8px;
+}
+
+/* ---- Entrega de accesos (después de crear el equipo) ---- */
+
+.security-team-delivery {
+  border-block: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: var(--space-lg);
+  padding-block: var(--space-lg);
+}
+
+.security-team-delivery__head {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+}
+
+.security-team-delivery__head > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.security-team-delivery__head > div > span {
+  color: var(--admin-muted);
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.security-team-delivery__head h3 {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 1.15rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.security-team-delivery__head p {
+  color: var(--admin-muted);
+  font-size: 13.5px;
+  margin: 6px 0 0;
+}
+
+.security-team-delivery__check {
+  align-items: center;
+  background: var(--admin-status-success);
+  border-radius: 50%;
+  color: var(--admin-canvas);
+  display: inline-flex;
+  flex: none;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.security-team-delivery__list {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.security-team-delivery__list > li {
+  align-items: center;
+  border-top: 1px solid var(--admin-hairline);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  justify-content: space-between;
+  padding: 14px 0;
+}
+
+.security-team-delivery__identity strong {
+  color: var(--admin-ink);
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.security-team-delivery__identity span {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+}
+
+.security-team-delivery__fallback {
+  align-items: center;
+  color: var(--admin-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  gap: 10px;
+}
+
+.security-team-delivery__skipped {
+  color: var(--admin-text-secondary);
+  font-size: 13px;
+}
+
+/* ---- Personal del evento ---- */
+
+.admin-event-security__roster {
+  display: grid;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.admin-event-security__roster-head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.admin-event-security__roster-head > span {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.admin-event-security__roster-head > small {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-event-security__list-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-left: auto;
+}
+
+.admin-event-security__confirm-copy {
+  color: var(--admin-text-secondary);
+  font-size: 13px;
+}
+
+.admin-event-security__list {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-event-security__item {
+  align-items: center;
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 12px 20px;
+  grid-template-columns: minmax(0, 1fr) 200px 104px 88px;
+  padding: 14px 0;
+}
+
+.admin-event-security__zone {
+  color: var(--admin-text-secondary);
+  font-size: 13.5px;
+}
+
+.admin-event-security__zone-select {
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 10px;
+  color: var(--admin-ink);
+  font: inherit;
+  font-size: 13.5px;
+  min-height: 40px;
+  min-width: 0;
+  padding: 0 10px;
+  width: 100%;
+}
+
+/* Sin zona es lo que hay que resolver antes del meet: se marca sin color. */
+.admin-event-security__zone-select.is-unassigned {
+  border-style: dashed;
+  color: var(--admin-muted);
+}
+
+.admin-event-security__zone-select:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-event-security__zone-select:disabled {
+  opacity: 0.6;
+}
+
+.admin-event-security__item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+/* Acciones de fila: contorno fino; la baja se tiñe de rojo solo al pasar. */
+.admin-event-security__toggle {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 999px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 14px;
+  transition:
+    background-color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    border-color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-event-security__toggle:hover:not(:disabled) {
+  background: var(--admin-row-hover);
+  border-color: var(--admin-ink);
+}
+
+.admin-event-security__toggle--danger {
+  color: var(--admin-text-secondary);
+}
+
+/* "Dar de baja a todas" es una salida, no una acción de rutina: sin contorno
+   hasta que se la señala, para no competir con "Agregar personas". */
+.admin-event-security__list-actions > .admin-event-security__toggle--danger:not(:hover) {
+  border-color: transparent;
+}
+
+.admin-event-security__toggle--danger:hover:not(:disabled) {
+  border-color: var(--admin-status-danger);
+  color: var(--admin-status-danger);
+}
+
+.admin-event-security__toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.admin-event-security__empty {
+  align-items: center;
+  color: var(--admin-muted);
+  display: grid;
+  font-size: 13.5px;
+  gap: 6px;
+  justify-items: center;
+  padding: var(--space-xl) 0;
+  text-align: center;
+}
+
+.admin-event-security__empty strong {
+  color: var(--admin-ink);
+  font-size: 15px;
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 960px) {
+  .admin-event-security__item {
+    grid-template-columns: minmax(0, 1fr) 180px 96px 88px;
+  }
+}
+
+@media (max-width: 720px) {
+  .security-team-builder__row {
+    grid-template-columns: 24px minmax(0, 1fr) 40px;
+  }
+
+  .security-team-builder__row label:nth-of-type(2) {
+    grid-column: 2 / -1;
+    grid-row: 2;
+  }
+
+  .security-team-builder__delivery {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .security-team-builder__delivery-icon,
+  .security-team-builder__recommended {
+    display: none;
+  }
+
+  .admin-event-security__item {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-event-security__item > .pill,
+  .admin-event-security__item > [class*='pill'] {
+    justify-self: end;
+  }
+
+  .admin-event-security__zone {
+    grid-column: 1;
+  }
+
+  .admin-event-security__zone-select {
+    grid-column: 1 / -1;
+    min-height: 44px;
+  }
+
+  .admin-event-security__item-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+@media (pointer: coarse) {
+  .admin-event-security__toggle,
+  .security-team-builder__tools button {
+    min-height: 44px;
+  }
+}

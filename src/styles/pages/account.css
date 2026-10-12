@@ -4774,6 +4774,33 @@
 }
 
 /* =============================================
+   AJUSTES (SecuritySection): bloques separados por filete, sin tarjetas
+   ============================================= */
+.account-settings {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.account-settings__block {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 4px;
+  padding-block: 20px 8px;
+}
+
+.account-settings__block h3 {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.account-settings__block .account-security {
+  margin-top: 0;
+}
+
+/* =============================================
    SECURITY SECTION LAYOUT
    ============================================= */
 .account-security {
@@ -4795,21 +4822,21 @@
   grid-template-columns: 1fr;
 }
 
+/* Sesión actual: lista abierta con filete, no una tarjeta dentro de la ficha. */
 .account-security__session {
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 10px;
+  border-top: 1px solid var(--color-border-subtle);
   display: grid;
   gap: 12px;
-  padding: 16px 18px;
+  padding-top: 16px;
 }
 
-.account-security__session h3 {
-  color: var(--color-text-primary);
-  font-size: 13px;
+.account-security__session h4 {
+  color: var(--color-text-muted);
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.08em;
   margin: 0;
+  text-transform: uppercase;
 }
 
 .account-security__session dl {
@@ -4841,8 +4868,14 @@
 
 @media (min-width: 720px) {
   .account-security {
-    gap: 28px;
+    gap: 40px;
     grid-template-columns: minmax(0, 1.35fr) minmax(200px, 0.75fr);
+  }
+
+  .account-security__session {
+    border-left: 1px solid var(--color-border-subtle);
+    border-top: 0;
+    padding: 4px 0 4px 28px;
   }
 
   .account-security__pair {

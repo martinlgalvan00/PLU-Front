@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import EventsSection from '../src/pages/admin/EventsSection.jsx'
 
@@ -168,7 +168,7 @@ describe('EventsSection — meets abiertos en el listado', () => {
 
     const lead = document.querySelector('.admin-event-row--lead')
     expect(lead).not.toBeNull()
-    expect(lead.textContent).toMatch(/Destacado/)
+    expect(lead.textContent).toMatch(/Evento principal/)
     expect(lead.textContent).toMatch(/Pitbull Classic/)
     expect(document.querySelectorAll('.admin-event-row').length).toBe(2)
   })
@@ -194,5 +194,112 @@ describe('EventsSection — meets abiertos en el listado', () => {
       options.find((option) => option.getAttribute('aria-checked') === 'true'
         && /afiliación/i.test(option.textContent))?.textContent,
     ).toContain('Sin afiliación')
+  })
+})
+
+describe('EventsSection — secciones y evento principal', () => {
+  const FINISHED = {
+    ...EVENT,
+    id: 'evt-9',
+    slug: 'copa-verano',
+    title: 'Copa Verano',
+    dateISO: '2026-02-01',
+    status: 'finalizado',
+  }
+
+  it('separa próximos y archivo en pestañas con su conteo', () => {
+    renderEvents({ adminEvents: [EVENT, FINISHED] })
+
+    const views = screen.getByRole('tablist', { name: 'Ver eventos' })
+    expect(within(views).getByRole('tab', { name: /próximos/i }).getAttribute('aria-selected')).toBe(
+      'true',
+    )
+    expect(within(views).getByRole('tab', { name: /archivo/i }).textContent).toMatch(/1/)
+    expect(screen.queryByTitle(/Copa Verano · copa-verano/)).toBeNull()
+
+    fireEvent.click(within(views).getByRole('tab', { name: /archivo/i }))
+    expect(screen.getByTitle(/Copa Verano · copa-verano/)).toBeTruthy()
+    expect(screen.queryByTitle(/Pitbull Classic · pitbull-classic-2026/)).toBeNull()
+    // El archivo no tiene evento principal: no hay nada que fijar.
+    expect(document.querySelector('.admin-event-row--lead')).toBeNull()
+  })
+
+  it('fija un evento como principal con el mismo guardado del editor', async () => {
+    const onSaveEvent = vi.fn(async () => ({ event: EVENT, events: [EVENT, OTHER] }))
+    renderEvents({ adminEvents: [EVENT, OTHER], onSaveEvent })
+
+    const pins = screen.getAllByRole('button', { name: 'Destacar como evento principal' })
+    fireEvent.click(pins[0])
+
+    await vi.waitFor(() => expect(onSaveEvent).toHaveBeenCalledTimes(1))
+    expect(onSaveEvent.mock.calls[0][0]).toMatchObject({ featured: true })
+    await screen.findByText(/quedó como evento principal/i)
+  })
+
+  it('no ofrece fijar sin permiso de edición', () => {
+    renderEvents({ adminEvents: [EVENT], canEdit: false })
+    expect(screen.queryByRole('button', { name: /evento principal/i })).toBeNull()
+  })
+
+  it('Resumen vuelve al resumen desde una pestaña que no es del editor', () => {
+    renderEvents({ onManagePayments: () => {} })
+    const panel = openConsole(/Pitbull Classic · pitbull-classic-2026/)
+    const rail = within(panel).getByRole('tablist', { name: /secciones del evento/i })
+
+    fireEvent.click(within(rail).getByRole('tab', { name: /pagos/i }))
+    expect(panel.querySelector('.admin-event-payments')).not.toBeNull()
+
+    fireEvent.click(within(rail).getByRole('tab', { name: /resumen/i }))
+    expect(
+      within(rail).getByRole('tab', { name: /resumen/i }).getAttribute('aria-selected'),
+    ).toBe('true')
+    expect(panel.querySelector('.admin-event-dashboard')).not.toBeNull()
+  })
+})
+
+describe('EventsSection — precios y logo en la ficha', () => {
+  it('resume qué cobra cada medio mientras se editan las tarifas', () => {
+    const priced = {
+      ...EVENT,
+      pricing: { ...EVENT.pricing, registration: 115000, registrationManual: 100000 },
+    }
+    renderEvents({ adminEvents: [priced] })
+    const panel = openConsole(/Pitbull Classic · pitbull-classic-2026/)
+    const rail = within(panel).getByRole('tablist', { name: /secciones del evento/i })
+
+    fireEvent.click(within(rail).getByRole('tab', { name: /^ventas/i }))
+    const prices = [...panel.querySelectorAll('.admin-event-workspace__chapter')].find((button) =>
+      /Precios/.test(button.textContent),
+    )
+    fireEvent.click(prices)
+
+    const summary = panel.querySelector('.admin-event-form__price-summary')
+    expect(summary.textContent).toMatch(/Mercado Pago cobra.*115\.000.*transferencia y efectivo.*100\.000/)
+    expect(summary.textContent).toMatch(/-13%/)
+  })
+
+  it('ofrece cambiar el logo desde la cabecera y desde Datos solo con permiso', () => {
+    renderEvents({ onSetEventLogo: async () => ({ events: [EVENT] }) })
+    const panel = openConsole(/Pitbull Classic · pitbull-classic-2026/)
+
+    expect(within(panel).getByRole('button', { name: 'Cambiar el logo del evento' })).toBeTruthy()
+    expect(within(panel).getByRole('button', { name: 'Subir imagen' })).toBeTruthy()
+
+    cleanup()
+    renderEvents({ canEdit: false, onSetEventLogo: async () => ({ events: [EVENT] }) })
+    const readOnly = openConsole(/Pitbull Classic · pitbull-classic-2026/)
+    expect(within(readOnly).queryByRole('button', { name: 'Cambiar el logo del evento' })).toBeNull()
+  })
+
+  it('sube el logo y avisa por toast', async () => {
+    const onSetEventLogo = vi.fn(async () => ({ events: [EVENT] }))
+    renderEvents({ onSetEventLogo })
+    const panel = openConsole(/Pitbull Classic · pitbull-classic-2026/)
+
+    const file = new File([new Uint8Array(2048)], 'logo.png', { type: 'image/png' })
+    const input = panel.querySelector('.admin-event-logo--field input[type="file"]')
+    fireEvent.change(input, { target: { files: [file] } })
+
+    await vi.waitFor(() => expect(onSetEventLogo).toHaveBeenCalledWith('pitbull-classic-2026', file))
   })
 })

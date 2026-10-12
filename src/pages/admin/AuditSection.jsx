@@ -1,24 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  ArrowUpRight,
-  CircleAlert,
-  RefreshCw,
-  Route,
-} from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
+import '../../styles/pages/admin-audit-feed.css'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
-import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
+import AdminPageHeader from '../../components/admin/AdminPageHeader.jsx'
 import AdminSavedViews from '../../components/admin/AdminSavedViews.jsx'
-import AuditEventBody from '../../components/admin/AuditEventBody.jsx'
 import AuditEventDialog from '../../components/admin/AuditEventDialog.jsx'
+import AuditFeed from '../../components/admin/AuditFeed.jsx'
+import AuditStatusBand from '../../components/admin/AuditStatusBand.jsx'
+import DetailTabs from '../../components/admin/DetailTabs.jsx'
 import PaymentDiagnosticsPanel from '../../components/admin/PaymentDiagnosticsPanel.jsx'
 import PaymentIntegrityCallout from '../../components/admin/PaymentIntegrityCallout.jsx'
 import PaymentTraceDialog from '../../components/admin/PaymentTraceDialog.jsx'
 import TicketSalesAnalyticsPanel from '../../components/admin/TicketSalesAnalyticsPanel.jsx'
-import { AdminMonoCell } from '../../components/admin/AdminTableCells.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
-import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
 import { auditLabels } from '../../i18n/adminHelpers.js'
 import es from '../../i18n/locales/es.js'
 import { translate } from '../../i18n/translate.js'
@@ -31,6 +27,7 @@ import {
 } from '../../services/auditService.js'
 import { getPaymentOperations } from '../../services/paymentService.js'
 import { buildAuditStatusFilterOptions } from '../../lib/auditFilterHelpers.js'
+import { groupAuditEntriesByDay } from '../../lib/auditFeed.js'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getAuditTourSteps } from '../../lib/adminTourSteps.js'
 
@@ -50,6 +47,9 @@ const TRACEABLE_ENTITY_TYPES = new Set(['athlete_payment_order', 'ticket_order']
  *
  * Es solo lectura, sin acciones de fila: una auditoría que se puede editar
  * desde el panel no sirve como auditoría.
+ *
+ * Orden de lectura: ¿hay algo para resolver? (franja de estado) → ¿qué pasó?
+ * (línea de tiempo por día) → ¿con qué contexto? (detalle del evento).
  */
 
 const PAGE_SIZE = 100
@@ -64,113 +64,8 @@ const EMPTY_OVERVIEW = {
   approvedOrdersWithoutActiveMembership: 0,
 }
 
-function formatDateTime(value) {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleString('es-AR', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function useMatchMedia(query) {
-  const [matches, setMatches] = useState(() =>
-    typeof window !== 'undefined' && window.matchMedia(query).matches,
-  )
-
-  useEffect(() => {
-    const media = window.matchMedia(query)
-    const sync = (event) => setMatches(event.matches)
-    sync(media)
-    media.addEventListener('change', sync)
-    return () => media.removeEventListener('change', sync)
-  }, [query])
-
-  return matches
-}
-
-function useMobileAuditLayout() {
-  return useMatchMedia('(max-width: 768px)')
-}
-
-function useCompactAuditChrome() {
-  return useMatchMedia('(max-width: 1100px), (max-height: 820px)')
-}
-
-function AuditMobileList({
-  emptyMessage,
-  entries,
-  labels,
-  onOpenDetail,
-  onOpenTrace,
-  t,
-}) {
-  if (!entries.length) return <p className="audit-mobile-list__empty">{emptyMessage}</p>
-
-  return (
-    <div className="audit-mobile-list" aria-label={t('admin.audit.mobileListLabel')}>
-      {entries.map((entry) => (
-        <article
-          className={`audit-mobile-entry${isAuditIncidentEntry(entry) ? ' audit-mobile-entry--incident' : ''}`}
-          key={entry.id}
-        >
-          <div className="audit-mobile-entry__head">
-            <div className="audit-mobile-entry__action">
-              <span
-                className={`status-pill status-pill--${entry.tone === 'default' ? 'neutral' : entry.tone}`}
-              >
-                {labels.action(entry.action)}
-              </span>
-              <span>
-                {[labels.source(entry.source), labels.actor(entry.actorType)]
-                  .filter(Boolean)
-                  .filter((label, index, list) => list.indexOf(label) === index)
-                  .join(' · ')}
-              </span>
-            </div>
-            <time dateTime={entry.createdAt}>{formatDateTime(entry.createdAt)}</time>
-          </div>
-
-          <dl className="audit-mobile-entry__facts">
-            <div>
-              <dt>{t('admin.audit.columnEntity')}</dt>
-              <dd>{labels.entity(entry.entityType)}</dd>
-            </div>
-            {entry.actorId ? (
-              <div>
-                <dt>{t('admin.audit.columnActor')}</dt>
-                <dd>{labels.actor(entry.actorType)}</dd>
-              </div>
-            ) : null}
-          </dl>
-
-          <AuditEventBody labels={labels} row={entry} />
-
-          <footer className="audit-mobile-entry__footer">
-            <button
-              type="button"
-              className="audit-mobile-entry__detail"
-              onClick={() => onOpenDetail(entry.id)}
-            >
-              {t('admin.audit.openDetail')}
-              <ArrowUpRight size={16} aria-hidden />
-            </button>
-            {TRACEABLE_ENTITY_TYPES.has(entry.entityType) && entry.entityId ? (
-              <AdminIconButton
-                icon={Route}
-                label={t('admin.paymentTrace.open')}
-                onClick={() => onOpenTrace(entry.entityId)}
-                variant="ghost"
-              />
-            ) : null}
-          </footer>
-        </article>
-      ))}
-    </div>
-  )
+function isTraceableEntry(entry) {
+  return TRACEABLE_ENTITY_TYPES.has(entry.entityType) && Boolean(entry.entityId)
 }
 
 export default function AuditSection({ canEdit = false, ticketEvents = [] }) {
@@ -185,8 +80,6 @@ export default function AuditSection({ canEdit = false, ticketEvents = [] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
   }, [])
 
-  const isMobileLayout = useMobileAuditLayout()
-  const compactChrome = useCompactAuditChrome()
   const [entries, setEntries] = useState([])
   const [facets, setFacets] = useState({
     actions: [],
@@ -214,8 +107,9 @@ export default function AuditSection({ canEdit = false, ticketEvents = [] }) {
   // Recorte del lado del cliente: no hay forma de pedirle al backend "solo
   // errores" (el tono sale de `severity` o de un mapa de acción → tono en el
   // browser, no es una columna filtrable). Se aplica sobre lo ya cargado.
-  const [onlyIncidents, setOnlyIncidents] = useState(false)
-  const [onlyIncidentsTouched, setOnlyIncidentsTouched] = useState(false)
+  // 'all' | 'incidents' (danger + warning + fallidos) | 'critical' (solo danger).
+  const [severity, setSeverity] = useState('all')
+  const [severityTouched, setSeverityTouched] = useState(false)
   const [detailEventId, setDetailEventId] = useState(null)
   const [paymentOps, setPaymentOps] = useState(null)
   // Bitácora / Diagnóstico de cobros / Ventas de entradas: tres lecturas de
@@ -475,92 +369,6 @@ export default function AuditSection({ canEdit = false, ticketEvents = [] }) {
     ],
   )
 
-  const columns = useMemo(
-    () => [
-      {
-        key: 'createdAt',
-        label: t('admin.audit.columnWhen'),
-        // En mobile la hora va arriba a la derecha; la acción lidera la card.
-        mobile: 'badge',
-        className: 'data-table__column--audit-when',
-        render: (row) => (
-          <time className="audit-entry__time" dateTime={row.createdAt}>
-            {formatDateTime(row.createdAt)}
-          </time>
-        ),
-      },
-      {
-        key: 'action',
-        label: t('admin.audit.columnAction'),
-        mobile: 'primary',
-        render: (row) => (
-          <div className="audit-entry__action">
-            <span
-              className={`status-pill status-pill--${row.tone === 'default' ? 'neutral' : row.tone}`}
-            >
-              {actionLabel(row.action)}
-            </span>
-            <small>
-              {[sourceLabel(row.source), row.actorType ? actorLabel(row.actorType) : null]
-                .filter(Boolean)
-                .filter((label, index, list) => list.indexOf(label) === index)
-                .join(' · ')}
-            </small>
-          </div>
-        ),
-      },
-      {
-        key: 'entity',
-        label: t('admin.audit.columnEntity'),
-        mobile: 'hidden',
-        render: (row) => (
-          <div className="audit-entry__entity">
-            <span className="audit-entry__entity-type">{entityLabel(row.entityType)}</span>
-            <span className="audit-id-truncate" title={row.entityId}>
-              <AdminMonoCell>{row.entityId}</AdminMonoCell>
-            </span>
-            {TRACEABLE_ENTITY_TYPES.has(row.entityType) && row.entityId ? (
-              <AdminIconButton
-                icon={Route}
-                label={t('admin.paymentTrace.open')}
-                // La fila entera abre el detalle del evento; sin esto, pedir la
-                // traza de la orden abriría además el diálogo de al lado.
-                onClick={(clickEvent) => {
-                  clickEvent.stopPropagation()
-                  setTraceOrderId(row.entityId)
-                }}
-                variant="ghost"
-              />
-            ) : null}
-          </div>
-        ),
-      },
-      {
-        key: 'actor',
-        label: t('admin.audit.columnActor'),
-        mobile: 'hidden',
-        render: (row) => (
-          <div className="audit-entry__actor">
-            <span className="audit-entry__actor-type">{actorLabel(row.actorType)}</span>
-            {row.actorId ? (
-              <span className="audit-id-truncate" title={row.actorId}>
-                <AdminMonoCell>{row.actorId}</AdminMonoCell>
-              </span>
-            ) : null}
-          </div>
-        ),
-      },
-      {
-        key: 'detail',
-        label: t('admin.audit.columnDetail'),
-        mobile: 'default',
-        className: 'data-table__column--audit-detail',
-        render: (row) => <AuditEventBody labels={labels} row={row} />,
-      },
-    ],
-    [actionLabel, actorLabel, entityLabel, labels, sourceLabel, t],
-  )
-
   const affiliationIncidents =
     overview.activeMembershipsWithoutConfirmation + overview.approvedOrdersWithoutActiveMembership
   // Solo pagos y afiliaciones disparan semántica crítica en UI. Los emails
@@ -579,26 +387,34 @@ export default function AuditSection({ canEdit = false, ticketEvents = [] }) {
   // “Solo errores” recorta lo ya cargado: danger + warning + estados fallidos.
   // El overview (críticas/emails) viene de otra RPC y no garantiza filas en
   // esta página — el toggle no promete ese conteo.
-  const loadedErrorCount = useMemo(
-    () => entries.filter(isAuditIncidentEntry).length,
+  const loadedErrorCount = useMemo(() => entries.filter(isAuditIncidentEntry).length, [entries])
+  const loadedCriticalCount = useMemo(
+    () => entries.filter((entry) => entry.tone === 'danger').length,
     [entries],
   )
-  const displayedEntries = useMemo(
-    () => (onlyIncidents ? entries.filter(isAuditIncidentEntry) : entries),
-    [entries, onlyIncidents],
+  const onlyIncidents = severity !== 'all'
+  const displayedEntries = useMemo(() => {
+    if (severity === 'critical') return entries.filter((entry) => entry.tone === 'danger')
+    if (severity === 'incidents') return entries.filter(isAuditIncidentEntry)
+    return entries
+  }, [entries, severity])
+  const dayGroups = useMemo(() => groupAuditEntriesByDay(displayedEntries), [displayedEntries])
+  const dayLabels = useMemo(
+    () => ({ today: t('admin.audit.dayToday'), yesterday: t('admin.audit.dayYesterday') }),
+    [t],
   )
 
-  function toggleOnlyIncidents() {
-    setOnlyIncidentsTouched(true)
-    setOnlyIncidents((current) => !current)
+  function chooseSeverity(next) {
+    setSeverityTouched(true)
+    setSeverity(next)
   }
 
   useEffect(() => {
-    if (onlyIncidentsTouched || loading || entries.length === 0) return
+    if (severityTouched || loading || entries.length === 0) return
     if (displayStatus === 'attention') {
-      setOnlyIncidents(true)
+      setSeverity('incidents')
     }
-  }, [displayStatus, entries.length, loading, onlyIncidentsTouched])
+  }, [displayStatus, entries.length, loading, severityTouched])
 
   const auditGuide = (
     <details className="audit-flow-guide">
@@ -626,9 +442,9 @@ export default function AuditSection({ canEdit = false, ticketEvents = [] }) {
     </details>
   )
 
-  const healthPillTone =
+  const pillTone =
     displayStatus === 'healthy' ? 'success' : displayStatus === 'attention' ? 'danger' : 'warning'
-  const healthPillLabel =
+  const pillLabel =
     displayStatus === 'healthy'
       ? t('admin.audit.healthHealthy')
       : displayStatus === 'attention'
@@ -659,238 +475,186 @@ export default function AuditSection({ canEdit = false, ticketEvents = [] }) {
         ].join(' · ')
       : undefined
 
-  const health = (
-    <section
-      className={`audit-health-bento audit-health--${displayStatus}`}
-      aria-label={t('admin.audit.healthTitle')}
-      aria-live="polite"
-    >
-      <div className="audit-health__summary">
-        <div className="audit-health__intro">
-          <h3>{t('admin.audit.healthTitle')}</h3>
-          <span className={`status-pill status-pill--${healthPillTone}`}>{healthPillLabel}</span>
-        </div>
-
-        {criticalCount > 0 ? (
-          <p className="audit-health__critical-line" title={affiliationDetailTitle}>
-            {t('admin.audit.healthCriticalLine', { count: criticalCount })}
-            {criticalBreakdown ? (
-              <span className="audit-health__critical-breakdown"> · {criticalBreakdown}</span>
-            ) : null}
-          </p>
-        ) : emailAttentionCount > 0 ? (
-          <p className="audit-health__critical-line audit-health__critical-line--soft">
-            {t('admin.audit.healthEmailLine', { count: emailAttentionCount })}
-          </p>
-        ) : null}
-      </div>
-
-      <details
-        className="audit-health__metrics"
-        {...(compactChrome ? {} : { open: true })}
-      >
-        <summary className="audit-health__metrics-summary">
-          <span className="audit-health__metrics-label">{t('admin.audit.healthEyebrow')}</span>
-          <span className="audit-health__metrics-peek" aria-hidden>
-            <span>{overview.eventsLast24h}</span>
-            <span>{overview.emailsDeliveredLast24h}</span>
-            <span className={emailAttentionCount > 0 ? 'is-soft' : undefined}>
-              {emailAttentionCount}
-            </span>
-            <span className={loadedErrorCount > 0 ? 'is-attention' : undefined}>
-              {loadedErrorCount}
-            </span>
-          </span>
-        </summary>
-        <dl className="audit-health__volume">
-          <div className="audit-health__metric">
-            <dt>{t('admin.audit.healthEvents')}</dt>
-            <dd>{overview.eventsLast24h}</dd>
-          </div>
-
-          <div className="audit-health__metric">
-            <dt>{t('admin.audit.healthDelivered')}</dt>
-            <dd>{overview.emailsDeliveredLast24h}</dd>
-          </div>
-
-          <div className={`audit-health__metric${emailAttentionCount > 0 ? ' is-soft' : ''}`}>
-            <dt>{t('admin.audit.healthEmailsAttention')}</dt>
-            <dd>{emailAttentionCount}</dd>
-          </div>
-
-          <div className={`audit-health__metric${loadedErrorCount > 0 ? ' is-attention' : ''}`}>
-            <dt>{t('admin.audit.onlyIncidents')}</dt>
-            <dd>{loadedErrorCount}</dd>
-          </div>
-        </dl>
-      </details>
-    </section>
-  )
-
-  const auditTabOptions = [
-    ['trail', t('admin.audit.tabTrail')],
-    ['diagnostics', t('admin.audit.tabDiagnostics')],
-    ['sales', t('admin.audit.tabSales')],
+  // El volumen va siempre; lo que pide acción solo aparece cuando hay algo.
+  const bandMetrics = [
+    { id: 'events', label: t('admin.audit.healthEvents'), value: overview.eventsLast24h },
+    {
+      id: 'delivered',
+      label: t('admin.audit.healthDelivered'),
+      value: overview.emailsDeliveredLast24h,
+    },
+    ...(emailAttentionCount > 0
+      ? [
+          {
+            id: 'email-attention',
+            label: t('admin.audit.healthEmailsAttention'),
+            value: emailAttentionCount,
+            soft: true,
+          },
+        ]
+      : []),
   ]
 
-  return (
-    <div className="admin-audit-shell">
-      <header className="admin-list-section__header admin-list-shell__header admin-audit-top">
-        <div className="admin-list-shell__intro">
-          <span className="admin-list-shell__eyebrow">{t('admin.audit.eyebrow')}</span>
-          <h1 className="admin-list-shell__title">{t('admin.audit.title')}</h1>
-          <p className="admin-list-shell__subtitle">{t('admin.audit.subtitle')}</p>
-        </div>
-      </header>
+  const auditTabs = [
+    { id: 'trail', label: t('admin.audit.tabTrail') },
+    { id: 'diagnostics', label: t('admin.audit.tabDiagnostics') },
+    { id: 'sales', label: t('admin.audit.tabSales') },
+  ]
 
-      <div className="admin-audit-top__tabs">
-        <SegmentedSwitch
-          className="segmented-switch--ops"
-          active={activeAuditTab}
-          ariaLabel={t('admin.audit.title')}
+  const emptyMessage =
+    severity === 'critical' && entries.length > 0
+      ? t('admin.audit.criticalEmpty')
+      : onlyIncidents && entries.length > 0
+        ? t('admin.audit.onlyIncidentsEmpty')
+        : t('admin.audit.empty')
+
+  // Severidad: pestañas del riel de la barra. Recorte del lado del cliente sobre
+  // lo ya cargado (ver `displayedEntries`), por eso no viaja al backend.
+  const severityFilter = {
+    id: 'severity',
+    surface: 'rail',
+    label: t('admin.audit.severityGroup'),
+    allLabel: t('admin.audit.severityAll'),
+    value: severity,
+    onChange: chooseSeverity,
+    disabled: entries.length === 0,
+    options: [
+      ['all', t('admin.audit.severityAll'), entries.length],
+      ['incidents', t('admin.audit.onlyIncidents'), loadedErrorCount],
+      ['critical', t('admin.audit.severityCritical'), loadedCriticalCount],
+    ],
+  }
+
+  return (
+    <div className="audit-page">
+      <AdminPageHeader
+        className="audit-page__header"
+        title={t('admin.audit.title')}
+        subtitle={t('admin.audit.subtitle')}
+      />
+
+      <div className="audit-tabs">
+        <DetailTabs
+          tabs={auditTabs}
+          activeTab={activeAuditTab}
           onChange={setActiveAuditTab}
-          options={auditTabOptions}
+          variant="editorial"
+          ariaLabel={t('admin.audit.title')}
         />
+        {activeAuditTab === 'trail' ? auditGuide : null}
       </div>
 
       <div style={{ display: activeAuditTab === 'trail' ? 'block' : 'none' }}>
-      <AdminListSection
-      variant="audit"
-      filteredCount={displayedEntries.length}
-      placeholder={t('admin.audit.searchPlaceholder')}
-      query={query}
-      showHeader={false}
-      showStats={false}
-      totalCount={entries.length}
-      beforeFilters={
-        <>
-          {auditGuide}
-          {health}
-          <PaymentIntegrityCallout
-            health={paymentOps?.summary?.health}
-            blockers={Array.isArray(paymentOps?.blockers) ? paymentOps.blockers : []}
-            t={t}
-            onOpenPayments={() => setActiveAuditTab('diagnostics')}
-          />
-          <AdminSavedViews
-            views={savedViews}
-            activeViewId={activeSavedView?.id ?? null}
-            allLabel={t('admin.savedViews.all')}
-            caption={t('admin.savedViews.caption')}
-            addLabel={t('admin.savedViews.add')}
-            namePlaceholder={t('admin.savedViews.namePlaceholder')}
-            removeAriaLabel={(label) => t('admin.savedViews.remove', { label })}
-            canSave={hasFiltersToSave && !activeSavedView}
-            onApply={applySavedView}
-            onClear={clearSavedView}
-            onSave={(label) => saveView(label, savedViewSnapshot)}
-            onRemove={removeView}
-          />
-        </>
-      }
-      filters={filterOptions}
-      filterActions={
-        <>
-          <button
-            type="button"
-            className={`audit-incidents-toggle${onlyIncidents ? ' is-active' : ''}`}
-            aria-pressed={onlyIncidents}
-            disabled={entries.length === 0}
-            onClick={toggleOnlyIncidents}
-          >
-            <CircleAlert size={14} aria-hidden />
-            {t('admin.audit.onlyIncidents')}
-            {loadedErrorCount > 0 ? (
-              <span className="audit-incidents-toggle__count">{loadedErrorCount}</span>
-            ) : null}
-          </button>
-          <button
-            type="button"
-            className="btn btn--secondary btn--small"
-            onClick={() => void refresh()}
-          >
-            <RefreshCw size={15} aria-hidden />
-            {t('admin.audit.refresh')}
-          </button>
-        </>
-      }
-      onQueryChange={setQuery}
-    >
-      {error ? (
-        <ErrorState
-          title={t('admin.audit.loadErrorTitle')}
-          message={error}
-          onRetry={() => void refresh()}
+        <AuditStatusBand
+          breakdown={criticalBreakdown}
+          criticalCount={criticalCount}
+          detailTitle={affiliationDetailTitle}
+          displayStatus={displayStatus}
+          emailAttentionCount={emailAttentionCount}
+          metrics={bandMetrics}
+          pillLabel={pillLabel}
+          pillTone={pillTone}
+          t={t}
         />
-      ) : null}
-
-      {loading ? (
-        <LoadingState label={t('admin.audit.loading')} />
-      ) : (
-        <>
-          {isMobileLayout ? (
-            <AuditMobileList
-              emptyMessage={
-                onlyIncidents && entries.length > 0
-                  ? t('admin.audit.onlyIncidentsEmpty')
-                  : t('admin.audit.empty')
-              }
-              entries={displayedEntries}
-              labels={labels}
-              onOpenDetail={setDetailEventId}
-              onOpenTrace={setTraceOrderId}
-              t={t}
+        <PaymentIntegrityCallout
+          health={paymentOps?.summary?.health}
+          blockers={Array.isArray(paymentOps?.blockers) ? paymentOps.blockers : []}
+          t={t}
+          onOpenPayments={() => setActiveAuditTab('diagnostics')}
+        />
+        <AdminListSection
+          variant="audit"
+          filteredCount={displayedEntries.length}
+          placeholder={t('admin.audit.searchPlaceholder')}
+          query={query}
+          showHeader={false}
+          showStats={false}
+          totalCount={entries.length}
+          filterLayout="toolbar"
+          beforeFilters={
+            <>
+              <AdminSavedViews
+                views={savedViews}
+                activeViewId={activeSavedView?.id ?? null}
+                allLabel={t('admin.savedViews.all')}
+                caption={t('admin.savedViews.caption')}
+                addLabel={t('admin.savedViews.add')}
+                namePlaceholder={t('admin.savedViews.namePlaceholder')}
+                removeAriaLabel={(label) => t('admin.savedViews.remove', { label })}
+                canSave={hasFiltersToSave && !activeSavedView}
+                onApply={applySavedView}
+                onClear={clearSavedView}
+                onSave={(label) => saveView(label, savedViewSnapshot)}
+                onRemove={removeView}
+              />
+            </>
+          }
+          filters={[severityFilter, ...filterOptions]}
+          filterActions={
+            <>
+              <AdminIconButton
+                icon={RefreshCw}
+                label={t('admin.audit.refresh')}
+                onClick={() => void refresh()}
+                variant="ghost"
+              />
+            </>
+          }
+          onQueryChange={setQuery}
+        >
+          {error ? (
+            <ErrorState
+              title={t('admin.audit.loadErrorTitle')}
+              message={error}
+              onRetry={() => void refresh()}
             />
-          ) : (
-            <AdminDataTable
-              className="admin-data-table--audit audit-desktop-table"
-              columns={columns}
-              rows={displayedEntries}
-              pagination={false}
-              rowClassName={(row) =>
-                row.tone === 'danger'
-                  ? 'data-table__row--audit-incident data-table__row--audit-danger'
-                  : row.tone === 'warning'
-                    ? 'data-table__row--audit-incident data-table__row--audit-warning'
-                    : ''
-              }
-              emptyMessage={
-                onlyIncidents && entries.length > 0
-                  ? t('admin.audit.onlyIncidentsEmpty')
-                  : t('admin.audit.empty')
-              }
-              // Toda la fila abre el detalle: el error completo, el stack y lo que
-              // la persona venía haciendo antes. La celda mostraba el mensaje y
-              // nada más, y el resto había que ir a buscarlo a la base.
-              onRowClick={(row) => setDetailEventId(row.id)}
-            />
-          )}
-          {cursor ? (
-            <div className="audit-loadmore">
-              <button
-                type="button"
-                className="btn btn--secondary"
-                disabled={loadingMore}
-                onClick={loadMore}
-              >
-                {loadingMore ? t('admin.audit.loadingMore') : t('admin.audit.loadMore')}
-              </button>
-            </div>
           ) : null}
-        </>
-      )}
 
-      {detailEventId ? (
-        <AuditEventDialog eventId={detailEventId} onClose={() => setDetailEventId(null)} />
-      ) : null}
+          {loading ? (
+            <LoadingState label={t('admin.audit.loading')} />
+          ) : (
+            <>
+              {dayGroups.length === 0 ? (
+                <p className="audit-feed__empty">{emptyMessage}</p>
+              ) : (
+                <AuditFeed
+                  dayLabels={dayLabels}
+                  groups={dayGroups}
+                  isTraceable={isTraceableEntry}
+                  labels={labels}
+                  onOpenDetail={setDetailEventId}
+                  onOpenTrace={setTraceOrderId}
+                  t={t}
+                />
+              )}
+              {cursor ? (
+                <div className="audit-loadmore">
+                  <button
+                    type="button"
+                    className="btn btn--outline btn--small"
+                    disabled={loadingMore}
+                    onClick={loadMore}
+                  >
+                    {loadingMore ? t('admin.audit.loadingMore') : t('admin.audit.loadMore')}
+                  </button>
+                </div>
+              ) : null}
+            </>
+          )}
 
-      {traceOrderId ? (
-        <PaymentTraceDialog orderId={traceOrderId} onClose={() => setTraceOrderId(null)} />
-      ) : null}
-      </AdminListSection>
+          {detailEventId ? (
+            <AuditEventDialog eventId={detailEventId} onClose={() => setDetailEventId(null)} />
+          ) : null}
+
+          {traceOrderId ? (
+            <PaymentTraceDialog orderId={traceOrderId} onClose={() => setTraceOrderId(null)} />
+          ) : null}
+        </AdminListSection>
       </div>
 
-      {activeAuditTab === 'diagnostics' ? <PaymentDiagnosticsPanel canEdit={canEdit} t={t} /> : null}
+      {activeAuditTab === 'diagnostics' ? (
+        <PaymentDiagnosticsPanel canEdit={canEdit} t={t} />
+      ) : null}
 
       {activeAuditTab === 'sales' ? <TicketSalesAnalyticsPanel events={ticketEvents} /> : null}
     </div>

@@ -40,7 +40,7 @@ describe('AccountNav', () => {
     expect(screen.getByRole('tablist')).toBeTruthy()
     expect(screen.getByRole('tab', { name: 'Credencial' })).toBeTruthy()
     expect(screen.getByRole('tab', { name: 'Mis datos' }).getAttribute('aria-selected')).toBe('true')
-    expect(screen.getByRole('tab', { name: 'Seguridad' }).getAttribute('aria-selected')).toBe('false')
+    expect(screen.getByRole('tab', { name: 'Ajustes' }).getAttribute('aria-selected')).toBe('false')
   })
 
   it('cambia de sección al elegir otro tab', () => {

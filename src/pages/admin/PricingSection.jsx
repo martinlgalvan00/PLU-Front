@@ -1305,31 +1305,39 @@ export default function PricingSection({
                   </button>
                   <button
                     type="button"
-                    className="admin-pricing__btn admin-pricing__btn--quiet"
+                    className={`admin-pricing__btn admin-pricing__btn--quiet${
+                      plan.retiredAt ? '' : ' admin-pricing__btn--icon'
+                    }`}
                     onClick={() => openRetirementEditor(plan)}
                     disabled={locked}
+                    title={plan.retiredAt ? undefined : t('admin.sections.pricing.scheduleRetirement')}
                   >
                     <CalendarOff size={14} aria-hidden />
-                    {plan.retiredAt
-                      ? t('admin.sections.pricing.retiresOn', {
-                          date: new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(
-                            new Date(plan.retiredAt),
-                          ),
-                        })
-                      : t('admin.sections.pricing.scheduleRetirement')}
+                    <span className="admin-pricing__btn-label">
+                      {plan.retiredAt
+                        ? t('admin.sections.pricing.retiresOn', {
+                            date: new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(
+                              new Date(plan.retiredAt),
+                            ),
+                          })
+                        : t('admin.sections.pricing.scheduleRetirement')}
+                    </span>
                   </button>
                   <button
                     type="button"
-                    className="admin-pricing__btn admin-pricing__btn--quiet"
+                    className="admin-pricing__btn admin-pricing__btn--quiet admin-pricing__btn--icon"
                     onClick={() => openPlanForm(plan)}
                     disabled={locked || pendingAction === `delete:${plan.id}`}
+                    title={t('admin.sections.pricing.newVersion')}
                   >
                     <Pencil size={14} aria-hidden />
-                    {t('admin.sections.pricing.newVersion')}
+                    <span className="admin-pricing__btn-label">
+                      {t('admin.sections.pricing.newVersion')}
+                    </span>
                   </button>
                   <button
                     type="button"
-                    className="admin-pricing__btn admin-pricing__btn--quiet is-danger"
+                    className="admin-pricing__btn admin-pricing__btn--quiet admin-pricing__btn--icon is-danger"
                     onClick={() => {
                       setPlanToDelete(plan)
                       setDeleteError('')
@@ -1337,9 +1345,12 @@ export default function PricingSection({
                     }}
                     disabled={locked || pendingAction === plan.id}
                     aria-label={t('admin.sections.pricing.deletePlanAria', { name: plan.name })}
+                    title={t('admin.sections.pricing.deletePlan')}
                   >
                     <Trash2 size={14} aria-hidden />
-                    {t('admin.sections.pricing.deletePlan')}
+                    <span className="admin-pricing__btn-label">
+                      {t('admin.sections.pricing.deletePlan')}
+                    </span>
                   </button>
                   <label
                     className={`admin-pricing__switch${plan.active ? ' is-active' : ' is-cancelled'}`.trim()}
@@ -2118,25 +2129,31 @@ export default function PricingSection({
                       codifica pelado para el botón de escaneo de los checkouts. */}
                   <button
                     type="button"
-                    className="admin-pricing__btn admin-pricing__btn--quiet"
+                    className="admin-pricing__btn admin-pricing__btn--quiet admin-pricing__btn--icon"
                     onClick={() => downloadPromotionQr(code)}
+                    title={t('admin.sections.pricing.downloadPromotionQr')}
                   >
                     <QrCode size={14} aria-hidden />
-                    {downloadedQrCodeId === code.id
-                      ? t('admin.sections.pricing.promotionQrDownloaded')
-                      : t('admin.sections.pricing.downloadPromotionQr')}
+                    <span className="admin-pricing__btn-label">
+                      {downloadedQrCodeId === code.id
+                        ? t('admin.sections.pricing.promotionQrDownloaded')
+                        : t('admin.sections.pricing.downloadPromotionQr')}
+                    </span>
                   </button>
                   {onSimulatePromotionCode ? (
                     <button
                       type="button"
-                      className="admin-pricing__btn admin-pricing__btn--quiet"
+                      className="admin-pricing__btn admin-pricing__btn--quiet admin-pricing__btn--icon"
                       onClick={() => simulatePromotion(code)}
                       disabled={simulationState.loading && simulationState.id === code.id}
+                      title={t('admin.sections.pricing.simulatePromotion')}
                     >
                       <FlaskConical size={14} aria-hidden />
-                      {simulationState.loading && simulationState.id === code.id
-                        ? t('admin.sections.pricing.simulatingPromotion')
-                        : t('admin.sections.pricing.simulatePromotion')}
+                      <span className="admin-pricing__btn-label">
+                        {simulationState.loading && simulationState.id === code.id
+                          ? t('admin.sections.pricing.simulatingPromotion')
+                          : t('admin.sections.pricing.simulatePromotion')}
+                      </span>
                     </button>
                   ) : null}
                   {/* Solo con canjes: un historial vacío no responde nada. */}
@@ -2167,7 +2184,8 @@ export default function PricingSection({
                   </button>
                   <button
                     type="button"
-                    className="admin-pricing__btn admin-pricing__btn--quiet is-danger"
+                    className="admin-pricing__btn admin-pricing__btn--quiet admin-pricing__btn--icon is-danger"
+                    title={t('admin.sections.pricing.deleteDiscountCode')}
                     onClick={() => {
                       setCodeToDelete(code)
                       setCodeDeleteError('')
@@ -2179,7 +2197,9 @@ export default function PricingSection({
                     })}
                   >
                     <Trash2 size={14} aria-hidden />
-                    {t('admin.sections.pricing.deleteDiscountCode')}
+                    <span className="admin-pricing__btn-label">
+                      {t('admin.sections.pricing.deleteDiscountCode')}
+                    </span>
                   </button>
                 </div>
 

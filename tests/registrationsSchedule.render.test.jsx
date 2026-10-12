@@ -130,8 +130,9 @@ describe('filtros de evento en Inscripciones', () => {
         }),
       ],
     })
-    // Los eventos van como chips etiquetados en el rail, no detrás de un pill
-    // "Evento": con dos meets se elige en un toque.
+    // Los eventos van como opciones etiquetadas dentro de «Filtros»: con dos
+    // meets se elige en un toque, sin listas con scroll.
+    fireEvent.click(screen.getByRole('button', { name: /^Filtros/ }))
     expect(screen.getByRole('group', { name: /^evento$/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /pitbull classic/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /copa invierno/i })).toBeTruthy()

@@ -12,7 +12,7 @@
 
 .staff-application-page .staff-application-page__inner {
   margin: 0 auto;
-  max-width: var(--institution-content-max, 860px);
+  max-width: var(--institution-content-max, 1200px);
   padding: clamp(40px, 6vw, 80px) var(--institution-gutter, clamp(18px, 4.6vw, 64px))
     clamp(64px, 8vw, 104px);
 }
@@ -222,6 +222,61 @@
   .staff-application__file-drop,
   .staff-application-form__submit,
   .staff-application-form__login-gate-actions button {
+    transition: none;
+  }
+}
+
+/* Layout: riel (credencial + pasos) a la izquierda, formulario a la derecha. */
+.staff-application-layout {
+  align-items: start;
+  display: grid;
+  gap: clamp(24px, 5vw, 80px);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.staff-application-form__index {
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 28%, transparent);
+  border-radius: 50%;
+  display: inline-grid;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  height: 26px;
+  letter-spacing: 0.04em;
+  margin-right: 12px;
+  place-items: center;
+  transition:
+    background-color var(--motion-base) var(--ease-out),
+    border-color var(--motion-base) var(--ease-out);
+  vertical-align: middle;
+  width: 26px;
+}
+
+.staff-application-form__section[data-state='done'] .staff-application-form__index {
+  background: var(--color-brand-gold);
+  border-color: var(--color-brand-gold);
+  color: var(--plu-cool-950, #0b0d12);
+}
+
+.staff-application-form__section {
+  scroll-margin-top: calc(var(--header-height-scrolled, 52px) + 72px);
+}
+
+@media (min-width: 900px) {
+  .staff-application-layout {
+    grid-template-columns: minmax(260px, 0.7fr) minmax(0, 1.5fr);
+  }
+
+  .staff-application-layout > .staff-rail {
+    position: sticky;
+    top: calc(var(--header-height, 72px) + 28px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .staff-application-form__index {
     transition: none;
   }
 }

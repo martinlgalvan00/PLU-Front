@@ -3,12 +3,13 @@ import '../styles/pages/members.css'
 import '../styles/layout/design-page-notebook.css'
 import '../styles/pages/members-sections.css'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowRight, CalendarClock, RefreshCw } from 'lucide-react'
+import { ArrowRight, CalendarClock, Check, RefreshCw } from 'lucide-react'
 import { m } from 'motion/react'
 import FAQAccordion from '../components/ui/FAQAccordion.jsx'
 import FeatureComingSoon from '../components/ui/FeatureComingSoon.jsx'
 import MembersBlockHead from '../components/ui/MembersBlockHead.jsx'
 import MembersPluHero from '../components/ui/MembersPluHero.jsx'
+import MembersProcessSteps from '../components/ui/MembersProcessSteps.jsx'
 import MembersRequirementsCarousel from '../components/ui/MembersRequirementsCarousel.jsx'
 import MembershipCard from '../components/ui/MembershipCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
@@ -19,6 +20,7 @@ import { FEATURE_KEYS, isFeatureEnabled } from '../lib/featureAvailability.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { PRICING } from '../lib/constants.js'
+import { money } from '../lib/format.js'
 import { getFeaturedEvent, getPitbullClassicEvent } from '../lib/eventNavigation.js'
 import { resolveEventPricing, resolveLiveComboOffer } from '../lib/eventPricing.js'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
@@ -61,7 +63,7 @@ export default function MembersPage({
     MEMBERSHIP_INSTITUTIONAL,
     MEMBERSHIP_REQUIREMENTS,
   } = useContent()
-  const { messages, t } = useI18n()
+  const { locale, messages, t } = useI18n()
   const { reducedMotion } = useMotionConfig()
   const [livePlans, setLivePlans] = useState([])
   const [plansLoaded, setPlansLoaded] = useState(false)
@@ -364,15 +366,23 @@ export default function MembersPage({
                 ) : null}
               </div>
 
-              <p className="members-plu-offer__terms">
-                <span className="members-plu-offer__terms-label">
-                  {t('pages.members.validityTitle')}
-                </span>
-                <span className="members-plu-offer__terms-text">
-                  {t('pages.members.validityText')}
-                  {validityNotes.length ? ` · ${validityNotes.join(' · ')}` : ''}
-                </span>
-              </p>
+              {/* Condiciones del plan: cada dato en su columna en vez de un párrafo
+                  corrido separado por puntos. */}
+              <div className="members-plu-offer__terms">
+                <p className="members-plu-offer__term">
+                  <span className="members-plu-offer__terms-label">
+                    {t('pages.members.validityTitle')}
+                  </span>
+                  <span className="members-plu-offer__terms-text">
+                    {t('pages.members.validityText')}
+                  </span>
+                </p>
+                {validityNotes.map((note) => (
+                  <p key={note} className="members-plu-offer__term">
+                    <span className="members-plu-offer__terms-text">{note}</span>
+                  </p>
+                ))}
+              </div>
             </div>
 
             <div className="members-plu-offer__includes">
@@ -384,16 +394,14 @@ export default function MembersPage({
                 aria-labelledby="members-includes-title"
                 {...railListProps}
               >
-                {MEMBERSHIP_BENEFITS.map((benefit, index) => (
+                {MEMBERSHIP_BENEFITS.map((benefit) => (
                   <RailItem
                     key={benefit.id}
                     className="members-plu-offer__item"
                     aria-label={`${benefit.title}. ${benefit.text}`}
                     {...railItemProps}
                   >
-                    <span className="members-plu-offer__index" aria-hidden>
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
+                    <Check size={15} strokeWidth={2} aria-hidden className="members-plu-offer__check" />
                     <span className="members-plu-offer__item-title">{benefit.title}</span>
                   </RailItem>
                 ))}
@@ -450,17 +458,11 @@ export default function MembersPage({
                 </h2>
                 <p className="members-guide__lead">{t('pages.members.processLead')}</p>
               </header>
-              <ol className="members-guide__list" aria-label={t('pages.members.processAria')}>
-                {MEMBERSHIP_ANNUAL_STEPS.map((step, index) => (
-                  <li key={step.step ?? step.title} className="members-guide__item">
-                    <span className="members-guide__index" aria-hidden>
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
-                    <h3 className="members-guide__item-title">{step.title}</h3>
-                    <p className="members-guide__item-text">{step.text}</p>
-                  </li>
-                ))}
-              </ol>
+              <MembersProcessSteps
+                steps={MEMBERSHIP_ANNUAL_STEPS}
+                ariaLabel={t('pages.members.processAria')}
+                price={visiblePlans[0]?.price ? money(visiblePlans[0].price, locale) : undefined}
+              />
             </div>
           </div>
 

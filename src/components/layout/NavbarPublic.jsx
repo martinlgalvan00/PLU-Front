@@ -32,6 +32,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER } from '../../motion/tokens.ts'
 import BrandLogo from '../ui/BrandLogo.jsx'
+import PluGlassMark from '../ui/PluGlassMark.jsx'
 import LanguageToggle from '../ui/LanguageToggle.jsx'
 import ThemeToggle from '../ui/ThemeToggle.jsx'
 
@@ -1159,7 +1160,11 @@ export default function NavbarPublic({
               }}
             >
               <div className="plu-notice-menu__header">
-                <p className="plu-notice-menu__eyebrow">{t('nav.notices')}</p>
+                <PluGlassMark className="plu-notice-menu__mark" size={34} />
+                <div className="plu-notice-menu__heading">
+                  <p className="plu-notice-menu__eyebrow">{t('nav.notices')}</p>
+                  <p className="plu-notice-menu__org">{t('brand.fullName')}</p>
+                </div>
               </div>
               <div className="plu-notice-menu__body">
                 {profileNotice ? (

@@ -33,7 +33,7 @@ function formatDate(value, locale) {
  * a la fila real (ej. cambiar de tab y pasar `highlightOrderId`), pero el
  * buscador no asume dónde ni cómo se monta.
  */
-export default function PaymentOrderSearch({ onSelectResult }) {
+export default function PaymentOrderSearch({ onSelectResult, autoFocus = false }) {
   const { locale, t } = useI18n()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState(null)
@@ -93,7 +93,6 @@ export default function PaymentOrderSearch({ onSelectResult }) {
     >
       <header className="admin-orders-block__header">
         <div>
-          <span className="admin-orders-block__eyebrow">{t('admin.paymentSearch.eyebrow')}</span>
           <h3 className="admin-orders-block__title">{t('admin.paymentSearch.title')}</h3>
           <p className="admin-orders-block__lead">{t('admin.paymentSearch.subtitle')}</p>
         </div>
@@ -104,6 +103,7 @@ export default function PaymentOrderSearch({ onSelectResult }) {
           placeholder={t('admin.paymentSearch.placeholder')}
           query={query}
           onQueryChange={setQuery}
+          autoFocus={autoFocus}
         />
       </div>
 

@@ -26,6 +26,7 @@ import { METRIC_LABEL_KEYS } from '../../i18n/adminHelpers.js'
 import { getStatusMeta } from '../../lib/status.js'
 import { selectBreakdownLegendItems } from '../../lib/adminOpsBreakdown.js'
 import { formatDayMonth, formatShortMemberCode, initials, money } from '../../lib/format.js'
+import '../../styles/pages/admin-ops-board.css'
 
 const QUEUE_PREVIEW_LIMIT = 6
 
@@ -172,35 +173,16 @@ function BreakdownPanel({ breakdowns, onNavigate, getLabel, locale, t }) {
 }
 
 function BreakdownRow({ title, total, items, section, onNavigate, getLabel, locale, t }) {
-  const { activeItems, visibleItems, hiddenItems } = selectBreakdownLegendItems(items)
+  // Sin barra: cada estado es una línea (punto + nombre + cifra). Una lista
+  // se escanea más rápido que un segmento de color, y las cifras son exactas.
+  const { activeItems } = selectBreakdownLegendItems(items)
   const isEmpty = activeItems.length === 0
-  const chartTotal = Math.max(
-    total,
-    activeItems.reduce((sum, item) => sum + item.value, 0),
-    1,
-  )
   const totalLabel = t('admin.dashboard.chartTotal', { count: total })
-  const segmentSummary = !isEmpty
-    ? activeItems
-        .map((item) => {
-          const percent = Math.round((item.value / chartTotal) * 100)
-          return `${getLabel(item)} ${item.value} (${percent}%)`
-        })
-        .join(', ')
-    : t('admin.dashboard.breakdownEmpty')
-  const stackLabel = `${title}: ${totalLabel}. ${segmentSummary}`
-  const hiddenSummary =
-    hiddenItems.length > 0
-      ? hiddenItems.map((item) => `${getLabel(item)}: ${item.value}`).join(', ')
-      : ''
 
   return (
     <li className={`admin-ops__mix-row${isEmpty ? ' admin-ops__mix-row--empty' : ''}`}>
       <div className="admin-ops__mix-head">
         <h4>{title}</h4>
-        <strong className="admin-ops__mix-total" aria-label={totalLabel}>
-          {total}
-        </strong>
         <button
           type="button"
           className="admin-ops__mix-open"
@@ -211,24 +193,13 @@ function BreakdownRow({ title, total, items, section, onNavigate, getLabel, loca
         </button>
       </div>
 
-      <div className="admin-ops__stack" role="img" aria-label={stackLabel}>
-        {!isEmpty ? (
-          activeItems.map((item) => (
-            <span
-              key={item.status}
-              className={`admin-ops__stack-seg admin-ops__stack-seg--${item.tone}`}
-              style={{ width: `${Math.max((item.value / chartTotal) * 100, 2)}%` }}
-              title={`${getLabel(item)}: ${item.value}`}
-            />
-          ))
-        ) : (
-          <span className="admin-ops__stack-seg admin-ops__stack-seg--empty" />
-        )}
-      </div>
+      <strong className="admin-ops__mix-total" aria-label={totalLabel}>
+        {total}
+      </strong>
 
       {!isEmpty ? (
         <ul className="admin-ops__legend">
-          {visibleItems.map((item) => {
+          {activeItems.map((item) => {
             const showAmount =
               typeof item.amount === 'number' &&
               item.amount > 0 &&
@@ -236,12 +207,10 @@ function BreakdownRow({ title, total, items, section, onNavigate, getLabel, loca
             return (
               <li
                 key={item.status}
-                className={`admin-ops__legend-item admin-ops__legend-item--${item.tone}${
-                  showAmount ? ' admin-ops__legend-item--with-amount' : ''
-                }`}
+                className={`admin-ops__legend-item admin-ops__legend-item--${item.tone}`}
               >
                 <span className="admin-ops__legend-line">
-                  <span>{getLabel(item)}</span>
+                  <span className="admin-ops__legend-label">{getLabel(item)}</span>
                   <strong>{item.value}</strong>
                 </span>
                 {showAmount ? (
@@ -250,11 +219,6 @@ function BreakdownRow({ title, total, items, section, onNavigate, getLabel, loca
               </li>
             )
           })}
-          {hiddenItems.length > 0 ? (
-            <li className="admin-ops__legend-item admin-ops__legend-item--more">
-              <span title={hiddenSummary}>+{hiddenItems.length}</span>
-            </li>
-          ) : null}
         </ul>
       ) : (
         <p className="admin-ops__chart-empty">{t('admin.dashboard.breakdownEmpty')}</p>
@@ -308,12 +272,12 @@ function SpotlightInline({ event, locale, onNavigate, t }) {
         ) : null}
       </div>
       <div className="admin-ops__spotlight-meter" aria-label={t('admin.dashboard.slots')}>
-        <div className="admin-ops__spotlight-bar">
-          <span style={{ width: `${fillPercent}%` }} />
-        </div>
-        <span>
-          {event.registered}/{event.slots} · {fillPercent}%
-        </span>
+        <p className="admin-ops__spotlight-figure">
+          <strong>{event.registered}</strong>
+          <span>
+            / {event.slots} · {fillPercent}%
+          </span>
+        </p>
         <span className={`admin-ops__spotlight-status admin-ops__spotlight-status--${tone}`}>
           {statusLabel}
         </span>
@@ -973,10 +937,6 @@ export default function DashboardSection({
   const workFigureLabel = hasQueue
     ? t(workCount === 1 ? 'admin.dashboard.queueFigureOne' : 'admin.dashboard.queueFigure')
     : t(workCount === 1 ? 'admin.dashboard.queueFigurePaymentOne' : 'admin.dashboard.queueFigurePayments')
-  const collectedShare =
-    finance.totalAmount > 0 ? (finance.collectedAmount / finance.totalAmount) * 100 : 0
-  const pendingShare =
-    finance.totalAmount > 0 ? (finance.pendingAmount / finance.totalAmount) * 100 : 0
 
   function breakdownLabel(item) {
     if (item.status === 'expiringSoon') return t('admin.metrics.expiringSoon')
@@ -1175,29 +1135,11 @@ export default function DashboardSection({
                     </strong>
                   </div>
 
-                  <div className="admin-ops__finance-rate">
-                    <div
-                      className="admin-ops__finance-rail"
-                      role="img"
-                      aria-label={`${t('admin.dashboard.financeRate')}: ${finance.collectionRate}%`}
-                    >
-                      <span
-                        className="admin-ops__finance-rail-seg admin-ops__finance-rail-seg--collected"
-                        style={{ width: `${collectedShare}%` }}
-                      />
-                      {pendingShare > 0 ? (
-                        <span
-                          className="admin-ops__finance-rail-seg admin-ops__finance-rail-seg--pending"
-                          style={{ width: `${Math.max(pendingShare, 1)}%` }}
-                        />
-                      ) : null}
-                    </div>
-                    <p className="admin-ops__finance-rate-copy" aria-hidden>
-                      <strong>{finance.collectionRate}%</strong> {t('admin.dashboard.financeRate')}
-                    </p>
-                  </div>
-
                   <dl className="admin-ops__finance-metrics">
+                    <div className="admin-ops__finance-metric">
+                      <dt>{t('admin.dashboard.financeRate')}</dt>
+                      <dd>{finance.collectionRate}%</dd>
+                    </div>
                     <div className="admin-ops__finance-metric admin-ops__finance-metric--pending">
                       <dt>{t('admin.dashboard.financePending')}</dt>
                       <dd>{money(finance.pendingAmount, locale)}</dd>
@@ -1260,9 +1202,6 @@ export default function DashboardSection({
                           <span className="admin-ops__leaderboard-pct">{event.fillPercent}%</span>
                         </span>
                       </div>
-                      <span className="admin-ops__leaderboard-bar" aria-hidden>
-                        <span style={{ width: `${event.fillPercent}%` }} />
-                      </span>
                     </li>
                   )}
                 />
@@ -1274,8 +1213,6 @@ export default function DashboardSection({
                   onNavigate={onNavigate}
                   t={t}
                   renderItem={(gym, index) => {
-                    const peak = Math.max(topGyms.items[0]?.count ?? 1, 1)
-                    const share = Math.round((gym.count / peak) * 100)
                     return (
                       <li
                         key={gym.gym}
@@ -1286,9 +1223,6 @@ export default function DashboardSection({
                           <span className="admin-ops__leaderboard-title">{gym.gym}</span>
                           <span className="admin-ops__leaderboard-value">{gym.count}</span>
                         </div>
-                        <span className="admin-ops__leaderboard-bar" aria-hidden>
-                          <span style={{ width: `${share}%` }} />
-                        </span>
                       </li>
                     )
                   }}

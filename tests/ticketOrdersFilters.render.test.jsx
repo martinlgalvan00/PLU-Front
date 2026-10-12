@@ -161,7 +161,9 @@ describe('TicketOrdersSection · filtros', () => {
     await waitFor(() => expect(listTicketOrders).toHaveBeenCalledTimes(1))
 
     listTicketOrders.mockResolvedValue({ orders: [order()], counts: countsFixture() })
-    fireEvent.click(screen.getByRole('button', { name: /^efectivo$/i }))
+    fireEvent.change(screen.getByRole('combobox', { name: /^canal$/i }), {
+      target: { value: 'cash_pitbull' },
+    })
 
     await waitFor(() => expect(listTicketOrders).toHaveBeenCalledTimes(2))
     expect(listTicketOrders.mock.calls.at(-1)[0].channel).toBe('cash_pitbull')
@@ -201,7 +203,9 @@ describe('TicketOrdersSection · filtros', () => {
     await waitFor(() => expect(listTicketOrders).toHaveBeenCalledTimes(1))
 
     listTicketOrders.mockResolvedValue({ orders: [], counts: countsFixture({ pending: 1, all: 1 }) })
-    fireEvent.click(screen.getByRole('button', { name: /^wise$/i }))
+    fireEvent.change(screen.getByRole('combobox', { name: /^canal$/i }), {
+      target: { value: 'wise_transfer' },
+    })
     await waitFor(() => expect(listTicketOrders).toHaveBeenCalledTimes(2))
 
     expect(screen.getByText('Ninguna orden coincide con estos filtros.')).toBeTruthy()

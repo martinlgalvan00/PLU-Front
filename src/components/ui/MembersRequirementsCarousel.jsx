@@ -3,9 +3,12 @@ import { m } from 'motion/react'
 import { Camera, HeartPulse, IdCard, UserRound } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
+import ScrollRail from '../../motion/ScrollRail.tsx'
 import TiltCard from '../../motion/TiltCard.tsx'
 import { MOTION_VIEWPORT } from '../../motion/tokens.ts'
+import { useStepBand } from '../../motion/useStepBand.ts'
 import { staggerContainer, staggerItem } from '../../motion/variants.ts'
+import '../../styles/components/scroll-rail.css'
 import MembersBlockHead from './MembersBlockHead.jsx'
 
 const REQUIREMENT_ICONS = {
@@ -32,29 +35,17 @@ export default function MembersRequirementsCarousel({ items = [], ariaLabel, tit
   const { reducedMotion, tier } = useMotionConfig()
   const minimalMotion = reducedMotion || tier === 'low'
   const [activeIndex, setActiveIndex] = useState(0)
-  const stepRefs = useRef([])
+  const timelineRef = useRef(null)
+  // El hook cuenta también los pasos que ya quedaron arriba: pasar de largo los
+  // requisitos deja el último encendido (antes quedaba el que se vio al frenar).
+  const { activeIndex: bandIndex, bind } = useStepBand(items.length, {
+    enabled: !minimalMotion,
+    rootMargin: ACTIVE_BAND_MARGIN,
+  })
 
   useEffect(() => {
-    if (minimalMotion || typeof IntersectionObserver === 'undefined') return undefined
-
-    // Se lleva el conjunto de pasos dentro de la franja (no el último evento):
-    // un salto de scroll puede reportar entradas y salidas en lotes distintos.
-    const inBand = new Set()
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          const index = Number(entry.target.dataset.index)
-          if (entry.isIntersecting) inBand.add(index)
-          else inBand.delete(index)
-        }
-        if (inBand.size) setActiveIndex(Math.min(...inBand))
-      },
-      { rootMargin: ACTIVE_BAND_MARGIN },
-    )
-    stepRefs.current.forEach((node) => node && observer.observe(node))
-
-    return () => observer.disconnect()
-  }, [minimalMotion, items.length])
+    setActiveIndex(bandIndex)
+  }, [bandIndex])
 
   if (!items.length) return null
 
@@ -120,43 +111,63 @@ export default function MembersRequirementsCarousel({ items = [], ariaLabel, tit
           </TiltCard>
         </div>
 
-        <m.ol
-          className="members-req__timeline"
-          variants={staggerContainer}
-          initial="hidden"
-          whileInView="visible"
-          viewport={MOTION_VIEWPORT}
-        >
-          {items.map((item, index) => (
-            <m.li
-              key={item.id}
-              ref={(node) => {
-                stepRefs.current[index] = node
-              }}
-              data-index={index}
-              className={`members-req__timeline-item${index === activeIndex ? ' is-active' : ''}`}
-              aria-current={index === activeIndex ? 'step' : undefined}
-              variants={staggerItem}
-              tabIndex={0}
-              onClick={() => setActiveIndex(index)}
-              onFocus={() => setActiveIndex(index)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault()
-                  setActiveIndex(index)
-                }
-              }}
-            >
-              <span className="members-req__step-index" aria-hidden>
-                {padIndex(index + 1)}
-              </span>
-              <div className="members-req__step-body">
-                <h3 className="members-req__step-title">{item.title}</h3>
-                <p className="members-req__step-text">{item.text}</p>
-              </div>
-            </m.li>
-          ))}
-        </m.ol>
+        <div className="members-req__track" ref={timelineRef}>
+          <ScrollRail targetRef={timelineRef} className="members-req__rail" />
+          <p className="members-req__progress" aria-live="polite">
+            <span className="members-req__progress-now">{padIndex(activeIndex + 1)}</span>
+            <span aria-hidden> / {totalLabel}</span>
+            <span className="visually-hidden">
+              {' '}
+              {t('pages.members.requirementsProgress', {
+                current: activeIndex + 1,
+                total: items.length,
+              })}
+            </span>
+          </p>
+          <m.ol
+            className="members-req__timeline"
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={MOTION_VIEWPORT}
+          >
+            {items.map((item, index) => (
+              <m.li
+                key={item.id}
+                ref={bind(index)}
+                className={`members-req__timeline-item${index === activeIndex ? ' is-active' : ''}`}
+                aria-current={index === activeIndex ? 'step' : undefined}
+                variants={staggerItem}
+                tabIndex={0}
+                onClick={() => setActiveIndex(index)}
+                onFocus={() => setActiveIndex(index)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    setActiveIndex(index)
+                  }
+                }}
+              >
+                <span
+                  className="members-req__check"
+                  data-done={index <= activeIndex ? 'true' : 'false'}
+                  aria-hidden
+                >
+                  <svg viewBox="0 0 16 16" width="16" height="16" focusable="false">
+                    <path d="M3.5 8.5l3 3 6-6.5" pathLength="1" />
+                  </svg>
+                </span>
+                <span className="members-req__step-index" aria-hidden>
+                  {padIndex(index + 1)}
+                </span>
+                <div className="members-req__step-body">
+                  <h3 className="members-req__step-title">{item.title}</h3>
+                  <p className="members-req__step-text">{item.text}</p>
+                </div>
+              </m.li>
+            ))}
+          </m.ol>
+        </div>
       </div>
     </div>
   )

@@ -1,0 +1,170 @@
+/* =============================================
+   LOGO DEL EVENTO — carga
+   Dos presentaciones del mismo control: el logo de la cabecera de la ficha
+   (se toca para cambiarlo) y un bloque propio en Datos. Monocromo; el estado de
+   arrastre se marca con un borde de tinta, no con color.
+   ============================================= */
+
+.admin-event-logo {
+  position: relative;
+}
+
+/* ---- Cabecera: el logo es el botón ---- */
+
+.admin-event-logo--mark {
+  display: inline-flex;
+}
+
+.admin-event-logo__edit {
+  align-items: center;
+  background: var(--admin-ink);
+  border: 2px solid var(--admin-canvas);
+  border-radius: 999px;
+  bottom: -6px;
+  color: var(--admin-on-brand);
+  cursor: pointer;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  opacity: 0;
+  position: absolute;
+  right: -8px;
+  transition: opacity var(--motion-fast, 150ms) var(--ease-standard, ease);
+  width: 28px;
+}
+
+.admin-event-logo--mark:hover .admin-event-logo__edit,
+.admin-event-logo--mark:focus-within .admin-event-logo__edit,
+.admin-event-logo--mark.is-busy .admin-event-logo__edit,
+.admin-event-logo--mark.is-dragging .admin-event-logo__edit {
+  opacity: 1;
+}
+
+/* En táctil no hay hover: el botón queda siempre a la vista. */
+@media (hover: none) {
+  .admin-event-logo__edit {
+    opacity: 1;
+  }
+}
+
+.admin-event-logo__edit:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-event-logo--mark.is-dragging .admin-event-mark {
+  border-color: var(--admin-ink);
+  border-style: dashed;
+}
+
+.admin-event-logo--mark.is-busy .admin-event-mark {
+  opacity: 0.55;
+}
+
+/* ---- Bloque en Datos ---- */
+
+.admin-event-logo--field {
+  align-items: center;
+  border: 1px dashed var(--admin-hairline-strong);
+  border-radius: 20px;
+  display: flex;
+  gap: 24px;
+  padding: 20px 24px;
+  transition: border-color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-event-logo--field.is-dragging {
+  border-color: var(--admin-ink);
+  border-style: solid;
+}
+
+.admin-event-logo--field:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-event-logo--field.is-busy .admin-event-mark {
+  opacity: 0.55;
+}
+
+.admin-event-logo__copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-event-logo__title {
+  color: var(--admin-ink);
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.admin-event-logo__hint {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.admin-event-logo__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.admin-event-logo__action {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 999px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  transition: background-color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-event-logo__action:hover:not(:disabled) {
+  background: var(--admin-row-hover);
+}
+
+.admin-event-logo__action:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.admin-event-logo__action:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-event-logo__action--quiet {
+  border-color: transparent;
+  color: var(--admin-muted);
+}
+
+@media (max-width: 599px) {
+  .admin-event-logo--field {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-event-logo__edit,
+  .admin-event-logo--field,
+  .admin-event-logo__action {
+    transition: none;
+  }
+}

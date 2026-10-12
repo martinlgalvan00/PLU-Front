@@ -125,13 +125,16 @@ describe('postura de seguridad del esquema', () => {
   })
 
   it('las RPC que acreditan dinero solo las puede ejecutar el backend', () => {
-    // Estas cuatro son las unicas que insertan en el ledger o activan derechos.
+    // Estas son las unicas que insertan en el ledger o activan derechos.
     // Es el corte que sostiene "el frontend nunca confirma un pago".
     for (const fn of [
       'apply_mercado_pago_payment',
       'apply_ticket_mercado_pago_payment',
       'apply_subscription_payment',
       'staff_force_settle_payment_order',
+      // Tienda: acredita un pedido pagado y descuenta/repone stock.
+      'apply_shop_mercado_pago_payment',
+      'create_shop_order',
     ]) {
       const revocada = new RegExp(
         `revoke\\s+all\\s+on\\s+function\\s+public\\.${fn}\\s*\\([^;]*from[^;]*anon`,

@@ -133,7 +133,7 @@ describe('AccountNav sigue anunciando el tab activo', () => {
     // Beneficios ya no es un tab: su canje se hace desde Afiliación.
     expect(screen.queryByRole('tab', { name: 'Beneficios' })).toBe(null)
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Seguridad' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Ajustes' }))
     expect(active).toBe('account-security')
 
     rerender(
@@ -143,7 +143,7 @@ describe('AccountNav sigue anunciando el tab activo', () => {
         </MotionProvider>
       </I18nProvider>,
     )
-    expect(screen.getByRole('tab', { name: 'Seguridad' }).getAttribute('aria-selected')).toBe(
+    expect(screen.getByRole('tab', { name: 'Ajustes' }).getAttribute('aria-selected')).toBe(
       'true',
     )
   })

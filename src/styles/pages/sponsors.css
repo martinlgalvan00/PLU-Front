@@ -67,7 +67,6 @@
 }
 
 .sponsors-cta:focus-visible,
-.sponsors-tiers__cta:focus-visible,
 .sponsor-form__submit:focus-visible,
 .sponsor-form__mail:focus-visible {
   outline: var(--institution-focus-width, 3px) solid var(--institution-focus, var(--institution-gold));
@@ -173,94 +172,8 @@
 }
 
 /* CTA por nivel — link subordinado, no compite con el hero */
-.sponsors-tiers__cta {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  color: var(--institution-text-muted);
-  cursor: pointer;
-  display: inline-flex;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  gap: 6px;
-  justify-self: start;
-  letter-spacing: 0.01em;
-  margin-top: 4px;
-  min-height: 40px;
-  padding: 0;
-  text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--institution-gold) 42%, transparent);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 5px;
-  transition: color var(--motion-fast) var(--ease-out);
-}
-
-.sponsors-tiers__cta:hover {
-  color: var(--institution-text);
-}
-
-.sponsors-tiers__cta svg {
-  transition: transform var(--motion-fast) var(--ease-out);
-}
-
-.sponsors-tiers__cta:hover svg {
-  transform: translateX(3px);
-}
 
 /* Proceso — lista vertical editorial (no trío SaaS) */
-.sponsors-process__list {
-  display: grid;
-  gap: 0;
-  list-style: none;
-  margin: 28px 0 0;
-  max-width: 54rem;
-  padding: 0;
-}
-
-.sponsors-process__item {
-  border-top: 1px solid var(--institution-border);
-  display: grid;
-  gap: clamp(16px, 3vw, 28px);
-  grid-template-columns: 48px minmax(0, 1fr);
-  padding: clamp(18px, 2.8vw, 26px) 0;
-}
-
-.sponsors-process__item:last-child {
-  border-bottom: 1px solid var(--institution-border);
-}
-
-.sponsors-process__index {
-  color: var(--institution-gold);
-  font-family: var(--font-display);
-  font-size: clamp(22px, 2.6vw, 28px);
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1;
-  padding-top: 4px;
-}
-
-.sponsors-process__body {
-  display: grid;
-  gap: 8px;
-  max-width: 48ch;
-}
-
-.sponsors-process__item h3 {
-  color: var(--institution-text);
-  font-size: clamp(18px, 2.2vw, 22px);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  margin: 0;
-}
-
-.sponsors-process__item p {
-  color: var(--institution-text-muted);
-  font-size: 14.5px;
-  line-height: 1.65;
-  margin: 0;
-  text-wrap: pretty;
-}
 
 /* Propuesta: copy a la izquierda, formulario a la derecha */
 .sponsors-proposal {
@@ -549,11 +462,6 @@
     align-items: start;
     grid-template-columns: 1fr;
   }
-
-  .sponsors-process__item {
-    gap: 12px;
-    grid-template-columns: 40px minmax(0, 1fr);
-  }
 }
 
 @media (max-width: 560px) {
@@ -583,12 +491,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .sponsors-cta,
-  .sponsors-tiers__cta svg,
-  .sponsor-form__submit {
+.sponsor-form__submit {
     transition: none;
-  }
-
-  .sponsors-tiers__cta:hover svg {
-    transform: none;
   }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Layout, Menu, Drawer, Button, Typography, Space, Badge, Dropdown } from 'antd'
+import { Layout, Menu, Drawer, Dropdown } from 'antd'
 import {
   Activity,
   BadgeDollarSign,
@@ -7,7 +7,7 @@ import {
   BadgeCheck,
   Calendar,
   Check,
-  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   CreditCard,
   Download,
@@ -20,6 +20,7 @@ import {
   Menu as MenuIcon,
   PanelLeft,
   PanelLeftClose,
+  PanelLeftOpen,
   PlayCircle,
   ScanLine,
   ScrollText,
@@ -36,9 +37,9 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { TOUR_MODES, useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getAdminIntroTourSteps, getTourForSection } from '../../lib/adminTourSteps.js'
 import { ADMIN_NAV_GROUPS } from '../../lib/content.js'
+import { initials } from '../../lib/format.js'
 
 const { Header, Sider, Content } = Layout
-const { Text } = Typography
 
 const ICONS = {
   Activity,
@@ -76,6 +77,8 @@ const SIDEBAR_MODE_STORAGE_KEY = 'plu-admin-sidebar-mode'
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'plu-admin-sidebar-collapsed'
 const SIDEBAR_MODES = ['expanded', 'collapsed', 'hidden']
 const PHONE_DRAWER_MQ = '(max-width: 767px)'
+const SIDEBAR_WIDTH = 248
+const SIDEBAR_RAIL_WIDTH = 72
 
 function splitPinnedNav(groups) {
   let pinnedItem = null
@@ -102,20 +105,28 @@ function toMenuItem([key, labelKey, iconName], navBadges, t) {
   return {
     key,
     title: t(labelKey),
-    icon: <Icon size={16} strokeWidth={1.75} />,
-    label: (
-      <div className="admin-shell__menu-label">
-        <span>{t(labelKey)}</span>
+    // En el rail colapsado no entra el número: el ícono lleva un punto y el
+    // contador completo queda para la barra expandida.
+    icon: (
+      <span className="admin-shell__icon">
+        <Icon size={17} strokeWidth={1.5} aria-hidden />
         {badgeCount > 0 && (
-          <Badge
-            count={badgeCount}
-            style={{
-              backgroundColor: isAlert ? 'var(--color-brand-red)' : 'var(--color-brand-celeste)',
-              color: '#fff',
-            }}
+          <span
+            className={`admin-shell__dot${isAlert ? ' admin-shell__dot--alert' : ''}`}
+            aria-hidden
           />
         )}
-      </div>
+      </span>
+    ),
+    label: (
+      <span className="admin-shell__menu-label">
+        <span className="admin-shell__menu-text">{t(labelKey)}</span>
+        {badgeCount > 0 && (
+          <span className={`admin-shell__count${isAlert ? ' admin-shell__count--alert' : ''}`}>
+            {badgeCount > 99 ? '99+' : badgeCount}
+          </span>
+        )}
+      </span>
     ),
   }
 }
@@ -164,6 +175,7 @@ export default function AdminShell({
   navBadges = {},
   allowedSections,
   roleLabel = 'Sin rol',
+  accountName = '',
   restrictedNav = false,
   onOpenAccount,
   athletes = [],
@@ -221,6 +233,7 @@ export default function AdminShell({
   const collapsed = sidebarMode === 'collapsed'
   const sidebarHidden = sidebarMode === 'hidden'
   const isPhoneViewport = useMatchMedia(PHONE_DRAWER_MQ)
+  const showLabels = !collapsed || isPhoneViewport
 
   const navGroups = useMemo(() => {
     let groups
@@ -275,12 +288,15 @@ export default function AdminShell({
     return match?.[1] ? t(match[1]) : t('admin.shell.defaultSection')
   }, [activeSection, t])
 
-  const collapseToggleMeta = useMemo(() => {
+  // El ícono muestra a dónde lleva el próximo click: expandido → rail →
+  // oculto → expandido. Vive en la barra superior (no flotando sobre el borde
+  // del sidebar) para que exista también con el menú oculto.
+  const panelToggleMeta = useMemo(() => {
     if (sidebarMode === 'expanded')
-      return { label: t('admin.shell.collapseSidebar'), icon: ChevronLeft }
+      return { label: t('admin.shell.collapseSidebar'), icon: PanelLeftClose }
     if (sidebarMode === 'collapsed')
-      return { label: t('admin.shell.hideSidebar'), icon: PanelLeftClose }
-    return { label: t('admin.shell.showSidebar'), icon: PanelLeft }
+      return { label: t('admin.shell.hideSidebar'), icon: PanelLeft }
+    return { label: t('admin.shell.showSidebar'), icon: PanelLeftOpen }
   }, [sidebarMode, t])
 
   useEffect(() => {
@@ -298,39 +314,43 @@ export default function AdminShell({
     setSidebarOpen(false)
   }
 
-  const brandMark = (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: 40,
-        width: 40,
-        flexShrink: 0,
-      }}
-    >
-      <BrandLogo variant="argentina" height={28} />
-    </div>
+  const PanelToggleIcon = panelToggleMeta.icon
+  const accountLabel = accountName || roleLabel
+  const accountContent = (
+    <>
+      <span className="admin-shell__avatar" aria-hidden>
+        {initials(accountLabel)}
+      </span>
+      {showLabels && (
+        <span className="admin-shell__account-copy">
+          <span className="admin-shell__account-name">{roleLabel}</span>
+          <span className="admin-shell__account-hint">
+            {onOpenAccount ? t('staffAccount.dialogEyebrow') : t('admin.shell.activeProfile')}
+          </span>
+        </span>
+      )}
+      {showLabels && onOpenAccount ? (
+        <ChevronRight size={14} strokeWidth={1.5} className="admin-shell__account-chevron" aria-hidden />
+      ) : null}
+    </>
   )
-
-  const CollapseIcon = collapseToggleMeta.icon
 
   const sidebarContent = (
     <div className="admin-shell__sidebar-inner">
       <div className="admin-shell__brand">
-        {brandMark}
-        {(!collapsed || isPhoneViewport) && (
+        <span className="admin-shell__brand-mark">
+          <BrandLogo variant="argentina" height={26} />
+        </span>
+        {showLabels && (
           <div className="admin-shell__brand-copy">
-            <Text strong className="admin-shell__brand-name">
-              {t('brand.name')}
-            </Text>
-            <Text type="secondary" className="admin-shell__brand-subtitle">
+            <span className="admin-shell__brand-name">{t('brand.name')}</span>
+            <span className="admin-shell__brand-subtitle">
               {restrictedNav === 'pluUsa'
                 ? t('admin.shell.brandTagPartner')
                 : restrictedNav === 'checkin'
                   ? t('admin.shell.brandSubtitleSecurity')
                   : t('admin.shell.brandTag')}
-            </Text>
+            </span>
           </div>
         )}
       </div>
@@ -341,7 +361,7 @@ export default function AdminShell({
             <Menu
               className="admin-shell__pin-menu"
               mode="inline"
-              inlineCollapsed={collapsed && !isPhoneViewport}
+              inlineCollapsed={!showLabels}
               selectedKeys={[activeSection]}
               items={pinnedMenuItems}
               onClick={({ key }) => handleSectionChange(key)}
@@ -352,7 +372,7 @@ export default function AdminShell({
           <Menu
             className="admin-shell__scroll-menu"
             mode="inline"
-            inlineCollapsed={collapsed && !isPhoneViewport}
+            inlineCollapsed={!showLabels}
             selectedKeys={[activeSection]}
             items={menuItems}
             onClick={({ key }) => handleSectionChange(key)}
@@ -361,85 +381,29 @@ export default function AdminShell({
       </div>
 
       <div className="admin-shell__footer">
-        <Space
-          orientation="vertical"
-          align={collapsed && !isPhoneViewport ? 'center' : 'start'}
-          style={{ width: '100%' }}
+        {onOpenAccount ? (
+          <button
+            type="button"
+            className="admin-shell__account"
+            onClick={onOpenAccount}
+            title={!showLabels ? `${roleLabel} · ${t('staffAccount.dialogEyebrow')}` : undefined}
+            aria-label={`${roleLabel} · ${t('staffAccount.dialogEyebrow')}`}
+          >
+            {accountContent}
+          </button>
+        ) : (
+          <div className="admin-shell__account admin-shell__account--static">{accountContent}</div>
+        )}
+        <button
+          type="button"
+          className="admin-shell__exit"
+          onClick={onExit}
+          title={!showLabels ? t('admin.shell.exit') : undefined}
+          aria-label={t('admin.shell.exit')}
         >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: !collapsed || isPhoneViewport ? 'flex-start' : 'center',
-              width: '100%',
-            }}
-          >
-            {onOpenAccount ? (
-              <Button
-                type="text"
-                onClick={onOpenAccount}
-                style={{
-                  padding: 0,
-                  height: 'auto',
-                  textAlign: !collapsed || isPhoneViewport ? 'left' : 'center',
-                  width: !collapsed || isPhoneViewport ? '100%' : 'auto',
-                }}
-              >
-                <Space>
-                  <div
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: '50%',
-                      background: 'var(--plu-success-400)',
-                    }}
-                  />
-                  {(!collapsed || isPhoneViewport) && (
-                    <div>
-                      <div style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                        {roleLabel}
-                      </div>
-                      <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>
-                        {t('staffAccount.dialogEyebrow')}
-                      </div>
-                    </div>
-                  )}
-                </Space>
-              </Button>
-            ) : (
-              <Space>
-                <div
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: 'var(--plu-success-400)',
-                  }}
-                />
-                {(!collapsed || isPhoneViewport) && (
-                  <div>
-                    <div style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                      {roleLabel}
-                    </div>
-                    <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>
-                      {t('admin.shell.activeProfile')}
-                    </div>
-                  </div>
-                )}
-              </Space>
-            )}
-          </div>
-
-          <Button
-            type="text"
-            icon={<ArrowLeft size={16} />}
-            onClick={onExit}
-            block={!collapsed || isPhoneViewport}
-            style={{ justifyContent: !collapsed || isPhoneViewport ? 'flex-start' : 'center' }}
-          >
-            {(!collapsed || isPhoneViewport) && t('admin.shell.exit')}
-          </Button>
-        </Space>
+          <ArrowLeft size={16} strokeWidth={1.5} aria-hidden />
+          {showLabels && <span>{t('admin.shell.exit')}</span>}
+        </button>
       </div>
     </div>
   )
@@ -452,26 +416,16 @@ export default function AdminShell({
         {t('admin.shell.skipToContent')}
       </a>
       {!isPhoneViewport && !sidebarHidden && (
-        <>
-          <Sider
-            trigger={null}
-            collapsible
-            collapsed={collapsed}
-            width={260}
-            collapsedWidth={88}
-            className="admin-shell__sidebar-component"
-          >
-            {sidebarContent}
-          </Sider>
-          <button
-            className="admin-shell__collapse-toggle"
-            onClick={() => setSidebarMode(nextSidebarMode(sidebarMode))}
-            title={collapseToggleMeta.label}
-            aria-label={collapseToggleMeta.label}
-          >
-            <CollapseIcon size={14} className="admin-shell__collapse-icon" />
-          </button>
-        </>
+        <Sider
+          trigger={null}
+          collapsible
+          collapsed={collapsed}
+          width={SIDEBAR_WIDTH}
+          collapsedWidth={SIDEBAR_RAIL_WIDTH}
+          className="admin-shell__sidebar-component"
+        >
+          {sidebarContent}
+        </Sider>
       )}
 
       {isPhoneViewport && (
@@ -483,7 +437,7 @@ export default function AdminShell({
           styles={{
             body: { padding: 0, height: '100%', display: 'flex', flexDirection: 'column' },
           }}
-          size={260}
+          size={SIDEBAR_WIDTH + 12}
           className="admin-shell__drawer"
         >
           {sidebarContent}
@@ -492,23 +446,26 @@ export default function AdminShell({
 
       <Layout className="admin-shell__main">
         <Header className="admin-shell__header">
-          <Space>
-            {sidebarHidden && !isPhoneViewport ? (
+          <div className="admin-shell__header-lead">
+            {isPhoneViewport ? (
               <button
-                className="admin-mobile-bar__menu--reveal"
-                onClick={() => setSidebarMode('collapsed')}
-                title={t('admin.shell.showSidebar')}
+                type="button"
+                className="admin-shell__icon-button"
+                onClick={() => setSidebarOpen(true)}
                 aria-label={t('admin.shell.showSidebar')}
               >
-                <PanelLeft size={16} />
+                <MenuIcon size={18} strokeWidth={1.5} aria-hidden />
               </button>
-            ) : null}
-            {isPhoneViewport && (
-              <Button
-                type="text"
-                icon={<MenuIcon size={20} />}
-                onClick={() => setSidebarOpen(true)}
-              />
+            ) : (
+              <button
+                type="button"
+                className="admin-shell__icon-button"
+                onClick={() => setSidebarMode(nextSidebarMode(sidebarMode))}
+                title={panelToggleMeta.label}
+                aria-label={panelToggleMeta.label}
+              >
+                <PanelToggleIcon size={18} strokeWidth={1.5} aria-hidden />
+              </button>
             )}
             <div className="admin-shell__header-copy">
               <nav
@@ -525,7 +482,7 @@ export default function AdminShell({
                 </ol>
               </nav>
             </div>
-          </Space>
+          </div>
 
           {canSearchAthletes && !isPhoneViewport ? (
             <div className="admin-shell__header-search">
@@ -546,12 +503,14 @@ export default function AdminShell({
               trigger={['click']}
               placement="bottomRight"
             >
-              <Button
-                type="text"
-                icon={<HelpCircle size={18} />}
+              <button
+                type="button"
+                className="admin-shell__icon-button"
                 aria-label={t('admin.tour.startAria')}
                 data-tour="admin-help"
-              />
+              >
+                <HelpCircle size={18} strokeWidth={1.5} aria-hidden />
+              </button>
             </Dropdown>
           </div>
         </Header>

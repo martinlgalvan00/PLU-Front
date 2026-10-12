@@ -143,7 +143,6 @@
        (clip-path pesa en la GPU de mobile). */
     @media (hover: hover) and (pointer: fine) {
       [data-motion-tier]:not([data-motion-tier='low']) :is(
-          .about-section__title,
           .home-membership-band__title,
           .community-spotlight__title
         ) {

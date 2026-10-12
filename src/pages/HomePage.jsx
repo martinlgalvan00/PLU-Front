@@ -5,6 +5,7 @@ import '../styles/pages/home-showcase.css'
 import AboutSection from '../components/ui/AboutSection.jsx'
 import CommunitySpotlight from '../components/ui/CommunitySpotlight.jsx'
 import HeroSection from '../components/layout/HeroSection.jsx'
+import HomeAthleteJourney from '../components/ui/HomeAthleteJourney.jsx'
 import HomeMembershipBand from '../components/ui/HomeMembershipBand.jsx'
 import HomeResultsTeaser from '../components/ui/HomeResultsTeaser.jsx'
 import HomeRulebookTeaser from '../components/ui/HomeRulebookTeaser.jsx'
@@ -179,6 +180,16 @@ export default function HomePage({
             slots={liveSlots}
             totalPublic={totalPublic}
           />
+        </div>
+      </section>
+
+      <section
+        className="home-section home-section--immersive home-section--journey"
+        id="recorrido"
+        aria-labelledby="home-journey-title"
+      >
+        <div className="home-section__inner">
+          <HomeAthleteJourney onNavigate={onNavigate} />
         </div>
       </section>
 

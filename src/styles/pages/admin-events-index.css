@@ -1,0 +1,806 @@
+/* =============================================
+   EVENTOS — ÍNDICE
+   Hoja propia de la lista (se importa desde EventsSection). Composición:
+   un evento principal en bloque de tinta, después el calendario como libro de
+   filas con el logo de cada meet. Monocromo: la jerarquía la dan la escala, el
+   peso y el bloque oscuro; el único acento del panel es "Nuevo evento".
+   Sin tarjetas anidadas ni barras de progreso: el cupo es una cifra.
+   ============================================= */
+
+/* ---- Marca del evento (logo o monograma) ---- */
+
+.admin-event-mark {
+  align-items: center;
+  background: var(--admin-surface-muted);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 12px;
+  color: var(--admin-ink);
+  display: inline-flex;
+  flex: none;
+  height: 44px;
+  justify-content: center;
+  overflow: hidden;
+  width: 44px;
+}
+
+.admin-event-mark img {
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  padding: 5px;
+  width: 100%;
+}
+
+.admin-event-mark__initials {
+  font-family: var(--font-display, var(--font-family));
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.admin-event-mark--md {
+  border-radius: 14px;
+  height: 56px;
+  width: 56px;
+}
+
+.admin-event-mark--md .admin-event-mark__initials {
+  font-size: 18px;
+}
+
+.admin-event-mark--lg {
+  border-radius: 20px;
+  height: 96px;
+  width: 96px;
+}
+
+.admin-event-mark--lg img {
+  padding: 10px;
+}
+
+.admin-event-mark--lg .admin-event-mark__initials {
+  font-size: 30px;
+}
+
+/* ---- Resumen en una línea y secciones ---- */
+
+.admin-list-section--events .admin-events-kpis {
+  align-items: baseline;
+  margin-block: 2px 14px;
+  background: none;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+  padding: 0;
+}
+
+.admin-list-section--events .admin-events-kpi {
+  align-items: baseline;
+  background: none;
+  border: 0;
+  display: inline-flex;
+  flex-direction: row;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-list-section--events .admin-events-kpi + .admin-events-kpi {
+  border: 0;
+  padding: 0;
+}
+
+.admin-list-section--events .admin-events-kpi__value {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.admin-list-section--events .admin-events-kpi__label {
+  color: var(--admin-muted);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-events-views {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 2px;
+  justify-self: start;
+  padding: 3px;
+}
+
+.admin-events-views__tab {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 16px;
+  transition:
+    background-color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-events-views__tab span {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+.admin-events-views__tab:hover {
+  color: var(--admin-ink);
+}
+
+.admin-events-views__tab.is-active {
+  background: var(--admin-ink);
+  color: var(--admin-on-brand);
+  font-weight: 600;
+}
+
+.admin-events-views__tab:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+/* ---- Barra: secciones a la izquierda, búsqueda y filtros en la misma línea ---- */
+
+.admin-shell .admin-list-section--events.admin-list-section--flow {
+  align-content: start;
+  display: grid;
+  gap: var(--space-lg);
+  grid-auto-rows: auto;
+}
+
+.admin-shell .admin-list-section--events.admin-list-section--flow > .admin-list-section__chrome {
+  align-content: start;
+  border-bottom: 0;
+  grid-auto-rows: auto;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-list-section--events .admin-filters--popover {
+  margin: 0;
+}
+
+.admin-list-section--events .admin-filter-popoverbar {
+  align-items: center;
+  border: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 0;
+}
+
+.admin-list-section--events .admin-filter-popoverbar__toolbar {
+  flex: 1 1 0;
+  min-width: min(100%, 240px);
+  width: auto;
+}
+
+.admin-list-section--events .admin-filter-popoverbar__criteria {
+  flex: none;
+  width: auto;
+}
+
+/* ---- Lista: flujo normal, sin scroll propio ---- */
+
+.admin-list-section--events .admin-list-shell,
+.admin-list-section--events .admin-list-shell__body,
+.admin-list-section--events .admin-events-workspace,
+.admin-list-section--events .admin-events-workspace__main {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+}
+
+.admin-list-section--events .admin-event-list {
+  display: grid;
+  gap: var(--space-xl);
+  list-style: none;
+  margin: 0;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+}
+
+.admin-event-chapter,
+.admin-event-chapter__groups,
+.admin-event-group__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-event-chapter__groups {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.admin-event-chapter__label {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--space-sm);
+}
+
+.admin-event-group__label {
+  align-items: baseline;
+  border-bottom: 1px solid var(--admin-hairline-strong);
+  color: var(--admin-muted);
+  display: flex;
+  font-size: 11px;
+  font-weight: 600;
+  justify-content: space-between;
+  letter-spacing: 0.08em;
+  padding: 0 4px 10px;
+  text-transform: uppercase;
+}
+
+.admin-event-group__label strong {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* ---- Fila ---- */
+
+.admin-event-row {
+  align-items: center;
+  border-bottom: 1px solid var(--admin-hairline);
+  cursor: default;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  transition: background-color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-event-row:hover,
+.admin-event-row--selected {
+  background: var(--admin-row-hover);
+}
+
+.admin-event-row__main {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 4px 18px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-width: 0;
+  padding: 16px 8px 16px 4px;
+  text-align: left;
+}
+
+.admin-event-row__main:focus-visible {
+  border-radius: 12px;
+  outline: 2px solid var(--admin-focus);
+  outline-offset: -2px;
+}
+
+.admin-event-row__body {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-event-row__title-wrap {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-event-row__title {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-event-row__hidden-mark,
+.admin-event-row__open-mark {
+  color: var(--admin-muted);
+  display: inline-flex;
+  flex: none;
+}
+
+.admin-event-row__meta {
+  color: var(--admin-muted);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-event-row__status {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+  justify-content: flex-end;
+}
+
+.admin-event-row__capacity {
+  display: grid;
+  justify-items: end;
+  line-height: 1.15;
+  min-width: 64px;
+}
+
+.admin-event-row__capacity strong {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.admin-event-row__capacity strong span {
+  color: var(--admin-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.admin-event-row__capacity small {
+  color: var(--admin-muted);
+  font-size: 11px;
+}
+
+.admin-event-row__capacity--full strong {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.admin-event-row__badge {
+  display: inline-flex;
+  justify-content: flex-end;
+  min-width: 132px;
+}
+
+.admin-event-row__actions {
+  align-items: center;
+  color: var(--admin-muted);
+  display: inline-flex;
+  gap: 2px;
+  padding-right: 8px;
+}
+
+.admin-event-row__chevron {
+  transition: transform var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-event-row:hover .admin-event-row__chevron {
+  color: var(--admin-ink);
+  transform: translateX(2px);
+}
+
+.admin-event-row__pin {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 10px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  opacity: 0.55;
+  transition:
+    background-color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    opacity var(--motion-fast, 150ms) var(--ease-standard, ease);
+  width: 40px;
+}
+
+.admin-event-row:hover .admin-event-row__pin,
+.admin-event-row:focus-within .admin-event-row__pin,
+.admin-event-row__pin[aria-pressed='true'] {
+  opacity: 1;
+}
+
+.admin-event-row__pin:hover {
+  background: var(--admin-brand-soft);
+  color: var(--admin-ink);
+}
+
+.admin-event-row__pin[aria-pressed='true'] {
+  color: var(--admin-ink);
+}
+
+.admin-event-row__pin[aria-pressed='true'] svg {
+  fill: currentColor;
+}
+
+.admin-event-row__pin:disabled {
+  cursor: progress;
+  opacity: 0.4;
+}
+
+.admin-event-row__pin:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+/* Meets terminados: quedan a la vista pero más callados. */
+.admin-event-group--finished .admin-event-row__title,
+.admin-event-group--finished .admin-event-row__capacity strong {
+  color: var(--admin-text-secondary);
+}
+
+.admin-event-group--finished .admin-event-mark {
+  filter: grayscale(1);
+  opacity: 0.7;
+}
+
+/* ---- Evento principal ---- */
+
+.admin-event-row--lead {
+  background: var(--admin-attention-bg);
+  border: 1px solid color-mix(in srgb, var(--admin-attention-text) 14%, transparent);
+  border-radius: 24px;
+  color: var(--admin-attention-text);
+  overflow: hidden;
+}
+
+.admin-event-row--lead:hover,
+.admin-event-row--lead.admin-event-row--selected {
+  background: var(--admin-attention-bg);
+  border-color: color-mix(in srgb, var(--admin-attention-text) 34%, transparent);
+}
+
+.admin-event-row--lead .admin-event-row__main {
+  gap: 8px 28px;
+  padding: 28px 12px 28px 28px;
+}
+
+.admin-event-row--lead .admin-event-mark {
+  background: color-mix(in srgb, var(--admin-attention-text) 7%, transparent);
+  border-color: color-mix(in srgb, var(--admin-attention-text) 16%, transparent);
+  color: var(--admin-attention-text);
+}
+
+.admin-event-row__kicker {
+  align-items: center;
+  color: color-mix(in srgb, var(--admin-attention-text) 66%, transparent);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 6px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin-event-row__kicker svg {
+  fill: currentColor;
+}
+
+.admin-event-row--lead .admin-event-row__body {
+  gap: 8px;
+}
+
+.admin-event-row--lead .admin-event-row__title {
+  color: var(--admin-attention-text);
+  font-size: clamp(26px, 3.4vw, 36px);
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+  white-space: normal;
+}
+
+.admin-event-row--lead .admin-event-row__meta,
+.admin-event-row--lead .admin-event-row__capacity small,
+.admin-event-row--lead .admin-event-row__capacity strong span,
+.admin-event-row--lead .admin-event-row__hidden-mark,
+.admin-event-row--lead .admin-event-row__open-mark {
+  color: color-mix(in srgb, var(--admin-attention-text) 62%, transparent);
+}
+
+.admin-event-row--lead .admin-event-row__meta {
+  font-size: 14px;
+}
+
+.admin-event-row--lead .admin-event-row__capacity strong {
+  color: var(--admin-attention-text);
+  font-size: 36px;
+  letter-spacing: -0.03em;
+}
+
+.admin-event-row--lead .admin-event-row__capacity strong span {
+  font-size: 18px;
+}
+
+.admin-event-row--lead .admin-event-row__actions,
+.admin-event-row--lead .admin-event-row__pin {
+  color: color-mix(in srgb, var(--admin-attention-text) 66%, transparent);
+}
+
+.admin-event-row--lead .admin-event-row__pin:hover {
+  background: color-mix(in srgb, var(--admin-attention-text) 10%, transparent);
+  color: var(--admin-attention-text);
+}
+
+.admin-event-row--lead .admin-event-row__pin[aria-pressed='true'],
+.admin-event-row--lead:hover .admin-event-row__chevron {
+  background: none;
+  color: var(--admin-attention-text);
+}
+
+.admin-event-row--lead .admin-event-row__main:focus-visible,
+.admin-event-row--lead .admin-event-row__pin:focus-visible {
+  outline-color: var(--admin-attention-text);
+}
+
+/* El estado vive sobre tinta: texto claro y punto claro cuando no tiene tono propio. */
+.admin-shell .admin-event-row--lead .status-pill {
+  color: var(--admin-attention-text);
+}
+
+.admin-shell .admin-event-row--lead .status-pill--info,
+.admin-shell .admin-event-row--lead .status-pill--neutral {
+  --pill-tone: var(--admin-attention-text);
+}
+
+/* ---- Avisos de la lista ---- */
+
+.admin-events__message--error {
+  color: var(--admin-status-danger);
+}
+
+/* ---- Teléfono y tablet ---- */
+
+@media (max-width: 900px) {
+  .admin-event-row__badge {
+    min-width: 0;
+  }
+
+  .admin-event-row__capacity small {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  /* El cupo y el estado bajan debajo del nombre; las acciones se anclan arriba. */
+  .admin-event-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-event-row__main {
+    gap: 6px 14px;
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 14px 52px 14px 2px;
+  }
+
+  .admin-event-row__main > .admin-event-mark {
+    grid-row: 1 / span 2;
+  }
+
+  .admin-event-row__status {
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+
+  .admin-event-row__capacity {
+    align-items: baseline;
+    display: flex;
+    flex: none;
+    gap: 6px;
+    justify-items: start;
+    min-width: 0;
+  }
+
+  .admin-event-row__capacity small {
+    display: inline;
+  }
+
+  .admin-event-row__actions {
+    padding: 0;
+    position: absolute;
+    right: 0;
+    top: 6px;
+  }
+
+  .admin-event-row__chevron {
+    display: none;
+  }
+
+  .admin-event-row__pin {
+    height: 44px;
+    width: 44px;
+  }
+
+  .admin-event-row--lead {
+    border-radius: 20px;
+  }
+
+  .admin-event-row--lead .admin-event-row__main {
+    gap: 12px 16px;
+    padding: 20px 56px 20px 18px;
+  }
+
+  .admin-event-row--lead .admin-event-row__actions {
+    right: 6px;
+    top: 10px;
+  }
+
+  .admin-event-mark--lg {
+    border-radius: 16px;
+    height: 64px;
+    width: 64px;
+  }
+
+  .admin-event-mark--lg .admin-event-mark__initials {
+    font-size: 22px;
+  }
+
+  .admin-event-row--lead .admin-event-row__title {
+    font-size: 24px;
+  }
+
+  .admin-event-row--lead .admin-event-row__capacity strong {
+    font-size: 22px;
+  }
+
+  .admin-event-row--lead .admin-event-row__capacity strong span {
+    font-size: 14px;
+  }
+
+  .admin-events-views {
+    justify-self: stretch;
+  }
+
+  .admin-events-views__tab {
+    flex: 1;
+    justify-content: center;
+    padding: 0 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-event-row,
+  .admin-event-row__chevron,
+  .admin-event-row__pin,
+  .admin-events-views__tab {
+    transition: none;
+  }
+
+  .admin-event-row:hover .admin-event-row__chevron {
+    transform: none;
+  }
+}
+
+/* ---- Anuncio "Pronto habrá novedades" ---- */
+
+/* Fila plana entre dos filetes: una decisión de una línea, sin card. */
+.admin-site-teaser {
+  align-items: center;
+  border-block: 1px solid var(--admin-hairline);
+  display: flex;
+  gap: 14px;
+  margin-block: 4px 16px;
+  padding: 12px 2px;
+}
+
+.admin-site-teaser__icon {
+  color: var(--admin-muted);
+  display: inline-flex;
+  flex: none;
+}
+
+.admin-site-teaser__copy {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-site-teaser__copy strong {
+  color: var(--admin-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-site-teaser__copy p {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* El área táctil es el botón entero (44px); el interruptor es sólo el dibujo. */
+.admin-site-teaser__switch-btn {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 52px;
+  padding: 0;
+}
+
+.admin-site-teaser__switch-btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.admin-site-teaser__switch-btn:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-site-teaser__switch {
+  background: color-mix(in srgb, var(--admin-ink) 12%, transparent);
+  border-radius: 999px;
+  height: 20px;
+  position: relative;
+  width: 36px;
+}
+
+.admin-site-teaser__switch::after {
+  background: color-mix(in srgb, var(--admin-ink) 45%, transparent);
+  border-radius: 999px;
+  content: '';
+  height: 15px;
+  left: 3px;
+  position: absolute;
+  top: 2.5px;
+  width: 15px;
+}
+
+.admin-site-teaser__switch-btn.is-on .admin-site-teaser__switch {
+  background: color-mix(in srgb, var(--plu-success-500) 55%, transparent);
+}
+
+.admin-site-teaser__switch-btn.is-on .admin-site-teaser__switch::after {
+  background: var(--plu-success-400);
+  transform: translateX(15px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-site-teaser__switch,
+  .admin-site-teaser__switch::after {
+    transition:
+      background-color var(--motion-fast) var(--ease-out),
+      transform var(--motion-fast) var(--ease-out);
+  }
+}

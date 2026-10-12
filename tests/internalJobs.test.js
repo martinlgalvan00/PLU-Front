@@ -137,4 +137,44 @@ describe('internal scheduled jobs', () => {
     expect(paymentOrderExpiry).not.toHaveBeenCalled()
     await target.close()
   })
+
+  it('vence los pedidos de la tienda con el secreto del cron y respeta el flag', async () => {
+    const shopOrderExpiry = vi.fn().mockResolvedValue({ expired: 2 })
+    const env = { CRON_SECRET: 'secret-for-tests' }
+    const target = listen(
+      createApp({
+        env,
+        supabaseAdmin: { kind: 'supabase-double' },
+        jobRunners: { shopOrderExpiry },
+      }),
+    )
+
+    const denied = await fetch(`${target.url}/api/internal/jobs/shop-order-expiry`)
+    expect(denied.status).toBe(401)
+    const response = await fetch(`${target.url}/api/internal/jobs/shop-order-expiry`, {
+      headers: { Authorization: `Bearer ${env.CRON_SECRET}` },
+    })
+
+    expect(await response.json()).toEqual({
+      status: 'completed',
+      job: 'shop-order-expiry',
+      result: { expired: 2 },
+    })
+    expect(shopOrderExpiry).toHaveBeenCalledOnce()
+    await target.close()
+
+    const off = listen(
+      createApp({
+        env: { ...env, SHOP_ORDER_EXPIRY_JOB_ENABLED: 'false' },
+        supabaseAdmin: { kind: 'supabase-double' },
+        jobRunners: { shopOrderExpiry },
+      }),
+    )
+    const disabled = await fetch(`${off.url}/api/internal/jobs/shop-order-expiry`, {
+      headers: { Authorization: `Bearer ${env.CRON_SECRET}` },
+    })
+    expect(await disabled.json()).toEqual({ status: 'disabled', job: 'shop-order-expiry' })
+    expect(shopOrderExpiry).toHaveBeenCalledOnce()
+    await off.close()
+  })
 })

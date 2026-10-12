@@ -255,6 +255,18 @@ Reglas:
 - Si una matriz personalizada deja de coincidir con un rol base, no se emite un
   token Supabase privilegiado que pueda eludir la autorización de Express.
 
+## Libro de caja
+
+- Los ingresos de cobros de atletas y de entradas salen **solo** del ledger de
+  pagos aprobados (`athlete_payments` / `ticket_payments`). El libro no los
+  edita: se corrigen desde Cobros.
+- Los asientos manuales (`financial_expenses` y `financial_incomes`) cubren lo
+  que no pasa por un checkout: egresos, y ingresos como sponsors, donaciones o
+  mostrador. Un ingreso manual **nunca confirma ni reemplaza un pago**.
+- Alta, edición y baja de un asiento manual van por RPC `security definer` y
+  quedan en `domain_audit_logs` (`finance.expense_*` / `finance.income_*`).
+  Requieren `admin.payments.approve`; la lectura, `admin.payments.read`.
+
 ## Auditoría
 
 Todo cambio sensible debe generar `audit_log` con: acción, entidad, actor,

@@ -1,0 +1,174 @@
+/* =============================================
+   PAGOS DEL MEET
+   Pestaña "Pagos" de la ficha del evento. Un encabezado editorial, las pestañas
+   de filtro (que ya traen los conteos) y los cobros como libro de filas con
+   hairline, sin tarjeta por fila. Monocromo: el estado lo dice el punto + texto
+   de `StatusPill`; no hay bordes ni chips de color.
+   ============================================= */
+
+.admin-event-payments {
+  display: grid;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+
+.admin-event-payments__head {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  justify-content: space-between;
+}
+
+.admin-event-payments__head-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-event-payments__eyebrow {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.admin-event-payments__title {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(24px, 3vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.admin-event-payments__lead {
+  color: var(--admin-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 44ch;
+}
+
+.admin-event-payments__finance {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 999px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  transition: background-color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-event-payments__finance:hover {
+  background: var(--admin-row-hover);
+}
+
+.admin-event-payments__finance:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+/* ---- Vacío ---- */
+
+.admin-event-payments__empty {
+  align-items: center;
+  border-block: 1px solid var(--admin-hairline);
+  color: var(--admin-muted);
+  display: flex;
+  gap: 10px;
+  min-height: 96px;
+  padding: 24px 4px;
+}
+
+.admin-event-payments__empty p {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ---- Cobros ---- */
+
+.admin-event-payments__list {
+  border-top: 1px solid var(--admin-hairline-strong);
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-event-payments__row {
+  align-items: center;
+  border-bottom: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 10px 20px;
+  padding: 16px 4px;
+}
+
+.admin-event-payments__row-main {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  justify-content: space-between;
+}
+
+.admin-event-payments__row-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-event-payments__row-copy strong {
+  color: var(--admin-ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.admin-event-payments__row-copy span {
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+
+.admin-event-payments__row-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
+.admin-event-payments__row-meta em {
+  color: var(--admin-ink);
+  font-size: 15px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.admin-event-payments__row-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.admin-event-payments__hint {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+}
+
+@media (min-width: 720px) {
+  .admin-event-payments__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}

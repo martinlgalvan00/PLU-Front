@@ -55,10 +55,13 @@ export default function AnalyticsCalendarHeatmap({ series = [], peak = null }) {
     [series],
   )
 
-  const monthTitle = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-AR', {
+  const monthName = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-AR', {
     month: 'long',
     year: 'numeric',
   }).format(new Date(view.year, view.month, 1))
+  // Sólo la primera letra en mayúscula: `text-transform: capitalize` también
+  // mayusculizaba la preposición ("Octubre De 2026").
+  const monthTitle = monthName.charAt(0).toUpperCase() + monthName.slice(1)
 
   const weeks = useMemo(() => buildMonthMatrix(view.year, view.month), [view])
 

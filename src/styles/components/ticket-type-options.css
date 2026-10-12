@@ -110,12 +110,25 @@ label.ticket-type-options__option:hover {
   margin: 0;
 }
 
+/* Datos de la entrada (validez, zona, credenciales): una sola fila tranquila,
+   sin chips ni acentos. Se leen de corrido, de menor a mayor peso, y el
+   renglón entero es el segundo nivel de la tarjeta después de nombre y precio. */
+.ticket-type-options__facts {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  gap: 6px 18px;
+  line-height: 1.4;
+}
+
 .ticket-type-options__validity {
   align-items: center;
-  color: var(--color-text-accent);
+  color: var(--color-text-secondary);
   display: inline-flex;
-  font-size: 11.5px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 500;
   gap: 7px;
   line-height: 1.4;
 }
@@ -125,9 +138,9 @@ label.ticket-type-options__option:hover {
 }
 
 .ticket-type-options__zones {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px 14px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -135,34 +148,32 @@ label.ticket-type-options__option:hover {
 
 .ticket-type-options__zone {
   align-items: center;
-  background: color-mix(in srgb, var(--color-text-primary) 7%, transparent);
-  border-radius: var(--border-radius-pill, 999px);
   color: var(--color-text-secondary);
   display: inline-flex;
-  font-size: 10.5px;
-  font-weight: 600;
-  gap: 5px;
-  padding: 4px 9px;
+  font-size: 12.5px;
+  font-weight: 500;
+  gap: 6px;
 }
 
 /* La entrada en calor es lo que se está comprando cuando se compra una entrada
-   de entrenador: es la única zona que lleva acento.
+   de entrenador: es la única zona que lleva acento, y es solo de color.
    El color sale de `--color-text-accent` y no del oro crudo: es el oro que cada
-   tema ya resuelve para texto, y el único que llega a AA sobre el fondo claro a
-   este cuerpo. */
+   tema ya resuelve para texto. */
 .ticket-type-options__zone--athletes_coaches {
-  background: color-mix(in srgb, var(--color-brand-gold) 15%, transparent);
   color: var(--color-text-accent);
 }
 
-/* Una línea por dato y no un renglón separado por puntos: al envolver en
-   mobile, el separador quedaba solo al principio de la línea siguiente. */
+/* Credenciales y cupo comparten renglón; el cupo es la nota al pie. */
 .ticket-type-options__meta {
   color: var(--color-text-muted);
-  display: flex;
-  flex-direction: column;
-  font-size: 11.5px;
-  gap: 3px;
+  display: inline-flex;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  gap: 2px 14px;
+}
+
+.ticket-type-options__quota {
+  opacity: 0.85;
 }
 
 .ticket-type-options__includes {

@@ -8,12 +8,6 @@
   max-width: min(36rem, 100%);
 }
 
-.records-page--soon .records-page__hero .plu-page-hero__title {
-  font-size: clamp(2rem, 4.2vw, 3.25rem);
-  letter-spacing: -0.045em;
-  max-width: 14ch;
-}
-
 .records-page--soon .records-page__hero .plu-page-hero__desc {
   font-size: clamp(14.5px, 1.4vw, 16px);
   max-width: 42ch;

@@ -166,6 +166,7 @@ import {
   OPEN_REGISTRATION_STATUSES,
   removeAdminEvent,
   saveAdminEventRequest,
+  setEventLogoRequest,
   setEventStateRequest,
   updateAdminEvent,
 } from '../services/eventAdminService.js'
@@ -207,11 +208,6 @@ import {
   fetchPublicCheckoutAvailability,
 } from '../services/platformSettingsService.js'
 import { findGatePendingRegistrations } from '../lib/gateAccess.js'
-import {
-  deleteShopProduct,
-  getInitialShopProducts,
-  upsertShopProduct,
-} from '../services/shopService.js'
 
 // Los derechos de una persona se confirman en el backend (webhook de Mercado
 // Pago, validación manual o staff). Esta frecuencia es el respaldo seguro para
@@ -309,9 +305,6 @@ export function useAppData() {
   const [billingSubscriptions, setBillingSubscriptions] = useState([])
   const [billingSubscriptionsLoading, setBillingSubscriptionsLoading] = useState(false)
   const [billingSubscriptionsError, setBillingSubscriptionsError] = useState(null)
-  const [shopProducts, setShopProducts] = useState(() =>
-    getInitialShopProducts(storedData?.shopProducts),
-  )
   const [users, setUsers] = useState(() => getInitialUsers(storedData?.users))
   const [accessRoles, setAccessRoles] = useState(() =>
     ACCESS_ROLE_TEMPLATES.map((role) => ({
@@ -388,7 +381,6 @@ export function useAppData() {
       // En modo real se elimina también cualquier snapshot legacy que haya
       // quedado en el navegador: el próximo arranque nace del catálogo vigente.
       ...(env.demoMode ? { adminEvents } : {}),
-      shopProducts,
       users,
     })
     // El efecto corre en cada ciclo de polling aunque no persista nada de eso
@@ -399,10 +391,9 @@ export function useAppData() {
     writeStorage({
       createdOrder,
       ...(env.demoMode ? { adminEvents } : {}),
-      shopProducts,
       users,
     })
-  }, [createdOrder, adminEvents, shopProducts, users])
+  }, [createdOrder, adminEvents, users])
 
   useEffect(() => {
     let active = true
@@ -3262,6 +3253,46 @@ export function useAppData() {
   )
 
   /**
+   * Cambia o quita el logo del evento (`file = null` lo quita). Va por su propio
+   * endpoint y no por el upsert: no recrea días ni entradas, y no mueve
+   * `updatedAt`, así que no invalida el formulario que el operador tenga abierto.
+   */
+  const setAdminEventLogo = useCallback(
+    async (slug, file) => {
+      if (!hasPermission(session, 'admin.events.write')) {
+        return { error: 'Sin permisos para editar eventos.' }
+      }
+      if (!slug) return { error: 'Falta el slug del evento.' }
+
+      if (isDemoSession(session)) {
+        let updated = null
+        const events = adminEvents.map((event) => {
+          if (event.slug !== slug) return event
+          updated = {
+            ...event,
+            logoPath: file ? `demo/${file.name}` : null,
+            logoUrl: file ? URL.createObjectURL(file) : null,
+          }
+          return updated
+        })
+        if (!updated) return { error: 'No se encontró el evento.' }
+        setAdminEvents(events)
+        return { event: updated, events }
+      }
+
+      try {
+        const result = await setEventLogoRequest(slug, file)
+        setAdminEvents(result.events)
+        setAdminEventsError(null)
+        return result
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo guardar el logo del evento.' }
+      }
+    },
+    [adminEvents, session],
+  )
+
+  /**
    * Impacto del borrado (dry run). Lo pide el diálogo de confirmación antes de
    * mostrar nada: sin esto el operador confirmaría a ciegas cuántas
    * inscripciones y entradas se está llevando puestas.
@@ -3757,32 +3788,6 @@ export function useAppData() {
     [refreshBillingSubscriptions, session],
   )
 
-  const saveShopProduct = useCallback(
-    (draft) => {
-      if (!hasPermission(session, 'admin.shop.write')) {
-        return { error: 'Sin permisos para editar productos.' }
-      }
-      const nextProducts = upsertShopProduct(shopProducts, draft)
-      const savedProduct = draft.id
-        ? nextProducts.find((product) => product.id === draft.id)
-        : nextProducts[0]
-      setShopProducts(nextProducts)
-      return { product: savedProduct }
-    },
-    [shopProducts, session],
-  )
-
-  const deleteShopProductAction = useCallback(
-    (productId) => {
-      if (!hasPermission(session, 'admin.shop.write')) {
-        return { error: 'Sin permisos para eliminar productos.' }
-      }
-      setShopProducts((current) => deleteShopProduct(current, productId))
-      return { ok: true }
-    },
-    [session],
-  )
-
   return {
     role,
     session,
@@ -3852,13 +3857,11 @@ export function useAppData() {
     billingSubscriptionsError,
     refreshBillingSubscriptions,
     cancelBillingSubscription,
-    shopProducts,
     saveAdminEvent,
     deleteAdminEvent,
     fetchAdminEventDeleteImpact,
     setAdminEventState,
-    saveShopProduct,
-    deleteShopProductAction,
+    setAdminEventLogo,
     filteredRegistrations,
     gatePendingIds,
     handleScheduleAssigned,
