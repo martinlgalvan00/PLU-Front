@@ -1728,6 +1728,8 @@ export default {
         wrong_zone: 'Esta credencial no abre esta zona',
         not_yet_valid: 'Este QR todavía no está vigente',
         expired: 'Este QR ya venció',
+        service_unavailable: 'Sin conexión con el servidor: no se pudo validar este QR',
+        session_expired: 'La sesión del puesto venció: volvé a ingresar',
       },
     },
     offline: {
@@ -1736,6 +1738,8 @@ export default {
       pending: '{{count}} pendiente(s)',
       syncNow: 'Sincronizar',
       syncing: 'Sincronizando…',
+      sessionExpired:
+        'La sesión venció y hay {{count}} ingreso(s) sin sincronizar. Volvé a ingresar para enviarlos: no se pierden.',
       downloadAllowlist: 'Descargar Excel',
       refreshAllowlist: 'Actualizar Excel',
       downloading: 'Descargando…',
