@@ -1104,6 +1104,23 @@ export function createTicketRoutes({
     }
   })
   /**
+   * Puesto que queda escrito en `check_ins` y en la auditoría. Si la cuenta
+   * tiene zona asignada manda el nombre de la zona: un dispositivo no puede
+   * declararse en otra puerta. El valor del cuerpo sólo vale para cuentas sin
+   * zona (administración), y se sanea: sin caracteres de control y acotado.
+   */
+  function resolveGateLabel(req) {
+    const zoneName = req.auth?.user?.securityZone?.name
+    if (zoneName) return zoneName
+    const declared = typeof req.body?.gate === 'string' ? req.body.gate : ''
+    const cleaned = declared
+      .replace(/\p{Cc}/gu, '')
+      .trim()
+      .slice(0, 80)
+    return cleaned || 'Puerta'
+  }
+
+  /**
    * Alcance de la zona de quien escanea. Es lo que decide qué credencial abre
    * qué puesto: la de ENTRENADOR entra al calentamiento y la de espectador no.
    * El alcance sale de la cuenta, nunca del cuerpo del request -- si lo mandara
@@ -1193,7 +1210,7 @@ export function createTicketRoutes({
 
   router.post('/checkin/:qrToken', ...guard, staffLimiter, async (req, res, next) => {
     let ticket
-    const gate = req.body?.gate || req.auth?.user?.securityZone?.name || 'Puerta'
+    const gate = resolveGateLabel(req)
     try {
       ticket = await repo().verify(req.params.qrToken)
       const eventId = verifiedTicketEventId(ticket)
@@ -1270,7 +1287,7 @@ export function createTicketRoutes({
         res.json(
           await ticketRepository.checkInRegistration(
             req.params.registrationId,
-            req.body?.gate,
+            resolveGateLabel(req),
             actor(req),
           ),
         )
