@@ -1,14 +1,21 @@
 import '../styles/pages/institutional-pages.css'
 import '../styles/pages/sponsors.css'
+import '../styles/pages/sponsors-luxe.css'
 import { useState } from 'react'
 import { ArrowRight } from 'lucide-react'
+import { m } from 'motion/react'
 import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'
+import EditorialLedger from '../components/ui/EditorialLedger.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import SponsorInquiryForm, { SPONSOR_BRAND_FIELD_ID } from '../components/ui/SponsorInquiryForm.jsx'
 import SponsorsAudience from '../components/ui/SponsorsAudience.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { hasPublishedSponsors, listSponsorsByTier, SPONSOR_TIERS } from '../data/sponsors.js'
 import { normalizeSponsorTier, SPONSOR_TIER_UNDECIDED } from '../lib/sponsorInquiry.js'
+import { useMotionConfig } from '../motion/MotionProvider.tsx'
+import TiltCard from '../motion/TiltCard.tsx'
+import { MOTION_VIEWPORT } from '../motion/tokens.ts'
+import { staggerContainer, staggerItem } from '../motion/variants.ts'
 
 const PROPOSAL_SECTION_ID = 'propuesta'
 const TIERS_SECTION_ID = 'niveles'
@@ -25,6 +32,18 @@ function scrollToSection(id) {
 
 export default function SponsorsPage({ onNavigate }) {
   const { messages, t } = useI18n()
+  const { reducedMotion, tier: motionTier } = useMotionConfig()
+  const still = reducedMotion || motionTier === 'low'
+  const TierList = still ? 'ul' : m.ul
+  const TierItem = still ? 'li' : m.li
+  const tierListProps = still
+    ? {}
+    : {
+        initial: 'hidden',
+        whileInView: 'visible',
+        viewport: MOTION_VIEWPORT,
+        variants: staggerContainer,
+      }
   const [interestTier, setInterestTier] = useState(SPONSOR_TIER_UNDECIDED)
   const published = hasPublishedSponsors()
   const benefits = Array.isArray(messages.pages?.sponsors?.benefits)
@@ -94,19 +113,7 @@ export default function SponsorsPage({ onNavigate }) {
             </div>
           </header>
 
-          <ol className="sponsors-benefits__list">
-            {benefits.map((item, index) => (
-              <li key={item.id} className="sponsors-benefits__item">
-                <span className="sponsors-benefits__index" aria-hidden>
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-                <div className="sponsors-benefits__body">
-                  <h3>{item.title}</h3>
-                  <p>{item.desc}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
+          <EditorialLedger items={benefits} ariaLabel={t('pages.sponsors.benefitsTitle')} />
         </section>
 
         <section
@@ -122,49 +129,56 @@ export default function SponsorsPage({ onNavigate }) {
             </div>
           </header>
 
-          <ul className="sponsors-tiers__list">
+          <TierList className="sponsor-tiers__grid" {...tierListProps}>
             {SPONSOR_TIERS.map((tier) => {
               const partners = listSponsorsByTier(tier)
               return (
-                <li
+                <TierItem
                   key={tier}
-                  className={`sponsors-tiers__item${tier === 'title' ? ' sponsors-tiers__item--title' : ''}`}
+                  className={`sponsor-tier${tier === 'title' ? ' sponsor-tier--title' : ''}`}
+                  {...(still ? {} : { variants: staggerItem })}
                 >
-                  <p className="sponsors-tiers__label">{t(`pages.sponsors.tiers.${tier}.label`)}</p>
-                  <h3>{t(`pages.sponsors.tiers.${tier}.title`)}</h3>
-                  <p>{t(`pages.sponsors.tiers.${tier}.desc`)}</p>
-                  {partners.length > 0 ? (
-                    <ul className="sponsors-tiers__partners">
-                      {partners.map((partner) => (
-                        <li key={partner.id}>
-                          {partner.logoSrc ? (
-                            <img src={partner.logoSrc} alt="" className="sponsors-tiers__logo" />
-                          ) : null}
-                          {partner.url ? (
-                            <a href={partner.url} target="_blank" rel="noopener noreferrer">
-                              {partner.name}
-                            </a>
-                          ) : (
-                            <strong>{partner.name}</strong>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="sponsors-tiers__empty">{t('pages.sponsors.slotEmpty')}</p>
-                  )}
-                  <button
-                    type="button"
-                    className="sponsors-tiers__cta"
-                    onClick={() => openProposal(tier)}
+                  <TiltCard
+                    className="sponsor-tier__tilt"
+                    innerClassName="tilt-card__inner sponsor-tier__plate"
+                    maxTilt={tier === 'title' ? 3 : 4}
                   >
-                    <span>{t('pages.sponsors.tierCta')}</span>
-                    <ArrowRight size={13} aria-hidden />
-                  </button>
-                </li>
+                    <p className="sponsor-tier__label">{t(`pages.sponsors.tiers.${tier}.label`)}</p>
+                    <h3>{t(`pages.sponsors.tiers.${tier}.title`)}</h3>
+                    <p className="sponsor-tier__desc">{t(`pages.sponsors.tiers.${tier}.desc`)}</p>
+                    {partners.length > 0 ? (
+                      <ul className="sponsor-tier__partners">
+                        {partners.map((partner) => (
+                          <li key={partner.id}>
+                            {partner.logoSrc ? (
+                              <img src={partner.logoSrc} alt="" className="sponsor-tier__logo" />
+                            ) : null}
+                            {partner.url ? (
+                              <a href={partner.url} target="_blank" rel="noopener noreferrer">
+                                {partner.name}
+                              </a>
+                            ) : (
+                              <strong>{partner.name}</strong>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="sponsor-tier__empty">{t('pages.sponsors.slotEmpty')}</p>
+                    )}
+                    <button
+                      type="button"
+                      className="sponsor-tier__cta motion-icon-shift"
+                      onClick={() => openProposal(tier)}
+                    >
+                      <span>{t('pages.sponsors.tierCta')}</span>
+                      <ArrowRight size={13} aria-hidden className="motion-icon-shift__target" />
+                    </button>
+                  </TiltCard>
+                </TierItem>
               )
             })}
-          </ul>
+          </TierList>
           {!published ? (
             <p className="sponsors-tiers__catalog-note">{t('pages.sponsors.catalogNote')}</p>
           ) : null}
@@ -179,19 +193,7 @@ export default function SponsorsPage({ onNavigate }) {
             </div>
           </header>
 
-          <ol className="sponsors-process__list">
-            {processSteps.map((step, index) => (
-              <li key={step.id} className="sponsors-process__item">
-                <span className="sponsors-process__index" aria-hidden>
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-                <div className="sponsors-process__body">
-                  <h3>{step.title}</h3>
-                  <p>{step.desc}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
+          <EditorialLedger rail items={processSteps} ariaLabel={t('pages.sponsors.processTitle')} />
         </section>
 
         <Reveal delay={40}>

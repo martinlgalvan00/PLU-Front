@@ -217,6 +217,8 @@
 
   /* ── Status chips — dark-safe (los de :root en variables.css
      asumen fondo claro y quedan ilegibles/desentonan sobre dark) ── */
+  --color-success-bg: rgba(61, 154, 98, 0.16);
+  --color-success-text: var(--plu-success-400);
   --color-warning-bg: rgba(180, 83, 9, 0.18);
   --color-warning-text: #f0b45e;
   --color-danger-bg: rgba(153, 27, 27, 0.2);
@@ -250,69 +252,69 @@
   --filter-pill-active-text: #14181f;
 
   /* Admin institucional — misma jerarquía en modo ejecutivo */
-  --admin-canvas: var(--plu-cool-950);
-  --admin-surface: var(--plu-cool-850);
-  --admin-surface-raised: var(--plu-cool-800);
-  --admin-surface-muted: var(--plu-cool-900);
-  --admin-sidebar: #090b0e;
-  --admin-sidebar-surface: #0e1115;
-  --admin-sidebar-text: #ecece8;
+  --admin-canvas: #0a0a0a;
+  --admin-surface: #101010;
+  --admin-surface-raised: #161616;
+  --admin-surface-muted: #0d0d0d;
+  --admin-sidebar: #080808;
+  --admin-sidebar-surface: #0e0e0e;
+  --admin-sidebar-text: #f2f2f2;
   /* 0.58 sobre #090b0e ≈ 5.9:1 — AA para texto chico (con 0.46 quedaba
      en ~4.05:1, por debajo del mínimo 4.5:1). */
-  --admin-sidebar-muted: rgba(236, 236, 232, 0.58);
-  --admin-sidebar-hover: rgba(255, 255, 255, 0.045);
-  --admin-sidebar-border: rgba(255, 255, 255, 0.055);
-  --admin-sidebar-shadow: 24px 0 64px rgba(0, 0, 0, 0.45);
-  --admin-ink: var(--plu-ink-inverse);
-  --admin-text-secondary: var(--color-text-secondary);
-  --admin-muted: var(--color-text-muted);
+  --admin-sidebar-muted: rgba(242, 242, 242, 0.6);
+  --admin-sidebar-hover: rgba(255, 255, 255, 0.05);
+  --admin-sidebar-border: rgba(255, 255, 255, 0.07);
+  --admin-sidebar-shadow: none;
+  --admin-ink: #fafafa;
+  --admin-text-secondary: #cfcfcf;
+  --admin-muted: #8f8f8f;
   --admin-hairline: color-mix(in srgb, var(--plu-ink-inverse) 9%, transparent);
   --admin-hairline-strong: color-mix(in srgb, var(--plu-ink-inverse) 16%, transparent);
-  --admin-brand: var(--plu-celeste-300);
-  --admin-brand-soft: color-mix(in srgb, var(--plu-celeste-300) 10%, transparent);
-  --admin-brand-border: color-mix(in srgb, var(--plu-celeste-300) 24%, transparent);
-  --admin-action: var(--plu-celeste-600);
-  --admin-on-action: var(--plu-ink-inverse);
-  --admin-on-brand: var(--plu-cool-950);
-  --admin-premium: var(--plu-gold-400);
-  --admin-premium-soft: color-mix(in srgb, var(--plu-gold-400) 10%, transparent);
+  --admin-brand: #fafafa;
+  --admin-brand-soft: color-mix(in srgb, #fff 7%, transparent);
+  --admin-brand-border: color-mix(in srgb, #fff 24%, transparent);
+  --admin-action: var(--color-brand-action);
+  --admin-on-action: var(--color-brand-action-text);
+  --admin-on-brand: #0a0a0a;
+  --admin-premium: #fafafa;
+  --admin-premium-soft: color-mix(in srgb, #fff 7%, transparent);
   --admin-status-success: var(--plu-success-400);
   --admin-status-success-bg: color-mix(in srgb, var(--plu-success-400) 11%, transparent);
   --admin-status-success-border: color-mix(in srgb, var(--plu-success-400) 25%, transparent);
-  --admin-status-warning: var(--plu-gold-400);
-  --admin-status-warning-bg: color-mix(in srgb, var(--plu-gold-400) 10%, transparent);
-  --admin-status-warning-border: color-mix(in srgb, var(--plu-gold-400) 24%, transparent);
+  --admin-status-warning: #e3ae52;
+  --admin-status-warning-bg: color-mix(in srgb, #e3ae52 10%, transparent);
+  --admin-status-warning-border: color-mix(in srgb, #e3ae52 24%, transparent);
   --admin-status-danger: var(--plu-red-300);
   --admin-status-danger-bg: color-mix(in srgb, var(--plu-red-300) 9%, transparent);
   --admin-status-danger-border: color-mix(in srgb, var(--plu-red-300) 22%, transparent);
-  --admin-status-info: var(--plu-celeste-300);
-  --admin-status-info-bg: color-mix(in srgb, var(--plu-celeste-300) 10%, transparent);
-  --admin-status-info-border: color-mix(in srgb, var(--plu-celeste-300) 24%, transparent);
+  --admin-status-info: #cfcfcf;
+  --admin-status-info-bg: color-mix(in srgb, #fff 7%, transparent);
+  --admin-status-info-border: color-mix(in srgb, #fff 18%, transparent);
   --admin-accent: var(--admin-brand);
   --admin-accent-soft: var(--admin-brand-soft);
   --admin-focus: var(--admin-brand);
   --admin-focus-soft: var(--admin-brand-soft);
-  --admin-row-hover: color-mix(in srgb, var(--admin-brand) 6%, transparent);
-  --admin-control-bg: color-mix(in srgb, var(--plu-cool-800) 78%, var(--plu-cool-900));
-  --admin-control-hover: color-mix(in srgb, var(--admin-brand) 7%, var(--plu-cool-800));
-  --admin-table-head: color-mix(in srgb, var(--plu-cool-900) 82%, var(--plu-cool-800));
-  --admin-table-sticky: var(--plu-cool-800);
-  --admin-table-stripe: color-mix(in srgb, var(--plu-ink-inverse) 1.7%, transparent);
+  --admin-row-hover: color-mix(in srgb, #fff 4%, transparent);
+  --admin-control-bg: #131313;
+  --admin-control-hover: #1a1a1a;
+  --admin-table-head: #121212;
+  --admin-table-sticky: #101010;
+  --admin-table-stripe: color-mix(in srgb, #fff 1.5%, transparent);
   --admin-shadow-soft: 0 4px 18px rgba(0, 0, 0, 0.18);
   --admin-shadow-panel: 0 26px 72px rgba(0, 0, 0, 0.34);
-  --admin-attention-bg: var(--plu-cool-800);
+  --admin-attention-bg: #161616;
   --admin-attention-text: var(--plu-ink-inverse);
 
   /* Material de modal admin — un escalón por debajo de todo el panel:
      cool-950 translúcido + blur, para que la atmósfera oscura se refracte
      y el panel lea como piedra flotante, no como otro box opaco. */
-  --admin-modal-bg: color-mix(in srgb, var(--plu-cool-950) 88%, transparent);
+  --admin-modal-bg: #0f0f0f;
   --admin-modal-border: color-mix(in srgb, white 10%, transparent);
   --admin-modal-highlight: rgba(255, 255, 255, 0.06);
-  --admin-modal-blur: 20px;
+  --admin-modal-blur: 0px;
   --admin-modal-shadow: 0 32px 90px rgba(0, 0, 0, 0.6);
-  --admin-modal-backdrop: color-mix(in srgb, var(--plu-cool-950) 72%, transparent);
-  --admin-modal-backdrop-blur: 14px;
+  --admin-modal-backdrop: rgba(0, 0, 0, 0.72);
+  --admin-modal-backdrop-blur: 0px;
   --admin-modal-ink: var(--plu-ink-inverse);
   --admin-modal-text-secondary: rgba(236, 236, 232, 0.78);
   --admin-modal-text-muted: rgba(236, 236, 232, 0.6);
@@ -326,14 +328,14 @@
   /* Liquid glass — una sola receta material para paneles del admin.
      La atmósfera del main (--theme-atmosphere-stack-admin) es lo que el
      blur refracta; sin ella el vidrio no se lee como vidrio. */
-  --admin-glass-bg: color-mix(in srgb, var(--plu-cool-800) 58%, transparent);
-  --admin-glass-bg-strong: color-mix(in srgb, var(--plu-cool-750) 82%, transparent);
-  --admin-glass-border: color-mix(in srgb, white 9%, transparent);
-  --admin-glass-border-strong: color-mix(in srgb, white 15%, transparent);
-  --admin-glass-highlight: color-mix(in srgb, white 8%, transparent);
-  --admin-glass-blur: 18px;
-  --admin-glass-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
-  --admin-glass-sidebar-bg: color-mix(in srgb, var(--plu-cool-950) 60%, transparent);
+  --admin-glass-bg: #101010;
+  --admin-glass-bg-strong: #141414;
+  --admin-glass-border: color-mix(in srgb, white 8%, transparent);
+  --admin-glass-border-strong: color-mix(in srgb, white 14%, transparent);
+  --admin-glass-highlight: transparent;
+  --admin-glass-blur: 0px;
+  --admin-glass-shadow: none;
+  --admin-glass-sidebar-bg: #080808;
 
   --scrollbar-thumb: rgba(255, 255, 255, 0.14);
   --scrollbar-thumb-hover: rgba(242, 183, 5, 0.42);
@@ -342,4 +344,30 @@
 
 [data-theme='dark'] {
   color-scheme: dark;
+}
+
+/* ── Superficie admin: monocromo ──────────────────────────────────────────
+   AdminPage marca <html data-surface="admin"> mientras está montado, así el
+   remapeo cubre también portales (drawers, diálogos, toasts) y no solo
+   .admin-shell. El celeste institucional se vuelve tinta; el dorado queda
+   como único acento (acción principal). Neutros puros, sin matiz frío. */
+:root[data-surface='admin']:not([data-theme='light']) {
+  --color-brand-celeste: #fafafa;
+  --color-brand-celeste-dim: rgba(255, 255, 255, 0.08);
+  --color-brand-celeste-glow: rgba(255, 255, 255, 0.2);
+  --color-text-accent: #fafafa;
+  --color-text-price: #fafafa;
+  --color-border-accent: rgba(255, 255, 255, 0.22);
+  --color-bg-primary: #0a0a0a;
+  --color-bg-secondary: #0d0d0d;
+  --color-bg-surface: #111111;
+  --color-bg-elevated: #161616;
+  --color-bg-input: #0d0d0d;
+  --color-bg-muted: #1c1c1c;
+  --color-border: rgba(255, 255, 255, 0.12);
+  --color-border-strong: rgba(255, 255, 255, 0.3);
+  --color-border-subtle: rgba(255, 255, 255, 0.07);
+  --color-text-secondary: #cfcfcf;
+  --color-text-muted: #8f8f8f;
+  --theme-atmosphere-stack-admin: none;
 }

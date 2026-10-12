@@ -1,5 +1,5 @@
 import { ArrowRight } from 'lucide-react'
-import { m } from 'motion/react'
+import { m, useScroll, useTransform } from 'motion/react'
 import { useMemo } from 'react'
 import heroPhoto from '../../assets/DSC00346-display.jpg'
 import heroPhotoAvif from '../../assets/DSC00346-display.avif'
@@ -46,6 +46,27 @@ const heroTitleLineWipe = {
     y: '0%',
     transition: { duration: MOTION_DURATION.cinematic, ease: MOTION_EASE.cinematic },
   },
+}
+
+/** Foto de fondo: empuje de entrada (1.14 → 1.02) y parallax con el scroll. Solo
+ * transform; reduced motion / tier low la dejan quieta. */
+function HeroBackdropPhoto({ children, still }) {
+  const { scrollY } = useScroll()
+  const y = useTransform(scrollY, [0, 800], [0, 90])
+
+  if (still) return <div className="hero__backdrop-motion">{children}</div>
+
+  return (
+    <m.div
+      className="hero__backdrop-motion"
+      initial={{ scale: 1.14 }}
+      animate={{ scale: 1.02 }}
+      transition={{ duration: 2.8, ease: MOTION_EASE.cinematic }}
+      style={{ y }}
+    >
+      {children}
+    </m.div>
+  )
 }
 
 export default function HeroSection({ onNavigate, event }) {
@@ -99,10 +120,7 @@ export default function HeroSection({ onNavigate, event }) {
       <m.span className="hero__title-line" variants={titleLineVariants}>
         {t('hero.titleLead')}
       </m.span>{' '}
-      <m.span
-        className="hero__title-line hero__title-line--accent"
-        variants={titleLineVariants}
-      >
+      <m.span className="hero__title-line hero__title-line--accent" variants={titleLineVariants}>
         {t('hero.titleAccent')}
       </m.span>
     </>
@@ -184,15 +202,17 @@ export default function HeroSection({ onNavigate, event }) {
   return (
     <section className="hero hero--design hero--motion hero--statement">
       <div className="hero__backdrop" aria-hidden>
-        <ResponsivePhoto
-          className="hero__backdrop-img hero__backdrop-img--depth"
-          avif={{ 640: heroPhotoAvif640, 1280: heroPhotoAvif1280, 2048: heroPhotoAvif }}
-          webp={{ 640: heroPhotoWebp640, 1280: heroPhotoWebp1280, 2048: heroPhotoWebp }}
-          src={heroPhoto}
-          alt=""
-          loading="eager"
-          fetchPriority="high"
-        />
+        <HeroBackdropPhoto still={reducedMotion || tier === 'low'}>
+          <ResponsivePhoto
+            className="hero__backdrop-img hero__backdrop-img--depth"
+            avif={{ 640: heroPhotoAvif640, 1280: heroPhotoAvif1280, 2048: heroPhotoAvif }}
+            webp={{ 640: heroPhotoWebp640, 1280: heroPhotoWebp1280, 2048: heroPhotoWebp }}
+            src={heroPhoto}
+            alt=""
+            loading="eager"
+            fetchPriority="high"
+          />
+        </HeroBackdropPhoto>
       </div>
 
       <div className="hero__copy">

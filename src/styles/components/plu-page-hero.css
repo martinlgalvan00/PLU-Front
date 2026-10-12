@@ -96,12 +96,14 @@
   color: var(--color-text);
 }
 
+/* Eyebrow: celeste 600 en claro (el celeste de marca no llega a AA sobre
+   el canvas cálido a este tamaño). */
 .plu-page-hero__chapter {
-  color: var(--color-brand-celeste);
-  font-size: 10px;
-  font-weight: 700;
+  color: var(--plu-celeste-600);
+  font-size: 11px;
+  font-weight: 600;
   letter-spacing: 0.2em;
-  margin: 0 0 16px;
+  margin: 0 0 18px;
   text-transform: uppercase;
 }
 
@@ -110,14 +112,17 @@
   text-shadow: none;
 }
 
+/* Título editorial: escala grande, peso 600 y tracking cerrado. El peso
+   medio deja respirar las formas de Poppins; el 700 a este cuerpo se
+   leía como bloque. */
 .plu-page-hero__title {
   font-family: var(--font-display);
-  font-size: clamp(34px, 4.2vw, 46px);
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1.02;
+  font-size: clamp(40px, 6.2vw, 76px);
+  font-weight: 600;
+  letter-spacing: -0.055em;
+  line-height: 0.98;
   margin: 0;
-  max-width: 13ch;
+  max-width: 14ch;
   text-wrap: balance;
 }
 
@@ -130,10 +135,10 @@
 
 .plu-page-hero__desc {
   color: var(--color-text-muted);
-  font-size: clamp(15px, 1.5vw, 17px);
-  line-height: 1.65;
-  margin: 20px 0 0;
-  max-width: 54ch;
+  font-size: clamp(16px, 1.55vw, 19px);
+  line-height: 1.6;
+  margin: 24px 0 0;
+  max-width: 48ch;
   text-wrap: pretty;
 }
 
@@ -153,10 +158,6 @@
 
 .plu-page-hero--solo .plu-page-hero__copy {
   max-width: 920px;
-}
-
-.plu-page-hero--start .plu-page-hero__title {
-  font-size: clamp(32px, 4.2vw, 46px);
 }
 
 /* Contenedor angosto: una columna editorial (copy → próximo meet) */
@@ -205,10 +206,9 @@
     margin-bottom: 26px;
   }
 
-  .plu-page-hero__title,
-  .plu-page-hero--start .plu-page-hero__title {
-    font-size: clamp(32px, 10vw, 42px);
-    letter-spacing: -0.045em;
+  .plu-page-hero__title {
+    font-size: clamp(38px, 11.5vw, 52px);
+    letter-spacing: -0.05em;
   }
 
   .plu-page-hero__aside {

@@ -88,16 +88,6 @@
   outline-offset: 2px;
 }
 
-.admin-analytics__pulse {
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-lg);
-  padding: var(--space-lg);
-  box-shadow: none;
-  display: grid;
-  gap: var(--space-md);
-}
-
 /* ---- Stat tiles (read-only KPI) ---- */
 
 .admin-analytics__stat-grid {
@@ -215,18 +205,21 @@
   text-wrap: pretty;
 }
 
+/* La variación se lee por el signo y el ícono de dirección; el color no la
+   decide (una caída del 5% no es un error y no merece rojo). */
 .admin-analytics__stat-delta {
-  font-size: 11px;
+  align-items: center;
+  color: var(--admin-text-secondary);
+  display: inline-flex;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
+  gap: 3px;
 }
 
-.admin-analytics__stat-delta--up {
-  color: var(--color-success-text);
-}
-
+.admin-analytics__stat-delta--up,
 .admin-analytics__stat-delta--down {
-  color: var(--color-danger-text);
+  color: var(--admin-ink);
 }
 
 .admin-analytics__stat-delta-wrap {
@@ -240,60 +233,199 @@
   font-weight: 500;
 }
 
-.admin-analytics__comparison-note {
-  color: var(--color-text-muted);
+/* ---- Pulso: una cifra que manda y las de apoyo ----
+   Orden de lectura: cuánta gente entró (cifra grande, con su variación) → las
+   tres cifras que la acompañan → la lectura del tiempo. Monocromo: el número
+   es el protagonista, no el color. */
+
+.admin-analytics__pulse {
+  border-bottom: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: var(--space-lg);
+  padding: var(--space-sm) 0 var(--space-lg);
+}
+
+.admin-analytics__hero {
+  align-items: end;
+  display: grid;
+  gap: var(--space-lg) var(--space-2xl);
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+}
+
+.admin-analytics__hero-label {
+  color: var(--admin-muted);
   font-size: 11px;
-  line-height: 1.4;
-  margin: -4px 0 0;
-  text-wrap: pretty;
-}
-
-/* ---- Insight strip ---- */
-
-.admin-analytics__insight {
-  border-top: 1px solid var(--color-border-subtle);
-  display: grid;
-  gap: var(--space-sm);
-  padding-top: var(--space-md);
-}
-
-.admin-analytics__insight-highlights {
-  display: grid;
-  gap: var(--space-sm);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.admin-analytics__insight-item {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.admin-analytics__insight-value {
-  color: var(--color-text-primary);
-  font-family: var(--font-display, var(--font-family));
-  font-size: clamp(1.1rem, 2.2vw, 1.35rem);
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1;
-  margin: 0;
-}
-
-.admin-analytics__insight-label {
-  color: var(--color-text-muted);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  line-height: 1.35;
+  font-weight: 650;
+  letter-spacing: 0.08em;
   margin: 0;
   text-transform: uppercase;
 }
 
-.admin-analytics__insight-note,
-.admin-analytics__summary {
-  color: var(--color-text-secondary);
+.admin-analytics__hero-value {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 6px 0 0;
+}
+
+.admin-analytics__hero-number {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(56px, 7.5vw, 96px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+
+.admin-analytics__comparison-note {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 10px 0 0;
+  max-width: 54ch;
+  text-wrap: pretty;
+}
+
+.admin-analytics__hero-side {
+  display: grid;
+  margin: 0;
+}
+
+.admin-analytics__hero-side > div {
+  align-items: baseline;
+  border-top: 1px solid var(--admin-hairline);
+  column-gap: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 11px 0;
+}
+
+.admin-analytics__hero-side dt {
+  color: var(--admin-text-secondary);
+  font-size: 13.5px;
+}
+
+.admin-analytics__hero-side dd {
+  align-items: baseline;
+  color: var(--admin-ink);
+  display: inline-flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin: 0;
+}
+
+.admin-analytics__hero-sidenum {
+  font-family: var(--font-display, var(--font-family));
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.admin-analytics__hero-side dd.admin-analytics__hero-hint {
+  color: var(--admin-muted);
   font-size: 12px;
+  font-weight: 400;
+  grid-column: 1 / -1;
+  justify-content: flex-start;
+  margin-top: 2px;
+}
+
+.admin-analytics__summary {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  margin: 0;
+}
+
+/* Cifras secundarias: una línea tipográfica separada por hairlines, no cuatro
+   tarjetas. Mismo criterio que ya usa el panel de ventas de entradas. */
+.admin-analytics__stat-grid--secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md) 0;
+}
+
+.admin-analytics__stat-grid--secondary .admin-analytics__stat--compact {
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  flex: 1 1 150px;
+  gap: 4px;
+  min-height: 0;
+  padding: 2px 20px;
+}
+
+.admin-analytics__stat-grid--secondary .admin-analytics__stat--compact::before {
+  display: none;
+}
+
+.admin-analytics__stat-grid--secondary .admin-analytics__stat--compact:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+/* ---- Lo que se destaca ---- */
+
+.admin-analytics__highlights {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.admin-analytics__highlights-title {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.admin-analytics__highlights-list {
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-analytics__highlight {
+  align-content: start;
+  display: grid;
+  gap: 6px;
+  padding: 18px 20px 18px 0;
+}
+
+.admin-analytics__highlight + .admin-analytics__highlight {
+  border-left: 1px solid var(--admin-hairline);
+  padding-left: 20px;
+}
+
+.admin-analytics__highlight-label {
+  color: var(--admin-muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+.admin-analytics__highlight-value {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-analytics__highlight-detail {
+  color: var(--admin-text-secondary);
+  font-size: 13px;
   line-height: 1.45;
   margin: 0;
   text-wrap: pretty;
@@ -528,55 +660,8 @@
 
 /* --- Embudo --- */
 
-.admin-analytics__funnel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.admin-analytics__funnel-step {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-}
-
-.admin-analytics__funnel-step-inner {
-  align-items: center;
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-md);
-  display: grid;
-  gap: 2px var(--space-md);
-  grid-template-columns: minmax(0, 1fr) auto;
-  min-width: min(100%, max(28%, calc(var(--funnel-width, 1) * 100%)));
-  padding: 12px var(--space-md);
-  transition: min-width var(--motion-slow) var(--ease-out);
-  width: min(100%, max(28%, calc(var(--funnel-width, 1) * 100%)));
-}
-
 /* El embudo se asienta escalonado desde el primer paso: la caída entre
    pasos se percibe como forma, no solo como números. Una sola vez. */
-@media (prefers-reduced-motion: no-preference) {
-  .admin-analytics__funnel-step-inner {
-    animation: admin-analytics-funnel-in var(--motion-slow, 420ms)
-      var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
-  }
-
-  .admin-analytics__funnel-step:nth-child(2) .admin-analytics__funnel-step-inner {
-    animation-delay: 60ms;
-  }
-
-  .admin-analytics__funnel-step:nth-child(3) .admin-analytics__funnel-step-inner {
-    animation-delay: 120ms;
-  }
-
-  .admin-analytics__funnel-step:nth-child(n + 4) .admin-analytics__funnel-step-inner {
-    animation-delay: 180ms;
-  }
-}
 
 @keyframes admin-analytics-funnel-in {
   from {
@@ -590,31 +675,187 @@
   }
 }
 
-.admin-analytics__funnel-name {
-  color: var(--color-text-primary);
-  font-size: 14px;
-  font-weight: 600;
+/* Embudo horizontal: la altura de cada barra es la fracción del total que
+   llegó hasta ese paso, así la caída se ve como forma y no solo como número. */
+.admin-analytics__funnel {
+  align-items: start;
+  display: grid;
+  gap: 0;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-analytics__funnel-step {
+  align-content: start;
+  animation: admin-analytics-funnel-in var(--duration-slow) var(--ease-out) both;
+  animation-delay: calc(var(--funnel-index, 0) * 70ms);
+  display: grid;
+  gap: 4px;
+  padding-right: var(--space-md);
+}
+
+.admin-analytics__funnel-bar {
+  align-items: flex-end;
+  display: flex;
+  height: 128px;
+  margin-bottom: 6px;
+}
+
+/* Cuerpo tenue y filo de tinta arriba: la altura se lee sin que la primera
+   barra sea una losa blanca. */
+.admin-analytics__funnel-bar span {
+  background: color-mix(in srgb, var(--admin-ink) 13%, transparent);
+  border-radius: 2px 2px 0 0;
+  border-top: 2px solid var(--admin-ink);
+  display: block;
+  height: max(6px, calc(var(--funnel-rate, 0) * 100%));
+  width: 100%;
 }
 
 .admin-analytics__funnel-value {
-  color: var(--color-text-primary);
+  color: var(--admin-ink);
   font-family: var(--font-display, var(--font-family));
-  font-size: 18px;
+  font-size: 26px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  grid-column: 2;
-  grid-row: 1;
   letter-spacing: -0.02em;
-  line-height: 1;
-  text-align: right;
+  line-height: 1.1;
+}
+
+.admin-analytics__funnel-name {
+  color: var(--admin-ink);
+  font-size: 13.5px;
+  font-weight: 550;
 }
 
 .admin-analytics__funnel-meta {
-  color: var(--color-text-muted);
+  color: var(--admin-muted);
   font-size: 12px;
-  grid-column: 1 / -1;
-  line-height: 1.35;
+  line-height: 1.4;
   margin: 0;
+}
+
+.admin-analytics__funnel-flag {
+  align-items: center;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 999px;
+  color: var(--admin-ink);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 650;
+  gap: 5px;
+  justify-self: start;
+  margin-top: 4px;
+  padding: 2px 9px;
+}
+
+/* ---- Operación: accesos, actividad y fallas de cobro ---- */
+
+.admin-analytics__operation {
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: var(--space-lg);
+  padding-top: var(--space-xl);
+}
+
+.admin-analytics__operation-head h3 {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.admin-analytics__operation-head p {
+  color: var(--admin-muted);
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+
+.admin-analytics__operation-grid {
+  align-items: start;
+  display: grid;
+  gap: var(--space-xl);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-analytics__operation-col {
+  display: grid;
+  gap: var(--space-xl);
+  min-width: 0;
+}
+
+@media (max-width: 1000px) {
+  .admin-analytics__hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-analytics__operation-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  /* Cifras secundarias en dos columnas, sin filetes: apiladas en una sola, la
+     sangría de cada una quedaba distinta de la anterior. */
+  .admin-analytics__stat-grid--secondary {
+    display: grid;
+    gap: var(--space-md) var(--space-lg);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-analytics__stat-grid--secondary .admin-analytics__stat--compact {
+    border-left: 0;
+    padding: 0;
+  }
+
+  .admin-analytics__stat-grid--secondary .admin-analytics__stat:last-child {
+    grid-column: auto;
+  }
+
+  /* En pantallas angostas el embudo pasa a barras horizontales, una por paso. */
+  .admin-analytics__funnel {
+    gap: var(--space-md);
+    grid-auto-flow: row;
+  }
+
+  .admin-analytics__funnel-step {
+    padding-right: 0;
+  }
+
+  .admin-analytics__funnel-bar {
+    height: auto;
+    margin: 0 0 4px;
+    order: 4;
+  }
+
+  .admin-analytics__funnel-bar span {
+    border-radius: 2px;
+    height: 6px;
+    min-width: 4px;
+    width: calc(var(--funnel-rate, 0) * 100%);
+  }
+
+  .admin-analytics__highlight + .admin-analytics__highlight {
+    border-left: 0;
+    border-top: 1px solid var(--admin-hairline);
+    padding-left: 0;
+  }
+
+  .admin-analytics__highlight {
+    padding-right: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-analytics__funnel-step,
+  .admin-analytics__traffic-chart svg {
+    animation: none;
+  }
 }
 
 /* --- Listas con barra relativa --- */
@@ -1034,10 +1275,6 @@
     grid-column: 1 / -1;
   }
 
-  .admin-analytics__insight-highlights {
-    grid-template-columns: 1fr;
-  }
-
   .admin-analytics__metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
@@ -1082,10 +1319,6 @@
     flex: 1;
     min-height: 44px;
     padding: 0 var(--space-sm);
-  }
-
-  .admin-analytics__pulse {
-    padding: var(--space-md);
   }
 
   .admin-analytics__block {
@@ -1350,7 +1583,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .admin-analytics__funnel-step-inner,
   .admin-analytics__bar-list-fill,
   .admin-analytics__ranges button,
   .admin-analytics__devices button {
@@ -1666,7 +1898,7 @@
 
 .admin-analytics__traffic-chart svg {
   display: block;
-  height: 190px;
+  height: clamp(190px, 24vw, 260px);
   width: 100%;
 }
 
@@ -1688,10 +1920,60 @@
   stroke-width: 1;
 }
 
-.admin-analytics__traffic-cursor-dot {
-  fill: var(--color-brand-celeste);
-  stroke: var(--color-bg-surface);
-  stroke-width: 0.5;
+.admin-analytics__traffic-plot {
+  position: relative;
+}
+
+/* Puntos como HTML y no como <circle>: el SVG se estira sin conservar la
+   proporción, y un círculo del SVG terminaba hecho elipse. */
+.admin-analytics__traffic-cursor-dot,
+.admin-analytics__traffic-peak-dot {
+  background: var(--admin-ink);
+  border: 2px solid var(--admin-surface);
+  border-radius: 50%;
+  height: 12px;
+  pointer-events: none;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 12px;
+}
+
+.admin-analytics__traffic-peak {
+  background: var(--admin-surface-raised);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: var(--border-radius-sm);
+  color: var(--admin-ink);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  padding: 2px 8px;
+  pointer-events: none;
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 12px));
+  white-space: nowrap;
+}
+
+.admin-analytics__traffic-peak.is-start {
+  transform: translate(-8px, calc(-100% - 12px));
+}
+
+.admin-analytics__traffic-peak.is-end {
+  transform: translate(calc(-100% + 8px), calc(-100% - 12px));
+}
+
+/* La curva se dibuja de izquierda a derecha una sola vez. */
+.admin-analytics__traffic-chart svg {
+  animation: admin-analytics-reveal var(--duration-slow) var(--ease-cinematic) both;
+}
+
+@keyframes admin-analytics-reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    clip-path: inset(0 0 0 0);
+  }
 }
 
 .admin-analytics__traffic-axis {
@@ -1766,7 +2048,6 @@
   font-size: 14px;
   font-weight: 600;
   margin: 0;
-  text-transform: capitalize;
 }
 
 .admin-analytics__calendar-nav {
@@ -1866,6 +2147,15 @@
   min-height: 34px;
   padding: 0;
   width: 100%;
+}
+
+/* A ancho completo una celda cuadrada mide ~160px y el mes se come la pantalla:
+   en escritorio se vuelve apaisada, en mobile sigue siendo cuadrada. */
+@media (min-width: 721px) {
+  .admin-analytics__calendar-day {
+    aspect-ratio: 2.4 / 1;
+    min-height: 44px;
+  }
 }
 
 .admin-analytics__calendar-day:hover {

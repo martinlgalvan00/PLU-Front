@@ -1,0 +1,642 @@
+/* =============================================
+   BARRA DE LISTADO (AdminFilterToolbar)
+   Buscador + «Filtros» + acciones → lente de estado (pestañas con conteo y
+   atajos a lo que pide atención) → criterios aplicados como etiquetas.
+   Monocromo: la tinta marca lo activo; el único color es el punto de
+   atención. Nombres propios (`admin-toolbar__*`) para no pelear con las
+   reglas de `.admin-filters*` que usan los otros listados.
+   ============================================= */
+
+.admin-toolbar {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.admin-toolbar__row {
+  align-items: center;
+  display: flex;
+  gap: 10px 14px;
+  min-width: 0;
+}
+
+/* ---- Buscador ---- */
+
+.admin-shell .admin-toolbar .admin-filters__search {
+  align-items: center;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 10px;
+  box-shadow: none;
+  display: flex;
+  flex: 1 1 18rem;
+  gap: 10px;
+  height: 40px;
+  margin: 0;
+  max-width: 30rem;
+  min-width: 0;
+  padding: 0 12px;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.admin-shell .admin-toolbar .admin-filters__search:focus-within {
+  border-color: var(--admin-ink);
+  box-shadow: 0 0 0 3px var(--admin-focus-soft);
+}
+
+.admin-shell .admin-toolbar .admin-filters__search-icon {
+  color: var(--admin-muted);
+  flex: none;
+  height: 15px;
+  width: 15px;
+}
+
+.admin-shell .admin-toolbar .admin-filters__search-input {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--admin-ink);
+  flex: 1;
+  font-size: 14px;
+  height: 100%;
+  min-width: 0;
+  outline: none;
+  padding: 0;
+}
+
+.admin-shell .admin-toolbar .admin-filters__search-input::placeholder {
+  color: var(--admin-muted);
+}
+
+.admin-shell .admin-toolbar .admin-filters__search-input::-webkit-search-cancel-button {
+  appearance: none;
+  display: none;
+}
+
+/* ---- «Filtros» ---- */
+
+.admin-toolbar__trigger {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 10px;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 550;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.admin-toolbar__trigger:hover,
+.admin-toolbar__trigger.is-open {
+  background: var(--admin-row-hover);
+  color: var(--admin-ink);
+}
+
+.admin-toolbar__trigger.is-active {
+  border-color: var(--admin-ink);
+  color: var(--admin-ink);
+}
+
+.admin-toolbar__trigger:focus-visible,
+.admin-toolbar__segment:focus-visible,
+.admin-toolbar__chip:focus-visible,
+.admin-toolbar__option:focus-visible,
+.admin-toolbar__clear:focus-visible,
+.admin-toolbar__popover-close:focus-visible,
+.admin-toolbar__popover-clear:focus-visible,
+.admin-toolbar__popover-done:focus-visible,
+.admin-toolbar__tag button:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-toolbar__badge {
+  align-items: center;
+  background: var(--admin-brand);
+  border-radius: 999px;
+  color: var(--admin-on-brand);
+  display: inline-flex;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  height: 18px;
+  justify-content: center;
+  min-width: 18px;
+  padding: 0 5px;
+}
+
+.admin-toolbar__actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* ---- Lente de estado ---- */
+
+.admin-toolbar__row--lens {
+  border-bottom: 1px solid var(--admin-hairline);
+  flex-wrap: wrap;
+  gap: 4px 20px;
+}
+
+.admin-toolbar__segments {
+  align-items: stretch;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 4px;
+  min-width: 0;
+}
+
+.admin-toolbar__segment {
+  align-items: baseline;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  gap: 7px;
+  margin-bottom: -1px;
+  min-height: 40px;
+  padding: 10px 10px 8px;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.admin-toolbar__segment:hover:not(:disabled) {
+  color: var(--admin-ink);
+}
+
+.admin-toolbar__segment.is-active {
+  border-bottom-color: var(--admin-ink);
+  color: var(--admin-ink);
+  font-weight: 650;
+}
+
+.admin-toolbar__segment-count {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.admin-toolbar__segment.is-active .admin-toolbar__segment-count {
+  color: var(--admin-text-secondary);
+}
+
+/* Atajos a lo que pide atención: etiqueta con punto, sin caja hasta que se activa. */
+.admin-toolbar__quick {
+  align-items: center;
+  border-left: 1px solid var(--admin-hairline);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding-left: 18px;
+}
+
+.admin-toolbar__chip {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 999px;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 550;
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 12px 0 10px;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.admin-toolbar__chip:hover:not(:disabled) {
+  background: var(--admin-row-hover);
+  color: var(--admin-ink);
+}
+
+.admin-toolbar__chip-dot {
+  background: var(--admin-status-warning);
+  border-radius: 50%;
+  flex: none;
+  height: 6px;
+  width: 6px;
+}
+
+.admin-toolbar__chip-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+.admin-toolbar__chip.is-active {
+  background: var(--admin-brand);
+  border-color: var(--admin-brand);
+  color: var(--admin-on-brand);
+}
+
+.admin-toolbar__chip.is-active .admin-toolbar__chip-dot {
+  background: currentColor;
+}
+
+.admin-toolbar__count {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 2px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* ---- Criterios aplicados ---- */
+
+.admin-toolbar__tags {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin-top: -4px;
+}
+
+.admin-toolbar__tags:not(:has(*)) {
+  display: none;
+}
+
+.admin-toolbar__tag {
+  align-items: center;
+  background: var(--admin-row-hover);
+  border-radius: 999px;
+  color: var(--admin-ink);
+  display: inline-flex;
+  font-size: 12.5px;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 4px 0 12px;
+}
+
+.admin-toolbar__tag-label {
+  color: var(--admin-muted);
+}
+
+.admin-toolbar__tag-value {
+  font-weight: 600;
+}
+
+.admin-toolbar__tag button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 22px;
+  justify-content: center;
+  width: 22px;
+}
+
+.admin-toolbar__tag button:hover {
+  background: var(--admin-hairline);
+  color: var(--admin-ink);
+}
+
+.admin-toolbar__clear {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 550;
+  padding: 4px 6px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-toolbar__clear:hover {
+  color: var(--admin-ink);
+}
+
+/* Vistas guardadas dentro de la fila de criterios: una línea a la derecha, sin
+   rótulo, y sin la pestaña «Todos» mientras no haya ninguna vista guardada. */
+.admin-shell .admin-toolbar__tags .admin-saved-views {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  display: flex;
+  gap: 8px;
+  margin: 0 0 0 auto;
+  padding: 0;
+}
+
+.admin-shell .admin-toolbar__tags .admin-saved-views__caption {
+  display: none;
+}
+
+.admin-shell .admin-toolbar__tags .admin-saved-views--empty .admin-saved-views__tab {
+  display: none;
+}
+
+/* ---- Popover ---- */
+
+.admin-toolbar__popover {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 14px;
+  box-shadow: var(--admin-shadow-panel);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: fixed;
+  z-index: 1100;
+}
+
+.admin-toolbar__popover[data-placed='true'] {
+  animation: admin-toolbar-pop var(--motion-fast) var(--ease-out);
+}
+
+@keyframes admin-toolbar-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.admin-toolbar__popover-head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 16px 6px 20px;
+}
+
+.admin-toolbar__popover-head h2 {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.admin-toolbar__popover-close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.admin-toolbar__popover-close:hover {
+  background: var(--admin-row-hover);
+  color: var(--admin-ink);
+}
+
+.admin-toolbar__popover-body {
+  display: grid;
+  gap: 18px;
+  overflow-y: auto;
+  padding: 10px 20px 18px;
+}
+
+.admin-toolbar__field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-toolbar__field-label {
+  color: var(--admin-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.admin-toolbar__select {
+  align-items: center;
+  display: flex;
+  position: relative;
+}
+
+.admin-toolbar__select select {
+  appearance: none;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 10px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  height: 40px;
+  padding: 0 34px 0 12px;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.admin-toolbar__select select:hover {
+  border-color: var(--admin-muted);
+}
+
+.admin-toolbar__select select:focus-visible {
+  border-color: var(--admin-ink);
+  box-shadow: 0 0 0 3px var(--admin-focus-soft);
+  outline: none;
+}
+
+.admin-toolbar__select svg {
+  color: var(--admin-muted);
+  pointer-events: none;
+  position: absolute;
+  right: 12px;
+}
+
+.admin-toolbar__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-toolbar__option {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 999px;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 12px;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.admin-toolbar__option:hover:not(:disabled) {
+  background: var(--admin-row-hover);
+  color: var(--admin-ink);
+}
+
+.admin-toolbar__option.is-active {
+  background: var(--admin-brand);
+  border-color: var(--admin-brand);
+  color: var(--admin-on-brand);
+}
+
+.admin-toolbar__option-count {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+.admin-toolbar__popover-foot {
+  align-items: center;
+  border-top: 1px solid var(--admin-hairline);
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px 14px 20px;
+}
+
+.admin-toolbar__popover-clear {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 550;
+  padding: 6px 4px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-toolbar__popover-clear:hover {
+  color: var(--admin-ink);
+}
+
+.admin-toolbar__popover-done {
+  background: var(--admin-brand);
+  border: 0;
+  border-radius: 10px;
+  color: var(--admin-on-brand);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  min-height: 38px;
+  padding: 0 20px;
+}
+
+/* ---- Pantallas angostas ---- */
+
+@media (max-width: 720px) {
+  .admin-toolbar__row--search {
+    flex-wrap: wrap;
+  }
+
+  /* Buscador y «Filtros» comparten renglón; las acciones del listado pasan abajo. */
+  .admin-shell .admin-toolbar .admin-filters__search {
+    flex: 1 1 0;
+    max-width: none;
+  }
+
+  .admin-toolbar__actions {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+
+  .admin-toolbar__trigger {
+    justify-content: center;
+    min-width: 44px;
+    padding: 0 12px;
+  }
+
+  .admin-toolbar__trigger > span:not(.admin-toolbar__badge) {
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+
+  .admin-toolbar__quick {
+    border-left: 0;
+    margin-bottom: 8px;
+    padding-left: 0;
+  }
+
+  .admin-toolbar__segments {
+    flex-wrap: nowrap;
+    margin-inline: -4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    width: calc(100% + 8px);
+  }
+
+  .admin-toolbar__segments::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-toolbar__segment {
+    flex: none;
+  }
+
+  .admin-toolbar__count {
+    margin-left: 0;
+  }
+}
+
+@media (pointer: coarse) {
+  .admin-toolbar__chip,
+  .admin-toolbar__option {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-toolbar__popover[data-placed='true'] {
+    animation: none;
+  }
+
+  .admin-toolbar__trigger,
+  .admin-toolbar__segment,
+  .admin-toolbar__chip,
+  .admin-toolbar__option,
+  .admin-shell .admin-toolbar .admin-filters__search {
+    transition: none;
+  }
+}

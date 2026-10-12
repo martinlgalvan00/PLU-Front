@@ -1,0 +1,532 @@
+/* =============================================
+   AUDITORÍA — franja de estado, filtros y línea de tiempo
+   Hoja propia de la ruta (se importa desde AuditSection).
+   Orden de lectura: título + pestañas → ¿hay algo para resolver? (franja) →
+   filtros en una fila → eventos agrupados por día. Cada evento es una frase;
+   los ids técnicos viven en el detalle. Reemplaza la tabla de cinco columnas,
+   las fichas mobile aparte y el bento de métricas.
+   Monocromo: el rojo marca solo lo que falló de verdad.
+   ============================================= */
+
+.audit-page {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+/* Título y bajada en un bloque corto: sin eyebrow y con la bajada a todo el
+   ancho, así los eventos arrancan más arriba. */
+.audit-page {
+  gap: var(--space-md);
+}
+
+.audit-page .audit-page__header {
+  margin-bottom: 0;
+  padding-bottom: var(--space-sm);
+}
+
+.audit-page .audit-tabs {
+  margin-top: calc(var(--space-sm) * -1);
+}
+
+.audit-page .audit-page__header .admin-page-toolbar__subtitle {
+  max-width: 60ch;
+}
+
+.audit-page .sr-only {
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.audit-tabs {
+  align-items: center;
+  border-bottom: 1px solid var(--admin-hairline);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-lg);
+}
+
+.audit-tabs .detail-tabs {
+  border-bottom: 0;
+  flex: 0 1 auto;
+}
+
+/* El listado genérico (`--rails`) fija su chrome arriba y scrollea el cuerpo por
+   dentro. Acá scrollea la página entera: con la franja de estado y los filtros,
+   ese chrome fijo ocupaba la mitad de un viewport chico y tapaba los eventos. */
+.admin-shell .admin-list-section--audit.admin-list-section--rails > .admin-list-section__chrome {
+  position: static;
+  z-index: auto;
+}
+
+.admin-shell .admin-list-section--audit.admin-list-section--rails > .admin-list-shell,
+.admin-shell .admin-list-section--audit .admin-list-shell__body {
+  flex: none;
+  max-height: none;
+  min-height: 0;
+  overflow: visible;
+}
+
+/* ---- Franja de estado ---- */
+
+.audit-band {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-xl);
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+  padding: 4px 0 0;
+}
+
+.audit-band__state {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px var(--space-md);
+  min-width: 0;
+}
+
+.audit-band__line {
+  color: var(--admin-ink);
+  font-size: 14px;
+  font-weight: 550;
+  margin: 0;
+}
+
+.audit-band__breakdown {
+  color: var(--admin-muted);
+  font-weight: 400;
+}
+
+.audit-band__line--soft {
+  color: var(--admin-text-secondary);
+  font-weight: 400;
+}
+
+.audit-band__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px var(--space-xl);
+  margin: 0;
+}
+
+.audit-band__metrics > div {
+  align-items: baseline;
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 8px;
+}
+
+.audit-band__metrics dt {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+}
+
+.audit-band__metrics dd {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.audit-band__metrics .is-soft dd {
+  color: var(--admin-text-secondary);
+}
+
+/* ---- Guía de lectura: vive al costado de las pestañas, cerrada ---- */
+
+.audit-flow-guide {
+  color: var(--admin-muted);
+  font-size: 13px;
+  margin-left: auto;
+}
+
+/* Abierta ocupa su propia fila debajo de las pestañas. */
+.audit-flow-guide[open] {
+  flex-basis: 100%;
+  order: 3;
+}
+
+.audit-flow-guide summary {
+  align-items: baseline;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 10px;
+  min-height: 32px;
+}
+
+.audit-flow-guide summary span {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Cerrada, la frase larga sobra: alcanza con el rótulo. Abierta, se lee entera. */
+.audit-flow-guide:not([open]) summary strong {
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.audit-flow-guide summary strong {
+  color: var(--admin-text-secondary);
+  font-weight: 500;
+}
+
+.audit-flow-guide summary:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 3px;
+}
+
+.audit-flow-guide__content {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0 var(--space-md);
+}
+
+.audit-flow-guide__content > p {
+  margin: 0;
+  max-width: 68ch;
+}
+
+.audit-flow-guide__steps {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.audit-flow-guide__steps li {
+  display: grid;
+  gap: 4px;
+}
+
+.audit-flow-guide__steps strong {
+  color: var(--admin-ink);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+/* ---- Severidad: Todo / Solo errores / Críticos ---- */
+
+/* Críticos: el único segmento con rojo, y solo cuando hay algo que ver. */
+
+/* ---- Línea de tiempo ---- */
+
+.audit-feed {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.audit-feed__day-title {
+  align-items: baseline;
+  border-bottom: 1px solid var(--admin-hairline);
+  color: var(--admin-ink);
+  display: flex;
+  font-family: var(--font-display, var(--font-family));
+  font-size: 15px;
+  font-weight: 650;
+  gap: 12px;
+  margin: 0;
+  padding: 0 0 10px;
+}
+
+.audit-feed__day-title span {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  font-weight: 400;
+  text-transform: none;
+}
+
+.audit-feed__day-title .audit-feed__day-critical {
+  color: var(--admin-status-danger);
+  font-weight: 600;
+}
+
+.audit-feed__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.audit-feed__item {
+  align-items: start;
+  border-bottom: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 4px;
+  /* La segunda columna es de la traza del cobro: queda reservada en todas las
+     filas para que el chevron no cambie de lugar entre una y otra. */
+  grid-template-columns: minmax(0, 1fr) 36px;
+}
+
+.audit-feed__item > .admin-icon-btn {
+  margin-top: 8px;
+}
+
+.audit-feed__item:last-child {
+  border-bottom: 0;
+}
+
+.audit-feed__main {
+  align-items: start;
+  background: transparent;
+  border: 0;
+  border-radius: var(--border-radius-md);
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 4px var(--space-md);
+  grid-template-columns: 48px 16px minmax(0, 1fr) auto 16px;
+  min-width: 0;
+  padding: 12px 8px;
+  text-align: left;
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.audit-feed__main:hover {
+  background: var(--admin-row-hover);
+}
+
+.audit-feed__main:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: -2px;
+}
+
+.audit-feed__time {
+  color: var(--admin-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  padding-top: 1px;
+}
+
+.audit-feed__marker {
+  align-items: center;
+  color: var(--admin-muted);
+  display: inline-flex;
+  height: 22px;
+  justify-content: center;
+}
+
+.audit-feed__dot {
+  background: var(--admin-hairline-strong);
+  border-radius: 999px;
+  height: 6px;
+  width: 6px;
+}
+
+.audit-feed__item--danger .audit-feed__marker {
+  color: var(--admin-status-danger);
+}
+
+.audit-feed__item--warning .audit-feed__marker {
+  color: var(--admin-ink);
+}
+
+/* Tres peldaños de lectura: lo crítico lleva filete y fondo, lo que pide
+   atención solo el ícono y la etiqueta, y lo rutinario se atenúa para que
+   no compita. */
+.audit-feed__item--danger {
+  background: color-mix(in srgb, var(--admin-status-danger-bg) 45%, transparent);
+  box-shadow: inset 2px 0 0 var(--admin-status-danger);
+}
+
+.audit-feed__item--danger .audit-feed__main:hover {
+  background: transparent;
+}
+
+.audit-feed__item--neutral .audit-feed__title {
+  color: var(--admin-text-secondary);
+  font-weight: 500;
+}
+
+.audit-feed__severity {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-left: 10px;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+
+.audit-feed__severity--danger {
+  color: var(--admin-status-danger);
+}
+
+.audit-feed__severity--warning {
+  color: var(--admin-muted);
+}
+
+.audit-feed__body {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.audit-feed__title {
+  color: var(--admin-ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.audit-feed__lead {
+  color: var(--admin-text-secondary);
+  display: -webkit-box;
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.audit-feed__item--danger .audit-feed__lead {
+  color: var(--admin-status-danger);
+}
+
+.audit-feed__facts {
+  color: var(--admin-text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  gap: 2px 14px;
+}
+
+.audit-feed__fact-label {
+  color: var(--admin-muted);
+}
+
+.audit-feed__origin {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  padding-top: 2px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.audit-feed__chevron {
+  color: var(--admin-hairline-strong);
+  margin-top: 3px;
+  transition: color var(--motion-fast) var(--ease-out);
+}
+
+.audit-feed__main:hover .audit-feed__chevron {
+  color: var(--admin-ink);
+}
+
+.audit-feed__empty {
+  color: var(--admin-muted);
+  font-size: 14px;
+  margin: 0;
+  padding: var(--space-xl) 0;
+}
+
+.audit-loadmore {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-lg) 0 var(--space-sm);
+}
+
+/* ---- Pantallas angostas ---- */
+
+@media (max-width: 900px) {
+  .audit-flow-guide__steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .audit-band {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .audit-band__metrics {
+    gap: 4px var(--space-lg);
+  }
+
+  /* La hora y el origen pasan a una línea propia: el titular recupera ancho. */
+  .audit-feed__main {
+    grid-template-columns: 22px minmax(0, 1fr) 16px;
+    padding: 12px 4px;
+  }
+
+  .audit-feed__marker {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .audit-feed__body {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .audit-feed__chevron {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .audit-feed__time,
+  .audit-feed__origin {
+    font-size: 12px;
+    grid-column: 2;
+    grid-row: 2;
+    padding: 0;
+  }
+
+  .audit-feed__time {
+    justify-self: start;
+  }
+
+  .audit-feed__origin {
+    justify-self: end;
+    max-width: calc(100% - 56px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Sin columna reservada para la traza: en una pantalla angosta vale más el
+     ancho del texto que la alineación del chevron entre filas. */
+  .audit-feed__item {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+@media (pointer: coarse) {
+  .audit-flow-guide summary {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .audit-feed__main,
+  .audit-feed__chevron {
+    transition: none;
+  }
+}
+
+/* Pestañas: el subrayado es tinta, igual que las de Personas. El oro queda para
+   la acción principal. */
+.admin-shell .audit-tabs .detail-tabs--editorial .detail-tabs__tab.is-active {
+  border-bottom-color: var(--admin-ink);
+  color: var(--admin-ink);
+}

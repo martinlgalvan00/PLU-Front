@@ -68,7 +68,7 @@ export default function AdminSavedViews({
 
   return (
     <div
-      className="admin-saved-views"
+      className={`admin-saved-views${views.length === 0 ? ' admin-saved-views--empty' : ''}`}
       role="group"
       aria-label={caption}
     >

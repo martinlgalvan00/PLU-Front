@@ -8,14 +8,24 @@ export function fetchFinanceReport({ from, to, query } = {}) {
   return apiGet(`/api/finance?${params}`)
 }
 
-export function createExpense(expense) {
-  return apiPost('/api/finance/expenses', expense)
+/** Asientos manuales: `expense` (egreso) o `income` (ingreso sin orden de pago). */
+function entryPath(kind) {
+  return kind === 'income' ? '/api/finance/incomes' : '/api/finance/expenses'
 }
 
-export function updateExpense(id, expense) {
-  return apiPatch(`/api/finance/expenses/${id}`, expense)
+export function createEntry(kind, entry) {
+  return apiPost(entryPath(kind), entry)
 }
 
-export function deleteExpense(id) {
-  return apiDelete(`/api/finance/expenses/${id}`)
+export function updateEntry(kind, id, entry) {
+  return apiPatch(`${entryPath(kind)}/${id}`, entry)
+}
+
+export function deleteEntry(kind, id) {
+  return apiDelete(`${entryPath(kind)}/${id}`)
+}
+
+/** Carga por lote (pegado desde Excel): `entries` lleva `kind` en cada fila. */
+export function createEntries(entries) {
+  return apiPost('/api/finance/entries/bulk', { entries })
 }

@@ -14,6 +14,7 @@
 @import './components/buttons.css';
 @import './components/cards.css';
 @import './components/forms.css';
+@import './components/plu-glass.css';
 @import './components/status.css';
 @import './components/ticket-availability.css';
 @import './components/plu-ui.css';
@@ -24,6 +25,7 @@
 @import './components/states.css';
 @import './components/feature-coming-soon.css';
 @import './components/segmented-switch.css';
+@import './components/pref-choice.css';
 @import './components/cookie-consent.css';
 @import './components/plu-tab-rail.css';
 @import './components/launch-registration-teaser.css';

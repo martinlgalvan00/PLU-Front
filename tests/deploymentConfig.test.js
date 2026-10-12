@@ -49,6 +49,7 @@ describe('Vercel deployment contract', () => {
       { path: '/api/internal/jobs/payment-revalidation', schedule: '0 3 * * *' },
       { path: '/api/internal/jobs/payment-order-expiry', schedule: '15 3 * * *' },
       { path: '/api/internal/jobs/payment-proof-retention', schedule: '30 3 * * *' },
+      { path: '/api/internal/jobs/shop-order-expiry', schedule: '45 3 * * *' },
     ])
   })
 

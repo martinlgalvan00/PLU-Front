@@ -1,0 +1,106 @@
+/* =============================================
+   VIDRIO PLU — capas flotantes de aviso
+   Receta única para lo que flota sobre el contenido: popover de avisos,
+   consentimiento de cookies, toast de sesión y aviso de verificación.
+   Misma lógica que el header institucional: blur estático (no animado),
+   brillo especular inset y un solo velo de luz arriba a la izquierda.
+   No es para superficies de lectura ni de datos: esas siguen planas.
+
+   Cada consumidor usa solo estos tokens, así light y dark comparten
+   composición y cambia únicamente el material.
+   ============================================= */
+
+:root,
+[data-theme='light'] {
+  --plu-glass-blur: blur(26px) saturate(175%);
+  --plu-glass-fill: color-mix(in srgb, #fff 64%, transparent);
+  --plu-glass-sheen: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0) 46%
+  );
+  --plu-glass-border: rgba(255, 255, 255, 0.78);
+  --plu-glass-hairline: rgba(15, 17, 23, 0.09);
+  --plu-glass-highlight: rgba(255, 255, 255, 0.95);
+  --plu-glass-shadow:
+    0 0 0 1px var(--plu-glass-hairline), 0 24px 48px -24px rgba(15, 17, 23, 0.28),
+    0 2px 6px -2px rgba(15, 17, 23, 0.08), inset 0 1px 0 var(--plu-glass-highlight);
+  --plu-glass-divider: rgba(15, 17, 23, 0.08);
+  /* Sin blur disponible o desactivado: superficie casi opaca. */
+  --plu-glass-solid: color-mix(in srgb, #fff 96%, var(--plu-warm-100, #f6f5f1));
+  --plu-glass-mark-bg: rgba(255, 255, 255, 0.7);
+  --plu-glass-mark-ring: color-mix(in srgb, var(--plu-gold-600) 38%, transparent);
+}
+
+[data-theme='dark'] {
+  --plu-glass-fill: color-mix(in srgb, #181b21 58%, transparent);
+  --plu-glass-sheen: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.11) 0%,
+    rgba(255, 255, 255, 0) 44%
+  );
+  --plu-glass-border: rgba(255, 255, 255, 0.14);
+  --plu-glass-hairline: rgba(0, 0, 0, 0.5);
+  --plu-glass-highlight: rgba(255, 255, 255, 0.2);
+  --plu-glass-shadow:
+    0 0 0 1px var(--plu-glass-hairline), 0 28px 56px -24px rgba(0, 0, 0, 0.75),
+    0 2px 8px -2px rgba(0, 0, 0, 0.4), inset 0 1px 0 var(--plu-glass-highlight);
+  --plu-glass-divider: rgba(255, 255, 255, 0.09);
+  --plu-glass-solid: #1b1f25;
+  --plu-glass-mark-bg: rgba(255, 255, 255, 0.06);
+  --plu-glass-mark-ring: color-mix(in srgb, var(--plu-gold-400) 42%, transparent);
+}
+
+/* Sin soporte de backdrop-filter el vidrio sería texto sobre contenido:
+   se cae a la superficie sólida del tema. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root,
+  [data-theme='light'],
+  [data-theme='dark'] {
+    --plu-glass-fill: var(--plu-glass-solid);
+    --plu-glass-sheen: none;
+  }
+}
+
+/* Tier de rendimiento bajo: se conserva el material pero sin blur. */
+[data-motion-tier='low'] {
+  --plu-glass-blur: none;
+  --plu-glass-fill: var(--plu-glass-solid);
+}
+
+/* Preferencia de transparencia reducida del sistema. */
+@media (prefers-reduced-transparency: reduce) {
+  :root,
+  [data-theme='light'],
+  [data-theme='dark'] {
+    --plu-glass-blur: none;
+    --plu-glass-fill: var(--plu-glass-solid);
+    --plu-glass-sheen: none;
+  }
+}
+
+/* ---- Emblema PLU como firma de la capa ----
+   Disco con el emblema oficial. El tamaño lo fija cada consumidor con
+   --plu-glass-mark-size; la imagen es decorativa (alt vacío) porque el
+   texto vecino ya nombra la federación. */
+.plu-glass-mark {
+  align-items: center;
+  background: var(--plu-glass-mark-bg);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--plu-glass-mark-ring);
+  display: inline-flex;
+  flex: none;
+  height: var(--plu-glass-mark-size, 32px);
+  justify-content: center;
+  padding: 2px;
+  position: relative;
+  width: var(--plu-glass-mark-size, 32px);
+}
+
+.plu-glass-mark img {
+  border-radius: 50%;
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
+}

@@ -29,7 +29,7 @@ function renderSearch(onSelectResult) {
 describe('PaymentOrderSearch', () => {
   it('no busca por debajo del mínimo de caracteres', async () => {
     renderSearch()
-    fireEvent.change(screen.getByPlaceholderText(/Buscar por nombre/), {
+    fireEvent.change(screen.getByPlaceholderText(/Buscar un pago en todas las colas/), {
       target: { value: 'a' },
     })
 
@@ -71,7 +71,7 @@ describe('PaymentOrderSearch', () => {
     const onSelectResult = vi.fn()
     renderSearch(onSelectResult)
 
-    fireEvent.change(screen.getByPlaceholderText(/Buscar por nombre/), {
+    fireEvent.change(screen.getByPlaceholderText(/Buscar un pago en todas las colas/), {
       target: { value: 'ana' },
     })
 
@@ -90,7 +90,7 @@ describe('PaymentOrderSearch', () => {
     searchPaymentOrders.mockResolvedValue({ results: [] })
     renderSearch()
 
-    fireEvent.change(screen.getByPlaceholderText(/Buscar por nombre/), {
+    fireEvent.change(screen.getByPlaceholderText(/Buscar un pago en todas las colas/), {
       target: { value: 'nadie' },
     })
 
@@ -103,7 +103,7 @@ describe('PaymentOrderSearch', () => {
     searchPaymentOrders.mockRejectedValueOnce(new Error('offline'))
     renderSearch()
 
-    fireEvent.change(screen.getByPlaceholderText(/Buscar por nombre/), {
+    fireEvent.change(screen.getByPlaceholderText(/Buscar un pago en todas las colas/), {
       target: { value: 'ana' },
     })
     await waitFor(() => expect(screen.getByText('offline')).toBeTruthy())

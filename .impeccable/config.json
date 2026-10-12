@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "src/styles/layout/admin-shell.css"
+        ],
+        "createdAt": "2026-10-11T19:16:24.631Z",
+        "reason": "Usuario confirmó que la transición de ancho del sidebar/rail del admin es intencional"
+      }
+    ]
+  }
+}

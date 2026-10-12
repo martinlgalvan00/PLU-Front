@@ -15,7 +15,8 @@ import Pill from '../../components/ui/Pill.jsx'
 import {
   AdminIdentityCell,
   AdminMonoCell,
-  AdminPeriodCell,
+  AdminValidityCell,
+  AdminActionOverflow,
   AdminTableActions,
   AdminTableActionsEmpty,
 } from '../../components/admin/AdminTableCells.jsx'
@@ -378,6 +379,8 @@ export default function MembershipsSection({
       ) : null}
       <AdminListSection
         variant="memberships"
+        filterLayout="toolbar"
+        compactHeader
         filteredCount={rows.length}
         placeholder={t('admin.search.membership')}
         query={query}
@@ -391,11 +394,11 @@ export default function MembershipsSection({
         filters={[
           {
             id: 'status',
+            surface: 'rail',
             label: t('admin.filters.status'),
             value: status,
             onChange: setStatus,
             options: statusOptions,
-            showLabel: true,
           },
           {
             id: 'expiring',
@@ -456,6 +459,8 @@ export default function MembershipsSection({
         <AdminDataTable
           className="admin-data-table--memberships"
           variant="admin"
+          density="compact"
+          fit
           columns={[
             {
               key: 'athlete',
@@ -466,7 +471,6 @@ export default function MembershipsSection({
               defaultSort: 'asc',
               render: (row) => (
                 <AdminIdentityCell
-                  accent="gold"
                   name={row.athlete}
                   photoUrl={row.photoUrl}
                   sub={row.gym || row.document}
@@ -477,6 +481,7 @@ export default function MembershipsSection({
             {
               key: 'memberCode',
               label: t('admin.columns.code'),
+              width: 132,
               mobile: 'default',
               mobileSortLabel: t('admin.columns.code'),
               className: 'data-table__column--mono data-table__column--code',
@@ -494,6 +499,7 @@ export default function MembershipsSection({
             {
               key: 'expirationDate',
               label: t('admin.columns.period'),
+              width: 212,
               mobile: 'default',
               mobileSortLabel: t('admin.columns.expiration'),
               className: 'data-table__column--period',
@@ -501,10 +507,10 @@ export default function MembershipsSection({
               mobileSortable: false,
               sortAccessor: (row) => row.expirationDate,
               render: (row) => (
-                <AdminPeriodCell
+                <AdminValidityCell
                   start={row.startDate}
                   end={row.expirationDate}
-                  year={row.year}
+                  lifecycle={row.lifecycle}
                   locale={locale}
                 />
               ),
@@ -512,6 +518,7 @@ export default function MembershipsSection({
             {
               key: 'status',
               label: t('admin.columns.status'),
+              width: 196,
               mobile: 'badge',
               desktop: 'status',
               sortable: true,
@@ -535,6 +542,7 @@ export default function MembershipsSection({
             {
               key: 'actions',
               label: t('admin.columns.action'),
+              width: 84,
               mobile: 'action',
               sortable: false,
               mobileSortable: false,
@@ -552,70 +560,83 @@ export default function MembershipsSection({
                   canDelete
                 if (!hasActions) return <AdminTableActionsEmpty />
                 const pausedLabel = t('admin.sections.memberships.validationPaused')
+                const actionList = [
+                  row.canViewCredential ? (
+                    <AdminIconButton
+                      key="credential"
+                      className={credentialTarget?.id === row.id ? 'is-active' : ''}
+                      icon={QrCode}
+                      label={t('admin.sections.memberships.viewCredential')}
+                      onClick={() =>
+                        setCredentialTarget({ id: row.id, athleteName: row.athlete })
+                      }
+                      variant="ghost"
+                    />
+                  ) : null,
+                  canManage && editableStatuses.length > 0 ? (
+                    <AdminIconButton
+                      key="status"
+                      disabled={pendingId === row.id || !validationEnabled}
+                      icon={PencilLine}
+                      spinning={pendingId === row.id}
+                      label={
+                        pendingId === row.id
+                          ? t('admin.sections.memberships.applying')
+                          : validationEnabled
+                            ? t('admin.registrationStatus.action')
+                            : pausedLabel
+                      }
+                      // Activar a mano es otorgar un derecho sin cobro que lo
+                      // respalde: pasa por el diálogo que pide canal y motivo,
+                      // igual que la baja.
+                      onClick={() => {
+                        setActionError('')
+                        setManualTarget({ ...row, editableStatuses })
+                      }}
+                      variant="ghost"
+                    />
+                  ) : null,
+                  canRecover ? (
+                    /* "El pago figura cancelado pero la plata entró": las mismas
+                       dos vías de Finanzas, sin salir de Afiliaciones. */
+                    <PaymentRecoveryAction
+                      key="recover"
+                      athlete={{ fullName: row.athlete, documentId: row.document }}
+                      canForceSettle={canForceSettle}
+                      detail={row.memberCode}
+                      onForceSettlePayment={onForceSettlePayment}
+                      onRefreshAthleteData={onRefreshAthleteData}
+                      order={row.payment}
+                    />
+                  ) : null,
+                  canDelete ? (
+                    <AdminIconButton
+                      key="delete"
+                      disabled={pendingId === row.id}
+                      icon={Trash2}
+                      label="Eliminar afiliación"
+                      onClick={() => {
+                        setActionError('')
+                        setDeleteTarget(row)
+                      }}
+                      variant="danger"
+                    />
+                  ) : null,
+                ].filter(Boolean)
+                // Una acción a la vista y el resto en «más»: una fila con cuatro
+                // íconos sueltos se leía como una barra de herramientas por socio.
                 // stopPropagation: la fila entera navega a la ficha del atleta.
                 return (
                   <AdminTableActions
                     className="admin-membership-actions"
                     onClick={(event) => event.stopPropagation()}
                   >
-                    {row.canViewCredential && (
-                      <AdminIconButton
-                        className={credentialTarget?.id === row.id ? 'is-active' : ''}
-                        icon={QrCode}
-                        label={t('admin.sections.memberships.viewCredential')}
-                        onClick={() =>
-                          setCredentialTarget({ id: row.id, athleteName: row.athlete })
-                        }
-                        variant="ghost"
-                      />
-                    )}
-                    {canManage && editableStatuses.length > 0 && (
-                      <AdminIconButton
-                        disabled={pendingId === row.id || !validationEnabled}
-                        icon={PencilLine}
-                        spinning={pendingId === row.id}
-                        label={
-                          pendingId === row.id
-                            ? t('admin.sections.memberships.applying')
-                            : validationEnabled
-                              ? t('admin.registrationStatus.action')
-                              : pausedLabel
-                        }
-                        // Antes activaba en el acto. Activar a mano es otorgar
-                        // un derecho sin cobro que lo respalde: pasa por el
-                        // diálogo que pide canal y motivo, como ya hacía la
-                        // baja.
-                        onClick={() => {
-                          setActionError('')
-                          setManualTarget({ ...row, editableStatuses })
-                        }}
-                        variant="celeste"
-                      />
-                    )}
-                    {canRecover && (
-                      /* "El pago figura cancelado pero la plata entró": las
-                         mismas dos vías de Finanzas, sin salir de Afiliaciones. */
-                      <PaymentRecoveryAction
-                        athlete={{ fullName: row.athlete, documentId: row.document }}
-                        canForceSettle={canForceSettle}
-                        detail={row.memberCode}
-                        onForceSettlePayment={onForceSettlePayment}
-                        onRefreshAthleteData={onRefreshAthleteData}
-                        order={row.payment}
-                      />
-                    )}
-                    {canDelete && (
-                      <AdminIconButton
-                        disabled={pendingId === row.id}
-                        icon={Trash2}
-                        label="Eliminar afiliación"
-                        onClick={() => {
-                          setActionError('')
-                          setDeleteTarget(row)
-                        }}
-                        variant="danger"
-                      />
-                    )}
+                    {actionList.slice(0, 1)}
+                    {actionList.length > 1 ? (
+                      <AdminActionOverflow label={t('admin.actions.more')}>
+                        {actionList.slice(1)}
+                      </AdminActionOverflow>
+                    ) : null}
                   </AdminTableActions>
                 )
               },

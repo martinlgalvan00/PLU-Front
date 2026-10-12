@@ -1,12 +1,74 @@
 import '../styles/pages/rulebook.css'
 import '../styles/pages/institutional-pages.css'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowRight, ArrowUp, BookOpen, ChevronDown } from 'lucide-react'
+import { m, useScroll, useTransform } from 'motion/react'
 import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'
 import RulebookDocShell from '../components/rulebook/RulebookDocShell.jsx'
 import RulebookSummary from '../components/rulebook/RulebookSummary.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { getRulebookContent } from '../services/rulebookContentService.js'
+import { useMotionConfig } from '../motion/MotionProvider.tsx'
+import Reveal from '../motion/Reveal.tsx'
+import { MOTION_VIEWPORT } from '../motion/tokens.ts'
+import { staggerContainer, staggerItem } from '../motion/variants.ts'
+
+/** Reduced motion / tier low: el reglamento se lee estático, sin entradas. */
+function useRulebookMotion() {
+  const { reducedMotion, tier } = useMotionConfig()
+  return !(reducedMotion || tier === 'low')
+}
+
+/** Contenedor que escalona a sus hijos al entrar en viewport (una sola vez). */
+function StaggerList({ as = 'div', children, ...rest }) {
+  const animated = useRulebookMotion()
+  const Tag = animated ? m[as] : as
+  const motionProps = animated
+    ? {
+        initial: 'hidden',
+        whileInView: 'visible',
+        viewport: MOTION_VIEWPORT,
+        variants: staggerContainer,
+      }
+    : {}
+  return (
+    <Tag {...motionProps} {...rest}>
+      {children}
+    </Tag>
+  )
+}
+
+function StaggerItem({ as = 'div', children, ...rest }) {
+  const animated = useRulebookMotion()
+  const Tag = animated ? m[as] : as
+  return (
+    <Tag {...(animated ? { variants: staggerItem } : {})} {...rest}>
+      {children}
+    </Tag>
+  )
+}
+
+/**
+ * Barra fina de avance de lectura bajo el header. Solo vive mientras la
+ * sección de lectura está en pantalla (opacity ligada al mismo progreso) y
+ * anima únicamente transform + opacity.
+ */
+function RulebookReadingProgress({ targetRef }) {
+  const animated = useRulebookMotion()
+  const { scrollYProgress } = useScroll({
+    target: targetRef,
+    offset: ['start 40%', 'end 60%'],
+  })
+  const opacity = useTransform(scrollYProgress, [0, 0.015, 0.985, 1], [0, 1, 1, 0])
+
+  if (!animated) return null
+
+  return (
+    <m.span className="rulebook-progress" style={{ opacity }} aria-hidden>
+      <m.span className="rulebook-progress__fill" style={{ scaleX: scrollYProgress }} />
+    </m.span>
+  )
+}
 
 function RulebookSection({ children, id, index, note, title }) {
   const titleId = `${id}-title`
@@ -16,14 +78,14 @@ function RulebookSection({ children, id, index, note, title }) {
       id={id}
       aria-labelledby={titleId}
     >
-      <header className="rulebook-section__head">
+      <Reveal as="header" className="rulebook-section__head" direction="left">
         <span className="rulebook-section__index" aria-hidden>
           {index}
         </span>
         <h2 className="rulebook-section__title" id={titleId}>
           {title}
         </h2>
-      </header>
+      </Reveal>
       <div className="rulebook-section__body">{children}</div>
       {note ? <p className="rulebook-section__note">{note}</p> : null}
     </section>
@@ -32,25 +94,25 @@ function RulebookSection({ children, id, index, note, title }) {
 
 function ChapterCards({ cards }) {
   return (
-    <div className="rulebook-framework-grid">
+    <StaggerList className="rulebook-framework-grid">
       {cards.map((card, index) => (
-        <article key={card.title} className="rulebook-framework-card">
+        <StaggerItem as="article" key={card.title} className="rulebook-framework-card">
           <span aria-hidden>{String(index + 1).padStart(2, '0')}</span>
           <div>
             <h3>{card.title}</h3>
             <p>{card.text}</p>
           </div>
-        </article>
+        </StaggerItem>
       ))}
-    </div>
+    </StaggerList>
   )
 }
 
 function ChapterLifts({ lifts }) {
   return (
-    <div className="rulebook-lifts-grid">
+    <StaggerList className="rulebook-lifts-grid">
       {lifts.map((lift) => (
-        <article key={lift.id} className="rulebook-lift-card">
+        <StaggerItem as="article" key={lift.id} className="rulebook-lift-card">
           <header className="rulebook-lift-card__head">
             <h3>{lift.title}</h3>
             <span className="rulebook-lift-card__section">{lift.section}</span>
@@ -60,24 +122,24 @@ function ChapterLifts({ lifts }) {
               <li key={point}>{point}</li>
             ))}
           </ul>
-        </article>
+        </StaggerItem>
       ))}
-    </div>
+    </StaggerList>
   )
 }
 
 function ChapterCanon({ canon }) {
   return (
-    <ol className="rulebook-canon">
+    <StaggerList as="ol" className="rulebook-canon">
       {canon.map((rule) => (
-        <li key={rule.numeral} className="rulebook-canon__item">
+        <StaggerItem as="li" key={rule.numeral} className="rulebook-canon__item">
           <span className="rulebook-canon__numeral" aria-hidden>
             {rule.numeral}
           </span>
           <p>{rule.text}</p>
-        </li>
+        </StaggerItem>
       ))}
-    </ol>
+    </StaggerList>
   )
 }
 
@@ -86,14 +148,14 @@ function AgeWeightAppendix({ ageDivisions, weightClasses, t }) {
     <div className="rulebook-chapter-appendix">
       <div className="rulebook-chapter-appendix__block" id="categorias-divisiones">
         <h3 className="rulebook-weight-grid__label">{t('pages.rulebook.divisionsTitle')}</h3>
-        <dl className="rulebook-ledger rulebook-ledger--age">
+        <StaggerList as="dl" className="rulebook-ledger rulebook-ledger--age">
           {ageDivisions.map((division) => (
-            <div key={division.title} className="rulebook-ledger__row">
+            <StaggerItem key={division.title} className="rulebook-ledger__row">
               <dt>{division.title}</dt>
               <dd>{division.range}</dd>
-            </div>
+            </StaggerItem>
           ))}
-        </dl>
+        </StaggerList>
         <p className="rulebook-section__note">{t('pages.rulebook.divisionsNote')}</p>
       </div>
 
@@ -101,7 +163,7 @@ function AgeWeightAppendix({ ageDivisions, weightClasses, t }) {
         <h3 className="rulebook-weight-grid__label">{t('pages.rulebook.weightTitle')}</h3>
         <div className="rulebook-weight-grid">
           {weightClasses.map((group) => (
-            <div key={group.id} className="rulebook-weight-grid__group">
+            <Reveal key={group.id} className="rulebook-weight-grid__group">
               <h4 className="rulebook-weight-grid__label">{group.title}</h4>
               <div
                 className="rulebook-weight-grid__scroll"
@@ -126,7 +188,7 @@ function AgeWeightAppendix({ ageDivisions, weightClasses, t }) {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </Reveal>
           ))}
         </div>
         <p className="rulebook-section__note">{t('pages.rulebook.weightDisclaimer')}</p>
@@ -228,6 +290,7 @@ export default function RulebookPage({ onNavigate }) {
   const { locale, t } = useI18n()
   const rulebook = useMemo(() => getRulebookContent(locale), [locale])
   const [activeChapterId, setActiveChapterId] = useState(rulebook.chapters[0]?.id ?? '')
+  const readingRef = useRef(null)
 
   useEffect(() => {
     setActiveChapterId(rulebook.chapters[0]?.id ?? '')
@@ -312,7 +375,12 @@ export default function RulebookPage({ onNavigate }) {
 
         <RulebookSummary items={rulebook.summary} />
 
-        <section className="rulebook-reading" aria-labelledby="rulebook-reading-title">
+        <section
+          className="rulebook-reading"
+          aria-labelledby="rulebook-reading-title"
+          ref={readingRef}
+        >
+          <RulebookReadingProgress targetRef={readingRef} />
           <header className="institutional-section-head">
             <p className="institutional-kicker">02 / {t('pages.rulebook.readingEyebrow')}</p>
             <div>

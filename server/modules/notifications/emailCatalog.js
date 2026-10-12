@@ -231,6 +231,26 @@ export const EMAIL_CATALOG = Object.freeze({
     critical: false,
   },
 
+  // ----------------------------------------------------------------- tienda
+  shop_order_received: {
+    category: EMAIL_CATEGORIES.billing,
+    templateEnv: 'BREVO_TEMPLATE_SHOP_ORDER_RECEIVED',
+    subject: 'Recibimos tu pedido · PLU ARG',
+    entityType: 'shop_order',
+    requiredParams: ['name', 'reference', 'amount'],
+    optOutAllowed: false,
+    critical: true,
+  },
+  shop_order_confirmed: {
+    category: EMAIL_CATEGORIES.billing,
+    templateEnv: 'BREVO_TEMPLATE_SHOP_ORDER_CONFIRMED',
+    subject: 'Tu pedido está pago · PLU ARG',
+    entityType: 'shop_order',
+    requiredParams: ['name', 'reference', 'amount'],
+    optOutAllowed: false,
+    critical: true,
+  },
+
   // ---------------------------------------------------------------- eventos
   registration_confirmed: {
     category: EMAIL_CATEGORIES.event,

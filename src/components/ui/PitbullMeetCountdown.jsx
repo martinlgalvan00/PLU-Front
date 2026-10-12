@@ -1,107 +1,45 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowRight } from 'lucide-react'
-import { AnimatePresence, m } from 'motion/react'
+import { AnimatePresence, m, useInView } from 'motion/react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { getCountdownParts } from '../../lib/countdown.js'
-import AnimatedNumber from '../../motion/AnimatedNumber.tsx'
-import TiltCard from '../../motion/TiltCard.tsx'
-import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import {
-  MOTION_BLUR,
-  MOTION_DURATION,
-  MOTION_EASE,
-  MOTION_STAGGER,
-  MOTION_VIEWPORT,
-  SHOWCASE_TILT_MAX_DEG,
-} from '../../motion/tokens.ts'
-import { hasFinePointer } from '../../motion/useReducedMotion.ts'
+  getCountdownHeadline,
+  getCountdownParts,
+  resolveEventStartsAt,
+} from '../../lib/countdown.js'
+import { useMotionConfig } from '../../motion/MotionProvider.tsx'
+import TickNumber from '../../motion/TickNumber.tsx'
+import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
+import '../../styles/components/meet-surface.css'
 import '../../styles/components/pitbull-meet-countdown.css'
+import BarbellLoad, { BARBELL_MAX_PLATES } from './BarbellLoad.jsx'
 
-function resolveMeetStartsAt(event) {
-  if (event?.startsAt) return event.startsAt
-  if (event?.dateISO) return `${event.dateISO}T09:00:00-03:00`
-  return null
-}
+const PLATE_STEP_MS = 260
+const LOAD_DELAY_S = 0.45
 
 function pad2(value) {
   return String(Math.max(0, value)).padStart(2, '0')
 }
 
-const cardShell = {
-  hidden: {
-    opacity: 0,
-    y: 22,
-    scale: 0.985,
-    filter: `blur(${MOTION_BLUR.sm}px)`,
-  },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    filter: 'blur(0px)',
-    transition: {
-      duration: MOTION_DURATION.cinematic,
-      ease: MOTION_EASE.cinematic,
-    },
-  },
-}
-
-const layerStagger = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: MOTION_STAGGER.stepFast,
-      delayChildren: 0.12,
-    },
-  },
-}
-
-const layerItem = {
-  hidden: { opacity: 0, y: 12 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out },
-  },
-}
-
-const stripeItem = {
-  hidden: { scaleX: 0, opacity: 0 },
-  visible: {
-    scaleX: 1,
-    opacity: 1,
-    transition: {
-      duration: MOTION_DURATION.slow,
-      ease: MOTION_EASE.cinematic,
-      delay: 0.18,
-    },
-  },
-}
-
-function CountdownDigits({ value, className = '' }) {
+/** Dígitos que ruedan al cambiar: solo el que cambia se anima. */
+function Digits({ value }) {
   const { reducedMotion } = useMotionConfig()
   const digits = pad2(value).split('')
 
-  if (reducedMotion) {
-    return <span className={className}>{digits.join('')}</span>
-  }
+  if (reducedMotion) return <span className="meet-clock__digits">{digits.join('')}</span>
 
   return (
-    <span className={`pitbull-meet-countdown__digit-row ${className}`.trim()}>
+    <span className="meet-clock__digits">
       {digits.map((digit, index) => (
-        <span key={`slot-${index}`} className="pitbull-meet-countdown__digit-slot">
+        <span key={`slot-${index}`} className="meet-clock__slot">
           <AnimatePresence mode="popLayout" initial={false}>
             <m.span
               key={digit}
-              className="pitbull-meet-countdown__digit"
-              initial={{ opacity: 0, y: '48%' }}
+              className="meet-clock__digit"
+              initial={{ opacity: 0, y: '55%' }}
               animate={{ opacity: 1, y: '0%' }}
-              exit={{ opacity: 0, y: '-48%' }}
-              transition={{
-                duration: MOTION_DURATION.fast,
-                ease: MOTION_EASE.out,
-                delay: index * 0.015,
-              }}
+              exit={{ opacity: 0, y: '-55%' }}
+              transition={{ duration: MOTION_DURATION.fast, ease: MOTION_EASE.out }}
             >
               {digit}
             </m.span>
@@ -113,15 +51,21 @@ function CountdownDigits({ value, className = '' }) {
 }
 
 /**
- * Card premium de cuenta regresiva al meet.
- * Tilt + stagger + dígitos flip; sin loops decorativos ni WebGL.
+ * "Hasta el Classic": el tiempo que falta, cargado en una barra. Un disco por
+ * semana (o por día / hora cuando ya falta menos); el número sube al ritmo en
+ * que aterrizan los discos y, cuando se cumple una semana, el último disco
+ * se descarga solo. Debajo, el reloj fino (días · horas · min · seg).
+ *
+ * Solo transform + opacity, sin loops. Superficie grafito fija en ambos temas.
  */
 export default function PitbullMeetCountdown({ event, dateLabel, onScrollToInscription }) {
   const { t } = useI18n()
   const { reducedMotion, tier } = useMotionConfig()
-  const withDepth = !reducedMotion && tier !== 'low' && hasFinePointer()
-  const startsAt = useMemo(() => resolveMeetStartsAt(event), [event])
+  const startsAt = useMemo(() => resolveEventStartsAt(event), [event])
   const [parts, setParts] = useState(() => (startsAt ? getCountdownParts(startsAt) : null))
+  const rootRef = useRef(null)
+  const seen = useInView(rootRef, { once: true, amount: 0.35 })
+  const play = reducedMotion || tier === 'low' || seen
 
   useEffect(() => {
     if (!startsAt) {
@@ -137,154 +81,126 @@ export default function PitbullMeetCountdown({ event, dateLabel, onScrollToInscr
 
   if (!startsAt || !parts || parts.expired) return null
 
-  const heroIsWeeks = parts.weeks > 0
-  const heroValue = heroIsWeeks ? parts.weeks : parts.days
-  const heroUnit = heroIsWeeks
-    ? parts.weeks === 1
-      ? t('pages.pitbull.meetCountdownWeeks_one')
-      : t('pages.pitbull.meetCountdownWeeks_other')
-    : parts.days === 1
-      ? t('pages.pitbull.meetCountdownDays_one')
-      : t('pages.pitbull.meetCountdownDays_other')
-
-  const secondary = heroIsWeeks
-    ? [
-        {
-          key: 'days',
-          value: parts.daysRemainder,
-          label:
-            parts.daysRemainder === 1
-              ? t('pages.pitbull.meetCountdownDays_one')
-              : t('pages.pitbull.meetCountdownDays_other'),
-        },
-        {
-          key: 'hours',
-          value: parts.hours,
-          label: t('pages.pitbull.meetCountdownHours'),
-        },
-        {
-          key: 'minutes',
-          value: parts.minutes,
-          label: t('pages.pitbull.meetCountdownMinutes'),
-        },
-      ]
-    : [
-        {
-          key: 'hours',
-          value: parts.hours,
-          label: t('pages.pitbull.meetCountdownHours'),
-        },
-        {
-          key: 'minutes',
-          value: parts.minutes,
-          label: t('pages.pitbull.meetCountdownMinutes'),
-        },
-        {
-          key: 'seconds',
-          value: parts.seconds,
-          label: t('pages.pitbull.meetCountdownSeconds'),
-        },
-      ]
-
-  const body = (
-    <div className="pitbull-meet-countdown__stack">
-      <span className="pitbull-meet-countdown__grain" aria-hidden />
-      <span className="pitbull-meet-countdown__watermark" aria-hidden>
-        {heroValue}
-      </span>
-
-      <m.div
-        className="pitbull-meet-countdown__face"
-        variants={reducedMotion ? undefined : layerStagger}
-        initial={reducedMotion ? undefined : 'hidden'}
-        whileInView={reducedMotion ? undefined : 'visible'}
-        viewport={MOTION_VIEWPORT}
-      >
-        <m.span
-          className="pitbull-meet-countdown__stripe"
-          aria-hidden
-          variants={reducedMotion ? undefined : stripeItem}
-          style={{ transformOrigin: 'left center' }}
-        />
-
-        <m.header className="pitbull-meet-countdown__copy" variants={reducedMotion ? undefined : layerItem}>
-          <p className="pitbull-meet-countdown__eyebrow">{t('pages.pitbull.meetCountdownEyebrow')}</p>
-          <p className="pitbull-meet-countdown__lead">{t('pages.pitbull.meetCountdownLead')}</p>
-          {dateLabel ? <p className="pitbull-meet-countdown__date">{dateLabel}</p> : null}
-        </m.header>
-
-        <m.div
-          className="pitbull-meet-countdown__hero"
-          variants={reducedMotion ? undefined : layerItem}
-          aria-live="polite"
-        >
-          <AnimatedNumber
-            className="pitbull-meet-countdown__value"
-            value={heroValue}
-            duration={MOTION_DURATION.cinematic}
-          />
-          <span className="pitbull-meet-countdown__unit">{heroUnit}</span>
-        </m.div>
-
-        <m.div
-          className="pitbull-meet-countdown__ticker"
-          role="presentation"
-          variants={reducedMotion ? undefined : layerItem}
-        >
-          {secondary.map((unit) => (
-            <div key={unit.key} className="pitbull-meet-countdown__chip">
-              <CountdownDigits value={unit.value} className="pitbull-meet-countdown__chip-value" />
-              <span className="pitbull-meet-countdown__chip-label">{unit.label}</span>
-            </div>
-          ))}
-        </m.div>
-
-        {typeof onScrollToInscription === 'function' ? (
-          <m.div
-            className="pitbull-meet-countdown__actions"
-            variants={reducedMotion ? undefined : layerItem}
-          >
-            <button
-              type="button"
-              className="pitbull-meet-countdown__cta motion-icon-shift"
-              onClick={onScrollToInscription}
-            >
-              {t('pages.pitbull.meetCountdownCta')}
-              <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
-            </button>
-          </m.div>
-        ) : null}
-      </m.div>
-    </div>
+  const { unit, value } = getCountdownHeadline(parts)
+  const plural = value === 1 ? 'one' : 'other'
+  const unitLabel = t(
+    `pages.pitbull.countdownIntro${unit[0].toUpperCase()}${unit.slice(1)}_${plural}`,
   )
+  const lead = t(`pages.pitbull.countdownIntroLead_${plural}`)
+  const trail = t('pages.pitbull.countdownIntroTrail')
+  const plates = Math.min(value, BARBELL_MAX_PLATES)
 
-  const card = withDepth ? (
-    <TiltCard
-      className="pitbull-meet-countdown__tilt"
-      innerClassName="tilt-card__inner pitbull-meet-countdown__plate"
-      maxTilt={SHOWCASE_TILT_MAX_DEG}
-    >
-      {body}
-    </TiltCard>
-  ) : (
-    <div className="pitbull-meet-countdown__plate pitbull-meet-countdown__plate--static">{body}</div>
-  )
+  const clock =
+    unit === 'weeks'
+      ? [
+          {
+            key: 'days',
+            value: parts.daysRemainder,
+            label: t('pages.pitbull.meetCountdownDays_other'),
+          },
+          { key: 'hours', value: parts.hours, label: t('pages.pitbull.meetCountdownHours') },
+          { key: 'minutes', value: parts.minutes, label: t('pages.pitbull.meetCountdownMinutes') },
+          { key: 'seconds', value: parts.seconds, label: t('pages.pitbull.meetCountdownSeconds') },
+        ]
+      : unit === 'days'
+        ? [
+            { key: 'hours', value: parts.hours, label: t('pages.pitbull.meetCountdownHours') },
+            {
+              key: 'minutes',
+              value: parts.minutes,
+              label: t('pages.pitbull.meetCountdownMinutes'),
+            },
+            {
+              key: 'seconds',
+              value: parts.seconds,
+              label: t('pages.pitbull.meetCountdownSeconds'),
+            },
+          ]
+        : [
+            {
+              key: 'minutes',
+              value: parts.minutes,
+              label: t('pages.pitbull.meetCountdownMinutes'),
+            },
+            {
+              key: 'seconds',
+              value: parts.seconds,
+              label: t('pages.pitbull.meetCountdownSeconds'),
+            },
+          ]
+
+  const Shell = reducedMotion ? 'div' : m.div
+  const shellProps = reducedMotion
+    ? {}
+    : {
+        initial: { opacity: 0, y: 20 },
+        animate: play ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 },
+        transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.cinematic },
+      }
 
   return (
-    <section className="pitbull-meet-countdown" aria-label={t('pages.pitbull.meetCountdownAria')}>
-      {reducedMotion ? (
-        card
-      ) : (
-        <m.div
-          className="pitbull-meet-countdown__shell"
-          variants={cardShell}
-          initial="hidden"
-          whileInView="visible"
-          viewport={MOTION_VIEWPORT}
-        >
-          {card}
-        </m.div>
-      )}
+    <section
+      ref={rootRef}
+      className="pitbull-meet-countdown"
+      aria-label={t('pages.pitbull.meetCountdownAria')}
+    >
+      <Shell className="meet-clock meet-surface" {...shellProps}>
+        <p className="visually-hidden" role="status">
+          {[lead, value, unitLabel, trail].filter(Boolean).join(' ')}
+        </p>
+
+        <header className="meet-clock__head">
+          <p className="meet-clock__eyebrow">{t('pages.pitbull.meetCountdownEyebrow')}</p>
+          {dateLabel ? <p className="meet-clock__date">{dateLabel}</p> : null}
+        </header>
+
+        <div className="meet-clock__main" aria-hidden>
+          <div className="meet-clock__headline">
+            <p className="meet-clock__lead">{lead}</p>
+            <p className="meet-clock__count">
+              <TickNumber
+                className="meet-clock__value"
+                value={value}
+                play={play}
+                delay={LOAD_DELAY_S}
+                duration={(plates * PLATE_STEP_MS) / 1000}
+              />
+              <span className="meet-clock__unit">{unitLabel}</span>
+            </p>
+            {trail ? <p className="meet-clock__trail">{trail}</p> : null}
+          </div>
+
+          <BarbellLoad
+            className="meet-clock__bar"
+            count={value}
+            play={play}
+            delay={LOAD_DELAY_S}
+            stepMs={PLATE_STEP_MS}
+          />
+        </div>
+
+        <dl className="meet-clock__readout" style={{ '--cells': clock.length }}>
+          {clock.map((cell) => (
+            <div key={cell.key} className="meet-clock__cell">
+              <dt>{cell.label}</dt>
+              <dd>
+                <Digits value={cell.value} />
+              </dd>
+            </div>
+          ))}
+        </dl>
+
+        {typeof onScrollToInscription === 'function' ? (
+          <button
+            type="button"
+            className="meet-clock__cta motion-icon-shift"
+            onClick={onScrollToInscription}
+          >
+            {t('pages.pitbull.meetCountdownCta')}
+            <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
+          </button>
+        ) : null}
+      </Shell>
     </section>
   )
 }

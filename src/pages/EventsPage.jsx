@@ -11,6 +11,7 @@ import EventCalendar from '../components/ui/EventCalendar.jsx'
 import EventCountdown from '../components/ui/EventCountdown.jsx'
 import EventCard from '../components/ui/EventCard.jsx'
 import EventLiveStream from '../components/ui/EventLiveStream.jsx'
+import EventsTeaser from '../components/ui/EventsTeaser.jsx'
 import PitbullBrandMark from '../components/ui/PitbullBrandMark.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import StaggerReveal from '../components/ui/StaggerReveal.jsx'
@@ -39,6 +40,7 @@ import {
 } from '../lib/eventPricing.js'
 import { money } from '../lib/format.js'
 import { fetchPublishedEvents } from '../services/eventAdminService.js'
+import { fetchSiteTeaser } from '../services/siteTeaserService.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { getEventComboAvailability } from '../services/comboOfferService.js'
@@ -407,6 +409,22 @@ export default function EventsPage({
     }
   }, [])
 
+  // Anuncio "Pronto habrá novedades". Arranca apagado y así se queda si la
+  // lectura falla: un anuncio de hype no puede aparecer por un error de red.
+  const [teaserEnabled, setTeaserEnabled] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    fetchSiteTeaser()
+      .then((teaser) => {
+        if (active) setTeaserEnabled(teaser.eventsEnabled)
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [])
+
   const dateFormatter = useMemo(
     () =>
       new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-AR', {
@@ -655,6 +673,11 @@ export default function EventsPage({
             </div>
           )}
         </MotionContentSwap>
+
+        {/* El archivo no es lugar para un "se viene": en Finalizados no se muestra. */}
+        {teaserEnabled && filter !== 'done' ? (
+          <EventsTeaser className="events-page__teaser" />
+        ) : null}
 
         <Reveal
           variant="from-left"

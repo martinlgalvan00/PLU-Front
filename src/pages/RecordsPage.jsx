@@ -2,6 +2,7 @@ import '../styles/pages/design-phase2.css'
 import '../styles/pages/records.css'
 import { useMemo, useState } from 'react'
 import { ArrowRight, Mail, Search, X } from 'lucide-react'
+import { m } from 'motion/react'
 import Button from '../components/ui/Button.jsx'
 import ExportButton from '../components/ui/ExportButton.jsx'
 import FilterPills from '../components/ui/FilterPills.jsx'
@@ -9,6 +10,10 @@ import PluPageHero from '../components/layout/PluPageHero.jsx'
 import RecordsSoonMedal from '../components/ui/RecordsSoonMedal.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
+import { useMotionConfig } from '../motion/MotionProvider.tsx'
+import MotionContentSwap from '../motion/MotionContentSwap.tsx'
+import { MOTION_VIEWPORT } from '../motion/tokens.ts'
+import { staggerContainer, staggerItem } from '../motion/variants.ts'
 import { formatShortDate } from '../lib/format.js'
 import {
   buildRecordsCsv,
@@ -26,6 +31,20 @@ import {
 const TABLE_COLUMNS = ['lift', 'athlete', 'meet', 'date', 'mark']
 
 function RecordsClassTable({ weightClassBlock, locale, t, visibleLifts }) {
+  const { reducedMotion, tier } = useMotionConfig()
+  const animated = !(reducedMotion || tier === 'low')
+  const Body = animated ? m.tbody : 'tbody'
+  const Row = animated ? m.tr : 'tr'
+  const bodyProps = animated
+    ? {
+        initial: 'hidden',
+        whileInView: 'visible',
+        viewport: MOTION_VIEWPORT,
+        variants: staggerContainer,
+      }
+    : {}
+  const rowProps = animated ? { variants: staggerItem } : {}
+
   return (
     <article className="records-class" aria-labelledby={`records-class-${weightClassBlock.id}`}>
       <header className="records-class__head">
@@ -48,20 +67,20 @@ function RecordsClassTable({ weightClassBlock, locale, t, visibleLifts }) {
               ))}
             </tr>
           </thead>
-          <tbody>
+          <Body {...bodyProps}>
             {visibleLifts.map((lift) => {
               const entry = weightClassBlock.lifts[lift]
               return (
-                <tr key={lift}>
+                <Row key={lift} {...rowProps}>
                   <th scope="row">{t(`pages.records.lifts.${lift}`)}</th>
                   <td>{entry?.athlete ?? '—'}</td>
                   <td>{entry?.meet ?? '—'}</td>
                   <td>{entry?.dateISO ? formatShortDate(entry.dateISO, locale) : '—'}</td>
                   <td className="records-class__mark">{entry?.markLabel ?? '—'}</td>
-                </tr>
+                </Row>
               )
             })}
-          </tbody>
+          </Body>
         </table>
       </div>
     </article>
@@ -102,6 +121,9 @@ export default function RecordsPage({ onNavigate }) {
 
   const sections = useMemo(() => groupRecordsFederated(entries), [entries])
   const visibleLifts = liftFilter === 'all' ? RECORD_LIFTS : [liftFilter]
+  // La búsqueda de texto solo filtra filas; los filtros de categoría reemplazan
+  // el cuadro entero y por eso son los que disparan la transición.
+  const sectionsKey = `${liftFilter}|${sexFilter}|${groupFilter}|${equipmentFilter}`
   const hasRecords = register.entries.length > 0
   const filtersActive =
     query.trim() !== '' ||
@@ -297,7 +319,7 @@ export default function RecordsPage({ onNavigate }) {
           ) : null}
 
           {hasRecords && sections.length > 0 ? (
-            <div className="records-federated">
+            <MotionContentSwap className="records-federated" swapKey={sectionsKey}>
               {sections.map((section) => (
                 <section
                   key={section.id}
@@ -329,7 +351,7 @@ export default function RecordsPage({ onNavigate }) {
                   </div>
                 </section>
               ))}
-            </div>
+            </MotionContentSwap>
           ) : null}
 
           {hasRecords && entries.length === 0 ? (

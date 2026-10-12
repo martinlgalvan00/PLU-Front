@@ -21,6 +21,10 @@
   max-width: none;
 }
 
+.members-plu-offer--statement .members-plu-plans__head .members-plu-process__eyebrow {
+  color: var(--color-text-muted);
+}
+
 /* Sin card: regla sutil + tipografía. El precio manda. */
 .members-plu-offer__stage {
   background: none;
@@ -110,9 +114,11 @@
   .membership-grid--plu-solo
   .membership-card--plu
   .membership-card__title {
-  color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--color-text-muted));
-  font-size: 11px;
-  letter-spacing: 0.16em;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .members-plu-offer--statement.members-plu-offer--solo
@@ -126,23 +132,26 @@
   .membership-grid--plu-solo
   .membership-card--plu
   .membership-card__amount {
-  font-size: clamp(3.25rem, 9vw, 5rem);
-  font-weight: 550;
-  letter-spacing: -0.07em;
-  line-height: 0.86;
+  font-size: clamp(3rem, 8vw, 4.5rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 0.9;
 }
 
 .members-plu-offer--statement.members-plu-offer--solo
   .membership-grid--plu-solo
   .membership-card--plu
   .membership-card__period {
-  color: color-mix(in oklab, var(--color-text-primary) 48%, var(--color-text-muted));
-  font-size: 12px;
-  letter-spacing: 0.16em;
+  color: var(--color-text-muted);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .members-plu-offer--statement .membership-card--plu .membership-card__cta {
-  border-radius: var(--border-radius-sm);
+  border-radius: 999px;
   font-size: 15px;
   letter-spacing: -0.015em;
   min-height: 54px;
@@ -177,34 +186,66 @@
   }
 }
 
-/* Vigencia: whisper bajo la decisión */
+/* Condiciones del plan: cada dato en su columna, separadas por filetes.
+   Lo que importa para decidir (vigencia) va primero; el resto son notas. */
 .members-plu-offer__terms {
-  align-items: baseline;
   border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-  color: var(--color-text-muted);
-  display: flex;
-  flex-wrap: wrap;
-  font-size: 12.5px;
-  gap: 0.35em 0.55em;
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 13.5px;
+  gap: 0;
+  grid-template-columns: minmax(0, 1.6fr) repeat(auto-fit, minmax(0, 1fr));
   line-height: 1.5;
   margin: 0;
-  max-width: 62ch;
-  padding-top: clamp(16px, 2.2vw, 20px);
+  padding-top: clamp(16px, 2.2vw, 22px);
   position: relative;
   z-index: 1;
 }
 
+.members-plu-offer__term {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  min-width: 0;
+  padding-inline: clamp(14px, 2.2vw, 28px);
+  text-wrap: pretty;
+}
+
+.members-plu-offer__term:first-child {
+  padding-inline-start: 0;
+}
+
+.members-plu-offer__term + .members-plu-offer__term {
+  border-left: 1px solid color-mix(in oklab, var(--color-text-primary) 9%, transparent);
+}
+
 .members-plu-offer__terms-label {
-  color: color-mix(in oklab, var(--plu-gold-500) 72%, var(--color-text-muted));
+  color: var(--color-text-muted);
   font-family: var(--font-display);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .members-plu-offer__terms-text {
   min-width: 0;
+}
+
+@container members-plans (max-width: 639px) {
+  .members-plu-offer__terms {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 12px;
+  }
+
+  .members-plu-offer__term,
+  .members-plu-offer__term:first-child {
+    padding-inline: 0;
+  }
+
+  .members-plu-offer__term + .members-plu-offer__term {
+    border-left: 0;
+  }
 }
 
 /* Includes: tira editorial con reglas, sin párrafos */
@@ -221,11 +262,11 @@
 }
 
 .members-plu-offer__includes-title {
-  color: var(--color-brand-gold);
+  color: var(--color-text-muted);
   font-family: var(--font-display);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
   line-height: 1.2;
   margin: 0;
   text-transform: uppercase;
@@ -241,53 +282,41 @@
 }
 
 .members-plu-offer__item {
+  align-items: start;
   border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 9%, transparent);
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
   justify-items: start;
   min-width: 0;
   padding: clamp(16px, 2.2vw, 22px) clamp(10px, 1.5vw, 16px) clamp(16px, 2.2vw, 22px) 0;
 }
 
-.members-plu-offer__index {
-  color: color-mix(in oklab, var(--plu-gold-500) 72%, var(--color-text-muted));
-  font-family: var(--font-display);
-  font-size: clamp(1.05rem, 1.8vw, 1.25rem);
-  font-variant-numeric: tabular-nums;
-  font-weight: 650;
-  letter-spacing: -0.04em;
-  line-height: 1;
+/* Marca de "incluido": un check discreto, no un número. */
+.members-plu-offer__check {
+  color: var(--color-text-muted);
+  flex: none;
 }
 
 .members-plu-offer__item-title {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(0.95rem, 1.5vw, 1.1rem);
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  line-height: 1.25;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
   margin: 0;
   text-wrap: balance;
 }
 
 @container members-plans (min-width: 720px) {
   .members-plu-offer__list {
-    column-gap: 0;
+    column-gap: clamp(24px, 3cqi, 40px);
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .members-plu-offer__item {
-    border-right: 1px solid color-mix(in oklab, var(--color-text-primary) 9%, transparent);
-    padding-inline: clamp(14px, 2cqi, 22px) clamp(14px, 2cqi, 22px);
-  }
-
-  .members-plu-offer__item:first-child {
-    padding-inline-start: 0;
-  }
-
-  .members-plu-offer__item:last-child {
-    border-right: 0;
-    padding-inline-end: 0;
+    padding-inline: 0;
   }
 }
 
@@ -442,6 +471,34 @@
   line-height: 1.6;
   margin: 0;
   max-width: 38ch;
+}
+
+/* "Cómo funciona": línea de progreso + marcador por paso (ScrollRail / step-dot). */
+.members-steps {
+  --members-steps-gutter: clamp(26px, 4vw, 34px);
+  padding-left: var(--members-steps-gutter);
+  position: relative;
+}
+
+.members-steps__rail {
+  left: 0;
+}
+
+.members-guide__list--rail .members-guide__item {
+  position: relative;
+}
+
+.members-steps__dot {
+  left: calc(-1 * var(--members-steps-gutter) - 4.5px);
+  top: calc(clamp(22px, 3vw, 30px) + 0.5em);
+}
+
+.members-guide__list--rail .members-guide__index {
+  transition: color var(--motion-base) var(--ease-out);
+}
+
+.members-guide__list--rail .members-guide__item[data-state='idle'] .members-guide__index {
+  color: var(--color-text-muted);
 }
 
 @container members-page-body (min-width: 720px) {

@@ -2,62 +2,59 @@ import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
 import { useContent } from '../../hooks/useContent.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
-import { useCssViewTimeline } from '../../motion/useCssViewTimeline.ts'
-import TiltCard from '../../motion/TiltCard.tsx'
-import { hasFinePointer } from '../../motion/useReducedMotion.ts'
+import { useStepBand } from '../../motion/useStepBand.ts'
 import {
   MOTION_DURATION,
   MOTION_EASE,
   MOTION_STAGGER,
   MOTION_VIEWPORT,
-  SHOWCASE_TILT_MAX_DEG,
 } from '../../motion/tokens.ts'
+
+/* Manifiesto de tres líneas. Guion de entrada (una sola vez): aparece el
+   header, las líneas del título suben una tras otra desde una máscara y cada
+   pilar entra con su regla trazándose. Después, el scroll enciende el pilar
+   que se está leyendo. */
 
 const aboutSequence = {
   hidden: {},
   visible: {
     transition: {
-      staggerChildren: MOTION_STAGGER.step,
+      staggerChildren: MOTION_STAGGER.step * 2,
       delayChildren: MOTION_STAGGER.delayChildren,
     },
   },
 }
 
-const aboutIntroIn = {
-  hidden: { opacity: 0, y: 16 },
+const aboutHeadIn = {
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    y: 0,
-    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.cinematic },
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out, staggerChildren: 0.12 },
   },
 }
 
-const aboutPlateSequence = {
-  hidden: {},
+const aboutTitleLineIn = {
+  hidden: { y: '108%' },
   visible: {
-    transition: {
-      staggerChildren: MOTION_STAGGER.step,
-      delayChildren: 0.04,
-    },
+    y: '0%',
+    transition: { duration: MOTION_DURATION.cinematic, ease: MOTION_EASE.cinematic },
   },
 }
 
-const aboutPlateIn3d = {
-  hidden: { opacity: 0, y: 16, rotateX: SHOWCASE_TILT_MAX_DEG },
+const aboutRowIn = {
+  hidden: { opacity: 0, y: 18 },
   visible: {
     opacity: 1,
     y: 0,
-    rotateX: 0,
     transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
   },
 }
 
-const aboutPlateIn2d = {
-  hidden: { opacity: 0, y: 10 },
+const aboutRuleIn = {
+  hidden: { scaleX: 0 },
   visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: MOTION_DURATION.reveal, ease: MOTION_EASE.out },
+    scaleX: 1,
+    transition: { duration: 0.9, ease: MOTION_EASE.cinematic },
   },
 }
 
@@ -70,87 +67,106 @@ const aboutLinkIn = {
   },
 }
 
+const pad2 = (value) => String(value).padStart(2, '0')
+
 export default function AboutSection({ onNavigate }) {
   const { ABOUT_INTRO, ABOUT_PILLARS } = useContent()
   const { reducedMotion, tier } = useMotionConfig()
-  const cssViewTimeline = useCssViewTimeline()
-  const theaterOff = reducedMotion || tier === 'low'
-  const cssTheater = !theaterOff && cssViewTimeline
-  const jsTheater = !theaterOff && !cssViewTimeline
-  const plateMotion = jsTheater && hasFinePointer() ? aboutPlateIn3d : aboutPlateIn2d
+  const still = reducedMotion || tier === 'low'
+  const { activeIndex, bind } = useStepBand(ABOUT_PILLARS.length, {
+    enabled: !still,
+    rootMargin: '-34% 0px -34% 0px',
+  })
   const lead = ABOUT_INTRO.descriptionLead ?? ABOUT_INTRO.description
-  const Root = theaterOff ? 'div' : m.div
-  const Header = theaterOff ? 'header' : m.header
-  const Link = theaterOff ? 'button' : m.button
-  const withVariant = (variants) => (theaterOff ? {} : { variants })
-  const rootClass = ['about-section', 'about-section--ledger', cssTheater ? 'about-section--theater' : '']
+  // El acento viene con "\n" para fijar dos líneas doradas: se parten acá para
+  // que cada una suba por su propia máscara (y el título lea con espacios).
+  const accentLines = String(ABOUT_INTRO.titleAccent ?? '')
+    .split('\n')
     .filter(Boolean)
-    .join(' ')
-  const rootProps = theaterOff
-    ? { className: rootClass, 'data-theater': 'off' }
+
+  const Root = still ? 'div' : m.div
+  const Head = still ? 'header' : m.header
+  const List = still ? 'ul' : m.ul
+  const Row = still ? 'li' : m.li
+  const Rule = still ? 'span' : m.span
+  const Line = still ? 'span' : m.span
+  const Link = still ? 'button' : m.button
+  const variant = (variants) => (still ? {} : { variants })
+
+  const rootProps = still
+    ? {}
     : {
-        className: rootClass,
-        'data-theater': cssTheater ? 'css' : 'js',
         variants: aboutSequence,
         initial: 'hidden',
         whileInView: 'visible',
-        viewport: { ...MOTION_VIEWPORT, amount: 0.28 },
+        viewport: { ...MOTION_VIEWPORT, amount: 0.22 },
       }
 
+  const titleLines = [
+    { text: ABOUT_INTRO.titleLead, accent: false },
+    ...accentLines.map((text) => ({ text, accent: true })),
+  ]
+
   return (
-    <Root {...rootProps}>
-      <div className="about-section__body">
-        <Header {...withVariant(aboutIntroIn)} className="about-section__head">
-          <div className="about-section__intro">
-            <p className="about-section__label">{ABOUT_INTRO.eyebrow}</p>
-            <h2 className="about-section__title">
-              <span className="about-section__title-line">{ABOUT_INTRO.titleLead}</span>
-              <span className="about-section__title-line about-section__title-line--accent">
-                {ABOUT_INTRO.titleAccent}
+    <Root
+      className="about-section about-section--ledger"
+      data-theater={still ? 'off' : 'js'}
+      {...rootProps}
+    >
+      <Head {...variant(aboutHeadIn)} className="about-section__head">
+        <div className="about-section__intro">
+          <p className="about-section__label">{ABOUT_INTRO.eyebrow}</p>
+          <h2 className="about-section__title">
+            {titleLines.map((line, index) => (
+              <span key={line.text}>
+                {index > 0 ? ' ' : null}
+                <span
+                  className={`about-section__title-line${line.accent ? ' about-section__title-line--accent' : ''}`}
+                >
+                  <Line {...variant(aboutTitleLineIn)} className="about-section__title-text">
+                    {line.text}
+                  </Line>
+                </span>
               </span>
-            </h2>
-          </div>
-
-          <p className="about-section__desc">{lead}</p>
-        </Header>
-
-        {jsTheater ? (
-          <m.ul
-            className="about-section__plates"
-            variants={aboutPlateSequence}
-          >
-            {ABOUT_PILLARS.map((pillar, index) => (
-              <m.li
-                key={pillar.id ?? pillar.title}
-                className={plateItemClass(pillar.id)}
-                variants={plateMotion}
-              >
-                <AboutPlate pillar={pillar} index={index} />
-              </m.li>
             ))}
-          </m.ul>
-        ) : (
-          <ul className="about-section__plates">
-            {ABOUT_PILLARS.map((pillar, index) => (
-              <li key={pillar.id ?? pillar.title} className={plateItemClass(pillar.id)}>
-                <AboutPlate pillar={pillar} index={index} />
-              </li>
-            ))}
-          </ul>
-        )}
+          </h2>
+        </div>
 
-        {onNavigate ? (
-          <Link
-            {...withVariant(aboutLinkIn)}
-            className="about-section__link motion-icon-shift"
-            onClick={() => onNavigate('community')}
-            type="button"
+        <p className="about-section__desc">{lead}</p>
+      </Head>
+
+      <List className="about-section__plates">
+        {ABOUT_PILLARS.map((pillar, index) => (
+          <Row
+            key={pillar.id ?? pillar.title}
+            ref={bind(index)}
+            className={plateItemClass(pillar.id)}
+            data-active={!still && index === activeIndex ? 'true' : undefined}
+            {...variant(aboutRowIn)}
           >
-            {ABOUT_INTRO.cta}
-            <ArrowRight aria-hidden className="motion-icon-shift__target" size={15} />
-          </Link>
-        ) : null}
-      </div>
+            <Rule {...variant(aboutRuleIn)} className="about-section__rule" aria-hidden />
+            <div className="about-section__plate">
+              <span className="about-section__plate-index" aria-hidden>
+                {pad2(index + 1)}
+              </span>
+              <h3 className="about-section__plate-title">{pillar.title}</h3>
+              {pillar.text ? <p className="about-section__plate-text">{pillar.text}</p> : null}
+            </div>
+          </Row>
+        ))}
+      </List>
+
+      {onNavigate ? (
+        <Link
+          {...variant(aboutLinkIn)}
+          className="about-section__link motion-icon-shift"
+          onClick={() => onNavigate('community')}
+          type="button"
+        >
+          {ABOUT_INTRO.cta}
+          <ArrowRight aria-hidden className="motion-icon-shift__target" size={15} />
+        </Link>
+      ) : null}
     </Root>
   )
 }
@@ -159,23 +175,4 @@ function plateItemClass(id) {
   return ['about-section__plate-item', id === 'standard' ? 'about-section__plate-item--lead' : '']
     .filter(Boolean)
     .join(' ')
-}
-
-function AboutPlate({ pillar, index }) {
-  return (
-    <TiltCard
-      className="about-section__plate-tilt"
-      innerClassName="tilt-card__inner about-section__plate"
-      maxTilt={SHOWCASE_TILT_MAX_DEG}
-    >
-      <span className="about-section__plate-index" aria-hidden>
-        {String(index + 1).padStart(2, '0')}
-      </span>
-      <div className="about-section__plate-copy">
-        <h3 className="about-section__plate-title">{pillar.title}</h3>
-        {pillar.text ? <p className="about-section__plate-text">{pillar.text}</p> : null}
-      </div>
-      <span className="about-section__plate-rule" aria-hidden />
-    </TiltCard>
-  )
 }

@@ -1,0 +1,241 @@
+/* =============================================
+   AVISO DE PAGOS SIN DERECHOS ACTIVADOS
+   Un ícono con contador y un panel que se abre al tocarlo. El panel es una
+   superficie plana con filete, sin glass ni sombras apiladas. El único color
+   es el del contador (atención): el resto va en tinta.
+   ============================================= */
+
+.admin-reconcile {
+  position: relative;
+}
+
+.admin-reconcile-inline {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-reconcile__trigger {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 50%;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  position: relative;
+  transition:
+    background-color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    border-color var(--motion-fast, 150ms) var(--ease-standard, ease);
+  width: 40px;
+}
+
+.admin-reconcile__trigger:hover,
+.admin-reconcile__trigger.is-open {
+  background: var(--admin-row-hover);
+  border-color: var(--admin-ink);
+}
+
+.admin-reconcile__trigger:focus-visible,
+.admin-reconcile__review:focus-visible,
+.admin-reconcile__close:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-reconcile__count {
+  align-items: center;
+  background: var(--admin-status-warning);
+  border-radius: 999px;
+  color: #14181f;
+  display: inline-flex;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  height: 18px;
+  justify-content: center;
+  min-width: 18px;
+  padding-inline: 5px;
+  position: absolute;
+  right: -6px;
+  top: -6px;
+}
+
+.admin-reconcile__panel {
+  background: var(--admin-surface-raised);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 16px;
+  box-shadow: var(--admin-shadow-panel);
+  display: grid;
+  gap: 4px;
+  max-height: min(70vh, 520px);
+  overflow: auto;
+  padding: 20px 22px 8px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  width: min(92vw, 540px);
+  z-index: 40;
+}
+
+.admin-reconcile__head {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding-bottom: 14px;
+}
+
+.admin-reconcile__title {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.admin-reconcile__lead {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 6px 0 0;
+  text-wrap: pretty;
+}
+
+.admin-reconcile__close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 32px;
+  justify-content: center;
+  position: relative;
+  width: 32px;
+}
+
+/* Se ve de 32px, se toca en 44. */
+.admin-reconcile__close::after {
+  content: '';
+  inset: -6px;
+  position: absolute;
+}
+
+.admin-reconcile__close:hover {
+  background: var(--admin-row-hover);
+  color: var(--admin-ink);
+}
+
+.admin-reconcile__list {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-reconcile__item {
+  align-items: center;
+  border-top: 1px solid var(--admin-hairline);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 14px 0;
+}
+
+.admin-reconcile__item-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-reconcile__name {
+  color: var(--admin-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.admin-reconcile__meta {
+  color: var(--admin-text-secondary);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.admin-reconcile__cause {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+}
+
+.admin-reconcile__review {
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 999px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  flex: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 36px;
+  padding: 0 16px;
+  transition:
+    background-color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    border-color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-reconcile__review:hover {
+  background: var(--admin-row-hover);
+  border-color: var(--admin-ink);
+}
+
+@media (pointer: coarse) {
+  .admin-reconcile__review {
+    min-height: 44px;
+  }
+
+  .admin-reconcile__trigger {
+    height: 44px;
+    width: 44px;
+  }
+}
+
+@media (max-width: 560px) {
+  .admin-reconcile__item {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .admin-reconcile__panel {
+    padding-inline: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-reconcile__panel {
+    animation: admin-reconcile-in var(--motion-base, 240ms) var(--ease-out, ease) both;
+  }
+}
+
+@keyframes admin-reconcile-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* En claro el ámbar es oscuro (#b45309): el contador lleva texto blanco. */
+[data-theme='light'] .admin-reconcile__count {
+  color: #fff;
+}

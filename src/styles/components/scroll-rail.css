@@ -1,0 +1,74 @@
+/* Riel de progreso ligado al scroll. Solo transform: el fill escala desde su
+   origen; el track es una regla fija. Ver src/motion/ScrollRail.tsx. */
+
+.scroll-rail {
+  background: color-mix(in oklab, var(--color-text-primary) 12%, transparent);
+  border-radius: 99px;
+  display: block;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+}
+
+.scroll-rail--y {
+  bottom: 0;
+  left: 0;
+  top: 0;
+  width: 2px;
+}
+
+.scroll-rail--x {
+  bottom: 0;
+  height: 2px;
+  left: 0;
+  right: 0;
+}
+
+.scroll-rail__fill {
+  background: var(--color-brand-gold);
+  display: block;
+  inset: 0;
+  position: absolute;
+}
+
+.scroll-rail--y .scroll-rail__fill {
+  transform-origin: top center;
+}
+
+.scroll-rail--x .scroll-rail__fill {
+  transform-origin: left center;
+}
+
+/* Marcador de paso sobre el riel: hueco hasta alcanzarlo, relleno después. */
+.step-dot {
+  background: var(--color-bg-primary);
+  border: 1.5px solid color-mix(in oklab, var(--color-text-primary) 28%, transparent);
+  border-radius: 50%;
+  height: 11px;
+  position: absolute;
+  transition:
+    background-color var(--motion-base) var(--ease-out),
+    border-color var(--motion-base) var(--ease-out),
+    transform var(--motion-slow) var(--ease-spring);
+  width: 11px;
+}
+
+.step-dot[data-state='done'],
+.step-dot[data-state='active'] {
+  background: var(--color-brand-gold);
+  border-color: var(--color-brand-gold);
+}
+
+.step-dot[data-state='active'] {
+  transform: scale(1.28);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-dot {
+    transition: none;
+  }
+
+  .step-dot[data-state='active'] {
+    transform: none;
+  }
+}

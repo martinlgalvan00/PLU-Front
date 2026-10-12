@@ -1,0 +1,28 @@
+/* Superficie del meet (entrada "FALTAN N SEMANAS" y card "Hasta el Classic").
+   Una sola capa de variables para los dos temas: oscuro = grafito con texto
+   blanco; claro = papel cálido con tinta. El acento dorado sube a gold-600 en
+   claro para sostener contraste sobre fondo claro. */
+
+.meet-surface {
+  --meet-bg: var(--plu-cool-950);
+  --meet-fg: #fff;
+  --meet-muted: rgba(255, 255, 255, 0.74);
+  --meet-faint: rgba(255, 255, 255, 0.64);
+  --meet-rule: rgba(255, 255, 255, 0.12);
+  --meet-border: rgba(255, 255, 255, 0.1);
+  --meet-chip-border: rgba(255, 255, 255, 0.28);
+  --meet-accent: var(--color-brand-gold);
+  --meet-eyebrow: var(--color-brand-celeste, var(--plu-celeste-500));
+}
+
+[data-theme='light'] .meet-surface {
+  --meet-bg: #fdfcfa;
+  --meet-fg: var(--plu-ink-900);
+  --meet-muted: rgba(26, 28, 34, 0.74);
+  --meet-faint: rgba(26, 28, 34, 0.64);
+  --meet-rule: rgba(26, 28, 34, 0.12);
+  --meet-border: rgba(26, 28, 34, 0.1);
+  --meet-chip-border: rgba(26, 28, 34, 0.28);
+  --meet-accent: var(--plu-gold-600);
+  --meet-eyebrow: var(--plu-celeste-600);
+}

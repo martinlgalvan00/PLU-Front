@@ -4,7 +4,7 @@ import { validateBody } from '../lib/validate.js'
 import { publicWriteLimiter } from '../middleware/rateLimit.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 
-const MOTIVES = ['atleta', 'gimnasio', 'organizacion', 'pluusa', 'sponsor']
+const MOTIVES = ['atleta', 'gimnasio', 'organizacion', 'pluusa', 'sponsor', 'curso', 'tienda']
 
 const contactSchema = z.object({
   name: z.string().trim().min(1).max(120),

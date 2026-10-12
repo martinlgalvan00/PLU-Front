@@ -4,7 +4,7 @@ import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
 import { requireSupabaseClient } from '../lib/supabaseRpc.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
-import { staffLimiter } from '../middleware/rateLimit.js'
+import { publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
 import { createSupabasePlatformSettingsRepository } from '../modules/settings/supabasePlatformSettingsRepository.js'
 import {
   resolveEnvironmentHolds,
@@ -80,6 +80,22 @@ export const checkoutWindowSchema = z
     }
   })
 
+/**
+ * Anuncio "Pronto habrá novedades" de la página de Eventos. Sólo se prende o se
+ * apaga: el texto es copy del sitio y no hay fecha, sede ni título que cargar.
+ */
+export const siteTeaserSchema = z.object({
+  enabled: z.boolean(),
+})
+
+/**
+ * Lo único que sale a la red pública. `updatedBy` guarda el email del staff que
+ * tocó el interruptor y no tiene por qué viajar a un visitante.
+ */
+function toPublicTeaser(teaser) {
+  return { eventsEnabled: teaser?.eventsEnabled === true }
+}
+
 function actor(req) {
   return `${req.auth.user.id}:${req.auth.user.email}`
 }
@@ -114,6 +130,33 @@ export function createPlatformSettingsRoutes({
       next(error)
     }
   })
+
+  // Prender el anuncio es una decisión sobre la página de Eventos, no sobre
+  // cobros: va por el permiso de eventos y no por `registration_access`.
+  const teaserWriteGuard = requirePermission('admin.events.write', { prisma })
+
+  router.get('/teaser', publicReadLimiter, async (_req, res, next) => {
+    try {
+      res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.SETTINGS))
+      res.json(toPublicTeaser(await repo().getTeaser()))
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.put(
+    '/teaser',
+    ...teaserWriteGuard,
+    staffLimiter,
+    validateBody(siteTeaserSchema),
+    async (req, res, next) => {
+      try {
+        res.json(toPublicTeaser(await repo().setTeaser(req.validatedBody.enabled, actor(req))))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   router.get('/', ...readGuard, staffLimiter, async (_req, res, next) => {
     try {

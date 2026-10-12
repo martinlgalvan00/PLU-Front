@@ -1,172 +1,268 @@
 /* =============================================
    POSTULACIONES AL CUERPO DE STAFF — panel admin
-   Reusa AdminDataTable/status/surface tokens. Acá solo vive lo específico:
-   filtros por estado, celdas compuestas y la acción de revisión inline.
+   Reusa AdminDataTable. Acá vive lo específico: filtros por estado (pestañas
+   con subrayado, el mismo patrón que Cobros y Personas), celdas compuestas,
+   estado como punto + texto y la revisión inline. Monocromo: la acción de
+   aprobar va en tinta; el único color es el punto de estado.
    ============================================= */
 
 .admin-staff-applications {
   display: grid;
-  gap: var(--space-md, 16px);
+  gap: var(--space-lg, 24px);
 }
 
 .admin-staff-applications__header {
-  align-items: center;
+  align-items: flex-end;
+  border-bottom: 1px solid var(--admin-hairline);
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm, 10px);
+  gap: var(--space-sm, 8px) var(--space-lg, 24px);
   justify-content: space-between;
 }
 
 .admin-staff-applications__header h2 {
-  font-size: 18px;
-  font-weight: 650;
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
   margin: 0;
+  padding-bottom: 14px;
 }
 
 .admin-staff-applications__filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px clamp(16px, 3vw, 28px);
 }
 
 .admin-staff-applications__filters button {
-  background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
-  color: var(--color-text-secondary);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--admin-muted);
   cursor: pointer;
-  font-size: 12.5px;
-  font-weight: 600;
-  min-height: 36px;
-  padding: 0 14px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: -1px;
+  min-height: 44px;
+  padding: 0 2px;
+  transition:
+    color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    border-color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-staff-applications__filters button:hover {
+  color: var(--admin-ink);
 }
 
 .admin-staff-applications__filters button.is-active {
-  background: var(--color-brand-celeste);
-  border-color: var(--color-brand-celeste);
-  color: var(--color-bg-canvas, #0b0d10);
+  border-bottom-color: var(--admin-ink);
+  color: var(--admin-ink);
+  font-weight: 650;
+}
+
+.admin-staff-applications__filters button:focus-visible,
+.admin-staff-applications__actions button:focus-visible,
+.admin-staff-applications__reject button:focus-visible,
+.admin-staff-applications__reject textarea:focus-visible,
+.admin-staff-applications__doc-link:focus-visible,
+.admin-staff-applications__whatsapp:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
 }
 
 .admin-staff-applications__error {
-  color: var(--color-danger-text);
+  color: var(--admin-status-danger);
   font-size: 13px;
   margin: 0;
 }
 
+/* ---- Celdas ---- */
+
 .admin-staff-applications__applicant,
 .admin-staff-applications__contact {
   display: grid;
-  gap: 2px;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-staff-applications__applicant strong {
+  color: var(--admin-ink);
+  font-weight: 600;
 }
 
 .admin-staff-applications__applicant span,
 .admin-staff-applications__contact span {
-  color: var(--color-text-muted);
+  color: var(--admin-muted);
   font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
-.admin-staff-applications__whatsapp {
+.admin-staff-applications__whatsapp,
+.admin-staff-applications__doc-link {
   align-items: center;
-  color: var(--color-brand-celeste);
+  color: var(--admin-ink);
   display: inline-flex;
   font-size: 12.5px;
   font-weight: 600;
-  gap: 4px;
+  gap: 6px;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+  text-underline-offset: 3px;
+  width: fit-content;
+}
+
+.admin-staff-applications__whatsapp {
   margin-top: 2px;
-  text-decoration: none;
+}
+
+.admin-staff-applications__whatsapp:hover,
+.admin-staff-applications__doc-link:hover {
+  text-decoration-color: currentColor;
 }
 
 .admin-staff-applications__docs {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
-.admin-staff-applications__doc-link {
-  color: var(--color-brand-celeste);
-  font-size: 12.5px;
-  font-weight: 600;
+.admin-staff-applications__body {
+  display: grid;
+  gap: 2px;
 }
 
+.admin-staff-applications__body small {
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+
+/* Estado: punto + texto, como en el resto del admin. */
 .admin-staff-applications__status {
-  border-radius: 999px;
-  display: inline-block;
-  font-size: 11.5px;
-  font-weight: 650;
-  padding: 3px 10px;
+  --status-tone: var(--admin-muted);
+
+  align-items: center;
+  color: var(--admin-ink);
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 500;
+  gap: 8px;
+}
+
+.admin-staff-applications__status::before {
+  background: var(--status-tone);
+  border-radius: 50%;
+  content: '';
+  flex: none;
+  height: 6px;
+  width: 6px;
 }
 
 .admin-staff-applications__status.is-pendiente {
-  background: color-mix(in srgb, var(--color-brand-gold) 20%, transparent);
-  color: var(--color-brand-gold);
+  --status-tone: var(--admin-status-warning);
 }
 
 .admin-staff-applications__status.is-aprobada {
-  background: color-mix(in srgb, var(--color-success-text, #2fae5e) 20%, transparent);
-  color: var(--color-success-text, #2fae5e);
+  --status-tone: var(--admin-status-success);
 }
 
 .admin-staff-applications__status.is-rechazada {
-  background: color-mix(in srgb, var(--color-danger-text) 20%, transparent);
-  color: var(--color-danger-text);
+  --status-tone: var(--admin-status-danger);
 }
+
+/* ---- Revisión ---- */
 
 .admin-staff-applications__actions {
   display: flex;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .admin-staff-applications__actions button,
 .admin-staff-applications__reject button {
-  border-radius: 6px;
+  border-radius: 999px;
   cursor: pointer;
-  font-size: 12.5px;
+  font: inherit;
+  font-size: 13px;
   font-weight: 600;
-  min-height: 34px;
-  padding: 0 10px;
+  min-height: 36px;
+  padding: 0 16px;
+  transition:
+    background-color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    border-color var(--motion-fast, 150ms) var(--ease-standard, ease);
 }
 
+.admin-staff-applications__actions button:disabled,
+.admin-staff-applications__reject button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Aprobar: tinta sólida. No es dorado: sería un acento por cada fila. */
 .admin-staff-applications__actions button:first-child {
-  background: var(--color-brand-gold);
-  border: 0;
-  color: var(--color-bg-canvas, #0b0d10);
+  background: var(--admin-ink);
+  border: 1px solid var(--admin-ink);
+  color: var(--admin-on-brand);
+}
+
+.admin-staff-applications__actions button:first-child:hover:not(:disabled) {
+  opacity: 0.88;
 }
 
 .admin-staff-applications__actions button:last-child,
 .admin-staff-applications__reject button:not(.is-danger) {
   background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  color: var(--color-text-secondary);
+  border: 1px solid var(--admin-hairline-strong);
+  color: var(--admin-ink);
+}
+
+.admin-staff-applications__actions button:last-child:hover:not(:disabled),
+.admin-staff-applications__reject button:not(.is-danger):hover:not(:disabled) {
+  background: var(--admin-row-hover);
+  border-color: var(--admin-ink);
 }
 
 .admin-staff-applications__reject {
   display: grid;
-  gap: 6px;
-  min-width: 180px;
+  gap: 8px;
+  min-width: 200px;
 }
 
 .admin-staff-applications__reject textarea {
-  background: var(--color-bg-input);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  color: var(--color-text-primary);
-  font-size: 12.5px;
-  padding: 6px 8px;
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 10px;
+  color: var(--admin-ink);
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
   resize: vertical;
 }
 
 .admin-staff-applications__reject div {
   display: flex;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .admin-staff-applications__reject button.is-danger {
-  background: var(--color-danger-text);
-  border: 0;
-  color: #fff;
+  background: var(--admin-status-danger);
+  border: 1px solid var(--admin-status-danger);
+  color: var(--admin-canvas);
 }
 
 .admin-staff-applications__reviewed-note {
-  color: var(--color-text-muted);
+  color: var(--admin-muted);
   font-size: 12.5px;
+}
+
+@media (pointer: coarse) {
+  .admin-staff-applications__actions button,
+  .admin-staff-applications__reject button {
+    min-height: 44px;
+  }
 }

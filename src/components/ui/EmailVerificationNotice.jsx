@@ -5,6 +5,7 @@ import {
   readEmailVerificationToken,
 } from '../../lib/emailVerificationRoute.js'
 import { verifyAthleteEmail } from '../../services/athleteApi.js'
+import PluGlassMark from './PluGlassMark.jsx'
 
 /**
  * EmailVerificationNotice — PLU ARG
@@ -92,15 +93,17 @@ export default function EmailVerificationNotice() {
   return (
     <div className="email-verification-notice" role="status" aria-live="polite">
       <div className={`email-verification-notice__card email-verification-notice__card--${contenido.tone}`}>
-        <span className="email-verification-notice__icon" aria-hidden>
-          {state === 'verificando' ? (
-            <LoaderCircle size={15} className="email-verification-notice__spin" />
-          ) : state === 'confirmado' ? (
-            <CheckCircle2 size={15} />
-          ) : (
-            <CircleAlert size={15} />
-          )}
-        </span>
+        <PluGlassMark className="email-verification-notice__mark" size={36}>
+          <span className="email-verification-notice__icon">
+            {state === 'verificando' ? (
+              <LoaderCircle size={11} className="email-verification-notice__spin" />
+            ) : state === 'confirmado' ? (
+              <CheckCircle2 size={11} />
+            ) : (
+              <CircleAlert size={11} />
+            )}
+          </span>
+        </PluGlassMark>
         <p className="email-verification-notice__text">{contenido.text}</p>
         {state === 'error' && retryableError ? (
           <button

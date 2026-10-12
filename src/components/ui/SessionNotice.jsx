@@ -7,7 +7,7 @@ import {
   SIGNED_OUT_EVENT,
   SIGNED_IN_EVENT,
 } from '../../lib/sessionNotice.js'
-import { initials } from '../../lib/format.js'
+import PluGlassMark from './PluGlassMark.jsx'
 
 const DISMISS_MS = 8000
 const TICK_MS = 250
@@ -17,7 +17,7 @@ const MIN_RESUME_MS = 800
  * Toast compacto de sesión. El flag vive en sessionStorage para sobrevivir el
  * cambio de layout privado → público; el evento cubre el logout sin remount.
  *
- * Iniciales, eyebrow + mensaje con la acción opcional debajo, y cierre.
+ * Emblema PLU, eyebrow + mensaje con la acción opcional debajo, y cierre.
  * El filete inferior marca la cuenta regresiva; DISMISS_MS viaja a CSS.
  */
 export default function SessionNotice({ onNavigate }) {
@@ -159,11 +159,7 @@ export default function SessionNotice({ onNavigate }) {
       >
         <span className="session-notice__timer" aria-hidden />
         <div className="session-notice__body">
-          {notice.name ? (
-            <span className="session-notice__avatar" aria-hidden>
-              {initials(notice.name)}
-            </span>
-          ) : null}
+          <PluGlassMark className="session-notice__mark" size={40} />
           <div className="session-notice__copy">
             <p className="session-notice__eyebrow">
               {t(isLogin ? 'nav.loginEyebrow' : 'nav.logoutEyebrow')}

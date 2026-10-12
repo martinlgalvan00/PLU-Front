@@ -39,19 +39,19 @@
 
 .status-pill--success {
   background: var(--color-success-bg);
-  border-color: rgba(22, 101, 52, 0.2);
+  border-color: color-mix(in srgb, currentColor 24%, transparent);
   color: var(--color-success-text);
 }
 
 .status-pill--warning {
   background: var(--color-warning-bg);
-  border-color: rgba(146, 64, 14, 0.2);
+  border-color: color-mix(in srgb, currentColor 24%, transparent);
   color: var(--color-warning-text);
 }
 
 .status-pill--danger {
   background: var(--color-danger-bg);
-  border-color: rgba(153, 27, 27, 0.2);
+  border-color: color-mix(in srgb, currentColor 24%, transparent);
   color: var(--color-danger-text);
 }
 
@@ -112,6 +112,12 @@
   max-width: min(92vw, 520px);
 }
 
+/* Nace debajo de la pill del header (no encima), centrado. */
+.email-verification-notice {
+  align-items: flex-start;
+  padding-top: calc(var(--header-height, 62px) + 20px);
+}
+
 /* ---- Tarjeta del aviso de verificación ----
    Misma receta material que el toast de sesión (superficie elevada + filete
    superior por estado), para que los avisos globales del shell compartan un
@@ -121,27 +127,20 @@
   --verify-accent: var(--color-brand-celeste);
 
   align-items: center;
-  background: var(--color-bg-elevated, var(--color-bg-surface));
-  border: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-  border-radius: 10px;
-  box-shadow: var(--elevation-md);
+  background: var(--plu-glass-sheen), var(--plu-glass-fill);
+  -webkit-backdrop-filter: var(--plu-glass-blur);
+  backdrop-filter: var(--plu-glass-blur);
+  border: 1px solid var(--plu-glass-border);
+  border-radius: 20px;
+  box-shadow: var(--plu-glass-shadow);
   display: flex;
-  gap: 10px;
-  max-width: min(92vw, 460px);
+  gap: 12px;
+  max-width: min(92vw, 480px);
   overflow: hidden;
-  padding: 10px 12px 10px 14px;
+  padding: 10px 16px 10px 10px;
   pointer-events: auto;
   position: relative;
   width: fit-content;
-}
-
-.email-verification-notice__card::before {
-  background: var(--verify-accent);
-  content: '';
-  height: 1px;
-  inset: 0 0 auto;
-  opacity: 0.45;
-  position: absolute;
 }
 
 .email-verification-notice__card--success {
@@ -152,20 +151,30 @@
   --verify-accent: var(--color-danger-text, #ff6b66);
 }
 
+/* El estado vive en una insignia sobre el emblema: color + forma de icono,
+   nunca solo color. */
+.email-verification-notice__mark {
+  --plu-glass-mark-size: 36px;
+}
+
 .email-verification-notice__icon {
   align-items: center;
+  background: var(--color-bg-elevated, var(--color-bg-surface));
   border-radius: 50%;
+  bottom: -3px;
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--verify-accent) 55%, transparent);
   color: var(--verify-accent);
   display: inline-flex;
-  flex: none;
-  height: 26px;
+  height: 16px;
   justify-content: center;
-  width: 26px;
+  position: absolute;
+  right: -3px;
+  width: 16px;
 }
 
 .email-verification-notice__text {
   color: var(--color-text-primary);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.4;
   margin: 0;
   text-wrap: pretty;
@@ -198,19 +207,21 @@
 .session-notice {
   align-items: flex-start;
   justify-content: flex-end;
-  padding: calc(var(--header-height, 62px) + 20px) var(--space-4, 16px) 0;
+  padding: calc(var(--header-height, 62px) + 20px) var(--space-md) 0;
 }
 
 .session-notice__card {
   --session-notice-accent: var(--color-brand-gold);
 
-  background: var(--color-bg-elevated, var(--color-bg-surface));
-  border: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-  border-radius: var(--border-radius-md, 10px);
-  box-shadow: 0 18px 40px -18px color-mix(in srgb, #000 45%, transparent);
-  max-width: min(100%, 360px);
+  background: var(--plu-glass-sheen), var(--plu-glass-fill);
+  -webkit-backdrop-filter: var(--plu-glass-blur);
+  backdrop-filter: var(--plu-glass-blur);
+  border: 1px solid var(--plu-glass-border);
+  border-radius: 22px;
+  box-shadow: var(--plu-glass-shadow);
+  max-width: min(100%, 372px);
   overflow: hidden;
-  padding: 14px 12px 16px 14px;
+  padding: 16px 14px 18px 16px;
   pointer-events: auto;
   position: relative;
   width: 100%;
@@ -238,20 +249,8 @@
   min-width: 0;
 }
 
-.session-notice__avatar {
-  align-items: center;
-  border: 1px solid color-mix(in oklab, var(--session-notice-accent) 45%, transparent);
-  border-radius: 50%;
-  color: var(--color-text-primary);
-  display: inline-flex;
-  flex: none;
-  font-family: var(--font-display, var(--font-family));
-  font-size: 11px;
-  font-weight: 600;
-  height: 36px;
-  justify-content: center;
-  letter-spacing: 0.04em;
-  width: 36px;
+.session-notice__mark {
+  --plu-glass-mark-size: 40px;
 }
 
 .session-notice__copy {
@@ -364,10 +363,6 @@
   }
 }
 
-[data-theme='light'] .session-notice__card {
-  box-shadow: 0 16px 36px -18px color-mix(in srgb, #1a2230 30%, transparent);
-}
-
 @media (prefers-reduced-motion: no-preference) {
   .email-verification-notice__card {
     animation: session-notice-in var(--motion-slow, 480ms)
@@ -448,78 +443,58 @@
   }
 }
 
-[data-theme='light'] .email-verification-notice__card {
-  box-shadow: var(--elevation-sm);
-}
-
 /* =============================================
    ADMIN ACTION TOASTS
-   Stack operativo abajo a la derecha. Misma receta
-   material que el toast de sesión (superficie
-   elevada + filete superior): confirma y se va, salvo
-   que traiga una acción ("Deshacer"), que se queda más
-   tiempo. Un acento por variante: oro = éxito, rojo =
-   error real.
+   Stack operativo abajo a la derecha. Superficie plana con
+   filete, sin acento de marca: confirma y se va, salvo que
+   traiga una acción ("Deshacer"), que se queda más tiempo.
+   El tono vive solo en el icono (neutro = hecho, rojo =
+   error real); el mensaje nunca cambia de color.
    ============================================= */
 
 .admin-toasts {
   align-items: flex-end;
-  bottom: var(--space-3, 12px);
+  bottom: var(--space-md);
   display: flex;
   flex-direction: column;
   gap: 8px;
   pointer-events: none;
   position: fixed;
-  right: var(--space-3, 12px);
+  right: var(--space-md);
   z-index: calc(var(--z-header, 200) + 20);
 }
 
 .admin-toasts__item {
-  --toast-accent: var(--color-brand-gold);
+  --toast-accent: var(--color-text-primary);
 
-  align-items: flex-start;
+  align-items: center;
   background: var(--color-bg-elevated, var(--color-bg-surface));
-  border: 1px solid color-mix(in oklab, var(--color-text-primary) 7%, transparent);
+  border: 1px solid var(--color-border, color-mix(in oklab, var(--color-text-primary) 12%, transparent));
   border-radius: 12px;
-  box-shadow:
-    0 16px 32px -20px rgba(0, 0, 0, 0.4),
-    0 1px 4px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.55);
   display: grid;
-  gap: 9px;
+  gap: 10px;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
-  max-width: min(92vw, 380px);
-  overflow: hidden;
-  padding: 11px 12px 11px 14px;
+  max-width: min(92vw, 400px);
+  padding: 12px 10px 12px 12px;
   pointer-events: auto;
   position: relative;
 }
 
-.admin-toasts__item::before {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in oklab, var(--toast-accent) 88%, transparent) 22%,
-    var(--toast-accent) 50%,
-    color-mix(in oklab, var(--toast-accent) 88%, transparent) 78%,
-    transparent
-  );
-  content: '';
-  height: 1px;
-  inset: 0 0 auto;
-  position: absolute;
-}
-
 .admin-toasts__item--error {
-  --toast-accent: var(--color-brand-red);
+  --toast-accent: var(--color-danger-text, var(--color-brand-red));
 }
 
 .admin-toasts__icon {
   align-items: center;
-  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, var(--toast-accent) 38%, transparent);
+  border-radius: 50%;
   color: var(--toast-accent);
   display: inline-flex;
   flex: none;
-  margin-top: 1px;
+  height: 22px;
+  justify-content: center;
+  width: 22px;
 }
 
 .admin-toasts__message {
@@ -534,23 +509,23 @@
   background: transparent;
   border: 0;
   border-radius: 6px;
-  color: var(--toast-accent);
+  color: var(--color-text-primary);
   cursor: pointer;
   flex: none;
-  font-size: 12px;
-  font-weight: 700;
-  margin-top: 1px;
-  padding: 2px 4px;
+  font-size: 12.5px;
+  font-weight: 650;
+  padding: 4px 6px;
   text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in oklab, currentColor 40%, transparent);
+  text-underline-offset: 3px;
 }
 
 .admin-toasts__action:hover {
-  text-decoration: none;
+  text-decoration-color: currentColor;
 }
 
 .admin-toasts__action:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
+  outline: 2px solid var(--color-text-primary);
   outline-offset: 2px;
 }
 
@@ -585,31 +560,29 @@
 }
 
 .admin-toasts__close:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
+  outline: 2px solid var(--color-text-primary);
   outline-offset: 2px;
 }
 
 [data-theme='light'] .admin-toasts__item {
-  box-shadow:
-    0 14px 28px -18px rgba(15, 17, 21, 0.24),
-    0 1px 4px rgba(15, 17, 21, 0.06);
+  box-shadow: 0 14px 32px -20px rgba(10, 10, 10, 0.28);
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .admin-toasts__item {
-    animation: admin-toast-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: admin-toast-in var(--motion-base, 240ms) var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
   }
 }
 
 @keyframes admin-toast-in {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.98);
+    transform: translateY(8px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 

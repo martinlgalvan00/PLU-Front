@@ -186,7 +186,7 @@ export const PERMISSION_CATALOG = [
     moduleLabel: 'Shop',
     action: 'read',
     actionLabel: 'Leer',
-    description: 'Consultar el catálogo y el stock.',
+    description: 'Consultar el catálogo, el stock y los pedidos.',
     sortOrder: 70,
   },
   {
@@ -195,7 +195,7 @@ export const PERMISSION_CATALOG = [
     moduleLabel: 'Shop',
     action: 'write',
     actionLabel: 'Escribir',
-    description: 'Crear, editar y archivar productos.',
+    description: 'Crear, editar y archivar productos; acreditar, entregar y cancelar pedidos; configurar el cobro.',
     sortOrder: 71,
   },
   {
@@ -349,6 +349,19 @@ export const ROLE_HIERARCHY = Object.freeze([
 ])
 
 export const CONFIGURABLE_ROLE_KEYS = Object.freeze(['plu_arg', 'seguridad_plu_arg'])
+
+/**
+ * Permisos que no se delegan a roles operativos: sólo Super Admin y
+ * Administrador los tienen. El servidor rechaza cualquier matriz que los
+ * incluya (`assertMutablePermissionSet`) y la UI los muestra bloqueados; las
+ * dos capas leen esta misma lista para que no se desalineen.
+ */
+export const RESERVED_PERMISSION_KEYS = Object.freeze([
+  'admin.users.write',
+  'admin.roles.write',
+  'admin.pricing.write',
+  'admin.registration_access.write',
+])
 
 /**
  * Borrado definitivo (cascada de datos, sin vuelta atrás): reservado a Super

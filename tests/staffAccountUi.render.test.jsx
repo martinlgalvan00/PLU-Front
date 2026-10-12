@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
+import { ThemeProvider } from '../src/providers/ThemeProvider.jsx'
 import AccountDialog from '../src/components/admin/AccountDialog.jsx'
 import StaffPasswordChangePage from '../src/pages/StaffPasswordChangePage.jsx'
 import StaffInvitationPage from '../src/pages/StaffInvitationPage.jsx'
@@ -70,7 +71,9 @@ describe('StaffPasswordChangePage', () => {
     const onChangePassword = vi.fn(async () => ({}))
     renderGate({ onChangePassword })
 
-    fireEvent.change(screen.getByLabelText('Contraseña actual'), { target: { value: 'temporal-x' } })
+    fireEvent.change(screen.getByLabelText('Contraseña actual'), {
+      target: { value: 'temporal-x' },
+    })
     fireEvent.change(screen.getByLabelText('Contraseña nueva'), {
       target: { value: 'mi-clave-propia-2026' },
     })
@@ -118,14 +121,16 @@ describe('StaffInvitationPage', () => {
 describe('AccountDialog', () => {
   function renderDialog(overrides = {}) {
     return render(
-      <I18nProvider>
-        <AccountDialog
-          session={{ ...SESSION, mustChangePassword: false }}
-          onRequestEmailChange={async () => ({ pendingEmail: 'nuevo@pluarg.test' })}
-          onClose={() => {}}
-          {...overrides}
-        />
-      </I18nProvider>,
+      <ThemeProvider>
+        <I18nProvider>
+          <AccountDialog
+            session={{ ...SESSION, mustChangePassword: false }}
+            onRequestEmailChange={async () => ({ pendingEmail: 'nuevo@pluarg.test' })}
+            onClose={() => {}}
+            {...overrides}
+          />
+        </I18nProvider>
+      </ThemeProvider>,
     )
   }
 
@@ -198,9 +203,15 @@ describe('UsersSection — credencial temporal', () => {
     )
   }
 
+  // "Reenviar invitación" vive en el menú de la fila ("Más acciones").
+  function openRowMenu() {
+    fireEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+  }
+
   it('no ofrece reenviar invitación sin handler', () => {
     renderUsers()
-    expect(screen.queryByLabelText('Reenviar invitación')).toBeNull()
+    openRowMenu()
+    expect(screen.queryByRole('menuitem', { name: 'Reenviar invitación' })).toBeNull()
   })
 
   it('no expone credenciales y avisa cuando el mail no salió', async () => {
@@ -210,7 +221,8 @@ describe('UsersSection — credencial temporal', () => {
     }))
     renderUsers({ onResetPassword })
 
-    fireEvent.click(screen.getAllByLabelText('Reenviar invitación')[0])
+    openRowMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Reenviar invitación' }))
 
     await waitFor(() => expect(screen.getByText('Invitación reemitida')).toBeTruthy())
     expect(screen.queryByText('Zx9-temporal')).toBeNull()
@@ -224,7 +236,8 @@ describe('UsersSection — credencial temporal', () => {
     }))
     renderUsers({ onResetPassword })
 
-    fireEvent.click(screen.getAllByLabelText('Reenviar invitación')[0])
+    openRowMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Reenviar invitación' }))
 
     await waitFor(() =>
       expect(screen.getByText(/Le enviamos un enlace personal a test@pluarg\.test/)).toBeTruthy(),

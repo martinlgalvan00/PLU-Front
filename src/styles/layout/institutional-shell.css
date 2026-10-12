@@ -4286,19 +4286,20 @@ html.plu-drawer-open body {
 }
 
 .plu-notice-menu {
-  background: var(--institution-surface-raised);
-  border: 1px solid color-mix(in srgb, var(--institution-border-strong) 80%, transparent);
-  border-radius: 14px;
-  box-shadow:
-    0 18px 40px -20px color-mix(in srgb, var(--color-shadow-tint, #000) 60%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--institution-gold) 12%, transparent);
+  /* Vidrio PLU (ver plu-glass.css): mismo material que el header. */
+  background: var(--plu-glass-sheen), var(--plu-glass-fill);
+  -webkit-backdrop-filter: var(--plu-glass-blur);
+  backdrop-filter: var(--plu-glass-blur);
+  border: 1px solid var(--plu-glass-border);
+  border-radius: 20px;
+  box-shadow: var(--plu-glass-shadow);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   padding: 0;
   position: fixed;
   transform-origin: top right;
-  width: min(300px, calc(100vw - 24px));
+  width: min(320px, calc(100vw - 24px));
   z-index: var(--z-dropdown);
 }
 
@@ -4311,33 +4312,45 @@ html.plu-drawer-open body {
   top: -12px;
 }
 
-[data-theme='light'] .plu-notice-menu {
-  background: #fff;
-  border-color: rgba(15, 17, 23, 0.08);
-  box-shadow:
-    0 16px 36px -20px rgba(15, 17, 23, 0.22),
-    0 0 0 1px rgba(15, 17, 23, 0.04);
+.plu-notice-menu__header {
+  align-items: center;
+  border-bottom: 1px solid var(--plu-glass-divider);
+  display: flex;
+  gap: 12px;
+  padding: 14px 18px 12px;
 }
 
-.plu-notice-menu__header {
-  border-bottom: 1px solid
-    color-mix(in srgb, var(--institution-gold) 28%, var(--institution-border));
-  padding: 12px 16px 10px;
+.plu-notice-menu__mark {
+  --plu-glass-mark-size: 34px;
+}
+
+.plu-notice-menu__heading {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
 }
 
 .plu-notice-menu__eyebrow {
-  color: color-mix(in srgb, var(--institution-gold) 72%, var(--institution-text-muted));
+  color: color-mix(in srgb, var(--institution-gold) 78%, var(--institution-text));
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
   margin: 0;
   text-transform: uppercase;
+}
+
+.plu-notice-menu__org {
+  color: var(--institution-text-muted);
+  font-size: 12px;
+  line-height: 1.3;
+  margin: 0;
 }
 
 .plu-notice-menu__body {
   display: grid;
   gap: 8px;
-  padding: 16px 16px 18px;
+  padding: 18px 18px 20px;
 }
 
 .plu-notice-menu__title {
@@ -4370,7 +4383,7 @@ html.plu-drawer-open body {
 .plu-notice-menu__action {
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--institution-gold) 55%, var(--institution-border));
-  border-radius: 8px;
+  border-radius: 999px;
   color: var(--institution-text);
   cursor: pointer;
   font: inherit;
@@ -4378,8 +4391,8 @@ html.plu-drawer-open body {
   font-weight: 600;
   justify-self: start;
   margin-top: 6px;
-  min-height: 36px;
-  padding: 8px 14px;
+  min-height: 40px;
+  padding: 8px 18px;
   transition:
     background-color var(--motion-fast) var(--ease-out),
     border-color var(--motion-fast) var(--ease-out);
@@ -4410,5 +4423,153 @@ html.plu-drawer-open body {
     height: var(--nav-mobile-session, 34px);
     margin-inline: 0;
     width: var(--nav-mobile-session, 34px);
+  }
+}
+
+/* ── Header · acabado de lujo ───────────────────────
+   Una sola capa: filo dorado en el borde de la pill, un barrido de luz
+   one-shot al cargar, entrada escalonada del rail y brillo de hover en
+   "Acceder". Solo transform/opacity/background-position; todo apagado bajo
+   prefers-reduced-motion. */
+
+.site-header.site-header--institutional::before,
+.site-header.site-header--institutional::after {
+  border-radius: inherit;
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+/* Filo dorado→celeste: borde de 1px por máscara, más presente al compactar. */
+.site-header.site-header--institutional::before {
+  background: linear-gradient(
+    115deg,
+    color-mix(in srgb, var(--institution-gold) 70%, transparent) 0%,
+    transparent 32%,
+    transparent 68%,
+    color-mix(in srgb, var(--color-brand-celeste) 46%, transparent) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  opacity: 0.55;
+  padding: 1px;
+  transition: opacity var(--motion-slow) var(--ease-out);
+}
+
+.site-header.site-header--institutional.site-header--scrolled::before {
+  opacity: 0.9;
+}
+
+/* Barrido de luz: pasa una vez al montar y no vuelve. */
+.site-header.site-header--institutional::after {
+  animation: institutional-header-sheen 1400ms var(--ease-cinematic) 420ms 1 both;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    color-mix(in srgb, #fff 16%, transparent) 50%,
+    transparent 62%
+  );
+  background-size: 260% 100%;
+}
+
+[data-theme='light'] .site-header.site-header--institutional::after {
+  background-image: linear-gradient(
+    105deg,
+    transparent 38%,
+    color-mix(in srgb, var(--institution-gold) 20%, transparent) 50%,
+    transparent 62%
+  );
+}
+
+/* Rail: cada link entra con su propio retardo, sin mover el layout. */
+.plu-global-nav__desktop > * {
+  animation: institutional-header-item-enter 460ms var(--ease-cinematic) both;
+}
+
+.plu-global-nav__desktop > :nth-child(1) {
+  animation-delay: 140ms;
+}
+.plu-global-nav__desktop > :nth-child(2) {
+  animation-delay: 190ms;
+}
+.plu-global-nav__desktop > :nth-child(3) {
+  animation-delay: 240ms;
+}
+.plu-global-nav__desktop > :nth-child(4) {
+  animation-delay: 290ms;
+}
+.plu-global-nav__desktop > :nth-child(5) {
+  animation-delay: 340ms;
+}
+.plu-global-nav__desktop > :nth-child(n + 6) {
+  animation-delay: 390ms;
+}
+
+/* Hover del emblema: el sello respira un poco más y el rail dorado se enciende. */
+.plu-global-nav__brand:hover ~ .plu-global-nav__rail {
+  opacity: 0.9;
+}
+
+/* Acceder: brillo dorado que cruza el botón al pasar el cursor. */
+.plu-global-nav__login {
+  background-image: linear-gradient(
+    110deg,
+    transparent 35%,
+    color-mix(in srgb, var(--institution-gold) 34%, transparent) 50%,
+    transparent 65%
+  );
+  background-position: 160% 0;
+  background-repeat: no-repeat;
+  background-size: 260% 100%;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    background-position 720ms var(--ease-cinematic),
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+}
+
+.plu-global-nav__login:hover {
+  background-position: -60% 0;
+}
+
+@keyframes institutional-header-sheen {
+  from {
+    background-position: 160% 0;
+    opacity: 1;
+  }
+  to {
+    background-position: -60% 0;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-header.site-header--institutional::after {
+    animation: none;
+    opacity: 0;
+  }
+
+  .plu-global-nav__desktop > * {
+    animation: none;
+  }
+
+  .plu-global-nav__login {
+    transition:
+      background-color var(--motion-fast) var(--ease-out),
+      border-color var(--motion-fast) var(--ease-out),
+      color var(--motion-fast) var(--ease-out);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .site-header.site-header--institutional::after {
+    display: none;
   }
 }

@@ -131,32 +131,32 @@
   --filter-pill-active-text: #14181f;
 
   /* Admin institucional — superficies cálidas; sidebar acoplada al tema */
-  --admin-canvas: var(--plu-warm-50);
-  --admin-surface: color-mix(in srgb, white 92%, var(--plu-warm-100));
-  --admin-surface-raised: white;
-  --admin-surface-muted: color-mix(in srgb, var(--plu-warm-100) 72%, white);
-  --admin-sidebar: color-mix(in srgb, white 96%, var(--plu-warm-100));
-  --admin-sidebar-surface: color-mix(in srgb, var(--plu-warm-100) 62%, white);
-  --admin-sidebar-text: var(--plu-ink-900);
+  --admin-canvas: #fafafa;
+  --admin-surface: #ffffff;
+  --admin-surface-raised: #ffffff;
+  --admin-surface-muted: #f4f4f4;
+  --admin-sidebar: #ffffff;
+  --admin-sidebar-surface: #f6f6f6;
+  --admin-sidebar-text: #0a0a0a;
   /* 64% de ink-900 sobre el sidebar claro ≈ 5.0:1 — AA para texto chico
      (con 48% quedaba en ~3.1:1 y el subtítulo del sidebar fallaba). */
-  --admin-sidebar-muted: color-mix(in srgb, var(--plu-ink-900) 64%, transparent);
-  --admin-sidebar-hover: color-mix(in srgb, var(--plu-ink-900) 4.5%, transparent);
-  --admin-sidebar-border: color-mix(in srgb, var(--plu-ink-900) 10%, transparent);
-  --admin-sidebar-shadow: 10px 0 32px rgba(26, 28, 34, 0.06);
-  --admin-ink: var(--plu-ink-900);
-  --admin-text-secondary: var(--plu-ink-700);
-  --admin-muted: var(--plu-ink-500);
-  --admin-hairline: color-mix(in srgb, var(--plu-ink-900) 10%, transparent);
-  --admin-hairline-strong: color-mix(in srgb, var(--plu-ink-900) 18%, transparent);
-  --admin-brand: var(--plu-celeste-600);
-  --admin-brand-soft: color-mix(in srgb, var(--plu-celeste-600) 9%, transparent);
-  --admin-brand-border: color-mix(in srgb, var(--plu-celeste-600) 24%, transparent);
-  --admin-action: var(--plu-celeste-600);
-  --admin-on-action: var(--plu-ink-inverse);
-  --admin-on-brand: var(--plu-ink-inverse);
-  --admin-premium: var(--plu-gold-600);
-  --admin-premium-soft: color-mix(in srgb, var(--plu-gold-600) 10%, transparent);
+  --admin-sidebar-muted: rgba(10, 10, 10, 0.62);
+  --admin-sidebar-hover: rgba(10, 10, 10, 0.04);
+  --admin-sidebar-border: rgba(10, 10, 10, 0.09);
+  --admin-sidebar-shadow: none;
+  --admin-ink: #0a0a0a;
+  --admin-text-secondary: #3d3d3d;
+  --admin-muted: #6b6b6b;
+  --admin-hairline: color-mix(in srgb, #0a0a0a 9%, transparent);
+  --admin-hairline-strong: color-mix(in srgb, #0a0a0a 16%, transparent);
+  --admin-brand: #0a0a0a;
+  --admin-brand-soft: color-mix(in srgb, #0a0a0a 5%, transparent);
+  --admin-brand-border: color-mix(in srgb, #0a0a0a 22%, transparent);
+  --admin-action: var(--color-brand-action);
+  --admin-on-action: var(--color-brand-action-text);
+  --admin-on-brand: #ffffff;
+  --admin-premium: #0a0a0a;
+  --admin-premium-soft: color-mix(in srgb, #0a0a0a 5%, transparent);
   --admin-status-success: var(--plu-success-600);
   --admin-status-success-bg: color-mix(in srgb, var(--plu-success-600) 10%, transparent);
   --admin-status-success-border: color-mix(in srgb, var(--plu-success-600) 25%, transparent);
@@ -166,35 +166,35 @@
   --admin-status-danger: var(--plu-danger-500);
   --admin-status-danger-bg: color-mix(in srgb, var(--plu-danger-500) 8%, transparent);
   --admin-status-danger-border: color-mix(in srgb, var(--plu-danger-500) 23%, transparent);
-  --admin-status-info: var(--plu-celeste-600);
-  --admin-status-info-bg: color-mix(in srgb, var(--plu-celeste-600) 9%, transparent);
-  --admin-status-info-border: color-mix(in srgb, var(--plu-celeste-600) 24%, transparent);
+  --admin-status-info: #3d3d3d;
+  --admin-status-info-bg: color-mix(in srgb, #0a0a0a 5%, transparent);
+  --admin-status-info-border: color-mix(in srgb, #0a0a0a 16%, transparent);
   --admin-accent: var(--admin-brand);
   --admin-accent-soft: var(--admin-brand-soft);
   --admin-focus: var(--admin-brand);
   --admin-focus-soft: var(--admin-brand-soft);
-  --admin-row-hover: color-mix(in srgb, var(--admin-brand) 5%, transparent);
-  --admin-control-bg: color-mix(in srgb, white 86%, var(--plu-warm-100));
-  --admin-control-hover: color-mix(in srgb, var(--admin-brand) 5%, white);
-  --admin-table-head: color-mix(in srgb, var(--plu-warm-100) 78%, white);
-  --admin-table-sticky: white;
-  --admin-table-stripe: color-mix(in srgb, var(--plu-warm-100) 30%, transparent);
-  --admin-shadow-soft: 0 4px 16px rgba(26, 28, 34, 0.045);
-  --admin-shadow-panel: 0 18px 48px rgba(26, 28, 34, 0.09);
-  --admin-attention-bg: var(--plu-cool-900);
+  --admin-row-hover: color-mix(in srgb, #0a0a0a 3.5%, transparent);
+  --admin-control-bg: #ffffff;
+  --admin-control-hover: #f4f4f4;
+  --admin-table-head: #f6f6f6;
+  --admin-table-sticky: #ffffff;
+  --admin-table-stripe: color-mix(in srgb, #0a0a0a 2%, transparent);
+  --admin-shadow-soft: 0 1px 2px rgba(10, 10, 10, 0.04);
+  --admin-shadow-panel: 0 12px 32px rgba(10, 10, 10, 0.08);
+  --admin-attention-bg: #111111;
   --admin-attention-text: var(--plu-ink-inverse);
 
   /* Material de modal admin — grafito profundo en ambos temas: el modal
      es la superficie de decisión, y se lee como una pieza de piedra oscura
      flotando sobre la operación (mismo rol que --admin-attention-*).
      La tinta "on-modal" invierte en light porque el panel es oscuro. */
-  --admin-modal-bg: color-mix(in srgb, var(--plu-cool-900) 95%, transparent);
+  --admin-modal-bg: #111111;
   --admin-modal-border: color-mix(in srgb, var(--plu-ink-inverse) 12%, transparent);
   --admin-modal-highlight: rgba(255, 255, 255, 0.07);
-  --admin-modal-blur: 16px;
+  --admin-modal-blur: 0px;
   --admin-modal-shadow: 0 28px 80px rgba(9, 11, 14, 0.5);
-  --admin-modal-backdrop: color-mix(in srgb, var(--plu-cool-950) 58%, transparent);
-  --admin-modal-backdrop-blur: 12px;
+  --admin-modal-backdrop: rgba(10, 10, 10, 0.55);
+  --admin-modal-backdrop-blur: 0px;
   --admin-modal-ink: var(--plu-ink-inverse);
   --admin-modal-text-secondary: rgba(236, 236, 232, 0.78);
   --admin-modal-text-muted: rgba(236, 236, 232, 0.58);
@@ -208,14 +208,14 @@
   /* Liquid glass — light: vidrio esmerilado cálido sobre el canvas.
      Sin atmósfera en light (decisión de tema), el vidrio se lee por
      translucidez blanca + borde fino + highlight superior. */
-  --admin-glass-bg: color-mix(in srgb, white 64%, transparent);
-  --admin-glass-bg-strong: color-mix(in srgb, white 86%, transparent);
-  --admin-glass-border: color-mix(in srgb, var(--plu-ink-900) 8%, transparent);
-  --admin-glass-border-strong: color-mix(in srgb, var(--plu-ink-900) 14%, transparent);
-  --admin-glass-highlight: color-mix(in srgb, white 70%, transparent);
-  --admin-glass-blur: 14px;
-  --admin-glass-shadow: 0 14px 36px rgba(26, 28, 34, 0.08);
-  --admin-glass-sidebar-bg: color-mix(in srgb, white 74%, var(--plu-warm-100) 10%, transparent);
+  --admin-glass-bg: #ffffff;
+  --admin-glass-bg-strong: #ffffff;
+  --admin-glass-border: color-mix(in srgb, #0a0a0a 8%, transparent);
+  --admin-glass-border-strong: color-mix(in srgb, #0a0a0a 14%, transparent);
+  --admin-glass-highlight: transparent;
+  --admin-glass-blur: 0px;
+  --admin-glass-shadow: none;
+  --admin-glass-sidebar-bg: #ffffff;
 }
 
 /* Vidrio light sin transparencia: material sólido, mismo layout. */
@@ -227,41 +227,11 @@
     --admin-glass-sidebar-bg: #ffffff;
     --admin-glass-highlight: transparent;
   }
-
-  [data-theme='light'] .admin-shell__sidebar,
-  [data-theme='light'] .admin-shell .admin-shell__sidebar,
-  [data-theme='light'] .admin-shell__collapse-toggle,
-  [data-theme='light'] .admin-shell .admin-shell__collapse-toggle,
-  [data-theme='light'] .admin-mobile-bar {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
 }
 
 /* =============================================
    ADMIN — light overrides
    ============================================= */
-
-[data-theme='light'] .admin-shell__sidebar {
-  background: var(--admin-glass-sidebar-bg);
-  -webkit-backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.05);
-  backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.05);
-  border-right-color: var(--color-border-subtle);
-}
-
-[data-theme='light'] .admin-shell__nav button:hover {
-  background: rgba(15, 17, 23, 0.035);
-}
-
-[data-theme='light'] .admin-shell__nav button.active {
-  background: rgba(15, 17, 23, 0.055);
-}
-
-[data-theme='light'] .admin-mobile-bar {
-  background: var(--admin-glass-sidebar-bg);
-  -webkit-backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.05);
-  backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.05);
-}
 
 [data-theme='light'] .admin-page-toolbar__search,
 [data-theme='light'] .admin-page-toolbar__alert,
@@ -346,4 +316,27 @@
 
 [data-theme='light'] .site-footer__bottom {
   background: var(--footer-bg, #f4f5f7);
+}
+
+/* ── Superficie admin: monocromo (ver dark.css) ───────────────────────── */
+[data-theme='light'][data-surface='admin'] {
+  --color-brand-celeste: #0a0a0a;
+  --color-brand-celeste-dim: rgba(10, 10, 10, 0.06);
+  --color-brand-celeste-glow: rgba(10, 10, 10, 0.14);
+  --color-text-accent: #0a0a0a;
+  --color-text-price: #0a0a0a;
+  --color-border-accent: rgba(10, 10, 10, 0.2);
+  --color-bg-primary: #fafafa;
+  --color-bg-secondary: #f4f4f4;
+  --color-bg-surface: #ffffff;
+  --color-bg-elevated: #ffffff;
+  --color-bg-input: #ffffff;
+  --color-bg-muted: #efefef;
+  --color-text-primary: #0a0a0a;
+  --color-text-secondary: #3d3d3d;
+  --color-text-muted: #6b6b6b;
+  --color-border: rgba(10, 10, 10, 0.1);
+  --color-border-strong: rgba(10, 10, 10, 0.24);
+  --color-border-subtle: rgba(10, 10, 10, 0.06);
+  --color-focus-ring: rgba(10, 10, 10, 0.14);
 }

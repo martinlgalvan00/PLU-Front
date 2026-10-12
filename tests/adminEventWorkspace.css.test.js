@@ -46,12 +46,12 @@ describe('scroll del AdminEventWorkspace', () => {
     )
   })
 
-  it('compacta el dock del rail en una fila baja', () => {
+  it('mantiene el dock del rail en una sola fila de botones', () => {
     expect(css).toMatch(
       /\.admin-event-workspace__save \.admin-event-form__action-buttons\s*\{[^}]*flex-direction:\s*row/s,
     )
     expect(css).toMatch(
-      /\.admin-event-workspace__save \.admin-event-form__action-buttons \.btn\s*\{[^}]*min-height:\s*28px/s,
+      /\.admin-event-workspace__save \.admin-event-form__action-buttons \.btn\s*\{[^}]*min-height:\s*40px/s,
     )
   })
 

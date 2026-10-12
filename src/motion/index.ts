@@ -13,3 +13,6 @@ export { useReducedMotion, prefersReducedMotion, hasFinePointer } from './useRed
 export { useCssViewTimeline, supportsCssViewTimeline } from './useCssViewTimeline'
 export * from './tokens'
 export * from './variants'
+export { default as ScrollRail } from './ScrollRail'
+export { useStepBand } from './useStepBand'
+export { useMinWidth } from './useMinWidth'

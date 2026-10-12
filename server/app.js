@@ -24,6 +24,8 @@ import { createFinanceRoutes } from './routes/finance.js'
 import { createCommunityRoutes } from './routes/community.js'
 import { createLaunchInterestRoutes } from './routes/launchInterest.js'
 import { createContactRoutes } from './routes/contact.js'
+import { createShopRoutes } from './routes/shop.js'
+import { createShopOrderRoutes } from './routes/shopOrders.js'
 import { createInternalJobRoutes } from './routes/internalJobs.js'
 import { errorHandler, notFoundHandler } from './lib/errors.js'
 import { getPrisma } from './lib/prisma.js'
@@ -194,6 +196,7 @@ export function createApp(deps = {}) {
       getPrisma: () => deps.prisma ?? getPrisma(),
       getSupabaseAdmin: resolveSupabaseAdmin,
       repository: deps.ticketRepository,
+      incidentRepository: deps.checkinIncidentRepository,
       athleteRepository: deps.athleteRepository,
       platformSettingsRepository: deps.platformSettingsRepository,
       env: deps.env ?? process.env,
@@ -259,6 +262,27 @@ export function createApp(deps = {}) {
       getPrisma: () => deps.prisma ?? getPrisma(),
       getSupabaseAdmin: resolveSupabaseAdmin,
       launchInterestRepository: deps.launchInterestRepository,
+      brevo: deps.brevo,
+      env: deps.env ?? process.env,
+    }),
+  )
+  app.use(
+    '/api/shop',
+    createShopRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
+      repository: deps.shopRepository,
+    }),
+  )
+  app.use(
+    '/api/shop',
+    createShopOrderRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
+      orderRepository: deps.shopOrderRepository,
+      mercadoPago: deps.shopMercadoPago,
+      platformSettingsRepository: deps.platformSettingsRepository,
+      webhookSecrets: deps.shopWebhookSecrets,
       brevo: deps.brevo,
       env: deps.env ?? process.env,
     }),

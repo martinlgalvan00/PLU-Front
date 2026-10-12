@@ -44,8 +44,11 @@ export const sharedThemeTokens = {
   fontFamily: brandTokens.fontFamily,
   fontFamilyCode: '"JetBrains Mono", ui-monospace, monospace',
 
-  colorPrimary: brandTokens.brandGold, // Por defecto la acción primaria es gold
-  colorInfo: brandTokens.brandBlue,
+  // Superficies operativas monocromo: el primario de antd (orden activo, tabs,
+  // switch, foco, paginación) es tinta y lo define cada tema. El dorado queda
+  // solo en el botón primario (ver componentTheme.Button).
+  colorPrimary: '#fafafa',
+  colorInfo: '#fafafa',
   colorSuccess: brandTokens.success,
   colorWarning: brandTokens.warning,
   colorError: brandTokens.danger,

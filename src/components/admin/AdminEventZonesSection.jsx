@@ -9,7 +9,6 @@ import {
   Send,
   Trash2,
   UserMinus,
-  UserPlus,
 } from 'lucide-react'
 import AdminIconButton from './AdminIconButton.jsx'
 import Button from '../ui/Button.jsx'
@@ -25,6 +24,7 @@ import {
   groupSecurityTeamByZone,
   validateZoneForm,
 } from '../../services/securityZoneService.js'
+import '../../styles/pages/admin-event-zones.css'
 
 /**
  * AdminEventZonesSection — PLU ARG
@@ -216,19 +216,26 @@ export default function AdminEventZonesSection({
 
       {zones.length > 0 ? (
         <div className="admin-event-zones__tools">
+          <p className="admin-event-zones__summary">
+            <span className="admin-event-zones__summary-item">
+              {t('admin.eventZones.summary', {
+                zones: summary.zoneCount,
+                members: summary.memberCount,
+                active: summary.activeCount,
+              })}
+            </span>
+            {summary.unassignedCount > 0 ? (
+              <span className="admin-event-zones__summary-item admin-event-zones__summary-item--warn">
+                {t('admin.eventZones.summaryUnassigned', { count: summary.unassignedCount })}
+              </span>
+            ) : null}
+          </p>
           {canManageUsers ? (
             <button type="button" onClick={openCreateForm} disabled={busy}>
               <Plus size={14} aria-hidden />
               {t('admin.eventZones.addZone')}
             </button>
           ) : null}
-          <span className="admin-event-zones__summary">
-            {t('admin.eventZones.summary', {
-              zones: summary.zoneCount,
-              members: summary.memberCount,
-              active: summary.activeCount,
-            })}
-          </span>
         </div>
       ) : null}
 
@@ -373,7 +380,12 @@ export default function AdminEventZonesSection({
                   >
                     {pending > 0
                       ? t('admin.eventZones.accessPending', { count: pending })
-                      : t('admin.eventZones.accessActive', { count: zone.activeCount })}
+                      : t(
+                          zone.activeCount === 1
+                            ? 'admin.eventZones.accessActiveOne'
+                            : 'admin.eventZones.accessActive',
+                          { count: zone.activeCount },
+                        )}
                   </span>
                   {expanded ? (
                     <ChevronDown size={14} aria-hidden />
@@ -484,45 +496,6 @@ export default function AdminEventZonesSection({
           })}
         </ul>
       )}
-
-      {/* Cuentas creadas sin puesto. No se esconden: es lo que hay que resolver
-          antes del meet, y en una lista plana no se notaba. */}
-      {grouped.unassigned.length > 0 ? (
-        <div className="admin-event-zones__unassigned">
-          <span className="admin-event-zones__unassigned-label">
-            <UserPlus size={14} aria-hidden />
-            {t('admin.eventZones.unassignedLabel', { count: grouped.unassigned.length })}
-          </span>
-          <ul>
-            {grouped.unassigned.map((member) => (
-              <li key={member.id}>
-                <span className="admin-event-zones__avatar">
-                  {getMemberInitials(member.name, member.email)}
-                </span>
-                <strong>{member.name}</strong>
-                <code>{member.email}</code>
-                {canManageUsers && zones.length > 0 ? (
-                  <select
-                    value=""
-                    disabled={busy}
-                    onChange={(event) => {
-                      if (event.target.value) handleAssign(member.id, event.target.value)
-                    }}
-                    aria-label={t('admin.eventZones.assignMember', { name: member.name })}
-                  >
-                    <option value="">{t('admin.eventZones.assignPlaceholder')}</option>
-                    {zones.map((zone) => (
-                      <option key={zone.id} value={zone.id}>
-                        {zone.name}
-                      </option>
-                    ))}
-                  </select>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
 
       {notice ? (
         <p

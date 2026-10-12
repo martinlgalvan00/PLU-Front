@@ -96,7 +96,7 @@ export function getMembershipsTourSteps(t) {
       body: t('admin.tour.memberships.search.body'),
     },
     {
-      target: '.admin-filter-chips',
+      target: '.admin-filters',
       placement: 'bottom',
       title: t('admin.tour.memberships.filters.title'),
       body: t('admin.tour.memberships.filters.body'),
@@ -166,7 +166,7 @@ export function getRegistrationsTourSteps(t) {
 export function getAuditTourSteps(t) {
   return [
     {
-      target: '.admin-audit-top__tabs',
+      target: '.audit-tabs',
       placement: 'bottom',
       title: t('admin.tour.audit.tabs.title'),
       body: t('admin.tour.audit.tabs.body'),
@@ -178,13 +178,13 @@ export function getAuditTourSteps(t) {
       body: t('admin.tour.audit.guide.body'),
     },
     {
-      target: '.audit-health-bento',
+      target: '.audit-band',
       placement: 'bottom',
       title: t('admin.tour.audit.health.title'),
       body: t('admin.tour.audit.health.body'),
     },
     {
-      target: '.admin-filter-chips',
+      target: '.admin-filters',
       placement: 'bottom',
       title: t('admin.tour.audit.filters.title'),
       body: t('admin.tour.audit.filters.body'),
@@ -294,7 +294,7 @@ export function getPricingTourSteps(t) {
 export function getAccessGatesTourSteps(t) {
   return [
     {
-      target: '.admin-registration-access__hero',
+      target: '.admin-access__header',
       placement: 'bottom',
       title: t('admin.tour.accessGates.intro.title'),
       body: t('admin.tour.accessGates.intro.body'),
@@ -362,32 +362,38 @@ export function getCheckInTourSteps(t) {
 export function getRolesTourSteps(t) {
   return [
     {
-      target: '.admin-roles__tabs-bar',
+      target: '.roles-views',
       placement: 'bottom',
       title: t('admin.tour.roles.tabs.title'),
       body: t('admin.tour.roles.tabs.body'),
     },
     {
-      target: '.admin-roles__toolbar',
+      target: '.roles-compare__scroll',
+      placement: 'top',
+      title: t('admin.tour.roles.compare.title'),
+      body: t('admin.tour.roles.compare.body'),
+    },
+    {
+      target: '.roles-editor__toolbar',
       placement: 'bottom',
       title: t('admin.tour.roles.search.title'),
       body: t('admin.tour.roles.search.body'),
     },
     {
-      target: '.admin-roles__matrix-scroll',
+      target: '.roles-editor__table',
       placement: 'top',
       title: t('admin.tour.roles.matrix.title'),
       body: t('admin.tour.roles.matrix.body'),
     },
     {
-      target: '.admin-roles__matrix-actions',
+      target: '.roles-changebar',
       placement: 'top',
       title: t('admin.tour.roles.save.title'),
       body: t('admin.tour.roles.save.body'),
     },
     {
-      target: '.admin-roles__activity',
-      placement: 'left',
+      target: '.roles-history',
+      placement: 'top',
       title: t('admin.tour.roles.activity.title'),
       body: t('admin.tour.roles.activity.body'),
     },

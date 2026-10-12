@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import AdminEventTicketsSoldSection from '../src/components/admin/AdminEventTicketsSoldSection.jsx'
@@ -81,27 +81,101 @@ describe('AdminEventTicketsSoldSection', () => {
     await waitFor(() => expect(fetchTickets).toHaveBeenCalledWith('pitbull-classic-2026'))
   })
 
-  it('muestra asistente, tipo, precio, canal, estado y comprador', async () => {
+  it('muestra asistente, DNI, tipo, precio y estado en la fila', async () => {
     renderSection({ fetchTickets: vi.fn().mockResolvedValue({ tickets: [ticket()] }) })
 
     await waitFor(() => expect(screen.getByText('Camila Rearte')).toBeTruthy())
+    expect(screen.getByText('30111222')).toBeTruthy()
     // "General" aparece dos veces: el chip del filtro de tipo y la celda de
-    // la tabla -- alcanza con confirmar que la celda está, no hace falta un
-    // selector único.
+    // la tabla -- alcanza con confirmar que la celda está.
     expect(screen.getAllByText('General').length).toBeGreaterThanOrEqual(2)
     expect(screen.getByText('$ 15.000')).toBeTruthy()
-    expect(screen.getByText('Efectivo')).toBeTruthy()
-    expect(screen.getByText('Juan Operador')).toBeTruthy()
+    expect(screen.getByText('Sin ingresar')).toBeTruthy()
   })
 
-  it('una entrada sin orden asociada no rompe: canal y comprador quedan en "—"', async () => {
+  it('el comprador y el canal de pago salen en el panel de la entrada, no en la tabla', async () => {
+    renderSection({ fetchTickets: vi.fn().mockResolvedValue({ tickets: [ticket()] }) })
+    await waitFor(() => expect(screen.getByText('Camila Rearte')).toBeTruthy())
+    expect(screen.queryByText('Juan Operador', { exact: false })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /ver qr de camila rearte/i }))
+
+    const panel = screen.getByRole('dialog')
+    expect(within(panel).getByText(/Juan Operador/)).toBeTruthy()
+    expect(within(panel).getByText('TORD-abc123')).toBeTruthy()
+  })
+
+  it('una entrada sin orden asociada no rompe: el panel omite comprador y orden', async () => {
     renderSection({
       fetchTickets: vi.fn().mockResolvedValue({ tickets: [ticket({ order: null })] }),
     })
     await waitFor(() => expect(screen.getByText('Camila Rearte')).toBeTruthy())
-    // Dos columnas ("Canal" y "Comprador") caen en el mismo "—"; alcanza con
-    // que no haya reventado el render.
-    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole('button', { name: /ver qr de camila rearte/i }))
+
+    const panel = screen.getByRole('dialog')
+    expect(within(panel).queryByText('Comprador')).toBeNull()
+    expect(within(panel).queryByText('Orden')).toBeNull()
+  })
+
+  it('el panel muestra el QR y las acciones sólo con la entrada acreditada', async () => {
+    const tickets = [
+      ticket({ id: 'tk-paid' }),
+      ticket({ id: 'tk-unpaid', attendeeName: 'Sin Pagar', status: 'pendiente_pago' }),
+    ]
+    renderSection({ fetchTickets: vi.fn().mockResolvedValue({ tickets }) })
+    await waitFor(() => expect(screen.getByText('Camila Rearte')).toBeTruthy())
+
+    fireEvent.click(screen.getByRole('button', { name: /ver qr de camila rearte/i }))
+    let panel = screen.getByRole('dialog')
+    expect(within(panel).getByText('Habilitada')).toBeTruthy()
+    expect(within(panel).getByRole('button', { name: /descargar qr/i })).toBeTruthy()
+    expect(within(panel).getByRole('button', { name: /copiar enlace del comprador/i })).toBeTruthy()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /ver qr de sin pagar/i }))
+    panel = screen.getByRole('dialog')
+    expect(within(panel).getByText('Sin acreditar')).toBeTruthy()
+    expect(within(panel).queryByRole('button', { name: /descargar qr/i })).toBeNull()
+    expect(within(panel).queryByRole('button', { name: /copiar enlace/i })).toBeNull()
+  })
+
+  it('la excepción de acceso sólo se ofrece con permiso y reemplaza al panel', async () => {
+    const onSetTicketAccessOverride = vi.fn().mockResolvedValue({})
+    const fetchTickets = vi.fn().mockResolvedValue({ tickets: [ticket()] })
+
+    const first = renderSection({ fetchTickets, onSetTicketAccessOverride })
+    await waitFor(() => expect(screen.getByText('Camila Rearte')).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: /ver qr de camila rearte/i }))
+    expect(screen.queryByRole('button', { name: /excepción de acceso/i })).toBeNull()
+    first.unmount()
+
+    renderSection({ fetchTickets, canOverride: true, onSetTicketAccessOverride })
+    await waitFor(() => expect(screen.getByText('Camila Rearte')).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: /ver qr de camila rearte/i }))
+    fireEvent.click(screen.getByRole('button', { name: /excepción de acceso/i }))
+
+    // El diálogo reemplaza al panel: no se apilan dos trampas de foco.
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+    expect(screen.getByRole('heading', { name: /excepción de acceso/i })).toBeTruthy()
+  })
+
+  it('resume emitidas, pagadas, ingresaron y sin pagar', async () => {
+    const tickets = [
+      ticket({ id: 'a', checkIn: { scannedAt: '2026-12-11T14:10:00.000Z' } }),
+      ticket({ id: 'b' }),
+      ticket({ id: 'c', status: 'pendiente_pago' }),
+    ]
+    renderSection({ fetchTickets: vi.fn().mockResolvedValue({ tickets }) })
+    await waitFor(() => expect(screen.getByLabelText('Resumen de entradas')).toBeTruthy())
+
+    const summary = screen.getByLabelText('Resumen de entradas')
+    const read = (label) => within(summary).getByText(label).previousElementSibling.textContent
+    expect(read('Emitidas')).toBe('3')
+    expect(read('Pagadas')).toBe('2')
+    expect(read('Ingresaron')).toBe('1')
+    expect(read('Sin pagar')).toBe('1')
   })
 
   it('filtra por tipo de entrada', async () => {

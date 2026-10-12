@@ -764,14 +764,13 @@ export default function App() {
           onDeleteRegistration={app.deleteRegistrationAction}
           onSetRegistrationPublicVisibility={app.setRegistrationPublicVisibilityAction}
           onCreateRole={app.createAccessRoleAction}
-          onDeleteShopProduct={app.deleteShopProductAction}
           onExportAdmin={app.exportAdminCsv}
           onExportPluUsa={app.exportPluUsaCsv}
           onSaveEvent={app.saveAdminEvent}
           onDeleteEvent={app.deleteAdminEvent}
           onFetchEventDeleteImpact={app.fetchAdminEventDeleteImpact}
           onSetEventState={app.setAdminEventState}
-          onSaveShopProduct={app.saveShopProduct}
+          onSetEventLogo={app.setAdminEventLogo}
           onScheduleAssigned={app.handleScheduleAssigned}
           onSetFilters={app.setFilters}
           onUpdateUserRole={app.updateUserRoleAction}
@@ -784,7 +783,6 @@ export default function App() {
           pendingTicketOrdersError={app.pendingTicketOrdersError}
           athletes={app.athletes}
           registrations={app.registrations}
-          shopProducts={app.shopProducts}
           tickets={app.tickets}
           users={app.users}
           accessRoles={app.accessRoles}
@@ -851,7 +849,7 @@ export default function App() {
                   checkoutAvailability: app.checkoutAvailability,
                 }
               : view === 'shop'
-                ? { onNavigate: navigate, events: publicEvents, products: app.shopProducts }
+                ? { onNavigate: navigate, events: publicEvents }
                 : view === 'tickets'
                   ? {
                       onNavigate: navigate,

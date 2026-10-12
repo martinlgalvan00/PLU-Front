@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { MessageCircle } from 'lucide-react'
+import { FileText, ImageIcon, MessageCircle } from 'lucide-react'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { formatShortDate } from '../../lib/format.js'
@@ -29,6 +29,7 @@ function whatsAppHref(phone) {
 }
 
 function DocumentLink({ applicationId, children, kind }) {
+  const Icon = kind === 'photo' ? ImageIcon : FileText
   return (
     <a
       className="admin-staff-applications__doc-link"
@@ -36,6 +37,7 @@ function DocumentLink({ applicationId, children, kind }) {
       rel="noreferrer"
       target="_blank"
     >
+      <Icon size={13} aria-hidden />
       {children}
     </a>
   )
@@ -178,7 +180,7 @@ export default function StaffApplicationsSection({ canEdit = false }) {
       key: 'staffBody',
       label: 'Cuerpo',
       render: (row) => (
-        <div>
+        <div className="admin-staff-applications__body">
           <span>{STAFF_BODY_LABEL[row.staff_body] ?? row.staff_body}</span>
           {row.technical_training_status ? (
             <small>{TRAINING_LABEL[row.technical_training_status]}</small>

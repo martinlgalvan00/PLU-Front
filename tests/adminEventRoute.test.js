@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   buildAdminEventPath,
   clearAdminEventRoute,
+  isAdminEventCreateSlug,
   matchAdminEventRoute,
+  pushAdminEventCreateRoute,
   pushAdminEventRoute,
   shouldClearAdminEventWorkspace,
 } from '../src/lib/adminEventRoute.js'
@@ -31,6 +33,19 @@ describe('ruta de administración de un evento', () => {
     expect(matchAdminEventRoute('/admin/eventos/a/b')).toBeNull()
     expect(matchAdminEventRoute('/eventos/pitbull-classic-2026')).toBeNull()
     expect(matchAdminEventRoute('/')).toBeNull()
+  })
+
+  it('trata /admin/eventos/nuevo como la página de alta y es ruta canónica', () => {
+    expect(matchAdminEventRoute('/admin/eventos/nuevo')).toEqual({ eventSlug: 'nuevo' })
+    expect(isAdminEventCreateSlug('nuevo')).toBe(true)
+    expect(isAdminEventCreateSlug('nuevo-2026')).toBe(false)
+    expect(isAdminEventCreateSlug(null)).toBe(false)
+    expect(isCanonicalPathname('/admin/eventos/nuevo')).toBe(true)
+  })
+
+  it('empuja la ruta de alta al historial', () => {
+    pushAdminEventCreateRoute()
+    expect(window.location.pathname).toBe('/admin/eventos/nuevo')
   })
 
   it('construye el path escapando el slug', () => {

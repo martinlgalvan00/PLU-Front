@@ -1,27 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
-import {
-  ExternalLink,
-  ListChecks,
-  QrCode,
-  ScanLine,
-  Shield,
-  ShieldOff,
-  UserPlus,
-} from 'lucide-react'
+import { Plus, QrCode, Shield, ShieldOff, UserPlus } from 'lucide-react'
 import Pill from '../ui/Pill.jsx'
+import AdminIconButton from './AdminIconButton.jsx'
 import { AdminIdentityCell } from './AdminTableCells.jsx'
 import AdminApiConnectionNotice from './AdminApiConnectionNotice.jsx'
 import SecurityCredentialModal from './SecurityCredentialModal.jsx'
 import SecurityTeamBuilder from './SecurityTeamBuilder.jsx'
 import SecurityTeamDelivery from './SecurityTeamDelivery.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { buildSecurityGatePath } from '../../lib/securityGateRoute.js'
 import {
   SECURITY_TEAM_MAX,
   createSecurityTeamMember,
   parseSecurityTeamImport,
   validateSecurityTeamMembers,
 } from '../../services/securityTeamService.js'
+import '../../styles/pages/admin-event-security.css'
 
 /**
  * Equipo seguridad_plu_arg del evento. El alta individual y masiva comparten
@@ -30,13 +23,14 @@ import {
 export default function AdminEventSecuritySection({
   canManageUsers,
   eventId,
-  eventSlug,
   eventEndsAt,
   onCreateSecurityUser,
   onCreateSecurityUsersBulk,
   onCreateSecurityAccessLink,
   onDeactivateAllSecurityUsers,
+  onAssignMember,
   onListSecurityUsers,
+  onListZones,
   // Avisa hacia arriba que el equipo cambió. Las zonas viven en otro componente
   // y leen las mismas cuentas: sin esto, una cuenta recién creada no aparecía
   // como pendiente de asignar hasta recargar la sección.
@@ -47,6 +41,9 @@ export default function AdminEventSecuritySection({
   const { t } = useI18n()
   const memberIdRef = useRef(1)
   const [users, setUsers] = useState([])
+  const [zones, setZones] = useState([])
+  const [builderOpen, setBuilderOpen] = useState(false)
+  const [assigningId, setAssigningId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
@@ -64,9 +61,6 @@ export default function AdminEventSecuritySection({
   const [deactivatingAll, setDeactivatingAll] = useState(false)
   const [credentialUser, setCredentialUser] = useState(null)
 
-  const gatePath = eventSlug ? buildSecurityGatePath(eventSlug) : ''
-  const gateUrl =
-    gatePath && typeof window !== 'undefined' ? `${window.location.origin}${gatePath}` : gatePath
   const activeCount = users.filter((user) => user.status === 'active').length
   const eventEnded = Boolean(eventEndsAt) && new Date(eventEndsAt).getTime() < Date.now()
 
@@ -81,9 +75,16 @@ export default function AdminEventSecuritySection({
 
     setLoading(true)
     setLoadError(null)
-    onListSecurityUsers(eventId)
-      .then((rows) => {
-        if (active) setUsers(rows)
+    // Las zonas se leen para ofrecer el reparto en cada fila del equipo; si no
+    // cargan, el listado sigue siendo útil (muestra la zona, no la edita).
+    Promise.all([
+      onListSecurityUsers(eventId),
+      onListZones ? onListZones(eventId).catch(() => []) : Promise.resolve([]),
+    ])
+      .then(([rows, zoneRows]) => {
+        if (!active) return
+        setUsers(rows)
+        setZones(Array.isArray(zoneRows) ? zoneRows : [])
       })
       .catch((error) => {
         if (active) setLoadError(error)
@@ -95,7 +96,7 @@ export default function AdminEventSecuritySection({
     return () => {
       active = false
     }
-  }, [eventId, onListSecurityUsers, reloadKey, reloadToken])
+  }, [eventId, onListSecurityUsers, onListZones, reloadKey, reloadToken])
 
   function handleMemberChange(id, field, value) {
     setMembers((current) =>
@@ -219,6 +220,7 @@ export default function AdminEventSecuritySection({
       setTeamResult({ created: createdWithAccess, skipped: result.skipped })
       setMembers([nextMember()])
       setMemberErrors({})
+      setBuilderOpen(false)
       onTeamChange?.()
     } catch (error) {
       setTeamSubmitError(error)
@@ -242,6 +244,33 @@ export default function AdminEventSecuritySection({
     }
   }
 
+  async function handleAssignZone(user, zoneId) {
+    if (!onAssignMember) return
+    const nextZoneId = zoneId || null
+    setAssigningId(user.id)
+    setOperationError('')
+    try {
+      await onAssignMember(user.id, nextZoneId)
+      const zone = zones.find((item) => item.id === nextZoneId) ?? null
+      setUsers((current) =>
+        current.map((item) =>
+          item.id === user.id
+            ? {
+                ...item,
+                securityZoneId: nextZoneId,
+                securityZone: zone ? { id: zone.id, name: zone.name } : null,
+              }
+            : item,
+        ),
+      )
+      onTeamChange?.()
+    } catch {
+      setOperationError(t('admin.eventZones.saveError'))
+    } finally {
+      setAssigningId(null)
+    }
+  }
+
   async function handleDeactivateAll() {
     setDeactivatingAll(true)
     setOperationError('')
@@ -257,6 +286,12 @@ export default function AdminEventSecuritySection({
     }
   }
 
+  const canAddPeople = canManageUsers && !loadError && !teamResult
+  // Sin equipo todavía el alta ES el estado vacío: se muestra abierta. Con
+  // equipo cargado el listado va primero y el alta se despliega a pedido.
+  const builderVisible = canAddPeople && (builderOpen || (!loading && users.length === 0))
+  const hasRoster = !loading && !loadError && users.length > 0
+
   return (
     <section className="admin-event-security" aria-labelledby="admin-event-security-title">
       <header className="admin-event-security__head">
@@ -264,32 +299,18 @@ export default function AdminEventSecuritySection({
           <h3 id="admin-event-security-title">{t('admin.eventEditor.security.title')}</h3>
           <p className="admin-event-security__lead">{t('admin.eventEditor.security.lead')}</p>
         </div>
+        {canAddPeople && hasRoster ? (
+          <button
+            type="button"
+            className="admin-event-security__toggle"
+            aria-expanded={builderOpen}
+            onClick={() => setBuilderOpen((open) => !open)}
+          >
+            {builderOpen ? null : <Plus size={14} aria-hidden />}
+            {builderOpen ? t('common.close') : t('admin.eventEditor.security.addPeople')}
+          </button>
+        ) : null}
       </header>
-
-      {gateUrl && (
-        <div className="admin-event-security__command">
-          <div className="admin-event-security__command-copy">
-            <span className="admin-event-security__command-icon" aria-hidden>
-              <ScanLine size={17} />
-            </span>
-            <div>
-              <strong>{t('admin.eventEditor.security.commandTitle')}</strong>
-              <span>{t('admin.eventEditor.security.commandLead')}</span>
-            </div>
-          </div>
-          <div className="admin-event-security__command-actions">
-            <a
-              className="admin-event-security__launch"
-              href={gateUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <ExternalLink size={13} aria-hidden />
-              {t('admin.eventEditor.security.previewControl')}
-            </a>
-          </div>
-        </div>
-      )}
 
       {eventEnded && (
         <p className="admin-event-security__lifecycle-note" role="note">
@@ -306,28 +327,28 @@ export default function AdminEventSecuritySection({
         />
       )}
 
-      {canManageUsers &&
-        !loadError &&
-        (teamResult ? (
-          <SecurityTeamDelivery
-            result={teamResult}
-            onOpenCredential={setCredentialUser}
-            onClose={() => setTeamResult(null)}
-          />
-        ) : (
-          <SecurityTeamBuilder
-            members={members}
-            errors={memberErrors}
-            sendEmail={sendEmail}
-            submitting={teamSubmitting}
-            onAdd={handleAddMember}
-            onChange={handleMemberChange}
-            onImport={handleImportMembers}
-            onRemove={handleRemoveMember}
-            onSendEmailChange={setSendEmail}
-            onSubmit={handleCreateTeam}
-          />
-        ))}
+      {canManageUsers && !loadError && teamResult ? (
+        <SecurityTeamDelivery
+          result={teamResult}
+          onOpenCredential={setCredentialUser}
+          onClose={() => setTeamResult(null)}
+        />
+      ) : null}
+
+      {builderVisible ? (
+        <SecurityTeamBuilder
+          members={members}
+          errors={memberErrors}
+          sendEmail={sendEmail}
+          submitting={teamSubmitting}
+          onAdd={handleAddMember}
+          onChange={handleMemberChange}
+          onImport={handleImportMembers}
+          onRemove={handleRemoveMember}
+          onSendEmailChange={setSendEmail}
+          onSubmit={handleCreateTeam}
+        />
+      ) : null}
 
       {teamSubmitError &&
         (teamSubmitError.status === 0 ? (
@@ -352,67 +373,67 @@ export default function AdminEventSecuritySection({
 
       {loading ? (
         <p className="admin-event-security__empty">{t('admin.eventEditor.security.loading')}</p>
-      ) : !loadError && users.length === 0 ? (
+      ) : !loadError && users.length === 0 && !builderVisible ? (
         <div className="admin-event-security__empty admin-event-security__empty--team">
           <UserPlus size={18} aria-hidden />
           <strong>{t('admin.eventEditor.security.emptyTitle')}</strong>
           <span>{t('admin.eventEditor.security.empty')}</span>
         </div>
-      ) : !loadError ? (
-        <>
+      ) : hasRoster ? (
+        <div className="admin-event-security__roster">
           <div className="admin-event-security__roster-head">
-            <span>
-              <ListChecks size={13} aria-hidden />
-              {t('admin.eventEditor.security.rosterTitle')}
-            </span>
+            <span>{t('admin.eventEditor.security.rosterTitle')}</span>
             <small>
               {t('admin.eventEditor.security.activeCount', {
                 active: activeCount,
                 total: users.length,
               })}
             </small>
-          </div>
-          {canManageUsers && activeCount > 0 && (
-            <div className="admin-event-security__list-actions">
-              {confirmingDeactivateAll ? (
-                <>
-                  <span className="admin-event-security__confirm-copy">
-                    {t('admin.eventEditor.security.deactivateAllConfirm', { count: activeCount })}
-                  </span>
+            {canManageUsers && activeCount > 0 && (
+              <div className="admin-event-security__list-actions">
+                {confirmingDeactivateAll ? (
+                  <>
+                    <span className="admin-event-security__confirm-copy">
+                      {t('admin.eventEditor.security.deactivateAllConfirm', {
+                        count: activeCount,
+                      })}
+                    </span>
+                    <button
+                      type="button"
+                      className="admin-event-security__toggle admin-event-security__toggle--danger"
+                      disabled={deactivatingAll}
+                      onClick={handleDeactivateAll}
+                    >
+                      <ShieldOff size={13} aria-hidden />
+                      {t('admin.eventEditor.security.deactivateAllYes')}
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-event-security__toggle"
+                      disabled={deactivatingAll}
+                      onClick={() => setConfirmingDeactivateAll(false)}
+                    >
+                      {t('common.cancel')}
+                    </button>
+                  </>
+                ) : (
                   <button
                     type="button"
                     className="admin-event-security__toggle admin-event-security__toggle--danger"
-                    disabled={deactivatingAll}
-                    onClick={handleDeactivateAll}
+                    onClick={() => setConfirmingDeactivateAll(true)}
                   >
                     <ShieldOff size={13} aria-hidden />
-                    {t('admin.eventEditor.security.deactivateAllYes')}
+                    {t('admin.eventEditor.security.deactivateAll')}
                   </button>
-                  <button
-                    type="button"
-                    className="admin-event-security__toggle admin-event-security__toggle--celeste"
-                    disabled={deactivatingAll}
-                    onClick={() => setConfirmingDeactivateAll(false)}
-                  >
-                    {t('common.cancel')}
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  className="admin-event-security__toggle admin-event-security__toggle--danger"
-                  onClick={() => setConfirmingDeactivateAll(true)}
-                >
-                  <ShieldOff size={13} aria-hidden />
-                  {t('admin.eventEditor.security.deactivateAll')}
-                </button>
-              )}
-            </div>
-          )}
+                )}
+              </div>
+            )}
+          </div>
 
           <ul className="admin-event-security__list">
             {users.map((user) => {
               const active = user.status === 'active'
+              const canAssign = canManageUsers && onAssignMember && zones.length > 0
               return (
                 <li key={user.id} className="admin-event-security__item">
                   <AdminIdentityCell
@@ -420,9 +441,28 @@ export default function AdminEventSecuritySection({
                     name={user.name}
                     sub={user.email}
                   />
-                  <span className="admin-event-security__zone">
-                    {user.securityZone?.name || t('admin.eventEditor.security.rosterNoZone')}
-                  </span>
+                  {canAssign ? (
+                    <select
+                      className={`admin-event-security__zone-select${
+                        user.securityZoneId ? '' : ' is-unassigned'
+                      }`}
+                      value={user.securityZoneId ?? ''}
+                      disabled={assigningId === user.id}
+                      aria-label={t('admin.eventZones.assignMember', { name: user.name })}
+                      onChange={(event) => void handleAssignZone(user, event.target.value)}
+                    >
+                      <option value="">{t('admin.eventEditor.security.rosterNoZone')}</option>
+                      {zones.map((zone) => (
+                        <option key={zone.id} value={zone.id}>
+                          {zone.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="admin-event-security__zone">
+                      {user.securityZone?.name || t('admin.eventEditor.security.rosterNoZone')}
+                    </span>
+                  )}
                   <Pill tone={active ? 'success' : 'neutral'}>
                     {active
                       ? t('admin.eventEditor.security.statusActive')
@@ -431,45 +471,36 @@ export default function AdminEventSecuritySection({
                   {canManageUsers && (
                     <div className="admin-event-security__item-actions">
                       {active && onCreateSecurityAccessLink && (
-                        <button
-                          type="button"
-                          className="admin-event-security__toggle admin-event-security__toggle--celeste"
+                        <AdminIconButton
+                          icon={QrCode}
+                          label={t('admin.eventEditor.security.credentialFor', { name: user.name })}
                           onClick={() => setCredentialUser(user)}
-                        >
-                          <QrCode size={13} aria-hidden />
-                          {t('admin.eventEditor.security.credential')}
-                        </button>
+                        />
                       )}
-                      <button
-                        type="button"
-                        className={`admin-event-security__toggle${active ? ' admin-event-security__toggle--danger' : ' admin-event-security__toggle--celeste'}`}
+                      <AdminIconButton
+                        icon={active ? ShieldOff : Shield}
+                        label={t(
+                          active
+                            ? 'admin.eventEditor.security.deactivateFor'
+                            : 'admin.eventEditor.security.activateFor',
+                          { name: user.name },
+                        )}
                         disabled={pendingStatusId === user.id}
                         onClick={() => handleToggleStatus(user)}
-                      >
-                        {active ? (
-                          <ShieldOff size={13} aria-hidden />
-                        ) : (
-                          <Shield size={13} aria-hidden />
-                        )}
-                        {active
-                          ? t('admin.eventEditor.security.deactivate')
-                          : t('admin.eventEditor.security.activate')}
-                      </button>
+                      />
                     </div>
                   )}
                 </li>
               )
             })}
           </ul>
-        </>
+        </div>
       ) : null}
 
       {credentialUser && (
         <SecurityCredentialModal
           user={credentialUser}
-          onGenerate={(options) =>
-            onCreateSecurityAccessLink(credentialUser.id, options)
-          }
+          onGenerate={(options) => onCreateSecurityAccessLink(credentialUser.id, options)}
           onClose={() => setCredentialUser(null)}
         />
       )}

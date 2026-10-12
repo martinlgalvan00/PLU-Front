@@ -61,6 +61,8 @@ import AdminEventPriceSchedule from './AdminEventPriceSchedule.jsx'
 import AdminTicketAddonsEditor from './AdminTicketAddonsEditor.jsx'
 import AdminTicketSalesStatus from './AdminTicketSalesStatus.jsx'
 import AdminTicketTypesEditor from './AdminTicketTypesEditor.jsx'
+import '../../styles/pages/admin-event-sales.css'
+import '../../styles/pages/admin-event-editor-modal.css'
 
 function updatePricingField(draft, field, value) {
   return {
@@ -801,7 +803,9 @@ export default function AdminEventEditor({
         !draft.id && initialFocus === 'details'
           ? formRef.current?.querySelector('[name="title"]')
           : panelRef.current?.querySelector('button, input, select, textarea, summary')
-      preferredTarget?.focus?.()
+      // Embebido, el foco no debe arrastrar el scroll: la ficha abre desde arriba
+      // y el estado del evento, que va antes del formulario, tiene que verse.
+      preferredTarget?.focus?.({ preventScroll: embedded })
     })
 
     return () => {
@@ -1466,12 +1470,6 @@ export default function AdminEventEditor({
                           {t('admin.eventEditor.slotsRemaining', { count: slotsRemaining })}
                         </span>
                       </div>
-                      <div className="admin-event-form__occupancy-meter" aria-hidden="true">
-                        <span
-                          className="admin-event-form__occupancy-meter-fill"
-                          style={{ width: `${Math.min(100, Math.max(0, fillPercent))}%` }}
-                        />
-                      </div>
                     </div>
 
                     <div className="admin-event-form__cupo">
@@ -1640,6 +1638,23 @@ export default function AdminEventEditor({
                           </span>
                         ) : null}
                       </label>
+                      <p className="admin-event-form__price-summary" aria-live="polite">
+                        {(() => {
+                          const online = Number(draft.pricing?.registration) || 0
+                          const manual = Number(draft.pricing?.registrationManual) || 0
+                          if (!manual || manual === online) {
+                            return t('admin.eventEditor.priceSummarySame', {
+                              price: money(online, locale),
+                            })
+                          }
+                          const diff = Math.round(((manual - online) / online) * 100)
+                          return t('admin.eventEditor.priceSummaryDiff', {
+                            online: money(online, locale),
+                            manual: money(manual, locale),
+                            diff: `${diff > 0 ? '+' : ''}${diff}%`,
+                          })
+                        })()}
+                      </p>
                       <p className="admin-event-form__pricing-note">
                         {t('admin.eventEditor.pricingCatalogHint')}
                       </p>

@@ -9,6 +9,7 @@ import '../styles/pages/admin-analytics.css'
 import '../styles/pages/admin-pricing.css'
 import '../styles/pages/admin-event-console.css'
 import '../styles/pages/admin-modals.css'
+import '../styles/pages/admin-account.css'
 import '../styles/pages/admin-staff-applications.css'
 import AdminShell from '../components/layout/AdminShell.jsx'
 import AccountDialog from '../components/admin/AccountDialog.jsx'
@@ -150,16 +151,15 @@ export default function AdminPage({
   onExportAdmin,
   onExportPluUsa,
   onSaveEvent,
-  onSaveShopProduct,
   onScheduleAssigned,
   onSetEventState,
+  onSetEventLogo,
   onSetFilters,
   onUpdateUserRole,
   onUpdateUserStatus,
   onUpdateRolePermissions,
   onUpdateRoleStatus,
   permissionCatalog,
-  onDeleteShopProduct,
   payments,
   pendingTicketOrders,
   pendingTicketOrdersLoading,
@@ -177,7 +177,6 @@ export default function AdminPage({
   athletes,
   registrations,
   tickets,
-  shopProducts,
   users,
   roleLabel,
   isPluUsaPartner = false,
@@ -267,6 +266,17 @@ export default function AdminPage({
       setSelectedAthleteId(null)
     }
   }, [allowedSections, section])
+
+  // Marca la superficie para que los tokens monocromo del admin (dark.css /
+  // light.css) alcancen también a portales y toasts, que viven fuera de
+  // `.admin-shell`.
+  useEffect(() => {
+    const root = document.documentElement
+    root.dataset.surface = 'admin'
+    return () => {
+      delete root.dataset.surface
+    }
+  }, [])
 
   function leaveEventWorkspaceIfNeeded(nextSection) {
     if (
@@ -538,6 +548,7 @@ export default function AdminPage({
           onSetEventRegistrationPrice={onSetEventRegistrationPrice}
           onClearEventPriceSchedule={onClearEventPriceSchedule}
           onSetEventState={onSetEventState}
+          onSetEventLogo={onSetEventLogo}
           onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
           payments={payments}
           pendingTicketOrders={pendingTicketOrders}
@@ -651,12 +662,7 @@ export default function AdminPage({
 
     if (section === 'shop') {
       return (
-        <ShopSection
-          canEdit={hasPermission(authorization, 'admin.shop.write')}
-          products={shopProducts}
-          onDeleteProduct={onDeleteShopProduct}
-          onSaveProduct={onSaveShopProduct}
-        />
+        <ShopSection canEdit={hasPermission(authorization, 'admin.shop.write')} events={adminEvents} />
       )
     }
 
@@ -741,6 +747,7 @@ export default function AdminPage({
       onExit={onExit}
       navBadges={adminNavBadges}
       roleLabel={roleLabel}
+      accountName={authorization?.name || authorization?.email}
       allowedSections={allowedSections}
       onOpenAccount={onRequestEmailChange ? () => setAccountOpen(true) : undefined}
       restrictedNav={isPluUsaPartner ? 'pluUsa' : isCheckinOnly ? 'checkin' : false}

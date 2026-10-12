@@ -68,7 +68,7 @@ describe('páginas institucionales editoriales', () => {
     const { container } = renderPage(SponsorsPage)
 
     expect(screen.getByRole('heading', { level: 1, name: /sumá tu marca/i })).toBeTruthy()
-    expect(container.querySelector('.sponsors-tiers__item--title')).toBeTruthy()
+    expect(container.querySelector('.sponsor-tier--title')).toBeTruthy()
     expect(screen.getAllByText(/slot disponible/i).length).toBeGreaterThan(0)
   })
 

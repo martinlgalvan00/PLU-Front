@@ -144,7 +144,11 @@ export default function LivePresenceBar({ windowMinutes = 5 }) {
           </p>
 
           <p className="admin-live__count" aria-live="polite" aria-atomic="true">
-            <AnimatedNumber className="admin-live__count-value" value={visitors} />
+            <AnimatedNumber
+              className="admin-live__count-value"
+              locale={locale === 'en' ? 'en-US' : 'es-AR'}
+              value={visitors}
+            />
             <span className="admin-live__count-unit">
               {visitors === 1
                 ? t('admin.analytics.live.personSingular')

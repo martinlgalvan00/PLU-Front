@@ -1,0 +1,220 @@
+/* =============================================
+   RESUMEN DEL EVENTO
+   Tres cifras en una franja con hairlines (sin cajas ni íconos decorativos), un
+   acceso a la página pública y, en el rail, la operación como lista de filas.
+   Sin barras de progreso: la ocupación es una cifra con su porcentaje.
+   ============================================= */
+
+.admin-event-dashboard {
+  display: grid;
+  gap: var(--space-xl);
+  padding: 8px 0 0;
+}
+
+.admin-event-dashboard__figures {
+  border-block: 1px solid var(--admin-hairline-strong);
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.admin-event-dashboard__figure {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 22px 16px 22px 0;
+}
+
+.admin-event-dashboard__figure + .admin-event-dashboard__figure {
+  border-left: 1px solid var(--admin-hairline);
+  padding-left: 20px;
+}
+
+.admin-event-dashboard__figure dt {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin-event-dashboard__figure dd {
+  align-items: baseline;
+  display: flex;
+  gap: 4px;
+  margin: 0;
+}
+
+.admin-event-dashboard__figure dd strong {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(30px, 3.4vw, 40px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.admin-event-dashboard__figure dd span {
+  color: var(--admin-muted);
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.admin-event-dashboard__figure small {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+@media (max-width: 599px) {
+  .admin-event-dashboard__figures {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-event-dashboard__figure,
+  .admin-event-dashboard__figure + .admin-event-dashboard__figure {
+    border-left: 0;
+    padding: 18px 0;
+  }
+
+  .admin-event-dashboard__figure + .admin-event-dashboard__figure {
+    border-top: 1px solid var(--admin-hairline);
+  }
+}
+
+/* ---- Página pública ---- */
+
+.admin-event-dashboard__public {
+  align-items: center;
+  border-bottom: 1px solid var(--admin-hairline);
+  color: var(--admin-ink);
+  display: flex;
+  font-size: 14px;
+  font-weight: 500;
+  gap: 12px;
+  margin-top: calc(var(--space-xl) * -1 + 8px);
+  min-height: 56px;
+  padding: 0 4px;
+  text-decoration: none;
+  transition: background-color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-event-dashboard__public span {
+  flex: 1;
+}
+
+.admin-event-dashboard__public svg {
+  color: var(--admin-muted);
+}
+
+.admin-event-dashboard__public:hover {
+  background: var(--admin-row-hover);
+}
+
+.admin-event-dashboard__public:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: -2px;
+}
+
+/* ---- Rail: operación como lista de filas ---- */
+
+.admin-event-workspace__card {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.admin-event-workspace__card-head {
+  align-items: baseline;
+  border-bottom: 1px solid var(--admin-hairline-strong);
+  display: flex;
+  gap: 12px;
+  padding: 0 4px 10px;
+}
+
+.admin-event-workspace__card-title {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.admin-event-workspace__gotos {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-event-workspace__goto {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline);
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 14px;
+  min-height: 60px;
+  padding: 10px 4px;
+  text-align: left;
+  transition: background-color var(--motion-fast, 150ms) var(--ease-standard, ease);
+  width: 100%;
+}
+
+.admin-event-workspace__goto:hover {
+  background: var(--admin-row-hover);
+}
+
+.admin-event-workspace__goto:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: -2px;
+}
+
+.admin-event-workspace__goto > svg {
+  color: var(--admin-muted);
+  flex: none;
+}
+
+.admin-event-workspace__goto-copy {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-event-workspace__goto-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.admin-event-workspace__goto-value {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+}
+
+.admin-event-workspace__goto-chevron {
+  transition: transform var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-event-workspace__goto:hover .admin-event-workspace__goto-chevron {
+  color: var(--admin-ink);
+  transform: translateX(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-event-dashboard__public,
+  .admin-event-workspace__goto,
+  .admin-event-workspace__goto-chevron {
+    transition: none;
+  }
+
+  .admin-event-workspace__goto:hover .admin-event-workspace__goto-chevron {
+    transform: none;
+  }
+}

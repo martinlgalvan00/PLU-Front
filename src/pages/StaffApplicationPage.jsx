@@ -3,10 +3,18 @@ import { ArrowRight, Check, Upload } from 'lucide-react'
 import '../styles/pages/institutional-pages.css'
 import '../styles/pages/institutional-editorial.css'
 import '../styles/pages/staff-application.css'
+import StaffApplicationRail from '../components/ui/StaffApplicationRail.jsx'
 import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import { Field, Select } from '../components/ui/FormFields.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
+import {
+  getStaffProgress,
+  SHIRT_SIZES,
+  validateStaffApplication,
+} from '../lib/staffApplicationValidation.js'
+import { useMotionConfig } from '../motion/MotionProvider.tsx'
+import { useStepBand } from '../motion/useStepBand.ts'
 import {
   submitStaffApplication,
   uploadStaffApplicationFile,
@@ -14,7 +22,6 @@ import {
 } from '../services/staffApplicationService.js'
 
 const DRAFT_KEY = 'plu-staff-application-draft'
-const SHIRT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
 
 function emptyForm() {
   return {
@@ -111,7 +118,7 @@ export default function StaffApplicationPage({ athletes = [], onNavigate, sessio
   const { t } = useI18n()
   const isAthleteLoggedIn = session?.role === 'athlete_plu'
   const athlete = isAthleteLoggedIn
-    ? athletes.find((item) => item.id === session.athleteId) ?? null
+    ? (athletes.find((item) => item.id === session.athleteId) ?? null)
     : null
 
   const [form, setForm] = useState(() => readDraft() ?? emptyForm())
@@ -123,6 +130,22 @@ export default function StaffApplicationPage({ athletes = [], onNavigate, sessio
   const [status, setStatus] = useState('idle') // idle | submitting | sent | error
   const [submitError, setSubmitError] = useState('')
   const prefilledRef = useRef(false)
+  const { reducedMotion, tier } = useMotionConfig()
+  const sections = getStaffProgress(
+    validateStaffApplication({
+      form,
+      photoDone: photo.status === 'done',
+      certificateDone: certificate.status === 'done',
+      accuracyDeclared,
+      consentGiven,
+    }),
+    form,
+  )
+  const ready = sections.every((section) => section.complete)
+  const { activeIndex, bind } = useStepBand(sections.length, {
+    enabled: !(reducedMotion || tier === 'low'),
+    rootMargin: '-30% 0px -50% 0px',
+  })
 
   // Precarga desde el perfil solo una vez, y solo los campos que el
   // borrador todavía no tenía completos — no pisa lo que la persona ya
@@ -174,40 +197,24 @@ export default function StaffApplicationPage({ athletes = [], onNavigate, sessio
       const { storagePath } = await uploadStaffApplicationFile(purpose, file)
       setter({ status: 'done', path: storagePath, error: '' })
     } catch (error) {
-      setter({ status: 'error', path: null, error: error?.message ?? 'No se pudo subir el archivo.' })
+      setter({
+        status: 'error',
+        path: null,
+        error: error?.message ?? 'No se pudo subir el archivo.',
+      })
     }
   }
 
+  const validationInput = {
+    form,
+    photoDone: photo.status === 'done',
+    certificateDone: certificate.status === 'done',
+    accuracyDeclared,
+    consentGiven,
+  }
+
   function validate() {
-    const next = {}
-    if (form.firstName.trim().length < 2) next.firstName = 'Ingresá tu nombre.'
-    if (form.lastName.trim().length < 2) next.lastName = 'Ingresá tu apellido.'
-    if (form.documentId.trim().length < 6) next.documentId = 'Ingresá tu DNI.'
-    if (!form.birthDate) next.birthDate = 'Ingresá tu fecha de nacimiento.'
-    if (form.streetAddress.trim().length < 5) next.streetAddress = 'Ingresá tu dirección.'
-    if (form.city.trim().length < 2) next.city = 'Ingresá tu ciudad o localidad.'
-    if (form.province.trim().length < 2) next.province = 'Ingresá tu provincia.'
-    if (form.postalCode.trim().length < 3) next.postalCode = 'Ingresá tu código postal.'
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) next.email = 'Ingresá un email válido.'
-    if (form.phone.trim().length < 6) next.phone = 'Ingresá tu teléfono.'
-    if (!['operativo', 'tecnico'].includes(form.staffBody)) {
-      next.staffBody = 'Elegí de qué cuerpo querés formar parte.'
-    }
-    if (
-      form.staffBody === 'tecnico' &&
-      !['aprobada', 'en_curso', 'no_realizada'].includes(form.technicalTrainingStatus)
-    ) {
-      next.technicalTrainingStatus = 'Indicá el estado de tu capacitación técnica.'
-    }
-    if (!SHIRT_SIZES.includes(form.shirtSize)) next.shirtSize = 'Elegí tu talle.'
-    if (!form.backgroundCheckIssuedAt) {
-      next.backgroundCheckIssuedAt = 'Ingresá la fecha de emisión del certificado.'
-    }
-    if (photo.status !== 'done') next.photo = 'Subí tu foto de perfil.'
-    if (certificate.status !== 'done') next.certificate = 'Subí tu certificado de antecedentes.'
-    if (!accuracyDeclared) next.accuracyDeclared = 'Tenés que declarar la veracidad de los datos.'
-    if (!consentGiven) next.consentGiven = 'Tenés que dar tu consentimiento.'
-    return next
+    return validateStaffApplication(validationInput)
   }
 
   async function handleSubmit(event) {
@@ -277,229 +284,280 @@ export default function StaffApplicationPage({ athletes = [], onNavigate, sessio
       />
 
       <div className="staff-application-page__inner">
-        <Reveal variant="fade">
-          <form className="staff-application-form" onSubmit={handleSubmit} noValidate>
-            <section className="staff-application-form__section">
-              <h2>Datos personales</h2>
-              <div className="staff-application-form__grid">
-                <Field
-                  error={errors.firstName}
-                  label="Nombre"
-                  name="firstName"
-                  value={form.firstName}
-                  onChange={changeField}
-                />
-                <Field
-                  error={errors.lastName}
-                  label="Apellido"
-                  name="lastName"
-                  value={form.lastName}
-                  onChange={changeField}
-                />
-                <Field
-                  error={errors.documentId}
-                  label="DNI"
-                  name="documentId"
-                  value={form.documentId}
-                  onChange={changeField}
-                />
-                <Field
-                  error={errors.birthDate}
-                  label="Fecha de nacimiento"
-                  name="birthDate"
-                  type="date"
-                  value={form.birthDate}
-                  onChange={changeField}
-                />
-                <Field
-                  className="staff-application-form__wide"
-                  error={errors.streetAddress}
-                  label="Dirección personal"
-                  name="streetAddress"
-                  value={form.streetAddress}
-                  onChange={changeField}
-                />
-                <Field
-                  error={errors.city}
-                  label="Ciudad / localidad"
-                  name="city"
-                  value={form.city}
-                  onChange={changeField}
-                />
-                <Field
-                  error={errors.province}
-                  label="Provincia"
-                  name="province"
-                  value={form.province}
-                  onChange={changeField}
-                />
-                <Field
-                  error={errors.postalCode}
-                  label="Código postal"
-                  name="postalCode"
-                  value={form.postalCode}
-                  onChange={changeField}
-                />
-                <Field
-                  error={errors.email}
-                  label="Email"
-                  name="email"
-                  type="email"
-                  value={form.email}
-                  onChange={changeField}
-                />
-                <Field
-                  error={errors.phone}
-                  label="Teléfono / WhatsApp"
-                  name="phone"
-                  value={form.phone}
-                  onChange={changeField}
-                />
-              </div>
-            </section>
-
-            <section className="staff-application-form__section">
-              <h2>Cuerpo de Staff</h2>
-              <div className="staff-application-form__grid">
-                <Select
-                  error={errors.staffBody}
-                  label="¿De qué Cuerpo de Staff querés formar parte?"
-                  name="staffBody"
-                  options={[
-                    ['', 'Seleccioná una opción'],
-                    ['operativo', 'Operativo'],
-                    ['tecnico', 'Técnico'],
-                  ]}
-                  value={form.staffBody}
-                  onChange={changeField}
-                />
-                {form.staffBody === 'tecnico' ? (
-                  <Select
-                    error={errors.technicalTrainingStatus}
-                    label="Estado de capacitación técnica (PDCA)"
-                    name="technicalTrainingStatus"
-                    options={[
-                      ['', 'Seleccioná una opción'],
-                      ['aprobada', 'Aprobada'],
-                      ['en_curso', 'En curso'],
-                      ['no_realizada', 'No realizada'],
-                    ]}
-                    value={form.technicalTrainingStatus}
+        <div className="staff-application-layout">
+          <StaffApplicationRail
+            activeId={sections[activeIndex]?.id}
+            form={form}
+            ready={ready}
+            sections={sections}
+          />
+          <Reveal variant="fade">
+            <form className="staff-application-form" onSubmit={handleSubmit} noValidate>
+              <section
+                className="staff-application-form__section"
+                id="staff-datos"
+                ref={bind(0)}
+                data-state={sections[0].complete ? 'done' : undefined}
+              >
+                <h2>
+                  <span className="staff-application-form__index" aria-hidden>
+                    {sections[0].complete ? <Check size={12} strokeWidth={3} /> : '01'}
+                  </span>
+                  Datos personales
+                </h2>
+                <div className="staff-application-form__grid">
+                  <Field
+                    error={errors.firstName}
+                    label="Nombre"
+                    name="firstName"
+                    value={form.firstName}
                     onChange={changeField}
                   />
-                ) : null}
-                <Select
-                  error={errors.shirtSize}
-                  label="Talle de chomba oficial"
-                  name="shirtSize"
-                  options={[['', 'Seleccioná un talle'], ...SHIRT_SIZES.map((size) => [size, size])]}
-                  value={form.shirtSize}
-                  onChange={changeField}
-                />
-              </div>
-            </section>
-
-            <section className="staff-application-form__section">
-              <h2>Documentación</h2>
-              <div className="staff-application-form__grid">
-                <FileUploadField
-                  busy={photo.status === 'uploading'}
-                  done={photo.status === 'done'}
-                  error={errors.photo || photo.error}
-                  hint="JPG, PNG, WEBP o PDF, hasta 5 MB."
-                  label="Foto de perfil"
-                  onFile={(file) => handleFile('photo', file)}
-                />
-                <FileUploadField
-                  busy={certificate.status === 'uploading'}
-                  done={certificate.status === 'done'}
-                  error={errors.certificate || certificate.error}
-                  hint="JPG, PNG, WEBP o PDF, hasta 5 MB."
-                  label="Certificado de antecedentes penales"
-                  onFile={(file) => handleFile('certificate', file)}
-                />
-                <Field
-                  error={errors.backgroundCheckIssuedAt}
-                  label="Fecha de emisión del certificado"
-                  name="backgroundCheckIssuedAt"
-                  type="date"
-                  value={form.backgroundCheckIssuedAt}
-                  onChange={changeField}
-                />
-              </div>
-            </section>
-
-            <section className="staff-application-form__section">
-              <h2>Declaraciones</h2>
-              <label className="staff-application-form__checkbox">
-                <input
-                  checked={accuracyDeclared}
-                  type="checkbox"
-                  onChange={(event) => setAccuracyDeclared(event.target.checked)}
-                />
-                <span>Declaro que los datos consignados en este formulario son veraces.</span>
-              </label>
-              {errors.accuracyDeclared ? (
-                <span className="field__error" role="alert">
-                  {errors.accuracyDeclared}
-                </span>
-              ) : null}
-              <label className="staff-application-form__checkbox">
-                <input
-                  checked={consentGiven}
-                  type="checkbox"
-                  onChange={(event) => setConsentGiven(event.target.checked)}
-                />
-                <span>
-                  Doy mi consentimiento para el tratamiento administrativo de mis datos
-                  personales por parte de PLU.
-                </span>
-              </label>
-              {errors.consentGiven ? (
-                <span className="field__error" role="alert">
-                  {errors.consentGiven}
-                </span>
-              ) : null}
-            </section>
-
-            {athlete ? (
-              <div className="staff-application-form__actions">
-                <button
-                  type="submit"
-                  className="staff-application-form__submit"
-                  disabled={submitting}
-                >
-                  <span>{submitting ? 'Enviando…' : 'Enviar postulación'}</span>
-                  {submitting ? (
-                    <span className="plu-spinner" aria-hidden />
-                  ) : (
-                    <ArrowRight size={15} strokeWidth={1.25} aria-hidden />
-                  )}
-                </button>
-                {submitError ? (
-                  <p className="staff-application-form__error" role="alert">
-                    {submitError}
-                  </p>
-                ) : null}
-              </div>
-            ) : (
-              <div className="staff-application-form__login-gate" role="note">
-                <p>
-                  Para enviar tu postulación necesitás tener una cuenta de atleta en PLU. Tu
-                  progreso queda guardado en este dispositivo.
-                </p>
-                <div className="staff-application-form__login-gate-actions">
-                  <button type="button" onClick={() => onNavigate?.('login')}>
-                    Iniciar sesión
-                  </button>
-                  <button type="button" onClick={() => onNavigate?.('register')}>
-                    Crear cuenta
-                  </button>
+                  <Field
+                    error={errors.lastName}
+                    label="Apellido"
+                    name="lastName"
+                    value={form.lastName}
+                    onChange={changeField}
+                  />
+                  <Field
+                    error={errors.documentId}
+                    label="DNI"
+                    name="documentId"
+                    value={form.documentId}
+                    onChange={changeField}
+                  />
+                  <Field
+                    error={errors.birthDate}
+                    label="Fecha de nacimiento"
+                    name="birthDate"
+                    type="date"
+                    value={form.birthDate}
+                    onChange={changeField}
+                  />
+                  <Field
+                    className="staff-application-form__wide"
+                    error={errors.streetAddress}
+                    label="Dirección personal"
+                    name="streetAddress"
+                    value={form.streetAddress}
+                    onChange={changeField}
+                  />
+                  <Field
+                    error={errors.city}
+                    label="Ciudad / localidad"
+                    name="city"
+                    value={form.city}
+                    onChange={changeField}
+                  />
+                  <Field
+                    error={errors.province}
+                    label="Provincia"
+                    name="province"
+                    value={form.province}
+                    onChange={changeField}
+                  />
+                  <Field
+                    error={errors.postalCode}
+                    label="Código postal"
+                    name="postalCode"
+                    value={form.postalCode}
+                    onChange={changeField}
+                  />
+                  <Field
+                    error={errors.email}
+                    label="Email"
+                    name="email"
+                    type="email"
+                    value={form.email}
+                    onChange={changeField}
+                  />
+                  <Field
+                    error={errors.phone}
+                    label="Teléfono / WhatsApp"
+                    name="phone"
+                    value={form.phone}
+                    onChange={changeField}
+                  />
                 </div>
-              </div>
-            )}
-          </form>
-        </Reveal>
+              </section>
+
+              <section
+                className="staff-application-form__section"
+                id="staff-cuerpo"
+                ref={bind(1)}
+                data-state={sections[1].complete ? 'done' : undefined}
+              >
+                <h2>
+                  <span className="staff-application-form__index" aria-hidden>
+                    {sections[1].complete ? <Check size={12} strokeWidth={3} /> : '02'}
+                  </span>
+                  Cuerpo de Staff
+                </h2>
+                <div className="staff-application-form__grid">
+                  <Select
+                    error={errors.staffBody}
+                    label="¿De qué Cuerpo de Staff querés formar parte?"
+                    name="staffBody"
+                    options={[
+                      ['', 'Seleccioná una opción'],
+                      ['operativo', 'Operativo'],
+                      ['tecnico', 'Técnico'],
+                    ]}
+                    value={form.staffBody}
+                    onChange={changeField}
+                  />
+                  {form.staffBody === 'tecnico' ? (
+                    <Select
+                      error={errors.technicalTrainingStatus}
+                      label="Estado de capacitación técnica (PDCA)"
+                      name="technicalTrainingStatus"
+                      options={[
+                        ['', 'Seleccioná una opción'],
+                        ['aprobada', 'Aprobada'],
+                        ['en_curso', 'En curso'],
+                        ['no_realizada', 'No realizada'],
+                      ]}
+                      value={form.technicalTrainingStatus}
+                      onChange={changeField}
+                    />
+                  ) : null}
+                  <Select
+                    error={errors.shirtSize}
+                    label="Talle de chomba oficial"
+                    name="shirtSize"
+                    options={[
+                      ['', 'Seleccioná un talle'],
+                      ...SHIRT_SIZES.map((size) => [size, size]),
+                    ]}
+                    value={form.shirtSize}
+                    onChange={changeField}
+                  />
+                </div>
+              </section>
+
+              <section
+                className="staff-application-form__section"
+                id="staff-documentacion"
+                ref={bind(2)}
+                data-state={sections[2].complete ? 'done' : undefined}
+              >
+                <h2>
+                  <span className="staff-application-form__index" aria-hidden>
+                    {sections[2].complete ? <Check size={12} strokeWidth={3} /> : '03'}
+                  </span>
+                  Documentación
+                </h2>
+                <div className="staff-application-form__grid">
+                  <FileUploadField
+                    busy={photo.status === 'uploading'}
+                    done={photo.status === 'done'}
+                    error={errors.photo || photo.error}
+                    hint="JPG, PNG, WEBP o PDF, hasta 5 MB."
+                    label="Foto de perfil"
+                    onFile={(file) => handleFile('photo', file)}
+                  />
+                  <FileUploadField
+                    busy={certificate.status === 'uploading'}
+                    done={certificate.status === 'done'}
+                    error={errors.certificate || certificate.error}
+                    hint="JPG, PNG, WEBP o PDF, hasta 5 MB."
+                    label="Certificado de antecedentes penales"
+                    onFile={(file) => handleFile('certificate', file)}
+                  />
+                  <Field
+                    error={errors.backgroundCheckIssuedAt}
+                    label="Fecha de emisión del certificado"
+                    name="backgroundCheckIssuedAt"
+                    type="date"
+                    value={form.backgroundCheckIssuedAt}
+                    onChange={changeField}
+                  />
+                </div>
+              </section>
+
+              <section
+                className="staff-application-form__section"
+                id="staff-declaraciones"
+                ref={bind(3)}
+                data-state={sections[3].complete ? 'done' : undefined}
+              >
+                <h2>
+                  <span className="staff-application-form__index" aria-hidden>
+                    {sections[3].complete ? <Check size={12} strokeWidth={3} /> : '04'}
+                  </span>
+                  Declaraciones
+                </h2>
+                <label className="staff-application-form__checkbox">
+                  <input
+                    checked={accuracyDeclared}
+                    type="checkbox"
+                    onChange={(event) => setAccuracyDeclared(event.target.checked)}
+                  />
+                  <span>Declaro que los datos consignados en este formulario son veraces.</span>
+                </label>
+                {errors.accuracyDeclared ? (
+                  <span className="field__error" role="alert">
+                    {errors.accuracyDeclared}
+                  </span>
+                ) : null}
+                <label className="staff-application-form__checkbox">
+                  <input
+                    checked={consentGiven}
+                    type="checkbox"
+                    onChange={(event) => setConsentGiven(event.target.checked)}
+                  />
+                  <span>
+                    Doy mi consentimiento para el tratamiento administrativo de mis datos personales
+                    por parte de PLU.
+                  </span>
+                </label>
+                {errors.consentGiven ? (
+                  <span className="field__error" role="alert">
+                    {errors.consentGiven}
+                  </span>
+                ) : null}
+              </section>
+
+              {athlete ? (
+                <div className="staff-application-form__actions">
+                  <button
+                    type="submit"
+                    className="staff-application-form__submit"
+                    disabled={submitting}
+                  >
+                    <span>{submitting ? 'Enviando…' : 'Enviar postulación'}</span>
+                    {submitting ? (
+                      <span className="plu-spinner" aria-hidden />
+                    ) : (
+                      <ArrowRight size={15} strokeWidth={1.25} aria-hidden />
+                    )}
+                  </button>
+                  {submitError ? (
+                    <p className="staff-application-form__error" role="alert">
+                      {submitError}
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="staff-application-form__login-gate" role="note">
+                  <p>
+                    Para enviar tu postulación necesitás tener una cuenta de atleta en PLU. Tu
+                    progreso queda guardado en este dispositivo.
+                  </p>
+                  <div className="staff-application-form__login-gate-actions">
+                    <button type="button" onClick={() => onNavigate?.('login')}>
+                      Iniciar sesión
+                    </button>
+                    <button type="button" onClick={() => onNavigate?.('register')}>
+                      Crear cuenta
+                    </button>
+                  </div>
+                </div>
+              )}
+            </form>
+          </Reveal>
+        </div>
       </div>
     </main>
   )
