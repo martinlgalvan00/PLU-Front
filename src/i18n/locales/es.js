@@ -3391,6 +3391,13 @@ export default {
       title: 'Comprá tu entrada',
       description:
         'Entrada general para ver {{event}} en vivo, no hace falta afiliación, solo tu DNI.',
+      flow: {
+        railAria: 'Pasos de la compra',
+        stepTickets: 'Entradas',
+        stepBuyer: 'Tus datos',
+        stepPayment: 'Pago',
+        stepDone: 'completo',
+      },
       quantity: 'Cantidad de entradas',
       subtract: 'Restar entrada',
       add: 'Sumar entrada',
