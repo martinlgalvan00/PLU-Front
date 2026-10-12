@@ -1673,6 +1673,8 @@ export default {
         wrong_zone: 'This credential does not open this zone',
         not_yet_valid: 'This QR code is not valid yet',
         expired: 'This QR code has expired',
+        service_unavailable: 'No connection to the server: this QR could not be validated',
+        session_expired: 'This station session expired: sign in again',
       },
     },
     offline: {
@@ -1681,6 +1683,8 @@ export default {
       pending: '{{count}} pending',
       syncNow: 'Sync',
       syncing: 'Syncing…',
+      sessionExpired:
+        'The session expired and {{count}} entries are waiting to sync. Sign in again to send them: nothing is lost.',
       downloadAllowlist: 'Download Excel',
       refreshAllowlist: 'Refresh Excel',
       downloading: 'Downloading…',
