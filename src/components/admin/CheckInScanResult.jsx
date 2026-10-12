@@ -187,6 +187,20 @@ export default function CheckInScanResult({
               </dd>
             </div>
           )}
+          {/* "Ya ingresó" sin decir cuándo ni por dónde obliga al guardia a
+              discutir en la puerta. Con la hora y el puesto, la discusión se
+              resuelve sola: la misma persona dos veces, o un QR compartido. */}
+          {scanResult.kind === 'ticket' &&
+          effectiveOutcome === 'already_used' &&
+          scanResult.row?.checkedInAt ? (
+            <div>
+              <dt>{t('admin.checkin.admittedAt')}</dt>
+              <dd>
+                {validityFormatter.format(new Date(scanResult.row.checkedInAt))}
+                {scanResult.row.checkedInGate ? ` · ${scanResult.row.checkedInGate}` : ''}
+              </dd>
+            </div>
+          ) : null}
           {scanResult.kind === 'ticket' && scanResult.row?.validFrom && !validityReason ? (
             <div>
               <dt>{t('admin.checkin.validFrom')}</dt>

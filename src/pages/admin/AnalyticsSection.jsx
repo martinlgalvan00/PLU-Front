@@ -1,15 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Activity,
+  ArrowDownRight,
   ArrowRight,
+  ArrowUpRight,
   CalendarDays,
   CircleAlert,
   Flame,
   LogIn,
+  Minus,
   MousePointerClick,
   RefreshCw,
   ShieldAlert,
   Sparkles,
+  TrendingDown,
   TrendingUp,
   UserSearch,
   Users,
@@ -20,9 +24,11 @@ import AnalyticsStatTile from '../../components/admin/AnalyticsStatTile.jsx'
 import AnalyticsTrafficChart from '../../components/admin/AnalyticsTrafficChart.jsx'
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
 import LivePresenceBar from '../../components/admin/LivePresenceBar.jsx'
+import AnimatedNumber from '../../motion/AnimatedNumber.tsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { buildAnalyticsInsights } from '../../lib/analyticsInsights.js'
 import { formatAnalyticsPath } from '../../lib/analyticsPathLabels.js'
 import { findDayExtremes } from '../../lib/analyticsCalendar.js'
 import { formatDayMonth } from '../../lib/format.js'
@@ -104,8 +110,12 @@ function percent(value, locale) {
   }).format(value)
 }
 
+function numberLocale(locale) {
+  return locale === 'en' ? 'en-US' : 'es-AR'
+}
+
 function count(value, locale) {
-  return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-AR').format(Number(value ?? 0))
+  return new Intl.NumberFormat(numberLocale(locale)).format(Number(value ?? 0))
 }
 
 /**
@@ -179,6 +189,8 @@ function MetricDelta({ current, previous, locale, t }) {
   if (change === null) return null
   const label = percentChangeLabel(change, locale)
   const direction = change > 0 ? 'up' : change < 0 ? 'down' : 'flat'
+  // La dirección va en un ícono y en el signo del número, no solo en un color.
+  const DirectionIcon = direction === 'up' ? ArrowUpRight : direction === 'down' ? ArrowDownRight : Minus
   const absolute = Number(current ?? 0) - Number(previous ?? 0)
   const absoluteLabel = new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-AR', {
     signDisplay: 'exceptZero',
@@ -202,6 +214,7 @@ function MetricDelta({ current, previous, locale, t }) {
           current: currentLabel,
         })}
       >
+        <DirectionIcon size={11} aria-hidden />
         {label}
         <span className="admin-analytics__stat-delta-abs"> ({absoluteLabel})</span>
       </span>
@@ -245,49 +258,109 @@ function RelativeBarList({ items, getKey, getLabel, getWeight, renderValue, mono
   )
 }
 
-function AnalyticsInsightStrip({ overview, locale, t }) {
+/**
+ * Una sola línea de aclaración bajo las cifras: cómo leer el tiempo de
+ * atención. Antes repetía sesiones, tiempo e interacciones, que ya están en las
+ * cifras de arriba.
+ */
+function PulseFootnote({ overview, t }) {
   const hasActiveTime = Boolean(overview?.avgActiveSeconds)
 
   return (
-    <div className="admin-analytics__insight">
-      <div className="admin-analytics__insight-highlights">
-        <div className="admin-analytics__insight-item">
-          <p className="admin-analytics__insight-value">{count(overview?.sessions, locale)}</p>
-          <p className="admin-analytics__insight-label">
-            {t('admin.analytics.summaryHighlightSessions')}
-          </p>
-        </div>
-        <div className="admin-analytics__insight-item">
-          <p className="admin-analytics__insight-value">
-            {hasActiveTime
-              ? duration(overview.avgActiveSeconds)
-              : duration(overview?.avgDurationSeconds)}
-          </p>
-          <p className="admin-analytics__insight-label">
-            {hasActiveTime
-              ? t('admin.analytics.summaryHighlightActiveTime')
-              : t('admin.analytics.summaryHighlightDuration')}
-          </p>
-        </div>
-        <div className="admin-analytics__insight-item">
-          <p className="admin-analytics__insight-value">{count(overview?.interactions, locale)}</p>
-          <p className="admin-analytics__insight-label">
-            {t('admin.analytics.summaryHighlightInteractions')}
-          </p>
-        </div>
-      </div>
-      {!hasActiveTime ? (
-        <p className="admin-analytics__insight-note admin-analytics__summary">
-          {t('admin.analytics.summaryFootnoteNoActiveTime')}
-        </p>
-      ) : (
-        <p className="admin-analytics__insight-note admin-analytics__summary">
-          {t('admin.analytics.summaryFootnoteActiveTime', {
+    <p className="admin-analytics__summary">
+      {hasActiveTime
+        ? t('admin.analytics.summaryFootnoteActiveTime', {
             duration: duration(overview?.avgDurationSeconds),
-          })}
-        </p>
-      )}
-    </div>
+          })
+        : t('admin.analytics.summaryFootnoteNoActiveTime')}
+    </p>
+  )
+}
+
+/** Traduce un titular calculado (`analyticsInsights.js`) a etiqueta, cifra y detalle. */
+function describeInsight(insight, { locale, t }) {
+  const base = 'admin.analytics.insights'
+
+  switch (insight.id) {
+    case 'conversion':
+      return {
+        label: t(`${base}.conversion.label`),
+        value: percent(insight.rate, locale),
+        detail: t(`${base}.conversion.detail`, {
+          completed: count(insight.completed, locale),
+          entered: count(insight.entered, locale),
+          step: funnelLabel(insight.lastStep, t),
+        }),
+      }
+    case 'leak':
+      return {
+        label: t(`${base}.leak.label`),
+        value: t(`${base}.leak.value`, { rate: percent(insight.lossRate, locale) }),
+        detail: t(`${base}.leak.detail`, {
+          lost: count(insight.lost, locale),
+          from: funnelLabel(insight.from, t),
+          to: funnelLabel(insight.to, t),
+        }),
+      }
+    case 'bestDay':
+      return {
+        label: t(`${base}.bestDay.label`),
+        value: formatDayMonth(insight.day, locale),
+        detail: insight.ratio
+          ? t(`${base}.bestDay.detailRatio`, {
+              visitors: count(insight.visitors, locale),
+              ratio: new Intl.NumberFormat(numberLocale(locale), {
+                maximumFractionDigits: 1,
+              }).format(insight.ratio),
+            })
+          : t(`${base}.bestDay.detail`, { visitors: count(insight.visitors, locale) }),
+      }
+    case 'rhythm':
+      return {
+        label: t(`${base}.rhythm.label`),
+        value: t(`${base}.rhythm.${insight.leader === 'weekdays' ? 'weekdays' : 'weekend'}`),
+        detail: t(`${base}.rhythm.detail`, {
+          gap: percent(insight.gap, locale),
+          other: t(
+            `${base}.rhythm.${insight.leader === 'weekdays' ? 'otherWeekend' : 'otherWeekdays'}`,
+          ),
+        }),
+      }
+    case 'topPage':
+      return {
+        label: t(`${base}.topPage.label`),
+        value: formatAnalyticsPath(insight.path, t).label,
+        detail: t(`${base}.topPage.detail`, { share: percent(insight.share, locale) }),
+      }
+    default:
+      return null
+  }
+}
+
+/**
+ * Lo que se destaca del período, en cifras grandes: una lectura de cuatro
+ * titulares antes de entrar al detalle. Salen de los mismos datos que el resto
+ * del informe, así que no hay nada que no se pueda verificar más abajo.
+ */
+function AnalyticsHighlights({ insights, locale, t }) {
+  const items = insights.map((insight) => ({ insight, ...describeInsight(insight, { locale, t }) }))
+  if (items.length === 0) return null
+
+  return (
+    <section className="admin-analytics__highlights" aria-labelledby="analytics-highlights">
+      <h3 id="analytics-highlights" className="admin-analytics__highlights-title">
+        {t('admin.analytics.insights.title')}
+      </h3>
+      <ul className="admin-analytics__highlights-list">
+        {items.map((item) => (
+          <li key={item.insight.id} className="admin-analytics__highlight">
+            <p className="admin-analytics__highlight-label">{item.label}</p>
+            <p className="admin-analytics__highlight-value">{item.value}</p>
+            <p className="admin-analytics__highlight-detail">{item.detail}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 
@@ -780,6 +853,18 @@ export default function AnalyticsSection({
   }, [canViewIdentity, t])
 
   const dayExtremes = useMemo(() => findDayExtremes(traffic?.series ?? []), [traffic])
+  const insights = useMemo(
+    () =>
+      buildAnalyticsInsights({
+        funnel,
+        pages,
+        series: traffic?.series ?? [],
+        pageviews: overview?.pageviews,
+      }),
+    [funnel, overview?.pageviews, pages, traffic],
+  )
+  // El tramo con la mayor caída se marca dentro del propio embudo.
+  const worstFunnelStep = insights.find((item) => item.id === 'leak')?.to ?? null
 
   if (loading && !overview) return <LoadingState label={t('admin.analytics.loading')} />
   if (error && !overview) return <ErrorState message={error} onRetry={load} />
@@ -843,56 +928,73 @@ export default function AnalyticsSection({
       <LivePresenceBar />
 
       <section className="admin-analytics__pulse" aria-label={t('admin.analytics.metricsAria')}>
-        <div className="admin-analytics__stat-grid">
-          <AnalyticsStatTile
-            label={t('admin.analytics.metrics.visitors')}
-            value={overview?.visitors ?? 0}
-            tone="celeste"
-            delta={metricDeltaNode(
-              overview?.visitors,
-              previousOverview?.visitors,
-              locale,
-              t,
-            )}
-          />
-          <AnalyticsStatTile
-            label={t('admin.analytics.metrics.pageviews')}
-            value={overview?.pageviews ?? 0}
-            delta={metricDeltaNode(
-              overview?.pageviews,
-              previousOverview?.pageviews,
-              locale,
-              t,
-            )}
-          />
-          <AnalyticsStatTile
-            label={t('admin.analytics.metrics.identified')}
-            value={overview?.identifiedVisitors ?? 0}
-            delta={metricDeltaNode(
-              overview?.identifiedVisitors,
-              previousOverview?.identifiedVisitors,
-              locale,
-              t,
-            )}
-          />
-          <AnalyticsStatTile
-            label={t('admin.analytics.metrics.engaged')}
-            value={overview?.engagedSessions ?? 0}
-            hint={t('admin.analytics.metricsEngagedHint', {
-              rate: percent(overview?.engagementRate, locale),
-            })}
-            delta={metricDeltaNode(
-              overview?.engagedSessions,
-              previousOverview?.engagedSessions,
-              locale,
-              t,
-            )}
-          />
-        </div>
+        <div className="admin-analytics__hero">
+          <div className="admin-analytics__hero-main">
+            <p className="admin-analytics__hero-label">{t('admin.analytics.metrics.visitors')}</p>
+            <p className="admin-analytics__hero-value">
+              <AnimatedNumber
+                className="admin-analytics__hero-number"
+                locale={numberLocale(locale)}
+                value={overview?.visitors ?? 0}
+              />
+              {metricDeltaNode(overview?.visitors, previousOverview?.visitors, locale, t)}
+            </p>
+            <p className="admin-analytics__comparison-note">
+              {t('admin.analytics.metricsComparisonNote', { days })}
+            </p>
+          </div>
 
-        <p className="admin-analytics__comparison-note">
-          {t('admin.analytics.metricsComparisonNote', { days })}
-        </p>
+          <dl className="admin-analytics__hero-side">
+            <div>
+              <dt>{t('admin.analytics.metrics.pageviews')}</dt>
+              <dd>
+                <AnimatedNumber
+                  className="admin-analytics__hero-sidenum"
+                  locale={numberLocale(locale)}
+                  value={overview?.pageviews ?? 0}
+                />
+                {metricDeltaNode(overview?.pageviews, previousOverview?.pageviews, locale, t)}
+              </dd>
+            </div>
+            <div>
+              <dt>{t('admin.analytics.metrics.identified')}</dt>
+              <dd>
+                <AnimatedNumber
+                  className="admin-analytics__hero-sidenum"
+                  locale={numberLocale(locale)}
+                  value={overview?.identifiedVisitors ?? 0}
+                />
+                {metricDeltaNode(
+                  overview?.identifiedVisitors,
+                  previousOverview?.identifiedVisitors,
+                  locale,
+                  t,
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>{t('admin.analytics.metrics.engaged')}</dt>
+              <dd>
+                <AnimatedNumber
+                  className="admin-analytics__hero-sidenum"
+                  locale={numberLocale(locale)}
+                  value={overview?.engagedSessions ?? 0}
+                />
+                {metricDeltaNode(
+                  overview?.engagedSessions,
+                  previousOverview?.engagedSessions,
+                  locale,
+                  t,
+                )}
+              </dd>
+              <dd className="admin-analytics__hero-hint">
+                {t('admin.analytics.metricsEngagedHint', {
+                  rate: percent(overview?.engagementRate, locale),
+                })}
+              </dd>
+            </div>
+          </dl>
+        </div>
 
         <div className="admin-analytics__stat-grid admin-analytics__stat-grid--secondary">
           <AnalyticsStatTile
@@ -905,6 +1007,13 @@ export default function AnalyticsSection({
             label={t('admin.analytics.metrics.duration')}
             value={duration(overview?.avgDurationSeconds)}
           />
+          {overview?.avgActiveSeconds ? (
+            <AnalyticsStatTile
+              compact
+              label={t('admin.analytics.summaryHighlightActiveTime')}
+              value={duration(overview.avgActiveSeconds)}
+            />
+          ) : null}
           <AnalyticsStatTile
             compact
             label={t('admin.analytics.metrics.interactions')}
@@ -912,7 +1021,7 @@ export default function AnalyticsSection({
           />
         </div>
 
-        <AnalyticsInsightStrip overview={overview} locale={locale} t={t} />
+        <PulseFootnote overview={overview} t={t} />
       </section>
 
       {operationalAlerts.length ? (
@@ -950,11 +1059,10 @@ export default function AnalyticsSection({
       {activeTab === TABS.overview ? (
         <div className="admin-analytics__panel" role="tabpanel">
           {/*
-            Serie diaria y calendario van primero: son la vista general del
-            periodo y dan el marco temporal antes de leer los bloques de
-            detalle. El pico y los extremos salen de la serie perpetua, no del
-            detalle crudo, asi que siguen siendo comparables pasados los 90
-            dias de retencion.
+            Orden de lectura: cómo viene el tráfico (curva) → qué se destaca → dónde se
+            pierde la gente (embudo) → cómo se distribuye en el calendario → operación.
+            El pico y los extremos salen de la serie perpetua, no del detalle crudo,
+            así que siguen siendo comparables pasados los 90 días de retención.
           */}
           <section className="admin-analytics__block" aria-labelledby="analytics-traffic">
             <AnalyticsBlockHead
@@ -1000,6 +1108,62 @@ export default function AnalyticsSection({
             </div>
           </section>
 
+          <AnalyticsHighlights insights={insights} locale={locale} t={t} />
+
+          <section className="admin-analytics__block" aria-labelledby="analytics-funnel">
+            <AnalyticsBlockHead
+              id="analytics-funnel"
+              icon={Activity}
+              title={t('admin.analytics.funnelTitle')}
+            />
+            {funnel.length === 0 ? (
+              <p className="admin-analytics__empty">{t('admin.analytics.funnelEmpty')}</p>
+            ) : (
+              <ol className="admin-analytics__funnel">
+                {funnel.map((step, index) => {
+                  const isWorst = worstFunnelStep !== null && step.step_name === worstFunnelStep
+                  return (
+                    <li
+                      key={step.step_name}
+                      className={`admin-analytics__funnel-step${isWorst ? ' is-worst' : ''}`}
+                      style={{ '--funnel-rate': step.totalRate ?? 0, '--funnel-index': index }}
+                    >
+                      <div
+                        className="admin-analytics__funnel-bar"
+                        role="img"
+                        aria-label={t('admin.analytics.funnelBarAlt', {
+                          rate: percent(step.totalRate, locale),
+                        })}
+                      >
+                        <span />
+                      </div>
+                      <strong className="admin-analytics__funnel-value">
+                        {count(step.visitors, locale)}
+                      </strong>
+                      <span className="admin-analytics__funnel-name">
+                        {funnelLabel(step.step_name, t)}
+                      </span>
+                      <p className="admin-analytics__funnel-meta">
+                        {index === 0
+                          ? t('admin.analytics.funnelStart')
+                          : t('admin.analytics.funnelStepRate', {
+                              rate: percent(step.stepRate, locale),
+                              dropoff: count(step.dropoff, locale),
+                            })}
+                      </p>
+                      {isWorst ? (
+                        <span className="admin-analytics__funnel-flag">
+                          <TrendingDown size={12} aria-hidden />
+                          {t('admin.analytics.funnelBiggestDrop')}
+                        </span>
+                      ) : null}
+                    </li>
+                  )
+                })}
+              </ol>
+            )}
+          </section>
+
           <section className="admin-analytics__block" aria-labelledby="analytics-calendar">
             <AnalyticsBlockHead
               id="analytics-calendar"
@@ -1013,7 +1177,14 @@ export default function AnalyticsSection({
             />
           </section>
 
-          {/*
+          <section className="admin-analytics__operation" aria-labelledby="analytics-operation">
+            <header className="admin-analytics__operation-head">
+              <h3 id="analytics-operation">{t('admin.analytics.operationTitle')}</h3>
+              <p>{t('admin.analytics.operationSubtitle')}</p>
+            </header>
+            <div className="admin-analytics__operation-grid">
+              <div className="admin-analytics__operation-col">
+                {/*
             Accesos al sistema (login), distinto del bloque "Actividad y
             accesos" de mas abajo, que cuenta ingresos por puerta a un evento.
             Se separan porque responden preguntas distintas y confundirlos
@@ -1080,49 +1251,8 @@ export default function AnalyticsSection({
               </>
             )}
           </section>
-
-          <section className="admin-analytics__block" aria-labelledby="analytics-funnel">
-            <AnalyticsBlockHead
-              id="analytics-funnel"
-              icon={Activity}
-              title={t('admin.analytics.funnelTitle')}
-            />
-            {funnel.length === 0 ? (
-              <p className="admin-analytics__empty">{t('admin.analytics.funnelEmpty')}</p>
-            ) : (
-              <ol className="admin-analytics__funnel">
-                {funnel.map((step) => (
-                  <li
-                    key={step.step_name}
-                    className="admin-analytics__funnel-step"
-                    style={{ '--funnel-width': step.totalRate ?? 0 }}
-                  >
-                    <div
-                      className="admin-analytics__funnel-step-inner"
-                      role="img"
-                      aria-label={t('admin.analytics.funnelBarAlt', {
-                        rate: percent(step.totalRate, locale),
-                      })}
-                    >
-                      <span className="admin-analytics__funnel-name">
-                        {funnelLabel(step.step_name, t)}
-                      </span>
-                      <strong className="admin-analytics__funnel-value">
-                        {count(step.visitors, locale)}
-                      </strong>
-                      <p className="admin-analytics__funnel-meta">
-                        {t('admin.analytics.funnelStepRate', {
-                          rate: percent(step.stepRate, locale),
-                          dropoff: count(step.dropoff, locale),
-                        })}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </section>
-
+              </div>
+              <div className="admin-analytics__operation-col">
           <section className="admin-analytics__block" aria-labelledby="analytics-activity">
             <AnalyticsBlockHead
               id="analytics-activity"
@@ -1203,6 +1333,9 @@ export default function AnalyticsSection({
               )}
             </section>
           ) : null}
+              </div>
+            </div>
+          </section>
         </div>
       ) : null}
 

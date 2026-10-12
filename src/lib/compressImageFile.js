@@ -11,6 +11,11 @@ export const PAYMENT_PROOF_MAX_EDGE = 1600
 export const PAYMENT_PROOF_WEBP_QUALITY = 0.72
 export const PAYMENT_PROOF_TARGET_MAX_BYTES = 400 * 1024
 
+/** Catálogo de tienda: portadas nítidas en card/detalle, Storage liviano. */
+export const SHOP_PRODUCT_MAX_EDGE = 1200
+export const SHOP_PRODUCT_WEBP_QUALITY = 0.7
+export const SHOP_PRODUCT_TARGET_MAX_BYTES = 280 * 1024
+
 export function fitImageWithin(width, height, maxEdge = ATHLETE_PHOTO_MAX_EDGE) {
   const safeWidth = Math.max(1, Number(width) || 1)
   const safeHeight = Math.max(1, Number(height) || 1)
@@ -120,5 +125,16 @@ export async function compressPaymentProofFile(file) {
     quality: PAYMENT_PROOF_WEBP_QUALITY,
     targetMaxBytes: PAYMENT_PROOF_TARGET_MAX_BYTES,
     skipUnderBytes: PAYMENT_PROOF_TARGET_MAX_BYTES,
+  })
+}
+
+/** Foto de producto de tienda: WebP ≤ ~280 KB, lado largo ≤ 1200. */
+export async function compressShopProductImage(file) {
+  if (!file?.type?.startsWith('image/')) return file
+  return compressImageFile(file, {
+    maxEdge: SHOP_PRODUCT_MAX_EDGE,
+    quality: SHOP_PRODUCT_WEBP_QUALITY,
+    targetMaxBytes: SHOP_PRODUCT_TARGET_MAX_BYTES,
+    skipUnderBytes: SHOP_PRODUCT_TARGET_MAX_BYTES,
   })
 }

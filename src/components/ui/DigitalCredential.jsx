@@ -11,6 +11,7 @@ import {
 import CredentialQr from './CredentialQr.jsx'
 import TiltCard from '../../motion/TiltCard.tsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
+import { SHOWCASE_TILT_MAX_DEG } from '../../motion/tokens.ts'
 
 /**
  * DigitalCredential — PLU ARG
@@ -153,7 +154,7 @@ export default function DigitalCredential({ athlete, membership }) {
       <TiltCard
         className="account-credential__tilt"
         innerClassName="tilt-card__inner account-credential__tilt-inner"
-        maxTilt={isFlipped ? 0 : 3}
+        maxTilt={isFlipped ? 0 : SHOWCASE_TILT_MAX_DEG}
       >
         <div
           className="account-credential__card"

@@ -221,11 +221,14 @@ describe('Inscripciones — rieles etiquetados', () => {
     )
   }
 
-  it('nombra evento y estado en rieles etiquetados', () => {
+  it('nombra el estado en la barra y el evento dentro de Filtros', () => {
     renderRegistrations()
 
-    expect(screen.getByRole('group', { name: 'Evento' })).toBeTruthy()
+    // El estado parte el listado: queda a la vista, como grupo etiquetado.
     expect(screen.getByRole('group', { name: 'Estado' })).toBeTruthy()
+    // El evento se elige en el popover de «Filtros», también como grupo etiquetado.
+    fireEvent.click(screen.getByRole('button', { name: /^Filtros/ }))
+    expect(screen.getByRole('group', { name: 'Evento' })).toBeTruthy()
   })
 
   it('mantiene el texto de los exports para poder ocultarlo solo por CSS', () => {

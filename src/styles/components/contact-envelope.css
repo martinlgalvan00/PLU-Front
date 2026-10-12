@@ -1,0 +1,180 @@
+/* Sobre 3D de Contacto. Papel en tres tonos (fondo, carta, frente) derivados de
+   los tokens de texto/fondo, así sirve igual en claro y en oscuro. El único
+   acento es el sello dorado. Solo transform + opacity. */
+
+.letter-stage {
+  --paper-back: color-mix(in srgb, var(--color-text-primary) 15%, var(--color-bg-primary));
+  --paper-front: color-mix(in srgb, var(--color-text-primary) 9%, var(--color-bg-primary));
+  --paper-letter: var(--color-bg-primary);
+  --paper-edge: color-mix(in srgb, var(--color-text-primary) 22%, transparent);
+  perspective: 1400px;
+  width: min(100%, 26rem);
+}
+
+.letter-stage__tilt {
+  display: block;
+}
+
+.letter-stage__tilt-inner {
+  display: block;
+}
+
+/* El margen superior es el espacio que ocupa la solapa abierta. */
+.envelope {
+  aspect-ratio: 1.55;
+  margin-top: 26%;
+  position: relative;
+  transform-style: preserve-3d;
+  width: 100%;
+}
+
+.envelope > * {
+  position: absolute;
+}
+
+.envelope__back {
+  background: var(--paper-back);
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 1px var(--paper-edge),
+    0 28px 48px -32px color-mix(in srgb, var(--color-text-primary) 38%, transparent);
+  inset: 0;
+}
+
+.envelope__letter {
+  background: var(--paper-letter);
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--paper-edge);
+  display: grid;
+  gap: 8px;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  inset: 6% 6% 6%;
+  overflow: hidden;
+  padding: 18px;
+  z-index: 2;
+}
+
+.envelope__letter p {
+  margin: 0;
+}
+
+.envelope__to {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.envelope__motive {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+
+.envelope__body {
+  color: var(--color-text-secondary);
+  display: -webkit-box;
+  font-size: 12px;
+  font-weight: 300;
+  line-height: 1.55;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  white-space: pre-line;
+}
+
+.envelope__lines {
+  align-content: start;
+  display: grid;
+  gap: 9px;
+  padding-top: 4px;
+}
+
+.envelope__lines i {
+  background: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  display: block;
+  height: 1px;
+}
+
+.envelope__lines i:nth-child(2) {
+  width: 82%;
+}
+
+.envelope__lines i:nth-child(3) {
+  width: 58%;
+}
+
+.envelope__sign {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-style: italic;
+  font-weight: 300;
+  justify-self: end;
+}
+
+/* Frente: el bolsillo con el corte en V por donde asoma la carta. */
+.envelope__front {
+  background: var(--paper-front);
+  border-radius: 4px;
+  clip-path: polygon(0 0, 50% 60%, 100% 0, 100% 100%, 0 100%);
+  inset: 0;
+  z-index: 3;
+}
+
+.envelope__front::after {
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--paper-edge);
+  content: '';
+  inset: 0;
+  position: absolute;
+}
+
+/* Solapa: gira desde el borde superior; abierta queda detrás de la carta. */
+.envelope__flap {
+  background: color-mix(in srgb, var(--color-text-primary) 12%, var(--color-bg-primary));
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  height: 56%;
+  left: 0;
+  right: 0;
+  top: 0;
+  transform-origin: top center;
+  z-index: 1;
+}
+
+.envelope__seal {
+  align-items: center;
+  background: var(--color-brand-gold);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 3px color-mix(in srgb, #fff 24%, transparent),
+    0 6px 14px -6px rgba(0, 0, 0, 0.5);
+  color: var(--plu-cool-950, #0b0d12);
+  display: grid;
+  height: 3.1rem;
+  left: 50%;
+  margin-left: -1.55rem;
+  margin-top: -1.55rem;
+  place-items: center;
+  top: 55%;
+  width: 3.1rem;
+  z-index: 5;
+}
+
+/* Marca del sello antes de la confirmación. */
+.envelope__seal-mark {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+/* En quieto cada fase se muestra directa: sin recorrido ni 3D. */
+@media (prefers-reduced-motion: reduce) {
+  .envelope {
+    transform-style: flat;
+  }
+}

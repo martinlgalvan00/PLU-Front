@@ -10,10 +10,12 @@ type AnimatedNumberProps = {
   prefix?: string
   suffix?: string
   duration?: number
+  /** Locale de Intl (`es-AR`). Sin él se usa el del navegador, como siempre. */
+  locale?: string
 }
 
-function formatValue(value: number, decimals: number): string {
-  return value.toLocaleString(undefined, {
+function formatValue(value: number, decimals: number, locale?: string): string {
+  return value.toLocaleString(locale, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   })
@@ -26,6 +28,7 @@ export default function AnimatedNumber({
   prefix = '',
   suffix = '',
   duration = MOTION_DURATION.slow,
+  locale,
 }: AnimatedNumberProps) {
   const { reducedMotion } = useMotionConfig()
   const ref = useRef<HTMLSpanElement>(null)
@@ -35,7 +38,7 @@ export default function AnimatedNumber({
   const [observerAvailable] = useState(() => typeof IntersectionObserver !== 'undefined')
   const [inView, setInView] = useState(!observerAvailable)
   const [display, setDisplay] = useState(() =>
-    formatValue(reducedMotion || !observerAvailable ? value : 0, decimals),
+    formatValue(reducedMotion || !observerAvailable ? value : 0, decimals, locale),
   )
   const hasAnimated = useRef(!observerAvailable)
 
@@ -62,7 +65,7 @@ export default function AnimatedNumber({
     // un total que cambia (grilla, KPIs) quedaría congelado en el valor inicial.
     if (hasAnimated.current || reducedMotion) {
       hasAnimated.current = true
-      setDisplay(formatValue(value, decimals))
+      setDisplay(formatValue(value, decimals, locale))
       return undefined
     }
     hasAnimated.current = true
@@ -70,11 +73,11 @@ export default function AnimatedNumber({
     const controls = animate(0, value, {
       duration,
       ease: [0.22, 1, 0.36, 1],
-      onUpdate: (latest) => setDisplay(formatValue(latest, decimals)),
+      onUpdate: (latest) => setDisplay(formatValue(latest, decimals, locale)),
     })
 
     return () => controls.stop()
-  }, [inView, value, decimals, duration, reducedMotion])
+  }, [inView, value, decimals, duration, reducedMotion, locale])
 
   return (
     <m.span

@@ -27,7 +27,9 @@ const HEIGHT = 44
 function parseDay(day) {
   // `YYYY-MM-DD` viene sin zona: parsearlo con `new Date(str)` lo clava en
   // medianoche local y en zonas negativas corre el dia hacia atras.
-  const [year, month, date] = String(day ?? '').split('-').map(Number)
+  const [year, month, date] = String(day ?? '')
+    .split('-')
+    .map(Number)
   return new Date(year, (month ?? 1) - 1, date ?? 1)
 }
 
@@ -75,9 +77,20 @@ export default function AnalyticsTrafficChart({ series = [] }) {
     return { step, coords, line, area }
   }, [max, metric, points])
 
+  // El punto más alto de la serie visible queda rotulado: es lo primero que se
+  // busca en una curva, y asi no depende de pasar el cursor por encima.
+  const peakIndex = max > 0 ? values.indexOf(max) : -1
+  const peakCoord = peakIndex >= 0 && geometry ? geometry.coords[peakIndex] : null
+  const peakNearEdge = peakCoord
+    ? peakCoord.x < 12
+      ? 'is-start'
+      : peakCoord.x > 88
+        ? 'is-end'
+        : ''
+    : ''
+
   const cursorPoint = cursor !== null && points[cursor] ? points[cursor] : null
-  const cursorCoord =
-    cursor !== null && geometry?.coords[cursor] ? geometry.coords[cursor] : null
+  const cursorCoord = cursor !== null && geometry?.coords[cursor] ? geometry.coords[cursor] : null
 
   function moveCursorFromEvent(event) {
     if (!geometry || !svgRef.current || points.length === 0) return
@@ -148,39 +161,68 @@ export default function AnalyticsTrafficChart({ series = [] }) {
           onKeyDown={handleKeyDown}
           onPointerLeave={() => setCursor(null)}
         >
-          <svg
-            ref={svgRef}
-            viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-            preserveAspectRatio="none"
-            aria-hidden
-            onPointerMove={moveCursorFromEvent}
-          >
-            <polygon className="admin-analytics__traffic-area" points={geometry.area} />
-            <polyline
-              className="admin-analytics__traffic-line"
-              points={geometry.line}
-              vectorEffect="non-scaling-stroke"
-            />
-            {cursorCoord ? (
-              <>
-                <line
-                  className="admin-analytics__traffic-cursor-line"
-                  x1={cursorCoord.x}
-                  y1={0}
-                  x2={cursorCoord.x}
-                  y2={HEIGHT}
-                  vectorEffect="non-scaling-stroke"
-                />
-                <circle
-                  className="admin-analytics__traffic-cursor-dot"
-                  cx={cursorCoord.x}
-                  cy={cursorCoord.y}
-                  r={1.4}
-                  vectorEffect="non-scaling-stroke"
-                />
-              </>
+          <div className="admin-analytics__traffic-plot">
+            <svg
+              ref={svgRef}
+              viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+              preserveAspectRatio="none"
+              aria-hidden
+              onPointerMove={moveCursorFromEvent}
+            >
+              <polygon className="admin-analytics__traffic-area" points={geometry.area} />
+              <polyline
+                className="admin-analytics__traffic-line"
+                points={geometry.line}
+                vectorEffect="non-scaling-stroke"
+              />
+              {cursorCoord ? (
+                <>
+                  <line
+                    className="admin-analytics__traffic-cursor-line"
+                    x1={cursorCoord.x}
+                    y1={0}
+                    x2={cursorCoord.x}
+                    y2={HEIGHT}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                </>
+              ) : null}
+            </svg>
+
+            {peakCoord && cursor !== peakIndex ? (
+              <span
+                className="admin-analytics__traffic-peak-dot"
+                style={{
+                  left: `${peakCoord.x}%`,
+                  top: `${(peakCoord.y / HEIGHT) * 100}%`,
+                }}
+                aria-hidden
+              />
             ) : null}
-          </svg>
+            {cursorCoord ? (
+              <span
+                className="admin-analytics__traffic-cursor-dot"
+                style={{
+                  left: `${cursorCoord.x}%`,
+                  top: `${(cursorCoord.y / HEIGHT) * 100}%`,
+                }}
+                aria-hidden
+              />
+            ) : null}
+
+            {peakCoord && cursor === null ? (
+              <span
+                className={`admin-analytics__traffic-peak ${peakNearEdge}`.trim()}
+                style={{
+                  left: `${peakCoord.x}%`,
+                  top: `${(peakCoord.y / HEIGHT) * 100}%`,
+                }}
+                aria-hidden
+              >
+                {number(max)}
+              </span>
+            ) : null}
+          </div>
 
           <div className="admin-analytics__traffic-axis" aria-hidden>
             <span>{points[0]?.label}</span>

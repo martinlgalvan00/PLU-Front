@@ -1,0 +1,421 @@
+/* PITBULL — Categorías como film.
+   Un reproductor grafito fijo acompaña la lectura de tres capítulos
+   (Modalidades · Equipamiento · Divisiones) y reacciona a cada fila.
+   Solo transform + opacity; ninguna animación en loop. */
+
+.pitbull-film {
+  display: grid;
+  gap: clamp(20px, 4vw, 56px);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* ── Guion: capítulos y filas ── */
+.pitbull-film__act {
+  display: grid;
+  gap: clamp(8px, 1.4vw, 14px);
+  padding-block: clamp(14px, 2.4vw, 28px);
+}
+
+.pitbull-film__act + .pitbull-film__act {
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+}
+
+.pitbull-film__act-head {
+  align-items: baseline;
+  display: grid;
+  gap: 4px 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.pitbull-film__act-index {
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+}
+
+.pitbull-film__act-title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2.8vw, 2rem);
+  font-weight: 300;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.pitbull-film__act-hint {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  grid-column: 2;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.pitbull-film__rows {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-film__row {
+  align-content: center;
+  align-items: baseline;
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 2.6ch minmax(0, 1fr);
+  min-height: clamp(64px, 12vh, 108px);
+  padding-left: 18px;
+  position: relative;
+}
+
+/* Fila activa: una barra dorada a su lado y el texto en tinta plena; las demás
+   bajan de tono. Así no hay duda de cuál es la que mueve la escena. */
+.pitbull-film__row::before {
+  background: var(--color-brand-gold);
+  bottom: 22%;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 22%;
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform var(--motion-slow) var(--ease-out);
+  width: 2px;
+}
+
+.pitbull-film__row[data-active='true']::before {
+  transform: scaleY(1);
+}
+
+.pitbull-film__row-index {
+  color: color-mix(in oklab, var(--plu-gold-500) 70%, var(--color-text-muted));
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  transition: color var(--motion-base) var(--ease-out);
+}
+
+.pitbull-film__row[data-active='true'] .pitbull-film__row-index {
+  color: var(--color-brand-gold);
+}
+
+.pitbull-film__row-name {
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 2.1vw, 1.45rem);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  transition:
+    color var(--motion-slow) var(--ease-out),
+    transform var(--motion-slow) var(--ease-out);
+}
+
+.pitbull-film__row[data-active='true'] .pitbull-film__row-name {
+  color: var(--color-text-primary);
+  transform: translateX(6px);
+}
+
+/* ── Reproductor ── */
+.pitbull-film__stage {
+  order: -1;
+  position: sticky;
+  top: calc(var(--header-height-scrolled, 52px) + 12px);
+  z-index: 2;
+}
+
+.film-screen {
+  background: var(--meet-bg);
+  border-radius: 2px;
+  color: var(--meet-fg);
+  display: grid;
+  gap: clamp(14px, 2.4vw, 24px);
+  grid-template-rows: auto minmax(0, 1fr);
+  /* Alto fijo: cambiar de escena no puede mover las filas (en mobile el
+     reproductor está en el flujo) ni reactivar el observador de paso. */
+  height: 14.5rem;
+  padding: clamp(18px, 3vw, 36px);
+}
+
+.film-screen__bar {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-start;
+}
+
+.film-screen__chapters {
+  display: inline-flex;
+  gap: clamp(8px, 2vw, 18px);
+  min-width: 0;
+}
+
+.film-screen__chapter {
+  color: var(--meet-faint);
+  font-size: clamp(9px, 2.4vw, 10.5px);
+  font-weight: 500;
+  letter-spacing: 0.26em;
+  position: relative;
+  text-transform: uppercase;
+  transition: color var(--motion-base) var(--ease-out);
+}
+
+.film-screen__chapter::after {
+  background: var(--meet-accent);
+  bottom: -9px;
+  content: '';
+  height: 2px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--motion-slow) var(--ease-out);
+}
+
+.film-screen__chapter[data-state='active'] {
+  color: var(--meet-fg);
+}
+
+.film-screen__chapter[data-state='active']::after {
+  transform: scaleX(1);
+}
+
+.film-screen__chapter[data-state='past'] {
+  color: var(--meet-muted);
+}
+
+.film-screen__scene {
+  align-items: center;
+  display: grid;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.film-screen__scene-inner {
+  width: 100%;
+}
+
+/* Escena 1 — levantamientos */
+.film-lifts {
+  display: grid;
+  gap: clamp(8px, 2vw, 18px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.film-lift {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  justify-items: center;
+  opacity: 0.28;
+  transition: opacity var(--motion-slow) var(--ease-out);
+}
+
+.film-lift[data-on='true'] {
+  opacity: 1;
+}
+
+.film-lift__bar {
+  --barbell-h: clamp(3.4rem, 9vw, 5.2rem);
+  --slots: 3;
+}
+
+.film-lift__name {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.film-lift__mark {
+  background: var(--meet-accent);
+  border-radius: 99px;
+  display: block;
+  height: 1px;
+  transform: scaleX(0);
+  transition: transform var(--motion-slow) var(--ease-out);
+  width: 48%;
+}
+
+.film-lift[data-on='true'] .film-lift__mark {
+  transform: scaleX(1);
+}
+
+/* Escena 2 — equipamiento: piezas dibujadas a trazo, o capas de equipo */
+.film-gear {
+  align-items: center;
+  display: grid;
+  justify-items: center;
+}
+
+.film-gear--items {
+  gap: clamp(8px, 2vw, 22px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.film-gear__item,
+.film-gear__plies {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  min-width: 0;
+}
+
+.film-gear__glyph {
+  color: var(--meet-fg);
+  fill: none;
+  height: clamp(4rem, 10.5vw, 5.8rem);
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.4;
+  width: auto;
+}
+
+.film-gear__label {
+  color: var(--meet-muted);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.film-gear__stack {
+  display: grid;
+  gap: 7px;
+  min-height: 4.2rem;
+  width: min(14rem, 60vw);
+  align-content: end;
+}
+
+.film-gear__ply {
+  background: var(--meet-fg);
+  border-radius: 1px;
+  display: block;
+  height: 5px;
+  transform-origin: left center;
+}
+
+.film-gear__plies[data-kind='open'] .film-gear__ply:first-child {
+  background: var(--meet-accent);
+}
+
+/* Escena 3 — línea de edades */
+.film-age {
+  padding-block: clamp(14px, 3vw, 28px);
+  position: relative;
+}
+
+.film-age__track {
+  background: color-mix(in srgb, var(--meet-fg) 22%, transparent);
+  display: block;
+  height: 1px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: calc(clamp(14px, 3vw, 28px) + 7px);
+  transform-origin: left center;
+  transition: background-color var(--motion-slow) var(--ease-out);
+}
+
+.film-age[data-open='true'] .film-age__track {
+  background: var(--meet-accent);
+}
+
+.film-age__nodes {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr));
+  position: relative;
+}
+
+.film-age__node {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.film-age__dot {
+  background: var(--meet-bg);
+  border: 1px solid color-mix(in srgb, var(--meet-fg) 45%, transparent);
+  border-radius: 50%;
+  height: 16px;
+  transition:
+    background-color var(--motion-slow) var(--ease-out),
+    border-color var(--motion-slow) var(--ease-out),
+    transform var(--motion-slow) var(--ease-out);
+  width: 16px;
+}
+
+.film-age__label {
+  color: var(--meet-faint);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-align: center;
+  transition: color var(--motion-base) var(--ease-out);
+}
+
+.film-age__node[data-on='true'] .film-age__dot {
+  background: var(--meet-accent);
+  border-color: var(--meet-accent);
+  transform: scale(1.2);
+}
+
+.film-age__node[data-on='true'] .film-age__label {
+  color: var(--meet-fg);
+}
+
+@media (max-width: 479px) {
+  .film-screen__bar {
+    justify-content: center;
+  }
+}
+
+@media (min-width: 900px) {
+  .pitbull-film[data-stage='true'] {
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  }
+
+  .pitbull-film[data-stage='true'] .pitbull-film__stage {
+    order: 0;
+    top: max(calc(var(--header-height, 72px) + 24px), calc(50vh - 220px));
+  }
+
+  .pitbull-film__row {
+    min-height: clamp(96px, 17vh, 150px);
+  }
+
+  .film-screen {
+    height: 19rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-film__row::before,
+  .pitbull-film__row-index,
+  .pitbull-film__row-name,
+  .film-screen__chapter,
+  .film-screen__chapter::after,
+  .film-lift,
+  .film-lift__mark,
+  .film-age__track,
+  .film-age__dot,
+  .film-age__label {
+    transition: none;
+  }
+
+  .pitbull-film__row[data-active='true'] .pitbull-film__row-name {
+    transform: none;
+  }
+}

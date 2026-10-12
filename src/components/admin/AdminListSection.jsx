@@ -45,6 +45,10 @@ function useIsNarrow(query = COMPACT_STATS_MQ) {
 
 export default function AdminListSection({
   actions,
+  /** Listado anidado bajo pestañas (Personas): la pestaña ya nombra la vista, así
+   * que el encabezado editorial (eyebrow, título, bajada) no se dibuja y las
+   * acciones suben a la fila del buscador. El título queda como h1 oculto. */
+  compactHeader = false,
   beforeFilters,
   beforeShell = null,
   children,
@@ -73,6 +77,9 @@ export default function AdminListSection({
   eyebrow,
   /** En viewports ≤1100px el resumen arranca colapsado (mobile + notebook). */
   collapseStatsOnMobile = true,
+  /** `false`: la página fluye y scrollea entera (Eventos, con su bloque
+   * principal). Por defecto el chrome queda fijo y solo scrollean las filas. */
+  pinned = true,
 }) {
   const { t } = useI18n()
   const resultLabel = formatRecordCount(t, filteredCount, totalCount)
@@ -87,7 +94,8 @@ export default function AdminListSection({
     .join(' ')
 
   const showActions = hasActions(actions) || Boolean(readOnlyHint)
-  const relocateActionsToFilters = isNarrow && showActions && variant === 'registrations'
+  const relocateActionsToFilters =
+    showActions && (compactHeader || (isNarrow && variant === 'registrations'))
   const headerActionsVisible = showActions && !relocateActionsToFilters
   const filterBarActions = mergeActionSlots(
     filterActions,
@@ -119,17 +127,20 @@ export default function AdminListSection({
   const statsExpanded = !useCollapsibleStats || statsOpen
   const hasActiveQuery = Boolean(query && String(query).trim())
   const filtersAreActive = filters.some(isFilterActive)
+  const isToolbarLayout = filterLayout === 'toolbar'
   // En angosto el título se oculta: el censo vive en el chip "Todos".
   // En popover, "N registros" solo aparece cuando la búsqueda o un filtro
   // recorta el padrón — si no, los chips ya dicen el total.
   const filterCount =
-    filterLayout === 'popover'
-      ? hasActiveQuery || filtersAreActive
-        ? resultLabel
-        : null
-      : (isNarrow || !showHeader) && (hasActiveQuery || !filtersCarryCounts)
-        ? resultLabel
-        : null
+    isToolbarLayout
+      ? resultLabel
+      : filterLayout === 'popover'
+        ? hasActiveQuery || filtersAreActive
+          ? resultLabel
+          : null
+        : (isNarrow || !showHeader) && (hasActiveQuery || !filtersCarryCounts)
+          ? resultLabel
+          : null
 
   const filterSignature = useMemo(
     () =>
@@ -151,8 +162,10 @@ export default function AdminListSection({
     return () => window.clearTimeout(timer)
   }, [filterSignature])
 
+  const isToolbar = filterLayout === 'toolbar'
   const filterBar = showFilterBar ? (
     <AdminFilterBar
+      extra={isToolbar ? beforeFilters : null}
       actions={filterBarActions}
       className={['admin-filters--external', variant ? `admin-filters--${variant}` : '']
         .filter(Boolean)
@@ -170,6 +183,7 @@ export default function AdminListSection({
 
   const hasExternalHeader =
     showHeader &&
+    !compactHeader &&
     (Boolean(title) ||
       Boolean(eyebrow) ||
       Boolean(subtitle) ||
@@ -177,13 +191,16 @@ export default function AdminListSection({
       headerActionsVisible)
   const hasExternalToolbar = !showHeader && (headerActionsVisible || Boolean(headerMeta))
   const hasChrome =
-    hasExternalHeader || hasExternalToolbar || Boolean(beforeFilters) || Boolean(filterBar)
+    hasExternalHeader ||
+    hasExternalToolbar ||
+    (Boolean(beforeFilters) && !(isToolbar && filterBar)) ||
+    Boolean(filterBar)
 
   return (
     <div
       className={[
         'admin-list-section',
-        'admin-list-section--rails',
+        pinned ? 'admin-list-section--rails' : 'admin-list-section--flow',
         variant ? `admin-list-section--${variant}` : '',
       ]
         .filter(Boolean)
@@ -191,6 +208,7 @@ export default function AdminListSection({
     >
       {hasChrome ? (
         <div className="admin-list-section__chrome">
+          {compactHeader && title ? <h1 className="visually-hidden">{title}</h1> : null}
           {hasExternalHeader ? (
             <header className="admin-list-section__header admin-list-shell__header">
               <div className="admin-list-shell__intro">
@@ -228,7 +246,7 @@ export default function AdminListSection({
             </div>
           ) : null}
 
-          {beforeFilters}
+          {isToolbar && filterBar ? null : beforeFilters}
           {filterBar}
         </div>
       ) : null}

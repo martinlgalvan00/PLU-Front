@@ -24,6 +24,8 @@ export function useOfflineCheckinSync(eventSlug) {
   const [syncing, setSyncing] = useState(false)
   const [lastSyncedAt, setLastSyncedAt] = useState(null)
   const [lastDownloadedAt, setLastDownloadedAt] = useState(null)
+  // 'auth' = la sesión del puesto venció con ingresos todavía en la cola.
+  const [syncIssue, setSyncIssue] = useState(null)
   const syncingRef = useRef(false)
 
   const refreshCounts = useCallback(async () => {
@@ -37,7 +39,8 @@ export function useOfflineCheckinSync(eventSlug) {
     syncingRef.current = true
     setSyncing(true)
     try {
-      await syncPendingCheckins()
+      const results = await syncPendingCheckins()
+      setSyncIssue(results.some((item) => item.outcome === 'auth') ? 'auth' : null)
       // Best-effort y aparte del check-in real: si la telemetría falla, no
       // puede tumbar la sincronización de ingresos que sí importan.
       if (eventSlug) await syncPendingScanEvents(eventSlug).catch(() => {})
@@ -88,6 +91,7 @@ export function useOfflineCheckinSync(eventSlug) {
     pendingCount,
     conflictCount,
     syncing,
+    syncIssue,
     lastSyncedAt,
     lastDownloadedAt,
     syncNow,

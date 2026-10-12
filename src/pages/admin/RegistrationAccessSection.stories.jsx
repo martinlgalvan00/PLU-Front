@@ -278,7 +278,7 @@ export const EditorAbierto = {
   beforeEach: () => mockPlatformSettings(defaultToggles),
   play: async ({ canvasElement }) => {
     const configure = Array.from(canvasElement.querySelectorAll('button')).find((item) =>
-      /Configurar|Configure/i.test(item.textContent || ''),
+      /Configurar|Reabrir|Configure|Reopen/i.test(item.textContent || ''),
     )
     configure?.click()
   },

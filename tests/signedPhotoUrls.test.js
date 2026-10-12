@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { ATHLETE_PHOTO_MAX_EDGE, fitImageWithin } from '../src/lib/compressImageFile.js'
+import {
+  ATHLETE_PHOTO_MAX_EDGE,
+  SHOP_PRODUCT_MAX_EDGE,
+  fitImageWithin,
+} from '../src/lib/compressImageFile.js'
 import {
   missingAthletePhotoPaths,
   preserveAthletePhotoUrls,
@@ -15,6 +19,13 @@ describe('fitImageWithin', () => {
     expect(fitImageWithin(2400, 1800, ATHLETE_PHOTO_MAX_EDGE)).toEqual({
       width: ATHLETE_PHOTO_MAX_EDGE,
       height: Math.round((1800 * ATHLETE_PHOTO_MAX_EDGE) / 2400),
+    })
+  })
+
+  it('acota fotos de catálogo al borde de shop product', () => {
+    expect(fitImageWithin(4000, 3000, SHOP_PRODUCT_MAX_EDGE)).toEqual({
+      width: SHOP_PRODUCT_MAX_EDGE,
+      height: Math.round((3000 * SHOP_PRODUCT_MAX_EDGE) / 4000),
     })
   })
 })

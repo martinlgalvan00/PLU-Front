@@ -13,7 +13,8 @@ import {
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { isRegistrationOpen } from '../lib/status.js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
-import { apiDelete, apiGet, apiPost } from '../lib/api.js'
+import { ApiError, apiDelete, apiGet, apiPatch, apiPost } from '../lib/api.js'
+import { compressImageFile } from '../lib/compressImageFile.js'
 import { normalizeTicketCredentials } from '../lib/ticketCredentials.js'
 import { normalizeEventPaymentChannelOverrides } from '../lib/eventPaymentChannels.js'
 import { normalizeTicketTypePaymentChannels } from '../lib/ticketTypePaymentChannels.js'
@@ -46,7 +47,12 @@ function slugify(title, dateISO) {
 function formatEventDate(dateISO) {
   if (!dateISO) return '—'
   const date = new Date(`${dateISO}T12:00:00`)
-  return date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }).replace('.', '')
+  // Según el motor, es-AR da "12 dic" o "12-dic". `EventCard` separa día y mes
+  // por espacio, así que el guion partía mal la fecha en dos líneas.
+  return date
+    .toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })
+    .replace('.', '')
+    .replace('-', ' ')
 }
 
 function toDateTimeLocal(value) {
@@ -732,6 +738,8 @@ export function mapSupabaseEventRow(row) {
     requiresMembership: row.requires_membership !== false,
     capacityProgressPublic: row.capacity_progress_public !== false,
     capacityTotalPublic: row.capacity_total_public !== false,
+    logoPath: row.logo_path ?? null,
+    logoUrl: row.logo_url ?? null,
     paymentChannelOverrides: normalizeEventPaymentChannelOverrides(row.payment_channel_overrides),
     bankTransfer: {
       alias: row.bank_transfer_alias ?? '',
@@ -999,5 +1007,68 @@ export async function deleteAdminEventRequest(slug, { force = false } = {}) {
   return {
     deletedEvent: response.deletedEvent,
     events: (response.events ?? []).map(mapAdminEventRow),
+  }
+}
+
+// ------------------------------------------------------------------ logo
+// Logo / foto del evento: se sube directo a Storage con URL firmada y después se
+// guarda la ruta. No pasa por el upsert del evento (ver server/routes/events.js).
+
+export const EVENT_LOGO_MAX_BYTES = 3 * 1024 * 1024
+const EVENT_LOGO_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+/** 512px cubre el hero del panel a 2x; WebP conserva la transparencia de los logos. */
+const EVENT_LOGO_MAX_EDGE = 512
+const EVENT_LOGO_TARGET_BYTES = 160 * 1024
+
+export function validateEventLogoFile(file) {
+  if (!file) return { error: 'Elegí una imagen.' }
+  if (!EVENT_LOGO_MIME_TYPES.has(file.type)) return { error: 'Usá una imagen JPG, PNG o WEBP.' }
+  if (file.size > EVENT_LOGO_MAX_BYTES) return { error: 'La imagen supera el límite de 3 MB.' }
+  return { ok: true }
+}
+
+/**
+ * Sube la imagen y deja guardado el logo. Devuelve `{ event, events }` ya
+ * mapeados; con `file = null` quita el logo.
+ */
+export async function setEventLogoRequest(slug, file) {
+  if (!slug) throw new Error('Falta el slug del evento.')
+  const base = `/api/events/${encodeURIComponent(slug)}/logo`
+
+  let path = null
+  if (file) {
+    const validation = validateEventLogoFile(file)
+    if (validation.error) throw new ApiError(validation.error, { status: 400 })
+    if (!isSupabaseConfigured) {
+      throw new ApiError('Supabase no está configurado. No se puede subir la imagen.', {
+        status: 503,
+      })
+    }
+
+    const prepared = await compressImageFile(file, {
+      maxEdge: EVENT_LOGO_MAX_EDGE,
+      quality: 0.86,
+      targetMaxBytes: EVENT_LOGO_TARGET_BYTES,
+      skipUnderBytes: EVENT_LOGO_TARGET_BYTES,
+    })
+    const upload = await apiPost(`${base}/upload-url`, {
+      contentType: prepared.type,
+      size: prepared.size,
+    })
+    const supabase = await getSupabaseClient()
+    const { error } = await supabase.storage
+      .from('event-logos')
+      .uploadToSignedUrl(upload.path, upload.token, prepared, {
+        contentType: prepared.type,
+        cacheControl: '31536000',
+      })
+    if (error) throw new ApiError(error.message || 'No se pudo subir la imagen.', { status: 502 })
+    path = upload.path
+  }
+
+  const response = await apiPatch(base, { path })
+  return {
+    event: mapAdminEventRow(response.event),
+    events: (response.events ?? [response.event]).map(mapAdminEventRow),
   }
 }

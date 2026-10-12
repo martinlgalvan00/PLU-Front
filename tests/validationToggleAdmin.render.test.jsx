@@ -27,9 +27,12 @@ vi.mock('../src/services/platformSettingsAdminService.js', async (importOriginal
 })
 
 const { listAthletePaymentOrders } = await import('../src/services/athleteApi.js')
-const { fetchPlatformFeatureToggles, savePaymentChannel, PLATFORM_TOGGLE_KEYS } = await import(
-  '../src/services/platformSettingsAdminService.js'
-)
+const {
+  fetchPlatformFeatureToggles,
+  savePaymentChannel,
+  savePlatformFeatureToggle,
+  PLATFORM_TOGGLE_KEYS,
+} = await import('../src/services/platformSettingsAdminService.js')
 
 const ALL_OPEN = { mercado_pago: true, bank_transfer: true, cash_pitbull: true, wise_transfer: true }
 
@@ -303,6 +306,111 @@ describe('pantalla de Acceso y habilitación', () => {
     expect(
       screen.getByRole('checkbox', { name: /habilitar validación de afiliaciones/i }).checked,
     ).toBe(true)
+  })
+
+  it('ordena la matriz por concepto, con un grupo nombrado por fila', async () => {
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(togglesState())
+
+    renderAccessSection()
+    await waitFor(() => expect(screen.getAllByRole('checkbox')).toHaveLength(18))
+
+    // Cada fila agrupa alta, medios y validación de un concepto: seis
+    // interruptores para afiliaciones e inscripciones, cinco para entradas.
+    const rows = [
+      [/^afiliaciones$/i, 6],
+      [/^inscripciones$/i, 6],
+      [/^entradas$/i, 5],
+    ]
+    for (const [name, count] of rows) {
+      const group = screen.getByRole('group', { name })
+      expect(within(group).getAllByRole('checkbox')).toHaveLength(count)
+    }
+  })
+
+  it('cierra el alta de un concepto sin tocar sus medios', async () => {
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(togglesState())
+    vi.mocked(savePlatformFeatureToggle).mockResolvedValue(
+      togglesState({ membershipEnabled: false }),
+    )
+
+    renderAccessSection()
+    const intake = await waitFor(() =>
+      screen.getByRole('checkbox', { name: /^habilitar afiliaciones$/i }),
+    )
+    fireEvent.click(intake)
+
+    await waitFor(() =>
+      expect(savePlatformFeatureToggle).toHaveBeenCalledWith('membership', false),
+    )
+    await waitFor(() => expect(intake.checked).toBe(false))
+    expect(
+      screen.getByRole('checkbox', { name: /habilitar wise para afiliaciones/i }).checked,
+    ).toBe(true)
+  })
+
+  it('dice Pausados cuando el interruptor maestro está apagado', async () => {
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(
+      togglesState({ checkoutEnabled: false }),
+    )
+
+    renderAccessSection()
+
+    expect(await screen.findByText('Pausados')).toBeTruthy()
+    expect(screen.getByRole('checkbox', { name: /habilitar cobros generales/i }).checked).toBe(
+      false,
+    )
+  })
+
+  it('lista las tandas privadas en una tabla con su estado y sus acciones', async () => {
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(togglesState())
+    const future = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString()
+
+    render(
+      <I18nProvider>
+        <RegistrationAccessSection
+          canEdit
+          configuration={{
+            membershipGate: null,
+            eventGates: [
+              {
+                id: 'gate-event-1',
+                scope: 'registration',
+                eventSlug: 'pitbull-classic-2026',
+                eventTitle: 'Pitbull Classic 2026',
+                label: 'Staff y jueces',
+                active: true,
+                startsAt: null,
+                endsAt: future,
+              },
+            ],
+          }}
+          adminEvents={[]}
+          onRefresh={() => {}}
+          onSave={async () => ({})}
+        />
+      </I18nProvider>,
+    )
+
+    const table = within(await screen.findByRole('table'))
+    // Afiliaciones siempre tiene fila: sin tanda ofrece Configurar y no Eliminar.
+    expect(table.getByText('Sin código, según su ventana normal')).toBeTruthy()
+    expect(table.getAllByRole('button', { name: /^configurar$/i })).toHaveLength(1)
+    // La de torneo se lee por evento, con estado y con editar/eliminar.
+    expect(table.getByText('Pitbull Classic 2026')).toBeTruthy()
+    expect(table.getByText('Staff y jueces')).toBeTruthy()
+    expect(table.getByText('Abierta')).toBeTruthy()
+    expect(table.getByRole('button', { name: /^editar$/i })).toBeTruthy()
+    expect(table.getAllByRole('button', { name: /^eliminar$/i })).toHaveLength(1)
+  })
+
+  it('sin permiso de edición la tabla de tandas no ofrece acciones', async () => {
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(togglesState())
+
+    renderAccessSection({ canEdit: false })
+
+    const table = within(await screen.findByRole('table'))
+    expect(table.queryAllByRole('button')).toHaveLength(0)
+    expect(screen.queryByRole('button', { name: /nueva tanda/i })).toBeNull()
   })
 
   it('reabre una tanda cerrada sin arrastrar su fecha de cierre vencida', async () => {

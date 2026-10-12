@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Search, X } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import PaymentExpiryPanel from '../../components/admin/PaymentExpiryPanel.jsx'
 import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
@@ -11,6 +11,7 @@ import { fetchPlatformFeatureToggles } from '../../services/platformSettingsAdmi
 import AthletePaymentOrdersSection from './AthletePaymentOrdersSection.jsx'
 import TicketOrdersSection from './TicketOrdersSection.jsx'
 import PaymentOrderSearch from '../../components/admin/PaymentOrderSearch.jsx'
+import '../../styles/pages/admin-payments.css'
 
 /**
  * Interruptores de validación por concepto. Todo habilitado es el estado por
@@ -51,6 +52,9 @@ export default function PaymentsOperationsSection({
   const { startTour } = useAdminTour()
   const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab] = useState('athletes')
+  // El buscador cruzado es una herramienta bajo demanda, no una barra fija: la
+  // cola ya tiene su propio buscador, y dos campos seguidos eran el mismo gesto.
+  const [crossSearchOpen, setCrossSearchOpen] = useState(false)
   const [validation, setValidation] = useState(VALIDATION_OPEN)
   const [athleteRefreshKey, setAthleteRefreshKey] = useState(0)
   const [athleteStatusRequest, _setAthleteStatusRequest] = useState(null)
@@ -117,6 +121,7 @@ export default function PaymentsOperationsSection({
    */
   function handleSelectSearchResult(result) {
     if (!result) return
+    setCrossSearchOpen(false)
     if (result.kind === 'athlete') {
       setActiveTab('athletes')
       setSearchHighlightOrderId(result.id)
@@ -162,41 +167,42 @@ export default function PaymentsOperationsSection({
         <div className="admin-payments-ops-masthead">
           <header className="admin-list-section__header admin-list-shell__header admin-payments-ops-top">
             <div className="admin-list-shell__intro">
-              <span className="admin-list-shell__eyebrow">{t('admin.paymentOperations.eyebrow')}</span>
               <h1 className="admin-list-shell__title">{t('admin.paymentOperations.title')}</h1>
               <p className="admin-list-shell__subtitle">{t('admin.paymentOperations.subtitle')}</p>
             </div>
-            <p
-              className={`admin-payments-ops-pulse${
-                (athletesPending ?? 0) > 0 ? ' admin-payments-ops-pulse--warning' : ''
-              }`}
-              aria-label={t('admin.paymentOperations.opsStripAria')}
-            >
-              <span className="admin-payments-ops-pulse__stat">
-                <strong className="admin-payments-ops-pulse__value">
-                  {athletesPending == null ? '—' : athletesPending}
-                </strong>
-                <span className="admin-payments-ops-pulse__label">
-                  {t('admin.paymentOperations.pulseLabel')}
+            <div className="admin-payments-ops-pulse-group">
+              <p
+                className={`admin-payments-ops-pulse${
+                  (athletesPending ?? 0) > 0 ? ' admin-payments-ops-pulse--warning' : ''
+                }`}
+                aria-label={t('admin.paymentOperations.opsStripAria')}
+              >
+                <span className="admin-payments-ops-pulse__stat">
+                  <strong className="admin-payments-ops-pulse__value">
+                    {athletesPending == null ? '—' : athletesPending}
+                  </strong>
+                  <span className="admin-payments-ops-pulse__label">
+                    {t('admin.paymentOperations.pulseLabel')}
+                  </span>
                 </span>
-              </span>
-              <span className="admin-payments-ops-pulse__stat">
-                <strong className="admin-payments-ops-pulse__value admin-payments-ops-pulse__value--amount">
-                  {money(athleteSummary.openAmount ?? 0, locale)}
-                </strong>
-                <span className="admin-payments-ops-pulse__label">
-                  {t('admin.paymentOperations.pulseAmountCaption')}
+                <span className="admin-payments-ops-pulse__stat">
+                  <strong className="admin-payments-ops-pulse__value admin-payments-ops-pulse__value--amount">
+                    {money(athleteSummary.openAmount ?? 0, locale)}
+                  </strong>
+                  <span className="admin-payments-ops-pulse__label">
+                    {t('admin.paymentOperations.pulseAmountCaption')}
+                  </span>
                 </span>
-              </span>
-            </p>
-            <div className="admin-list-shell__actions admin-payments-ops-top__actions">
-              <AdminIconButton
-                icon={RefreshCw}
-                label={t('admin.paymentOperations.refresh')}
-                spinning={refreshing}
-                disabled={refreshing}
-                onClick={() => void refreshAll()}
-              />
+              </p>
+              <div className="admin-list-shell__actions admin-payments-ops-top__actions">
+                <AdminIconButton
+                  icon={RefreshCw}
+                  label={t('admin.paymentOperations.refresh')}
+                  spinning={refreshing}
+                  disabled={refreshing}
+                  onClick={() => void refreshAll()}
+                />
+              </div>
             </div>
           </header>
 
@@ -208,20 +214,26 @@ export default function PaymentsOperationsSection({
               onChange={setActiveTab}
               options={tabOptions}
             />
+            <button
+              type="button"
+              className={`admin-payments-ops-top__find${crossSearchOpen ? ' is-open' : ''}`}
+              aria-expanded={crossSearchOpen}
+              aria-controls="admin-payment-cross-search"
+              onClick={() => setCrossSearchOpen((open) => !open)}
+            >
+              {crossSearchOpen ? <X size={15} aria-hidden /> : <Search size={15} aria-hidden />}
+              {crossSearchOpen ? t('admin.paymentSearch.toggleClose') : t('admin.paymentSearch.toggle')}
+            </button>
           </div>
         </div>
       </div>
 
       <div className="admin-payments-operations__body">
-      <PaymentOrderSearch onSelectResult={handleSelectSearchResult} />
-
-      {/* Cierre automático: vive arriba de las pestañas, no como un `__panel`
-          más. Esos paneles se apilan en la misma celda (display none/block);
-          si el vencimiento entra en esa pila, Órdenes se pinta encima y el
-          plazo queda ilegible. */}
-      <div className="admin-payments-operations__expiry" hidden={activeTab === 'tickets'}>
-        <PaymentExpiryPanel canEdit={canEdit} />
-      </div>
+      {crossSearchOpen ? (
+        <div id="admin-payment-cross-search">
+          <PaymentOrderSearch onSelectResult={handleSelectSearchResult} autoFocus />
+        </div>
+      ) : null}
 
       <div
         className="admin-payments-operations__panel"
@@ -261,6 +273,15 @@ export default function PaymentsOperationsSection({
         />
       </div>
 
+
+      {/* Cierre automático: es configuración, no trabajo. Va debajo de las
+          colas para que lo primero que se ve sean las órdenes por resolver.
+          Queda fuera de los `__panel` (se apilan en la misma celda con
+          display none/block): si el vencimiento entrara en esa pila, Órdenes
+          se pintaría encima y el plazo quedaría ilegible. */}
+      <div className="admin-payments-operations__expiry" hidden={activeTab === 'tickets'}>
+        <PaymentExpiryPanel canEdit={canEdit} />
+      </div>
       </div>
     </div>
   )

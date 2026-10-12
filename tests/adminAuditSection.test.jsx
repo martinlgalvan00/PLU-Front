@@ -31,6 +31,7 @@ vi.mock('../src/services/auditService.js', async () => {
   return {
     ...actual,
     fetchAuditEntries: vi.fn(),
+    fetchAuditEventContext: vi.fn(),
     fetchAuditFacets: vi.fn(),
     fetchAuditOverview: vi.fn(),
   }
@@ -52,9 +53,13 @@ vi.mock('../src/lib/credentialQr.js', () => ({
   generateStyledAthleteCredentialQr: vi.fn(async () => 'data:image/png;base64,QR'),
 }))
 
-const { fetchAuditEntries, fetchAuditFacets, fetchAuditOverview, normalizeAuditEntry } = await import(
-  '../src/services/auditService.js'
-)
+const {
+  fetchAuditEntries,
+  fetchAuditEventContext,
+  fetchAuditFacets,
+  fetchAuditOverview,
+  normalizeAuditEntry,
+} = await import('../src/services/auditService.js')
 const { getMembershipCredential } = await import('../src/services/athleteApi.js')
 const { getPaymentOrderAudit, getPaymentOperations } = await import('../src/services/paymentService.js')
 const AuditSection = (await import('../src/pages/admin/AuditSection.jsx')).default
@@ -99,7 +104,7 @@ describe('sección de auditoría', () => {
     })
   })
 
-  it('muestra la bitácora con la acción traducida y el detalle operativo', async () => {
+  it('muestra la bitácora con la acción traducida y el dato que identifica la operación', async () => {
     fetchAuditOverview.mockResolvedValue(healthyOverview())
     fetchAuditFacets.mockResolvedValue({
       actions: ['membership.activated'],
@@ -124,22 +129,18 @@ describe('sección de auditoría', () => {
 
     renderWithI18n(<AuditSection />)
 
-    // Se espera por el detalle y no por la acción: la acción también aparece
-    // como opción del filtro, que carga antes que la tabla.
-    // `DataTable` emite la tabla y las cards mobile a la vez y las alterna por
-    // CSS, así que cada celda aparece dos veces en el DOM: se consulta en
-    // plural. Se espera por el detalle y no por la acción, que también
-    // aparece como opción del filtro y carga antes que la tabla.
-    expect(await screen.findAllByText('PLU-ARG-2026-014')).not.toHaveLength(0)
-    expect(screen.getAllByText('Afiliación activada').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('mem-1').length).toBeGreaterThan(0)
+    expect(await screen.findByText('PLU-ARG-2026-014')).toBeTruthy()
+    expect(screen.getByText('Afiliación activada')).toBeTruthy()
     // El origen se traduce: `webhook` no le dice nada a un operador.
-    expect(screen.getAllByText('Mercado Pago').length).toBeGreaterThan(0)
+    expect(screen.getByText(/Mercado Pago/)).toBeTruthy()
     // Y el campo de metadata también: `memberCode` tampoco.
-    expect(screen.getAllByText('Código').length).toBeGreaterThan(0)
+    expect(screen.getByText('Código')).toBeTruthy()
+    // Los ids técnicos no se repiten en cada fila: viven en el detalle.
+    expect(screen.queryByText('mem-1')).toBeNull()
+    expect(screen.queryByText('mp-8891')).toBeNull()
   })
 
-  it('explica el webhook fallido con el error completo y los ids atrás', async () => {
+  it('explica el webhook fallido con el motivo y los datos de la operación', async () => {
     const error =
       'Si quieres conocer los motivos del rechazo, por favor ingresá a tu cuenta de Mercado Pago.'
     fetchAuditOverview.mockResolvedValue(healthyOverview())
@@ -167,12 +168,16 @@ describe('sección de auditoría', () => {
 
     renderWithI18n(<AuditSection />)
 
-    expect(await screen.findAllByText(error)).not.toHaveLength(0)
-    expect(screen.getAllByText('Webhook de pago fallido').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Intento').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('5').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Referencias técnicas').length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/Pagos · Mercado Pago/).length).toBeGreaterThan(0)
+    expect(await screen.findByText('Webhook de pago fallido')).toBeTruthy()
+    // El motivo lidera la fila, en lenguaje del negocio (no el texto crudo).
+    const lead = document.querySelector('.audit-feed__lead')
+    expect(lead).toBeTruthy()
+    expect(lead.textContent.length).toBeGreaterThan(0)
+    expect(screen.getByText('Intento')).toBeTruthy()
+    expect(screen.getByText('5')).toBeTruthy()
+    expect(screen.getByText(/Pagos · Mercado Pago/)).toBeTruthy()
+    // Los ids largos quedan atrás, en el detalle.
+    expect(screen.queryByText('4659014d-e322-4f7b-acf5-3ff4191f3c4c')).toBeNull()
   })
 
   it('muestra un vacío legible cuando no hay registros', async () => {
@@ -235,6 +240,49 @@ describe('sección de auditoría', () => {
     expect(screen.getAllByText('181').length).toBeGreaterThan(0)
   })
 
+  it('"Críticos" deja solo lo que falló de verdad y marca cada fila con su severidad', async () => {
+    fetchAuditOverview.mockResolvedValue(healthyOverview())
+    fetchAuditFacets.mockResolvedValue({ actions: [], entityTypes: [], actorTypes: [] })
+    fetchAuditEntries.mockResolvedValue({
+      entries: [
+        normalizeAuditEntry({
+          id: 'crit-1',
+          action: 'payment.webhook_failed',
+          entity_type: 'payment',
+          entity_id: 'pay-1',
+          actor_type: 'webhook',
+          source: 'payment',
+          status: 'failed',
+          severity: 'danger',
+          created_at: '2026-08-16T12:00:00.000Z',
+        }),
+        normalizeAuditEntry({
+          id: 'warn-1',
+          action: 'email.rejected',
+          entity_type: 'email_delivery',
+          entity_id: 'mail-1',
+          actor_type: 'system',
+          source: 'email',
+          status: 'rejected',
+          created_at: '2026-08-16T12:01:00.000Z',
+        }),
+      ],
+      nextCursor: null,
+    })
+
+    renderWithI18n(<AuditSection />)
+
+    expect(await screen.findAllByText('Email rechazado por Brevo')).not.toHaveLength(0)
+    const critical = screen.getByRole('button', { name: /^Críticos/ })
+    expect(critical.textContent).toMatch(/1/)
+
+    fireEvent.click(critical)
+
+    await waitFor(() => expect(critical.getAttribute('aria-pressed')).toBe('true'))
+    expect(screen.queryAllByText('Email rechazado por Brevo')).toHaveLength(0)
+    expect(screen.getAllByText('Crítico').length).toBeGreaterThan(0)
+  })
+
   it('incluye warnings en Solo errores y deja activar el toggle con filas cargadas', async () => {
     fetchAuditOverview.mockResolvedValue(healthyOverview())
     fetchAuditFacets.mockResolvedValue({ actions: [], entityTypes: [], actorTypes: [] })
@@ -280,7 +328,7 @@ describe('sección de auditoría', () => {
     expect(screen.getAllByText('Email rechazado por Brevo').length).toBeGreaterThan(0)
   })
 
-  it('deja fuente y estado a la vista y pliega acción, actor y entidad', async () => {
+  it('reúne todos los criterios en un solo popover «Filtros» y deja la severidad a la vista', async () => {
     fetchAuditOverview.mockResolvedValue(healthyOverview())
     fetchAuditFacets.mockResolvedValue({
       actions: ['membership.activated'],
@@ -293,27 +341,23 @@ describe('sección de auditoría', () => {
 
     renderWithI18n(<AuditSection />)
 
-    expect(await screen.findByRole('button', { name: 'Negocio' })).toBeTruthy()
-    expect(screen.getByRole('group', { name: 'Estado' })).toBeTruthy()
-    expect(screen.getByLabelText('Categoría')).toBeTruthy()
+    const trigger = await screen.findByRole('button', { name: /^Filtros/ })
+    // A la vista: la severidad. El resto no ocupa la barra hasta abrir «Filtros».
+    expect(screen.getByRole('group', { name: 'Mostrar' })).toBeTruthy()
     expect(screen.queryByLabelText('Acción')).toBeNull()
     expect(screen.queryByLabelText('Actor')).toBeNull()
     expect(screen.queryByLabelText('Entidad')).toBeNull()
-    expect(screen.getByRole('button', { name: 'Más criterios' })).toBeTruthy()
 
-    screen.getByRole('button', { name: 'Más criterios' }).click()
+    fireEvent.click(trigger)
 
     // Por label y no por texto: "Acción", "Actor", "Entidad" y "Estado" son el
-    // mismo literal en tres lugares distintos de esta pantalla —el filtro
-    // (`admin.audit.filter*`), la columna de la bitácora (`admin.audit.column*`)
-    // y el detalle del evento (`admin.auditDetail.fact*`)—. `getByText` no
-    // distingue cuál encontró y explota con "Found multiple elements" en cuanto
-    // hay una tabla con filas o un detalle abierto; la simetría con las
-    // aserciones de arriba (`queryByLabelText`) es además la que expresa lo que
-    // el test quiere: que el filtro exista como control con label.
+    // mismo literal en varios lugares de esta pantalla (el filtro, el detalle
+    // del evento). `getByText` no distingue cuál encontró; el label sí.
     expect(await screen.findByLabelText('Acción')).toBeTruthy()
     expect(screen.getByLabelText('Actor')).toBeTruthy()
     expect(screen.getByLabelText('Entidad')).toBeTruthy()
+    expect(screen.getByRole('group', { name: 'Fuente' })).toBeTruthy()
+    expect(screen.getByRole('group', { name: 'Estado' })).toBeTruthy()
   })
 
   /**
@@ -340,12 +384,15 @@ describe('sección de auditoría', () => {
 
     renderWithI18n(<AuditSection />)
 
-    const categoria = await screen.findByLabelText('Categoría')
-    // Como se usa Ant Design Select, las opciones no se renderizan al DOM 
-    // hasta que el usuario abre el dropdown. Solo validamos que esté el filtro.
-    expect(categoria).toBeTruthy()
-    
-    // No disparamos fireEvent.change porque Antd Select no usa native selects.
+    // La categoría vive en «Filtros»: se abre el popover y se elige del select.
+    fireEvent.click(await screen.findByRole('button', { name: /^Filtros/ }))
+    fireEvent.change(await screen.findByLabelText('Categoría'), { target: { value: 'acceso' } })
+
+    await waitFor(() =>
+      expect(fetchAuditEntries).toHaveBeenCalledWith(
+        expect.objectContaining({ category: 'acceso' }),
+      ),
+    )
   })
 
   it('guarda, aplica y elimina una vista de filtros', async () => {
@@ -386,7 +433,7 @@ describe('sección de auditoría', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Morosos' })).toBeNull())
   })
 
-  it('explica el recorrido y muestra la salud de toda la operación antes de los filtros', async () => {
+  it('muestra primero el estado de la operación, antes de la búsqueda, y deja la guía cerrada a mano', async () => {
     fetchAuditOverview.mockResolvedValue(healthyOverview({ status: 'attention', emailAttention: 2 }))
     fetchAuditFacets.mockResolvedValue({
       actions: [],
@@ -400,56 +447,175 @@ describe('sección de auditoría', () => {
     renderWithI18n(<AuditSection />)
 
     expect(await screen.findByText('Seguimiento completo de cada operación')).toBeTruthy()
+    expect(document.querySelector('.audit-flow-guide').open).toBe(false)
     fireEvent.click(screen.getByText('Seguimiento completo de cada operación'))
     expect(screen.getByText('1. Revisá el estado general')).toBeTruthy()
     expect(screen.getByText('2. Encontrá el hecho')).toBeTruthy()
     expect(screen.getByText('3. Abrí el contexto')).toBeTruthy()
     const health = await screen.findByRole('region', { name: 'Salud de la operación' })
-    const filters = screen.getByRole('group', { name: 'Fuente' })
-    expect(health.compareDocumentPosition(filters) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const search = screen.getByRole('search')
+    expect(health.compareDocumentPosition(search) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('cambia la tabla por fichas operativas al abrirse en mobile', async () => {
-    const previousMatchMedia = window.matchMedia
-    window.matchMedia = () => ({
-      matches: true,
-      media: '(max-width: 768px)',
-      onchange: null,
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      addListener: () => {},
-      removeListener: () => {},
-      dispatchEvent: () => false,
+  it('muestra cada evento como una fila que abre su detalle, sin tabla', async () => {
+    fetchAuditOverview.mockResolvedValue(healthyOverview())
+    fetchAuditFacets.mockResolvedValue({ actions: [], entityTypes: [], actorTypes: [] })
+    fetchAuditEntries.mockResolvedValue({
+      entries: [
+        normalizeAuditEntry({
+          id: 'row-log',
+          action: 'membership.activated',
+          entity_type: 'membership',
+          entity_id: 'mem-row',
+          actor_type: 'staff',
+          source: 'domain',
+          metadata: { memberCode: 'PLU-ROW-01' },
+          created_at: '2026-08-16T12:00:00.000Z',
+        }),
+      ],
+      nextCursor: null,
     })
 
-    try {
-      fetchAuditOverview.mockResolvedValue(healthyOverview())
-      fetchAuditFacets.mockResolvedValue({ actions: [], entityTypes: [], actorTypes: [] })
-      fetchAuditEntries.mockResolvedValue({
-        entries: [
-          normalizeAuditEntry({
-            id: 'mobile-log',
-            action: 'membership.activated',
-            entity_type: 'membership',
-            entity_id: 'mem-mobile',
-            actor_type: 'staff',
-            source: 'domain',
-            metadata: { memberCode: 'PLU-MOBILE-01' },
-            created_at: '2026-08-16T12:00:00.000Z',
-          }),
-        ],
-        nextCursor: null,
-      })
+    renderWithI18n(<AuditSection />)
 
-      renderWithI18n(<AuditSection />)
+    expect(await screen.findByText('PLU-ROW-01')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Ver detalle y contexto/ })).toBeTruthy()
+    expect(document.querySelector('.audit-feed')).toBeTruthy()
+    // Una sola presentación para todos los anchos: ni tabla ni fichas aparte.
+    expect(document.querySelector('table')).toBeNull()
+    expect(document.querySelector('.audit-mobile-list')).toBeNull()
+  })
 
-      expect(await screen.findByText('PLU-MOBILE-01')).toBeTruthy()
-      expect(screen.getByRole('button', { name: 'Ver detalle y contexto' })).toBeTruthy()
-      expect(document.querySelector('.audit-mobile-list')).toBeTruthy()
-      expect(document.querySelector('.audit-desktop-table')).toBeNull()
-    } finally {
-      window.matchMedia = previousMatchMedia
-    }
+  it('agrupa los eventos por día', async () => {
+    const now = Date.now()
+    fetchAuditOverview.mockResolvedValue(healthyOverview())
+    fetchAuditFacets.mockResolvedValue({ actions: [], entityTypes: [], actorTypes: [] })
+    fetchAuditEntries.mockResolvedValue({
+      entries: [
+        normalizeAuditEntry({
+          id: 'today',
+          action: 'membership.activated',
+          entity_type: 'membership',
+          entity_id: 'm-1',
+          actor_type: 'staff',
+          created_at: new Date(now).toISOString(),
+        }),
+        normalizeAuditEntry({
+          id: 'yesterday',
+          action: 'membership.expired',
+          entity_type: 'membership',
+          entity_id: 'm-2',
+          actor_type: 'cron',
+          created_at: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
+        }),
+      ],
+      nextCursor: null,
+    })
+
+    renderWithI18n(<AuditSection />)
+
+    expect(await screen.findByRole('heading', { level: 3, name: /^Hoy/ })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 3, name: /^Ayer/ })).toBeTruthy()
+  })
+
+  it('marca un incidente con texto accesible y no solo con color', async () => {
+    fetchAuditOverview.mockResolvedValue(healthyOverview())
+    fetchAuditFacets.mockResolvedValue({ actions: [], entityTypes: [], actorTypes: [] })
+    fetchAuditEntries.mockResolvedValue({
+      entries: [
+        normalizeAuditEntry({
+          id: 'bad',
+          action: 'payment_attempt.failed',
+          entity_type: 'payment_integration_event',
+          entity_id: 'e-1',
+          actor_type: 'system',
+          severity: 'danger',
+          source: 'payment',
+          created_at: '2026-08-13T21:58:44.000Z',
+        }),
+        normalizeAuditEntry({
+          id: 'good',
+          action: 'membership.activated',
+          entity_type: 'membership',
+          entity_id: 'm-9',
+          actor_type: 'staff',
+          created_at: '2026-08-13T21:00:00.000Z',
+        }),
+      ],
+      nextCursor: null,
+    })
+
+    renderWithI18n(<AuditSection />)
+
+    const incident = await screen.findByRole('button', { name: /Intento de pago fallido.*Crítico/ })
+    expect(incident).toBeTruthy()
+    // Una fila sin incidente no lleva etiqueta de severidad.
+    expect(screen.getByRole('button', { name: /Afiliación activada/ }).textContent).not.toMatch(
+      /Crítico|Atención/,
+    )
+  })
+
+  it('traduce los cambios de roles y cuentas en vez de mostrar la clave interna', async () => {
+    fetchAuditOverview.mockResolvedValue(healthyOverview())
+    fetchAuditFacets.mockResolvedValue({ actions: [], entityTypes: [], actorTypes: [] })
+    fetchAuditEntries.mockResolvedValue({
+      entries: [
+        normalizeAuditEntry({
+          id: 'role',
+          action: 'access_role.permissions_updated',
+          entity_type: 'access_role',
+          entity_id: 'tesoreria',
+          actor_type: 'staff',
+          source: 'identity',
+          created_at: '2026-08-13T21:00:00.000Z',
+        }),
+        normalizeAuditEntry({
+          id: 'user',
+          action: 'user.deleted',
+          entity_type: 'staff_user',
+          entity_id: 'u-1',
+          actor_type: 'staff',
+          source: 'identity',
+          created_at: '2026-08-13T20:00:00.000Z',
+        }),
+      ],
+      nextCursor: null,
+    })
+
+    renderWithI18n(<AuditSection />)
+
+    expect(await screen.findByText('Permisos de un rol actualizados')).toBeTruthy()
+    expect(screen.getByText('Cuenta de staff eliminada')).toBeTruthy()
+    expect(screen.queryByText('access_role.permissions_updated')).toBeNull()
+    expect(screen.queryByText('user.deleted')).toBeNull()
+  })
+
+  it('abre el detalle del evento con los ids técnicos que la lista no repite', async () => {
+    const row = normalizeAuditEntry({
+      id: 'detail-log',
+      action: 'membership.activated',
+      entity_type: 'membership',
+      entity_id: 'mem-detail',
+      actor_type: 'webhook',
+      actor_id: 'mp-4242',
+      metadata: { memberCode: 'PLU-DET-01' },
+      created_at: '2026-08-16T12:00:00.000Z',
+    })
+    fetchAuditOverview.mockResolvedValue(healthyOverview())
+    fetchAuditFacets.mockResolvedValue({ actions: [], entityTypes: [], actorTypes: [] })
+    fetchAuditEntries.mockResolvedValue({ entries: [row], nextCursor: null })
+    fetchAuditEventContext.mockResolvedValue({
+      event: row,
+      context: { request: [], actorBefore: [], actorAfter: [], entity: [] },
+    })
+
+    renderWithI18n(<AuditSection />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /Ver detalle y contexto/ }))
+
+    await waitFor(() => expect(fetchAuditEventContext).toHaveBeenCalledWith('detail-log'))
+    expect(await screen.findByText(/mem-detail/)).toBeTruthy()
+    expect(screen.getByText(/mp-4242/)).toBeTruthy()
   })
 
   it('abre la traza completa del cobro para una orden de pago fallida', async () => {

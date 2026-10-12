@@ -52,68 +52,78 @@ function renderAthletes(props = {}) {
       <AthletesSection athletes={athletes} onSelectAthlete={vi.fn()} {...props} />
     </I18nProvider>,
   )
-  const filterBar = utils.container.querySelector('.admin-filters')
+  const filterBar = utils.container.querySelector('.admin-toolbar')
   return { ...utils, filterBar }
 }
 
-describe('Atletas — barra de filtros (búsqueda + riel + pills)', () => {
-  it('deja búsqueda, afiliación y colas a la vista; el catálogo va a Más criterios', () => {
+describe('Atletas — barra de filtros (búsqueda + estado + atajos)', () => {
+  it('deja búsqueda, estado y atajos a la vista; el catálogo va a Filtros', () => {
     const { filterBar } = renderAthletes()
 
-    expect(filterBar.classList.contains('admin-filters--popover')).toBe(true)
     expect(within(filterBar).getByPlaceholderText(/nombre, gimnasio, DNI o email/i)).toBeTruthy()
+    expect(within(filterBar).getByRole('group', { name: 'Afiliación' })).toBeTruthy()
     expect(within(filterBar).getByRole('button', { name: /Afiliado activo/ })).toBeTruthy()
-    expect(within(filterBar).getByRole('button', { name: /^perfil/i })).toBeTruthy()
-    expect(within(filterBar).getByRole('button', { name: /^inscripción/i })).toBeTruthy()
-    expect(within(filterBar).getByRole('button', { name: /Más criterios/ })).toBeTruthy()
-    expect(within(filterBar).queryByRole('button', { name: /^gimnasio/i })).toBeNull()
-    expect(within(filterBar).queryByRole('button', { name: /^pendiente de pago$/i })).toBeNull()
-    expect(within(filterBar).queryByText('Maximal Power')).toBeNull()
-    expect(within(filterBar).queryByText(/registros/i)).toBeNull()
+    // Atajos a lo que pide atención.
+    expect(within(filterBar).getByRole('button', { name: /Perfil incompleto/ })).toBeTruthy()
+    expect(within(filterBar).getByRole('button', { name: /^Filtros/ })).toBeTruthy()
+    // Gimnasio y el resto de criterios no ocupan la barra hasta abrir «Filtros».
+    expect(within(filterBar).queryByRole('combobox', { name: 'Gimnasio' })).toBeNull()
+    expect(within(filterBar).queryByRole('dialog')).toBeNull()
   })
 
-  it('abre gimnasio desde Más criterios y no usa un select nativo', () => {
+  it('abre Filtros con el gimnasio como select nativo, sin listas anidadas', () => {
     const { filterBar } = renderAthletes()
 
-    fireEvent.click(within(filterBar).getByRole('button', { name: /Más criterios/ }))
-    const dialog = within(filterBar).getByRole('dialog', { name: /Más criterios/ })
-    expect(within(dialog).getByRole('listbox', { name: 'Gimnasio' })).toBeTruthy()
-    expect(dialog.querySelector('select')).toBeNull()
+    fireEvent.click(within(filterBar).getByRole('button', { name: /^Filtros/ }))
+    const dialog = within(filterBar).getByRole('dialog', { name: /^Filtros/ })
+    expect(within(dialog).getByRole('combobox', { name: 'Gimnasio' })).toBeTruthy()
+    expect(within(dialog).queryByRole('listbox')).toBeNull()
+    expect(within(dialog).queryByPlaceholderText(/buscar/i)).toBeNull()
   })
 
-  it('elige un gimnasio desde Más criterios', () => {
+  it('elige un gimnasio y queda como etiqueta que se puede quitar', () => {
     const { filterBar } = renderAthletes()
 
-    fireEvent.click(within(filterBar).getByRole('button', { name: /Más criterios/ }))
-    const dialog = within(filterBar).getByRole('dialog', { name: /Más criterios/ })
-    fireEvent.click(within(dialog).getByRole('option', { name: 'Pitbull Barbell' }))
+    fireEvent.click(within(filterBar).getByRole('button', { name: /^Filtros/ }))
+    const dialog = within(filterBar).getByRole('dialog', { name: /^Filtros/ })
+    fireEvent.change(within(dialog).getByRole('combobox', { name: 'Gimnasio' }), {
+      target: { value: 'pitbull barbell' },
+    })
 
     expect(screen.getByText('Nicolás Aguirre')).toBeTruthy()
     expect(screen.queryByText('Martina Rivas')).toBeNull()
     expect(screen.queryByText('Florencia López')).toBeNull()
-    expect(within(filterBar).getByRole('button', { name: /Limpiar filtros/ })).toBeTruthy()
+
+    const quitar = within(filterBar).getByRole('button', { name: /Quitar filtro: Gimnasio/ })
+    fireEvent.click(quitar)
+    expect(screen.getByText('Martina Rivas')).toBeTruthy()
   })
 
-  it('filtra por Afiliación en un clic y limpia los criterios activos', () => {
+  it('filtra por Afiliación en un clic y vuelve a todos al soltarlo', () => {
     const { filterBar } = renderAthletes()
 
-    fireEvent.click(within(filterBar).getByRole('button', { name: /Afiliado activo/ }))
+    const segment = within(filterBar).getByRole('button', { name: /Afiliado activo/ })
+    fireEvent.click(segment)
 
+    expect(segment.getAttribute('aria-pressed')).toBe('true')
     expect(screen.getByText('Martina Rivas')).toBeTruthy()
     expect(screen.queryByText('Nicolás Aguirre')).toBeNull()
 
-    fireEvent.click(within(filterBar).getByRole('button', { name: /Limpiar filtros/ }))
+    fireEvent.click(segment)
     expect(screen.getByText('Nicolás Aguirre')).toBeTruthy()
   })
 
-  it('filtra perfiles incompletos desde el pill de Perfil', () => {
+  it('filtra perfiles incompletos desde el atajo y suma "Limpiar todo" con otro criterio', () => {
     const { filterBar } = renderAthletes()
 
-    fireEvent.click(within(filterBar).getByRole('button', { name: /^perfil/i }))
-    const dialog = within(filterBar).getByRole('dialog', { name: /^perfil/i })
-    fireEvent.click(within(dialog).getByRole('button', { name: /perfil incompleto/i }))
-
+    const quick = within(filterBar).getByRole('button', { name: /Perfil incompleto/ })
+    fireEvent.click(quick)
+    expect(quick.getAttribute('aria-pressed')).toBe('true')
     expect(screen.getByText('Martina Rivas')).toBeTruthy()
-    expect(within(filterBar).getByRole('button', { name: /Limpiar filtros/ })).toBeTruthy()
+
+    fireEvent.click(within(filterBar).getByRole('button', { name: /Afiliado activo/ }))
+    fireEvent.click(within(filterBar).getByRole('button', { name: 'Limpiar todo' }))
+    expect(quick.getAttribute('aria-pressed')).toBe('false')
+    expect(screen.getByText('Nicolás Aguirre')).toBeTruthy()
   })
 })

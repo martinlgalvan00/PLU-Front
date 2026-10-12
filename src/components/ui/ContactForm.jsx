@@ -1,15 +1,23 @@
 import { useState } from 'react'
 import { ArrowRight, Check } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { CONTACT_EMAIL } from '../../lib/contact.js'
+import { buildMailtoHref, CONTACT_EMAIL } from '../../lib/contact.js'
 import { submitContactMessage } from '../../services/contactService.js'
+import ContactEnvelope from './ContactEnvelope.jsx'
 
-const MOTIVES = ['atleta', 'gimnasio', 'organizacion', 'pluusa']
+const MOTIVES = ['atleta', 'gimnasio', 'organizacion', 'pluusa', 'sponsor', 'curso', 'tienda']
 
 export default function ContactForm() {
   const { t } = useI18n()
   const [motive, setMotive] = useState('atleta')
   const [status, setStatus] = useState('idle') // idle | submitting | sent | error
+  // Lo tipeado alimenta la carta del sobre en vivo y el enlace de correo alternativo.
+  const [draft, setDraft] = useState({ name: '', email: '', message: '' })
+
+  function handleChange(event) {
+    const { name, value } = event.target
+    setDraft((current) => ({ ...current, [name]: value }))
+  }
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -30,17 +38,12 @@ export default function ContactForm() {
     }
   }
 
-  if (status === 'sent') {
-    return (
-      <div className="contact-success" role="status" aria-live="polite">
-        <div className="contact-success__icon" aria-hidden>
-          <Check size={18} strokeWidth={2.5} />
-        </div>
-        <h2>{t('contact.sentTitle')}</h2>
-        <p>{t('contact.sentDesc')}</p>
-      </div>
-    )
-  }
+  const phase = { idle: 'idle', submitting: 'sending', sent: 'sent', error: 'error' }[status]
+  const motiveLabel = t(`contact.motive.${motive}`)
+  const mailtoHref = buildMailtoHref({
+    subject: t('contact.mailtoSubject', { motive: motiveLabel }),
+    body: [draft.message.trim(), draft.name.trim()].filter(Boolean).join('\n\n'),
+  })
 
   return (
     <form className="contact-form" aria-labelledby="contact-form-title" onSubmit={handleSubmit}>
@@ -48,113 +51,144 @@ export default function ContactForm() {
         <p className="contact-form__intro-eyebrow">{t('contact.formEyebrow')}</p>
         <h2 id="contact-form-title">{t('contact.formTitle')}</h2>
         <p>{t('contact.formDesc')}</p>
+        <p className="contact-form__assurance">{t('contact.sidebarNote')}</p>
+        <ContactEnvelope
+          phase={phase}
+          labels={{ to: t('contact.letterTo'), signature: t('contact.letterSignature') }}
+          message={draft.message}
+          motive={motiveLabel}
+          name={draft.name}
+        />
       </header>
 
-      <section className="contact-form__section" aria-labelledby="contact-motive-label">
-        <header className="contact-form__section-head">
-          <span className="contact-form__index" aria-hidden>
-            01
-          </span>
-          <p className="contact-form__label" id="contact-motive-label">
-            {t('contact.motiveLabel')}
-          </p>
-        </header>
-
-        <div
-          className="contact-form__motives"
-          role="radiogroup"
-          aria-labelledby="contact-motive-label"
-        >
-          {MOTIVES.map((key) => (
-            <button
-              key={key}
-              type="button"
-              role="radio"
-              aria-checked={motive === key}
-              className={`contact-form__motive${motive === key ? ' is-active' : ''}`}
-              disabled={status === 'submitting'}
-              onClick={() => setMotive(key)}
-            >
-              <span className="contact-form__motive-label">{t(`contact.motive.${key}`)}</span>
-            </button>
-          ))}
-        </div>
-        <p className="contact-form__motive-hint" aria-live="polite">
-          {t(`contact.motiveHint.${motive}`)}
-        </p>
-      </section>
-
-      <section className="contact-form__section" aria-labelledby="contact-fields-label">
-        <header className="contact-form__section-head">
-          <span className="contact-form__index" aria-hidden>
-            02
-          </span>
-          <p className="contact-form__label" id="contact-fields-label">
-            {t('contact.fieldsLabel')}
-          </p>
-        </header>
-
-        <div className="contact-form__fields">
-          <div className="contact-form__fields-row">
-            <label className="contact-form__field">
-              <span>{t('contact.name')}</span>
-              <input
-                autoComplete="name"
-                type="text"
-                name="name"
-                required
-                disabled={status === 'submitting'}
-                placeholder={t('contact.namePlaceholder')}
-              />
-            </label>
-            <label className="contact-form__field">
-              <span>{t('contact.email')}</span>
-              <input
-                autoComplete="email"
-                type="email"
-                name="email"
-                required
-                disabled={status === 'submitting'}
-                placeholder="nombre@pluarg.com.ar"
-              />
-            </label>
+      {status === 'sent' ? (
+        <div className="contact-success" role="status" aria-live="polite">
+          <div className="contact-success__icon" aria-hidden>
+            <Check size={18} strokeWidth={2.5} />
           </div>
-          <label className="contact-form__field">
-            <span>{t('contact.message')}</span>
-            <textarea
-              name="message"
-              rows={4}
-              required
-              disabled={status === 'submitting'}
-              placeholder={t('contact.messagePlaceholder')}
-            />
-          </label>
+          <h2>{t('contact.sentTitle')}</h2>
+          <p>{t('contact.sentDesc')}</p>
         </div>
-      </section>
+      ) : null}
 
-      <input type="hidden" name="motive" value={motive} />
+      {status === 'sent' ? null : (
+        <>
+          <section className="contact-form__section" aria-labelledby="contact-motive-label">
+            <header className="contact-form__section-head">
+              <span className="contact-form__index" aria-hidden>
+                01
+              </span>
+              <p className="contact-form__label" id="contact-motive-label">
+                {t('contact.motiveLabel')}
+              </p>
+            </header>
 
-      <div className="contact-form__actions">
-        <button
-          type="submit"
-          className="contact-form__submit"
-          disabled={status === 'submitting'}
-        >
-          <span>{status === 'submitting' ? t('contact.submitting') : t('contact.submit')}</span>
-          {status === 'submitting' ? (
-            <span className="plu-spinner" aria-hidden />
-          ) : (
-            <ArrowRight size={15} strokeWidth={1.25} aria-hidden />
-          )}
-        </button>
-        <p className="contact-form__note">{t('contact.submitNote')}</p>
-        {status === 'error' ? (
-          <p className="contact-form__error" role="alert">
-            <strong>{t('contact.errorTitle')}</strong>{' '}
-            {t('contact.errorDesc', { email: CONTACT_EMAIL })}
-          </p>
-        ) : null}
-      </div>
+            <div
+              className="contact-form__motives"
+              role="radiogroup"
+              aria-labelledby="contact-motive-label"
+            >
+              {MOTIVES.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  role="radio"
+                  aria-checked={motive === key}
+                  className={`contact-form__motive${motive === key ? ' is-active' : ''}`}
+                  disabled={status === 'submitting'}
+                  onClick={() => setMotive(key)}
+                >
+                  <span className="contact-form__motive-label">{t(`contact.motive.${key}`)}</span>
+                </button>
+              ))}
+            </div>
+            <p className="contact-form__motive-hint" aria-live="polite">
+              {t(`contact.motiveHint.${motive}`)}
+            </p>
+          </section>
+
+          <section className="contact-form__section" aria-labelledby="contact-fields-label">
+            <header className="contact-form__section-head">
+              <span className="contact-form__index" aria-hidden>
+                02
+              </span>
+              <p className="contact-form__label" id="contact-fields-label">
+                {t('contact.fieldsLabel')}
+              </p>
+            </header>
+
+            <div className="contact-form__fields">
+              <div className="contact-form__fields-row">
+                <label className="contact-form__field">
+                  <span>{t('contact.name')}</span>
+                  <input
+                    autoComplete="name"
+                    type="text"
+                    name="name"
+                    value={draft.name}
+                    onChange={handleChange}
+                    required
+                    disabled={status === 'submitting'}
+                    placeholder={t('contact.namePlaceholder')}
+                  />
+                </label>
+                <label className="contact-form__field">
+                  <span>{t('contact.email')}</span>
+                  <input
+                    autoComplete="email"
+                    type="email"
+                    name="email"
+                    value={draft.email}
+                    onChange={handleChange}
+                    required
+                    disabled={status === 'submitting'}
+                    placeholder="nombre@pluarg.com.ar"
+                  />
+                </label>
+              </div>
+              <label className="contact-form__field">
+                <span>{t('contact.message')}</span>
+                <textarea
+                  name="message"
+                  rows={4}
+                  value={draft.message}
+                  onChange={handleChange}
+                  required
+                  disabled={status === 'submitting'}
+                  placeholder={t('contact.messagePlaceholder')}
+                />
+              </label>
+            </div>
+          </section>
+
+          <input type="hidden" name="motive" value={motive} />
+
+          <div className="contact-form__actions">
+            <button
+              type="submit"
+              className="contact-form__submit"
+              disabled={status === 'submitting'}
+            >
+              <span>{status === 'submitting' ? t('contact.submitting') : t('contact.submit')}</span>
+              {status === 'submitting' ? (
+                <span className="plu-spinner" aria-hidden />
+              ) : (
+                <ArrowRight size={15} strokeWidth={1.25} aria-hidden />
+              )}
+            </button>
+            <p className="contact-form__note">{t('contact.submitNote')}</p>
+            <a className="contact-form__mailto" href={mailtoHref}>
+              {t('contact.mailtoAlt')}
+            </a>
+            {status === 'error' ? (
+              <p className="contact-form__error" role="alert">
+                <strong>{t('contact.errorTitle')}</strong>{' '}
+                {t('contact.errorDesc', { email: CONTACT_EMAIL })}
+              </p>
+            ) : null}
+          </div>
+        </>
+      )}
     </form>
   )
 }

@@ -1,6 +1,7 @@
 import '../../styles/components/ticket-type-options.css'
 import { CalendarDays, DoorOpen, Flame, ShieldCheck, Users } from 'lucide-react'
 import { money } from '../../lib/format.js'
+import { ticketTypeNameParts } from '../../lib/eventPricing.js'
 
 /**
  * TicketTypeOptions — elegir entrada sabiendo qué abre — PLU ARG
@@ -70,40 +71,46 @@ function ZoneChips({ zoneScopes = [], t }) {
 function TicketTypeBody({ type, locale, t, showAddons }) {
   const count = type.credentialCount ?? 1
   const included = showAddons ? (type.includedAddons ?? []) : []
+  // El nombre puede traer su descripción entre paréntesis: se muestra como
+  // línea secundaria y no como parte del título.
+  const { title, note } = ticketTypeNameParts(type.name, locale)
+  const description = type.description || note
 
   return (
     <>
       <div className="ticket-type-options__head">
         <div className="ticket-type-options__copy">
-          <span className="ticket-type-options__name">{type.name}</span>
-          {type.description ? (
-            <p className="ticket-type-options__description">{type.description}</p>
-          ) : null}
+          <span className="ticket-type-options__name">{title || type.name}</span>
+          {description ? <p className="ticket-type-options__description">{description}</p> : null}
         </div>
         <span className="ticket-type-options__price">{money(type.price, locale)}</span>
       </div>
 
-      {(type.accessDays ?? []).length ? (
-        <span className="ticket-type-options__validity">
-          <CalendarDays size={14} strokeWidth={1.8} aria-hidden />
-          {t('pages.tickets.ticketTypes.validity', {
-            days: type.accessDays.map((day) => day.label).join(' · '),
-          })}
-        </span>
-      ) : null}
-
-      <ZoneChips zoneScopes={type.zoneScopes} t={t} />
-
-      <span className="ticket-type-options__meta">
-        <span className="ticket-type-options__credentials">{credentialCountLabel(count, t)}</span>
-        {/* El cupo cuenta compras, no credenciales. Sin decirlo, "quedan 40
-            lugares" y "80 QR emitidos" parecen contradecirse. */}
-        {count > 1 ? (
-          <span className="ticket-type-options__quota">
-            {t('pages.tickets.ticketTypes.quotaNote')}
+      {/* Qué abre, cuándo vale y cuántas credenciales emite: una sola fila de
+          datos en vez de cuatro capas apiladas. */}
+      <div className="ticket-type-options__facts">
+        {(type.accessDays ?? []).length ? (
+          <span className="ticket-type-options__validity">
+            <CalendarDays size={14} strokeWidth={1.8} aria-hidden />
+            {t('pages.tickets.ticketTypes.validity', {
+              days: type.accessDays.map((day) => day.label).join(' · '),
+            })}
           </span>
         ) : null}
-      </span>
+
+        <ZoneChips zoneScopes={type.zoneScopes} t={t} />
+
+        <span className="ticket-type-options__meta">
+          <span className="ticket-type-options__credentials">{credentialCountLabel(count, t)}</span>
+          {/* El cupo cuenta compras, no credenciales. Sin decirlo, "quedan 40
+              lugares" y "80 QR emitidos" parecen contradecirse. */}
+          {count > 1 ? (
+            <span className="ticket-type-options__quota">
+              {t('pages.tickets.ticketTypes.quotaNote')}
+            </span>
+          ) : null}
+        </span>
+      </div>
 
       {included.length ? (
         <span className="ticket-type-options__includes">

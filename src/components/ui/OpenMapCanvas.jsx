@@ -106,6 +106,16 @@ function syncMarkerButton(record, event, index, selected, language) {
   )
 }
 
+/**
+ * Desmonta el root de React de un marcador. Se difiere un microtask porque los
+ * cleanups de efectos corren dentro del commit: desmontar otro root ahí es
+ * sincrónico y React avisa ("Attempted to synchronously unmount a root while
+ * React was already rendering").
+ */
+function unmountMarkerRoot(contentRoot) {
+  queueMicrotask(() => contentRoot.unmount())
+}
+
 function createMarkerRecord(event, index, selected, language) {
   const button = document.createElement('button')
   button.type = 'button'
@@ -281,7 +291,7 @@ export default function OpenMapCanvas({
       clearTimeout(loadTimer)
       markerRecords.forEach(({ button, clickHandler, contentRoot, marker }) => {
         button.removeEventListener('click', clickHandler)
-        contentRoot.unmount()
+        unmountMarkerRoot(contentRoot)
         marker.remove()
       })
       markerRecords.clear()
@@ -391,7 +401,7 @@ export default function OpenMapCanvas({
     markersRef.current.forEach(({ button, clickHandler, contentRoot, marker }, id) => {
       if (currentIds.has(id)) return
       button.removeEventListener('click', clickHandler)
-      contentRoot.unmount()
+      unmountMarkerRoot(contentRoot)
       marker.remove()
       markersRef.current.delete(id)
     })

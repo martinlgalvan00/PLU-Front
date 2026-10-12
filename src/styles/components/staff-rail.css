@@ -1,0 +1,259 @@
+/* Riel de la postulación a Staff: credencial que se llena + pasos con avance.
+   Superficie de la credencial: variables --meet-* (claro/oscuro). Solo
+   transform + opacity en el movimiento. */
+
+.staff-rail {
+  display: grid;
+  gap: clamp(20px, 3vw, 32px);
+  min-width: 0;
+}
+
+.staff-rail__tilt {
+  display: block;
+}
+
+.staff-rail__tilt-inner {
+  display: block;
+}
+
+.staff-pass {
+  background: var(--meet-bg);
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 1px var(--meet-border),
+    0 28px 56px -40px rgba(0, 0, 0, 0.5);
+  color: var(--meet-fg);
+  display: grid;
+  gap: 18px;
+  padding: clamp(20px, 3vw, 28px);
+}
+
+.staff-pass p,
+.staff-pass dl,
+.staff-pass dd,
+.staff-pass dt {
+  margin: 0;
+}
+
+.staff-pass__brand {
+  color: var(--meet-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+/* Regla dorada: el acento de la credencial. */
+.staff-pass__brand::after {
+  background: var(--meet-accent);
+  content: '';
+  display: block;
+  height: 1px;
+  margin-top: 14px;
+  width: 2.5rem;
+}
+
+.staff-pass__name {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  min-height: 2.2em;
+  overflow-wrap: anywhere;
+}
+
+.staff-pass__name[data-empty='true'] {
+  color: var(--meet-faint);
+}
+
+.staff-pass__facts {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.staff-pass__facts dt {
+  color: var(--meet-faint);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+}
+
+.staff-pass__facts dd {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 300;
+  margin-top: 4px;
+}
+
+.staff-pass__foot {
+  align-items: baseline;
+  display: flex;
+  justify-content: space-between;
+}
+
+.staff-pass__percent {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 300;
+  letter-spacing: -0.04em;
+}
+
+.staff-pass__state {
+  color: var(--meet-faint);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.staff-pass[data-ready='true'] .staff-pass__state {
+  color: var(--meet-accent);
+}
+
+.staff-pass__bar {
+  background: var(--meet-rule);
+  display: block;
+  height: 1px;
+  overflow: hidden;
+}
+
+.staff-pass__bar i {
+  background: var(--meet-accent);
+  display: block;
+  height: 100%;
+  transform-origin: left center;
+  transition: transform var(--motion-slow) var(--ease-out);
+}
+
+/* Pasos */
+.staff-rail__steps {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.staff-rail__step a {
+  align-items: center;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  color: var(--color-text-muted);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 48px;
+  text-decoration: none;
+  transition: color var(--motion-base) var(--ease-out);
+}
+
+.staff-rail__step:last-child a {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+}
+
+.staff-rail__dot {
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 28%, transparent);
+  border-radius: 50%;
+  display: inline-grid;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  height: 22px;
+  place-items: center;
+  transition:
+    background-color var(--motion-base) var(--ease-out),
+    border-color var(--motion-base) var(--ease-out),
+    color var(--motion-base) var(--ease-out);
+  width: 22px;
+}
+
+.staff-rail__title {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.staff-rail__count {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.staff-rail__step[data-state='active'] a {
+  color: var(--color-text-primary);
+}
+
+.staff-rail__step[data-state='active'] .staff-rail__dot {
+  border-color: var(--color-brand-gold);
+  color: var(--color-text-primary);
+}
+
+.staff-rail__step[data-state='done'] a {
+  color: var(--color-text-primary);
+}
+
+.staff-rail__step[data-state='done'] .staff-rail__dot {
+  background: var(--color-brand-gold);
+  border-color: var(--color-brand-gold);
+  color: var(--plu-cool-950, #0b0d12);
+}
+
+.staff-rail__step a:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+/* Mobile: solo los pasos, fijos arriba y en una línea (la credencial se oculta). */
+@media (max-width: 899px) {
+  .staff-rail {
+    background: var(--color-page-canvas, var(--color-bg-primary));
+    position: sticky;
+    top: calc(var(--header-height-scrolled, 52px) + 8px);
+    z-index: 5;
+  }
+
+  .staff-rail__tilt {
+    display: none;
+  }
+
+  .staff-rail__steps {
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+  }
+
+  .staff-rail__step a {
+    border-bottom: 0;
+    gap: 6px;
+    grid-template-columns: auto auto;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .staff-rail__step:last-child a {
+    border-bottom: 0;
+  }
+
+  .staff-rail__title {
+    display: none;
+  }
+
+  .staff-rail__step[data-state='active'] .staff-rail__title {
+    display: inline;
+    font-size: 11px;
+  }
+
+  .staff-rail__step[data-state='active'] .staff-rail__count {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .staff-pass__bar i,
+  .staff-rail__step a,
+  .staff-rail__dot {
+    transition: none;
+  }
+}

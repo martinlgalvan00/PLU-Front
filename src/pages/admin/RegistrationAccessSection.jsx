@@ -1,16 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  Inbox,
-  KeyRound,
-  LockKeyhole,
-  Power,
-  RefreshCw,
-  Save,
-  ShieldCheck,
-  Trash2,
-  XCircle,
-} from 'lucide-react'
+import { LockKeyhole, RefreshCw, Save, ShieldCheck, Trash2, XCircle } from 'lucide-react'
+import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
+import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
+import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import { ApiError } from '../../lib/api.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
@@ -20,7 +13,7 @@ import {
   savePaymentChannel,
   savePlatformFeatureToggle,
 } from '../../services/platformSettingsAdminService.js'
-import '../../styles/pages/admin-registration-access.css'
+import '../../styles/pages/admin-access.css'
 
 const EMPTY_GATE = {
   scope: 'membership',
@@ -38,24 +31,25 @@ const EMPTY_GATE = {
 const CHECKOUT_FEATURE = {
   feature: 'checkout',
   key: 'checkoutEnabled',
-  i18n: 'checkout',
-  state: 'checkout',
-  master: true,
 }
 
 /**
+ * Orden fijo de las columnas de medios: la matriz se lee de arriba abajo por
+ * concepto y de izquierda a derecha por medio, así que un medio ocupa siempre
+ * la misma columna aunque el concepto no lo ofrezca.
+ */
+const CHANNEL_COLUMNS = ['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer']
+
+/**
  * Un bloque por concepto, que es la pregunta que se hace quien opera: "¿qué le
- * pasa a Afiliaciones?". Dentro del bloque, tres ejes independientes: el alta
- * manda, los canales son los medios con los que se cobra ese concepto, y la
- * validación cierra el bloque.
- *
- * Antes esto eran cuatro grupos por eje, con los medios de pago fusionados en un
- * solo interruptor "transferencia y efectivo" y Mercado Pago sin control alguno.
+ * pasa a Afiliaciones?". Cada fila de la matriz junta tres ejes independientes:
+ * el alta manda, los canales son los medios con los que se cobra ese concepto, y
+ * la validación decide si Finanzas acredita.
  *
  * `channels` no incluye `cash_pitbull` para entradas: el checkout de entradas no
  * ofrece efectivo, y un interruptor sin efecto es justamente lo que esta
- * pantalla dejó de tener. La celda existe en la matriz por consistencia, pero no
- * se ofrece hasta que ese medio exista en la compra.
+ * pantalla dejó de tener. La celda queda vacía en la matriz hasta que ese medio
+ * exista en la compra.
  */
 const CONCEPT_BLOCKS = [
   {
@@ -103,78 +97,52 @@ const CHANNEL_CELLS = CONCEPT_BLOCKS.flatMap((block) =>
 )
 
 /**
- * Fila de interruptor. El estado vive en una sola columna —la derecha, junto al
- * control que lo cambia— y a la izquierda queda un indicador de ancho fijo: así
- * todos los nombres arrancan en la misma X y la columna se lee de un vistazo.
- *
- * La usan los tres ejes (alta, canal y validación) porque hacen lo mismo: un
- * booleano con nombre, estado y consecuencia. Lo que cambia es el encabezado del
- * bloque, el acento celeste del maestro y el tamaño de la fila del canal.
+ * Interruptor con nombre accesible. Con permiso de edición es un checkbox
+ * nativo estilado como switch (la posición del pulgar y el relleno dicen el
+ * estado, no el color); sin permiso queda una marca de solo lectura con el mismo
+ * texto de estado. El texto va siempre en el DOM: `quiet` solo lo oculta a la
+ * vista en la matriz de escritorio, donde la columna ya nombra la celda.
  */
-function ToggleRule({
+function SwitchControl({
   ariaLabel,
   busy,
   canEdit,
   enabled,
-  headingLevel: Heading = 'h3',
-  lead,
   loading,
-  master = false,
-  muted = false,
   onToggle,
-  stateLabels,
+  quiet = false,
+  stateLabel,
   t,
-  title,
-  variant = 'primary',
 }) {
   const tone = enabled ? 'on' : 'off'
-  const stateLabel = enabled ? stateLabels.on : stateLabels.off
+  const text = (
+    <span
+      className={`admin-access__switch-state${quiet ? ' admin-access__switch-state--quiet' : ''}`}
+    >
+      {busy ? t('admin.sections.accessGates.saving') : stateLabel}
+    </span>
+  )
+
+  if (!canEdit) {
+    return (
+      <span className={`admin-access__mark admin-access__mark--${tone}`}>
+        <span className="admin-access__mark-dot" aria-hidden />
+        {text}
+      </span>
+    )
+  }
 
   return (
-    <div
-      className={[
-        'admin-registration-access__rule',
-        `admin-registration-access__rule--${variant}`,
-        master ? 'admin-registration-access__rule--master' : '',
-        master && !enabled ? 'admin-registration-access__rule--halted' : '',
-        // Celda abierta con el concepto cerrado: sigue siendo configuración
-        // válida (queda lista para la reapertura), pero no está cobrando.
-        muted && enabled ? 'admin-registration-access__rule--muted' : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-    >
-      {/* El maestro es el único que gana icono: ahí el símbolo de encendido
-          informa el rol de la fila en vez de decorar. */}
-      <span
-        className={`admin-registration-access__dot admin-registration-access__dot--${tone}`}
-        aria-hidden
-      >
-        {master ? <Power size={15} /> : null}
-      </span>
-      <div className="admin-registration-access__rule-copy">
-        <Heading>{title}</Heading>
-        {lead ? <p>{lead}</p> : null}
-      </div>
-      {canEdit ? (
-        <label className="admin-registration-access__switch">
-          <input
-            type="checkbox"
-            checked={enabled}
-            disabled={loading || busy}
-            onChange={(event) => onToggle(event.target.checked)}
-            aria-label={ariaLabel}
-          />
-          <span>{busy ? t('admin.sections.accessGates.saving') : stateLabel}</span>
-        </label>
-      ) : (
-        <span
-          className={`admin-registration-access__state admin-registration-access__state--${tone}`}
-        >
-          {stateLabel}
-        </span>
-      )}
-    </div>
+    <label className="admin-access__switch">
+      <input
+        type="checkbox"
+        checked={enabled}
+        disabled={loading || busy}
+        onChange={(event) => onToggle(event.target.checked)}
+        aria-label={ariaLabel}
+      />
+      {text}
+    </label>
   )
 }
 
@@ -244,7 +212,7 @@ export default function RegistrationAccessSection({
   const formRef = useRef(null)
   const triggerRef = useRef(null)
   const shouldFocusEditorRef = useRef(false)
-  const eventGates = configuration.eventGates ?? []
+  const eventGates = useMemo(() => configuration.eventGates ?? [], [configuration.eventGates])
   const events = useMemo(
     () => adminEvents.filter((event) => event.slug && event.status !== 'archived'),
     [adminEvents],
@@ -468,13 +436,6 @@ export default function RegistrationAccessSection({
     return t(`admin.sections.accessGates.state.${key}`)
   }
 
-  function stateClass(key) {
-    if (key === 'open') return 'abierta'
-    if (key === 'scheduled') return 'programada'
-    if (key === 'expired') return 'vencida'
-    return 'cerrada'
-  }
-
   function formatEndsAt(value) {
     if (!value) return ''
     return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
@@ -482,70 +443,165 @@ export default function RegistrationAccessSection({
     )
   }
 
+  // La tanda de afiliaciones es una sola y siempre tiene fila (aunque no haya
+  // código configurado: ahí la fila ofrece "Configurar"). Las de torneo se suman
+  // debajo, una por evento.
+  const gateRows = useMemo(
+    () => [
+      { id: 'membership-gate', kind: 'membership', gate: configuration.membershipGate ?? null },
+      ...eventGates.map((gate) => ({ id: gate.id, kind: 'event', gate })),
+    ],
+    [configuration.membershipGate, eventGates],
+  )
+
+  const gateColumns = [
+    {
+      key: 'scope',
+      label: t('admin.sections.accessGates.colScope'),
+      mobile: 'primary',
+      desktop: 'primary',
+      render: (row) => (
+        <span className="admin-access__gate-name">
+          {row.kind === 'membership'
+            ? t('admin.sections.accessGates.membershipGateTitle')
+            : (row.gate.eventTitle ?? row.gate.eventSlug)}
+        </span>
+      ),
+    },
+    {
+      key: 'label',
+      label: t('admin.sections.accessGates.colLabel'),
+      render: (row) =>
+        row.gate ? (
+          row.gate.label
+        ) : (
+          <span className="admin-access__muted">
+            {t('admin.sections.accessGates.membershipGateEmpty')}
+          </span>
+        ),
+    },
+    {
+      key: 'endsAt',
+      label: t('admin.sections.accessGates.colEnds'),
+      width: 170,
+      // En card móvil una fecha ausente no ocupa lugar: solo la tabla lleva guion.
+      mobileRender: (row) => (row.gate?.endsAt ? formatEndsAt(row.gate.endsAt) : null),
+      render: (row) =>
+        row.gate?.endsAt ? (
+          formatEndsAt(row.gate.endsAt)
+        ) : (
+          <span className="admin-access__muted" aria-hidden>
+            —
+          </span>
+        ),
+    },
+    {
+      key: 'state',
+      label: t('admin.sections.accessGates.colState'),
+      mobile: 'badge',
+      desktop: 'status',
+      width: 120,
+      render: (row) => {
+        const key = gateStateKey(row.gate)
+        return (
+          <span className={`admin-access__gate-state admin-access__gate-state--${key}`}>
+            <span className="admin-access__gate-dot" aria-hidden />
+            {stateLabel(key)}
+          </span>
+        )
+      },
+    },
+    ...(canEdit
+      ? [
+          {
+            key: 'actions',
+            label: (
+              <span className="admin-access__sr-only">
+                {t('admin.sections.accessGates.colActions')}
+              </span>
+            ),
+            mobile: 'action',
+            width: 190,
+            align: 'right',
+            render: (row) => {
+              const scope = row.kind === 'membership' ? 'membership' : 'registration'
+              return (
+                <AdminTableActions>
+                  <button
+                    type="button"
+                    className="admin-access__btn admin-access__btn--small"
+                    onClick={(event) => openEditor(row.gate, scope, event.currentTarget)}
+                  >
+                    {isGateReopenable(row.gate)
+                      ? t('admin.sections.accessGates.reopen')
+                      : row.kind === 'membership'
+                        ? t('admin.sections.accessGates.configure')
+                        : t('admin.sections.accessGates.edit')}
+                  </button>
+                  {row.gate ? (
+                    <AdminIconButton
+                      icon={Trash2}
+                      label={t('admin.sections.accessGates.delete')}
+                      onClick={() => setDeleteTarget(row.gate)}
+                    />
+                  ) : null}
+                </AdminTableActions>
+              )
+            },
+          },
+        ]
+      : []),
+  ]
+
   return (
-    <section className="admin-registration-access" aria-labelledby="access-gates-title">
-      <header className="admin-registration-access__hero">
-        <div className="admin-registration-access__hero-copy">
-          <p className="admin-registration-access__eyebrow">
-            <KeyRound size={14} aria-hidden />
-            {t('admin.sections.accessGates.eyebrow')}
-          </p>
+    <section className="admin-access" aria-labelledby="access-gates-title">
+      <header className="admin-access__header">
+        <div className="admin-access__intro">
           <h1 id="access-gates-title">{t('admin.sections.accessGates.title')}</h1>
-          <p className="admin-registration-access__subtitle">
-            {t('admin.sections.accessGates.subtitle')}
-          </p>
+          <p>{t('admin.sections.accessGates.subtitle')}</p>
         </div>
         <button
           type="button"
-          className="admin-registration-access__button admin-registration-access__button--quiet"
+          className="admin-access__btn admin-access__btn--ghost"
           onClick={() => {
             onRefresh?.()
             void loadToggles()
           }}
           disabled={isLoading || togglesLoading}
         >
-          <RefreshCw size={15} aria-hidden />
+          <RefreshCw size={14} aria-hidden />
           {t('admin.sections.accessGates.refresh')}
         </button>
       </header>
 
       {gatesError ? (
-        <div
-          className="admin-registration-access__message admin-registration-access__message--error"
-          role="alert"
-        >
+        <div className="admin-access__message admin-access__message--error" role="alert">
           <XCircle size={15} aria-hidden />
           <span>{gatesError}</span>
-          <button
-            type="button"
-            className="admin-registration-access__button"
-            onClick={() => onRefresh?.()}
-          >
+          <button type="button" className="admin-access__btn" onClick={() => onRefresh?.()}>
             {t('admin.sections.accessGates.retry')}
           </button>
         </div>
       ) : null}
       {notice ? (
-        <p className="admin-registration-access__notice" role="status">
+        <p className="admin-access__notice" role="status">
           <ShieldCheck size={15} aria-hidden /> {notice}
         </p>
       ) : null}
       {isLoading && !configuration.membershipGate && eventGates.length === 0 ? (
-        <p className="admin-registration-access__loading">
-          {t('admin.sections.accessGates.loading')}
-        </p>
+        <p className="admin-access__loading">{t('admin.sections.accessGates.loading')}</p>
       ) : null}
 
-      <section className="admin-registration-access__block" aria-labelledby="access-toggles-title">
-        <header className="admin-registration-access__block-head">
+      <section className="admin-access__block" aria-labelledby="access-toggles-title">
+        <header className="admin-access__block-head">
           <div>
             <h2 id="access-toggles-title">{t('admin.sections.accessGates.togglesTitle')}</h2>
             <p>{t('admin.sections.accessGates.togglesLead')}</p>
           </div>
           {togglesLoading || togglesError ? null : (
-            <p className="admin-registration-access__summary" role="status">
+            <p className="admin-access__summary" role="status">
               <span
-                className={`admin-registration-access__dot admin-registration-access__dot--${
+                className={`admin-access__summary-dot admin-access__summary-dot--${
                   togglesSummary.allOpen ? 'on' : 'off'
                 }`}
                 aria-hidden
@@ -561,320 +617,255 @@ export default function RegistrationAccessSection({
         {/* Frenos que vienen del entorno, no del panel: sin esto un interruptor
             podía estar en ON y no tener ningún efecto, sin explicación. */}
         {(toggles.environmentHolds ?? []).length > 0 ? (
-          <div
-            className="admin-registration-access__message admin-registration-access__message--warning"
-            role="status"
-          >
+          <div className="admin-access__hold" role="status">
             <LockKeyhole size={15} aria-hidden />
             <span>
               {t('admin.sections.accessGates.environmentHold', {
-                variables: (toggles.environmentHolds ?? [])
-                  .map((hold) => hold.variable)
-                  .join(', '),
+                variables: (toggles.environmentHolds ?? []).map((hold) => hold.variable).join(', '),
               })}
             </span>
           </div>
         ) : null}
 
-        <div className="admin-registration-access__rules admin-registration-access__rules--primary">
-          <ToggleRule
+        {/* Interruptor maestro: una franja propia por encima de la matriz. Es el
+            único estado de la pantalla que justifica el rojo: pausado, no entra
+            un peso a la plataforma. */}
+        <div
+          className={`admin-access__master${
+            toggles[CHECKOUT_FEATURE.key] === false ? ' admin-access__master--halted' : ''
+          }`}
+        >
+          <div className="admin-access__master-copy">
+            <h3>{t('admin.sections.accessGates.checkoutTitle')}</h3>
+            <p>{t('admin.sections.accessGates.checkoutLead')}</p>
+          </div>
+          <SwitchControl
             ariaLabel={t('admin.sections.accessGates.checkoutAria')}
             busy={savingFeature === CHECKOUT_FEATURE.feature}
             canEdit={canEdit}
             enabled={toggles[CHECKOUT_FEATURE.key] !== false}
-            lead={t('admin.sections.accessGates.checkoutLead')}
             loading={togglesLoading}
-            master
             onToggle={(enabled) => handleToggleFeature(CHECKOUT_FEATURE.feature, enabled)}
-            stateLabels={{
-              on: t('admin.sections.accessGates.checkoutOn'),
-              off: t('admin.sections.accessGates.checkoutOff'),
-            }}
+            stateLabel={
+              toggles[CHECKOUT_FEATURE.key] !== false
+                ? t('admin.sections.accessGates.checkoutOn')
+                : t('admin.sections.accessGates.checkoutOff')
+            }
             t={t}
-            title={t('admin.sections.accessGates.checkoutTitle')}
           />
         </div>
 
-        {/* Un bloque por concepto: alta, medios de cobro y validación juntos,
-            que es cómo se decide en la operación. */}
-        {CONCEPT_BLOCKS.map((block) => {
-          const intakeOpen = toggles[block.intake.key] !== false
-          const withoutChannel = conceptsWithoutChannel.includes(block.concept)
-          return (
-            <article
-              key={block.concept}
-              className={`admin-registration-access__concept${
-                intakeOpen ? '' : ' admin-registration-access__concept--closed'
-              }`}
-            >
-              <ToggleRule
-                ariaLabel={t(`admin.sections.accessGates.${block.i18n}Aria`)}
-                busy={savingFeature === block.intake.feature}
-                canEdit={canEdit}
-                enabled={intakeOpen}
-                lead={t(`admin.sections.accessGates.${block.i18n}Lead`)}
-                loading={togglesLoading}
-                onToggle={(enabled) => handleToggleFeature(block.intake.feature, enabled)}
-                stateLabels={{
-                  on: t('admin.sections.accessGates.enabledPlural'),
-                  off: t('admin.sections.accessGates.closedPlural'),
-                }}
-                t={t}
-                title={t(`admin.sections.accessGates.${block.i18n}Title`)}
-                variant="intake"
-              />
+        {/* Matriz: concepto en filas; alta, medios y validación en columnas. La
+            cabecera es visual (aria-hidden): cada interruptor ya trae su nombre
+            accesible completo ("Habilitar Wise para entradas"). */}
+        <div className="admin-access__matrix">
+          <div className="admin-access__matrix-head" aria-hidden>
+            <span />
+            <span>{t('admin.sections.accessGates.colIntake')}</span>
+            {CHANNEL_COLUMNS.map((channel) => (
+              <span key={channel}>{t(`admin.sections.accessGates.channelShort.${channel}`)}</span>
+            ))}
+            <span>{t('admin.sections.accessGates.colValidation')}</span>
+          </div>
 
+          {CONCEPT_BLOCKS.map((block) => {
+            const conceptTitle = t(`admin.sections.accessGates.${block.i18n}Title`)
+            const intakeOpen = toggles[block.intake.key] !== false
+            const withoutChannel = conceptsWithoutChannel.includes(block.concept)
+            return (
               <div
-                className="admin-registration-access__channels"
+                key={block.concept}
+                className={`admin-access__row${intakeOpen ? '' : ' admin-access__row--closed'}`}
                 role="group"
-                aria-label={t('admin.sections.accessGates.channelsGroupAria', {
-                  concept: t(`admin.sections.accessGates.${block.i18n}Title`),
-                })}
+                aria-label={conceptTitle}
               >
-                <p className="admin-registration-access__channels-label">
-                  {t('admin.sections.accessGates.channelsLabel')}
-                </p>
-                {block.channels.map((channel) => (
-                  <ToggleRule
-                    ariaLabel={t('admin.sections.accessGates.channelAria', {
-                      channel: t(`admin.sections.accessGates.channel.${channel}`),
-                      concept: t(`admin.sections.accessGates.${block.i18n}Title`),
-                    })}
-                    busy={savingFeature === `${block.concept}:${channel}`}
+                <h3 className="admin-access__row-title">{conceptTitle}</h3>
+
+                <div className="admin-access__cell admin-access__cell--intake">
+                  <span className="admin-access__cell-name">
+                    {t('admin.sections.accessGates.colIntake')}
+                  </span>
+                  <SwitchControl
+                    ariaLabel={t(`admin.sections.accessGates.${block.i18n}Aria`)}
+                    busy={savingFeature === block.intake.feature}
                     canEdit={canEdit}
-                    enabled={toggles.paymentChannels?.[block.concept]?.[channel] !== false}
-                    headingLevel="h4"
-                    key={channel}
+                    enabled={intakeOpen}
                     loading={togglesLoading}
-                    muted={!intakeOpen}
-                    onToggle={(enabled) => handleToggleChannel(block.concept, channel, enabled)}
-                    stateLabels={{
-                      on: t('admin.sections.accessGates.channelOn'),
-                      off: t('admin.sections.accessGates.channelOff'),
-                    }}
+                    onToggle={(enabled) => handleToggleFeature(block.intake.feature, enabled)}
+                    quiet
+                    stateLabel={
+                      intakeOpen
+                        ? t('admin.sections.accessGates.enabledPlural')
+                        : t('admin.sections.accessGates.closedPlural')
+                    }
                     t={t}
-                    title={t(`admin.sections.accessGates.channel.${channel}`)}
-                    variant="channel"
                   />
-                ))}
+                </div>
+
+                {CHANNEL_COLUMNS.map((channel) => {
+                  if (!block.channels.includes(channel)) {
+                    return (
+                      <div
+                        key={channel}
+                        className="admin-access__cell admin-access__cell--na"
+                        aria-hidden
+                      >
+                        <span className="admin-access__na">—</span>
+                      </div>
+                    )
+                  }
+                  const channelOpen = toggles.paymentChannels?.[block.concept]?.[channel] !== false
+                  return (
+                    <div
+                      key={channel}
+                      className={`admin-access__cell admin-access__cell--channel${
+                        intakeOpen ? '' : ' admin-access__cell--muted'
+                      }`}
+                    >
+                      <span className="admin-access__cell-name">
+                        {t(`admin.sections.accessGates.channel.${channel}`)}
+                      </span>
+                      <SwitchControl
+                        ariaLabel={t('admin.sections.accessGates.channelAria', {
+                          channel: t(`admin.sections.accessGates.channel.${channel}`),
+                          concept: conceptTitle,
+                        })}
+                        busy={savingFeature === `${block.concept}:${channel}`}
+                        canEdit={canEdit}
+                        enabled={channelOpen}
+                        loading={togglesLoading}
+                        onToggle={(enabled) => handleToggleChannel(block.concept, channel, enabled)}
+                        quiet
+                        stateLabel={
+                          channelOpen
+                            ? t('admin.sections.accessGates.channelOn')
+                            : t('admin.sections.accessGates.channelOff')
+                        }
+                        t={t}
+                      />
+                    </div>
+                  )
+                })}
+
+                <div
+                  className={`admin-access__cell admin-access__cell--validation${
+                    intakeOpen ? '' : ' admin-access__cell--muted'
+                  }`}
+                >
+                  <span className="admin-access__cell-name">
+                    {t('admin.sections.accessGates.colValidation')}
+                  </span>
+                  <SwitchControl
+                    ariaLabel={t(`admin.sections.accessGates.${block.validation.i18n}Aria`)}
+                    busy={savingFeature === block.validation.feature}
+                    canEdit={canEdit}
+                    enabled={toggles[block.validation.key] !== false}
+                    loading={togglesLoading}
+                    onToggle={(enabled) => handleToggleFeature(block.validation.feature, enabled)}
+                    quiet
+                    stateLabel={
+                      toggles[block.validation.key] !== false
+                        ? t('admin.sections.accessGates.enabledSingular')
+                        : t('admin.sections.accessGates.closedSingular')
+                    }
+                    t={t}
+                  />
+                </div>
+
                 {withoutChannel ? (
-                  <p className="admin-registration-access__channels-warning" role="status">
+                  <p className="admin-access__row-warning" role="status">
                     <XCircle size={14} aria-hidden />
                     {t('admin.sections.accessGates.noChannelWarning')}
                   </p>
                 ) : null}
               </div>
+            )
+          })}
+        </div>
 
-              <ToggleRule
-                ariaLabel={t(`admin.sections.accessGates.${block.validation.i18n}Aria`)}
-                busy={savingFeature === block.validation.feature}
-                canEdit={canEdit}
-                enabled={toggles[block.validation.key] !== false}
-                headingLevel="h4"
-                lead={t(`admin.sections.accessGates.${block.validation.i18n}Lead`)}
-                loading={togglesLoading}
-                onToggle={(enabled) => handleToggleFeature(block.validation.feature, enabled)}
-                stateLabels={{
-                  on: t('admin.sections.accessGates.enabledSingular'),
-                  off: t('admin.sections.accessGates.closedSingular'),
-                }}
-                t={t}
-                title={t(`admin.sections.accessGates.${block.validation.i18n}Title`)}
-                variant="validation"
-              />
-            </article>
-          )
-        })}
+        {/* Lo que el operador necesita saber una vez, no en cada lectura: las
+            consecuencias de cada interruptor viven acá, cerradas por defecto. */}
+        <details className="admin-access__legend">
+          <summary>{t('admin.sections.accessGates.legendSummary')}</summary>
+          <dl>
+            {CONCEPT_BLOCKS.map((block) => (
+              <div key={block.concept}>
+                <dt>{t(`admin.sections.accessGates.${block.i18n}Title`)}</dt>
+                <dd>
+                  {t(`admin.sections.accessGates.${block.i18n}Lead`)}{' '}
+                  {t(`admin.sections.accessGates.${block.validation.i18n}Lead`)}
+                </dd>
+              </div>
+            ))}
+            <div>
+              <dt>{t('admin.sections.accessGates.channelsLabel')}</dt>
+              <dd>{t('admin.sections.accessGates.legendChannels')}</dd>
+            </div>
+          </dl>
+        </details>
 
         {togglesLoading ? (
-          <p className="admin-registration-access__loading">
-            {t('admin.sections.accessGates.togglesLoading')}
-          </p>
+          <p className="admin-access__loading">{t('admin.sections.accessGates.togglesLoading')}</p>
         ) : null}
         {togglesError ? (
-          <div
-            className="admin-registration-access__message admin-registration-access__message--error"
-            role="alert"
-          >
+          <div className="admin-access__message admin-access__message--error" role="alert">
             <XCircle size={15} aria-hidden />
             <span>{togglesError}</span>
-            <button
-              type="button"
-              className="admin-registration-access__button"
-              onClick={() => void loadToggles()}
-            >
+            <button type="button" className="admin-access__btn" onClick={() => void loadToggles()}>
               {t('admin.sections.accessGates.retry')}
             </button>
           </div>
         ) : null}
       </section>
 
-      <section
-        className="admin-registration-access__block"
-        aria-labelledby="access-gates-private-title"
-      >
-        <header className="admin-registration-access__block-head">
+      <section className="admin-access__block" aria-labelledby="access-gates-private-title">
+        <header className="admin-access__block-head">
           <div>
             <h2 id="access-gates-private-title">{t('admin.sections.accessGates.gatesTitle')}</h2>
             <p>{t('admin.sections.accessGates.gatesLead')}</p>
           </div>
-        </header>
-
-        <article className="admin-registration-access__rule">
-          <span
-            className={`admin-registration-access__dot admin-registration-access__dot--${stateClass(gateStateKey(configuration.membershipGate))}`}
-            aria-hidden
-          />
-          <div className="admin-registration-access__rule-copy">
-            <h3>{t('admin.sections.accessGates.membershipGateTitle')}</h3>
-            <p>
-              {configuration.membershipGate
-                ? t('admin.sections.accessGates.membershipGateWithLabel', {
-                    label: configuration.membershipGate.label,
-                  })
-                : t('admin.sections.accessGates.membershipGateEmpty')}
-            </p>
-          </div>
-          <div className="admin-registration-access__trailing">
-            <span
-              className={`admin-registration-access__state admin-registration-access__state--${stateClass(gateStateKey(configuration.membershipGate))}`}
-            >
-              {stateLabel(gateStateKey(configuration.membershipGate))}
-            </span>
-            {canEdit ? (
-              <div className="admin-registration-access__actions">
-                <button
-                  type="button"
-                  className="admin-registration-access__button"
-                  onClick={(event) =>
-                    openEditor(configuration.membershipGate, 'membership', event.currentTarget)
-                  }
-                >
-                  {isGateReopenable(configuration.membershipGate)
-                    ? t('admin.sections.accessGates.reopen')
-                    : t('admin.sections.accessGates.configure')}
-                </button>
-                {configuration.membershipGate ? (
-                  <button
-                    type="button"
-                    className="admin-registration-access__button admin-registration-access__button--danger"
-                    onClick={() => setDeleteTarget(configuration.membershipGate)}
-                  >
-                    <Trash2 size={15} aria-hidden /> {t('admin.sections.accessGates.delete')}
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        </article>
-
-        <div className="admin-registration-access__subhead">
-          <div>
-            <h3 id="access-event-gates-title">{t('admin.sections.accessGates.eventGatesTitle')}</h3>
-            <p>{t('admin.sections.accessGates.eventGatesLead')}</p>
-          </div>
           {canEdit ? (
             <button
               type="button"
-              className="admin-registration-access__button"
+              className="admin-access__btn"
               onClick={(event) => openEditor(null, 'registration', event.currentTarget)}
             >
               {t('admin.sections.accessGates.newGate')}
             </button>
           ) : null}
-        </div>
+        </header>
 
-        <div
-          className="admin-registration-access__list"
-          role="list"
-          aria-labelledby="access-event-gates-title"
-        >
-          {eventGates.length ? (
-            eventGates.map((gate) => {
-              const key = gateStateKey(gate)
-              return (
-                <article className="admin-registration-access__rule" role="listitem" key={gate.id}>
-                  <span
-                    className={`admin-registration-access__dot admin-registration-access__dot--${stateClass(key)}`}
-                    aria-hidden
-                  />
-                  <div className="admin-registration-access__rule-copy">
-                    <h3>{gate.eventTitle ?? gate.eventSlug}</h3>
-                    <p>
-                      {gate.label}
-                      {gate.endsAt
-                        ? t('admin.sections.accessGates.until', { date: formatEndsAt(gate.endsAt) })
-                        : ''}
-                    </p>
-                  </div>
-                  <div className="admin-registration-access__trailing">
-                    <span
-                      className={`admin-registration-access__state admin-registration-access__state--${stateClass(key)}`}
-                    >
-                      {stateLabel(key)}
-                    </span>
-                    {canEdit ? (
-                      <div className="admin-registration-access__actions">
-                        <button
-                          type="button"
-                          className="admin-registration-access__button"
-                          onClick={(event) => openEditor(gate, 'registration', event.currentTarget)}
-                        >
-                          {isGateReopenable(gate)
-                            ? t('admin.sections.accessGates.reopen')
-                            : t('admin.sections.accessGates.edit')}
-                        </button>
-                        <button
-                          type="button"
-                          className="admin-registration-access__button admin-registration-access__button--danger"
-                          onClick={() => setDeleteTarget(gate)}
-                        >
-                          <Trash2 size={15} aria-hidden /> {t('admin.sections.accessGates.delete')}
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                </article>
-              )
-            })
-          ) : (
-            <div className="admin-registration-access__empty-state" role="status">
-              <span className="admin-registration-access__empty-icon" aria-hidden>
-                <Inbox size={18} />
-              </span>
-              <p className="admin-registration-access__empty">
-                {t('admin.sections.accessGates.eventGatesEmpty')}
-              </p>
-            </div>
-          )}
-        </div>
+        <AdminDataTable
+          className="admin-data-table--access-gates"
+          columns={gateColumns}
+          density="compact"
+          pagination={false}
+          rows={gateRows}
+        />
+        {eventGates.length === 0 ? (
+          <p className="admin-access__empty" role="status">
+            {t('admin.sections.accessGates.eventGatesEmpty')}
+          </p>
+        ) : null}
 
         {canEdit && draft ? (
-          <form
-            ref={formRef}
-            className="admin-registration-access__form"
-            onSubmit={submit}
-            noValidate
-          >
+          <form ref={formRef} className="admin-access__form" onSubmit={submit} noValidate>
             <header>
-              <LockKeyhole size={17} aria-hidden />
-              <div>
-                <h3>
-                  {draft.scope === 'membership'
-                    ? t('admin.sections.accessGates.formTitleMembership')
-                    : t('admin.sections.accessGates.formTitleRegistration')}
-                </h3>
-                <p>
-                  {t(
-                    reopeningDraft
-                      ? 'admin.sections.accessGates.formLeadReopen'
-                      : 'admin.sections.accessGates.formLead',
-                  )}
-                </p>
-              </div>
+              <h3>
+                {draft.scope === 'membership'
+                  ? t('admin.sections.accessGates.formTitleMembership')
+                  : t('admin.sections.accessGates.formTitleRegistration')}
+              </h3>
+              <p>
+                {t(
+                  reopeningDraft
+                    ? 'admin.sections.accessGates.formLeadReopen'
+                    : 'admin.sections.accessGates.formLead',
+                )}
+              </p>
             </header>
 
-            <fieldset className="admin-registration-access__fields" disabled={saving}>
+            <fieldset className="admin-access__fields" disabled={saving}>
               <label htmlFor="access-gate-scope">
                 <span>{t('admin.sections.accessGates.scope')}</span>
                 <select
@@ -927,14 +918,7 @@ export default function RegistrationAccessSection({
               </label>
 
               <label htmlFor="access-gate-code">
-                <span>
-                  {t('admin.sections.accessGates.code')}
-                  {requiresNewCode ? (
-                    <small> {t('admin.sections.accessGates.codeRequired')}</small>
-                  ) : currentGate?.active ? (
-                    <small> {t('admin.sections.accessGates.codeKeepHint')}</small>
-                  ) : null}
-                </span>
+                <span>{t('admin.sections.accessGates.code')}</span>
                 <input
                   id="access-gate-code"
                   type="password"
@@ -944,9 +928,15 @@ export default function RegistrationAccessSection({
                   minLength={10}
                   maxLength={72}
                 />
-                {/* El requisito va solo en la ayuda: como placeholder desaparecía
-                    justo cuando se empieza a tipear, y se leía dos veces. */}
-                <small>{t('admin.sections.accessGates.codePlaceholder')}</small>
+                {/* Una sola línea de ayuda según el caso: antes el aviso se partía
+                    entre la etiqueta y el pie, y el requisito se leía dos veces. */}
+                <small>
+                  {requiresNewCode
+                    ? t('admin.sections.accessGates.codeRequired')
+                    : currentGate?.active
+                      ? t('admin.sections.accessGates.codeKeepHint')
+                      : t('admin.sections.accessGates.codePlaceholder')}
+                </small>
               </label>
 
               <label htmlFor="access-gate-starts">
@@ -969,7 +959,10 @@ export default function RegistrationAccessSection({
                 />
               </label>
 
-              <label className="admin-registration-access__switch" htmlFor="access-gate-active">
+              <label
+                className="admin-access__switch admin-access__switch--field"
+                htmlFor="access-gate-active"
+              >
                 <input
                   id="access-gate-active"
                   type="checkbox"
@@ -977,7 +970,7 @@ export default function RegistrationAccessSection({
                   onChange={(event) => setDraft({ ...draft, active: event.target.checked })}
                   aria-label={t('admin.sections.accessGates.activeAria')}
                 />
-                <span>
+                <span className="admin-access__switch-state">
                   {draft.active
                     ? t('admin.sections.accessGates.enabledSingular')
                     : t('admin.sections.accessGates.closedSingular')}
@@ -986,22 +979,18 @@ export default function RegistrationAccessSection({
             </fieldset>
 
             {formError ? (
-              <p className="admin-registration-access__error" role="alert">
+              <p className="admin-access__error" role="alert">
                 <XCircle size={15} aria-hidden /> {formError}
               </p>
             ) : null}
 
-            <footer className="admin-registration-access__form-actions">
-              <button
-                type="button"
-                className="admin-registration-access__button"
-                onClick={cancelEditor}
-              >
+            <footer className="admin-access__form-actions">
+              <button type="button" className="admin-access__btn" onClick={cancelEditor}>
                 {t('admin.sections.accessGates.cancel')}
               </button>
               <button
                 type="submit"
-                className="admin-registration-access__button admin-registration-access__button--primary"
+                className="admin-access__btn admin-access__btn--primary"
                 disabled={saving}
               >
                 {saving ? (

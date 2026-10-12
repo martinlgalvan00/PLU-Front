@@ -1,0 +1,60 @@
+/* =============================================
+   TABLA DENSA (admin)
+   Modificador de AdminDataTable: `density="compact"` y `stickyHeader`.
+   Filas de planilla (~38px), texto de 13px y acciones de 32px. Solo aplica en
+   modo tabla: en cards móviles estas clases no existen, así que celulares y
+   tablets angostas no cambian.
+
+   Se cuelga de `.admin-shell` y de la estructura de antd
+   (`.ant-table-tbody > tr > td`) para vencer el padding por defecto de antd y la
+   especificidad de admin-minimal.css sin sumar otra capa de overrides ahí. Los anchos de
+   columna son de cada pantalla (por ejemplo `admin-ledger.css`).
+   ============================================= */
+
+.admin-shell .admin-data-table--compact .ant-table-thead > tr > th {
+  font-size: 10px;
+  height: 34px;
+  padding: 0 14px;
+}
+
+.admin-shell .admin-data-table--compact .ant-table-tbody > tr > td {
+  font-size: 13px;
+  height: 38px;
+  letter-spacing: 0;
+  line-height: 1.3;
+  padding: 5px 14px;
+}
+
+/* Sin tinte en la columna ordenada (antd): en una planilla la banda de fondo
+   se lee como una columna seleccionada. El indicador de orden ya está en el
+   encabezado. */
+.admin-shell .admin-data-table--compact .ant-table-tbody > tr > td.ant-table-column-sort {
+  background: transparent;
+}
+
+.admin-shell .admin-data-table--compact .ant-table-thead > tr > th.ant-table-column-sort {
+  background: var(--admin-table-head);
+}
+
+/* Acciones de fila: 32px alcanza en desktop y mantiene la fila baja. */
+.admin-shell .admin-data-table--compact .ant-table-tbody > tr > td:has(.admin-table-actions) {
+  padding-block: 3px;
+}
+
+.admin-shell .admin-data-table--compact .admin-table-actions .admin-icon-btn {
+  height: 32px;
+  min-height: 32px;
+  min-width: 32px;
+  width: 32px;
+}
+
+/* Cabecera fija: opaca (las filas pasan por debajo) y con una sola hairline.
+   `top: 0` es el borde del scroll de `#admin-main-content`, que ya queda
+   debajo de la barra superior del admin. */
+.admin-shell .admin-data-table--sticky-head .ant-table-sticky-holder {
+  z-index: 3;
+}
+
+.admin-shell .admin-data-table--sticky-head.admin-data-table--compact .ant-table-thead > tr > th {
+  background: var(--admin-table-head);
+}

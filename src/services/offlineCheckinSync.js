@@ -1,4 +1,3 @@
-import { ApiError } from '../lib/api.js'
 import {
   addResolvedConflict,
   downloadAllowlist as saveAllowlist,
@@ -7,6 +6,7 @@ import {
 } from '../lib/offlineCheckinDb.js'
 import { checkInRegistration, getEventCheckinAllowlist } from './athleteApi.js'
 import { checkInTicket } from './ticketApi.js'
+import { classifyCheckinFailure, isAlreadyAdmittedConflict } from './checkinFailure.js'
 
 /**
  * offlineCheckinSync.js — PLU ARG
@@ -36,28 +36,49 @@ async function syncEntry(entry) {
     await removePending(entry.localId)
     return { localId: entry.localId, outcome: 'ok' }
   } catch (error) {
-    if (error instanceof ApiError && error.status === 409) {
+    const failure = classifyCheckinFailure(error)
+
+    if (failure === 'rejected') {
       await removePending(entry.localId)
-      await addResolvedConflict(entry)
-      return { localId: entry.localId, outcome: 'conflict' }
+      // Sólo PLU06 es la carrera entre dos dispositivos ("ya ingresó"). Un
+      // vencido, no vigente, zona incorrecta o sin pago también llega como 409,
+      // pero acá la persona ya pasó por la puerta con un veredicto local: se
+      // guarda con su motivo para que Administración lo revise, no se descarta
+      // como si nada.
+      const reason = error?.body?.code ?? null
+      await addResolvedConflict({ ...entry, reason })
+      return {
+        localId: entry.localId,
+        outcome: isAlreadyAdmittedConflict(error) ? 'conflict' : 'rejected',
+        reason,
+      }
     }
-    if (error instanceof ApiError && error.status === 404) {
+    if (failure === 'not_found') {
       await removePending(entry.localId)
       return { localId: entry.localId, outcome: 'not_found' }
     }
-    // Error de red (o el servidor sigue sin responder) -- se deja en la
-    // cola, el próximo ciclo de sync lo reintenta.
+    // Sesión vencida o sin permiso: reintentar no lo arregla y el operador
+    // tiene que saberlo. Queda en la cola, sin consumir intentos.
+    if (failure === 'auth') return { localId: entry.localId, outcome: 'auth' }
+
+    // Red caída, 429 o 5xx: se deja en la cola, el próximo ciclo lo reintenta.
     return { localId: entry.localId, outcome: 'retry' }
   }
 }
 
-/** Recorre la cola pendiente en orden FIFO y la sincroniza contra el servidor. */
+/**
+ * Recorre la cola pendiente en orden FIFO y la sincroniza contra el servidor.
+ * Con la sesión vencida corta en el primer rechazo de autenticación: el resto
+ * recibiría lo mismo y sólo gastaría pedidos.
+ */
 export async function syncPendingCheckins() {
   const queue = await listPending()
   const results = []
   for (const entry of queue) {
     // eslint-disable-next-line no-await-in-loop -- FIFO intencional, no en paralelo
-    results.push(await syncEntry(entry))
+    const result = await syncEntry(entry)
+    results.push(result)
+    if (result.outcome === 'auth') break
   }
   return results
 }

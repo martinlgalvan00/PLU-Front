@@ -20,6 +20,7 @@ const PUBLIC_VIEW_PATHS = Object.freeze({
   team: '/nosotros',
   sponsors: '/sponsors',
   standards: '/estandares',
+  staffApplication: '/sumate-al-staff',
   profile: '/perfil',
   login: '/acceder',
   register: '/crear-cuenta',

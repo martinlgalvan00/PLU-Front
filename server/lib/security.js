@@ -10,6 +10,8 @@ const SERVER_TO_SERVER_MUTATION_PATHS = new Set([
   // Alias legacy: preferir /mercadopago en panel MP y notification_url nuevas.
   '/api/payments/webhook',
   '/api/emails/webhook/brevo',
+  // Tienda: la preferencia de Mercado Pago trae esta URL como notification_url.
+  '/api/shop/webhook/mercadopago',
 ])
 
 // El flush de analítica en `pagehide` usa `navigator.sendBeacon`: es la única

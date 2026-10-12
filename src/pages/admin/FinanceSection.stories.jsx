@@ -69,8 +69,23 @@ const ROWS = [
     party: 'Sofía Méndez',
   },
   {
+    // Ingreso cargado a mano (sin orden de pago): se edita desde el libro.
+    id: 'manual-income-1',
+    kind: 'income',
+    manual: true,
+    occurredOn: '2026-08-07',
+    category: 'Sponsor',
+    conceptKey: 'manual_income',
+    description: 'Aporte anual Gym Titan',
+    amount: 150000,
+    currency: 'ARS',
+    reference: null,
+    party: null,
+  },
+  {
     id: 'expense-1',
     kind: 'expense',
+    manual: true,
     occurredOn: '2026-08-05',
     category: 'Logística',
     conceptKey: 'expense',
@@ -83,6 +98,7 @@ const ROWS = [
   {
     id: 'expense-2',
     kind: 'expense',
+    manual: true,
     occurredOn: '2026-08-02',
     category: 'Premios',
     conceptKey: 'expense',
@@ -108,8 +124,8 @@ function withReport(rows) {
     const original = globalThis.fetch
     globalThis.fetch = async (input, init) => {
       const url = String(typeof input === 'string' ? input : (input?.url ?? ''))
-      if (url.includes('/api/finance/expenses')) {
-        // Alta, edición y borrado comparten interceptor: el alta/edición
+      if (/\/api\/finance\/(expenses|incomes)/.test(url)) {
+        // Egresos e ingresos manuales comparten interceptor: el alta/edición
         // devuelve el asiento; el borrado, 204 sin cuerpo.
         if ((init?.method ?? 'POST').toUpperCase() === 'DELETE') {
           return new Response(null, { status: 204 })
@@ -137,13 +153,13 @@ export default {
   parameters: { layout: 'padded' },
 }
 
-/** Caja con movimientos mixtos y permiso de carga de egresos. */
+/** Caja con cobros, ingresos y egresos manuales, y permiso de carga. */
 export const Operativa = {
   args: { canEdit: true },
   decorators: [withReport(ROWS)],
 }
 
-/** Rol sin permiso de aprobación: sin formulario de carga. */
+/** Rol sin permiso de aprobación: sin fila de carga ni acciones por asiento. */
 export const SoloLectura = {
   args: { canEdit: false },
   decorators: [withReport(ROWS)],

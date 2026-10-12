@@ -1,0 +1,359 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Checkout de entradas en tres capítulos (entradas · datos · pago).
+   El formulario sigue siendo uno solo y todo queda montado: el riel y los
+   capítulos ordenan la lectura, no esconden campos. Movimiento: transform y
+   opacity, una entrada por capítulo, nada en loop.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.ticket-flow-rail {
+  align-items: center;
+  background: var(--color-bg-surface, var(--color-bg-primary));
+  display: flex;
+  gap: 16px 24px;
+  justify-content: space-between;
+  margin-bottom: clamp(8px, 2vw, 16px);
+  padding: 14px 0;
+  position: sticky;
+  top: 76px;
+  z-index: 5;
+}
+
+.ticket-flow-rail::before {
+  background: color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+  bottom: 0;
+  content: '';
+  height: 1px;
+  left: 0;
+  position: absolute;
+  right: 0;
+}
+
+.ticket-flow-rail__line {
+  background: var(--color-brand-gold);
+  bottom: 0;
+  height: 1px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  transform: scaleX(var(--ticket-flow-fill, 0));
+  transform-origin: left center;
+  transition: transform var(--motion-cinematic, 700ms) var(--ease-cinematic, ease);
+}
+
+.ticket-flow-rail__steps {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: clamp(12px, 3vw, 32px);
+  list-style: none;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.ticket-flow-rail__step button {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 10px;
+  letter-spacing: 0.04em;
+  min-height: 44px;
+  padding: 0;
+  transition: color var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.ticket-flow-rail__step button:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 4px;
+}
+
+.ticket-flow-rail__mark {
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 28%, transparent);
+  border-radius: 50%;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  height: 22px;
+  justify-content: center;
+  transition:
+    background-color var(--motion-base, 240ms) var(--ease-out, ease),
+    border-color var(--motion-base, 240ms) var(--ease-out, ease),
+    color var(--motion-base, 240ms) var(--ease-out, ease);
+  width: 22px;
+}
+
+.ticket-flow-rail__step[data-state='current'] button {
+  color: var(--color-text-primary);
+}
+
+.ticket-flow-rail__step[data-state='current'] .ticket-flow-rail__mark {
+  border-color: var(--color-brand-gold);
+  color: var(--color-text-primary);
+}
+
+.ticket-flow-rail__step[data-state='done'] button {
+  color: var(--color-text-primary);
+}
+
+.ticket-flow-rail__step[data-state='done'] .ticket-flow-rail__mark {
+  background: var(--color-brand-gold);
+  border-color: var(--color-brand-gold);
+  color: var(--color-brand-action-text, #14181f);
+}
+
+.ticket-flow-rail__sr {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.ticket-flow-rail__total {
+  align-items: baseline;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 10px;
+  margin: 0;
+}
+
+.ticket-flow-rail__total span {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.ticket-flow-rail__total strong {
+  animation: ticket-flow-figure var(--motion-base, 240ms) var(--ease-out, ease) both;
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(17px, 2.4vw, 22px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+@keyframes ticket-flow-figure {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Capítulo ─────────────────────────────────────────────────────────── */
+
+.ticket-flow-chapter {
+  animation: ticket-flow-rise var(--motion-slow, 480ms) var(--ease-cinematic, ease) both;
+  animation-delay: calc(var(--chapter-index, 0) * 90ms);
+  display: grid;
+  gap: clamp(14px, 2vw, 22px);
+  margin-top: clamp(28px, 5vw, 52px);
+  scroll-margin-top: 150px;
+}
+
+@keyframes ticket-flow-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-enter-y, 12px));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ticket-flow-chapter__head {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+}
+
+.ticket-flow-chapter__head::after {
+  background: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  content: '';
+  flex: 1 1 auto;
+  height: 1px;
+  order: 2;
+}
+
+.ticket-flow-chapter__index {
+  color: var(--color-brand-gold-dark, var(--color-brand-gold));
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+.ticket-flow-chapter__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+}
+
+.ticket-flow-chapter__seal {
+  align-items: center;
+  background: var(--color-brand-gold);
+  border-radius: 50%;
+  color: var(--color-brand-action-text, #14181f);
+  display: none;
+  height: 20px;
+  justify-content: center;
+  order: 3;
+  width: 20px;
+}
+
+.ticket-flow-chapter[data-done] .ticket-flow-chapter__seal {
+  animation: ticket-flow-pop var(--motion-base, 240ms) var(--ease-out, ease) both;
+  display: inline-flex;
+}
+
+@keyframes ticket-flow-pop {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.ticket-flow-rail + .ticket-flow-chapter {
+  margin-top: clamp(12px, 2vw, 20px);
+}
+
+.ticket-flow-chapter__body {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* Sin cajas anidadas: el capítulo ya es el contenedor. */
+.ticket-flow-chapter .ticket-purchase__quantity,
+.ticket-flow-chapter .ticket-purchase__checkout--editorial {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  margin-top: 0;
+  padding: 0;
+}
+
+/* La cabecera del capítulo ya nombra el bloque: la leyenda queda para lectores
+   de pantalla. */
+.ticket-flow-chapter .ticket-purchase__buyer legend,
+.ticket-flow-chapter .ticket-purchase__payment-options legend {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* Un asistente por fila, separado por una línea: dentro del capítulo no hace
+   falta una caja por persona. */
+.ticket-purchase--editorial .ticket-flow-chapter.ticket-flow-chapter .ticket-purchase__attendee-row {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  padding: 18px 0 0;
+}
+
+/* El total ya vive en el riel. */
+.ticket-flow-chapter .ticket-purchase__summary-inline {
+  display: none;
+}
+
+.ticket-flow-chapter .ticket-purchase__attendee-row,
+.ticket-flow-chapter .ticket-purchase__attendees-batch {
+  animation: ticket-flow-rise var(--motion-base, 240ms) var(--ease-out, ease) both;
+}
+
+/* Medio de pago: la barra de selección entra desde abajo en vez de saltar. */
+.ticket-flow-chapter .ticket-purchase__payment-option::before {
+  background: var(--color-brand-celeste);
+  bottom: -1px;
+  content: '';
+  left: -1px;
+  position: absolute;
+  top: -1px;
+  transform: scaleY(0);
+  transform-origin: bottom center;
+  transition: transform var(--motion-base, 240ms) var(--ease-out, ease);
+  width: 2px;
+}
+
+.ticket-flow-chapter .ticket-purchase__payment-option.is-selected::before {
+  transform: scaleY(1);
+}
+
+.ticket-flow-chapter .ticket-purchase__submit svg {
+  transition: transform var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.ticket-flow-chapter .ticket-purchase__submit:hover:not(:disabled) svg {
+  transform: translateX(3px);
+}
+
+.ticket-flow-chapter .ticket-purchase__submit-error {
+  animation: ticket-flow-rise var(--motion-base, 240ms) var(--ease-out, ease) both;
+}
+
+@media (max-width: 560px) {
+  .ticket-flow-rail {
+    top: 68px;
+  }
+
+  /* En mobile sólo el capítulo actual lleva nombre; el resto queda en número. */
+  .ticket-flow-rail__step:not([data-state='current']) .ticket-flow-rail__label {
+    display: none;
+  }
+
+  .ticket-flow-rail__total span {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticket-flow-chapter,
+  .ticket-flow-chapter .ticket-purchase__attendee-row,
+  .ticket-flow-chapter .ticket-purchase__attendees-batch,
+  .ticket-flow-chapter .ticket-purchase__submit-error,
+  .ticket-flow-chapter[data-done] .ticket-flow-chapter__seal,
+  .ticket-flow-rail__total strong {
+    animation: none;
+  }
+
+  .ticket-flow-rail__line,
+  .ticket-flow-chapter .ticket-purchase__payment-option::before,
+  .ticket-flow-chapter .ticket-purchase__submit svg {
+    transition: none;
+  }
+
+  .ticket-flow-chapter .ticket-purchase__submit:hover:not(:disabled) svg {
+    transform: none;
+  }
+}

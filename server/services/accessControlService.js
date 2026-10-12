@@ -5,6 +5,7 @@ import {
   getDefaultPermissionsForRole,
   getRoleHierarchyLevel,
   PERMISSION_CATALOG,
+  RESERVED_PERMISSION_KEYS,
 } from '../../src/lib/permissions.js'
 import { HttpError } from '../lib/errors.js'
 
@@ -141,13 +142,7 @@ export function assertMutablePermissionSet(actor, role, permissionKeys) {
     throw new HttpError(403, 'No tenés jerarquía suficiente para modificar este rol.')
   }
 
-  const reservedPermissions = [
-    'admin.users.write',
-    'admin.roles.write',
-    'admin.pricing.write',
-    'admin.registration_access.write',
-  ]
-  if (permissionKeys.some((permissionKey) => reservedPermissions.includes(permissionKey))) {
+  if (permissionKeys.some((permissionKey) => RESERVED_PERMISSION_KEYS.includes(permissionKey))) {
     throw new HttpError(
       400,
       'La gestión de usuarios, roles, tarifas y tandas queda reservada a Super Admin y Administrador.',

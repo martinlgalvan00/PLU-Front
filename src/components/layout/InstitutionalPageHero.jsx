@@ -1,6 +1,7 @@
 import { ChevronRight } from 'lucide-react'
 
 export default function InstitutionalPageHero({
+  actions,
   aside,
   breadcrumb,
   className = '',
@@ -36,6 +37,7 @@ export default function InstitutionalPageHero({
             </p>
             <h1 id={titleId}>{title}</h1>
             <p className="institutional-hero__description">{description}</p>
+            {actions ? <div className="institutional-hero__actions">{actions}</div> : null}
           </div>
           {aside ? <div className="institutional-hero__aside">{aside}</div> : null}
         </div>

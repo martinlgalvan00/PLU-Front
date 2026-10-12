@@ -8,6 +8,7 @@ import { runPaymentRecoveryJob } from '../jobs/paymentRecoveryJob.js'
 import { runPaymentRevalidationJob } from '../jobs/paymentRevalidationJob.js'
 import { runPaymentProofRetentionJob } from '../jobs/paymentProofRetentionJob.js'
 import { runSecurityUserLifecycleJob } from '../jobs/securityUserLifecycleJob.js'
+import { runShopOrderExpiryJob } from '../jobs/shopOrderExpiryJob.js'
 import { HttpError } from '../lib/errors.js'
 
 function hasValidCronAuthorization(request, secret) {
@@ -32,6 +33,7 @@ export function createInternalJobRoutes({
     paymentRevalidation: runners.paymentRevalidation ?? runPaymentRevalidationJob,
     paymentProofRetention: runners.paymentProofRetention ?? runPaymentProofRetentionJob,
     securityUserLifecycle: runners.securityUserLifecycle ?? runSecurityUserLifecycleJob,
+    shopOrderExpiry: runners.shopOrderExpiry ?? runShopOrderExpiryJob,
   }
 
   router.use((req, res, next) => {
@@ -104,6 +106,18 @@ export function createInternalJobRoutes({
     }
     const result = await run.paymentOrderExpiry({ client: getSupabaseAdmin?.(), env })
     res.json({ status: 'completed', job: 'payment-order-expiry', result })
+  })
+
+  // Vence los pedidos de la tienda sin pagar y devuelve su stock al catálogo.
+  // Además, cada pedido nuevo vence los atrasados antes de reservar, así que el
+  // cron diario es la red de seguridad y no la única vía.
+  router.get('/jobs/shop-order-expiry', async (_req, res) => {
+    if (env.SHOP_ORDER_EXPIRY_JOB_ENABLED === 'false') {
+      res.json({ status: 'disabled', job: 'shop-order-expiry' })
+      return
+    }
+    const result = await run.shopOrderExpiry({ client: getSupabaseAdmin?.(), env })
+    res.json({ status: 'completed', job: 'shop-order-expiry', result })
   })
 
   router.get('/jobs/security-user-lifecycle', async (_req, res) => {

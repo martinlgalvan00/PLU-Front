@@ -1,0 +1,594 @@
+/* =============================================
+   COBROS — cabecera, pestañas y barra de las colas
+   Hoja propia de la ruta (se importa desde PaymentsOperationsSection).
+   Orden de lectura: título + pulso (cuántas órdenes y cuánta plata
+   esperan) → pestañas de cola → una sola barra (búsqueda, estado, canal) →
+   órdenes → configuración. El buscador cruzado es un acceso bajo demanda.
+   Monocromo: el número que importa va en tinta y grande; no hay color de
+   estado en la cabecera. La acción principal vive en cada fila.
+   ============================================= */
+
+.admin-payments-operations {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.admin-payments-operations__body {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* ---- Cabecera ---- */
+
+.admin-payments-ops-masthead {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.admin-payments-ops-top {
+  align-items: end;
+  display: grid;
+  gap: var(--space-md) 40px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.admin-payments-ops-pulse-group {
+  align-items: center;
+  display: flex;
+  gap: 12px 24px;
+}
+
+.admin-payments-ops-top .admin-list-shell__title {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(24px, 2.6vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.admin-payments-ops-top .admin-list-shell__subtitle {
+  color: var(--admin-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 6px 0 0;
+  max-width: 64ch;
+  text-wrap: pretty;
+}
+
+.admin-payments-ops-pulse {
+  display: flex;
+  gap: 36px;
+  margin: 0;
+}
+
+.admin-payments-ops-pulse__stat {
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+}
+
+.admin-payments-ops-pulse__value {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.admin-payments-ops-pulse__label {
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+
+.admin-payments-ops-top__actions {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+/* ---- Pestañas de cola: subrayado, no cápsula ---- */
+
+.admin-payments-ops-top__tabs {
+  align-items: center;
+  border-bottom: 1px solid var(--admin-hairline);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-md);
+  justify-content: space-between;
+}
+
+/* Acceso al buscador cruzado: texto, no un segundo campo permanente. */
+.admin-payments-ops-top__find {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 4px;
+  transition: color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-payments-ops-top__find:hover,
+.admin-payments-ops-top__find.is-open {
+  color: var(--admin-ink);
+}
+
+.admin-payments-ops-top__find:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-payments-ops-top__tabs .segmented-switch--ops {
+  flex: 0 1 auto;
+  width: auto;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  display: inline-flex;
+  gap: 28px;
+  max-width: none;
+  padding: 0;
+}
+
+.admin-payments-ops-top__tabs .segmented-switch--ops .segmented-switch__thumb {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid var(--admin-ink);
+  border-radius: 0;
+  box-shadow: none;
+  inset: auto 0 -1px;
+  height: 0;
+}
+
+.admin-payments-ops-top__tabs .segmented-switch--ops .segmented-switch__thumb::after {
+  display: none;
+}
+
+.admin-payments-ops-top__tabs .segmented-switch--ops .segmented-switch__option {
+  background: transparent;
+  border: 0;
+  color: var(--admin-muted);
+  font-size: 14px;
+  font-weight: 500;
+  gap: 8px;
+  letter-spacing: 0;
+  min-height: 44px;
+  padding: 0 2px;
+  text-transform: none;
+  width: auto;
+}
+
+.admin-payments-ops-top__tabs .segmented-switch--ops .segmented-switch__option:hover {
+  color: var(--admin-ink);
+}
+
+.admin-payments-ops-top__tabs .segmented-switch--ops .segmented-switch__option.is-active {
+  color: var(--admin-ink);
+  font-weight: 650;
+}
+
+.admin-payments-ops-top__tabs .segmented-switch--ops .segmented-switch__option:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+/* Contador de la pestaña: texto tabular, sin cápsula de color. */
+.admin-payments-ops-top__tabs .segmented-switch--ops .segmented-switch__badge {
+  background: transparent;
+  border: 0;
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+  padding: 0;
+}
+
+/* ---- Encabezado del bloque de órdenes ---- */
+
+.admin-orders-block__header {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md) var(--space-lg);
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.admin-orders-block__title {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.admin-orders-block__lead {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 4px 0 0;
+  max-width: 60ch;
+}
+
+/* Resumen de la cola de entradas (la de atletas ya lo muestra la cabecera). */
+.admin-orders-block__summary {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+}
+
+.admin-orders-block__amount-value {
+  color: var(--admin-ink);
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.admin-orders-block__amount-caption {
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+
+/* ---- Barra de búsqueda y facetas ---- */
+
+.admin-orders-block__toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-bottom: 0;
+}
+
+/* Búsqueda a la izquierda; estado y canal en la misma línea, a la derecha. */
+.admin-orders-block__toolbar-primary {
+  align-items: center;
+  display: flex;
+  flex: 1 1 280px;
+  gap: 10px;
+  max-width: 440px;
+  min-width: 0;
+}
+
+.admin-orders-block__toolbar-primary .admin-orders-block__search-row {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Los facetas se reparten sobre la barra: el canal queda a la derecha de la
+   búsqueda y el estado ocupa su propia línea debajo. */
+.admin-orders-block__toolbar-facets {
+  display: contents;
+}
+
+.admin-orders-block__toolbar-primary {
+  order: 1;
+}
+
+.admin-orders-block__toolbar-facets > .admin-filters__select {
+  order: 2;
+}
+
+.admin-orders-block__toolbar-facets > .admin-filter-group {
+  flex: 1 1 100%;
+  order: 3;
+}
+
+.admin-shell .admin-orders-block__toolbar .admin-orders-block__search-row {
+  display: block;
+  position: relative;
+}
+
+/* Buscador cruzado: es una herramienta, no una sección. El encabezado sigue
+   en el DOM (nombra la región) pero no se ve; el campo queda a un ancho
+   cómodo y los resultados se abren debajo. */
+.admin-orders-block--search > .admin-orders-block__header {
+  block-size: 1px;
+  clip-path: inset(50%);
+  inline-size: 1px;
+  margin: 0;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+}
+
+/* El título y la bajada de la cola de atletas repiten la cabecera de la
+   página: quedan en el DOM para nombrar la región, sin ocupar lugar. */
+.admin-orders-block--athlete > .admin-orders-block__header {
+  block-size: 1px;
+  clip-path: inset(50%);
+  inline-size: 1px;
+  margin: 0;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+}
+
+.admin-orders-block--search .admin-orders-block__toolbar {
+  margin-bottom: 0;
+  max-width: 480px;
+}
+
+/* Campo de búsqueda: icono y texto en la misma línea, un solo contenedor. */
+.admin-shell .admin-orders-block__toolbar .admin-filters__search {
+  align-items: center;
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 12px;
+  display: flex;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 12px;
+  position: relative;
+}
+
+.admin-shell .admin-orders-block__toolbar .admin-filters__search:focus-within {
+  border-color: var(--admin-ink);
+}
+
+.admin-shell .admin-orders-block__toolbar .admin-filters__search-icon {
+  color: var(--admin-muted);
+  flex: none;
+  position: static;
+}
+
+.admin-shell .admin-orders-block__toolbar .admin-filters__search-input {
+  background: transparent;
+  border: 0;
+  color: var(--admin-ink);
+  flex: 1 1 auto;
+  font: inherit;
+  font-size: 14px;
+  min-height: 42px;
+  min-width: 0;
+  outline: 0;
+  padding: 0;
+  width: auto;
+}
+
+/* La etiqueta del buscador sigue en el DOM (nombra el campo) pero no se ve:
+   el placeholder y el icono ya dicen qué es. */
+.admin-orders-block__search-row > .admin-filter-group__label {
+  block-size: 1px;
+  clip-path: inset(50%);
+  inline-size: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+}
+
+.admin-shell
+  .admin-orders-block__toolbar-facets
+  .admin-filter-group.admin-filter-group--rail.admin-filter-group--labeled {
+  align-items: center;
+  display: flex;
+  min-width: 0;
+  width: 100%;
+}
+
+/* "Estado" nombra el grupo para lectores de pantalla; a la vista, las
+   opciones ("Por validar", "Aprobadas"…) ya dicen de qué se trata. */
+.admin-shell .admin-orders-block__toolbar-facets .admin-filter-group__label {
+  block-size: 1px;
+  clip-path: inset(50%);
+  inline-size: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+}
+
+.admin-shell .admin-orders-block__toolbar-facets .admin-filters__select {
+  flex: none;
+  min-width: 176px;
+}
+
+/* ---- Configuración (vencimiento) ---- */
+
+.admin-payments-operations__expiry {
+  border-top: 1px solid var(--admin-hairline);
+  padding-top: var(--space-lg);
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 899px) {
+  .admin-payments-ops-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-payments-ops-pulse-group {
+    justify-content: space-between;
+  }
+
+  .admin-payments-ops-pulse__stat {
+    justify-items: start;
+  }
+}
+
+@media (max-width: 899px) {
+  .admin-orders-block__toolbar-primary {
+    max-width: none;
+  }
+
+}
+
+@media (max-width: 560px) {
+  .admin-shell .admin-orders-block__toolbar-facets .admin-filters__select {
+    flex: 1 1 100%;
+  }
+
+  .admin-payments-ops-top__tabs .segmented-switch--ops {
+    gap: 20px;
+    width: 100%;
+  }
+}
+
+/* =============================================
+   COLA DE ÓRDENES — superficie y celdas
+   Reemplaza el layout viejo de "chrome fijo + scroll propio": la página
+   scrollea completa y la tabla usa el modo compacto de AdminDataTable
+   (`density="compact"`, hoja `admin-table-dense.css`). Celdas de una línea que
+   se cortan con puntos suspensivos en vez de partirse en tres renglones.
+   ============================================= */
+
+.admin-shell .admin-payments-operations .admin-orders-block {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+  padding: 0;
+}
+
+/* El chrome ya cierra con la hairline de las pestañas: sin aire extra debajo. */
+.admin-shell .admin-payments-ops-chrome {
+  padding-bottom: 0;
+}
+
+.admin-orders-block__stack,
+.admin-orders-block__status-cell {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.admin-orders-block__concept,
+.admin-orders-block__method {
+  color: var(--admin-ink);
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-orders-block__order-date,
+.admin-orders-block__proof-note {
+  color: var(--admin-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.admin-orders-block__order-date {
+  color: var(--admin-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-orders-block__proof-note--warning {
+  color: var(--admin-status-warning);
+  font-weight: 500;
+}
+
+.admin-orders-block__amount-badge {
+  color: var(--admin-ink);
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+/* Referencia: mono, chica y atenuada; si no entra se corta con puntos
+   suspensivos (el texto completo sigue en el DOM y en el title). */
+.admin-data-table--athlete-orders .data-table__mono,
+.admin-data-table--ticket-orders .data-table__mono {
+  color: var(--admin-muted);
+  display: block;
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-orders-block__stack--end {
+  justify-items: end;
+}
+
+.admin-orders-block__proof {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  gap: 6px;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+.admin-orders-block__proof:hover:not(:disabled) {
+  color: var(--admin-ink);
+}
+
+.admin-orders-block__proof:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+/* Vencimiento de un combo financiado y su etiqueta: texto, sin pastillas. */
+.admin-orders-block__due.status-pill,
+.admin-orders-block__tag {
+  background: transparent;
+  border: 0;
+  color: var(--admin-text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 0;
+}
+
+.admin-orders-block__due.status-pill--warning {
+  color: var(--admin-status-warning);
+}
+
+.admin-orders-block__due.status-pill--danger {
+  color: var(--color-brand-red-hover);
+}
+
+.admin-shell .admin-data-table--athlete-orders.admin-data-table--compact .ant-table-tbody > tr > td {
+  height: 50px;
+}
+
+.admin-data-table--athlete-orders tbody tr:hover > td {
+  background: var(--admin-surface-muted);
+}
+
+/* Identidad: monograma chico y nombre en una línea con el documento atenuado. */
+.admin-shell .admin-data-table--compact .data-table__avatar {
+  border-radius: 8px;
+  font-size: 12px;
+  height: 28px;
+  width: 28px;
+}
+
+.admin-shell .admin-data-table--compact .data-table__identity {
+  gap: 10px;
+}
+
+.admin-shell .admin-data-table--compact .data-table__identity-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-shell .admin-data-table--compact .data-table__sub {
+  font-size: 11.5px;
+}

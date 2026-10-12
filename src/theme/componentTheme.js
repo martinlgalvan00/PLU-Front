@@ -9,6 +9,11 @@ export const componentTheme = {
     borderRadius: brandTokens.borderRadiusBase,
     paddingInline: 24,
     fontWeight: 600,
+    // Única superficie con acento: la acción principal (oro PLU, texto oscuro).
+    colorPrimary: brandTokens.brandGold,
+    colorPrimaryHover: brandTokens.brandGoldLight,
+    colorPrimaryActive: brandTokens.brandGoldDark,
+    primaryColor: '#14181f',
   },
   Input: {
     controlHeight: 40,

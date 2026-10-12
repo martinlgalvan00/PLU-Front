@@ -1,13 +1,16 @@
-import { lazy, Suspense, useState, useEffect, useCallback, useRef } from 'react'
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react'
 import NavbarPublic from './components/layout/NavbarPublic.jsx'
 import Footer from './components/layout/Footer.jsx'
 import AnalyticsTracker from './components/layout/AnalyticsTracker.jsx'
 import DocumentMetaSync from './components/layout/DocumentMetaSync.jsx'
 import PageTransition from './components/layout/PageTransition.jsx'
 import PageErrorBoundary from './components/layout/PageErrorBoundary.jsx'
+import lazyWithRetry from './lib/lazyWithRetry.js'
 import PageLoadFallback from './components/ui/PageLoadFallback.jsx'
 import HelpLayer from './components/ui/HelpLayer.jsx'
 import { useAppData } from './hooks/useAppData.js'
+import { useScheduleClock } from './hooks/useScheduleClock.js'
+import { withPublicEventStatus } from './lib/publicRegistrationPhase.js'
 import { readCredentialParams } from './lib/credentialQr.js'
 import {
   clearEventPageRoute,
@@ -91,7 +94,7 @@ function athleteVisibleNotice(app) {
 // Ant Design sólo existe en las superficies operativas. Cargar también su
 // ConfigProvider de forma diferida evita que un visitante de la web pública
 // parseé y mantenga en memoria ese runtime completo.
-const AdminPage = lazy(async () => {
+const AdminPage = lazyWithRetry(async () => {
   const [{ default: Page }, { AppConfigProvider }] = await Promise.all([
     import('./pages/AdminPage.jsx'),
     import('./providers/AppConfigProvider.jsx'),
@@ -104,7 +107,7 @@ const AdminPage = lazy(async () => {
     ),
   }
 })
-const CheckInAppPage = lazy(async () => {
+const CheckInAppPage = lazyWithRetry(async () => {
   const [{ default: Page }, { AppConfigProvider }] = await Promise.all([
     import('./pages/CheckInAppPage.jsx'),
     import('./providers/AppConfigProvider.jsx'),
@@ -117,32 +120,33 @@ const CheckInAppPage = lazy(async () => {
     ),
   }
 })
-const SecurityGatePage = lazy(() => import('./pages/SecurityGatePage.jsx'))
-const HomePage = lazy(() => import('./pages/HomePage.jsx'))
-const AthleteProfilePage = lazy(() => import('./pages/AthleteProfilePage.jsx'))
-const CommunityPage = lazy(() => import('./pages/CommunityPage.jsx'))
-const CredentialPage = lazy(() => import('./pages/CredentialPage.jsx'))
-const ContactPage = lazy(() => import('./pages/ContactPage.jsx'))
-const EventsPage = lazy(() => import('./pages/EventsPage.jsx'))
-const FAQPage = lazy(() => import('./pages/FAQPage.jsx'))
-const LoginPage = lazy(() => import('./pages/LoginPage.jsx'))
-const MembersPage = lazy(() => import('./pages/MembersPage.jsx'))
-const NotFoundPage = lazy(() => import('./pages/NotFoundPage.jsx'))
-const PitbullPage = lazy(() => import('./pages/PitbullPage.jsx'))
-const RecordsPage = lazy(() => import('./pages/RecordsPage.jsx'))
-const RegisterPage = lazy(() => import('./pages/RegisterPage.jsx'))
-const ResourcesPage = lazy(() => import('./pages/ResourcesPage.jsx'))
-const ResultsPage = lazy(() => import('./pages/ResultsPage.jsx'))
-const RulebookPage = lazy(() => import('./pages/RulebookPage.jsx'))
-const ShopPage = lazy(() => import('./pages/ShopPage.jsx'))
-const SponsorsPage = lazy(() => import('./pages/SponsorsPage.jsx'))
-const StaffEmailChangePage = lazy(() => import('./pages/StaffEmailChangePage.jsx'))
-const StaffInvitationPage = lazy(() => import('./pages/StaffInvitationPage.jsx'))
-const StaffPasswordChangePage = lazy(() => import('./pages/StaffPasswordChangePage.jsx'))
-const StandardsPage = lazy(() => import('./pages/StandardsPage.jsx'))
-const TeamPage = lazy(() => import('./pages/TeamPage.jsx'))
-const TicketsPage = lazy(() => import('./pages/TicketsPage.jsx'))
-const ThankYouPage = lazy(() => import('./pages/ThankYouPage.jsx'))
+const SecurityGatePage = lazyWithRetry(() => import('./pages/SecurityGatePage.jsx'))
+const HomePage = lazyWithRetry(() => import('./pages/HomePage.jsx'))
+const AthleteProfilePage = lazyWithRetry(() => import('./pages/AthleteProfilePage.jsx'))
+const CommunityPage = lazyWithRetry(() => import('./pages/CommunityPage.jsx'))
+const CredentialPage = lazyWithRetry(() => import('./pages/CredentialPage.jsx'))
+const ContactPage = lazyWithRetry(() => import('./pages/ContactPage.jsx'))
+const EventsPage = lazyWithRetry(() => import('./pages/EventsPage.jsx'))
+const FAQPage = lazyWithRetry(() => import('./pages/FAQPage.jsx'))
+const LoginPage = lazyWithRetry(() => import('./pages/LoginPage.jsx'))
+const MembersPage = lazyWithRetry(() => import('./pages/MembersPage.jsx'))
+const NotFoundPage = lazyWithRetry(() => import('./pages/NotFoundPage.jsx'))
+const PitbullPage = lazyWithRetry(() => import('./pages/PitbullPage.jsx'))
+const RecordsPage = lazyWithRetry(() => import('./pages/RecordsPage.jsx'))
+const RegisterPage = lazyWithRetry(() => import('./pages/RegisterPage.jsx'))
+const ResourcesPage = lazyWithRetry(() => import('./pages/ResourcesPage.jsx'))
+const ResultsPage = lazyWithRetry(() => import('./pages/ResultsPage.jsx'))
+const RulebookPage = lazyWithRetry(() => import('./pages/RulebookPage.jsx'))
+const ShopPage = lazyWithRetry(() => import('./pages/ShopPage.jsx'))
+const SponsorsPage = lazyWithRetry(() => import('./pages/SponsorsPage.jsx'))
+const StaffApplicationPage = lazyWithRetry(() => import('./pages/StaffApplicationPage.jsx'))
+const StaffEmailChangePage = lazyWithRetry(() => import('./pages/StaffEmailChangePage.jsx'))
+const StaffInvitationPage = lazyWithRetry(() => import('./pages/StaffInvitationPage.jsx'))
+const StaffPasswordChangePage = lazyWithRetry(() => import('./pages/StaffPasswordChangePage.jsx'))
+const StandardsPage = lazyWithRetry(() => import('./pages/StandardsPage.jsx'))
+const TeamPage = lazyWithRetry(() => import('./pages/TeamPage.jsx'))
+const TicketsPage = lazyWithRetry(() => import('./pages/TicketsPage.jsx'))
+const ThankYouPage = lazyWithRetry(() => import('./pages/ThankYouPage.jsx'))
 
 const PUBLIC_VIEWS = {
   home: HomePage,
@@ -162,6 +166,7 @@ const PUBLIC_VIEWS = {
   team: TeamPage,
   sponsors: SponsorsPage,
   standards: StandardsPage,
+  staffApplication: StaffApplicationPage,
   register: RegisterPage,
   login: LoginPage,
   thanks: ThankYouPage,
@@ -197,9 +202,18 @@ export default function App() {
   const paymentReturnInFlightRef = useRef(null)
   const app = useAppData()
   const getSession = app.getSession
+  // Re-renderiza cuando una ventana de inscripción abre o vence.
+  useScheduleClock(app.adminEvents)
+  // Frontera de lo público: todas las páginas leen el estado ya resuelto (cierre
+  // y apertura programados incluidos), así que ninguna puede decir "abierta"
+  // mientras otra dice "cerrada". El panel de staff sigue con el estado guardado.
   const publicEvents = getPublicCatalogEvents(
     app.adminEvents.filter((event) => event.published !== false),
     { includeDevelopmentStubs: false },
+  ).map((event) =>
+    withPublicEventStatus(event, new Date(), {
+      registrationEnabled: app.checkoutAvailability?.registrationEnabled !== false,
+    }),
   )
   const nextEvent = getNextUpcomingEvent(publicEvents) ?? UPCOMING_EVENTS[0]
   const featuredEvent = getFeaturedEvent(publicEvents) ?? UPCOMING_EVENTS[0]
@@ -761,14 +775,13 @@ export default function App() {
           onDeleteRegistration={app.deleteRegistrationAction}
           onSetRegistrationPublicVisibility={app.setRegistrationPublicVisibilityAction}
           onCreateRole={app.createAccessRoleAction}
-          onDeleteShopProduct={app.deleteShopProductAction}
           onExportAdmin={app.exportAdminCsv}
           onExportPluUsa={app.exportPluUsaCsv}
           onSaveEvent={app.saveAdminEvent}
           onDeleteEvent={app.deleteAdminEvent}
           onFetchEventDeleteImpact={app.fetchAdminEventDeleteImpact}
           onSetEventState={app.setAdminEventState}
-          onSaveShopProduct={app.saveShopProduct}
+          onSetEventLogo={app.setAdminEventLogo}
           onScheduleAssigned={app.handleScheduleAssigned}
           onSetFilters={app.setFilters}
           onUpdateUserRole={app.updateUserRoleAction}
@@ -781,7 +794,6 @@ export default function App() {
           pendingTicketOrdersError={app.pendingTicketOrdersError}
           athletes={app.athletes}
           registrations={app.registrations}
-          shopProducts={app.shopProducts}
           tickets={app.tickets}
           users={app.users}
           accessRoles={app.accessRoles}
@@ -848,7 +860,7 @@ export default function App() {
                   checkoutAvailability: app.checkoutAvailability,
                 }
               : view === 'shop'
-                ? { onNavigate: navigate, events: publicEvents, products: app.shopProducts }
+                ? { onNavigate: navigate, events: publicEvents }
                 : view === 'tickets'
                   ? {
                       onNavigate: navigate,
@@ -872,7 +884,13 @@ export default function App() {
                           events: publicEvents,
                           checkoutAvailability: app.checkoutAvailability,
                         }
-                      : { onNavigate: navigate }
+                      : view === 'staffApplication'
+                        ? {
+                            onNavigate: navigate,
+                            session: app.session,
+                            athletes: app.athletes,
+                          }
+                        : { onNavigate: navigate }
 
   const showAthleteAccount =
     app.session?.role === 'athlete_plu' && (view === 'profile' || view === 'membership')

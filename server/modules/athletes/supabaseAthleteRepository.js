@@ -7,6 +7,7 @@ import { forgetAthleteSessionCache } from '../../services/athleteSessionService.
 
 const PHOTO_BUCKET = 'athlete-photos'
 const PAYMENT_PROOF_BUCKET = 'athlete-payment-proofs'
+const STAFF_APPLICATION_BUCKET = 'staff-application-documents'
 // Tope de la bandeja de validación: más de esto deja de ser una optimización
 // y pasa a ser trabajo especulativo.
 const PAYMENT_PROOF_BATCH_LIMIT = 60
@@ -1283,6 +1284,7 @@ export function createSupabaseAthleteRepository(
         approvedResponse,
         totalResponse,
         openAmounts,
+        approvedAmounts,
       ] = await Promise.all([
         scoped().in('status', OPEN_PAYMENT_ORDER_STATUSES),
         scoped().eq('status', 'validacion_manual'),
@@ -1299,6 +1301,15 @@ export function createSupabaseAthleteRepository(
           .eq('organization_id', organizationId)
           .in('status', OPEN_PAYMENT_ORDER_STATUSES)
           .limit(OPEN_AMOUNT_SAMPLE_LIMIT),
+        // Cobrado del dashboard: mismo techo de muestra que lo abierto. Sin
+        // esto el hero sumaba solo el snapshot acotado y quedaba chico frente
+        // a `openAmount` de la base.
+        client
+          .from('athlete_payment_orders')
+          .select('amount')
+          .eq('organization_id', organizationId)
+          .eq('status', 'aprobado')
+          .limit(OPEN_AMOUNT_SAMPLE_LIMIT),
       ])
 
       for (const response of [
@@ -1312,6 +1323,10 @@ export function createSupabaseAthleteRepository(
         assertSupabaseResult(response, 'No se pudieron contar las órdenes de pago.')
       }
       const amounts = assertSupabaseResult(openAmounts, 'No se pudo sumar lo pendiente de cobro.')
+      const collected = assertSupabaseResult(
+        approvedAmounts,
+        'No se pudo sumar lo cobrado.',
+      )
 
       return {
         pending: openResponse.count ?? 0,
@@ -1324,6 +1339,8 @@ export function createSupabaseAthleteRepository(
         // El importe queda truncado si hay más órdenes abiertas que la muestra:
         // la pantalla lo dice en vez de mostrar un total que no es el total.
         openAmountTruncated: (openResponse.count ?? 0) > (amounts?.length ?? 0),
+        approvedAmount: (collected ?? []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0),
+        approvedAmountTruncated: (approvedResponse.count ?? 0) > (collected?.length ?? 0),
       }
     },
 
@@ -1542,6 +1559,84 @@ export function createSupabaseAthleteRepository(
         'No se pudo preparar la carga de la foto.',
       )
       return { path, token: signed.token, cacheControl: '31536000' }
+    },
+
+    /**
+     * Postulación al Cuerpo de Staff: dos archivos por postulante (foto de
+     * perfil, certificado de antecedentes), subidos antes de que la
+     * postulación exista como fila — por eso la ruta cuelga de
+     * `<athleteId>/<purpose>/`, no de un id de postulación.
+     */
+    async createStaffApplicationUpload(athleteId, purpose, fileName) {
+      const safeName = String(fileName)
+        .replace(/[^\w.\-()+ ]/g, '_')
+        .slice(0, 120)
+      const path = `${athleteId}/${purpose}/${Date.now()}-${safeName}`
+      const signed = assertSupabaseResult(
+        await client.storage.from(STAFF_APPLICATION_BUCKET).createSignedUploadUrl(path),
+        'No se pudo preparar la carga del archivo.',
+      )
+      return { path, token: signed.token }
+    },
+
+    submitStaffApplication: (athleteId, data) =>
+      rpc(
+        'submit_staff_application',
+        {
+          p_athlete_id: athleteId,
+          p_first_name: data.firstName,
+          p_last_name: data.lastName,
+          p_document_id: data.documentId,
+          p_birth_date: data.birthDate,
+          p_street_address: data.streetAddress,
+          p_city: data.city,
+          p_province: data.province,
+          p_postal_code: data.postalCode,
+          p_email: data.email,
+          p_phone: data.phone,
+          p_staff_body: data.staffBody,
+          p_technical_training_status: data.technicalTrainingStatus ?? null,
+          p_shirt_size: data.shirtSize,
+          p_photo_path: data.photoPath,
+          p_background_check_path: data.backgroundCheckPath,
+          p_background_check_issued_at: data.backgroundCheckIssuedAt,
+          p_data_accuracy_declared: data.dataAccuracyDeclared,
+          p_data_processing_consent: data.dataProcessingConsent,
+        },
+        'No se pudo enviar la postulación.',
+      ),
+
+    listStaffApplications: ({ status = null, limit = 50 } = {}) =>
+      rpc(
+        'list_staff_applications',
+        { p_status: status, p_limit: limit },
+        'No se pudieron leer las postulaciones.',
+      ),
+
+    reviewStaffApplication: (applicationId, { status, notes }, actor) =>
+      rpc(
+        'staff_review_application',
+        {
+          p_application_id: applicationId,
+          p_status: status,
+          p_review_notes: notes || null,
+          p_actor: actor,
+        },
+        'No se pudo registrar la revisión.',
+      ),
+
+    async staffApplicationDocumentPath(applicationId, purpose) {
+      const column = purpose === 'photo' ? 'photo_path' : 'background_check_path'
+      const application = assertSupabaseResult(
+        await client
+          .from('staff_applications')
+          .select(column)
+          .eq('id', applicationId)
+          .maybeSingle(),
+        'No se pudo leer la postulación.',
+      )
+      if (!application?.[column]) throw new HttpError(404, 'Archivo no encontrado.')
+      return application[column]
     },
     /**
      * Revision barata del padrón admin (count + max updated_at por segmento

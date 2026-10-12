@@ -186,7 +186,7 @@ export const PERMISSION_CATALOG = [
     moduleLabel: 'Shop',
     action: 'read',
     actionLabel: 'Leer',
-    description: 'Consultar el catálogo y el stock.',
+    description: 'Consultar el catálogo, el stock y los pedidos.',
     sortOrder: 70,
   },
   {
@@ -195,7 +195,7 @@ export const PERMISSION_CATALOG = [
     moduleLabel: 'Shop',
     action: 'write',
     actionLabel: 'Escribir',
-    description: 'Crear, editar y archivar productos.',
+    description: 'Crear, editar y archivar productos; acreditar, entregar y cancelar pedidos; configurar el cobro.',
     sortOrder: 71,
   },
   {
@@ -233,6 +233,24 @@ export const PERMISSION_CATALOG = [
     actionLabel: 'PLU USA',
     description: 'Descargar el consolidado autorizado para PLU USA.',
     sortOrder: 91,
+  },
+  {
+    key: 'admin.staff_applications.read',
+    module: 'staff_applications',
+    moduleLabel: 'Postulaciones de staff',
+    action: 'read',
+    actionLabel: 'Leer',
+    description: 'Consultar postulaciones al Cuerpo de Staff y su documentación.',
+    sortOrder: 95,
+  },
+  {
+    key: 'admin.staff_applications.approve',
+    module: 'staff_applications',
+    moduleLabel: 'Postulaciones de staff',
+    action: 'approve',
+    actionLabel: 'Aprobar',
+    description: 'Aprobar o rechazar postulaciones al Cuerpo de Staff.',
+    sortOrder: 96,
   },
   {
     key: 'admin.checkin.execute',
@@ -333,6 +351,19 @@ export const ROLE_HIERARCHY = Object.freeze([
 export const CONFIGURABLE_ROLE_KEYS = Object.freeze(['plu_arg', 'seguridad_plu_arg'])
 
 /**
+ * Permisos que no se delegan a roles operativos: sólo Super Admin y
+ * Administrador los tienen. El servidor rechaza cualquier matriz que los
+ * incluya (`assertMutablePermissionSet`) y la UI los muestra bloqueados; las
+ * dos capas leen esta misma lista para que no se desalineen.
+ */
+export const RESERVED_PERMISSION_KEYS = Object.freeze([
+  'admin.users.write',
+  'admin.roles.write',
+  'admin.pricing.write',
+  'admin.registration_access.write',
+])
+
+/**
  * Borrado definitivo (cascada de datos, sin vuelta atrás): reservado a Super
  * Admin. Administrador tiene "acceso total" para todo lo demás, pero no esto.
  */
@@ -357,6 +388,7 @@ export const DEFAULT_ROLE_PERMISSIONS = Object.freeze({
     'admin.registrations.read',
     'admin.results.read',
     'admin.exports.admin',
+    'admin.staff_applications.read',
   ],
   seguridad_plu_arg: ['admin.events.read', 'admin.checkin.execute'],
 })
@@ -417,6 +449,7 @@ export const ADMIN_SECTION_PERMISSIONS = Object.freeze({
   registrations: ['admin.registrations.read'],
   grid: ['admin.registrations.read'],
   checkin: ['admin.checkin.execute'],
+  staff_applications: ['admin.staff_applications.read'],
   results: ['admin.results.read'],
   shop: ['admin.shop.read'],
   payments: ['admin.payments.read'],

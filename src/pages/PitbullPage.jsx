@@ -26,17 +26,25 @@ import PitbullHero from '../components/layout/PitbullHero.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import EventVenueMap from '../components/ui/EventVenueMap.jsx'
 import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.jsx'
+import PitbullCategoriesFilm from '../components/ui/PitbullCategoriesFilm.jsx'
+import PitbullCountdownIntro from '../components/ui/PitbullCountdownIntro.jsx'
+import PitbullMeetCountdown from '../components/ui/PitbullMeetCountdown.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import EventWeighInSchedule, {
   eventHasWeighInWindows,
 } from '../components/ui/EventWeighInSchedule.jsx'
 import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import SeasonComboOffer from '../components/ui/SeasonComboOffer.jsx'
+import TicketPassPreview from '../components/ui/TicketPassPreview.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
 import { useTicketCheckoutAvailability } from '../hooks/useTicketAvailability.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
-import { resolveEventPricing, resolveLiveComboOffer } from '../lib/eventPricing.js'
+import {
+  isTicketSalesEnabled,
+  resolveEventPricing,
+  resolveLiveComboOffer,
+} from '../lib/eventPricing.js'
 import {
   eventShowsPublicCategories,
   eventShowsPublicExperience,
@@ -49,8 +57,18 @@ import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { getPitbullClassicEvent } from '../lib/eventNavigation.js'
 import { buildExternalMapUrl, buildWazeUrl } from '../lib/eventMap.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
-import { formatRelativeTime, formatShortStamp, money } from '../lib/format.js'
-import { getStatusMeta, isRegistrationOpen } from '../lib/status.js'
+import {
+  formatRelativeTime,
+  formatShortStamp,
+  initials,
+  money,
+  tidyPersonName,
+} from '../lib/format.js'
+import {
+  getPublicRegistrationPresentation,
+  PUBLIC_REGISTRATION_PHASE,
+  resolvePublicRegistrationPhase,
+} from '../lib/publicRegistrationPhase.js'
 import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
 import { describePublicCapacity } from '../lib/eventCapacityPublic.js'
 import { resolvePublicInscriptionCopy } from '../lib/eventInscriptionCopy.js'
@@ -58,6 +76,7 @@ import { hasCurrentMembership } from '../services/membershipService.js'
 import AnimatedNumber from '../motion/AnimatedNumber.tsx'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER, MOTION_VIEWPORT } from '../motion/tokens.ts'
+import { hasFinePointer } from '../motion/useReducedMotion.ts'
 import { staggerContainer, staggerItem } from '../motion/variants.ts'
 
 function scrollToSection(id) {
@@ -377,14 +396,18 @@ function PitbullExperienceSection({ t }) {
   const StageTag = reducedMotion ? 'div' : m.div
   const PillarsTag = reducedMotion ? 'ul' : m.ul
   const PillarTag = reducedMotion ? 'li' : m.li
-  const stageMotion = reducedMotion
-    ? {}
-    : {
-        initial: { opacity: 0, y: 18 },
-        whileInView: { opacity: 1, y: 0 },
-        viewport: MOTION_VIEWPORT,
-        transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
-      }
+  // Con puntero fino la portada del capítulo se descubre con un wipe atado al
+  // scroll (pitbull.css, `pitbull-experience-wipe`); sumarle el fade de JS
+  // duplicaría la entrada. En touch queda el fade.
+  const stageMotion =
+    reducedMotion || hasFinePointer()
+      ? {}
+      : {
+          initial: { opacity: 0, y: 18 },
+          whileInView: { opacity: 1, y: 0 },
+          viewport: MOTION_VIEWPORT,
+          transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
+        }
   const pillarsMotion = reducedMotion
     ? {}
     : {
@@ -557,7 +580,7 @@ function PitbullLocationSection({ event, venue, t }) {
   )
 }
 
-function PitbullTicketsBand({ onOpen, soon = false, t }) {
+function PitbullTicketsBand({ event, onOpen, soon = false, t }) {
   return (
     <section
       id="entradas"
@@ -614,13 +637,28 @@ function PitbullTicketsBand({ onOpen, soon = false, t }) {
           </button>
         )}
       </div>
+      {/* Pieza 3D de la banda: el mismo pase que entrega la compra, con QR de
+          vista previa (PREV-, no habilita ingreso). Solo desktop. */}
+      <div className="pitbull-tickets-band__pass" aria-hidden>
+        <TicketPassPreview
+          date={event?.date}
+          eventSlug={event?.slug ?? ''}
+          eventTitle={event?.title}
+          showHint={false}
+          venue={event?.venue}
+        />
+      </div>
     </section>
   )
 }
 
+const RECENT_REGISTRANTS_VISIBLE = 6
+
 function PitbullRecentRegistrants({ capacityStatus, locale, recent, registeredToday = 0, t }) {
   const { reducedMotion } = useMotionConfig()
-  const isEmpty = recent.length === 0
+  // Son los últimos: seis alcanzan para leer el pulso sin alargar la sección.
+  const visible = recent.slice(0, RECENT_REGISTRANTS_VISIBLE)
+  const isEmpty = visible.length === 0
   const isLive = capacityStatus === 'live'
   const todayCount = Number(registeredToday) || 0
   const ListTag = reducedMotion ? 'ol' : m.ol
@@ -678,45 +716,46 @@ function PitbullRecentRegistrants({ capacityStatus, locale, recent, registeredTo
           </p>
         </div>
       ) : (
-        <ListTag className="pitbull-recent__list" {...listMotion}>
-          {recent.map((item, index) => {
-            const initial = item.displayName?.trim()?.charAt(0)?.toUpperCase() ?? '?'
-            return (
-              <RowTag
-                key={`${item.displayName}-${item.registeredAt ?? index}`}
-                className="pitbull-recent__row"
-                {...rowMotion}
-              >
-                <span className="pitbull-recent__portrait" aria-hidden="true">
-                  {item.photoUrl ? (
-                    <LazyPhoto
-                      src={item.photoUrl}
-                      alt=""
-                      onError={(event) => {
-                        event.currentTarget.hidden = true
-                      }}
-                    />
-                  ) : null}
-                  <span>{initial}</span>
-                </span>
-                <span className="pitbull-recent__identity">
-                  <strong className="pitbull-recent__name" title={item.displayName}>
-                    {item.displayName}
-                  </strong>
-                  {item.gym ? (
-                    <span className="pitbull-recent__gym" title={item.gym}>
-                      {item.gym}
-                    </span>
-                  ) : null}
-                </span>
-                <span className="pitbull-recent__when">
-                  <time className="pitbull-recent__time" dateTime={item.registeredAt ?? undefined}>
-                    {formatRelativeTime(item.registeredAt, locale)}
-                  </time>
-                </span>
-              </RowTag>
-            )
-          })}
+        <ListTag
+          className="pitbull-recent__list"
+          {...listMotion}
+        >
+          {visible.map((item, index) => (
+            <RowTag
+              key={`${item.displayName}-${item.registeredAt ?? index}`}
+              className="pitbull-recent__row"
+              {...rowMotion}
+            >
+              {/* Con foto, la foto; sin foto, las iniciales: la fila siempre tiene
+                  el mismo ancho de marca y la lista se lee alineada. */}
+              <span className="pitbull-recent__portrait" aria-hidden="true">
+                {item.photoUrl ? (
+                  <LazyPhoto
+                    src={item.photoUrl}
+                    alt=""
+                    onError={(event) => {
+                      event.currentTarget.hidden = true
+                    }}
+                  />
+                ) : (
+                  <span className="pitbull-recent__initials">{initials(item.displayName)}</span>
+                )}
+              </span>
+              <span className="pitbull-recent__identity">
+                <strong className="pitbull-recent__name" title={item.displayName}>
+                  {tidyPersonName(item.displayName)}
+                </strong>
+                {item.gym ? (
+                  <span className="pitbull-recent__gym" title={item.gym}>
+                    {item.gym}
+                  </span>
+                ) : null}
+              </span>
+              <time className="pitbull-recent__time" dateTime={item.registeredAt ?? undefined}>
+                {formatRelativeTime(item.registeredAt, locale)}
+              </time>
+            </RowTag>
+          ))}
         </ListTag>
       )}
     </div>
@@ -727,7 +766,7 @@ function PitbullInscriptionSection({
   athleteEventStatus = null,
   canRegister,
   capacityStatus,
-  checkoutLocked = false,
+  closedByWindow = false,
   comboOffer = null,
   event,
   eventStatus,
@@ -736,30 +775,26 @@ function PitbullInscriptionSection({
   onChangePaymentMethod,
   onNavigate,
   onRegister,
+  presentation,
   pricing,
   progressPublic = true,
   remaining = null,
   recent,
   registered,
   registeredToday = 0,
+  registrationPhase,
   slots,
+  softLaunch = false,
   t,
   totalPublic = true,
 }) {
   const { reducedMotion } = useMotionConfig()
-  const registrationClosesAt = event?.registrationClosesAt
-    ? new Date(event.registrationClosesAt)
-    : null
-  const closedByWindow = Boolean(
-    registrationClosesAt &&
-      !Number.isNaN(registrationClosesAt.getTime()) &&
-      Date.now() > registrationClosesAt.getTime(),
-  )
-  const softLaunch = checkoutLocked || eventStatus === 'proximamente'
   const capacityLive = capacityStatus === 'live'
-  const statusMeta = getStatusMeta(eventStatus, t)
-  const statusLabel = softLaunch ? t('pages.pitbull.badgeComingSoon') : statusMeta.label
-  const statusTone = softLaunch ? 'neutral' : statusMeta.tone
+  const statusLabel = presentation.badgeLabel
+  const statusTone = presentation.badgeTone
+  const isClosedOrFull =
+    registrationPhase === PUBLIC_REGISTRATION_PHASE.closed ||
+    registrationPhase === PUBLIC_REGISTRATION_PHASE.full
   const comboLive = Boolean(comboOffer) && !softLaunch && !hasActiveMembership
   // Estado propio de quien mira, distinto del estado del meet: el contador
   // puede decir "inscripción abierta" y esta persona ya tener su cupo.
@@ -932,13 +967,17 @@ function PitbullInscriptionSection({
             >
               {!comboLive && !showAthleteState ? (
                 <p className="pitbull-inscription-deck__lead">
-                  {hasActiveMembership
+                  {hasActiveMembership && canRegister
                     ? t('pages.pitbull.inscriptionActionOpen')
                     : canRegister
                       ? t('pages.pitbull.cardDescOpen')
                       : softLaunch
                         ? t('pages.pitbull.cardDescComingSoon')
-                        : t('pages.pitbull.cardDescClosed')}
+                        : registrationPhase === PUBLIC_REGISTRATION_PHASE.full
+                          ? t('pages.pitbull.cardDescFull')
+                          : hasActiveMembership
+                            ? t('pages.pitbull.inscriptionActionClosed')
+                            : t('pages.pitbull.cardDescClosed')}
                 </p>
               ) : null}
 
@@ -1014,17 +1053,34 @@ function PitbullInscriptionSection({
                       : t('launchTeaser.createAccountCta')}
                   </button>
                 </>
-              ) : (
+              ) : isClosedOrFull ? (
                 <>
                   <button
                     type="button"
-                    className="pitbull-inscription__cta pitbull-inscription__cta--primary"
+                    className="pitbull-inscription__cta pitbull-inscription__cta--primary pitbull-inscription__cta--soon"
+                    disabled
+                  >
+                    {t('pages.pitbull.ctaClosed')}
+                  </button>
+                  <button
+                    type="button"
+                    className="pitbull-inscription__cta pitbull-inscription__cta--secondary"
                     onClick={() => onNavigate(hasActiveMembership ? 'profile' : 'members')}
                   >
                     {hasActiveMembership
                       ? t('pages.pitbull.viewMyMembership')
                       : t('pages.pitbull.joinNow')}
                     <ArrowRight size={14} aria-hidden />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="pitbull-inscription__cta pitbull-inscription__cta--primary pitbull-inscription__cta--soon"
+                    disabled
+                  >
+                    {t('pages.pitbull.ctaClosed')}
                   </button>
                   <button
                     type="button"
@@ -1054,36 +1110,30 @@ function PitbullInscriptionSection({
   )
 }
 
-/** Catálogo editorial — Modalidades como columna destacada (numeral fantasma
- * por fila), Equipamiento y Divisiones como referencia compacta al lado. */
+/** Categorías contadas como un film: el reproductor fijo acompaña la lectura de
+ * tres capítulos (Modalidades, Equipamiento, Divisiones). Ver
+ * `PitbullCategoriesFilm`. */
 function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
-  const { reducedMotion } = useMotionConfig()
-  const secondaryGroups = [
+  const acts = [
+    {
+      id: 'modalities',
+      label: t('pages.pitbull.categoriesModalities'),
+      hint: t('pages.pitbull.categoriesModalitiesHint'),
+      rows: pitbullClassic.modalities,
+    },
     {
       id: 'equipment',
-      hint: t('pages.pitbull.categoriesEquipmentHint'),
       label: t('pages.pitbull.categoriesEquipment'),
+      hint: t('pages.pitbull.categoriesEquipmentHint'),
       rows: pitbullClassic.categories,
     },
     {
       id: 'divisions',
-      hint: t('pages.pitbull.categoriesDivisionsHint'),
       label: t('pages.pitbull.categoriesDivisions'),
+      hint: t('pages.pitbull.categoriesDivisionsHint'),
       rows: pitbullClassic.divisions,
     },
-  ]
-
-  const listMotion = reducedMotion
-    ? {}
-    : {
-        variants: staggerContainer,
-        initial: 'hidden',
-        whileInView: 'visible',
-        viewport: MOTION_VIEWPORT,
-      }
-  const itemMotion = reducedMotion ? {} : { variants: staggerItem }
-  const ListTag = reducedMotion ? 'ol' : m.ol
-  const ItemTag = reducedMotion ? 'li' : m.li
+  ].filter((act) => act.rows?.length)
 
   return (
     <PitbullDossierSection
@@ -1098,10 +1148,7 @@ function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
     >
       <div className="pitbull-cat">
         <div className="pitbull-cat__toolbar">
-          <span className="pitbull-cat__status">
-            <span className="pitbull-cat__status-dot" aria-hidden />
-            {t('pages.pitbull.categoriesPendingLabel')}
-          </span>
+          <p className="pitbull-cat__status">{t('pages.pitbull.categoriesPendingLabel')}</p>
           <button
             type="button"
             className="pitbull-cat__rulebook motion-icon-shift motif-tap-target"
@@ -1112,65 +1159,7 @@ function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
           </button>
         </div>
 
-        <div className="pitbull-cat__spread" aria-label={t('pages.pitbull.categoriesListAria')}>
-          <section className="pitbull-cat__featured" aria-labelledby="pitbull-cat-modalities">
-            <header className="pitbull-cat__featured-head">
-              <p className="pitbull-cat__featured-hint">{t('pages.pitbull.categoriesModalitiesHint')}</p>
-              <div className="pitbull-cat__headline">
-                <h3 id="pitbull-cat-modalities" className="pitbull-cat__featured-title">
-                  {t('pages.pitbull.categoriesModalities')}
-                </h3>
-                <span className="pitbull-cat__count" aria-hidden>
-                  {pitbullClassic.modalities.length}
-                </span>
-              </div>
-            </header>
-
-            <ListTag className="pitbull-cat__featured-list" {...listMotion}>
-              {pitbullClassic.modalities.map((row, rowIndex) => (
-                <ItemTag key={row} className="pitbull-cat__featured-row" {...itemMotion}>
-                  <span className="pitbull-cat__featured-row-index motif-num" aria-hidden>
-                    {String(rowIndex + 1).padStart(2, '0')}
-                  </span>
-                  <span className="pitbull-cat__featured-row-name">{row}</span>
-                  <span
-                    className="pitbull-cat__featured-row-ghost motif-num motif-num--ghost"
-                    aria-hidden
-                  >
-                    {String(rowIndex + 1).padStart(2, '0')}
-                  </span>
-                </ItemTag>
-              ))}
-            </ListTag>
-          </section>
-
-          <div className="pitbull-cat__secondary">
-            {secondaryGroups.map((group) => (
-              <section key={group.id} className="pitbull-cat__lane" aria-labelledby={`pitbull-cat-${group.id}`}>
-                <p className="pitbull-cat__lane-hint">{group.hint}</p>
-                <div className="pitbull-cat__headline pitbull-cat__headline--lane">
-                  <h3 id={`pitbull-cat-${group.id}`} className="pitbull-cat__lane-title">
-                    {group.label}
-                  </h3>
-                  <span className="pitbull-cat__count pitbull-cat__count--lane" aria-hidden>
-                    {group.rows.length}
-                  </span>
-                </div>
-
-                <ListTag className="pitbull-cat__list" {...listMotion}>
-                  {group.rows.map((row, rowIndex) => (
-                    <ItemTag key={row} className="pitbull-cat__row" {...itemMotion}>
-                      <span className="pitbull-cat__row-index motif-num" aria-hidden>
-                        {String(rowIndex + 1).padStart(2, '0')}
-                      </span>
-                      <span className="pitbull-cat__row-name">{row}</span>
-                    </ItemTag>
-                  ))}
-                </ListTag>
-              </section>
-            ))}
-          </div>
-        </div>
+        <PitbullCategoriesFilm acts={acts} />
       </div>
     </PitbullDossierSection>
   )
@@ -1220,7 +1209,12 @@ export default function PitbullPage({
   const ticketCheckoutOpen = isPaidCheckoutOpen(pitbullEvent, env, new Date(), {
     checkoutKind: 'ticket',
   })
-  const checkoutLocked = !paidCheckoutOpen
+  const registration = resolvePublicRegistrationPhase(pitbullEvent, {
+    checkoutEnabled: paidCheckoutOpen,
+  })
+  const registrationPresentation = getPublicRegistrationPresentation(registration, t)
+  const softLaunch = registration.softLaunch
+  const closedByWindow = registration.closedByWindow
   const hasActiveMembership =
     session?.role === 'athlete_plu' && hasCurrentMembership(memberships, session.athleteId)
   // Mismo resolver que el calendario público y la cuenta: la página del meet
@@ -1233,8 +1227,8 @@ export default function PitbullPage({
   })
   const isRegistered = athleteEventStatus === 'registered'
   const paymentPending = athleteEventStatus === 'pending_payment'
-  const canRegister = isRegistrationOpen(eventStatus) && paidCheckoutOpen
-  const isFinished = eventStatus === 'finalizado'
+  const canRegister = registration.canRegister
+  const isFinished = registration.phase === PUBLIC_REGISTRATION_PHASE.finished
   const eventPricing = resolveEventPricing(pitbullEvent)
   // Un combo `audience=code` es un easter egg: la página pública del torneo no
   // puede anticipar que existe ni revelar su precio. Recién aparece en la
@@ -1248,7 +1242,7 @@ export default function PitbullPage({
   const ticketsOpen =
     env.ticketSalesEnabled &&
     ticketCheckoutOpen &&
-    eventPricing.ticketsEnabled === true &&
+    isTicketSalesEnabled(pitbullEvent) &&
     ticketCheckout.ticketEnabled
   const {
     status: capacityStatus,
@@ -1316,13 +1310,13 @@ export default function PitbullPage({
       onNavigate('results')
       return
     }
-    // Cobros cerrados (kill switch / schedule) o evento marcado "próximamente":
-    // no empujar a un Members que igual está gateado, quedarse en el aviso.
-    if (checkoutLocked || eventStatus === 'proximamente') {
-      scrollToSection('inscripcion')
-      return
-    }
-    onNavigate('members')
+    // Soft-launch / cerrado: el CTA primario queda disabled; el secundario
+    // "Afiliarme" usa handleHeroJoin. Por si acaso, anclar al aviso.
+    scrollToSection('inscripcion')
+  }
+
+  function handleHeroJoin() {
+    onNavigate(hasActiveMembership ? 'profile' : 'members')
   }
 
   function handlePitbullRegistration() {
@@ -1347,14 +1341,17 @@ export default function PitbullPage({
 
   return (
     <main className="page page--design pitbull-page pitbull-page--premium">
+      <PitbullCountdownIntro dateLabel={PITBULL_CLASSIC.date} event={pitbullEvent} />
+
       <PitbullHero
         athleteStatus={athleteEventStatus}
         canRegister={canRegister}
-        checkoutLocked={checkoutLocked}
-        eventStatus={eventStatus}
         onHome={() => onNavigate('home')}
+        onJoin={handleHeroJoin}
         onRegister={handleHeroRegister}
+        presentation={registrationPresentation}
         registrationFee={money(eventPricing.registration, locale)}
+        registrationPhase={registration.phase}
         title={heroTitle}
         lead={heroLead}
         registerLabel={heroCtaLabel}
@@ -1364,11 +1361,17 @@ export default function PitbullPage({
 
       <div className="pitbull-page__body">
         <div className="pitbull-dossier pitbull-dossier--minimal">
+          <PitbullMeetCountdown
+            dateLabel={PITBULL_CLASSIC.date}
+            event={pitbullEvent}
+            onScrollToInscription={() => scrollToSection('inscripcion')}
+          />
+
           <PitbullInscriptionSection
             athleteEventStatus={athleteEventStatus}
             canRegister={canRegister}
             capacityStatus={capacityStatus}
-            checkoutLocked={checkoutLocked}
+            closedByWindow={closedByWindow}
             comboOffer={liveComboOffer}
             event={pitbullEvent}
             eventStatus={eventStatus}
@@ -1377,13 +1380,16 @@ export default function PitbullPage({
             onChangePaymentMethod={handleChangePaymentMethod}
             onNavigate={onNavigate}
             onRegister={handlePitbullRegistration}
+            presentation={registrationPresentation}
             pricing={eventPricing}
             progressPublic={progressPublic}
             remaining={liveRemaining}
             recent={recentRegistrants}
             registered={liveRegistered}
             registeredToday={liveRegisteredToday}
+            registrationPhase={registration.phase}
             slots={liveSlots}
+            softLaunch={softLaunch}
             t={t}
             totalPublic={totalPublic}
           />
@@ -1412,6 +1418,7 @@ export default function PitbullPage({
 
           <Reveal as="div" direction="up" className="pitbull-tickets-band-wrap">
             <PitbullTicketsBand
+              event={pitbullEvent}
               soon={!ticketsOpen}
               onOpen={goToTicketsPage}
               t={t}

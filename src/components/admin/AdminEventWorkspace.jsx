@@ -1,22 +1,34 @@
 import { Fragment, useEffect, useMemo, useRef } from 'react'
 import {
+  CalendarRange,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
   CreditCard,
+  ExternalLink,
+  FileText,
+  Globe,
+  LayoutGrid,
   ScanLine,
   ShieldAlert,
+  ShieldCheck,
+  Star,
+  Ticket,
   Trash2,
 } from 'lucide-react'
 import AdminCopyLinkMenu from './AdminCopyLinkMenu.jsx'
+import AdminEventLogoControl from './AdminEventLogoControl.jsx'
 import AdminIconButton from './AdminIconButton.jsx'
 import { AdminEventLivePreview } from './AdminEventEditor.jsx'
 import AdminEventDashboard from './AdminEventDashboard.jsx'
+import AdminEventQuickActions from './AdminEventQuickActions.jsx'
 import AdminEventStateControl from './AdminEventStateControl.jsx'
 import AdminEventTicketAddonReport from './AdminEventTicketAddonReport.jsx'
 import AdminEventTicketsSoldSection from './AdminEventTicketsSoldSection.jsx'
 import StatusPill from '../ui/StatusPill.jsx'
+import '../../styles/pages/admin-event-workspace.css'
+import '../../styles/pages/admin-event-dashboard.css'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatDayMonth, money } from '../../lib/format.js'
 import { buildEventPagePath } from '../../lib/eventPageRoute.js'
@@ -107,10 +119,14 @@ export default function AdminEventWorkspace({
   onManageRegistrations,
   onSelectChapter,
   onSelectSection,
+  onSetEventLogo,
   onSetEventState,
+  onSetTicketAccessOverride,
   onStatePendingChange,
   onRegisterStateDiscard,
   onToggleOccupancy,
+  onTogglePin,
+  pinBusy = false,
   onTogglePublicModule,
   openChapter = null,
   paymentSummary = '',
@@ -128,6 +144,8 @@ export default function AdminEventWorkspace({
 
   useEffect(() => {
     scrollHostRef.current = sidebarRef.current?.closest('.admin-shell__content') ?? null
+    // La lista scrollea el content del shell: la ficha arranca siempre arriba.
+    scrollHostRef.current?.scrollTo?.({ top: 0 })
   }, [])
 
   // En mobile las pestañas del evento son sticky: el alto medido evita que el
@@ -157,11 +175,14 @@ export default function AdminEventWorkspace({
 
   const tabs = useMemo(() => {
     const list = []
-    list.push({ id: 'dashboard', label: t('admin.eventConsole.dashboard') })
-    if (canEdit) list.push({ id: 'basics', label: t('admin.eventConsole.editBasics') })
+    list.push({ id: 'dashboard', label: t('admin.eventConsole.dashboard'), icon: LayoutGrid })
+    if (canEdit) {
+      list.push({ id: 'basics', label: t('admin.eventConsole.editBasics'), icon: FileText })
+    }
     list.push({
       id: 'structure',
       label: t('admin.eventConsole.structure'),
+      icon: CalendarRange,
       count: event?.eventDays?.length ?? 0,
     })
     if (canEdit) {
@@ -174,6 +195,7 @@ export default function AdminEventWorkspace({
         // real que reportaban los operadores entre "entrada" (ticket) e
         // "inscripción" (cupo).
         label: t('admin.eventConsole.editSales'),
+        icon: Ticket,
         // Mismo criterio que el checklist de "listo para publicar": sin ningún
         // tipo de entrada activo, el evento no puede vender.
         hasError: activeTicketTypeCount === 0,
@@ -181,18 +203,21 @@ export default function AdminEventWorkspace({
       })
     }
     if (canManageUsers && securitySection) {
-      list.push({ id: 'security', label: t('admin.eventConsole.zones') })
+      list.push({ id: 'security', label: t('admin.eventConsole.zones'), icon: ShieldCheck })
     }
     if (paymentsSection) {
       list.push({
         id: 'payments',
         label: t('admin.eventConsole.payments'),
+        icon: CreditCard,
         ...(typeof paymentsAttention === 'number' && paymentsAttention > 0
           ? { count: paymentsAttention }
           : {}),
       })
     }
-    if (canEdit) list.push({ id: 'visibility', label: t('admin.eventConsole.visibilityLabel') })
+    if (canEdit) {
+      list.push({ id: 'visibility', label: t('admin.eventConsole.visibilityLabel'), icon: Globe })
+    }
     return list
   }, [
     activeTicketTypeCount,
@@ -217,8 +242,6 @@ export default function AdminEventWorkspace({
 
   const registered = Number(event.registered) || 0
   const slots = Number(event.slots) || 0
-  const remaining = Math.max(0, slots - registered)
-  const fillPercent = slots > 0 ? Math.round((registered / slots) * 100) : 0
 
   function handleBack() {
     if (stateDirtyRef.current && !window.confirm(t('admin.eventState.discardUnsavedConfirm'))) {
@@ -227,13 +250,31 @@ export default function AdminEventWorkspace({
     onBack?.()
   }
 
+  /**
+   * "Cambiar fecha": abre Datos y enfoca el campo de inicio. La edición real
+   * (con sus validaciones de ventana y cupo) sigue viviendo en el formulario.
+   */
+  function handleEditDate() {
+    if (activeTab !== 'basics') onSelectSection?.(event, 'basics')
+    const focusStart = (attempts = 0) => {
+      const field = document.querySelector('[data-field="startsAt"]')
+      if (field) {
+        field.scrollIntoView({ block: 'center' })
+        field.focus()
+        return
+      }
+      if (attempts < 12) window.setTimeout(() => focusStart(attempts + 1), 80)
+    }
+    focusStart()
+  }
+
   function handleSelectTab(tabId) {
     if (tabId === activeTab) return
     onSelectSection?.(event, tabId)
     // Cada pestaña arranca arriba: sin esto, cambiar de sección mantenía el
     // scroll donde había quedado la anterior, que casi nunca tiene sentido
     // para contenido no relacionado.
-    scrollHostRef.current?.scrollTo({ top: 0 })
+    scrollHostRef.current?.scrollTo?.({ top: 0 })
   }
 
   /**
@@ -326,26 +367,6 @@ export default function AdminEventWorkspace({
     )
   }
 
-  const occupancyCard = slots > 0 ? (
-    <section className="admin-event-workspace__card">
-      <header className="admin-event-workspace__card-head">
-        <h2 className="admin-event-workspace__card-title">{t('admin.eventConsole.occupancy')}</h2>
-        <span className="admin-event-workspace__card-hint">
-          {t('admin.eventEditor.occupancyPercent', { percent: fillPercent })}
-        </span>
-      </header>
-      <div className="admin-event-workspace__card-body">
-        <div className="admin-event-workspace__meter" aria-hidden>
-          <span style={{ width: `${Math.min(100, Math.max(0, fillPercent))}%` }} />
-        </div>
-        <p className="admin-event-workspace__occupancy-copy">
-          <strong>{registered}</strong>
-          <span>{t('admin.eventConsole.occupancyDetail', { slots, remaining })}</span>
-        </p>
-      </div>
-    </section>
-  ) : null
-
   const gotoCard =
     onManageRegistrations || paymentsSection || onManageCheckin ? (
       <section className="admin-event-workspace__card">
@@ -392,9 +413,16 @@ export default function AdminEventWorkspace({
       )
     }
     if (activeTab === 'security') {
+      const gatePath = event.slug ? buildSecurityGatePath(event.slug) : ''
+      const gateUrl =
+        gatePath && typeof window !== 'undefined' ? `${window.location.origin}${gatePath}` : gatePath
       return (
-        <div className="admin-event-workspace__split">
-          <div className="admin-event-workspace__main-col">
+        <div className="admin-event-workspace__main-col admin-event-workspace__security">
+          {/* Una sola franja arriba: la regla del puesto (qué filtra y qué no) y
+              las dos puertas al día del evento. Antes eran un aviso con
+              borde, una "Consola de ingreso" a mitad de página y una tarjeta
+              "Check-in" en un rail aparte que decían lo mismo tres veces. */}
+          <div className="admin-event-workspace__security-bar">
             <div className="admin-event-workspace__notice" role="note">
               <ShieldAlert size={16} aria-hidden />
               <div className="admin-event-workspace__notice-copy">
@@ -402,27 +430,31 @@ export default function AdminEventWorkspace({
                 <p>{t('admin.eventConsole.zoneScopeNotice')}</p>
               </div>
             </div>
-            {securitySection}
+            <div className="admin-event-workspace__security-actions">
+              {gateUrl ? (
+                <a
+                  className="admin-event-security__launch"
+                  href={gateUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <ExternalLink size={14} aria-hidden />
+                  {t('admin.eventEditor.security.previewControl')}
+                </a>
+              ) : null}
+              {onManageCheckin ? (
+                <button
+                  type="button"
+                  className="admin-event-workspace__security-link"
+                  onClick={() => onManageCheckin?.(event)}
+                >
+                  <ScanLine size={14} aria-hidden />
+                  {t('admin.eventConsole.checkin')}
+                </button>
+              ) : null}
+            </div>
           </div>
-          {onManageCheckin ? (
-            <aside className="admin-event-workspace__rail">
-              <section className="admin-event-workspace__card">
-                <header className="admin-event-workspace__card-head">
-                  <h2 className="admin-event-workspace__card-title">
-                    {t('admin.eventConsole.checkin')}
-                  </h2>
-                </header>
-                <div className="admin-event-workspace__gotos">
-                  {renderGoto({
-                    icon: ScanLine,
-                    label: t('admin.eventConsole.checkin'),
-                    value: t('admin.eventConsole.checkinValue'),
-                    onClick: () => onManageCheckin?.(event),
-                  })}
-                </div>
-              </section>
-            </aside>
-          ) : null}
+          {securitySection}
         </div>
       )
     }
@@ -437,7 +469,11 @@ export default function AdminEventWorkspace({
       return (
         <div className="admin-event-workspace__main-col">
           {openChapter === 'sold' ? (
-            <AdminEventTicketsSoldSection event={event} />
+            <AdminEventTicketsSoldSection
+              canOverride={canEdit}
+              event={event}
+              onSetTicketAccessOverride={onSetTicketAccessOverride}
+            />
           ) : (
             editor
           )}
@@ -500,18 +536,12 @@ export default function AdminEventWorkspace({
       return (
         <div className="admin-event-workspace__split">
           <div className="admin-event-workspace__main-col">
-            <AdminEventDashboard 
-              event={event} 
-              tickets={tickets} 
-              onManageCheckin={onManageCheckin} 
-              onSelectSection={(tabId) => handleSelectTab(tabId)} 
-            />
+            <AdminEventDashboard event={event} tickets={tickets} />
           </div>
           <aside
             className="admin-event-workspace__rail"
             aria-label={t('admin.sections.events.publicPreviewLabel')}
           >
-            {occupancyCard}
             {gotoCard}
             <AdminEventLivePreview
               embedded
@@ -528,6 +558,11 @@ export default function AdminEventWorkspace({
     // pública viven en el Resumen; acá solo se edita título, sede y estado.
     return (
       <div className="admin-event-workspace__main-col">
+        <AdminEventLogoControl
+          event={event}
+          canEdit={canEdit}
+          onSetEventLogo={onSetEventLogo}
+        />
         {onSetEventState ? (
           <AdminEventStateControl
             canEdit={canEdit}
@@ -569,8 +604,20 @@ export default function AdminEventWorkspace({
         </button>
 
         <div className="admin-event-workspace__sidebar-head">
+          <AdminEventLogoControl
+            variant="mark"
+            event={event}
+            canEdit={canEdit}
+            onSetEventLogo={onSetEventLogo}
+          />
           <h1 className="admin-event-workspace__title">{event.title}</h1>
           <StatusPill value={event.status} />
+          {event.featured ? (
+            <span className="admin-event-workspace__featured">
+              <Star size={11} aria-hidden />
+              {t('admin.sections.events.leadFeatured')}
+            </span>
+          ) : null}
           {sidebarMeta ? (
             <p className="admin-event-workspace__meta">
               <span className="admin-event-workspace__meta-item" title={venueLine || sidebarMeta}>
@@ -611,6 +658,7 @@ export default function AdminEventWorkspace({
                 }${expanded ? ' is-expanded' : ''}`}
                 onClick={() => handleSelectTab(tab.id)}
               >
+                {tab.icon ? <tab.icon size={15} aria-hidden className="admin-event-workspace__nav-icon" /> : null}
                 <span className="admin-event-workspace__nav-item-label">{tab.label}</span>
                 {typeof tab.count === 'number' && tab.count > 0 ? (
                   <span className="admin-event-workspace__nav-count">{tab.count}</span>
@@ -682,7 +730,29 @@ export default function AdminEventWorkspace({
                 t('admin.eventEditor.salesChapterNavAria'),
               )
             : null}
+          <AdminEventQuickActions
+            event={event}
+            canEdit={canEdit}
+            onSetEventState={onSetEventState}
+            hasUnsavedState={() => stateDirtyRef.current}
+            onEditDate={handleEditDate}
+          />
           <div className="admin-event-workspace__head-actions">
+            {canEdit && onTogglePin && event.status !== 'finalizado' ? (
+              <AdminIconButton
+                icon={Star}
+                label={
+                  event.featured
+                    ? t('admin.sections.events.unpin')
+                    : t('admin.sections.events.pin')
+                }
+                className={`admin-event-workspace__pin${event.featured ? ' is-pinned' : ''}`}
+                disabled={pinBusy}
+                pressed={Boolean(event.featured)}
+                onClick={() => onTogglePin?.(event)}
+                variant="ghost"
+              />
+            ) : null}
             <AdminCopyLinkMenu links={buildEventLinks(event, t)} />
             {canDelete && onDelete ? (
               <AdminIconButton

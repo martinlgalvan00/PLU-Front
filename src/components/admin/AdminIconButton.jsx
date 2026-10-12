@@ -4,6 +4,8 @@ export default function AdminIconButton({
   icon: Icon,
   label,
   onClick,
+  /** Botón de dos estados (ej. fijar/soltar): expone `aria-pressed`. */
+  pressed,
   size = 15,
   spinning = false,
   type = 'button',
@@ -16,6 +18,7 @@ export default function AdminIconButton({
       aria-label={label}
       title={label}
       disabled={disabled}
+      aria-pressed={pressed}
       onClick={onClick}
     >
       {spinning ? (

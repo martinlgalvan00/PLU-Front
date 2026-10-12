@@ -56,6 +56,28 @@ export function initials(name = '') {
     .join('')
 }
 
+/** Partículas que van en minúscula dentro de un nombre ("Tomás de la Vega"). */
+const NAME_PARTICLES = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'da', 'di', 'van', 'von'])
+
+/**
+ * Nombre para mostrar: los atletas lo tipean como quieren ("Martinez santos
+ * julian"). Pone en mayúscula la inicial de cada palabra que arranca en
+ * minúscula, salvo las partículas, y no toca lo que ya viene bien escrito
+ * (mayúsculas internas, apóstrofes, "McDonald").
+ */
+export function tidyPersonName(name = '') {
+  return String(name)
+    .trim()
+    .split(/\s+/)
+    .map((word, index) => {
+      const first = word[0]
+      if (!first || first !== first.toLowerCase() || first === first.toUpperCase()) return word
+      if (index > 0 && NAME_PARTICLES.has(word.toLowerCase())) return word
+      return first.toUpperCase() + word.slice(1)
+    })
+    .join(' ')
+}
+
 export function todayISO() {
   return new Date().toISOString().slice(0, 10)
 }

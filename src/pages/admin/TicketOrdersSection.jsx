@@ -4,6 +4,7 @@ import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTab
 import AdminEmptyState from '../../components/admin/AdminEmptyState.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
 import AdminFilterSearch from '../../components/admin/AdminFilterSearch.jsx'
+import AdminFilterSelect from '../../components/admin/AdminFilterSelect.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import TableSkeleton from '../../components/ui/TableSkeleton.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -34,7 +35,7 @@ const DB_STATUSES_BY_FILTER = Object.freeze({
 })
 
 const CHANNEL_FILTERS = [
-  ['all', 'admin.ticketOrders.channelAll'],
+  ['all', 'admin.ticketOrders.channelAllOption'],
   ['bank_transfer', 'admin.ticketOrders.channelBankTransfer'],
   ['cash_pitbull', 'admin.ticketOrders.channelCash'],
   ['wise_transfer', 'admin.ticketOrders.channelWise'],
@@ -408,7 +409,6 @@ export default function TicketOrdersSection({
     >
       <header className="admin-orders-block__header">
         <div>
-          <span className="admin-orders-block__eyebrow">{t('admin.ticketOrders.eyebrow')}</span>
           <h3 className="admin-orders-block__title">{t('admin.ticketOrders.title')}</h3>
           <p className="admin-orders-block__lead">{t('admin.ticketOrders.subtitle')}</p>
         </div>
@@ -456,16 +456,12 @@ export default function TicketOrdersSection({
             hideEmpty
             options={STATUS_FILTERS.map(([value, key]) => [value, t(key), counts[value] ?? 0])}
           />
-          <AdminFilterChipGroup
+          <AdminFilterSelect
             id="ticket-orders-channel"
             ariaLabel={t('admin.ticketOrders.channelLabel')}
             value={channel}
             onChange={setChannel}
-            compact
             defaultValue="all"
-            omitNeutral
-            allLabel={t('admin.ticketOrders.channelAll')}
-            clearable
             options={CHANNEL_FILTERS.map(([value, key]) => [value, t(key)])}
           />
         </div>
@@ -480,75 +476,91 @@ export default function TicketOrdersSection({
         emptyState()
       ) : (
         <AdminDataTable
+          className="admin-data-table--ticket-orders"
+          density="compact"
           columns={[
             {
+              // Comprador y referencia son un solo dato: la referencia tenía
+              // columna propia, siempre oculta en mobile y repetida en cada fila.
               key: 'attendees',
               label: t('admin.columns.attendee'),
               mobile: 'primary',
               sortable: true,
+              render: (row) => (
+                <div className="admin-orders-block__stack">
+                  <span className="admin-orders-block__concept">{row.attendees}</span>
+                  <span className="data-table__mono admin-orders-block__ref">{row.reference}</span>
+                </div>
+              ),
             },
             {
-              key: 'reference',
-              label: t('admin.columns.reference'),
-              mobile: 'hidden',
+              key: 'event',
+              label: t('admin.columns.event'),
+              mobile: 'default',
+              width: 200,
               sortable: true,
             },
-            { key: 'event', label: t('admin.columns.event'), mobile: 'default', sortable: true },
             {
               key: 'channel',
               label: t('admin.columns.method'),
               mobile: 'hidden',
+              width: 130,
               sortable: true,
               render: (row) => (row.channel ? row.channel : '—'),
             },
             {
-              key: 'ticketCount',
-              label: t('admin.ticketOrders.tickets'),
-              mobile: 'hidden',
-              desktop: 'numeric',
-              align: 'end',
-              sortable: true,
-            },
-            {
+              // Monto con la cantidad de entradas debajo: eran dos columnas.
               key: 'amount',
               label: t('admin.columns.amount'),
               mobile: 'default',
               desktop: 'numeric',
               align: 'end',
+              width: 116,
               sortable: true,
+              render: (row) => (
+                <div className="admin-orders-block__stack admin-orders-block__stack--end">
+                  <span className="admin-orders-block__amount-badge">{row.amount}</span>
+                  {row.ticketCount > 1 ? (
+                    <span className="admin-orders-block__order-date">×{row.ticketCount}</span>
+                  ) : null}
+                </div>
+              ),
             },
             {
+              // Estado del comprobante y fecha de carga juntos.
               key: 'proofStatus',
               label: t('admin.ticketOrders.proof'),
               mobile: 'default',
+              width: 150,
               sortable: true,
               render: (row) => {
                 const hasProof = Boolean(row.paymentProofPath)
-                if (!hasProof) {
-                  return <span className="admin-proof-pill">{row.proofStatus}</span>
-                }
                 return (
-                  <button
-                    type="button"
-                    className="admin-proof-pill admin-proof-pill--ok admin-proof-pill--link"
-                    onClick={() => openProof(row, 'view')}
-                  >
-                    <Paperclip size={14} aria-hidden />
-                    {row.proofStatus}
-                  </button>
+                  <div className="admin-orders-block__stack">
+                    {hasProof ? (
+                      <button
+                        type="button"
+                        className="admin-orders-block__proof"
+                        onClick={() => openProof(row, 'view')}
+                      >
+                        <Paperclip size={13} aria-hidden />
+                        {row.proofStatus}
+                      </button>
+                    ) : (
+                      <span className="admin-orders-block__proof-note">{row.proofStatus}</span>
+                    )}
+                    {hasProof && row.proofUploadedAt ? (
+                      <span className="admin-orders-block__order-date">{row.proofUploadedAt}</span>
+                    ) : null}
+                  </div>
                 )
               },
-            },
-            {
-              key: 'proofUploadedAt',
-              label: t('admin.ticketOrders.uploadedAt'),
-              mobile: 'hidden',
-              sortable: true,
             },
             {
               key: 'status',
               label: t('admin.columns.status'),
               mobile: 'badge',
+              width: 150,
               sortable: true,
               render: (row) => <StatusBadge value={row.status} />,
             },
@@ -556,6 +568,7 @@ export default function TicketOrdersSection({
               key: 'actions',
               label: t('admin.columns.action'),
               mobile: 'action',
+              width: 104,
               className: 'data-table__column--actions',
               render: (row) => renderTicketRowActions(row),
               mobileRender: (row) => renderTicketRowActions(row, { compact: true }),

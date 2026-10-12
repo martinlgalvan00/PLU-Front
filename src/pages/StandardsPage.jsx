@@ -1,5 +1,6 @@
 import '../styles/pages/institutional-pages.css'
 import '../styles/layout/design-page-notebook.css'
+import '../styles/pages/institutional-editorial.css'
 import { useMemo, useState } from 'react'
 import { ArrowRight, Download, Search } from 'lucide-react'
 import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'
@@ -20,7 +21,26 @@ export default function StandardsPage({ onNavigate }) {
   return (
     <main className="institutional-page standards-page--institutional">
       <InstitutionalPageHero
+        aside={
+          <dl className="institutional-hero__ledger">
+            <div>
+              <dt>{t('pages.standards.heroLedgerCategories')}</dt>
+              <dd>{STANDARD_KEYS.length}</dd>
+            </div>
+            <div>
+              <dt>{t('pages.standards.heroLedgerDocument')}</dt>
+              <dd>
+                {t(
+                  CLASSIFICATION_STANDARDS.pdfUrl
+                    ? 'pages.standards.heroLedgerDocumentReady'
+                    : 'pages.standards.heroLedgerDocumentPending',
+                )}
+              </dd>
+            </div>
+          </dl>
+        }
         breadcrumb={t('pages.standards.heroBreadcrumb')}
+        className="institutional-hero--editorial"
         description={t('pages.standards.heroDesc')}
         eyebrow={t('pages.standards.heroEyebrow')}
         index="E / 01"
@@ -61,7 +81,7 @@ export default function StandardsPage({ onNavigate }) {
           <div className="standards-grid__doc">
             {CLASSIFICATION_STANDARDS.pdfUrl ? (
               <a
-                className="team-close__primary"
+                className="standards-grid__download"
                 href={CLASSIFICATION_STANDARDS.pdfUrl}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -121,24 +141,27 @@ export default function StandardsPage({ onNavigate }) {
         </section>
 
         <Reveal delay={40}>
-          <div className="institutional-cta-row">
-            <button
-              type="button"
-              className="team-close__primary"
-              onClick={() => onNavigate?.('rulebook')}
-            >
-              <span>{t('pages.standards.ctaRulebook')}</span>
-              <ArrowRight size={14} aria-hidden />
-            </button>
-            <button
-              type="button"
-              className="team-close__secondary"
-              onClick={() => onNavigate?.('records')}
-            >
-              <span>{t('pages.standards.ctaRecords')}</span>
-              <ArrowRight size={13} aria-hidden />
-            </button>
-          </div>
+          <section className="institutional-closing" aria-labelledby="standards-close-title">
+            <h2 id="standards-close-title">{t('pages.standards.closeTitle')}</h2>
+            <div className="institutional-closing__actions">
+              <button
+                type="button"
+                className="institutional-closing__primary"
+                onClick={() => onNavigate?.('rulebook')}
+              >
+                <span>{t('pages.standards.ctaRulebook')}</span>
+                <ArrowRight size={14} aria-hidden />
+              </button>
+              <button
+                type="button"
+                className="institutional-closing__link"
+                onClick={() => onNavigate?.('records')}
+              >
+                <span>{t('pages.standards.ctaRecords')}</span>
+                <ArrowRight size={13} aria-hidden />
+              </button>
+            </div>
+          </section>
         </Reveal>
       </div>
     </main>

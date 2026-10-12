@@ -1,0 +1,163 @@
+/* =============================================
+   HOME — piezas de presencia (showcase)
+   Se importa después de home.css. Reglas de movimiento de la portada:
+   una pieza 3D por viewport (ficha del meet en el hero, credencial en la
+   banda de afiliación), profundidad por scroll en las fotos y una entrada
+   editorial común para los títulos de sección.
+
+   Presupuesto: solo transform / opacity / clip-path, sin loops, sin blur.
+   Todo lo que depende del scroll vive dentro de
+   `@supports (animation-timeline: view())` y se apaga con reduced motion,
+   con el tier `low` de deviceTier y en touch (ver src/motion/deviceTier.ts).
+   ============================================= */
+
+/* ── Credencial: tres niveles de profundidad ──────────────────────────
+   Atrás: watermark (se mueve contra el puntero, ver home.css).
+   Medio: cara completa (`.home-credential__face`, con el puntero).
+   Adelante: QR y estado, un paso extra con el puntero.
+   Las variables `--tilt-px/py` las escribe TiltCard; sin puntero fino valen 0
+   y la tarjeta queda quieta. */
+.home-credential__qr,
+.home-credential__status {
+  transform: translate3d(calc(var(--tilt-px, 0) * 3px), calc(var(--tilt-py, 0) * 2px), 0);
+  transition: transform 140ms var(--ease-out);
+}
+
+/* ── CTA magnética del hero ───────────────────────────────────────────
+   El hook useMagneticHover escribe --mag-x/--mag-y. La transición de
+   transform ya la declara `.hero__cta` en home.css. */
+@media (hover: hover) and (pointer: fine) {
+  .hero__cta.magnetic {
+    transform: translate3d(var(--mag-x, 0px), var(--mag-y, 0px), 0);
+  }
+
+  .hero__cta.magnetic:hover {
+    transform: translate3d(var(--mag-x, 0px), calc(var(--mag-y, 0px) - 1px), 0);
+  }
+
+  .hero__cta.magnetic:active {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ── Profundidad por scroll (fotos) y entrada editorial de títulos ──── */
+@keyframes home-hero-photo-depth {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.08);
+  }
+
+  to {
+    transform: translate3d(0, 4%, 0) scale(1.12);
+  }
+}
+
+@keyframes home-pitbull-photo-depth {
+  from {
+    transform: translate3d(0, 3%, 0) scale(1.14);
+  }
+
+  to {
+    transform: translate3d(0, -3%, 0) scale(1.08);
+  }
+}
+
+/* El copy del hero cede el paso al scrollear: baja de opacidad y sube un
+   poco, más rápido que la foto, para que la portada se lea como un plano. */
+@keyframes home-hero-copy-exit {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    opacity: 0.2;
+    transform: translate3d(0, -40px, 0);
+  }
+}
+
+/* La regla entre copy y credencial se dibuja de arriba hacia abajo a
+   medida que la banda entra en pantalla. */
+@keyframes home-spine-draw {
+  from {
+    transform: scaleY(0);
+  }
+
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/* Wipe de abajo hacia arriba. Insets negativos y todos en %: no recortan
+   descendentes ni la panza de la G, y son interpolables. */
+@keyframes home-title-wipe {
+  from {
+    clip-path: inset(100% -5% -30% -5%);
+    transform: translate3d(0, 0.28em, 0);
+  }
+
+  to {
+    clip-path: inset(-20% -5% -30% -5%);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  /* `overflow: hidden` crea un scroll container y view() mediría contra él
+     (timeline congelada); `clip` recorta igual sin capturarla. */
+  .hero__backdrop {
+    overflow: clip;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    /* Hero: la foto sale más lento que el contenido (parallax). Sin soporte
+       o en tier low queda estática, como antes. */
+    [data-motion-tier]:not([data-motion-tier='low']) .hero__backdrop-img--depth {
+      animation: home-hero-photo-depth linear both;
+      animation-range: exit 0% exit 100%;
+      animation-timeline: view();
+      will-change: transform;
+    }
+
+    [data-motion-tier]:not([data-motion-tier='low']) .hero--statement .hero__copy-inner {
+      animation: home-hero-copy-exit linear both;
+      animation-range: exit 0% exit 100%;
+      animation-timeline: view();
+    }
+
+    [data-motion-tier]:not([data-motion-tier='low']) .home-membership-band__spine {
+      animation: home-spine-draw linear both;
+      animation-range: entry 10% cover 45%;
+      animation-timeline: view();
+      transform-origin: top center;
+    }
+
+    /* Pitbull: reemplaza el zoom por hover; la escala acompaña el scroll. */
+    [data-motion-tier]:not([data-motion-tier='low']) .pitbull-spotlight__home-hero-img {
+      animation: home-pitbull-photo-depth linear both;
+      animation-range: cover 0% cover 100%;
+      animation-timeline: view();
+      will-change: transform;
+    }
+
+    /* Títulos de sección: misma entrada editorial. Solo puntero fino
+       (clip-path pesa en la GPU de mobile). */
+    @media (hover: hover) and (pointer: fine) {
+      [data-motion-tier]:not([data-motion-tier='low']) :is(
+          .home-membership-band__title,
+          .community-spotlight__title
+        ) {
+        animation: home-title-wipe linear both;
+        animation-range: entry 8% entry 70%;
+        animation-timeline: view();
+      }
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-credential__qr,
+  .home-credential__status {
+    transform: none;
+    transition: none;
+  }
+}

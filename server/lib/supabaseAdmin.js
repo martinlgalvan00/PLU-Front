@@ -1,6 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 
 const PROOF_BUCKET = 'ticket-payment-proofs'
+/** Logo / foto de cada evento (migración 20261205100000). Público de lectura. */
+const EVENT_LOGO_BUCKET = 'event-logos'
+const STAFF_APPLICATION_BUCKET = 'staff-application-documents'
 
 let adminClient = null
 
@@ -32,4 +35,4 @@ export function getSupabaseAdmin() {
   return adminClient
 }
 
-export { PROOF_BUCKET }
+export { EVENT_LOGO_BUCKET, PROOF_BUCKET, STAFF_APPLICATION_BUCKET }

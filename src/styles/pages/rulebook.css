@@ -1949,3 +1949,23 @@
     font-size: 20px;
   }
 }
+
+/* Barra de avance de lectura: fija bajo el header, solo transform + opacity. */
+.rulebook-progress {
+  background: color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  height: 2px;
+  left: 0;
+  pointer-events: none;
+  position: fixed;
+  right: 0;
+  top: var(--header-height-scrolled, 64px);
+  z-index: calc(var(--z-header, 200) - 1);
+}
+
+.rulebook-progress__fill {
+  background: var(--color-brand-gold);
+  display: block;
+  height: 100%;
+  transform-origin: left center;
+  width: 100%;
+}

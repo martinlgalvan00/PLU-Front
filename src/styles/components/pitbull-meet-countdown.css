@@ -1,0 +1,230 @@
+/* ═══════════════════════════════════════════════
+   PITBULL — "Hasta el Classic"
+   El tiempo que falta, cargado en una barra: un disco por semana.
+   Pocas piezas, mucho aire: numerales livianos, rótulos en versalitas con
+   tracking amplio y un único acento dorado fino (la regla bajo el titular y
+   el subrayado del enlace). Claro y oscuro salen de `--meet-*`.
+   Sin loops, sin glow, sin tilt: solo transform + opacity.
+   ═══════════════════════════════════════════════ */
+
+.pitbull-meet-countdown {
+  margin: 0 0 clamp(32px, 5vw, 56px);
+  width: 100%;
+}
+
+.meet-clock {
+  background: var(--meet-bg);
+  border-radius: 2px;
+  color: var(--meet-fg);
+  display: grid;
+  gap: clamp(36px, 6vw, 72px);
+  padding: clamp(32px, 6vw, 80px) clamp(24px, 6vw, 88px);
+  position: relative;
+  width: 100%;
+}
+
+.meet-clock p,
+.meet-clock dl,
+.meet-clock dd,
+.meet-clock dt {
+  margin: 0;
+}
+
+.meet-clock__head {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 24px;
+  justify-content: space-between;
+}
+
+.meet-clock__eyebrow {
+  color: var(--meet-muted);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+.meet-clock__date {
+  color: var(--meet-faint);
+  font-size: 13px;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+}
+
+/* Titular + barra: lado a lado en pantallas anchas, apilados en mobile. */
+.meet-clock__main {
+  align-items: center;
+  display: grid;
+  gap: clamp(28px, 4vw, 56px);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.meet-clock__headline {
+  display: grid;
+  gap: clamp(2px, 0.6vw, 6px);
+  justify-items: start;
+}
+
+.meet-clock__lead,
+.meet-clock__trail {
+  color: var(--meet-muted);
+  font-family: var(--font-display);
+  font-size: clamp(0.75rem, 1.4vw, 0.95rem);
+  font-weight: 500;
+  letter-spacing: 0.36em;
+  text-transform: uppercase;
+}
+
+/* Regla dorada: el acento del bloque. */
+.meet-clock__lead::after {
+  background: var(--meet-accent);
+  content: '';
+  display: block;
+  height: 1px;
+  margin-top: clamp(14px, 2vw, 22px);
+  width: 3rem;
+}
+
+.meet-clock__count {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 clamp(14px, 2vw, 26px);
+}
+
+.meet-clock__value {
+  color: var(--meet-fg);
+  font-family: var(--font-display);
+  font-size: clamp(6rem, 24vw, 12rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 300;
+  letter-spacing: -0.06em;
+  line-height: 0.88;
+}
+
+.meet-clock__unit {
+  color: var(--meet-muted);
+  font-family: var(--font-display);
+  font-size: clamp(0.8rem, 1.5vw, 1rem);
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+.meet-clock__bar {
+  --barbell-h: clamp(5.5rem, 15vw, 8rem);
+}
+
+/* Reloj fino: cuatro cifras livianas, sin cajas ni separadores pesados. */
+.meet-clock__readout {
+  border-top: 1px solid var(--meet-rule);
+  display: grid;
+  grid-template-columns: repeat(var(--cells, 4), minmax(0, 1fr));
+  padding-top: clamp(20px, 3vw, 32px);
+}
+
+.meet-clock__cell {
+  display: grid;
+  gap: 8px;
+}
+
+.meet-clock__cell dt {
+  color: var(--meet-faint);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  order: 2;
+  text-transform: uppercase;
+}
+
+.meet-clock__cell dd {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 4.4vw, 2.6rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.meet-clock__digits {
+  display: inline-flex;
+}
+
+.meet-clock__slot {
+  display: inline-grid;
+  overflow: clip;
+  position: relative;
+}
+
+.meet-clock__digit {
+  display: block;
+}
+
+/* Enlace de texto con subrayado dorado que se despliega al apuntarlo. */
+.meet-clock__cta {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: var(--meet-fg);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 10px;
+  justify-self: start;
+  letter-spacing: 0.24em;
+  min-height: 44px;
+  padding: 0;
+  position: relative;
+  text-transform: uppercase;
+}
+
+.meet-clock__cta::after {
+  background: var(--meet-accent);
+  bottom: 6px;
+  content: '';
+  height: 1px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  transform: scaleX(0.3);
+  transform-origin: left center;
+  transition: transform var(--motion-slow) var(--ease-out);
+}
+
+.meet-clock__cta:hover::after,
+.meet-clock__cta:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.meet-clock__cta:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 4px;
+}
+
+@media (min-width: 900px) {
+  .meet-clock__main {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+
+  .meet-clock__bar {
+    --barbell-h: clamp(7rem, 10vw, 9rem);
+  }
+}
+
+/* Claro: el panel se apoya sobre el papel con un filo fino y una sombra larga. */
+[data-theme='light'] .meet-clock {
+  box-shadow:
+    0 0 0 1px var(--meet-border),
+    0 32px 64px -40px rgba(26, 28, 34, 0.28);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meet-clock__cta::after {
+    transition: none;
+  }
+}

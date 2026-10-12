@@ -10,6 +10,7 @@ import {
   Lock,
 } from 'lucide-react'
 import '../styles/pages/design-phase2.css'
+import '../styles/pages/auth.css'
 import authVisualPhoto from '../assets/DSC00286-display.jpg'
 import authVisualPhotoAvif from '../assets/DSC00286-display.avif'
 import authVisualPhotoAvif480 from '../assets/DSC00286-display-480.avif'
@@ -18,7 +19,6 @@ import authVisualPhotoWebp from '../assets/DSC00286-display.webp'
 import authVisualPhotoWebp480 from '../assets/DSC00286-display-480.webp'
 import authVisualPhotoWebp800 from '../assets/DSC00286-display-800.webp'
 import { useI18n } from '../i18n/I18nProvider.jsx'
-import BrandLogo from '../components/ui/BrandLogo.jsx'
 import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import { clearPasswordResetToken, readPasswordResetToken } from '../lib/passwordResetRoute.js'
@@ -60,6 +60,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
   const initialResetToken = readPasswordResetToken()
   const [mode, setMode] = useState(initialResetToken ? 'reset' : 'login')
   const [swapDirection, setSwapDirection] = useState(1)
+  const [hasSwapped, setHasSwapped] = useState(false)
   const [resetToken, setResetToken] = useState(initialResetToken)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -79,6 +80,12 @@ export default function LoginPage({ onLogin, onNavigate }) {
     setMode('reset')
   }, [])
 
+  function switchMode(nextMode, direction) {
+    setSwapDirection(direction)
+    setHasSwapped(true)
+    setMode(nextMode)
+  }
+
   function clearErrors() {
     setSubmitError('')
     setFieldErrors({})
@@ -96,8 +103,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
     clearErrors()
     setPassword('')
     setCapsLock(false)
-    setSwapDirection(1)
-    setMode('recover')
+    switchMode('recover', 1)
   }
 
   function backToLogin() {
@@ -107,8 +113,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
     setCapsLock(false)
     setResetToken(null)
     clearPasswordResetToken()
-    setSwapDirection(-1)
-    setMode('login')
+    switchMode('login', -1)
   }
 
   function validateLogin() {
@@ -181,8 +186,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
       const result = await forgotAthletePassword(normalizeEmail(email))
       const sentTo = normalizeEmail(email)
       setRecoverMessage(result?.message || t('login.forgotSentDesc', { email: sentTo }))
-      setSwapDirection(1)
-      setMode('recoverSent')
+      switchMode('recoverSent', 1)
     } catch (error) {
       setSubmitError(error?.message || t('login.forgotError'))
     } finally {
@@ -207,8 +211,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
       setPasswordConfirm('')
       setResetToken(null)
       setRecoverMessage(t('login.resetSuccess'))
-      setSwapDirection(-1)
-      setMode('login')
+      switchMode('login', -1)
     } catch (error) {
       setSubmitError(error?.message || t('login.resetError'))
     } finally {
@@ -248,16 +251,6 @@ export default function LoginPage({ onLogin, onNavigate }) {
           ? t('login.resetLead')
           : t('login.subtitle')
 
-  // Sin numerar: son tres capacidades en paralelo, no tres pasos. El `01/02/03`
-  // prometía una secuencia que no existe y era la única decoración de la
-  // composición. Una regla fina hace el mismo trabajo de ritmo sin afirmar un
-  // orden falso.
-  const visualSignals = [
-    t('login.featureProfile'),
-    t('login.featureMembership'),
-    t('login.featureEvents'),
-  ]
-
   const capsLockHint = capsLock ? (
     <span className="login-field__hint" role="status">
       <AlertCircle size={13} aria-hidden />
@@ -295,18 +288,10 @@ export default function LoginPage({ onLogin, onNavigate }) {
           <div className="auth-layout__editorial">
             <p className="auth-layout__kicker">{t('login.eyebrow')}</p>
             <h2 className="auth-layout__slogan">
-              {t('login.visualSlogan')}
+              {t('login.visualSlogan')}{' '}
               <span className="auth-layout__slogan-line">{t('login.visualSloganAccent')}</span>
             </h2>
             <p className="auth-layout__lead">{t('login.visualLead')}</p>
-            <ul className="auth-layout__signals">
-              {visualSignals.map((label) => (
-                <li key={label} className="auth-layout__signal">
-                  <span className="auth-layout__signal-rule" aria-hidden />
-                  <span className="auth-layout__signal-label">{label}</span>
-                </li>
-              ))}
-            </ul>
           </div>
           <p className="auth-layout__meta">{t('login.visualMeta')}</p>
         </div>
@@ -318,11 +303,6 @@ export default function LoginPage({ onLogin, onNavigate }) {
             aria-labelledby="login-heading"
           >
             <header className="auth-immersive-glass__header">
-              <BrandLogo
-                variant="letterhead"
-                imgClassName="auth-immersive-glass__logo"
-                height={32}
-              />
               <div className="auth-immersive-glass__copy">
                 <span className="auth-immersive-glass__eyebrow">{cardEyebrow}</span>
                 {/* key por modo: React reemplaza el nodo y la animación CSS de
@@ -341,7 +321,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
               </div>
             </header>
 
-            <div className="auth-mode-swap">
+            <div className={`auth-mode-swap${hasSwapped ? ' is-swapped' : ''}`}>
               <MotionContentSwap
                 className="auth-mode-swap__panel"
                 direction={swapDirection}

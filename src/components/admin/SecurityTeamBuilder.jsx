@@ -35,7 +35,6 @@ export default function SecurityTeamBuilder({
     <section className="security-team-builder" aria-labelledby="security-team-builder-title">
       <div className="security-team-builder__head">
         <div>
-          <span>{t('admin.eventEditor.security.builderEyebrow')}</span>
           <h3 id="security-team-builder-title">{t('admin.eventEditor.security.builderTitle')}</h3>
           <p>{t('admin.eventEditor.security.builderLead')}</p>
         </div>

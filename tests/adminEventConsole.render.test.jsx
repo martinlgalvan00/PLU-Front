@@ -220,7 +220,9 @@ describe('EventsSection — página del evento', () => {
     // repetirse en el rail de cada superficie.
     const resumen = openTab(panel, /resumen/i)
 
-    fireEvent.click(within(resumen).getByRole('button', { name: /inscripciones/i }))
+    // Las acciones rápidas del encabezado ("Cerrar inscripciones") también nombran
+    // inscripciones: el acceso es la tarjeta de operación, que empieza por el nombre.
+    fireEvent.click(within(resumen).getByRole('button', { name: /^inscripciones/i }))
     expect(onManageRegistrations).toHaveBeenCalled()
 
     // El Resumen ofrece dos caminos al mismo lugar (la acción rápida y la
@@ -521,19 +523,39 @@ describe('EventsSection — página del evento', () => {
   })
 })
 
+/** El alta es una página con su URL, no un diálogo: se lee como una región. */
+function findCreatePage() {
+  return screen.findByRole('region', { name: /crear meet/i })
+}
+
 describe('EventsSection — alta rápida', () => {
+  afterEach(() => {
+    window.history.pushState(null, '', '/')
+  })
+
   it('"Nuevo evento" abre el alta rápida, no el editor de cinco secciones', async () => {
     renderEvents()
     fireEvent.click(screen.getByRole('button', { name: /nuevo evento/i }))
 
-    const dialog = await screen.findByRole('dialog', { name: /crear meet/i })
-    expect(within(dialog).queryByRole('tablist')).toBeNull()
+    const page = await findCreatePage()
+    expect(within(page).queryByRole('tablist')).toBeNull()
+  })
+
+  it('el alta es una página con su URL y reemplaza al listado, sin tapar nada', async () => {
+    renderEvents()
+    fireEvent.click(screen.getByRole('button', { name: /nuevo evento/i }))
+    await findCreatePage()
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(window.location.pathname).toBe('/admin/eventos/nuevo')
+    // El listado deja de montarse mientras se crea: no hay nada detrás.
+    expect(screen.queryByRole('button', { name: /nuevo evento/i })).toBeNull()
   })
 
   it('pide solo los seis campos sin los que el evento no puede existir', async () => {
     renderEvents()
     fireEvent.click(screen.getByRole('button', { name: /nuevo evento/i }))
-    const dialog = await screen.findByRole('dialog', { name: /crear meet/i })
+    const dialog = await findCreatePage()
 
     for (const name of ['title', 'startsAt', 'endsAt', 'venue', 'location', 'slots']) {
       expect(dialog.querySelector(`[name="${name}"]`)).not.toBeNull()
@@ -546,7 +568,7 @@ describe('EventsSection — alta rápida', () => {
   it('decide la afiliación en el alta, con la consecuencia escrita', async () => {
     renderEvents()
     fireEvent.click(screen.getByRole('button', { name: /nuevo evento/i }))
-    const dialog = await screen.findByRole('dialog', { name: /crear meet/i })
+    const dialog = await findCreatePage()
 
     expect(within(dialog).getByRole('button', { name: /solo afiliados/i })).toBeTruthy()
     expect(dialog.textContent).toContain('afiliación vigente')
@@ -559,7 +581,7 @@ describe('EventsSection — alta rápida', () => {
     const onSaveEvent = vi.fn()
     renderEvents({ onSaveEvent })
     fireEvent.click(screen.getByRole('button', { name: /nuevo evento/i }))
-    const dialog = await screen.findByRole('dialog', { name: /crear meet/i })
+    const dialog = await findCreatePage()
 
     fireEvent.click(within(dialog).getByRole('button', { name: /crear y abrir consola/i }))
 
@@ -571,7 +593,7 @@ describe('EventsSection — alta rápida', () => {
     const onSaveEvent = vi.fn(async () => ({ event: EVENT, events: [EVENT] }))
     renderEvents({ onSaveEvent })
     fireEvent.click(screen.getByRole('button', { name: /nuevo evento/i }))
-    const dialog = await screen.findByRole('dialog', { name: /crear meet/i })
+    const dialog = await findCreatePage()
 
     fireEvent.change(dialog.querySelector('[name="title"]'), {
       target: { value: 'Regional Litoral' },
@@ -607,7 +629,7 @@ describe('EventsSection — alta rápida', () => {
   it('deja salir al editor completo sin perder lo tipeado', async () => {
     renderEvents()
     fireEvent.click(screen.getByRole('button', { name: /nuevo evento/i }))
-    const quick = await screen.findByRole('dialog', { name: /crear meet/i })
+    const quick = await findCreatePage()
 
     fireEvent.change(quick.querySelector('[name="title"]'), {
       target: { value: 'Copa Norte' },

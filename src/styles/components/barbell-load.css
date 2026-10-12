@@ -1,0 +1,216 @@
+/* Barra olímpica con discos calibrados.
+   Un disco por unidad que falta (semana / día / hora). Los colores y espesores
+   siguen la convención de competencia (25 rojo · 20 azul · 15 amarillo · 10
+   verde · 5 blanco · 2,5 negro · 1,25 cromo), en tonos sobrios; es la
+   ilustración de un objeto, no color de marca. Funciona sobre fondo claro y
+   oscuro: lo único que cambia es el eje (`--bar-shaft`) y la sombra de apoyo,
+   que salen de `--meet-fg` (ver meet-surface.css).
+   Solo transform + opacity; la geometría es CSS puro. */
+
+:where(.barbell) {
+  --barbell-h: 7.5rem;
+  --plate-unit: calc(var(--barbell-h) * 0.1);
+  --plate-gap: 3px;
+  /* Capacidad de la manga: cuántos discos entran sin pasar del 46% del ancho. */
+  --slots: 12;
+  --bar-chrome: linear-gradient(180deg, #f1f3f7 0%, #a4abb8 48%, #7b8290 100%);
+  --bar-shaft: color-mix(in srgb, var(--meet-fg, #fff) 38%, transparent);
+}
+
+/* Los valores de arriba son por defecto (especificidad 0): cada uso puede
+   fijar su propio `--barbell-h` / `--slots` sin depender del orden del CSS. */
+.barbell {
+  align-items: center;
+  container-type: inline-size;
+  display: flex;
+  height: var(--barbell-h);
+  justify-content: space-between;
+  position: relative;
+  width: 100%;
+}
+
+/* Sombra de apoyo: una elipse quieta bajo la barra que la asienta. */
+.barbell::after {
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--meet-fg, #fff) 14%, transparent),
+    transparent
+  );
+  bottom: -14%;
+  content: '';
+  height: 14%;
+  left: 12%;
+  pointer-events: none;
+  position: absolute;
+  right: 12%;
+}
+
+/* Cada extremo es una manga; la derecha es el espejo de la izquierda. */
+.barbell__half {
+  /* Dos mangas llenas nunca pasan del 46% del ancho cada una. */
+  --unit: min(var(--plate-unit), calc((46cqi - 6px) / (var(--slots) - 0.4) - var(--plate-gap)));
+  --sleeve-w: calc(var(--slots) * (var(--unit) + var(--plate-gap)) + var(--unit) * 0.6);
+  height: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.barbell__half--right {
+  transform: scaleX(-1);
+}
+
+/* Eje: línea continua detrás de todo; es lo que "dibuja" la secuencia. */
+.barbell__shaft {
+  background: var(--bar-shaft);
+  border-radius: 99px;
+  display: block;
+  height: max(4px, calc(var(--barbell-h) * 0.04));
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform-origin: left center;
+  translate: 0 -50%;
+}
+
+/* Manga fija: los discos se apilan desde el lado interno (junto al eje) hacia
+   afuera, así cada disco nuevo no mueve a los anteriores. Detrás corre el
+   cuerpo cromado de la manga. */
+.barbell__sleeve {
+  align-items: center;
+  display: flex;
+  flex-direction: row-reverse;
+  gap: var(--plate-gap);
+  height: 100%;
+  justify-content: flex-start;
+  position: relative;
+  width: var(--sleeve-w);
+}
+
+.barbell__sleeve::before {
+  background: var(--bar-chrome);
+  border-radius: 2px;
+  content: '';
+  height: max(7px, calc(var(--barbell-h) * 0.07));
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  translate: 0 -50%;
+}
+
+/* Disco calibrado: color + espesor por peso, con borde biselado y un brillo
+   suave de izquierda a derecha que le da volumen sin llegar a ser un efecto. */
+.barbell__plate {
+  --plate-color: #9b3c42;
+  --t: 1;
+  --h: 1;
+  background: var(--plate-color);
+  border-radius: 2.5px;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.3),
+    inset 1.5px 0 0 rgba(255, 255, 255, 0.26),
+    inset -2px 0 0 rgba(0, 0, 0, 0.2);
+  display: block;
+  flex: none;
+  height: calc(var(--barbell-h) * var(--h));
+  position: relative;
+  width: calc(var(--unit) * var(--t));
+  z-index: 1;
+}
+
+.barbell__plate::before {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0) 38%,
+    rgba(0, 0, 0, 0.22) 100%
+  );
+  border-radius: inherit;
+  content: '';
+  inset: 0;
+  position: absolute;
+}
+
+/* Cubo del disco: el anillo metálico por donde pasa la manga. */
+.barbell__plate::after {
+  background: var(--bar-chrome);
+  border-radius: 1px;
+  content: '';
+  height: max(7px, calc(var(--barbell-h) * 0.085));
+  left: -6%;
+  position: absolute;
+  right: -6%;
+  top: 50%;
+  translate: 0 -50%;
+}
+
+.barbell__plate[data-kg='25'] {
+  --plate-color: #9b3c42;
+  --t: 1;
+}
+
+.barbell__plate[data-kg='20'] {
+  --plate-color: #3a5c93;
+  --t: 0.88;
+}
+
+.barbell__plate[data-kg='15'] {
+  --plate-color: #bf9c48;
+  --t: 0.76;
+}
+
+.barbell__plate[data-kg='10'] {
+  --plate-color: #3b7352;
+  --t: 0.64;
+}
+
+.barbell__plate[data-kg='5'] {
+  --plate-color: #d9dce1;
+  --t: 0.5;
+}
+
+.barbell__plate[data-kg='2.5'] {
+  --plate-color: #2b2e36;
+  --h: 0.62;
+  --t: 0.38;
+}
+
+.barbell__plate[data-kg='1.25'] {
+  --plate-color: #a2a8b3;
+  --h: 0.48;
+  --t: 0.3;
+}
+
+/* Tope de competencia: cuerpo oscuro con la cara externa cromada. Queda pegado
+   al último disco (el margen negativo cancela el `gap` de la manga): un tope
+   ajustado no deja luz. */
+.barbell__collar {
+  background: linear-gradient(180deg, #4a4f5a 0%, #2a2d34 100%);
+  border-radius: 2px;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.35),
+    inset 0 2px 0 rgba(255, 255, 255, 0.14),
+    inset 2px 0 0 #a4abb8;
+  flex: none;
+  height: calc(var(--barbell-h) * 0.42);
+  margin-right: calc(var(--plate-gap) * -1);
+  position: relative;
+  width: max(9px, calc(var(--unit) * 0.8));
+  z-index: 1;
+}
+
+/* Seguro del tope: una palanca cromada que gira sobre su extremo superior.
+   Abierta (girada hacia afuera) mientras el tope entra; al ajustar, se cierra y
+   queda a ras del cuerpo. */
+.barbell__collar-lock {
+  background: var(--bar-chrome);
+  border-radius: 1px;
+  bottom: 12%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+  left: 34%;
+  position: absolute;
+  top: 10%;
+  transform-origin: center top;
+  width: max(2px, 22%);
+}

@@ -3,15 +3,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
 const fetchFinanceReport = vi.fn()
-const createExpense = vi.fn()
-const updateExpense = vi.fn()
-const deleteExpense = vi.fn()
+const createEntry = vi.fn()
+const updateEntry = vi.fn()
+const deleteEntry = vi.fn()
 
 vi.mock('../src/services/financeService.js', () => ({
   fetchFinanceReport: (...args) => fetchFinanceReport(...args),
-  createExpense: (...args) => createExpense(...args),
-  updateExpense: (...args) => updateExpense(...args),
-  deleteExpense: (...args) => deleteExpense(...args),
+  createEntry: (...args) => createEntry(...args),
+  updateEntry: (...args) => updateEntry(...args),
+  deleteEntry: (...args) => deleteEntry(...args),
 }))
 
 const FinanceSection = (await import('../src/pages/admin/FinanceSection.jsx')).default
@@ -19,9 +19,9 @@ const FinanceSection = (await import('../src/pages/admin/FinanceSection.jsx')).d
 afterEach(() => {
   cleanup()
   fetchFinanceReport.mockReset()
-  createExpense.mockReset()
-  updateExpense.mockReset()
-  deleteExpense.mockReset()
+  createEntry.mockReset()
+  updateEntry.mockReset()
+  deleteEntry.mockReset()
 })
 
 const SAMPLE_ROWS = [
@@ -53,6 +53,7 @@ const SAMPLE_ROWS = [
     id: 'expense-1',
     kind: 'expense',
     occurredOn: '2026-08-05',
+    manual: true,
     category: 'Logística',
     conceptKey: 'expense',
     description: 'Alquiler de plataforma',
@@ -65,6 +66,7 @@ const SAMPLE_ROWS = [
     id: 'expense-2',
     kind: 'expense',
     occurredOn: '2026-08-06',
+    manual: true,
     category: 'Premios',
     conceptKey: 'expense',
     description: 'Medallas Open',
@@ -75,8 +77,15 @@ const SAMPLE_ROWS = [
   },
 ]
 
+/** El selector de categoría del listado (la fila de carga tiene otro campo "Categoría"). */
+function categorySelect() {
+  return screen
+    .getAllByRole('combobox', { name: /^categoría$/i })
+    .find((element) => element.tagName === 'SELECT')
+}
+
 describe('Finanzas del panel', () => {
-  it('muestra caja compacta, presets de período y alta de egreso', async () => {
+  it('muestra caja compacta, presets de período y fila de carga', async () => {
     fetchFinanceReport.mockResolvedValue({
       totals: { income: 75000, expense: 0, balance: 75000 },
       rows: [],
@@ -90,6 +99,10 @@ describe('Finanzas del panel', () => {
 
     expect(await screen.findByRole('heading', { name: /libro de caja/i })).toBeTruthy()
     expect(screen.getByLabelText(/resumen de caja/i)).toBeTruthy()
+    // Las fechas a mano viven detrás del chip "Personalizado": el período se
+    // elige casi siempre con un preset.
+    expect(screen.queryByLabelText(/^desde$/i)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /personalizado/i }))
     expect(screen.getByLabelText(/^desde$/i)).toBeTruthy()
     expect(screen.getByLabelText(/^hasta$/i)).toBeTruthy()
     expect(screen.getByRole('search')).toBeTruthy()
@@ -98,10 +111,13 @@ describe('Finanzas del panel', () => {
     expect(screen.getByRole('button', { name: /mes anterior/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /últimos 30 días/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /este año/i })).toBeTruthy()
-    // El formulario de egreso vive en un diálogo: a la vista queda el botón
-    // de alta, no los campos del modal.
+    // La carga es una fila en línea (sin diálogo): tipo, fecha, rubro, detalle
+    // e importe, con un solo botón que nombra el tipo elegido.
     expect(screen.queryByRole('dialog')).toBeNull()
-    expect(screen.getByRole('button', { name: /cargar egreso/i })).toBeTruthy()
+    const composer = screen.getByRole('form', { name: /cargar un movimiento/i })
+    expect(within(composer).getByRole('radio', { name: /^ingreso$/i })).toBeTruthy()
+    expect(within(composer).getByRole('radio', { name: /^egreso$/i })).toBeTruthy()
+    expect(within(composer).getByRole('button', { name: /agregar ingreso/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /exportar csv/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /actualizar/i })).toBeTruthy()
     await waitFor(() => expect(fetchFinanceReport).toHaveBeenCalled())
@@ -153,7 +169,7 @@ describe('Finanzas del panel', () => {
     expect(lastCall?.to).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 
-  it('filtra por composición del período y actualiza filas + conteo', async () => {
+  it('filtra por categoría y actualiza filas + conteo', async () => {
     fetchFinanceReport.mockResolvedValue({
       totals: { income: 127000, expense: 15000, balance: 112000 },
       rows: SAMPLE_ROWS,
@@ -170,11 +186,10 @@ describe('Finanzas del panel', () => {
     expect(screen.getByText('Alquiler de plataforma')).toBeTruthy()
 
     const overview = screen.getByLabelText(/resumen de caja/i)
-    const breakdown = screen.getByRole('group', { name: /composición del período/i })
-    expect(breakdown).toBeTruthy()
     expect(within(overview).getByText(/4 movimientos/i)).toBeTruthy()
 
-    fireEvent.click(within(breakdown).getByRole('button', { name: /afiliación/i }))
+    // Un solo selector de categoría: cobros por concepto, lo manual por rubro.
+    fireEvent.change(categorySelect(), { target: { value: 'concept:membership' } })
 
     await waitFor(() => {
       expect(screen.getByText('Afiliación — Ana Torres')).toBeTruthy()
@@ -208,7 +223,7 @@ describe('Finanzas del panel', () => {
       expect(screen.getByText('Medallas Open')).toBeTruthy()
     })
 
-    expect(screen.getByRole('group', { name: /rubro de egreso/i })).toBeTruthy()
+    expect(categorySelect()).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: /^limpiar filtros$/i }))
 
@@ -217,5 +232,147 @@ describe('Finanzas del panel', () => {
       expect(screen.getByText('Inscripción — Bruno Diaz')).toBeTruthy()
       expect(screen.queryByRole('button', { name: /^limpiar filtros$/i })).toBeNull()
     })
+  })
+
+  it('carga un ingreso manual desde la fila y limpia el detalle al guardarlo', async () => {
+    fetchFinanceReport.mockResolvedValue({
+      totals: { income: 0, expense: 0, balance: 0 },
+      rows: [],
+    })
+    createEntry.mockResolvedValue({})
+
+    render(
+      <I18nProvider>
+        <FinanceSection canEdit />
+      </I18nProvider>,
+    )
+
+    const composer = await screen.findByRole('form', { name: /cargar un movimiento/i })
+    fireEvent.change(within(composer).getByLabelText(/^categoría$/i), {
+      target: { value: 'Sponsor' },
+    })
+    fireEvent.change(within(composer).getByLabelText(/^descripción$/i), {
+      target: { value: 'Aporte anual Gym Titan' },
+    })
+    fireEvent.change(within(composer).getByLabelText(/^importe$/i), {
+      target: { value: '150000' },
+    })
+    fireEvent.click(within(composer).getByRole('button', { name: /agregar ingreso/i }))
+
+    await waitFor(() => expect(createEntry).toHaveBeenCalledTimes(1))
+    const [kind, payload] = createEntry.mock.calls[0]
+    expect(kind).toBe('income')
+    expect(payload).toMatchObject({
+      category: 'Sponsor',
+      description: 'Aporte anual Gym Titan',
+      amount: 150000,
+    })
+    await waitFor(() => expect(within(composer).getByLabelText(/^descripción$/i).value).toBe(''))
+    // Tipo y fecha se conservan: se suelen cargar varios seguidos.
+    expect(within(composer).getByRole('radio', { name: /^ingreso$/i }).checked).toBe(true)
+  })
+
+  it('al elegir egreso la fila carga un egreso', async () => {
+    fetchFinanceReport.mockResolvedValue({
+      totals: { income: 0, expense: 0, balance: 0 },
+      rows: [],
+    })
+    createEntry.mockResolvedValue({})
+
+    render(
+      <I18nProvider>
+        <FinanceSection canEdit />
+      </I18nProvider>,
+    )
+
+    const composer = await screen.findByRole('form', { name: /cargar un movimiento/i })
+    fireEvent.click(within(composer).getByRole('radio', { name: /^egreso$/i }))
+    fireEvent.change(within(composer).getByLabelText(/^categoría$/i), {
+      target: { value: 'Logística' },
+    })
+    fireEvent.change(within(composer).getByLabelText(/^descripción$/i), {
+      target: { value: 'Flete de discos' },
+    })
+    fireEvent.change(within(composer).getByLabelText(/^importe$/i), { target: { value: '9000' } })
+    fireEvent.click(within(composer).getByRole('button', { name: /agregar egreso/i }))
+
+    await waitFor(() => expect(createEntry).toHaveBeenCalledTimes(1))
+    expect(createEntry.mock.calls[0][0]).toBe('expense')
+  })
+
+  it('un error al guardar conserva lo tipeado y lo informa', async () => {
+    fetchFinanceReport.mockResolvedValue({
+      totals: { income: 0, expense: 0, balance: 0 },
+      rows: [],
+    })
+    createEntry.mockRejectedValue(new Error('Datos de ingreso inválidos.'))
+
+    render(
+      <I18nProvider>
+        <FinanceSection canEdit />
+      </I18nProvider>,
+    )
+
+    const composer = await screen.findByRole('form', { name: /cargar un movimiento/i })
+    fireEvent.change(within(composer).getByLabelText(/^categoría$/i), { target: { value: 'Sponsor' } })
+    fireEvent.change(within(composer).getByLabelText(/^descripción$/i), { target: { value: 'Aporte' } })
+    fireEvent.change(within(composer).getByLabelText(/^importe$/i), { target: { value: '500' } })
+    fireEvent.click(within(composer).getByRole('button', { name: /agregar ingreso/i }))
+
+    expect((await screen.findByRole('alert')).textContent).toMatch(/datos de ingreso inválidos/i)
+    expect(within(composer).getByLabelText(/^descripción$/i).value).toBe('Aporte')
+  })
+
+  it('sin permiso de edición no muestra la fila de carga', async () => {
+    fetchFinanceReport.mockResolvedValue({
+      totals: { income: 0, expense: 0, balance: 0 },
+      rows: [],
+    })
+
+    render(
+      <I18nProvider>
+        <FinanceSection canEdit={false} />
+      </I18nProvider>,
+    )
+
+    await waitFor(() => expect(fetchFinanceReport).toHaveBeenCalled())
+    expect(screen.queryByRole('form', { name: /cargar un movimiento/i })).toBeNull()
+  })
+
+  it('la vista Tabla es una alternativa que se recuerda entre sesiones', async () => {
+    window.localStorage.removeItem('plu.admin.ledger.view')
+    fetchFinanceReport.mockResolvedValue({
+      totals: { income: 0, expense: 0, balance: 0 },
+      rows: [],
+    })
+
+    const { container, unmount } = render(
+      <I18nProvider>
+        <FinanceSection canEdit />
+      </I18nProvider>,
+    )
+
+    const section = container.querySelector('section.admin-finance')
+    const views = await screen.findByRole('group', { name: /^vista$/i })
+    // Por defecto: Resumen, con el saldo en grande.
+    expect(section.className).toContain('admin-finance--view-summary')
+    expect(within(views).getByRole('button', { name: /resumen/i }).getAttribute('aria-pressed')).toBe('true')
+
+    fireEvent.click(within(views).getByRole('button', { name: /tabla/i }))
+    expect(section.className).toContain('admin-finance--view-table')
+    expect(within(views).getByRole('button', { name: /tabla/i }).getAttribute('aria-pressed')).toBe('true')
+    expect(window.localStorage.getItem('plu.admin.ledger.view')).toBe('table')
+
+    // Al volver a abrir el libro, la vista elegida sigue ahí.
+    unmount()
+    const again = render(
+      <I18nProvider>
+        <FinanceSection canEdit />
+      </I18nProvider>,
+    )
+    expect(again.container.querySelector('section.admin-finance').className).toContain(
+      'admin-finance--view-table',
+    )
+    window.localStorage.removeItem('plu.admin.ledger.view')
   })
 })

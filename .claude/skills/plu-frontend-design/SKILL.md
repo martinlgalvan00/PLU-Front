@@ -65,9 +65,12 @@ Invocar después las skills tácticas mínimas necesarias:
 | Tokens, CSS y componentes existentes | `agent-skills/design-system-plu/SKILL.md` |
 | Refinar una sección puntual | `agent-skills/design-ux-ui/SKILL.md` |
 | TiltCard, showcase o transición de presencia | `agent-skills/motion-premium/SKILL.md` |
+| Estructura/copy de conversión en landings | `.claude/skills/landing-page-design/` (+ `PLU.md`) |
+| Hero cinematic scroll-mundo 3D (solo con OK) | `.claude/skills/scroll-world/` (+ `PLU.md`) |
 
 No cargar ni aplicar todas por reflejo. Esta skill define marca y criterio; las tácticas aportan
-inventario o procedimiento específico.
+inventario o procedimiento específico. Skills externas (`landing-page-design`, `scroll-world`)
+nunca definen identidad: leer su `PLU.md` antes de usarlas.
 
 ## Dirección visual
 

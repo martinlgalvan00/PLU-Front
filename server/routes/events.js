@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
 import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
-import { PROOF_BUCKET } from '../lib/supabaseAdmin.js'
+import { EVENT_LOGO_BUCKET, PROOF_BUCKET } from '../lib/supabaseAdmin.js'
 import {
   assertSupabaseResult,
   isMissingSchemaColumn,
@@ -638,6 +638,23 @@ const autofillSchema = z.object({
   maxPerSession: z.coerce.number().int().min(1).max(100),
 })
 
+const EVENT_LOGO_EXTENSIONS = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
+const EVENT_LOGO_MAX_BYTES = 3 * 1024 * 1024
+
+const logoUploadSchema = z.object({
+  contentType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
+  size: z.number().int().min(1).max(EVENT_LOGO_MAX_BYTES),
+})
+
+const logoSetSchema = z.object({
+  path: z
+    .string()
+    .trim()
+    .max(200)
+    .regex(/^[A-Za-z0-9._()+/-]+$/, 'Ruta de logo inválida.')
+    .nullable(),
+})
+
 function parseEventSlug(value) {
   const slug = String(value ?? '').trim()
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
@@ -693,7 +710,22 @@ function esRelacionFaltante(error) {
   )
 }
 
+/** Ruta de Storage del logo -> URL pública estable del bucket. */
+function eventLogoPublicUrl(client, path) {
+  if (!path) return null
+  return client.storage.from(EVENT_LOGO_BUCKET).getPublicUrl(path).data.publicUrl
+}
+
+/** Suma `logo_url` a cada fila: el panel no conoce el bucket ni el dominio de Storage. */
+function withLogoUrls(client, rows) {
+  return (rows ?? []).map((row) => ({ ...row, logo_url: eventLogoPublicUrl(client, row.logo_path) }))
+}
+
 async function readEvents(client) {
+  return withLogoUrls(client, await readEventRows(client))
+}
+
+async function readEventRows(client) {
   const result = await client.from('events').select(EVENT_SELECT).order('starts_at')
 
   // Degradar antes que caerse: sin la migración aplicada el panel sigue
@@ -1115,6 +1147,89 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
   )
 
   /**
+   * Logo / foto del evento. Son dos pasos y ninguno reescribe el evento:
+   *
+   *   1. `logo/upload-url`: la API elige la ruta (`<eventId>/<timestamp>.<ext>`) y
+   *      devuelve una URL firmada; el navegador sube directo a Storage.
+   *   2. `PATCH logo`: guarda la ruta en `events.logo_path` (o la borra con `null`).
+   *
+   * Solo toca `logo_path` y NO bumpea `updated_at`: es el token de concurrencia
+   * del editor, y cambiar la imagen mientras alguien tiene el formulario abierto
+   * no puede convertir su próximo guardado en un 409.
+   */
+  router.post(
+    '/:eventSlug/logo/upload-url',
+    ...editGuard,
+    staffLimiter,
+    validateBody(logoUploadSchema),
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const found = assertSupabaseResult(
+          await client.from('events').select('id').eq('slug', slug).maybeSingle(),
+          'No se pudo leer el evento.',
+        )
+        if (!found) throw new HttpError(404, 'El evento no existe.')
+
+        const extension = EVENT_LOGO_EXTENSIONS[req.validatedBody.contentType]
+        const path = `${found.id}/${Date.now()}.${extension}`
+        const signed = assertSupabaseResult(
+          await client.storage.from(EVENT_LOGO_BUCKET).createSignedUploadUrl(path),
+          'No se pudo preparar la carga de la imagen.',
+        )
+        res.json({ path, token: signed.token, url: eventLogoPublicUrl(client, path) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.patch(
+    '/:eventSlug/logo',
+    ...editGuard,
+    staffLimiter,
+    validateBody(logoSetSchema),
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const { path } = req.validatedBody
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const found = assertSupabaseResult(
+          await client.from('events').select('id, logo_path').eq('slug', slug).maybeSingle(),
+          'No se pudo leer el evento.',
+        )
+        if (!found) throw new HttpError(404, 'El evento no existe.')
+        // Solo rutas emitidas para este evento: el cliente no puede apuntar el
+        // logo a un archivo de otro evento ni a otra carpeta del bucket.
+        if (path && (!path.startsWith(`${found.id}/`) || path.includes('..'))) {
+          throw new HttpError(400, 'La imagen no corresponde a este evento.')
+        }
+
+        assertSupabaseResult(
+          await client.from('events').update({ logo_path: path }).eq('id', found.id),
+          'No se pudo guardar el logo.',
+        )
+
+        // La imagen anterior queda huérfana: se limpia sin frenar la respuesta.
+        if (found.logo_path && found.logo_path !== path) {
+          const removal = await client.storage.from(EVENT_LOGO_BUCKET).remove([found.logo_path])
+          if (removal.error) {
+            console.warn(`No se pudo borrar el logo anterior de ${slug}:`, removal.error.message)
+          }
+        }
+
+        const events = await readEvents(client)
+        const event = events.find((candidate) => candidate.id === found.id)
+        if (!event) throw new HttpError(503, 'El logo se guardó, pero no se pudo volver a leer.')
+        res.json({ event, events })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /**
    * Impacto del borrado, sin borrar nada: cuántas inscripciones, entradas,
    * órdenes y acreditaciones se lleva puestas el evento. El panel lo pide al
    * abrir la confirmación para que el operador decida sobre números reales y
@@ -1157,6 +1272,15 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
     try {
       const slug = parseEventSlug(req.params.eventSlug)
       const client = requireSupabaseClient(getSupabaseAdmin())
+      // Se lee antes: después del borrado la fila ya no existe. Es best-effort:
+      // una base sin la columna (migración pendiente) no puede frenar el borrado.
+      let logoPath = null
+      try {
+        const logoRow = await client.from('events').select('logo_path').eq('slug', slug).maybeSingle()
+        logoPath = logoRow?.data?.logo_path ?? null
+      } catch {
+        logoPath = null
+      }
       const deletedEvent = assertSupabaseResult(
         await client.rpc('delete_event', {
           p_event_slug: slug,
@@ -1168,6 +1292,12 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       )
 
       await removeTicketProofs(client, deletedEvent?.proofOrderIds)
+      if (logoPath) {
+        const removal = await client.storage.from(EVENT_LOGO_BUCKET).remove([logoPath])
+        if (removal?.error) {
+          console.warn(`No se pudo borrar el logo de ${slug}:`, removal.error.message)
+        }
+      }
 
       // Las credenciales de puerta quedarían apuntando a un evento inexistente:
       // el job de ciclo de vida las trata como huérfanas y las purga igual, pero

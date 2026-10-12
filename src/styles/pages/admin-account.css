@@ -1,0 +1,229 @@
+/* =============================================
+   MI CUENTA (staff): panel lateral
+   Se monta en un portal, fuera de `.admin-shell`, así que todo cuelga de
+   `.admin-account`. Monocromo: tinta sobre superficie; el único acento es
+   el botón de acción (oro) del bloque de seguridad.
+   ============================================= */
+
+.admin-account {
+  inset: 0;
+  position: fixed;
+  z-index: 1200;
+}
+
+.admin-account__backdrop {
+  animation: admin-account-fade var(--motion-base, 240ms) var(--ease-out) both;
+  background: var(--admin-modal-backdrop, rgba(0, 0, 0, 0.6));
+  border: 0;
+  cursor: default;
+  inset: 0;
+  padding: 0;
+  position: absolute;
+}
+
+.admin-account__panel {
+  animation: admin-account-in var(--motion-slow, 320ms) var(--ease-out) both;
+  background: var(--admin-surface);
+  border-left: 1px solid var(--admin-hairline-strong);
+  bottom: 0;
+  box-shadow: var(--admin-shadow-panel);
+  color: var(--admin-ink);
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 440px;
+}
+
+@keyframes admin-account-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@keyframes admin-account-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---- Identidad ---- */
+
+.admin-account__head {
+  align-items: center;
+  border-bottom: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 24px 24px 20px;
+}
+
+.admin-account__avatar {
+  align-items: center;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 50%;
+  color: var(--admin-ink);
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  height: 52px;
+  justify-content: center;
+  letter-spacing: 0.04em;
+  width: 52px;
+}
+
+.admin-account__identity {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-account__eyebrow {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-account__identity h2 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-account__identity p {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-account__close {
+  align-items: center;
+  align-self: start;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  margin: -8px -8px 0 0;
+  transition:
+    background var(--motion-fast, 160ms) var(--ease-out),
+    color var(--motion-fast, 160ms) var(--ease-out);
+  width: 40px;
+}
+
+.admin-account__close:hover:not(:disabled) {
+  background: var(--admin-row-hover);
+  color: var(--admin-ink);
+}
+
+.admin-account__close:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+/* ---- Cuerpo ---- */
+
+.admin-account__body {
+  display: grid;
+  flex: 1 1 auto;
+  align-content: start;
+  overflow-y: auto;
+  padding-bottom: 24px;
+}
+
+.admin-account__section {
+  display: grid;
+  gap: 4px;
+  padding: 24px 24px 0;
+}
+
+.admin-account__section + .admin-account__section {
+  border-top: 1px solid var(--admin-hairline);
+  margin-top: 24px;
+}
+
+.admin-account__section h3 {
+  color: var(--admin-ink);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.admin-account__lead {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+/* ---- Seguridad ---- */
+
+.admin-account__form {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-account__form .btn {
+  justify-content: center;
+  min-height: 44px;
+  width: 100%;
+}
+
+.admin-account__notice {
+  align-items: start;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 8px;
+  color: var(--admin-ink);
+  display: flex;
+  font-size: 13px;
+  gap: 12px;
+  line-height: 1.5;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+}
+
+.admin-account__notice svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.admin-account__error {
+  color: var(--admin-status-danger);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+@media (max-width: 540px) {
+  .admin-account__panel {
+    width: 100%;
+  }
+
+  .admin-account__head,
+  .admin-account__section {
+    padding-inline: 16px;
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-account__panel,
+  .admin-account__backdrop {
+    animation: none;
+  }
+}

@@ -185,6 +185,52 @@ Checkout: requirements y tickets availability devuelven `bankTransfer` y
 **Fuera de alcance (post-B3):** OAuth Marketplace de MP, eventos gratis
 (`price = 0`).
 
+## Tienda (pedidos y cobro)
+
+La tienda (`/tienda`) vende ropa, accesorios, exclusivas de torneo y cursos con un motor propio y
+chico, **separado** de las órdenes de atletas y de entradas: no comparte estados, expiración ni
+conciliación con ellas. Migración `20261203100000_shop_orders.sql`; prueba de flujo en
+`supabase/tests/shop_orders_flow.sql` (correr contra la base local de Docker, no contra la real).
+
+**Medios de pago** (configurables en Admin → Tienda → Cobro; el interruptor general de cobros de la
+plataforma los cierra a todos):
+
+- `mercado_pago`: Checkout Pro (redirección). Se acredita **solo** desde el backend, con lo que
+  responde la API de Mercado Pago, validando referencia externa, monto y moneda contra el pedido.
+- `bank_transfer`: alias/CBU/titular del perfil bancario elegido para la tienda (o del entorno,
+  como las entradas). El comprador sube el comprobante (bucket privado `shop-payment-proofs`) y el
+  staff acredita.
+- `cash_on_site`: se reserva el pedido y se cobra al retirar; el staff acredita.
+
+**Webhook propio.** Las preferencias de la tienda llevan `notification_url` =
+`/api/shop/webhook/mercadopago` (verificación HMAC multi-cuenta, IPN sin firma aceptada porque el id
+solo sirve para consultar la API). Está exento del chequeo de origen en `server/lib/security.js`.
+Si en el panel de Mercado Pago hay una URL de notificaciones a nivel cuenta apuntando a
+`/api/payments/webhook`, la preferencia tiene prioridad; un pago de la tienda que llegara igual al
+webhook de entradas queda como evento fallido (no encuentra la orden) sin afectar a nadie.
+Las URLs de retorno usan `?pedido=<id>&pago=<resultado>` a propósito: App.jsx concilia cualquier
+URL con `payment=` + `order=` contra el motor de atletas.
+
+**Stock.** Se descuenta al crear el pedido y se devuelve al cancelarlo o vencer; los cupos de un
+curso se cuentan sobre pedidos vivos (pendientes + aprobados). El precio sale siempre de
+`shop_products`. Reserva: Mercado Pago 2 h, transferencia 48 h, efectivo 72 h. `expire_shop_orders()`
+corre antes de cada pedido nuevo, cada 10 min si el proceso es residente
+(`SHOP_ORDER_EXPIRY_JOB_ENABLED=false` lo apaga) y diario por cron (`/api/internal/jobs/shop-order-expiry`).
+Un pedido de Mercado Pago con un pago en proceso (p. ej. cupón en efectivo) espera 3 días más.
+
+**Pagos que llegan fuera de término.** Un pago aprobado sobre un pedido vencido o cancelado intenta
+recuperar el stock; si no alcanza queda `needs_refund = true` y el panel de Pedidos lo marca en
+alerta hasta que alguien lo devuelva y use "Marcar devolución hecha". Un segundo pago aprobado
+contra un pedido ya acreditado también queda marcado. Un reembolso/contracargo en Mercado Pago
+cancela el pedido y devuelve el stock. El staff no puede cancelar a mano un pago acreditado por
+Mercado Pago (se devuelve desde Mercado Pago).
+
+**Permisos.** `admin.shop.read` ve pedidos y configuración; `admin.shop.write` acredita, entrega,
+cancela y configura el cobro. Cada acción queda en `domain_audit_logs` (`shop.*`).
+
+**Comprobantes.** Los ve el staff con una URL firmada de 2 minutos; no están cubiertos por el job de
+retención de comprobantes de entradas y atletas (otro bucket).
+
 ## Wise (pagos del exterior)
 
 Canal manual para quien no puede pagar con Mercado Pago (medios locales, ARS).

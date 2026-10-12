@@ -1,0 +1,746 @@
+/* =============================================
+   ACCESO Y HABILITACIÓN
+   Hoja propia de la ruta (se importa desde RegistrationAccessSection y viaja
+   con su chunk lazy). Composición: flujo abierto sobre el canvas, sin
+   tarjetas anidadas. Orden de lectura: título → interruptor maestro →
+   matriz concepto × (alta, medios, validación) → tandas privadas.
+   Monocromo: un interruptor encendido es tinta llena y uno apagado es contorno;
+   el estado también viaja en el texto y en la posición del pulgar, nunca solo
+   en el color. El único acento es el botón de guardar del formulario; el rojo
+   queda para cobros pausados y para un concepto que no puede cobrar.
+   ============================================= */
+
+.admin-access {
+  container-name: admin-access;
+  container-type: inline-size;
+  display: grid;
+  gap: var(--space-xl, 32px);
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-access h1,
+.admin-access h2,
+.admin-access h3,
+.admin-access p {
+  margin: 0;
+}
+
+.admin-access__sr-only {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* ---- Encabezado ---- */
+
+.admin-access__header,
+.admin-access__block-head {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm, 12px) var(--space-lg, 24px);
+  justify-content: space-between;
+}
+
+.admin-access__header {
+  border-bottom: 1px solid var(--admin-hairline);
+  padding-bottom: var(--space-md, 16px);
+}
+
+.admin-access__intro h1 {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(24px, 2.8vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.admin-access__intro p {
+  color: var(--admin-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-top: 6px;
+  max-width: 62ch;
+  text-wrap: pretty;
+}
+
+/* ---- Bloques ---- */
+
+.admin-access__block {
+  display: grid;
+  gap: var(--space-md, 16px);
+  min-width: 0;
+}
+
+.admin-access__block-head {
+  align-items: flex-start;
+}
+
+.admin-access__block-head h2 {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.admin-access__block-head p {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 2px;
+}
+
+.admin-access__summary {
+  align-items: center;
+  color: var(--admin-muted);
+  display: inline-flex;
+  flex: none;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.admin-access__summary-dot,
+.admin-access__mark-dot,
+.admin-access__gate-dot {
+  border: 1.5px solid color-mix(in srgb, var(--admin-ink) 45%, transparent);
+  border-radius: 50%;
+  box-sizing: border-box;
+  display: inline-block;
+  flex: none;
+  height: 8px;
+  width: 8px;
+}
+
+.admin-access__summary-dot--on,
+.admin-access__mark--on .admin-access__mark-dot,
+.admin-access__gate-state--open .admin-access__gate-dot {
+  background: var(--admin-ink);
+  border-color: var(--admin-ink);
+}
+
+.admin-access__gate-state--scheduled .admin-access__gate-dot {
+  border-color: var(--admin-ink);
+  border-width: 2px;
+}
+
+/* ---- Maestro ---- */
+
+.admin-access__master {
+  align-items: center;
+  border-block: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: var(--space-md, 16px);
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding-block: 12px;
+}
+
+.admin-access__master--halted {
+  box-shadow: inset 2px 0 0 var(--admin-status-danger);
+  padding-left: 14px;
+}
+
+.admin-access__master-copy h3 {
+  color: var(--admin-ink);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.admin-access__master-copy p {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 2px;
+}
+
+.admin-access__master .admin-access__switch-state,
+.admin-access__master .admin-access__mark .admin-access__switch-state {
+  clip: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  position: static;
+  width: auto;
+}
+
+.admin-access__master--halted .admin-access__switch-state {
+  color: var(--admin-status-danger);
+}
+
+/* ---- Frenos de entorno y mensajes ---- */
+
+.admin-access__hold {
+  align-items: flex-start;
+  background: var(--admin-surface-muted);
+  border-left: 2px solid var(--admin-ink);
+  color: var(--admin-text-secondary);
+  display: flex;
+  font-size: 13px;
+  gap: 10px;
+  line-height: 1.45;
+  padding: 10px 14px;
+}
+
+.admin-access__hold svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.admin-access__message {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  gap: 10px;
+}
+
+.admin-access__message--error,
+.admin-access__error {
+  color: var(--admin-status-danger);
+}
+
+.admin-access__error,
+.admin-access__notice {
+  align-items: center;
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+}
+
+.admin-access__notice {
+  color: var(--admin-text-secondary);
+}
+
+.admin-access__loading,
+.admin-access__empty {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* ---- Matriz ---- */
+
+.admin-access__matrix {
+  --admin-access-cols: minmax(7.5rem, 1.25fr) repeat(6, minmax(0, 1fr));
+  display: grid;
+}
+
+.admin-access__matrix-head,
+.admin-access__row {
+  align-items: center;
+  column-gap: 8px;
+  display: grid;
+  grid-template-columns: var(--admin-access-cols);
+}
+
+.admin-access__matrix-head {
+  border-bottom: 1px solid var(--admin-hairline-strong);
+  color: var(--admin-muted);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  padding-bottom: 8px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.admin-access__row {
+  border-bottom: 1px solid var(--admin-hairline);
+  min-height: 56px;
+}
+
+.admin-access__row:last-child {
+  border-bottom: 0;
+}
+
+.admin-access__row-title {
+  color: var(--admin-ink);
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+}
+
+/* Alta cerrada: el concepto baja de presencia. Los medios siguen editables
+   —se preconfiguran para la reapertura— pero no están cobrando. */
+.admin-access__row--closed .admin-access__row-title {
+  color: var(--admin-muted);
+}
+
+.admin-access__cell {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.admin-access__cell--muted .admin-access__switch,
+.admin-access__cell--muted .admin-access__mark {
+  opacity: 0.45;
+}
+
+.admin-access__na {
+  color: var(--admin-hairline-strong);
+}
+
+.admin-access__row-warning {
+  align-items: center;
+  color: var(--admin-status-danger);
+  display: flex;
+  font-size: 12.5px;
+  gap: 8px;
+  grid-column: 1 / -1;
+  padding: 0 0 10px;
+}
+
+/* El nombre de la celda solo se ve cuando la columna deja de nombrarla. */
+.admin-access__cell-name {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* ---- Interruptor ---- */
+
+.admin-access__switch {
+  align-items: center;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-size: 12.5px;
+  font-weight: 550;
+  gap: 10px;
+  min-height: 40px;
+}
+
+.admin-access__switch input {
+  appearance: none;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--admin-ink) 40%, transparent);
+  border-radius: 999px;
+  box-sizing: border-box;
+  cursor: pointer;
+  flex: 0 0 36px;
+  height: 20px;
+  margin: 0;
+  order: 2;
+  position: relative;
+  width: 36px;
+}
+
+/* Relleno de tinta que aparece por opacidad: el color del switch no se anima,
+   solo entra y sale. */
+.admin-access__switch input::before {
+  background: var(--admin-ink);
+  border-radius: 999px;
+  content: '';
+  inset: -1px;
+  opacity: 0;
+  position: absolute;
+  transition: opacity var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.admin-access__switch input::after {
+  background: color-mix(in srgb, var(--admin-ink) 55%, transparent);
+  border-radius: 50%;
+  content: '';
+  height: 14px;
+  left: 2px;
+  position: absolute;
+  top: 2px;
+  transition: transform var(--motion-fast, 160ms) var(--ease-out, ease);
+  width: 14px;
+}
+
+.admin-access__switch input:checked::before {
+  opacity: 1;
+}
+
+.admin-access__switch input:checked::after {
+  background: var(--admin-surface);
+  transform: translateX(16px);
+}
+
+.admin-access__switch input:focus-visible,
+.admin-access__btn:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-access__switch input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-access__switch-state {
+  white-space: nowrap;
+}
+
+/* En la matriz de escritorio el estado vive en el pulgar y en el relleno; el
+   texto sigue en el DOM para lectores de pantalla. */
+.admin-access__switch-state--quiet {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.admin-access__mark {
+  align-items: center;
+  color: var(--admin-muted);
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 550;
+  gap: 8px;
+}
+
+/* ---- Leyenda (consecuencias de cada interruptor) ---- */
+
+.admin-access__legend summary {
+  color: var(--admin-muted);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 550;
+  min-height: 32px;
+  width: fit-content;
+}
+
+.admin-access__legend summary:hover {
+  color: var(--admin-ink);
+}
+
+.admin-access__legend summary:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-access__legend dl {
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 12px;
+  margin: 8px 0 0;
+  padding-top: 12px;
+}
+
+.admin-access__legend dt {
+  color: var(--admin-ink);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.admin-access__legend dd {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 2px 0 0;
+  max-width: 78ch;
+}
+
+/* ---- Botones ---- */
+
+.admin-access__btn {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 8px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+.admin-access__btn:hover:not(:disabled) {
+  background: var(--admin-row-hover);
+}
+
+.admin-access__btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-access__btn--small {
+  font-size: 12.5px;
+  min-height: 30px;
+  padding: 0 10px;
+}
+
+.admin-access__btn--ghost {
+  border-color: transparent;
+  color: var(--admin-text-secondary);
+}
+
+.admin-access__btn--primary {
+  background: var(--admin-action);
+  border-color: var(--admin-action);
+  color: var(--admin-on-action);
+}
+
+.admin-access__btn--primary:hover:not(:disabled) {
+  background: var(--color-brand-action-hover);
+}
+
+/* ---- Tandas privadas ---- */
+
+/* La tabla compartida trae cabecera con relleno y esquinas redondeadas; acá se
+   alinea con la matriz de arriba: cabecera sin relleno, solo hairline, y el
+   texto arranca en el mismo borde izquierdo que los conceptos. */
+.admin-shell .admin-access .admin-data-table--access-gates .ant-table {
+  background: transparent;
+}
+
+.admin-shell .admin-access .admin-data-table--access-gates .ant-table-container {
+  border-radius: 0;
+}
+
+.admin-shell .admin-access .admin-data-table--access-gates .ant-table-thead > tr > th {
+  background: transparent;
+  border-bottom: 1px solid var(--admin-hairline-strong);
+  border-radius: 0;
+  color: var(--admin-muted);
+}
+
+.admin-shell .admin-access .admin-data-table--access-gates .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--admin-hairline);
+}
+
+.admin-shell .admin-access .admin-data-table--access-gates .ant-table-tbody > tr:last-child > td {
+  border-bottom: 0;
+}
+
+.admin-shell .admin-access .admin-data-table--access-gates tr > :first-child {
+  padding-left: 0;
+}
+
+.admin-shell .admin-access .admin-data-table--access-gates tr > :last-child {
+  padding-right: 0;
+}
+
+.admin-access__gate-name {
+  color: var(--admin-ink);
+  font-weight: 600;
+}
+
+.admin-access__muted {
+  color: var(--admin-muted);
+}
+
+.admin-access__gate-state {
+  align-items: center;
+  color: var(--admin-muted);
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 8px;
+}
+
+.admin-access__gate-state--open,
+.admin-access__gate-state--scheduled {
+  color: var(--admin-ink);
+}
+
+/* ---- Formulario de tanda ---- */
+
+.admin-access__form {
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 12px;
+  display: grid;
+  gap: var(--space-md, 16px);
+  padding: 20px;
+}
+
+.admin-access__form header h3 {
+  color: var(--admin-ink);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.admin-access__form header p {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 2px;
+}
+
+.admin-access__fields {
+  border: 0;
+  display: grid;
+  gap: 14px;
+  align-items: start;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.admin-access__fields > label:not(.admin-access__switch) {
+  align-content: start;
+  color: var(--admin-text-secondary);
+  display: grid;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-access__fields input:not([type='checkbox']),
+.admin-access__fields select {
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 8px;
+  color: var(--admin-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  min-height: 40px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.admin-access__fields input:focus-visible,
+.admin-access__fields select:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 1px;
+}
+
+.admin-access__fields small {
+  color: var(--admin-muted);
+  font-weight: 400;
+}
+
+.admin-access__switch--field {
+  align-self: end;
+}
+
+.admin-access__form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* ---- Responsive: por ancho del panel, no del viewport ---- */
+
+@supports (container-type: inline-size) {
+  @container admin-access (max-width: 760px) {
+    .admin-access__fields {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    /* Sin ancho para seis columnas: cada concepto pasa a lista, un interruptor
+       por línea con su nombre y su estado. */
+    .admin-access__matrix-head {
+      display: none;
+    }
+
+    .admin-access__row {
+      grid-template-columns: minmax(0, 1fr);
+      padding-block: 14px 6px;
+    }
+
+    .admin-access__row-title {
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    .admin-access__cell {
+      justify-content: space-between;
+      min-height: 44px;
+    }
+
+    .admin-access__cell--na {
+      display: none;
+    }
+
+    .admin-access__cell-name {
+      clip: auto;
+      color: var(--admin-text-secondary);
+      font-size: 14px;
+      height: auto;
+      margin: 0;
+      overflow: visible;
+      position: static;
+      width: auto;
+    }
+
+    .admin-access__cell .admin-access__switch,
+    .admin-access__cell .admin-access__mark {
+      justify-content: flex-end;
+    }
+
+    .admin-access__cell .admin-access__switch-state--quiet {
+      clip: auto;
+      height: auto;
+      margin: 0;
+      overflow: visible;
+      position: static;
+      width: auto;
+    }
+
+    .admin-access__switch {
+      min-height: 44px;
+    }
+
+    .admin-access__row-warning {
+      padding-block: 6px 0;
+    }
+  }
+
+  @container admin-access (max-width: 520px) {
+    .admin-access__fields {
+      grid-template-columns: 1fr;
+    }
+
+    .admin-access__form-actions {
+      flex-direction: column-reverse;
+    }
+
+    .admin-access__form-actions .admin-access__btn {
+      width: 100%;
+    }
+  }
+}
+
+@media (pointer: coarse) {
+  .admin-access__btn {
+    min-height: 44px;
+  }
+
+  .admin-access__switch {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-access__switch input::before,
+  .admin-access__switch input::after {
+    transition: none;
+  }
+}

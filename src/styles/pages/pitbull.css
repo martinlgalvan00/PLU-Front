@@ -7374,67 +7374,36 @@
   box-shadow: 0 18px 48px -36px color-mix(in oklab, var(--plu-cool-950) 55%, transparent);
 }
 
-/* Últimos inscriptos — vacío editorial / lista tipográfica */
+/* Últimos inscriptos — un libro compacto de dos columnas.
+   Cada fila: monograma (o foto), nombre y club, y la hora a la derecha. Seis
+   filas ocupan tres renglones en escritorio. Un solo acento: el punto de "en
+   vivo". Los nombres los normaliza `tidyPersonName` (vienen como los tipeó el atleta). */
 .pitbull-recent {
   display: grid;
-  gap: 20px;
-  margin-top: clamp(32px, 4.5vw, 48px);
+  gap: clamp(14px, 2vw, 22px);
+  margin-top: clamp(40px, 6vw, 72px);
   max-width: none;
-  padding-top: clamp(22px, 3vw, 30px);
-  position: relative;
   width: 100%;
 }
 
 .pitbull-dossier__section--inscription .pitbull-recent {
   margin-top: 0;
-  padding-top: clamp(16px, 2.4vw, 22px);
-}
-
-.pitbull-recent::before {
-  background: var(
-    --pitbull-chapter-border,
-    color-mix(in oklab, var(--color-text-primary) 10%, transparent)
-  );
-  content: '';
-  height: 1px;
-  left: 0;
-  position: absolute;
-  right: 0;
-  top: 0;
-}
-
-.pitbull-recent::after {
-  background: var(--color-brand-gold);
-  content: '';
-  height: 1px;
-  left: 0;
-  position: absolute;
-  top: 0;
-  width: 2rem;
 }
 
 .pitbull-recent__head {
   align-items: baseline;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 18px;
+  gap: 8px 24px;
   justify-content: space-between;
-}
-
-.pitbull-recent__meta {
-  align-items: baseline;
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
 }
 
 .pitbull-recent__title {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(1.2rem, 2.1vw, 1.5rem);
-  font-weight: 700;
-  letter-spacing: -0.035em;
-  line-height: 1.12;
+  font-size: clamp(1.05rem, 1.8vw, 1.25rem);
+  font-weight: 650;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
@@ -7442,98 +7411,49 @@
   align-items: center;
   color: var(--color-text-muted);
   display: inline-flex;
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  gap: 7px;
-  letter-spacing: 0.12em;
-  line-height: 1;
+  font-size: 12.5px;
+  font-weight: 400;
+  gap: 8px;
   margin: 0;
-  text-transform: uppercase;
-}
-
-.pitbull-recent__hint--live {
-  color: color-mix(in oklab, var(--color-brand-celeste) 72%, var(--color-text-primary));
-}
-
-.pitbull-recent__hint--today {
-  color: color-mix(in oklab, var(--color-brand-gold) 70%, var(--color-text-primary));
 }
 
 .pitbull-recent__hint-dot {
-  background: currentColor;
+  background: var(--color-brand-gold);
   border-radius: 50%;
-  flex: none;
-  height: 5px;
-  width: 5px;
+  display: inline-block;
+  height: 6px;
+  width: 6px;
 }
 
+/* Vacío: una línea editorial, sin caja. */
 .pitbull-recent__empty {
-  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
   display: grid;
-  gap: 10px;
-  max-width: 42ch;
-  padding: 22px 0 10px;
-}
-
-.pitbull-recent--empty {
-  justify-items: stretch;
-  text-align: left;
-}
-
-.pitbull-recent--empty::after {
-  left: 0;
-  transform: none;
-}
-
-.pitbull-recent--empty .pitbull-recent__head {
-  justify-content: flex-start;
-  width: 100%;
-}
-
-.pitbull-recent--empty .pitbull-recent__empty {
-  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
-  box-sizing: border-box;
-  justify-items: center;
-  margin-inline: 0;
-  max-width: none;
-  padding: clamp(28px, 5vh, 48px) clamp(16px, 4vw, 32px);
-  text-align: center;
-  width: 100%;
-}
-
-.pitbull-recent--empty .pitbull-recent__empty-note {
-  margin-inline: auto;
-  max-width: 42ch;
-}
-
-.pitbull-recent--empty .pitbull-recent__empty-lead {
-  max-width: 36ch;
+  gap: 6px;
+  max-width: 44ch;
 }
 
 .pitbull-recent__empty-lead {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(1.05rem, 1.8vw, 1.28rem);
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  font-size: clamp(1.1rem, 2vw, 1.35rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
   line-height: 1.25;
   margin: 0;
 }
 
 .pitbull-recent__empty-note {
   color: var(--color-text-muted);
-  font-size: 0.875rem;
-  letter-spacing: -0.01em;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.55;
   margin: 0;
-  max-width: 36ch;
 }
 
 .pitbull-recent__list {
-  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  border-bottom: 1px solid var(--color-border);
   display: grid;
-  gap: 0;
+  gap: 0 clamp(32px, 5vw, 72px);
+  grid-template-columns: minmax(0, 1fr);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -7541,41 +7461,28 @@
 
 .pitbull-recent__row {
   align-items: center;
-  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 6%, transparent);
-  display: flex;
+  border-top: 1px solid var(--color-border);
+  display: grid;
   gap: 14px;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
   min-width: 0;
-  padding: 14px 0;
-}
-
-.pitbull-recent__row:last-child {
-  border-bottom: none;
-}
-
-.pitbull-recent__row--today {
-  border-bottom-color: color-mix(in oklab, var(--color-brand-gold) 18%, transparent);
+  padding: 12px 0;
 }
 
 .pitbull-recent__portrait {
   align-items: center;
-  background: color-mix(in oklab, var(--color-text-primary) 4%, transparent);
-  border: 1px solid color-mix(in oklab, var(--color-text-primary) 12%, transparent);
+  background: transparent;
+  border: 1px solid var(--color-border);
   border-radius: 50%;
-  color: var(--color-text-secondary);
   display: inline-flex;
-  flex: none;
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  height: 32px;
+  height: 36px;
   justify-content: center;
   overflow: hidden;
   position: relative;
-  width: 32px;
+  width: 36px;
 }
 
 .pitbull-recent__portrait img {
-  background: var(--color-bg-surface);
   height: 100%;
   inset: 0;
   object-fit: cover;
@@ -7591,23 +7498,31 @@
   width: 100%;
 }
 
+.pitbull-recent__initials {
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 .pitbull-recent__identity {
   display: grid;
-  flex: 1 1 auto;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
 }
 
 .pitbull-recent__name {
   color: var(--color-text-primary);
-  display: -webkit-box;
   font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.022em;
-  line-height: 1.3;
+  font-size: 15.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
   min-width: 0;
   overflow: hidden;
+  /* Hasta dos líneas: en angosto un nombre completo vale más que un renglón. */
+  display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   white-space: normal;
@@ -7615,45 +7530,30 @@
 
 .pitbull-recent__gym {
   color: var(--color-text-muted);
-  display: -webkit-box;
-  font-size: 11.5px;
-  font-weight: 450;
-  letter-spacing: 0.01em;
+  font-size: 12.5px;
+  font-weight: 400;
+  letter-spacing: 0;
   line-height: 1.35;
   overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  white-space: normal;
-}
-
-.pitbull-recent__when {
-  align-items: flex-end;
-  display: inline-flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  gap: 2px;
-  margin-left: auto;
-  min-width: max-content;
-  text-align: right;
-}
-
-.pitbull-recent__today-mark {
-  color: color-mix(in oklab, var(--color-brand-gold) 82%, var(--color-text-primary));
-  font-family: var(--font-display);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
 }
 
 .pitbull-recent__time {
   color: var(--color-text-muted);
-  font-family: var(--font-display);
-  font-size: 11px;
+  flex: none;
+  font-size: 12.5px;
   font-variant-numeric: tabular-nums;
-  font-weight: 550;
-  letter-spacing: 0.02em;
-  opacity: 0.88;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* Dos columnas desde tablet: las filas se reparten, el bloque no crece. */
+@media (min-width: 760px) {
+  .pitbull-recent__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* =============================================
@@ -8991,6 +8891,85 @@
   }
 }
 
+/* Datos de acceso como línea reglada: el separador es una regla vertical,
+   no un punto tipográfico. */
+.pitbull-tickets-band__facts {
+  align-items: center;
+  border-top: 1px solid color-mix(in oklab, var(--plu-warm-50) 16%, transparent);
+  column-gap: 14px;
+  padding-top: 14px;
+}
+
+.pitbull-tickets-band__facts span[aria-hidden] {
+  align-self: stretch;
+  background: currentColor;
+  font-size: 0;
+  opacity: 0.4;
+  width: 1px;
+}
+
+.pitbull-tickets-band__pass {
+  display: none;
+}
+
+/* Desktop: copy a la izquierda, el pase como objeto a la derecha. */
+@media (min-width: 900px) {
+  .pitbull-tickets-band {
+    align-items: center;
+    column-gap: clamp(32px, 5vw, 80px);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, clamp(26rem, 40vw, 35rem));
+  }
+
+  .pitbull-tickets-band__content {
+    padding-inline-end: 0;
+  }
+
+  /* En esta columna el talón queda angosto: titular y código apilados,
+     igual que el pase en mobile, para no cortar el nombre. */
+  .pitbull-tickets-band__pass .ticket-pass-preview__stub-foot {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-tickets-band__pass {
+    display: block;
+    padding-block: clamp(36px, 5vw, 56px);
+    padding-inline-end: max(
+      var(--layout-gutter-lg),
+      calc((100vw - var(--max-width-content)) / 2 + var(--layout-gutter-lg))
+    );
+    position: relative;
+    z-index: 2;
+  }
+}
+
+@keyframes pitbull-tickets-photo-depth {
+  from {
+    transform: translate3d(0, -5%, 0) scale(1.12);
+  }
+
+  to {
+    transform: translate3d(0, 5%, 0) scale(1.12);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  /* `hidden` crea un scroll container y view() se ataría a la banda; `clip`
+     recorta igual sin capturar la timeline del documento. */
+  .pitbull-tickets-band {
+    overflow: clip;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    [data-motion-tier]:not([data-motion-tier='low']) .pitbull-tickets-band__img {
+      animation: pitbull-tickets-photo-depth linear both;
+      animation-range: cover 0% cover 100%;
+      animation-timeline: view();
+      will-change: transform;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pitbull-tickets-band__cta {
     transition: none;
@@ -9595,6 +9574,81 @@
 
 .pitbull-hero-masthead--bleed .pitbull-hero-masthead__cta-fee {
   color: color-mix(in oklab, #14181f 74%, transparent);
+}
+
+/* CTA de decisión: acción y precio como dos datos, separados por una regla
+   fina en lugar del punto medio. */
+.pitbull-hero-masthead__cta--decision .pitbull-hero-masthead__cta-body {
+  align-items: center;
+  gap: 0 12px;
+}
+
+.pitbull-hero-masthead__cta--decision .pitbull-hero-masthead__cta-sep {
+  align-self: stretch;
+  background: currentColor;
+  font-size: 0;
+  min-height: 1.1em;
+  opacity: 0.22;
+  width: 1px;
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__cta--decision .pitbull-hero-masthead__cta-fee {
+  color: #14181f;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pitbull-hero-masthead__cta.pitbull-hero-masthead__cta--primary {
+  transition-property: background, border-color, box-shadow, color, transform;
+}
+
+.pitbull-hero-masthead__cta--primary:active {
+  transform: scale(0.97);
+}
+
+/* Profundidad del collage: cada placa se desplaza distinto al scrollear,
+   así el masthead se lee en planos sin recurrir a 3D. */
+@keyframes pitbull-plate-depth {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.08);
+  }
+
+  to {
+    transform: translate3d(0, var(--plate-depth, 4%), 0) scale(1.08);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  /* Mismo motivo que la banda de entradas: `clip` en vez de `hidden` para
+     que view() mida contra el documento. */
+  .pitbull-hero-masthead.pitbull-hero-masthead--bleed,
+  .pitbull-hero-masthead.pitbull-hero-masthead--bleed .pitbull-hero-masthead__layout.pitbull-hero-masthead__layout--bleed,
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__collage,
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-plate {
+    overflow: clip;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    [data-motion-tier]:not([data-motion-tier='low']) .pitbull-hero-masthead__frame-img {
+      animation: pitbull-plate-depth linear both;
+      animation-range: exit 0% exit 100%;
+      animation-timeline: view();
+    }
+
+    .pitbull-hero-masthead__plate--secondary {
+      --plate-depth: -3%;
+    }
+
+    .pitbull-hero-masthead__plate--accent {
+      --plate-depth: 7%;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-hero-masthead__cta--primary:active {
+    transform: none;
+  }
 }
 
 /* <900: una sola imagen LCP a sangre. */
@@ -10666,6 +10720,19 @@
   background: transparent;
   border-color: rgba(255, 255, 255, 0.28);
   color: var(--color-text-primary);
+}
+
+.pitbull-hero-masthead__cta--disabled,
+.pitbull-hero-masthead__cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.pitbull-hero-masthead__cta--disabled:hover,
+.pitbull-hero-masthead__cta:disabled:hover {
+  box-shadow: none;
+  transform: none;
 }
 
 [data-theme='light'] .pitbull-hero-masthead__scrim {
@@ -13028,70 +13095,90 @@
   color: rgba(15, 17, 23, 0.62);
 }
 
+/* Desde tablet, cada pilar es un capítulo: número | título | texto en una
+   misma fila reglada, en lugar de una grilla de bloques. */
 @media (min-width: 720px) {
-  .pitbull-experience__pillars {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .pitbull-experience__pillar {
-    align-content: start;
-    border-top: 0;
-    border-left: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-    gap: 8px;
-    grid-template-columns: none;
-    padding: clamp(20px, 2.6vw, 28px) clamp(16px, 2vw, 22px);
+    align-items: baseline;
+    column-gap: clamp(20px, 3vw, 44px);
+    grid-template-columns: 3ch minmax(0, 15rem) minmax(0, 1fr);
+    padding-block: clamp(20px, 2.4vw, 28px);
   }
 
   .pitbull-experience__pillar::before {
     grid-row: auto;
-    margin-bottom: 2px;
     padding-top: 0;
   }
 
-  .pitbull-experience__label,
+  .pitbull-experience__label {
+    grid-column: 2;
+  }
+
   .pitbull-experience__text {
-    grid-column: auto;
-  }
-
-  .pitbull-experience__pillar:nth-child(odd) {
-    border-left: 0;
-    padding-left: 0;
-  }
-
-  .pitbull-experience__pillar:nth-child(-n + 2) {
-    border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-  }
-
-  [data-theme='light'] .pitbull-experience__pillar,
-  [data-theme='light'] .pitbull-experience__pillar:nth-child(-n + 2) {
-    border-color: rgba(15, 17, 23, 0.08);
+    font-size: 14px;
+    grid-column: 3;
+    max-width: 48ch;
   }
 }
 
-@media (min-width: 1100px) {
-  .pitbull-experience__pillars {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+/* Foto con profundidad por scroll y regla de oro que se dibuja al entrar. */
+@keyframes pitbull-experience-photo-depth {
+  from {
+    transform: translate3d(0, -4%, 0) scale(1.1);
   }
 
-  .pitbull-experience__pillar,
-  .pitbull-experience__pillar:nth-child(odd) {
-    border-bottom: 0;
-    border-left: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-    padding: clamp(22px, 2.6vw, 30px) clamp(14px, 1.5vw, 20px);
+  to {
+    transform: translate3d(0, 4%, 0) scale(1.1);
+  }
+}
+
+@keyframes pitbull-experience-wipe {
+  from {
+    clip-path: inset(38% 0 0 0);
   }
 
-  .pitbull-experience__pillar:first-child {
-    border-left: 0;
-    padding-left: 0;
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes pitbull-rule-draw {
+  from {
+    transform: scaleX(0);
   }
 
-  .pitbull-experience__text {
-    max-width: 28ch;
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .pitbull-experience__stage,
+  .pitbull-experience__media {
+    overflow: clip;
   }
 
-  [data-theme='light'] .pitbull-experience__pillar,
-  [data-theme='light'] .pitbull-experience__pillar:nth-child(odd) {
-    border-left-color: rgba(15, 17, 23, 0.08);
+  @media (prefers-reduced-motion: no-preference) {
+    [data-motion-tier]:not([data-motion-tier='low']) .pitbull-experience__img {
+      animation: pitbull-experience-photo-depth linear both;
+      animation-range: cover 0% cover 100%;
+      animation-timeline: view();
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      [data-motion-tier]:not([data-motion-tier='low']) .pitbull-experience__stage {
+        animation: pitbull-experience-wipe linear both;
+        animation-range: entry 0% entry 90%;
+        animation-timeline: view();
+      }
+    }
+
+    [data-motion-tier]:not([data-motion-tier='low']) .pitbull-experience__pillars::before {
+      animation: pitbull-rule-draw linear both;
+      animation-range: entry 20% cover 35%;
+      animation-timeline: view();
+      transform-origin: left center;
+    }
   }
 }
 

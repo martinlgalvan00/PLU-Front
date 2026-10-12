@@ -1,0 +1,216 @@
+/* =============================================
+   ALTA COMPLETA DE EVENTO — marco del modal (AdminEventEditor sin `embedded`)
+   Acá solo vive el marco: el panel de piedra grafito, la cabecera, el pie de
+   acciones y la vista previa en vivo. Los campos de cada sección siguen en las
+   hojas del editor.
+
+   Orden de lectura: qué se está creando (cabecera) → qué se carga
+   (pestañas + sección) → cómo se verá (vista previa, a la derecha) → la única
+   acción dorada (pie). Monocromo: el color es solo el de la acción principal y
+   el de los avisos de estado.
+   ============================================= */
+
+/* ---- Marco ---- */
+
+.admin-shell .admin-event-editor-modal__panel,
+.admin-event-editor-modal__panel {
+  border-radius: 20px;
+  height: min(860px, calc(100dvh - 48px));
+  max-height: calc(100dvh - 48px);
+  width: min(1160px, calc(100vw - 48px));
+}
+
+/* El editor llena el marco: antes traía su propio `max-height` en vh y dejaba una
+   franja vacía bajo el pie. */
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-editor {
+  height: 100%;
+  max-height: none;
+}
+
+@media (min-width: 960px) {
+  .admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-editor {
+    grid-template-columns: minmax(0, 1fr) 380px;
+  }
+}
+
+/* ---- Cabecera ---- */
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-form__head {
+  align-items: flex-start;
+  border-bottom: 0;
+  padding: 28px 32px 6px;
+}
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-form__head-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-form__mode {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-form__head h3 {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(1.6rem, 2.6vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  margin: 0;
+}
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-form__lead {
+  color: var(--admin-muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-form__close {
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: var(--admin-muted);
+  height: 36px;
+  width: 36px;
+}
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-form__close:hover {
+  background: color-mix(in srgb, var(--admin-ink) 10%, transparent);
+  color: var(--admin-ink);
+}
+
+/* ---- Barra de pestañas ---- */
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-editor__toolbar {
+  border-bottom: 1px solid var(--admin-hairline);
+  padding: 12px 32px 14px;
+}
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-form__body {
+  padding-inline: 32px;
+}
+
+/* ---- Pie de acciones ---- */
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-form__actions {
+  background: transparent;
+  border-top: 1px solid var(--admin-hairline);
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 16px 32px 20px;
+}
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-form__actions .btn {
+  min-height: 44px;
+}
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-form__actions .btn:not(.btn--gold) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--admin-text-secondary);
+}
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-form__actions .btn:not(.btn--gold):hover:not(:disabled) {
+  background: color-mix(in srgb, var(--admin-ink) 8%, transparent);
+  color: var(--admin-ink);
+}
+
+/* ---- Vista previa en vivo ---- */
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-preview {
+  align-content: start;
+  background: color-mix(in srgb, var(--admin-ink) 3.5%, transparent);
+  border-left: 1px solid var(--admin-hairline);
+  gap: 20px;
+  overflow-y: auto;
+  padding: 28px 28px 24px;
+}
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-preview__head {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  height: auto;
+  justify-content: space-between;
+  min-height: 0;
+}
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-preview__head-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-preview__label {
+  align-items: center;
+  color: var(--admin-text-secondary);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 650;
+  gap: 8px;
+  letter-spacing: 0.1em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-preview__head-copy p {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  letter-spacing: 0;
+  line-height: 1.45;
+  margin: 0;
+  text-transform: none;
+}
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-preview__badge {
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  color: var(--admin-muted);
+  flex: none;
+}
+
+/* El aviso de borrador es información, no una alarma: tinta, no naranja. */
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-preview__publication {
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 10px;
+  color: var(--admin-text-secondary);
+  font-weight: 500;
+}
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-preview__publication.is-published {
+  border-color: var(--admin-status-success);
+  color: var(--admin-ink);
+}
+
+.admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-preview__meta code {
+  background: transparent;
+  border: 0;
+  color: var(--admin-text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+  padding: 0;
+}
+
+@media (max-width: 959px) {
+  .admin-event-editor-modal__panel {
+    border-radius: 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    width: 100vw;
+  }
+
+  .admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-form__head,
+  .admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-editor__toolbar,
+  .admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-form__body,
+  .admin-event-editor-modal__panel.admin-event-editor-modal__panel .admin-event-form__actions {
+    padding-inline: 20px;
+  }
+}

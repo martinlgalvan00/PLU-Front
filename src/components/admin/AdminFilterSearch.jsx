@@ -5,12 +5,14 @@ export default function AdminFilterSearch({
   query,
   onQueryChange,
   labelledBy,
+  autoFocus = false,
 }) {
   return (
     <div className="admin-filters__search" role="search">
       <Search size={16} className="admin-filters__search-icon" aria-hidden />
       <input
         type="search"
+        autoFocus={autoFocus}
         className="admin-filters__search-input"
         placeholder={placeholder}
         value={query ?? ''}

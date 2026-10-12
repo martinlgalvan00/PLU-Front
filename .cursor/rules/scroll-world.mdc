@@ -1,0 +1,15 @@
+---
+description: Landing cinematic scroll-3D opcional. Requiere OK de gasto; no default de motion.
+globs:
+alwaysApply: false
+---
+
+# scroll-world (PLU)
+
+Skill completa: `.claude/skills/scroll-world/SKILL.md`  
+Adaptador obligatorio: `.claude/skills/scroll-world/PLU.md`
+
+1. Invocar solo si el usuario pide un mundo/hero scroll-3D cinematic.
+2. Para pulir TiltCard/motion existente → `motion-premium`, no esta skill.
+3. No lanzar Monid/Higgsfield ni gastar créditos sin confirmación explícita.
+4. Si se integra: tokens PLU, `prefers-reduced-motion` con fallback estático.

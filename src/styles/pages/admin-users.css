@@ -1,0 +1,828 @@
+/* =============================================
+   USUARIOS
+   Hoja propia de la ruta (se importa desde UsersSection).
+   Orden de lectura: una sola barra (búsqueda, estado si hay más de uno,
+   permisos, y la única acción dorada: "Nuevo usuario") → planilla compacta.
+   Monocromo: la identidad es un monograma circular y la jerarquía la dan el
+   peso y la atenuación (nombre en tinta, email apagado). El estado es punto +
+   texto, sin pastillas. Lo menos frecuente o irreversible vive en un menú.
+   Sin scroll interno: la página scrollea y la tabla entra en el panel.
+   ============================================= */
+
+.admin-users {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: minmax(0, 1fr);
+  /* Un padrón de pocas filas no necesita 1900px: columnas más cerca se leen
+     como una sola fila, no como celdas sueltas. */
+  max-width: 1120px;
+  min-width: 0;
+}
+
+/* ---- Barra ---- */
+
+.admin-users__toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px var(--space-lg);
+  min-height: 40px;
+}
+
+.admin-users__search {
+  align-items: center;
+  border-bottom: 1px solid var(--admin-hairline-strong);
+  color: var(--admin-muted);
+  display: flex;
+  flex: 1 1 16rem;
+  gap: 10px;
+  max-width: 26rem;
+  min-height: 38px;
+  min-width: 0;
+  transition: border-color var(--motion-fast) var(--ease-out);
+}
+
+.admin-users__search:focus-within {
+  border-bottom-color: var(--admin-ink);
+  box-shadow: 0 1px 0 0 var(--admin-ink);
+  color: var(--admin-ink);
+}
+
+.admin-users__search svg {
+  flex: none;
+}
+
+.admin-users__search input {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--admin-ink);
+  flex: 1;
+  font: inherit;
+  font-size: 14px;
+  min-width: 0;
+  outline: none;
+  padding: 0;
+}
+
+.admin-users__search input::placeholder {
+  color: var(--admin-muted);
+}
+
+.admin-users__search input::-webkit-search-cancel-button {
+  appearance: none;
+  display: none;
+}
+
+.admin-users__search-clear {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
+}
+
+.admin-users__search-clear:hover {
+  color: var(--admin-ink);
+}
+
+.admin-users__search-clear:focus-visible,
+.admin-users__link:focus-visible,
+.admin-users__icon-btn:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+/* Estado: un selector sin caja. Solo existe si hay más de un estado. */
+.admin-users__filter,
+.admin-users__role-select {
+  align-items: center;
+  color: var(--admin-muted);
+  display: inline-flex;
+  position: relative;
+}
+
+.admin-users__filter select,
+.admin-users__role-select select {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  min-height: 30px;
+  outline: none;
+  padding: 4px 24px 4px 8px;
+  text-overflow: ellipsis;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.admin-users__filter select {
+  margin-left: -8px;
+}
+
+.admin-users__filter.is-active select {
+  color: var(--admin-ink);
+  font-weight: 600;
+}
+
+.admin-users__filter select:hover,
+.admin-users__role-select select:hover:not(:disabled) {
+  border-color: var(--admin-hairline-strong);
+  color: var(--admin-ink);
+}
+
+.admin-users__filter select:focus-visible,
+.admin-users__role-select select:focus-visible {
+  border-color: var(--admin-ink);
+  box-shadow: 0 0 0 3px var(--admin-focus-soft);
+  color: var(--admin-ink);
+}
+
+.admin-users__filter select option,
+.admin-users__role-select select option {
+  background: var(--admin-surface);
+  color: var(--admin-ink);
+}
+
+.admin-users__filter svg,
+.admin-users__role-select svg {
+  pointer-events: none;
+  position: absolute;
+  right: 8px;
+}
+
+/* El rol se edita en la fila, pero el control no tiene que gritarlo: el
+   chevron aparece al apuntar la fila o enfocar el selector. Sin hover (touch)
+   queda siempre visible. */
+.admin-users__role-select svg {
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease-out);
+}
+
+tr:hover .admin-users__role-select svg,
+.admin-users__role-select:focus-within svg {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .admin-users__role-select svg {
+    opacity: 1;
+  }
+}
+
+.admin-users__count {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+.admin-users__toolbar-actions {
+  align-items: center;
+  display: flex;
+  gap: var(--space-md);
+}
+
+/* "Permisos por rol": acción secundaria, texto con icono, sin caja. */
+.admin-users__link {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 4px;
+  transition: color var(--motion-fast) var(--ease-out);
+}
+
+.admin-users__link:hover {
+  color: var(--admin-ink);
+}
+
+.admin-shell .admin-users__new-btn {
+  gap: 7px;
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+/* ---- Tabla ---- */
+
+/* Sin usuarios no hay planilla que mostrar: solo el estado vacío. */
+.admin-users__empty {
+  border-top: 1px solid var(--admin-hairline);
+  padding-block: var(--space-xl);
+}
+
+/* antd fija `table-layout`/`width` inline según `scroll.x`; con layout
+   automático el sobrante se reparte entre todas las columnas y el rol queda
+   angosto. Acá el ancho sobrante es solo de la columna Usuario. */
+.admin-shell .admin-users__table table {
+  min-width: 0;
+  table-layout: fixed !important;
+  width: 100% !important;
+}
+
+/* Sin la línea divisoria de columna ni los dos chevrones de orden a pleno
+   contraste: el orden se ve, pero no compite con el contenido. */
+.admin-shell .admin-users__table .ant-table-thead > tr > th::before {
+  display: none;
+}
+
+.admin-shell .admin-users__table .ant-table-column-sorter {
+  color: var(--admin-muted);
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease-out);
+}
+
+.admin-shell .admin-users__table .ant-table-column-sorters:hover .ant-table-column-sorter,
+.admin-shell .admin-users__table .ant-table-column-sort .ant-table-column-sorter,
+.admin-shell .admin-users__table .ant-table-column-has-sorters:focus-visible .ant-table-column-sorter {
+  opacity: 1;
+}
+
+.admin-shell .admin-users__table .ant-table-thead > tr > th {
+  background: transparent;
+  border-bottom: 1px solid var(--admin-hairline-strong);
+  color: var(--admin-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding-block: 10px;
+}
+
+.admin-shell .admin-users__table .ant-table,
+.admin-shell .admin-users__table .ant-table-container {
+  background: transparent;
+}
+
+.admin-shell .admin-users__table .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--admin-hairline);
+  padding-block: 12px;
+}
+
+.admin-shell .admin-users__table .ant-table-tbody > tr:last-child > td {
+  border-bottom: 0;
+}
+
+.admin-shell .admin-users__table .ant-table-tbody > tr:hover > td {
+  background: var(--admin-row-hover);
+}
+
+/* El nombre de la columna de acciones es solo para lectores de pantalla. */
+.admin-shell .admin-users__table .ant-table-thead > tr > th.admin-users__column-actions {
+  font-size: 0;
+}
+
+.admin-users__who {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+}
+
+.admin-users__monogram {
+  align-items: center;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 50%;
+  color: var(--admin-text-secondary);
+  display: inline-flex;
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  height: 36px;
+  justify-content: center;
+  line-height: 1;
+  width: 36px;
+}
+
+/* La cuenta protegida: único monograma lleno. */
+.admin-users__monogram.is-owner {
+  background: var(--admin-ink);
+  border-color: var(--admin-ink);
+  color: var(--admin-canvas);
+}
+
+.admin-users__who-copy {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-users__who-name {
+  color: var(--admin-ink);
+  flex: 0 1 auto;
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-users__who-email {
+  color: var(--admin-muted);
+  flex: 0 1 auto;
+  font-size: 12.5px;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-users__role-text {
+  color: var(--admin-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.admin-users__role-select {
+  display: flex;
+  margin-left: -8px;
+  max-width: calc(100% + 8px);
+  width: calc(100% + 8px);
+}
+
+.admin-users__role-select select {
+  width: 100%;
+}
+
+.admin-users__role-select.is-busy select,
+.admin-users__role-select select:disabled {
+  cursor: progress;
+  opacity: 0.55;
+}
+
+/* Estado = punto + texto. Solo "activo" lleva color; el resto se lee por
+   forma y por atenuación (invitado: aro vacío; baja: apagado). */
+.admin-users__status {
+  align-items: center;
+  color: var(--admin-text-secondary);
+  display: inline-flex;
+  font-size: 13px;
+  gap: 8px;
+}
+
+.admin-users__status-dot {
+  background: var(--admin-muted);
+  border-radius: 50%;
+  flex: none;
+  height: 6px;
+  width: 6px;
+}
+
+.admin-users__status--active .admin-users__status-dot {
+  background: var(--admin-status-success);
+}
+
+.admin-users__status--invited .admin-users__status-dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--admin-muted);
+}
+
+.admin-users__status--suspended .admin-users__status-dot {
+  background: var(--admin-status-warning);
+}
+
+.admin-users__status--disabled {
+  color: var(--admin-muted);
+}
+
+/* ---- Acciones de fila ---- */
+
+.admin-users__row-actions {
+  align-items: center;
+  display: flex;
+  gap: 2px;
+  justify-content: flex-end;
+}
+
+.admin-users__icon-btn {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 32px;
+  justify-content: center;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+  width: 32px;
+}
+
+.admin-users__icon-btn:hover:not(:disabled),
+.admin-users__icon-btn.is-open {
+  background: var(--admin-row-hover);
+  color: var(--admin-ink);
+}
+
+.admin-users__icon-btn:disabled {
+  cursor: progress;
+  opacity: 0.55;
+}
+
+/* Menú de desbordamiento (portal en <body>, posición fija). */
+.admin-users__menu {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 10px;
+  box-shadow: var(--admin-shadow-panel);
+  min-width: 196px;
+  padding: 4px;
+  position: fixed;
+  z-index: 1100;
+}
+
+.admin-users__menu-rule {
+  background: var(--admin-hairline);
+  height: 1px;
+  margin: 4px 6px;
+}
+
+.admin-users__menu-item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 10px;
+  min-height: 34px;
+  padding: 0 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.admin-users__menu-item:hover:not(:disabled),
+.admin-users__menu-item:focus-visible {
+  background: var(--admin-row-hover);
+  color: var(--admin-ink);
+  outline: none;
+}
+
+.admin-users__menu-item:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--admin-focus);
+}
+
+/* Rojo solo en lo irreversible o destructivo. */
+.admin-users__menu-item.is-danger {
+  color: var(--admin-status-danger);
+}
+
+.admin-users__menu-item.is-danger:hover:not(:disabled),
+.admin-users__menu-item.is-danger:focus-visible {
+  background: var(--admin-status-danger-bg);
+  color: var(--admin-status-danger);
+}
+
+.admin-users__menu-item.is-armed {
+  background: var(--admin-status-danger-bg);
+  font-weight: 600;
+}
+
+/* ---- Alta ---- */
+
+.admin-users__form {
+  border-block: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 14px;
+  padding-block: 16px 18px;
+}
+
+.admin-users__form-title {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.admin-users__form-fields {
+  align-items: end;
+  display: grid;
+  gap: 12px var(--space-md);
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr) minmax(0, 0.8fr) auto;
+  min-width: 0;
+}
+
+.admin-users__form-fields > .field {
+  min-width: 0;
+}
+
+/* Campos del alta: etiqueta atenuada, caja de 40px y foco en tinta (el foco
+   base de .field es rojo de marca, que en el admin leería como error). */
+.admin-shell .admin-users__form .field {
+  gap: 6px;
+}
+
+.admin-shell .admin-users__form .field__label {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.admin-shell .admin-users__form .field input,
+.admin-shell .admin-users__form .field select {
+  background-color: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 8px;
+  color: var(--admin-ink);
+  font-size: 13.5px;
+  min-height: 40px;
+}
+
+.admin-shell .admin-users__form .field input:hover:not(:focus),
+.admin-shell .admin-users__form .field select:hover:not(:focus) {
+  border-color: var(--admin-muted);
+}
+
+.admin-shell .admin-users__form .field input:focus,
+.admin-shell .admin-users__form .field select:focus {
+  border-color: var(--admin-ink);
+  box-shadow: 0 0 0 3px var(--admin-focus-soft);
+}
+
+.admin-users__form--security .admin-users__form-fields > :nth-child(4) {
+  grid-column: 1 / 4;
+  grid-row: 2;
+}
+
+.admin-users__form--security .admin-users__form-actions {
+  grid-column: 4;
+  grid-row: 1;
+}
+
+.admin-users__form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-shell .admin-users__submit {
+  gap: 7px;
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.admin-users__form-hint {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 62ch;
+}
+
+/* ---- Avisos y credencial ---- */
+
+.admin-users__notice {
+  color: var(--admin-text-secondary);
+  font-size: 13px;
+  margin: 0;
+}
+
+.admin-users__notice--error {
+  color: var(--admin-status-danger);
+}
+
+/* Dato que hay que transcribir: la jerarquía la da la monoespaciada. */
+.admin-users__credential {
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 10px;
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.admin-users__credential-title {
+  color: var(--admin-ink);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.admin-users__credential-meta {
+  display: grid;
+  gap: 10px var(--space-xl);
+  grid-template-columns: repeat(auto-fit, minmax(14rem, max-content));
+  margin: 0;
+}
+
+.admin-users__credential-meta > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-users__credential-meta dt {
+  color: var(--admin-muted);
+  font-size: 11.5px;
+}
+
+.admin-users__credential-meta dd {
+  color: var(--admin-ink);
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-users__credential-meta code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.admin-users__credential-note {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* ---- Cards (panel angosto / celular) ---- */
+
+.admin-shell .admin-users .data-table-card--compact {
+  gap: 4px;
+  padding: 14px 14px 12px;
+  position: relative;
+}
+
+/* Identidad a todo el ancho y debajo, en una línea: rol · estado. El menú
+   queda a la derecha de esa línea y no suma una fila vacía. */
+.admin-shell .admin-users .data-table-card__top {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-shell .admin-users .data-table-card__top > * {
+  align-self: stretch;
+  min-width: 0;
+}
+
+.admin-shell .admin-users .data-table-card__badges {
+  align-items: center;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+  max-width: none;
+  padding-left: 50px;
+  padding-right: 40px;
+}
+
+.admin-users .data-table-card .admin-users__who-copy {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.admin-users .data-table-card .admin-users__who-name,
+.admin-users .data-table-card .admin-users__who-email {
+  flex: none;
+  max-width: 100%;
+}
+
+.admin-users .data-table-card .admin-users__role-select {
+  display: inline-flex;
+  margin-left: 0;
+  max-width: none;
+  width: auto;
+}
+
+.admin-users .data-table-card .admin-users__role-select select {
+  padding-left: 0;
+  padding-right: 20px;
+  text-align: left;
+}
+
+.admin-users .data-table-card .admin-users__role-select svg {
+  right: 2px;
+}
+
+/* La fila de acciones de la card es un renglón, no un pie con regla. */
+.admin-shell .admin-users .data-table-card__footer {
+  border-top: 0;
+  bottom: 4px;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  right: 6px;
+}
+
+.admin-users .data-table-card .admin-users__icon-btn {
+  height: 36px;
+  width: 36px;
+}
+
+@media (pointer: coarse) {
+  .admin-users .data-table-card .admin-users__icon-btn {
+    height: 44px;
+    width: 44px;
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-users__search {
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .admin-users__toolbar-actions {
+    margin-left: auto;
+  }
+
+  .admin-users__form-fields,
+  .admin-users__form--security .admin-users__form-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-users__form--security .admin-users__form-fields > :nth-child(4),
+  .admin-users__form--security .admin-users__form-actions {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .admin-shell .admin-users__submit {
+    justify-content: center;
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .admin-shell .admin-users__new-btn {
+    min-height: 44px;
+  }
+
+  .admin-users__link {
+    min-height: 44px;
+  }
+}
+
+/* Celular: "Permisos por rol" queda como icono (el nombre sigue accesible). */
+@media (max-width: 520px) {
+  .admin-users__toolbar {
+    gap: 4px var(--space-md);
+  }
+
+  .admin-users__link {
+    justify-content: center;
+    min-width: 44px;
+    padding: 0;
+  }
+
+  .admin-users__link span {
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+
+  .admin-users__toolbar-actions {
+    gap: var(--space-sm);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-users__search,
+  .admin-users__filter select,
+  .admin-users__role-select select,
+  .admin-users__link,
+  .admin-users__icon-btn {
+    transition: none;
+  }
+}

@@ -1,20 +1,29 @@
 import { useId, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowDownRight, LoaderCircle } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, LoaderCircle } from 'lucide-react'
 import Button from '../ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useAdminModal } from './useAdminModal.js'
 
 /**
- * Alta y edición de un egreso de la caja. Mismo contrato que el service
- * (`createExpense`/`updateExpense`): fecha, categoría, importe, detalle y
- * comprobante. `expense` en null es un alta; con fila, edición.
+ * Alta y edición de un asiento manual de la caja, egreso o ingreso (`kind`).
+ * Mismo contrato que el service: fecha, categoría, importe, detalle y
+ * comprobante. `expense` en null es un alta; con fila, edición. El alta rápida
+ * vive en la fila de carga del libro; este diálogo es para corregir un asiento
+ * y adjuntar su comprobante.
  *
  * El importe vive como string en el form (para no pelear con el input
  * number) y viaja casteado a `Number` al confirmar — igual hacía el
  * formulario inline que reemplaza.
  */
-export default function AdminExpenseDialog({ expense = null, busy = false, error = '', onCancel, onConfirm }) {
+export default function AdminExpenseDialog({
+  expense = null,
+  kind = 'expense',
+  busy = false,
+  error = '',
+  onCancel,
+  onConfirm,
+}) {
   const { t } = useI18n()
   const titleId = useId()
   const descriptionId = useId()
@@ -40,6 +49,9 @@ export default function AdminExpenseDialog({ expense = null, busy = false, error
   }
 
   const editing = expense != null
+  const income = kind === 'income'
+  const KindIcon = income ? ArrowUpRight : ArrowDownRight
+  const suffix = income ? 'Income' : 'Expense'
 
   return createPortal(
     <div className="admin-expense-dialog">
@@ -60,14 +72,14 @@ export default function AdminExpenseDialog({ expense = null, busy = false, error
       >
         <header className="admin-expense-dialog__head">
           <span className="admin-expense-dialog__icon" aria-hidden>
-            <ArrowDownRight size={18} />
+            <KindIcon size={18} />
           </span>
           <div>
             <h2 id={titleId}>
-              {editing ? t('admin.ledger.editExpense') : t('admin.ledger.addExpense')}
+              {editing ? t(`admin.ledger.edit${suffix}`) : t(`admin.ledger.add${suffix}`)}
             </h2>
             <p id={descriptionId} className="admin-expense-dialog__lead">
-              {editing ? t('admin.ledger.editExpenseHint') : t('admin.ledger.newExpenseHint')}
+              {editing ? t(`admin.ledger.edit${suffix}Hint`) : t(`admin.ledger.new${suffix}Hint`)}
             </p>
           </div>
         </header>
@@ -142,13 +154,13 @@ export default function AdminExpenseDialog({ expense = null, busy = false, error
             {busy ? (
               <LoaderCircle size={15} aria-hidden className="is-spinning" />
             ) : (
-              <ArrowDownRight size={15} aria-hidden />
+              <KindIcon size={15} aria-hidden />
             )}
             {busy
               ? t('admin.ledger.saving')
               : editing
                 ? t('admin.ledger.saveChanges')
-                : t('admin.ledger.submit')}
+                : t(income ? 'admin.ledger.submitIncome' : 'admin.ledger.submit')}
           </Button>
         </div>
       </section>

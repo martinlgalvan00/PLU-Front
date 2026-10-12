@@ -37,7 +37,7 @@ Fuente: `src/motion/tokens.ts` + `src/styles/motion.css` / `variables.css`.
 | `MOTION_EASE.spring` | Micro confirmación — **nunca** entrada de sección |
 | `MOTION_BLUR.sm` (2px) | Máximo en entradas; evitar ≥4px |
 | `MOTION_DEPTH` | ≤4 niveles Z en una credencial |
-| `TILT_MAX_DEG` default 6; showcase home **3** | Menos = más lujoso |
+| `TILT_MAX_DEG` 6 genérico; `SHOWCASE_TILT_MAX_DEG` **3** (home cred / hero) | Menos = más lujoso |
 
 ## Gate (obligatorio)
 
@@ -57,7 +57,7 @@ Código canónico: `src/components/ui/HomeMembershipCredential.jsx` + `.home-cre
 ### Capas (orden)
 
 1. **Shell enter** — opacity + y(12–16) + scale(0.985) + blur(sm). Una vez (`viewport.once`).
-2. **Tilt 3D** — `TiltCard` con `maxTilt={3}`; `data-tilt-active` para settle 420ms al salir.
+2. **Tilt 3D** — `TiltCard` con `maxTilt={SHOWCASE_TILT_MAX_DEG}` (3°); `data-tilt-active` para settle 420ms al salir.
 3. **Parallax** — watermark / plates / grain / content con `--tilt-px/py`; deltas chicos (6–18px).
 4. **Stagger content** — head → identity → meta → footer (50–70ms).
 5. **Remates one-shot** — stripe scaleX, chip shine; **nunca loop**.
