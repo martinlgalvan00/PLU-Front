@@ -472,3 +472,38 @@
     transition: none;
   }
 }
+
+/* Vista previa en modo claro. La card pública base es grafito fijo (vive en
+   secciones oscuras); en el panel claro, atenuada, se veía como una losa gris
+   con texto blanco ilegible. Acá toma papel y tinta del admin. Sirve a la
+   vista previa del alta rápida y a la del editor. */
+[data-theme='light'] .admin-event-quick__preview-card .event-card,
+[data-theme='light'] .admin-event-preview__card .event-card {
+  background: #fff;
+  border-color: var(--admin-hairline);
+  box-shadow: none;
+  color: var(--admin-ink);
+}
+
+[data-theme='light'] .admin-event-quick__preview-card .event-card__date-block,
+[data-theme='light'] .admin-event-preview__card .event-card__date-block {
+  background: color-mix(in srgb, var(--admin-ink) 3%, transparent);
+  border-color: var(--admin-hairline);
+  border-top-color: color-mix(in srgb, var(--admin-ink) 42%, transparent);
+}
+
+[data-theme='light'] .admin-event-quick__preview-card .event-card__day,
+[data-theme='light'] .admin-event-quick__preview-card .event-card__title,
+[data-theme='light'] .admin-event-preview__card .event-card__day,
+[data-theme='light'] .admin-event-preview__card .event-card__title {
+  color: var(--admin-ink);
+}
+
+[data-theme='light'] .admin-event-quick__preview-card .event-card__month,
+[data-theme='light'] .admin-event-quick__preview-card .event-card__meta,
+[data-theme='light'] .admin-event-quick__preview-card .event-card__status,
+[data-theme='light'] .admin-event-preview__card .event-card__month,
+[data-theme='light'] .admin-event-preview__card .event-card__meta,
+[data-theme='light'] .admin-event-preview__card .event-card__status {
+  color: var(--admin-muted);
+}

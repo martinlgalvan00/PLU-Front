@@ -27,6 +27,9 @@ describe('EventsTeaser', () => {
       '.events-teaser__sky',
       '.events-teaser__ghost',
       '.events-teaser__signal',
+      '.events-teaser__letterbox--top',
+      '.events-teaser__letterbox--bottom',
+      '.events-teaser__haze',
     ].map((selector) => container.querySelector(selector))
 
     for (const node of decorative) expect(node?.getAttribute('aria-hidden')).toBe('true')
@@ -41,5 +44,22 @@ describe('EventsTeaser', () => {
   it('se muestra completo aunque el navegador no tenga IntersectionObserver', () => {
     const { container } = renderTeaser()
     expect(container.querySelector('.events-teaser').classList.contains('is-entered')).toBe(true)
+  })
+
+  it('el expediente dice lo que no se sabe: localidad desconocida, sede clasificada', () => {
+    const { container } = renderTeaser()
+    expect(container.querySelector('dl')?.getAttribute('aria-label')).toBe(
+      'Lo que sabemos por ahora',
+    )
+    expect(screen.getByText('Desconocida')).toBeTruthy()
+    expect(screen.getByText('Clasificada')).toBeTruthy()
+    expect(screen.getByText('Sin anunciar')).toBeTruthy()
+  })
+
+  it('lo que se ve descifrándose es decoración: el texto real queda para los lectores', () => {
+    const { container } = renderTeaser()
+    const visible = container.querySelectorAll('.events-teaser__value')
+    expect(visible).toHaveLength(4)
+    for (const node of visible) expect(node.getAttribute('aria-hidden')).toBe('true')
   })
 })

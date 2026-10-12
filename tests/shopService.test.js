@@ -127,3 +127,21 @@ describe('validateShopImageFile', () => {
     expect(validateShopImageFile(null).error).toBeTruthy()
   })
 })
+
+describe('control de versión al editar', () => {
+  const base = { title: 'Buzo', category: 'apparel', price: 1000, sizes: [], stock: 1 }
+
+  it('manda la versión con la que se abrió el producto, sin tocarla', () => {
+    const payload = toShopProductPayload({
+      ...base,
+      id: 'p1',
+      updatedAt: '2026-10-12T13:00:00.123456+00:00',
+    })
+    expect(payload.expectedUpdatedAt).toBe('2026-10-12T13:00:00.123456+00:00')
+  })
+
+  it('un producto nuevo (o un duplicado) no lleva versión', () => {
+    expect(toShopProductPayload({ ...base, updatedAt: '2026-10-12T13:00:00+00:00' }).expectedUpdatedAt).toBeNull()
+    expect(toShopProductPayload({ ...base, id: undefined }).expectedUpdatedAt).toBeNull()
+  })
+})

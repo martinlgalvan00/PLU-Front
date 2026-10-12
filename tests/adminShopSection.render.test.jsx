@@ -120,7 +120,8 @@ describe('Admin — catálogo de la tienda', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Nuevo producto/ }))
     const dialog = await screen.findByRole('dialog')
 
-    fireEvent.change(within(dialog).getByLabelText('Familia'), { target: { value: 'exclusive' } })
+    // La familia se elige con chips (botones), no con un select.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Exclusiva de torneo' }))
     fireEvent.change(within(dialog).getByLabelText('Nombre'), {
       target: { value: 'Remera finalista' },
     })
@@ -154,7 +155,7 @@ describe('Admin — catálogo de la tienda', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Nuevo producto/ }))
     const dialog = await screen.findByRole('dialog')
 
-    fireEvent.change(within(dialog).getByLabelText('Familia'), { target: { value: 'course' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Curso' }))
     fireEvent.change(within(dialog).getByLabelText('Nombre'), { target: { value: 'Taller' } })
     fireEvent.change(within(dialog).getByLabelText('Precio (ARS)'), { target: { value: '30000' } })
     fireEvent.change(within(dialog).getByLabelText('Estado'), { target: { value: 'published' } })
@@ -191,5 +192,118 @@ describe('Admin — catálogo de la tienda', () => {
     const firstTile = screen.getAllByRole('listitem')[0]
     fireEvent.click(await within(firstTile).findByRole('button', { name: 'Eliminar' }))
     await waitFor(() => expect(service.deleteAdminShopProduct).toHaveBeenCalledWith('p1'))
+  })
+
+  it('duplicar abre un producto nuevo como borrador, con el mismo contenido y sin destacar', async () => {
+    renderSection()
+    await screen.findByRole('button', { name: 'Editar Buzo Pitbull Classic' })
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Duplicar' })[0])
+    const dialog = await screen.findByRole('dialog')
+
+    expect(within(dialog).getByLabelText('Nombre').value).toBe('Buzo Pitbull Classic (copia)')
+    expect(within(dialog).getByLabelText('Estado').value).toBe('draft')
+    expect(within(dialog).getByLabelText('Precio (ARS)').value).toBe('48000')
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar en catálogo' }))
+    await waitFor(() => expect(service.saveAdminShopProduct).toHaveBeenCalledTimes(1))
+    const saved = vi.mocked(service.saveAdminShopProduct).mock.calls[0][0]
+    expect(saved.id).toBeUndefined()
+    expect(saved.featured).toBe(false)
+    expect(saved.sizes).toEqual([{ label: 'M', stock: 5 }])
+  })
+
+  it('duplicar un curso deja la fecha vacía para cargar la nueva edición', async () => {
+    renderSection()
+    await screen.findByRole('button', { name: 'Editar Curso de jueces' })
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Duplicar' })[1])
+    const dialog = await screen.findByRole('dialog')
+
+    expect(within(dialog).getByLabelText('Nombre').value).toBe('Curso de jueces (copia)')
+    expect(within(dialog).getByLabelText('Inicio').value).toBe('')
+  })
+
+  it('la curva completa carga todos los talles que faltan de una vez', async () => {
+    renderSection()
+    fireEvent.click(await screen.findByRole('button', { name: /Nuevo producto/ }))
+    const dialog = await screen.findByRole('dialog')
+
+    fireEvent.click(within(dialog).getByRole('button', { name: '+ Curva completa' }))
+
+    expect(dialog.querySelectorAll('.admin-shop-sizes__row')).toHaveLength(6)
+    expect(within(dialog).queryByRole('button', { name: '+ Curva completa' })).toBeNull()
+  })
+
+  it('guardar y cargar otro deja el formulario listo para el siguiente producto', async () => {
+    renderSection()
+    fireEvent.click(await screen.findByRole('button', { name: /Nuevo producto/ }))
+    const dialog = await screen.findByRole('dialog')
+
+    fireEvent.change(within(dialog).getByLabelText('Nombre'), { target: { value: 'Remera' } })
+    fireEvent.change(within(dialog).getByLabelText('Precio (ARS)'), { target: { value: '25000' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar y cargar otro' }))
+
+    await waitFor(() => expect(service.saveAdminShopProduct).toHaveBeenCalledTimes(1))
+    expect((await within(dialog).findByRole('status')).textContent).toBe(
+      'Guardado: Remera. Cargá el siguiente.',
+    )
+    expect(within(dialog).getByLabelText('Nombre').value).toBe('')
+    expect(screen.getByRole('dialog')).toBeTruthy()
+  })
+
+  it('cerrar con cambios sin guardar pide confirmación; sin cambios cierra directo', async () => {
+    renderSection()
+    fireEvent.click(await screen.findByRole('button', { name: /Nuevo producto/ }))
+    let dialog = await screen.findByRole('dialog')
+
+    fireEvent.click(within(dialog).getAllByRole('button', { name: 'Cancelar' })[0])
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+
+    fireEvent.click(await screen.findByRole('button', { name: /Nuevo producto/ }))
+    dialog = await screen.findByRole('dialog')
+    fireEvent.change(within(dialog).getByLabelText('Nombre'), { target: { value: 'Gorra' } })
+    fireEvent.click(within(dialog).getAllByRole('button', { name: 'Cancelar' })[0])
+
+    expect(within(dialog).getByText('¿Descartar los cambios sin guardar?')).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Seguir editando' }))
+    expect(within(dialog).getByLabelText('Nombre').value).toBe('Gorra')
+
+    fireEvent.click(within(dialog).getAllByRole('button', { name: 'Cancelar' })[0])
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Descartar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(service.saveAdminShopProduct).not.toHaveBeenCalled()
+  })
+
+  it('no deja guardar talles repetidos', async () => {
+    renderSection()
+    fireEvent.click(await screen.findByRole('button', { name: /Nuevo producto/ }))
+    const dialog = await screen.findByRole('dialog')
+
+    fireEvent.change(within(dialog).getByLabelText('Nombre'), { target: { value: 'Buzo' } })
+    fireEvent.change(within(dialog).getByLabelText('Precio (ARS)'), { target: { value: '40000' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: '+ Otro' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: '+ Otro' }))
+    const labels = dialog.querySelectorAll('.admin-shop-sizes__label')
+    fireEvent.change(labels[0], { target: { value: 'M' } })
+    fireEvent.change(labels[1], { target: { value: 'm' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar en catálogo' }))
+
+    expect((await within(dialog).findByRole('alert')).textContent).toBe('Hay talles repetidos.')
+    expect(service.saveAdminShopProduct).not.toHaveBeenCalled()
+  })
+
+  it('al editar trae el stock vigente y no el del listado viejo', async () => {
+    renderSection()
+    await screen.findByRole('button', { name: 'Editar Buzo Pitbull Classic' })
+    vi.mocked(service.fetchAdminShopProducts).mockResolvedValueOnce([
+      { ...hoodie, sizes: [{ label: 'M', stock: 3 }] },
+      course,
+    ])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar Buzo Pitbull Classic' }))
+    const dialog = await screen.findByRole('dialog')
+
+    expect(dialog.querySelector('.admin-shop-sizes__stock').value).toBe('3')
   })
 })

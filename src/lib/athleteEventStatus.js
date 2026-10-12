@@ -10,6 +10,7 @@
  * inscripto en una y sin inscribir en otra.
  */
 
+import { getPublicEventStatus } from './publicRegistrationPhase.js'
 import { isRegistrationAdmitted } from './status.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
 
@@ -104,8 +105,10 @@ export function resolveAthleteEventStatus({
     if (isPendingRegistration(registration)) return 'pending_payment'
   }
 
-  const closed =
-    event.status === 'cerrado' || event.status === 'finalizado' || event.status === 'agotado'
+  // Estado público: una ventana de cierre vencida cuenta como cerrada aunque la
+  // base todavía diga "abierta".
+  const status = getPublicEventStatus(event)
+  const closed = status === 'cerrado' || status === 'finalizado' || status === 'agotado'
   if (closed) return 'closed'
 
   if (!isAthlete) return 'guest'
@@ -113,7 +116,7 @@ export function resolveAthleteEventStatus({
   const membershipOk = hasCurrentMembership(memberships, athleteId)
   if (event.requiresMembership && !membershipOk) return 'needs_membership'
 
-  if (event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados') {
+  if (status === 'inscripcion_abierta' || status === 'cupos_limitados') {
     return 'can_register'
   }
 

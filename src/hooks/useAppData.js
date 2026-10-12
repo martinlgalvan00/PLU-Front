@@ -227,7 +227,9 @@ const LIVE_REFRESH_HINT_DELAY_MS = 600
 // landing sin requerir una recarga manual. La misma sesión se actualiza en el
 // acto desde `setAdminEventState`; este sondeo corto cubre las demás pestañas
 // y dispositivos sin exponer acceso directo del navegador a Supabase.
-const LIVE_PUBLIC_CATALOG_SYNC_MS = 60_000
+const LIVE_PUBLIC_CATALOG_SYNC_MS = 30_000
+// Varios cambios seguidos (guardar un evento toca varias filas) se leen juntos.
+const CATALOG_NOTICE_DEBOUNCE_MS = 400
 
 export function useAppData() {
   const oauth = usePluOAuth()
@@ -395,18 +397,48 @@ export function useAppData() {
     })
   }, [createdOrder, adminEvents, users])
 
+  // Cambia con cada escritura de `adminEvents` (acción del panel, poll del
+  // panel o del catálogo). Una respuesta del catálogo público pedida antes de
+  // un cambio y recibida después es vieja: aplicarla pisaría, por ejemplo, el
+  // "cerrado" que el staff acaba de guardar con el "abierto" de antes.
+  const eventsEpochRef = useRef(0)
+  const publicCatalogRefreshRef = useRef(null)
+  useEffect(() => {
+    eventsEpochRef.current += 1
+  }, [adminEvents])
+
   useEffect(() => {
     let active = true
     let timerId = null
     let refreshInFlight = null
+    let rerunRequested = false
 
     // El timer, el foco de la pestaña y la carga inicial pueden coincidir.
     // Una sola petición alcanza: las tres fuentes necesitan el mismo catálogo.
-    const refreshPublicCatalog = () => {
-      if (refreshInFlight) return refreshInFlight
-      refreshInFlight = fetchPublishedEvents()
+    // `fresh` es para un aviso en vivo: la que está en vuelo se pidió antes del
+    // cambio, así que al terminar se vuelve a pedir una vez.
+    const refreshPublicCatalog = (retriesLeft = 1, { fresh = false } = {}) => {
+      if (refreshInFlight) {
+        if (fresh) rerunRequested = true
+        return refreshInFlight
+      }
+      const epoch = eventsEpochRef.current
+      const request = fetchPublishedEvents()
         .then((remoteEvents) => {
           if (!active) return
+          // Con permiso de lectura, la lista es la del panel (incluye lo no
+          // publicado y su estado guardado): el catálogo público, que es un
+          // subconjunto, no puede reemplazarla.
+          const staff = sessionRef.current
+          if (staff && !isDemoSession(staff) && hasPermission(staff, 'admin.events.read')) return
+          if (eventsEpochRef.current !== epoch) {
+            // Respuesta vieja: se descarta y se pide de nuevo una vez.
+            if (retriesLeft > 0) {
+              refreshInFlight = null
+              void refreshPublicCatalog(retriesLeft - 1)
+            }
+            return
+          }
           // Catálogo público sin cambios: conservar el estado actual evita
           // que cada tick de 60 s re-renderice toda la app (incluye a los
           // visitantes anónimos de la home) por un array con nueva identidad.
@@ -425,9 +457,15 @@ export function useAppData() {
         })
         .catch((error) => console.warn('No se pudieron cargar los eventos publicados.', error))
         .finally(() => {
-          refreshInFlight = null
+          // Solo se libera si nadie la reemplazó (el reintento de arriba).
+          if (refreshInFlight === request) refreshInFlight = null
+          if (rerunRequested && refreshInFlight == null) {
+            rerunRequested = false
+            void refreshPublicCatalog()
+          }
         })
-      return refreshInFlight
+      refreshInFlight = request
+      return request
     }
 
     const start = () => {
@@ -450,11 +488,13 @@ export function useAppData() {
       stop()
     }
 
+    publicCatalogRefreshRef.current = () => refreshPublicCatalog(1, { fresh: true })
     void refreshPublicCatalog()
     if (document.visibilityState === 'visible') start()
     document.addEventListener('visibilitychange', onVisibilityChange)
     return () => {
       active = false
+      publicCatalogRefreshRef.current = null
       stop()
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
@@ -512,6 +552,48 @@ export function useAppData() {
       if (!silent) setAdminEventsLoading(false)
     }
   }, [])
+
+  // Aviso en vivo: cuando el staff cambia un evento o un interruptor operativo,
+  // la base emite `catalog-changed` en el tópico `public-catalog` (sin datos) y
+  // acá se relee todo al instante, en vez de esperar el sondeo de 30 s. Si
+  // Realtime no conecta, el sondeo sigue cubriendo.
+  useEffect(() => {
+    if (!isSupabaseConfigured) return undefined
+
+    let disposed = false
+    let client = null
+    let channel = null
+    let timerId = null
+
+    const onCatalogChanged = () => {
+      if (timerId != null) return
+      timerId = window.setTimeout(() => {
+        timerId = null
+        void publicCatalogRefreshRef.current?.()
+        void refreshCheckoutAvailability()
+        void refreshAdminEvents({ silent: true })
+      }, CATALOG_NOTICE_DEBOUNCE_MS)
+    }
+
+    void getSupabaseClient()
+      .then((supabase) => {
+        if (disposed || !supabase) return
+        client = supabase
+        channel = supabase
+          .channel('public-catalog', { config: { broadcast: { self: false } } })
+          .on('broadcast', { event: 'catalog-changed' }, onCatalogChanged)
+          .subscribe()
+      })
+      .catch(() => {
+        // El sondeo sigue siendo el respaldo si Realtime no puede conectar.
+      })
+
+    return () => {
+      disposed = true
+      if (timerId != null) window.clearTimeout(timerId)
+      if (client && channel) void client.removeChannel(channel)
+    }
+  }, [refreshCheckoutAvailability, refreshAdminEvents])
 
   const refreshDismissedQueueItems = useCallback(async () => {
     const currentSession = sessionRef.current

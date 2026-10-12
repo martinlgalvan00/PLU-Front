@@ -110,6 +110,9 @@ export function toShopProductPayload(draft) {
     status: draft.status,
     featured: Boolean(draft.featured),
     sortOrder: Math.round(Number(draft.sortOrder) || 0),
+    // Se manda tal cual lo devolvió el servidor (microsegundos): pasarlo por
+    // `Date` lo redondearía a milisegundos y la comparación fallaría siempre.
+    expectedUpdatedAt: draft.id && draft.updatedAt ? draft.updatedAt : null,
   }
 }
 

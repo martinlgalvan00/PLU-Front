@@ -20,6 +20,56 @@ function toNowMs(now) {
 }
 
 /**
+ * Estado que ve el público. Es el `status` guardado salvo en un caso: la
+ * inscripción figura abierta (o con cupos limitados) pero la ventana de cierre
+ * (`registrationClosesAt`) ya pasó. Ahí la base todavía no se movió, pero decir
+ * "Inscripción abierta" en el calendario mientras la página del meet dice
+ * "Inscripción cerrada" es lo que hacía que cerrar un evento no se sintiera en
+ * todas las superficies. El panel de staff sigue mostrando el estado guardado.
+ *
+ * Lo mismo del otro lado: con el estado abierto pero la apertura programada
+ * todavía por delante, el público ve "Próximamente" y abre solo a esa hora.
+ *
+ * Y con el interruptor general de inscripciones del panel apagado
+ * (`registrationEnabled === false`, "Acceso y habilitación") la inscripción está
+ * pausada para todos los eventos: también se ve como "Próximamente", igual que
+ * en la página del meet. Sin esto el calendario seguía diciendo "Inscripción
+ * abierta" con los cobros pausados.
+ *
+ * @param {object|null|undefined} event
+ * @param {Date|number} [now]
+ * @param {{ registrationEnabled?: boolean }} [options]
+ * @returns {string}
+ */
+export function getPublicEventStatus(event, now = new Date(), { registrationEnabled = true } = {}) {
+  const status = event?.status ?? 'proximamente'
+  if (!isRegistrationOpen(status)) return status
+  if (registrationEnabled === false) return 'proximamente'
+  const nowMs = toNowMs(now)
+  const closesAt = toValidDate(event?.registrationClosesAt)
+  if (closesAt && nowMs > closesAt.getTime()) return 'cerrado'
+  const opensAt = toValidDate(event?.registrationOpensAt)
+  if (opensAt && nowMs < opensAt.getTime()) return 'proximamente'
+  return status
+}
+
+/**
+ * El mismo evento con el estado público ya resuelto: las superficies que leen
+ * `event.status` quedan alineadas sin repetir la regla de la ventana.
+ *
+ * @param {object|null|undefined} event
+ * @param {Date|number} [now]
+ * @param {{ registrationEnabled?: boolean }} [options]
+ */
+export function withPublicEventStatus(event, now = new Date(), options = {}) {
+  if (!event) return event
+  const status = getPublicEventStatus(event, now, options)
+  // `storedStatus` conserva el de la base: la venta de entradas se corta con
+  // ese (cerrado/finalizado), no con la ventana de inscripción de atletas.
+  return status === event.status ? event : { ...event, status, storedStatus: event.status }
+}
+
+/**
  * Fase pública de inscripción alineada a la idea de "live" del admin:
  * abierto solo si el status permite altas, la ventana no venció, no está
  * agendada a futuro y los cobros de registration están habilitados.

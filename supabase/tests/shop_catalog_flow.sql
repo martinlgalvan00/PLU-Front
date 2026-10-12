@@ -12,6 +12,8 @@ declare
   v_event uuid;
   v_id uuid;
   v_failed boolean;
+  v_version text;
+  v_edit jsonb;
 begin
   select id into v_event from public.events limit 1;
 
@@ -113,6 +115,35 @@ begin
       'eventId', '00000000-0000-4000-8000-0000000000ff'), 'test:admin');
   exception when sqlstate 'PLU02' then v_failed := true; end;
   if not v_failed then raise exception 'aceptó un torneo inexistente'; end if;
+
+  -- Control de versión (20261208100000): editar con la versión que abrió el panel
+  -- funciona; si el producto cambió en el medio, falla con PLU03 y no pisa nada.
+  -- `now()` es fijo dentro de la transacción: el cambio ajeno se simula moviendo
+  -- `updated_at`, que es lo que hace el descuento de stock de un pedido.
+  v_edit := jsonb_build_object(
+    'slug', 'buzo-test', 'title', 'Buzo de prueba', 'category', 'apparel', 'price', 38000,
+    'status', 'published', 'sizes', jsonb_build_array(jsonb_build_object('label', 'M', 'stock', 2))
+  );
+  select i->>'updatedAt' into v_version
+  from jsonb_array_elements(public.list_admin_shop_products()) i where i->>'id' = v_id::text;
+
+  perform public.upsert_shop_product(v_id, v_edit || jsonb_build_object('expectedUpdatedAt', v_version), 'test:admin');
+
+  update public.shop_products set stock = 7, updated_at = updated_at + interval '1 second' where id = v_id;
+  v_failed := false;
+  begin
+    perform public.upsert_shop_product(v_id, v_edit || jsonb_build_object('expectedUpdatedAt', v_version, 'stock', 1), 'test:admin');
+  exception when sqlstate 'PLU03' then v_failed := true; end;
+  if not v_failed then raise exception 'editó con una versión vieja y pisó el cambio'; end if;
+  if (select stock from public.shop_products where id = v_id) <> 7 then
+    raise exception 'la edición rechazada igual modificó el stock';
+  end if;
+
+  select i->>'updatedAt' into v_version
+  from jsonb_array_elements(public.list_admin_shop_products()) i where i->>'id' = v_id::text;
+  perform public.upsert_shop_product(v_id, v_edit || jsonb_build_object('expectedUpdatedAt', v_version), 'test:admin');
+  -- Sin versión (clientes viejos) la edición sigue como antes.
+  perform public.upsert_shop_product(v_id, v_edit, 'test:admin');
 
   -- Auditoría
   if not exists (select 1 from public.domain_audit_logs where action = 'shop.product_created' and actor_id = 'test:admin') then

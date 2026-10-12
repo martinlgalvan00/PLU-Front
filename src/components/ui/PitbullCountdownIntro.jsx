@@ -21,13 +21,13 @@ const REFRESH_MS = 30_000
  * cuando termina el anterior: título → eje → discos que suman el número →
  * tope que ajusta y unidad → barra asentada → pausa → la cortina se levanta. */
 const SCRIPT = {
-  eyebrow: 0.35,
-  shaft: 0.7,
-  lead: 1.25,
-  plates: 1.9,
-  stepMax: 0.42,
-  platesTotalMax: 3.4,
-  hold: 1.5,
+  eyebrow: 0.3,
+  shaft: 0.55,
+  lead: 1,
+  plates: 1.5,
+  stepMax: 0.32,
+  platesTotalMax: 2.4,
+  hold: 0.9,
 }
 
 const TIER_SCALE = { high: 1, mid: 0.72 }

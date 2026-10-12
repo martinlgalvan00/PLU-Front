@@ -80,6 +80,39 @@ export function getCountdownHeadline(parts) {
 }
 
 /**
+ * Celdas del reloj en el mismo orden de lectura que el titular: tres unidades
+ * contiguas que empiezan en la dominante (semanas · días · horas, después
+ * días · horas · min, y en el último día horas · min · seg). Es lo que muestra
+ * el contador de Eventos, para que no diga "60 días" donde Pitbull dice
+ * "8 semanas".
+ *
+ * @param {ReturnType<typeof getCountdownParts>} parts
+ * @returns {Array<{ unit: 'weeks'|'days'|'hours'|'minutes'|'seconds', value: number }>}
+ */
+export function getCountdownCells(parts) {
+  const { unit } = getCountdownHeadline(parts)
+  if (unit === 'weeks') {
+    return [
+      { unit: 'weeks', value: parts.weeks },
+      { unit: 'days', value: parts.daysRemainder },
+      { unit: 'hours', value: parts.hours },
+    ]
+  }
+  if (unit === 'days') {
+    return [
+      { unit: 'days', value: parts.days },
+      { unit: 'hours', value: parts.hours },
+      { unit: 'minutes', value: parts.minutes },
+    ]
+  }
+  return [
+    { unit: 'hours', value: parts.hours },
+    { unit: 'minutes', value: parts.minutes },
+    { unit: 'seconds', value: parts.seconds },
+  ]
+}
+
+/**
  * Titular de cuenta regresiva ("8 semanas") para un inicio dado, o `null` si
  * no hay fecha o el evento ya empezó. Es lo que comparten la entrada de
  * Pitbull, la card "Hasta el Classic" y la ficha del hero.

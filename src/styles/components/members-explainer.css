@@ -1,13 +1,33 @@
 /* Afiliación — "Cómo funciona" como explicativo animado.
-   Pantallas grafito con un guion por paso (formulario → pago → credencial).
-   Solo transform + opacity; ninguna animación en loop: cada escena se
-   reproduce una vez y queda en su estado final. */
+   Pantallas con un guion por paso (formulario → pago → credencial): grafito en
+   modo oscuro y papel blanco en modo claro. Los colores salen de las variables
+   `--ex-*` de la pantalla; cada tema solo redefine esas. Solo transform +
+   opacity; ninguna animación en loop: cada escena se reproduce una vez y queda
+   en su estado final. */
 
 .explainer-screen {
-  background: var(--plu-cool-950, #0b0d12);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  --ex-bg: var(--plu-cool-950, #0b0d12);
+  --ex-ink: #fff;
+  --ex-ink-soft: rgba(255, 255, 255, 0.64);
+  --ex-ink-chip: rgba(255, 255, 255, 0.86);
+  --ex-line: rgba(255, 255, 255, 0.1);
+  --ex-line-bar: rgba(255, 255, 255, 0.12);
+  --ex-line-strong: rgba(255, 255, 255, 0.16);
+  --ex-fill-soft: rgba(255, 255, 255, 0.08);
+  --ex-fill-track: rgba(255, 255, 255, 0.1);
+  --ex-fill-bar: rgba(255, 255, 255, 0.78);
+  --ex-fill-skel: rgba(255, 255, 255, 0.18);
+  --ex-qr-bg: rgba(255, 255, 255, 0.94);
+  --ex-qr-ink: var(--plu-cool-950, #0b0d12);
+  --ex-brand: var(--color-brand-celeste, var(--plu-celeste-500));
+  --ex-gold: var(--color-brand-gold);
+  --ex-shadow: none;
+
+  background: var(--ex-bg);
+  border: 1px solid var(--ex-line);
   border-radius: 6px;
-  color: #fff;
+  box-shadow: var(--ex-shadow);
+  color: var(--ex-ink);
   display: grid;
   gap: 14px;
   grid-template-rows: auto auto 1fr;
@@ -22,14 +42,14 @@
 
 .explainer-screen__bar {
   align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid var(--ex-line-bar);
   display: flex;
   justify-content: space-between;
   padding-bottom: 12px;
 }
 
 .explainer-screen__brand {
-  color: var(--color-brand-celeste, var(--plu-celeste-500));
+  color: var(--ex-brand);
   font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
@@ -37,7 +57,7 @@
 }
 
 .explainer-screen__step {
-  color: var(--color-brand-gold);
+  color: var(--ex-gold);
   font-family: var(--font-display);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
@@ -64,9 +84,9 @@
 
 .explainer-chip {
   align-items: center;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--ex-fill-soft);
   border-radius: 8px;
-  color: rgba(255, 255, 255, 0.86);
+  color: var(--ex-ink-chip);
   display: inline-grid;
   height: 36px;
   place-items: center;
@@ -87,7 +107,7 @@
 }
 
 .explainer-form__field {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--ex-fill-track);
   border-radius: 99px;
   display: block;
   height: 10px;
@@ -95,7 +115,7 @@
 }
 
 .explainer-form__fill {
-  background: rgba(255, 255, 255, 0.78);
+  background: var(--ex-fill-bar);
   border-radius: 99px;
   display: block;
   height: 100%;
@@ -140,7 +160,7 @@
 }
 
 .explainer-pay__total span {
-  color: rgba(255, 255, 255, 0.64);
+  color: var(--ex-ink-soft);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.14em;
@@ -162,7 +182,7 @@
 
 .explainer-method {
   align-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid var(--ex-line-strong);
   border-radius: 6px;
   display: inline-flex;
   font-size: 13px;
@@ -182,7 +202,7 @@
 }
 
 .explainer-pay__progress {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--ex-fill-track);
   border-radius: 99px;
   height: 4px;
   overflow: hidden;
@@ -197,7 +217,7 @@
 
 .explainer-pay__done {
   align-items: center;
-  color: var(--color-brand-gold);
+  color: var(--ex-gold);
   display: inline-flex;
   font-weight: 700;
   gap: 8px;
@@ -213,7 +233,7 @@
 
 .explainer-card__qr {
   aspect-ratio: 1;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--ex-qr-bg);
   border-radius: 6px;
   display: grid;
   gap: 2px;
@@ -225,7 +245,7 @@
 }
 
 .explainer-card__qr i {
-  background: var(--plu-cool-950, #0b0d12);
+  background: var(--ex-qr-ink);
   border-radius: 1px;
   display: block;
 }
@@ -253,7 +273,7 @@
 }
 
 .explainer-card__line {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--ex-fill-skel);
   border-radius: 99px;
   display: block;
   height: 8px;
@@ -270,7 +290,7 @@
   background: color-mix(in srgb, var(--color-brand-gold) 16%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-brand-gold) 55%, transparent);
   border-radius: 999px;
-  color: var(--color-brand-gold);
+  color: var(--ex-gold);
   display: inline-flex;
   font-size: 12px;
   font-weight: 700;
@@ -278,6 +298,32 @@
   letter-spacing: 0.04em;
   margin-top: 4px;
   padding: 6px 12px;
+}
+
+/* Modo claro: papel blanco con tinta. El dorado de los textos baja a gold-600
+   para sostener el contraste; el QR gana un filete porque el fondo ya es
+   blanco; las barras llenas pasan de blanco a tinta. */
+[data-theme='light'] .explainer-screen {
+  --ex-bg: #ffffff;
+  --ex-ink: var(--plu-ink-900, #1a1c22);
+  --ex-ink-soft: rgba(26, 28, 34, 0.62);
+  --ex-ink-chip: rgba(26, 28, 34, 0.82);
+  --ex-line: rgba(26, 28, 34, 0.1);
+  --ex-line-bar: rgba(26, 28, 34, 0.1);
+  --ex-line-strong: rgba(26, 28, 34, 0.16);
+  --ex-fill-soft: rgba(26, 28, 34, 0.06);
+  --ex-fill-track: rgba(26, 28, 34, 0.08);
+  --ex-fill-bar: rgba(26, 28, 34, 0.78);
+  --ex-fill-skel: rgba(26, 28, 34, 0.12);
+  --ex-qr-bg: var(--plu-warm-100, #f0efec);
+  --ex-qr-ink: var(--plu-ink-900, #1a1c22);
+  --ex-brand: var(--plu-celeste-600, #1f5f9e);
+  --ex-gold: var(--plu-gold-600, #a9790f);
+  --ex-shadow: 0 24px 48px -32px rgba(15, 17, 23, 0.2);
+}
+
+[data-theme='light'] .explainer-card__qr {
+  box-shadow: inset 0 0 0 1px rgba(26, 28, 34, 0.08);
 }
 
 /* Layout: lista + escenario fijo en desktop; escena dentro de cada paso en mobile. */

@@ -22,8 +22,7 @@ import {
 } from '../lib/eventNavigation.js'
 import { hasSeenHomeGuide } from '../lib/homeGuideStorage.js'
 import { useHelp } from '../providers/HelpProvider.jsx'
-import { env } from '../config/env.js'
-import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
+import { resolvePublicRegistrationPhase } from '../lib/publicRegistrationPhase.js'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import { MOTION_TIER_SCALE } from '../motion/tokens.ts'
 import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
@@ -104,11 +103,12 @@ export default function HomePage({
       }
 
   const registrationCheckoutEnabled = checkoutAvailability.registrationEnabled !== false
-  const paidCheckoutOpen =
-    registrationCheckoutEnabled &&
-    isPaidCheckoutOpen(launchEvent, env, new Date(), { checkoutKind: 'registration' })
+  // "Inscripciones en breve" lo decide la fase del evento (estado, fecha de
+  // apertura) y el interruptor de cobros del panel. Ningún flag del entorno.
   const isRegistrationDisabled =
-    !paidCheckoutOpen || !launchEvent || launchEvent.status === 'proximamente'
+    !launchEvent ||
+    resolvePublicRegistrationPhase(launchEvent, { checkoutEnabled: registrationCheckoutEnabled })
+      .softLaunch
   const { openHelp } = useHelp()
   const guideAutoOpenedRef = useRef(false)
 

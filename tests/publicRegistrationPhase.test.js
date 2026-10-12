@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  getPublicEventStatus,
   getPublicRegistrationPresentation,
   PUBLIC_REGISTRATION_PHASE,
   resolvePublicRegistrationPhase,
+  withPublicEventStatus,
 } from '../src/lib/publicRegistrationPhase.js'
 
 const NOW = new Date('2026-06-15T12:00:00.000Z')
@@ -142,3 +144,74 @@ describe('getPublicRegistrationPresentation', () => {
     expect(presentation.showJoinSecondary).toBe(true)
   })
 })
+
+describe('estado público del evento', () => {
+  const now = new Date('2026-11-01T12:00:00-03:00')
+
+  it('una ventana de cierre vencida cuenta como cerrada aunque el estado guardado diga abierta', () => {
+    const event = {
+      status: 'inscripcion_abierta',
+      registrationClosesAt: '2026-10-31T23:59:00-03:00',
+    }
+    expect(getPublicEventStatus(event, now)).toBe('cerrado')
+    expect(getPublicEventStatus({ ...event, status: 'cupos_limitados' }, now)).toBe('cerrado')
+    expect(withPublicEventStatus(event, now).status).toBe('cerrado')
+  })
+
+  it('con la ventana vigente, sin ventana o en otros estados no cambia nada', () => {
+    const open = { status: 'inscripcion_abierta', registrationClosesAt: '2026-11-30T23:59:00-03:00' }
+    expect(getPublicEventStatus(open, now)).toBe('inscripcion_abierta')
+    expect(getPublicEventStatus({ status: 'inscripcion_abierta' }, now)).toBe('inscripcion_abierta')
+    expect(getPublicEventStatus({ status: 'finalizado', registrationClosesAt: '2020-01-01' }, now)).toBe('finalizado')
+    expect(getPublicEventStatus({ status: 'proximamente', registrationClosesAt: '2020-01-01' }, now)).toBe('proximamente')
+    expect(getPublicEventStatus(null, now)).toBe('proximamente')
+  })
+
+  it('devuelve el mismo objeto cuando el estado no cambia', () => {
+    const event = { status: 'cerrado' }
+    expect(withPublicEventStatus(event, now)).toBe(event)
+  })
+})
+
+describe('"Inscripciones en breve" lo decide el evento, no el entorno', () => {
+  const now = new Date('2026-09-01T12:00:00-03:00')
+
+  it('Próximamente es soft-launch aunque los cobros estén habilitados', () => {
+    const phase = resolvePublicRegistrationPhase({ status: 'proximamente' }, { checkoutEnabled: true, now })
+    expect(phase.softLaunch).toBe(true)
+    expect(phase.canRegister).toBe(false)
+  })
+
+  it('abierta con una apertura futura se anuncia y abre sola cuando llega la fecha', () => {
+    const event = { status: 'inscripcion_abierta', registrationOpensAt: '2026-09-10T10:00:00-03:00' }
+    expect(resolvePublicRegistrationPhase(event, { now }).softLaunch).toBe(true)
+    const after = new Date('2026-09-10T10:00:01-03:00')
+    const opened = resolvePublicRegistrationPhase(event, { now: after })
+    expect(opened.softLaunch).toBe(false)
+    expect(opened.canRegister).toBe(true)
+  })
+
+  it('el interruptor de cobros del panel apagado también la anuncia', () => {
+    const event = { status: 'inscripcion_abierta' }
+    expect(resolvePublicRegistrationPhase(event, { checkoutEnabled: false, now }).softLaunch).toBe(true)
+  })
+
+  it('cerrada o finalizada no es soft-launch', () => {
+    expect(resolvePublicRegistrationPhase({ status: 'cerrado' }, { now }).softLaunch).toBe(false)
+    expect(resolvePublicRegistrationPhase({ status: 'finalizado' }, { now }).softLaunch).toBe(false)
+  })
+})
+
+describe('apertura programada en el estado público', () => {
+  const now = new Date('2026-11-01T12:00:00-03:00')
+
+  it('abierta con la apertura por delante se ve como próximamente y abre sola', () => {
+    const event = { status: 'inscripcion_abierta', registrationOpensAt: '2026-11-10T10:00:00-03:00' }
+    expect(getPublicEventStatus(event, now)).toBe('proximamente')
+    expect(withPublicEventStatus(event, now).storedStatus).toBe('inscripcion_abierta')
+    expect(getPublicEventStatus(event, new Date('2026-11-10T10:00:01-03:00'))).toBe(
+      'inscripcion_abierta',
+    )
+  })
+})
+

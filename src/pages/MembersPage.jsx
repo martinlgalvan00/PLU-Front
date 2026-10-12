@@ -353,7 +353,11 @@ export default function MembersPage({
                     className="members-plans-feedback members-plans-feedback--notice"
                     eyebrow={t('pages.members.plansComingSoonEyebrow')}
                     icon={CalendarClock}
-                    lead={t('pages.members.plansComingSoonLead')}
+                    lead={
+                      plansError
+                        ? t('pages.members.plansLoadErrorLead')
+                        : t('pages.members.plansComingSoonLead')
+                    }
                     onAction={plansError ? () => loadPlans({ force: true }) : undefined}
                     role={plansError ? 'alert' : 'status'}
                     title={

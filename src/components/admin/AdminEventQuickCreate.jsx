@@ -43,6 +43,11 @@ import {
  * gente ya anotada tiene consecuencias. El resto (entradas, grilla, zonas) se
  * declara como trabajo pendiente en vez de esconderse detrás de pestañas vacías.
  */
+/** Modos de inscripción del alta. "Abre en una fecha" y "Abierta ya" comparten
+ * estado (`inscripcion_abierta`) y solo se distinguen por la fecha, que recién
+ * se carga después de elegir el modo: por eso el modo se guarda aparte. */
+const REGISTRATION_MODES = ['soon', 'scheduled', 'open']
+
 export default function AdminEventQuickCreate({ canEdit = false, onCancel, onOpenFullEditor, onSubmit }) {
   const { t } = useI18n()
   const [draft, setDraft] = useState(createAdminEventDraft)
@@ -69,6 +74,22 @@ export default function AdminEventQuickCreate({ canEdit = false, onCancel, onOpe
       ).length,
     [draft.title, draft.startsAt, draft.venue, draft.location],
   )
+
+  const [registrationMode, setRegistrationModeState] = useState('soon')
+  const registrationOptions = REGISTRATION_MODES.map((mode) => [
+    mode,
+    t(`admin.eventQuickCreate.reg${mode[0].toUpperCase()}${mode.slice(1)}`),
+  ])
+
+  function setRegistrationMode(mode) {
+    setRegistrationModeState(mode)
+    // Próximamente: la abrís vos. Abre en una fecha: queda "abierta" con la
+    // ventana (el sitio la muestra como próxima hasta esa hora y abre sola).
+    // Abierta ya: sin ventana.
+    if (mode === 'soon') patch({ ...draft, status: 'proximamente', registrationOpensAt: '' })
+    else if (mode === 'scheduled') patch({ ...draft, status: 'inscripcion_abierta' })
+    else patch({ ...draft, status: 'inscripcion_abierta', registrationOpensAt: '' })
+  }
 
   const accessOptions = [
     ['members', t('admin.eventState.accessMembers')],
@@ -120,9 +141,21 @@ export default function AdminEventQuickCreate({ canEdit = false, onCancel, onOpe
     setSubmitError(null)
 
     const validation = validateAdminEventDraft(draft, t)
-    if (!validation.ok) {
-      setFieldErrors(validation.fieldErrors)
-      requestAnimationFrame(() => focusFirstInvalid(validation.firstKey))
+    const registrationErrors = {}
+    if (registrationMode === 'scheduled') {
+      if (!draft.registrationOpensAt) {
+        registrationErrors.registrationOpensAt = t('admin.eventQuickCreate.regScheduledRequired')
+      } else if (draft.startsAt && draft.registrationOpensAt >= draft.startsAt) {
+        registrationErrors.registrationOpensAt = t('admin.eventQuickCreate.regBeforeStart')
+      }
+    }
+    if (!validation.ok || Object.keys(registrationErrors).length > 0) {
+      setFieldErrors({ ...(validation.ok ? {} : validation.fieldErrors), ...registrationErrors })
+      requestAnimationFrame(() =>
+        focusFirstInvalid(
+          validation.ok ? Object.keys(registrationErrors)[0] : validation.firstKey,
+        ),
+      )
       return
     }
 
@@ -355,6 +388,56 @@ export default function AdminEventQuickCreate({ canEdit = false, onCancel, onOpe
                 </p>
               </div>
 
+              <div
+                className="admin-event-quick__section"
+                role="group"
+                aria-labelledby="quick-event-registration"
+              >
+                <h3 className="admin-event-quick__section-title" id="quick-event-registration">
+                  {t('admin.eventQuickCreate.sectionRegistration')}
+                </h3>
+                <AdminFilterChipGroup
+                  compact
+                  disabled={!canEdit || submitting}
+                  id="quick-event-registration-mode"
+                  label={t('admin.eventQuickCreate.regLabel')}
+                  value={registrationMode}
+                  onChange={setRegistrationMode}
+                  options={registrationOptions}
+                />
+                {registrationMode === 'scheduled' ? (
+                  <label
+                    className={`admin-event-quick__field${err('registrationOpensAt') ? ' is-invalid' : ''}`}
+                    htmlFor="quick-event-registration-opens"
+                  >
+                    <span className="admin-event-quick__label">
+                      {t('admin.eventEditor.supabase.registrationOpensAt')}
+                    </span>
+                    <input
+                      id="quick-event-registration-opens"
+                      name="registrationOpensAt"
+                      required
+                      type="datetime-local"
+                      value={draft.registrationOpensAt ?? ''}
+                      aria-invalid={Boolean(err('registrationOpensAt'))}
+                      onChange={(event) =>
+                        patch({ ...draft, registrationOpensAt: event.target.value })
+                      }
+                      disabled={!canEdit || submitting}
+                    />
+                    {err('registrationOpensAt') ? (
+                      <small role="alert">{err('registrationOpensAt')}</small>
+                    ) : null}
+                  </label>
+                ) : null}
+                <p className="admin-event-quick__access-note">
+                  <CalendarDays size={14} aria-hidden />
+                  {t(
+                    `admin.eventQuickCreate.reg${registrationMode[0].toUpperCase()}${registrationMode.slice(1)}Note`,
+                  )}
+                </p>
+              </div>
+
               {submitError ? (
                 <p className="admin-event-quick__alert" role="alert">
                   {submitError}
@@ -380,7 +463,7 @@ export default function AdminEventQuickCreate({ canEdit = false, onCancel, onOpe
                 date={preview.date}
                 featured={preview.featured}
                 location={preview.location}
-                status={preview.status}
+                status={registrationMode === 'scheduled' ? 'proximamente' : preview.status}
                 title={preview.title}
                 venue={preview.venue}
               />

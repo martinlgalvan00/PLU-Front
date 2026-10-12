@@ -40,7 +40,11 @@ import { useContent } from '../hooks/useContent.js'
 import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
 import { useTicketCheckoutAvailability } from '../hooks/useTicketAvailability.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
-import { resolveEventPricing, resolveLiveComboOffer } from '../lib/eventPricing.js'
+import {
+  isTicketSalesEnabled,
+  resolveEventPricing,
+  resolveLiveComboOffer,
+} from '../lib/eventPricing.js'
 import {
   eventShowsPublicCategories,
   eventShowsPublicExperience,
@@ -1238,7 +1242,7 @@ export default function PitbullPage({
   const ticketsOpen =
     env.ticketSalesEnabled &&
     ticketCheckoutOpen &&
-    eventPricing.ticketsEnabled === true &&
+    isTicketSalesEnabled(pitbullEvent) &&
     ticketCheckout.ticketEnabled
   const {
     status: capacityStatus,

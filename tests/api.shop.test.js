@@ -172,3 +172,20 @@ describe('POST /api/contact con motivo curso', () => {
     }
   })
 })
+
+describe('control de versión del esquema de producto', () => {
+  it('acepta la versión con microsegundos tal como la devuelve la base y la deja opcional', () => {
+    const withVersion = shopProductSchema.safeParse({
+      ...HOODIE,
+      expectedUpdatedAt: '2026-10-12T13:00:00.123456+00:00',
+    })
+    expect(withVersion.success).toBe(true)
+    expect(withVersion.data.expectedUpdatedAt).toBe('2026-10-12T13:00:00.123456+00:00')
+    expect(shopProductSchema.safeParse(HOODIE).success).toBe(true)
+    expect(shopProductSchema.safeParse({ ...HOODIE, expectedUpdatedAt: null }).success).toBe(true)
+  })
+
+  it('rechaza una versión que no es una fecha', () => {
+    expect(shopProductSchema.safeParse({ ...HOODIE, expectedUpdatedAt: 'ayer' }).success).toBe(false)
+  })
+})
