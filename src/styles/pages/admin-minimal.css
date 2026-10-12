@@ -32,8 +32,7 @@
 .admin-shell .admin-page-toolbar__eyebrow,
 .admin-shell .admin-list-shell__eyebrow,
 .admin-shell .admin-payment-ops__eyebrow,
-.admin-action-drawer__eyebrow,
-.admin-quick-dock__eyebrow {
+.admin-action-drawer__eyebrow {
   color: var(--admin-brand);
 }
 
@@ -317,10 +316,6 @@
 /* ---- Superficies y acciones ---- */
 
 .admin-shell .admin-list-shell,
-.admin-dashboard--executive .admin-kpi-board,
-.admin-quick-dock,
-.admin-dashboard--executive .admin-command-center__pane,
-.admin-dashboard--executive .recent-activity,
 .admin-shell .admin-payment-ops {
   border-radius: 10px;
   box-shadow: none;
@@ -1906,152 +1901,9 @@
 
 /* ---- Dashboard: comando denso y completamente monocromatico ---- */
 
-.admin-dashboard--executive {
-  gap: 14px;
-}
-
-.admin-dashboard--executive .admin-kpi-tile {
-  min-height: 78px;
-  padding: 14px 16px;
-}
-
-.admin-dashboard--executive .admin-kpi-tile__icon,
-.admin-dashboard--executive .admin-kpi-tile--gold .admin-kpi-tile__icon,
-.admin-dashboard--executive .admin-kpi-tile--celeste .admin-kpi-tile__icon {
-  background: transparent;
-  border-color: var(--admin-hairline-strong);
-  color: var(--admin-muted);
-}
-
-.admin-dashboard--executive .admin-kpi-tile__value,
-.admin-dashboard--executive .admin-kpi-tile--gold .admin-kpi-tile__value,
-.admin-dashboard--executive .admin-kpi-tile--celeste .admin-kpi-tile__value {
-  color: var(--admin-ink);
-}
-
-.admin-dashboard--executive .admin-kpi-tile--gold .admin-kpi-tile__icon,
-.admin-dashboard--executive .admin-kpi-tile--gold .admin-kpi-tile__value {
-  color: var(--admin-premium);
-}
-
-.admin-dashboard--executive .admin-kpi-tile--celeste .admin-kpi-tile__icon,
-.admin-dashboard--executive .admin-kpi-tile--celeste .admin-kpi-tile__value {
-  color: var(--admin-brand);
-}
-
-.admin-dashboard--executive .admin-attention-bar {
-  border-color: var(--admin-hairline-strong);
-  border-radius: 9px;
-  min-height: 52px;
-}
-
-.admin-dashboard--executive .admin-attention-bar::before,
-.admin-quick-dock__intro::before {
-  background: var(--admin-premium);
-}
-
-.admin-dashboard--executive .admin-attention-bar__count {
-  background: color-mix(in srgb, var(--admin-attention-text) 8%, transparent);
-  color: var(--admin-attention-text);
-}
-
-.admin-dashboard--executive .admin-attention-bar__action {
-  color: var(--admin-attention-text);
-}
-
-.admin-dashboard--executive .admin-attention-bar:hover,
-[data-theme='light'] .admin-dashboard--executive .admin-attention-bar:hover {
-  background: var(--admin-attention-bg);
-  border-color: color-mix(in srgb, var(--admin-premium, var(--admin-accent)) 38%, transparent);
-  color: var(--admin-attention-text);
-}
-
-.admin-dashboard--executive .admin-attention-bar:hover .admin-attention-bar__copy,
-.admin-dashboard--executive .admin-attention-bar:hover .admin-attention-bar__action,
-[data-theme='light']
-  .admin-dashboard--executive
-  .admin-attention-bar:hover
-  .admin-attention-bar__copy,
-[data-theme='light']
-  .admin-dashboard--executive
-  .admin-attention-bar:hover
-  .admin-attention-bar__action {
-  color: var(--admin-attention-text);
-}
-
-.admin-dashboard--executive .admin-attention-bar:hover .admin-attention-bar__action,
-[data-theme='light']
-  .admin-dashboard--executive
-  .admin-attention-bar:hover
-  .admin-attention-bar__action {
-  color: var(--admin-premium, var(--admin-accent));
-}
-
 .admin-dashboard-link,
 .admin-dashboard-link:hover {
   color: var(--admin-brand);
-}
-
-.admin-quick-dock {
-  grid-template-columns: minmax(150px, 0.2fr) minmax(0, 1fr);
-}
-
-.admin-quick-dock__intro {
-  padding: 13px 16px;
-}
-
-.admin-quick-dock__action {
-  min-height: 62px;
-  padding: 9px 12px;
-}
-
-.admin-quick-dock__icon {
-  background: var(--admin-brand-soft);
-  border-color: var(--admin-brand-border);
-  border-radius: 7px;
-  color: var(--admin-brand);
-  height: 30px;
-  width: 30px;
-}
-
-.admin-quick-dock__action:hover .admin-quick-dock__arrow {
-  color: var(--admin-brand);
-}
-
-.admin-dashboard--executive .admin-command-center {
-  gap: 14px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.admin-dashboard--executive .admin-command-center::before {
-  background: var(--admin-brand);
-  height: 1px;
-  opacity: 0.42;
-}
-
-.admin-dashboard--executive .admin-command-center__eyebrow {
-  border-left-color: var(--admin-brand);
-}
-
-.admin-dashboard--executive .admin-command-center__head,
-.admin-dashboard--executive .recent-activity__header {
-  padding: 13px 16px 11px;
-}
-
-.admin-dashboard--executive .admin-spotlight {
-  padding: 16px;
-}
-
-.admin-dashboard--executive .admin-spotlight__capacity-bar span {
-  background: var(--admin-brand);
-}
-
-.admin-dashboard--executive .admin-spotlight__meta svg {
-  color: var(--admin-brand);
-}
-
-.admin-dashboard--executive .admin-dashboard__panels--activity {
-  grid-template-columns: minmax(0, 1fr);
 }
 
 /* ---- Eventos: lista maestra y detalle usan el ancho disponible ---- */
@@ -2283,12 +2135,6 @@
   overflow: visible;
 }
 
-.admin-shell .admin-payments-ops-strip {
-  background: transparent;
-  border: none;
-  border-radius: 0;
-}
-
 .admin-shell .admin-payment-ops__healthy-line {
   color: var(--admin-muted);
 }
@@ -2342,10 +2188,6 @@
   padding: 0 clamp(14px, 2.4vw, 22px) 12px;
 }
 
-.admin-shell .admin-payments-operations .admin-orders-empty {
-  padding: 52px 24px 60px;
-}
-
 @media (max-width: 520px) {
   .admin-shell
     .admin-payments-operations
@@ -2397,11 +2239,6 @@
     max-height: 44px;
     max-width: none;
     min-height: 44px;
-  }
-
-  .admin-shell .admin-payments-operations .admin-orders-empty .btn {
-    min-height: 44px;
-    width: min(100%, 22rem);
   }
 }
 
@@ -2766,16 +2603,6 @@
      escala de pantalla (1093px efectivos) esto escondía la barra de capacidad
      y pisaba el template mientras el split de la consola seguía activo. El
      régimen angosto real lo define `admin-panel (max-width: 899px)`. */
-}
-
-@media (max-width: 960px) {
-  .admin-dashboard--executive .admin-command-center {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-quick-dock {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 1024px) {
@@ -3184,19 +3011,6 @@
   .admin-shell .admin-payment-ops__filter .admin-filter-chips {
     flex-wrap: wrap;
     overflow: visible;
-  }
-
-  .admin-dashboard--executive .admin-kpi-tile {
-    min-height: 70px;
-    padding: 12px;
-  }
-
-  .admin-quick-dock__track {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .admin-quick-dock__action {
-    min-height: 64px;
   }
 }
 
@@ -5937,141 +5751,6 @@
    legible e íconos visibles para escaneo rápido.
    ───────────────────────────────────────────── */
 
-@media (max-width: 719px) {
-  .admin-dashboard--executive .admin-kpi-board {
-    border-radius: 12px;
-  }
-
-  .admin-dashboard--executive .admin-kpi-strip {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    overflow: visible !important;
-    scroll-snap-type: none;
-  }
-
-  .admin-dashboard--executive .admin-kpi-tile,
-  .admin-dashboard--executive .admin-kpi-tile--strip {
-    align-items: flex-start;
-    border: 0 !important;
-    border-radius: 0;
-    flex: none !important;
-    flex-direction: column;
-    gap: 10px;
-    min-height: 100px;
-    min-width: 0 !important;
-    padding: 14px 14px 13px;
-    scroll-snap-align: unset;
-  }
-
-  .admin-dashboard--executive .admin-kpi-tile:nth-child(odd) {
-    border-right: 1px solid var(--admin-hairline) !important;
-  }
-
-  .admin-dashboard--executive .admin-kpi-tile:nth-child(-n + 2) {
-    border-bottom: 1px solid var(--admin-hairline) !important;
-  }
-
-  .admin-dashboard--executive .admin-kpi-tile__icon {
-    display: inline-flex !important;
-    height: 26px;
-    width: 26px;
-  }
-
-  .admin-dashboard--executive .admin-kpi-tile__body {
-    gap: 5px;
-    width: 100%;
-  }
-
-  .admin-dashboard--executive .admin-kpi-tile__value {
-    font-size: 26px;
-    letter-spacing: -0.04em;
-  }
-
-  .admin-dashboard--executive .admin-kpi-tile__label {
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    line-height: 1.3;
-    max-width: 100%;
-    white-space: normal;
-  }
-
-  .admin-dashboard--executive .admin-kpi-more__summary {
-    gap: 10px;
-    min-height: 44px;
-    padding: 0 14px;
-  }
-
-  .admin-dashboard--executive .admin-kpi-more__label {
-    color: var(--admin-ink);
-    font-size: 12.5px;
-    font-weight: 600;
-  }
-
-  .admin-dashboard--executive .admin-kpi-more__count {
-    background: color-mix(in srgb, var(--admin-ink) 8%, transparent);
-    color: var(--admin-muted);
-    margin-left: auto;
-    margin-right: 2px;
-  }
-
-  .admin-dashboard--executive .admin-kpi-more[open] .admin-kpi-sub {
-    display: grid !important;
-    flex-wrap: unset;
-    gap: 0;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    overflow: visible !important;
-    scroll-snap-type: none;
-  }
-
-  .admin-dashboard--executive .admin-kpi-more[open] .admin-kpi-chip {
-    align-items: flex-start;
-    border: 0 !important;
-    flex: none !important;
-    flex-direction: column;
-    gap: 4px;
-    min-height: 56px;
-    min-width: 0 !important;
-    padding: 12px 14px;
-    scroll-snap-align: unset;
-    width: auto;
-  }
-
-  .admin-dashboard--executive .admin-kpi-more[open] .admin-kpi-chip:nth-child(odd) {
-    border-right: 1px solid var(--admin-hairline) !important;
-  }
-
-  .admin-dashboard--executive .admin-kpi-more[open] .admin-kpi-chip:nth-child(-n + 2) {
-    border-bottom: 1px solid var(--admin-hairline) !important;
-  }
-
-  .admin-dashboard--executive .admin-kpi-more[open] .admin-kpi-chip__value,
-  .admin-dashboard--executive .admin-kpi-more[open] .admin-kpi-chip strong {
-    font-size: 16px;
-    font-weight: 700;
-  }
-
-  .admin-dashboard--executive .admin-kpi-more[open] .admin-kpi-chip__label {
-    white-space: normal;
-  }
-}
-
-@media (max-width: 390px) {
-  .admin-dashboard--executive .admin-kpi-tile,
-  .admin-dashboard--executive .admin-kpi-tile--strip {
-    min-height: 92px;
-    padding: 12px;
-  }
-
-  .admin-dashboard--executive .admin-kpi-tile__value {
-    font-size: 23px;
-  }
-
-  .admin-dashboard--executive .admin-kpi-tile__label {
-    font-size: 10px;
-  }
-}
-
 /* =============================================
    EVENTOS · DOSSIER OPERATIVO
    Una sola superficie principal, detalle editorial
@@ -6383,376 +6062,12 @@
 /* Contenido de la consola dentro del modal: preview abierto + tokens del
    panel grafito. Prefijo __panel + [data-theme] para no perder ante
    overrides light de admin.css sobre --embedded. */
-.admin-event-console-modal__panel .admin-event-preview--embedded,
-[data-theme='light'] .admin-event-console-modal__panel .admin-event-preview--embedded,
-[data-theme='dark'] .admin-event-console-modal__panel .admin-event-preview--embedded {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  gap: 0;
-  padding: 0;
-}
-
-.admin-event-console-modal__panel .admin-event-preview--embedded::before {
-  display: none;
-}
-
-.admin-event-console-modal__panel .admin-event-preview__card {
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid var(--admin-hairline);
-  border-radius: 0;
-  box-shadow: none;
-  padding: 18px 0;
-}
-
-.admin-event-console-modal__panel .admin-event-preview__card .event-card {
-  background: transparent;
-  border: 0;
-  padding: 0;
-}
-
-.admin-event-console-modal__panel .event-card__date-block {
-  background: var(--admin-surface-raised);
-  border-color: var(--admin-hairline);
-}
-
-.admin-event-console-modal__panel .event-card__day,
-.admin-event-console-modal__panel .event-card__title {
-  color: var(--admin-ink);
-}
-
-.admin-event-console-modal__panel .event-card__month,
-.admin-event-console-modal__panel .event-card__meta,
-.admin-event-console-modal__panel .event-card__status {
-  color: var(--admin-muted);
-}
-
-.admin-event-console-modal__panel .event-card__status[data-tone='success'] {
-  color: var(--admin-status-success);
-}
-
-.admin-event-console-modal__panel .event-card__status[data-tone='warning'] {
-  color: var(--admin-status-warning);
-}
-
-.admin-event-console-modal__panel .event-card__status[data-tone='danger'] {
-  color: var(--admin-status-danger);
-}
-
-.admin-event-console-modal__panel .admin-event-preview__publication {
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid var(--admin-hairline);
-  border-radius: 0;
-  color: var(--admin-muted);
-  min-height: 0;
-  padding: 12px 0;
-}
-
-.admin-event-console-modal__panel .admin-event-preview__footer {
-  border: 0;
-  gap: 0;
-  padding: 0;
-}
-
-.admin-event-console-modal__panel .admin-event-preview__capacity,
-[data-theme='light'] .admin-event-console-modal__panel .admin-event-preview__capacity,
-[data-theme='dark'] .admin-event-console-modal__panel .admin-event-preview__capacity {
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid var(--admin-hairline);
-  border-radius: 0;
-  margin: 0;
-  padding: 16px 0;
-}
-
-.admin-event-console-modal__panel .admin-event-preview__capacity .capacity-widget__header {
-  color: var(--admin-muted);
-}
-
-.admin-event-console-modal__panel .admin-event-preview__capacity .capacity-widget__header strong {
-  color: var(--admin-ink);
-}
-
-.admin-event-console-modal__panel .admin-event-preview__capacity .capacity-bar {
-  background: color-mix(in srgb, var(--admin-ink) 12%, transparent);
-}
-
-.admin-event-console-modal__panel .admin-event-preview__meta,
-[data-theme='light'] .admin-event-console-modal__panel .admin-event-preview__meta,
-[data-theme='dark'] .admin-event-console-modal__panel .admin-event-preview__meta {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-}
-
-.admin-event-console-modal__panel .admin-event-preview__meta li {
-  background: transparent;
-  border-bottom: 1px solid var(--admin-hairline);
-  border-bottom-color: var(--admin-hairline);
-  color: var(--admin-text-secondary, var(--admin-muted));
-  padding: 13px 0;
-}
-
-.admin-event-console-modal__panel .admin-event-preview__meta-label,
-.admin-event-console-modal__panel .admin-event-preview__meta-icon {
-  color: var(--admin-muted);
-}
-
-.admin-event-console-modal__panel .admin-event-preview__meta strong,
-.admin-event-console-modal__panel .admin-event-preview__meta code {
-  color: var(--admin-ink);
-}
-
-.admin-event-console-modal__panel .admin-event-addon-report {
-  border-top: 0;
-  margin-top: 0;
-  padding-top: 18px;
-}
 
 /* Banda de estado en la consola: franja operativa quieta, riel 1 línea,
    un solo acento (underline brand). Sin cajas ni pills. */
-.admin-shell .admin-list-shell--events .admin-event-console-modal__panel .admin-event-state,
-.admin-shell .admin-event-workspace .admin-event-console-modal__panel .admin-event-state {
-  border-bottom: 1px solid var(--admin-hairline);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 0;
-  padding: 4px 0 14px;
-}
-
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state__workflow {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
-}
-
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state__workflow-label,
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state
-  .admin-filter-group__label {
-  color: var(--admin-muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state__controls {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state
-  .admin-filter-group {
-  min-width: 0;
-  width: 100%;
-}
-
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state
-  .admin-filter-chips,
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state
-  .admin-filter-chips-rail {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 0;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-}
-
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state
-  .admin-filter-chip {
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  box-shadow: none;
-  color: var(--admin-muted);
-  flex: 0 0 auto;
-  font-size: 12px;
-  font-weight: 550;
-  min-height: 36px;
-  padding: 6px 12px;
-  white-space: nowrap;
-}
-
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state
-  .admin-filter-chip:hover {
-  background: transparent;
-  color: var(--admin-ink);
-}
-
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state
-  .admin-filter-chip.is-active,
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state
-  .admin-filter-chip[aria-pressed='true'] {
-  background: transparent;
-  border-bottom-color: var(--admin-brand);
-  box-shadow: none;
-  color: var(--admin-ink);
-  font-weight: 650;
-}
-
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state
-  .admin-filter-chip__indicator {
-  display: none;
-}
-
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state__access {
-  display: grid;
-  gap: 2px;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state__note {
-  color: var(--admin-muted);
-  font-size: 11.5px;
-  line-height: 1.45;
-  margin: 0;
-  max-width: 62ch;
-}
-
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state__visibility {
-  align-items: center;
-  align-self: flex-start;
-  background: transparent;
-  border: 0;
-  color: var(--admin-muted);
-  display: inline-flex;
-  font-size: 12px;
-  font-weight: 550;
-  gap: 6px;
-  min-height: 36px;
-  padding: 0 2px;
-}
-
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state__visibility.is-published {
-  color: var(--admin-brand);
-  font-weight: 650;
-}
-
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state__registration-action,
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state__registration-live {
-  align-items: center;
-  background: transparent;
-  border: 1px solid var(--admin-hairline);
-  border-radius: 999px;
-  color: var(--admin-ink);
-  display: inline-flex;
-  font-size: 11px;
-  font-weight: 650;
-  gap: 6px;
-  min-height: 32px;
-  padding: 6px 12px;
-}
-
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state__registration-action--open {
-  background: var(--color-brand-action);
-  border-color: var(--color-brand-action);
-  color: var(--color-on-brand-action, var(--color-bg-primary));
-}
-
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state__registration-live {
-  border-color: color-mix(in srgb, var(--admin-status-success) 42%, var(--admin-hairline));
-  color: var(--admin-status-success);
-}
-
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-console-modal__panel
-  .admin-event-state__pending {
-  align-items: center;
-  background: color-mix(in srgb, var(--color-brand-action) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-brand-action) 28%, transparent);
-  border-radius: 10px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  justify-content: space-between;
-  padding: 8px 10px 8px 14px;
-}
 
 @media (max-width: 900px) {
   /* Anula la grilla 2×N del list-shell: en el modal el riel queda 1 línea. */
-  .admin-event-console-modal__panel .admin-event-state .admin-filter-chips,
-  .admin-event-console-modal__panel .admin-event-state .admin-filter-chips-rail {
-    display: flex;
-    flex-wrap: nowrap;
-    grid-template-columns: none;
-    overflow-x: auto;
-  }
-
-  .admin-event-console-modal__panel .admin-event-state .admin-filter-chip {
-    justify-content: flex-start;
-    text-align: start;
-    white-space: nowrap;
-    width: auto;
-  }
 }
 
 @media (max-width: 1100px) {
@@ -6841,39 +6156,6 @@
   }
 
   /* Consola modal: no heredar la grilla 2×N del list-shell — riel 1 línea. */
-  .admin-shell
-    .admin-list-shell--events
-    .admin-event-console-modal__panel
-    .admin-event-state
-    .admin-filter-chips,
-  .admin-shell
-    .admin-list-shell--events
-    .admin-event-console-modal__panel
-    .admin-event-state
-    .admin-filter-chips-rail {
-    display: flex;
-    flex-wrap: nowrap;
-    grid-template-columns: none;
-    overflow-x: auto;
-  }
-
-  .admin-shell
-    .admin-list-shell--events
-    .admin-event-console-modal__panel
-    .admin-event-state
-    .admin-filter-chip {
-    justify-content: flex-start;
-    text-align: start;
-    white-space: nowrap;
-    width: auto;
-  }
-
-  .admin-shell
-    .admin-list-shell--events
-    .admin-event-console-modal__panel
-    .admin-event-state {
-    padding: 4px 0 14px;
-  }
 }
 
 @media (max-width: 720px) {

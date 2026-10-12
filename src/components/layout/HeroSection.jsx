@@ -18,6 +18,7 @@ import { useMagneticHover } from '../../motion/useMagneticHover.ts'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { isTicketSalesEnabled } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
+import { getPublicEventStatus } from '../../lib/publicRegistrationPhase.js'
 import { isRegistrationOpen } from '../../lib/status.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import {
@@ -77,7 +78,7 @@ export default function HeroSection({ onNavigate, event }) {
     () => (tier !== 'low' && hasFinePointer() ? heroTitleLineWipe : heroTitleLine),
     [tier],
   )
-  const eventStatus = event?.status ?? 'proximamente'
+  const eventStatus = getPublicEventStatus(event)
   const registrationCheckoutOpen = isPaidCheckoutOpen(event, env, new Date(), {
     checkoutKind: 'registration',
   })

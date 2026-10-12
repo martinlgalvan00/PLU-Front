@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Award,
+  Copy,
   Edit3,
   GraduationCap,
   ImagePlus,
@@ -40,6 +41,11 @@ const STATUS_OPTIONS = [
   SHOP_PRODUCT_STATUS.archived,
 ]
 const SIZE_PRESETS = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
+/** Fotos que se comprimen y suben a la vez: más rápido que de a una, sin
+ * saturar la memoria del navegador con ocho WebP en paralelo. */
+const UPLOAD_CONCURRENCY = 3
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 const CATEGORY_ICONS = {
   apparel: Shirt,
@@ -90,14 +96,23 @@ function useShopImageUploader({ canEdit, draft, onChange, onError, t }) {
       setUploading(true)
       onError('')
       try {
+        // De a tandas y en orden: las que salen bien se conservan aunque otra
+        // falle, y la portada sigue siendo la primera que se eligió.
         const uploaded = []
-        for (const file of files) {
-          uploaded.push(await uploadShopProductImage(file))
+        let failure = null
+        for (let index = 0; index < files.length; index += UPLOAD_CONCURRENCY) {
+          const batch = files.slice(index, index + UPLOAD_CONCURRENCY)
+          const results = await Promise.allSettled(batch.map((file) => uploadShopProductImage(file)))
+          for (const result of results) {
+            if (result.status === 'fulfilled') uploaded.push(result.value)
+            else failure ??= result.reason
+          }
         }
-        onChange('imagePaths', [...draft.imagePaths, ...uploaded.map((item) => item.path)])
-        onChange('imageUrls', [...draft.imageUrls, ...uploaded.map((item) => item.url)])
-      } catch (error) {
-        onError(error?.message ?? t('admin.shop.saveError'))
+        if (uploaded.length > 0) {
+          onChange('imagePaths', [...draft.imagePaths, ...uploaded.map((item) => item.path)])
+          onChange('imageUrls', [...draft.imageUrls, ...uploaded.map((item) => item.url)])
+        }
+        if (failure) onError(failure?.message ?? t('admin.shop.saveError'))
       } finally {
         setUploading(false)
       }
@@ -266,6 +281,12 @@ function ShopSizesField({ canEdit, draft, onChange, t }) {
     onChange('sizes', [...draft.sizes, { label, stock: 0 }])
   }
 
+  const missing = SIZE_PRESETS.filter((label) => !used.has(label.toLowerCase()))
+
+  function addCurve() {
+    onChange('sizes', [...draft.sizes, ...missing.map((label) => ({ label, stock: 0 }))])
+  }
+
   return (
     <div className="admin-shop-sizes">
       <p className="admin-shop-media__lead">{t('admin.shop.sizesLead')}</p>
@@ -315,7 +336,12 @@ function ShopSizesField({ canEdit, draft, onChange, t }) {
           role="group"
           aria-label={t('admin.shop.addSize')}
         >
-          {SIZE_PRESETS.filter((label) => !used.has(label.toLowerCase())).map((label) => (
+          {missing.length > 1 ? (
+            <button type="button" onClick={addCurve}>
+              + {t('admin.shop.sizeCurve')}
+            </button>
+          ) : null}
+          {missing.map((label) => (
             <button key={label} type="button" onClick={() => add(label)}>
               + {label}
             </button>
@@ -342,10 +368,15 @@ function ShopProductModal({
   error,
   events,
   saving,
+  notice,
+  confirmDiscard,
   onCancel,
   onChange,
+  onDiscard,
   onError,
+  onKeepEditing,
   onSubmit,
+  onSubmitAnother,
   t,
   locale,
 }) {
@@ -394,9 +425,37 @@ function ShopProductModal({
   const canUploadImages = canEdit && images.remaining > 0 && !images.uploading
   const stageInteractive = canUploadImages && !coverUrl
 
+  const panelRef = useRef(null)
+  const cancelRef = useRef(onCancel)
   useEffect(() => {
+    cancelRef.current = onCancel
+  })
+
+  // Foco: Tab no se escapa del diálogo y, al cerrar, vuelve a lo que lo abrió.
+  useEffect(() => {
+    const opener = document.activeElement
     function handleKey(event) {
-      if (event.key === 'Escape') onCancel()
+      if (event.key === 'Escape') {
+        cancelRef.current()
+        return
+      }
+      if (event.key !== 'Tab' || !panelRef.current) return
+      const focusable = [...panelRef.current.querySelectorAll(FOCUSABLE)].filter(
+        (node) => node.offsetParent !== null || node === document.activeElement,
+      )
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (!panelRef.current.contains(document.activeElement)) {
+        event.preventDefault()
+        first.focus()
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
     }
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -404,8 +463,16 @@ function ShopProductModal({
     return () => {
       document.body.style.overflow = previousOverflow
       document.removeEventListener('keydown', handleKey)
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus()
     }
-  }, [onCancel])
+  }, [])
+
+  function handleFormKeyDown(event) {
+    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !saving) {
+      event.preventDefault()
+      event.currentTarget.requestSubmit()
+    }
+  }
 
   return createPortal(
     <div className="admin-shop-modal">
@@ -416,6 +483,7 @@ function ShopProductModal({
         onClick={onCancel}
       />
       <div
+        ref={panelRef}
         className="admin-shop-modal__panel"
         role="dialog"
         aria-modal="true"
@@ -440,7 +508,11 @@ function ShopProductModal({
           </button>
         </header>
 
-        <form className="admin-shop-modal__form" onSubmit={onSubmit}>
+        <form
+          className="admin-shop-modal__form"
+          onSubmit={onSubmit}
+          onKeyDown={handleFormKeyDown}
+        >
           <input
             ref={images.inputRef}
             type="file"
@@ -756,6 +828,11 @@ function ShopProductModal({
               </fieldset>
 
               <p className="admin-shop-modal__note">{t('admin.shop.noPaymentNote')}</p>
+              {notice ? (
+                <p className="admin-shop-modal__note" role="status">
+                  {notice}
+                </p>
+              ) : null}
               {error ? (
                 <p className="admin-shop-modal__error" role="alert">
                   {error}
@@ -765,16 +842,37 @@ function ShopProductModal({
           </div>
 
           <footer className="admin-shop-modal__footer">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" disabled={!canEdit || saving}>
-              {saving
-                ? t('admin.shop.saving')
-                : isEdit
-                  ? t('admin.shop.save')
-                  : t('admin.shop.create')}
-            </Button>
+            {confirmDiscard ? (
+              <>
+                <p className="admin-shop-modal__note" role="alert">
+                  {t('admin.shop.discardLead')}
+                </p>
+                <Button type="button" variant="outline" onClick={onKeepEditing} autoFocus>
+                  {t('admin.shop.discardKeep')}
+                </Button>
+                <Button type="button" variant="outline" onClick={onDiscard}>
+                  {t('admin.shop.discardYes')}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button type="button" variant="outline" onClick={onCancel}>
+                  {t('common.cancel')}
+                </Button>
+                {!isEdit && canEdit ? (
+                  <Button type="button" variant="outline" disabled={saving} onClick={onSubmitAnother}>
+                    {t('admin.shop.saveAndAnother')}
+                  </Button>
+                ) : null}
+                <Button type="submit" disabled={!canEdit || saving}>
+                  {saving
+                    ? t('admin.shop.saving')
+                    : isEdit
+                      ? t('admin.shop.save')
+                      : t('admin.shop.create')}
+                </Button>
+              </>
+            )}
           </footer>
         </form>
       </div>
@@ -795,6 +893,11 @@ function ShopCatalogPanel({ canEdit, events = [] }) {
   const [draft, setDraft] = useState(() => emptyDraft())
   const [error, setError] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
+  const [notice, setNotice] = useState('')
+  // Foto del borrador al abrir: sirve para saber si hay algo sin guardar.
+  const snapshotRef = useRef('')
+  const opening = useRef(false)
 
   const reload = useCallback(async () => {
     setStatus((current) => (current === 'ready' ? current : 'loading'))
@@ -829,31 +932,92 @@ function ShopCatalogPanel({ canEdit, events = [] }) {
     [products],
   )
 
-  function openCreate() {
-    setDraft(emptyDraft())
+  function openForm(nextDraft, nextNotice = '') {
+    snapshotRef.current = JSON.stringify(nextDraft)
+    setDraft(nextDraft)
     setError('')
+    setNotice(nextNotice)
+    setConfirmDiscard(false)
     setEditing(true)
   }
 
-  function openEdit(product) {
-    setDraft(toShopProductDraft(product))
-    setError('')
-    setEditing(true)
+  function openCreate() {
+    openForm(emptyDraft())
+  }
+
+  /** Guardar reescribe talles y stock completos, y el listado puede tener
+   * horas encima mientras los pedidos descuentan unidades. Antes de editar o
+   * duplicar se trae la versión vigente; si no se puede, se usa la del listado. */
+  async function freshProduct(product) {
+    try {
+      const list = await fetchAdminShopProducts()
+      setProducts(list)
+      return list.find((item) => item.id === product.id) ?? product
+    } catch {
+      return product
+    }
+  }
+
+  async function openEdit(product) {
+    if (opening.current) return
+    opening.current = true
+    try {
+      openForm(toShopProductDraft(await freshProduct(product)))
+    } finally {
+      opening.current = false
+    }
+  }
+
+  /** Producto nuevo a partir de otro: mismas fotos, talles y datos, como
+   * borrador y sin destacar. Un curso queda sin fecha: la edición siguiente
+   * es otra fecha, no la misma. */
+  async function openDuplicate(product) {
+    if (opening.current) return
+    opening.current = true
+    const base = toShopProductDraft(await freshProduct(product))
+    opening.current = false
+    openForm({
+      ...base,
+      id: undefined,
+      slug: undefined,
+      title: `${base.title} ${t('admin.shop.copySuffix')}`.trim(),
+      status: SHOP_PRODUCT_STATUS.draft,
+      featured: false,
+      courseStartsAt: '',
+    })
   }
 
   function closeForm() {
+    snapshotRef.current = ''
     setDraft(emptyDraft())
     setError('')
+    setNotice('')
+    setConfirmDiscard(false)
     setEditing(false)
   }
 
+  /** Cerrar con cambios sin guardar pide confirmación: las fotos ya subidas y
+   * lo tipeado se perderían con un clic en el fondo. */
+  function requestClose() {
+    if (!saving && JSON.stringify(draft) !== snapshotRef.current) {
+      setConfirmDiscard(true)
+      return
+    }
+    closeForm()
+  }
+
   function updateField(field, value) {
+    setConfirmDiscard(false)
     setDraft((current) => ({ ...current, [field]: value }))
   }
 
   function validate() {
     if (!draft.title.trim()) return t('admin.shop.validationTitle')
     if (Number(draft.price) <= 0) return t('admin.shop.validationPrice')
+    if (categorySupportsSizes(draft.category)) {
+      const labels = draft.sizes.map((size) => size.label.trim().toLowerCase()).filter(Boolean)
+      if (new Set(labels).size !== labels.length) return t('admin.shop.validationSizes')
+    }
     if (draft.status === 'published') {
       if (draft.category === 'exclusive' && !draft.eventId) return t('admin.shop.validationEvent')
       if (draft.category === 'course' && (!draft.courseStartsAt || !draft.courseModality)) {
@@ -863,8 +1027,7 @@ function ShopCatalogPanel({ canEdit, events = [] }) {
     return ''
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault()
+  async function persist({ another = false } = {}) {
     if (saving) return
     const problem = validate()
     if (problem) {
@@ -875,13 +1038,29 @@ function ShopCatalogPanel({ canEdit, events = [] }) {
     setError('')
     try {
       await saveAdminShopProduct(draft)
-      await reload()
-      closeForm()
+      // El catálogo se refresca de fondo: no hace esperar al que sigue cargando.
+      void reload()
+      if (another) {
+        openForm(
+          emptyDraft({ category: draft.category }),
+          t('admin.shop.savedAnother', { title: draft.title.trim() }),
+        )
+      } else {
+        closeForm()
+      }
     } catch (saveFailure) {
       setError(saveFailure?.message ?? t('admin.shop.saveError'))
+      // 409: el producto cambió mientras se editaba. Se refresca el listado para
+      // que al reabrirlo ya traiga la versión vigente.
+      if (saveFailure?.status === 409) void reload()
     } finally {
       setSaving(false)
     }
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault()
+    void persist()
   }
 
   async function handleDelete(productId) {
@@ -1098,6 +1277,13 @@ function ShopCatalogPanel({ canEdit, events = [] }) {
                           <>
                             <AdminIconButton
                               disabled={!canEdit}
+                              icon={Copy}
+                              label={t('admin.shop.duplicate')}
+                              onClick={() => openDuplicate(product)}
+                              variant="ghost"
+                            />
+                            <AdminIconButton
+                              disabled={!canEdit}
                               icon={Edit3}
                               label={t('admin.shop.edit')}
                               onClick={() => openEdit(product)}
@@ -1134,10 +1320,15 @@ function ShopCatalogPanel({ canEdit, events = [] }) {
           events={events}
           locale={locale}
           saving={saving}
-          onCancel={closeForm}
+          notice={notice}
+          confirmDiscard={confirmDiscard}
+          onCancel={requestClose}
           onChange={updateField}
+          onDiscard={closeForm}
           onError={setError}
+          onKeepEditing={() => setConfirmDiscard(false)}
           onSubmit={handleSubmit}
+          onSubmitAnother={() => void persist({ another: true })}
           t={t}
         />
       ) : null}

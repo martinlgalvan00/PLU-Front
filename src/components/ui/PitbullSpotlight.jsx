@@ -25,6 +25,7 @@ import { env } from '../../config/env.js'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { isPaidCheckoutOpen, resolveLaunchOpenAt } from '../../lib/registrationSchedule.js'
+import { getPublicEventStatus } from '../../lib/publicRegistrationPhase.js'
 import { getStatusMeta, isRegistrationOpen } from '../../lib/status.js'
 import EventDatePlate from '../../motion/EventDatePlate.tsx'
 import MaskReveal from '../../motion/MaskReveal.tsx'
@@ -126,7 +127,7 @@ export default function PitbullSpotlight({
     const venue = event?.venue ?? PITBULL_CLASSIC.venue
     const location = event?.location ?? PITBULL_CLASSIC.location
     const displayDate = event?.displayDate ?? PITBULL_CLASSIC.dateShort
-    const status = event?.status ?? 'proximamente'
+    const status = getPublicEventStatus(event)
     const { label: statusLabel, tone: statusTone } = getStatusMeta(status, t)
 
     // Mismo criterio que PitbullHero: el CTA principal sigue el estado real
@@ -209,7 +210,7 @@ export default function PitbullSpotlight({
   }
 
   if (isHome) {
-    const eventStatus = event?.status ?? 'proximamente'
+    const eventStatus = getPublicEventStatus(event)
     const isPitbullEvent = !event?.slug || event.slug === 'pitbull-classic-2026'
     const startsAt = event?.startsAt ?? event?.dateISO
     const startsDate = startsAt
@@ -544,7 +545,7 @@ export default function PitbullSpotlight({
 
         <div className="pitbull-spotlight__capacity">
           {occupancy.mode === 'meter' &&
-          isRegistrationOpen(event?.status ?? 'proximamente') ? (
+          isRegistrationOpen(getPublicEventStatus(event)) ? (
             <CapacityBar
               current={capacityRegistered}
               total={capacitySlots}

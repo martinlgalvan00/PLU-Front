@@ -18,10 +18,7 @@
 
 import { isEventChannelOpenForConcept } from './eventPaymentChannels.js'
 import { resolveTicketTypeChannels } from './ticketTypePaymentChannels.js'
-import { resolveTicketTypeSaleWindow } from './eventPricing.js'
-
-/** Estados del evento en los que la base rechaza cualquier compra. */
-const CLOSED_EVENT_STATUSES = ['cerrado', 'finalizado']
+import { resolveTicketTypeSaleWindow, TICKET_SALES_CLOSED_STATUSES } from './eventPricing.js'
 
 export const TICKET_SALES_CHANNELS = [
   'mercado_pago',
@@ -83,7 +80,7 @@ export function resolveTicketSalesState({ event, platform = null, now = new Date
   // 3. Evento.
   if (event?.pricing?.ticketsEnabled !== true) add('eventDisabled')
   if (event?.published !== true) add('unpublished')
-  if (CLOSED_EVENT_STATUSES.includes(event?.status)) add('eventStatus', event.status)
+  if (TICKET_SALES_CLOSED_STATUSES.includes(event?.status)) add('eventStatus', event.status)
 
   const opensAt = parseLocal(event?.ticketSalesOpensAt)
   const closesAt = parseLocal(event?.ticketSalesClosesAt)

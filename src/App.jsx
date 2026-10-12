@@ -9,6 +9,8 @@ import lazyWithRetry from './lib/lazyWithRetry.js'
 import PageLoadFallback from './components/ui/PageLoadFallback.jsx'
 import HelpLayer from './components/ui/HelpLayer.jsx'
 import { useAppData } from './hooks/useAppData.js'
+import { useScheduleClock } from './hooks/useScheduleClock.js'
+import { withPublicEventStatus } from './lib/publicRegistrationPhase.js'
 import { readCredentialParams } from './lib/credentialQr.js'
 import {
   clearEventPageRoute,
@@ -200,9 +202,18 @@ export default function App() {
   const paymentReturnInFlightRef = useRef(null)
   const app = useAppData()
   const getSession = app.getSession
+  // Re-renderiza cuando una ventana de inscripción abre o vence.
+  useScheduleClock(app.adminEvents)
+  // Frontera de lo público: todas las páginas leen el estado ya resuelto (cierre
+  // y apertura programados incluidos), así que ninguna puede decir "abierta"
+  // mientras otra dice "cerrada". El panel de staff sigue con el estado guardado.
   const publicEvents = getPublicCatalogEvents(
     app.adminEvents.filter((event) => event.published !== false),
     { includeDevelopmentStubs: false },
+  ).map((event) =>
+    withPublicEventStatus(event, new Date(), {
+      registrationEnabled: app.checkoutAvailability?.registrationEnabled !== false,
+    }),
   )
   const nextEvent = getNextUpcomingEvent(publicEvents) ?? UPCOMING_EVENTS[0]
   const featuredEvent = getFeaturedEvent(publicEvents) ?? UPCOMING_EVENTS[0]

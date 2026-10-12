@@ -57,6 +57,9 @@ const productSchema = z
     status: z.enum(STATUSES).optional().default('draft'),
     featured: z.boolean().optional().default(false),
     sortOrder: z.number().int().min(-1000).max(1000).optional().default(0),
+    // Versión con la que el panel abrió el producto: si cambió desde entonces,
+    // la edición falla con 409 en vez de pisar stock o talles (PLU03).
+    expectedUpdatedAt: z.string().datetime({ offset: true }).optional().nullable(),
   })
   .superRefine((product, ctx) => {
     const labels = product.sizes.map((size) => size.label.toLowerCase())

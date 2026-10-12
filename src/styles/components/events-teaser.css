@@ -5,6 +5,11 @@
    los dos temas a propósito: es una pieza autocontenida, no una superficie de
    la página. Un solo acento (celeste de marca); el resto es grafito y blanco.
 
+   Encuadre de cine: dos bandas que cierran el fotograma, un titular que
+   enfoca (copia desenfocada que se desvanece) y un expediente de datos que no
+   existen ("desconocida", "clasificada"). Todo desenfoque es estático: lo que
+   se anima es opacity o transform, nunca `filter`.
+
    Movimiento: sólo transform/opacity, sólo mientras el bloque está en pantalla
    (.is-live) y nada con prefers-reduced-motion. Quieto ya es una composición
    completa.
@@ -12,6 +17,7 @@
 
 .events-teaser {
   --teaser-sky: var(--plu-cool-950, #0a0b0d);
+  --teaser-band: var(--teaser-sky);
   --teaser-star: oklch(97% 0.012 230);
   --teaser-accent: var(--plu-celeste-400, #74acdf);
   --teaser-accent-deep: var(--plu-celeste-600, #1f5f9e);
@@ -25,10 +31,40 @@
   color: var(--teaser-text);
   display: flex;
   isolation: isolate;
-  min-height: clamp(300px, 34vw, 380px);
+  min-height: clamp(380px, 40vw, 460px);
   overflow: hidden;
   padding: clamp(24px, 4.2vw, 52px);
   position: relative;
+}
+
+/* ---- Modo claro ---------------------------------------------------------
+   Misma composición, otra luz: papel cálido en lugar de cielo nocturno. Las
+   estrellas pasan a puntos de tinta muy tenues, la nebulosa a un velo celeste y
+   las bandas de cine a un tono un poco más oscuro que la hoja. El acento sube
+   a celeste profundo para sostener el contraste del titular y los rótulos. */
+
+[data-theme='light'] .events-teaser {
+  --teaser-sky: var(--plu-warm-100, #f3efe8);
+  --teaser-band: color-mix(in srgb, var(--plu-warm-100, #f3efe8) 95%, var(--plu-ink-900, #0d0e12));
+  --teaser-star: color-mix(in srgb, var(--plu-ink-900, #0d0e12) 55%, transparent);
+  --teaser-accent: var(--plu-celeste-600, #1f5f9e);
+  --teaser-accent-deep: var(--plu-celeste-300, #a8c9ea);
+  --teaser-text: var(--plu-ink-900, #0d0e12);
+  --teaser-text-soft: color-mix(in srgb, var(--plu-ink-900, #0d0e12) 66%, transparent);
+
+  border-color: var(--color-border, rgba(15, 17, 23, 0.1));
+}
+
+[data-theme='light'] .events-teaser__nebula {
+  opacity: 0.34;
+}
+
+[data-theme='light'] .events-teaser__ghost {
+  opacity: 0.5;
+}
+
+[data-theme='light'] .events-teaser__static {
+  opacity: 0.08;
 }
 
 /* ---- Cielo -------------------------------------------------------------- */
@@ -43,7 +79,6 @@
 .events-teaser__nebula {
   border-radius: 50%;
   position: absolute;
-  will-change: transform;
 }
 
 .events-teaser__nebula--a {
@@ -264,7 +299,7 @@
 .events-teaser__copy {
   display: grid;
   gap: 14px;
-  max-width: 34rem;
+  max-width: 40rem;
   position: relative;
   z-index: 3;
 }
@@ -316,6 +351,104 @@
   max-width: 38ch;
 }
 
+/* ---- Encuadre de cine --------------------------------------------------- */
+
+.events-teaser__letterbox {
+  background: var(--teaser-band);
+  height: clamp(14px, 2.6vw, 26px);
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  z-index: 4;
+}
+
+.events-teaser__letterbox--top {
+  border-bottom: 1px solid color-mix(in srgb, var(--teaser-accent) 30%, transparent);
+  top: 0;
+  transform-origin: top;
+}
+
+.events-teaser__letterbox--bottom {
+  border-top: 1px solid color-mix(in srgb, var(--teaser-accent) 30%, transparent);
+  bottom: 0;
+  transform-origin: bottom;
+}
+
+/* ---- Titular que enfoca -------------------------------------------------- */
+
+.events-teaser__headline {
+  position: relative;
+}
+
+.events-teaser__haze {
+  color: var(--teaser-accent);
+  -webkit-filter: blur(14px);
+  filter: blur(14px);
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+/* ---- Expediente --------------------------------------------------------- */
+
+.events-teaser__dossier {
+  border-top: 1px solid color-mix(in srgb, var(--teaser-text) 16%, transparent);
+  display: grid;
+  gap: 14px 20px;
+  grid-template-columns: repeat(4, minmax(0, auto));
+  justify-content: start;
+  margin: 6px 0 0;
+  padding-top: 14px;
+}
+
+.events-teaser__field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.events-teaser__field dt {
+  color: var(--teaser-text-soft);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.events-teaser__field dd {
+  margin: 0;
+}
+
+.events-teaser__value {
+  color: var(--teaser-text);
+  display: inline-block;
+  font-feature-settings: 'tnum';
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  position: relative;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Dato tachado: el texto real existe (para lectores de pantalla) pero lo que
+   se ve es la barra. */
+.events-teaser__value--redacted {
+  color: transparent;
+}
+
+.events-teaser__value--redacted::after {
+  background: color-mix(in srgb, var(--teaser-text) 60%, transparent);
+  border-radius: 2px;
+  content: '';
+  inset: 1px -2px;
+  position: absolute;
+  transform-origin: left;
+}
+
 /* ---- Entrada y movimiento ----------------------------------------------- */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -332,22 +465,75 @@
     transform: none;
   }
 
+  /* Las bandas cierran el encuadre y el titular enfoca: la copia borrosa se
+     apaga mientras el texto nítido sube. */
+  .events-teaser__letterbox {
+    transform: scaleY(0);
+    transition: transform 900ms var(--ease-cinematic, cubic-bezier(0.16, 1, 0.3, 1)) 80ms;
+  }
+
+  .events-teaser.is-entered .events-teaser__letterbox {
+    transform: none;
+  }
+
+  .events-teaser__title:not(.events-teaser__haze) {
+    opacity: 0;
+  }
+
+  .events-teaser.is-entered .events-teaser__title:not(.events-teaser__haze) {
+    animation: events-teaser-focus-in 1300ms var(--ease-out, ease) 250ms both;
+  }
+
+  .events-teaser.is-entered .events-teaser__haze {
+    animation: events-teaser-focus-out 1300ms var(--ease-out, ease) 250ms both;
+  }
+
+  .events-teaser__field {
+    opacity: 0;
+  }
+
+  .events-teaser.is-entered .events-teaser__field {
+    animation: events-teaser-field-in 520ms var(--ease-out, ease) both;
+  }
+
+  .events-teaser.is-entered .events-teaser__field:nth-child(1) {
+    animation-delay: 900ms;
+  }
+
+  .events-teaser.is-entered .events-teaser__field:nth-child(2) {
+    animation-delay: 1160ms;
+  }
+
+  .events-teaser.is-entered .events-teaser__field:nth-child(3) {
+    animation-delay: 1420ms;
+  }
+
+  .events-teaser.is-entered .events-teaser__field:nth-child(4) {
+    animation-delay: 1680ms;
+  }
+
+  .events-teaser__value--redacted::after {
+    transform: scaleX(0);
+  }
+
+  .events-teaser.is-entered .events-teaser__value--redacted::after {
+    animation: events-teaser-redact 520ms var(--ease-out, ease) 1100ms both;
+  }
+
+  /* Cada tanto el foco "busca": un desenfoque corto y vuelve. Único bucle del
+     titular y sólo en pantalla. */
+  .events-teaser.is-live .events-teaser__haze {
+    animation:
+      events-teaser-focus-out 1300ms var(--ease-out, ease) 250ms both,
+      events-teaser-focus-hunt 11s ease-in-out 4s infinite;
+  }
+
   .events-teaser.is-live .events-teaser__stars--far {
     animation: events-teaser-drift-far 140s linear infinite;
   }
 
   .events-teaser.is-live .events-teaser__stars--near {
-    animation:
-      events-teaser-drift-near 90s linear infinite,
-      events-teaser-twinkle 5.5s ease-in-out infinite alternate;
-  }
-
-  .events-teaser.is-live .events-teaser__nebula--a {
-    animation: events-teaser-breathe-a 26s ease-in-out infinite alternate;
-  }
-
-  .events-teaser.is-live .events-teaser__nebula--b {
-    animation: events-teaser-breathe-b 32s ease-in-out infinite alternate;
+    animation: events-teaser-drift-near 90s linear infinite;
   }
 
   .events-teaser.is-live .events-teaser__static {
@@ -369,6 +555,59 @@
   }
 }
 
+@keyframes events-teaser-focus-in {
+  from {
+    opacity: 0;
+    transform: scale(1.015);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes events-teaser-focus-out {
+  from {
+    opacity: 0.9;
+    transform: scale(1.015);
+  }
+  to {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes events-teaser-focus-hunt {
+  0%,
+  84%,
+  100% {
+    opacity: 0;
+  }
+  90% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes events-teaser-field-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes events-teaser-redact {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 @keyframes events-teaser-drift-far {
   to {
     transform: translate3d(-240px, 240px, 0);
@@ -378,27 +617,6 @@
 @keyframes events-teaser-drift-near {
   to {
     transform: translate3d(-380px, 380px, 0);
-  }
-}
-
-@keyframes events-teaser-twinkle {
-  from {
-    opacity: 0.55;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes events-teaser-breathe-a {
-  to {
-    transform: translate3d(-4%, 5%, 0) scale(1.08) rotate(8deg);
-  }
-}
-
-@keyframes events-teaser-breathe-b {
-  to {
-    transform: translate3d(6%, -4%, 0) scale(1.12) rotate(-10deg);
   }
 }
 
@@ -476,7 +694,11 @@
 
 @media (max-width: 720px) {
   .events-teaser {
-    min-height: 340px;
+    min-height: 460px;
+  }
+
+  .events-teaser__dossier {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   /* La card fantasma pasa a ser fondo de toda la pieza y el texto, abajo, con

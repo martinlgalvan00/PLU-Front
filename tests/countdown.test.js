@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  getCountdownCells,
   getCountdownHeadline,
   getCountdownParts,
   resolveEventStartsAt,
@@ -93,5 +94,34 @@ describe('resolveEventStartsAt', () => {
     expect(resolveEventStartsAt({ dateISO: '2026-10-10' })).toBe('2026-10-10T09:00:00-03:00')
     expect(resolveEventStartsAt({})).toBeNull()
     expect(resolveEventStartsAt(null)).toBeNull()
+  })
+})
+
+describe('getCountdownCells', () => {
+  const endsAt = '2026-10-10T09:00:00-03:00'
+  const cells = (nowIso) => getCountdownCells(getCountdownParts(endsAt, new Date(nowIso)))
+
+  it('arranca en semanas, igual que el titular, y sigue con días y horas', () => {
+    expect(cells('2026-08-15T07:00:00-03:00')).toEqual([
+      { unit: 'weeks', value: 8 },
+      { unit: 'days', value: 0 },
+      { unit: 'hours', value: 2 },
+    ])
+  })
+
+  it('pasa a días · horas · min en la última semana', () => {
+    expect(cells('2026-10-04T08:00:00-03:00').map((cell) => cell.unit)).toEqual([
+      'days',
+      'hours',
+      'minutes',
+    ])
+  })
+
+  it('en el último día muestra horas · min · seg', () => {
+    expect(cells('2026-10-09T15:30:20-03:00')).toEqual([
+      { unit: 'hours', value: 17 },
+      { unit: 'minutes', value: 29 },
+      { unit: 'seconds', value: 40 },
+    ])
   })
 })

@@ -1,14 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, CalendarClock, MapPin } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { getStatusMeta } from '../../lib/status.js'
-import { getTimeUntilEvent } from '../../lib/eventNavigation.js'
+import { getPublicEventStatus } from '../../lib/publicRegistrationPhase.js'
+import { getStatusMeta, isRegistrationOpen } from '../../lib/status.js'
+import {
+  getCountdownCells,
+  getCountdownParts,
+  resolveEventStartsAt,
+} from '../../lib/countdown.js'
 import '../../styles/components/event-countdown.css'
+
+const MINUTE_MS = 60_000
+const SECOND_MS = 1_000
 
 /**
  * Countdown editorial al próximo evento.
- * Muestra días | horas | min con tipografía display y metadata del evento.
- * Se actualiza cada 60 s — sin requestAnimationFrame ni polling agresivo.
+ * Tres unidades contiguas con la misma regla que el resto de los contadores
+ * (semanas · días · horas → días · horas · min → horas · min · seg), con
+ * tipografía display y metadata del evento. Se actualiza cada minuto y solo
+ * pasa a cada segundo en el último día, cuando los segundos se ven.
  */
 export default function EventCountdown({
   event,
@@ -19,36 +29,47 @@ export default function EventCountdown({
   compact = false,
 }) {
   const { t } = useI18n()
-  const [time, setTime] = useState(() => getTimeUntilEvent(event))
+  const startsAt = useMemo(() => resolveEventStartsAt(event), [event])
+  const [parts, setParts] = useState(() => (startsAt ? getCountdownParts(startsAt) : null))
+  const lastDay = Boolean(parts) && !parts.expired && parts.days === 0
 
   useEffect(() => {
-    if (!event) return
-    setTime(getTimeUntilEvent(event))
-    const interval = setInterval(() => setTime(getTimeUntilEvent(event)), 60_000)
+    if (!startsAt) {
+      setParts(null)
+      return undefined
+    }
+    setParts(getCountdownParts(startsAt))
+    const interval = setInterval(
+      () => setParts(getCountdownParts(startsAt)),
+      lastDay ? SECOND_MS : MINUTE_MS,
+    )
     return () => clearInterval(interval)
-  }, [event])
+  }, [startsAt, lastDay])
 
   const statusMeta = useMemo(
-    () => (event?.status ? getStatusMeta(event.status, t) : null),
-    [event?.status, t],
+    () => (event?.status ? getStatusMeta(getPublicEventStatus(event), t) : null),
+    [event, t],
   )
 
-  if (!event || !time || time.isPast) return null
+  if (!event || !parts || parts.expired) return null
+
+  const unitLabel = (unit, value) => {
+    const plural = value === 1 ? 'one' : 'other'
+    if (unit === 'weeks') return t(`pages.events.countdownUnitWeek_${plural}`)
+    if (unit === 'days') return t(`pages.events.countdownUnitDay_${plural}`)
+    if (unit === 'hours') return t('pages.events.countdownHours')
+    if (unit === 'minutes') return t('pages.events.countdownMinutes')
+    return t('pages.events.countdownSeconds')
+  }
 
   const place = [event.venue, event.location].filter(Boolean).join(' · ')
-  const canAct = event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
+  const canAct = isRegistrationOpen(getPublicEventStatus(event))
 
-  const units = [
-    {
-      value: time.days,
-      label:
-        time.days === 1
-          ? t('pages.events.countdownUnitDay_one')
-          : t('pages.events.countdownUnitDay_other'),
-    },
-    { value: time.hours, label: t('pages.events.countdownHours') },
-    { value: time.minutes, label: t('pages.events.countdownMinutes') },
-  ]
+  const units = getCountdownCells(parts).map(({ unit, value }) => ({
+    key: unit,
+    value,
+    label: unitLabel(unit, value),
+  }))
 
   if (compact) {
     return (
@@ -58,8 +79,8 @@ export default function EventCountdown({
           .join(' ')}
       >
         <div className="event-countdown__ticker" aria-label={t('pages.events.nextMeet')}>
-          {units.map(({ value, label }) => (
-            <div key={label} className="event-countdown__unit">
+          {units.map(({ key, value, label }) => (
+            <div key={key} className="event-countdown__unit">
               <span className="event-countdown__value">{String(value).padStart(2, '0')}</span>
               <span className="event-countdown__label">{label}</span>
             </div>
@@ -84,8 +105,8 @@ export default function EventCountdown({
   return (
     <div className={['event-countdown', className].filter(Boolean).join(' ')}>
       <div className="event-countdown__ticker">
-        {units.map(({ value, label }) => (
-          <div key={label} className="event-countdown__unit">
+        {units.map(({ key, value, label }) => (
+          <div key={key} className="event-countdown__unit">
             <span className="event-countdown__value">{String(value).padStart(2, '0')}</span>
             <span className="event-countdown__label">{label}</span>
           </div>
