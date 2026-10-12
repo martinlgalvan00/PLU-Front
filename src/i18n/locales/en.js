@@ -3353,6 +3353,13 @@ export default {
       title: 'Buy your ticket',
       description:
         'General admission to watch {{event}} live, no membership required, just your ID.',
+      flow: {
+        railAria: 'Purchase steps',
+        stepTickets: 'Tickets',
+        stepBuyer: 'Your details',
+        stepPayment: 'Payment',
+        stepDone: 'complete',
+      },
       quantity: 'Number of tickets',
       subtract: 'Remove ticket',
       add: 'Add ticket',
