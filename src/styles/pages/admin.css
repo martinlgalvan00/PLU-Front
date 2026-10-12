@@ -3689,6 +3689,62 @@
   text-transform: uppercase;
 }
 
+/* "Avanzado": un único desplegable al pie de Publicación. Sin card: regla
+   superior y flujo abierto, para no anidar superficies dentro del modal. */
+.admin-event-form__advanced {
+  border-top: 1px solid
+    color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 85%, transparent);
+  margin-top: 4px;
+}
+
+.admin-event-form__advanced > summary {
+  align-items: center;
+  color: var(--admin-muted, var(--color-text-muted));
+  cursor: pointer;
+  display: flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  justify-content: space-between;
+  list-style: none;
+  min-height: 44px;
+}
+
+.admin-event-form__advanced > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-event-form__advanced > summary:hover {
+  color: var(--admin-text-secondary, inherit);
+}
+
+.admin-event-form__advanced > summary:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-event-form__advanced > summary svg {
+  flex: none;
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.admin-event-form__advanced[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+.admin-event-form__advanced-body {
+  display: grid;
+  gap: 18px;
+  padding: 8px 0 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-event-form__advanced > summary svg {
+    transition: none;
+  }
+}
+
 /* Mínimo táctil de los chips del editor y del selector de pestañas de
    ventas. `.admin-filter-chip` no declara `min-height`: la altura sale del
    padding y queda en 26px, así que estado público y acceso al meet quedaban

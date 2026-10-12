@@ -587,3 +587,50 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
     expect(onSetEventRegistrationPrice).not.toHaveBeenCalled()
   })
 })
+
+describe('AdminEventEditor — alta de un evento nuevo', () => {
+  function renderNewEvent() {
+    return renderEditor({ id: null, pricing: { registration: 75000, ticketsEnabled: false } })
+  }
+
+  it('no ofrece Entradas ni diagnostica la venta cuando todavía no hay evento', () => {
+    renderNewEvent()
+    activateEditorTab(/ventas y cupos/i)
+    const nav = screen.getByRole('tablist', { name: /capítulos de ventas y cupos/i })
+    expect(within(nav).queryByRole('tab', { name: /entradas/i })).toBeNull()
+    expect(within(nav).getByRole('tab', { name: /cupo/i })).toBeTruthy()
+    expect(within(nav).getByRole('tab', { name: /cobro/i })).toBeTruthy()
+    expect(screen.queryByText(/la venta está cerrada/i)).toBeNull()
+  })
+
+  it('un evento existente conserva el capítulo Entradas', () => {
+    renderEditor()
+    activateEditorTab(/ventas y cupos/i)
+    expect(salesChapter(/entradas/i)).toBeTruthy()
+  })
+})
+
+describe('AdminEventEditor — Publicación con bloque Avanzado', () => {
+  const advancedSummary = () => screen.getByText(/textos de la página, módulos y transmisión/i)
+
+  it('deja estado, publicación y acceso arriba y lo demás colapsado', () => {
+    renderEditor()
+    activateEditorTab(/publicación/i)
+    const advanced = advancedSummary().closest('details')
+    expect(advanced.open).toBe(false)
+    const panel = screen.getByRole('tabpanel', { name: /publicación/i })
+    const toggles = [...panel.querySelectorAll('.admin-event-form__toggle, .admin-event-form__access')]
+    const firstAdvanced = advanced.compareDocumentPosition(toggles[0])
+    // El primer control de decisión queda antes del desplegable.
+    expect(firstAdvanced & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
+    expect(advanced.contains(document.getElementById('event-public-title'))).toBe(true)
+    expect(advanced.contains(document.getElementById('event-live-url'))).toBe(true)
+    expect(advanced.contains(document.getElementById('event-access'))).toBe(false)
+  })
+
+  it('arranca abierto si el evento ya trae textos públicos cargados', () => {
+    renderEditor({ publicCopy: { heroLead: 'Tres días de fierro' } })
+    activateEditorTab(/publicación/i)
+    expect(advancedSummary().closest('details').open).toBe(true)
+  })
+})

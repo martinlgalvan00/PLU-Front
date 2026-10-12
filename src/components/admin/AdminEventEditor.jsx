@@ -6,6 +6,7 @@ import {
   Banknote,
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   CircleAlert,
   Eye,
   Link2,
@@ -152,8 +153,23 @@ function resolveTabForField(key) {
     SALES_FIELD_KEYS.has(key)
   )
     return 'sales'
-  if (VISIBILITY_FIELD_KEYS.has(key)) return 'visibility'
+  if (VISIBILITY_FIELD_KEYS.has(key) || key.startsWith('publicCopy.')) return 'visibility'
   return 'basics'
+}
+
+/** Campos de Publicación que viven en el bloque colapsado "Avanzado". */
+function isAdvancedVisibilityField(key) {
+  return key.startsWith('publicCopy.') || key.startsWith('liveStream') || key === 'liveStatus'
+}
+
+/** Abre "Avanzado" solo si el evento ya trae algo cargado ahí. */
+function hasAdvancedVisibilityContent(draft) {
+  const copy = draft.publicCopy ?? {}
+  return (
+    Object.values(copy).some((value) => String(value ?? '').trim() !== '') ||
+    Boolean(draft.liveStreamUrl?.trim?.()) ||
+    (draft.liveStatus ?? 'offline') !== 'offline'
+  )
 }
 
 function CapacityVisibilityToggle({
@@ -242,6 +258,29 @@ function FormField({ children, error, htmlFor, label, wide = false }) {
         </span>
       ) : null}
     </label>
+  )
+}
+
+/**
+ * Lo que casi nunca se toca al cargar un meet (textos de la página pública,
+ * módulos visibles, transmisión) queda detrás de un solo desplegable. Con
+ * `enabled` apagado -- el acordeón de la consola -- se renderiza plano, como
+ * antes.
+ */
+function AdvancedGroup({ children, enabled, onToggle, open, summary }) {
+  if (!enabled) return children
+  return (
+    <details
+      className="admin-event-form__advanced"
+      open={open}
+      onToggle={(event) => onToggle(event.currentTarget.open)}
+    >
+      <summary>
+        <span>{summary}</span>
+        <ChevronDown size={14} aria-hidden />
+      </summary>
+      <div className="admin-event-form__advanced-body">{children}</div>
+    </details>
   )
 }
 
@@ -518,6 +557,7 @@ export default function AdminEventEditor({
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [activeTab, setActiveTab] = useState('basics')
   const [salesChapter, setSalesChapter] = useState('cupo')
+  const [advancedOpen, setAdvancedOpen] = useState(() => hasAdvancedVisibilityContent(draft))
   const [bankProfiles, setBankProfiles] = useState([])
   const [bankProfilesLoading, setBankProfilesLoading] = useState(false)
   const [mpProfiles, setMpProfiles] = useState([])
@@ -911,6 +951,7 @@ export default function AdminEventEditor({
     const validation = dirty ? validateAdminEventDraft(draft, t) : { ok: true, fieldErrors: {} }
     if (!validation.ok) {
       setFieldErrors(validation.fieldErrors)
+      if (Object.keys(validation.fieldErrors).some(isAdvancedVisibilityField)) setAdvancedOpen(true)
       setSalesChapter(resolveSalesChapterForField(validation.firstKey))
       const targetTab = resolveTabForField(validation.firstKey)
       const firstMessage =
@@ -974,6 +1015,11 @@ export default function AdminEventEditor({
 
   const err = (key) => fieldErrors[key]
   const ticketSalesEnabled = draft.pricing?.ticketsEnabled === true
+  // Al crear no hay jornadas ni tipos de entrada que vender todavía (se cargan
+  // en la consola, ver AdminEventQuickCreate): el capítulo aparece recién al
+  // existir el evento, o antes si el draft ya trae la venta prendida o un error.
+  const showTicketsChapter =
+    Boolean(draft.id) || ticketSalesEnabled || salesChaptersWithErrors.has('tickets')
   const registeredCount = sourceEvent?.registered ?? 0
   const slotsTotal = Math.max(0, Number(draft.slots) || 0)
   const slotsRemaining = Math.max(slotsTotal - registeredCount, 0)
@@ -1328,7 +1374,9 @@ export default function AdminEventEditor({
                           }),
                           panelId: 'event-section-sales-payment',
                         },
-                      ].map((chapter) => {
+                      ]
+                        .filter((chapter) => chapter.id !== 'tickets' || showTicketsChapter)
+                        .map((chapter) => {
                         const selected = salesChapter === chapter.id
                         return (
                           <button
@@ -1368,7 +1416,7 @@ export default function AdminEventEditor({
                       controles y los otros cinco viven en Cobro, en Finanzas o
                       en el entorno. Acá arriba también dice dónde se arregla y
                       lleva al capítulo que corresponde. */}
-                  {essentials ? null : (
+                  {essentials || !draft.id ? null : (
                     <AdminTicketSalesStatus
                       draft={draft}
                       onGoToChapter={handleSalesChapterChange}
@@ -2050,6 +2098,7 @@ export default function AdminEventEditor({
                     </div>
                   </div>
 
+                  {showTicketsChapter ? (
                   <div
                     id="event-section-tickets"
                     className={`admin-event-form__lane admin-event-form__lane--tickets${essentials ? ' admin-event-form__lane--tickets-essentials' : ''}`}
@@ -2198,6 +2247,7 @@ export default function AdminEventEditor({
                       </>
                     ) : null}
                   </div>
+                  ) : null}
                 </section>
               )}
 
@@ -2243,6 +2293,58 @@ export default function AdminEventEditor({
                     </>
                   )}
 
+                  {essentials ? null : (
+                    <>
+                      <label className="admin-event-form__toggle">
+                        <input
+                          checked={Boolean(draft.published)}
+                          className="admin-event-form__toggle-input"
+                          type="checkbox"
+                          onChange={(event) =>
+                            patchDraft({ ...draft, published: event.target.checked })
+                          }
+                          disabled={!canEdit}
+                        />
+                        <span className="admin-event-form__toggle-ui" aria-hidden />
+                        <span className="admin-event-form__toggle-copy">
+                          <strong>
+                            <Eye size={13} aria-hidden />
+                            {draft.published
+                              ? t('admin.eventEditor.supabase.publishedTitle')
+                              : t('admin.eventEditor.supabase.unpublishedTitle')}
+                          </strong>
+                          <small>{t('admin.eventEditor.supabase.publishedHint')}</small>
+                        </span>
+                      </label>
+
+                      {/* Acceso al meet: misma decisión que StateControl. En el
+                          acordeón de la consola vive solo allá (PATCH parcial). */}
+                      <div className="admin-event-form__access">
+                        <AdminFilterChipGroup
+                          compact
+                          disabled={!canEdit}
+                          id="event-access"
+                          label={t('admin.eventEditor.accessLabel')}
+                          value={draft.requiresMembership === false ? 'open' : 'members'}
+                          onChange={(value) =>
+                            patchDraft({ ...draft, requiresMembership: value === 'members' })
+                          }
+                          options={accessOptions}
+                        />
+                        <p className="admin-event-form__access-note">
+                          {draft.requiresMembership === false ? (
+                            <Unlock size={13} aria-hidden />
+                          ) : (
+                            <ShieldCheck size={13} aria-hidden />
+                          )}
+                          {draft.requiresMembership === false
+                            ? t('admin.eventState.accessOpenNote')
+                            : t('admin.eventState.accessMembersNote')}
+                        </p>
+                      </div>
+                    </>
+                  )}
+
                   <label className="admin-event-form__toggle">
                     <input
                       checked={draft.featured}
@@ -2261,6 +2363,12 @@ export default function AdminEventEditor({
                     </span>
                   </label>
 
+                  <AdvancedGroup
+                    enabled={!essentials}
+                    open={advancedOpen}
+                    onToggle={setAdvancedOpen}
+                    summary={t('admin.eventEditor.advancedSummary')}
+                  >
                   {/* Cómo se presenta el evento en su página. Son los tres
                       textos que de verdad cambian por evento; los encabezados
                       de cada bloque los sigue fijando el diseño, que es lo que
@@ -2471,58 +2579,6 @@ export default function AdminEventEditor({
                   </fieldset>
                   )}
 
-                  {essentials ? null : (
-                    <>
-                      <label className="admin-event-form__toggle">
-                        <input
-                          checked={Boolean(draft.published)}
-                          className="admin-event-form__toggle-input"
-                          type="checkbox"
-                          onChange={(event) =>
-                            patchDraft({ ...draft, published: event.target.checked })
-                          }
-                          disabled={!canEdit}
-                        />
-                        <span className="admin-event-form__toggle-ui" aria-hidden />
-                        <span className="admin-event-form__toggle-copy">
-                          <strong>
-                            <Eye size={13} aria-hidden />
-                            {draft.published
-                              ? t('admin.eventEditor.supabase.publishedTitle')
-                              : t('admin.eventEditor.supabase.unpublishedTitle')}
-                          </strong>
-                          <small>{t('admin.eventEditor.supabase.publishedHint')}</small>
-                        </span>
-                      </label>
-
-                      {/* Acceso al meet: misma decisión que StateControl. En el
-                          acordeón de la consola vive solo allá (PATCH parcial). */}
-                      <div className="admin-event-form__access">
-                        <AdminFilterChipGroup
-                          compact
-                          disabled={!canEdit}
-                          id="event-access"
-                          label={t('admin.eventEditor.accessLabel')}
-                          value={draft.requiresMembership === false ? 'open' : 'members'}
-                          onChange={(value) =>
-                            patchDraft({ ...draft, requiresMembership: value === 'members' })
-                          }
-                          options={accessOptions}
-                        />
-                        <p className="admin-event-form__access-note">
-                          {draft.requiresMembership === false ? (
-                            <Unlock size={13} aria-hidden />
-                          ) : (
-                            <ShieldCheck size={13} aria-hidden />
-                          )}
-                          {draft.requiresMembership === false
-                            ? t('admin.eventState.accessOpenNote')
-                            : t('admin.eventState.accessMembersNote')}
-                        </p>
-                      </div>
-                    </>
-                  )}
-
                   {/* Transmisión: fuera del acordeón elemental (solo destacado). */}
                   {!essentials ? (
                   <div className="admin-event-form__ticket-config">
@@ -2612,6 +2668,7 @@ export default function AdminEventEditor({
                     </div>
                   </div>
                   ) : null}
+                  </AdvancedGroup>
                 </section>
               )}
             </div>

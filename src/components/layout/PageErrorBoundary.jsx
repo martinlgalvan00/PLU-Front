@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import PageErrorState from '../ui/PageErrorState.jsx'
+import { isChunkLoadError } from '../../lib/lazyWithRetry.js'
 
 /**
  * Aísla el fallo de render de una vista.
@@ -37,6 +38,12 @@ export default class PageErrorBoundary extends Component {
   }
 
   handleRetry() {
+    // `lazy` conserva la promesa rechazada: limpiar el estado volvería a tirar
+    // el mismo error. Un fallo de carga de módulo sólo se salva recargando.
+    if (isChunkLoadError(this.state.error)) {
+      window.location.reload()
+      return
+    }
     this.setState({ error: null })
   }
 
