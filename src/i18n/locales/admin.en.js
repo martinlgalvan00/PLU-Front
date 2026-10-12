@@ -1622,6 +1622,7 @@ export default {
     ticketTypeLabel: 'Ticket',
     validFrom: 'Valid from',
     validUntil: 'Expires',
+    admittedAt: 'Checked in',
     expiredOn: 'Expired on {{date}}',
     validFromOn: 'Valid starting {{date}}',
     validity: {
