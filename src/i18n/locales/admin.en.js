@@ -1655,6 +1655,13 @@ export default {
       ready: 'Camera ready, point at the QR',
       starting: 'Starting camera…',
       permission: 'Could not access the camera. Check browser permissions.',
+      camera: {
+        missing: 'No camera available on this device. Use manual mode.',
+        busy: 'The camera is in use by another app or tab. Close it and retry.',
+        unknown: 'Could not start the camera. Retry or use manual mode.',
+      },
+      retry: 'Retry',
+      torchToggle: 'Flashlight',
       unsupported: 'This browser does not support camera scanning.',
       useManual: 'Use manual mode to paste the code.',
       dismiss: 'Dismiss',
