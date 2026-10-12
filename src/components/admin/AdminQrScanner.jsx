@@ -1,9 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import jsQR from 'jsqr'
-import { CameraOff, Smartphone, Volume2, VolumeX } from 'lucide-react'
+import {
+  CameraOff,
+  Flashlight,
+  FlashlightOff,
+  RefreshCw,
+  Smartphone,
+  Volume2,
+  VolumeX,
+} from 'lucide-react'
 import SegmentedSwitch from '../ui/SegmentedSwitch.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { shouldAcceptScan } from '../../lib/checkinScanCooldown.js'
+import { classifyCameraError, isCameraErrorRetryable } from '../../lib/cameraError.js'
 
 // Frame de trabajo para el decoder de respaldo (jsQR) -- más chico que la
 // resolución real de la cámara para no cargar la CPU en celulares de gama
@@ -49,6 +58,11 @@ export default function AdminQrScanner({
   const [manualValue, setManualValue] = useState('')
   const [cameraError, setCameraError] = useState(null)
   const [cameraReady, setCameraReady] = useState(false)
+  // Cambia para volver a pedir la cámara sin recargar la página.
+  const [cameraAttempt, setCameraAttempt] = useState(0)
+  const [torchSupported, setTorchSupported] = useState(false)
+  const [torchOn, setTorchOn] = useState(false)
+  const trackRef = useRef(null)
   const [localFeedbackPrefs, setLocalFeedbackPrefs] = useState(readFeedbackPrefs)
 
   const activeFeedbackPrefs = feedbackPrefs ?? localFeedbackPrefs
@@ -143,6 +157,8 @@ export default function AdminQrScanner({
   useEffect(() => {
     if (mode !== 'camera' || disabled) {
       setCameraReady(false)
+      setTorchSupported(false)
+      setTorchOn(false)
       return undefined
     }
 
@@ -201,6 +217,8 @@ export default function AdminQrScanner({
     async function startCamera() {
       setCameraError(null)
       setCameraReady(false)
+      setTorchSupported(false)
+      setTorchOn(false)
 
       if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
         setCameraError('unsupported')
@@ -226,10 +244,15 @@ export default function AdminQrScanner({
 
         video.srcObject = stream
         await video.play()
+        // La linterna sólo existe en algunas cámaras traseras; se ofrece si el
+        // track la declara. En la puerta de noche decide si el QR se lee.
+        const [track] = stream.getVideoTracks()
+        trackRef.current = track ?? null
+        setTorchSupported(Boolean(track?.getCapabilities?.().torch))
         setCameraReady(true)
         scanLoop()
-      } catch {
-        setCameraError('permission')
+      } catch (error) {
+        if (!cancelled) setCameraError(classifyCameraError(error))
       }
     }
 
@@ -239,19 +262,38 @@ export default function AdminQrScanner({
     return () => {
       cancelled = true
       cancelAnimationFrame(raf)
+      trackRef.current = null
       stream?.getTracks().forEach((track) => track.stop())
       if (currentVideo) {
         currentVideo.srcObject = null
       }
     }
-  }, [disabled, emitScan, mode])
+  }, [cameraAttempt, disabled, emitScan, mode])
+
+  async function toggleTorch() {
+    const track = trackRef.current
+    if (!track) return
+    const next = !torchOn
+    try {
+      await track.applyConstraints({ advanced: [{ torch: next }] })
+      setTorchOn(next)
+    } catch {
+      // El navegador la declaró y la rechazó: se oculta el botón en vez de
+      // dejar uno que no hace nada.
+      setTorchSupported(false)
+      setTorchOn(false)
+    }
+  }
 
   function handleManualSubmit(event) {
     event.preventDefault()
     if (emitScan(manualValue, 'manual')) setManualValue('')
   }
 
-  const cameraBlocked = mode === 'camera' && cameraError === 'permission'
+  const cameraBlocked = mode === 'camera' && Boolean(cameraError) && cameraError !== 'unsupported'
+  const cameraMessageKey = ['missing', 'busy', 'unknown'].includes(cameraError)
+    ? `admin.checkin.scanner.camera.${cameraError}`
+    : 'admin.checkin.scanner.permission'
   const showUnsupportedNote = cameraError === 'unsupported' && mode === 'manual'
 
   return (
@@ -296,6 +338,22 @@ export default function AdminQrScanner({
                 <VolumeX size={14} aria-hidden />
               )}
             </button>
+            {torchSupported ? (
+              <button
+                type="button"
+                className={`admin-checkin-scanner__feedback-btn${torchOn ? ' is-active' : ''}`}
+                aria-pressed={torchOn}
+                aria-label={t('admin.checkin.scanner.torchToggle')}
+                title={t('admin.checkin.scanner.torchToggle')}
+                onClick={toggleTorch}
+              >
+                {torchOn ? (
+                  <Flashlight size={14} aria-hidden />
+                ) : (
+                  <FlashlightOff size={14} aria-hidden />
+                )}
+              </button>
+            ) : null}
             <button
               type="button"
               className={`admin-checkin-scanner__feedback-btn${activeFeedbackPrefs.vibrateEnabled ? ' is-active' : ''}`}
@@ -340,7 +398,16 @@ export default function AdminQrScanner({
             {cameraBlocked && (
               <div className="admin-checkin-scanner__camera-fallback">
                 <CameraOff size={22} aria-hidden />
-                <p>{t('admin.checkin.scanner.permission')}</p>
+                <p role="alert">{t(cameraMessageKey)}</p>
+                {isCameraErrorRetryable(cameraError) ? (
+                  <button
+                    type="button"
+                    className="admin-checkin-scanner__fallback-link"
+                    onClick={() => setCameraAttempt((attempt) => attempt + 1)}
+                  >
+                    <RefreshCw size={13} aria-hidden /> {t('admin.checkin.scanner.retry')}
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   className="admin-checkin-scanner__fallback-link"

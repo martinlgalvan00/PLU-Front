@@ -2,12 +2,18 @@ import '../styles/pages/design-phase2.css'
 import '../styles/pages/records.css'
 import { useMemo, useState } from 'react'
 import { ArrowRight, Mail, Search, X } from 'lucide-react'
+import { m } from 'motion/react'
 import Button from '../components/ui/Button.jsx'
 import ExportButton from '../components/ui/ExportButton.jsx'
 import FilterPills from '../components/ui/FilterPills.jsx'
 import PluPageHero from '../components/layout/PluPageHero.jsx'
+import RecordsSoonMedal from '../components/ui/RecordsSoonMedal.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
+import { useMotionConfig } from '../motion/MotionProvider.tsx'
+import MotionContentSwap from '../motion/MotionContentSwap.tsx'
+import { MOTION_VIEWPORT } from '../motion/tokens.ts'
+import { staggerContainer, staggerItem } from '../motion/variants.ts'
 import { formatShortDate } from '../lib/format.js'
 import {
   buildRecordsCsv,
@@ -25,6 +31,20 @@ import {
 const TABLE_COLUMNS = ['lift', 'athlete', 'meet', 'date', 'mark']
 
 function RecordsClassTable({ weightClassBlock, locale, t, visibleLifts }) {
+  const { reducedMotion, tier } = useMotionConfig()
+  const animated = !(reducedMotion || tier === 'low')
+  const Body = animated ? m.tbody : 'tbody'
+  const Row = animated ? m.tr : 'tr'
+  const bodyProps = animated
+    ? {
+        initial: 'hidden',
+        whileInView: 'visible',
+        viewport: MOTION_VIEWPORT,
+        variants: staggerContainer,
+      }
+    : {}
+  const rowProps = animated ? { variants: staggerItem } : {}
+
   return (
     <article className="records-class" aria-labelledby={`records-class-${weightClassBlock.id}`}>
       <header className="records-class__head">
@@ -47,20 +67,20 @@ function RecordsClassTable({ weightClassBlock, locale, t, visibleLifts }) {
               ))}
             </tr>
           </thead>
-          <tbody>
+          <Body {...bodyProps}>
             {visibleLifts.map((lift) => {
               const entry = weightClassBlock.lifts[lift]
               return (
-                <tr key={lift}>
+                <Row key={lift} {...rowProps}>
                   <th scope="row">{t(`pages.records.lifts.${lift}`)}</th>
                   <td>{entry?.athlete ?? '—'}</td>
                   <td>{entry?.meet ?? '—'}</td>
                   <td>{entry?.dateISO ? formatShortDate(entry.dateISO, locale) : '—'}</td>
                   <td className="records-class__mark">{entry?.markLabel ?? '—'}</td>
-                </tr>
+                </Row>
               )
             })}
-          </tbody>
+          </Body>
         </table>
       </div>
     </article>
@@ -101,6 +121,9 @@ export default function RecordsPage({ onNavigate }) {
 
   const sections = useMemo(() => groupRecordsFederated(entries), [entries])
   const visibleLifts = liftFilter === 'all' ? RECORD_LIFTS : [liftFilter]
+  // La búsqueda de texto solo filtra filas; los filtros de categoría reemplazan
+  // el cuadro entero y por eso son los que disparan la transición.
+  const sectionsKey = `${liftFilter}|${sexFilter}|${groupFilter}|${equipmentFilter}`
   const hasRecords = register.entries.length > 0
   const filtersActive =
     query.trim() !== '' ||
@@ -109,12 +132,10 @@ export default function RecordsPage({ onNavigate }) {
     equipmentFilter !== 'all' ||
     liftFilter !== 'all'
   const showEquipmentRow = equipmentFilters.length > 2
-  const stamp = hasRecords
-    ? t('pages.records.sheetStampLive', {
-        count: register.entries.length,
-        meets: register.meetCount,
-      })
-    : t('pages.records.sheetStamp')
+  const stamp = t('pages.records.sheetStampLive', {
+    count: register.entries.length,
+    meets: register.meetCount,
+  })
 
   function handleExport() {
     if (!entries.length) return
@@ -131,10 +152,14 @@ export default function RecordsPage({ onNavigate }) {
   }
 
   return (
-    <main className="page page--design page--plu-ref records-page records-page--plu-ref records-page--federated">
+    <main
+      className={`page page--design page--plu-ref records-page records-page--plu-ref records-page--federated${hasRecords ? '' : ' records-page--soon'}`}
+    >
       <PluPageHero
+        align={hasRecords ? 'center' : 'start'}
         breadcrumbLabel={t('pages.records.heroBreadcrumb')}
         chapter={t('pages.records.heroEyebrow')}
+        className={hasRecords ? '' : 'records-page__hero'}
         description={hasRecords ? t('pages.records.heroDesc') : t('pages.records.heroDescSoon')}
         onHome={() => onNavigate('home')}
         title={t('pages.records.heroTitle')}
@@ -142,18 +167,16 @@ export default function RecordsPage({ onNavigate }) {
 
       <div className="records-page__body">
         <Reveal as="section" className="records-sheet" aria-labelledby="records-sheet-title">
-          <header className="records-sheet__head">
-            <div className="records-sheet__titles">
-              <h2 id="records-sheet-title" className="records-sheet__title">
-                {hasRecords ? t('pages.records.sheetTitle') : t('pages.records.soonTitle')}
-              </h2>
-              <p className="records-sheet__subtitle">
-                {hasRecords ? t('pages.records.sheetSubtitle') : t('pages.records.soonLead')}
-              </p>
-            </div>
-            <div className="records-sheet__head-meta">
-              <p className="records-sheet__stamp">{stamp}</p>
-              {hasRecords ? (
+          {hasRecords ? (
+            <header className="records-sheet__head">
+              <div className="records-sheet__titles">
+                <h2 id="records-sheet-title" className="records-sheet__title">
+                  {t('pages.records.sheetTitle')}
+                </h2>
+                <p className="records-sheet__subtitle">{t('pages.records.sheetSubtitle')}</p>
+              </div>
+              <div className="records-sheet__head-meta">
+                <p className="records-sheet__stamp">{stamp}</p>
                 <ExportButton
                   iconOnly
                   className="records-sheet__export"
@@ -161,41 +184,39 @@ export default function RecordsPage({ onNavigate }) {
                   onClick={handleExport}
                   disabled={entries.length === 0}
                 />
-              ) : null}
-            </div>
-          </header>
+              </div>
+            </header>
+          ) : null}
 
           {!hasRecords ? (
             <div className="records-soon" role="status">
-              <p className="records-soon__badge">{t('pages.records.soonBadge')}</p>
-              <h3 className="records-soon__title">{t('pages.records.soonHeadline')}</h3>
-              <p className="records-soon__text">{t('pages.records.sheetHint')}</p>
-              <div
-                className="records-sheet__actions records-soon__actions"
-                role="group"
-                aria-label={t('pages.records.actionsAria')}
-              >
-                <Button
-                  className="records-sheet__cta records-sheet__cta--primary motion-icon-shift"
-                  onClick={() => onNavigate('results')}
+              <RecordsSoonMedal year="2026" />
+              <div className="records-soon__copy">
+                <p className="records-soon__badge">{t('pages.records.soonBadge')}</p>
+                <h2 id="records-sheet-title" className="records-soon__title">
+                  {t('pages.records.soonHeadline')}
+                </h2>
+                <p className="records-soon__text">{t('pages.records.sheetHint')}</p>
+                <div
+                  className="records-sheet__actions records-soon__actions"
+                  role="group"
+                  aria-label={t('pages.records.actionsAria')}
                 >
-                  {t('pages.records.ctaResults')}
-                  <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
-                </Button>
-                <Button
-                  variant="outline"
-                  className="records-sheet__cta records-sheet__cta--outline"
-                  onClick={() => onNavigate('events')}
-                >
-                  {t('pages.records.ctaCalendar')}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="records-sheet__cta records-sheet__cta--outline"
-                  onClick={() => onNavigate('members')}
-                >
-                  {t('pages.records.ctaMembers')}
-                </Button>
+                  <Button
+                    className="records-sheet__cta records-sheet__cta--primary motion-icon-shift"
+                    onClick={() => onNavigate('results')}
+                  >
+                    {t('pages.records.ctaResults')}
+                    <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="records-sheet__cta records-sheet__cta--outline"
+                    onClick={() => onNavigate('events')}
+                  >
+                    {t('pages.records.ctaCalendar')}
+                  </Button>
+                </div>
               </div>
             </div>
           ) : null}
@@ -298,7 +319,7 @@ export default function RecordsPage({ onNavigate }) {
           ) : null}
 
           {hasRecords && sections.length > 0 ? (
-            <div className="records-federated">
+            <MotionContentSwap className="records-federated" swapKey={sectionsKey}>
               {sections.map((section) => (
                 <section
                   key={section.id}
@@ -330,7 +351,7 @@ export default function RecordsPage({ onNavigate }) {
                   </div>
                 </section>
               ))}
-            </div>
+            </MotionContentSwap>
           ) : null}
 
           {hasRecords && entries.length === 0 ? (

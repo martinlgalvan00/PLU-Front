@@ -1,13 +1,5 @@
 import { useMemo, useState } from 'react'
-import {
-  BadgeCheck,
-  CheckCircle2,
-  CircleAlert,
-  Clock3,
-  CreditCard,
-  Eye,
-  Paperclip,
-} from 'lucide-react'
+import { BadgeCheck, CheckCircle2, CreditCard, Eye, Paperclip } from 'lucide-react'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
 import AdminIconButton from './AdminIconButton.jsx'
 import PaymentValidationAction from './PaymentValidationAction.jsx'
@@ -21,6 +13,7 @@ import {
   buildPaymentValidationItem,
 } from '../../services/paymentValidationService.js'
 import { buildEventPaymentTriage } from '../../services/eventPaymentTriage.js'
+import '../../styles/pages/admin-event-payments.css'
 
 /**
  * Triage de pagos del meet: pendientes, problemas y en regla, con validación
@@ -135,21 +128,6 @@ export default function AdminEventPaymentsTriage({
           </button>
         ) : null}
       </header>
-
-      <div className="admin-event-payments__summary" role="status">
-        <span className="admin-event-payments__stat admin-event-payments__stat--pending">
-          <Clock3 size={14} aria-hidden />
-          {t('admin.eventPayments.statPending', { count: triage.counts.pending })}
-        </span>
-        <span className="admin-event-payments__stat admin-event-payments__stat--problem">
-          <CircleAlert size={14} aria-hidden />
-          {t('admin.eventPayments.statProblem', { count: triage.counts.problem })}
-        </span>
-        <span className="admin-event-payments__stat admin-event-payments__stat--ok">
-          <CheckCircle2 size={14} aria-hidden />
-          {t('admin.eventPayments.statOk', { count: triage.counts.ok })}
-        </span>
-      </div>
 
       <AdminFilterChipGroup
         compact

@@ -187,6 +187,10 @@ export function serializeUser(user) {
           id: user.securityZone.id,
           name: user.securityZone.name,
           scope: user.securityZone.scope,
+          // Turno asignado al puesto: el operador lo ve en "Mi puesto". Nulo =
+          // cubre todo el evento.
+          shiftStart: user.securityZone.shiftStart ?? null,
+          shiftEnd: user.securityZone.shiftEnd ?? null,
         }
       : null,
     lastLoginAt: user.lastLoginAt ?? null,
@@ -213,7 +217,7 @@ export async function readSession({ prisma, token, now = new Date() }) {
           accessRole: { include: ACCESS_ROLE_INCLUDE },
           // Va en la misma consulta que ya resuelve la sesión: es un join más,
           // no un request extra por cada escaneo.
-          securityZone: { select: { id: true, name: true, scope: true } },
+          securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
         },
       },
     },

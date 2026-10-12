@@ -137,6 +137,10 @@ export function canCheckIn(subject) {
   return hasPermission(subject, 'admin.checkin.execute')
 }
 
+export function canApproveStaffApplications(subject) {
+  return hasPermission(subject, 'admin.staff_applications.approve')
+}
+
 // Rol de solo escaneo (ej. seguridad en la puerta): entra al panel admin
 // pero no tiene ninguna otra tarea -- el nav completo (Atletas, Pagos,
 // Usuarios...) le queda al pedo y encima expone datos que no necesita ver.

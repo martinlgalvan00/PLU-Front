@@ -1,0 +1,404 @@
+/* Afiliación — "Cómo funciona" como explicativo animado.
+   Pantallas con un guion por paso (formulario → pago → credencial): grafito en
+   modo oscuro y papel blanco en modo claro. Los colores salen de las variables
+   `--ex-*` de la pantalla; cada tema solo redefine esas. Solo transform +
+   opacity; ninguna animación en loop: cada escena se reproduce una vez y queda
+   en su estado final. */
+
+.explainer-screen {
+  --ex-bg: var(--plu-cool-950, #0b0d12);
+  --ex-ink: #fff;
+  --ex-ink-soft: rgba(255, 255, 255, 0.64);
+  --ex-ink-chip: rgba(255, 255, 255, 0.86);
+  --ex-line: rgba(255, 255, 255, 0.1);
+  --ex-line-bar: rgba(255, 255, 255, 0.12);
+  --ex-line-strong: rgba(255, 255, 255, 0.16);
+  --ex-fill-soft: rgba(255, 255, 255, 0.08);
+  --ex-fill-track: rgba(255, 255, 255, 0.1);
+  --ex-fill-bar: rgba(255, 255, 255, 0.78);
+  --ex-fill-skel: rgba(255, 255, 255, 0.18);
+  --ex-qr-bg: rgba(255, 255, 255, 0.94);
+  --ex-qr-ink: var(--plu-cool-950, #0b0d12);
+  --ex-brand: var(--color-brand-celeste, var(--plu-celeste-500));
+  --ex-gold: var(--color-brand-gold);
+  --ex-shadow: none;
+
+  background: var(--ex-bg);
+  border: 1px solid var(--ex-line);
+  border-radius: 6px;
+  box-shadow: var(--ex-shadow);
+  color: var(--ex-ink);
+  display: grid;
+  gap: 14px;
+  grid-template-rows: auto auto 1fr;
+  min-height: 20rem;
+  padding: clamp(18px, 3vw, 28px);
+  width: 100%;
+}
+
+.explainer-screen p {
+  margin: 0;
+}
+
+.explainer-screen__bar {
+  align-items: center;
+  border-bottom: 1px solid var(--ex-line-bar);
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 12px;
+}
+
+.explainer-screen__brand {
+  color: var(--ex-brand);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+.explainer-screen__step {
+  color: var(--ex-gold);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.explainer-screen__label {
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.explainer-screen__body {
+  align-items: center;
+  display: grid;
+  min-height: 0;
+}
+
+.explainer-scene {
+  width: 100%;
+}
+
+.explainer-chip {
+  align-items: center;
+  background: var(--ex-fill-soft);
+  border-radius: 8px;
+  color: var(--ex-ink-chip);
+  display: inline-grid;
+  height: 36px;
+  place-items: center;
+  width: 36px;
+}
+
+/* 1 · Cuenta */
+.explainer-form {
+  display: grid;
+  gap: 16px;
+}
+
+.explainer-form__row {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 36px minmax(0, 1fr) 22px;
+}
+
+.explainer-form__field {
+  background: var(--ex-fill-track);
+  border-radius: 99px;
+  display: block;
+  height: 10px;
+  overflow: hidden;
+}
+
+.explainer-form__fill {
+  background: var(--ex-fill-bar);
+  border-radius: 99px;
+  display: block;
+  height: 100%;
+  transform-origin: left center;
+  width: 100%;
+}
+
+.explainer-form__tick {
+  background: var(--color-brand-gold);
+  border-radius: 50%;
+  color: var(--plu-cool-950, #0b0d12);
+  display: inline-grid;
+  height: 22px;
+  place-items: center;
+  width: 22px;
+}
+
+.explainer-form__button {
+  background: var(--color-brand-gold);
+  border-radius: 999px;
+  display: block;
+  height: 40px;
+  justify-self: end;
+  margin-top: 6px;
+  width: 58%;
+}
+
+/* 2 · Pago */
+.explainer-pay {
+  display: grid;
+  gap: 16px;
+}
+
+.explainer-pay p {
+  margin: 0;
+}
+
+.explainer-pay__total {
+  align-items: baseline;
+  display: flex;
+  justify-content: space-between;
+}
+
+.explainer-pay__total span {
+  color: var(--ex-ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.explainer-pay__total strong {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.explainer-pay__methods {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.explainer-method {
+  align-items: center;
+  border: 1px solid var(--ex-line-strong);
+  border-radius: 6px;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 14px;
+  position: relative;
+}
+
+.explainer-method__ring {
+  border: 2px solid var(--color-brand-gold);
+  border-radius: 6px;
+  inset: -1px;
+  pointer-events: none;
+  position: absolute;
+}
+
+.explainer-pay__progress {
+  background: var(--ex-fill-track);
+  border-radius: 99px;
+  height: 4px;
+  overflow: hidden;
+}
+
+.explainer-pay__progress i {
+  background: var(--color-brand-gold);
+  display: block;
+  height: 100%;
+  transform-origin: left center;
+}
+
+.explainer-pay__done {
+  align-items: center;
+  color: var(--ex-gold);
+  display: inline-flex;
+  font-weight: 700;
+  gap: 8px;
+}
+
+/* 3 · Credencial */
+.explainer-card {
+  align-items: center;
+  display: grid;
+  gap: clamp(16px, 3vw, 28px);
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+}
+
+.explainer-card__qr {
+  aspect-ratio: 1;
+  background: var(--ex-qr-bg);
+  border-radius: 6px;
+  display: grid;
+  gap: 2px;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(9, 1fr);
+  overflow: hidden;
+  padding: 9px;
+  position: relative;
+}
+
+.explainer-card__qr i {
+  background: var(--ex-qr-ink);
+  border-radius: 1px;
+  display: block;
+}
+
+.explainer-card__scan {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.explainer-card__scan::before {
+  background: var(--color-brand-gold);
+  content: '';
+  height: 2px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.explainer-card__meta {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
+.explainer-card__line {
+  background: var(--ex-fill-skel);
+  border-radius: 99px;
+  display: block;
+  height: 8px;
+  transform-origin: left center;
+  width: 100%;
+}
+
+.explainer-card__line--short {
+  width: 60%;
+}
+
+.explainer-card__status {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-gold) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 55%, transparent);
+  border-radius: 999px;
+  color: var(--ex-gold);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 6px;
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+  padding: 6px 12px;
+}
+
+/* Modo claro: papel blanco con tinta. El dorado de los textos baja a gold-600
+   para sostener el contraste; el QR gana un filete porque el fondo ya es
+   blanco; las barras llenas pasan de blanco a tinta. */
+[data-theme='light'] .explainer-screen {
+  --ex-bg: #ffffff;
+  --ex-ink: var(--plu-ink-900, #1a1c22);
+  --ex-ink-soft: rgba(26, 28, 34, 0.62);
+  --ex-ink-chip: rgba(26, 28, 34, 0.82);
+  --ex-line: rgba(26, 28, 34, 0.1);
+  --ex-line-bar: rgba(26, 28, 34, 0.1);
+  --ex-line-strong: rgba(26, 28, 34, 0.16);
+  --ex-fill-soft: rgba(26, 28, 34, 0.06);
+  --ex-fill-track: rgba(26, 28, 34, 0.08);
+  --ex-fill-bar: rgba(26, 28, 34, 0.78);
+  --ex-fill-skel: rgba(26, 28, 34, 0.12);
+  --ex-qr-bg: var(--plu-warm-100, #f0efec);
+  --ex-qr-ink: var(--plu-ink-900, #1a1c22);
+  --ex-brand: var(--plu-celeste-600, #1f5f9e);
+  --ex-gold: var(--plu-gold-600, #a9790f);
+  --ex-shadow: 0 24px 48px -32px rgba(15, 17, 23, 0.2);
+}
+
+[data-theme='light'] .explainer-card__qr {
+  box-shadow: inset 0 0 0 1px rgba(26, 28, 34, 0.08);
+}
+
+/* Layout: lista + escenario fijo en desktop; escena dentro de cada paso en mobile. */
+.members-explainer {
+  display: grid;
+  gap: clamp(24px, 4vw, 48px);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.members-steps__inline-scene {
+  grid-column: 1 / -1;
+  margin-top: 14px;
+}
+
+/* Dentro del paso el título ya está arriba: la escena no lo repite. */
+.members-steps__inline-scene .explainer-screen {
+  grid-template-rows: auto 1fr;
+  min-height: 15rem;
+}
+
+.members-steps__inline-scene .explainer-screen__label {
+  display: none;
+}
+
+.members-explainer__chips {
+  display: grid;
+  gap: 6px;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  margin-top: 14px;
+}
+
+.members-explainer__chips span {
+  background: color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+  border-radius: 99px;
+  height: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.members-explainer__chips span::after {
+  background: var(--color-brand-gold);
+  content: '';
+  inset: 0;
+  position: absolute;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--motion-slow) var(--ease-out);
+}
+
+.members-explainer__chips span[data-on='true']::after {
+  transform: scaleX(1);
+}
+
+@media (min-width: 900px) {
+  .members-explainer[data-stage='true'] {
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  }
+
+  /* Cada paso tiene su tramo de scroll: el escenario cambia de escena a medida
+     que la lista pasa, en vez de verse los tres pasos de una vez. */
+  .members-explainer[data-stage='true'] .members-guide__item {
+    align-content: center;
+    min-height: clamp(180px, 32vh, 300px);
+  }
+
+  .members-explainer__stage {
+    position: sticky;
+    top: max(calc(var(--header-height, 72px) + 24px), calc(50vh - 190px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .members-explainer__chips span::after {
+    transition: none;
+  }
+}

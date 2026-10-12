@@ -23,6 +23,7 @@ export default function AdminOfflineSyncStatus({
   lastDownloadedAt,
   lastSyncedAt,
   pendingCount,
+  syncIssue = null,
   syncNow,
   syncing,
 }) {
@@ -116,6 +117,15 @@ export default function AdminOfflineSyncStatus({
           </button>
         </div>
       </div>
+
+      {syncIssue === 'auth' && hasPending ? (
+        <p
+          className="admin-offline-sync-status__meta admin-offline-sync-status__meta--warning"
+          role="alert"
+        >
+          {t('admin.checkin.offline.sessionExpired', { count: pendingCount })}
+        </p>
+      ) : null}
 
       {conflictCount > 0 && (
         <button

@@ -5,6 +5,7 @@ import { PaymentStateCell } from '../../components/admin/AdminStateCell.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
 import AdminFilterSearch from '../../components/admin/AdminFilterSearch.jsx'
+import AdminFilterSelect from '../../components/admin/AdminFilterSelect.jsx'
 import {
   AdminActionOverflow,
   AdminIdentityCell,
@@ -106,13 +107,21 @@ const SORT_BY_STATUS_FILTER = Object.freeze({
   financed: 'financing_due',
 })
 
-function formatDateTime(value, locale) {
+/**
+ * Fecha corta para la cola ("6 oct, 22:42"): la fecha completa con año y
+ * "p. m." partía la celda en tres renglones y no aporta en una cola que se
+ * mira por antigüedad.
+ */
+function formatShortDateTime(value, locale) {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '—'
   return date.toLocaleString(locale === 'en' ? 'en-US' : 'es-AR', {
-    dateStyle: 'short',
-    timeStyle: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: locale === 'en',
   })
 }
 
@@ -483,12 +492,12 @@ export default function AthletePaymentOrdersSection({
     >
       <header className="admin-orders-block__header">
         <div>
-          <span className="admin-orders-block__eyebrow">
-            {t('admin.athletePayments.eyebrow')}
-          </span>
           <h3 className="admin-orders-block__title">{t('admin.athletePayments.title')}</h3>
           <p className="admin-orders-block__lead">{t('admin.athletePayments.subtitle')}</p>
         </div>
+        {/* La cabecera de Cobros ya muestra cuántas órdenes y cuánta plata
+            esperan; este resumen queda como región `status` para lectores de
+            pantalla y para la sección montada sola. */}
         <div className="admin-orders-block__summary" role="status">
           <strong className="admin-orders-block__amount-value">
             {money(counts.openAmount, locale)}
@@ -528,17 +537,12 @@ export default function AthletePaymentOrdersSection({
             hideEmpty
             options={STATUS_FILTERS.map(([value, key]) => [value, t(key), counts[value] ?? 0])}
           />
-          <AdminFilterChipGroup
+          <AdminFilterSelect
             id="athlete-orders-channel"
-            label={t('admin.athletePayments.channelLabel')}
             ariaLabel={t('admin.athletePayments.channelLabel')}
             value={channel}
             onChange={setChannel}
-            compact
             defaultValue="all"
-            omitNeutral
-            allLabel={t('admin.athletePayments.channelAll')}
-            clearable
             options={CHANNEL_FILTERS.map(([value, key]) => [value, t(key)])}
           />
         </div>
@@ -578,6 +582,7 @@ export default function AthletePaymentOrdersSection({
       ) : (
         <AdminDataTable
           className="admin-data-table--athlete-orders"
+          density="compact"
           getRowClassName={(row) =>
             row.id === highlightOrderId ? 'data-table__row--selected' : ''
           }
@@ -609,6 +614,7 @@ export default function AthletePaymentOrdersSection({
               key: 'concept',
               label: t('admin.columns.concept'),
               mobile: 'default',
+              width: 184,
               sortable: true,
               render: (row) => (
                 <div className="admin-orders-block__stack">
@@ -625,6 +631,7 @@ export default function AthletePaymentOrdersSection({
               mobile: 'badge',
               desktop: 'numeric',
               align: 'end',
+              width: 110,
               sortable: true,
               render: (row) => (
                 <span className="admin-orders-block__amount-badge">
@@ -640,6 +647,7 @@ export default function AthletePaymentOrdersSection({
               key: 'charge',
               label: t('admin.athletePayments.columnCharge'),
               mobile: 'default',
+              width: 160,
               render: (row) => {
                 const methodLabel =
                   row.manualPaymentChannel === 'cash_pitbull'
@@ -667,7 +675,7 @@ export default function AthletePaymentOrdersSection({
                               onClick={() => openReview(row, 'view')}
                             >
                               <Paperclip size={13} aria-hidden />
-                              {formatDateTime(row.paymentProofUploadedAt, locale)}
+                              {formatShortDateTime(row.paymentProofUploadedAt, locale)}
                             </button>
                           )
                         : row.paymentProofPurgedAt
@@ -698,15 +706,16 @@ export default function AthletePaymentOrdersSection({
               key: 'order',
               label: t('admin.athletePayments.columnOrder'),
               mobile: 'default',
+              width: 128,
               sortable: true,
               defaultSort: 'desc',
               sortAccessor: (row) => row.createdAt ?? '',
               render: (row) => (
                 <div className="admin-orders-block__stack">
-                  <AdminMonoCell>{row.reference}</AdminMonoCell>
                   <span className="admin-orders-block__order-date">
-                    {formatDateTime(row.createdAt, locale)}
+                    {formatShortDateTime(row.createdAt, locale)}
                   </span>
+                  <AdminMonoCell title={row.reference}>{row.reference}</AdminMonoCell>
                 </div>
               ),
             },
@@ -714,6 +723,7 @@ export default function AthletePaymentOrdersSection({
               key: 'status',
               label: t('admin.columns.status'),
               mobile: 'badge',
+              width: 190,
               render: (row) => {
                 const actorLine = closureActorLine(row)
                 // Sólo mientras la orden sigue abierta: una vez rechazada o
@@ -744,13 +754,9 @@ export default function AthletePaymentOrdersSection({
                         {dueInfo.label}
                       </span>
                     ) : null}
-                    {row.manualPaymentDeclaredAt ? (
+                    {row.manualPaymentDeclaredAt && row.financingAllowed && row.financedEntitlementsAt ? (
                       <span className="admin-orders-block__tag">
-                        {t(
-                          row.financingAllowed && row.financedEntitlementsAt
-                            ? 'admin.athletePayments.financedActive'
-                            : 'admin.athletePayments.declared',
-                        )}
+                        {t('admin.athletePayments.financedActive')}
                       </span>
                     ) : null}
                     {actorLine ? <p className="admin-state-cell__note">{actorLine}</p> : null}
@@ -762,6 +768,7 @@ export default function AthletePaymentOrdersSection({
               key: 'action',
               label: t('admin.columns.action'),
               mobile: 'action',
+              width: 96,
               className: 'data-table__column--actions',
               render: (row) => (
                 <AdminTableActions className="admin-athlete-order-actions">

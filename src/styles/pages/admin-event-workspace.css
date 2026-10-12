@@ -1,0 +1,310 @@
+/* =============================================
+   FICHA DEL EVENTO — CROMO LATERAL
+   Identidad (logo, nombre, estado) y navegación de la página del evento.
+   Reemplaza las tres capas de reglas que se habían apilado sobre
+   `.admin-event-workspace__sidebar-head` y `__nav`. El contenedor del
+   `__sidebar` (sticky, ancho, dock de guardado) sigue en admin-event-console.css.
+   Monocromo: la pestaña activa es un relleno suave en tinta, sin barras de color.
+   ============================================= */
+
+.admin-event-workspace__sidebar-inner {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* ---- Volver ---- */
+
+.admin-event-workspace__back {
+  align-items: center;
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 2px;
+  letter-spacing: 0.02em;
+  margin-left: -6px;
+  min-height: 32px;
+  padding: 0 8px 0 4px;
+  text-transform: none;
+  transition: color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-event-workspace__back:hover {
+  color: var(--admin-ink);
+}
+
+.admin-event-workspace__back:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .admin-event-workspace__back {
+    min-height: 44px;
+  }
+}
+
+/* ---- Identidad ---- */
+
+.admin-event-workspace__sidebar-head {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--admin-hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 18px;
+}
+
+.admin-event-workspace__mark {
+  margin-bottom: 6px;
+}
+
+.admin-event-workspace__title {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 22px;
+  font-weight: 700;
+  hyphens: none;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+  margin: 0;
+  overflow-wrap: break-word;
+}
+
+.admin-event-workspace__sidebar-head .status-pill {
+  align-self: flex-start;
+}
+
+.admin-event-workspace__featured {
+  align-items: center;
+  color: var(--admin-ink);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-event-workspace__featured svg {
+  fill: currentColor;
+}
+
+.admin-event-workspace__meta {
+  color: var(--admin-muted);
+  display: block;
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 100%;
+}
+
+.admin-event-workspace__meta-item {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Navegación ---- */
+
+.admin-event-workspace__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-event-workspace__nav-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-event-workspace__nav-item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  gap: 12px;
+  min-height: 40px;
+  padding: 0 12px;
+  text-align: left;
+  transition:
+    background-color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-event-workspace__nav-icon {
+  flex: none;
+  opacity: 0.8;
+}
+
+.admin-event-workspace__nav-item-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.admin-event-workspace__nav-item:hover {
+  background: var(--admin-row-hover);
+  color: var(--admin-ink);
+}
+
+.admin-event-workspace__nav-item.is-active {
+  background: var(--admin-brand-soft);
+  color: var(--admin-ink);
+  font-weight: 600;
+}
+
+.admin-event-workspace__nav-item.is-active .admin-event-workspace__nav-icon {
+  opacity: 1;
+}
+
+.admin-event-workspace__nav-item.has-error {
+  color: var(--admin-status-danger);
+}
+
+.admin-event-workspace__nav-item:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: -2px;
+}
+
+.admin-event-workspace__nav-count {
+  background: transparent;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--admin-hairline-strong);
+  color: var(--admin-text-secondary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 1;
+  min-width: 20px;
+  padding: 4px 7px;
+  text-align: center;
+}
+
+.admin-event-workspace__nav-item.has-error .admin-event-workspace__nav-count {
+  box-shadow: inset 0 0 0 1px var(--admin-status-danger-border);
+  color: var(--admin-status-danger);
+}
+
+/* Los capítulos de Ventas viven en la tira del panel: el submenú queda en el
+   DOM (aria y tests) pero no se dibuja, ni su chevron. */
+.admin-event-workspace__nav-chevron,
+.admin-event-workspace__nav-sub {
+  display: none;
+}
+
+/* Fijar / soltar el evento principal desde la ficha. */
+.admin-event-workspace__pin.is-pinned svg {
+  fill: currentColor;
+}
+
+.admin-event-workspace__pin.is-pinned {
+  color: var(--admin-ink);
+}
+
+/* ---- Teléfono: cabecera compacta y pestañas con subrayado ---- */
+
+@media (max-width: 719px) {
+  .admin-event-workspace__sidebar-inner {
+    gap: 6px;
+    overflow: visible;
+  }
+
+  .admin-event-workspace__sidebar-head {
+    align-items: center;
+    border-bottom: 0;
+    display: grid;
+    gap: 2px 12px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding-bottom: 10px;
+  }
+
+  .admin-event-workspace__mark {
+    grid-row: 1 / span 2;
+    margin: 0;
+  }
+
+  .admin-event-workspace__title {
+    font-size: 18px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-event-workspace__sidebar-head .status-pill {
+    grid-column: 2;
+  }
+
+  /* La estrella de la barra de acciones ya marca al evento principal. */
+  .admin-event-workspace__featured {
+    display: none;
+  }
+
+  .admin-event-workspace__meta {
+    display: none;
+  }
+
+  .admin-event-workspace__nav {
+    flex-direction: row;
+    gap: 0;
+    margin: 0 -14px;
+    overflow-x: auto;
+    padding: 0 14px;
+    scrollbar-width: none;
+  }
+
+  .admin-event-workspace__nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-event-workspace__nav-group {
+    display: contents;
+  }
+
+  .admin-event-workspace__nav-item {
+    border-radius: 0;
+    flex: 0 0 auto;
+    font-size: 13px;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 12px;
+    white-space: nowrap;
+  }
+
+  .admin-event-workspace__nav-icon {
+    display: none;
+  }
+
+  .admin-event-workspace__nav-item:hover {
+    background: transparent;
+  }
+
+  .admin-event-workspace__nav-item.is-active {
+    background: transparent;
+    box-shadow: inset 0 -2px 0 var(--admin-ink);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-event-workspace__back,
+  .admin-event-workspace__nav-item {
+    transition: none;
+  }
+}

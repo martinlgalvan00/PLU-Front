@@ -309,7 +309,7 @@ export function createAuthRoutes({
                 // El puesto de seguridad viaja con la sesión: sin esto, quien
                 // escanea no sabe a qué sector está habilitado hasta el
                 // siguiente request.
-                securityZone: { select: { id: true, name: true, scope: true } },
+                securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
               },
             })
           : null
@@ -360,7 +360,7 @@ export function createAuthRoutes({
             // El puesto de seguridad viaja con la sesión: sin esto, quien
             // escanea no sabe a qué sector está habilitado hasta el
             // siguiente request.
-            securityZone: { select: { id: true, name: true, scope: true } },
+            securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
           },
         })
         const session = await createSession({ prisma, userId: user.id, req, now })
@@ -434,7 +434,7 @@ export function createAuthRoutes({
           include: {
             profile: true,
             accessRole: { include: ACCESS_ROLE_INCLUDE },
-            securityZone: { select: { id: true, name: true, scope: true } },
+            securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
           },
         })
 
@@ -714,7 +714,7 @@ export function createAuthRoutes({
             // El puesto de seguridad viaja con la sesión: sin esto, quien
             // escanea no sabe a qué sector está habilitado hasta el
             // siguiente request.
-            securityZone: { select: { id: true, name: true, scope: true } },
+            securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
           },
         })
 
@@ -1096,7 +1096,7 @@ export function createAuthRoutes({
         where: { role: 'seguridad_plu_arg', eventId },
         include: {
           profile: true,
-          securityZone: { select: { id: true, name: true, scope: true } },
+          securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
         },
         orderBy: { createdAt: 'desc' },
       })
@@ -1128,7 +1128,7 @@ export function createAuthRoutes({
           data: { status: req.validatedBody.status },
           include: {
             profile: true,
-            securityZone: { select: { id: true, name: true, scope: true } },
+            securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
           },
         })
 
@@ -1230,7 +1230,7 @@ export function createAuthRoutes({
             // El puesto viaja en la respuesta del link mágico: sin esto, la
             // consola de puerta no sabe qué zona está operando hasta un
             // request posterior (y el aviso del puesto no se pinta).
-            securityZone: { select: { id: true, name: true, scope: true } },
+            securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
           },
         })
         if (

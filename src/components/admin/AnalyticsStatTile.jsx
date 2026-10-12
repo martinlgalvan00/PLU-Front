@@ -1,3 +1,5 @@
+import { useContext } from 'react'
+import { I18nContext } from '../../i18n/context.js'
 import AnimatedNumber from '../../motion/AnimatedNumber.tsx'
 
 const TONES = ['default', 'celeste', 'gold', 'alert']
@@ -16,6 +18,10 @@ export default function AnalyticsStatTile({
   icon: Icon = null,
   className = '',
 }) {
+  // Los números siguen el idioma de la app, no el del navegador: sin esto el
+  // tile mostraba `1,282` al lado de un `1.611` formateado como es-AR.
+  const i18n = useContext(I18nContext)
+  const numberLocale = i18n ? (i18n.locale === 'en' ? 'en-US' : 'es-AR') : undefined
   const resolvedTone = TONES.includes(tone) ? tone : 'default'
   const numericValue = typeof value === 'number' && Number.isFinite(value) ? value : null
 
@@ -38,7 +44,11 @@ export default function AnalyticsStatTile({
       <div className="admin-analytics__stat-body">
         <p className="admin-analytics__stat-value">
           {numericValue !== null ? (
-            <AnimatedNumber className="admin-analytics__stat-number" value={numericValue} />
+            <AnimatedNumber
+              className="admin-analytics__stat-number"
+              locale={numberLocale}
+              value={numericValue}
+            />
           ) : (
             <span className="admin-analytics__stat-number">{value}</span>
           )}

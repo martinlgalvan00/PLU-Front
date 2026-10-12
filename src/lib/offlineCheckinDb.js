@@ -1,4 +1,4 @@
-import { createStore, get, set } from 'idb-keyval'
+import { createStore, del, get, keys, set } from 'idb-keyval'
 
 /**
  * offlineCheckinDb.js — PLU ARG
@@ -35,6 +35,23 @@ export function getDeviceId() {
     window.localStorage.setItem(DEVICE_ID_KEY, id)
   }
   return id
+}
+
+/**
+ * Borra del dispositivo lo que identifica personas: las listas descargadas
+ * (nombre y documento de cada entrada o inscripción) y el log de conflictos.
+ * La cola de ingresos pendientes NO se toca: sólo lleva el código del QR y el
+ * puesto, y borrarla perdería ingresos que todavía no llegaron al servidor.
+ * Se llama al cerrar sesión: el teléfono de la puerta se presta y se pierde.
+ */
+export async function purgeOfflineCheckinData() {
+  const stored = await keys(store)
+  await Promise.all(
+    stored
+      .filter((key) => typeof key === 'string' && key.startsWith('allowlist:'))
+      .map((key) => del(key, store)),
+  )
+  await del(CONFLICTS_KEY, store)
 }
 
 /** Guarda el snapshot descargado de un evento, reemplazando el anterior. */

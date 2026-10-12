@@ -2,6 +2,7 @@
 // global): sin esto la story renderiza el componente sin ninguno de sus
 // estilos y la auditoría visual sería falsa.
 import '../../styles/pages/design-phase2.css'
+import '../../styles/pages/auth.css'
 import '../../styles/pages/register.css'
 import RegisterCompetitionConfirmation from './RegisterCompetitionConfirmation.jsx'
 

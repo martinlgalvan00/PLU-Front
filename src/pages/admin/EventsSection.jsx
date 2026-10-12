@@ -2,18 +2,21 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
   CalendarDays,
+  ChevronRight,
   EyeOff,
-  MapPin,
   Plus,
   RefreshCw,
+  Star,
   Unlock,
-  Users,
 } from 'lucide-react'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
-import AdminEventWorkspace from '../../components/admin/AdminEventWorkspace.jsx'
+import AdminEventWorkspace, {
+  formatEventVenueLine,
+} from '../../components/admin/AdminEventWorkspace.jsx'
 import AdminEventEditor, {
   getAdminEventDraftSignature,
 } from '../../components/admin/AdminEventEditor.jsx'
+import AdminEventMark from '../../components/admin/AdminEventMark.jsx'
 import AdminEventPaymentsTriage from '../../components/admin/AdminEventPaymentsTriage.jsx'
 import AdminEventQuickCreate from '../../components/admin/AdminEventQuickCreate.jsx'
 import AdminEventScanReportSection from '../../components/admin/AdminEventScanReportSection.jsx'
@@ -22,16 +25,23 @@ import AdminEventStructureEditor from '../../components/admin/AdminEventStructur
 import AdminEventZonesSection from '../../components/admin/AdminEventZonesSection.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
+import AdminSiteTeaserControl from '../../components/admin/AdminSiteTeaserControl.jsx'
 import Button from '../../components/ui/Button.jsx'
 import StatusPill from '../../components/ui/StatusPill.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getEventsTourSteps } from '../../lib/adminTourSteps.js'
-import { clearAdminEventRoute, pushAdminEventRoute } from '../../lib/adminEventRoute.js'
+import {
+  clearAdminEventRoute,
+  isAdminEventCreateSlug,
+  pushAdminEventCreateRoute,
+  pushAdminEventRoute,
+} from '../../lib/adminEventRoute.js'
 import { formatDayMonth, formatMonthYear } from '../../lib/format.js'
 import { getStatusMeta } from '../../lib/status.js'
 import { normalizeEventPublicSurface } from '../../lib/eventPublicSurface.js'
+import { fetchSiteTeaser, saveSiteTeaser } from '../../services/siteTeaserService.js'
 import {
   ADMIN_EVENT_STATUS_OPTIONS,
   buildAdminEventDraft,
@@ -45,6 +55,8 @@ import {
   buildEventPaymentTriage,
   formatEventPaymentTriageSummary,
 } from '../../services/eventPaymentTriage.js'
+
+import '../../styles/pages/admin-events-index.css'
 
 function isFinishedEvent(event) {
   return event?.status === 'finalizado'
@@ -78,16 +90,25 @@ function groupByYearKey(list) {
   return byYear
 }
 
-function EventListRow({ row, selected, locale, onSelect, t, variant = 'catalog' }) {
+function EventListRow({
+  row,
+  selected,
+  locale,
+  onSelect,
+  onTogglePin,
+  pinBusy = false,
+  canPin = false,
+  t,
+  variant = 'catalog',
+}) {
   const isLead = variant === 'lead'
-  const rawFill = row.slots > 0 ? Math.round((row.registered / row.slots) * 100) : 0
-  const fill = Math.min(rawFill, 100)
-  const capacityTone = rawFill >= 100 ? 'full' : rawFill >= 80 ? 'high' : 'available'
   const { tone } = getStatusMeta(row.status)
-  const venueLine = [row.venue, row.location].filter(Boolean).join(', ')
-  const [day, month] = (row.dateISO ? formatDayMonth(row.dateISO, locale) : (row.date ?? '')).split(
-    ' ',
-  )
+  const venueLine = formatEventVenueLine(row.venue, row.location)
+  const dateLabel = row.dateISO ? formatDayMonth(row.dateISO, locale) : (row.date ?? '')
+  const metaLine = [dateLabel, venueLine].filter(Boolean).join(' · ')
+  const rawFill = row.slots > 0 ? Math.round((row.registered / row.slots) * 100) : 0
+  const capacityTone = rawFill >= 100 ? 'full' : rawFill >= 80 ? 'high' : 'available'
+  const canToggle = canPin && !isFinishedEvent(row)
 
   return (
     <li
@@ -95,87 +116,89 @@ function EventListRow({ row, selected, locale, onSelect, t, variant = 'catalog' 
         'admin-event-row',
         `admin-event-row--${tone}`,
         isLead ? 'admin-event-row--lead' : '',
+        row.featured ? 'admin-event-row--featured' : '',
         selected ? 'admin-event-row--selected' : '',
       ]
         .filter(Boolean)
         .join(' ')}
-      role="button"
-      tabIndex={0}
-      aria-current={selected ? 'true' : undefined}
-      title={row.slug ? `${row.title} · ${row.slug}` : row.title}
-      onClick={() => onSelect(row.id)}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault()
-          onSelect(row.id)
-        }
-      }}
     >
-      <div className={`admin-event-row__date admin-event-row__date--${tone}`}>
-        <span className="admin-event-row__day">{day}</span>
-        <span className="admin-event-row__month">{month}</span>
-      </div>
+      <button
+        type="button"
+        className="admin-event-row__main"
+        aria-current={selected ? 'true' : undefined}
+        title={row.slug ? `${row.title} · ${row.slug}` : row.title}
+        onClick={() => onSelect(row.id)}
+      >
+        <AdminEventMark event={row} size={isLead ? 'lg' : 'sm'} />
 
-      <div className="admin-event-row__body">
-        {isLead ? (
-          <span className="admin-event-row__kicker">
-            {row.featured
-              ? t('admin.sections.events.featuredBadge')
-              : t('admin.sections.events.nextKicker')}
+        <span className="admin-event-row__body">
+          {isLead ? (
+            <span className="admin-event-row__kicker">
+              {row.featured ? <Star size={11} aria-hidden /> : null}
+              {row.featured
+                ? t('admin.sections.events.leadFeatured')
+                : t('admin.sections.events.nextKicker')}
+            </span>
+          ) : null}
+          <span className="admin-event-row__title-wrap">
+            <strong className="admin-event-row__title">{row.title}</strong>
+            {row.published === false ? (
+              <span
+                className="admin-event-row__hidden-mark"
+                title={t('admin.eventState.hiddenBadge')}
+                aria-label={t('admin.eventState.hiddenBadge')}
+              >
+                <EyeOff size={12} aria-hidden />
+              </span>
+            ) : null}
+            {row.requiresMembership === false ? (
+              <span
+                className="admin-event-row__open-mark"
+                title={t('admin.eventState.openBadge')}
+                aria-label={t('admin.eventState.openBadge')}
+              >
+                <Unlock size={12} aria-hidden />
+              </span>
+            ) : null}
           </span>
-        ) : null}
-        <div className="admin-event-row__title-wrap">
-          <strong className="admin-event-row__title">{row.title}</strong>
-          {row.published === false ? (
-            <span
-              className="admin-event-row__hidden-mark"
-              title={t('admin.eventState.hiddenBadge')}
-              aria-label={t('admin.eventState.hiddenBadge')}
-            >
-              <EyeOff size={12} aria-hidden />
-            </span>
+          {metaLine ? (
+            <span className="admin-event-row__meta">{metaLine}</span>
           ) : null}
-          {row.requiresMembership === false ? (
-            <span
-              className="admin-event-row__open-mark"
-              title={t('admin.eventState.openBadge')}
-              aria-label={t('admin.eventState.openBadge')}
-            >
-              <Unlock size={12} aria-hidden />
-            </span>
-          ) : null}
-        </div>
-
-        {venueLine ? (
-          <div className="admin-event-row__meta">
-            <span className="admin-event-row__meta-item">
-              <MapPin size={12} aria-hidden />
-              {venueLine}
-            </span>
-          </div>
-        ) : null}
-      </div>
-
-      <div className={`admin-event-row__capacity admin-event-row__capacity--${capacityTone}`}>
-        <div
-          className="admin-event-row__capacity-bar"
-          role="progressbar"
-          aria-label={t('admin.dashboard.slots')}
-          aria-valuemin="0"
-          aria-valuemax="100"
-          aria-valuenow={fill}
-        >
-          <div className="admin-event-row__capacity-fill" style={{ width: `${fill}%` }} />
-        </div>
-        <span className="admin-event-row__capacity-label">
-          <Users size={11} aria-hidden />
-          {row.registered}/{row.slots}
         </span>
-      </div>
 
-      <div className="admin-event-row__badge">
-        <StatusPill value={row.status} />
-      </div>
+        <span className="admin-event-row__status">
+          <span className={`admin-event-row__capacity admin-event-row__capacity--${capacityTone}`}>
+            <strong>
+              {row.registered}
+              <span>/{row.slots}</span>
+            </strong>
+            <small>{t('admin.sections.events.registeredCaption')}</small>
+          </span>
+
+          <span className="admin-event-row__badge">
+            <StatusPill value={row.status} />
+          </span>
+        </span>
+      </button>
+
+      <span className="admin-event-row__actions">
+        {canToggle ? (
+          <button
+            type="button"
+            className="admin-event-row__pin"
+            aria-pressed={Boolean(row.featured)}
+            aria-label={
+              row.featured ? t('admin.sections.events.unpin') : t('admin.sections.events.pin')
+            }
+            title={row.featured ? t('admin.sections.events.unpin') : t('admin.sections.events.pin')}
+            disabled={pinBusy}
+            onClick={() => onTogglePin?.(row)}
+          >
+            <Star size={15} aria-hidden />
+          </button>
+        ) : null}
+        <ChevronRight size={16} aria-hidden className="admin-event-row__chevron" />
+      </span>
     </li>
   )
 }
@@ -224,6 +247,7 @@ export default function EventsSection({
   onRejectPayment,
   onRejectTicketOrder,
   onSaveEvent,
+  onSetEventLogo,
   onSetEventRegistrationPrice,
   onClearEventPriceSchedule,
   onSetEventState,
@@ -238,16 +262,89 @@ export default function EventsSection({
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
   const [year, setYear] = useState('')
+  /** Sección de la lista: próximos, archivo o todo. */
+  const [view, setView] = useState('upcoming')
+  const [pinBusyId, setPinBusyId] = useState(null)
   const [selectedId, setSelectedId] = useState(adminEvents[0]?.id ?? null)
 
   useEffect(() => {
     startTour('admin-events', getEventsTourSteps(t))
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
   }, [])
+  // Anuncio "Pronto habrá novedades": `null` hasta que se lee, para no mostrar
+  // un estado inventado.
+  const [teaserEnabled, setTeaserEnabled] = useState(null)
+  const [teaserBusy, setTeaserBusy] = useState(false)
+  const [teaserLoadFailed, setTeaserLoadFailed] = useState(false)
+
+  async function loadSiteTeaser() {
+    setTeaserBusy(true)
+    setTeaserLoadFailed(false)
+    try {
+      const teaser = await fetchSiteTeaser()
+      setTeaserEnabled(teaser.eventsEnabled)
+    } catch {
+      setTeaserEnabled(null)
+      setTeaserLoadFailed(true)
+    } finally {
+      setTeaserBusy(false)
+    }
+  }
+
+  useEffect(() => {
+    let active = true
+    fetchSiteTeaser()
+      .then((teaser) => {
+        if (active) {
+          setTeaserEnabled(teaser.eventsEnabled)
+          setTeaserLoadFailed(false)
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setTeaserEnabled(null)
+          setTeaserLoadFailed(true)
+        }
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  async function handleToggleTeaser(next) {
+    if (!canEdit || teaserBusy) return
+    setTeaserBusy(true)
+    setMessage(null)
+    try {
+      const saved = await saveSiteTeaser(next)
+      setTeaserEnabled(saved.eventsEnabled)
+      setTeaserLoadFailed(false)
+      setMessage({
+        tone: 'success',
+        text: t(
+          saved.eventsEnabled
+            ? 'admin.sections.events.teaser.enabledDone'
+            : 'admin.sections.events.teaser.disabledDone',
+        ),
+      })
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: error?.message || t('admin.sections.events.teaser.saveError'),
+      })
+    } finally {
+      setTeaserBusy(false)
+    }
+  }
+
   const [formOpen, setFormOpen] = useState(false)
   // Alta rápida y editor completo son dos superficies distintas: crear no pide
-  // las mismas decisiones que editar (ver AdminEventQuickCreate).
-  const [quickCreateOpen, setQuickCreateOpen] = useState(false)
+  // las mismas decisiones que editar (ver AdminEventQuickCreate). El alta es una
+  // página con su URL (`/admin/eventos/nuevo`): el estado local manda y la URL
+  // lo refleja, igual que el workspace, así funciona también montada sola.
+  const [quickCreateOpen, setQuickCreateOpen] = useState(() =>
+    isAdminEventCreateSlug(adminEventWorkspaceSlug),
+  )
   /**
    * Workspace del evento seleccionado. Reemplaza al listado a ancho completo,
    * ya no es un modal. El estado local es la fuente de verdad y la URL
@@ -321,8 +418,23 @@ export default function EventsSection({
    * Deep link: entrar por `/admin/eventos/:slug` abre el workspace de ese
    * evento con Datos listo. Espera a que la lista haya cargado el evento.
    */
+  /**
+   * El alta sigue a la URL en los dos sentidos: entrar por `/admin/eventos/nuevo`
+   * la abre, y el "atrás" del navegador (slug a null) la cierra.
+   */
+  const createRouteActive = isAdminEventCreateSlug(adminEventWorkspaceSlug)
+  const wasCreateRouteRef = useRef(createRouteActive)
   useEffect(() => {
-    if (!adminEventWorkspaceSlug || consoleOpen) return
+    if (createRouteActive) {
+      setQuickCreateOpen(true)
+    } else if (wasCreateRouteRef.current) {
+      setQuickCreateOpen(false)
+    }
+    wasCreateRouteRef.current = createRouteActive
+  }, [createRouteActive])
+
+  useEffect(() => {
+    if (!adminEventWorkspaceSlug || consoleOpen || createRouteActive) return
     const match = adminEvents.find((event) => event.slug === adminEventWorkspaceSlug)
     if (!match) return
     setSelectedId(match.id)
@@ -389,10 +501,30 @@ export default function EventsSection({
     [adminEvents, query, status, yearFilter],
   )
 
-  const leadEvent = useMemo(() => pickLeadAdminEvent(rows), [rows])
+  const viewCounts = useMemo(() => {
+    const finished = rows.filter(isFinishedEvent).length
+    return { upcoming: rows.length - finished, archive: finished, all: rows.length }
+  }, [rows])
+
+  /** Si la sección elegida quedó vacía por los filtros, mostrar la que tenga algo. */
+  const activeView =
+    viewCounts[view] > 0 ? view : viewCounts.upcoming > 0 ? 'upcoming' : viewCounts.archive > 0 ? 'archive' : view
+
+  const visibleRows = useMemo(
+    () =>
+      rows.filter((row) =>
+        activeView === 'all' ? true : activeView === 'archive' ? isFinishedEvent(row) : !isFinishedEvent(row),
+      ),
+    [activeView, rows],
+  )
+
+  const leadEvent = useMemo(
+    () => (activeView === 'archive' ? null : pickLeadAdminEvent(visibleRows)),
+    [activeView, visibleRows],
+  )
 
   const eventCatalog = useMemo(() => {
-    const rest = rows.filter((row) => row.id !== leadEvent?.id)
+    const rest = visibleRows.filter((row) => row.id !== leadEvent?.id)
     const upcoming = []
     const finished = []
     for (const row of rest) {
@@ -443,7 +575,7 @@ export default function EventsSection({
     }
 
     return chapters.filter((chapter) => chapter.groups.some((group) => group.rows.length > 0))
-  }, [leadEvent?.id, locale, rows, t])
+  }, [leadEvent?.id, locale, t, visibleRows])
 
   const selectedEvent = adminEvents.find((event) => event.id === selectedId) ?? rows[0] ?? null
 
@@ -503,18 +635,24 @@ export default function EventsSection({
       upcomingCount,
       totalRegistered,
       fillPercent,
-      inView: rows.length,
     }
   }, [rows])
 
   function openCreateForm() {
     setMessage(null)
     setQuickCreateOpen(true)
+    pushAdminEventCreateRoute()
+  }
+
+  /** Cierra el alta y suelta la URL `/nuevo`, si era la que estaba activa. */
+  function closeQuickCreate() {
+    setQuickCreateOpen(false)
+    if (createRouteActive) clearAdminEventRoute()
   }
 
   /** Salida del alta rápida hacia el formulario largo, sin perder lo tipeado. */
   function openFullEditorFromQuickCreate(quickDraft) {
-    setQuickCreateOpen(false)
+    closeQuickCreate()
     setDraft({ ...createAdminEventDraft(), ...quickDraft })
     setEditorFocus('details')
     setFormOpen(true)
@@ -596,6 +734,17 @@ export default function EventsSection({
       setEditorBaselineSignature(null)
       setDraft(createAdminEventDraft())
       setConsoleSection(section)
+      setConsoleChapter(null)
+      setConsoleOpen(true)
+      return
+    }
+
+    // El resumen no vive del draft: sin formulario abierto se muestra tal cual
+    // (antes, desde Pagos o Zonas, "Resumen" armaba el editor y caía en Datos).
+    // Con el formulario abierto sigue por el camino de abajo, que conserva los
+    // cambios sin guardar para la vista previa.
+    if (section === 'dashboard' && !(formOpen && draft.id)) {
+      setConsoleSection('dashboard')
       setConsoleChapter(null)
       setConsoleOpen(true)
       return
@@ -740,6 +889,9 @@ export default function EventsSection({
     if (saved?.event?.id) setSelectedId(saved.event.id)
     setConsoleOpen(true)
     setMessage({ tone: 'success', text: t('admin.sections.events.created') })
+    // La URL pasa de `/nuevo` a la del evento recién creado.
+    const createdSlug = saved?.event?.slug ?? submittedDraft.slug
+    if (createRouteActive && createdSlug) pushAdminEventRoute(createdSlug)
     return saved
   }
 
@@ -865,6 +1017,36 @@ export default function EventsSection({
     }
   }
 
+  /**
+   * Fija o suelta el evento principal desde la lista. Es el mismo guardado que
+   * hace el editor con el interruptor "Evento destacado": el servidor baja el
+   * flag de los demás, así que solo hay un principal por vez.
+   */
+  async function handleTogglePin(row) {
+    if (!canEdit || !onSaveEvent || pinBusyId) return
+    const next = !row.featured
+    setPinBusyId(row.id)
+    setMessage(null)
+    try {
+      const saved = await onSaveEvent({ ...buildAdminEventDraft(row), featured: next })
+      if (saved?.error) throw new Error(saved.error)
+      setMessage({
+        tone: 'success',
+        text: t(
+          next ? 'admin.sections.events.pinDone' : 'admin.sections.events.unpinDone',
+          { title: row.title },
+        ),
+      })
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: error?.message || t('admin.sections.events.pinError'),
+      })
+    } finally {
+      setPinBusyId(null)
+    }
+  }
+
   function renderEventGroup(group) {
     const isFinishedGroup = group.tone === 'finished'
     return (
@@ -886,6 +1068,9 @@ export default function EventsSection({
               selected={row.id === selectedEvent?.id}
               locale={locale}
               onSelect={handleSelectEvent}
+              onTogglePin={handleTogglePin}
+              pinBusy={pinBusyId === row.id}
+              canPin={canEdit}
               t={t}
             />
           ))}
@@ -922,28 +1107,51 @@ export default function EventsSection({
     ) : null
 
   const eventsKpis = (
-    <div
-      className="admin-events-kpis"
-      role="group"
-      aria-label={t('admin.sections.events.kpisAria')}
-    >
-      <div className="admin-events-kpi admin-events-kpi--primary">
-        <strong className="admin-events-kpi__value">{kpiStats.upcomingCount}</strong>
-        <span className="admin-events-kpi__label">{t('admin.sections.events.kpiUpcoming')}</span>
+    <>
+      <div
+        className="admin-events-kpis"
+        role="group"
+        aria-label={t('admin.sections.events.kpisAria')}
+      >
+        <div className="admin-events-kpi admin-events-kpi--primary">
+          <strong className="admin-events-kpi__value">{kpiStats.upcomingCount}</strong>
+          <span className="admin-events-kpi__label">{t('admin.sections.events.kpiUpcoming')}</span>
+        </div>
+        <div className="admin-events-kpi">
+          <strong className="admin-events-kpi__value">{kpiStats.totalRegistered}</strong>
+          <span className="admin-events-kpi__label">
+            {t('admin.sections.events.kpiRegistered')}
+          </span>
+        </div>
+        <div className="admin-events-kpi">
+          <strong className="admin-events-kpi__value">{kpiStats.fillPercent}%</strong>
+          <span className="admin-events-kpi__label">{t('admin.sections.events.kpiFill')}</span>
+        </div>
       </div>
-      <div className="admin-events-kpi">
-        <strong className="admin-events-kpi__value">{kpiStats.totalRegistered}</strong>
-        <span className="admin-events-kpi__label">{t('admin.sections.events.kpiRegistered')}</span>
+      <div
+        className="admin-events-views"
+        role="tablist"
+        aria-label={t('admin.sections.events.viewsAria')}
+      >
+        {[
+          ['upcoming', t('admin.sections.events.viewUpcoming')],
+          ['archive', t('admin.sections.events.viewArchive')],
+          ['all', t('admin.sections.events.viewAll')],
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={activeView === id}
+            className={`admin-events-views__tab${activeView === id ? ' is-active' : ''}`}
+            onClick={() => setView(id)}
+          >
+            {label}
+            <span>{viewCounts[id]}</span>
+          </button>
+        ))}
       </div>
-      <div className="admin-events-kpi">
-        <strong className="admin-events-kpi__value">{kpiStats.fillPercent}%</strong>
-        <span className="admin-events-kpi__label">{t('admin.sections.events.kpiFill')}</span>
-      </div>
-      <div className="admin-events-kpi admin-events-kpi--quiet">
-        <strong className="admin-events-kpi__value">{kpiStats.inView}</strong>
-        <span className="admin-events-kpi__label">{t('admin.sections.events.kpiTotal')}</span>
-      </div>
-    </div>
+    </>
   )
 
   const deleteDialog = pendingDelete ? (
@@ -1035,7 +1243,9 @@ export default function EventsSection({
           onManageRegistrations={onManageRegistrations}
           onSelectChapter={selectConsoleChapter}
           onSelectSection={selectConsoleSection}
+          onSetEventLogo={onSetEventLogo}
           onSetEventState={onSetEventState}
+          onSetTicketAccessOverride={onSetTicketAccessOverride}
           onStatePendingChange={(payload) => {
             const next = payload && typeof payload === 'object' ? payload : {}
             statePendingRef.current = next
@@ -1045,6 +1255,8 @@ export default function EventsSection({
             discardStateRef.current = fn
           }}
           onToggleOccupancy={toggleOccupancy}
+          onTogglePin={handleTogglePin}
+          pinBusy={pinBusyId === selectedEvent.id}
           onTogglePublicModule={togglePublicModule}
           openChapter={consoleChapter}
           paymentSummary={selectedPaymentSummary}
@@ -1106,6 +1318,8 @@ export default function EventsSection({
                   onCreateSecurityAccessLink={onCreateSecurityAccessLink}
                   onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
                   onListSecurityUsers={onListSecurityUsers}
+                  onAssignMember={onAssignSecurityZone}
+                  onListZones={onListSecurityZones}
                   onTeamChange={() => setZonesReloadToken((current) => current + 1)}
                   onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
                   reloadToken={zonesReloadToken}
@@ -1137,11 +1351,28 @@ export default function EventsSection({
     )
   }
 
+  /**
+   * El alta reemplaza al listado, como el workspace: es una página con su URL,
+   * no un panel que tape lo que está atrás.
+   */
+  if (quickCreateOpen) {
+    return (
+      <AdminEventQuickCreate
+        canEdit={canEdit}
+        onCancel={closeQuickCreate}
+        onOpenFullEditor={openFullEditorFromQuickCreate}
+        onSubmit={handleQuickCreate}
+      />
+    )
+  }
+
   return (
     <AdminListSection
       eyebrow={null}
       actions={headerActions}
-      filteredCount={rows.length}
+      filteredCount={visibleRows.length}
+      filterLayout="popover"
+      pinned={false}
       placeholder={t('admin.search.event')}
       query={query}
       showHeader
@@ -1197,6 +1428,15 @@ export default function EventsSection({
           {message.text}
         </p>
       ) : null}
+
+        <AdminSiteTeaserControl
+          busy={teaserBusy}
+          canEdit={canEdit}
+          enabled={teaserEnabled}
+          loadFailed={teaserLoadFailed}
+          onRetry={loadSiteTeaser}
+          onToggle={handleToggleTeaser}
+        />
 
         <div className="admin-events-workspace">
           <div className="admin-events-workspace__main">
@@ -1255,6 +1495,9 @@ export default function EventsSection({
                     selected={leadEvent.id === selectedEvent?.id}
                     locale={locale}
                     onSelect={handleSelectEvent}
+                    onTogglePin={handleTogglePin}
+                    pinBusy={pinBusyId === leadEvent.id}
+                    canPin={canEdit}
                     t={t}
                     variant="lead"
                   />
@@ -1281,15 +1524,6 @@ export default function EventsSection({
             )}
           </div>
         </div>
-
-      {quickCreateOpen ? (
-        <AdminEventQuickCreate
-          canEdit={canEdit}
-          onCancel={() => setQuickCreateOpen(false)}
-          onOpenFullEditor={openFullEditorFromQuickCreate}
-          onSubmit={handleQuickCreate}
-        />
-      ) : null}
 
       {/* Alta completa (sin id): sigue en modal propio; no hay consola de evento. */}
       {formOpen && !draft.id ? (

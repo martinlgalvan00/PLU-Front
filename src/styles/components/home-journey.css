@@ -1,0 +1,315 @@
+/* Home — recorrido del atleta (Afiliate · Competí · Resultados oficiales).
+   Tres capítulos que se leen con el scroll y una credencial QR fija que va
+   encendiendo cada derecho. Solo transform / opacity, sin loops.
+   El color de texto lo hereda de la sección (`.home-section--immersive`), así
+   funciona igual en claro y oscuro; la credencial es siempre grafito. */
+
+.home-journey {
+  --journey-gutter: clamp(26px, 4vw, 34px);
+  --journey-step-pad: clamp(22px, 3vw, 30px);
+  display: grid;
+  gap: clamp(32px, 5vw, 56px);
+  margin: 0 auto;
+  max-width: min(var(--max-width-content), 100%);
+  width: 100%;
+}
+
+.home-journey__head {
+  display: grid;
+  gap: 12px;
+  max-width: 44rem;
+}
+
+.home-journey__head > * {
+  margin: 0;
+}
+
+.home-journey__eyebrow {
+  color: var(--color-text-accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.home-journey__title {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3.2vw, 36px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+.home-journey__lead {
+  color: color-mix(in oklab, currentColor 70%, transparent);
+  font-size: 15px;
+  line-height: 1.6;
+  max-width: 56ch;
+}
+
+.home-journey__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Capítulos: riel de progreso + un marcador por paso (ScrollRail / step-dot). */
+.home-journey__track {
+  padding-left: var(--journey-gutter);
+  position: relative;
+}
+
+.home-journey__rail {
+  left: 0;
+}
+
+.home-journey__steps {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.home-journey__step {
+  align-content: start;
+  display: grid;
+  gap: 10px;
+  padding-block: var(--journey-step-pad);
+  position: relative;
+}
+
+/* El marcador cae sobre el riel, a la altura del número del capítulo. */
+.home-journey__dot {
+  left: calc(-1 * var(--journey-gutter) - 4.5px);
+  top: var(--journey-step-pad);
+}
+
+.home-journey__index {
+  color: color-mix(in oklab, currentColor 48%, transparent);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  transition: color var(--motion-base) var(--ease-out);
+}
+
+.home-journey__step[data-state='active'] .home-journey__index,
+.home-journey__step[data-state='done'] .home-journey__index {
+  color: var(--color-text-accent);
+}
+
+.home-journey__step-title {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.6vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.home-journey__step-text {
+  color: color-mix(in oklab, currentColor 78%, transparent);
+  font-size: 15px;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 46ch;
+}
+
+.home-journey__link {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  gap: 6px;
+  justify-self: start;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, currentColor 28%, transparent);
+  text-underline-offset: 5px;
+}
+
+.home-journey__link:hover {
+  text-decoration-color: var(--color-brand-gold);
+}
+
+.home-journey__link:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+/* Escritorio: los capítulos dejan aire para que el scroll marque el ritmo y la
+   credencial queda fija al costado. */
+.home-journey[data-stage='true'] .home-journey__body {
+  align-items: start;
+  column-gap: clamp(40px, 7vw, 96px);
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+}
+
+.home-journey[data-stage='true'] .home-journey__step {
+  min-height: clamp(280px, 50vh, 440px);
+}
+
+.home-journey[data-stage='true'] .home-journey__step:last-child {
+  min-height: clamp(220px, 36vh, 320px);
+}
+
+.home-journey__stage {
+  align-self: start;
+  display: grid;
+  justify-items: center;
+  position: sticky;
+  top: calc(var(--header-height-scrolled, 52px) + clamp(24px, 8vh, 72px));
+}
+
+/* ── Credencial ───────────────────────────────────────────────────────── */
+.journey-pass {
+  background: var(--plu-cool-950, #0b0d12);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+  color: #fff;
+  display: grid;
+  gap: 20px;
+  padding: clamp(20px, 2.6vw, 28px);
+  width: min(100%, 26rem);
+}
+
+.journey-pass__head {
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 14px;
+}
+
+.journey-pass__mono {
+  color: var(--color-brand-celeste);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+.journey-pass__title {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.journey-pass__body {
+  align-items: center;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+}
+
+.journey-pass__qr {
+  aspect-ratio: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.86);
+  display: grid;
+  place-items: center;
+}
+
+.journey-pass__rows {
+  display: grid;
+  gap: 14px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.journey-pass__row {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 20px minmax(0, 1fr);
+}
+
+.journey-pass__label {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.55;
+  transition: opacity var(--motion-base) var(--ease-out);
+}
+
+/* Marcador: hueco → punto (activo) → relleno con tilde (hecho). El relleno es
+   un pseudo-elemento que escala; así solo se anima transform. */
+.journey-pass__mark {
+  border: 1.5px solid rgba(255, 255, 255, 0.34);
+  border-radius: 50%;
+  color: var(--plu-cool-950, #0b0d12);
+  display: grid;
+  height: 20px;
+  overflow: hidden;
+  place-items: center;
+  position: relative;
+  transition: border-color var(--motion-base) var(--ease-out);
+  width: 20px;
+}
+
+.journey-pass__mark::before {
+  background: var(--color-brand-gold);
+  border-radius: 50%;
+  content: '';
+  inset: 0;
+  position: absolute;
+  transform: scale(0);
+  transition: transform var(--motion-slow) var(--ease-spring);
+}
+
+.journey-pass__mark svg {
+  opacity: 0;
+  position: relative;
+  transition: opacity var(--motion-base) var(--ease-out);
+}
+
+.journey-pass__row[data-state='active'] .journey-pass__mark,
+.journey-pass__row[data-state='done'] .journey-pass__mark {
+  border-color: var(--color-brand-gold);
+}
+
+.journey-pass__row[data-state='active'] .journey-pass__mark::before {
+  transform: scale(0.42);
+}
+
+.journey-pass__row[data-state='done'] .journey-pass__mark::before {
+  transform: scale(1);
+}
+
+.journey-pass__row[data-state='done'] .journey-pass__mark svg {
+  opacity: 1;
+}
+
+.journey-pass__row[data-state='active'] .journey-pass__label,
+.journey-pass__row[data-state='done'] .journey-pass__label {
+  opacity: 1;
+}
+
+@media (max-width: 899px) {
+  .home-journey__step-text {
+    font-size: 14.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-journey__index,
+  .journey-pass__label,
+  .journey-pass__mark,
+  .journey-pass__mark::before,
+  .journey-pass__mark svg {
+    transition: none;
+  }
+}

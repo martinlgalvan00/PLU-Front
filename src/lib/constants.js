@@ -138,6 +138,7 @@ export const PUBLIC_NAVIGATION = {
         'team',
         'sponsors',
         'standards',
+        'staffApplication',
       ],
       groups: [
         {
@@ -167,6 +168,12 @@ export const PUBLIC_NAVIGATION = {
               labelKey: 'nav.community',
               hintKey: 'nav.communityHintNew',
               icon: 'community',
+            },
+            {
+              key: 'staffApplication',
+              labelKey: 'nav.staffApplication',
+              hintKey: 'nav.staffApplicationHint',
+              icon: 'member',
             },
           ],
         },

@@ -1,16 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import {
-  ArrowRight,
-  BadgeCheck,
-  CalendarDays,
-  ClipboardList,
-  MapPin,
-  Send,
-  Shield,
-  Trash2,
-  Users,
-} from 'lucide-react'
+import { ArrowRight, CalendarDays, MapPin, Send, Trash2 } from 'lucide-react'
 import AdminTopBar from '../../components/layout/AdminTopBar.jsx'
 import AdminActionDrawer from '../../components/admin/AdminActionDrawer.jsx'
 import { LazyPhoto } from '../../components/ui/LazyPhoto.jsx'
@@ -27,7 +17,6 @@ import {
 } from '../../services/launchInterestService.js'
 import { previewQueueByType } from '../../services/adminService.js'
 import { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
-import CollectionDonut from '../../components/admin/CollectionDonut.jsx'
 import AnimatedNumber from '../../motion/AnimatedNumber.tsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
@@ -35,7 +24,9 @@ import { getAdminIntroTourSteps } from '../../lib/adminTourSteps.js'
 import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { METRIC_LABEL_KEYS } from '../../i18n/adminHelpers.js'
 import { getStatusMeta } from '../../lib/status.js'
+import { selectBreakdownLegendItems } from '../../lib/adminOpsBreakdown.js'
 import { formatDayMonth, formatShortMemberCode, initials, money } from '../../lib/format.js'
+import '../../styles/pages/admin-ops-board.css'
 
 const QUEUE_PREVIEW_LIMIT = 6
 
@@ -76,13 +67,6 @@ const METRIC_TONES = {
   gold: 'gold',
   alert: 'alert',
   default: 'default',
-}
-
-const METRIC_ICONS = {
-  users: Users,
-  badge: BadgeCheck,
-  clipboard: ClipboardList,
-  shield: Shield,
 }
 
 const QUICK_ACTIONS = [
@@ -135,96 +119,102 @@ function mapMetrics(items, t, locale) {
   })
 }
 
-function DashboardKpiTile({ icon, label, value, hint, tone, onClick }) {
-  const Icon = METRIC_ICONS[icon] ?? Users
-
+function DashboardKpiTile({ label, value, hint, tone, onClick }) {
   return (
     <button type="button" className={`admin-ops__kpi admin-ops__kpi--${tone}`} onClick={onClick}>
-      <span className="admin-ops__kpi-icon" aria-hidden>
-        <Icon size={15} strokeWidth={1.7} />
-      </span>
-      <span className="admin-ops__kpi-body">
-        {typeof value === 'number' ? (
-          <AnimatedNumber className="admin-ops__kpi-value" value={value} />
-        ) : (
-          <span className="admin-ops__kpi-value">{value}</span>
-        )}
-        <span className="admin-ops__kpi-label">{label}</span>
-        {hint ? <span className="admin-ops__kpi-hint">{hint}</span> : null}
-      </span>
+      <span className="admin-ops__kpi-label">{label}</span>
+      {typeof value === 'number' ? (
+        <AnimatedNumber className="admin-ops__kpi-value" value={value} />
+      ) : (
+        <span className="admin-ops__kpi-value">{value}</span>
+      )}
+      {hint ? <span className="admin-ops__kpi-hint">{hint}</span> : null}
     </button>
   )
 }
 
-function StackedBarChart({ title, total, items, section, onNavigate, getLabel, t }) {
-  const activeItems = items.filter((item) => item.value > 0)
-  const isEmpty = activeItems.length === 0
-  const chartTotal = Math.max(
-    total,
-    activeItems.reduce((sum, item) => sum + item.value, 0),
-    1,
+const BREAKDOWN_ROWS = [
+  { key: 'registrations', titleKey: 'admin.dashboard.breakdownRegistrations' },
+  { key: 'memberships', titleKey: 'admin.dashboard.breakdownMemberships' },
+  { key: 'payments', titleKey: 'admin.dashboard.breakdownPayments' },
+  { key: 'events', titleKey: 'admin.dashboard.breakdownEvents' },
+]
+
+function BreakdownPanel({ breakdowns, onNavigate, getLabel, locale, t }) {
+  return (
+    <section className="admin-ops__mix" aria-labelledby="admin-ops-mix-title">
+      <header className="admin-ops__section-head">
+        <div className="admin-ops__chart-copy">
+          <h3 id="admin-ops-mix-title">{t('admin.dashboard.breakdownTitle')}</h3>
+          <p className="admin-ops__section-sub">{t('admin.dashboard.breakdownSubtitle')}</p>
+        </div>
+      </header>
+      <ul className="admin-ops__mix-list">
+        {BREAKDOWN_ROWS.map(({ key, titleKey }) => {
+          const data = breakdowns[key]
+          if (!data) return null
+          return (
+            <BreakdownRow
+              key={key}
+              title={t(titleKey)}
+              total={data.total}
+              items={data.items}
+              section={data.section}
+              onNavigate={onNavigate}
+              getLabel={getLabel}
+              locale={locale}
+              t={t}
+            />
+          )
+        })}
+      </ul>
+    </section>
   )
+}
+
+function BreakdownRow({ title, total, items, section, onNavigate, getLabel, locale, t }) {
+  // Sin barra: cada estado es una línea (punto + nombre + cifra). Una lista
+  // se escanea más rápido que un segmento de color, y las cifras son exactas.
+  const { activeItems } = selectBreakdownLegendItems(items)
+  const isEmpty = activeItems.length === 0
   const totalLabel = t('admin.dashboard.chartTotal', { count: total })
-  const segmentSummary = !isEmpty
-    ? activeItems
-        .map((item) => {
-          const percent = Math.round((item.value / chartTotal) * 100)
-          return `${getLabel(item)} ${item.value} (${percent}%)`
-        })
-        .join(', ')
-    : t('admin.dashboard.breakdownEmpty')
-  const stackLabel = `${title}: ${totalLabel}. ${segmentSummary}`
 
   return (
-    <section className={`admin-ops__chart${isEmpty ? ' admin-ops__chart--empty' : ''}`}>
-      <header className="admin-ops__chart-head">
-        <div className="admin-ops__chart-copy">
-          <div className="admin-ops__chart-title-row">
-            <h3>{title}</h3>
-            <strong className="admin-ops__chart-total" aria-label={totalLabel}>
-              {total}
-            </strong>
-          </div>
-        </div>
+    <li className={`admin-ops__mix-row${isEmpty ? ' admin-ops__mix-row--empty' : ''}`}>
+      <div className="admin-ops__mix-head">
+        <h4>{title}</h4>
         <button
           type="button"
-          className="admin-dashboard-link"
+          className="admin-ops__mix-open"
+          aria-label={`${t('admin.actions.view')} ${title}`}
           onClick={() => onNavigate?.(section)}
         >
-          {t('admin.actions.view')}
-          <ArrowRight size={12} aria-hidden />
+          <ArrowRight size={15} aria-hidden />
         </button>
-      </header>
-
-      <div className="admin-ops__stack" role="img" aria-label={stackLabel}>
-        {!isEmpty ? (
-          activeItems.map((item) => (
-            <span
-              key={item.status}
-              className={`admin-ops__stack-seg admin-ops__stack-seg--${item.tone}`}
-              style={{ width: `${Math.max((item.value / chartTotal) * 100, 2)}%` }}
-              title={`${getLabel(item)}: ${item.value}`}
-            />
-          ))
-        ) : (
-          <span className="admin-ops__stack-seg admin-ops__stack-seg--empty" />
-        )}
       </div>
 
+      <strong className="admin-ops__mix-total" aria-label={totalLabel}>
+        {total}
+      </strong>
+
       {!isEmpty ? (
-        <ul className="admin-ops__chart-legend">
+        <ul className="admin-ops__legend">
           {activeItems.map((item) => {
-            const percent = Math.round((item.value / chartTotal) * 100)
+            const showAmount =
+              typeof item.amount === 'number' &&
+              item.amount > 0 &&
+              (item.tone === 'warning' || item.tone === 'alert' || item.tone === 'gold')
             return (
               <li
                 key={item.status}
-                className={`admin-ops__chart-legend-item admin-ops__chart-legend-item--${item.tone}`}
+                className={`admin-ops__legend-item admin-ops__legend-item--${item.tone}`}
               >
-                <span>{getLabel(item)}</span>
-                <strong>{item.value}</strong>
-                <em>{percent}%</em>
-                {typeof item.amount === 'number' && item.amount > 0 ? (
-                  <small>{money(item.amount)}</small>
+                <span className="admin-ops__legend-line">
+                  <span className="admin-ops__legend-label">{getLabel(item)}</span>
+                  <strong>{item.value}</strong>
+                </span>
+                {showAmount ? (
+                  <span className="admin-ops__legend-amount">{money(item.amount, locale)}</span>
                 ) : null}
               </li>
             )
@@ -233,7 +223,7 @@ function StackedBarChart({ title, total, items, section, onNavigate, getLabel, t
       ) : (
         <p className="admin-ops__chart-empty">{t('admin.dashboard.breakdownEmpty')}</p>
       )}
-    </section>
+    </li>
   )
 }
 
@@ -282,12 +272,12 @@ function SpotlightInline({ event, locale, onNavigate, t }) {
         ) : null}
       </div>
       <div className="admin-ops__spotlight-meter" aria-label={t('admin.dashboard.slots')}>
-        <div className="admin-ops__spotlight-bar">
-          <span style={{ width: `${fillPercent}%` }} />
-        </div>
-        <span>
-          {event.registered}/{event.slots} · {fillPercent}%
-        </span>
+        <p className="admin-ops__spotlight-figure">
+          <strong>{event.registered}</strong>
+          <span>
+            / {event.slots} · {fillPercent}%
+          </span>
+        </p>
         <span className={`admin-ops__spotlight-status admin-ops__spotlight-status--${tone}`}>
           {statusLabel}
         </span>
@@ -300,65 +290,212 @@ function SpotlightInline({ event, locale, onNavigate, t }) {
   )
 }
 
-function RecentAthletesCard({ athletes, locale, onNavigate, onSelectAthlete, t }) {
-  if (!athletes?.items?.length) return null
+const RECENT_TABS = [
+  {
+    id: 'athletes',
+    section: 'athletes',
+    tabKey: 'admin.nav.athletes',
+    titleKey: 'admin.dashboard.recentAthletesTitle',
+    subtitleKey: 'admin.dashboard.recentAthletesSubtitle',
+  },
+  {
+    id: 'memberships',
+    section: 'memberships',
+    tabKey: 'admin.nav.memberships',
+    titleKey: 'admin.dashboard.recentMembershipsTitle',
+    subtitleKey: 'admin.dashboard.recentMembershipsSubtitle',
+  },
+  {
+    id: 'registrations',
+    section: 'registrations',
+    tabKey: 'admin.nav.registrations',
+    titleKey: 'admin.dashboard.recentRegistrationsTitle',
+    subtitleKey: 'admin.dashboard.recentRegistrationsSubtitle',
+  },
+]
+
+const TAB_KEY_OFFSETS = { ArrowRight: 1, ArrowLeft: -1 }
+
+/**
+ * Actividad reciente en un solo bloque: altas, afiliaciones e inscripciones
+ * comparten el mismo formato de fila, así que se leen de a una pestaña en vez
+ * de tres columnas que compiten entre sí. Solo aparecen las que tienen datos.
+ */
+function RecentActivityTabs({
+  recentAthletes,
+  recentMemberships,
+  recentRegistrations,
+  locale,
+  onNavigate,
+  onSelectAthlete,
+  canDeleteAthlete,
+  onDeleteAthlete,
+  getAthleteDetail,
+  t,
+}) {
+  const baseId = useId()
+  const [activeId, setActiveId] = useState(null)
+  const tabRefs = useRef({})
+
+  const sources = {
+    athletes: recentAthletes,
+    memberships: recentMemberships,
+    registrations: recentRegistrations,
+  }
+  const tabs = RECENT_TABS.filter((tab) => sources[tab.id]?.items?.length)
+  if (tabs.length === 0) return null
+
+  const active = tabs.find((tab) => tab.id === activeId) ?? tabs[0]
+  const tabId = (id) => `${baseId}-tab-${id}`
+  const panelId = `${baseId}-panel`
+
+  function handleKeyDown(event) {
+    const index = tabs.findIndex((tab) => tab.id === active.id)
+    let nextIndex = null
+    if (event.key in TAB_KEY_OFFSETS) {
+      nextIndex = (index + TAB_KEY_OFFSETS[event.key] + tabs.length) % tabs.length
+    } else if (event.key === 'Home') {
+      nextIndex = 0
+    } else if (event.key === 'End') {
+      nextIndex = tabs.length - 1
+    }
+    if (nextIndex === null) return
+    event.preventDefault()
+    const next = tabs[nextIndex]
+    setActiveId(next.id)
+    tabRefs.current[next.id]?.focus()
+  }
 
   return (
-    <section className="admin-ops__recent" aria-label={t('admin.dashboard.recentAthletesTitle')}>
-      <header className="admin-ops__chart-head">
-        <div>
-          <p className="admin-ops__eyebrow">{t('admin.dashboard.recentAthletesEyebrow')}</p>
-          <h3>{t('admin.dashboard.recentAthletesTitle')}</h3>
-          <p>{t('admin.dashboard.recentAthletesSubtitle')}</p>
+    <section className="admin-ops__activity" aria-labelledby={`${baseId}-title`}>
+      <header className="admin-ops__section-head">
+        <div className="admin-ops__chart-copy">
+          <p className="admin-ops__eyebrow">{t('admin.dashboard.activityEyebrow')}</p>
+          <h3 id={`${baseId}-title`}>{t('admin.dashboard.activityTitle')}</h3>
         </div>
         <button
           type="button"
           className="admin-dashboard-link"
-          onClick={() => onNavigate?.('athletes')}
+          aria-label={`${t('admin.actions.view')} ${t(active.titleKey)}`}
+          onClick={() => onNavigate?.(active.section)}
         >
           {t('admin.actions.view')}
           <ArrowRight size={12} aria-hidden />
         </button>
       </header>
 
-      <ul className="admin-ops__recent-list">
-        {athletes.items.map((athlete) => (
-          <li key={athlete.id} className="admin-ops__recent-item">
+      <div
+        className="admin-ops__tabs"
+        role="tablist"
+        aria-label={t('admin.dashboard.activityTabsAria')}
+        onKeyDown={handleKeyDown}
+      >
+        {tabs.map((tab) => {
+          const selected = tab.id === active.id
+          return (
             <button
+              key={tab.id}
+              ref={(node) => {
+                tabRefs.current[tab.id] = node
+              }}
+              id={tabId(tab.id)}
               type="button"
-              className="admin-ops__recent-open"
-              onClick={() => onSelectAthlete?.(athlete.id)}
+              role="tab"
+              className="admin-ops__tab"
+              aria-selected={selected}
+              aria-controls={panelId}
+              tabIndex={selected ? 0 : -1}
+              onClick={() => setActiveId(tab.id)}
             >
-              <span className="admin-ops__recent-avatar" aria-hidden>
-                {athlete.photoUrl ? (
-                  <LazyPhoto
-                    className="admin-ops__recent-avatar-photo"
-                    src={athlete.photoUrl}
-                    alt=""
-                    onError={(event) => {
-                      event.currentTarget.hidden = true
-                    }}
-                  />
-                ) : null}
-                <span>{initials(athlete.fullName)}</span>
-              </span>
-              <span className="admin-ops__recent-body">
-                <strong>{athlete.fullName}</strong>
-                <span>{athlete.gym || t('admin.dashboard.recentAthletesNoGym')}</span>
-              </span>
-              <span className="admin-ops__recent-date">
-                {formatDayMonth(athlete.createdAt.slice(0, 10), locale)}
-              </span>
+              {t(tab.tabKey)}
             </button>
-          </li>
-        ))}
-      </ul>
+          )
+        })}
+      </div>
+
+      <div
+        className="admin-ops__activity-panel"
+        id={panelId}
+        role="tabpanel"
+        aria-labelledby={tabId(active.id)}
+      >
+        <p className="admin-ops__activity-sub">{t(active.subtitleKey)}</p>
+        {active.id === 'athletes' ? (
+          <RecentAthletesList
+            athletes={recentAthletes}
+            locale={locale}
+            onSelectAthlete={onSelectAthlete}
+            t={t}
+          />
+        ) : null}
+        {active.id === 'memberships' ? (
+          <RecentMembershipsList
+            memberships={recentMemberships}
+            locale={locale}
+            onSelectAthlete={onSelectAthlete}
+            canDeleteAthlete={canDeleteAthlete}
+            onDeleteAthlete={onDeleteAthlete}
+            getAthleteDetail={getAthleteDetail}
+            t={t}
+          />
+        ) : null}
+        {active.id === 'registrations' ? (
+          <RecentRegistrationsList
+            registrations={recentRegistrations}
+            locale={locale}
+            onSelectAthlete={onSelectAthlete}
+          />
+        ) : null}
+      </div>
     </section>
   )
 }
 
+function RecentAvatar({ fullName, photoUrl }) {
+  return (
+    <span className="admin-ops__recent-avatar" aria-hidden>
+      {photoUrl ? (
+        <LazyPhoto
+          className="admin-ops__recent-avatar-photo"
+          src={photoUrl}
+          alt=""
+          onError={(event) => {
+            event.currentTarget.hidden = true
+          }}
+        />
+      ) : null}
+      <span>{initials(fullName)}</span>
+    </span>
+  )
+}
+
+function RecentAthletesList({ athletes, locale, onSelectAthlete, t }) {
+  return (
+    <ul className="admin-ops__recent-list">
+      {athletes.items.map((athlete) => (
+        <li key={athlete.id} className="admin-ops__recent-item">
+          <button
+            type="button"
+            className="admin-ops__recent-open"
+            onClick={() => onSelectAthlete?.(athlete.id)}
+          >
+            <RecentAvatar fullName={athlete.fullName} photoUrl={athlete.photoUrl} />
+            <span className="admin-ops__recent-body">
+              <strong>{athlete.fullName}</strong>
+              <span>{athlete.gym || t('admin.dashboard.recentAthletesNoGym')}</span>
+            </span>
+            <span className="admin-ops__recent-date">
+              {formatDayMonth(athlete.createdAt.slice(0, 10), locale)}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 /**
- * Afiliaciones recientes. Separada de `RecentAthletesCard` a propósito: esa
+ * Afiliaciones recientes. Separada de `RecentAthletesList` a propósito: esa
  * lista son altas de cuenta, y registrarse no afilia a nadie. Acá se ve quién
  * quedó cubierto, con qué código y desde cuándo.
  *
@@ -366,10 +503,9 @@ function RecentAthletesCard({ athletes, locale, onNavigate, onSelectAthlete, t }
  * elimina al atleta con toda su cascada, reusando el mismo dialog y endpoint
  * que la zona de peligro del detalle.
  */
-function RecentMembershipsCard({
+function RecentMembershipsList({
   memberships,
   locale,
-  onNavigate,
   onSelectAthlete,
   canDeleteAthlete = false,
   onDeleteAthlete,
@@ -379,8 +515,6 @@ function RecentMembershipsCard({
   const [pendingDelete, setPendingDelete] = useState(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [deleteError, setDeleteError] = useState('')
-
-  if (!memberships?.items?.length) return null
 
   const pendingDetail =
     pendingDelete && getAthleteDetail ? getAthleteDetail(pendingDelete.athleteId) : null
@@ -406,23 +540,7 @@ function RecentMembershipsCard({
   }
 
   return (
-    <section className="admin-ops__recent" aria-label={t('admin.dashboard.recentMembershipsTitle')}>
-      <header className="admin-ops__chart-head">
-        <div>
-          <p className="admin-ops__eyebrow">{t('admin.dashboard.recentMembershipsEyebrow')}</p>
-          <h3>{t('admin.dashboard.recentMembershipsTitle')}</h3>
-          <p>{t('admin.dashboard.recentMembershipsSubtitle')}</p>
-        </div>
-        <button
-          type="button"
-          className="admin-dashboard-link"
-          onClick={() => onNavigate?.('memberships')}
-        >
-          {t('admin.actions.view')}
-          <ArrowRight size={12} aria-hidden />
-        </button>
-      </header>
-
+    <>
       <ul className="admin-ops__recent-list">
         {memberships.items.map((membership) => (
           <li
@@ -434,19 +552,7 @@ function RecentMembershipsCard({
               className="admin-ops__recent-open"
               onClick={() => onSelectAthlete?.(membership.athleteId)}
             >
-              <span className="admin-ops__recent-avatar" aria-hidden>
-                {membership.photoUrl ? (
-                  <LazyPhoto
-                    className="admin-ops__recent-avatar-photo"
-                    src={membership.photoUrl}
-                    alt=""
-                    onError={(event) => {
-                      event.currentTarget.hidden = true
-                    }}
-                  />
-                ) : null}
-                <span>{initials(membership.fullName)}</span>
-              </span>
+              <RecentAvatar fullName={membership.fullName} photoUrl={membership.photoUrl} />
               <span className="admin-ops__recent-body">
                 <strong>{membership.fullName}</strong>
                 <span className="data-table__mono" title={membership.memberCode ?? undefined}>
@@ -494,74 +600,39 @@ function RecentMembershipsCard({
           busyLabel={t('admin.athleteDetail.delete.deleting')}
         />
       ) : null}
-    </section>
+    </>
   )
 }
 
-function RecentRegistrationsCard({ registrations, locale, onNavigate, onSelectAthlete, t }) {
-  if (!registrations?.items?.length) return null
-
+function RecentRegistrationsList({ registrations, locale, onSelectAthlete }) {
   return (
-    <section
-      className="admin-ops__recent"
-      aria-label={t('admin.dashboard.recentRegistrationsTitle')}
-    >
-      <header className="admin-ops__chart-head">
-        <div>
-          <p className="admin-ops__eyebrow">{t('admin.dashboard.recentRegistrationsEyebrow')}</p>
-          <h3>{t('admin.dashboard.recentRegistrationsTitle')}</h3>
-          <p>{t('admin.dashboard.recentRegistrationsSubtitle')}</p>
-        </div>
-        <button
-          type="button"
-          className="admin-dashboard-link"
-          onClick={() => onNavigate?.('registrations')}
-        >
-          {t('admin.actions.view')}
-          <ArrowRight size={12} aria-hidden />
-        </button>
-      </header>
-
-      <ul className="admin-ops__recent-list">
-        {registrations.items.map((registration) => (
-          <li key={registration.id} className="admin-ops__recent-item">
-            <button
-              type="button"
-              className="admin-ops__recent-open"
-              onClick={() => onSelectAthlete?.(registration.athleteId)}
-            >
-              <span className="admin-ops__recent-avatar" aria-hidden>
-                {registration.photoUrl ? (
-                  <LazyPhoto
-                    className="admin-ops__recent-avatar-photo"
-                    src={registration.photoUrl}
-                    alt=""
-                    onError={(event) => {
-                      event.currentTarget.hidden = true
-                    }}
-                  />
-                ) : null}
-                <span>{initials(registration.fullName)}</span>
+    <ul className="admin-ops__recent-list">
+      {registrations.items.map((registration) => (
+        <li key={registration.id} className="admin-ops__recent-item">
+          <button
+            type="button"
+            className="admin-ops__recent-open"
+            onClick={() => onSelectAthlete?.(registration.athleteId)}
+          >
+            <RecentAvatar fullName={registration.fullName} photoUrl={registration.photoUrl} />
+            <span className="admin-ops__recent-body">
+              <strong>{registration.fullName}</strong>
+              <span>
+                {[registration.event, registration.category, registration.division]
+                  .filter(Boolean)
+                  .join(' · ')}
               </span>
-              <span className="admin-ops__recent-body">
-                <strong>{registration.fullName}</strong>
-                <span>
-                  {[registration.event, registration.category, registration.division]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </span>
-              </span>
-              <span className="admin-ops__recent-date">
-                <StatusBadge value={registration.status} />
-                <time dateTime={registration.createdAt.slice(0, 10)}>
-                  {formatDayMonth(registration.createdAt.slice(0, 10), locale)}
-                </time>
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </section>
+            </span>
+            <span className="admin-ops__recent-date">
+              <StatusBadge value={registration.status} />
+              <time dateTime={registration.createdAt.slice(0, 10)}>
+                {formatDayMonth(registration.createdAt.slice(0, 10), locale)}
+              </time>
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -861,12 +932,11 @@ export default function DashboardSection({
   const queueMix = useMemo(() => formatQueueMix(pendingActions, t), [pendingActions, t])
 
   const hasWork = pendingActions.length > 0 || finance.pendingItems.length > 0
-  const workCount = pendingActions.length > 0 ? pendingActions.length : finance.pendingCount
-  const workSubtitle = !hasWork
-    ? t('admin.dashboard.noUrgency')
-    : pendingActions.length > 0
-      ? queueMix || t('admin.dashboard.workSubtitle', { count: pendingActions.length })
-      : t('admin.dashboard.workSubtitlePayments', { count: finance.pendingCount })
+  const hasQueue = pendingActions.length > 0
+  const workCount = hasQueue ? pendingActions.length : finance.pendingCount
+  const workFigureLabel = hasQueue
+    ? t(workCount === 1 ? 'admin.dashboard.queueFigureOne' : 'admin.dashboard.queueFigure')
+    : t(workCount === 1 ? 'admin.dashboard.queueFigurePaymentOne' : 'admin.dashboard.queueFigurePayments')
 
   function breakdownLabel(item) {
     if (item.status === 'expiringSoon') return t('admin.metrics.expiringSoon')
@@ -901,172 +971,72 @@ export default function DashboardSection({
         onDismissItem={handleDismiss}
       />
 
-      <div className="admin-ops" aria-label={t('admin.dashboard.metricsAria')}>
-        <section
-          className="admin-ops__kpis"
-          aria-label={t('admin.dashboard.metricsAria')}
-          data-tour="dashboard-kpis"
-        >
-          {primaryMetrics.map((item) => (
-            <DashboardKpiTile
-              key={item.labelKey}
-              icon={item.icon}
-              label={item.label}
-              tone={item.tone}
-              value={item.value}
-              hint={item.hint}
-              onClick={() => onNavigate?.(item.section)}
-            />
-          ))}
+      <div className="admin-ops">
+        <section className="admin-ops__summary" aria-label={t('admin.dashboard.metricsAria')}>
+          <div className="admin-ops__kpis" data-tour="dashboard-kpis">
+            {primaryMetrics.map((item) => (
+              <DashboardKpiTile
+                key={item.labelKey}
+                label={item.label}
+                tone={item.tone}
+                value={item.value}
+                hint={item.hint}
+                onClick={() => onNavigate?.(item.section)}
+              />
+            ))}
+          </div>
+          <nav
+            className="admin-ops__links"
+            aria-label={t('admin.dashboard.quickTitle')}
+            data-tour="dashboard-quicklinks"
+          >
+            <span className="admin-ops__links-label" aria-hidden>
+              {t('admin.dashboard.quickTitle')}
+            </span>
+            <div className="admin-ops__links-track">
+              {QUICK_ACTIONS.map(({ section, labelKey }) => (
+                <button
+                  key={section}
+                  type="button"
+                  className="admin-ops__link"
+                  onClick={() => onNavigate?.(section)}
+                >
+                  {t(labelKey)}
+                </button>
+              ))}
+            </div>
+          </nav>
         </section>
 
-        <AdminPriorityBoard reminders={dashboardOverview.reminders} onNavigate={onNavigate} />
-
-        <section className="admin-ops__board" aria-label={t('admin.dashboard.analyticsAria')}>
-          <header className="admin-ops__board-head">
-            <div className="admin-ops__board-intro">
-              <h2>{t('admin.dashboard.analyticsTitle')}</h2>
-              <ul
-                className="admin-ops__board-stats"
-                aria-label={t('admin.dashboard.financeSubtitleLive', {
-                  pending: finance.pendingCount,
-                  events: finance.openEvents,
-                })}
-              >
-                <li
-                  className={`admin-ops__board-stat${
-                    finance.pendingCount > 0 ? ' admin-ops__board-stat--alert' : ''
-                  }`}
-                >
-                  <strong>{finance.pendingCount}</strong>
-                  <span>{t('admin.dashboard.boardStatPending')}</span>
-                </li>
-                <li className="admin-ops__board-stat">
-                  <strong>{finance.openEvents}</strong>
-                  <span>{t('admin.dashboard.boardStatEvents')}</span>
-                </li>
-              </ul>
-            </div>
-            <nav
-              className="admin-ops__links"
-              aria-label={t('admin.dashboard.quickTitle')}
-              data-tour="dashboard-quicklinks"
-            >
-              <div className="admin-ops__links-track">
-                {QUICK_ACTIONS.map(({ section, labelKey }) => (
-                  <button
-                    key={section}
-                    type="button"
-                    className="admin-ops__link"
-                    onClick={() => onNavigate?.(section)}
-                  >
-                    {t(labelKey)}
-                  </button>
-                ))}
-              </div>
-            </nav>
-          </header>
-
-          {canViewAnalytics ? <DashboardTrafficCard onNavigate={onNavigate} /> : null}
-
-          <div className="admin-ops__charts">
-            <section className="admin-ops__chart admin-ops__chart--finance">
-              <header className="admin-ops__chart-head">
-                <div className="admin-ops__chart-copy">
-                  <p className="admin-ops__eyebrow">{t('admin.dashboard.financeSubtitle')}</p>
-                  <h3>{t('admin.dashboard.financeTitle')}</h3>
-                </div>
-                <button
-                  type="button"
-                  className="admin-dashboard-link"
-                  onClick={() => onNavigate?.('payments')}
-                >
-                  {t('admin.actions.payments')}
-                  <ArrowRight size={12} aria-hidden />
-                </button>
-              </header>
-
-              <div className="admin-ops__finance-visual">
-                <CollectionDonut
-                  collected={finance.collectedAmount}
-                  pending={finance.pendingAmount}
-                  rate={finance.collectionRate}
-                  label={t('admin.dashboard.financeRate')}
-                />
-                <dl className="admin-ops__finance-metrics">
-                  <div className="admin-ops__finance-metric admin-ops__finance-metric--collected">
-                    <dt>{t('admin.dashboard.financeCollected')}</dt>
-                    <dd>{money(finance.collectedAmount)}</dd>
-                  </div>
-                  <div className="admin-ops__finance-metric admin-ops__finance-metric--pending">
-                    <dt>{t('admin.dashboard.financePending')}</dt>
-                    <dd>{money(finance.pendingAmount)}</dd>
-                  </div>
-                  <div className="admin-ops__finance-metric admin-ops__finance-metric--operated">
-                    <dt>{t('admin.dashboard.financeOperated')}</dt>
-                    <dd>{money(finance.totalAmount)}</dd>
-                  </div>
-                </dl>
-              </div>
-            </section>
-
-            <div className="admin-ops__breakdowns">
-              <StackedBarChart
-                title={t('admin.dashboard.breakdownRegistrations')}
-                total={breakdowns.registrations.total}
-                items={breakdowns.registrations.items}
-                section={breakdowns.registrations.section}
-                onNavigate={onNavigate}
-                getLabel={breakdownLabel}
-                t={t}
-              />
-              <StackedBarChart
-                title={t('admin.dashboard.breakdownMemberships')}
-                total={breakdowns.memberships.total}
-                items={breakdowns.memberships.items}
-                section={breakdowns.memberships.section}
-                onNavigate={onNavigate}
-                getLabel={breakdownLabel}
-                t={t}
-              />
-              <StackedBarChart
-                title={t('admin.dashboard.breakdownPayments')}
-                total={breakdowns.payments.total}
-                items={breakdowns.payments.items}
-                section={breakdowns.payments.section}
-                onNavigate={onNavigate}
-                getLabel={breakdownLabel}
-                t={t}
-              />
-              <StackedBarChart
-                title={t('admin.dashboard.breakdownEvents')}
-                total={breakdowns.events.total}
-                items={breakdowns.events.items}
-                section={breakdowns.events.section}
-                onNavigate={onNavigate}
-                getLabel={breakdownLabel}
-                t={t}
-              />
-            </div>
-          </div>
+        <div className="admin-ops__attention">
+          <AdminPriorityBoard reminders={dashboardOverview.reminders} onNavigate={onNavigate} />
 
           <div className="admin-ops__work" data-tour="dashboard-queue">
             <header className="admin-ops__work-head">
               <div className="admin-ops__work-copy">
-                <div className="admin-ops__work-title-row">
-                  <h3>{t('admin.dashboard.queueTitle')}</h3>
-                  {hasWork ? <span className="admin-ops__work-count">{workCount}</span> : null}
-                </div>
-                <p>{workSubtitle}</p>
+                <h3 className="admin-ops__eyebrow">{t('admin.dashboard.queueTitle')}</h3>
+                {hasWork ? (
+                  <p className="admin-ops__work-summary">
+                    <strong className="admin-ops__work-figure">{workCount}</strong>
+                    <span className="admin-ops__work-figure-copy">
+                      <span className="admin-ops__work-figure-label">{workFigureLabel}</span>
+                      {hasQueue && queueMix ? (
+                        <span className="admin-ops__work-mix">{queueMix}</span>
+                      ) : null}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="admin-ops__work-sub">{t('admin.dashboard.noUrgency')}</p>
+                )}
               </div>
-              {pendingActions.length > 0 ? (
+              {hasQueue ? (
                 <button
                   type="button"
                   className="admin-ops__work-cta"
                   onClick={() => setAlertsOpen(true)}
                 >
-                  {t('admin.dashboard.queueSeeAll', { count: pendingActions.length })}
-                  <ArrowRight size={13} aria-hidden />
+                  {t('admin.dashboard.queueOpen')}
+                  <ArrowRight size={14} aria-hidden />
                 </button>
               ) : null}
             </header>
@@ -1131,23 +1101,69 @@ export default function DashboardSection({
               </div>
             ) : null}
           </div>
+        </div>
 
-          <LaunchInterestWidget />
+        <section className="admin-ops__board" aria-labelledby="admin-ops-board-title">
+          <header className="admin-ops__board-head">
+            <h2 id="admin-ops-board-title">{t('admin.dashboard.analyticsTitle')}</h2>
+          </header>
 
-          {recentAthletes?.items?.length ||
-          recentMemberships?.items?.length ||
-          recentRegistrations?.items?.length ? (
-            <div className="admin-ops__recents">
-              <RecentAthletesCard
-                athletes={recentAthletes}
-                locale={locale}
-                onNavigate={onNavigate}
-                onSelectAthlete={onSelectAthlete}
-                t={t}
-              />
+          <div className="admin-ops__layout">
+            <div className="admin-ops__main">
+              <div className="admin-ops__period">
+                <section className="admin-ops__finance" aria-labelledby="admin-ops-finance-title">
+                  <header className="admin-ops__section-head">
+                    <div className="admin-ops__chart-copy">
+                      <h3 id="admin-ops-finance-title">{t('admin.dashboard.financeEyebrow')}</h3>
+                    </div>
+                    <button
+                      type="button"
+                      className="admin-dashboard-link"
+                      onClick={() => onNavigate?.('payments')}
+                    >
+                      {t('admin.actions.payments')}
+                      <ArrowRight size={12} aria-hidden />
+                    </button>
+                  </header>
 
-              <RecentMembershipsCard
-                memberships={recentMemberships}
+                  <div className="admin-ops__finance-hero">
+                    <span className="admin-ops__finance-hero-label">
+                      {t('admin.dashboard.financeCollected')}
+                    </span>
+                    <strong className="admin-ops__finance-hero-value">
+                      {money(finance.collectedAmount, locale)}
+                    </strong>
+                  </div>
+
+                  <dl className="admin-ops__finance-metrics">
+                    <div className="admin-ops__finance-metric">
+                      <dt>{t('admin.dashboard.financeRate')}</dt>
+                      <dd>{finance.collectionRate}%</dd>
+                    </div>
+                    <div className="admin-ops__finance-metric admin-ops__finance-metric--pending">
+                      <dt>{t('admin.dashboard.financePending')}</dt>
+                      <dd>{money(finance.pendingAmount, locale)}</dd>
+                    </div>
+                    <div className="admin-ops__finance-metric">
+                      <dt>{t('admin.dashboard.financeOperated')}</dt>
+                      <dd>{money(finance.totalAmount, locale)}</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <BreakdownPanel
+                  breakdowns={breakdowns}
+                  onNavigate={onNavigate}
+                  getLabel={breakdownLabel}
+                  locale={locale}
+                  t={t}
+                />
+              </div>
+
+              <RecentActivityTabs
+                recentAthletes={recentAthletes}
+                recentMemberships={recentMemberships}
+                recentRegistrations={recentRegistrations}
                 locale={locale}
                 onNavigate={onNavigate}
                 onSelectAthlete={onSelectAthlete}
@@ -1156,71 +1172,66 @@ export default function DashboardSection({
                 getAthleteDetail={getAthleteDetail}
                 t={t}
               />
+            </div>
 
-              <RecentRegistrationsCard
-                registrations={recentRegistrations}
+            <div className="admin-ops__rail">
+              <SpotlightInline
+                event={spotlightEvent}
                 locale={locale}
                 onNavigate={onNavigate}
-                onSelectAthlete={onSelectAthlete}
                 t={t}
               />
+
+              {canViewAnalytics ? <DashboardTrafficCard onNavigate={onNavigate} /> : null}
+
+              <div className="admin-ops__stats-row">
+                <LeaderboardCard
+                  featured
+                  eyebrow={t('admin.dashboard.eventLeaderboardEyebrow')}
+                  title={t('admin.dashboard.eventLeaderboardTitle')}
+                  items={eventLeaderboard.items}
+                  navigateSection="events"
+                  onNavigate={onNavigate}
+                  t={t}
+                  renderItem={(event) => (
+                    <li key={event.id} className="admin-ops__leaderboard-item">
+                      <div className="admin-ops__leaderboard-main">
+                        <span className="admin-ops__leaderboard-title">{event.title}</span>
+                        <span className="admin-ops__leaderboard-value">
+                          {event.registered}/{event.slots}
+                          <span className="admin-ops__leaderboard-pct">{event.fillPercent}%</span>
+                        </span>
+                      </div>
+                    </li>
+                  )}
+                />
+                <LeaderboardCard
+                  eyebrow={t('admin.dashboard.topGymsEyebrow')}
+                  title={t('admin.dashboard.topGymsTitle')}
+                  items={topGyms.items}
+                  navigateSection="athletes"
+                  onNavigate={onNavigate}
+                  t={t}
+                  renderItem={(gym, index) => {
+                    return (
+                      <li
+                        key={gym.gym}
+                        className="admin-ops__leaderboard-item admin-ops__leaderboard-item--rank"
+                      >
+                        <span className="admin-ops__leaderboard-rank">{index + 1}</span>
+                        <div className="admin-ops__leaderboard-main">
+                          <span className="admin-ops__leaderboard-title">{gym.gym}</span>
+                          <span className="admin-ops__leaderboard-value">{gym.count}</span>
+                        </div>
+                      </li>
+                    )
+                  }}
+                />
+              </div>
+
+              <LaunchInterestWidget />
             </div>
-          ) : null}
-
-          <div className="admin-ops__stats-row">
-            <LeaderboardCard
-              featured
-              eyebrow={t('admin.dashboard.eventLeaderboardEyebrow')}
-              title={t('admin.dashboard.eventLeaderboardTitle')}
-              items={eventLeaderboard.items}
-              navigateSection="events"
-              onNavigate={onNavigate}
-              t={t}
-              renderItem={(event) => (
-                <li key={event.id} className="admin-ops__leaderboard-item">
-                  <div className="admin-ops__leaderboard-main">
-                    <span className="admin-ops__leaderboard-title">{event.title}</span>
-                    <span className="admin-ops__leaderboard-value">
-                      {event.registered}/{event.slots}
-                      <span className="admin-ops__leaderboard-pct">{event.fillPercent}%</span>
-                    </span>
-                  </div>
-                  <span className="admin-ops__leaderboard-bar" aria-hidden>
-                    <span style={{ width: `${event.fillPercent}%` }} />
-                  </span>
-                </li>
-              )}
-            />
-            <LeaderboardCard
-              eyebrow={t('admin.dashboard.topGymsEyebrow')}
-              title={t('admin.dashboard.topGymsTitle')}
-              items={topGyms.items}
-              navigateSection="athletes"
-              onNavigate={onNavigate}
-              t={t}
-              renderItem={(gym, index) => {
-                const peak = Math.max(topGyms.items[0]?.count ?? 1, 1)
-                const share = Math.round((gym.count / peak) * 100)
-                return (
-                  <li
-                    key={gym.gym}
-                    className="admin-ops__leaderboard-item admin-ops__leaderboard-item--rank"
-                  >
-                    <span className="admin-ops__leaderboard-rank">{index + 1}</span>
-                    <div className="admin-ops__leaderboard-main">
-                      <span className="admin-ops__leaderboard-title">{gym.gym}</span>
-                      <span className="admin-ops__leaderboard-value">{gym.count}</span>
-                    </div>
-                    <span className="admin-ops__leaderboard-bar" aria-hidden>
-                      <span style={{ width: `${share}%` }} />
-                    </span>
-                  </li>
-                )
-              }}
-            />
           </div>
-
-          <SpotlightInline event={spotlightEvent} locale={locale} onNavigate={onNavigate} t={t} />
         </section>
       </div>
     </div>

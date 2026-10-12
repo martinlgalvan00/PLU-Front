@@ -6,6 +6,7 @@ import AdminFilterPanel from './AdminFilterPanel.jsx'
 import AdminFilterPillRow from './AdminFilterPillRow.jsx'
 import AdminFilterSearch from './AdminFilterSearch.jsx'
 import AdminFilterSelect from './AdminFilterSelect.jsx'
+import AdminFilterToolbar from './AdminFilterToolbar.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { filterValueText, filterValueTone, isFilterActive, neutralValue } from '../../lib/adminFilterValue.js'
 
@@ -167,8 +168,11 @@ export default function AdminFilterBar({
   filters = [],
   placeholder = 'Buscar…',
   /** `'popover'`: search + una fila de pills que abren un popover por filtro,
-   * en vez del panel apilado de abajo. Ver AdminFilterPillRow. */
+   * en vez del panel apilado de abajo. Ver AdminFilterPillRow.
+   * `'toolbar'`: buscador + «Filtros» + lente de estado (ver AdminFilterToolbar). */
   layout,
+  /** Solo `toolbar`: contenido al final de la fila de criterios aplicados. */
+  extra = null,
 }) {
   const { t } = useI18n()
   const panelId = useId()
@@ -533,6 +537,21 @@ export default function AdminFilterBar({
         allLabel={filter.allLabel ?? t('admin.filters.showingAll')}
         clearable
         hideEmpty
+      />
+    )
+  }
+
+  if (layout === 'toolbar') {
+    return (
+      <AdminFilterToolbar
+        actions={actions}
+        className={className}
+        count={count}
+        extra={extra}
+        filters={filters}
+        onQueryChange={onQueryChange}
+        placeholder={placeholder}
+        query={query}
       />
     )
   }

@@ -1,0 +1,180 @@
+/* SPONSORS — niveles como placas con inclinación suave (3D) y rótulos
+   sobrios. Beneficios y proceso salen de EditorialLedger. Un solo acento
+   dorado por bloque: la regla del nivel y el subrayado del enlace.
+   Solo transform + opacity. */
+
+.sponsor-tiers__grid {
+  display: grid;
+  gap: clamp(16px, 2.4vw, 28px);
+  grid-template-columns: minmax(0, 1fr);
+  list-style: none;
+  margin: clamp(24px, 3vw, 36px) 0 0;
+  padding: 0;
+}
+
+.sponsor-tier {
+  min-width: 0;
+}
+
+.sponsor-tier__tilt {
+  display: block;
+  height: 100%;
+}
+
+.sponsor-tier__plate {
+  background: color-mix(in srgb, var(--institution-text) 3%, transparent);
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px var(--institution-border);
+  display: grid;
+  gap: 12px;
+  height: 100%;
+  align-content: start;
+  padding: clamp(24px, 3.6vw, 44px);
+  position: relative;
+}
+
+/* Regla del nivel: dorada solo para el nivel principal. */
+.sponsor-tier__plate::before {
+  background: var(--institution-border-strong, var(--institution-border));
+  content: '';
+  height: 1px;
+  left: clamp(24px, 3.6vw, 44px);
+  position: absolute;
+  top: 0;
+  width: 3rem;
+}
+
+.sponsor-tier--title .sponsor-tier__plate::before {
+  background: var(--color-brand-gold);
+}
+
+.sponsor-tier__plate p,
+.sponsor-tier__plate h3 {
+  margin: 0;
+}
+
+.sponsor-tier__label {
+  color: var(--institution-text-muted);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+}
+
+.sponsor-tier__plate h3 {
+  color: var(--institution-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2.8vw, 2.1rem);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+}
+
+.sponsor-tier--title .sponsor-tier__plate h3 {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+}
+
+.sponsor-tier__desc {
+  color: var(--institution-text-muted);
+  font-size: 14px;
+  font-weight: 300;
+  line-height: 1.7;
+  max-width: 52ch;
+  text-wrap: pretty;
+}
+
+.sponsor-tier__empty {
+  color: var(--institution-text-muted);
+  font-size: 12.5px;
+  font-style: italic;
+  font-weight: 300;
+  line-height: 1.5;
+}
+
+.sponsor-tier__partners {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sponsor-tier__partners li {
+  align-items: center;
+  display: inline-flex;
+  gap: 10px;
+}
+
+.sponsor-tier__partners a,
+.sponsor-tier__partners strong {
+  color: var(--institution-text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.sponsor-tier__logo {
+  height: 28px;
+  object-fit: contain;
+  width: auto;
+}
+
+/* Enlace de texto con subrayado dorado que se despliega. */
+.sponsor-tier__cta {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: var(--institution-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  gap: 10px;
+  justify-self: start;
+  letter-spacing: 0.22em;
+  margin-top: 8px;
+  min-height: 44px;
+  padding: 0;
+  position: relative;
+  text-transform: uppercase;
+}
+
+.sponsor-tier__cta::after {
+  background: var(--color-brand-gold);
+  bottom: 6px;
+  content: '';
+  height: 1px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  transform: scaleX(0.3);
+  transform-origin: left center;
+  transition: transform var(--motion-slow) var(--ease-out);
+}
+
+.sponsor-tier__cta:hover::after,
+.sponsor-tier__cta:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.sponsor-tier__cta:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 4px;
+}
+
+@media (min-width: 900px) {
+  .sponsor-tiers__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sponsor-tier--title {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sponsor-tier__cta::after {
+    transition: none;
+  }
+}

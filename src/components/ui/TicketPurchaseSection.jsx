@@ -22,6 +22,7 @@ import StatusPill from './StatusPill.jsx'
 import TicketPassPreview from './TicketPassPreview.jsx'
 import { credentialCountLabel, zoneScopeList } from './TicketTypeOptions.jsx'
 import MercadoPagoEmbeddedCheckout from './MercadoPagoEmbeddedCheckout.jsx'
+import { TicketCheckoutChapter, TicketCheckoutRail } from './TicketCheckoutFlow.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { env } from '../../config/env.js'
 import { getFormOptions } from '../../lib/formOptions.js'
@@ -32,6 +33,7 @@ import { TICKETS_PATH } from '../../lib/ticketsRoute.js'
 import { isTicketTypeChannelOpen } from '../../lib/ticketTypePaymentChannels.js'
 import { validateTicketAttendees, validateTicketBuyer } from '../../lib/validation.js'
 import { priceForAttendee, priceForOrder } from '../../services/ticketService.js'
+import { resolveTicketCheckoutProgress } from '../../services/ticketCheckoutProgress.js'
 import { buildTicketPaymentPriceLabels } from '../../lib/ticketPaymentMethods.js'
 import { formatWisePrice } from '../../services/checkoutPricing.js'
 import { resolveTicketOrderWisePricing } from '../../../shared/ticketWisePricing.js'
@@ -856,6 +858,16 @@ export default function TicketPurchaseSection({
   )
   const activeTicket = orderTickets.find((item) => item.id === activeTicketId) ?? null
   const total = priceForOrder(attendees, pricing, ticketAddons, paymentMethod)
+  const checkoutProgress = useMemo(
+    () =>
+      resolveTicketCheckoutProgress({
+        attendees,
+        buyer,
+        paymentMethod,
+        ticketTypeIds: (pricing.ticketTypes ?? []).map((type) => type.id),
+      }),
+    [attendees, buyer, paymentMethod, pricing.ticketTypes],
+  )
 
   function changeQuantity(next) {
     const clamped = Math.min(MAX_TICKETS, Math.max(1, next))
@@ -916,14 +928,16 @@ export default function TicketPurchaseSection({
     if (!validation.success || !buyerValidation.success) {
       setErrors({ ...validation.errors, ...buyerValidation.errors })
       requestAnimationFrame(() => {
-        document
-          .querySelector(
-            '.ticket-purchase__attendees-batch-row.has-error, .ticket-purchase__attendee-row .field input[aria-invalid="true"], .ticket-purchase__buyer .field input[aria-invalid="true"]',
-          )
-          // El `?.` del método y no sólo del elemento: en jsdom (y en
-          // cualquier entorno sin scroll) el nodo existe y el método no, y una
-          // excepción acá tiraba abajo el aviso de error que estaba por mostrar.
-          ?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
+        const firstInvalid = document.querySelector(
+          '.ticket-purchase__attendees-batch-row.has-error, .ticket-purchase__attendee-row .field input[aria-invalid="true"], .ticket-purchase__buyer .field input[aria-invalid="true"]',
+        )
+        // El `?.` del método y no sólo del elemento: en jsdom (y en
+        // cualquier entorno sin scroll) el nodo existe y el método no, y una
+        // excepción acá tiraba abajo el aviso de error que estaba por mostrar.
+        firstInvalid?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+        // El foco va al campo, no sólo la vista: con teclado o lector de
+        // pantalla el error tiene que quedar donde se escribe.
+        firstInvalid?.focus?.({ preventScroll: true })
       })
       return
     }
@@ -1197,9 +1211,7 @@ export default function TicketPurchaseSection({
                     {proofFile ? <FileText size={20} /> : <Upload size={20} />}
                   </span>
                   <span className="ticket-purchase__proof-dropzone-copy">
-                    <strong>
-                      {proofFile ? proofFileName : t('pages.tickets.proofDropTitle')}
-                    </strong>
+                    <strong>{proofFile ? proofFileName : t('pages.tickets.proofDropTitle')}</strong>
                     <small>
                       {proofFile
                         ? formatProofFileSize(proofFile.size)
@@ -1388,222 +1400,250 @@ export default function TicketPurchaseSection({
     .filter(Boolean)
     .join(' ')
 
+  // En el checkout editorial la compra se lee en tres capítulos (entradas,
+  // datos, pago) con un riel fijo. Todo queda montado: el orden guía, no bloquea.
+  const chapter = (step, index, node) =>
+    editorial ? (
+      <TicketCheckoutChapter step={step} index={index} done={checkoutProgress.done[step]} t={t}>
+        {node}
+      </TicketCheckoutChapter>
+    ) : (
+      node
+    )
+
   const formBody = (
     <>
-      <div className="ticket-purchase__quantity">
-        <div className="ticket-purchase__quantity-main">
-          <span>{t('pages.tickets.quantity')}</span>
-          <div className="ticket-purchase__stepper">
-            <button
-              type="button"
-              onClick={() => changeQuantity(quantity - 1)}
-              disabled={quantity <= 1}
-              aria-label={t('pages.tickets.subtract')}
-            >
-              <Minus size={14} aria-hidden />
-            </button>
-            <span>{quantity}</span>
-            <button
-              type="button"
-              onClick={() => changeQuantity(quantity + 1)}
-              disabled={quantity >= MAX_TICKETS}
-              aria-label={t('pages.tickets.add')}
-            >
-              <Plus size={14} aria-hidden />
-            </button>
-          </div>
-        </div>
-        {editorial ? (
-          <div className="ticket-purchase__summary-inline" aria-live="polite">
-            <span>{t('pages.tickets.total')}</span>
-            <strong>{money(total, locale)}</strong>
-          </div>
-        ) : (
-          <span className="ticket-purchase__unit-price">{money(total, locale)}</span>
-        )}
-      </div>
-
-      <div className="ticket-purchase__attendees">
-        {editorial && (
-          <header className="ticket-purchase__attendees-head">
-            <div className="ticket-purchase__attendees-callout">
-              <span className="ticket-purchase__attendees-callout-icon" aria-hidden>
-                <QrCode size={18} strokeWidth={1.75} />
-              </span>
-              <div className="ticket-purchase__attendees-callout-copy">
-                <p className="ticket-purchase__attendees-lead">
-                  {t('pages.tickets.editorialNote')}
-                </p>
-                <p className="ticket-purchase__attendees-note">
-                  <IdCard size={13} aria-hidden />
-                  <span>{t('pages.tickets.dniWhy')}</span>
-                </p>
+      {editorial ? (
+        <TicketCheckoutRail progress={checkoutProgress} totalLabel={money(total, locale)} t={t} />
+      ) : null}
+      {chapter(
+        'tickets',
+        0,
+        <>
+          <div className="ticket-purchase__quantity">
+            <div className="ticket-purchase__quantity-main">
+              <span>{t('pages.tickets.quantity')}</span>
+              <div className="ticket-purchase__stepper">
+                <button
+                  type="button"
+                  onClick={() => changeQuantity(quantity - 1)}
+                  disabled={quantity <= 1}
+                  aria-label={t('pages.tickets.subtract')}
+                >
+                  <Minus size={14} aria-hidden />
+                </button>
+                <span>{quantity}</span>
+                <button
+                  type="button"
+                  onClick={() => changeQuantity(quantity + 1)}
+                  disabled={quantity >= MAX_TICKETS}
+                  aria-label={t('pages.tickets.add')}
+                >
+                  <Plus size={14} aria-hidden />
+                </button>
               </div>
             </div>
-          </header>
-        )}
-        {editorial && quantity > 1 ? (
-          <EditorialAttendeesBatch
-            addons={ticketAddons}
-            attendees={attendees}
-            errors={errors}
-            locale={locale}
-            onAddonToggle={handleAddonToggle}
-            onChange={changeAttendee}
-            paymentMethod={paymentMethod}
-            pricing={pricing}
-            t={t}
-          />
-        ) : (
-          attendees.map((attendee, index) =>
-            editorial ? (
-              <EditorialAttendeeFields
-                key={index}
+            {editorial ? (
+              <div className="ticket-purchase__summary-inline" aria-live="polite">
+                <span>{t('pages.tickets.total')}</span>
+                <strong>{money(total, locale)}</strong>
+              </div>
+            ) : (
+              <span className="ticket-purchase__unit-price">{money(total, locale)}</span>
+            )}
+          </div>
+
+          <div className="ticket-purchase__attendees">
+            {editorial && (
+              <header className="ticket-purchase__attendees-head">
+                <div className="ticket-purchase__attendees-callout">
+                  <span className="ticket-purchase__attendees-callout-icon" aria-hidden>
+                    <QrCode size={18} strokeWidth={1.75} />
+                  </span>
+                  <div className="ticket-purchase__attendees-callout-copy">
+                    <p className="ticket-purchase__attendees-lead">
+                      {t('pages.tickets.editorialNote')}
+                    </p>
+                    <p className="ticket-purchase__attendees-note">
+                      <IdCard size={13} aria-hidden />
+                      <span>{t('pages.tickets.dniWhy')}</span>
+                    </p>
+                  </div>
+                </div>
+              </header>
+            )}
+            {editorial && quantity > 1 ? (
+              <EditorialAttendeesBatch
                 addons={ticketAddons}
-                attendee={attendee}
+                attendees={attendees}
                 errors={errors}
-                index={index}
                 locale={locale}
                 onAddonToggle={handleAddonToggle}
                 onChange={changeAttendee}
                 paymentMethod={paymentMethod}
                 pricing={pricing}
-                quantity={quantity}
                 t={t}
               />
             ) : (
-              <div key={index} className="ticket-purchase__attendee-row">
-                <div className="ticket-purchase__attendee-row-head">
-                  <span className="ticket-purchase__attendee-label">
-                    {t('pages.tickets.attendee', { index: index + 1 })}
-                  </span>
-                  <span className="ticket-purchase__attendee-price">
-                    {money(
-                      priceForAttendee(attendee, pricing, ticketAddons, paymentMethod),
-                      locale,
-                    )}
-                  </span>
-                </div>
-                <div className="form-grid form-grid--compact">
-                  <Field
-                    label={t('pages.tickets.fullName')}
-                    name={`attendee-${index}-fullName`}
-                    value={attendee.fullName}
-                    onChange={(e) => changeAttendee(index, 'fullName', e.target.value)}
-                    error={errors[`attendee-${index}-fullName`]}
-                    placeholder={t('pages.tickets.fullNamePlaceholder')}
+              attendees.map((attendee, index) =>
+                editorial ? (
+                  <EditorialAttendeeFields
+                    key={index}
+                    addons={ticketAddons}
+                    attendee={attendee}
+                    errors={errors}
+                    index={index}
+                    locale={locale}
+                    onAddonToggle={handleAddonToggle}
+                    onChange={changeAttendee}
+                    paymentMethod={paymentMethod}
+                    pricing={pricing}
+                    quantity={quantity}
+                    t={t}
                   />
-                  <Field
-                    label={t('pages.tickets.dni')}
-                    name={`attendee-${index}-dni`}
-                    value={attendee.dni}
-                    onChange={(e) =>
-                      changeAttendee(index, 'dni', e.target.value.replace(/\D/g, ''))
-                    }
-                    error={errors[`attendee-${index}-dni`]}
-                    placeholder={t('pages.tickets.dniPlaceholder')}
-                    inputMode="numeric"
-                    maxLength={16}
-                  />
-                  <Select
-                    label={t('pages.tickets.ticketTypes.legend')}
-                    name={`attendee-${index}-ticketTypeId`}
-                    value={attendee.ticketTypeId}
-                    onChange={(e) => changeAttendee(index, 'ticketTypeId', e.target.value)}
-                    options={ticketTypeSelectOptions}
-                  />
-                </div>
-                <TicketAddonPicker
-                  addons={ticketAddons}
-                  attendee={attendee}
-                  locale={locale}
-                  onToggle={(addonId) => handleAddonToggle(index, addonId)}
-                  t={t}
-                  ticketTypes={pricing.ticketTypes}
-                />
-              </div>
-            ),
-          )
-        )}
-      </div>
+                ) : (
+                  <div key={index} className="ticket-purchase__attendee-row">
+                    <div className="ticket-purchase__attendee-row-head">
+                      <span className="ticket-purchase__attendee-label">
+                        {t('pages.tickets.attendee', { index: index + 1 })}
+                      </span>
+                      <span className="ticket-purchase__attendee-price">
+                        {money(
+                          priceForAttendee(attendee, pricing, ticketAddons, paymentMethod),
+                          locale,
+                        )}
+                      </span>
+                    </div>
+                    <div className="form-grid form-grid--compact">
+                      <Field
+                        label={t('pages.tickets.fullName')}
+                        name={`attendee-${index}-fullName`}
+                        value={attendee.fullName}
+                        onChange={(e) => changeAttendee(index, 'fullName', e.target.value)}
+                        error={errors[`attendee-${index}-fullName`]}
+                        placeholder={t('pages.tickets.fullNamePlaceholder')}
+                      />
+                      <Field
+                        label={t('pages.tickets.dni')}
+                        name={`attendee-${index}-dni`}
+                        value={attendee.dni}
+                        onChange={(e) =>
+                          changeAttendee(index, 'dni', e.target.value.replace(/\D/g, ''))
+                        }
+                        error={errors[`attendee-${index}-dni`]}
+                        placeholder={t('pages.tickets.dniPlaceholder')}
+                        inputMode="numeric"
+                        maxLength={16}
+                      />
+                      <Select
+                        label={t('pages.tickets.ticketTypes.legend')}
+                        name={`attendee-${index}-ticketTypeId`}
+                        value={attendee.ticketTypeId}
+                        onChange={(e) => changeAttendee(index, 'ticketTypeId', e.target.value)}
+                        options={ticketTypeSelectOptions}
+                      />
+                    </div>
+                    <TicketAddonPicker
+                      addons={ticketAddons}
+                      attendee={attendee}
+                      locale={locale}
+                      onToggle={(addonId) => handleAddonToggle(index, addonId)}
+                      t={t}
+                      ticketTypes={pricing.ticketTypes}
+                    />
+                  </div>
+                ),
+              )
+            )}
+          </div>
+        </>,
+      )}
 
-      <div
-        className={`ticket-purchase__checkout${editorial ? ' ticket-purchase__checkout--editorial' : ''}`}
-      >
-        {/* Va antes del medio de pago, no después: es el dato que decide a
-            dónde llega la entrada, y dejarlo al final lo volvía un trámite
-            posterior al pago en la lectura de la pantalla. */}
-        <TicketBuyerFields buyer={buyer} errors={errors} onChange={changeBuyer} t={t} />
+      {/* Va antes del medio de pago, no después: es el dato que decide a
+          dónde llega la entrada, y dejarlo al final lo volvía un trámite
+          posterior al pago en la lectura de la pantalla. */}
+      {chapter(
+        'buyer',
+        1,
+        <TicketBuyerFields buyer={buyer} errors={errors} onChange={changeBuyer} t={t} />,
+      )}
 
-        {editorial ? (
-          <>
-            <TicketPaymentOptions
-              manualEnabled={effectiveManualPaymentEnabled}
-              mercadoPagoEnabled={effectiveMercadoPagoEnabled}
-              cashEnabled={effectiveCashEnabled}
-              wiseEnabled={effectiveWiseEnabled}
-              paymentMethod={paymentMethod}
-              priceLabels={paymentPriceLabels}
-              wiseLabel={wiseLabel}
-              onChange={(value) => {
-                setPaymentMethod(value)
-                setSubmitError('')
-              }}
-              t={t}
-            />
-            {paymentNarrowedByType ? (
-              <p className="ticket-purchase__payment-note ticket-purchase__payment-note--narrowed">
-                {t('pages.tickets.paymentNarrowedByType')}
-              </p>
-            ) : null}
-            {paymentMethod === 'transferencia' ? (
-              <p className="ticket-purchase__payment-note ticket-purchase__payment-note--transfer">
-                {t('pages.tickets.transferCheckoutNote')}
-              </p>
-            ) : null}
-            <div className="ticket-purchase__checkout-action">
-              <div className="ticket-purchase__checkout-total" aria-live="polite">
-                <span>{t('pages.tickets.total')}</span>
-                <strong>{money(total, locale)}</strong>
-                {quantity > 1 && (
-                  <span className="ticket-purchase__checkout-meta">
-                    {t('pages.tickets.confirmationCount_other', { count: quantity })}
-                  </span>
-                )}
-              </div>
-              <button
-                type="submit"
-                className="ticket-purchase__submit ticket-purchase__submit--primary"
-                disabled={submitting}
-              >
-                {buyLabel}
-                <ArrowRight size={14} aria-hidden />
-              </button>
-            </div>
-            {submitError && <p className="ticket-purchase__submit-error">{submitError}</p>}
-          </>
-        ) : (
-          <>
-            <div className="form-grid form-grid--compact">
-              <Select
-                label={t('pages.tickets.paymentMethod')}
-                name="paymentMethod"
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                options={manualPaymentOptions}
+      {chapter(
+        'payment',
+        2,
+        <div
+          className={`ticket-purchase__checkout${editorial ? ' ticket-purchase__checkout--editorial' : ''}`}
+        >
+          {editorial ? (
+            <>
+              <TicketPaymentOptions
+                manualEnabled={effectiveManualPaymentEnabled}
+                mercadoPagoEnabled={effectiveMercadoPagoEnabled}
+                cashEnabled={effectiveCashEnabled}
+                wiseEnabled={effectiveWiseEnabled}
+                paymentMethod={paymentMethod}
+                priceLabels={paymentPriceLabels}
+                wiseLabel={wiseLabel}
+                onChange={(value) => {
+                  setPaymentMethod(value)
+                  setSubmitError('')
+                }}
+                t={t}
               />
-              <div className="field field--readonly ticket-purchase__total">
-                <span>{t('pages.tickets.total')}</span>
-                <strong>{money(total, locale)}</strong>
+              {paymentNarrowedByType ? (
+                <p className="ticket-purchase__payment-note ticket-purchase__payment-note--narrowed">
+                  {t('pages.tickets.paymentNarrowedByType')}
+                </p>
+              ) : null}
+              {paymentMethod === 'transferencia' ? (
+                <p className="ticket-purchase__payment-note ticket-purchase__payment-note--transfer">
+                  {t('pages.tickets.transferCheckoutNote')}
+                </p>
+              ) : null}
+              <div className="ticket-purchase__checkout-action">
+                <div className="ticket-purchase__checkout-total" aria-live="polite">
+                  <span>{t('pages.tickets.total')}</span>
+                  <strong>{money(total, locale)}</strong>
+                  {quantity > 1 && (
+                    <span className="ticket-purchase__checkout-meta">
+                      {t('pages.tickets.confirmationCount_other', { count: quantity })}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="submit"
+                  className="ticket-purchase__submit ticket-purchase__submit--primary"
+                  disabled={submitting}
+                >
+                  {buyLabel}
+                  <ArrowRight size={14} aria-hidden />
+                </button>
               </div>
-            </div>
-            {submitError && <p className="ticket-purchase__submit-error">{submitError}</p>}
-            <Button type="submit" className="btn--small" disabled={submitting}>
-              {buyLabel}
-            </Button>
-          </>
-        )}
-      </div>
+              {submitError && <p className="ticket-purchase__submit-error">{submitError}</p>}
+            </>
+          ) : (
+            <>
+              <div className="form-grid form-grid--compact">
+                <Select
+                  label={t('pages.tickets.paymentMethod')}
+                  name="paymentMethod"
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  options={manualPaymentOptions}
+                />
+                <div className="field field--readonly ticket-purchase__total">
+                  <span>{t('pages.tickets.total')}</span>
+                  <strong>{money(total, locale)}</strong>
+                </div>
+              </div>
+              {submitError && <p className="ticket-purchase__submit-error">{submitError}</p>}
+              <Button type="submit" className="btn--small" disabled={submitting}>
+                {buyLabel}
+              </Button>
+            </>
+          )}
+        </div>,
+      )}
     </>
   )
 

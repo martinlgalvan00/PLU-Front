@@ -1,31 +1,21 @@
-import { useState, useRef } from 'react'
-import { m } from 'motion/react'
-import {
-  ArrowRight,
-  CalendarDays,
-  ChevronRight,
-  GraduationCap,
-  MapPin,
-  ShoppingBag,
-  Ticket,
-} from 'lucide-react'
-import shopHeroPhoto from '../assets/DSC00392-display.jpg'
-import shopHeroPhotoAvif from '../assets/DSC00392-display.avif'
-import shopHeroPhotoAvif480 from '../assets/DSC00392-display-480.avif'
-import shopHeroPhotoAvif800 from '../assets/DSC00392-display-800.avif'
-import shopHeroPhotoWebp from '../assets/DSC00392-display.webp'
-import shopHeroPhotoWebp480 from '../assets/DSC00392-display-480.webp'
-import shopHeroPhotoWebp800 from '../assets/DSC00392-display-800.webp'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, m } from 'motion/react'
+import { ArrowRight, CalendarDays, MapPin, ShoppingBag } from 'lucide-react'
 import PluPageHero from '../components/layout/PluPageHero.jsx'
-import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
+import LaunchInterestForm from '../components/ui/LaunchInterestForm.jsx'
+import ShopComingSoon from '../components/ui/ShopComingSoon.jsx'
+import ShopCartDrawer from '../components/ui/ShopCartDrawer.jsx'
 import ShopEventDrawer from '../components/ui/ShopEventDrawer.jsx'
+import ShopProductCard from '../components/ui/ShopProductCard.jsx'
+import ShopProductDrawer from '../components/ui/ShopProductDrawer.jsx'
+import ShopTabs from '../components/ui/ShopTabs.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
 import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.jsx'
 import { zoneScopeLabel } from '../components/ui/TicketTypeOptions.jsx'
-import { useI18n } from '../i18n/I18nProvider.jsx'
+import { useShopCart } from '../hooks/useShopCart.js'
+import { useShopProducts } from '../hooks/useShopProducts.js'
 import { useTicketAvailability } from '../hooks/useTicketAvailability.js'
-import { useParallaxShift } from '../hooks/useMotion.js'
-import { useMotionConfig } from '../motion/MotionProvider.tsx'
+import { useI18n } from '../i18n/I18nProvider.jsx'
 import {
   getFeaturedEvent,
   getFeaturedEventDestination,
@@ -38,17 +28,16 @@ import {
 } from '../lib/eventPricing.js'
 import { FEATURE_KEYS, isFeatureEnabled } from '../lib/featureAvailability.js'
 import { money } from '../lib/format.js'
-import { getPublishedShopProducts } from '../services/shopService.js'
-import LaunchInterestForm from '../components/ui/LaunchInterestForm.jsx'
+import { useMotionConfig } from '../motion/MotionProvider.tsx'
+import { MOTION_DURATION, MOTION_EASE } from '../motion/tokens.ts'
+import { staggerContainer } from '../motion/variants.ts'
+import { recallShopOrderToken, rememberShopOrder } from '../services/shopOrderService.js'
+import { groupShopProductsByTab } from '../services/shopService.js'
 import '../styles/pages/design-phase2.css'
 import '../styles/pages/shop.css'
+import '../styles/pages/shop-luxe.css'
+import '../styles/pages/shop-checkout.css'
 
-/**
- * Fila editorial por evento publicado: nada acá está hardcodeado a un evento
- * puntual, así que un evento nuevo dado de alta en el panel de admin
- * aparece solo en esta lista apenas se publica, sin tocar código.
- * Tocarla abre el detalle rápido (entradas + merch) en un panel lateral.
- */
 function shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t) {
   if (!checkoutOpen) return t('pages.shop.checkoutSoonLabel')
   if (!salesOpen) return t('pages.shop.salesClosed')
@@ -76,284 +65,30 @@ function parseShopDateParts(dateStr = '') {
   return { raw: cleaned }
 }
 
-function ShopEventCard({ event, locale, checkoutOpen, onOpenDetail, t }) {
-  const pricing = ticketPricingFromEvent(event)
-  const fromPrice = cheapestTicketTypePrice(pricing)
-  const salesOpen = checkoutOpen && isTicketSalesEnabled(event)
-  const remaining = useTicketAvailability(salesOpen ? event.slug : null)
-  const dateParts = parseShopDateParts(event.date)
-
-  const { reducedMotion } = useMotionConfig()
-
-  return (
-    <m.article
-      variants={{
-        hidden: reducedMotion ? {} : { opacity: 0, x: -10 },
-        visible: reducedMotion ? {} : { opacity: 1, x: 0 },
-      }}
-      whileHover={
-        reducedMotion
-          ? {}
-          : { x: 8, backgroundColor: 'color-mix(in srgb, var(--color-brand-gold) 4%, transparent)' }
-      }
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className={['shop-event-card', checkoutOpen ? '' : 'shop-event-card--preview']
-        .filter(Boolean)
-        .join(' ')}
-      role="button"
-      tabIndex={0}
-      onClick={() => onOpenDetail(event)}
-      onKeyDown={(keyEvent) => {
-        if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
-          keyEvent.preventDefault()
-          onOpenDetail(event)
-        }
-      }}
-    >
-      <span className="shop-event-card__date" aria-label={event.date}>
-        {dateParts?.day ? (
-          <>
-            <span className="shop-event-card__day">{dateParts.day}</span>
-            <span className="shop-event-card__month">{dateParts.month}</span>
-          </>
-        ) : (
-          <span className="shop-event-card__date-raw">{dateParts?.raw ?? event.date}</span>
-        )}
-      </span>
-      <div className="shop-event-card__main">
-        <div className="shop-event-card__head">
-          <h3 className="shop-event-card__title">{event.title}</h3>
-          <StatusPill value={event.status} />
-        </div>
-        <p className="shop-event-card__meta">{event.venue}</p>
-        {/* La fila decía sólo "desde $X", que es lo único que dos entradas
-            distintas tienen en común. Acá se nombran los tipos y, del que abre
-            algo más que la puerta, también qué abre. */}
-        {salesOpen && pricing.ticketTypes.length > 1 ? (
-          <ul className="shop-event-card__types">
-            {pricing.ticketTypes.map((type) => {
-              // La puerta general la abren todas: lo que informa es lo que
-              // viene además.
-              const extraZones = (type.zoneScopes ?? []).filter(
-                (scope) => scope !== 'gate_tickets',
-              )
-              return (
-                <li key={type.id} className="shop-event-card__type">
-                  <span className="shop-event-card__type-name">{type.name}</span>
-                  {extraZones.map((scope) => (
-                    <span key={scope} className="shop-event-card__type-zone">
-                      {zoneScopeLabel(scope, t)}
-                    </span>
-                  ))}
-                </li>
-              )
-            })}
-          </ul>
-        ) : null}
-        {salesOpen ? (
-          <TicketAvailabilityBadge
-            remaining={remaining}
-            className="shop-event-card__availability"
-          />
-        ) : null}
-      </div>
-      <div className="shop-event-card__foot">
-        <p className="shop-event-card__price">
-          {shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t)}
-        </p>
-        <span className="shop-event-card__hint">
-          {checkoutOpen ? t('pages.shop.cardHint') : t('pages.shop.cardHintSoon')}
-          <ArrowRight size={14} aria-hidden />
-        </span>
-      </div>
-    </m.article>
-  )
+const panelVariants = {
+  hidden: { opacity: 0, y: 14 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
+  },
+  exit: { opacity: 0, transition: { duration: MOTION_DURATION.fast } },
 }
 
-const SHOP_CATEGORIES = [
-  { id: 'tickets', labelKey: 'pages.shop.categoryTickets', icon: Ticket },
-  { id: 'merch', labelKey: 'pages.shop.categoryMerch', icon: ShoppingBag },
-  { id: 'courses', labelKey: 'pages.shop.categoryCourses', icon: GraduationCap },
-]
+const rowVariants = {
+  hidden: { opacity: 0, y: 14 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
+  },
+}
 
 /**
- * Panel full-width cuando el departamento no tiene catálogo propio
- * (merch / cursos en «próximamente»). Composición editorial, no card de catálogo.
+ * Evento destacado, sin foto de fondo: título liviano a la izquierda y, a la
+ * derecha, lo que hace falta para decidir (precio, cupo, acción).
  */
-function ShopDepartmentPanel({
-  badge,
-  title,
-  titleId,
-  text,
-  sourceId,
-  primaryLabel,
-  onPrimary,
-  secondaryLabel,
-  onSecondary,
-}) {
-  const { reducedMotion } = useMotionConfig()
-
-  return (
-    <m.article
-      className="shop-department-panel shop-department-panel--soon"
-      initial={reducedMotion ? false : { opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={reducedMotion ? { duration: 0 } : { duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div className="shop-department-panel__copy">
-        {badge ? (
-          <div className="shop-department-panel__meta">
-            <span className="shop-department-panel__badge" aria-live="polite">
-              <span className="shop-department-panel__badge-text">{badge}</span>
-            </span>
-          </div>
-        ) : null}
-        <h2 id={titleId} className="shop-department-panel__title">
-          {title}
-        </h2>
-        <p className="shop-department-panel__text">{text}</p>
-        {primaryLabel && onPrimary ? (
-          <div className="shop-department-panel__actions">
-            <button
-              type="button"
-              className="shop-department-panel__cta shop-department-panel__cta--primary"
-              onClick={onPrimary}
-            >
-              <span>{primaryLabel}</span>
-              <ArrowRight size={14} aria-hidden />
-            </button>
-            {secondaryLabel && onSecondary ? (
-              <button
-                type="button"
-                className="shop-department-panel__cta shop-department-panel__cta--secondary"
-                onClick={onSecondary}
-              >
-                <span>{secondaryLabel}</span>
-                <ArrowRight size={13} aria-hidden />
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-        <LaunchInterestForm source={sourceId || 'shop_generic'} />
-      </div>
-    </m.article>
-  )
-}
-
-function ShopProductCard({ checkoutOpen, locale, onAddToCart, product, t }) {
-  const soldOut = product.stock <= 0
-  const canBuy = checkoutOpen && !soldOut
-
-  return (
-    <article className="shop-product-card">
-      <div className="shop-product-card__media">
-        {product.imageUrl ? (
-          <img src={product.imageUrl} alt="" loading="lazy" decoding="async" />
-        ) : (
-          <ShoppingBag size={28} aria-hidden />
-        )}
-        {product.featured ? <span>{t('pages.shop.productFeatured')}</span> : null}
-      </div>
-      <div className="shop-product-card__body">
-        <small>{t(`pages.shop.productCategories.${product.category}`)}</small>
-        <h3>{product.title}</h3>
-        <p>{product.description || t('pages.shop.productNoDescription')}</p>
-      </div>
-      <div className="shop-product-card__foot">
-        <div>
-          {checkoutOpen ? (
-            <strong>{money(product.price, locale)}</strong>
-          ) : (
-            <strong>{t('pages.shop.checkoutSoonLabel')}</strong>
-          )}
-          <span>
-            {!checkoutOpen
-              ? t('pages.shop.merchSoon')
-              : soldOut
-                ? t('pages.shop.productSoldOut')
-                : t('pages.shop.productStock', { stock: product.stock })}
-          </span>
-        </div>
-        <button
-          type="button"
-          className="btn shop-product-card__cta"
-          disabled={!canBuy}
-          onClick={() => onAddToCart(product)}
-        >
-          {checkoutOpen ? t('pages.shop.addToCart') : t('pages.shop.checkoutSoonLabel')}
-        </button>
-      </div>
-    </article>
-  )
-}
-
-function ShopCart({ cart, locale, onCheckout, onRemove, t, open, onClose }) {
-  const items = Object.values(cart)
-  const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
-
-  if (!open && items.length === 0) return null
-
-  return (
-    <>
-      {open ? <div className="shop-cart-drawer__backdrop" onClick={onClose} aria-hidden /> : null}
-      <aside
-        className={`shop-cart-drawer${open ? ' is-open' : ''}`}
-        aria-label={t('pages.shop.cartAria')}
-      >
-        <div className="shop-cart-drawer__head">
-          <div className="shop-cart-drawer__head-copy">
-            <strong>{t('pages.shop.cartTitle')}</strong>
-            <span>
-              {t('pages.shop.cartCount', {
-                count: items.reduce((sum, item) => sum + item.quantity, 0),
-              })}
-            </span>
-          </div>
-          <button
-            type="button"
-            className="shop-cart-drawer__close"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            &times;
-          </button>
-        </div>
-        <div className="shop-cart-drawer__body">
-          {items.length === 0 ? (
-            <p className="shop-cart-drawer__empty">Tu carrito está vacío.</p>
-          ) : (
-            <ul className="shop-cart-drawer__items">
-              {items.map(({ product, quantity }) => (
-                <li key={product.id}>
-                  <span>{product.title}</span>
-                  <em>
-                    {quantity} x {money(product.price, locale)}
-                  </em>
-                  <button type="button" onClick={() => onRemove(product.id)}>
-                    {t('pages.shop.cartRemove')}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        {items.length > 0 ? (
-          <div className="shop-cart-drawer__foot">
-            <div className="shop-cart-drawer__total">
-              <span>{t('pages.shop.cartTotal')}</span>
-              <strong>{money(total, locale)}</strong>
-            </div>
-            <button type="button" className="btn shop-cart-drawer__checkout" onClick={onCheckout}>
-              {t('pages.shop.cartCheckout')}
-            </button>
-          </div>
-        ) : null}
-      </aside>
-    </>
-  )
-}
-
-function ShopFeaturedHero({
+function ShopFeatured({
   event,
   locale,
   checkoutOpen,
@@ -362,167 +97,277 @@ function ShopFeaturedHero({
   onBrowseCalendar,
   t,
 }) {
-  const heroRef = useRef(null)
-  useParallaxShift(heroRef, { strength: 40 })
-
   const pricing = ticketPricingFromEvent(event)
   const fromPrice = cheapestTicketTypePrice(pricing)
   const salesOpen = checkoutOpen && isTicketSalesEnabled(event)
   const remaining = useTicketAvailability(salesOpen ? event.slug : null)
-  const soldOut = remaining === 0
-  const dateParts = parseShopDateParts(event.date)
-  const canBuy = salesOpen && !soldOut
+  const canBuy = salesOpen && remaining !== 0
 
   return (
-    <section className="shop-hero-section" aria-labelledby="shop-hero-title">
-      <article
-        className={['shop-hero', checkoutOpen ? '' : 'shop-hero--preview']
-          .filter(Boolean)
-          .join(' ')}
-        ref={heroRef}
-      >
-        <div className="shop-hero__media" aria-hidden>
-          <ResponsivePhoto
-            className="shop-hero__media-img"
-            style={{
-              transform: 'translateY(var(--hero-parallax-shift, 0)) scale(1.1)',
-              transition: 'transform 0.1s cubic-bezier(0,0,0,1)',
-            }}
-            avif={{ 480: shopHeroPhotoAvif480, 800: shopHeroPhotoAvif800, 1153: shopHeroPhotoAvif }}
-            webp={{ 480: shopHeroPhotoWebp480, 800: shopHeroPhotoWebp800, 1153: shopHeroPhotoWebp }}
-            src={shopHeroPhoto}
-            alt=""
-            sizes="100vw"
-            loading="eager"
-            fetchPriority="high"
-          />
-        </div>
-        <div className="shop-hero__atmosphere" aria-hidden />
-
-        <div className="shop-hero__body">
-          <div className="shop-hero__copy">
-            <span className="shop-hero__eyebrow">{t('pages.shop.featuredEyebrow')}</span>
-            <div className="shop-hero__head">
-              <h2 id="shop-hero-title" className="shop-hero__title">
-                {event.title}
-              </h2>
-              <StatusPill value={event.status} />
-            </div>
-            <p className="shop-hero__meta">
+    <section className="shop-feature" aria-labelledby="shop-feature-title">
+      <p className="shop-eyebrow">{t('pages.shop.featuredEyebrow')}</p>
+      <div className="shop-feature__grid">
+        <div className="shop-feature__copy">
+          <h2 id="shop-feature-title" className="shop-feature__title">
+            {event.title}
+          </h2>
+          <p className="shop-feature__meta">
+            <span>
               <CalendarDays size={14} aria-hidden />
               {event.date}
-              <span className="shop-hero__meta-sep" aria-hidden>
-                ·
-              </span>
+            </span>
+            <span>
               <MapPin size={14} aria-hidden />
               {event.venue}
+            </span>
+            <StatusPill value={event.status} />
+          </p>
+        </div>
+
+        <div className="shop-feature__buy">
+          {checkoutOpen && salesOpen && fromPrice != null ? (
+            <p className="shop-feature__price">
+              <span>{t('pages.shop.fromPriceCaption')}</span>
+              <strong>{money(fromPrice, locale)}</strong>
             </p>
-          </div>
+          ) : (
+            <p className="shop-feature__price shop-feature__price--status">
+              {shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t)}
+            </p>
+          )}
 
-          <div className="shop-hero__buy">
-            {dateParts?.day ? (
-              <p className="shop-hero__ledger" aria-hidden>
-                <span className="shop-hero__ledger-day">{dateParts.day}</span>
-                <span className="shop-hero__ledger-month">{dateParts.month}</span>
-              </p>
-            ) : null}
-
-            <div className="shop-hero__offer">
-              {checkoutOpen && salesOpen && fromPrice != null ? (
-                <p className="shop-hero__price">
-                  <span className="shop-hero__price-caption">{t('pages.shop.fromPriceCaption')}</span>
-                  <span className="shop-hero__price-amount">{money(fromPrice, locale)}</span>
-                </p>
-              ) : (
-                <p className="shop-hero__price shop-hero__price--status">
-                  {shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t)}
-                </p>
-              )}
-
-              {salesOpen ? (
-                <TicketAvailabilityBadge remaining={remaining} className="shop-hero__availability" />
-              ) : checkoutOpen ? null : (
-                <p className="shop-hero__soon-note">{t('pages.shop.checkoutSoonNote')}</p>
-              )}
-            </div>
-
-            {!checkoutOpen ? (
+          {salesOpen ? (
+            <TicketAvailabilityBadge remaining={remaining} className="shop-feature__availability" />
+          ) : checkoutOpen ? null : (
+            <>
+              <p className="shop-feature__soon">{t('pages.shop.checkoutSoonNote')}</p>
               <LaunchInterestForm source="shop_hero" eventSlug={event.slug} />
-            ) : null}
+            </>
+          )}
 
-            <div className="shop-hero__actions">
-              {canBuy ? (
-                <button type="button" className="btn shop-hero__cta" onClick={onBuyTickets}>
-                  <span>{t('pages.shop.buyTickets')}</span>
-                  <ArrowRight size={16} aria-hidden />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn shop-hero__cta shop-hero__cta--editorial"
-                  onClick={onViewDetail}
-                >
-                  <span>{t('pages.shop.featuredViewDetail')}</span>
-                  <ArrowRight size={16} aria-hidden />
-                </button>
-              )}
-              <button
-                type="button"
-                className="shop-hero__secondary-cta"
-                onClick={canBuy ? onViewDetail : onBrowseCalendar}
-              >
-                {canBuy ? t('pages.shop.featuredViewDetail') : t('pages.shop.browseCalendar')}
-                <ChevronRight size={15} aria-hidden />
-              </button>
-            </div>
+          <div className="shop-feature__actions">
+            <button
+              type="button"
+              className="shop-cta"
+              onClick={canBuy ? onBuyTickets : onViewDetail}
+            >
+              <span>
+                {canBuy ? t('pages.shop.buyTickets') : t('pages.shop.featuredViewDetail')}
+              </span>
+              <ArrowRight size={15} aria-hidden />
+            </button>
+            <button
+              type="button"
+              className="shop-link"
+              onClick={canBuy ? onViewDetail : onBrowseCalendar}
+            >
+              {canBuy ? t('pages.shop.featuredViewDetail') : t('pages.shop.browseCalendar')}
+            </button>
           </div>
         </div>
-      </article>
+      </div>
     </section>
   )
 }
 
-export default function ShopPage({ events = [], products = [], onNavigate }) {
+/** Fila de evento: fecha, nombre, sede y desde cuánto. Toda la fila abre el detalle. */
+function ShopEventRow({ event, locale, checkoutOpen, onOpenDetail, t }) {
+  const pricing = ticketPricingFromEvent(event)
+  const fromPrice = cheapestTicketTypePrice(pricing)
+  const salesOpen = checkoutOpen && isTicketSalesEnabled(event)
+  const remaining = useTicketAvailability(salesOpen ? event.slug : null)
+  const dateParts = parseShopDateParts(event.date)
+  const { reducedMotion, tier } = useMotionConfig()
+  const still = reducedMotion || tier === 'low'
+  const Row = still ? 'li' : m.li
+
+  return (
+    <Row className="shop-row" {...(still ? {} : { variants: rowVariants })}>
+      <button type="button" className="shop-row__hit" onClick={() => onOpenDetail(event)}>
+        <span className="shop-row__date" aria-label={event.date}>
+          {dateParts?.day ? (
+            <>
+              <span className="shop-row__day">{dateParts.day}</span>
+              <span className="shop-row__month">{dateParts.month}</span>
+            </>
+          ) : (
+            <span className="shop-row__month">{dateParts?.raw ?? event.date}</span>
+          )}
+        </span>
+
+        <span className="shop-row__main">
+          <span className="shop-row__head">
+            <span className="shop-row__title">{event.title}</span>
+            <StatusPill value={event.status} />
+          </span>
+          <span className="shop-row__meta">{event.venue}</span>
+          {salesOpen && pricing.ticketTypes.length > 1 ? (
+            <span className="shop-row__types">
+              {pricing.ticketTypes.map((type) => {
+                const extraZones = (type.zoneScopes ?? []).filter(
+                  (scope) => scope !== 'gate_tickets',
+                )
+                return (
+                  <span key={type.id}>
+                    {type.name}
+                    {extraZones.length > 0
+                      ? ` · ${extraZones.map((scope) => zoneScopeLabel(scope, t)).join(', ')}`
+                      : ''}
+                  </span>
+                )
+              })}
+            </span>
+          ) : null}
+          {salesOpen ? (
+            <TicketAvailabilityBadge remaining={remaining} className="shop-row__availability" />
+          ) : null}
+        </span>
+
+        <span className="shop-row__foot">
+          <span className="shop-row__price">
+            {shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t)}
+          </span>
+          <span className="shop-row__hint">
+            {checkoutOpen ? t('pages.shop.cardHint') : t('pages.shop.cardHintSoon')}
+            <ArrowRight size={14} aria-hidden />
+          </span>
+        </span>
+      </button>
+    </Row>
+  )
+}
+
+/** Fila de curso: fecha, nombre, modalidad / lugar / cupo y precio. */
+function ShopCourseRow({ course, locale, onOpen, t }) {
+  const startsAt = course.course?.startsAt ? new Date(course.course.startsAt) : null
+  const valid = startsAt && !Number.isNaN(startsAt.getTime())
+  const finished = valid && startsAt.getTime() < Date.now()
+  const { reducedMotion, tier } = useMotionConfig()
+  const still = reducedMotion || tier === 'low'
+  const Row = still ? 'li' : m.li
+  const dayLocale = locale === 'en' ? 'en-US' : 'es-AR'
+  const details = [
+    course.course?.modality
+      ? t(`pages.shop.catalog.course.modality.${course.course.modality}`)
+      : null,
+    course.course?.location,
+    course.course?.capacity
+      ? t('pages.shop.catalog.course.capacity', { count: course.course.capacity })
+      : null,
+  ].filter(Boolean)
+
+  return (
+    <Row className="shop-row" {...(still ? {} : { variants: rowVariants })}>
+      <button type="button" className="shop-row__hit" onClick={() => onOpen(course)}>
+        <span className="shop-row__date">
+          {valid ? (
+            <>
+              <span className="shop-row__day">{String(startsAt.getDate()).padStart(2, '0')}</span>
+              <span className="shop-row__month">
+                {startsAt
+                  .toLocaleDateString(dayLocale, { month: 'short' })
+                  .replace('.', '')
+                  .toUpperCase()}
+              </span>
+            </>
+          ) : null}
+        </span>
+        <span className="shop-row__main">
+          <span className="shop-row__head">
+            <span className="shop-row__title">{course.title}</span>
+            {finished ? (
+              <span className="shop-row__tag">{t('pages.shop.catalog.course.finished')}</span>
+            ) : null}
+          </span>
+          {details.length > 0 ? (
+            <span className="shop-row__meta">{details.join(' · ')}</span>
+          ) : null}
+        </span>
+        <span className="shop-row__foot">
+          <span className="shop-row__price">{money(course.price, locale)}</span>
+          <span className="shop-row__hint">
+            {t('pages.shop.catalog.enroll')}
+            <ArrowRight size={14} aria-hidden />
+          </span>
+        </span>
+      </button>
+    </Row>
+  )
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * Pedido al que apunta la URL: el link del correo (`?pedido=…#t=token`) o el
+ * retorno de Mercado Pago (`?pedido=…&pago=…&payment_id=…`). El token del link
+ * vive en el fragmento; apenas se lee se guarda y se limpia la barra de
+ * direcciones. El `payment_id` es una pista: el servidor verifica el pago.
+ */
+function readOrderRequestFromUrl() {
+  if (typeof window === 'undefined') return null
+  const params = new URLSearchParams(window.location.search)
+  const id = params.get('pedido')
+  if (!id || !UUID_PATTERN.test(id)) return null
+  const hashToken = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('t')
+  if (hashToken) rememberShopOrder(id, hashToken)
+  const request = {
+    id,
+    accessToken: hashToken || recallShopOrderToken(id) || '',
+    paymentId: params.get('payment_id') || params.get('collection_id') || null,
+  }
+  window.history.replaceState(window.history.state, '', window.location.pathname)
+  return request
+}
+
+export default function ShopPage({ events = [], onNavigate }) {
   const { locale, t } = useI18n()
-  const [cart, setCart] = useState({})
-  const [checkoutDone, setCheckoutDone] = useState(false)
-  const [activeCategory, setActiveCategory] = useState(SHOP_CATEGORIES[0].id)
+  const { reducedMotion, tier } = useMotionConfig()
+  const still = reducedMotion || tier === 'low'
+  const { products, status, retry } = useShopProducts()
+  const cart = useShopCart(products, { catalogReady: status === 'ready' })
+  const [bagOpen, setBagOpen] = useState(false)
+  const [bagSession, setBagSession] = useState(0)
+  const [orderRequest, setOrderRequest] = useState(null)
+  const [activeTab, setActiveTab] = useState('tickets')
   const [detailEvent, setDetailEvent] = useState(null)
-  const [cartOpen, setCartOpen] = useState(false)
+  const [detailProduct, setDetailProduct] = useState(null)
   const checkoutOpen = isFeatureEnabled(FEATURE_KEYS.paidCheckout)
   const featuredEvent = getFeaturedEvent(events)
-  const publishedProducts = getPublishedShopProducts(products)
-  const hasLoadedProducts = products.length > 0
+  const groups = useMemo(() => groupShopProductsByTab(products), [products])
   const shopEvents = getUpcomingEventsByDate(events).filter(
     (event) => (event.slug ?? event.id) !== (featuredEvent?.slug ?? featuredEvent?.id),
   )
+  const ticketCount = (featuredEvent ? 1 : 0) + shopEvents.length
 
-  function addToCart(product) {
-    if (!checkoutOpen) return
-    setCheckoutDone(false)
-    setCart((current) => {
-      const currentQuantity = current[product.id]?.quantity ?? 0
-      const nextQuantity = Math.min(product.stock, currentQuantity + 1)
-      return {
-        ...current,
-        [product.id]: { product, quantity: nextQuantity },
-      }
-    })
-  }
+  // Entrar por el link de un pedido (correo o retorno de Mercado Pago) abre su estado.
+  useEffect(() => {
+    const request = readOrderRequestFromUrl()
+    if (!request) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOrderRequest(request)
+    setBagOpen(true)
+  }, [])
 
-  function removeFromCart(productId) {
-    setCart((current) => {
-      const next = { ...current }
-      delete next[productId]
-      return next
-    })
-  }
+  // Con algo en el carrito el cajón arranca limpio en el carrito; sin nada,
+  // retoma el pedido que estaba mirando.
+  const openBag = useCallback(() => {
+    if (cart.count > 0) setBagSession((session) => session + 1)
+    setDetailProduct(null)
+    setBagOpen(true)
+  }, [cart.count])
+  const closeBag = useCallback(() => setBagOpen(false), [])
+  const clearOrderRequest = useCallback(() => setOrderRequest(null), [])
 
-  function checkoutCart() {
-    if (!checkoutOpen) return
-    setCheckoutDone(true)
-    setCart({})
-  }
+  const tabs = [
+    { id: 'tickets', label: t('pages.shop.catalog.tabs.tickets'), count: ticketCount },
+    { id: 'apparel', label: t('pages.shop.catalog.tabs.apparel'), count: groups.apparel.length },
+    {
+      id: 'exclusive',
+      label: t('pages.shop.catalog.tabs.exclusive'),
+      count: groups.exclusive.length,
+    },
+    { id: 'course', label: t('pages.shop.catalog.tabs.course'), count: groups.course.length },
+  ]
 
   function handleBuyTickets(event) {
     if (!checkoutOpen) return
@@ -532,15 +377,63 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
 
   function handleViewEventDetail(event) {
     setDetailEvent(null)
-    const destination = getFeaturedEventDestination({
-      ...event,
-      slug: event?.slug ?? event?.id,
-    })
+    const destination = getFeaturedEventDestination({ ...event, slug: event?.slug ?? event?.id })
     onNavigate(destination.view, destination.options)
   }
 
+  function renderProducts(tab) {
+    const items = groups[tab]
+    if (status === 'loading') {
+      return (
+        <p className="shop-state" role="status">
+          {t('pages.shop.catalog.loading')}
+        </p>
+      )
+    }
+    if (items.length === 0) {
+      return <ShopComingSoon tab={tab} stale={status === 'error'} onRetry={retry} t={t} />
+    }
+
+    const List = still ? 'ul' : m.ul
+    const listProps = still
+      ? {}
+      : { initial: 'hidden', animate: 'visible', variants: staggerContainer }
+
+    if (tab === 'course') {
+      return (
+        <List className="shop-rows" {...listProps}>
+          {items.map((course) => (
+            <ShopCourseRow
+              key={course.id}
+              course={course}
+              locale={locale}
+              onOpen={setDetailProduct}
+              t={t}
+            />
+          ))}
+        </List>
+      )
+    }
+
+    return (
+      <List className="shop-grid" {...listProps}>
+        {items.map((product) => (
+          <ShopProductCard
+            key={product.id}
+            locale={locale}
+            product={product}
+            t={t}
+            onOpen={setDetailProduct}
+          />
+        ))}
+      </List>
+    )
+  }
+
+  const Panel = still ? 'div' : m.div
+
   return (
-    <main className="page page--design page--plu-ref shop-page shop-page--plu-ref">
+    <main className="page page--design page--plu-ref shop-page shop-page--luxe">
       <PluPageHero
         className="shop-page__hero"
         breadcrumbLabel={t('pages.shop.heroBreadcrumb')}
@@ -551,222 +444,124 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
       />
 
       <div className="shop-page__body">
-        <nav className="shop-dock" aria-label={t('pages.shop.categoriesAria')}>
-          <div className="shop-dock__shell plu-tab-rail__shell">
-            {SHOP_CATEGORIES.map(({ id, icon: Icon, labelKey }) => (
-              <button
-                key={id}
-                type="button"
-                className={`shop-dock__tab plu-tab-rail__tab${activeCategory === id ? ' is-active' : ''}`}
-                aria-current={activeCategory === id ? 'page' : undefined}
-                onClick={() => setActiveCategory(id)}
-              >
-                {activeCategory === id ? (
-                  <m.div
-                    layoutId="shop-dock-active-pill"
-                    className="plu-tab-rail__active-pill"
-                    transition={{ type: 'spring', stiffness: 460, damping: 35 }}
+        <div className="shop-bar">
+          <ShopTabs
+            active={activeTab}
+            ariaLabel={t('pages.shop.catalog.tabsAria')}
+            tabs={tabs}
+            onChange={setActiveTab}
+          />
+          {cart.count > 0 ? (
+            <button
+              type="button"
+              className="shop-bar__bag"
+              aria-label={t('pages.shop.checkout.bagAria', { count: cart.count })}
+              onClick={openBag}
+            >
+              <ShoppingBag size={16} aria-hidden />
+              <span>{t('pages.shop.checkout.bag')}</span>
+              <small>{String(cart.count).padStart(2, '0')}</small>
+            </button>
+          ) : null}
+        </div>
+
+        <AnimatePresence mode="wait" initial={false}>
+          <Panel
+            key={activeTab}
+            className="shop-panel"
+            role="tabpanel"
+            {...(still
+              ? {}
+              : { variants: panelVariants, initial: 'hidden', animate: 'visible', exit: 'exit' })}
+          >
+            {activeTab === 'tickets' ? (
+              <>
+                {featuredEvent ? (
+                  <ShopFeatured
+                    event={featuredEvent}
+                    locale={locale}
+                    checkoutOpen={checkoutOpen}
+                    onBuyTickets={() => handleBuyTickets(featuredEvent)}
+                    onViewDetail={() => handleViewEventDetail(featuredEvent)}
+                    onBrowseCalendar={() => onNavigate('events')}
+                    t={t}
                   />
                 ) : null}
-                <span className="shop-dock__tab-inner">
-                  <Icon size={14} aria-hidden className="plu-tab-rail__icon" />
-                  <span className="shop-dock__label">{t(labelKey)}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </nav>
 
-        <div className="shop-catalog">
-          {activeCategory === 'tickets' ? (
-            <div className="shop-catalog__panel" key="tickets">
-              {featuredEvent ? (
-                <ShopFeaturedHero
-                  event={featuredEvent}
-                  locale={locale}
-                  checkoutOpen={checkoutOpen}
-                  onBuyTickets={() => handleBuyTickets(featuredEvent)}
-                  onViewDetail={() => handleViewEventDetail(featuredEvent)}
-                  onBrowseCalendar={() => onNavigate('events')}
-                  t={t}
-                />
-              ) : null}
-
-              <section
-                className="shop-section shop-section--tickets"
-                aria-labelledby="shop-tickets-title"
-              >
-                <div className="shop-section__header shop-section__header--tickets">
-                  <span className="shop-section__eyebrow">{t('pages.shop.emptyEyebrow')}</span>
-                  <div className="shop-section__heading">
+                <section className="shop-section" aria-labelledby="shop-tickets-title">
+                  <header className="shop-section__head">
                     <h2 id="shop-tickets-title" className="shop-section__title">
                       {t('pages.shop.ticketsHeading')}
                     </h2>
-                    {shopEvents.length > 0 ? (
-                      <span
-                        className="shop-section__count"
-                        aria-label={t('pages.shop.dockCount', { count: shopEvents.length })}
-                      >
-                        {String(shopEvents.length).padStart(2, '0')}
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="shop-section__lead">
-                    {checkoutOpen ? t('pages.shop.ticketsLead') : t('pages.shop.ticketsLeadSoon')}
-                  </p>
-                </div>
-                {shopEvents.length > 0 ? (
-                  <m.div
-                    className="shop-events-grid"
-                    initial="hidden"
-                    animate="visible"
-                    variants={{
-                      hidden: {},
-                      visible: { transition: { staggerChildren: 0.08 } },
-                    }}
-                  >
-                    {shopEvents.map((event) => (
-                      <ShopEventCard
-                        key={event.slug ?? event.id ?? event.title}
-                        event={event}
-                        locale={locale}
-                        checkoutOpen={checkoutOpen}
-                        onOpenDetail={setDetailEvent}
-                        t={t}
-                      />
-                    ))}
-                  </m.div>
-                ) : (
-                  <div className="shop-empty" role="status">
-                    <div className="shop-empty__icon" aria-hidden>
-                      <Ticket size={16} strokeWidth={1.6} />
-                    </div>
-                    <div className="shop-empty__copy">
-                      <p className="shop-empty__eyebrow">{t('pages.shop.emptyEyebrow')}</p>
-                      <p className="shop-empty__text">{t('pages.shop.noEvents')}</p>
-                    </div>
-                  </div>
-                )}
-              </section>
-            </div>
-          ) : null}
-
-          {activeCategory === 'merch' ? (
-            <section
-              className="shop-section shop-department"
-              aria-labelledby={
-                publishedProducts.length > 0 || hasLoadedProducts
-                  ? 'shop-merch-title'
-                  : 'shop-merch-panel-title'
-              }
-              key="merch"
-            >
-              {publishedProducts.length > 0 || hasLoadedProducts ? (
-                <div className="shop-section__header">
-                  <h2 id="shop-merch-title" className="shop-section__title">
-                    {t('pages.shop.merchTitle')}
+                    <p className="shop-section__lead">
+                      {checkoutOpen ? t('pages.shop.ticketsLead') : t('pages.shop.ticketsLeadSoon')}
+                    </p>
+                  </header>
+                  {shopEvents.length > 0 ? (
+                    <m.ul
+                      className="shop-rows"
+                      initial={still ? false : 'hidden'}
+                      animate="visible"
+                      variants={staggerContainer}
+                    >
+                      {shopEvents.map((event) => (
+                        <ShopEventRow
+                          key={event.slug ?? event.id ?? event.title}
+                          event={event}
+                          locale={locale}
+                          checkoutOpen={checkoutOpen}
+                          onOpenDetail={setDetailEvent}
+                          t={t}
+                        />
+                      ))}
+                    </m.ul>
+                  ) : featuredEvent ? null : (
+                    <p className="shop-state" role="status">
+                      {t('pages.shop.noEvents')}
+                    </p>
+                  )}
+                </section>
+              </>
+            ) : (
+              <section className="shop-section" aria-labelledby={`shop-${activeTab}-title`}>
+                <header className="shop-section__head">
+                  <p className="shop-eyebrow">{t(`pages.shop.catalog.eyebrow.${activeTab}`)}</p>
+                  <h2 id={`shop-${activeTab}-title`} className="shop-section__title">
+                    {t(`pages.shop.catalog.tabs.${activeTab}`)}
                   </h2>
-                  <p className="shop-section__lead">
-                    {checkoutOpen ? t('pages.shop.merchText') : t('pages.shop.merchTextSoon')}
-                  </p>
-                </div>
-              ) : null}
-
-              {publishedProducts.length > 0 ? (
-                <div className="shop-merch-layout">
-                  <div className="shop-products-grid">
-                    {publishedProducts.map((product) => (
-                      <ShopProductCard
-                        key={product.id}
-                        checkoutOpen={checkoutOpen}
-                        locale={locale}
-                        product={product}
-                        t={t}
-                        onAddToCart={(product) => {
-                          addToCart(product)
-                          setCartOpen(true)
-                        }}
-                      />
-                    ))}
-                  </div>
-                  {checkoutDone ? (
-                    <p className="shop-checkout-done">{t('pages.shop.checkoutDone')}</p>
+                  {status === 'loading' || groups[activeTab].length > 0 ? (
+                    <p className="shop-section__lead">
+                      {t(`pages.shop.catalog.lead.${activeTab}`)}
+                    </p>
                   ) : null}
-                </div>
-              ) : hasLoadedProducts ? (
-                <div className="shop-empty shop-empty--products-pending" role="status">
-                  <div className="shop-empty__icon" aria-hidden>
-                    <ShoppingBag size={16} strokeWidth={1.6} />
-                  </div>
-                  <div className="shop-empty__copy">
-                    <p className="shop-empty__eyebrow">{t('pages.shop.emptyEyebrowMerch')}</p>
-                    <p className="shop-empty__text">{t('pages.shop.productsNotPublished')}</p>
-                  </div>
-                </div>
-              ) : (
-                <ShopDepartmentPanel
-                  badge={t('pages.shop.merchSoon')}
-                  title={t('pages.shop.merchTitle')}
-                  titleId="shop-merch-panel-title"
-                  text={checkoutOpen ? t('pages.shop.merchText') : t('pages.shop.merchTextSoon')}
-                  sourceId="shop_merch"
-                  primaryLabel={t('pages.shop.merchCtaCalendar')}
-                  onPrimary={() => onNavigate?.('events')}
-                  secondaryLabel={t('pages.shop.merchCtaContact')}
-                  onSecondary={() => onNavigate?.('contact')}
-                />
-              )}
-            </section>
-          ) : null}
-
-          {activeCategory === 'courses' ? (
-            <section
-              className="shop-section shop-department"
-              aria-labelledby="shop-courses-panel-title"
-              key="courses"
-            >
-              <ShopDepartmentPanel
-                badge={t('pages.shop.coursesSoon')}
-                title={t('pages.shop.coursesTitle')}
-                titleId="shop-courses-panel-title"
-                text={checkoutOpen ? t('pages.shop.coursesText') : t('pages.shop.coursesTextSoon')}
-                sourceId="shop_courses"
-                primaryLabel={t('pages.shop.coursesCtaContact')}
-                onPrimary={() => onNavigate?.('contact')}
-                secondaryLabel={t('pages.shop.coursesCtaTeam')}
-                onSecondary={() => onNavigate?.('team')}
-              />
-            </section>
-          ) : null}
-        </div>
+                </header>
+                {renderProducts(activeTab)}
+              </section>
+            )}
+          </Panel>
+        </AnimatePresence>
       </div>
 
-      {checkoutOpen ? (
-        <>
-          <ShopCart
-            cart={cart}
-            locale={locale}
-            onCheckout={checkoutCart}
-            onRemove={removeFromCart}
-            t={t}
-            open={cartOpen}
-            onClose={() => setCartOpen(false)}
-          />
+      <ShopProductDrawer
+        locale={locale}
+        open={Boolean(detailProduct)}
+        product={detailProduct}
+        t={t}
+        onAddToCart={cart.add}
+        onClose={() => setDetailProduct(null)}
+        onViewOrder={openBag}
+      />
 
-          {Object.values(cart).length > 0 && !cartOpen ? (
-            <button
-              className="shop-floating-cart-btn"
-              onClick={() => setCartOpen(true)}
-              aria-label="Abrir carrito"
-            >
-              <ShoppingBag size={24} />
-              <span className="shop-floating-cart-count">
-                {Object.values(cart).reduce((sum, item) => sum + item.quantity, 0)}
-              </span>
-            </button>
-          ) : null}
-        </>
-      ) : null}
+      <ShopCartDrawer
+        key={bagSession}
+        cart={cart}
+        locale={locale}
+        open={bagOpen}
+        orderRequest={orderRequest}
+        t={t}
+        onClose={closeBag}
+        onOrderRequestHandled={clearOrderRequest}
+      />
 
       <ShopEventDrawer
         open={Boolean(detailEvent)}

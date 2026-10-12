@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import '../styles/layout/admin-shell.css'
 import '../styles/pages/admin.css'
 import '../styles/pages/admin-institutional.css'
@@ -9,6 +9,8 @@ import '../styles/pages/admin-analytics.css'
 import '../styles/pages/admin-pricing.css'
 import '../styles/pages/admin-event-console.css'
 import '../styles/pages/admin-modals.css'
+import '../styles/pages/admin-account.css'
+import '../styles/pages/admin-staff-applications.css'
 import AdminShell from '../components/layout/AdminShell.jsx'
 import AccountDialog from '../components/admin/AccountDialog.jsx'
 import AdminActionToasts from '../components/admin/AdminActionToasts.jsx'
@@ -16,6 +18,7 @@ import AdminLiveSyncBadge from '../components/admin/AdminLiveSyncBadge.jsx'
 import PageLoadFallback from '../components/ui/PageLoadFallback.jsx'
 import LoadingState from '../components/ui/LoadingState.jsx'
 import ErrorState from '../components/ui/ErrorState.jsx'
+import lazyWithRetry from '../lib/lazyWithRetry.js'
 // `DashboardSection` es la vista de entrada para casi todos los roles, así
 // que queda eager -- lazy-cargarla solo agregaría un flash de Suspense sin
 // bajar bytes reales. El resto de las secciones se cargan bajo demanda: un
@@ -30,25 +33,26 @@ import { hasAnyPermission, hasPermission } from '../lib/permissions.js'
 import { findUnreconciledApprovedPayments } from '../services/paymentReconciliationService.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
-const AthleteDetailSection = lazy(() => import('./admin/AthleteDetailSection.jsx'))
-const AthletesSection = lazy(() => import('./admin/AthletesSection.jsx'))
-const PeopleSection = lazy(() => import('./admin/PeopleSection.jsx'))
-const AuditSection = lazy(() => import('./admin/AuditSection.jsx'))
-const AnalyticsSection = lazy(() => import('./admin/AnalyticsSection.jsx'))
-const EventsSection = lazy(() => import('./admin/EventsSection.jsx'))
-const MembershipsSection = lazy(() => import('./admin/MembershipsSection.jsx'))
-const PlaceholderSection = lazy(() => import('./admin/PlaceholderSection.jsx'))
-const PluUsaSection = lazy(() => import('./admin/PluUsaSection.jsx'))
-const RegistrationsSection = lazy(() => import('./admin/RegistrationsSection.jsx'))
-const ScheduleBoardSection = lazy(() => import('./admin/ScheduleBoardSection.jsx'))
-const CheckInSection = lazy(() => import('./admin/CheckInSection.jsx'))
-const PaymentsOperationsSection = lazy(() => import('./admin/PaymentsOperationsSection.jsx'))
-const FinanceSection = lazy(() => import('./admin/FinanceSection.jsx'))
-const PricingSection = lazy(() => import('./admin/PricingSection.jsx'))
-const RegistrationAccessSection = lazy(() => import('./admin/RegistrationAccessSection.jsx'))
-const ShopSection = lazy(() => import('./admin/ShopSection.jsx'))
-const UsersSection = lazy(() => import('./admin/UsersSection.jsx'))
-const RolesSection = lazy(() => import('./admin/RolesSection.jsx'))
+const AthleteDetailSection = lazyWithRetry(() => import('./admin/AthleteDetailSection.jsx'))
+const AthletesSection = lazyWithRetry(() => import('./admin/AthletesSection.jsx'))
+const PeopleSection = lazyWithRetry(() => import('./admin/PeopleSection.jsx'))
+const AuditSection = lazyWithRetry(() => import('./admin/AuditSection.jsx'))
+const StaffApplicationsSection = lazyWithRetry(() => import('./admin/StaffApplicationsSection.jsx'))
+const AnalyticsSection = lazyWithRetry(() => import('./admin/AnalyticsSection.jsx'))
+const EventsSection = lazyWithRetry(() => import('./admin/EventsSection.jsx'))
+const MembershipsSection = lazyWithRetry(() => import('./admin/MembershipsSection.jsx'))
+const PlaceholderSection = lazyWithRetry(() => import('./admin/PlaceholderSection.jsx'))
+const PluUsaSection = lazyWithRetry(() => import('./admin/PluUsaSection.jsx'))
+const RegistrationsSection = lazyWithRetry(() => import('./admin/RegistrationsSection.jsx'))
+const ScheduleBoardSection = lazyWithRetry(() => import('./admin/ScheduleBoardSection.jsx'))
+const CheckInSection = lazyWithRetry(() => import('./admin/CheckInSection.jsx'))
+const PaymentsOperationsSection = lazyWithRetry(() => import('./admin/PaymentsOperationsSection.jsx'))
+const FinanceSection = lazyWithRetry(() => import('./admin/FinanceSection.jsx'))
+const PricingSection = lazyWithRetry(() => import('./admin/PricingSection.jsx'))
+const RegistrationAccessSection = lazyWithRetry(() => import('./admin/RegistrationAccessSection.jsx'))
+const ShopSection = lazyWithRetry(() => import('./admin/ShopSection.jsx'))
+const UsersSection = lazyWithRetry(() => import('./admin/UsersSection.jsx'))
+const RolesSection = lazyWithRetry(() => import('./admin/RolesSection.jsx'))
 
 export default function AdminPage({
   accessRoles,
@@ -147,16 +151,15 @@ export default function AdminPage({
   onExportAdmin,
   onExportPluUsa,
   onSaveEvent,
-  onSaveShopProduct,
   onScheduleAssigned,
   onSetEventState,
+  onSetEventLogo,
   onSetFilters,
   onUpdateUserRole,
   onUpdateUserStatus,
   onUpdateRolePermissions,
   onUpdateRoleStatus,
   permissionCatalog,
-  onDeleteShopProduct,
   payments,
   pendingTicketOrders,
   pendingTicketOrdersLoading,
@@ -174,7 +177,6 @@ export default function AdminPage({
   athletes,
   registrations,
   tickets,
-  shopProducts,
   users,
   roleLabel,
   isPluUsaPartner = false,
@@ -264,6 +266,17 @@ export default function AdminPage({
       setSelectedAthleteId(null)
     }
   }, [allowedSections, section])
+
+  // Marca la superficie para que los tokens monocromo del admin (dark.css /
+  // light.css) alcancen también a portales y toasts, que viven fuera de
+  // `.admin-shell`.
+  useEffect(() => {
+    const root = document.documentElement
+    root.dataset.surface = 'admin'
+    return () => {
+      delete root.dataset.surface
+    }
+  }, [])
 
   function leaveEventWorkspaceIfNeeded(nextSection) {
     if (
@@ -535,6 +548,7 @@ export default function AdminPage({
           onSetEventRegistrationPrice={onSetEventRegistrationPrice}
           onClearEventPriceSchedule={onClearEventPriceSchedule}
           onSetEventState={onSetEventState}
+          onSetEventLogo={onSetEventLogo}
           onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
           payments={payments}
           pendingTicketOrders={pendingTicketOrders}
@@ -648,12 +662,7 @@ export default function AdminPage({
 
     if (section === 'shop') {
       return (
-        <ShopSection
-          canEdit={hasPermission(authorization, 'admin.shop.write')}
-          products={shopProducts}
-          onDeleteProduct={onDeleteShopProduct}
-          onSaveProduct={onSaveShopProduct}
-        />
+        <ShopSection canEdit={hasPermission(authorization, 'admin.shop.write')} events={adminEvents} />
       )
     }
 
@@ -665,6 +674,12 @@ export default function AdminPage({
           registrations={registrations}
           onExportPluUsa={onExportPluUsa}
         />
+      )
+    }
+
+    if (section === 'staff_applications') {
+      return (
+        <StaffApplicationsSection canEdit={hasPermission(authorization, 'admin.staff_applications.approve')} />
       )
     }
 
@@ -732,6 +747,7 @@ export default function AdminPage({
       onExit={onExit}
       navBadges={adminNavBadges}
       roleLabel={roleLabel}
+      accountName={authorization?.name || authorization?.email}
       allowedSections={allowedSections}
       onOpenAccount={onRequestEmailChange ? () => setAccountOpen(true) : undefined}
       restrictedNav={isPluUsaPartner ? 'pluUsa' : isCheckinOnly ? 'checkin' : false}

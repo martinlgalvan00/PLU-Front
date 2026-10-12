@@ -2,6 +2,7 @@ import { StatusBadge } from '../ui/DataTable.jsx'
 import { formatShortDate } from '../../lib/format.js'
 import { MoreHorizontal } from 'lucide-react'
 import { LazyPhoto } from '../ui/LazyPhoto.jsx'
+import { useI18n } from '../../i18n/I18nProvider.jsx'
 
 /**
  * Celda de identidad: nombre primario + sublínea secundaria.
@@ -114,6 +115,81 @@ export function AdminPeriodCell({ start, end, year, locale = 'es' }) {
         )}
       </span>
       {year != null && year !== '' ? <span className="data-table__period-year">{year}</span> : null}
+    </div>
+  )
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+function daysUntil(iso, today = new Date()) {
+  if (!iso) return null
+  const end = new Date(`${iso}T12:00:00`)
+  if (Number.isNaN(end.getTime())) return null
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12)
+  return Math.round((end.getTime() - start.getTime()) / DAY_MS)
+}
+
+/**
+ * Vigencia en una sola línea (inicio → fin) y, debajo, solo lo que pide acción:
+ * cuánto falta si está por vencer, o hace cuánto venció. Una afiliación vigente
+ * y holgada no repite el año ni suma una tercera línea.
+ */
+export function AdminValidityCell({ start, end, lifecycle, locale = 'es' }) {
+  const { t } = useI18n()
+  // «1 may 2026», sin las preposiciones de «01 de may de 2026»: la fila entra en una línea.
+  const compactDate = (iso) =>
+    iso ? (formatShortDate(iso, locale) || iso).replace(/\s+de\s+/g, ' ').replace(/^0/, '') : null
+  const startLabel = compactDate(start)
+  const endLabel = compactDate(end)
+
+  if (!startLabel && !endLabel) {
+    return <span className="data-table__period data-table__period--empty">—</span>
+  }
+
+  const days = daysUntil(end)
+  let note = null
+  let noteTone = null
+  if (lifecycle === 'expiring' && days != null && days >= 0) {
+    noteTone = 'attention'
+    note =
+      days === 0
+        ? t('admin.sections.memberships.expiresToday')
+        : days === 1
+          ? t('admin.sections.memberships.expiresTomorrow')
+          : t('admin.sections.memberships.expiresIn', { count: days })
+  } else if (lifecycle === 'expired' && days != null && days < 0) {
+    noteTone = 'muted'
+    note =
+      days === -1
+        ? t('admin.sections.memberships.expiredYesterday')
+        : t('admin.sections.memberships.expiredAgo', { count: Math.abs(days) })
+  }
+
+  return (
+    <div className="data-table__validity">
+      <span className="data-table__validity-range">
+        {startLabel ? (
+          <time dateTime={start}>{startLabel}</time>
+        ) : (
+          <span className="data-table__date--empty">—</span>
+        )}
+        <span className="data-table__validity-sep" aria-hidden>
+          →
+        </span>
+        {endLabel ? (
+          <time dateTime={end}>{endLabel}</time>
+        ) : (
+          <span className="data-table__date--empty">—</span>
+        )}
+      </span>
+      {note ? (
+        <span className={`data-table__validity-note data-table__validity-note--${noteTone}`}>
+          {noteTone === 'attention' ? (
+            <span className="data-table__validity-dot" aria-hidden />
+          ) : null}
+          {note}
+        </span>
+      ) : null}
     </div>
   )
 }

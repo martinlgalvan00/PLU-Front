@@ -360,6 +360,18 @@ describe('HelpPanel', () => {
     expect(screen.queryByRole('button', { name: /guiame campo por campo/i })).toBeNull()
   })
 
+  it('responde una pregunta por tema y lleva al resto de las preguntas', () => {
+    const journey = resolveAthleteJourney({ session: null, event: EVENT, now: NOW })
+    const onNavigate = vi.fn()
+    const onClose = vi.fn()
+    renderPanel(journey, { onNavigate, onClose })
+
+    expect(screen.getByText('¿Cuánto dura la afiliación?')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /ver todas las preguntas/i }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onNavigate).toHaveBeenCalledWith('faq')
+  })
+
   it('expone el modo simple como interruptor accesible', () => {
     const journey = resolveAthleteJourney({ session: null, event: EVENT, now: NOW })
     renderPanel(journey)

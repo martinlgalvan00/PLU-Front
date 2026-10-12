@@ -118,7 +118,22 @@ async function callProvider(operation, context, run, options = {}) {
 // "Plan Nutricional" para "Afiliacion PLU"). IDs verificados contra
 // GET /item_categories.
 function categoryIdForOrder(order) {
+  if (order.kind === 'shop') return 'others'
   return order.kind === 'ticket' ? 'tickets' : 'services'
+}
+
+// Cada tipo de orden vuelve a su propia pantalla. La tienda ademas recibe sus
+// notificaciones en su propio webhook (`order.notificationPath`): no comparte
+// bandeja, estados ni conciliacion con las ordenes de atletas y entradas.
+function returnPathForOrder(order) {
+  if (order.kind === 'shop') return '/tienda'
+  return order.kind === 'ticket' ? '/eventos' : '/perfil'
+}
+
+function notificationPathForOrder(order) {
+  const path = order.notificationPath
+  if (typeof path === 'string' && /^\/api\/[a-z0-9/_-]+$/i.test(path)) return path
+  return '/api/payments/webhook/mercadopago'
 }
 
 function safeUrl(base, path) {
@@ -372,7 +387,15 @@ export function createMercadoPagoAdapter({
         env,
       )
 
-      const returnPath = order.kind === 'ticket' ? '/eventos' : '/perfil'
+      const returnPath = returnPathForOrder(order)
+      // La tienda vuelve con sus propios parametros (`pedido`/`pago`): el
+      // manejador global de App.jsx concilia cualquier URL con `payment=` +
+      // `order=` contra el motor de ordenes de atletas, y un pedido de la tienda
+      // no existe ahi.
+      const returnQuery = (outcome) =>
+        order.kind === 'shop'
+          ? `${returnPath}?pedido=${encodeURIComponent(order.id)}&pago=${outcome}`
+          : `${returnPath}?payment=${outcome}&order=${encodeURIComponent(order.id)}`
       const body = {
         items: [
           {
@@ -386,20 +409,11 @@ export function createMercadoPagoAdapter({
         ],
         payer: order.payerEmail ? { email: order.payerEmail } : undefined,
         external_reference: order.id,
-        notification_url: safeUrl(webhookBase, '/api/payments/webhook/mercadopago'),
+        notification_url: safeUrl(webhookBase, notificationPathForOrder(order)),
         back_urls: {
-          success: safeUrl(
-            returnBase,
-            `${returnPath}?payment=success&order=${encodeURIComponent(order.id)}`,
-          ),
-          pending: safeUrl(
-            returnBase,
-            `${returnPath}?payment=pending&order=${encodeURIComponent(order.id)}`,
-          ),
-          failure: safeUrl(
-            returnBase,
-            `${returnPath}?payment=failure&order=${encodeURIComponent(order.id)}`,
-          ),
+          success: safeUrl(returnBase, returnQuery('success')),
+          pending: safeUrl(returnBase, returnQuery('pending')),
+          failure: safeUrl(returnBase, returnQuery('failure')),
         },
         ...(supportsAutoReturn(returnBase) ? { auto_return: 'approved' } : {}),
         ...preferenceExpiration(order.expiresAt),

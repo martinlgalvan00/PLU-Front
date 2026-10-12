@@ -161,7 +161,9 @@
   background: var(--color-brand-celeste);
   border: 1px solid var(--color-brand-celeste);
   border-radius: var(--border-radius-md, 10px);
-  color: #fff;
+  /* El celeste es tinta en el admin (blanco en oscuro, negro en claro): el
+     texto toma el color inverso. */
+  color: var(--admin-on-brand, #fff);
   cursor: pointer;
   display: inline-flex;
   font-size: 12.5px;

@@ -71,6 +71,10 @@ const ACTION_TONES = {
   'payment_webhook.failed': 'danger',
   'payment_attempt.failed': 'danger',
   'payment_reconciliation.failed': 'danger',
+  // Un alta o una invitación que no se completó es algo a mirar; el resto de los
+  // cambios sensibles (roles, cuentas, consultas) son hechos, no incidentes.
+  'account.registration_failed': 'warning',
+  'auth.invitation_failed': 'warning',
 }
 
 /**

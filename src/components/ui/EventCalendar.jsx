@@ -250,7 +250,9 @@ export default function EventCalendar({
                           .filter(Boolean)
                           .join(' ')}
                       >
-                        <span className="event-calendar__chip-label">{event.title}</span>
+                        {!isSpan || isStart || cell.date.getDay() === 1 ? (
+                          <span className="event-calendar__chip-label">{event.title}</span>
+                        ) : null}
                       </span>
                     )
                   })}

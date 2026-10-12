@@ -1,28 +1,47 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
+import { ThemeProvider } from '../src/providers/ThemeProvider.jsx'
 import SecuritySection from '../src/pages/profile/SecuritySection.jsx'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  window.localStorage.clear()
+})
 
 function renderSection(session = { email: 'demo@pluarg.com.ar' }) {
   return render(
-    <I18nProvider>
-      <SecuritySection session={session} />
-    </I18nProvider>,
+    <ThemeProvider>
+      <I18nProvider>
+        <SecuritySection session={session} />
+      </I18nProvider>
+    </ThemeProvider>,
   )
 }
 
 describe('SecuritySection', () => {
+  it('agrupa preferencias y seguridad, y permite cambiar el idioma al instante', async () => {
+    renderSection()
+
+    expect(screen.getByRole('heading', { level: 3, name: 'Preferencias' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 3, name: 'Seguridad' })).toBeTruthy()
+    const spanish = screen.getByRole('radio', { name: 'Español' })
+    expect(spanish.getAttribute('aria-checked')).toBe('true')
+
+    fireEvent.click(screen.getByRole('radio', { name: 'English' }))
+    expect(screen.getByRole('radio', { name: 'English' }).getAttribute('aria-checked')).toBe('true')
+    expect(await screen.findByRole('heading', { level: 2, name: 'Settings' })).toBeTruthy()
+  })
+
   it('muestra el formulario, el CTA y el email de sesión', () => {
     renderSection()
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Seguridad' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 2, name: 'Ajustes' })).toBeTruthy()
     expect(screen.getByLabelText('Contraseña actual')).toBeTruthy()
     expect(screen.getByLabelText('Nueva contraseña')).toBeTruthy()
     expect(screen.getByLabelText('Confirmar contraseña')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Actualizar contraseña' })).toBeTruthy()
-    expect(screen.getByRole('heading', { level: 3, name: 'Sesión actual' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 4, name: 'Sesión actual' })).toBeTruthy()
     expect(screen.getByText('demo@pluarg.com.ar')).toBeTruthy()
     expect(screen.getByText(/cuenta demo/i)).toBeTruthy()
   })

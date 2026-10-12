@@ -1,0 +1,178 @@
+/* =============================================
+   DETALLE DE UN EVENTO DE AUDITORÍA (AuditEventDialog)
+   Una lectura larga en un panel opaco: cabecera apilada (qué es, cuándo y de
+   dónde), bloques separados por filetes y no por cards anidadas, y lo que
+   falló marcado con un filete rojo a la izquierda. Sin blur: el velo es un
+   tinte plano, así que el panel no deja ver el listado a través.
+   Los diálogos van en portal (fuera de .admin-shell): usan tokens de color
+   globales, no los --admin-*.
+   ============================================= */
+
+.audit-detail .payment-validation-dialog__backdrop {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 46%, transparent);
+}
+
+.audit-detail .audit-detail__panel {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--color-bg-elevated);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-height: min(88vh, 880px);
+  max-width: 880px;
+  overflow-y: auto;
+  padding: 0;
+  width: min(880px, 100%);
+}
+
+/* ---- Cabecera ---- */
+
+.audit-detail .payment-validation-dialog__head {
+  align-items: start;
+  display: grid;
+  gap: 8px 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 28px 32px 22px;
+}
+
+.audit-detail .payment-validation-dialog__head > * {
+  grid-column: 1;
+}
+
+.audit-detail .payment-validation-dialog__head > .btn,
+.audit-detail .payment-validation-dialog__head > button {
+  align-self: start;
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  justify-self: end;
+  margin: -6px -10px 0 0;
+}
+
+.audit-detail .payment-validation-dialog__eyebrow {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+
+.audit-detail .payment-validation-dialog__head h2 {
+  color: var(--color-text-primary);
+  font-size: clamp(1.5rem, 2.6vw, 1.9rem);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.audit-detail .payment-validation-dialog__lead {
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+}
+
+.audit-detail .audit-detail__panel > p[role='status'],
+.audit-detail .audit-detail__panel > .audit-detail__error {
+  margin: 0;
+  padding: 0 32px 24px;
+}
+
+/* ---- Cuerpo: bloques abiertos, separados por filetes ---- */
+
+.audit-detail .audit-detail__body {
+  gap: 0;
+  padding: 0 32px 28px;
+}
+
+.audit-detail .audit-detail__block {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid var(--color-border-subtle);
+  padding: 22px 0;
+}
+
+.audit-detail .audit-detail__block h3 {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  gap: 8px;
+  letter-spacing: 0.1em;
+  margin: 0 0 16px;
+  text-transform: uppercase;
+}
+
+.audit-detail .audit-detail__block h3 svg {
+  color: var(--color-text-muted);
+}
+
+.audit-detail .audit-detail__facts dt {
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.audit-detail .audit-detail__facts dd {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Lo que falló: filete rojo y fondo apenas tintado; el mensaje lidera. */
+.audit-detail .audit-detail__block--failure {
+  background: color-mix(in srgb, var(--color-brand-red) 5%, transparent);
+  border-left: 2px solid var(--color-brand-red);
+  border-top: 0;
+  margin: 8px 0 4px;
+  padding: 20px 22px;
+}
+
+.audit-detail .audit-detail__block--failure h3 {
+  color: var(--color-danger-text, var(--color-brand-red));
+}
+
+.audit-detail .audit-detail__block--failure h3 svg {
+  color: inherit;
+}
+
+.audit-detail .audit-detail__block--failure .audit-detail__message {
+  border-left: 0;
+  font-size: 17px;
+  padding-left: 0;
+}
+
+/* ---- Cronología ---- */
+
+.audit-detail .audit-detail__timeline li:nth-child(odd) {
+  background: transparent;
+}
+
+.audit-detail .audit-detail__timeline li {
+  border-bottom: 1px solid var(--color-border-subtle);
+  border-radius: 0;
+}
+
+.audit-detail .audit-detail__timeline li:last-child {
+  border-bottom: 0;
+}
+
+.audit-detail .audit-detail__timeline li.is-current {
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  border-radius: 8px;
+}
+
+/* ---- Pie ---- */
+
+.audit-detail .audit-detail__footer {
+  border-top: 1px solid var(--color-border-subtle);
+  margin-top: 8px;
+  padding-top: 20px;
+}
+
+@media (max-width: 640px) {
+  .audit-detail .payment-validation-dialog__head,
+  .audit-detail .audit-detail__body,
+  .audit-detail .audit-detail__panel > p[role='status'],
+  .audit-detail .audit-detail__panel > .audit-detail__error {
+    padding-inline: 20px;
+  }
+}

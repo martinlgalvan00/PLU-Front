@@ -777,6 +777,42 @@ const BODIES = {
       : '',
   }),
 
+  shop_order_received: (p) => ({
+    title: 'Recibimos tu pedido',
+    preheader: `Pedido ${p.reference} · ${formatArs(p.amount)}.`,
+    body: [
+      paragraph(`${greeting(p.name)} registramos tu pedido de la tienda de PLU.`),
+      dataPanel([
+        ['Pedido', p.reference],
+        ['Detalle', p.items],
+        ['Total', formatArs(p.amount)],
+        ['Medio de pago', p.paymentMethod],
+      ]),
+      p.instructions ? paragraph(escapeHtml(p.instructions)) : '',
+      p.orderUrl ? button(p.orderUrl, 'Ver mi pedido') : '',
+      p.orderUrl ? fallbackLink(p.orderUrl) : '',
+      p.expiresAt
+        ? paragraph(`Guardamos tu pedido hasta el ${formatDate(p.expiresAt)}.`, { muted: true })
+        : '',
+    ].join(''),
+  }),
+
+  shop_order_confirmed: (p) => ({
+    title: 'Tu pedido está pago',
+    preheader: `Pedido ${p.reference} acreditado.`,
+    body: [
+      paragraph(`${greeting(p.name)} acreditamos el pago de tu pedido.`),
+      dataPanel([
+        ['Pedido', p.reference],
+        ['Detalle', p.items],
+        ['Total', formatArs(p.amount)],
+      ]),
+      p.fulfillmentNote ? paragraph(escapeHtml(p.fulfillmentNote)) : '',
+      p.orderUrl ? button(p.orderUrl, 'Ver mi pedido') : '',
+      p.orderUrl ? fallbackLink(p.orderUrl) : '',
+    ].join(''),
+  }),
+
   ticket_confirmation: (p) => ({
     title: 'Tu entrada',
     preheader: `Entrada para ${p.eventTitle}.`,

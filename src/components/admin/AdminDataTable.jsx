@@ -1,10 +1,12 @@
 import { Pagination, Table } from 'antd'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import AdminCompactCard from './AdminCompactCard.jsx'
 import StatusBadge from '../ui/StatusBadge.jsx'
 import { useHorizontalScroll } from '../../hooks/useHorizontalScroll'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import '../../styles/pages/admin-table-dense.css'
 
 const DEFAULT_PAGE_SIZE = 25
 const PAGE_SIZE_OPTIONS = ['10', '25', '50', '100']
@@ -96,8 +98,18 @@ function hasMobileLayout(columns) {
   return columns.some((col) => col.mobile)
 }
 
-function resolveTableScrollX(columns, preferCards, { minWidth = 960 } = {}) {
-  const visible = columns.filter((col) => col.mobile !== 'hidden' || !preferCards)
+/**
+ * Ancho mínimo de la tabla antes de que aparezca scroll horizontal. En modo
+ * `compact` las columnas son más angostas y el mínimo baja: en un panel de
+ * ~1000px la tabla entra sin scroll en vez de empujar 960px.
+ */
+function resolveTableScrollX(columns, preferCards, { compact = false, minWidth } = {}) {
+  const visible = columns.filter(
+    (col) => !col.cardOnly && (col.mobile !== 'hidden' || !preferCards),
+  )
+  const widths = compact
+    ? { action: 104, primary: 200, status: 132, standard: 92, minimum: 600 }
+    : { action: 132, primary: 240, status: 180, standard: 120, minimum: 960 }
   let total = 0
 
   for (const col of visible) {
@@ -106,21 +118,28 @@ function resolveTableScrollX(columns, preferCards, { minWidth = 960 } = {}) {
       continue
     }
     if (isActionColumn(col)) {
-      total += 132
+      total += widths.action
       continue
     }
     if (col.mobile === 'primary' || col.desktop === 'primary') {
-      total += 240
+      total += widths.primary
       continue
     }
     if (col.mobile === 'badge' || col.desktop === 'status') {
-      total += 180
+      total += widths.status
       continue
     }
-    total += 120
+    total += widths.standard
   }
 
-  return Math.max(minWidth, total)
+  return Math.max(minWidth ?? widths.minimum, total)
+}
+
+// Contenedor de scroll del shell admin; si no existe (tests, Storybook sin shell)
+// cae a la ventana, que es el default de antd.
+function resolveStickyContainer() {
+  if (typeof document === 'undefined') return window
+  return document.getElementById('admin-main-content') ?? window
 }
 
 function resolveRowClassName(rowClassName, getRowClassName, record, index) {
@@ -182,6 +201,103 @@ function SelectPageCheckbox({ checked, indeterminate, onChange, ariaLabel, label
   )
 }
 
+const FIT_DEFAULT_ROWS = 12
+const FIT_MIN_ROWS = 6
+const FIT_MAX_ROWS = 100
+const FIT_HEAD_HEIGHT = 40
+const FIT_PAGER_HEIGHT = 56
+const FIT_ROW_HEIGHT = 52
+const FIT_BOTTOM_GAP = 16
+
+/**
+ * Cuántas filas entran entre el borde superior de la tabla y el pie del panel,
+ * para que la planilla se vea completa sin scroll vertical. Mide el alto real de
+ * una fila (las de dos líneas son más altas que las de una) y se recalcula al
+ * redimensionar y cuando cambia lo que hay encima (la barra de filtros).
+ */
+function useFitPageSize(shellRef, enabled, rowCount) {
+  const [size, setSize] = useState(null)
+
+  useEffect(() => {
+    if (!enabled) return undefined
+    const shell = shellRef.current
+    if (!shell) return undefined
+
+    function measure() {
+      const host = document.getElementById('admin-main-content')
+      const hostRect = host?.getBoundingClientRect()
+      const shellRect = shell.getBoundingClientRect()
+      const viewportBottom = hostRect
+        ? Math.min(hostRect.bottom, window.innerHeight)
+        : window.innerHeight
+      const top = hostRect ? shellRect.top - hostRect.top + (host?.scrollTop ?? 0) : shellRect.top
+      const hostHeight = hostRect ? viewportBottom - hostRect.top : viewportBottom
+      const rowEl = shell.querySelector('.ant-table-tbody > tr.ant-table-row')
+      const rowHeight = rowEl?.getBoundingClientRect().height || FIT_ROW_HEIGHT
+      const available = hostHeight - top - FIT_HEAD_HEIGHT - FIT_PAGER_HEIGHT - FIT_BOTTOM_GAP
+      const next = Math.max(
+        FIT_MIN_ROWS,
+        Math.min(FIT_MAX_ROWS, Math.floor(available / rowHeight)),
+      )
+      setSize((current) => (current === next ? current : next))
+    }
+
+    measure()
+    const frame = window.requestAnimationFrame(measure)
+    window.addEventListener('resize', measure)
+    let observer
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(measure)
+      const section = shell.closest('.admin-list-section') ?? shell.parentElement
+      if (section) observer.observe(section)
+      const host = document.getElementById('admin-main-content')
+      if (host) observer.observe(host)
+    }
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('resize', measure)
+      observer?.disconnect()
+    }
+  }, [enabled, rowCount, shellRef])
+
+  return enabled ? (size ?? FIT_DEFAULT_ROWS) : null
+}
+
+function FitPager({ page, pageSize, total, onChange, t }) {
+  const pages = Math.max(1, Math.ceil(total / pageSize))
+  if (total <= pageSize) return null
+  const from = (page - 1) * pageSize + 1
+  const to = Math.min(total, page * pageSize)
+  return (
+    <nav className="admin-data-table-shell__pager" aria-label={t('admin.table.pagination')}>
+      <span className="admin-data-table-shell__pager-range" aria-live="polite">
+        {t('admin.table.range', { from, to, total })}
+      </span>
+      <button
+        type="button"
+        className="admin-data-table-shell__pager-btn"
+        aria-label={t('admin.table.previousPage')}
+        disabled={page <= 1}
+        onClick={() => onChange(page - 1)}
+      >
+        <ChevronLeft size={16} aria-hidden />
+      </button>
+      <span className="admin-data-table-shell__pager-page">
+        {page} / {pages}
+      </span>
+      <button
+        type="button"
+        className="admin-data-table-shell__pager-btn"
+        aria-label={t('admin.table.nextPage')}
+        disabled={page >= pages}
+        onClick={() => onChange(page + 1)}
+      >
+        <ChevronRight size={16} aria-hidden />
+      </button>
+    </nav>
+  )
+}
+
 export default function AdminDataTable({
   className = '',
   columns = [],
@@ -205,6 +321,24 @@ export default function AdminDataTable({
   selectVisibleLabel,
   /** `table` fuerza la tabla también en anchos de celular (p. ej. puerta). */
   layout = 'auto',
+  /**
+   * `compact` apila filas de planilla (solo en modo tabla; las cards móviles
+   * no cambian). Sin la prop, la tabla se ve igual que siempre.
+   */
+  density,
+  /**
+   * Cabecera fija mientras se scrollea el contenido del panel admin. Ancla al
+   * contenedor de scroll real del shell (`#admin-main-content`), que queda
+   * debajo de la barra superior.
+   */
+  stickyHeader = false,
+  /**
+   * Planilla ajustada: sin scroll horizontal (columnas de ancho fijo, la
+   * primera absorbe el resto y todas truncan con puntos suspensivos) y con la
+   * cantidad de filas por página calculada para que entre en pantalla sin
+   * scroll vertical. Solo en modo tabla; las cards móviles no cambian.
+   */
+  fit = false,
 }) {
   const { t } = useI18n()
   const shellRef = useRef(null)
@@ -217,6 +351,9 @@ export default function AdminDataTable({
   const [cardPageSize, setCardPageSize] = useState(pageSizeProp)
   const [tablePage, setTablePage] = useState(1)
   const [tablePageSize, setTablePageSize] = useState(pageSizeProp)
+  const fitActive = fit && pagination && !(layout !== 'table' && preferCards)
+  const fitPageSize = useFitPageSize(shellRef, fitActive, rows.length)
+  const effectivePageSize = fitPageSize ?? tablePageSize
 
   useEffect(() => {
     setCardPageSize(pageSizeProp)
@@ -231,8 +368,16 @@ export default function AdminDataTable({
     setTablePage(1)
   }, [rows, tablePageSize, useCompactCards])
 
+  // Si el alto disponible cambia y la página actual deja de existir, vuelve a la última.
+  useEffect(() => {
+    if (!fitActive) return
+    const pages = Math.max(1, Math.ceil(rows.length / effectivePageSize))
+    setTablePage((current) => (current > pages ? pages : current))
+  }, [effectivePageSize, fitActive, rows.length])
+
   const antdColumns = useMemo(() => {
     return columns
+      .filter((col) => !col.cardOnly)
       .filter((col) => col.mobile !== 'hidden' || !hideNarrowColumns)
       .map((col, index) => ({
         title: col.label,
@@ -258,6 +403,9 @@ export default function AdminDataTable({
             ? { width: 132 }
             : {}),
         ...(col.fixed ? { fixed: col.fixed } : {}),
+        ...(fitActive && !isActionColumn(col) && col.mobile !== 'select'
+          ? { ellipsis: { showTitle: false } }
+          : {}),
         render: (text, record) => (
           <div className="data-table__cell-content">
             {col.render ? col.render(record) : text}
@@ -265,7 +413,7 @@ export default function AdminDataTable({
         ),
         align: resolveAntdAlign(col.align),
       }))
-  }, [columns, hideNarrowColumns])
+  }, [columns, fitActive, hideNarrowColumns])
 
   const dataSource = useMemo(() => {
     return rows.map((row) => ({ ...row, key: row.id ?? JSON.stringify(row) }))
@@ -293,9 +441,10 @@ export default function AdminDataTable({
   const tableScrollX = useMemo(
     () =>
       resolveTableScrollX(columns, preferCards, {
-        minWidth: layout === 'table' && preferCards ? 0 : 960,
+        compact: density === 'compact',
+        minWidth: layout === 'table' && preferCards ? 0 : undefined,
       }),
-    [columns, layout, preferCards],
+    [columns, density, layout, preferCards],
   )
 
   // En modo cards no hay Table de antd: paginamos acá para no montar
@@ -309,9 +458,9 @@ export default function AdminDataTable({
   const visibleRows = useMemo(() => {
     if (useCompactCards) return cardRows
     if (!pagination) return rows
-    const start = (tablePage - 1) * tablePageSize
-    return rows.slice(start, start + tablePageSize)
-  }, [cardRows, pagination, rows, tablePage, tablePageSize, useCompactCards])
+    const start = (tablePage - 1) * effectivePageSize
+    return rows.slice(start, start + effectivePageSize)
+  }, [cardRows, effectivePageSize, pagination, rows, tablePage, useCompactCards])
 
   const visibleRowKeys = useMemo(() => visibleRows.map(resolveRowKey), [visibleRows])
   const onVisibleRowKeysChangeRef = useRef(onVisibleRowKeysChange)
@@ -330,7 +479,7 @@ export default function AdminDataTable({
   const someVisibleSelected = visibleSelectedCount > 0 && !allVisibleSelected
 
   const cardColumns = useMemo(() => {
-    const visible = columns.filter((col) => col.mobile !== 'hidden')
+    const visible = columns.filter((col) => col.mobile !== 'hidden' && !col.tableOnly)
     if (!rowSelection || visible.some((col) => col.mobile === 'select')) return visible
     return [
       {
@@ -376,6 +525,7 @@ export default function AdminDataTable({
 
   const shellClass = [
     'admin-data-table-shell',
+    fitActive ? 'admin-data-table-shell--fit' : '',
     useCompactCards ? 'admin-data-table-shell--cards' : '',
     selectOnRowClick && hasRowSelection ? 'admin-data-table-shell--picking' : '',
   ]
@@ -481,7 +631,16 @@ export default function AdminDataTable({
       ) : (
         <div ref={scrollRef}>
           <Table
-            className={`admin-data-table ${isBulkMode ? 'admin-data-table--bulk-active' : ''} ${className}`}
+            className={[
+              'admin-data-table',
+              isBulkMode ? 'admin-data-table--bulk-active' : '',
+              density === 'compact' ? 'admin-data-table--compact' : '',
+              fitActive ? 'admin-data-table--fit' : '',
+              stickyHeader ? 'admin-data-table--sticky-head' : '',
+              className,
+            ]
+              .filter(Boolean)
+              .join(' ')}
             columns={antdColumns}
             dataSource={dataSource}
             loading={loading}
@@ -516,20 +675,36 @@ export default function AdminDataTable({
               pagination
                 ? {
                     current: tablePage,
-                    pageSize: tablePageSize,
+                    pageSize: effectivePageSize,
                     placement: ['bottomCenter'],
                     hideOnSinglePage: true,
-                    showSizeChanger: true,
+                    // En modo ajustado el pie lo dibuja `FitPager`; el de antd
+                    // sigue montado (ordena y pagina sobre todo el set) pero oculto.
+                    className: fitActive ? 'admin-data-table__native-pager' : undefined,
+                    showSizeChanger: !fitActive,
                     pageSizeOptions: PAGE_SIZE_OPTIONS,
                     onChange: (page, nextSize) => {
                       setTablePage(page)
-                      if (nextSize && nextSize !== tablePageSize) setTablePageSize(nextSize)
+                      if (!fitActive && nextSize && nextSize !== tablePageSize) {
+                        setTablePageSize(nextSize)
+                      }
                     },
                   }
                 : false
             }
-            scroll={{ x: tableScrollX }}
+            scroll={fitActive ? undefined : { x: tableScrollX }}
+            tableLayout={fitActive ? 'fixed' : undefined}
+            sticky={stickyHeader ? { getContainer: resolveStickyContainer } : undefined}
           />
+          {fitActive ? (
+            <FitPager
+              page={tablePage}
+              pageSize={effectivePageSize}
+              total={rows.length}
+              onChange={setTablePage}
+              t={t}
+            />
+          ) : null}
         </div>
       )}
     </div>

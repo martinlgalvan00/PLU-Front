@@ -14,6 +14,7 @@ import {
 } from '../../services/platformSettingsAdminService.js'
 import SegmentedSwitch from '../ui/SegmentedSwitch.jsx'
 import AdminIconButton from './AdminIconButton.jsx'
+import '../../styles/pages/admin-payment-expiry.css'
 
 /**
  * Cierre automático de órdenes: qué plazo rige, qué está trabado y por qué.
@@ -49,9 +50,11 @@ function toDraft(minutes) {
 function formatWindow(minutes, t) {
   const value = Number(minutes)
   if (!Number.isFinite(value) || value <= 0) return '—'
-  if (value % 1440 === 0) return t('admin.paymentExpiry.unitDays', { count: value / 1440 })
-  if (value % 60 === 0) return t('admin.paymentExpiry.unitHours', { count: value / 60 })
-  return t('admin.paymentExpiry.unitMinutes', { count: value })
+  const plural = (count, key) =>
+    count === 1 ? t(`admin.paymentExpiry.${key}One`) : t(`admin.paymentExpiry.${key}`, { count })
+  if (value % 1440 === 0) return plural(value / 1440, 'unitDays')
+  if (value % 60 === 0) return plural(value / 60, 'unitHours')
+  return plural(value, 'unitMinutes')
 }
 
 function metricDisplay(overview, value) {
@@ -167,7 +170,6 @@ export default function PaymentExpiryPanel({ canEdit = false }) {
           <h3 className="admin-payment-expiry__title" id="payment-expiry-title">
             {t('admin.paymentExpiry.title')}
           </h3>
-          <p className="admin-payment-expiry__subtitle">{t('admin.paymentExpiry.subtitle')}</p>
         </div>
         <AdminIconButton
           icon={RefreshCw}
@@ -191,13 +193,12 @@ export default function PaymentExpiryPanel({ canEdit = false }) {
           <article
             className={`admin-payment-expiry__metric${metric.alert ? ' is-alert' : ''}`}
             data-metric={metric.id}
+            data-zero={metric.value === 0 ? 'true' : undefined}
             key={metric.id}
+            title={metric.hint}
           >
             <span className="admin-payment-expiry__metric-value">{metric.value}</span>
             <span className="admin-payment-expiry__metric-label">{metric.label}</span>
-            <p className="admin-payment-expiry__metric-hint" title={metric.hint}>
-              {metric.hint}
-            </p>
           </article>
         ))}
       </div>
@@ -230,7 +231,11 @@ export default function PaymentExpiryPanel({ canEdit = false }) {
           return (
             <div className="admin-payment-expiry__window" key={key}>
               <div className="admin-payment-expiry__window-copy">
-                <label className="admin-payment-expiry__window-label" htmlFor={inputId}>
+                <label
+                  className="admin-payment-expiry__window-label"
+                  htmlFor={inputId}
+                  title={t(`admin.paymentExpiry.window.${key}.hint`)}
+                >
                   {t(`admin.paymentExpiry.window.${key}.label`)}
                 </label>
                 <p className="admin-payment-expiry__window-hint">

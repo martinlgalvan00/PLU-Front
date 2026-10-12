@@ -1,0 +1,668 @@
+/* =============================================
+   INSTITUCIONAL EDITORIAL — Estándares, FAQ, Contacto
+   Tesis: estas pantallas se sienten editoriales y precisas (revista de
+   federación) porque ayudan a encontrar una respuesta o a escribir sin
+   fricción, mediante títulos de gran escala, reglas finas, contenido abierto
+   y un único momento oscuro de cierre.
+   Se carga al final de cada página; el cuerpo de Contacto vive en contact.css.
+   Tokens: --institution-* (light/dark).
+   ============================================= */
+
+@keyframes editorial-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Hero editorial ─────────────────────────────── */
+
+.institutional-hero--editorial .institutional-hero__inner {
+  padding-bottom: clamp(52px, 7vw, 96px);
+  padding-top: clamp(28px, 4vw, 48px);
+}
+
+/* Firma: una sola marca breve en oro sobre la regla inferior del hero */
+.institutional-hero--editorial .institutional-hero__inner::after {
+  background: var(--institution-gold);
+  bottom: -1px;
+  content: '';
+  height: 2px;
+  left: var(--institution-gutter);
+  position: absolute;
+  width: clamp(56px, 8vw, 96px);
+}
+
+.institutional-hero--editorial h1 {
+  font-size: clamp(40px, 6.4vw, 88px);
+  font-weight: 760;
+  letter-spacing: -0.055em;
+  line-height: 0.95;
+  max-width: 13ch;
+}
+
+.institutional-hero--editorial.institutional-hero--solo h1 {
+  max-width: 14ch;
+}
+
+.institutional-hero--editorial .institutional-hero__description {
+  font-size: clamp(16px, 1.5vw, 19px);
+  line-height: 1.6;
+  margin-top: clamp(22px, 2.6vw, 32px);
+  max-width: 46ch;
+}
+
+.institutional-hero--editorial .institutional-hero__aside {
+  align-self: end;
+  border-left: 0;
+  min-height: 0;
+  padding-left: 0;
+}
+
+.institutional-hero--editorial .institutional-hero__ledger > div {
+  border-bottom: 0;
+  border-top: 1px solid var(--institution-border-strong);
+  gap: 6px;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 16px 0 18px;
+}
+
+.institutional-hero--editorial .institutional-hero__ledger dt {
+  color: var(--institution-text-muted);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+}
+
+.institutional-hero--editorial .institutional-hero__ledger dd {
+  color: var(--institution-text);
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2vw, 26px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.institutional-hero--editorial.institutional-hero--with-aside .institutional-hero__grid {
+  grid-template-columns: minmax(0, 1fr) minmax(290px, 0.4fr);
+}
+
+.institutional-hero--editorial .contact-hero__email {
+  border-bottom: 1px solid color-mix(in srgb, var(--institution-gold) 60%, transparent);
+  font-size: clamp(14px, 1.2vw, 18px);
+  letter-spacing: -0.02em;
+  overflow-wrap: break-word;
+}
+
+.institutional-hero--editorial .contact-hero__email:focus-visible {
+  outline: var(--institution-focus-width, 3px) solid var(--institution-focus);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .institutional-hero--editorial h1,
+  .institutional-hero--editorial .institutional-hero__description,
+  .institutional-hero--editorial .institutional-hero__ledger > div {
+    animation: editorial-rise 480ms var(--ease-out) both;
+  }
+
+  .institutional-hero--editorial .institutional-hero__description {
+    animation-delay: 80ms;
+  }
+
+  .institutional-hero--editorial .institutional-hero__ledger > div:nth-child(1) {
+    animation-delay: 160ms;
+  }
+
+  .institutional-hero--editorial .institutional-hero__ledger > div:nth-child(2) {
+    animation-delay: 220ms;
+  }
+
+  .institutional-hero--editorial .institutional-hero__ledger > div:nth-child(3) {
+    animation-delay: 280ms;
+  }
+}
+
+@media (max-width: 900px) {
+  .institutional-hero--editorial .institutional-hero__aside {
+    border-top: 0;
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .institutional-hero--editorial .institutional-hero__inner {
+    padding-bottom: 48px;
+  }
+
+  .institutional-hero--editorial h1 {
+    font-size: clamp(38px, 12.5vw, 52px);
+    max-width: 11ch;
+  }
+
+  .institutional-hero--editorial.institutional-hero--solo h1 {
+    max-width: 12ch;
+  }
+}
+
+/* ── Cierre oscuro (FAQ, Estándares) ────────────── */
+
+.institutional-closing {
+  align-items: end;
+  background: var(--institution-surface-strong);
+  border: 1px solid var(--institution-on-strong-border);
+  border-radius: var(--institution-radius-surface);
+  color: var(--institution-on-strong);
+  display: grid;
+  gap: 28px clamp(32px, 6vw, 80px);
+  grid-template-columns: minmax(0, 1.3fr) auto;
+  padding: clamp(32px, 5vw, 68px);
+}
+
+.institutional-closing h2 {
+  color: inherit;
+  font-family: var(--font-display);
+  font-size: clamp(26px, 3.6vw, 46px);
+  font-weight: 760;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  margin: 0;
+  max-width: 18ch;
+  text-wrap: balance;
+}
+
+.institutional-closing__copy {
+  display: grid;
+  gap: 14px;
+}
+
+.institutional-closing__kicker {
+  color: var(--plu-gold-400);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.institutional-closing__copy > p:last-child {
+  color: var(--institution-on-strong-muted);
+  font-size: 15px;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 48ch;
+  text-wrap: pretty;
+}
+
+.institutional-closing__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+}
+
+.institutional-closing__primary,
+.standards-grid__download {
+  align-items: center;
+  background: var(--color-brand-action, var(--institution-gold));
+  border: 0;
+  border-radius: 999px;
+  color: #0b0d10;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  gap: 10px;
+  justify-content: center;
+  letter-spacing: -0.01em;
+  min-height: 52px;
+  padding: 0 26px;
+  text-decoration: none;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+}
+
+.institutional-closing__primary:hover,
+.standards-grid__download:hover {
+  background: color-mix(in srgb, var(--color-brand-action, var(--institution-gold)) 88%, #fff);
+}
+
+.institutional-closing__primary:active,
+.standards-grid__download:active {
+  transform: scale(0.99);
+}
+
+.institutional-closing__link {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--institution-on-strong);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: var(--institution-on-strong-faint);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
+  transition: text-decoration-color var(--motion-fast) var(--ease-out);
+}
+
+.institutional-closing__link:hover {
+  text-decoration-color: var(--institution-on-strong);
+}
+
+.institutional-closing__primary:focus-visible,
+.institutional-closing__link:focus-visible,
+.standards-grid__download:focus-visible {
+  outline: var(--institution-focus-width, 3px) solid #9ec5eb;
+  outline-offset: var(--institution-focus-offset, 3px);
+}
+
+@media (max-width: 760px) {
+  .institutional-closing {
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .institutional-closing__primary {
+    width: 100%;
+  }
+}
+
+/* ── Estándares: tabla de referencia ────────────── */
+
+.standards-page--institutional .standards-grid__list {
+  border-top: 1px solid var(--institution-border-strong);
+  margin-top: clamp(28px, 4vw, 44px);
+}
+
+.standards-page--institutional .standards-grid__list li {
+  align-items: baseline;
+  border-bottom: 1px solid var(--institution-border);
+  border-top: 0;
+  display: grid;
+  gap: 8px clamp(24px, 4vw, 64px);
+  grid-template-columns: minmax(200px, 0.8fr) minmax(0, 1.2fr) minmax(160px, 0.7fr);
+  max-width: none;
+  padding: clamp(26px, 3.4vw, 40px) 0;
+}
+
+.standards-page--institutional .standards-grid__list h3 {
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 760;
+  letter-spacing: -0.045em;
+  line-height: 1.04;
+}
+
+.standards-page--institutional .standards-grid__list p {
+  color: var(--institution-text-secondary);
+  font-size: 15px;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.standards-page--institutional .standards-grid__list .standards-grid__note {
+  color: var(--institution-text-muted);
+  font-family: var(--font-mono, var(--font-display));
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+}
+
+.standards-page--institutional .standards-grid__doc {
+  margin-top: clamp(24px, 3vw, 32px);
+}
+
+.standards-page--institutional .standards-grid__disclaimer {
+  max-width: 62ch;
+}
+
+/* Buscador de atletas: una línea grande, sin caja */
+.standards-page--institutional .standards-lookup__finder {
+  margin-top: clamp(28px, 4vw, 40px);
+  max-width: none;
+}
+
+.standards-page--institutional .standards-lookup__search {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--institution-border-strong);
+  border-radius: 0;
+  box-shadow: none;
+  gap: 16px;
+  min-height: 72px;
+  padding: 0;
+  transition:
+    border-color var(--motion-base, 200ms) var(--ease-out),
+    box-shadow var(--motion-base, 200ms) var(--ease-out);
+}
+
+.standards-page--institutional .standards-lookup__search:focus-within {
+  border-bottom-color: var(--institution-focus);
+  box-shadow: 0 1px 0 var(--institution-focus);
+}
+
+.standards-page--institutional .standards-lookup__search input {
+  color: var(--institution-text);
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.6vw, 30px);
+  font-weight: 620;
+  letter-spacing: -0.03em;
+}
+
+.standards-page--institutional .standards-lookup__results {
+  margin-top: 0;
+}
+
+.standards-page--institutional .standards-lookup__results li {
+  padding: 20px 0;
+}
+
+.standards-page--institutional .standards-lookup__results strong {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.standards-page--institutional .standards-lookup__total {
+  color: var(--institution-text);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .standards-page--institutional .standards-grid__list li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── FAQ: buscador, secciones en dos columnas, acordeón ── */
+
+.faq-page--institutional .faq-institutional__inner {
+  gap: clamp(56px, 8vw, 96px);
+}
+
+.faq-page--institutional .faq-finder {
+  align-items: start;
+  border-bottom: 0;
+  gap: clamp(18px, 2.4vw, 28px);
+  grid-template-columns: minmax(0, 1fr);
+  padding-bottom: 0;
+}
+
+.faq-page--institutional .faq-finder__intro h2 {
+  font-size: clamp(30px, 4.4vw, 56px);
+  font-weight: 760;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  max-width: 16ch;
+  text-wrap: balance;
+}
+
+.faq-page--institutional .faq-finder__intro .institutional-kicker {
+  margin-bottom: 14px;
+}
+
+.faq-page--institutional .faq-search {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--institution-border-strong);
+  border-radius: 0;
+  box-shadow: none;
+  gap: 16px;
+  min-height: 72px;
+  padding: 0;
+  transition:
+    border-color var(--motion-base, 200ms) var(--ease-out),
+    box-shadow var(--motion-base, 200ms) var(--ease-out);
+}
+
+.faq-page--institutional .faq-search:focus-within {
+  border-bottom-color: var(--institution-focus);
+  box-shadow: 0 1px 0 var(--institution-focus);
+}
+
+.faq-page--institutional .faq-search input {
+  color: var(--institution-text);
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.6vw, 30px);
+  font-weight: 620;
+  letter-spacing: -0.03em;
+}
+
+.faq-page--institutional .faq-search button {
+  border-radius: 50%;
+  height: 44px;
+  width: 44px;
+}
+
+.faq-page--institutional .faq-search button:hover {
+  color: var(--institution-text);
+}
+
+.faq-page--institutional .faq-search button:focus-visible,
+.faq-page--institutional .faq-categories button:focus-visible,
+.faq-page--institutional .faq-empty-state button:focus-visible {
+  outline: var(--institution-focus-width, 3px) solid var(--institution-focus);
+  outline-offset: 2px;
+}
+
+/* Categorías: pestañas de texto con subrayado, no chips */
+.faq-page--institutional .faq-categories {
+  flex-wrap: wrap;
+  gap: 4px 28px;
+  margin: 0;
+  overflow: visible;
+  padding: 0;
+}
+
+.faq-page--institutional .faq-categories button {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: inset 0 -2px 0 transparent;
+  color: var(--institution-text-muted);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 620;
+  letter-spacing: -0.015em;
+  min-height: 44px;
+  padding: 0 2px;
+  transition:
+    box-shadow var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.faq-page--institutional .faq-categories button:hover {
+  background: transparent;
+  color: var(--institution-text);
+}
+
+.faq-page--institutional .faq-categories button.is-active {
+  background: transparent;
+  box-shadow: inset 0 -2px 0 var(--institution-gold);
+  color: var(--institution-text);
+}
+
+.faq-page--institutional .faq-finder__count {
+  color: var(--institution-text-muted);
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+/* Secciones: título a la izquierda, preguntas a la derecha */
+.faq-page--institutional .faq-results {
+  gap: clamp(48px, 6vw, 72px);
+}
+
+.faq-page--institutional .faq-institutional-section {
+  align-items: start;
+  border-top: 1px solid var(--institution-border-strong);
+  gap: 20px clamp(32px, 6vw, 96px);
+  grid-template-columns: minmax(200px, 0.5fr) minmax(0, 1.5fr);
+  padding-top: 24px;
+}
+
+.faq-page--institutional .faq-institutional-section > header {
+  align-self: start;
+  border-bottom: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  padding-bottom: 0;
+  position: sticky;
+  top: calc(var(--header-height-scrolled, 64px) + 24px);
+}
+
+.faq-page--institutional .faq-institutional-section > header > span {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.faq-page--institutional .faq-institutional-section > header h2 {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 2.8vw, 34px);
+  font-weight: 740;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+.faq-page--institutional .faq-institutional-section > header small {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+/* Acordeón: filas abiertas, sin fondos ni bordes laterales */
+.faq-page--institutional .faq-accordion--ref {
+  padding: 0;
+}
+
+.faq-page--institutional .faq-accordion--ref .faq-item {
+  background: transparent;
+  border-bottom: 1px solid var(--institution-border);
+  border-left: 0;
+  transition: none;
+}
+
+.faq-page--institutional .faq-accordion--ref .faq-item:first-child {
+  border-top: 0;
+}
+
+.faq-page--institutional .faq-accordion--ref .faq-item:hover,
+.faq-page--institutional .faq-accordion--ref .faq-item--open {
+  background: transparent;
+  border-left: 0;
+}
+
+.faq-page--institutional .faq-accordion--ref .faq-item__trigger {
+  color: var(--institution-text-secondary);
+  font-family: var(--font-display);
+  font-size: clamp(16px, 1.5vw, 19px);
+  font-weight: 620;
+  gap: 18px;
+  letter-spacing: -0.02em;
+  min-height: 72px;
+  padding: 20px 0;
+}
+
+.faq-page--institutional .faq-accordion--ref .faq-item__trigger:hover,
+.faq-page--institutional .faq-accordion--ref .faq-item--open .faq-item__trigger {
+  color: var(--institution-text);
+}
+
+.faq-page--institutional .faq-accordion--ref .faq-item__trigger:focus-visible {
+  outline: var(--institution-focus-width, 3px) solid var(--institution-focus);
+  outline-offset: -2px;
+}
+
+.faq-page--institutional .faq-accordion--ref .faq-item__index {
+  color: var(--institution-text-muted);
+  font-family: var(--font-mono, var(--font-display));
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.faq-page--institutional .faq-accordion--ref .faq-item--open .faq-item__index {
+  color: var(--institution-gold);
+}
+
+.faq-page--institutional .faq-accordion--ref .faq-item__icon-ref-bar {
+  background: var(--institution-text-muted);
+}
+
+.faq-page--institutional .faq-accordion--ref .faq-item--open .faq-item__icon-ref-bar {
+  background: var(--institution-gold);
+}
+
+.faq-page--institutional .faq-accordion--ref .faq-item__panel p {
+  color: var(--institution-text-secondary);
+  font-size: 15.5px;
+  line-height: 1.75;
+  max-width: 62ch;
+  padding: 0 clamp(0px, 4vw, 56px) 28px calc(1.5rem + 18px);
+}
+
+/* Sin resultados: regla fina, sin caja punteada */
+.faq-page--institutional .faq-empty-state {
+  border: 0;
+  border-bottom: 1px solid var(--institution-border);
+  border-radius: 0;
+  border-top: 1px solid var(--institution-border-strong);
+  padding: 32px 0;
+}
+
+@media (max-width: 900px) {
+  .faq-page--institutional .faq-institutional-section {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .faq-page--institutional .faq-institutional-section > header {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    position: static;
+  }
+}
+
+@media (max-width: 560px) {
+  .faq-page--institutional .faq-categories {
+    gap: 0 20px;
+  }
+
+  .faq-page--institutional .faq-accordion--ref .faq-item__trigger {
+    gap: 12px;
+    min-height: 64px;
+    padding: 16px 0;
+  }
+
+  .faq-page--institutional .faq-accordion--ref .faq-item__panel p {
+    padding: 0 0 24px calc(1.5rem + 12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq-page--institutional .faq-categories button,
+  .faq-page--institutional .faq-search,
+  .standards-page--institutional .standards-lookup__search,
+  .institutional-closing__primary,
+  .standards-grid__download,
+  .institutional-closing__link {
+    transition: none;
+  }
+}

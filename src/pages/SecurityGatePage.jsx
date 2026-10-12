@@ -1,4 +1,5 @@
 import '../styles/pages/design-phase2.css'
+import '../styles/pages/auth.css'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react'
 import { env } from '../config/env.js'

@@ -1,0 +1,119 @@
+/* Lista editorial numerada (Sponsors: beneficios y proceso).
+   Sin cajas: reglas que se trazan, tipografía liviana y un único acento
+   dorado en la fila que se lee. Solo transform + opacity. */
+
+.editorial-ledger {
+  position: relative;
+}
+
+.editorial-ledger--rail {
+  --ledger-gutter: clamp(26px, 4vw, 38px);
+  padding-left: var(--ledger-gutter);
+}
+
+.editorial-ledger__rail {
+  left: 0;
+}
+
+.editorial-ledger__list {
+  border-bottom: 1px solid var(--institution-border);
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.editorial-ledger__row {
+  align-items: baseline;
+  display: grid;
+  gap: 6px clamp(14px, 3vw, 28px);
+  grid-template-columns: auto minmax(0, 1fr);
+  padding-block: clamp(24px, 3.8vw, 40px);
+  position: relative;
+}
+
+.editorial-ledger__rule {
+  background: var(--institution-border);
+  height: 1px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transform-origin: left center;
+}
+
+/* Regla dorada: se dibuja sobre la gris cuando la fila es la que se lee. */
+.editorial-ledger__row::after {
+  background: var(--color-brand-gold);
+  content: '';
+  height: 2px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--motion-cinematic) var(--ease-cinematic);
+}
+
+.editorial-ledger__row[data-active='true']::after {
+  transform: scaleX(1);
+}
+
+.editorial-ledger__index {
+  color: var(--institution-gold);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+}
+
+.editorial-ledger__title {
+  color: var(--institution-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 2.6vw, 1.9rem);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.editorial-ledger__desc {
+  color: var(--institution-text-muted);
+  font-size: 14px;
+  font-weight: 300;
+  grid-column: 2;
+  line-height: 1.7;
+  margin: 0;
+  max-width: 54ch;
+  text-wrap: pretty;
+}
+
+/* Marcador del paso sobre la línea de progreso. */
+.editorial-ledger__dot {
+  left: calc(-1 * var(--ledger-gutter) - 4.5px);
+  top: calc(clamp(24px, 3.8vw, 40px) + 0.35em);
+}
+
+@media (min-width: 900px) {
+  .editorial-ledger__row {
+    column-gap: clamp(28px, 5vw, 80px);
+    grid-template-columns: 4rem minmax(0, 1fr) minmax(0, 1.1fr);
+  }
+
+  .editorial-ledger__desc {
+    grid-column: 3;
+  }
+
+  .editorial-ledger--rail .editorial-ledger__row {
+    grid-template-columns: 3rem minmax(0, 1fr) minmax(0, 1.1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editorial-ledger__row::after {
+    transition: none;
+  }
+}

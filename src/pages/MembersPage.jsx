@@ -1,13 +1,15 @@
 import '../styles/pages/design-phase2.css'
 import '../styles/pages/members.css'
 import '../styles/layout/design-page-notebook.css'
+import '../styles/pages/members-sections.css'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CalendarClock, RefreshCw } from 'lucide-react'
+import { ArrowRight, CalendarClock, Check, RefreshCw } from 'lucide-react'
+import { m } from 'motion/react'
 import FAQAccordion from '../components/ui/FAQAccordion.jsx'
 import FeatureComingSoon from '../components/ui/FeatureComingSoon.jsx'
-import MembersBenefitsShowcase from '../components/ui/MembersBenefitsShowcase.jsx'
+import MembersBlockHead from '../components/ui/MembersBlockHead.jsx'
 import MembersPluHero from '../components/ui/MembersPluHero.jsx'
-import MembersProcessStepper from '../components/ui/MembersProcessStepper.jsx'
+import MembersProcessSteps from '../components/ui/MembersProcessSteps.jsx'
 import MembersRequirementsCarousel from '../components/ui/MembersRequirementsCarousel.jsx'
 import MembershipCard from '../components/ui/MembershipCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
@@ -18,8 +20,12 @@ import { FEATURE_KEYS, isFeatureEnabled } from '../lib/featureAvailability.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { PRICING } from '../lib/constants.js'
+import { money } from '../lib/format.js'
 import { getFeaturedEvent, getPitbullClassicEvent } from '../lib/eventNavigation.js'
 import { resolveEventPricing, resolveLiveComboOffer } from '../lib/eventPricing.js'
+import { useMotionConfig } from '../motion/MotionProvider.tsx'
+import { MOTION_VIEWPORT } from '../motion/tokens.ts'
+import { staggerContainer, staggerItem } from '../motion/variants.ts'
 import { listMembershipPlans } from '../services/paymentService.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
 import { isStaffSession } from '../lib/roles.js'
@@ -57,14 +63,26 @@ export default function MembersPage({
     MEMBERSHIP_INSTITUTIONAL,
     MEMBERSHIP_REQUIREMENTS,
   } = useContent()
-  const { messages, t } = useI18n()
+  const { locale, messages, t } = useI18n()
+  const { reducedMotion } = useMotionConfig()
   const [livePlans, setLivePlans] = useState([])
   const [plansLoaded, setPlansLoaded] = useState(false)
   const [plansError, setPlansError] = useState('')
   const [billingMode, setBillingMode] = useState('one_time')
   const [now, setNow] = useState(() => new Date())
   const validityNotes = messages.pages.members.validityNotes
-  const planIncludes = messages.pages.members.planIncludes ?? []
+  const ReqList = reducedMotion ? 'ul' : m.ul
+  const FlowList = reducedMotion ? 'ul' : m.ul
+  const RailItem = reducedMotion ? 'li' : m.li
+  const railListProps = reducedMotion
+    ? {}
+    : {
+        initial: 'hidden',
+        whileInView: 'visible',
+        viewport: MOTION_VIEWPORT,
+        variants: staggerContainer,
+      }
+  const railItemProps = reducedMotion ? {} : { variants: staggerItem }
 
   // La promo publicada en esta pagina nombra Pitbull de forma explicita. Un
   // evento de prueba marcado como destacado no puede cambiar el torneo que se
@@ -118,8 +136,8 @@ export default function MembersPage({
   // (plu-annual ± renovación), no franjas de edad.
   const catalogPlans = useMemo(() => {
     if (!livePlans.length) return []
-    return livePlans.map((plan) => mapLivePlan(plan, planIncludes, t))
-  }, [livePlans, planIncludes, t])
+    return livePlans.map((plan) => mapLivePlan(plan, [], t))
+  }, [livePlans, t])
 
   const oneTimePlans = useMemo(
     () => catalogPlans.filter((plan) => plan.collectionMode !== 'recurring'),
@@ -217,6 +235,14 @@ export default function MembersPage({
     }
     onNavigate(canUseAthleteCheckout ? 'competition' : 'register')
   }
+  const goToEvent = () => {
+    if (onSelectEvent && featuredEvent) {
+      onSelectEvent(featuredEvent)
+      return
+    }
+    onNavigate?.('events')
+  }
+  const canOpenFeaturedEvent = Boolean(onSelectEvent && featuredEvent)
 
   const gridClassName = [
     'membership-grid',
@@ -226,17 +252,22 @@ export default function MembersPage({
 
   return (
     <main className="page page--design members-page members-page--plu-ref">
-      <Reveal>
-        <MembersPluHero
-          onNavigate={onNavigate}
-          session={session}
-          affiliationCta={affiliationCta}
-          ctaDisabled={
-            hasActiveMembership || checkoutLocked || (isLoggedInAthlete && livePlansUnavailable)
-          }
-          onAffiliate={goToAffiliation}
-        />
-      </Reveal>
+      {/* Hero anima al montar; no envolver en Reveal (doble entrada). */}
+      <MembersPluHero
+        onNavigate={onNavigate}
+        session={session}
+        affiliationCta={affiliationCta}
+        ctaDisabled={
+          hasActiveMembership || checkoutLocked || (isLoggedInAthlete && livePlansUnavailable)
+        }
+        onAffiliate={goToAffiliation}
+        price={visiblePlans[0]?.price}
+        pricePeriod={
+          visiblePlans[0]?.period === t('pages.membershipCard.periodAnnual')
+            ? t('pages.membershipCard.perYear')
+            : visiblePlans[0]?.period
+        }
+      />
 
       <div className="members-page__body">
         <section
@@ -244,24 +275,13 @@ export default function MembersPage({
             'members-section',
             'members-section--plans',
             'members-plu-plans',
+            'members-plu-plans--statement',
             showComboPromo ? 'members-plu-plans--with-combo' : '',
           ]
             .filter(Boolean)
             .join(' ')}
           id="planes"
         >
-          <header className="members-plu-block__head members-plu-plans__head">
-            <p className="members-plu-process__eyebrow">{t('pages.members.plansEyebrow')}</p>
-            <h2 className="members-plu-block__title">{t('pages.members.plansTitle')}</h2>
-            <p className="members-plu-block__lead">
-              {checkoutLocked
-                ? t('pages.members.plansLeadCheckoutSoon')
-                : billingSwitchEnabled
-                  ? t('pages.members.plansLeadWithBilling')
-                  : t('pages.members.plansLead')}
-            </p>
-          </header>
-
           {showComboPromo ? (
             <Reveal className="members-plu-plans__combo" variant="up">
               <SeasonComboOffer
@@ -277,52 +297,121 @@ export default function MembersPage({
             </Reveal>
           ) : null}
 
-          {visiblePlans.length ? (
-            <Reveal className={gridClassName} variant="up">
-              {visiblePlans.map((plan) => (
-                <MembershipCard
-                  key={plan.id}
-                  {...plan}
-                  billingToggleEnabled={billingSwitchEnabled && !checkoutLocked}
-                  billingAutoRenew={billingMode === 'recurring'}
-                  billingToggleHint={billingHint}
-                  billingToggleLabel={t('pages.members.autoRenewLabel')}
-                  ctaLabel={affiliationCta}
-                  ctaDisabled={hasActiveMembership || checkoutLocked || livePlansUnavailable}
-                  onBillingAutoRenewChange={(enabled) => {
-                    setBillingMode(enabled ? 'recurring' : 'one_time')
-                  }}
-                  onSelect={goToAffiliation}
-                  variant="plu"
-                />
-              ))}
-            </Reveal>
-          ) : null}
+          <div
+            className={[
+              'members-plu-offer',
+              'members-plu-offer--masthead',
+              'members-plu-offer--statement',
+              visiblePlans.length > 1 ? 'members-plu-offer--multi' : 'members-plu-offer--solo',
+            ].join(' ')}
+          >
+            <header className="members-plu-block__head members-plu-plans__head">
+              <p className="members-plu-process__eyebrow">{t('pages.members.plansEyebrow')}</p>
+              <h2 className="members-plu-block__title">{t('pages.members.plansTitle')}</h2>
+              <p className="members-plu-block__lead">
+                {checkoutLocked
+                  ? t('pages.members.plansLeadCheckoutSoon')
+                  : billingSwitchEnabled
+                    ? t('pages.members.plansLeadWithBilling')
+                    : t('pages.members.plansLead')}
+              </p>
+            </header>
 
-          {!hasActiveMembership && visiblePlans.length ? (
-            <p className="members-plu-plans__reassure">{t('pages.members.closureReassure')}</p>
-          ) : null}
-          {!plansLoaded ? (
-            <p className="members-plans-feedback" role="status">
-              {t('pages.members.plansLoading')}
-            </p>
-          ) : null}
-          {plansLoaded && catalogPlans.length === 0 ? (
-            <FeatureComingSoon
-              actionIcon={plansError ? RefreshCw : undefined}
-              actionLabel={plansError ? t('pages.members.plansRetry') : undefined}
-              className="members-plans-feedback members-plans-feedback--notice"
-              eyebrow={t('pages.members.plansComingSoonEyebrow')}
-              icon={CalendarClock}
-              lead={t('pages.members.plansComingSoonLead')}
-              onAction={plansError ? () => loadPlans({ force: true }) : undefined}
-              role={plansError ? 'alert' : 'status'}
-              title={
-                plansError ? t('pages.members.plansLoadError') : t('pages.members.plansComingSoon')
-              }
-              variant="inline"
-            />
-          ) : null}
+            <div className="members-plu-offer__stage">
+              <div className="members-plu-offer__buy">
+                {visiblePlans.length ? (
+                  <Reveal className={gridClassName} variant="up">
+                    {visiblePlans.map((plan) => (
+                      <MembershipCard
+                        key={plan.id}
+                        {...plan}
+                        billingToggleEnabled={billingSwitchEnabled && !checkoutLocked}
+                        billingAutoRenew={billingMode === 'recurring'}
+                        billingToggleHint={billingHint}
+                        billingToggleLabel={t('pages.members.autoRenewLabel')}
+                        ctaLabel={affiliationCta}
+                        ctaDisabled={hasActiveMembership || checkoutLocked || livePlansUnavailable}
+                        onBillingAutoRenewChange={(enabled) => {
+                          setBillingMode(enabled ? 'recurring' : 'one_time')
+                        }}
+                        onSelect={goToAffiliation}
+                        variant="plu"
+                      />
+                    ))}
+                  </Reveal>
+                ) : null}
+
+                {!plansLoaded ? (
+                  <p className="members-plans-feedback" role="status">
+                    {t('pages.members.plansLoading')}
+                  </p>
+                ) : null}
+                {plansLoaded && catalogPlans.length === 0 ? (
+                  <FeatureComingSoon
+                    actionIcon={plansError ? RefreshCw : undefined}
+                    actionLabel={plansError ? t('pages.members.plansRetry') : undefined}
+                    className="members-plans-feedback members-plans-feedback--notice"
+                    eyebrow={t('pages.members.plansComingSoonEyebrow')}
+                    icon={CalendarClock}
+                    lead={
+                      plansError
+                        ? t('pages.members.plansLoadErrorLead')
+                        : t('pages.members.plansComingSoonLead')
+                    }
+                    onAction={plansError ? () => loadPlans({ force: true }) : undefined}
+                    role={plansError ? 'alert' : 'status'}
+                    title={
+                      plansError
+                        ? t('pages.members.plansLoadError')
+                        : t('pages.members.plansComingSoon')
+                    }
+                    variant="inline"
+                  />
+                ) : null}
+              </div>
+
+              {/* Condiciones del plan: cada dato en su columna en vez de un párrafo
+                  corrido separado por puntos. */}
+              <div className="members-plu-offer__terms">
+                <p className="members-plu-offer__term">
+                  <span className="members-plu-offer__terms-label">
+                    {t('pages.members.validityTitle')}
+                  </span>
+                  <span className="members-plu-offer__terms-text">
+                    {t('pages.members.validityText')}
+                  </span>
+                </p>
+                {validityNotes.map((note) => (
+                  <p key={note} className="members-plu-offer__term">
+                    <span className="members-plu-offer__terms-text">{note}</span>
+                  </p>
+                ))}
+              </div>
+            </div>
+
+            <div className="members-plu-offer__includes">
+              <h3 className="members-plu-offer__includes-title" id="members-includes-title">
+                {t('pages.members.introTitle')}
+              </h3>
+              <ReqList
+                className="members-plu-offer__list"
+                aria-labelledby="members-includes-title"
+                {...railListProps}
+              >
+                {MEMBERSHIP_BENEFITS.map((benefit) => (
+                  <RailItem
+                    key={benefit.id}
+                    className="members-plu-offer__item"
+                    aria-label={`${benefit.title}. ${benefit.text}`}
+                    {...railItemProps}
+                  >
+                    <Check size={15} strokeWidth={2} aria-hidden className="members-plu-offer__check" />
+                    <span className="members-plu-offer__item-title">{benefit.title}</span>
+                  </RailItem>
+                ))}
+              </ReqList>
+            </div>
+          </div>
         </section>
 
         {hasActiveMembership ? (
@@ -359,64 +448,82 @@ export default function MembersPage({
           </Reveal>
         ) : null}
 
-        <section className="members-plu-block members-plu-block--benefits">
-          <MembersBenefitsShowcase
-            items={MEMBERSHIP_BENEFITS}
-            title={t('pages.members.introTitle')}
-            lead={t('pages.members.introText')}
-            ariaLabel={t('pages.members.benefitsAria')}
+        <section
+          className="members-plu-block members-plu-block--guide"
+          id="requisitos"
+          aria-labelledby="members-process-title"
+        >
+          <div className="members-guide members-guide--process">
+            <div className="members-guide__col">
+              <header className="members-guide__head">
+                <p className="members-guide__eyebrow">{t('pages.members.processEyebrow')}</p>
+                <h2 className="members-guide__title" id="members-process-title">
+                  {t('pages.members.processTitle')}
+                </h2>
+                <p className="members-guide__lead">{t('pages.members.processLead')}</p>
+              </header>
+              <MembersProcessSteps
+                steps={MEMBERSHIP_ANNUAL_STEPS}
+                ariaLabel={t('pages.members.processAria')}
+                price={visiblePlans[0]?.price ? money(visiblePlans[0].price, locale) : undefined}
+              />
+            </div>
+          </div>
+
+          <MembersRequirementsCarousel
+            items={MEMBERSHIP_REQUIREMENTS}
+            title={t('pages.members.requirementsTitle')}
+            lead={t('pages.members.requirementsLead')}
+            ariaLabel={t('pages.members.requirementsAria')}
           />
         </section>
-
-        <Reveal as="section" variant="up" className="members-plu-block members-plu-block--process">
-          <MembersProcessStepper
-            steps={MEMBERSHIP_ANNUAL_STEPS}
-            ariaLabel={t('pages.members.processAria')}
-            eyebrow={t('pages.members.processEyebrow')}
-            title={t('pages.members.processTitle')}
-            lead={t('pages.members.processLead')}
-          />
-        </Reveal>
 
         <section
-          className="members-plu-block members-plu-block--requirements"
-          id="requisitos"
+          className="members-plu-block members-plu-block--flow"
+          aria-labelledby="members-flow-title"
         >
-          <div className="members-plu-requirements">
-            <MembersRequirementsCarousel
-              items={MEMBERSHIP_REQUIREMENTS}
-              ariaLabel={t('pages.members.requirementsAria')}
-              title={t('pages.members.requirementsTitle')}
-              lead={t('pages.members.requirementsLead')}
-            />
-
-            <aside className="members-req-validity" aria-labelledby="members-validity-title">
-              <span className="members-req-validity__glow" aria-hidden />
-              <header className="members-req-validity__head">
-                <span className="members-req-validity__icon" aria-hidden>
-                  <CalendarClock size={20} strokeWidth={1.5} />
-                </span>
-                <p className="members-req-validity__eyebrow" id="members-validity-title">
-                  {t('pages.members.validityTitle')}
-                </p>
-              </header>
-              <p className="members-req-validity__text">{t('pages.members.validityText')}</p>
-              <ul className="members-req-validity__notes">
-                {validityNotes.map((note) => (
-                  <li key={note}>
-                    <span className="members-req-validity__note-mark" aria-hidden />
-                    <span>{note}</span>
-                  </li>
-                ))}
-              </ul>
-            </aside>
-          </div>
+          <MembersBlockHead
+            eyebrow={t('pages.members.flowEyebrow')}
+            title={t('pages.members.flowTitle')}
+            titleId="members-flow-title"
+          />
+          <FlowList className="members-flow" {...railListProps}>
+            <RailItem className="members-flow__door" {...railItemProps}>
+              <span className="members-flow__index" aria-hidden>
+                01
+              </span>
+              <h3 className="members-flow__title">
+                {canOpenFeaturedEvent ? featuredEvent.title : t('pages.members.flowCalendarTitle')}
+              </h3>
+              <p className="members-flow__text">{t('pages.members.flowEventLead')}</p>
+              <button
+                type="button"
+                className="members-flow__link motion-icon-shift"
+                onClick={goToEvent}
+              >
+                {canOpenFeaturedEvent
+                  ? t('pages.members.flowEventCta')
+                  : t('pages.members.flowCalendarCta')}
+                <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
+              </button>
+            </RailItem>
+            <RailItem className="members-flow__door" {...railItemProps}>
+              <span className="members-flow__index" aria-hidden>
+                02
+              </span>
+              <h3 className="members-flow__title">{t('pages.members.flowShopTitle')}</h3>
+              <p className="members-flow__text">{t('pages.shop.heroDesc')}</p>
+              <button
+                type="button"
+                className="members-flow__link motion-icon-shift"
+                onClick={() => onNavigate?.('shop')}
+              >
+                {t('pages.members.flowShopCta')}
+                <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
+              </button>
+            </RailItem>
+          </FlowList>
         </section>
-
-        <Reveal as="section" variant="up" className="members-plu-block members-plu-block--note">
-          <p className="members-plu-note__eyebrow">{MEMBERSHIP_INSTITUTIONAL.eyebrow}</p>
-          <p className="members-plu-note">{MEMBERSHIP_INSTITUTIONAL.text}</p>
-        </Reveal>
 
         <Reveal
           as="section"
@@ -428,6 +535,10 @@ export default function MembersPage({
             <h2 className="members-plu-block__title">{t('pages.members.faqTitle')}</h2>
           </header>
           <FAQAccordion items={MEMBERSHIP_FAQ} variant="ref" numbered />
+          <p className="members-plu-faq__note">
+            <span className="members-plu-note__eyebrow">{MEMBERSHIP_INSTITUTIONAL.eyebrow}</span>
+            {MEMBERSHIP_INSTITUTIONAL.text}
+          </p>
         </Reveal>
       </div>
     </main>

@@ -13,6 +13,7 @@
    - `.admin-user-delete-dialog`
    - `.admin-status-dialog` (corregir estado + observaciones)
    - `.payment-validation-dialog`
+   - `.admin-shop-modal` (alta/edición de producto de tienda)
 
    El bloque remapea las custom properties de tinta DENTRO del scope
    del panel: así el contenido (texto, botones, inputs anidados)
@@ -23,13 +24,10 @@
 
 /* ---- Panel: material + inversión de tinta ---- */
 
-.admin-account-dialog__panel,
 .admin-event-editor-modal__panel,
-.admin-event-quick__panel,
 .admin-event-console-modal__panel,
 .security-credential-modal__panel,
 .membership-credential-modal__panel,
-.admin-shop-modal__panel,
 .admin-action-drawer {
   --admin-ink: var(--admin-modal-ink);
   --admin-muted: var(--admin-modal-text-muted);
@@ -101,14 +99,11 @@
 }
 
 /* ---- Backdrop: un solo velo ----
-   Excepciones livianas (theme-native): payment-validation, admin-status
-   y admin-user-delete — viven en admin.css. */
+   Excepciones livianas (theme-native): payment-validation, admin-status,
+   admin-user-delete y admin-shop-modal — viven en admin.css. */
 
-.admin-account-dialog__backdrop,
 .admin-event-editor-modal__backdrop,
-.admin-event-quick__backdrop,
-.security-credential-modal__backdrop,
-.admin-shop-modal__backdrop {
+.security-credential-modal__backdrop {
   -webkit-backdrop-filter: blur(var(--admin-modal-backdrop-blur));
   backdrop-filter: blur(var(--admin-modal-backdrop-blur));
   background: var(--admin-modal-backdrop);
@@ -122,7 +117,6 @@
   backdrop-filter: blur(6px) saturate(1.1);
   background: rgba(4, 6, 10, 0.42);
 }
-
 
 /* Consola: blur del listado detrás, sin velo negro opaco. Tint liviano por tema. */
 .admin-event-console-modal__backdrop {
@@ -161,10 +155,7 @@
 .admin-event-editor-modal__panel .admin-event-form textarea,
 .admin-event-console-modal__panel .admin-event-form input:not([type='checkbox']),
 .admin-event-console-modal__panel .admin-event-form select,
-.admin-event-console-modal__panel .admin-event-form textarea,
-.admin-event-quick__panel .admin-event-quick__field input,
-.admin-event-quick__panel .admin-event-quick__field select,
-.admin-event-quick__panel .admin-event-quick__field textarea {
+.admin-event-console-modal__panel .admin-event-form textarea {
   background: var(--admin-control-bg);
   border-color: var(--admin-hairline);
   color: var(--admin-ink);
@@ -176,9 +167,7 @@
 .admin-event-editor-modal__panel .admin-event-form textarea:hover:not(:disabled),
 .admin-event-console-modal__panel .admin-event-form input:not([type='checkbox']):hover:not(:disabled),
 .admin-event-console-modal__panel .admin-event-form select:hover:not(:disabled),
-.admin-event-console-modal__panel .admin-event-form textarea:hover:not(:disabled),
-.admin-event-quick__panel .admin-event-quick__field input:hover:not(:disabled),
-.admin-event-quick__panel .admin-event-quick__field select:hover:not(:disabled) {
+.admin-event-console-modal__panel .admin-event-form textarea:hover:not(:disabled) {
   background: color-mix(in srgb, var(--admin-modal-ink) 11%, transparent);
   border-color: var(--admin-hairline-strong);
 }
@@ -188,9 +177,7 @@
 .admin-event-editor-modal__panel .admin-event-form textarea:focus,
 .admin-event-console-modal__panel .admin-event-form input:not([type='checkbox']):focus,
 .admin-event-console-modal__panel .admin-event-form select:focus,
-.admin-event-console-modal__panel .admin-event-form textarea:focus,
-.admin-event-quick__panel .admin-event-quick__field input:focus-visible,
-.admin-event-quick__panel .admin-event-quick__field select:focus-visible {
+.admin-event-console-modal__panel .admin-event-form textarea:focus {
   background: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 8%, transparent);
   border-color: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 45%, transparent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 16%, transparent);
@@ -204,8 +191,7 @@
 .admin-event-editor-modal__panel .admin-event-form textarea,
 .admin-event-console-modal__panel .admin-event-form input:not([type='checkbox']),
 .admin-event-console-modal__panel .admin-event-form select,
-.admin-event-console-modal__panel .admin-event-form textarea,
-.admin-event-quick__panel .admin-event-quick__field input {
+.admin-event-console-modal__panel .admin-event-form textarea {
   background: var(--admin-control-bg);
   border-color: var(--admin-hairline);
   color: var(--admin-ink);
@@ -414,22 +400,16 @@
 
   .payment-validation-dialog__panel,
   .admin-status-dialog__panel,
-  .admin-account-dialog__panel,
   .admin-event-editor-modal__panel,
-  .admin-event-quick__panel,
   .admin-event-console-modal__panel,
   .security-credential-modal__panel,
   .membership-credential-modal__panel,
-  .admin-shop-modal__panel,
   .admin-action-drawer,
   .payment-validation-dialog__backdrop,
   .admin-status-dialog__backdrop,
-  .admin-account-dialog__backdrop,
   .admin-event-editor-modal__backdrop,
-  .admin-event-quick__backdrop,
   .admin-event-console-modal__backdrop,
   .security-credential-modal__backdrop,
-  .admin-shop-modal__backdrop,
   .admin-action-drawer__backdrop {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
@@ -440,7 +420,6 @@
   .admin-action-drawer__backdrop {
     background: rgba(4, 6, 10, 0.52);
   }
-
 
   .admin-event-console-modal__backdrop {
     background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 28%, transparent);
@@ -455,8 +434,7 @@
   }
 
   .admin-event-editor-modal__panel,
-  .admin-event-console-modal__panel,
-  .admin-event-quick__panel {
+  .admin-event-console-modal__panel {
     --admin-glass-bg: color-mix(in srgb, var(--admin-modal-ink) 10%, var(--admin-modal-bg));
     --admin-glass-bg-strong: color-mix(in srgb, var(--admin-modal-ink) 16%, var(--admin-modal-bg));
     --admin-glass-blur: 0px;

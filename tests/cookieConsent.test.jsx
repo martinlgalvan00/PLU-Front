@@ -60,7 +60,14 @@ describe('CookieConsent', () => {
     expect(screen.getByRole('region', { name: 'Preferencias de cookies' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Aceptar todo' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Solo necesarias' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Preferencias' })).toBeTruthy()
+  })
+
+  it('no ofrece preferencias ni el switch de medición: ese control vive en el footer', () => {
+    renderConsent()
+
+    expect(screen.queryByRole('button', { name: 'Preferencias' })).toBe(null)
+    expect(screen.queryByRole('switch')).toBe(null)
+    expect(screen.queryByText('Medición de uso')).toBe(null)
   })
 
   it('aceptar todo guarda el consentimiento y retira la banda', async () => {
@@ -84,25 +91,6 @@ describe('CookieConsent', () => {
     expect(setOptedOut).toHaveBeenCalledWith(true)
   })
 
-  it('las preferencias exponen el switch de analítica y guardan la decisión', async () => {
-    renderConsent()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Preferencias' }))
-
-    const toggle = screen.getByRole('switch', { name: /Medición de uso/ })
-    expect(screen.getByText('Necesarias')).toBeTruthy()
-    expect(toggle.getAttribute('aria-checked')).toBe('false')
-
-    fireEvent.click(toggle)
-    expect(toggle.getAttribute('aria-checked')).toBe('true')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar preferencias' }))
-    expect(getConsent()).toEqual({ necessary: true, analytics: true })
-    await waitFor(() =>
-      expect(screen.queryByRole('region', { name: 'Preferencias de cookies' })).toBe(null),
-    )
-  })
-
   it('con decisión previa no muestra la banda hasta que el footer la reabre', async () => {
     decideConsent({ analytics: false })
     const { unmount } = renderConsent()
@@ -112,8 +100,14 @@ describe('CookieConsent', () => {
     renderConsent()
     openCookiePreferences()
 
-    const toggle = await screen.findByRole('switch', { name: /Medición de uso/ })
-    expect(toggle.getAttribute('aria-checked')).toBe('false')
-    expect(screen.getByRole('button', { name: 'Cerrar' })).toBeTruthy()
+    expect(await screen.findByRole('region', { name: 'Preferencias de cookies' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Aceptar todo' })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    await waitFor(() =>
+      expect(screen.queryByRole('region', { name: 'Preferencias de cookies' })).toBe(null),
+    )
+    // Cerrar no cambia la decisión anterior.
+    expect(getConsent()).toEqual({ necessary: true, analytics: false })
   })
 })

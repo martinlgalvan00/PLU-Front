@@ -102,8 +102,8 @@ describe('Afiliaciones — toggle de vencimiento', () => {
 
     const chip = screen.getByRole('button', { name: /Vencen pronto/ })
     expect(chip.textContent).toMatch(/Vencen pronto/)
-    expect(chip.querySelector('.admin-filter-chip__count')?.textContent).toBe('1')
-    expect(screen.getByText('Vencimiento')).toBeTruthy()
+    expect(chip.querySelector('.admin-toolbar__chip-count')?.textContent).toBe('1')
+    expect(chip.getAttribute('aria-pressed')).toBe('false')
   })
 
   it('oculta el toggle si no hay afiliaciones por vencer', async () => {
@@ -182,6 +182,9 @@ describe('Eventos — CTA fuera de los filtros', () => {
         />
       </I18nProvider>,
     )
+
+    // Los estados viven en el pill "Estado" (popover): se abre para leer el censo.
+    fireEvent.click(screen.getByRole('button', { name: /^Estado/ }))
 
     const chipText = [...container.querySelectorAll('.admin-filter-chip')].map(
       (chip) => chip.textContent,
@@ -355,9 +358,9 @@ describe('Inscripciones — exportaciones con etiqueta', () => {
       </I18nProvider>,
     )
 
-    const filterBar = container.querySelector('.admin-filters')
+    const filterBar = container.querySelector('.admin-toolbar')
     expect(filterBar).toBeTruthy()
-    fireEvent.click(within(filterBar).getByRole('button', { name: /Más criterios/ }))
+    fireEvent.click(within(filterBar).getByRole('button', { name: /^Filtros/ }))
     expect(screen.getByRole('button', { name: 'Últimos 7 días' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Últimos 30' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Este mes' })).toBeTruthy()

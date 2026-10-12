@@ -20,6 +20,25 @@ export function matchAdminEventRoute(
 }
 
 /**
+ * `/admin/eventos/nuevo` es la página de alta, no el workspace de un evento
+ * llamado "nuevo". Comparte el patrón de la ruta con los slugs, pero no puede
+ * chocar con uno generado: `slugify` siempre cierra con el año (`titulo-2026`).
+ */
+export const ADMIN_EVENT_CREATE_SLUG = 'nuevo'
+
+/**
+ * @param {string | null | undefined} eventSlug  `eventSlug` de `matchAdminEventRoute`.
+ * @returns {boolean}
+ */
+export function isAdminEventCreateSlug(eventSlug) {
+  return eventSlug === ADMIN_EVENT_CREATE_SLUG
+}
+
+export function pushAdminEventCreateRoute() {
+  pushAdminEventRoute(ADMIN_EVENT_CREATE_SLUG)
+}
+
+/**
  * @param {string} eventSlug
  * @returns {string}
  */

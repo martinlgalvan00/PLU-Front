@@ -1,0 +1,417 @@
+/* =============================================
+   ENTRADAS VENDIDAS + PANEL DE QR
+   Lista operativa de las entradas emitidas de un evento. Cinco columnas que
+   entran sin scroll horizontal: quién (nombre y DNI), qué entrada, precio,
+   estado (pago + ingreso) y el acceso al QR. El comprador, el medio de pago y
+   la vigencia viven en el panel de la entrada, que se consulta de a una.
+   Monocromo: el único acento es el botón que descarga el QR.
+   ============================================= */
+
+/* ---- Contenedor ----
+   `.admin-orders-block` trae de la hoja de auditoría un filete superior, un
+   margen y un padding de 32px pensados para apilar bloques en una página. Acá
+   es la superficie entera del capítulo: sin eso salía un hueco con un filete
+   suelto antes del título. */
+
+.admin-orders-block.sold-tickets {
+  border-top: 0;
+  gap: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+/* ---- Encabezado y resumen ---- */
+
+.sold-tickets__header {
+  align-items: flex-start;
+  margin-bottom: var(--space-md);
+}
+
+.sold-tickets__stats {
+  border-block: 1px solid var(--admin-hairline);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 40px;
+  margin: 0 0 var(--space-md);
+  padding: 12px 0;
+}
+
+.sold-tickets__stats > div {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+}
+
+.sold-tickets__stats dd {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin: 0;
+  order: 0;
+}
+
+.sold-tickets__stats dt {
+  color: var(--admin-muted);
+  font-size: 13px;
+  order: 1;
+}
+
+.sold-tickets__toolbar {
+  gap: 8px 24px;
+  margin-bottom: var(--space-sm);
+}
+
+/* Estado y tipo comparten línea (se parten sólo si no entran) en vez de una
+   fila de chips por filtro. */
+.sold-tickets__toolbar .admin-orders-block__toolbar-facets {
+  align-items: center;
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  gap: 0 28px;
+  order: 3;
+}
+
+.sold-tickets__toolbar .admin-orders-block__toolbar-facets > .admin-filter-group {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
+/* ---- Celdas de la tabla ---- */
+
+.sold-tickets__cell {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  min-width: 0;
+}
+
+.sold-tickets__cell strong {
+  color: var(--admin-ink);
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.sold-tickets__cell small {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+}
+
+/* ---- Panel de la entrada ---- */
+
+.ticket-qr-panel {
+  inset: 0;
+  position: fixed;
+  z-index: 1200;
+}
+
+.ticket-qr-panel__backdrop {
+  animation: ticket-qr-fade var(--motion-base, 240ms) var(--ease-out) both;
+  background: var(--admin-modal-backdrop, rgba(0, 0, 0, 0.6));
+  border: 0;
+  cursor: default;
+  inset: 0;
+  padding: 0;
+  position: absolute;
+}
+
+.ticket-qr-panel__sheet {
+  animation: ticket-qr-in var(--motion-slow, 320ms) var(--ease-out) both;
+  background: var(--admin-surface);
+  border-left: 1px solid var(--admin-hairline-strong);
+  bottom: 0;
+  box-shadow: var(--admin-shadow-panel);
+  color: var(--admin-ink);
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 420px;
+}
+
+@keyframes ticket-qr-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@keyframes ticket-qr-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.ticket-qr-panel__head {
+  align-items: start;
+  border-bottom: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 24px 24px 20px;
+}
+
+.ticket-qr-panel__identity {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ticket-qr-panel__eyebrow {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ticket-qr-panel__identity h2 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.ticket-qr-panel__identity p {
+  color: var(--admin-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  margin: 2px 0 0;
+}
+
+.ticket-qr-panel__close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  margin: -10px -10px 0 0;
+  transition:
+    background var(--motion-fast, 160ms) var(--ease-out),
+    color var(--motion-fast, 160ms) var(--ease-out);
+  width: 44px;
+}
+
+.ticket-qr-panel__close:hover {
+  background: var(--admin-row-hover);
+  color: var(--admin-ink);
+}
+
+.ticket-qr-panel__close:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.ticket-qr-panel__body {
+  align-content: start;
+  display: grid;
+  flex: 1 1 auto;
+  gap: 16px;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.ticket-qr-panel__ticket {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.ticket-qr-panel__ticket strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ticket-qr-panel__credential {
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+
+/* El QR va sobre blanco en ambos temas: es lo que lee la cámara. */
+.ticket-qr-panel__code {
+  display: flex;
+  justify-content: center;
+  padding-block: 4px;
+}
+
+.ticket-qr-panel__state {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+  margin: 0;
+}
+
+.ticket-qr-panel__state > span:last-child {
+  display: grid;
+  gap: 2px;
+}
+
+.ticket-qr-panel__state strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ticket-qr-panel__state small {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ticket-qr-panel__dot {
+  background: var(--admin-muted);
+  border-radius: 50%;
+  flex: none;
+  height: 8px;
+  margin-top: 6px;
+  width: 8px;
+}
+
+.ticket-qr-panel__state--ready .ticket-qr-panel__dot {
+  background: var(--admin-status-success);
+}
+
+.ticket-qr-panel__state--expired .ticket-qr-panel__dot,
+.ticket-qr-panel__state--cancelled .ticket-qr-panel__dot {
+  background: var(--admin-status-danger);
+}
+
+.ticket-qr-panel__state--upcoming .ticket-qr-panel__dot,
+.ticket-qr-panel__state--unpaid .ticket-qr-panel__dot {
+  background: var(--admin-status-warning);
+}
+
+.ticket-qr-panel__hint {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: -8px 0 0;
+  text-wrap: pretty;
+}
+
+.ticket-qr-panel__facts {
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.ticket-qr-panel__facts > div {
+  align-items: baseline;
+  border-bottom: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 96px minmax(0, 1fr);
+  padding: 10px 0;
+}
+
+.ticket-qr-panel__facts dt {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+}
+
+.ticket-qr-panel__facts dd {
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.ticket-qr-panel__actions {
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 8px;
+  padding: 16px 24px 20px;
+}
+
+.ticket-qr-panel__actions .btn,
+.ticket-qr-panel__secondary,
+.ticket-qr-panel__tertiary {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
+  min-height: 44px;
+  width: 100%;
+}
+
+/* Sólo botón dorado + dos acciones en tinta: el portal queda fuera del
+   remapeo del shell, así que `.btn--outline`/`--ghost` volverían a salir con
+   la marca. */
+.ticket-qr-panel__secondary,
+.ticket-qr-panel__tertiary {
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 999px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  transition:
+    background var(--motion-fast, 160ms) var(--ease-out),
+    border-color var(--motion-fast, 160ms) var(--ease-out);
+}
+
+.ticket-qr-panel__secondary:hover,
+.ticket-qr-panel__tertiary:hover {
+  background: var(--admin-row-hover);
+}
+
+.ticket-qr-panel__secondary:focus-visible,
+.ticket-qr-panel__tertiary:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.ticket-qr-panel__tertiary {
+  border-color: transparent;
+  color: var(--admin-muted);
+  font-weight: 500;
+  min-height: 40px;
+}
+
+.ticket-qr-panel__tertiary:hover {
+  color: var(--admin-ink);
+}
+
+@media (max-width: 540px) {
+  .ticket-qr-panel__sheet {
+    width: 100%;
+  }
+
+  .ticket-qr-panel__head,
+  .ticket-qr-panel__body,
+  .ticket-qr-panel__actions {
+    padding-inline: 16px;
+  }
+
+  .sold-tickets__stats {
+    gap: 8px 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticket-qr-panel__sheet,
+  .ticket-qr-panel__backdrop {
+    animation: none;
+  }
+}

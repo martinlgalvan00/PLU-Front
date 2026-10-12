@@ -1,10 +1,14 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import MembersBenefitsShowcase from '../src/components/ui/MembersBenefitsShowcase.jsx'
 import MembersRequirementsCarousel from '../src/components/ui/MembersRequirementsCarousel.jsx'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import MotionProvider from '../src/motion/MotionProvider.tsx'
-import { MEMBERSHIP_BENEFITS, MEMBERSHIP_REQUIREMENTS } from '../src/lib/content/es.js'
+import {
+  MEMBERSHIP_ANNUAL_STEPS,
+  MEMBERSHIP_BENEFITS,
+  MEMBERSHIP_REQUIREMENTS,
+} from '../src/lib/content/es.js'
 
 function mockMatchMedia(matchesQuery) {
   window.matchMedia = (query) => ({
@@ -87,7 +91,7 @@ describe('Teatro 3D de afiliación', () => {
     mockMatchMedia(() => false)
   })
 
-  it('renderiza los cuatro requisitos como placas con título de sección', () => {
+  it('renderiza requisitos como escenario cinematográfico con timeline', () => {
     const { container } = renderWithProviders(
       <MembersRequirementsCarousel
         items={MEMBERSHIP_REQUIREMENTS}
@@ -99,9 +103,12 @@ describe('Teatro 3D de afiliación', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: 'Antes de afiliarte' })).toBeTruthy()
     expect(screen.getByRole('heading', { level: 3, name: 'Documento' })).toBeTruthy()
-    expect(container.querySelectorAll('.members-req__cell')).toHaveLength(4)
-    expect(container.querySelectorAll('.members-req__plate')).toHaveLength(4)
-    expect(['js', 'css']).toContain(container.querySelector('.members-req')?.dataset.theater)
+    expect(container.querySelector('.members-req--stage')).not.toBeNull()
+    expect(container.querySelector('.members-req__stage')).not.toBeNull()
+    expect(container.querySelectorAll('.members-req__timeline-item')).toHaveLength(4)
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(4)
+    expect(container.querySelector('.members-req__stage')?.getAttribute('aria-hidden')).toBe('true')
+    expect(container.querySelector('.members-req')?.dataset.theater).toBe('js')
   })
 
   it('apaga el teatro de requisitos con reduced motion', () => {
@@ -117,19 +124,43 @@ describe('Teatro 3D de afiliación', () => {
     )
 
     expect(container.querySelector('.members-req')?.dataset.theater).toBe('off')
-    expect(container.querySelector('.members-req--theater')).toBeNull()
+    expect(container.querySelector('.members-req--stage')).toBeNull()
+    expect(container.querySelectorAll('.members-req__plate')).toHaveLength(4)
     mockMatchMedia(() => false)
   })
 
-  it('conserva el ancla #requisitos y las dos secciones en la página', async () => {
+  it('conserva el ancla #requisitos, beneficios y guía editorial de proceso/requisitos sin planes', async () => {
     const { container } = renderWithProviders(
       <MembersPage memberships={[]} onNavigate={vi.fn()} session={null} events={[]} />,
     )
 
     expect(container.querySelector('#requisitos')).not.toBeNull()
-    expect(container.querySelector('.members-plu-block--benefits')).not.toBeNull()
-    expect(container.querySelector('.members-plu-block--requirements')).not.toBeNull()
-    expect(screen.getByRole('heading', { level: 2, name: 'Qué incluye' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 3, name: 'Qué incluye' })).toBeTruthy()
+    expect(container.querySelectorAll('.members-plu-offer__item')).toHaveLength(
+      MEMBERSHIP_BENEFITS.length,
+    )
+    expect(screen.getByRole('heading', { level: 2, name: 'Cómo funciona' })).toBeTruthy()
     expect(screen.getByRole('heading', { level: 2, name: 'Antes de afiliarte' })).toBeTruthy()
+    expect(container.querySelector('#requisitos .members-guide')).not.toBeNull()
+    expect(container.querySelector('#requisitos .members-plu-stepper')).toBeNull()
+    expect(container.querySelector('#requisitos .members-req--stage')).not.toBeNull()
+    expect(container.querySelectorAll('#requisitos .members-guide__item')).toHaveLength(
+      MEMBERSHIP_ANNUAL_STEPS.length,
+    )
+    expect(container.querySelectorAll('#requisitos .members-req__timeline-item')).toHaveLength(
+      MEMBERSHIP_REQUIREMENTS.length,
+    )
+  })
+
+  it('ofrece las salidas al evento y a la tienda', () => {
+    const onNavigate = vi.fn()
+    renderWithProviders(
+      <MembersPage memberships={[]} onNavigate={onNavigate} session={null} events={[]} />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver calendario' }))
+    expect(onNavigate).toHaveBeenCalledWith('events')
+    fireEvent.click(screen.getByRole('button', { name: 'Ir a la tienda' }))
+    expect(onNavigate).toHaveBeenCalledWith('shop')
   })
 })

@@ -64,4 +64,54 @@ describe('formulario de contacto', () => {
     expect(screen.getByLabelText(/^Nombre$/i).value).toBe('Agustín')
     expect(screen.getByRole('button', { name: /Enviar/i }).disabled).toBe(false)
   })
+
+  it('arma la carta del sobre con lo que se escribe y prepara el mail alternativo', () => {
+    const { container } = renderForm()
+
+    fireEvent.click(screen.getByRole('radio', { name: /Gimnasio/i }))
+    fillRequiredFields()
+
+    const letter = container.querySelector('.envelope__letter')
+    expect(letter?.textContent).toContain('Gimnasio')
+    expect(letter?.textContent).toContain('Quiero afiliarme para el próximo meet.')
+    expect(letter?.textContent).toContain('Agustín')
+
+    const href = screen
+      .getByRole('link', { name: /prefiero escribir desde mi correo/i })
+      .getAttribute('href')
+    expect(href).toMatch(/^mailto:/)
+    expect(decodeURIComponent(href)).toContain('Consulta (Gimnasio)')
+    expect(decodeURIComponent(href)).toContain('Quiero afiliarme para el próximo meet.')
+  })
+
+  it('el sobre se sella mientras se envía y confirma cuando llega', async () => {
+    let resolveSend
+    vi.mocked(submitContactMessage).mockReturnValue(
+      new Promise((resolve) => {
+        resolveSend = resolve
+      }),
+    )
+    const { container } = renderForm()
+    const phase = () => container.querySelector('.letter-stage')?.getAttribute('data-phase')
+
+    expect(phase()).toBe('idle')
+    fillRequiredFields()
+    fireEvent.click(screen.getByRole('button', { name: /Enviar/i }))
+    await waitFor(() => expect(phase()).toBe('sending'))
+
+    resolveSend({ ok: true })
+    await waitFor(() => expect(phase()).toBe('sent'))
+    expect(await screen.findByText('Consulta enviada')).toBeTruthy()
+  })
+
+  it('si falla, el sobre se vuelve a abrir para reintentar', async () => {
+    vi.mocked(submitContactMessage).mockRejectedValue(new Error('offline'))
+    const { container } = renderForm()
+
+    fillRequiredFields()
+    fireEvent.click(screen.getByRole('button', { name: /Enviar/i }))
+
+    await screen.findByRole('alert')
+    expect(container.querySelector('.letter-stage')?.getAttribute('data-phase')).toBe('error')
+  })
 })

@@ -36,6 +36,52 @@ describe('POST /api/contact', () => {
     }
   })
 
+  it('acepta el motivo sponsor y lo marca en el asunto para separar leads de marcas', async () => {
+    const send = vi.fn().mockResolvedValue({ messageId: 'abc' })
+    const target = listen(createApp({ brevo: { send } }))
+    try {
+      const response = await fetch(`${target.url}/api/contact`, {
+        method: 'POST',
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          name: 'Lucía',
+          email: 'lucia@marca.com',
+          message: 'Marca: Marca SA\nAlcance: Temporada completa',
+          motive: 'sponsor',
+        }),
+      })
+
+      expect(response.status).toBe(200)
+      const [payload] = send.mock.calls[0]
+      expect(payload.subject).toContain('(sponsor)')
+      expect(payload.replyTo).toBe('lucia@marca.com')
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza un motivo desconocido', async () => {
+    const send = vi.fn()
+    const target = listen(createApp({ brevo: { send } }))
+    try {
+      const response = await fetch(`${target.url}/api/contact`, {
+        method: 'POST',
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          name: 'Agustín',
+          email: 'agus@example.com',
+          message: 'hola',
+          motive: 'otro',
+        }),
+      })
+
+      expect(response.status).toBe(400)
+      expect(send).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
   it('rechaza un email invalido sin llegar a mandar nada', async () => {
     const send = vi.fn()
     const target = listen(createApp({ brevo: { send } }))

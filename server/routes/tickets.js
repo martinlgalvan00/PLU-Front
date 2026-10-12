@@ -121,6 +121,8 @@ import {
 import { createSupabaseAthleteRepository } from '../modules/athletes/supabaseAthleteRepository.js'
 import { createSupabaseTicketRepository } from '../modules/ticketing/supabaseTicketRepository.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
+import { fetchScanTrail } from '../modules/checkin/scanTrail.js'
+import { INCIDENT_KINDS, createCheckinIncidentRepository } from '../modules/checkin/incidents.js'
 import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
 import { displayPaymentConcept } from '../modules/notifications/paymentNotificationService.js'
@@ -361,10 +363,27 @@ const reportScanTelemetrySchema = z.object({
   attempts: z.array(scanTelemetryAttemptSchema).min(1).max(MAX_SCAN_TELEMETRY_BATCH),
 })
 
+const scanTrailSchema = z.object({
+  eventSlug: z.string().trim().min(1),
+  qrToken: z.string().trim().min(1).max(200),
+})
+
+const reportIncidentSchema = z.object({
+  eventSlug: z.string().trim().min(1),
+  kind: z.enum(INCIDENT_KINDS),
+  note: z.string().trim().max(300).optional(),
+  qrToken: z.string().trim().min(1).max(200).optional(),
+})
+
+const resolveIncidentSchema = z.object({
+  resolutionNote: z.string().trim().max(300).optional(),
+})
+
 export function createTicketRoutes({
   getPrisma,
   getSupabaseAdmin,
   repository,
+  incidentRepository,
   athleteRepository,
   platformSettingsRepository,
   env = process.env,
@@ -374,6 +393,8 @@ export function createTicketRoutes({
   const repo = () => repository ?? createSupabaseTicketRepository(getSupabaseAdmin?.())
   const athleteRepo = () =>
     athleteRepository ?? createSupabaseAthleteRepository(getSupabaseAdmin?.())
+  const incidentRepo = () =>
+    incidentRepository ?? createCheckinIncidentRepository(getSupabaseAdmin?.())
   const platformSettingsRepo = () => {
     // Mismo criterio que athletes.js/payments.js: los dobles de test no
     // conocen la tabla de interruptores, así que en test quedan abiertos por
@@ -519,7 +540,10 @@ export function createTicketRoutes({
     .superRefine((value, context) => {
       if (!value.enabled) return
       if (!value.validFrom || !value.validUntil || value.validUntil <= value.validFrom) {
-        context.addIssue({ code: z.ZodIssueCode.custom, message: 'La vigencia individual es inválida.' })
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'La vigencia individual es inválida.',
+        })
       }
     })
 
@@ -1104,6 +1128,23 @@ export function createTicketRoutes({
     }
   })
   /**
+   * Puesto que queda escrito en `check_ins` y en la auditoría. Si la cuenta
+   * tiene zona asignada manda el nombre de la zona: un dispositivo no puede
+   * declararse en otra puerta. El valor del cuerpo sólo vale para cuentas sin
+   * zona (administración), y se sanea: sin caracteres de control y acotado.
+   */
+  function resolveGateLabel(req) {
+    const zoneName = req.auth?.user?.securityZone?.name
+    if (zoneName) return zoneName
+    const declared = typeof req.body?.gate === 'string' ? req.body.gate : ''
+    const cleaned = declared
+      .replace(/\p{Cc}/gu, '')
+      .trim()
+      .slice(0, 80)
+    return cleaned || 'Puerta'
+  }
+
+  /**
    * Alcance de la zona de quien escanea. Es lo que decide qué credencial abre
    * qué puesto: la de ENTRENADOR entra al calentamiento y la de espectador no.
    * El alcance sale de la cuenta, nunca del cuerpo del request -- si lo mandara
@@ -1154,7 +1195,9 @@ export function createTicketRoutes({
 
         const resolvedTickets = await Promise.all(
           attempts.map((attempt) =>
-            attempt.kind === 'ticket' && attempt.outcome !== 'not_found' && attempt.outcome !== 'invalid'
+            attempt.kind === 'ticket' &&
+            attempt.outcome !== 'not_found' &&
+            attempt.outcome !== 'invalid'
               ? repo().resolveTicketByQrToken(attempt.qrToken)
               : Promise.resolve(null),
           ),
@@ -1191,9 +1234,120 @@ export function createTicketRoutes({
     },
   )
 
+  /**
+   * Historial de UN QR para quien lo tiene delante: si ya ingresó, cuándo y por
+   * qué puerta, y cuántos intentos hubo después. Es lo que distingue un error de
+   * una copia. POST y no GET porque el token es una credencial al portador y no
+   * debe quedar en la URL de los logs.
+   *
+   * No devuelve actor, dispositivo ni DNI (ver `summarizeScanTrail`). Registrada
+   * antes de `/checkin/:qrToken`: Express matchea por orden de alta y
+   * `:qrToken` capturaría literalmente "trail".
+   */
+  router.post(
+    '/checkin/trail',
+    ...guard,
+    staffLimiter,
+    validateBody(scanTrailSchema),
+    async (req, res, next) => {
+      try {
+        const { eventSlug, qrToken } = req.validatedBody
+        assertEventSlugScope(req, eventSlug)
+        const eventId = await repo().resolveEventIdBySlug(eventSlug)
+        if (!eventId) throw new HttpError(404, 'Evento no encontrado.')
+        res.set('Cache-Control', 'private, no-store')
+        res.json({ trail: await fetchScanTrail(getSupabaseAdmin?.(), { eventId, qrToken }) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /**
+   * Parte de incidente cargado desde el puesto. Evento, puesto y autor salen de
+   * la cuenta autenticada, nunca del cuerpo.
+   */
+  router.post(
+    '/checkin/incidents',
+    ...guard,
+    staffLimiter,
+    validateBody(reportIncidentSchema),
+    async (req, res, next) => {
+      try {
+        const { eventSlug, kind, note, qrToken } = req.validatedBody
+        assertEventSlugScope(req, eventSlug)
+        const eventId = await repo().resolveEventIdBySlug(eventSlug)
+        if (!eventId) throw new HttpError(404, 'Evento no encontrado.')
+
+        // El ticket se referencia por FK sólo si pertenece a este evento: un
+        // token de otro evento no puede colgar un parte acá.
+        const resolvedTicket = qrToken ? await repo().resolveTicketByQrToken(qrToken) : null
+        const ticketId = resolvedTicket?.event_id === eventId ? resolvedTicket.id : null
+
+        const incident = await incidentRepo().report({
+          eventId,
+          kind,
+          note,
+          qrToken,
+          ticketId,
+          gate: req.auth?.user?.securityZone?.name || null,
+          zoneScope: await scannerZoneScope(req),
+          reportedBy: actor(req),
+        })
+        res.status(201).json({ incident })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.get(
+    '/checkin/incidents/:eventSlug',
+    ...scanAuditGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        assertEventSlugScope(req, req.params.eventSlug)
+        const status = ['open', 'resolved'].includes(req.query.status)
+          ? String(req.query.status)
+          : null
+        const eventId = await repo().resolveEventIdBySlug(req.params.eventSlug)
+        if (!eventId) throw new HttpError(404, 'Evento no encontrado.')
+        res.set('Cache-Control', 'private, no-store')
+        res.json({ incidents: await incidentRepo().listForEvent(eventId, { status }) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.post(
+    '/checkin/incidents/:eventSlug/:incidentId/resolve',
+    ...ticketAccessOverrideGuard,
+    staffLimiter,
+    validateBody(resolveIncidentSchema),
+    async (req, res, next) => {
+      try {
+        assertEventSlugScope(req, req.params.eventSlug)
+        const parsedId = z.string().uuid().safeParse(req.params.incidentId)
+        if (!parsedId.success) throw new HttpError(400, 'Incidente inválido.')
+        const incidentId = parsedId.data
+        const eventId = await repo().resolveEventIdBySlug(req.params.eventSlug)
+        if (!eventId) throw new HttpError(404, 'Evento no encontrado.')
+        const incident = await incidentRepo().resolve(eventId, incidentId, {
+          resolvedBy: actor(req),
+          resolutionNote: req.validatedBody.resolutionNote,
+        })
+        res.json({ incident })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
   router.post('/checkin/:qrToken', ...guard, staffLimiter, async (req, res, next) => {
     let ticket
-    const gate = req.body?.gate || req.auth?.user?.securityZone?.name || 'Puerta'
+    const gate = resolveGateLabel(req)
     try {
       ticket = await repo().verify(req.params.qrToken)
       const eventId = verifiedTicketEventId(ticket)
@@ -1270,7 +1424,7 @@ export function createTicketRoutes({
         res.json(
           await ticketRepository.checkInRegistration(
             req.params.registrationId,
-            req.body?.gate,
+            resolveGateLabel(req),
             actor(req),
           ),
         )

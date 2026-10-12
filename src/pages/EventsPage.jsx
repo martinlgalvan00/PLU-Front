@@ -11,11 +11,13 @@ import EventCalendar from '../components/ui/EventCalendar.jsx'
 import EventCountdown from '../components/ui/EventCountdown.jsx'
 import EventCard from '../components/ui/EventCard.jsx'
 import EventLiveStream from '../components/ui/EventLiveStream.jsx'
+import EventsTeaser from '../components/ui/EventsTeaser.jsx'
 import PitbullBrandMark from '../components/ui/PitbullBrandMark.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import StaggerReveal from '../components/ui/StaggerReveal.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { UPCOMING_EVENTS } from '../lib/events.js'
+import { withPublicEventStatus } from '../lib/publicRegistrationPhase.js'
 import { getStatusMeta } from '../lib/status.js'
 import {
   getFeaturedEvent,
@@ -34,11 +36,13 @@ import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
 import { isStaffSession } from '../lib/roles.js'
 import {
   cheapestTicketTypePrice,
+  eventStatusClosesTicketSales,
   resolveEventPricing,
   ticketPricingFromEvent,
 } from '../lib/eventPricing.js'
 import { money } from '../lib/format.js'
 import { fetchPublishedEvents } from '../services/eventAdminService.js'
+import { fetchSiteTeaser } from '../services/siteTeaserService.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { getEventComboAvailability } from '../services/comboOfferService.js'
@@ -303,7 +307,14 @@ function EventsDetailPanel({
 function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = false }) {
   const pricing = ticketPricingFromEvent(event)
   const ticketPrice = cheapestTicketTypePrice(pricing)
-  const hasPublishedPrice = event?.pricing?.ticketsEnabled === true && ticketPrice != null
+  // El servidor no vende entradas de un evento cerrado o finalizado: se dice
+  // "Venta cerrada" en vez de ofrecer una compra que va a rebotar.
+  const salesClosed = eventStatusClosesTicketSales(event)
+  const hasPublishedPrice =
+    event?.pricing?.ticketsEnabled === true && ticketPrice != null && !salesClosed
+  const closedLabel = t(
+    salesClosed ? 'pages.events.publicTicketsSalesClosed' : 'pages.events.publicTicketsClosed',
+  )
 
   if (minimal) {
     return (
@@ -311,10 +322,10 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = 
         className="events-public-tickets events-public-tickets--minimal"
         aria-labelledby="events-public-tickets-title"
       >
-        <h3 id="events-public-tickets-title" className="events-public-tickets__title">
-          {t('pages.events.publicTicketsTitleShort')}
-        </h3>
-        <div className="events-public-tickets__row">
+        <div className="events-public-tickets__band">
+          <h3 id="events-public-tickets-title" className="events-public-tickets__title">
+            {t('pages.events.publicTicketsTitleShort')}
+          </h3>
           <p className="events-public-tickets__price">
             {hasPublishedPrice ? (
               <>
@@ -326,9 +337,7 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = 
                 </span>
               </>
             ) : (
-              <span className="events-public-tickets__price-closed">
-                {t('pages.events.publicTicketsClosed')}
-              </span>
+              <span className="events-public-tickets__price-closed">{closedLabel}</span>
             )}
           </p>
           <button
@@ -358,7 +367,7 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = 
         <p className="events-public-tickets__price">
           {hasPublishedPrice
             ? t('pages.events.publicTicketsFrom', { price: money(ticketPrice, locale) })
-            : t('pages.events.publicTicketsClosed')}
+            : closedLabel}
         </p>
         <Button
           variant="outline"
@@ -407,6 +416,22 @@ export default function EventsPage({
     }
   }, [])
 
+  // Anuncio "Pronto habrá novedades". Arranca apagado y así se queda si la
+  // lectura falla: un anuncio de hype no puede aparecer por un error de red.
+  const [teaserEnabled, setTeaserEnabled] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    fetchSiteTeaser()
+      .then((teaser) => {
+        if (active) setTeaserEnabled(teaser.eventsEnabled)
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [])
+
   const dateFormatter = useMemo(
     () =>
       new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-AR', {
@@ -427,6 +452,20 @@ export default function EventsPage({
     [dateFormatter],
   )
 
+  /** "11–13 dic" para un meet de varias jornadas del mismo mes; si no, la fecha de inicio. */
+  const formatEventDisplayDate = useCallback(
+    (event) => {
+      if (!event.dateISO) return event.date
+      const start = formatEventDate(event.dateISO)
+      const endKey = /^(\d{4}-\d{2}-\d{2})/.exec(String(event.endsAt ?? ''))?.[1]
+      if (!endKey || endKey <= event.dateISO.slice(0, 10)) return start
+      const [startDay, month] = start.split(' ')
+      const [endDay, endMonth] = formatEventDate(endKey).split(' ')
+      return month === endMonth ? `${startDay}–${endDay} ${month}` : start
+    },
+    [formatEventDate],
+  )
+
   const events = useMemo(() => {
     const eventsBySlug = new Map()
     for (const event of eventsProp) {
@@ -439,13 +478,17 @@ export default function EventsPage({
     return getPublicCatalogEvents([...eventsBySlug.values()], {
       includeDevelopmentStubs: false,
     }).map((event) => {
-      const merged = ensureEventCalendarFields({ ...event, ...supabaseBySlug[event.slug] })
+      const merged = withPublicEventStatus(
+        ensureEventCalendarFields({ ...event, ...supabaseBySlug[event.slug] }),
+        new Date(),
+        { registrationEnabled: checkoutAvailability.registrationEnabled !== false },
+      )
       return {
         ...merged,
-        displayDate: merged.dateISO ? formatEventDate(merged.dateISO) : merged.date,
+        displayDate: formatEventDisplayDate(merged),
       }
     })
-  }, [eventsProp, supabaseBySlug, formatEventDate])
+  }, [eventsProp, supabaseBySlug, formatEventDisplayDate, checkoutAvailability.registrationEnabled])
 
   const pitbull = getFeaturedEvent(events)
   const nextEvent = useMemo(() => getNextUpcomingEvent(events), [events])
@@ -655,6 +698,11 @@ export default function EventsPage({
             </div>
           )}
         </MotionContentSwap>
+
+        {/* El archivo no es lugar para un "se viene": en Finalizados no se muestra. */}
+        {teaserEnabled && filter !== 'done' ? (
+          <EventsTeaser className="events-page__teaser" />
+        ) : null}
 
         <Reveal
           variant="from-left"

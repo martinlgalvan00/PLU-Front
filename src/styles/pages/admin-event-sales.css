@@ -1,0 +1,407 @@
+/* =============================================
+   VENTAS Y CUPOS — Cupo, Precios y Cobro del evento
+   Hoja propia del editor de evento (se importa desde AdminEventEditor).
+   Criterios: campos con la altura y el borde de un solo sistema, anchos
+   acotados (un número no necesita 900px), una cifra grande por capítulo y
+   controles de "sí/no" como interruptores y checks reales. Monocromo: el
+   acento es tinta; el único color es el de estado.
+   ============================================= */
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__section--sales {
+  --sales-field-h: 48px;
+}
+
+/* ---- Cupo ---- */
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__occupancy {
+  border: 0;
+  display: grid;
+  gap: 4px;
+  margin: 0 0 var(--space-lg);
+  padding: 0;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__occupancy-copy {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__occupancy-value {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(2.2rem, 4vw, 3rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__occupancy-pct {
+  color: var(--admin-text-secondary);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__occupancy-sep {
+  display: none;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__occupancy-hint {
+  color: var(--admin-muted);
+  flex-basis: 100%;
+  font-size: 13px;
+}
+
+/* Cupos totales: un número corto, no una barra de ancho completo. */
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__cupo {
+  display: grid;
+  gap: var(--space-lg);
+  max-width: 640px;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__cupo > .form-field,
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__cupo > label {
+  max-width: 220px;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__lane--cupo .admin-event-form__grid {
+  gap: var(--space-md) var(--space-lg);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: var(--space-lg);
+  max-width: 760px;
+}
+
+/* ---- Precios ---- */
+
+/* El contenedor de las dos tarifas llegaba con caja propia (hoja vieja de
+   `.admin-event-form__rate-cards`): una tarjeta adentro de otra. */
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-cards {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  padding: 0;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__price-summary {
+  color: var(--admin-text-secondary);
+  font-size: 14px;
+  grid-column: 1 / -1;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-cards {
+  display: grid;
+  gap: var(--space-md) var(--space-lg);
+  align-items: start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 760px;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card,
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card + .admin-event-form__rate-card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card-label {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-cards .admin-event-form__rate-card-input {
+  align-items: center;
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 12px;
+  display: flex;
+  gap: 10px;
+  height: var(--sales-field-h, 48px);
+  padding: 0 14px;
+  transition: border-color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card:focus-within .admin-event-form__rate-card-input {
+  border-color: var(--admin-ink);
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card.is-invalid .admin-event-form__rate-card-input {
+  border-color: var(--admin-status-danger);
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-cards .admin-event-form__rate-card-input > span {
+  color: var(--admin-muted);
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-cards .admin-event-form__rate-card-input input,
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card--featured .admin-event-form__rate-card-input input {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--admin-ink);
+  flex: 1 1 auto;
+  font: inherit;
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  height: 100%;
+  min-width: 0;
+  outline: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-card-input input::placeholder {
+  color: var(--admin-muted);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__pricing-note {
+  border-top: 0;
+  padding: 0;
+  color: var(--admin-muted);
+  font-size: 13px;
+  grid-column: 1 / -1;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 60ch;
+}
+
+/* ---- Cobro: medios por concepto ---- */
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-matrix {
+  display: grid;
+  gap: 0;
+  max-width: 760px;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-lead {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 var(--space-md);
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-head,
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-row {
+  align-items: center;
+  display: grid;
+  gap: 8px 16px;
+  grid-template-columns: minmax(0, 1fr) 120px 120px;
+  padding: 0;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-head {
+  border-bottom: 1px solid var(--admin-hairline);
+  padding-bottom: 8px;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-head > span {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-row {
+  border-bottom: 1px solid var(--admin-hairline);
+  min-height: 56px;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-name {
+  color: var(--admin-ink);
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+/* La celda es solo el check: el rótulo de columna ya está en el encabezado. */
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-cell {
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  box-shadow: none;
+  display: inline-flex;
+  justify-self: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-cell:hover:not(:has(input:disabled)),
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-cell:has(input:checked) {
+  background: transparent;
+  border: 0;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-cell > span {
+  block-size: 1px;
+  clip-path: inset(50%);
+  inline-size: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+}
+
+/* El check que dibujaba la celda (un punto en ::after, con el input oculto)
+   se reemplaza por el propio input visible. */
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-cell::before,
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-cell::after,
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-cell:has(input:checked)::after {
+  content: none;
+  display: none;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-cell input {
+  appearance: none;
+  opacity: 1;
+  pointer-events: auto;
+  position: static;
+  background: transparent;
+  border: 1.5px solid var(--admin-hairline-strong);
+  border-radius: 7px;
+  cursor: pointer;
+  display: grid;
+  height: 24px;
+  margin: 0;
+  place-content: center;
+  transition:
+    background-color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    border-color var(--motion-fast, 150ms) var(--ease-standard, ease);
+  width: 24px;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-cell input::after {
+  border-bottom: 2px solid var(--admin-on-brand);
+  border-right: 2px solid var(--admin-on-brand);
+  content: '';
+  height: 11px;
+  opacity: 0;
+  transform: translateY(-1px) rotate(45deg);
+  width: 6px;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-cell input:checked {
+  background: var(--admin-ink);
+  border-color: var(--admin-ink);
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-cell input:checked::after {
+  opacity: 1;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-cell input:hover:not(:disabled) {
+  border-color: var(--admin-ink);
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-cell input:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 3px;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-cell input:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* ---- Cobro: formularios por medio ---- */
+
+/* Mismos controles que Precios (44px, radio 12, borde fino) y un ancho de
+   lectura: un alias no necesita 750px. */
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__lane--payment {
+  max-width: 760px;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__lane--payment select,
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__lane--payment input:not([type='checkbox']):not([type='radio']) {
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 12px;
+  min-height: 44px;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__lane--payment select:focus-visible,
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__lane--payment input:not([type='checkbox']):not([type='radio']):focus-visible {
+  border-color: var(--admin-ink);
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 1px;
+}
+
+/* ---- Entradas: interruptor de venta ---- */
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__lane--tickets > .admin-event-form__toggle {
+  max-width: 760px;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__lane--tickets > .admin-event-form__toggle strong {
+  color: var(--admin-ink);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__lane--tickets > .admin-event-form__toggle small {
+  color: var(--admin-muted);
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ---- Vendidas: listado de entradas emitidas ---- */
+
+/* La pestaña ya dice "Entradas": el sobretítulo repetía la palabra. */
+.admin-event-workspace__panel .admin-orders-block__eyebrow {
+  display: none;
+}
+
+.admin-event-workspace__panel .admin-orders-block__header {
+  margin-bottom: var(--space-lg);
+}
+
+/* Buscador + exportar en una línea: el campo manda, el botón acompaña. */
+.admin-event-workspace__panel .admin-orders-block__toolbar-primary {
+  flex: 1 1 100%;
+  max-width: 640px;
+}
+
+.admin-event-workspace__panel .admin-orders-block__toolbar-primary .admin-filters__search {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.admin-event-workspace__panel .admin-orders-block__toolbar-primary .admin-orders-block__actions {
+  flex: none;
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 720px) {
+  .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-cards,
+  .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__lane--cupo .admin-event-form__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-head,
+  .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-row {
+    grid-template-columns: minmax(0, 1fr) 84px 84px;
+  }
+}

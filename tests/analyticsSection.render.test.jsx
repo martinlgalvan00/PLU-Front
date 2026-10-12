@@ -188,7 +188,9 @@ describe('cabecera y cifras', () => {
     expect(secondary.textContent).toContain('Duración promedio')
     expect(secondary.textContent).toContain('5m 17s')
     expect(secondary.textContent).toContain('Interacciones')
-    expect(secondary.textContent).toContain('5,011')
+    // Los números siguen el idioma de la app (es-AR agrupa miles con punto), no
+    // el del navegador: antes el tile mostraba `5,011`.
+    expect(secondary.textContent).toContain('5.011')
   })
 
   it('muestra las sesiones con atención y el criterio con el que se cuentan', async () => {

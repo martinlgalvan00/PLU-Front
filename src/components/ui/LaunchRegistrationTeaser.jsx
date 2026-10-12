@@ -2,11 +2,10 @@ import { useEffect, useId, useMemo, useState } from 'react'
 import { Bell, Check, Share2 } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { env } from '../../config/env.js'
 import { getCountdownParts } from '../../lib/countdown.js'
+import { resolvePublicRegistrationPhase } from '../../lib/publicRegistrationPhase.js'
 import {
   formatRegistrationOpenMoment,
-  isPaidCheckoutOpen,
   resolveLaunchOpenAt,
 } from '../../lib/registrationSchedule.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
@@ -195,9 +194,13 @@ export default function LaunchRegistrationTeaser({
   const isCompact = variant === 'compact'
   const isHero = variant === 'hero'
   const isDossier = /\blaunch-teaser--dossier\b/.test(className)
-  const paidCheckoutOpen =
-    registrationCheckoutEnabled &&
-    isPaidCheckoutOpen(event, env, new Date(), { checkoutKind: 'registration' })
+  // Modo "inauguración": el evento está en Próximamente, su fecha de apertura
+  // todavía no llegó o el interruptor de cobros del panel está apagado. Sin
+  // evento (copy genérico de campaña) también se anuncia la apertura.
+  const phase = resolvePublicRegistrationPhase(event, {
+    checkoutEnabled: registrationCheckoutEnabled,
+  })
+  const paidCheckoutOpen = Boolean(event) && !phase.softLaunch
   const eventLabel = resolveEventLabel(event)
   const showAccountCta = !paidCheckoutOpen && typeof onNavigate === 'function'
   const secondaryCta = showAccountCta
@@ -360,8 +363,6 @@ export default function LaunchRegistrationTeaser({
           })}
     >
       <span className="launch-teaser__atmosphere" aria-hidden />
-      {isHero ? <span className="launch-teaser__grid" aria-hidden /> : null}
-      {isHero ? <span className="launch-teaser__plate motif-plate" aria-hidden /> : null}
 
       <RuleTag
         className={`launch-teaser__rule${isHero ? ' motif-rule' : ''}`}
@@ -486,22 +487,6 @@ export default function LaunchRegistrationTeaser({
                 </>
               ) : (
                 <div className="launch-teaser__stage">
-                  {isHero && !showStagePrice ? (
-                    <svg
-                      className="launch-teaser__stage-icon"
-                      aria-hidden
-                      width="30"
-                      height="30"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.4"
-                    >
-                      <circle cx="12" cy="12" r="9.2" />
-                      <circle cx="12" cy="12" r="5.4" />
-                      <path d="M12 2.8v2M12 19.2v2M21.2 12h-2M4.8 12h-2" strokeLinecap="round" />
-                    </svg>
-                  ) : null}
                   {showStagePrice ? (
                     <>
                       <p className="launch-teaser__stage-mark">

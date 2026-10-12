@@ -4,7 +4,7 @@ import { HttpError } from '../lib/errors.js'
 import { requirePermission } from '../middleware/auth.js'
 import { staffLimiter } from '../middleware/rateLimit.js'
 
-const expenseSchema = z.object({
+const entrySchema = z.object({
   occurredOn: z.string().date(),
   category: z.string().trim().min(2).max(80),
   description: z.string().trim().min(3).max(500),
@@ -12,7 +12,27 @@ const expenseSchema = z.object({
   eventId: z.string().uuid().nullable().optional(),
   receiptPath: z.string().trim().max(500).optional(),
 })
-const expenseIdSchema = z.string().uuid()
+const entryIdSchema = z.string().uuid()
+
+/** Tope de la carga por lote (pegado desde una planilla). */
+const BULK_MAX_ENTRIES = 200
+const bulkSchema = z.object({
+  entries: z
+    .array(entrySchema.extend({ kind: z.enum(['income', 'expense']) }))
+    .min(1)
+    .max(BULK_MAX_ENTRIES),
+})
+
+/**
+ * Asientos manuales del libro. Egresos e ingresos comparten contrato y camino
+ * auditado (RPC `security definer` + `domain_audit_logs`). Un ingreso manual es
+ * dinero sin orden de pago —sponsor, donación, mostrador—: los cobros de
+ * atletas y de entradas siguen entrando solo por su ledger de pagos.
+ */
+const ENTRY_KINDS = {
+  expenses: { table: 'financial_expenses', rpc: 'financial_expense', kind: 'expense', label: 'egreso' },
+  incomes: { table: 'financial_incomes', rpc: 'financial_income', kind: 'income', label: 'ingreso' },
+}
 
 /** Categorías humanas para conceptos de cobro de atletas. */
 const ATHLETE_INCOME_CATEGORY = {
@@ -47,10 +67,49 @@ function incomeDescription(category, party) {
 }
 
 /** Traduce los errores de la RPC (PLU01/PLU02) al status HTTP correcto. */
-function rpcHttpError(error) {
-  if (error?.message?.includes('PLU02')) return new HttpError(404, 'El egreso no existe.')
-  return new Error(error?.message ?? 'Error al operar el egreso.')
+function rpcHttpError(error, entry) {
+  const article = entry.kind === 'expense' ? 'El egreso' : 'El ingreso'
+  if (error?.message?.includes('PLU02')) return new HttpError(404, `${article} no existe.`)
+  return new Error(error?.message ?? `Error al operar el ${entry.label}.`)
 }
+
+/**
+ * Tabla o función de ingresos manuales ausente (migración
+ * `20261201100000_financial_incomes` sin aplicar). El libro sigue sirviendo
+ * cobros y egresos; cargar un ingreso responde un 424 que dice qué falta.
+ */
+function isMissingSchema(error) {
+  return ['PGRST205', 'PGRST202', '42P01', '42883'].includes(error?.code)
+}
+
+// 424 y no 5xx: el `errorHandler` global reemplaza el mensaje de cualquier 5xx
+// por "Error interno", y acá el texto es justamente lo que el operador necesita.
+function missingSchemaError() {
+  return new HttpError(
+    424,
+    'Los ingresos manuales todavía no están habilitados: falta aplicar la migración financial_incomes.',
+  )
+}
+
+/** Fila del libro para un asiento manual (egreso o ingreso cargado a mano). */
+function manualRow(entry, x) {
+  return {
+    id: x.id,
+    kind: entry.kind,
+    manual: true,
+    occurredOn: x.occurred_on,
+    category: x.category,
+    conceptKey: entry.kind === 'expense' ? 'expense' : 'manual_income',
+    description: x.description,
+    amount: x.amount,
+    currency: x.currency,
+    eventId: x.event_id,
+    receiptPath: x.receipt_path,
+    party: null,
+    reference: null,
+  }
+}
+
 export function createFinanceRoutes({ getPrisma, getSupabaseAdmin }) {
   const router = Router()
   const prisma = getPrisma()
@@ -68,12 +127,18 @@ export function createFinanceRoutes({ getPrisma, getSupabaseAdmin }) {
       const term = String(req.query.query ?? '')
         .trim()
         .toLowerCase()
-      const [expenses, athletePayments, ticketPayments] = await Promise.all([
+      const manualColumns =
+        'id,occurred_on,category,description,amount,currency,event_id,receipt_path,created_at'
+      const [expenses, manualIncomes, athletePayments, ticketPayments] = await Promise.all([
         client()
-          .from('financial_expenses')
-          .select(
-            'id,occurred_on,category,description,amount,currency,event_id,receipt_path,created_at',
-          )
+          .from(ENTRY_KINDS.expenses.table)
+          .select(manualColumns)
+          .gte('occurred_on', from)
+          .lte('occurred_on', to)
+          .order('occurred_on', { ascending: false }),
+        client()
+          .from(ENTRY_KINDS.incomes.table)
+          .select(manualColumns)
           .gte('occurred_on', from)
           .lte('occurred_on', to)
           .order('occurred_on', { ascending: false }),
@@ -94,9 +159,17 @@ export function createFinanceRoutes({ getPrisma, getSupabaseAdmin }) {
           .gte('confirmed_at', from)
           .lte('confirmed_at', `${to}T23:59:59Z`),
       ])
-      if (expenses.error || athletePayments.error || ticketPayments.error)
+      const incomesMissing = isMissingSchema(manualIncomes.error)
+      if (incomesMissing) console.warn('[finance] financial_incomes no existe: libro sin ingresos manuales.')
+      if (
+        expenses.error ||
+        (manualIncomes.error && !incomesMissing) ||
+        athletePayments.error ||
+        ticketPayments.error
+      )
         throw new Error(
           expenses.error?.message ||
+            manualIncomes.error?.message ||
             athletePayments.error?.message ||
             ticketPayments.error?.message,
         )
@@ -137,22 +210,10 @@ export function createFinanceRoutes({ getPrisma, getSupabaseAdmin }) {
         }
       })
 
-      const outgoings = (expenses.data ?? []).map((x) => ({
-        id: x.id,
-        kind: 'expense',
-        occurredOn: x.occurred_on,
-        category: x.category,
-        conceptKey: 'expense',
-        description: x.description,
-        amount: x.amount,
-        currency: x.currency,
-        eventId: x.event_id,
-        receiptPath: x.receipt_path,
-        party: null,
-        reference: null,
-      }))
+      const outgoings = (expenses.data ?? []).map((x) => manualRow(ENTRY_KINDS.expenses, x))
+      const manualIncome = (manualIncomes.data ?? []).map((x) => manualRow(ENTRY_KINDS.incomes, x))
 
-      const rows = [...athleteIncome, ...ticketIncome, ...outgoings]
+      const rows = [...athleteIncome, ...ticketIncome, ...manualIncome, ...outgoings]
         .filter(
           (x) =>
             !term ||
@@ -170,60 +231,102 @@ export function createFinanceRoutes({ getPrisma, getSupabaseAdmin }) {
       next(e)
     }
   })
-  router.post('/expenses', ...write, staffLimiter, async (req, res, next) => {
+
+  /**
+   * Carga por lote (pegado desde Excel). Se valida TODO el lote antes de
+   * escribir, así una fila mala no deja la mitad cargada por un error de
+   * formato. Cada fila pasa por la misma RPC auditada que el alta individual;
+   * si la base falla a mitad de camino, el mensaje dice cuántas quedaron.
+   */
+  router.post('/entries/bulk', ...write, staffLimiter, async (req, res, next) => {
     try {
-      const parsed = expenseSchema.safeParse(req.body)
-      if (!parsed.success) throw new HttpError(400, 'Datos de egreso inválidos.')
-      const { data, error } = await client().rpc('create_financial_expense', {
-        p_occurred_on: parsed.data.occurredOn,
-        p_category: parsed.data.category,
-        p_description: parsed.data.description,
-        p_amount: parsed.data.amount,
-        p_event_id: parsed.data.eventId ?? null,
-        p_receipt_path: parsed.data.receiptPath ?? null,
-        p_actor_id: req.auth.user.id,
-      })
-      if (error) throw new Error(error.message)
-      res.status(201).json({ expense: data })
+      const parsed = bulkSchema.safeParse(req.body)
+      if (!parsed.success) throw new HttpError(400, 'Datos de movimientos inválidos.')
+      const entries = parsed.data.entries
+      let created = 0
+      for (const { kind, ...data } of entries) {
+        const entry = kind === 'income' ? ENTRY_KINDS.incomes : ENTRY_KINDS.expenses
+        const { error } = await client().rpc(`create_${entry.rpc}`, {
+          p_occurred_on: data.occurredOn,
+          p_category: data.category,
+          p_description: data.description,
+          p_amount: data.amount,
+          p_event_id: data.eventId ?? null,
+          p_receipt_path: data.receiptPath ?? null,
+          p_actor_id: req.auth.user.id,
+        })
+        if (error) {
+          if (isMissingSchema(error)) throw missingSchemaError()
+          console.error('[finance] carga por lote interrumpida:', error.message)
+          throw new HttpError(
+            424,
+            `Se cargaron ${created} de ${entries.length} movimientos. Revisá el libro y reintentá con el resto.`,
+          )
+        }
+        created += 1
+      }
+      res.status(201).json({ created })
     } catch (e) {
       next(e)
     }
   })
-  router.patch('/expenses/:id', ...write, staffLimiter, async (req, res, next) => {
-    try {
-      const id = expenseIdSchema.safeParse(req.params.id)
-      if (!id.success) throw new HttpError(400, 'Identificador de egreso inválido.')
-      const parsed = expenseSchema.safeParse(req.body)
-      if (!parsed.success) throw new HttpError(400, 'Datos de egreso inválidos.')
-      const { data, error } = await client().rpc('update_financial_expense', {
-        p_id: id.data,
-        p_occurred_on: parsed.data.occurredOn,
-        p_category: parsed.data.category,
-        p_description: parsed.data.description,
-        p_amount: parsed.data.amount,
-        p_event_id: parsed.data.eventId ?? null,
-        p_receipt_path: parsed.data.receiptPath ?? null,
-        p_actor_id: req.auth.user.id,
-      })
-      if (error) throw rpcHttpError(error)
-      res.json({ expense: data })
-    } catch (e) {
-      next(e)
-    }
-  })
-  router.delete('/expenses/:id', ...write, staffLimiter, async (req, res, next) => {
-    try {
-      const id = expenseIdSchema.safeParse(req.params.id)
-      if (!id.success) throw new HttpError(400, 'Identificador de egreso inválido.')
-      const { error } = await client().rpc('delete_financial_expense', {
-        p_id: id.data,
-        p_actor_id: req.auth.user.id,
-      })
-      if (error) throw rpcHttpError(error)
-      res.status(204).end()
-    } catch (e) {
-      next(e)
-    }
-  })
+
+  for (const [path, entry] of Object.entries(ENTRY_KINDS)) {
+    const invalid = `Datos de ${entry.label} inválidos.`
+    const rpcArgs = (data, actorId) => ({
+      p_occurred_on: data.occurredOn,
+      p_category: data.category,
+      p_description: data.description,
+      p_amount: data.amount,
+      p_event_id: data.eventId ?? null,
+      p_receipt_path: data.receiptPath ?? null,
+      p_actor_id: actorId,
+    })
+
+    router.post(`/${path}`, ...write, staffLimiter, async (req, res, next) => {
+      try {
+        const parsed = entrySchema.safeParse(req.body)
+        if (!parsed.success) throw new HttpError(400, invalid)
+        const { data, error } = await client().rpc(
+          `create_${entry.rpc}`,
+          rpcArgs(parsed.data, req.auth.user.id),
+        )
+        if (error) throw isMissingSchema(error) ? missingSchemaError() : new Error(error.message)
+        res.status(201).json({ [entry.kind]: data })
+      } catch (e) {
+        next(e)
+      }
+    })
+    router.patch(`/${path}/:id`, ...write, staffLimiter, async (req, res, next) => {
+      try {
+        const id = entryIdSchema.safeParse(req.params.id)
+        if (!id.success) throw new HttpError(400, `Identificador de ${entry.label} inválido.`)
+        const parsed = entrySchema.safeParse(req.body)
+        if (!parsed.success) throw new HttpError(400, invalid)
+        const { data, error } = await client().rpc(`update_${entry.rpc}`, {
+          p_id: id.data,
+          ...rpcArgs(parsed.data, req.auth.user.id),
+        })
+        if (error) throw isMissingSchema(error) ? missingSchemaError() : rpcHttpError(error, entry)
+        res.json({ [entry.kind]: data })
+      } catch (e) {
+        next(e)
+      }
+    })
+    router.delete(`/${path}/:id`, ...write, staffLimiter, async (req, res, next) => {
+      try {
+        const id = entryIdSchema.safeParse(req.params.id)
+        if (!id.success) throw new HttpError(400, `Identificador de ${entry.label} inválido.`)
+        const { error } = await client().rpc(`delete_${entry.rpc}`, {
+          p_id: id.data,
+          p_actor_id: req.auth.user.id,
+        })
+        if (error) throw isMissingSchema(error) ? missingSchemaError() : rpcHttpError(error, entry)
+        res.status(204).end()
+      } catch (e) {
+        next(e)
+      }
+    })
+  }
   return router
 }

@@ -32,7 +32,6 @@
     .faq-page--institutional,
     .pitbull-page,
     .login-page--design,
-    .login-page--editorial,
     .institutional-page,
     .credential-page,
     .account-page,
@@ -75,7 +74,6 @@
     .events-sidebar-card,
     .pitbull-spotlight--events,
     .events-public-tickets,
-    .login-card--editorial,
     .security-gate-card,
     .membership-card--design,
     .results-status-table,
@@ -110,14 +108,6 @@
 
 [data-theme='dark'] .admin-shell .admin-shell__main {
   background: transparent;
-}
-
-[data-theme='dark'] .admin-shell .admin-shell__sidebar {
-  background-color: var(--admin-glass-sidebar-bg);
-  background-image: var(--theme-sidebar-satin);
-  background-repeat: no-repeat;
-  -webkit-backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
-  backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
 }
 
 [data-theme='dark']
@@ -183,13 +173,6 @@
     --admin-glass-bg-strong: var(--plu-cool-750);
     --admin-glass-sidebar-bg: var(--plu-cool-950);
     --admin-glass-highlight: transparent;
-  }
-
-  [data-theme='dark'] .admin-shell .admin-shell__sidebar,
-  [data-theme='dark'] .admin-shell .admin-shell__collapse-toggle,
-  [data-theme='dark'] .admin-shell .admin-mobile-bar {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
   }
 }
 

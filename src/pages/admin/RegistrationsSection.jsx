@@ -856,15 +856,18 @@ export default function RegistrationsSection({
       ) : null,
     ].filter(Boolean)
 
-    const compactPrimary = paymentActions.length > 0 ? paymentActions : secondary.slice(0, 1)
-    const compactOverflow = paymentActions.length > 0 ? secondary : secondary.slice(1)
+    // Una acción a la vista (validar/recuperar, o la primera secundaria) y el
+    // resto en el menú "más", también en escritorio: una fila con cuatro
+    // íconos sueltos se leía como una barra de herramientas por cada atleta.
+    const primaryActions = paymentActions.length > 0 ? paymentActions : secondary.slice(0, 1)
+    const overflowActions = paymentActions.length > 0 ? secondary : secondary.slice(1)
 
     return (
       <AdminTableActions onClick={(event) => event.stopPropagation()}>
-        {compact ? compactPrimary : [...paymentActions, ...secondary]}
-        {compact && compactOverflow.length > 0 ? (
+        {primaryActions}
+        {overflowActions.length > 0 ? (
           <AdminActionOverflow label={t('admin.actions.more')}>
-            {compactOverflow}
+            {overflowActions}
           </AdminActionOverflow>
         ) : null}
       </AdminTableActions>
@@ -888,6 +891,8 @@ export default function RegistrationsSection({
       ) : null}
       <AdminListSection
         variant="registrations"
+        filterLayout="toolbar"
+        compactHeader
         eyebrow={t('admin.sections.registrations.eyebrow')}
         filteredCount={registrationRows.length}
         placeholder={t('admin.search.registration')}
@@ -926,11 +931,11 @@ export default function RegistrationsSection({
                 eventFilter,
                 {
                   id: 'status',
+                  surface: 'rail',
                   label: t('admin.filters.status'),
                   value: filters.status,
                   onChange: handleStatusChange,
                   options: statusOptions,
-                  showLabel: true,
                 },
                 affiliationFilter,
                 gymFilter,
@@ -1046,11 +1051,14 @@ export default function RegistrationsSection({
             ) : null}
             <AdminDataTable
               className="admin-data-table--registrations"
+              density="compact"
+              fit
               columns={[
                 ...(canAssignSchedule
                   ? [
                       {
                         key: 'select',
+                        width: 44,
                         mobile: 'select',
                         mobileLabel: '',
                         label: (
@@ -1099,23 +1107,37 @@ export default function RegistrationsSection({
                   ),
                 },
                 {
+                  // Tabla: evento y, debajo, categoría · división · peso. Cards:
+                  // el evento solo; categoría y peso van en sus propias filas.
                   key: 'event',
                   label: t('admin.columns.event'),
+                  width: 220,
                   mobile: 'default',
                   mobileMeta: 'labeled',
                   sortable: true,
+                  render: (row) => (
+                    <div className="data-table__stack">
+                      <span className="data-table__stack-main">{row.event}</span>
+                      <span className="data-table__sub">
+                        {[row.category, row.bodyweight].filter(Boolean).join(' · ')}
+                      </span>
+                    </div>
+                  ),
+                  mobileRender: (row) => row.event,
                 },
                 {
                   key: 'category',
                   label: t('admin.columns.category'),
+                  cardOnly: true,
                   mobile: 'default',
                   mobileMeta: 'labeled',
                   mobileSortable: false,
-                  sortable: true,
+                  sortable: false,
                 },
                 {
                   key: 'bodyweight',
                   label: t('admin.columns.weight'),
+                  cardOnly: true,
                   mobile: 'default',
                   mobileMeta: 'labeled',
                   mobileSortable: false,
@@ -1127,6 +1149,7 @@ export default function RegistrationsSection({
                   // quedan juntas y se ven de un vistazo las que faltan repartir.
                   key: 'schedule',
                   label: t('admin.columns.schedule'),
+                  width: 104,
                   mobile: 'default',
                   mobileMeta: 'labeled',
                   mobileSortable: false,
@@ -1142,6 +1165,7 @@ export default function RegistrationsSection({
                 {
                   key: 'status',
                   label: t('admin.columns.status'),
+                  width: 164,
                   mobile: 'badge',
                   sortable: true,
                   render: (row) => (
@@ -1151,6 +1175,7 @@ export default function RegistrationsSection({
                 {
                   key: 'payment',
                   label: t('admin.columns.payment'),
+                  width: 132,
                   mobile: 'badge',
                   mobileSortable: false,
                   sortable: true,
@@ -1162,6 +1187,7 @@ export default function RegistrationsSection({
                 {
                   key: 'action',
                   label: t('admin.columns.action'),
+                  width: 84,
                   mobile: 'action',
                   render: (row) => renderRowActions(row),
                   mobileRender: (row) => renderRowActions(row, { compact: true }),

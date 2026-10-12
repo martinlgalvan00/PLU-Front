@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin ops period/mix fixture</title>
+    <link rel="stylesheet" href="../src/styles/tokens/palette.css" />
+    <link rel="stylesheet" href="../src/styles/variables.css" />
+    <link rel="stylesheet" href="../src/styles/themes/dark.css" />
+    <link rel="stylesheet" href="../src/styles/pages/admin-dashboard-bento.css" />
+    <style>
+      body {
+        margin: 0;
+        background: var(--color-bg-canvas, #0b0d10);
+        color: var(--admin-ink);
+        font-family: var(--font-family, system-ui);
+        padding: 24px;
+      }
+      .admin-dashboard--ops {
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      .admin-ops__main {
+        container: ops-main / inline-size;
+      }
+      .admin-dashboard-link {
+        background: transparent;
+        border: 0;
+        color: var(--admin-accent);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        min-height: 44px;
+      }
+      .theme-toggle {
+        margin-bottom: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <button type="button" class="theme-toggle" id="theme-toggle">Cambiar a light</button>
+    <div class="admin-dashboard admin-dashboard--ops admin-dashboard--compact">
+      <div class="admin-ops">
+        <section class="admin-ops__board">
+          <div class="admin-ops__layout">
+            <div class="admin-ops__main">
+              <div class="admin-ops__period">
+                <section class="admin-ops__finance" aria-labelledby="admin-ops-finance-title">
+                  <header class="admin-ops__section-head">
+                    <div class="admin-ops__chart-copy">
+                      <h3 id="admin-ops-finance-title">Cobros del período</h3>
+                    </div>
+                    <button type="button" class="admin-dashboard-link">Pagos →</button>
+                  </header>
+                  <div class="admin-ops__finance-hero">
+                    <span class="admin-ops__finance-hero-label">Cobrado</span>
+                    <strong class="admin-ops__finance-hero-value">$ 23.045.000</strong>
+                  </div>
+                  <div class="admin-ops__finance-rate">
+                    <div class="admin-ops__finance-rail" role="img" aria-label="Tasa cobro: 97%">
+                      <span class="admin-ops__finance-rail-seg admin-ops__finance-rail-seg--collected" style="width: 97%"></span>
+                      <span class="admin-ops__finance-rail-seg admin-ops__finance-rail-seg--pending" style="width: 3%"></span>
+                    </div>
+                    <p class="admin-ops__finance-rate-copy"><strong>97%</strong> Tasa cobro</p>
+                  </div>
+                  <dl class="admin-ops__finance-metrics">
+                    <div class="admin-ops__finance-metric admin-ops__finance-metric--pending">
+                      <dt>Pendiente</dt>
+                      <dd>$ 640.000</dd>
+                    </div>
+                    <div class="admin-ops__finance-metric">
+                      <dt>Operado</dt>
+                      <dd>$ 23.685.000</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section class="admin-ops__mix" aria-labelledby="admin-ops-mix-title">
+                  <header class="admin-ops__section-head">
+                    <div class="admin-ops__chart-copy">
+                      <h3 id="admin-ops-mix-title">Distribución</h3>
+                      <p class="admin-ops__section-sub">Lectura por estado para decidir dónde intervenir</p>
+                    </div>
+                  </header>
+                  <ul class="admin-ops__mix-list">
+                    <li class="admin-ops__mix-row">
+                      <div class="admin-ops__mix-head">
+                        <h4>Inscripciones</h4>
+                        <strong class="admin-ops__mix-total">237</strong>
+                        <button type="button" class="admin-ops__mix-open" aria-label="Ver">→</button>
+                      </div>
+                      <div class="admin-ops__stack">
+                        <span class="admin-ops__stack-seg admin-ops__stack-seg--success" style="width: 96%"></span>
+                        <span class="admin-ops__stack-seg admin-ops__stack-seg--alert" style="width: 2%"></span>
+                        <span class="admin-ops__stack-seg admin-ops__stack-seg--warning" style="width: 2%"></span>
+                      </div>
+                      <ul class="admin-ops__legend">
+                        <li class="admin-ops__legend-item admin-ops__legend-item--success">
+                          <span class="admin-ops__legend-line"><span>Confirmada</span><strong>228</strong></span>
+                        </li>
+                        <li class="admin-ops__legend-item admin-ops__legend-item--alert">
+                          <span class="admin-ops__legend-line"><span>Observada</span><strong>5</strong></span>
+                        </li>
+                        <li class="admin-ops__legend-item admin-ops__legend-item--warning">
+                          <span class="admin-ops__legend-line"><span>Pendiente de pago</span><strong>3</strong></span>
+                        </li>
+                      </ul>
+                    </li>
+                    <li class="admin-ops__mix-row">
+                      <div class="admin-ops__mix-head">
+                        <h4>Afiliaciones</h4>
+                        <strong class="admin-ops__mix-total">44</strong>
+                        <button type="button" class="admin-ops__mix-open" aria-label="Ver">→</button>
+                      </div>
+                      <div class="admin-ops__stack">
+                        <span class="admin-ops__stack-seg admin-ops__stack-seg--success" style="width: 64%"></span>
+                        <span class="admin-ops__stack-seg admin-ops__stack-seg--gold" style="width: 9%"></span>
+                        <span class="admin-ops__stack-seg admin-ops__stack-seg--alert" style="width: 18%"></span>
+                        <span class="admin-ops__stack-seg admin-ops__stack-seg--default" style="width: 9%"></span>
+                      </div>
+                      <ul class="admin-ops__legend">
+                        <li class="admin-ops__legend-item admin-ops__legend-item--success">
+                          <span class="admin-ops__legend-line"><span>Activa</span><strong>28</strong></span>
+                        </li>
+                        <li class="admin-ops__legend-item admin-ops__legend-item--gold">
+                          <span class="admin-ops__legend-line"><span>Por vencer</span><strong>4</strong></span>
+                        </li>
+                        <li class="admin-ops__legend-item admin-ops__legend-item--alert">
+                          <span class="admin-ops__legend-line"><span>Vencida</span><strong>8</strong></span>
+                        </li>
+                        <li class="admin-ops__legend-item admin-ops__legend-item--more">
+                          <span title="Cancelada: 4">+1</span>
+                        </li>
+                      </ul>
+                    </li>
+                    <li class="admin-ops__mix-row">
+                      <div class="admin-ops__mix-head">
+                        <h4>Pagos</h4>
+                        <strong class="admin-ops__mix-total">346</strong>
+                        <button type="button" class="admin-ops__mix-open" aria-label="Ver">→</button>
+                      </div>
+                      <div class="admin-ops__stack">
+                        <span class="admin-ops__stack-seg admin-ops__stack-seg--success" style="width: 74%"></span>
+                        <span class="admin-ops__stack-seg admin-ops__stack-seg--warning" style="width: 2%"></span>
+                        <span class="admin-ops__stack-seg admin-ops__stack-seg--alert" style="width: 2%"></span>
+                      </div>
+                      <ul class="admin-ops__legend">
+                        <li class="admin-ops__legend-item admin-ops__legend-item--success">
+                          <span class="admin-ops__legend-line"><span>Aprobado</span><strong>255</strong></span>
+                        </li>
+                        <li class="admin-ops__legend-item admin-ops__legend-item--warning admin-ops__legend-item--with-amount">
+                          <span class="admin-ops__legend-line"><span>Pendiente</span><strong>6</strong></span>
+                          <span class="admin-ops__legend-amount">$ 547.500</span>
+                        </li>
+                        <li class="admin-ops__legend-item admin-ops__legend-item--alert admin-ops__legend-item--with-amount">
+                          <span class="admin-ops__legend-line"><span>Validación manual</span><strong>1</strong></span>
+                          <span class="admin-ops__legend-amount">$ 92.500</span>
+                        </li>
+                      </ul>
+                    </li>
+                    <li class="admin-ops__mix-row">
+                      <div class="admin-ops__mix-head">
+                        <h4>Eventos</h4>
+                        <strong class="admin-ops__mix-total">1</strong>
+                        <button type="button" class="admin-ops__mix-open" aria-label="Ver">→</button>
+                      </div>
+                      <div class="admin-ops__stack">
+                        <span class="admin-ops__stack-seg admin-ops__stack-seg--success" style="width: 100%"></span>
+                      </div>
+                      <ul class="admin-ops__legend">
+                        <li class="admin-ops__legend-item admin-ops__legend-item--success">
+                          <span class="admin-ops__legend-line"><span>Inscripciones abiertas</span><strong>1</strong></span>
+                        </li>
+                      </ul>
+                    </li>
+                  </ul>
+                </section>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+    <script>
+      const btn = document.getElementById('theme-toggle')
+      btn.addEventListener('click', () => {
+        const html = document.documentElement
+        const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
+        html.setAttribute('data-theme', next)
+        const link = document.querySelector('link[href*="themes/"]')
+        link.href = `../src/styles/themes/${next}.css`
+        btn.textContent = next === 'dark' ? 'Cambiar a light' : 'Cambiar a dark'
+      })
+    </script>
+  </body>
+</html>

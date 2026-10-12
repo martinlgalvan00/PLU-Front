@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import '../../styles/pages/admin-audit-detail.css'
 import { createPortal } from 'react-dom'
 import { Copy, FileCode2, History, Info, TriangleAlert, X } from 'lucide-react'
 import Button from '../ui/Button.jsx'
@@ -91,7 +92,8 @@ function ContextList({ entries, emptyLabel, labels, onOpen, currentId }) {
           <span
             className={`status-pill status-pill--${entry.tone === 'default' ? 'neutral' : entry.tone}`}
           >
-            {labels.action(entry.action)}
+            <span className="status-pill__dot" aria-hidden />
+            <span className="status-pill__label">{labels.action(entry.action)}</span>
           </span>
           <span className="audit-detail__timeline-entity">
             {labels.entity(entry.entityType)}

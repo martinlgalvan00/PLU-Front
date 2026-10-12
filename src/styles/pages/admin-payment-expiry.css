@@ -1,0 +1,388 @@
+/* =============================================
+   CIERRE AUTOMÁTICO DE ÓRDENES (PaymentExpiryPanel)
+   Capítulo editorial, no card. Orden de lectura: ¿hay algo trabado? (cuatro
+   cifras: las que están en cero se apagan, la que espera a una persona se
+   señala) → ¿qué plazos rigen? (cada uno con su cifra vigente a escala de
+   título y el control de edición al lado) → ¿cuándo vence la próxima orden?
+   Monocromo: tinta para lo que importa, apagado para lo quieto. El único color
+   es el del estado que pide atención.
+   ============================================= */
+
+@keyframes admin-payment-expiry-settle {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.admin-payment-expiry {
+  animation: admin-payment-expiry-settle var(--motion-base) var(--ease-out) both;
+  display: grid;
+  gap: 28px;
+  margin-bottom: var(--space-lg);
+  padding: 8px 2px 8px;
+}
+
+.admin-payment-expiry__header {
+  align-items: flex-end;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.admin-payment-expiry__eyebrow {
+  align-items: center;
+  color: var(--admin-muted);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 650;
+  gap: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin-payment-expiry__eyebrow svg {
+  display: none;
+}
+
+.admin-payment-expiry__title {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(22px, 2.6vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 6px 0 0;
+}
+
+.admin-payment-expiry__header .admin-icon-btn {
+  flex: none;
+  height: 40px;
+  min-width: 40px;
+}
+
+.admin-payment-expiry__error {
+  background: var(--admin-status-danger-bg);
+  border-radius: 10px;
+  color: var(--admin-status-danger);
+  font-size: 13px;
+  margin: 0;
+  padding: 10px 14px;
+}
+
+/* ---- Cifras ---- */
+
+.admin-payment-expiry__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-payment-expiry__metric {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 24px 2px 0;
+}
+
+.admin-payment-expiry__metric + .admin-payment-expiry__metric {
+  border-left: 1px solid var(--admin-hairline);
+  padding-left: 24px;
+}
+
+.admin-payment-expiry__metric-value {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(34px, 4vw, 48px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+/* En cero no hay nada que hacer: la cifra se apaga y la pantalla se calma. */
+.admin-payment-expiry__metric[data-zero='true'] .admin-payment-expiry__metric-value {
+  color: color-mix(in srgb, var(--admin-muted) 42%, transparent);
+}
+
+.admin-payment-expiry__metric.is-alert .admin-payment-expiry__metric-value {
+  color: var(--admin-status-warning);
+}
+
+.admin-payment-expiry__metric-label {
+  color: var(--admin-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.admin-payment-expiry__metric.is-alert .admin-payment-expiry__metric-label {
+  color: var(--admin-ink);
+  font-weight: 600;
+}
+
+.admin-payment-expiry__callout {
+  align-items: flex-start;
+  background: var(--admin-status-warning-bg);
+  border-radius: 10px;
+  color: var(--admin-ink);
+  display: flex;
+  font-size: 13px;
+  gap: 10px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 12px 14px;
+}
+
+.admin-payment-expiry__callout > svg {
+  color: var(--admin-status-warning);
+  flex: none;
+  margin-top: 2px;
+}
+
+/* ---- Plazos ---- */
+
+.admin-payment-expiry__windows {
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+}
+
+.admin-payment-expiry__window {
+  align-items: center;
+  border-bottom: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 14px 32px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(7rem, 0.5fr) minmax(0, 1.4fr);
+  min-width: 0;
+  padding: 22px 0;
+}
+
+.admin-payment-expiry__window-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-payment-expiry__window-label {
+  color: var(--admin-ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.admin-payment-expiry__window-hint {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 44ch;
+}
+
+/* La cifra vigente: lo que rige hoy, a escala de título. */
+.admin-payment-expiry__window-figure {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(24px, 2.6vw, 32px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.admin-payment-expiry__window-edit {
+  min-width: 0;
+}
+
+.admin-payment-expiry__window-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-payment-expiry__window-input {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 10px;
+  color: var(--admin-ink);
+  font-family: var(--font-family);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  height: 44px;
+  padding: 0 12px;
+  text-align: center;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+  width: 5.5rem;
+}
+
+.admin-payment-expiry__window-input:hover:not(:disabled):not(:focus-visible) {
+  border-color: var(--admin-muted);
+}
+
+.admin-payment-expiry__window-input:focus-visible {
+  border-color: var(--admin-ink);
+  box-shadow: 0 0 0 3px var(--admin-focus-soft);
+  outline: none;
+}
+
+.admin-payment-expiry__window-input:disabled {
+  background: transparent;
+  color: var(--admin-text-secondary);
+}
+
+.admin-payment-expiry__window-input[aria-invalid='true'] {
+  border-color: var(--admin-status-danger);
+}
+
+.admin-payment-expiry__window-units {
+  flex: 0 1 17rem;
+  min-width: 0;
+}
+
+.admin-payment-expiry__window-units.is-readonly {
+  opacity: 0.6;
+}
+
+/* Unidad: pista tenue y selector en blanco/tinta, sin el celeste del switch base. */
+.admin-payment-expiry__window .admin-payment-expiry__unit-switch {
+  --switch-pad: 3px;
+  --switch-track-bg: color-mix(in srgb, var(--admin-ink) 5%, transparent);
+  --switch-track-border: transparent;
+  --switch-thumb-bg: var(--admin-surface);
+  --switch-thumb-border: var(--admin-hairline-strong);
+  --switch-thumb-shadow: 0 1px 2px color-mix(in srgb, var(--admin-ink) 12%, transparent);
+  --switch-option-fg: var(--admin-muted);
+  --switch-option-active-fg: var(--admin-ink);
+  background: var(--switch-track-bg);
+  border-color: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.admin-payment-expiry__unit-switch .segmented-switch__thumb::after {
+  display: none;
+}
+
+.admin-payment-expiry__unit-switch .segmented-switch__option {
+  color: var(--admin-muted);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  min-height: 38px;
+  text-transform: none;
+}
+
+.admin-payment-expiry__unit-switch .segmented-switch__option.is-active {
+  color: var(--admin-ink);
+  font-weight: 650;
+}
+
+.admin-payment-expiry__unit-switch .segmented-switch__option:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 1px;
+}
+
+/* La cifra vigente ya está a la vista: el texto solo se lee si hay un error de rango. */
+.admin-payment-expiry__window-current {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.admin-payment-expiry__window:has([aria-invalid='true']) .admin-payment-expiry__window-current {
+  clip: auto;
+  color: var(--admin-status-danger);
+  font-size: 12.5px;
+  height: auto;
+  margin: 10px 0 0;
+  overflow: visible;
+  position: static;
+  white-space: normal;
+  width: auto;
+}
+
+/* Guardar solo existe cuando hay un cambio: es la acción principal del bloque. */
+.admin-payment-expiry__window-controls .btn {
+  min-height: 44px;
+}
+
+.admin-payment-expiry__next {
+  align-items: center;
+  color: var(--admin-muted);
+  display: flex;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  gap: 10px;
+  line-height: 1.4;
+  margin: -12px 0 0;
+}
+
+.admin-payment-expiry__next svg {
+  flex: none;
+  opacity: 0.7;
+}
+
+@media (max-width: 1100px) {
+  .admin-payment-expiry__window {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-payment-expiry__window-edit {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-payment-expiry__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 22px;
+  }
+
+  .admin-payment-expiry__metric:nth-child(2n + 1) {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .admin-payment-expiry__window {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px 0;
+  }
+
+  .admin-payment-expiry__window-edit {
+    grid-column: auto;
+  }
+
+  .admin-payment-expiry__window-units {
+    flex: 1 1 100%;
+  }
+
+  .admin-payment-expiry__window-input {
+    flex: 1 1 auto;
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-payment-expiry {
+    animation: none;
+  }
+
+  .admin-payment-expiry__window-input {
+    transition: none;
+  }
+}

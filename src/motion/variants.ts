@@ -169,8 +169,10 @@ export const heroSequenceItem: Variants = {
   },
 }
 
+/* El recorrido no pasa del aire entre el título y la bajada (~18px): con más,
+   la segunda línea cruza a la bajada, que ya entró, mientras todavía sube. */
 export const heroTitleLine: Variants = {
-  hidden: { opacity: 0, y: MOTION_DISTANCE.hero },
+  hidden: { opacity: 0, y: MOTION_DISTANCE.md },
   visible: {
     opacity: 1,
     y: 0,

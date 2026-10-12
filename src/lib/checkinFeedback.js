@@ -16,6 +16,8 @@ const FEEDBACK_BY_OUTCOME = {
   // no": es un rechazo definitivo, no un "esperá".
   expired: 'error',
   not_yet_valid: 'warning',
+  service_unavailable: 'warning',
+  session_expired: 'error',
 }
 
 const VIBRATION_PATTERNS = {

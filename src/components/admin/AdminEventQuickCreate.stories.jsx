@@ -1,7 +1,5 @@
 import AdminEventQuickCreate from './AdminEventQuickCreate.jsx'
-import '../../styles/pages/admin.css'
-import '../../styles/pages/admin-minimal.css'
-import '../../styles/pages/admin-event-console.css'
+import { AdminPreviewShell } from '../../pages/admin/adminPreviewShell.jsx'
 
 export default {
   title: 'Admin/AdminEventQuickCreate',
@@ -10,9 +8,10 @@ export default {
   parameters: { layout: 'fullscreen' },
   decorators: [
     (Story) => (
-      <div className="admin-shell" style={{ minHeight: '100vh' }}>
+      // El alta es una página: va dentro del shell real, que es lo que se ve en la app.
+      <AdminPreviewShell section="events">
         <Story />
-      </div>
+      </AdminPreviewShell>
     ),
   ],
   args: {

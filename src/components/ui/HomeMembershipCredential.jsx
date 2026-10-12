@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Camera, QrCode } from 'lucide-react'
 import { m } from 'motion/react'
 import TiltCard from '../../motion/TiltCard.tsx'
@@ -6,17 +6,46 @@ import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
-import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER } from '../../motion/tokens.ts'
+import {
+  MOTION_DURATION,
+  MOTION_EASE,
+  MOTION_STAGGER,
+  SHOWCASE_TILT_MAX_DEG,
+} from '../../motion/tokens.ts'
+import { hasFinePointer } from '../../motion/useReducedMotion.ts'
 
-/** Shell: ancla espacial liviana (opacity + transform). El tilt 3D lleva la presencia. */
-const cardShell = {
-  hidden: { opacity: 0, y: 16, scale: 0.985 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.cinematic },
-  },
+/** Perspectiva del settle: mismo valor que `.tilt-card` (motion.css). */
+const SETTLE_PERSPECTIVE = 1200
+
+/** Shell: ancla espacial liviana (opacity + transform). El tilt 3D lleva la presencia.
+ * Con puntero fino y tier no bajo, la tarjeta se asienta desde una pose
+ * inclinada (SHOWCASE_TILT_MAX_DEG) hasta quedar plana: es la única pieza 3D
+ * de la banda de afiliación. En touch / tier bajo queda el settle plano. */
+function getCardShell({ withDepth }) {
+  return {
+    hidden: {
+      opacity: 0,
+      y: withDepth ? 20 : 14,
+      scale: 0.988,
+      ...(withDepth
+        ? {
+            rotateX: SHOWCASE_TILT_MAX_DEG,
+            rotateY: -SHOWCASE_TILT_MAX_DEG,
+            transformPerspective: SETTLE_PERSPECTIVE,
+          }
+        : {}),
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      ...(withDepth ? { rotateX: 0, rotateY: 0, transformPerspective: SETTLE_PERSPECTIVE } : {}),
+      transition: {
+        duration: withDepth ? MOTION_DURATION.cinematic : MOTION_DURATION.slow,
+        ease: MOTION_EASE.cinematic,
+      },
+    },
+  }
 }
 
 const layerStagger = {
@@ -48,7 +77,11 @@ const PREVIEW_MEMBER_CODE = 'PREV-HOME-MEMBER'
 export default function HomeMembershipCredential() {
   const { HOME_MEMBERSHIP } = useContent()
   const { t } = useI18n()
-  const { reducedMotion } = useMotionConfig()
+  const { reducedMotion, tier } = useMotionConfig()
+  const cardShell = useMemo(
+    () => getCardShell({ withDepth: tier !== 'low' && hasFinePointer() }),
+    [tier],
+  )
   const [qrSrc, setQrSrc] = useState('')
   const [shouldGenerateQr, setShouldGenerateQr] = useState(false)
   const credentialRef = useRef(null)
@@ -116,7 +149,7 @@ export default function HomeMembershipCredential() {
     <TiltCard
       className="home-credential__tilt"
       innerClassName="tilt-card__inner home-credential__card"
-      maxTilt={3}
+      maxTilt={SHOWCASE_TILT_MAX_DEG}
     >
       {body}
     </TiltCard>
@@ -169,7 +202,7 @@ function CredentialFaceContent({ seasonYear, qrSrc, t, motion = false }) {
       <Item className="home-credential__main" {...itemProps}>
         <div className="home-credential__identity">
           <span className="home-credential__photo" aria-hidden>
-            <Camera size={18} strokeWidth={1.6} />
+            <Camera size={16} strokeWidth={1.35} />
             <span className="home-credential__photo-label">
               {t('pages.home.credentialPhotoLabel')}
             </span>

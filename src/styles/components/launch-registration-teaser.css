@@ -1193,48 +1193,6 @@
 
 /* Retícula de calibración — textura de fondo, misma gramática que
    motif-rule/motif-plate (milimetraje), muy sutil en los dos temas. */
-.launch-teaser--hero .launch-teaser__grid {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image: radial-gradient(circle, var(--motif-tick) 1px, transparent 1.5px);
-  background-size: 26px 26px;
-}
-
-.launch-teaser--hero .launch-teaser__grid::after {
-  content: '';
-  position: absolute;
-  inset-block: 0;
-  right: 0;
-  width: 40px;
-  background-image: repeating-linear-gradient(
-    180deg,
-    var(--motif-tick) 0,
-    var(--motif-tick) 1px,
-    transparent 1px 40px
-  );
-  opacity: 0.6;
-}
-
-.launch-teaser__plate {
-  display: none;
-}
-
-.launch-teaser--hero .launch-teaser__plate {
-  display: block;
-  width: min(52vw, 30rem);
-  inset: auto -10% -22% auto;
-  z-index: -1;
-  opacity: 0.5;
-}
-
-@media (max-width: 720px) {
-  .launch-teaser--hero .launch-teaser__plate {
-    width: min(70vw, 22rem);
-    opacity: 0.32;
-  }
-}
 
 /* Hero inauguración: reloj + captura como cortina de lanzamiento */
 .launch-teaser--hero.launch-teaser--inauguration .launch-teaser__event,
@@ -1337,10 +1295,6 @@
 
 /* Ícono + rótulo del estado "pendiente" (hero) — misma jerarquía que el
    label del countdown real, para que ambos estados lean como un sistema. */
-.launch-teaser--hero .launch-teaser__stage-icon {
-  color: var(--color-text-tertiary, var(--color-text-secondary));
-  margin-bottom: 0.2rem;
-}
 
 .launch-teaser--hero .launch-teaser__stage-label {
   margin: 0;

@@ -1,14 +1,13 @@
 import { createPortal } from 'react-dom'
-import { LifeBuoy } from 'lucide-react'
+import { CircleHelp } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
 /**
  * Botón de ayuda persistente de las pantallas públicas y de la cuenta.
  *
- * Es una píldora con la palabra "Ayuda" y no un "?" circular a propósito: el
- * público que se traba en estos trámites no lee el signo de pregunta como un
- * control. Con etiqueta es el elemento más visible que se puede poner sin
- * romper la jerarquía de la pantalla, y el target queda holgado para un dedo.
+ * Rectángulo sólo con ícono: la palabra "Ayuda" queda como texto para lector
+ * de pantalla y el nombre accesible dice qué abre, así que el control no
+ * depende de reconocer el ícono. El target es de 48×44, holgado para un dedo.
  *
  * El punto de estado aparece sólo cuando el trámite tiene un paso pendiente
  * accionable — es un indicador de "te falta algo", no un contador de
@@ -41,13 +40,9 @@ export default function HelpDock({ open = false, pending = false, onToggle }) {
         aria-label={t(pending ? 'help.triggerPendingAria' : 'help.triggerAria')}
         onClick={onToggle}
       >
-        <span className="help-dock__glyph" aria-hidden>
-          <LifeBuoy size={15} strokeWidth={2} className="help-dock__icon" />
-        </span>
+        <CircleHelp size={20} strokeWidth={1.9} className="help-dock__icon" aria-hidden />
         <span className="help-dock__label">{t('help.trigger')}</span>
-        {pending && !open ? (
-          <span className="help-dock__pending" aria-hidden />
-        ) : null}
+        {pending && !open ? <span className="help-dock__pending" aria-hidden /> : null}
       </button>
     </div>,
     document.body,
