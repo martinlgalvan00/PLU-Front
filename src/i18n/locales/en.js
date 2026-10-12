@@ -2687,7 +2687,9 @@ export default {
       slots: 'Athlete slots',
       slotsPending: 'Athlete slots',
       badgeComingSoon: 'Coming soon',
+      badgeClosed: 'Registration closed',
       ctaComingSoon: 'Coming soon',
+      ctaClosed: 'Registration closed',
       promoSoonCountdown: 'Opens in',
       promoSoonTitle: 'Registration opening soon',
       promoSoonLead:
@@ -2747,7 +2749,8 @@ export default {
       inscriptionLeadOpen: 'Complete the 3 steps to confirm your Pitbull Classic slot.',
       inscriptionLeadClosed: 'Join now and be ready when meet registration opens.',
       inscriptionActionOpen: 'With active membership you can proceed with meet registration.',
-      inscriptionActionClosed: 'Join now to be ready when slots open.',
+      inscriptionActionClosed:
+        'Meet registration is closed. You can still join for the next opening.',
       costsAria: 'Costs',
       costMembership: 'Membership',
       costMeet: 'Meet',
@@ -2758,7 +2761,9 @@ export default {
       registerCombo: 'Register',
       cardDescOpen: 'Requires active membership and meet payment.',
       cardDescCombo: 'Annual membership and meet registration, together.',
-      cardDescClosed: 'Registration is not open yet. You can join now to get ahead.',
+      cardDescClosed:
+        'Registration is closed. You can still join to get ahead for the next opening.',
+      cardDescFull: 'The meet is full. Registration is no longer accepting entries.',
       progressAria: 'Registration progress',
       progressProfile: 'Profile',
       progressMembership: 'Membership',

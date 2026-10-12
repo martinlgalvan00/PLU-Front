@@ -60,7 +60,11 @@ import {
   money,
   tidyPersonName,
 } from '../lib/format.js'
-import { getStatusMeta, isRegistrationOpen } from '../lib/status.js'
+import {
+  getPublicRegistrationPresentation,
+  PUBLIC_REGISTRATION_PHASE,
+  resolvePublicRegistrationPhase,
+} from '../lib/publicRegistrationPhase.js'
 import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
 import { describePublicCapacity } from '../lib/eventCapacityPublic.js'
 import { resolvePublicInscriptionCopy } from '../lib/eventInscriptionCopy.js'
@@ -758,7 +762,7 @@ function PitbullInscriptionSection({
   athleteEventStatus = null,
   canRegister,
   capacityStatus,
-  checkoutLocked = false,
+  closedByWindow = false,
   comboOffer = null,
   event,
   eventStatus,
@@ -767,30 +771,26 @@ function PitbullInscriptionSection({
   onChangePaymentMethod,
   onNavigate,
   onRegister,
+  presentation,
   pricing,
   progressPublic = true,
   remaining = null,
   recent,
   registered,
   registeredToday = 0,
+  registrationPhase,
   slots,
+  softLaunch = false,
   t,
   totalPublic = true,
 }) {
   const { reducedMotion } = useMotionConfig()
-  const registrationClosesAt = event?.registrationClosesAt
-    ? new Date(event.registrationClosesAt)
-    : null
-  const closedByWindow = Boolean(
-    registrationClosesAt &&
-      !Number.isNaN(registrationClosesAt.getTime()) &&
-      Date.now() > registrationClosesAt.getTime(),
-  )
-  const softLaunch = checkoutLocked || eventStatus === 'proximamente'
   const capacityLive = capacityStatus === 'live'
-  const statusMeta = getStatusMeta(eventStatus, t)
-  const statusLabel = softLaunch ? t('pages.pitbull.badgeComingSoon') : statusMeta.label
-  const statusTone = softLaunch ? 'neutral' : statusMeta.tone
+  const statusLabel = presentation.badgeLabel
+  const statusTone = presentation.badgeTone
+  const isClosedOrFull =
+    registrationPhase === PUBLIC_REGISTRATION_PHASE.closed ||
+    registrationPhase === PUBLIC_REGISTRATION_PHASE.full
   const comboLive = Boolean(comboOffer) && !softLaunch && !hasActiveMembership
   // Estado propio de quien mira, distinto del estado del meet: el contador
   // puede decir "inscripción abierta" y esta persona ya tener su cupo.
@@ -963,13 +963,17 @@ function PitbullInscriptionSection({
             >
               {!comboLive && !showAthleteState ? (
                 <p className="pitbull-inscription-deck__lead">
-                  {hasActiveMembership
+                  {hasActiveMembership && canRegister
                     ? t('pages.pitbull.inscriptionActionOpen')
                     : canRegister
                       ? t('pages.pitbull.cardDescOpen')
                       : softLaunch
                         ? t('pages.pitbull.cardDescComingSoon')
-                        : t('pages.pitbull.cardDescClosed')}
+                        : registrationPhase === PUBLIC_REGISTRATION_PHASE.full
+                          ? t('pages.pitbull.cardDescFull')
+                          : hasActiveMembership
+                            ? t('pages.pitbull.inscriptionActionClosed')
+                            : t('pages.pitbull.cardDescClosed')}
                 </p>
               ) : null}
 
@@ -1045,17 +1049,34 @@ function PitbullInscriptionSection({
                       : t('launchTeaser.createAccountCta')}
                   </button>
                 </>
-              ) : (
+              ) : isClosedOrFull ? (
                 <>
                   <button
                     type="button"
-                    className="pitbull-inscription__cta pitbull-inscription__cta--primary"
+                    className="pitbull-inscription__cta pitbull-inscription__cta--primary pitbull-inscription__cta--soon"
+                    disabled
+                  >
+                    {t('pages.pitbull.ctaClosed')}
+                  </button>
+                  <button
+                    type="button"
+                    className="pitbull-inscription__cta pitbull-inscription__cta--secondary"
                     onClick={() => onNavigate(hasActiveMembership ? 'profile' : 'members')}
                   >
                     {hasActiveMembership
                       ? t('pages.pitbull.viewMyMembership')
                       : t('pages.pitbull.joinNow')}
                     <ArrowRight size={14} aria-hidden />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="pitbull-inscription__cta pitbull-inscription__cta--primary pitbull-inscription__cta--soon"
+                    disabled
+                  >
+                    {t('pages.pitbull.ctaClosed')}
                   </button>
                   <button
                     type="button"
@@ -1184,7 +1205,12 @@ export default function PitbullPage({
   const ticketCheckoutOpen = isPaidCheckoutOpen(pitbullEvent, env, new Date(), {
     checkoutKind: 'ticket',
   })
-  const checkoutLocked = !paidCheckoutOpen
+  const registration = resolvePublicRegistrationPhase(pitbullEvent, {
+    checkoutEnabled: paidCheckoutOpen,
+  })
+  const registrationPresentation = getPublicRegistrationPresentation(registration, t)
+  const softLaunch = registration.softLaunch
+  const closedByWindow = registration.closedByWindow
   const hasActiveMembership =
     session?.role === 'athlete_plu' && hasCurrentMembership(memberships, session.athleteId)
   // Mismo resolver que el calendario público y la cuenta: la página del meet
@@ -1197,8 +1223,8 @@ export default function PitbullPage({
   })
   const isRegistered = athleteEventStatus === 'registered'
   const paymentPending = athleteEventStatus === 'pending_payment'
-  const canRegister = isRegistrationOpen(eventStatus) && paidCheckoutOpen
-  const isFinished = eventStatus === 'finalizado'
+  const canRegister = registration.canRegister
+  const isFinished = registration.phase === PUBLIC_REGISTRATION_PHASE.finished
   const eventPricing = resolveEventPricing(pitbullEvent)
   // Un combo `audience=code` es un easter egg: la página pública del torneo no
   // puede anticipar que existe ni revelar su precio. Recién aparece en la
@@ -1280,13 +1306,13 @@ export default function PitbullPage({
       onNavigate('results')
       return
     }
-    // Cobros cerrados (kill switch / schedule) o evento marcado "próximamente":
-    // no empujar a un Members que igual está gateado, quedarse en el aviso.
-    if (checkoutLocked || eventStatus === 'proximamente') {
-      scrollToSection('inscripcion')
-      return
-    }
-    onNavigate('members')
+    // Soft-launch / cerrado: el CTA primario queda disabled; el secundario
+    // "Afiliarme" usa handleHeroJoin. Por si acaso, anclar al aviso.
+    scrollToSection('inscripcion')
+  }
+
+  function handleHeroJoin() {
+    onNavigate(hasActiveMembership ? 'profile' : 'members')
   }
 
   function handlePitbullRegistration() {
@@ -1316,11 +1342,12 @@ export default function PitbullPage({
       <PitbullHero
         athleteStatus={athleteEventStatus}
         canRegister={canRegister}
-        checkoutLocked={checkoutLocked}
-        eventStatus={eventStatus}
         onHome={() => onNavigate('home')}
+        onJoin={handleHeroJoin}
         onRegister={handleHeroRegister}
+        presentation={registrationPresentation}
         registrationFee={money(eventPricing.registration, locale)}
+        registrationPhase={registration.phase}
         title={heroTitle}
         lead={heroLead}
         registerLabel={heroCtaLabel}
@@ -1340,7 +1367,7 @@ export default function PitbullPage({
             athleteEventStatus={athleteEventStatus}
             canRegister={canRegister}
             capacityStatus={capacityStatus}
-            checkoutLocked={checkoutLocked}
+            closedByWindow={closedByWindow}
             comboOffer={liveComboOffer}
             event={pitbullEvent}
             eventStatus={eventStatus}
@@ -1349,13 +1376,16 @@ export default function PitbullPage({
             onChangePaymentMethod={handleChangePaymentMethod}
             onNavigate={onNavigate}
             onRegister={handlePitbullRegistration}
+            presentation={registrationPresentation}
             pricing={eventPricing}
             progressPublic={progressPublic}
             remaining={liveRemaining}
             recent={recentRegistrants}
             registered={liveRegistered}
             registeredToday={liveRegisteredToday}
+            registrationPhase={registration.phase}
             slots={liveSlots}
+            softLaunch={softLaunch}
             t={t}
             totalPublic={totalPublic}
           />

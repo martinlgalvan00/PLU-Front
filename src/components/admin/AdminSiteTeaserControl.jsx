@@ -17,6 +17,7 @@ export default function AdminSiteTeaserControl({
   canEdit = false,
   enabled = null,
   loadFailed = false,
+  onRetry,
   onToggle,
 }) {
   const { t } = useI18n()
@@ -36,21 +37,32 @@ export default function AdminSiteTeaserControl({
             : t('admin.sections.events.teaser.hint')}
         </p>
       </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={on}
-        aria-labelledby="admin-site-teaser-label"
-        aria-describedby="admin-site-teaser-hint"
-        className={`admin-site-teaser__switch-btn${on ? ' is-on' : ''}`}
-        disabled={!canEdit || !known || busy}
-        onClick={() => onToggle?.(!on)}
-      >
-        <span className="visually-hidden">
-          {on ? t('admin.sections.events.teaser.on') : t('admin.sections.events.teaser.off')}
-        </span>
-        <span className="admin-site-teaser__switch" aria-hidden />
-      </button>
+      {loadFailed && typeof onRetry === 'function' ? (
+        <button
+          type="button"
+          className="admin-site-teaser__retry"
+          disabled={busy}
+          onClick={onRetry}
+        >
+          {t('admin.sections.events.teaser.retry')}
+        </button>
+      ) : (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={on}
+          aria-labelledby="admin-site-teaser-label"
+          aria-describedby="admin-site-teaser-hint"
+          className={`admin-site-teaser__switch-btn${on ? ' is-on' : ''}`}
+          disabled={!canEdit || !known || busy}
+          onClick={() => onToggle?.(!on)}
+        >
+          <span className="visually-hidden">
+            {on ? t('admin.sections.events.teaser.on') : t('admin.sections.events.teaser.off')}
+          </span>
+          <span className="admin-site-teaser__switch" aria-hidden />
+        </button>
+      )}
     </div>
   )
 }

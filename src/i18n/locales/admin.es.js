@@ -578,14 +578,41 @@ export default {
     createMode: 'Alta',
     editTitle: 'Editar producto',
     createTitle: 'Nuevo producto',
+    createTitleByCategory: {
+      apparel: 'Nueva prenda',
+      accessories: 'Nuevo accesorio',
+      exclusive: 'Nueva exclusiva',
+      course: 'Nuevo curso',
+    },
+    editTitleByCategory: {
+      apparel: 'Editar prenda',
+      accessories: 'Editar accesorio',
+      exclusive: 'Editar exclusiva',
+      course: 'Editar curso',
+    },
     save: 'Guardar',
     saving: 'Guardando…',
     create: 'Guardar en catálogo',
     hintTitle: 'Catálogo de la tienda',
     hintText:
       'Elegí la familia, cargá fotos y stock y publicalo. La tienda pública lo muestra al instante.',
+    hintByCategory: {
+      apparel: 'Cargá fotos, talles y stock. La tienda pública lo muestra al instante.',
+      accessories: 'Cargá fotos y stock unitario. La tienda pública lo muestra al instante.',
+      exclusive: 'Asociála a un torneo, cargá fotos y stock. Se publica en la exclusiva del meet.',
+      course: 'Definí fecha, modalidad y cupo. Las consultas de inscripción llegan por mail.',
+    },
     previewLabel: 'Vista previa',
-    previewEmpty: 'Subí una foto para ver la pieza.',
+    previewDropLabel: 'Soltá o elegí una foto',
+    previewDropMore: 'Soltá más fotos acá',
+    compressingHint: 'Comprimiendo a WebP liviano…',
+    previewEmpty: 'Arrastrá o hacé clic. Se comprime sola a WebP antes de guardar.',
+    previewEmptyByCategory: {
+      apparel: 'Arrastrá o clic: se comprime a WebP liviano para la prenda.',
+      accessories: 'Arrastrá o clic: se comprime a WebP liviano para el accesorio.',
+      exclusive: 'Arrastrá o clic: se comprime a WebP liviano para la exclusiva.',
+      course: 'Arrastrá o clic: se comprime a WebP liviano para el flyer del curso.',
+    },
     loading: 'Cargando catálogo…',
     loadError: 'No se pudo cargar el catálogo.',
     saveError: 'No se pudo guardar el producto.',
@@ -597,13 +624,26 @@ export default {
     noPaymentNote:
       'Todavía no hay pago online en la tienda: los pedidos y las inscripciones llegan como consultas por mail.',
     groupIdentity: 'Identidad',
-    groupCommerce: 'Familia y precio',
+    groupCommerce: 'Precio',
+    groupFamily: 'Familia',
     groupMedia: 'Fotos',
     groupSizes: 'Talles y stock',
+    groupStock: 'Stock',
     groupEvent: 'Torneo asociado',
     groupCourse: 'Datos del curso',
     groupPublish: 'Publicación',
-    imagesLead: 'Hasta {{max}} fotos JPG, PNG o WEBP de 5 MB. La primera es la portada.',
+    imagesLead:
+      'Hasta {{max}} fotos JPG, PNG o WEBP (max. 5 MB). Se comprimen a WebP liviano; la primera es la portada.',
+    imagesLeadByCategory: {
+      apparel:
+        'Hasta {{max}} fotos. Se comprimen a WebP liviano; la primera es la portada de la prenda.',
+      accessories:
+        'Hasta {{max}} fotos. Se comprimen a WebP liviano; la primera es la portada del accesorio.',
+      exclusive:
+        'Hasta {{max}} fotos. Se comprimen a WebP liviano; la primera es la portada de la pieza.',
+      course:
+        'Hasta {{max}} fotos. Se comprimen a WebP liviano; la primera es el flyer del curso.',
+    },
     addImage: 'Subir foto',
     uploading: 'Subiendo…',
     removeImage: 'Quitar foto',
@@ -636,6 +676,18 @@ export default {
       title: 'Ej.: Buzo Pitbull Classic',
       description: 'Detalle corto para la ficha',
       editionNote: 'Ej.: Edición limitada · finalistas',
+      titleByCategory: {
+        apparel: 'Ej.: Buzo Pitbull Classic',
+        accessories: 'Ej.: Straps PLU',
+        exclusive: 'Ej.: Remera finalistas Pitbull',
+        course: 'Ej.: Curso de jueces PLU',
+      },
+      descriptionByCategory: {
+        apparel: 'Material, fit y detalle corto para la ficha',
+        accessories: 'Uso, medida y detalle corto para la ficha',
+        exclusive: 'Edición, torneo y detalle corto para la ficha',
+        course: 'Para quién es, temario y detalle corto para la ficha',
+      },
     },
     categories: {
       apparel: 'Ropa y buzos',
@@ -1349,6 +1401,7 @@ export default {
         on: 'Anuncio visible',
         off: 'Anuncio oculto',
         loadError: 'No se pudo leer el estado del anuncio.',
+        retry: 'Reintentar',
         enabledDone: 'El anuncio ya se ve en la página de Eventos.',
         disabledDone: 'El anuncio dejó de mostrarse.',
         saveError: 'No se pudo cambiar el anuncio.',

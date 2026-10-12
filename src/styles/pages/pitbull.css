@@ -10722,6 +10722,19 @@
   color: var(--color-text-primary);
 }
 
+.pitbull-hero-masthead__cta--disabled,
+.pitbull-hero-masthead__cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.pitbull-hero-masthead__cta--disabled:hover,
+.pitbull-hero-masthead__cta:disabled:hover {
+  box-shadow: none;
+  transform: none;
+}
+
 [data-theme='light'] .pitbull-hero-masthead__scrim {
   background: linear-gradient(
     180deg,

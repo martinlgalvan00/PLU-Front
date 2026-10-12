@@ -22,7 +22,7 @@ import photoMedalsWebp from '../../assets/DSC01606-display.webp'
 import photoMedalsWebp480 from '../../assets/DSC01606-display-480.webp'
 import photoMedalsWebp800 from '../../assets/DSC01606-display-800.webp'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { getStatusMeta } from '../../lib/status.js'
+import { PUBLIC_REGISTRATION_PHASE } from '../../lib/publicRegistrationPhase.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
 import { hasFinePointer } from '../../motion/useReducedMotion.ts'
@@ -77,41 +77,61 @@ const HERO_COLLAGE = [
 function PitbullHeroPanel({
   athleteStatus = null,
   canRegister,
-  checkoutLocked,
-  eventStatus,
   lead = '',
   onHome,
+  onJoin,
   onRegister,
+  presentation,
   registerLabel = '',
   registrationFee,
+  registrationPhase,
   t,
   title,
   motion = false,
 }) {
-  const { label: statusLabel, tone: statusTone } = getStatusMeta(eventStatus, t)
-  const isFinished = eventStatus === 'finalizado'
-  // Cobros cerrados (kill switch / schedule) pesan igual que el status
-  // "proximamente": no ofrecer "Afiliarme" si el destino real sigue gateado.
-  const isComingSoon = checkoutLocked || eventStatus === 'proximamente'
+  const isAthleteRegistered = athleteStatus === 'registered'
+  const isPaymentPending = athleteStatus === 'pending_payment'
+  const isFinished = registrationPhase === PUBLIC_REGISTRATION_PHASE.finished
+  const isComingSoon = registrationPhase === PUBLIC_REGISTRATION_PHASE.coming_soon
+  const isClosedOrFull =
+    registrationPhase === PUBLIC_REGISTRATION_PHASE.closed ||
+    registrationPhase === PUBLIC_REGISTRATION_PHASE.full
+
   // El estado propio manda sobre el del meet: a quien ya tiene cupo no se le
   // ofrece "Inscribirme", y a quien dejó el pago a medias se le ofrece cerrarlo.
-  const primaryLabel =
-    athleteStatus === 'registered'
-      ? t('pages.pitbull.viewMyRegistration')
-      : athleteStatus === 'pending_payment'
-        ? t('pages.events.athleteStatusAction.pending_payment')
-        : canRegister
-          ? registerLabel || t('pages.pitbull.register')
-          : isFinished
-            ? t('pages.home.viewResults')
-            : isComingSoon
-              ? t('launchTeaser.notifyCta')
-              : t('pages.pitbull.joinNow')
-  const showRegistrationFee =
-    Boolean(registrationFee) &&
-    athleteStatus !== 'registered' &&
-    !isFinished &&
-    !isComingSoon
+  let primaryLabel = presentation.primaryCtaLabel
+  let primaryDisabled = presentation.primaryDisabled
+  let showRegistrationFee = false
+  let showJoinSecondary = false
+
+  if (isAthleteRegistered) {
+    primaryLabel = t('pages.pitbull.viewMyRegistration')
+    primaryDisabled = false
+  } else if (isPaymentPending) {
+    primaryLabel = t('pages.events.athleteStatusAction.pending_payment')
+    primaryDisabled = false
+  } else if (canRegister) {
+    primaryLabel = registerLabel || t('pages.pitbull.register')
+    primaryDisabled = false
+    showRegistrationFee = Boolean(registrationFee) && presentation.showRegistrationFee
+  } else if (isFinished) {
+    primaryLabel = t('pages.home.viewResults')
+    primaryDisabled = false
+  } else if (isComingSoon) {
+    primaryLabel = presentation.primaryCtaLabel || t('pages.pitbull.ctaComingSoon')
+    primaryDisabled = true
+  } else if (isClosedOrFull) {
+    primaryLabel = presentation.primaryCtaLabel || t('pages.pitbull.ctaClosed')
+    primaryDisabled = true
+    showJoinSecondary = presentation.showJoinSecondary
+  } else {
+    primaryLabel = presentation.primaryCtaLabel || t('pages.pitbull.ctaClosed')
+    primaryDisabled = true
+    showJoinSecondary = presentation.showJoinSecondary
+  }
+
+  const statusLabel = presentation.badgeLabel
+  const statusTone = presentation.badgeTone
   const Item = motion ? m.div : 'div'
   const itemProps = motion ? { variants: heroSequenceItem } : {}
 
@@ -164,24 +184,42 @@ function PitbullHeroPanel({
               'pitbull-hero-masthead__cta--primary',
               'motion-icon-shift',
               showRegistrationFee ? 'pitbull-hero-masthead__cta--decision' : '',
+              primaryDisabled ? 'pitbull-hero-masthead__cta--disabled' : '',
             ]
               .filter(Boolean)
               .join(' ')}
-            onClick={onRegister}
+            disabled={primaryDisabled}
+            onClick={primaryDisabled ? undefined : onRegister}
           >
             {showRegistrationFee ? (
               <span className="pitbull-hero-masthead__cta-body">
                 <span className="pitbull-hero-masthead__cta-label">{primaryLabel}</span>
-                <span className="pitbull-hero-masthead__cta-sep" aria-hidden>·</span>
+                <span className="pitbull-hero-masthead__cta-sep" aria-hidden>
+                  ·
+                </span>
                 <span className="pitbull-hero-masthead__cta-fee">{registrationFee}</span>
               </span>
             ) : (
               <span className="pitbull-hero-masthead__cta-label">{primaryLabel}</span>
             )}
-            <span className="pitbull-hero-masthead__cta-icon" aria-hidden>
-              <ArrowRight size={15} strokeWidth={2} className="motion-icon-shift__target" />
-            </span>
+            {!primaryDisabled ? (
+              <span className="pitbull-hero-masthead__cta-icon" aria-hidden>
+                <ArrowRight size={15} strokeWidth={2} className="motion-icon-shift__target" />
+              </span>
+            ) : null}
           </button>
+          {showJoinSecondary ? (
+            <button
+              type="button"
+              className="pitbull-hero-masthead__cta pitbull-hero-masthead__cta--secondary motion-icon-shift"
+              onClick={onJoin}
+            >
+              <span className="pitbull-hero-masthead__cta-label">{t('pages.pitbull.joinNow')}</span>
+              <span className="pitbull-hero-masthead__cta-icon" aria-hidden>
+                <ArrowRight size={15} strokeWidth={2} className="motion-icon-shift__target" />
+              </span>
+            </button>
+          ) : null}
         </div>
       </Item>
     </div>
@@ -247,12 +285,12 @@ function PitbullHeroFrame({ reducedMotion = false }) {
 export default function PitbullHero({
   athleteStatus = null,
   canRegister,
-  checkoutLocked = false,
-  eventStatus,
   /** Bajada editable desde Vista publica. Vacia cae al copy del diseno. */
   lead = '',
   onHome,
+  onJoin,
   onRegister,
+  presentation,
   /**
    * Texto editable del boton principal. Solo reemplaza el caso "Inscribirme":
    * "Ver mi inscripcion" y "Completar el pago" los dicta el estado del atleta
@@ -260,6 +298,7 @@ export default function PitbullHero({
    */
   registerLabel = '',
   registrationFee,
+  registrationPhase,
   title,
 }) {
   const { t } = useI18n()
@@ -269,13 +308,14 @@ export default function PitbullHero({
     <PitbullHeroPanel
       athleteStatus={athleteStatus}
       canRegister={canRegister}
-      checkoutLocked={checkoutLocked}
-      eventStatus={eventStatus}
       lead={lead}
       onHome={onHome}
+      onJoin={onJoin}
       onRegister={onRegister}
+      presentation={presentation}
       registerLabel={registerLabel}
       registrationFee={registrationFee}
+      registrationPhase={registrationPhase}
       t={t}
       title={title}
       motion={!reducedMotion}

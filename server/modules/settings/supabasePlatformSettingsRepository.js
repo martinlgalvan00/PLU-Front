@@ -34,15 +34,41 @@ export function createSupabasePlatformSettingsRepository(client) {
     // Anuncio "Pronto habrá novedades". Tabla propia (`site_teasers`) y no una
     // columna de los toggles: es contenido del sitio, no un corte operativo, y
     // las RPC de los toggles se reescriben en cada migración de cobros.
-    getTeaser: () =>
-      rpc('staff_get_site_teaser', {}, 'No se pudo leer el anuncio del sitio.'),
+    getTeaser: async () => {
+      try {
+        return await rpc(
+          'staff_get_site_teaser',
+          {},
+          'No se pudo leer el anuncio del sitio.',
+        )
+      } catch (error) {
+        if (error?.details?.code === 'PGRST202') {
+          throw new HttpError(
+            409,
+            'Falta aplicar la migración del anuncio del sitio (20261206100000).',
+          )
+        }
+        throw error
+      }
+    },
 
-    setTeaser: (enabled, actor) =>
-      rpc(
-        'staff_set_site_teaser',
-        { p_enabled: enabled, p_actor: actor },
-        'No se pudo actualizar el anuncio del sitio.',
-      ),
+    setTeaser: async (enabled, actor) => {
+      try {
+        return await rpc(
+          'staff_set_site_teaser',
+          { p_enabled: enabled, p_actor: actor },
+          'No se pudo actualizar el anuncio del sitio.',
+        )
+      } catch (error) {
+        if (error?.details?.code === 'PGRST202') {
+          throw new HttpError(
+            409,
+            'Falta aplicar la migración del anuncio del sitio (20261206100000).',
+          )
+        }
+        throw error
+      }
+    },
 
     // Plazos de vencimiento, en minutos. Mismo payload de vuelta que los otros
     // setters: el panel repinta interruptores, canales y plazos con una sola

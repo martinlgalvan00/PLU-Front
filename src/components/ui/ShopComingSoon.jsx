@@ -28,11 +28,11 @@ const rule = {
 }
 
 /**
- * "Próximamente" de una sección sin productos publicados. Un panel de grafito
- * con una sola secuencia de entrada: línea dorada, titular, lo que viene y el
- * aviso por correo. Sin fechas, precios ni cupos inventados: lo único que
- * promete es el aviso. Si el catálogo no pudo actualizarse, se dice sin tapar
- * la invitación.
+ * "Próximamente" de una sección sin productos publicados. Panel editorial
+ * temático (light/dark) con una sola secuencia de entrada: línea dorada,
+ * titular, lo que viene y el aviso por correo. Sin fechas, precios ni cupos
+ * inventados: lo único que promete es el aviso. Si el catálogo no pudo
+ * actualizarse, se dice sin tapar la invitación.
  */
 export default function ShopComingSoon({ tab, stale, onRetry, t }) {
   const { reducedMotion, tier } = useMotionConfig()

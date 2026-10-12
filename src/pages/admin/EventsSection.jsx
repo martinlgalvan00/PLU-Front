@@ -277,14 +277,34 @@ export default function EventsSection({
   const [teaserBusy, setTeaserBusy] = useState(false)
   const [teaserLoadFailed, setTeaserLoadFailed] = useState(false)
 
+  async function loadSiteTeaser() {
+    setTeaserBusy(true)
+    setTeaserLoadFailed(false)
+    try {
+      const teaser = await fetchSiteTeaser()
+      setTeaserEnabled(teaser.eventsEnabled)
+    } catch {
+      setTeaserEnabled(null)
+      setTeaserLoadFailed(true)
+    } finally {
+      setTeaserBusy(false)
+    }
+  }
+
   useEffect(() => {
     let active = true
     fetchSiteTeaser()
       .then((teaser) => {
-        if (active) setTeaserEnabled(teaser.eventsEnabled)
+        if (active) {
+          setTeaserEnabled(teaser.eventsEnabled)
+          setTeaserLoadFailed(false)
+        }
       })
       .catch(() => {
-        if (active) setTeaserLoadFailed(true)
+        if (active) {
+          setTeaserEnabled(null)
+          setTeaserLoadFailed(true)
+        }
       })
     return () => {
       active = false
@@ -298,6 +318,7 @@ export default function EventsSection({
     try {
       const saved = await saveSiteTeaser(next)
       setTeaserEnabled(saved.eventsEnabled)
+      setTeaserLoadFailed(false)
       setMessage({
         tone: 'success',
         text: t(
@@ -1413,6 +1434,7 @@ export default function EventsSection({
           canEdit={canEdit}
           enabled={teaserEnabled}
           loadFailed={teaserLoadFailed}
+          onRetry={loadSiteTeaser}
           onToggle={handleToggleTeaser}
         />
 

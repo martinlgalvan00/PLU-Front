@@ -2720,7 +2720,9 @@ export default {
       slots: 'Cupos atletas',
       slotsPending: 'Cupos atletas',
       badgeComingSoon: 'Próximamente',
+      badgeClosed: 'Inscripción cerrada',
       ctaComingSoon: 'Próximamente',
+      ctaClosed: 'Inscripción cerrada',
       promoSoonCountdown: 'Se abre en',
       promoSoonTitle: 'Inscripciones en breve',
       promoSoonLead:
@@ -2780,7 +2782,8 @@ export default {
       inscriptionLeadOpen: 'Completá los 3 pasos para confirmar tu cupo en Pitbull Classic.',
       inscriptionLeadClosed: 'Registrate ahora y quedás listo cuando abra la inscripción al meet.',
       inscriptionActionOpen: 'Con afiliación activa podés avanzar con la inscripción al meet.',
-      inscriptionActionClosed: 'Afiliate ahora para estar listo cuando se habiliten los cupos.',
+      inscriptionActionClosed:
+        'La inscripción al meet está cerrada. Podés afiliarte para la próxima apertura.',
       costsAria: 'Costos',
       costMembership: 'Afiliación',
       costMeet: 'Inscripción',
@@ -2792,7 +2795,8 @@ export default {
       cardDescOpen: 'Requiere afiliación activa y pago del meet.',
       cardDescCombo: 'Afiliación anual e inscripción al meet, juntas.',
       cardDescClosed:
-        'La inscripción todavía no está abierta. Podés afiliarte para adelantar trámite.',
+        'La inscripción está cerrada. Podés afiliarte para adelantar trámite en la próxima apertura.',
+      cardDescFull: 'El cupo del meet está completo. La inscripción ya no admite altas.',
       progressAria: 'Progreso de inscripción',
       progressProfile: 'Perfil',
       progressMembership: 'Afiliación',
