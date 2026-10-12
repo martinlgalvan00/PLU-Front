@@ -1710,6 +1710,13 @@ export default {
       ready: 'Cámara lista, apuntá al QR',
       starting: 'Iniciando cámara…',
       permission: 'No pudimos acceder a la cámara. Revisá los permisos del navegador.',
+      camera: {
+        missing: 'No encontramos una cámara disponible en este equipo. Usá el modo manual.',
+        busy: 'La cámara está en uso por otra app o pestaña. Cerrala y reintentá.',
+        unknown: 'No pudimos iniciar la cámara. Reintentá o usá el modo manual.',
+      },
+      retry: 'Reintentar',
+      torchToggle: 'Linterna',
       unsupported: 'Este navegador no soporta escaneo por cámara.',
       useManual: 'Usá el modo manual para pegar el código.',
       dismiss: 'Cerrar',
