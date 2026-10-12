@@ -3668,6 +3668,7 @@ export default {
     sectionVisibility: 'Publicación',
     sectionVisibilityLeadEssentials:
       'Destacá el meet y elegí qué bloques ve el público. Estado y acceso se controlan arriba en la consola.',
+    advancedSummary: 'Textos de la página, módulos y transmisión',
     publicCopyLegend: 'Cómo se presenta al público',
     publicCopyHint:
       'Vacío deja el título del evento y los textos del diseño. Los encabezados de cada bloque no se editan: son los que mantienen el sitio coherente entre meets.',

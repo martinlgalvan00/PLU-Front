@@ -3587,6 +3587,7 @@ export default {
     sectionVisibility: 'Publishing',
     sectionVisibilityLeadEssentials:
       'Feature the meet and choose which blocks the public sees. Status and access are controlled above in the console.',
+    advancedSummary: 'Page copy, modules and live stream',
     publicCopyLegend: 'How it reads in public',
     publicCopyHint:
       'Empty keeps the event title and the design defaults. Section headings are not editable: they are what keeps the site coherent across meets.',
