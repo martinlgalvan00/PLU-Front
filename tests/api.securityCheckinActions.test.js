@@ -154,3 +154,54 @@ describe('Seguridad: acciones sobre QR', () => {
     }
   })
 })
+
+describe('Seguridad: puesto que queda escrito en el ingreso', () => {
+  async function checkInWithGate({ session, gate }) {
+    readSessionFromRequest.mockResolvedValue(session)
+    const checkIn = vi.fn(async (token) => ({ ticket: { qr_token: token }, checkIn: { id: 'in-1' } }))
+    const server = listen(appWith({ checkIn }))
+    try {
+      const response = await fetch(`${server.url}/api/tickets/checkin/token-1`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Origin: 'http://localhost:5173',
+          'X-PLU-Request': 'browser',
+        },
+        body: JSON.stringify({ gate }),
+      })
+      expect(response.status).toBe(200)
+      return checkIn.mock.calls[0][1]
+    } finally {
+      await server.close()
+    }
+  }
+
+  it('con zona asignada manda el nombre de la zona, no lo que declare el dispositivo', async () => {
+    const session = {
+      user: {
+        ...securitySession('seguridad-1').user,
+        securityZone: { id: 'z1', name: 'Puerta 1', scope: 'gate_tickets' },
+      },
+    }
+    expect(await checkInWithGate({ session, gate: 'Camarín VIP' })).toBe('Puerta 1')
+  })
+
+  it('sin zona usa el puesto declarado, sin caracteres de control y acotado', async () => {
+    const session = securitySession('seguridad-2')
+    const dirty = `Pesaje\u0000\n${'x'.repeat(200)}`
+    const gate = await checkInWithGate({ session, gate: dirty })
+    expect(gate.startsWith('Pesaje')).toBe(true)
+    expect(gate).not.toMatch(/[\u0000-\u001f]/)
+    expect(gate.length).toBeLessThanOrEqual(80)
+  })
+
+  it('sin zona ni puesto declarado cae en "Puerta"', async () => {
+    expect(await checkInWithGate({ session: securitySession('seguridad-3'), gate: undefined })).toBe(
+      'Puerta',
+    )
+    expect(await checkInWithGate({ session: securitySession('seguridad-3'), gate: 42 })).toBe(
+      'Puerta',
+    )
+  })
+})
