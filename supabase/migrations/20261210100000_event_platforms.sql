@@ -63,9 +63,9 @@ create index if not exists event_sessions_platform_idx
 -- ---------------------------------------------------------------------------
 -- 2. RLS de event_platforms
 -- ---------------------------------------------------------------------------
--- Mismo criterio que event_sessions: el nombre de un tablado de un evento
--- publicado no es sensible; la escritura es de admin. Policies partidas por rol
--- para no romper el linter de Supabase.
+-- Mismo criterio de lectura que event_sessions: el nombre de un tablado de un
+-- evento publicado no es sensible. Policies partidas por rol para no romper el
+-- linter de Supabase.
 alter table public.event_platforms enable row level security;
 
 drop policy if exists event_platforms_select_public_anon on public.event_platforms;
@@ -93,24 +93,12 @@ create policy event_platforms_select_authenticated
     )
   );
 
-drop policy if exists event_platforms_insert_admin on public.event_platforms;
-create policy event_platforms_insert_admin
-  on public.event_platforms for insert to authenticated
-  with check ((select plu_private.is_admin()));
-
-drop policy if exists event_platforms_update_admin on public.event_platforms;
-create policy event_platforms_update_admin
-  on public.event_platforms for update to authenticated
-  using ((select plu_private.is_admin()))
-  with check ((select plu_private.is_admin()));
-
-drop policy if exists event_platforms_delete_admin on public.event_platforms;
-create policy event_platforms_delete_admin
-  on public.event_platforms for delete to authenticated
-  using ((select plu_private.is_admin()));
-
+-- Sin policies ni grants de escritura para `authenticated`: el navegador no
+-- escribe ninguna tabla (supabase/tests/schema_posture.sql). Todo pasa por
+-- staff_save_event_platforms con service_role.
+revoke all on public.event_platforms from public, anon, authenticated;
 grant select on public.event_platforms to anon, authenticated;
-grant insert, update, delete on public.event_platforms to authenticated;
+grant select, insert, update, delete on public.event_platforms to service_role;
 
 -- ---------------------------------------------------------------------------
 -- 3. Backfill: los textos de plataforma que ya existen pasan a ser tablados
