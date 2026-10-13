@@ -150,3 +150,110 @@ describe('API de tandas con tablado', () => {
     }
   })
 })
+
+describe('API de grilla pública', () => {
+  const PUBLIC_SCHEDULE = { enabled: true, platforms: [], days: [] }
+
+  async function publicSetup() {
+    const staff = await buildStaffUser({ role: 'admin_maximal', email: 'admin_maximal@public.test' })
+    const supabase = createSupabaseDouble()
+    supabase.rpc.mockImplementation(async (name) => ({
+      data: name === 'public_event_schedule' ? PUBLIC_SCHEDULE : { schedulePublic: true },
+      error: null,
+    }))
+    const target = listen(
+      createApp({ prisma: createPrismaDouble([staff]), supabaseAdmin: supabase.client }),
+    )
+    return { target, supabase, staff }
+  }
+
+  it('la lectura es pública (sin sesión) y con cache corto', async () => {
+    const { target, supabase } = await publicSetup()
+    try {
+      const response = await fetch(`${target.url}/api/events/${SLUG}/schedule-public`)
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({ schedule: PUBLIC_SCHEDULE })
+      expect(supabase.rpc).toHaveBeenCalledWith('public_event_schedule', { p_event_slug: SLUG })
+      // Apagar la grilla tiene que verse en segundos: nada de stale-while-revalidate largo.
+      expect(response.headers.get('cache-control')).toBe(
+        'public, max-age=0, s-maxage=10, stale-while-revalidate=0',
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('un slug inválido no llega a la RPC', async () => {
+    const { target, supabase } = await publicSetup()
+    try {
+      const response = await fetch(`${target.url}/api/events/${encodeURIComponent('../x')}/schedule-public`)
+      expect([400, 404]).toContain(response.status)
+      expect(supabase.rpc).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('publicar exige sesión de staff con permiso de edición de eventos', async () => {
+    const anonymous = await publicSetup()
+    try {
+      const response = await fetch(`${anonymous.target.url}/api/events/${SLUG}/schedule-public`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ public: true }),
+      })
+      expect([401, 403]).toContain(response.status)
+      expect(anonymous.supabase.rpc).not.toHaveBeenCalledWith(
+        'staff_set_event_schedule_public',
+        expect.anything(),
+      )
+    } finally {
+      await anonymous.target.close()
+    }
+
+    const { target, cookie, supabase } = await setup('plu_arg')
+    try {
+      const response = await post(target, cookie, '/schedule-public', { public: true })
+      expect(response.status).toBe(403)
+      expect(supabase.rpc).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('publicar y retirar llegan a la RPC con el actor', async () => {
+    const { target, cookie, supabase } = await setup()
+    try {
+      const on = await post(target, cookie, '/schedule-public', { public: true })
+      const off = await post(target, cookie, '/schedule-public', { public: false })
+
+      expect(on.status).toBe(200)
+      expect(off.status).toBe(200)
+      expect(supabase.rpc).toHaveBeenNthCalledWith(1, 'staff_set_event_schedule_public', {
+        p_event_slug: SLUG,
+        p_public: true,
+        p_actor: expect.stringContaining(':admin_maximal@platforms.test'),
+      })
+      expect(supabase.rpc).toHaveBeenNthCalledWith(
+        2,
+        'staff_set_event_schedule_public',
+        expect.objectContaining({ p_public: false }),
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza un cuerpo que no es booleano: no hay "publicar por las dudas"', async () => {
+    const { target, cookie, supabase } = await setup()
+    try {
+      const wrongType = await post(target, cookie, '/schedule-public', { public: 'true' })
+      const missing = await post(target, cookie, '/schedule-public', {})
+      expect(wrongType.status).toBe(400)
+      expect(missing.status).toBe(400)
+      expect(supabase.rpc).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+})

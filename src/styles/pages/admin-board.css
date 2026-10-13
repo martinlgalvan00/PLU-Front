@@ -1551,6 +1551,121 @@
   }
 }
 
+/* ── Publicación en el sitio oficial ────────────────────────────────
+   Fila reglada, sin card. El estado se dice con texto además del color y el
+   interruptor mide 44px de alto: esto se opera desde una tablet. */
+.admin-board__publish {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm) var(--space-md);
+  padding: var(--space-xs) 0 var(--space-sm);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.admin-board__publish-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.admin-board__publish-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.admin-board__publish-hint {
+  margin: 2px 0 0;
+  max-width: 72ch;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.admin-board__publish-warn {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--color-warning-text);
+}
+
+.admin-board__switch {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 2px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-family: var(--font-family);
+}
+
+.admin-board__switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-board__switch:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+  border-radius: 999px;
+}
+
+.admin-board__switch-state {
+  min-width: 6ch;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.admin-board__switch-track {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  border: 1px solid var(--color-border-strong, var(--color-border-subtle));
+  border-radius: 999px;
+  background: transparent;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.admin-board__switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  transition:
+    transform var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.admin-board__switch.is-on .admin-board__switch-track {
+  background: var(--color-brand-action);
+  border-color: var(--color-brand-action);
+}
+
+.admin-board__switch.is-on .admin-board__switch-thumb {
+  background: var(--color-bg-canvas, #0a0b0d);
+  transform: translateX(18px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-board__switch-track,
+  .admin-board__switch-thumb {
+    transition: none;
+  }
+}
+
 /* ── Armado automático ──────────────────────────────────────────────
    Región abierta (sin card) entre el ledger y el tablero: criterios a la
    izquierda del flujo, propuesta debajo, confirmar al final. */

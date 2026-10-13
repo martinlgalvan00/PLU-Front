@@ -32,6 +32,7 @@ vi.mock('../src/services/eventRegistrationApi.js', () => ({
   fetchEventSchedule: vi.fn(),
   saveEventPlatforms: vi.fn(),
   saveEventSessions: vi.fn(),
+  setEventSchedulePublic: vi.fn(),
 }))
 
 const {
@@ -40,6 +41,7 @@ const {
   fetchEventBoard,
   saveEventPlatforms,
   saveEventSessions,
+  setEventSchedulePublic,
 } = await import('../src/services/eventRegistrationApi.js')
 const ScheduleBoardSection = (await import('../src/pages/admin/ScheduleBoardSection.jsx')).default
 
@@ -586,5 +588,86 @@ describe('armado automático', () => {
     renderBoard({ canEdit: false })
     await screen.findByText('Atleta 0')
     expect(screen.queryByRole('button', { name: /armar tandas automáticamente/i })).toBeNull()
+  })
+})
+
+describe('publicación en el sitio oficial', () => {
+  const published = (schedulePublic, eventPublished = true) => ({
+    ...board(),
+    schedulePublic,
+    event: { slug: 'pitbull-classic-2026', title: 'Pitbull Classic 2026', published: eventPublished },
+  })
+
+  it('arranca oculta y lo dice con texto, no solo con el color', async () => {
+    fetchEventBoard.mockResolvedValue(published(false))
+    renderBoard()
+
+    const toggle = await screen.findByRole('switch', { name: /mostrar la grilla en el sitio oficial/i })
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
+    expect(within(toggle).getByText('Oculta')).toBeTruthy()
+    expect(screen.getByText(/No se publican nombres/i)).toBeTruthy()
+  })
+
+  it('prenderla publica, relee el tablero y avisa', async () => {
+    fetchEventBoard.mockResolvedValueOnce(published(false))
+    setEventSchedulePublic.mockResolvedValue(true)
+    renderBoard()
+
+    const toggle = await screen.findByRole('switch', { name: /mostrar la grilla/i })
+    fetchEventBoard.mockResolvedValue(published(true))
+    fireEvent.click(toggle)
+
+    await waitFor(() =>
+      expect(setEventSchedulePublic).toHaveBeenCalledWith('pitbull-classic-2026', true),
+    )
+    expect(await screen.findByText('La grilla ya se muestra en el sitio oficial.')).toBeTruthy()
+    await waitFor(() =>
+      expect(screen.getByRole('switch', { name: /mostrar la grilla/i }).getAttribute('aria-checked')).toBe('true'),
+    )
+  })
+
+  it('retirarla también avisa', async () => {
+    fetchEventBoard.mockResolvedValueOnce(published(true))
+    setEventSchedulePublic.mockResolvedValue(false)
+    renderBoard()
+
+    const toggle = await screen.findByRole('switch', { name: /mostrar la grilla/i })
+    fetchEventBoard.mockResolvedValue(published(false))
+    fireEvent.click(toggle)
+
+    await waitFor(() =>
+      expect(setEventSchedulePublic).toHaveBeenCalledWith('pitbull-classic-2026', false),
+    )
+    expect(await screen.findByText(/dejó de mostrarse/i)).toBeTruthy()
+  })
+
+  it('prendida con el evento sin publicar avisa que todavía no se va a ver', async () => {
+    fetchEventBoard.mockResolvedValue(published(true, false))
+    renderBoard()
+    expect(await screen.findByText(/el evento no está publicado/i)).toBeTruthy()
+  })
+
+  it('sin permiso sobre el evento el interruptor está deshabilitado aunque pueda mover atletas', async () => {
+    fetchEventBoard.mockResolvedValue(published(false))
+    renderBoard({ canEdit: true, canEditStructure: false })
+
+    const toggle = await screen.findByRole('switch', { name: /mostrar la grilla/i })
+    expect(toggle.disabled).toBe(true)
+    // Y tampoco ofrece tocar la estructura: tablados, tandas ni armado automático.
+    expect(screen.queryByRole('button', { name: /armar tandas automáticamente/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Editar tanda' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /agregar tanda/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /guardar tablados/i })).toBeNull()
+    // Mover atletas sigue funcionando.
+    fireEvent.click(screen.getByLabelText(/seleccionar a ana torres/i))
+    const bar = await screen.findByRole('region', { name: /mover atletas/i })
+    expect(within(bar).getByRole('button', { name: /^mover$/i }).disabled).toBe(true) // sin destino todavía
+  })
+
+  it('sin ningún permiso no se puede publicar', async () => {
+    fetchEventBoard.mockResolvedValue(published(false))
+    renderBoard({ canEdit: false })
+    const toggle = await screen.findByRole('switch', { name: /mostrar la grilla/i })
+    expect(toggle.disabled).toBe(true)
   })
 })
