@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
-import { resolvePlacementBatches, sessionsPayloadFromBoard } from '../services/eventBoardPlanner.js'
+import {
+  nextSessionName,
+  resolvePlacementBatches,
+  sessionsPayloadFromBoard,
+} from '../services/eventBoardPlanner.js'
 import {
   assignRegistrationSchedule,
   autofillEventDay,
   fetchEventBoard,
+  saveEventPlatforms,
   saveEventSessions,
 } from '../services/eventRegistrationApi.js'
 
@@ -138,6 +143,85 @@ export function useEventBoard(eventSlug, { enabled = true } = {}) {
   )
 
   /**
+   * Define cuántos tablados tiene el evento y cómo se llaman. Manda el set
+   * completo: lo que falta se quita y sus tandas quedan "sin tablado".
+   */
+  const savePlatforms = useCallback(
+    async (platforms) => {
+      if (!eventSlug) return false
+      setBusy(true)
+      setError(null)
+      try {
+        await saveEventPlatforms(eventSlug, platforms)
+        await load()
+        return true
+      } catch (saveError) {
+        setError(saveError?.message ?? 'No se pudieron guardar los tablados.')
+        return false
+      } finally {
+        setBusy(false)
+      }
+    },
+    [eventSlug, load],
+  )
+
+  /**
+   * Alta de una tanda desde el tablero, en un día y (si hay) un tablado. El
+   * nombre sale de la siguiente letra libre. Devuelve el nombre creado.
+   */
+  const addSession = useCallback(
+    async ({ dayIndex, platformId = null }) => {
+      if (!eventSlug) return null
+      const days = board?.days ?? []
+      const name = nextSessionName(
+        days.flatMap((day) => (day.sessions ?? []).map((session) => session.name)),
+      )
+      const platform = (board?.platforms ?? []).find((item) => item.id === platformId)
+      setBusy(true)
+      setError(null)
+      try {
+        await saveEventSessions(
+          eventSlug,
+          sessionsPayloadFromBoard(days, {
+            extra: [{ dayIndex, name, platform: platform?.name ?? '', platformId }],
+          }),
+        )
+        await load()
+        return name
+      } catch (saveError) {
+        setError(saveError?.message ?? 'No se pudo crear la tanda.')
+        return null
+      } finally {
+        setBusy(false)
+      }
+    },
+    [board?.days, board?.platforms, eventSlug, load],
+  )
+
+  /** Quita una tanda. El RPC la rechaza si todavía tiene atletas asignados. */
+  const removeSession = useCallback(
+    async (sessionId) => {
+      if (!eventSlug) return false
+      setBusy(true)
+      setError(null)
+      try {
+        await saveEventSessions(
+          eventSlug,
+          sessionsPayloadFromBoard(board?.days ?? [], { omitIds: [sessionId] }),
+        )
+        await load()
+        return true
+      } catch (saveError) {
+        setError(saveError?.message ?? 'No se pudo quitar la tanda.')
+        return false
+      } finally {
+        setBusy(false)
+      }
+    },
+    [board?.days, eventSlug, load],
+  )
+
+  /**
    * Aplica un preview: crea las tandas nuevas (set completo) y asigna por
    * lote. Un solo ciclo de busy; el tablero se reléé al final, no entre tandas.
    */
@@ -200,7 +284,11 @@ export function useEventBoard(eventSlug, { enabled = true } = {}) {
     assign,
     autofill,
     saveSessions,
+    savePlatforms,
+    addSession,
+    removeSession,
     applyPlan,
+    platforms: board?.platforms ?? [],
     days: board?.days ?? [],
     unassigned: board?.unassigned ?? [],
     totals: board?.totals ?? { registered: 0, assigned: 0, unassigned: 0 },

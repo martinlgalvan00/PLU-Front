@@ -98,6 +98,18 @@ function formatWeightRange(athletes) {
   return min === max ? `${format(min)} kg` : `${format(min)}–${format(max)} kg`
 }
 
+/** "19–23 años" / "19 años"; vacío si ninguno cargó fecha de nacimiento. */
+export function formatAgeRange(athletes) {
+  const ages = athletes
+    .map((athlete) => athlete?.age)
+    .filter((value) => value !== null && value !== undefined && Number.isFinite(Number(value)))
+    .map(Number)
+  if (ages.length === 0) return ''
+  const min = Math.min(...ages)
+  const max = Math.max(...ages)
+  return min === max ? `${min} años` : `${min}–${max} años`
+}
+
 export function summarizeComposition(athletes) {
   if (!athletes?.length) return ''
   const sexes = uniqueValues(athletes, 'sex')
@@ -108,6 +120,7 @@ export function summarizeComposition(athletes) {
     categories.length === 1 ? categories[0] : null,
     divisions.length === 1 ? divisions[0] : null,
     formatWeightRange(athletes),
+    formatAgeRange(athletes),
   ]
     .filter(Boolean)
     .join(' · ')
@@ -216,6 +229,8 @@ export function sessionsPayloadFromBoard(days = [], { extra = [], omitIds = [] }
         dayIndex: day.dayIndex,
         name: session.name,
         platform: session.platform ?? '',
+        // Sin la clave el RPC enlaza por nombre; con ella (incluso null) manda el id.
+        ...(session.platformId !== undefined ? { platformId: session.platformId } : {}),
         weighInAt: session.weighInAt ?? '',
         startsAt: session.startsAt ?? '',
         sortOrder: session.sortOrder ?? 0,
@@ -226,6 +241,7 @@ export function sessionsPayloadFromBoard(days = [], { extra = [], omitIds = [] }
     dayIndex: session.dayIndex,
     name: session.name,
     platform: session.platform ?? '',
+    ...(session.platformId !== undefined ? { platformId: session.platformId } : {}),
     weighInAt: session.weighInAt ?? '',
     startsAt: session.startsAt ?? '',
     sortOrder: maxSort + index + 1,
@@ -282,6 +298,57 @@ export function matchesQuery(athlete, query) {
   const needle = text(query).toLowerCase()
   if (!needle) return true
   return `${text(athlete.fullName)} ${text(athlete.gym)}`.toLowerCase().includes(needle)
+}
+
+function inRange(value, min, max) {
+  const hasMin = min !== '' && min !== null && min !== undefined && Number.isFinite(Number(min))
+  const hasMax = max !== '' && max !== null && max !== undefined && Number.isFinite(Number(max))
+  if (!hasMin && !hasMax) return true
+  // Sin dato no se puede afirmar que entre en el rango: queda afuera del filtro.
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return false
+  const number = Number(value)
+  if (hasMin && number < Number(min)) return false
+  if (hasMax && number > Number(max)) return false
+  return true
+}
+
+export const EMPTY_POOL_FILTERS = Object.freeze({
+  query: '',
+  sex: '',
+  category: '',
+  division: '',
+  weightMin: '',
+  weightMax: '',
+  ageMin: '',
+  ageMax: '',
+})
+
+export function hasActivePoolFilters(filters) {
+  return Object.keys(EMPTY_POOL_FILTERS).some((key) => text(filters?.[key]) !== '')
+}
+
+/** Filtro combinado de la bolsa: búsqueda, facets, peso y edad. */
+export function matchesPoolFilters(athlete, filters = EMPTY_POOL_FILTERS) {
+  if (!matchesQuery(athlete, filters.query)) return false
+  for (const kind of ['sex', 'category', 'division']) {
+    if (!matchesFacet(athlete, { kind, value: text(filters[kind]) })) return false
+  }
+  return (
+    inRange(athlete?.bodyweightKg, filters.weightMin, filters.weightMax) &&
+    inRange(athlete?.age, filters.ageMin, filters.ageMax)
+  )
+}
+
+/** Cuántos de la tanda hay vs el tope, y si mezcla sexos (aviso al operador). */
+export function sessionStats(athletes = [], maxPerSession = DEFAULT_FLIGHT_SIZE) {
+  const sexes = uniqueValues(athletes, 'sex')
+  return {
+    count: athletes.length,
+    capacity: maxPerSession,
+    over: athletes.length > maxPerSession,
+    mixedSex: sexes.length > 1,
+    composition: summarizeComposition(athletes),
+  }
 }
 
 function dayLabelOf(days, dayIndex) {

@@ -1,5 +1,5 @@
 import { apiGet, apiPost } from '../lib/api.js'
-import { toCamelEventSchedule } from '../lib/eventSchedule.js'
+import { toCamelEventPlatform, toCamelEventSchedule } from '../lib/eventSchedule.js'
 
 /**
  * Summary público de cupos de inscripción de atletas + recientes sanitizados.
@@ -55,6 +55,17 @@ export async function saveEventSessions(eventSlug, sessions) {
 }
 
 /**
+ * Reemplaza el set de tablados del evento. Los que traen `id` se renombran; los
+ * que no, se crean; los que faltan se quitan y sus tandas quedan sin tablado.
+ */
+export async function saveEventPlatforms(eventSlug, platforms) {
+  const { schedule } = await apiPost(`/api/events/${encodeURIComponent(eventSlug)}/platforms`, {
+    platforms,
+  })
+  return toCamelEventSchedule(schedule)
+}
+
+/**
  * Asigna día/tanda a un lote de inscripciones. Con `dayIndex` y `sessionId` en
  * null la asignación se limpia y vuelven a "a confirmar".
  *
@@ -88,6 +99,8 @@ function toCamelBoardAthlete(row) {
     category: row.category ?? '',
     bodyweightKg: row.bodyweightKg ?? row.bodyweight_kg ?? null,
     sex: row.sex ?? null,
+    // Edad al día que arranca el evento; null si el atleta no cargó nacimiento.
+    age: row.age === null || row.age === undefined ? null : Number(row.age),
     status: row.status,
     checkedIn: Boolean(row.checkedIn ?? row.checked_in),
   }
@@ -98,6 +111,7 @@ function toCamelBoardSession(row) {
     id: row.id,
     name: row.name ?? '',
     platform: row.platform ?? '',
+    platformId: row.platformId ?? row.platform_id ?? null,
     weighInAt: row.weighInAt ?? row.weigh_in_at ?? null,
     startsAt: row.startsAt ?? row.starts_at ?? null,
     sortOrder: row.sortOrder ?? row.sort_order ?? 0,
@@ -108,6 +122,7 @@ function toCamelBoardSession(row) {
 export function toCamelEventBoard(payload) {
   return {
     event: payload?.event ?? null,
+    platforms: (payload?.platforms ?? []).map(toCamelEventPlatform),
     totals: {
       registered: Number(payload?.totals?.registered ?? 0),
       assigned: Number(payload?.totals?.assigned ?? 0),

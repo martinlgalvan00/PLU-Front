@@ -196,3 +196,48 @@ export const SoloLectura = {
   args: { adminEvents, canEdit: false, onGoToEvents: () => undefined },
   decorators: [withBoard(FULL_BOARD)],
 }
+
+/** Bolsa grande con sexo, edad y peso variados: lo que hay que filtrar y agrupar. */
+function bigPool() {
+  const names = ['Ana', 'Luz', 'Mica', 'Sofi', 'Vale', 'Pau', 'Lucas', 'Tomás', 'Nico', 'Facu']
+  const surnames = ['Torres', 'Ruiz', 'Paz', 'Ferro', 'Sosa', 'Medina', 'Aguirre', 'Navarro']
+  const divisions = ['Open', 'Junior', 'Youth', 'Sub-Masters', 'Masters']
+  const ages = { Open: 27, Junior: 21, Youth: 17, 'Sub-Masters': 36, Masters: 47 }
+  const weights = [52, 57, 63, 69, 76, 83, 93, 105]
+  return Array.from({ length: 48 }, (_, index) => {
+    const division = divisions[index % divisions.length]
+    const female = index % 3 !== 0
+    return athlete(`big-${index}`, `${names[index % names.length]} ${surnames[(index * 3) % surnames.length]}`, {
+      division,
+      category: index % 4 === 0 ? 'Raw With Wraps' : 'Raw',
+      sex: female ? 'Femenino' : 'Masculino',
+      age: ages[division] + (index % 5),
+      bodyweightKg: weights[(index * 5) % weights.length],
+      gym: ['Barra Fija', 'PLU Norte', 'Iron House', 'Savage'][index % 4],
+    })
+  })
+}
+
+const DOUBLE_BOARD = {
+  ...FULL_BOARD,
+  platforms: [
+    { id: 'plat-1', name: 'Tablado 1', sortOrder: 0 },
+    { id: 'plat-2', name: 'Tablado 2', sortOrder: 1 },
+  ],
+  totals: { registered: 52, assigned: 4, unassigned: 48 },
+  days: FULL_BOARD.days.map((day) => ({
+    ...day,
+    sessions: day.sessions.map((session, index) => ({
+      ...session,
+      platformId: index % 2 === 0 ? 'plat-1' : 'plat-2',
+      athletes: session.athletes.map((row) => ({ ...row, sex: 'Femenino', age: 24 })),
+    })),
+  })),
+  unassigned: bigPool(),
+}
+
+/** Doble tablado: una columna por tablado, bolsa con filtros por sexo, edad y peso. */
+export const DobleTablado = {
+  args: { adminEvents, canEdit: true, onGoToEvents: () => undefined },
+  decorators: [withBoard(DOUBLE_BOARD)],
+}

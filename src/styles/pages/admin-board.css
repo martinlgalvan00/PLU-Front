@@ -487,12 +487,14 @@
   margin-inline-start: auto;
   min-height: 28px;
   padding: 2px 0;
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-color: var(--color-brand-celeste);
+  text-underline-offset: 4px;
   font-size: 11px;
   font-weight: 650;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-brand-celeste);
+  color: var(--color-text-primary);
   white-space: nowrap;
 }
 
@@ -567,8 +569,8 @@
   gap: 1px 12px;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
-    'name specs'
-    'gym specs';
+    'name weight'
+    'specs specs';
   align-items: baseline;
 }
 
@@ -579,27 +581,22 @@
   letter-spacing: -0.015em;
 }
 
-.admin-board__pool .admin-board__athlete-meta--specs {
-  grid-area: specs;
-  align-self: center;
-  color: var(--color-text-secondary, var(--color-text-muted));
-  font-size: 11px;
+.admin-board__athlete-weight {
+  grid-area: weight;
+  color: var(--color-text-primary);
+  font-size: 12.5px;
   font-variant-numeric: tabular-nums;
-  font-weight: 550;
-  letter-spacing: 0.01em;
-  line-height: 1.25;
-  text-align: right;
+  font-weight: 700;
   white-space: nowrap;
 }
 
-.admin-board__athlete-gym {
-  grid-area: gym;
+.admin-board__pool .admin-board__athlete-meta--specs {
+  grid-area: specs;
   color: var(--color-text-muted);
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.005em;
   line-height: 1.3;
-  margin-top: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -628,20 +625,6 @@
 
   .admin-board__pool .admin-board__athlete {
     padding: 8px 2px;
-  }
-}
-
-@container admin-board (max-width: 899px) {
-  .admin-board__pool .admin-board__athlete-body {
-    grid-template-areas:
-      'name name'
-      'specs specs'
-      'gym gym';
-    grid-template-columns: 1fr;
-  }
-
-  .admin-board__pool .admin-board__athlete-meta--specs {
-    text-align: left;
   }
 }
 
@@ -1076,7 +1059,7 @@
   }
 
   .admin-board__pool {
-    max-height: min(36vh, 280px);
+    max-height: min(78vh, 640px);
   }
 
   .admin-board__pool,
@@ -1125,6 +1108,446 @@
 
   .admin-board__totals {
     gap: 6px 8px;
+  }
+}
+
+/* ── Tablados ───────────────────────────────────────────────────────
+   Primera pregunta del tablero cuando el evento no tiene ninguno; con ellos,
+   una fila reglada (sin card) para renombrar o sumar el segundo. */
+.admin-board__platform-setup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm) var(--space-lg);
+  padding: var(--space-sm) 0 var(--space-md);
+  border-bottom: 1px solid var(--color-brand-gold);
+}
+
+.admin-board__platform-setup-copy {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.admin-board__platform-setup-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.admin-board__platform-setup-lead {
+  margin: 2px 0 0;
+  max-width: 56ch;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.admin-board__platform-setup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.admin-board__platform-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-md);
+  padding: var(--space-xs) 0 var(--space-sm);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.admin-board__platform-bar-count {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.admin-board__platform-bar-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.admin-board__platform-bar-names {
+  display: flex;
+  flex: 1 1 260px;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-md);
+  min-width: 0;
+}
+
+.admin-board__platform-field {
+  flex: 1 1 140px;
+  min-width: 0;
+  max-width: 260px;
+}
+
+.admin-board__platform-field input {
+  min-height: 38px;
+  width: 100%;
+  min-width: 0;
+  padding: 7px 2px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border-subtle);
+  border-radius: 0;
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 650;
+  transition: border-color var(--transition-fast);
+}
+
+.admin-board__platform-field input:focus-visible {
+  outline: none;
+  border-bottom-color: var(--color-brand-celeste);
+}
+
+.admin-board__platform-field input[aria-invalid='true'] {
+  border-bottom-color: var(--color-danger-text);
+}
+
+.admin-board__platform-bar-actions {
+  display: flex;
+  align-items: center;
+}
+
+.admin-board__platform-warning {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--color-warning-text);
+}
+
+/* ── Filtros de la bolsa ────────────────────────────────────────────── */
+.admin-board__toolbar {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-xs) 0 var(--space-sm);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+}
+
+.admin-board__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+  transition: border-color var(--transition-fast);
+}
+
+.admin-board__search:focus-within {
+  border-bottom-color: var(--color-brand-celeste);
+}
+
+.admin-board__search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 7px 0;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: 13.5px;
+}
+
+.admin-board__search input:focus-visible {
+  outline: none;
+}
+
+.admin-board__filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-xs) var(--space-sm);
+}
+
+.admin-board__filter {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-board__filter > span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.admin-board__filter select,
+.admin-board__filter input {
+  min-height: 34px;
+  min-width: 0;
+  width: 100%;
+  padding: 5px 2px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border-subtle);
+  border-radius: 0;
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+}
+
+.admin-board__filter select:focus-visible,
+.admin-board__filter input:focus-visible {
+  outline: none;
+  border-bottom-color: var(--color-brand-celeste);
+}
+
+.admin-board__filter-more > summary {
+  min-height: 28px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+  list-style-position: inside;
+}
+
+.admin-board__filter-more > summary:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-board__filter-ranges {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-xs) var(--space-md);
+  padding-top: var(--space-xs);
+}
+
+.admin-board__filter-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.admin-board__filter-pair > legend {
+  padding: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.admin-board__filter-pair-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-xs);
+}
+
+.admin-board__toolbar-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs) var(--space-sm);
+}
+
+.admin-board__filter-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--space-sm);
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ── Vista por grupo ────────────────────────────────────────────────── */
+.admin-board__group + .admin-board__group {
+  margin-top: var(--space-sm);
+}
+
+.admin-board__group-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 6px 0 4px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.admin-board__group-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--color-text-primary);
+}
+
+.admin-board__group-select {
+  flex: none;
+  min-height: 28px;
+  padding: 2px 0;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-decoration-color: var(--color-brand-celeste);
+  text-underline-offset: 4px;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+/* ── Carriles por tablado ───────────────────────────────────────────
+   Una columna por tablado cuando el tablero tiene aire; apiladas si no.
+   El corte mira el ancho del tablero, no el viewport. */
+.admin-board__lanes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md) var(--space-xl);
+  align-items: start;
+}
+
+.admin-board__lane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.admin-board__lane-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px var(--space-sm);
+  padding-bottom: 4px;
+  border-bottom: 2px solid color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+}
+
+.admin-board__lane-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+}
+
+.admin-board__lane-count {
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+@container admin-board (min-width: 1100px) {
+  .admin-board__lanes[data-lanes='2'],
+  .admin-board__lanes[data-lanes='3'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.admin-board__add-session {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 2px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-board__add-session svg {
+  color: var(--color-brand-celeste);
+}
+
+.admin-board__add-session:hover:not(:disabled) {
+  text-decoration: underline;
+  text-decoration-color: var(--color-brand-celeste);
+  text-underline-offset: 4px;
+}
+
+.admin-board__add-session:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-board__add-session:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ── Ocupación y composición de la tanda ────────────────────────────── */
+.admin-board__occupancy {
+  flex: none;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+.admin-board__occupancy.is-over {
+  color: var(--color-warning-text);
+}
+
+.admin-board__session-composition {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--space-sm);
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+/* La advertencia se nombra con texto además del color. */
+.admin-board__flag {
+  font-weight: 700;
+  color: var(--color-warning-text);
+}
+
+.admin-board__icon-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+@container admin-board (max-width: 719px) {
+  .admin-board__filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-board__platform-field input,
+  .admin-board__filter select,
+  .admin-board__filter input,
+  .admin-board__search input {
+    min-height: 44px;
+  }
+
+  .admin-board__add-session,
+  .admin-board__group-select {
+    min-height: 44px;
   }
 }
 

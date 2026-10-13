@@ -603,6 +603,9 @@ const eventSessionSchema = z.object({
   dayIndex: z.coerce.number().int().min(0).max(30),
   name: z.string().trim().min(1).max(80),
   platform: z.string().trim().max(80).optional(),
+  // Sin la clave, el RPC enlaza por nombre (editor legado de solo texto); con
+  // null, la tanda queda sin tablado.
+  platformId: z.string().uuid().nullable().optional(),
   weighInAt: optionalDateTime,
   startsAt: optionalDateTime,
   sortOrder: z.coerce.number().int().min(0).max(1000).optional(),
@@ -610,6 +613,21 @@ const eventSessionSchema = z.object({
 
 const eventSessionsSchema = z.object({
   sessions: z.array(eventSessionSchema).max(60),
+})
+
+/**
+ * Tablados del evento: 1 o 2 en la práctica (el RPC admite hasta 4). El set
+ * viaja completo; lo que no viene se quita y sus tandas quedan sin tablado.
+ */
+const eventPlatformsSchema = z.object({
+  platforms: z
+    .array(
+      z.object({
+        id: z.string().uuid().optional(),
+        name: z.string().trim().min(1).max(80),
+      }),
+    )
+    .max(4),
 })
 
 /**
@@ -1358,6 +1376,31 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
           }),
           'No se pudieron guardar las tandas.',
+        )
+        res.json({ schedule })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /** Tablados del evento (nombre editable). Reemplaza el set completo. */
+  router.post(
+    '/:eventSlug/platforms',
+    ...editGuard,
+    staffLimiter,
+    validateBody(eventPlatformsSchema),
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const schedule = assertSupabaseResult(
+          await client.rpc('staff_save_event_platforms', {
+            p_event_slug: slug,
+            p_platforms: req.validatedBody.platforms,
+            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          }),
+          'No se pudieron guardar los tablados.',
         )
         res.json({ schedule })
       } catch (error) {
