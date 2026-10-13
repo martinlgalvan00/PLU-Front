@@ -14,6 +14,7 @@ import {
 import { CalendarClock, Pencil, Plus, Sparkles, Trash2, UserCheck, Users } from 'lucide-react'
 import PlanPanel from '../../components/admin/board/PlanPanel.jsx'
 import PlatformBar from '../../components/admin/board/PlatformBar.jsx'
+import PublishToggle from '../../components/admin/board/PublishToggle.jsx'
 import PoolToolbar from '../../components/admin/board/PoolToolbar.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useEventBoard } from '../../hooks/useEventBoard.js'
@@ -129,7 +130,15 @@ function fromLocalInputValue(value) {
  * Las tandas se editan inline (nombre, plataforma, pesaje) sin salir del
  * tablero, via `saveSessions` → RPC staff_save_event_sessions.
  */
-export default function ScheduleBoardSection({ adminEvents = [], canEdit = false, onGoToEvents }) {
+export default function ScheduleBoardSection({
+  adminEvents = [],
+  canEdit = false,
+  // Tablados, tandas y publicación son estructura del evento (admin.events.write);
+  // mover atletas es de inscripciones. Sin el permiso aparte se hereda canEdit.
+  canEditStructure,
+  onGoToEvents,
+}) {
+  const canStructure = canEditStructure ?? canEdit
   const { locale, t } = useI18n()
 
   const eventOptions = useMemo(
@@ -166,6 +175,7 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
     applyPlan,
     assign,
     autofill,
+    board,
     busy,
     days,
     error,
@@ -173,6 +183,8 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
     removeSession,
     savePlatforms,
     saveSessions,
+    schedulePublic,
+    setSchedulePublic,
     status,
     totals,
     unassigned,
@@ -340,6 +352,11 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
     setNotice(t('admin.board.sessionRemoved'))
   }
 
+  async function handleTogglePublic(next) {
+    if (!(await setSchedulePublic(next))) return
+    setNotice(t(next ? 'admin.board.publishedOn' : 'admin.board.publishedOff'))
+  }
+
   async function handleSavePlatforms(next) {
     const ok = await savePlatforms(next)
     if (ok) setNotice(t('admin.board.platformsSaved'))
@@ -425,10 +442,19 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
 
           <PlatformBar
             busy={busy}
-            canEdit={canEdit}
+            canEdit={canStructure}
             onSave={handleSavePlatforms}
             platforms={platforms}
             t={t}
+          />
+
+          <PublishToggle
+            busy={busy}
+            canEdit={canStructure}
+            eventPublished={board?.event?.published}
+            onChange={handleTogglePublic}
+            t={t}
+            value={schedulePublic}
           />
 
           {sessionsMissing && (
@@ -443,7 +469,7 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
             </p>
           )}
 
-          {canEdit && days.length > 0 && unassigned.length > 0 ? (
+          {canEdit && canStructure && days.length > 0 && unassigned.length > 0 ? (
             <div className="admin-board__plan-toggle">
               <Button
                 type="button"
@@ -509,6 +535,7 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
                   busy={busy}
                   canDrag={dndEnabled}
                   canEdit={canEdit}
+                  canStructure={canStructure}
                   day={day}
                   editingSession={editingSession}
                   flightSize={flightSize}
@@ -828,6 +855,7 @@ function DayColumn({
   busy,
   canDrag,
   canEdit,
+  canStructure,
   day,
   editingSession,
   flightSize,
@@ -937,7 +965,7 @@ function DayColumn({
                 <SessionItem
                   busy={busy}
                   canDrag={canDrag}
-                  canEdit={canEdit}
+                  canStructure={canStructure}
                   day={day}
                   editingSession={editingSession}
                   flightSize={flightSize}
@@ -958,7 +986,7 @@ function DayColumn({
                 />
               ))}
 
-              {canEdit && lane.key !== 'none' ? (
+              {canStructure && lane.key !== 'none' ? (
                 <button
                   type="button"
                   className="admin-board__add-session"
@@ -1001,7 +1029,7 @@ function DayColumn({
 function SessionItem({
   busy,
   canDrag,
-  canEdit,
+  canStructure,
   day,
   editingSession,
   flightSize,
@@ -1112,7 +1140,7 @@ function SessionItem({
             >
               {t('admin.board.occupancy', { count: stats.count, max: stats.capacity })}
             </span>
-            {canEdit && (
+            {canStructure && (
               <button
                 type="button"
                 className="admin-board__icon-btn"
@@ -1123,7 +1151,7 @@ function SessionItem({
                 <Pencil size={13} aria-hidden />
               </button>
             )}
-            {canEdit && (
+            {canStructure && (
               <button
                 type="button"
                 className="admin-board__icon-btn"

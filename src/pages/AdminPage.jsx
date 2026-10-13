@@ -496,6 +496,7 @@ export default function AdminPage({
         <ScheduleBoardSection
           adminEvents={adminEvents}
           canEdit={hasPermission(authorization, 'admin.registrations.write')}
+          canEditStructure={hasPermission(authorization, 'admin.events.write')}
           onGoToEvents={() => setSection('events')}
         />
       )

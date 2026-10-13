@@ -1572,6 +1572,17 @@ export default {
     planConfirm: 'Confirmar: {{count}} atletas, {{sessions}} tandas nuevas',
     planApplied: 'Se ubicaron {{count}} atletas.',
     planAppliedPartial: 'Se ubicaron {{count}} de {{total}}. Quedan {{leftover}} sin lugar.',
+    publishTitle: 'Mostrar la grilla en el sitio oficial',
+    publishOffHint:
+      'Apagado: nadie ve las tandas en el sitio. Al prenderlo se publican tandas, tablado, horario y composición (sexo, categoría, división, peso y edad). No se publican nombres.',
+    publishOnHint:
+      'Visible en la página del evento: tandas por tablado, horario y composición. Sin nombres de atletas ni clubes.',
+    publishEventHidden:
+      'El evento no está publicado: la grilla no se verá hasta que lo publiques.',
+    publishOn: 'Visible',
+    publishOff: 'Oculta',
+    publishedOn: 'La grilla ya se muestra en el sitio oficial.',
+    publishedOff: 'La grilla dejó de mostrarse en el sitio oficial.',
     platformsLabel: 'Tablados',
     platformsSetupTitle: '¿Cuántos tablados tiene el evento?',
     platformsSetupLead:

@@ -1551,6 +1551,16 @@ export default {
     planConfirm: 'Confirm: {{count}} athletes, {{sessions}} new flights',
     planApplied: '{{count}} athletes placed.',
     planAppliedPartial: '{{count}} of {{total}} placed. {{leftover}} left without room.',
+    publishTitle: 'Show the grid on the official site',
+    publishOffHint:
+      'Off: nobody sees the flights on the site. Turning it on publishes flights, platform, time and composition (sex, category, division, weight and age). Names are not published.',
+    publishOnHint:
+      'Visible on the event page: flights by platform, time and composition. No athlete or gym names.',
+    publishEventHidden: 'The event is not published: the grid will not show until you publish it.',
+    publishOn: 'Visible',
+    publishOff: 'Hidden',
+    publishedOn: 'The grid is now shown on the official site.',
+    publishedOff: 'The grid is no longer shown on the official site.',
     platformsLabel: 'Platforms',
     platformsSetupTitle: 'How many platforms does the event have?',
     platformsSetupLead:

@@ -1,5 +1,6 @@
 import { apiGet, apiPost } from '../lib/api.js'
 import { toCamelEventPlatform, toCamelEventSchedule } from '../lib/eventSchedule.js'
+import { normalizePublicSchedule } from '../lib/publicSchedule.js'
 
 /**
  * Summary público de cupos de inscripción de atletas + recientes sanitizados.
@@ -66,6 +67,26 @@ export async function saveEventPlatforms(eventSlug, platforms) {
 }
 
 /**
+ * Grilla publicada del evento, sin sesión. Apagada o con el evento sin publicar
+ * llega `enabled: false` y no hay nada que mostrar.
+ */
+export async function fetchPublicEventSchedule(eventSlug) {
+  const { schedule } = await apiGet(`/api/events/${encodeURIComponent(eventSlug)}/schedule-public`)
+  return normalizePublicSchedule(schedule)
+}
+
+/**
+ * Publica o retira la grilla del sitio oficial. Devuelve el estado resultante.
+ * Requiere `admin.events.write`.
+ */
+export async function setEventSchedulePublic(eventSlug, isPublic) {
+  const result = await apiPost(`/api/events/${encodeURIComponent(eventSlug)}/schedule-public`, {
+    public: Boolean(isPublic),
+  })
+  return Boolean(result?.schedulePublic)
+}
+
+/**
  * Asigna día/tanda a un lote de inscripciones. Con `dayIndex` y `sessionId` en
  * null la asignación se limpia y vuelven a "a confirmar".
  *
@@ -122,6 +143,7 @@ function toCamelBoardSession(row) {
 export function toCamelEventBoard(payload) {
   return {
     event: payload?.event ?? null,
+    schedulePublic: Boolean(payload?.schedulePublic),
     platforms: (payload?.platforms ?? []).map(toCamelEventPlatform),
     totals: {
       registered: Number(payload?.totals?.registered ?? 0),

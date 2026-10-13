@@ -10,6 +10,7 @@ import {
   fetchEventBoard,
   saveEventPlatforms,
   saveEventSessions,
+  setEventSchedulePublic,
 } from '../services/eventRegistrationApi.js'
 
 /**
@@ -166,6 +167,29 @@ export function useEventBoard(eventSlug, { enabled = true } = {}) {
   )
 
   /**
+   * Publica o retira la grilla del sitio oficial. Se relee el tablero: el
+   * estado que manda es el del servidor, no el del interruptor.
+   */
+  const setSchedulePublic = useCallback(
+    async (isPublic) => {
+      if (!eventSlug) return false
+      setBusy(true)
+      setError(null)
+      try {
+        await setEventSchedulePublic(eventSlug, isPublic)
+        await load()
+        return true
+      } catch (publishError) {
+        setError(publishError?.message ?? 'No se pudo cambiar la visibilidad de la grilla.')
+        return false
+      } finally {
+        setBusy(false)
+      }
+    },
+    [eventSlug, load],
+  )
+
+  /**
    * Alta de una tanda desde el tablero, en un día y (si hay) un tablado. El
    * nombre sale de la siguiente letra libre. Devuelve el nombre creado.
    */
@@ -285,10 +309,12 @@ export function useEventBoard(eventSlug, { enabled = true } = {}) {
     autofill,
     saveSessions,
     savePlatforms,
+    setSchedulePublic,
     addSession,
     removeSession,
     applyPlan,
     platforms: board?.platforms ?? [],
+    schedulePublic: board?.schedulePublic ?? false,
     days: board?.days ?? [],
     unassigned: board?.unassigned ?? [],
     totals: board?.totals ?? { registered: 0, assigned: 0, unassigned: 0 },

@@ -619,6 +619,8 @@ const eventSessionsSchema = z.object({
  * Tablados del evento: 1 o 2 en la práctica (el RPC admite hasta 4). El set
  * viaja completo; lo que no viene se quita y sus tandas quedan sin tablado.
  */
+const eventSchedulePublicSchema = z.object({ public: z.boolean() })
+
 const eventPlatformsSchema = z.object({
   platforms: z
     .array(
@@ -814,6 +816,28 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       res.json({
         events: Array.isArray(events) ? events.map((row) => sanitizePublicCatalogEvent(row)) : [],
       })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Grilla pública del evento (sin auth): tandas por tablado con su composición.
+   * Apagada o con el evento sin publicar devuelve `{ enabled: false }` y nada
+   * más. Nunca lleva nombres: ver `public_event_schedule`.
+   */
+  router.get('/:eventSlug/schedule-public', publicReadLimiter, async (req, res, next) => {
+    try {
+      const slug = parseEventSlug(req.params.eventSlug)
+      const client = requireSupabaseClient(getSupabaseAdmin())
+      const schedule = assertSupabaseResult(
+        await client.rpc('public_event_schedule', { p_event_slug: slug }),
+        'No se pudo consultar la grilla del evento.',
+      )
+      // Apagar la grilla es una decisión deliberada del staff: cache corto y sin
+      // stale-while-revalidate, así que deja de verse a lo sumo en 10 s.
+      res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.LIVE, { staleFor: 0 }))
+      res.json({ schedule })
     } catch (error) {
       next(error)
     }
@@ -1378,6 +1402,31 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           'No se pudieron guardar las tandas.',
         )
         res.json({ schedule })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /** Publica o retira la grilla del sitio oficial. Arranca apagada. */
+  router.post(
+    '/:eventSlug/schedule-public',
+    ...editGuard,
+    staffLimiter,
+    validateBody(eventSchedulePublicSchema),
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const result = assertSupabaseResult(
+          await client.rpc('staff_set_event_schedule_public', {
+            p_event_slug: slug,
+            p_public: req.validatedBody.public,
+            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          }),
+          'No se pudo cambiar la visibilidad de la grilla.',
+        )
+        res.json(result)
       } catch (error) {
         next(error)
       }

@@ -1,0 +1,126 @@
+/* ═══════════════════════════════════════════════════════════════════
+   public-event-schedule.css — PLU ARG
+   Grilla de competencia publicada (tandas por tablado).
+
+   Flujo abierto: reglas y columnas, sin cards. Un solo acento (oro) en
+   la cabecera de cada tablado. El corte a columnas mira el ancho del
+   contenedor, no el viewport.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.public-schedule {
+  container-name: public-schedule;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(28px, 4vw, 44px);
+  min-width: 0;
+}
+
+.public-schedule__day-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  margin: 0 0 clamp(12px, 2vw, 18px);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(18px, 2.4vw, 22px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+}
+
+.public-schedule__day-date {
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.public-schedule__lanes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(20px, 3vw, 32px) clamp(24px, 4vw, 48px);
+  align-items: start;
+}
+
+@container public-schedule (min-width: 640px) {
+  .public-schedule__lanes[data-lanes='2'],
+  .public-schedule__lanes[data-lanes='3'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.public-schedule__lane {
+  min-width: 0;
+}
+
+.public-schedule__lane-name {
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--color-brand-gold);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+}
+
+.public-schedule__sessions {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.public-schedule__session {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.public-schedule__session-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.public-schedule__session-name {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+}
+
+.public-schedule__session-count {
+  flex: none;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.public-schedule__session-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary, var(--color-text-muted));
+}
+
+.public-schedule__session-times time {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.public-schedule__session-composition {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
