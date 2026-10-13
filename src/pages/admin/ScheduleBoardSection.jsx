@@ -12,6 +12,7 @@ import {
   useSensors,
 } from '@dnd-kit/core'
 import { CalendarClock, Pencil, Plus, Sparkles, Trash2, UserCheck, Users } from 'lucide-react'
+import PlanPanel from '../../components/admin/board/PlanPanel.jsx'
 import PlatformBar from '../../components/admin/board/PlatformBar.jsx'
 import PoolToolbar from '../../components/admin/board/PoolToolbar.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -147,6 +148,7 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
   const [editingSession, setEditingSession] = useState(null)
   const [poolFilters, setPoolFilters] = useState(() => ({ ...EMPTY_POOL_FILTERS }))
   const [poolView, setPoolView] = useState('list')
+  const [planOpen, setPlanOpen] = useState(false)
 
   const sensors = useSensors(
     // 6px de recorrido antes de activar: el clic sigue siendo selección.
@@ -161,6 +163,7 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
 
   const {
     addSession,
+    applyPlan,
     assign,
     autofill,
     busy,
@@ -181,6 +184,7 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
     setNotice(null)
     setEditingSession(null)
     setPoolFilters({ ...EMPTY_POOL_FILTERS })
+    setPlanOpen(false)
   }, [eventSlug])
 
   const sessionsMissing = useMemo(
@@ -189,6 +193,13 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
   )
 
   const dndEnabled = canEdit && !busy
+
+  // El armado automático trabaja sobre lo que la bolsa muestra: si hay filtros
+  // activos, arma solo para esa parte (por ejemplo, todas las Junior).
+  const planAthletes = useMemo(
+    () => unassigned.filter((athlete) => matchesPoolFilters(athlete, poolFilters)),
+    [unassigned, poolFilters],
+  )
 
   const toggle = useCallback((registrationId) => {
     setSelected((current) => {
@@ -303,6 +314,22 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
     setNotice(t('admin.board.sessionSaved'))
   }
 
+  async function handleApplyPlan(plan) {
+    const result = await applyPlan(plan)
+    if (!result) return
+    setSelected(new Set())
+    setPlanOpen(false)
+    setNotice(
+      result.leftover > 0
+        ? t('admin.board.planAppliedPartial', {
+            count: result.updated,
+            total: result.requested,
+            leftover: result.leftover,
+          })
+        : t('admin.board.planApplied', { count: result.updated }),
+    )
+  }
+
   async function handleAddSession(day, platformId) {
     const name = await addSession({ dayIndex: day.dayIndex, platformId })
     if (name) setNotice(t('admin.board.sessionAdded', { name }))
@@ -415,6 +442,36 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
               ) : null}
             </p>
           )}
+
+          {canEdit && days.length > 0 && unassigned.length > 0 ? (
+            <div className="admin-board__plan-toggle">
+              <Button
+                type="button"
+                variant={planOpen ? 'outline' : 'primary'}
+                className="btn--small"
+                aria-expanded={planOpen}
+                onClick={() => setPlanOpen((open) => !open)}
+                disabled={busy}
+              >
+                <Sparkles size={15} aria-hidden />
+                {t('admin.board.planOpen')}
+              </Button>
+            </div>
+          ) : null}
+
+          {planOpen ? (
+            <PlanPanel
+              athletes={planAthletes}
+              busy={busy}
+              days={days}
+              flightSize={flightSize}
+              key={`${eventSlug}-${platforms.map((item) => item.id).join(',')}`}
+              onApply={handleApplyPlan}
+              onClose={() => setPlanOpen(false)}
+              platforms={platforms}
+              t={t}
+            />
+          ) : null}
 
           {canEdit && <p className="admin-board__drag-hint">{t('admin.board.dragHint')}</p>}
 

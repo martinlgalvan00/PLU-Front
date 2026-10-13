@@ -475,3 +475,116 @@ describe('filtros de la bolsa', () => {
     expect(screen.getByText(/nadie sin ubicar coincide/i)).toBeTruthy()
   })
 })
+
+describe('armado automático', () => {
+  const PLATFORMS = [
+    { id: 'plat-1', name: 'Tablado 1', sortOrder: 0 },
+    { id: 'plat-2', name: 'Tablado 2', sortOrder: 1 },
+  ]
+
+  function planBoard() {
+    const people = Array.from({ length: 8 }, (_, index) =>
+      athlete({
+        registrationId: `p-${index}`,
+        fullName: `Atleta ${index}`,
+        sex: index < 4 ? 'Femenino' : 'Masculino',
+        bodyweightKg: 55 + index,
+        age: 20 + index,
+      }),
+    )
+    return {
+      event: { slug: 'pitbull-classic-2026', title: 'Pitbull Classic 2026' },
+      platforms: PLATFORMS,
+      totals: { registered: 8, assigned: 0, unassigned: 8 },
+      days: [
+        {
+          id: 'day-1',
+          dayIndex: 0,
+          label: 'Día 1',
+          date: '2026-11-13',
+          assignedCount: 0,
+          sessions: [],
+          withoutSession: [],
+        },
+      ],
+      unassigned: people,
+    }
+  }
+
+  async function openPanel() {
+    renderBoard()
+    fireEvent.click(await screen.findByRole('button', { name: /armar tandas automáticamente/i }))
+    return screen.findByRole('region', { name: /armado automático/i })
+  }
+
+  it('muestra la propuesta antes de escribir nada', async () => {
+    fetchEventBoard.mockResolvedValue(planBoard())
+    const panel = await openPanel()
+
+    // Dos sexos → dos tandas nuevas, una por tablado.
+    expect(within(panel).getByText(/8 atletas en 2 tandas/i)).toBeTruthy()
+    expect(within(panel).getByText('Tablado 1')).toBeTruthy()
+    expect(within(panel).getByText('Tablado 2')).toBeTruthy()
+    expect(saveEventSessions).not.toHaveBeenCalled()
+    expect(assignRegistrationSchedule).not.toHaveBeenCalled()
+  })
+
+  it('confirmar crea las tandas con su tablado y asigna a cada una', async () => {
+    fetchEventBoard.mockResolvedValueOnce(planBoard())
+    saveEventSessions.mockResolvedValue({})
+    assignRegistrationSchedule.mockResolvedValue({ updated: 4, requested: 4, schedule: null })
+    const panel = await openPanel()
+
+    // Tras crear las tandas el backend las devuelve con id: se releen para asignar.
+    const created = planBoard()
+    created.days[0].sessions = [
+      { id: 'new-a', name: 'Tanda A', platform: 'Tablado 1', platformId: 'plat-1', weighInAt: null, startsAt: null, sortOrder: 1, athletes: [] },
+      { id: 'new-b', name: 'Tanda B', platform: 'Tablado 2', platformId: 'plat-2', weighInAt: null, startsAt: null, sortOrder: 2, athletes: [] },
+    ]
+    fetchEventBoard.mockResolvedValue(created)
+
+    fireEvent.click(within(panel).getByRole('button', { name: /confirmar: 8 atletas, 2 tandas nuevas/i }))
+
+    await waitFor(() => expect(assignRegistrationSchedule).toHaveBeenCalledTimes(2))
+    const [, sessions] = saveEventSessions.mock.calls[0]
+    expect(sessions.map((row) => [row.name, row.platformId])).toEqual([
+      ['Tanda A', 'plat-1'],
+      ['Tanda B', 'plat-2'],
+    ])
+    const calls = assignRegistrationSchedule.mock.calls.map(([, body]) => body)
+    expect(calls.map((body) => body.sessionId).sort()).toEqual(['new-a', 'new-b'])
+    expect(calls.every((body) => body.registrationIds.length === 4)).toBe(true)
+    expect(await screen.findByText('Se ubicaron 8 atletas.')).toBeTruthy()
+  })
+
+  it('sacar el sexo como criterio avisa que pueden mezclarse y junta todo', async () => {
+    fetchEventBoard.mockResolvedValue(planBoard())
+    const panel = await openPanel()
+
+    fireEvent.click(within(panel).getByLabelText('Sexo'))
+
+    expect(within(panel).getByText(/puede mezclar Femenino y Masculino/i)).toBeTruthy()
+    expect(within(panel).getByText(/8 atletas en 1 tandas/i)).toBeTruthy()
+  })
+
+  it('arma solo con lo que muestra la bolsa filtrada', async () => {
+    fetchEventBoard.mockResolvedValue(planBoard())
+    renderBoard()
+    await screen.findByText('Atleta 0')
+    fireEvent.change(document.querySelector('.admin-board__filters select'), {
+      target: { value: 'Femenino' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /armar tandas automáticamente/i }))
+    const panel = await screen.findByRole('region', { name: /armado automático/i })
+
+    expect(within(panel).getByText(/sobre 4 atletas sin ubicar/i)).toBeTruthy()
+    expect(within(panel).getByText(/4 atletas en 1 tandas/i)).toBeTruthy()
+  })
+
+  it('sin permiso de escritura no ofrece el armado', async () => {
+    fetchEventBoard.mockResolvedValue(planBoard())
+    renderBoard({ canEdit: false })
+    await screen.findByText('Atleta 0')
+    expect(screen.queryByRole('button', { name: /armar tandas automáticamente/i })).toBeNull()
+  })
+})

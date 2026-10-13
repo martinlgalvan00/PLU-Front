@@ -1551,6 +1551,224 @@
   }
 }
 
+/* ── Armado automático ──────────────────────────────────────────────
+   Región abierta (sin card) entre el ledger y el tablero: criterios a la
+   izquierda del flujo, propuesta debajo, confirmar al final. */
+.admin-board__plan-toggle {
+  display: flex;
+}
+
+.admin-board__plan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0 var(--space-md);
+  border-top: 2px solid var(--color-brand-gold);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.admin-board__plan-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--space-md);
+}
+
+.admin-board__plan-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.admin-board__plan-lead {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+.admin-board__plan-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-sm) var(--space-xl);
+}
+
+.admin-board__plan-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.admin-board__plan-field > legend,
+.admin-board__plan-label {
+  padding: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.admin-board__plan-field--narrow input {
+  min-height: 38px;
+  width: 6rem;
+  padding: 7px 2px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border-subtle);
+  border-radius: 0;
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: 14px;
+}
+
+.admin-board__plan-field--narrow input:focus-visible {
+  outline: none;
+  border-bottom-color: var(--color-brand-celeste);
+}
+
+.admin-board__plan-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--space-md);
+}
+
+.admin-board__plan-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.admin-board__plan-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-brand-celeste);
+}
+
+.admin-board__plan-warn {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--color-warning-text);
+}
+
+.admin-board__plan-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  max-height: min(46vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.admin-board__plan-summary {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--color-text-primary);
+}
+
+.admin-board__plan-day-name {
+  margin: var(--space-xs) 0 2px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.admin-board__plan-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-board__plan-row {
+  display: grid;
+  grid-template-columns: minmax(7rem, 1fr) auto minmax(3ch, auto) minmax(0, 2.2fr);
+  align-items: baseline;
+  gap: 2px var(--space-md);
+  padding: 7px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border-subtle) 65%, transparent);
+  font-size: 13px;
+}
+
+.admin-board__plan-row-name {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.admin-board__plan-new {
+  margin-inline-start: 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.admin-board__plan-row-platform {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.admin-board__plan-row-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: right;
+  color: var(--color-text-primary);
+}
+
+.admin-board__plan-row-composition {
+  min-width: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.admin-board__plan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+@container admin-board (max-width: 719px) {
+  .admin-board__plan-row {
+    grid-template-columns: minmax(0, 1fr) auto minmax(3ch, auto);
+  }
+
+  .admin-board__plan-row-composition {
+    grid-column: 1 / -1;
+  }
+
+  .admin-board__plan-check {
+    min-height: 44px;
+  }
+
+  .admin-board__plan-field--narrow input {
+    min-height: 44px;
+  }
+
+  .admin-board__plan-toggle .btn,
+  .admin-board__plan-actions .btn {
+    min-height: 44px;
+  }
+}
+
 /* ── Entrada one-shot: ledger → bolsa → días, 260–420ms ─────────────── */
 .admin-board__totals,
 .admin-board__pool,

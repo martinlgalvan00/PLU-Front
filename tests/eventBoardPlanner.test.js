@@ -3,6 +3,7 @@ import {
   compareAthletes,
   compositionFacets,
   DEFAULT_FLIGHT_SIZE,
+  balancedChunks,
   EMPTY_POOL_FILTERS,
   formatAgeRange,
   groupAthletes,
@@ -87,7 +88,7 @@ describe('eventBoardPlanner', () => {
     expect(plan.placements.some((row) => row.registrationId === 'placed')).toBe(false)
   })
 
-  it('no parte un grupo de mismo peso salvo que exceda el tope', () => {
+  it('reparte parejo cuando el grupo excede el tope: 4 con tope 3 son 2 + 2, no 3 + 1', () => {
     const sameClass = [1, 2, 3, 4].map((index) =>
       athlete(`f-${index}`, { sex: 'Femenino', bodyweightKg: 57, fullName: `F${index}` }),
     )
@@ -98,8 +99,7 @@ describe('eventBoardPlanner', () => {
     })
 
     expect(plan.newSessions).toHaveLength(2)
-    expect(plan.newSessions[0].count).toBe(3)
-    expect(plan.newSessions[1].count).toBe(1)
+    expect(plan.newSessions.map((row) => row.count)).toEqual([2, 2])
     expect(plan.newSessions[0].name).toBe('Tanda A')
   })
 
@@ -268,5 +268,226 @@ describe('eventBoardPlanner', () => {
 
   it('el tope por defecto es 12', () => {
     expect(DEFAULT_FLIGHT_SIZE).toBe(12)
+  })
+})
+
+describe('armado automático', () => {
+  const women = (count, overrides = {}) =>
+    Array.from({ length: count }, (_, index) =>
+      athlete(`f${index}-${overrides.tag ?? ''}`, {
+        sex: 'Femenino',
+        fullName: `F${String(index).padStart(2, '0')}`,
+        bodyweightKg: 50 + index,
+        age: 20 + (index % 7),
+        ...overrides,
+      }),
+    )
+  const men = (count, overrides = {}) =>
+    Array.from({ length: count }, (_, index) =>
+      athlete(`m${index}-${overrides.tag ?? ''}`, {
+        sex: 'Masculino',
+        fullName: `M${String(index).padStart(2, '0')}`,
+        bodyweightKg: 70 + index,
+        age: 22 + (index % 9),
+        ...overrides,
+      }),
+    )
+  const PLATFORMS = [
+    { id: 'p1', name: 'Tablado 1' },
+    { id: 'p2', name: 'Tablado 2' },
+  ]
+
+  it('balancedChunks nunca deja una tanda de uno si se puede evitar', () => {
+    expect(balancedChunks([...Array(13).keys()], 12).map((chunk) => chunk.length)).toEqual([7, 6])
+    expect(balancedChunks([...Array(25).keys()], 12).map((chunk) => chunk.length)).toEqual([9, 8, 8])
+    expect(balancedChunks([...Array(12).keys()], 12)).toHaveLength(1)
+    expect(balancedChunks([], 12)).toEqual([])
+  })
+
+  it('nunca mezcla sexos si el sexo es criterio, aunque sobren lugares', () => {
+    const plan = planEventBoard({
+      maxPerSession: 12,
+      unassigned: [...women(3), ...men(3)],
+      days: [emptyDay(0)],
+    })
+    expect(plan.newSessions).toHaveLength(2)
+    const bySession = new Map()
+    for (const placement of plan.placements) {
+      const row = [...women(3), ...men(3)].find((item) => item.registrationId === placement.registrationId)
+      bySession.set(placement.tempId, new Set([...(bySession.get(placement.tempId) ?? []), row.sex]))
+    }
+    for (const sexes of bySession.values()) expect(sexes.size).toBe(1)
+  })
+
+  it('sin sexo como criterio permite tandas mixtas', () => {
+    const plan = planEventBoard({
+      maxPerSession: 12,
+      groupBy: ['category'],
+      unassigned: [...women(3), ...men(3)],
+      days: [emptyDay(0)],
+    })
+    expect(plan.newSessions).toHaveLength(1)
+    expect(plan.newSessions[0].count).toBe(6)
+  })
+
+  it('ordena por peso o por edad según el criterio y parte por ahí', () => {
+    const group = [
+      athlete('viejo-liviano', { age: 50, bodyweightKg: 52 }),
+      athlete('joven-pesado', { age: 19, bodyweightKg: 84 }),
+      athlete('joven-liviano', { age: 20, bodyweightKg: 53 }),
+      athlete('viejo-pesado', { age: 49, bodyweightKg: 83 }),
+    ]
+    const split = (sortBy) => {
+      const plan = planEventBoard({
+        maxPerSession: 2,
+        sortBy,
+        unassigned: group,
+        days: [emptyDay(0)],
+      })
+      return plan.newSessions.map((row) =>
+        plan.placements
+          .filter((placement) => placement.tempId === row.tempId)
+          .map((placement) => placement.registrationId)
+          .sort(),
+      )
+    }
+    expect(split('weight')).toEqual([
+      ['joven-liviano', 'viejo-liviano'],
+      ['joven-pesado', 'viejo-pesado'],
+    ])
+    expect(split('age')).toEqual([
+      ['joven-liviano', 'joven-pesado'],
+      ['viejo-liviano', 'viejo-pesado'],
+    ])
+  })
+
+  it('con dos tablados alterna las tandas de un día entre ellos', () => {
+    const plan = planEventBoard({
+      maxPerSession: 4,
+      unassigned: women(16),
+      days: [emptyDay(0)],
+      platforms: PLATFORMS,
+    })
+    expect(plan.newSessions).toHaveLength(4)
+    expect(plan.newSessions.map((row) => row.platformId)).toEqual(['p1', 'p2', 'p1', 'p2'])
+    expect(plan.newSessions[0].platform).toBe('Tablado 1')
+  })
+
+  it('platformMode "sex" fija un sexo por tablado', () => {
+    const plan = planEventBoard({
+      maxPerSession: 4,
+      platformMode: 'sex',
+      unassigned: [...women(8), ...men(8)],
+      days: [emptyDay(0)],
+      platforms: PLATFORMS,
+    })
+    const platformOf = (prefix) =>
+      new Set(
+        plan.newSessions
+          .filter((row) =>
+            plan.placements.find((p) => p.tempId === row.tempId)?.registrationId.startsWith(prefix),
+          )
+          .map((row) => row.platformId),
+      )
+    expect([...platformOf('f')]).toEqual(['p1'])
+    expect([...platformOf('m')]).toEqual(['p2'])
+  })
+
+  it('reparte las tandas nuevas entre días parejas en atletas, en tramos contiguos', () => {
+    const plan = planEventBoard({
+      maxPerSession: 4,
+      unassigned: women(16),
+      days: [emptyDay(0), emptyDay(1)],
+    })
+    expect(plan.newSessions.map((row) => row.dayIndex)).toEqual([0, 0, 1, 1])
+  })
+
+  it('respeta los días elegidos', () => {
+    const plan = planEventBoard({
+      maxPerSession: 4,
+      dayIndexes: [1],
+      unassigned: women(8),
+      days: [emptyDay(0), emptyDay(1)],
+    })
+    expect(new Set(plan.newSessions.map((row) => row.dayIndex))).toEqual(new Set([1]))
+  })
+
+  it('junta restos chicos de divisiones vecinas, pero no de categorías distintas', () => {
+    const pool = [
+      ...women(3, { division: 'Junior', tag: 'j' }),
+      ...women(3, { division: 'Open', tag: 'o' }),
+      ...women(3, { category: 'Raw With Wraps', division: 'Open', tag: 'w' }),
+    ]
+    const merged = planEventBoard({
+      maxPerSession: 12,
+      groupBy: ['sex', 'category', 'division'],
+      unassigned: pool,
+      days: [emptyDay(0)],
+    })
+    // Junior + Open de Raw comparten tanda; Raw With Wraps queda aparte.
+    expect(merged.newSessions.map((row) => row.count).sort()).toEqual([3, 6])
+
+    const strict = planEventBoard({
+      maxPerSession: 12,
+      mergeSmall: false,
+      groupBy: ['sex', 'category', 'division'],
+      unassigned: pool,
+      days: [emptyDay(0)],
+    })
+    expect(strict.newSessions).toHaveLength(3)
+  })
+
+  it('completa primero una tanda existente compatible en vez de abrir otra', () => {
+    const already = athlete('placed', { sex: 'Femenino', bodyweightKg: 52 })
+    const plan = planEventBoard({
+      maxPerSession: 12,
+      unassigned: women(4),
+      days: [emptyDay(0, [session('ses-vacia', 'Tanda A'), session('ses-a', 'Tanda B', [already])])],
+    })
+    expect(plan.newSessions).toEqual([])
+    expect(new Set(plan.placements.map((row) => row.sessionId))).toEqual(new Set(['ses-a']))
+  })
+
+  it('useExisting=false ignora las tandas que ya están', () => {
+    const plan = planEventBoard({
+      maxPerSession: 12,
+      useExisting: false,
+      unassigned: women(4),
+      days: [emptyDay(0, [session('ses-a', 'Tanda A')])],
+    })
+    expect(plan.newSessions).toHaveLength(1)
+    expect(plan.newSessions[0].name).toBe('Tanda B')
+  })
+
+  it('sin días no ubica a nadie y lo dice en leftover', () => {
+    const plan = planEventBoard({ maxPerSession: 12, unassigned: women(3), days: [] })
+    expect(plan.placed).toBe(0)
+    expect(plan.leftover).toHaveLength(3)
+  })
+
+  it('nunca pierde ni duplica a nadie: cada atleta aparece una sola vez', () => {
+    const pool = [...women(17), ...men(23, { category: 'Raw With Wraps' })]
+    const plan = planEventBoard({
+      maxPerSession: 8,
+      unassigned: pool,
+      days: [emptyDay(0), emptyDay(1)],
+      platforms: PLATFORMS,
+    })
+    const ids = plan.placements.map((row) => row.registrationId)
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(ids.length + plan.leftover.length).toBe(pool.length)
+    for (const row of plan.newSessions) expect(row.count).toBeLessThanOrEqual(8)
+  })
+
+  it('las tandas nuevas llegan al payload con su tablado para persistirse', () => {
+    const plan = planEventBoard({
+      maxPerSession: 4,
+      unassigned: women(8),
+      days: [emptyDay(0)],
+      platforms: PLATFORMS,
+    })
+    const payload = sessionsPayloadFromBoard([emptyDay(0)], { extra: plan.newSessions })
+    expect(payload.map((row) => row.platformId)).toEqual(['p1', 'p2'])
+    expect(payload.map((row) => row.platform)).toEqual(['Tablado 1', 'Tablado 2'])
   })
 })
