@@ -1,3 +1,4 @@
+import { expect, userEvent, within } from 'storybook/test'
 import EventsSection from './EventsSection.jsx'
 // El layout del shell es parte de la superficie: sin él la lista no tiene su
 // contenedor de scroll y la ficha se mide distinto que en el panel real.
@@ -137,5 +138,40 @@ export const ErrorDeCarga = {
   args: {
     adminEvents: [],
     loadError: 'No se pudo conectar con la base de eventos.',
+  },
+}
+
+/**
+ * Publicar en lote: el aviso de eventos sin publicar lleva a la selección con
+ * los ocultos ya elegidos, y un solo botón los publica.
+ */
+export const PublicarEnLote = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Revisar y publicar' }))
+    await expect(await canvas.findByText('1 seleccionado')).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Publicar 1' })).toBeEnabled()
+  },
+}
+
+// Logo mínimo (96px) sobre fondo blanco, embebido: la story no depende de la red.
+const LOGO_SOBRE_BLANCO =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgBAMAAAAQtmoLAAAAMFBMVEUUIz/////ouSMkMEVkboE+SmGLk6BzZjJERTiagi3l5+q2limvtL3TqiXO0dffsiRfduyDAAAACXBIWXMAAAsTAAALEwEAmpwYAAAC6ElEQVRYhe2Xv2sTURzAv3A1ORMNfGmaIRwdvg5JCCVRulgUUpI6OEgKzaRIA1odJYO1uJQMikNB4lDBQYPi5FACIm4GwUEySF0cW+xfkM1N3nt3yd1775J7/tjyHZLj7vu578/33vcADQVmQASBKEp+mQF/nKV3txplq3Hla0TAqYIry/0owEnZ0wewrk0HTiAgN6YBb4L6AFcnAxlZH6zmJCBbVwA41Z0AfFb1AS6FAyOHrMfb2w9G2WqGApuu+s4hEdHSvovEwgDXgP2SXPm1q5oAxYDdIyp93N95MSQq7iomfIAj/OkQfeB69kOigvCqrwVe82d7VHruRftkSD/4xYoW4DWIEz0bZ/Qi0T1eCx0gQm6573Rlj3JS2BD0KE5FX7MCWD1hIqEBKsLA02CZk8LEnAos8sRQQW6MHvGUHStAmt2+TAcykKTv7G9VAY7Y7c5SIAIexSE3mlIAFoJNeVkfoM19mlMA9uqkHDKT09xNSwZ4X7RLikcA1jDv7w7wx9xRcjS+uyoB8+N3KUGUmN11CXjFy/y+VqvV6gD8B5ZrVXZ5nRc7IQGfeHj3eQnrlkjaOi4AdPEOT8UZCWCL5yw9El0VBO7SN98i8gCmcKEUQxx0MR0ENofnfIXwAOZzuxjDLCTQkYBe3rck/ECrwICUAnRyGqDsARtNzOgASwJYwls5Edm8BLT4kggHspUoQNl1CQeDKkRxqT4KWjxkwHlMs1gr2qDHaRXAl62t2ynMrt1ErGvT6hXOA1gDi1o5oC2c1xp+QKyBn7a2NbzmCwBzx4hvy3Ft84n2lvcMq9FgC1fX3gumCyhtukSd8E2AtJuA8TaDxhvZkelWmTbdjBfZbZuKMtArhWz33oFyEPVAwYlH1sq/OBTR9NhF72Cn8cFOEw92x3R0QNPhBI3HHzQdsNB4hEPTIRGNx1DMlM0GXTQepVEe1pXx/u8/BxCdNU9/o/9/PmkmC0x5PgNmWYoqxr30G5X9dgwY8+MiAAAAAElFTkSuQmCC'
+
+/**
+ * Ficha de un evento cuyo logo ya subido tiene un fondo liso: aparece «Quitar
+ * fondo» junto a las otras acciones. Con un logo sin fondo que quitar, no.
+ */
+export const LogoConFondoBlanco = {
+  args: {
+    adminEvents: EVENTS.map((event, index) =>
+      index === 0 ? { ...event, logoUrl: LOGO_SOBRE_BLANCO } : event,
+    ),
+    onSetEventLogo: async () => ({ events: EVENTS, backgroundRemoved: true }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByTitle(/Pitbull Classic 2026/))
+    await expect(await canvas.findByRole('button', { name: 'Quitar fondo' })).toBeInTheDocument()
   },
 }

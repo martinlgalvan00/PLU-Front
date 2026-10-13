@@ -1,0 +1,454 @@
+/* ═══════════════════════════════════════════════════════════════════
+   public-event-schedule.css — PLU ARG
+   Grilla de competencia publicada: un día a la vez, una tabla por tablado.
+
+   Dos tableros paralelos sobre una superficie (los tablados son una colección
+   comparable, así que cada uno lleva panel; las filas dentro no son cards).
+   Peso en la tipografía: la hora y el nombre de la tanda mandan, el resto
+   baja de tono. Un acento por bloque: celeste en las pestañas, oro en la
+   firma de cada tablado. Cada tabla scrollea por dentro con el encabezado
+   fijo. El corte a columnas mira el ancho del contenedor, no el viewport:
+   angosto apila los tablados y ofrece el filtro por tablado.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.public-schedule {
+  --schedule-surface: var(--color-bg-elevated);
+  --schedule-rule: var(--color-border-subtle);
+  --schedule-time-col: 84px;
+  --schedule-pad: clamp(14px, 2.4vw, 22px);
+  container-name: public-schedule;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(20px, 3vw, 32px);
+  min-width: 0;
+}
+
+/* ── Pestañas (días y filtro por tablado) ─────────────────────────── */
+
+.public-schedule__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 clamp(18px, 3vw, 32px);
+  border-bottom: 1px solid var(--schedule-rule);
+}
+
+.public-schedule__tab {
+  position: relative;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 8px;
+  min-height: 44px;
+  padding: 10px 0 12px;
+  font-family: var(--font-display, var(--font-family));
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-out);
+}
+
+.public-schedule__tab::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 2px;
+  background: var(--color-brand-celeste);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--motion-base) var(--ease-out);
+}
+
+.public-schedule__tab.is-active::after {
+  transform: scaleX(1);
+}
+
+.public-schedule__tab:hover:not(.is-active) {
+  color: var(--color-text-primary);
+}
+
+.public-schedule__tab.is-active {
+  color: var(--color-text-primary);
+}
+
+.public-schedule__tab:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.public-schedule__tab-label {
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.public-schedule__tab-sub {
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Filtro por tablado: solo tiene sentido cuando las tablas se apilan. */
+.public-schedule__focus {
+  display: flex;
+}
+
+.public-schedule__focus .public-schedule__tab-label {
+  font-size: 14px;
+}
+
+/* ── Día ──────────────────────────────────────────────────────────── */
+
+.public-schedule__day {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 2.4vw, 24px);
+  min-width: 0;
+}
+
+.public-schedule__day-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 20px;
+}
+
+.public-schedule__day-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  margin: 0;
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(26px, 4vw, 38px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--color-text-primary);
+}
+
+.public-schedule__day-date {
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.public-schedule__day-summary {
+  margin: 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+/* ── Paneles ──────────────────────────────────────────────────────── */
+
+.public-schedule__panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(16px, 2.4vw, 24px);
+  align-items: start;
+}
+
+.public-schedule__panel {
+  min-width: 0;
+  overflow: hidden;
+  background: var(--schedule-surface);
+  border: 1px solid var(--schedule-rule);
+  border-radius: var(--border-radius-lg, 14px);
+}
+
+.public-schedule__panel[data-hidden-narrow] {
+  display: none;
+}
+
+.public-schedule__panel-head {
+  position: relative;
+  padding: clamp(18px, 2.6vw, 26px) var(--schedule-pad) 14px;
+}
+
+/* La firma del tablado: un trazo corto de oro. */
+.public-schedule__panel-head::before {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 2px;
+  margin-bottom: 14px;
+  background: var(--color-brand-gold);
+}
+
+.public-schedule__panel-name {
+  margin: 0;
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(20px, 2.6vw, 26px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.public-schedule__panel-meta {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+/* ── Tabla ────────────────────────────────────────────────────────── */
+
+/* La tabla scrollea por dentro; las sombras aparecen solo si hay más por ver. */
+.public-schedule__scroll {
+  --scroll-fade: color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--schedule-rule) transparent;
+  background:
+    linear-gradient(var(--schedule-surface) 30%, transparent) top / 100% 28px no-repeat local,
+    linear-gradient(transparent, var(--schedule-surface) 70%) bottom / 100% 28px no-repeat local,
+    linear-gradient(var(--scroll-fade), transparent) top / 100% 10px no-repeat scroll,
+    linear-gradient(transparent, var(--scroll-fade)) bottom / 100% 10px no-repeat scroll;
+  background-color: var(--schedule-surface);
+}
+
+.public-schedule__scroll:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: -2px;
+}
+
+.public-schedule__table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.public-schedule__table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px var(--schedule-pad);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  background: var(--schedule-surface);
+  border-top: 1px solid var(--schedule-rule);
+  border-bottom: 1px solid var(--schedule-rule);
+}
+
+.public-schedule__table tbody th,
+.public-schedule__table tbody td {
+  padding: 18px var(--schedule-pad);
+  vertical-align: top;
+  border-bottom: 1px solid var(--schedule-rule);
+}
+
+.public-schedule__table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.public-schedule__time {
+  width: var(--schedule-time-col);
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.public-schedule__start {
+  display: block;
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(20px, 2.6vw, 26px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--color-text-primary);
+}
+
+.public-schedule__tbd {
+  display: block;
+  max-width: 11ch;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: normal;
+  color: var(--color-text-muted);
+}
+
+.public-schedule__weighin {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.public-schedule__weighin time {
+  font-weight: 700;
+  color: var(--color-text-secondary, var(--color-text-primary));
+}
+
+.public-schedule__flight {
+  min-width: 0;
+}
+
+.public-schedule__flight > span {
+  display: block;
+}
+
+.public-schedule__session-name {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+}
+
+.public-schedule__session-profile {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-text-secondary, var(--color-text-primary));
+  overflow-wrap: anywhere;
+}
+
+.public-schedule__session-range {
+  margin-top: 2px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.public-schedule__num {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.public-schedule__count {
+  font-family: var(--font-display, var(--font-family));
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+}
+
+.public-schedule__nowrap {
+  white-space: nowrap;
+}
+
+/* Contenedor angosto (mobile): menos aire lateral para que la tanda respire. */
+@container public-schedule (max-width: 480px) {
+  /* Un @container no estiliza al propio contenedor: las variables van en el panel. */
+  .public-schedule__panel {
+    --schedule-pad: 12px;
+    --schedule-time-col: 72px;
+  }
+
+  .public-schedule__table tbody th,
+  .public-schedule__table tbody td {
+    padding-block: 16px;
+  }
+
+  .public-schedule__count {
+    font-size: 17px;
+  }
+}
+
+/* ── Ancho: dos tablas lado a lado, cada una con su scroll ────────── */
+
+@container public-schedule (min-width: 860px) {
+  .public-schedule__focus {
+    display: none;
+  }
+
+  .public-schedule__panels[data-lanes='2'],
+  .public-schedule__panels[data-lanes='3'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Un solo tablado: una tabla que no se estira a todo el ancho. */
+  .public-schedule__panels[data-lanes='1'] {
+    max-width: 820px;
+  }
+
+  /* El filtro angosto no aplica: ninguna tabla se oculta en ancho. */
+  .public-schedule__panel[data-hidden-narrow] {
+    display: block;
+  }
+}
+
+/* Apiladas o lado a lado, la tabla no alarga la página: scrollea por dentro. */
+@container public-schedule (min-width: 560px) {
+  .public-schedule__scroll {
+    max-height: min(68vh, 640px);
+  }
+}
+
+/* La hora de la última confirmación: al avanzar con cada refresco se reasienta. */
+.public-schedule__updated::before {
+  content: '·';
+  margin-inline: 8px;
+}
+
+/* ── Movimiento ───────────────────────────────────────────────────────
+   Una entrada por cambio de día o de tablado: opacidad y desplazamiento
+   cortos, con 60 ms de diferencia entre las dos tablas. Los refrescos de
+   datos no remontan los paneles, así que no vuelven a animar. */
+@media (prefers-reduced-motion: no-preference) {
+  .public-schedule__day-head,
+  .public-schedule__panel {
+    animation: public-schedule-in var(--motion-base) var(--ease-out) both;
+  }
+
+  .public-schedule__panel:nth-child(2) {
+    animation-delay: var(--stagger-step);
+  }
+
+  .public-schedule__panel:nth-child(3) {
+    animation-delay: calc(var(--stagger-step) * 2);
+  }
+
+  .public-schedule__updated {
+    animation: public-schedule-settle var(--motion-base) var(--ease-out) both;
+  }
+}
+
+@keyframes public-schedule-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-enter-y));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes public-schedule-settle {
+  from {
+    opacity: 0.3;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-schedule__tab,
+  .public-schedule__tab::after {
+    transition: none;
+  }
+}

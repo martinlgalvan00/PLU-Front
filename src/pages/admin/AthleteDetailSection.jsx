@@ -5,6 +5,7 @@ import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmD
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
 import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import AdminAthleteActivity from '../../components/admin/AdminAthleteActivity.jsx'
+import AthletePanelAccess from '../../components/admin/AthletePanelAccess.jsx'
 import AdminMembershipCredential from '../../components/admin/AdminMembershipCredential.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import { EntitlementStateCell, PaymentStateCell } from '../../components/admin/AdminStateCell.jsx'
@@ -48,9 +49,14 @@ function profileValue(value) {
 }
 
 export default function AthleteDetailSection({
+  accessRoles,
   detail,
   onBack,
   canEdit,
+  canGrantAccess = false,
+  onCreateUser,
+  onOpenUsers,
+  users,
   canRotateCredential = false,
   canDelete = false,
   canValidatePayments = false,
@@ -492,6 +498,18 @@ export default function AthleteDetailSection({
               </section>
             ))}
           </div>
+
+          {canGrantAccess && onCreateUser ? (
+            <AthletePanelAccess
+              accessRoles={accessRoles}
+              athlete={athlete}
+              locale={locale}
+              onCreateUser={onCreateUser}
+              onOpenUsers={onOpenUsers}
+              t={t}
+              users={users}
+            />
+          ) : null}
 
           {canDelete ? (
             <section

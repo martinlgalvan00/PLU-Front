@@ -21,6 +21,7 @@ import { createRegistrationAccessRoutes } from './routes/registrationAccess.js'
 import { createAdminQueueRoutes } from './routes/adminQueue.js'
 import { createPlatformSettingsRoutes } from './routes/platformSettings.js'
 import { createFinanceRoutes } from './routes/finance.js'
+import { createPaymentProofRoutes } from './routes/paymentProofs.js'
 import { createCommunityRoutes } from './routes/community.js'
 import { createLaunchInterestRoutes } from './routes/launchInterest.js'
 import { createContactRoutes } from './routes/contact.js'
@@ -240,6 +241,13 @@ export function createApp(deps = {}) {
       getPrisma: () => deps.prisma ?? getPrisma(),
       getSupabaseAdmin: resolveSupabaseAdmin,
       env: deps.env ?? process.env,
+    }),
+  )
+  app.use(
+    '/api/payment-proofs',
+    createPaymentProofRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
     }),
   )
   app.use(

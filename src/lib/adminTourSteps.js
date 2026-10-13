@@ -137,12 +137,6 @@ export function getRegistrationsTourSteps(t) {
       body: t('admin.tour.registrations.filters.body'),
     },
     {
-      target: '.admin-saved-views',
-      placement: 'bottom',
-      title: t('admin.tour.savedViews.title'),
-      body: t('admin.tour.savedViews.body'),
-    },
-    {
       target: '.admin-list-shell__actions',
       placement: 'left',
       title: t('admin.tour.registrations.exports.title'),

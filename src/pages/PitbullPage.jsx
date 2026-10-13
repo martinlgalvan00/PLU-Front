@@ -30,6 +30,7 @@ import PitbullCategoriesFilm from '../components/ui/PitbullCategoriesFilm.jsx'
 import PitbullCountdownIntro from '../components/ui/PitbullCountdownIntro.jsx'
 import PitbullMeetCountdown from '../components/ui/PitbullMeetCountdown.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
+import PublicEventSchedule from '../components/ui/PublicEventSchedule.jsx'
 import EventWeighInSchedule, {
   eventHasWeighInWindows,
 } from '../components/ui/EventWeighInSchedule.jsx'
@@ -38,6 +39,7 @@ import SeasonComboOffer from '../components/ui/SeasonComboOffer.jsx'
 import TicketPassPreview from '../components/ui/TicketPassPreview.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
+import { usePublicEventSchedule } from '../hooks/usePublicEventSchedule.js'
 import { useTicketCheckoutAvailability } from '../hooks/useTicketAvailability.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import {
@@ -501,6 +503,25 @@ function PitbullWeighInSnapshot({ windows }) {
   )
 }
 
+/** Grilla publicada por la organización. Apagada o vacía: la sección no existe. */
+function PitbullScheduleSection({ schedule, t, updatedAt }) {
+  if (!schedule?.hasContent) return null
+
+  return (
+    <PitbullDossierSection
+      id="grilla"
+      className="pitbull-dossier__section--schedule"
+      eyebrow={t('pages.pitbull.gridEyebrow')}
+      index={t('pages.pitbull.gridIndex')}
+      lead={t('pages.pitbull.gridLead')}
+      title={t('pages.pitbull.gridTitle')}
+      titleId="pitbull-schedule-title"
+    >
+      <PublicEventSchedule schedule={schedule} updatedAt={updatedAt} />
+    </PitbullDossierSection>
+  )
+}
+
 function PitbullLocationSection({ event, venue, t }) {
   const locality = venue.locality?.replace(/^B\d+\s*/, '') || ''
   const lead = venue.street
@@ -580,7 +601,7 @@ function PitbullLocationSection({ event, venue, t }) {
   )
 }
 
-function PitbullTicketsBand({ event, onOpen, soon = false, t }) {
+function PitbullTicketsBand({ event, index, onOpen, soon = false, t }) {
   return (
     <section
       id="entradas"
@@ -605,7 +626,7 @@ function PitbullTicketsBand({ event, onOpen, soon = false, t }) {
       <div className="pitbull-tickets-band__content">
         <p className="pitbull-tickets-band__kicker">
           <span className="pitbull-tickets-band__index" aria-hidden>
-            {t('pages.pitbull.ticketsIndex')}
+            {index ?? t('pages.pitbull.ticketsIndex')}
           </span>
           <span className="pitbull-tickets-band__eyebrow">
             {soon ? t('pages.pitbull.ticketsSoonEyebrow') : t('pages.pitbull.ticketsEyebrow')}
@@ -1260,6 +1281,11 @@ export default function PitbullPage({
     fallbackRegistered: 0,
     fallbackSlots: pitbullEvent?.slots ?? PITBULL_CLASSIC.slots ?? 180,
   })
+  // La grilla la publica la organización a propósito (arranca apagada): el
+  // servidor decide, esta página solo pinta lo que llega.
+  const { schedule: publicSchedule, updatedAt: publicScheduleUpdatedAt } =
+    usePublicEventSchedule(eventSlug)
+  const showSchedule = publicSchedule.hasContent
   const showWeighIns =
     eventHasWeighInWindows(pitbullEvent) && eventShowsPublicWeighIns(pitbullEvent)
   const showCategories = eventShowsPublicCategories(pitbullEvent)
@@ -1279,7 +1305,14 @@ export default function PitbullPage({
     ...(showLocation
       ? [{ id: 'lugar', index: '05', label: t('pages.pitbull.locationEyebrow') }]
       : []),
-    { id: 'entradas', index: '06', label: t('pages.pitbull.ticketsEyebrow') },
+    ...(showSchedule
+      ? [{ id: 'grilla', index: '06', label: t('pages.pitbull.gridEyebrow') }]
+      : []),
+    {
+      id: 'entradas',
+      index: showSchedule ? '07' : '06',
+      label: t('pages.pitbull.ticketsEyebrow'),
+    },
   ]
 
   function goToTicketsPage() {
@@ -1416,9 +1449,16 @@ export default function PitbullPage({
             <PitbullLocationSection event={pitbullMapEvent} venue={PITBULL_VENUE} t={t} />
           ) : null}
 
+          <PitbullScheduleSection
+            schedule={publicSchedule}
+            t={t}
+            updatedAt={publicScheduleUpdatedAt}
+          />
+
           <Reveal as="div" direction="up" className="pitbull-tickets-band-wrap">
             <PitbullTicketsBand
               event={pitbullEvent}
+              index={showSchedule ? '07' : undefined}
               soon={!ticketsOpen}
               onOpen={goToTicketsPage}
               t={t}

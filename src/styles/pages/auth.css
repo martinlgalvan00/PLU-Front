@@ -148,6 +148,37 @@
   max-width: 36ch;
 }
 
+.staff-invite-who {
+  border-block: 1px solid var(--color-border-primary);
+  display: grid;
+  gap: 10px;
+  margin: 0 0 20px;
+  padding: 14px 0;
+}
+
+.staff-invite-who > div {
+  align-items: baseline;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 92px minmax(0, 1fr);
+}
+
+.staff-invite-who dt {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.staff-invite-who dd {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .login-form__hint {
   color: var(--color-text-muted);
   font-size: 12.5px;

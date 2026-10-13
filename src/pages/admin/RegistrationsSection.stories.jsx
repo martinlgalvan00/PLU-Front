@@ -4,8 +4,11 @@ import { AppConfigProvider } from '../../providers/AppConfigProvider.jsx'
 // Mismo par de hojas que el resto de las stories del panel: `admin.css` trae la
 // celda de estado con motivo y `admin-minimal.css` la densidad de la tabla. Con
 // una sola, la lista se ve sin estilos y la QA visual no mide nada.
+import '../../styles/layout/admin-shell.css'
 import '../../styles/pages/admin.css'
+import '../../styles/pages/admin-institutional.css'
 import '../../styles/pages/admin-minimal.css'
+import '../../styles/pages/admin-people.css'
 
 /**
  * Lista de Inscripciones, con la columna de estado que dice por qué la
@@ -172,6 +175,124 @@ const PENDING_ROWS = [
     manualOverride: null,
   }),
 ]
+
+const FULL_ATHLETES = [
+  ['Evelin Daiana Bebitez', 'Corporal Kinesis'],
+  ['Joaquin Blois', 'Mvd power team'],
+  ['Julieta Abraham', 'Black Dragon'],
+  ['Martinez Santos Julian', 'Force Up'],
+  ['Micaela Córdoba', 'Force Up'],
+  ['Lara Romo', 'Force Up'],
+  ['Federico Luis López', 'Pitbull Barbell Club'],
+  ['Leonardo Salvador', 'Strength Is Science'],
+  ['Morena Dagoberto', 'Force Up'],
+  ['Nicolás Grosso', 'Savage Power'],
+  ['Camila Rodríguez Etcheverry', 'Club Atlético Fuerza Patagónica'],
+  ['Tomás Villalba', 'Iron Temple'],
+]
+
+/**
+ * Cobros de cada caso, en el mismo orden que `FULL_ATHLETES`: transferencia con
+ * comprobante, sin comprobante (abierta), efectivo en sede, Mercado Pago
+ * aprobado y rechazado.
+ */
+const FULL_PAYMENT_SPECS = [
+  { method: 'mercado_pago', status: 'aprobado', amount: 100000 },
+  { method: 'manual_link', status: 'aprobado', amount: 70, proof: 'ord/comprobante-1.jpg' },
+  { method: 'manual_link', status: 'validacion_manual', amount: 100000, proof: 'ord/comprobante-2.pdf' },
+  { method: 'manual_link', status: 'pendiente', amount: 100000 },
+  { method: 'manual_link', status: 'pendiente', amount: 115000, channel: 'cash_pitbull' },
+  { method: 'mercado_pago', status: 'rechazado', amount: 115000 },
+  { method: 'mercado_pago', status: 'aprobado', amount: 100000 },
+  { method: 'manual_link', status: 'aprobado', amount: 100000, proof: 'ord/comprobante-3.jpg' },
+  { method: 'manual_link', status: 'aprobado', amount: 100000, channel: 'wise_transfer', proof: 'ord/comprobante-4.png' },
+  { method: 'mercado_pago', status: 'aprobado', amount: 115000 },
+  { method: 'manual_link', status: 'validacion_manual', amount: 115000, proof: 'ord/comprobante-5.jpg' },
+  { method: 'mercado_pago', status: 'pendiente', amount: 100000 },
+]
+
+const FULL_ROWS = FULL_ATHLETES.map(([fullName, gym], index) => {
+  const n = String(index + 1).padStart(2, '0')
+  const spec = FULL_PAYMENT_SPECS[index]
+  return registration({
+    id: `f0f0f0f0-0000-4000-8000-0000000000${n}`,
+    athleteId: `f0f0f0f0-0000-4000-8000-0000000001${n}`,
+    athlete: { fullName, documentId: `3${n}111222`, gym },
+    paymentOrderId: `f0f0f0f0-0000-4000-8000-0000000002${n}`,
+    division: index % 3 === 0 ? 'Open' : index % 3 === 1 ? 'Junior' : 'Youth',
+    bodyweight: [60, 125, 56, 89, 59.9, 60, 82, 110, 56, 90, 72.5, 100][index],
+    status: spec.status === 'aprobado' ? 'confirmada' : 'pendiente_pago',
+    schedule:
+      index === 4
+        ? {
+            dayId: 'day-1',
+            dayLabel: 'Día 1',
+            dayDate: '2026-11-14',
+            sessionId: 'session-2',
+            sessionName: 'Tanda 2',
+          }
+        : null,
+    manualOverride: null,
+  })
+})
+
+const FULL_PAYMENTS = FULL_ROWS.map((row, index) => {
+  const spec = FULL_PAYMENT_SPECS[index]
+  return {
+    id: row.paymentOrderId,
+    athleteId: row.athleteId,
+    event: EVENT,
+    method: spec.method,
+    status: spec.status,
+    amount: spec.amount,
+    currency: 'ARS',
+    manualPaymentChannel: spec.channel ?? (spec.method === 'manual_link' ? 'bank_transfer' : null),
+    paymentProofPath: spec.proof ?? null,
+    paymentProofUploadedAt: spec.proof ? '2026-10-11T15:20:00+00:00' : null,
+  }
+})
+
+/**
+ * La lista tal como la ve el operador en producción: toda la barra de acciones
+ * habilitada, filas de comprobante y de Mercado Pago mezcladas y el contenedor
+ * `admin-page` real (sin él el layout de la sección no se restringe y mide mal)
+ * dentro de `admin-people-section`, que es donde vive en la app: de ahí salen la
+ * planilla ajustada (`table-layout: fixed`) y el paginador.
+ */
+export const ListaCompleta = {
+  decorators: [withPlatformToggles],
+  render: () => (
+    <AppConfigProvider>
+      <div className="admin-shell" style={{ background: 'var(--admin-canvas)', padding: '24px' }}>
+        <div className="admin-page admin-people-section">
+          <RegistrationsSection
+            canAssignSchedule
+            canDelete
+            canEdit
+            canForceSettle
+            canManageVisibility
+            canSetStatus
+            canValidatePayments
+            filters={{ event: 'all', status: 'all', query: '' }}
+            filteredRegistrations={FULL_ROWS}
+            payments={FULL_PAYMENTS}
+            registrations={FULL_ROWS}
+            registrationsCount={FULL_ROWS.length}
+            onApprovePayment={() => {}}
+            onExportAdmin={() => {}}
+            onExportPluUsa={() => {}}
+            onRejectPayment={() => {}}
+            onSelectAthlete={() => {}}
+            onSetFilters={() => {}}
+            onSetRegistrationStatus={() => {}}
+            onSetPublicVisibility={() => {}}
+            onDelete={() => {}}
+          />
+        </div>
+      </div>
+    </AppConfigProvider>
+  ),
+}
 
 /**
  * Quien abrió el checkout y nunca completó el pago queda `pendiente_pago`

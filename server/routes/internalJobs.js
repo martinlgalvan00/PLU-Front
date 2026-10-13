@@ -10,6 +10,7 @@ import { runPaymentProofRetentionJob } from '../jobs/paymentProofRetentionJob.js
 import { runSecurityUserLifecycleJob } from '../jobs/securityUserLifecycleJob.js'
 import { runShopOrderExpiryJob } from '../jobs/shopOrderExpiryJob.js'
 import { HttpError } from '../lib/errors.js'
+import { isPaymentProofRetentionJobEnabled } from '../modules/payments/paymentProofRetention.js'
 
 function hasValidCronAuthorization(request, secret) {
   const expected = Buffer.from(`Bearer ${secret}`)
@@ -64,10 +65,12 @@ export function createInternalJobRoutes({
     res.json({ status: 'completed', job: 'payment-revalidation', result })
   })
 
-  // Borra de Storage los comprobantes de órdenes ya aprobadas/rechazadas
-  // pasada la retención (PROOF_RETENTION_HOURS, default 24). No toca pendientes.
+  // Mueve a la papelera los comprobantes de órdenes ya aprobadas/rechazadas
+  // según la política que el staff define en Cobros (default: conservar todo),
+  // purga de Storage lo que pasó el período de gracia en la papelera y registra
+  // los archivos huérfanos. No toca pendientes.
   router.get('/jobs/payment-proof-retention', async (_req, res) => {
-    if (env.PAYMENT_PROOF_RETENTION_JOB_ENABLED === 'false') {
+    if (!isPaymentProofRetentionJobEnabled(env)) {
       res.json({ status: 'disabled', job: 'payment-proof-retention' })
       return
     }

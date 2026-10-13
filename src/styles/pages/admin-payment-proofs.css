@@ -1,0 +1,455 @@
+/* =============================================
+   ARCHIVO DE COMPROBANTES (PaymentProofsPanel)
+   Comparte cabecera, cifras y aviso con el panel de vencimientos
+   (admin-payment-expiry.css). Acá sólo lo propio: la acción de descarga y la
+   política de borrado. Una acción principal (el ZIP); lo demás es secundario.
+   ============================================= */
+
+.admin-proofs__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+}
+
+.admin-proofs__link {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 4px;
+  transition: color var(--motion-fast) var(--ease-out);
+}
+
+.admin-proofs__link:hover:not(:disabled) {
+  color: var(--admin-ink);
+}
+
+.admin-proofs__link:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-proofs__link:focus-visible,
+.admin-proofs__mode:focus-within {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-proofs__help,
+.admin-proofs__notice {
+  color: var(--admin-muted);
+  flex-basis: 100%;
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 70ch;
+}
+
+.admin-proofs__notice {
+  color: var(--admin-text-secondary);
+}
+
+.admin-proofs__notice:empty {
+  display: none;
+}
+
+/* ---- Aviso de lo que está por borrarse ---- */
+
+.admin-proofs__forecast {
+  align-items: flex-start;
+  color: var(--admin-text-secondary);
+  display: flex;
+  font-size: 13px;
+  gap: 10px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 70ch;
+}
+
+.admin-proofs__forecast strong {
+  color: var(--admin-ink);
+  font-weight: 600;
+}
+
+/* Con comprobantes sin copia a punto de borrarse es una advertencia real. */
+.admin-proofs__forecast.is-alert {
+  background: var(--admin-status-warning-bg);
+  border-radius: 10px;
+  color: var(--admin-ink);
+  padding: 12px 14px;
+}
+
+.admin-proofs__forecast > svg {
+  color: var(--admin-status-warning);
+  flex: none;
+  margin-top: 2px;
+}
+
+.admin-proofs__days .admin-proofs__forecast {
+  grid-column: 1 / -1;
+}
+
+/* ---- Política ---- */
+
+.admin-proofs__policy {
+  border: 0;
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  min-width: 0;
+  padding: 20px 0 0;
+}
+
+.admin-proofs__policy:disabled .admin-proofs__mode {
+  cursor: default;
+}
+
+.admin-proofs__policy-title {
+  color: var(--admin-ink);
+  float: left;
+  font-family: var(--font-display, var(--font-family));
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 16px;
+  padding: 0;
+  width: 100%;
+}
+
+.admin-proofs__policy-title + * {
+  clear: both;
+}
+
+.admin-proofs__modes {
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-proofs__mode {
+  align-items: flex-start;
+  border-left: 1px solid var(--admin-hairline);
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  padding: 2px 20px 2px 18px;
+}
+
+.admin-proofs__mode:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.admin-proofs__mode input {
+  accent-color: var(--admin-ink);
+  flex: none;
+  height: 16px;
+  margin: 3px 0 0;
+  width: 16px;
+}
+
+.admin-proofs__mode-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-proofs__mode-copy strong {
+  color: var(--admin-text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.admin-proofs__mode.is-selected .admin-proofs__mode-copy strong {
+  color: var(--admin-ink);
+}
+
+.admin-proofs__mode-copy span {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.admin-proofs__days {
+  align-items: flex-start;
+  display: grid;
+  gap: 12px 24px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.admin-proofs__days-picker {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-proofs__days-title {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.admin-proofs__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Radio nativo con apariencia de selector: el input queda accesible y el
+   estado se lee por el borde y el peso, no sólo por el color. */
+.admin-proofs__chip {
+  cursor: pointer;
+  display: inline-flex;
+  position: relative;
+}
+
+.admin-proofs__chip input {
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  position: absolute;
+}
+
+.admin-proofs__chip span {
+  align-items: center;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 8px;
+  color: var(--admin-text-secondary);
+  display: inline-flex;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  min-height: 40px;
+  padding: 0 14px;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.admin-proofs__chip input:checked + span {
+  border-color: var(--admin-ink);
+  color: var(--admin-ink);
+  font-weight: 600;
+}
+
+.admin-proofs__chip input:focus-visible + span {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-proofs__policy:disabled .admin-proofs__chip {
+  cursor: default;
+}
+
+.admin-proofs__days-field {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-proofs__days-field span {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.admin-proofs__days-field input {
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 8px;
+  color: var(--admin-ink);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  min-height: 40px;
+  padding: 0 12px;
+  width: 7.5rem;
+}
+
+.admin-proofs__days-field input:focus {
+  border-color: var(--admin-ink);
+  box-shadow: 0 0 0 3px var(--admin-focus-soft);
+  outline: none;
+}
+
+.admin-proofs__days-field input[aria-invalid='true'] {
+  border-color: var(--admin-status-danger);
+}
+
+.admin-proofs__save {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.admin-proofs__status {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+}
+
+/* ---- Cifras: la papelera suma una quinta ---- */
+
+.admin-proofs .admin-proofs__metrics {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+/* ---- Período de la papelera ---- */
+
+.admin-proofs__grace {
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  padding-top: 16px;
+}
+
+.admin-proofs__grace .admin-proofs__days-picker {
+  gap: 10px;
+  max-width: 70ch;
+}
+
+.admin-proofs__grace .admin-proofs__help {
+  max-width: 62ch;
+}
+
+/* ---- Papelera ---- */
+
+.admin-proofs__link--danger {
+  color: var(--admin-status-danger);
+  font-weight: 600;
+}
+
+.admin-proofs__link--danger:hover:not(:disabled) {
+  color: var(--admin-status-danger);
+  text-decoration: underline;
+}
+
+.admin-proofs__trash {
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 14px;
+  padding-top: 20px;
+}
+
+.admin-proofs__trash-head {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  justify-content: space-between;
+}
+
+.admin-proofs__trash-title {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 4px;
+}
+
+.admin-proofs__trash-body {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-proofs__trash-list {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-proofs__trash-item {
+  align-items: center;
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 8px 20px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px 0;
+}
+
+.admin-proofs__trash-item:first-child {
+  border-top: 0;
+}
+
+.admin-proofs__trash-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-proofs__trash-main strong {
+  color: var(--admin-ink);
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.admin-proofs__trash-meta {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.admin-proofs__trash-actions,
+.admin-proofs__trash-foot {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.admin-proofs__trash-actions a.admin-proofs__link {
+  text-decoration: none;
+}
+
+/* Los enlaces de la papelera se alinean con el borde del contenido: el gap ya
+   los separa, y el padding de 4px del enlace genérico los corría hacia adentro. */
+.admin-proofs__trash .admin-proofs__link {
+  padding-inline: 0;
+}
+
+.admin-proofs__trash-flag {
+  color: var(--admin-status-warning);
+  font-weight: 600;
+}
+
+@media (max-width: 899px) {
+  .admin-proofs__chip span {
+    min-height: 44px;
+  }
+
+  .admin-proofs__modes {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .admin-proofs__mode,
+  .admin-proofs__mode:first-child {
+    border-left: 0;
+    padding: 0;
+  }
+
+  .admin-proofs__days {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-proofs__link {
+    min-height: 44px;
+  }
+
+  .admin-proofs__trash-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-proofs .admin-proofs__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -152,6 +152,100 @@
   color: var(--admin-muted);
 }
 
+.admin-event-logo__hint.is-error {
+  color: var(--admin-status-danger);
+}
+
+/* ---- Alta: el logo antes de que el evento exista ---- */
+
+.admin-event-logo--stage {
+  align-items: flex-start;
+  border: 1px dashed var(--admin-hairline-strong);
+  border-radius: 16px;
+  display: flex;
+  gap: 18px;
+  padding: 14px 16px;
+  transition: border-color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-event-logo--stage.is-dragging {
+  border-color: var(--admin-ink);
+  border-style: solid;
+}
+
+/* El damero hace visible la transparencia: un logo sin fondo y uno con una caja
+   blanca se ven igual sobre un panel liso. */
+.admin-event-logo__tile {
+  --checker: color-mix(in srgb, var(--admin-ink) 9%, transparent);
+  align-items: center;
+  background-color: var(--admin-canvas);
+  background-image:
+    linear-gradient(45deg, var(--checker) 25%, transparent 25%, transparent 75%, var(--checker) 75%),
+    linear-gradient(45deg, var(--checker) 25%, transparent 25%, transparent 75%, var(--checker) 75%);
+  background-position:
+    0 0,
+    8px 8px;
+  background-size: 16px 16px;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 14px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 84px;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+  width: 84px;
+}
+
+.admin-event-logo__tile:not(.has-logo) {
+  background-image: none;
+  border-style: dashed;
+}
+
+.admin-event-logo__tile:hover:not(:disabled) {
+  border-color: var(--admin-ink);
+}
+
+.admin-event-logo__tile:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-event-logo__tile:disabled {
+  cursor: progress;
+}
+
+.admin-event-logo__tile img {
+  height: 100%;
+  object-fit: contain;
+  padding: 8px;
+  width: 100%;
+}
+
+.admin-event-logo__tile .plu-spinner {
+  inset: 0;
+  margin: auto;
+  position: absolute;
+}
+
+.admin-event-logo--stage.is-busy .admin-event-logo__tile img {
+  opacity: 0.4;
+}
+
+@media (max-width: 599px) {
+  .admin-event-logo--stage {
+    padding: 14px;
+  }
+
+  .admin-event-logo__tile {
+    height: 80px;
+    width: 80px;
+  }
+}
+
 @media (max-width: 599px) {
   .admin-event-logo--field {
     align-items: flex-start;
@@ -164,6 +258,7 @@
 @media (prefers-reduced-motion: reduce) {
   .admin-event-logo__edit,
   .admin-event-logo--field,
+  .admin-event-logo--stage,
   .admin-event-logo__action {
     transition: none;
   }

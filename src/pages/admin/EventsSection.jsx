@@ -3,6 +3,8 @@ import {
   AlertTriangle,
   CalendarDays,
   ChevronRight,
+  Copy,
+  Eye,
   EyeOff,
   Plus,
   RefreshCw,
@@ -38,6 +40,7 @@ import {
   pushAdminEventCreateRoute,
   pushAdminEventRoute,
 } from '../../lib/adminEventRoute.js'
+import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { formatDayMonth, formatMonthYear } from '../../lib/format.js'
 import { getStatusMeta } from '../../lib/status.js'
 import { normalizeEventPublicSurface } from '../../lib/eventPublicSurface.js'
@@ -96,8 +99,12 @@ function EventListRow({
   locale,
   onSelect,
   onTogglePin,
+  onDuplicate,
   pinBusy = false,
   canPin = false,
+  selectMode = false,
+  checked = false,
+  onToggleSelect,
   t,
   variant = 'catalog',
 }) {
@@ -117,17 +124,28 @@ function EventListRow({
         `admin-event-row--${tone}`,
         isLead ? 'admin-event-row--lead' : '',
         row.featured ? 'admin-event-row--featured' : '',
-        selected ? 'admin-event-row--selected' : '',
+        selected && !selectMode ? 'admin-event-row--selected' : '',
+        selectMode ? 'admin-event-row--selecting' : '',
+        selectMode && checked ? 'admin-event-row--checked' : '',
       ]
         .filter(Boolean)
         .join(' ')}
     >
+      {selectMode ? (
+        <input
+          type="checkbox"
+          className="admin-event-row__check"
+          checked={checked}
+          aria-label={t('admin.sections.events.selectRowAria', { title: row.title })}
+          onChange={() => onToggleSelect?.(row.id)}
+        />
+      ) : null}
       <button
         type="button"
         className="admin-event-row__main"
-        aria-current={selected ? 'true' : undefined}
+        aria-current={selected && !selectMode ? 'true' : undefined}
         title={row.slug ? `${row.title} · ${row.slug}` : row.title}
-        onClick={() => onSelect(row.id)}
+        onClick={() => (selectMode ? onToggleSelect?.(row.id) : onSelect(row.id))}
       >
         <AdminEventMark event={row} size={isLead ? 'lg' : 'sm'} />
 
@@ -181,7 +199,19 @@ function EventListRow({
         </span>
       </button>
 
+      {selectMode ? null : (
       <span className="admin-event-row__actions">
+        {canPin && onDuplicate ? (
+          <button
+            type="button"
+            className="admin-event-row__pin admin-event-row__duplicate"
+            aria-label={t('admin.sections.events.duplicateAria', { title: row.title })}
+            title={t('admin.sections.events.duplicate')}
+            onClick={() => onDuplicate(row)}
+          >
+            <Copy size={15} aria-hidden />
+          </button>
+        ) : null}
         {canToggle ? (
           <button
             type="button"
@@ -199,6 +229,7 @@ function EventListRow({
         ) : null}
         <ChevronRight size={16} aria-hidden className="admin-event-row__chevron" />
       </span>
+      )}
     </li>
   )
 }
@@ -345,6 +376,13 @@ export default function EventsSection({
   const [quickCreateOpen, setQuickCreateOpen] = useState(() =>
     isAdminEventCreateSlug(adminEventWorkspaceSlug),
   )
+  // Duplicar un evento abre el alta con sus datos repetibles ya cargados.
+  const [duplicateSource, setDuplicateSource] = useState(null)
+  const duplicateRunRef = useRef(0)
+  // Selección en lote para publicar u ocultar varios eventos de una vez.
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(() => new Set())
+  const [bulkBusy, setBulkBusy] = useState(false)
   /**
    * Workspace del evento seleccionado. Reemplaza al listado a ancho completo,
    * ya no es un modal. El estado local es la fuente de verdad y la URL
@@ -523,6 +561,97 @@ export default function EventsSection({
     [activeView, visibleRows],
   )
 
+  // La selección en lote opera sobre lo que se ve: si un filtro esconde un
+  // evento elegido, deja de contar -- nunca se publica algo que no se está viendo.
+  const selectedRows = useMemo(
+    () => (selectMode ? visibleRows.filter((row) => selectedIds.has(row.id)) : []),
+    [selectMode, selectedIds, visibleRows],
+  )
+  const unpublishedRows = useMemo(
+    () => visibleRows.filter((row) => row.published === false && !isFinishedEvent(row)),
+    [visibleRows],
+  )
+
+  function toggleSelected(id) {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function enterSelectMode(ids = []) {
+    setMessage(null)
+    setSelectedIds(new Set(ids))
+    setSelectMode(true)
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false)
+    setSelectedIds(new Set())
+  }
+
+  /** Aplica publicado/oculto de a uno (PATCH parcial) y devuelve qué salió bien y qué no. */
+  async function setVisibilityFor(rows, published) {
+    const done = []
+    const failed = []
+    for (const row of rows) {
+      try {
+        const result = await onSetEventState?.(row.slug, { published })
+        if (!result || result.error) throw new Error(result?.error || '')
+        done.push(row)
+      } catch (error) {
+        failed.push({ row, reason: error?.message || t('admin.eventState.saveFailed') })
+      }
+    }
+    return { done, failed }
+  }
+
+  async function applyVisibility(published) {
+    if (!onSetEventState || bulkBusy) return
+    const targets = selectedRows.filter((row) => (row.published === true) !== published)
+    if (targets.length === 0) {
+      setMessage({ tone: 'success', text: t('admin.sections.events.bulkNothing') })
+      return
+    }
+    setBulkBusy(true)
+    setMessage(null)
+    const { done, failed } = await setVisibilityFor(targets, published)
+    setBulkBusy(false)
+
+    if (done.length > 0) {
+      const one = published
+        ? 'admin.sections.events.bulkPublishedOne'
+        : 'admin.sections.events.bulkHiddenOne'
+      const many = published
+        ? 'admin.sections.events.bulkPublishedMany'
+        : 'admin.sections.events.bulkHiddenMany'
+      // Publicar es lo que ve el público: se puede deshacer sin buscar los eventos de nuevo.
+      notifySuccess(done.length === 1 ? t(one) : t(many, { count: done.length }), {
+        label: t('admin.sections.events.bulkUndo'),
+        onClick: () => {
+          void setVisibilityFor(done, !published).then((undo) => {
+            if (undo.failed.length > 0) notifyError(undo.failed[0].reason)
+          })
+        },
+      })
+    }
+    if (failed.length > 0) {
+      setMessage({
+        tone: 'error',
+        text: t('admin.sections.events.bulkPartial', {
+          done: done.length,
+          total: targets.length,
+          title: failed[0].row.title,
+          reason: failed[0].reason,
+        }),
+      })
+      return
+    }
+    exitSelectMode()
+  }
+
   const eventCatalog = useMemo(() => {
     const rest = visibleRows.filter((row) => row.id !== leadEvent?.id)
     const upcoming = []
@@ -640,6 +769,8 @@ export default function EventsSection({
 
   function openCreateForm() {
     setMessage(null)
+    setDuplicateSource(null)
+    duplicateRunRef.current += 1
     setQuickCreateOpen(true)
     pushAdminEventCreateRoute()
   }
@@ -647,7 +778,41 @@ export default function EventsSection({
   /** Cierra el alta y suelta la URL `/nuevo`, si era la que estaba activa. */
   function closeQuickCreate() {
     setQuickCreateOpen(false)
+    setDuplicateSource(null)
+    duplicateRunRef.current += 1
     if (createRouteActive) clearAdminEventRoute()
+  }
+
+  /**
+   * Duplicar: el alta arranca con título, sede, ciudad, cupo y acceso del
+   * original. Fechas, entradas y días no se copian (cambian en cada meet). El
+   * logo se descarga aparte y entra cuando llega: si falla, el alta sigue sin él.
+   */
+  function handleDuplicate(row) {
+    if (!row) return
+    openCreateForm()
+    const run = duplicateRunRef.current
+    setDuplicateSource({
+      title: row.title,
+      draft: {
+        title: row.title ?? '',
+        venue: row.venue ?? '',
+        location: row.location ?? '',
+        slots: row.slots ?? createAdminEventDraft().slots,
+        requiresMembership: row.requiresMembership !== false,
+      },
+      logo: null,
+    })
+    if (!row.logoUrl) return
+    fetch(row.logoUrl)
+      .then((response) => (response.ok ? response.blob() : null))
+      .then((blob) => {
+        if (!blob || !blob.type.startsWith('image/') || duplicateRunRef.current !== run) return
+        const extension = blob.type.split('/')[1]?.replace('jpeg', 'jpg') || 'webp'
+        const file = new File([blob], `logo.${extension}`, { type: blob.type })
+        setDuplicateSource((current) => (current ? { ...current, logo: file } : current))
+      })
+      .catch(() => {})
   }
 
   /** Salida del alta rápida hacia el formulario largo, sin perder lo tipeado. */
@@ -882,10 +1047,27 @@ export default function EventsSection({
    * seleccionado y la consola abierta -- que es donde queda el trabajo que el
    * alta deliberadamente no pidió (entradas, grilla, zonas).
    */
-  async function handleQuickCreate(submittedDraft) {
+  async function handleQuickCreate(submittedDraft, { logo = null, another = false } = {}) {
     const saved = await onSaveEvent?.(submittedDraft)
     if (saved?.error) throw new Error(saved.error)
+
+    // El logo se sube apenas el evento existe. Si falla no se deshace el alta
+    // (el evento está bien): se avisa y se puede subir desde la ficha.
+    const loadedSlug = saved?.event?.slug ?? submittedDraft.slug
+    if (logo && loadedSlug && onSetEventLogo) {
+      try {
+        const logoResult = await onSetEventLogo(loadedSlug, logo, { prepared: true })
+        if (logoResult?.error) throw new Error(logoResult.error)
+      } catch {
+        notifyError(t('admin.eventQuickCreate.logoUploadFailed'))
+      }
+    }
+
+    // «Crear y cargar otro»: el alta se queda abierta para el siguiente.
+    if (another) return saved
+
     setQuickCreateOpen(false)
+    setDuplicateSource(null)
     if (saved?.event?.id) setSelectedId(saved.event.id)
     setConsoleOpen(true)
     setMessage({ tone: 'success', text: t('admin.sections.events.created') })
@@ -1069,8 +1251,12 @@ export default function EventsSection({
               locale={locale}
               onSelect={handleSelectEvent}
               onTogglePin={handleTogglePin}
+              onDuplicate={handleDuplicate}
               pinBusy={pinBusyId === row.id}
               canPin={canEdit}
+              selectMode={selectMode}
+              checked={selectedIds.has(row.id)}
+              onToggleSelect={toggleSelected}
               t={t}
             />
           ))}
@@ -1096,6 +1282,17 @@ export default function EventsSection({
             onClick={onRefresh}
             variant="ghost"
           />
+        ) : null}
+        {canEdit && onSetEventState && adminEvents.length > 1 ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="btn--small"
+            aria-pressed={selectMode}
+            onClick={() => (selectMode ? exitSelectMode() : enterSelectMode())}
+          >
+            {selectMode ? t('admin.sections.events.selectDone') : t('admin.sections.events.select')}
+          </Button>
         ) : null}
         {canEdit ? (
           <Button type="button" variant="gold" className="btn--small" onClick={openCreateForm}>
@@ -1358,7 +1555,11 @@ export default function EventsSection({
   if (quickCreateOpen) {
     return (
       <AdminEventQuickCreate
+        key={duplicateSource ? 'duplicate' : 'create'}
         canEdit={canEdit}
+        duplicateOf={duplicateSource?.title ?? null}
+        initialDraft={duplicateSource?.draft ?? null}
+        initialLogo={duplicateSource?.logo ?? null}
         onCancel={closeQuickCreate}
         onOpenFullEditor={openFullEditorFromQuickCreate}
         onSubmit={handleQuickCreate}
@@ -1429,6 +1630,23 @@ export default function EventsSection({
         </p>
       ) : null}
 
+        {canEdit && onSetEventState && !selectMode && unpublishedRows.length > 0 ? (
+          <p className="admin-events__unpublished">
+            <EyeOff size={14} aria-hidden />
+            <span>
+              {unpublishedRows.length === 1
+                ? t('admin.sections.events.unpublishedOne')
+                : t('admin.sections.events.unpublishedMany', { count: unpublishedRows.length })}
+            </span>
+            <button
+              type="button"
+              onClick={() => enterSelectMode(unpublishedRows.map((row) => row.id))}
+            >
+              {t('admin.sections.events.unpublishedReview')}
+            </button>
+          </p>
+        ) : null}
+
         <AdminSiteTeaserControl
           busy={teaserBusy}
           canEdit={canEdit}
@@ -1496,8 +1714,12 @@ export default function EventsSection({
                     locale={locale}
                     onSelect={handleSelectEvent}
                     onTogglePin={handleTogglePin}
+                    onDuplicate={handleDuplicate}
                     pinBusy={pinBusyId === leadEvent.id}
                     canPin={canEdit}
+                    selectMode={selectMode}
+                    checked={selectedIds.has(leadEvent.id)}
+                    onToggleSelect={toggleSelected}
                     t={t}
                     variant="lead"
                   />
@@ -1522,6 +1744,50 @@ export default function EventsSection({
                 ))}
               </ul>
             )}
+
+            {selectMode ? (
+              <div
+                className="admin-events-bulkbar"
+                role="group"
+                aria-label={t('admin.sections.events.bulkBarAria')}
+              >
+                <p className="admin-events-bulkbar__count" aria-live="polite">
+                  {selectedRows.length === 1
+                    ? t('admin.sections.events.selectedOne')
+                    : t('admin.sections.events.selectedCount', { count: selectedRows.length })}
+                  <button
+                    type="button"
+                    className="admin-events-bulkbar__link"
+                    disabled={bulkBusy || unpublishedRows.length === 0}
+                    onClick={() => setSelectedIds(new Set(unpublishedRows.map((row) => row.id)))}
+                  >
+                    {t('admin.sections.events.selectHidden')}
+                  </button>
+                </p>
+                <div className="admin-events-bulkbar__actions">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="btn--small"
+                    disabled={bulkBusy || selectedRows.length === 0}
+                    onClick={() => void applyVisibility(false)}
+                  >
+                    <EyeOff size={15} aria-hidden />
+                    {t('admin.sections.events.hideSelected', { count: selectedRows.length })}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="gold"
+                    className="btn--small"
+                    disabled={bulkBusy || selectedRows.length === 0}
+                    onClick={() => void applyVisibility(true)}
+                  >
+                    <Eye size={15} aria-hidden />
+                    {t('admin.sections.events.publishSelected', { count: selectedRows.length })}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
 

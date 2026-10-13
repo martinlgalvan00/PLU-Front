@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { RefreshCw, Search, X } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import PaymentExpiryPanel from '../../components/admin/PaymentExpiryPanel.jsx'
+import PaymentProofsPanel from '../../components/admin/PaymentProofsPanel.jsx'
 import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
@@ -281,6 +282,12 @@ export default function PaymentsOperationsSection({
           se pintaría encima y el plazo quedaría ilegible. */}
       <div className="admin-payments-operations__expiry" hidden={activeTab === 'tickets'}>
         <PaymentExpiryPanel canEdit={canEdit} />
+      </div>
+
+      {/* Archivo de comprobantes (atletas y entradas): descargar y política de
+          borrado. A diferencia del vencimiento, aplica a las dos pestañas. */}
+      <div className="admin-payments-operations__expiry">
+        <PaymentProofsPanel canEdit={canEdit} />
       </div>
       </div>
     </div>

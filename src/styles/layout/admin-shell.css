@@ -31,6 +31,17 @@
   }
 }
 
+/* El panel es una app de pantalla completa: el único scroll es el de
+   `.admin-shell__content`. Si el documento también scrollea, al llegar al final
+   de una tabla larga la rueda encadena al documento, el shell sube y queda un
+   hueco vacío debajo (sidebar y contenido cortados). AdminPage marca <html>. */
+html[data-surface='admin'],
+html[data-surface='admin'] body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 .admin-shell {
   background: var(--color-bg-primary);
   display: flex;
@@ -796,6 +807,7 @@ button.admin-shell__account:hover,
   flex-direction: column;
   min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .admin-shell__main {

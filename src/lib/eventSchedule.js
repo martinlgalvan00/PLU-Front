@@ -40,10 +40,21 @@ export function toCamelEventSession(row) {
     dayIndex: row.dayIndex ?? row.day_index ?? null,
     name: row.name ?? '',
     platform: row.platform ?? '',
+    platformId: row.platformId ?? row.platform_id ?? null,
     weighInAt: row.weighInAt ?? row.weigh_in_at ?? null,
     startsAt: row.startsAt ?? row.starts_at ?? null,
     sortOrder: row.sortOrder ?? row.sort_order ?? 0,
     assignedCount: Number(row.assignedCount ?? row.assigned_count ?? 0),
+  }
+}
+
+/** Tablado del evento (event_platforms). */
+export function toCamelEventPlatform(row) {
+  if (!row) return null
+  return {
+    id: row.id,
+    name: row.name ?? '',
+    sortOrder: row.sortOrder ?? row.sort_order ?? 0,
   }
 }
 
@@ -61,6 +72,7 @@ export function toCamelScheduleDay(row) {
 export function toCamelEventSchedule(payload) {
   return {
     eventSlug: payload?.eventSlug ?? payload?.event_slug ?? null,
+    platforms: (payload?.platforms ?? []).map(toCamelEventPlatform),
     days: (payload?.days ?? []).map(toCamelScheduleDay),
     sessions: (payload?.sessions ?? []).map(toCamelEventSession),
     unassignedCount: Number(payload?.unassignedCount ?? payload?.unassigned_count ?? 0),
