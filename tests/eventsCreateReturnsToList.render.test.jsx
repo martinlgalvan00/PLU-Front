@@ -139,7 +139,7 @@ describe('alta de un evento: vuelve a la lista', () => {
     fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
 
     const list = await screen.findByRole('list', { name: 'Evento' })
-    const row = await within(list).findByTitle(/Copa Primavera/)
+    const row = await within(list).findByTitle(/^Copa Primavera · /)
     expect(row.closest('.admin-event-row')?.classList.contains('admin-event-row--new')).toBe(true)
     expect(screen.queryByRole('region', { name: 'Evento seleccionado' })).toBeNull()
   })
