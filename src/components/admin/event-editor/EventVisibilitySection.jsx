@@ -20,6 +20,7 @@ export default function EventVisibilitySection({
   patchDraft,
   statusOptions,
   consistencyWarnings,
+  publishChecks = [],
   accessOptions,
   advancedOpen,
   setAdvancedOpen,
@@ -90,6 +91,22 @@ export default function EventVisibilitySection({
               <small>{t('admin.eventEditor.supabase.publishedHint')}</small>
             </span>
           </label>
+
+          {/* Lo que el público va a encontrar al intentar pagar. Aviso, no
+              bloqueo: un evento puede anunciarse antes de abrir las ventas. */}
+          {publishChecks.length > 0 ? (
+            <div className="admin-event-form__consistency" role="status">
+              <p className="admin-event-form__consistency-head">
+                <AlertTriangle size={13} aria-hidden />
+                {t('admin.eventEditor.publishChecks.title')}
+              </p>
+              <ul>
+                {publishChecks.map((code) => (
+                  <li key={code}>{t(`admin.eventEditor.publishChecks.codes.${code}`)}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           {/* Acceso al meet: misma decisión que StateControl. En el
                           acordeón de la consola vive solo allá (PATCH parcial). */}

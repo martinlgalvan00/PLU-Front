@@ -583,7 +583,7 @@ describe('EventsSection — alta rápida', () => {
     fireEvent.click(screen.getByRole('button', { name: /nuevo evento/i }))
     const dialog = await findCreatePage()
 
-    fireEvent.click(within(dialog).getByRole('button', { name: /crear y abrir consola/i }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /crear evento/i }))
 
     await waitFor(() => expect(within(dialog).getAllByRole('alert').length).toBeGreaterThan(0))
     expect(onSaveEvent).not.toHaveBeenCalled()
@@ -611,7 +611,7 @@ describe('EventsSection — alta rápida', () => {
     fireEvent.change(dialog.querySelector('[name="slots"]'), { target: { value: '40' } })
     fireEvent.click(within(dialog).getByRole('button', { name: /sin afiliación/i }))
 
-    fireEvent.click(within(dialog).getByRole('button', { name: /crear y abrir consola/i }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /crear evento/i }))
 
     await waitFor(() => expect(onSaveEvent).toHaveBeenCalledTimes(1))
     expect(onSaveEvent.mock.calls[0][0]).toMatchObject({

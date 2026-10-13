@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { CalendarClock, Eye, EyeOff, LockKeyhole, Unlock } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { notifyError, notifySuccess } from '../../lib/adminToast.js'
+import { resolveEventPublishChecks } from '../../lib/eventPublishChecks.js'
+import usePlatformPaymentChannels from '../../hooks/usePlatformPaymentChannels.js'
 
 /** Estados en los que la inscripción está abierta (o a punto de llenarse). */
 const OPEN_STATUSES = new Set(['inscripcion_abierta', 'cupos_limitados'])
@@ -32,6 +34,7 @@ export default function AdminEventQuickActions({
 }) {
   const { t } = useI18n()
   const [busy, setBusy] = useState(false)
+  const platformChannels = usePlatformPaymentChannels()
 
   if (!canEdit || !event || !onSetEventState) return null
 
@@ -73,6 +76,7 @@ export default function AdminEventQuickActions({
       void apply({ status: 'cerrado' }, { status }, t('admin.eventQuick.registrationsClosed'))
       return
     }
+    if (!published && !confirmPublish()) return
     void apply(
       { status: 'inscripcion_abierta', published: true },
       { status, published },
@@ -80,7 +84,22 @@ export default function AdminEventQuickActions({
     )
   }
 
+  /**
+   * Publicar es lo que ve el público. Si el evento quedaría sin un medio de
+   * cobro posible se avisa antes, con el motivo; es un aviso y no un bloqueo
+   * porque hay eventos que se anuncian antes de abrir ventas.
+   */
+  function confirmPublish() {
+    const checks = resolveEventPublishChecks(event, platformChannels.platform)
+    if (checks.length === 0) return true
+    const lines = checks.map((code) => `• ${t(`admin.eventEditor.publishChecks.codes.${code}`)}`)
+    return window.confirm(
+      `${t('admin.eventEditor.publishChecks.intro')}\n\n${lines.join('\n')}\n\n${t('admin.eventEditor.publishChecks.confirmOutro')}`,
+    )
+  }
+
   function togglePublished() {
+    if (!published && !confirmPublish()) return
     void apply(
       { published: !published },
       { published },

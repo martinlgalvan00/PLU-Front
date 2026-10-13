@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowUpRight,
+  Banknote,
   CalendarDays,
   Check,
   ChevronLeft,
   Copy,
   Eye,
+  EyeOff,
   Link2,
   Plus,
   ShieldCheck,
@@ -17,6 +19,12 @@ import Button from '../ui/Button.jsx'
 import EventCard from '../ui/EventCard.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { validateAdminEventDraft } from '../../lib/schemas/adminEvent.js'
+import { effectiveEventChannelsFor } from '../../lib/eventPaymentChannels.js'
+import { resolveEventPublishChecks } from '../../lib/eventPublishChecks.js'
+import usePlatformPaymentChannels from '../../hooks/usePlatformPaymentChannels.js'
+import { platformCellsFor } from '../../lib/platformPaymentChannels.js'
+import { fetchPaymentProfiles } from '../../services/paymentProfileService.js'
+import EventPaymentChannelMatrix from './event-editor/EventPaymentChannelMatrix.jsx'
 import '../../styles/pages/admin-event-quick.css'
 import {
   createAdminEventDraft,
@@ -77,6 +85,8 @@ export default function AdminEventQuickCreate({
   const [fieldErrors, setFieldErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
+  const platformChannels = usePlatformPaymentChannels()
+  const [bankProfiles, setBankProfiles] = useState([])
   const formRef = useRef(null)
   const initialSignatureRef = useRef(JSON.stringify(draft))
 
@@ -99,6 +109,32 @@ export default function AdminEventQuickCreate({
     [draft.title, draft.startsAt, draft.venue, draft.location],
   )
 
+  // La transferencia necesita un destino de cobro. Si el evento la deja abierta
+  // en algún concepto se pide el perfil acá, en vez de descubrir la falta de
+  // alias en el 400 del guardado.
+  const transferOpen = ['registration', 'ticket'].some((concept) =>
+    effectiveEventChannelsFor(
+      draft.paymentChannelOverrides,
+      concept,
+      platformCellsFor(platformChannels.platform, concept),
+    ).includes('bank_transfer'),
+  )
+
+  useEffect(() => {
+    if (!transferOpen) return undefined
+    let alive = true
+    fetchPaymentProfiles({ kind: 'bank_transfer' })
+      .then((result) => {
+        if (alive) setBankProfiles(result.profiles ?? [])
+      })
+      .catch(() => {
+        if (alive) setBankProfiles([])
+      })
+    return () => {
+      alive = false
+    }
+  }, [transferOpen])
+
   const [registrationMode, setRegistrationModeState] = useState('soon')
   const registrationOptions = REGISTRATION_MODES.map((mode) => [
     mode,
@@ -115,6 +151,10 @@ export default function AdminEventQuickCreate({
     else patch({ ...draft, status: 'inscripcion_abierta', registrationOpensAt: '' })
   }
 
+  const visibilityOptions = [
+    ['hidden', t('admin.eventQuickCreate.visHidden')],
+    ['published', t('admin.eventQuickCreate.visPublished')],
+  ]
   const accessOptions = [
     ['members', t('admin.eventState.accessMembers')],
     ['open', t('admin.eventState.accessOpen')],
@@ -178,6 +218,11 @@ export default function AdminEventQuickCreate({
       slots: draft.slots,
       requiresMembership: draft.requiresMembership,
       status: draft.status,
+      published: draft.published,
+      // Los medios de cobro se repiten casi siempre de un meet al siguiente.
+      paymentChannelOverrides: draft.paymentChannelOverrides,
+      bankTransferProfileId: draft.bankTransferProfileId,
+      mercadoPagoProfileId: draft.mercadoPagoProfileId,
     }
     initialSignatureRef.current = JSON.stringify(next)
     setDraft(next)
@@ -208,6 +253,23 @@ export default function AdminEventQuickCreate({
         ),
       )
       return
+    }
+
+    // Publicar al crear es lo que ve el público: se avisa si el evento quedaría
+    // sin cobro posible. Es un aviso, no un bloqueo (ver eventPublishChecks).
+    if (draft.published === true) {
+      const checks = resolveEventPublishChecks(draft, platformChannels.platform)
+      if (checks.length > 0) {
+        const lines = checks.map((code) => `• ${t(`admin.eventEditor.publishChecks.codes.${code}`)}`)
+        const proceed = window.confirm(
+          [
+            t('admin.eventEditor.publishChecks.bulkIntro', { count: 1 }),
+            lines.join('\n'),
+            t('admin.eventEditor.publishChecks.confirmOutro'),
+          ].join('\n\n'),
+        )
+        if (!proceed) return
+      }
     }
 
     setFieldErrors({})
@@ -506,6 +568,83 @@ export default function AdminEventQuickCreate({
                 </p>
               </div>
 
+              <div
+                className="admin-event-quick__section"
+                role="group"
+                aria-labelledby="quick-event-visibility"
+              >
+                <h3 className="admin-event-quick__section-title" id="quick-event-visibility">
+                  {t('admin.eventQuickCreate.sectionVisibility')}
+                </h3>
+                <AdminFilterChipGroup
+                  compact
+                  disabled={!canEdit || submitting}
+                  id="quick-event-visibility-mode"
+                  label={t('admin.eventQuickCreate.visLabel')}
+                  value={draft.published === true ? 'published' : 'hidden'}
+                  onChange={(value) => patch({ ...draft, published: value === 'published' })}
+                  options={visibilityOptions}
+                />
+                <p className="admin-event-quick__access-note">
+                  {draft.published === true ? (
+                    <Eye size={14} aria-hidden />
+                  ) : (
+                    <EyeOff size={14} aria-hidden />
+                  )}
+                  {draft.published === true
+                    ? t('admin.eventQuickCreate.visPublishedNote')
+                    : t('admin.eventQuickCreate.visHiddenNote')}
+                </p>
+              </div>
+
+              <div
+                className="admin-event-quick__section"
+                role="group"
+                aria-labelledby="quick-event-payments"
+              >
+                <h3 className="admin-event-quick__section-title" id="quick-event-payments">
+                  {t('admin.eventQuickCreate.sectionPayments')}
+                </h3>
+                <p className="admin-event-quick__access-note">
+                  <Banknote size={14} aria-hidden />
+                  {t('admin.eventQuickCreate.paymentsNote')}
+                </p>
+                <EventPaymentChannelMatrix
+                  idPrefix="quick"
+                  showLead={false}
+                  value={draft.paymentChannelOverrides}
+                  onChange={(next) => patch({ ...draft, paymentChannelOverrides: next })}
+                  platform={platformChannels.platform}
+                  platformStatus={platformChannels.status}
+                  canEdit={canEdit && !submitting}
+                  ticketError={err('paymentChannelOverrides.ticket')}
+                />
+                {transferOpen ? (
+                  <label className="admin-event-quick__field" htmlFor="quick-event-bank-profile">
+                    <span className="admin-event-quick__label">
+                      {t('admin.eventEditor.bankTransferProfile')}
+                    </span>
+                    <select
+                      id="quick-event-bank-profile"
+                      name="bankTransferProfileId"
+                      value={draft.bankTransferProfileId ?? ''}
+                      onChange={(event) =>
+                        patch({ ...draft, bankTransferProfileId: event.target.value || null })
+                      }
+                      disabled={!canEdit || submitting}
+                    >
+                      <option value="">{t('admin.eventEditor.bankTransferProfileNone')}</option>
+                      {bankProfiles.map((profile) => (
+                        <option key={profile.id} value={profile.id}>
+                          {profile.name}
+                          {profile.config?.alias ? ` · ${profile.config.alias}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+              </div>
+
               {created.count > 0 ? (
                 <p className="admin-event-quick__created" role="status">
                   <Check size={15} aria-hidden />
@@ -572,7 +711,9 @@ export default function AdminEventQuickCreate({
           <div className="admin-event-quick__foot-copy">
             <p className="admin-event-quick__foot-note">
               <CalendarDays size={13} aria-hidden />
-              {t('admin.eventQuickCreate.hiddenNote')}
+              {draft.published === true
+                ? t('admin.eventQuickCreate.publishedNote')
+                : t('admin.eventQuickCreate.hiddenNote')}
             </p>
             {/* Salida hacia el formulario largo: el alta rápida no puede ser una
                 pared para quien ya sabe que necesita cargar precios o ventanas. */}

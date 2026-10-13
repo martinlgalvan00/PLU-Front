@@ -5,8 +5,10 @@ import {
   PAYMENT_CHANNELS,
 } from '../../services/platformFeatureToggleService.js'
 import {
+  applyEventChannelOpens,
   EVENT_PAYMENT_CONCEPTS,
   eventChannelOverridesFor,
+  isEventChannelForcedOpen,
   isEventChannelOpenAnywhere,
   isEventChannelOpenForConcept,
   MANUAL_TICKET_LEAD_HOURS,
@@ -49,21 +51,30 @@ export function normalizePaymentChannelOverrides(raw) {
 
 /**
  * ¿El canal queda abierto para este evento?
- * `plataforma AND (override[concepto][canal] ?? true)` — el evento solo cierra.
+ * `override[concepto][canal]` si el evento decidió (`false` cierra, `'open'`
+ * abre); si no, lo que diga la plataforma.
  *
  * Sin `concept` responde por el evento entero: abierto si lo está en alguno de
  * los dos conceptos. Es lo que necesitan los bloques que configuran el canal
  * (alias de transferencia, perfil de MP), no el checkout.
  */
 export function isEventChannelOpen(platformOpen, overrides, channel, concept = null) {
-  if (!platformOpen) return false
+  const forcedOpen = concept
+    ? isEventChannelForcedOpen(overrides, concept, channel)
+    : EVENT_PAYMENT_CONCEPTS.some((item) => isEventChannelForcedOpen(overrides, item, channel))
+  if (!platformOpen && !forcedOpen) return false
   if (concept) return isEventChannelOpenForConcept(overrides, concept, channel)
   return isEventChannelOpenAnywhere(overrides, channel)
 }
 
 /**
- * Aplica el override del evento sobre availability pública (registration + ticket).
- * Membership no se toca: sigue 100% plataforma.
+ * Aplica los CIERRES del evento sobre la availability pública (registration +
+ * ticket). Membership no se toca: sigue 100% plataforma.
+ *
+ * Las aperturas no se resuelven acá: la availability ya viene cruzada con el
+ * maestro y el alta del concepto, y desde ahí no se puede saber si una celda
+ * en `false` está cerrada por Finanzas o por una pausa general. Se aplican
+ * antes, sobre los toggles, con `applyEventChannelOpens`.
  */
 export function applyEventPaymentChannelOverrides(availability, overrides) {
   const normalized = normalizePaymentChannelOverrides(overrides)
@@ -254,9 +265,13 @@ export function mapEventPaymentProfile(row) {
 }
 
 /**
- * Assert de plataforma + restricción del evento (registration/ticket).
+ * Assert de plataforma + decisión del evento (registration/ticket).
  * Los cupones manuales (`override`) siguen saltando solo canales manuales a
  * nivel plataforma; un evento que cerró el canal no se reabre con cupón.
+ *
+ * Un canal que el evento abre explícitamente (`'open'`) cuenta como abierto
+ * para la plataforma, pero no salta el maestro ni el alta del concepto: esos
+ * se verifican aparte, antes de llegar acá.
  */
 export function assertEventPaymentChannelEnabled(
   toggles,
@@ -264,7 +279,9 @@ export function assertEventPaymentChannelEnabled(
   channel,
   { override = false, eventOverrides = null } = {},
 ) {
-  assertPaymentChannelEnabled(toggles, concept, channel, { override })
+  assertPaymentChannelEnabled(applyEventChannelOpens(toggles, eventOverrides), concept, channel, {
+    override,
+  })
 
   if (!EVENT_PAYMENT_CONCEPTS.includes(concept)) return
 

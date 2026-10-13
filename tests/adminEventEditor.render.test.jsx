@@ -1,8 +1,38 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import AdminEventEditor from '../src/components/admin/AdminEventEditor.jsx'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import { buildAdminEventDraft } from '../src/services/eventAdminService.js'
+import { invalidatePlatformPaymentChannels } from '../src/hooks/usePlatformPaymentChannels.js'
+
+/**
+ * La matriz del evento se dibuja contra la de plataforma, así que el panel la
+ * lee. Por defecto el doble la entrega toda abierta —el caso en que "heredar"
+ * y "todo tildado" coinciden—; los tests de apertura la cierran celda a celda.
+ */
+const platformDouble = vi.hoisted(() => ({ closed: new Set() }))
+
+vi.mock('../src/services/platformSettingsAdminService.js', async (importOriginal) => {
+  const original = await importOriginal()
+  return {
+    ...original,
+    fetchPlatformFeatureToggles: vi.fn(async () => ({
+      checkoutEnabled: true,
+      environmentHolds: [],
+      paymentChannels: Object.fromEntries(
+        original.PAYMENT_CONCEPTS.map((concept) => [
+          concept,
+          Object.fromEntries(
+            original.PAYMENT_CHANNELS.map((channel) => [
+              channel,
+              !platformDouble.closed.has(`${concept}:${channel}`),
+            ]),
+          ),
+        ]),
+      ),
+    })),
+  }
+})
 
 /**
  * Render real del editor (jsdom). Complementa a eventAdminService.test.js, que
@@ -29,6 +59,8 @@ beforeAll(() => {
 })
 
 afterEach(() => {
+  platformDouble.closed.clear()
+  invalidatePlatformPaymentChannels()
   // Sin cleanup cada render se acumula en el body y aparecen tablists/dialogs
   // duplicados (mismo patrón que adminAuditSection.test.jsx).
   cleanup()
@@ -452,11 +484,18 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
     fireEvent.click(salesChapter(/^cobro/i))
   }
 
-  it('sin override muestra igual la matriz, con los ocho medios abiertos', () => {
+  /** La matriz se bloquea hasta leer la plataforma: se espera a que habilite. */
+  async function platformMatrix() {
+    const matrix = screen.getByRole('group', { name: /medios de pago por concepto/i })
+    await waitFor(() => expect(matrix.getAttribute('aria-busy')).toBeNull())
+    return matrix
+  }
+
+  it('sin override muestra la matriz de la plataforma, con los ocho medios abiertos', async () => {
     renderEditor()
     openPaymentChapter()
 
-    const matrix = screen.getByRole('group', { name: /medios de pago por concepto/i })
+    const matrix = await platformMatrix()
     const boxes = within(matrix).getAllByRole('checkbox')
     expect(boxes).toHaveLength(8)
     expect(boxes.every((box) => box.checked)).toBe(true)
@@ -465,30 +504,65 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
     expect(screen.queryByRole('button', { name: /volver a los medios de la plataforma/i })).toBeNull()
   })
 
-  it('destildar un medio crea el override sin cerrar ningún otro', () => {
+  it('destildar un medio guarda solo esa celda y deja el resto heredando', async () => {
     const onChange = vi.fn()
     renderEditor({}, { onChange })
     openPaymentChapter()
 
-    const matrix = screen.getByRole('group', { name: /medios de pago por concepto/i })
+    const matrix = await platformMatrix()
     fireEvent.click(within(matrix).getByRole('checkbox', { name: /efectivo pitbull · entradas/i }))
 
-    // El punto de partida es todo abierto: cerrar uno no puede cerrar el resto.
+    // Sólo se guarda lo que difiere de la plataforma: cerrar una celda no
+    // escribe las otras siete.
     expect(onChange).toHaveBeenCalledTimes(1)
     expect(onChange.mock.calls[0][0].paymentChannelOverrides).toEqual({
-      registration: {
-        mercado_pago: true,
-        bank_transfer: true,
-        cash_pitbull: true,
-        wise_transfer: true,
-      },
-      ticket: {
-        mercado_pago: true,
-        bank_transfer: true,
-        cash_pitbull: false,
-        wise_transfer: true,
-      },
+      ticket: { cash_pitbull: false },
     })
+  })
+
+  it('abre un medio que la plataforma tiene cerrado, solo para este evento', async () => {
+    platformDouble.closed.add('registration:bank_transfer')
+    const onChange = vi.fn()
+    renderEditor({}, { onChange })
+    openPaymentChapter()
+
+    const matrix = await platformMatrix()
+    const box = within(matrix).getByRole('checkbox', { name: /transferencia · inscripción/i })
+    expect(box.checked).toBe(false)
+
+    fireEvent.click(box)
+
+    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(onChange.mock.calls[0][0].paymentChannelOverrides).toEqual({
+      registration: { bank_transfer: 'open' },
+    })
+  })
+
+  it('muestra lo que el evento abre y avisa que es solo acá', async () => {
+    platformDouble.closed.add('registration:cash_pitbull')
+    renderEditor({ paymentChannelOverrides: { registration: { cash_pitbull: 'open' } } })
+    openPaymentChapter()
+
+    const matrix = await platformMatrix()
+    expect(
+      within(matrix).getByRole('checkbox', { name: /efectivo pitbull · inscripción/i }).checked,
+    ).toBe(true)
+    expect(within(matrix).getByText(/abierto solo en este evento \(inscripción\)/i)).toBeTruthy()
+  })
+
+  it('volver a coincidir con la plataforma borra la decisión del evento', async () => {
+    platformDouble.closed.add('registration:bank_transfer')
+    const onChange = vi.fn()
+    renderEditor(
+      { paymentChannelOverrides: { registration: { bank_transfer: 'open' } } },
+      { onChange },
+    )
+    openPaymentChapter()
+
+    const matrix = await platformMatrix()
+    fireEvent.click(within(matrix).getByRole('checkbox', { name: /transferencia · inscripción/i }))
+
+    expect(onChange.mock.calls[0][0].paymentChannelOverrides).toBeNull()
   })
 
   it('con override ofrece volver a heredar la matriz de plataforma', () => {

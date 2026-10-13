@@ -37,7 +37,7 @@ export const PAYMENT_CHANNELS = ['mercado_pago', 'bank_transfer', 'cash_pitbull'
  * práctica el payload trae las doce celdas y esto sólo cubre una lectura
  * incompleta.
  */
-function defaultChannelState(concept, channel) {
+export function defaultChannelState(concept, channel) {
   if (channel === 'wise_transfer') return false
   if (channel === 'mercado_pago') return true
   return concept === 'ticket'

@@ -151,7 +151,7 @@ describe('EventsSection — meets abiertos en el listado', () => {
     expect(mark.getAttribute('aria-label')).toBe('Abierto sin afiliación')
   })
 
-  it('pone el próximo vigente como fila protagonista', () => {
+  it('marca el evento principal en la lista, sin sacarlo de su lugar', () => {
     renderEvents({
       adminEvents: [
         { ...EVENT, featured: true },
@@ -166,11 +166,14 @@ describe('EventsSection — meets abiertos en el listado', () => {
       ],
     })
 
-    const lead = document.querySelector('.admin-event-row--lead')
-    expect(lead).not.toBeNull()
-    expect(lead.textContent).toMatch(/Evento principal/)
-    expect(lead.textContent).toMatch(/Pitbull Classic/)
-    expect(document.querySelectorAll('.admin-event-row').length).toBe(2)
+    const rows = [...document.querySelectorAll('.admin-event-row')]
+    expect(rows.length).toBe(2)
+    // Orden del calendario: Copa Norte (marzo) antes que Pitbull Classic.
+    expect(rows[0].textContent).toMatch(/Copa Norte/)
+    const featured = document.querySelectorAll('.admin-event-row__featured-mark')
+    expect(featured.length).toBe(1)
+    expect(featured[0].getAttribute('aria-label')).toBe('Evento principal')
+    expect(featured[0].closest('.admin-event-row')?.textContent).toMatch(/Pitbull Classic/)
   })
 
   it('no marca las filas que sí piden afiliación', () => {
@@ -221,7 +224,7 @@ describe('EventsSection — secciones y evento principal', () => {
     expect(screen.getByTitle(/Copa Verano · copa-verano/)).toBeTruthy()
     expect(screen.queryByTitle(/Pitbull Classic · pitbull-classic-2026/)).toBeNull()
     // El archivo no tiene evento principal: no hay nada que fijar.
-    expect(document.querySelector('.admin-event-row--lead')).toBeNull()
+    expect(document.querySelector('.admin-event-row__featured-mark')).toBeNull()
   })
 
   it('fija un evento como principal con el mismo guardado del editor', async () => {

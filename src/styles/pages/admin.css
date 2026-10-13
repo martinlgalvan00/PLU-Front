@@ -13134,6 +13134,16 @@ button.action-queue__proof:focus-visible {
   min-width: 0;
 }
 
+.admin-event-form__channel-note {
+  color: var(--admin-muted, var(--color-text-muted));
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  margin-top: 2px;
+  max-width: 44ch;
+}
+
 .admin-event-form__channel-cell {
   align-items: center;
   background: var(--admin-control-bg, transparent);
