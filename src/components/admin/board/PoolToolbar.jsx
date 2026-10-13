@@ -1,19 +1,24 @@
-import { Search } from 'lucide-react'
+import { ChevronDown, Search } from 'lucide-react'
 import SegmentedSwitch from '../../ui/SegmentedSwitch.jsx'
 import { EMPTY_POOL_FILTERS, hasActivePoolFilters } from '../../../services/eventBoardPlanner.js'
 
-function FacetSelect({ label, onChange, options, t, value }) {
+/**
+ * Select sin etiqueta aparte: el nombre del filtro es la opción "todos" ("Sexo"),
+ * así que sin elegir nada el control dice qué filtra y, elegido, dice qué eligió.
+ * El nombre accesible es siempre el del filtro.
+ */
+function FacetSelect({ label, onChange, options, value }) {
   return (
-    <label className="admin-board__filter">
-      <span>{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="">{t('admin.board.filterAll')}</option>
+    <label className={`admin-board__facet${value ? ' is-set' : ''}`}>
+      <select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)}>
+        <option value="">{label}</option>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
-            {option.value} ({option.count})
+            {option.value}
           </option>
         ))}
       </select>
+      <ChevronDown size={13} strokeWidth={1.8} aria-hidden />
     </label>
   )
 }
@@ -58,25 +63,22 @@ function RangePair({ fromValue, label, onFrom, onTo, t, toValue }) {
  * grupo. Es lo que permite "ver quiénes son los Junior Raw de 57 a 63 kg" y
  * mandarlos a una tanda de un solo gesto.
  *
+ * Minimalista a propósito: la bolsa tiene una altura acotada y los filtros no
+ * pueden comérsela. Una línea de búsqueda, una fila de tres selects sin
+ * etiquetas aparte, "Peso y edad" plegado y la vista como texto.
+ *
  * Los filtros son estado del padre porque la selección "todos" y el conteo de
  * la cabecera se calculan sobre la lista filtrada, no sobre la bolsa entera.
  */
-export default function PoolToolbar({
-  facets,
-  filters,
-  onChange,
-  onView,
-  shown,
-  t,
-  total,
-  view,
-}) {
+export default function PoolToolbar({ facets, filters, onChange, onView, shown, t, total, view }) {
   const active = hasActivePoolFilters(filters)
   const set = (patch) => onChange({ ...filters, ...patch })
-  // El bloque de peso/edad arranca abierto si ya hay un rango cargado.
-  const rangeOpen = ['weightMin', 'weightMax', 'ageMin', 'ageMax'].some(
-    (key) => filters[key] !== '',
-  )
+  // El bloque de peso/edad arranca abierto si ya hay un rango cargado, y el
+  // resumen dice cuántos de los dos rangos están activos aunque esté plegado.
+  const rangesSet = [
+    filters.weightMin !== '' || filters.weightMax !== '',
+    filters.ageMin !== '' || filters.ageMax !== '',
+  ].filter(Boolean).length
 
   return (
     <div className="admin-board__toolbar">
@@ -96,27 +98,29 @@ export default function PoolToolbar({
           label={t('admin.board.filterSex')}
           onChange={(value) => set({ sex: value })}
           options={facets.sex}
-          t={t}
           value={filters.sex}
         />
         <FacetSelect
           label={t('admin.board.filterCategory')}
           onChange={(value) => set({ category: value })}
           options={facets.category}
-          t={t}
           value={filters.category}
         />
         <FacetSelect
           label={t('admin.board.filterDivision')}
           onChange={(value) => set({ division: value })}
           options={facets.division}
-          t={t}
           value={filters.division}
         />
       </div>
 
-      <details className="admin-board__filter-more" open={rangeOpen || undefined}>
-        <summary>{t('admin.board.filterMore')}</summary>
+      <details className="admin-board__filter-more" open={rangesSet > 0 || undefined}>
+        <summary>
+          {t('admin.board.filterMore')}
+          {rangesSet > 0 ? (
+            <span className="admin-board__filter-more-count">{rangesSet}</span>
+          ) : null}
+        </summary>
         <div className="admin-board__filter-ranges">
           <RangePair
             fromValue={filters.weightMin}
@@ -141,7 +145,7 @@ export default function PoolToolbar({
         <SegmentedSwitch
           active={view}
           ariaLabel={t('admin.board.viewAria')}
-          className="admin-board__view-switch"
+          className="admin-board__pool-view"
           onChange={onView}
           options={[
             ['list', t('admin.board.viewList')],
