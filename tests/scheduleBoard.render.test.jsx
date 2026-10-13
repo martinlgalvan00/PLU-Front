@@ -123,6 +123,8 @@ function renderBoard(props = {}) {
 beforeEach(() => {
   // El asistente pide las plantillas al abrirse; sin ninguna es la lista vacía.
   fetchGridTemplates.mockResolvedValue([])
+  // La densidad elegida se recuerda en el navegador: que no se filtre entre tests.
+  window.localStorage.clear()
 })
 
 afterEach(() => {
@@ -1079,6 +1081,223 @@ describe('asistente de armado', () => {
       renderBoard({ canEdit: false })
       await screen.findByText('Atleta 0')
       expect(screen.queryByRole('button', { name: 'Deshacer' })).toBeNull()
+    })
+  })
+})
+
+describe('tandas compactas y completar desde la bolsa', () => {
+  const person = (id, overrides = {}) =>
+    athlete({
+      registrationId: id,
+      fullName: `Atleta ${id}`,
+      sex: 'Femenino',
+      category: 'Raw',
+      bodyweightKg: 60,
+      ...overrides,
+    })
+
+  const session = (index, athletes, overrides = {}) => ({
+    id: `ses-${index}`,
+    name: `Tanda ${String.fromCharCode(65 + index)}`,
+    platform: '',
+    platformId: null,
+    weighInAt: null,
+    startsAt: null,
+    sortOrder: index,
+    athletes,
+    ...overrides,
+  })
+
+  const manySessions = (count) =>
+    Array.from({ length: count }, (_, index) =>
+      session(index, [person(`in-${index}`, { fullName: `Integrante ${index}` })]),
+    )
+
+  const boardOf = (sessions, unassigned = []) => ({
+    event: { slug: 'pitbull-classic-2026', title: 'Pitbull Classic 2026', published: true },
+    platforms: [],
+    schedulePublic: false,
+    totals: { registered: sessions.length + unassigned.length, assigned: sessions.length, unassigned: unassigned.length },
+    days: [
+      {
+        id: 'day-1',
+        dayIndex: 0,
+        label: 'Día 1',
+        date: '2026-11-13',
+        assignedCount: sessions.length,
+        sessions,
+        withoutSession: [],
+      },
+    ],
+    unassigned,
+  })
+
+  describe('densidad', () => {
+    it('con pocas tandas muestra el plantel a la vista', async () => {
+      fetchEventBoard.mockResolvedValue(boardOf(manySessions(3)))
+      renderBoard()
+      expect(await screen.findByText('Integrante 0')).toBeTruthy()
+      expect(screen.queryByRole('button', { name: /^ver atletas de/i })).toBeNull()
+    })
+
+    it('con más de seis tandas arranca compacta: cabeceras sí, plantel no', async () => {
+      fetchEventBoard.mockResolvedValue(boardOf(manySessions(7)))
+      renderBoard()
+      expect(await screen.findByText('Tanda A')).toBeTruthy()
+      expect(screen.getByText('Tanda G')).toBeTruthy()
+      expect(screen.queryByText('Integrante 0')).toBeNull()
+      expect(screen.getByRole('tab', { name: /compactas/i }).getAttribute('aria-selected')).toBe('true')
+    })
+
+    it('el chevron abre el plantel de una sola tanda', async () => {
+      fetchEventBoard.mockResolvedValue(boardOf(manySessions(7)))
+      renderBoard()
+      await screen.findByText('Tanda A')
+
+      const open = screen.getByRole('button', { name: 'Ver atletas de Tanda B' })
+      expect(open.getAttribute('aria-expanded')).toBe('false')
+      fireEvent.click(open)
+
+      expect(screen.getByText('Integrante 1')).toBeTruthy()
+      expect(screen.queryByText('Integrante 0')).toBeNull()
+      expect(
+        screen.getByRole('button', { name: 'Ocultar atletas de Tanda B' }).getAttribute('aria-expanded'),
+      ).toBe('true')
+    })
+
+    it('"Detalladas" muestra todos y la elección se recuerda para la próxima vez', async () => {
+      fetchEventBoard.mockResolvedValue(boardOf(manySessions(7)))
+      const first = renderBoard()
+      await screen.findByText('Tanda A')
+      fireEvent.click(screen.getByRole('tab', { name: /detalladas/i }))
+      expect(screen.getByText('Integrante 0')).toBeTruthy()
+      expect(screen.getByText('Integrante 6')).toBeTruthy()
+      expect(window.localStorage.getItem('plu.board.density')).toBe('detail')
+
+      first.unmount()
+      renderBoard()
+      expect(await screen.findByText('Integrante 0')).toBeTruthy()
+    })
+
+    it('una tanda compacta sigue siendo destino: el selector de mover la lista igual', async () => {
+      fetchEventBoard.mockResolvedValue(boardOf(manySessions(7), [person('libre')]))
+      renderBoard()
+      await screen.findByText('Tanda A')
+      fireEvent.click(screen.getByLabelText(/seleccionar a atleta libre/i))
+      const bar = await screen.findByRole('region', { name: /mover atletas/i })
+      expect(within(bar).getByRole('option', { name: /Tanda F/ })).toBeTruthy()
+    })
+
+    it('sin tandas no ofrece cambiar la densidad', async () => {
+      fetchEventBoard.mockResolvedValue(boardOf([]))
+      renderBoard()
+      await screen.findByText(/todavía no tiene tandas/i)
+      expect(screen.queryByRole('tab', { name: /compactas/i })).toBeNull()
+    })
+
+    it('la cabecera de cada tanda muestra cuánto cupo ocupa', async () => {
+      fetchEventBoard.mockResolvedValue(boardOf(manySessions(7)))
+      renderBoard()
+      await screen.findByText('Tanda A')
+      expect(screen.getAllByText('1/12').length).toBe(7)
+    })
+  })
+
+  describe('completar con la bolsa', () => {
+    const withRoom = () => [
+      session(0, [person('a', { bodyweightKg: 60 }), person('b', { bodyweightKg: 64 })]),
+    ]
+
+    it('sugiere los compatibles más cercanos y los manda con un clic', async () => {
+      const pool = [
+        person('lejos', { bodyweightKg: 95 }),
+        person('cerca', { bodyweightKg: 62 }),
+        person('hombre', { sex: 'Masculino', bodyweightKg: 62 }),
+      ]
+      fetchEventBoard.mockResolvedValue(boardOf(withRoom(), pool))
+      assignRegistrationSchedule.mockResolvedValue({ updated: 2, requested: 2, schedule: null })
+      renderBoard()
+
+      const button = await screen.findByRole('button', { name: /completar tanda a con 2 atletas/i })
+      expect(button.textContent).toContain('+2')
+      fireEvent.click(button)
+
+      await waitFor(() =>
+        expect(assignRegistrationSchedule).toHaveBeenCalledWith('pitbull-classic-2026', {
+          registrationIds: ['cerca', 'lejos'],
+          dayIndex: 0,
+          sessionId: 'ses-0',
+        }),
+      )
+      // Y queda a un clic de deshacerse.
+      expect(await screen.findByRole('button', { name: 'Deshacer' })).toBeTruthy()
+    })
+
+    it('no aparece sin lugar, sin candidatos o sin permiso para mover', async () => {
+      // Tanda llena.
+      const full = [
+        session(0, Array.from({ length: 12 }, (_, index) => person(`f${index}`))),
+      ]
+      fetchEventBoard.mockResolvedValue(boardOf(full, [person('x')]))
+      const first = renderBoard()
+      await screen.findByText('Tanda A')
+      expect(screen.queryByRole('button', { name: /^completar tanda/i })).toBeNull()
+      first.unmount()
+
+      // Sin candidatos compatibles.
+      fetchEventBoard.mockResolvedValue(boardOf(withRoom(), [person('h', { sex: 'Masculino' })]))
+      const second = renderBoard()
+      await screen.findByText('Tanda A')
+      expect(screen.queryByRole('button', { name: /^completar tanda/i })).toBeNull()
+      second.unmount()
+
+      // Sin permiso de movimiento.
+      fetchEventBoard.mockResolvedValue(boardOf(withRoom(), [person('m')]))
+      renderBoard({ canEdit: false })
+      await screen.findByText('Tanda A')
+      expect(screen.queryByRole('button', { name: /^completar tanda/i })).toBeNull()
+    })
+
+    it('una tanda vacía se completa con el primer grupo de la bolsa', async () => {
+      const pool = [
+        person('m1', { sex: 'Masculino', bodyweightKg: 70 }),
+        person('f-pesada', { bodyweightKg: 80 }),
+        person('f-liviana', { bodyweightKg: 50 }),
+      ]
+      fetchEventBoard.mockResolvedValue(boardOf([session(0, [])], pool))
+      assignRegistrationSchedule.mockResolvedValue({ updated: 2, requested: 2, schedule: null })
+      renderBoard()
+      fireEvent.click(await screen.findByRole('button', { name: /completar tanda a con 2 atletas/i }))
+      await waitFor(() =>
+        expect(assignRegistrationSchedule).toHaveBeenCalledWith('pitbull-classic-2026', {
+          registrationIds: ['f-liviana', 'f-pesada'],
+          dayIndex: 0,
+          sessionId: 'ses-0',
+        }),
+      )
+    })
+  })
+
+  describe('grupos de la bolsa', () => {
+    it('la cabecera de cada grupo se puede arrastrar y lo dice', async () => {
+      fetchEventBoard.mockResolvedValue(
+        boardOf([session(0, [])], [person('a'), person('b', { sex: 'Masculino' })]),
+      )
+      renderBoard()
+      await screen.findByText('Atleta a')
+      fireEvent.click(screen.getByRole('tab', { name: /por grupo/i }))
+      const head = screen.getByRole('heading', { name: 'Femenino · Raw · Open' }).parentElement
+      expect(head.className).toContain('admin-board__group-head--draggable')
+      expect(head.getAttribute('title')).toBe('Arrastrá el grupo Femenino · Raw · Open a una tanda')
+    })
+
+    it('sin permiso de movimiento la cabecera no es arrastrable', async () => {
+      fetchEventBoard.mockResolvedValue(boardOf([session(0, [])], [person('a')]))
+      renderBoard({ canEdit: false })
+      await screen.findByText('Atleta a')
+      fireEvent.click(screen.getByRole('tab', { name: /por grupo/i }))
+      const head = screen.getByRole('heading', { name: 'Femenino · Raw · Open' }).parentElement
+      expect(head.className).not.toContain('--draggable')
     })
   })
 })
