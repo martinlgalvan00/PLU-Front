@@ -504,7 +504,7 @@ function PitbullWeighInSnapshot({ windows }) {
 }
 
 /** Grilla publicada por la organización. Apagada o vacía: la sección no existe. */
-function PitbullScheduleSection({ schedule, t }) {
+function PitbullScheduleSection({ schedule, t, updatedAt }) {
   if (!schedule?.hasContent) return null
 
   return (
@@ -517,7 +517,7 @@ function PitbullScheduleSection({ schedule, t }) {
       title={t('pages.pitbull.gridTitle')}
       titleId="pitbull-schedule-title"
     >
-      <PublicEventSchedule schedule={schedule} />
+      <PublicEventSchedule schedule={schedule} updatedAt={updatedAt} />
     </PitbullDossierSection>
   )
 }
@@ -1283,7 +1283,8 @@ export default function PitbullPage({
   })
   // La grilla la publica la organización a propósito (arranca apagada): el
   // servidor decide, esta página solo pinta lo que llega.
-  const { schedule: publicSchedule } = usePublicEventSchedule(eventSlug)
+  const { schedule: publicSchedule, updatedAt: publicScheduleUpdatedAt } =
+    usePublicEventSchedule(eventSlug)
   const showSchedule = publicSchedule.hasContent
   const showWeighIns =
     eventHasWeighInWindows(pitbullEvent) && eventShowsPublicWeighIns(pitbullEvent)
@@ -1448,7 +1449,11 @@ export default function PitbullPage({
             <PitbullLocationSection event={pitbullMapEvent} venue={PITBULL_VENUE} t={t} />
           ) : null}
 
-          <PitbullScheduleSection schedule={publicSchedule} t={t} />
+          <PitbullScheduleSection
+            schedule={publicSchedule}
+            t={t}
+            updatedAt={publicScheduleUpdatedAt}
+          />
 
           <Reveal as="div" direction="up" className="pitbull-tickets-band-wrap">
             <PitbullTicketsBand
