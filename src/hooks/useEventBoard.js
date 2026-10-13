@@ -32,6 +32,7 @@ export function useEventBoard(eventSlug, { enabled = true } = {}) {
   const [status, setStatus] = useState('idle') // 'idle' | 'loading' | 'ready' | 'error'
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  const [loadedAt, setLoadedAt] = useState(null)
 
   const load = useCallback(async () => {
     if (!eventSlug) {
@@ -49,6 +50,11 @@ export function useEventBoard(eventSlug, { enabled = true } = {}) {
       setError(loadError?.message ?? null)
     }
   }, [eventSlug])
+
+  // Cuándo se trajo el tablero que se está mostrando: la vista previa lo dice.
+  useEffect(() => {
+    setLoadedAt(board ? Date.now() : null)
+  }, [board])
 
   useEffect(() => {
     if (!enabled) {
@@ -400,6 +406,7 @@ export function useEventBoard(eventSlug, { enabled = true } = {}) {
     busy,
     error,
     reload: load,
+    loadedAt,
     assign,
     autofill,
     saveSessions,

@@ -1,4 +1,5 @@
-import { Globe } from 'lucide-react'
+import { Eye, Globe } from 'lucide-react'
+import { MIN_ATHLETES_FOR_RANGES } from '../../../lib/publicSchedule.js'
 
 /**
  * PublishToggle — PLU ARG
@@ -9,8 +10,19 @@ import { Globe } from 'lucide-react'
  *
  * Sin tablados ni tandas no hay nada que mostrar; igual se puede dejar prendido
  * de antemano, y el sitio simplemente no pinta la sección hasta que haya datos.
+ *
+ * "Ver como público" abre la vista previa: es de solo lectura, así que está
+ * disponible aunque quien mira no pueda publicar.
  */
-export default function PublishToggle({ busy, canEdit, eventPublished, onChange, value, t }) {
+export default function PublishToggle({
+  busy,
+  canEdit,
+  eventPublished,
+  onChange,
+  onPreview,
+  value,
+  t,
+}) {
   const disabled = !canEdit || busy
   return (
     <div className="admin-board__publish">
@@ -21,8 +33,10 @@ export default function PublishToggle({ busy, canEdit, eventPublished, onChange,
         <p className="admin-board__publish-title" id="board-publish-label">
           {t('admin.board.publishTitle')}
         </p>
-        <p className="admin-board__publish-hint" id="board-publish-hint">
-          {value ? t('admin.board.publishOnHint') : t('admin.board.publishOffHint')}
+        <p className="admin-board__publish-hint" id="board-publish-hint" key={value ? 'on' : 'off'}>
+          {value
+            ? t('admin.board.publishOnHint')
+            : t('admin.board.publishOffHint', { min: MIN_ATHLETES_FOR_RANGES })}
         </p>
         {value && eventPublished === false ? (
           <p className="admin-board__publish-warn" role="status">
@@ -30,6 +44,12 @@ export default function PublishToggle({ busy, canEdit, eventPublished, onChange,
           </p>
         ) : null}
       </div>
+      {onPreview ? (
+        <button type="button" className="admin-board__preview-btn" onClick={onPreview}>
+          <Eye size={15} strokeWidth={1.8} aria-hidden />
+          {t('admin.board.publicPreviewOpen')}
+        </button>
+      ) : null}
       <button
         type="button"
         role="switch"
@@ -38,9 +58,10 @@ export default function PublishToggle({ busy, canEdit, eventPublished, onChange,
         aria-describedby="board-publish-hint"
         className={`admin-board__switch${value ? ' is-on' : ''}`}
         disabled={disabled}
+        aria-busy={busy || undefined}
         onClick={() => onChange(!value)}
       >
-        <span className="admin-board__switch-state">
+        <span className="admin-board__switch-state" key={value ? 'on' : 'off'}>
           {value ? t('admin.board.publishOn') : t('admin.board.publishOff')}
         </span>
         <span className="admin-board__switch-track" aria-hidden>

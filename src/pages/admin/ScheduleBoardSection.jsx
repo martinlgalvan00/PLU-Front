@@ -24,7 +24,9 @@ import {
   Users,
 } from 'lucide-react'
 import PlanPanel from '../../components/admin/board/PlanPanel.jsx'
+import LaneNameEditor from '../../components/admin/board/LaneNameEditor.jsx'
 import PlatformBar from '../../components/admin/board/PlatformBar.jsx'
+import PublicSchedulePreview from '../../components/admin/board/PublicSchedulePreview.jsx'
 import PublishToggle from '../../components/admin/board/PublishToggle.jsx'
 import PoolToolbar from '../../components/admin/board/PoolToolbar.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -210,6 +212,7 @@ export default function ScheduleBoardSection({
   const [poolFilters, setPoolFilters] = useState(() => ({ ...EMPTY_POOL_FILTERS }))
   const [poolView, setPoolView] = useState('list')
   const [planOpen, setPlanOpen] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
   // Foto para deshacer el último reparto o movimiento; se descarta si cambia la estructura.
   const [undoToken, setUndoToken] = useState(null)
 
@@ -233,8 +236,10 @@ export default function ScheduleBoardSection({
     busy,
     days,
     error,
+    loadedAt,
     platforms,
     pruneEmptySessions,
+    reload,
     removeSession,
     restore,
     savePlatforms,
@@ -253,6 +258,7 @@ export default function ScheduleBoardSection({
     setEditingSession(null)
     setPoolFilters({ ...EMPTY_POOL_FILTERS })
     setPlanOpen(false)
+    setPreviewOpen(false)
     setUndoToken(null)
   }, [eventSlug])
 
@@ -286,7 +292,11 @@ export default function ScheduleBoardSection({
   }
   const templatesApi = useGridTemplates(eventSlug, { enabled: planOpen && canStructure })
   const emptySessions = useMemo(
-    () => days.reduce((sum, day) => sum + day.sessions.filter((s) => s.athletes.length === 0).length, 0),
+    () =>
+      days.reduce(
+        (sum, day) => sum + day.sessions.filter((s) => s.athletes.length === 0).length,
+        0,
+      ),
     [days],
   )
 
@@ -475,6 +485,14 @@ export default function ScheduleBoardSection({
     return ok
   }
 
+  // Renombrar desde la cabecera de una columna: el set completo, con un solo
+  // nombre cambiado. Los tablados son del evento, no del día.
+  function handleRenamePlatform(platformId, name) {
+    return handleSavePlatforms(
+      platforms.map((item) => ({ id: item.id, name: item.id === platformId ? name : item.name })),
+    )
+  }
+
   if (eventOptions.length === 0) {
     return (
       <section className="admin-board">
@@ -513,7 +531,7 @@ export default function ScheduleBoardSection({
         </p>
       )}
       {notice && (
-        <p className="admin-board__notice" role="status">
+        <p className="admin-board__notice" role="status" key={notice}>
           {notice}
           {undoToken ? (
             <button
@@ -575,9 +593,21 @@ export default function ScheduleBoardSection({
             canEdit={canStructure}
             eventPublished={board?.event?.published}
             onChange={handleTogglePublic}
+            onPreview={() => setPreviewOpen(true)}
             t={t}
             value={schedulePublic}
           />
+
+          {previewOpen ? (
+            <PublicSchedulePreview
+              board={board}
+              loadedAt={loadedAt}
+              onClose={() => setPreviewOpen(false)}
+              onRefresh={reload}
+              published={schedulePublic}
+              t={t}
+            />
+          ) : null}
 
           {sessionsMissing && (
             <p className="admin-board__setup-banner" role="status">
@@ -697,6 +727,7 @@ export default function ScheduleBoardSection({
                   onFlightSizeChange={setFlightSize}
                   onGoToEvents={onGoToEvents}
                   onRemoveSession={handleRemoveSession}
+                  onRenamePlatform={handleRenamePlatform}
                   onToggleExpanded={toggleExpanded}
                   onSaveSession={handleSaveSession}
                   onSessionDraftChange={(patch) =>
@@ -1011,6 +1042,7 @@ function DayColumn({
   onFill,
   onFlightSizeChange,
   onRemoveSession,
+  onRenamePlatform,
   onSaveSession,
   onSessionDraftChange,
   onToggle,
@@ -1098,7 +1130,20 @@ function DayColumn({
             >
               {lane.platform ? (
                 <div className="admin-board__lane-head">
-                  <h3 className="admin-board__lane-name">{lane.platform.name}</h3>
+                  {lane.platform.id ? (
+                    <LaneNameEditor
+                      busy={busy}
+                      canEdit={canStructure}
+                      name={lane.platform.name}
+                      onRename={(name) => onRenamePlatform(lane.platform.id, name)}
+                      siblings={platforms
+                        .filter((item) => item.id !== lane.platform.id)
+                        .map((item) => item.name)}
+                      t={t}
+                    />
+                  ) : (
+                    <h3 className="admin-board__lane-name">{lane.platform.name}</h3>
+                  )}
                   <span className="admin-board__lane-count">
                     {t('admin.board.platformLaneCount', {
                       sessions: lane.sessions.length,
@@ -1313,9 +1358,12 @@ function SessionItem({
                 className="admin-board__icon-btn admin-board__icon-btn--visible"
                 aria-expanded={expanded}
                 onClick={() => onToggleExpanded(session.id)}
-                aria-label={t(expanded ? 'admin.board.collapseSession' : 'admin.board.expandSession', {
-                  name: session.name,
-                })}
+                aria-label={t(
+                  expanded ? 'admin.board.collapseSession' : 'admin.board.expandSession',
+                  {
+                    name: session.name,
+                  },
+                )}
                 title={t(expanded ? 'admin.board.collapseSession' : 'admin.board.expandSession', {
                   name: session.name,
                 })}
@@ -1354,7 +1402,9 @@ function SessionItem({
           <span className="admin-board__meter" aria-hidden>
             <span
               className={stats.over ? 'is-over' : undefined}
-              style={{ width: `${Math.min(100, (stats.count / Math.max(1, stats.capacity)) * 100)}%` }}
+              style={{
+                width: `${Math.min(100, (stats.count / Math.max(1, stats.capacity)) * 100)}%`,
+              }}
             />
           </span>
           {detail && <p className="admin-board__session-detail">{detail}</p>}
@@ -1376,7 +1426,10 @@ function SessionItem({
               className="admin-board__text-btn admin-board__fill"
               onClick={() => onFill(day, session, fill)}
               disabled={busy}
-              aria-label={t('admin.board.fillSessionAria', { name: session.name, count: fill.length })}
+              aria-label={t('admin.board.fillSessionAria', {
+                name: session.name,
+                count: fill.length,
+              })}
             >
               <Sparkles size={13} aria-hidden />
               {t('admin.board.fillSession', { count: fill.length })}

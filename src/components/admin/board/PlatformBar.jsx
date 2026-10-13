@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import Button from '../../ui/Button.jsx'
 import SegmentedSwitch from '../../ui/SegmentedSwitch.jsx'
+import SavedMark from './SavedMark.jsx'
+import { useSavedFlash } from './useSavedFlash.js'
 
 const signatureOf = (platforms) => platforms.map((item) => `${item.id}:${item.name}`).join('|')
 
@@ -19,6 +21,7 @@ export default function PlatformBar({ busy = false, canEdit = false, onSave, pla
   const signature = signatureOf(platforms)
   const [draft, setDraft] = useState(() => platforms.map(({ id, name }) => ({ id, name })))
   const [dirty, setDirty] = useState(false)
+  const [saved, flashSaved] = useSavedFlash()
 
   // El server manda: al releer se descarta el borrador salvo que haya edición
   // sin guardar. La firma (y no el array) evita re-sincronizar en cada render.
@@ -76,7 +79,10 @@ export default function PlatformBar({ busy = false, canEdit = false, onSave, pla
         name: entry.name.trim(),
       })),
     )
-    if (ok) setDirty(false)
+    if (ok) {
+      setDirty(false)
+      flashSaved()
+    }
   }
 
   if (platforms.length === 0) {
@@ -154,6 +160,10 @@ export default function PlatformBar({ busy = false, canEdit = false, onSave, pla
           >
             {busy ? t('admin.board.platformsSaving') : t('admin.board.platformsSave')}
           </Button>
+        </div>
+      ) : saved ? (
+        <div className="admin-board__platform-bar-actions">
+          <SavedMark label={t('admin.board.savedFlash')} />
         </div>
       ) : null}
 

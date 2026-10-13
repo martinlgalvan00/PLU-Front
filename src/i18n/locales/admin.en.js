@@ -1601,7 +1601,7 @@ export default {
     groupDrag: 'Drag the group {{name}} onto a flight',
     publishTitle: 'Show the grid on the official site',
     publishOffHint:
-      'Off: nobody sees the flights on the site. Turning it on publishes flights, platform, time and composition (sex, category, division, weight and age). Names are not published.',
+      'Off: nobody sees the flights on the site. Turning it on publishes flights, platform, time and composition (sex, category, division and, for flights of {{min}} or more athletes, weight and age). Names are not published.',
     publishOnHint:
       'Visible on the event page: flights by platform, time and composition. No athlete or gym names.',
     publishEventHidden: 'The event is not published: the grid will not show until you publish it.',
@@ -1624,6 +1624,33 @@ export default {
     platformsRemoveWarning: 'Flights on {{names}} will be left without a platform.',
     platformNone: 'No platform',
     platformLaneAria: 'Platform {{name}}',
+    platformRename: 'Rename {{name}}',
+    platformRenameField: 'Platform name',
+    platformRenameSave: 'Save name',
+    platformRenameCancel: 'Discard change',
+    platformRenameTaken: 'There is already a platform with that name.',
+    publicPreviewOpen: 'View as public',
+    publicPreviewTitle: 'How it looks on the site',
+    publicPreviewLeadOn:
+      'The schedule is published. This is what the public sees, with the board’s current data.',
+    publicPreviewLeadOff:
+      'Not published yet. This is what it would look like once you turn on “Show the grid on the official site”.',
+    publicPreviewEmpty: 'There are no flights to show yet.',
+    publicPreviewNote:
+      'Composition only, no names or clubs. Flights with fewer than {{min}} athletes do not show weight or age.',
+    publicPreviewClose: 'Close preview',
+    publicPreviewRefresh: 'Refresh',
+    publicPreviewRefreshing: 'Refreshing…',
+    publicPreviewUpdated: 'Data from {{time}}',
+    platformRenameSaving: 'Saving name…',
+    platformRenameSaved: 'Name saved',
+    savedFlash: 'Saved',
+    publicPreviewChecksTitle: 'To review before publishing',
+    publicPreviewCheck_noPlatform: 'Flights without a platform: {{count}}. They appear last, with no platform name.',
+    publicPreviewCheck_noStart: 'Flights without a start time: {{count}}. They show as “Time to be confirmed”.',
+    publicPreviewCheck_empty: 'Flights without athletes: {{count}}. They are published anyway.',
+    publicPreviewCheck_small:
+      'Flights with fewer than {{min}} athletes: {{count}}. They do not show weight or age.',
     platformLaneCount: 'Flights {{sessions}} · Athletes {{athletes}}',
     addSessionLane: 'Add flight on {{platform}}, {{day}}',
     sessionPlatformPick: 'Platform',

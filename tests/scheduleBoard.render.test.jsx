@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
@@ -336,6 +336,128 @@ describe('tablados', () => {
         { id: 'plat-2', name: 'Tablado 2' },
       ]),
     )
+  })
+
+  it('renombra el tablado desde la cabecera de su columna y guarda el set completo', async () => {
+    fetchEventBoard.mockResolvedValue(doubleBoard())
+    saveEventPlatforms.mockResolvedValue({})
+    renderBoard()
+
+    await screen.findByText('Tanda A')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Renombrar Tablado 1' })[0])
+    fireEvent.change(screen.getByLabelText('Nombre del tablado'), {
+      target: { value: '  Tablado Rojo ' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar nombre' }))
+
+    await waitFor(() =>
+      expect(saveEventPlatforms).toHaveBeenCalledWith('pitbull-classic-2026', [
+        { id: 'plat-1', name: 'Tablado Rojo' },
+        { id: 'plat-2', name: 'Tablado 2' },
+      ]),
+    )
+  })
+
+  it('Escape descarta el renombrado sin guardar', async () => {
+    fetchEventBoard.mockResolvedValue(doubleBoard())
+    renderBoard()
+
+    await screen.findByText('Tanda A')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Renombrar Tablado 1' })[0])
+    const field = screen.getByLabelText('Nombre del tablado')
+    fireEvent.change(field, { target: { value: 'Otro' } })
+    fireEvent.keyDown(field, { key: 'Escape' })
+
+    expect(screen.queryByLabelText('Nombre del tablado')).toBeNull()
+    expect(saveEventPlatforms).not.toHaveBeenCalled()
+  })
+
+  it('el nombre repetido o vacío no se puede guardar desde la cabecera', async () => {
+    fetchEventBoard.mockResolvedValue(doubleBoard())
+    renderBoard()
+
+    await screen.findByText('Tanda A')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Renombrar Tablado 1' })[0])
+    const field = screen.getByLabelText('Nombre del tablado')
+    const save = screen.getByRole('button', { name: 'Guardar nombre' })
+
+    fireEvent.change(field, { target: { value: ' tablado 2 ' } })
+    expect(save.disabled).toBe(true)
+    expect(screen.getByText('Ya hay un tablado con ese nombre.')).toBeTruthy()
+
+    fireEvent.change(field, { target: { value: '   ' } })
+    expect(save.disabled).toBe(true)
+  })
+
+  it('sin permiso sobre la estructura la cabecera no se puede renombrar', async () => {
+    fetchEventBoard.mockResolvedValue(doubleBoard())
+    renderBoard({ canEdit: true, canEditStructure: false })
+
+    await screen.findByText('Tanda A')
+    expect(screen.queryByRole('button', { name: /^Renombrar/ })).toBeNull()
+  })
+
+  it('al renombrar muestra el progreso y, al terminar, confirma con "Nombre guardado"', async () => {
+    fetchEventBoard.mockResolvedValue(doubleBoard())
+    let finish
+    saveEventPlatforms.mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve
+      }),
+    )
+    renderBoard()
+
+    await screen.findByText('Tanda A')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Renombrar Tablado 1' })[0])
+    fireEvent.change(screen.getByLabelText('Nombre del tablado'), {
+      target: { value: 'Tablado Rojo' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar nombre' }))
+
+    // En vuelo: el botón dice que está guardando y no confirma todavía.
+    const saving = await screen.findByRole('button', { name: 'Guardando nombre…' })
+    expect(saving.getAttribute('aria-busy')).toBe('true')
+    expect(screen.queryByText('Nombre guardado')).toBeNull()
+
+    await act(async () => {
+      finish({})
+    })
+    expect(await screen.findByText('Nombre guardado')).toBeTruthy()
+    // Salió del modo edición: vuelve el título con su lápiz.
+    expect(screen.queryByLabelText('Nombre del tablado')).toBeNull()
+  })
+
+  it('si el guardado falla no confirma y deja el campo para reintentar', async () => {
+    fetchEventBoard.mockResolvedValue(doubleBoard())
+    saveEventPlatforms.mockRejectedValue(new Error('No se pudo guardar'))
+    renderBoard()
+
+    await screen.findByText('Tanda A')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Renombrar Tablado 1' })[0])
+    fireEvent.change(screen.getByLabelText('Nombre del tablado'), {
+      target: { value: 'Tablado Rojo' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar nombre' }))
+
+    expect(await screen.findByRole('alert')).toBeTruthy()
+    expect(screen.queryByText('Nombre guardado')).toBeNull()
+    expect(screen.getByLabelText('Nombre del tablado').value).toBe('Tablado Rojo')
+  })
+
+  it('guardar los tablados desde la barra confirma con "Guardado"', async () => {
+    fetchEventBoard.mockResolvedValue(doubleBoard())
+    saveEventPlatforms.mockResolvedValue({})
+    renderBoard()
+
+    await screen.findByText('Tanda A')
+    fireEvent.change(screen.getByLabelText('Nombre del tablado 1'), {
+      target: { value: 'Tablado Rojo' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /guardar tablados/i }))
+
+    expect(await screen.findByText('Guardado')).toBeTruthy()
+    // El botón de guardar se fue: ya no hay nada pendiente.
+    expect(screen.queryByRole('button', { name: /guardar tablados/i })).toBeNull()
   })
 
   it('no deja guardar dos tablados con el mismo nombre', async () => {
@@ -676,6 +798,105 @@ describe('publicación en el sitio oficial', () => {
     fireEvent.click(screen.getByLabelText(/seleccionar a ana torres/i))
     const bar = await screen.findByRole('region', { name: /mover atletas/i })
     expect(within(bar).getByRole('button', { name: /^mover$/i }).disabled).toBe(true) // sin destino todavía
+  })
+
+  it('"Ver como público" muestra la grilla sin publicar y sin nombres de atletas', async () => {
+    fetchEventBoard.mockResolvedValue(published(false))
+    renderBoard()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver como público' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Así se ve en el sitio' })
+    expect(within(dialog).getByText(/Todavía no está publicada/)).toBeTruthy()
+    expect(within(dialog).getByText('Tanda A')).toBeTruthy()
+    expect(dialog.textContent).not.toMatch(/Martín|Sosa|Iron House/)
+    // Lo que conviene revisar sale de los mismos datos: Tanda A sin hora y de un
+    // solo atleta, Tanda G sin atletas.
+    expect(within(dialog).getByText('Para revisar antes de publicar')).toBeTruthy()
+    expect(within(dialog).getByText(/Tandas sin hora de inicio: 1/)).toBeTruthy()
+    expect(within(dialog).getByText(/Tandas sin atletas: 1/)).toBeTruthy()
+    expect(within(dialog).getByText(/Tandas con menos de 3 atletas: 1/)).toBeTruthy()
+    // No publicó nada por mirar.
+    expect(setEventSchedulePublic).not.toHaveBeenCalled()
+  })
+
+  it('con la grilla publicada la vista previa lo dice, y Escape la cierra', async () => {
+    fetchEventBoard.mockResolvedValue(published(true))
+    renderBoard()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver como público' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Así se ve en el sitio' })
+    expect(within(dialog).getByText(/La grilla está publicada/)).toBeTruthy()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('la vista previa es de solo lectura: también la ve quien no puede publicar', async () => {
+    fetchEventBoard.mockResolvedValue(published(false))
+    renderBoard({ canEdit: false })
+    const preview = await screen.findByRole('button', { name: 'Ver como público' })
+    expect(preview.disabled).toBe(false)
+  })
+
+  it('al cerrar la vista previa espera la salida antes de desmontarla', async () => {
+    fetchEventBoard.mockResolvedValue(published(false))
+    renderBoard()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver como público' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Así se ve en el sitio' })
+    const root = dialog.closest('.admin-board__preview')
+    expect(root.getAttribute('data-state')).toBe('open')
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cerrar vista previa' }))
+    // Sigue en pantalla mientras sale; la CSS hace la animación de salida.
+    expect(root.getAttribute('data-state')).toBe('closing')
+    expect(screen.queryByRole('dialog')).not.toBeNull()
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('"Actualizar" vuelve a leer el tablero y dice a qué hora son los datos', async () => {
+    fetchEventBoard.mockResolvedValue(published(false))
+    renderBoard()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver como público' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Así se ve en el sitio' })
+    expect(within(dialog).getByText(/Datos de las \d{2}:\d{2}/)).toBeTruthy()
+
+    const before = fetchEventBoard.mock.calls.length
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Actualizar' }))
+
+    await waitFor(() => expect(fetchEventBoard.mock.calls.length).toBe(before + 1))
+    // Terminó: el botón vuelve a estar disponible para otro pedido.
+    await waitFor(() =>
+      expect(within(dialog).getByRole('button', { name: 'Actualizar' }).disabled).toBe(false),
+    )
+  })
+
+  it('mientras actualiza el botón lo dice y no deja pedir dos veces', async () => {
+    fetchEventBoard.mockResolvedValueOnce(published(false))
+    renderBoard()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver como público' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Así se ve en el sitio' })
+
+    let finish
+    fetchEventBoard.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve
+      }),
+    )
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Actualizar' }))
+
+    const busy = await within(dialog).findByRole('button', { name: 'Actualizando…' })
+    expect(busy.disabled).toBe(true)
+    expect(busy.getAttribute('aria-busy')).toBe('true')
+
+    await act(async () => {
+      finish(published(false))
+    })
+    expect(await within(dialog).findByRole('button', { name: 'Actualizar' })).toBeTruthy()
   })
 
   it('sin ningún permiso no se puede publicar', async () => {

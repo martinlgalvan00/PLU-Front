@@ -1454,6 +1454,232 @@
   color: var(--color-text-muted);
 }
 
+/* Nombre del tablado editable en la cabecera de su columna. */
+.admin-board__lane-title,
+.admin-board__lane-rename {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--space-xs);
+  min-width: 0;
+}
+
+.admin-board__lane-rename input {
+  flex: 1 1 140px;
+  min-width: 0;
+  height: 30px;
+  padding: 0 var(--space-xs);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-sm, 6px);
+}
+
+.admin-board__lane-rename input:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 1px;
+}
+
+.admin-board__lane-rename input[aria-invalid='true'] {
+  border-color: var(--color-danger, #c0392b);
+}
+
+.admin-board__lane-rename-error {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--color-danger, #c0392b);
+}
+
+/* 28px a la vista; el área de toque llega a 44px sin agrandar la cabecera. */
+.admin-board__lane-edit {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--border-radius-sm, 6px);
+  cursor: pointer;
+  transition:
+    color var(--motion-fast) var(--ease-out),
+    background-color var(--motion-fast) var(--ease-out);
+}
+
+.admin-board__lane-edit::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+.admin-board__lane-edit:hover:not(:disabled) {
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+}
+
+.admin-board__lane-edit:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 1px;
+}
+
+.admin-board__lane-edit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Vista previa de la grilla pública. */
+.admin-board__preview-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 var(--space-sm);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--color-brand-celeste);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.admin-board__preview-btn:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-board__preview-btn:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+  border-radius: var(--border-radius-sm, 6px);
+}
+
+.admin-status-dialog__panel.admin-board__preview-panel {
+  width: min(100%, 960px);
+  max-height: min(86vh, 760px);
+}
+
+.admin-board__preview-body {
+  min-width: 0;
+  padding-block: var(--space-xs);
+  border-block: 1px solid var(--color-border-subtle);
+}
+
+.admin-board__preview-checks {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.admin-board__preview-checks-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.admin-board__preview-checks ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-secondary, var(--color-text-muted));
+}
+
+/* Barra de la vista previa: a qué hora son los datos y cómo traer los nuevos. */
+.admin-board__preview-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 32px;
+}
+
+.admin-board__preview-stamp {
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+.admin-board__preview-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 4px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--color-brand-celeste);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: opacity var(--motion-fast) var(--ease-out);
+}
+
+.admin-board__preview-refresh:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.admin-board__preview-refresh:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-board__preview-refresh:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+  border-radius: var(--border-radius-sm, 6px);
+}
+
+/* Giro: único loop de la pantalla, y solo mientras hay un pedido en vuelo. */
+.admin-board__spin {
+  animation: admin-board-spin 900ms linear infinite;
+}
+
+@keyframes admin-board-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Confirmación de guardado: el check entra con un resorte corto y se va solo.
+   --saved-duration casa con el timer de useSavedFlash. */
+.admin-board__saved {
+  --saved-duration: 2200ms;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--color-text-muted);
+}
+
+.admin-board__saved > svg {
+  color: var(--color-brand-gold);
+}
+
+.admin-board__preview-note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-board__lane-edit {
+    transition: none;
+  }
+}
+
 @container admin-board (min-width: 1100px) {
   .admin-board__lanes[data-lanes='2'],
   .admin-board__lanes[data-lanes='3'] {
@@ -2209,5 +2435,148 @@
   .admin-board__pool,
   .admin-board__days > * {
     animation: none;
+  }
+}
+
+/* ── Movimiento ───────────────────────────────────────────────────────
+   Solo opacidad y transform, con los tokens del sistema. Todo lo que sigue
+   se apaga con movimiento reducido: la información (texto, estados) no
+   depende de la animación. */
+@media (prefers-reduced-motion: no-preference) {
+  /* Diálogo: el panel ya entra (admin.css); acá se suma el fondo y la salida. */
+  .admin-board__preview .admin-status-dialog__backdrop {
+    animation: admin-board-fade-in var(--motion-base) var(--ease-out) both;
+  }
+
+  .admin-board__preview[data-state='closing'] .admin-status-dialog__backdrop {
+    animation: admin-board-fade-out var(--motion-fast) var(--ease-out) both;
+  }
+
+  .admin-board__preview[data-state='closing'] .admin-board__preview-panel {
+    animation: admin-board-dialog-out var(--motion-fast) var(--ease-out) both;
+  }
+
+  /* Aviso de la pantalla: entra de arriba, una vez por mensaje nuevo. */
+  .admin-board__notice {
+    animation: admin-board-notice-in var(--motion-base) var(--ease-out) both;
+  }
+
+  /* Interruptor de publicación: el estado y su explicación se reasientan. */
+  .admin-board__switch-state,
+  .admin-board__publish-hint {
+    animation: admin-board-settle var(--motion-base) var(--ease-out) both;
+  }
+
+  .admin-board__switch[aria-busy='true'] .admin-board__switch-track {
+    opacity: 0.6;
+  }
+
+  /* Acciones de tablados: aparecen al editar el borrador y la confirmación entra. */
+  .admin-board__platform-bar-actions {
+    animation: admin-board-notice-in var(--motion-fast) var(--ease-out) both;
+  }
+
+  .admin-board__saved {
+    animation: admin-board-saved var(--saved-duration) var(--ease-out) both;
+  }
+
+  .admin-board__saved > svg {
+    animation: admin-board-pop var(--motion-base) var(--ease-spring) both;
+  }
+}
+
+@keyframes admin-board-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes admin-board-fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes admin-board-dialog-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+}
+
+@keyframes admin-board-notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes admin-board-settle {
+  from {
+    opacity: 0.3;
+    transform: translateY(2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Entra, se queda legible y se desvanece sobre el final. */
+@keyframes admin-board-saved {
+  0% {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+
+  10%,
+  75% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes admin-board-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-board__spin {
+    animation: none;
+  }
+
+  .admin-board__preview-refresh {
+    transition: none;
   }
 }
