@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Star,
   Unlock,
+  X,
 } from 'lucide-react'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminEventWorkspace, {
@@ -48,13 +49,13 @@ import {
   resolveEventPublishChecks,
   summarizeEventPaymentChannels,
 } from '../../lib/eventPublishChecks.js'
+import { EVENT_PAYMENT_CHANNELS } from '../../lib/eventPaymentChannels.js'
 import usePlatformPaymentChannels from '../../hooks/usePlatformPaymentChannels.js'
 import { fetchSiteTeaser, saveSiteTeaser } from '../../services/siteTeaserService.js'
 import {
   ADMIN_EVENT_STATUS_OPTIONS,
   buildAdminEventDraft,
   createAdminEventDraft,
-  defaultAdminEventYear,
   filterAdminEvents,
   listAdminEventYears,
 } from '../../services/eventAdminService.js'
@@ -87,6 +88,14 @@ function groupByMonthKey(list) {
   return byMonth
 }
 
+/** Solo el mes ("Diciembre"), para los grupos que ya cuelgan de un año. */
+function formatMonthName(monthKey, locale = 'es') {
+  const date = new Date(`${monthKey}-01T12:00:00`)
+  if (Number.isNaN(date.getTime())) return monthKey
+  const label = date.toLocaleDateString(locale === 'en' ? 'en-US' : 'es-AR', { month: 'long' })
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
 function groupByYearKey(list) {
   const byYear = new Map()
   for (const row of list) {
@@ -116,7 +125,9 @@ function EventPaySummary({ row, platform, t }) {
         </span>
         {channels.length === 0
           ? t('admin.sections.events.payNone')
-          : channels.map((channel) => t(`admin.eventEditor.paymentChannelShort.${channel}`)).join(' · ')}
+          : channels.length === EVENT_PAYMENT_CHANNELS.length
+            ? t('admin.sections.events.payAll')
+            : channels.map((channel) => t(`admin.eventEditor.paymentChannelShort.${channel}`)).join(' · ')}
       </span>
     )
   }
@@ -577,8 +588,10 @@ export default function EventsSection({
   }, [adminEvents, selectedId])
 
   const years = useMemo(() => listAdminEventYears(adminEvents), [adminEvents])
-  const suggestedYear = useMemo(() => defaultAdminEventYear(adminEvents), [adminEvents])
-  const yearFilter = years.length > 1 ? year || suggestedYear || 'all' : 'all'
+  // El año no se recorta solo: «Próximos» son todos los que no terminaron, sea
+  // cual sea su año, y los contadores de las pestañas no cambian al pasar de una a
+  // otra. Solo filtra por año quien lo elige en el selector.
+  const yearFilter = years.length > 1 ? year || 'all' : 'all'
 
   const scopedEvents = useMemo(
     () => filterAdminEvents(adminEvents, { query, year: yearFilter, status: 'all' }),
@@ -621,6 +634,26 @@ export default function EventsSection({
     () => filterAdminEvents(adminEvents, { query, status, year: yearFilter }),
     [adminEvents, query, status, yearFilter],
   )
+
+  // Qué filtros están escondiendo eventos: se dicen en voz alta, porque un
+  // listado que muestra uno solo sin explicar por qué parece un error.
+  const activeFilterLabels = useMemo(() => {
+    const labels = []
+    if (yearFilter !== 'all') labels.push(t('admin.sections.events.filterYear', { year: yearFilter }))
+    if (status !== 'all') {
+      const option = statusOptions.find(([value]) => value === status)
+      labels.push(t('admin.sections.events.filterStatus', { status: option?.[1] ?? status }))
+    }
+    if (query.trim()) labels.push(t('admin.sections.events.filterQuery', { query: query.trim() }))
+    return labels
+  }, [query, status, statusOptions, t, yearFilter])
+  const hiddenByFilters = activeFilterLabels.length > 0 ? adminEvents.length - rows.length : 0
+
+  function showAllEvents() {
+    setQuery('')
+    setStatus('all')
+    setYear('all')
+  }
 
   const viewCounts = useMemo(() => {
     const finished = rows.filter(isFinishedEvent).length
@@ -795,7 +828,7 @@ export default function EventsSection({
       else upcoming.push(row)
     }
 
-    function monthGroups(list, tone, direction, prefix) {
+    function monthGroups(list, tone, direction, prefix, monthOnly = false) {
       const entries = [...groupByMonthKey(list).entries()].sort(([left], [right]) =>
         direction === 'asc' ? left.localeCompare(right) : right.localeCompare(left),
       )
@@ -807,7 +840,9 @@ export default function EventsSection({
             ? tone === 'finished'
               ? t('admin.sections.events.archive')
               : t('admin.sections.events.groupUpcoming')
-            : formatMonthYear(monthKey, locale),
+            : monthOnly
+              ? formatMonthName(monthKey, locale)
+              : formatMonthYear(monthKey, locale),
         rows: sortByDate(monthRows, direction),
       }))
     }
@@ -816,10 +851,19 @@ export default function EventsSection({
     const upcomingByYear = groupByYearKey(upcoming)
     const upcomingYears = [...upcomingByYear.keys()].sort((left, right) => left.localeCompare(right))
     for (const yearKey of upcomingYears) {
+      // Con varios años, el año es el título del capítulo y el mes ya no lo repite
+      // ("2026 / Diciembre", no "2026 / Diciembre de 2026").
+      const headed = upcomingYears.length > 1
       chapters.push({
         id: `year-${yearKey}`,
-        heading: upcomingYears.length > 1 ? yearKey : null,
-        groups: monthGroups(upcomingByYear.get(yearKey), 'upcoming', 'asc', `up-${yearKey}`),
+        heading: headed ? yearKey : null,
+        groups: monthGroups(
+          upcomingByYear.get(yearKey),
+          'upcoming',
+          'asc',
+          `up-${yearKey}`,
+          headed,
+        ),
       })
     }
 
@@ -1245,7 +1289,9 @@ export default function EventsSection({
     setQuery('')
     setStatus('all')
     setView(created?.status === 'finalizado' ? 'archive' : 'upcoming')
-    setYear(created?.dateISO ? created.dateISO.slice(0, 4) : 'all')
+    // Todos los años, no el del evento nuevo: fijar su año escondía el resto del
+    // calendario (crear un meet de otro año hacía "desaparecer" los demás).
+    setYear('all')
     setMessage({ tone: 'success', text: t('admin.sections.events.created') })
   }
 
@@ -1484,27 +1530,49 @@ export default function EventsSection({
       </div>
     ) : null
 
+  // El aviso de ocultos vive en la línea del resumen: es un dato del calendario,
+  // no una franja aparte que empuje la lista.
+  const unpublishedNotice =
+    canEdit && onSetEventState && !selectMode && unpublishedRows.length > 0 ? (
+      <p className="admin-events__unpublished">
+        <EyeOff size={14} aria-hidden />
+        <span>
+          {unpublishedRows.length === 1
+            ? t('admin.sections.events.unpublishedOne')
+            : t('admin.sections.events.unpublishedMany', { count: unpublishedRows.length })}
+        </span>
+        <button type="button" onClick={() => enterSelectMode(unpublishedRows.map((row) => row.id))}>
+          {t('admin.sections.events.unpublishedReview')}
+        </button>
+      </p>
+    ) : null
+
   const eventsKpis = (
     <>
-      <div
-        className="admin-events-kpis"
-        role="group"
-        aria-label={t('admin.sections.events.kpisAria')}
-      >
-        <div className="admin-events-kpi admin-events-kpi--primary">
-          <strong className="admin-events-kpi__value">{kpiStats.upcomingCount}</strong>
-          <span className="admin-events-kpi__label">{t('admin.sections.events.kpiUpcoming')}</span>
+      <div className="admin-events-summary">
+        <div
+          className="admin-events-kpis"
+          role="group"
+          aria-label={t('admin.sections.events.kpisAria')}
+        >
+          <div className="admin-events-kpi admin-events-kpi--primary">
+            <strong className="admin-events-kpi__value">{kpiStats.upcomingCount}</strong>
+            <span className="admin-events-kpi__label">
+              {t('admin.sections.events.kpiUpcoming')}
+            </span>
+          </div>
+          <div className="admin-events-kpi">
+            <strong className="admin-events-kpi__value">{kpiStats.totalRegistered}</strong>
+            <span className="admin-events-kpi__label">
+              {t('admin.sections.events.kpiRegistered')}
+            </span>
+          </div>
+          <div className="admin-events-kpi">
+            <strong className="admin-events-kpi__value">{kpiStats.fillPercent}%</strong>
+            <span className="admin-events-kpi__label">{t('admin.sections.events.kpiFill')}</span>
+          </div>
         </div>
-        <div className="admin-events-kpi">
-          <strong className="admin-events-kpi__value">{kpiStats.totalRegistered}</strong>
-          <span className="admin-events-kpi__label">
-            {t('admin.sections.events.kpiRegistered')}
-          </span>
-        </div>
-        <div className="admin-events-kpi">
-          <strong className="admin-events-kpi__value">{kpiStats.fillPercent}%</strong>
-          <span className="admin-events-kpi__label">{t('admin.sections.events.kpiFill')}</span>
-        </div>
+        {unpublishedNotice}
       </div>
       <div
         className="admin-events-views"
@@ -1782,7 +1850,7 @@ export default function EventsSection({
                 label: t('admin.sections.events.year'),
                 value: yearFilter,
                 onChange: setYear,
-                defaultValue: suggestedYear,
+                defaultValue: 'all',
                 options: yearOptions,
                 showLabel: true,
               },
@@ -1812,22 +1880,20 @@ export default function EventsSection({
         </p>
       ) : null}
 
-        {canEdit && onSetEventState && !selectMode && unpublishedRows.length > 0 ? (
-          <p className="admin-events__unpublished">
-            <EyeOff size={14} aria-hidden />
-            <span>
-              {unpublishedRows.length === 1
-                ? t('admin.sections.events.unpublishedOne')
-                : t('admin.sections.events.unpublishedMany', { count: unpublishedRows.length })}
-            </span>
-            <button
-              type="button"
-              onClick={() => enterSelectMode(unpublishedRows.map((row) => row.id))}
-            >
-              {t('admin.sections.events.unpublishedReview')}
-            </button>
-          </p>
-        ) : null}
+      {hiddenByFilters > 0 ? (
+        <p className="admin-events__filter-note" role="status">
+          <span>
+            {t('admin.sections.events.filterNote', {
+              shown: rows.length,
+              total: adminEvents.length,
+              filters: activeFilterLabels.join(' · '),
+            })}
+          </span>
+          <button type="button" onClick={showAllEvents}>
+            {t('admin.sections.events.filterNoteClear')}
+          </button>
+        </p>
+      ) : null}
 
         <AdminSiteTeaserControl
           busy={teaserBusy}
@@ -1879,7 +1945,7 @@ export default function EventsSection({
                     onClick={() => {
                       setQuery('')
                       setStatus('all')
-                      setYear(suggestedYear || 'all')
+                      setYear('all')
                     }}
                   >
                     {t('admin.sections.events.clearFilters')}
@@ -1926,12 +1992,24 @@ export default function EventsSection({
               </ul>
             )}
 
-            {selectMode ? (
+            {/* Sin nada elegido no hay qué aplicar: la barra aparece con la primera
+                selección y se cierra con la X. Salir sin elegir es «Listo». */}
+            {selectMode && selectedRows.length > 0 ? (
               <div
                 className="admin-events-bulkbar"
                 role="group"
                 aria-label={t('admin.sections.events.bulkBarAria')}
               >
+                <button
+                  type="button"
+                  className="admin-events-bulkbar__close"
+                  aria-label={t('admin.sections.events.bulkClose')}
+                  title={t('admin.sections.events.bulkClose')}
+                  disabled={bulkBusy}
+                  onClick={exitSelectMode}
+                >
+                  <X size={16} aria-hidden />
+                </button>
                 <p className="admin-events-bulkbar__count" aria-live="polite">
                   {selectedRows.length === 1
                     ? t('admin.sections.events.selectedOne')

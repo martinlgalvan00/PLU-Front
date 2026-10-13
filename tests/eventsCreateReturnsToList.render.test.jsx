@@ -133,7 +133,6 @@ function fillRequired({ title = 'Copa Primavera', start = '2027-03-12T10:00' } =
 describe('alta de un evento: vuelve a la lista', () => {
   it('muestra el evento nuevo en la lista aunque sea de otro año, sin abrir la consola', async () => {
     renderHarness()
-    // Con eventos de 2026 el filtro de año arranca en 2026: uno de 2027 quedaría escondido.
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo evento' }))
     fillRequired()
     fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
