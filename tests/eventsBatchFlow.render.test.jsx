@@ -362,6 +362,26 @@ describe('quitar fondo en la ficha del evento', () => {
   })
 })
 
+describe('crear un evento de otro año', () => {
+  it('no esconde el resto del calendario con el filtro de año', async () => {
+    const OLD = { ...PUBLISHED, id: 'evt-0', slug: 'copa-2025', title: 'Copa 2025', dateISO: '2025-08-15' }
+    const onSaveEvent = vi.fn(async (draft) => ({
+      event: { ...BASE, ...draft, id: 'evt-new', dateISO: '2002-05-15', title: 'aaa', published: false },
+    }))
+    renderEvents({ onSaveEvent }, { events: [OLD, PUBLISHED, HIDDEN_A] })
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo evento' }))
+    fillRequired({ title: 'aaa', start: '2002-05-15T10:00' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Crear evento' }))
+
+    await waitFor(() => expect(onSaveEvent).toHaveBeenCalledTimes(1))
+    // Vuelve al listado con todos los años: los eventos existentes siguen ahí.
+    await screen.findByText('Pitbull Classic')
+    expect(screen.getByText('Copa 2025')).toBeTruthy()
+    expect(screen.getByText('Copa Otoño')).toBeTruthy()
+  })
+})
+
 describe('medios de cobro en el alta, la lista y la publicación', () => {
   it('la lista muestra con qué cobra cada evento', async () => {
     const withCash = {

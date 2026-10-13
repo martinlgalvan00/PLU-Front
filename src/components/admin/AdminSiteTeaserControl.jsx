@@ -13,11 +13,12 @@ const LAUNCH_MS = 1600
  * Eventos. No hay nada que cargar —ni fecha, ni sede, ni título— porque el
  * anuncio no existe como evento: avisa que viene algo sin decir qué.
  *
- * A la izquierda, un monitor en miniatura del anuncio real (formas y el mismo
- * titular, nunca datos): apagado es una pantalla sin señal; prendido está al
- * aire. Al pasar de apagado a prendido hay una secuencia de encendido de una
- * sola vez (`is-launching`). El monitor es decoración: el estado lo dicen el
- * interruptor, el texto y el chip, no la imagen.
+ * Es una tira, no una pieza: estado, titular, el enlace para verlo en vivo y
+ * el interruptor. Antes llevaba un monitor en miniatura del anuncio que
+ * ocupaba más alto que las filas de eventos que tiene encima; el estado lo
+ * dicen el punto, el texto y el interruptor, así que la imagen no informaba
+ * nada. Al pasar de apagado a prendido el estado entra con un pequeño
+ * movimiento de una sola vez (`is-launching`).
  *
  * `enabled` en `null` es "todavía no se leyó": se muestra apagado y con el
  * interruptor deshabilitado en vez de adivinar un estado que podría ser el
@@ -56,34 +57,12 @@ export default function AdminSiteTeaserControl({
       className={`admin-site-teaser is-${state}${launching ? ' is-launching' : ''}`}
       data-state={state}
     >
-      <div className="admin-site-teaser__monitor" aria-hidden>
-        <span className="admin-site-teaser__sky" />
-        <span className="admin-site-teaser__scene">
-          <span className="admin-site-teaser__ghost">
-            <span className="admin-site-teaser__ghost-row" />
-            <span className="admin-site-teaser__ghost-row" />
-          </span>
-          <span className="admin-site-teaser__mini-title">
-            {t('pages.events.teaser.titleLead')}{' '}
-            <em>{t('pages.events.teaser.titleAccent')}</em>
-          </span>
-        </span>
-        <span className="admin-site-teaser__scan" />
-        <span className="admin-site-teaser__beam" />
-        <span className="admin-site-teaser__ring" />
-      </div>
-
       <div className="admin-site-teaser__copy">
         <p className="admin-site-teaser__status" aria-hidden>
           <span className="admin-site-teaser__dot" />
           {t(`admin.sections.events.teaser.status.${state}`)}
         </p>
         <strong id="admin-site-teaser-label">{t('admin.sections.events.teaser.title')}</strong>
-        <p id="admin-site-teaser-hint">
-          {loadFailed
-            ? t('admin.sections.events.teaser.loadError')
-            : t(on ? 'admin.sections.events.teaser.hintOn' : 'admin.sections.events.teaser.hint')}
-        </p>
         {on && livePath ? (
           <a
             className="admin-site-teaser__view"
@@ -95,6 +74,11 @@ export default function AdminSiteTeaserControl({
             <ExternalLink size={13} aria-hidden />
           </a>
         ) : null}
+        <p id="admin-site-teaser-hint">
+          {loadFailed
+            ? t('admin.sections.events.teaser.loadError')
+            : t(on ? 'admin.sections.events.teaser.hintOn' : 'admin.sections.events.teaser.hint')}
+        </p>
       </div>
 
       {loadFailed && typeof onRetry === 'function' ? (

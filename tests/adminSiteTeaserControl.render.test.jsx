@@ -35,14 +35,13 @@ describe('AdminSiteTeaserControl', () => {
     expect(root(container).dataset.state).toBe('on')
   })
 
-  it('el monitor es decoración: queda fuera del árbol de accesibilidad', () => {
+  it('el chip de estado repite lo que dice el interruptor: queda fuera del árbol de accesibilidad', () => {
     const { container } = render(ui({ enabled: true }))
-    expect(container.querySelector('.admin-site-teaser__monitor').getAttribute('aria-hidden')).toBe(
-      'true',
-    )
     expect(container.querySelector('.admin-site-teaser__status').getAttribute('aria-hidden')).toBe(
       'true',
     )
+    // Ya no hay monitor decorativo: la tira es sólo estado, titular y control.
+    expect(container.querySelector('.admin-site-teaser__monitor')).toBeNull()
   })
 
   it('sin leer el estado, el interruptor no se puede tocar', () => {

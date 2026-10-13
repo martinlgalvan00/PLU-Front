@@ -64,9 +64,21 @@
 
 /* ---- Resumen en una línea y secciones ---- */
 
+/* Una sola línea: cifras del calendario y, si hay, el aviso de ocultos al final. */
+.admin-list-section--events .admin-events-summary {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 28px;
+  margin-block: 2px 10px;
+}
+
+.admin-list-section--events .admin-events-summary .admin-events__unpublished {
+  margin: 0;
+}
+
 .admin-list-section--events .admin-events-kpis {
   align-items: baseline;
-  margin-block: 2px 14px;
   background: none;
   border: 0;
   display: flex;
@@ -170,11 +182,47 @@
 
 .admin-shell .admin-list-section--events.admin-list-section--flow > .admin-list-section__chrome {
   align-content: start;
+  background: transparent;
   border-bottom: 0;
   grid-auto-rows: auto;
   gap: 6px;
   margin: 0;
   padding: 0;
+  /* La página fluye entera: en teléfono el fallback de listados anidados lo dejaba
+     pegado arriba (300px de cabecera fija sobre el calendario). */
+  position: static;
+}
+
+/* El título no se aprieta contra los botones: si no entran, bajan a otra línea. */
+.admin-shell
+  .admin-list-section--events.admin-list-section--flow
+  > .admin-list-section__chrome
+  > .admin-list-section__header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  justify-content: space-between;
+}
+
+.admin-shell .admin-list-section--events .admin-list-shell__intro {
+  min-width: max-content;
+}
+
+/* Pestañas a la izquierda y búsqueda + filtros a su lado: una sola barra en vez
+   de dos filas. Debajo de 1100px (con la barra lateral queda poco panel) vuelven
+   a apilarse. */
+@media (min-width: 1100px) {
+  .admin-shell .admin-list-section--events.admin-list-section--flow > .admin-list-section__chrome {
+    align-items: center;
+    column-gap: 20px;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .admin-list-section--events .admin-list-section__header,
+  .admin-list-section--events .admin-events-summary {
+    grid-column: 1 / -1;
+  }
 }
 
 .admin-list-section--events .admin-filters--popover {
@@ -696,6 +744,16 @@ button.admin-event-row__vis:focus-visible {
 
 /* ---- Avisos de la lista ---- */
 
+/* Confirmaciones y errores de la lista: una línea de texto, no una barra tintada
+   a todo el ancho que compita con el calendario. */
+.admin-list-section--events .admin-events__message {
+  background: none;
+  border: 0;
+  font-size: 13px;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
 .admin-events__message--error {
   color: var(--admin-status-danger);
 }
@@ -704,7 +762,8 @@ button.admin-event-row__vis:focus-visible {
 
 /* Aviso de eventos ocultos: una línea con su atajo, sin color de alerta (ocultar
    es el estado normal de un meet recién creado). */
-.admin-events__unpublished {
+.admin-events__unpublished,
+.admin-events__filter-note {
   align-items: center;
   color: var(--admin-text-secondary);
   display: flex;
@@ -714,11 +773,13 @@ button.admin-event-row__vis:focus-visible {
   margin: 0 0 12px;
 }
 
-.admin-events__unpublished svg {
+.admin-events__unpublished svg,
+.admin-events__filter-note svg {
   flex: none;
 }
 
 .admin-events__unpublished button,
+.admin-events__filter-note button,
 .admin-events-bulkbar__link {
   background: none;
   border: 0;
@@ -734,6 +795,7 @@ button.admin-event-row__vis:focus-visible {
 }
 
 .admin-events__unpublished button:focus-visible,
+.admin-events__filter-note button:focus-visible,
 .admin-events-bulkbar__link:focus-visible {
   outline: 2px solid var(--admin-focus);
   outline-offset: 2px;
@@ -766,6 +828,7 @@ button.admin-event-row__vis:focus-visible {
 /* En táctil el enlace tiene que ser un blanco de 44px, no solo una línea subrayada. */
 @media (pointer: coarse) {
   .admin-events__unpublished button,
+  .admin-events__filter-note button,
   .admin-events-bulkbar__link {
     min-height: 44px;
     padding-inline: 8px;
@@ -803,6 +866,50 @@ button.admin-event-row__vis:focus-visible {
   font-weight: 600;
   gap: 4px 14px;
   margin: 0;
+}
+
+/* La X queda a la izquierda y el conteo ocupa el resto: acciones a la derecha. */
+.admin-events-bulkbar__close {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 10px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 44px;
+  justify-content: center;
+  margin-left: -8px;
+  transition:
+    background-color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    color var(--motion-fast, 150ms) var(--ease-standard, ease);
+  width: 44px;
+}
+
+.admin-events-bulkbar__close:hover {
+  background: var(--admin-brand-soft);
+  color: var(--admin-ink);
+}
+
+.admin-events-bulkbar__close:disabled {
+  cursor: progress;
+  opacity: 0.5;
+}
+
+.admin-events-bulkbar__close:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-events-bulkbar__close + .admin-events-bulkbar__count {
+  flex: 1 1 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-events-bulkbar__close {
+    transition: none;
+  }
 }
 
 .admin-events-bulkbar__actions {
@@ -923,18 +1030,13 @@ button.admin-event-row__vis:focus-visible {
 }
 
 /* ---- Anuncio "Pronto habrá novedades" ----
-   Fila entre dos filetes (no es una card) con un monitor en miniatura del
-   anuncio público. El monitor es el único objeto con color: es la pieza real
-   en chiquito, así que lleva su celeste; el resto del panel sigue en grafito.
-   Apagado = sin señal (una línea); prendido = al aire. La secuencia de
-   encendido corre una sola vez, al pasar de apagado a prendido. El único bucle
-   es el punto de "Al aire": comunica un estado real. Todo es transform/opacity
-   y nada se mueve con prefers-reduced-motion. */
+   Tira entre dos filetes (no es una card): punto de estado, titular, enlace y
+   el interruptor. Es chica a propósito: va encima del calendario y no tiene que
+   empujarlo fuera de la pantalla. El único bucle es el punto de "Al aire":
+   comunica un estado real. Todo es transform/opacity y nada se mueve con
+   prefers-reduced-motion. */
 
 .admin-site-teaser {
-  --teaser-sky: var(--plu-cool-950, #0a0b0d);
-  --teaser-accent: var(--plu-celeste-400, #74acdf);
-  --teaser-text: oklch(97% 0.004 260);
   --teaser-dot: var(--plu-celeste-400, #74acdf);
   --teaser-thumb-on: var(--plu-cool-950, #0a0b0d);
 
@@ -942,9 +1044,9 @@ button.admin-event-row__vis:focus-visible {
   border-block: 1px solid var(--admin-hairline);
   display: grid;
   gap: 8px 18px;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  margin-block: 4px 16px;
-  padding: 14px 2px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-block: 4px 12px;
+  padding: 6px 2px;
 }
 
 [data-theme='light'] .admin-site-teaser {
@@ -952,199 +1054,13 @@ button.admin-event-row__vis:focus-visible {
   --teaser-thumb-on: #fff;
 }
 
-/* ---- Monitor ---- */
-
-.admin-site-teaser__monitor {
-  aspect-ratio: 16 / 9;
-  background: var(--teaser-sky);
-  border: 1px solid color-mix(in srgb, var(--teaser-accent) 24%, transparent);
-  border-radius: var(--radius-md, 10px);
-  container-type: inline-size;
-  isolation: isolate;
-  overflow: hidden;
-  position: relative;
-  width: 232px;
-}
-
-/* Bandas de cine, como el anuncio real: encuadran el monitor como un fotograma. */
-.admin-site-teaser__monitor::after {
-  background:
-    linear-gradient(
-      180deg,
-      var(--teaser-sky) 0 7%,
-      color-mix(in srgb, var(--teaser-accent) 30%, transparent) 7% calc(7% + 1px),
-      transparent calc(7% + 1px) calc(93% - 1px),
-      color-mix(in srgb, var(--teaser-accent) 30%, transparent) calc(93% - 1px) 93%,
-      var(--teaser-sky) 93%
-    );
-  content: '';
-  inset: 0;
-  pointer-events: none;
-  position: absolute;
-  z-index: 4;
-}
-
-/* La línea de "sin señal": se ve sólo con el monitor apagado. */
-.admin-site-teaser__monitor::before {
-  background: color-mix(in srgb, var(--teaser-text) 55%, transparent);
-  content: '';
-  height: 1px;
-  left: 22%;
-  position: absolute;
-  right: 22%;
-  top: 50%;
-  z-index: 1;
-}
-
-.admin-site-teaser.is-on .admin-site-teaser__monitor::before {
-  opacity: 0;
-}
-
-/* Cielo: nebulosa celeste y una baldosa de estrellas, todo estático. */
-.admin-site-teaser__sky {
-  background-image:
-    radial-gradient(
-      closest-side at 82% 8%,
-      color-mix(in srgb, var(--teaser-accent) 62%, #1f5f9e),
-      color-mix(in srgb, var(--plu-celeste-600, #1f5f9e) 38%, transparent) 55%,
-      transparent
-    ),
-    radial-gradient(
-      closest-side at 18% 118%,
-      color-mix(in srgb, var(--teaser-accent) 30%, transparent),
-      transparent
-    ),
-    radial-gradient(circle at 14px 18px, var(--teaser-text) 0 0.6px, transparent 1.2px),
-    radial-gradient(circle at 52px 9px, var(--teaser-text) 0 0.5px, transparent 1.1px),
-    radial-gradient(circle at 38px 44px, var(--teaser-text) 0 0.6px, transparent 1.2px),
-    radial-gradient(circle at 70px 30px, var(--teaser-accent) 0 0.8px, transparent 1.5px);
-  background-size:
-    100% 100%,
-    100% 100%,
-    78px 58px,
-    78px 58px,
-    78px 58px,
-    78px 58px;
-  inset: 0;
-  opacity: 0.22;
-  position: absolute;
-}
-
-.admin-site-teaser.is-on .admin-site-teaser__sky {
-  opacity: 1;
-}
-
-.admin-site-teaser__scene {
-  align-items: flex-end;
-  display: flex;
-  inset: 0;
-  opacity: 0;
-  padding: 10px 12px 15px;
-  position: absolute;
-  transform: scaleY(0.04);
-}
-
-.admin-site-teaser.is-on .admin-site-teaser__scene {
-  opacity: 1;
-  transform: none;
-}
-
-/* Card fantasma: formas borrosas (estático), nunca datos. */
-.admin-site-teaser__ghost {
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  justify-content: center;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 45%);
-  mask-image: linear-gradient(90deg, transparent 0%, #000 45%);
-  pointer-events: none;
-  position: absolute;
-  right: 8px;
-  top: 0;
-  width: 56%;
-}
-
-.admin-site-teaser__ghost-row {
-  background: color-mix(in srgb, var(--teaser-accent) 55%, transparent);
-  border-radius: 4px;
-  -webkit-filter: blur(2.5px);
-  filter: blur(2.5px);
-  display: block;
-  height: 15px;
-}
-
-.admin-site-teaser__ghost-row:nth-child(2) {
-  opacity: 0.55;
-  transform: translateX(-12%);
-}
-
-.admin-site-teaser__mini-title {
-  color: var(--teaser-text);
-  font-family: var(--font-display, var(--font-family));
-  font-size: 11.5px;
-  font-size: clamp(10px, 6.6cqi, 22px);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
-  max-width: 62%;
-  position: relative;
-  text-wrap: balance;
-}
-
-.admin-site-teaser__mini-title em {
-  color: var(--teaser-accent);
-  font-style: normal;
-}
-
-/* Líneas de barrido: textura de pantalla, quieta. */
-.admin-site-teaser__scan {
-  background: repeating-linear-gradient(
-    0deg,
-    transparent 0 2px,
-    color-mix(in srgb, var(--teaser-text) 6%, transparent) 2px 3px
-  );
-  inset: 0;
-  opacity: 0;
-  position: absolute;
-}
-
-.admin-site-teaser.is-on .admin-site-teaser__scan {
-  opacity: 1;
-}
-
-/* Barrido y marco: sólo existen durante el encendido. */
-.admin-site-teaser__beam {
-  background: linear-gradient(
-    180deg,
-    transparent,
-    color-mix(in srgb, var(--teaser-accent) 30%, transparent) 46%,
-    color-mix(in srgb, var(--teaser-text) 24%, transparent) 50%,
-    transparent
-  );
-  height: 46%;
-  left: 0;
-  opacity: 0;
-  position: absolute;
-  right: 0;
-  top: 0;
-  transform: translateY(-110%);
-}
-
-.admin-site-teaser__ring {
-  border: 1.5px solid var(--teaser-accent);
-  border-radius: inherit;
-  inset: 0;
-  opacity: 0;
-  position: absolute;
-}
-
 /* ---- Texto ---- */
 
 .admin-site-teaser__copy {
-  display: grid;
-  gap: 3px;
-  justify-items: start;
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
   min-width: 0;
 }
 
@@ -1197,10 +1113,13 @@ button.admin-event-row__vis:focus-visible {
 
 .admin-site-teaser__copy p:not(.admin-site-teaser__status) {
   color: var(--admin-muted);
+  flex: 1 0 100%;
   font-size: 12.5px;
   line-height: 1.45;
   margin: 0;
-  max-width: 52ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-site-teaser__view {
@@ -1307,18 +1226,6 @@ button.admin-event-row__vis:focus-visible {
 /* ---- Movimiento ---- */
 
 @media (prefers-reduced-motion: no-preference) {
-  .admin-site-teaser__scene {
-    transition:
-      opacity var(--motion-base) var(--ease-out),
-      transform 520ms var(--ease-cinematic);
-  }
-
-  .admin-site-teaser__sky,
-  .admin-site-teaser__scan,
-  .admin-site-teaser__monitor::before {
-    transition: opacity var(--motion-slow) var(--ease-out);
-  }
-
   .admin-site-teaser__switch,
   .admin-site-teaser__switch::after {
     transition:
@@ -1331,63 +1238,9 @@ button.admin-event-row__vis:focus-visible {
     animation: admin-teaser-onair 2.4s var(--ease-out) infinite;
   }
 
-  /* Encendido (una vez): la línea se abre en pantalla, pasa un barrido y el
-     marco se enciende y se apaga. */
-  .admin-site-teaser.is-launching .admin-site-teaser__scene {
-    animation: admin-teaser-powerup 760ms var(--ease-cinematic) both;
-  }
-
-  .admin-site-teaser.is-launching .admin-site-teaser__beam {
-    animation: admin-teaser-beam 900ms var(--ease-out) 420ms both;
-  }
-
-  .admin-site-teaser.is-launching .admin-site-teaser__ring {
-    animation: admin-teaser-ring 1400ms var(--ease-out) both;
-  }
-
+  /* Encendido (una vez): el estado entra con un leve desplazamiento. */
   .admin-site-teaser.is-launching .admin-site-teaser__status {
     animation: admin-teaser-status-in var(--motion-slow) var(--ease-out) 200ms both;
-  }
-}
-
-@keyframes admin-teaser-powerup {
-  0% {
-    opacity: 0;
-    transform: scaleY(0.04);
-  }
-  32% {
-    opacity: 1;
-    transform: scale(1.04, 0.05);
-  }
-  100% {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes admin-teaser-beam {
-  0% {
-    opacity: 0;
-    transform: translateY(-110%);
-  }
-  18% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(240%);
-  }
-}
-
-@keyframes admin-teaser-ring {
-  0% {
-    opacity: 0;
-  }
-  14% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
   }
 }
 
@@ -1417,15 +1270,9 @@ button.admin-event-row__vis:focus-visible {
 /* ---- Pantallas angostas ---- */
 
 @media (max-width: 640px) {
-  .admin-site-teaser {
-    gap: 12px 14px;
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  /* El monitor encabeza la fila y se estira: es lo primero que se ve. */
-  .admin-site-teaser__monitor {
-    aspect-ratio: 21 / 8;
-    grid-column: 1 / -1;
-    width: 100%;
+  .admin-site-teaser__copy p:not(.admin-site-teaser__status) {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
   }
 }
