@@ -266,6 +266,33 @@ export const DobleTablado = {
   decorators: [withBoard(DOUBLE_BOARD)],
 }
 
+const TIMED_BOARD = {
+  ...DOUBLE_BOARD,
+  days: DOUBLE_BOARD.days.map((day) => {
+    // Cada tablado corre sus tandas una tras otra: 09:00 y 10:00 (hora de Buenos Aires).
+    const seen = {}
+    return {
+      ...day,
+      sessions: day.sessions.map((session) => {
+        const slot = seen[session.platformId] ?? 0
+        seen[session.platformId] = slot + 1
+        const start = Date.parse(`${day.date}T00:00:00-03:00`) + (9 + slot) * 3_600_000
+        return {
+          ...session,
+          startsAt: new Date(start).toISOString(),
+          weighInAt: new Date(start - 2 * 3_600_000).toISOString(),
+        }
+      }),
+    }
+  }),
+}
+
+/** Doble tablado con horarios: inicio y pesaje en cada tanda, "Recalcular horarios" por tablado. */
+export const DobleTabladoConHorarios = {
+  args: { adminEvents, canEdit: true, onGoToEvents: () => undefined },
+  decorators: [withBoard(TIMED_BOARD)],
+}
+
 /** Un meet real: 234 inscriptos sin ubicar, dos días con fecha y sin tandas todavía. */
 function crowd(total) {
   let state = 11

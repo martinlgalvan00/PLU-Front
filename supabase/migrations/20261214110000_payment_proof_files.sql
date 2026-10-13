@@ -25,6 +25,48 @@
 -- de estados).
 
 -- ---------------------------------------------------------------------
+-- 0. Complemento de 20261214100000 (ya aplicada: no se edita, se completa acá)
+-- ---------------------------------------------------------------------
+-- `payment_proof_trashed_at`: el comprobante vigente está en la papelera (el
+-- path de la orden queda en null y el archivo sigue en el bucket hasta que
+-- pase el período de gracia). Lo escriben las RPC de más abajo.
+alter table public.athlete_payment_orders
+  add column if not exists payment_proof_trashed_at timestamptz;
+alter table public.ticket_orders
+  add column if not exists payment_proof_trashed_at timestamptz;
+
+comment on column public.athlete_payment_orders.payment_proof_trashed_at is
+  'Cuándo el comprobante vigente se movió a la papelera. Mientras tanto payment_proof_path es null.';
+comment on column public.ticket_orders.payment_proof_trashed_at is
+  'Cuándo el comprobante vigente se movió a la papelera. Mientras tanto payment_proof_path es null.';
+
+-- Un archivo nuevo sigue naciendo sin marcas, ahora también sin `trashed_at`, y
+-- restaurar desde la papelera (que vuelve a poner un archivo con su historia:
+-- descargado, etc.) lo declara con `plu.proof_restore` para que el trigger no la
+-- borre. Los triggers de 20261214100000 ya apuntan a esta función.
+create or replace function plu_private.reset_proof_state_on_new_file()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if coalesce(current_setting('plu.proof_restore', true), '') = 'on' then
+    return new;
+  end if;
+  -- Solo cuando entra un archivo distinto. Borrar el path (purga) o dejarlo
+  -- igual no es un archivo nuevo y no toca las marcas.
+  if new.payment_proof_path is not null
+     and new.payment_proof_path is distinct from old.payment_proof_path then
+    new.payment_proof_exported_at := null;
+    new.payment_proof_accessed_at := null;
+    new.payment_proof_purged_at := null;
+    new.payment_proof_trashed_at := null;
+  end if;
+  return new;
+end;
+$$;
+
+-- ---------------------------------------------------------------------
 -- 1. Período de gracia de la papelera
 -- ---------------------------------------------------------------------
 alter table public.payment_proof_settings

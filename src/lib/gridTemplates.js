@@ -110,14 +110,20 @@ function normalizeSchedule(raw) {
   if (!raw || typeof raw !== 'object') return null
   const firstStart = String(raw.firstStart ?? '').trim()
   const sessionMinutes = Number(raw.sessionMinutes)
-  if (!/^\d{1,2}:\d{2}$/.test(firstStart) || !Number.isFinite(sessionMinutes) || sessionMinutes < 1) {
+  const perAthlete = Number(raw.minutesPerAthlete)
+  const hasPerAthlete = Number.isFinite(perAthlete) && perAthlete > 0
+  if (
+    !/^\d{1,2}:\d{2}$/.test(firstStart) ||
+    (!hasPerAthlete && (!Number.isFinite(sessionMinutes) || sessionMinutes < 1))
+  ) {
     return null
   }
   const gap = Number(raw.gapMinutes)
   const lead = Number(raw.weighInLeadMinutes)
   return {
     firstStart,
-    sessionMinutes,
+    sessionMinutes: Number.isFinite(sessionMinutes) && sessionMinutes >= 1 ? sessionMinutes : 45,
+    ...(hasPerAthlete ? { minutesPerAthlete: perAthlete } : {}),
     gapMinutes: Number.isFinite(gap) && gap >= 0 ? gap : 0,
     weighInLeadMinutes: Number.isFinite(lead) && lead >= 0 ? lead : 0,
   }

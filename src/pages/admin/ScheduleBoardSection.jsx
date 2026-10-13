@@ -16,6 +16,7 @@ import {
 import {
   CalendarClock,
   ChevronRight,
+  Clock,
   Pencil,
   Plus,
   Sparkles,
@@ -26,6 +27,7 @@ import {
 import PlanPanel from '../../components/admin/board/PlanPanel.jsx'
 import LaneNameEditor from '../../components/admin/board/LaneNameEditor.jsx'
 import PlatformBar from '../../components/admin/board/PlatformBar.jsx'
+import SessionEditForm from '../../components/admin/board/SessionEditForm.jsx'
 import PublicSchedulePreview from '../../components/admin/board/PublicSchedulePreview.jsx'
 import PublishToggle from '../../components/admin/board/PublishToggle.jsx'
 import PoolToolbar from '../../components/admin/board/PoolToolbar.jsx'
@@ -34,17 +36,22 @@ import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
 import { useEventBoard } from '../../hooks/useEventBoard.js'
 import { useGridTemplates } from '../../hooks/useGridTemplates.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { clockFromIso, draftTimesFromSession, isoFromDraftTime } from '../../lib/boardTimes.js'
 import { formatScheduleTime } from '../../lib/eventSchedule.js'
 import AnimatedNumber from '../../motion/AnimatedNumber.tsx'
 import {
+  DEFAULT_MINUTES_PER_ATHLETE,
   EMPTY_POOL_FILTERS,
   compositionFacets,
+  estimateLaneTimes,
   groupAthletes,
   locationIndex,
   matchesPoolFilters,
+  planEventBoard,
   sessionStats,
   sessionsPayloadFromBoard,
   suggestFill,
+  suggestPlanOptions,
 } from '../../services/eventBoardPlanner.js'
 
 /** Tope por defecto de una tanda de powerlifting. El operador lo ajusta. */
@@ -81,6 +88,26 @@ function readStoredDensity() {
 function storeDensity(value) {
   try {
     window.localStorage.setItem(DENSITY_STORAGE_KEY, value)
+  } catch {
+    /* sin storage: la preferencia dura lo que dura la pantalla */
+  }
+}
+
+const MINUTES_STORAGE_KEY = 'plu.board.minutesPerAthlete'
+
+// Estimación de duración por atleta: preferencia del viewer, con default si no hay storage.
+function readStoredMinutes() {
+  try {
+    const value = Number(window.localStorage.getItem(MINUTES_STORAGE_KEY))
+    return Number.isFinite(value) && value >= 0.5 && value <= 60 ? value : DEFAULT_MINUTES_PER_ATHLETE
+  } catch {
+    return DEFAULT_MINUTES_PER_ATHLETE
+  }
+}
+
+function storeMinutes(value) {
+  try {
+    window.localStorage.setItem(MINUTES_STORAGE_KEY, String(value))
   } catch {
     /* sin storage: la preferencia dura lo que dura la pantalla */
   }
@@ -140,23 +167,6 @@ function athleteMeta(athlete, t) {
     .join(' · ')
 }
 
-/** datetime-local trabaja en hora local; el backend guarda ISO con zona. */
-function toLocalInputValue(iso) {
-  if (!iso) return ''
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return ''
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
-    date.getHours(),
-  )}:${pad(date.getMinutes())}`
-}
-
-function fromLocalInputValue(value) {
-  if (!value) return ''
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? '' : date.toISOString()
-}
-
 /**
  * ScheduleBoardSection — PLU ARG
  *
@@ -204,6 +214,7 @@ export default function ScheduleBoardSection({
   const [eventSlug, setEventSlug] = useState(() => eventOptions[0]?.slug ?? '')
   const [selected, setSelected] = useState(() => new Set())
   const [flightSize, setFlightSize] = useState(DEFAULT_FLIGHT_SIZE)
+  const [minutesPerAthlete, setMinutesPerAthlete] = useState(readStoredMinutes)
   const [notice, setNotice] = useState(null)
   const layoutRef = useRef(null)
   const [densityPref, setDensityPref] = useState(readStoredDensity)
@@ -370,18 +381,84 @@ export default function ScheduleBoardSection({
     void moveTo({ dayIndex: day.dayIndex, sessionId: session.id }, ids)
   }
 
-  async function handleAutofill(dayIndex) {
-    const result = await autofill({ dayIndex, maxPerSession: flightSize })
-    if (!result) return
-    setSelected(new Set())
-    setNotice(
-      result.remaining > 0
-        ? t('admin.board.autofilledPartial', {
-            count: result.placed,
-            remaining: result.remaining,
-          })
-        : t('admin.board.autofilled', { count: result.placed }),
+  function changeMinutesPerAthlete(value) {
+    const next = Math.min(60, Math.max(0.5, Number(value) || DEFAULT_MINUTES_PER_ATHLETE))
+    setMinutesPerAthlete(next)
+    storeMinutes(next)
+  }
+
+  // "Repartir" usa el mismo motor que el asistente, con las opciones que se
+  // deducen del tablero (tablados, tope, criterio, horarios). Sin permiso sobre
+  // la estructura no puede crear tandas: ahí queda el reparto simple sobre las
+  // que ya existen.
+  async function handleAutofill(day) {
+    if (!canStructure) {
+      const result = await autofill({ dayIndex: day.dayIndex, maxPerSession: flightSize })
+      if (!result) return
+      setSelected(new Set())
+      setNotice(
+        result.remaining > 0
+          ? t('admin.board.autofilledPartial', {
+              count: result.placed,
+              remaining: result.remaining,
+            })
+          : t('admin.board.autofilled', { count: result.placed }),
+      )
+      return
+    }
+    const suggested = suggestPlanOptions({ athletes: planAthletes, days, flightSize })
+    const plan = planEventBoard({
+      unassigned: planAthletes,
+      days,
+      platforms: platforms.map(({ id, name }) => ({ id, name })),
+      maxPerSession: suggested.maxPerSession,
+      groupBy: suggested.groupBy,
+      dayIndexes: [day.dayIndex],
+      schedule: suggested.schedule ? { ...suggested.schedule, minutesPerAthlete } : null,
+    })
+    if (plan.placed === 0) {
+      setNotice(t('admin.board.autofillNothing'))
+      return
+    }
+    await handleApplyPlan(plan, {})
+  }
+
+  // Las horas se estiman por cantidad de atletas: al mover gente quedan viejas.
+  // Esto las recalcula en orden para un tablado de un día, desde la primera hora
+  // que ya tenía (o 09:00). La persona puede volver a pisar cualquiera a mano.
+  async function handleRecalcTimes(day, lane) {
+    if (!day.date || lane.sessions.length === 0) return
+    const starts = lane.sessions
+      .map((session) => clockFromIso(session.startsAt, day.date))
+      .filter(Boolean)
+      .sort()
+    const withBoth = lane.sessions.find((session) => session.startsAt && session.weighInAt)
+    const lead = withBoth
+      ? Math.round((Date.parse(withBoth.startsAt) - Date.parse(withBoth.weighInAt)) / 60_000)
+      : 120
+    const rows = estimateLaneTimes({
+      sessions: lane.sessions,
+      date: day.date,
+      schedule: {
+        firstStart: starts[0] ?? '09:00',
+        minutesPerAthlete,
+        gapMinutes: 10,
+        weighInLeadMinutes: lead > 0 ? lead : 0,
+      },
+    })
+    const byId = new Map(rows.map((row) => [row.id, row]))
+    const payload = sessionsPayloadFromBoard(days).map((session) =>
+      byId.has(session.id)
+        ? {
+            ...session,
+            startsAt: byId.get(session.id).startsAt,
+            weighInAt: byId.get(session.id).weighInAt,
+          }
+        : session,
     )
+    if (!(await saveSessions(payload))) return
+    setUndoToken(null)
+    setNotice(t('admin.board.timesRecalculated', { count: rows.length }))
   }
 
   function startEditSession(day, session) {
@@ -391,7 +468,8 @@ export default function ScheduleBoardSection({
       name: session.name,
       platform: session.platform ?? '',
       platformId: session.platformId ?? '',
-      weighInAt: toLocalInputValue(session.weighInAt),
+      athleteCount: session.athletes.length,
+      ...draftTimesFromSession(session, day.date),
     })
   }
 
@@ -413,7 +491,8 @@ export default function ScheduleBoardSection({
             // sigue siendo el texto libre de siempre.
             platform: chosenPlatform?.name ?? (hasPlatforms ? '' : editingSession.platform.trim()),
             ...(hasPlatforms ? { platformId: chosenPlatform?.id ?? null } : {}),
-            weighInAt: fromLocalInputValue(editingSession.weighInAt),
+            weighInAt: isoFromDraftTime(editingSession, 'weighInAt'),
+            startsAt: isoFromDraftTime(editingSession, 'startsAt'),
           }
         : session,
     )
@@ -621,8 +700,8 @@ export default function ScheduleBoardSection({
             </p>
           )}
 
-          {canEdit && canStructure && days.length > 0 && unassigned.length > 0 ? (
-            <div className="admin-board__plan-toggle">
+          <div className="admin-board__controls">
+            {canEdit && canStructure && days.length > 0 && unassigned.length > 0 ? (
               <Button
                 type="button"
                 variant={planOpen ? 'outline' : 'primary'}
@@ -634,8 +713,54 @@ export default function ScheduleBoardSection({
                 <Sparkles size={15} aria-hidden />
                 {t('admin.board.planOpen')}
               </Button>
-            </div>
-          ) : null}
+            ) : null}
+
+            {days.some((day) => day.sessions.length > 0 || canStructure) ? (
+              <label className="admin-board__controls-field">
+                <span>{t('admin.board.flightSize')}</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={flightSize}
+                  onChange={(event) => setFlightSize(Number(event.target.value) || 1)}
+                  disabled={!canEdit || busy}
+                />
+              </label>
+            ) : null}
+
+            {days.some((day) => day.date) ? (
+              <label className="admin-board__controls-field">
+                <span>{t('admin.board.minutesPerAthlete')}</span>
+                <input
+                  type="number"
+                  min={0.5}
+                  max={60}
+                  step={0.5}
+                  inputMode="decimal"
+                  value={minutesPerAthlete}
+                  onChange={(event) => changeMinutesPerAthlete(event.target.value)}
+                  disabled={!canEdit || busy}
+                />
+              </label>
+            ) : null}
+
+            {sessionTotal > 0 ? (
+              <div className="admin-board__density">
+                <span className="admin-board__plan-label">{t('admin.board.densityLabel')}</span>
+                <SegmentedSwitch
+                  active={density}
+                  ariaLabel={t('admin.board.densityAria')}
+                  className="admin-board__view-switch"
+                  onChange={changeDensity}
+                  options={[
+                    ['compact', t('admin.board.densityCompact')],
+                    ['detail', t('admin.board.densityDetail')],
+                  ]}
+                />
+              </div>
+            ) : null}
+          </div>
 
           {planOpen ? (
             <PlanPanel
@@ -647,6 +772,7 @@ export default function ScheduleBoardSection({
               flightSize={flightSize}
               key={`${eventSlug}-${platforms.map((item) => item.id).join(',')}`}
               locale={locale}
+              minutesPerAthlete={minutesPerAthlete}
               onApply={handleApplyPlan}
               onClose={() => setPlanOpen(false)}
               onPrune={handlePrune}
@@ -658,22 +784,6 @@ export default function ScheduleBoardSection({
           ) : null}
 
           {canEdit && <p className="admin-board__drag-hint">{t('admin.board.dragHint')}</p>}
-
-          {sessionTotal > 0 ? (
-            <div className="admin-board__density">
-              <span className="admin-board__plan-label">{t('admin.board.densityLabel')}</span>
-              <SegmentedSwitch
-                active={density}
-                ariaLabel={t('admin.board.densityAria')}
-                className="admin-board__view-switch"
-                onChange={changeDensity}
-                options={[
-                  ['compact', t('admin.board.densityCompact')],
-                  ['detail', t('admin.board.densityDetail')],
-                ]}
-              />
-            </div>
-          ) : null}
 
           {selectedIds.length > 0 && (
             <MoveBar
@@ -719,13 +829,14 @@ export default function ScheduleBoardSection({
                   flightSize={flightSize}
                   key={day.id}
                   locale={locale}
+                  minutesPerAthlete={minutesPerAthlete}
                   onAddSession={handleAddSession}
                   onAutofill={handleAutofill}
                   onCancelEditSession={() => setEditingSession(null)}
                   onEditSession={startEditSession}
                   onFill={handleFill}
-                  onFlightSizeChange={setFlightSize}
                   onGoToEvents={onGoToEvents}
+                  onRecalcTimes={handleRecalcTimes}
                   onRemoveSession={handleRemoveSession}
                   onRenamePlatform={handleRenamePlatform}
                   onToggleExpanded={toggleExpanded}
@@ -1035,12 +1146,13 @@ function DayColumn({
   expanded,
   flightSize,
   locale,
+  minutesPerAthlete,
   onAddSession,
   onAutofill,
   onCancelEditSession,
   onEditSession,
   onFill,
-  onFlightSizeChange,
+  onRecalcTimes,
   onRemoveSession,
   onRenamePlatform,
   onSaveSession,
@@ -1072,34 +1184,20 @@ function DayColumn({
         </span>
         <h2 className="admin-board__panel-title">{day.label}</h2>
         <span className="admin-board__count">{day.assignedCount}</span>
-      </div>
-
-      {day.sessions.length > 0 && (
-        <div className="admin-board__autofill">
-          <label className="admin-board__autofill-field">
-            <span>{t('admin.board.flightSize')}</span>
-            <input
-              type="number"
-              min={1}
-              max={100}
-              value={flightSize}
-              onChange={(event) => onFlightSizeChange(Number(event.target.value) || 1)}
-              disabled={!canEdit || busy}
-            />
-          </label>
+        {canEdit && (day.sessions.length > 0 || canStructure) ? (
           <Button
             type="button"
             variant="outline"
-            className="btn--small"
-            disabled={!canEdit || busy}
-            onClick={() => onAutofill(day.dayIndex)}
+            className="btn--small admin-board__day-fill"
+            disabled={busy || pool.length === 0}
+            onClick={() => onAutofill(day)}
             aria-label={t('admin.board.autofill', { day: day.label })}
           >
             <Sparkles size={15} aria-hidden />
             {t('admin.board.autofillShort')}
           </Button>
-        </div>
-      )}
+        ) : null}
+      </div>
 
       {day.sessions.length === 0 && (
         <p className="admin-board__empty admin-board__empty--inline">
@@ -1153,6 +1251,22 @@ function DayColumn({
                 </div>
               ) : null}
 
+              {canStructure && day.date && lane.sessions.length > 0 ? (
+                <button
+                  type="button"
+                  className="admin-board__text-btn admin-board__lane-recalc"
+                  onClick={() => onRecalcTimes(day, lane)}
+                  disabled={busy}
+                  aria-label={t('admin.board.recalcTimesAria', {
+                    name: lane.platform?.name ?? day.label,
+                    day: day.label,
+                  })}
+                >
+                  <Clock size={13} aria-hidden />
+                  {t('admin.board.recalcTimes')}
+                </button>
+              ) : null}
+
               {lane.sessions.map((session) => (
                 <SessionItem
                   busy={busy}
@@ -1167,6 +1281,7 @@ function DayColumn({
                   hasPlatforms={hasPlatforms}
                   key={session.id}
                   locale={locale}
+                  minutesPerAthlete={minutesPerAthlete}
                   onCancelEditSession={onCancelEditSession}
                   onEditSession={onEditSession}
                   onFill={onFill}
@@ -1236,6 +1351,7 @@ function SessionItem({
   flightSize,
   hasPlatforms,
   locale,
+  minutesPerAthlete,
   onCancelEditSession,
   onEditSession,
   onFill,
@@ -1280,71 +1396,26 @@ function SessionItem({
       session={session}
     >
       {isEditing ? (
-        <form className="admin-board__session-edit" onSubmit={onSaveSession}>
-          <div className="admin-board__session-edit-grid">
-            <label className="admin-board__session-edit-field">
-              <span>{t('admin.board.sessionName')}</span>
-              <input
-                type="text"
-                required
-                maxLength={80}
-                value={editingSession.name}
-                onChange={(event) => onSessionDraftChange({ name: event.target.value })}
-                disabled={busy}
-              />
-            </label>
-            <label className="admin-board__session-edit-field">
-              <span>{t('admin.board.sessionPlatform')}</span>
-              {hasPlatforms ? (
-                <select
-                  value={editingSession.platformId}
-                  onChange={(event) => onSessionDraftChange({ platformId: event.target.value })}
-                  disabled={busy}
-                >
-                  <option value="">{t('admin.board.platformNone')}</option>
-                  {platforms.map((platform) => (
-                    <option key={platform.id} value={platform.id}>
-                      {platform.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  type="text"
-                  maxLength={80}
-                  value={editingSession.platform}
-                  onChange={(event) => onSessionDraftChange({ platform: event.target.value })}
-                  disabled={busy}
-                />
-              )}
-            </label>
-            <label className="admin-board__session-edit-field">
-              <span>{t('admin.board.sessionWeighIn')}</span>
-              <input
-                type="datetime-local"
-                value={editingSession.weighInAt}
-                onChange={(event) => onSessionDraftChange({ weighInAt: event.target.value })}
-                disabled={busy}
-              />
-            </label>
-          </div>
-          <div className="admin-board__session-edit-actions">
-            <Button type="submit" className="btn--small" disabled={busy}>
-              {busy ? t('admin.board.savingSession') : t('admin.board.saveSession')}
-            </Button>
-            <button
-              type="button"
-              className="admin-board__text-btn"
-              onClick={onCancelEditSession}
-              disabled={busy}
-            >
-              {t('admin.board.cancelSessionEdit')}
-            </button>
-          </div>
-        </form>
+        <SessionEditForm
+          athleteCount={session.athletes.length}
+          busy={busy}
+          draft={editingSession}
+          hasPlatforms={hasPlatforms}
+          minutesPerAthlete={minutesPerAthlete}
+          onCancel={onCancelEditSession}
+          onChange={onSessionDraftChange}
+          onSubmit={onSaveSession}
+          platforms={platforms}
+          t={t}
+        />
       ) : (
         <>
           <div className="admin-board__session-head">
+            {session.startsAt ? (
+              <time className="admin-board__session-time" dateTime={session.startsAt}>
+                {formatScheduleTime(session.startsAt, locale)}
+              </time>
+            ) : null}
             <h3 className="admin-board__session-name">{session.name}</h3>
             <span
               className={`admin-board__occupancy${stats.over ? ' is-over' : ''}`}

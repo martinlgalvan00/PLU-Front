@@ -92,7 +92,7 @@
 
 .admin-board__event-picker > span,
 .admin-board__movebar-field > span,
-.admin-board__autofill-field > span,
+.admin-board__controls-field > span,
 .admin-board__session-edit-field > span {
   font-size: 10.5px;
   font-weight: 700;
@@ -103,7 +103,7 @@
 
 .admin-board__event-picker select,
 .admin-board__movebar-field select,
-.admin-board__autofill-field input,
+.admin-board__controls-field input,
 .admin-board__session-edit-field input {
   min-height: 38px;
   min-width: 0;
@@ -121,7 +121,7 @@
 
 .admin-board__event-picker select:focus-visible,
 .admin-board__movebar-field select:focus-visible,
-.admin-board__autofill-field input:focus-visible,
+.admin-board__controls-field input:focus-visible,
 .admin-board__session-edit-field input:focus-visible {
   outline: none;
   border-bottom-color: var(--color-brand-celeste);
@@ -623,29 +623,33 @@
   }
 }
 
-/* ── Reparto sugerido ───────────────────────────────────────────────── */
-.admin-board__autofill {
+/* ── Controles del tablero ──────────────────────────────
+   Armado, tope por tanda y minutos por atleta son del evento, no de un
+   día: viven una sola vez arriba de la grilla. */
+.admin-board__controls {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
-  gap: var(--space-sm);
-  width: 100%;
+  gap: var(--space-sm) var(--space-lg);
 }
 
-.admin-board__autofill-field {
+.admin-board__controls-field {
   display: flex;
-  flex: 1 1 auto;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
 }
 
-.admin-board__autofill-field input {
-  width: min(100%, 8rem);
+.admin-board__controls-field input {
+  width: 6rem;
 }
 
-.admin-board__autofill .btn {
-  flex: none;
+.admin-board__controls .admin-board__density {
   margin-left: auto;
+}
+
+.admin-board__day-fill {
+  flex: none;
 }
 
 /* ── Tandas ─────────────────────────────────────────────────────────
@@ -732,7 +736,7 @@
     height: 44px;
   }
 
-  .admin-board__autofill .btn {
+  .admin-board__day-fill {
     min-height: 44px;
   }
 }
@@ -750,9 +754,9 @@
   padding-top: 2px;
 }
 
-.admin-board__session-edit-grid {
+.admin-board__session-edit-times {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 12rem));
   gap: var(--space-sm) var(--space-md);
 }
 
@@ -770,8 +774,106 @@
 }
 
 @container admin-board (max-width: 719px) {
-  .admin-board__session-edit-grid {
-    grid-template-columns: 1fr;
+  .admin-board__session-edit-times {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Tablado como opciones a la vista: con uno o dos tablados un desplegable
+   esconde justo lo que se está eligiendo. */
+.admin-board__choice-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.admin-board__choice-group > legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.admin-board__choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-board__choice {
+  position: relative;
+  display: inline-flex;
+}
+
+.admin-board__choice input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.admin-board__choice span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.admin-board__choice input:checked + span {
+  border-color: var(--color-brand-celeste);
+  background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
+  color: var(--color-text-primary);
+}
+
+.admin-board__choice input:focus-visible + span {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-board__choice input:disabled + span {
+  opacity: 0.55;
+}
+
+.admin-board__session-edit-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* Hora de inicio: lo primero que se lee de una tanda. */
+.admin-board__session-time {
+  flex: none;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+}
+
+.admin-board__lane-recalc {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+@media (hover: none) {
+  .admin-board__choice span {
+    min-height: 44px;
   }
 }
 
@@ -989,7 +1091,7 @@
 
   .admin-board__event-picker select,
   .admin-board__movebar-field select,
-  .admin-board__autofill-field input,
+  .admin-board__controls-field input,
   .admin-board__session-edit-field input {
     min-height: 44px;
   }
@@ -1032,7 +1134,7 @@
 
   .admin-board__movebar .btn,
   .admin-board__movebar .admin-board__text-btn,
-  .admin-board__autofill .btn {
+  .admin-board__day-fill {
     min-height: 44px;
   }
 
@@ -1063,16 +1165,16 @@
     border-radius: 14px;
   }
 
-  .admin-board__autofill {
-    flex-wrap: wrap;
-    align-items: stretch;
-  }
-
-  .admin-board__autofill-field {
+  .admin-board__controls-field {
     flex: 1 1 7rem;
   }
 
-  .admin-board__autofill-field input {
+  .admin-board__controls-field input {
+    width: 100%;
+  }
+
+  .admin-board__controls .admin-board__density {
+    margin-left: 0;
     width: 100%;
   }
 
@@ -1914,6 +2016,7 @@
    interruptor mide 44px de alto: esto se opera desde una tablet. */
 .admin-board__publish {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-sm) var(--space-md);
   padding: var(--space-xs) 0 var(--space-sm);
@@ -1921,7 +2024,7 @@
 }
 
 .admin-board__publish-copy {
-  flex: 1 1 auto;
+  flex: 1 1 16rem;
   min-width: 0;
 }
 
@@ -2027,10 +2130,6 @@
 /* ── Armado automático ──────────────────────────────────────────────
    Región abierta (sin card) entre el ledger y el tablero: criterios a la
    izquierda del flujo, propuesta debajo, confirmar al final. */
-.admin-board__plan-toggle {
-  display: flex;
-}
-
 .admin-board__plan {
   display: flex;
   flex-direction: column;
@@ -2236,7 +2335,7 @@
     min-height: 44px;
   }
 
-  .admin-board__plan-toggle .btn,
+  .admin-board__controls .btn,
   .admin-board__plan-actions .btn {
     min-height: 44px;
   }
@@ -2711,4 +2810,9 @@
   .admin-board__preview-refresh {
     transition: none;
   }
+}
+
+/* El selector de duración no necesita todo el ancho del asistente. */
+.admin-board__plan-more .segmented-switch {
+  width: min(100%, 340px);
 }

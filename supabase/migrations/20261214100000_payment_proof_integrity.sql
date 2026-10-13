@@ -19,30 +19,12 @@
 -- ---------------------------------------------------------------------
 -- 1. Un archivo nuevo nace sin marcas de descarga, acceso ni purga
 -- ---------------------------------------------------------------------
--- `payment_proof_trashed_at`: el comprobante vigente está en la papelera (el
--- path de la orden queda en null y el archivo sigue en el bucket hasta que
--- pase el período de gracia). Lo escriben las RPC de 20261214110000.
-alter table public.athlete_payment_orders
-  add column if not exists payment_proof_trashed_at timestamptz;
-alter table public.ticket_orders
-  add column if not exists payment_proof_trashed_at timestamptz;
-
-comment on column public.athlete_payment_orders.payment_proof_trashed_at is
-  'Cuándo el comprobante vigente se movió a la papelera. Mientras tanto payment_proof_path es null.';
-comment on column public.ticket_orders.payment_proof_trashed_at is
-  'Cuándo el comprobante vigente se movió a la papelera. Mientras tanto payment_proof_path es null.';
-
 create or replace function plu_private.reset_proof_state_on_new_file()
 returns trigger
 language plpgsql
 set search_path = public
 as $$
 begin
-  -- Restaurar desde la papelera vuelve a poner un archivo que ya tenía su
-  -- historia (descargado, etc.): la RPC lo declara con `plu.proof_restore`.
-  if coalesce(current_setting('plu.proof_restore', true), '') = 'on' then
-    return new;
-  end if;
   -- Solo cuando entra un archivo distinto. Borrar el path (purga) o dejarlo
   -- igual no es un archivo nuevo y no toca las marcas.
   if new.payment_proof_path is not null
@@ -50,7 +32,6 @@ begin
     new.payment_proof_exported_at := null;
     new.payment_proof_accessed_at := null;
     new.payment_proof_purged_at := null;
-    new.payment_proof_trashed_at := null;
   end if;
   return new;
 end;
