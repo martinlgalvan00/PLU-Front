@@ -6633,6 +6633,62 @@
   color: var(--color-brand-gold);
 }
 
+/* Baja del comprobante de una orden resuelta: zona propia debajo de la vista
+   previa, lejos de "Abrir en pestaña" para que no se confundan. */
+.payment-validation-dialog__trash-zone {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.payment-validation-dialog__trash {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--admin-muted, var(--color-text-muted));
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  gap: 6px;
+  letter-spacing: 0.01em;
+  min-height: 32px;
+  padding: 0;
+  transition: color var(--motion-fast) var(--ease-out);
+}
+
+.payment-validation-dialog__trash:hover {
+  color: var(--color-danger-text);
+}
+
+.payment-validation-dialog__trash:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+.payment-validation-dialog__trash-confirm {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.payment-validation-dialog__trash-confirm p {
+  color: var(--admin-text-secondary, var(--color-text-secondary));
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.payment-validation-dialog__trash-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .payment-validation-dialog__error {
   color: var(--color-danger-text);
   font-size: 13px;
@@ -9452,7 +9508,7 @@
   .data-table-card--compact
   .data-table-card__footer
   .admin-table-actions__more
-  > summary.admin-icon-btn,
+  > .admin-icon-btn,
 .admin-shell
   .admin-list-shell--registrations
   .data-table-card--compact
@@ -9464,7 +9520,7 @@
   .data-table-card--compact
   .data-table-card__footer
   .admin-table-actions__more
-  > summary.admin-icon-btn {
+  > .admin-icon-btn {
   height: 32px;
   min-height: 32px;
   min-width: 32px;
@@ -9608,7 +9664,7 @@
     .data-table-card--compact
     .data-table-card__footer
     .admin-table-actions__more
-    > summary.admin-icon-btn {
+    > .admin-icon-btn {
     height: 32px;
     min-height: 32px;
     min-width: 32px;
@@ -11557,6 +11613,87 @@ button.action-queue__proof:focus-visible {
 
 .athlete-detail__group--contact .athlete-detail__row dd {
   font-variant-numeric: tabular-nums;
+}
+
+/* Acceso al panel: misma superficie que los grupos de la ficha, debajo de ellos. */
+.athlete-detail__access {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--elevation-sm);
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+  min-width: 0;
+  padding: 20px 22px 18px;
+}
+
+/* El aviso de invitación ya vive dentro de la superficie de la sección:
+   sin marco propio para no anidar una tarjeta en otra. */
+.athlete-detail__access .admin-users__credential {
+  border: 0;
+  padding: 0;
+}
+
+.athlete-detail__access-form {
+  display: grid;
+  gap: 12px;
+}
+
+.athlete-detail__access-row {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 14px;
+}
+
+.athlete-detail__access-note {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 60ch;
+}
+
+.athlete-detail__access-state {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+}
+
+.athlete-detail__access-icon {
+  align-items: center;
+  color: var(--admin-status-success, var(--color-brand-celeste));
+  display: inline-flex;
+  flex: none;
+}
+
+.athlete-detail__access-copy {
+  display: grid;
+  flex: 1 1 220px;
+  gap: 3px;
+  min-width: 0;
+}
+
+.athlete-detail__access-line {
+  align-items: baseline;
+  color: var(--admin-ink, var(--color-text-primary));
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 14px;
+  gap: 4px 12px;
+  margin: 0;
+}
+
+.athlete-detail__access-status {
+  color: var(--admin-text-secondary, var(--color-text-muted));
+  font-size: 12.5px;
+}
+
+.athlete-detail__access-status--disabled,
+.athlete-detail__access-status--suspended {
+  color: var(--admin-muted, var(--color-text-muted));
 }
 
 /* Zona de peligro: borrado definitivo del atleta (solo visible para Super Admin) */

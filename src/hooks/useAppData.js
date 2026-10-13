@@ -2034,16 +2034,18 @@ export function useAppData() {
   // Alta real de staff (admin/operador/viewer): el backend crea la cuenta
   // invitada y manda un enlace firmado para elegir contraseña.
   const createUserAction = useCallback(async (draft) => {
-    const { user, emailed } = await createStaffUserRequest(draft)
+    const { user, emailed, invitationUrl, invitationExpiresAt } =
+      await createStaffUserRequest(draft)
     setUsers((current) => [user, ...current.filter((item) => item.id !== user.id)])
-    return { user, emailed }
+    return { user, emailed, invitationUrl, invitationExpiresAt }
   }, [])
 
   // Reenvío de invitación / reseteo: rota el enlace anterior y corta sesiones.
   const resetStaffPasswordAction = useCallback(async (userId, sendEmail = true) => {
-    const { user, emailed } = await resetStaffPasswordRequest(userId, sendEmail)
+    const { user, emailed, invitationUrl, invitationExpiresAt } =
+      await resetStaffPasswordRequest(userId, sendEmail)
     setUsers((current) => current.map((item) => (item.id === user.id ? user : item)))
-    return { user, emailed }
+    return { user, emailed, invitationUrl, invitationExpiresAt }
   }, [])
 
   const acceptStaffInvitationAction = useCallback(
@@ -3340,7 +3342,7 @@ export function useAppData() {
    * `updatedAt`, así que no invalida el formulario que el operador tenga abierto.
    */
   const setAdminEventLogo = useCallback(
-    async (slug, file) => {
+    async (slug, file, options) => {
       if (!hasPermission(session, 'admin.events.write')) {
         return { error: 'Sin permisos para editar eventos.' }
       }
@@ -3363,7 +3365,7 @@ export function useAppData() {
       }
 
       try {
-        const result = await setEventLogoRequest(slug, file)
+        const result = await setEventLogoRequest(slug, file, options)
         setAdminEvents(result.events)
         setAdminEventsError(null)
         return result

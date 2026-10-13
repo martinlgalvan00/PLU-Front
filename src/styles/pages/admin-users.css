@@ -322,6 +322,12 @@ tr:hover .admin-users__role-select svg,
   color: var(--admin-canvas);
 }
 
+/* Invitación abierta: todavía no hay persona, así que el círculo va punteado. */
+.admin-users__monogram.is-open {
+  border-style: dashed;
+  color: var(--admin-muted);
+}
+
 .admin-users__who-copy {
   align-items: flex-start;
   display: flex;
@@ -350,6 +356,28 @@ tr:hover .admin-users__role-select svg,
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Marca de que la persona también es atleta. Informa, no decora: texto chico,
+   sin relleno, junto al nombre. */
+.admin-users__tag {
+  color: var(--admin-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  margin-left: 8px;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+
+.admin-users__last-access {
+  color: var(--admin-text-secondary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-users__last-access.is-empty {
+  color: var(--admin-muted);
 }
 
 .admin-users__role-text {
@@ -513,31 +541,144 @@ tr:hover .admin-users__role-select svg,
 /* ---- Alta ---- */
 
 .admin-users__form {
-  border-block: 1px solid var(--admin-hairline);
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 14px;
   display: grid;
-  gap: 14px;
-  padding-block: 16px 18px;
+  gap: 22px;
+  padding: 24px 26px 20px;
+}
+
+.admin-users__form-head {
+  display: grid;
+  gap: 4px;
 }
 
 .admin-users__form-title {
   color: var(--admin-ink);
   font-family: var(--font-display, var(--font-family));
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
   margin: 0;
 }
 
-.admin-users__form-fields {
-  align-items: end;
+.admin-users__form-lead {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 62ch;
+}
+
+/* Datos a la izquierda, rol y su alcance a la derecha: la decisión que pesa
+   queda separada por una regla fina, no por otra caja. */
+.admin-users__form-body {
   display: grid;
-  gap: 12px var(--space-md);
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr) minmax(0, 0.8fr) auto;
+  gap: 28px 40px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   min-width: 0;
 }
 
-.admin-users__form-fields > .field {
+.admin-users__form-col {
+  align-content: start;
+  display: grid;
+  gap: 14px;
   min-width: 0;
+}
+
+.admin-users__form-col + .admin-users__form-col {
+  border-left: 1px solid var(--admin-hairline);
+  padding-left: 40px;
+}
+
+.admin-shell .admin-users__form .field.is-invalid input,
+.admin-shell .admin-users__form .field.is-invalid select {
+  border-color: var(--admin-status-danger);
+}
+
+.admin-users__scope {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-users__scope-text {
+  color: var(--admin-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.admin-users__scope-stats {
+  display: grid;
+  gap: 12px 24px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.admin-users__scope-stats > div {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-users__scope-stats dt {
+  color: var(--admin-muted);
+  font-size: 11.5px;
+}
+
+.admin-users__scope-stats dd {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin: 0;
+}
+
+.admin-users__scope-stats dd span {
+  color: var(--admin-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Tinta sobre un riel hairline: cuánto del panel abre este rol. */
+.admin-users__meter {
+  background: var(--admin-hairline);
+  border-radius: 999px;
+  display: block;
+  height: 3px;
+  overflow: hidden;
+}
+
+.admin-users__meter i {
+  background: var(--admin-ink);
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+  transition: width var(--motion-base, 240ms) var(--ease-out);
+}
+
+.admin-users__scope-warn {
+  align-items: center;
+  color: var(--admin-status-danger);
+  display: flex;
+  font-size: 12.5px;
+  gap: 6px;
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.admin-users__form-foot {
+  align-items: center;
+  border-top: 1px solid var(--admin-hairline);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  justify-content: space-between;
+  padding-top: 16px;
 }
 
 /* Campos del alta: etiqueta atenuada, caja de 40px y foco en tinta (el foco
@@ -573,33 +714,10 @@ tr:hover .admin-users__role-select svg,
   box-shadow: 0 0 0 3px var(--admin-focus-soft);
 }
 
-.admin-users__form--security .admin-users__form-fields > :nth-child(4) {
-  grid-column: 1 / 4;
-  grid-row: 2;
-}
-
-.admin-users__form--security .admin-users__form-actions {
-  grid-column: 4;
-  grid-row: 1;
-}
-
-.admin-users__form-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
 .admin-shell .admin-users__submit {
   gap: 7px;
   min-height: 40px;
   white-space: nowrap;
-}
-
-.admin-users__form-hint {
-  color: var(--admin-muted);
-  font-size: 12.5px;
-  line-height: 1.45;
-  margin: 0;
-  max-width: 62ch;
 }
 
 /* ---- Avisos y credencial ---- */
@@ -668,6 +786,101 @@ tr:hover .admin-users__role-select svg,
   font-size: 12.5px;
   line-height: 1.45;
   margin: 0;
+}
+
+.admin-users__send-email {
+  align-items: center;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  gap: 8px;
+  min-height: 36px;
+  width: fit-content;
+}
+
+.admin-users__send-email input {
+  accent-color: var(--admin-ink);
+  height: 16px;
+  margin: 0;
+  width: 16px;
+}
+
+.admin-users__credential-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.admin-users__credential-close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  transition: color var(--motion-fast) var(--ease-out);
+  width: 32px;
+}
+
+.admin-users__credential-close:hover {
+  color: var(--admin-ink);
+}
+
+.admin-users__credential-close:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+/* El enlace es el dato principal del aviso: campo seleccionable y, al lado,
+   una sola acción primaria (copiar) con WhatsApp como secundaria. */
+.admin-users__invite-link {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-users__invite-field {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-users__invite-label {
+  color: var(--admin-muted);
+  font-size: 11.5px;
+}
+
+.admin-users__invite-field input {
+  background: var(--admin-surface-muted);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 8px;
+  color: var(--admin-ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  min-height: 40px;
+  padding: 0 12px;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.admin-users__invite-field input:focus {
+  border-color: var(--admin-ink);
+  box-shadow: 0 0 0 3px var(--admin-focus-soft);
+  outline: none;
+}
+
+.admin-users__invite-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.admin-users__credential-note:empty {
+  display: none;
 }
 
 /* ---- Cards (panel angosto / celular) ---- */
@@ -762,15 +975,19 @@ tr:hover .admin-users__role-select svg,
     margin-left: auto;
   }
 
-  .admin-users__form-fields,
-  .admin-users__form--security .admin-users__form-fields {
+  .admin-users__form {
+    padding: 18px 16px 16px;
+  }
+
+  .admin-users__form-body {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .admin-users__form--security .admin-users__form-fields > :nth-child(4),
-  .admin-users__form--security .admin-users__form-actions {
-    grid-column: auto;
-    grid-row: auto;
+  .admin-users__form-col + .admin-users__form-col {
+    border-left: 0;
+    border-top: 1px solid var(--admin-hairline);
+    padding-left: 0;
+    padding-top: 20px;
   }
 
   .admin-shell .admin-users__submit {
@@ -783,8 +1000,14 @@ tr:hover .admin-users__role-select svg,
     min-height: 44px;
   }
 
-  .admin-users__link {
+  .admin-users__link,
+  .admin-users__send-email {
     min-height: 44px;
+  }
+
+  .admin-users__credential-close {
+    height: 44px;
+    width: 44px;
   }
 }
 
@@ -794,13 +1017,13 @@ tr:hover .admin-users__role-select svg,
     gap: 4px var(--space-md);
   }
 
-  .admin-users__link {
+  .admin-users__toolbar-actions .admin-users__link {
     justify-content: center;
     min-width: 44px;
     padding: 0;
   }
 
-  .admin-users__link span {
+  .admin-users__toolbar-actions .admin-users__link span {
     border: 0;
     clip: rect(0 0 0 0);
     height: 1px;

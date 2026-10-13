@@ -27,6 +27,9 @@ vi.mock('../src/pages/admin/TicketOrdersSection.jsx', () => ({
 vi.mock('../src/components/admin/PaymentExpiryPanel.jsx', () => ({
   default: () => <div data-testid="expiry-panel" />,
 }))
+vi.mock('../src/components/admin/PaymentProofsPanel.jsx', () => ({
+  default: () => <div data-testid="proofs-panel" />,
+}))
 vi.mock('../src/components/admin/PaymentOrderSearch.jsx', () => ({
   default: ({ onSelectResult }) => (
     <button

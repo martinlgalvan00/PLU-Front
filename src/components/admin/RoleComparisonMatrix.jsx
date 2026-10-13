@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { Check, LockKeyhole, Trash2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Check, ChevronDown, LockKeyhole, Trash2 } from 'lucide-react'
 import {
   getModuleAccess,
   getSensitiveStatus,
@@ -68,6 +68,34 @@ function GrantCell({ capability, granted, t }) {
   )
 }
 
+const SENSITIVE_GROUP = 'sensitive'
+
+// Cabecera de grupo plegable: la matriz tiene unas treinta filas y quien sólo
+// quiere revisar un área no debería recorrerlas todas.
+function GroupHeader({ children, collapsed, columnCount, count, onToggle, t, hint }) {
+  return (
+    <tr className="roles-compare__group">
+      <th scope="rowgroup" colSpan={columnCount}>
+        <button
+          type="button"
+          className="roles-compare__group-toggle"
+          aria-expanded={!collapsed}
+          onClick={onToggle}
+        >
+          <ChevronDown size={14} aria-hidden className="roles-compare__chevron" />
+          <span>{children}</span>
+          {hint ? <small>{hint}</small> : null}
+          {collapsed ? (
+            <em className="roles-compare__group-count">
+              {t('admin.roles.compare.rowsHidden', { count })}
+            </em>
+          ) : null}
+        </button>
+      </th>
+    </tr>
+  )
+}
+
 /**
  * Quién puede qué, en una sola pantalla: cada columna es un rol y cada fila
  * una capacidad. Arriba van las acciones sensibles, que son lo primero que
@@ -83,6 +111,24 @@ export default function RoleComparisonMatrix({ catalog, onOpenRole, roles, t }) 
   const areas = useMemo(() => groupModulesByArea(catalog), [catalog])
   const sensitiveRows = useMemo(() => getSensitiveStatus(catalog, []), [catalog])
   const columnCount = columns.length + 1
+  const [collapsed, setCollapsed] = useState(() => new Set())
+  const groupIds = useMemo(
+    () => [
+      ...(sensitiveRows.length > 0 ? [SENSITIVE_GROUP] : []),
+      ...areas.map((area) => area.id),
+    ],
+    [areas, sensitiveRows],
+  )
+  const allCollapsed = groupIds.length > 0 && groupIds.every((id) => collapsed.has(id))
+
+  function toggleGroup(id) {
+    setCollapsed((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   if (roles.length === 0) {
     return <p className="roles-empty">{t('admin.roles.compare.emptyRoles')}</p>
@@ -109,6 +155,15 @@ export default function RoleComparisonMatrix({ catalog, onOpenRole, roles, t }) 
           <li className="roles-compare__legend-danger">
             <Trash2 size={12} aria-hidden />
             {t('admin.roles.compare.legendDestructive')}
+          </li>
+          <li>
+            <button
+              type="button"
+              className="roles-compare__fold-all"
+              onClick={() => setCollapsed(allCollapsed ? new Set() : new Set(groupIds))}
+            >
+              {allCollapsed ? t('admin.roles.compare.expandAll') : t('admin.roles.compare.collapseAll')}
+            </button>
           </li>
         </ul>
       </header>
@@ -155,13 +210,17 @@ export default function RoleComparisonMatrix({ catalog, onOpenRole, roles, t }) 
 
           {sensitiveRows.length > 0 ? (
             <tbody>
-              <tr className="roles-compare__group">
-                <th scope="rowgroup" colSpan={columnCount}>
-                  <span>{t('admin.roles.compare.sensitiveTitle')}</span>
-                  <small>{t('admin.roles.compare.sensitiveHint')}</small>
-                </th>
-              </tr>
-              {sensitiveRows.map((capability) => (
+              <GroupHeader
+                collapsed={collapsed.has(SENSITIVE_GROUP)}
+                columnCount={columnCount}
+                count={sensitiveRows.length}
+                hint={t('admin.roles.compare.sensitiveHint')}
+                onToggle={() => toggleGroup(SENSITIVE_GROUP)}
+                t={t}
+              >
+                {t('admin.roles.compare.sensitiveTitle')}
+              </GroupHeader>
+              {(collapsed.has(SENSITIVE_GROUP) ? [] : sensitiveRows).map((capability) => (
                 <tr key={capability.id}>
                   <th scope="row" className="roles-compare__label">
                     {t(`admin.roles.sensitive.${capability.id}`)}
@@ -181,12 +240,16 @@ export default function RoleComparisonMatrix({ catalog, onOpenRole, roles, t }) 
 
           {areas.map((area) => (
             <tbody key={area.id}>
-              <tr className="roles-compare__group">
-                <th scope="rowgroup" colSpan={columnCount}>
-                  <span>{areaName(t, area.id)}</span>
-                </th>
-              </tr>
-              {area.modules.map((entry) => (
+              <GroupHeader
+                collapsed={collapsed.has(area.id)}
+                columnCount={columnCount}
+                count={area.modules.length}
+                onToggle={() => toggleGroup(area.id)}
+                t={t}
+              >
+                {areaName(t, area.id)}
+              </GroupHeader>
+              {(collapsed.has(area.id) ? [] : area.modules).map((entry) => (
                 <tr key={entry.module}>
                   <th scope="row" className="roles-compare__label">
                     <ModuleGlyph module={entry.module} size={14} />

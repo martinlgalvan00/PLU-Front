@@ -42,3 +42,17 @@ export const ErrorDelBackend = {
     },
   },
 }
+
+/** Duplicar un evento: sede, ciudad, cupo y acceso vienen cargados; las fechas no. */
+export const Duplicando = {
+  args: {
+    duplicateOf: 'Copa Norte',
+    initialDraft: {
+      title: 'Copa Norte',
+      venue: 'Complejo Belgrano',
+      location: 'Salta',
+      slots: 40,
+      requiresMembership: false,
+    },
+  },
+}

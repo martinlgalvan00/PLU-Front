@@ -14,8 +14,20 @@ const listTicketOrders = vi.fn()
 
 vi.mock('../src/services/ticketApi.js', async (importOriginal) => {
   const actual = await importOriginal()
-  return { ...actual, listTicketOrders: (...args) => listTicketOrders(...args) }
+  return {
+    ...actual,
+    listTicketOrders: (...args) => listTicketOrders(...args),
+    // El diálogo del comprobante pide su URL: acá no hay red.
+    getTicketPaymentProofUrl: vi.fn(async () => '/api/tickets/orders/ord-1/proof'),
+  }
 })
+
+// La baja del comprobante pega al servidor: se fija qué se pide y qué recarga la sección.
+const trashOrderProof = vi.fn()
+vi.mock('../src/services/paymentProofsAdminService.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  trashOrderProof: (...args) => trashOrderProof(...args),
+}))
 
 const TicketOrdersSection = (await import('../src/pages/admin/TicketOrdersSection.jsx')).default
 
@@ -39,6 +51,7 @@ beforeAll(() => {
 afterEach(() => {
   cleanup()
   listTicketOrders.mockReset()
+  trashOrderProof.mockReset()
 })
 
 function order(overrides = {}) {
@@ -216,5 +229,61 @@ describe('TicketOrdersSection · filtros', () => {
     const [params] = listTicketOrders.mock.calls.at(-1)
     expect(params.statuses).toBeUndefined()
     expect(params.channel).toBeUndefined()
+  })
+})
+
+describe('TicketOrdersSection · baja del comprobante', () => {
+  const withProof = (overrides = {}) =>
+    order({
+      paymentProofPath: 'ord-1/a.png',
+      paymentProofUploadedAt: '2026-03-01T13:00:00.000Z',
+      ...overrides,
+    })
+  const openProof = async () =>
+    fireEvent.click(await waitFor(() => {
+      const button = document.querySelector('button.admin-orders-block__proof')
+      if (!button) throw new Error('todavía no hay comprobante en la tabla')
+      return button
+    }))
+  const trashButton = () => screen.queryByRole('button', { name: 'Mover a la papelera' })
+
+  it('una orden aprobada con comprobante lo manda a la papelera y recarga la lista', async () => {
+    trashOrderProof.mockResolvedValue({ trashed: true })
+    listTicketOrders.mockResolvedValue({
+      orders: [withProof({ status: 'aprobado' })],
+      counts: countsFixture({ pending: 0, aprobado: 1 }),
+    })
+    renderSection()
+    await openProof()
+    fireEvent.click(await screen.findByRole('button', { name: 'Mover a la papelera' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sí, mover' }))
+
+    await waitFor(() =>
+      expect(trashOrderProof).toHaveBeenCalledWith({ source: 'ticket', orderId: 'ord-1' }),
+    )
+    await waitFor(() => expect(listTicketOrders.mock.calls.length).toBeGreaterThanOrEqual(2))
+    await waitFor(() => expect(trashButton()).toBeNull())
+  })
+
+  it('mientras la orden espera decisión no se ofrece', async () => {
+    listTicketOrders.mockResolvedValue({
+      orders: [withProof({ status: 'pendiente' })],
+      counts: countsFixture(),
+    })
+    renderSection()
+    await openProof()
+    await screen.findByRole('dialog')
+    expect(trashButton()).toBeNull()
+  })
+
+  it('sin permiso de aprobar pagos no se ofrece', async () => {
+    listTicketOrders.mockResolvedValue({
+      orders: [withProof({ status: 'aprobado' })],
+      counts: countsFixture({ pending: 0, aprobado: 1 }),
+    })
+    renderSection({ canEdit: false })
+    await openProof()
+    await screen.findByRole('dialog')
+    expect(trashButton()).toBeNull()
   })
 })

@@ -228,8 +228,10 @@ Mercado Pago (se devuelve desde Mercado Pago).
 **Permisos.** `admin.shop.read` ve pedidos y configuración; `admin.shop.write` acredita, entrega,
 cancela y configura el cobro. Cada acción queda en `domain_audit_logs` (`shop.*`).
 
-**Comprobantes.** Los ve el staff con una URL firmada de 2 minutos; no están cubiertos por el job de
-retención de comprobantes de entradas y atletas (otro bucket).
+**Comprobantes.** Los ve el staff con una URL firmada de 2 minutos. No entran a la política de
+retención ni al ZIP de Cobros (otro bucket, otro vocabulario de estados), pero sí al registro de
+archivos y a la papelera: un comprobante reemplazado o huérfano pasa por ahí y se purga tras el período
+de gracia (ver "Retencion de comprobantes").
 
 ## Wise (pagos del exterior)
 
@@ -319,11 +321,67 @@ que para Mercado Pago.
   sobra frente a una ventana de días (recordatorio ~2 días antes, aviso final
   a los 5), así que ya no hace falta un workflow externo que lo complemente
   cada hora.
-- `PAYMENT_PROOF_RETENTION_JOB_ENABLED` (default on): borra de Storage los
-  comprobantes de ordenes ya `aprobado`/`rechazado` pasadas
-  `PROOF_RETENTION_HOURS` (default 24). No toca pendientes. Cron
-  `/api/internal/jobs/payment-proof-retention`. La orden conserva
-  `payment_proof_uploaded_at` + `payment_proof_purged_at` como registro.
+- Retencion de comprobantes: la politica la define el staff en **Cobros >
+  Comprobantes** (`payment_proof_settings`), no una variable de entorno. Por
+  defecto se **conserva todo**. Modos: `keep` (conservar), `after_export`
+  (a la papelera N dias despues de que el staff lo descargo a su equipo) y
+  `after_days` (a la papelera N dias despues de aprobar/rechazar, se haya
+  descargado o no). Nunca toca ordenes pendientes.
+  **Borrado logico en dos etapas.** Ningun modo borra de Storage directamente:
+  el comprobante pasa primero a la **papelera** (`payment_proof_files.deleted_at`,
+  restaurable desde Cobros) y recien pasado el **periodo de la papelera**
+  (`payment_proof_settings.trash_grace_days`, 30 dias por defecto, 1-3650) el job
+  borra el objeto del bucket y marca `purged_at`. Esa segunda etapa no tiene
+  vuelta atras. Llegan a la papelera: lo que vence la politica, la baja manual
+  (`POST /api/payment-proofs/orders/:source/:orderId/trash`, solo ordenes ya
+  resueltas), el comprobante que reemplaza otro subido despues, los de un atleta
+  eliminado y los archivos huerfanos (objetos del bucket que ninguna orden
+  conoce, con mas de 24 h). `payment_proof_files` es el registro de cada archivo
+  subido (atletas, entradas **y tienda**); un trigger lo mantiene solo.
+  La tienda (`shop-payment-proofs`) entra a la papelera y a su purga, pero no a
+  la politica de retencion ni al ZIP.
+  Una corrida del job (cron diario 03:30, `/api/internal/jobs/payment-proof-retention`)
+  hace tres etapas independientes: vencidos -> papelera (`proof_retention_trash`),
+  papelera -> purga fisica y huerfanos -> papelera. La purga y el barrido corren
+  **tambien con `keep`**: la papelera se alimenta de mas cosas que la politica.
+  Si falla una etapa las otras siguen, y cada corrida con movimiento deja un
+  asiento `payment_proofs.retention_run` en `operational_event_logs`.
+  `PAYMENT_PROOF_RETENTION_JOB_ENABLED=false` es un interruptor de emergencia:
+  apaga el job entero aunque el panel pida mover o purgar.
+  Un archivo cuyo periodo ya vencio no se puede restaurar (`proof_restore`
+  responde 409): es candidato a la purga y restaurarlo abriria una carrera con el
+  job. Se puede seguir viendo y descargando hasta que se elimina.
+  Papelera en el panel: `GET /api/payment-proofs/trash`, ver el archivo
+  (`/trash/:id/file`), restaurar (`POST /trash/:id/restore`), eliminar ahora
+  (`DELETE /trash/:id`) y vaciar (`POST /trash/empty` con `{"confirm": true}`).
+  Ver y listar piden `admin.payments.read`; restaurar, eliminar, vaciar y la baja
+  manual piden `admin.payments.approve`, y cada una queda auditada
+  (`payment_proofs.restored|purged|trash_emptied|trashed`).
+  La orden conserva `payment_proof_uploaded_at`, `payment_proof_exported_at`,
+  `payment_proof_trashed_at` y `payment_proof_purged_at` como registro; mientras
+  el comprobante esta en la papelera `payment_proof_path` es `null`.
+  La retencion y el respaldo cubren las dos tablas con comprobantes: atletas
+  (`athlete_payment_orders`) y entradas (`ticket_orders`). El ZIP de descarga
+  (hasta 100 archivos o 120 MB por tanda) trae `comprobantes/atletas/`,
+  `comprobantes/entradas/` y un `indice.csv`, y marca como descargado solo lo
+  que entro. El indice CSV (`/api/payment-proofs/index.csv`) lee todas las
+  transferencias, sin tope de filas.
+  Aviso previo: `GET /api/payment-proofs/summary` calcula en una sola consulta a
+  la base (`payment_proof_overview`) el resumen, un `forecast` con lo que va a la
+  papelera en los proximos 7 dias y cuanto de eso no tiene copia
+  (`notDownloaded`), y el estado de la `trash`; `GET /api/payment-proofs/forecast?mode=&days=`
+  calcula lo mismo para una politica todavia sin guardar. Al guardar una politica
+  que mueve archivos, la auditoria (`payment_proofs.retention_updated`) registra
+  en `atStake` cuantos comprobantes quedaban en juego.
+  Un comprobante nuevo nace sin marca de descargado, accedido ni purgado
+  (trigger `reset_proof_state_on_new_file`): el reemplazo no hereda el "ya lo
+  descargue" del archivo anterior.
+  Migraciones (en orden): `20261213100000_payment_proof_archive`,
+  `20261214100000_payment_proof_integrity`, `20261214110000_payment_proof_files`.
+  Sin ellas `/summary` responde 500 (funcion o columna ausente), a proposito:
+  indica una migracion sin aplicar.
+  Antes de este cambio la purga corria sola a las 24 h: las transferencias
+  aprobadas hasta entonces ya no tienen archivo y no se pueden recuperar.
 
 En Vercel, un scheduler invoca por `GET` los endpoints
 `/api/internal/jobs/payment-recovery`,

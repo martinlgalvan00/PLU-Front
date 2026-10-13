@@ -132,15 +132,42 @@ function buildDetail({ override, orderStatus = 'cancelado', cancellationCode }) 
   }
 }
 
-function Frame({ detail }) {
+function Frame({ detail, ...props }) {
   return (
     <AppConfigProvider>
       <div className="admin-shell" style={{ background: 'var(--admin-canvas)', padding: '24px' }}>
-        <AthleteDetailSection detail={detail} canEdit={false} onBack={() => {}} />
+        <AthleteDetailSection detail={detail} canEdit={false} onBack={() => {}} {...props} />
       </div>
     </AppConfigProvider>
   )
 }
+
+const ACCESS_ROLES = [
+  {
+    key: 'admin_maximal',
+    name: 'Super Admin',
+    canAssign: true,
+    active: true,
+    hierarchyLevel: 1,
+    description: 'Control total del panel, usuarios y roles.',
+  },
+  {
+    key: 'admin_plu_arg',
+    name: 'Administrador',
+    canAssign: true,
+    active: true,
+    hierarchyLevel: 2,
+    description: 'Gestiona operación, usuarios y tarifas.',
+  },
+  {
+    key: 'plu_arg',
+    name: 'PLU',
+    canAssign: true,
+    active: true,
+    hierarchyLevel: 3,
+    description: 'Opera atletas, afiliaciones e inscripciones.',
+  },
+]
 
 export default {
   title: 'Admin/AthleteDetailSection',
@@ -181,6 +208,47 @@ export const CobroAcreditado = {
         orderStatus: 'aprobado',
         cancellationCode: null,
       })}
+    />
+  ),
+}
+
+/** Atleta sin cuenta del panel: se le elige un rol y se genera su enlace. */
+export const SinAccesoAlPanel = {
+  render: () => (
+    <Frame
+      accessRoles={ACCESS_ROLES}
+      canGrantAccess
+      detail={buildDetail({ override: null, orderStatus: 'aprobado', cancellationCode: null })}
+      onCreateUser={async () => ({
+        user: { name: athlete.fullName, email: athlete.email },
+        emailed: false,
+        invitationUrl: 'https://pluarg.com.ar/staff/invitacion?token=ejemplo',
+        invitationExpiresAt: '2026-10-20T15:00:00.000Z',
+      })}
+      users={[]}
+    />
+  ),
+}
+
+/** Ya tiene cuenta del panel (invitada, todavía sin activar). */
+export const ConAccesoPendiente = {
+  render: () => (
+    <Frame
+      accessRoles={ACCESS_ROLES}
+      canGrantAccess
+      detail={buildDetail({ override: null, orderStatus: 'aprobado', cancellationCode: null })}
+      onCreateUser={async () => ({})}
+      onOpenUsers={() => {}}
+      users={[
+        {
+          id: 'usr-9',
+          email: athlete.email,
+          role: 'admin_plu_arg',
+          roleKey: 'admin_plu_arg',
+          roleLabel: 'Administrador',
+          status: 'invited',
+        },
+      ]}
     />
   ),
 }

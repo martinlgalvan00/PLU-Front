@@ -383,9 +383,16 @@ export default function AdminPage({
       if (selectedAthleteId) {
         return (
           <AthleteDetailSection
+            accessRoles={accessRoles}
             detail={getAthleteDetail(selectedAthleteId)}
             onBack={() => setSelectedAthleteId(null)}
             canEdit={hasPermission(authorization, 'admin.athletes.write')}
+            canGrantAccess={Boolean(canManageUsers)}
+            onCreateUser={onCreateUser}
+            onOpenUsers={
+              allowedSections.includes('users') ? () => handleSectionChange('users') : undefined
+            }
+            users={users}
             canRotateCredential={hasPermission(authorization, 'admin.memberships.write')}
             canDelete={canDeleteAthletes && Boolean(onDeleteAthlete)}
             // Acreditar no es editar la ficha: la validación tiene su propio
@@ -563,6 +570,7 @@ export default function AdminPage({
         <UsersSection
           accessRoles={accessRoles}
           adminEvents={adminEvents}
+          athletes={athletes}
           canDeleteUsers={canDeleteUsers}
           canManageUsers={canManageUsers}
           onCreateSecurityUser={onCreateSecurityUser}
@@ -571,9 +579,13 @@ export default function AdminPage({
           onNavigateRoles={
             allowedSections.includes('roles') ? () => setSection('roles') : undefined
           }
+          onOpenAthlete={
+            allowedSections.includes('athletes') ? handleSelectAthlete : undefined
+          }
           onResetPassword={onResetStaffPassword}
           onUpdateRole={onUpdateUserRole}
           onUpdateStatus={onUpdateUserStatus}
+          permissionCatalog={permissionCatalog}
           users={users}
         />
       )

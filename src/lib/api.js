@@ -46,8 +46,14 @@ const DEFAULT_TIMEOUT_MS = 30000
 export async function apiRequest(path, options = {}) {
   const url = `${env.apiUrl}${path}`
   const method = options.method ?? 'GET'
-  const { headers, allowNotModified = false, timeoutMs = DEFAULT_TIMEOUT_MS, ...requestOptions } =
-    options
+  const {
+    headers,
+    allowNotModified = false,
+    // 'blob' devuelve `{ blob, headers }` en lugar del JSON: para descargar archivos.
+    responseType = 'json',
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    ...requestOptions
+  } = options
   const mutationHeaders = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase())
     ? { 'X-PLU-Request': 'browser' }
     : {}
@@ -96,6 +102,10 @@ export async function apiRequest(path, options = {}) {
       etag: response.headers?.get?.('ETag') ?? headers?.['If-None-Match'] ?? null,
       data: null,
     }
+  }
+
+  if (responseType === 'blob' && response.ok) {
+    return { blob: await response.blob(), headers: response.headers }
   }
 
   const body = await parseResponse(response)
@@ -182,8 +192,19 @@ export function loginRequest(credentials) {
   return apiPost('/api/auth/login', credentials)
 }
 
-export function acceptStaffInvitationRequest({ token, password }) {
-  return apiPost('/api/auth/accept-staff-invitation', { token, password })
+// Quién es el invitado y con qué rol queda, antes de elegir la clave.
+export function previewStaffInvitationRequest(token) {
+  return apiGet(`/api/auth/staff-invitation?token=${encodeURIComponent(token)}`)
+}
+
+// `name` y `email` sólo viajan en una invitación abierta (la persona los completa).
+export function acceptStaffInvitationRequest({ token, password, name, email }) {
+  return apiPost('/api/auth/accept-staff-invitation', {
+    token,
+    password,
+    ...(name ? { name } : {}),
+    ...(email ? { email } : {}),
+  })
 }
 
 export function createSecurityUserRequest({ name, email, eventId, sendEmail = false }) {
@@ -250,11 +271,24 @@ export function listStaffUsersRequest() {
 }
 
 export function createStaffUserRequest({ name, email, role, sendEmail = true }) {
-  return apiPost('/api/users', { name, email, role, sendEmail })
+  const cleanName = name?.trim()
+  const cleanEmail = email?.trim()
+  // Sin email es una invitación abierta: la persona completa nombre y email al
+  // abrir el enlace. El panel siempre pide el enlace para poder compartirlo.
+  return apiPost('/api/users', {
+    ...(cleanName ? { name: cleanName } : {}),
+    ...(cleanEmail ? { email: cleanEmail } : {}),
+    role,
+    sendEmail: Boolean(sendEmail && cleanEmail),
+    returnLink: true,
+  })
 }
 
 export function resetStaffPasswordRequest(userId, sendEmail = true) {
-  return apiPost(`/api/users/${encodeURIComponent(userId)}/reset-password`, { sendEmail })
+  return apiPost(`/api/users/${encodeURIComponent(userId)}/reset-password`, {
+    sendEmail,
+    returnLink: true,
+  })
 }
 
 export function updateStaffUserRoleRequest(userId, roleKey) {
