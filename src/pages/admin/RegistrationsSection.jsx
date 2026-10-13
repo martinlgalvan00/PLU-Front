@@ -19,13 +19,14 @@ import AdminBulkRegistrationStatusDialog from '../../components/admin/AdminBulkR
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminPaymentReconciliationAlert from '../../components/admin/AdminPaymentReconciliationAlert.jsx'
 import AdminScheduleAssigner from '../../components/admin/AdminScheduleAssigner.jsx'
-import AdminSavedViews from '../../components/admin/AdminSavedViews.jsx'
 import PaymentRecoveryAction from '../../components/admin/PaymentRecoveryAction.jsx'
 import PaymentValidationAction from '../../components/admin/PaymentValidationAction.jsx'
+import PaymentValidationDialog from '../../components/admin/PaymentValidationDialog.jsx'
 import {
   AdminActionOverflow,
   AdminIdentityCell,
   AdminPaymentCell,
+  AdminProofCell,
   AdminTableActions,
   AdminTableActionsEmpty,
 } from '../../components/admin/AdminTableCells.jsx'
@@ -40,7 +41,11 @@ import { getRegistrationsTourSteps } from '../../lib/adminTourSteps.js'
 import { useEventSchedule } from '../../hooks/useEventSchedule.js'
 import { ATHLETE_FILTER_STATUSES, REGISTRATION_FILTER_STATUSES } from '../../lib/constants.js'
 import { EMPTY_DATE_RANGE } from '../../lib/adminDateRangeFilter.js'
-import { formatScheduleSummary } from '../../lib/eventSchedule.js'
+import {
+  formatScheduleDate,
+  formatScheduleSummary,
+  hasScheduledDay,
+} from '../../lib/eventSchedule.js'
 import { money } from '../../lib/format.js'
 import {
   createRegistrationPaymentIndex,
@@ -48,8 +53,10 @@ import {
   resolveRegistrationPayment,
 } from '../../services/registrationAdminService.js'
 import {
+  buildPaymentValidationItem,
   canForceSettleOrder,
   canApproveManualOrder,
+  describePaymentProof,
   isManualOrder,
   isOpenOrder,
 } from '../../services/paymentValidationService.js'
@@ -59,7 +66,6 @@ import {
 } from '../../services/platformSettingsAdminService.js'
 import { isPlaceholderReason, resolveStateBacking } from '../../services/stateCoherenceService.js'
 import { notifyError as toastError, notifySuccess as toastSuccess } from '../../lib/adminToast.js'
-import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
 import {
   buildAdminFacetOptions,
 } from '../../lib/adminPeopleFilters.js'
@@ -96,9 +102,11 @@ function canValidateRegistrationPayment(row, canValidatePayments) {
  * El caso "el pago figura cancelado pero la plata entró": revalidar aplica a
  * cualquier orden de Mercado Pago sin importar el permiso (no acredita nada
  * por sí sola); acreditar a mano exige el mismo permiso que en Finanzas.
+ * Con el pago ya aprobado no hay nada que recuperar: ofrecerlo era ruido en
+ * cada fila sana y la acción que el operador más necesita quedaba debajo.
  */
 function canRecoverRegistrationPayment(row, canForceSettle) {
-  if (!row.payment) return false
+  if (!row.payment || row.payment.status === 'aprobado') return false
   return row.payment.method === 'mercado_pago' || (canForceSettle && canForceSettleOrder(row.payment))
 }
 
@@ -182,7 +190,7 @@ export default function RegistrationsSection({
   const [bulkStatusError, setBulkStatusError] = useState('')
   const [savingBulkStatus, setSavingBulkStatus] = useState(false)
   const [validationEnabled, setValidationEnabled] = useState(true)
-  const { views: savedViews, saveView, removeView } = useAdminSavedFilterViews('registrations')
+  const [proofTarget, setProofTarget] = useState(null)
 
   useEffect(() => {
     startTour('admin-registrations', getRegistrationsTourSteps(t))
@@ -319,6 +327,8 @@ export default function RegistrationsSection({
           paymentMethod: payment?.method,
           amount: payment ? money(payment.amount) : '—',
           paymentId: payment?.id,
+          // Qué mostrar en la columna de comprobante, sin abrir nada.
+          proof: describePaymentProof(payment),
           // La orden completa: el diálogo de validación necesita comprobante,
           // canal y notas, no sólo el id y el estado.
           payment: payment ?? null,
@@ -668,95 +678,8 @@ export default function RegistrationsSection({
     advanced: true,
   }
 
-  const savedViewSnapshot = useMemo(
-    () => ({
-      event: filters.event ?? 'all',
-      status: filters.status ?? 'all',
-      affiliationStatus: filters.affiliationStatus ?? 'all',
-      gym: filters.gym ?? 'all',
-      division: filters.division ?? 'all',
-      query: filters.query ?? '',
-      createdAtRange: {
-        from: createdAtRange.from ?? '',
-        to: createdAtRange.to ?? '',
-      },
-    }),
-    [
-      filters.event,
-      filters.status,
-      filters.affiliationStatus,
-      filters.gym,
-      filters.division,
-      filters.query,
-      createdAtRange,
-    ],
-  )
-  const activeSavedView = useMemo(
-    () => findMatchingView(savedViews, savedViewSnapshot),
-    [savedViews, savedViewSnapshot],
-  )
-  const hasFiltersToSave =
-    savedViewSnapshot.event !== 'all' ||
-    savedViewSnapshot.status !== 'all' ||
-    savedViewSnapshot.affiliationStatus !== 'all' ||
-    savedViewSnapshot.gym !== 'all' ||
-    savedViewSnapshot.division !== 'all' ||
-    savedViewSnapshot.query.trim() !== '' ||
-    Boolean(savedViewSnapshot.createdAtRange.from) ||
-    Boolean(savedViewSnapshot.createdAtRange.to)
-
-  function formatDateForSummary(isoDate) {
-    return new Date(`${isoDate}T00:00:00`).toLocaleDateString('es-AR')
-  }
-
-  // Resumen legible de filtros activos para el popover
-  const filterSummary = useMemo(() => {
-    const items = []
-    if (savedViewSnapshot.query.trim()) items.push({ label: 'Búsqueda', value: savedViewSnapshot.query.trim() })
-    if (savedViewSnapshot.event !== 'all') items.push({ label: t('admin.filters.event'), value: savedViewSnapshot.event })
-    if (savedViewSnapshot.status !== 'all') {
-      const opt = statusOptions.find(([v]) => v === savedViewSnapshot.status)
-      if (opt) items.push({ label: t('admin.filters.status'), value: opt[1] })
-    }
-    if (savedViewSnapshot.affiliationStatus !== 'all') {
-      const opt = affiliationOptions.find(([v]) => v === savedViewSnapshot.affiliationStatus)
-      if (opt) items.push({ label: t('admin.filters.affiliation'), value: opt[1] })
-    }
-    if (savedViewSnapshot.gym !== 'all') {
-      const opt = gymOptions.find(([v]) => v === savedViewSnapshot.gym)
-      if (opt) items.push({ label: t('admin.filters.gym'), value: opt[1] })
-    }
-    if (savedViewSnapshot.division !== 'all') {
-      const opt = divisionOptions.find(([v]) => v === savedViewSnapshot.division)
-      if (opt) items.push({ label: t('admin.filters.division'), value: opt[1] })
-    }
-    const range = savedViewSnapshot.createdAtRange
-    if (range.from || range.to) {
-      const value =
-        range.from && range.to
-          ? `${formatDateForSummary(range.from)} – ${formatDateForSummary(range.to)}`
-          : range.from
-            ? t('admin.filters.registeredAtFrom', { date: formatDateForSummary(range.from) })
-            : t('admin.filters.registeredAtTo', { date: formatDateForSummary(range.to) })
-      items.push({ label: t('admin.filters.registrationDate'), value })
-    }
-    return items
-  }, [savedViewSnapshot, statusOptions, affiliationOptions, gymOptions, divisionOptions, t])
-
-  function applySavedView(view) {
-    const snapshot = view.snapshot ?? {}
-    onSetFilters((current) => ({
-      ...current,
-      ...snapshot,
-      createdAtRange: {
-        from: snapshot.createdAtRange?.from ?? '',
-        to: snapshot.createdAtRange?.to ?? '',
-      },
-    }))
-  }
-
   // En la card compacta las secundarias van al menú “más”: el footer no
-  // puede ser una franja de 44px. Validar/recuperar quedan a la vista.
+  // puede ser una franja de 44px. Validar queda a la vista.
   function renderRowActions(row, { compact = false } = {}) {
     const canValidate = canValidateRegistrationPayment(row, canValidatePayments)
     const canRecover = canRecoverRegistrationPayment(row, canForceSettle)
@@ -764,35 +687,33 @@ export default function RegistrationsSection({
       canValidate || canRecover || canManageVisibility || canSetStatus || canDelete
     if (!hasActions) return compact ? null : <AdminTableActionsEmpty />
 
-    const paymentActions = [
-      canValidate ? (
-        <PaymentValidationAction
-          key="validate"
-          athlete={{ fullName: row.athlete, documentId: row.document }}
-          detail={[row.event, row.category].filter(Boolean).join(' · ')}
-          disabled={!validationEnabled || !canApproveManualOrder(row.payment)}
-          label={
-            validationEnabled
-              ? t('admin.actions.validate')
-              : t('admin.athletePayments.validationPaused')
-          }
-          onApprove={handleApprovePayment}
-          onReject={onRejectPayment}
-          order={row.payment}
-        />
-      ) : null,
-      canRecover ? (
-        <PaymentRecoveryAction
-          key="recover"
-          athlete={{ fullName: row.athlete, documentId: row.document }}
-          canForceSettle={canForceSettle}
-          detail={[row.event, row.category].filter(Boolean).join(' · ')}
-          onForceSettlePayment={onForceSettlePayment}
-          onRefreshAthleteData={onRefreshAthleteData}
-          order={row.payment}
-        />
-      ) : null,
-    ].filter(Boolean)
+    const validateAction = canValidate ? (
+      <PaymentValidationAction
+        key="validate"
+        athlete={{ fullName: row.athlete, documentId: row.document }}
+        detail={[row.event, row.category].filter(Boolean).join(' · ')}
+        disabled={!validationEnabled || !canApproveManualOrder(row.payment)}
+        label={
+          validationEnabled
+            ? t('admin.actions.validate')
+            : t('admin.athletePayments.validationPaused')
+        }
+        onApprove={handleApprovePayment}
+        onReject={onRejectPayment}
+        order={row.payment}
+      />
+    ) : null
+    const recoverAction = canRecover ? (
+      <PaymentRecoveryAction
+        key="recover"
+        athlete={{ fullName: row.athlete, documentId: row.document }}
+        canForceSettle={canForceSettle}
+        detail={[row.event, row.category].filter(Boolean).join(' · ')}
+        onForceSettlePayment={onForceSettlePayment}
+        onRefreshAthleteData={onRefreshAthleteData}
+        order={row.payment}
+      />
+    ) : null
 
     const secondary = [
       <AdminIconButton
@@ -856,11 +777,15 @@ export default function RegistrationsSection({
       ) : null,
     ].filter(Boolean)
 
-    // Una acción a la vista (validar/recuperar, o la primera secundaria) y el
-    // resto en el menú "más", también en escritorio: una fila con cuatro
-    // íconos sueltos se leía como una barra de herramientas por cada atleta.
-    const primaryActions = paymentActions.length > 0 ? paymentActions : secondary.slice(0, 1)
-    const overflowActions = paymentActions.length > 0 ? secondary : secondary.slice(1)
+    // Una acción a la vista (validar, o la primera secundaria) y el resto en el
+    // menú "más", también en escritorio: una fila con cuatro íconos sueltos se
+    // leía como una barra de herramientas por cada atleta. Recuperar un pago va
+    // siempre al menú — son hasta tres botones y solo aplican a pagos caídos.
+    const primaryActions = validateAction ? [validateAction] : secondary.slice(0, 1)
+    const overflowActions = [
+      ...(validateAction ? secondary : secondary.slice(1)),
+      recoverAction,
+    ].filter(Boolean)
 
     return (
       <AdminTableActions onClick={(event) => event.stopPropagation()}>
@@ -944,25 +869,6 @@ export default function RegistrationsSection({
               ].filter(Boolean)
         }
         onQueryChange={handleQueryChange}
-        beforeFilters={
-          isGloballyEmpty ? null : (
-          <AdminSavedViews
-              views={savedViews}
-              activeViewId={activeSavedView?.id ?? null}
-              allLabel={t('admin.savedViews.all')}
-              caption={t('admin.savedViews.caption')}
-              addLabel={t('admin.savedViews.add')}
-              namePlaceholder={t('admin.savedViews.namePlaceholder')}
-              removeAriaLabel={(label) => t('admin.savedViews.remove', { label })}
-              canSave={hasFiltersToSave && !activeSavedView}
-              filterSummary={filterSummary}
-              onApply={applySavedView}
-              onClear={handleClearFilters}
-              onSave={(label) => saveView(label, savedViewSnapshot)}
-              onRemove={removeView}
-            />
-          )
-        }
       >
         {isGloballyEmpty ? (
           <div className="admin-empty admin-empty--registrations">
@@ -1095,6 +1001,12 @@ export default function RegistrationsSection({
                 {
                   key: 'athlete',
                   label: t('admin.columns.athlete'),
+                  // Todas las columnas llevan ancho: la planilla es de layout
+                  // fijo, el sobrante se reparte entre ellas en proporción y la
+                  // suma (~910px) es lo mínimo antes de que se corte la acción.
+                  // Sin ancho, esta absorbía todo (700px para un nombre y un
+                  // gimnasio) y apretaba el resto.
+                  width: 168,
                   mobile: 'primary',
                   sortable: true,
                   render: (row) => (
@@ -1111,7 +1023,7 @@ export default function RegistrationsSection({
                   // el evento solo; categoría y peso van en sus propias filas.
                   key: 'event',
                   label: t('admin.columns.event'),
-                  width: 220,
+                  width: 120,
                   mobile: 'default',
                   mobileMeta: 'labeled',
                   sortable: true,
@@ -1149,23 +1061,39 @@ export default function RegistrationsSection({
                   // quedan juntas y se ven de un vistazo las que faltan repartir.
                   key: 'schedule',
                   label: t('admin.columns.schedule'),
-                  width: 104,
+                  width: 96,
                   mobile: 'default',
                   mobileMeta: 'labeled',
                   mobileSortable: false,
                   sortable: true,
                   sortAccessor: (row) => formatScheduleSummary(row.schedule, locale),
-                  render: (row) =>
-                    formatScheduleSummary(row.schedule, locale) || (
-                      <span className="admin-muted-text">
-                        {t('admin.schedule.unassignedShort')}
-                      </span>
-                    ),
+                  render: (row) => {
+                    // Día y fecha arriba, tanda abajo: en una sola línea se
+                    // cortaba con puntos suspensivos ("Día 1 · sáb 14 n…").
+                    if (!hasScheduledDay(row.schedule)) {
+                      return (
+                        <span className="admin-muted-text">
+                          {t('admin.schedule.unassignedShort')}
+                        </span>
+                      )
+                    }
+                    const day = [row.schedule.dayLabel, formatScheduleDate(row.schedule, locale)]
+                      .filter(Boolean)
+                      .join(' · ')
+                    return (
+                      <div className="data-table__stack" title={formatScheduleSummary(row.schedule, locale)}>
+                        <span className="data-table__stack-main">{day}</span>
+                        {row.schedule.sessionName ? (
+                          <span className="data-table__sub">{row.schedule.sessionName}</span>
+                        ) : null}
+                      </div>
+                    )
+                  },
                 },
                 {
                   key: 'status',
                   label: t('admin.columns.status'),
-                  width: 164,
+                  width: 152,
                   mobile: 'badge',
                   sortable: true,
                   render: (row) => (
@@ -1175,13 +1103,31 @@ export default function RegistrationsSection({
                 {
                   key: 'payment',
                   label: t('admin.columns.payment'),
-                  width: 132,
+                  width: 136,
                   mobile: 'badge',
                   mobileSortable: false,
                   sortable: true,
                   sortAccessor: (row) => row.amount,
                   render: (row) => (
                     <AdminPaymentCell amount={row.amount} status={row.paymentStatus} />
+                  ),
+                },
+                {
+                  // Siempre a la vista: adjunto (se abre en lectura), efectivo,
+                  // Mercado Pago o "Sin comprobante". Sin precargar binarios.
+                  key: 'proof',
+                  label: t('admin.columns.proof'),
+                  width: 120,
+                  mobile: 'default',
+                  mobileMeta: 'labeled',
+                  mobileSortable: false,
+                  sortable: false,
+                  render: (row) => (
+                    <AdminProofCell
+                      proof={row.proof}
+                      viewLabel={t('admin.registrationProof.viewAria', { name: row.athlete ?? '' })}
+                      onView={() => setProofTarget(row)}
+                    />
                   ),
                 },
                 {
@@ -1235,6 +1181,19 @@ export default function RegistrationsSection({
                         onPreviewRegistrationNotification(statusTarget.id, { type, message })
                     : undefined
                 }
+              />
+            ) : null}
+            {proofTarget?.payment ? (
+              <PaymentValidationDialog
+                item={buildPaymentValidationItem(proofTarget.payment, {
+                  mode: 'view',
+                  athlete: { fullName: proofTarget.athlete, documentId: proofTarget.document },
+                  detail: [proofTarget.event, proofTarget.category].filter(Boolean).join(' · '),
+                  meta: proofTarget.amount,
+                })}
+                mode="view"
+                onCancel={() => setProofTarget(null)}
+                onConfirm={() => {}}
               />
             ) : null}
             {observationsTarget ? (

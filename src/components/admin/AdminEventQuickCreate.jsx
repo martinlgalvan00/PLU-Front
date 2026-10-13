@@ -2,13 +2,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowUpRight,
   CalendarDays,
+  Check,
   ChevronLeft,
+  Copy,
   Eye,
   Link2,
   Plus,
   ShieldCheck,
   Unlock,
 } from 'lucide-react'
+import AdminEventLogoStage from './AdminEventLogoStage.jsx'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
 import Button from '../ui/Button.jsx'
 import EventCard from '../ui/EventCard.jsx'
@@ -48,9 +51,29 @@ import {
  * se carga después de elegir el modo: por eso el modo se guarda aparte. */
 const REGISTRATION_MODES = ['soon', 'scheduled', 'open']
 
-export default function AdminEventQuickCreate({ canEdit = false, onCancel, onOpenFullEditor, onSubmit }) {
+/**
+ * `initialDraft` / `initialLogo` / `duplicateOf` llegan al duplicar un evento: el
+ * formulario arranca con sede, ciudad, cupo, acceso y logo del original (las
+ * fechas y las entradas no se copian). `onSubmit(draft, { logo, another })`:
+ * con `another` el alta no sale de la pantalla -- queda lista para el siguiente.
+ */
+export default function AdminEventQuickCreate({
+  canEdit = false,
+  duplicateOf = null,
+  initialDraft = null,
+  initialLogo = null,
+  onCancel,
+  onOpenFullEditor,
+  onSubmit,
+}) {
   const { t } = useI18n()
-  const [draft, setDraft] = useState(createAdminEventDraft)
+  const [draft, setDraft] = useState(() => ({ ...createAdminEventDraft(), ...initialDraft }))
+  const [logo, setLogo] = useState(initialLogo)
+  const [logoPending, setLogoPending] = useState(false)
+  // Cuántos se cargaron seguidos en esta pantalla y cuál fue el último.
+  const [created, setCreated] = useState({ count: 0, lastTitle: '' })
+  // Remonta el selector de logo al pasar al siguiente evento.
+  const [stageKey, setStageKey] = useState(0)
   const [fieldErrors, setFieldErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
@@ -62,7 +85,8 @@ export default function AdminEventQuickCreate({ canEdit = false, onCancel, onOpe
   // muestra uno de relleno: "evento-preview" se leía como una dirección real.
   const slugPreview = draft.title?.trim() && draft.startsAt ? `/${preview.slug}` : ''
   const requiresMembership = draft.requiresMembership !== false
-  const isDirty = JSON.stringify(draft) !== initialSignatureRef.current
+  const isDirty =
+    JSON.stringify(draft) !== initialSignatureRef.current || Boolean(logo && logo !== initialLogo)
 
   // Cuántos de los cuatro datos que la card pública muestra ya están cargados.
   // La vista previa "se enciende" a medida que se completan, en vez de mostrar
@@ -136,8 +160,35 @@ export default function AdminEventQuickCreate({ canEdit = false, onCancel, onOpe
     target?.focus?.()
   }
 
-  async function handleSubmit(event) {
+  function handleSubmit(event) {
     event.preventDefault()
+    return submit({ another: false })
+  }
+
+  /**
+   * Lo que se repite entre un meet y el siguiente de la misma tanda (sede,
+   * ciudad, cupo, acceso y modo de inscripción) queda cargado; lo que cambia
+   * (título, fechas, logo) se vacía.
+   */
+  function startNextEvent(savedTitle) {
+    const next = {
+      ...createAdminEventDraft(),
+      venue: draft.venue,
+      location: draft.location,
+      slots: draft.slots,
+      requiresMembership: draft.requiresMembership,
+      status: draft.status,
+    }
+    initialSignatureRef.current = JSON.stringify(next)
+    setDraft(next)
+    setLogo(null)
+    setStageKey((current) => current + 1)
+    setFieldErrors({})
+    setCreated((current) => ({ count: current.count + 1, lastTitle: savedTitle }))
+    requestAnimationFrame(() => formRef.current?.querySelector('[name="title"]')?.focus?.())
+  }
+
+  async function submit({ another }) {
     setSubmitError(null)
 
     const validation = validateAdminEventDraft(draft, t)
@@ -162,8 +213,9 @@ export default function AdminEventQuickCreate({ canEdit = false, onCancel, onOpe
     setFieldErrors({})
     setSubmitting(true)
     try {
-      const result = await onSubmit?.({ ...draft, slug: preview.slug })
+      const result = await onSubmit?.({ ...draft, slug: preview.slug }, { logo, another })
       if (result?.error) throw new Error(result.error)
+      if (another) startNextEvent(draft.title.trim())
     } catch (error) {
       setSubmitError(error?.message ?? t('admin.eventEditor.saveError'))
     } finally {
@@ -191,6 +243,12 @@ export default function AdminEventQuickCreate({ canEdit = false, onCancel, onOpe
               <p id="admin-event-quick-lead" className="admin-event-quick__lead">
                 {t('admin.eventQuickCreate.lead')}
               </p>
+              {duplicateOf ? (
+                <p className="admin-event-quick__access-note">
+                  <Copy size={14} aria-hidden />
+                  {t('admin.eventQuickCreate.duplicateNote', { title: duplicateOf })}
+                </p>
+              ) : null}
             </div>
 
             <div className="admin-event-quick__body">
@@ -228,6 +286,16 @@ export default function AdminEventQuickCreate({ canEdit = false, onCancel, onOpe
                   {slugPreview || t('admin.eventQuickCreate.slugPending')}
                 </code>
               </p>
+
+              {/* El logo se elige acá y se sube apenas el evento existe: antes
+                  había que crearlo, entrar a su ficha y recién ahí subirlo. */}
+              <AdminEventLogoStage
+                key={stageKey}
+                disabled={!canEdit || submitting}
+                initialFile={stageKey === 0 ? initialLogo : null}
+                onChange={setLogo}
+                onPendingChange={setLogoPending}
+              />
 
               <div
                 className="admin-event-quick__section"
@@ -438,6 +506,18 @@ export default function AdminEventQuickCreate({ canEdit = false, onCancel, onOpe
                 </p>
               </div>
 
+              {created.count > 0 ? (
+                <p className="admin-event-quick__created" role="status">
+                  <Check size={15} aria-hidden />
+                  <span>
+                    {t('admin.eventQuickCreate.createdAnother', { title: created.lastTitle })}
+                    {created.count > 1 ? (
+                      <small>{t('admin.eventQuickCreate.createdTally', { count: created.count })}</small>
+                    ) : null}
+                  </span>
+                </p>
+              ) : null}
+
               {submitError ? (
                 <p className="admin-event-quick__alert" role="alert">
                   {submitError}
@@ -514,9 +594,23 @@ export default function AdminEventQuickCreate({ canEdit = false, onCancel, onOpe
             onClick={requestCancel}
             disabled={submitting}
           >
-            {t('common.cancel')}
+            {created.count > 0 ? t('admin.eventQuickCreate.done') : t('common.cancel')}
           </button>
-          <Button type="submit" variant="gold" className="btn--small" disabled={!canEdit || submitting}>
+          <Button
+            type="button"
+            variant="outline"
+            className="btn--small"
+            disabled={!canEdit || submitting || logoPending}
+            onClick={() => void submit({ another: true })}
+          >
+            {t('admin.eventQuickCreate.submitAnother')}
+          </Button>
+          <Button
+            type="submit"
+            variant="gold"
+            className="btn--small"
+            disabled={!canEdit || submitting || logoPending}
+          >
             <Plus size={15} aria-hidden />
             {submitting
               ? t('admin.eventQuickCreate.submitting')

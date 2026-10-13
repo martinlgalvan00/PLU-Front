@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ExternalLink, FileWarning, BadgeCheck, X, XCircle } from 'lucide-react'
+import { ExternalLink, FileWarning, BadgeCheck, Trash2, X, XCircle } from 'lucide-react'
 import Button from '../ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatRejectionActor } from '../../lib/paymentAudit.js'
@@ -31,6 +31,13 @@ function guessProofKind(...sources) {
  * panel que suma un cobro al reporte financiero sin confirmación de Mercado
  * Pago. Es un modo del mismo diálogo y no un componente aparte porque la
  * evidencia que hay que mirar antes de decidir es exactamente la misma.
+ *
+ * `onTrashProof` (opcional) ofrece, sólo en `view` y sólo si el item trae
+ * `canTrashProof`, mover el comprobante de una orden ya resuelta a la papelera.
+ * Es reversible mientras el archivo siga ahí, pero deja la orden sin archivo, así
+ * que pide una confirmación en el mismo lugar. Quien lo pasa decide el permiso y
+ * qué hacer después (normalmente cerrar y recargar); si rechaza, el mensaje se
+ * muestra acá.
  */
 export default function PaymentValidationDialog({
   item,
@@ -40,6 +47,7 @@ export default function PaymentValidationDialog({
   onCancel,
   onConfirm,
   onReject,
+  onTrashProof,
 }) {
   const { locale, t } = useI18n()
   const titleId = useId()
@@ -49,7 +57,7 @@ export default function PaymentValidationDialog({
   const settleReferenceId = useId()
   const overrideReasonId = useId()
   const panelRef = useRef(null)
-  const dialogStateRef = useRef({ busy, onCancel, rejecting: false })
+  const dialogStateRef = useRef({ busy, onCancel, rejecting: false, confirmingTrash: false })
 
   const proofPath =
     typeof item?.paymentProofPath === 'string'
@@ -65,6 +73,9 @@ export default function PaymentValidationDialog({
   const [imageFailed, setImageFailed] = useState(false)
   const [imageExpanded, setImageExpanded] = useState(false)
   const [rejecting, setRejecting] = useState(false)
+  const [confirmingTrash, setConfirmingTrash] = useState(false)
+  const [trashing, setTrashing] = useState(false)
+  const [trashError, setTrashError] = useState('')
   const [rejectReason, setRejectReason] = useState('')
   const [settleReason, setSettleReason] = useState('')
   const [settleReference, setSettleReference] = useState('')
@@ -72,7 +83,7 @@ export default function PaymentValidationDialog({
   const rejectReasonValid = rejectReason.trim().length >= 3
   const settleReasonValid = settleReason.trim().length >= 3
   const overrideReasonValid = isProofOverrideReasonValid(overrideReason)
-  dialogStateRef.current = { busy, onCancel, rejecting }
+  dialogStateRef.current = { busy: busy || trashing, onCancel, rejecting, confirmingTrash }
 
   useEffect(() => {
     const previousFocus = document.activeElement
@@ -87,6 +98,11 @@ export default function PaymentValidationDialog({
         event.stopImmediatePropagation()
         if (dialogStateRef.current.rejecting) {
           setRejecting(false)
+          return
+        }
+        // Escape cierra primero la confirmación pendiente, no todo el diálogo.
+        if (dialogStateRef.current.confirmingTrash) {
+          setConfirmingTrash(false)
           return
         }
         dialogStateRef.current.onCancel()
@@ -164,6 +180,21 @@ export default function PaymentValidationDialog({
 
   const isView = mode === 'view'
   const isSettle = mode === 'settle'
+  const canTrashProof =
+    Boolean(onTrashProof) && isView && hasProof && item.canTrashProof === true
+
+  async function handleTrashProof() {
+    setTrashing(true)
+    setTrashError('')
+    try {
+      await onTrashProof()
+    } catch (trashFailure) {
+      setTrashError(trashFailure?.message || t('admin.paymentValidation.trashProofError'))
+      setConfirmingTrash(false)
+    } finally {
+      setTrashing(false)
+    }
+  }
   const needsProofOverride = Boolean(item.requiresProofOverride) && !isSettle && !isView
   const typeLabel = t(`admin.actionQueue.types.${item.type}`)
   const previewKind = guessProofKind(item.paymentProofPath, proofUrl)
@@ -207,6 +238,58 @@ export default function PaymentValidationDialog({
 
   const proofBlock = (
     <div className="payment-validation-dialog__proof" aria-live="polite">
+      {/* Arriba y aparte de la vista previa a propósito: un comprobante que no carga (el
+          archivo falta en Storage) es justo el que hay que poder dar de baja, y al
+          final del panel quedaba detrás de la barra de acciones fija. */}
+      {canTrashProof && !proofLoading ? (
+        <div className="payment-validation-dialog__trash-zone">
+          {confirmingTrash ? (
+            <div className="payment-validation-dialog__trash-confirm" role="alert">
+              <p>{t('admin.paymentValidation.trashProofLead')}</p>
+              <div className="payment-validation-dialog__trash-actions">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="btn--small"
+                  disabled={trashing}
+                  onClick={() => void handleTrashProof()}
+                >
+                  {trashing
+                    ? t('admin.paymentValidation.trashProofBusy')
+                    : t('admin.paymentValidation.trashProofConfirm')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="btn--small"
+                  disabled={trashing}
+                  onClick={() => setConfirmingTrash(false)}
+                >
+                  {t('admin.paymentValidation.trashProofCancel')}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="payment-validation-dialog__trash"
+              onClick={() => {
+                setTrashError('')
+                setConfirmingTrash(true)
+              }}
+            >
+              <Trash2 size={14} aria-hidden />
+              {t('admin.paymentValidation.trashProof')}
+            </button>
+          )}
+          {trashError ? (
+            <p className="payment-validation-dialog__error" role="alert">
+              {trashError}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       {!hasProof ? (
         <div className="payment-validation-dialog__empty payment-validation-dialog__empty--workspace" role="status">
           <span className="payment-validation-dialog__empty-icon" aria-hidden>

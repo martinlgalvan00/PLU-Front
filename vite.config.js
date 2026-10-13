@@ -8,8 +8,14 @@ export default defineConfig(({ mode }) => {
   // Playwright (y cualquier proceso que ya traiga PORT) manda: loadEnv no
   // pisa process.env, así que el E2E en 3011 no se iba al .env de `npm run dev`.
   const apiPort = String(process.env.PORT || env.PORT || 3001).trim() || '3001'
+  // 127.0.0.1 evita AggregateError/ECONNREFUSED por dual-stack de `localhost`
+  // (::1 vs 127.0.0.1) cuando el API aún no escucha o solo en una familia.
+  const apiProxyTarget = `http://127.0.0.1:${apiPort}`
   const ticketSalesEnabled =
     process.env.VITE_TICKET_SALES_ENABLED ?? env.VITE_TICKET_SALES_ENABLED ?? ''
+
+  // Visible en la consola de `npm run dev` si hay desfasaje de PORT con el API.
+  console.info(`[vite] /api proxy → ${apiProxyTarget}`)
 
   return {
     plugins: [react()],
@@ -60,9 +66,11 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      // En Windows el default a veces queda solo en [::1] y 127.0.0.1:5173 no conecta.
+      host: true,
       proxy: {
         '/api': {
-          target: `http://localhost:${apiPort}`,
+          target: apiProxyTarget,
           changeOrigin: true,
         },
         // Cartografía OpenFreeMap por same-origin (CSP connect-src 'self').

@@ -581,6 +581,147 @@
   color: var(--admin-status-danger);
 }
 
+/* ---- Selección en lote ---- */
+
+/* Aviso de eventos ocultos: una línea con su atajo, sin color de alerta (ocultar
+   es el estado normal de un meet recién creado). */
+.admin-events__unpublished {
+  align-items: center;
+  color: var(--admin-text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  gap: 4px 10px;
+  margin: 0 0 12px;
+}
+
+.admin-events__unpublished svg {
+  flex: none;
+}
+
+.admin-events__unpublished button,
+.admin-events-bulkbar__link {
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  min-height: 32px;
+  padding: 0 2px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-events__unpublished button:focus-visible,
+.admin-events-bulkbar__link:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-events-bulkbar__link:disabled {
+  color: var(--admin-muted);
+  cursor: default;
+  text-decoration: none;
+}
+
+/* En modo selección la fila entera es el control: el checkbox solo lo refleja. */
+.admin-event-row__check {
+  accent-color: var(--admin-ink);
+  cursor: pointer;
+  height: 24px;
+  left: 10px;
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  z-index: 1;
+}
+
+.admin-event-row--selecting .admin-event-row__main {
+  padding-left: 46px;
+}
+
+/* El evento principal es una tarjeta con sus propios colores y más aire. */
+.admin-event-row--lead .admin-event-row__check {
+  accent-color: var(--admin-attention-text);
+  left: 18px;
+}
+
+.admin-event-row--lead.admin-event-row--selecting .admin-event-row__main {
+  padding-left: 56px;
+}
+
+/* En táctil el enlace tiene que ser un blanco de 44px, no solo una línea subrayada. */
+@media (pointer: coarse) {
+  .admin-events__unpublished button,
+  .admin-events-bulkbar__link {
+    min-height: 44px;
+    padding-inline: 8px;
+  }
+}
+
+.admin-event-row--checked {
+  background: var(--admin-row-hover);
+}
+
+/* La barra queda a la vista mientras se baja por una lista larga. */
+.admin-events-bulkbar {
+  align-items: center;
+  background: var(--admin-canvas);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 16px;
+  bottom: 16px;
+  box-shadow: var(--elevation-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding: 10px 12px 10px 18px;
+  position: sticky;
+  z-index: 2;
+}
+
+.admin-events-bulkbar__count {
+  align-items: center;
+  color: var(--admin-ink);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13.5px;
+  font-weight: 600;
+  gap: 4px 14px;
+  margin: 0;
+}
+
+.admin-events-bulkbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-events-bulkbar .btn {
+  min-height: 44px;
+}
+
+@media (max-width: 640px) {
+  .admin-events-bulkbar {
+    bottom: 8px;
+    padding: 12px;
+  }
+
+  .admin-events-bulkbar__actions {
+    width: 100%;
+  }
+
+  .admin-events-bulkbar__actions .btn {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+}
+
 /* ---- Teléfono y tablet ---- */
 
 @media (max-width: 900px) {
@@ -705,43 +846,311 @@
   }
 }
 
-/* ---- Anuncio "Pronto habrá novedades" ---- */
+/* ---- Anuncio "Pronto habrá novedades" ----
+   Fila entre dos filetes (no es una card) con un monitor en miniatura del
+   anuncio público. El monitor es el único objeto con color: es la pieza real
+   en chiquito, así que lleva su celeste; el resto del panel sigue en grafito.
+   Apagado = sin señal (una línea); prendido = al aire. La secuencia de
+   encendido corre una sola vez, al pasar de apagado a prendido. El único bucle
+   es el punto de "Al aire": comunica un estado real. Todo es transform/opacity
+   y nada se mueve con prefers-reduced-motion. */
 
-/* Fila plana entre dos filetes: una decisión de una línea, sin card. */
 .admin-site-teaser {
+  --teaser-sky: var(--plu-cool-950, #0a0b0d);
+  --teaser-accent: var(--plu-celeste-400, #74acdf);
+  --teaser-text: oklch(97% 0.004 260);
+  --teaser-dot: var(--plu-celeste-400, #74acdf);
+  --teaser-thumb-on: var(--plu-cool-950, #0a0b0d);
+
   align-items: center;
   border-block: 1px solid var(--admin-hairline);
-  display: flex;
-  gap: 14px;
+  display: grid;
+  gap: 8px 18px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   margin-block: 4px 16px;
-  padding: 12px 2px;
+  padding: 14px 2px;
 }
 
-.admin-site-teaser__icon {
-  color: var(--admin-muted);
-  display: inline-flex;
-  flex: none;
+[data-theme='light'] .admin-site-teaser {
+  --teaser-dot: var(--plu-celeste-600, #1f5f9e);
+  --teaser-thumb-on: #fff;
 }
+
+/* ---- Monitor ---- */
+
+.admin-site-teaser__monitor {
+  aspect-ratio: 16 / 9;
+  background: var(--teaser-sky);
+  border: 1px solid color-mix(in srgb, var(--teaser-accent) 24%, transparent);
+  border-radius: var(--radius-md, 10px);
+  container-type: inline-size;
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+  width: 232px;
+}
+
+/* Bandas de cine, como el anuncio real: encuadran el monitor como un fotograma. */
+.admin-site-teaser__monitor::after {
+  background:
+    linear-gradient(
+      180deg,
+      var(--teaser-sky) 0 7%,
+      color-mix(in srgb, var(--teaser-accent) 30%, transparent) 7% calc(7% + 1px),
+      transparent calc(7% + 1px) calc(93% - 1px),
+      color-mix(in srgb, var(--teaser-accent) 30%, transparent) calc(93% - 1px) 93%,
+      var(--teaser-sky) 93%
+    );
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 4;
+}
+
+/* La línea de "sin señal": se ve sólo con el monitor apagado. */
+.admin-site-teaser__monitor::before {
+  background: color-mix(in srgb, var(--teaser-text) 55%, transparent);
+  content: '';
+  height: 1px;
+  left: 22%;
+  position: absolute;
+  right: 22%;
+  top: 50%;
+  z-index: 1;
+}
+
+.admin-site-teaser.is-on .admin-site-teaser__monitor::before {
+  opacity: 0;
+}
+
+/* Cielo: nebulosa celeste y una baldosa de estrellas, todo estático. */
+.admin-site-teaser__sky {
+  background-image:
+    radial-gradient(
+      closest-side at 82% 8%,
+      color-mix(in srgb, var(--teaser-accent) 62%, #1f5f9e),
+      color-mix(in srgb, var(--plu-celeste-600, #1f5f9e) 38%, transparent) 55%,
+      transparent
+    ),
+    radial-gradient(
+      closest-side at 18% 118%,
+      color-mix(in srgb, var(--teaser-accent) 30%, transparent),
+      transparent
+    ),
+    radial-gradient(circle at 14px 18px, var(--teaser-text) 0 0.6px, transparent 1.2px),
+    radial-gradient(circle at 52px 9px, var(--teaser-text) 0 0.5px, transparent 1.1px),
+    radial-gradient(circle at 38px 44px, var(--teaser-text) 0 0.6px, transparent 1.2px),
+    radial-gradient(circle at 70px 30px, var(--teaser-accent) 0 0.8px, transparent 1.5px);
+  background-size:
+    100% 100%,
+    100% 100%,
+    78px 58px,
+    78px 58px,
+    78px 58px,
+    78px 58px;
+  inset: 0;
+  opacity: 0.22;
+  position: absolute;
+}
+
+.admin-site-teaser.is-on .admin-site-teaser__sky {
+  opacity: 1;
+}
+
+.admin-site-teaser__scene {
+  align-items: flex-end;
+  display: flex;
+  inset: 0;
+  opacity: 0;
+  padding: 10px 12px 15px;
+  position: absolute;
+  transform: scaleY(0.04);
+}
+
+.admin-site-teaser.is-on .admin-site-teaser__scene {
+  opacity: 1;
+  transform: none;
+}
+
+/* Card fantasma: formas borrosas (estático), nunca datos. */
+.admin-site-teaser__ghost {
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  justify-content: center;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 45%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 45%);
+  pointer-events: none;
+  position: absolute;
+  right: 8px;
+  top: 0;
+  width: 56%;
+}
+
+.admin-site-teaser__ghost-row {
+  background: color-mix(in srgb, var(--teaser-accent) 55%, transparent);
+  border-radius: 4px;
+  -webkit-filter: blur(2.5px);
+  filter: blur(2.5px);
+  display: block;
+  height: 15px;
+}
+
+.admin-site-teaser__ghost-row:nth-child(2) {
+  opacity: 0.55;
+  transform: translateX(-12%);
+}
+
+.admin-site-teaser__mini-title {
+  color: var(--teaser-text);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 11.5px;
+  font-size: clamp(10px, 6.6cqi, 22px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  max-width: 62%;
+  position: relative;
+  text-wrap: balance;
+}
+
+.admin-site-teaser__mini-title em {
+  color: var(--teaser-accent);
+  font-style: normal;
+}
+
+/* Líneas de barrido: textura de pantalla, quieta. */
+.admin-site-teaser__scan {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 2px,
+    color-mix(in srgb, var(--teaser-text) 6%, transparent) 2px 3px
+  );
+  inset: 0;
+  opacity: 0;
+  position: absolute;
+}
+
+.admin-site-teaser.is-on .admin-site-teaser__scan {
+  opacity: 1;
+}
+
+/* Barrido y marco: sólo existen durante el encendido. */
+.admin-site-teaser__beam {
+  background: linear-gradient(
+    180deg,
+    transparent,
+    color-mix(in srgb, var(--teaser-accent) 30%, transparent) 46%,
+    color-mix(in srgb, var(--teaser-text) 24%, transparent) 50%,
+    transparent
+  );
+  height: 46%;
+  left: 0;
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transform: translateY(-110%);
+}
+
+.admin-site-teaser__ring {
+  border: 1.5px solid var(--teaser-accent);
+  border-radius: inherit;
+  inset: 0;
+  opacity: 0;
+  position: absolute;
+}
+
+/* ---- Texto ---- */
 
 .admin-site-teaser__copy {
   display: grid;
-  flex: 1 1 auto;
-  gap: 2px;
+  gap: 3px;
+  justify-items: start;
   min-width: 0;
+}
+
+.admin-site-teaser__status {
+  align-items: center;
+  color: var(--admin-muted);
+  display: inline-flex;
+  font-size: 10.5px;
+  font-weight: 700;
+  gap: 8px;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.admin-site-teaser.is-on .admin-site-teaser__status {
+  color: var(--admin-ink);
+}
+
+.admin-site-teaser__dot {
+  background: color-mix(in srgb, var(--admin-ink) 35%, transparent);
+  border-radius: 50%;
+  display: block;
+  flex: none;
+  height: 7px;
+  position: relative;
+  width: 7px;
+}
+
+.admin-site-teaser.is-on .admin-site-teaser__dot {
+  background: var(--teaser-dot);
+}
+
+/* Onda del "al aire": un pseudo escalado, no un box-shadow animado. */
+.admin-site-teaser__dot::after {
+  background: var(--teaser-dot);
+  border-radius: 50%;
+  content: '';
+  inset: 0;
+  opacity: 0;
+  position: absolute;
 }
 
 .admin-site-teaser__copy strong {
   color: var(--admin-ink);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
+  line-height: 1.25;
 }
 
-.admin-site-teaser__copy p {
+.admin-site-teaser__copy p:not(.admin-site-teaser__status) {
   color: var(--admin-muted);
   font-size: 12.5px;
   line-height: 1.45;
   margin: 0;
+  max-width: 52ch;
 }
+
+.admin-site-teaser__view {
+  align-items: center;
+  color: var(--admin-ink);
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 5px;
+  min-height: 28px;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--admin-ink) 35%, transparent);
+  text-underline-offset: 3px;
+}
+
+.admin-site-teaser__view:hover {
+  text-decoration-color: currentColor;
+}
+
+.admin-site-teaser__view:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+/* ---- Interruptor ---- */
 
 /* El área táctil es el botón entero (44px); el interruptor es sólo el dibujo. */
 .admin-site-teaser__switch-btn {
@@ -754,7 +1163,7 @@
   flex: none;
   justify-content: center;
   min-height: 44px;
-  min-width: 52px;
+  min-width: 56px;
   padding: 0;
 }
 
@@ -792,38 +1201,155 @@
 }
 
 .admin-site-teaser__switch {
-  background: color-mix(in srgb, var(--admin-ink) 12%, transparent);
+  background: color-mix(in srgb, var(--admin-ink) 14%, transparent);
   border-radius: 999px;
-  height: 20px;
+  height: 24px;
   position: relative;
-  width: 36px;
+  width: 44px;
 }
 
 .admin-site-teaser__switch::after {
-  background: color-mix(in srgb, var(--admin-ink) 45%, transparent);
+  background: color-mix(in srgb, var(--admin-ink) 50%, transparent);
   border-radius: 999px;
   content: '';
-  height: 15px;
+  height: 18px;
   left: 3px;
   position: absolute;
-  top: 2.5px;
-  width: 15px;
+  top: 3px;
+  width: 18px;
 }
 
 .admin-site-teaser__switch-btn.is-on .admin-site-teaser__switch {
-  background: color-mix(in srgb, var(--plu-success-500) 55%, transparent);
+  background: var(--teaser-dot);
 }
 
 .admin-site-teaser__switch-btn.is-on .admin-site-teaser__switch::after {
-  background: var(--plu-success-400);
-  transform: translateX(15px);
+  background: var(--teaser-thumb-on);
+  transform: translateX(20px);
 }
 
+/* ---- Movimiento ---- */
+
 @media (prefers-reduced-motion: no-preference) {
+  .admin-site-teaser__scene {
+    transition:
+      opacity var(--motion-base) var(--ease-out),
+      transform 520ms var(--ease-cinematic);
+  }
+
+  .admin-site-teaser__sky,
+  .admin-site-teaser__scan,
+  .admin-site-teaser__monitor::before {
+    transition: opacity var(--motion-slow) var(--ease-out);
+  }
+
   .admin-site-teaser__switch,
   .admin-site-teaser__switch::after {
     transition:
       background-color var(--motion-fast) var(--ease-out),
       transform var(--motion-fast) var(--ease-out);
+  }
+
+  /* Al aire: único bucle del bloque. */
+  .admin-site-teaser.is-on .admin-site-teaser__dot::after {
+    animation: admin-teaser-onair 2.4s var(--ease-out) infinite;
+  }
+
+  /* Encendido (una vez): la línea se abre en pantalla, pasa un barrido y el
+     marco se enciende y se apaga. */
+  .admin-site-teaser.is-launching .admin-site-teaser__scene {
+    animation: admin-teaser-powerup 760ms var(--ease-cinematic) both;
+  }
+
+  .admin-site-teaser.is-launching .admin-site-teaser__beam {
+    animation: admin-teaser-beam 900ms var(--ease-out) 420ms both;
+  }
+
+  .admin-site-teaser.is-launching .admin-site-teaser__ring {
+    animation: admin-teaser-ring 1400ms var(--ease-out) both;
+  }
+
+  .admin-site-teaser.is-launching .admin-site-teaser__status {
+    animation: admin-teaser-status-in var(--motion-slow) var(--ease-out) 200ms both;
+  }
+}
+
+@keyframes admin-teaser-powerup {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.04);
+  }
+  32% {
+    opacity: 1;
+    transform: scale(1.04, 0.05);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes admin-teaser-beam {
+  0% {
+    opacity: 0;
+    transform: translateY(-110%);
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(240%);
+  }
+}
+
+@keyframes admin-teaser-ring {
+  0% {
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes admin-teaser-status-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes admin-teaser-onair {
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(2.8);
+  }
+}
+
+/* ---- Pantallas angostas ---- */
+
+@media (max-width: 640px) {
+  .admin-site-teaser {
+    gap: 12px 14px;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  /* El monitor encabeza la fila y se estira: es lo primero que se ve. */
+  .admin-site-teaser__monitor {
+    aspect-ratio: 21 / 8;
+    grid-column: 1 / -1;
+    width: 100%;
   }
 }

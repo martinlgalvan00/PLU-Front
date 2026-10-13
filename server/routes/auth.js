@@ -14,6 +14,7 @@ import {
   updateSecurityUserStatusSchema,
 } from '../../src/lib/schemas/auth.js'
 import { buildSecurityGatePath } from '../../src/lib/securityGateRoute.js'
+import { isPendingInviteEmail, PENDING_INVITE_NAME } from '../../src/lib/staffInvitationRoute.js'
 import { HttpError } from '../lib/errors.js'
 import { resolveDeploymentAppUrl } from '../lib/deploymentEnvironment.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
@@ -291,6 +292,56 @@ export function createAuthRoutes({
     }
   }
 
+  // Vista previa de la invitación: le dice a quien abre el enlace para quién es
+  // y con qué rol queda, antes de elegir la clave. Exige el mismo token firmado
+  // que el alta, así que sólo lo ve quien ya tiene el enlace.
+  router.get('/staff-invitation', authLimiter, async (req, res, next) => {
+    try {
+      const token = typeof req.query.token === 'string' ? req.query.token.trim() : ''
+      const userId =
+        token.length >= 40 && token.length <= 2000 ? readStaffInvitationSubject(token) : null
+      const user = userId
+        ? await getPrisma().user.findUnique({
+            where: { id: userId },
+            include: { profile: true, accessRole: { include: ACCESS_ROLE_INCLUDE } },
+          })
+        : null
+      const payload = user
+        ? verifyStaffInvitationToken(token, {
+            credentialHash: user.passwordHash,
+            secret: accessLinkSecret,
+          })
+        : null
+
+      if (
+        payload?.uid !== user?.id ||
+        user?.mustChangePassword !== true ||
+        !['active', 'invited'].includes(user.status) ||
+        isTempPasswordExpired(user)
+      ) {
+        throw new HttpError(400, 'La invitación es inválida, ya fue utilizada o venció.', {
+          code: 'staff_invitation_invalid',
+        })
+      }
+
+      const serialized = serializeUser(user)
+      // Invitación abierta: la cuenta todavía no tiene email propio, así que no
+      // se devuelve el reservado y la página pide nombre y email.
+      const needsProfile = isPendingInviteEmail(user.email)
+      res.json({
+        invitation: {
+          needsProfile,
+          name: serialized.name === PENDING_INVITE_NAME ? '' : serialized.name,
+          email: needsProfile ? '' : serialized.email,
+          roleName: user.accessRole?.name ?? serialized.roleKey ?? null,
+          expiresAt: payload ? new Date(payload.exp * 1000).toISOString() : null,
+        },
+      })
+    } catch (error) {
+      next(error)
+    }
+  })
+
   router.post(
     '/accept-staff-invitation',
     authLimiter,
@@ -309,7 +360,9 @@ export function createAuthRoutes({
                 // El puesto de seguridad viaja con la sesión: sin esto, quien
                 // escanea no sabe a qué sector está habilitado hasta el
                 // siguiente request.
-                securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
+                securityZone: {
+                  select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true },
+                },
               },
             })
           : null
@@ -343,26 +396,67 @@ export function createAuthRoutes({
           })
         }
 
+        // Invitación abierta: el email y el nombre los elige quien abre el
+        // enlace. En una nominal se ignoran (la identidad ya la fijó el admin).
+        let identity = {}
+        if (isPendingInviteEmail(user.email)) {
+          const { name, email } = req.validatedBody
+          if (!name || !email || isPendingInviteEmail(email)) {
+            throw new HttpError(400, 'Completá tu nombre y tu email para activar la cuenta.', {
+              code: 'staff_invitation_profile_required',
+            })
+          }
+          // Mensaje genérico a propósito: no confirma qué emails ya tienen cuenta.
+          const emailTaken = await prisma.user.findUnique({ where: { email } })
+          if (emailTaken) {
+            throw new HttpError(409, 'No pudimos usar ese email. Probá con otro.', {
+              code: 'staff_invitation_email_unavailable',
+            })
+          }
+          const [firstName, ...rest] = name.split(/\s+/)
+          const lastName = rest.join(' ') || firstName
+          identity = {
+            email,
+            profile: {
+              update: { firstName, lastName, displayName: `${firstName} ${lastName}`.trim() },
+            },
+          }
+        }
+
         const now = new Date()
         await revokeSessionsForUser({ prisma, userId: user.id, now })
-        const updated = await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            passwordHash: await hashPassword(password),
-            mustChangePassword: false,
-            passwordExpiresAt: null,
-            status: 'active',
-            lastLoginAt: now,
-          },
-          include: {
-            profile: true,
-            accessRole: { include: ACCESS_ROLE_INCLUDE },
-            // El puesto de seguridad viaja con la sesión: sin esto, quien
-            // escanea no sabe a qué sector está habilitado hasta el
-            // siguiente request.
-            securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
-          },
-        })
+        let updated
+        try {
+          updated = await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              ...identity,
+              passwordHash: await hashPassword(password),
+              mustChangePassword: false,
+              passwordExpiresAt: null,
+              status: 'active',
+              lastLoginAt: now,
+            },
+            include: {
+              profile: true,
+              accessRole: { include: ACCESS_ROLE_INCLUDE },
+              // El puesto de seguridad viaja con la sesión: sin esto, quien
+              // escanea no sabe a qué sector está habilitado hasta el
+              // siguiente request.
+              securityZone: {
+                select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true },
+              },
+            },
+          })
+        } catch (error) {
+          // Dos personas completando el mismo email a la vez: gana la primera.
+          if (error?.code === 'P2002') {
+            throw new HttpError(409, 'No pudimos usar ese email. Probá con otro.', {
+              code: 'staff_invitation_email_unavailable',
+            })
+          }
+          throw error
+        }
         const session = await createSession({ prisma, userId: user.id, req, now })
         const serialized = serializeUser(updated)
         const supabaseAuth = await ensureSupabaseSessionToken({
@@ -434,7 +528,9 @@ export function createAuthRoutes({
           include: {
             profile: true,
             accessRole: { include: ACCESS_ROLE_INCLUDE },
-            securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
+            securityZone: {
+              select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true },
+            },
           },
         })
 
@@ -714,7 +810,9 @@ export function createAuthRoutes({
             // El puesto de seguridad viaja con la sesión: sin esto, quien
             // escanea no sabe a qué sector está habilitado hasta el
             // siguiente request.
-            securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
+            securityZone: {
+              select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true },
+            },
           },
         })
 
@@ -1096,7 +1194,9 @@ export function createAuthRoutes({
         where: { role: 'seguridad_plu_arg', eventId },
         include: {
           profile: true,
-          securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
+          securityZone: {
+            select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true },
+          },
         },
         orderBy: { createdAt: 'desc' },
       })
@@ -1128,7 +1228,9 @@ export function createAuthRoutes({
           data: { status: req.validatedBody.status },
           include: {
             profile: true,
-            securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
+            securityZone: {
+              select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true },
+            },
           },
         })
 
@@ -1230,7 +1332,9 @@ export function createAuthRoutes({
             // El puesto viaja en la respuesta del link mágico: sin esto, la
             // consola de puerta no sabe qué zona está operando hasta un
             // request posterior (y el aviso del puesto no se pinta).
-            securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
+            securityZone: {
+              select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true },
+            },
           },
         })
         if (

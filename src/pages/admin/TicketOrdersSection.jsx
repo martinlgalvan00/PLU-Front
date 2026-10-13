@@ -15,6 +15,8 @@ import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import PaymentValidationDialog from '../../components/admin/PaymentValidationDialog.jsx'
 import ManualTicketSaleDialog from '../../components/admin/ManualTicketSaleDialog.jsx'
 import { listTicketOrders } from '../../services/ticketApi.js'
+import { trashOrderProof } from '../../services/paymentProofsAdminService.js'
+import { PROOF_TRASHABLE_STATUSES } from '../../services/paymentValidationService.js'
 
 const OPEN_TICKET_STATUSES = ['creado', 'pendiente']
 
@@ -374,7 +376,16 @@ export default function TicketOrdersSection({
       subject: row.attendees,
       detail: `${row.event} · ${row.reference}`,
       meta: row.amount,
+      // Sólo una orden ya resuelta puede dar de baja su comprobante.
+      canTrashProof: canEdit && PROOF_TRASHABLE_STATUSES.includes(row.status),
     })
+  }
+
+  async function trashProof(row) {
+    await trashOrderProof({ source: 'ticket', orderId: row.orderId })
+    setReviewRow(null)
+    await refreshList()
+    notifySuccess(t('admin.toasts.proofTrashed'))
   }
 
   function renderTicketRowActions(row, { compact = false } = {}) {
@@ -596,6 +607,7 @@ export default function TicketOrdersSection({
               if (done) setReviewRow(null)
             })
           }}
+          onTrashProof={reviewRow.canTrashProof ? () => trashProof(reviewRow) : undefined}
         />
       ) : null}
 

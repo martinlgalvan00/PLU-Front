@@ -4,6 +4,7 @@ import { authenticatedPortraitUrl } from '../../lib/publicPortraitUrl.js'
 import { forgetPortraitCache } from '../../lib/portraitBinaryCache.js'
 import { assertSupabaseResult, requireSupabaseClient } from '../../lib/supabaseRpc.js'
 import { forgetAthleteSessionCache } from '../../services/athleteSessionService.js'
+import { trashFilesOfOrders } from '../payments/paymentProofTrash.js'
 
 const PHOTO_BUCKET = 'athlete-photos'
 const PAYMENT_PROOF_BUCKET = 'athlete-payment-proofs'
@@ -2023,9 +2024,13 @@ export function createSupabaseAthleteRepository(
     /**
      * Borrado definitivo (solo Super Admin, ver el endpoint). La cascada y la
      * auditoría las resuelve la RPC delete_athlete en una sola transacción;
-     * acá queda lo que SQL no alcanza: el storage. Fotos bajo `<athleteId>/`
-     * y comprobantes bajo `<orderId>/` (ver createPaymentProofUpload). Es
-     * best-effort: si un archivo queda huérfano no revierte el borrado.
+     * acá queda lo que SQL no alcanza: el storage.
+     *
+     * Las fotos (bajo `<athleteId>/`) se borran en el momento. Los comprobantes
+     * NO: pasan a la papelera (`payment_proof_files`) y salen por la purga
+     * normal tras el período de gracia, así que durante ese tiempo todavía se
+     * pueden descargar. Es best-effort: si la baja a la papelera falla, el
+     * barrido de huérfanos recoge esos archivos cuando la orden ya no existe.
      */
     async deleteAthlete(athleteId, actor) {
       const orders = assertSupabaseResult(
@@ -2064,7 +2069,15 @@ export function createSupabaseAthleteRepository(
 
       await Promise.all([
         removePrefix(PHOTO_BUCKET, athleteId),
-        ...(orders ?? []).map((order) => removePrefix(PAYMENT_PROOF_BUCKET, order.id)),
+        trashFilesOfOrders(client, {
+          orderIds: (orders ?? []).map((order) => order.id),
+          actor,
+        }).catch((error) => {
+          console.warn(
+            `No se pudieron mover a la papelera los comprobantes del atleta ${athleteId}:`,
+            error?.message ?? error,
+          )
+        }),
       ])
 
       return deleted

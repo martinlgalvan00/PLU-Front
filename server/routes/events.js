@@ -603,6 +603,9 @@ const eventSessionSchema = z.object({
   dayIndex: z.coerce.number().int().min(0).max(30),
   name: z.string().trim().min(1).max(80),
   platform: z.string().trim().max(80).optional(),
+  // Sin la clave, el RPC enlaza por nombre (editor legado de solo texto); con
+  // null, la tanda queda sin tablado.
+  platformId: z.string().uuid().nullable().optional(),
   weighInAt: optionalDateTime,
   startsAt: optionalDateTime,
   sortOrder: z.coerce.number().int().min(0).max(1000).optional(),
@@ -610,6 +613,61 @@ const eventSessionSchema = z.object({
 
 const eventSessionsSchema = z.object({
   sessions: z.array(eventSessionSchema).max(60),
+})
+
+/**
+ * Tablados del evento: 1 o 2 en la práctica (el RPC admite hasta 4). El set
+ * viaja completo; lo que no viene se quita y sus tandas quedan sin tablado.
+ */
+const eventSchedulePublicSchema = z.object({ public: z.boolean() })
+
+/**
+ * Plantilla de grilla: configuración reutilizable entre eventos. `.strict()` a
+ * propósito -- la plantilla se guarda como jsonb y se vuelve a leer en el
+ * cliente, así que una clave de más no se tira en silencio: se rechaza.
+ */
+const weightClassBounds = z.array(z.number().positive().max(300)).max(15)
+const gridTemplateConfigSchema = z
+  .object({
+    platforms: z.array(z.string().trim().min(1).max(80)).max(4),
+    maxPerSession: z.coerce.number().int().min(1).max(100),
+    groupBy: z.array(z.enum(['sex', 'category', 'division'])).max(3),
+    sortBy: z.enum(['weight', 'age']),
+    mergeSmall: z.boolean(),
+    platformMode: z.enum(['balance', 'alternate', 'sex']),
+    weightClasses: z
+      .object({ Femenino: weightClassBounds.optional(), Masculino: weightClassBounds.optional() })
+      .strict()
+      .nullable()
+      .optional(),
+    schedule: z
+      .object({
+        firstStart: z.string().regex(/^\d{1,2}:\d{2}$/),
+        sessionMinutes: z.coerce.number().int().min(1).max(600),
+        minutesPerAthlete: z.coerce.number().min(0.5).max(60).optional(),
+        gapMinutes: z.coerce.number().int().min(0).max(240),
+        weighInLeadMinutes: z.coerce.number().int().min(0).max(720),
+      })
+      .strict()
+      .nullable()
+      .optional(),
+  })
+  .strict()
+
+const gridTemplateSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  config: gridTemplateConfigSchema,
+})
+
+const eventPlatformsSchema = z.object({
+  platforms: z
+    .array(
+      z.object({
+        id: z.string().uuid().optional(),
+        name: z.string().trim().min(1).max(80),
+      }),
+    )
+    .max(4),
 })
 
 /**
@@ -796,6 +854,28 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       res.json({
         events: Array.isArray(events) ? events.map((row) => sanitizePublicCatalogEvent(row)) : [],
       })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Grilla pública del evento (sin auth): tandas por tablado con su composición.
+   * Apagada o con el evento sin publicar devuelve `{ enabled: false }` y nada
+   * más. Nunca lleva nombres: ver `public_event_schedule`.
+   */
+  router.get('/:eventSlug/schedule-public', publicReadLimiter, async (req, res, next) => {
+    try {
+      const slug = parseEventSlug(req.params.eventSlug)
+      const client = requireSupabaseClient(getSupabaseAdmin())
+      const schedule = assertSupabaseResult(
+        await client.rpc('public_event_schedule', { p_event_slug: slug }),
+        'No se pudo consultar la grilla del evento.',
+      )
+      // Apagar la grilla es una decisión deliberada del staff: cache corto y sin
+      // stale-while-revalidate, así que deja de verse a lo sumo en 10 s.
+      res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.LIVE, { staleFor: 0 }))
+      res.json({ schedule })
     } catch (error) {
       next(error)
     }
@@ -1358,6 +1438,130 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
           }),
           'No se pudieron guardar las tandas.',
+        )
+        res.json({ schedule })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /** Plantillas de grilla de la organización del evento. */
+  router.get(
+    '/:eventSlug/grid-templates',
+    ...registrationsViewGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const templates = assertSupabaseResult(
+          await client.rpc('staff_list_grid_templates', { p_event_slug: slug }),
+          'No se pudieron leer las plantillas de grilla.',
+        )
+        res.json({ templates })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /** Guarda una plantilla; con un nombre existente la pisa. */
+  router.post(
+    '/:eventSlug/grid-templates',
+    ...editGuard,
+    staffLimiter,
+    validateBody(gridTemplateSchema),
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const templates = assertSupabaseResult(
+          await client.rpc('staff_save_grid_template', {
+            p_event_slug: slug,
+            p_name: req.validatedBody.name,
+            p_config: req.validatedBody.config,
+            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          }),
+          'No se pudo guardar la plantilla.',
+        )
+        res.json({ templates })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.delete(
+    '/:eventSlug/grid-templates/:templateId',
+    ...editGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const templateId = z.string().uuid().safeParse(req.params.templateId)
+        if (!templateId.success) {
+          res.status(400).json({ error: 'La plantilla indicada no es válida.' })
+          return
+        }
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const templates = assertSupabaseResult(
+          await client.rpc('staff_delete_grid_template', {
+            p_event_slug: slug,
+            p_template_id: templateId.data,
+            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          }),
+          'No se pudo borrar la plantilla.',
+        )
+        res.json({ templates })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /** Publica o retira la grilla del sitio oficial. Arranca apagada. */
+  router.post(
+    '/:eventSlug/schedule-public',
+    ...editGuard,
+    staffLimiter,
+    validateBody(eventSchedulePublicSchema),
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const result = assertSupabaseResult(
+          await client.rpc('staff_set_event_schedule_public', {
+            p_event_slug: slug,
+            p_public: req.validatedBody.public,
+            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          }),
+          'No se pudo cambiar la visibilidad de la grilla.',
+        )
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /** Tablados del evento (nombre editable). Reemplaza el set completo. */
+  router.post(
+    '/:eventSlug/platforms',
+    ...editGuard,
+    staffLimiter,
+    validateBody(eventPlatformsSchema),
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const schedule = assertSupabaseResult(
+          await client.rpc('staff_save_event_platforms', {
+            p_event_slug: slug,
+            p_platforms: req.validatedBody.platforms,
+            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          }),
+          'No se pudieron guardar los tablados.',
         )
         res.json({ schedule })
       } catch (error) {

@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
+import { openActionMenus } from './support/openActionMenus.js'
 
 /**
  * Render real (jsdom) de la asignación de grilla en Inscripciones. Cierra la
@@ -160,8 +161,10 @@ describe('asignación de grilla en Inscripciones', () => {
         }),
       ],
     })
-    // La tabla se pinta dos veces (tabla desktop + cards mobile).
-    expect(screen.getAllByText('Día 2 · sáb 14 nov · Tanda B').length).toBeGreaterThan(0)
+    // Día y fecha arriba, tanda abajo (en una línea se cortaba con puntos
+    // suspensivos). La tabla se pinta dos veces (desktop + cards mobile).
+    expect(screen.getAllByText('Día 2 · sáb 14 nov').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Tanda B').length).toBeGreaterThan(0)
   })
 
   it('la barra de asignación aparece recién con filas seleccionadas', async () => {
@@ -256,6 +259,7 @@ describe('acciones de fila en Inscripciones', () => {
       payments,
       registrations: [registration({ paymentOrderId: 'pay-1' })],
     })
+    openActionMenus()
 
     expect(screen.getAllByRole('button', { name: /^validar$/i }).length).toBeGreaterThan(0)
     expect(screen.getAllByRole('button', { name: /eliminar inscripción/i }).length).toBeGreaterThan(0)
@@ -267,6 +271,7 @@ describe('acciones de fila en Inscripciones', () => {
       payments,
       registrations: [registration({ paymentOrderId: 'pay-1' })],
     })
+    openActionMenus()
 
     expect(screen.queryByRole('button', { name: /^validar$/i })).toBeNull()
     expect(screen.queryByRole('button', { name: /eliminar inscripción/i })).toBeNull()

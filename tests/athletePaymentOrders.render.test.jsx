@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
@@ -28,7 +28,14 @@ vi.mock('../src/services/athleteApi.js', async (importOriginal) => {
   }
 })
 
+// La baja del comprobante pega al servidor: acá se fija qué se pide y qué recarga la sección.
+vi.mock('../src/services/paymentProofsAdminService.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  trashOrderProof: vi.fn(),
+}))
+
 const { listAthletePaymentOrders } = await import('../src/services/athleteApi.js')
+const { trashOrderProof } = await import('../src/services/paymentProofsAdminService.js')
 
 beforeAll(() => {
   if (typeof window.matchMedia !== 'function') {
@@ -44,7 +51,10 @@ beforeAll(() => {
   }
 })
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.clearAllMocks()
+})
 
 function order(overrides = {}) {
   return {
@@ -255,5 +265,57 @@ describe('identidad staff en la fila', () => {
     expect(
       screen.queryByText('STAFF-660583de-002b-4408-aa10-94fc4f521f0b'),
     ).toBeNull()
+  })
+})
+
+describe('baja del comprobante', () => {
+  const openProof = () => fireEvent.click(document.querySelector('button.admin-orders-block__proof'))
+  const trashButton = () => screen.queryByRole('button', { name: 'Mover a la papelera' })
+
+  it('una orden aprobada con comprobante permite moverlo a la papelera y recarga la lista', async () => {
+    trashOrderProof.mockResolvedValue({ trashed: true })
+    await renderSection([order({ status: 'aprobado' })])
+    openProof()
+    fireEvent.click(await screen.findByRole('button', { name: 'Mover a la papelera' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sí, mover' }))
+
+    await waitFor(() =>
+      expect(trashOrderProof).toHaveBeenCalledWith({ source: 'athlete', orderId: 'ord-1' }),
+    )
+    // Lista inicial + la recarga posterior a la baja; el diálogo se cierra.
+    await waitFor(() => expect(listAthletePaymentOrders).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(trashButton()).toBeNull())
+  })
+
+  it('una orden rechazada también puede darlo de baja', async () => {
+    await renderSection([order({ status: 'rechazado' })])
+    openProof()
+    expect(await screen.findByRole('button', { name: 'Mover a la papelera' })).toBeTruthy()
+  })
+
+  it('mientras la orden espera decisión el comprobante no se puede dar de baja', async () => {
+    await renderSection([order({ status: 'validacion_manual' })])
+    openProof()
+    // Se espera al diálogo abierto: sin eso, "no hay botón" valdría también si nunca se abrió.
+    await screen.findByRole('dialog')
+    expect(trashButton()).toBeNull()
+  })
+
+  it('sin permiso de aprobar pagos no se ofrece', async () => {
+    await renderSection([order({ status: 'aprobado' })], { canEdit: false })
+    openProof()
+    await screen.findByRole('dialog')
+    expect(trashButton()).toBeNull()
+  })
+
+  it('si el servidor rechaza la baja, se ve el motivo y la lista no se recarga', async () => {
+    trashOrderProof.mockRejectedValue(new Error('La orden ya no admite la baja.'))
+    await renderSection([order({ status: 'aprobado' })])
+    openProof()
+    fireEvent.click(await screen.findByRole('button', { name: 'Mover a la papelera' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sí, mover' }))
+
+    expect(await screen.findByText('La orden ya no admite la baja.')).toBeTruthy()
+    expect(listAthletePaymentOrders).toHaveBeenCalledTimes(1)
   })
 })

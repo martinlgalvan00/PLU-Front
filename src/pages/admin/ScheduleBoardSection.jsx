@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import '../../styles/pages/admin-board.css'
 import {
   DndContext,
@@ -6,17 +6,53 @@ import {
   MouseSensor,
   TouchSensor,
   pointerWithin,
+  useDndContext,
+  useDndMonitor,
   useDraggable,
   useDroppable,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import { CalendarClock, Pencil, Sparkles, UserCheck, Users } from 'lucide-react'
+import {
+  CalendarClock,
+  ChevronRight,
+  Clock,
+  Pencil,
+  Plus,
+  Sparkles,
+  Trash2,
+  UserCheck,
+  Users,
+} from 'lucide-react'
+import PlanPanel from '../../components/admin/board/PlanPanel.jsx'
+import LaneNameEditor from '../../components/admin/board/LaneNameEditor.jsx'
+import PlatformBar from '../../components/admin/board/PlatformBar.jsx'
+import SessionEditForm from '../../components/admin/board/SessionEditForm.jsx'
+import PublicSchedulePreview from '../../components/admin/board/PublicSchedulePreview.jsx'
+import PublishToggle from '../../components/admin/board/PublishToggle.jsx'
+import PoolToolbar from '../../components/admin/board/PoolToolbar.jsx'
 import Button from '../../components/ui/Button.jsx'
+import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
 import { useEventBoard } from '../../hooks/useEventBoard.js'
+import { useGridTemplates } from '../../hooks/useGridTemplates.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { clockFromIso, draftTimesFromSession, isoFromDraftTime } from '../../lib/boardTimes.js'
 import { formatScheduleTime } from '../../lib/eventSchedule.js'
 import AnimatedNumber from '../../motion/AnimatedNumber.tsx'
+import {
+  DEFAULT_MINUTES_PER_ATHLETE,
+  EMPTY_POOL_FILTERS,
+  compositionFacets,
+  estimateLaneTimes,
+  groupAthletes,
+  locationIndex,
+  matchesPoolFilters,
+  planEventBoard,
+  sessionStats,
+  sessionsPayloadFromBoard,
+  suggestFill,
+  suggestPlanOptions,
+} from '../../services/eventBoardPlanner.js'
 
 /** Tope por defecto de una tanda de powerlifting. El operador lo ajusta. */
 const DEFAULT_FLIGHT_SIZE = 12
@@ -32,6 +68,61 @@ function parseDropId(id) {
   if (kind === 'day') return { dayIndex: Number(dayIndex), sessionId: null }
   if (kind === 'session') return { dayIndex: Number(dayIndex), sessionId }
   return null
+}
+
+/** Ubicación de la bolsa: ni día ni tanda. Constante para no recrearla en cada fila. */
+const POOL_LOCATION = Object.freeze({ dayIndex: null, sessionId: null })
+
+const DENSITY_STORAGE_KEY = 'plu.board.density'
+
+// Comodidad por viewer (qué densidad prefiere): si el storage no está, se usa la automática.
+function readStoredDensity() {
+  try {
+    const value = window.localStorage.getItem(DENSITY_STORAGE_KEY)
+    return value === 'compact' || value === 'detail' ? value : null
+  } catch {
+    return null
+  }
+}
+
+function storeDensity(value) {
+  try {
+    window.localStorage.setItem(DENSITY_STORAGE_KEY, value)
+  } catch {
+    /* sin storage: la preferencia dura lo que dura la pantalla */
+  }
+}
+
+const MINUTES_STORAGE_KEY = 'plu.board.minutesPerAthlete'
+
+// Estimación de duración por atleta: preferencia del viewer, con default si no hay storage.
+function readStoredMinutes() {
+  try {
+    const value = Number(window.localStorage.getItem(MINUTES_STORAGE_KEY))
+    return Number.isFinite(value) && value >= 0.5 && value <= 60 ? value : DEFAULT_MINUTES_PER_ATHLETE
+  } catch {
+    return DEFAULT_MINUTES_PER_ATHLETE
+  }
+}
+
+function storeMinutes(value) {
+  try {
+    window.localStorage.setItem(MINUTES_STORAGE_KEY, String(value))
+  } catch {
+    /* sin storage: la preferencia dura lo que dura la pantalla */
+  }
+}
+
+/** Nombre legible del destino de un arrastre, para la ficha que flota. */
+function dropLabel(id, days, t) {
+  const target = parseDropId(id)
+  if (!target) return ''
+  if (target.dayIndex === null) return t('admin.board.moveToUnassigned')
+  const day = days.find((item) => item.dayIndex === target.dayIndex)
+  if (target.sessionId) {
+    return day?.sessions.find((session) => session.id === target.sessionId)?.name ?? ''
+  }
+  return t('admin.board.dayWithoutSession', { day: day?.label ?? '' })
 }
 
 const normalizeDayIndex = (value) => (value === null || value === undefined ? null : Number(value))
@@ -58,43 +149,22 @@ function boardCollision(args) {
   return pointerWithin(args).sort((a, b) => rank(a.id) - rank(b.id))
 }
 
-function athleteMeta(athlete) {
+function ageLabel(athlete, t) {
+  return athlete.age === null || athlete.age === undefined
+    ? null
+    : t('admin.board.athleteAge', { age: athlete.age })
+}
+
+function athleteMeta(athlete, t) {
   return [
     athlete.category,
     athlete.division,
     athlete.bodyweightKg ? `${athlete.bodyweightKg} kg` : null,
+    ageLabel(athlete, t),
     athlete.gym,
   ]
     .filter(Boolean)
     .join(' · ')
-}
-
-/** Specs operativos (categoría/división/peso) vs club, para lectura en 2 niveles. */
-function athleteSpecs(athlete) {
-  return [
-    athlete.category,
-    athlete.division,
-    athlete.bodyweightKg ? `${athlete.bodyweightKg} kg` : null,
-  ]
-    .filter(Boolean)
-    .join(' · ')
-}
-
-/** datetime-local trabaja en hora local; el backend guarda ISO con zona. */
-function toLocalInputValue(iso) {
-  if (!iso) return ''
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return ''
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
-    date.getHours(),
-  )}:${pad(date.getMinutes())}`
-}
-
-function fromLocalInputValue(value) {
-  if (!value) return ''
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? '' : date.toISOString()
 }
 
 /**
@@ -122,7 +192,15 @@ function fromLocalInputValue(value) {
  * Las tandas se editan inline (nombre, plataforma, pesaje) sin salir del
  * tablero, via `saveSessions` → RPC staff_save_event_sessions.
  */
-export default function ScheduleBoardSection({ adminEvents = [], canEdit = false, onGoToEvents }) {
+export default function ScheduleBoardSection({
+  adminEvents = [],
+  canEdit = false,
+  // Tablados, tandas y publicación son estructura del evento (admin.events.write);
+  // mover atletas es de inscripciones. Sin el permiso aparte se hereda canEdit.
+  canEditStructure,
+  onGoToEvents,
+}) {
+  const canStructure = canEditStructure ?? canEdit
   const { locale, t } = useI18n()
 
   const eventOptions = useMemo(
@@ -136,9 +214,18 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
   const [eventSlug, setEventSlug] = useState(() => eventOptions[0]?.slug ?? '')
   const [selected, setSelected] = useState(() => new Set())
   const [flightSize, setFlightSize] = useState(DEFAULT_FLIGHT_SIZE)
+  const [minutesPerAthlete, setMinutesPerAthlete] = useState(readStoredMinutes)
   const [notice, setNotice] = useState(null)
-  const [activeDrag, setActiveDrag] = useState(null)
+  const layoutRef = useRef(null)
+  const [densityPref, setDensityPref] = useState(readStoredDensity)
+  const [expanded, setExpanded] = useState(() => new Set())
   const [editingSession, setEditingSession] = useState(null)
+  const [poolFilters, setPoolFilters] = useState(() => ({ ...EMPTY_POOL_FILTERS }))
+  const [poolView, setPoolView] = useState('list')
+  const [planOpen, setPlanOpen] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  // Foto para deshacer el último reparto o movimiento; se descarta si cambia la estructura.
+  const [undoToken, setUndoToken] = useState(null)
 
   const sensors = useSensors(
     // 6px de recorrido antes de activar: el clic sigue siendo selección.
@@ -151,14 +238,39 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
     if (!eventSlug && eventOptions.length > 0) setEventSlug(eventOptions[0].slug)
   }, [eventOptions, eventSlug])
 
-  const { assign, autofill, busy, days, error, saveSessions, status, totals, unassigned } =
-    useEventBoard(eventSlug, { enabled: Boolean(eventSlug) })
+  const {
+    addSession,
+    applyPlan,
+    assign,
+    autofill,
+    board,
+    busy,
+    days,
+    error,
+    loadedAt,
+    platforms,
+    pruneEmptySessions,
+    reload,
+    removeSession,
+    restore,
+    savePlatforms,
+    saveSessions,
+    schedulePublic,
+    setSchedulePublic,
+    status,
+    totals,
+    unassigned,
+  } = useEventBoard(eventSlug, { enabled: Boolean(eventSlug) })
 
   // Cambiar de evento invalida la selección: son inscripciones de otro torneo.
   useEffect(() => {
     setSelected(new Set())
     setNotice(null)
     setEditingSession(null)
+    setPoolFilters({ ...EMPTY_POOL_FILTERS })
+    setPlanOpen(false)
+    setPreviewOpen(false)
+    setUndoToken(null)
   }, [eventSlug])
 
   const sessionsMissing = useMemo(
@@ -167,6 +279,44 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
   )
 
   const dndEnabled = canEdit && !busy
+
+  // Con pocas tandas el plantel a la vista ayuda; con 20 es una pared. Hasta 6
+  // tandas se muestra todo, después compactas, salvo que el operador elija.
+  const sessionTotal = useMemo(
+    () => days.reduce((sum, day) => sum + day.sessions.length, 0),
+    [days],
+  )
+  const density = densityPref ?? (sessionTotal > 6 ? 'compact' : 'detail')
+  const toggleExpanded = useCallback((sessionId) => {
+    setExpanded((current) => {
+      const next = new Set(current)
+      if (next.has(sessionId)) next.delete(sessionId)
+      else next.add(sessionId)
+      return next
+    })
+  }, [])
+
+  function changeDensity(next) {
+    setDensityPref(next)
+    storeDensity(next)
+    setExpanded(new Set())
+  }
+  const templatesApi = useGridTemplates(eventSlug, { enabled: planOpen && canStructure })
+  const emptySessions = useMemo(
+    () =>
+      days.reduce(
+        (sum, day) => sum + day.sessions.filter((s) => s.athletes.length === 0).length,
+        0,
+      ),
+    [days],
+  )
+
+  // El armado automático trabaja sobre lo que la bolsa muestra: si hay filtros
+  // activos, arma solo para esa parte (por ejemplo, todas las Junior).
+  const planAthletes = useMemo(
+    () => unassigned.filter((athlete) => matchesPoolFilters(athlete, poolFilters)),
+    [unassigned, poolFilters],
+  )
 
   const toggle = useCallback((registrationId) => {
     setSelected((current) => {
@@ -193,8 +343,11 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
 
   async function moveTo({ dayIndex, sessionId }, ids = selectedIds) {
     if (ids.length === 0) return
+    const index = locationIndex(board)
+    const previous = ids.map((id) => [id, index.get(id) ?? { dayIndex: null, sessionId: null }])
     const result = await assign({ registrationIds: ids, dayIndex, sessionId })
     if (!result) return
+    setUndoToken({ previous, removeSessionNames: [] })
     setSelected(new Set())
     // `updated` puede ser menor que lo pedido: el backend descarta canceladas y
     // las de otro evento. Decirlo evita dar por completo un reparto que no lo está.
@@ -205,41 +358,107 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
     )
   }
 
-  function handleDragStart(event) {
-    setActiveDrag(event.active.data.current ?? null)
-  }
-
-  function handleDragCancel() {
-    setActiveDrag(null)
-  }
-
+  // El estado del arrastre no vive en esta pantalla: guardarlo acá re-renderizaba
+  // las 234 filas al empezar a arrastrar. La ficha que flota y la marca de las
+  // zonas de destino lo leen del contexto de dnd-kit, más cerca de donde se usan.
   function handleDragEnd(event) {
-    const drag = activeDrag
-    setActiveDrag(null)
+    const drag = event.active.data.current
     if (!dndEnabled || !drag || !event.over) return
     const target = parseDropId(event.over.id)
     if (!target || sameLocation(drag.location, target)) return
-    // Si el arrastrado está dentro de la selección, se mueve la selección
-    // completa; si no, solo él. Es el comportamiento que espera cualquiera
+    // Un grupo viaja entero. Un atleta suelto: si está dentro de la selección se
+    // mueve la selección completa; si no, solo él. Es lo que espera cualquiera
     // que haya tildado treinta filas y arrastra una.
-    const ids = selected.has(drag.athlete.registrationId)
-      ? selectedIds
-      : [drag.athlete.registrationId]
+    const ids = drag.group
+      ? drag.group.ids
+      : selected.has(drag.athlete.registrationId)
+        ? selectedIds
+        : [drag.athlete.registrationId]
     void moveTo(target, ids)
   }
 
-  async function handleAutofill(dayIndex) {
-    const result = await autofill({ dayIndex, maxPerSession: flightSize })
-    if (!result) return
-    setSelected(new Set())
-    setNotice(
-      result.remaining > 0
-        ? t('admin.board.autofilledPartial', {
-            count: result.placed,
-            remaining: result.remaining,
-          })
-        : t('admin.board.autofilled', { count: result.placed }),
+  function handleFill(day, session, ids) {
+    void moveTo({ dayIndex: day.dayIndex, sessionId: session.id }, ids)
+  }
+
+  function changeMinutesPerAthlete(value) {
+    const next = Math.min(60, Math.max(0.5, Number(value) || DEFAULT_MINUTES_PER_ATHLETE))
+    setMinutesPerAthlete(next)
+    storeMinutes(next)
+  }
+
+  // "Repartir" usa el mismo motor que el asistente, con las opciones que se
+  // deducen del tablero (tablados, tope, criterio, horarios). Sin permiso sobre
+  // la estructura no puede crear tandas: ahí queda el reparto simple sobre las
+  // que ya existen.
+  async function handleAutofill(day) {
+    if (!canStructure) {
+      const result = await autofill({ dayIndex: day.dayIndex, maxPerSession: flightSize })
+      if (!result) return
+      setSelected(new Set())
+      setNotice(
+        result.remaining > 0
+          ? t('admin.board.autofilledPartial', {
+              count: result.placed,
+              remaining: result.remaining,
+            })
+          : t('admin.board.autofilled', { count: result.placed }),
+      )
+      return
+    }
+    const suggested = suggestPlanOptions({ athletes: planAthletes, days, flightSize })
+    const plan = planEventBoard({
+      unassigned: planAthletes,
+      days,
+      platforms: platforms.map(({ id, name }) => ({ id, name })),
+      maxPerSession: suggested.maxPerSession,
+      groupBy: suggested.groupBy,
+      dayIndexes: [day.dayIndex],
+      schedule: suggested.schedule ? { ...suggested.schedule, minutesPerAthlete } : null,
+    })
+    if (plan.placed === 0) {
+      setNotice(t('admin.board.autofillNothing'))
+      return
+    }
+    await handleApplyPlan(plan, {})
+  }
+
+  // Las horas se estiman por cantidad de atletas: al mover gente quedan viejas.
+  // Esto las recalcula en orden para un tablado de un día, desde la primera hora
+  // que ya tenía (o 09:00). La persona puede volver a pisar cualquiera a mano.
+  async function handleRecalcTimes(day, lane) {
+    if (!day.date || lane.sessions.length === 0) return
+    const starts = lane.sessions
+      .map((session) => clockFromIso(session.startsAt, day.date))
+      .filter(Boolean)
+      .sort()
+    const withBoth = lane.sessions.find((session) => session.startsAt && session.weighInAt)
+    const lead = withBoth
+      ? Math.round((Date.parse(withBoth.startsAt) - Date.parse(withBoth.weighInAt)) / 60_000)
+      : 120
+    const rows = estimateLaneTimes({
+      sessions: lane.sessions,
+      date: day.date,
+      schedule: {
+        firstStart: starts[0] ?? '09:00',
+        minutesPerAthlete,
+        gapMinutes: 10,
+        weighInLeadMinutes: lead > 0 ? lead : 0,
+      },
+    })
+    const byId = new Map(rows.map((row) => [row.id, row]))
+    const payload = sessionsPayloadFromBoard(days).map((session) =>
+      byId.has(session.id)
+        ? {
+            ...session,
+            startsAt: byId.get(session.id).startsAt,
+            weighInAt: byId.get(session.id).weighInAt,
+          }
+        : session,
     )
+    if (!(await saveSessions(payload))) return
+    setUndoToken(null)
+    setNotice(t('admin.board.timesRecalculated', { count: rows.length }))
   }
 
   function startEditSession(day, session) {
@@ -248,7 +467,9 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
       dayIndex: day.dayIndex,
       name: session.name,
       platform: session.platform ?? '',
-      weighInAt: toLocalInputValue(session.weighInAt),
+      platformId: session.platformId ?? '',
+      athleteCount: session.athletes.length,
+      ...draftTimesFromSession(session, day.date),
     })
   }
 
@@ -259,33 +480,96 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
     if (!name) return
     // El RPC reemplaza el set completo de tandas: hay que mandar todas las de
     // todos los días, con la editada ya pisada, o el resto se borra.
-    const payload = days.flatMap((day) =>
-      day.sessions.map((session) =>
-        session.id === editingSession.sessionId
-          ? {
-              id: session.id,
-              dayIndex: day.dayIndex,
-              name,
-              platform: editingSession.platform.trim(),
-              weighInAt: fromLocalInputValue(editingSession.weighInAt),
-              startsAt: session.startsAt ?? '',
-              sortOrder: session.sortOrder ?? 0,
-            }
-          : {
-              id: session.id,
-              dayIndex: day.dayIndex,
-              name: session.name,
-              platform: session.platform ?? '',
-              weighInAt: session.weighInAt ?? '',
-              startsAt: session.startsAt ?? '',
-              sortOrder: session.sortOrder ?? 0,
-            },
-      ),
+    const chosenPlatform = platforms.find((item) => item.id === editingSession.platformId)
+    const hasPlatforms = platforms.length > 0
+    const payload = sessionsPayloadFromBoard(days).map((session) =>
+      session.id === editingSession.sessionId
+        ? {
+            ...session,
+            name,
+            // Con tablados definidos manda el id (null = sin tablado); sin ellos
+            // sigue siendo el texto libre de siempre.
+            platform: chosenPlatform?.name ?? (hasPlatforms ? '' : editingSession.platform.trim()),
+            ...(hasPlatforms ? { platformId: chosenPlatform?.id ?? null } : {}),
+            weighInAt: isoFromDraftTime(editingSession, 'weighInAt'),
+            startsAt: isoFromDraftTime(editingSession, 'startsAt'),
+          }
+        : session,
     )
     const ok = await saveSessions(payload)
     if (!ok) return
     setEditingSession(null)
     setNotice(t('admin.board.sessionSaved'))
+  }
+
+  async function handleApplyPlan(plan, extras) {
+    const result = await applyPlan(plan, extras)
+    if (!result) return
+    setSelected(new Set())
+    setPlanOpen(false)
+    setUndoToken(result.undo)
+    setNotice(
+      result.leftover > 0
+        ? t('admin.board.planAppliedPartial', {
+            count: result.updated,
+            total: result.requested,
+            leftover: result.leftover,
+          })
+        : t('admin.board.planApplied', { count: result.updated }),
+    )
+  }
+
+  async function handleUndo() {
+    const token = undoToken
+    if (!token) return
+    const result = await restore(token)
+    if (!result) return
+    setUndoToken(null)
+    setSelected(new Set())
+    setNotice(t('admin.board.undone', { count: result.restored }))
+  }
+
+  async function handlePrune() {
+    const removed = await pruneEmptySessions()
+    if (removed === null) return
+    setUndoToken(null)
+    setNotice(t('admin.board.pruned', { count: removed }))
+  }
+
+  async function handleAddSession(day, platformId) {
+    const name = await addSession({ dayIndex: day.dayIndex, platformId })
+    if (name) {
+      setUndoToken(null)
+      setNotice(t('admin.board.sessionAdded', { name }))
+    }
+  }
+
+  async function handleRemoveSession(session) {
+    if (!(await removeSession(session.id))) return
+    setUndoToken(null)
+    setNotice(t('admin.board.sessionRemoved'))
+  }
+
+  async function handleTogglePublic(next) {
+    if (!(await setSchedulePublic(next))) return
+    setNotice(t(next ? 'admin.board.publishedOn' : 'admin.board.publishedOff'))
+  }
+
+  async function handleSavePlatforms(next) {
+    const ok = await savePlatforms(next)
+    if (ok) {
+      setUndoToken(null)
+      setNotice(t('admin.board.platformsSaved'))
+    }
+    return ok
+  }
+
+  // Renombrar desde la cabecera de una columna: el set completo, con un solo
+  // nombre cambiado. Los tablados son del evento, no del día.
+  function handleRenamePlatform(platformId, name) {
+    return handleSavePlatforms(
+      platforms.map((item) => ({ id: item.id, name: item.id === platformId ? name : item.name })),
+    )
   }
 
   if (eventOptions.length === 0) {
@@ -326,8 +610,18 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
         </p>
       )}
       {notice && (
-        <p className="admin-board__notice" role="status">
+        <p className="admin-board__notice" role="status" key={notice}>
           {notice}
+          {undoToken ? (
+            <button
+              type="button"
+              className="admin-board__text-btn admin-board__notice-undo"
+              onClick={handleUndo}
+              disabled={busy || !canEdit}
+            >
+              {t('admin.board.undo')}
+            </button>
+          ) : null}
         </p>
       )}
 
@@ -339,10 +633,10 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
         <DndContext
           sensors={sensors}
           collisionDetection={boardCollision}
-          onDragStart={handleDragStart}
+          autoScroll={{ acceleration: 16 }}
           onDragEnd={handleDragEnd}
-          onDragCancel={handleDragCancel}
         >
+          <DragLayoutClass targetRef={layoutRef} />
           {/* Ledger tipográfico: solo cuando hay grilla que operar. */}
           <dl className="admin-board__totals">
             <div className="admin-board__total admin-board__total--lead">
@@ -365,6 +659,35 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
             </div>
           </dl>
 
+          <PlatformBar
+            busy={busy}
+            canEdit={canStructure}
+            onSave={handleSavePlatforms}
+            platforms={platforms}
+            t={t}
+          />
+
+          <PublishToggle
+            busy={busy}
+            canEdit={canStructure}
+            eventPublished={board?.event?.published}
+            onChange={handleTogglePublic}
+            onPreview={() => setPreviewOpen(true)}
+            t={t}
+            value={schedulePublic}
+          />
+
+          {previewOpen ? (
+            <PublicSchedulePreview
+              board={board}
+              loadedAt={loadedAt}
+              onClose={() => setPreviewOpen(false)}
+              onRefresh={reload}
+              published={schedulePublic}
+              t={t}
+            />
+          ) : null}
+
           {sessionsMissing && (
             <p className="admin-board__setup-banner" role="status">
               <span className="admin-board__setup-kicker">{t('admin.board.setupHint')}</span>
@@ -376,6 +699,89 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
               ) : null}
             </p>
           )}
+
+          <div className="admin-board__controls">
+            {canEdit && canStructure && days.length > 0 && unassigned.length > 0 ? (
+              <Button
+                type="button"
+                variant={planOpen ? 'outline' : 'primary'}
+                className="btn--small"
+                aria-expanded={planOpen}
+                onClick={() => setPlanOpen((open) => !open)}
+                disabled={busy}
+              >
+                <Sparkles size={15} aria-hidden />
+                {t('admin.board.planOpen')}
+              </Button>
+            ) : null}
+
+            {days.some((day) => day.sessions.length > 0 || canStructure) ? (
+              <label className="admin-board__controls-field">
+                <span>{t('admin.board.flightSize')}</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={flightSize}
+                  onChange={(event) => setFlightSize(Number(event.target.value) || 1)}
+                  disabled={!canEdit || busy}
+                />
+              </label>
+            ) : null}
+
+            {days.some((day) => day.date) ? (
+              <label className="admin-board__controls-field">
+                <span>{t('admin.board.minutesPerAthlete')}</span>
+                <input
+                  type="number"
+                  min={0.5}
+                  max={60}
+                  step={0.5}
+                  inputMode="decimal"
+                  value={minutesPerAthlete}
+                  onChange={(event) => changeMinutesPerAthlete(event.target.value)}
+                  disabled={!canEdit || busy}
+                />
+              </label>
+            ) : null}
+
+            {sessionTotal > 0 ? (
+              <div className="admin-board__density">
+                <span className="admin-board__plan-label">{t('admin.board.densityLabel')}</span>
+                <SegmentedSwitch
+                  active={density}
+                  ariaLabel={t('admin.board.densityAria')}
+                  className="admin-board__view-switch"
+                  onChange={changeDensity}
+                  options={[
+                    ['compact', t('admin.board.densityCompact')],
+                    ['detail', t('admin.board.densityDetail')],
+                  ]}
+                />
+              </div>
+            ) : null}
+          </div>
+
+          {planOpen ? (
+            <PlanPanel
+              board={board}
+              busy={busy}
+              canSaveTemplates={canStructure}
+              days={days}
+              emptySessions={emptySessions}
+              flightSize={flightSize}
+              key={`${eventSlug}-${platforms.map((item) => item.id).join(',')}`}
+              locale={locale}
+              minutesPerAthlete={minutesPerAthlete}
+              onApply={handleApplyPlan}
+              onClose={() => setPlanOpen(false)}
+              onPrune={handlePrune}
+              platforms={platforms}
+              poolAthletes={planAthletes}
+              t={t}
+              templatesApi={templatesApi}
+            />
+          ) : null}
 
           {canEdit && <p className="admin-board__drag-hint">{t('admin.board.dragHint')}</p>}
 
@@ -392,15 +798,20 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
           )}
 
           <div
-            className={`admin-board__layout${activeDrag ? ' admin-board__layout--dragging' : ''}`}
+            className={`admin-board__layout${unassigned.length === 0 ? ' admin-board__layout--solo' : ''}`}
+            ref={layoutRef}
           >
             <AthletePool
               athletes={unassigned}
               canDrag={dndEnabled}
+              filters={poolFilters}
+              onFilters={setPoolFilters}
               onToggle={toggle}
               onToggleMany={toggleMany}
+              onView={setPoolView}
               selected={selected}
               t={t}
+              view={poolView}
             />
 
             <div className="admin-board__days">
@@ -409,22 +820,34 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
                   busy={busy}
                   canDrag={dndEnabled}
                   canEdit={canEdit}
+                  canStructure={canStructure}
+                  canMove={canEdit}
                   day={day}
+                  density={density}
                   editingSession={editingSession}
+                  expanded={expanded}
                   flightSize={flightSize}
                   key={day.id}
                   locale={locale}
+                  minutesPerAthlete={minutesPerAthlete}
+                  onAddSession={handleAddSession}
                   onAutofill={handleAutofill}
                   onCancelEditSession={() => setEditingSession(null)}
                   onEditSession={startEditSession}
-                  onFlightSizeChange={setFlightSize}
+                  onFill={handleFill}
                   onGoToEvents={onGoToEvents}
+                  onRecalcTimes={handleRecalcTimes}
+                  onRemoveSession={handleRemoveSession}
+                  onRenamePlatform={handleRenamePlatform}
+                  onToggleExpanded={toggleExpanded}
                   onSaveSession={handleSaveSession}
                   onSessionDraftChange={(patch) =>
                     setEditingSession((current) => (current ? { ...current, ...patch } : current))
                   }
                   onToggle={toggle}
                   onToggleMany={toggleMany}
+                  platforms={platforms}
+                  pool={unassigned}
                   selected={selected}
                   t={t}
                 />
@@ -433,13 +856,7 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
           </div>
 
           <DragOverlay dropAnimation={null}>
-            {activeDrag ? (
-              <DragChip
-                athlete={activeDrag.athlete}
-                count={selected.has(activeDrag.athlete.registrationId) ? selectedIds.length : 1}
-                t={t}
-              />
-            ) : null}
+            <DragOverlayContent days={days} selected={selected} selectedIds={selectedIds} t={t} />
           </DragOverlay>
         </DndContext>
       )}
@@ -559,13 +976,42 @@ function MoveBar({ busy, days, disabled, onClear, onMove, selectedCount, t }) {
   )
 }
 
-/** Bolsa de inscriptos sin ubicar. Es el trabajo pendiente del operador. */
-function AthletePool({ athletes, canDrag, onToggle, onToggleMany, selected, t }) {
+/** Nombre legible de un grupo de la bolsa: sexo · categoría · división. */
+function groupLabel(group, t) {
+  return [group.sex || t('admin.board.unknownSex'), group.category, group.division]
+    .filter(Boolean)
+    .join(' · ')
+}
+
+/**
+ * Bolsa de inscriptos sin ubicar. Es el trabajo pendiente del operador: con
+ * filtros (sexo, categoría, división, peso, edad) y una vista agrupada para
+ * seleccionar un grupo entero y mandarlo a una tanda de un gesto.
+ */
+function AthletePool({
+  athletes,
+  canDrag,
+  filters,
+  onFilters,
+  onToggle,
+  onToggleMany,
+  onView,
+  selected,
+  t,
+  view,
+}) {
   const { isOver, setNodeRef } = useDroppable({
     id: POOL_DROP_ID,
     disabled: !canDrag,
   })
-  const ids = athletes.map((athlete) => athlete.registrationId)
+  const facets = useMemo(() => compositionFacets(athletes), [athletes])
+  const filtered = useMemo(
+    () => athletes.filter((athlete) => matchesPoolFilters(athlete, filters)),
+    [athletes, filters],
+  )
+  const groups = useMemo(() => (view === 'groups' ? groupAthletes(filtered) : []), [filtered, view])
+  const ids = filtered.map((athlete) => athlete.registrationId)
+  const location = { dayIndex: null, sessionId: null }
 
   return (
     <div
@@ -578,11 +1024,11 @@ function AthletePool({ athletes, canDrag, onToggle, onToggleMany, selected, t })
             <Users size={15} strokeWidth={1.8} />
           </span>
           <h2 className="admin-board__panel-title">{t('admin.board.poolTitle')}</h2>
-          <span className="admin-board__count" aria-label={String(athletes.length)}>
-            {athletes.length}
+          <span className="admin-board__count" aria-label={String(filtered.length)}>
+            {filtered.length}
           </span>
         </div>
-        {athletes.length > 0 ? (
+        {filtered.length > 0 ? (
           <button
             type="button"
             className="admin-board__text-btn admin-board__pool-toggle-all"
@@ -593,16 +1039,61 @@ function AthletePool({ athletes, canDrag, onToggle, onToggleMany, selected, t })
         ) : null}
       </div>
 
+      {athletes.length > 0 ? (
+        <PoolToolbar
+          facets={facets}
+          filters={filters}
+          onChange={onFilters}
+          onView={onView}
+          shown={filtered.length}
+          t={t}
+          total={athletes.length}
+          view={view}
+        />
+      ) : null}
+
       {athletes.length === 0 ? (
         <p className="admin-board__empty admin-board__empty--inline">
           {t('admin.board.poolEmptyReady')}
         </p>
+      ) : filtered.length === 0 ? (
+        <p className="admin-board__empty admin-board__empty--inline">
+          {t('admin.board.poolEmptyFilter')}
+        </p>
+      ) : view === 'groups' ? (
+        <div className="admin-board__pool-scroll">
+          {groups.map((group) => {
+            const name = groupLabel(group, t)
+            const groupIds = group.athletes.map((athlete) => athlete.registrationId)
+            return (
+              <section className="admin-board__group" key={group.key} aria-label={name}>
+                <PoolGroupHead
+                  canDrag={canDrag}
+                  group={group}
+                  groupIds={groupIds}
+                  name={name}
+                  onToggleMany={onToggleMany}
+                  t={t}
+                />
+                <AthleteList
+                  athletes={group.athletes}
+                  canDrag={canDrag}
+                  location={location}
+                  onToggle={onToggle}
+                  selected={selected}
+                  splitMeta
+                  t={t}
+                />
+              </section>
+            )
+          })}
+        </div>
       ) : (
         <div className="admin-board__pool-scroll">
           <AthleteList
-            athletes={athletes}
+            athletes={filtered}
             canDrag={canDrag}
-            location={{ dayIndex: null, sessionId: null }}
+            location={location}
             onToggle={onToggle}
             selected={selected}
             splitMeta
@@ -614,23 +1105,63 @@ function AthletePool({ athletes, canDrag, onToggle, onToggleMany, selected, t })
   )
 }
 
+/**
+ * Carriles del día: una columna por tablado. Sin tablados definidos hay un solo
+ * carril sin cabecera (el comportamiento de siempre). Las tandas cuyo tablado
+ * ya no existe, o que nunca tuvieron, caen en un carril "sin tablado" para que
+ * no desaparezcan del tablero.
+ */
+function buildLanes(day, platforms, t) {
+  if (platforms.length === 0) {
+    return [{ key: 'all', platform: null, sessions: day.sessions }]
+  }
+  const known = new Set(platforms.map((platform) => platform.id))
+  const lanes = platforms.map((platform) => ({
+    key: platform.id,
+    platform,
+    sessions: day.sessions.filter((session) => session.platformId === platform.id),
+  }))
+  const orphans = day.sessions.filter(
+    (session) => !session.platformId || !known.has(session.platformId),
+  )
+  if (orphans.length > 0) {
+    lanes.push({
+      key: 'none',
+      platform: { id: null, name: t('admin.board.platformNone') },
+      sessions: orphans,
+    })
+  }
+  return lanes
+}
+
 function DayColumn({
   busy,
   canDrag,
   canEdit,
+  canMove,
+  canStructure,
   day,
+  density,
   editingSession,
+  expanded,
   flightSize,
   locale,
+  minutesPerAthlete,
+  onAddSession,
   onAutofill,
   onCancelEditSession,
   onEditSession,
-  onFlightSizeChange,
-  onGoToEvents,
+  onFill,
+  onRecalcTimes,
+  onRemoveSession,
+  onRenamePlatform,
   onSaveSession,
   onSessionDraftChange,
   onToggle,
+  onToggleExpanded,
   onToggleMany,
+  platforms,
+  pool,
   selected,
   t,
 }) {
@@ -638,6 +1169,8 @@ function DayColumn({
     id: dropIdForDay(day.dayIndex),
     disabled: !canDrag,
   })
+  const lanes = useMemo(() => buildLanes(day, platforms, t), [day, platforms, t])
+  const hasPlatforms = platforms.length > 0
 
   return (
     <section
@@ -651,164 +1184,137 @@ function DayColumn({
         </span>
         <h2 className="admin-board__panel-title">{day.label}</h2>
         <span className="admin-board__count">{day.assignedCount}</span>
-      </div>
-
-      {day.sessions.length > 0 && (
-        <div className="admin-board__autofill">
-          <label className="admin-board__autofill-field">
-            <span>{t('admin.board.flightSize')}</span>
-            <input
-              type="number"
-              min={1}
-              max={100}
-              value={flightSize}
-              onChange={(event) => onFlightSizeChange(Number(event.target.value) || 1)}
-              disabled={!canEdit || busy}
-            />
-          </label>
+        {canEdit && (day.sessions.length > 0 || canStructure) ? (
           <Button
             type="button"
             variant="outline"
-            className="btn--small"
-            disabled={!canEdit || busy}
-            onClick={() => onAutofill(day.dayIndex)}
+            className="btn--small admin-board__day-fill"
+            disabled={busy || pool.length === 0}
+            onClick={() => onAutofill(day)}
             aria-label={t('admin.board.autofill', { day: day.label })}
           >
             <Sparkles size={15} aria-hidden />
             {t('admin.board.autofillShort')}
           </Button>
-        </div>
+        ) : null}
+      </div>
+
+      {day.sessions.length === 0 && (
+        <p className="admin-board__empty admin-board__empty--inline">
+          {t('admin.board.noSessions')}
+        </p>
       )}
 
-      {day.sessions.length === 0 ? (
-        <div className="admin-board__day-empty">
-          <p className="admin-board__empty admin-board__empty--inline">
-            {t('admin.board.noSessions')}
-          </p>
-          {onGoToEvents ? (
-            <button type="button" className="admin-board__text-btn" onClick={onGoToEvents}>
-              {t('admin.board.noDaysCta')}
-            </button>
-          ) : null}
-        </div>
-      ) : (
-        day.sessions.map((session) => {
-          const ids = session.athletes.map((athlete) => athlete.registrationId)
-          const detail = [
-            session.platform,
-            session.weighInAt &&
-              `${t('admin.checkin.weighIn')} ${formatScheduleTime(session.weighInAt, locale)}`,
-          ]
-            .filter(Boolean)
-            .join(' · ')
-          const isEditing = editingSession?.sessionId === session.id
+      <div className="admin-board__lanes" data-lanes={lanes.length}>
+        {lanes.map((lane) => {
+          const laneAthletes = lane.sessions.reduce(
+            (total, session) => total + session.athletes.length,
+            0,
+          )
+          const addLabel = lane.platform
+            ? t('admin.board.addSessionLane', { platform: lane.platform.name, day: day.label })
+            : t('admin.board.addSessionAria', { day: day.label })
 
           return (
-            <SessionBlock
-              canDrag={canDrag && !isEditing}
-              dayIndex={day.dayIndex}
-              isEditing={isEditing}
-              key={session.id}
-              session={session}
+            <div
+              className="admin-board__lane"
+              key={lane.key}
+              role="group"
+              aria-label={
+                lane.platform
+                  ? t('admin.board.platformLaneAria', { name: lane.platform.name })
+                  : undefined
+              }
             >
-              {isEditing ? (
-                <form className="admin-board__session-edit" onSubmit={onSaveSession}>
-                  <div className="admin-board__session-edit-grid">
-                    <label className="admin-board__session-edit-field">
-                      <span>{t('admin.board.sessionName')}</span>
-                      <input
-                        type="text"
-                        required
-                        maxLength={80}
-                        value={editingSession.name}
-                        onChange={(event) => onSessionDraftChange({ name: event.target.value })}
-                        disabled={busy}
-                      />
-                    </label>
-                    <label className="admin-board__session-edit-field">
-                      <span>{t('admin.board.sessionPlatform')}</span>
-                      <input
-                        type="text"
-                        maxLength={80}
-                        value={editingSession.platform}
-                        onChange={(event) => onSessionDraftChange({ platform: event.target.value })}
-                        disabled={busy}
-                      />
-                    </label>
-                    <label className="admin-board__session-edit-field">
-                      <span>{t('admin.board.sessionWeighIn')}</span>
-                      <input
-                        type="datetime-local"
-                        value={editingSession.weighInAt}
-                        onChange={(event) =>
-                          onSessionDraftChange({ weighInAt: event.target.value })
-                        }
-                        disabled={busy}
-                      />
-                    </label>
-                  </div>
-                  <div className="admin-board__session-edit-actions">
-                    <Button type="submit" className="btn--small" disabled={busy}>
-                      {busy ? t('admin.board.savingSession') : t('admin.board.saveSession')}
-                    </Button>
-                    <button
-                      type="button"
-                      className="admin-board__text-btn"
-                      onClick={onCancelEditSession}
-                      disabled={busy}
-                    >
-                      {t('admin.board.cancelSessionEdit')}
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <>
-                  <div className="admin-board__session-head">
-                    <h3 className="admin-board__session-name">{session.name}</h3>
-                    <span className="admin-board__count">{session.athletes.length}</span>
-                    {canEdit && (
-                      <button
-                        type="button"
-                        className="admin-board__icon-btn"
-                        onClick={() => onEditSession(day, session)}
-                        aria-label={t('admin.board.editSession')}
-                        title={t('admin.board.editSession')}
-                      >
-                        <Pencil size={13} aria-hidden />
-                      </button>
-                    )}
-                  </div>
-                  {detail && <p className="admin-board__session-detail">{detail}</p>}
-
-                  {session.athletes.length === 0 ? (
-                    <p className="admin-board__empty admin-board__empty--inline">
-                      {t('admin.board.sessionEmpty')}
-                    </p>
+              {lane.platform ? (
+                <div className="admin-board__lane-head">
+                  {lane.platform.id ? (
+                    <LaneNameEditor
+                      busy={busy}
+                      canEdit={canStructure}
+                      name={lane.platform.name}
+                      onRename={(name) => onRenamePlatform(lane.platform.id, name)}
+                      siblings={platforms
+                        .filter((item) => item.id !== lane.platform.id)
+                        .map((item) => item.name)}
+                      t={t}
+                    />
                   ) : (
-                    <>
-                      <button
-                        type="button"
-                        className="admin-board__text-btn"
-                        onClick={() => onToggleMany(ids)}
-                      >
-                        {t('admin.board.toggleAll')}
-                      </button>
-                      <AthleteList
-                        athletes={session.athletes}
-                        canDrag={canDrag}
-                        location={{ dayIndex: day.dayIndex, sessionId: session.id }}
-                        onToggle={onToggle}
-                        selected={selected}
-                        t={t}
-                      />
-                    </>
+                    <h3 className="admin-board__lane-name">{lane.platform.name}</h3>
                   )}
-                </>
-              )}
-            </SessionBlock>
+                  <span className="admin-board__lane-count">
+                    {t('admin.board.platformLaneCount', {
+                      sessions: lane.sessions.length,
+                      athletes: laneAthletes,
+                    })}
+                  </span>
+                </div>
+              ) : null}
+
+              {canStructure && day.date && lane.sessions.length > 0 ? (
+                <button
+                  type="button"
+                  className="admin-board__text-btn admin-board__lane-recalc"
+                  onClick={() => onRecalcTimes(day, lane)}
+                  disabled={busy}
+                  aria-label={t('admin.board.recalcTimesAria', {
+                    name: lane.platform?.name ?? day.label,
+                    day: day.label,
+                  })}
+                >
+                  <Clock size={13} aria-hidden />
+                  {t('admin.board.recalcTimes')}
+                </button>
+              ) : null}
+
+              {lane.sessions.map((session) => (
+                <SessionItem
+                  busy={busy}
+                  canDrag={canDrag}
+                  canMove={canMove}
+                  canStructure={canStructure}
+                  day={day}
+                  density={density}
+                  editingSession={editingSession}
+                  expanded={expanded.has(session.id)}
+                  flightSize={flightSize}
+                  hasPlatforms={hasPlatforms}
+                  key={session.id}
+                  locale={locale}
+                  minutesPerAthlete={minutesPerAthlete}
+                  onCancelEditSession={onCancelEditSession}
+                  onEditSession={onEditSession}
+                  onFill={onFill}
+                  onRemoveSession={onRemoveSession}
+                  onSaveSession={onSaveSession}
+                  onSessionDraftChange={onSessionDraftChange}
+                  onToggle={onToggle}
+                  onToggleExpanded={onToggleExpanded}
+                  onToggleMany={onToggleMany}
+                  platforms={platforms}
+                  pool={pool}
+                  selected={selected}
+                  session={session}
+                  t={t}
+                />
+              ))}
+
+              {canStructure && lane.key !== 'none' ? (
+                <button
+                  type="button"
+                  className="admin-board__add-session"
+                  onClick={() => onAddSession(day, lane.platform?.id ?? null)}
+                  disabled={busy}
+                  aria-label={addLabel}
+                >
+                  <Plus size={14} aria-hidden />
+                  {t('admin.board.addSession')}
+                </button>
+              ) : null}
+            </div>
           )
-        })
-      )}
+        })}
+      </div>
 
       {/* Con día pero sin tanda: si no se mostrara, esa gente desaparecería
           del tablero y nadie notaría que le falta ubicación. */}
@@ -832,6 +1338,204 @@ function DayColumn({
   )
 }
 
+/** Una tanda: cabecera con ocupación y composición, edición inline y roster. */
+function SessionItem({
+  busy,
+  canDrag,
+  canMove,
+  canStructure,
+  day,
+  density,
+  editingSession,
+  expanded,
+  flightSize,
+  hasPlatforms,
+  locale,
+  minutesPerAthlete,
+  onCancelEditSession,
+  onEditSession,
+  onFill,
+  onRemoveSession,
+  onSaveSession,
+  onSessionDraftChange,
+  onToggle,
+  onToggleExpanded,
+  onToggleMany,
+  platforms,
+  pool,
+  selected,
+  session,
+  t,
+}) {
+  const ids = session.athletes.map((athlete) => athlete.registrationId)
+  const stats = sessionStats(session.athletes, flightSize)
+  const compact = density === 'compact'
+  // Compacta: la tanda es su cabecera (nombre, ocupación, composición) y el
+  // plantel se abre a pedido. Sigue siendo una zona de destino completa.
+  const showRoster = !compact || expanded
+  const fill = useMemo(
+    () => (canMove ? suggestFill({ session, pool, capacity: flightSize }) : []),
+    [canMove, session, pool, flightSize],
+  )
+  // Con carriles el tablado ya es la cabecera de la columna: repetirlo en cada
+  // tanda sería ruido. Sin tablados definidos, la plataforma de texto sigue acá.
+  const detail = [
+    !hasPlatforms && session.platform,
+    session.weighInAt &&
+      `${t('admin.checkin.weighIn')} ${formatScheduleTime(session.weighInAt, locale)}`,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+  const isEditing = editingSession?.sessionId === session.id
+
+  return (
+    <SessionBlock
+      canDrag={canDrag && !isEditing}
+      dayIndex={day.dayIndex}
+      isEditing={isEditing}
+      session={session}
+    >
+      {isEditing ? (
+        <SessionEditForm
+          athleteCount={session.athletes.length}
+          busy={busy}
+          draft={editingSession}
+          hasPlatforms={hasPlatforms}
+          minutesPerAthlete={minutesPerAthlete}
+          onCancel={onCancelEditSession}
+          onChange={onSessionDraftChange}
+          onSubmit={onSaveSession}
+          platforms={platforms}
+          t={t}
+        />
+      ) : (
+        <>
+          <div className="admin-board__session-head">
+            {session.startsAt ? (
+              <time className="admin-board__session-time" dateTime={session.startsAt}>
+                {formatScheduleTime(session.startsAt, locale)}
+              </time>
+            ) : null}
+            <h3 className="admin-board__session-name">{session.name}</h3>
+            <span
+              className={`admin-board__occupancy${stats.over ? ' is-over' : ''}`}
+              title={stats.over ? t('admin.board.sessionOver') : undefined}
+            >
+              {t('admin.board.occupancy', { count: stats.count, max: stats.capacity })}
+            </span>
+            {compact && session.athletes.length > 0 ? (
+              <button
+                type="button"
+                className="admin-board__icon-btn admin-board__icon-btn--visible"
+                aria-expanded={expanded}
+                onClick={() => onToggleExpanded(session.id)}
+                aria-label={t(
+                  expanded ? 'admin.board.collapseSession' : 'admin.board.expandSession',
+                  {
+                    name: session.name,
+                  },
+                )}
+                title={t(expanded ? 'admin.board.collapseSession' : 'admin.board.expandSession', {
+                  name: session.name,
+                })}
+              >
+                <ChevronRight className="admin-board__chevron" size={14} aria-hidden />
+              </button>
+            ) : null}
+            {canStructure && (
+              <button
+                type="button"
+                className="admin-board__icon-btn"
+                onClick={() => onEditSession(day, session)}
+                aria-label={t('admin.board.editSession')}
+                title={t('admin.board.editSession')}
+              >
+                <Pencil size={13} aria-hidden />
+              </button>
+            )}
+            {canStructure && (
+              <button
+                type="button"
+                className="admin-board__icon-btn"
+                onClick={() => onRemoveSession(session)}
+                disabled={busy || session.athletes.length > 0}
+                aria-label={t('admin.board.removeSessionAria', { name: session.name })}
+                title={
+                  session.athletes.length > 0
+                    ? t('admin.board.removeSessionHasAthletes')
+                    : t('admin.board.removeSession')
+                }
+              >
+                <Trash2 size={13} aria-hidden />
+              </button>
+            )}
+          </div>
+          <span className="admin-board__meter" aria-hidden>
+            <span
+              className={stats.over ? 'is-over' : undefined}
+              style={{
+                width: `${Math.min(100, (stats.count / Math.max(1, stats.capacity)) * 100)}%`,
+              }}
+            />
+          </span>
+          {detail && <p className="admin-board__session-detail">{detail}</p>}
+          {(stats.composition || stats.mixedSex || stats.over) && (
+            <p className="admin-board__session-composition">
+              {stats.composition ? <span>{stats.composition}</span> : null}
+              {stats.mixedSex ? (
+                <span className="admin-board__flag">{t('admin.board.sessionMixedSex')}</span>
+              ) : null}
+              {stats.over ? (
+                <span className="admin-board__flag">{t('admin.board.sessionOver')}</span>
+              ) : null}
+            </p>
+          )}
+
+          {fill.length > 0 ? (
+            <button
+              type="button"
+              className="admin-board__text-btn admin-board__fill"
+              onClick={() => onFill(day, session, fill)}
+              disabled={busy}
+              aria-label={t('admin.board.fillSessionAria', {
+                name: session.name,
+                count: fill.length,
+              })}
+            >
+              <Sparkles size={13} aria-hidden />
+              {t('admin.board.fillSession', { count: fill.length })}
+            </button>
+          ) : null}
+
+          {session.athletes.length === 0 ? (
+            <p className="admin-board__empty admin-board__empty--inline">
+              {t('admin.board.sessionEmpty')}
+            </p>
+          ) : showRoster ? (
+            <>
+              <button
+                type="button"
+                className="admin-board__text-btn"
+                onClick={() => onToggleMany(ids)}
+              >
+                {t('admin.board.toggleAll')}
+              </button>
+              <AthleteList
+                athletes={session.athletes}
+                canDrag={canDrag}
+                location={{ dayIndex: day.dayIndex, sessionId: session.id }}
+                onToggle={onToggle}
+                selected={selected}
+                t={t}
+              />
+            </>
+          ) : null}
+        </>
+      )}
+    </SessionBlock>
+  )
+}
+
 /** Tanda como drop zone: recibe atletas arrastrados además de los del lote. */
 function SessionBlock({ canDrag, dayIndex, isEditing, session, children }) {
   const { isOver, setNodeRef } = useDroppable({
@@ -852,16 +1556,19 @@ function SessionBlock({ canDrag, dayIndex, isEditing, session, children }) {
 }
 
 function AthleteList({ athletes, canDrag, location, onToggle, selected, splitMeta = false, t }) {
+  const dayIndex = location.dayIndex
+  const sessionId = location.sessionId
   return (
     <ul className="admin-board__list">
       {athletes.map((athlete) => (
         <AthleteRow
           athlete={athlete}
           canDrag={canDrag}
+          checked={selected.has(athlete.registrationId)}
+          dayIndex={dayIndex}
           key={athlete.registrationId}
-          location={location}
           onToggle={onToggle}
-          selected={selected}
+          sessionId={sessionId}
           splitMeta={splitMeta}
           t={t}
         />
@@ -875,15 +1582,33 @@ function AthleteList({ athletes, canDrag, location, onToggle, selected, splitMet
  * el MouseSensor pide 6px de recorrido antes de activar el arrastre, así que
  * clic y drag no se pisan. El camino de teclado es la barra de movimiento.
  */
-function AthleteRow({ athlete, canDrag, location, onToggle, selected, splitMeta = false, t }) {
+const AthleteRow = memo(function AthleteRow({
+  athlete,
+  canDrag,
+  checked,
+  dayIndex,
+  onToggle,
+  sessionId,
+  splitMeta = false,
+  t,
+}) {
+  // `checked` llega como booleano (y no el Set de la selección) para que tildar
+  // una fila no re-renderice las otras 233.
+  const data = useMemo(
+    () => ({ athlete, location: { dayIndex, sessionId } }),
+    [athlete, dayIndex, sessionId],
+  )
   const { listeners, setNodeRef, isDragging } = useDraggable({
     id: `athlete|${athlete.registrationId}`,
-    data: { athlete, location },
+    data,
     disabled: !canDrag,
   })
 
-  const specs = athleteSpecs(athlete)
-  const gym = athlete.gym || ''
+  // En la bolsa el peso va aparte (es el dato por el que se ordena) y el resto
+  // en una sola línea: categoría · división · edad · club.
+  const poolMeta = [athlete.category, athlete.division, ageLabel(athlete, t), athlete.gym]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
     <li ref={setNodeRef} {...(canDrag ? listeners : {})}>
@@ -894,7 +1619,7 @@ function AthleteRow({ athlete, canDrag, location, onToggle, selected, splitMeta 
       >
         <input
           type="checkbox"
-          checked={selected.has(athlete.registrationId)}
+          checked={checked}
           onChange={() => onToggle(athlete.registrationId)}
           aria-label={t('admin.board.selectAthlete', { name: athlete.fullName })}
         />
@@ -902,19 +1627,20 @@ function AthleteRow({ athlete, canDrag, location, onToggle, selected, splitMeta 
           <span className="admin-board__athlete-name">{athlete.fullName}</span>
           {splitMeta ? (
             <>
-              {specs ? (
-                <span className="admin-board__athlete-meta admin-board__athlete-meta--specs">
-                  {specs}
-                </span>
+              {athlete.bodyweightKg ? (
+                <span className="admin-board__athlete-weight">{athlete.bodyweightKg} kg</span>
               ) : null}
-              {gym ? (
-                <span className="admin-board__athlete-gym" title={gym}>
-                  {gym}
+              {poolMeta ? (
+                <span
+                  className="admin-board__athlete-meta admin-board__athlete-meta--specs"
+                  title={poolMeta}
+                >
+                  {poolMeta}
                 </span>
               ) : null}
             </>
           ) : (
-            <span className="admin-board__athlete-meta">{athleteMeta(athlete)}</span>
+            <span className="admin-board__athlete-meta">{athleteMeta(athlete, t)}</span>
           )}
         </span>
         {athlete.checkedIn && (
@@ -926,18 +1652,88 @@ function AthleteRow({ athlete, canDrag, location, onToggle, selected, splitMeta 
       </label>
     </li>
   )
-}
+})
 
 /** Chip flotante durante el arrastre: nombre + cuántos viajan juntos. */
-function DragChip({ athlete, count, t }) {
+function DragChip({ count, name, target, t }) {
   return (
     <div className="admin-board__drag-chip admin-glass--strong">
-      <span className="admin-board__drag-chip-name">{athlete.fullName}</span>
+      <span className="admin-board__drag-chip-name">{name}</span>
       {count > 1 && (
         <span className="admin-board__drag-chip-count">
           {t('admin.board.selectedCount', { count })}
         </span>
       )}
+      {target ? (
+        <span className="admin-board__drag-chip-target">
+          {t('admin.board.dragTarget', { name: target })}
+        </span>
+      ) : null}
+    </div>
+  )
+}
+
+/**
+ * Contenido de la ficha que flota. Lee el arrastre del contexto de dnd-kit en
+ * vez de recibirlo por props: así empezar a arrastrar no re-renderiza el tablero
+ * entero. Dice a dónde va (la zona bajo el puntero) antes de soltar.
+ */
+function DragOverlayContent({ days, selected, selectedIds, t }) {
+  const { active, over } = useDndContext()
+  const data = active?.data.current
+  if (!data) return null
+  const count = data.group
+    ? data.group.ids.length
+    : selected.has(data.athlete.registrationId)
+      ? selectedIds.length
+      : 1
+  return (
+    <DragChip
+      count={count}
+      name={data.group ? data.group.name : data.athlete.fullName}
+      t={t}
+      target={over ? dropLabel(over.id, days, t) : ''}
+    />
+  )
+}
+
+/** Marca el tablero mientras hay un arrastre (las zonas de destino se insinúan) sin pasar por estado de React. */
+function DragLayoutClass({ targetRef }) {
+  const mark = (on) => () => targetRef.current?.classList.toggle('admin-board__layout--dragging', on)
+  useDndMonitor({ onDragStart: mark(true), onDragEnd: mark(false), onDragCancel: mark(false) })
+  return null
+}
+
+/** Cabecera de un grupo de la bolsa. Se arrastra entera: el grupo viaja de una a una tanda. */
+function PoolGroupHead({ canDrag, group, groupIds, name, onToggleMany, t }) {
+  const data = useMemo(
+    () => ({ group: { name, ids: groupIds }, location: POOL_LOCATION }),
+    [name, groupIds],
+  )
+  const { listeners, setNodeRef, isDragging } = useDraggable({
+    id: `group|${group.key}`,
+    data,
+    disabled: !canDrag,
+  })
+  return (
+    <div
+      ref={setNodeRef}
+      {...(canDrag ? listeners : {})}
+      className={`admin-board__group-head${canDrag ? ' admin-board__group-head--draggable' : ''}${
+        isDragging ? ' is-dragging' : ''
+      }`}
+      title={canDrag ? t('admin.board.groupDrag', { name }) : undefined}
+    >
+      <h3 className="admin-board__group-name">{name}</h3>
+      <span className="admin-board__count">{group.athletes.length}</span>
+      <button
+        type="button"
+        className="admin-board__text-btn admin-board__group-select"
+        onClick={() => onToggleMany(groupIds)}
+        aria-label={t('admin.board.groupSelect', { name })}
+      >
+        {t('admin.board.selectGroup')}
+      </button>
     </div>
   )
 }

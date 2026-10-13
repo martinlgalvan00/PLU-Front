@@ -310,6 +310,77 @@
   text-transform: uppercase;
 }
 
+.roles-compare__group th {
+  padding: 0;
+}
+
+.roles-compare__group-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 8px;
+  letter-spacing: inherit;
+  min-height: 40px;
+  padding: 0 14px;
+  text-align: left;
+  text-transform: inherit;
+  width: 100%;
+}
+
+.roles-compare__group-toggle:hover {
+  color: var(--admin-ink);
+}
+
+.roles-compare__group-toggle:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: -2px;
+}
+
+.roles-compare__chevron {
+  flex: none;
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.roles-compare__group-toggle[aria-expanded='false'] .roles-compare__chevron {
+  transform: rotate(-90deg);
+}
+
+.roles-compare__group-count {
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0;
+  margin-left: auto;
+  text-transform: none;
+}
+
+.roles-compare__fold-all {
+  background: transparent;
+  border: 0;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  min-height: 32px;
+  padding: 0 4px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.roles-compare__fold-all:hover {
+  color: var(--admin-ink);
+}
+
+.roles-compare__fold-all:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
 .roles-compare__group small {
   font-size: 12px;
   font-weight: 400;
@@ -1286,6 +1357,7 @@
   .roles-pill__box,
   .roles-rail__item,
   .roles-add,
+  .roles-compare__chevron,
   .roles-editor__presets button {
     transition: none;
   }
