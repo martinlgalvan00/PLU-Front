@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from '../lib/api.js'
+import { apiDelete, apiGet, apiPost } from '../lib/api.js'
 import { toCamelEventPlatform, toCamelEventSchedule } from '../lib/eventSchedule.js'
 import { normalizePublicSchedule } from '../lib/publicSchedule.js'
 
@@ -64,6 +64,28 @@ export async function saveEventPlatforms(eventSlug, platforms) {
     platforms,
   })
   return toCamelEventSchedule(schedule)
+}
+
+/** Plantillas de grilla de la organización (cualquier evento las ve). */
+export async function fetchGridTemplates(eventSlug) {
+  const { templates } = await apiGet(`/api/events/${encodeURIComponent(eventSlug)}/grid-templates`)
+  return Array.isArray(templates) ? templates : []
+}
+
+/** Guarda una plantilla; con un nombre existente la pisa. Devuelve la lista. */
+export async function saveGridTemplate(eventSlug, { name, config }) {
+  const { templates } = await apiPost(
+    `/api/events/${encodeURIComponent(eventSlug)}/grid-templates`,
+    { name, config },
+  )
+  return Array.isArray(templates) ? templates : []
+}
+
+export async function deleteGridTemplate(eventSlug, templateId) {
+  const { templates } = await apiDelete(
+    `/api/events/${encodeURIComponent(eventSlug)}/grid-templates/${encodeURIComponent(templateId)}`,
+  )
+  return Array.isArray(templates) ? templates : []
 }
 
 /**

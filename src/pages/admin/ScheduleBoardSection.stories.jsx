@@ -113,6 +113,29 @@ function withBoard(board) {
           headers: { 'Content-Type': 'application/json' },
         })
       }
+      if (url.includes('/grid-templates')) {
+        return new Response(
+          JSON.stringify({
+            templates: [
+              {
+                id: 'tpl-meet',
+                name: 'Pitbull · doble tablado',
+                config: {
+                  platforms: ['Tablado Rojo', 'Tablado Azul'],
+                  maxPerSession: 12,
+                  groupBy: ['sex', 'category'],
+                  sortBy: 'weight',
+                  mergeSmall: true,
+                  platformMode: 'balance',
+                  weightClasses: null,
+                  schedule: { firstStart: '09:00', sessionMinutes: 45, gapMinutes: 10, weighInLeadMinutes: 120 },
+                },
+              },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        )
+      }
       if (url.includes('/schedule/autofill')) {
         return new Response(JSON.stringify({ placed: 5, remaining: 0, board }), {
           status: 200,
@@ -240,4 +263,43 @@ const DOUBLE_BOARD = {
 export const DobleTablado = {
   args: { adminEvents, canEdit: true, onGoToEvents: () => undefined },
   decorators: [withBoard(DOUBLE_BOARD)],
+}
+
+/** Un meet real: 234 inscriptos sin ubicar, dos días con fecha y sin tandas todavía. */
+function crowd(total) {
+  let state = 11
+  const rand = () => {
+    state = (state * 1664525 + 1013904223) % 4294967296
+    return state / 4294967296
+  }
+  const divisions = ['Open', 'Junior', 'Youth', 'Sub-Masters', 'Masters']
+  const gyms = ['Barra Fija', 'PLU Norte', 'Iron House', 'Savage', 'Pitbull Barbell Club']
+  return Array.from({ length: total }, (_, index) =>
+    athlete(`crowd-${index}`, `Atleta ${String(index + 1).padStart(3, '0')}`, {
+      sex: rand() < 0.55 ? 'Femenino' : 'Masculino',
+      category: rand() < 0.7 ? 'Raw' : 'Raw With Wraps',
+      division: divisions[Math.floor(rand() * divisions.length)],
+      bodyweightKg: Math.round((47 + rand() * 75) * 2) / 2,
+      age: 15 + Math.floor(rand() * 40),
+      gym: gyms[index % gyms.length],
+    }),
+  )
+}
+
+const CROWD_BOARD = {
+  event: { slug: 'pitbull-classic-2026', title: 'Pitbull Classic 2026', published: true },
+  platforms: [],
+  schedulePublic: false,
+  totals: { registered: 234, assigned: 0, unassigned: 234 },
+  days: [
+    { id: 'day-1', dayIndex: 0, label: 'Día 1', date: '2026-11-13', assignedCount: 0, sessions: [], withoutSession: [] },
+    { id: 'day-2', dayIndex: 1, label: 'Día 2', date: '2026-11-14', assignedCount: 0, sessions: [], withoutSession: [] },
+  ],
+  unassigned: crowd(234),
+}
+
+/** 234 inscriptos, sin tablados ni tandas: el caso que el asistente tiene que resolver de una. */
+export const Inscriptos234 = {
+  args: { adminEvents, canEdit: true, onGoToEvents: () => undefined },
+  decorators: [withBoard(CROWD_BOARD)],
 }

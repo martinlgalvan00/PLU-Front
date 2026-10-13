@@ -18,6 +18,7 @@ import PublishToggle from '../../components/admin/board/PublishToggle.jsx'
 import PoolToolbar from '../../components/admin/board/PoolToolbar.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useEventBoard } from '../../hooks/useEventBoard.js'
+import { useGridTemplates } from '../../hooks/useGridTemplates.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatScheduleTime } from '../../lib/eventSchedule.js'
 import AnimatedNumber from '../../motion/AnimatedNumber.tsx'
@@ -25,6 +26,7 @@ import {
   EMPTY_POOL_FILTERS,
   compositionFacets,
   groupAthletes,
+  locationIndex,
   matchesPoolFilters,
   sessionStats,
   sessionsPayloadFromBoard,
@@ -158,6 +160,8 @@ export default function ScheduleBoardSection({
   const [poolFilters, setPoolFilters] = useState(() => ({ ...EMPTY_POOL_FILTERS }))
   const [poolView, setPoolView] = useState('list')
   const [planOpen, setPlanOpen] = useState(false)
+  // Foto para deshacer el último reparto o movimiento; se descarta si cambia la estructura.
+  const [undoToken, setUndoToken] = useState(null)
 
   const sensors = useSensors(
     // 6px de recorrido antes de activar: el clic sigue siendo selección.
@@ -180,7 +184,9 @@ export default function ScheduleBoardSection({
     days,
     error,
     platforms,
+    pruneEmptySessions,
     removeSession,
+    restore,
     savePlatforms,
     saveSessions,
     schedulePublic,
@@ -197,6 +203,7 @@ export default function ScheduleBoardSection({
     setEditingSession(null)
     setPoolFilters({ ...EMPTY_POOL_FILTERS })
     setPlanOpen(false)
+    setUndoToken(null)
   }, [eventSlug])
 
   const sessionsMissing = useMemo(
@@ -205,6 +212,11 @@ export default function ScheduleBoardSection({
   )
 
   const dndEnabled = canEdit && !busy
+  const templatesApi = useGridTemplates(eventSlug, { enabled: planOpen && canStructure })
+  const emptySessions = useMemo(
+    () => days.reduce((sum, day) => sum + day.sessions.filter((s) => s.athletes.length === 0).length, 0),
+    [days],
+  )
 
   // El armado automático trabaja sobre lo que la bolsa muestra: si hay filtros
   // activos, arma solo para esa parte (por ejemplo, todas las Junior).
@@ -238,8 +250,11 @@ export default function ScheduleBoardSection({
 
   async function moveTo({ dayIndex, sessionId }, ids = selectedIds) {
     if (ids.length === 0) return
+    const index = locationIndex(board)
+    const previous = ids.map((id) => [id, index.get(id) ?? { dayIndex: null, sessionId: null }])
     const result = await assign({ registrationIds: ids, dayIndex, sessionId })
     if (!result) return
+    setUndoToken({ previous, removeSessionNames: [] })
     setSelected(new Set())
     // `updated` puede ser menor que lo pedido: el backend descarta canceladas y
     // las de otro evento. Decirlo evita dar por completo un reparto que no lo está.
@@ -326,11 +341,12 @@ export default function ScheduleBoardSection({
     setNotice(t('admin.board.sessionSaved'))
   }
 
-  async function handleApplyPlan(plan) {
-    const result = await applyPlan(plan)
+  async function handleApplyPlan(plan, extras) {
+    const result = await applyPlan(plan, extras)
     if (!result) return
     setSelected(new Set())
     setPlanOpen(false)
+    setUndoToken(result.undo)
     setNotice(
       result.leftover > 0
         ? t('admin.board.planAppliedPartial', {
@@ -342,13 +358,34 @@ export default function ScheduleBoardSection({
     )
   }
 
+  async function handleUndo() {
+    const token = undoToken
+    if (!token) return
+    const result = await restore(token)
+    if (!result) return
+    setUndoToken(null)
+    setSelected(new Set())
+    setNotice(t('admin.board.undone', { count: result.restored }))
+  }
+
+  async function handlePrune() {
+    const removed = await pruneEmptySessions()
+    if (removed === null) return
+    setUndoToken(null)
+    setNotice(t('admin.board.pruned', { count: removed }))
+  }
+
   async function handleAddSession(day, platformId) {
     const name = await addSession({ dayIndex: day.dayIndex, platformId })
-    if (name) setNotice(t('admin.board.sessionAdded', { name }))
+    if (name) {
+      setUndoToken(null)
+      setNotice(t('admin.board.sessionAdded', { name }))
+    }
   }
 
   async function handleRemoveSession(session) {
     if (!(await removeSession(session.id))) return
+    setUndoToken(null)
     setNotice(t('admin.board.sessionRemoved'))
   }
 
@@ -359,7 +396,10 @@ export default function ScheduleBoardSection({
 
   async function handleSavePlatforms(next) {
     const ok = await savePlatforms(next)
-    if (ok) setNotice(t('admin.board.platformsSaved'))
+    if (ok) {
+      setUndoToken(null)
+      setNotice(t('admin.board.platformsSaved'))
+    }
     return ok
   }
 
@@ -403,6 +443,16 @@ export default function ScheduleBoardSection({
       {notice && (
         <p className="admin-board__notice" role="status">
           {notice}
+          {undoToken ? (
+            <button
+              type="button"
+              className="admin-board__text-btn admin-board__notice-undo"
+              onClick={handleUndo}
+              disabled={busy || !canEdit}
+            >
+              {t('admin.board.undo')}
+            </button>
+          ) : null}
         </p>
       )}
 
@@ -487,15 +537,21 @@ export default function ScheduleBoardSection({
 
           {planOpen ? (
             <PlanPanel
-              athletes={planAthletes}
+              board={board}
               busy={busy}
+              canSaveTemplates={canStructure}
               days={days}
+              emptySessions={emptySessions}
               flightSize={flightSize}
               key={`${eventSlug}-${platforms.map((item) => item.id).join(',')}`}
+              locale={locale}
               onApply={handleApplyPlan}
               onClose={() => setPlanOpen(false)}
+              onPrune={handlePrune}
               platforms={platforms}
+              poolAthletes={planAthletes}
               t={t}
+              templatesApi={templatesApi}
             />
           ) : null}
 

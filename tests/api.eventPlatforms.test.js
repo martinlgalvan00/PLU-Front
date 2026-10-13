@@ -257,3 +257,149 @@ describe('API de grilla pública', () => {
     }
   })
 })
+
+describe('API de plantillas de grilla', () => {
+  const TEMPLATE_ID = '44444444-4444-4444-8444-444444444444'
+  const CONFIG = {
+    platforms: ['Tablado 1', 'Tablado 2'],
+    maxPerSession: 12,
+    groupBy: ['sex', 'category'],
+    sortBy: 'weight',
+    mergeSmall: true,
+    platformMode: 'balance',
+    weightClasses: { Femenino: [47, 52, 57] },
+    schedule: { firstStart: '09:00', sessionMinutes: 45, gapMinutes: 10, weighInLeadMinutes: 120 },
+  }
+
+  function put(target, cookie, path, method, body) {
+    return fetch(`${target.url}/api/events/${SLUG}${path}`, {
+      method,
+      headers: authHeaders(cookie),
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
+  }
+
+  it('lista las plantillas con permiso de lectura de inscripciones', async () => {
+    const { target, cookie, supabase } = await setup('plu_arg')
+    try {
+      supabase.rpc.mockResolvedValueOnce({ data: [{ id: TEMPLATE_ID, name: 'Mi plantilla' }], error: null })
+      const response = await fetch(`${target.url}/api/events/${SLUG}/grid-templates`, {
+        headers: { Cookie: cookie },
+      })
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({ templates: [{ id: TEMPLATE_ID, name: 'Mi plantilla' }] })
+      expect(supabase.rpc).toHaveBeenCalledWith('staff_list_grid_templates', { p_event_slug: SLUG })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('guarda con nombre y configuración, y el actor llega a la RPC', async () => {
+    const { target, cookie, supabase } = await setup()
+    try {
+      const response = await put(target, cookie, '/grid-templates', 'POST', {
+        name: '  Doble tablado  ',
+        config: CONFIG,
+      })
+      expect(response.status).toBe(200)
+      expect(supabase.rpc).toHaveBeenCalledWith('staff_save_grid_template', {
+        p_event_slug: SLUG,
+        p_name: 'Doble tablado',
+        p_config: CONFIG,
+        p_actor: expect.stringContaining(':admin_maximal@platforms.test'),
+      })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza lo que no es una plantilla válida sin llegar a la RPC', async () => {
+    const { target, cookie, supabase } = await setup()
+    try {
+      const bad = [
+        { name: '', config: CONFIG },
+        { name: 'x'.repeat(81), config: CONFIG },
+        { name: 'ok', config: { ...CONFIG, groupBy: ['sex', 'inventado'] } },
+        { name: 'ok', config: { ...CONFIG, maxPerSession: 0 } },
+        { name: 'ok', config: { ...CONFIG, platforms: ['a', 'b', 'c', 'd', 'e'] } },
+        { name: 'ok', config: { ...CONFIG, platformMode: 'azar' } },
+        // `.strict()`: una clave de más no se guarda en silencio.
+        { name: 'ok', config: { ...CONFIG, dayIndexes: [0] } },
+        { name: 'ok', config: { ...CONFIG, weightClasses: { Otro: [50] } } },
+        { name: 'ok', config: { ...CONFIG, schedule: { ...CONFIG.schedule, firstStart: 'mañana' } } },
+        { name: 'ok', config: { ...CONFIG, schedule: { ...CONFIG.schedule, sessionMinutes: 0 } } },
+        { name: 'ok' },
+      ]
+      for (const body of bad) {
+        const response = await put(target, cookie, '/grid-templates', 'POST', body)
+        expect(response.status, JSON.stringify(body).slice(0, 80)).toBe(400)
+      }
+      expect(supabase.rpc).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('acepta una plantilla sin horarios ni clases de peso', async () => {
+    const { target, cookie } = await setup()
+    try {
+      const { weightClasses: _classes, schedule: _schedule, ...minimal } = CONFIG
+      const response = await put(target, cookie, '/grid-templates', 'POST', {
+        name: 'Mínima',
+        config: minimal,
+      })
+      expect(response.status).toBe(200)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('borrar exige un uuid válido y permiso de edición de eventos', async () => {
+    const { target, cookie, supabase } = await setup()
+    try {
+      const invalid = await put(target, cookie, '/grid-templates/no-es-uuid', 'DELETE')
+      expect(invalid.status).toBe(400)
+      expect(supabase.rpc).not.toHaveBeenCalled()
+
+      const ok = await put(target, cookie, `/grid-templates/${TEMPLATE_ID}`, 'DELETE')
+      expect(ok.status).toBe(200)
+      expect(supabase.rpc).toHaveBeenCalledWith('staff_delete_grid_template', {
+        p_event_slug: SLUG,
+        p_template_id: TEMPLATE_ID,
+        p_actor: expect.stringContaining(':admin_maximal@platforms.test'),
+      })
+    } finally {
+      await target.close()
+    }
+
+    const readOnly = await setup('plu_arg')
+    try {
+      const save = await put(readOnly.target, readOnly.cookie, '/grid-templates', 'POST', {
+        name: 'x',
+        config: CONFIG,
+      })
+      const remove = await put(readOnly.target, readOnly.cookie, `/grid-templates/${TEMPLATE_ID}`, 'DELETE')
+      expect(save.status).toBe(403)
+      expect(remove.status).toBe(403)
+      expect(readOnly.supabase.rpc).not.toHaveBeenCalled()
+    } finally {
+      await readOnly.target.close()
+    }
+  })
+
+  it('sin sesión no se lee ni se escribe ninguna plantilla', async () => {
+    const { target } = await setup()
+    try {
+      const read = await fetch(`${target.url}/api/events/${SLUG}/grid-templates`)
+      const write = await fetch(`${target.url}/api/events/${SLUG}/grid-templates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'x', config: CONFIG }),
+      })
+      expect([401, 403]).toContain(read.status)
+      expect([401, 403]).toContain(write.status)
+    } finally {
+      await target.close()
+    }
+  })
+})

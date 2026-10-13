@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
+  batchesFromLocations,
+  locationIndex,
   nextSessionName,
   resolvePlacementBatches,
   sessionsPayloadFromBoard,
@@ -246,23 +248,47 @@ export function useEventBoard(eventSlug, { enabled = true } = {}) {
   )
 
   /**
-   * Aplica un preview: crea las tandas nuevas (set completo) y asigna por
-   * lote. Un solo ciclo de busy; el tablero se reléé al final, no entre tandas.
+   * Aplica un plan: asegura los tablados, crea las tandas nuevas (set completo)
+   * y asigna por lote. Un solo ciclo de busy; el tablero se relee al final.
+   *
+   * Parte siempre de un tablero recién leído y no del estado local: dos
+   * operadores pueden estar armando a la vez, y los ids de tandas y tablados
+   * nuevos solo existen después de persistirlos.
+   *
+   * Devuelve la foto previa de cada atleta movido y los nombres de las tandas
+   * creadas: es todo lo que `restore` necesita para deshacer.
    */
   const applyPlan = useCallback(
-    async (plan) => {
+    async (plan, { platformDraft = null } = {}) => {
       if (!eventSlug || !plan) return null
       setBusy(true)
       setError(null)
       try {
-        if (plan.newSessions.length > 0) {
-          await saveEventSessions(
-            eventSlug,
-            sessionsPayloadFromBoard(board?.days ?? [], { extra: plan.newSessions }),
-          )
+        let latest = await fetchEventBoard(eventSlug)
+
+        if (platformDraft && platformsDiffer(latest.platforms, platformDraft)) {
+          await saveEventPlatforms(eventSlug, platformDraft)
+          latest = await fetchEventBoard(eventSlug)
         }
 
-        const latest = await fetchEventBoard(eventSlug)
+        const newSessions = plan.newSessions.map((session) => ({
+          ...session,
+          platformId: resolvePlatformId(session, latest.platforms),
+        }))
+        const index = locationIndex(latest)
+        const previous = plan.placements.map((placement) => [
+          placement.registrationId,
+          index.get(placement.registrationId) ?? { dayIndex: null, sessionId: null },
+        ])
+
+        if (newSessions.length > 0) {
+          await saveEventSessions(
+            eventSlug,
+            sessionsPayloadFromBoard(latest.days, { extra: newSessions }),
+          )
+          latest = await fetchEventBoard(eventSlug)
+        }
+
         const { batches, unresolved } = resolvePlacementBatches(latest, plan)
         let updated = 0
         let requested = 0
@@ -282,6 +308,7 @@ export function useEventBoard(eventSlug, { enabled = true } = {}) {
           updated,
           requested: requested + unresolved.length,
           leftover: plan.leftover.length + unresolved.length,
+          undo: { previous, removeSessionNames: newSessions.map((session) => session.name) },
         }
       } catch (applyError) {
         setError(applyError?.message ?? 'No se pudo aplicar el reparto.')
@@ -296,8 +323,76 @@ export function useEventBoard(eventSlug, { enabled = true } = {}) {
         setBusy(false)
       }
     },
-    [board?.days, eventSlug],
+    [eventSlug],
   )
+
+  /**
+   * Deshace un reparto: devuelve a cada atleta a donde estaba y quita las tandas
+   * que ese reparto creó -- solo las que quedaron vacías, así no se pierde lo que
+   * otro operador haya movido ahí mientras tanto. Los tablados no se revierten.
+   */
+  const restore = useCallback(
+    async ({ previous, removeSessionNames = [] }) => {
+      if (!eventSlug || !previous?.length) return null
+      setBusy(true)
+      setError(null)
+      try {
+        let restored = 0
+        for (const batch of batchesFromLocations(previous)) {
+          const result = await assignRegistrationSchedule(eventSlug, batch)
+          restored += result.updated
+        }
+
+        let removed = 0
+        if (removeSessionNames.length > 0) {
+          const latest = await fetchEventBoard(eventSlug)
+          const names = new Set(removeSessionNames)
+          const omitIds = latest.days.flatMap((day) =>
+            day.sessions
+              .filter((session) => names.has(session.name) && session.athletes.length === 0)
+              .map((session) => session.id),
+          )
+          if (omitIds.length > 0) {
+            await saveEventSessions(eventSlug, sessionsPayloadFromBoard(latest.days, { omitIds }))
+            removed = omitIds.length
+          }
+        }
+
+        await load()
+        return { restored, removed }
+      } catch (restoreError) {
+        setError(restoreError?.message ?? 'No se pudo deshacer.')
+        await load()
+        return null
+      } finally {
+        setBusy(false)
+      }
+    },
+    [eventSlug, load],
+  )
+
+  /** Quita las tandas sin atletas (por ejemplo, las que sobran después de rehacer la grilla). */
+  const pruneEmptySessions = useCallback(async () => {
+    if (!eventSlug) return null
+    setBusy(true)
+    setError(null)
+    try {
+      const latest = await fetchEventBoard(eventSlug)
+      const omitIds = latest.days.flatMap((day) =>
+        day.sessions.filter((session) => session.athletes.length === 0).map((session) => session.id),
+      )
+      if (omitIds.length > 0) {
+        await saveEventSessions(eventSlug, sessionsPayloadFromBoard(latest.days, { omitIds }))
+      }
+      await load()
+      return omitIds.length
+    } catch (pruneError) {
+      setError(pruneError?.message ?? 'No se pudieron quitar las tandas vacías.')
+      return null
+    } finally {
+      setBusy(false)
+    }
+  }, [eventSlug, load])
 
   return {
     board,
@@ -313,10 +408,33 @@ export function useEventBoard(eventSlug, { enabled = true } = {}) {
     addSession,
     removeSession,
     applyPlan,
+    restore,
+    pruneEmptySessions,
     platforms: board?.platforms ?? [],
     schedulePublic: board?.schedulePublic ?? false,
     days: board?.days ?? [],
     unassigned: board?.unassigned ?? [],
     totals: board?.totals ?? { registered: 0, assigned: 0, unassigned: 0 },
   }
+}
+
+/** ¿El borrador de tablados (con o sin id) es distinto de los que ya existen? */
+function platformsDiffer(existing, draft) {
+  if (existing.length !== draft.length) return true
+  return draft.some(
+    (entry, index) =>
+      (entry.id && entry.id !== existing[index].id) || entry.name !== existing[index].name,
+  )
+}
+
+/**
+ * Id real del tablado de una tanda del plan. El asistente puede proponer tablados
+ * que todavía no existen (`tmp:`): se resuelven por nombre una vez creados.
+ */
+function resolvePlatformId(session, platforms) {
+  if (session.platformId && platforms.some((platform) => platform.id === session.platformId)) {
+    return session.platformId
+  }
+  const name = String(session.platform ?? '').trim().toLowerCase()
+  return platforms.find((platform) => platform.name.toLowerCase() === name)?.id ?? null
 }
