@@ -487,19 +487,14 @@
   margin-inline-start: auto;
   min-height: 28px;
   padding: 2px 0;
-  text-decoration: underline;
-  text-decoration-color: var(--color-brand-celeste);
-  text-underline-offset: 4px;
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text-primary);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-brand-celeste);
   white-space: nowrap;
 }
 
 .admin-board__pool-toggle-all:hover {
-  color: var(--color-text-primary);
+  color: var(--color-brand-celeste);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -1224,13 +1219,16 @@
   color: var(--color-warning-text);
 }
 
-/* ── Filtros de la bolsa ────────────────────────────────────────────── */
+/* ── Filtros de la bolsa ──────────────────────────────────────────────
+   Minimalista: la bolsa tiene altura acotada y los filtros no pueden comérsela.
+   Sin micro-etiquetas en mayúsculas: el nombre del filtro vive dentro del
+   select y, elegido, el control pasa a tinta plena con el trazo celeste. */
 .admin-board__toolbar {
   display: flex;
   flex: none;
   flex-direction: column;
-  gap: var(--space-xs);
-  padding: var(--space-xs) 0 var(--space-sm);
+  gap: 10px;
+  padding: 4px 0 var(--space-sm);
   border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
 }
 
@@ -1238,7 +1236,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 38px;
+  min-height: 40px;
   border-bottom: 1px solid var(--color-border-subtle);
   color: var(--color-text-muted);
   transition: border-color var(--transition-fast);
@@ -1251,7 +1249,7 @@
 .admin-board__search input {
   flex: 1 1 auto;
   min-width: 0;
-  padding: 7px 0;
+  padding: 8px 0;
   background: transparent;
   border: none;
   color: var(--color-text-primary);
@@ -1266,67 +1264,122 @@
 .admin-board__filters {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-xs) var(--space-sm);
+  gap: 0 var(--space-md);
 }
 
-.admin-board__filter {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.admin-board__facet {
+  position: relative;
+  display: block;
   min-width: 0;
 }
 
-.admin-board__filter > span {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.admin-board__filter select,
-.admin-board__filter input {
-  min-height: 34px;
-  min-width: 0;
+.admin-board__facet select {
+  appearance: none;
   width: 100%;
-  padding: 5px 2px;
+  min-height: 36px;
+  min-width: 0;
+  padding: 6px 18px 6px 0;
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--color-border-subtle);
   border-radius: 0;
-  color: var(--color-text-primary);
+  color: var(--color-text-muted);
+  cursor: pointer;
   font-family: var(--font-family);
-  font-size: 12.5px;
+  font-size: 13px;
+  font-weight: 500;
   text-overflow: ellipsis;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
-.admin-board__filter select:focus-visible,
-.admin-board__filter input:focus-visible {
+.admin-board__facet select:hover {
+  color: var(--color-text-primary);
+}
+
+.admin-board__facet.is-set select {
+  border-bottom-color: var(--color-brand-celeste);
+  color: var(--color-text-primary);
+  font-weight: 650;
+}
+
+.admin-board__facet select:focus-visible {
   outline: none;
   border-bottom-color: var(--color-brand-celeste);
+  color: var(--color-text-primary);
 }
 
+.admin-board__facet > svg {
+  position: absolute;
+  top: 50%;
+  right: 1px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+/* Peso y edad: plegado, sin triángulo del navegador ni mayúsculas. */
 .admin-board__filter-more > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   min-height: 28px;
   cursor: pointer;
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  list-style: none;
+  transition: color var(--transition-fast);
+}
+
+.admin-board__filter-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-board__filter-more > summary::before {
+  content: '+';
+  display: inline-block;
+  width: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  text-align: center;
+}
+
+.admin-board__filter-more[open] > summary::before {
+  content: '–';
+}
+
+.admin-board__filter-more > summary:hover,
+.admin-board__filter-more[open] > summary {
   color: var(--color-text-primary);
-  list-style-position: inside;
 }
 
 .admin-board__filter-more > summary:focus-visible {
   outline: 2px solid var(--color-brand-celeste);
   outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.admin-board__filter-more-count {
+  min-width: 16px;
+  padding: 0 5px;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-brand-celeste) 22%, transparent);
+  border-radius: 999px;
 }
 
 .admin-board__filter-ranges {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-xs) var(--space-md);
-  padding-top: var(--space-xs);
+  padding-top: 6px;
 }
 
 .admin-board__filter-pair {
@@ -1341,17 +1394,48 @@
 
 .admin-board__filter-pair > legend {
   padding: 0;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 11.5px;
+  font-weight: 600;
   color: var(--color-text-muted);
 }
 
 .admin-board__filter-pair-inputs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-xs);
+  gap: var(--space-sm);
+}
+
+.admin-board__filter {
+  display: block;
+  min-width: 0;
+}
+
+.admin-board__filter input {
+  appearance: textfield;
+  -moz-appearance: textfield;
+  width: 100%;
+  min-height: 34px;
+  min-width: 0;
+  padding: 5px 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border-subtle);
+  border-radius: 0;
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-board__filter input::-webkit-outer-spin-button,
+.admin-board__filter input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.admin-board__filter input:focus-visible {
+  outline: none;
+  border-bottom-color: var(--color-brand-celeste);
 }
 
 .admin-board__toolbar-foot {
@@ -1359,14 +1443,60 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-xs) var(--space-sm);
+  gap: 0 var(--space-sm);
+}
+
+/* La vista (lista / por grupo) como texto con subrayado, no como píldora. */
+.segmented-switch.admin-board__pool-view {
+  display: inline-flex;
+  gap: var(--space-md);
+  width: auto;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  cursor: default;
+}
+
+.admin-board__pool-view .segmented-switch__option {
+  min-height: 32px;
+  padding: 4px 0;
+  border-radius: 0;
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-board__pool-view .segmented-switch__option.is-active {
+  color: var(--color-text-primary);
+}
+
+.admin-board__pool-view .segmented-switch__thumb {
+  inset: auto 0 0;
+  height: 2px;
+  background: var(--color-brand-celeste);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.admin-board__pool-view .segmented-switch__thumb::after {
+  display: none;
+}
+
+.segmented-switch.admin-board__pool-view:focus-within {
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .admin-board__filter-status {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 2px var(--space-sm);
+  gap: 0 var(--space-sm);
   margin: 0;
   font-size: 12px;
   color: var(--color-text-muted);
@@ -1765,9 +1895,11 @@
   }
 
   .admin-board__platform-field input,
-  .admin-board__filter select,
+  .admin-board__facet select,
   .admin-board__filter input,
-  .admin-board__search input {
+  .admin-board__search input,
+  .admin-board__pool-view .segmented-switch__option,
+  .admin-board__filter-more > summary {
     min-height: 44px;
   }
 
