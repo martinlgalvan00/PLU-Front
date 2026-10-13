@@ -243,10 +243,19 @@ function dayLabelOf(days, dayIndex) {
 
 /* ── Armado automático ───────────────────────────────────────────────────
    El plan es una función pura de (bolsa, días, tablados, criterios): la UI
-   muestra la propuesta y recién al confirmar se escribe nada. */
+   muestra la propuesta y recién al confirmar se escribe nada.
+
+   Motor v2:
+   - Partición óptima por programación dinámica: tandas parejas y cortes donde
+     no se parte una clase de peso (o, sin clases, donde hay un hueco real).
+   - Tablados por carga: cada tanda va al tablado con menos atletas del día,
+     así ninguno termina horas antes que el otro.
+   - Horarios opcionales: pesaje e inicio de cada tanda desde la hora del primer
+     inicio, la duración y la pausa.                                           */
 
 export const PLAN_GROUP_KEYS = ['sex', 'category', 'division']
 
+/** Todo lo que define "cómo se arma una grilla": es también lo que guarda una plantilla. */
 export const DEFAULT_PLAN_OPTIONS = Object.freeze({
   maxPerSession: DEFAULT_FLIGHT_SIZE,
   /** Qué separa a dos atletas en tandas distintas (de más a menos fuerte). */
@@ -257,10 +266,17 @@ export const DEFAULT_PLAN_OPTIONS = Object.freeze({
   useExisting: true,
   /** Juntar restos chicos de grupos vecinos en una sola tanda. */
   mergeSmall: true,
-  /** 'alternate' reparte las tandas entre tablados; 'sex' fija un sexo por tablado. */
-  platformMode: 'alternate',
+  /** 'balance' (carga), 'alternate' (una y una) o 'sex' (un sexo por tablado). */
+  platformMode: 'balance',
   /** Días a usar; null = todos. */
   dayIndexes: null,
+  /**
+   * Clases de peso opcionales por sexo: topes en kg, de menor a mayor. Sin
+   * clases cargadas no se inventan: el corte se apoya en huecos entre pesos.
+   */
+  weightClasses: null,
+  /** { firstStart:'09:00', sessionMinutes:60, gapMinutes:10, weighInLeadMinutes:120 } o null. */
+  schedule: null,
 })
 
 const numberOrInfinity = (value) =>
@@ -298,7 +314,7 @@ function planComparator(keys, sortBy) {
 /**
  * Parte una lista en la menor cantidad de tandas que respeta el tope y las
  * deja parejas: 13 con tope 12 son 7 + 6, no 12 + 1. Una tanda de uno es un
- * mal armado aunque "cumpla" el tope.
+ * mal armado aunque "cumpla" el tope. (Versión sin criterio de corte.)
  */
 export function balancedChunks(list, cap) {
   if (list.length === 0) return []
@@ -315,13 +331,105 @@ export function balancedChunks(list, cap) {
   return chunks
 }
 
+/** Índice de la clase de peso de `weight` (0 = la más liviana); null si no hay dato. */
+export function weightClassIndex(weight, bounds) {
+  if (!Array.isArray(bounds) || bounds.length === 0) return null
+  const value = Number(weight)
+  if (weight === null || weight === undefined || !Number.isFinite(value)) return null
+  const index = bounds.findIndex((limit) => value <= Number(limit))
+  return index === -1 ? bounds.length : index
+}
+
+/**
+ * Partición contigua óptima en k = ceil(n / cap) tandas.
+ *
+ * Minimiza la suma de cuadrados del desvío de tamaño respecto de n/k (tandas
+ * parejas) y le suma el costo de cada corte: partir a dos atletas que están en
+ * la misma clase (`sameKey`) cuesta `cap * 1.5`, lo que equivale a "mover el
+ * corte unos lugares antes que partir una clase"; cortar donde hay un hueco
+ * (`gapAt`) es levemente más barato. Con n por grupo de unos cientos y tope ~12
+ * son O(n·k·cap) operaciones: instantáneo.
+ */
+export function optimalChunks(list, cap, { sameKey = null, gapAt = null } = {}) {
+  const n = list.length
+  if (n === 0) return []
+  const k = Math.ceil(n / cap)
+  if (k === 1) return [list]
+
+  const target = n / k
+  // cutCost[i] = costo de cortar entre list[i - 1] y list[i].
+  const cutCost = new Array(n + 1).fill(0)
+  for (let i = 1; i < n; i += 1) {
+    if (sameKey?.(list[i - 1], list[i])) {
+      cutCost[i] = cap * 1.5
+    } else if (gapAt) {
+      cutCost[i] = -Math.min(Number(gapAt(list[i - 1], list[i])) || 0, 5) * 0.4
+    }
+  }
+
+  const dp = Array.from({ length: k + 1 }, () => new Array(n + 1).fill(Number.POSITIVE_INFINITY))
+  const from = Array.from({ length: k + 1 }, () => new Array(n + 1).fill(0))
+  dp[0][0] = 0
+  for (let j = 1; j <= k; j += 1) {
+    for (let t = j; t <= n; t += 1) {
+      const maxSize = Math.min(cap, t - (j - 1))
+      for (let size = 1; size <= maxSize; size += 1) {
+        const start = t - size
+        const previous = dp[j - 1][start]
+        if (previous === Number.POSITIVE_INFINITY) continue
+        const cost = previous + (size - target) ** 2 + (start > 0 ? cutCost[start] : 0)
+        if (cost < dp[j][t]) {
+          dp[j][t] = cost
+          from[j][t] = start
+        }
+      }
+    }
+  }
+
+  const chunks = []
+  let end = n
+  for (let j = k; j >= 1; j -= 1) {
+    const start = from[j][end]
+    chunks.unshift(list.slice(start, end))
+    end = start
+  }
+  return chunks
+}
+
 function singleSex(athletes) {
   const sexes = uniqueValues(athletes, 'sex')
   return sexes.length === 1 ? sexes[0] : null
 }
 
+/** Criterio de corte del grupo según cómo se ordena y si hay clases de peso. */
+function cutCriteria(sortBy, weightClasses) {
+  if (sortBy === 'age') {
+    return {
+      sameKey: (a, b) => numberOrInfinity(a?.age) === numberOrInfinity(b?.age),
+      gapAt: (a, b) => {
+        const low = numberOrInfinity(a?.age)
+        const high = numberOrInfinity(b?.age)
+        return Number.isFinite(low) && Number.isFinite(high) ? high - low : 0
+      },
+    }
+  }
+  return {
+    sameKey: (a, b) => {
+      const bounds = weightClasses?.[a?.sex]
+      const classA = weightClassIndex(a?.bodyweightKg, bounds)
+      if (classA !== null) return classA === weightClassIndex(b?.bodyweightKg, bounds)
+      return numberOrInfinity(a?.bodyweightKg) === numberOrInfinity(b?.bodyweightKg)
+    },
+    gapAt: (a, b) => {
+      const low = numberOrInfinity(a?.bodyweightKg)
+      const high = numberOrInfinity(b?.bodyweightKg)
+      return Number.isFinite(low) && Number.isFinite(high) ? high - low : 0
+    },
+  }
+}
+
 /** Tandas candidatas (todavía sin día, tablado ni nombre), en orden de competencia. */
-function buildBuckets(athletes, { groupBy, sortBy, maxPerSession, mergeSmall }) {
+function buildBuckets(athletes, { groupBy, sortBy, maxPerSession, mergeSmall, weightClasses }) {
   const sorted = [...athletes].sort(planComparator(groupBy, sortBy))
   const groups = []
   for (const athlete of sorted) {
@@ -331,8 +439,9 @@ function buildBuckets(athletes, { groupBy, sortBy, maxPerSession, mergeSmall }) 
     else groups.push({ key, athletes: [athlete] })
   }
 
+  const criteria = cutCriteria(sortBy, weightClasses)
   const buckets = groups.flatMap((group) =>
-    balancedChunks(group.athletes, maxPerSession).map((chunk) => ({
+    optimalChunks(group.athletes, maxPerSession, criteria).map((chunk) => ({
       athletes: chunk,
       // Llaves que NO pueden mezclarse al juntar restos: todas menos la menos
       // fuerte (se mezclan divisiones, no categorías ni sexos).
@@ -418,20 +527,99 @@ function dayForBuckets(buckets, dayIndexes) {
   })
 }
 
-function platformForBucket(bucket, positionInDay, platforms, mode) {
+/** Elige el tablado de una tanda nueva. `loads[i]` = atletas ya asignados al tablado i ese día. */
+function pickPlatform(bucket, position, platforms, loads, mode) {
   if (platforms.length === 0) return null
   if (mode === 'sex' && platforms.length > 1 && bucket.sex) {
     return platforms[sexRank(bucket.sex) % platforms.length]
   }
-  return platforms[positionInDay % platforms.length]
+  if (mode === 'alternate') return platforms[position % platforms.length]
+  let best = 0
+  for (let index = 1; index < platforms.length; index += 1) {
+    if (loads[index] < loads[best]) best = index
+  }
+  return platforms[best]
+}
+
+/* ── Horarios ──────────────────────────────────────────────────────────── */
+
+// Argentina no tiene horario de verano y la organización opera en Buenos
+// Aires (20260930100000): el offset fijo evita depender de la zona del navegador.
+const ORG_UTC_OFFSET = '-03:00'
+
+/** "09:30" → 570. null si no es una hora válida. */
+export function parseClock(value) {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(String(value ?? '').trim())
+  if (!match) return null
+  const hours = Number(match[1])
+  const minutes = Number(match[2])
+  return hours > 23 || minutes > 59 ? null : hours * 60 + minutes
+}
+
+/** Fecha 'YYYY-MM-DD' + minutos desde medianoche (hora de la organización) → ISO UTC. */
+export function isoFromLocalMinutes(dateString, minutes) {
+  const day = String(dateString ?? '').slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !Number.isFinite(minutes)) return ''
+  const base = Date.parse(`${day}T00:00:00${ORG_UTC_OFFSET}`)
+  return Number.isNaN(base) ? '' : new Date(base + minutes * 60_000).toISOString()
+}
+
+/** Normaliza la configuración de horarios; null si falta algo para calcularlos. */
+export function normalizeSchedule(schedule) {
+  if (!schedule) return null
+  const first = parseClock(schedule.firstStart)
+  const duration = Number(schedule.sessionMinutes)
+  if (first === null || !Number.isFinite(duration) || duration < 1) return null
+  const gap = Number(schedule.gapMinutes)
+  const lead = Number(schedule.weighInLeadMinutes)
+  return {
+    first,
+    duration,
+    gap: Number.isFinite(gap) && gap >= 0 ? gap : 0,
+    lead: Number.isFinite(lead) && lead >= 0 ? lead : 0,
+  }
+}
+
+function slotTimes(clock, date, index) {
+  if (!clock || !date) return { startsAt: '', weighInAt: '' }
+  const start = clock.first + index * (clock.duration + clock.gap)
+  return {
+    startsAt: isoFromLocalMinutes(date, start),
+    weighInAt: clock.lead > 0 ? isoFromLocalMinutes(date, start - clock.lead) : '',
+  }
 }
 
 /**
- * Arma el plan. `unassigned` tiene que ser solo gente sin día: el planificador
- * no mira el resto del tablero para no "devolver" a alguien.
+ * Candidatos y días para REHACER la grilla desde cero: todos los que no
+ * registraron ingreso (a quien ya pasó por la puerta no se lo mueve) y las
+ * tandas vaciadas de esa gente, que quedan como contenedores reutilizables.
+ */
+export function rebuildInput(board) {
+  const movable = (athlete) => !athlete.checkedIn
+  const days = (board?.days ?? []).map((day) => ({
+    ...day,
+    sessions: (day.sessions ?? []).map((session) => ({
+      ...session,
+      athletes: (session.athletes ?? []).filter((athlete) => !movable(athlete)),
+    })),
+  }))
+  const placed = (board?.days ?? []).flatMap((day) => [
+    ...(day.sessions ?? []).flatMap((session) => session.athletes ?? []),
+    ...(day.withoutSession ?? []),
+  ])
+  return {
+    days,
+    candidates: [...(board?.unassigned ?? []), ...placed].filter(movable),
+  }
+}
+
+/**
+ * Arma el plan. `unassigned` son los candidatos (por defecto, la bolsa sin
+ * día); el planificador no mira el resto del tablero.
  *
  * Devuelve placements (a quién, dónde), newSessions (tandas a crear, ya con
- * tablado), summaries (lo que muestra el preview) y leftover (quién no entró).
+ * tablado y horario), summaries (lo que muestra el preview), leftover (quién no
+ * entró) y stats (carga por tablado, tamaños).
  */
 export function planEventBoard({
   unassigned = [],
@@ -445,6 +633,7 @@ export function planEventBoard({
   const dayIndexes = (options.dayIndexes ?? days.map((day) => day.dayIndex)).filter((index) =>
     days.some((day) => day.dayIndex === index),
   )
+  const clock = normalizeSchedule(options.schedule)
 
   const pending = unassigned.filter((athlete) => athlete?.registrationId)
   const buckets = buildBuckets(pending, {
@@ -452,6 +641,7 @@ export function planEventBoard({
     sortBy: options.sortBy,
     maxPerSession: cap,
     mergeSmall: options.mergeSmall,
+    weightClasses: options.weightClasses,
   })
 
   const slots = options.useExisting ? existingSlots(days, dayIndexes, cap) : []
@@ -488,6 +678,7 @@ export function planEventBoard({
       total: slot.existingCount + slot.additions.length,
       capacity: cap,
       isNew: false,
+      mixedSex: uniqueValues(slot.additions, 'sex').length > 1,
     })
   }
 
@@ -496,18 +687,58 @@ export function planEventBoard({
 
   if (dayIndexes.length === 0) {
     leftover.push(...toCreate.flatMap((bucket) => bucket.athletes))
-    return { placements, newSessions, leftover, summaries, placed: placements.length }
+    return {
+      placements,
+      newSessions,
+      leftover,
+      summaries,
+      placed: placements.length,
+      stats: buildStats(summaries, platforms),
+    }
   }
 
   const names = days.flatMap((day) => (day.sessions ?? []).map((session) => session.name))
   const bucketDays = dayForBuckets(toCreate, dayIndexes)
-  const positionByDay = new Map()
+
+  // Carga y cantidad de tandas por (día, tablado): arranca con lo que ya hay.
+  const loadByDay = new Map()
+  const lanesOf = (dayIndex) => {
+    if (!loadByDay.has(dayIndex)) {
+      const day = days.find((item) => item.dayIndex === dayIndex)
+      const existing = day?.sessions ?? []
+      loadByDay.set(dayIndex, {
+        position: 0,
+        loads: platforms.map((platform) =>
+          existing
+            .filter((session) => session.platformId === platform.id)
+            .reduce((sum, session) => sum + (session.athletes?.length ?? 0), 0),
+        ),
+        counts: platforms.map(
+          (platform) => existing.filter((session) => session.platformId === platform.id).length,
+        ),
+        none: existing.filter((session) => !session.platformId).length,
+        date: day?.date ?? null,
+      })
+    }
+    return loadByDay.get(dayIndex)
+  }
 
   toCreate.forEach((bucket, index) => {
     const dayIndex = bucketDays[index]
-    const position = positionByDay.get(dayIndex) ?? 0
-    positionByDay.set(dayIndex, position + 1)
-    const platform = platformForBucket(bucket, position, platforms, options.platformMode)
+    const lane = lanesOf(dayIndex)
+    const platform = pickPlatform(bucket, lane.position, platforms, lane.loads, options.platformMode)
+    lane.position += 1
+    const platformIndex = platform ? platforms.indexOf(platform) : -1
+    let slotIndex = lane.none
+    if (platformIndex >= 0) {
+      lane.loads[platformIndex] += bucket.athletes.length
+      slotIndex = lane.counts[platformIndex]
+      lane.counts[platformIndex] += 1
+    } else {
+      lane.none += 1
+    }
+    const times = slotTimes(clock, lane.date, slotIndex)
+
     const name = nextSessionName(names)
     names.push(name)
     const tempId = `new|${dayIndex}|${name}`
@@ -519,6 +750,8 @@ export function planEventBoard({
       name,
       platformId: platform?.id ?? null,
       platform: platform?.name ?? '',
+      weighInAt: times.weighInAt,
+      startsAt: times.startsAt,
       composition,
       count: bucket.athletes.length,
     })
@@ -545,10 +778,42 @@ export function planEventBoard({
       total: bucket.athletes.length,
       capacity: cap,
       isNew: true,
+      mixedSex: uniqueValues(bucket.athletes, 'sex').length > 1,
+      startsAt: times.startsAt,
+      weighInAt: times.weighInAt,
     })
   })
 
-  return { placements, newSessions, leftover, summaries, placed: placements.length }
+  return {
+    placements,
+    newSessions,
+    leftover,
+    summaries,
+    placed: placements.length,
+    stats: buildStats(summaries, platforms),
+  }
+}
+
+/** Resumen del plan: tamaños y carga por tablado (lo que dice si quedó parejo). */
+function buildStats(summaries, platforms) {
+  const sizes = summaries.map((row) => row.total)
+  const byPlatform = platforms.map((platform) => {
+    const rows = summaries.filter((row) => row.platformId === platform.id)
+    return {
+      id: platform.id,
+      name: platform.name,
+      sessions: rows.length,
+      athletes: rows.reduce((sum, row) => sum + row.added, 0),
+    }
+  })
+  return {
+    sessions: summaries.length,
+    newSessions: summaries.filter((row) => row.isNew).length,
+    smallest: sizes.length ? Math.min(...sizes) : 0,
+    largest: sizes.length ? Math.max(...sizes) : 0,
+    mixedSex: summaries.filter((row) => row.mixedSex).length,
+    byPlatform,
+  }
 }
 
 export function resolvePlacementBatches(board, plan) {
