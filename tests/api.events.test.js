@@ -383,6 +383,90 @@ describe('API administrativa de eventos', () => {
     }
   })
 
+  describe('transferencia abierta sin destino de cobro', () => {
+    const OPEN_TRANSFER = { registration: { bank_transfer: 'open' } }
+
+    function withoutGlobalAlias() {
+      vi.stubEnv('PAYMENT_TRANSFER_ALIAS', '')
+      vi.stubEnv('VITE_PAYMENT_TRANSFER_ALIAS', '')
+    }
+
+    it('un evento oculto se guarda igual y devuelve el aviso con el campo a completar', async () => {
+      withoutGlobalAlias()
+      const { target, cookie, supabase } = await setup()
+
+      try {
+        const response = await fetch(`${target.url}/api/events/upsert`, {
+          method: 'POST',
+          headers: authHeaders(cookie),
+          body: JSON.stringify(
+            eventPayload({ published: false, paymentChannelOverrides: OPEN_TRANSFER }),
+          ),
+        })
+        const body = await response.json()
+
+        expect(response.status).toBe(201)
+        expect(supabase.rpc).toHaveBeenCalledWith('staff_save_event', expect.anything())
+        expect(body.warnings).toEqual([
+          expect.objectContaining({
+            code: 'EVENT_BANK_TRANSFER_ALIAS_REQUIRED',
+            field: 'bankTransferProfileId',
+          }),
+        ])
+      } finally {
+        await target.close()
+        vi.unstubAllEnvs()
+      }
+    })
+
+    it('un evento publicado se rechaza, con el campo que falta', async () => {
+      withoutGlobalAlias()
+      const { target, cookie, supabase } = await setup()
+
+      try {
+        const response = await fetch(`${target.url}/api/events/upsert`, {
+          method: 'POST',
+          headers: authHeaders(cookie),
+          body: JSON.stringify(
+            eventPayload({ published: true, paymentChannelOverrides: OPEN_TRANSFER }),
+          ),
+        })
+        const body = await response.json()
+
+        expect(response.status).toBe(400)
+        expect(body.code).toBe('EVENT_BANK_TRANSFER_ALIAS_REQUIRED')
+        expect(Object.keys(body.fields)).toEqual(['bankTransferProfileId'])
+        expect(supabase.rpc).not.toHaveBeenCalledWith('staff_save_event', expect.anything())
+      } finally {
+        await target.close()
+        vi.unstubAllEnvs()
+      }
+    })
+
+    it('con un alias global configurado no hay aviso ni rechazo', async () => {
+      vi.stubEnv('PAYMENT_TRANSFER_ALIAS', 'global.pesas')
+      const { target, cookie } = await setup()
+
+      try {
+        const response = await fetch(`${target.url}/api/events/upsert`, {
+          method: 'POST',
+          headers: authHeaders(cookie),
+          body: JSON.stringify(
+            eventPayload({
+              published: true,
+              paymentChannelOverrides: OPEN_TRANSFER,
+            }),
+          ),
+        })
+        expect(response.status).toBe(201)
+        expect((await response.json()).warnings).toEqual([])
+      } finally {
+        await target.close()
+        vi.unstubAllEnvs()
+      }
+    })
+  })
+
   it('persiste una vigencia de QR de 12 horas desde la acreditación', async () => {
     const { target, cookie, supabase } = await setup()
     const payload = eventPayload({

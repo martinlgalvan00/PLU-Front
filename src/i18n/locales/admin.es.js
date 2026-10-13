@@ -1839,6 +1839,7 @@ export default {
   // en el alta porque define quién se inscribe y quién pasa la puerta.
   eventQuickCreate: {
     sectionPayments: 'Medios de pago',
+    createdWithWarning: 'El evento se creó, pero falta un dato de cobro: {{message}}',
     paymentsNote:
       'Si no tocás nada, el evento cobra con lo que tiene abierto la plataforma. Después lo cambiás desde Ventas.',
     eyebrow: 'Nuevo evento',
@@ -3969,6 +3970,18 @@ export default {
     saving: 'Guardando...',
     unsavedChanges: 'Hay cambios sin guardar',
     noPendingChanges: 'Sin cambios pendientes',
+    unsavedChangesIn: 'Sin guardar: {{areas}}',
+    changeAreas: {
+      basics: 'Datos',
+      cupo: 'Cupo',
+      prices: 'Precios',
+      tickets: 'Entradas',
+      payment: 'Cobro',
+      visibility: 'Publicación',
+    },
+    goToArea: 'Ir a {{area}}',
+    savePartial: 'El estado y el acceso sí se guardaron; los datos del evento no.',
+    saveWarningTitle: 'Se guardó, pero falta completar algo:',
     savingShort: 'Guardando',
     unsavedShort: 'Sin guardar',
     readyShort: 'Al día',

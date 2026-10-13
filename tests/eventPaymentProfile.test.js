@@ -6,6 +6,8 @@ import {
   applyEventPaymentChannelOverrides,
   applyManualTicketDeadline,
   assertEventBankTransferReady,
+  bankTransferIssueError,
+  checkEventBankTransferReady,
   assertEventPaymentChannelEnabled,
   assertManualTicketDeadline,
   isEventChannelOpen,
@@ -518,5 +520,41 @@ describe('plazo de los canales manuales de entradas', () => {
 
   it('Mercado Pago pasa aunque falten horas', () => {
     expect(() => assertManualTicketDeadline('mercado_pago', STARTS, CERCA)).not.toThrow()
+  })
+})
+
+describe('checkEventBankTransferReady', () => {
+  const open = { registration: { bank_transfer: 'open' } }
+
+  it('devuelve el problema con el campo a completar, sin lanzar', () => {
+    const issue = checkEventBankTransferReady({ overrides: open, bankTransfer: {}, env: {} })
+    expect(issue).toMatchObject({
+      code: 'EVENT_BANK_TRANSFER_ALIAS_REQUIRED',
+      field: 'bankTransferProfileId',
+    })
+    expect(issue.message).toMatch(/Ventas → Cobro/)
+  })
+
+  it('no hay problema con alias propio, con alias global o sin transferencia', () => {
+    expect(
+      checkEventBankTransferReady({ overrides: open, bankTransfer: { alias: 'club.pesas' }, env: {} }),
+    ).toBeNull()
+    expect(
+      checkEventBankTransferReady({ overrides: open, bankTransfer: {}, env: { PAYMENT_TRANSFER_ALIAS: 'g.a' } }),
+    ).toBeNull()
+    expect(
+      checkEventBankTransferReady({
+        overrides: { registration: { bank_transfer: false }, ticket: { bank_transfer: false } },
+        bankTransfer: {},
+        env: {},
+      }),
+    ).toBeNull()
+  })
+
+  it('el error que arma lleva el campo en `fields` para que el panel salte ahí', () => {
+    const issue = checkEventBankTransferReady({ overrides: open, bankTransfer: {}, env: {} })
+    const error = bankTransferIssueError(issue)
+    expect(error.status).toBe(400)
+    expect(error.details.fields).toEqual({ bankTransferProfileId: issue.message })
   })
 })

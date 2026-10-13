@@ -1250,6 +1250,13 @@ export default function EventsSection({
   async function handleQuickCreate(submittedDraft, { logo = null, another = false } = {}) {
     const saved = await onSaveEvent?.(submittedDraft)
     if (saved?.error) throw new Error(saved.error)
+    // Se creó, pero con el cobro a medio configurar: no es un error, pero tiene
+    // que verse (el evento queda oculto, así que nadie paga todavía).
+    if (saved?.warnings?.length) {
+      notifyError(
+        t('admin.eventQuickCreate.createdWithWarning', { message: saved.warnings[0].message }),
+      )
+    }
 
     // El logo se sube apenas el evento existe. Si falla no se deshace el alta
     // (el evento está bien): se avisa y se puede subir desde la ficha.
