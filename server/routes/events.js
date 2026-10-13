@@ -644,6 +644,7 @@ const gridTemplateConfigSchema = z
       .object({
         firstStart: z.string().regex(/^\d{1,2}:\d{2}$/),
         sessionMinutes: z.coerce.number().int().min(1).max(600),
+        minutesPerAthlete: z.coerce.number().min(0.5).max(60).optional(),
         gapMinutes: z.coerce.number().int().min(0).max(240),
         weighInLeadMinutes: z.coerce.number().int().min(0).max(720),
       })

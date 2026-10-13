@@ -213,16 +213,57 @@ describe('tablero de armado de grilla', () => {
     )
   })
 
-  it('avisa cuando el reparto sugerido deja gente sin lugar', async () => {
+  it('sin permiso sobre la estructura el reparto solo llena las tandas que ya existen y avisa lo que no entró', async () => {
     // Dar el reparto por completo cuando no lo está es peor que no ofrecerlo.
     fetchEventBoard.mockResolvedValue(board())
     autofillEventDay.mockResolvedValue({ placed: 1, remaining: 1, board: board() })
-    renderBoard()
+    renderBoard({ canEditStructure: false })
 
     await screen.findByText('Tanda A')
     fireEvent.click(screen.getByRole('button', { name: /repartir autom.ticamente en día 1/i }))
 
     expect(await screen.findByText(/Quedan 1 sin lugar/i)).toBeTruthy()
+  })
+
+  it('repartir un día usa el motor: crea la tanda que falta y le pone horario según lo que ya hay', async () => {
+    // El servicio siempre devuelve `platforms` (vacío si no hay tablados).
+    const noPlatforms = () => ({ ...board(), platforms: [] })
+    const created = noPlatforms()
+    created.days[0].sessions.push({
+      id: 'new-b',
+      name: 'Tanda B',
+      platform: '',
+      platformId: null,
+      weighInAt: null,
+      startsAt: null,
+      sortOrder: 1,
+      athletes: [],
+    })
+    // Carga inicial, relectura al aplicar, y relecturas con la tanda ya creada.
+    fetchEventBoard
+      .mockResolvedValueOnce(noPlatforms())
+      .mockResolvedValueOnce(noPlatforms())
+      .mockResolvedValue(created)
+    saveEventSessions.mockResolvedValue({})
+    assignRegistrationSchedule.mockResolvedValue({ updated: 2, requested: 2, schedule: null })
+    renderBoard()
+
+    await screen.findByText('Tanda A')
+    fireEvent.click(screen.getByRole('button', { name: /repartir autom.ticamente en día 1/i }))
+
+    // Las dos categorías chicas se juntan en una tanda nueva (la Tanda A es de otra categoría).
+    await waitFor(() => expect(assignRegistrationSchedule).toHaveBeenCalledTimes(1))
+    const calls = assignRegistrationSchedule.mock.calls.map(([, body]) => body)
+    expect(calls[0]).toMatchObject({ dayIndex: 0, sessionId: 'new-b' })
+    expect([...calls[0].registrationIds].sort()).toEqual(['reg-1', 'reg-2'])
+    const [, payload] = saveEventSessions.mock.calls[0]
+    const added = payload.find((row) => row.name === 'Tanda B')
+    expect(added.dayIndex).toBe(0)
+    // La Tanda A ocupa el arranque (09:00, 1 atleta x 4 min) y la pausa: la nueva sale 09:14.
+    expect(added.startsAt).toBe('2026-11-13T12:14:00.000Z')
+    expect(added.weighInAt).toBe('2026-11-13T10:14:00.000Z')
+    expect(autofillEventDay).not.toHaveBeenCalled()
+    expect(await screen.findByText('Se ubicaron 2 atletas.')).toBeTruthy()
   })
 
   it('sin permiso de escritura no deja mover', async () => {
@@ -500,6 +541,89 @@ describe('tablados', () => {
     })
     // Las existentes viajan con su tablado: el RPC reemplaza el set completo.
     expect(payload.find((row) => row.id === 'ses-a').platformId).toBe('plat-1')
+  })
+
+  it('edita la hora de inicio y el tablado de una tanda desde el formulario', async () => {
+    fetchEventBoard.mockResolvedValue(doubleBoard())
+    saveEventSessions.mockResolvedValue({})
+    renderBoard()
+
+    await screen.findByText('Tanda A')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Editar tanda' })[0])
+
+    // El tablado se elige a la vista, no en un desplegable.
+    expect(screen.getByRole('radio', { name: 'Tablado 1' }).checked).toBe(true)
+    fireEvent.click(screen.getByRole('radio', { name: 'Tablado 2' }))
+    fireEvent.change(screen.getByLabelText('Hora de inicio'), { target: { value: '10:30' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar tanda' }))
+
+    await waitFor(() => expect(saveEventSessions).toHaveBeenCalled())
+    const [, payload] = saveEventSessions.mock.calls[0]
+    const edited = payload.find((row) => row.id === 'ses-a')
+    expect(edited).toMatchObject({ platformId: 'plat-2', platform: 'Tablado 2' })
+    // 10:30 en Buenos Aires; el pesaje que no se tocó viaja tal cual.
+    expect(edited.startsAt).toBe('2026-11-13T13:30:00.000Z')
+    expect(edited.weighInAt).toBe('2026-11-13T11:30:00.000Z')
+  })
+
+  it('mover el inicio arrastra el pesaje que nadie tocó y estima cuándo termina', async () => {
+    const withTimes = doubleBoard()
+    withTimes.days[0].sessions[0] = {
+      ...withTimes.days[0].sessions[0],
+      startsAt: '2026-11-13T12:00:00.000Z', // 09:00
+      weighInAt: '2026-11-13T10:00:00.000Z', // 07:00
+    }
+    fetchEventBoard.mockResolvedValue(withTimes)
+    saveEventSessions.mockResolvedValue({})
+    renderBoard()
+
+    await screen.findByText('Tanda A')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Editar tanda' })[0])
+    fireEvent.change(screen.getByLabelText('Hora de inicio'), { target: { value: '11:00' } })
+
+    expect(screen.getByLabelText('Horario de pesaje').value).toBe('09:00')
+    // 1 atleta x 4 min por atleta.
+    expect(screen.getByText(/Estimado: ~4 min con 1 atletas · termina ~11:04/)).toBeTruthy()
+
+    // Si lo edita a mano deja de seguir al inicio.
+    fireEvent.change(screen.getByLabelText('Horario de pesaje'), { target: { value: '08:15' } })
+    fireEvent.change(screen.getByLabelText('Hora de inicio'), { target: { value: '11:30' } })
+    expect(screen.getByLabelText('Horario de pesaje').value).toBe('08:15')
+  })
+
+  it('recalcular horarios reordena las horas de un tablado según sus atletas', async () => {
+    const base = doubleBoard()
+    base.days[0].sessions[0] = {
+      ...base.days[0].sessions[0],
+      startsAt: '2026-11-13T12:00:00.000Z', // 09:00
+      weighInAt: '2026-11-13T10:00:00.000Z', // 07:00 (120 min antes)
+    }
+    base.days[0].sessions.push({
+      id: 'ses-c',
+      name: 'Tanda C',
+      platform: 'Tablado 1',
+      platformId: 'plat-1',
+      weighInAt: null,
+      startsAt: '2026-11-13T22:00:00.000Z', // una hora vieja que quedó mal
+      sortOrder: 2,
+      athletes: [athlete({ registrationId: 'reg-9', fullName: 'Paula Rey' })],
+    })
+    fetchEventBoard.mockResolvedValue(base)
+    saveEventSessions.mockResolvedValue({})
+    renderBoard()
+
+    await screen.findByText('Tanda C')
+    fireEvent.click(screen.getByRole('button', { name: 'Recalcular horarios de Tablado 1 en Día 1' }))
+
+    await waitFor(() => expect(saveEventSessions).toHaveBeenCalled())
+    const [, payload] = saveEventSessions.mock.calls[0]
+    const byId = Object.fromEntries(payload.map((row) => [row.id, row]))
+    // Arranca donde ya arrancaba la primera (09:00); 1 atleta x 4 min + 10 de pausa -> 09:14.
+    expect(byId['ses-a'].startsAt).toBe('2026-11-13T12:00:00.000Z')
+    expect(byId['ses-c'].startsAt).toBe('2026-11-13T12:14:00.000Z')
+    expect(byId['ses-c'].weighInAt).toBe('2026-11-13T10:14:00.000Z')
+    // El otro tablado no se toca.
+    expect(byId['ses-b'].startsAt).toBe('')
   })
 
   it('no permite quitar una tanda con atletas', async () => {
@@ -1018,10 +1142,18 @@ describe('asistente de armado', () => {
       expect(body.config).toMatchObject({
         platforms: ['Tablado 1'],
         maxPerSession: 10,
-        groupBy: ['sex', 'category'],
+        // Una sola categoría entre los inscriptos: separar por categoría no aporta.
+        groupBy: ['sex'],
         sortBy: 'weight',
         platformMode: 'balance',
-        schedule: null,
+        // Los días tienen fecha: los horarios vienen sugeridos, con duración por atleta.
+        schedule: {
+          firstStart: '09:00',
+          sessionMinutes: 45,
+          minutesPerAthlete: 4,
+          gapMinutes: 10,
+          weighInLeadMinutes: 120,
+        },
         weightClasses: null,
       })
       expect(body.config).not.toHaveProperty('dayIndexes')
@@ -1067,25 +1199,36 @@ describe('asistente de armado', () => {
   })
 
   describe('horarios, clases de peso y alcance', () => {
-    it('calcula pesaje e inicio por tablado cuando se prende', async () => {
+    it('con días con fecha los horarios vienen calculados y se pueden apagar', async () => {
       const panel = await open(withIds(boardWith()))
-      expect(within(panel).queryByText(/Inicio \d\d:\d\d/)).toBeNull()
-
-      fireEvent.click(within(panel).getByText('Horarios'))
-      fireEvent.click(within(panel).getByLabelText('Calcular horarios de pesaje e inicio'))
 
       // 09:00 en Buenos Aires; las dos primeras tandas (una por tablado) arrancan juntas.
       expect(within(panel).getAllByText(/Inicio 09:00/).length).toBeGreaterThanOrEqual(2)
       expect(within(panel).getAllByText(/Pesaje 07:00/).length).toBeGreaterThanOrEqual(1)
+
+      fireEvent.click(within(panel).getByLabelText('Calcular horarios de pesaje e inicio'))
+      expect(within(panel).queryByText(/Inicio \d\d:\d\d/)).toBeNull()
+    })
+
+    it('la duración se estima por atletas y se puede pasar a fija por tanda', async () => {
+      const panel = await open(withIds(boardWith()))
+      expect(within(panel).getByLabelText('Minutos por atleta').value).toBe('4')
+      expect(within(panel).queryByLabelText('Minutos por tanda')).toBeNull()
+
+      fireEvent.click(within(panel).getByRole('tab', { name: /^fija por tanda/i }))
+      expect(within(panel).getByLabelText('Minutos por tanda').value).toBe('45')
+      expect(within(panel).queryByLabelText('Minutos por atleta')).toBeNull()
     })
 
     it('un horario inválido bloquea confirmar y lo dice', async () => {
       const panel = await open(withIds(boardWith()))
-      fireEvent.click(within(panel).getByText('Horarios'))
-      fireEvent.click(within(panel).getByLabelText('Calcular horarios de pesaje e inicio'))
-      fireEvent.change(within(panel).getByLabelText('Minutos por tanda'), { target: { value: '0' } })
+      fireEvent.change(within(panel).getByLabelText('Minutos por atleta'), { target: { value: '0' } })
 
       expect(within(panel).getByText(/Revisá la hora de inicio/)).toBeTruthy()
+      expect(within(panel).getByRole('button', { name: /confirmar/i }).disabled).toBe(true)
+
+      fireEvent.click(within(panel).getByRole('tab', { name: /^fija por tanda/i }))
+      fireEvent.change(within(panel).getByLabelText('Minutos por tanda'), { target: { value: '0' } })
       expect(within(panel).getByRole('button', { name: /confirmar/i }).disabled).toBe(true)
     })
 

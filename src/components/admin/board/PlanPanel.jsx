@@ -15,6 +15,7 @@ import {
   PLAN_GROUP_KEYS,
   planEventBoard,
   rebuildInput,
+  suggestPlanOptions,
 } from '../../../services/eventBoardPlanner.js'
 import PlanPreview from './PlanPreview.jsx'
 import PlanTemplates from './PlanTemplates.jsx'
@@ -28,7 +29,9 @@ const GROUP_LABEL_KEY = {
 const DEFAULT_SCHEDULE_FIELDS = Object.freeze({
   on: false,
   firstStart: '09:00',
+  durationMode: 'athletes',
   sessionMinutes: '45',
+  minutesPerAthlete: '4',
   gapMinutes: '10',
   weighInLeadMinutes: '120',
 })
@@ -38,7 +41,9 @@ function scheduleFieldsFromConfig(schedule) {
   return {
     on: true,
     firstStart: schedule.firstStart,
+    durationMode: schedule.minutesPerAthlete ? 'athletes' : 'fixed',
     sessionMinutes: String(schedule.sessionMinutes),
+    minutesPerAthlete: String(schedule.minutesPerAthlete ?? DEFAULT_SCHEDULE_FIELDS.minutesPerAthlete),
     gapMinutes: String(schedule.gapMinutes),
     weighInLeadMinutes: String(schedule.weighInLeadMinutes),
   }
@@ -68,6 +73,7 @@ export default function PlanPanel({
   emptySessions = 0,
   flightSize,
   locale,
+  minutesPerAthlete,
   onApply,
   onClose,
   onPrune,
@@ -76,16 +82,27 @@ export default function PlanPanel({
   t,
   templatesApi,
 }) {
+  // Lo que el tablero ya sabe (tope, criterio, fecha de los días, primera hora)
+  // llena el formulario: la persona corrige, no arranca de cero.
+  const [suggested] = useState(() => suggestPlanOptions({ athletes: poolAthletes, days, flightSize }))
   const [options, setOptions] = useState(() => ({
     ...DEFAULT_PLAN_OPTIONS,
-    maxPerSession: flightSize,
+    maxPerSession: suggested.maxPerSession,
+    groupBy: suggested.groupBy,
     useExisting: true,
   }))
   const [dayIndexes, setDayIndexes] = useState(() => days.map((day) => day.dayIndex))
   const [platformNames, setPlatformNames] = useState(() =>
     platforms.length > 0 ? platforms.map((platform) => platform.name) : ['Tablado 1'],
   )
-  const [schedule, setSchedule] = useState(() => ({ ...DEFAULT_SCHEDULE_FIELDS }))
+  const [schedule, setSchedule] = useState(() =>
+    scheduleFieldsFromConfig(
+      suggested.schedule && {
+        ...suggested.schedule,
+        minutesPerAthlete: minutesPerAthlete ?? suggested.schedule.minutesPerAthlete,
+      },
+    ),
+  )
   const [classesText, setClassesText] = useState({ Femenino: '', Masculino: '' })
   const [rebuild, setRebuild] = useState(false)
   const [notice, setNotice] = useState(null)
@@ -141,11 +158,17 @@ export default function PlanPanel({
     ? {
         firstStart: schedule.firstStart,
         sessionMinutes: Number(schedule.sessionMinutes),
+        ...(schedule.durationMode === 'athletes'
+          ? { minutesPerAthlete: Number(schedule.minutesPerAthlete) }
+          : {}),
         gapMinutes: Number(schedule.gapMinutes),
         weighInLeadMinutes: Number(schedule.weighInLeadMinutes),
       }
     : null
-  const scheduleInvalid = schedule.on && normalizeSchedule(scheduleConfig) === null
+  const scheduleInvalid =
+    schedule.on &&
+    (normalizeSchedule(scheduleConfig) === null ||
+      (schedule.durationMode === 'athletes' && !(Number(schedule.minutesPerAthlete) > 0)))
 
   // ── Alcance
   const rebuilt = useMemo(() => (rebuild ? rebuildInput(board) : null), [rebuild, board])
@@ -408,6 +431,18 @@ export default function PlanPanel({
             <span>{t('admin.board.planScheduleOn')}</span>
           </label>
           {schedule.on ? (
+            <SegmentedSwitch
+              active={schedule.durationMode}
+              ariaLabel={t('admin.board.planDurationAria')}
+              className="admin-board__view-switch"
+              onChange={(durationMode) => patchSchedule({ durationMode })}
+              options={[
+                ['athletes', t('admin.board.planDurationAthletes')],
+                ['fixed', t('admin.board.planDurationFixed')],
+              ]}
+            />
+          ) : null}
+          {schedule.on ? (
             <div className="admin-board__plan-grid">
               <label className="admin-board__filter">
                 <span>{t('admin.board.planFirstStart')}</span>
@@ -418,7 +453,9 @@ export default function PlanPanel({
                 />
               </label>
               {[
-                ['sessionMinutes', 'planSessionMinutes', 1],
+                schedule.durationMode === 'athletes'
+                  ? ['minutesPerAthlete', 'planMinutesPerAthlete', 0.5]
+                  : ['sessionMinutes', 'planSessionMinutes', 1],
                 ['gapMinutes', 'planGapMinutes', 0],
                 ['weighInLeadMinutes', 'planWeighInLead', 0],
               ].map(([field, label, min]) => (
@@ -427,13 +464,17 @@ export default function PlanPanel({
                   <input
                     type="number"
                     min={min}
-                    inputMode="numeric"
+                    step={field === 'minutesPerAthlete' ? 0.5 : 1}
+                    inputMode={field === 'minutesPerAthlete' ? 'decimal' : 'numeric'}
                     value={schedule[field]}
                     onChange={(event) => patchSchedule({ [field]: event.target.value })}
                   />
                 </label>
               ))}
             </div>
+          ) : null}
+          {schedule.on && schedule.durationMode === 'athletes' ? (
+            <p className="admin-board__plan-hint">{t('admin.board.planDurationHint')}</p>
           ) : null}
           {schedule.on ? (
             <p className="admin-board__plan-hint">{t('admin.board.planScheduleNoDate')}</p>

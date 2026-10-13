@@ -516,14 +516,30 @@ function placeInExisting(bucket, slots, groupBy) {
   return true
 }
 
-/** Corta la lista de tandas nuevas en tantos tramos contiguos como días, parejos en atletas. */
-function dayForBuckets(buckets, dayIndexes) {
+/**
+ * Corta la lista de tandas nuevas en tramos contiguos, uno por día, de modo que
+ * cada día termine con una carga parecida. `existing[i]` son los atletas que el
+ * día `dayIndexes[i]` ya tiene: un día más cargado recibe menos (o nada).
+ * Sin carga previa es el corte parejo de siempre.
+ */
+function dayForBuckets(buckets, dayIndexes, existing = []) {
   const total = buckets.reduce((sum, bucket) => sum + bucket.athletes.length, 0) || 1
+  const loads = dayIndexes.map((_, index) => existing[index] ?? 0)
+  const target = (total + loads.reduce((sum, load) => sum + load, 0)) / dayIndexes.length
+  const quotas = loads.map((load) => Math.max(0, target - load))
+  const quotaSum = quotas.reduce((sum, quota) => sum + quota, 0) || 1
+  // Frontera de cada día sobre la fila de atletas nuevos (de 0 a total).
+  let acc = 0
+  const bounds = quotas.map((quota) => {
+    acc += (quota / quotaSum) * total
+    return acc
+  })
   let before = 0
   return buckets.map((bucket) => {
     const middle = before + bucket.athletes.length / 2
     before += bucket.athletes.length
-    return dayIndexes[Math.min(dayIndexes.length - 1, Math.floor((middle / total) * dayIndexes.length))]
+    const at = bounds.findIndex((bound) => middle < bound)
+    return dayIndexes[at === -1 ? dayIndexes.length - 1 : at]
   })
 }
 
@@ -564,29 +580,88 @@ export function isoFromLocalMinutes(dateString, minutes) {
   return Number.isNaN(base) ? '' : new Date(base + minutes * 60_000).toISOString()
 }
 
-/** Normaliza la configuración de horarios; null si falta algo para calcularlos. */
+/**
+ * Normaliza la configuración de horarios; null si falta algo para calcularlos.
+ *
+ * La duración de una tanda es fija (`sessionMinutes`) o se estima por cantidad
+ * de atletas (`minutesPerAthlete`). Es una estimación: la organización puede
+ * pisar la hora de cualquier tanda a mano.
+ */
 export function normalizeSchedule(schedule) {
   if (!schedule) return null
   const first = parseClock(schedule.firstStart)
   const duration = Number(schedule.sessionMinutes)
-  if (first === null || !Number.isFinite(duration) || duration < 1) return null
+  const perAthlete = Number(schedule.minutesPerAthlete)
+  const hasPerAthlete = Number.isFinite(perAthlete) && perAthlete > 0
+  if (first === null) return null
+  if (!hasPerAthlete && (!Number.isFinite(duration) || duration < 1)) return null
   const gap = Number(schedule.gapMinutes)
   const lead = Number(schedule.weighInLeadMinutes)
   return {
     first,
-    duration,
+    duration: Number.isFinite(duration) && duration >= 1 ? duration : 0,
+    perAthlete: hasPerAthlete ? perAthlete : null,
     gap: Number.isFinite(gap) && gap >= 0 ? gap : 0,
     lead: Number.isFinite(lead) && lead >= 0 ? lead : 0,
   }
 }
 
-function slotTimes(clock, date, index) {
+/** Minutos que se estima que dura una tanda con `count` atletas. */
+export function sessionDuration(clock, count) {
+  if (clock?.perAthlete) return Math.max(1, Math.ceil(count * clock.perAthlete))
+  return clock?.duration ?? 0
+}
+
+/** Minutos desde medianoche (hora de la organización) de un ISO, o null si no es de esa fecha. */
+export function minutesOfDay(iso, dateString) {
+  const day = String(dateString ?? '').slice(0, 10)
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return null
+  const base = Date.parse(`${day}T00:00:00${ORG_UTC_OFFSET}`)
+  const at = Date.parse(iso)
+  if (Number.isNaN(base) || Number.isNaN(at)) return null
+  const minutes = Math.round((at - base) / 60_000)
+  return minutes >= 0 && minutes < 24 * 60 ? minutes : null
+}
+
+/** Hora de inicio y pesaje de una tanda que arranca en `start` minutos. */
+function timesAt(clock, date, start) {
   if (!clock || !date) return { startsAt: '', weighInAt: '' }
-  const start = clock.first + index * (clock.duration + clock.gap)
   return {
     startsAt: isoFromLocalMinutes(date, start),
     weighInAt: clock.lead > 0 ? isoFromLocalMinutes(date, start - clock.lead) : '',
   }
+}
+
+/**
+ * Cursor de un tablado en un día: minuto en que puede arrancar la próxima
+ * tanda. Parte del primer inicio y avanza por cada tanda que ya existe (con su
+ * hora, si la tiene; si no, encadenada con la duración estimada).
+ */
+function laneCursor(clock, date, sessions) {
+  let cursor = clock.first
+  for (const session of sessions) {
+    const length = sessionDuration(clock, session.athletes?.length ?? 0)
+    const start = minutesOfDay(session.startsAt, date)
+    const end = start === null ? cursor + length : start + length
+    cursor = Math.max(cursor, end) + clock.gap
+  }
+  return cursor
+}
+
+/**
+ * Horarios estimados de las tandas de UN tablado de UN día, en orden, desde
+ * `firstStart`. Es lo que usa "Recalcular horarios" cuando los atletas se
+ * movieron y las horas quedaron viejas. Devuelve `[{ id, startsAt, weighInAt }]`.
+ */
+export function estimateLaneTimes({ sessions = [], date, schedule }) {
+  const clock = normalizeSchedule(schedule)
+  if (!clock || !date) return []
+  let cursor = clock.first
+  return sessions.map((session) => {
+    const times = timesAt(clock, date, cursor)
+    cursor += sessionDuration(clock, session.athletes?.length ?? 0) + clock.gap
+    return { id: session.id, ...times }
+  })
 }
 
 /**
@@ -698,7 +773,17 @@ export function planEventBoard({
   }
 
   const names = days.flatMap((day) => (day.sessions ?? []).map((session) => session.name))
-  const bucketDays = dayForBuckets(toCreate, dayIndexes)
+  const dayLoads = dayIndexes.map((dayIndex) => {
+    const day = days.find((item) => item.dayIndex === dayIndex)
+    return (
+      (day?.sessions ?? []).reduce((sum, session) => sum + (session.athletes?.length ?? 0), 0) +
+      (day?.withoutSession?.length ?? 0) +
+      slots
+        .filter((slot) => slot.dayIndex === dayIndex)
+        .reduce((sum, slot) => sum + slot.additions.length, 0)
+    )
+  })
+  const bucketDays = dayForBuckets(toCreate, dayIndexes, dayLoads)
 
   // Carga y cantidad de tandas por (día, tablado): arranca con lo que ya hay.
   const loadByDay = new Map()
@@ -718,6 +803,15 @@ export function planEventBoard({
         ),
         none: existing.filter((session) => !session.platformId).length,
         date: day?.date ?? null,
+        cursors: clock
+          ? [...platforms.map((platform) => platform.id), null].map((id) =>
+              laneCursor(
+                clock,
+                day?.date,
+                existing.filter((session) => (session.platformId ?? null) === id),
+              ),
+            )
+          : [],
       })
     }
     return loadByDay.get(dayIndex)
@@ -729,15 +823,20 @@ export function planEventBoard({
     const platform = pickPlatform(bucket, lane.position, platforms, lane.loads, options.platformMode)
     lane.position += 1
     const platformIndex = platform ? platforms.indexOf(platform) : -1
-    let slotIndex = lane.none
+    let cursorIndex = platforms.length
     if (platformIndex >= 0) {
       lane.loads[platformIndex] += bucket.athletes.length
-      slotIndex = lane.counts[platformIndex]
       lane.counts[platformIndex] += 1
+      cursorIndex = platformIndex
     } else {
       lane.none += 1
     }
-    const times = slotTimes(clock, lane.date, slotIndex)
+    let times = { startsAt: '', weighInAt: '' }
+    if (clock && lane.cursors.length > 0) {
+      times = timesAt(clock, lane.date, lane.cursors[cursorIndex])
+      lane.cursors[cursorIndex] +=
+        sessionDuration(clock, bucket.athletes.length) + clock.gap
+    }
 
     const name = nextSessionName(names)
     names.push(name)
@@ -813,6 +912,48 @@ function buildStats(summaries, platforms) {
     largest: sizes.length ? Math.max(...sizes) : 0,
     mixedSex: summaries.filter((row) => row.mixedSex).length,
     byPlatform,
+  }
+}
+
+/** Minutos por atleta con que arranca la estimación de duración de una tanda. */
+export const DEFAULT_MINUTES_PER_ATHLETE = 4
+
+/**
+ * Opciones sugeridas a partir de lo que el tablero ya sabe, para que "Repartir"
+ * no empiece de cero: tablados y tope (lo que la organización ya definió),
+ * criterio de corte según qué varía entre los inscriptos, y horarios si los
+ * días tienen fecha. La hora del primer inicio sale de las tandas que ya tienen
+ * hora (la más temprana); sin ninguna, 09:00. La duración es una estimación por
+ * atleta que la organización puede pisar a mano en cada tanda.
+ */
+export function suggestPlanOptions({ athletes = [], days = [], flightSize } = {}) {
+  const cap = Math.max(1, Number(flightSize) || DEFAULT_FLIGHT_SIZE)
+  const categories = uniqueValues(athletes, 'category')
+  const groupBy = categories.length > 1 ? ['sex', 'category'] : ['sex']
+
+  let earliest = null
+  for (const day of days) {
+    for (const session of day.sessions ?? []) {
+      const start = minutesOfDay(session.startsAt, day.date)
+      if (start !== null && (earliest === null || start < earliest)) earliest = start
+    }
+  }
+  const hours = earliest === null ? 9 : Math.floor(earliest / 60)
+  const minutes = earliest === null ? 0 : earliest % 60
+  const dated = days.some((day) => day.date)
+
+  return {
+    maxPerSession: cap,
+    groupBy,
+    schedule: dated
+      ? {
+          firstStart: `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`,
+          sessionMinutes: 45,
+          minutesPerAthlete: DEFAULT_MINUTES_PER_ATHLETE,
+          gapMinutes: 10,
+          weighInLeadMinutes: 120,
+        }
+      : null,
   }
 }
 

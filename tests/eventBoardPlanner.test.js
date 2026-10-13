@@ -4,6 +4,10 @@ import {
   compositionFacets,
   DEFAULT_FLIGHT_SIZE,
   balancedChunks,
+  estimateLaneTimes,
+  minutesOfDay,
+  sessionDuration,
+  suggestPlanOptions,
   EMPTY_POOL_FILTERS,
   isoFromLocalMinutes,
   normalizeSchedule,
@@ -705,6 +709,133 @@ describe('motor v2', () => {
       const [row] = sessionsPayloadFromBoard([emptyDay(0)], { extra: plan.newSessions })
       expect(row.startsAt).toBe('2026-11-13T12:00:00.000Z')
       expect(row.weighInAt).toBe('2026-11-13T10:30:00.000Z')
+    })
+  })
+
+  describe('duración estimada por atletas', () => {
+    const dated = { ...emptyDay(0), date: '2026-11-13' }
+
+    it('la tanda dura según cuántos atletas tiene y la siguiente arranca al terminar', () => {
+      const plan = planEventBoard({
+        maxPerSession: 6,
+        unassigned: byWeight(Array.from({ length: 9 }, (_, index) => 50 + index)),
+        days: [dated],
+        platforms: [{ id: 'p1', name: 'T1' }],
+        schedule: { firstStart: '09:00', minutesPerAthlete: 5, gapMinutes: 10, weighInLeadMinutes: 0 },
+      })
+      // 9 con tope 6 -> 5 + 4. La 1.ª dura 25 min, la 2.ª arranca a las 09:35 (hora local -03).
+      expect(plan.newSessions.map((row) => row.count)).toEqual([5, 4])
+      expect(plan.newSessions.map((row) => row.startsAt)).toEqual([
+        '2026-11-13T12:00:00.000Z',
+        '2026-11-13T12:35:00.000Z',
+      ])
+    })
+
+    it('sessionDuration: estimada por atleta o fija, nunca menos de un minuto', () => {
+      const estimated = normalizeSchedule({ firstStart: '09:00', minutesPerAthlete: 3.5 })
+      expect(sessionDuration(estimated, 12)).toBe(42)
+      expect(sessionDuration(estimated, 0)).toBe(1)
+      expect(sessionDuration(normalizeSchedule({ firstStart: '09:00', sessionMinutes: 45 }), 12)).toBe(45)
+    })
+
+    it('una tanda con hora puesta a mano corre el cursor del tablado', () => {
+      const existing = {
+        ...session('s1', 'Tanda A', [athlete('x', { sex: 'Masculino' })]),
+        platformId: 'p1',
+        startsAt: '2026-11-13T15:00:00.000Z', // 12:00 locales
+      }
+      const plan = planEventBoard({
+        maxPerSession: 4,
+        useExisting: false,
+        unassigned: byWeight([50, 51]),
+        days: [{ ...dated, sessions: [existing] }],
+        platforms: [{ id: 'p1', name: 'T1' }],
+        schedule: { firstStart: '09:00', minutesPerAthlete: 10, gapMinutes: 10 },
+      })
+      // La existente dura 10 min desde las 12:00: la nueva arranca 12:20.
+      expect(plan.newSessions[0].startsAt).toBe('2026-11-13T15:20:00.000Z')
+    })
+
+    it('estimateLaneTimes recalcula las horas de un tablado en orden', () => {
+      const rows = estimateLaneTimes({
+        date: '2026-11-13',
+        schedule: { firstStart: '10:00', minutesPerAthlete: 5, gapMinutes: 0, weighInLeadMinutes: 60 },
+        sessions: [
+          session('a', 'A', byWeight([50, 51, 52, 53])),
+          session('b', 'B', byWeight([60, 61])),
+        ],
+      })
+      expect(rows.map((row) => row.startsAt)).toEqual([
+        '2026-11-13T13:00:00.000Z',
+        '2026-11-13T13:20:00.000Z',
+      ])
+      expect(rows[0].weighInAt).toBe('2026-11-13T12:00:00.000Z')
+      expect(estimateLaneTimes({ sessions: [session('a', 'A')], schedule: null })).toEqual([])
+    })
+
+    it('minutesOfDay solo vale dentro de la fecha dada', () => {
+      expect(minutesOfDay('2026-11-13T12:30:00.000Z', '2026-11-13')).toBe(9 * 60 + 30)
+      expect(minutesOfDay('2026-11-14T12:30:00.000Z', '2026-11-13')).toBeNull()
+      expect(minutesOfDay('', '2026-11-13')).toBeNull()
+    })
+  })
+
+  describe('reparto entre días con carga previa', () => {
+    it('un día ya cargado recibe menos tandas nuevas que uno vacío', () => {
+      const loaded = emptyDay(0, [
+        session('s1', 'Tanda A', byWeight(Array.from({ length: 12 }, (_, index) => 40 + index))),
+      ])
+      const plan = planEventBoard({
+        maxPerSession: 6,
+        useExisting: false,
+        unassigned: byWeight(Array.from({ length: 12 }, (_, index) => 60 + index)),
+        days: [loaded, emptyDay(1)],
+      })
+      const perDay = (dayIndex) =>
+        plan.newSessions.filter((row) => row.dayIndex === dayIndex).reduce((sum, row) => sum + row.count, 0)
+      expect(perDay(0) + perDay(1)).toBe(12)
+      expect(perDay(1)).toBeGreaterThan(perDay(0))
+    })
+
+    it('sin carga previa el corte entre días sigue siendo parejo', () => {
+      const plan = planEventBoard({
+        maxPerSession: 6,
+        unassigned: byWeight(Array.from({ length: 24 }, (_, index) => 50 + index)),
+        days: [emptyDay(0), emptyDay(1)],
+      })
+      const perDay = (dayIndex) =>
+        plan.newSessions.filter((row) => row.dayIndex === dayIndex).reduce((sum, row) => sum + row.count, 0)
+      expect(perDay(0)).toBe(12)
+      expect(perDay(1)).toBe(12)
+    })
+  })
+
+  describe('suggestPlanOptions', () => {
+    it('toma el tope vigente y corta por sexo cuando hay una sola categoría', () => {
+      const options = suggestPlanOptions({ athletes: byWeight([50, 51]), days: [emptyDay(0)], flightSize: 10 })
+      expect(options.maxPerSession).toBe(10)
+      expect(options.groupBy).toEqual(['sex'])
+      expect(options.schedule).toBeNull()
+    })
+
+    it('con categorías distintas corta también por categoría', () => {
+      const options = suggestPlanOptions({
+        athletes: [athlete('a', { category: 'Raw' }), athlete('b', { category: 'Equipado' })],
+        days: [emptyDay(0)],
+      })
+      expect(options.groupBy).toEqual(['sex', 'category'])
+      expect(options.maxPerSession).toBe(DEFAULT_FLIGHT_SIZE)
+    })
+
+    it('con fecha propone horarios y arranca donde ya arranca la tanda más temprana', () => {
+      const early = { ...session('s1', 'A'), startsAt: '2026-11-13T11:30:00.000Z' } // 08:30 locales
+      const options = suggestPlanOptions({
+        athletes: [],
+        days: [{ ...emptyDay(0, [early]), date: '2026-11-13' }],
+      })
+      expect(options.schedule).toMatchObject({ firstStart: '08:30', minutesPerAthlete: 4 })
+      const fresh = suggestPlanOptions({ athletes: [], days: [{ ...emptyDay(0), date: '2026-11-13' }] })
+      expect(fresh.schedule.firstStart).toBe('09:00')
     })
   })
 

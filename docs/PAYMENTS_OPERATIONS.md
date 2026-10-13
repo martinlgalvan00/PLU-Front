@@ -334,7 +334,9 @@ que para Mercado Pago.
   borra el objeto del bucket y marca `purged_at`. Esa segunda etapa no tiene
   vuelta atras. Llegan a la papelera: lo que vence la politica, la baja manual
   (`POST /api/payment-proofs/orders/:source/:orderId/trash`, solo ordenes ya
-  resueltas), el comprobante que reemplaza otro subido despues, los de un atleta
+  resueltas; en el panel, "Mover a la papelera" en el dialogo del comprobante de
+  Finanzas y de Entradas, con confirmacion, y solo con `admin.payments.approve`),
+  el comprobante que reemplaza otro subido despues, los de un atleta
   eliminado y los archivos huerfanos (objetos del bucket que ninguna orden
   conoce, con mas de 24 h). `payment_proof_files` es el registro de cada archivo
   subido (atletas, entradas **y tienda**); un trigger lo mantiene solo.
@@ -379,7 +381,10 @@ que para Mercado Pago.
   Migraciones (en orden): `20261213100000_payment_proof_archive`,
   `20261214100000_payment_proof_integrity`, `20261214110000_payment_proof_files`.
   Sin ellas `/summary` responde 500 (funcion o columna ausente), a proposito:
-  indica una migracion sin aplicar.
+  indica una migracion sin aplicar. `20261214100000` ya se habia aplicado cuando se
+  sumaron `payment_proof_trashed_at` y el bypass de restauracion del trigger, asi
+  que ese complemento vive al principio de `20261214110000` (idempotente) y no en
+  la primera: una migracion aplicada no se edita.
   Antes de este cambio la purga corria sola a las 24 h: las transferencias
   aprobadas hasta entonces ya no tienen archivo y no se pueden recuperar.
 
