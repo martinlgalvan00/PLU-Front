@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
 /**
@@ -33,6 +33,9 @@ vi.mock('../src/services/eventRegistrationApi.js', () => ({
   saveEventPlatforms: vi.fn(),
   saveEventSessions: vi.fn(),
   setEventSchedulePublic: vi.fn(),
+  fetchGridTemplates: vi.fn(),
+  saveGridTemplate: vi.fn(),
+  deleteGridTemplate: vi.fn(),
 }))
 
 const {
@@ -42,6 +45,9 @@ const {
   saveEventPlatforms,
   saveEventSessions,
   setEventSchedulePublic,
+  fetchGridTemplates,
+  saveGridTemplate,
+  deleteGridTemplate,
 } = await import('../src/services/eventRegistrationApi.js')
 const ScheduleBoardSection = (await import('../src/pages/admin/ScheduleBoardSection.jsx')).default
 
@@ -113,6 +119,11 @@ function renderBoard(props = {}) {
     </I18nProvider>,
   )
 }
+
+beforeEach(() => {
+  // El asistente pide las plantillas al abrirse; sin ninguna es la lista vacía.
+  fetchGridTemplates.mockResolvedValue([])
+})
 
 afterEach(() => {
   cleanup()
@@ -543,7 +554,8 @@ describe('armado automático', () => {
       { id: 'new-a', name: 'Tanda A', platform: 'Tablado 1', platformId: 'plat-1', weighInAt: null, startsAt: null, sortOrder: 1, athletes: [] },
       { id: 'new-b', name: 'Tanda B', platform: 'Tablado 2', platformId: 'plat-2', weighInAt: null, startsAt: null, sortOrder: 2, athletes: [] },
     ]
-    fetchEventBoard.mockResolvedValue(created)
+    // Aplicar relee el tablero antes de crear (sin tandas) y después (con ids).
+    fetchEventBoard.mockResolvedValueOnce(planBoard()).mockResolvedValue(created)
 
     fireEvent.click(within(panel).getByRole('button', { name: /confirmar: 8 atletas, 2 tandas nuevas/i }))
 
@@ -669,5 +681,404 @@ describe('publicación en el sitio oficial', () => {
     renderBoard({ canEdit: false })
     const toggle = await screen.findByRole('switch', { name: /mostrar la grilla/i })
     expect(toggle.disabled).toBe(true)
+  })
+})
+
+describe('asistente de armado', () => {
+  const people = (count, overrides = () => ({})) =>
+    Array.from({ length: count }, (_, index) =>
+      athlete({
+        registrationId: `w-${index}`,
+        fullName: `Atleta ${index}`,
+        sex: index % 2 === 0 ? 'Femenino' : 'Masculino',
+        bodyweightKg: 55 + index,
+        age: 20 + index,
+        ...overrides(index),
+      }),
+    )
+
+  const emptyDay = (extra = {}) => ({
+    id: 'day-1',
+    dayIndex: 0,
+    label: 'Día 1',
+    date: '2026-11-13',
+    assignedCount: 0,
+    sessions: [],
+    withoutSession: [],
+    ...extra,
+  })
+
+  const boardWith = (overrides = {}) => ({
+    event: { slug: 'pitbull-classic-2026', title: 'Pitbull Classic 2026', published: true },
+    platforms: [],
+    schedulePublic: false,
+    totals: { registered: 8, assigned: 0, unassigned: 8 },
+    days: [emptyDay()],
+    unassigned: people(8),
+    ...overrides,
+  })
+
+  const withIds = (board) => ({
+    ...board,
+    platforms: [
+      { id: 'p1', name: 'Tablado 1', sortOrder: 0 },
+      { id: 'p2', name: 'Tablado 2', sortOrder: 1 },
+    ],
+  })
+
+  async function open(board) {
+    fetchEventBoard.mockResolvedValueOnce(board)
+    renderBoard()
+    fireEvent.click(await screen.findByRole('button', { name: /armar tandas automáticamente/i }))
+    return screen.findByRole('region', { name: /armado automático/i })
+  }
+
+  describe('plantillas', () => {
+    it('elegir una predefinida llena tablados, criterios y tope sin escribir nada', async () => {
+      const panel = await open(boardWith())
+      fireEvent.change(within(panel).getByLabelText('Plantilla'), {
+        target: { value: 'builtin:double-by-sex' },
+      })
+
+      expect(within(panel).getByLabelText('Nombre del tablado 1').value).toBe('Tablado 1')
+      expect(within(panel).getByLabelText('Nombre del tablado 2').value).toBe('Tablado 2')
+      expect(within(panel).getByRole('tab', { name: /un sexo por tablado/i }).getAttribute('aria-selected')).toBe('true')
+      expect(within(panel).getByText('Plantilla aplicada: Doble tablado · un sexo por tablado.')).toBeTruthy()
+      expect(saveEventPlatforms).not.toHaveBeenCalled()
+      expect(saveEventSessions).not.toHaveBeenCalled()
+    })
+
+    it('muestra y aplica las guardadas de la organización, con su tope y horarios', async () => {
+      fetchGridTemplates.mockResolvedValue([
+        {
+          id: 'tpl-1',
+          name: 'Mi meet',
+          config: {
+            platforms: ['Rojo', 'Azul'],
+            maxPerSession: 6,
+            groupBy: ['sex'],
+            sortBy: 'age',
+            mergeSmall: false,
+            platformMode: 'alternate',
+            weightClasses: { Femenino: [57, 63] },
+            schedule: { firstStart: '10:00', sessionMinutes: 30, gapMinutes: 5, weighInLeadMinutes: 60 },
+          },
+        },
+      ])
+      const panel = await open(boardWith())
+      await waitFor(() => expect(within(panel).getByRole('option', { name: 'Mi meet' })).toBeTruthy())
+      fireEvent.change(within(panel).getByLabelText('Plantilla'), { target: { value: 'tpl-1' } })
+
+      expect(within(panel).getByLabelText('Nombre del tablado 1').value).toBe('Rojo')
+      expect(within(panel).getByLabelText('Nombre del tablado 2').value).toBe('Azul')
+      expect(within(panel).getByLabelText('Por tanda').value).toBe('6')
+      expect(within(panel).getByRole('tab', { name: /^edad/i }).getAttribute('aria-selected')).toBe('true')
+      expect(within(panel).getByLabelText('Primer inicio').value).toBe('10:00')
+      expect(within(panel).getByLabelText('Femenino', { selector: 'input[type="text"]' }).value).toBe('57, 63')
+      // Con tope 6 y 8 atletas, dos tandas por sexo no entran en una: se ve en la propuesta.
+      expect(within(panel).getAllByText(/Inicio 10:00/).length).toBeGreaterThanOrEqual(1)
+    })
+
+    it('guardar como plantilla manda solo la configuración (sin días ni atletas)', async () => {
+      saveGridTemplate.mockResolvedValue([{ id: 'tpl-9', name: 'Nueva', config: {} }])
+      const panel = await open(boardWith())
+      fireEvent.change(within(panel).getByLabelText('Por tanda'), { target: { value: '10' } })
+      fireEvent.change(within(panel).getByLabelText('Nombre de la plantilla'), {
+        target: { value: ' Nueva ' },
+      })
+      fireEvent.click(within(panel).getByRole('button', { name: 'Guardar como plantilla' }))
+
+      await waitFor(() => expect(saveGridTemplate).toHaveBeenCalledTimes(1))
+      const [slug, body] = saveGridTemplate.mock.calls[0]
+      expect(slug).toBe('pitbull-classic-2026')
+      expect(body.name).toBe('Nueva')
+      expect(body.config).toMatchObject({
+        platforms: ['Tablado 1'],
+        maxPerSession: 10,
+        groupBy: ['sex', 'category'],
+        sortBy: 'weight',
+        platformMode: 'balance',
+        schedule: null,
+        weightClasses: null,
+      })
+      expect(body.config).not.toHaveProperty('dayIndexes')
+      expect(await within(panel).findByText('Plantilla guardada: Nueva.')).toBeTruthy()
+    })
+
+    it('si el nombre ya existe el botón dice que la reemplaza', async () => {
+      fetchGridTemplates.mockResolvedValue([{ id: 'tpl-1', name: 'Mi meet', config: {} }])
+      const panel = await open(boardWith())
+      await waitFor(() => expect(within(panel).getByRole('option', { name: 'Mi meet' })).toBeTruthy())
+      fireEvent.change(within(panel).getByLabelText('Nombre de la plantilla'), {
+        target: { value: 'mi MEET' },
+      })
+      expect(within(panel).getByRole('button', { name: 'Reemplazar plantilla' })).toBeTruthy()
+    })
+
+    it('borra una propia, pero las predefinidas no tienen borrar', async () => {
+      fetchGridTemplates.mockResolvedValue([{ id: 'tpl-1', name: 'Mi meet', config: {} }])
+      deleteGridTemplate.mockResolvedValue([])
+      const panel = await open(boardWith())
+      await waitFor(() => expect(within(panel).getByRole('option', { name: 'Mi meet' })).toBeTruthy())
+
+      fireEvent.change(within(panel).getByLabelText('Plantilla'), {
+        target: { value: 'builtin:single' },
+      })
+      expect(within(panel).queryByRole('button', { name: /borrar la plantilla/i })).toBeNull()
+
+      fireEvent.change(within(panel).getByLabelText('Plantilla'), { target: { value: 'tpl-1' } })
+      fireEvent.click(within(panel).getByRole('button', { name: 'Borrar la plantilla Mi meet' }))
+      await waitFor(() =>
+        expect(deleteGridTemplate).toHaveBeenCalledWith('pitbull-classic-2026', 'tpl-1'),
+      )
+      expect(await within(panel).findByText('Plantilla borrada: Mi meet.')).toBeTruthy()
+    })
+
+    it('sin permiso sobre el evento puede aplicar plantillas pero no guardarlas', async () => {
+      fetchEventBoard.mockResolvedValueOnce(boardWith())
+      renderBoard({ canEdit: true, canEditStructure: true })
+      fireEvent.click(await screen.findByRole('button', { name: /armar tandas automáticamente/i }))
+      const panel = await screen.findByRole('region', { name: /armado automático/i })
+      expect(within(panel).getByLabelText('Nombre de la plantilla')).toBeTruthy()
+    })
+  })
+
+  describe('horarios, clases de peso y alcance', () => {
+    it('calcula pesaje e inicio por tablado cuando se prende', async () => {
+      const panel = await open(withIds(boardWith()))
+      expect(within(panel).queryByText(/Inicio \d\d:\d\d/)).toBeNull()
+
+      fireEvent.click(within(panel).getByText('Horarios'))
+      fireEvent.click(within(panel).getByLabelText('Calcular horarios de pesaje e inicio'))
+
+      // 09:00 en Buenos Aires; las dos primeras tandas (una por tablado) arrancan juntas.
+      expect(within(panel).getAllByText(/Inicio 09:00/).length).toBeGreaterThanOrEqual(2)
+      expect(within(panel).getAllByText(/Pesaje 07:00/).length).toBeGreaterThanOrEqual(1)
+    })
+
+    it('un horario inválido bloquea confirmar y lo dice', async () => {
+      const panel = await open(withIds(boardWith()))
+      fireEvent.click(within(panel).getByText('Horarios'))
+      fireEvent.click(within(panel).getByLabelText('Calcular horarios de pesaje e inicio'))
+      fireEvent.change(within(panel).getByLabelText('Minutos por tanda'), { target: { value: '0' } })
+
+      expect(within(panel).getByText(/Revisá la hora de inicio/)).toBeTruthy()
+      expect(within(panel).getByRole('button', { name: /confirmar/i }).disabled).toBe(true)
+    })
+
+    it('las clases de peso mal tipeadas bloquean y no se cuelan: "63,5" marca el 5', async () => {
+      const panel = await open(withIds(boardWith()))
+      fireEvent.click(within(panel).getByText('Clases de peso (opcional)'))
+      fireEvent.change(within(panel).getByLabelText('Femenino', { selector: 'input[type="text"]' }), {
+        target: { value: '57, 63,5' },
+      })
+      expect(within(panel).getByText('Hay valores que no son pesos válidos.')).toBeTruthy()
+      expect(within(panel).getByRole('button', { name: /confirmar/i }).disabled).toBe(true)
+    })
+
+    it('rehacer toda la grilla suma a los ya ubicados y deja fijos a los que ingresaron', async () => {
+      const placed = people(4, (index) => ({
+        registrationId: `placed-${index}`,
+        checkedIn: index === 0,
+      }))
+      const board = withIds(
+        boardWith({
+          unassigned: people(2),
+          days: [
+            emptyDay({
+              sessions: [
+                {
+                  id: 'ses-a',
+                  name: 'Tanda A',
+                  platform: 'Tablado 1',
+                  platformId: 'p1',
+                  weighInAt: null,
+                  startsAt: null,
+                  sortOrder: 0,
+                  athletes: placed,
+                },
+              ],
+            }),
+          ],
+        }),
+      )
+      const panel = await open(board)
+      expect(within(panel).getByText(/Sobre 2 atletas sin ubicar/)).toBeTruthy()
+
+      fireEvent.click(within(panel).getByLabelText(/Rehacer toda la grilla/));
+      // 2 libres + 3 movibles (el que ingresó queda fijo en su tanda).
+      expect(within(panel).getByText(/Sobre 5 atletas, ubicados o no\. 1 con ingreso registrado/)).toBeTruthy()
+    })
+
+    it('quitar tandas vacías aparece solo si hay y las saca sin tocar las que tienen gente', async () => {
+      saveEventSessions.mockResolvedValue({})
+      const board = withIds(
+        boardWith({
+          days: [
+            emptyDay({
+              sessions: [
+                { id: 'ses-a', name: 'Tanda A', platform: '', platformId: 'p1', weighInAt: null, startsAt: null, sortOrder: 0, athletes: people(1) },
+                { id: 'ses-b', name: 'Tanda B', platform: '', platformId: 'p2', weighInAt: null, startsAt: null, sortOrder: 1, athletes: [] },
+              ],
+            }),
+          ],
+        }),
+      )
+      fetchEventBoard.mockResolvedValue(board)
+      renderBoard()
+      fireEvent.click(await screen.findByRole('button', { name: /armar tandas automáticamente/i }))
+      const panel = await screen.findByRole('region', { name: /armado automático/i })
+      fireEvent.click(within(panel).getByRole('button', { name: 'Quitar 1 tandas vacías' }))
+
+      await waitFor(() => expect(saveEventSessions).toHaveBeenCalled())
+      const [, payload] = saveEventSessions.mock.calls[0]
+      expect(payload.map((row) => row.id)).toEqual(['ses-a'])
+      expect(await screen.findByText('Se quitaron 1 tandas vacías.')).toBeTruthy()
+    })
+  })
+
+  describe('confirmar', () => {
+    it('crea primero los tablados que faltan, después las tandas con su tablado, y asigna', async () => {
+      saveEventPlatforms.mockResolvedValue({})
+      saveEventSessions.mockResolvedValue({})
+      assignRegistrationSchedule.mockResolvedValue({ updated: 4, requested: 4, schedule: null })
+      const panel = await open(boardWith())
+
+      fireEvent.click(within(panel).getByRole('tab', { name: /dos tablados/i }))
+      fireEvent.change(within(panel).getByLabelText('Nombre del tablado 1'), { target: { value: 'Rojo' } })
+      fireEvent.change(within(panel).getByLabelText('Nombre del tablado 2'), { target: { value: 'Azul' } })
+
+      const created = withIds(boardWith())
+      created.platforms = [
+        { id: 'p1', name: 'Rojo', sortOrder: 0 },
+        { id: 'p2', name: 'Azul', sortOrder: 1 },
+      ]
+      created.days = [
+        emptyDay({
+          sessions: [
+            { id: 'new-a', name: 'Tanda A', platform: 'Rojo', platformId: 'p1', weighInAt: null, startsAt: null, sortOrder: 1, athletes: [] },
+            { id: 'new-b', name: 'Tanda B', platform: 'Azul', platformId: 'p2', weighInAt: null, startsAt: null, sortOrder: 2, athletes: [] },
+          ],
+        }),
+      ]
+      // 1 releída previa (sin tablados) → 2 con tablados → 3 con tandas (y la final).
+      fetchEventBoard
+        .mockResolvedValueOnce(boardWith())
+        .mockResolvedValueOnce({ ...boardWith(), platforms: created.platforms })
+        .mockResolvedValue(created)
+
+      fireEvent.click(within(panel).getByRole('button', { name: /confirmar/i }))
+
+      await waitFor(() => expect(assignRegistrationSchedule).toHaveBeenCalledTimes(2))
+      expect(saveEventPlatforms).toHaveBeenCalledWith('pitbull-classic-2026', [
+        { name: 'Rojo' },
+        { name: 'Azul' },
+      ])
+      const [, sessions] = saveEventSessions.mock.calls[0]
+      expect(sessions.map((row) => [row.name, row.platformId])).toEqual([
+        ['Tanda A', 'p1'],
+        ['Tanda B', 'p2'],
+      ])
+      // Las plataformas se guardan antes que las tandas que las referencian.
+      expect(saveEventPlatforms.mock.invocationCallOrder[0]).toBeLessThan(
+        saveEventSessions.mock.invocationCallOrder[0],
+      )
+    })
+
+    it('con los mismos tablados no vuelve a guardarlos', async () => {
+      saveEventSessions.mockResolvedValue({})
+      assignRegistrationSchedule.mockResolvedValue({ updated: 4, requested: 4, schedule: null })
+      const board = withIds(boardWith())
+      const panel = await open(board)
+      fetchEventBoard.mockResolvedValue(board)
+      fireEvent.click(within(panel).getByRole('button', { name: /confirmar/i }))
+      await waitFor(() => expect(saveEventSessions).toHaveBeenCalled())
+      expect(saveEventPlatforms).not.toHaveBeenCalled()
+    })
+
+    it('tablados repetidos o vacíos bloquean confirmar', async () => {
+      const panel = await open(withIds(boardWith()))
+      fireEvent.change(within(panel).getByLabelText('Nombre del tablado 2'), {
+        target: { value: 'tablado 1' },
+      })
+      expect(within(panel).getByRole('button', { name: /confirmar/i }).disabled).toBe(true)
+      fireEvent.change(within(panel).getByLabelText('Nombre del tablado 2'), { target: { value: '  ' } })
+      expect(within(panel).getByRole('button', { name: /confirmar/i }).disabled).toBe(true)
+    })
+  })
+
+  describe('deshacer', () => {
+    it('después de un movimiento vuelve a cada atleta a donde estaba', async () => {
+      const board = boardWith({
+        unassigned: people(2),
+        days: [
+          emptyDay({
+            sessions: [
+              { id: 'ses-a', name: 'Tanda A', platform: '', platformId: null, weighInAt: null, startsAt: null, sortOrder: 0, athletes: [] },
+            ],
+          }),
+        ],
+      })
+      fetchEventBoard.mockResolvedValue(board)
+      assignRegistrationSchedule.mockResolvedValue({ updated: 1, requested: 1, schedule: null })
+      renderBoard()
+
+      await screen.findByText('Atleta 0')
+      fireEvent.click(screen.getByLabelText(/seleccionar a atleta 0/i))
+      const bar = await screen.findByRole('region', { name: /mover atletas/i })
+      fireEvent.change(within(bar).getByLabelText(/mover a/i), { target: { value: 'session|0|ses-a' } })
+      fireEvent.click(within(bar).getByRole('button', { name: /^mover$/i }))
+      await waitFor(() => expect(assignRegistrationSchedule).toHaveBeenCalledTimes(1))
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Deshacer' }))
+      await waitFor(() => expect(assignRegistrationSchedule).toHaveBeenCalledTimes(2))
+      expect(assignRegistrationSchedule.mock.calls[1]).toEqual([
+        'pitbull-classic-2026',
+        { registrationIds: ['w-0'], dayIndex: null, sessionId: null },
+      ])
+      expect(await screen.findByText(/Se deshizo: 1 atletas volvieron a su lugar/)).toBeTruthy()
+      expect(screen.queryByRole('button', { name: 'Deshacer' })).toBeNull()
+    })
+
+    it('después de un armado vuelve a todos y quita las tandas que creó', async () => {
+      saveEventSessions.mockResolvedValue({})
+      assignRegistrationSchedule.mockResolvedValue({ updated: 8, requested: 8, schedule: null })
+      const base = withIds(boardWith())
+      const panel = await open(base)
+
+      const created = {
+        ...base,
+        days: [
+          emptyDay({
+            sessions: [
+              { id: 'new-a', name: 'Tanda A', platform: 'Tablado 1', platformId: 'p1', weighInAt: null, startsAt: null, sortOrder: 1, athletes: [] },
+              { id: 'new-b', name: 'Tanda B', platform: 'Tablado 2', platformId: 'p2', weighInAt: null, startsAt: null, sortOrder: 2, athletes: [] },
+            ],
+          }),
+        ],
+      }
+      fetchEventBoard.mockResolvedValueOnce(base).mockResolvedValue(created)
+      fireEvent.click(within(panel).getByRole('button', { name: /confirmar/i }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Deshacer' }))
+
+      // Un lote de vuelta a "sin día" con los 8, y recién entonces se quitan las tandas vacías.
+      await waitFor(() =>
+        expect(
+          assignRegistrationSchedule.mock.calls.some(
+            ([, body]) => body.dayIndex === null && body.sessionId === null && body.registrationIds.length === 8,
+          ),
+        ).toBe(true),
+      )
+      await waitFor(() => expect(saveEventSessions).toHaveBeenCalledTimes(2))
+      const [, afterUndo] = saveEventSessions.mock.calls[1]
+      expect(afterUndo).toEqual([])
+    })
+
+    it('no ofrece deshacer a quien solo puede mirar', async () => {
+      fetchEventBoard.mockResolvedValue(boardWith())
+      renderBoard({ canEdit: false })
+      await screen.findByText('Atleta 0')
+      expect(screen.queryByRole('button', { name: 'Deshacer' })).toBeNull()
+    })
   })
 })

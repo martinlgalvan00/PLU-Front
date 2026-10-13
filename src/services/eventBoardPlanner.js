@@ -816,6 +816,47 @@ function buildStats(summaries, platforms) {
   }
 }
 
+/**
+ * Dónde está hoy cada inscripción: registrationId → { dayIndex, sessionId }.
+ * `null/null` es "sin día". Es la foto que hace falta para deshacer un reparto.
+ */
+export function locationIndex(board) {
+  const index = new Map()
+  for (const athlete of board?.unassigned ?? []) {
+    index.set(athlete.registrationId, { dayIndex: null, sessionId: null })
+  }
+  for (const day of board?.days ?? []) {
+    for (const athlete of day.withoutSession ?? []) {
+      index.set(athlete.registrationId, { dayIndex: day.dayIndex, sessionId: null })
+    }
+    for (const session of day.sessions ?? []) {
+      for (const athlete of session.athletes ?? []) {
+        index.set(athlete.registrationId, { dayIndex: day.dayIndex, sessionId: session.id })
+      }
+    }
+  }
+  return index
+}
+
+/** Agrupa `[registrationId, ubicación]` en lotes por destino, de a `size` como máximo. */
+export function batchesFromLocations(entries, size = 400) {
+  const groups = new Map()
+  for (const [registrationId, location] of entries) {
+    const dayIndex = location?.dayIndex ?? null
+    const sessionId = location?.sessionId ?? null
+    const key = `${dayIndex}|${sessionId}`
+    if (!groups.has(key)) groups.set(key, { dayIndex, sessionId, registrationIds: [] })
+    groups.get(key).registrationIds.push(registrationId)
+  }
+  return [...groups.values()].flatMap((group) => {
+    const batches = []
+    for (let start = 0; start < group.registrationIds.length; start += size) {
+      batches.push({ ...group, registrationIds: group.registrationIds.slice(start, start + size) })
+    }
+    return batches
+  })
+}
+
 export function resolvePlacementBatches(board, plan) {
   const byName = new Map()
   for (const day of board?.days ?? []) {
