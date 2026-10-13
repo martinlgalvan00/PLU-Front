@@ -29,6 +29,7 @@ import { validateAdminEventDraft } from '../../lib/schemas/adminEvent.js'
 import usePlatformPaymentChannels from '../../hooks/usePlatformPaymentChannels.js'
 import { platformCellsFor } from '../../lib/platformPaymentChannels.js'
 import { resolveEventPublishChecks } from '../../lib/eventPublishChecks.js'
+import { areaOfDraftField, describeDraftChanges } from '../../lib/eventDraftChanges.js'
 import {
   effectiveEventChannelsFor,
 } from '../../lib/eventPaymentChannels.js'
@@ -106,6 +107,8 @@ function resolveTabForField(key) {
     key.startsWith('eventDays.') ||
     key.startsWith('ticketTypes.') ||
     key.startsWith('paymentChannelOverrides') ||
+    key.startsWith('bankTransfer') ||
+    key === 'mercadoPagoProfileId' ||
     SALES_FIELD_KEYS.has(key)
   )
     return 'sales'
@@ -398,6 +401,12 @@ export default function AdminEventEditor({
   const essentials = accordion
   const platformChannels = usePlatformPaymentChannels()
   const [syncError, setSyncError] = useState(null)
+  // Dónde está el problema de un guardado rechazado (campo que marcó el
+  // servidor) y qué sí alcanzó a guardarse antes de fallar.
+  const [syncErrorField, setSyncErrorField] = useState(null)
+  const [syncExtraSaved, setSyncExtraSaved] = useState(false)
+  // Avisos de un guardado que salió bien pero quedó incompleto.
+  const [saveWarnings, setSaveWarnings] = useState([])
   const [syncing, setSyncing] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
   const [confirmDiscard, setConfirmDiscard] = useState(false)
@@ -720,6 +729,21 @@ export default function AdminEventEditor({
     setConfirmDiscard(false)
     if (Object.keys(fieldErrors).length) setFieldErrors({})
     if (syncError) setSyncError(null)
+    if (saveWarnings.length) setSaveWarnings([])
+  }
+
+  /** Lleva a la pestaña y al capítulo donde vive un campo. */
+  function navigateToField(key) {
+    if (!key) return
+    setSalesChapter(resolveSalesChapterForField(key))
+    const targetTab = resolveTabForField(key)
+    if (accordion) {
+      if (forcedTab && targetTab !== forcedTab) onRequestSection?.(targetTab)
+      else setActiveTab(targetTab)
+    } else {
+      setActiveTab(targetTab)
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => focusFirstInvalid(key)))
   }
 
   function requestClose() {
@@ -773,6 +797,9 @@ export default function AdminEventEditor({
   async function handleFormSubmit(event) {
     event.preventDefault()
     setSyncError(null)
+    setSyncErrorField(null)
+    setSyncExtraSaved(false)
+    setSaveWarnings([])
 
     const registered = sourceEvent?.registered ?? 0
     if (dirty && draft.id && Number(draft.slots) < registered) {
@@ -826,24 +853,38 @@ export default function AdminEventEditor({
     setFieldErrors({})
     setConfirmDiscard(false)
     setSyncing(true)
+    let extraSaved = false
     try {
       let payload = draft
       if (extraDirty) {
         const synced = await onExtraSave?.()
+        extraSaved = true
         if (synced && typeof synced === 'object') {
           payload = { ...draft, ...synced }
           onChange(payload)
         }
       }
+      let warnings = []
       if (dirty) {
         const result = await onSubmit?.(payload)
         if (result?.error) throw new Error(result.error)
+        warnings = Array.isArray(result?.warnings) ? result.warnings : []
       }
       // El padre suele cerrar el fold al guardar; si no, reseteamos baseline
       // para que el dock vuelva a "Al día" sin remount.
       initialDraftSignatureRef.current = draftSignature(payload)
+      setSaveWarnings(warnings)
       onSaved?.()
     } catch (error) {
+      // El servidor marca el campo que falta: el mensaje lleva ahí en un clic
+      // en vez de dejar al operador buscándolo entre cinco pestañas.
+      const fields = error?.body?.fields
+      setSyncErrorField(
+        fields && typeof fields === 'object' ? (Object.keys(fields)[0] ?? null) : null,
+      )
+      // El estado y el acceso van por un guardado aparte, antes del evento: si
+      // el segundo falla, el primero ya quedó. Decirlo evita reintentar a ciegas.
+      setSyncExtraSaved(extraSaved)
       // El servidor ya dice qué pasó (título repetido, día con inscriptos,
       // versión desactualizada): pisarlo con un único texto de "otra persona
       // modificó" escondía el motivo real de casi todos los 409.
@@ -900,10 +941,21 @@ export default function AdminEventEditor({
             remaining: publicCapacity.remaining,
           })
   const activeTabHasError = tabsWithErrors.has(activeTab)
+  // Con el borrador sucio se dice *dónde* están los cambios: "sin guardar" a
+  // secas no deja saber si lo pendiente es el título, un precio o el cobro.
+  const changedAreas = useMemo(
+    () => (dirty ? describeDraftChanges(draft, initialDraftSignatureRef.current) : []),
+    [dirty, draft],
+  )
+  const changedAreasLabel = changedAreas
+    .map((area) => t(`admin.eventEditor.changeAreas.${area}`))
+    .join(', ')
   const saveStateLabel = syncing
     ? t('admin.eventEditor.saving')
     : hasUnsavedChanges
-      ? t('admin.eventEditor.unsavedChanges')
+      ? changedAreasLabel
+        ? t('admin.eventEditor.unsavedChangesIn', { areas: changedAreasLabel })
+        : t('admin.eventEditor.unsavedChanges')
       : t('admin.eventEditor.noPendingChanges')
   const saveStateShortLabel = syncing
     ? t('admin.eventEditor.savingShort')
@@ -1093,9 +1145,45 @@ export default function AdminEventEditor({
         </div>
 
         {syncError ? (
-          <p className="admin-event-form__alert admin-event-form__alert--danger" role="alert">
-            {t('admin.eventEditor.supabase.syncError', { message: syncError })}
-          </p>
+          <div className="admin-event-form__alert admin-event-form__alert--danger" role="alert">
+            <p>{t('admin.eventEditor.supabase.syncError', { message: syncError })}</p>
+            {syncExtraSaved ? <p>{t('admin.eventEditor.savePartial')}</p> : null}
+            {syncErrorField ? (
+              <button
+                type="button"
+                className="button button--ghost admin-event-form__alert-action"
+                onClick={() => navigateToField(syncErrorField)}
+              >
+                {t('admin.eventEditor.goToArea', {
+                  area: t(`admin.eventEditor.changeAreas.${areaOfDraftField(syncErrorField)}`),
+                })}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {saveWarnings.length > 0 ? (
+          <div className="admin-event-form__notice" role="status">
+            <p>{t('admin.eventEditor.saveWarningTitle')}</p>
+            <ul>
+              {saveWarnings.map((warning) => (
+                <li key={warning.code}>
+                  {warning.message}{' '}
+                  {warning.field ? (
+                    <button
+                      type="button"
+                      className="button button--ghost admin-event-form__alert-action"
+                      onClick={() => navigateToField(warning.field)}
+                    >
+                      {t('admin.eventEditor.goToArea', {
+                        area: t(`admin.eventEditor.changeAreas.${areaOfDraftField(warning.field)}`),
+                      })}
+                    </button>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : null}
 
         {(() => {

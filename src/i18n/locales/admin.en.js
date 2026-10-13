@@ -1815,6 +1815,7 @@ export default {
 
   eventQuickCreate: {
     sectionPayments: 'Payment methods',
+    createdWithWarning: 'The event was created, but payment details are missing: {{message}}',
     paymentsNote:
       'Leave untouched and the event charges with whatever the platform has open. You can change it later from Sales.',
     eyebrow: 'New event',
@@ -3910,6 +3911,18 @@ export default {
     createAndPublish: 'Create and publish',
     saving: 'Saving...',
     unsavedChanges: 'There are unsaved changes',
+    unsavedChangesIn: 'Unsaved: {{areas}}',
+    changeAreas: {
+      basics: 'Details',
+      cupo: 'Capacity',
+      prices: 'Prices',
+      tickets: 'Tickets',
+      payment: 'Payment',
+      visibility: 'Publishing',
+    },
+    goToArea: 'Go to {{area}}',
+    savePartial: 'Status and access were saved; the event details were not.',
+    saveWarningTitle: 'Saved, but something is missing:',
     noPendingChanges: 'No pending changes',
     savingShort: 'Saving',
     unsavedShort: 'Unsaved',

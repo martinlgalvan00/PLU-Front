@@ -221,7 +221,8 @@
   min-width: 0;
 }
 
-.admin-event-quick__field input {
+.admin-event-quick__field input,
+.admin-event-quick__field select {
   background: var(--admin-control-bg);
   border: 1px solid var(--admin-hairline-strong);
   border-radius: 10px;
@@ -240,11 +241,13 @@
   color: color-mix(in srgb, var(--admin-ink) 32%, transparent);
 }
 
-.admin-event-quick__field input:hover:not(:disabled) {
+.admin-event-quick__field input:hover:not(:disabled),
+.admin-event-quick__field select:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--admin-ink) 30%, transparent);
 }
 
-.admin-event-quick__field input:focus-visible {
+.admin-event-quick__field input:focus-visible,
+.admin-event-quick__field select:focus-visible {
   border-color: var(--admin-ink);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-ink) 14%, transparent);
   outline: none;

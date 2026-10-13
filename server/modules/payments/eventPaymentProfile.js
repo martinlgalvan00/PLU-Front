@@ -205,12 +205,20 @@ export function resolveBankTransferDetails(eventRow = null, env = process.env, p
   }
 }
 
+export const BANK_TRANSFER_ALIAS_REQUIRED_CODE = 'EVENT_BANK_TRANSFER_ALIAS_REQUIRED'
+
+export const BANK_TRANSFER_ALIAS_REQUIRED_MESSAGE =
+  'La transferencia está abierta para este evento pero no tiene a dónde cobrar: ni perfil de cobro, ni alias propio, ni un alias global configurado. Elegí un perfil o cargá un alias en Ventas → Cobro, o cerrá la transferencia para este evento.'
+
 /**
- * Si el perfil personaliza canales y deja transferencia abierta, tiene que
- * haber un alias (perfil, evento o env). Evita publicar un evento que ofrezca
- * transferencia sin destino de cobro.
+ * Si el evento personaliza canales y deja la transferencia abierta, tiene que
+ * haber un destino de cobro (perfil, evento o env). Devuelve `null` si está
+ * todo bien o `{ code, message, field }` si falta.
+ *
+ * Es un chequeo y no un `throw` para que la ruta decida qué hacer: un evento
+ * oculto se puede guardar incompleto (se avisa), uno publicado no.
  */
-export function assertEventBankTransferReady({
+export function checkEventBankTransferReady({
   overrides,
   bankTransfer,
   bankTransferProfileId = null,
@@ -218,10 +226,10 @@ export function assertEventBankTransferReady({
   env = process.env,
 } = {}) {
   const normalized = normalizePaymentChannelOverrides(overrides)
-  if (!normalized) return
+  if (!normalized) return null
   // Alcanza con que la transferencia siga abierta en alguno de los dos
   // conceptos: el alias es uno solo para todo el evento.
-  if (!isEventChannelOpenAnywhere(normalized, 'bank_transfer')) return
+  if (!isEventChannelOpenAnywhere(normalized, 'bank_transfer')) return null
 
   const details = resolveBankTransferDetails(
     {
@@ -233,13 +241,41 @@ export function assertEventBankTransferReady({
     env,
     profile,
   )
-  if (!details.alias) {
-    throw new HttpError(
-      400,
-      'Este evento deja abierta la transferencia pero no hay alias configurado (ni perfil, ni evento, ni entorno).',
-      { code: 'EVENT_BANK_TRANSFER_ALIAS_REQUIRED' },
-    )
+  if (details.alias) return null
+  return {
+    code: BANK_TRANSFER_ALIAS_REQUIRED_CODE,
+    message: BANK_TRANSFER_ALIAS_REQUIRED_MESSAGE,
+    field: 'bankTransferProfileId',
   }
+}
+
+/** El 400 de un destino de cobro faltante, con el campo que hay que completar. */
+export function bankTransferIssueError(issue) {
+  return new HttpError(400, issue.message, {
+    code: issue.code,
+    fields: { [issue.field]: issue.message },
+  })
+}
+
+/**
+ * Versión que lanza: la que usan los llamadores que no distinguen entre evento
+ * oculto y publicado.
+ */
+export function assertEventBankTransferReady({
+  overrides,
+  bankTransfer,
+  bankTransferProfileId = null,
+  profile = null,
+  env = process.env,
+} = {}) {
+  const issue = checkEventBankTransferReady({
+    overrides,
+    bankTransfer,
+    bankTransferProfileId,
+    profile,
+    env,
+  })
+  if (issue) throw bankTransferIssueError(issue)
 }
 
 /**

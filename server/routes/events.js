@@ -22,7 +22,8 @@ import {
   TICKET_QR_VALIDITY_MODES,
 } from '../../src/lib/ticketValidityPolicy.js'
 import {
-  assertEventBankTransferReady,
+  bankTransferIssueError,
+  checkEventBankTransferReady,
   normalizeBankTransferInput,
   normalizePaymentChannelOverrides,
 } from '../modules/payments/eventPaymentProfile.js'
@@ -954,13 +955,27 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           bankTransferProfileId = null
         }
 
-        assertEventBankTransferReady({
+        // Un evento oculto se puede guardar con el cobro a medio configurar: nadie
+        // puede pagarle todavía, y obligar a completar el alias para cambiar un
+        // título trababa cualquier edición. Se guarda y se avisa. Publicado sí
+        // se rechaza: ahí un comprador podría llegar a una transferencia sin
+        // destino.
+        const warnings = []
+        const bankTransferIssue = checkEventBankTransferReady({
           overrides: paymentChannelOverrides,
           bankTransfer,
           bankTransferProfileId: bankTransferProfileId ?? null,
           profile: linkedProfile,
           env: process.env,
         })
+        if (bankTransferIssue) {
+          if (req.validatedBody.published === true) throw bankTransferIssueError(bankTransferIssue)
+          warnings.push({
+            code: bankTransferIssue.code,
+            message: bankTransferIssue.message,
+            field: bankTransferIssue.field,
+          })
+        }
 
         // Un tipo de entrada sólo puede cerrar debajo del evento. Que no le
         // quede ninguno abierto —porque cerró los últimos, o porque el evento
@@ -1187,7 +1202,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           throw new HttpError(503, 'El evento se guardó, pero no se pudo volver a leer.')
         }
 
-        res.status(mode === 'created' ? 201 : 200).json({ event, events, mode })
+        res.status(mode === 'created' ? 201 : 200).json({ event, events, mode, warnings })
       } catch (error) {
         next(error)
       }
