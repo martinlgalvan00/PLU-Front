@@ -1622,7 +1622,7 @@ export default {
     groupDrag: 'Arrastrá el grupo {{name}} a una tanda',
     publishTitle: 'Mostrar la grilla en el sitio oficial',
     publishOffHint:
-      'Apagado: nadie ve las tandas en el sitio. Al prenderlo se publican tandas, tablado, horario y composición (sexo, categoría, división, peso y edad). No se publican nombres.',
+      'Apagado: nadie ve las tandas en el sitio. Al prenderlo se publican tandas, tablado, horario y composición (sexo, categoría, división y, en tandas de {{min}} o más atletas, peso y edad). No se publican nombres.',
     publishOnHint:
       'Visible en la página del evento: tandas por tablado, horario y composición. Sin nombres de atletas ni clubes.',
     publishEventHidden:
@@ -1646,6 +1646,33 @@ export default {
     platformsRemoveWarning: 'Las tandas de {{names}} van a quedar sin tablado.',
     platformNone: 'Sin tablado',
     platformLaneAria: 'Tablado {{name}}',
+    platformRename: 'Renombrar {{name}}',
+    platformRenameField: 'Nombre del tablado',
+    platformRenameSave: 'Guardar nombre',
+    platformRenameCancel: 'Descartar cambio',
+    platformRenameTaken: 'Ya hay un tablado con ese nombre.',
+    publicPreviewOpen: 'Ver como público',
+    publicPreviewTitle: 'Así se ve en el sitio',
+    publicPreviewLeadOn:
+      'La grilla está publicada. Esto es lo que ve el público, con los datos actuales del tablero.',
+    publicPreviewLeadOff:
+      'Todavía no está publicada. Esto es lo que se vería al prender «Mostrar la grilla en el sitio oficial».',
+    publicPreviewEmpty: 'Todavía no hay tandas para mostrar.',
+    publicPreviewNote:
+      'Solo composición, sin nombres ni clubes. En tandas de menos de {{min}} atletas no se muestran peso ni edad.',
+    publicPreviewClose: 'Cerrar vista previa',
+    publicPreviewRefresh: 'Actualizar',
+    publicPreviewRefreshing: 'Actualizando…',
+    publicPreviewUpdated: 'Datos de las {{time}}',
+    platformRenameSaving: 'Guardando nombre…',
+    platformRenameSaved: 'Nombre guardado',
+    savedFlash: 'Guardado',
+    publicPreviewChecksTitle: 'Para revisar antes de publicar',
+    publicPreviewCheck_noPlatform: 'Tandas sin tablado: {{count}}. Aparecen al final, sin nombre de tablado.',
+    publicPreviewCheck_noStart: 'Tandas sin hora de inicio: {{count}}. Se muestran como «Horario a confirmar».',
+    publicPreviewCheck_empty: 'Tandas sin atletas: {{count}}. Igual se publican.',
+    publicPreviewCheck_small:
+      'Tandas con menos de {{min}} atletas: {{count}}. No muestran peso ni edad.',
     platformLaneCount: 'Tandas {{sessions}} · Atletas {{athletes}}',
     addSessionLane: 'Agregar tanda en {{platform}}, {{day}}',
     sessionPlatformPick: 'Tablado',
