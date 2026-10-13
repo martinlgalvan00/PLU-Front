@@ -5,6 +5,12 @@ import {
   DEFAULT_FLIGHT_SIZE,
   balancedChunks,
   EMPTY_POOL_FILTERS,
+  isoFromLocalMinutes,
+  normalizeSchedule,
+  optimalChunks,
+  parseClock,
+  rebuildInput,
+  weightClassIndex,
   formatAgeRange,
   groupAthletes,
   hasActivePoolFilters,
@@ -489,5 +495,341 @@ describe('armado automático', () => {
     const payload = sessionsPayloadFromBoard([emptyDay(0)], { extra: plan.newSessions })
     expect(payload.map((row) => row.platformId)).toEqual(['p1', 'p2'])
     expect(payload.map((row) => row.platform)).toEqual(['Tablado 1', 'Tablado 2'])
+  })
+})
+
+describe('motor v2', () => {
+  const byWeight = (weights, overrides = {}) =>
+    weights.map((weight, index) =>
+      athlete(`w${index}-${weight}`, {
+        sex: 'Femenino',
+        fullName: `A${String(index).padStart(3, '0')}`,
+        bodyweightKg: weight,
+        age: 20 + (index % 9),
+        ...overrides,
+      }),
+    )
+  const splitsInsideClass = (chunks, bounds) =>
+    chunks.slice(1).filter((chunk, index) => {
+      const before = chunks[index].at(-1).bodyweightKg
+      const after = chunk[0].bodyweightKg
+      return weightClassIndex(before, bounds) === weightClassIndex(after, bounds)
+    }).length
+
+  it('weightClassIndex ubica el peso en su clase y no inventa si no hay clases', () => {
+    const bounds = [52, 57, 63]
+    expect(weightClassIndex(52, bounds)).toBe(0)
+    expect(weightClassIndex(52.5, bounds)).toBe(1)
+    expect(weightClassIndex(70, bounds)).toBe(3)
+    expect(weightClassIndex(60, [])).toBeNull()
+    expect(weightClassIndex(null, bounds)).toBeNull()
+  })
+
+  it('optimalChunks no parte una clase de peso si puede evitarlo', () => {
+    // 14 atletas, tope 8 → 2 tandas. La partida pareja (7/7) cae en medio de
+    // la clase −57; correr el corte un lugar deja cada clase entera.
+    const bounds = [52, 57, 63]
+    const list = byWeight([50, 51, 52, 52, 55, 56, 57, 57, 58, 60, 61, 62, 63, 63])
+    const naive = balancedChunks(list, 8)
+    const smart = optimalChunks(list, 8, {
+      sameKey: (a, b) => weightClassIndex(a.bodyweightKg, bounds) === weightClassIndex(b.bodyweightKg, bounds),
+      gapAt: (a, b) => b.bodyweightKg - a.bodyweightKg,
+    })
+    expect(smart.flat()).toEqual(list)
+    expect(smart.every((chunk) => chunk.length <= 8)).toBe(true)
+    expect(splitsInsideClass(naive, bounds)).toBe(1)
+    expect(splitsInsideClass(smart, bounds)).toBe(0)
+  })
+
+  it('optimalChunks mantiene el orden, el tope y cubre a todos', () => {
+    const list = byWeight(Array.from({ length: 53 }, (_, index) => 50 + (index % 40)).sort((a, b) => a - b))
+    const chunks = optimalChunks(list, 12, {})
+    expect(chunks.flat()).toEqual(list)
+    expect(chunks).toHaveLength(Math.ceil(53 / 12))
+    expect(chunks.every((chunk) => chunk.length >= 1 && chunk.length <= 12)).toBe(true)
+    // Parejas: nunca se separan por más de uno cuando no hay nada que respetar.
+    const sizes = chunks.map((chunk) => chunk.length)
+    expect(Math.max(...sizes) - Math.min(...sizes)).toBeLessThanOrEqual(1)
+  })
+
+  it('sin clases, entre cortes igual de parejos elige el que cae en un hueco de peso', () => {
+    // 15 atletas, tope 8 → 2 tandas: 8/7 y 7/8 son igual de parejos. El hueco
+    // (60 → 80) decide de qué lado cae el corte.
+    const gapAt = (a, b) => b.bodyweightKg - a.bodyweightKg
+    const sameKey = () => false
+    const gapAfterEight = byWeight([50, 51, 52, 53, 54, 55, 56, 57, 80, 81, 82, 83, 84, 85, 86])
+    const gapAfterSeven = byWeight([50, 51, 52, 53, 54, 55, 56, 80, 81, 82, 83, 84, 85, 86, 87])
+    expect(optimalChunks(gapAfterEight, 8, { sameKey, gapAt }).map((chunk) => chunk.length)).toEqual([8, 7])
+    expect(optimalChunks(gapAfterSeven, 8, { sameKey, gapAt }).map((chunk) => chunk.length)).toEqual([7, 8])
+  })
+
+  it('las clases de peso cargadas por la organización gobiernan los cortes del plan', () => {
+    const women = byWeight([50, 51, 52, 52, 55, 56, 57, 57, 58, 60, 61, 62, 63, 63])
+    const plan = planEventBoard({
+      maxPerSession: 8,
+      weightClasses: { Femenino: [52, 57, 63] },
+      unassigned: women,
+      days: [emptyDay(0)],
+    })
+    const rows = plan.newSessions.map((row) =>
+      plan.placements
+        .filter((placement) => placement.tempId === row.tempId)
+        .map((placement) => women.find((item) => item.registrationId === placement.registrationId).bodyweightKg),
+    )
+    expect(rows).toHaveLength(2)
+    expect(Math.max(...rows[0])).toBeLessThanOrEqual(57)
+    expect(Math.min(...rows[1])).toBeGreaterThan(57)
+  })
+
+  it('balance de carga: el tablado con menos atletas recibe la tanda siguiente', () => {
+    const plan = planEventBoard({
+      maxPerSession: 12,
+      groupBy: ['sex'],
+      mergeSmall: false,
+      // Tandas de 12, 12, 3, 3, 3, 3: alternar deja 18/18 pero por orden 12+3+3 vs 12+3+3;
+      // lo que se afirma es que ningún tablado supera al otro por más de una tanda chica.
+      unassigned: [
+        ...byWeight(Array.from({ length: 24 }, (_, index) => 50 + index), { tag: 'f' }),
+        ...Array.from({ length: 12 }, (_, index) =>
+          athlete(`m${index}`, { sex: 'Masculino', bodyweightKg: 70 + index, fullName: `M${index}` }),
+        ),
+      ],
+      days: [emptyDay(0)],
+      platforms: [
+        { id: 'p1', name: 'Tablado 1' },
+        { id: 'p2', name: 'Tablado 2' },
+      ],
+    })
+    const [one, two] = plan.stats.byPlatform
+    expect(one.athletes + two.athletes).toBe(36)
+    expect(Math.abs(one.athletes - two.athletes)).toBeLessThanOrEqual(12)
+    expect(plan.stats.sessions).toBe(plan.summaries.length)
+  })
+
+  it('el tablado que ya tiene gente ese día recibe menos tandas nuevas', () => {
+    const busy = {
+      ...session('ses-a', 'Tanda A', byWeight(Array.from({ length: 12 }, (_, index) => 50 + index), { tag: 'busy' })),
+      platformId: 'p1',
+    }
+    const plan = planEventBoard({
+      maxPerSession: 12,
+      useExisting: false,
+      groupBy: [],
+      unassigned: byWeight(Array.from({ length: 24 }, (_, index) => 70 + index), { tag: 'new' }),
+      days: [emptyDay(0, [busy])],
+      platforms: [
+        { id: 'p1', name: 'Tablado 1' },
+        { id: 'p2', name: 'Tablado 2' },
+      ],
+    })
+    // Dos tandas nuevas de 12: las dos van al tablado 2, que estaba vacío.
+    expect(plan.newSessions.map((row) => row.platformId)).toEqual(['p2', 'p1'])
+    expect(plan.stats.byPlatform.map((row) => row.athletes)).toEqual([12, 12])
+  })
+
+  it('platformMode "alternate" sigue alternando sin mirar la carga', () => {
+    const plan = planEventBoard({
+      maxPerSession: 4,
+      platformMode: 'alternate',
+      unassigned: byWeight(Array.from({ length: 16 }, (_, index) => 50 + index)),
+      days: [emptyDay(0)],
+      platforms: [{ id: 'p1', name: 'T1' }, { id: 'p2', name: 'T2' }],
+    })
+    expect(plan.newSessions.map((row) => row.platformId)).toEqual(['p1', 'p2', 'p1', 'p2'])
+  })
+
+  describe('horarios', () => {
+    it('parseClock acepta HH:MM válidos y rechaza el resto', () => {
+      expect(parseClock('09:30')).toBe(570)
+      expect(parseClock('9:05')).toBe(545)
+      expect(parseClock('24:00')).toBeNull()
+      expect(parseClock('9.30')).toBeNull()
+      expect(parseClock('')).toBeNull()
+    })
+
+    it('isoFromLocalMinutes usa la hora de Buenos Aires y rueda de día', () => {
+      expect(isoFromLocalMinutes('2026-11-13', 9 * 60)).toBe('2026-11-13T12:00:00.000Z')
+      expect(isoFromLocalMinutes('2026-11-13', 22 * 60)).toBe('2026-11-14T01:00:00.000Z')
+      expect(isoFromLocalMinutes(null, 60)).toBe('')
+    })
+
+    it('normalizeSchedule devuelve null si no se puede calcular', () => {
+      expect(normalizeSchedule(null)).toBeNull()
+      expect(normalizeSchedule({ firstStart: 'x', sessionMinutes: 60 })).toBeNull()
+      expect(normalizeSchedule({ firstStart: '09:00', sessionMinutes: 0 })).toBeNull()
+      expect(normalizeSchedule({ firstStart: '09:00', sessionMinutes: 60 })).toMatchObject({ gap: 0, lead: 0 })
+    })
+
+    it('cada tablado corre sus tandas una tras otra y los dos en paralelo', () => {
+      const plan = planEventBoard({
+        maxPerSession: 4,
+        unassigned: byWeight(Array.from({ length: 16 }, (_, index) => 50 + index)),
+        days: [{ ...emptyDay(0), date: '2026-11-13' }],
+        platforms: [{ id: 'p1', name: 'T1' }, { id: 'p2', name: 'T2' }],
+        schedule: { firstStart: '09:00', sessionMinutes: 60, gapMinutes: 10, weighInLeadMinutes: 120 },
+      })
+      const of = (platformId) => plan.newSessions.filter((row) => row.platformId === platformId)
+      expect(of('p1').map((row) => row.startsAt)).toEqual([
+        '2026-11-13T12:00:00.000Z',
+        '2026-11-13T13:10:00.000Z',
+      ])
+      // En paralelo: el tablado 2 arranca a la misma hora que el 1.
+      expect(of('p2')[0].startsAt).toBe('2026-11-13T12:00:00.000Z')
+      expect(of('p1')[0].weighInAt).toBe('2026-11-13T10:00:00.000Z')
+    })
+
+    it('sin fecha en el día o sin horarios no inventa horarios', () => {
+      const withoutDate = planEventBoard({
+        maxPerSession: 4,
+        unassigned: byWeight([50, 51]),
+        days: [emptyDay(0)],
+        schedule: { firstStart: '09:00', sessionMinutes: 60 },
+      })
+      expect(withoutDate.newSessions[0].startsAt).toBe('')
+      const withoutSchedule = planEventBoard({
+        maxPerSession: 4,
+        unassigned: byWeight([50, 51]),
+        days: [{ ...emptyDay(0), date: '2026-11-13' }],
+      })
+      expect(withoutSchedule.newSessions[0].startsAt).toBe('')
+    })
+
+    it('las tandas nuevas llevan sus horarios al payload que se persiste', () => {
+      const plan = planEventBoard({
+        maxPerSession: 4,
+        unassigned: byWeight([50, 51]),
+        days: [{ ...emptyDay(0), date: '2026-11-13' }],
+        schedule: { firstStart: '09:00', sessionMinutes: 60, weighInLeadMinutes: 90 },
+      })
+      const [row] = sessionsPayloadFromBoard([emptyDay(0)], { extra: plan.newSessions })
+      expect(row.startsAt).toBe('2026-11-13T12:00:00.000Z')
+      expect(row.weighInAt).toBe('2026-11-13T10:30:00.000Z')
+    })
+  })
+
+  describe('rehacer desde cero', () => {
+    const board = () => ({
+      unassigned: [athlete('free', { fullName: 'Libre' })],
+      days: [
+        {
+          ...emptyDay(0, [
+            session('ses-a', 'Tanda A', [
+              athlete('in-a', { fullName: 'Ya entró', checkedIn: true }),
+              athlete('mv-a', { fullName: 'Movible A' }),
+            ]),
+          ]),
+          withoutSession: [athlete('mid', { fullName: 'Con día' })],
+        },
+      ],
+    })
+
+    it('toma a todos menos a quien ya registró ingreso', () => {
+      const { candidates, days } = rebuildInput(board())
+      expect(candidates.map((row) => row.registrationId).sort()).toEqual(['free', 'mid', 'mv-a'])
+      // La tanda queda con el atleta que ya pasó por la puerta, fijo.
+      expect(days[0].sessions[0].athletes.map((row) => row.registrationId)).toEqual(['in-a'])
+    })
+
+    it('reutiliza las tandas existentes vaciadas antes de abrir nuevas', () => {
+      const { candidates, days } = rebuildInput(board())
+      const plan = planEventBoard({ maxPerSession: 12, unassigned: candidates, days })
+      expect(plan.newSessions).toEqual([])
+      expect(new Set(plan.placements.map((row) => row.sessionId))).toEqual(new Set(['ses-a']))
+      expect(plan.placed).toBe(3)
+    })
+  })
+
+  describe('con 234 inscriptos', () => {
+    function crowd(total, seed = 7) {
+      let state = seed
+      const rand = () => {
+        state = (state * 1664525 + 1013904223) % 4294967296
+        return state / 4294967296
+      }
+      const divisions = ['Open', 'Junior', 'Youth', 'Sub-Masters', 'Masters']
+      return Array.from({ length: total }, (_, index) =>
+        athlete(`c${index}`, {
+          fullName: `Atleta ${String(index).padStart(3, '0')}`,
+          sex: rand() < 0.55 ? 'Femenino' : 'Masculino',
+          category: rand() < 0.7 ? 'Raw' : 'Raw With Wraps',
+          division: divisions[Math.floor(rand() * divisions.length)],
+          bodyweightKg: Math.round((47 + rand() * 75) * 2) / 2,
+          age: 15 + Math.floor(rand() * 40),
+        }),
+      )
+    }
+    const PLATFORMS = [{ id: 'p1', name: 'Tablado 1' }, { id: 'p2', name: 'Tablado 2' }]
+
+    it('ubica a todos exactamente una vez, respeta el tope y reparte parejo entre tablados y días', () => {
+      const people = crowd(234)
+      const plan = planEventBoard({
+        maxPerSession: 12,
+        unassigned: people,
+        days: [{ ...emptyDay(0), date: '2026-11-13' }, { ...emptyDay(1), date: '2026-11-14' }],
+        platforms: PLATFORMS,
+      })
+      const ids = plan.placements.map((row) => row.registrationId)
+      expect(new Set(ids).size).toBe(234)
+      expect(plan.leftover).toEqual([])
+      expect(plan.newSessions.every((row) => row.count <= 12)).toBe(true)
+
+      const loadOf = (dayIndex, platformId) =>
+        plan.summaries
+          .filter((row) => row.dayIndex === dayIndex && row.platformId === platformId)
+          .reduce((sum, row) => sum + row.added, 0)
+      const perDay = [0, 1].map((day) => loadOf(day, 'p1') + loadOf(day, 'p2'))
+      expect(Math.abs(perDay[0] - perDay[1])).toBeLessThanOrEqual(24)
+      for (const day of [0, 1]) {
+        expect(Math.abs(loadOf(day, 'p1') - loadOf(day, 'p2'))).toBeLessThanOrEqual(12)
+      }
+    })
+
+    it('con sexo como criterio ninguna tanda mezcla sexos, para varias semillas', () => {
+      for (const seed of [1, 2, 3, 4, 5]) {
+        const people = crowd(234, seed)
+        const plan = planEventBoard({
+          maxPerSession: 12,
+          groupBy: ['sex', 'category'],
+          unassigned: people,
+          days: [emptyDay(0)],
+          platforms: PLATFORMS,
+        })
+        expect(plan.stats.mixedSex).toBe(0)
+        expect(plan.placed + plan.leftover.length).toBe(234)
+      }
+    })
+
+    it('es rápido: planificar 234 con clases de peso tarda bien menos de un segundo', () => {
+      const people = crowd(234)
+      const started = performance.now()
+      for (let run = 0; run < 5; run += 1) {
+        planEventBoard({
+          maxPerSession: 12,
+          unassigned: people,
+          days: [{ ...emptyDay(0), date: '2026-11-13' }],
+          platforms: PLATFORMS,
+          weightClasses: { Femenino: [47, 52, 57, 63, 69, 76, 84], Masculino: [59, 66, 74, 83, 93, 105, 120] },
+          schedule: { firstStart: '09:00', sessionMinutes: 45, gapMinutes: 10, weighInLeadMinutes: 120 },
+        })
+      }
+      expect((performance.now() - started) / 5).toBeLessThan(500)
+    })
+
+    it('partir por clases corta menos clases por la mitad que el reparto parejo a ciegas', () => {
+      const bounds = { Femenino: [47, 52, 57, 63, 69, 76, 84], Masculino: [59, 66, 74, 83, 93, 105, 120] }
+      const people = crowd(234, 11).filter((row) => row.sex === 'Femenino' && row.category === 'Raw')
+      const sorted = [...people].sort((a, b) => a.bodyweightKg - b.bodyweightKg)
+      const cut = (chunks) =>
+        chunks.slice(1).filter((chunk, index) =>
+          weightClassIndex(chunks[index].at(-1).bodyweightKg, bounds.Femenino) ===
+          weightClassIndex(chunk[0].bodyweightKg, bounds.Femenino),
+        ).length
+      const smart = optimalChunks(sorted, 12, {
+        sameKey: (a, b) =>
+          weightClassIndex(a.bodyweightKg, bounds.Femenino) === weightClassIndex(b.bodyweightKg, bounds.Femenino),
+        gapAt: (a, b) => b.bodyweightKg - a.bodyweightKg,
+      })
+      expect(cut(smart)).toBeLessThanOrEqual(cut(balancedChunks(sorted, 12)))
+    })
   })
 })
