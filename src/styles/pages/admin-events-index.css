@@ -938,6 +938,147 @@ button.admin-event-row__vis:focus-visible {
   }
 }
 
+/* ---- Selección en lote ---- */
+
+/* Aviso de eventos ocultos: una línea con su atajo, sin color de alerta (ocultar
+   es el estado normal de un meet recién creado). */
+.admin-events__unpublished {
+  align-items: center;
+  color: var(--admin-text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  gap: 4px 10px;
+  margin: 0 0 12px;
+}
+
+.admin-events__unpublished svg {
+  flex: none;
+}
+
+.admin-events__unpublished button,
+.admin-events-bulkbar__link {
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  min-height: 32px;
+  padding: 0 2px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-events__unpublished button:focus-visible,
+.admin-events-bulkbar__link:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-events-bulkbar__link:disabled {
+  color: var(--admin-muted);
+  cursor: default;
+  text-decoration: none;
+}
+
+/* En modo selección la fila entera es el control: el checkbox solo lo refleja. */
+.admin-event-row__check {
+  accent-color: var(--admin-ink);
+  cursor: pointer;
+  height: 24px;
+  left: 10px;
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  z-index: 1;
+}
+
+.admin-event-row--selecting .admin-event-row__main {
+  padding-left: 46px;
+}
+
+/* El evento principal es una tarjeta con sus propios colores y más aire. */
+.admin-event-row--lead .admin-event-row__check {
+  accent-color: var(--admin-attention-text);
+  left: 18px;
+}
+
+.admin-event-row--lead.admin-event-row--selecting .admin-event-row__main {
+  padding-left: 56px;
+}
+
+/* En táctil el enlace tiene que ser un blanco de 44px, no solo una línea subrayada. */
+@media (pointer: coarse) {
+  .admin-events__unpublished button,
+  .admin-events-bulkbar__link {
+    min-height: 44px;
+    padding-inline: 8px;
+  }
+}
+
+.admin-event-row--checked {
+  background: var(--admin-row-hover);
+}
+
+/* La barra queda a la vista mientras se baja por una lista larga. */
+.admin-events-bulkbar {
+  align-items: center;
+  background: var(--admin-canvas);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 16px;
+  bottom: 16px;
+  box-shadow: var(--elevation-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding: 10px 12px 10px 18px;
+  position: sticky;
+  z-index: 2;
+}
+
+.admin-events-bulkbar__count {
+  align-items: center;
+  color: var(--admin-ink);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13.5px;
+  font-weight: 600;
+  gap: 4px 14px;
+  margin: 0;
+}
+
+.admin-events-bulkbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-events-bulkbar .btn {
+  min-height: 44px;
+}
+
+@media (max-width: 640px) {
+  .admin-events-bulkbar {
+    bottom: 8px;
+    padding: 12px;
+  }
+
+  .admin-events-bulkbar__actions {
+    width: 100%;
+  }
+
+  .admin-events-bulkbar__actions .btn {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+}
+
 /* ---- Teléfono y tablet ---- */
 
 @media (max-width: 900px) {
@@ -1104,6 +1245,46 @@ button.admin-event-row__vis:focus-visible {
   position: absolute;
 }
 
+.admin-site-teaser__status {
+  align-items: center;
+  color: var(--admin-muted);
+  display: inline-flex;
+  font-size: 10.5px;
+  font-weight: 700;
+  gap: 8px;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.admin-site-teaser.is-on .admin-site-teaser__status {
+  color: var(--admin-ink);
+}
+
+.admin-site-teaser__dot {
+  background: color-mix(in srgb, var(--admin-ink) 35%, transparent);
+  border-radius: 50%;
+  display: block;
+  flex: none;
+  height: 7px;
+  position: relative;
+  width: 7px;
+}
+
+.admin-site-teaser.is-on .admin-site-teaser__dot {
+  background: var(--teaser-dot);
+}
+
+/* Onda del "al aire": un pseudo escalado, no un box-shadow animado. */
+.admin-site-teaser__dot::after {
+  background: var(--teaser-dot);
+  border-radius: 50%;
+  content: '';
+  inset: 0;
+  opacity: 0;
+  position: absolute;
+}
+
 .admin-site-teaser__copy strong {
   color: var(--admin-ink);
   font-size: 14px;
@@ -1226,6 +1407,18 @@ button.admin-event-row__vis:focus-visible {
 /* ---- Movimiento ---- */
 
 @media (prefers-reduced-motion: no-preference) {
+  .admin-site-teaser__scene {
+    transition:
+      opacity var(--motion-base) var(--ease-out),
+      transform 520ms var(--ease-cinematic);
+  }
+
+  .admin-site-teaser__sky,
+  .admin-site-teaser__scan,
+  .admin-site-teaser__monitor::before {
+    transition: opacity var(--motion-slow) var(--ease-out);
+  }
+
   .admin-site-teaser__switch,
   .admin-site-teaser__switch::after {
     transition:
