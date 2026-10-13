@@ -12,8 +12,17 @@
  * exactamente lo que hacía: las filas que ya existen no necesitan migración y
  * siguen comportándose igual.
  *
- * La matriz de plataforma sigue siendo el techo: acá sólo se puede cerrar. Un
- * canal que Finanzas cerró no se reabre desde el evento.
+ * La matriz de plataforma es el valor por defecto, no el techo: cada celda del
+ * evento puede cerrar un canal (`false`) o abrirlo aunque Finanzas lo tenga
+ * cerrado (`'open'`). Sin clave, el evento hereda la plataforma.
+ *
+ * `true` es la forma heredada de "sin opinión" y se sigue leyendo así: el panel
+ * anterior arrancaba la matriz con los cuatro canales en `true` y guardaba eso,
+ * así que tomarlo como "abrir" reabriría de golpe canales que Finanzas cerró en
+ * eventos ya guardados. Abrir es una decisión nueva y tiene su propio valor.
+ *
+ * Lo que sí sigue mandando sobre el evento: el maestro de cobros, el alta del
+ * concepto (inscripción / entradas) y la pausa de validación.
  *
  * Vive en `lib/` y no en el servidor porque lo comparten el panel y las rutas:
  * que cada lado normalizara distinto sería la forma silenciosa de ofrecer un
@@ -30,13 +39,16 @@ export const EVENT_PAYMENT_CHANNELS = [
 /** Membership no entra: se cobra sólo con la matriz de plataforma. */
 export const EVENT_PAYMENT_CONCEPTS = ['registration', 'ticket']
 
-/** Banderas de un concepto. No inventa: sin ningún booleano conocido, `null`. */
+/** Valor que abre un canal que la plataforma tiene cerrado. */
+export const EVENT_CHANNEL_OPEN = 'open'
+
+/** Banderas de un concepto. No inventa: sin ningún valor conocido, `null`. */
 function normalizeChannelFlags(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
   const flags = {}
   let any = false
   for (const channel of EVENT_PAYMENT_CHANNELS) {
-    if (typeof raw[channel] === 'boolean') {
+    if (typeof raw[channel] === 'boolean' || raw[channel] === EVENT_CHANNEL_OPEN) {
       flags[channel] = raw[channel]
       any = true
     }
@@ -78,7 +90,75 @@ export function eventChannelOverridesFor(overrides, concept) {
   return normalized[concept] ?? null
 }
 
-/** ¿El evento deja abierto este canal para este concepto? */
+/** ¿El evento abre este canal aunque la plataforma lo tenga cerrado? */
+export function isEventChannelForcedOpen(overrides, concept, channel) {
+  return eventChannelOverridesFor(overrides, concept)?.[channel] === EVENT_CHANNEL_OPEN
+}
+
+/**
+ * Estado efectivo de una celda: lo que dice el evento y, si no dice nada, la
+ * plataforma. `platformOpen` es la celda cruda de Finanzas (`paymentChannels`).
+ */
+export function resolveEventChannelState(overrides, concept, channel, platformOpen) {
+  const flag = eventChannelOverridesFor(overrides, concept)?.[channel]
+  if (flag === false) return false
+  if (flag === EVENT_CHANNEL_OPEN) return true
+  return platformOpen === true
+}
+
+/**
+ * Valor a guardar cuando el panel deja la celda en `want` sobre una plataforma
+ * en `platformOpen`: sólo se guarda lo que *difiere* de la plataforma. `null`
+ * significa "sin clave" (hereda), así el evento sigue lo que Finanzas cambie
+ * mañana en las celdas donde no decidió nada.
+ */
+export function eventChannelFlagFor(want, platformOpen) {
+  if (want === (platformOpen === true)) return null
+  return want ? EVENT_CHANNEL_OPEN : false
+}
+
+/**
+ * Pone una celda del override. Devuelve el override nuevo, o `null` si no quedó
+ * ninguna decisión del evento (todo hereda).
+ */
+export function setEventChannelFlag(overrides, concept, channel, flag) {
+  const current = normalizeEventPaymentChannelOverrides(overrides) ?? {}
+  const nextConcept = { ...(current[concept] ?? {}) }
+  if (flag === null) delete nextConcept[channel]
+  else nextConcept[channel] = flag
+  const next = { ...current }
+  if (Object.keys(nextConcept).length) next[concept] = nextConcept
+  else delete next[concept]
+  return Object.keys(next).length ? next : null
+}
+
+/**
+ * Los toggles de plataforma con las aperturas del evento ya aplicadas.
+ *
+ * Es sólo la mitad "abrir": el cierre del evento se aplica después, sobre el
+ * resultado (`applyEventPaymentChannelOverrides` y el assert), para conservar
+ * sus mensajes propios. Hacerlo sobre los toggles —y no sobre la disponibilidad
+ * ya resuelta— deja que el maestro y el alta del concepto sigan mandando: una
+ * celda abierta por el evento no reabre una venta que Finanzas pausó entera.
+ */
+export function applyEventChannelOpens(toggles, overrides) {
+  const normalized = normalizeEventPaymentChannelOverrides(overrides)
+  if (!normalized || !toggles) return toggles
+
+  let paymentChannels = toggles.paymentChannels
+  for (const concept of EVENT_PAYMENT_CONCEPTS) {
+    for (const channel of EVENT_PAYMENT_CHANNELS) {
+      if (normalized[concept]?.[channel] !== EVENT_CHANNEL_OPEN) continue
+      paymentChannels = {
+        ...paymentChannels,
+        [concept]: { ...paymentChannels?.[concept], [channel]: true },
+      }
+    }
+  }
+  return paymentChannels === toggles.paymentChannels ? toggles : { ...toggles, paymentChannels }
+}
+
+/** ¿El evento deja abierto este canal para este concepto? (no lo cierra) */
 export function isEventChannelOpenForConcept(overrides, concept, channel) {
   const flags = eventChannelOverridesFor(overrides, concept)
   if (!flags) return true
@@ -96,6 +176,18 @@ export function isEventChannelOpenAnywhere(overrides, channel) {
   const normalized = normalizeEventPaymentChannelOverrides(overrides)
   if (!normalized) return true
   return EVENT_PAYMENT_CONCEPTS.some((concept) => normalized[concept]?.[channel] !== false)
+}
+
+/**
+ * Canales efectivamente abiertos en un concepto, con la plataforma por
+ * defecto: `platformCells` es `{canal: bool}` de Finanzas para ese concepto.
+ * A diferencia de `openEventChannelsFor`, cuenta también los que sólo el
+ * evento abre y descarta los que la plataforma cierra y el evento no tocó.
+ */
+export function effectiveEventChannelsFor(overrides, concept, platformCells) {
+  return EVENT_PAYMENT_CHANNELS.filter((channel) =>
+    resolveEventChannelState(overrides, concept, channel, platformCells?.[channel]),
+  )
 }
 
 /** Canales que el evento deja abiertos para un concepto, en orden canónico. */
@@ -139,9 +231,9 @@ export function manualTicketChannelsOpen(startsAt, now = new Date()) {
 }
 
 /**
- * Punto de partida al prender "personalizar": todo abierto en los dos
- * conceptos. Arrancar con algo cerrado sería cerrar una venta por el solo
- * hecho de haber tocado un interruptor.
+ * Punto de partida del override anterior: los cuatro canales en `true` ("sin
+ * opinión") en los dos conceptos. Con el modelo abrir/cerrar ya no hace falta
+ * —una celda sin tocar no se guarda—, se conserva para los datos viejos.
  */
 export function allOpenEventPaymentChannelOverrides() {
   return Object.fromEntries(

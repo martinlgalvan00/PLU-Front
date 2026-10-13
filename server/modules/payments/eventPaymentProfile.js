@@ -5,8 +5,10 @@ import {
   PAYMENT_CHANNELS,
 } from '../../services/platformFeatureToggleService.js'
 import {
+  applyEventChannelOpens,
   EVENT_PAYMENT_CONCEPTS,
   eventChannelOverridesFor,
+  isEventChannelForcedOpen,
   isEventChannelOpenAnywhere,
   isEventChannelOpenForConcept,
   MANUAL_TICKET_LEAD_HOURS,
@@ -49,21 +51,30 @@ export function normalizePaymentChannelOverrides(raw) {
 
 /**
  * ¿El canal queda abierto para este evento?
- * `plataforma AND (override[concepto][canal] ?? true)` — el evento solo cierra.
+ * `override[concepto][canal]` si el evento decidió (`false` cierra, `'open'`
+ * abre); si no, lo que diga la plataforma.
  *
  * Sin `concept` responde por el evento entero: abierto si lo está en alguno de
  * los dos conceptos. Es lo que necesitan los bloques que configuran el canal
  * (alias de transferencia, perfil de MP), no el checkout.
  */
 export function isEventChannelOpen(platformOpen, overrides, channel, concept = null) {
-  if (!platformOpen) return false
+  const forcedOpen = concept
+    ? isEventChannelForcedOpen(overrides, concept, channel)
+    : EVENT_PAYMENT_CONCEPTS.some((item) => isEventChannelForcedOpen(overrides, item, channel))
+  if (!platformOpen && !forcedOpen) return false
   if (concept) return isEventChannelOpenForConcept(overrides, concept, channel)
   return isEventChannelOpenAnywhere(overrides, channel)
 }
 
 /**
- * Aplica el override del evento sobre availability pública (registration + ticket).
- * Membership no se toca: sigue 100% plataforma.
+ * Aplica los CIERRES del evento sobre la availability pública (registration +
+ * ticket). Membership no se toca: sigue 100% plataforma.
+ *
+ * Las aperturas no se resuelven acá: la availability ya viene cruzada con el
+ * maestro y el alta del concepto, y desde ahí no se puede saber si una celda
+ * en `false` está cerrada por Finanzas o por una pausa general. Se aplican
+ * antes, sobre los toggles, con `applyEventChannelOpens`.
  */
 export function applyEventPaymentChannelOverrides(availability, overrides) {
   const normalized = normalizePaymentChannelOverrides(overrides)
@@ -194,12 +205,20 @@ export function resolveBankTransferDetails(eventRow = null, env = process.env, p
   }
 }
 
+export const BANK_TRANSFER_ALIAS_REQUIRED_CODE = 'EVENT_BANK_TRANSFER_ALIAS_REQUIRED'
+
+export const BANK_TRANSFER_ALIAS_REQUIRED_MESSAGE =
+  'La transferencia está abierta para este evento pero no tiene a dónde cobrar: ni perfil de cobro, ni alias propio, ni un alias global configurado. Elegí un perfil o cargá un alias en Ventas → Cobro, o cerrá la transferencia para este evento.'
+
 /**
- * Si el perfil personaliza canales y deja transferencia abierta, tiene que
- * haber un alias (perfil, evento o env). Evita publicar un evento que ofrezca
- * transferencia sin destino de cobro.
+ * Si el evento personaliza canales y deja la transferencia abierta, tiene que
+ * haber un destino de cobro (perfil, evento o env). Devuelve `null` si está
+ * todo bien o `{ code, message, field }` si falta.
+ *
+ * Es un chequeo y no un `throw` para que la ruta decida qué hacer: un evento
+ * oculto se puede guardar incompleto (se avisa), uno publicado no.
  */
-export function assertEventBankTransferReady({
+export function checkEventBankTransferReady({
   overrides,
   bankTransfer,
   bankTransferProfileId = null,
@@ -207,10 +226,10 @@ export function assertEventBankTransferReady({
   env = process.env,
 } = {}) {
   const normalized = normalizePaymentChannelOverrides(overrides)
-  if (!normalized) return
+  if (!normalized) return null
   // Alcanza con que la transferencia siga abierta en alguno de los dos
   // conceptos: el alias es uno solo para todo el evento.
-  if (!isEventChannelOpenAnywhere(normalized, 'bank_transfer')) return
+  if (!isEventChannelOpenAnywhere(normalized, 'bank_transfer')) return null
 
   const details = resolveBankTransferDetails(
     {
@@ -222,13 +241,41 @@ export function assertEventBankTransferReady({
     env,
     profile,
   )
-  if (!details.alias) {
-    throw new HttpError(
-      400,
-      'Este evento deja abierta la transferencia pero no hay alias configurado (ni perfil, ni evento, ni entorno).',
-      { code: 'EVENT_BANK_TRANSFER_ALIAS_REQUIRED' },
-    )
+  if (details.alias) return null
+  return {
+    code: BANK_TRANSFER_ALIAS_REQUIRED_CODE,
+    message: BANK_TRANSFER_ALIAS_REQUIRED_MESSAGE,
+    field: 'bankTransferProfileId',
   }
+}
+
+/** El 400 de un destino de cobro faltante, con el campo que hay que completar. */
+export function bankTransferIssueError(issue) {
+  return new HttpError(400, issue.message, {
+    code: issue.code,
+    fields: { [issue.field]: issue.message },
+  })
+}
+
+/**
+ * Versión que lanza: la que usan los llamadores que no distinguen entre evento
+ * oculto y publicado.
+ */
+export function assertEventBankTransferReady({
+  overrides,
+  bankTransfer,
+  bankTransferProfileId = null,
+  profile = null,
+  env = process.env,
+} = {}) {
+  const issue = checkEventBankTransferReady({
+    overrides,
+    bankTransfer,
+    bankTransferProfileId,
+    profile,
+    env,
+  })
+  if (issue) throw bankTransferIssueError(issue)
 }
 
 /**
@@ -254,9 +301,13 @@ export function mapEventPaymentProfile(row) {
 }
 
 /**
- * Assert de plataforma + restricción del evento (registration/ticket).
+ * Assert de plataforma + decisión del evento (registration/ticket).
  * Los cupones manuales (`override`) siguen saltando solo canales manuales a
  * nivel plataforma; un evento que cerró el canal no se reabre con cupón.
+ *
+ * Un canal que el evento abre explícitamente (`'open'`) cuenta como abierto
+ * para la plataforma, pero no salta el maestro ni el alta del concepto: esos
+ * se verifican aparte, antes de llegar acá.
  */
 export function assertEventPaymentChannelEnabled(
   toggles,
@@ -264,7 +315,9 @@ export function assertEventPaymentChannelEnabled(
   channel,
   { override = false, eventOverrides = null } = {},
 ) {
-  assertPaymentChannelEnabled(toggles, concept, channel, { override })
+  assertPaymentChannelEnabled(applyEventChannelOpens(toggles, eventOverrides), concept, channel, {
+    override,
+  })
 
   if (!EVENT_PAYMENT_CONCEPTS.includes(concept)) return
 

@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Star,
   Unlock,
+  X,
 } from 'lucide-react'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminEventWorkspace, {
@@ -44,15 +45,19 @@ import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { formatDayMonth, formatMonthYear } from '../../lib/format.js'
 import { getStatusMeta } from '../../lib/status.js'
 import { normalizeEventPublicSurface } from '../../lib/eventPublicSurface.js'
+import {
+  resolveEventPublishChecks,
+  summarizeEventPaymentChannels,
+} from '../../lib/eventPublishChecks.js'
+import { EVENT_PAYMENT_CHANNELS } from '../../lib/eventPaymentChannels.js'
+import usePlatformPaymentChannels from '../../hooks/usePlatformPaymentChannels.js'
 import { fetchSiteTeaser, saveSiteTeaser } from '../../services/siteTeaserService.js'
 import {
   ADMIN_EVENT_STATUS_OPTIONS,
   buildAdminEventDraft,
   createAdminEventDraft,
-  defaultAdminEventYear,
   filterAdminEvents,
   listAdminEventYears,
-  pickLeadAdminEvent,
 } from '../../services/eventAdminService.js'
 import {
   buildEventPaymentTriage,
@@ -83,6 +88,14 @@ function groupByMonthKey(list) {
   return byMonth
 }
 
+/** Solo el mes ("Diciembre"), para los grupos que ya cuelgan de un año. */
+function formatMonthName(monthKey, locale = 'es') {
+  const date = new Date(`${monthKey}-01T12:00:00`)
+  if (Number.isNaN(date.getTime())) return monthKey
+  const label = date.toLocaleDateString(locale === 'en' ? 'en-US' : 'es-AR', { month: 'long' })
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
 function groupByYearKey(list) {
   const byYear = new Map()
   for (const row of list) {
@@ -93,43 +106,114 @@ function groupByYearKey(list) {
   return byYear
 }
 
+/**
+ * Con qué cobra el evento, en la lista: es lo que Finanzas pregunta antes de
+ * abrir una venta y hasta ahora obligaba a entrar a la ficha de cada meet.
+ * Un concepto sin ningún medio se marca, porque es una venta que no existe.
+ */
+function EventPaySummary({ row, platform, t }) {
+  const summary = summarizeEventPaymentChannels(row, platform)
+  const group = (concept, channels) => {
+    if (!channels) return null
+    return (
+      <span
+        key={concept}
+        className={`admin-event-row__pay-group${channels.length === 0 ? ' is-empty' : ''}`}
+      >
+        <span className="admin-event-row__pay-concept">
+          {t(`admin.eventEditor.paymentChannelConcept.${concept}`)}
+        </span>
+        {channels.length === 0
+          ? t('admin.sections.events.payNone')
+          : channels.length === EVENT_PAYMENT_CHANNELS.length
+            ? t('admin.sections.events.payAll')
+            : channels.map((channel) => t(`admin.eventEditor.paymentChannelShort.${channel}`)).join(' · ')}
+      </span>
+    )
+  }
+  return (
+    <span className="admin-event-row__pay" aria-label={t('admin.sections.events.payLabel')}>
+      {group('registration', summary.registration)}
+      {group('ticket', summary.ticket)}
+    </span>
+  )
+}
+
+/**
+ * Estado de publicación de la fila. Con permiso es el interruptor de un toque
+ * (antes había que entrar a la consola de cada meet para publicarlo); sin
+ * permiso, o con el meet ya terminado, es el mismo dato como texto.
+ */
+function EventVisibilityControl({ row, canToggle, busy, onToggle, t }) {
+  const published = row.published !== false
+  const label = published ? t('admin.eventState.published') : t('admin.eventState.hidden')
+  const Icon = published ? Eye : EyeOff
+  const content = (
+    <>
+      <Icon size={14} aria-hidden />
+      <span className="admin-event-row__vis-label">{label}</span>
+    </>
+  )
+  if (!canToggle) {
+    return <span className="admin-event-row__vis admin-event-row__vis--static">{content}</span>
+  }
+  const action = published
+    ? t('admin.sections.events.hideAria', { title: row.title })
+    : t('admin.sections.events.publishAria', { title: row.title })
+  return (
+    <button
+      type="button"
+      className={`admin-event-row__vis${published ? ' is-published' : ''}`}
+      aria-label={action}
+      title={action}
+      disabled={busy}
+      onClick={() => onToggle(row)}
+    >
+      {content}
+    </button>
+  )
+}
+
 function EventListRow({
   row,
+  platform = null,
   selected,
   locale,
   onSelect,
   onTogglePin,
   onDuplicate,
+  onToggleVisibility,
   pinBusy = false,
+  visibilityBusy = false,
   canPin = false,
+  justCreated = false,
   selectMode = false,
   checked = false,
   onToggleSelect,
   t,
-  variant = 'catalog',
 }) {
-  const isLead = variant === 'lead'
   const { tone } = getStatusMeta(row.status)
   const venueLine = formatEventVenueLine(row.venue, row.location)
   const dateLabel = row.dateISO ? formatDayMonth(row.dateISO, locale) : (row.date ?? '')
-  const metaLine = [dateLabel, venueLine].filter(Boolean).join(' · ')
   const rawFill = row.slots > 0 ? Math.round((row.registered / row.slots) * 100) : 0
   const capacityTone = rawFill >= 100 ? 'full' : rawFill >= 80 ? 'high' : 'available'
-  const canToggle = canPin && !isFinishedEvent(row)
+  const finished = isFinishedEvent(row)
+  const canToggle = canPin && !finished
 
   return (
     <li
       className={[
         'admin-event-row',
         `admin-event-row--${tone}`,
-        isLead ? 'admin-event-row--lead' : '',
         row.featured ? 'admin-event-row--featured' : '',
+        justCreated ? 'admin-event-row--new' : '',
         selected && !selectMode ? 'admin-event-row--selected' : '',
         selectMode ? 'admin-event-row--selecting' : '',
         selectMode && checked ? 'admin-event-row--checked' : '',
       ]
         .filter(Boolean)
         .join(' ')}
+      data-event-id={row.id}
     >
       {selectMode ? (
         <input
@@ -147,42 +231,40 @@ function EventListRow({
         title={row.slug ? `${row.title} · ${row.slug}` : row.title}
         onClick={() => (selectMode ? onToggleSelect?.(row.id) : onSelect(row.id))}
       >
-        <AdminEventMark event={row} size={isLead ? 'lg' : 'sm'} />
+        <AdminEventMark event={row} size="sm" />
 
-        <span className="admin-event-row__body">
-          {isLead ? (
-            <span className="admin-event-row__kicker">
-              {row.featured ? <Star size={11} aria-hidden /> : null}
-              {row.featured
-                ? t('admin.sections.events.leadFeatured')
-                : t('admin.sections.events.nextKicker')}
+        <span className="admin-event-row__title-wrap">
+          <strong className="admin-event-row__title">{row.title}</strong>
+          {row.featured ? (
+            <span
+              className="admin-event-row__featured-mark"
+              title={t('admin.sections.events.leadFeatured')}
+              aria-label={t('admin.sections.events.leadFeatured')}
+            >
+              <Star size={12} aria-hidden />
             </span>
           ) : null}
-          <span className="admin-event-row__title-wrap">
-            <strong className="admin-event-row__title">{row.title}</strong>
-            {row.published === false ? (
-              <span
-                className="admin-event-row__hidden-mark"
-                title={t('admin.eventState.hiddenBadge')}
-                aria-label={t('admin.eventState.hiddenBadge')}
-              >
-                <EyeOff size={12} aria-hidden />
-              </span>
-            ) : null}
-            {row.requiresMembership === false ? (
-              <span
-                className="admin-event-row__open-mark"
-                title={t('admin.eventState.openBadge')}
-                aria-label={t('admin.eventState.openBadge')}
-              >
-                <Unlock size={12} aria-hidden />
-              </span>
-            ) : null}
-          </span>
-          {metaLine ? (
-            <span className="admin-event-row__meta">{metaLine}</span>
+          {row.requiresMembership === false ? (
+            <span
+              className="admin-event-row__open-mark"
+              title={t('admin.eventState.openBadge')}
+              aria-label={t('admin.eventState.openBadge')}
+            >
+              <Unlock size={12} aria-hidden />
+            </span>
           ) : null}
         </span>
+
+        <span className="admin-event-row__meta">
+          {dateLabel ? <span className="admin-event-row__date">{dateLabel}</span> : null}
+          {venueLine ? <span className="admin-event-row__venue">{venueLine}</span> : null}
+        </span>
+
+        {finished ? (
+          <span className="admin-event-row__pay" aria-hidden />
+        ) : (
+          <EventPaySummary row={row} platform={platform} t={t} />
+        )}
 
         <span className="admin-event-row__status">
           <span className={`admin-event-row__capacity admin-event-row__capacity--${capacityTone}`}>
@@ -200,35 +282,42 @@ function EventListRow({
       </button>
 
       {selectMode ? null : (
-      <span className="admin-event-row__actions">
-        {canPin && onDuplicate ? (
-          <button
-            type="button"
-            className="admin-event-row__pin admin-event-row__duplicate"
-            aria-label={t('admin.sections.events.duplicateAria', { title: row.title })}
-            title={t('admin.sections.events.duplicate')}
-            onClick={() => onDuplicate(row)}
-          >
-            <Copy size={15} aria-hidden />
-          </button>
-        ) : null}
-        {canToggle ? (
-          <button
-            type="button"
-            className="admin-event-row__pin"
-            aria-pressed={Boolean(row.featured)}
-            aria-label={
-              row.featured ? t('admin.sections.events.unpin') : t('admin.sections.events.pin')
-            }
-            title={row.featured ? t('admin.sections.events.unpin') : t('admin.sections.events.pin')}
-            disabled={pinBusy}
-            onClick={() => onTogglePin?.(row)}
-          >
-            <Star size={15} aria-hidden />
-          </button>
-        ) : null}
-        <ChevronRight size={16} aria-hidden className="admin-event-row__chevron" />
-      </span>
+        <span className="admin-event-row__actions">
+          <EventVisibilityControl
+            row={row}
+            canToggle={canToggle && Boolean(onToggleVisibility)}
+            busy={visibilityBusy}
+            onToggle={onToggleVisibility}
+            t={t}
+          />
+          {canPin && onDuplicate ? (
+            <button
+              type="button"
+              className="admin-event-row__pin admin-event-row__duplicate"
+              aria-label={t('admin.sections.events.duplicateAria', { title: row.title })}
+              title={t('admin.sections.events.duplicate')}
+              onClick={() => onDuplicate(row)}
+            >
+              <Copy size={15} aria-hidden />
+            </button>
+          ) : null}
+          {canToggle ? (
+            <button
+              type="button"
+              className="admin-event-row__pin"
+              aria-pressed={Boolean(row.featured)}
+              aria-label={
+                row.featured ? t('admin.sections.events.unpin') : t('admin.sections.events.pin')
+              }
+              title={row.featured ? t('admin.sections.events.unpin') : t('admin.sections.events.pin')}
+              disabled={pinBusy}
+              onClick={() => onTogglePin?.(row)}
+            >
+              <Star size={15} aria-hidden />
+            </button>
+          ) : null}
+          <ChevronRight size={16} aria-hidden className="admin-event-row__chevron" />
+        </span>
       )}
     </li>
   )
@@ -296,6 +385,9 @@ export default function EventsSection({
   /** Sección de la lista: próximos, archivo o todo. */
   const [view, setView] = useState('upcoming')
   const [pinBusyId, setPinBusyId] = useState(null)
+  const [visibilityBusyId, setVisibilityBusyId] = useState(null)
+  // Evento recién dado de alta: la lista lo resalta y lo trae a la vista.
+  const [justCreatedId, setJustCreatedId] = useState(null)
   const [selectedId, setSelectedId] = useState(adminEvents[0]?.id ?? null)
 
   useEffect(() => {
@@ -383,6 +475,7 @@ export default function EventsSection({
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState(() => new Set())
   const [bulkBusy, setBulkBusy] = useState(false)
+  const platformChannels = usePlatformPaymentChannels()
   /**
    * Workspace del evento seleccionado. Reemplaza al listado a ancho completo,
    * ya no es un modal. El estado local es la fuente de verdad y la URL
@@ -426,6 +519,7 @@ export default function EventsSection({
   function handleSelectEvent(id) {
     const match = adminEvents.find((event) => event.id === id)
     setSelectedId(id)
+    setJustCreatedId(null)
     if (match) {
       openEditForm(match, 'basics')
       if (match.slug) pushAdminEventRoute(match.slug)
@@ -494,8 +588,10 @@ export default function EventsSection({
   }, [adminEvents, selectedId])
 
   const years = useMemo(() => listAdminEventYears(adminEvents), [adminEvents])
-  const suggestedYear = useMemo(() => defaultAdminEventYear(adminEvents), [adminEvents])
-  const yearFilter = years.length > 1 ? year || suggestedYear || 'all' : 'all'
+  // El año no se recorta solo: «Próximos» son todos los que no terminaron, sea
+  // cual sea su año, y los contadores de las pestañas no cambian al pasar de una a
+  // otra. Solo filtra por año quien lo elige en el selector.
+  const yearFilter = years.length > 1 ? year || 'all' : 'all'
 
   const scopedEvents = useMemo(
     () => filterAdminEvents(adminEvents, { query, year: yearFilter, status: 'all' }),
@@ -539,6 +635,26 @@ export default function EventsSection({
     [adminEvents, query, status, yearFilter],
   )
 
+  // Qué filtros están escondiendo eventos: se dicen en voz alta, porque un
+  // listado que muestra uno solo sin explicar por qué parece un error.
+  const activeFilterLabels = useMemo(() => {
+    const labels = []
+    if (yearFilter !== 'all') labels.push(t('admin.sections.events.filterYear', { year: yearFilter }))
+    if (status !== 'all') {
+      const option = statusOptions.find(([value]) => value === status)
+      labels.push(t('admin.sections.events.filterStatus', { status: option?.[1] ?? status }))
+    }
+    if (query.trim()) labels.push(t('admin.sections.events.filterQuery', { query: query.trim() }))
+    return labels
+  }, [query, status, statusOptions, t, yearFilter])
+  const hiddenByFilters = activeFilterLabels.length > 0 ? adminEvents.length - rows.length : 0
+
+  function showAllEvents() {
+    setQuery('')
+    setStatus('all')
+    setYear('all')
+  }
+
   const viewCounts = useMemo(() => {
     const finished = rows.filter(isFinishedEvent).length
     return { upcoming: rows.length - finished, archive: finished, all: rows.length }
@@ -554,11 +670,6 @@ export default function EventsSection({
         activeView === 'all' ? true : activeView === 'archive' ? isFinishedEvent(row) : !isFinishedEvent(row),
       ),
     [activeView, rows],
-  )
-
-  const leadEvent = useMemo(
-    () => (activeView === 'archive' ? null : pickLeadAdminEvent(visibleRows)),
-    [activeView, visibleRows],
   )
 
   // La selección en lote opera sobre lo que se ve: si un filtro esconde un
@@ -608,6 +719,61 @@ export default function EventsSection({
     return { done, failed }
   }
 
+  /**
+   * Publicar es lo que ve el público: antes de hacerlo se avisa de los eventos
+   * que quedarían sin cobro posible. Es un aviso, no un bloqueo.
+   */
+  function confirmPublishChecks(targets) {
+    const flagged = targets
+      .map((row) => ({
+        row,
+        checks: resolveEventPublishChecks(row, platformChannels.platform),
+      }))
+      .filter((entry) => entry.checks.length > 0)
+    if (flagged.length === 0) return true
+    const lines = flagged.map(
+      ({ row, checks }) =>
+        `• ${row.title}: ${checks
+          .map((code) => t(`admin.eventEditor.publishChecks.codes.${code}`))
+          .join(' ')}`,
+    )
+    return window.confirm(
+      [
+        t('admin.eventEditor.publishChecks.bulkIntro', { count: flagged.length }),
+        lines.join('\n'),
+        t('admin.eventEditor.publishChecks.confirmOutro'),
+      ].join('\n\n'),
+    )
+  }
+
+  /** Publicar u ocultar un solo evento desde su fila, sin abrir la consola. */
+  async function handleToggleVisibility(row) {
+    if (!canEdit || !onSetEventState || visibilityBusyId) return
+    const published = row.published === false
+    if (published && !confirmPublishChecks([row])) return
+    setVisibilityBusyId(row.id)
+    setMessage(null)
+    const { done, failed } = await setVisibilityFor([row], published)
+    setVisibilityBusyId(null)
+    if (failed.length > 0) {
+      setMessage({ tone: 'error', text: failed[0].reason })
+      return
+    }
+    if (done.length > 0) {
+      notifySuccess(
+        t(published ? 'admin.sections.events.bulkPublishedOne' : 'admin.sections.events.bulkHiddenOne'),
+        {
+          label: t('admin.sections.events.bulkUndo'),
+          onClick: () => {
+            void setVisibilityFor(done, !published).then((undo) => {
+              if (undo.failed.length > 0) notifyError(undo.failed[0].reason)
+            })
+          },
+        },
+      )
+    }
+  }
+
   async function applyVisibility(published) {
     if (!onSetEventState || bulkBusy) return
     const targets = selectedRows.filter((row) => (row.published === true) !== published)
@@ -615,6 +781,7 @@ export default function EventsSection({
       setMessage({ tone: 'success', text: t('admin.sections.events.bulkNothing') })
       return
     }
+    if (published && !confirmPublishChecks(targets)) return
     setBulkBusy(true)
     setMessage(null)
     const { done, failed } = await setVisibilityFor(targets, published)
@@ -653,7 +820,7 @@ export default function EventsSection({
   }
 
   const eventCatalog = useMemo(() => {
-    const rest = visibleRows.filter((row) => row.id !== leadEvent?.id)
+    const rest = visibleRows
     const upcoming = []
     const finished = []
     for (const row of rest) {
@@ -661,7 +828,7 @@ export default function EventsSection({
       else upcoming.push(row)
     }
 
-    function monthGroups(list, tone, direction, prefix) {
+    function monthGroups(list, tone, direction, prefix, monthOnly = false) {
       const entries = [...groupByMonthKey(list).entries()].sort(([left], [right]) =>
         direction === 'asc' ? left.localeCompare(right) : right.localeCompare(left),
       )
@@ -673,7 +840,9 @@ export default function EventsSection({
             ? tone === 'finished'
               ? t('admin.sections.events.archive')
               : t('admin.sections.events.groupUpcoming')
-            : formatMonthYear(monthKey, locale),
+            : monthOnly
+              ? formatMonthName(monthKey, locale)
+              : formatMonthYear(monthKey, locale),
         rows: sortByDate(monthRows, direction),
       }))
     }
@@ -682,10 +851,19 @@ export default function EventsSection({
     const upcomingByYear = groupByYearKey(upcoming)
     const upcomingYears = [...upcomingByYear.keys()].sort((left, right) => left.localeCompare(right))
     for (const yearKey of upcomingYears) {
+      // Con varios años, el año es el título del capítulo y el mes ya no lo repite
+      // ("2026 / Diciembre", no "2026 / Diciembre de 2026").
+      const headed = upcomingYears.length > 1
       chapters.push({
         id: `year-${yearKey}`,
-        heading: upcomingYears.length > 1 ? yearKey : null,
-        groups: monthGroups(upcomingByYear.get(yearKey), 'upcoming', 'asc', `up-${yearKey}`),
+        heading: headed ? yearKey : null,
+        groups: monthGroups(
+          upcomingByYear.get(yearKey),
+          'upcoming',
+          'asc',
+          `up-${yearKey}`,
+          headed,
+        ),
       })
     }
 
@@ -704,9 +882,25 @@ export default function EventsSection({
     }
 
     return chapters.filter((chapter) => chapter.groups.some((group) => group.rows.length > 0))
-  }, [leadEvent?.id, locale, t, visibleRows])
+  }, [locale, t, visibleRows])
 
   const selectedEvent = adminEvents.find((event) => event.id === selectedId) ?? rows[0] ?? null
+
+  // Trae a la vista la fila recién creada una vez que la lista la pinta.
+  const scrolledToCreatedRef = useRef(null)
+  useEffect(() => {
+    if (!justCreatedId || consoleOpen || quickCreateOpen) return undefined
+    if (scrolledToCreatedRef.current === justCreatedId) return undefined
+    const frame = requestAnimationFrame(() => {
+      const row = [...document.querySelectorAll('.admin-event-row')].find(
+        (node) => node.dataset.eventId === String(justCreatedId),
+      )
+      if (!row) return
+      scrolledToCreatedRef.current = justCreatedId
+      row.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [justCreatedId, consoleOpen, quickCreateOpen, visibleRows])
 
   /**
    * Invariante del workspace: si la pestaña activa es del editor, el draft de
@@ -784,8 +978,9 @@ export default function EventsSection({
   }
 
   /**
-   * Duplicar: el alta arranca con título, sede, ciudad, cupo y acceso del
-   * original. Fechas, entradas y días no se copian (cambian en cada meet). El
+   * Duplicar: el alta arranca con título, sede, ciudad, cupo, acceso y medios
+   * de cobro del original. Fechas, entradas y días no se copian (cambian en
+   * cada meet). El
    * logo se descarga aparte y entra cuando llega: si falla, el alta sigue sin él.
    */
   function handleDuplicate(row) {
@@ -800,6 +995,11 @@ export default function EventsSection({
         location: row.location ?? '',
         slots: row.slots ?? createAdminEventDraft().slots,
         requiresMembership: row.requiresMembership !== false,
+        // Los medios de cobro son del organizador, no del meet: se copian. Las
+        // fechas y las entradas no.
+        paymentChannelOverrides: row.paymentChannelOverrides ?? null,
+        bankTransferProfileId: row.bankTransferProfileId ?? null,
+        mercadoPagoProfileId: row.mercadoPagoProfileId ?? null,
       },
       logo: null,
     })
@@ -1050,6 +1250,13 @@ export default function EventsSection({
   async function handleQuickCreate(submittedDraft, { logo = null, another = false } = {}) {
     const saved = await onSaveEvent?.(submittedDraft)
     if (saved?.error) throw new Error(saved.error)
+    // Se creó, pero con el cobro a medio configurar: no es un error, pero tiene
+    // que verse (el evento queda oculto, así que nadie paga todavía).
+    if (saved?.warnings?.length) {
+      notifyError(
+        t('admin.eventQuickCreate.createdWithWarning', { message: saved.warnings[0].message }),
+      )
+    }
 
     // El logo se sube apenas el evento existe. Si falla no se deshace el alta
     // (el evento está bien): se avisa y se puede subir desde la ficha.
@@ -1068,13 +1275,31 @@ export default function EventsSection({
 
     setQuickCreateOpen(false)
     setDuplicateSource(null)
-    if (saved?.event?.id) setSelectedId(saved.event.id)
-    setConsoleOpen(true)
-    setMessage({ tone: 'success', text: t('admin.sections.events.created') })
-    // La URL pasa de `/nuevo` a la del evento recién creado.
-    const createdSlug = saved?.event?.slug ?? submittedDraft.slug
-    if (createRouteActive && createdSlug) pushAdminEventRoute(createdSlug)
+    showCreatedEvent(saved?.event)
+    if (createRouteActive) clearAdminEventRoute()
     return saved
+  }
+
+  /**
+   * Terminado el alta se vuelve a la lista, que es donde se ve el evento junto
+   * al resto del calendario. La consola ya no se abre sola: el trabajo que el
+   * alta no pidió (entradas, grilla, zonas) se retoma tocando la fila. Un
+   * filtro previo (año, estado, búsqueda, pestaña) no puede esconder justo el
+   * evento que se acaba de crear.
+   */
+  function showCreatedEvent(created) {
+    if (created?.id) {
+      setSelectedId(created.id)
+      setJustCreatedId(created.id)
+      scrolledToCreatedRef.current = null
+    }
+    setQuery('')
+    setStatus('all')
+    setView(created?.status === 'finalizado' ? 'archive' : 'upcoming')
+    // Todos los años, no el del evento nuevo: fijar su año escondía el resto del
+    // calendario (crear un meet de otro año hacía "desaparecer" los demás).
+    setYear('all')
+    setMessage({ tone: 'success', text: t('admin.sections.events.created') })
   }
 
   async function handleSubmit(submittedDraft) {
@@ -1082,16 +1307,12 @@ export default function EventsSection({
     if (saved?.error) throw new Error(saved.error)
     const wasCreate = !submittedDraft.id
     closeForm()
-    if (saved?.event?.id) setSelectedId(saved.event.id)
     if (wasCreate) {
-        setConsoleOpen(true)
+      showCreatedEvent(saved?.event)
+      return saved
     }
-    setMessage({
-      tone: 'success',
-      text: submittedDraft.id
-        ? t('admin.sections.events.updated')
-        : t('admin.sections.events.created'),
-    })
+    if (saved?.event?.id) setSelectedId(saved.event.id)
+    setMessage({ tone: 'success', text: t('admin.sections.events.updated') })
     return saved
   }
 
@@ -1114,9 +1335,18 @@ export default function EventsSection({
     }
     const nextDraft = { ...draft, ...synced }
     setDraft(nextDraft)
-    setEditorBaselineSignature((current) =>
-      current == null ? current : getAdminEventDraftSignature(nextDraft),
-    )
+    // La línea base avanza solo en lo que se acaba de guardar. Antes pasaba a
+    // la firma del borrador entero: si el upsert siguiente fallaba, lo que
+    // estaba editado en Datos quedaba como "Sin cambios pendientes", con
+    // Guardar apagado y sin aviso al cerrar.
+    setEditorBaselineSignature((current) => {
+      if (current == null) return current
+      try {
+        return JSON.stringify({ ...JSON.parse(current), ...synced })
+      } catch {
+        return getAdminEventDraftSignature(nextDraft)
+      }
+    })
     setMessage({
       tone: 'success',
       text: t('admin.sections.events.updated'),
@@ -1247,12 +1477,16 @@ export default function EventsSection({
             <EventListRow
               key={row.id}
               row={row}
+              platform={platformChannels.platform}
               selected={row.id === selectedEvent?.id}
               locale={locale}
               onSelect={handleSelectEvent}
               onTogglePin={handleTogglePin}
               onDuplicate={handleDuplicate}
+              onToggleVisibility={onSetEventState ? handleToggleVisibility : undefined}
               pinBusy={pinBusyId === row.id}
+              visibilityBusy={visibilityBusyId === row.id}
+              justCreated={row.id === justCreatedId}
               canPin={canEdit}
               selectMode={selectMode}
               checked={selectedIds.has(row.id)}
@@ -1303,27 +1537,49 @@ export default function EventsSection({
       </div>
     ) : null
 
+  // El aviso de ocultos vive en la línea del resumen: es un dato del calendario,
+  // no una franja aparte que empuje la lista.
+  const unpublishedNotice =
+    canEdit && onSetEventState && !selectMode && unpublishedRows.length > 0 ? (
+      <p className="admin-events__unpublished">
+        <EyeOff size={14} aria-hidden />
+        <span>
+          {unpublishedRows.length === 1
+            ? t('admin.sections.events.unpublishedOne')
+            : t('admin.sections.events.unpublishedMany', { count: unpublishedRows.length })}
+        </span>
+        <button type="button" onClick={() => enterSelectMode(unpublishedRows.map((row) => row.id))}>
+          {t('admin.sections.events.unpublishedReview')}
+        </button>
+      </p>
+    ) : null
+
   const eventsKpis = (
     <>
-      <div
-        className="admin-events-kpis"
-        role="group"
-        aria-label={t('admin.sections.events.kpisAria')}
-      >
-        <div className="admin-events-kpi admin-events-kpi--primary">
-          <strong className="admin-events-kpi__value">{kpiStats.upcomingCount}</strong>
-          <span className="admin-events-kpi__label">{t('admin.sections.events.kpiUpcoming')}</span>
+      <div className="admin-events-summary">
+        <div
+          className="admin-events-kpis"
+          role="group"
+          aria-label={t('admin.sections.events.kpisAria')}
+        >
+          <div className="admin-events-kpi admin-events-kpi--primary">
+            <strong className="admin-events-kpi__value">{kpiStats.upcomingCount}</strong>
+            <span className="admin-events-kpi__label">
+              {t('admin.sections.events.kpiUpcoming')}
+            </span>
+          </div>
+          <div className="admin-events-kpi">
+            <strong className="admin-events-kpi__value">{kpiStats.totalRegistered}</strong>
+            <span className="admin-events-kpi__label">
+              {t('admin.sections.events.kpiRegistered')}
+            </span>
+          </div>
+          <div className="admin-events-kpi">
+            <strong className="admin-events-kpi__value">{kpiStats.fillPercent}%</strong>
+            <span className="admin-events-kpi__label">{t('admin.sections.events.kpiFill')}</span>
+          </div>
         </div>
-        <div className="admin-events-kpi">
-          <strong className="admin-events-kpi__value">{kpiStats.totalRegistered}</strong>
-          <span className="admin-events-kpi__label">
-            {t('admin.sections.events.kpiRegistered')}
-          </span>
-        </div>
-        <div className="admin-events-kpi">
-          <strong className="admin-events-kpi__value">{kpiStats.fillPercent}%</strong>
-          <span className="admin-events-kpi__label">{t('admin.sections.events.kpiFill')}</span>
-        </div>
+        {unpublishedNotice}
       </div>
       <div
         className="admin-events-views"
@@ -1430,6 +1686,7 @@ export default function EventsSection({
                 extraDirty={stateDirty}
                 onExtraSave={handleExtraStateSave}
                 onExtraDiscard={() => discardStateRef.current?.()}
+                onSaved={() => notifySuccess(t('admin.sections.events.updated'))}
               />
             ) : null
           }
@@ -1600,7 +1857,7 @@ export default function EventsSection({
                 label: t('admin.sections.events.year'),
                 value: yearFilter,
                 onChange: setYear,
-                defaultValue: suggestedYear,
+                defaultValue: 'all',
                 options: yearOptions,
                 showLabel: true,
               },
@@ -1630,22 +1887,20 @@ export default function EventsSection({
         </p>
       ) : null}
 
-        {canEdit && onSetEventState && !selectMode && unpublishedRows.length > 0 ? (
-          <p className="admin-events__unpublished">
-            <EyeOff size={14} aria-hidden />
-            <span>
-              {unpublishedRows.length === 1
-                ? t('admin.sections.events.unpublishedOne')
-                : t('admin.sections.events.unpublishedMany', { count: unpublishedRows.length })}
-            </span>
-            <button
-              type="button"
-              onClick={() => enterSelectMode(unpublishedRows.map((row) => row.id))}
-            >
-              {t('admin.sections.events.unpublishedReview')}
-            </button>
-          </p>
-        ) : null}
+      {hiddenByFilters > 0 ? (
+        <p className="admin-events__filter-note" role="status">
+          <span>
+            {t('admin.sections.events.filterNote', {
+              shown: rows.length,
+              total: adminEvents.length,
+              filters: activeFilterLabels.join(' · '),
+            })}
+          </span>
+          <button type="button" onClick={showAllEvents}>
+            {t('admin.sections.events.filterNoteClear')}
+          </button>
+        </p>
+      ) : null}
 
         <AdminSiteTeaserControl
           busy={teaserBusy}
@@ -1697,7 +1952,7 @@ export default function EventsSection({
                     onClick={() => {
                       setQuery('')
                       setStatus('all')
-                      setYear(suggestedYear || 'all')
+                      setYear('all')
                     }}
                   >
                     {t('admin.sections.events.clearFilters')}
@@ -1705,25 +1960,24 @@ export default function EventsSection({
                 ) : null}
               </div>
             ) : (
-              <ul className="admin-event-list" aria-label={t('admin.columns.event')}>
-                {leadEvent ? (
-                  <EventListRow
-                    key={`lead-${leadEvent.id}`}
-                    row={leadEvent}
-                    selected={leadEvent.id === selectedEvent?.id}
-                    locale={locale}
-                    onSelect={handleSelectEvent}
-                    onTogglePin={handleTogglePin}
-                    onDuplicate={handleDuplicate}
-                    pinBusy={pinBusyId === leadEvent.id}
-                    canPin={canEdit}
-                    selectMode={selectMode}
-                    checked={selectedIds.has(leadEvent.id)}
-                    onToggleSelect={toggleSelected}
-                    t={t}
-                    variant="lead"
-                  />
-                ) : null}
+              <ul
+                className={`admin-event-list${selectMode ? ' admin-event-list--selecting' : ''}`}
+                aria-label={t('admin.columns.event')}
+              >
+                <li className="admin-event-list__head" aria-hidden="true">
+                  <span className="admin-event-list__head-cols">
+                    <span />
+                    <span>{t('admin.sections.events.cols.event')}</span>
+                    <span>{t('admin.sections.events.cols.date')}</span>
+                    <span>{t('admin.sections.events.cols.venue')}</span>
+                    <span>{t('admin.sections.events.cols.pay')}</span>
+                    <span className="is-num">{t('admin.sections.events.cols.registered')}</span>
+                    <span>{t('admin.sections.events.cols.status')}</span>
+                  </span>
+                  <span className="admin-event-list__head-actions">
+                    {t('admin.sections.events.cols.visibility')}
+                  </span>
+                </li>
                 {eventCatalog.map((chapter) => (
                   <li
                     key={chapter.id}
@@ -1745,12 +1999,24 @@ export default function EventsSection({
               </ul>
             )}
 
-            {selectMode ? (
+            {/* Sin nada elegido no hay qué aplicar: la barra aparece con la primera
+                selección y se cierra con la X. Salir sin elegir es «Listo». */}
+            {selectMode && selectedRows.length > 0 ? (
               <div
                 className="admin-events-bulkbar"
                 role="group"
                 aria-label={t('admin.sections.events.bulkBarAria')}
               >
+                <button
+                  type="button"
+                  className="admin-events-bulkbar__close"
+                  aria-label={t('admin.sections.events.bulkClose')}
+                  title={t('admin.sections.events.bulkClose')}
+                  disabled={bulkBusy}
+                  onClick={exitSelectMode}
+                >
+                  <X size={16} aria-hidden />
+                </button>
                 <p className="admin-events-bulkbar__count" aria-live="polite">
                   {selectedRows.length === 1
                     ? t('admin.sections.events.selectedOne')

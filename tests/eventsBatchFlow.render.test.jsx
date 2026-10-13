@@ -2,6 +2,43 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import EventsSection from '../src/pages/admin/EventsSection.jsx'
+import { invalidatePlatformPaymentChannels } from '../src/hooks/usePlatformPaymentChannels.js'
+
+/**
+ * El alta, la lista y la publicación leen la matriz de plataforma para dibujar
+ * qué medios tiene abiertos cada evento. Se entrega la política de lanzamiento:
+ * Mercado Pago en inscripción, y en entradas también transferencia.
+ */
+vi.mock('../src/services/paymentProfileService.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  fetchPaymentProfiles: vi.fn(async () => ({
+    profiles: [
+      {
+        id: '7d9f0c9e-3a2b-4c1d-8e5f-0a1b2c3d4e5f',
+        name: 'Cuenta del club',
+        kind: 'bank_transfer',
+        config: { alias: 'club.pesas' },
+      },
+    ],
+    secretsKeyConfigured: true,
+  })),
+}))
+
+vi.mock('../src/services/platformSettingsAdminService.js', async (importOriginal) => {
+  const original = await importOriginal()
+  return {
+    ...original,
+    fetchPlatformFeatureToggles: vi.fn(async () => ({
+      checkoutEnabled: true,
+      environmentHolds: [],
+      paymentChannels: {
+        membership: { mercado_pago: true, bank_transfer: false, cash_pitbull: false, wise_transfer: false },
+        registration: { mercado_pago: true, bank_transfer: false, cash_pitbull: false, wise_transfer: false },
+        ticket: { mercado_pago: true, bank_transfer: true, cash_pitbull: false, wise_transfer: false },
+      },
+    })),
+  }
+})
 
 /**
  * Cargar varios meets seguidos y publicarlos juntos: logo en el alta, «Crear y
@@ -67,10 +104,11 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  invalidatePlatformPaymentChannels()
   vi.restoreAllMocks()
 })
 
-function renderEvents(overrides = {}) {
+function renderEvents(overrides = {}, { events = [PUBLISHED, HIDDEN_A, HIDDEN_B] } = {}) {
   const handlers = {
     onSaveEvent: vi.fn(async (draft) => ({ event: { ...BASE, ...draft, id: 'evt-new' } })),
     onSetEventLogo: vi.fn(async () => ({ events: [] })),
@@ -80,7 +118,7 @@ function renderEvents(overrides = {}) {
   render(
     <I18nProvider>
       <EventsSection
-        adminEvents={[PUBLISHED, HIDDEN_A, HIDDEN_B]}
+        adminEvents={events}
         canEdit
         canDeleteEvents={false}
         canManageUsers={false}
@@ -151,7 +189,7 @@ describe('alta en tanda', () => {
     fireEvent.change(input, { target: { files: [file] } })
     await waitFor(() => expect(document.querySelector('.admin-event-logo__tile img')).toBeTruthy())
 
-    fireEvent.click(screen.getByRole('button', { name: /Crear y abrir consola/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
 
     await waitFor(() => expect(onSetEventLogo).toHaveBeenCalledTimes(1))
     const [slug, uploaded, options] = onSetEventLogo.mock.calls[0]
@@ -180,7 +218,7 @@ describe('alta en tanda', () => {
     })
     await waitFor(() => expect(document.querySelector('.admin-event-logo__tile img')).toBeTruthy())
 
-    fireEvent.click(screen.getByRole('button', { name: /Crear y abrir consola/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
 
     await waitFor(() => expect(toasts.some((toast) => /no se pudo subir el logo/.test(toast.message))).toBe(true))
     expect(onSaveEvent).toHaveBeenCalledTimes(1)
@@ -321,5 +359,137 @@ describe('quitar fondo en la ficha del evento', () => {
     const panel = screen.getByRole('region', { name: 'Evento seleccionado' })
     expect(within(panel).queryByRole('switch')).toBeNull()
     expect(within(panel).queryByRole('button', { name: 'Quitar fondo' })).toBeNull()
+  })
+})
+
+describe('crear un evento de otro año', () => {
+  it('no esconde el resto del calendario con el filtro de año', async () => {
+    const OLD = { ...PUBLISHED, id: 'evt-0', slug: 'copa-2025', title: 'Copa 2025', dateISO: '2025-08-15' }
+    const onSaveEvent = vi.fn(async (draft) => ({
+      event: { ...BASE, ...draft, id: 'evt-new', dateISO: '2002-05-15', title: 'aaa', published: false },
+    }))
+    renderEvents({ onSaveEvent }, { events: [OLD, PUBLISHED, HIDDEN_A] })
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo evento' }))
+    fillRequired({ title: 'aaa', start: '2002-05-15T10:00' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Crear evento' }))
+
+    await waitFor(() => expect(onSaveEvent).toHaveBeenCalledTimes(1))
+    // Vuelve al listado con todos los años: los eventos existentes siguen ahí.
+    await screen.findByText('Pitbull Classic')
+    expect(screen.getByText('Copa 2025')).toBeTruthy()
+    expect(screen.getByText('Copa Otoño')).toBeTruthy()
+  })
+})
+
+describe('medios de cobro en el alta, la lista y la publicación', () => {
+  it('la lista muestra con qué cobra cada evento', async () => {
+    const withCash = {
+      ...HIDDEN_A,
+      paymentChannelOverrides: { registration: { cash_pitbull: 'open' } },
+      pricing: { ...BASE.pricing, ticketsEnabled: true },
+      ticketTypes: [{ active: true, price: 15000 }],
+    }
+    renderEvents({}, { events: [PUBLISHED, withCash] })
+
+    const summaries = await waitFor(() => {
+      const found = [...document.querySelectorAll('.admin-event-row__pay')]
+      expect(found.length).toBe(2)
+      return found.map((node) => node.textContent)
+    })
+    // Pitbull Classic hereda: sólo Mercado Pago en inscripción.
+    expect(summaries.some((text) => /Inscripción\s*Mercado Pago$/.test(text))).toBe(true)
+    // Copa Otoño abre efectivo solo en inscripción y vende entradas.
+    expect(
+      summaries.some(
+        (text) => /Inscripción\s*Mercado Pago · Efectivo/.test(text) && /EntradasMercado Pago · Transferencia/.test(text),
+      ),
+    ).toBe(true)
+  })
+
+  it('el alta ofrece los medios de pago y los guarda como override del evento', async () => {
+    const { onSaveEvent } = renderEvents()
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo evento' }))
+    fillRequired()
+    const matrix = screen.getByRole('group', { name: /medios de pago por concepto/i })
+    await waitFor(() => expect(matrix.getAttribute('aria-busy')).toBeNull())
+
+    // La transferencia está cerrada en inscripción: abrirla es una decisión del evento.
+    fireEvent.click(within(matrix).getByRole('checkbox', { name: /transferencia · inscripción/i }))
+    // Y como queda abierta pide un destino de cobro.
+    expect(document.getElementById('quick-event-bank-profile')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
+
+    await waitFor(() => expect(onSaveEvent).toHaveBeenCalledTimes(1))
+    expect(onSaveEvent.mock.calls[0][0].paymentChannelOverrides).toEqual({
+      registration: { bank_transfer: 'open' },
+    })
+  })
+
+  it('un alta que no toca la matriz hereda la plataforma', async () => {
+    const { onSaveEvent } = renderEvents()
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo evento' }))
+    fillRequired()
+
+    fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
+
+    await waitFor(() => expect(onSaveEvent).toHaveBeenCalledTimes(1))
+    expect(onSaveEvent.mock.calls[0][0].paymentChannelOverrides ?? null).toBeNull()
+  })
+
+  it('duplicar copia los medios de cobro del original', async () => {
+    const source = {
+      ...HIDDEN_B,
+      paymentChannelOverrides: { registration: { bank_transfer: 'open' } },
+      bankTransferProfileId: '7d9f0c9e-3a2b-4c1d-8e5f-0a1b2c3d4e5f',
+    }
+    renderEvents({}, { events: [PUBLISHED, source] })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Duplicar Copa Invierno' }))
+
+    // El perfil llega con la lectura del catálogo: recién ahí el select puede
+    // mostrar la opción elegida.
+    await waitFor(() =>
+      expect(document.getElementById('quick-event-bank-profile').value).toBe(
+        '7d9f0c9e-3a2b-4c1d-8e5f-0a1b2c3d4e5f',
+      ),
+    )
+  })
+
+  it('publicar en lote avisa de un evento sin ningún medio de inscripción', async () => {
+    const noChannel = {
+      ...HIDDEN_A,
+      paymentChannelOverrides: { registration: { mercado_pago: false } },
+    }
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const { onSetEventState } = renderEvents({}, { events: [PUBLISHED, noChannel, HIDDEN_B] })
+    // La matriz de plataforma tiene que estar leída para que el aviso sea fiable.
+    await waitFor(() => expect(document.querySelectorAll('.admin-event-row__pay').length).toBeGreaterThan(0))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Revisar y publicar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar 2' }))
+
+    expect(confirm).toHaveBeenCalledTimes(1)
+    expect(confirm.mock.calls[0][0]).toMatch(/Copa Otoño/)
+    expect(confirm.mock.calls[0][0]).toMatch(/ningún medio de pago abierto/)
+    expect(confirm.mock.calls[0][0]).not.toMatch(/Copa Invierno/)
+    // Es un aviso, no un bloqueo: si se rechaza, no se publica nada.
+    expect(onSetEventState).not.toHaveBeenCalled()
+  })
+
+  it('si se acepta el aviso, publica igual', async () => {
+    const noChannel = {
+      ...HIDDEN_A,
+      paymentChannelOverrides: { registration: { mercado_pago: false } },
+    }
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const { onSetEventState } = renderEvents({}, { events: [PUBLISHED, noChannel, HIDDEN_B] })
+    await waitFor(() => expect(document.querySelectorAll('.admin-event-row__pay').length).toBeGreaterThan(0))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Revisar y publicar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar 2' }))
+
+    await waitFor(() => expect(onSetEventState).toHaveBeenCalledTimes(2))
   })
 })

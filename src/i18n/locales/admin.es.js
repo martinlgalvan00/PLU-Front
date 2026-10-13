@@ -1377,7 +1377,26 @@ export default {
       viewArchive: 'Archivo',
       viewAll: 'Todos',
       openEvent: 'Abrir evento',
-      registeredCaption: 'inscriptos',
+      payLabel: 'Medios de cobro',
+    payNone: 'sin medios',
+    payAll: 'todos los medios',
+    registeredCaption: 'inscriptos',
+    cols: {
+      event: 'Evento',
+      date: 'Fecha',
+      venue: 'Sede',
+      pay: 'Cobro',
+      registered: 'Inscriptos',
+      status: 'Estado',
+      visibility: 'Sitio',
+    },
+    filterNote: 'Mostrando {{shown}} de {{total}} eventos. Filtros activos: {{filters}}.',
+    filterNoteClear: 'Ver todos',
+    filterYear: 'año {{year}}',
+    filterStatus: 'estado {{status}}',
+    filterQuery: 'búsqueda «{{query}}»',
+    publishAria: 'Publicar {{title}} en el sitio',
+    hideAria: 'Ocultar {{title}} del sitio',
       pin: 'Destacar como evento principal',
       unpin: 'Quitar como evento principal',
       pinned: 'Es el evento principal',
@@ -1418,6 +1437,7 @@ export default {
       publishSelected: 'Publicar {{count}}',
       hideSelected: 'Ocultar {{count}}',
       bulkBarAria: 'Cambiar la visibilidad de los eventos elegidos',
+      bulkClose: 'Cerrar la selección',
       unpublishedOne: '1 evento sin publicar',
       unpublishedMany: '{{count}} eventos sin publicar',
       unpublishedReview: 'Revisar y publicar',
@@ -1818,6 +1838,10 @@ export default {
   // Alta rápida de un meet: lo mínimo para que exista, con el acceso decidido
   // en el alta porque define quién se inscribe y quién pasa la puerta.
   eventQuickCreate: {
+    sectionPayments: 'Medios de pago',
+    createdWithWarning: 'El evento se creó, pero falta un dato de cobro: {{message}}',
+    paymentsNote:
+      'Si no tocás nada, el evento cobra con lo que tiene abierto la plataforma. Después lo cambiás desde Ventas.',
     eyebrow: 'Nuevo evento',
     title: 'Crear meet',
     lead: 'Seis datos y el evento existe. El resto se completa después, desde su consola.',
@@ -1843,7 +1867,15 @@ export default {
     pendingStructure: 'Días y tandas',
     pendingZones: 'Zonas y equipo de seguridad',
     hiddenNote: 'Se crea oculto. Nadie lo ve hasta que lo publiques.',
-    submit: 'Crear y abrir consola',
+    publishedNote: 'Se crea publicado: aparece en el sitio apenas se guarda.',
+    sectionVisibility: 'Sitio',
+    visLabel: 'Visibilidad al crear',
+    visHidden: 'Oculto',
+    visPublished: 'Publicado',
+    visHiddenNote:
+      'Solo se ve en el panel. Lo publicás cuando quieras, con un toque desde el listado.',
+    visPublishedNote: 'Aparece en el calendario del sitio apenas se crea.',
+    submit: 'Crear evento',
     submitting: 'Creando…',
     advanced: 'Necesito cargar precios y ventanas: abrir el editor completo',
     back: 'Volver a eventos',
@@ -1877,6 +1909,8 @@ export default {
     backToConsole: 'Volver a la consola',
     closeSection: 'Volver al resumen',
     closeSectionShort: 'Resumen',
+    siteVisible: 'Visible en el sitio',
+    siteHidden: 'Oculto en el sitio',
     editBasics: 'Datos',
     editBasicsValue: 'Título, fecha y sede',
     editSales: 'Ventas y cupos',
@@ -3936,6 +3970,18 @@ export default {
     saving: 'Guardando...',
     unsavedChanges: 'Hay cambios sin guardar',
     noPendingChanges: 'Sin cambios pendientes',
+    unsavedChangesIn: 'Sin guardar: {{areas}}',
+    changeAreas: {
+      basics: 'Datos',
+      cupo: 'Cupo',
+      prices: 'Precios',
+      tickets: 'Entradas',
+      payment: 'Cobro',
+      visibility: 'Publicación',
+    },
+    goToArea: 'Ir a {{area}}',
+    savePartial: 'El estado y el acceso sí se guardaron; los datos del evento no.',
+    saveWarningTitle: 'Se guardó, pero falta completar algo:',
     savingShort: 'Guardando',
     unsavedShort: 'Sin guardar',
     readyShort: 'Al día',
@@ -3977,10 +4023,10 @@ export default {
       'Si cambiás el precio de hoy y guardás el evento, esta programación se cancela.',
     paymentProfileTitle: 'Medios de cobro de este evento',
     paymentProfileHint:
-      'Si no tocás nada, vale la configuración de la plataforma. Acá solo podés restringir canales o poner datos bancarios propios.',
+      'Si no tocás nada, vale la configuración de la plataforma. Acá podés abrir o cerrar medios solo para este evento y poner datos bancarios propios.',
     paymentProfileCustomize: 'Personalizar medios de cobro',
     paymentProfileCustomizeHint:
-      'Desmarcá para volver a heredar la matriz global. El evento no puede reabrir un canal que Finanzas cerró.',
+      'Desmarcá para volver a heredar la matriz global.',
     paymentChannelMercadoPago: 'Mercado Pago',
     paymentChannelBankTransfer: 'Transferencia',
     paymentChannelCashPitbull: 'Efectivo Pitbull',
@@ -4002,7 +4048,7 @@ export default {
         platformCheckout: 'Los cobros están pausados para toda la plataforma.',
         platformTicket: 'La venta de entradas está pausada para toda la plataforma.',
         noChannel:
-          'No queda ningún medio de pago abierto para entradas. Abrí al menos uno en la matriz de plataforma o en el bloque de cobro de este evento.',
+          'No queda ningún medio de pago abierto para entradas. Tildá al menos uno en los medios de cobro de este evento.',
         eventDisabled: 'El interruptor de entradas de este evento está apagado.',
         unpublished: 'El evento todavía no está publicado.',
         eventStatus: 'El estado del evento ({{detail}}) no admite ventas.',
@@ -4019,7 +4065,11 @@ export default {
     },
     paymentChannelMatrixLabel: 'Medios de pago por concepto',
     paymentChannelMatrixHint:
-      'Se define por separado: lo que cerrás para entradas no toca la inscripción de atletas.',
+      'Tildá los medios con los que cobra este evento. Se define por separado: lo que cambiás para entradas no toca la inscripción de atletas.',
+    paymentChannelPlatformUnknown:
+      'No pudimos leer la configuración de la plataforma. Se muestra la política por defecto: revisá antes de guardar.',
+    paymentChannelOpenedHere: 'Abierto solo en este evento ({{concepts}}).',
+    paymentChannelClosedHere: 'Cerrado en este evento ({{concepts}}).',
     paymentChannelConcept: {
       registration: 'Inscripción',
       ticket: 'Entradas',
@@ -4540,6 +4590,22 @@ export default {
     capacityPublicPreviewFull: 'En el sitio: {{registered}}/{{total}} · quedan {{remaining}}',
     capacityPublicPreviewNoTotal: 'En el sitio: {{registered}} anotados · quedan {{remaining}}',
     liveSummary: 'Link, plataforma y estado de la transmisión en vivo.',
+    publishChecks: {
+      title: 'Antes de publicar: el cobro no está completo',
+      intro: 'Este evento va a quedar visible, pero el cobro no está completo:',
+      bulkIntro: 'Hay {{count}} evento(s) que van a quedar visibles con el cobro incompleto:',
+      confirmOutro: '¿Publicar igual?',
+      codes: {
+        noRegistrationChannel:
+          'La inscripción no tiene ningún medio de pago abierto: nadie va a poder anotarse pagando.',
+        noTicketChannel:
+          'Las entradas están habilitadas, pero no hay ningún medio de pago abierto para comprarlas.',
+        transferWithoutDestination:
+          'La transferencia está abierta y no hay un alias o perfil propio del evento: se va a usar el alias global.',
+        noSellableTicketType:
+          'Las entradas están habilitadas, pero no hay ningún tipo activo con precio.',
+      },
+    },
     consistency: {
       title: 'El estado público no coincide con la configuración',
       registrationClosedButOpenStatus:

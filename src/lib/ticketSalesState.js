@@ -16,7 +16,7 @@
  * catálogo, que es lo que el editor puede arreglar solo.
  */
 
-import { isEventChannelOpenForConcept } from './eventPaymentChannels.js'
+import { applyEventChannelOpens, isEventChannelOpenForConcept } from './eventPaymentChannels.js'
 import { resolveTicketTypeChannels } from './ticketTypePaymentChannels.js'
 import { resolveTicketTypeSaleWindow, TICKET_SALES_CLOSED_STATUSES } from './eventPricing.js'
 
@@ -98,10 +98,14 @@ export function resolveTicketSalesState({ event, platform = null, now = new Date
   if (sellable.length === 0) add('noSellableType')
   else if (inWindow.length === 0) add('noTypeInWindow')
 
-  // 5. Medios de pago. La plataforma es el techo y el evento sólo cierra: sin
-  //    ninguno abierto la compra rebota con 409 al confirmar, no antes.
+  // 5. Medios de pago. La plataforma es el valor por defecto y el evento puede
+  //    abrir o cerrar cada celda: sin ninguno abierto la compra rebota con 409
+  //    al confirmar, no antes.
+  const effectivePlatform = applyEventChannelOpens(platform, event?.paymentChannelOverrides)
   const openChannels = TICKET_SALES_CHANNELS.filter((channel) => {
-    const platformOpen = platform ? platform.paymentChannels?.ticket?.[channel] === true : true
+    const platformOpen = effectivePlatform
+      ? effectivePlatform.paymentChannels?.ticket?.[channel] === true
+      : true
     return platformOpen && isEventChannelOpenForConcept(event?.paymentChannelOverrides, 'ticket', channel)
   })
   if (openChannels.length === 0) add('noChannel')
@@ -115,7 +119,7 @@ export function resolveTicketSalesState({ event, platform = null, now = new Date
       resolveTicketTypeChannels({
         eventOverrides: event?.paymentChannelOverrides,
         typeChannels: type.paymentChannels,
-        platformChannels: platform ? platform.paymentChannels?.ticket : null,
+        platformChannels: effectivePlatform ? effectivePlatform.paymentChannels?.ticket : null,
       }).length > 0,
   )
   if (openChannels.length > 0 && inWindow.length > 0 && typesWithChannel.length === 0) {

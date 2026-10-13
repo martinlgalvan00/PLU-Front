@@ -132,6 +132,7 @@ import {
   assertEventPaymentChannelEnabled,
   resolveBankTransferDetails,
 } from '../modules/payments/eventPaymentProfile.js'
+import { applyEventChannelOpens } from '../../src/lib/eventPaymentChannels.js'
 import { createSupabasePaymentProfileRepository } from '../modules/payments/supabasePaymentProfileRepository.js'
 import { resolveMercadoPagoPublicKeyForProfileId } from '../modules/payments/mercadoPagoProfileRuntime.js'
 import {
@@ -1628,9 +1629,11 @@ export function createAthleteRoutes({
           platformSettingsRepo().get(),
           eventSlug ? repo().findEventPricing(eventSlug) : Promise.resolve(null),
         ])
-        const platformAvailability = resolvePublicCheckoutAvailability(toggles)
-        // Con eventSlug la matriz de inscripción/ticket se intersecta con el
-        // perfil del evento; membership sigue siendo solo plataforma.
+        const platformAvailability = resolvePublicCheckoutAvailability(
+          applyEventChannelOpens(toggles, event?.payment_channel_overrides),
+        )
+        // Con eventSlug la matriz de inscripción/ticket se cruza con la decisión
+        // del evento (abre o cierra); membership sigue siendo solo plataforma.
         const availability = event
           ? applyEventPaymentChannelOverrides(platformAvailability, event.payment_channel_overrides)
           : platformAvailability

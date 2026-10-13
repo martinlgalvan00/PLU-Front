@@ -937,6 +937,9 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
   return {
     event: mapAdminEventRow(response.event),
     events: (response.events ?? [response.event]).map(mapAdminEventRow),
+    // Lo que se guardó pero queda incompleto (p. ej. transferencia abierta sin
+    // destino de cobro en un evento oculto). No es un error: el evento está.
+    warnings: Array.isArray(response.warnings) ? response.warnings : [],
   }
 }
 

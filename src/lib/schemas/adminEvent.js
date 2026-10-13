@@ -245,10 +245,21 @@ const ticketTypeSchema = z
     }
   })
 
+// A nivel evento un canal se cierra (`false`) o se abre aunque la plataforma lo
+// tenga cerrado (`'open'`); el tipo de entrada sigue siendo sólo booleano.
+const eventChannelDecisionSchema = z.union([z.boolean(), z.literal('open')]).optional()
+
+const eventChannelDecisionsSchema = z.object({
+  mercado_pago: eventChannelDecisionSchema,
+  bank_transfer: eventChannelDecisionSchema,
+  cash_pitbull: eventChannelDecisionSchema,
+  wise_transfer: eventChannelDecisionSchema,
+})
+
 const paymentChannelsByConceptSchema = z
   .object({
-    registration: paymentChannelFlagsSchema.strict().optional(),
-    ticket: paymentChannelFlagsSchema.strict().optional(),
+    registration: eventChannelDecisionsSchema.strict().optional(),
+    ticket: eventChannelDecisionsSchema.strict().optional(),
   })
   .strict()
 
@@ -355,7 +366,7 @@ export const adminEventDraftSchema = z
     // para los dos. Ambas `strict()`: si no, un objeto por concepto entraría
     // por la rama plana y zod lo vaciaría al descartar claves desconocidas.
     paymentChannelOverrides: z
-      .union([paymentChannelsByConceptSchema, paymentChannelFlagsSchema.strict()])
+      .union([paymentChannelsByConceptSchema, eventChannelDecisionsSchema.strict()])
       .nullable()
       .optional(),
     bankTransfer: z

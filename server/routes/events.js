@@ -22,7 +22,8 @@ import {
   TICKET_QR_VALIDITY_MODES,
 } from '../../src/lib/ticketValidityPolicy.js'
 import {
-  assertEventBankTransferReady,
+  bankTransferIssueError,
+  checkEventBankTransferReady,
   normalizeBankTransferInput,
   normalizePaymentChannelOverrides,
 } from '../modules/payments/eventPaymentProfile.js'
@@ -330,10 +331,22 @@ const ticketTypeSchema = z
     }
   })
 
+// A nivel evento un canal se cierra (`false`) o se abre aunque la plataforma lo
+// tenga cerrado (`'open'`). El tipo de entrada sigue siendo sólo booleano:
+// únicamente puede cerrar debajo del evento.
+const eventChannelDecisionSchema = z.union([z.boolean(), z.literal('open')]).optional()
+
+const eventChannelDecisionsSchema = z.object({
+  mercado_pago: eventChannelDecisionSchema,
+  bank_transfer: eventChannelDecisionSchema,
+  cash_pitbull: eventChannelDecisionSchema,
+  wise_transfer: eventChannelDecisionSchema,
+})
+
 const eventPaymentChannelsByConceptSchema = z
   .object({
-    registration: eventPaymentChannelFlagsSchema.strict().optional(),
-    ticket: eventPaymentChannelFlagsSchema.strict().optional(),
+    registration: eventChannelDecisionsSchema.strict().optional(),
+    ticket: eventChannelDecisionsSchema.strict().optional(),
   })
   .strict()
 
@@ -419,8 +432,8 @@ export const eventSchema = z
       ),
     liveStreamProvider: z.enum(['youtube', 'instagram', 'twitch']).optional(),
     liveStatus: z.enum(['offline', 'live', 'ended']).optional(),
-    // NULL = heredar matriz de plataforma. Objeto = restringir canales del
-    // evento (solo puede cerrar; no reabre lo que Finanzas cerró).
+    // NULL = heredar matriz de plataforma. Objeto = decisiones del evento: cierra
+    // (`false`) o abre (`'open'`) un canal; sin clave hereda la plataforma.
     //
     // Se acepta por concepto —`{registration, ticket}`, que es lo que manda el
     // panel— y también la forma plana vieja, que vale para los dos. Los dos
@@ -428,7 +441,7 @@ export const eventSchema = z
     // entraría por la rama plana, zod descartaría las claves desconocidas y el
     // override llegaría vacío al guardado.
     paymentChannelOverrides: z
-      .union([eventPaymentChannelsByConceptSchema, eventPaymentChannelFlagsSchema.strict()])
+      .union([eventPaymentChannelsByConceptSchema, eventChannelDecisionsSchema.strict()])
       .nullable()
       .optional(),
     bankTransfer: z
@@ -942,13 +955,27 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           bankTransferProfileId = null
         }
 
-        assertEventBankTransferReady({
+        // Un evento oculto se puede guardar con el cobro a medio configurar: nadie
+        // puede pagarle todavía, y obligar a completar el alias para cambiar un
+        // título trababa cualquier edición. Se guarda y se avisa. Publicado sí
+        // se rechaza: ahí un comprador podría llegar a una transferencia sin
+        // destino.
+        const warnings = []
+        const bankTransferIssue = checkEventBankTransferReady({
           overrides: paymentChannelOverrides,
           bankTransfer,
           bankTransferProfileId: bankTransferProfileId ?? null,
           profile: linkedProfile,
           env: process.env,
         })
+        if (bankTransferIssue) {
+          if (req.validatedBody.published === true) throw bankTransferIssueError(bankTransferIssue)
+          warnings.push({
+            code: bankTransferIssue.code,
+            message: bankTransferIssue.message,
+            field: bankTransferIssue.field,
+          })
+        }
 
         // Un tipo de entrada sólo puede cerrar debajo del evento. Que no le
         // quede ninguno abierto —porque cerró los últimos, o porque el evento
@@ -1175,7 +1202,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           throw new HttpError(503, 'El evento se guardó, pero no se pudo volver a leer.')
         }
 
-        res.status(mode === 'created' ? 201 : 200).json({ event, events, mode })
+        res.status(mode === 'created' ? 201 : 200).json({ event, events, mode, warnings })
       } catch (error) {
         next(error)
       }

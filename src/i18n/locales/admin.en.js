@@ -1359,7 +1359,26 @@ export default {
       viewArchive: 'Archive',
       viewAll: 'All',
       openEvent: 'Open event',
-      registeredCaption: 'registered',
+      payLabel: 'Payment methods',
+    payNone: 'no methods',
+    payAll: 'all methods',
+    registeredCaption: 'registered',
+    cols: {
+      event: 'Event',
+      date: 'Date',
+      venue: 'Venue',
+      pay: 'Payment',
+      registered: 'Registered',
+      status: 'Status',
+      visibility: 'Site',
+    },
+    filterNote: 'Showing {{shown}} of {{total}} events. Active filters: {{filters}}.',
+    filterNoteClear: 'Show all',
+    filterYear: 'year {{year}}',
+    filterStatus: 'status {{status}}',
+    filterQuery: 'search “{{query}}”',
+    publishAria: 'Publish {{title}} on the site',
+    hideAria: 'Hide {{title}} from the site',
       pin: 'Set as main event',
       unpin: 'Remove as main event',
       pinned: 'This is the main event',
@@ -1400,6 +1419,7 @@ export default {
       publishSelected: 'Publish {{count}}',
       hideSelected: 'Hide {{count}}',
       bulkBarAria: 'Change the visibility of the chosen events',
+      bulkClose: 'Close the selection',
       unpublishedOne: '1 unpublished event',
       unpublishedMany: '{{count}} unpublished events',
       unpublishedReview: 'Review and publish',
@@ -1794,6 +1814,10 @@ export default {
   },
 
   eventQuickCreate: {
+    sectionPayments: 'Payment methods',
+    createdWithWarning: 'The event was created, but payment details are missing: {{message}}',
+    paymentsNote:
+      'Leave untouched and the event charges with whatever the platform has open. You can change it later from Sales.',
     eyebrow: 'New event',
     title: 'Create meet',
     lead: 'Six details and the event exists. The rest is filled in afterwards, from its console.',
@@ -1819,7 +1843,14 @@ export default {
     pendingStructure: 'Days and sessions',
     pendingZones: 'Zones and security team',
     hiddenNote: 'Created hidden. Nobody sees it until you publish it.',
-    submit: 'Create and open console',
+    publishedNote: 'Created published: it shows on the site as soon as it is saved.',
+    sectionVisibility: 'Site',
+    visLabel: 'Visibility on creation',
+    visHidden: 'Hidden',
+    visPublished: 'Published',
+    visHiddenNote: 'Only visible in the panel. Publish it any time with one tap from the list.',
+    visPublishedNote: 'It shows in the site calendar as soon as it is created.',
+    submit: 'Create event',
     submitting: 'Creating…',
     advanced: 'I need prices and windows: open the full editor',
     back: 'Back to events',
@@ -1852,6 +1883,8 @@ export default {
     backToConsole: 'Back to the console',
     closeSection: 'Back to overview',
     closeSectionShort: 'Overview',
+    siteVisible: 'Visible on the site',
+    siteHidden: 'Hidden on the site',
     editBasics: 'Details',
     editBasicsValue: 'Title, date and venue',
     editSales: 'Sales and capacity',
@@ -3878,6 +3911,18 @@ export default {
     createAndPublish: 'Create and publish',
     saving: 'Saving...',
     unsavedChanges: 'There are unsaved changes',
+    unsavedChangesIn: 'Unsaved: {{areas}}',
+    changeAreas: {
+      basics: 'Details',
+      cupo: 'Capacity',
+      prices: 'Prices',
+      tickets: 'Tickets',
+      payment: 'Payment',
+      visibility: 'Publishing',
+    },
+    goToArea: 'Go to {{area}}',
+    savePartial: 'Status and access were saved; the event details were not.',
+    saveWarningTitle: 'Saved, but something is missing:',
     noPendingChanges: 'No pending changes',
     savingShort: 'Saving',
     unsavedShort: 'Unsaved',
@@ -3920,10 +3965,10 @@ export default {
       'If you change today’s price and save the event, this scheduled change is cancelled.',
     paymentProfileTitle: 'Payment methods for this event',
     paymentProfileHint:
-      'Leave untouched to inherit the platform matrix. Here you can only restrict channels or set your own bank details.',
+      'Leave untouched to inherit the platform matrix. Here you can open or close methods for this event only and set your own bank details.',
     paymentProfileCustomize: 'Customize payment methods',
     paymentProfileCustomizeHint:
-      'Uncheck to inherit the global matrix again. An event cannot reopen a channel Finance closed.',
+      'Uncheck to inherit the global matrix again.',
     paymentChannelMercadoPago: 'Mercado Pago',
     paymentChannelBankTransfer: 'Bank transfer',
     paymentChannelCashPitbull: 'Cash at Pitbull',
@@ -3945,7 +3990,7 @@ export default {
         platformCheckout: 'Payments are paused platform-wide.',
         platformTicket: 'Ticket sales are paused platform-wide.',
         noChannel:
-          'No payment method is open for tickets. Open at least one in the platform matrix or in this event payment block.',
+          'No payment method is open for tickets. Tick at least one in this event payment methods.',
         eventDisabled: 'This event ticket switch is off.',
         unpublished: 'The event is not published yet.',
         eventStatus: 'The event status ({{detail}}) does not allow sales.',
@@ -3962,7 +4007,11 @@ export default {
     },
     paymentChannelMatrixLabel: 'Payment methods by concept',
     paymentChannelMatrixHint:
-      'Set separately: closing a method for tickets does not affect athlete registration.',
+      'Tick the methods this event charges with. Set separately: changing tickets does not affect athlete registration.',
+    paymentChannelPlatformUnknown:
+      'We could not read the platform settings. The default policy is shown: review before saving.',
+    paymentChannelOpenedHere: 'Open for this event only ({{concepts}}).',
+    paymentChannelClosedHere: 'Closed for this event ({{concepts}}).',
     paymentChannelConcept: {
       registration: 'Registration',
       ticket: 'Tickets',
@@ -4480,6 +4529,22 @@ export default {
     capacityPublicPreviewFull: 'On the site: {{registered}}/{{total}} · {{remaining}} left',
     capacityPublicPreviewNoTotal: 'On the site: {{registered}} signed up · {{remaining}} left',
     liveSummary: 'Link, platform and status of the livestream.',
+    publishChecks: {
+      title: 'Before publishing: payment is not complete',
+      intro: 'This event will become visible, but payment is not complete:',
+      bulkIntro: '{{count}} event(s) will become visible with incomplete payment:',
+      confirmOutro: 'Publish anyway?',
+      codes: {
+        noRegistrationChannel:
+          'Registration has no open payment method: nobody will be able to sign up and pay.',
+        noTicketChannel:
+          'Tickets are enabled, but no payment method is open to buy them.',
+        transferWithoutDestination:
+          'Bank transfer is open and the event has no alias or profile of its own: the global alias will be used.',
+        noSellableTicketType:
+          'Tickets are enabled, but there is no active type with a price.',
+      },
+    },
     consistency: {
       title: 'The public status does not match the configuration',
       registrationClosedButOpenStatus:

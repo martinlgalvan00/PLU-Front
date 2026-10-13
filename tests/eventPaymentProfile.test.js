@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { HttpError } from '../server/lib/errors.js'
+import { applyEventChannelOpens } from '../src/lib/eventPaymentChannels.js'
+import { resolvePublicCheckoutAvailability } from '../server/services/platformFeatureToggleService.js'
 import {
   applyEventPaymentChannelOverrides,
   applyManualTicketDeadline,
   assertEventBankTransferReady,
+  bankTransferIssueError,
+  checkEventBankTransferReady,
   assertEventPaymentChannelEnabled,
   assertManualTicketDeadline,
   isEventChannelOpen,
@@ -344,6 +348,122 @@ describe('assertEventPaymentChannelEnabled', () => {
 })
 
 /**
+ * La plataforma es el valor por defecto, no el techo: el evento abre con
+ * `'open'` un canal que Finanzas tiene cerrado. Lo que sigue mandando es el
+ * maestro y el alta del concepto, que se verifican antes de llegar acá.
+ */
+describe('el evento abre un canal que la plataforma tiene cerrado', () => {
+  const platform = {
+    paymentChannels: {
+      membership: {
+        mercado_pago: true,
+        bank_transfer: false,
+        cash_pitbull: false,
+        wise_transfer: false,
+      },
+      registration: {
+        mercado_pago: true,
+        bank_transfer: false,
+        cash_pitbull: false,
+        wise_transfer: false,
+      },
+      ticket: {
+        mercado_pago: true,
+        bank_transfer: true,
+        cash_pitbull: false,
+        wise_transfer: false,
+      },
+    },
+  }
+
+  it('sin decisión del evento, la plataforma cerrada rechaza', () => {
+    expect(() =>
+      assertEventPaymentChannelEnabled(platform, 'registration', 'bank_transfer', {
+        eventOverrides: null,
+      }),
+    ).toThrow(HttpError)
+  })
+
+  it("'open' habilita la transferencia solo en inscripción", () => {
+    const eventOverrides = { registration: { bank_transfer: 'open' } }
+    expect(() =>
+      assertEventPaymentChannelEnabled(platform, 'registration', 'bank_transfer', {
+        eventOverrides,
+      }),
+    ).not.toThrow()
+    // El efectivo sigue cerrado.
+    expect(() =>
+      assertEventPaymentChannelEnabled(platform, 'registration', 'cash_pitbull', {
+        eventOverrides,
+      }),
+    ).toThrow(HttpError)
+  })
+
+  it('un `true` heredado sigue siendo "sin opinión": no reabre nada', () => {
+    // El panel anterior guardaba los cuatro en `true`. Leerlo como "abrir"
+    // reabriría canales que Finanzas cerró en eventos que ya existen.
+    expect(() =>
+      assertEventPaymentChannelEnabled(platform, 'registration', 'bank_transfer', {
+        eventOverrides: { registration: { bank_transfer: true, cash_pitbull: true } },
+      }),
+    ).toThrow(HttpError)
+  })
+
+  it('un cierre del evento gana sobre una apertura de la plataforma', () => {
+    expect(() =>
+      assertEventPaymentChannelEnabled(platform, 'ticket', 'bank_transfer', {
+        eventOverrides: { ticket: { bank_transfer: false } },
+      }),
+    ).toThrow(HttpError)
+  })
+
+  it('no reabre una venta que la plataforma pausó entera', () => {
+    const availability = resolvePublicCheckoutAvailability(
+      applyEventChannelOpens(
+        { ...platform, registrationEnabled: false },
+        { registration: { bank_transfer: 'open' } },
+      ),
+    )
+    expect(availability.registrationEnabled).toBe(false)
+    expect(availability.paymentChannels.registration.bank_transfer).toBe(false)
+  })
+
+  it('la disponibilidad pública ofrece el canal que el evento abrió', () => {
+    const overrides = { registration: { bank_transfer: 'open', cash_pitbull: 'open' } }
+    const availability = applyEventPaymentChannelOverrides(
+      resolvePublicCheckoutAvailability(applyEventChannelOpens(platform, overrides)),
+      overrides,
+    )
+    expect(availability.paymentChannels.registration.bank_transfer).toBe(true)
+    expect(availability.paymentChannels.registration.cash_pitbull).toBe(true)
+    expect(availability.registrationManualEnabled).toBe(true)
+    // Entradas no se tocó: queda como lo dejó la plataforma.
+    expect(availability.paymentChannels.ticket.cash_pitbull).toBe(false)
+    expect(availability.paymentChannels.ticket.bank_transfer).toBe(true)
+  })
+
+  it('una apertura y un cierre conviven en el mismo evento', () => {
+    const overrides = { registration: { bank_transfer: 'open', mercado_pago: false } }
+    const availability = applyEventPaymentChannelOverrides(
+      resolvePublicCheckoutAvailability(applyEventChannelOpens(platform, overrides)),
+      overrides,
+    )
+    expect(availability.paymentChannels.registration.bank_transfer).toBe(true)
+    expect(availability.paymentChannels.registration.mercado_pago).toBe(false)
+  })
+
+  it('exige alias cuando el evento abre la transferencia', () => {
+    expect(() =>
+      assertEventBankTransferReady({
+        overrides: { registration: { bank_transfer: 'open' } },
+        bankTransfer: { alias: '', cbu: '', holder: '' },
+        env: {},
+      }),
+    ).toThrow(HttpError)
+  })
+})
+
+/**
  * Los canales manuales contra el calendario. Una transferencia necesita hasta
  * 72 horas para convertirse en un QR (24 del comprobante + 48 de aprobación):
  * vendida después de ese punto, la entrada no llega y lo que queda es una
@@ -400,5 +520,41 @@ describe('plazo de los canales manuales de entradas', () => {
 
   it('Mercado Pago pasa aunque falten horas', () => {
     expect(() => assertManualTicketDeadline('mercado_pago', STARTS, CERCA)).not.toThrow()
+  })
+})
+
+describe('checkEventBankTransferReady', () => {
+  const open = { registration: { bank_transfer: 'open' } }
+
+  it('devuelve el problema con el campo a completar, sin lanzar', () => {
+    const issue = checkEventBankTransferReady({ overrides: open, bankTransfer: {}, env: {} })
+    expect(issue).toMatchObject({
+      code: 'EVENT_BANK_TRANSFER_ALIAS_REQUIRED',
+      field: 'bankTransferProfileId',
+    })
+    expect(issue.message).toMatch(/Ventas → Cobro/)
+  })
+
+  it('no hay problema con alias propio, con alias global o sin transferencia', () => {
+    expect(
+      checkEventBankTransferReady({ overrides: open, bankTransfer: { alias: 'club.pesas' }, env: {} }),
+    ).toBeNull()
+    expect(
+      checkEventBankTransferReady({ overrides: open, bankTransfer: {}, env: { PAYMENT_TRANSFER_ALIAS: 'g.a' } }),
+    ).toBeNull()
+    expect(
+      checkEventBankTransferReady({
+        overrides: { registration: { bank_transfer: false }, ticket: { bank_transfer: false } },
+        bankTransfer: {},
+        env: {},
+      }),
+    ).toBeNull()
+  })
+
+  it('el error que arma lleva el campo en `fields` para que el panel salte ahí', () => {
+    const issue = checkEventBankTransferReady({ overrides: open, bankTransfer: {}, env: {} })
+    const error = bankTransferIssueError(issue)
+    expect(error.status).toBe(400)
+    expect(error.details.fields).toEqual({ bankTransferProfileId: issue.message })
   })
 })
