@@ -7,6 +7,8 @@ import {
   ClipboardList,
   CreditCard,
   ExternalLink,
+  Eye,
+  EyeOff,
   FileText,
   Globe,
   LayoutGrid,
@@ -612,6 +614,16 @@ export default function AdminEventWorkspace({
           />
           <h1 className="admin-event-workspace__title">{event.title}</h1>
           <StatusPill value={event.status} />
+          {/* Qué se ve en el sitio es el dato que más se pregunta después de
+              crear un meet: nace oculto. Va junto al estado, con icono y texto
+              (no solo color), y refleja lo guardado, no lo que está por guardar. */}
+          <p
+            className={`admin-event-workspace__site${event.published ? '' : ' is-hidden'}`}
+            title={t(event.published ? 'admin.eventState.publishedNote' : 'admin.eventState.hiddenNote')}
+          >
+            {event.published ? <Eye size={13} aria-hidden /> : <EyeOff size={13} aria-hidden />}
+            {t(event.published ? 'admin.eventConsole.siteVisible' : 'admin.eventConsole.siteHidden')}
+          </p>
           {event.featured ? (
             <span className="admin-event-workspace__featured">
               <Star size={11} aria-hidden />

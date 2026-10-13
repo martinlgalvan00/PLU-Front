@@ -26,10 +26,11 @@ import {
   mapDraftToPreviewEvent,
 } from '../../services/eventAdminService.js'
 import { validateAdminEventDraft } from '../../lib/schemas/adminEvent.js'
+import usePlatformPaymentChannels from '../../hooks/usePlatformPaymentChannels.js'
+import { platformCellsFor } from '../../lib/platformPaymentChannels.js'
+import { resolveEventPublishChecks } from '../../lib/eventPublishChecks.js'
 import {
-  allOpenEventPaymentChannelOverrides,
-  normalizeEventPaymentChannelOverrides,
-  openEventChannelsFor,
+  effectiveEventChannelsFor,
 } from '../../lib/eventPaymentChannels.js'
 import { createPaymentProfile, fetchPaymentProfiles } from '../../services/paymentProfileService.js'
 import '../../styles/pages/admin-event-sales.css'
@@ -379,6 +380,7 @@ export default function AdminEventEditor({
   extraDirty = false,
   onExtraSave = null,
   onExtraDiscard = null,
+  onSaved = null,
   /**
    * Precio de inscripción programado: mismo contrato que Tarifas. No viaja
    * en el upsert del evento — pisar `price` cancela la programación.
@@ -394,6 +396,7 @@ export default function AdminEventEditor({
   // de perfil MP. El catálogo de entradas (ventanas, tipos, precios) sí viaja
   // acá: es el único lugar para configurar la venta de un evento ya creado.
   const essentials = accordion
+  const platformChannels = usePlatformPaymentChannels()
   const [syncError, setSyncError] = useState(null)
   const [syncing, setSyncing] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
@@ -605,6 +608,10 @@ export default function AdminEventEditor({
     () => getEventConsistencyWarnings(draft, sourceEvent),
     [draft, sourceEvent],
   )
+  const publishChecks = useMemo(
+    () => resolveEventPublishChecks(draft, platformChannels.platform),
+    [draft, platformChannels.platform],
+  )
 
   useEffect(() => {
     function handleKeyDown(event) {
@@ -713,20 +720,6 @@ export default function AdminEventEditor({
     setConfirmDiscard(false)
     if (Object.keys(fieldErrors).length) setFieldErrors({})
     if (syncError) setSyncError(null)
-  }
-
-  /** Un medio, para un concepto. El resto de la matriz queda como estaba. */
-  function patchPaymentChannel(concept, channel, enabled) {
-    const current =
-      normalizeEventPaymentChannelOverrides(draft.paymentChannelOverrides) ??
-      allOpenEventPaymentChannelOverrides()
-    patchDraft({
-      ...draft,
-      paymentChannelOverrides: {
-        ...current,
-        [concept]: { ...(current[concept] ?? {}), [channel]: enabled },
-      },
-    })
   }
 
   function requestClose() {
@@ -849,11 +842,16 @@ export default function AdminEventEditor({
       // El padre suele cerrar el fold al guardar; si no, reseteamos baseline
       // para que el dock vuelva a "Al día" sin remount.
       initialDraftSignatureRef.current = draftSignature(payload)
+      onSaved?.()
     } catch (error) {
+      // El servidor ya dice qué pasó (título repetido, día con inscriptos,
+      // versión desactualizada): pisarlo con un único texto de "otra persona
+      // modificó" escondía el motivo real de casi todos los 409.
+      const serverMessage = String(error?.message ?? '').trim()
       setSyncError(
         error?.status === 409
-          ? t('admin.eventEditor.conflictError')
-          : (error?.message ?? t('admin.eventEditor.saveError')),
+          ? serverMessage || t('admin.eventEditor.conflictError')
+          : serverMessage || t('admin.eventEditor.saveError'),
       )
       return
     } finally {
@@ -875,7 +873,11 @@ export default function AdminEventEditor({
   // obligaban a entrar en las cuatro para saber cuánto cupo hay, a qué precio
   // se inscribe, cuántas entradas existen y con qué se cobran.
   const ticketTypeCount = (draft.ticketTypes ?? []).length
-  const ticketChannelCount = openEventChannelsFor(draft.paymentChannelOverrides, 'ticket').length
+  const ticketChannelCount = effectiveEventChannelsFor(
+    draft.paymentChannelOverrides,
+    'ticket',
+    platformCellsFor(platformChannels.platform, 'ticket'),
+  ).length
   const fillPercent = slotsTotal > 0 ? Math.round((registeredCount / slotsTotal) * 100) : 0
   const publicCapacity = describePublicCapacity({
     progressPublic: draft.capacityProgressPublic !== false,
@@ -1046,7 +1048,7 @@ export default function AdminEventEditor({
               onSetEventRegistrationPrice={onSetEventRegistrationPrice}
               sourceEvent={sourceEvent}
               onClearEventPriceSchedule={onClearEventPriceSchedule}
-              patchPaymentChannel={patchPaymentChannel}
+              platformChannels={platformChannels}
               mpSecretsKeyConfigured={mpSecretsKeyConfigured}
               applyMpProfile={applyMpProfile}
               mpProfilesLoading={mpProfilesLoading}
@@ -1079,6 +1081,7 @@ export default function AdminEventEditor({
               patchDraft={patchDraft}
               statusOptions={statusOptions}
               consistencyWarnings={consistencyWarnings}
+              publishChecks={publishChecks}
               accessOptions={accessOptions}
               advancedOpen={advancedOpen}
               setAdvancedOpen={setAdvancedOpen}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import useLiveState from './useLiveState.js'
 import {
   ApiError,
   acceptStaffInvitationRequest,
@@ -275,7 +276,7 @@ export function useAppData() {
   const [pendingTicketOrdersLoading, setPendingTicketOrdersLoading] = useState(false)
   const [pendingTicketOrdersError, setPendingTicketOrdersError] = useState(null)
   const [createdOrder, setCreatedOrder] = useState(() => storedOrder)
-  const [adminEvents, setAdminEvents] = useState(() =>
+  const [adminEvents, setAdminEvents, adminEventsRef] = useLiveState(() =>
     getInitialAdminEvents(storedData?.adminEvents, { allowStoredEvents: env.demoMode }),
   )
   const [adminEventsLoading, setAdminEventsLoading] = useState(false)
@@ -498,7 +499,7 @@ export function useAppData() {
       stop()
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
-  }, [])
+  }, [setAdminEvents])
 
   // Pública y sin sesión: la lee cualquier visitante para saber si el checkout
   // de afiliación/inscripción/entradas está habilitado antes de tocar un botón.
@@ -551,7 +552,7 @@ export function useAppData() {
     } finally {
       if (!silent) setAdminEventsLoading(false)
     }
-  }, [])
+  }, [setAdminEvents])
 
   // Aviso en vivo: cuando el staff cambia un evento o un interruptor operativo,
   // la base emite `catalog-changed` en el tópico `public-catalog` (sin datos) y
@@ -3264,14 +3265,14 @@ export function useAppData() {
       }
 
       const sourceEvent = draft.id
-        ? (adminEvents.find((event) => event.id === draft.id) ?? null)
+        ? (adminEventsRef.current.find((event) => event.id === draft.id) ?? null)
         : null
       const result = await saveAdminEventRequest(draft, sourceEvent)
       setAdminEvents(result.events)
       setAdminEventsError(null)
       return result
     },
-    [adminEvents, session],
+    [adminEvents, adminEventsRef, session, setAdminEvents],
   )
 
   /**
@@ -3333,7 +3334,7 @@ export function useAppData() {
         return { error: error?.message ?? 'No se pudo cambiar el estado del evento.' }
       }
     },
-    [adminEvents, session],
+    [adminEvents, session, setAdminEvents],
   )
 
   /**
@@ -3373,7 +3374,7 @@ export function useAppData() {
         return { error: error?.message ?? 'No se pudo guardar el logo del evento.' }
       }
     },
-    [adminEvents, session],
+    [adminEvents, session, setAdminEvents],
   )
 
   /**
@@ -3454,7 +3455,7 @@ export function useAppData() {
       setAdminEventsError(null)
       return result
     },
-    [adminEvents, session],
+    [adminEvents, session, setAdminEvents],
   )
 
   const refreshPricingConfiguration = useCallback(async () => {

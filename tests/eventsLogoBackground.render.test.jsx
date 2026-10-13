@@ -262,7 +262,7 @@ describe('alta de evento', () => {
     })
     await screen.findByText('Fondo quitado.')
 
-    fireEvent.click(screen.getByRole('button', { name: /Crear y abrir consola/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
 
     await waitFor(() => expect(onSetEventLogo).toHaveBeenCalledTimes(1))
     expect(onSaveEvent).toHaveBeenCalledTimes(1)

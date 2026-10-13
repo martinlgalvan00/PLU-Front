@@ -266,7 +266,25 @@
   font-weight: 600;
 }
 
-/* ---- Fila ---- */
+/* ---- Fila ----
+   Tres layouts sobre el mismo marcado, decididos por el ancho de la lista (no
+   del viewport: el panel tiene barra lateral):
+   - angosto: logo, nombre, fecha · sede y cobro apilados; cupo y estado a la
+     derecha; acciones en una línea propia debajo.
+   - medio: igual, con las acciones a la derecha.
+   - ancho: tabla de columnas con cabecera (Evento, Fecha, Sede, Cobro,
+     Inscriptos, Estado, Sitio). La cabecera es solo visual (aria-hidden): cada
+     fila ya nombra sus datos. */
+
+.admin-list-section--events .admin-event-list {
+  --event-actions-w: 184px;
+  --event-cols: 40px minmax(0, 2fr) 72px minmax(0, 1.2fr) minmax(0, 1.5fr) 64px 124px;
+  container: events / inline-size;
+}
+
+.admin-event-list__head {
+  display: none;
+}
 
 .admin-event-row {
   align-items: center;
@@ -286,6 +304,13 @@
   background: var(--admin-row-hover);
 }
 
+/* El evento que se acaba de crear: una regla a la izquierda y fondo suave hasta
+   que se toca otra fila. Un solo acento. */
+.admin-event-row--new {
+  background: var(--admin-brand-soft);
+  box-shadow: inset 3px 0 0 var(--admin-ink);
+}
+
 .admin-event-row__main {
   align-items: center;
   background: none;
@@ -294,10 +319,14 @@
   cursor: pointer;
   display: grid;
   font: inherit;
-  gap: 4px 18px;
+  gap: 0 18px;
+  grid-template-areas:
+    'mark title status'
+    'mark meta status'
+    'mark pay status';
   grid-template-columns: auto minmax(0, 1fr) auto;
   min-width: 0;
-  padding: 16px 8px 16px 4px;
+  padding: 14px 8px 14px 12px;
   text-align: left;
 }
 
@@ -307,16 +336,15 @@
   outline-offset: -2px;
 }
 
-.admin-event-row__body {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
+.admin-event-row__main > .admin-event-mark {
+  grid-area: mark;
 }
 
 .admin-event-row__title-wrap {
   align-items: center;
   display: flex;
   gap: 8px;
+  grid-area: title;
   min-width: 0;
 }
 
@@ -332,25 +360,73 @@
   white-space: nowrap;
 }
 
-.admin-event-row__hidden-mark,
+.admin-event-row__featured-mark,
 .admin-event-row__open-mark {
   color: var(--admin-muted);
   display: inline-flex;
   flex: none;
 }
 
+.admin-event-row__featured-mark svg {
+  fill: currentColor;
+}
+
 .admin-event-row__meta {
   color: var(--admin-muted);
+  display: flex;
   font-size: 13px;
+  grid-area: meta;
+  margin-top: 3px;
+  min-width: 0;
+}
+
+.admin-event-row__date {
+  flex: none;
+  white-space: nowrap;
+}
+
+.admin-event-row__venue {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.admin-event-row__date + .admin-event-row__venue::before {
+  content: '·';
+  margin: 0 6px;
+}
+
+.admin-event-row__pay {
+  color: var(--admin-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 2px 14px;
+  grid-area: pay;
+  line-height: 1.4;
+  margin-top: 3px;
+}
+
+.admin-event-row__pay:empty {
+  display: none;
+}
+
+.admin-event-row__pay-concept {
+  color: var(--admin-ink);
+  font-weight: 600;
+  margin-right: 5px;
+}
+
+.admin-event-row__pay-group.is-empty {
+  color: var(--admin-danger, var(--color-danger, #b3261e));
 }
 
 .admin-event-row__status {
   align-items: center;
   display: flex;
   gap: 18px;
+  grid-area: status;
   justify-content: flex-end;
 }
 
@@ -410,6 +486,49 @@
   transform: translateX(2px);
 }
 
+/* Publicado / oculto: interruptor de un toque con permiso, texto sin él. */
+.admin-event-row__vis {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  color: var(--admin-muted);
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px 0 10px;
+  white-space: nowrap;
+}
+
+button.admin-event-row__vis {
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+button.admin-event-row__vis:hover {
+  background: var(--admin-brand-soft);
+  color: var(--admin-ink);
+}
+
+.admin-event-row__vis.is-published {
+  color: var(--admin-ink);
+}
+
+button.admin-event-row__vis:disabled {
+  cursor: progress;
+  opacity: 0.5;
+}
+
+button.admin-event-row__vis:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
 .admin-event-row__pin {
   align-items: center;
   background: none;
@@ -457,6 +576,111 @@
   outline-offset: 2px;
 }
 
+/* Lista ancha: tabla de columnas. */
+@container events (min-width: 1040px) {
+  .admin-event-list__head {
+    border-bottom: 1px solid var(--admin-hairline-strong);
+    color: var(--admin-muted);
+    display: grid;
+    font-size: 11px;
+    font-weight: 600;
+    grid-template-columns: minmax(0, 1fr) var(--event-actions-w);
+    letter-spacing: 0.08em;
+    list-style: none;
+    margin: 0 0 calc(var(--space-xl) * -0.5);
+    padding: 0;
+    text-transform: uppercase;
+  }
+
+  .admin-event-list__head-cols {
+    column-gap: 16px;
+    display: grid;
+    grid-template-columns: var(--event-cols);
+    padding: 0 8px 10px 12px;
+  }
+
+  .admin-event-list--selecting .admin-event-list__head-cols {
+    padding-left: 46px;
+  }
+
+  .admin-event-list__head-cols .is-num {
+    text-align: right;
+  }
+
+  .admin-event-list__head-actions {
+    padding: 0 0 10px 10px;
+  }
+
+  .admin-event-row {
+    gap: 0;
+    grid-template-columns: minmax(0, 1fr) var(--event-actions-w);
+  }
+
+  .admin-event-row__main {
+    column-gap: 16px;
+    grid-template-areas: none;
+    grid-template-columns: var(--event-cols);
+    padding-block: 12px;
+  }
+
+  .admin-event-row__main > .admin-event-mark,
+  .admin-event-row__title-wrap,
+  .admin-event-row__pay {
+    grid-area: auto;
+  }
+
+  .admin-event-row__meta,
+  .admin-event-row__status {
+    display: contents;
+  }
+
+  .admin-event-row__date {
+    color: var(--admin-ink);
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+
+  .admin-event-row__date + .admin-event-row__venue::before {
+    content: none;
+  }
+
+  .admin-event-row__pay {
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+  }
+
+  .admin-event-row__pay:empty {
+    display: block;
+  }
+
+  .admin-event-row__capacity {
+    min-width: 0;
+  }
+
+  .admin-event-row__capacity small {
+    display: none;
+  }
+
+  .admin-event-row__badge {
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  .admin-event-row__actions {
+    justify-content: flex-start;
+    padding-right: 0;
+  }
+
+  .admin-event-row__chevron {
+    display: none;
+  }
+
+  .admin-event-row--selecting .admin-event-row__main {
+    padding-left: 46px;
+  }
+}
+
 /* Meets terminados: quedan a la vista pero más callados. */
 .admin-event-group--finished .admin-event-row__title,
 .admin-event-group--finished .admin-event-row__capacity strong {
@@ -466,113 +690,6 @@
 .admin-event-group--finished .admin-event-mark {
   filter: grayscale(1);
   opacity: 0.7;
-}
-
-/* ---- Evento principal ---- */
-
-.admin-event-row--lead {
-  background: var(--admin-attention-bg);
-  border: 1px solid color-mix(in srgb, var(--admin-attention-text) 14%, transparent);
-  border-radius: 24px;
-  color: var(--admin-attention-text);
-  overflow: hidden;
-}
-
-.admin-event-row--lead:hover,
-.admin-event-row--lead.admin-event-row--selected {
-  background: var(--admin-attention-bg);
-  border-color: color-mix(in srgb, var(--admin-attention-text) 34%, transparent);
-}
-
-.admin-event-row--lead .admin-event-row__main {
-  gap: 8px 28px;
-  padding: 28px 12px 28px 28px;
-}
-
-.admin-event-row--lead .admin-event-mark {
-  background: color-mix(in srgb, var(--admin-attention-text) 7%, transparent);
-  border-color: color-mix(in srgb, var(--admin-attention-text) 16%, transparent);
-  color: var(--admin-attention-text);
-}
-
-.admin-event-row__kicker {
-  align-items: center;
-  color: color-mix(in srgb, var(--admin-attention-text) 66%, transparent);
-  display: inline-flex;
-  font-size: 11px;
-  font-weight: 600;
-  gap: 6px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.admin-event-row__kicker svg {
-  fill: currentColor;
-}
-
-.admin-event-row--lead .admin-event-row__body {
-  gap: 8px;
-}
-
-.admin-event-row--lead .admin-event-row__title {
-  color: var(--admin-attention-text);
-  font-size: clamp(26px, 3.4vw, 36px);
-  letter-spacing: -0.025em;
-  line-height: 1.08;
-  white-space: normal;
-}
-
-.admin-event-row--lead .admin-event-row__meta,
-.admin-event-row--lead .admin-event-row__capacity small,
-.admin-event-row--lead .admin-event-row__capacity strong span,
-.admin-event-row--lead .admin-event-row__hidden-mark,
-.admin-event-row--lead .admin-event-row__open-mark {
-  color: color-mix(in srgb, var(--admin-attention-text) 62%, transparent);
-}
-
-.admin-event-row--lead .admin-event-row__meta {
-  font-size: 14px;
-}
-
-.admin-event-row--lead .admin-event-row__capacity strong {
-  color: var(--admin-attention-text);
-  font-size: 36px;
-  letter-spacing: -0.03em;
-}
-
-.admin-event-row--lead .admin-event-row__capacity strong span {
-  font-size: 18px;
-}
-
-.admin-event-row--lead .admin-event-row__actions,
-.admin-event-row--lead .admin-event-row__pin {
-  color: color-mix(in srgb, var(--admin-attention-text) 66%, transparent);
-}
-
-.admin-event-row--lead .admin-event-row__pin:hover {
-  background: color-mix(in srgb, var(--admin-attention-text) 10%, transparent);
-  color: var(--admin-attention-text);
-}
-
-.admin-event-row--lead .admin-event-row__pin[aria-pressed='true'],
-.admin-event-row--lead:hover .admin-event-row__chevron {
-  background: none;
-  color: var(--admin-attention-text);
-}
-
-.admin-event-row--lead .admin-event-row__main:focus-visible,
-.admin-event-row--lead .admin-event-row__pin:focus-visible {
-  outline-color: var(--admin-attention-text);
-}
-
-/* El estado vive sobre tinta: texto claro y punto claro cuando no tiene tono propio. */
-.admin-shell .admin-event-row--lead .status-pill {
-  color: var(--admin-attention-text);
-}
-
-.admin-shell .admin-event-row--lead .status-pill--info,
-.admin-shell .admin-event-row--lead .status-pill--neutral {
-  --pill-tone: var(--admin-attention-text);
 }
 
 /* ---- Avisos de la lista ---- */
@@ -642,16 +759,6 @@
 
 .admin-event-row--selecting .admin-event-row__main {
   padding-left: 46px;
-}
-
-/* El evento principal es una tarjeta con sus propios colores y más aire. */
-.admin-event-row--lead .admin-event-row__check {
-  accent-color: var(--admin-attention-text);
-  left: 18px;
-}
-
-.admin-event-row--lead.admin-event-row--selecting .admin-event-row__main {
-  padding-left: 56px;
 }
 
 /* En táctil el enlace tiene que ser un blanco de 44px, no solo una línea subrayada. */
@@ -735,26 +842,28 @@
 }
 
 @media (max-width: 640px) {
-  /* El cupo y el estado bajan debajo del nombre; las acciones se anclan arriba. */
+  /* Cupo y estado bajan debajo del nombre; las acciones, a una línea propia. */
   .admin-event-row {
+    gap: 0;
     grid-template-columns: minmax(0, 1fr);
   }
 
   .admin-event-row__main {
-    gap: 6px 14px;
+    gap: 0 14px;
+    grid-template-areas:
+      'mark title'
+      'mark meta'
+      'mark pay'
+      'mark status';
     grid-template-columns: auto minmax(0, 1fr);
-    padding: 14px 52px 14px 2px;
-  }
-
-  .admin-event-row__main > .admin-event-mark {
-    grid-row: 1 / span 2;
+    padding: 14px 8px 4px 10px;
   }
 
   .admin-event-row__status {
     flex-wrap: wrap;
     gap: 4px 14px;
-    grid-column: 2;
     justify-content: flex-start;
+    margin-top: 6px;
   }
 
   .admin-event-row__capacity {
@@ -771,10 +880,7 @@
   }
 
   .admin-event-row__actions {
-    padding: 0;
-    position: absolute;
-    right: 0;
-    top: 6px;
+    padding: 0 8px 6px 56px;
   }
 
   .admin-event-row__chevron {
@@ -786,40 +892,8 @@
     width: 44px;
   }
 
-  .admin-event-row--lead {
-    border-radius: 20px;
-  }
-
-  .admin-event-row--lead .admin-event-row__main {
-    gap: 12px 16px;
-    padding: 20px 56px 20px 18px;
-  }
-
-  .admin-event-row--lead .admin-event-row__actions {
-    right: 6px;
-    top: 10px;
-  }
-
-  .admin-event-mark--lg {
-    border-radius: 16px;
-    height: 64px;
-    width: 64px;
-  }
-
-  .admin-event-mark--lg .admin-event-mark__initials {
-    font-size: 22px;
-  }
-
-  .admin-event-row--lead .admin-event-row__title {
-    font-size: 24px;
-  }
-
-  .admin-event-row--lead .admin-event-row__capacity strong {
-    font-size: 22px;
-  }
-
-  .admin-event-row--lead .admin-event-row__capacity strong span {
-    font-size: 14px;
+  button.admin-event-row__vis {
+    min-height: 44px;
   }
 
   .admin-events-views {
