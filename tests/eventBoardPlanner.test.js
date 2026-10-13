@@ -21,6 +21,7 @@ import {
   planEventBoard,
   resolvePlacementBatches,
   sessionStats,
+  suggestFill,
   sessionsPayloadFromBoard,
   summarizeComposition,
 } from '../src/services/eventBoardPlanner.js'
@@ -831,5 +832,71 @@ describe('motor v2', () => {
       })
       expect(cut(smart)).toBeLessThanOrEqual(cut(balancedChunks(sorted, 12)))
     })
+  })
+})
+
+describe('suggestFill', () => {
+  const person = (id, overrides = {}) =>
+    athlete(id, { fullName: id, sex: 'Femenino', category: 'Raw', bodyweightKg: 60, ...overrides })
+
+  it('en una tanda con gente trae los más cercanos a su rango de peso, del mismo sexo y categoría', () => {
+    const tanda = session('s', 'Tanda A', [
+      person('a', { bodyweightKg: 60 }),
+      person('b', { bodyweightKg: 64 }),
+    ])
+    const pool = [
+      person('lejos', { bodyweightKg: 90 }),
+      person('justo-debajo', { bodyweightKg: 58 }),
+      person('dentro', { bodyweightKg: 62 }),
+      person('hombre', { sex: 'Masculino', bodyweightKg: 62 }),
+      person('otra-categoria', { category: 'Raw With Wraps', bodyweightKg: 62 }),
+      person('justo-arriba', { bodyweightKg: 66 }),
+    ]
+    expect(suggestFill({ session: tanda, pool, capacity: 6 })).toEqual([
+      'dentro',
+      'justo-debajo',
+      'justo-arriba',
+      'lejos',
+    ])
+  })
+
+  it('no pasa del cupo que queda', () => {
+    const tanda = session('s', 'Tanda A', Array.from({ length: 10 }, (_, index) => person(`in${index}`)))
+    const pool = Array.from({ length: 5 }, (_, index) => person(`p${index}`, { bodyweightKg: 61 + index }))
+    expect(suggestFill({ session: tanda, pool, capacity: 12 })).toHaveLength(2)
+    expect(suggestFill({ session: tanda, pool, capacity: 10 })).toEqual([])
+  })
+
+  it('una tanda vacía toma el primer grupo de la bolsa en orden de competencia, liviano a pesado', () => {
+    const pool = [
+      person('m1', { sex: 'Masculino', bodyweightKg: 70 }),
+      person('f-pesada', { bodyweightKg: 80 }),
+      person('f-liviana', { bodyweightKg: 50 }),
+      person('f-wraps', { category: 'Raw With Wraps', bodyweightKg: 40 }),
+    ]
+    // Femenino primero; dentro de él la categoría que ordena primero ("Raw" < "Raw With Wraps").
+    expect(suggestFill({ session: session('s', 'T', []), pool, capacity: 12 })).toEqual([
+      'f-liviana',
+      'f-pesada',
+    ])
+  })
+
+  it('una tanda que ya mezcla sexos no sugiere nada', () => {
+    const tanda = session('s', 'Tanda A', [person('a'), person('b', { sex: 'Masculino' })])
+    expect(suggestFill({ session: tanda, pool: [person('c')], capacity: 12 })).toEqual([])
+  })
+
+  it('con la bolsa vacía no sugiere nada', () => {
+    expect(suggestFill({ session: session('s', 'T', []), pool: [], capacity: 12 })).toEqual([])
+  })
+
+  it('una tanda cuyos atletas no tienen peso igual completa con el mismo sexo', () => {
+    const tanda = session('s', 'Tanda A', [person('a', { bodyweightKg: null })])
+    const ids = suggestFill({
+      session: tanda,
+      pool: [person('x', { bodyweightKg: 70 }), person('y', { sex: 'Masculino' })],
+      capacity: 12,
+    })
+    expect(ids).toEqual(['x'])
   })
 })

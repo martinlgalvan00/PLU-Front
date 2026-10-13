@@ -1,3 +1,4 @@
+import { planEventBoard } from '../../services/eventBoardPlanner.js'
 import ScheduleBoardSection from './ScheduleBoardSection.jsx'
 
 /**
@@ -302,4 +303,53 @@ const CROWD_BOARD = {
 export const Inscriptos234 = {
   args: { adminEvents, canEdit: true, onGoToEvents: () => undefined },
   decorators: [withBoard(CROWD_BOARD)],
+}
+
+/** Lo que deja el asistente: los 234 ya repartidos en dos tablados y dos días, con horarios. */
+function arrangedBoard() {
+  const platforms = [
+    { id: 'plat-rojo', name: 'Tablado Rojo', sortOrder: 0 },
+    { id: 'plat-azul', name: 'Tablado Azul', sortOrder: 1 },
+  ]
+  const plan = planEventBoard({
+    unassigned: CROWD_BOARD.unassigned,
+    days: CROWD_BOARD.days,
+    platforms,
+    maxPerSession: 12,
+    schedule: { firstStart: '09:00', sessionMinutes: 45, gapMinutes: 10, weighInLeadMinutes: 120 },
+  })
+  const byId = new Map(CROWD_BOARD.unassigned.map((row) => [row.registrationId, row]))
+  const days = CROWD_BOARD.days.map((day) => ({
+    ...day,
+    sessions: plan.newSessions
+      .filter((session) => session.dayIndex === day.dayIndex)
+      .map((session, index) => ({
+        id: `ses-${session.name}`,
+        name: session.name,
+        platform: session.platform,
+        platformId: session.platformId,
+        weighInAt: session.weighInAt,
+        startsAt: session.startsAt,
+        sortOrder: index,
+        athletes: plan.placements
+          .filter((placement) => placement.tempId === session.tempId)
+          .map((placement) => byId.get(placement.registrationId)),
+      })),
+  }))
+  return {
+    ...CROWD_BOARD,
+    platforms,
+    totals: { registered: 234, assigned: 234, unassigned: 0 },
+    days: days.map((day) => ({
+      ...day,
+      assignedCount: day.sessions.reduce((sum, session) => sum + session.athletes.length, 0),
+    })),
+    unassigned: [],
+  }
+}
+
+/** Grilla armada: 21 tandas en compacta, para ver de un vistazo cuánto lleva cada tablado. */
+export const GrillaArmada234 = {
+  args: { adminEvents, canEdit: true, onGoToEvents: () => undefined },
+  decorators: [withBoard(arrangedBoard())],
 }

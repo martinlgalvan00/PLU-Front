@@ -817,6 +817,64 @@ function buildStats(summaries, platforms) {
 }
 
 /**
+ * A quiénes de la bolsa mandar a una tanda para completarla, en orden.
+ *
+ * - Tanda con gente: solo candidatos compatibles (mismo sexo; misma categoría si
+ *   toda la tanda es de una), los más cercanos al rango de peso que ya tiene
+ *   primero, hasta llenar el cupo. Una tanda que mezcla sexos no sugiere nada:
+ *   no hay a quién parecerse.
+ * - Tanda vacía: el primer grupo de la bolsa en orden de competencia (sexo y
+ *   categoría del primero), del más liviano al más pesado.
+ *
+ * Es una sugerencia para un clic: el operador ve el resultado y puede deshacer.
+ */
+export function suggestFill({ session, pool = [], capacity = DEFAULT_FLIGHT_SIZE }) {
+  const current = session?.athletes ?? []
+  const room = Math.max(0, capacity - current.length)
+  if (room === 0 || pool.length === 0) return []
+
+  const byWeight = (a, b) =>
+    numberOrInfinity(a?.bodyweightKg) - numberOrInfinity(b?.bodyweightKg) ||
+    text(a?.fullName).localeCompare(text(b?.fullName), 'es')
+
+  if (current.length === 0) {
+    const ordered = [...pool].sort(compareAthletes)
+    const lead = ordered[0]
+    return ordered
+      .filter((athlete) => athlete.sex === lead.sex && athlete.category === lead.category)
+      .sort(byWeight)
+      .slice(0, room)
+      .map((athlete) => athlete.registrationId)
+  }
+
+  const sexes = uniqueValues(current, 'sex')
+  if (sexes.length > 1) return []
+  const categories = uniqueValues(current, 'category')
+  const weights = current
+    .map((athlete) => Number(athlete.bodyweightKg))
+    .filter((value) => Number.isFinite(value))
+  const low = weights.length ? Math.min(...weights) : null
+  const high = weights.length ? Math.max(...weights) : null
+  const distance = (athlete) => {
+    const weight = Number(athlete.bodyweightKg)
+    if (low === null || !Number.isFinite(weight)) return Number.POSITIVE_INFINITY
+    if (weight < low) return low - weight
+    if (weight > high) return weight - high
+    return 0
+  }
+
+  return pool
+    .filter(
+      (athlete) =>
+        (sexes.length === 0 || athlete.sex === sexes[0]) &&
+        (categories.length !== 1 || athlete.category === categories[0]),
+    )
+    .sort((a, b) => distance(a) - distance(b) || byWeight(a, b))
+    .slice(0, room)
+    .map((athlete) => athlete.registrationId)
+}
+
+/**
  * Dónde está hoy cada inscripción: registrationId → { dayIndex, sessionId }.
  * `null/null` es "sin día". Es la foto que hace falta para deshacer un reparto.
  */

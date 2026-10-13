@@ -2061,6 +2061,126 @@
   }
 }
 
+/* ── Tandas compactas, medidor de cupo, grupos arrastrables ─────────── */
+.admin-board__density {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs) var(--space-sm);
+}
+
+.admin-board__density .segmented-switch {
+  flex: 0 0 auto;
+  width: min(100%, 280px);
+}
+
+/* Sin nadie por ubicar la bolsa deja de ser una columna: pasa a ser un renglón
+   y las tandas, que es donde está el trabajo, toman todo el ancho. */
+@container admin-board (min-width: 900px) {
+  .admin-board__layout--solo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-board__layout--solo .admin-board__pool {
+    max-height: none;
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-md);
+    padding-block: var(--space-xs);
+  }
+
+  .admin-board__layout--solo .admin-board__pool .admin-board__panel-head--pool {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .admin-board__layout--solo .admin-board__pool > .admin-board__empty {
+    margin: 0;
+    padding: 0;
+  }
+}
+
+.admin-board__meter {
+  display: block;
+  height: 3px;
+  margin-top: 6px;
+  background: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.admin-board__meter > span {
+  display: block;
+  height: 100%;
+  background: var(--color-brand-celeste);
+  border-radius: 999px;
+}
+
+.admin-board__meter > span.is-over {
+  background: var(--color-warning-text);
+}
+
+.admin-board__chevron {
+  transition: transform var(--transition-fast);
+}
+
+[aria-expanded='true'] > .admin-board__chevron {
+  transform: rotate(90deg);
+}
+
+.admin-board__fill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  font-weight: 650;
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.admin-board__fill svg {
+  color: var(--color-brand-celeste);
+}
+
+.admin-board__fill:hover:not(:disabled) {
+  text-decoration: underline;
+  text-decoration-color: var(--color-brand-celeste);
+  text-underline-offset: 4px;
+}
+
+.admin-board__group-head--draggable {
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.admin-board__group-head--draggable:active {
+  cursor: grabbing;
+}
+
+.admin-board__group-head.is-dragging {
+  opacity: 0.35;
+}
+
+.admin-board__drag-chip {
+  flex-wrap: wrap;
+}
+
+.admin-board__drag-chip-target {
+  flex: 1 0 100%;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-board__chevron {
+    transition: none;
+  }
+}
+
 /* ── Entrada one-shot: ledger → bolsa → días, 260–420ms ─────────────── */
 .admin-board__totals,
 .admin-board__pool,
