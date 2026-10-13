@@ -42,39 +42,6 @@ export function compareAthletes(a, b) {
   return text(a?.fullName).localeCompare(text(b?.fullName), 'es')
 }
 
-function clusterKey(athlete) {
-  const weight = Number.isFinite(Number(athlete?.bodyweightKg)) ? String(athlete.bodyweightKg) : ''
-  return `${text(athlete?.sex)}|${text(athlete?.category)}|${text(athlete?.division)}|${weight}`
-}
-
-function clusterAthletes(sorted) {
-  const clusters = []
-  for (const athlete of sorted) {
-    const key = clusterKey(athlete)
-    const last = clusters[clusters.length - 1]
-    if (last && last.key === key) last.athletes.push(athlete)
-    else clusters.push({ key, athletes: [athlete] })
-  }
-  return clusters
-}
-
-function splitOversized(clusters, maxPerSession) {
-  const chunks = []
-  for (const cluster of clusters) {
-    if (cluster.athletes.length <= maxPerSession) {
-      chunks.push(cluster)
-      continue
-    }
-    for (let index = 0; index < cluster.athletes.length; index += maxPerSession) {
-      chunks.push({
-        key: cluster.key,
-        athletes: cluster.athletes.slice(index, index + maxPerSession),
-      })
-    }
-  }
-  return chunks
-}
-
 function uniqueValues(athletes, field) {
   const values = []
   const seen = new Set()
@@ -124,87 +91,6 @@ export function summarizeComposition(athletes) {
   ]
     .filter(Boolean)
     .join(' · ')
-}
-
-function sexLockOf(athletes) {
-  const sexes = uniqueValues(athletes, 'sex')
-  if (sexes.length === 0) return null
-  if (sexes.length === 1) return sexes[0]
-  return 'mixed'
-}
-
-function categoryLockOf(athletes) {
-  const categories = uniqueValues(athletes, 'category')
-  return categories.length === 1 ? categories[0] : null
-}
-
-function chunkSex(chunk) {
-  return uniqueValues(chunk.athletes, 'sex')[0] ?? null
-}
-
-function chunkCategory(chunk) {
-  return uniqueValues(chunk.athletes, 'category')[0] ?? ''
-}
-
-function existingSlots(days, maxPerSession) {
-  return days.flatMap((day) =>
-    (day.sessions ?? []).map((session) => {
-      const current = session.athletes ?? []
-      return {
-        id: session.id,
-        name: session.name,
-        dayIndex: day.dayIndex,
-        dayLabel: day.label,
-        sortOrder: session.sortOrder ?? 0,
-        room: Math.max(0, maxPerSession - current.length),
-        sexLock: sexLockOf(current),
-        categoryLock: categoryLockOf(current),
-        additions: [],
-        existingCount: current.length,
-      }
-    }),
-  )
-}
-
-function compatibleSex(slot, chunk) {
-  if (slot.sexLock === 'mixed') return false
-  const sex = chunkSex(chunk)
-  if (!slot.sexLock || !sex) return true
-  return slot.sexLock === sex
-}
-
-function placeChunkInExisting(chunk, slots) {
-  const size = chunk.athletes.length
-  const open = slots.filter((slot) => slot.room >= size && compatibleSex(slot, chunk))
-  if (open.length === 0) return false
-  const category = chunkCategory(chunk)
-  const preferred = open.find((slot) => !slot.categoryLock || slot.categoryLock === category)
-  const slot = preferred ?? open[0]
-  slot.additions.push(...chunk.athletes)
-  slot.room -= size
-  if (!slot.sexLock) slot.sexLock = chunkSex(chunk)
-  if (!slot.categoryLock) slot.categoryLock = category
-  return true
-}
-
-function packNewBuckets(chunks, maxPerSession) {
-  const buckets = []
-  for (const chunk of chunks) {
-    const current = buckets[buckets.length - 1]
-    const sex = chunkSex(chunk)
-    const category = chunkCategory(chunk)
-    if (
-      current &&
-      current.sex === sex &&
-      current.category === category &&
-      current.athletes.length + chunk.athletes.length <= maxPerSession
-    ) {
-      current.athletes.push(...chunk.athletes)
-      continue
-    }
-    buckets.push({ sex, category, athletes: [...chunk.athletes] })
-  }
-  return buckets
 }
 
 export function nextSessionName(existingNames = []) {
@@ -355,20 +241,223 @@ function dayLabelOf(days, dayIndex) {
   return days.find((day) => day.dayIndex === dayIndex)?.label ?? `Día ${Number(dayIndex) + 1}`
 }
 
-/**
- * Arma el preview. `unassigned` tiene que ser solo gente sin día: el
- * planificador no mira el resto del tablero para no "devolver" a alguien.
- */
-export function planEventBoard({ unassigned = [], days = [], maxPerSession = DEFAULT_FLIGHT_SIZE } = {}) {
-  const cap = Math.max(1, Number(maxPerSession) || DEFAULT_FLIGHT_SIZE)
-  const pending = unassigned.filter((athlete) => athlete?.registrationId)
-  const sorted = [...pending].sort(compareAthletes)
-  const chunks = splitOversized(clusterAthletes(sorted), cap)
-  const slots = existingSlots(days, cap)
-  const leftoverChunks = []
+/* ── Armado automático ───────────────────────────────────────────────────
+   El plan es una función pura de (bolsa, días, tablados, criterios): la UI
+   muestra la propuesta y recién al confirmar se escribe nada. */
 
-  for (const chunk of chunks) {
-    if (!placeChunkInExisting(chunk, slots)) leftoverChunks.push(chunk)
+export const PLAN_GROUP_KEYS = ['sex', 'category', 'division']
+
+export const DEFAULT_PLAN_OPTIONS = Object.freeze({
+  maxPerSession: DEFAULT_FLIGHT_SIZE,
+  /** Qué separa a dos atletas en tandas distintas (de más a menos fuerte). */
+  groupBy: ['sex', 'category'],
+  /** Orden dentro de un grupo: define quiénes quedan juntos al partirlo. */
+  sortBy: 'weight',
+  /** Completar primero las tandas que ya existen. */
+  useExisting: true,
+  /** Juntar restos chicos de grupos vecinos en una sola tanda. */
+  mergeSmall: true,
+  /** 'alternate' reparte las tandas entre tablados; 'sex' fija un sexo por tablado. */
+  platformMode: 'alternate',
+  /** Días a usar; null = todos. */
+  dayIndexes: null,
+})
+
+const numberOrInfinity = (value) =>
+  value !== null && value !== undefined && Number.isFinite(Number(value))
+    ? Number(value)
+    : Number.POSITIVE_INFINITY
+
+function groupKeyOf(athlete, keys) {
+  return keys.map((key) => text(athlete?.[key])).join('|')
+}
+
+/** Orden total para armar: llaves de grupo (sexo → categoría → división) y luego el criterio. */
+function planComparator(keys, sortBy) {
+  const secondary =
+    sortBy === 'age'
+      ? [(row) => numberOrInfinity(row?.age), (row) => numberOrInfinity(row?.bodyweightKg)]
+      : [(row) => numberOrInfinity(row?.bodyweightKg), (row) => numberOrInfinity(row?.age)]
+  return (a, b) => {
+    for (const key of PLAN_GROUP_KEYS) {
+      if (!keys.includes(key)) continue
+      const diff =
+        key === 'sex'
+          ? sexRank(a?.sex) - sexRank(b?.sex)
+          : text(a?.[key]).localeCompare(text(b?.[key]), 'es')
+      if (diff !== 0) return diff
+    }
+    for (const pick of secondary) {
+      const diff = pick(a) - pick(b)
+      if (diff !== 0 && !Number.isNaN(diff)) return diff
+    }
+    return text(a?.fullName).localeCompare(text(b?.fullName), 'es')
+  }
+}
+
+/**
+ * Parte una lista en la menor cantidad de tandas que respeta el tope y las
+ * deja parejas: 13 con tope 12 son 7 + 6, no 12 + 1. Una tanda de uno es un
+ * mal armado aunque "cumpla" el tope.
+ */
+export function balancedChunks(list, cap) {
+  if (list.length === 0) return []
+  const count = Math.ceil(list.length / cap)
+  const base = Math.floor(list.length / count)
+  const extra = list.length % count
+  const chunks = []
+  let cursor = 0
+  for (let index = 0; index < count; index += 1) {
+    const size = base + (index < extra ? 1 : 0)
+    chunks.push(list.slice(cursor, cursor + size))
+    cursor += size
+  }
+  return chunks
+}
+
+function singleSex(athletes) {
+  const sexes = uniqueValues(athletes, 'sex')
+  return sexes.length === 1 ? sexes[0] : null
+}
+
+/** Tandas candidatas (todavía sin día, tablado ni nombre), en orden de competencia. */
+function buildBuckets(athletes, { groupBy, sortBy, maxPerSession, mergeSmall }) {
+  const sorted = [...athletes].sort(planComparator(groupBy, sortBy))
+  const groups = []
+  for (const athlete of sorted) {
+    const key = groupKeyOf(athlete, groupBy)
+    const last = groups[groups.length - 1]
+    if (last && last.key === key) last.athletes.push(athlete)
+    else groups.push({ key, athletes: [athlete] })
+  }
+
+  const buckets = groups.flatMap((group) =>
+    balancedChunks(group.athletes, maxPerSession).map((chunk) => ({
+      athletes: chunk,
+      // Llaves que NO pueden mezclarse al juntar restos: todas menos la menos
+      // fuerte (se mezclan divisiones, no categorías ni sexos).
+      lock: groupKeyOf(chunk[0], groupBy.slice(0, Math.max(0, groupBy.length - 1))),
+      sex: singleSex(chunk),
+    })),
+  )
+  if (!mergeSmall) return buckets
+
+  const merged = []
+  for (const bucket of buckets) {
+    const last = merged[merged.length - 1]
+    const sexSafe = !groupBy.includes('sex') || last?.sex === bucket.sex
+    if (
+      last &&
+      sexSafe &&
+      last.lock === bucket.lock &&
+      last.athletes.length + bucket.athletes.length <= maxPerSession
+    ) {
+      last.athletes.push(...bucket.athletes)
+      last.sex = singleSex(last.athletes)
+    } else {
+      merged.push({ ...bucket, athletes: [...bucket.athletes] })
+    }
+  }
+  return merged
+}
+
+function existingSlots(days, dayIndexes, maxPerSession) {
+  return days
+    .filter((day) => !dayIndexes || dayIndexes.includes(day.dayIndex))
+    .flatMap((day) =>
+      (day.sessions ?? []).map((session) => {
+        const current = session.athletes ?? []
+        return {
+          id: session.id,
+          name: session.name,
+          platformId: session.platformId ?? null,
+          platform: session.platform ?? '',
+          dayIndex: day.dayIndex,
+          dayLabel: day.label,
+          room: Math.max(0, maxPerSession - current.length),
+          sex: singleSex(current) ?? (current.length === 0 ? null : 'mixed'),
+          category: uniqueValues(current, 'category').length === 1 ? current[0].category : null,
+          additions: [],
+          existingCount: current.length,
+        }
+      }),
+    )
+}
+
+function placeInExisting(bucket, slots, groupBy) {
+  const size = bucket.athletes.length
+  const keepSex = groupBy.includes('sex')
+  const keepCategory = groupBy.includes('category')
+  const category = uniqueValues(bucket.athletes, 'category')[0] ?? ''
+  const open = slots.filter((slot) => {
+    if (slot.room < size) return false
+    if (keepSex && slot.sex === 'mixed') return false
+    if (keepSex && slot.sex && bucket.sex && slot.sex !== bucket.sex) return false
+    if (keepCategory && slot.category && slot.category !== category) return false
+    return true
+  })
+  // Una tanda con gente del mismo grupo gana a una vacía: así no se abren
+  // tandas de más mientras hay una compatible a medio llenar.
+  const slot = open.find((item) => item.existingCount + item.additions.length > 0) ?? open[0]
+  if (!slot) return false
+  slot.additions.push(...bucket.athletes)
+  slot.room -= size
+  if (!slot.sex) slot.sex = bucket.sex
+  if (!slot.category) slot.category = category
+  return true
+}
+
+/** Corta la lista de tandas nuevas en tantos tramos contiguos como días, parejos en atletas. */
+function dayForBuckets(buckets, dayIndexes) {
+  const total = buckets.reduce((sum, bucket) => sum + bucket.athletes.length, 0) || 1
+  let before = 0
+  return buckets.map((bucket) => {
+    const middle = before + bucket.athletes.length / 2
+    before += bucket.athletes.length
+    return dayIndexes[Math.min(dayIndexes.length - 1, Math.floor((middle / total) * dayIndexes.length))]
+  })
+}
+
+function platformForBucket(bucket, positionInDay, platforms, mode) {
+  if (platforms.length === 0) return null
+  if (mode === 'sex' && platforms.length > 1 && bucket.sex) {
+    return platforms[sexRank(bucket.sex) % platforms.length]
+  }
+  return platforms[positionInDay % platforms.length]
+}
+
+/**
+ * Arma el plan. `unassigned` tiene que ser solo gente sin día: el planificador
+ * no mira el resto del tablero para no "devolver" a alguien.
+ *
+ * Devuelve placements (a quién, dónde), newSessions (tandas a crear, ya con
+ * tablado), summaries (lo que muestra el preview) y leftover (quién no entró).
+ */
+export function planEventBoard({
+  unassigned = [],
+  days = [],
+  platforms = [],
+  ...overrides
+} = {}) {
+  const options = { ...DEFAULT_PLAN_OPTIONS, ...overrides }
+  const cap = Math.max(1, Number(options.maxPerSession) || DEFAULT_FLIGHT_SIZE)
+  const groupBy = PLAN_GROUP_KEYS.filter((key) => options.groupBy?.includes(key))
+  const dayIndexes = (options.dayIndexes ?? days.map((day) => day.dayIndex)).filter((index) =>
+    days.some((day) => day.dayIndex === index),
+  )
+
+  const pending = unassigned.filter((athlete) => athlete?.registrationId)
+  const buckets = buildBuckets(pending, {
+    groupBy,
+    sortBy: options.sortBy,
+    maxPerSession: cap,
+    mergeSmall: options.mergeSmall,
+  })
+
+  const slots = options.useExisting ? existingSlots(days, dayIndexes, cap) : []
+  const toCreate = []
+  for (const bucket of buckets) {
+    if (!placeInExisting(bucket, slots, groupBy)) toCreate.push(bucket)
   }
 
   const placements = []
@@ -389,6 +478,8 @@ export function planEventBoard({ unassigned = [], days = [], maxPerSession = DEF
       key: slot.id,
       dayIndex: slot.dayIndex,
       dayLabel: slot.dayLabel,
+      platformId: slot.platformId,
+      platformName: slot.platform,
       sessionId: slot.id,
       tempId: null,
       name: slot.name,
@@ -402,26 +493,33 @@ export function planEventBoard({ unassigned = [], days = [], maxPerSession = DEF
 
   const leftover = []
   const newSessions = []
-  const dayIndexes = days.map((day) => day.dayIndex)
 
   if (dayIndexes.length === 0) {
-    leftover.push(...leftoverChunks.flatMap((chunk) => chunk.athletes))
+    leftover.push(...toCreate.flatMap((bucket) => bucket.athletes))
     return { placements, newSessions, leftover, summaries, placed: placements.length }
   }
 
   const names = days.flatMap((day) => (day.sessions ?? []).map((session) => session.name))
-  let dayCursor = 0
-  for (const bucket of packNewBuckets(leftoverChunks, cap)) {
-    const dayIndex = dayIndexes[dayCursor % dayIndexes.length]
-    dayCursor += 1
+  const bucketDays = dayForBuckets(toCreate, dayIndexes)
+  const positionByDay = new Map()
+
+  toCreate.forEach((bucket, index) => {
+    const dayIndex = bucketDays[index]
+    const position = positionByDay.get(dayIndex) ?? 0
+    positionByDay.set(dayIndex, position + 1)
+    const platform = platformForBucket(bucket, position, platforms, options.platformMode)
     const name = nextSessionName(names)
     names.push(name)
     const tempId = `new|${dayIndex}|${name}`
+    const composition = summarizeComposition(bucket.athletes)
+
     newSessions.push({
       tempId,
       dayIndex,
       name,
-      composition: summarizeComposition(bucket.athletes),
+      platformId: platform?.id ?? null,
+      platform: platform?.name ?? '',
+      composition,
       count: bucket.athletes.length,
     })
     for (const athlete of bucket.athletes) {
@@ -437,24 +535,20 @@ export function planEventBoard({ unassigned = [], days = [], maxPerSession = DEF
       key: tempId,
       dayIndex,
       dayLabel: dayLabelOf(days, dayIndex),
+      platformId: platform?.id ?? null,
+      platformName: platform?.name ?? '',
       sessionId: null,
       tempId,
       name,
-      composition: summarizeComposition(bucket.athletes),
+      composition,
       added: bucket.athletes.length,
       total: bucket.athletes.length,
       capacity: cap,
       isNew: true,
     })
-  }
+  })
 
-  return {
-    placements,
-    newSessions,
-    leftover,
-    summaries,
-    placed: placements.length,
-  }
+  return { placements, newSessions, leftover, summaries, placed: placements.length }
 }
 
 export function resolvePlacementBatches(board, plan) {
