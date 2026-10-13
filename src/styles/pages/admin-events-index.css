@@ -499,6 +499,8 @@
   font-weight: 600;
   gap: 6px;
   min-height: 40px;
+  /* Mismo ancho para "Publicado" y "Oculto": los íconos de al lado no se corren. */
+  min-width: 104px;
   padding: 0 12px 0 10px;
   white-space: nowrap;
 }
