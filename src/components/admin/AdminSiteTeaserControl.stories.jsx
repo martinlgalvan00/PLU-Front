@@ -18,10 +18,10 @@ export default {
   args: { canEdit: true, onToggle: () => {} },
 }
 
-/** Apagado: el monitor es una pantalla sin señal y el público no ve nada. */
+/** Apagado: el público no ve nada. */
 export const Apagado = { args: { enabled: false } }
 
-/** Al aire: el monitor muestra el anuncio y aparece el enlace para verlo en vivo. */
+/** Al aire: el anuncio está visible y aparece el enlace para verlo en vivo. */
 export const AlAire = { args: { enabled: true } }
 
 /** Todavía no se leyó el estado: se ve apagado y no se puede tocar. */

@@ -73,7 +73,7 @@ describe('alta de evento como página', () => {
   it('no envía un alta incompleta y marca el primer campo inválido', async () => {
     const { onSubmit } = renderCreate()
 
-    fireEvent.click(screen.getByRole('button', { name: /Crear y abrir consola/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
 
     await waitFor(() => {
       expect(document.querySelectorAll('[aria-invalid="true"]').length).toBeGreaterThan(0)
@@ -103,7 +103,7 @@ describe('alta de evento como página', () => {
     })
 
     expect(screen.getByText('/copa-otono-2026')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /Crear y abrir consola/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
     expect(onSubmit.mock.calls[0][0]).toMatchObject({

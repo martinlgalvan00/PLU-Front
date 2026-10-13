@@ -143,13 +143,15 @@ en cuentas personales sin acceso al deployment.
 
 ## Perfil de cobro por evento (Fase A + B1)
 
-La matriz `platform_payment_channels` sigue siendo el techo global. Cada evento
-puede **restringir** canales de inscripción y entradas (no reabrir lo que la
-plataforma cerró) y definir o reutilizar datos bancarios.
+La matriz `platform_payment_channels` es el **valor por defecto**, no el techo.
+Cada evento decide por su cuenta qué medios recibe en inscripción y en entradas:
+puede **cerrar** un canal que la plataforma tiene abierto y **abrir** uno que la
+plataforma tiene cerrado (por ejemplo transferencia o efectivo solo para ese
+meet). También define o reutiliza datos bancarios.
 
 | Pieza | Semántica |
 |-------|-----------|
-| `events.payment_channel_overrides` | JSONB opcional. `NULL` = heredar plataforma. |
+| `events.payment_channel_overrides` | JSONB opcional `{registration:{canal:v}, ticket:{canal:v}}`. `NULL` = heredar plataforma. `v`: `false` cierra, `'open'` abre, sin clave hereda. El `true` heredado del panel anterior significa «sin opinión» (no abre nada). |
 | `events.bank_transfer_*` | Fallback Fase A (alias/CBU/titular en la fila del evento). |
 | `payment_profiles` | Catálogo reutilizable. `bank_transfer` (B1) y `mercado_pago` (B3). |
 | `events.bank_transfer_profile_id` | FK al perfil bancario. Si está set, manda sobre las columnas del evento. |
@@ -172,8 +174,18 @@ webhook → prueba firmas contra env + todos los perfiles MP activos;
 recovery diferido → GET /payments contra cada cuenta conocida hasta encontrar el pago
 ```
 
-Canales: `abierto = plataforma[concepto][canal] AND (override[canal] ?? true)`.
-Membership no se personaliza por evento (sigue usando la cuenta global).
+Canales: `abierto = override[concepto][canal]` si el evento decidió (`false` /
+`'open'`), si no `plataforma[concepto][canal]`. El panel guarda solo lo que
+*difiere* de la plataforma, así una celda sin tocar sigue lo que Finanzas cambie
+después. Lo que **no** abre un evento: el maestro de cobros (`checkout`), el alta
+del concepto (`registration` / `ticket`) y las pausas de validación; tampoco el
+plazo de 72 h de los canales manuales de entradas. Un canal que el evento cierra
+no se reabre con un cupón. Membership no se personaliza por evento (sigue usando
+la cuenta global).
+
+Antes de publicar, el panel avisa (sin bloquear) si el evento quedaría sin ningún
+medio de pago, con la transferencia abierta y sin alias/perfil propio, o con
+entradas habilitadas sin tipo vendible (`src/lib/eventPublishChecks.js`).
 
 API admin: `GET/POST /api/payment-profiles`, `PATCH /api/payment-profiles/:id`
 (`kind=bank_transfer|mercado_pago`). Crear MP exige `config.publicKey` +

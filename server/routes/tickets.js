@@ -144,6 +144,7 @@ import {
   assertManualTicketDeadline,
   resolveBankTransferDetails,
 } from '../modules/payments/eventPaymentProfile.js'
+import { applyEventChannelOpens } from '../../src/lib/eventPaymentChannels.js'
 import { createSupabasePaymentProfileRepository } from '../modules/payments/supabasePaymentProfileRepository.js'
 import { resolveMercadoPagoPublicKeyForProfileId } from '../modules/payments/mercadoPagoProfileRuntime.js'
 import { wisePriceFor } from '../modules/pricing/checkoutPricePolicy.js'
@@ -774,7 +775,10 @@ export function createTicketRoutes({
         platformSettingsRepo().get(),
         loadEventPaymentProfile(eventSlug),
       ])
-      const platformAvailability = resolvePublicCheckoutAvailability(toggles, env)
+      const platformAvailability = resolvePublicCheckoutAvailability(
+        applyEventChannelOpens(toggles, eventPricing?.payment_channel_overrides),
+        env,
+      )
       const scoped = applyManualTicketDeadline(
         applyEventPaymentChannelOverrides(
           platformAvailability,

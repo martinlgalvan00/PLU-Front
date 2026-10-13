@@ -4,11 +4,9 @@ import { Banknote, Ticket, Users } from 'lucide-react'
 import DateTimeLocalInput from '../../ui/DateTimeLocalInput.jsx'
 import { DEFAULT_EVENT_PRICING } from '../../../lib/eventPricing.js'
 import AdminEventPriceSchedule from '../AdminEventPriceSchedule.jsx'
-import {
-  EVENT_PAYMENT_CONCEPTS,
-  isEventChannelOpenAnywhere,
-  isEventChannelOpenForConcept,
-} from '../../../lib/eventPaymentChannels.js'
+import { effectiveEventChannelsFor } from '../../../lib/eventPaymentChannels.js'
+import { platformCellsFor } from '../../../lib/platformPaymentChannels.js'
+import EventPaymentChannelMatrix from './EventPaymentChannelMatrix.jsx'
 import AdminTicketAddonsEditor from '../AdminTicketAddonsEditor.jsx'
 import AdminTicketTypesEditor from '../AdminTicketTypesEditor.jsx'
 import { updatePricingField } from './draftPatches.js'
@@ -38,7 +36,7 @@ export default function EventSalesSection({
   onSetEventRegistrationPrice,
   sourceEvent,
   onClearEventPriceSchedule,
-  patchPaymentChannel,
+  platformChannels,
   mpSecretsKeyConfigured,
   applyMpProfile,
   mpProfilesLoading,
@@ -59,6 +57,18 @@ export default function EventSalesSection({
   accordion,
   onRequestSection,
 }) {
+  // Los bloques de perfil (alias de transferencia, cuenta de MP) se necesitan
+  // mientras el canal se use en algún concepto: abierto por la plataforma o por
+  // este evento, y no cerrado acá.
+  const channelOpenHere = (channel) =>
+    ['registration', 'ticket'].some((concept) =>
+      effectiveEventChannelsFor(
+        draft.paymentChannelOverrides,
+        concept,
+        platformCellsFor(platformChannels?.platform, concept),
+      ).includes(channel),
+    )
+
   return (
     <section
       ref={activePanelRef}
@@ -420,81 +430,21 @@ export default function EventSalesSection({
             </header>
           )}
 
-          {/* La matriz ya no vive detrás de un interruptor de
-                          "personalizar". Escondida, la pregunta "¿con qué se
-                          pagan las entradas de este evento?" no se podía
-                          responder sin prender algo, y prenderlo era ya un
-                          cambio a guardar. Sin override marcado, se muestran
-                          los cuatro abiertos —que es lo que hereda— y destildar
-                          uno crea el override solo. */}
+          {/* La plataforma es el valor por defecto y cada celda del evento
+              puede cerrar o abrir. Sin override se muestra lo que hereda, y
+              tocar una celda que difiere de Finanzas crea el override solo. */}
+          <EventPaymentChannelMatrix
+            value={draft.paymentChannelOverrides}
+            onChange={(next) => patchDraft({ ...draft, paymentChannelOverrides: next })}
+            platform={platformChannels.platform}
+            platformStatus={platformChannels.status}
+            canEdit={canEdit}
+            ticketError={err('paymentChannelOverrides.ticket')}
+          />
 
-          {/* Una fila por medio y una columna por concepto: cerrar
-                          el efectivo para entradas no puede cerrarlo también
-                          para la inscripción de atletas, que era lo que pasaba
-                          cuando el override era un solo juego de banderas. */}
-          <div
-            className="admin-event-form__channel-grid admin-event-form__channel-matrix"
-            role="group"
-            aria-label={t('admin.eventEditor.paymentChannelMatrixLabel')}
-          >
-            <p className="admin-event-form__channel-lead">
-              {t('admin.eventEditor.paymentChannelMatrixHint')}
-            </p>
-            {/* Cerrar los cuatro es cerrar la venta por un camino
-                            que no se ve en ningún otro lado. */}
-            {err('paymentChannelOverrides.ticket') ? (
-              <p
-                className="admin-event-form__alert"
-                role="alert"
-                data-field="paymentChannelOverrides.ticket"
-                tabIndex={-1}
-              >
-                {err('paymentChannelOverrides.ticket')}
-              </p>
-            ) : null}
-            <div className="admin-event-form__channel-head" aria-hidden="true">
-              <span />
-              {EVENT_PAYMENT_CONCEPTS.map((concept) => (
-                <span key={concept}>{t(`admin.eventEditor.paymentChannelConcept.${concept}`)}</span>
-              ))}
-            </div>
-            {[
-              ['mercado_pago', 'paymentChannelMercadoPago'],
-              ['bank_transfer', 'paymentChannelBankTransfer'],
-              ['cash_pitbull', 'paymentChannelCashPitbull'],
-              ['wise_transfer', 'paymentChannelWise'],
-            ].map(([channel, labelKey]) => (
-              <div className="admin-event-form__channel-row" key={channel}>
-                <span className="admin-event-form__channel-name">
-                  {t(`admin.eventEditor.${labelKey}`)}
-                </span>
-                {EVENT_PAYMENT_CONCEPTS.map((concept) => (
-                  <label className="admin-event-form__channel-cell" key={concept}>
-                    <input
-                      checked={isEventChannelOpenForConcept(
-                        draft.paymentChannelOverrides,
-                        concept,
-                        channel,
-                      )}
-                      type="checkbox"
-                      aria-label={`${t(`admin.eventEditor.${labelKey}`)} · ${t(
-                        `admin.eventEditor.paymentChannelConcept.${concept}`,
-                      )}`}
-                      onChange={(changeEvent) =>
-                        patchPaymentChannel(concept, channel, changeEvent.target.checked)
-                      }
-                      disabled={!canEdit}
-                    />
-                    <span>{t(`admin.eventEditor.paymentChannelConcept.${concept}`)}</span>
-                  </label>
-                ))}
-              </div>
-            ))}
-          </div>
-
-          {/* Sin override el evento hereda la matriz de plataforma
-                          y sigue tomando lo que Finanzas abra mañana. Con
-                          override queda fijo, así que conviene poder volver. */}
+          {/* Sin override el evento sigue lo que Finanzas abra o cierre
+              mañana. Con override queda fijo en lo que difiere, así que
+              conviene poder volver. */}
           {canEdit && draft.paymentChannelOverrides != null ? (
             <button
               className="button button--ghost admin-event-form__channel-reset"
@@ -505,7 +455,7 @@ export default function EventSalesSection({
             </button>
           ) : null}
 
-          {isEventChannelOpenAnywhere(draft.paymentChannelOverrides, 'mercado_pago') ? (
+          {channelOpenHere('mercado_pago') ? (
             <div className="admin-event-form__bank-transfer">
               <header className="admin-event-form__lane-head">
                 <h5 className="admin-event-form__lane-title">
@@ -650,7 +600,7 @@ export default function EventSalesSection({
             </div>
           ) : null}
 
-          {isEventChannelOpenAnywhere(draft.paymentChannelOverrides, 'bank_transfer') ? (
+          {channelOpenHere('bank_transfer') ? (
             <div className="admin-event-form__bank-transfer">
               <header className="admin-event-form__lane-head">
                 <h5 className="admin-event-form__lane-title">
