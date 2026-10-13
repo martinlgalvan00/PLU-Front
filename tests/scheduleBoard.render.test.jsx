@@ -30,12 +30,17 @@ vi.mock('../src/services/eventRegistrationApi.js', () => ({
   assignRegistrationSchedule: vi.fn(),
   fetchEventRegistrationSummary: vi.fn(),
   fetchEventSchedule: vi.fn(),
+  saveEventPlatforms: vi.fn(),
   saveEventSessions: vi.fn(),
 }))
 
-const { assignRegistrationSchedule, autofillEventDay, fetchEventBoard } = await import(
-  '../src/services/eventRegistrationApi.js'
-)
+const {
+  assignRegistrationSchedule,
+  autofillEventDay,
+  fetchEventBoard,
+  saveEventPlatforms,
+  saveEventSessions,
+} = await import('../src/services/eventRegistrationApi.js')
 const ScheduleBoardSection = (await import('../src/pages/admin/ScheduleBoardSection.jsx')).default
 
 const EVENTS = [{ slug: 'pitbull-classic-2026', title: 'Pitbull Classic 2026' }]
@@ -235,5 +240,238 @@ describe('tablero de armado de grilla', () => {
     renderBoard()
 
     expect(await screen.findByText(/todavía no tiene tandas/i)).toBeTruthy()
+  })
+})
+
+describe('tablados', () => {
+  const PLATFORMS = [
+    { id: 'plat-1', name: 'Tablado 1', sortOrder: 0 },
+    { id: 'plat-2', name: 'Tablado 2', sortOrder: 1 },
+  ]
+
+  function doubleBoard() {
+    const base = board()
+    return {
+      ...base,
+      platforms: PLATFORMS,
+      days: [
+        {
+          ...base.days[0],
+          sessions: [
+            { ...base.days[0].sessions[0], platformId: 'plat-1' },
+            {
+              id: 'ses-b',
+              name: 'Tanda B',
+              platform: 'Tablado 2',
+              platformId: 'plat-2',
+              weighInAt: null,
+              startsAt: null,
+              sortOrder: 1,
+              athletes: [],
+            },
+          ],
+        },
+        base.days[1],
+      ],
+    }
+  }
+
+  it('sin tablados cargados pregunta cuántos son y guarda la respuesta', async () => {
+    fetchEventBoard.mockResolvedValue(board())
+    saveEventPlatforms.mockResolvedValue({})
+    renderBoard()
+
+    const question = await screen.findByRole('group', { name: /cuántos tablados/i })
+    fireEvent.click(within(question).getByRole('button', { name: /dos tablados/i }))
+
+    await waitFor(() =>
+      expect(saveEventPlatforms).toHaveBeenCalledWith('pitbull-classic-2026', [
+        { name: 'Tablado 1' },
+        { name: 'Tablado 2' },
+      ]),
+    )
+  })
+
+  it('arma un carril por tablado con sus tandas', async () => {
+    fetchEventBoard.mockResolvedValue(doubleBoard())
+    renderBoard()
+
+    await screen.findByText('Tanda A')
+    const lane1 = screen.getAllByRole('group', { name: 'Tablado Tablado 1' })[0]
+    const lane2 = screen.getAllByRole('group', { name: 'Tablado Tablado 2' })[0]
+    expect(within(lane1).getByText('Tanda A')).toBeTruthy()
+    expect(within(lane1).queryByText('Tanda B')).toBeNull()
+    expect(within(lane2).getByText('Tanda B')).toBeTruthy()
+  })
+
+  it('renombrar un tablado guarda el id y el nombre nuevo', async () => {
+    fetchEventBoard.mockResolvedValue(doubleBoard())
+    saveEventPlatforms.mockResolvedValue({})
+    renderBoard()
+
+    await screen.findByText('Tanda A')
+    fireEvent.change(screen.getByLabelText('Nombre del tablado 1'), {
+      target: { value: 'Tablado Rojo' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /guardar tablados/i }))
+
+    await waitFor(() =>
+      expect(saveEventPlatforms).toHaveBeenCalledWith('pitbull-classic-2026', [
+        { id: 'plat-1', name: 'Tablado Rojo' },
+        { id: 'plat-2', name: 'Tablado 2' },
+      ]),
+    )
+  })
+
+  it('no deja guardar dos tablados con el mismo nombre', async () => {
+    fetchEventBoard.mockResolvedValue(doubleBoard())
+    renderBoard()
+
+    await screen.findByText('Tanda A')
+    fireEvent.change(screen.getByLabelText('Nombre del tablado 2'), {
+      target: { value: ' tablado 1 ' },
+    })
+    expect(screen.getByRole('button', { name: /guardar tablados/i }).disabled).toBe(true)
+  })
+
+  it('bajar a un tablado avisa qué tandas quedan sin tablado', async () => {
+    fetchEventBoard.mockResolvedValue(doubleBoard())
+    renderBoard()
+
+    await screen.findByText('Tanda A')
+    fireEvent.click(screen.getByRole('tab', { name: /un tablado/i }))
+    expect(await screen.findByText(/Tablado 2 van a quedar sin tablado/i)).toBeTruthy()
+    expect(saveEventPlatforms).not.toHaveBeenCalled()
+  })
+
+  it('agrega una tanda en el tablado elegido con la siguiente letra libre', async () => {
+    fetchEventBoard.mockResolvedValue(doubleBoard())
+    saveEventSessions.mockResolvedValue({})
+    renderBoard()
+
+    await screen.findByText('Tanda A')
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Agregar tanda en Tablado 2, Día 1' })[0],
+    )
+
+    await waitFor(() => expect(saveEventSessions).toHaveBeenCalled())
+    const [, payload] = saveEventSessions.mock.calls[0]
+    expect(payload.find((row) => row.name === 'Tanda C')).toMatchObject({
+      dayIndex: 0,
+      platformId: 'plat-2',
+      platform: 'Tablado 2',
+    })
+    // Las existentes viajan con su tablado: el RPC reemplaza el set completo.
+    expect(payload.find((row) => row.id === 'ses-a').platformId).toBe('plat-1')
+  })
+
+  it('no permite quitar una tanda con atletas', async () => {
+    fetchEventBoard.mockResolvedValue(doubleBoard())
+    renderBoard()
+
+    await screen.findByText('Tanda A')
+    expect(screen.getByRole('button', { name: 'Quitar Tanda A' }).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Quitar Tanda B' }).disabled).toBe(false)
+  })
+})
+
+describe('filtros de la bolsa', () => {
+  function filterBoard() {
+    return board({
+      unassigned: [
+        athlete({
+          registrationId: 'r-ana',
+          fullName: 'Ana Torres',
+          sex: 'Femenino',
+          age: 20,
+          bodyweightKg: 57,
+        }),
+        athlete({
+          registrationId: 'r-luis',
+          fullName: 'Luis Ferro',
+          sex: 'Masculino',
+          age: 35,
+          bodyweightKg: 83,
+        }),
+        athlete({
+          registrationId: 'r-vale',
+          fullName: 'Vale Sosa',
+          sex: 'Femenino',
+          age: 41,
+          bodyweightKg: 63,
+          division: 'Masters',
+        }),
+      ],
+    })
+  }
+
+  it('filtra por sexo y muestra cuántos quedan de cuántos', async () => {
+    fetchEventBoard.mockResolvedValue(filterBoard())
+    renderBoard()
+
+    await screen.findByText('Ana Torres')
+    fireEvent.change(document.querySelector('.admin-board__filters select'), {
+      target: { value: 'Femenino' },
+    })
+
+    expect(screen.queryByText('Luis Ferro')).toBeNull()
+    expect(screen.getByText('Ana Torres')).toBeTruthy()
+    expect(screen.getByText('Mostrando 2 de 3')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /ver todos/i }))
+    expect(screen.getByText('Luis Ferro')).toBeTruthy()
+  })
+
+  it('filtra por rango de edad', async () => {
+    fetchEventBoard.mockResolvedValue(filterBoard())
+    renderBoard()
+
+    await screen.findByText('Ana Torres')
+    fireEvent.change(screen.getByLabelText('Edad · Desde'), { target: { value: '30' } })
+    fireEvent.change(screen.getByLabelText('Edad · Hasta'), { target: { value: '40' } })
+
+    expect(screen.getByText('Luis Ferro')).toBeTruthy()
+    expect(screen.queryByText('Ana Torres')).toBeNull()
+    expect(screen.queryByText('Vale Sosa')).toBeNull()
+  })
+
+  it('"Seleccionar todos" actúa sobre lo filtrado, no sobre toda la bolsa', async () => {
+    fetchEventBoard.mockResolvedValue(filterBoard())
+    renderBoard()
+
+    await screen.findByText('Ana Torres')
+    fireEvent.change(document.querySelector('.admin-board__filters select'), {
+      target: { value: 'Femenino' },
+    })
+    const pool = screen.getByText('Sin día asignado').closest('.admin-board__pool')
+    fireEvent.click(within(pool).getByRole('button', { name: /seleccionar todos/i }))
+
+    const bar = await screen.findByRole('region', { name: /mover atletas/i })
+    expect(within(bar).getByText('2 seleccionados')).toBeTruthy()
+  })
+
+  it('la vista por grupo permite seleccionar un grupo entero', async () => {
+    fetchEventBoard.mockResolvedValue(filterBoard())
+    renderBoard()
+
+    await screen.findByText('Ana Torres')
+    fireEvent.click(screen.getByRole('tab', { name: /por grupo/i }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Seleccionar grupo Femenino · Raw · Masters' }),
+    )
+
+    const bar = await screen.findByRole('region', { name: /mover atletas/i })
+    expect(within(bar).getByText('1 seleccionados')).toBeTruthy()
+  })
+
+  it('con filtros sin coincidencias lo dice en vez de quedar vacío', async () => {
+    fetchEventBoard.mockResolvedValue(filterBoard())
+    renderBoard()
+
+    await screen.findByText('Ana Torres')
+    fireEvent.change(screen.getByPlaceholderText(/nombre o gimnasio/i), {
+      target: { value: 'zzz' },
+    })
+    expect(screen.getByText(/nadie sin ubicar coincide/i)).toBeTruthy()
   })
 })

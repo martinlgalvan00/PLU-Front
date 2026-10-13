@@ -3,12 +3,17 @@ import {
   compareAthletes,
   compositionFacets,
   DEFAULT_FLIGHT_SIZE,
+  EMPTY_POOL_FILTERS,
+  formatAgeRange,
   groupAthletes,
+  hasActivePoolFilters,
   matchesFacet,
+  matchesPoolFilters,
   matchesQuery,
   nextSessionName,
   planEventBoard,
   resolvePlacementBatches,
+  sessionStats,
   sessionsPayloadFromBoard,
   summarizeComposition,
 } from '../src/services/eventBoardPlanner.js'
@@ -187,6 +192,78 @@ describe('eventBoardPlanner', () => {
       { dayIndex: 0, sessionId: 'ses-a', registrationIds: ['ana'] },
       { dayIndex: 1, sessionId: 'ses-b-real', registrationIds: ['luis'] },
     ])
+  })
+
+  it('resume el rango de edad solo con quienes cargaron nacimiento', () => {
+    expect(formatAgeRange([athlete('a', { age: 19 }), athlete('b', { age: 23 })])).toBe('19–23 años')
+    expect(formatAgeRange([athlete('a', { age: 19 }), athlete('b', { age: null })])).toBe('19 años')
+    expect(formatAgeRange([athlete('a')])).toBe('')
+    expect(
+      summarizeComposition([
+        athlete('a', { division: 'Junior', bodyweightKg: 52, age: 19 }),
+        athlete('b', { division: 'Junior', bodyweightKg: 57, age: 23 }),
+      ]),
+    ).toBe('Femenino · Raw · Junior · 52–57 kg · 19–23 años')
+  })
+
+  describe('filtros de la bolsa', () => {
+    const pool = [
+      athlete('ana', { fullName: 'Ana Torres', division: 'Junior', bodyweightKg: 57, age: 20 }),
+      athlete('luis', { fullName: 'Luis Ferro', sex: 'Masculino', bodyweightKg: 83, age: 35 }),
+      athlete('sin-datos', { fullName: 'Sin Datos', bodyweightKg: null, age: null }),
+    ]
+    const ids = (filters) =>
+      pool.filter((row) => matchesPoolFilters(row, { ...EMPTY_POOL_FILTERS, ...filters })).map((row) => row.registrationId)
+
+    it('sin filtros deja pasar a todos', () => {
+      expect(ids({})).toEqual(['ana', 'luis', 'sin-datos'])
+      expect(hasActivePoolFilters(EMPTY_POOL_FILTERS)).toBe(false)
+    })
+
+    it('combina sexo, división y búsqueda', () => {
+      expect(ids({ sex: 'Femenino' })).toEqual(['ana', 'sin-datos'])
+      expect(ids({ sex: 'Femenino', division: 'Junior' })).toEqual(['ana'])
+      expect(ids({ query: 'ferro' })).toEqual(['luis'])
+    })
+
+    it('filtra por rango de peso y de edad, con extremos incluidos', () => {
+      expect(ids({ weightMin: '57', weightMax: '83' })).toEqual(['ana', 'luis'])
+      expect(ids({ weightMax: '60' })).toEqual(['ana'])
+      expect(ids({ ageMin: '18', ageMax: '20' })).toEqual(['ana'])
+    })
+
+    it('sin dato no entra en un rango: no se puede afirmar que le corresponda', () => {
+      expect(ids({ weightMin: '0' })).not.toContain('sin-datos')
+      expect(ids({ ageMax: '99' })).not.toContain('sin-datos')
+      expect(hasActivePoolFilters({ ...EMPTY_POOL_FILTERS, ageMin: '18' })).toBe(true)
+    })
+  })
+
+  it('avisa cuando una tanda mezcla sexos o supera el tope', () => {
+    const mixed = sessionStats(
+      [athlete('a'), athlete('b', { sex: 'Masculino' }), athlete('c')],
+      2,
+    )
+    expect(mixed).toMatchObject({ count: 3, capacity: 2, over: true, mixedSex: true })
+    expect(sessionStats([athlete('a')], 12)).toMatchObject({ over: false, mixedSex: false })
+  })
+
+  it('el payload de tandas conserva el tablado de las existentes y asigna el de las nuevas', () => {
+    const days = [
+      emptyDay(0, [
+        { ...session('ses-a', 'Tanda A'), platformId: 'plat-1' },
+        { ...session('ses-b', 'Tanda B'), platformId: null },
+        session('ses-c', 'Tanda C'),
+      ]),
+    ]
+    const payload = sessionsPayloadFromBoard(days, {
+      extra: [{ dayIndex: 0, name: 'Tanda D', platformId: 'plat-2' }],
+    })
+    expect(payload[0].platformId).toBe('plat-1')
+    expect(payload[1]).toHaveProperty('platformId', null)
+    // Sin la clave el RPC enlaza por nombre: no se inventa un null que desenlace.
+    expect(payload[2]).not.toHaveProperty('platformId')
+    expect(payload[3].platformId).toBe('plat-2')
   })
 
   it('el tope por defecto es 12', () => {
