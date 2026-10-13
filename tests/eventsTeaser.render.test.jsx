@@ -30,6 +30,8 @@ describe('EventsTeaser', () => {
       '.events-teaser__letterbox--top',
       '.events-teaser__letterbox--bottom',
       '.events-teaser__haze',
+      '.events-teaser__spot',
+      '.events-teaser__meteor',
     ].map((selector) => container.querySelector(selector))
 
     for (const node of decorative) expect(node?.getAttribute('aria-hidden')).toBe('true')

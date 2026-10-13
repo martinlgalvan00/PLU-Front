@@ -1,6 +1,12 @@
+import { randomUUID } from 'node:crypto'
 import { Router } from 'express'
 import { getRoleHierarchyLevel } from '../../src/lib/permissions.js'
-import { buildStaffInvitationUrl } from '../../src/lib/staffInvitationRoute.js'
+import {
+  buildPendingInviteEmail,
+  buildStaffInvitationUrl,
+  isPendingInviteEmail,
+  PENDING_INVITE_NAME,
+} from '../../src/lib/staffInvitationRoute.js'
 import { updateUserAccessRoleSchema } from '../../src/lib/schemas/accessControl.js'
 import {
   createStaffUserSchema,
@@ -147,6 +153,8 @@ export function createUserRoutes({
   // que un fallo de Brevo no puede tirar el request. La invitación se puede
   // reemitir desde Usuarios sin exponer contraseñas ni tokens en la respuesta.
   async function dispatchInvitation(payload) {
+    // Una invitación abierta no tiene destinatario: no hay a quién mandarle mail.
+    if (isPendingInviteEmail(payload.user?.email)) return false
     try {
       const result = await staffNotifications.notifyStaffInvitation(payload)
       return result?.status === 'sent' || result?.emailLog?.status === 'sent'
@@ -182,6 +190,16 @@ export function createUserRoutes({
     }
   }
 
+  // Sólo se devuelve cuando el panel lo pide (`returnLink`) y el request ya
+  // pasó el guard de escritura de usuarios: el enlace es una credencial de un
+  // solo uso y vence con la invitación.
+  function invitationLinkPayload(invitation, expiresAt) {
+    return {
+      invitationUrl: invitation.invitationUrl,
+      invitationExpiresAt: expiresAt.toISOString(),
+    }
+  }
+
   router.get('/', ...readGuard, staffLimiter, async (_req, res, next) => {
     try {
       const prismaClient = getPrisma()
@@ -204,8 +222,11 @@ export function createUserRoutes({
     async (req, res, next) => {
       try {
         const prismaClient = getPrisma()
-        const { name, email, role: roleKey, sendEmail } = req.validatedBody
+        const { name, role: roleKey, sendEmail, returnLink } = req.validatedBody
 
+        // Sin email es una invitación abierta: la cuenta nace con un email
+        // reservado y la persona completa el suyo al abrir el enlace.
+        const email = req.validatedBody.email ?? buildPendingInviteEmail(randomUUID())
         const existing = await prismaClient.user.findUnique({ where: { email } })
         if (existing) throw new HttpError(409, 'Ya existe un usuario con ese email.')
 
@@ -216,7 +237,7 @@ export function createUserRoutes({
           throw new HttpError(400, 'Las cuentas de Seguridad se crean desde un evento.')
         }
 
-        const { firstName, lastName } = splitName(name)
+        const { firstName, lastName } = splitName(name ?? PENDING_INVITE_NAME)
         const { passwordHash, passwordExpiresAt } = await issueInvitationCredential()
         const created = await prismaClient.user.create({
           data: {
@@ -258,6 +279,7 @@ export function createUserRoutes({
             metadata: {
               accountKind: 'staff',
               channel: 'invitation',
+              openInvite: isPendingInviteEmail(email),
               roleKey: accessRole.key,
             },
           },
@@ -281,7 +303,11 @@ export function createUserRoutes({
             })
           : false
 
-        res.status(201).json({ user, emailed })
+        res.status(201).json({
+          user,
+          emailed,
+          ...(returnLink ? invitationLinkPayload(invitation, passwordExpiresAt) : {}),
+        })
       } catch (error) {
         next(error)
       }
@@ -482,7 +508,13 @@ export function createUserRoutes({
             })
           : false
 
-        res.json({ user, emailed })
+        res.json({
+          user,
+          emailed,
+          ...(req.validatedBody.returnLink
+            ? invitationLinkPayload(invitation, passwordExpiresAt)
+            : {}),
+        })
       } catch (error) {
         next(error)
       }

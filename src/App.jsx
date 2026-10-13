@@ -32,6 +32,7 @@ import {
   readStaffEmailChangeToken,
 } from './lib/staffEmailChangeRoute.js'
 import { clearStaffInvitationToken, readStaffInvitationToken } from './lib/staffInvitationRoute.js'
+import { previewStaffInvitationRequest } from './lib/api.js'
 import EmailVerificationNotice from './components/ui/EmailVerificationNotice.jsx'
 import SessionNotice from './components/ui/SessionNotice.jsx'
 import PaymentsMockBanner from './components/ui/PaymentsMockBanner.jsx'
@@ -603,6 +604,7 @@ export default function App() {
       <Suspense fallback={<PageLoadFallback />}>
         <StaffInvitationPage
           token={staffInvitationToken}
+          onLoadInvitation={previewStaffInvitationRequest}
           onAccept={async (payload) => {
             await app.acceptStaffInvitationAction(payload)
             clearStaffInvitationToken()

@@ -243,11 +243,12 @@ describe('UsersSection — alta de usuario', () => {
     expect(screen.queryByRole('button', { name: 'Nuevo usuario' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeTruthy()
 
+    // Con un email cargado hace falta también el nombre.
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'nuevo@pluarg.test' } })
     fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }))
     expect(screen.getByRole('alert').textContent).toMatch(/nombre y apellido/i)
 
     fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Nueva Persona' } })
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'nuevo@pluarg.test' } })
     fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }))
 
     await waitFor(() => expect(onCreateUser).toHaveBeenCalledTimes(1))
@@ -257,6 +258,47 @@ describe('UsersSection — alta de usuario', () => {
     })
     await waitFor(() => expect(screen.getByText('Cuenta creada')).toBeTruthy())
     expect(screen.getByRole('button', { name: 'Nuevo usuario' })).toBeTruthy()
+  })
+
+  it('sin nombre ni email genera una invitación abierta con el enlace', async () => {
+    const onCreateUser = vi.fn(async () => ({
+      user: { email: 'invitacion-abc@pendiente.invalid', name: 'Invitación pendiente' },
+      emailed: false,
+      invitationUrl: 'https://panel.pluarg.test/?invitacion-staff=abc.def',
+      invitationExpiresAt: '2099-01-10T12:00:00.000Z',
+    }))
+    renderUsers({ onCreateUser })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo usuario' }))
+    // Sin email no hay a quién mandarle el mail: la casilla queda deshabilitada.
+    expect(screen.getByRole('checkbox').disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Generar enlace' }))
+
+    await waitFor(() => expect(onCreateUser).toHaveBeenCalledTimes(1))
+    expect(await screen.findByText('Enlace listo para compartir')).toBeTruthy()
+    expect(screen.getByLabelText('Enlace de activación').value).toBe(
+      'https://panel.pluarg.test/?invitacion-staff=abc.def',
+    )
+    expect(screen.queryByText(/No pudimos enviar el mail/)).toBeNull()
+  })
+
+  it('muestra la invitación abierta pendiente sin exponer el email reservado', () => {
+    renderUsers({
+      users: [
+        ...USERS,
+        {
+          id: 'usr-open',
+          name: 'Invitación pendiente',
+          email: 'invitacion-abc@pendiente.invalid',
+          role: 'operador_plu_arg',
+          roleKey: 'plu_arg',
+          status: 'invited',
+        },
+      ],
+    })
+    expect(screen.getByText('Invitación abierta')).toBeTruthy()
+    expect(screen.getByText('Esperando que complete sus datos')).toBeTruthy()
+    expect(screen.queryByText(/pendiente\.invalid/)).toBeNull()
   })
 
   it('Cancelar cierra el formulario sin crear nada', () => {
@@ -304,5 +346,47 @@ describe('UsersSection — eliminación de cuentas', () => {
     )
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(onDeleteUser).not.toHaveBeenCalled()
+  })
+})
+
+describe('UsersSection — vista de cada cuenta', () => {
+  it('muestra el último acceso, o por qué no hay uno', () => {
+    renderUsers({
+      users: [
+        { ...USERS[2], lastLoginAt: '2026-08-14T22:23:00.000Z' },
+        { ...USERS[1], status: 'invited', lastLoginAt: null },
+        { ...USERS[0], lastLoginAt: null },
+      ],
+    })
+
+    expect(screen.getByRole('columnheader', { name: /Último acceso/ })).toBeTruthy()
+    expect(within(rowOf('Operadora Activa')).getByText(/2026/)).toBeTruthy()
+    expect(within(rowOf('Cuenta Test')).getByText('Invitación pendiente')).toBeTruthy()
+    // El nombre también es el rol de esta cuenta: se la ubica por su email.
+    expect(
+      within(screen.getByText('max@pluarg.test').closest('tr')).getByText('Sin ingresos'),
+    ).toBeTruthy()
+  })
+
+  it('marca a quien también es atleta y lleva a su ficha desde el menú', () => {
+    const onOpenAthlete = vi.fn()
+    renderUsers({
+      athletes: [{ id: 'ath-1', email: 'OP@pluarg.test' }],
+      onOpenAthlete,
+    })
+
+    expect(within(rowOf('Operadora Activa')).getByText('Atleta')).toBeTruthy()
+    expect(within(rowOf('Cuenta Test')).queryByText('Atleta')).toBeNull()
+
+    const menu = openMenu('Operadora Activa')
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Ver ficha de atleta' }))
+    expect(onOpenAthlete).toHaveBeenCalledWith('ath-1')
+  })
+
+  it('sin coincidencia con un atleta el menú no ofrece la ficha', () => {
+    renderUsers({ athletes: [{ id: 'ath-9', email: 'otro@pluarg.test' }], onOpenAthlete: vi.fn() })
+
+    const menu = openMenu('Operadora Activa')
+    expect(within(menu).queryByRole('menuitem', { name: 'Ver ficha de atleta' })).toBeNull()
   })
 })

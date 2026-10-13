@@ -1,3 +1,4 @@
+import { recordOperationalAuditEvent } from '../modules/audit/operationalAuditWriter.js'
 import {
   isPaymentProofRetentionJobEnabled,
   runPaymentProofRetention,
@@ -13,17 +14,42 @@ export async function runPaymentProofRetentionJob({ client, env = process.env, n
   if (!client) throw new Error('Supabase no está configurado para retención de comprobantes.')
 
   const result = await runPaymentProofRetention({ client, env, now })
-  const totalPurged = (result.athlete?.purged ?? 0) + (result.ticket?.purged ?? 0)
-  const totalFailed = (result.athlete?.failed ?? 0) + (result.ticket?.failed ?? 0)
-  if (totalPurged > 0 || totalFailed > 0) {
+  if (result.disabled) return result
+
+  const trashed = (result.trashed?.athlete ?? 0) + (result.trashed?.ticket ?? 0)
+  const purged = result.purged?.purged ?? 0
+  const orphans = result.orphans?.registered ?? 0
+  const failed = result.purged?.failed ?? 0
+  const stageErrors = ['trashed', 'purged', 'orphans'].filter((key) => result[key]?.error)
+
+  if (trashed > 0 || purged > 0 || orphans > 0 || failed > 0 || stageErrors.length > 0) {
     console.info(
-      `payment-proof-retention-job: purged=${totalPurged} failed=${totalFailed} retentionHours=${result.retentionHours}`,
+      `payment-proof-retention-job: trashed=${trashed} purged=${purged} orphans=${orphans} failed=${failed} mode=${result.mode} days=${result.days} graceDays=${result.graceDays}`,
     )
+    // Un registro por corrida con movimiento: qué se movió, qué se borró de verdad.
+    await recordOperationalAuditEvent(client, {
+      source: 'payment',
+      action: 'payment_proofs.retention_run',
+      entityType: 'payment_proof_files',
+      entityId: 'retention-job',
+      actorType: 'system',
+      status: failed > 0 || stageErrors.length > 0 ? 'failed' : 'succeeded',
+      severity: failed > 0 || stageErrors.length > 0 ? 'warning' : 'info',
+      metadata: {
+        mode: result.mode,
+        days: result.days,
+        graceDays: result.graceDays,
+        trashed: result.trashed,
+        purged: { purged, failed },
+        orphans,
+        stageErrors: Object.fromEntries(stageErrors.map((key) => [key, result[key].error])),
+      },
+    })
   }
-  if (totalFailed > 0) {
+  if (failed > 0 || stageErrors.length > 0) {
     console.error('payment-proof-retention-job: fallos parciales', {
-      athlete: result.athlete?.errors,
-      ticket: result.ticket?.errors,
+      purge: result.purged?.errors,
+      stageErrors: Object.fromEntries(stageErrors.map((key) => [key, result[key].error])),
     })
   }
   return result

@@ -25,8 +25,17 @@ function listen(app) {
   }
 }
 
+// Los limiters de rate limit comparten balde por IP dentro del archivo: cada
+// request manda una IP distinta para que la cantidad de tests no dispare 429.
+let ipSeq = 0
+function uniqueIp() {
+  ipSeq += 1
+  return `10.20.${Math.floor(ipSeq / 250)}.${(ipSeq % 250) + 1}`
+}
+
 function authHeaders(cookie) {
   return {
+    'x-vercel-forwarded-for': uniqueIp(),
     // El guard de mutación valida el origen contra process.env, no contra el
     // env inyectado: se usa el loopback que ya está en la allowlist. APP_URL
     // igual queda distinto a propósito, para verificar el link del mail.
@@ -72,7 +81,9 @@ function createPrismaDouble(seedUsers) {
       },
       update: async ({ where, data }) => {
         const user = users.find((item) => item.id === where.id)
-        Object.assign(user, data)
+        const { profile, ...rest } = data
+        Object.assign(user, rest)
+        if (profile?.update) user.profile = { ...user.profile, ...profile.update }
         return user
       },
     },
@@ -305,5 +316,222 @@ describe('entrega de la invitación de staff', () => {
     } finally {
       await target.close()
     }
+  })
+
+  it('devuelve el enlace al panel sólo si lo pide y sirve para activar la cuenta', async () => {
+    const send = vi.fn().mockResolvedValue({ messageId: 'brevo-1' })
+    const prisma = createPrismaDouble([await buildAdmin()])
+    const target = listen(createApp({ prisma, env: ENV, brevo: { configured: true, send } }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const sinPedir = await (
+        await inviteUser(target.url, cookie, {
+          name: 'Sin Enlace',
+          email: 'sin@pluarg.test',
+          role: 'plu_arg',
+          sendEmail: false,
+        })
+      ).json()
+      expect(sinPedir).not.toHaveProperty('invitationUrl')
+
+      const response = await inviteUser(target.url, cookie, {
+        name: 'Con Enlace',
+        email: 'con@pluarg.test',
+        role: 'plu_arg',
+        sendEmail: false,
+        returnLink: true,
+      })
+      const body = await response.json()
+
+      expect(response.status).toBe(201)
+      expect(send).not.toHaveBeenCalled()
+      expect(body.invitationUrl).toMatch(/^https:\/\/panel\.pluarg\.test\/\?invitacion-staff=/)
+      expect(Date.parse(body.invitationExpiresAt)).toBeGreaterThan(Date.now())
+
+      const token = new URL(body.invitationUrl).searchParams.get('invitacion-staff')
+      const preview = await fetch(
+        `${target.url}/api/auth/staff-invitation?token=${encodeURIComponent(token)}`,
+      )
+      expect(preview.status).toBe(200)
+      expect((await preview.json()).invitation).toMatchObject({
+        name: 'Con Enlace',
+        email: 'con@pluarg.test',
+      })
+
+      const accepted = await acceptInvitation(target.url, token)
+      expect(accepted.status).toBe(200)
+
+      const usado = await fetch(
+        `${target.url}/api/auth/staff-invitation?token=${encodeURIComponent(token)}`,
+      )
+      expect(usado.status).toBe(400)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('el reenvío con returnLink devuelve un enlace nuevo y no revela nada con un token falso', async () => {
+    const prisma = createPrismaDouble([await buildAdmin()])
+    const target = listen(createApp({ prisma, env: ENV, brevo: { configured: false } }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const created = await (
+        await inviteUser(target.url, cookie, {
+          name: 'Equipo PLU',
+          email: 'nuevo@pluarg.test',
+          role: 'plu_arg',
+          sendEmail: false,
+          returnLink: true,
+        })
+      ).json()
+      const reset = await fetch(`${target.url}/api/users/${created.user.id}/reset-password`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ sendEmail: false, returnLink: true }),
+      })
+      const reissued = await reset.json()
+
+      expect(reset.status).toBe(200)
+      expect(reissued.invitationUrl).not.toBe(created.invitationUrl)
+
+      const viejo = new URL(created.invitationUrl).searchParams.get('invitacion-staff')
+      const previewViejo = await fetch(
+        `${target.url}/api/auth/staff-invitation?token=${encodeURIComponent(viejo)}`,
+      )
+      expect(previewViejo.status).toBe(400)
+
+      const falso = await fetch(`${target.url}/api/auth/staff-invitation?token=${'x'.repeat(60)}`)
+      expect(falso.status).toBe(400)
+    } finally {
+      await target.close()
+    }
+  })
+
+  describe('invitación abierta (sin email)', () => {
+    async function createOpenInvite(target, cookie) {
+      const response = await inviteUser(target.url, cookie, {
+        role: 'plu_arg',
+        sendEmail: false,
+        returnLink: true,
+      })
+      return { response, body: await response.json() }
+    }
+
+    const tokenOf = (body) => new URL(body.invitationUrl).searchParams.get('invitacion-staff')
+    const previewOf = (target, token) =>
+      fetch(`${target.url}/api/auth/staff-invitation?token=${encodeURIComponent(token)}`, {
+        headers: { 'x-vercel-forwarded-for': uniqueIp() },
+      })
+
+    it('se crea sólo con el rol y la persona completa nombre, email y clave', async () => {
+      const prisma = createPrismaDouble([await buildAdmin()])
+      const target = listen(createApp({ prisma, env: ENV, brevo: { configured: false } }))
+
+      try {
+        const cookie = await loginAdmin(target.url)
+        const { response, body } = await createOpenInvite(target, cookie)
+
+        expect(response.status).toBe(201)
+        expect(body.emailed).toBe(false)
+        expect(body.user.email).toMatch(/@pendiente\.invalid$/)
+
+        const token = tokenOf(body)
+        const preview = (await (await previewOf(target, token)).json()).invitation
+        expect(preview).toMatchObject({ needsProfile: true, name: '', email: '' })
+
+        // Sin sus datos no se puede activar.
+        const incompleta = await acceptInvitation(target.url, token)
+        expect(incompleta.status).toBe(400)
+
+        const accepted = await fetch(`${target.url}/api/auth/accept-staff-invitation`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({
+            token,
+            password: 'Nueva-clave-segura-2026',
+            name: 'Lucía Fernández',
+            email: 'Lucia@PLUarg.test',
+          }),
+        })
+        const session = await accepted.json()
+
+        expect(accepted.status).toBe(200)
+        expect(session.user).toMatchObject({
+          email: 'lucia@pluarg.test',
+          status: 'active',
+          mustChangePassword: false,
+        })
+
+        const reused = await acceptInvitation(target.url, token, 'Otra-clave-segura-2026')
+        expect(reused.status).toBe(400)
+      } finally {
+        await target.close()
+      }
+    })
+
+    it('rechaza un email que ya tiene cuenta sin gastar la invitación', async () => {
+      const prisma = createPrismaDouble([await buildAdmin()])
+      const target = listen(createApp({ prisma, env: ENV, brevo: { configured: false } }))
+
+      try {
+        const cookie = await loginAdmin(target.url)
+        const { body } = await createOpenInvite(target, cookie)
+        const token = tokenOf(body)
+
+        const taken = await fetch(`${target.url}/api/auth/accept-staff-invitation`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({
+            token,
+            password: 'Nueva-clave-segura-2026',
+            name: 'Otra Persona',
+            email: 'admin@pluarg.test',
+          }),
+        })
+        expect(taken.status).toBe(409)
+
+        // El enlace sigue vigente para reintentar con otro email.
+        expect((await previewOf(target, token)).status).toBe(200)
+      } finally {
+        await target.close()
+      }
+    })
+
+    it('no deja registrarse con el email reservado y no manda mail al reenviar', async () => {
+      const send = vi.fn().mockResolvedValue({ messageId: 'brevo-1' })
+      const prisma = createPrismaDouble([await buildAdmin()])
+      const target = listen(createApp({ prisma, env: ENV, brevo: { configured: true, send } }))
+
+      try {
+        const cookie = await loginAdmin(target.url)
+        const { body } = await createOpenInvite(target, cookie)
+
+        const reset = await fetch(`${target.url}/api/users/${body.user.id}/reset-password`, {
+          method: 'POST',
+          headers: authHeaders(cookie),
+          body: JSON.stringify({ sendEmail: true, returnLink: true }),
+        })
+        const reissued = await reset.json()
+        expect(reset.status).toBe(200)
+        expect(reissued.emailed).toBe(false)
+        expect(send).not.toHaveBeenCalled()
+
+        const reservado = await fetch(`${target.url}/api/auth/accept-staff-invitation`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({
+            token: tokenOf(reissued),
+            password: 'Nueva-clave-segura-2026',
+            name: 'Alguien Más',
+            email: 'x@pendiente.invalid',
+          }),
+        })
+        expect(reservado.status).toBe(400)
+      } finally {
+        await target.close()
+      }
+    })
   })
 })

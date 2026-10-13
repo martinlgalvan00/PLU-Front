@@ -24,6 +24,7 @@ import { derivePaymentProgress } from '../../lib/paymentProgress.js'
 import { listAthletePaymentOrders } from '../../services/athleteApi.js'
 import {
   OPEN_ORDER_STATUSES,
+  PROOF_TRASHABLE_STATUSES,
   buildPaymentValidationItem,
   canForceSettleOrder,
   canValidateConcept,
@@ -32,6 +33,7 @@ import {
 } from '../../services/paymentValidationService.js'
 import { VALIDATION_DISABLED_CODES } from '../../services/platformSettingsAdminService.js'
 import { revalidatePaymentOrder } from '../../services/paymentService.js'
+import { trashOrderProof } from '../../services/paymentProofsAdminService.js'
 import PaymentValidationDialog from '../../components/admin/PaymentValidationDialog.jsx'
 import PaymentTraceDialog from '../../components/admin/PaymentTraceDialog.jsx'
 
@@ -482,7 +484,17 @@ export default function AthletePaymentOrdersSection({
         meta: money(row.amount, locale, row.currency),
       }),
       proofUrl,
+      // Sólo una orden ya resuelta puede dar de baja su comprobante: mientras
+      // espera decisión, el archivo es lo que Finanzas tiene que revisar.
+      canTrashProof: canEdit && PROOF_TRASHABLE_STATUSES.includes(row.status),
     })
+  }
+
+  async function trashProof(row) {
+    await trashOrderProof({ source: 'athlete', orderId: row.paymentId })
+    setReviewRow(null)
+    await load(status, channel)
+    notifySuccess(t('admin.toasts.proofTrashed'))
   }
 
   return (
@@ -680,7 +692,12 @@ export default function AthletePaymentOrdersSection({
                           )
                         : row.paymentProofPurgedAt
                           ? (
-                              <span className="admin-orders-block__proof-note">
+                              <span
+                                className="admin-orders-block__proof-note"
+                                title={t('admin.athletePayments.proofArchivedOn', {
+                                  date: formatShortDateTime(row.paymentProofPurgedAt, locale),
+                                })}
+                              >
                                 {t('admin.athletePayments.proofArchived')}
                               </span>
                             )
@@ -858,6 +875,7 @@ export default function AthletePaymentOrdersSection({
               if (rejected) setReviewRow(null)
             })
           }}
+          onTrashProof={reviewRow.canTrashProof ? () => trashProof(reviewRow) : undefined}
         />
       ) : null}
     </section>

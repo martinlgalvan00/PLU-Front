@@ -4,9 +4,11 @@ import {
   CircleCheck,
   ChevronDown,
   KeyRound,
+  Link2,
   CirclePause,
   Search,
   Shield,
+  UserRound,
   Trash2,
   UserPlus,
   X,
@@ -14,15 +16,22 @@ import {
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import AdminEmptyState from '../../components/admin/AdminEmptyState.jsx'
-import { Field, Select } from '../../components/ui/FormFields.jsx'
+import StaffInvitationNotice from '../../components/admin/StaffInvitationNotice.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatRecordCount } from '../../i18n/adminHelpers.js'
 import { getRoleLabel } from '../../lib/roles.js'
+import { isPendingInviteEmail, PENDING_INVITE_NAME } from '../../lib/staffInvitationRoute.js'
+import {
+  indexAthletesByEmail,
+  listAssignableStaffRoles,
+  normalizeEmail,
+} from '../../services/staffAccessService.js'
+import UsersInviteForm from './UsersInviteForm.jsx'
 import UsersRowMenu from './UsersRowMenu.jsx'
 import '../../styles/pages/admin-users.css'
 
-const EMPTY_DRAFT = { name: '', email: '', role: 'plu_arg', eventId: '' }
+const EMPTY_DRAFT = { name: '', email: '', role: 'plu_arg', eventId: '', sendEmail: true }
 
 const STATUS_FILTERS = [
   ['active', 'admin.users.statusActive'],
@@ -46,21 +55,49 @@ function statusLabel(t, status) {
   }
 }
 
+// Una invitación abierta todavía no tiene persona detrás: su email es un
+// reservado y su nombre un rótulo. El panel muestra lo que falta, no el reservado.
+function isOpenInvite(user) {
+  return isPendingInviteEmail(user?.email)
+}
+
+function displayName(t, user) {
+  return isOpenInvite(user) && (!user.name || user.name === PENDING_INVITE_NAME)
+    ? t('admin.users.openInviteName')
+    : (user.name ?? '—')
+}
+
+function formatLastAccess(value, locale) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  return new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-AR', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date)
+}
+
+function displayEmail(t, user) {
+  return isOpenInvite(user) ? t('admin.users.openInviteEmail') : user.email
+}
+
 export default function UsersSection({
   accessRoles,
   adminEvents,
+  athletes,
   canDeleteUsers,
   canManageUsers,
   onCreateSecurityUser,
   onCreateUser,
   onDeleteUser,
   onNavigateRoles,
+  onOpenAthlete,
   onResetPassword,
   onUpdateRole,
   onUpdateStatus,
+  permissionCatalog,
   users,
 }) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const formId = useId()
   const formRef = useRef(null)
   const newButtonRef = useRef(null)
@@ -69,6 +106,7 @@ export default function UsersSection({
   const [isCreating, setIsCreating] = useState(false)
   const [draft, setDraft] = useState(EMPTY_DRAFT)
   const [formError, setFormError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [tempPassword, setTempPassword] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [updatingUserId, setUpdatingUserId] = useState(null)
@@ -82,12 +120,14 @@ export default function UsersSection({
     () => (adminEvents ?? []).map((event) => [event.id, event.title]),
     [adminEvents],
   )
+  // Del más alto al más bajo en jerarquía: quien invita suele buscar el rol por
+  // su peso, y los roles a medida quedan al final, por nombre.
+  const assignableRoles = useMemo(() => listAssignableStaffRoles(accessRoles), [accessRoles])
+  // Quién del padrón del panel también es atleta: se marca y se enlaza a su ficha.
+  const athleteByEmail = useMemo(() => indexAthletesByEmail(athletes), [athletes])
   const roleOptions = useMemo(
-    () =>
-      (accessRoles ?? [])
-        .filter((role) => role.active !== false && role.canAssign)
-        .map((role) => [role.key, role.name]),
-    [accessRoles],
+    () => assignableRoles.map((role) => [role.key, role.name]),
+    [assignableRoles],
   )
 
   const statusCounts = useMemo(() => {
@@ -174,10 +214,21 @@ export default function UsersSection({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isCreating, isSubmitting])
 
+  function updateDraft(patch) {
+    setDraft((current) => ({ ...current, ...patch }))
+    // Al corregir un campo se le saca la marca de error sin esperar al reenvío.
+    setFieldErrors((current) => {
+      const next = { ...current }
+      for (const key of Object.keys(patch)) delete next[key]
+      return next
+    })
+  }
+
   function closeCreateForm() {
     setIsCreating(false)
     setDraft(EMPTY_DRAFT)
     setFormError('')
+    setFieldErrors({})
     // El botón "Cancelar" desaparece al cerrar: el foco vuelve a "Nuevo usuario".
     window.requestAnimationFrame(() => newButtonRef.current?.focus())
   }
@@ -190,30 +241,52 @@ export default function UsersSection({
 
   async function handleAddUser(event) {
     event.preventDefault()
-    if (draft.name.trim().length < 3) {
+    const name = draft.name.trim()
+    const email = draft.email.trim().toLowerCase()
+    // Seguridad es nominal (credencial de puerta). El resto puede ser una
+    // invitación abierta: sin email, la persona completa sus datos al abrir el
+    // enlace. Con email hace falta también el nombre; con nombre, un nombre real.
+    const needsIdentity = isSecurityRole || Boolean(email)
+    if ((needsIdentity || name) && name.length < 3) {
+      setFieldErrors({ name: true })
       setFormError(t('admin.users.errorName'))
       return
     }
-    if (!/^\S+@\S+\.\S+$/.test(draft.email.trim())) {
+    if ((isSecurityRole || email) && !/^\S+@\S+\.\S+$/.test(email)) {
+      setFieldErrors({ email: true })
       setFormError(t('admin.users.errorEmail'))
       return
     }
+    // Mismo chequeo que hace el servidor, pero antes de ir y volver.
+    if (email && users.some((user) => user.email?.trim().toLowerCase() === email)) {
+      setFieldErrors({ email: true })
+      setFormError(t('admin.users.errorEmailTaken'))
+      return
+    }
     if (isSecurityRole && !draft.eventId) {
+      setFieldErrors({ eventId: true })
       setFormError(t('admin.users.errorEvent'))
       return
     }
 
+    setFieldErrors({})
     setFormError('')
     setTempPassword(null)
 
     setIsSubmitting(true)
     try {
       if (!isSecurityRole) {
-        const { user, emailed } = await onCreateUser(draft)
+        const { user, emailed, invitationUrl, invitationExpiresAt } = await onCreateUser(draft)
         setTempPassword({
-          email: user?.email ?? draft.email.trim().toLowerCase(),
+          name: user?.name ?? name,
+          email: user?.email ?? email,
+          open: !email,
+          roleName: assignableRoles.find((role) => role.key === draft.role)?.name ?? '',
           password: null,
           emailed,
+          emailRequested: draft.sendEmail && Boolean(email),
+          invitationUrl: invitationUrl ?? null,
+          expiresAt: invitationExpiresAt ?? null,
           mode: 'invitation',
         })
         setDraft(EMPTY_DRAFT)
@@ -246,15 +319,30 @@ export default function UsersSection({
     }
   }
 
-  // Reenvía una invitación nueva. Ninguna contraseña ni token vuelve al panel.
-  async function handleResetPassword(user) {
+  // Emite una invitación nueva (la anterior queda inválida). `sendEmail: false`
+  // sólo genera el enlace para copiarlo. Nunca vuelve una contraseña.
+  async function handleResetPassword(user, sendEmail = true) {
     if (!onResetPassword) return
     setFormError('')
     setTempPassword(null)
     setUpdatingUserId(user.id)
     try {
-      const { emailed } = await onResetPassword(user.id)
-      setTempPassword({ email: user.email, password: null, emailed, mode: 'reset' })
+      const { emailed, invitationUrl, invitationExpiresAt } = await onResetPassword(
+        user.id,
+        sendEmail,
+      )
+      setTempPassword({
+        name: user.name,
+        email: user.email,
+        open: isOpenInvite(user),
+        roleName: getRoleLabel(user),
+        password: null,
+        emailed,
+        emailRequested: sendEmail && !isOpenInvite(user),
+        invitationUrl: invitationUrl ?? null,
+        expiresAt: invitationExpiresAt ?? null,
+        mode: 'reset',
+      })
     } catch (error) {
       setFormError(error?.message ?? t('admin.users.errorReset'))
     } finally {
@@ -294,7 +382,7 @@ export default function UsersSection({
 
     try {
       await onDeleteUser(pendingDeletion.id)
-      setDeleteNotice(t('admin.users.deleteSuccess', { name: pendingDeletion.name }))
+      setDeleteNotice(t('admin.users.deleteSuccess', { name: displayName(t, pendingDeletion) }))
       setPendingDeletion(null)
     } catch (error) {
       setDeleteError(error?.message ?? t('admin.users.errorDelete'))
@@ -331,7 +419,16 @@ export default function UsersSection({
     const canDelete = canDeleteUsers && Boolean(onDeleteUser)
     const canReset = canManageUsers && Boolean(onResetPassword)
     const items = []
+    const athlete = athleteByEmail.get(normalizeEmail(row.email))
 
+    if (athlete && onOpenAthlete) {
+      items.push({
+        key: 'athlete',
+        label: t('admin.users.actionViewAthlete'),
+        icon: UserRound,
+        onSelect: () => onOpenAthlete(athlete.id),
+      })
+    }
     if (canUpdateStatus && (status === 'active' || status === 'suspended')) {
       const isActive = status === 'active'
       items.push({
@@ -351,11 +448,20 @@ export default function UsersSection({
     }
     if (canReset) {
       items.push({
-        key: 'reset',
-        label: t('admin.users.actionReset'),
-        icon: KeyRound,
-        onSelect: () => void handleResetPassword(row),
+        key: 'link',
+        label: t('admin.users.actionLink'),
+        icon: Link2,
+        onSelect: () => void handleResetPassword(row, false),
       })
+      // Sin email propio no hay a quién mandarle el mail: sólo se regenera el enlace.
+      if (!isOpenInvite(row)) {
+        items.push({
+          key: 'reset',
+          label: t('admin.users.actionReset'),
+          icon: KeyRound,
+          onSelect: () => void handleResetPassword(row, true),
+        })
+      }
     }
     if (canUpdateStatus && status !== 'disabled') {
       items.push({
@@ -388,15 +494,24 @@ export default function UsersSection({
       render: (row) => (
         <div className="admin-users__who">
           <span
-            className={`admin-users__monogram${row.role === 'admin_maximal' ? ' is-owner' : ''}`}
+            className={`admin-users__monogram${row.role === 'admin_maximal' ? ' is-owner' : ''}${isOpenInvite(row) ? ' is-open' : ''}`}
             aria-hidden
           >
-            {row.name?.trim()?.charAt(0)?.toUpperCase() ?? '?'}
+            {isOpenInvite(row) ? (
+              <Link2 size={14} />
+            ) : (
+              (row.name?.trim()?.charAt(0)?.toUpperCase() ?? '?')
+            )}
           </span>
           <span className="admin-users__who-copy">
-            <strong className="admin-users__who-name">{row.name ?? '—'}</strong>
-            <span className="admin-users__who-email" title={row.email}>
-              {row.email}
+            <strong className="admin-users__who-name">
+              {displayName(t, row)}
+              {athleteByEmail.has(normalizeEmail(row.email)) ? (
+                <span className="admin-users__tag">{t('admin.users.alsoAthlete')}</span>
+              ) : null}
+            </strong>
+            <span className="admin-users__who-email" title={displayEmail(t, row)}>
+              {displayEmail(t, row)}
             </span>
           </span>
         </div>
@@ -431,7 +546,7 @@ export default function UsersSection({
               name={`role-${row.id}`}
               value={roleKey}
               disabled={busy}
-              aria-label={`${t('admin.columns.role')}: ${row.name}`}
+              aria-label={`${t('admin.columns.role')}: ${displayName(t, row)}`}
               onChange={(event) => handleRoleChange(row.id, event.target.value)}
             >
               {roleOptions.map(([optionValue, optionLabel]) => (
@@ -462,6 +577,30 @@ export default function UsersSection({
         )
       },
     },
+    {
+      key: 'lastLoginAt',
+      label: t('admin.users.lastAccess'),
+      mobile: 'hidden',
+      sortable: true,
+      width: 170,
+      sortAccessor: (row) => row.lastLoginAt ?? '',
+      render: (row) => {
+        if (row.lastLoginAt) {
+          return (
+            <span className="admin-users__last-access">
+              {formatLastAccess(row.lastLoginAt, locale)}
+            </span>
+          )
+        }
+        return (
+          <span className="admin-users__last-access is-empty">
+            {(row.status ?? 'active') === 'invited'
+              ? t('admin.users.pendingActivation')
+              : t('admin.users.neverSignedIn')}
+          </span>
+        )
+      },
+    },
     ...(showActionsColumn
       ? [
           {
@@ -481,10 +620,12 @@ export default function UsersSection({
                 <div
                   className="admin-users__row-actions"
                   role="group"
-                  aria-label={t('admin.users.actionsAria', { name: row.name })}
+                  aria-label={t('admin.users.actionsAria', { name: displayName(t, row) })}
                   onClick={(event) => event.stopPropagation()}
                 >
-                  {busy ? <span className="plu-spinner plu-spinner--sm" aria-hidden="true" /> : null}
+                  {busy ? (
+                    <span className="plu-spinner plu-spinner--sm" aria-hidden="true" />
+                  ) : null}
                   <UsersRowMenu
                     label={t('admin.actions.more')}
                     items={buildMenuItems(row)}
@@ -590,67 +731,20 @@ export default function UsersSection({
       </div>
 
       {canManageUsers && isCreating ? (
-        <form
-          ref={formRef}
-          id={formId}
-          className={`admin-users__form${isSecurityRole ? ' admin-users__form--security' : ''}`}
+        <UsersInviteForm
+          draft={draft}
+          eventOptions={eventOptions}
+          fieldErrors={fieldErrors}
+          formId={formId}
+          formRef={formRef}
+          isSecurityRole={isSecurityRole}
+          isSubmitting={isSubmitting}
+          onDraftChange={updateDraft}
           onSubmit={handleAddUser}
-        >
-          <h3 className="admin-users__form-title">{t('admin.users.formTitle')}</h3>
-
-          <div className="admin-users__form-fields">
-            <Field
-              label={t('admin.users.name')}
-              name="name"
-              value={draft.name}
-              onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
-              placeholder={t('admin.users.namePlaceholder')}
-              autoComplete="name"
-            />
-            <Field
-              label={t('admin.users.email')}
-              name="email"
-              type="email"
-              value={draft.email}
-              onChange={(e) => setDraft((current) => ({ ...current, email: e.target.value }))}
-              placeholder="nombre@pluarg.com.ar"
-              autoComplete="email"
-            />
-            <Select
-              label={t('admin.columns.role')}
-              name="role"
-              value={draft.role}
-              onChange={(e) =>
-                setDraft((current) => ({ ...current, role: e.target.value, eventId: '' }))
-              }
-              options={roleOptions}
-            />
-            {isSecurityRole ? (
-              <Select
-                label={t('admin.users.event')}
-                name="eventId"
-                value={draft.eventId}
-                onChange={(e) => setDraft((current) => ({ ...current, eventId: e.target.value }))}
-                options={[['', t('admin.users.eventPlaceholder')], ...eventOptions]}
-              />
-            ) : null}
-            <div className="admin-users__form-actions">
-              <Button
-                type="submit"
-                variant="gold"
-                className="btn--small admin-users__submit"
-                disabled={isSubmitting}
-              >
-                <UserPlus size={14} aria-hidden />
-                {isSubmitting ? t('admin.users.creating') : t('admin.users.addUser')}
-              </Button>
-            </div>
-          </div>
-
-          {isSecurityRole ? (
-            <p className="admin-users__form-hint">{t('admin.users.securityHint')}</p>
-          ) : null}
-        </form>
+          permissionCatalog={permissionCatalog}
+          roles={assignableRoles}
+          t={t}
+        />
       ) : null}
 
       {formError ? (
@@ -664,36 +758,13 @@ export default function UsersSection({
         </p>
       ) : null}
       {tempPassword ? (
-        <div className="admin-users__credential" role="status">
-          <p className="admin-users__credential-title">
-            {tempPassword.mode === 'security'
-              ? t('admin.users.tempPasswordTitle')
-              : tempPassword.mode === 'reset'
-                ? t('admin.users.resetTitle')
-                : t('admin.users.inviteTitle')}
-          </p>
-          <dl className="admin-users__credential-meta">
-            <div>
-              <dt>{t('admin.users.email')}</dt>
-              <dd>{tempPassword.email}</dd>
-            </div>
-            {tempPassword.password ? (
-              <div>
-                <dt>{t('admin.users.tempPasswordLabel')}</dt>
-                <dd>
-                  <code>{tempPassword.password}</code>
-                </dd>
-              </div>
-            ) : null}
-          </dl>
-          <p className="admin-users__credential-note">
-            {tempPassword.mode === 'security'
-              ? t('admin.users.tempPasswordWarn')
-              : tempPassword.emailed
-                ? t('admin.users.credentialEmailed', { email: tempPassword.email })
-                : t('admin.users.credentialNotEmailed')}
-          </p>
-        </div>
+        <StaffInvitationNotice
+          key={tempPassword.invitationUrl ?? tempPassword.email}
+          info={tempPassword}
+          locale={locale}
+          onDismiss={() => setTempPassword(null)}
+          t={t}
+        />
       ) : null}
 
       {isGloballyEmpty ? (
@@ -717,8 +788,8 @@ export default function UsersSection({
           onConfirm={() => void handleDeleteUser()}
           title={t('admin.users.deleteTitle')}
           description={t('admin.users.deleteDescription', {
-            name: pendingDeletion.name,
-            email: pendingDeletion.email,
+            name: displayName(t, pendingDeletion),
+            email: displayEmail(t, pendingDeletion),
           })}
           warning={t('admin.users.deleteWarning')}
           cancelLabel={t('admin.users.deleteCancel')}

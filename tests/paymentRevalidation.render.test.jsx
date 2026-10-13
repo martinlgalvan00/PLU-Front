@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
+import { openActionMenus } from './support/openActionMenus.js'
 import AthletePaymentOrdersSection from '../src/pages/admin/AthletePaymentOrdersSection.jsx'
 import { listAthletePaymentOrders } from '../src/services/athleteApi.js'
 import { revalidatePaymentOrder } from '../src/services/paymentService.js'
@@ -102,6 +103,8 @@ describe('revalidación contra Mercado Pago en la caja de Finanzas', () => {
         withCounts: true,
       }),
     )
+    await screen.findAllByRole('button', { name: 'Más acciones' })
+    openActionMenus()
     expect(screen.getByRole('button', { name: 'Revalidar con Mercado Pago' })).toBeTruthy()
   })
 
@@ -111,9 +114,10 @@ describe('revalidación contra Mercado Pago en la caja de Finanzas', () => {
 
     // Con la migración a antd, la tabla renderiza una sola fila, así que hay
     // solo un botón por orden en vez de dos (escritorio + tarjeta mobile).
-    await waitFor(() =>
-      expect(screen.getAllByRole('button', { name: 'Revalidar con Mercado Pago' })).toHaveLength(1),
-    )
+    await waitFor(() => {
+      openActionMenus()
+      expect(screen.getAllByRole('button', { name: 'Revalidar con Mercado Pago' })).toHaveLength(1)
+    })
   })
 
   it('no la ofrece sin permiso de edición', async () => {
@@ -125,6 +129,7 @@ describe('revalidación contra Mercado Pago en la caja de Finanzas', () => {
     )
 
     await waitFor(() => expect(screen.getByText('MP-1755000000000')).toBeTruthy())
+    openActionMenus()
     expect(screen.queryByRole('button', { name: 'Revalidar con Mercado Pago' })).toBeNull()
   })
 
@@ -142,6 +147,8 @@ describe('revalidación contra Mercado Pago en la caja de Finanzas', () => {
     })
     renderSection({ statusFilter: { status: 'all', at: 1 } })
 
+    await screen.findAllByRole('button', { name: 'Más acciones' })
+    openActionMenus()
     const [action] = await screen.findAllByRole('button', { name: 'Revalidar con Mercado Pago' })
     fireEvent.click(action)
 
@@ -171,6 +178,8 @@ describe('revalidación contra Mercado Pago en la caja de Finanzas', () => {
     })
     renderSection({ statusFilter: { status: 'all', at: 1 } })
 
+    await screen.findAllByRole('button', { name: 'Más acciones' })
+    openActionMenus()
     const [action] = await screen.findAllByRole('button', { name: 'Revalidar con Mercado Pago' })
     fireEvent.click(action)
 
@@ -186,6 +195,8 @@ describe('revalidación contra Mercado Pago en la caja de Finanzas', () => {
     revalidatePaymentOrder.mockRejectedValue(new Error('Mercado Pago no está configurado.'))
     renderSection({ statusFilter: { status: 'all', at: 1 } })
 
+    await screen.findAllByRole('button', { name: 'Más acciones' })
+    openActionMenus()
     const [action] = await screen.findAllByRole('button', { name: 'Revalidar con Mercado Pago' })
     fireEvent.click(action)
 

@@ -1,6 +1,9 @@
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { StatusBadge } from '../ui/DataTable.jsx'
 import { formatShortDate } from '../../lib/format.js'
-import { MoreHorizontal } from 'lucide-react'
+import { PAYMENT_METHODS } from '../../lib/constants.js'
+import { MoreHorizontal, Paperclip } from 'lucide-react'
 import { LazyPhoto } from '../ui/LazyPhoto.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
@@ -222,30 +225,232 @@ export function AdminTableActions({ children, className = '', 'aria-label': aria
   )
 }
 
+const MENU_GAP = 4
+const MENU_EDGE = 8
+
 /**
  * Menú “más” para acciones secundarias en filas densas.
- * Usa <details> nativo para no sumar dependencias de popover.
+ *
+ * El panel va en un portal con `position: fixed`: dentro de la celda lo
+ * recortaban el scroll de la tabla y el borde del contenedor, y en las últimas
+ * filas se abría hacia abajo, fuera de pantalla — el botón parecía no responder.
+ * Se mide al abrir: debajo del botón si entra, arriba si no.
+ *
+ * Los hijos siguen montados con el menú cerrado (el panel solo se oculta):
+ * algunos, como `PaymentRecoveryAction`, guardan estado y montan sus diálogos.
  */
 export function AdminActionOverflow({ label, children }) {
+  const triggerRef = useRef(null)
+  const menuRef = useRef(null)
+  const menuId = useId()
+  const [open, setOpen] = useState(false)
+  const [host, setHost] = useState(null)
+  const [position, setPosition] = useState(null)
+
+  // El tema y las variables `--admin-*` cuelgan de `.admin-shell`: el portal va
+  // ahí adentro y no a <body>, donde el panel perdería el color.
+  useEffect(() => {
+    setHost(triggerRef.current?.closest('.admin-shell') ?? document.body)
+  }, [])
+
+  const close = useCallback((restoreFocus = false) => {
+    setOpen(false)
+    if (restoreFocus) triggerRef.current?.focus()
+  }, [])
+
+  useLayoutEffect(() => {
+    if (!open) return
+    const trigger = triggerRef.current
+    const menu = menuRef.current
+    if (!trigger || !menu) return
+    const anchor = trigger.getBoundingClientRect()
+    const { width, height } = menu.getBoundingClientRect()
+    const fitsBelow = anchor.bottom + MENU_GAP + height + MENU_EDGE <= window.innerHeight
+    const top = fitsBelow
+      ? anchor.bottom + MENU_GAP
+      : Math.max(MENU_EDGE, anchor.top - MENU_GAP - height)
+    const left = Math.min(
+      Math.max(MENU_EDGE, anchor.right - width),
+      window.innerWidth - width - MENU_EDGE,
+    )
+    setPosition({ top, left })
+  }, [open])
+
+  // Recién posicionado deja de estar oculto: un elemento con visibility:hidden
+  // no recibe foco, así que no se puede enfocar en el mismo paso que se mide.
+  useEffect(() => {
+    if (!open || !position) return
+    menuRef.current?.querySelector('button:not(:disabled)')?.focus({ preventScroll: true })
+  }, [open, position])
+
+  useEffect(() => {
+    if (!open) return undefined
+    function onPointerDown(event) {
+      if (menuRef.current?.contains(event.target) || triggerRef.current?.contains(event.target)) {
+        return
+      }
+      close()
+    }
+    function onKeyDown(event) {
+      if (event.key === 'Escape') {
+        event.stopPropagation()
+        close(true)
+        return
+      }
+      if (event.key === 'Tab') {
+        close()
+        return
+      }
+      if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+      const items = [...(menuRef.current?.querySelectorAll('button:not(:disabled)') ?? [])]
+      if (items.length === 0) return
+      event.preventDefault()
+      const index = items.indexOf(document.activeElement)
+      const step = event.key === 'ArrowDown' ? 1 : -1
+      items[(index + step + items.length) % items.length].focus()
+    }
+    // Un menú fijo no acompaña el scroll de la tabla: cerrarlo es más honesto
+    // que dejarlo flotando sobre otra fila.
+    const dismiss = () => close()
+    document.addEventListener('pointerdown', onPointerDown, true)
+    document.addEventListener('keydown', onKeyDown, true)
+    window.addEventListener('resize', dismiss)
+    window.addEventListener('scroll', dismiss, true)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      document.removeEventListener('keydown', onKeyDown, true)
+      window.removeEventListener('resize', dismiss)
+      window.removeEventListener('scroll', dismiss, true)
+    }
+  }, [open, close])
+
   if (!children) return null
 
   return (
-    <details
+    <div
       className="admin-table-actions__more"
       onClick={(event) => event.stopPropagation()}
       onKeyDown={(event) => event.stopPropagation()}
     >
-      <summary
+      <button
+        ref={triggerRef}
+        type="button"
         className="admin-icon-btn admin-icon-btn--ghost"
         aria-label={label}
+        aria-controls={menuId}
+        aria-expanded={open}
+        aria-haspopup="true"
         title={label}
+        onClick={() => {
+          if (open) close()
+          else {
+            setPosition(null)
+            setOpen(true)
+          }
+        }}
       >
         <MoreHorizontal size={15} aria-hidden />
-      </summary>
-      <div className="admin-table-actions__more-menu" role="menu">
-        {children}
-      </div>
-    </details>
+      </button>
+      {host
+        ? createPortal(
+            <div
+              ref={menuRef}
+              id={menuId}
+              className="admin-table-actions__more-menu"
+              role="group"
+              aria-label={label}
+              hidden={!open}
+              style={position ? { top: position.top, left: position.left } : { visibility: 'hidden' }}
+              // Un ítem habilitado cierra el menú; el diálogo que abra, si abre
+              // alguno, ya no depende de que el panel siga visible.
+              onClick={(event) => {
+                event.stopPropagation()
+                if (event.target.closest('button:not(:disabled)')) close()
+              }}
+            >
+              {children}
+            </div>,
+            host,
+          )
+        : null}
+    </div>
+  )
+}
+
+/**
+ * Comprobante de una orden a simple vista. El descriptor lo arma
+ * `describePaymentProof`; acá solo se pinta. `onView` abre el comprobante en
+ * lectura — no se precarga ningún binario al listar.
+ */
+export function AdminProofCell({ proof, onView, viewLabel }) {
+  const { locale, t } = useI18n()
+  if (!proof || proof.kind === 'none') {
+    return <span className="admin-payment-cell__empty">—</span>
+  }
+
+  const formatStamp = (value) => {
+    const date = value ? new Date(value) : null
+    if (!date || Number.isNaN(date.getTime())) return null
+    return date.toLocaleString(locale === 'en' ? 'en-US' : 'es-AR', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      hour12: false,
+      minute: '2-digit',
+    })
+  }
+  const channelLabel =
+    proof.channel === 'wise_transfer'
+      ? t('formOptions.payment.wiseTransfer')
+      : t('admin.athletePayments.methodTransfer')
+
+  let main
+  let meta = null
+  if (proof.kind === 'provider') {
+    main = <span className="admin-proof-cell__note">{PAYMENT_METHODS.mercado_pago.label}</span>
+  } else if (proof.kind === 'cash') {
+    main = <span className="admin-proof-cell__note">{t('formOptions.payment.cashPitbull')}</span>
+  } else if (proof.kind === 'attached') {
+    main = (
+      <button
+        type="button"
+        className="admin-proof-cell__link"
+        aria-label={viewLabel}
+        onClick={onView}
+      >
+        <Paperclip size={13} aria-hidden />
+        {t('admin.actions.view')}
+      </button>
+    )
+    meta = formatStamp(proof.uploadedAt) ?? channelLabel
+  } else if (proof.kind === 'archived') {
+    main = (
+      <span
+        className="admin-proof-cell__note"
+        title={t('admin.athletePayments.proofArchivedOn', {
+          date: formatStamp(proof.purgedAt) ?? '',
+        })}
+      >
+        {t('admin.athletePayments.proofArchived')}
+      </span>
+    )
+    meta = channelLabel
+  } else {
+    main = (
+      <span
+        className={`admin-proof-cell__note${proof.needsAttention ? ' admin-proof-cell__note--warning' : ''}`}
+      >
+        {t('admin.athletePayments.proofMissing')}
+      </span>
+    )
+    meta = channelLabel
+  }
+
+  return (
+    <div className="admin-proof-cell" onClick={(event) => event.stopPropagation()}>
+      {main}
+      {meta ? <span className="admin-proof-cell__meta">{meta}</span> : null}
+    </div>
   )
 }
 

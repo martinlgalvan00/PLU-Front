@@ -300,6 +300,11 @@ describe('EventsSection — precios y logo en la ficha', () => {
     const input = panel.querySelector('.admin-event-logo--field input[type="file"]')
     fireEvent.change(input, { target: { files: [file] } })
 
-    await vi.waitFor(() => expect(onSetEventLogo).toHaveBeenCalledWith('pitbull-classic-2026', file))
+    // «Quitar fondo» viene encendido: el logo se sube ya recortado si tiene fondo liso.
+    await vi.waitFor(() =>
+      expect(onSetEventLogo).toHaveBeenCalledWith('pitbull-classic-2026', file, {
+        removeBackground: true,
+      }),
+    )
   })
 })

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createApp } from '../server/app.js'
 import { eventInitials, resolveEventLogo } from '../src/lib/eventMark.js'
-import { validateEventLogoFile } from '../src/services/eventAdminService.js'
+import { prepareEventLogoFile, validateEventLogoFile } from '../src/services/eventAdminService.js'
 import { listen } from './integration/helpers/supabaseTestClient.js'
 
 const mutationHeaders = {
@@ -47,6 +47,32 @@ describe('logo del evento — validación en el cliente', () => {
     expect(validateEventLogoFile({ type: 'image/png', size: 3 * 1024 * 1024 + 1 }).error).toMatch(
       /3 MB/,
     )
+  })
+})
+
+describe('logo del evento — preparación antes de subir', () => {
+  const png = () => new File([new Uint8Array(2048)], 'logo.png', { type: 'image/png' })
+
+  it('rechaza lo que no es una imagen admitida antes de procesar nada', async () => {
+    await expect(
+      prepareEventLogoFile(new File([new Uint8Array(8)], 'logo.gif', { type: 'image/gif' })),
+    ).rejects.toThrow(/JPG, PNG o WEBP/)
+  })
+
+  it('sin pedir quita de fondo no informa motivo', async () => {
+    const prepared = await prepareEventLogoFile(png())
+    expect(prepared.backgroundRemoved).toBe(false)
+    expect(prepared.backgroundReason).toBeNull()
+    expect(prepared.file).toBeInstanceOf(File)
+  })
+
+  it('si el entorno no puede rasterizar, sube el original y lo explica', async () => {
+    // jsdom no trae createImageBitmap: es el mismo camino que un navegador sin soporte.
+    const original = png()
+    const prepared = await prepareEventLogoFile(original, { removeBackground: true })
+    expect(prepared.backgroundRemoved).toBe(false)
+    expect(prepared.backgroundReason).toBe('unsupported')
+    expect(prepared.file).toBe(original)
   })
 })
 

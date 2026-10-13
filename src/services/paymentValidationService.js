@@ -34,6 +34,12 @@ export const PROOF_OVERRIDE_REASON_MIN_LENGTH = 8
 /** Estados que todavía esperan una decisión operativa. */
 export const OPEN_ORDER_STATUSES = Object.freeze(['pendiente', 'validacion_manual'])
 
+/**
+ * Estados en los que el comprobante ya no es lo que hay que revisar y puede darse
+ * de baja (a la papelera). Espejo de `proof_trash` en la base, que es quien manda.
+ */
+export const PROOF_TRASHABLE_STATUSES = Object.freeze(['aprobado', 'rechazado'])
+
 function channelOf(order) {
   return order?.manualPaymentChannel ?? order?.manual_payment_channel ?? 'bank_transfer'
 }
@@ -57,6 +63,30 @@ export function isCashOrder(order) {
 
 export function hasPaymentProof(order) {
   return Boolean(proofPathOf(order))
+}
+
+/**
+ * Qué decirle al operador sobre el comprobante de una orden, para mostrarlo en
+ * cada fila sin abrir nada. `kind`:
+ * - `none`: no hay orden (inscripción sin cobro asociado).
+ * - `provider`: Mercado Pago, que no genera archivo — la plata la confirma el webhook.
+ * - `cash`: efectivo en sede, que se cobra en la puerta sin adjunto.
+ * - `attached`: transferencia con archivo; `uploadedAt` dice cuándo lo subió.
+ * - `archived`: tuvo archivo y la retención automática lo eliminó de Storage.
+ * - `missing`: transferencia sin archivo. `needsAttention` marca el caso que de
+ *   verdad frena una decisión (orden abierta); en una cerrada es solo un dato.
+ * `channel` distingue transferencia bancaria de Wise.
+ */
+export function describePaymentProof(order) {
+  if (!order) return { kind: 'none' }
+  if (!isManualOrder(order)) return { kind: 'provider' }
+  const channel = channelOf(order)
+  if (channel === CASH_PAYMENT_CHANNEL) return { kind: 'cash', channel }
+  const uploadedAt = order.paymentProofUploadedAt ?? order.payment_proof_uploaded_at ?? null
+  if (hasPaymentProof(order)) return { kind: 'attached', channel, uploadedAt }
+  const purgedAt = order.paymentProofPurgedAt ?? order.payment_proof_purged_at ?? null
+  if (purgedAt) return { kind: 'archived', channel, purgedAt }
+  return { kind: 'missing', channel, needsAttention: isOpenOrder(order) }
 }
 
 /**

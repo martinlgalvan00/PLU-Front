@@ -305,6 +305,31 @@
   padding: 10px 14px;
 }
 
+/* Confirmación de «Crear y cargar otro»: una línea, sin color de éxito aparte
+   (el check ya lo dice); el conteo queda debajo, más callado. */
+.admin-event-quick__created {
+  align-items: flex-start;
+  border-left: 2px solid var(--admin-ink);
+  color: var(--admin-ink);
+  display: flex;
+  font-size: 13px;
+  gap: 10px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 2px 0 2px 12px;
+}
+
+.admin-event-quick__created svg {
+  flex: none;
+  margin-top: 3px;
+}
+
+.admin-event-quick__created small {
+  color: var(--admin-muted);
+  display: block;
+  font-size: 12px;
+}
+
 /* ---- Vista previa ---- */
 
 .admin-event-quick__aside {

@@ -15,6 +15,7 @@ import { isRegistrationOpen } from '../lib/status.js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 import { ApiError, apiDelete, apiGet, apiPatch, apiPost } from '../lib/api.js'
 import { compressImageFile } from '../lib/compressImageFile.js'
+import { removeImageBackground } from '../lib/removeImageBackground.js'
 import { normalizeTicketCredentials } from '../lib/ticketCredentials.js'
 import { normalizeEventPaymentChannelOverrides } from '../lib/eventPaymentChannels.js'
 import { normalizeTicketTypePaymentChannels } from '../lib/ticketTypePaymentChannels.js'
@@ -1028,14 +1029,57 @@ export function validateEventLogoFile(file) {
 }
 
 /**
- * Sube la imagen y deja guardado el logo. Devuelve `{ event, events }` ya
- * mapeados; con `file = null` quita el logo.
+ * Deja el logo listo para subir: valida, quita el fondo liso (si se pidió) y lo
+ * baja a WebP. Es lo que ve la vista previa del alta y lo que después se sube,
+ * así que el archivo previsualizado es exactamente el que queda guardado.
+ *
+ * `backgroundReason` explica por qué no se quitó el fondo cuando se pidió
+ * (ver BACKGROUND_REASON); es `null` si no se pidió.
  */
-export async function setEventLogoRequest(slug, file) {
+export async function prepareEventLogoFile(file, { removeBackground = false } = {}) {
+  const validation = validateEventLogoFile(file)
+  if (validation.error) throw new ApiError(validation.error, { status: 400 })
+
+  let source = file
+  let backgroundRemoved = false
+  let backgroundReason = null
+  if (removeBackground) {
+    const outcome = await removeImageBackground(file, { outputEdge: EVENT_LOGO_MAX_EDGE })
+    source = outcome.file
+    backgroundRemoved = outcome.applied
+    backgroundReason = outcome.reason
+    // Ya salió recortado, al tamaño final y en WebP: recomprimirlo solo lo degradaría.
+    if (backgroundRemoved && source.size <= EVENT_LOGO_MAX_BYTES) {
+      return { file: source, backgroundRemoved, backgroundReason }
+    }
+  }
+
+  const prepared = await compressImageFile(source, {
+    maxEdge: EVENT_LOGO_MAX_EDGE,
+    quality: 0.86,
+    targetMaxBytes: EVENT_LOGO_TARGET_BYTES,
+    skipUnderBytes: EVENT_LOGO_TARGET_BYTES,
+  })
+  return { file: prepared, backgroundRemoved, backgroundReason }
+}
+
+/**
+ * Sube la imagen y deja guardado el logo. Devuelve `{ event, events,
+ * backgroundRemoved }` ya mapeados; con `file = null` quita el logo.
+ *
+ * `prepared: true` indica que el archivo ya pasó por `prepareEventLogoFile`
+ * (el alta lo prepara al elegirlo, para mostrarlo): no se procesa dos veces.
+ */
+export async function setEventLogoRequest(
+  slug,
+  file,
+  { removeBackground = false, prepared: alreadyPrepared = false } = {},
+) {
   if (!slug) throw new Error('Falta el slug del evento.')
   const base = `/api/events/${encodeURIComponent(slug)}/logo`
 
   let path = null
+  let backgroundRemoved = false
   if (file) {
     const validation = validateEventLogoFile(file)
     if (validation.error) throw new ApiError(validation.error, { status: 400 })
@@ -1045,21 +1089,19 @@ export async function setEventLogoRequest(slug, file) {
       })
     }
 
-    const prepared = await compressImageFile(file, {
-      maxEdge: EVENT_LOGO_MAX_EDGE,
-      quality: 0.86,
-      targetMaxBytes: EVENT_LOGO_TARGET_BYTES,
-      skipUnderBytes: EVENT_LOGO_TARGET_BYTES,
-    })
+    const prepared = alreadyPrepared
+      ? { file }
+      : await prepareEventLogoFile(file, { removeBackground })
+    backgroundRemoved = Boolean(prepared.backgroundRemoved)
     const upload = await apiPost(`${base}/upload-url`, {
-      contentType: prepared.type,
-      size: prepared.size,
+      contentType: prepared.file.type,
+      size: prepared.file.size,
     })
     const supabase = await getSupabaseClient()
     const { error } = await supabase.storage
       .from('event-logos')
-      .uploadToSignedUrl(upload.path, upload.token, prepared, {
-        contentType: prepared.type,
+      .uploadToSignedUrl(upload.path, upload.token, prepared.file, {
+        contentType: prepared.file.type,
         cacheControl: '31536000',
       })
     if (error) throw new ApiError(error.message || 'No se pudo subir la imagen.', { status: 502 })
@@ -1070,5 +1112,6 @@ export async function setEventLogoRequest(slug, file) {
   return {
     event: mapAdminEventRow(response.event),
     events: (response.events ?? [response.event]).map(mapAdminEventRow),
+    backgroundRemoved,
   }
 }
