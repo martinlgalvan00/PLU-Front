@@ -400,3 +400,31 @@ describe('duplicar un rol', () => {
     expect(screen.queryByRole('button', { name: 'Duplicar rol' })).toBeNull()
   })
 })
+
+describe('atajo a los usuarios de un rol', () => {
+  function selectRole(name) {
+    openEditor()
+    const rail = document.querySelector('.roles-rail') ?? document
+    fireEvent.click(within(rail).getByRole('button', { name: new RegExp(name) }))
+  }
+
+  it('abre Usuarios filtrado por el rol que se está mirando', () => {
+    const onViewUsers = vi.fn()
+    renderRoles({ onViewUsers })
+    selectRole('Comunicación')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver usuarios' }))
+    expect(onViewUsers).toHaveBeenCalledWith('comunicacion')
+  })
+
+  it('no lo ofrece para un rol sin cuentas ni sin acceso a Usuarios', () => {
+    const { unmount } = renderRoles({ onViewUsers: vi.fn() })
+    selectRole('Prensa')
+    expect(screen.queryByRole('button', { name: 'Ver usuarios' })).toBeNull()
+    unmount()
+
+    renderRoles()
+    selectRole('Comunicación')
+    expect(screen.queryByRole('button', { name: 'Ver usuarios' })).toBeNull()
+  })
+})
