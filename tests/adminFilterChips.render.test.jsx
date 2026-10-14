@@ -4,6 +4,7 @@ import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import AdminFilterChipGroup from '../src/components/admin/AdminFilterChipGroup.jsx'
 import AdminListSection from '../src/components/admin/AdminListSection.jsx'
 import RegistrationsSection from '../src/pages/admin/RegistrationsSection.jsx'
+import { openActionMenus } from './support/openActionMenus.js'
 
 vi.mock('../src/services/platformSettingsAdminService.js', async (importOriginal) => {
   const actual = await importOriginal()
@@ -268,6 +269,8 @@ describe('Inscripciones — rieles etiquetados', () => {
       </I18nProvider>,
     )
 
+    // La visibilidad vive en el menú «Más acciones» de la fila, no a la vista.
+    openActionMenus()
     fireEvent.click(screen.getAllByRole('button', { name: /ocultar del padrón público/i })[0])
     expect(onSetPublicVisibility).toHaveBeenCalledWith('reg-visible', false)
   })
