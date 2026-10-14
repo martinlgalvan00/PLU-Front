@@ -135,7 +135,21 @@ export function createSessionCache({ ttlMs = DEFAULT_TTL_MS, maxEntries = MAX_EN
  * identidad distintos (staff en Prisma, atletas en Supabase) y un `clear()` de
  * uno no tiene por qué tirar el otro.
  */
-export const staffSessionCache = createSessionCache()
+/**
+ * El panel staff repregunta el snapshot cada 120 s (`LIVE_STAFF_SYNC_MS`): con el
+ * TTL de 20 s cada poll de una pestaña quieta caía en caché vencido y pagaba el
+ * `findUnique` con tres joins. 150 s los deja pasar por la caché.
+ *
+ * Es seguro porque los caminos que cambian el acceso purgan explícitamente:
+ * `revokeSession(sForUser)`, la matriz y el estado de un rol
+ * (`routes/accessControl.js`), el job de ciclo de vida y el cierre masivo de
+ * `auth.js`. El TTL sólo cubre una escritura directa a la base que no pase por
+ * ninguno: para cortar un acceso a mano hay que reiniciar el proceso o esperar
+ * estos 150 s.
+ */
+const STAFF_TTL_MS = 150_000
+
+export const staffSessionCache = createSessionCache({ ttlMs: STAFF_TTL_MS })
 export const athleteSessionCache = createSessionCache()
 
 /**
