@@ -2,6 +2,11 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
 import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
+import { assertEventAccess } from '../lib/eventScope.js'
+import {
+  applyOrganizerUpsertPolicy,
+  filterEventsForScope,
+} from '../modules/events/organizerEventPolicy.js'
 import { logger } from '../lib/logger.js'
 import { EVENT_LOGO_BUCKET, PROOF_BUCKET } from '../lib/supabaseAdmin.js'
 import {
@@ -30,6 +35,9 @@ import {
   normalizePaymentChannelOverrides,
 } from '../modules/payments/eventPaymentProfile.js'
 import { createSupabasePaymentProfileRepository } from '../modules/payments/supabasePaymentProfileRepository.js'
+import { createSupabaseAthleteRepository } from '../modules/athletes/supabaseAthleteRepository.js'
+import { createSupabaseTicketRepository } from '../modules/ticketing/supabaseTicketRepository.js'
+import { summarizeEventPayments } from '../modules/events/eventPaymentsSummary.js'
 
 /** Cuentas temporales de puerta: viven en Prisma, atadas al evento por uuid. */
 const SECURITY_ROLE = 'seguridad_plu_arg'
@@ -842,7 +850,20 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
   const router = Router()
   const prisma = getPrisma()
   const editGuard = requirePermission('admin.events.write', { prisma })
-  const viewGuard = requirePermission('admin.events.read', { prisma })
+  // Variantes que un organizador (rol por evento) SÍ puede usar: cada handler que
+  // las usa filtra o verifica contra los eventos asignados a la cuenta.
+  const scopedEditGuard = requirePermission('admin.events.write', { prisma }, { eventScoped: true })
+  const scopedViewGuard = requirePermission('admin.events.read', { prisma }, { eventScoped: true })
+  const scopedPaymentsViewGuard = requirePermission(
+    'admin.payments.read',
+    { prisma },
+    { eventScoped: true },
+  )
+  const scopedRegistrationsViewGuard = requirePermission(
+    'admin.registrations.read',
+    { prisma },
+    { eventScoped: true },
+  )
   // La grilla es dato de inscripciones, no de configuración del evento: quien
   // arma el reparto de atletas no necesariamente puede editar precios y fechas.
   const registrationsViewGuard = requirePermission('admin.registrations.read', { prisma })
@@ -852,11 +873,46 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
   // cuentas de staff -- solo Super Admin, no `admin.events.write`.
   const deleteGuard = requirePermission('admin.events.delete', { prisma })
 
-  router.get('/', ...viewGuard, staffLimiter, async (_req, res, next) => {
+  router.get('/', ...scopedViewGuard, staffLimiter, async (req, res, next) => {
     try {
       const client = requireSupabaseClient(getSupabaseAdmin())
-      const events = await readEvents(client)
+      // Un organizador ve solo los eventos que se le asignaron.
+      const events = filterEventsForScope(req, await readEvents(client))
       res.json({ events })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Cobros de UN evento: órdenes de entradas y de inscripción con su resumen. Es lo que
+   * alimenta el panel de cobros de un organizador, que no puede leer los listados
+   * globales (traen todos los eventos). Un Super Admin también puede usarla.
+   */
+  router.get('/:eventSlug/payments', ...scopedPaymentsViewGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const slug = parseEventSlug(req.params.eventSlug)
+      assertEventAccess(req, { slug })
+      const client = requireSupabaseClient(getSupabaseAdmin())
+      const event = assertSupabaseResult(
+        await client.from('events').select('id, slug, title').eq('slug', slug).maybeSingle(),
+        'No se pudo leer el evento.',
+      )
+      if (!event) throw new HttpError(404, 'El evento no existe.')
+      // Con el id ya resuelto se vuelve a verificar: el slug del pedido y el id real
+      // del evento tienen que ser del mismo evento asignado.
+      assertEventAccess(req, { eventId: event.id, slug: event.slug })
+
+      const [ticketOrders, registrationOrders] = await Promise.all([
+        createSupabaseTicketRepository(client).listOrdersForEvent(event.id),
+        createSupabaseAthleteRepository(client).listRegistrationOrdersForEvent(event.id),
+      ])
+      res.json({
+        event,
+        ticketOrders,
+        registrationOrders,
+        summary: summarizeEventPayments({ ticketOrders, registrationOrders }),
+      })
     } catch (error) {
       next(error)
     }
@@ -924,12 +980,21 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
 
   router.post(
     '/upsert',
-    ...editGuard,
+    ...scopedEditGuard,
     staffLimiter,
     validateBody(eventSchema),
     async (req, res, next) => {
       try {
         const client = requireSupabaseClient(getSupabaseAdmin())
+        // Cuenta por evento: se fijan los campos que no puede cambiar y se rechaza lo
+        // que excede su alcance, ANTES de leer nada más del cuerpo.
+        if (req.eventScope) {
+          req.validatedBody = await applyOrganizerUpsertPolicy({
+            req,
+            client,
+            body: req.validatedBody,
+          })
+        }
         const mode = req.validatedBody.id ? 'updated' : 'created'
         const paymentChannelOverrides = normalizePaymentChannelOverrides(
           req.validatedBody.paymentChannelOverrides,
@@ -955,7 +1020,9 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             cbu: linkedProfile.config.cbu,
             holder: linkedProfile.config.holder,
           }
-        } else if (bankTransfer.alias) {
+        } else if (bankTransfer.alias && !req.eventScope) {
+          // Un organizador no crea cuentas de cobro globales: sin perfil elegido y con el
+          // alias sin cambios, el evento conserva sus columnas.
           // El perfil es una comodidad (reusar la cuenta en otros eventos), no
           // un requisito del guardado: si no se puede crear, el evento se guarda
           // igual con el alias en sus columnas, que es lo que lee el checkout, y
@@ -1258,7 +1325,9 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           throw new HttpError(503, 'El evento se guardó, pero no se pudo volver a leer.')
         }
 
-        res.status(mode === 'created' ? 201 : 200).json({ event, events, mode, warnings })
+        res
+          .status(mode === 'created' ? 201 : 200)
+          .json({ event, events: filterEventsForScope(req, events), mode, warnings })
       } catch (error) {
         next(error)
       }
@@ -1322,12 +1391,13 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
    */
   router.post(
     '/:eventSlug/logo/upload-url',
-    ...editGuard,
+    ...scopedEditGuard,
     staffLimiter,
     validateBody(logoUploadSchema),
     async (req, res, next) => {
       try {
         const slug = parseEventSlug(req.params.eventSlug)
+        assertEventAccess(req, { slug })
         const client = requireSupabaseClient(getSupabaseAdmin())
         const found = assertSupabaseResult(
           await client.from('events').select('id').eq('slug', slug).maybeSingle(),
@@ -1350,12 +1420,13 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
 
   router.patch(
     '/:eventSlug/logo',
-    ...editGuard,
+    ...scopedEditGuard,
     staffLimiter,
     validateBody(logoSetSchema),
     async (req, res, next) => {
       try {
         const slug = parseEventSlug(req.params.eventSlug)
+        assertEventAccess(req, { slug })
         const { path } = req.validatedBody
         const client = requireSupabaseClient(getSupabaseAdmin())
         const found = assertSupabaseResult(
@@ -1385,7 +1456,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
         const events = await readEvents(client)
         const event = events.find((candidate) => candidate.id === found.id)
         if (!event) throw new HttpError(503, 'El logo se guardó, pero no se pudo volver a leer.')
-        res.json({ event, events })
+        res.json({ event, events: filterEventsForScope(req, events) })
       } catch (error) {
         next(error)
       }
@@ -1487,11 +1558,12 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
    */
   router.get(
     '/:eventSlug/schedule',
-    ...registrationsViewGuard,
+    ...scopedRegistrationsViewGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
         const slug = parseEventSlug(req.params.eventSlug)
+        assertEventAccess(req, { slug })
         const client = requireSupabaseClient(getSupabaseAdmin())
         const schedule = assertSupabaseResult(
           await client.rpc('staff_get_event_schedule', { p_event_slug: slug }),
@@ -1507,12 +1579,13 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
   /** Alta/edición de tandas. Reemplaza el set completo del evento. */
   router.post(
     '/:eventSlug/sessions',
-    ...editGuard,
+    ...scopedEditGuard,
     staffLimiter,
     validateBody(eventSessionsSchema),
     async (req, res, next) => {
       try {
         const slug = parseEventSlug(req.params.eventSlug)
+        assertEventAccess(req, { slug })
         const client = requireSupabaseClient(getSupabaseAdmin())
         const schedule = assertSupabaseResult(
           await client.rpc('staff_save_event_sessions', {

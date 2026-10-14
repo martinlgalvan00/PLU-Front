@@ -275,6 +275,19 @@ export function createSupabaseTicketRepository(client) {
      * consulta (mismo criterio que `listPaymentOrders` del lado atleta): quien
      * mira "aprobadas" no necesita que le lleguen las 500 pendientes primero.
      */
+    /** Órdenes de entradas de UN evento (panel de cobros del organizador). */
+    async listOrdersForEvent(eventId, { limit = 200 } = {}) {
+      const rows = assertSupabaseResult(
+        await client
+          .from('ticket_orders')
+          .select(TICKET_ORDER_SELECT)
+          .eq('event_id', eventId)
+          .order('created_at', { ascending: false })
+          .limit(limit),
+        'No se pudieron listar las ordenes de entradas del evento.',
+      )
+      return rows.map(mapTicketOrderRow)
+    },
     async listOrders({ statuses, channel, query, sort = 'recent', limit = 200 } = {}) {
       let builder = client.from('ticket_orders').select(TICKET_ORDER_SELECT)
 

@@ -79,6 +79,29 @@ function assertProfileId(value) {
   return value
 }
 
+/**
+ * Lo que ve un organizador del catálogo: lo justo para ELEGIR una cuenta. De las
+ * transferencias, alias/CBU/titular (el comprador los ve igual en el checkout); de
+ * Mercado Pago, solo el estado de la conexión. Nunca config OAuth, usos ni secretos.
+ */
+function organizerProfileView(profile) {
+  return {
+    id: profile.id,
+    name: profile.name,
+    kind: profile.kind,
+    active: profile.active,
+    config:
+      profile.kind === 'bank_transfer'
+        ? {
+            alias: profile.config?.alias ?? '',
+            cbu: profile.config?.cbu ?? '',
+            holder: profile.config?.holder ?? '',
+          }
+        : {},
+    ...(profile.connectionStatus ? { connectionStatus: profile.connectionStatus } : {}),
+  }
+}
+
 /** Eventos que todavía venden (no terminados) entre los que usan la cuenta. */
 function liveEventsFor(usage) {
   return (usage?.events ?? []).filter((event) => !event.finished)
@@ -92,7 +115,9 @@ export function createPaymentProfileRoutes({
 }) {
   const router = Router()
   const prisma = getPrisma()
-  const readGuard = requirePermission('admin.events.read', { prisma })
+  // Un organizador lee el catálogo SOLO para elegir una cuenta para su evento (vista
+  // recortada); crear, editar, archivar y conectar siguen cerrados para él.
+  const readGuard = requirePermission('admin.events.read', { prisma }, { eventScoped: true })
   const writeGuard = requirePermission('admin.events.write', { prisma })
   const supabase = () => requireSupabaseClient(getSupabaseAdmin())
   const repo = () => createSupabasePaymentProfileRepository(supabase(), { env })
@@ -116,10 +141,22 @@ export function createPaymentProfileRoutes({
     try {
       const kind = String(req.query?.kind ?? '').trim() || null
       const repository = repo()
+      const organizerView = Boolean(req.eventScope)
       const profiles = await repository.list({
         kind: kind || undefined,
-        activeOnly: req.query?.includeArchived !== 'true',
+        // Un organizador nunca ve cuentas archivadas.
+        activeOnly: organizerView || req.query?.includeArchived !== 'true',
       })
+      if (organizerView) {
+        res.json({
+          profiles: profiles.map(organizerProfileView),
+          // Sin capacidades de alta: el editor no ofrece crear ni conectar cuentas, y
+          // tampoco muestra el aviso de "carga manual no habilitada".
+          secretsKeyConfigured: true,
+          mercadoPagoOAuth: { available: false, missing: [] },
+        })
+        return
+      }
       // El uso es lo que el panel muestra ("Usada en 3 eventos") y lo que
       // decide si ofrecer eliminar o solo archivar. Pedido aparte por ser más
       // caro: el selector del editor no lo necesita.
