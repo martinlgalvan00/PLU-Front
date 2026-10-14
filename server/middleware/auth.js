@@ -91,16 +91,25 @@ export function requirePermission(requiredPermissions, deps, options = {}) {
     ? requiredPermissions
     : [requiredPermissions]
   const mode = options.mode === 'any' ? 'any' : 'all'
+  // `scopedPermissions`: permisos que se exigen a una cuenta POR EVENTO en lugar de
+  // `requiredPermissions`. Hay rutas que hoy piden un permiso global que no se puede
+  // delegar (p. ej. `admin.users.write`, reservado a Super Admin) o que no tiene
+  // sentido para el organizador (`admin.checkin.execute`); aflojar el guard para todos
+  // sería una regresión, así que solo cambia lo que exige a la cuenta por evento.
+  const scopedPermissions = Array.isArray(options.scopedPermissions)
+    ? options.scopedPermissions
+    : null
   // `eventScoped: true` = la ruta filtra por los eventos asignados a la cuenta.
   const auth = requireAuth({ ...deps, allowEventScoped: options.eventScoped === true })
 
   return [
     auth,
     (req, _res, next) => {
+      const required = req.eventScope && scopedPermissions ? scopedPermissions : permissions
       const allowed =
         mode === 'any'
-          ? hasAnyPermission(req.auth.user, permissions)
-          : permissions.every((permissionKey) => hasPermission(req.auth.user, permissionKey))
+          ? hasAnyPermission(req.auth.user, required)
+          : required.every((permissionKey) => hasPermission(req.auth.user, permissionKey))
 
       if (!allowed) {
         next(new HttpError(403, 'No tenés permisos para esta acción.'))

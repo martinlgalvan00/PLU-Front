@@ -120,6 +120,8 @@ import {
 } from '../middleware/rateLimit.js'
 import { createSupabaseAthleteRepository } from '../modules/athletes/supabaseAthleteRepository.js'
 import { createSupabaseTicketRepository } from '../modules/ticketing/supabaseTicketRepository.js'
+import { assertEventAccess } from '../lib/eventScope.js'
+import { assertTicketOrderInScope } from '../modules/events/orderEventScope.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { fetchScanTrail } from '../modules/checkin/scanTrail.js'
 import { INCIDENT_KINDS, createCheckinIncidentRepository } from '../modules/checkin/incidents.js'
@@ -424,7 +426,30 @@ export function createTicketRoutes({
   const scanAuditGuard = requirePermission('admin.audit.read', { prisma })
   const financeReadGuard = requirePermission('admin.payments.read', { prisma })
   const financeWriteGuard = requirePermission('admin.payments.approve', { prisma })
+  // Variantes que un organizador (rol por evento) SÍ puede usar: antes de actuar sobre
+  // una orden se verifica que sea de un evento asignado (`assertTicketOrderInScope`).
+  const scopedFinanceReadGuard = requirePermission(
+    'admin.payments.read',
+    { prisma },
+    { eventScoped: true },
+  )
+  const scopedFinanceWriteGuard = requirePermission(
+    'admin.payments.approve',
+    { prisma },
+    { eventScoped: true },
+  )
   const ticketAccessOverrideGuard = requirePermission('admin.events.write', { prisma })
+  // "Vendidas" del panel de evento: la lista pide `admin.checkin.execute` (operar la
+  // puerta), que un organizador no tiene; para él alcanza con poder ver cobros.
+  const scopedTicketsViewGuard = requirePermission('admin.checkin.execute', { prisma }, {
+    eventScoped: true,
+    scopedPermissions: ['admin.payments.read'],
+  })
+  const scopedTicketAccessOverrideGuard = requirePermission(
+    'admin.events.write',
+    { prisma },
+    { eventScoped: true },
+  )
   const actor = (req) => `${req.auth.user.id}:${req.auth.user.email}`
   const mailer = brevo ?? createBrevoAdapter({ env })
   const appUrl = (resolveDeploymentAppUrl(env) || env.VITE_APP_URL || '').replace(/\/$/, '')
@@ -553,11 +578,15 @@ export function createTicketRoutes({
   // con eventId/eventSlug asignado queda limitado a ese evento; los roles
   // globales con admin.checkin.execute pueden operar cualquier evento.
   function assertEventScope(req, targetEventId) {
+    // Cuenta por evento (organizador): manda la lista de eventos asignados, no el
+    // `eventId` único de las cuentas de puerta.
+    if (req.eventScope) return assertEventAccess(req, { eventId: targetEventId })
     if (hasEventScopeAccess(req.auth.user, { eventId: targetEventId })) return
     throw new HttpError(403, 'Esta cuenta no tiene acceso a este evento.')
   }
 
   function assertEventSlugScope(req, targetEventSlug) {
+    if (req.eventScope) return assertEventAccess(req, { slug: targetEventSlug })
     if (hasEventScopeAccess(req.auth.user, { eventSlug: targetEventSlug })) return
     throw new HttpError(403, 'Esta cuenta no tiene acceso a este evento.')
   }
@@ -962,12 +991,14 @@ export function createTicketRoutes({
   )
   router.post(
     '/orders/:orderId/approve',
-    ...financeWriteGuard,
+    ...scopedFinanceWriteGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
+        const approveOrderId = parseOrderId(req)
+        await assertTicketOrderInScope(req, getSupabaseAdmin?.(), approveOrderId)
         assertValidationEnabled(await platformSettingsRepo().get(), 'ticket')
-        const result = await repo().approve(parseOrderId(req), actor(req))
+        const result = await repo().approve(approveOrderId, actor(req))
         // El comprador es anónimo: no tiene cuenta, y la orden vive en el
         // `sessionStorage` de la pestaña en la que compró. Si la cerró —y entre
         // la transferencia y la acreditación pueden pasar 48 horas, así que la
@@ -995,12 +1026,13 @@ export function createTicketRoutes({
    */
   router.post(
     '/orders/:orderId/reject',
-    ...financeWriteGuard,
+    ...scopedFinanceWriteGuard,
     staffLimiter,
     validateBody(rejectOrderSchema),
     async (req, res, next) => {
       try {
         const orderId = parseOrderId(req)
+        await assertTicketOrderInScope(req, getSupabaseAdmin?.(), orderId)
         assertValidationEnabled(await platformSettingsRepo().get(), 'ticket')
         const result = await repo().reject(orderId, req.validatedBody.reason, actor(req))
         const order = result?.order
@@ -1033,11 +1065,13 @@ export function createTicketRoutes({
   )
   router.get(
     '/orders/:orderId/proof-url',
-    ...financeReadGuard,
+    ...scopedFinanceReadGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
-        res.json({ url: await repo().proofUrl(parseOrderId(req)) })
+        const proofOrderId = parseOrderId(req)
+        await assertTicketOrderInScope(req, getSupabaseAdmin?.(), proofOrderId)
+        res.json({ url: await repo().proofUrl(proofOrderId) })
       } catch (error) {
         next(error)
       }
@@ -1046,7 +1080,7 @@ export function createTicketRoutes({
 
   router.get(
     '/orders/:orderId/proof',
-    ...financeReadGuard,
+    ...scopedFinanceReadGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
@@ -1055,6 +1089,7 @@ export function createTicketRoutes({
         if (!supabase) {
           throw new HttpError(503, 'Supabase no está configurado en el servidor.')
         }
+        await assertTicketOrderInScope(req, supabase, orderId)
 
         const path = await repo().proofPath(orderId)
         void touchProofAccessed(supabase, {
@@ -1076,7 +1111,7 @@ export function createTicketRoutes({
     },
   )
 
-  router.get('/', ...guard, staffLimiter, async (req, res, next) => {
+  router.get('/', ...scopedTicketsViewGuard, staffLimiter, async (req, res, next) => {
     try {
       const eventSlug = String(req.query.eventSlug ?? '')
       if (!eventSlug) throw new HttpError(400, 'Falta eventSlug.')
@@ -1089,7 +1124,7 @@ export function createTicketRoutes({
 
   router.put(
     '/:ticketId/access-override',
-    ...ticketAccessOverrideGuard,
+    ...scopedTicketAccessOverrideGuard,
     staffLimiter,
     validateBody(ticketAccessOverrideSchema),
     async (req, res, next) => {

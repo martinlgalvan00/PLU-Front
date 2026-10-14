@@ -85,8 +85,11 @@ describe('rol por evento: candado por defecto', () => {
     const { target } = await boot([organizer])
     try {
       const { cookie } = await loginStaff(target.url, { email: organizer.email })
-      // `GET /api/events` exige admin.events.read, que el organizador SÍ tiene.
-      const denied = await call(target, cookie, 'GET', '/api/events')
+      // Publicar exige admin.events.write, que el organizador SÍ tiene, y aun así
+      // queda cerrado: decidir qué se publica no es suyo.
+      const denied = await call(target, cookie, 'POST', `/api/events/${EVENT_A.eventSlug}/state`, {
+        published: true,
+      })
 
       expect(denied.status).toBe(403)
       expect(denied.body.code).toBe('event_scope_denied')

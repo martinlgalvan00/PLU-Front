@@ -1094,6 +1094,36 @@ export function createSupabaseAthleteRepository(
      * ordena la deuda financiada por vencimiento — el riesgo del club es la
      * que vence primero, no la última creada.
      */
+    /**
+     * Órdenes de INSCRIPCIÓN de un evento. Cuelgan del evento por
+     * `event_registrations.payment_order_id`. Excluye los combos a propósito: incluyen
+     * la afiliación, que es ingreso de PLU y no del organizador.
+     */
+    async listRegistrationOrdersForEvent(eventId, { limit = 200 } = {}) {
+      const registrations = assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .select('payment_order_id')
+          .eq('event_id', eventId)
+          .not('payment_order_id', 'is', null)
+          .limit(2000),
+        'No se pudieron leer las inscripciones del evento.',
+      )
+      const ids = [...new Set((registrations ?? []).map((row) => row.payment_order_id))]
+      if (ids.length === 0) return []
+      return assertSupabaseResult(
+        await client
+          .from('athlete_payment_orders')
+          .select(PAYMENT_ORDER_LIST_COLUMNS)
+          .eq('organization_id', organizationId)
+          .eq('concept', 'registration')
+          .in('id', ids)
+          .order('created_at', { ascending: false })
+          .limit(limit),
+        'No se pudieron leer las órdenes de inscripción del evento.',
+      )
+    },
+
     async listPaymentOrders({
       status,
       statuses,

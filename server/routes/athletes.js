@@ -97,6 +97,7 @@ import {
   assertAthleteOwnsPath,
   createSupabaseAthleteRepository,
 } from '../modules/athletes/supabaseAthleteRepository.js'
+import { assertAthleteOrderInScope } from '../modules/events/orderEventScope.js'
 import {
   PROFILE_NOTICE_BULK_MAX,
   PROFILE_NOTICE_MESSAGE_MAX,
@@ -797,6 +798,18 @@ export function createAthleteRoutes({
   )
   const financeGuard = requirePermission('admin.payments.approve', { prisma })
   const financeReadGuard = requirePermission('admin.payments.read', { prisma })
+  // Variantes que un organizador (rol por evento) SÍ puede usar sobre las órdenes de
+  // inscripción de SUS eventos: antes de actuar se verifica el evento de la orden.
+  const scopedFinanceReadGuard = requirePermission(
+    'admin.payments.read',
+    { prisma },
+    { eventScoped: true },
+  )
+  const scopedFinanceGuard = requirePermission(
+    'admin.payments.approve',
+    { prisma },
+    { eventScoped: true },
+  )
   const staffApplicationsReadGuard = requirePermission('admin.staff_applications.read', { prisma })
   const staffApplicationsApproveGuard = requirePermission('admin.staff_applications.approve', {
     prisma,
@@ -2670,13 +2683,14 @@ export function createAthleteRoutes({
 
   router.post(
     '/admin/payment-orders/:orderId/reject',
-    ...financeGuard,
+    ...scopedFinanceGuard,
     staffLimiter,
     validateBody(rejectPaymentSchema),
     async (req, res, next) => {
       const orderId = z.string().uuid().safeParse(req.params.orderId)
       try {
         if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+        await assertAthleteOrderInScope(req, getSupabaseAdmin?.(), orderId.data)
         await assertOrderValidationEnabled(orderId.data)
         const result = await repo().rejectPayment(
           orderId.data,
@@ -2757,12 +2771,13 @@ export function createAthleteRoutes({
   )
   router.get(
     '/admin/payment-orders/:orderId/proof-url',
-    ...financeReadGuard,
+    ...scopedFinanceReadGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
         const orderId = z.string().uuid().safeParse(req.params.orderId)
         if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+        await assertAthleteOrderInScope(req, getSupabaseAdmin?.(), orderId.data)
         res.json({ url: await repo().paymentProofUrl(orderId.data) })
       } catch (error) {
         next(error)
@@ -2771,7 +2786,7 @@ export function createAthleteRoutes({
   )
   router.get(
     '/admin/payment-orders/:orderId/proof',
-    ...financeReadGuard,
+    ...scopedFinanceReadGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
@@ -2782,6 +2797,7 @@ export function createAthleteRoutes({
         if (!supabase) {
           throw new HttpError(503, 'Supabase no está configurado en el servidor.')
         }
+        await assertAthleteOrderInScope(req, supabase, orderId.data)
 
         const path = await repo().paymentProofPath(orderId.data)
         // Best-effort: registro de acceso para auditoría de retención.
@@ -2895,13 +2911,14 @@ export function createAthleteRoutes({
   )
   router.post(
     '/admin/payment-orders/:orderId/approve',
-    ...financeGuard,
+    ...scopedFinanceGuard,
     staffLimiter,
     validateBody(approvePaymentSchema),
     async (req, res, next) => {
       const orderId = z.string().uuid().safeParse(req.params.orderId)
       try {
         if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+        await assertAthleteOrderInScope(req, getSupabaseAdmin?.(), orderId.data)
         await assertOrderValidationEnabled(orderId.data)
         const overrideReason = req.validatedBody?.overrideReason ?? null
         const result = await repo().approvePayment(orderId.data, actorLabel(req), {
