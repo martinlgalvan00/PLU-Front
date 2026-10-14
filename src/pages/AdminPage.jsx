@@ -29,7 +29,8 @@ import {
   clearAdminEventRoute,
   shouldClearAdminEventWorkspace,
 } from '../lib/adminEventRoute.js'
-import { hasAnyPermission, hasPermission } from '../lib/permissions.js'
+import { hasAnyPermission, hasPermission, isEventScopedSession } from '../lib/permissions.js'
+import { canManageEventTeam } from '../lib/roles.js'
 import { findUnreconciledApprovedPayments } from '../services/paymentReconciliationService.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
@@ -158,6 +159,7 @@ export default function AdminPage({
   onUpdateUserRole,
   onBulkUpdateUserRole,
   onUpdateUserStatus,
+  onSetUserEventAccess,
   onUpdateRolePermissions,
   onUpdateRoleStatus,
   permissionCatalog,
@@ -525,6 +527,8 @@ export default function AdminPage({
           loadError={adminEventsError}
           canEdit={hasPermission(authorization, 'admin.events.write')}
           canManageUsers={canManageUsers}
+          canManageEventTeam={canManageEventTeam(authorization)}
+          eventScoped={isEventScopedSession(authorization)}
           canViewScanReport={canViewScanReport}
           canValidatePayments={hasPermission(authorization, 'admin.payments.approve')}
           onApprovePayment={onApprovePayment}
@@ -561,7 +565,9 @@ export default function AdminPage({
           onFetchDeleteImpact={onFetchEventDeleteImpact}
           onSetEventRegistrationPrice={onSetEventRegistrationPrice}
           onClearEventPriceSchedule={onClearEventPriceSchedule}
-          onSetEventState={onSetEventState}
+          // Publicar, ocultar y abrir/cerrar inscripciones no son del organizador: sin esta
+          // acción desaparecen la barra de estado, el control de Datos y la selección en lote.
+          onSetEventState={isEventScopedSession(authorization) ? undefined : onSetEventState}
           onSetEventLogo={onSetEventLogo}
           onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
           payments={payments}
@@ -594,6 +600,7 @@ export default function AdminPage({
           onResetPassword={onResetStaffPassword}
           onUpdateRole={onUpdateUserRole}
           onUpdateStatus={onUpdateUserStatus}
+          onSetEventAccess={onSetUserEventAccess}
           permissionCatalog={permissionCatalog}
           users={users}
         />

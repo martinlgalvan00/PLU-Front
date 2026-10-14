@@ -191,7 +191,7 @@ export async function registerTicketPaymentProof(orderId, accessToken, proofPath
 // Misma forma de fila para la cola de pendientes y para el historial
 // completo -- lo único que cambia entre las dos pantallas es qué le pide cada
 // una al backend, no cómo se lee la respuesta.
-function mapTicketOrderRow(row) {
+export function mapTicketOrderRow(row) {
   const order = toCamelOrder(row.order ?? row)
   const event = row.event ?? {}
   return {

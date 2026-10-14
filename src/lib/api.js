@@ -169,6 +169,13 @@ export function apiPatch(path, payload) {
   })
 }
 
+export function apiPut(path, payload) {
+  return apiRequest(path, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
 export function apiDelete(path) {
   return apiRequest(path, { method: 'DELETE' })
 }
@@ -303,6 +310,12 @@ export function bulkUpdateStaffUserRoleRequest(userIds, roleKey) {
 
 export function updateStaffUserStatusRequest(userId, status) {
   return apiPatch(`/api/users/${encodeURIComponent(userId)}/status`, { status })
+}
+
+// Reemplaza el conjunto de eventos que un organizador puede gestionar. Solo quien
+// administra usuarios; vale al instante (el servidor purga la caché de su sesión).
+export function setStaffUserEventAccessRequest(userId, eventIds) {
+  return apiPut(`/api/users/${encodeURIComponent(userId)}/event-access`, { eventIds })
 }
 
 export function deleteStaffUserRequest(userId) {

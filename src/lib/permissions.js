@@ -602,10 +602,23 @@ export function canAccessSecurityEvent(subject, eventSlug) {
   return hasEventScopeAccess(subject, { eventSlug })
 }
 
+/**
+ * ¿La sesión es de una cuenta por evento (organizador)? Mira el flag que manda el servidor
+ * y, de respaldo, la clave del rol: una cuenta por evento SIN eventos asignados sigue
+ * siéndolo.
+ */
+export function isEventScopedSession(subject) {
+  return subject?.eventScoped === true || isEventScopedRole(subject)
+}
+
 export function getAllowedAdminSections(subject) {
-  return Object.entries(ADMIN_SECTION_PERMISSIONS)
+  const sections = Object.entries(ADMIN_SECTION_PERMISSIONS)
     .filter(([, permissionKeys]) => hasAnyPermission(subject, permissionKeys))
     .map(([section]) => section)
+  // El organizador solo trabaja en Eventos, sobre los suyos. Sus permisos (leer
+  // inscripciones, ver pagos) abrirían Personas, Grilla, Pagos y Finanzas, que traen
+  // datos de TODOS los eventos y el servidor le niega: se recorta acá, en la fuente.
+  return isEventScopedSession(subject) ? sections.filter((section) => section === 'events') : sections
 }
 
 export function getDefaultPermissionsForRole(roleKey) {

@@ -50,6 +50,7 @@ import {
   summarizeEventPaymentChannels,
 } from '../../lib/eventPublishChecks.js'
 import { EVENT_PAYMENT_CHANNELS } from '../../lib/eventPaymentChannels.js'
+import useEventPayments from '../../hooks/useEventPayments.js'
 import usePlatformPaymentChannels from '../../hooks/usePlatformPaymentChannels.js'
 import { fetchSiteTeaser, saveSiteTeaser } from '../../services/siteTeaserService.js'
 import {
@@ -338,6 +339,13 @@ export default function EventsSection({
   canEdit,
   canDeleteEvents = false,
   canManageUsers,
+  // Equipo de puerta del evento: lo gestionan quienes administran usuarios Y el
+  // organizador (con `admin.event_team.write`) sobre sus eventos. Sin valor, vale
+  // lo que `canManageUsers`.
+  canManageEventTeam = null,
+  // Cuenta por evento (organizador): ve y edita solo sus eventos. No crea, publica,
+  // destaca ni toca el aviso del sitio: esas rutas están cerradas para él en el servidor.
+  eventScoped = false,
   canViewScanReport = false,
   canValidatePayments = false,
   isLoading = false,
@@ -415,6 +423,8 @@ export default function EventsSection({
   }
 
   useEffect(() => {
+    // El aviso del sitio es global (de PLU): el organizador no lo ve ni lo pide.
+    if (eventScoped) return undefined
     let active = true
     fetchSiteTeaser()
       .then((teaser) => {
@@ -432,7 +442,7 @@ export default function EventsSection({
     return () => {
       active = false
     }
-  }, [])
+  }, [eventScoped])
 
   async function handleToggleTeaser(next) {
     if (!canEdit || teaserBusy) return
@@ -465,8 +475,10 @@ export default function EventsSection({
   // las mismas decisiones que editar (ver AdminEventQuickCreate). El alta es una
   // página con su URL (`/admin/eventos/nuevo`): el estado local manda y la URL
   // lo refleja, igual que el workspace, así funciona también montada sola.
-  const [quickCreateOpen, setQuickCreateOpen] = useState(() =>
-    isAdminEventCreateSlug(adminEventWorkspaceSlug),
+  // Quién ve la pestaña "Zonas y seguridad" y puede armar el equipo de puerta.
+  const teamAccess = canManageEventTeam ?? canManageUsers
+  const [quickCreateOpen, setQuickCreateOpen] = useState(
+    () => !eventScoped && isAdminEventCreateSlug(adminEventWorkspaceSlug),
   )
   // Duplicar un evento abre el alta con sus datos repetibles ya cargados.
   const [duplicateSource, setDuplicateSource] = useState(null)
@@ -557,13 +569,13 @@ export default function EventsSection({
   const createRouteActive = isAdminEventCreateSlug(adminEventWorkspaceSlug)
   const wasCreateRouteRef = useRef(createRouteActive)
   useEffect(() => {
-    if (createRouteActive) {
+    if (createRouteActive && !eventScoped) {
       setQuickCreateOpen(true)
     } else if (wasCreateRouteRef.current) {
       setQuickCreateOpen(false)
     }
     wasCreateRouteRef.current = createRouteActive
-  }, [createRouteActive])
+  }, [createRouteActive, eventScoped])
 
   useEffect(() => {
     if (!adminEventWorkspaceSlug || consoleOpen || createRouteActive) return
@@ -924,15 +936,35 @@ export default function EventsSection({
     ? (adminEvents.find((event) => event.id === draft.id) ?? selectedEvent)
     : null
 
+  // Un organizador no puede leer los listados globales de pagos: sus cobros salen del
+  // endpoint de SU evento. El resto del staff sigue usando el snapshot global.
+  const scopedPayments = useEventPayments(selectedEvent?.slug, {
+    enabled: eventScoped && Boolean(selectedEvent),
+  })
+  const paymentsSource = eventScoped
+    ? {
+        payments: scopedPayments.payments,
+        athletes: scopedPayments.athletes,
+        pendingTicketOrders: scopedPayments.pendingTicketOrders,
+      }
+    : { payments, athletes, pendingTicketOrders }
+  const handleRefreshPayments = eventScoped ? scopedPayments.reload : onRefreshPayments
+
   const selectedPaymentTriage = useMemo(
     () =>
       buildEventPaymentTriage({
         event: selectedEvent,
-        payments,
-        athletes,
-        pendingTicketOrders,
+        payments: paymentsSource.payments,
+        athletes: paymentsSource.athletes,
+        pendingTicketOrders: paymentsSource.pendingTicketOrders,
       }),
-    [athletes, payments, pendingTicketOrders, selectedEvent],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- paymentsSource se arma en cada render
+    [
+      paymentsSource.athletes,
+      paymentsSource.payments,
+      paymentsSource.pendingTicketOrders,
+      selectedEvent,
+    ],
   )
   const selectedPaymentSummary = useMemo(
     () => formatEventPaymentTriageSummary(selectedPaymentTriage.counts, t),
@@ -1487,7 +1519,7 @@ export default function EventsSection({
               pinBusy={pinBusyId === row.id}
               visibilityBusy={visibilityBusyId === row.id}
               justCreated={row.id === justCreatedId}
-              canPin={canEdit}
+              canPin={canEdit && !eventScoped}
               selectMode={selectMode}
               checked={selectedIds.has(row.id)}
               onToggleSelect={toggleSelected}
@@ -1528,7 +1560,7 @@ export default function EventsSection({
             {selectMode ? t('admin.sections.events.selectDone') : t('admin.sections.events.select')}
           </Button>
         ) : null}
-        {canEdit ? (
+        {canEdit && !eventScoped ? (
           <Button type="button" variant="gold" className="btn--small" onClick={openCreateForm}>
             <Plus size={15} aria-hidden />
             {t('admin.actions.newEvent')}
@@ -1657,13 +1689,14 @@ export default function EventsSection({
           activeSection={consoleSection}
           canDelete={canDeleteEvents && Boolean(onDeleteEvent)}
           canEdit={canEdit}
-          canManageUsers={canManageUsers}
+          canManageUsers={teamAccess}
           editor={
             formOpen && draft.id && EDITOR_SECTIONS.has(consoleSection) ? (
               <AdminEventEditor
                 key={draft.id}
                 accordion
                 embedded
+                eventScoped={eventScoped}
                 baselineSignature={editorBaselineSignature}
                 canEdit={canEdit}
                 draft={draft}
@@ -1709,7 +1742,7 @@ export default function EventsSection({
             discardStateRef.current = fn
           }}
           onToggleOccupancy={toggleOccupancy}
-          onTogglePin={handleTogglePin}
+          onTogglePin={eventScoped ? undefined : handleTogglePin}
           pinBusy={pinBusyId === selectedEvent.id}
           onTogglePublicModule={togglePublicModule}
           openChapter={consoleChapter}
@@ -1718,7 +1751,7 @@ export default function EventsSection({
           paymentsSection={
             canValidatePayments || onManagePayments || onOpenFinanceForEvent ? (
               <AdminEventPaymentsTriage
-                athletes={athletes}
+                athletes={paymentsSource.athletes}
                 canEdit={canValidatePayments}
                 event={selectedEvent}
                 onApprovePayment={onApprovePayment}
@@ -1726,11 +1759,11 @@ export default function EventsSection({
                 onOpenFinance={
                   onOpenFinanceForEvent ? () => onOpenFinanceForEvent(selectedEvent) : undefined
                 }
-                onRefresh={onRefreshPayments}
+                onRefresh={handleRefreshPayments}
                 onRejectPayment={onRejectPayment}
                 onRejectTicketOrder={onRejectTicketOrder}
-                payments={payments}
-                pendingTicketOrders={pendingTicketOrders}
+                payments={paymentsSource.payments}
+                pendingTicketOrders={paymentsSource.pendingTicketOrders}
               />
             ) : null
           }
@@ -1738,10 +1771,10 @@ export default function EventsSection({
             formOpen && draft.id && draft.id === selectedEvent.id ? draft : null
           }
           securitySection={
-            canManageUsers ? (
+            teamAccess ? (
               <div className="admin-event-workspace__security-stack">
                 <AdminEventZonesSection
-                  canManageUsers={canManageUsers}
+                  canManageUsers={teamAccess}
                   eventId={selectedEvent.id}
                   eventSlug={selectedEvent.slug}
                   onAssignMember={
@@ -1763,7 +1796,7 @@ export default function EventsSection({
                   reloadToken={zonesReloadToken}
                 />
                 <AdminEventSecuritySection
-                  canManageUsers={canManageUsers}
+                  canManageUsers={teamAccess}
                   eventId={selectedEvent.id}
                   eventSlug={selectedEvent.slug}
                   eventEndsAt={selectedEvent.endsAt}
@@ -1902,14 +1935,16 @@ export default function EventsSection({
         </p>
       ) : null}
 
-        <AdminSiteTeaserControl
-          busy={teaserBusy}
-          canEdit={canEdit}
-          enabled={teaserEnabled}
-          loadFailed={teaserLoadFailed}
-          onRetry={loadSiteTeaser}
-          onToggle={handleToggleTeaser}
-        />
+        {eventScoped ? null : (
+          <AdminSiteTeaserControl
+            busy={teaserBusy}
+            canEdit={canEdit}
+            enabled={teaserEnabled}
+            loadFailed={teaserLoadFailed}
+            onRetry={loadSiteTeaser}
+            onToggle={handleToggleTeaser}
+          />
+        )}
 
         <div className="admin-events-workspace">
           <div className="admin-events-workspace__main">
@@ -1933,7 +1968,7 @@ export default function EventsSection({
                     ? t('admin.sections.events.emptyLead')
                     : t('admin.sections.events.emptyFilteredLead')}
                 </p>
-                {canEdit && adminEvents.length === 0 ? (
+                {canEdit && !eventScoped && adminEvents.length === 0 ? (
                   <Button
                     type="button"
                     variant="gold"

@@ -2391,6 +2391,24 @@ export default {
     pendingActivation: 'Invitación pendiente',
     alsoAthlete: 'Atleta',
     actionViewAthlete: 'Ver ficha de atleta',
+    actionEventAccess: 'Eventos asignados',
+    eventAccess: {
+      title: 'Eventos de {{name}}',
+      description:
+        'Esta cuenta solo va a poder ver y gestionar los eventos que marques. Sin ninguno, no ve nada. Los cambios valen al instante.',
+      searchLabel: 'Buscar evento',
+      searchPlaceholder: 'Nombre o identificador',
+      empty: 'No hay eventos que coincidan.',
+      noneSelected: 'Ningún evento seleccionado.',
+      selectedCount: '{{count}} seleccionados',
+      cancel: 'Cancelar',
+      save: 'Guardar eventos',
+      saving: 'Guardando…',
+      saveError: 'No se pudieron guardar los eventos.',
+      tagOne: '1 evento',
+      tagMany: '{{count}} eventos',
+      tagNone: 'Sin eventos',
+    },
     actionActivate: 'Dar de alta',
     actionSuspend: 'Suspender',
     actionDisable: 'Dar de baja',
@@ -4099,6 +4117,8 @@ export default {
       ticket: 'Entradas',
     },
     paymentChannelReset: 'Volver a los medios de la plataforma',
+    paymentChannelClosedByPlatform:
+      'PLU lo tiene cerrado para todos los eventos. Para abrirlo, pedíselo a Finanzas.',
     paymentChannelShort: {
       mercado_pago: 'Mercado Pago',
       bank_transfer: 'Transferencia',

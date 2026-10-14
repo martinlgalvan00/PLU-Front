@@ -19,6 +19,10 @@ export default function EventVisibilitySection({
   draft,
   patchDraft,
   statusOptions,
+  // Cuenta por evento (organizador): estado, publicación, afiliación y destacado los decide
+  // PLU. El servidor los fuerza al valor actual; acá se muestran bloqueados para no prometer
+  // un cambio que no se guarda.
+  eventScoped = false,
   consistencyWarnings,
   publishChecks = [],
   accessOptions,
@@ -46,7 +50,7 @@ export default function EventVisibilitySection({
         <>
           <AdminFilterChipGroup
             compact
-            disabled={!canEdit}
+            disabled={!canEdit || eventScoped}
             id="event-status"
             label={t('admin.eventEditor.publicStatus')}
             value={draft.status}
@@ -78,7 +82,7 @@ export default function EventVisibilitySection({
               className="admin-event-form__toggle-input"
               type="checkbox"
               onChange={(event) => patchDraft({ ...draft, published: event.target.checked })}
-              disabled={!canEdit}
+              disabled={!canEdit || eventScoped}
             />
             <span className="admin-event-form__toggle-ui" aria-hidden />
             <span className="admin-event-form__toggle-copy">
@@ -113,7 +117,7 @@ export default function EventVisibilitySection({
           <div className="admin-event-form__access">
             <AdminFilterChipGroup
               compact
-              disabled={!canEdit}
+              disabled={!canEdit || eventScoped}
               id="event-access"
               label={t('admin.eventEditor.accessLabel')}
               value={draft.requiresMembership === false ? 'open' : 'members'}
@@ -142,7 +146,7 @@ export default function EventVisibilitySection({
           className="admin-event-form__toggle-input"
           type="checkbox"
           onChange={(event) => patchDraft({ ...draft, featured: event.target.checked })}
-          disabled={!canEdit}
+          disabled={!canEdit || eventScoped}
         />
         <span className="admin-event-form__toggle-ui" aria-hidden />
         <span className="admin-event-form__toggle-copy">
