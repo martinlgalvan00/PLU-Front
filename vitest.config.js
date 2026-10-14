@@ -27,6 +27,9 @@ export default defineConfig({
   // Prefijo alineado con vite.config: PAID_CHECKOUT_* llega a import.meta.env en tests.
   envPrefix: ['VITE_', 'PAYMENTS_', 'APP_', 'PAID_'],
   test: {
+    // Vitest 5 movió el puerto del servidor de browser mode a `test.api`:
+    // `browser.api` quedó deprecado y se ignora (volvía a 63315, reservado en Windows).
+    api: { port: BROWSER_API_PORT },
     // En unit tests el checkout de pago queda abierto salvo que el caso pase
     // un env explícito (APP_PRODUCTION + PAID_CHECKOUT_*). Evita que el
     // APP_PRODUCTION=true del .env local cierre todos los flujos de cobro.
