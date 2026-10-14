@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Eye, LockKeyhole, Minus, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
+import { Copy, Eye, LockKeyhole, Minus, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
 import '../../styles/pages/admin-roles.css'
 import AdminPageHeader from '../../components/admin/AdminPageHeader.jsx'
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
@@ -85,6 +85,9 @@ export default function RolesSection({
   const [isCreating, setIsCreating] = useState(false)
   const [isCreatingRole, setIsCreatingRole] = useState(false)
   const [roleDraft, setRoleDraft] = useState({ name: '', description: '' })
+  // Rol del que se está copiando, si el formulario de alta se abrió con
+  // «Duplicar»: arrastra los permisos ya filtrados para que el alta los envíe.
+  const [duplicateSource, setDuplicateSource] = useState(null)
   const [pendingRoleId, setPendingRoleId] = useState(null)
   const [permSearch, setPermSearch] = useState('')
 
@@ -265,6 +268,31 @@ export default function RolesSection({
     }
   }
 
+  // Abre el alta con el nombre, la descripción y los permisos del rol elegido.
+  // Los reservados (usuarios, roles, tarifas, tandas) se descartan acá porque el
+  // servidor rechaza cualquier matriz que los incluya; lo que sobra ya es
+  // coherente (si el origen opera un módulo, también lo lee).
+  function handleDuplicateRole() {
+    if (!selectedRole || !canCreateRole) return
+    if (dirty) {
+      setMessage({ tone: 'warning', text: t('admin.roles.finishChangesFirst') })
+      return
+    }
+    const allKeys = selectedRole.permissions ?? []
+    const permissionKeys = allKeys.filter((key) => !isReservedPermission(key))
+    setDuplicateSource({
+      name: selectedRole.name,
+      permissionKeys,
+      droppedCount: allKeys.length - permissionKeys.length,
+    })
+    setRoleDraft({
+      name: t('admin.roles.copyName', { role: selectedRole.name }).slice(0, 64),
+      description: (selectedRole.description ?? '').slice(0, 180),
+    })
+    setIsCreating(true)
+    setMessage(null)
+  }
+
   async function handleCreateRole(event) {
     event.preventDefault()
     const name = roleDraft.name.trim()
@@ -283,11 +311,12 @@ export default function RolesSection({
       const createdRole = await onCreateRole({
         name,
         description: roleDraft.description.trim(),
-        permissionKeys: [],
+        permissionKeys: duplicateSource?.permissionKeys ?? [],
       })
       setSelectedRoleId(createdRole.id)
       setView(VIEWS.edit)
       setRoleDraft({ name: '', description: '' })
+      setDuplicateSource(null)
       setIsCreating(false)
       setMessage({
         tone: 'success',
@@ -332,6 +361,10 @@ export default function RolesSection({
             text: t('admin.roles.finishChangesFirst'),
           })
           return
+        }
+        if (isCreating) {
+          setDuplicateSource(null)
+          setRoleDraft({ name: '', description: '' })
         }
         setIsCreating((current) => !current)
         setMessage(null)
@@ -402,7 +435,17 @@ export default function RolesSection({
               <Plus size={14} aria-hidden />
               {isCreatingRole ? t('admin.roles.creating') : t('admin.roles.create')}
             </Button>
-            <p>{t('admin.roles.createHint')}</p>
+            <p>
+              {duplicateSource
+                ? t('admin.roles.duplicateHint', {
+                    count: duplicateSource.permissionKeys.length,
+                    role: duplicateSource.name,
+                  })
+                : t('admin.roles.createHint')}
+              {duplicateSource?.droppedCount > 0
+                ? ` ${t('admin.roles.duplicateDropped', { count: duplicateSource.droppedCount })}`
+                : ''}
+            </p>
           </div>
         </form>
       ) : null}
@@ -465,6 +508,19 @@ export default function RolesSection({
                   </dd>
                 </div>
               </dl>
+
+              {canCreateRole ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="btn--small roles-editor__status"
+                  disabled={dirty || isCreatingRole}
+                  onClick={handleDuplicateRole}
+                >
+                  <Copy size={14} aria-hidden />
+                  {t('admin.roles.duplicateRole')}
+                </Button>
+              ) : null}
 
               {editable && onUpdateStatus ? (
                 <Button
