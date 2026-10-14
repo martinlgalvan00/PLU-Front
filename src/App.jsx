@@ -807,6 +807,7 @@ export default function App() {
           onUpdateUserRole={app.updateUserRoleAction}
           onBulkUpdateUserRole={app.bulkUpdateUserRoleAction}
           onUpdateUserStatus={app.updateUserStatusAction}
+          onSetUserEventAccess={app.setUserEventAccessAction}
           onUpdateRolePermissions={app.updateAccessRolePermissionsAction}
           onUpdateRoleStatus={app.updateAccessRoleStatusAction}
           payments={app.payments}

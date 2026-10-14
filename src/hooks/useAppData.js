@@ -34,6 +34,7 @@ import {
   bulkUpdateStaffUserRoleRequest,
   updateStaffUserRoleRequest,
   updateStaffUserStatusRequest,
+  setStaffUserEventAccessRequest,
 } from '../lib/api.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
 import { normalizeAdminFacetValue } from '../lib/adminPeopleFilters.js'
@@ -54,6 +55,7 @@ import {
   ACCESS_ROLE_TEMPLATES,
   getDefaultPermissionsForRole,
   hasAnyPermission,
+  isEventScopedSession,
   hasPermission,
   PERMISSION_CATALOG,
 } from '../lib/permissions.js'
@@ -234,6 +236,18 @@ const LIVE_REFRESH_HINT_DELAY_MS = 600
 const LIVE_PUBLIC_CATALOG_SYNC_MS = 30_000
 // Varios cambios seguidos (guardar un evento toca varias filas) se leen juntos.
 const CATALOG_NOTICE_DEBOUNCE_MS = 400
+
+/**
+ * Precio de inscripción de UN evento. `admin.pricing.write` está reservado a Super Admin
+ * y Administrador y no se delega; un organizador (cuenta por evento) lo programa para SU
+ * evento con `admin.events.write`, y el servidor verifica que el evento sea suyo.
+ */
+function canWriteEventPrice(session) {
+  return (
+    hasPermission(session, 'admin.pricing.write') ||
+    (isEventScopedSession(session) && hasPermission(session, 'admin.events.write'))
+  )
+}
 
 export function useAppData() {
   const oauth = usePluOAuth()
@@ -434,7 +448,16 @@ export function useAppData() {
           // publicado y su estado guardado): el catálogo público, que es un
           // subconjunto, no puede reemplazarla.
           const staff = sessionRef.current
-          if (staff && !isDemoSession(staff) && hasPermission(staff, 'admin.events.read')) return
+          // Un organizador NO tiene la lista del panel completa (solo sus eventos): para él el
+          // catálogo público sigue siendo la fuente de las páginas públicas.
+          if (
+            staff &&
+            !isDemoSession(staff) &&
+            !isEventScopedSession(staff) &&
+            hasPermission(staff, 'admin.events.read')
+          ) {
+            return
+          }
           if (eventsEpochRef.current !== epoch) {
             // Respuesta vieja: se descarta y se pide de nuevo una vez.
             if (retriesLeft > 0) {
@@ -653,12 +676,17 @@ export function useAppData() {
       }
 
       const tasks = []
-      const canReadAthleteData = hasAnyPermission(session, [
-        'admin.athletes.read',
-        'admin.memberships.read',
-        'admin.registrations.read',
-        'admin.payments.read',
-      ])
+      // Un organizador tiene `registrations.read` y `payments.read`, pero este listado trae
+      // los atletas y pagos de TODOS los eventos y el servidor se lo niega: no se pide (los
+      // cobros de su evento salen de `GET /api/events/:slug/payments`).
+      const canReadAthleteData =
+        !isEventScopedSession(session) &&
+        hasAnyPermission(session, [
+          'admin.athletes.read',
+          'admin.memberships.read',
+          'admin.registrations.read',
+          'admin.payments.read',
+        ])
 
       if (canReadAthleteData) {
         // Loader bloqueante solo en la primera carga: las sincronizaciones
@@ -1873,7 +1901,14 @@ export function useAppData() {
   )
 
   const refreshPendingTicketOrders = useCallback(async () => {
-    if (!hasPermission(session, 'admin.payments.read') || isDemoSession(session)) return
+    // El listado pendiente es de todos los eventos: el organizador usa el de su evento.
+    if (
+      !hasPermission(session, 'admin.payments.read') ||
+      isDemoSession(session) ||
+      isEventScopedSession(session)
+    ) {
+      return
+    }
     setPendingTicketOrdersLoading(true)
     setPendingTicketOrdersError(null)
     try {
@@ -1916,7 +1951,9 @@ export function useAppData() {
   // usado de forma atómica — dos escaneos simultáneos del mismo QR no
   // pueden dejar pasar a las dos personas (ver server/modules/ticketing).
   useEffect(() => {
-    if (!hasPermission(session, 'admin.payments.read')) return undefined
+    if (!hasPermission(session, 'admin.payments.read') || isEventScopedSession(session)) {
+      return undefined
+    }
     refreshPendingTicketOrders()
     return undefined
   }, [session, refreshPendingTicketOrders])
@@ -2051,6 +2088,20 @@ export function useAppData() {
     },
     [session, users],
   )
+
+  // Eventos que gestiona un organizador. Devuelve el usuario con su lista nueva.
+  const setUserEventAccessAction = useCallback(async (userId, eventIds) => {
+    const { eventAccess } = await setStaffUserEventAccessRequest(userId, eventIds)
+    let updated = null
+    setUsers((current) =>
+      current.map((item) => {
+        if (item.id !== userId) return item
+        updated = { ...item, eventAccess }
+        return updated
+      }),
+    )
+    return updated ?? { id: userId, eventAccess }
+  }, [])
 
   // Alta real de staff (admin/operador/viewer): el backend crea la cuenta
   // invitada y manda un enlace firmado para elegir contraseña.
@@ -3621,10 +3672,7 @@ export function useAppData() {
   // relectura del catálogo al terminar.
   const setEventRegistrationPrice = useCallback(
     async (eventSlug, payload) => {
-      if (
-        !hasPermission(session, 'admin.pricing.write') ||
-        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
-      ) {
+      if (!canWriteEventPrice(session) || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
         return { error: 'La configuración económica está disponible próximamente.' }
       }
       try {
@@ -3643,10 +3691,7 @@ export function useAppData() {
 
   const clearEventRegistrationPriceSchedule = useCallback(
     async (eventSlug) => {
-      if (
-        !hasPermission(session, 'admin.pricing.write') ||
-        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
-      ) {
+      if (!canWriteEventPrice(session) || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
         return { error: 'La configuración económica está disponible próximamente.' }
       }
       try {
@@ -4007,6 +4052,7 @@ export function useAppData() {
     updateUserRoleAction,
     bulkUpdateUserRoleAction,
     updateUserStatusAction,
+    setUserEventAccessAction,
     createUserAction,
     acceptStaffInvitationAction,
     changeOwnPasswordAction,

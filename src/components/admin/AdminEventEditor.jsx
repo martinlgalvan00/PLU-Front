@@ -355,6 +355,8 @@ function useWorkspaceSaveHost(enabled) {
 
 export default function AdminEventEditor({
   canEdit,
+  // Cuenta por evento (organizador): ver EventSalesSection / EventVisibilitySection.
+  eventScoped = false,
   draft,
   /** Sin portal ni shell propio: el formulario vive dentro de la consola. */
   embedded = false,
@@ -1099,6 +1101,7 @@ export default function AdminEventEditor({
 
           {activeTab === 'sales' && (
             <EventSalesSection
+              eventScoped={eventScoped}
               activePanelRef={activePanelRef}
               t={t}
               essentials={essentials}
@@ -1149,6 +1152,7 @@ export default function AdminEventEditor({
 
           {activeTab === 'visibility' && (
             <EventVisibilitySection
+              eventScoped={eventScoped}
               activePanelRef={activePanelRef}
               t={t}
               essentials={essentials}

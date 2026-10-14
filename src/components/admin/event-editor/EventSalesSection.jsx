@@ -19,6 +19,9 @@ import { updatePricingField } from './draftPatches.js'
 import { CapacityPublicBreakdown, FormField } from './parts.jsx'
 
 export default function EventSalesSection({
+  // Cuenta por evento (organizador): no abre medios cerrados por PLU, no carga cuentas de
+  // cobro sueltas ni restablece los medios (perdería lo que PLU le abrió).
+  eventScoped = false,
   activePanelRef,
   t,
   essentials,
@@ -464,13 +467,14 @@ export default function EventSalesSection({
             platform={platformChannels.platform}
             platformStatus={platformChannels.status}
             canEdit={canEdit}
+            restrictOpen={eventScoped}
             ticketError={err('paymentChannelOverrides.ticket')}
           />
 
           {/* Sin override el evento sigue lo que Finanzas abra o cierre
               mañana. Con override queda fijo en lo que difiere, así que
               conviene poder volver. */}
-          {canEdit && draft.paymentChannelOverrides != null ? (
+          {canEdit && !eventScoped && draft.paymentChannelOverrides != null ? (
             <button
               className="button button--ghost admin-event-form__channel-reset"
               type="button"
@@ -692,7 +696,9 @@ export default function EventSalesSection({
                   onChange={(changeEvent) => applyBankProfile(changeEvent.target.value || null)}
                   disabled={!canEdit || bankProfilesLoading}
                 >
-                  <option value="">{t('admin.eventEditor.bankTransferProfileNone')}</option>
+                  {!eventScoped || !draft.bankTransferProfileId ? (
+                    <option value="">{t('admin.eventEditor.bankTransferProfileNone')}</option>
+                  ) : null}
                   {bankProfiles.map((profile) => (
                     <option key={profile.id} value={profile.id}>
                       {profile.name}
@@ -726,7 +732,7 @@ export default function EventSalesSection({
                       name: selectedBankProfile?.name ?? bankSummary.alias,
                     })}
                   </p>
-                  {canEdit ? (
+                  {canEdit && !eventScoped ? (
                     <button
                       className="button button--ghost admin-event-form__channel-reset"
                       type="button"
@@ -738,7 +744,8 @@ export default function EventSalesSection({
                 </div>
               ) : (
                 <>
-                  {!draft.bankTransferProfileId &&
+                  {!eventScoped &&
+                  !draft.bankTransferProfileId &&
                   (draft.bankTransfer?.alias ||
                     draft.bankTransfer?.cbu ||
                     draft.bankTransfer?.holder) ? (
@@ -768,7 +775,7 @@ export default function EventSalesSection({
                             },
                           })
                         }
-                        disabled={!canEdit}
+                        disabled={!canEdit || eventScoped}
                         placeholder={t('admin.eventEditor.bankTransferAliasPlaceholder')}
                       />
                     </FormField>
@@ -789,7 +796,7 @@ export default function EventSalesSection({
                             },
                           })
                         }
-                        disabled={!canEdit}
+                        disabled={!canEdit || eventScoped}
                       />
                     </FormField>
                     <FormField
@@ -813,7 +820,7 @@ export default function EventSalesSection({
                             },
                           })
                         }
-                        disabled={!canEdit}
+                        disabled={!canEdit || eventScoped}
                       />
                     </FormField>
                   </div>

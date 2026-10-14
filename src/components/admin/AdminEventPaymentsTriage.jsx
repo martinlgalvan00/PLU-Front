@@ -221,12 +221,17 @@ export default function AdminEventPaymentsTriage({
                           label={t('admin.paymentValidation.viewProof')}
                           onClick={() => openTicketReview(row, 'view')}
                         />
-                      ) : (
+                      ) : row.bucket === 'pending' && (row.ticket.provider ?? 'manual') === 'manual' ? (
                         <span className="admin-event-payments__hint">
                           {t('admin.eventPayments.proofMissing')}
                         </span>
-                      )}
-                      {canEdit && (row.hasProof || row.cashAtPitbull) ? (
+                      ) : null}
+                      {/* Solo se acredita una orden manual que sigue esperando: las aprobadas, las
+                          rechazadas y las de Mercado Pago (que se acreditan solas) no tienen botón. */}
+                      {canEdit &&
+                      row.bucket === 'pending' &&
+                      (row.ticket.provider ?? 'manual') === 'manual' &&
+                      (row.hasProof || row.cashAtPitbull) ? (
                         <AdminIconButton
                           icon={BadgeCheck}
                           label={t('admin.actions.validate')}

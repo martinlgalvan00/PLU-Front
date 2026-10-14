@@ -2357,6 +2357,24 @@ export default {
     pendingActivation: 'Invitation pending',
     alsoAthlete: 'Athlete',
     actionViewAthlete: 'View athlete profile',
+    actionEventAccess: 'Assigned events',
+    eventAccess: {
+      title: 'Events for {{name}}',
+      description:
+        'This account will only be able to view and manage the events you tick. With none, it sees nothing. Changes apply immediately.',
+      searchLabel: 'Search event',
+      searchPlaceholder: 'Name or identifier',
+      empty: 'No events match.',
+      noneSelected: 'No event selected.',
+      selectedCount: '{{count}} selected',
+      cancel: 'Cancel',
+      save: 'Save events',
+      saving: 'Saving…',
+      saveError: 'Could not save the events.',
+      tagOne: '1 event',
+      tagMany: '{{count}} events',
+      tagNone: 'No events',
+    },
     actionActivate: 'Activate',
     actionSuspend: 'Suspend',
     actionDisable: 'Disable',
@@ -4041,6 +4059,8 @@ export default {
       ticket: 'Tickets',
     },
     paymentChannelReset: 'Go back to the platform methods',
+    paymentChannelClosedByPlatform:
+      'PLU has this closed for every event. Ask Finance to open it.',
     paymentChannelShort: {
       mercado_pago: 'Mercado Pago',
       bank_transfer: 'Bank transfer',

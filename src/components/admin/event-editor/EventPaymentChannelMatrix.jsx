@@ -45,6 +45,9 @@ export default function EventPaymentChannelMatrix({
   ticketError = '',
   idPrefix = 'event',
   showLead = true,
+  // Cuenta por evento: puede CERRAR un medio, pero no abrir uno que la plataforma tiene
+  // cerrado (saltearía la política de canales manuales). El servidor lo rechaza igual.
+  restrictOpen = false,
 }) {
   const { t } = useI18n()
   const loading = platformStatus === 'loading'
@@ -129,24 +132,31 @@ export default function EventPaymentChannelMatrix({
                 </small>
               ) : null}
             </span>
-            {EVENT_PAYMENT_CONCEPTS.map((concept) => (
-              <label className="admin-event-form__channel-cell" key={concept}>
-                <input
-                  checked={resolveEventChannelState(
-                    value,
-                    concept,
-                    channel,
-                    platformCellOf(platform, concept, channel),
-                  )}
-                  type="checkbox"
-                  aria-label={`${channelLabel(channel)} · ${conceptLabel(concept)}`}
-                  aria-describedby={hasNote ? noteId : undefined}
-                  onChange={(changeEvent) => patchCell(concept, channel, changeEvent.target.checked)}
-                  disabled={!canEdit || loading}
-                />
-                <span>{conceptLabel(concept)}</span>
-              </label>
-            ))}
+            {EVENT_PAYMENT_CONCEPTS.map((concept) => {
+              const platformCell = platformCellOf(platform, concept, channel)
+              const checked = resolveEventChannelState(value, concept, channel, platformCell)
+              const lockedByPlatform = restrictOpen && !checked && platformCell !== true
+              return (
+                <label className="admin-event-form__channel-cell" key={concept}>
+                  <input
+                    checked={checked}
+                    type="checkbox"
+                    aria-label={`${channelLabel(channel)} · ${conceptLabel(concept)}`}
+                    aria-describedby={hasNote ? noteId : undefined}
+                    title={
+                      lockedByPlatform
+                        ? t('admin.eventEditor.paymentChannelClosedByPlatform')
+                        : undefined
+                    }
+                    onChange={(changeEvent) =>
+                      patchCell(concept, channel, changeEvent.target.checked)
+                    }
+                    disabled={!canEdit || loading || lockedByPlatform}
+                  />
+                  <span>{conceptLabel(concept)}</span>
+                </label>
+              )
+            })}
           </div>
         )
       })}
