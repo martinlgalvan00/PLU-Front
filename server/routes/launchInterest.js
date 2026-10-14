@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
 import { validateBody } from '../lib/validate.js'
 import { publicWriteLimiter, staffLimiter } from '../middleware/rateLimit.js'
-import { requireRole } from '../middleware/auth.js'
+import { requirePermission } from '../middleware/auth.js'
 import { createLaunchInterestRepository } from '../modules/launch/launchInterestRepository.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 
@@ -24,7 +24,11 @@ export function createLaunchInterestRoutes(deps = {}) {
     createLaunchInterestRepository({ getSupabaseAdmin: deps.getSupabaseAdmin })
   const brevo = deps.brevo ?? createBrevoAdapter({ env: deps.env ?? process.env })
   const prisma = typeof deps.getPrisma === 'function' ? deps.getPrisma() : deps.prisma
-  const staffGuard = requireRole(['ops', 'admin', 'admin_maximal'], { prisma })
+  // Permisos del catálogo, no nombres de rol: `ops` y `admin` no existen en el enum
+  // `UserRole`, así que la guarda anterior dejaba afuera al Administrador.
+  // Ver el resumen es lectura del Dashboard; notificar manda mails masivos.
+  const summaryGuard = requirePermission('admin.dashboard.read', { prisma })
+  const notifyGuard = requirePermission('admin.events.write', { prisma })
 
   router.post('/', publicWriteLimiter, validateBody(interestSchema), async (req, res, next) => {
     try {
@@ -44,7 +48,7 @@ export function createLaunchInterestRoutes(deps = {}) {
     }
   })
 
-  router.get('/summary', ...staffGuard, staffLimiter, async (req, res, next) => {
+  router.get('/summary', ...summaryGuard, staffLimiter, async (req, res, next) => {
     try {
       if (!repository) throw new HttpError(503, 'Captura de interés no disponible.')
       const summary = await repository.getSummary()
@@ -56,7 +60,7 @@ export function createLaunchInterestRoutes(deps = {}) {
 
   router.post(
     '/notify',
-    ...staffGuard,
+    ...notifyGuard,
     staffLimiter,
     validateBody(notifySchema),
     async (req, res, next) => {
