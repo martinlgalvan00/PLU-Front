@@ -1078,7 +1078,7 @@ export default {
       manualChannel: {
         mercado_pago: 'Mercado Pago',
         bank_transfer: 'Transferencia bancaria',
-        cash_pitbull: 'Efectivo en Pitbull',
+        cash_pitbull: 'Efectivo en el lugar',
       },
       manualChannelsBadge: {
         bank_transfer: 'Habilita transferencia',
@@ -1230,7 +1230,7 @@ export default {
       channel: {
         mercado_pago: 'Mercado Pago',
         bank_transfer: 'Transferencia bancaria',
-        cash_pitbull: 'Efectivo en Pitbull',
+        cash_pitbull: 'Efectivo en el lugar',
         wise_transfer: 'Wise',
       },
       channelsLabel: 'Medios de cobro',
@@ -4029,7 +4029,7 @@ export default {
       'Desmarcá para volver a heredar la matriz global.',
     paymentChannelMercadoPago: 'Mercado Pago',
     paymentChannelBankTransfer: 'Transferencia',
-    paymentChannelCashPitbull: 'Efectivo Pitbull',
+    paymentChannelCashPitbull: 'Efectivo en el lugar',
     paymentChannelWise: 'Wise',
     ticketSalesState: {
       open: 'La venta está abierta',
@@ -4099,6 +4099,15 @@ export default {
     bankTransferReferenceHint:
       'No se configura acá: el checkout le pide al atleta usar DNI · nombre completo para que Finanzas concilie la transferencia.',
     bankTransferReferenceExample: '40123456 · Juan Pérez',
+    cashPaymentTitle: 'Efectivo en el lugar',
+    cashPaymentHint:
+      'Quien elige efectivo ve dónde pagar. Si no cargás un lugar, se usa la sede del evento.',
+    cashPaymentPlace: 'Dónde se paga',
+    cashPaymentPlaceHint: 'Vacío = la sede del evento: {{venue}}.',
+    cashPaymentPlaceHintNoVenue: 'Vacío = la sede del evento (todavía no está cargada en Datos).',
+    cashPaymentNotes: 'Indicaciones (opcional)',
+    cashPaymentNotesPlaceholder: 'Ej.: mesa de acreditación, el día del evento desde las 8.',
+    cashPaymentPreviewLabel: 'Lo que ve quien paga',
     mercadoPagoProfileTitle: 'Mercado Pago de este evento',
     mercadoPagoProfileHint:
       'Elegí en qué cuenta de Mercado Pago entra la plata de este evento. Las cuentas se vinculan una vez y se reusan; las órdenes ya abiertas siguen cobrando en la cuenta con la que empezaron.',
@@ -4670,6 +4679,8 @@ export default {
       venueMax: 'El nombre de la sede es demasiado largo.',
       locationMin: 'Indicá ciudad o provincia.',
       locationMax: 'La ubicación es demasiado larga.',
+      cashPlaceMax: 'El lugar de pago es demasiado largo (máximo 160 caracteres).',
+      cashNotesMax: 'Las indicaciones son demasiado largas (máximo 400 caracteres).',
       statusRequired: 'Elegí un estado público.',
       priceInvalid: 'Ingresá un monto válido.',
       priceMin: 'El monto no puede ser negativo.',

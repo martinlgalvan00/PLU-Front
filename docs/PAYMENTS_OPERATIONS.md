@@ -179,7 +179,13 @@ Canales: `abierto = override[concepto][canal]` si el evento decidió (`false` /
 *difiere* de la plataforma, así una celda sin tocar sigue lo que Finanzas cambie
 después. Lo que **no** abre un evento: el maestro de cobros (`checkout`), el alta
 del concepto (`registration` / `ticket`) y las pausas de validación; tampoco el
-plazo de 72 h de los canales manuales de entradas. Un canal que el evento cierra
+plazo de 72 h de los canales manuales de entradas. Ese plazo cierra solo
+transferencia y Wise (esperan comprobante y aprobación); el efectivo en el lugar
+(`cash_pitbull`) se cobra en la sede y se acredita en el momento, así que sigue
+abierto hasta el cierre de la venta, igual que Mercado Pago
+(`MANUAL_TICKET_DEADLINE_CHANNELS` en `src/lib/eventPaymentChannels.js`). Dónde se
+paga el efectivo se carga por evento en Ventas → Cobro (`cash_payment_place` /
+`cash_payment_notes`); vacío, es la sede del evento. Un canal que el evento cierra
 no se reabre con un cupón. Membership no se personaliza por evento (sigue usando
 la cuenta global).
 
@@ -347,7 +353,7 @@ combo y entradas Pitbull.
 2. Confirmar con `npm run payments:trace -- <orderId>` que una orden de prueba en
    `wise_transfer` queda con `currency=USD` y el monto esperado.
 3. Recién entonces abrir la celda de Wise, por concepto, en Administración >
-   Acceso y habilitación. Entradas no ofrece "Efectivo en Pitbull" pero sí Wise.
+   Acceso y habilitación. Entradas no ofrece "Efectivo en el lugar" pero sí Wise.
 
 **Aprobación:** misma cola que la transferencia local
 (`AthletePaymentOrdersSection` / `TicketOrdersSection`). Por defecto el

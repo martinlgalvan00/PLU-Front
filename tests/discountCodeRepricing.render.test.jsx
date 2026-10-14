@@ -191,7 +191,7 @@ describe('recotización de un cupón por cambio de canal', () => {
     })
 
     expect(await screen.findByRole('radio', { name: /Transferencia bancaria/i })).toBeTruthy()
-    expect(screen.getByRole('radio', { name: /Efectivo en Pitbull/i })).toBeTruthy()
+    expect(screen.getByRole('radio', { name: /Efectivo en el lugar/i })).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: /Tengo un código/i }))
     fireEvent.change(await screen.findByLabelText(/^Código$/i), {
@@ -202,7 +202,7 @@ describe('recotización de un cupón por cambio de canal', () => {
     await waitFor(() => expect(redeemPromotionCodeRequest).toHaveBeenCalledTimes(1))
     await waitFor(() => {
       expect(screen.queryByRole('radio', { name: /Transferencia bancaria/i })).toBeNull()
-      expect(screen.queryByRole('radio', { name: /Efectivo en Pitbull/i })).toBeNull()
+      expect(screen.queryByRole('radio', { name: /Efectivo en el lugar/i })).toBeNull()
     })
     expect(screen.getByRole('radio', { name: /Mercado Pago/i })).toBeTruthy()
   })

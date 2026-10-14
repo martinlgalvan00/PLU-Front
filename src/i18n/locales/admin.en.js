@@ -1062,7 +1062,7 @@ export default {
       manualChannel: {
         mercado_pago: 'Mercado Pago',
         bank_transfer: 'Bank transfer',
-        cash_pitbull: 'Cash at Pitbull',
+        cash_pitbull: 'Cash on site',
       },
       manualChannelsBadge: {
         bank_transfer: 'Unlocks bank transfer',
@@ -1212,7 +1212,7 @@ export default {
       channel: {
         mercado_pago: 'Mercado Pago',
         bank_transfer: 'Bank transfer',
-        cash_pitbull: 'Cash at Pitbull',
+        cash_pitbull: 'Cash on site',
         wise_transfer: 'Wise',
       },
       channelsLabel: 'Payment methods',
@@ -3971,7 +3971,7 @@ export default {
       'Uncheck to inherit the global matrix again.',
     paymentChannelMercadoPago: 'Mercado Pago',
     paymentChannelBankTransfer: 'Bank transfer',
-    paymentChannelCashPitbull: 'Cash at Pitbull',
+    paymentChannelCashPitbull: 'Cash on site',
     paymentChannelWise: 'Wise',
     ticketSalesState: {
       open: 'Sales are open',
@@ -4041,6 +4041,15 @@ export default {
     bankTransferReferenceHint:
       'Not configured here: checkout asks athletes to use ID · full name so Finance can reconcile the transfer.',
     bankTransferReferenceExample: '40123456 · Jane Doe',
+    cashPaymentTitle: 'Cash on site',
+    cashPaymentHint:
+      'Buyers who choose cash see where to pay. Leave the place empty to use the event venue.',
+    cashPaymentPlace: 'Where to pay',
+    cashPaymentPlaceHint: 'Empty = the event venue: {{venue}}.',
+    cashPaymentPlaceHintNoVenue: 'Empty = the event venue (not set yet in Details).',
+    cashPaymentNotes: 'Instructions (optional)',
+    cashPaymentNotesPlaceholder: 'E.g.: check-in desk, on event day from 8 am.',
+    cashPaymentPreviewLabel: 'What the buyer sees',
     mercadoPagoProfileTitle: 'Mercado Pago for this event',
     mercadoPagoProfileHint:
       'Pick which Mercado Pago account this event’s money lands in. Accounts are linked once and reused; orders already open keep collecting in the account they started with.',
@@ -4608,6 +4617,8 @@ export default {
       venueMax: 'The venue name is too long.',
       locationMin: 'Enter city or province.',
       locationMax: 'The location is too long.',
+      cashPlaceMax: 'The payment place is too long (160 characters max).',
+      cashNotesMax: 'The instructions are too long (400 characters max).',
       statusRequired: 'Choose a public status.',
       priceInvalid: 'Enter a valid amount.',
       priceMin: 'Amount cannot be negative.',

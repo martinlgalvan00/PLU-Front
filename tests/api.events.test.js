@@ -556,6 +556,65 @@ describe('API administrativa de eventos', () => {
     }
   })
 
+  // Un solo test con un solo login: el limitador de logins es por archivo.
+  it('guarda dónde se paga el efectivo aparte, y sin migración avisa en vez de perderlo', async () => {
+    const { target, cookie, supabase } = await setup()
+    const upsert = (body) =>
+      fetch(`${target.url}/api/events/upsert`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify(body),
+      })
+
+    try {
+      const saved = await upsert(
+        eventPayload({
+          cashPayment: { place: '  Virtus Fitness, recepción ', notes: 'Lunes a viernes de 18 a 21.' },
+        }),
+      )
+      expect(saved.status).toBe(201)
+      expect(supabase.rpc).toHaveBeenCalledWith('staff_merge_event_cash_payment', {
+        p_slug: 'pitbull-classic-2026',
+        p_place: 'Virtus Fitness, recepción',
+        p_notes: 'Lunes a viernes de 18 a 21.',
+      })
+
+      // Un guardado que no manda cashPayment no pisa el lugar ya cargado.
+      supabase.rpc.mockClear()
+      expect((await upsert(eventPayload())).status).toBe(201)
+      expect(supabase.rpc).not.toHaveBeenCalledWith(
+        'staff_merge_event_cash_payment',
+        expect.anything(),
+      )
+
+      supabase.rpc.mockImplementation(async (name) => {
+        if (name === 'staff_merge_event_cash_payment') {
+          return {
+            data: null,
+            error: {
+              code: 'PGRST202',
+              message:
+                'Could not find the function public.staff_merge_event_cash_payment(p_notes, p_place, p_slug) in the schema cache',
+            },
+          }
+        }
+        return { data: { id: EVENT_ID }, error: null }
+      })
+      const pending = await upsert(eventPayload({ cashPayment: { place: 'Virtus Fitness' } }))
+      expect(pending.status).toBe(201)
+      expect((await pending.json()).warnings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: 'EVENT_CASH_PAYMENT_NOT_SAVED',
+            field: 'cashPayment.place',
+          }),
+        ]),
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
   it('propaga conflictos de edición sin ocultar el código operativo', async () => {
     const { target, cookie } = await setup('admin_maximal', {
       rpcResult: {

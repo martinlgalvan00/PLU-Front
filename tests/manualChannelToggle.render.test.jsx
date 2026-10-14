@@ -88,7 +88,7 @@ describe('canal manual en el checkout de afiliación e inscripción', () => {
     renderSettle(true)
     expect(values(SETTLE_GROUP)).toEqual(['mercado_pago', 'manual_link', 'cash_pitbull'])
     // La etiqueta tiene que ser el nombre del medio, no la clave de traducción.
-    expect(paymentLabels(SETTLE_GROUP)).toContain('Efectivo en Pitbull')
+    expect(paymentLabels(SETTLE_GROUP)).toContain('Efectivo en el lugar')
     expect(paymentLabels(SETTLE_GROUP)).not.toContain('pages.register')
   })
 

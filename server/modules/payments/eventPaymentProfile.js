@@ -11,6 +11,7 @@ import {
   isEventChannelForcedOpen,
   isEventChannelOpenAnywhere,
   isEventChannelOpenForConcept,
+  MANUAL_TICKET_DEADLINE_CHANNELS,
   MANUAL_TICKET_LEAD_HOURS,
   manualTicketChannelsCloseAt,
   manualTicketChannelsOpen,
@@ -20,7 +21,7 @@ import {
 const CHANNEL_LABEL = {
   mercado_pago: 'Mercado Pago',
   bank_transfer: 'transferencia',
-  cash_pitbull: 'efectivo en Pitbull',
+  cash_pitbull: 'efectivo en el lugar',
   wise_transfer: 'Wise',
 }
 
@@ -115,8 +116,8 @@ export function applyEventPaymentChannelOverrides(availability, overrides) {
  * Una transferencia necesita hasta 72 horas para convertirse en un QR (24 para
  * el comprobante, 48 para la aprobación). Vendida después de ese punto, la
  * entrada no llega: lo que queda es una devolución y alguien en la puerta
- * explicando. Mercado Pago no tiene ese problema y sigue abierto hasta que
- * cierra la venta.
+ * explicando. Mercado Pago y el efectivo en el lugar no tienen ese problema
+ * (se acreditan en el momento) y siguen abiertos hasta que cierra la venta.
  *
  * Es lo mismo que ya hacía el operador a mano, cerrando transferencia unos
  * días antes; acá lo hace el calendario.
@@ -125,28 +126,25 @@ export function applyManualTicketDeadline(availability, startsAt, now = new Date
   if (!availability?.paymentChannels?.ticket) return availability
   if (manualTicketChannelsOpen(startsAt, now)) return availability
 
-  const paymentChannels = {
-    ...availability.paymentChannels,
-    ticket: {
-      ...availability.paymentChannels.ticket,
-      bank_transfer: false,
-      cash_pitbull: false,
-      wise_transfer: false,
-    },
-  }
+  const ticket = { ...availability.paymentChannels.ticket }
+  for (const channel of MANUAL_TICKET_DEADLINE_CHANNELS) ticket[channel] = false
+  const paymentChannels = { ...availability.paymentChannels, ticket }
 
   return {
     ...availability,
     paymentChannels,
-    ticketManualEnabled: false,
-    // Si Mercado Pago también estaba cerrado, ya no queda nada que ofrecer.
-    ticketEnabled: availability.ticketEnabled !== false && paymentChannels.ticket.mercado_pago === true,
+    // El efectivo en el lugar no tiene corte: si sigue abierto, sigue
+    // habiendo un medio manual.
+    ticketManualEnabled: MANUAL_PAYMENT_CHANNELS.some((channel) => ticket[channel] === true),
+    // Si no queda ni Mercado Pago ni efectivo, ya no hay nada que ofrecer.
+    ticketEnabled:
+      availability.ticketEnabled !== false && PAYMENT_CHANNELS.some((channel) => ticket[channel] === true),
   }
 }
 
 /** Corte del lado de la orden: la disponibilidad puede venir de una caché. */
 export function assertManualTicketDeadline(channel, startsAt, now = new Date()) {
-  if (channel === 'mercado_pago') return
+  if (!MANUAL_TICKET_DEADLINE_CHANNELS.includes(channel)) return
   if (manualTicketChannelsOpen(startsAt, now)) return
 
   const closeAt = manualTicketChannelsCloseAt(startsAt)
@@ -205,7 +203,32 @@ export function resolveBankTransferDetails(eventRow = null, env = process.env, p
   }
 }
 
-export const BANK_TRANSFER_ALIAS_REQUIRED_CODE = 'EVENT_BANK_TRANSFER_ALIAS_REQUIRED'
+export function normalizeCashPaymentInput(raw) {
+  if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { place: '', notes: '' }
+  }
+  return {
+    place: trimText(raw.place).slice(0, 160),
+    notes: trimText(raw.notes).slice(0, 400),
+  }
+}
+
+/**
+ * Dónde se paga el efectivo (`cash_pitbull`), para mostrar en checkout.
+ * El lugar propio del evento manda; vacío, es la sede del evento. `null` si no
+ * hay ninguno de los dos: la pantalla pone su texto genérico.
+ */
+export function resolveCashPaymentDetails(eventRow = null) {
+  const venue = [trimText(eventRow?.venue), trimText(eventRow?.location)]
+    .filter(Boolean)
+    .join(' · ')
+  return {
+    place: trimText(eventRow?.cash_payment_place) || venue || null,
+    notes: trimText(eventRow?.cash_payment_notes) || null,
+  }
+}
+
+export const BANK_TRANSFER_ALIAS_REQUIRED_CODE ='EVENT_BANK_TRANSFER_ALIAS_REQUIRED'
 
 export const BANK_TRANSFER_ALIAS_REQUIRED_MESSAGE =
   'La transferencia está abierta para este evento pero no tiene a dónde cobrar: ni perfil de cobro, ni alias propio, ni un alias global configurado. Elegí un perfil o cargá un alias en Ventas → Cobro, o cerrá la transferencia para este evento.'
@@ -287,6 +310,7 @@ export function mapEventPaymentProfile(row) {
       paymentChannelOverrides: null,
       bankTransfer: { alias: '', cbu: '', holder: '' },
       bankTransferProfileId: null,
+      cashPayment: { place: '', notes: '' },
     }
   }
   return {
@@ -297,6 +321,10 @@ export function mapEventPaymentProfile(row) {
       holder: trimText(row.bank_transfer_holder),
     },
     bankTransferProfileId: row.bank_transfer_profile_id ?? null,
+    cashPayment: {
+      place: trimText(row.cash_payment_place),
+      notes: trimText(row.cash_payment_notes),
+    },
   }
 }
 

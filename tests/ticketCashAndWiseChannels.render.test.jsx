@@ -58,7 +58,50 @@ describe('medios de pago de la compra de entradas', () => {
 
     renderSection({ cashEnabled: true })
     expect(radio('cash_pitbull')).not.toBeNull()
-    expect(screen.getByText('Efectivo en Pitbull')).toBeTruthy()
+    expect(screen.getByText('Efectivo en el lugar')).toBeTruthy()
+  })
+
+  it('el efectivo indica la sede del evento, no un lugar fijo', () => {
+    renderSection({
+      event: { ...event, venue: 'Virtus Fitness', location: 'Berazategui' },
+      createdOrder: {
+        type: 'tickets',
+        id: 'order-cash',
+        reference: 'TCK-CASH',
+        status: 'pendiente',
+        paymentMethod: 'manual_link',
+        manualPaymentChannel: 'cash_pitbull',
+        quantity: 1,
+        eventTitle: 'Pitbull Classic 2026',
+        tickets: [],
+      },
+    })
+    expect(screen.getByText('Dónde pagar')).toBeTruthy()
+    expect(screen.getByText('Virtus Fitness · Berazategui')).toBeTruthy()
+    expect(screen.queryByText(/Pitbull Gym/)).toBeNull()
+    // Sin la demora de una transferencia: el efectivo se acredita en caja.
+    expect(screen.queryByText(/puede demorar hasta 48 horas/)).toBeNull()
+  })
+
+  it('el lugar cargado en el panel manda sobre la sede, con su indicación', () => {
+    renderSection({
+      event: { ...event, venue: 'Virtus Fitness', location: 'Berazategui' },
+      cashPayment: { place: 'Recepción de Virtus', notes: 'Lunes a viernes de 18 a 21.' },
+      createdOrder: {
+        type: 'tickets',
+        id: 'order-cash',
+        reference: 'TCK-CASH',
+        status: 'pendiente',
+        paymentMethod: 'manual_link',
+        manualPaymentChannel: 'cash_pitbull',
+        quantity: 1,
+        eventTitle: 'Pitbull Classic 2026',
+        tickets: [],
+      },
+    })
+    expect(screen.getByText('Recepción de Virtus')).toBeTruthy()
+    expect(screen.getByText('Lunes a viernes de 18 a 21.')).toBeTruthy()
+    expect(screen.queryByText('Virtus Fitness · Berazategui')).toBeNull()
   })
 
   it('cada celda gobierna sólo su opción', () => {

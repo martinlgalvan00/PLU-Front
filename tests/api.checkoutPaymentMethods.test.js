@@ -14,7 +14,7 @@ import { listen } from './integration/helpers/supabaseTestClient.js'
  * transacción que crea la orden (ver `atomicCheckoutPricing.test.js` y los
  * tests de integración para esa parte).
  *
- *   elige "efectivo en Pitbull" (cash_pitbull)
+ *   elige "efectivo en el lugar" (cash_pitbull)
  *     -> se guarda method = 'manual_link', canal = 'cash_pitbull'
  *   elige "transferencia" (manual_link)
  *     -> se guarda method = 'manual_link', canal = 'bank_transfer'
@@ -187,7 +187,7 @@ describe('afiliación — medio de pago elegido vs. orden persistida', () => {
   it.each([
     ['Mercado Pago', 'mercado_pago', 'mercado_pago', null],
     ['transferencia bancaria', 'manual_link', 'manual_link', 'bank_transfer'],
-    ['efectivo en Pitbull', 'cash_pitbull', 'manual_link', 'cash_pitbull'],
+    ['efectivo en el lugar', 'cash_pitbull', 'manual_link', 'cash_pitbull'],
   ])(
     '%s crea la orden con el método, el canal y los precios correctos',
     async (_label, paymentMethod, storedMethod, manualChannel) => {
@@ -239,7 +239,7 @@ describe('inscripción a torneo — medio de pago elegido vs. orden persistida',
   it.each([
     ['Mercado Pago', 'mercado_pago', 'mercado_pago', null],
     ['transferencia bancaria', 'manual_link', 'manual_link', 'bank_transfer'],
-    ['efectivo en Pitbull', 'cash_pitbull', 'manual_link', 'cash_pitbull'],
+    ['efectivo en el lugar', 'cash_pitbull', 'manual_link', 'cash_pitbull'],
   ])(
     '%s crea la inscripción con el método, el canal y los precios correctos',
     async (_label, paymentMethod, storedMethod, manualChannel) => {
@@ -275,7 +275,7 @@ describe('combo afiliación + inscripción — medio de pago elegido vs. orden p
   it.each([
     ['Mercado Pago', 'mercado_pago', 'mercado_pago', null],
     ['transferencia bancaria', 'manual_link', 'manual_link', 'bank_transfer'],
-    ['efectivo en Pitbull', 'cash_pitbull', 'manual_link', 'cash_pitbull'],
+    ['efectivo en el lugar', 'cash_pitbull', 'manual_link', 'cash_pitbull'],
   ])(
     '%s crea el combo con el método, el canal y los precios correctos',
     async (_label, paymentMethod, storedMethod, manualChannel) => {

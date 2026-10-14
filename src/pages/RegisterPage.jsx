@@ -2367,7 +2367,15 @@ export default function RegisterPage({
               <p className="manual-note">
                 {settleDeclared
                   ? t('pages.register.cashPitbullDeclaredNote')
-                  : t('pages.register.cashPitbullSettleNote')}
+                  : t('pages.register.cashPitbullSettleNote', {
+                      venue:
+                        accessRequirements.cashPayment?.place ||
+                        event?.venue ||
+                        t('pages.register.cashVenueFallback'),
+                    })}
+                {!settleDeclared && accessRequirements.cashPayment?.notes
+                  ? ` ${accessRequirements.cashPayment.notes}`
+                  : null}
               </p>
             </div>
           ) : flow === 'competition' ? (
@@ -2704,7 +2712,7 @@ export default function RegisterPage({
 
   /**
    * "Cancelar esta orden" y su confirmación, compartidas por las dos barras del
-   * settle (efectivo en Pitbull y el resto de los medios manuales).
+   * settle (efectivo en el lugar y el resto de los medios manuales).
    *
    * La confirmación reemplaza al disparador en la misma fila en vez de abrir un
    * diálogo: la barra vive debajo del importe y de la referencia de la orden, y

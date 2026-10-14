@@ -22,7 +22,7 @@ const CONCEPT_LABELS = { membership: 'Afiliación', registration: 'Inscripción'
 const CHANNEL_LABELS = {
   bank_transfer: 'Transferencia',
   wise_transfer: 'Wise',
-  cash_pitbull: 'Efectivo en Pitbull',
+  cash_pitbull: 'Efectivo en el lugar',
 }
 const FILE_STATE_LABELS = {
   server: 'Solo en el servidor',

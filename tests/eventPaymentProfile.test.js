@@ -13,6 +13,8 @@ import {
   isEventChannelOpen,
   normalizePaymentChannelOverrides,
   resolveBankTransferDetails,
+  normalizeCashPaymentInput,
+  resolveCashPaymentDetails,
 } from '../server/modules/payments/eventPaymentProfile.js'
 
 describe('normalizePaymentChannelOverrides', () => {
@@ -179,6 +181,37 @@ describe('resolveBankTransferDetails', () => {
         PAYMENT_TRANSFER_HOLDER: 'PLU',
       }),
     ).toEqual({ alias: 'plu.alias', cbu: '111', holder: 'PLU' })
+  })
+})
+
+describe('resolveCashPaymentDetails', () => {
+  it('el lugar propio del evento manda', () => {
+    expect(
+      resolveCashPaymentDetails({
+        venue: 'Virtus Fitness',
+        location: 'Berazategui',
+        cash_payment_place: ' Recepción del gimnasio ',
+        cash_payment_notes: 'De 18 a 21.',
+      }),
+    ).toEqual({ place: 'Recepción del gimnasio', notes: 'De 18 a 21.' })
+  })
+
+  it('sin lugar propio se cobra en la sede del evento, nunca en un lugar fijo', () => {
+    expect(
+      resolveCashPaymentDetails({ venue: 'Virtus Fitness', location: 'Berazategui' }),
+    ).toEqual({ place: 'Virtus Fitness · Berazategui', notes: null })
+  })
+
+  it('sin sede ni lugar devuelve null para que la pantalla use su texto genérico', () => {
+    expect(resolveCashPaymentDetails(null)).toEqual({ place: null, notes: null })
+  })
+
+  it('normaliza y recorta lo que manda el panel', () => {
+    expect(normalizeCashPaymentInput({ place: '  x  ', notes: 'n'.repeat(500) })).toEqual({
+      place: 'x',
+      notes: 'n'.repeat(400),
+    })
+    expect(normalizeCashPaymentInput(null)).toEqual({ place: '', notes: '' })
   })
 })
 
@@ -486,22 +519,45 @@ describe('plazo de los canales manuales de entradas', () => {
     expect(applyManualTicketDeadline(availability, STARTS, LEJOS)).toBe(availability)
   })
 
-  it('sobre la fecha cierra transferencia, efectivo y Wise, y deja Mercado Pago', () => {
+  it('sobre la fecha cierra transferencia y Wise; Mercado Pago y efectivo siguen', () => {
     const next = applyManualTicketDeadline(availability, STARTS, CERCA)
     expect(next.paymentChannels.ticket.bank_transfer).toBe(false)
-    expect(next.paymentChannels.ticket.cash_pitbull).toBe(false)
     expect(next.paymentChannels.ticket.wise_transfer).toBe(false)
     expect(next.paymentChannels.ticket.mercado_pago).toBe(true)
-    expect(next.ticketManualEnabled).toBe(false)
+    // Se paga en la sede y se acredita en el momento: no hay demora que cubrir.
+    expect(next.paymentChannels.ticket.cash_pitbull).toBe(true)
+    expect(next.ticketManualEnabled).toBe(true)
     expect(next.ticketEnabled).toBe(true)
   })
 
-  it('si Mercado Pago ya estaba cerrado, cierra la venta entera', () => {
-    const soloManual = {
+  it('sin efectivo abierto, sobre la fecha no queda ningún medio manual', () => {
+    const sinEfectivo = {
       ...availability,
-      paymentChannels: { ticket: { ...availability.paymentChannels.ticket, mercado_pago: false } },
+      paymentChannels: { ticket: { ...availability.paymentChannels.ticket, cash_pitbull: false } },
     }
-    expect(applyManualTicketDeadline(soloManual, STARTS, CERCA).ticketEnabled).toBe(false)
+    expect(applyManualTicketDeadline(sinEfectivo, STARTS, CERCA).ticketManualEnabled).toBe(false)
+  })
+
+  it('si Mercado Pago y el efectivo ya estaban cerrados, cierra la venta entera', () => {
+    const soloComprobante = {
+      ...availability,
+      paymentChannels: {
+        ticket: { ...availability.paymentChannels.ticket, mercado_pago: false, cash_pitbull: false },
+      },
+    }
+    expect(applyManualTicketDeadline(soloComprobante, STARTS, CERCA).ticketEnabled).toBe(false)
+  })
+
+  it('con solo efectivo abierto la venta sigue hasta el cierre', () => {
+    const soloEfectivo = {
+      ...availability,
+      paymentChannels: {
+        ticket: { mercado_pago: false, bank_transfer: true, cash_pitbull: true, wise_transfer: false },
+      },
+    }
+    const next = applyManualTicketDeadline(soloEfectivo, STARTS, CERCA)
+    expect(next.ticketEnabled).toBe(true)
+    expect(next.paymentChannels.ticket.cash_pitbull).toBe(true)
   })
 
   it('un evento sin fecha no pierde la venta por una regla de calendario', () => {
@@ -518,8 +574,10 @@ describe('plazo de los canales manuales de entradas', () => {
     )
   })
 
-  it('Mercado Pago pasa aunque falten horas', () => {
+  it('Mercado Pago y el efectivo pasan aunque falten horas; Wise no', () => {
     expect(() => assertManualTicketDeadline('mercado_pago', STARTS, CERCA)).not.toThrow()
+    expect(() => assertManualTicketDeadline('cash_pitbull', STARTS, CERCA)).not.toThrow()
+    expect(() => assertManualTicketDeadline('wise_transfer', STARTS, CERCA)).toThrow(HttpError)
   })
 })
 

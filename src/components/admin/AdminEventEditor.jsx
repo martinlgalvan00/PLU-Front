@@ -81,6 +81,7 @@ function resolveSalesChapterForField(key) {
   }
   if (
     key.startsWith('bankTransfer') ||
+    key.startsWith('cashPayment') ||
     key.startsWith('paymentChannel') ||
     key === 'mercadoPagoProfileId' ||
     key === 'bankTransferProfileId'
@@ -108,6 +109,7 @@ function resolveTabForField(key) {
     key.startsWith('ticketTypes.') ||
     key.startsWith('paymentChannelOverrides') ||
     key.startsWith('bankTransfer') ||
+    key.startsWith('cashPayment') ||
     key === 'mercadoPagoProfileId' ||
     SALES_FIELD_KEYS.has(key)
   )
