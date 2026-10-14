@@ -595,6 +595,33 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
     expect(onChange.mock.calls[0][0].paymentChannelOverrides).toBeNull()
   })
 
+  it('muestra lo que el evento abre y avisa que es solo acá', async () => {
+    platformDouble.closed.add('registration:cash_pitbull')
+    renderEditor({ paymentChannelOverrides: { registration: { cash_pitbull: 'open' } } })
+    openPaymentChapter()
+
+    const matrix = await platformMatrix()
+    expect(
+      within(matrix).getByRole('checkbox', { name: /efectivo pitbull · inscripción/i }).checked,
+    ).toBe(true)
+    expect(within(matrix).getByText(/abierto solo en este evento \(inscripción\)/i)).toBeTruthy()
+  })
+
+  it('volver a coincidir con la plataforma borra la decisión del evento', async () => {
+    platformDouble.closed.add('registration:bank_transfer')
+    const onChange = vi.fn()
+    renderEditor(
+      { paymentChannelOverrides: { registration: { bank_transfer: 'open' } } },
+      { onChange },
+    )
+    openPaymentChapter()
+
+    const matrix = await platformMatrix()
+    fireEvent.click(within(matrix).getByRole('checkbox', { name: /transferencia · inscripción/i }))
+
+    expect(onChange.mock.calls[0][0].paymentChannelOverrides).toBeNull()
+  })
+
   it('con override ofrece volver a heredar la matriz de plataforma', () => {
     const onChange = vi.fn()
     renderEditor({ paymentChannelOverrides: { ticket: { cash_pitbull: false } } }, { onChange })
