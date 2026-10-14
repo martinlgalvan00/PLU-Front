@@ -278,11 +278,14 @@ export default async function globalSetup() {
         ],
       },
       payment_channel_overrides: {
+        // `true` es "sin opinión" (hereda la plataforma, que tiene cerrados los
+        // medios manuales de inscripción): lo que el evento abre a propósito es
+        // 'open'. Con `true` el editor mostraba esas tres celdas destildadas.
         registration: {
           mercado_pago: true,
-          bank_transfer: true,
-          cash_pitbull: true,
-          wise_transfer: true,
+          bank_transfer: 'open',
+          cash_pitbull: 'open',
+          wise_transfer: 'open',
         },
         ticket: {
           mercado_pago: true,

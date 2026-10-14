@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
 import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
+import { logger } from '../lib/logger.js'
 import { EVENT_LOGO_BUCKET, PROOF_BUCKET } from '../lib/supabaseAdmin.js'
 import {
   assertSupabaseResult,
@@ -940,6 +941,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             : req.validatedBody.bankTransferProfileId
         const profiles = createSupabasePaymentProfileRepository(client)
         let linkedProfile = null
+        const profileWarnings = []
 
         // Si eligieron un perfil del catálogo, manda ese. Si cargaron alias
         // suelto sin perfil, se crea/reusa uno para poder reutilizarlo después.
@@ -954,11 +956,29 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             holder: linkedProfile.config.holder,
           }
         } else if (bankTransfer.alias) {
-          linkedProfile = await profiles.ensureBankTransferProfile({
-            name: `Transferencia · ${req.validatedBody.title || req.validatedBody.slug}`,
-            ...bankTransfer,
-          })
-          bankTransferProfileId = linkedProfile.id
+          // El perfil es una comodidad (reusar la cuenta en otros eventos), no
+          // un requisito del guardado: si no se puede crear, el evento se guarda
+          // igual con el alias en sus columnas, que es lo que lee el checkout, y
+          // se avisa. Antes un fallo acá cortaba todo y el operador perdía
+          // también lo que había cambiado en el resto del evento.
+          try {
+            linkedProfile = await profiles.ensureBankTransferProfile({
+              name: `Transferencia · ${req.validatedBody.title || req.validatedBody.slug}`,
+              ...bankTransfer,
+            })
+            bankTransferProfileId = linkedProfile.id
+          } catch (error) {
+            logger.warn('event.bank_profile_not_saved', { slug: req.validatedBody.slug, err: error })
+            // Desvincula el perfil anterior: si no, el checkout seguiría
+            // mostrando la cuenta vieja y no el alias que se acaba de cargar.
+            bankTransferProfileId = null
+            profileWarnings.push({
+              code: 'EVENT_BANK_PROFILE_NOT_SAVED',
+              message:
+                'El evento se guardó, pero no pudimos guardar la cuenta de transferencia como perfil reutilizable. Los datos cargados igual se usan en este evento.',
+              field: 'bankTransferProfileId',
+            })
+          }
         } else if (bankTransferProfileId === null) {
           // Explicitamente sin perfil: limpia el vínculo.
           bankTransferProfileId = null
@@ -969,7 +989,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
         // título trababa cualquier edición. Se guarda y se avisa. Publicado sí
         // se rechaza: ahí un comprador podría llegar a una transferencia sin
         // destino.
-        const warnings = []
+        const warnings = [...profileWarnings]
         const bankTransferIssue = checkEventBankTransferReady({
           overrides: paymentChannelOverrides,
           bankTransfer,

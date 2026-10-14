@@ -31,6 +31,7 @@ import {
   updateSecurityUserStatusRequest,
   updateAccessRolePermissionsRequest,
   updateAccessRoleStatusRequest,
+  bulkUpdateStaffUserRoleRequest,
   updateStaffUserRoleRequest,
   updateStaffUserStatusRequest,
 } from '../lib/api.js'
@@ -138,8 +139,10 @@ import {
 } from '../services/ticketApi.js'
 import { uploadTicketPaymentProof } from '../services/ticketProofService.js'
 import {
+  bulkUpdateUserRole,
   deleteUser,
   getInitialUsers,
+  mergeBulkRoleResults,
   updateUserRole,
   updateUserStatus,
 } from '../services/userService.js'
@@ -2014,6 +2017,23 @@ export function useAppData() {
       const { user } = await updateStaffUserRoleRequest(userId, nextRole)
       setUsers((current) => current.map((item) => (item.id === user.id ? user : item)))
       return user
+    },
+    [session, users],
+  )
+
+  // Varias cuentas de una vez. Devuelve un resultado por cuenta; el padrón local
+  // sólo cambia con las que quedaron `updated`.
+  const bulkUpdateUserRoleAction = useCallback(
+    async (userIds, roleKey) => {
+      if (isDemoSession(session)) {
+        const outcome = bulkUpdateUserRole(users, userIds, roleKey)
+        setUsers(outcome.users)
+        return outcome.results
+      }
+
+      const { results } = await bulkUpdateStaffUserRoleRequest(userIds, roleKey)
+      setUsers((current) => mergeBulkRoleResults(current, results))
+      return results
     },
     [session, users],
   )
@@ -3985,6 +4005,7 @@ export function useAppData() {
     roleActivity,
     permissionCatalog,
     updateUserRoleAction,
+    bulkUpdateUserRoleAction,
     updateUserStatusAction,
     createUserAction,
     acceptStaffInvitationAction,

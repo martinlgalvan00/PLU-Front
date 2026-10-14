@@ -390,6 +390,24 @@ model AccessRole {
   @@index([baseRole])
 }
 
+// Evento al que una cuenta de rol "por evento" tiene acceso. eventId referencia
+// public.events de Supabase (uuid), igual que User.eventId: no hay FK porque esa
+// tabla vive en otra base. eventSlug se guarda desnormalizado para resolver las
+// rutas que identifican el evento por slug sin una consulta extra.
+model UserEventAccess {
+  id        String   @id @default(cuid())
+  userId    String
+  eventId   String
+  eventSlug String
+  grantedBy String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@index([eventId])
+}
+
 model AccessPermission {
   key         String @id
   module      String
@@ -444,6 +462,9 @@ model User {
   // Zona del evento a la que está asignada esta cuenta de seguridad. Nulo en
   // cuentas de staff y en cuentas de seguridad todavía sin asignar.
   securityZoneId String?
+
+  // Eventos que una cuenta de rol "por evento" (organizador) puede gestionar.
+  eventAccess UserEventAccess[]
 
   profile                 UserProfile?
   accessRole              AccessRole?                   @relation(fields: [accessRoleId], references: [id], onDelete: Restrict)

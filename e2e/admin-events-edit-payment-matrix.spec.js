@@ -82,7 +82,8 @@ test.describe('Panel de eventos: edición y medios de cobro', () => {
     })
     await page.getByRole('tab', { name: /ventas y cupos/i }).click()
     await page.getByRole('tab', { name: /^Cobro$/i }).click()
-    await expect(page.locator('#event-bank-alias')).toHaveValue('plu.e2e.qa')
+    // Con una cuenta elegida sus datos se muestran de solo lectura.
+    await expect(page.locator('[data-field="bankTransfer.linked"]')).toContainText('plu.e2e.qa')
 
     const channels = ['Mercado Pago', 'Transferencia', 'Efectivo en el lugar', 'Wise']
     for (const channel of channels) {
@@ -97,23 +98,18 @@ test.describe('Panel de eventos: edición y medios de cobro', () => {
       .poll(async () => (await storedEvent(fixture.ticketEventSlug)).payment_channel_overrides)
       .toMatchObject({ ticket: { wise_transfer: false } })
 
+    // Re-tildar una celda que coincide con la plataforma borra la decisión del
+    // evento (vuelve a heredar): no se guarda un `true`. Las aperturas de
+    // inscripción, que sí difieren de la plataforma, se conservan.
     await wiseTickets.check()
     await saveEvent(page)
     await expect
       .poll(async () => (await storedEvent(fixture.ticketEventSlug)).payment_channel_overrides)
       .toMatchObject({
-        registration: {
-          mercado_pago: true,
-          bank_transfer: true,
-          cash_pitbull: true,
-          wise_transfer: true,
-        },
-        ticket: {
-          mercado_pago: true,
-          bank_transfer: true,
-          cash_pitbull: true,
-          wise_transfer: true,
-        },
+        registration: { bank_transfer: 'open', cash_pitbull: 'open', wise_transfer: 'open' },
       })
+    const stored = (await storedEvent(fixture.ticketEventSlug)).payment_channel_overrides
+    expect(stored.ticket?.wise_transfer).toBeUndefined()
+    await expect(wiseTickets).toBeChecked()
   })
 })

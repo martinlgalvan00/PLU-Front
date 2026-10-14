@@ -1,6 +1,6 @@
 import { money } from '../../../lib/format.js'
 import AdminTicketSalesStatus from '../AdminTicketSalesStatus.jsx'
-import { Banknote, Ticket, Users } from 'lucide-react'
+import { Banknote, RotateCcw, Ticket, Users } from 'lucide-react'
 import DateTimeLocalInput from '../../ui/DateTimeLocalInput.jsx'
 import { DEFAULT_EVENT_PRICING } from '../../../lib/eventPricing.js'
 import AdminEventPriceSchedule from '../AdminEventPriceSchedule.jsx'
@@ -83,6 +83,15 @@ export default function EventSalesSection({
     .map((part) => String(part ?? '').trim())
     .filter(Boolean)
     .join(' · ')
+  // Con una cuenta elegida los datos son de la cuenta, no del evento: se muestran
+  // de solo lectura. Editarlos a mano desvinculaba el perfil en silencio y, al
+  // guardar, creaba otro; ahora eso es una decisión explícita ("Usar otros datos").
+  const bankLinked = Boolean(draft.bankTransferProfileId)
+  const bankSummary = {
+    alias: selectedBankProfile?.config?.alias ?? draft.bankTransfer?.alias ?? '',
+    cbu: selectedBankProfile?.config?.cbu ?? draft.bankTransfer?.cbu ?? '',
+    holder: selectedBankProfile?.config?.holder ?? draft.bankTransfer?.holder ?? '',
+  }
   const cashPlacePreview = String(draft.cashPayment?.place ?? '').trim() || eventVenueLabel
 
   return (
@@ -467,6 +476,7 @@ export default function EventSalesSection({
               type="button"
               onClick={() => patchDraft({ ...draft, paymentChannelOverrides: null })}
             >
+              <RotateCcw size={14} aria-hidden />
               {t('admin.eventEditor.paymentChannelReset')}
             </button>
           ) : null}
@@ -695,94 +705,121 @@ export default function EventSalesSection({
                 </small>
               </FormField>
 
-              {selectedBankProfile ? (
-                <p className="admin-event-form__provider-status" role="status">
-                  {t('admin.eventEditor.bankTransferProfileSelected', {
-                    name: selectedBankProfile.name,
-                    alias: selectedBankProfile.config?.alias || '—',
-                  })}
-                </p>
-              ) : null}
+              {bankLinked ? (
+                <div className="admin-event-form__account-summary" data-field="bankTransfer.linked">
+                  <dl>
+                    <div>
+                      <dt>{t('admin.eventEditor.bankTransferAlias')}</dt>
+                      <dd>{bankSummary.alias || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('admin.eventEditor.bankTransferCbu')}</dt>
+                      <dd>{bankSummary.cbu || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('admin.eventEditor.bankTransferHolder')}</dt>
+                      <dd>{bankSummary.holder || '—'}</dd>
+                    </div>
+                  </dl>
+                  <p className="admin-event-form__field-hint">
+                    {t('admin.eventEditor.bankTransferLinkedHint', {
+                      name: selectedBankProfile?.name ?? bankSummary.alias,
+                    })}
+                  </p>
+                  {canEdit ? (
+                    <button
+                      className="button button--ghost admin-event-form__channel-reset"
+                      type="button"
+                      onClick={() => applyBankProfile(null)}
+                    >
+                      {t('admin.eventEditor.bankTransferUseOther')}
+                    </button>
+                  ) : null}
+                </div>
+              ) : (
+                <>
+                  {!draft.bankTransferProfileId &&
+                  (draft.bankTransfer?.alias ||
+                    draft.bankTransfer?.cbu ||
+                    draft.bankTransfer?.holder) ? (
+                    <p className="admin-event-form__pricing-note" role="status">
+                      {t('admin.eventEditor.bankTransferSaveCreatesProfile')}
+                    </p>
+                  ) : null}
 
-              {!draft.bankTransferProfileId &&
-              (draft.bankTransfer?.alias ||
-                draft.bankTransfer?.cbu ||
-                draft.bankTransfer?.holder) ? (
-                <p className="admin-event-form__pricing-note" role="status">
-                  {t('admin.eventEditor.bankTransferSaveCreatesProfile')}
-                </p>
-              ) : null}
+                  <div className="admin-event-form__grid">
+                    <FormField
+                      htmlFor="event-bank-alias"
+                      label={t('admin.eventEditor.bankTransferAlias')}
+                    >
+                      <input
+                        id="event-bank-alias"
+                        name="bankTransfer.alias"
+                        type="text"
+                        maxLength={120}
+                        value={draft.bankTransfer?.alias ?? ''}
+                        onChange={(changeEvent) =>
+                          patchDraft({
+                            ...draft,
+                            bankTransferProfileId: null,
+                            bankTransfer: {
+                              ...(draft.bankTransfer ?? {}),
+                              alias: changeEvent.target.value,
+                            },
+                          })
+                        }
+                        disabled={!canEdit}
+                        placeholder={t('admin.eventEditor.bankTransferAliasPlaceholder')}
+                      />
+                    </FormField>
+                    <FormField htmlFor="event-bank-cbu" label={t('admin.eventEditor.bankTransferCbu')}>
+                      <input
+                        id="event-bank-cbu"
+                        name="bankTransfer.cbu"
+                        type="text"
+                        maxLength={30}
+                        value={draft.bankTransfer?.cbu ?? ''}
+                        onChange={(changeEvent) =>
+                          patchDraft({
+                            ...draft,
+                            bankTransferProfileId: null,
+                            bankTransfer: {
+                              ...(draft.bankTransfer ?? {}),
+                              cbu: changeEvent.target.value,
+                            },
+                          })
+                        }
+                        disabled={!canEdit}
+                      />
+                    </FormField>
+                    <FormField
+                      htmlFor="event-bank-holder"
+                      label={t('admin.eventEditor.bankTransferHolder')}
+                      wide
+                    >
+                      <input
+                        id="event-bank-holder"
+                        name="bankTransfer.holder"
+                        type="text"
+                        maxLength={160}
+                        value={draft.bankTransfer?.holder ?? ''}
+                        onChange={(changeEvent) =>
+                          patchDraft({
+                            ...draft,
+                            bankTransferProfileId: null,
+                            bankTransfer: {
+                              ...(draft.bankTransfer ?? {}),
+                              holder: changeEvent.target.value,
+                            },
+                          })
+                        }
+                        disabled={!canEdit}
+                      />
+                    </FormField>
+                  </div>
+                </>
+              )}
 
-              <div className="admin-event-form__grid">
-                <FormField
-                  htmlFor="event-bank-alias"
-                  label={t('admin.eventEditor.bankTransferAlias')}
-                >
-                  <input
-                    id="event-bank-alias"
-                    name="bankTransfer.alias"
-                    type="text"
-                    maxLength={120}
-                    value={draft.bankTransfer?.alias ?? ''}
-                    onChange={(changeEvent) =>
-                      patchDraft({
-                        ...draft,
-                        bankTransferProfileId: null,
-                        bankTransfer: {
-                          ...(draft.bankTransfer ?? {}),
-                          alias: changeEvent.target.value,
-                        },
-                      })
-                    }
-                    disabled={!canEdit}
-                    placeholder={t('admin.eventEditor.bankTransferAliasPlaceholder')}
-                  />
-                </FormField>
-                <FormField htmlFor="event-bank-cbu" label={t('admin.eventEditor.bankTransferCbu')}>
-                  <input
-                    id="event-bank-cbu"
-                    name="bankTransfer.cbu"
-                    type="text"
-                    maxLength={30}
-                    value={draft.bankTransfer?.cbu ?? ''}
-                    onChange={(changeEvent) =>
-                      patchDraft({
-                        ...draft,
-                        bankTransferProfileId: null,
-                        bankTransfer: {
-                          ...(draft.bankTransfer ?? {}),
-                          cbu: changeEvent.target.value,
-                        },
-                      })
-                    }
-                    disabled={!canEdit}
-                  />
-                </FormField>
-                <FormField
-                  htmlFor="event-bank-holder"
-                  label={t('admin.eventEditor.bankTransferHolder')}
-                  wide
-                >
-                  <input
-                    id="event-bank-holder"
-                    name="bankTransfer.holder"
-                    type="text"
-                    maxLength={160}
-                    value={draft.bankTransfer?.holder ?? ''}
-                    onChange={(changeEvent) =>
-                      patchDraft({
-                        ...draft,
-                        bankTransferProfileId: null,
-                        bankTransfer: {
-                          ...(draft.bankTransfer ?? {}),
-                          holder: changeEvent.target.value,
-                        },
-                      })
-                    }
-                    disabled={!canEdit}
-                  />
-                </FormField>
-              </div>
               <div
                 className="admin-event-form__reference-note"
                 role="note"

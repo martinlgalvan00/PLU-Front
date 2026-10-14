@@ -26,6 +26,7 @@ export async function openAdminEventSecurity(page, eventSlug) {
   })
   await page.getByRole('tab', { name: /zonas y seguridad/i }).click()
   await expect(page.locator('.admin-event-zones')).toBeVisible({ timeout: 15_000 })
-  await expect(page.locator('.admin-event-security')).toBeVisible()
+  // El reporte de escaneo comparte la clase raíz: se apunta a la sección de equipo.
+  await expect(page.locator('.admin-event-security:not(.admin-event-scan-report)')).toBeVisible()
   await expect(page.locator('.admin-event-zones__empty, .admin-event-zones__list')).toBeVisible()
 }

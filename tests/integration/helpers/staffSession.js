@@ -96,6 +96,11 @@ export function createPrismaDouble(users, { events = [], zones = [] } = {}) {
     event: {
       findUnique: async ({ where }) => events.find((event) => event.id === where.id) ?? null,
     },
+    // Eventos asignados a cuentas de rol por evento (Prisma: UserEventAccess).
+    userEventAccess: {
+      findMany: async ({ where }) =>
+        users.find((user) => user.id === where.userId)?.eventAccess ?? [],
+    },
     user: {
       findUnique: async ({ where }) => {
         if (where.email) return users.find((user) => user.email === where.email) ?? null
@@ -217,6 +222,10 @@ export async function buildStaffUser({
   email = 'staff-integration@pluarg.test',
   eventId = null,
   eventSlug = null,
+  // Rol "por evento" (organizador): lista de `{ eventId, eventSlug }` a los que
+  // la cuenta tiene acceso. Con esta opción la cuenta nace con el rol de sistema
+  // `organizador_evento`; sin ella, todo sigue como antes.
+  eventAccess = null,
 } = {}) {
   const userKey = email
     .toLowerCase()
@@ -233,6 +242,17 @@ export async function buildStaffUser({
     eventId,
     eventSlug,
     event: eventId ? { id: eventId, slug: eventSlug } : null,
+    ...(eventAccess
+      ? {
+          role: 'operador_plu_arg',
+          accessRole: {
+            key: 'organizador_evento',
+            name: 'Organizador',
+            active: true,
+          },
+          eventAccess,
+        }
+      : {}),
   }
 }
 
