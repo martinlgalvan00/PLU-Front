@@ -70,14 +70,16 @@ describe('habilitar la venta de entradas llega al público', () => {
   })
 
   it('sobre la fecha se cae la transferencia, pero la venta sigue abierta', () => {
-    // El corte de 72 horas no cierra la venta: mueve al comprador a Mercado
-    // Pago, que es el único medio que llega a tiempo.
+    // El corte de 72 horas no cierra la venta: saca los medios que esperan
+    // comprobante y deja Mercado Pago y el efectivo en el lugar, que se
+    // acreditan en el momento.
     const venta = ventaPublica({ now: TREINTA_SEIS_HORAS_ANTES })
 
     expect(venta.ticketEnabled).toBe(true)
     expect(venta.paymentChannels.ticket.mercado_pago).toBe(true)
     expect(venta.paymentChannels.ticket.bank_transfer).toBe(false)
-    expect(venta.ticketManualEnabled).toBe(false)
+    expect(venta.paymentChannels.ticket.cash_pitbull).toBe(true)
+    expect(venta.ticketManualEnabled).toBe(true)
   })
 
   it('un evento sin fecha cargada no pierde la venta', () => {
@@ -108,8 +110,8 @@ describe('cada corte cierra por su cuenta y se puede nombrar', () => {
     expect(ventaPublica({ overrides: { ticket: TODOS_CERRADOS } }).ticketEnabled).toBe(false)
   })
 
-  it('el plazo manual, solo si Mercado Pago ya estaba cerrado', () => {
-    const soloTransferencia = { ticket: { mercado_pago: false } }
+  it('el plazo manual, solo si Mercado Pago y el efectivo ya estaban cerrados', () => {
+    const soloTransferencia = { ticket: { mercado_pago: false, cash_pitbull: false } }
 
     expect(ventaPublica({ overrides: soloTransferencia }).ticketEnabled).toBe(true)
     expect(

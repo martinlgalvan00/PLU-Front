@@ -3,8 +3,8 @@
  *
  * `events.payment_channel_overrides` nació como un solo juego de interruptores
  * para todo el evento, y alcanzaba mientras inscripción y entradas se cobraran
- * igual. No es el caso: el efectivo en Pitbull tiene sentido para un atleta que
- * pasa por el gimnasio y ninguno para un espectador que compra una entrada
+ * igual. No es el caso: el efectivo en el lugar tiene sentido para un atleta que
+ * paga en la sede y ninguno para un espectador que compra una entrada
  * desde el celular. Cerrarlo para uno cerraba el del otro.
  *
  * Ahora el override es `{concepto: {canal: bool}}`. La forma vieja —plana— se
@@ -203,8 +203,9 @@ export function openEventChannelsFor(overrides, concept) {
  * apruebe. Vendido dentro de esa ventana, el QR no alcanza a emitirse antes de
  * que abra la puerta, y lo que queda es una devolución.
  *
- * Por eso los canales manuales cierran antes que la venta: Mercado Pago sigue
- * hasta `ticketSalesClosesAt`, la transferencia y Wise no.
+ * Por eso los canales que esperan comprobante cierran antes que la venta:
+ * Mercado Pago y el efectivo en el lugar siguen hasta `ticketSalesClosesAt`,
+ * la transferencia y Wise no.
  *
  * Es una constante y no un campo por evento a propósito: sale de los dos
  * plazos que ya están escritos en el circuito. Hacerla configurable pide una
@@ -212,6 +213,14 @@ export function openEventChannelsFor(overrides, concept) {
  * aprueba más rápido.
  */
 export const MANUAL_TICKET_LEAD_HOURS = 72
+
+/**
+ * Los canales a los que aplica ese corte: los que esperan un comprobante y una
+ * aprobación. El efectivo queda afuera porque se paga en la sede y se acredita
+ * en el momento, sin demora que cubrir — cerrarlo tres días antes dejaba sin
+ * medio a quien justamente quería pagar en el lugar.
+ */
+export const MANUAL_TICKET_DEADLINE_CHANNELS = Object.freeze(['bank_transfer', 'wise_transfer'])
 
 /** Momento en que dejan de ofrecerse los canales manuales. */
 export function manualTicketChannelsCloseAt(startsAt) {

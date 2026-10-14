@@ -220,7 +220,7 @@ export default function PaymentValidationDialog({
   const noProofLead = isSettle
     ? t('admin.paymentValidation.settleNoProofLead')
     : item.cashAtPitbull
-      ? 'Confirmá que el efectivo fue recibido en Pitbull antes de acreditar la orden.'
+      ? 'Confirmá que el efectivo fue recibido en la sede antes de acreditar la orden.'
       : needsProofOverride
         ? t('admin.paymentValidation.overrideNoProofLead')
         : isView

@@ -27,6 +27,7 @@ const AREA_OF_FIELD = {
   paymentChannelOverrides: 'payment',
   bankTransfer: 'payment',
   bankTransferProfileId: 'payment',
+  cashPayment: 'payment',
   mercadoPagoProfileId: 'payment',
   status: 'visibility',
   published: 'visibility',

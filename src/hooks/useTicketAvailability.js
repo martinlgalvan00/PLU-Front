@@ -31,6 +31,7 @@ const CHECKOUT_PENDING = {
   ticketManualEnabled: false,
   channels: { mercado_pago: true, bank_transfer: false, cash_pitbull: false, wise_transfer: false },
   bankTransfer: { alias: '', cbu: '', holder: '' },
+  cashPayment: null,
 }
 const selectCheckout = (data) => data?.checkout ?? CHECKOUT_PENDING
 

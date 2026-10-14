@@ -1706,7 +1706,7 @@ export default {
         offer_unavailable: 'Esa oferta ya no está disponible.',
       },
       paymentLegend: 'Método de pago',
-      manualChannelPriceHint: 'Precio con transferencia o efectivo en Pitbull.',
+      manualChannelPriceHint: 'Precio con transferencia o efectivo en el lugar.',
       planSelector: 'Plan de afiliación',
       planModeLegend: 'Modalidad',
       planModeAnnual: 'Anual',
@@ -1730,8 +1730,8 @@ export default {
       completePaymentTitle: 'Completá el pago',
       completePaymentLead: 'Confirmá tu afiliación con Mercado Pago.',
       cashPitbullCreated: 'Orden guardada. Pagá en efectivo en la sede el día del torneo.',
-      cashPitbull: 'Efectivo en Pitbull',
-      cashPitbullComingSoon: 'Efectivo en Pitbull · Próximamente',
+      cashPitbull: 'Efectivo en el lugar',
+      cashPitbullComingSoon: 'Efectivo en el lugar · Próximamente',
       checkoutBridgeLabel: 'Mercado Pago',
       checkoutBridgeSecure: 'Conexión segura',
       membershipPlanLabel: 'Afiliación PLU anual',
@@ -3799,16 +3799,16 @@ export default {
       buyerEmailPlaceholder: 'nombre@mail.com',
       buyerPhone: 'Teléfono (opcional)',
       buyerPhonePlaceholder: '11 5555 5555',
-      paymentCash: 'Efectivo en Pitbull',
-      paymentCashHint: 'Pagás en el gimnasio · sin comprobante para subir',
+      paymentCash: 'Efectivo en el lugar',
+      paymentCashHint: 'Pagás en la sede del evento · sin comprobante para subir',
       paymentCashAssurance: 'QR habilitado cuando acreditamos el pago en caja',
       paymentWiseSoon: 'Próximamente',
       paymentWiseHint: 'Transferencia internacional · QR al acreditarse',
       paymentWiseAssurance: 'QR de ingreso al acreditarse la transferencia',
       cashNote:
-        'Pasá por Pitbull con este código y pagá en caja. Administración acredita la compra en el momento y tu QR queda habilitado.',
+        'Pagá en efectivo en la sede del evento mostrando este código. Administración acredita la compra en el momento y tu QR queda habilitado.',
       cashWhereLabel: 'Dónde pagar',
-      cashWhereValue: 'Pitbull Gym, en horario de atención',
+      cashWhereFallback: 'En la sede del evento',
       paymentMpCheckout: 'Pagás, Mercado Pago acredita solo y tu QR abre la puerta.',
       paymentMpPending:
         'Pagá con Mercado Pago para confirmar al instante. Tu entrada con QR se habilita automáticamente.',
@@ -3981,10 +3981,10 @@ export default {
       competitionPaymentDesc: 'Elegí el medio para generar la orden.',
       paymentMpHint: 'Acreditación automática',
       paymentMercadoPagoOnlyHint:
-        'Por el momento, afiliaciones e inscripciones se pagan únicamente con Mercado Pago. Transferencia bancaria y efectivo en Pitbull estarán disponibles próximamente.',
+        'Por el momento, afiliaciones e inscripciones se pagan únicamente con Mercado Pago. Transferencia bancaria y efectivo en el lugar estarán disponibles próximamente.',
       paymentNoChannelHint:
         'No hay medios de pago disponibles en este momento. Volvé a intentar más tarde o escribinos.',
-      manualChannelPriceHint: 'Precio con transferencia o efectivo en Pitbull.',
+      manualChannelPriceHint: 'Precio con transferencia o efectivo en el lugar.',
       priceIncreaseNotice: 'Desde el {{date}}, la inscripción pasa a {{amount}}.',
       paymentCodeWithoutGatewayHint:
         'Tu código no se paga con Mercado Pago: el precio quedó pactado para los medios que ves acá. El equipo valida el pago a mano.',
@@ -3992,7 +3992,7 @@ export default {
       paymentTransferLabel: 'Transferencia bancaria',
       // Faltaba: `RegisterSettle` ya ofrecía la opción, así que el selector
       // mostraba la clave cruda en vez del nombre del medio de pago.
-      paymentCashPitbullLabel: 'Efectivo en Pitbull',
+      paymentCashPitbullLabel: 'Efectivo en el lugar',
       // Wise es para pagos del exterior: precio fijo en USD, sin el desglose
       // ARS del resto de los medios.
       paymentWiseLabel: 'Wise (pagos del exterior)',
@@ -4009,9 +4009,10 @@ export default {
       paymentMethodLocked:
         'Esta orden ya tiene un pago iniciado en Mercado Pago. Completalo o esperá a que venza para usar transferencia.',
       paymentLinkHint: 'Validación administrativa · hasta 48 horas',
-      cashPitbullCreated: 'Tu orden quedó creada. Podés pagar en efectivo en Pitbull.',
+      cashPitbullCreated: 'Tu orden quedó creada. Podés pagar en efectivo en la sede del evento.',
+      cashVenueFallback: 'la sede del evento',
       cashPitbullSettleNote:
-        'Pagá en efectivo en Pitbull. Cuando lo entregues, avisá en el panel de abajo.',
+        'Pagá en efectivo en {{venue}}. Cuando lo entregues, avisá en el panel de abajo.',
       cashPitbullDeclaredNote:
         'Ya avisaste la entrega. Finanzas valida el pago en el sistema antes de acreditarlo.',
       settleRejectedTitle: 'Esta orden fue rechazada.',
@@ -4240,7 +4241,7 @@ export default {
     payment: {
       mercadoPago: 'Mercado Pago',
       manualLink: 'Link de pago + validación manual',
-      cashPitbull: 'Efectivo en Pitbull',
+      cashPitbull: 'Efectivo en el lugar',
       wiseTransfer: 'Wise',
     },
   },

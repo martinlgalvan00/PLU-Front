@@ -84,7 +84,7 @@ test.describe('Panel de eventos: edición y medios de cobro', () => {
     await page.getByRole('tab', { name: /^Cobro$/i }).click()
     await expect(page.locator('#event-bank-alias')).toHaveValue('plu.e2e.qa')
 
-    const channels = ['Mercado Pago', 'Transferencia', 'Efectivo Pitbull', 'Wise']
+    const channels = ['Mercado Pago', 'Transferencia', 'Efectivo en el lugar', 'Wise']
     for (const channel of channels) {
       await expect(page.getByRole('checkbox', { name: `${channel} · Inscripción` })).toBeChecked()
       await expect(page.getByRole('checkbox', { name: `${channel} · Entradas` })).toBeChecked()

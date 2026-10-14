@@ -583,7 +583,7 @@ export const FAQ_ITEMS = [
   },
   {
     q: 'How do I pay for membership or registration?',
-    a: 'For now, memberships and registrations can only be paid through Mercado Pago from the web form. Bank transfer and cash at Pitbull will be enabled soon.',
+    a: 'For now, memberships and registrations can only be paid through Mercado Pago from the web form. Bank transfer and cash on site will be enabled soon.',
   },
   {
     q: 'What is Pitbull Classic?',

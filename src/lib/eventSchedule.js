@@ -101,11 +101,16 @@ export function formatScheduleDate(schedule, locale = 'es') {
     .replace(',', '')
 }
 
+/** Misma zona que el planner (`ORG_UTC_OFFSET` / migración 20260930100000). */
+const ORG_TIME_ZONE = 'America/Argentina/Buenos_Aires'
+
 /**
  * "08:30" — horario de pesaje o de inicio de tanda.
  *
  * 24 h fijo: es-AR sale en 12 h por defecto ("08:30 a. m.") y una grilla de
- * competencia no se lee así en ningún lado.
+ * competencia no se lee así en ningún lado. La zona es siempre Buenos Aires:
+ * el ISO se genera con offset -03:00 y no puede depender del TZ del runtime
+ * (CI en UTC mostraba "12:00" donde la UI promete "09:00").
  */
 export function formatScheduleTime(iso, locale = 'es') {
   if (!iso) return ''
@@ -115,6 +120,7 @@ export function formatScheduleTime(iso, locale = 'es') {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
+    timeZone: ORG_TIME_ZONE,
   })
 }
 

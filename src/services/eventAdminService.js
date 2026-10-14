@@ -156,6 +156,10 @@ export function buildAdminEventDraft(event) {
     },
     bankTransferProfileId: event.bankTransferProfileId ?? null,
     mercadoPagoProfileId: event.mercadoPagoProfileId ?? null,
+    cashPayment: {
+      place: event.cashPayment?.place ?? '',
+      notes: event.cashPayment?.notes ?? '',
+    },
   }
 }
 
@@ -626,6 +630,7 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   bankTransfer: { alias: '', cbu: '', holder: '' },
   bankTransferProfileId: null,
   mercadoPagoProfileId: null,
+  cashPayment: { place: '', notes: '' },
 }
 
 /** Reconstruye eventDays/ticketTypes desde las filas joineadas de Supabase. */
@@ -749,6 +754,10 @@ export function mapSupabaseEventRow(row) {
     },
     bankTransferProfileId: row.bank_transfer_profile_id ?? null,
     mercadoPagoProfileId: row.mercado_pago_profile_id ?? null,
+    cashPayment: {
+      place: row.cash_payment_place ?? '',
+      notes: row.cash_payment_notes ?? '',
+    },
     comboOffer: comboOfferRow
       ? {
           id: comboOfferRow.id,
@@ -932,6 +941,10 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
     },
     bankTransferProfileId: draft.bankTransferProfileId ?? null,
     mercadoPagoProfileId: draft.mercadoPagoProfileId ?? null,
+    cashPayment: {
+      place: String(draft.cashPayment?.place ?? '').trim(),
+      notes: String(draft.cashPayment?.notes ?? '').trim(),
+    },
   })
 
   return {

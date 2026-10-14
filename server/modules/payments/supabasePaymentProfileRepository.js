@@ -1,7 +1,8 @@
 import { PRIMARY_ORGANIZATION_ID } from '../../lib/organizations.js'
 import { HttpError } from '../../lib/errors.js'
 import { assertSupabaseResult } from '../../lib/supabaseRpc.js'
-import { encryptPaymentProfileSecrets } from './paymentProfileSecrets.js'
+import { decryptPaymentProfileSecrets, encryptPaymentProfileSecrets } from './paymentProfileSecrets.js'
+import { mercadoPagoConnectionStatus } from './mercadoPagoOAuth.js'
 
 function trimText(value) {
   const text = String(value ?? '').trim()
@@ -17,11 +18,38 @@ function mapBankConfig(config) {
   }
 }
 
+// Metadata no secreta de una cuenta vinculada por OAuth. Los tokens nunca
+// pasan por acá: viven cifrados en `secrets_ciphertext`.
+const OAUTH_CONFIG_KEYS = [
+  'connection',
+  'liveMode',
+  'scope',
+  'accountNickname',
+  'accountEmail',
+  'accountName',
+  'connectedAt',
+  'connectedBy',
+  'expiresAt',
+  'refreshedAt',
+  'status',
+  'lastRefreshError',
+]
+
+function pickOAuthConfig(config) {
+  if (config.connection !== 'oauth') return {}
+  const picked = {}
+  for (const key of OAUTH_CONFIG_KEYS) {
+    if (config[key] !== undefined && config[key] !== null) picked[key] = config[key]
+  }
+  return picked
+}
+
 function mapMercadoPagoConfig(config) {
   return {
     publicKey: trimText(config.publicKey),
     collectorId: trimText(config.collectorId),
     notes: trimText(config.notes),
+    ...pickOAuthConfig(config),
   }
 }
 
@@ -37,6 +65,9 @@ export function mapPaymentProfileRow(row, { includeSecrets = false } = {}) {
     active: row.active !== false,
     config: kind === 'mercado_pago' ? mapMercadoPagoConfig(config) : mapBankConfig(config),
     hasSecrets: Boolean(row.secrets_ciphertext),
+    ...(kind === 'mercado_pago'
+      ? { connectionStatus: mercadoPagoConnectionStatus(config) }
+      : {}),
     createdAt: row.created_at ?? null,
     updatedAt: row.updated_at ?? null,
   }
@@ -52,6 +83,7 @@ function buildConfig(kind, config = {}) {
       publicKey: trimText(config.publicKey).slice(0, 120),
       collectorId: trimText(config.collectorId).slice(0, 40),
       notes: trimText(config.notes).slice(0, 500),
+      ...pickOAuthConfig(config),
     }
   }
   return {
@@ -152,10 +184,26 @@ export function createSupabasePaymentProfileRepository(
         }
         patch.name = trimmedName.slice(0, 120)
       }
+      const isOAuth = existing.config?.connection === 'oauth'
       if (config !== undefined) {
-        patch.config = buildConfig(existing.kind, { ...existing.config, ...config })
+        // La metadata OAuth solo la escribe la vinculación: desde el panel no se
+        // puede marcar como OAuth una cuenta manual ni, en una OAuth, cambiar la
+        // public key o el collector que definió Mercado Pago (solo las notas).
+        const incoming = { ...(config ?? {}) }
+        for (const key of OAUTH_CONFIG_KEYS) delete incoming[key]
+        if (isOAuth) {
+          delete incoming.publicKey
+          delete incoming.collectorId
+        }
+        patch.config = buildConfig(existing.kind, { ...existing.config, ...incoming })
       }
       if (typeof active === 'boolean') patch.active = active
+      if (secrets && isOAuth) {
+        throw new HttpError(
+          400,
+          'Esta cuenta está vinculada con Mercado Pago: para renovar credenciales, volvé a conectarla.',
+        )
+      }
       if (secrets && existing.kind === 'mercado_pago') {
         const current = existing.secretsCiphertext
           ? null // no decrypt here for merge — require full replace when rotating
@@ -188,6 +236,306 @@ export function createSupabasePaymentProfileRepository(
       )
       if (!row) throw new HttpError(404, 'Perfil de cobro no encontrado.')
       return mapPaymentProfileRow(row)
+    },
+
+    async findMercadoPagoOAuthByCollector(collectorId, { includeSecrets = false } = {}) {
+      const normalized = trimText(collectorId)
+      if (!normalized) return null
+      const rows = assertSupabaseResult(
+        await client
+          .from('payment_profiles')
+          .select('*')
+          .eq('organization_id', organizationId)
+          .eq('kind', 'mercado_pago')
+          .eq('config->>connection', 'oauth')
+          .eq('config->>collectorId', normalized)
+          .limit(1),
+        'No se pudo buscar la cuenta de Mercado Pago.',
+      )
+      const row = Array.isArray(rows) ? rows[0] : rows
+      return mapPaymentProfileRow(row ?? null, { includeSecrets })
+    },
+
+    /**
+     * Guarda el resultado de una vinculación OAuth. La misma cuenta de MP
+     * (mismo user_id) reusa su perfil aunque esté archivado: reconectar renueva
+     * tokens y lo reactiva, no duplica. Reconectar un perfil puntual con OTRA
+     * cuenta de MP se rechaza: cambiaría en silencio a quién le llega la plata
+     * de todos los eventos que lo usan.
+     */
+    async saveMercadoPagoOAuthConnection({
+      profileId = null,
+      name = '',
+      tokens,
+      identity = null,
+      actorId = null,
+      now = new Date(),
+    }) {
+      const collectorId = trimText(tokens?.userId)
+      if (!collectorId || !tokens?.accessToken) {
+        throw new HttpError(502, 'Mercado Pago no devolvió la cuenta vinculada.', {
+          code: 'MP_OAUTH_TOKEN_FAILED',
+        })
+      }
+
+      let target = null
+      if (profileId) {
+        target = await this.findById(profileId)
+        if (!target || target.kind !== 'mercado_pago') {
+          throw new HttpError(404, 'Cuenta de cobro no encontrada.')
+        }
+        if (target.config?.collectorId && target.config.collectorId !== collectorId) {
+          throw new HttpError(
+            409,
+            'Iniciaste sesión con otra cuenta de Mercado Pago. Para cobrar en esa cuenta, conectala como cuenta nueva.',
+            { code: 'MP_OAUTH_ACCOUNT_MISMATCH' },
+          )
+        }
+      }
+      const sameAccount = await this.findMercadoPagoOAuthByCollector(collectorId)
+      if (sameAccount && target && sameAccount.id !== target.id) {
+        throw new HttpError(
+          409,
+          `Esa cuenta de Mercado Pago ya está vinculada como «${sameAccount.name}».`,
+          { code: 'MP_OAUTH_ALREADY_LINKED' },
+        )
+      }
+      target ??= sameAccount
+
+      const nowIso = now.toISOString()
+      const accountLabel =
+        identity?.nickname || identity?.email || identity?.name || `Usuario ${collectorId}`
+      const config = buildConfig('mercado_pago', {
+        ...(target?.config ?? {}),
+        publicKey: tokens.publicKey || target?.config?.publicKey || '',
+        collectorId,
+        connection: 'oauth',
+        liveMode: tokens.liveMode !== false,
+        scope: tokens.scope || null,
+        accountNickname: identity?.nickname ?? target?.config?.accountNickname ?? null,
+        accountEmail: identity?.email ?? target?.config?.accountEmail ?? null,
+        accountName: identity?.name ?? target?.config?.accountName ?? null,
+        connectedAt: nowIso,
+        connectedBy: actorId ?? null,
+        expiresAt: tokens.expiresAt ?? null,
+        refreshedAt: nowIso,
+        status: 'connected',
+        lastRefreshError: null,
+      })
+      const secretsCiphertext = encryptPaymentProfileSecrets(
+        {
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken ?? '',
+          webhookSecret: '',
+        },
+        env,
+      )
+
+      if (target) {
+        const row = assertSupabaseResult(
+          await client
+            .from('payment_profiles')
+            .update({
+              config,
+              secrets_ciphertext: secretsCiphertext,
+              active: true,
+              updated_at: nowIso,
+            })
+            .eq('organization_id', organizationId)
+            .eq('id', target.id)
+            .select('*')
+            .maybeSingle(),
+          'No se pudo guardar la cuenta de Mercado Pago.',
+        )
+        if (!row) throw new HttpError(404, 'Cuenta de cobro no encontrada.')
+        return { profile: mapPaymentProfileRow(row), created: false }
+      }
+
+      const row = assertSupabaseResult(
+        await client
+          .from('payment_profiles')
+          .insert({
+            organization_id: organizationId,
+            name: (trimText(name) || `Mercado Pago · ${accountLabel}`).slice(0, 120),
+            kind: 'mercado_pago',
+            config,
+            secrets_ciphertext: secretsCiphertext,
+            active: true,
+          })
+          .select('*')
+          .single(),
+        'No se pudo guardar la cuenta de Mercado Pago.',
+      )
+      return { profile: mapPaymentProfileRow(row), created: true }
+    },
+
+    /**
+     * Persiste tokens renovados solo si nadie renovó en el medio: el refresh
+     * token rota, así que pisar una renovación concurrente con tokens ya
+     * invalidados dejaría la cuenta muerta. Devuelve null si perdió la carrera.
+     */
+    async storeRefreshedMercadoPagoTokens(id, { previousCiphertext, tokens, now = new Date() }) {
+      const existing = await this.findById(id)
+      if (!existing) throw new HttpError(404, 'Cuenta de cobro no encontrada.')
+      const nowIso = now.toISOString()
+      const row = assertSupabaseResult(
+        await client
+          .from('payment_profiles')
+          .update({
+            config: buildConfig('mercado_pago', {
+              ...existing.config,
+              publicKey: tokens.publicKey || existing.config.publicKey,
+              expiresAt: tokens.expiresAt ?? existing.config.expiresAt ?? null,
+              scope: tokens.scope || existing.config.scope || null,
+              refreshedAt: nowIso,
+              status: 'connected',
+              lastRefreshError: null,
+            }),
+            secrets_ciphertext: encryptPaymentProfileSecrets(
+              {
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken ?? '',
+                webhookSecret: '',
+              },
+              env,
+            ),
+            updated_at: nowIso,
+          })
+          .eq('organization_id', organizationId)
+          .eq('id', id)
+          .eq('secrets_ciphertext', previousCiphertext)
+          .select('*')
+          .maybeSingle(),
+        'No se pudo guardar la renovación de Mercado Pago.',
+      )
+      return row ? mapPaymentProfileRow(row) : null
+    },
+
+    async markMercadoPagoNeedsReconnect(id, { reason = null, now = new Date() } = {}) {
+      const existing = await this.findById(id)
+      if (!existing || existing.config?.connection !== 'oauth') return null
+      const row = assertSupabaseResult(
+        await client
+          .from('payment_profiles')
+          .update({
+            config: buildConfig('mercado_pago', {
+              ...existing.config,
+              status: 'needs_reconnect',
+              lastRefreshError: trimText(reason).slice(0, 240) || null,
+            }),
+            updated_at: now.toISOString(),
+          })
+          .eq('organization_id', organizationId)
+          .eq('id', id)
+          .select('*')
+          .maybeSingle(),
+        'No se pudo actualizar la cuenta de Mercado Pago.',
+      )
+      return row ? mapPaymentProfileRow(row) : null
+    },
+
+    /** Tokens descifrados de una cuenta OAuth (solo backend). */
+    decryptOAuthSecrets(profile) {
+      if (!profile?.secretsCiphertext) return null
+      return decryptPaymentProfileSecrets(profile.secretsCiphertext, env)
+    },
+
+    /**
+     * Dónde se usa cada cuenta: eventos (MP o transferencia), la tienda y
+     * órdenes que quedaron fijadas a ella. Es lo que decide si se puede borrar
+     * y lo que el panel muestra como "Usada en…".
+     */
+    async usage(ids = null, { now = new Date() } = {}) {
+      const byId = new Map()
+      const ensure = (id) => {
+        if (!byId.has(id)) byId.set(id, { events: [], shop: false, pinnedOrders: 0 })
+        return byId.get(id)
+      }
+      const filterIds = Array.isArray(ids) ? ids.filter(Boolean) : null
+      if (filterIds && filterIds.length === 0) return byId
+
+      const events = assertSupabaseResult(
+        await client
+          .from('events')
+          .select(
+            'id, title, slug, status, ends_at, mercado_pago_profile_id, bank_transfer_profile_id',
+          )
+          .eq('organization_id', organizationId)
+          .or('mercado_pago_profile_id.not.is.null,bank_transfer_profile_id.not.is.null'),
+        'No se pudo leer el uso de las cuentas de cobro.',
+      )
+      for (const event of events ?? []) {
+        const summary = {
+          id: event.id,
+          title: event.title,
+          slug: event.slug,
+          status: event.status,
+          endsAt: event.ends_at ?? null,
+          finished: Boolean(event.ends_at && Date.parse(event.ends_at) < now.getTime()),
+        }
+        for (const profileId of [event.mercado_pago_profile_id, event.bank_transfer_profile_id]) {
+          if (!profileId || (filterIds && !filterIds.includes(profileId))) continue
+          ensure(profileId).events.push(summary)
+        }
+      }
+
+      const shop = await client
+        .from('shop_checkout_settings')
+        .select('mercado_pago_profile_id, bank_transfer_profile_id')
+        .limit(5)
+      // La tienda es opcional en entornos viejos: sin tabla no hay uso.
+      for (const row of shop.error ? [] : (shop.data ?? [])) {
+        for (const profileId of [row.mercado_pago_profile_id, row.bank_transfer_profile_id]) {
+          if (!profileId || (filterIds && !filterIds.includes(profileId))) continue
+          ensure(profileId).shop = true
+        }
+      }
+
+      for (const table of ['athlete_payment_orders', 'ticket_orders', 'shop_orders']) {
+        let query = client
+          .from(table)
+          .select('mercado_pago_profile_id')
+          .eq('organization_id', organizationId)
+          .not('mercado_pago_profile_id', 'is', null)
+        if (filterIds) query = query.in('mercado_pago_profile_id', filterIds)
+        const result = await query
+        // Antes de la migración de cuenta fija la columna no existe: cero órdenes.
+        for (const row of result.error ? [] : (result.data ?? [])) {
+          ensure(row.mercado_pago_profile_id).pinnedOrders += 1
+        }
+      }
+      return byId
+    },
+
+    /**
+     * Baja definitiva, solo si la cuenta no quedó referenciada en ningún lado.
+     * Con referencias se archiva (`active:false`): el historial de órdenes y
+     * eventos pasados sigue apuntando a ella.
+     */
+    async remove(id) {
+      const existing = await this.findById(id)
+      if (!existing) throw new HttpError(404, 'Cuenta de cobro no encontrada.')
+      const inUse = () =>
+        new HttpError(
+          409,
+          'La cuenta tiene eventos u órdenes asociados: archivala en lugar de eliminarla.',
+          { code: 'PAYMENT_PROFILE_IN_USE' },
+        )
+      const usage = (await this.usage([id])).get(id)
+      if (usage && (usage.events.length > 0 || usage.shop || usage.pinnedOrders > 0)) {
+        throw inUse()
+      }
+      const { error } = await client
+        .from('payment_profiles')
+        .delete()
+        .eq('organization_id', organizationId)
+        .eq('id', id)
+      if (error) {
+        // FK de una referencia que `usage` no ve (p. ej. un pedido viejo de la tienda).
+        if (error.code === '23503') throw inUse()
+        assertSupabaseResult({ data: null, error }, 'No se pudo eliminar la cuenta de cobro.')
+      }
+      return { deleted: true, profile: existing }
     },
 
     /**
