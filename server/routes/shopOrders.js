@@ -27,6 +27,7 @@ import {
   getPaymentAcrossMercadoPagoAccounts,
   listMercadoPagoWebhookSecrets,
   pickWebhookCredentials,
+  resolveMercadoPagoNotificationCredentials,
 } from '../modules/payments/mercadoPagoProfileRuntime.js'
 import { createSupabasePaymentProfileRepository } from '../modules/payments/supabasePaymentProfileRepository.js'
 import {
@@ -531,6 +532,16 @@ export function createShopOrderRoutes(deps = {}) {
               toleranceSeconds: Number(env.MERCADO_PAGO_WEBHOOK_TOLERANCE_SECONDS ?? 300),
             }),
           )
+        }
+        // Cuenta vinculada por OAuth: la firma es de la aplicación de PLU, la
+        // cuenta que cobró la dice el `user_id` (ver paymentWorkflow).
+        if (!deps.webhookSecrets && body.user_id) {
+          credentials =
+            (await resolveMercadoPagoNotificationCredentials(
+              client(),
+              { matched: credentials, userId: body.user_id },
+              env,
+            )) ?? credentials
         }
 
         const type = isIpn ? ipnTopic : String(req.query.type ?? body.type ?? '')

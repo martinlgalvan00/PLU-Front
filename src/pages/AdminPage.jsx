@@ -669,6 +669,8 @@ export default function AdminPage({
           onSave={onSaveRegistrationAccessGate}
           onDelete={onDeleteRegistrationAccessGate}
           onToggleSaved={onRefreshCheckoutAvailability}
+          canReadPaymentAccounts={hasPermission(authorization, 'admin.events.read')}
+          canEditPaymentAccounts={hasPermission(authorization, 'admin.events.write')}
         />
       )
     }

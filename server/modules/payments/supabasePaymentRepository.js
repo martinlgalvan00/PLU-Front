@@ -73,10 +73,15 @@ export function createSupabasePaymentRepository(
         registration: Array.isArray(data.registration)
           ? (data.registration[0] ?? null)
           : (data.registration ?? null),
-        mercadoPagoProfileId:
-          (Array.isArray(data.registration)
-            ? data.registration[0]?.event?.mercado_pago_profile_id
-            : data.registration?.event?.mercado_pago_profile_id) ?? null,
+        // Fijada = la cuenta con la que se abrió el cobro, aunque el evento
+        // haya cambiado de cuenta después (NULL fijado = cuenta global). Sin
+        // fijar todavía, la cuenta actual del evento.
+        mercadoPagoProfileId: data.mercado_pago_account_pinned_at
+          ? (data.mercado_pago_profile_id ?? null)
+          : ((Array.isArray(data.registration)
+              ? data.registration[0]?.event?.mercado_pago_profile_id
+              : data.registration?.event?.mercado_pago_profile_id) ?? null),
+        mercadoPagoAccountPinned: Boolean(data.mercado_pago_account_pinned_at),
       }
     }
 
@@ -118,12 +123,37 @@ export function createSupabasePaymentRepository(
       rejectionReason: ticketData.rejection_reason ?? null,
       paymentProofUploadedAt: ticketData.payment_proof_uploaded_at ?? null,
       event: ticketData.event,
-      mercadoPagoProfileId: ticketData.event?.mercado_pago_profile_id ?? null,
+      mercadoPagoProfileId: ticketData.mercado_pago_account_pinned_at
+        ? (ticketData.mercado_pago_profile_id ?? null)
+        : (ticketData.event?.mercado_pago_profile_id ?? null),
+      mercadoPagoAccountPinned: Boolean(ticketData.mercado_pago_account_pinned_at),
     }
   }
 
   return {
     getOrder,
+
+    /**
+     * Fija la cuenta de MP de la orden la primera vez que se abre el cobro.
+     * Idempotente y sin pisar: si ya estaba fijada (otro request en paralelo),
+     * gana la primera y se devuelve esa. Antes de la migración la columna no
+     * existe y se sigue con la cuenta del evento, como siempre.
+     */
+    async pinMercadoPagoAccount(order, profileId) {
+      if (!order?.id || order.mercadoPagoAccountPinned) return order?.mercadoPagoProfileId ?? null
+      const table = order.kind === 'ticket' ? 'ticket_orders' : 'athlete_payment_orders'
+      const { error } = await client
+        .from(table)
+        .update({
+          mercado_pago_profile_id: profileId ?? null,
+          mercado_pago_account_pinned_at: new Date().toISOString(),
+        })
+        .eq('id', order.id)
+        .is('mercado_pago_account_pinned_at', null)
+      if (error) return profileId ?? null
+      const fresh = await getOrder(order.id)
+      return fresh?.mercadoPagoProfileId ?? profileId ?? null
+    },
 
     async recordClientEvent({ order, stage, errorCode, message }) {
       return assertResult(

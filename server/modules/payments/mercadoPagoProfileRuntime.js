@@ -129,12 +129,81 @@ export function pickWebhookCredentials(secrets, verifyFn) {
 }
 
 /**
+ * Todas las cuentas con token para leer pagos: env + perfiles activos, tengan
+ * o no webhook secret propio. Las vinculadas por OAuth no lo tienen (sus
+ * notificaciones las firma la aplicación de PLU, cuyo secreto ya está en el
+ * env), así que `listMercadoPagoWebhookSecrets` no las ve.
+ */
+export async function listMercadoPagoAccountCredentials(client, env = process.env) {
+  const accounts = (await listMercadoPagoWebhookSecrets(client, env)).map((candidate) => ({
+    ...candidate,
+  }))
+  if (!client) return accounts
+  const known = new Set(accounts.map((candidate) => candidate.profileId).filter(Boolean))
+  try {
+    const profiles = await createSupabasePaymentProfileRepository(client).list({
+      kind: 'mercado_pago',
+      activeOnly: true,
+      includeSecrets: true,
+    })
+    for (const profile of profiles) {
+      if (known.has(profile.id) || !profile.secretsCiphertext) continue
+      try {
+        const credentials = credentialsFromMercadoPagoProfile(profile, env)
+        if (!credentials?.accessToken) continue
+        accounts.push({
+          secret: credentials.webhookSecret || null,
+          profileId: profile.id,
+          accessToken: credentials.accessToken,
+          publicKey: credentials.publicKey,
+          collectorId: credentials.collectorId,
+        })
+      } catch {
+        // Ciphertext ilegible: esa cuenta no participa.
+      }
+    }
+  } catch {
+    // Sin tabla / sin permiso: solo lo anterior.
+  }
+  return accounts
+}
+
+/**
+ * Cuenta con la que leer el pago de una notificación.
+ *
+ * El `user_id` del body es el usuario de MP para el que se emite la
+ * notificación — en un pago creado con el token OAuth de un vendedor, el
+ * vendedor. Con él se elige la cuenta vinculada aunque la firma haya
+ * matcheado con el secreto de la aplicación (el global). Sin `user_id`, o si
+ * no corresponde a ninguna cuenta guardada, manda la credencial que firmó.
+ */
+export async function resolveMercadoPagoNotificationCredentials(
+  client,
+  { matched = null, userId = null } = {},
+  env = process.env,
+) {
+  const collectorId = String(userId ?? '').trim()
+  if (client && collectorId) {
+    const accounts = await listMercadoPagoAccountCredentials(client, env)
+    const owner = accounts.find(
+      (candidate) =>
+        candidate.profileId &&
+        candidate.accessToken &&
+        String(candidate.collectorId ?? '').trim() === collectorId,
+    )
+    if (owner) return owner
+  }
+  if (!matched?.accessToken) return null
+  return matched
+}
+
+/**
  * GET /payments/:id contra cada cuenta conocida hasta que una responda.
  * Usado por recovery/revalidation cuando el webhook quedó diferido y no
  * recordó qué perfil firmó la notificación.
  */
 export async function getPaymentAcrossMercadoPagoAccounts(client, resourceId, env = process.env) {
-  const secrets = await listMercadoPagoWebhookSecrets(client, env)
+  const secrets = await listMercadoPagoAccountCredentials(client, env)
   if (secrets.length === 0) {
     const adapter = createPaymentProviderAdapter({ env })
     return { payment: await adapter.getPayment(resourceId), adapter, profileId: null }
@@ -151,7 +220,7 @@ export async function getPaymentAcrossMercadoPagoAccounts(client, resourceId, en
           env,
           credentials: {
             accessToken: candidate.accessToken,
-            webhookSecret: candidate.secret,
+            webhookSecret: candidate.secret ?? '',
             publicKey: candidate.publicKey,
             collectorId: candidate.collectorId,
           },

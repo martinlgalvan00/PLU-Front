@@ -7,6 +7,12 @@ import AdminEventPriceSchedule from '../AdminEventPriceSchedule.jsx'
 import { effectiveEventChannelsFor } from '../../../lib/eventPaymentChannels.js'
 import { platformCellsFor } from '../../../lib/platformPaymentChannels.js'
 import EventPaymentChannelMatrix from './EventPaymentChannelMatrix.jsx'
+import MercadoPagoAccountStatus from '../payment-accounts/MercadoPagoAccountStatus.jsx'
+import MercadoPagoConnectControl from '../payment-accounts/MercadoPagoConnectControl.jsx'
+import {
+  mercadoPagoAccountStatus,
+  paymentAccountOptionLabel,
+} from '../payment-accounts/paymentAccountText.js'
 import AdminTicketAddonsEditor from '../AdminTicketAddonsEditor.jsx'
 import AdminTicketTypesEditor from '../AdminTicketTypesEditor.jsx'
 import { updatePricingField } from './draftPatches.js'
@@ -56,6 +62,8 @@ export default function EventSalesSection({
   fieldErrors,
   accordion,
   onRequestSection,
+  mpOAuthAvailable = false,
+  onMpProfileConnected,
 }) {
   // Los bloques de perfil (alias de transferencia, cuenta de MP) se necesitan
   // mientras el canal se use en algún concepto: abierto por la plataforma o por
@@ -487,37 +495,78 @@ export default function EventSalesSection({
                   disabled={!canEdit || mpProfilesLoading}
                 >
                   <option value="">{t('admin.eventEditor.mercadoPagoProfileNone')}</option>
+                  {/* Una cuenta archivada que el evento todavía tiene elegida
+                      no viene en la lista: sin esta opción el select la
+                      mostraría como "cuenta general" y guardar la pisaría. */}
+                  {draft.mercadoPagoProfileId && !selectedMpProfile && !mpProfilesLoading ? (
+                    <option value={draft.mercadoPagoProfileId}>
+                      {t('admin.paymentAccounts.editorArchivedOption')}
+                    </option>
+                  ) : null}
                   {mpProfiles.map((profile) => (
                     <option key={profile.id} value={profile.id}>
-                      {profile.name}
-                      {profile.config?.publicKey
-                        ? ` · ${String(profile.config.publicKey).slice(0, 12)}…`
-                        : ''}
+                      {paymentAccountOptionLabel(profile)}
                     </option>
                   ))}
                 </select>
               </FormField>
 
+              {/* En qué cuenta entra la plata y si puede seguir cobrando. Una
+                  cuenta vinculada que vence o que MP dejó de autorizar se
+                  reconecta desde acá, sin salir del editor. */}
               {selectedMpProfile ? (
-                <p className="admin-event-form__provider-status" role="status">
-                  {t('admin.eventEditor.mercadoPagoProfileSelected', {
-                    name: selectedMpProfile.name,
-                    publicKey: selectedMpProfile.config?.publicKey
-                      ? `${String(selectedMpProfile.config.publicKey).slice(0, 16)}…`
-                      : '—',
-                  })}
+                <MercadoPagoAccountStatus
+                  t={t}
+                  locale={locale}
+                  profile={selectedMpProfile}
+                  action={
+                    canEdit &&
+                    mpOAuthAvailable &&
+                    ['expiring', 'needs_reconnect'].includes(
+                      mercadoPagoAccountStatus(selectedMpProfile),
+                    ) ? (
+                      <MercadoPagoConnectControl
+                        t={t}
+                        profileId={selectedMpProfile.id}
+                        label={t('admin.paymentAccounts.reconnect')}
+                        buttonClassName="payment-account-connect__link"
+                        onConnected={onMpProfileConnected}
+                      />
+                    ) : null
+                  }
+                />
+              ) : (
+                <p className="admin-event-form__provider-status">
+                  {t('admin.paymentAccounts.editorGlobalAccount')}
                 </p>
-              ) : null}
+              )}
 
-              {!essentials && canEdit && mpSecretsKeyConfigured ? (
-                <div className="admin-event-form__grid">
-                  <button
-                    className="button button--ghost"
-                    type="button"
-                    onClick={() => setMpCreateOpen((open) => !open)}
-                  >
-                    {t('admin.eventEditor.mercadoPagoProfileCreate')}
-                  </button>
+              {!essentials && canEdit && (mpOAuthAvailable || mpSecretsKeyConfigured) ? (
+                <div className="admin-event-form__mp-actions">
+                  {mpOAuthAvailable ? (
+                    <MercadoPagoConnectControl
+                      t={t}
+                      label={t('admin.paymentAccounts.connect')}
+                      onConnected={onMpProfileConnected}
+                    />
+                  ) : null}
+                  {/* Cargar las credenciales a mano queda como alternativa
+                      (o como único camino si la app de MP no está configurada
+                      en el servidor). */}
+                  {mpSecretsKeyConfigured ? (
+                    <button
+                      className={
+                        mpOAuthAvailable ? 'payment-account-connect__link' : 'btn--small btn--ghost'
+                      }
+                      type="button"
+                      aria-expanded={mpCreateOpen}
+                      onClick={() => setMpCreateOpen((open) => !open)}
+                    >
+                      {mpOAuthAvailable
+                        ? t('admin.paymentAccounts.manualToggle')
+                        : t('admin.eventEditor.mercadoPagoProfileCreate')}
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
 

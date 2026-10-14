@@ -418,6 +418,7 @@ export default function AdminEventEditor({
   const [mpProfiles, setMpProfiles] = useState([])
   const [mpProfilesLoading, setMpProfilesLoading] = useState(false)
   const [mpSecretsKeyConfigured, setMpSecretsKeyConfigured] = useState(true)
+  const [mpOAuthAvailable, setMpOAuthAvailable] = useState(false)
   const [mpCreateOpen, setMpCreateOpen] = useState(false)
   const [mpCreating, setMpCreating] = useState(false)
   const [mpCreateError, setMpCreateError] = useState(null)
@@ -463,6 +464,7 @@ export default function AdminEventEditor({
         setBankProfiles(bank.profiles)
         setMpProfiles(mp.profiles)
         setMpSecretsKeyConfigured(mp.secretsKeyConfigured !== false)
+        setMpOAuthAvailable(mp.mercadoPagoOAuth?.available === true)
       })
       .catch(() => {
         if (!active) return
@@ -518,6 +520,24 @@ export default function AdminEventEditor({
       ...draft,
       mercadoPagoProfileId: profileId || null,
     })
+  }
+
+  // La vinculación vuelve por otra ventana, después de un rato: se patchea
+  // sobre el borrador vigente en ese momento, no sobre el del click.
+  const latestDraftRef = useRef(draft)
+  latestDraftRef.current = draft
+
+  /** Cuenta recién vinculada (o reconectada) con Mercado Pago: queda elegida. */
+  async function handleMpProfileConnected({ profileId }) {
+    if (!profileId) return
+    try {
+      const mp = await fetchPaymentProfiles({ kind: 'mercado_pago' })
+      setMpProfiles(mp.profiles)
+    } catch {
+      // La lista vieja sigue sirviendo; el id igual queda elegido.
+    }
+    patchDraft({ ...latestDraftRef.current, mercadoPagoProfileId: profileId })
+    setMpCreateOpen(false)
   }
 
   async function handleCreateMpProfile() {
@@ -1120,6 +1140,8 @@ export default function AdminEventEditor({
               fieldErrors={fieldErrors}
               accordion={accordion}
               onRequestSection={onRequestSection}
+              mpOAuthAvailable={mpOAuthAvailable}
+              onMpProfileConnected={handleMpProfileConnected}
             />
           )}
 
