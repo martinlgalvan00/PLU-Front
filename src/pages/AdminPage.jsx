@@ -156,6 +156,7 @@ export default function AdminPage({
   onSetEventLogo,
   onSetFilters,
   onUpdateUserRole,
+  onBulkUpdateUserRole,
   onUpdateUserStatus,
   onUpdateRolePermissions,
   onUpdateRoleStatus,
@@ -204,6 +205,8 @@ export default function AdminPage({
   const [peopleTab, setPeopleTab] = useState('athletes')
   const [paymentEventScope, setPaymentEventScope] = useState('')
   const [paymentFocusId, setPaymentFocusId] = useState(null)
+  // Rol con el que se abre Usuarios cuando se llega desde «Ver usuarios» en Roles.
+  const [usersRoleFilter, setUsersRoleFilter] = useState(null)
   // Evento cuya puerta se está operando. Se fija al entrar desde la consola de
   // Eventos; sin eso, el primero que todavía no terminó.
   const [checkinEventSlug, setCheckinEventSlug] = useState(null)
@@ -301,6 +304,9 @@ export default function AdminPage({
     leaveEventWorkspaceIfNeeded(targetSection)
     if (isPeopleTab) setPeopleTab(nextSection)
     if (nextSection === 'payments') setPaymentEventScope('')
+    // Entrar a Usuarios por el menú los muestra a todos; sólo el atajo de Roles filtra
+    // (y ese no pasa por acá).
+    setUsersRoleFilter(null)
     setPaymentFocusId(nextSection === 'payments' ? focusId : null)
     setSection(targetSection)
     if (targetSection !== 'people') {
@@ -568,11 +574,14 @@ export default function AdminPage({
     if (section === 'users') {
       return (
         <UsersSection
+          key={usersRoleFilter ?? 'all'}
           accessRoles={accessRoles}
           adminEvents={adminEvents}
           athletes={athletes}
           canDeleteUsers={canDeleteUsers}
           canManageUsers={canManageUsers}
+          initialRoleFilter={usersRoleFilter}
+          onBulkUpdateRole={onBulkUpdateUserRole}
           onCreateSecurityUser={onCreateSecurityUser}
           onCreateUser={onCreateUser}
           onDeleteUser={onDeleteUser}
@@ -599,6 +608,14 @@ export default function AdminPage({
           onCreateRole={onCreateRole}
           onUpdatePermissions={onUpdateRolePermissions}
           onUpdateStatus={onUpdateRoleStatus}
+          onViewUsers={
+            allowedSections.includes('users')
+              ? (roleKey) => {
+                  setUsersRoleFilter(roleKey)
+                  setSection('users')
+                }
+              : undefined
+          }
           permissionCatalog={permissionCatalog}
           roles={accessRoles}
         />

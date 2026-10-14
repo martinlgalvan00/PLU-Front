@@ -52,6 +52,8 @@ export default function RolesSection({
   onCreateRole,
   onUpdatePermissions,
   onUpdateStatus,
+  // Abre Usuarios filtrado por el rol. Sin esto (o sin acceso a Usuarios) no se ofrece.
+  onViewUsers,
   permissionCatalog = [],
   roles = [],
 }) {
@@ -492,6 +494,15 @@ export default function RolesSection({
                 <div>
                   <dt>{t('admin.roles.statUsers')}</dt>
                   <dd>{selectedRole.userCount ?? 0}</dd>
+                  {onViewUsers && (selectedRole.userCount ?? 0) > 0 ? (
+                    <button
+                      type="button"
+                      className="roles-editor__users-link"
+                      onClick={() => onViewUsers(selectedRole.key)}
+                    >
+                      {t('admin.roles.viewUsers')}
+                    </button>
+                  ) : null}
                 </div>
                 <div>
                   <dt>{t('admin.roles.statModules')}</dt>

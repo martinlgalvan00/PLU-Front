@@ -805,6 +805,7 @@ export default function App() {
           onScheduleAssigned={app.handleScheduleAssigned}
           onSetFilters={app.setFilters}
           onUpdateUserRole={app.updateUserRoleAction}
+          onBulkUpdateUserRole={app.bulkUpdateUserRoleAction}
           onUpdateUserStatus={app.updateUserStatusAction}
           onUpdateRolePermissions={app.updateAccessRolePermissionsAction}
           onUpdateRoleStatus={app.updateAccessRoleStatusAction}

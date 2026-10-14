@@ -295,6 +295,12 @@ export function updateStaffUserRoleRequest(userId, roleKey) {
   return apiPatch(`/api/users/${encodeURIComponent(userId)}/role`, { roleKey })
 }
 
+// Un solo pedido para varias cuentas: devuelve un resultado por cuenta
+// (`updated` | `unchanged` | `failed`) en vez de cortar en la primera que falla.
+export function bulkUpdateStaffUserRoleRequest(userIds, roleKey) {
+  return apiPost('/api/users/bulk-role', { userIds, roleKey })
+}
+
 export function updateStaffUserStatusRequest(userId, status) {
   return apiPatch(`/api/users/${encodeURIComponent(userId)}/status`, { status })
 }
