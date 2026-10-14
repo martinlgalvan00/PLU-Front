@@ -487,7 +487,7 @@ export function createSupabaseAthleteRepository(
         await client
           .from('events')
           .select(
-            'id, slug, starts_at, price, manual_price, currency, payment_channel_overrides, bank_transfer_alias, bank_transfer_cbu, bank_transfer_holder, bank_transfer_profile_id, mercado_pago_profile_id',
+            'id, slug, venue, location, starts_at, price, manual_price, currency, payment_channel_overrides, bank_transfer_alias, bank_transfer_cbu, bank_transfer_holder, bank_transfer_profile_id, mercado_pago_profile_id',
           )
           .eq('organization_id', organizationId)
           .eq('slug', eventSlug)
@@ -495,8 +495,23 @@ export function createSupabaseAthleteRepository(
         'No se pudo validar el evento.',
       )
       if (!event) return null
-      const wiseResult = await client.from('events').select('wise_price').eq('id', event.id).maybeSingle()
-      return wiseResult.error ? { ...event, wise_price: null } : { ...event, wise_price: wiseResult.data?.wise_price ?? null }
+      // Lecturas opcionales: columnas de migraciones que pueden no haber
+      // corrido todavía. Sin ellas el checkout sigue, con el precio Wise vacío
+      // y el efectivo cobrado en la sede del evento.
+      const [wiseResult, cashResult] = await Promise.all([
+        client.from('events').select('wise_price').eq('id', event.id).maybeSingle(),
+        client
+          .from('events')
+          .select('cash_payment_place, cash_payment_notes')
+          .eq('id', event.id)
+          .maybeSingle(),
+      ])
+      return {
+        ...event,
+        wise_price: wiseResult.error ? null : (wiseResult.data?.wise_price ?? null),
+        cash_payment_place: cashResult.error ? null : (cashResult.data?.cash_payment_place ?? null),
+        cash_payment_notes: cashResult.error ? null : (cashResult.data?.cash_payment_notes ?? null),
+      }
     },
     // Precio vigente del combo (afiliación + inscripción) para el preview de
     // cupón: mismo criterio de vigencia (active + ventana starts/ends) que ya

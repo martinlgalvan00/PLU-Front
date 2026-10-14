@@ -143,6 +143,7 @@ import {
   assertEventPaymentChannelEnabled,
   assertManualTicketDeadline,
   resolveBankTransferDetails,
+  resolveCashPaymentDetails,
 } from '../modules/payments/eventPaymentProfile.js'
 import { applyEventChannelOpens } from '../../src/lib/eventPaymentChannels.js'
 import { createSupabasePaymentProfileRepository } from '../modules/payments/supabasePaymentProfileRepository.js'
@@ -581,7 +582,7 @@ export function createTicketRoutes({
         assertCheckoutEnabled(toggles)
         assertTicketCheckoutEnabled(toggles, env)
         // `manual` cubre los tres canales que se acreditan a mano:
-        // transferencia, efectivo en Pitbull y Wise. Cuál de ellos lo decide el
+        // transferencia, efectivo en el lugar y Wise. Cuál de ellos lo decide el
         // comprador y lo autoriza la matriz plataforma + override del evento.
         const ticketChannel =
           req.validatedBody.provider === 'manual'
@@ -814,6 +815,7 @@ export function createTicketRoutes({
           ticketManualEnabled: scoped.ticketManualEnabled,
           channels: scoped.paymentChannels.ticket,
           bankTransfer: resolveBankTransferDetails(eventPricing, env, bankProfile),
+          cashPayment: resolveCashPaymentDetails(eventPricing),
           bankTransferProfileId: eventPricing?.bank_transfer_profile_id ?? null,
           mercadoPagoProfileId: eventPricing?.mercado_pago_profile_id ?? null,
           mercadoPagoPublicKey,

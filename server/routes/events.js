@@ -25,6 +25,7 @@ import {
   bankTransferIssueError,
   checkEventBankTransferReady,
   normalizeBankTransferInput,
+  normalizeCashPaymentInput,
   normalizePaymentChannelOverrides,
 } from '../modules/payments/eventPaymentProfile.js'
 import { createSupabasePaymentProfileRepository } from '../modules/payments/supabasePaymentProfileRepository.js'
@@ -454,6 +455,14 @@ export const eventSchema = z
       .optional(),
     bankTransferProfileId: z.string().uuid().nullable().optional(),
     mercadoPagoProfileId: z.string().uuid().nullable().optional(),
+    // Efectivo en el lugar: vacío = la sede del evento.
+    cashPayment: z
+      .object({
+        place: z.string().trim().max(160).optional(),
+        notes: z.string().trim().max(400).optional(),
+      })
+      .nullable()
+      .optional(),
   })
   .superRefine((event, context) => {
     if (new Date(event.endsAt) < new Date(event.startsAt)) {
@@ -1079,6 +1088,33 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             totalPublicMerge,
             'No se pudo guardar la visibilidad del cupo total.',
           )
+        }
+
+        // Dónde se cobra el efectivo: columnas nuevas, mismo merge post-save.
+        // Sin la migración el evento se guarda igual; si alguien cargó un
+        // lugar, se avisa en vez de perderlo en silencio.
+        if (req.validatedBody.cashPayment !== undefined) {
+          const cashPayment = normalizeCashPaymentInput(req.validatedBody.cashPayment)
+          const cashMerge = await client.rpc('staff_merge_event_cash_payment', {
+            p_slug: pEvent.slug,
+            p_place: cashPayment.place,
+            p_notes: cashPayment.notes,
+          })
+          if (cashMerge.error && esRelacionFaltante(cashMerge.error)) {
+            console.warn(
+              '[eventos] `staff_merge_event_cash_payment` no existe en esta base: el evento se guardó sin el lugar del efectivo. Aplicá la migración 20261216100000_event_cash_payment_place.sql.',
+            )
+            if (cashPayment.place || cashPayment.notes) {
+              warnings.push({
+                code: 'EVENT_CASH_PAYMENT_NOT_SAVED',
+                message:
+                  'El evento se guardó, pero el lugar del efectivo todavía no: falta aplicar una migración en la base. Mientras tanto se muestra la sede del evento.',
+                field: 'cashPayment.place',
+              })
+            }
+          } else {
+            assertSupabaseResult(cashMerge, 'No se pudo guardar el lugar del efectivo.')
+          }
         }
 
         // Las subcategorías de entrada (qué credenciales emite cada tipo y qué

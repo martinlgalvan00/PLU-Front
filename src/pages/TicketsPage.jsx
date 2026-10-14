@@ -472,6 +472,7 @@ export default function TicketsPage({
                 cashEnabled={ticketCheckout.channels?.cash_pitbull === true}
                 wiseEnabled={ticketCheckout.channels?.wise_transfer === true}
                 accountDetails={ticketCheckout.bankTransfer ?? null}
+                cashPayment={ticketCheckout.cashPayment ?? null}
                 pricing={pricing}
                 tickets={tickets}
                 createdOrder={visibleCreatedOrder}

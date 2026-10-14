@@ -93,3 +93,32 @@ export const GuardadoConAviso = {
     />
   ),
 }
+
+function CashScreen() {
+  const [draft, setDraft] = useState(() =>
+    buildAdminEventDraft({
+      ...EXISTING,
+      paymentChannelOverrides: {
+        registration: { cash_pitbull: 'open' },
+        ticket: { cash_pitbull: 'open' },
+      },
+    }),
+  )
+  return (
+    <AdminPreviewShell section="events">
+      <AdminEventEditor
+        canEdit
+        draft={draft}
+        onCancel={() => {}}
+        onChange={setDraft}
+        onSubmit={async () => ({ event: { id: 'evt-1' } })}
+      />
+    </AdminPreviewShell>
+  )
+}
+
+/**
+ * Efectivo en el lugar: con el canal abierto aparece dónde se paga. Vacío usa
+ * la sede del evento; abrí Ventas → Cobro para verlo.
+ */
+export const CobroEfectivo = { render: () => <CashScreen /> }

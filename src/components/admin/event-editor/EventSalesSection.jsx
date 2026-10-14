@@ -77,6 +77,14 @@ export default function EventSalesSection({
       ).includes(channel),
     )
 
+  // Mismo criterio que el checkout (`resolveCashPaymentDetails`): el lugar
+  // propio manda y, vacío, se cobra en la sede del evento.
+  const eventVenueLabel = [draft.venue, draft.location]
+    .map((part) => String(part ?? '').trim())
+    .filter(Boolean)
+    .join(' · ')
+  const cashPlacePreview = String(draft.cashPayment?.place ?? '').trim() || eventVenueLabel
+
   return (
     <section
       ref={activePanelRef}
@@ -786,6 +794,90 @@ export default function EventSalesSection({
                   {t('admin.eventEditor.bankTransferReferenceExample')}
                 </code>
               </div>
+            </div>
+          ) : null}
+
+          {/* Efectivo en el lugar: nada que vincular, solo dónde se paga. Vacío
+              cae en la sede del evento, que es lo que ve el comprador. */}
+          {channelOpenHere('cash_pitbull') ? (
+            <div className="admin-event-form__bank-transfer" data-channel="cash_pitbull">
+              <header className="admin-event-form__lane-head">
+                <h5 className="admin-event-form__lane-title">
+                  {t('admin.eventEditor.cashPaymentTitle')}
+                </h5>
+                {essentials ? null : <p>{t('admin.eventEditor.cashPaymentHint')}</p>}
+              </header>
+
+              <div className="admin-event-form__grid">
+                <FormField
+                  htmlFor="event-cash-place"
+                  label={t('admin.eventEditor.cashPaymentPlace')}
+                  error={err('cashPayment.place')}
+                  wide
+                >
+                  <input
+                    id="event-cash-place"
+                    name="cashPayment.place"
+                    type="text"
+                    maxLength={160}
+                    value={draft.cashPayment?.place ?? ''}
+                    aria-invalid={Boolean(err('cashPayment.place'))}
+                    aria-describedby="event-cash-place-hint"
+                    onChange={(changeEvent) =>
+                      patchDraft({
+                        ...draft,
+                        cashPayment: {
+                          ...(draft.cashPayment ?? {}),
+                          place: changeEvent.target.value,
+                        },
+                      })
+                    }
+                    disabled={!canEdit}
+                    placeholder={eventVenueLabel || undefined}
+                  />
+                  <small className="admin-event-form__field-hint" id="event-cash-place-hint">
+                    {eventVenueLabel
+                      ? t('admin.eventEditor.cashPaymentPlaceHint', { venue: eventVenueLabel })
+                      : t('admin.eventEditor.cashPaymentPlaceHintNoVenue')}
+                  </small>
+                </FormField>
+                <FormField
+                  htmlFor="event-cash-notes"
+                  label={t('admin.eventEditor.cashPaymentNotes')}
+                  error={err('cashPayment.notes')}
+                  wide
+                >
+                  <textarea
+                    id="event-cash-notes"
+                    name="cashPayment.notes"
+                    rows={2}
+                    maxLength={400}
+                    value={draft.cashPayment?.notes ?? ''}
+                    aria-invalid={Boolean(err('cashPayment.notes'))}
+                    onChange={(changeEvent) =>
+                      patchDraft({
+                        ...draft,
+                        cashPayment: {
+                          ...(draft.cashPayment ?? {}),
+                          notes: changeEvent.target.value,
+                        },
+                      })
+                    }
+                    disabled={!canEdit}
+                    placeholder={t('admin.eventEditor.cashPaymentNotesPlaceholder')}
+                  />
+                </FormField>
+              </div>
+
+              {cashPlacePreview ? (
+                <div className="admin-event-form__reference-note" role="note">
+                  <strong>{t('admin.eventEditor.cashPaymentPreviewLabel')}</strong>
+                  <p>{cashPlacePreview}</p>
+                  {String(draft.cashPayment?.notes ?? '').trim() ? (
+                    <p>{String(draft.cashPayment.notes).trim()}</p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>

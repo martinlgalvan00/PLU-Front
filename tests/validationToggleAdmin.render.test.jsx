@@ -178,7 +178,7 @@ describe('pantalla de Acceso y habilitación', () => {
     for (const name of [
       /habilitar mercado pago para afiliaciones/i,
       /habilitar transferencia bancaria para afiliaciones/i,
-      /habilitar efectivo en pitbull para afiliaciones/i,
+      /habilitar efectivo en el lugar para afiliaciones/i,
       /habilitar wise para afiliaciones/i,
       /habilitar mercado pago para inscripciones/i,
       /habilitar wise para inscripciones/i,
@@ -191,7 +191,7 @@ describe('pantalla de Acceso y habilitación', () => {
     }
     // Efectivo para entradas no se ofrece: sería un interruptor sin efecto.
     expect(
-      screen.queryByRole('checkbox', { name: /habilitar efectivo en pitbull para entradas/i }),
+      screen.queryByRole('checkbox', { name: /habilitar efectivo en el lugar para entradas/i }),
     ).toBeNull()
   })
 

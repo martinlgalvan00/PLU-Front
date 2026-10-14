@@ -273,6 +273,9 @@ export async function fetchTicketAvailability(eventSlug) {
       ticketManualEnabled: checkout?.ticketManualEnabled !== false,
       channels: checkout?.channels,
       bankTransfer: checkout?.bankTransfer ?? null,
+      // Dónde se paga el efectivo; null con un API viejo: la pantalla usa la
+      // sede del evento.
+      cashPayment: checkout?.cashPayment ?? null,
     },
   }
 }
