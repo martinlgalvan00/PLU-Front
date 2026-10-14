@@ -12,6 +12,7 @@ import {
 } from '../../src/lib/permissions.js'
 import { HttpError } from '../lib/errors.js'
 import { validateBody } from '../lib/validate.js'
+import { staffSessionCache } from '../lib/sessionCache.js'
 import { requirePermission } from '../middleware/auth.js'
 import { staffLimiter } from '../middleware/rateLimit.js'
 import {
@@ -253,6 +254,13 @@ export function createAccessControlRoutes({ getPrisma }) {
           return { activity, role }
         })
 
+        // La matriz o el estado del rol alcanzan a todas las cuentas que lo tienen,
+        // y la caché de sesiones se indexa por usuario, no por rol: sin esta purga
+        // un recorte de permisos (o la baja del rol) seguiría vigente hasta que
+        // venza el TTL. Va después del commit: purgar antes dejaría que un request
+        // concurrente volviera a cachear la matriz vieja.
+        staffSessionCache.clear()
+
         res.json({
           activity: serializeAccessRoleActivity(result.activity, {
             actor: req.auth.user,
@@ -315,6 +323,13 @@ export function createAccessControlRoutes({ getPrisma }) {
 
           return { activity, role }
         })
+
+        // La matriz o el estado del rol alcanzan a todas las cuentas que lo tienen,
+        // y la caché de sesiones se indexa por usuario, no por rol: sin esta purga
+        // un recorte de permisos (o la baja del rol) seguiría vigente hasta que
+        // venza el TTL. Va después del commit: purgar antes dejaría que un request
+        // concurrente volviera a cachear la matriz vieja.
+        staffSessionCache.clear()
 
         res.json({
           activity: serializeAccessRoleActivity(result.activity, {
