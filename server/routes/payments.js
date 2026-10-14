@@ -22,6 +22,7 @@ import {
 import {
   createMercadoPagoAdapterForProfileId,
   listMercadoPagoWebhookSecrets,
+  resolveMercadoPagoNotificationCredentials,
   resolveMercadoPagoPublicKeyForProfileId,
 } from '../modules/payments/mercadoPagoProfileRuntime.js'
 import {
@@ -308,11 +309,17 @@ export function createPaymentRoutes(deps = {}) {
   }
 
   /** Adapter MP del perfil del evento (o global si no hay). */
-  async function servicesForOrder(order, { notifications = false } = {}) {
+  // `pin`: abrir el cobro (preferencia o pago embebido) fija la cuenta en la
+  // orden; el retorno y los reintentos de esa orden usan esa misma cuenta
+  // aunque el staff cambie la del evento en el medio.
+  async function servicesForOrder(order, { notifications = false, pin = false } = {}) {
     const base = services({ notifications })
     if (deps.mercadoPago) return base
     const client = resolveSupabaseAdmin()
-    const profileId = order?.mercadoPagoProfileId ?? null
+    let profileId = order?.mercadoPagoProfileId ?? null
+    if (pin && typeof base.repository?.pinMercadoPagoAccount === 'function') {
+      profileId = await base.repository.pinMercadoPagoAccount(order, profileId)
+    }
     const mercadoPago = await createMercadoPagoAdapterForProfileId(client, profileId, { env })
     const mercadoPagoPublicKey = await resolveMercadoPagoPublicKeyForProfileId(
       client,
@@ -368,7 +375,7 @@ export function createPaymentRoutes(deps = {}) {
         )
         await assertPaidCheckoutAvailable(env, new Date(), paidCheckoutOptionsForOrder(order))
         assertCheckoutEnabled(await platformSettingsRepo().get())
-        const paymentServices = await servicesForOrder(order)
+        const paymentServices = await servicesForOrder(order, { pin: true })
         const result = await createPaymentPreference(
           {
             ...req.validatedBody,
@@ -401,7 +408,7 @@ export function createPaymentRoutes(deps = {}) {
         await assertPaidCheckoutAvailable(env, new Date(), paidCheckoutOptionsForOrder(order))
         assertCheckoutEnabled(await platformSettingsRepo().get())
         const result = await processEmbeddedPayment(req.validatedBody, {
-          ...(await servicesForOrder(order, { notifications: true })),
+          ...(await servicesForOrder(order, { notifications: true, pin: true })),
           order,
         })
         res.status(result.duplicate ? 200 : 201).json(result)
@@ -1021,15 +1028,20 @@ export function createPaymentRoutes(deps = {}) {
           ...(deps.mercadoPago
             ? {}
             : {
-                resolveMercadoPagoForSecret: async (matched) => {
-                  if (!matched?.accessToken) return null
+                resolveMercadoPagoForSecret: async (matched, { userId } = {}) => {
+                  const account = await resolveMercadoPagoNotificationCredentials(
+                    client,
+                    { matched, userId },
+                    env,
+                  )
+                  if (!account?.accessToken) return null
                   return createPaymentProviderAdapter({
                     env,
                     credentials: {
-                      accessToken: matched.accessToken,
-                      webhookSecret: matched.secret,
-                      publicKey: matched.publicKey,
-                      collectorId: matched.collectorId,
+                      accessToken: account.accessToken,
+                      webhookSecret: account.secret ?? '',
+                      publicKey: account.publicKey,
+                      collectorId: account.collectorId,
                     },
                   })
                 },

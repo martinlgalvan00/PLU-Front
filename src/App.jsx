@@ -144,6 +144,14 @@ const StaffApplicationPage = lazyWithRetry(() => import('./pages/StaffApplicatio
 const StaffEmailChangePage = lazyWithRetry(() => import('./pages/StaffEmailChangePage.jsx'))
 const StaffInvitationPage = lazyWithRetry(() => import('./pages/StaffInvitationPage.jsx'))
 const StaffPasswordChangePage = lazyWithRetry(() => import('./pages/StaffPasswordChangePage.jsx'))
+const MercadoPagoLinkResultPage = lazyWithRetry(() => import('./pages/MercadoPagoLinkResultPage.jsx'))
+
+function isMercadoPagoLinkResultRoute() {
+  return (
+    typeof window !== 'undefined' &&
+    /^\/admin\/mercado-pago\/vinculacion\/?$/.test(window.location.pathname)
+  )
+}
 const StandardsPage = lazyWithRetry(() => import('./pages/StandardsPage.jsx'))
 const TeamPage = lazyWithRetry(() => import('./pages/TeamPage.jsx'))
 const TicketsPage = lazyWithRetry(() => import('./pages/TicketsPage.jsx'))
@@ -555,6 +563,16 @@ export default function App() {
     }
 
     setView(canViewAdmin(app.session) ? 'admin' : 'home')
+  }
+
+  // Vuelta de la vinculación con Mercado Pago: corre en la ventana aparte que
+  // abrió el panel, antes de cualquier decisión de vista o sesión.
+  if (isMercadoPagoLinkResultRoute()) {
+    return (
+      <Suspense fallback={<PageLoadFallback />}>
+        <MercadoPagoLinkResultPage />
+      </Suspense>
+    )
   }
 
   const securityRoute = matchSecurityGateRoute()

@@ -194,8 +194,62 @@ Editor: pestaña Ventas → perfil bancario y/o perfil MP.
 Checkout: requirements y tickets availability devuelven `bankTransfer` y
 `mercadoPagoPublicKey` ya resueltos.
 
-**Fuera de alcance (post-B3):** OAuth Marketplace de MP, eventos gratis
-(`price = 0`).
+**Fuera de alcance:** comisión de la plataforma (`marketplace_fee`), eventos
+gratis (`price = 0`).
+
+### Cuentas de Mercado Pago vinculadas por OAuth (B4)
+
+El staff vincula una cuenta con un clic desde **Acceso y habilitación → Cuentas
+de cobro** o desde el editor del evento (Ventas → Cobro → «Conectar cuenta de
+Mercado Pago»). Inicia sesión en MP con la cuenta que va a cobrar, autoriza la
+app de PLU y la cuenta queda como `payment_profiles` `kind=mercado_pago` con
+`config.connection='oauth'`. Los pagos creados con ese token se acreditan en esa
+cuenta; PLU no cobra comisión.
+
+Configuración (una vez por entorno, app TEST en DEV y app PROD en producción):
+
+1. `MERCADO_PAGO_CLIENT_ID` y `MERCADO_PAGO_CLIENT_SECRET` de la app (Tus
+   integraciones → Credenciales). Requiere `PAYMENT_PROFILE_SECRETS_KEY`.
+2. En la app de MP, «URLs de redireccionamiento»: dar de alta, idéntica y en
+   HTTPS, `https://www.powerliftingunited.ar/api/payment-profiles/mercado-pago/oauth/callback`
+   (o el valor de `MERCADO_PAGO_OAUTH_REDIRECT_URI`). Con el apex sin `www` MP
+   recibe un 308 y la vinculación falla.
+3. Si la app tiene PKCE activado: `MERCADO_PAGO_OAUTH_PKCE=true`.
+4. El webhook de los pagos de cuentas vinculadas lo firma **la app de PLU**: su
+   secreto tiene que estar en `MERCADO_PAGO_WEBHOOK_SECRET` (acepta lista
+   separada por comas si la app OAuth no es la misma que la cuenta global).
+
+| Pieza | Semántica |
+|-------|-----------|
+| `POST /api/payment-profiles/mercado-pago/oauth/start` | Devuelve la URL de autorización. `profileId` reconecta esa cuenta. Permiso `admin.events.write`. |
+| `GET /api/payment-profiles/mercado-pago/oauth/callback` | Vuelta de MP, sin sesión: la autoriza el `state` (cifrado con `PAYMENT_PROFILE_SECRETS_KEY`, vence a los 20 min). Canjea el `code`, guarda la cuenta y redirige a `/admin/mercado-pago/vinculacion?status=…`. |
+| `POST /api/payment-profiles/:id/refresh` | Renovación manual del token. |
+| `DELETE /api/payment-profiles/:id` | Baja definitiva solo sin referencias (eventos, tienda, órdenes fijadas); si no, 409 `PAYMENT_PROFILE_IN_USE` y se archiva. No revoca la autorización en MP (no hay API): el titular la quita desde su cuenta. |
+| `PATCH … {active:false}` | Archivar. 409 `PAYMENT_PROFILE_IN_USE_LIVE_EVENTS` si un evento no terminado la usa. |
+| `GET /api/payment-profiles?includeUsage=true` | Suma `usage: {events, shop, pinnedOrders}` por cuenta. |
+| Índice `payment_profiles_mp_oauth_collector_key` | Una cuenta OAuth por usuario de MP: reconectar la misma cuenta renueva su perfil, no lo duplica. Reconectar un perfil con **otra** cuenta de MP se rechaza (`MP_OAUTH_ACCOUNT_MISMATCH`). |
+
+Tokens: duran 180 días y el refresh token **rota** en cada renovación. El job
+`mercado-pago-oauth-refresh` (cron diario 04:00 UTC + loop residente cada 12 h)
+renueva las cuentas que vencen en ≤30 días con escritura condicional al
+ciphertext leído, para que dos renovaciones concurrentes no dejen guardado un
+refresh token ya invalidado. `invalid_grant` deja la cuenta en
+`config.status='needs_reconnect'` y el panel pide reconectarla.
+
+Webhook: el `user_id` del body es el vendedor. `resolveMercadoPagoNotificationCredentials`
+elige con él la cuenta vinculada aunque la firma matchee el secreto global; sin
+`user_id` (o sin cuenta que coincida) manda la credencial que firmó, como antes.
+El recovery diferido prueba también las cuentas OAuth (`listMercadoPagoAccountCredentials`).
+
+### Cuenta fija por orden
+
+`athlete_payment_orders` y `ticket_orders` guardan `mercado_pago_profile_id` +
+`mercado_pago_account_pinned_at` la primera vez que se abre el cobro (preferencia
+o pago embebido). Desde ahí el retorno y los reintentos de esa orden usan esa
+cuenta aunque el staff le cambie la cuenta al evento. `pinned_at` con perfil
+`NULL` = fijada a la cuenta global; `pinned_at NULL` = sin fijar (sigue la cuenta
+actual del evento). FK `on delete restrict`: una cuenta con órdenes fijadas no se
+borra, se archiva.
 
 ## Tienda (pedidos y cobro)
 

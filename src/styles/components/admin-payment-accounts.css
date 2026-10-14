@@ -1,0 +1,347 @@
+/* =============================================
+   CUENTAS DE COBRO (Mercado Pago vinculado, transferencia)
+   Piezas compartidas entre el editor del evento y el panel de cuentas:
+   la línea de estado de una cuenta y el control "Conectar con Mercado Pago".
+   Monocromo; el color solo refuerza un estado que ya dice el texto: ámbar
+   para "por vencer", rojo únicamente cuando la cuenta ya no puede cobrar.
+   ============================================= */
+
+.payment-account-status {
+  align-items: flex-start;
+  color: var(--admin-text-secondary, var(--color-text-muted));
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  gap: 4px 8px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 64ch;
+}
+
+.payment-account-status__dot {
+  /* Alineado con la primera línea (12.5px × 1.45 ≈ 18px de alto). */
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  box-sizing: border-box;
+  flex: none;
+  height: 8px;
+  margin-top: 5px;
+  width: 8px;
+}
+
+.payment-account-status--connected .payment-account-status__dot {
+  background: var(--admin-ink, currentColor);
+  border-color: var(--admin-ink, currentColor);
+}
+
+.payment-account-status--expiring {
+  color: var(--admin-status-warning);
+}
+
+.payment-account-status--needs_reconnect {
+  color: var(--admin-status-danger);
+}
+
+.payment-account-status__text {
+  flex: 1 1 24ch;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.payment-account-status__test {
+  font-weight: 600;
+}
+
+.payment-account-connect {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  min-width: 0;
+}
+
+.payment-account-connect__wait,
+.payment-account-connect__error {
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 60ch;
+}
+
+.payment-account-connect__wait {
+  color: var(--admin-text-secondary, var(--color-text-muted));
+}
+
+.payment-account-connect__error {
+  color: var(--admin-status-danger);
+}
+
+/* Acción secundaria en texto. Doble clase a propósito: el reset de botones del
+   panel (color heredado, 16px) tiene más peso que una clase sola. Monocromo:
+   el subrayado ya la marca como acción, el celeste queda para el foco. */
+.payment-account-connect__link.payment-account-connect__link {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: var(--admin-ink, var(--color-text-primary));
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 4px;
+  line-height: 1.45;
+  min-height: 24px;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-underline-offset: 3px;
+}
+
+.payment-account-connect__link.payment-account-connect__link:hover {
+  text-decoration-color: currentColor;
+}
+
+.payment-account-connect__link:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid var(--admin-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
+/* Editor del evento: "Conectar" y la alternativa manual en una sola fila. */
+.admin-event-form__mp-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+/* ---- Ventana de vuelta de la vinculación ---- */
+
+.payment-account-landing {
+  align-items: center;
+  background: var(--color-bg-primary);
+  box-sizing: border-box;
+  color: var(--color-text-primary);
+  display: grid;
+  min-height: 100dvh;
+  padding: 24px 16px;
+}
+
+.payment-account-landing__panel {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  margin: 0 auto;
+  max-width: 44ch;
+  width: 100%;
+}
+
+.payment-account-landing__panel h1 {
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(22px, 3.2vw, 28px);
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.payment-account-landing__panel p {
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.payment-account-landing__icon {
+  color: var(--color-text-secondary);
+}
+
+.payment-account-landing--connected .payment-account-landing__icon {
+  color: var(--color-brand-celeste);
+}
+
+.payment-account-landing--error .payment-account-landing__icon {
+  color: var(--color-danger-text);
+}
+
+.payment-account-landing__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+@media (pointer: coarse) {
+  .payment-account-connect__link.payment-account-connect__link {
+    min-height: 44px;
+  }
+}
+
+/* ---- Panel "Cuentas de cobro" (Acceso y habilitación) ----
+   Una lista por medio, en flujo abierto: filas separadas por hairline, quién
+   cobra y dónde se usa a la izquierda, acciones a la derecha. */
+
+.payment-accounts__group {
+  display: grid;
+  gap: 10px;
+  max-width: 78ch;
+  min-width: 0;
+}
+
+.payment-accounts__group-head {
+  align-items: center;
+  border-bottom: 1px solid var(--admin-hairline-strong);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  justify-content: space-between;
+  padding-bottom: 8px;
+}
+
+.payment-accounts__group-head h3 {
+  color: var(--admin-ink);
+  font-size: 14px;
+  font-weight: 650;
+  margin: 0;
+}
+
+.payment-accounts__list {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.payment-accounts__item {
+  align-items: start;
+  border-bottom: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 8px 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px 0;
+}
+
+.payment-accounts__item:last-child {
+  border-bottom: 0;
+}
+
+.payment-accounts__item--archived .payment-accounts__main {
+  opacity: 0.72;
+}
+
+.payment-accounts__item > .payment-accounts__form {
+  grid-column: 1 / -1;
+}
+
+.payment-accounts__main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.payment-accounts__name {
+  align-items: center;
+  color: var(--admin-ink);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 14px;
+  font-weight: 600;
+  gap: 8px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.payment-accounts__tag {
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 999px;
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 8px;
+}
+
+.payment-accounts__detail,
+.payment-accounts__usage {
+  color: var(--admin-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.payment-accounts__usage {
+  color: var(--admin-muted);
+}
+
+.payment-accounts__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.payment-accounts__actions .payment-account-connect {
+  display: contents;
+}
+
+.admin-access__btn.payment-accounts__danger {
+  color: var(--admin-status-danger);
+}
+
+.payment-accounts__toggle {
+  align-items: center;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-size: 12.5px;
+  font-weight: 550;
+  gap: 8px;
+  min-height: 36px;
+}
+
+.payment-accounts__toggle input {
+  accent-color: var(--admin-ink);
+  height: 16px;
+  margin: 0;
+  width: 16px;
+}
+
+.payment-accounts__toggle:focus-within {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+@supports (container-type: inline-size) {
+  @container admin-access (max-width: 640px) {
+    .payment-accounts__item {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .payment-accounts__actions {
+      justify-content: flex-start;
+      margin-left: -10px;
+    }
+  }
+}
+
+@media (pointer: coarse) {
+  .payment-accounts__toggle {
+    min-height: 44px;
+  }
+}
+
+/* El botón de vincular, en cualquier contexto: ícono y texto con aire. En el
+   editor lleva filete para que su relleno no se lea como sangría suelta. */
+.payment-account-connect > button:not(.payment-account-connect__link) {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.admin-event-form__mp-actions .payment-account-connect > button:not(.payment-account-connect__link) {
+  border: 1px solid var(--admin-hairline-strong, var(--color-border-subtle));
+  border-radius: 8px;
+  color: var(--admin-ink, var(--color-text-primary));
+  font-weight: 600;
+}
