@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   formatScheduleSummary,
+  formatScheduleTime,
   formatSessionDetail,
   hasScheduledDay,
   toCamelEventSchedule,
@@ -169,8 +170,14 @@ describe('formato de la grilla', () => {
   it('separa la logística de la tanda del resumen', () => {
     const schedule = toCamelSchedule(SCHEDULE_ROW)
     const detail = formatSessionDetail(schedule, 'es', { weighIn: 'Pesaje', starts: 'Inicio' })
-    expect(detail).toContain('Pesaje')
-    expect(detail).toContain('Plataforma 1')
+    // 11:30Z / 13:00Z → 08:30 / 10:00 en Buenos Aires, sin importar el TZ del runtime.
+    expect(detail).toBe('Pesaje 08:30 · Inicio 10:00 · Plataforma 1')
+  })
+
+  it('formatea horarios siempre en zona de la organización', () => {
+    expect(formatScheduleTime('2026-11-13T12:00:00.000Z')).toBe('09:00')
+    expect(formatScheduleTime('2026-11-13T12:00:00.000Z', 'en')).toBe('09:00')
+    expect(formatScheduleTime(null)).toBe('')
   })
 
   it('sin día asignado no inventa un resumen', () => {
