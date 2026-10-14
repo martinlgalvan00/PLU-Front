@@ -22,7 +22,7 @@ export const PERMISSION_AREAS = Object.freeze([
   },
   {
     id: 'competition',
-    modules: ['events', 'results', 'checkin', 'registration_access'],
+    modules: ['events', 'event_team', 'results', 'checkin', 'registration_access'],
   },
   {
     id: 'money',

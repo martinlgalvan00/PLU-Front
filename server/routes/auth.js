@@ -632,7 +632,8 @@ export function createAuthRoutes({
   // Cualquier rol de staff activo puede afiliarse / inscribirse con el mismo email.
   router.post(
     '/athlete-session',
-    requireAuth({ prisma: getPrisma() }),
+    // Cuenta propia, no datos de eventos: el organizador también puede.
+    requireAuth({ prisma: getPrisma(), allowEventScoped: true }),
     authLimiter,
     async (req, res, next) => {
       try {
@@ -774,7 +775,7 @@ export function createAuthRoutes({
   // estado `mustChangePassword`, así que no puede quedar detrás del corte.
   router.post(
     '/me/password',
-    requireAuth({ prisma: getPrisma(), allowPasswordChangePending: true }),
+    requireAuth({ prisma: getPrisma(), allowPasswordChangePending: true, allowEventScoped: true }),
     authLimiter,
     validateBody(changeOwnPasswordSchema),
     async (req, res, next) => {
@@ -830,7 +831,7 @@ export function createAuthRoutes({
   // usuario sigue entrando con la dirección vieja.
   router.post(
     '/me/email',
-    requireAuth({ prisma: getPrisma() }),
+    requireAuth({ prisma: getPrisma(), allowEventScoped: true }),
     authLimiter,
     validateBody(requestEmailChangeSchema),
     async (req, res, next) => {

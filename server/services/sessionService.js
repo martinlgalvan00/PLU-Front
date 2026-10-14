@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto'
-import { getDefaultPermissionsForRole } from '../../src/lib/permissions.js'
+import { getDefaultPermissionsForRole, isEventScopedRole } from '../../src/lib/permissions.js'
 import { staffSessionCache } from '../lib/sessionCache.js'
 import { ACCESS_ROLE_INCLUDE, permissionKeysFromAccessRole } from './accessControlService.js'
 
@@ -170,6 +170,18 @@ export function serializeUser(user) {
     mustChangePassword: Boolean(user.mustChangePassword),
     eventId: user.eventId ?? null,
     eventSlug: user.eventSlug ?? null,
+    // Rol "por evento" (organizador): solo opera sobre `eventAccess`. Sale del rol,
+    // no de la lista: una cuenta por evento SIN eventos asignados sigue siendo por
+    // evento y no ve nada, en vez de caer en el alcance global por omisión.
+    eventScoped: isEventScopedRole(roleKey),
+    ...(isEventScopedRole(roleKey)
+      ? {
+          eventAccess: (user.eventAccess ?? []).map(({ eventId, eventSlug }) => ({
+            eventId,
+            eventSlug,
+          })),
+        }
+      : {}),
     // Zona del meet a la que está asignada la cuenta de seguridad. El panel la
     // usa para agrupar el equipo por zona; nulo mientras nadie la asignó.
     securityZoneId: user.securityZoneId ?? null,
@@ -233,9 +245,22 @@ export async function readSession({ prisma, token, now = new Date() }) {
     return null
   }
 
+  // Los eventos asignados se leen SOLO para cuentas de rol por evento: el resto del
+  // staff no toca la tabla (y funciona aunque la migración todavía no esté aplicada).
+  const staffUser = session.user
+  if (isEventScopedRole(staffUser.accessRole?.key ?? staffUser.role)) {
+    staffUser.eventAccess =
+      typeof prisma.userEventAccess?.findMany === 'function'
+        ? await prisma.userEventAccess.findMany({
+            where: { userId: staffUser.id },
+            select: { eventId: true, eventSlug: true },
+          })
+        : (staffUser.eventAccess ?? [])
+  }
+
   const resolved = {
     session,
-    user: serializeUser(session.user),
+    user: serializeUser(staffUser),
   }
   // Sólo el resultado positivo: una cookie revocada tiene que volver a
   // consultarse en vez de quedar clavada en "no" por lo que dure el TTL.

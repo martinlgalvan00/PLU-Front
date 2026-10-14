@@ -337,6 +337,20 @@ export const PERMISSION_CATALOG = [
     description: 'Abrir el recorrido de navegación de un atleta puntual.',
     sortOrder: 132,
   },
+  {
+    // Distinto de `admin.users.write` a propósito: ese está reservado a Super
+    // Admin y Administrador y permite crear cualquier cuenta. Este solo habilita
+    // el equipo de puerta DENTRO de un evento asignado (el servidor lo limita).
+    key: 'admin.event_team.write',
+    // Módulo propio: dentro de `events` haría que los roles actuales (que leen y
+    // escriben Eventos) figuraran con acceso parcial a ese módulo.
+    module: 'event_team',
+    moduleLabel: 'Equipo de puerta del evento',
+    action: 'write',
+    actionLabel: 'Gestionar',
+    description: 'Crear y asignar cuentas de seguridad dentro de un evento asignado.',
+    sortOrder: 133,
+  },
 ]
 
 export const PERMISSION_KEYS = Object.freeze(PERMISSION_CATALOG.map(({ key }) => key))
@@ -349,6 +363,22 @@ export const ROLE_HIERARCHY = Object.freeze([
 ])
 
 export const CONFIGURABLE_ROLE_KEYS = Object.freeze(['plu_arg', 'seguridad_plu_arg'])
+
+/**
+ * Roles "por evento": sus cuentas solo operan sobre los eventos que se les asignan
+ * (`UserEventAccess`) y el servidor les niega todo lo demás, salvo las rutas que
+ * declaran explícitamente que filtran por evento.
+ *
+ * Se deriva de la clave del rol y no de una columna a propósito: una columna nueva
+ * en `AccessRole` rompería el login de todo el staff si el backend se despliega
+ * antes que la migración.
+ */
+export const EVENT_SCOPED_ROLE_KEYS = Object.freeze(['organizador_evento'])
+
+export function isEventScopedRole(subject) {
+  const key = typeof subject === 'string' ? subject : (subject?.roleKey ?? subject?.key ?? null)
+  return EVENT_SCOPED_ROLE_KEYS.includes(key)
+}
 
 /**
  * Permisos que no se delegan a roles operativos: sólo Super Admin y
@@ -391,6 +421,18 @@ export const DEFAULT_ROLE_PERMISSIONS = Object.freeze({
     'admin.staff_applications.read',
   ],
   seguridad_plu_arg: ['admin.events.read', 'admin.checkin.execute'],
+  // Rol "por evento": estos permisos valen SOLO sobre los eventos asignados a la
+  // cuenta. El servidor le niega cualquier ruta que no filtre por evento (ver
+  // `requireAuth` y `eventScope`). No hay `admin.users.*`, `admin.pricing.*`,
+  // `admin.events.delete` ni nada global.
+  organizador_evento: [
+    'admin.events.read',
+    'admin.events.write',
+    'admin.registrations.read',
+    'admin.payments.read',
+    'admin.payments.approve',
+    'admin.event_team.write',
+  ],
 })
 
 export const ACCESS_ROLE_TEMPLATES = Object.freeze([
@@ -433,6 +475,17 @@ export const ACCESS_ROLE_TEMPLATES = Object.freeze([
     isProtected: false,
     assignableByAdmin: true,
     hierarchyLevel: 4,
+  },
+  {
+    key: 'organizador_evento',
+    name: 'Organizador',
+    description: 'Gestiona solo los eventos que se le asignan: ventas, cobros y equipo de puerta.',
+    baseRole: 'operador_plu_arg',
+    isSystem: true,
+    isProtected: false,
+    assignableByAdmin: true,
+    // Como cualquier rol fuera de la jerarquía fija: nivel operativo.
+    hierarchyLevel: 3,
   },
 ])
 
