@@ -71,7 +71,7 @@ describe('cambio de canal manual sobre una orden pendiente', () => {
     })
   }
 
-  it('pasa el canal a efectivo en Pitbull cuando el atleta cambia de transferencia', async () => {
+  it('pasa el canal a efectivo en el lugar cuando el atleta cambia de transferencia', async () => {
     const athleteId = await newAthlete('switch-cash')
     const planCode = await activeAnnualPlanCode()
 
@@ -91,7 +91,7 @@ describe('cambio de canal manual sobre una orden pendiente', () => {
     expect(cash.data.order.manual_payment_channel).toBe('cash_pitbull')
   })
 
-  it('aprueba el efectivo en Pitbull sin exigir comprobante', async () => {
+  it('aprueba el efectivo en el lugar sin exigir comprobante', async () => {
     const athleteId = await newAthlete('switch-cash-approve')
     const planCode = await activeAnnualPlanCode()
 

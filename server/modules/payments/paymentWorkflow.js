@@ -493,12 +493,22 @@ export async function processPaymentWebhook(input, options = {}) {
   const resourceId = queryDataId ?? ipnId
   let effectiveMercadoPago = mercadoPago
 
+  // Cuenta del vendedor para el que se emite la notificación. En un pago
+  // cobrado con una cuenta vinculada por OAuth la firma la pone la aplicación
+  // de PLU (secreto global), así que el secreto que matchea no alcanza para
+  // saber con qué token leer el pago: el `user_id` sí.
+  const notificationUserId = body.user_id ?? input.query?.user_id ?? null
+
   if (isIpn) {
     addBreadcrumb('webhook.ipn_received', {
       topic: ipnTopic,
       resourceId: String(resourceId),
       providerRequestId,
     })
+    if (notificationUserId && typeof resolveMercadoPagoForSecret === 'function') {
+      const resolved = await resolveMercadoPagoForSecret(null, { userId: notificationUserId })
+      if (resolved) effectiveMercadoPago = resolved
+    }
   } else {
     try {
       let matched = null
@@ -521,7 +531,9 @@ export async function processPaymentWebhook(input, options = {}) {
       }
       if (!matched) throw lastError ?? new HttpError(401, 'Firma de webhook invalida.')
       if (typeof resolveMercadoPagoForSecret === 'function') {
-        const resolved = await resolveMercadoPagoForSecret(matched)
+        const resolved = await resolveMercadoPagoForSecret(matched, {
+          userId: notificationUserId,
+        })
         if (resolved) effectiveMercadoPago = resolved
       }
       addBreadcrumb('webhook.signature_verified', {

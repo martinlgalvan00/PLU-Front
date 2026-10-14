@@ -510,7 +510,7 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
     openPaymentChapter()
 
     const matrix = await platformMatrix()
-    fireEvent.click(within(matrix).getByRole('checkbox', { name: /efectivo pitbull · entradas/i }))
+    fireEvent.click(within(matrix).getByRole('checkbox', { name: /efectivo en el lugar · entradas/i }))
 
     // Sólo se guarda lo que difiere de la plataforma: cerrar una celda no
     // escribe las otras siete.
@@ -518,6 +518,36 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
     expect(onChange.mock.calls[0][0].paymentChannelOverrides).toEqual({
       ticket: { cash_pitbull: false },
     })
+  })
+
+  it('con el efectivo abierto pide dónde se paga y muestra la sede como respaldo', async () => {
+    const onChange = vi.fn()
+    renderEditor({}, { onChange })
+    openPaymentChapter()
+    await platformMatrix()
+
+    const place = screen.getByLabelText(/^dónde se paga/i)
+    expect(place.placeholder).toBe('Maximal Strength Club · Buenos Aires')
+    expect(screen.getByText(/vacío = la sede del evento: maximal strength club/i)).toBeTruthy()
+
+    fireEvent.change(place, { target: { value: 'Recepción del gimnasio' } })
+    expect(onChange.mock.calls.at(-1)[0].cashPayment).toEqual({
+      place: 'Recepción del gimnasio',
+      notes: '',
+    })
+  })
+
+  it('con el efectivo cerrado no muestra el bloque de lugar', async () => {
+    renderEditor({
+      paymentChannelOverrides: {
+        registration: { cash_pitbull: false },
+        ticket: { cash_pitbull: false },
+      },
+    })
+    openPaymentChapter()
+    await platformMatrix()
+
+    expect(screen.queryByLabelText(/^dónde se paga/i)).toBeNull()
   })
 
   it('abre un medio que la plataforma tiene cerrado, solo para este evento', async () => {
@@ -536,6 +566,33 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
     expect(onChange.mock.calls[0][0].paymentChannelOverrides).toEqual({
       registration: { bank_transfer: 'open' },
     })
+  })
+
+  it('muestra lo que el evento abre y avisa que es solo acá', async () => {
+    platformDouble.closed.add('registration:cash_pitbull')
+    renderEditor({ paymentChannelOverrides: { registration: { cash_pitbull: 'open' } } })
+    openPaymentChapter()
+
+    const matrix = await platformMatrix()
+    expect(
+      within(matrix).getByRole('checkbox', { name: /efectivo en el lugar · inscripción/i }).checked,
+    ).toBe(true)
+    expect(within(matrix).getByText(/abierto solo en este evento \(inscripción\)/i)).toBeTruthy()
+  })
+
+  it('volver a coincidir con la plataforma borra la decisión del evento', async () => {
+    platformDouble.closed.add('registration:bank_transfer')
+    const onChange = vi.fn()
+    renderEditor(
+      { paymentChannelOverrides: { registration: { bank_transfer: 'open' } } },
+      { onChange },
+    )
+    openPaymentChapter()
+
+    const matrix = await platformMatrix()
+    fireEvent.click(within(matrix).getByRole('checkbox', { name: /transferencia · inscripción/i }))
+
+    expect(onChange.mock.calls[0][0].paymentChannelOverrides).toBeNull()
   })
 
   it('muestra lo que el evento abre y avisa que es solo acá', async () => {
@@ -592,7 +649,7 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
     expect(within(matrix).getAllByRole('checkbox')).toHaveLength(8)
 
     fireEvent.click(
-      within(matrix).getByRole('checkbox', { name: /efectivo pitbull · entradas/i }),
+      within(matrix).getByRole('checkbox', { name: /efectivo en el lugar · entradas/i }),
     )
 
     expect(onChange).toHaveBeenCalledTimes(1)
@@ -608,10 +665,10 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
 
     const matrix = screen.getByRole('group', { name: /medios de pago por concepto/i })
     expect(
-      within(matrix).getByRole('checkbox', { name: /efectivo pitbull · inscripción/i }).checked,
+      within(matrix).getByRole('checkbox', { name: /efectivo en el lugar · inscripción/i }).checked,
     ).toBe(false)
     expect(
-      within(matrix).getByRole('checkbox', { name: /efectivo pitbull · entradas/i }).checked,
+      within(matrix).getByRole('checkbox', { name: /efectivo en el lugar · entradas/i }).checked,
     ).toBe(false)
     expect(
       within(matrix).getByRole('checkbox', { name: /mercado pago · entradas/i }).checked,

@@ -233,6 +233,8 @@ export function createApp(deps = {}) {
     createPaymentProfileRoutes({
       getPrisma: () => deps.prisma ?? getPrisma(),
       getSupabaseAdmin: resolveSupabaseAdmin,
+      env: deps.env ?? process.env,
+      fetchImpl: deps.mercadoPagoOAuthFetch,
     }),
   )
   app.use(

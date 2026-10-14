@@ -377,6 +377,12 @@ export const adminEventDraftSchema = z
       })
       .optional(),
     bankTransferProfileId: z.string().uuid('bankProfileIdInvalid').nullable().optional(),
+    cashPayment: z
+      .object({
+        place: optionalText(160, 'cashPlaceMax'),
+        notes: optionalText(400, 'cashNotesMax'),
+      })
+      .optional(),
     mercadoPagoProfileId: z.string().uuid('mpProfileIdInvalid').nullable().optional(),
   })
   .superRefine((data, ctx) => {

@@ -7,6 +7,12 @@ import AdminEventPriceSchedule from '../AdminEventPriceSchedule.jsx'
 import { effectiveEventChannelsFor } from '../../../lib/eventPaymentChannels.js'
 import { platformCellsFor } from '../../../lib/platformPaymentChannels.js'
 import EventPaymentChannelMatrix from './EventPaymentChannelMatrix.jsx'
+import MercadoPagoAccountStatus from '../payment-accounts/MercadoPagoAccountStatus.jsx'
+import MercadoPagoConnectControl from '../payment-accounts/MercadoPagoConnectControl.jsx'
+import {
+  mercadoPagoAccountStatus,
+  paymentAccountOptionLabel,
+} from '../payment-accounts/paymentAccountText.js'
 import AdminTicketAddonsEditor from '../AdminTicketAddonsEditor.jsx'
 import AdminTicketTypesEditor from '../AdminTicketTypesEditor.jsx'
 import { updatePricingField } from './draftPatches.js'
@@ -56,6 +62,8 @@ export default function EventSalesSection({
   fieldErrors,
   accordion,
   onRequestSection,
+  mpOAuthAvailable = false,
+  onMpProfileConnected,
 }) {
   // Los bloques de perfil (alias de transferencia, cuenta de MP) se necesitan
   // mientras el canal se use en algún concepto: abierto por la plataforma o por
@@ -68,6 +76,14 @@ export default function EventSalesSection({
         platformCellsFor(platformChannels?.platform, concept),
       ).includes(channel),
     )
+
+  // Mismo criterio que el checkout (`resolveCashPaymentDetails`): el lugar
+  // propio manda y, vacío, se cobra en la sede del evento.
+  const eventVenueLabel = [draft.venue, draft.location]
+    .map((part) => String(part ?? '').trim())
+    .filter(Boolean)
+    .join(' · ')
+  const cashPlacePreview = String(draft.cashPayment?.place ?? '').trim() || eventVenueLabel
 
   return (
     <section
@@ -487,37 +503,78 @@ export default function EventSalesSection({
                   disabled={!canEdit || mpProfilesLoading}
                 >
                   <option value="">{t('admin.eventEditor.mercadoPagoProfileNone')}</option>
+                  {/* Una cuenta archivada que el evento todavía tiene elegida
+                      no viene en la lista: sin esta opción el select la
+                      mostraría como "cuenta general" y guardar la pisaría. */}
+                  {draft.mercadoPagoProfileId && !selectedMpProfile && !mpProfilesLoading ? (
+                    <option value={draft.mercadoPagoProfileId}>
+                      {t('admin.paymentAccounts.editorArchivedOption')}
+                    </option>
+                  ) : null}
                   {mpProfiles.map((profile) => (
                     <option key={profile.id} value={profile.id}>
-                      {profile.name}
-                      {profile.config?.publicKey
-                        ? ` · ${String(profile.config.publicKey).slice(0, 12)}…`
-                        : ''}
+                      {paymentAccountOptionLabel(profile)}
                     </option>
                   ))}
                 </select>
               </FormField>
 
+              {/* En qué cuenta entra la plata y si puede seguir cobrando. Una
+                  cuenta vinculada que vence o que MP dejó de autorizar se
+                  reconecta desde acá, sin salir del editor. */}
               {selectedMpProfile ? (
-                <p className="admin-event-form__provider-status" role="status">
-                  {t('admin.eventEditor.mercadoPagoProfileSelected', {
-                    name: selectedMpProfile.name,
-                    publicKey: selectedMpProfile.config?.publicKey
-                      ? `${String(selectedMpProfile.config.publicKey).slice(0, 16)}…`
-                      : '—',
-                  })}
+                <MercadoPagoAccountStatus
+                  t={t}
+                  locale={locale}
+                  profile={selectedMpProfile}
+                  action={
+                    canEdit &&
+                    mpOAuthAvailable &&
+                    ['expiring', 'needs_reconnect'].includes(
+                      mercadoPagoAccountStatus(selectedMpProfile),
+                    ) ? (
+                      <MercadoPagoConnectControl
+                        t={t}
+                        profileId={selectedMpProfile.id}
+                        label={t('admin.paymentAccounts.reconnect')}
+                        buttonClassName="payment-account-connect__link"
+                        onConnected={onMpProfileConnected}
+                      />
+                    ) : null
+                  }
+                />
+              ) : (
+                <p className="admin-event-form__provider-status">
+                  {t('admin.paymentAccounts.editorGlobalAccount')}
                 </p>
-              ) : null}
+              )}
 
-              {!essentials && canEdit && mpSecretsKeyConfigured ? (
-                <div className="admin-event-form__grid">
-                  <button
-                    className="button button--ghost"
-                    type="button"
-                    onClick={() => setMpCreateOpen((open) => !open)}
-                  >
-                    {t('admin.eventEditor.mercadoPagoProfileCreate')}
-                  </button>
+              {!essentials && canEdit && (mpOAuthAvailable || mpSecretsKeyConfigured) ? (
+                <div className="admin-event-form__mp-actions">
+                  {mpOAuthAvailable ? (
+                    <MercadoPagoConnectControl
+                      t={t}
+                      label={t('admin.paymentAccounts.connect')}
+                      onConnected={onMpProfileConnected}
+                    />
+                  ) : null}
+                  {/* Cargar las credenciales a mano queda como alternativa
+                      (o como único camino si la app de MP no está configurada
+                      en el servidor). */}
+                  {mpSecretsKeyConfigured ? (
+                    <button
+                      className={
+                        mpOAuthAvailable ? 'payment-account-connect__link' : 'btn--small btn--ghost'
+                      }
+                      type="button"
+                      aria-expanded={mpCreateOpen}
+                      onClick={() => setMpCreateOpen((open) => !open)}
+                    >
+                      {mpOAuthAvailable
+                        ? t('admin.paymentAccounts.manualToggle')
+                        : t('admin.eventEditor.mercadoPagoProfileCreate')}
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -737,6 +794,90 @@ export default function EventSalesSection({
                   {t('admin.eventEditor.bankTransferReferenceExample')}
                 </code>
               </div>
+            </div>
+          ) : null}
+
+          {/* Efectivo en el lugar: nada que vincular, solo dónde se paga. Vacío
+              cae en la sede del evento, que es lo que ve el comprador. */}
+          {channelOpenHere('cash_pitbull') ? (
+            <div className="admin-event-form__bank-transfer" data-channel="cash_pitbull">
+              <header className="admin-event-form__lane-head">
+                <h5 className="admin-event-form__lane-title">
+                  {t('admin.eventEditor.cashPaymentTitle')}
+                </h5>
+                {essentials ? null : <p>{t('admin.eventEditor.cashPaymentHint')}</p>}
+              </header>
+
+              <div className="admin-event-form__grid">
+                <FormField
+                  htmlFor="event-cash-place"
+                  label={t('admin.eventEditor.cashPaymentPlace')}
+                  error={err('cashPayment.place')}
+                  wide
+                >
+                  <input
+                    id="event-cash-place"
+                    name="cashPayment.place"
+                    type="text"
+                    maxLength={160}
+                    value={draft.cashPayment?.place ?? ''}
+                    aria-invalid={Boolean(err('cashPayment.place'))}
+                    aria-describedby="event-cash-place-hint"
+                    onChange={(changeEvent) =>
+                      patchDraft({
+                        ...draft,
+                        cashPayment: {
+                          ...(draft.cashPayment ?? {}),
+                          place: changeEvent.target.value,
+                        },
+                      })
+                    }
+                    disabled={!canEdit}
+                    placeholder={eventVenueLabel || undefined}
+                  />
+                  <small className="admin-event-form__field-hint" id="event-cash-place-hint">
+                    {eventVenueLabel
+                      ? t('admin.eventEditor.cashPaymentPlaceHint', { venue: eventVenueLabel })
+                      : t('admin.eventEditor.cashPaymentPlaceHintNoVenue')}
+                  </small>
+                </FormField>
+                <FormField
+                  htmlFor="event-cash-notes"
+                  label={t('admin.eventEditor.cashPaymentNotes')}
+                  error={err('cashPayment.notes')}
+                  wide
+                >
+                  <textarea
+                    id="event-cash-notes"
+                    name="cashPayment.notes"
+                    rows={2}
+                    maxLength={400}
+                    value={draft.cashPayment?.notes ?? ''}
+                    aria-invalid={Boolean(err('cashPayment.notes'))}
+                    onChange={(changeEvent) =>
+                      patchDraft({
+                        ...draft,
+                        cashPayment: {
+                          ...(draft.cashPayment ?? {}),
+                          notes: changeEvent.target.value,
+                        },
+                      })
+                    }
+                    disabled={!canEdit}
+                    placeholder={t('admin.eventEditor.cashPaymentNotesPlaceholder')}
+                  />
+                </FormField>
+              </div>
+
+              {cashPlacePreview ? (
+                <div className="admin-event-form__reference-note" role="note">
+                  <strong>{t('admin.eventEditor.cashPaymentPreviewLabel')}</strong>
+                  <p>{cashPlacePreview}</p>
+                  {String(draft.cashPayment?.notes ?? '').trim() ? (
+                    <p>{String(draft.cashPayment.notes).trim()}</p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>

@@ -3,6 +3,7 @@ import { Router } from 'express'
 import { runDomainMaintenanceJob } from '../jobs/domainMaintenanceJob.js'
 import { runEmailDispatchJob } from '../jobs/emailDispatchJob.js'
 import { runMembershipRenewalJob } from '../jobs/membershipRenewalJob.js'
+import { runMercadoPagoOAuthRefreshJob } from '../jobs/mercadoPagoOAuthRefreshJob.js'
 import { runPaymentOrderExpiryJob } from '../jobs/paymentOrderExpiryJob.js'
 import { runPaymentRecoveryJob } from '../jobs/paymentRecoveryJob.js'
 import { runPaymentRevalidationJob } from '../jobs/paymentRevalidationJob.js'
@@ -29,6 +30,7 @@ export function createInternalJobRoutes({
     domainMaintenance: runners.domainMaintenance ?? runDomainMaintenanceJob,
     emailDispatch: runners.emailDispatch ?? runEmailDispatchJob,
     membershipRenewal: runners.membershipRenewal ?? runMembershipRenewalJob,
+    mercadoPagoOAuthRefresh: runners.mercadoPagoOAuthRefresh ?? runMercadoPagoOAuthRefreshJob,
     paymentOrderExpiry: runners.paymentOrderExpiry ?? runPaymentOrderExpiryJob,
     paymentRecovery: runners.paymentRecovery ?? runPaymentRecoveryJob,
     paymentRevalidation: runners.paymentRevalidation ?? runPaymentRevalidationJob,
@@ -143,6 +145,17 @@ export function createInternalJobRoutes({
     }
     const result = await run.domainMaintenance({ client: getSupabaseAdmin?.(), env })
     res.json({ status: 'completed', job: 'domain-maintenance', result })
+  })
+
+  // Renueva los tokens de las cuentas de Mercado Pago vinculadas por OAuth que
+  // vencen en los próximos 30 días. Sin la vinculación configurada, no hace nada.
+  router.get('/jobs/mercado-pago-oauth-refresh', async (_req, res) => {
+    const result = await run.mercadoPagoOAuthRefresh({ client: getSupabaseAdmin?.(), env })
+    res.json({
+      status: result?.status === 'disabled' ? 'disabled' : 'completed',
+      job: 'mercado-pago-oauth-refresh',
+      result,
+    })
   })
 
   return router

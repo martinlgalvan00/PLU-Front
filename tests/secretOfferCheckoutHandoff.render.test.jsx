@@ -261,14 +261,14 @@ describe('código de combo tipeado en el checkout', () => {
     await waitForAccessValidation()
 
     expect(screen.getByRole('radio', { name: /Transferencia bancaria/i })).toBeTruthy()
-    expect(screen.getByRole('radio', { name: /Efectivo en Pitbull/i })).toBeTruthy()
+    expect(screen.getByRole('radio', { name: /Efectivo en el lugar/i })).toBeTruthy()
 
     openDiscountField()
     await typeAndRedeem('ONLY-PITBULL')
     await waitFor(() => expect(appliedDiscount(container)).toContain('ONLY-PITBULL'))
 
     expect(screen.queryByRole('radio', { name: /Transferencia bancaria/i })).toBeNull()
-    expect(screen.queryByRole('radio', { name: /Efectivo en Pitbull/i })).toBeNull()
+    expect(screen.queryByRole('radio', { name: /Efectivo en el lugar/i })).toBeNull()
     expect(screen.getByRole('radio', { name: /Mercado Pago/i })).toBeTruthy()
   })
 

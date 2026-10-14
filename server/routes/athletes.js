@@ -131,6 +131,7 @@ import {
   applyEventPaymentChannelOverrides,
   assertEventPaymentChannelEnabled,
   resolveBankTransferDetails,
+  resolveCashPaymentDetails,
 } from '../modules/payments/eventPaymentProfile.js'
 import { applyEventChannelOpens } from '../../src/lib/eventPaymentChannels.js'
 import { createSupabasePaymentProfileRepository } from '../modules/payments/supabasePaymentProfileRepository.js'
@@ -1659,6 +1660,7 @@ export function createAthleteRoutes({
           // puede cerrar desde el panel.
           paymentChannels: availability.paymentChannels,
           bankTransfer: resolveBankTransferDetails(event, env, bankProfile),
+          cashPayment: resolveCashPaymentDetails(event),
           bankTransferProfileId: event?.bank_transfer_profile_id ?? null,
           mercadoPagoProfileId: event?.mercado_pago_profile_id ?? null,
           mercadoPagoPublicKey: await resolveMercadoPagoPublicKeyForProfileId(

@@ -597,8 +597,8 @@ export function TicketPaymentOptions({
           onChange={onChange}
         />
       ) : null}
-      {/* Efectivo en Pitbull: el espectador que pasa por el gimnasio paga en
-          caja y no sube comprobante. Interruptor propio, igual que Wise. */}
+      {/* Efectivo en el lugar: el espectador paga en la sede del evento y no
+          sube comprobante. Interruptor propio, igual que Wise. */}
       {cashEnabled ? (
         <TicketPaymentOption
           value="cash_pitbull"
@@ -640,13 +640,14 @@ export default function TicketPurchaseSection({
   // Mercado Pago también se cierra por concepto desde Administración. Default
   // abierto para no dejar la pantalla sin medios ante una lectura incompleta.
   mercadoPagoEnabled = true,
-  // Efectivo en Pitbull y Wise tienen cada uno su interruptor, independiente
+  // Efectivo en el lugar y Wise tienen cada uno su interruptor, independiente
   // del de transferencia. Default cerrado en los dos: sin dato, no se ofrece un
   // medio que puede rechazar 409.
   cashEnabled = false,
   wiseEnabled = false,
   // Datos bancarios del evento (alias/cbu/holder). Vacío = env global.
   accountDetails = null,
+  cashPayment = null,
   pricing = { ticketTypes: [], addons: [] },
   tickets,
   createdOrder,
@@ -1094,12 +1095,23 @@ export default function TicketPurchaseSection({
                 ? t('pages.tickets.cashNote')
                 : t('pages.tickets.manualNote')}
             </p>
-            <p className="ticket-purchase__payment-note">{t('pages.tickets.transferQrDelay')}</p>
+            {/* La demora de 48 h es de la validación de un comprobante; el
+                efectivo se acredita en caja en el momento. */}
+            {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? null : (
+              <p className="ticket-purchase__payment-note">{t('pages.tickets.transferQrDelay')}</p>
+            )}
             <dl className="ticket-purchase__transfer-data">
               {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? (
                 <div>
                   <dt>{t('pages.tickets.cashWhereLabel')}</dt>
-                  <dd>{t('pages.tickets.cashWhereValue')}</dd>
+                  {/* Lo carga el panel por evento; sin eso, la sede del evento.
+                      Nunca un lugar fijo. */}
+                  <dd>
+                    {cashPayment?.place ||
+                      [event?.venue, event?.location].filter(Boolean).join(' · ') ||
+                      t('pages.tickets.cashWhereFallback')}
+                  </dd>
+                  {cashPayment?.notes ? <dd>{cashPayment.notes}</dd> : null}
                 </div>
               ) : visibleOrder.manualPaymentChannel === 'wise_transfer' ? (
                 <>
