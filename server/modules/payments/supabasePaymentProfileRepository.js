@@ -9,6 +9,61 @@ function trimText(value) {
   return text || ''
 }
 
+const PROFILE_NAME_MAX = 120
+// Tope de lectura del catálogo al reusar/nombrar un perfil bancario: es una
+// lista de decenas de cuentas, pero que una base rara no traiga todo sin límite.
+const BANK_CATALOG_LIMIT = 500
+const NAME_INDEX = 'payment_profiles_org_name_kind_uidx'
+export const PAYMENT_PROFILE_NAME_TAKEN_CODE = 'PAYMENT_PROFILE_NAME_TAKEN'
+const NAME_TAKEN_MESSAGE =
+  'Ya hay un perfil de cobro activo con ese nombre. Elegí otro nombre o archivá el existente.'
+
+/** Misma regla que el índice único de la tabla: sin mayúsculas ni bordes. */
+function nameKey(value) {
+  return trimText(value).toLowerCase()
+}
+
+function withSuffix(base, suffix) {
+  return `${base.slice(0, PROFILE_NAME_MAX - suffix.length).trimEnd()}${suffix}`
+}
+
+/**
+ * Primer nombre libre para un perfil automático. El índice único
+ * `(org, lower(trim(name)), kind) where active` hace que dos perfiles activos no
+ * puedan llamarse igual, y el nombre automático (`Transferencia · <evento>`)
+ * es el mismo cada vez que el evento cambia de alias: sin esto el segundo
+ * guardado fallaba con un 409 sin explicación.
+ */
+function freeProfileName(base, alias, taken) {
+  const candidates = [base, withSuffix(base, ` · ${alias}`)]
+  for (let n = 2; n <= 50; n += 1) candidates.push(withSuffix(base, ` (${n})`))
+  return (
+    candidates.find((candidate) => !taken.has(nameKey(candidate))) ??
+    withSuffix(base, ` (${Date.now()})`)
+  )
+}
+
+/**
+ * Escritura en `payment_profiles`. Un nombre repetido es algo que el operador
+ * puede corregir: se dice con todas las letras (y en el campo `name`) en vez de
+ * dejar que `assertSupabaseResult` lo tape con el texto genérico del call site,
+ * que es lo que hacía que el editor mostrara "No se pudo crear el perfil".
+ */
+function assertProfileWrite(result, fallback) {
+  const error = result?.error
+  if (
+    error &&
+    String(error.code) === '23505' &&
+    String(error.message ?? '').includes(NAME_INDEX)
+  ) {
+    throw new HttpError(409, NAME_TAKEN_MESSAGE, {
+      code: PAYMENT_PROFILE_NAME_TAKEN_CODE,
+      fields: { name: NAME_TAKEN_MESSAGE },
+    })
+  }
+  return assertSupabaseResult(result, fallback)
+}
+
 function mapBankConfig(config) {
   return {
     alias: trimText(config.alias),
@@ -165,7 +220,7 @@ export function createSupabasePaymentProfileRepository(
         )
       }
 
-      const row = assertSupabaseResult(
+      const row = assertProfileWrite(
         await client.from('payment_profiles').insert(insert).select('*').single(),
         'No se pudo crear el perfil de cobro.',
       )
@@ -224,7 +279,7 @@ export function createSupabasePaymentProfileRepository(
         )
       }
 
-      const row = assertSupabaseResult(
+      const row = assertProfileWrite(
         await client
           .from('payment_profiles')
           .update(patch)
@@ -540,7 +595,12 @@ export function createSupabasePaymentProfileRepository(
 
     /**
      * Crea o reutiliza un perfil bank_transfer a partir de alias/cbu/holder.
-     * Si ya hay uno con el mismo alias activo, lo reusa.
+     *
+     * - Mismo alias activo (sin distinguir mayúsculas: los alias bancarios no
+     *   las distinguen) → se reusa, completando CBU/titular si faltaban.
+     * - Alias nuevo → se crea con un nombre libre (ver `freeProfileName`). Si
+     *   otro guardado simultáneo toma el nombre entre la lectura y el alta, se
+     *   relee y se reintenta: el catálogo lo ve completo en la segunda vuelta.
      */
     async ensureBankTransferProfile({ name, alias, cbu, holder }) {
       const normalizedAlias = trimText(alias)
@@ -548,35 +608,44 @@ export function createSupabasePaymentProfileRepository(
         throw new HttpError(400, 'El perfil bancario necesita un alias.')
       }
 
-      const rows = assertSupabaseResult(
-        await client
-          .from('payment_profiles')
-          .select('*')
-          .eq('organization_id', organizationId)
-          .eq('kind', 'bank_transfer')
-          .eq('active', true)
-          .eq('config->>alias', normalizedAlias)
-          .limit(1),
-        'No se pudo buscar el perfil de cobro.',
-      )
-      const existing = Array.isArray(rows) ? rows[0] : rows
-      if (existing) {
-        const mapped = mapPaymentProfileRow(existing)
-        const nextCbu = trimText(cbu) || mapped.config.cbu
-        const nextHolder = trimText(holder) || mapped.config.holder
-        if (nextCbu !== mapped.config.cbu || nextHolder !== mapped.config.holder) {
-          return this.update(existing.id, {
-            config: { alias: normalizedAlias, cbu: nextCbu, holder: nextHolder },
-          })
-        }
-        return mapped
-      }
+      for (let attempt = 0; ; attempt += 1) {
+        const rows = assertSupabaseResult(
+          await client
+            .from('payment_profiles')
+            .select('*')
+            .eq('organization_id', organizationId)
+            .eq('kind', 'bank_transfer')
+            .eq('active', true)
+            .limit(BANK_CATALOG_LIMIT),
+          'No se pudo buscar el perfil de cobro.',
+        )
+        const catalog = (rows ?? []).map((row) => mapPaymentProfileRow(row))
 
-      return this.create({
-        name: trimText(name) || `Transferencia · ${normalizedAlias}`,
-        kind: 'bank_transfer',
-        config: { alias: normalizedAlias, cbu, holder },
-      })
+        const existing = catalog.find(
+          (profile) => nameKey(profile.config.alias) === nameKey(normalizedAlias),
+        )
+        if (existing) {
+          const nextCbu = trimText(cbu) || existing.config.cbu
+          const nextHolder = trimText(holder) || existing.config.holder
+          if (nextCbu !== existing.config.cbu || nextHolder !== existing.config.holder) {
+            return this.update(existing.id, { config: { cbu: nextCbu, holder: nextHolder } })
+          }
+          return existing
+        }
+
+        const baseName = trimText(name) || `Transferencia · ${normalizedAlias}`
+        const taken = new Set(catalog.map((profile) => nameKey(profile.name)))
+        try {
+          return await this.create({
+            name: freeProfileName(baseName.slice(0, PROFILE_NAME_MAX), normalizedAlias, taken),
+            kind: 'bank_transfer',
+            config: { alias: normalizedAlias, cbu, holder },
+          })
+        } catch (error) {
+          if (error?.details?.code === PAYMENT_PROFILE_NAME_TAKEN_CODE && attempt < 2) continue
+          throw error
+        }
+      }
     },
   }
 }
