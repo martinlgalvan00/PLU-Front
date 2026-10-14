@@ -4025,15 +4025,16 @@ export default {
     },
     bankTransferTitle: 'Bank transfer for this event',
     bankTransferHint:
-      'Pick a catalog profile to reuse it on other events, or enter alias/CBU here (saving creates the profile).',
-    bankTransferProfile: 'Payment profile',
-    bankTransferProfileNone: 'No profile · inline or global details',
-    bankTransferProfileHint:
-      'The same profile can be linked to multiple events. Editing the alias unlinks the profile.',
-    bankTransferProfileSelected: 'Using “{{name}}” ({{alias}}).',
+      'Pick a saved account to reuse it on other events, or enter the details here: saving keeps it as a reusable account.',
+    bankTransferProfile: 'Transfer account',
+    bankTransferProfileNone: 'Enter the details by hand',
+    bankTransferProfileHint: 'The same account can be used on several events.',
+    bankTransferLinkedHint:
+      'Details from “{{name}}”. If you edit it from Payment accounts, it changes on every event that uses it.',
+    bankTransferUseOther: 'Use other details',
     bankTransferAliasPlaceholder: 'e.g. club.troupe.mp',
     bankTransferSaveCreatesProfile:
-      'If you enter an alias without picking a profile, saving creates a reusable catalog profile.',
+      'If you enter an alias without picking an account, saving keeps it as a reusable account for other events.',
     bankTransferAlias: 'Alias',
     bankTransferCbu: 'CBU / CVU',
     bankTransferHolder: 'Account holder',
@@ -4062,7 +4063,7 @@ export default {
     mercadoPagoAccessToken: 'Access token',
     mercadoPagoWebhookSecret: 'Webhook secret',
     mercadoPagoSecretsKeyMissing:
-      'PAYMENT_PROFILE_SECRETS_KEY is missing on the server: MP profiles cannot be saved.',
+      'Manual Mercado Pago account entry is not enabled in this environment. Connect the account with Mercado Pago or use the general account.',
     mercadoPagoProfileCreated: 'Profile created and linked to the event.',
     priceCurrency: 'ARS',
     ticketAddonsTitle: 'Spectator ticket perks',

@@ -4083,15 +4083,16 @@ export default {
     },
     bankTransferTitle: 'Transferencia bancaria de este evento',
     bankTransferHint:
-      'Elegí un perfil del catálogo para reutilizarlo en otros eventos, o cargá alias/CBU acá (al guardar se crea el perfil).',
-    bankTransferProfile: 'Perfil de cobro',
-    bankTransferProfileNone: 'Sin perfil · datos sueltos o globales',
-    bankTransferProfileHint:
-      'El mismo perfil se puede enganchar a varios eventos. Editar alias a mano desvincula el perfil.',
-    bankTransferProfileSelected: 'Usando «{{name}}» ({{alias}}).',
+      'Elegí una cuenta guardada para reutilizarla en otros eventos, o cargá los datos acá: al guardar queda como cuenta reutilizable.',
+    bankTransferProfile: 'Cuenta de transferencia',
+    bankTransferProfileNone: 'Cargar los datos a mano',
+    bankTransferProfileHint: 'Una misma cuenta puede usarse en varios eventos.',
+    bankTransferLinkedHint:
+      'Datos de «{{name}}». Si la editás desde Cuentas de cobro, cambia en todos los eventos que la usan.',
+    bankTransferUseOther: 'Usar otros datos',
     bankTransferAliasPlaceholder: 'Ej. club.troupe.mp',
     bankTransferSaveCreatesProfile:
-      'Si cargás un alias sin elegir perfil, al guardar se crea uno reutilizable en el catálogo.',
+      'Si cargás un alias sin elegir una cuenta, al guardar queda como cuenta reutilizable para otros eventos.',
     bankTransferAlias: 'Alias',
     bankTransferCbu: 'CBU / CVU',
     bankTransferHolder: 'Titular',
@@ -4120,7 +4121,7 @@ export default {
     mercadoPagoAccessToken: 'Access token',
     mercadoPagoWebhookSecret: 'Webhook secret',
     mercadoPagoSecretsKeyMissing:
-      'Falta PAYMENT_PROFILE_SECRETS_KEY en el servidor: no se pueden guardar perfiles MP.',
+      'La carga manual de cuentas de Mercado Pago no está habilitada en este entorno. Conectá la cuenta con Mercado Pago o usá la cuenta general.',
     mercadoPagoProfileCreated: 'Perfil creado y vinculado al evento.',
     priceCurrency: 'ARS',
     ticketAddonsTitle: 'Beneficios en la compra de entradas',

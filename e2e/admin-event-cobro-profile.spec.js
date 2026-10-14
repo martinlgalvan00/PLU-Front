@@ -158,6 +158,14 @@ test.describe('Panel de eventos: perfil de cobro', () => {
     })
     await page.getByRole('tab', { name: /ventas y cupos/i }).click()
     await page.getByRole('tab', { name: /^Cobro$/i }).click()
+    await expect(page.locator('#event-bank-profile')).toBeVisible()
+  }
+
+  // Con una cuenta elegida los datos son de solo lectura: para cargar otros hay
+  // que pedirlo (así tipear no desvincula el perfil en silencio).
+  async function useOtherData(page) {
+    const button = page.getByRole('button', { name: /^usar otros datos$/i })
+    if (await button.isVisible()) await button.click()
     await expect(page.locator('#event-bank-alias')).toBeVisible()
   }
 
@@ -220,6 +228,7 @@ test.describe('Panel de eventos: perfil de cobro', () => {
     await openCobro(page)
 
     for (const alias of ['cobro.dos', 'cobro.tres']) {
+      await useOtherData(page)
       await page.locator('#event-bank-alias').fill(alias)
       await saveEvent(page)
       const stored = await storedEvent()
@@ -238,7 +247,8 @@ test.describe('Panel de eventos: perfil de cobro', () => {
 
     // El mismo alias otra vez reusa el perfil: el catálogo no crece.
     await openCobro(page)
-    await expect(page.locator('#event-bank-alias')).toHaveValue('cobro.tres')
+    await expect(page.locator('[data-field="bankTransfer.linked"]')).toContainText('cobro.tres')
+    await useOtherData(page)
     await page.locator('#event-bank-alias').fill('COBRO.TRES')
     await page.locator('#event-cash-notes').fill(`${CASH_NOTES} Actualizado.`)
     await saveEvent(page)
@@ -250,7 +260,18 @@ test.describe('Panel de eventos: perfil de cobro', () => {
     await openCobro(page)
 
     await page.locator('#event-bank-profile').selectOption(previousProfileId)
+    const linked = page.locator('[data-field="bankTransfer.linked"]')
+    await expect(linked).toContainText('cobro.previo')
+    await expect(linked).toContainText('0000003100099999999999')
+    await expect(linked).toContainText('Titular Previo')
+    await expect(page.locator('#event-bank-alias')).toHaveCount(0)
+
+    // "Usar otros datos" desvincula y deja los campos con lo que había.
+    await page.getByRole('button', { name: /^usar otros datos$/i }).click()
     await expect(page.locator('#event-bank-alias')).toHaveValue('cobro.previo')
+    await expect(page.locator('#event-bank-profile')).toHaveValue('')
+    await page.locator('#event-bank-profile').selectOption(previousProfileId)
+    await expect(linked).toContainText('cobro.previo')
     await saveEvent(page)
 
     const stored = await storedEvent()

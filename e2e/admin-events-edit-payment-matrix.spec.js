@@ -82,7 +82,8 @@ test.describe('Panel de eventos: edición y medios de cobro', () => {
     })
     await page.getByRole('tab', { name: /ventas y cupos/i }).click()
     await page.getByRole('tab', { name: /^Cobro$/i }).click()
-    await expect(page.locator('#event-bank-alias')).toHaveValue('plu.e2e.qa')
+    // Con una cuenta elegida sus datos se muestran de solo lectura.
+    await expect(page.locator('[data-field="bankTransfer.linked"]')).toContainText('plu.e2e.qa')
 
     const channels = ['Mercado Pago', 'Transferencia', 'Efectivo en el lugar', 'Wise']
     for (const channel of channels) {
