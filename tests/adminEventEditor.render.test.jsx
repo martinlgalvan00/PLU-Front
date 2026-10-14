@@ -602,7 +602,7 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
 
     const matrix = await platformMatrix()
     expect(
-      within(matrix).getByRole('checkbox', { name: /efectivo pitbull · inscripción/i }).checked,
+      within(matrix).getByRole('checkbox', { name: /efectivo en el lugar · inscripción/i }).checked,
     ).toBe(true)
     expect(within(matrix).getByText(/abierto solo en este evento \(inscripción\)/i)).toBeTruthy()
   })
