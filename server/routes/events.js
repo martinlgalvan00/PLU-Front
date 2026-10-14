@@ -1125,6 +1125,15 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           'No se pudo guardar el evento.',
         )
 
+        // Si el evento cambió de slug, las asignaciones de organizadores (que guardan el slug
+        // desnormalizado) se actualizan: si no, perderían acceso a su propio evento.
+        if (savedEvent?.id && savedEvent?.slug && typeof prisma.userEventAccess?.updateMany === 'function') {
+          await prisma.userEventAccess.updateMany({
+            where: { eventId: savedEvent.id },
+            data: { eventSlug: savedEvent.slug },
+          })
+        }
+
         const publicSurface = {
           calendar: pEvent.publicSurface?.calendar !== false,
           weighIns: pEvent.publicSurface?.weighIns !== false,

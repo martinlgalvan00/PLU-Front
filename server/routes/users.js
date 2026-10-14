@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { Router } from 'express'
-import { getRoleHierarchyLevel } from '../../src/lib/permissions.js'
+import { getRoleHierarchyLevel, isEventScopedRole } from '../../src/lib/permissions.js'
 import {
   buildPendingInviteEmail,
   buildStaffInvitationUrl,
@@ -16,7 +16,9 @@ import {
   resetStaffPasswordSchema,
   updateStaffUserStatusSchema,
 } from '../../src/lib/schemas/auth.js'
+import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
+import { staffSessionCache } from '../lib/sessionCache.js'
 import { resolveDeploymentAppUrl } from '../lib/deploymentEnvironment.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
@@ -35,6 +37,7 @@ import {
   TEMP_PASSWORD_TTL_DAYS,
   tempPasswordExpiry,
 } from '../services/passwordService.js'
+import { fetchSupabaseEventsByIds } from '../services/securityEventService.js'
 import { revokeSessionsForUser, serializeUser } from '../services/sessionService.js'
 import {
   createStaffInvitationToken,
@@ -96,6 +99,12 @@ async function applyRoleChange(prisma, { actorId, target, accessRole }) {
     beforeRoleKey,
     afterRoleKey: accessRole.key,
   })
+
+  // Salir del rol por evento borra sus eventos asignados: si no, volver a asignarlo
+  // meses después le devolvería en silencio acceso a eventos que ya no recordamos.
+  if (!isEventScopedRole(accessRole.key) && typeof prisma.userEventAccess?.deleteMany === 'function') {
+    await prisma.userEventAccess.deleteMany({ where: { userId: target.id } })
+  }
 
   await revokeSessionsForUser({ prisma, userId: target.id })
 
@@ -239,6 +248,20 @@ export function createUserRoutes({
         include: userInclude(),
         orderBy: { createdAt: 'desc' },
       })
+      // Los eventos asignados viajan solo para cuentas de rol por evento: una consulta
+      // para todas, y ninguna si no hay organizadores.
+      const organizerIds = users
+        .filter((user) => isEventScopedRole(user.accessRole?.key ?? user.role))
+        .map((user) => user.id)
+      if (organizerIds.length > 0 && typeof prismaClient.userEventAccess?.findMany === 'function') {
+        const grants = await prismaClient.userEventAccess.findMany({
+          where: { userId: { in: organizerIds } },
+          select: { userId: true, eventId: true, eventSlug: true },
+        })
+        for (const user of users) {
+          user.eventAccess = grants.filter((grant) => grant.userId === user.id)
+        }
+      }
       res.json({ users: users.map(serializeUser) })
     } catch (error) {
       next(error)
@@ -339,6 +362,113 @@ export function createUserRoutes({
           emailed,
           ...(returnLink ? invitationLinkPayload(invitation, passwordExpiresAt) : {}),
         })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  // ── Eventos de una cuenta de rol por evento (organizador) ───────────────────
+  // Solo Super Admin y Administrador (`admin.users.write`): quién gestiona qué evento
+  // es una decisión de PLU, no del organizador. Los cambios valen al instante sin
+  // cerrarle la sesión: se purga su caché y el próximo request relee la lista.
+  const eventAccessSchema = z.object({ eventIds: z.array(z.string().uuid()).max(50) })
+
+  async function loadOrganizer(prismaClient, userId) {
+    const target = await prismaClient.user.findUnique({
+      where: { id: userId },
+      include: userInclude(),
+    })
+    if (!target) throw new HttpError(404, 'El usuario no existe.')
+    if (!isEventScopedRole(target.accessRole?.key ?? target.role)) {
+      throw new HttpError(400, 'Solo las cuentas con rol Organizador tienen eventos asignados.')
+    }
+    return target
+  }
+
+  const readEventAccess = (prismaClient, userId) =>
+    prismaClient.userEventAccess.findMany({
+      where: { userId },
+      select: { eventId: true, eventSlug: true },
+    })
+
+  router.get('/:userId/event-access', ...readGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const prismaClient = getPrisma()
+      const target = await loadOrganizer(prismaClient, req.params.userId)
+      res.json({ eventAccess: await readEventAccess(prismaClient, target.id) })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.put(
+    '/:userId/event-access',
+    ...writeGuard,
+    staffLimiter,
+    validateBody(eventAccessSchema),
+    async (req, res, next) => {
+      try {
+        const prismaClient = getPrisma()
+        const target = await loadOrganizer(prismaClient, req.params.userId)
+        const eventIds = [...new Set(req.validatedBody.eventIds)]
+
+        // Los eventos viven en Supabase: se resuelven ahí (y de paso se toma el slug
+        // actual) antes de tocar nada, para no dejar asignado un evento que no existe.
+        const events = await fetchSupabaseEventsByIds(getSupabaseAdmin?.(), eventIds)
+        const missing = eventIds.filter((id) => !events.has(id))
+        if (missing.length > 0) {
+          throw new HttpError(400, 'Hay eventos que no existen.', {
+            code: 'EVENT_NOT_FOUND',
+            fields: { eventIds: 'Elegí eventos que existan.' },
+          })
+        }
+
+        const before = await readEventAccess(prismaClient, target.id)
+        const alreadyAssigned = new Set(before.map((row) => row.eventId))
+
+        await prismaClient.userEventAccess.deleteMany({
+          where: { userId: target.id, eventId: { notIn: eventIds } },
+        })
+        const toCreate = eventIds
+          .filter((id) => !alreadyAssigned.has(id))
+          .map((id) => ({
+            userId: target.id,
+            eventId: id,
+            eventSlug: events.get(id).slug,
+            grantedBy: req.auth.user.id,
+          }))
+        if (toCreate.length > 0) {
+          await prismaClient.userEventAccess.createMany({ data: toCreate, skipDuplicates: true })
+        }
+        // Un evento que cambió de slug desde la asignación: se actualiza el guardado.
+        for (const row of before) {
+          const current = events.get(row.eventId)
+          if (current && current.slug !== row.eventSlug) {
+            await prismaClient.userEventAccess.updateMany({
+              where: { userId: target.id, eventId: row.eventId },
+              data: { eventSlug: current.slug },
+            })
+          }
+        }
+
+        staffSessionCache.invalidateOwner(target.id)
+        const after = await readEventAccess(prismaClient, target.id)
+
+        if (prismaClient.auditLog?.create) {
+          await prismaClient.auditLog.create({
+            data: {
+              action: 'user.event_access_changed',
+              entityType: 'user',
+              entityId: target.id,
+              actorId: req.auth.user.id,
+              before: { eventSlugs: before.map((row) => row.eventSlug) },
+              after: { eventSlugs: after.map((row) => row.eventSlug) },
+            },
+          })
+        }
+
+        res.json({ eventAccess: after })
       } catch (error) {
         next(error)
       }
