@@ -1,7 +1,11 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
-import { PERMISSION_CATALOG, getDefaultPermissionsForRole } from '../src/lib/permissions.js'
+import {
+  PERMISSION_CATALOG,
+  RESERVED_PERMISSION_KEYS,
+  getDefaultPermissionsForRole,
+} from '../src/lib/permissions.js'
 import RolesSection from '../src/pages/admin/RolesSection.jsx'
 
 /**
@@ -320,5 +324,107 @@ describe('permisos de quien mira', () => {
     expect(history).toBeTruthy()
     expect(history.textContent).toContain('Permisos actualizados')
     expect(history.textContent).toContain('Eliminar atletas')
+  })
+})
+
+describe('duplicar un rol', () => {
+  const createdRole = { id: 'copia', name: 'copia', permissions: [] }
+
+  function renderWithCreate(props = {}) {
+    const onCreateRole = vi.fn(async () => createdRole)
+    return { onCreateRole, ...renderRoles({ onCreateRole, ...props }) }
+  }
+
+  function selectRole(name) {
+    openEditor()
+    const rail = document.querySelector('.roles-rail') ?? document
+    fireEvent.click(within(rail).getByRole('button', { name: new RegExp(name) }))
+  }
+
+  it('abre el alta con el nombre y los permisos del rol, y los envía al crear', async () => {
+    const { onCreateRole } = renderWithCreate()
+    selectRole('Comunicación')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Duplicar rol' }))
+
+    const name = screen.getByRole('textbox', { name: /Nombre/ })
+    expect(name.value).toBe('Comunicación (copia)')
+    expect(document.getElementById('admin-role-create').textContent).toContain('(3)')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Crear rol' }))
+    await waitFor(() => expect(onCreateRole).toHaveBeenCalledTimes(1))
+    expect(onCreateRole).toHaveBeenCalledWith({
+      name: 'Comunicación (copia)',
+      description: '',
+      permissionKeys: ['admin.athletes.read', 'admin.athletes.delete', 'admin.analytics.read'],
+    })
+  })
+
+  it('no copia los permisos reservados, que el servidor rechaza', async () => {
+    const { onCreateRole } = renderWithCreate()
+    selectRole('Super Admin')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Duplicar rol' }))
+    expect(document.getElementById('admin-role-create').textContent).toContain(
+      'No se copian los reservados',
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Crear rol' }))
+    await waitFor(() => expect(onCreateRole).toHaveBeenCalledTimes(1))
+    const { permissionKeys } = onCreateRole.mock.calls[0][0]
+    expect(permissionKeys.length).toBeGreaterThan(0)
+    for (const reserved of RESERVED_PERMISSION_KEYS) {
+      expect(permissionKeys).not.toContain(reserved)
+    }
+  })
+
+  it('cerrar el formulario suelta la copia: «Nuevo rol» vuelve a crear sin permisos', async () => {
+    const { onCreateRole } = renderWithCreate()
+    selectRole('Comunicación')
+    fireEvent.click(screen.getByRole('button', { name: 'Duplicar rol' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo rol' }))
+
+    const name = screen.getByRole('textbox', { name: /Nombre/ })
+    expect(name.value).toBe('')
+    fireEvent.change(name, { target: { value: 'Rol vacío' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Crear rol' }))
+
+    await waitFor(() => expect(onCreateRole).toHaveBeenCalledTimes(1))
+    expect(onCreateRole.mock.calls[0][0].permissionKeys).toEqual([])
+  })
+
+  it('sin permiso para gestionar roles no se ofrece duplicar', () => {
+    renderWithCreate({ authorization: { ...AUTHORIZATION, permissions: ['admin.roles.read'] } })
+    selectRole('Comunicación')
+    expect(screen.queryByRole('button', { name: 'Duplicar rol' })).toBeNull()
+  })
+})
+
+describe('atajo a los usuarios de un rol', () => {
+  function selectRole(name) {
+    openEditor()
+    const rail = document.querySelector('.roles-rail') ?? document
+    fireEvent.click(within(rail).getByRole('button', { name: new RegExp(name) }))
+  }
+
+  it('abre Usuarios filtrado por el rol que se está mirando', () => {
+    const onViewUsers = vi.fn()
+    renderRoles({ onViewUsers })
+    selectRole('Comunicación')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver usuarios' }))
+    expect(onViewUsers).toHaveBeenCalledWith('comunicacion')
+  })
+
+  it('no lo ofrece para un rol sin cuentas ni sin acceso a Usuarios', () => {
+    const { unmount } = renderRoles({ onViewUsers: vi.fn() })
+    selectRole('Prensa')
+    expect(screen.queryByRole('button', { name: 'Ver usuarios' })).toBeNull()
+    unmount()
+
+    renderRoles()
+    selectRole('Comunicación')
+    expect(screen.queryByRole('button', { name: 'Ver usuarios' })).toBeNull()
   })
 })

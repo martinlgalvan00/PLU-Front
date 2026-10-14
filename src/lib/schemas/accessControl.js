@@ -40,3 +40,16 @@ export const updateAccessRoleStatusSchema = z.object({ active: z.boolean() })
 export const updateUserAccessRoleSchema = z.object({
   roleKey: roleKeySchema,
 })
+
+/** Tope de cuentas por pedido: acota el trabajo de un request y su auditoría. */
+export const BULK_USER_ROLE_MAX = 100
+
+export const bulkUserAccessRoleSchema = z.object({
+  userIds: z
+    .array(z.string().trim().min(1, 'Falta el id de una cuenta.'))
+    .min(1, 'Elegí al menos una cuenta.')
+    .max(BULK_USER_ROLE_MAX, `Podés cambiar hasta ${BULK_USER_ROLE_MAX} cuentas por vez.`)
+    // Un id repetido no debe auditar ni cortar sesiones dos veces.
+    .transform((userIds) => [...new Set(userIds)]),
+  roleKey: roleKeySchema,
+})

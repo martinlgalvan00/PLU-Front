@@ -13318,6 +13318,61 @@ button.action-queue__proof:focus-visible {
   max-width: 54ch;
 }
 
+/* Cuenta de transferencia elegida: datos de solo lectura, en filas con regla (sin
+   tarjeta). Cambiar a "otros datos" es una acción explícita, no un efecto de tipear. */
+.admin-event-form__account-summary {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.admin-event-form__account-summary dl {
+  display: grid;
+  margin: 0;
+  width: 100%;
+}
+
+.admin-event-form__account-summary dl > div {
+  align-items: baseline;
+  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(84px, 120px) 1fr;
+  padding: 8px 0;
+}
+
+.admin-event-form__account-summary dl > div:last-child {
+  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+}
+
+.admin-event-form__account-summary dt {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.admin-event-form__account-summary dd {
+  color: var(--admin-ink, var(--color-text));
+  font-size: 13.5px;
+  font-weight: 600;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-event-form__account-summary .admin-event-form__field-hint {
+  margin-top: 0;
+  max-width: 56ch;
+}
+
+/* En pantallas angostas etiqueta y valor se apilan: un CBU de 22 dígitos no entra
+   en la segunda columna y se partía a mitad de número. */
+@media (max-width: 560px) {
+  .admin-event-form__account-summary dl > div {
+    gap: 2px;
+    grid-template-columns: 1fr;
+  }
+}
+
 .admin-event-form__reference-note {
   border-left: 2px solid
     color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 80%, transparent);
@@ -14121,6 +14176,10 @@ button.action-queue__proof:focus-visible {
 /* Volver a heredar la matriz de plataforma. Sólo aparece con override puesto:
    sin él no hay nada que devolver. */
 .admin-event-form__channel-reset {
+  align-items: center;
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  display: inline-flex;
+  gap: 6px;
   justify-self: start;
   min-height: 32px;
   padding-inline: 12px;

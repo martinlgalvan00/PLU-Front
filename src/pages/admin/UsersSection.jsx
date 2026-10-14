@@ -17,6 +17,7 @@ import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmD
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import AdminEmptyState from '../../components/admin/AdminEmptyState.jsx'
 import StaffInvitationNotice from '../../components/admin/StaffInvitationNotice.jsx'
+import UsersBulkRoleBar from '../../components/admin/UsersBulkRoleBar.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatRecordCount } from '../../i18n/adminHelpers.js'
@@ -27,6 +28,7 @@ import {
   listAssignableStaffRoles,
   normalizeEmail,
 } from '../../services/staffAccessService.js'
+import { isBulkRoleTarget, summarizeBulkRoleResults } from '../../services/userService.js'
 import UsersInviteForm from './UsersInviteForm.jsx'
 import UsersRowMenu from './UsersRowMenu.jsx'
 import '../../styles/pages/admin-users.css'
@@ -86,6 +88,8 @@ export default function UsersSection({
   athletes,
   canDeleteUsers,
   canManageUsers,
+  initialRoleFilter = null,
+  onBulkUpdateRole,
   onCreateSecurityUser,
   onCreateUser,
   onDeleteUser,
@@ -103,6 +107,10 @@ export default function UsersSection({
   const newButtonRef = useRef(null)
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  // Puede llegar prefijado desde Roles («Ver usuarios» de un rol).
+  const [roleFilter, setRoleFilter] = useState(initialRoleFilter ?? 'all')
+  const [selectedRowKeys, setSelectedRowKeys] = useState([])
+  const [bulkNotice, setBulkNotice] = useState(null)
   const [isCreating, setIsCreating] = useState(false)
   const [draft, setDraft] = useState(EMPTY_DRAFT)
   const [formError, setFormError] = useState('')
@@ -154,22 +162,51 @@ export default function UsersSection({
   const distinctStatuses = Object.keys(statusCounts).length
   const showStatusFilter = distinctStatuses > 1 || statusFilter !== 'all'
 
+  // Los roles que existen en el padrón, con cuántas cuentas tiene cada uno.
+  const roleCounts = useMemo(() => {
+    const counts = new Map()
+    for (const user of users) {
+      const key = user.roleKey ?? user.role
+      const current = counts.get(key)
+      if (current) current.count += 1
+      else counts.set(key, { label: getRoleLabel(user), count: 1 })
+    }
+    return counts
+  }, [users])
+  const roleFilterOptions = useMemo(
+    () => [
+      ['all', t('admin.users.allRoles')],
+      ...[...roleCounts.entries()]
+        .sort((first, second) => first[1].label.localeCompare(second[1].label, 'es'))
+        .map(([value, { label, count }]) => [value, `${label} · ${count}`]),
+      // Un filtro heredado de otra pantalla puede apuntar a un rol sin cuentas:
+      // se deja ver para poder soltarlo.
+      ...(roleFilter !== 'all' && !roleCounts.has(roleFilter)
+        ? [[roleFilter, `${roleFilter} · 0`]]
+        : []),
+    ],
+    [roleCounts, roleFilter, t],
+  )
+  const showRoleFilter = roleCounts.size > 1 || roleFilter !== 'all'
+
   const rows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
     return users.filter((user) => {
       const status = user.status ?? 'active'
       if (statusFilter !== 'all' && status !== statusFilter) return false
+      if (roleFilter !== 'all' && (user.roleKey ?? user.role) !== roleFilter) return false
       if (!normalizedQuery) return true
       return (
         user.name.toLowerCase().includes(normalizedQuery) ||
         user.email.toLowerCase().includes(normalizedQuery)
       )
     })
-  }, [users, query, statusFilter])
+  }, [users, query, statusFilter, roleFilter])
 
   function clearFilters() {
     setQuery('')
     setStatusFilter('all')
+    setRoleFilter('all')
   }
 
   const isGloballyEmpty = users.length === 0
@@ -391,6 +428,37 @@ export default function UsersSection({
     }
   }
 
+  // Cambio de rol en lote. La selección sobrevive a los filtros (para armar un
+  // lote desde varias búsquedas) pero sólo cuenta lo que sigue en el padrón y se
+  // puede cambiar; el servidor vuelve a validar cada cuenta.
+  const canBulkChangeRole = canManageUsers && Boolean(onBulkUpdateRole) && roleOptions.length > 0
+  // Seguridad se asigna desde el evento, no se ofrece como destino del lote.
+  const bulkRoleOptions = useMemo(
+    () => roleOptions.filter(([value]) => value !== 'seguridad_plu_arg'),
+    [roleOptions],
+  )
+  const selectedTargets = useMemo(() => {
+    const selected = new Set(selectedRowKeys)
+    return users.filter((user) => selected.has(user.id) && isBulkRoleTarget(user))
+  }, [selectedRowKeys, users])
+
+  async function handleBulkRoleChange(roleKey) {
+    const ids = selectedTargets.map((user) => user.id)
+    const results = await onBulkUpdateRole(ids, roleKey)
+    const summary = summarizeBulkRoleResults(results)
+    const namesById = new Map(selectedTargets.map((user) => [user.id, displayName(t, user)]))
+    setBulkNotice({
+      ...summary,
+      roleName: roleOptions.find(([value]) => value === roleKey)?.[1] ?? roleKey,
+      failed: summary.failed.map((item) => ({
+        ...item,
+        name: namesById.get(item.userId) ?? item.userId,
+      })),
+    })
+    // Queda tildado sólo lo que falló: es lo que hay que revisar o reintentar.
+    setSelectedRowKeys(summary.failed.map((item) => item.userId))
+  }
+
   function canMutateUser(row) {
     return (
       row.role !== 'admin_maximal' &&
@@ -400,7 +468,7 @@ export default function UsersSection({
     )
   }
 
-  const isFiltering = query.trim() !== '' || statusFilter !== 'all'
+  const isFiltering = query.trim() !== '' || statusFilter !== 'all' || roleFilter !== 'all'
   const showActionsColumn = users.some(canMutateUser)
 
   function toggleCreateForm() {
@@ -685,6 +753,24 @@ export default function UsersSection({
           </label>
         ) : null}
 
+        {showRoleFilter ? (
+          <label className={`admin-users__filter${roleFilter !== 'all' ? ' is-active' : ''}`}>
+            <select
+              name="users-role"
+              value={roleFilter}
+              aria-label={t('admin.columns.role')}
+              onChange={(event) => setRoleFilter(event.target.value)}
+            >
+              {roleFilterOptions.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={13} aria-hidden />
+          </label>
+        ) : null}
+
         <span className="admin-users__count" aria-live="polite">
           {isFiltering
             ? formatRecordCount(t, rows.length, users.length)
@@ -752,6 +838,45 @@ export default function UsersSection({
           {formError}
         </p>
       ) : null}
+      {canBulkChangeRole ? (
+        <UsersBulkRoleBar
+          count={selectedTargets.length}
+          onApply={handleBulkRoleChange}
+          onClear={() => setSelectedRowKeys([])}
+          roleOptions={bulkRoleOptions}
+        />
+      ) : null}
+      {bulkNotice ? (
+        <div className="admin-users__notice" role="status">
+          <p>
+            {[
+              bulkNotice.updated > 0
+                ? t('admin.users.bulk.resultUpdated', {
+                    count: bulkNotice.updated,
+                    role: bulkNotice.roleName,
+                  })
+                : null,
+              bulkNotice.unchanged > 0
+                ? t('admin.users.bulk.resultUnchanged', { count: bulkNotice.unchanged })
+                : null,
+              bulkNotice.failed.length > 0
+                ? t('admin.users.bulk.resultFailed', { count: bulkNotice.failed.length })
+                : null,
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          </p>
+          {bulkNotice.failed.length > 0 ? (
+            <ul className="admin-users__bulk-failures">
+              {bulkNotice.failed.map((item) => (
+                <li key={item.userId}>
+                  <strong>{item.name}</strong>: {item.error}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
       {deleteNotice ? (
         <p className="admin-users__notice" role="status">
           {deleteNotice}
@@ -777,6 +902,24 @@ export default function UsersSection({
           columns={columns}
           rows={rows}
           emptyMessage={emptyMessage}
+          rowSelection={
+            canBulkChangeRole
+              ? {
+                  selectedRowKeys,
+                  onChange: (keys) => {
+                    setBulkNotice(null)
+                    setSelectedRowKeys(keys)
+                  },
+                  preserveSelectedRowKeys: true,
+                  // En tabla antd no etiqueta el checkbox: sin esto no tendría nombre.
+                  getCheckboxProps: (row) => ({
+                    disabled: !isBulkRoleTarget(row),
+                    'aria-label': t('admin.table.selectRow', { name: displayName(t, row) }),
+                  }),
+                }
+              : undefined
+          }
+          getRowSelectLabel={(row) => t('admin.table.selectRow', { name: displayName(t, row) })}
         />
       )}
 

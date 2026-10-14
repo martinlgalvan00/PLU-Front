@@ -79,17 +79,6 @@ export default function AdminSiteTeaserControl({
             ? t('admin.sections.events.teaser.loadError')
             : t(on ? 'admin.sections.events.teaser.hintOn' : 'admin.sections.events.teaser.hint')}
         </p>
-        {on && livePath ? (
-          <a
-            className="admin-site-teaser__view"
-            href={livePath}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t('admin.sections.events.teaser.view')}
-            <ExternalLink size={13} aria-hidden />
-          </a>
-        ) : null}
       </div>
 
       {loadFailed && typeof onRetry === 'function' ? (

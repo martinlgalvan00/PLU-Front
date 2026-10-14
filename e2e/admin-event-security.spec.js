@@ -72,12 +72,43 @@ async function ensureStandardZones(page) {
   await expect(page.locator('.admin-event-zones')).toContainText('Plataforma')
 }
 
+/**
+ * El formulario de alta sólo se ve con el equipo vacío o abierto a mano: si el
+ * evento ya tiene gente, hay que abrirlo. Así el test no depende del orden.
+ */
+async function openTeamBuilder(page) {
+  const builder = page.locator('.security-team-builder')
+  if (await builder.isVisible()) return
+  await page.getByRole('button', { name: /^agregar personas?$/i }).click()
+  await expect(builder).toBeVisible()
+}
+
 async function fillTeamMember(page, { name, email }, index = 0) {
   await page.locator('input[name^="security-name-"]').nth(index).fill(name)
   await page.locator('input[name^="security-email-"]').nth(index).fill(email)
 }
 
+/**
+ * Las zonas son tarjetas colapsadas: se expande la zona y se suma a la persona
+ * desde "Sumar a esta zona" (las opciones son `nombre · email`).
+ */
+async function assignToZone(page, zoneName, person) {
+  const zone = page.locator('.admin-event-zones__zone', {
+    has: page.locator('.admin-event-zones__zone-row', { hasText: zoneName }),
+  })
+  const row = zone.locator('.admin-event-zones__zone-row')
+  if ((await row.getAttribute('aria-expanded')) !== 'true') await row.click()
+  await zone
+    .locator('.admin-event-zones__assign select')
+    .selectOption({ label: `${person.name} · ${person.email}` })
+  await expect(page.locator('.admin-event-zones__loading')).toHaveCount(0)
+  await expect(zone.locator('.admin-event-zones__members')).toContainText(person.email, {
+    timeout: 15_000,
+  })
+}
+
 async function createDoorPerson(page, person) {
+  await openTeamBuilder(page)
   const sendEmail = page.getByRole('checkbox', { name: /enviar el acceso personal/i })
   if (await sendEmail.isChecked()) await sendEmail.uncheck()
   await fillTeamMember(page, person)
@@ -91,7 +122,10 @@ async function createDoorPerson(page, person) {
 }
 
 async function finishDelivery(page) {
-  await page.locator('.security-team-delivery').getByRole('button', { name: /^listo$/i }).click()
+  await page
+    .locator('.security-team-delivery')
+    .getByRole('button', { name: /^listo$/i })
+    .click()
   await expect(page.locator('.security-team-delivery')).toHaveCount(0)
 }
 
@@ -115,13 +149,12 @@ test.describe('Admin — zonas y equipo de puerta', () => {
     await expect(notice).toContainText(/filtra qué se lee/i)
     await expect(notice).not.toContainText(/todavía no filtra/i)
     await expect(notice).not.toContainText(/abrir control de puerta/i)
-    await expect(page.locator('.admin-event-zones')).toContainText(/paso 1 · zonas/i)
     await expect(page.locator('.admin-event-zones')).toContainText(/cada zona define/i)
-    await expect(page.locator('.security-team-builder')).toContainText(/paso 2 · equipo/i)
+    await expect(page.locator('.security-team-builder')).toBeVisible()
     await expect(page.getByRole('button', { name: /^crear acceso$/i })).toBeVisible()
-    await expect(page.locator('fieldset.admin-event-form__pricing.admin-event-security')).toHaveCount(
-      0,
-    )
+    await expect(
+      page.locator('fieldset.admin-event-form__pricing.admin-event-security'),
+    ).toHaveCount(0)
 
     const empty = page.locator('.admin-event-zones__empty')
     if (await empty.isVisible()) {
@@ -158,20 +191,17 @@ test.describe('Admin — zonas y equipo de puerta', () => {
 
     const accessUrl = await createDoorPerson(page, person)
     expect(accessUrl).toMatch(/acceso=/)
-    await expect(page.locator('.security-team-delivery')).toContainText(/paso 3 · entrega/i)
     await finishDelivery(page)
 
     await expect(page.locator('.admin-event-security__list')).toContainText(person.email, {
       timeout: 15_000,
     })
-    await expect(page.locator('.admin-event-zones__unassigned')).toContainText(person.email, {
+    // Recién creada, la persona figura "sin zona" en el resumen.
+    await expect(page.locator('.admin-event-zones__summary')).toContainText(/sin zona/i, {
       timeout: 15_000,
     })
 
-    await page
-      .getByLabel(new RegExp(`asignar zona a ${person.name}`, 'i'))
-      .selectOption({ label: zoneName })
-    await expect(page.locator('.admin-event-zones__loading')).toHaveCount(0)
+    await assignToZone(page, zoneName, person)
     await expect(
       page.locator('.admin-event-security__item', { hasText: person.email }),
     ).toContainText(zoneName, { timeout: 15_000 })
@@ -194,16 +224,12 @@ test.describe('Admin — zonas y equipo de puerta', () => {
     await expect(page.locator('.admin-event-security__list')).toContainText(person.email, {
       timeout: 15_000,
     })
-    await expect(page.locator('.admin-event-zones__unassigned')).toContainText(person.email, {
+    await expect(page.locator('.admin-event-zones__summary')).toContainText(/sin zona/i, {
       timeout: 15_000,
     })
 
-    await page
-      .getByLabel(new RegExp(`asignar zona a ${person.name}`, 'i'))
-      .selectOption({ label: 'Puerta principal' })
-    await expect(page.locator('.admin-event-zones__loading')).toHaveCount(0)
+    await assignToZone(page, 'Puerta principal', person)
     await expect(page.locator('.admin-event-zones__list')).toBeVisible()
-    await expect(page.locator('.admin-event-zones__unassigned')).toHaveCount(0, { timeout: 15_000 })
     await expect(
       page.locator('.admin-event-security__item', { hasText: person.email }),
     ).toContainText('Puerta principal')
@@ -233,6 +259,7 @@ test.describe('Admin — zonas y equipo de puerta', () => {
     await loginAdmin(page)
     await openAdminEventSecurity(page, event.slug)
 
+    await openTeamBuilder(page)
     await page.getByRole('button', { name: /agregar otra persona/i }).click()
     await fillTeamMember(page, { name: 'E2E Puerta', email: fixture.gateEmail }, 0)
     await fillTeamMember(page, extra, 1)

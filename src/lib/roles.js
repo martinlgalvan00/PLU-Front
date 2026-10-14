@@ -66,10 +66,6 @@ export function canEditOperationalData(subject) {
   ])
 }
 
-export function canEdit(subject) {
-  return canEditOperationalData(subject)
-}
-
 export function canManageUsers(subject) {
   return hasPermission(subject, 'admin.users.write')
 }
@@ -127,10 +123,6 @@ export function isPluUsaPartner(subject) {
 
 export function canApproveManualPayments(subject) {
   return hasPermission(subject, 'admin.payments.approve')
-}
-
-export function canApprovePayments(subject) {
-  return canApproveManualPayments(subject)
 }
 
 export function canCheckIn(subject) {

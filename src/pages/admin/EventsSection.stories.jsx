@@ -171,7 +171,9 @@ export const LogoConFondoBlanco = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await userEvent.click(await canvas.findByTitle(/Pitbull Classic 2026/))
+    // El título aparece en más de un lugar: se elige la fila del evento.
+    const rows = await canvas.findAllByTitle(/Pitbull Classic 2026/)
+    await userEvent.click(rows.find((node) => node.classList.contains('admin-event-row__main')))
     await expect(await canvas.findByRole('button', { name: 'Quitar fondo' })).toBeInTheDocument()
   },
 }

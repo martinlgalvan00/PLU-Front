@@ -26,51 +26,18 @@ export const PAYMENT_METHODS = {
   manual_link: { label: 'Link de pago + validación manual' },
 }
 
+/**
+ * Etiquetas de los roles de sistema. Lo que cada rol puede hacer NO vive acá:
+ * lo definen los permisos de `permissions.js` (`DEFAULT_ROLE_PERMISSIONS`) y
+ * las matrices guardadas en la base. Esta tabla tenía además flags `can*` que
+ * nadie leía y que ya contradecían a la matriz real.
+ */
 export const ROLES = {
-  admin_maximal: {
-    label: 'Super Admin',
-    canViewAdmin: true,
-    canEditOperationalData: true,
-    canManageUsers: true,
-    canApproveManualPayments: true,
-    canExportAdmin: true,
-    canExportPluUsa: true,
-    canCheckIn: true,
-  },
-  admin_plu_arg: {
-    label: 'Administrador',
-    canViewAdmin: true,
-    canEditOperationalData: true,
-    canManageUsers: true,
-    canApproveManualPayments: true,
-    canExportAdmin: true,
-    canExportPluUsa: true,
-    canCheckIn: true,
-  },
-  plu_arg: {
-    label: 'PLU',
-    canViewAdmin: true,
-    canEditOperationalData: false,
-    canManageUsers: false,
-    canApproveManualPayments: false,
-    canExportAdmin: true,
-    canExportPluUsa: false,
-    canCheckIn: false,
-  },
-  seguridad_plu_arg: {
-    label: 'Seguridad',
-    canViewAdmin: true,
-    canEditOperationalData: false,
-    canManageUsers: false,
-    canApproveManualPayments: false,
-    canExportAdmin: false,
-    canExportPluUsa: false,
-    canCheckIn: true,
-    checkinOnly: true,
-  },
+  admin_maximal: { label: 'Super Admin' },
+  admin_plu_arg: { label: 'Administrador' },
+  plu_arg: { label: 'PLU' },
+  seguridad_plu_arg: { label: 'Seguridad' },
 }
-
-export const ROLE_OPTIONS = Object.entries(ROLES).map(([value, { label }]) => [value, label])
 
 export const NAV_PRIMARY = ['home', 'members', 'results', 'records', 'resources']
 

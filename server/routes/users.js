@@ -7,7 +7,10 @@ import {
   isPendingInviteEmail,
   PENDING_INVITE_NAME,
 } from '../../src/lib/staffInvitationRoute.js'
-import { updateUserAccessRoleSchema } from '../../src/lib/schemas/accessControl.js'
+import {
+  bulkUserAccessRoleSchema,
+  updateUserAccessRoleSchema,
+} from '../../src/lib/schemas/accessControl.js'
 import {
   createStaffUserSchema,
   resetStaffPasswordSchema,
@@ -69,6 +72,34 @@ async function auditRoleAssignment(prisma, { actorId, userId, beforeRoleKey, aft
       after: { roleKey: afterRoleKey },
     },
   })
+}
+
+// Cola común del cambio de rol (individual y en lote): aplica el rol, lo deja en
+// auditoría y corta las sesiones abiertas para que el próximo request se
+// resuelva con la matriz nueva. Las validaciones previas son de quien llama.
+async function applyRoleChange(prisma, { actorId, target, accessRole }) {
+  const beforeRoleKey = target.accessRole?.key ?? target.role
+  const updated = await prisma.user.update({
+    where: { id: target.id },
+    data: {
+      role: accessRole.baseRole,
+      ...(prisma.accessRole ? { accessRole: { connect: { id: accessRole.id } } } : {}),
+      eventId: null,
+      eventSlug: null,
+    },
+    include: userInclude(),
+  })
+
+  await auditRoleAssignment(prisma, {
+    actorId,
+    userId: target.id,
+    beforeRoleKey,
+    afterRoleKey: accessRole.key,
+  })
+
+  await revokeSessionsForUser({ prisma, userId: target.id })
+
+  return serializeUser(updated.accessRole?.key ? updated : { ...updated, accessRole })
 }
 
 async function auditStatusChange(prisma, { actorId, userId, beforeStatus, afterStatus }) {
@@ -344,32 +375,81 @@ export function createUserRoutes({
           throw new HttpError(400, 'Asigná Seguridad desde el evento correspondiente.')
         }
 
-        const beforeRoleKey = target.accessRole?.key ?? target.role
-        const updated = await prismaClient.user.update({
-          where: { id: target.id },
-          data: {
-            role: accessRole.baseRole,
-            ...(prismaClient.accessRole ? { accessRole: { connect: { id: accessRole.id } } } : {}),
-            eventId: null,
-            eventSlug: null,
-          },
-          include: userInclude(),
-        })
-
-        await auditRoleAssignment(prismaClient, {
+        const user = await applyRoleChange(prismaClient, {
           actorId: req.auth.user.id,
-          userId: target.id,
-          beforeRoleKey,
-          afterRoleKey: accessRole.key,
+          target,
+          accessRole,
         })
 
-        // El rol nuevo tiene que valer ya: se cortan las sesiones abiertas del
-        // usuario para que su próximo request se resuelva con la matriz nueva.
-        await revokeSessionsForUser({ prisma: prismaClient, userId: target.id })
+        res.json({ user })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
-        res.json({
-          user: serializeUser(updated.accessRole?.key ? updated : { ...updated, accessRole }),
-        })
+  // Cambio de rol de varias cuentas a la vez. Las reglas son las del individual
+  // (sin tocar la propia cuenta ni al Super Admin, sólo roles asignables por
+  // quien pide, Seguridad sólo desde su evento); lo que se valida una vez para
+  // todo el pedido (el rol) corta el request entero, y lo que depende de cada
+  // cuenta se reporta por cuenta sin frenar a las demás.
+  router.post(
+    '/bulk-role',
+    ...writeGuard,
+    staffLimiter,
+    validateBody(bulkUserAccessRoleSchema),
+    async (req, res, next) => {
+      try {
+        const prismaClient = getPrisma()
+        const { userIds, roleKey } = req.validatedBody
+
+        const accessRole = await resolveAssignableRole(prismaClient, req.auth.user, roleKey)
+        if (accessRole.key === 'seguridad_plu_arg') {
+          throw new HttpError(400, 'Asigná Seguridad desde el evento correspondiente.')
+        }
+
+        const results = []
+        for (const userId of userIds) {
+          try {
+            if (userId === req.auth.user.id) {
+              throw new HttpError(400, 'No podés cambiar tu propio rol.')
+            }
+            const target = await prismaClient.user.findUnique({
+              where: { id: userId },
+              include: userInclude(),
+            })
+            if (!target) throw new HttpError(404, 'El usuario no existe.')
+            if (target.role === 'admin_maximal') {
+              throw new HttpError(403, 'El rol del Super Admin no se modifica desde el panel.')
+            }
+            if (!STAFF_LIST_ROLES.includes(target.role)) {
+              throw new HttpError(400, 'Esa cuenta no se administra desde Usuarios.')
+            }
+
+            // Ya lo tiene: no hay nada que auditar ni motivo para cortarle la sesión.
+            if ((target.accessRole?.key ?? target.role) === accessRole.key) {
+              results.push({ userId, status: 'unchanged', user: serializeUser(target) })
+              continue
+            }
+
+            const user = await applyRoleChange(prismaClient, {
+              actorId: req.auth.user.id,
+              target,
+              accessRole,
+            })
+            results.push({ userId, status: 'updated', user })
+          } catch (error) {
+            results.push({
+              userId,
+              status: 'failed',
+              // Un error que no es nuestro (la base) no se le muestra al operador.
+              error:
+                error instanceof HttpError ? error.message : 'No se pudo cambiar el rol.',
+            })
+          }
+        }
+
+        res.json({ results })
       } catch (error) {
         next(error)
       }

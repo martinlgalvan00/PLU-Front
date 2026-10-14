@@ -383,6 +383,52 @@ describe('API administrativa de eventos', () => {
     }
   })
 
+  it('si no se puede crear el perfil de cobro, el evento se guarda igual y se avisa', async () => {
+    // El doble de Supabase no sabe consultar `payment_profiles`: crear el perfil
+    // falla, que es lo que pasaba en producción con un nombre ya tomado.
+    const { target, cookie, supabase } = await setup()
+
+    try {
+      const response = await fetch(`${target.url}/api/events/upsert`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify(
+          eventPayload({
+            published: true,
+            bankTransfer: { alias: 'club.nuevo', cbu: '', holder: '' },
+            // Como el editor: al tipear un alias suelto el perfil queda en null.
+            bankTransferProfileId: null,
+            cashPayment: { place: 'Virtus fitness', notes: 'Sujeta a la fecha de pago.' },
+            paymentChannelOverrides: { registration: { bank_transfer: 'open' } },
+          }),
+        ),
+      })
+      const body = await response.json()
+
+      expect(response.status, JSON.stringify(body)).toBeLessThan(300)
+      // Se guardó todo lo demás, con el alias en el evento y sin el perfil viejo
+      // (si no, el checkout seguiría mostrando la cuenta anterior).
+      expect(supabase.rpc).toHaveBeenCalledWith(
+        'staff_save_event',
+        expect.objectContaining({
+          p_event: expect.objectContaining({
+            bankTransfer: expect.objectContaining({ alias: 'club.nuevo' }),
+            bankTransferProfileId: null,
+            cashPayment: { place: 'Virtus fitness', notes: 'Sujeta a la fecha de pago.' },
+          }),
+        }),
+      )
+      expect(body.warnings).toEqual([
+        expect.objectContaining({
+          code: 'EVENT_BANK_PROFILE_NOT_SAVED',
+          field: 'bankTransferProfileId',
+        }),
+      ])
+    } finally {
+      await target.close()
+    }
+  })
+
   describe('transferencia abierta sin destino de cobro', () => {
     const OPEN_TRANSFER = { registration: { bank_transfer: 'open' } }
 
