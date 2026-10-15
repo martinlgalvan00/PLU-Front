@@ -19,10 +19,10 @@ describe('navegacion del evento destacado', () => {
     })
   })
 
-  it('conserva la pagina editorial propia de Pitbull cuando es el destacado', () => {
+  it('abre Pitbull por slug (la plantilla editorial la elige el renderer)', () => {
     expect(getFeaturedEventDestination({ slug: 'pitbull-classic-2026' })).toEqual({
-      view: 'pitbull',
-      options: {},
+      view: 'events',
+      options: { eventSlug: 'pitbull-classic-2026' },
     })
   })
 

@@ -5,6 +5,7 @@ import AdminPageHeader from '../../components/admin/AdminPageHeader.jsx'
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
 import RoleChangeBar from '../../components/admin/RoleChangeBar.jsx'
 import RoleComparisonMatrix from '../../components/admin/RoleComparisonMatrix.jsx'
+import RolePackageBar from '../../components/admin/RolePackageBar.jsx'
 import RolePermissionEditor from '../../components/admin/RolePermissionEditor.jsx'
 import RoleRail from '../../components/admin/RoleRail.jsx'
 import { moduleName, translateOr } from '../../lib/roleAccessLabels.js'
@@ -18,6 +19,7 @@ import {
   hasPermission,
 } from '../../lib/permissions.js'
 import {
+  applyPackageToggle,
   applyPermissionToggle,
   diffPermissions,
   getSensitiveCapability,
@@ -229,6 +231,14 @@ export default function RolesSection({
     if (!editable || isReservedPermission(permission.key)) return
     setPermissionDraft((current) =>
       applyPermissionToggle(permissionCatalog, current, permission, checked),
+    )
+    setMessage(null)
+  }
+
+  function handlePackageToggle(packageId, checked) {
+    if (!editable) return
+    setPermissionDraft((current) =>
+      applyPackageToggle(permissionCatalog, current, packageId, checked),
     )
     setMessage(null)
   }
@@ -488,6 +498,9 @@ export default function RolesSection({
                 </span>
                 <h2>{selectedRole.name}</h2>
                 <p>{selectedRole.description || t('admin.roles.noDescription')}</p>
+                {selectedRole.scope === 'event' || selectedRole.eventScoped ? (
+                  <p className="roles-editor__scope-hint">{t('admin.roles.scope.eventHint')}</p>
+                ) : null}
               </div>
 
               <dl className="roles-editor__stats">
@@ -637,6 +650,16 @@ export default function RolesSection({
                 </div>
               ) : null}
             </div>
+
+            {!permSearch ? (
+              <RolePackageBar
+                catalog={permissionCatalog}
+                draftSet={draftSet}
+                editable={editable}
+                onTogglePackage={handlePackageToggle}
+                t={t}
+              />
+            ) : null}
 
             {visibleAreas.length === 0 ? (
               <div className="roles-editor__empty">

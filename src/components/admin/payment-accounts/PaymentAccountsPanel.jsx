@@ -84,6 +84,19 @@ export default function PaymentAccountsPanel({ t, locale = 'es', canEdit = false
   const mercadoPago = useMemo(() => visible(state.mercadoPago), [visible, state.mercadoPago])
   const bank = useMemo(() => visible(state.bank), [visible, state.bank])
 
+  /** Cuentas OAuth que ya no pueden cobrar y los eventos que las usan. */
+  const reconnectAlerts = useMemo(() => {
+    return state.mercadoPago
+      .filter(
+        (profile) =>
+          profile.active !== false && mercadoPagoAccountStatus(profile) === 'needs_reconnect',
+      )
+      .map((profile) => ({
+        profile,
+        events: profile.usage?.events ?? [],
+      }))
+  }, [state.mercadoPago])
+
   function usageText(usage) {
     const events = usage?.events ?? []
     const parts = []
@@ -491,6 +504,59 @@ export default function PaymentAccountsPanel({ t, locale = 'es', canEdit = false
 
       {state.loading && state.mercadoPago.length === 0 && state.bank.length === 0 ? (
         <p className="admin-access__loading">{t('admin.paymentAccounts.loading')}</p>
+      ) : null}
+
+      {!state.loading && !state.error && reconnectAlerts.length > 0 ? (
+        <div className="payment-accounts__reconnect-banner" role="alert">
+          <p className="payment-accounts__reconnect-title">
+            {t(
+              reconnectAlerts.length === 1
+                ? 'admin.paymentAccounts.reconnectBanner_one'
+                : 'admin.paymentAccounts.reconnectBanner_other',
+              { count: reconnectAlerts.length },
+            )}
+          </p>
+          <ul className="payment-accounts__reconnect-list">
+            {reconnectAlerts.map(({ profile, events }) => {
+              const eventNames = events
+                .slice(0, 4)
+                .map((event) => event.title)
+                .join(', ')
+              const usage =
+                events.length === 0
+                  ? t('admin.paymentAccounts.reconnectBannerNoEvents')
+                  : t(
+                      events.length === 1
+                        ? 'admin.paymentAccounts.reconnectBannerEvents_one'
+                        : 'admin.paymentAccounts.reconnectBannerEvents_other',
+                      {
+                        count: events.length,
+                        names: `${eventNames}${events.length > 4 ? '…' : ''}`,
+                      },
+                    )
+              return (
+                <li key={profile.id} className="payment-accounts__reconnect-item">
+                  <div className="payment-accounts__reconnect-copy">
+                    <strong>{profile.name}</strong>
+                    <span>{usage}</span>
+                  </div>
+                  {canEdit && state.oauth.available ? (
+                    <MercadoPagoConnectControl
+                      t={t}
+                      profileId={profile.id}
+                      label={t('admin.paymentAccounts.reconnect')}
+                      buttonClassName="admin-access__btn admin-access__btn--small"
+                      onConnected={() => {
+                        notifySuccess(t('admin.paymentAccounts.reconnected'))
+                        void load()
+                      }}
+                    />
+                  ) : null}
+                </li>
+              )
+            })}
+          </ul>
+        </div>
       ) : null}
 
       {!state.loading && !state.error ? (

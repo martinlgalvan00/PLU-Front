@@ -214,6 +214,7 @@ import {
   fetchPublicCheckoutAvailability,
 } from '../services/platformSettingsService.js'
 import { findGatePendingRegistrations } from '../lib/gateAccess.js'
+import { matchesRegistrationEventFilter } from '../lib/athleteEventStatus.js'
 
 // Los derechos de una persona se confirman en el backend (webhook de Mercado
 // Pago, validación manual o staff). Esta frecuencia es el respaldo seguro para
@@ -1242,7 +1243,11 @@ export function useAppData() {
         filters.status,
         gatePendingIds,
       )
-      const eventMatch = filters.event === 'all' || registration.event === filters.event
+      const eventMatch = matchesRegistrationEventFilter(
+        registration,
+        filters.event,
+        adminEvents,
+      )
       const affiliationMatch =
         !filters.affiliationStatus ||
         filters.affiliationStatus === 'all' ||
@@ -1273,7 +1278,7 @@ export function useAppData() {
         registration.manualOverride?.reason?.toLowerCase().includes(query)
       return statusMatch && eventMatch && affiliationMatch && gymMatch && divisionMatch && dateMatch && queryMatch
     })
-  }, [enrichedRegistrations, filters, gatePendingIds])
+  }, [adminEvents, enrichedRegistrations, filters, gatePendingIds])
 
   const updateForm = useCallback((event) => {
     const { name, value } = event.target
@@ -2045,13 +2050,13 @@ export function useAppData() {
   // La asignación se persiste y se vuelve a validar en Express. El fallback
   // local queda únicamente para la sesión demo.
   const updateUserRoleAction = useCallback(
-    async (userId, nextRole) => {
+    async (userId, nextRole, eventIds) => {
       if (isDemoSession(session)) {
         setUsers((current) => updateUserRole(current, userId, nextRole))
         return users.find((user) => user.id === userId) ?? null
       }
 
-      const { user } = await updateStaffUserRoleRequest(userId, nextRole)
+      const { user } = await updateStaffUserRoleRequest(userId, nextRole, eventIds)
       setUsers((current) => current.map((item) => (item.id === user.id ? user : item)))
       return user
     },

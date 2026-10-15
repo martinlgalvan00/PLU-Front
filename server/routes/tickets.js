@@ -299,6 +299,8 @@ const ticketOrdersQuerySchema = z.object({
     ])
     .optional(),
   channel: z.enum(['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer']).optional(),
+  /** Filtro duro por meet: el historial de Finanzas no filtra solo por texto. */
+  eventSlug: z.string().trim().min(1).max(120).optional(),
   query: z.string().trim().min(1).max(120).optional(),
   sort: z.enum(['recent', 'aging']).optional().default('recent'),
   limit: z.coerce.number().int().min(1).max(200).optional().default(200),
@@ -878,12 +880,22 @@ export function createTicketRoutes({
     try {
       const parsed = ticketOrdersQuerySchema.safeParse(req.query)
       if (!parsed.success) throw new HttpError(400, 'Filtros de órdenes inválidos.')
-      const { withCounts, ...filters } = parsed.data
+      const { withCounts, eventSlug, ...filters } = parsed.data
+      let eventId = null
+      if (eventSlug) {
+        assertEventSlugScope(req, eventSlug)
+        eventId = await repo().resolveEventIdBySlug(eventSlug)
+        if (!eventId) throw new HttpError(404, 'Evento no encontrado.')
+      } else if (req.eventScope) {
+        // Cuenta por evento sin slug: no puede listar el historial global.
+        throw new HttpError(400, 'Falta eventSlug.')
+      }
       // Los contadores solo viajan si se piden: la tabla se relee en cada
       // cambio de chip y los cinco `count` no cambian por eso.
+      const listFilters = { ...filters, eventId }
       const [orders, counts] = await Promise.all([
-        repo().listOrders(filters),
-        withCounts ? repo().orderCounts() : Promise.resolve(null),
+        repo().listOrders(listFilters),
+        withCounts ? repo().orderCounts({ eventId }) : Promise.resolve(null),
       ])
       res.json(counts ? { orders, counts } : { orders })
     } catch (error) {

@@ -65,7 +65,7 @@ async function ensureAccessControlCatalog() {
 
   for (const template of ACCESS_ROLE_TEMPLATES) {
     const existing = await prisma.accessRole.findUnique({ where: { key: template.key } })
-    // hierarchyLevel vive en el catálogo JS; AccessRole no tiene esa columna.
+    // hierarchyLevel vive en el catálogo JS; AccessRole no lo persiste.
     const { hierarchyLevel: _hierarchyLevel, ...roleFields } = template
     await prisma.accessRole.upsert({
       where: { key: template.key },
@@ -82,6 +82,7 @@ async function ensureAccessControlCatalog() {
         name: template.name,
         description: template.description,
         baseRole: template.baseRole,
+        scope: template.scope,
         isSystem: template.isSystem,
         isProtected: template.isProtected,
         assignableByAdmin: template.assignableByAdmin,

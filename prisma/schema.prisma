@@ -370,24 +370,34 @@ model OrganizationMember {
   @@index([userId, status])
 }
 
+enum AccessRoleScope {
+  global
+  event
+}
+
 model AccessRole {
-  id                String   @id
-  key               String   @unique
+  id                String          @id
+  key               String          @unique
   name              String
   description       String?
   baseRole          UserRole
-  isSystem          Boolean  @default(false)
-  isProtected       Boolean  @default(false)
-  assignableByAdmin Boolean  @default(true)
-  active            Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  /// Alcance operativo: `global` (panel entero) o `event` (solo UserEventAccess).
+  /// Fuente de verdad; el fallback por clave `organizador_evento` queda en JS
+  /// solo para bases sin migrar.
+  scope             AccessRoleScope @default(global)
+  isSystem          Boolean         @default(false)
+  isProtected       Boolean         @default(false)
+  assignableByAdmin Boolean         @default(true)
+  active            Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   users       User[]
   permissions AccessRolePermission[]
 
   @@index([active, name])
   @@index([baseRole])
+  @@index([scope])
 }
 
 // Evento al que una cuenta de rol "por evento" tiene acceso. eventId referencia

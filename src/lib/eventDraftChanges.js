@@ -35,6 +35,7 @@ const AREA_OF_FIELD = {
   featured: 'visibility',
   publicSurface: 'visibility',
   publicCopy: 'visibility',
+  landing: 'visibility',
   liveStreamUrl: 'visibility',
   liveStreamProvider: 'visibility',
   liveStatus: 'visibility',

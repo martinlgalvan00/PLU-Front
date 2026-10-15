@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isEventScopedRole } from '../permissions.js'
 
 export const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email('Ingresá un correo válido.'),
@@ -12,6 +13,11 @@ export const loginSchema = z.object({
   remember: z.boolean().optional().default(false),
 })
 
+const eventIdsSchema = z
+  .array(z.string().uuid('Cada evento tiene que ser un id válido.'))
+  .max(50, 'Podés asignar hasta 50 eventos.')
+  .transform((ids) => [...new Set(ids)])
+
 // Alta de cuentas de staff del panel (no atletas, no seguridad). Se crean con
 // una credencial interna aleatoria que nunca se expone y reciben por mail un
 // enlace firmado para elegir su contraseña. Auth0 sigue soportado para quien ya
@@ -21,6 +27,7 @@ export const loginSchema = z.object({
 // createSecurityUserSchema (atadas a un evento y con credencial de puerta).
 // Nombre y email son opcionales: sin email es una invitación abierta y la
 // persona los completa al abrir el enlace. Con email, el nombre es obligatorio.
+// Rol Organizador: exige al menos un evento en el mismo alta (UserEventAccess).
 export const createStaffUserSchema = z
   .object({
     name: z.string().trim().min(3, 'Ingresá un nombre de al menos 3 caracteres.').optional(),
@@ -30,6 +37,7 @@ export const createStaffUserSchema = z
       .trim()
       .toLowerCase()
       .regex(/^[a-z][a-z0-9_]{2,47}$/),
+    eventIds: eventIdsSchema.optional().default([]),
     sendEmail: z.boolean().optional().default(true),
     // El panel pide el enlace para copiarlo y mandarlo por otro canal. Es opt-in:
     // sin el flag la respuesta nunca incluye el token.
@@ -38,6 +46,10 @@ export const createStaffUserSchema = z
   .refine((value) => !value.email || Boolean(value.name), {
     path: ['name'],
     message: 'Ingresá un nombre de al menos 3 caracteres.',
+  })
+  .refine((value) => !isEventScopedRole(value.role) || value.eventIds.length > 0, {
+    path: ['eventIds'],
+    message: 'Asigná al menos un evento al organizador.',
   })
 
 /** Reenvío de invitación / reseteo de la credencial de una cuenta de staff. */

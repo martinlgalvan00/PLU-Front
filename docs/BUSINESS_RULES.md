@@ -9,6 +9,30 @@
 - **Pagos:** Mercado Pago confirma el evento; el sistema decide qué activar.
 - **Resultados:** LiftingCast durante el evento; el sistema normaliza y exporta.
 
+## Landings públicas de evento
+
+Las landings no son un CMS ni un page builder. El layout vive en código con dos
+plantillas (`meet` = ficha del calendario, `editorial` = landing larga tipo
+Pitbull) y el staff elige plantilla + completa slots acotados en
+`events.rules.landing`. También elige un `themeId` de acento
+(`plu-default` | `night-steel` | `ember` | `clean-light`) que remapea tokens de
+marca en el root de la landing — sin CSS libre ni colores fuera de la paleta.
+El hero se sincroniza con `publicCopy` para no romper fichas e inscripción
+existentes. FAQ (hasta 3 pares pregunta/respuesta) y SEO (`metaTitle` /
+`metaDescription`) son opcionales: vacíos no pisan el i18n del sitio.
+`rules.publicSurface` controla qué bloques se muestran (calendario, pesajes,
+transmisión, FAQ, experiencia, categorías, lugar, entradas, countdown). El
+guardado usa `staff_merge_event_landing` (merge JSON, no upsert del evento
+completo). Sin fila `landing`, el default es `meet` + `plu-default`; el slug
+histórico `pitbull-classic-2026` cae a `editorial` por compatibilidad.
+
+## Operación admin por evento
+
+Los filtros de inscripciones y ventas de entradas del panel usan el **slug**
+del evento como identidad estable (no el título). El workspace del meet incluye
+padrón de inscripciones, triage de pagos y KPIs operativos. Las cuentas
+`organizador_evento` operan solo sus meets con grant en `UserEventAccess`.
+
 ## Estados
 
 ### Atleta
@@ -250,6 +274,13 @@ Reglas:
   rol. Super Admin, Administrador y cualquier rol global con ese permiso pueden
   operar cualquier evento. Una cuenta con evento asignado sólo puede operar ese
   evento, tanto en la interfaz como en la API.
+- El rol de sistema **Organizador** (`organizador_evento`) es una cuenta por
+  evento: su `AccessRole.scope = event` (con fallback legacy por clave) limita
+  la operación a los grants de `UserEventAccess`. Al invitar o al pasar a ese
+  rol, PLU debe autorizar al menos un evento en el mismo acto (desde Usuarios o
+  desde el workspace del evento). Al ingresar, la cuenta entra a un shell
+  exclusivo (sin menú global del admin). La API vuelve a validar el alcance con
+  `eventScope`. El lote de cambio de rol no admite Organizador.
 - Toda ruta sensible valida permisos en Express aunque la navegación no muestre
   el módulo.
 - Si una matriz personalizada deja de coincidir con un rol base, no se emite un

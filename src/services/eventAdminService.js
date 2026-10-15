@@ -1,4 +1,11 @@
 import { normalizeWeighInWindows } from '../lib/weighInWindows.js'
+import {
+  emptyEventLanding,
+  eventLandingFromEvent,
+  landingPayloadForMerge,
+  normalizeEventLanding,
+  syncLandingSlotsFromPublicCopy,
+} from '../lib/eventLanding.js'
 import { normalizeEventPublicCopy } from '../lib/eventPublicSurface.js'
 import {
   DEFAULT_EVENT_PUBLIC_SURFACE,
@@ -141,6 +148,7 @@ export function buildAdminEventDraft(event) {
     weighInWindows: normalizeWeighInWindows(event.weighInWindows),
     publicSurface: normalizeEventPublicSurface(event.publicSurface),
     publicCopy: normalizeEventPublicCopy(event.publicCopy),
+    landing: eventLandingFromEvent(event),
     liveStreamUrl: event.liveStreamUrl ?? '',
     liveStreamProvider: event.liveStreamProvider ?? 'youtube',
     liveStatus: event.liveStatus ?? 'offline',
@@ -156,6 +164,8 @@ export function buildAdminEventDraft(event) {
     },
     bankTransferProfileId: event.bankTransferProfileId ?? null,
     mercadoPagoProfileId: event.mercadoPagoProfileId ?? null,
+    mercadoPagoReadiness: event.mercadoPagoReadiness ?? null,
+    salesIntent: event.salesIntent === 'announce' ? 'announce' : 'charge',
     cashPayment: {
       place: event.cashPayment?.place ?? '',
       notes: event.cashPayment?.notes ?? '',
@@ -193,6 +203,10 @@ export function mapDraftToPreviewEvent(draft, sourceEvent = null) {
     published: draft.published === true,
     requiresMembership: draft.requiresMembership !== false,
     publicCopy: normalizeEventPublicCopy(draft.publicCopy ?? sourceEvent?.publicCopy),
+    landing: normalizeEventLanding(draft.landing ?? sourceEvent?.landing, {
+      publicCopy: draft.publicCopy ?? sourceEvent?.publicCopy,
+      slug: draft.slug ?? sourceEvent?.slug,
+    }),
     slug:
       draft.slug ??
       sourceEvent?.slug ??
@@ -618,6 +632,7 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
     inscriptionMark: '',
     inscriptionNote: '',
   },
+  landing: emptyEventLanding('meet'),
   liveStreamUrl: '',
   liveStreamProvider: 'youtube',
   liveStatus: 'offline',
@@ -630,6 +645,8 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   bankTransfer: { alias: '', cbu: '', holder: '' },
   bankTransferProfileId: null,
   mercadoPagoProfileId: null,
+  mercadoPagoReadiness: null,
+  salesIntent: 'charge',
   cashPayment: { place: '', notes: '' },
 }
 
@@ -746,6 +763,7 @@ export function mapSupabaseEventRow(row) {
     capacityTotalPublic: row.capacity_total_public !== false,
     logoPath: row.logo_path ?? null,
     logoUrl: row.logo_url ?? null,
+    heroImageUrl: row.hero_image_url ?? null,
     paymentChannelOverrides: normalizeEventPaymentChannelOverrides(row.payment_channel_overrides),
     bankTransfer: {
       alias: row.bank_transfer_alias ?? '',
@@ -754,6 +772,16 @@ export function mapSupabaseEventRow(row) {
     },
     bankTransferProfileId: row.bank_transfer_profile_id ?? null,
     mercadoPagoProfileId: row.mercado_pago_profile_id ?? null,
+    mercadoPagoReadiness: row.mercado_pago_readiness
+      ? {
+          destination: row.mercado_pago_readiness.destination ?? 'platform',
+          profileId: row.mercado_pago_readiness.profileId ?? null,
+          profileName: row.mercado_pago_readiness.profileName ?? null,
+          connectionStatus: row.mercado_pago_readiness.connectionStatus ?? null,
+          active: row.mercado_pago_readiness.active ?? null,
+        }
+      : null,
+    salesIntent: row.rules?.salesIntent === 'announce' ? 'announce' : 'charge',
     cashPayment: {
       place: row.cash_payment_place ?? '',
       notes: row.cash_payment_notes ?? '',
@@ -808,6 +836,10 @@ export function mapSupabaseEventRow(row) {
     weighInWindows: normalizeWeighInWindows(rules.weighInWindows),
     publicSurface: normalizeEventPublicSurface(rules.publicSurface),
     publicCopy: normalizeEventPublicCopy(rules.publicCopy),
+    landing: normalizeEventLanding(rules.landing, {
+      publicCopy: rules.publicCopy,
+      slug: row.slug,
+    }),
     pricing: normalizeEventPricingInput({
       registration: row.price,
       registrationManual: row.manual_price,
@@ -909,7 +941,13 @@ export async function fetchPublishedEvents() {
       (row.logo_path
         ? supabase.storage.from('event-logos').getPublicUrl(row.logo_path).data.publicUrl
         : null)
-    return mapPublishedEventRow({ ...row, logo_url: logoUrl })
+    const heroPath = row.rules?.landing?.slots?.heroImagePath
+    const heroImageUrl =
+      row.hero_image_url ??
+      (heroPath
+        ? supabase.storage.from('event-media').getPublicUrl(heroPath).data.publicUrl
+        : null)
+    return mapPublishedEventRow({ ...row, logo_url: logoUrl, hero_image_url: heroImageUrl })
   })
 }
 
@@ -935,6 +973,12 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
     weighInWindows: normalizeWeighInWindows(draft.weighInWindows),
     publicSurface: normalizeEventPublicSurface(draft.publicSurface),
     publicCopy: normalizeEventPublicCopy(draft.publicCopy),
+    landing: landingPayloadForMerge(
+      syncLandingSlotsFromPublicCopy(
+        draft.landing ?? emptyEventLanding('meet'),
+        draft.publicCopy,
+      ),
+    ),
     paymentChannelOverrides: normalizeEventPaymentChannelOverrides(draft.paymentChannelOverrides),
     ticketTypes: (draft.ticketTypes ?? []).map((type) => ({
       ...type,
@@ -948,6 +992,7 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
     },
     bankTransferProfileId: draft.bankTransferProfileId ?? null,
     mercadoPagoProfileId: draft.mercadoPagoProfileId ?? null,
+    salesIntent: draft.salesIntent === 'announce' ? 'announce' : 'charge',
     cashPayment: {
       place: String(draft.cashPayment?.place ?? '').trim(),
       notes: String(draft.cashPayment?.notes ?? '').trim(),
@@ -1137,4 +1182,56 @@ export async function setEventLogoRequest(
     events: (response.events ?? [response.event]).map(mapAdminEventRow),
     backgroundRemoved,
   }
+}
+
+// ------------------------------------------------------------------ hero landing
+// Imagen hero de la plantilla: se sube a `event-media` y la ruta viaja en
+// `landing.slots.heroImagePath` al guardar el evento (no hay PATCH aparte).
+
+export const EVENT_HERO_MAX_BYTES = 5 * 1024 * 1024
+const EVENT_HERO_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const EVENT_HERO_MAX_EDGE = 1920
+const EVENT_HERO_TARGET_BYTES = 480 * 1024
+
+export function validateEventHeroFile(file) {
+  if (!file) return { error: 'Elegí una imagen.' }
+  if (!EVENT_HERO_MIME_TYPES.has(file.type)) return { error: 'Usá una imagen JPG, PNG o WEBP.' }
+  if (file.size > EVENT_HERO_MAX_BYTES) return { error: 'La imagen supera el límite de 5 MB.' }
+  return { ok: true }
+}
+
+/**
+ * Sube el hero a Storage y devuelve `{ path, url }` para meter en el draft.
+ * No persiste en la base: eso ocurre al guardar el evento con el merge de landing.
+ */
+export async function uploadEventHeroRequest(slug, file) {
+  if (!slug) throw new Error('Falta el slug del evento.')
+  const validation = validateEventHeroFile(file)
+  if (validation.error) throw new ApiError(validation.error, { status: 400 })
+  if (!isSupabaseConfigured) {
+    throw new ApiError('Supabase no está configurado. No se puede subir la imagen.', {
+      status: 503,
+    })
+  }
+
+  const prepared = await compressImageFile(file, {
+    maxEdge: EVENT_HERO_MAX_EDGE,
+    quality: 0.86,
+    targetMaxBytes: EVENT_HERO_TARGET_BYTES,
+    skipUnderBytes: EVENT_HERO_TARGET_BYTES,
+  })
+
+  const upload = await apiPost(`/api/events/${encodeURIComponent(slug)}/hero/upload-url`, {
+    contentType: prepared.type,
+    size: prepared.size,
+  })
+  const supabase = await getSupabaseClient()
+  const { error } = await supabase.storage
+    .from('event-media')
+    .uploadToSignedUrl(upload.path, upload.token, prepared, {
+      contentType: prepared.type,
+      cacheControl: '31536000',
+    })
+  if (error) throw new ApiError(error.message || 'No se pudo subir la imagen.', { status: 502 })
+  return { path: upload.path, url: upload.url ?? null }
 }

@@ -17,6 +17,7 @@ import {
   manualTicketChannelsOpen,
   normalizeEventPaymentChannelOverrides,
 } from '../../../src/lib/eventPaymentChannels.js'
+import { mercadoPagoConnectionStatus } from './mercadoPagoOAuth.js'
 
 const CHANNEL_LABEL = {
   mercado_pago: 'Mercado Pago',
@@ -299,6 +300,91 @@ export function assertEventBankTransferReady({
     env,
   })
   if (issue) throw bankTransferIssueError(issue)
+}
+
+/**
+ * Destino de cobro Mercado Pago del evento (diagnóstico, no bloquea guardar).
+ *
+ * - `platform`: sin perfil propio → cuenta global `MERCADO_PAGO_*`.
+ * - `profile`: perfil activo (OAuth o manual) con su `connectionStatus`.
+ * - `missing`: id apuntando a un perfil inexistente o archivado.
+ *
+ * @param {{ mercadoPagoProfileId?: string|null, profile?: object|null }} args
+ *   `profile` = fila mapeada si se encontró; `null` si se buscó y no existe;
+ *   omitir / `undefined` solo cuando no hay `mercadoPagoProfileId`.
+ */
+export function resolveEventMercadoPagoReadiness({
+  mercadoPagoProfileId = null,
+  profile = undefined,
+} = {}) {
+  const profileId = mercadoPagoProfileId ?? null
+  if (!profileId) {
+    return {
+      destination: 'platform',
+      profileId: null,
+      profileName: null,
+      connectionStatus: null,
+      active: null,
+    }
+  }
+
+  if (profile == null || profile.active === false) {
+    return {
+      destination: 'missing',
+      profileId,
+      profileName: profile?.name ?? null,
+      connectionStatus: null,
+      active: false,
+    }
+  }
+
+  const connectionStatus =
+    profile.connectionStatus ?? mercadoPagoConnectionStatus(profile.config ?? {})
+
+  return {
+    destination: 'profile',
+    profileId,
+    profileName: profile.name ?? null,
+    connectionStatus,
+    active: true,
+  }
+}
+
+/**
+ * Chequeo espejo de transferencia: si MP está abierto por override del evento
+ * y el perfil vinculado falta o necesita reconectar, devuelve el issue.
+ * Sin override (hereda plataforma) o con destino sano → `null`.
+ * No lanza: la ruta decide según publicado / oculto.
+ */
+export function checkEventMercadoPagoReady({
+  overrides,
+  mercadoPagoProfileId = null,
+  profile = undefined,
+} = {}) {
+  const normalized = normalizePaymentChannelOverrides(overrides)
+  if (!normalized) return null
+  if (!isEventChannelOpenAnywhere(normalized, 'mercado_pago')) return null
+
+  const readiness = resolveEventMercadoPagoReadiness({ mercadoPagoProfileId, profile })
+  if (readiness.destination === 'missing') {
+    return {
+      code: 'EVENT_MERCADO_PAGO_PROFILE_MISSING',
+      message:
+        'Mercado Pago está abierto para este evento pero la cuenta vinculada no existe o está archivada. Elegí otra cuenta en Ventas → Cobro o usá la cuenta general de PLU.',
+      field: 'mercadoPagoProfileId',
+      readiness,
+    }
+  }
+  if (readiness.connectionStatus === 'needs_reconnect') {
+    return {
+      code: 'EVENT_MERCADO_PAGO_NEEDS_RECONNECT',
+      message:
+        'Mercado Pago está abierto para este evento pero la cuenta vinculada necesita reconectarse antes de poder cobrar.',
+      field: 'mercadoPagoProfileId',
+      readiness,
+    }
+  }
+  return null
 }
 
 /**

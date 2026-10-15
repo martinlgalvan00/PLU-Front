@@ -33,6 +33,9 @@ export default function RoleRail({ activeId, onSelect, roles, t }) {
                       {role.isProtected ? (
                         <LockKeyhole size={12} aria-label={t('admin.roles.protected')} />
                       ) : null}
+                      {role.scope === 'event' || role.eventScoped ? (
+                        <span className="roles-rail__scope">{t('admin.roles.scope.eventShort')}</span>
+                      ) : null}
                     </span>
                     <span className="roles-rail__meta">
                       {role.active === false

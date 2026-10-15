@@ -1,16 +1,18 @@
 import { useMemo } from 'react'
-import { Trash2, UserPlus } from 'lucide-react'
+import { CalendarCheck, Trash2, UserPlus } from 'lucide-react'
 import Button from '../../components/ui/Button.jsx'
 import { Field, Select } from '../../components/ui/FormFields.jsx'
+import { isEventScopedRole } from '../../lib/permissions.js'
 import { summarizeRoleAccess } from '../../lib/permissionInsights.js'
 
 // Panel de alta de una cuenta del panel. Una sola decisión pesa de verdad: el
 // rol. Por eso al elegirlo se muestra al lado qué va a poder hacer esa persona
 // (módulos y acciones sensibles), calculado con el mismo catálogo que usa
-// "Roles y permisos". El resto son dos campos y un mail opcional.
+// "Roles y permisos". El organizador exige eventos en el mismo alta.
 export default function UsersInviteForm({
   draft,
   eventOptions,
+  adminEvents = [],
   fieldErrors,
   formId,
   formRef,
@@ -25,18 +27,29 @@ export default function UsersInviteForm({
   const hasEmail = draft.email.trim() !== ''
   const roleOptions = useMemo(() => roles.map((role) => [role.key, role.name]), [roles])
   const selectedRole = roles.find((role) => role.key === draft.role) ?? null
+  const isOrganizerRole = isEventScopedRole(draft.role)
+  const selectedEventIds = Array.isArray(draft.eventIds) ? draft.eventIds : []
 
   const scope = useMemo(() => {
-    if (!selectedRole || isSecurityRole || !permissionCatalog?.length) return null
+    if (!selectedRole || isSecurityRole || isOrganizerRole || !permissionCatalog?.length) return null
     if (!Array.isArray(selectedRole.permissions)) return null
     return summarizeRoleAccess(permissionCatalog, selectedRole.permissions)
-  }, [isSecurityRole, permissionCatalog, selectedRole])
+  }, [isOrganizerRole, isSecurityRole, permissionCatalog, selectedRole])
+
+  function toggleEvent(eventId) {
+    const next = new Set(selectedEventIds)
+    if (next.has(eventId)) next.delete(eventId)
+    else next.add(eventId)
+    onDraftChange({ eventIds: [...next] })
+  }
 
   return (
     <form
       ref={formRef}
       id={formId}
-      className={`admin-users__form${isSecurityRole ? ' admin-users__form--security' : ''}`}
+      className={`admin-users__form${isSecurityRole ? ' admin-users__form--security' : ''}${
+        isOrganizerRole ? ' admin-users__form--organizer' : ''
+      }`}
       onSubmit={onSubmit}
       noValidate
     >
@@ -45,9 +58,11 @@ export default function UsersInviteForm({
         <p className="admin-users__form-lead">
           {isSecurityRole
             ? t('admin.users.securityHint')
-            : hasEmail
-              ? t('admin.users.formLead')
-              : t('admin.users.formLeadOpen')}
+            : isOrganizerRole
+              ? t('admin.users.organizerHint')
+              : hasEmail
+                ? t('admin.users.formLead')
+                : t('admin.users.formLeadOpen')}
         </p>
       </header>
 
@@ -85,7 +100,9 @@ export default function UsersInviteForm({
             label={t('admin.columns.role')}
             name="role"
             value={draft.role}
-            onChange={(e) => onDraftChange({ role: e.target.value, eventId: '' })}
+            onChange={(e) =>
+              onDraftChange({ role: e.target.value, eventId: '', eventIds: [] })
+            }
             options={roleOptions}
           />
           {isSecurityRole ? (
@@ -97,6 +114,47 @@ export default function UsersInviteForm({
               options={[['', t('admin.users.eventPlaceholder')], ...eventOptions]}
               className={fieldErrors.eventId ? 'is-invalid' : ''}
             />
+          ) : isOrganizerRole ? (
+            <section
+              className={`admin-users__event-grant${fieldErrors.eventIds ? ' is-invalid' : ''}`}
+              aria-labelledby="admin-users-event-grant-title"
+            >
+              <div className="admin-users__event-grant-head">
+                <CalendarCheck size={14} aria-hidden />
+                <h4 id="admin-users-event-grant-title">{t('admin.users.organizerEventsTitle')}</h4>
+              </div>
+              <p className="admin-users__event-grant-lead">
+                {t('admin.users.organizerEventsLead')}
+              </p>
+              {adminEvents.length === 0 ? (
+                <p className="admin-users__event-grant-empty">{t('admin.users.organizerEventsEmpty')}</p>
+              ) : (
+                <ul className="admin-users__event-grant-list">
+                  {adminEvents.map((event) => (
+                    <li key={event.id}>
+                      <label className="admin-users__event-grant-item">
+                        <input
+                          type="checkbox"
+                          checked={selectedEventIds.includes(event.id)}
+                          onChange={() => toggleEvent(event.id)}
+                        />
+                        <span>
+                          <strong>{event.title}</strong>
+                          <small>{event.slug}</small>
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="admin-users__event-grant-count" role="status">
+                {selectedEventIds.length === 0
+                  ? t('admin.users.eventAccess.noneSelected')
+                  : t('admin.users.eventAccess.selectedCount', {
+                      count: selectedEventIds.length,
+                    })}
+              </p>
+            </section>
           ) : (
             <section className="admin-users__scope" aria-live="polite">
               <p className="admin-users__scope-text">

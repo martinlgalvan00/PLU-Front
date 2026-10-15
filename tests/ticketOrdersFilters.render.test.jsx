@@ -182,6 +182,17 @@ describe('TicketOrdersSection · filtros', () => {
     expect(listTicketOrders.mock.calls.at(-1)[0].channel).toBe('cash_pitbull')
   })
 
+  it('el scope por evento manda eventSlug al servidor (filtro duro)', async () => {
+    listTicketOrders.mockResolvedValue({ orders: [order()], counts: countsFixture() })
+    renderSection({
+      eventSlugFilter: 'pitbull-classic-2026',
+      events: [{ slug: 'pitbull-classic-2026', title: 'Pitbull Classic 2026' }],
+    })
+
+    await waitFor(() => expect(listTicketOrders).toHaveBeenCalledTimes(1))
+    expect(listTicketOrders.mock.calls[0][0].eventSlug).toBe('pitbull-classic-2026')
+  })
+
   it('la búsqueda filtra localmente por referencia, evento, asistente o email sin volver a pedir al servidor', async () => {
     listTicketOrders.mockResolvedValue({
       orders: [
