@@ -212,7 +212,16 @@ describe('panel de cuentas de cobro', () => {
       </I18nProvider>,
     )
 
-    const mpGroup = await screen.findByRole('group', { name: 'Mercado Pago' })
+    // Banner arriba: cuentas needs_reconnect + eventos que las usan + CTA.
+    const bannerTitle = await screen.findByText(
+      /1 cuenta de Mercado Pago necesita reconectarse para seguir cobrando/i,
+    )
+    const banner = bannerTitle.closest('.payment-accounts__reconnect-banner')
+    expect(banner).not.toBeNull()
+    expect(within(banner).getByText(/usada en 1 evento: pitbull classic/i)).toBeTruthy()
+    expect(within(banner).getByRole('button', { name: /^reconectar$/i })).toBeTruthy()
+
+    const mpGroup = screen.getByRole('group', { name: 'Mercado Pago' })
     const oauthRow = within(mpGroup).getByText('Club Anfitrión').closest('li')
     expect(within(oauthRow).getByText(/usada en 1 evento: pitbull classic/i)).toBeTruthy()
     // Con eventos u órdenes fijadas no se ofrece eliminar: solo archivar.

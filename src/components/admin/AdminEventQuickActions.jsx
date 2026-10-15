@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { CalendarClock, Eye, EyeOff, LockKeyhole, Unlock } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { notifyError, notifySuccess } from '../../lib/adminToast.js'
-import { resolveEventPublishChecks } from '../../lib/eventPublishChecks.js'
+import { resolveEventPublishConfirmChecks } from '../../lib/eventPublishChecks.js'
 import usePlatformPaymentChannels from '../../hooks/usePlatformPaymentChannels.js'
 
 /** Estados en los que la inscripción está abierta (o a punto de llenarse). */
@@ -90,7 +90,7 @@ export default function AdminEventQuickActions({
    * porque hay eventos que se anuncian antes de abrir ventas.
    */
   function confirmPublish() {
-    const checks = resolveEventPublishChecks(event, platformChannels.platform)
+    const checks = resolveEventPublishConfirmChecks(event, platformChannels.platform)
     if (checks.length === 0) return true
     const lines = checks.map((code) => `• ${t(`admin.eventEditor.publishChecks.codes.${code}`)}`)
     return window.confirm(

@@ -365,19 +365,40 @@ export const ROLE_HIERARCHY = Object.freeze([
 export const CONFIGURABLE_ROLE_KEYS = Object.freeze(['plu_arg', 'seguridad_plu_arg'])
 
 /**
- * Roles "por evento": sus cuentas solo operan sobre los eventos que se les asignan
- * (`UserEventAccess`) y el servidor les niega todo lo demás, salvo las rutas que
- * declaran explícitamente que filtran por evento.
- *
- * Se deriva de la clave del rol y no de una columna a propósito: una columna nueva
- * en `AccessRole` rompería el login de todo el staff si el backend se despliega
- * antes que la migración.
+ * Alcance de un AccessRole. Fuente de verdad en DB (`AccessRole.scope`); el
+ * fallback por clave cubre bases sin migrar y sujetos que solo traen `roleKey`.
  */
+export const ACCESS_ROLE_SCOPE = Object.freeze({
+  global: 'global',
+  event: 'event',
+})
+
+/** Claves legacy de roles por evento — solo respaldo si aún no hay `scope`. */
 export const EVENT_SCOPED_ROLE_KEYS = Object.freeze(['organizador_evento'])
 
+/**
+ * Resuelve el alcance de un rol/sesión: mira `scope` del AccessRole y, si no
+ * hay, la clave conocida. No infiere por permisos: una cuenta por evento sin
+ * grants sigue siendo por evento.
+ */
+export function resolveAccessRoleScope(subject) {
+  if (subject && typeof subject === 'object') {
+    const direct = subject.scope ?? subject.accessRole?.scope ?? null
+    if (direct === ACCESS_ROLE_SCOPE.event || direct === ACCESS_ROLE_SCOPE.global) {
+      return direct
+    }
+  }
+
+  const key =
+    typeof subject === 'string'
+      ? subject
+      : (subject?.roleKey ?? subject?.key ?? subject?.accessRole?.key ?? null)
+
+  return EVENT_SCOPED_ROLE_KEYS.includes(key) ? ACCESS_ROLE_SCOPE.event : ACCESS_ROLE_SCOPE.global
+}
+
 export function isEventScopedRole(subject) {
-  const key = typeof subject === 'string' ? subject : (subject?.roleKey ?? subject?.key ?? null)
-  return EVENT_SCOPED_ROLE_KEYS.includes(key)
+  return resolveAccessRoleScope(subject) === ACCESS_ROLE_SCOPE.event
 }
 
 /**
@@ -441,6 +462,7 @@ export const ACCESS_ROLE_TEMPLATES = Object.freeze([
     name: 'Super Admin',
     description: 'Control total del panel, roles y permisos.',
     baseRole: 'admin_maximal',
+    scope: ACCESS_ROLE_SCOPE.global,
     isSystem: true,
     isProtected: true,
     assignableByAdmin: false,
@@ -451,6 +473,7 @@ export const ACCESS_ROLE_TEMPLATES = Object.freeze([
     name: 'Administrador',
     description: 'Acceso total y supervisión de permisos para PLU y Seguridad.',
     baseRole: 'admin_plu_arg',
+    scope: ACCESS_ROLE_SCOPE.global,
     isSystem: true,
     isProtected: true,
     assignableByAdmin: false,
@@ -461,6 +484,7 @@ export const ACCESS_ROLE_TEMPLATES = Object.freeze([
     name: 'PLU',
     description: 'Representación operativa de la federación con permisos configurables.',
     baseRole: 'operador_plu_arg',
+    scope: ACCESS_ROLE_SCOPE.global,
     isSystem: true,
     isProtected: false,
     assignableByAdmin: true,
@@ -471,6 +495,7 @@ export const ACCESS_ROLE_TEMPLATES = Object.freeze([
     name: 'Seguridad',
     description: 'Control de acceso y check-in con alcance configurable.',
     baseRole: 'seguridad_plu_arg',
+    scope: ACCESS_ROLE_SCOPE.global,
     isSystem: true,
     isProtected: false,
     assignableByAdmin: true,
@@ -481,6 +506,7 @@ export const ACCESS_ROLE_TEMPLATES = Object.freeze([
     name: 'Organizador',
     description: 'Gestiona solo los eventos que se le asignan: ventas, cobros y equipo de puerta.',
     baseRole: 'operador_plu_arg',
+    scope: ACCESS_ROLE_SCOPE.event,
     isSystem: true,
     isProtected: false,
     assignableByAdmin: true,

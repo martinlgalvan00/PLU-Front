@@ -23,6 +23,7 @@ import UsersBulkRoleBar from '../../components/admin/UsersBulkRoleBar.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatRecordCount } from '../../i18n/adminHelpers.js'
+import { isEventScopedRole } from '../../lib/permissions.js'
 import { getRoleLabel } from '../../lib/roles.js'
 import { isPendingInviteEmail, PENDING_INVITE_NAME } from '../../lib/staffInvitationRoute.js'
 import {
@@ -35,7 +36,14 @@ import UsersInviteForm from './UsersInviteForm.jsx'
 import UsersRowMenu from './UsersRowMenu.jsx'
 import '../../styles/pages/admin-users.css'
 
-const EMPTY_DRAFT = { name: '', email: '', role: 'plu_arg', eventId: '', sendEmail: true }
+const EMPTY_DRAFT = {
+  name: '',
+  email: '',
+  role: 'plu_arg',
+  eventId: '',
+  eventIds: [],
+  sendEmail: true,
+}
 
 const STATUS_FILTERS = [
   ['active', 'admin.users.statusActive'],
@@ -125,10 +133,13 @@ export default function UsersSection({
   // Organizador cuyos eventos se están editando, y el error del último intento.
   const [eventAccessTarget, setEventAccessTarget] = useState(null)
   const [eventAccessError, setEventAccessError] = useState('')
+  // Cambio de rol → Organizador: pide eventos antes de confirmar el rol.
+  const [pendingOrganizerRole, setPendingOrganizerRole] = useState(null)
   const [deleteError, setDeleteError] = useState('')
   const [deleteNotice, setDeleteNotice] = useState('')
 
   const isSecurityRole = draft.role === 'seguridad_plu_arg'
+  const isOrganizerRole = isEventScopedRole(draft.role)
 
   const eventOptions = useMemo(
     () => (adminEvents ?? []).map((event) => [event.id, event.title]),
@@ -311,6 +322,11 @@ export default function UsersSection({
       setFormError(t('admin.users.errorEvent'))
       return
     }
+    if (isOrganizerRole && (!Array.isArray(draft.eventIds) || draft.eventIds.length === 0)) {
+      setFieldErrors({ eventIds: true })
+      setFormError(t('admin.users.errorOrganizerEvents'))
+      return
+    }
 
     setFieldErrors({})
     setFormError('')
@@ -352,11 +368,42 @@ export default function UsersSection({
 
   async function handleRoleChange(userId, roleKey) {
     setFormError('')
+    const target = users.find((user) => user.id === userId)
+    // Pasar a Organizador exige autorizar eventos en el mismo acto.
+    if (isEventScopedRole(roleKey) && target && !isEventScopedRole(target.roleKey ?? target.role)) {
+      setEventAccessError('')
+      setPendingOrganizerRole({ user: target, roleKey })
+      return
+    }
     setUpdatingUserId(userId)
     try {
       await onUpdateRole(userId, roleKey)
     } catch (error) {
       setFormError(error?.message ?? t('admin.users.errorRoleUpdate'))
+    } finally {
+      setUpdatingUserId(null)
+    }
+  }
+
+  function closePendingOrganizerRole() {
+    if (updatingUserId) return
+    setPendingOrganizerRole(null)
+    setEventAccessError('')
+  }
+
+  async function handleConfirmOrganizerRole(eventIds) {
+    if (!pendingOrganizerRole || !onUpdateRole) return
+    if (!Array.isArray(eventIds) || eventIds.length === 0) {
+      setEventAccessError(t('admin.users.errorOrganizerEvents'))
+      return
+    }
+    setEventAccessError('')
+    setUpdatingUserId(pendingOrganizerRole.user.id)
+    try {
+      await onUpdateRole(pendingOrganizerRole.user.id, pendingOrganizerRole.roleKey, eventIds)
+      setPendingOrganizerRole(null)
+    } catch (error) {
+      setEventAccessError(error?.message ?? t('admin.users.errorRoleUpdate'))
     } finally {
       setUpdatingUserId(null)
     }
@@ -463,9 +510,12 @@ export default function UsersSection({
   // lote desde varias búsquedas) pero sólo cuenta lo que sigue en el padrón y se
   // puede cambiar; el servidor vuelve a validar cada cuenta.
   const canBulkChangeRole = canManageUsers && Boolean(onBulkUpdateRole) && roleOptions.length > 0
-  // Seguridad se asigna desde el evento, no se ofrece como destino del lote.
+  // Seguridad se asigna desde el evento; Organizador pide eventos por cuenta.
   const bulkRoleOptions = useMemo(
-    () => roleOptions.filter(([value]) => value !== 'seguridad_plu_arg'),
+    () =>
+      roleOptions.filter(
+        ([value]) => value !== 'seguridad_plu_arg' && !isEventScopedRole(value),
+      ),
     [roleOptions],
   )
   const selectedTargets = useMemo(() => {
@@ -868,6 +918,7 @@ export default function UsersSection({
 
       {canManageUsers && isCreating ? (
         <UsersInviteForm
+          adminEvents={adminEvents ?? []}
           draft={draft}
           eventOptions={eventOptions}
           fieldErrors={fieldErrors}
@@ -982,6 +1033,24 @@ export default function UsersSection({
           onCancel={closeEventAccessDialog}
           onSave={(eventIds) => void handleSaveEventAccess(eventIds)}
           userName={displayName(t, eventAccessTarget)}
+        />
+      ) : null}
+
+      {pendingOrganizerRole ? (
+        <UserEventAccessDialog
+          busy={updatingUserId === pendingOrganizerRole.user.id}
+          description={t('admin.users.eventAccess.assignRoleDescription')}
+          error={eventAccessError}
+          events={adminEvents ?? []}
+          initialEventIds={[]}
+          onCancel={closePendingOrganizerRole}
+          onSave={(eventIds) => void handleConfirmOrganizerRole(eventIds)}
+          requireSelection
+          saveLabel={t('admin.users.eventAccess.assignRoleSave')}
+          title={t('admin.users.eventAccess.assignRoleTitle', {
+            name: displayName(t, pendingOrganizerRole.user),
+          })}
+          userName={displayName(t, pendingOrganizerRole.user)}
         />
       ) : null}
 

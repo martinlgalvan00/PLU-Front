@@ -37,10 +37,19 @@ describe('eventPublicSurface', () => {
       'calendar',
       'weighIns',
       'livestream',
+      'faq',
       'experience',
       'categories',
       'location',
+      'tickets',
+      'countdown',
     ])
+  })
+
+  it('una plantilla editorial sin slug Pitbull también es custom', () => {
+    const event = { slug: 'spring-classic-2027', landing: { templateId: 'editorial' } }
+    expect(eventHasCustomPublicPage(event)).toBe(true)
+    expect(publicSurfaceModulesForEvent(event).map((module) => module.key)).toContain('experience')
   })
 
   it('en un evento genérico no ofrece bloques de landing propia', () => {
@@ -48,6 +57,7 @@ describe('eventPublicSurface', () => {
       'calendar',
       'weighIns',
       'livestream',
+      'faq',
     ])
   })
 })

@@ -20,7 +20,7 @@ import EventCard from '../ui/EventCard.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { validateAdminEventDraft } from '../../lib/schemas/adminEvent.js'
 import { effectiveEventChannelsFor } from '../../lib/eventPaymentChannels.js'
-import { resolveEventPublishChecks } from '../../lib/eventPublishChecks.js'
+import { resolveEventPublishConfirmChecks } from '../../lib/eventPublishChecks.js'
 import usePlatformPaymentChannels from '../../hooks/usePlatformPaymentChannels.js'
 import { platformCellsFor } from '../../lib/platformPaymentChannels.js'
 import { fetchPaymentProfiles } from '../../services/paymentProfileService.js'
@@ -31,6 +31,11 @@ import {
   mapDraftToPreviewEvent,
   withEventStart,
 } from '../../services/eventAdminService.js'
+import {
+  emptyEventLanding,
+  EVENT_LANDING_THEMES,
+  normalizeEventLanding,
+} from '../../lib/eventLanding.js'
 
 /**
  * AdminEventQuickCreate — PLU ARG
@@ -87,6 +92,7 @@ export default function AdminEventQuickCreate({
   const [submitError, setSubmitError] = useState(null)
   const platformChannels = usePlatformPaymentChannels()
   const [bankProfiles, setBankProfiles] = useState([])
+  const [mpProfiles, setMpProfiles] = useState([])
   const formRef = useRef(null)
   const initialSignatureRef = useRef(JSON.stringify(draft))
 
@@ -119,6 +125,13 @@ export default function AdminEventQuickCreate({
       platformCellsFor(platformChannels.platform, concept),
     ).includes('bank_transfer'),
   )
+  const mpOpen = ['registration', 'ticket'].some((concept) =>
+    effectiveEventChannelsFor(
+      draft.paymentChannelOverrides,
+      concept,
+      platformCellsFor(platformChannels.platform, concept),
+    ).includes('mercado_pago'),
+  )
 
   useEffect(() => {
     if (!transferOpen) return undefined
@@ -134,6 +147,23 @@ export default function AdminEventQuickCreate({
       alive = false
     }
   }, [transferOpen])
+
+  // Catálogo MP para los avisos de publicación (cuenta general vs perfil /
+  // reconectar) sin abrir el editor completo.
+  useEffect(() => {
+    if (!mpOpen) return undefined
+    let alive = true
+    fetchPaymentProfiles({ kind: 'mercado_pago', includeArchived: true })
+      .then((result) => {
+        if (alive) setMpProfiles(result.profiles ?? [])
+      })
+      .catch(() => {
+        if (alive) setMpProfiles([])
+      })
+    return () => {
+      alive = false
+    }
+  }, [mpOpen])
 
   const [registrationMode, setRegistrationModeState] = useState('soon')
   const registrationOptions = REGISTRATION_MODES.map((mode) => [
@@ -221,8 +251,11 @@ export default function AdminEventQuickCreate({
       published: draft.published,
       // Los medios de cobro se repiten casi siempre de un meet al siguiente.
       paymentChannelOverrides: draft.paymentChannelOverrides,
+      bankTransfer: draft.bankTransfer,
       bankTransferProfileId: draft.bankTransferProfileId,
       mercadoPagoProfileId: draft.mercadoPagoProfileId,
+      salesIntent: draft.salesIntent,
+      cashPayment: draft.cashPayment,
     }
     initialSignatureRef.current = JSON.stringify(next)
     setDraft(next)
@@ -258,7 +291,9 @@ export default function AdminEventQuickCreate({
     // Publicar al crear es lo que ve el público: se avisa si el evento quedaría
     // sin cobro posible. Es un aviso, no un bloqueo (ver eventPublishChecks).
     if (draft.published === true) {
-      const checks = resolveEventPublishChecks(draft, platformChannels.platform)
+      const checks = resolveEventPublishConfirmChecks(draft, platformChannels.platform, {
+        mpProfiles,
+      })
       if (checks.length > 0) {
         const lines = checks.map((code) => `• ${t(`admin.eventEditor.publishChecks.codes.${code}`)}`)
         const proceed = window.confirm(
@@ -358,6 +393,65 @@ export default function AdminEventQuickCreate({
                 onChange={setLogo}
                 onPendingChange={setLogoPending}
               />
+
+              <div
+                className="admin-event-quick__section"
+                role="group"
+                aria-labelledby="quick-event-landing"
+              >
+                <h3 className="admin-event-quick__section-title" id="quick-event-landing">
+                  {t('admin.eventQuickCreate.sectionLanding')}
+                </h3>
+                <AdminFilterChipGroup
+                  compact
+                  disabled={!canEdit || submitting}
+                  id="quick-event-landing-template"
+                  label={t('admin.eventEditor.landingTemplateLabel')}
+                  value={
+                    normalizeEventLanding(draft.landing ?? emptyEventLanding('meet')).templateId
+                  }
+                  onChange={(templateId) =>
+                    patch({
+                      ...draft,
+                      landing: {
+                        ...normalizeEventLanding(draft.landing ?? emptyEventLanding(templateId)),
+                        templateId,
+                      },
+                    })
+                  }
+                  options={[
+                    ['meet', t('admin.eventEditor.landingTemplateMeet')],
+                    ['editorial', t('admin.eventEditor.landingTemplateEditorial')],
+                  ]}
+                />
+                <p className="admin-event-quick__access-note">
+                  {normalizeEventLanding(draft.landing).templateId === 'editorial'
+                    ? t('admin.eventEditor.landingTemplateEditorialHint')
+                    : t('admin.eventEditor.landingTemplateMeetHint')}
+                </p>
+                <AdminFilterChipGroup
+                  compact
+                  disabled={!canEdit || submitting}
+                  id="quick-event-landing-theme"
+                  label={t('admin.eventEditor.landingThemeLabel')}
+                  value={
+                    normalizeEventLanding(draft.landing ?? emptyEventLanding('meet')).themeId
+                  }
+                  onChange={(themeId) =>
+                    patch({
+                      ...draft,
+                      landing: {
+                        ...normalizeEventLanding(draft.landing ?? emptyEventLanding('meet')),
+                        themeId,
+                      },
+                    })
+                  }
+                  options={EVENT_LANDING_THEMES.map((themeId) => [
+                    themeId,
+                    t(`admin.eventEditor.landingTheme_${themeId.replace(/-/g, '_')}`),
+                  ])}
+                />
+              </div>
 
               <div
                 className="admin-event-quick__section"

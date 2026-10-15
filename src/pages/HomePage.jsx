@@ -130,7 +130,13 @@ export default function HomePage({
 
   return (
     <main className="home-page">
-      <HeroSection onNavigate={onNavigate} event={launchEvent} />
+      <HeroSection
+        onNavigate={onNavigate}
+        onSelectEvent={onSelectEvent}
+        event={launchEvent}
+        events={events}
+        registrationEnabled={registrationCheckoutEnabled}
+      />
 
       {isRegistrationDisabled ? (
         <section

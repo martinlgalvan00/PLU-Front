@@ -231,6 +231,7 @@ export async function listTicketOrders(filters = {}) {
     params.set('statuses', filters.statuses.join(','))
   }
   if (filters.channel) params.set('channel', filters.channel)
+  if (filters.eventSlug) params.set('eventSlug', filters.eventSlug)
   if (filters.query) params.set('query', filters.query)
   if (filters.sort) params.set('sort', filters.sort)
   if (filters.limit) params.set('limit', String(filters.limit))

@@ -2429,6 +2429,163 @@
   text-transform: uppercase;
 }
 
+.admin-landing-compose {
+  border: 1px solid var(--admin-hairline, var(--color-border));
+  border-radius: var(--radius-md, 10px);
+  display: grid;
+  gap: 12px;
+  margin: 0 0 14px;
+  overflow: hidden;
+  padding: 0;
+}
+
+.admin-landing-compose__hero {
+  background: color-mix(in oklab, var(--color-section-muted, var(--color-bg)) 88%, transparent);
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.admin-landing-compose--editorial .admin-landing-compose__hero {
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--plu-celeste-500, #4aa3c8) 12%, transparent),
+    color-mix(in oklab, var(--plu-gold-500, #c4a35a) 8%, transparent)
+  );
+}
+
+.admin-landing-compose__template {
+  align-items: center;
+  color: var(--admin-muted, var(--color-text-muted));
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 650;
+  gap: 6px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-landing-compose__title {
+  font-family: var(--font-display, inherit);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.admin-landing-compose__lead {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 0.875rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.admin-landing-compose__cta {
+  border: 1px solid var(--admin-hairline, var(--color-border));
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 650;
+  margin-top: 2px;
+  padding: 4px 10px;
+  width: fit-content;
+}
+
+.admin-landing-compose__chapters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0 14px;
+}
+
+.admin-landing-compose__chapters li {
+  background: color-mix(in oklab, var(--color-text) 6%, transparent);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+}
+
+.admin-landing-compose__faq,
+.admin-landing-compose__seo {
+  display: grid;
+  gap: 6px;
+  padding: 0 14px;
+}
+
+.admin-landing-compose__section-label {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.admin-landing-compose__faq ol {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-landing-compose__faq li {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-landing-compose__faq strong {
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.admin-landing-compose__faq span {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.admin-landing-compose__seo {
+  border-top: 1px solid var(--admin-hairline, var(--color-border));
+  padding-bottom: 4px;
+  padding-top: 10px;
+}
+
+.admin-landing-compose__seo-title {
+  color: #1a0dab;
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.admin-landing-compose__seo-desc {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 0.75rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.admin-landing-compose__link {
+  align-items: center;
+  border-top: 1px solid var(--admin-hairline, var(--color-border));
+  color: var(--color-accent, var(--color-text));
+  display: inline-flex;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  gap: 4px;
+  padding: 10px 14px;
+  text-decoration: none;
+  width: 100%;
+}
+
+.admin-landing-compose__link:hover {
+  text-decoration: underline;
+}
+
 .admin-event-workspace__panel .admin-event-preview--embedded::before {
   display: none;
 }

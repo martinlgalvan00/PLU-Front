@@ -190,8 +190,23 @@ no se reabre con un cupón. Membership no se personaliza por evento (sigue usand
 la cuenta global).
 
 Antes de publicar, el panel avisa (sin bloquear) si el evento quedaría sin ningún
-medio de pago, con la transferencia abierta y sin alias/perfil propio, o con
-entradas habilitadas sin tipo vendible (`src/lib/eventPublishChecks.js`).
+medio de pago, con la transferencia abierta y sin alias/perfil propio, con
+entradas habilitadas sin tipo vendible, o con Mercado Pago abierto y destino
+poco claro (`src/lib/eventPublishChecks.js`):
+
+| Código | Significado |
+|--------|-------------|
+| `mpUsingPlatformDefault` | MP abierto y `mercado_pago_profile_id` vacío → cobra la cuenta global PLU (`MERCADO_PAGO_*` / `VITE_MERCADO_PAGO_PUBLIC_KEY`). Es válido y frecuente: se muestra en la ficha, **no** pide confirmación al publicar (`resolveEventPublishConfirmChecks`). |
+| `mpProfileNeedsReconnect` | Perfil OAuth vinculado en `needs_reconnect`: hay que reconectar antes de cobrar. Sí pide confirmación. |
+| `mpProfileMissing` | El id apunta a un perfil inexistente o archivado. Sí pide confirmación. |
+
+El listado admin de eventos adjunta `mercado_pago_readiness` (destino, nombre,
+`connectionStatus`) y muestra un chip «MP · cuenta PLU» / nombre del perfil /
+«reconectar». En **Acceso y habilitación → Cuentas de cobro**, las cuentas
+`needs_reconnect` aparecen arriba con los eventos que las usan y un CTA de
+reconexión. El diagnóstico server-side vive en
+`resolveEventMercadoPagoReadiness` / `checkEventMercadoPagoReady`
+(`server/modules/payments/eventPaymentProfile.js`).
 
 API admin: `GET/POST /api/payment-profiles`, `PATCH /api/payment-profiles/:id`
 (`kind=bank_transfer|mercado_pago`). Crear MP exige `config.publicKey` +
@@ -200,8 +215,25 @@ Editor: pestaña Ventas → perfil bancario y/o perfil MP.
 Checkout: requirements y tickets availability devuelven `bankTransfer` y
 `mercadoPagoPublicKey` ya resueltos.
 
+### Intención de venta y semáforo (Paso A)
+
+`rules.salesIntent` (`charge` | `announce`), merge post-upsert
+`staff_merge_event_sales_intent`:
+
+| Valor | Efecto |
+|-------|--------|
+| `charge` (default) | El meet vende; aplican avisos de medios y destino MP. |
+| `announce` | Soft-launch: se puede publicar sin exigir medios de inscripción. **No** es inscripción gratis (`price = 0`). |
+
+Semáforo en la lista admin (`resolveEventSalesReadiness`):
+
+- **Verde** — listo para cobrar, o modo anuncio sin rojos.
+- **Amarillo** — cobro incompleto (`noRegistrationChannel`, transferencia sin destino).
+- **Rojo** — no puede cobrar (perfil MP faltante/a reconectar, entradas sin medio/tipo).
+
 **Fuera de alcance:** comisión de la plataforma (`marketplace_fee`), eventos
-gratis (`price = 0`).
+gratis con checkout a `price = 0` (el modo anuncio cubre el soft-launch sin
+abrir medios).
 
 ### Cuentas de Mercado Pago vinculadas por OAuth (B4)
 

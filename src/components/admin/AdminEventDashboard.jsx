@@ -5,25 +5,34 @@ import { buildEventPagePath } from '../../lib/eventPageRoute.js'
 import '../../styles/pages/admin-event-dashboard.css'
 
 /**
- * Resumen del evento: tres cifras en una franja (ocupación, recaudación,
- * check-ins) y el acceso a la página pública. Las secciones del evento ya son
- * las pestañas de la barra lateral, así que no se repiten acá como atajos.
+ * Resumen del evento: cifras operativas (ocupación, inscripciones, entradas,
+ * check-ins) y el acceso a la página pública.
  */
-export default function AdminEventDashboard({ event, tickets = [] }) {
+export default function AdminEventDashboard({
+  event,
+  registrationCounts = null,
+  tickets = [],
+}) {
   const { t, locale } = useI18n()
 
-  const registered = Number(event.registered) || 0
+  const registered = Number(event.registered) || registrationCounts?.total || 0
   const slots = Number(event.slots) || 0
   const remaining = Math.max(0, slots - registered)
   const fillPercent = slots > 0 ? Math.round((registered / slots) * 100) : 0
 
+  const pendingRegs = registrationCounts?.pendiente_pago ?? 0
+  const confirmedRegs = registrationCounts?.confirmada ?? 0
+
   const revenue = tickets.reduce((sum, ticket) => sum + (Number(ticket.amountPaid) || 0), 0)
+  const pendingTickets = tickets.filter((ticket) =>
+    ['creado', 'pendiente'].includes(String(ticket.status ?? '').toLowerCase()),
+  ).length
   const checkins = tickets.filter((ticket) => ticket.checkedInAt).length
   const attendanceRate = tickets.length > 0 ? Math.round((checkins / tickets.length) * 100) : 0
 
   return (
     <div className="admin-event-dashboard">
-      <dl className="admin-event-dashboard__figures">
+      <dl className="admin-event-dashboard__figures admin-event-dashboard__figures--ops">
         <div className="admin-event-dashboard__figure">
           <dt>{t('admin.eventConsole.occupancy')}</dt>
           <dd>
@@ -38,11 +47,32 @@ export default function AdminEventDashboard({ event, tickets = [] }) {
         </div>
 
         <div className="admin-event-dashboard__figure">
+          <dt>{t('admin.eventDashboard.registrationsLabel')}</dt>
+          <dd>
+            <strong>{confirmedRegs}</strong>
+            {pendingRegs > 0 ? <span>+{pendingRegs}</span> : null}
+          </dd>
+          <small>
+            {t('admin.eventDashboard.registrationsNote', {
+              confirmed: confirmedRegs,
+              pending: pendingRegs,
+            })}
+          </small>
+        </div>
+
+        <div className="admin-event-dashboard__figure">
           <dt>{t('admin.eventDashboard.revenue')}</dt>
           <dd>
             <strong>{money(revenue, locale)}</strong>
           </dd>
-          <small>{t('admin.eventDashboard.ticketsIssued', { count: tickets.length })}</small>
+          <small>
+            {pendingTickets > 0
+              ? t('admin.eventDashboard.ticketsIssuedPending', {
+                  count: tickets.length,
+                  pending: pendingTickets,
+                })
+              : t('admin.eventDashboard.ticketsIssued', { count: tickets.length })}
+          </small>
         </div>
 
         <div className="admin-event-dashboard__figure">

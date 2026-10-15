@@ -104,6 +104,7 @@ export default function PaymentsOperationsSection({
 
   useEffect(() => {
     if (!ticketOrderEventScope) return undefined
+    setActiveTab('tickets')
     const frame = window.requestAnimationFrame(() => {
       scrollToId('admin-ticket-orders')
     })
@@ -262,7 +263,8 @@ export default function PaymentsOperationsSection({
       >
         <TicketOrdersSection
           canEdit={canEdit && validation.ticket}
-          initialQuery={searchTicketQuery || ticketOrderEventScope}
+          initialQuery={searchTicketQuery}
+          eventSlugFilter={ticketOrderEventScope}
           pendingTicketOrders={pendingTicketOrders}
           isLoading={manualLoading}
           loadError={manualError}

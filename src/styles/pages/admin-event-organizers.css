@@ -1,0 +1,142 @@
+.admin-event-organizers {
+  border: 1px solid var(--admin-hairline);
+  border-radius: var(--radius-md, 12px);
+  display: grid;
+  gap: 16px;
+  padding: 16px 18px;
+}
+
+.admin-event-organizers__head {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+}
+
+.admin-event-organizers__icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-celeste, #4aa8c9) 14%, transparent);
+  border-radius: var(--radius-md, 10px);
+  color: var(--color-brand-celeste, #4aa8c9);
+  display: inline-flex;
+  flex: none;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
+}
+
+.admin-event-organizers__head h3 {
+  font-size: 15px;
+  font-weight: 650;
+  margin: 0 0 4px;
+}
+
+.admin-event-organizers__head p {
+  color: var(--admin-ink-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.admin-event-organizers__empty {
+  color: var(--admin-ink-muted);
+  font-size: 13.5px;
+  margin: 0;
+}
+
+.admin-event-organizers__list {
+  border-top: 1px solid var(--admin-hairline);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-event-organizers__list li {
+  align-items: center;
+  border-bottom: 1px solid var(--admin-hairline);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 8px 0;
+}
+
+.admin-event-organizers__list strong {
+  display: block;
+  font-size: 14px;
+}
+
+.admin-event-organizers__list small {
+  color: var(--admin-ink-muted);
+  font-size: 12px;
+}
+
+.admin-event-organizers__remove {
+  background: transparent;
+  border: 1px solid var(--admin-hairline);
+  border-radius: 8px;
+  color: var(--admin-ink-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  min-height: 32px;
+  padding: 0 10px;
+}
+
+.admin-event-organizers__remove:hover {
+  color: var(--admin-status-danger, #b42318);
+}
+
+.admin-event-organizers__invite,
+.admin-event-organizers__assign {
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.admin-event-organizers__invite h4,
+.admin-event-organizers__assign h4 {
+  font-size: 13px;
+  font-weight: 650;
+  margin: 0;
+}
+
+.admin-event-organizers__fields {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-event-organizers__select {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-event-organizers__select span {
+  color: var(--admin-ink-muted);
+  font-size: 12px;
+}
+
+.admin-event-organizers__select select {
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 8px;
+  color: var(--admin-ink);
+  min-height: 40px;
+  padding: 0 10px;
+}
+
+.admin-event-organizers__notice {
+  font-size: 13px;
+  margin: 0;
+}
+
+.admin-event-organizers__notice--error {
+  color: var(--admin-status-danger, #b42318);
+}
+
+@media (max-width: 640px) {
+  .admin-event-organizers__fields {
+    grid-template-columns: 1fr;
+  }
+}
