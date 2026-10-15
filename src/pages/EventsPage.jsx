@@ -32,6 +32,7 @@ import EventWeighInSchedule, {
 } from '../components/ui/EventWeighInSchedule.jsx'
 import { eventShowsPublicWeighIns, eventShowsPublicLivestream } from '../lib/eventPublicSurface.js'
 import { ensureEventCalendarFields } from '../lib/calendar.js'
+import { resolveEventLogo } from '../lib/eventMark.js'
 import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
 import { isStaffSession } from '../lib/roles.js'
 import {
@@ -116,6 +117,7 @@ function EventsDetailPanel({
   // El combo se muestra solo junto al CTA de inscripción real: si el registro
   // está cerrado o ya se completó, la promo tampoco tiene sentido.
   const showCombo = Boolean(comboOffer) && canRegister
+  const eventLogo = resolveEventLogo(event)
 
   if (minimal) {
     const hasHint =
@@ -134,7 +136,21 @@ function EventsDetailPanel({
               <h3 className="events-detail__title visually-hidden">{event.title}</h3>
             </>
           ) : (
-            <h3 className="events-detail__title">{event.title}</h3>
+            <div className="events-detail__identity">
+              {eventLogo ? (
+                <span className="events-detail__mark" aria-hidden="true">
+                  <img
+                    src={eventLogo}
+                    alt=""
+                    width={96}
+                    height={96}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </span>
+              ) : null}
+              <h3 className="events-detail__title">{event.title}</h3>
+            </div>
           )}
           <EventStatusBadge status={event.status} t={t} />
         </div>
@@ -222,7 +238,21 @@ function EventsDetailPanel({
             <h3 className="events-detail__title visually-hidden">{event.title}</h3>
           </>
         ) : (
-          <h3 className="events-detail__title">{event.title}</h3>
+          <div className="events-detail__identity">
+            {eventLogo ? (
+              <span className="events-detail__mark" aria-hidden="true">
+                <img
+                  src={eventLogo}
+                  alt=""
+                  width={96}
+                  height={96}
+                  loading="lazy"
+                  decoding="async"
+                />
+              </span>
+            ) : null}
+            <h3 className="events-detail__title">{event.title}</h3>
+          </div>
         )}
         <EventStatusBadge status={event.status} t={t} />
       </div>
@@ -666,6 +696,8 @@ export default function EventsPage({
                   key={event.slug}
                   date={event.displayDate}
                   title={event.title}
+                  slug={event.slug}
+                  logoUrl={event.logoUrl}
                   venue={event.venue}
                   location={event.location}
                   status={event.status}

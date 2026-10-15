@@ -285,8 +285,12 @@ export function cheapestTicketTypePrice(pricing) {
   return prices.length ? Math.min(...prices) : null
 }
 
-/** Estados del evento en los que la base rechaza cualquier compra de entradas (PLU03). */
-export const TICKET_SALES_CLOSED_STATUSES = Object.freeze(['cerrado', 'finalizado'])
+/**
+ * Estados terminales en los que la base rechaza cualquier compra de entradas
+ * (PLU03). `cerrado` cierra la inscripción de atletas, no la venta al público:
+ * esta última tiene su propio interruptor y ventana.
+ */
+export const TICKET_SALES_CLOSED_STATUSES = Object.freeze(['finalizado'])
 
 /**
  * ¿El estado del evento cierra la venta de entradas? Mismo corte que las RPC de
@@ -300,7 +304,7 @@ export function eventStatusClosesTicketSales(event) {
 
 /**
  * Si la venta de entradas del evento está habilitada: interruptor del evento y
- * estado que la permite (cerrado/finalizado no venden).
+ * estado que la permite. La inscripción cerrada no modifica esta decisión.
  * No depende de que el catálogo (días/tipos) ya tenga precio publicado:
  * la navegación a checkout se permite; el formulario decide si hay qué vender.
  */

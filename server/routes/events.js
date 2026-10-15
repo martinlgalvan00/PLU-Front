@@ -73,6 +73,7 @@ function catalogEventSelect(ticketTypeColumns) {
   registration_opens_at, registration_closes_at,
   ticket_sales_opens_at, ticket_sales_closes_at,
   capacity, status, published, requires_membership, capacity_progress_public, price, manual_price, currency, rules,
+  logo_path,
   scheduled_price, scheduled_manual_price, price_effective_at, wise_price,
   live_stream_url, live_stream_provider, live_status, created_at, updated_at,
   eventRegistrations:event_registrations(count),
@@ -104,13 +105,16 @@ async function readPublishedCatalog(client) {
       .order('starts_at')
 
   const primary = await run(CATALOG_EVENT_SELECT)
-  if (!primary.error) return primary.data
+  if (!primary.error) return withLogoUrls(client, primary.data)
   if (!isMissingSchemaColumn(primary.error)) {
     return assertSupabaseResult(primary, 'No se pudieron leer los eventos públicos.')
   }
-  return assertSupabaseResult(
-    await run(CATALOG_EVENT_SELECT_COMPAT),
-    'No se pudieron leer los eventos públicos.',
+  return withLogoUrls(
+    client,
+    assertSupabaseResult(
+      await run(CATALOG_EVENT_SELECT_COMPAT),
+      'No se pudieron leer los eventos públicos.',
+    ),
   )
 }
 
@@ -302,7 +306,9 @@ const ticketTypeSchema = z
       })
     }
     if (
-      [TICKET_QR_VALIDITY_MODE.FROM_PAYMENT, TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN].includes(validityMode) &&
+      [TICKET_QR_VALIDITY_MODE.FROM_PAYMENT, TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN].includes(
+        validityMode,
+      ) &&
       !type.validityDurationMinutes
     ) {
       ctx.addIssue({
@@ -312,7 +318,9 @@ const ticketTypeSchema = z
       })
     }
     if (
-      [TICKET_QR_VALIDITY_MODE.FROM_PAYMENT, TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN].includes(validityMode) &&
+      [TICKET_QR_VALIDITY_MODE.FROM_PAYMENT, TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN].includes(
+        validityMode,
+      ) &&
       (type.validFrom || type.validUntil)
     ) {
       ctx.addIssue({
@@ -799,7 +807,10 @@ function eventLogoPublicUrl(client, path) {
 
 /** Suma `logo_url` a cada fila: el panel no conoce el bucket ni el dominio de Storage. */
 function withLogoUrls(client, rows) {
-  return (rows ?? []).map((row) => ({ ...row, logo_url: eventLogoPublicUrl(client, row.logo_path) }))
+  return (rows ?? []).map((row) => ({
+    ...row,
+    logo_url: eventLogoPublicUrl(client, row.logo_path),
+  }))
 }
 
 async function readEvents(client) {
@@ -968,7 +979,10 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             })
             bankTransferProfileId = linkedProfile.id
           } catch (error) {
-            logger.warn('event.bank_profile_not_saved', { slug: req.validatedBody.slug, err: error })
+            logger.warn('event.bank_profile_not_saved', {
+              slug: req.validatedBody.slug,
+              err: error,
+            })
             // Desvincula el perfil anterior: si no, el checkout seguiría
             // mostrando la cuenta vieja y no el alias que se acaba de cargar.
             bankTransferProfileId = null
@@ -1207,11 +1221,11 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           // una duración relativa como si fueran jornadas, exigir la función
           // nueva cuando se elige este modo.
           if (
-            pEvent.ticketTypes.some(
-              (type) =>
-                [TICKET_QR_VALIDITY_MODE.FROM_PAYMENT, TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN].includes(
-                  type?.validityMode,
-                ),
+            pEvent.ticketTypes.some((type) =>
+              [
+                TICKET_QR_VALIDITY_MODE.FROM_PAYMENT,
+                TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN,
+              ].includes(type?.validityMode),
             )
           ) {
             const relativePolicy = await client.rpc('staff_merge_ticket_type_validity_policy', {
@@ -1249,7 +1263,10 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
               'La política de acceso por tipo requiere aplicar la migración de entradas unívocas.',
             )
           }
-          assertSupabaseResult(accessPolicy, 'No se pudo guardar la política de acceso de las entradas.')
+          assertSupabaseResult(
+            accessPolicy,
+            'No se pudo guardar la política de acceso de las entradas.',
+          )
         }
 
         const events = await readEvents(client)
@@ -1439,7 +1456,11 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       // una base sin la columna (migración pendiente) no puede frenar el borrado.
       let logoPath = null
       try {
-        const logoRow = await client.from('events').select('logo_path').eq('slug', slug).maybeSingle()
+        const logoRow = await client
+          .from('events')
+          .select('logo_path')
+          .eq('slug', slug)
+          .maybeSingle()
         logoPath = logoRow?.data?.logo_path ?? null
       } catch {
         logoPath = null
