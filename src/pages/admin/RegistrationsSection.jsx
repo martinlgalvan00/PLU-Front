@@ -69,6 +69,7 @@ import { notifyError as toastError, notifySuccess as toastSuccess } from '../../
 import {
   buildAdminFacetOptions,
 } from '../../lib/adminPeopleFilters.js'
+import { registrationEventFilterKey } from '../../lib/athleteEventStatus.js'
 
 // Fallback estable para cuando no llega la prop (Storybook, tests) — evita
 // tener que null-check `gatePendingIds` en cada lugar que lo usa.
@@ -286,13 +287,21 @@ export default function RegistrationsSection({
   const eventOptions = useMemo(() => {
     const counts = new Map()
     for (const registration of enrichedAdminRegistrations) {
-      if (!registration.event) continue
-      counts.set(registration.event, (counts.get(registration.event) ?? 0) + 1)
+      const key = registrationEventFilterKey(registration)
+      if (!key) continue
+      const label = String(registration.event ?? key).trim() || key
+      const current = counts.get(key)
+      counts.set(key, {
+        label: current?.label ?? label,
+        count: (current?.count ?? 0) + 1,
+      })
     }
-    const names = [...counts.keys()].sort((left, right) => left.localeCompare(right))
+    const entries = [...counts.entries()].sort(([, left], [, right]) =>
+      left.label.localeCompare(right.label, 'es'),
+    )
     return [
       ['all', t('admin.filters.allEvents'), enrichedAdminRegistrations.length],
-      ...names.map((event) => [event, event, counts.get(event) ?? 0]),
+      ...entries.map(([value, entry]) => [value, entry.label, entry.count]),
     ]
   }, [enrichedAdminRegistrations, t])
 

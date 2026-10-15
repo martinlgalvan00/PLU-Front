@@ -239,14 +239,19 @@ const PLATE_RISE = {
 }
 
 /** Collage editorial a sangre: 1 dominante + 2 secundarias (desktop). Mobile: solo LCP. */
-function PitbullHeroFrame({ reducedMotion = false }) {
+function PitbullHeroFrame({ reducedMotion = false, heroImageUrl = null }) {
   const Plate = reducedMotion ? 'div' : m.div
   const finePointer = hasFinePointer()
+  const plates = HERO_COLLAGE.map((plate) =>
+    plate.eager && heroImageUrl
+      ? { ...plate, src: heroImageUrl, avif: undefined, webp: undefined }
+      : plate,
+  )
 
   return (
     <div className="pitbull-hero-masthead__frame" aria-hidden>
       <div className="pitbull-hero-masthead__collage">
-        {HERO_COLLAGE.map((plate, index) => (
+        {plates.map((plate, index) => (
           <Plate
             key={plate.id}
             className={`pitbull-hero-masthead__frame-plate ${plate.className}`}
@@ -287,6 +292,8 @@ export default function PitbullHero({
   canRegister,
   /** Bajada editable desde Vista publica. Vacia cae al copy del diseno. */
   lead = '',
+  /** URL pública del hero (slot landing). Vacía = collage por defecto. */
+  heroImageUrl = null,
   onHome,
   onJoin,
   onRegister,
@@ -322,7 +329,7 @@ export default function PitbullHero({
     />
   )
 
-  const frame = <PitbullHeroFrame reducedMotion={reducedMotion} />
+  const frame = <PitbullHeroFrame heroImageUrl={heroImageUrl} reducedMotion={reducedMotion} />
 
   const className =
     'pitbull-hero-masthead pitbull-hero-masthead--bleed' +

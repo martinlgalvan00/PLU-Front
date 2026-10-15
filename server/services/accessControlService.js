@@ -1,4 +1,5 @@
 import {
+  ACCESS_ROLE_SCOPE,
   ACCESS_ROLE_TEMPLATES,
   canManageRolePermissions,
   getAccessRoleKey,
@@ -6,6 +7,7 @@ import {
   getRoleHierarchyLevel,
   PERMISSION_CATALOG,
   RESERVED_PERMISSION_KEYS,
+  resolveAccessRoleScope,
 } from '../../src/lib/permissions.js'
 import { HttpError } from '../lib/errors.js'
 
@@ -50,6 +52,8 @@ export function serializeAccessRole(
     name: role.name,
     description: role.description ?? '',
     baseRole: role.baseRole,
+    scope: resolveAccessRoleScope(role),
+    eventScoped: resolveAccessRoleScope(role) === ACCESS_ROLE_SCOPE.event,
     isSystem: Boolean(role.isSystem),
     isProtected: Boolean(role.isProtected),
     assignableByAdmin: Boolean(role.assignableByAdmin),

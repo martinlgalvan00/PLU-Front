@@ -21,8 +21,12 @@ import AdminEventEditor, {
 } from '../../components/admin/AdminEventEditor.jsx'
 import AdminEventMark from '../../components/admin/AdminEventMark.jsx'
 import AdminEventPaymentsTriage from '../../components/admin/AdminEventPaymentsTriage.jsx'
+import AdminEventRegistrationsPanel, {
+  buildEventRegistrationStatusCounts,
+} from '../../components/admin/AdminEventRegistrationsPanel.jsx'
 import AdminEventQuickCreate from '../../components/admin/AdminEventQuickCreate.jsx'
 import AdminEventScanReportSection from '../../components/admin/AdminEventScanReportSection.jsx'
+import AdminEventOrganizersSection from '../../components/admin/AdminEventOrganizersSection.jsx'
 import AdminEventSecuritySection from '../../components/admin/AdminEventSecuritySection.jsx'
 import AdminEventStructureEditor from '../../components/admin/AdminEventStructureEditor.jsx'
 import AdminEventZonesSection from '../../components/admin/AdminEventZonesSection.jsx'
@@ -46,9 +50,10 @@ import { formatDayMonth, formatMonthYear } from '../../lib/format.js'
 import { getStatusMeta } from '../../lib/status.js'
 import { normalizeEventPublicSurface } from '../../lib/eventPublicSurface.js'
 import {
-  resolveEventPublishChecks,
+  resolveEventPublishConfirmChecks,
   summarizeEventPaymentChannels,
 } from '../../lib/eventPublishChecks.js'
+import { resolveEventSalesReadiness } from '../../lib/eventSalesReadiness.js'
 import { EVENT_PAYMENT_CHANNELS } from '../../lib/eventPaymentChannels.js'
 import useEventPayments from '../../hooks/useEventPayments.js'
 import useEventTickets from '../../hooks/useEventTickets.js'
@@ -109,10 +114,79 @@ function groupByYearKey(list) {
 }
 
 /**
+ * Destino de Mercado Pago en la fila: cuenta general PLU, nombre del perfil o
+ * aviso de reconectar / faltante. Evita abrir cada meet para saber quién cobra.
+ */
+function EventMpDestination({ row, summary, t }) {
+  const mpOpen =
+    summary.registration.includes('mercado_pago') ||
+    (Array.isArray(summary.ticket) && summary.ticket.includes('mercado_pago'))
+  if (!mpOpen) return null
+
+  const readiness = row.mercadoPagoReadiness
+  const destination =
+    readiness?.destination ?? (row.mercadoPagoProfileId ? 'profile' : 'platform')
+  const status = readiness?.connectionStatus ?? null
+
+  if (destination === 'missing') {
+    return (
+      <span className="admin-event-row__mp admin-event-row__mp--warn">
+        {t('admin.sections.events.mpMissing')}
+      </span>
+    )
+  }
+  if (status === 'needs_reconnect') {
+    return (
+      <span className="admin-event-row__mp admin-event-row__mp--warn">
+        {t('admin.sections.events.mpNeedsReconnect')}
+      </span>
+    )
+  }
+  if (destination === 'profile') {
+    const name = readiness?.profileName
+    return (
+      <span className="admin-event-row__mp">
+        {name
+          ? t('admin.sections.events.mpProfile', { name })
+          : t('admin.sections.events.mpProfileGeneric')}
+      </span>
+    )
+  }
+  return (
+    <span className="admin-event-row__mp admin-event-row__mp--muted">
+      {t('admin.sections.events.mpPlatform')}
+    </span>
+  )
+}
+
+/**
  * Con qué cobra el evento, en la lista: es lo que Finanzas pregunta antes de
  * abrir una venta y hasta ahora obligaba a entrar a la ficha de cada meet.
  * Un concepto sin ningún medio se marca, porque es una venta que no existe.
  */
+function EventSalesReadyBadge({ row, platform, t }) {
+  const readiness = resolveEventSalesReadiness(row, platform)
+  const label =
+    readiness.mode === 'announce'
+      ? t('admin.sections.events.salesReadyAnnounce')
+      : readiness.level === 'red'
+        ? t('admin.sections.events.salesReadyRed')
+        : readiness.level === 'yellow'
+          ? t('admin.sections.events.salesReadyYellow')
+          : t('admin.sections.events.salesReadyGreen')
+  return (
+    <span
+      className={`admin-event-row__sales-ready admin-event-row__sales-ready--${readiness.level}${
+        readiness.mode === 'announce' ? ' is-announce' : ''
+      }`}
+      title={label}
+    >
+      <span className="admin-event-row__sales-ready-dot" aria-hidden />
+      {label}
+    </span>
+  )
+}
+
 function EventPaySummary({ row, platform, t }) {
   const summary = summarizeEventPaymentChannels(row, platform)
   const group = (concept, channels) => {
@@ -135,8 +209,10 @@ function EventPaySummary({ row, platform, t }) {
   }
   return (
     <span className="admin-event-row__pay" aria-label={t('admin.sections.events.payLabel')}>
+      <EventSalesReadyBadge row={row} platform={platform} t={t} />
       {group('registration', summary.registration)}
       {group('ticket', summary.ticket)}
+      <EventMpDestination row={row} summary={summary} t={t} />
     </span>
   )
 }
@@ -326,7 +402,7 @@ function EventListRow({
 }
 
 /** Pestañas del workspace que no montan el editor del evento. */
-const NON_EDITOR_SECTIONS = new Set(['structure', 'security', 'payments'])
+const NON_EDITOR_SECTIONS = new Set(['structure', 'security', 'payments', 'registrations'])
 /** Pestañas que sí viven del draft del editor. El resumen no entra: si
  *  “Cerrar sección” va a dashboard y la invariante rearma el form, el botón
  *  no cierra nada. */
@@ -347,8 +423,13 @@ export default function EventsSection({
   // Cuenta por evento (organizador): ve y edita solo sus eventos. No crea, publica,
   // destaca ni toca el aviso del sitio: esas rutas están cerradas para él en el servidor.
   eventScoped = false,
+  /** Staff del panel: sirve para listar/asignar organizadores de este meet. */
+  users = [],
+  onCreateUser,
+  onSetEventAccess,
   canViewScanReport = false,
   canValidatePayments = false,
+  canSetRegistrationStatus = false,
   isLoading = false,
   loadError = null,
   onApprovePayment,
@@ -366,16 +447,21 @@ export default function EventsSection({
   onSetTicketAccessOverride,
   onListSecurityUsers,
   onListSecurityZones,
+  gatePendingIds,
   onManageCheckin,
   onManagePayments,
   onManageRegistrations,
   onOpenFinanceForEvent,
+  registrations = [],
+  /** Organizer sin `registrations.read`: no monta la pestaña. Staff: true. */
+  showRegistrations = true,
   onPresetSecurityZones,
   onRefresh,
   onRefreshPayments,
   onRejectPayment,
   onRejectTicketOrder,
   onSaveEvent,
+  onSetRegistrationStatus,
   onSetEventLogo,
   onSetEventRegistrationPrice,
   onClearEventPriceSchedule,
@@ -740,7 +826,7 @@ export default function EventsSection({
     const flagged = targets
       .map((row) => ({
         row,
-        checks: resolveEventPublishChecks(row, platformChannels.platform),
+        checks: resolveEventPublishConfirmChecks(row, platformChannels.platform),
       }))
       .filter((entry) => entry.checks.length > 0)
     if (flagged.length === 0) return true
@@ -976,6 +1062,16 @@ export default function EventsSection({
     [selectedPaymentTriage.counts, t],
   )
 
+  const selectedRegistrationCounts = useMemo(
+    () =>
+      buildEventRegistrationStatusCounts(
+        registrations,
+        selectedEvent,
+        gatePendingIds ?? undefined,
+      ),
+    [gatePendingIds, registrations, selectedEvent],
+  )
+
   const kpiStats = useMemo(() => {
     let totalRegistered = 0
     let totalSlots = 0
@@ -1037,6 +1133,15 @@ export default function EventsSection({
         paymentChannelOverrides: row.paymentChannelOverrides ?? null,
         bankTransferProfileId: row.bankTransferProfileId ?? null,
         mercadoPagoProfileId: row.mercadoPagoProfileId ?? null,
+        // Plantilla + slots de landing (sin imagen hero: se sube de nuevo).
+        landing: row.landing
+          ? {
+              ...row.landing,
+              slots: { ...(row.landing.slots ?? {}), heroImagePath: '' },
+            }
+          : undefined,
+        publicCopy: row.publicCopy ?? undefined,
+        publicSurface: row.publicSurface ?? undefined,
       },
       logo: null,
     })
@@ -1772,50 +1877,81 @@ export default function EventsSection({
               />
             ) : null
           }
+          registrationCounts={selectedRegistrationCounts}
+          registrationsAttention={selectedRegistrationCounts.pendiente_pago || null}
+          registrationsSection={
+            showRegistrations ? (
+              <AdminEventRegistrationsPanel
+                athletes={athletes}
+                canSetStatus={canSetRegistrationStatus}
+                event={selectedEvent}
+                gatePendingIds={gatePendingIds}
+                onOpenFullList={
+                  onManageRegistrations ? () => onManageRegistrations(selectedEvent) : undefined
+                }
+                onSetRegistrationStatus={onSetRegistrationStatus}
+                registrations={registrations}
+              />
+            ) : null
+          }
           previewDraft={
             formOpen && draft.id && draft.id === selectedEvent.id ? draft : null
           }
           securitySection={
-            teamAccess ? (
+            teamAccess || canManageUsers ? (
               <div className="admin-event-workspace__security-stack">
-                <AdminEventZonesSection
-                  canManageUsers={teamAccess}
-                  eventId={selectedEvent.id}
-                  eventSlug={selectedEvent.slug}
-                  onAssignMember={
-                    onAssignSecurityZone
-                      ? async (userId, zoneId) => {
-                          const zones = await onAssignSecurityZone(userId, zoneId)
-                          setZonesReloadToken((current) => current + 1)
-                          return zones
-                        }
-                      : undefined
-                  }
-                  onCreateAccessLink={onCreateSecurityAccessLink}
-                  onCreateZone={onCreateSecurityZone}
-                  onDeleteZone={onDeleteSecurityZone}
-                  onListSecurityUsers={onListSecurityUsers}
-                  onListZones={onListSecurityZones}
-                  onPresetZones={onPresetSecurityZones}
-                  onUpdateZone={onUpdateSecurityZone}
-                  reloadToken={zonesReloadToken}
-                />
-                <AdminEventSecuritySection
-                  canManageUsers={teamAccess}
-                  eventId={selectedEvent.id}
-                  eventSlug={selectedEvent.slug}
-                  eventEndsAt={selectedEvent.endsAt}
-                  onCreateSecurityUser={onCreateSecurityUser}
-                  onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
-                  onCreateSecurityAccessLink={onCreateSecurityAccessLink}
-                  onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
-                  onListSecurityUsers={onListSecurityUsers}
-                  onAssignMember={onAssignSecurityZone}
-                  onListZones={onListSecurityZones}
-                  onTeamChange={() => setZonesReloadToken((current) => current + 1)}
-                  onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
-                  reloadToken={zonesReloadToken}
-                />
+                {canManageUsers && onCreateUser ? (
+                  <AdminEventOrganizersSection
+                    canManage={canManageUsers}
+                    eventId={selectedEvent.id}
+                    eventTitle={selectedEvent.title}
+                    onCreateOrganizer={onCreateUser}
+                    onSetEventAccess={onSetEventAccess}
+                    users={users}
+                  />
+                ) : null}
+                {teamAccess ? (
+                  <>
+                    <AdminEventZonesSection
+                      canManageUsers={teamAccess}
+                      eventId={selectedEvent.id}
+                      eventSlug={selectedEvent.slug}
+                      onAssignMember={
+                        onAssignSecurityZone
+                          ? async (userId, zoneId) => {
+                              const zones = await onAssignSecurityZone(userId, zoneId)
+                              setZonesReloadToken((current) => current + 1)
+                              return zones
+                            }
+                          : undefined
+                      }
+                      onCreateAccessLink={onCreateSecurityAccessLink}
+                      onCreateZone={onCreateSecurityZone}
+                      onDeleteZone={onDeleteSecurityZone}
+                      onListSecurityUsers={onListSecurityUsers}
+                      onListZones={onListSecurityZones}
+                      onPresetZones={onPresetSecurityZones}
+                      onUpdateZone={onUpdateSecurityZone}
+                      reloadToken={zonesReloadToken}
+                    />
+                    <AdminEventSecuritySection
+                      canManageUsers={teamAccess}
+                      eventId={selectedEvent.id}
+                      eventSlug={selectedEvent.slug}
+                      eventEndsAt={selectedEvent.endsAt}
+                      onCreateSecurityUser={onCreateSecurityUser}
+                      onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
+                      onCreateSecurityAccessLink={onCreateSecurityAccessLink}
+                      onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
+                      onListSecurityUsers={onListSecurityUsers}
+                      onAssignMember={onAssignSecurityZone}
+                      onListZones={onListSecurityZones}
+                      onTeamChange={() => setZonesReloadToken((current) => current + 1)}
+                      onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
+                      reloadToken={zonesReloadToken}
+                    />
+                  </>
+                ) : null}
                 {canViewScanReport ? (
                   <AdminEventScanReportSection
                     canManageAccessOverride={canEdit}

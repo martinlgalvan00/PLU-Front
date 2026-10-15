@@ -277,15 +277,17 @@ export function listStaffUsersRequest() {
   return apiGet('/api/users')
 }
 
-export function createStaffUserRequest({ name, email, role, sendEmail = true }) {
+export function createStaffUserRequest({ name, email, role, sendEmail = true, eventIds = [] }) {
   const cleanName = name?.trim()
   const cleanEmail = email?.trim()
   // Sin email es una invitación abierta: la persona completa nombre y email al
   // abrir el enlace. El panel siempre pide el enlace para poder compartirlo.
+  // Organizador: los eventos van en el mismo alta (UserEventAccess).
   return apiPost('/api/users', {
     ...(cleanName ? { name: cleanName } : {}),
     ...(cleanEmail ? { email: cleanEmail } : {}),
     role,
+    ...(Array.isArray(eventIds) && eventIds.length > 0 ? { eventIds } : {}),
     sendEmail: Boolean(sendEmail && cleanEmail),
     returnLink: true,
   })
@@ -298,8 +300,11 @@ export function resetStaffPasswordRequest(userId, sendEmail = true) {
   })
 }
 
-export function updateStaffUserRoleRequest(userId, roleKey) {
-  return apiPatch(`/api/users/${encodeURIComponent(userId)}/role`, { roleKey })
+export function updateStaffUserRoleRequest(userId, roleKey, eventIds) {
+  return apiPatch(`/api/users/${encodeURIComponent(userId)}/role`, {
+    roleKey,
+    ...(Array.isArray(eventIds) ? { eventIds } : {}),
+  })
 }
 
 // Un solo pedido para varias cuentas: devuelve un resultado por cuenta

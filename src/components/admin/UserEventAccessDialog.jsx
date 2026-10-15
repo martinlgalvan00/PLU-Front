@@ -15,11 +15,15 @@ import '../../styles/pages/admin-event-access.css'
  */
 export default function UserEventAccessDialog({
   busy = false,
+  description,
   error = '',
   events = [],
   initialEventIds = [],
   onCancel,
   onSave,
+  requireSelection = false,
+  saveLabel,
+  title,
   userName,
 }) {
   const { t } = useI18n()
@@ -31,6 +35,9 @@ export default function UserEventAccessDialog({
   const [selected, setSelected] = useState(() => new Set(initialEventIds))
   const dialogStateRef = useRef({ busy, onCancel })
   dialogStateRef.current = { busy, onCancel }
+  const heading = title ?? t('admin.users.eventAccess.title', { name: userName })
+  const lead = description ?? t('admin.users.eventAccess.description')
+  const confirmLabel = saveLabel ?? t('admin.users.eventAccess.save')
 
   useEffect(() => {
     const previousFocus = document.activeElement
@@ -78,6 +85,7 @@ export default function UserEventAccessDialog({
   const initialKey = useMemo(() => [...initialEventIds].sort().join('|'), [initialEventIds])
   const selectedKey = [...selected].sort().join('|')
   const changed = initialKey !== selectedKey
+  const canSave = changed && (!requireSelection || selected.size > 0)
 
   function toggle(eventId) {
     setSelected((current) => {
@@ -109,8 +117,8 @@ export default function UserEventAccessDialog({
           <CalendarCheck size={19} />
         </span>
         <div className="admin-user-delete-dialog__copy">
-          <h2 id={titleId}>{t('admin.users.eventAccess.title', { name: userName })}</h2>
-          <p id={descriptionId}>{t('admin.users.eventAccess.description')}</p>
+          <h2 id={titleId}>{heading}</h2>
+          <p id={descriptionId}>{lead}</p>
 
           <label className="admin-event-access__search" htmlFor={searchId}>
             <span>{t('admin.users.eventAccess.searchLabel')}</span>
@@ -167,10 +175,10 @@ export default function UserEventAccessDialog({
           <Button
             type="button"
             variant="gold"
-            disabled={busy || !changed}
+            disabled={busy || !canSave}
             onClick={() => onSave([...selected])}
           >
-            {busy ? t('admin.users.eventAccess.saving') : t('admin.users.eventAccess.save')}
+            {busy ? t('admin.users.eventAccess.saving') : confirmLabel}
           </Button>
         </div>
       </section>

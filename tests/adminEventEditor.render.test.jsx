@@ -745,7 +745,12 @@ describe('AdminEventEditor — Publicación con bloque Avanzado', () => {
   const advancedSummary = () => screen.getByText(/textos de la página, módulos y transmisión/i)
 
   it('deja estado, publicación y acceso arriba y lo demás colapsado', () => {
-    renderEditor()
+    // Meet genérico (no editorial): el bloque Avanzado arranca cerrado.
+    renderEditor({
+      slug: 'winter-open-2026',
+      landing: { templateId: 'meet', slots: {} },
+      publicCopy: {},
+    })
     activateEditorTab(/publicación/i)
     const advanced = advancedSummary().closest('details')
     expect(advanced.open).toBe(false)
@@ -754,7 +759,7 @@ describe('AdminEventEditor — Publicación con bloque Avanzado', () => {
     const firstAdvanced = advanced.compareDocumentPosition(toggles[0])
     // El primer control de decisión queda antes del desplegable.
     expect(firstAdvanced & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
-    expect(advanced.contains(document.getElementById('event-public-title'))).toBe(true)
+    expect(advanced.contains(document.getElementById('event-landing-heroTitle'))).toBe(true)
     expect(advanced.contains(document.getElementById('event-live-url'))).toBe(true)
     expect(advanced.contains(document.getElementById('event-access'))).toBe(false)
   })

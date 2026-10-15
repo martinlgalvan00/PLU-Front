@@ -458,6 +458,27 @@ export default function EventSalesSection({
             </header>
           )}
 
+          {/* Soft-launch: el meet se anuncia sin exigir medios de inscripción.
+              No es inscripción gratis (price = 0); es “todavía no cobramos”. */}
+          <label className="admin-event-form__toggle admin-event-form__sales-intent">
+            <input
+              type="checkbox"
+              checked={draft.salesIntent === 'announce'}
+              disabled={!canEdit}
+              onChange={(changeEvent) =>
+                patchDraft({
+                  ...draft,
+                  salesIntent: changeEvent.target.checked ? 'announce' : 'charge',
+                })
+              }
+            />
+            <span className="admin-event-form__toggle-ui" aria-hidden />
+            <span className="admin-event-form__toggle-copy">
+              <strong>{t('admin.eventEditor.salesIntentAnnounceTitle')}</strong>
+              <small>{t('admin.eventEditor.salesIntentAnnounceHint')}</small>
+            </span>
+          </label>
+
           {/* La plataforma es el valor por defecto y cada celda del evento
               puede cerrar o abrir. Sin override se muestra lo que hereda, y
               tocar una celda que difiere de Finanzas crea el override solo. */}

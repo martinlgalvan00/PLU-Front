@@ -1,5 +1,11 @@
 import { z } from 'zod'
-import { PERMISSION_KEYS } from '../permissions.js'
+import { isEventScopedRole, PERMISSION_KEYS } from '../permissions.js'
+
+const eventIdsSchema = z
+  .array(z.string().uuid('Cada evento tiene que ser un id válido.'))
+  .max(50, 'Podés asignar hasta 50 eventos.')
+  .transform((ids) => [...new Set(ids)])
+
 
 const roleKeySchema = z
   .string()
@@ -37,19 +43,32 @@ export const updateAccessRolePermissionsSchema = z.object({
 
 export const updateAccessRoleStatusSchema = z.object({ active: z.boolean() })
 
-export const updateUserAccessRoleSchema = z.object({
-  roleKey: roleKeySchema,
-})
+// Al pasar a Organizador hay que autorizar eventos en el mismo acto.
+export const updateUserAccessRoleSchema = z
+  .object({
+    roleKey: roleKeySchema,
+    eventIds: eventIdsSchema.optional(),
+  })
+  .refine((value) => !isEventScopedRole(value.roleKey) || (value.eventIds?.length ?? 0) > 0, {
+    path: ['eventIds'],
+    message: 'Asigná al menos un evento al organizador.',
+  })
 
 /** Tope de cuentas por pedido: acota el trabajo de un request y su auditoría. */
 export const BULK_USER_ROLE_MAX = 100
 
-export const bulkUserAccessRoleSchema = z.object({
-  userIds: z
-    .array(z.string().trim().min(1, 'Falta el id de una cuenta.'))
-    .min(1, 'Elegí al menos una cuenta.')
-    .max(BULK_USER_ROLE_MAX, `Podés cambiar hasta ${BULK_USER_ROLE_MAX} cuentas por vez.`)
-    // Un id repetido no debe auditar ni cortar sesiones dos veces.
-    .transform((userIds) => [...new Set(userIds)]),
-  roleKey: roleKeySchema,
-})
+// El lote no admite Organizador: cada cuenta necesita su propia lista de eventos.
+export const bulkUserAccessRoleSchema = z
+  .object({
+    userIds: z
+      .array(z.string().trim().min(1, 'Falta el id de una cuenta.'))
+      .min(1, 'Elegí al menos una cuenta.')
+      .max(BULK_USER_ROLE_MAX, `Podés cambiar hasta ${BULK_USER_ROLE_MAX} cuentas por vez.`)
+      // Un id repetido no debe auditar ni cortar sesiones dos veces.
+      .transform((userIds) => [...new Set(userIds)]),
+    roleKey: roleKeySchema,
+  })
+  .refine((value) => !isEventScopedRole(value.roleKey), {
+    path: ['roleKey'],
+    message: 'El rol Organizador se asigna de a una cuenta, con sus eventos.',
+  })

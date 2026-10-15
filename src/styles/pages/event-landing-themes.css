@@ -1,0 +1,75 @@
+/* =============================================
+   Temas de acento por evento (landing pública)
+   Remapean tokens de marca ya definidos en palette.css.
+   ============================================= */
+
+.event-landing-theme {
+  --event-accent: var(--color-brand-celeste);
+  --event-accent-soft: var(--color-brand-celeste-dim);
+  --event-accent-glow: var(--color-brand-celeste-glow);
+  --event-action: var(--color-brand-action);
+  --event-action-hover: var(--color-brand-action-hover);
+  --event-action-text: var(--color-brand-action-text);
+}
+
+.event-landing-theme[data-event-theme='plu-default'] {
+  --color-brand-celeste: var(--plu-celeste-400);
+  --color-brand-celeste-dim: var(--plu-celeste-alpha-18);
+  --color-brand-celeste-glow: var(--plu-celeste-alpha-35);
+  --color-brand-action: var(--plu-gold-500);
+  --color-brand-action-hover: var(--plu-gold-400);
+  --event-accent: var(--plu-celeste-400);
+  --event-accent-soft: var(--plu-celeste-alpha-18);
+  --event-accent-glow: var(--plu-celeste-alpha-35);
+  --event-action: var(--plu-gold-500);
+  --event-action-hover: var(--plu-gold-400);
+  --event-action-text: #14181f;
+}
+
+.event-landing-theme[data-event-theme='night-steel'] {
+  --color-brand-celeste: var(--plu-celeste-300);
+  --color-brand-celeste-dim: var(--plu-celeste-alpha-18);
+  --color-brand-celeste-glow: var(--plu-celeste-alpha-26);
+  --color-brand-gold: var(--plu-celeste-400);
+  --color-brand-action: var(--plu-celeste-600);
+  --color-brand-action-hover: var(--plu-celeste-500);
+  --color-brand-action-text: #ffffff;
+  --event-accent: var(--plu-celeste-300);
+  --event-accent-soft: var(--plu-celeste-alpha-18);
+  --event-accent-glow: var(--plu-celeste-alpha-26);
+  --event-action: var(--plu-celeste-600);
+  --event-action-hover: var(--plu-celeste-500);
+  --event-action-text: #ffffff;
+}
+
+.event-landing-theme[data-event-theme='ember'] {
+  --color-brand-celeste: var(--plu-gold-400);
+  --color-brand-celeste-dim: var(--plu-gold-alpha-18);
+  --color-brand-celeste-glow: var(--plu-gold-alpha-35);
+  --color-brand-gold: var(--plu-gold-500);
+  --color-brand-action: var(--plu-gold-500);
+  --color-brand-action-hover: var(--plu-gold-400);
+  --color-brand-action-text: #14181f;
+  --event-accent: var(--plu-gold-500);
+  --event-accent-soft: var(--plu-gold-alpha-18);
+  --event-accent-glow: var(--plu-gold-alpha-35);
+  --event-action: var(--plu-gold-500);
+  --event-action-hover: var(--plu-gold-400);
+  --event-action-text: #14181f;
+}
+
+.event-landing-theme[data-event-theme='clean-light'] {
+  --color-brand-celeste: var(--plu-ink-800);
+  --color-brand-celeste-dim: rgba(46, 50, 60, 0.08);
+  --color-brand-celeste-glow: rgba(46, 50, 60, 0.16);
+  --color-brand-gold: var(--plu-ink-700);
+  --color-brand-action: var(--plu-ink-900);
+  --color-brand-action-hover: var(--plu-ink-800);
+  --color-brand-action-text: #ffffff;
+  --event-accent: var(--plu-ink-800);
+  --event-accent-soft: rgba(46, 50, 60, 0.08);
+  --event-accent-glow: rgba(46, 50, 60, 0.16);
+  --event-action: var(--plu-ink-900);
+  --event-action-hover: var(--plu-ink-800);
+  --event-action-text: #ffffff;
+}

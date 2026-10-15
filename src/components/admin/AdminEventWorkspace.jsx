@@ -100,8 +100,8 @@ export function buildEventLinks(row, t) {
  *    anterior de este mismo cambio dejaba `activeTab` en 'basics' con el
  *    handler retornando temprano en la pestaña activa: el editor de Datos no
  *    se podía abrir nunca.
- * 3. Inscripciones y Check-in NO son pestañas: son otras secciones del panel.
- *    Viven como accesos en el Resumen, no como superficies del evento.
+ * 3. Check-in sigue como acceso desde Resumen/Seguridad (otra sección del panel).
+ *    Inscripciones sí tienen pestaña propia cuando hay `registrationsSection`.
  *
  * Ya no es un diálogo: sin `role="dialog"`, sin trap de foco, sin bloqueo del
  * scroll del body y sin cerrar con Escape (perder cambios sin guardar por
@@ -135,6 +135,9 @@ export default function AdminEventWorkspace({
   paymentsAttention = null,
   paymentsSection = null,
   previewDraft = null,
+  registrationCounts = null,
+  registrationsAttention = null,
+  registrationsSection = null,
   securitySection = null,
   structureEditor = null,
   tickets = [],
@@ -204,6 +207,16 @@ export default function AdminEventWorkspace({
         hasSubnav: true,
       })
     }
+    if (registrationsSection) {
+      list.push({
+        id: 'registrations',
+        label: t('admin.eventConsole.registrations'),
+        icon: ClipboardList,
+        ...(typeof registrationsAttention === 'number' && registrationsAttention > 0
+          ? { count: registrationsAttention }
+          : {}),
+      })
+    }
     if (canManageUsers && securitySection) {
       list.push({ id: 'security', label: t('admin.eventConsole.zones'), icon: ShieldCheck })
     }
@@ -228,6 +241,8 @@ export default function AdminEventWorkspace({
     event?.eventDays?.length,
     paymentsAttention,
     paymentsSection,
+    registrationsAttention,
+    registrationsSection,
     securitySection,
     t,
   ])
@@ -315,9 +330,10 @@ export default function AdminEventWorkspace({
   ]
 
   /** Bloques de la página pública, con su interruptor de un toque. */
-  const surface = eventPublicSurfaceFromEvent(summarySource ?? event)
+  const surfaceEvent = summarySource ?? event
+  const surface = eventPublicSurfaceFromEvent(surfaceEvent)
   const siteChapters = [
-    ...publicSurfaceModulesForEvent(event).map((module) => ({
+    ...publicSurfaceModulesForEvent(surfaceEvent).map((module) => ({
       id: module.key,
       kind: 'surface',
       label: t(surfaceModuleTitleKey(module.key)),
@@ -327,7 +343,7 @@ export default function AdminEventWorkspace({
       id: 'occupancy',
       kind: 'occupancy',
       label: t('admin.eventEditor.capacityVisibilityTitle'),
-      on: (summarySource ?? event).capacityProgressPublic !== false,
+      on: surfaceEvent.capacityProgressPublic !== false,
     },
   ]
 
@@ -370,7 +386,7 @@ export default function AdminEventWorkspace({
   }
 
   const gotoCard =
-    onManageRegistrations || paymentsSection || onManageCheckin ? (
+    registrationsSection || onManageRegistrations || paymentsSection || onManageCheckin ? (
       <section className="admin-event-workspace__card">
         <header className="admin-event-workspace__card-head">
           <h2 className="admin-event-workspace__card-title">
@@ -378,14 +394,21 @@ export default function AdminEventWorkspace({
           </h2>
         </header>
         <div className="admin-event-workspace__gotos">
-          {onManageRegistrations
+          {registrationsSection
             ? renderGoto({
                 icon: ClipboardList,
                 label: t('admin.eventConsole.registrations'),
                 value: t('admin.eventConsole.registrationsValue', { count: registered, slots }),
-                onClick: () => onManageRegistrations?.(event),
+                onClick: () => onSelectSection?.(event, 'registrations'),
               })
-            : null}
+            : onManageRegistrations
+              ? renderGoto({
+                  icon: ClipboardList,
+                  label: t('admin.eventConsole.registrations'),
+                  value: t('admin.eventConsole.registrationsValue', { count: registered, slots }),
+                  onClick: () => onManageRegistrations?.(event),
+                })
+              : null}
           {paymentsSection
             ? renderGoto({
                 icon: CreditCard,
@@ -459,6 +482,9 @@ export default function AdminEventWorkspace({
           {securitySection}
         </div>
       )
+    }
+    if (activeTab === 'registrations') {
+      return <div className="admin-event-workspace__wide">{registrationsSection}</div>
     }
     if (activeTab === 'payments') {
       return <div className="admin-event-workspace__wide">{paymentsSection}</div>
@@ -538,7 +564,11 @@ export default function AdminEventWorkspace({
       return (
         <div className="admin-event-workspace__split">
           <div className="admin-event-workspace__main-col">
-            <AdminEventDashboard event={event} tickets={tickets} />
+            <AdminEventDashboard
+              event={event}
+              registrationCounts={registrationCounts}
+              tickets={tickets}
+            />
           </div>
           <aside
             className="admin-event-workspace__rail"

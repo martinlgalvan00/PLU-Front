@@ -330,7 +330,7 @@ export default function AdminPage({
     if (!allowedSections.includes('registrations')) return
     onSetFilters((current) => ({
       ...current,
-      event: event.title,
+      event: event.slug || event.title,
       query: '',
       status: 'all',
     }))
@@ -342,7 +342,7 @@ export default function AdminPage({
   function handleManageEventPayments(event) {
     if (!allowedSections.includes('payments')) return
     leaveEventWorkspaceIfNeeded('payments')
-    setPaymentEventScope(event.title)
+    setPaymentEventScope(event.slug || event.title || '')
     setSection('payments')
   }
 
@@ -531,8 +531,13 @@ export default function AdminPage({
           eventScoped={isEventScopedSession(authorization)}
           canViewScanReport={canViewScanReport}
           canValidatePayments={hasPermission(authorization, 'admin.payments.approve')}
+          canSetRegistrationStatus={hasPermission(authorization, 'admin.registrations.write')}
+          users={users}
+          onCreateUser={onCreateUser}
+          onSetEventAccess={onSetUserEventAccess}
           onApprovePayment={onApprovePayment}
           onApproveTicketOrder={onApproveTicketPurchase}
+          onSetRegistrationStatus={onSetRegistrationStatus}
           onCreateSecurityUser={onCreateSecurityUser}
           onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
           onCreateSecurityAccessLink={onCreateSecurityAccessLink}
@@ -570,8 +575,10 @@ export default function AdminPage({
           onSetEventState={isEventScopedSession(authorization) ? undefined : onSetEventState}
           onSetEventLogo={onSetEventLogo}
           onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
+          gatePendingIds={gatePendingIds}
           payments={payments}
           pendingTicketOrders={pendingTicketOrders}
+          registrations={registrations}
           tickets={tickets}
         />
       )

@@ -20,16 +20,23 @@ export default function EventCard({
   selected = false,
   brand = null,
   athleteStatus = null,
+  ticketsAvailable = false,
   onAction,
   onSelect,
   actionLabel = 'Inscribirme',
+  actionLive = null,
   variant = 'default',
 }) {
   const { t } = useI18n()
   const closed = status === 'cerrado' || status === 'finalizado'
   const [day, month] = date.split(' ')
-  const { label: statusLabel, tone } = getStatusMeta(status, t)
-  const isLive = LIVE_STATUSES.has(status)
+  const registrationLive = LIVE_STATUSES.has(status)
+  // Inscripción cerrada + entradas en venta: el público no debe leer solo "Cerrado".
+  const showTicketsCue = ticketsAvailable && !registrationLive && status !== 'finalizado'
+  const { label: rawStatusLabel, tone: rawTone } = getStatusMeta(status, t)
+  const statusLabel = showTicketsCue ? t('pages.events.ticketsOnSaleStatus') : rawStatusLabel
+  const tone = showTicketsCue ? 'success' : rawTone
+  const isLive = actionLive == null ? registrationLive : Boolean(actionLive)
   const secondaryLabel = t('pages.events.listViewEvent')
   const isMinimal = variant === 'minimal'
   const isPitbull = brand === 'pitbull'
@@ -151,7 +158,7 @@ export default function EventCard({
         ) : null}
       </div>
 
-      {onAction && !closed ? (
+      {onAction && (!closed || showTicketsCue) ? (
         <button
           type="button"
           className={[
@@ -159,6 +166,7 @@ export default function EventCard({
             'motion-icon-shift',
             isMinimal ? 'event-card__action--editorial' : '',
             isLive ? 'event-card__action--live' : 'event-card__action--quiet',
+            showTicketsCue && !registrationLive ? 'event-card__action--tickets' : '',
           ]
             .filter(Boolean)
             .join(' ')}
@@ -167,7 +175,7 @@ export default function EventCard({
             onAction?.()
           }}
         >
-          <span>{isLive ? actionLabel : secondaryLabel}</span>
+          <span>{isLive || showTicketsCue ? actionLabel : secondaryLabel}</span>
           <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
         </button>
       ) : null}

@@ -9,6 +9,7 @@ import {
   publicSurfaceModulesForEvent,
 } from '../../../lib/eventPublicSurface.js'
 import { patchPublicSurface } from './draftPatches.js'
+import EventLandingSection, { patchDraftPublicCopy } from './EventLandingSection.jsx'
 import { AdvancedGroup, CapacityPublicBreakdown, FormField } from './parts.jsx'
 
 export default function EventVisibilitySection({
@@ -31,6 +32,9 @@ export default function EventVisibilitySection({
   err,
   sourceEvent,
   publicCapacityPreview,
+  onHeroUpload,
+  heroUploading = false,
+  heroPreviewUrl = null,
 }) {
   return (
     <section
@@ -164,92 +168,21 @@ export default function EventVisibilitySection({
         onToggle={setAdvancedOpen}
         summary={t('admin.eventEditor.advancedSummary')}
       >
-        {/* Cómo se presenta el evento en su página. Son los tres
-                      textos que de verdad cambian por evento; los encabezados
-                      de cada bloque los sigue fijando el diseño, que es lo que
-                      mantiene el sitio coherente entre meets. */}
+        <EventLandingSection
+          canEdit={canEdit}
+          draft={draft}
+          err={err}
+          heroPreviewUrl={heroPreviewUrl}
+          heroUploading={heroUploading}
+          patchDraft={patchDraft}
+          t={t}
+          onHeroUpload={onHeroUpload}
+        />
+
+        {/* Copy de cupo: se edita acá con placeholders de estado; los slots
+            hero viven en EventLandingSection y se sincronizan con publicCopy. */}
         <fieldset className="admin-event-form__public-copy">
-          <legend>{t('admin.eventEditor.publicCopyLegend')}</legend>
-          <p className="admin-event-form__section-note">{t('admin.eventEditor.publicCopyHint')}</p>
-
-          <FormField
-            htmlFor="event-public-title"
-            label={t('admin.eventEditor.publicTitleField')}
-            error={err('publicCopy.publicTitle')}
-          >
-            <input
-              id="event-public-title"
-              name="publicCopy.publicTitle"
-              data-field="publicCopy.publicTitle"
-              type="text"
-              maxLength={120}
-              value={draft.publicCopy?.publicTitle ?? ''}
-              placeholder={draft.title || t('admin.eventEditor.publicTitlePlaceholder')}
-              disabled={!canEdit}
-              onChange={(event) =>
-                patchDraft({
-                  ...draft,
-                  publicCopy: {
-                    ...(draft.publicCopy ?? {}),
-                    publicTitle: event.target.value,
-                  },
-                })
-              }
-            />
-          </FormField>
-
-          <FormField
-            htmlFor="event-hero-lead"
-            label={t('admin.eventEditor.heroLeadField')}
-            error={err('publicCopy.heroLead')}
-          >
-            <input
-              id="event-hero-lead"
-              name="publicCopy.heroLead"
-              data-field="publicCopy.heroLead"
-              type="text"
-              maxLength={240}
-              value={draft.publicCopy?.heroLead ?? ''}
-              placeholder={t('admin.eventEditor.heroLeadPlaceholder')}
-              disabled={!canEdit}
-              onChange={(event) =>
-                patchDraft({
-                  ...draft,
-                  publicCopy: {
-                    ...(draft.publicCopy ?? {}),
-                    heroLead: event.target.value,
-                  },
-                })
-              }
-            />
-          </FormField>
-
-          <FormField
-            htmlFor="event-cta-label"
-            label={t('admin.eventEditor.ctaLabelField')}
-            error={err('publicCopy.ctaLabel')}
-          >
-            <input
-              id="event-cta-label"
-              name="publicCopy.ctaLabel"
-              data-field="publicCopy.ctaLabel"
-              type="text"
-              maxLength={40}
-              value={draft.publicCopy?.ctaLabel ?? ''}
-              placeholder={t('admin.eventEditor.ctaLabelPlaceholder')}
-              disabled={!canEdit}
-              onChange={(event) =>
-                patchDraft({
-                  ...draft,
-                  publicCopy: {
-                    ...(draft.publicCopy ?? {}),
-                    ctaLabel: event.target.value,
-                  },
-                })
-              }
-            />
-          </FormField>
-
+          <legend>{t('admin.eventEditor.inscriptionCopyLegend')}</legend>
           <p className="admin-event-form__section-note">
             {t('admin.eventEditor.inscriptionCopyHint')}
           </p>
@@ -277,13 +210,9 @@ export default function EventVisibilitySection({
               }
               disabled={!canEdit}
               onChange={(event) =>
-                patchDraft({
-                  ...draft,
-                  publicCopy: {
-                    ...(draft.publicCopy ?? {}),
-                    inscriptionMark: event.target.value,
-                  },
-                })
+                patchDraft(
+                  patchDraftPublicCopy(draft, { inscriptionMark: event.target.value }),
+                )
               }
             />
           </FormField>
@@ -311,13 +240,9 @@ export default function EventVisibilitySection({
               }
               disabled={!canEdit}
               onChange={(event) =>
-                patchDraft({
-                  ...draft,
-                  publicCopy: {
-                    ...(draft.publicCopy ?? {}),
-                    inscriptionNote: event.target.value,
-                  },
-                })
+                patchDraft(
+                  patchDraftPublicCopy(draft, { inscriptionNote: event.target.value }),
+                )
               }
             />
           </FormField>
@@ -326,7 +251,14 @@ export default function EventVisibilitySection({
         {essentials ? null : (
           <fieldset className="admin-event-form__surface">
             <legend>{t('admin.eventEditor.publicSurfaceLegend')}</legend>
-            {publicSurfaceModulesForEvent(sourceEvent ?? draft).map((module) => (
+            {publicSurfaceModulesForEvent({
+              ...(sourceEvent ?? {}),
+              ...draft,
+              // Draft manda: al elegir plantilla editorial los módulos custom
+              // tienen que aparecer antes del guardado.
+              landing: draft.landing ?? sourceEvent?.landing,
+              slug: draft.slug ?? sourceEvent?.slug,
+            }).map((module) => (
               <label key={module.key} className="admin-event-form__toggle">
                 <input
                   checked={normalizeEventPublicSurface(draft.publicSurface)[module.key]}
