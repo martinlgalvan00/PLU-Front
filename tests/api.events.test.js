@@ -117,7 +117,10 @@ function createSupabaseDouble({ rpcResult, publishedRows, storageFiles = [] } = 
   const rpc = vi.fn(async () => rpcResult ?? { data: { id: EVENT_ID }, error: null })
   const list = vi.fn(async () => ({ data: storageFiles, error: null }))
   const remove = vi.fn(async () => ({ data: [], error: null }))
-  const storage = { from: vi.fn(() => ({ list, remove })) }
+  const getPublicUrl = vi.fn((path) => ({
+    data: { publicUrl: `https://storage.test/event-logos/${path}` },
+  }))
+  const storage = { from: vi.fn(() => ({ list, remove, getPublicUrl })) }
 
   return {
     client: { from: vi.fn(() => ({ select })), rpc, storage },
@@ -128,6 +131,7 @@ function createSupabaseDouble({ rpcResult, publishedRows, storageFiles = [] } = 
     storage,
     list,
     remove,
+    getPublicUrl,
   }
 }
 
@@ -198,8 +202,35 @@ describe('API administrativa de eventos', () => {
     }
   })
 
+  it('expone la URL pública del logo sin filtrar la ruta interna de Storage', async () => {
+    const logoPath = `${EVENT_ID}/barbell-submission.webp`
+    const { target } = await setup('admin_maximal', {
+      publishedRows: [
+        {
+          ...canonicalEvent(),
+          published: true,
+          logo_path: logoPath,
+        },
+      ],
+    })
+
+    try {
+      const response = await fetch(`${target.url}/api/events/catalog`)
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(body.events[0].logo_url).toBe(`https://storage.test/event-logos/${logoPath}`)
+      expect(body.events[0].logo_path).toBeUndefined()
+    } finally {
+      await target.close()
+    }
+  })
+
   it('si ticket_types.wise_price no existe, lee el catalogo sin esa columna', async () => {
-    const staff = await buildStaffUser({ role: 'admin_maximal', email: 'catalog-compat@events.test' })
+    const staff = await buildStaffUser({
+      role: 'admin_maximal',
+      email: 'catalog-compat@events.test',
+    })
     const prisma = createPrismaDouble([staff])
     const published = [
       {
@@ -236,7 +267,9 @@ describe('API administrativa de eventos', () => {
       const body = await response.json()
       expect(response.status).toBe(200)
       expect(select).toHaveBeenCalledTimes(2)
-      expect(String(select.mock.calls[1][0])).not.toContain('price, wise_price, manual_price, quota')
+      expect(String(select.mock.calls[1][0])).not.toContain(
+        'price, wise_price, manual_price, quota',
+      )
       expect(body.events[0]).toMatchObject({ id: EVENT_ID, published: true })
     } finally {
       await target.close()
@@ -615,7 +648,10 @@ describe('API administrativa de eventos', () => {
     try {
       const saved = await upsert(
         eventPayload({
-          cashPayment: { place: '  Virtus Fitness, recepción ', notes: 'Lunes a viernes de 18 a 21.' },
+          cashPayment: {
+            place: '  Virtus Fitness, recepción ',
+            notes: 'Lunes a viernes de 18 a 21.',
+          },
         }),
       )
       expect(saved.status).toBe(201)
