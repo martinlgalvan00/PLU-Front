@@ -2,8 +2,12 @@ import { cleanup, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
-vi.mock('../src/services/eventAdminService.js', () => ({
+const { fetchPublishedEvents } = vi.hoisted(() => ({
   fetchPublishedEvents: vi.fn(async () => []),
+}))
+
+vi.mock('../src/services/eventAdminService.js', () => ({
+  fetchPublishedEvents,
 }))
 
 const EventsPage = (await import('../src/pages/EventsPage.jsx')).default
@@ -21,7 +25,11 @@ beforeAll(() => {
   })
 })
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  fetchPublishedEvents.mockReset()
+  fetchPublishedEvents.mockResolvedValue([])
+})
 
 const pitbull = {
   slug: 'pitbull-classic-2026',
@@ -76,6 +84,28 @@ describe('deep-link de eventos con datos asincronos', () => {
     )
   })
 
+  it('muestra el logo del catálogo al abrir la ficha de un evento nuevo', async () => {
+    const logoUrl = 'https://cdn.test/barbell-submission.webp'
+    fetchPublishedEvents.mockResolvedValue([{ ...linkedEvent, logoUrl }])
+
+    const { container } = render(
+      <I18nProvider>
+        <EventsPage
+          initialEventSlug={linkedEvent.slug}
+          events={[pitbull]}
+          onNavigate={vi.fn()}
+          onSelectEvent={vi.fn()}
+          session={null}
+        />
+      </I18nProvider>,
+    )
+
+    await waitFor(() => {
+      expect(container.querySelector('.events-detail__mark img')?.getAttribute('src')).toBe(logoUrl)
+    })
+    expect(container.querySelector('.events-detail__title')?.textContent).toBe(linkedEvent.title)
+  })
+
   it('no lista stubs de desarrollo en el catalogo publico', async () => {
     const stub = {
       slug: 'test-2026',
@@ -102,7 +132,9 @@ describe('deep-link de eventos con datos asincronos', () => {
       expect(container.querySelector('.events-detail__title')?.textContent).toBe(pitbull.title)
     })
 
-    const titles = [...container.querySelectorAll('.event-card__title')].map((node) => node.textContent)
+    const titles = [...container.querySelectorAll('.event-card__title')].map(
+      (node) => node.textContent,
+    )
     expect(titles).toEqual([pitbull.title])
     expect(container.textContent).not.toMatch(/\btest\b/i)
   })
@@ -125,7 +157,12 @@ describe('deep-link de eventos con datos asincronos', () => {
 
     const emptyRender = render(
       <I18nProvider>
-        <EventsPage events={[pitbull]} onNavigate={vi.fn()} onSelectEvent={vi.fn()} session={null} />
+        <EventsPage
+          events={[pitbull]}
+          onNavigate={vi.fn()}
+          onSelectEvent={vi.fn()}
+          session={null}
+        />
       </I18nProvider>,
     )
     expect(emptyRender.container.querySelector('.events-detail__weighins')).toBeNull()

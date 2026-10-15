@@ -1,6 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getStatusMeta } from '../../lib/status.js'
+import { resolveEventLogo } from '../../lib/eventMark.js'
 import PitbullBrandMark from './PitbullBrandMark.jsx'
 import SpotlightCard from './SpotlightCard.jsx'
 
@@ -10,6 +11,8 @@ const PERSONAL_ATHLETE_STATUSES = new Set(['registered', 'pending_payment', 'nee
 export default function EventCard({
   date,
   title,
+  slug,
+  logoUrl = null,
   venue,
   location,
   status,
@@ -30,6 +33,7 @@ export default function EventCard({
   const secondaryLabel = t('pages.events.listViewEvent')
   const isMinimal = variant === 'minimal'
   const isPitbull = brand === 'pitbull'
+  const eventLogo = resolveEventLogo({ slug, title, logoUrl })
   const hasPlace = Boolean(venue || location)
   const showAthleteStatus = PERSONAL_ATHLETE_STATUSES.has(athleteStatus)
   const athleteStatusLabel = showAthleteStatus
@@ -97,7 +101,21 @@ export default function EventCard({
             <h3 className="event-card__title event-card__title--brand visually-hidden">{title}</h3>
           </>
         ) : (
-          <h3 className="event-card__title">{title}</h3>
+          <div className="event-card__identity">
+            {eventLogo ? (
+              <span className="event-card__mark" aria-hidden="true">
+                <img
+                  src={eventLogo}
+                  alt=""
+                  width={72}
+                  height={72}
+                  loading="lazy"
+                  decoding="async"
+                />
+              </span>
+            ) : null}
+            <h3 className="event-card__title">{title}</h3>
+          </div>
         )}
 
         {isMinimal ? (
