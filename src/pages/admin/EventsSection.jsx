@@ -51,6 +51,7 @@ import {
 } from '../../lib/eventPublishChecks.js'
 import { EVENT_PAYMENT_CHANNELS } from '../../lib/eventPaymentChannels.js'
 import useEventPayments from '../../hooks/useEventPayments.js'
+import useEventTickets from '../../hooks/useEventTickets.js'
 import usePlatformPaymentChannels from '../../hooks/usePlatformPaymentChannels.js'
 import { fetchSiteTeaser, saveSiteTeaser } from '../../services/siteTeaserService.js'
 import {
@@ -939,6 +940,10 @@ export default function EventsSection({
   // Un organizador no puede leer los listados globales de pagos: sus cobros salen del
   // endpoint de SU evento. El resto del staff sigue usando el snapshot global.
   const scopedPayments = useEventPayments(selectedEvent?.slug, {
+    enabled: eventScoped && Boolean(selectedEvent),
+  })
+  // Idem para el Resumen: las entradas emitidas del evento abierto, no el snapshot global.
+  const scopedTickets = useEventTickets(selectedEvent?.slug, {
     enabled: eventScoped && Boolean(selectedEvent),
   })
   const paymentsSource = eventScoped
@@ -1831,7 +1836,7 @@ export default function EventsSection({
               onSaveEvent={handleStructureSave}
             />
           }
-          tickets={tickets}
+          tickets={eventScoped ? scopedTickets : tickets}
         />
         {deleteDialog}
       </>
