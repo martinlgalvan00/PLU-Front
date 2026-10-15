@@ -19,8 +19,10 @@ export function sanitizePublicCatalogEvent(row, now = new Date()) {
     (!endsAt || endsAt >= now)
   const rules = { ...(row?.rules ?? {}) }
   if (!visible) delete rules.comboPrice
+  // La URL ya es pública; la ruta interna del bucket no aporta nada al cliente.
+  const { logo_path: _logoPath, ...event } = row ?? {}
   return {
-    ...row,
+    ...event,
     rules,
     comboOffer: visible ? combo : null,
   }

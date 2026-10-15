@@ -3,10 +3,8 @@ import pitbullEmblem from '../assets/brand/logo-pitbullclassic2.png'
 /**
  * Marca visual de un evento para el panel.
  *
- * Los eventos todavía no guardan un logo propio: el único que existe como
- * asset es el de Pitbull Classic. Se resuelve por slug/título y, si algún día
- * el evento trae `logoUrl`, ese manda. Todo lo demás cae a un monograma con las
- * iniciales, que es lo que el listado muestra cuando no hay imagen.
+ * El logo propio del evento manda. Si no existe, Pitbull conserva su asset
+ * editorial y el resto cae a un monograma con iniciales.
  */
 const BRAND_LOGOS = [{ test: /pitbull/i, src: pitbullEmblem }]
 

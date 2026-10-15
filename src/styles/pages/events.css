@@ -1195,6 +1195,45 @@
   padding: 2px 0;
 }
 
+.events-page--plu-ref .event-card__identity,
+.events-page--plu-ref .events-detail__identity {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.events-page--plu-ref .event-card__mark,
+.events-page--plu-ref .events-detail__mark {
+  align-items: center;
+  background: color-mix(in oklab, var(--color-surface, #fff) 82%, var(--plu-gold-300, #d9aa3d));
+  border: 1px solid color-mix(in oklab, var(--plu-gold-400, #c69222) 38%, transparent);
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.events-page--plu-ref .event-card__mark {
+  border-radius: 50%;
+  height: 34px;
+  width: 34px;
+}
+
+.events-page--plu-ref .events-detail__mark {
+  border-radius: 6px;
+  height: 48px;
+  width: 48px;
+}
+
+.events-page--plu-ref .event-card__mark img,
+.events-page--plu-ref .events-detail__mark img {
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
+}
+
 .events-page--plu-ref .event-card__status {
   color: color-mix(in oklab, var(--color-text-muted) 88%, transparent);
   font-size: 10px;

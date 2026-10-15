@@ -318,9 +318,9 @@ export function eventYearFromIso(dateISO) {
 }
 
 export function listAdminEventYears(events = []) {
-  return [
-    ...new Set(events.map((event) => eventYearFromIso(event.dateISO)).filter(Boolean)),
-  ].sort((left, right) => right.localeCompare(left))
+  return [...new Set(events.map((event) => eventYearFromIso(event.dateISO)).filter(Boolean))].sort(
+    (left, right) => right.localeCompare(left),
+  )
 }
 
 export function defaultAdminEventYear(events = []) {
@@ -865,7 +865,7 @@ export const PUBLISHED_EVENTS_SELECT = `
   starts_at, ends_at,
   registration_opens_at, registration_closes_at,
   ticket_sales_opens_at, ticket_sales_closes_at,
-  capacity, status, published, requires_membership, price, manual_price, currency, rules,
+  capacity, status, published, requires_membership, price, manual_price, currency, rules, logo_path,
   scheduled_price, scheduled_manual_price, price_effective_at,
   live_stream_url, live_stream_provider, live_status, created_at, updated_at,
   eventDays:event_days(id, day_index, label, date),
@@ -903,7 +903,14 @@ export async function fetchPublishedEvents() {
     .select(PUBLISHED_EVENTS_SELECT)
     .eq('published', true)
   if (error) throw error
-  return (data ?? []).map((row) => mapPublishedEventRow(row))
+  return (data ?? []).map((row) => {
+    const logoUrl =
+      row.logo_url ??
+      (row.logo_path
+        ? supabase.storage.from('event-logos').getPublicUrl(row.logo_path).data.publicUrl
+        : null)
+    return mapPublishedEventRow({ ...row, logo_url: logoUrl })
+  })
 }
 
 /** Guarda el evento completo a través de Express y devuelve el estado

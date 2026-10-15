@@ -36,6 +36,16 @@
       ]
     },
     {
+      "source": "/docs/:path*",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; frame-ancestors 'self'; object-src 'none'"
+        },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {

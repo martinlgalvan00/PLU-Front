@@ -4,14 +4,15 @@ import { withPublicEventStatus } from '../src/lib/publicRegistrationPhase.js'
 
 const pricing = { ticketsEnabled: true }
 
-describe('la venta de entradas sigue el estado del evento, como el servidor', () => {
-  it('cerrado y finalizado no venden aunque el interruptor del evento esté prendido', () => {
+describe('la venta de entradas es independiente del estado de inscripción', () => {
+  it('cerrado mantiene la venta; finalizado la corta aunque el interruptor esté prendido', () => {
     expect(isTicketSalesEnabled({ pricing, status: 'inscripcion_abierta' })).toBe(true)
     expect(isTicketSalesEnabled({ pricing, status: 'cupos_limitados' })).toBe(true)
     expect(isTicketSalesEnabled({ pricing, status: 'agotado' })).toBe(true)
-    expect(isTicketSalesEnabled({ pricing, status: 'cerrado' })).toBe(false)
+    expect(isTicketSalesEnabled({ pricing, status: 'cerrado' })).toBe(true)
     expect(isTicketSalesEnabled({ pricing, status: 'finalizado' })).toBe(false)
-    expect(eventStatusClosesTicketSales({ status: 'cerrado' })).toBe(true)
+    expect(eventStatusClosesTicketSales({ status: 'cerrado' })).toBe(false)
+    expect(eventStatusClosesTicketSales({ status: 'finalizado' })).toBe(true)
   })
 
   it('un evento sin estado sigue como antes: lo decide el interruptor', () => {
@@ -35,7 +36,7 @@ describe('la venta de entradas sigue el estado del evento, como el servidor', ()
     expect(isTicketSalesEnabled(event)).toBe(true)
   })
 
-  it('si el estado guardado ya es cerrado, las entradas se cortan aunque se derive otro', () => {
-    expect(isTicketSalesEnabled({ pricing, status: 'cerrado', storedStatus: 'cerrado' })).toBe(false)
+  it('un cierre guardado de inscripción no corta la venta de entradas', () => {
+    expect(isTicketSalesEnabled({ pricing, status: 'cerrado', storedStatus: 'cerrado' })).toBe(true)
   })
 })
