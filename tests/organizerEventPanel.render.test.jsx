@@ -13,8 +13,13 @@ import EventsSection from '../src/pages/admin/EventsSection.jsx'
  */
 const fetchEventPayments = vi.hoisted(() => vi.fn())
 const fetchSiteTeaser = vi.hoisted(() => vi.fn())
+const listTicketsForEvent = vi.hoisted(() => vi.fn())
 
 vi.mock('../src/services/eventPaymentsService.js', () => ({ fetchEventPayments }))
+vi.mock('../src/services/ticketApi.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  listTicketsForEvent,
+}))
 vi.mock('../src/services/siteTeaserService.js', () => ({
   fetchSiteTeaser,
   saveSiteTeaser: vi.fn(),
@@ -64,6 +69,12 @@ beforeAll(() => {
 
 beforeEach(() => {
   fetchSiteTeaser.mockResolvedValue({ eventsEnabled: true })
+  listTicketsForEvent.mockResolvedValue({
+    tickets: [
+      { id: 't1', amountPaid: 12000, checkedInAt: '2026-08-15T14:00:00.000Z' },
+      { id: 't2', amountPaid: 12000, checkedInAt: null },
+    ],
+  })
   fetchEventPayments.mockResolvedValue({
     event: { id: 'evt-1', slug: EVENT.slug },
     summary: null,
@@ -200,6 +211,26 @@ describe('organizador: pestañas del evento', () => {
     const region = screen.getByRole('region', { name: 'Evento seleccionado' })
 
     expect(within(region).getByRole('checkbox', { name: /evento destacado/i }).disabled).toBe(true)
+  })
+})
+
+describe('organizador: resumen del evento', () => {
+  it('recaudación y asistencia salen de las entradas de SU evento, no del snapshot global', async () => {
+    // El snapshot global llega vacío (el servidor se lo niega): sin esto el Resumen mostraba ceros.
+    renderEvents({ tickets: [] })
+    const panel = openWorkspace()
+    openTab(panel, /resumen/i)
+
+    await waitFor(() => expect(listTicketsForEvent).toHaveBeenCalledWith(EVENT.slug))
+    expect(await screen.findByText(/según 2 entradas emitidas/i)).toBeTruthy()
+    expect(screen.getByText(/24\.000/)).toBeTruthy()
+  })
+
+  it('una cuenta sin restricción sigue usando el snapshot global y no pide las del evento', () => {
+    renderEvents({ eventScoped: false, tickets: [] })
+    const panel = openWorkspace()
+    openTab(panel, /resumen/i)
+    expect(listTicketsForEvent).not.toHaveBeenCalled()
   })
 })
 

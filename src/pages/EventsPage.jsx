@@ -337,8 +337,8 @@ function EventsDetailPanel({
 function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = false }) {
   const pricing = ticketPricingFromEvent(event)
   const ticketPrice = cheapestTicketTypePrice(pricing)
-  // El servidor no vende entradas de un evento cerrado o finalizado: se dice
-  // "Venta cerrada" en vez de ofrecer una compra que va a rebotar.
+  // Solo `finalizado` corta la venta: `cerrado` es de inscripción de atletas.
+  // Si aplica, se dice "Venta cerrada" en vez de ofrecer una compra que rebota.
   const salesClosed = eventStatusClosesTicketSales(event)
   const hasPublishedPrice =
     event?.pricing?.ticketsEnabled === true && ticketPrice != null && !salesClosed
