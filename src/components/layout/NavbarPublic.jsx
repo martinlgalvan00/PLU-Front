@@ -76,10 +76,19 @@ const NOTICE_FIELD_KEYS = {
   phone: 'account.personalData.phone',
   city: 'account.personalData.city',
   province: 'account.personalData.province',
+  streetAddress: 'account.personalData.streetAddress',
+  postalCode: 'account.personalData.postalCode',
+  email: 'account.personalData.email',
   gym: 'account.personalData.gym',
+  sex: 'account.personalData.sex',
   division: 'account.personalData.division',
   category: 'account.personalData.category',
   estimatedWeight: 'account.personalData.estimatedWeight',
+  fullName: 'account.personalData.fullName',
+  birthDate: 'account.personalData.birthDate',
+  country: 'pages.register.country',
+  emergencyContactName: 'account.personalData.emergencyName',
+  emergencyContactPhone: 'account.personalData.emergencyPhone',
 }
 
 function noticeFieldLabels(notice, t) {

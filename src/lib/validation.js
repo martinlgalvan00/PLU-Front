@@ -1,4 +1,5 @@
 ﻿import { z } from 'zod'
+import { isDivisionAllowedForAge } from '../../shared/ageDivision.js'
 
 function todayInBuenosAires() {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -108,7 +109,7 @@ function buildAthleteProfileSchema(t, country) {
   })
 }
 
-function buildCompetitionSchema(t) {
+function buildCompetitionObjectSchema(t) {
   const msg = (key) => (t ? t(`validation.${key}`) : undefined)
 
   return z.object({
@@ -127,6 +128,28 @@ function buildCompetitionSchema(t) {
     ),
     paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']),
   })
+}
+
+function buildCompetitionSchema(t, { birthDate = null, eventDate = null } = {}) {
+  const msg = (key) => (t ? t(`validation.${key}`) : undefined)
+  return buildCompetitionObjectSchema(t).superRefine((data, ctx) => {
+    if (!birthDate) return
+    if (!isDivisionAllowedForAge(data.division, birthDate, eventDate || undefined)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['division'],
+        message:
+          msg('divisionAge') ??
+          'Esa división no corresponde a tu edad en la fecha del evento.',
+      })
+    }
+  })
+}
+
+function divisionAgeError(t) {
+  return t
+    ? t('validation.divisionAge')
+    : 'Esa división no corresponde a tu edad en la fecha del evento.'
 }
 
 function buildMembershipSchema() {
@@ -168,16 +191,26 @@ export function validateAthleteFields(form, fields, t) {
   return formatResult(z.object(shape).safeParse(form), t)
 }
 
-export function validateCompetitionFields(form, fields, t) {
-  const schema = buildCompetitionSchema(t)
+export function validateCompetitionFields(form, fields, t, ageContext = {}) {
+  const objectSchema = buildCompetitionObjectSchema(t)
   const shape = Object.fromEntries(
-    fields.filter((field) => schema.shape[field]).map((field) => [field, schema.shape[field]]),
+    fields.filter((field) => objectSchema.shape[field]).map((field) => [field, objectSchema.shape[field]]),
   )
-  return formatResult(z.object(shape).safeParse(form), t)
+  const result = formatResult(z.object(shape).safeParse(form), t)
+  if (
+    result.success &&
+    fields.includes('division') &&
+    ageContext.birthDate &&
+    !isDivisionAllowedForAge(form.division, ageContext.birthDate, ageContext.eventDate || undefined)
+  ) {
+    const message = divisionAgeError(t)
+    return { success: false, error: message, errors: { division: message } }
+  }
+  return result
 }
 
-export function validateCompetitionForm(form, t) {
-  return formatResult(buildCompetitionSchema(t).safeParse(form), t)
+export function validateCompetitionForm(form, t, ageContext = {}) {
+  return formatResult(buildCompetitionSchema(t, ageContext).safeParse(form), t)
 }
 
 export function validateMembershipForm(form, t) {

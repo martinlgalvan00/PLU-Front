@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Camera,
   CheckCircle2,
@@ -18,6 +18,7 @@ import { formatIdentityDocumentId, formatShortDate, initials } from '../../lib/f
 import { isNewGymName } from '../../lib/gymNormalize.js'
 import { isProfileComplete, PROFILE_FIELD_GROUPS } from '../../lib/athleteProfile.js'
 import { getFormOptions } from '../../lib/formOptions.js'
+import { useAgeDivisionOptions } from '../../hooks/useAgeDivisionOptions.js'
 import { fetchGyms } from '../../services/athleteApi.js'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -39,11 +40,20 @@ function exclusiveGroups(openKey) {
 }
 
 function firstIncompleteGroup(missing) {
-  if (missing.some((field) => ['phone', 'city', 'province'].includes(field))) return 'contact'
+  if (
+    missing.some((field) =>
+      ['phone', 'city', 'province', 'streetAddress', 'postalCode', 'email'].includes(field),
+    )
+  ) {
+    return 'contact'
+  }
   if (missing.some((field) => ['division', 'category', 'estimatedWeight'].includes(field))) {
     return 'competition'
   }
-  if (missing.includes('gym')) return 'sports'
+  if (missing.some((field) => ['gym', 'sex'].includes(field))) return 'sports'
+  if (missing.some((field) => ['emergencyContactName', 'emergencyContactPhone'].includes(field))) {
+    return 'emergency'
+  }
   return null
 }
 
@@ -67,6 +77,8 @@ export default function PersonalDataSection({
     phone: athlete.phone ?? '',
     city: athlete.city ?? '',
     province: athlete.province ?? '',
+    streetAddress: athlete.streetAddress ?? '',
+    postalCode: athlete.postalCode ?? '',
     gym: athlete.gym ?? '',
     sex: athlete.sex ?? '',
     fullName: athlete.fullName ?? '',
@@ -136,7 +148,23 @@ export default function PersonalDataSection({
   // Evaluar completitud del perfil mezclando lo que hay en BD + cambios locales del form
   const athleteWithForm = { ...athlete, ...form }
   const profileStatus = isProfileComplete(athleteWithForm)
-  const formOptions = getFormOptions(t)
+  const formOptions = useMemo(() => getFormOptions(t), [t])
+  const ageDivision = useAgeDivisionOptions({
+    birthDate: form.birthDate || athlete.birthDate,
+    allDivisions: formOptions.division,
+    currentDivision: form.division,
+  })
+
+  // Auto-completa / clampa división cuando hay DOB (franja natural + Open).
+  useEffect(() => {
+    if (!ageDivision.changed || !ageDivision.value) return
+    setForm((current) =>
+      current.division === ageDivision.value
+        ? current
+        : { ...current, division: ageDivision.value },
+    )
+  }, [ageDivision.changed, ageDivision.value])
+
   const contactSummary = filledSummary(
     [form.phone, form.city, form.province],
     t('account.personalData.contactSummary'),
@@ -297,7 +325,7 @@ export default function PersonalDataSection({
         nextErrors.bestTotalKg = t('account.personalData.errorBestTotal')
       }
     }
-    if (!formOptions.division.includes(form.division)) {
+    if (!ageDivision.options.includes(form.division)) {
       nextErrors.division = t('account.personalData.errorDivision')
     }
     if (!formOptions.category.includes(form.category)) {
@@ -621,6 +649,20 @@ export default function PersonalDataSection({
               value={form.province}
               onChange={changeField}
             />
+            <Field
+              label={t('account.personalData.streetAddress')}
+              name="streetAddress"
+              value={form.streetAddress}
+              onChange={changeField}
+              placeholder={t('account.personalData.streetAddressPlaceholder')}
+            />
+            <Field
+              label={t('account.personalData.postalCode')}
+              name="postalCode"
+              value={form.postalCode}
+              onChange={changeField}
+              placeholder={t('account.personalData.postalCodePlaceholder')}
+            />
           </div>
         </section>
 
@@ -663,7 +705,7 @@ export default function PersonalDataSection({
               error={errors.division}
               label={`${t('account.personalData.division')} *`}
               name="division"
-              options={[['', t('formOptions.selectPlaceholder')], ...formOptions.division]}
+              options={[['', t('formOptions.selectPlaceholder')], ...ageDivision.options]}
               value={form.division}
               onChange={changeField}
             />
@@ -684,6 +726,13 @@ export default function PersonalDataSection({
               value={form.estimatedWeight}
               onChange={changeField}
             />
+            {ageDivision.hasAgeRule && ageDivision.suggested ? (
+              <p className="account-data-group__note form-grid__span-full" role="status">
+                {t('account.personalData.divisionAgeHint', {
+                  division: ageDivision.suggested,
+                })}
+              </p>
+            ) : null}
             <p className="account-data-group__note form-grid__span-full">
               {t('account.personalData.competitionDefaultsNote')}
             </p>

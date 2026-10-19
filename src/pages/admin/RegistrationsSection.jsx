@@ -70,6 +70,11 @@ import {
   buildAdminFacetOptions,
 } from '../../lib/adminPeopleFilters.js'
 import { registrationEventFilterKey } from '../../lib/athleteEventStatus.js'
+import { resolveLiftersColumnKeys } from '../../../shared/liftersExport.js'
+import {
+  loadLiftersExportStudioOptions,
+  saveLiftersExportStudioOptions,
+} from '../../lib/liftersExportStudio.js'
 
 // Fallback estable para cuando no llega la prop (Storybook, tests) — evita
 // tener que null-check `gatePendingIds` en cada lugar que lo usa.
@@ -148,6 +153,9 @@ export default function RegistrationsSection({
   onRejectPayment,
   onExportAdmin,
   onExportPluUsa,
+  onExportLifters,
+  onFetchLiftersReadiness,
+  onNotifyAthletesIncomplete,
   onGoToEvents,
   onRefreshAthleteData,
   onScheduleAssigned,
@@ -192,6 +200,33 @@ export default function RegistrationsSection({
   const [savingBulkStatus, setSavingBulkStatus] = useState(false)
   const [validationEnabled, setValidationEnabled] = useState(true)
   const [proofTarget, setProofTarget] = useState(null)
+  const [liftersOpen, setLiftersOpen] = useState(false)
+  const [liftersLoading, setLiftersLoading] = useState(false)
+  const [liftersNotifying, setLiftersNotifying] = useState(false)
+  const [liftersReadiness, setLiftersReadiness] = useState(null)
+  const [liftersError, setLiftersError] = useState('')
+  const [liftersStudio, setLiftersStudio] = useState(() => loadLiftersExportStudioOptions())
+
+  const updateLiftersStudio = useCallback((patch) => {
+    setLiftersStudio((prev) => saveLiftersExportStudioOptions({ ...prev, ...patch, columns: null }))
+  }, [])
+
+  const liftersPreview = useMemo(() => {
+    if (!liftersReadiness) return null
+    const total = liftersReadiness.total ?? 0
+    const incomplete = liftersReadiness.incomplete ?? 0
+    const complete = liftersReadiness.complete ?? Math.max(0, total - incomplete)
+    const rowCount =
+      liftersStudio.rowFilter === 'complete'
+        ? complete
+        : liftersStudio.rowFilter === 'incomplete'
+          ? incomplete
+          : total
+    return {
+      rowCount,
+      columnCount: resolveLiftersColumnKeys(liftersStudio).length,
+    }
+  }, [liftersReadiness, liftersStudio])
 
   useEffect(() => {
     startTour('admin-registrations', getRegistrationsTourSteps(t))
@@ -814,6 +849,249 @@ export default function RegistrationsSection({
         entries={unreconciledPayments}
         onSelectAthlete={onSelectAthlete}
       />
+      {liftersOpen ? (
+        <div
+          className="admin-lifters-export"
+          role="region"
+          aria-label={t('admin.actions.exportLifters')}
+        >
+          <div className="admin-lifters-export__head">
+            <div>
+              <p className="admin-lifters-export__eyebrow">{t('admin.liftersExport.eyebrow')}</p>
+              <strong className="admin-lifters-export__title">{t('admin.liftersExport.title')}</strong>
+              <p className="admin-lifters-export__lead">{t('admin.liftersExport.lead')}</p>
+            </div>
+            <Button type="button" variant="ghost" onClick={() => setLiftersOpen(false)}>
+              {t('admin.liftersExport.close')}
+            </Button>
+          </div>
+          {liftersLoading ? <p className="admin-lifters-export__status">{t('admin.liftersExport.loading')}</p> : null}
+          {liftersError ? (
+            <p className="admin-lifters-export__error" role="alert">
+              {liftersError}
+            </p>
+          ) : null}
+          {liftersReadiness ? (
+            <div className="admin-lifters-export__grid">
+              <div className="admin-lifters-export__stats">
+                <div className="admin-lifters-export__stat">
+                  <span>{t('admin.liftersExport.statTotal')}</span>
+                  <strong>{liftersReadiness.total}</strong>
+                </div>
+                <div className="admin-lifters-export__stat admin-lifters-export__stat--ok">
+                  <span>{t('admin.liftersExport.statComplete')}</span>
+                  <strong>{liftersReadiness.complete}</strong>
+                </div>
+                <div className="admin-lifters-export__stat admin-lifters-export__stat--warn">
+                  <span>{t('admin.liftersExport.statIncomplete')}</span>
+                  <strong>{liftersReadiness.incomplete}</strong>
+                </div>
+                <div className="admin-lifters-export__stat admin-lifters-export__stat--info">
+                  <span>{t('admin.liftersExport.statOpenUpgrade')}</span>
+                  <strong>{liftersReadiness.divisionOpenUpgrade ?? 0}</strong>
+                </div>
+                <div className="admin-lifters-export__stat admin-lifters-export__stat--danger">
+                  <span>{t('admin.liftersExport.statDivisionMismatch')}</span>
+                  <strong>{liftersReadiness.divisionMismatch ?? 0}</strong>
+                </div>
+              </div>
+              {(liftersReadiness.divisionMismatch ?? 0) > 0 ? (
+                <p className="admin-lifters-export__hint" role="status">
+                  {t('admin.liftersExport.divisionMismatchLead', {
+                    count: liftersReadiness.divisionMismatch,
+                  })}
+                </p>
+              ) : null}
+              {liftersReadiness.incomplete > 0 ? (
+                <>
+                  <div className="admin-lifters-export__gaps">
+                    <h3>{t('admin.liftersExport.gapsTitle')}</h3>
+                    <p className="admin-lifters-export__gaps-lead">{t('admin.liftersExport.gapsLead')}</p>
+                    <ol className="admin-lifters-export__gap-list">
+                      {(liftersReadiness.topGaps ?? liftersReadiness.fieldGaps ?? [])
+                        .slice(0, 8)
+                        .map((gap) => (
+                          <li key={gap.field}>
+                            <div className="admin-lifters-export__gap-meta">
+                              <span>{t(`admin.liftersExport.fields.${gap.field}`)}</span>
+                              <span>
+                                {t('admin.liftersExport.gapCount', {
+                                  count: gap.count,
+                                  percent: gap.percent,
+                                })}
+                              </span>
+                            </div>
+                            <div
+                              className="admin-lifters-export__gap-bar"
+                              role="presentation"
+                              aria-hidden
+                            >
+                              <span style={{ width: `${Math.min(100, gap.percent)}%` }} />
+                            </div>
+                          </li>
+                        ))}
+                    </ol>
+                  </div>
+                  <div className="admin-lifters-export__athletes">
+                    <h3>{t('admin.liftersExport.athletesTitle')}</h3>
+                    <ul className="admin-lifters-export__list">
+                      {liftersReadiness.athletes.slice(0, 10).map((row) => (
+                        <li key={row.athleteId}>
+                          <button
+                            type="button"
+                            className="admin-empty__text-link"
+                            onClick={() => onSelectAthlete?.(row.athleteId)}
+                          >
+                            {row.name || row.athleteId}
+                          </button>
+                          <span className="admin-lifters-export__missing">
+                            {(row.missing ?? [])
+                              .slice(0, 4)
+                              .map((field) => t(`admin.liftersExport.fields.${field}`))
+                              .join(' · ')}
+                            {(row.missing?.length ?? 0) > 4
+                              ? ` +${row.missing.length - 4}`
+                              : ''}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    {liftersReadiness.athletes.length > 10 ? (
+                      <p className="admin-lifters-export__more">
+                        {t('admin.liftersExport.more', {
+                          count: liftersReadiness.athletes.length - 10,
+                        })}
+                      </p>
+                    ) : null}
+                  </div>
+                </>
+              ) : (
+                <p className="admin-lifters-export__ready">{t('admin.liftersExport.allComplete')}</p>
+              )}
+            </div>
+          ) : null}
+          <div className="admin-lifters-export__studio">
+            <h3>{t('admin.liftersExport.studioTitle')}</h3>
+            <p className="admin-lifters-export__studio-lead">{t('admin.liftersExport.studioLead')}</p>
+            <div className="admin-lifters-export__studio-grid">
+              <label className="admin-lifters-export__field">
+                <span>{t('admin.liftersExport.presetLabel')}</span>
+                <select
+                  value={liftersStudio.preset}
+                  onChange={(event) => updateLiftersStudio({ preset: event.target.value })}
+                >
+                  <option value="audit">{t('admin.liftersExport.presets.audit')}</option>
+                  <option value="official">{t('admin.liftersExport.presets.official')}</option>
+                  <option value="minimal">{t('admin.liftersExport.presets.minimal')}</option>
+                  <option value="contact">{t('admin.liftersExport.presets.contact')}</option>
+                </select>
+              </label>
+              <label className="admin-lifters-export__field">
+                <span>{t('admin.liftersExport.rowFilterLabel')}</span>
+                <select
+                  value={liftersStudio.rowFilter}
+                  onChange={(event) => updateLiftersStudio({ rowFilter: event.target.value })}
+                >
+                  <option value="all">{t('admin.liftersExport.rowFilters.all')}</option>
+                  <option value="complete">{t('admin.liftersExport.rowFilters.complete')}</option>
+                  <option value="incomplete">
+                    {t('admin.liftersExport.rowFilters.incomplete')}
+                  </option>
+                </select>
+              </label>
+              <label className="admin-lifters-export__check">
+                <input
+                  type="checkbox"
+                  checked={liftersStudio.highlightEmpty}
+                  onChange={(event) =>
+                    updateLiftersStudio({ highlightEmpty: event.target.checked })
+                  }
+                />
+                <span>{t('admin.liftersExport.highlightEmpty')}</span>
+              </label>
+              <label className="admin-lifters-export__check">
+                <input
+                  type="checkbox"
+                  checked={liftersStudio.freezeHeader}
+                  onChange={(event) =>
+                    updateLiftersStudio({ freezeHeader: event.target.checked })
+                  }
+                />
+                <span>{t('admin.liftersExport.freezeHeader')}</span>
+              </label>
+            </div>
+            {liftersPreview ? (
+              <p className="admin-lifters-export__preview">
+                {t('admin.liftersExport.preview', {
+                  rows: liftersPreview.rowCount,
+                  columns: liftersPreview.columnCount,
+                })}
+              </p>
+            ) : null}
+          </div>
+          <div className="admin-lifters-export__actions">
+            <Button
+              type="button"
+              variant="primary"
+              disabled={
+                liftersLoading ||
+                !onExportLifters ||
+                (liftersPreview != null && liftersPreview.rowCount === 0)
+              }
+              onClick={() =>
+                onExportLifters?.({
+                  eventSlug: filters.event && filters.event !== 'all' ? filters.event : null,
+                  options: liftersStudio,
+                })
+              }
+            >
+              {t('admin.liftersExport.download')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={
+                liftersLoading ||
+                liftersNotifying ||
+                !onNotifyAthletesIncomplete ||
+                !liftersReadiness?.incomplete
+              }
+              onClick={async () => {
+                const ids = (liftersReadiness?.athletes ?? []).map((row) => row.athleteId)
+                if (!ids.length) return
+                const topFields = (liftersReadiness.topGaps ?? liftersReadiness.fieldGaps ?? [])
+                  .slice(0, 4)
+                  .map((gap) => t(`admin.liftersExport.fields.${gap.field}`))
+                  .join(', ')
+                const message = topFields
+                  ? t('admin.liftersExport.notifyPresetWithGaps', { fields: topFields })
+                  : t('admin.liftersExport.notifyPreset')
+                setLiftersNotifying(true)
+                try {
+                  const result = await onNotifyAthletesIncomplete(ids, message)
+                  toastSuccess(
+                    t('admin.liftersExport.notifyDone', {
+                      sent: result?.sent?.length ?? 0,
+                      skipped: result?.skipped?.length ?? 0,
+                    }),
+                  )
+                } catch (error) {
+                  toastError(error?.message ?? t('admin.liftersExport.notifyError'))
+                } finally {
+                  setLiftersNotifying(false)
+                }
+              }}
+            >
+              {liftersNotifying
+                ? t('admin.liftersExport.notifying')
+                : t('admin.liftersExport.notify')}
+            </Button>
+          </div>
+          {liftersReadiness?.incomplete > 0 ? (
+            <p className="admin-lifters-export__hint">{t('admin.liftersExport.notifyHint')}</p>
+          ) : null}
+        </div>
+      ) : null}
       {!validationEnabled ? (
         <div className="admin-payments-ops-callout" role="status">
           <AlertTriangle size={16} aria-hidden />
@@ -845,15 +1123,52 @@ export default function RegistrationsSection({
             <>
               <ExportButton
                 label={t('admin.actions.exportCsvShort')}
-                ariaLabel={t('admin.actions.exportCsvAdmin')}
-                onClick={onExportAdmin}
+                ariaLabel={
+                  filters.event && filters.event !== 'all'
+                    ? t('admin.actions.exportCsvAdminFiltered')
+                    : t('admin.actions.exportCsvAdmin')
+                }
+                onClick={() =>
+                  onExportAdmin?.({
+                    eventSlug:
+                      filters.event && filters.event !== 'all' ? filters.event : null,
+                  })
+                }
                 disabled={!canEdit}
               />
               <ExportButton
                 label={t('admin.actions.exportPluUsaShort')}
-                ariaLabel={t('admin.actions.exportPluUsa')}
-                onClick={onExportPluUsa}
+                ariaLabel={
+                  filters.event && filters.event !== 'all'
+                    ? t('admin.actions.exportPluUsaFiltered')
+                    : t('admin.actions.exportPluUsa')
+                }
+                onClick={() =>
+                  onExportPluUsa?.({
+                    eventSlug:
+                      filters.event && filters.event !== 'all' ? filters.event : null,
+                  })
+                }
                 variant="gold"
+              />
+              <ExportButton
+                label={t('admin.actions.exportLiftersShort')}
+                ariaLabel={t('admin.actions.exportLifters')}
+                onClick={async () => {
+                  const eventSlug =
+                    filters.event && filters.event !== 'all' ? filters.event : null
+                  setLiftersOpen(true)
+                  setLiftersLoading(true)
+                  setLiftersError('')
+                  setLiftersReadiness(null)
+                  const result = await onFetchLiftersReadiness?.({ eventSlug })
+                  setLiftersLoading(false)
+                  if (result?.error) {
+                    setLiftersError(result.error)
+                    return
+                  }
+                  setLiftersReadiness(result?.readiness ?? null)
+                }}
               />
             </>
           )

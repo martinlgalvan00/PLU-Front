@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { validateAthleteForm } from '../src/lib/validation.js'
+import { validateAthleteForm, validateCompetitionForm } from '../src/lib/validation.js'
 import { DEFAULT_FORM } from '../src/lib/constants.js'
 
 describe('validation', () => {
@@ -109,5 +109,33 @@ describe('validation', () => {
 
     expect(result.success).toBe(false)
     expect(result.errors.password).toBe('Usá al menos 12 caracteres.')
+  })
+
+  it('rechaza división fuera de franja de edad', () => {
+    const t = (key) =>
+      ({
+        'validation.divisionAge': 'División no válida por edad.',
+        'validation.invalid': 'Datos inválidos',
+      })[key] ?? key
+
+    const form = {
+      division: 'Masters',
+      category: 'Raw',
+      estimatedWeight: '83',
+      paymentMethod: 'mercado_pago',
+    }
+    const rejected = validateCompetitionForm(form, t, {
+      birthDate: '2005-06-01',
+      eventDate: '2026-10-19',
+    })
+    expect(rejected.success).toBe(false)
+    expect(rejected.errors.division).toBe('División no válida por edad.')
+
+    const accepted = validateCompetitionForm(
+      { ...form, division: 'Open' },
+      t,
+      { birthDate: '2005-06-01', eventDate: '2026-10-19' },
+    )
+    expect(accepted.success).toBe(true)
   })
 })

@@ -111,6 +111,8 @@ import {
   validateCompetitionForm,
   validateMembershipForm,
 } from '../lib/validation.js'
+import { ageOnDate } from '../../shared/ageDivision.js'
+import { useAgeDivisionOptions } from '../hooks/useAgeDivisionOptions.js'
 
 const PASSWORD_STRENGTH_LABEL_KEYS = [
   'pages.register.passwordStrengthWeak',
@@ -158,19 +160,6 @@ function PasswordStrengthMeter({ password, t }) {
       </div>
     </div>
   )
-}
-
-function ageAtEvent(birthDate, eventDate) {
-  if (!birthDate || !eventDate) return null
-  const birth = new Date(`${birthDate}T12:00:00`)
-  const event = new Date(eventDate)
-  if (Number.isNaN(birth.getTime()) || Number.isNaN(event.getTime())) return null
-  let age = event.getUTCFullYear() - birth.getUTCFullYear()
-  const birthdayThisYear = new Date(
-    Date.UTC(event.getUTCFullYear(), birth.getUTCMonth(), birth.getUTCDate()),
-  )
-  if (event < birthdayThisYear) age -= 1
-  return age >= 0 ? age : null
 }
 
 /**
@@ -513,6 +502,24 @@ export default function RegisterPage({
   const { locale, t } = useI18n()
   const formOptions = useMemo(() => getFormOptions(t), [t])
   const profileSteps = useMemo(() => getProfileSteps(t), [t])
+  const competitionEventDate = event?.startsAt ?? event?.starts_at ?? event?.date ?? null
+  const competitionAgeContext = useMemo(
+    () => ({
+      birthDate: athlete?.birthDate ?? null,
+      eventDate: competitionEventDate,
+    }),
+    [athlete?.birthDate, competitionEventDate],
+  )
+  const ageDivision = useAgeDivisionOptions({
+    birthDate: flow === 'competition' ? athlete?.birthDate ?? null : null,
+    eventDate: competitionEventDate,
+    allDivisions: formOptions.division,
+    currentDivision: form.division,
+  })
+  const divisionOptions =
+    flow === 'competition' && ageDivision.hasAgeRule
+      ? ageDivision.options
+      : formOptions.division
 
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
@@ -656,7 +663,7 @@ export default function RegisterPage({
   }, [athlete, event?.slug, flow, registrations])
   const competitionProfileDetails = useMemo(() => {
     if (flow !== 'competition' || !athlete) return []
-    const age = ageAtEvent(athlete.birthDate, event?.startsAt ?? event?.starts_at)
+    const age = ageOnDate(athlete.birthDate, competitionEventDate)
     return [
       [t('account.personalData.fullName'), athlete.fullName],
       [
@@ -683,7 +690,7 @@ export default function RegisterPage({
         athlete.bestTotalKg ? `${athlete.bestTotalKg} kg` : null,
       ],
     ].filter(([, value]) => value)
-  }, [athlete, event, flow, locale, t])
+  }, [athlete, competitionEventDate, flow, locale, t])
   const profileProgress = useMemo(
     () => (flow === 'profile' ? getProfileProgress(form, profileSteps) : null),
     [flow, form, profileSteps],
@@ -714,13 +721,14 @@ export default function RegisterPage({
   }, [flow])
 
   // El perfil es la fuente de verdad. Al ingresar a un torneo se cargan las
-  // preferencias competitivas guardadas, sin volver a pedirle al atleta datos
-  // que ya confirmó en su cuenta.
+  // preferencias competitivas guardadas. La división se auto-completa / clampa
+  // con la franja de edad del evento (Open siempre permitido desde los 10).
   useEffect(() => {
     if (flow !== 'competition' || !athlete || competitionPrefillRef.current === athlete.id) return
     competitionPrefillRef.current = athlete.id
+    const division = ageDivision.value || athlete.division
     ;[
-      ['division', athlete.division],
+      ['division', division],
       ['category', athlete.category],
       ['estimatedWeight', athlete.estimatedWeight],
     ].forEach(([name, value]) => {
@@ -728,7 +736,22 @@ export default function RegisterPage({
         onUpdateForm({ target: { name, value: String(value) } })
       }
     })
-  }, [athlete, flow, onUpdateForm])
+  }, [ageDivision.value, athlete, flow, onUpdateForm])
+
+  // Vacío, inválida o cambio de evento/DOB → sugerida (autocomplete).
+  useEffect(() => {
+    if (flow !== 'competition' || committedCompetitionRegistration) return
+    if (!ageDivision.changed || !ageDivision.value) return
+    if (form.division === ageDivision.value) return
+    onUpdateForm({ target: { name: 'division', value: ageDivision.value } })
+  }, [
+    ageDivision.changed,
+    ageDivision.value,
+    committedCompetitionRegistration,
+    flow,
+    form.division,
+    onUpdateForm,
+  ])
 
   // La categoría, división y peso declarados pertenecen a la inscripción, no
   // a las preferencias del perfil. Si ya existe una inscripción activa para
@@ -1657,7 +1680,7 @@ export default function RegisterPage({
     const snapshot = { ...form, [field]: rawValue }
     const validation =
       flow === 'competition'
-        ? validateCompetitionFields(snapshot, [field], t)
+        ? validateCompetitionFields(snapshot, [field], t, competitionAgeContext)
         : flow === 'profile'
           ? validateAthleteFields(snapshot, [field], t)
           : null
@@ -1874,7 +1897,7 @@ export default function RegisterPage({
       flow === 'profile'
         ? validateAthleteForm(form, t)
         : flow === 'competition'
-          ? validateCompetitionForm(form, t)
+          ? validateCompetitionForm(form, t, competitionAgeContext)
           : validateMembershipForm(form, t)
 
     if (!validation.success) {
@@ -2681,7 +2704,7 @@ export default function RegisterPage({
           value={form.division}
           onBlur={blurField}
           onChange={changeField}
-          options={formOptions.division}
+          options={divisionOptions}
         />
         <ChoiceField
           className="register-competition-choice register-competition-choice--category"
@@ -2706,6 +2729,11 @@ export default function RegisterPage({
           onBlur={blurField}
           onChange={changeField}
         />
+        {ageDivision.hasAgeRule && ageDivision.suggested && !committedCompetitionRegistration ? (
+          <p className="register-competition-division-hint" role="status">
+            {t('pages.register.divisionAgeHint', { division: ageDivision.suggested })}
+          </p>
+        ) : null}
       </div>
     </FormSection>
   )
