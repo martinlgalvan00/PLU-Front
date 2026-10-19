@@ -3257,6 +3257,242 @@
   padding-block: 10px;
 }
 
+.admin-lifters-export {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--admin-border, color-mix(in srgb, var(--color-border) 85%, transparent));
+  border-radius: var(--radius-md, 10px);
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-bg));
+}
+
+.admin-lifters-export__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-lifters-export__eyebrow {
+  margin: 0 0 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--admin-muted, var(--color-text-muted));
+}
+
+.admin-lifters-export__title {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.admin-lifters-export__lead,
+.admin-lifters-export__gaps-lead,
+.admin-lifters-export__hint,
+.admin-lifters-export__status,
+.admin-lifters-export__more,
+.admin-lifters-export__ready {
+  margin: 0.35rem 0 0;
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 0.85rem;
+  line-height: 1.45;
+  max-width: 70ch;
+}
+
+.admin-lifters-export__error {
+  margin: 0;
+  color: var(--color-danger, #b42318);
+  font-size: 0.875rem;
+}
+
+.admin-lifters-export__grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 900px) {
+  .admin-lifters-export__grid {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  }
+
+  .admin-lifters-export__stats {
+    grid-column: 1 / -1;
+  }
+}
+
+.admin-lifters-export__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.65rem;
+}
+
+.admin-lifters-export__stat {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+.admin-lifters-export__stat span {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--admin-muted, var(--color-text-muted));
+}
+
+.admin-lifters-export__stat strong {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.admin-lifters-export__stat--ok strong {
+  color: var(--color-success, #15803d);
+}
+
+.admin-lifters-export__stat--warn strong {
+  color: var(--color-warning, #b45309);
+}
+
+.admin-lifters-export__stat--info strong {
+  color: var(--color-info, #1d4ed8);
+}
+
+.admin-lifters-export__stat--danger strong {
+  color: var(--color-danger, #b42318);
+}
+
+.admin-lifters-export__gaps h3,
+.admin-lifters-export__athletes h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--admin-muted, var(--color-text-muted));
+}
+
+.admin-lifters-export__gap-list,
+.admin-lifters-export__list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.admin-lifters-export__gap-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.admin-lifters-export__gap-bar {
+  margin-top: 0.3rem;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-border) 55%, transparent);
+  overflow: hidden;
+}
+
+.admin-lifters-export__gap-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f59e0b, #ea580c);
+}
+
+.admin-lifters-export__list > li {
+  display: grid;
+  gap: 0.15rem;
+  font-size: 0.875rem;
+}
+
+.admin-lifters-export__missing {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 0.78rem;
+}
+
+.admin-lifters-export__studio {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 8px;
+  border: 1px dashed color-mix(in srgb, var(--color-border) 80%, transparent);
+  background: color-mix(in srgb, var(--color-bg) 65%, transparent);
+}
+
+.admin-lifters-export__studio h3 {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--admin-muted, var(--color-text-muted));
+}
+
+.admin-lifters-export__studio-lead,
+.admin-lifters-export__preview {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--admin-muted, var(--color-text-muted));
+}
+
+.admin-lifters-export__studio-grid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  align-items: end;
+}
+
+.admin-lifters-export__field {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--admin-muted, var(--color-text-muted));
+}
+
+.admin-lifters-export__field select {
+  min-height: 2.25rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface, var(--color-bg));
+  color: var(--color-text);
+  font-size: 0.875rem;
+}
+
+.admin-lifters-export__check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.25rem;
+  font-size: 0.85rem;
+}
+
+.admin-lifters-export__preview {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.admin-lifters-export__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-lifters-export__hint {
+  margin-top: 0;
+}
+
 .admin-payments-ops-callout > svg {
   color: var(--admin-status-warning, #c9a227);
   margin-top: 2px;

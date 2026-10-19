@@ -891,6 +891,8 @@ export default function App() {
           onCreateRole={app.createAccessRoleAction}
           onExportAdmin={app.exportAdminCsv}
           onExportPluUsa={app.exportPluUsaCsv}
+          onExportLifters={app.exportLiftersXls}
+          onFetchLiftersReadiness={app.fetchLiftersReadiness}
           onSaveEvent={app.saveAdminEvent}
           onDeleteEvent={app.deleteAdminEvent}
           onFetchEventDeleteImpact={app.fetchAdminEventDeleteImpact}

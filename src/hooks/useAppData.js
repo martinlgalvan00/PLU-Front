@@ -73,8 +73,10 @@ import {
   deleteAthleteRequest,
   deleteMembershipRequest,
   deleteRegistrationRequest,
+  downloadAdminExport,
   fetchAdminAthleteData,
   fetchAdminPhotoUrls,
+  fetchLiftersExportReadiness,
   fetchAthleteSession,
   fetchAthleteSnapshot,
   forceSettleAthletePaymentOrder as forceSettleAthletePaymentOrderRequest,
@@ -155,7 +157,9 @@ import {
   buildAdminExportRows,
   buildPluUsaExportRows,
   createCsv,
+  downloadBlob,
 } from '../services/exportService.js'
+import { notifyError, notifySuccess } from '../lib/adminToast.js'
 import {
   buildPendingActions,
   buildDashboardOverview,
@@ -3309,17 +3313,209 @@ export function useAppData() {
     }
   }, [])
 
-  const exportAdminCsv = useCallback(() => {
-    if (!hasPermission(session, 'admin.exports.admin')) return
-    const rows = buildAdminExportRows(registrations, athletes, memberships, payments)
-    createCsv('plu-arg-admin-export.csv', rows)
-  }, [registrations, athletes, memberships, payments, session])
+  const exportAdminCsv = useCallback(
+    async ({ eventSlug = null, format = 'csv' } = {}) => {
+      if (!hasPermission(session, 'admin.exports.admin')) return { ok: false }
 
-  const exportPluUsaCsv = useCallback(() => {
-    if (!hasPermission(session, 'admin.exports.plu_usa')) return
-    const rows = buildPluUsaExportRows(athletes, memberships, registrations)
-    createCsv('plu-usa-export.csv', rows)
-  }, [athletes, memberships, registrations, session])
+      const runLocal = () => {
+        const scopedRegistrations = eventSlug
+          ? registrations.filter(
+              (item) => item.eventSlug === eventSlug || item.event === eventSlug,
+            )
+          : registrations
+        const rows = buildAdminExportRows(scopedRegistrations, athletes, memberships, payments)
+        if (!rows.length) {
+          notifyError('No hay datos para exportar con esos filtros.')
+          return { ok: false, empty: true }
+        }
+        const suffix = eventSlug
+          ? `-${String(eventSlug).replaceAll(/[^a-z0-9-]+/gi, '-').toLowerCase()}`
+          : ''
+        createCsv(`plu-arg-admin-export${suffix}.csv`, rows)
+        notifySuccess('Exportación descargada.')
+        return { ok: true }
+      }
+
+      if (env.demoMode || isDemoSession(session)) return runLocal()
+
+      try {
+        const result = await downloadAdminExport({ type: 'admin', format, eventSlug })
+        downloadBlob(result.blob, result.filename)
+        if (result.truncated) {
+          notifySuccess(
+            'Exportación descargada (parcial: hay más filas; filtrá por evento para el resto).',
+          )
+        } else {
+          notifySuccess('Exportación descargada.')
+        }
+        return { ok: true, truncated: result.truncated }
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          notifyError(error.message || 'No hay datos para exportar con esos filtros.')
+          return { ok: false, empty: true }
+        }
+        notifyError(error?.message ?? 'No se pudo generar el export.')
+        return { ok: false, error }
+      }
+    },
+    [athletes, memberships, payments, registrations, session],
+  )
+
+  const exportPluUsaCsv = useCallback(
+    async ({ eventSlug = null, format = 'csv' } = {}) => {
+      if (!hasPermission(session, 'admin.exports.plu_usa')) return { ok: false }
+
+      const runLocal = () => {
+        const scopedRegistrations = eventSlug
+          ? registrations.filter(
+              (item) => item.eventSlug === eventSlug || item.event === eventSlug,
+            )
+          : registrations
+        const athleteIds = new Set(scopedRegistrations.map((item) => item.athleteId))
+        const scopedAthletes = eventSlug
+          ? athletes.filter((item) => athleteIds.has(item.id))
+          : athletes
+        const rows = buildPluUsaExportRows(scopedAthletes, memberships, scopedRegistrations)
+        if (!rows.length) {
+          notifyError('No hay datos para exportar con esos filtros.')
+          return { ok: false, empty: true }
+        }
+        createCsv('plu-usa-export.csv', rows)
+        notifySuccess('Exportación descargada.')
+        return { ok: true }
+      }
+
+      if (env.demoMode || isDemoSession(session)) return runLocal()
+
+      try {
+        const result = await downloadAdminExport({ type: 'plu_usa', format, eventSlug })
+        downloadBlob(result.blob, result.filename)
+        if (result.truncated) {
+          notifySuccess(
+            'Exportación descargada (parcial: hay más filas; filtrá por evento para el resto).',
+          )
+        } else {
+          notifySuccess('Exportación descargada.')
+        }
+        return { ok: true, truncated: result.truncated }
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          notifyError(error.message || 'No hay datos para exportar con esos filtros.')
+          return { ok: false, empty: true }
+        }
+        notifyError(error?.message ?? 'No se pudo generar el export.')
+        return { ok: false, error }
+      }
+    },
+    [athletes, memberships, registrations, session],
+  )
+
+  const fetchLiftersReadiness = useCallback(
+    async ({ eventSlug = null } = {}) => {
+      if (!hasPermission(session, 'admin.exports.admin')) {
+        return { error: 'Sin permisos para exportar.' }
+      }
+      if (env.demoMode || isDemoSession(session)) {
+        const { buildLiftersExportRows, buildLiftersReadiness } = await import(
+          '../../shared/liftersExport.js'
+        )
+        const scoped = eventSlug
+          ? registrations.filter(
+              (item) => item.eventSlug === eventSlug || item.event === eventSlug,
+            )
+          : registrations
+        const rows = buildLiftersExportRows(scoped, athletes, memberships)
+        return { readiness: buildLiftersReadiness(rows), truncated: false, event: null }
+      }
+      try {
+        return await fetchLiftersExportReadiness({ eventSlug })
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo calcular la completitud.' }
+      }
+    },
+    [athletes, memberships, registrations, session],
+  )
+
+  const exportLiftersXls = useCallback(
+    async ({ eventSlug = null, options = null } = {}) => {
+      if (!hasPermission(session, 'admin.exports.admin')) return { ok: false }
+
+      const { liftersExportOptionsToQuery } = await import('../lib/liftersExportStudio.js')
+      const liftersQuery = options ? liftersExportOptionsToQuery(options) : null
+
+      if (env.demoMode || isDemoSession(session)) {
+        const {
+          buildLiftersExportRows,
+          buildLiftersReadiness,
+          serializeLiftersSpreadsheet,
+        } = await import('../../shared/liftersExport.js')
+        const scoped = eventSlug
+          ? registrations.filter(
+              (item) => item.eventSlug === eventSlug || item.event === eventSlug,
+            )
+          : registrations
+        const liftersRows = buildLiftersExportRows(scoped, athletes, memberships)
+        if (!liftersRows.length) {
+          notifyError('No hay datos para exportar con esos filtros.')
+          return { ok: false, empty: true }
+        }
+        const readiness = buildLiftersReadiness(liftersRows)
+        const xml = serializeLiftersSpreadsheet(liftersRows, 'Lifters', options ?? {})
+        if (!xml) {
+          notifyError('No hay filas para exportar con el filtro del studio.')
+          return { ok: false, empty: true }
+        }
+        downloadBlob(
+          new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' }),
+          'lifters-export.xls',
+        )
+        const notes = []
+        if (readiness.incomplete) notes.push(`${readiness.incomplete} con datos faltantes`)
+        if (readiness.divisionMismatch) {
+          notes.push(`${readiness.divisionMismatch} con división incorrecta`)
+        }
+        notifySuccess(
+          notes.length
+            ? `Exportación Lifters descargada (${notes.join('; ')}).`
+            : 'Exportación Lifters descargada.',
+        )
+        return { ok: true, readiness }
+      }
+
+      try {
+        const result = await downloadAdminExport({
+          type: 'lifters',
+          format: 'xls',
+          eventSlug,
+          liftersOptions: liftersQuery,
+        })
+        downloadBlob(result.blob, result.filename)
+        const notes = []
+        if (result.incomplete > 0) notes.push(`${result.incomplete} incompletas`)
+        if (result.divisionMismatch > 0) {
+          notes.push(`${result.divisionMismatch} con desajuste de división`)
+        }
+        notifySuccess(
+          notes.length
+            ? `Exportación Lifters descargada (${notes.join('; ')}).`
+            : 'Exportación Lifters descargada.',
+        )
+        return {
+          ok: true,
+          incomplete: result.incomplete,
+          divisionMismatch: result.divisionMismatch,
+        }
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          notifyError(error.message || 'No hay datos para exportar con esos filtros.')
+          return { ok: false, empty: true }
+        }
+        notifyError(error?.message ?? 'No se pudo generar el export Lifters.')
+        return { ok: false, error }
+      }
+    },
+    [athletes, memberships, registrations, session],
+  )
 
   const saveAdminEvent = useCallback(
     async (draft) => {
@@ -4097,6 +4293,8 @@ export function useAppData() {
     handleRejectPayment,
     exportAdminCsv,
     exportPluUsaCsv,
+    exportLiftersXls,
+    fetchLiftersReadiness,
     demoMode: isDemoSession(session),
   }
 }
