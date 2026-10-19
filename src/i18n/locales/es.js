@@ -1619,7 +1619,7 @@ export default {
     },
     profileNotice: {
       title: 'Datos pendientes',
-      lead: 'Para inscribirte a un evento oficial faltan: {{fields}}.',
+      lead: 'Para competir y armar la planilla oficial faltan: {{fields}}.',
       action: 'Completar datos',
       dismiss: 'Entendido',
     },
@@ -1831,6 +1831,7 @@ export default {
       documentId: 'DNI o documento',
       documentIdPassport: 'ID o Pasaporte',
       birthDate: 'Fecha de nacimiento',
+      sex: 'Sexo competitivo',
       readonlyNote:
         'Identifican tu elegibilidad para competir. Para modificarlos, contactate con la federación.',
       officialCompletionTitle: 'Datos oficiales pendientes',
@@ -1840,6 +1841,10 @@ export default {
       gym: 'Gimnasio o equipo',
       city: 'Ciudad',
       province: 'Provincia',
+      streetAddress: 'Dirección (calle y número)',
+      streetAddressPlaceholder: 'Ej.: Av. San Martín 1234',
+      postalCode: 'Código postal',
+      postalCodePlaceholder: 'Ej.: 1881',
       instagram: 'Instagram',
       instagramPlaceholder: '@tu_usuario',
       emergencyGroup: 'Contacto de emergencia',
@@ -1851,6 +1856,8 @@ export default {
       bestTotalPlaceholder: 'Ej.: 625,5 kg',
       bestTotalNote: 'Dato declarado. No reemplaza el total oficial del torneo.',
       division: 'División',
+      divisionAgeHint:
+        'Según tu fecha de nacimiento: {{division}}. Si aplica, también podés elegir Open.',
       category: 'Categoría',
       estimatedWeight: 'Peso estimado (kg)',
       estimatedWeightPlaceholder: 'Ej.: 90 kg',
@@ -3951,6 +3958,8 @@ export default {
       checkoutRegistrationLine: 'Inscripción',
       competitionFormTitle: 'Definí tu entrada',
       competitionFormDesc: 'División, modalidad y categoría.',
+      divisionAgeHint:
+        'Según tu edad al evento: {{division}}. Si aplica, también podés elegir Open.',
       packageLegend: 'Paquete',
       packageSavings: 'Ahorrás {{amount}}',
       discountLabel: 'Código',
@@ -4320,6 +4329,7 @@ export default {
     gym: 'Ingresá tu gimnasio o equipo.',
     sex: 'Seleccioná tu sexo competitivo.',
     division: 'Seleccioná una división.',
+    divisionAge: 'Esa división no corresponde a tu edad en la fecha del evento.',
     category: 'Seleccioná una categoría.',
     weight: 'Ingresá un peso entre 10 y 250 kg.',
     invalid: 'Datos inválidos',

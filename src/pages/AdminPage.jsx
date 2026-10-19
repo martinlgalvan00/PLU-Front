@@ -151,6 +151,8 @@ export default function AdminPage({
   onCreateRole,
   onExportAdmin,
   onExportPluUsa,
+  onExportLifters,
+  onFetchLiftersReadiness,
   onSaveEvent,
   onScheduleAssigned,
   onSetEventState,
@@ -495,6 +497,9 @@ export default function AdminPage({
               onSetPublicVisibility={onSetRegistrationPublicVisibility}
               onExportAdmin={onExportAdmin}
               onExportPluUsa={onExportPluUsa}
+              onExportLifters={onExportLifters}
+              onFetchLiftersReadiness={onFetchLiftersReadiness}
+              onNotifyAthletesIncomplete={onNotifyAthletesIncomplete}
               onGoToEvents={() => setSection('events')}
               onRefreshAthleteData={onRefreshAthleteData}
               onScheduleAssigned={onScheduleAssigned}

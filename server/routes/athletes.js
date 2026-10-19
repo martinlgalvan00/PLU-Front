@@ -106,6 +106,25 @@ import {
   sendProfileNoticesBulk,
 } from '../modules/athletes/profileNoticeService.js'
 import { athleteProfileFromRow } from '../../shared/athleteProfile.js'
+import {
+  allowedCompetitionDivisions,
+  isDivisionAllowedForAge,
+} from '../../shared/ageDivision.js'
+import {
+  buildAdminExportRows,
+  buildPluUsaExportRows,
+  serializeCsv,
+  serializeSpreadsheet,
+} from '../../shared/exportRows.js'
+import {
+  buildLiftersExportRows,
+  buildLiftersReadiness,
+  filterLiftersRowsByCompleteness,
+  liftersRowsForSpreadsheet,
+  normalizeLiftersExportOptions,
+  resolveLiftersColumnKeys,
+  serializeLiftersSpreadsheet,
+} from '../../shared/liftersExport.js'
 import { createSupabaseRegistrationAccessRepository } from '../modules/registrationAccess/supabaseRegistrationAccessRepository.js'
 import {
   assertComboAccessCode,
@@ -312,6 +331,8 @@ const updateSchema = z.object({
   fullName: z.string().trim().min(3).max(160).optional(),
   birthDate: birthDateSchema.optional(),
   country: z.string().trim().min(2).max(80).optional(),
+  streetAddress: z.string().trim().max(200).optional().default(''),
+  postalCode: z.string().trim().max(20).optional().default(''),
   // Puede faltar en cuentas creadas antes de que existiera el perfil
   // competitivo. Es editable sólo para completar ese requisito de inscripción.
   sex: z.enum(['Masculino', 'Femenino']).optional(),
@@ -607,6 +628,19 @@ const adminDataQuerySchema = z.object({
   photos: z.enum(['0', '1']).optional(),
 })
 
+const adminExportQuerySchema = z.object({
+  type: z.enum(['admin', 'plu_usa', 'lifters']).default('admin'),
+  // `json` = preview de completitud (sin archivo). Lifters default xls.
+  format: z.enum(['csv', 'xls', 'json']).default('csv'),
+  eventSlug: z.string().trim().min(1).max(120).optional(),
+  // Studio Lifters (opcionales; ignorados en admin/plu_usa).
+  preset: z.enum(['audit', 'official', 'minimal', 'contact']).optional(),
+  columns: z.string().trim().max(500).optional(),
+  rowFilter: z.enum(['all', 'complete', 'incomplete']).optional(),
+  highlightEmpty: z.enum(['0', '1']).optional(),
+  freezeHeader: z.enum(['0', '1']).optional(),
+})
+
 const FORGOT_OK_MESSAGE =
   'Si existe una cuenta con ese correo, te enviamos un enlace para restablecer la contraseña.'
 
@@ -793,6 +827,11 @@ export function createAthleteRoutes({
       'admin.payments.read',
       'admin.dashboard.read',
     ],
+    { prisma },
+    { mode: 'any' },
+  )
+  const exportGuard = requirePermission(
+    ['admin.exports.admin', 'admin.exports.plu_usa'],
     { prisma },
     { mode: 'any' },
   )
@@ -1075,6 +1114,25 @@ export function createAthleteRoutes({
         },
       )
     }
+  }
+
+  /** PLU §1.3: franja de edad (+ Open) según DOB y fecha del evento. */
+  function assertDivisionAllowedForAthlete(division, profile, event) {
+    const birthDate = profile?.birth_date ?? profile?.birthDate ?? null
+    const eventDate = event?.starts_at ?? event?.startsAt ?? null
+    if (!birthDate) return
+    if (isDivisionAllowedForAge(division, birthDate, eventDate || undefined)) return
+    const allowed = allowedCompetitionDivisions(birthDate, eventDate || undefined)
+    throw new HttpError(
+      422,
+      allowed.length
+        ? `La división no corresponde a tu edad en la fecha del evento. Opciones: ${allowed.join(', ')}.`
+        : 'No hay una división válida para tu edad en la fecha del evento.',
+      {
+        code: 'DIVISION_AGE_MISMATCH',
+        allowed,
+      },
+    )
   }
 
   async function recordRegistrationAccessUse(gate, { athleteId, orderId, concept }) {
@@ -1822,9 +1880,11 @@ export function createAthleteRoutes({
         const registrationChannel = paymentChannelOf(req.validatedBody.paymentMethod)
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
-        await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
+        const competitionProfile = await repo().findCompetitionProfile(auth.athleteId)
+        await assertCompetitionProfileComplete(competitionProfile)
         const event = await repo().findEventPricing(eventSlug)
         if (!event) throw new HttpError(404, 'Evento no encontrado.')
+        assertDivisionAllowedForAthlete(req.validatedBody.division, competitionProfile, event)
         assertEventPaymentChannelEnabled(toggles, 'registration', registrationChannel, {
           override: await manualChannelOverride(req.validatedBody, 'registration'),
           eventOverrides: event.payment_channel_overrides,
@@ -1920,9 +1980,11 @@ export function createAthleteRoutes({
         })
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
-        await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
+        const competitionProfile = await repo().findCompetitionProfile(auth.athleteId)
+        await assertCompetitionProfileComplete(competitionProfile)
         const event = await repo().findEventPricing(eventSlug)
         if (!event) throw new HttpError(404, 'Evento no encontrado.')
+        assertDivisionAllowedForAthlete(req.validatedBody.division, competitionProfile, event)
         assertEventPaymentChannelEnabled(toggles, 'registration', comboChannel, {
           override: comboOverride,
           eventOverrides: event.payment_channel_overrides,
@@ -2569,6 +2631,161 @@ export function createAthleteRoutes({
         totals: data.totals ?? null,
         summary: summary ?? null,
       })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Export CSV/XLS con join real athletes↔inscripciones (no el snapshot de 400).
+   * type=lifters → planilla LiftingCast estilada; format=json → readiness.
+   * Permisos: admin.exports.admin / admin.exports.plu_usa.
+   */
+  router.get('/admin/export', ...exportGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const parsed = adminExportQuerySchema.safeParse(req.query)
+      if (!parsed.success) throw new HttpError(400, 'Parámetros de export inválidos.')
+      let { type, format, eventSlug, preset, columns, rowFilter, highlightEmpty, freezeHeader } =
+        parsed.data
+      if (type === 'lifters' && format === 'csv') format = 'xls'
+
+      const exportPermission =
+        type === 'plu_usa' ? 'admin.exports.plu_usa' : 'admin.exports.admin'
+      if (!hasPermission(req.auth.user, exportPermission)) {
+        throw new HttpError(403, 'Sin permisos para este export.')
+      }
+
+      const dataset = await repo().adminExportDataset({
+        type: type === 'lifters' ? 'admin' : type,
+        eventSlug: eventSlug ?? null,
+      })
+
+      if (type === 'lifters') {
+        const liftersOptions = normalizeLiftersExportOptions({
+          preset,
+          columns,
+          rowFilter,
+          highlightEmpty,
+          freezeHeader,
+        })
+        const liftersRows = buildLiftersExportRows(
+          dataset.registrations,
+          dataset.athletes,
+          dataset.memberships,
+        )
+        if (!liftersRows.length) {
+          throw new HttpError(404, 'No hay datos para exportar con esos filtros.')
+        }
+        const readiness = buildLiftersReadiness(liftersRows)
+        if (format === 'json') {
+          res.setHeader('Cache-Control', 'no-store')
+          res.json({
+            readiness,
+            options: liftersOptions,
+            truncated: dataset.truncated,
+            event: dataset.event,
+          })
+          return
+        }
+        const slugPart = dataset.event?.slug
+          ? `-${dataset.event.slug}`
+          : eventSlug
+            ? `-${String(eventSlug).replaceAll(/[^a-z0-9-]+/gi, '-').toLowerCase()}`
+            : ''
+        const sheetName = String(dataset.event?.slug || 'Lifters')
+          .replaceAll(/[[\]:*?/\\]/g, ' ')
+          .trim()
+          .slice(0, 31) || 'Lifters'
+        const columnKeys = resolveLiftersColumnKeys(liftersOptions)
+        const filteredRows = filterLiftersRowsByCompleteness(
+          liftersRows,
+          liftersOptions.rowFilter,
+        )
+        const body =
+          format === 'xls'
+            ? serializeLiftersSpreadsheet(liftersRows, sheetName, liftersOptions)
+            : serializeCsv(liftersRowsForSpreadsheet(filteredRows, columnKeys))
+        if (!body) throw new HttpError(404, 'No hay datos para exportar con esos filtros.')
+        const filename = `lifters-export${slugPart}.${format === 'xls' ? 'xls' : 'csv'}`
+        res.setHeader(
+          'Content-Type',
+          format === 'xls'
+            ? 'application/vnd.ms-excel; charset=utf-8'
+            : 'text/csv; charset=utf-8',
+        )
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+        res.setHeader('Cache-Control', 'no-store')
+        res.setHeader('X-PLU-Export-Incomplete', String(readiness.incomplete))
+        res.setHeader('X-PLU-Export-Division-Mismatch', String(readiness.divisionMismatch ?? 0))
+        res.setHeader(
+          'X-PLU-Export-Division-Open-Upgrade',
+          String(readiness.divisionOpenUpgrade ?? 0),
+        )
+        if (dataset.truncated) {
+          res.setHeader('X-PLU-Export-Truncated', '1')
+          res.setHeader('X-PLU-Export-Row-Count', String(liftersRows.length))
+        }
+        res.send(body)
+        return
+      }
+
+      const rows =
+        type === 'plu_usa'
+          ? buildPluUsaExportRows(dataset.athletes, dataset.memberships, dataset.registrations)
+          : buildAdminExportRows(
+              dataset.registrations,
+              dataset.athletes,
+              dataset.memberships,
+              dataset.payments,
+            )
+
+      if (!rows.length) {
+        throw new HttpError(404, 'No hay datos para exportar con esos filtros.')
+      }
+
+      if (format === 'json') {
+        throw new HttpError(400, 'format=json sólo aplica a type=lifters.')
+      }
+
+      let mismatchCount = 0
+      let openUpgradeCount = 0
+      const mismatchKey = type === 'plu_usa' ? 'division_mismatch' : 'division_desajuste'
+      const upgradeKey = 'division_open_upgrade'
+      for (const row of rows) {
+        if (row[mismatchKey] === '1') mismatchCount += 1
+        if (row[upgradeKey] === '1') openUpgradeCount += 1
+      }
+
+      const slugPart = dataset.event?.slug
+        ? `-${dataset.event.slug}`
+        : eventSlug
+          ? `-${String(eventSlug).replaceAll(/[^a-z0-9-]+/gi, '-').toLowerCase()}`
+          : ''
+      const baseName =
+        type === 'plu_usa' ? `plu-usa-export${slugPart}` : `plu-arg-admin-export${slugPart}`
+      const filename = `${baseName}.${format}`
+      const body =
+        format === 'xls'
+          ? serializeSpreadsheet(rows, type === 'plu_usa' ? 'PLU USA' : 'Inscripciones')
+          : serializeCsv(rows)
+
+      if (!body) throw new HttpError(404, 'No hay datos para exportar con esos filtros.')
+
+      res.setHeader(
+        'Content-Type',
+        format === 'xls'
+          ? 'application/vnd.ms-excel; charset=utf-8'
+          : 'text/csv; charset=utf-8',
+      )
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+      res.setHeader('Cache-Control', 'no-store')
+      res.setHeader('X-PLU-Export-Division-Mismatch', String(mismatchCount))
+      res.setHeader('X-PLU-Export-Division-Open-Upgrade', String(openUpgradeCount))
+      if (dataset.truncated) {
+        res.setHeader('X-PLU-Export-Truncated', '1')
+        res.setHeader('X-PLU-Export-Row-Count', String(rows.length))
+      }
+      res.send(body)
     } catch (error) {
       next(error)
     }

@@ -1602,7 +1602,7 @@ export default {
     },
     profileNotice: {
       title: 'Details still needed',
-      lead: 'To register for an official event you still need: {{fields}}.',
+      lead: 'To compete and build the official lifter sheet you still need: {{fields}}.',
       action: 'Complete details',
       dismiss: 'Got it',
     },
@@ -1809,6 +1809,7 @@ export default {
       documentId: 'ID document',
       documentIdPassport: 'ID or Passport',
       birthDate: 'Date of birth',
+      sex: 'Competitive sex',
       readonlyNote:
         'These identify your eligibility to compete. Contact the federation to change them.',
       officialCompletionTitle: 'Missing official details',
@@ -1818,6 +1819,10 @@ export default {
       gym: 'Gym or team',
       city: 'City',
       province: 'Province',
+      streetAddress: 'Street address',
+      streetAddressPlaceholder: 'e.g. 123 Main St',
+      postalCode: 'Zip / postal code',
+      postalCodePlaceholder: 'e.g. 1881',
       instagram: 'Instagram',
       instagramPlaceholder: '@your_handle',
       emergencyGroup: 'Emergency contact',
@@ -1829,6 +1834,8 @@ export default {
       bestTotalPlaceholder: 'e.g. 625.5 kg',
       bestTotalNote: 'Self-declared. Does not replace the official meet total.',
       division: 'Division',
+      divisionAgeHint:
+        'Based on your date of birth: {{division}}. You can also choose Open when eligible.',
       category: 'Category',
       estimatedWeight: 'Estimated weight (kg)',
       estimatedWeightPlaceholder: 'e.g. 90 kg',
@@ -3909,6 +3916,8 @@ export default {
       checkoutRegistrationLine: 'Registration',
       competitionFormTitle: 'Define your entry',
       competitionFormDesc: 'Division, category and bodyweight.',
+      divisionAgeHint:
+        'Based on your age at the event: {{division}}. You can also choose Open when eligible.',
       packageLegend: 'Package',
       packageSavings: 'Save {{amount}}',
       discountLabel: 'Code',
@@ -4260,6 +4269,7 @@ export default {
     gym: 'Enter your gym or team.',
     sex: 'Select your competitive sex.',
     division: 'Select a division.',
+    divisionAge: 'That division does not match your age on the event date.',
     category: 'Select a category.',
     weight: 'Enter a weight between 10 and 250 kg.',
     errorBestTotal: 'Enter a total between 10 and 2,000 kg.',

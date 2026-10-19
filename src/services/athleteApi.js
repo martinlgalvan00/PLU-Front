@@ -31,6 +31,8 @@ function toCamelAthlete(row) {
     country: row.country,
     province: row.province,
     city: row.city,
+    streetAddress: row.street_address ?? row.streetAddress ?? '',
+    postalCode: row.postal_code ?? row.postalCode ?? '',
     gym: row.gym,
     sex: row.sex,
     division: row.division,
@@ -479,6 +481,59 @@ export async function fetchAdminPhotoUrls(paths = []) {
   if (unique.length === 0) return {}
   const { urls } = await apiPost('/api/athletes/admin/photo-urls', { paths: unique })
   return urls ?? {}
+}
+
+/**
+ * Descarga CSV/XLS del endpoint server-side (join athletes, sin ventana de 400).
+ * `eventSlug` acota al meet seleccionado en el panel.
+ * type=lifters + format=xls → planilla LiftingCast estilada.
+ */
+export async function downloadAdminExport({
+  type = 'admin',
+  format = 'csv',
+  eventSlug = null,
+  liftersOptions = null,
+} = {}) {
+  const params = new URLSearchParams()
+  params.set('type', type)
+  params.set('format', format)
+  if (eventSlug) params.set('eventSlug', eventSlug)
+  if (type === 'lifters' && liftersOptions && typeof liftersOptions === 'object') {
+    for (const [key, value] of Object.entries(liftersOptions)) {
+      if (value == null || value === '') continue
+      params.set(key, String(value))
+    }
+  }
+  const { blob, headers } = await apiRequest(`/api/athletes/admin/export?${params.toString()}`, {
+    responseType: 'blob',
+    timeoutMs: 120_000,
+  })
+  const disposition = headers?.get?.('Content-Disposition') ?? ''
+  const match = disposition.match(/filename="([^"]+)"/i)
+  const filename =
+    match?.[1] ??
+    (type === 'lifters'
+      ? `lifters-export.${format}`
+      : type === 'plu_usa'
+        ? `plu-usa-export.${format}`
+        : `plu-arg-admin-export.${format}`)
+  return {
+    blob,
+    filename,
+    truncated: headers?.get?.('X-PLU-Export-Truncated') === '1',
+    incomplete: Number(headers?.get?.('X-PLU-Export-Incomplete') || 0) || 0,
+    divisionMismatch: Number(headers?.get?.('X-PLU-Export-Division-Mismatch') || 0) || 0,
+    rowCount: Number(headers?.get?.('X-PLU-Export-Row-Count') || 0) || null,
+  }
+}
+
+/** Preview de completitud Lifters (sin descargar archivo). */
+export async function fetchLiftersExportReadiness({ eventSlug = null } = {}) {
+  const params = new URLSearchParams()
+  params.set('type', 'lifters')
+  params.set('format', 'json')
+  if (eventSlug) params.set('eventSlug', eventSlug)
+  return apiGet(`/api/athletes/admin/export?${params.toString()}`)
 }
 
 export async function registerAthlete(form) {

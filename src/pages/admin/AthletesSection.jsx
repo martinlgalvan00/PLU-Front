@@ -31,10 +31,19 @@ function profileFieldLabel(field, t) {
     phone: 'admin.athleteDetail.fields.phone',
     city: 'admin.athleteDetail.fields.city',
     province: 'admin.athleteDetail.fields.province',
+    streetAddress: 'account.personalData.streetAddress',
+    postalCode: 'account.personalData.postalCode',
+    email: 'admin.athleteDetail.fields.email',
     gym: 'admin.athleteDetail.fields.gym',
+    sex: 'admin.athleteDetail.fields.sex',
     division: 'admin.athleteDetail.fields.division',
     category: 'admin.athleteDetail.fields.category',
     estimatedWeight: 'admin.athleteDetail.fields.estimatedWeight',
+    fullName: 'account.personalData.fullName',
+    birthDate: 'account.personalData.birthDate',
+    country: 'pages.register.country',
+    emergencyContactName: 'account.personalData.emergencyName',
+    emergencyContactPhone: 'account.personalData.emergencyPhone',
   }
   return t(keys[field] ?? field)
 }
