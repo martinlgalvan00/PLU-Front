@@ -517,8 +517,11 @@ describe('tablados', () => {
     renderBoard()
 
     await screen.findByText('Tanda A')
-    fireEvent.click(screen.getByRole('tab', { name: /un tablado/i }))
-    expect(await screen.findByText(/Tablado 2 van a quedar sin tablado/i)).toBeTruthy()
+    const bar = screen.getByRole('form', { name: 'Tablados' })
+    fireEvent.click(within(bar).getByRole('tab', { name: /^un tablado/i }))
+    expect((await within(bar).findByRole('status')).textContent).toMatch(
+      /Tablado 2 van a quedar sin tablado/i,
+    )
     expect(saveEventPlatforms).not.toHaveBeenCalled()
   })
 
