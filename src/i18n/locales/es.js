@@ -4005,7 +4005,7 @@ export default {
       competitionPaymentDesc: 'Elegí el medio para generar la orden.',
       paymentMpHint: 'Acreditación automática',
       paymentMercadoPagoOnlyHint:
-        'Por el momento, afiliaciones e inscripciones se pagan únicamente con Mercado Pago. Transferencia bancaria y efectivo en el lugar estarán disponibles próximamente.',
+        'En este pago solo está disponible Mercado Pago. Si el evento abre transferencia o efectivo, van a aparecer acá.',
       paymentNoChannelHint:
         'No hay medios de pago disponibles en este momento. Volvé a intentar más tarde o escribinos.',
       manualChannelPriceHint: 'Precio con transferencia o efectivo en el lugar.',

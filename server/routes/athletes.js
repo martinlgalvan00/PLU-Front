@@ -639,6 +639,7 @@ const adminExportQuerySchema = z.object({
   rowFilter: z.enum(['all', 'complete', 'incomplete']).optional(),
   highlightEmpty: z.enum(['0', '1']).optional(),
   freezeHeader: z.enum(['0', '1']).optional(),
+  includeSummarySheet: z.enum(['0', '1']).optional(),
 })
 
 const FORGOT_OK_MESSAGE =
@@ -2645,8 +2646,17 @@ export function createAthleteRoutes({
     try {
       const parsed = adminExportQuerySchema.safeParse(req.query)
       if (!parsed.success) throw new HttpError(400, 'Parámetros de export inválidos.')
-      let { type, format, eventSlug, preset, columns, rowFilter, highlightEmpty, freezeHeader } =
-        parsed.data
+      let {
+        type,
+        format,
+        eventSlug,
+        preset,
+        columns,
+        rowFilter,
+        highlightEmpty,
+        freezeHeader,
+        includeSummarySheet,
+      } = parsed.data
       if (type === 'lifters' && format === 'csv') format = 'xls'
 
       const exportPermission =
@@ -2667,6 +2677,7 @@ export function createAthleteRoutes({
           rowFilter,
           highlightEmpty,
           freezeHeader,
+          includeSummarySheet,
         })
         const liftersRows = buildLiftersExportRows(
           dataset.registrations,

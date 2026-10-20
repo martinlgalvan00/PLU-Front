@@ -187,6 +187,26 @@ describe('resolveEventPublishChecks', () => {
     ).toEqual(['mpProfileNeedsReconnect'])
   })
 
+  it('avisa de efectivo abierto sin lugar ni sede, y no pide confirmacion', () => {
+    const event = {
+      paymentChannelOverrides: { registration: { cash_pitbull: 'open' } },
+      mercadoPagoProfileId: connectedProfile.id,
+    }
+    expect(
+      resolveEventPublishChecks(event, platform, { mpProfiles: [connectedProfile] }),
+    ).toContain('cashWithoutVenue')
+    expect(
+      resolveEventPublishConfirmChecks(event, platform, { mpProfiles: [connectedProfile] }),
+    ).not.toContain('cashWithoutVenue')
+    expect(
+      resolveEventPublishChecks(
+        { ...event, venue: 'Maximal Strength Club' },
+        platform,
+        { mpProfiles: [connectedProfile] },
+      ),
+    ).not.toContain('cashWithoutVenue')
+  })
+
   it('modo anuncio informa y no pide confirmación por falta de medios', () => {
     const event = {
       salesIntent: 'announce',

@@ -148,9 +148,15 @@ function sanitizeSheetName(name) {
  * - `columnWidths`: anchos en px por orden de columna.
  * - `theme: 'lifters'`: tipografía y bordes más de planilla.
  */
-export function serializeSpreadsheet(
+function indexSet(value) {
+  if (value instanceof Set) return value
+  if (Array.isArray(value)) return new Set(value)
+  return new Set()
+}
+
+function buildWorksheetXml(
   rows,
-  sheetName = 'Hoja1',
+  sheetName,
   {
     incompleteRowIndexes = null,
     mismatchRowIndexes = null,
@@ -160,25 +166,11 @@ export function serializeSpreadsheet(
     theme = 'default',
   } = {},
 ) {
-  if (!rows?.length) return null
+  if (!rows?.length) return ''
 
-  const incomplete = new Set(
-    incompleteRowIndexes instanceof Set
-      ? incompleteRowIndexes
-      : Array.isArray(incompleteRowIndexes)
-        ? incompleteRowIndexes
-        : [],
-  )
-  const mismatch = new Set(
-    mismatchRowIndexes instanceof Set
-      ? mismatchRowIndexes
-      : Array.isArray(mismatchRowIndexes)
-        ? mismatchRowIndexes
-        : [],
-  )
-  const emptySet = new Set(
-    (emptyCells ?? []).map((cell) => `${cell.row}::${cell.column}`),
-  )
+  const incomplete = indexSet(incompleteRowIndexes)
+  const mismatch = indexSet(mismatchRowIndexes)
+  const emptySet = new Set((emptyCells ?? []).map((cell) => `${cell.row}::${cell.column}`))
   const headers = Object.keys(rows[0])
   const isLifters = theme === 'lifters'
   const headerHeight = isLifters ? ' ss:Height="28"' : ''
@@ -228,9 +220,62 @@ export function serializeSpreadsheet(
  </WorksheetOptions>`
     : ''
 
+  return `<Worksheet ss:Name="${escapeXml(sanitizeSheetName(sheetName))}">
+  <Table>
+   ${colDefs}
+   ${headerRow}
+   ${body}
+  </Table>
+  ${freeze}
+ </Worksheet>`
+}
+
+/**
+ * SpreadsheetML 2003 (.xls) sin dependencias.
+ * - `extraSheets`: hojas adicionales `[{ sheetName, rows, ...mismas opciones de estilo }]`.
+ */
+export function serializeSpreadsheet(
+  rows,
+  sheetName = 'Hoja1',
+  {
+    incompleteRowIndexes = null,
+    mismatchRowIndexes = null,
+    emptyCells = null,
+    columnWidths = null,
+    freezeHeader = true,
+    theme = 'default',
+    extraSheets = null,
+  } = {},
+) {
+  if (!rows?.length) return null
+
+  const isLifters = theme === 'lifters'
   const headerFill = isLifters ? '#0F172A' : '#1C1917'
-  const headerFont = isLifters ? 'Calibri' : 'Calibri'
-  const dataFont = isLifters ? 'Calibri' : 'Calibri'
+  const headerFont = 'Calibri'
+  const dataFont = 'Calibri'
+
+  const primary = buildWorksheetXml(rows, sheetName, {
+    incompleteRowIndexes,
+    mismatchRowIndexes,
+    emptyCells,
+    columnWidths,
+    freezeHeader,
+    theme,
+  })
+
+  const extras = (Array.isArray(extraSheets) ? extraSheets : [])
+    .filter((sheet) => sheet?.rows?.length && sheet?.sheetName)
+    .map((sheet) =>
+      buildWorksheetXml(sheet.rows, sheet.sheetName, {
+        incompleteRowIndexes: sheet.incompleteRowIndexes ?? null,
+        mismatchRowIndexes: sheet.mismatchRowIndexes ?? null,
+        emptyCells: sheet.emptyCells ?? null,
+        columnWidths: sheet.columnWidths ?? null,
+        freezeHeader: sheet.freezeHeader ?? false,
+        theme: sheet.theme ?? theme,
+      }),
+    )
+    .join('\n ')
 
   return `<?xml version="1.0"?>
 <?mso-application progid="Excel.Sheet"?>
@@ -287,13 +332,7 @@ export function serializeSpreadsheet(
    </Borders>
   </Style>
  </Styles>
- <Worksheet ss:Name="${escapeXml(sanitizeSheetName(sheetName))}">
-  <Table>
-   ${colDefs}
-   ${headerRow}
-   ${body}
-  </Table>
-  ${freeze}
- </Worksheet>
+ ${primary}
+ ${extras}
 </Workbook>`
 }

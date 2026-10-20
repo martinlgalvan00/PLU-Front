@@ -9,6 +9,7 @@ import { normalizeSalesIntent } from './eventSalesIntent.js'
 export const INFORMATIONAL_PUBLISH_CHECKS = new Set([
   'mpUsingPlatformDefault',
   'salesAnnounceMode',
+  'cashWithoutVenue',
 ])
 
 /**
@@ -118,6 +119,15 @@ export function resolveEventPublishChecks(event, platform = null, options = {}) 
   const hasDestination =
     Boolean(event.bankTransferProfileId) || Boolean(String(event.bankTransfer?.alias ?? '').trim())
   if (transferOpen && !hasDestination) checks.push('transferWithoutDestination')
+
+  const cashOpen =
+    (chargeRegistration && registration.includes('cash_pitbull')) ||
+    (ticketsEnabled && ticket.includes('cash_pitbull'))
+  const hasCashPlace = Boolean(String(event.cashPayment?.place ?? '').trim())
+  const hasVenue = Boolean(
+    String(event.venue ?? '').trim() || String(event.location ?? '').trim(),
+  )
+  if (cashOpen && !hasCashPlace && !hasVenue) checks.push('cashWithoutVenue')
 
   const mpOpen =
     (chargeRegistration && registration.includes('mercado_pago')) ||

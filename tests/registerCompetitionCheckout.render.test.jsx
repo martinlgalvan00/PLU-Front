@@ -367,7 +367,7 @@ describe('RegisterPage — link de pago de inscripción', () => {
     expect(screen.getByRole('radio', { name: /mercado pago/i }).checked).toBe(true)
     expect(screen.queryByRole('radio', { name: /transferencia/i })).toBeNull()
     expect(screen.queryByRole('radio', { name: /efectivo/i })).toBeNull()
-    expect(screen.getByText(/mercado pago.*próximamente/i)).toBeTruthy()
+    expect(screen.getByText(/solo está disponible Mercado Pago/i)).toBeTruthy()
   })
 
   it('no muestra el texto crudo de PLU08 si la inscripción ya está confirmada', async () => {

@@ -341,8 +341,15 @@ export const DEFAULT_LIFTERS_EXPORT_OPTIONS = Object.freeze({
   rowFilter: 'all',
   highlightEmpty: true,
   freezeHeader: true,
+  includeSummarySheet: true,
   theme: 'lifters',
 })
+
+const FIELD_LABELS = Object.freeze(
+  Object.fromEntries(
+    LIFTERS_COLUMNS.filter((col) => col.field).map((col) => [col.field, col.header]),
+  ),
+)
 
 const COLUMN_KEY_SET = new Set(LIFTERS_COLUMN_KEYS)
 
@@ -379,7 +386,111 @@ export function normalizeLiftersExportOptions(raw = {}) {
     rowFilter,
     highlightEmpty: coerceBoolean(input.highlightEmpty, true),
     freezeHeader: coerceBoolean(input.freezeHeader, true),
+    includeSummarySheet: coerceBoolean(input.includeSummarySheet, true),
     theme: input.theme === 'default' ? 'default' : 'lifters',
+  }
+}
+
+/**
+ * Segunda hoja del Excel: totales, ranking de campos vacíos y atletas incompletos.
+ * Encabezados en inglés para alinear con LiftingCast; contenido operativo.
+ */
+export function buildLiftersSummarySheet(rows) {
+  const readiness = buildLiftersReadiness(rows)
+  const summaryRows = [
+    {
+      Type: 'Summary',
+      Item: 'Registered',
+      Count: String(readiness.total),
+      Percent: '100',
+      Notes: '',
+    },
+    {
+      Type: 'Summary',
+      Item: 'Complete',
+      Count: String(readiness.complete),
+      Percent: String(
+        readiness.total ? Math.round((readiness.complete / readiness.total) * 100) : 0,
+      ),
+      Notes: '',
+    },
+    {
+      Type: 'Summary',
+      Item: 'Incomplete',
+      Count: String(readiness.incomplete),
+      Percent: String(
+        readiness.total ? Math.round((readiness.incomplete / readiness.total) * 100) : 0,
+      ),
+      Notes: '',
+    },
+    {
+      Type: 'Summary',
+      Item: 'Division mismatch',
+      Count: String(readiness.divisionMismatch),
+      Percent: String(
+        readiness.total ? Math.round((readiness.divisionMismatch / readiness.total) * 100) : 0,
+      ),
+      Notes: 'Hard mismatch (invalid for age)',
+    },
+    {
+      Type: 'Summary',
+      Item: 'Open upgrade',
+      Count: String(readiness.divisionOpenUpgrade),
+      Percent: String(
+        readiness.total
+          ? Math.round((readiness.divisionOpenUpgrade / readiness.total) * 100)
+          : 0,
+      ),
+      Notes: 'Allowed: age band entered Open',
+    },
+  ]
+
+  const gapIncompleteIndexes = []
+  for (const gap of readiness.fieldGaps) {
+    gapIncompleteIndexes.push(summaryRows.length)
+    summaryRows.push({
+      Type: 'Empty field',
+      Item: FIELD_LABELS[gap.field] || gap.field,
+      Count: String(gap.count),
+      Percent: String(gap.percent),
+      Notes: gap.field,
+    })
+  }
+
+  const athleteIncompleteIndexes = []
+  for (const athlete of readiness.athletes.slice(0, 200)) {
+    athleteIncompleteIndexes.push(summaryRows.length)
+    const missingLabels = (athlete.missing ?? [])
+      .map((field) => FIELD_LABELS[field] || field)
+      .join(', ')
+    summaryRows.push({
+      Type: 'Incomplete athlete',
+      Item: athlete.name || athlete.athleteId || '',
+      Count: String(athlete.missing?.length ?? 0),
+      Percent: '',
+      Notes: missingLabels,
+    })
+  }
+
+  const mismatchIndexes = []
+  for (const athlete of readiness.divisionMismatchAthletes.slice(0, 100)) {
+    mismatchIndexes.push(summaryRows.length)
+    summaryRows.push({
+      Type: 'Division mismatch',
+      Item: athlete.name || athlete.athleteId || '',
+      Count: '1',
+      Percent: '',
+      Notes: `${athlete.divisionDeclared || '—'} → ${athlete.divisionCalculated || '—'}`,
+    })
+  }
+
+  return {
+    sheetName: 'Summary',
+    rows: summaryRows,
+    incompleteRowIndexes: [...gapIncompleteIndexes, ...athleteIncompleteIndexes],
+    mismatchRowIndexes: mismatchIndexes,
+    columnWidths: [120, 180, 70, 70, 280],
+    freezeHeader: true,
   }
 }
 
@@ -544,6 +655,12 @@ export function serializeLiftersSpreadsheet(rows, sheetName = 'Lifters', options
   }
 
   const columnWidths = columnKeys.map((key) => COLUMN_WIDTHS[key] ?? 100)
+  const extraSheets = []
+  if (opts.includeSummarySheet) {
+    // Resumen sobre el mismo recorte de filas que sale en Lifters.
+    const summary = buildLiftersSummarySheet(list)
+    if (summary.rows.length) extraSheets.push(summary)
+  }
 
   return serializeSpreadsheet(sheetRows, sheetName, {
     incompleteRowIndexes,
@@ -552,5 +669,6 @@ export function serializeLiftersSpreadsheet(rows, sheetName = 'Lifters', options
     columnWidths: columnWidths.length ? columnWidths : COLUMN_WIDTHS_LIST,
     freezeHeader: opts.freezeHeader,
     theme: opts.theme,
+    extraSheets,
   })
 }

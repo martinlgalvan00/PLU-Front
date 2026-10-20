@@ -40,9 +40,11 @@ GET /api/athletes/admin/export?type=admin|plu_usa&format=csv|xls&eventSlug=opcio
   columnas de auditoría al final. `format=json` incluye `divisionMismatch` y
   `divisionOpenUpgrade` en readiness.
 - **Studio Lifters (UI Inscripciones):** presets `audit` / `official` / `minimal` /
-  `contact`, filtro de filas (`all`/`complete`/`incomplete`), resaltar vacíos y
-  freeze. Opciones en query (`preset`, `columns`, `rowFilter`, `highlightEmpty`,
-  `freezeHeader`) y persistidas en `localStorage` (`plu-lifters-export-options-v1`).
+  `contact`, filtro de filas (`all`/`complete`/`incomplete`), resaltar vacíos,
+  freeze y hoja **Summary** (totales + ranking de gaps + atletas incompletos).
+  Opciones en query (`preset`, `columns`, `rowFilter`, `highlightEmpty`,
+  `freezeHeader`, `includeSummarySheet`) y persistidas en `localStorage`
+  (`plu-lifters-export-options-v1`).
 
 ## Columnas admin
 
