@@ -1,4 +1,4 @@
-﻿import { z } from 'zod'
+import { z } from 'zod'
 import { isDivisionAllowedForAge } from '../../shared/ageDivision.js'
 
 function todayInBuenosAires() {
