@@ -24,6 +24,10 @@ describe('toCalendarDate', () => {
     expect(toCalendarDate('15/06/2000')).toBe('2000-06-15')
     expect(toCalendarDate('1-2-1992')).toBe('1992-02-01')
   })
+
+  it('acepta Date UTC (node-pg) sin perder el día', () => {
+    expect(toCalendarDate(new Date('1992-02-19T00:00:00.000Z'))).toBe('1992-02-19')
+  })
 })
 
 describe('normalizeCompetitionDivision', () => {
