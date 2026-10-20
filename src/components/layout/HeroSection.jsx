@@ -10,12 +10,14 @@ import heroPhotoWebp640 from '../../assets/DSC00346-display-640.webp'
 import heroPhotoWebp1280 from '../../assets/DSC00346-display-1280.webp'
 import HeroStatusCard from '../ui/HeroStatusCard.jsx'
 import HomeQuickBand from '../ui/HomeQuickBand.jsx'
+import HomeSeasonActions from '../ui/HomeSeasonActions.jsx'
 import ResponsivePhoto from '../ui/ResponsivePhoto.jsx'
 import { env } from '../../config/env.js'
 import TiltCard from '../../motion/TiltCard.tsx'
 import { hasFinePointer } from '../../motion/useReducedMotion.ts'
 import { useMagneticHover } from '../../motion/useMagneticHover.ts'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { getSeasonHomeActions } from '../../lib/eventNavigation.js'
 import { isTicketSalesEnabled } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { getPublicEventStatus } from '../../lib/publicRegistrationPhase.js'
@@ -70,7 +72,13 @@ function HeroBackdropPhoto({ children, still }) {
   )
 }
 
-export default function HeroSection({ onNavigate, event }) {
+export default function HeroSection({
+  onNavigate,
+  onSelectEvent,
+  event,
+  events = [],
+  registrationEnabled = true,
+}) {
   const { t } = useI18n()
   const { reducedMotion, tier } = useMotionConfig()
   const magneticProps = useMagneticHover()
@@ -78,7 +86,7 @@ export default function HeroSection({ onNavigate, event }) {
     () => (tier !== 'low' && hasFinePointer() ? heroTitleLineWipe : heroTitleLine),
     [tier],
   )
-  const eventStatus = getPublicEventStatus(event)
+  const eventStatus = getPublicEventStatus(event, new Date(), { registrationEnabled })
   const registrationCheckoutOpen = isPaidCheckoutOpen(event, env, new Date(), {
     checkoutKind: 'registration',
   })
@@ -91,6 +99,14 @@ export default function HeroSection({ onNavigate, event }) {
     : registrationAvailable
       ? t('hero.statusRegistrationOpen')
       : undefined
+  const seasonActions = useMemo(
+    () =>
+      getSeasonHomeActions(events.length ? events : event ? [event] : [], {
+        registrationEnabled,
+        ticketSalesEnabled: env.ticketSalesEnabled,
+      }),
+    [events, event, registrationEnabled],
+  )
   // Cascada propia del hero (no la heroStaggerContainer compartida con
   // Tickets/PluPageHero/PitbullHero) para escalarla por tier de dispositivo
   // sin afectar esas otras páginas. Ver src/motion/deviceTier.ts.
@@ -158,26 +174,50 @@ export default function HeroSection({ onNavigate, event }) {
     </span>
   )
 
-  const proofCard = (
-    <HeroStatusCard
-      event={event}
-      onSelect={() => onNavigate('pitbull')}
-      onSelectTickets={
-        ticketsAvailable
-          ? () => onNavigate('tickets', { eventSlug: event?.slug ?? event?.id })
-          : undefined
-      }
-      statusLabelOverride={statusLabelOverride}
-      ticketsAvailable={ticketsAvailable}
-    />
-  )
+  function handleSeasonAction(action) {
+    if (!action?.event) return
+    if (action.kind === 'tickets') {
+      onNavigate?.('tickets', { eventSlug: action.event.slug ?? action.event.id })
+      return
+    }
+    if (action.kind === 'registration' && typeof onSelectEvent === 'function') {
+      onSelectEvent(action.event)
+      return
+    }
+    // registration_soon (y fallback): ficha del evento, sin forzar el wizard.
+    const destination = action.event.slug
+      ? { view: 'events', options: { eventSlug: action.event.slug } }
+      : { view: 'events', options: {} }
+    onNavigate?.(destination.view, destination.options)
+  }
+
+  const proofCard =
+    seasonActions.length > 0 ? (
+      <HomeSeasonActions actions={seasonActions} onActivate={handleSeasonAction} />
+    ) : (
+      <HeroStatusCard
+        event={event}
+        onSelect={() => onNavigate('pitbull')}
+        onSelectTickets={
+          ticketsAvailable
+            ? () => onNavigate('tickets', { eventSlug: event?.slug ?? event?.id })
+            : undefined
+        }
+        statusLabelOverride={statusLabelOverride}
+        ticketsAvailable={ticketsAvailable}
+      />
+    )
   // La ficha del meet es la única pieza 3D del primer viewport; la credencial
-  // de afiliación vive en otro viewport y no compite con ella.
-  const proofBody = (
-    <TiltCard className="hero__proof-tilt" maxTilt={SHOWCASE_TILT_MAX_DEG}>
-      {proofCard}
-    </TiltCard>
-  )
+  // de afiliación vive en otro viewport y no compite con ella. El díptico de
+  // temporada no usa tilt: dos carriles accionables no deben inclinarse juntos.
+  const proofBody =
+    seasonActions.length > 0 ? (
+      proofCard
+    ) : (
+      <TiltCard className="hero__proof-tilt" maxTilt={SHOWCASE_TILT_MAX_DEG}>
+        {proofCard}
+      </TiltCard>
+    )
 
   const actions = (
     <div className="hero__cta-row">

@@ -77,10 +77,10 @@ describe('deep-link de eventos con datos asincronos', () => {
     })
 
     expect(container.querySelector('.events-detail__spotlight')).toBeNull()
-    expect(container.querySelector('.events-detail__date-hero')).toBeNull()
+    expect(container.querySelector('.events-detail__date-hero')).not.toBeNull()
     expect(container.textContent).not.toMatch(/Creá tu ficha para inscribirte/)
     expect(container.querySelector('.events-detail__athlete-hint')?.textContent).toMatch(
-      /cuenta de atleta/i,
+      /Creá tu ficha y seguí/i,
     )
   })
 
@@ -137,6 +137,47 @@ describe('deep-link de eventos con datos asincronos', () => {
     )
     expect(titles).toEqual([pitbull.title])
     expect(container.textContent).not.toMatch(/\btest\b/i)
+  })
+
+  it('muestra FAQ de landing en la ficha meet cuando hay pares completos', async () => {
+    const meetWithFaq = {
+      slug: 'spring-classic-2027',
+      title: 'Spring Classic',
+      dateISO: '2027-03-20',
+      venue: 'PLU',
+      location: 'Banfield',
+      status: 'inscripcion_abierta',
+      featured: false,
+      landing: {
+        templateId: 'meet',
+        slots: {
+          faq1Question: '¿Hay cupo?',
+          faq1Answer: 'Sí, limitado.',
+          faq2Question: 'Sin respuesta',
+        },
+      },
+    }
+
+    const { container } = render(
+      <I18nProvider>
+        <EventsPage
+          initialEventSlug={meetWithFaq.slug}
+          events={[pitbull, meetWithFaq]}
+          onNavigate={vi.fn()}
+          onSelectEvent={vi.fn()}
+          session={null}
+        />
+      </I18nProvider>,
+    )
+
+    await waitFor(() => {
+      expect(container.querySelector('.events-detail__faq')).not.toBeNull()
+    })
+    expect(container.querySelector('.events-detail__faq')?.textContent).toContain('¿Hay cupo?')
+    expect(container.querySelector('.events-detail__faq')?.textContent).toContain('Sí, limitado.')
+    expect(container.querySelector('.events-detail__faq')?.textContent).not.toContain(
+      'Sin respuesta',
+    )
   })
 
   it('muestra pesajes del evento y los oculta si no hay ventanas', async () => {

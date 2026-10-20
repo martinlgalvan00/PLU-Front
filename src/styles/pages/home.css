@@ -574,6 +574,255 @@
   white-space: nowrap;
 }
 
+/* Díptico de temporada: un acento (oro), franja de acción editorial. */
+.home-season-actions {
+  display: grid;
+  gap: 0;
+  max-width: min(100%, 22.5rem);
+  width: 100%;
+}
+
+.home-season-actions--duo {
+  box-shadow: var(--home-hero-status-panel-shadow);
+}
+
+.home-season-actions__lane {
+  appearance: none;
+  background: var(--home-hero-status-panel-bg);
+  border: 1px solid var(--home-hero-status-panel-border);
+  border-radius: 2px;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 0;
+  grid-template-columns: 1fr;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+  text-align: left;
+  transition:
+    border-color var(--motion-fast, 160ms) var(--ease-out, ease),
+    background-color var(--motion-fast, 160ms) var(--ease-out, ease);
+  width: 100%;
+}
+
+.home-season-actions--duo .home-season-actions__lane {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.home-season-actions--duo .home-season-actions__lane:first-child {
+  border-bottom-color: var(--home-hero-status-tickets-rule, var(--home-hero-status-panel-border));
+  border-top-left-radius: 2px;
+  border-top-right-radius: 2px;
+}
+
+.home-season-actions--duo .home-season-actions__lane:last-child {
+  border-bottom-left-radius: 2px;
+  border-bottom-right-radius: 2px;
+  border-top: 0;
+}
+
+.home-season-actions__lane::before {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in oklab, var(--plu-gold-500, var(--color-brand-gold)) 78%, transparent) 16%,
+    color-mix(in oklab, var(--plu-gold-500, var(--color-brand-gold)) 78%, transparent) 84%,
+    transparent 100%
+  );
+  border-radius: 99px;
+  bottom: 14px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 14px;
+  width: 2px;
+  z-index: 1;
+}
+
+.home-season-actions__lane--registration_soon::before {
+  opacity: 0.55;
+}
+
+.home-season-actions__lane:hover {
+  background: var(--home-hero-status-tickets-hover-bg, var(--home-hero-status-panel-bg));
+  border-color: color-mix(
+    in oklab,
+    var(--plu-gold-500, var(--color-brand-gold)) 36%,
+    var(--home-hero-status-panel-border)
+  );
+}
+
+.home-season-actions--duo .home-season-actions__lane:first-child:hover {
+  border-bottom-color: var(--home-hero-status-tickets-hover-rule, var(--home-hero-status-tickets-rule));
+}
+
+.home-season-actions__lane:hover .home-season-actions__arrow {
+  opacity: 1;
+  transform: translateX(3px);
+}
+
+.home-season-actions__lane:hover .home-season-actions__cue {
+  color: var(--home-hero-status-tickets-action, var(--plu-gold-400, var(--color-brand-gold)));
+}
+
+.home-season-actions__lane:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+  z-index: 1;
+}
+
+.home-season-actions__body {
+  align-items: start;
+  display: grid;
+  gap: 10px 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 14px 16px 12px 18px;
+}
+
+.home-season-actions__date {
+  align-content: start;
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  min-width: 4.1rem;
+  padding-left: 2px;
+}
+
+.home-season-actions__day {
+  color: var(--home-hero-status-year);
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2.8vw, 1.7rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.92;
+}
+
+.home-season-actions__month {
+  color: var(--home-hero-status-tickets-action, var(--plu-gold-400, var(--color-brand-gold)));
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.home-season-actions__year {
+  color: var(--home-hero-status-label, var(--color-text-muted));
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.home-season-actions__copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.home-season-actions__eyebrow {
+  color: var(--home-hero-status-label, var(--color-text-muted));
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.home-season-actions__meet {
+  color: var(--home-hero-status-year, var(--color-text-primary));
+  font-family: var(--font-display);
+  font-size: clamp(1.02rem, 1.55vw, 1.18rem);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.18;
+}
+
+.home-season-actions__place {
+  color: var(--home-hero-status-value, var(--color-text-muted));
+  font-size: 12px;
+  line-height: 1.35;
+  opacity: 0.88;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-season-actions__status {
+  color: var(--home-hero-status-value, var(--color-text-secondary));
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  margin-top: 4px;
+}
+
+.home-season-actions__lane--tickets .home-season-actions__status {
+  color: color-mix(
+    in oklab,
+    var(--home-hero-status-tickets-action, var(--plu-gold-400)) 55%,
+    var(--home-hero-status-value, var(--color-text-secondary))
+  );
+}
+
+.home-season-actions__lane--registration .home-season-actions__status {
+  color: color-mix(
+    in oklab,
+    var(--color-brand-celeste, #4aa3c7) 42%,
+    var(--home-hero-status-value, var(--color-text-secondary))
+  );
+}
+
+.home-season-actions__lane--registration_soon .home-season-actions__status {
+  color: var(--home-hero-status-label, var(--color-text-muted));
+}
+
+.home-season-actions__go {
+  align-items: center;
+  background: var(--home-hero-status-tickets-bg, transparent);
+  border-top: 1px solid var(--home-hero-status-tickets-rule, var(--home-hero-status-panel-border));
+  color: var(--home-hero-status-tickets-action, var(--plu-gold-400, var(--color-brand-gold)));
+  display: flex;
+  gap: 7px;
+  justify-content: space-between;
+  min-height: 40px;
+  padding: 0 16px 0 18px;
+  transition: background-color var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.home-season-actions__lane:hover .home-season-actions__go {
+  background: color-mix(
+    in oklab,
+    var(--plu-gold-500, var(--color-brand-gold)) 8%,
+    var(--home-hero-status-tickets-bg, transparent)
+  );
+}
+
+.home-season-actions__cue {
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 650;
+  letter-spacing: -0.018em;
+  line-height: 1;
+}
+
+.home-season-actions__arrow {
+  flex: none;
+  opacity: 0.62;
+  transition:
+    opacity var(--motion-fast, 160ms) var(--ease-out, ease),
+    transform var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-season-actions__arrow,
+  .home-season-actions__lane,
+  .home-season-actions__go {
+    transition: none;
+  }
+}
+
 @media (min-width: 900px) {
   .hero-meta--note {
     width: 100%;

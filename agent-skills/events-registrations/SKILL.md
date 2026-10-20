@@ -99,7 +99,11 @@ Definidas en `FORM_OPTIONS`:
 
 - `Youth` (10–12), `Junior` (13–23 por franja), `Open` (10+), `Sub-Masters` (35–39), `Masters` (40+)
 
-**Regla futura:** validar división según `birthDate` vs fecha del evento (PLU age groups).
+**Validación + autocomplete:** `shared/ageDivision.js` + `shared/ageDivisionUi.js`
+(`buildAgeDivisionSelectState` / `useAgeDivisionOptions`).
+Opciones = franja natural + `Open`; vacío o inválida → auto-completa la sugerida.
+UI: inscripción + Mi cuenta. API: `POST /me/registrations` y combo → `DIVISION_AGE_MISMATCH`.
+Export usa la franja natural (`resolveCompetitionDivision`) + columnas de auditoría.
 
 ### 4. Flujo de inscripción
 

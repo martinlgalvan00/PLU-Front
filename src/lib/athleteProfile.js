@@ -3,9 +3,12 @@
  */
 export {
   REQUIRED_FOR_REGISTRATION,
+  REQUIRED_FOR_PROFILE_NOTICE,
   PROFILE_FIELD_GROUPS,
   athleteProfileFromRow,
   isProfileComplete,
+  getMissingProfileNoticeFields,
+  isProfileNoticeComplete,
 } from '../../shared/athleteProfile.js'
 
 export function isUnreadProfileNotice(notice) {

@@ -34,6 +34,7 @@ import {
   bulkUpdateStaffUserRoleRequest,
   updateStaffUserRoleRequest,
   updateStaffUserStatusRequest,
+  setStaffUserEventAccessRequest,
 } from '../lib/api.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
 import { normalizeAdminFacetValue } from '../lib/adminPeopleFilters.js'
@@ -54,6 +55,7 @@ import {
   ACCESS_ROLE_TEMPLATES,
   getDefaultPermissionsForRole,
   hasAnyPermission,
+  isEventScopedSession,
   hasPermission,
   PERMISSION_CATALOG,
 } from '../lib/permissions.js'
@@ -71,8 +73,10 @@ import {
   deleteAthleteRequest,
   deleteMembershipRequest,
   deleteRegistrationRequest,
+  downloadAdminExport,
   fetchAdminAthleteData,
   fetchAdminPhotoUrls,
+  fetchLiftersExportReadiness,
   fetchAthleteSession,
   fetchAthleteSnapshot,
   forceSettleAthletePaymentOrder as forceSettleAthletePaymentOrderRequest,
@@ -153,7 +157,9 @@ import {
   buildAdminExportRows,
   buildPluUsaExportRows,
   createCsv,
+  downloadBlob,
 } from '../services/exportService.js'
+import { notifyError, notifySuccess } from '../lib/adminToast.js'
 import {
   buildPendingActions,
   buildDashboardOverview,
@@ -212,6 +218,7 @@ import {
   fetchPublicCheckoutAvailability,
 } from '../services/platformSettingsService.js'
 import { findGatePendingRegistrations } from '../lib/gateAccess.js'
+import { matchesRegistrationEventFilter } from '../lib/athleteEventStatus.js'
 
 // Los derechos de una persona se confirman en el backend (webhook de Mercado
 // Pago, validación manual o staff). Esta frecuencia es el respaldo seguro para
@@ -234,6 +241,18 @@ const LIVE_REFRESH_HINT_DELAY_MS = 600
 const LIVE_PUBLIC_CATALOG_SYNC_MS = 30_000
 // Varios cambios seguidos (guardar un evento toca varias filas) se leen juntos.
 const CATALOG_NOTICE_DEBOUNCE_MS = 400
+
+/**
+ * Precio de inscripción de UN evento. `admin.pricing.write` está reservado a Super Admin
+ * y Administrador y no se delega; un organizador (cuenta por evento) lo programa para SU
+ * evento con `admin.events.write`, y el servidor verifica que el evento sea suyo.
+ */
+function canWriteEventPrice(session) {
+  return (
+    hasPermission(session, 'admin.pricing.write') ||
+    (isEventScopedSession(session) && hasPermission(session, 'admin.events.write'))
+  )
+}
 
 export function useAppData() {
   const oauth = usePluOAuth()
@@ -434,7 +453,16 @@ export function useAppData() {
           // publicado y su estado guardado): el catálogo público, que es un
           // subconjunto, no puede reemplazarla.
           const staff = sessionRef.current
-          if (staff && !isDemoSession(staff) && hasPermission(staff, 'admin.events.read')) return
+          // Un organizador NO tiene la lista del panel completa (solo sus eventos): para él el
+          // catálogo público sigue siendo la fuente de las páginas públicas.
+          if (
+            staff &&
+            !isDemoSession(staff) &&
+            !isEventScopedSession(staff) &&
+            hasPermission(staff, 'admin.events.read')
+          ) {
+            return
+          }
           if (eventsEpochRef.current !== epoch) {
             // Respuesta vieja: se descarta y se pide de nuevo una vez.
             if (retriesLeft > 0) {
@@ -653,12 +681,17 @@ export function useAppData() {
       }
 
       const tasks = []
-      const canReadAthleteData = hasAnyPermission(session, [
-        'admin.athletes.read',
-        'admin.memberships.read',
-        'admin.registrations.read',
-        'admin.payments.read',
-      ])
+      // Un organizador tiene `registrations.read` y `payments.read`, pero este listado trae
+      // los atletas y pagos de TODOS los eventos y el servidor se lo niega: no se pide (los
+      // cobros de su evento salen de `GET /api/events/:slug/payments`).
+      const canReadAthleteData =
+        !isEventScopedSession(session) &&
+        hasAnyPermission(session, [
+          'admin.athletes.read',
+          'admin.memberships.read',
+          'admin.registrations.read',
+          'admin.payments.read',
+        ])
 
       if (canReadAthleteData) {
         // Loader bloqueante solo en la primera carga: las sincronizaciones
@@ -1214,7 +1247,11 @@ export function useAppData() {
         filters.status,
         gatePendingIds,
       )
-      const eventMatch = filters.event === 'all' || registration.event === filters.event
+      const eventMatch = matchesRegistrationEventFilter(
+        registration,
+        filters.event,
+        adminEvents,
+      )
       const affiliationMatch =
         !filters.affiliationStatus ||
         filters.affiliationStatus === 'all' ||
@@ -1245,7 +1282,7 @@ export function useAppData() {
         registration.manualOverride?.reason?.toLowerCase().includes(query)
       return statusMatch && eventMatch && affiliationMatch && gymMatch && divisionMatch && dateMatch && queryMatch
     })
-  }, [enrichedRegistrations, filters, gatePendingIds])
+  }, [adminEvents, enrichedRegistrations, filters, gatePendingIds])
 
   const updateForm = useCallback((event) => {
     const { name, value } = event.target
@@ -1873,7 +1910,14 @@ export function useAppData() {
   )
 
   const refreshPendingTicketOrders = useCallback(async () => {
-    if (!hasPermission(session, 'admin.payments.read') || isDemoSession(session)) return
+    // El listado pendiente es de todos los eventos: el organizador usa el de su evento.
+    if (
+      !hasPermission(session, 'admin.payments.read') ||
+      isDemoSession(session) ||
+      isEventScopedSession(session)
+    ) {
+      return
+    }
     setPendingTicketOrdersLoading(true)
     setPendingTicketOrdersError(null)
     try {
@@ -1916,7 +1960,9 @@ export function useAppData() {
   // usado de forma atómica — dos escaneos simultáneos del mismo QR no
   // pueden dejar pasar a las dos personas (ver server/modules/ticketing).
   useEffect(() => {
-    if (!hasPermission(session, 'admin.payments.read')) return undefined
+    if (!hasPermission(session, 'admin.payments.read') || isEventScopedSession(session)) {
+      return undefined
+    }
     refreshPendingTicketOrders()
     return undefined
   }, [session, refreshPendingTicketOrders])
@@ -2008,13 +2054,13 @@ export function useAppData() {
   // La asignación se persiste y se vuelve a validar en Express. El fallback
   // local queda únicamente para la sesión demo.
   const updateUserRoleAction = useCallback(
-    async (userId, nextRole) => {
+    async (userId, nextRole, eventIds) => {
       if (isDemoSession(session)) {
         setUsers((current) => updateUserRole(current, userId, nextRole))
         return users.find((user) => user.id === userId) ?? null
       }
 
-      const { user } = await updateStaffUserRoleRequest(userId, nextRole)
+      const { user } = await updateStaffUserRoleRequest(userId, nextRole, eventIds)
       setUsers((current) => current.map((item) => (item.id === user.id ? user : item)))
       return user
     },
@@ -2051,6 +2097,20 @@ export function useAppData() {
     },
     [session, users],
   )
+
+  // Eventos que gestiona un organizador. Devuelve el usuario con su lista nueva.
+  const setUserEventAccessAction = useCallback(async (userId, eventIds) => {
+    const { eventAccess } = await setStaffUserEventAccessRequest(userId, eventIds)
+    let updated = null
+    setUsers((current) =>
+      current.map((item) => {
+        if (item.id !== userId) return item
+        updated = { ...item, eventAccess }
+        return updated
+      }),
+    )
+    return updated ?? { id: userId, eventAccess }
+  }, [])
 
   // Alta real de staff (admin/operador/viewer): el backend crea la cuenta
   // invitada y manda un enlace firmado para elegir contraseña.
@@ -3253,17 +3313,209 @@ export function useAppData() {
     }
   }, [])
 
-  const exportAdminCsv = useCallback(() => {
-    if (!hasPermission(session, 'admin.exports.admin')) return
-    const rows = buildAdminExportRows(registrations, athletes, memberships, payments)
-    createCsv('plu-arg-admin-export.csv', rows)
-  }, [registrations, athletes, memberships, payments, session])
+  const exportAdminCsv = useCallback(
+    async ({ eventSlug = null, format = 'csv' } = {}) => {
+      if (!hasPermission(session, 'admin.exports.admin')) return { ok: false }
 
-  const exportPluUsaCsv = useCallback(() => {
-    if (!hasPermission(session, 'admin.exports.plu_usa')) return
-    const rows = buildPluUsaExportRows(athletes, memberships, registrations)
-    createCsv('plu-usa-export.csv', rows)
-  }, [athletes, memberships, registrations, session])
+      const runLocal = () => {
+        const scopedRegistrations = eventSlug
+          ? registrations.filter(
+              (item) => item.eventSlug === eventSlug || item.event === eventSlug,
+            )
+          : registrations
+        const rows = buildAdminExportRows(scopedRegistrations, athletes, memberships, payments)
+        if (!rows.length) {
+          notifyError('No hay datos para exportar con esos filtros.')
+          return { ok: false, empty: true }
+        }
+        const suffix = eventSlug
+          ? `-${String(eventSlug).replaceAll(/[^a-z0-9-]+/gi, '-').toLowerCase()}`
+          : ''
+        createCsv(`plu-arg-admin-export${suffix}.csv`, rows)
+        notifySuccess('Exportación descargada.')
+        return { ok: true }
+      }
+
+      if (env.demoMode || isDemoSession(session)) return runLocal()
+
+      try {
+        const result = await downloadAdminExport({ type: 'admin', format, eventSlug })
+        downloadBlob(result.blob, result.filename)
+        if (result.truncated) {
+          notifySuccess(
+            'Exportación descargada (parcial: hay más filas; filtrá por evento para el resto).',
+          )
+        } else {
+          notifySuccess('Exportación descargada.')
+        }
+        return { ok: true, truncated: result.truncated }
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          notifyError(error.message || 'No hay datos para exportar con esos filtros.')
+          return { ok: false, empty: true }
+        }
+        notifyError(error?.message ?? 'No se pudo generar el export.')
+        return { ok: false, error }
+      }
+    },
+    [athletes, memberships, payments, registrations, session],
+  )
+
+  const exportPluUsaCsv = useCallback(
+    async ({ eventSlug = null, format = 'csv' } = {}) => {
+      if (!hasPermission(session, 'admin.exports.plu_usa')) return { ok: false }
+
+      const runLocal = () => {
+        const scopedRegistrations = eventSlug
+          ? registrations.filter(
+              (item) => item.eventSlug === eventSlug || item.event === eventSlug,
+            )
+          : registrations
+        const athleteIds = new Set(scopedRegistrations.map((item) => item.athleteId))
+        const scopedAthletes = eventSlug
+          ? athletes.filter((item) => athleteIds.has(item.id))
+          : athletes
+        const rows = buildPluUsaExportRows(scopedAthletes, memberships, scopedRegistrations)
+        if (!rows.length) {
+          notifyError('No hay datos para exportar con esos filtros.')
+          return { ok: false, empty: true }
+        }
+        createCsv('plu-usa-export.csv', rows)
+        notifySuccess('Exportación descargada.')
+        return { ok: true }
+      }
+
+      if (env.demoMode || isDemoSession(session)) return runLocal()
+
+      try {
+        const result = await downloadAdminExport({ type: 'plu_usa', format, eventSlug })
+        downloadBlob(result.blob, result.filename)
+        if (result.truncated) {
+          notifySuccess(
+            'Exportación descargada (parcial: hay más filas; filtrá por evento para el resto).',
+          )
+        } else {
+          notifySuccess('Exportación descargada.')
+        }
+        return { ok: true, truncated: result.truncated }
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          notifyError(error.message || 'No hay datos para exportar con esos filtros.')
+          return { ok: false, empty: true }
+        }
+        notifyError(error?.message ?? 'No se pudo generar el export.')
+        return { ok: false, error }
+      }
+    },
+    [athletes, memberships, registrations, session],
+  )
+
+  const fetchLiftersReadiness = useCallback(
+    async ({ eventSlug = null } = {}) => {
+      if (!hasPermission(session, 'admin.exports.admin')) {
+        return { error: 'Sin permisos para exportar.' }
+      }
+      if (env.demoMode || isDemoSession(session)) {
+        const { buildLiftersExportRows, buildLiftersReadiness } = await import(
+          '../../shared/liftersExport.js'
+        )
+        const scoped = eventSlug
+          ? registrations.filter(
+              (item) => item.eventSlug === eventSlug || item.event === eventSlug,
+            )
+          : registrations
+        const rows = buildLiftersExportRows(scoped, athletes, memberships)
+        return { readiness: buildLiftersReadiness(rows), truncated: false, event: null }
+      }
+      try {
+        return await fetchLiftersExportReadiness({ eventSlug })
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo calcular la completitud.' }
+      }
+    },
+    [athletes, memberships, registrations, session],
+  )
+
+  const exportLiftersXls = useCallback(
+    async ({ eventSlug = null, options = null } = {}) => {
+      if (!hasPermission(session, 'admin.exports.admin')) return { ok: false }
+
+      const { liftersExportOptionsToQuery } = await import('../lib/liftersExportStudio.js')
+      const liftersQuery = options ? liftersExportOptionsToQuery(options) : null
+
+      if (env.demoMode || isDemoSession(session)) {
+        const {
+          buildLiftersExportRows,
+          buildLiftersReadiness,
+          serializeLiftersSpreadsheet,
+        } = await import('../../shared/liftersExport.js')
+        const scoped = eventSlug
+          ? registrations.filter(
+              (item) => item.eventSlug === eventSlug || item.event === eventSlug,
+            )
+          : registrations
+        const liftersRows = buildLiftersExportRows(scoped, athletes, memberships)
+        if (!liftersRows.length) {
+          notifyError('No hay datos para exportar con esos filtros.')
+          return { ok: false, empty: true }
+        }
+        const readiness = buildLiftersReadiness(liftersRows)
+        const xml = serializeLiftersSpreadsheet(liftersRows, 'Lifters', options ?? {})
+        if (!xml) {
+          notifyError('No hay filas para exportar con el filtro del studio.')
+          return { ok: false, empty: true }
+        }
+        downloadBlob(
+          new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' }),
+          'lifters-export.xls',
+        )
+        const notes = []
+        if (readiness.incomplete) notes.push(`${readiness.incomplete} con datos faltantes`)
+        if (readiness.divisionMismatch) {
+          notes.push(`${readiness.divisionMismatch} con división incorrecta`)
+        }
+        notifySuccess(
+          notes.length
+            ? `Exportación Lifters descargada (${notes.join('; ')}).`
+            : 'Exportación Lifters descargada.',
+        )
+        return { ok: true, readiness }
+      }
+
+      try {
+        const result = await downloadAdminExport({
+          type: 'lifters',
+          format: 'xls',
+          eventSlug,
+          liftersOptions: liftersQuery,
+        })
+        downloadBlob(result.blob, result.filename)
+        const notes = []
+        if (result.incomplete > 0) notes.push(`${result.incomplete} incompletas`)
+        if (result.divisionMismatch > 0) {
+          notes.push(`${result.divisionMismatch} con desajuste de división`)
+        }
+        notifySuccess(
+          notes.length
+            ? `Exportación Lifters descargada (${notes.join('; ')}).`
+            : 'Exportación Lifters descargada.',
+        )
+        return {
+          ok: true,
+          incomplete: result.incomplete,
+          divisionMismatch: result.divisionMismatch,
+        }
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          notifyError(error.message || 'No hay datos para exportar con esos filtros.')
+          return { ok: false, empty: true }
+        }
+        notifyError(error?.message ?? 'No se pudo generar el export Lifters.')
+        return { ok: false, error }
+      }
+    },
+    [athletes, memberships, registrations, session],
+  )
 
   const saveAdminEvent = useCallback(
     async (draft) => {
@@ -3621,10 +3873,7 @@ export function useAppData() {
   // relectura del catálogo al terminar.
   const setEventRegistrationPrice = useCallback(
     async (eventSlug, payload) => {
-      if (
-        !hasPermission(session, 'admin.pricing.write') ||
-        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
-      ) {
+      if (!canWriteEventPrice(session) || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
         return { error: 'La configuración económica está disponible próximamente.' }
       }
       try {
@@ -3643,10 +3892,7 @@ export function useAppData() {
 
   const clearEventRegistrationPriceSchedule = useCallback(
     async (eventSlug) => {
-      if (
-        !hasPermission(session, 'admin.pricing.write') ||
-        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
-      ) {
+      if (!canWriteEventPrice(session) || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
         return { error: 'La configuración económica está disponible próximamente.' }
       }
       try {
@@ -4007,6 +4253,7 @@ export function useAppData() {
     updateUserRoleAction,
     bulkUpdateUserRoleAction,
     updateUserStatusAction,
+    setUserEventAccessAction,
     createUserAction,
     acceptStaffInvitationAction,
     changeOwnPasswordAction,
@@ -4046,6 +4293,8 @@ export function useAppData() {
     handleRejectPayment,
     exportAdminCsv,
     exportPluUsaCsv,
+    exportLiftersXls,
+    fetchLiftersReadiness,
     demoMode: isDemoSession(session),
   }
 }

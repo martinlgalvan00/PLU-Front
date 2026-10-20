@@ -205,28 +205,21 @@ describe('EventsSection — página del evento', () => {
     expect(resumen.textContent).toContain('Ocupación')
   })
 
-  it('mantiene Inscripciones y Check-in como accesos, no como pestañas', () => {
-    const onManageRegistrations = vi.fn()
+  it('Inscripciones es pestaña del meet; Check-in sigue como acceso', () => {
     const onManageCheckin = vi.fn()
-    renderEvents({ onManageRegistrations, onManageCheckin })
+    renderEvents({ onManageCheckin })
     const panel = workspace()
 
-    // Son otras secciones del panel: no pueden ser pestañas del evento,
-    // pero tampoco podían desaparecer (el intento anterior las perdió).
-    expect(within(tabRail(panel)).queryByRole('tab', { name: /inscripciones/i })).toBeNull()
+    expect(within(tabRail(panel)).getByRole('tab', { name: /inscripciones/i })).toBeTruthy()
     expect(within(tabRail(panel)).queryByRole('tab', { name: /check-in/i })).toBeNull()
 
-    // Siguen siendo accesos, pero ahora agrupados en el Resumen en vez de
-    // repetirse en el rail de cada superficie.
-    const resumen = openTab(panel, /resumen/i)
+    openTab(panel, /inscripciones/i)
+    expect(
+      within(tabRail(panel)).getByRole('tab', { name: /inscripciones/i }).getAttribute('aria-selected'),
+    ).toBe('true')
+    expect(screen.getByRole('heading', { name: /^inscripciones$/i })).toBeTruthy()
 
-    // Las acciones rápidas del encabezado ("Cerrar inscripciones") también nombran
-    // inscripciones: el acceso es la tarjeta de operación, que empieza por el nombre.
-    fireEvent.click(within(resumen).getByRole('button', { name: /^inscripciones/i }))
-    expect(onManageRegistrations).toHaveBeenCalled()
-
-    // El Resumen ofrece dos caminos al mismo lugar (la acción rápida y la
-    // tarjeta de operación), así que se apunta a la tarjeta por su bajada.
+    openTab(panel, /resumen/i)
     fireEvent.click(
       within(screen.getByRole('region', { name: 'Evento seleccionado' })).getByRole('button', {
         name: /puerta y qr/i,

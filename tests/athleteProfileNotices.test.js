@@ -17,7 +17,10 @@ import {
   isUnreadProfileNotice,
   visibleProfileNotice,
 } from '../src/lib/athleteProfile.js'
-import { REQUIRED_FOR_REGISTRATION } from '../shared/athleteProfile.js'
+import {
+  REQUIRED_FOR_PROFILE_NOTICE,
+  REQUIRED_FOR_REGISTRATION,
+} from '../shared/athleteProfile.js'
 
 const migration = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/20261115100000_athlete_profile_notices.sql'),
@@ -26,13 +29,22 @@ const migration = readFileSync(
 
 const completeAthlete = {
   id: '11111111-1111-4111-8111-111111111111',
+  fullName: 'Ana López',
+  birthDate: '1995-01-01',
+  sex: 'Femenino',
+  country: 'Argentina',
+  email: 'ana@example.com',
   phone: '1155551234',
   city: 'Banfield',
   province: 'Buenos Aires',
+  streetAddress: 'Calle 1',
+  postalCode: '1828',
   gym: 'Maximal',
   division: 'Open',
   category: 'Raw',
   estimatedWeight: 90,
+  emergencyContactName: 'Madre',
+  emergencyContactPhone: '1199988877',
 }
 
 function incompleteRow(id = completeAthlete.id) {
@@ -101,13 +113,22 @@ describe('avisos de perfil incompleto', () => {
         repository: {
           findProfileCompleteness: async () => ({
             id: completeAthlete.id,
+            full_name: completeAthlete.fullName,
+            birth_date: completeAthlete.birthDate,
+            sex: completeAthlete.sex,
+            country: completeAthlete.country,
+            email: completeAthlete.email,
             phone: completeAthlete.phone,
             city: completeAthlete.city,
             province: completeAthlete.province,
+            street_address: completeAthlete.streetAddress,
+            postal_code: completeAthlete.postalCode,
             gym: completeAthlete.gym,
             division: completeAthlete.division,
             category: completeAthlete.category,
             estimated_weight: completeAthlete.estimatedWeight,
+            emergency_contact_name: completeAthlete.emergencyContactName,
+            emergency_contact_phone: completeAthlete.emergencyContactPhone,
           }),
         },
         athleteId: completeAthlete.id,
@@ -131,11 +152,11 @@ describe('avisos de perfil incompleto', () => {
       createdBy: 'usr-admin:admin@pluarg.test',
     })
 
-    expect(result.missing).toEqual(REQUIRED_FOR_REGISTRATION)
+    expect(result.missing).toEqual([...REQUIRED_FOR_PROFILE_NOTICE])
     expect(upserts).toEqual([
       {
         athleteId: completeAthlete.id,
-        missingFields: REQUIRED_FOR_REGISTRATION,
+        missingFields: [...REQUIRED_FOR_PROFILE_NOTICE],
         message: 'Falta el teléfono',
         createdBy: 'usr-admin:admin@pluarg.test',
       },
@@ -151,13 +172,22 @@ describe('avisos de perfil incompleto', () => {
           incompleteRow(incompleteId),
           {
             id: completeId,
+            full_name: completeAthlete.fullName,
+            birth_date: completeAthlete.birthDate,
+            sex: completeAthlete.sex,
+            country: completeAthlete.country,
+            email: completeAthlete.email,
             phone: completeAthlete.phone,
             city: completeAthlete.city,
             province: completeAthlete.province,
+            street_address: completeAthlete.streetAddress,
+            postal_code: completeAthlete.postalCode,
             gym: completeAthlete.gym,
             division: completeAthlete.division,
             category: completeAthlete.category,
             estimated_weight: completeAthlete.estimatedWeight,
+            emergency_contact_name: completeAthlete.emergencyContactName,
+            emergency_contact_phone: completeAthlete.emergencyContactPhone,
           },
         ],
         upsertProfileNotice: async (payload) => ({ id: 'notice-bulk', ...payload }),

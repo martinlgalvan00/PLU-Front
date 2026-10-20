@@ -275,8 +275,30 @@ export function createSupabaseTicketRepository(client) {
      * consulta (mismo criterio que `listPaymentOrders` del lado atleta): quien
      * mira "aprobadas" no necesita que le lleguen las 500 pendientes primero.
      */
-    async listOrders({ statuses, channel, query, sort = 'recent', limit = 200 } = {}) {
+    /** Órdenes de entradas de UN evento (panel de cobros del organizador). */
+    async listOrdersForEvent(eventId, { limit = 200 } = {}) {
+      const rows = assertSupabaseResult(
+        await client
+          .from('ticket_orders')
+          .select(TICKET_ORDER_SELECT)
+          .eq('event_id', eventId)
+          .order('created_at', { ascending: false })
+          .limit(limit),
+        'No se pudieron listar las ordenes de entradas del evento.',
+      )
+      return rows.map(mapTicketOrderRow)
+    },
+    async listOrders({
+      statuses,
+      channel,
+      query,
+      eventId = null,
+      sort = 'recent',
+      limit = 200,
+    } = {}) {
       let builder = client.from('ticket_orders').select(TICKET_ORDER_SELECT)
+
+      if (eventId) builder = builder.eq('event_id', eventId)
 
       if (Array.isArray(statuses) && statuses.length > 0) builder = builder.in('status', statuses)
 
@@ -310,8 +332,18 @@ export function createSupabaseTicketRepository(client) {
      * base y no sobre las filas que ya viajaron al navegador -- mismo patrón
      * que `paymentOrderCounts` del lado atleta.
      */
-    async orderCounts() {
-      const scoped = () => client.from('ticket_orders').select('id', { count: 'exact', head: true })
+    async orderCounts({ eventId = null } = {}) {
+      const scoped = () => {
+        let builder = client.from('ticket_orders').select('id', { count: 'exact', head: true })
+        if (eventId) builder = builder.eq('event_id', eventId)
+        return builder
+      }
+
+      let pendingAmountsQuery = client
+        .from('ticket_orders')
+        .select('amount')
+        .in('status', OPEN_TICKET_ORDER_STATUSES)
+      if (eventId) pendingAmountsQuery = pendingAmountsQuery.eq('event_id', eventId)
 
       const [pendingRes, approvedRes, rejectedRes, cancelledRes, totalRes, pendingAmounts] =
         await Promise.all([
@@ -320,11 +352,7 @@ export function createSupabaseTicketRepository(client) {
           scoped().eq('status', 'rechazado'),
           scoped().eq('status', 'cancelado'),
           scoped(),
-          client
-            .from('ticket_orders')
-            .select('amount')
-            .in('status', OPEN_TICKET_ORDER_STATUSES)
-            .limit(OPEN_AMOUNT_SAMPLE_LIMIT),
+          pendingAmountsQuery.limit(OPEN_AMOUNT_SAMPLE_LIMIT),
         ])
 
       for (const response of [pendingRes, approvedRes, rejectedRes, cancelledRes, totalRes]) {

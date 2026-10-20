@@ -11,6 +11,19 @@
 import { OPEN_ORDER_STATUSES } from './paymentValidationService.js'
 
 const PROBLEM_STATUSES = new Set(['rechazado', 'cancelado'])
+const TICKET_PENDING_STATUSES = new Set(['creado', 'pendiente', 'validacion_manual'])
+
+/**
+ * Una orden de entradas esperaba decisión por definición (la lista era solo la de
+ * pendientes). Con las órdenes completas de un evento se clasifica por estado; sin
+ * estado se sigue tratando como pendiente.
+ */
+function classifyTicketBucket(ticket) {
+  const status = ticket?.status
+  if (!status || TICKET_PENDING_STATUSES.has(status)) return 'pending'
+  if (status === 'aprobado') return 'ok'
+  return 'problem'
+}
 
 function emptyTriage() {
   return {
@@ -91,7 +104,7 @@ export function buildEventPaymentTriage({
     rows.push({
       id: `tkt-${ticket.orderId}`,
       kind: 'ticket',
-      bucket: 'pending',
+      bucket: classifyTicketBucket(ticket),
       status: ticket.status ?? 'validacion_manual',
       amount: ticket.amount,
       currency: ticket.currency ?? 'ARS',

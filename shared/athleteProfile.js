@@ -13,14 +13,30 @@ export const REQUIRED_FOR_REGISTRATION = [
   'estimatedWeight',
 ]
 
+export { REQUIRED_FOR_PROFILE_NOTICE, LIFTERS_FIELD_GROUPS } from './liftersExport.js'
+export {
+  getMissingProfileNoticeFields,
+  isProfileNoticeComplete,
+  athleteFromCompletenessRow,
+} from './liftersExport.js'
+
 export const PROFILE_FIELD_GROUPS = {
   phone: 'contact',
   city: 'contact',
   province: 'contact',
+  streetAddress: 'contact',
+  postalCode: 'contact',
+  email: 'contact',
   gym: 'sports',
+  sex: 'sports',
   division: 'competition',
   category: 'competition',
   estimatedWeight: 'competition',
+  fullName: 'official',
+  birthDate: 'official',
+  country: 'official',
+  emergencyContactName: 'emergency',
+  emergencyContactPhone: 'emergency',
 }
 
 export function athleteProfileFromRow(row) {
@@ -29,10 +45,19 @@ export function athleteProfileFromRow(row) {
     phone: row.phone,
     city: row.city,
     province: row.province,
+    streetAddress: row.street_address ?? row.streetAddress,
+    postalCode: row.postal_code ?? row.postalCode,
     gym: row.gym,
     division: row.division,
     category: row.category,
     estimatedWeight: row.estimated_weight ?? row.estimatedWeight,
+    fullName: row.full_name ?? row.fullName,
+    birthDate: row.birth_date ?? row.birthDate,
+    sex: row.sex,
+    country: row.country,
+    email: row.email,
+    emergencyContactName: row.emergency_contact_name ?? row.emergencyContactName,
+    emergencyContactPhone: row.emergency_contact_phone ?? row.emergencyContactPhone,
   }
 }
 

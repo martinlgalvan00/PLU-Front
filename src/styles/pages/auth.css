@@ -1317,8 +1317,13 @@ body:not(:has(.app-shell)) .auth-layout {
 }
 
 .auth-immersive-glass .login-field__forgot:hover {
-  color: var(--color-brand-celeste);
-  text-decoration-color: color-mix(in oklab, var(--color-brand-celeste) 60%, transparent);
+  color: var(--plu-gold-500, var(--color-brand-gold));
+  text-decoration-color: color-mix(in oklab, var(--plu-gold-500) 50%, transparent);
+}
+
+[data-theme='light'] .auth-immersive-glass .login-field__forgot:hover {
+  color: var(--plu-gold-600, var(--color-brand-gold));
+  text-decoration-color: color-mix(in oklab, var(--plu-gold-600) 45%, transparent);
 }
 
 /* Una sola superficie editorial: línea inferior que se dibuja en oro al
@@ -1453,29 +1458,23 @@ body:not(:has(.app-shell)) .auth-layout {
   color: var(--color-text-primary);
 }
 
-/* Recordarme: checkbox nativo transparente sobre una caja propia — sigue
-   siendo enfocable y `:checked` funciona. La garantía de seguridad vive en
-   el `title` del label y en `.login-remember__hint` (solo lectores). */
+/* Recordarme: checkbox propio + hint solo para lectores de pantalla. */
 .auth-immersive-glass .login-remember {
   align-items: center;
-  border-radius: var(--border-radius-sm);
   cursor: pointer;
   display: flex;
   gap: 10px;
-  margin: -6px -8px;
-  padding: 6px 8px;
-  transition: background-color 180ms var(--ease-out);
-}
-
-.auth-immersive-glass .login-remember:hover {
-  background: color-mix(in oklab, var(--color-text-primary) 4%, transparent);
+  margin: 2px 0 0;
+  padding: 0;
+  user-select: none;
+  width: fit-content;
 }
 
 .auth-immersive-glass .login-remember__control {
   flex: none;
-  height: 17px;
+  height: 16px;
   position: relative;
-  width: 17px;
+  width: 16px;
 }
 
 .auth-immersive-glass .login-remember__input {
@@ -1491,8 +1490,8 @@ body:not(:has(.app-shell)) .auth-layout {
 .auth-immersive-glass .login-remember__box {
   align-items: center;
   background: transparent;
-  border: 1.5px solid color-mix(in oklab, var(--color-text-primary) 26%, transparent);
-  border-radius: 4px;
+  border: 1.5px solid color-mix(in oklab, var(--color-text-primary) 22%, transparent);
+  border-radius: 3px;
   color: var(--color-brand-action-text, #14181f);
   display: flex;
   height: 100%;
@@ -1509,7 +1508,7 @@ body:not(:has(.app-shell)) .auth-layout {
 }
 
 .auth-immersive-glass .login-remember__input:hover ~ .login-remember__box {
-  border-color: color-mix(in oklab, var(--plu-gold-500) 60%, var(--color-text-primary) 26%);
+  border-color: color-mix(in oklab, var(--plu-gold-500) 55%, var(--color-text-primary) 22%);
 }
 
 .auth-immersive-glass .login-remember__input:checked ~ .login-remember__box {
@@ -1526,10 +1525,18 @@ body:not(:has(.app-shell)) .auth-layout {
   outline-offset: var(--institution-focus-offset);
 }
 
+.auth-immersive-glass .login-remember__copy {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+
 .auth-immersive-glass .login-remember__label {
   color: var(--color-text-secondary);
   font-size: 13px;
   font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
 .auth-immersive-glass .login-remember__hint {
@@ -1542,75 +1549,62 @@ body:not(:has(.app-shell)) .auth-layout {
   width: 1px;
 }
 
-/* Pie del formulario: una secundaria (afiliarse) y un enlace de servicio. */
+/* Pie: una sola secundaria (afiliarse), acción en oro. */
 .auth-immersive-glass .login-form__footer {
-  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 9%, transparent);
-  display: grid;
-  gap: 2px;
-  margin-top: 6px;
-  padding-top: 18px;
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  margin-top: 4px;
+  padding-top: 20px;
 }
 
 .auth-layout--login .login-form__footer .login-join {
   align-items: baseline;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35em 0.55em;
-  line-height: 1.45;
+  gap: 0.35em 0.5em;
+  justify-content: center;
+  line-height: 1.4;
   margin: 0;
-  text-align: left;
+  text-align: center;
 }
 
 .auth-layout--login .login-join__prompt {
   color: var(--color-text-muted);
   font-size: 13px;
   font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
 .auth-layout--login .login-form__footer .login-join__link {
-  color: var(--color-brand-celeste);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0;
-  padding: 6px 0;
+  color: var(--plu-gold-500, var(--color-brand-gold));
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  padding: 4px 0;
   text-decoration: none;
   transition: color 180ms var(--ease-out);
 }
 
 .auth-layout--login .login-form__footer .login-join__link:hover {
-  color: color-mix(in oklab, var(--color-brand-celeste) 82%, var(--color-text-primary));
+  color: color-mix(
+    in oklab,
+    var(--plu-gold-400, var(--color-brand-gold)) 70%,
+    var(--color-text-primary)
+  );
 }
 
-/* El celeste 400 no llega a AA sobre canvas claro. */
-[data-theme='light']
-  .auth-layout--login
-  .login-form__footer
-  .login-join__link:not(.login-join__link--service),
-[data-theme='light'] .auth-layout--login .login-form__footer .login-join__link--service:hover {
-  color: var(--plu-celeste-600);
+[data-theme='light'] .auth-layout--login .login-form__footer .login-join__link {
+  color: var(--plu-gold-600, var(--color-brand-gold));
 }
 
-[data-theme='light']
-  .auth-layout--login
-  .login-form__footer
-  .login-join__link:not(.login-join__link--service):hover {
+[data-theme='light'] .auth-layout--login .login-form__footer .login-join__link:hover {
   color: var(--color-text-primary);
 }
 
-.auth-layout--login .login-form__footer .login-join__link--service {
-  color: var(--color-text-muted);
-  font-size: 12.5px;
-  font-weight: 500;
-  min-height: 40px;
-  padding: 8px 0;
-  text-decoration: underline;
-  text-decoration-color: color-mix(in oklab, var(--color-text-muted) 34%, transparent);
-  text-underline-offset: 3px;
-}
-
-.auth-layout--login .login-form__footer .login-join__link--service:hover {
-  color: var(--color-brand-celeste);
-  text-decoration-color: color-mix(in oklab, var(--color-brand-celeste) 55%, transparent);
+.auth-immersive-glass .login-submit {
+  letter-spacing: -0.01em;
+  margin-top: 4px;
+  min-height: 52px;
 }
 
 /* ── 7. Motion, foco y targets táctiles ──────────────────────────────── */

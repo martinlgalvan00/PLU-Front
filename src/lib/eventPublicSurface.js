@@ -3,17 +3,25 @@
  * Ausente o incompleto = todo encendido: no cambia el catálogo actual.
  *
  * `all`: ficha genérica y páginas custom.
- * `custom`: solo landing editorial (hoy Pitbull Classic).
+ * `custom`: solo landing editorial (plantilla `editorial`).
+ *
+ * No importar `eventLanding.js` acá: ese módulo ya importa `normalizeEventPublicCopy`
+ * de este archivo (compat hero ← publicCopy).
  */
-import { isPitbullClassicEvent } from './eventNavigation.js'
+
+/** Compat pre-migración: mismo slug que `eventNavigation.PITBULL_CLASSIC_SLUG`. */
+const LEGACY_EDITORIAL_SLUG = 'pitbull-classic-2026'
 
 export const EVENT_PUBLIC_SURFACE_MODULES = [
   { key: 'calendar', scope: 'all' },
   { key: 'weighIns', scope: 'all' },
   { key: 'livestream', scope: 'all' },
+  { key: 'faq', scope: 'all' },
   { key: 'experience', scope: 'custom' },
   { key: 'categories', scope: 'custom' },
   { key: 'location', scope: 'custom' },
+  { key: 'tickets', scope: 'custom' },
+  { key: 'countdown', scope: 'custom' },
 ]
 
 export const DEFAULT_EVENT_PUBLIC_SURFACE = Object.fromEntries(
@@ -21,7 +29,12 @@ export const DEFAULT_EVENT_PUBLIC_SURFACE = Object.fromEntries(
 )
 
 export function eventHasCustomPublicPage(event) {
-  return isPitbullClassicEvent(event)
+  const templateId = String(event?.landing?.templateId ?? '')
+    .trim()
+    .toLowerCase()
+  if (templateId === 'editorial') return true
+  if (templateId === 'meet') return false
+  return event?.slug === LEGACY_EDITORIAL_SLUG
 }
 
 export function normalizeEventPublicSurface(raw) {
@@ -64,6 +77,18 @@ export function eventShowsPublicCategories(event) {
 
 export function eventShowsPublicLocation(event) {
   return eventPublicSurfaceFromEvent(event).location
+}
+
+export function eventShowsPublicFaq(event) {
+  return eventPublicSurfaceFromEvent(event).faq
+}
+
+export function eventShowsPublicTickets(event) {
+  return eventPublicSurfaceFromEvent(event).tickets
+}
+
+export function eventShowsPublicCountdown(event) {
+  return eventPublicSurfaceFromEvent(event).countdown
 }
 
 /** Los textos del hero y del cupo público que cambian por evento. Vacío = cae al default. */

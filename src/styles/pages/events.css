@@ -2212,9 +2212,22 @@
   transform: none;
 }
 
+.events-page--list-first .events-list--minimal .event-card--selected {
+  border-bottom-color: color-mix(
+    in oklab,
+    var(--institution-gold, var(--color-brand-gold)) 28%,
+    transparent
+  );
+}
+
 .events-page--list-first .events-list--minimal .event-card:hover::after,
 .events-page--list-first .events-list--minimal .event-card--selected::after {
   opacity: 0.85;
+}
+
+.events-page--list-first .events-list--minimal .event-card--selected::after {
+  opacity: 1;
+  width: 2px;
 }
 
 .events-page--list-first .events-list--minimal .event-card.surface-card:hover {
@@ -2341,6 +2354,15 @@
 
 .events-page--list-first .events-list--minimal .event-card__status--inline[data-tone='success'] {
   color: color-mix(in srgb, var(--color-brand-celeste, #4aa3c7) 68%, var(--color-text-primary));
+}
+
+.events-page--list-first .events-list--minimal .event-card__action--tickets {
+  color: var(--institution-gold, var(--color-brand-gold));
+}
+
+.events-page--list-first .events-list--minimal .event-card__action--tickets:hover,
+.events-page--list-first .events-list--minimal .event-card__action--tickets:focus-visible {
+  color: color-mix(in oklab, var(--institution-gold, var(--color-brand-gold)) 82%, white);
 }
 
 .events-page--list-first .events-list--minimal .event-card__status--inline[data-tone='warning'] {
@@ -2487,9 +2509,11 @@
   background: transparent;
   border: 0;
   border-radius: 0;
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 7%, transparent);
   box-shadow: none;
-  margin-top: clamp(8px, 1.5vw, 16px);
+  margin-top: clamp(12px, 2vw, 28px);
   overflow: visible;
+  padding-top: clamp(22px, 3vw, 36px);
 }
 
 .events-page--list-first .events-calendar-board::before,
@@ -2702,7 +2726,7 @@
 
 .events-page--list-first .events-calendar-board__panel .events-detail--minimal {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   padding: 6px 0 2px;
   position: relative;
 }
@@ -2717,6 +2741,28 @@
   width: 2.5rem;
 }
 
+.events-page--list-first .events-detail--minimal .events-detail__panel-eyebrow {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  margin: 10px 0 0;
+  text-transform: uppercase;
+}
+
+.events-page--list-first .events-detail--minimal .events-detail__brief {
+  align-items: start;
+  display: grid;
+  gap: 14px 18px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.events-page--list-first .events-detail--minimal .events-detail__brief-body {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
 .events-page--list-first .events-detail--minimal .events-detail__head {
   align-items: baseline;
   display: flex;
@@ -2724,7 +2770,7 @@
   gap: 10px 14px;
   justify-content: space-between;
   margin: 0;
-  padding-top: 10px;
+  padding-top: 0;
 }
 
 .events-page--list-first .events-detail--minimal .events-detail__title {
@@ -2759,12 +2805,28 @@
   opacity: 0.45;
 }
 
+.events-page--list-first .events-detail--minimal .events-detail__status-copy {
+  color: var(--color-text-secondary);
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 36ch;
+}
+
 .events-page--list-first .events-detail--minimal .events-detail__athlete-hint {
   color: var(--color-text-muted);
   font-size: 12.5px;
   line-height: 1.45;
   margin: 0;
-  max-width: 42ch;
+  max-width: 36ch;
+}
+
+@media (max-width: 520px) {
+  .events-page--list-first .events-detail--minimal .events-detail__brief {
+    grid-template-columns: 1fr;
+  }
 }
 
 .events-page--list-first .events-detail--minimal .events-detail__coming-soon {
@@ -3632,10 +3694,7 @@
 
 .events-page--list-first .events-calendar-board__panel .events-detail--minimal {
   background: transparent;
-  display: grid;
-  gap: 18px;
   height: auto;
-  padding: 4px 0 0;
 }
 
 .events-page--list-first .events-detail--minimal .events-detail__date-hero {
@@ -3646,16 +3705,17 @@
   display: grid;
   gap: 4px;
   justify-items: start;
-  padding: 0;
+  min-width: 4.5rem;
+  padding: 2px 0 0;
 }
 
 .events-page--list-first .events-detail--minimal .events-detail__date-day {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(2rem, 3.2vw, 2.5rem);
+  font-size: clamp(1.85rem, 3vw, 2.35rem);
   font-weight: 650;
   letter-spacing: -0.07em;
-  line-height: 0.85;
+  line-height: 0.88;
 }
 
 .events-page--list-first .events-detail--minimal .events-detail__date-month {
@@ -3739,6 +3799,51 @@
   line-height: 1.5;
   margin: 0 0 12px;
   max-width: 42ch;
+}
+
+.events-detail__faq {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.events-detail__faq-title {
+  font-family: var(--font-display, inherit);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.events-detail__faq-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.events-detail__faq-item {
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  display: grid;
+  gap: 4px;
+  padding: 10px 0;
+}
+
+.events-detail__faq-item:last-child {
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+}
+
+.events-detail__faq-item dt {
+  font-size: 0.8125rem;
+  font-weight: 650;
+  margin: 0;
+}
+
+.events-detail__faq-item dd {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  margin: 0;
 }
 
 .events-detail__weighins {

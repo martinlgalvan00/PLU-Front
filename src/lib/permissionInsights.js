@@ -11,6 +11,110 @@ import { RESERVED_PERMISSION_KEYS } from './permissions.js'
  */
 
 /**
+ * Paquetes operativos: atajos para armar un rol sin recorrer 40 checkboxes.
+ * Cada paquete es un conjunto de claves del catálogo; al tildarlo se expanden
+ * con las mismas dependencias que el editor fino (`applyPermissionToggle`).
+ * Los reservados a Super Admin / Administrador nunca se agregan desde acá.
+ */
+export const PERMISSION_PACKAGES = Object.freeze([
+  {
+    id: 'event_control',
+    keys: ['admin.events.read', 'admin.events.write', 'admin.registrations.read'],
+  },
+  {
+    id: 'event_payments',
+    keys: ['admin.payments.read', 'admin.payments.approve'],
+  },
+  {
+    id: 'door_team',
+    keys: ['admin.events.read', 'admin.event_team.write'],
+  },
+  {
+    id: 'checkin_ops',
+    keys: ['admin.events.read', 'admin.checkin.execute'],
+  },
+  {
+    id: 'people_read',
+    keys: ['admin.athletes.read', 'admin.memberships.read', 'admin.registrations.read'],
+  },
+  {
+    id: 'people_ops',
+    keys: [
+      'admin.athletes.read',
+      'admin.athletes.write',
+      'admin.memberships.read',
+      'admin.memberships.write',
+      'admin.registrations.read',
+      'admin.registrations.write',
+    ],
+  },
+  {
+    id: 'results_ops',
+    keys: ['admin.results.read', 'admin.results.write'],
+  },
+  {
+    id: 'exports_ops',
+    keys: ['admin.exports.admin'],
+  },
+])
+
+const PACKAGE_BY_ID = new Map(PERMISSION_PACKAGES.map((pack) => [pack.id, pack]))
+
+/** Claves de un paquete que existen en el catálogo y no son reservadas. */
+export function packagePermissionKeys(packageId, catalog = []) {
+  const pack = PACKAGE_BY_ID.get(packageId)
+  if (!pack) return []
+  const present = new Set(catalog.map((permission) => permission.key))
+  return pack.keys.filter((key) => present.has(key) && !isReservedPermission(key))
+}
+
+/**
+ * Estado de un paquete frente al borrador: `all` | `partial` | `none`.
+ * Si el paquete no tiene claves aplicables en el catálogo, es `none`.
+ */
+export function getPackageState(packageId, catalog, grantedKeys) {
+  const keys = packagePermissionKeys(packageId, catalog)
+  if (keys.length === 0) return 'none'
+  const granted = grantedKeys instanceof Set ? grantedKeys : new Set(grantedKeys ?? [])
+  const hit = keys.filter((key) => granted.has(key)).length
+  if (hit === 0) return 'none'
+  if (hit === keys.length) return 'all'
+  return 'partial'
+}
+
+/** Lista de paquetes con su estado actual para la barra del editor. */
+export function listPackageStates(catalog, grantedKeys) {
+  return PERMISSION_PACKAGES.map((pack) => ({
+    id: pack.id,
+    state: getPackageState(pack.id, catalog, grantedKeys),
+    keys: packagePermissionKeys(pack.id, catalog),
+  })).filter((pack) => pack.keys.length > 0)
+}
+
+/**
+ * Activa o desactiva un paquete entero. Al activar, cada clave pasa por
+ * `applyPermissionToggle` para respetar dependencias (p. ej. write ⇒ read).
+ */
+export function applyPackageToggle(catalog, current, packageId, checked) {
+  const keys = packagePermissionKeys(packageId, catalog)
+  if (keys.length === 0) return [...current]
+
+  let next = [...current]
+  if (checked) {
+    for (const key of keys) {
+      const permission = catalog.find((candidate) => candidate.key === key)
+      if (!permission) continue
+      next = applyPermissionToggle(catalog, next, permission, true)
+    }
+    return next
+  }
+
+  const remove = new Set(keys)
+  const kept = next.filter((key) => !remove.has(key) || isReservedPermission(key))
+  return sortKeysByCatalog(catalog, new Set(kept))
+}
+
+/**
  * Agrupación de módulos para leer la matriz por tema y no como una lista de 17
  * filas. Un módulo que el catálogo agregue y no figure acá cae en "other": no
  * desaparece de la pantalla mientras alguien le asigna un área.

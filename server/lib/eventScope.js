@@ -47,8 +47,11 @@ export function canAccessEvent(req, { eventId = null, slug = null } = {}) {
 
 export function assertEventAccess(req, target) {
   if (canAccessEvent(req, target)) return
+  // Código distinto del candado de `requireAuth` (`event_scope_denied`: la RUTA está
+  // cerrada para cuentas por evento): acá la ruta es válida pero el evento no es
+  // de la cuenta. El test de contrato necesita poder distinguirlos.
   throw new HttpError(403, 'Esta cuenta no tiene acceso a este evento.', {
-    code: 'event_scope_denied',
+    code: 'event_not_assigned',
   })
 }
 

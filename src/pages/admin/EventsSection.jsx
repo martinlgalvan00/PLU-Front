@@ -21,8 +21,12 @@ import AdminEventEditor, {
 } from '../../components/admin/AdminEventEditor.jsx'
 import AdminEventMark from '../../components/admin/AdminEventMark.jsx'
 import AdminEventPaymentsTriage from '../../components/admin/AdminEventPaymentsTriage.jsx'
+import AdminEventRegistrationsPanel, {
+  buildEventRegistrationStatusCounts,
+} from '../../components/admin/AdminEventRegistrationsPanel.jsx'
 import AdminEventQuickCreate from '../../components/admin/AdminEventQuickCreate.jsx'
 import AdminEventScanReportSection from '../../components/admin/AdminEventScanReportSection.jsx'
+import AdminEventOrganizersSection from '../../components/admin/AdminEventOrganizersSection.jsx'
 import AdminEventSecuritySection from '../../components/admin/AdminEventSecuritySection.jsx'
 import AdminEventStructureEditor from '../../components/admin/AdminEventStructureEditor.jsx'
 import AdminEventZonesSection from '../../components/admin/AdminEventZonesSection.jsx'
@@ -46,10 +50,14 @@ import { formatDayMonth, formatMonthYear } from '../../lib/format.js'
 import { getStatusMeta } from '../../lib/status.js'
 import { normalizeEventPublicSurface } from '../../lib/eventPublicSurface.js'
 import {
-  resolveEventPublishChecks,
+  resolveEventPublishConfirmChecks,
   summarizeEventPaymentChannels,
 } from '../../lib/eventPublishChecks.js'
+import { resolveEventSalesReadiness } from '../../lib/eventSalesReadiness.js'
 import { EVENT_PAYMENT_CHANNELS } from '../../lib/eventPaymentChannels.js'
+import { getCompetitionNavEvents } from '../../lib/eventNavigation.js'
+import useEventPayments from '../../hooks/useEventPayments.js'
+import useEventTickets from '../../hooks/useEventTickets.js'
 import usePlatformPaymentChannels from '../../hooks/usePlatformPaymentChannels.js'
 import { fetchSiteTeaser, saveSiteTeaser } from '../../services/siteTeaserService.js'
 import {
@@ -107,10 +115,79 @@ function groupByYearKey(list) {
 }
 
 /**
+ * Destino de Mercado Pago en la fila: cuenta general PLU, nombre del perfil o
+ * aviso de reconectar / faltante. Evita abrir cada meet para saber quién cobra.
+ */
+function EventMpDestination({ row, summary, t }) {
+  const mpOpen =
+    summary.registration.includes('mercado_pago') ||
+    (Array.isArray(summary.ticket) && summary.ticket.includes('mercado_pago'))
+  if (!mpOpen) return null
+
+  const readiness = row.mercadoPagoReadiness
+  const destination =
+    readiness?.destination ?? (row.mercadoPagoProfileId ? 'profile' : 'platform')
+  const status = readiness?.connectionStatus ?? null
+
+  if (destination === 'missing') {
+    return (
+      <span className="admin-event-row__mp admin-event-row__mp--warn">
+        {t('admin.sections.events.mpMissing')}
+      </span>
+    )
+  }
+  if (status === 'needs_reconnect') {
+    return (
+      <span className="admin-event-row__mp admin-event-row__mp--warn">
+        {t('admin.sections.events.mpNeedsReconnect')}
+      </span>
+    )
+  }
+  if (destination === 'profile') {
+    const name = readiness?.profileName
+    return (
+      <span className="admin-event-row__mp">
+        {name
+          ? t('admin.sections.events.mpProfile', { name })
+          : t('admin.sections.events.mpProfileGeneric')}
+      </span>
+    )
+  }
+  return (
+    <span className="admin-event-row__mp admin-event-row__mp--muted">
+      {t('admin.sections.events.mpPlatform')}
+    </span>
+  )
+}
+
+/**
  * Con qué cobra el evento, en la lista: es lo que Finanzas pregunta antes de
  * abrir una venta y hasta ahora obligaba a entrar a la ficha de cada meet.
  * Un concepto sin ningún medio se marca, porque es una venta que no existe.
  */
+function EventSalesReadyBadge({ row, platform, t }) {
+  const readiness = resolveEventSalesReadiness(row, platform)
+  const label =
+    readiness.mode === 'announce'
+      ? t('admin.sections.events.salesReadyAnnounce')
+      : readiness.level === 'red'
+        ? t('admin.sections.events.salesReadyRed')
+        : readiness.level === 'yellow'
+          ? t('admin.sections.events.salesReadyYellow')
+          : t('admin.sections.events.salesReadyGreen')
+  return (
+    <span
+      className={`admin-event-row__sales-ready admin-event-row__sales-ready--${readiness.level}${
+        readiness.mode === 'announce' ? ' is-announce' : ''
+      }`}
+      title={label}
+    >
+      <span className="admin-event-row__sales-ready-dot" aria-hidden />
+      {label}
+    </span>
+  )
+}
+
 function EventPaySummary({ row, platform, t }) {
   const summary = summarizeEventPaymentChannels(row, platform)
   const group = (concept, channels) => {
@@ -133,8 +210,10 @@ function EventPaySummary({ row, platform, t }) {
   }
   return (
     <span className="admin-event-row__pay" aria-label={t('admin.sections.events.payLabel')}>
+      <EventSalesReadyBadge row={row} platform={platform} t={t} />
       {group('registration', summary.registration)}
       {group('ticket', summary.ticket)}
+      <EventMpDestination row={row} summary={summary} t={t} />
     </span>
   )
 }
@@ -179,6 +258,7 @@ function EventListRow({
   platform = null,
   selected,
   locale,
+  inNav = false,
   onSelect,
   onTogglePin,
   onDuplicate,
@@ -242,6 +322,14 @@ function EventListRow({
               aria-label={t('admin.sections.events.leadFeatured')}
             >
               <Star size={12} aria-hidden />
+            </span>
+          ) : null}
+          {inNav ? (
+            <span
+              className="admin-event-row__nav-mark"
+              title={t('admin.sections.events.inNavHint')}
+            >
+              {t('admin.sections.events.inNav')}
             </span>
           ) : null}
           {row.requiresMembership === false ? (
@@ -324,7 +412,7 @@ function EventListRow({
 }
 
 /** Pestañas del workspace que no montan el editor del evento. */
-const NON_EDITOR_SECTIONS = new Set(['structure', 'security', 'payments'])
+const NON_EDITOR_SECTIONS = new Set(['structure', 'security', 'payments', 'registrations'])
 /** Pestañas que sí viven del draft del editor. El resumen no entra: si
  *  “Cerrar sección” va a dashboard y la invariante rearma el form, el botón
  *  no cierra nada. */
@@ -338,8 +426,20 @@ export default function EventsSection({
   canEdit,
   canDeleteEvents = false,
   canManageUsers,
+  // Equipo de puerta del evento: lo gestionan quienes administran usuarios Y el
+  // organizador (con `admin.event_team.write`) sobre sus eventos. Sin valor, vale
+  // lo que `canManageUsers`.
+  canManageEventTeam = null,
+  // Cuenta por evento (organizador): ve y edita solo sus eventos. No crea, publica,
+  // destaca ni toca el aviso del sitio: esas rutas están cerradas para él en el servidor.
+  eventScoped = false,
+  /** Staff del panel: sirve para listar/asignar organizadores de este meet. */
+  users = [],
+  onCreateUser,
+  onSetEventAccess,
   canViewScanReport = false,
   canValidatePayments = false,
+  canSetRegistrationStatus = false,
   isLoading = false,
   loadError = null,
   onApprovePayment,
@@ -357,16 +457,21 @@ export default function EventsSection({
   onSetTicketAccessOverride,
   onListSecurityUsers,
   onListSecurityZones,
+  gatePendingIds,
   onManageCheckin,
   onManagePayments,
   onManageRegistrations,
   onOpenFinanceForEvent,
+  registrations = [],
+  /** Organizer sin `registrations.read`: no monta la pestaña. Staff: true. */
+  showRegistrations = true,
   onPresetSecurityZones,
   onRefresh,
   onRefreshPayments,
   onRejectPayment,
   onRejectTicketOrder,
   onSaveEvent,
+  onSetRegistrationStatus,
   onSetEventLogo,
   onSetEventRegistrationPrice,
   onClearEventPriceSchedule,
@@ -415,6 +520,8 @@ export default function EventsSection({
   }
 
   useEffect(() => {
+    // El aviso del sitio es global (de PLU): el organizador no lo ve ni lo pide.
+    if (eventScoped) return undefined
     let active = true
     fetchSiteTeaser()
       .then((teaser) => {
@@ -432,7 +539,7 @@ export default function EventsSection({
     return () => {
       active = false
     }
-  }, [])
+  }, [eventScoped])
 
   async function handleToggleTeaser(next) {
     if (!canEdit || teaserBusy) return
@@ -465,8 +572,10 @@ export default function EventsSection({
   // las mismas decisiones que editar (ver AdminEventQuickCreate). El alta es una
   // página con su URL (`/admin/eventos/nuevo`): el estado local manda y la URL
   // lo refleja, igual que el workspace, así funciona también montada sola.
-  const [quickCreateOpen, setQuickCreateOpen] = useState(() =>
-    isAdminEventCreateSlug(adminEventWorkspaceSlug),
+  // Quién ve la pestaña "Zonas y seguridad" y puede armar el equipo de puerta.
+  const teamAccess = canManageEventTeam ?? canManageUsers
+  const [quickCreateOpen, setQuickCreateOpen] = useState(
+    () => !eventScoped && isAdminEventCreateSlug(adminEventWorkspaceSlug),
   )
   // Duplicar un evento abre el alta con sus datos repetibles ya cargados.
   const [duplicateSource, setDuplicateSource] = useState(null)
@@ -557,13 +666,13 @@ export default function EventsSection({
   const createRouteActive = isAdminEventCreateSlug(adminEventWorkspaceSlug)
   const wasCreateRouteRef = useRef(createRouteActive)
   useEffect(() => {
-    if (createRouteActive) {
+    if (createRouteActive && !eventScoped) {
       setQuickCreateOpen(true)
     } else if (wasCreateRouteRef.current) {
       setQuickCreateOpen(false)
     }
     wasCreateRouteRef.current = createRouteActive
-  }, [createRouteActive])
+  }, [createRouteActive, eventScoped])
 
   useEffect(() => {
     if (!adminEventWorkspaceSlug || consoleOpen || createRouteActive) return
@@ -588,6 +697,10 @@ export default function EventsSection({
   }, [adminEvents, selectedId])
 
   const years = useMemo(() => listAdminEventYears(adminEvents), [adminEvents])
+  const navEventSlugs = useMemo(
+    () => new Set(getCompetitionNavEvents(adminEvents).map((event) => event.slug)),
+    [adminEvents],
+  )
   // El año no se recorta solo: «Próximos» son todos los que no terminaron, sea
   // cual sea su año, y los contadores de las pestañas no cambian al pasar de una a
   // otra. Solo filtra por año quien lo elige en el selector.
@@ -727,7 +840,7 @@ export default function EventsSection({
     const flagged = targets
       .map((row) => ({
         row,
-        checks: resolveEventPublishChecks(row, platformChannels.platform),
+        checks: resolveEventPublishConfirmChecks(row, platformChannels.platform),
       }))
       .filter((entry) => entry.checks.length > 0)
     if (flagged.length === 0) return true
@@ -924,19 +1037,53 @@ export default function EventsSection({
     ? (adminEvents.find((event) => event.id === draft.id) ?? selectedEvent)
     : null
 
+  // Un organizador no puede leer los listados globales de pagos: sus cobros salen del
+  // endpoint de SU evento. El resto del staff sigue usando el snapshot global.
+  const scopedPayments = useEventPayments(selectedEvent?.slug, {
+    enabled: eventScoped && Boolean(selectedEvent),
+  })
+  // Idem para el Resumen: las entradas emitidas del evento abierto, no el snapshot global.
+  const scopedTickets = useEventTickets(selectedEvent?.slug, {
+    enabled: eventScoped && Boolean(selectedEvent),
+  })
+  const paymentsSource = eventScoped
+    ? {
+        payments: scopedPayments.payments,
+        athletes: scopedPayments.athletes,
+        pendingTicketOrders: scopedPayments.pendingTicketOrders,
+      }
+    : { payments, athletes, pendingTicketOrders }
+  const handleRefreshPayments = eventScoped ? scopedPayments.reload : onRefreshPayments
+
   const selectedPaymentTriage = useMemo(
     () =>
       buildEventPaymentTriage({
         event: selectedEvent,
-        payments,
-        athletes,
-        pendingTicketOrders,
+        payments: paymentsSource.payments,
+        athletes: paymentsSource.athletes,
+        pendingTicketOrders: paymentsSource.pendingTicketOrders,
       }),
-    [athletes, payments, pendingTicketOrders, selectedEvent],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- paymentsSource se arma en cada render
+    [
+      paymentsSource.athletes,
+      paymentsSource.payments,
+      paymentsSource.pendingTicketOrders,
+      selectedEvent,
+    ],
   )
   const selectedPaymentSummary = useMemo(
     () => formatEventPaymentTriageSummary(selectedPaymentTriage.counts, t),
     [selectedPaymentTriage.counts, t],
+  )
+
+  const selectedRegistrationCounts = useMemo(
+    () =>
+      buildEventRegistrationStatusCounts(
+        registrations,
+        selectedEvent,
+        gatePendingIds ?? undefined,
+      ),
+    [gatePendingIds, registrations, selectedEvent],
   )
 
   const kpiStats = useMemo(() => {
@@ -1000,6 +1147,15 @@ export default function EventsSection({
         paymentChannelOverrides: row.paymentChannelOverrides ?? null,
         bankTransferProfileId: row.bankTransferProfileId ?? null,
         mercadoPagoProfileId: row.mercadoPagoProfileId ?? null,
+        // Plantilla + slots de landing (sin imagen hero: se sube de nuevo).
+        landing: row.landing
+          ? {
+              ...row.landing,
+              slots: { ...(row.landing.slots ?? {}), heroImagePath: '' },
+            }
+          : undefined,
+        publicCopy: row.publicCopy ?? undefined,
+        publicSurface: row.publicSurface ?? undefined,
       },
       logo: null,
     })
@@ -1479,6 +1635,7 @@ export default function EventsSection({
               row={row}
               platform={platformChannels.platform}
               selected={row.id === selectedEvent?.id}
+              inNav={navEventSlugs.has(row.slug)}
               locale={locale}
               onSelect={handleSelectEvent}
               onTogglePin={handleTogglePin}
@@ -1487,7 +1644,7 @@ export default function EventsSection({
               pinBusy={pinBusyId === row.id}
               visibilityBusy={visibilityBusyId === row.id}
               justCreated={row.id === justCreatedId}
-              canPin={canEdit}
+              canPin={canEdit && !eventScoped}
               selectMode={selectMode}
               checked={selectedIds.has(row.id)}
               onToggleSelect={toggleSelected}
@@ -1528,7 +1685,7 @@ export default function EventsSection({
             {selectMode ? t('admin.sections.events.selectDone') : t('admin.sections.events.select')}
           </Button>
         ) : null}
-        {canEdit ? (
+        {canEdit && !eventScoped ? (
           <Button type="button" variant="gold" className="btn--small" onClick={openCreateForm}>
             <Plus size={15} aria-hidden />
             {t('admin.actions.newEvent')}
@@ -1657,13 +1814,14 @@ export default function EventsSection({
           activeSection={consoleSection}
           canDelete={canDeleteEvents && Boolean(onDeleteEvent)}
           canEdit={canEdit}
-          canManageUsers={canManageUsers}
+          canManageUsers={teamAccess}
           editor={
             formOpen && draft.id && EDITOR_SECTIONS.has(consoleSection) ? (
               <AdminEventEditor
                 key={draft.id}
                 accordion
                 embedded
+                eventScoped={eventScoped}
                 baselineSignature={editorBaselineSignature}
                 canEdit={canEdit}
                 draft={draft}
@@ -1691,6 +1849,7 @@ export default function EventsSection({
             ) : null
           }
           event={selectedEvent}
+          inNav={navEventSlugs.has(selectedEvent.slug)}
           onBack={closeEventConsole}
           onDelete={openDeleteDialog}
           onManageCheckin={onManageCheckin}
@@ -1709,7 +1868,7 @@ export default function EventsSection({
             discardStateRef.current = fn
           }}
           onToggleOccupancy={toggleOccupancy}
-          onTogglePin={handleTogglePin}
+          onTogglePin={eventScoped ? undefined : handleTogglePin}
           pinBusy={pinBusyId === selectedEvent.id}
           onTogglePublicModule={togglePublicModule}
           openChapter={consoleChapter}
@@ -1718,7 +1877,7 @@ export default function EventsSection({
           paymentsSection={
             canValidatePayments || onManagePayments || onOpenFinanceForEvent ? (
               <AdminEventPaymentsTriage
-                athletes={athletes}
+                athletes={paymentsSource.athletes}
                 canEdit={canValidatePayments}
                 event={selectedEvent}
                 onApprovePayment={onApprovePayment}
@@ -1726,11 +1885,28 @@ export default function EventsSection({
                 onOpenFinance={
                   onOpenFinanceForEvent ? () => onOpenFinanceForEvent(selectedEvent) : undefined
                 }
-                onRefresh={onRefreshPayments}
+                onRefresh={handleRefreshPayments}
                 onRejectPayment={onRejectPayment}
                 onRejectTicketOrder={onRejectTicketOrder}
-                payments={payments}
-                pendingTicketOrders={pendingTicketOrders}
+                payments={paymentsSource.payments}
+                pendingTicketOrders={paymentsSource.pendingTicketOrders}
+              />
+            ) : null
+          }
+          registrationCounts={selectedRegistrationCounts}
+          registrationsAttention={selectedRegistrationCounts.pendiente_pago || null}
+          registrationsSection={
+            showRegistrations ? (
+              <AdminEventRegistrationsPanel
+                athletes={athletes}
+                canSetStatus={canSetRegistrationStatus}
+                event={selectedEvent}
+                gatePendingIds={gatePendingIds}
+                onOpenFullList={
+                  onManageRegistrations ? () => onManageRegistrations(selectedEvent) : undefined
+                }
+                onSetRegistrationStatus={onSetRegistrationStatus}
+                registrations={registrations}
               />
             ) : null
           }
@@ -1738,46 +1914,60 @@ export default function EventsSection({
             formOpen && draft.id && draft.id === selectedEvent.id ? draft : null
           }
           securitySection={
-            canManageUsers ? (
+            teamAccess || canManageUsers ? (
               <div className="admin-event-workspace__security-stack">
-                <AdminEventZonesSection
-                  canManageUsers={canManageUsers}
-                  eventId={selectedEvent.id}
-                  eventSlug={selectedEvent.slug}
-                  onAssignMember={
-                    onAssignSecurityZone
-                      ? async (userId, zoneId) => {
-                          const zones = await onAssignSecurityZone(userId, zoneId)
-                          setZonesReloadToken((current) => current + 1)
-                          return zones
-                        }
-                      : undefined
-                  }
-                  onCreateAccessLink={onCreateSecurityAccessLink}
-                  onCreateZone={onCreateSecurityZone}
-                  onDeleteZone={onDeleteSecurityZone}
-                  onListSecurityUsers={onListSecurityUsers}
-                  onListZones={onListSecurityZones}
-                  onPresetZones={onPresetSecurityZones}
-                  onUpdateZone={onUpdateSecurityZone}
-                  reloadToken={zonesReloadToken}
-                />
-                <AdminEventSecuritySection
-                  canManageUsers={canManageUsers}
-                  eventId={selectedEvent.id}
-                  eventSlug={selectedEvent.slug}
-                  eventEndsAt={selectedEvent.endsAt}
-                  onCreateSecurityUser={onCreateSecurityUser}
-                  onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
-                  onCreateSecurityAccessLink={onCreateSecurityAccessLink}
-                  onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
-                  onListSecurityUsers={onListSecurityUsers}
-                  onAssignMember={onAssignSecurityZone}
-                  onListZones={onListSecurityZones}
-                  onTeamChange={() => setZonesReloadToken((current) => current + 1)}
-                  onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
-                  reloadToken={zonesReloadToken}
-                />
+                {canManageUsers && onCreateUser ? (
+                  <AdminEventOrganizersSection
+                    canManage={canManageUsers}
+                    eventId={selectedEvent.id}
+                    eventTitle={selectedEvent.title}
+                    onCreateOrganizer={onCreateUser}
+                    onSetEventAccess={onSetEventAccess}
+                    users={users}
+                  />
+                ) : null}
+                {teamAccess ? (
+                  <>
+                    <AdminEventZonesSection
+                      canManageUsers={teamAccess}
+                      eventId={selectedEvent.id}
+                      eventSlug={selectedEvent.slug}
+                      onAssignMember={
+                        onAssignSecurityZone
+                          ? async (userId, zoneId) => {
+                              const zones = await onAssignSecurityZone(userId, zoneId)
+                              setZonesReloadToken((current) => current + 1)
+                              return zones
+                            }
+                          : undefined
+                      }
+                      onCreateAccessLink={onCreateSecurityAccessLink}
+                      onCreateZone={onCreateSecurityZone}
+                      onDeleteZone={onDeleteSecurityZone}
+                      onListSecurityUsers={onListSecurityUsers}
+                      onListZones={onListSecurityZones}
+                      onPresetZones={onPresetSecurityZones}
+                      onUpdateZone={onUpdateSecurityZone}
+                      reloadToken={zonesReloadToken}
+                    />
+                    <AdminEventSecuritySection
+                      canManageUsers={teamAccess}
+                      eventId={selectedEvent.id}
+                      eventSlug={selectedEvent.slug}
+                      eventEndsAt={selectedEvent.endsAt}
+                      onCreateSecurityUser={onCreateSecurityUser}
+                      onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
+                      onCreateSecurityAccessLink={onCreateSecurityAccessLink}
+                      onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
+                      onListSecurityUsers={onListSecurityUsers}
+                      onAssignMember={onAssignSecurityZone}
+                      onListZones={onListSecurityZones}
+                      onTeamChange={() => setZonesReloadToken((current) => current + 1)}
+                      onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
+                      reloadToken={zonesReloadToken}
+                    />
+                  </>
+                ) : null}
                 {canViewScanReport ? (
                   <AdminEventScanReportSection
                     canManageAccessOverride={canEdit}
@@ -1798,7 +1988,7 @@ export default function EventsSection({
               onSaveEvent={handleStructureSave}
             />
           }
-          tickets={tickets}
+          tickets={eventScoped ? scopedTickets : tickets}
         />
         {deleteDialog}
       </>
@@ -1902,14 +2092,16 @@ export default function EventsSection({
         </p>
       ) : null}
 
-        <AdminSiteTeaserControl
-          busy={teaserBusy}
-          canEdit={canEdit}
-          enabled={teaserEnabled}
-          loadFailed={teaserLoadFailed}
-          onRetry={loadSiteTeaser}
-          onToggle={handleToggleTeaser}
-        />
+        {eventScoped ? null : (
+          <AdminSiteTeaserControl
+            busy={teaserBusy}
+            canEdit={canEdit}
+            enabled={teaserEnabled}
+            loadFailed={teaserLoadFailed}
+            onRetry={loadSiteTeaser}
+            onToggle={handleToggleTeaser}
+          />
+        )}
 
         <div className="admin-events-workspace">
           <div className="admin-events-workspace__main">
@@ -1933,7 +2125,7 @@ export default function EventsSection({
                     ? t('admin.sections.events.emptyLead')
                     : t('admin.sections.events.emptyFilteredLead')}
                 </p>
-                {canEdit && adminEvents.length === 0 ? (
+                {canEdit && !eventScoped && adminEvents.length === 0 ? (
                   <Button
                     type="button"
                     variant="gold"

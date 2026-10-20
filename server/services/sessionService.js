@@ -154,6 +154,9 @@ export function serializeUser(user) {
   const roleKey = user.accessRole?.key ?? user.role
   const permissions =
     permissionKeysFromAccessRole(user.accessRole) ?? getDefaultPermissionsForRole(roleKey)
+  // Preferir el AccessRole completo (con `scope`); si no hay, la clave legacy.
+  const scopeSubject = user.accessRole ?? roleKey
+  const eventScoped = isEventScopedRole(scopeSubject)
 
   return {
     id: user.id,
@@ -170,11 +173,12 @@ export function serializeUser(user) {
     mustChangePassword: Boolean(user.mustChangePassword),
     eventId: user.eventId ?? null,
     eventSlug: user.eventSlug ?? null,
-    // Rol "por evento" (organizador): solo opera sobre `eventAccess`. Sale del rol,
-    // no de la lista: una cuenta por evento SIN eventos asignados sigue siendo por
-    // evento y no ve nada, en vez de caer en el alcance global por omisión.
-    eventScoped: isEventScopedRole(roleKey),
-    ...(isEventScopedRole(roleKey)
+    // Rol "por evento": solo opera sobre `eventAccess`. Sale del scope del rol
+    // (columna `AccessRole.scope`, con fallback a la clave). Sin eventos
+    // asignados sigue siendo por evento y no ve nada.
+    scope: eventScoped ? 'event' : 'global',
+    eventScoped,
+    ...(eventScoped
       ? {
           eventAccess: (user.eventAccess ?? []).map(({ eventId, eventSlug }) => ({
             eventId,
@@ -248,7 +252,7 @@ export async function readSession({ prisma, token, now = new Date() }) {
   // Los eventos asignados se leen SOLO para cuentas de rol por evento: el resto del
   // staff no toca la tabla (y funciona aunque la migración todavía no esté aplicada).
   const staffUser = session.user
-  if (isEventScopedRole(staffUser.accessRole?.key ?? staffUser.role)) {
+  if (isEventScopedRole(staffUser.accessRole ?? staffUser.accessRole?.key ?? staffUser.role)) {
     staffUser.eventAccess =
       typeof prisma.userEventAccess?.findMany === 'function'
         ? await prisma.userEventAccess.findMany({

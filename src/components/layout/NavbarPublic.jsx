@@ -23,8 +23,16 @@ import {
   Bell,
 } from 'lucide-react'
 import { PUBLIC_NAVIGATION } from '../../lib/constants.js'
-import { getFeaturedEventDestination } from '../../lib/eventNavigation.js'
-import { sessionDisplayName, sessionInitial, sessionPhotoUrl } from '../../lib/format.js'
+import {
+  getCompetitionNavEventKey,
+  getFeaturedEventDestination,
+} from '../../lib/eventNavigation.js'
+import {
+  formatDayMonth,
+  sessionDisplayName,
+  sessionInitial,
+  sessionPhotoUrl,
+} from '../../lib/format.js'
 import { canViewAdmin, resolveSessionIdentity } from '../../lib/roles.js'
 import { hasCurrentMembership } from '../../services/membershipService.js'
 import { useHeaderScroll } from '../../hooks/useMotion.js'
@@ -76,10 +84,19 @@ const NOTICE_FIELD_KEYS = {
   phone: 'account.personalData.phone',
   city: 'account.personalData.city',
   province: 'account.personalData.province',
+  streetAddress: 'account.personalData.streetAddress',
+  postalCode: 'account.personalData.postalCode',
+  email: 'account.personalData.email',
   gym: 'account.personalData.gym',
+  sex: 'account.personalData.sex',
   division: 'account.personalData.division',
   category: 'account.personalData.category',
   estimatedWeight: 'account.personalData.estimatedWeight',
+  fullName: 'account.personalData.fullName',
+  birthDate: 'account.personalData.birthDate',
+  country: 'pages.register.country',
+  emergencyContactName: 'account.personalData.emergencyName',
+  emergencyContactPhone: 'account.personalData.emergencyPhone',
 }
 
 function noticeFieldLabels(notice, t) {
@@ -123,20 +140,55 @@ const DRAWER_SECONDARY = [
   { key: 'contact', labelKey: 'nav.contact' },
 ]
 
-function mapNavGroupItems(
-  group,
-  { activeView, latestEventActive, latestEventHint, latestEventTitle, t },
-) {
+function mapNavGroupItems(group, { activeView, t }) {
   return {
     label: t(group.labelKey),
     items: group.items.map((item) => ({
       ...item,
       icon: NAV_ICON[item.icon],
-      label: item.key === 'pitbull' ? latestEventTitle : t(item.labelKey),
-      hint: item.key === 'pitbull' ? latestEventHint : t(item.hintKey),
-      active: item.key === 'pitbull' ? latestEventActive : activeView === item.key,
+      label: t(item.labelKey),
+      hint: t(item.hintKey),
+      active: activeView === item.key,
     })),
   }
+}
+
+function navEventHint(event, locale) {
+  const iso = event?.dateISO ?? String(event?.startsAt ?? '').slice(0, 10)
+  if (iso) return formatDayMonth(iso, locale)
+  return event?.date ?? ''
+}
+
+function resolveCompetitionNavEvents(navEvents, latestEvent) {
+  if (Array.isArray(navEvents) && navEvents.length > 0) return navEvents
+  return latestEvent?.slug ? [latestEvent] : []
+}
+
+function buildCompetitionNavItems(navEvents, { activeView, activeEventSlug, locale, t }) {
+  const calendar = {
+    key: 'events',
+    icon: NAV_ICON.calendar,
+    label: t('nav.calendarOfficial'),
+    hint: t('nav.calendarHint'),
+    active: activeView === 'events' && !activeEventSlug,
+    destination: { view: 'events', options: {} },
+  }
+
+  const eventItems = navEvents.map((event, index) => {
+    const destination = getFeaturedEventDestination(event)
+    const slug = destination.options?.eventSlug
+    return {
+      key: getCompetitionNavEventKey(event) ?? `event:${index}`,
+      icon: NAV_ICON.trophy,
+      featured: index === 0,
+      label: event.title || t('nav.pitbull'),
+      hint: navEventHint(event, locale),
+      active: activeView === destination.view && Boolean(slug) && activeEventSlug === slug,
+      destination,
+    }
+  })
+
+  return [calendar, ...eventItems]
 }
 
 function SharedActiveIndicator() {
@@ -459,6 +511,7 @@ export default function NavbarPublic({
   activeEventSlug = null,
   activeView,
   latestEvent,
+  navEvents = [],
   memberships = [],
   onLogout,
   onNavigate,
@@ -511,35 +564,21 @@ export default function NavbarPublic({
   const showNoticeBell = Boolean(session)
   const competitionActive = Boolean(COMPETITION_NAVIGATION?.views?.includes(activeView))
   const moreActive = Boolean(MORE_NAVIGATION?.views?.includes(activeView))
-
-  const latestEventTitle = latestEvent?.title ?? t('nav.pitbull')
-  const latestEventDestination = getFeaturedEventDestination(latestEvent)
-  const latestEventView = latestEventDestination.view
-  const latestEventOptions = latestEventDestination.options
-  const latestEventActive =
-    activeView === latestEventView &&
-    (latestEventView !== 'events' ||
-      !latestEventOptions?.eventSlug ||
-      activeEventSlug === latestEventOptions.eventSlug)
-  const latestEventHint = latestEvent?.date ?? t('nav.pitbullHint')
-
-  const navGroupContext = {
+  const competitionEvents = resolveCompetitionNavEvents(navEvents, latestEvent)
+  const competitionItems = buildCompetitionNavItems(competitionEvents, {
     activeView,
-    latestEventActive,
-    latestEventHint,
-    latestEventTitle,
+    activeEventSlug,
+    locale,
     t,
-  }
-  const competitionGroups = (COMPETITION_NAVIGATION?.groups ?? []).map((group) =>
-    mapNavGroupItems(group, navGroupContext),
-  )
+  })
+
   const moreGroups = (MORE_NAVIGATION?.groups ?? []).map((group) =>
-    mapNavGroupItems(group, navGroupContext),
+    mapNavGroupItems(group, { activeView, t }),
   )
 
   function navigateNavItem(item) {
-    if (item.key === 'pitbull') {
-      go(latestEventView, latestEventOptions)
+    if (item.destination) {
+      go(item.destination.view, item.destination.options)
       return
     }
     go(item.key)
@@ -803,7 +842,7 @@ export default function NavbarPublic({
                       }
                       variant="compact"
                     >
-                      {competitionGroups[0]?.items.map((navItem) => (
+                      {competitionItems.map((navItem) => (
                         <NavDropdownItem
                           key={navItem.key}
                           active={navItem.active}
@@ -1316,39 +1355,44 @@ export default function NavbarPublic({
                   <LayoutGroup id={`plu-drawer-nav-${locale}`}>
                     <nav className="plu-drawer__nav" aria-label={t('nav.mobileMenu')}>
                       <div className="plu-drawer__nav-primary">
-                        <DrawerRow
-                          active={latestEventActive}
-                          delay={MOTION_STAGGER.stepFast}
-                          description={latestEvent?.date ?? t('nav.pitbullHint')}
-                          onClick={() => go(latestEventView, latestEventOptions)}
-                        >
-                          {latestEventTitle}
-                        </DrawerRow>
+                        {competitionItems
+                          .filter((item) => item.key !== 'events')
+                          .map((item, index) => (
+                            <DrawerRow
+                              key={item.key}
+                              active={item.active}
+                              delay={MOTION_STAGGER.stepFast * (index + 1)}
+                              description={item.hint}
+                              onClick={() => navigateNavItem(item)}
+                            >
+                              {item.label}
+                            </DrawerRow>
+                          ))}
                         <DrawerRow
                           active={['shop', 'tickets'].includes(activeView)}
-                          delay={MOTION_STAGGER.stepFast * 2}
+                          delay={MOTION_STAGGER.stepFast * 3}
                           description={t('nav.shopHint')}
                           onClick={() => go('shop')}
                         >
                           {t('nav.shop')}
                         </DrawerRow>
                         <DrawerRow
-                          active={activeView === 'events'}
-                          delay={MOTION_STAGGER.stepFast * 3}
+                          active={activeView === 'events' && !activeEventSlug}
+                          delay={MOTION_STAGGER.stepFast * 4}
                           onClick={() => go('events')}
                         >
                           {t('nav.calendarOfficial')}
                         </DrawerRow>
                         <DrawerRow
                           active={activeView === 'results'}
-                          delay={MOTION_STAGGER.stepFast * 4}
+                          delay={MOTION_STAGGER.stepFast * 5}
                           onClick={() => go('results')}
                         >
                           {t('nav.results')}
                         </DrawerRow>
                         <DrawerRow
                           active={activeView === 'records'}
-                          delay={MOTION_STAGGER.stepFast * 5}
+                          delay={MOTION_STAGGER.stepFast * 6}
                           onClick={() => go('records')}
                         >
                           {t('nav.records')}

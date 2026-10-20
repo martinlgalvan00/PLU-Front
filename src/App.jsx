@@ -26,7 +26,7 @@ import {
   pushPublicViewPath,
 } from './lib/publicViewPaths.js'
 import { readPasswordResetToken } from './lib/passwordResetRoute.js'
-import { matchSecurityGateRoute } from './lib/securityGateRoute.js'
+import { buildSecurityGatePath, matchSecurityGateRoute } from './lib/securityGateRoute.js'
 import {
   clearStaffEmailChangeToken,
   readStaffEmailChangeToken,
@@ -45,10 +45,13 @@ import {
 } from './lib/ticketsRoute.js'
 import { resolveEventPricing } from './lib/eventPricing.js'
 import {
+  getCompetitionNavEvents,
   getFeaturedEvent,
   getNextUpcomingEvent,
   getPublicCatalogEvents,
+  PITBULL_CLASSIC_SLUG,
 } from './lib/eventNavigation.js'
+import { eventHasEditorialLanding, eventLandingSeo } from './lib/eventLanding.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
 import { reconcileMercadoPagoReturn } from './services/paymentService.js'
 import {
@@ -76,7 +79,11 @@ import {
   isPluUsaPartner,
   isStaffSession,
 } from './lib/roles.js'
-import { getAllowedAdminSections } from './lib/permissions.js'
+import {
+  getAllowedAdminSections,
+  hasPermission,
+  isEventScopedSession,
+} from './lib/permissions.js'
 import { hasUnreadProfileNotice, visibleProfileNotice } from './lib/athleteProfile.js'
 
 function currentAthleteRecord(app) {
@@ -121,6 +128,19 @@ const CheckInAppPage = lazyWithRetry(async () => {
     ),
   }
 })
+const OrganizerAppPage = lazyWithRetry(async () => {
+  const [{ default: Page }, { AppConfigProvider }] = await Promise.all([
+    import('./pages/OrganizerAppPage.jsx'),
+    import('./providers/AppConfigProvider.jsx'),
+  ])
+  return {
+    default: (props) => (
+      <AppConfigProvider>
+        <Page {...props} />
+      </AppConfigProvider>
+    ),
+  }
+})
 const SecurityGatePage = lazyWithRetry(() => import('./pages/SecurityGatePage.jsx'))
 const HomePage = lazyWithRetry(() => import('./pages/HomePage.jsx'))
 const AthleteProfilePage = lazyWithRetry(() => import('./pages/AthleteProfilePage.jsx'))
@@ -133,6 +153,7 @@ const LoginPage = lazyWithRetry(() => import('./pages/LoginPage.jsx'))
 const MembersPage = lazyWithRetry(() => import('./pages/MembersPage.jsx'))
 const NotFoundPage = lazyWithRetry(() => import('./pages/NotFoundPage.jsx'))
 const PitbullPage = lazyWithRetry(() => import('./pages/PitbullPage.jsx'))
+const EventLandingEditorial = lazyWithRetry(() => import('./pages/EventLandingEditorial.jsx'))
 const RecordsPage = lazyWithRetry(() => import('./pages/RecordsPage.jsx'))
 const RegisterPage = lazyWithRetry(() => import('./pages/RegisterPage.jsx'))
 const ResourcesPage = lazyWithRetry(() => import('./pages/ResourcesPage.jsx'))
@@ -226,6 +247,8 @@ export default function App() {
   )
   const nextEvent = getNextUpcomingEvent(publicEvents) ?? UPCOMING_EVENTS[0]
   const featuredEvent = getFeaturedEvent(publicEvents) ?? UPCOMING_EVENTS[0]
+  const catalogNavEvents = getCompetitionNavEvents(publicEvents)
+  const navEvents = catalogNavEvents.length > 0 ? catalogNavEvents : [featuredEvent].filter((event) => event?.slug)
 
   useEffect(() => {
     setSelectedEvent((current) => {
@@ -455,8 +478,26 @@ export default function App() {
       const membershipCheckout = !blocked
         ? resolveMembershipCheckout(requestedView, requestedOptions)
         : { view: requestedView, options: requestedOptions }
-      const resolvedView = blocked ? 'login' : membershipCheckout.view
-      const resolvedOptions = blocked ? requestedOptions : membershipCheckout.options
+      let resolvedView = blocked ? 'login' : membershipCheckout.view
+      let resolvedOptions = blocked ? requestedOptions : membershipCheckout.options
+
+      // openTickets en pitbull: ir a la página completa de entradas
+      if (resolvedView === 'pitbull' && resolvedOptions.openTickets) {
+        pushTicketsRoute(resolvedOptions.eventSlug)
+        setTicketEventSlug(resolvedOptions.eventSlug ?? null)
+        setTransitionDirection(getTransitionDirection(view, 'tickets'))
+        setView('tickets')
+        return
+      }
+
+      // Alias deprecado `/pitbull` → ficha canónica por slug (plantilla editorial).
+      if (resolvedView === 'pitbull') {
+        resolvedView = 'events'
+        resolvedOptions = {
+          ...resolvedOptions,
+          eventSlug: resolvedOptions.eventSlug || PITBULL_CLASSIC_SLUG,
+        }
+      }
 
       if (blocked && athleteRequired) {
         setPendingAthleteDestination({ view: requestedView, options: requestedOptions })
@@ -496,15 +537,6 @@ export default function App() {
         }
       }
 
-      // openTickets en pitbull: ir a la página completa de entradas
-      if (resolvedView === 'pitbull' && resolvedOptions.openTickets) {
-        pushTicketsRoute(resolvedOptions.eventSlug)
-        setTicketEventSlug(resolvedOptions.eventSlug ?? null)
-        setTransitionDirection(getTransitionDirection(view, 'tickets'))
-        setView('tickets')
-        return
-      }
-
       if (resolvedView === 'profile') {
         setProfileTab(resolvedOptions.tab || DEFAULT_ACCOUNT_TAB)
         setProfileTabNonce((current) => current + 1)
@@ -528,6 +560,12 @@ export default function App() {
     },
     [publicEvents, getSession, pendingAthleteDestination, view, app.enterAthleteContext, app.returnToStaffContext],
   )
+
+  // Alias deprecado: `/pitbull` → `/evento/pitbull-classic-2026`.
+  useEffect(() => {
+    if (view !== 'pitbull') return
+    navigate('events', { eventSlug: PITBULL_CLASSIC_SLUG })
+  }, [view, navigate])
 
   async function selectEvent(event, options = {}) {
     setSelectedEvent(event)
@@ -690,6 +728,65 @@ export default function App() {
       )
     }
 
+    if (isEventScopedSession(app.session)) {
+      return (
+        <Suspense fallback={<PageLoadFallback />}>
+          <OrganizerAppPage
+            adminEvents={app.adminEvents}
+            adminEventsError={app.adminEventsError}
+            adminEventsLoading={app.adminEventsLoading}
+            adminEventWorkspaceSlug={adminEventWorkspaceSlug}
+            athletes={app.athletes}
+            authorization={app.session}
+            gatePendingIds={app.gatePendingIds}
+            onApprovePayment={app.handleApprovePayment}
+            onApproveTicketOrder={app.approveTicketPurchase}
+            onAssignSecurityZone={app.assignSecurityZoneAction}
+            onClearEventPriceSchedule={app.clearEventRegistrationPriceSchedule}
+            onCreateSecurityAccessLink={app.createSecurityAccessLinkAction}
+            onCreateSecurityUser={app.createSecurityUserAction}
+            onCreateSecurityUsersBulk={app.createSecurityUsersBulkAction}
+            onCreateSecurityZone={app.createSecurityZoneAction}
+            onDeactivateAllSecurityUsers={app.deactivateAllSecurityUsersAction}
+            onDeleteSecurityZone={app.deleteSecurityZoneAction}
+            onExit={() => navigate('home')}
+            onGetEventScanReport={app.getEventScanReportAction}
+            onListSecurityUsers={app.listSecurityUsersForEventAction}
+            onListSecurityZones={app.listSecurityZonesAction}
+            onManageCheckin={
+              hasPermission(app.session, 'admin.checkin.execute')
+                ? (event) => {
+                    if (!event?.slug) return
+                    window.open(
+                      buildSecurityGatePath(event.slug),
+                      '_blank',
+                      'noopener,noreferrer',
+                    )
+                  }
+                : undefined
+            }
+            onPresetSecurityZones={app.presetSecurityZonesAction}
+            onRefreshAdminEvents={app.refreshAdminEvents}
+            onRefreshPayments={app.refreshPendingTicketOrders}
+            onRejectPayment={app.handleRejectPayment}
+            onRejectTicketOrder={app.rejectTicketPurchase}
+            onSaveEvent={app.saveAdminEvent}
+            onSetEventLogo={app.setAdminEventLogo}
+            onSetEventRegistrationPrice={app.setEventRegistrationPrice}
+            onSetRegistrationStatus={app.setRegistrationStatusAction}
+            onSetTicketAccessOverride={app.setTicketAccessOverrideAction}
+            onUpdateSecurityUserStatus={app.updateSecurityUserStatusAction}
+            onUpdateSecurityZone={app.updateSecurityZoneAction}
+            payments={app.payments}
+            pendingTicketOrders={app.pendingTicketOrders}
+            registrations={app.registrations}
+            roleLabel={getRoleLabel(app.session)}
+            tickets={app.tickets}
+          />
+        </Suspense>
+      )
+    }
+
     return (
       <Suspense fallback={<PageLoadFallback />}>
         <AdminPage
@@ -797,6 +894,8 @@ export default function App() {
           onCreateRole={app.createAccessRoleAction}
           onExportAdmin={app.exportAdminCsv}
           onExportPluUsa={app.exportPluUsaCsv}
+          onExportLifters={app.exportLiftersXls}
+          onFetchLiftersReadiness={app.fetchLiftersReadiness}
           onSaveEvent={app.saveAdminEvent}
           onDeleteEvent={app.deleteAdminEvent}
           onFetchEventDeleteImpact={app.fetchAdminEventDeleteImpact}
@@ -807,6 +906,7 @@ export default function App() {
           onUpdateUserRole={app.updateUserRoleAction}
           onBulkUpdateUserRole={app.bulkUpdateUserRoleAction}
           onUpdateUserStatus={app.updateUserStatusAction}
+          onSetUserEventAccess={app.setUserEventAccessAction}
           onUpdateRolePermissions={app.updateAccessRolePermissionsAction}
           onUpdateRoleStatus={app.updateAccessRoleStatusAction}
           payments={app.payments}
@@ -829,10 +929,31 @@ export default function App() {
     )
   }
 
-  const Page = PUBLIC_VIEWS[view] || NotFoundPage
+  const eventPageEvent = eventPageSlug
+    ? publicEvents.find((event) => event.slug === eventPageSlug)
+    : null
+  const eventPageLandingSeo = eventPageEvent ? eventLandingSeo(eventPageEvent) : null
+  const showEditorialLanding =
+    (view === 'events' && eventPageEvent && eventHasEditorialLanding(eventPageEvent)) ||
+    view === 'pitbull'
+  const Page = showEditorialLanding
+    ? EventLandingEditorial
+    : PUBLIC_VIEWS[view] || NotFoundPage
 
-  const pageProps =
-    view === 'register'
+  const editorialPageProps = {
+    onNavigate: navigate,
+    onSelectEvent: selectEvent,
+    events: publicEvents,
+    eventSlug: view === 'pitbull' ? PITBULL_CLASSIC_SLUG : eventPageSlug,
+    session: app.session,
+    memberships: app.memberships,
+    registrations: app.registrations,
+    checkoutAvailability: app.checkoutAvailability,
+  }
+
+  const pageProps = showEditorialLanding
+    ? editorialPageProps
+    : view === 'register'
       ? {
           createdOrder: app.createdOrder,
           form: app.form,
@@ -868,18 +989,7 @@ export default function App() {
                 checkoutAvailability: app.checkoutAvailability,
               }
             : view === 'pitbull'
-              ? {
-                  onNavigate: navigate,
-                  onSelectEvent: selectEvent,
-                  events: publicEvents,
-                  session: app.session,
-                  memberships: app.memberships,
-                  // Sin esto la página del meet no podía saber que quien la
-                  // mira ya está inscripto: ofrecía "Inscribirme" a alguien
-                  // que había pagado, mientras su perfil decía lo contrario.
-                  registrations: app.registrations,
-                  checkoutAvailability: app.checkoutAvailability,
-                }
+              ? editorialPageProps
               : view === 'shop'
                 ? { onNavigate: navigate, events: publicEvents }
                 : view === 'tickets'
@@ -924,6 +1034,7 @@ export default function App() {
         navigate={navigate}
         transitionDirection={transitionDirection}
         helpEvent={featuredEvent}
+        navEvents={navEvents}
         onSelectEvent={selectEvent}
       >
         <Suspense fallback={<PageLoadFallback />}>
@@ -968,6 +1079,7 @@ export default function App() {
         navigate={navigate}
         transitionDirection={transitionDirection}
         helpEvent={competitionEvent}
+        navEvents={navEvents}
         onSelectEvent={selectEvent}
       >
         <Suspense fallback={<PageLoadFallback />}>
@@ -1012,18 +1124,28 @@ export default function App() {
       <CookieConsent />
       <DocumentMetaSync
         view={view}
-        eventSlug={view === 'events' ? eventPageSlug : null}
+        eventSlug={view === 'events' || showEditorialLanding ? eventPageSlug : null}
         eventTitle={
-          view === 'events' && eventPageSlug
+          (view === 'events' || showEditorialLanding) && eventPageSlug
             ? publicEvents.find((event) => event.slug === eventPageSlug)?.title
             : null
         }
+        metaTitle={
+          eventPageLandingSeo?.hasCustomTitle ? eventPageLandingSeo.title : null
+        }
+        metaDescription={
+          eventPageLandingSeo?.hasCustomDescription
+            ? eventPageLandingSeo.description
+            : null
+        }
+        metaImage={eventPageEvent?.heroImageUrl || null}
       />
       <AnalyticsTracker view={view} />
       <NavbarPublic
         activeEventSlug={eventPageSlug}
         activeView={view}
         latestEvent={featuredEvent}
+        navEvents={navEvents}
         memberships={app.memberships}
         onLogout={app.logout}
         onNavigate={navigate}
@@ -1045,7 +1167,9 @@ export default function App() {
           </Suspense>
         </PageErrorBoundary>
       </PageTransition>
-      {!['login', 'register'].includes(view) && <Footer onNavigate={navigate} />}
+      {!['login', 'register'].includes(view) && (
+        <Footer onNavigate={navigate} navEvents={navEvents} />
+      )}
       {/* Fuera de PageTransition: el botón de ayuda no se desmonta al cambiar
           de pantalla, así que sigue estando donde la persona lo dejó. */}
       <HelpLayer
@@ -1068,6 +1192,7 @@ function PrivateLayout({
   view,
   transitionDirection,
   helpEvent = null,
+  navEvents = [],
   onSelectEvent,
 }) {
   return (
@@ -1084,6 +1209,7 @@ function PrivateLayout({
           getFeaturedEvent(app.adminEvents.filter((event) => event.published !== false)) ??
           UPCOMING_EVENTS[0]
         }
+        navEvents={navEvents}
         memberships={app.memberships}
         onLogout={async () => {
           await app.logout()
@@ -1106,7 +1232,7 @@ function PrivateLayout({
           <Suspense fallback={<PageLoadFallback />}>{children}</Suspense>
         </PageErrorBoundary>
       </PageTransition>
-      <Footer onNavigate={navigate} />
+      <Footer onNavigate={navigate} navEvents={navEvents} />
       <HelpLayer
         event={helpEvent}
         memberships={app.memberships}

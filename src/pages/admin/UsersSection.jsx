@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import {
   Ban,
+  CalendarCheck,
   CircleCheck,
   ChevronDown,
   KeyRound,
@@ -17,10 +18,12 @@ import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmD
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import AdminEmptyState from '../../components/admin/AdminEmptyState.jsx'
 import StaffInvitationNotice from '../../components/admin/StaffInvitationNotice.jsx'
+import UserEventAccessDialog from '../../components/admin/UserEventAccessDialog.jsx'
 import UsersBulkRoleBar from '../../components/admin/UsersBulkRoleBar.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatRecordCount } from '../../i18n/adminHelpers.js'
+import { isEventScopedRole } from '../../lib/permissions.js'
 import { getRoleLabel } from '../../lib/roles.js'
 import { isPendingInviteEmail, PENDING_INVITE_NAME } from '../../lib/staffInvitationRoute.js'
 import {
@@ -33,7 +36,14 @@ import UsersInviteForm from './UsersInviteForm.jsx'
 import UsersRowMenu from './UsersRowMenu.jsx'
 import '../../styles/pages/admin-users.css'
 
-const EMPTY_DRAFT = { name: '', email: '', role: 'plu_arg', eventId: '', sendEmail: true }
+const EMPTY_DRAFT = {
+  name: '',
+  email: '',
+  role: 'plu_arg',
+  eventId: '',
+  eventIds: [],
+  sendEmail: true,
+}
 
 const STATUS_FILTERS = [
   ['active', 'admin.users.statusActive'],
@@ -96,6 +106,7 @@ export default function UsersSection({
   onNavigateRoles,
   onOpenAthlete,
   onResetPassword,
+  onSetEventAccess,
   onUpdateRole,
   onUpdateStatus,
   permissionCatalog,
@@ -119,10 +130,16 @@ export default function UsersSection({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [updatingUserId, setUpdatingUserId] = useState(null)
   const [pendingDeletion, setPendingDeletion] = useState(null)
+  // Organizador cuyos eventos se están editando, y el error del último intento.
+  const [eventAccessTarget, setEventAccessTarget] = useState(null)
+  const [eventAccessError, setEventAccessError] = useState('')
+  // Cambio de rol → Organizador: pide eventos antes de confirmar el rol.
+  const [pendingOrganizerRole, setPendingOrganizerRole] = useState(null)
   const [deleteError, setDeleteError] = useState('')
   const [deleteNotice, setDeleteNotice] = useState('')
 
   const isSecurityRole = draft.role === 'seguridad_plu_arg'
+  const isOrganizerRole = isEventScopedRole(draft.role)
 
   const eventOptions = useMemo(
     () => (adminEvents ?? []).map((event) => [event.id, event.title]),
@@ -305,6 +322,11 @@ export default function UsersSection({
       setFormError(t('admin.users.errorEvent'))
       return
     }
+    if (isOrganizerRole && (!Array.isArray(draft.eventIds) || draft.eventIds.length === 0)) {
+      setFieldErrors({ eventIds: true })
+      setFormError(t('admin.users.errorOrganizerEvents'))
+      return
+    }
 
     setFieldErrors({})
     setFormError('')
@@ -346,11 +368,42 @@ export default function UsersSection({
 
   async function handleRoleChange(userId, roleKey) {
     setFormError('')
+    const target = users.find((user) => user.id === userId)
+    // Pasar a Organizador exige autorizar eventos en el mismo acto.
+    if (isEventScopedRole(roleKey) && target && !isEventScopedRole(target.roleKey ?? target.role)) {
+      setEventAccessError('')
+      setPendingOrganizerRole({ user: target, roleKey })
+      return
+    }
     setUpdatingUserId(userId)
     try {
       await onUpdateRole(userId, roleKey)
     } catch (error) {
       setFormError(error?.message ?? t('admin.users.errorRoleUpdate'))
+    } finally {
+      setUpdatingUserId(null)
+    }
+  }
+
+  function closePendingOrganizerRole() {
+    if (updatingUserId) return
+    setPendingOrganizerRole(null)
+    setEventAccessError('')
+  }
+
+  async function handleConfirmOrganizerRole(eventIds) {
+    if (!pendingOrganizerRole || !onUpdateRole) return
+    if (!Array.isArray(eventIds) || eventIds.length === 0) {
+      setEventAccessError(t('admin.users.errorOrganizerEvents'))
+      return
+    }
+    setEventAccessError('')
+    setUpdatingUserId(pendingOrganizerRole.user.id)
+    try {
+      await onUpdateRole(pendingOrganizerRole.user.id, pendingOrganizerRole.roleKey, eventIds)
+      setPendingOrganizerRole(null)
+    } catch (error) {
+      setEventAccessError(error?.message ?? t('admin.users.errorRoleUpdate'))
     } finally {
       setUpdatingUserId(null)
     }
@@ -400,6 +453,31 @@ export default function UsersSection({
     }
   }
 
+  function openEventAccessDialog(user) {
+    setEventAccessError('')
+    setEventAccessTarget(user)
+  }
+
+  function closeEventAccessDialog() {
+    if (updatingUserId) return
+    setEventAccessTarget(null)
+    setEventAccessError('')
+  }
+
+  async function handleSaveEventAccess(eventIds) {
+    if (!eventAccessTarget || !onSetEventAccess) return
+    setEventAccessError('')
+    setUpdatingUserId(eventAccessTarget.id)
+    try {
+      await onSetEventAccess(eventAccessTarget.id, eventIds)
+      setEventAccessTarget(null)
+    } catch (error) {
+      setEventAccessError(error?.message ?? t('admin.users.eventAccess.saveError'))
+    } finally {
+      setUpdatingUserId(null)
+    }
+  }
+
   function openDeleteDialog(user) {
     setDeleteError('')
     setDeleteNotice('')
@@ -432,9 +510,12 @@ export default function UsersSection({
   // lote desde varias búsquedas) pero sólo cuenta lo que sigue en el padrón y se
   // puede cambiar; el servidor vuelve a validar cada cuenta.
   const canBulkChangeRole = canManageUsers && Boolean(onBulkUpdateRole) && roleOptions.length > 0
-  // Seguridad se asigna desde el evento, no se ofrece como destino del lote.
+  // Seguridad se asigna desde el evento; Organizador pide eventos por cuenta.
   const bulkRoleOptions = useMemo(
-    () => roleOptions.filter(([value]) => value !== 'seguridad_plu_arg'),
+    () =>
+      roleOptions.filter(
+        ([value]) => value !== 'seguridad_plu_arg' && !isEventScopedRole(value),
+      ),
     [roleOptions],
   )
   const selectedTargets = useMemo(() => {
@@ -464,6 +545,7 @@ export default function UsersSection({
       row.role !== 'admin_maximal' &&
       ((canManageUsers && Boolean(onUpdateStatus)) ||
         (canManageUsers && Boolean(onResetPassword)) ||
+        (canManageUsers && Boolean(onSetEventAccess) && row.eventScoped === true) ||
         (canDeleteUsers && Boolean(onDeleteUser)))
     )
   }
@@ -495,6 +577,15 @@ export default function UsersSection({
         label: t('admin.users.actionViewAthlete'),
         icon: UserRound,
         onSelect: () => onOpenAthlete(athlete.id),
+      })
+    }
+    // Solo para cuentas con rol por evento (Organizador): decide qué eventos gestiona.
+    if (canManageUsers && onSetEventAccess && row.eventScoped) {
+      items.push({
+        key: 'event-access',
+        label: t('admin.users.actionEventAccess'),
+        icon: CalendarCheck,
+        onSelect: () => openEventAccessDialog(row),
       })
     }
     if (canUpdateStatus && (status === 'active' || status === 'suspended')) {
@@ -576,6 +667,15 @@ export default function UsersSection({
               {displayName(t, row)}
               {athleteByEmail.has(normalizeEmail(row.email)) ? (
                 <span className="admin-users__tag">{t('admin.users.alsoAthlete')}</span>
+              ) : null}
+              {row.eventScoped ? (
+                <span className="admin-users__tag">
+                  {(row.eventAccess ?? []).length === 0
+                    ? t('admin.users.eventAccess.tagNone')
+                    : (row.eventAccess ?? []).length === 1
+                      ? t('admin.users.eventAccess.tagOne')
+                      : t('admin.users.eventAccess.tagMany', { count: row.eventAccess.length })}
+                </span>
               ) : null}
             </strong>
             <span className="admin-users__who-email" title={displayEmail(t, row)}>
@@ -818,6 +918,7 @@ export default function UsersSection({
 
       {canManageUsers && isCreating ? (
         <UsersInviteForm
+          adminEvents={adminEvents ?? []}
           draft={draft}
           eventOptions={eventOptions}
           fieldErrors={fieldErrors}
@@ -922,6 +1023,36 @@ export default function UsersSection({
           getRowSelectLabel={(row) => t('admin.table.selectRow', { name: displayName(t, row) })}
         />
       )}
+
+      {eventAccessTarget ? (
+        <UserEventAccessDialog
+          busy={updatingUserId === eventAccessTarget.id}
+          error={eventAccessError}
+          events={adminEvents ?? []}
+          initialEventIds={(eventAccessTarget.eventAccess ?? []).map((grant) => grant.eventId)}
+          onCancel={closeEventAccessDialog}
+          onSave={(eventIds) => void handleSaveEventAccess(eventIds)}
+          userName={displayName(t, eventAccessTarget)}
+        />
+      ) : null}
+
+      {pendingOrganizerRole ? (
+        <UserEventAccessDialog
+          busy={updatingUserId === pendingOrganizerRole.user.id}
+          description={t('admin.users.eventAccess.assignRoleDescription')}
+          error={eventAccessError}
+          events={adminEvents ?? []}
+          initialEventIds={[]}
+          onCancel={closePendingOrganizerRole}
+          onSave={(eventIds) => void handleConfirmOrganizerRole(eventIds)}
+          requireSelection
+          saveLabel={t('admin.users.eventAccess.assignRoleSave')}
+          title={t('admin.users.eventAccess.assignRoleTitle', {
+            name: displayName(t, pendingOrganizerRole.user),
+          })}
+          userName={displayName(t, pendingOrganizerRole.user)}
+        />
+      ) : null}
 
       {pendingDeletion ? (
         <AdminDeleteConfirmDialog

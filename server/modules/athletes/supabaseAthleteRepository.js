@@ -1,3 +1,4 @@
+import { EXPORT_ROW_LIMIT, normalizeExportDate } from '../../../shared/exportRows.js'
 import { HttpError } from '../../lib/errors.js'
 import { PRIMARY_ORGANIZATION_ID } from '../../lib/organizations.js'
 import { authenticatedPortraitUrl } from '../../lib/publicPortraitUrl.js'
@@ -29,6 +30,13 @@ const ADMIN_PAYMENT_ORDERS_DEFAULT_LIMIT = 500
  * Un `limit` explícito lo puede subir hasta 1000 para exportar o auditar.
  */
 const ADMIN_SNAPSHOT_DEFAULT_LIMIT = 400
+/**
+ * Tope duro de filas para export admin/PLU USA (`EXPORT_ROW_LIMIT` en shared).
+ * Por encima el archivo avisa `truncated` y el operador puede filtrar por evento.
+ * PostgREST pagina de a 1000.
+ */
+const ADMIN_EXPORT_MAX_ROWS = EXPORT_ROW_LIMIT
+const ADMIN_EXPORT_PAGE_SIZE = 1000
 /** PostgREST cuando la tabla todavía no está en el schema cache (migración pendiente). */
 const MISSING_RELATION_CODE = 'PGRST205'
 /** Estados que todavía esperan una decisión de Finanzas. */
@@ -395,7 +403,7 @@ export function createSupabaseAthleteRepository(
     },
     async update(athleteId, data) {
       const row = await rpc(
-        'update_athlete_profile_v5',
+        'update_athlete_profile_v6',
         {
           p_athlete_id: athleteId,
           p_email: data.email,
@@ -414,6 +422,8 @@ export function createSupabaseAthleteRepository(
           p_full_name: data.fullName ?? null,
           p_birth_date: data.birthDate ?? null,
           p_country: data.country ?? null,
+          p_street_address: data.streetAddress ?? null,
+          p_postal_code: data.postalCode ?? null,
         },
         'No se pudo actualizar el perfil.',
       )
@@ -717,7 +727,9 @@ export function createSupabaseAthleteRepository(
       return assertSupabaseResult(
         await client
           .from('athletes')
-          .select('id, phone, city, province, gym, division, category, estimated_weight')
+          .select(
+            'id, full_name, birth_date, sex, country, email, phone, city, province, street_address, postal_code, gym, division, category, estimated_weight, emergency_contact_name, emergency_contact_phone',
+          )
           .eq('id', athleteId)
           .eq('organization_id', organizationId)
           .maybeSingle(),
@@ -730,7 +742,9 @@ export function createSupabaseAthleteRepository(
       return assertSupabaseResult(
         await client
           .from('athletes')
-          .select('id, phone, city, province, gym, division, category, estimated_weight')
+          .select(
+            'id, full_name, birth_date, sex, country, email, phone, city, province, street_address, postal_code, gym, division, category, estimated_weight, emergency_contact_name, emergency_contact_phone',
+          )
           .eq('organization_id', organizationId)
           .in('id', athleteIds),
         'No se pudieron leer los perfiles.',
@@ -1094,6 +1108,36 @@ export function createSupabaseAthleteRepository(
      * ordena la deuda financiada por vencimiento — el riesgo del club es la
      * que vence primero, no la última creada.
      */
+    /**
+     * Órdenes de INSCRIPCIÓN de un evento. Cuelgan del evento por
+     * `event_registrations.payment_order_id`. Excluye los combos a propósito: incluyen
+     * la afiliación, que es ingreso de PLU y no del organizador.
+     */
+    async listRegistrationOrdersForEvent(eventId, { limit = 200 } = {}) {
+      const registrations = assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .select('payment_order_id')
+          .eq('event_id', eventId)
+          .not('payment_order_id', 'is', null)
+          .limit(2000),
+        'No se pudieron leer las inscripciones del evento.',
+      )
+      const ids = [...new Set((registrations ?? []).map((row) => row.payment_order_id))]
+      if (ids.length === 0) return []
+      return assertSupabaseResult(
+        await client
+          .from('athlete_payment_orders')
+          .select(PAYMENT_ORDER_LIST_COLUMNS)
+          .eq('organization_id', organizationId)
+          .eq('concept', 'registration')
+          .in('id', ids)
+          .order('created_at', { ascending: false })
+          .limit(limit),
+        'No se pudieron leer las órdenes de inscripción del evento.',
+      )
+    },
+
     async listPaymentOrders({
       status,
       statuses,
@@ -1735,7 +1779,7 @@ export function createSupabaseAthleteRepository(
               let query = client
                 .from('athletes')
                 .select(
-                  'id, full_name, document_id, email, birth_date, phone, country, province, city, gym, sex, division, category, estimated_weight, declared_best_total_kg, emergency_contact_name, emergency_contact_phone, instagram_handle, status, created_at, updated_at, photo_path, email_verified_at, credential_token',
+                  'id, full_name, document_id, email, birth_date, phone, country, province, city, street_address, postal_code, gym, sex, division, category, estimated_weight, declared_best_total_kg, emergency_contact_name, emergency_contact_phone, instagram_handle, status, created_at, updated_at, photo_path, email_verified_at, credential_token',
                   { count: 'exact' },
                 )
                 .eq('organization_id', organizationId)
@@ -2096,6 +2140,235 @@ export function createSupabaseAthleteRepository(
       ])
 
       return deleted
+    },
+
+    /**
+     * Dataset completo para CSV/XLS (join athletes en la misma query de
+     * inscripciones). No usa el techo del snapshot operativo: pagina hasta
+     * ADMIN_EXPORT_MAX_ROWS y marca `truncated` si hay más.
+     */
+    async adminExportDataset({ type = 'admin', eventSlug = null } = {}) {
+      const resolveEvent = async () => {
+        if (!eventSlug) return null
+        const slug = String(eventSlug).trim()
+        if (!slug) return null
+        const bySlug = assertSupabaseResult(
+          await client
+            .from('events')
+            .select('id, title, slug')
+            .eq('organization_id', organizationId)
+            .eq('slug', slug)
+            .maybeSingle(),
+          'No se pudo resolver el evento del export.',
+        )
+        if (bySlug) return bySlug
+        return assertSupabaseResult(
+          await client
+            .from('events')
+            .select('id, title, slug')
+            .eq('organization_id', organizationId)
+            .eq('title', slug)
+            .maybeSingle(),
+          'No se pudo resolver el evento del export.',
+        )
+      }
+
+      const event = await resolveEvent()
+      if (eventSlug && !event) {
+        throw new HttpError(404, 'No se encontró el evento para exportar.')
+      }
+
+      const fetchRegistrationPages = async () => {
+        const rows = []
+        let offset = 0
+        let truncated = false
+        for (;;) {
+          let query = client
+            .from('event_registrations')
+            .select(
+              `
+                id, athlete_id, category, division, bodyweight_kg, status, payment_order_id, created_at,
+                event:events(title, slug, starts_at),
+                athlete:athletes(
+                  id, full_name, document_id, email, birth_date, phone, country, province, city,
+                  street_address, postal_code, gym, sex, division, category, estimated_weight,
+                  emergency_contact_name, emergency_contact_phone
+                )
+              `,
+            )
+            .eq('organization_id', organizationId)
+            .order('created_at', { ascending: false })
+          if (event) query = query.eq('event_id', event.id)
+          const page = assertSupabaseResult(
+            await query.range(offset, offset + ADMIN_EXPORT_PAGE_SIZE - 1),
+            'No se pudieron leer las inscripciones para exportar.',
+          )
+          rows.push(...(page ?? []))
+          if ((page ?? []).length < ADMIN_EXPORT_PAGE_SIZE) break
+          offset += ADMIN_EXPORT_PAGE_SIZE
+          if (rows.length >= ADMIN_EXPORT_MAX_ROWS) {
+            truncated = true
+            break
+          }
+        }
+        return {
+          rows: rows.slice(0, ADMIN_EXPORT_MAX_ROWS),
+          truncated,
+        }
+      }
+
+      const { rows: registrationRows, truncated: registrationsTruncated } =
+        await fetchRegistrationPages()
+
+      // PLU USA sin filtro de evento: además del padrón de inscriptos, sumamos
+      // atletas del org para no perder socios sin meet.
+      let extraAthletes = []
+      let athletesTruncated = false
+      if (type === 'plu_usa' && !event) {
+        const members = []
+        let offset = 0
+        for (;;) {
+          const page = assertSupabaseResult(
+            await client
+              .from('athletes')
+              .select(
+                'id, full_name, document_id, email, birth_date, phone, country, province, city, street_address, postal_code, gym, sex, division, category, estimated_weight, emergency_contact_name, emergency_contact_phone',
+              )
+              .eq('organization_id', organizationId)
+              .order('created_at', { ascending: false })
+              .range(offset, offset + ADMIN_EXPORT_PAGE_SIZE - 1),
+            'No se pudieron leer los atletas para exportar.',
+          )
+          members.push(...(page ?? []))
+          if ((page ?? []).length < ADMIN_EXPORT_PAGE_SIZE) break
+          offset += ADMIN_EXPORT_PAGE_SIZE
+          if (members.length >= ADMIN_EXPORT_MAX_ROWS) {
+            athletesTruncated = true
+            break
+          }
+        }
+        extraAthletes = members.slice(0, ADMIN_EXPORT_MAX_ROWS)
+      }
+
+      const athletesById = new Map()
+      for (const row of registrationRows) {
+        const athlete = row.athlete
+        if (athlete?.id) athletesById.set(athlete.id, athlete)
+      }
+      for (const athlete of extraAthletes) {
+        if (athlete?.id) athletesById.set(athlete.id, athlete)
+      }
+
+      const allAthleteIds = [...athletesById.keys()]
+      const memberships = []
+      const payments = []
+      for (let index = 0; index < allAthleteIds.length; index += ADMIN_EXPORT_PAGE_SIZE) {
+        const chunk = allAthleteIds.slice(index, index + ADMIN_EXPORT_PAGE_SIZE)
+        if (!chunk.length) continue
+        const [membershipPage, paymentPage] = await Promise.all([
+          assertSupabaseResult(
+            await client
+              .from('memberships')
+              .select(
+                'id, athlete_id, year, status, start_date, expiration_date, member_code, payment_order_id',
+              )
+              .eq('organization_id', organizationId)
+              .in('athlete_id', chunk),
+            'No se pudieron leer las afiliaciones para exportar.',
+          ),
+          assertSupabaseResult(
+            await client
+              .from('athlete_payment_orders')
+              .select('id, athlete_id, status, reference, concept, created_at')
+              .eq('organization_id', organizationId)
+              .in('athlete_id', chunk)
+              .order('created_at', { ascending: false }),
+            'No se pudieron leer los pagos para exportar.',
+          ),
+        ])
+        memberships.push(...(membershipPage ?? []))
+        payments.push(...(paymentPage ?? []))
+      }
+
+      const paymentById = new Map(payments.map((order) => [order.id, order]))
+      // Un pago por atleta: el más reciente (ya vienen ordenados desc).
+      const paymentByAthlete = new Map()
+      for (const order of payments) {
+        if (!paymentByAthlete.has(order.athlete_id)) {
+          paymentByAthlete.set(order.athlete_id, order)
+        }
+      }
+
+      const toCamelAthlete = (row) => ({
+        id: row.id,
+        fullName: row.full_name,
+        documentId: row.document_id,
+        email: row.email,
+        birthDate: row.birth_date,
+        phone: row.phone,
+        country: row.country,
+        province: row.province,
+        city: row.city,
+        streetAddress: row.street_address ?? '',
+        postalCode: row.postal_code ?? '',
+        gym: row.gym,
+        sex: row.sex,
+        division: row.division,
+        category: row.category,
+        estimatedWeight: row.estimated_weight,
+        emergencyContactName: row.emergency_contact_name ?? '',
+        emergencyContactPhone: row.emergency_contact_phone ?? '',
+      })
+
+      const registrations = registrationRows.map((row) => {
+        const order = row.payment_order_id ? paymentById.get(row.payment_order_id) : null
+        return {
+          id: row.id,
+          athleteId: row.athlete_id,
+          event: row.event?.title ?? event?.title ?? '',
+          eventSlug: row.event?.slug ?? event?.slug ?? '',
+          eventStartsAt: normalizeExportDate(row.event?.starts_at),
+          category: row.category,
+          division: row.division,
+          bodyweight: row.bodyweight_kg,
+          status: row.status,
+          paymentOrderId: row.payment_order_id,
+          paymentStatus: order?.status ?? null,
+        }
+      })
+
+      const camelAthletes = [...athletesById.values()].map(toCamelAthlete)
+      const camelMemberships = memberships.map((row) => ({
+        id: row.id,
+        athleteId: row.athlete_id,
+        year: row.year,
+        status: row.status,
+        startDate: row.start_date,
+        expirationDate: row.expiration_date,
+        memberCode: row.member_code,
+        paymentOrderId: row.payment_order_id,
+      }))
+      const camelPayments = [...paymentByAthlete.values()].map((row) => ({
+        id: row.id,
+        athleteId: row.athlete_id,
+        status: row.status,
+        reference: row.reference,
+      }))
+
+      return {
+        type,
+        event: event ? { id: event.id, title: event.title, slug: event.slug } : null,
+        athletes: camelAthletes,
+        memberships: camelMemberships,
+        registrations,
+        payments: camelPayments,
+        truncated: registrationsTruncated || athletesTruncated,
+        totals: {
+          athletes: camelAthletes.length,
+          registrations: registrations.length,
+          memberships: camelMemberships.length,
+        },
+      }
     },
   }
 }

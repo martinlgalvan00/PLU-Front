@@ -12,6 +12,7 @@ import {
   canManageUsers,
   canViewAdmin,
   getRoleLabel,
+  isCheckinOnly,
   isKnownRole,
   isStaffSession,
   resolveSessionIdentity,
@@ -23,6 +24,7 @@ import {
   getAllowedAdminSections,
   getRoleHierarchyLevel,
   hasEventScopeAccess,
+  isEventScopedSession,
   hasPermission,
   ROLE_HIERARCHY,
 } from '../src/lib/permissions.js'
@@ -185,5 +187,48 @@ describe('roles', () => {
     expect(hasPermission(plu, 'admin.events.write')).toBe(false)
     expect(canEditOperationalData(plu)).toBe(false)
     expect(getAllowedAdminSections(plu)).toEqual(['events', 'results'])
+  })
+
+  describe('organizador (rol por evento)', () => {
+    const organizer = {
+      roleKey: 'organizador_evento',
+      eventScoped: true,
+      eventAccess: [],
+      permissions: [
+        'admin.events.read',
+        'admin.events.write',
+        'admin.registrations.read',
+        'admin.payments.read',
+        'admin.payments.approve',
+        'admin.event_team.write',
+      ],
+    }
+
+    it('solo ve la sección Eventos, aunque sus permisos abrirían Personas, Pagos y Finanzas', () => {
+      expect(getAllowedAdminSections(organizer)).toEqual(['events'])
+      expect(canViewAdmin(organizer)).toBe(true)
+    })
+
+    it('lo reconoce por el flag de la sesión o, de respaldo, por la clave del rol', () => {
+      expect(isEventScopedSession({ eventScoped: true })).toBe(true)
+      expect(isEventScopedSession({ roleKey: 'organizador_evento' })).toBe(true)
+      expect(isEventScopedSession({ roleKey: 'plu_arg' })).toBe(false)
+      expect(isEventScopedSession(null)).toBe(false)
+    })
+
+    it('no cae en la pantalla de puerta, que es de Seguridad', () => {
+      expect(isCheckinOnly(organizer)).toBe(false)
+      expect(
+        isCheckinOnly({
+          roleKey: 'seguridad_plu_arg',
+          permissions: ['admin.events.read', 'admin.checkin.execute'],
+        }),
+      ).toBe(true)
+    })
+
+    it('el Super Admin y los demás roles no cambian', () => {
+      expect(getAllowedAdminSections({ roleKey: 'admin_maximal' })).toContain('payments')
+      expect(getAllowedAdminSections({ roleKey: 'admin_maximal' })).toContain('users')
+    })
   })
 })

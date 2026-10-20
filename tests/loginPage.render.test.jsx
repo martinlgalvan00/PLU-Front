@@ -188,9 +188,9 @@ describe('LoginPage', () => {
     expect(screen.getByText(/atleta@plu.test/)).toBeTruthy()
   })
 
-  it('desde el pie deja pedir el enlace si llegó una clave temporal', async () => {
+  it('desde olvidé mi contraseña abre recuperar acceso', async () => {
     renderLogin()
-    fireEvent.click(screen.getByRole('button', { name: /Pedir enlace de acceso/i }))
+    fireEvent.click(screen.getByRole('button', { name: '¿Olvidaste tu contraseña?' }))
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Recuperar acceso' })).toBeTruthy()

@@ -8,6 +8,7 @@ import {
 } from '../lib/featureAvailability.js'
 import { requireSupabaseClient } from '../lib/supabaseRpc.js'
 import { validateBody } from '../lib/validate.js'
+import { assertEventAccess } from '../lib/eventScope.js'
 import { requirePermission } from '../middleware/auth.js'
 import { staffLimiter } from '../middleware/rateLimit.js'
 import { createSupabasePricingRepository } from '../modules/pricing/supabasePricingRepository.js'
@@ -337,6 +338,13 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
   const prisma = getPrisma()
   const readGuard = requirePermission('admin.pricing.read', { prisma })
   const writeGuard = requirePermission('admin.pricing.write', { prisma })
+  // El precio de inscripción de SU evento: `admin.pricing.write` está reservado a Super
+  // Admin y Administrador (no se delega), así que a una cuenta por evento se le exige
+  // `admin.events.write` y el handler verifica que el evento sea suyo.
+  const scopedEventPriceGuard = requirePermission('admin.pricing.write', { prisma }, {
+    eventScoped: true,
+    scopedPermissions: ['admin.events.write'],
+  })
   const repository = () =>
     createSupabasePricingRepository(requireSupabaseClient(getSupabaseAdmin()))
 
@@ -531,7 +539,7 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
 
   router.patch(
     '/events/:eventSlug/registration-price',
-    ...writeGuard,
+    ...scopedEventPriceGuard,
     staffLimiter,
     validateBody(eventRegistrationPriceSchema),
     async (req, res, next) => {
@@ -542,6 +550,7 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
           req.params.eventSlug,
           'El identificador del evento es inválido.',
         )
+        assertEventAccess(req, { slug: eventSlug })
         const event = await repository().setEventRegistrationPrice(
           eventSlug,
           req.validatedBody,
@@ -558,7 +567,7 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
   // cambio pendiente devuelve el estado actual con `duplicate: true`.
   router.delete(
     '/events/:eventSlug/registration-price/schedule',
-    ...writeGuard,
+    ...scopedEventPriceGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
@@ -568,6 +577,7 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
           req.params.eventSlug,
           'El identificador del evento es inválido.',
         )
+        assertEventAccess(req, { slug: eventSlug })
         const event = await repository().clearEventRegistrationPriceSchedule(
           eventSlug,
           actor(req),

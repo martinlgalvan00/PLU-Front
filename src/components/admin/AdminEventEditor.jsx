@@ -24,7 +24,10 @@ import {
   getEventConsistencyWarnings,
   getEventRegistrationAvailability,
   mapDraftToPreviewEvent,
+  uploadEventHeroRequest,
 } from '../../services/eventAdminService.js'
+import { normalizeEventLanding } from '../../lib/eventLanding.js'
+import EventLandingCompositionPreview from './event-editor/EventLandingCompositionPreview.jsx'
 import { validateAdminEventDraft } from '../../lib/schemas/adminEvent.js'
 import usePlatformPaymentChannels from '../../hooks/usePlatformPaymentChannels.js'
 import { platformCellsFor } from '../../lib/platformPaymentChannels.js'
@@ -114,20 +117,34 @@ function resolveTabForField(key) {
     SALES_FIELD_KEYS.has(key)
   )
     return 'sales'
-  if (VISIBILITY_FIELD_KEYS.has(key) || key.startsWith('publicCopy.')) return 'visibility'
+  if (
+    VISIBILITY_FIELD_KEYS.has(key) ||
+    key.startsWith('publicCopy.') ||
+    key.startsWith('landing.')
+  ) {
+    return 'visibility'
+  }
   return 'basics'
 }
 
 /** Campos de Publicación que viven en el bloque colapsado "Avanzado". */
 function isAdvancedVisibilityField(key) {
-  return key.startsWith('publicCopy.') || key.startsWith('liveStream') || key === 'liveStatus'
+  return (
+    key.startsWith('publicCopy.') ||
+    key.startsWith('landing.') ||
+    key.startsWith('liveStream') ||
+    key === 'liveStatus'
+  )
 }
 
 /** Abre "Avanzado" solo si el evento ya trae algo cargado ahí. */
 function hasAdvancedVisibilityContent(draft) {
   const copy = draft.publicCopy ?? {}
+  const slots = draft.landing?.slots ?? {}
   return (
     Object.values(copy).some((value) => String(value ?? '').trim() !== '') ||
+    Object.values(slots).some((value) => String(value ?? '').trim() !== '') ||
+    draft.landing?.templateId === 'editorial' ||
     Boolean(draft.liveStreamUrl?.trim?.()) ||
     (draft.liveStatus ?? 'offline') !== 'offline'
   )
@@ -153,6 +170,10 @@ function AdminEventLivePreview({
     (draft?.ticketTypes ?? sourceEvent?.ticketTypes)?.filter(
       (ticketType) => ticketType.active !== false,
     ).length ?? 0
+  const composeEvent = useMemo(
+    () => ({ ...sourceEvent, ...previewEvent, ...draft }),
+    [draft, previewEvent, sourceEvent],
+  )
 
   const readinessItems = showReadiness
     ? [
@@ -221,6 +242,8 @@ function AdminEventLivePreview({
           {t('admin.eventEditor.liveHint')}
         </p>
       ) : null}
+
+      <EventLandingCompositionPreview event={composeEvent} t={t} />
 
       <div className="admin-event-preview__card">
         <EventCard
@@ -355,6 +378,8 @@ function useWorkspaceSaveHost(enabled) {
 
 export default function AdminEventEditor({
   canEdit,
+  // Cuenta por evento (organizador): ver EventSalesSection / EventVisibilitySection.
+  eventScoped = false,
   draft,
   /** Sin portal ni shell propio: el formulario vive dentro de la consola. */
   embedded = false,
@@ -424,6 +449,8 @@ export default function AdminEventEditor({
   const [mpCreateOpen, setMpCreateOpen] = useState(false)
   const [mpCreating, setMpCreating] = useState(false)
   const [mpCreateError, setMpCreateError] = useState(null)
+  const [heroUploading, setHeroUploading] = useState(false)
+  const [heroPreviewUrl, setHeroPreviewUrl] = useState(null)
   const [mpDraft, setMpDraft] = useState({
     name: '',
     publicKey: '',
@@ -640,8 +667,8 @@ export default function AdminEventEditor({
     [draft, sourceEvent],
   )
   const publishChecks = useMemo(
-    () => resolveEventPublishChecks(draft, platformChannels.platform),
-    [draft, platformChannels.platform],
+    () => resolveEventPublishChecks(draft, platformChannels.platform, { mpProfiles }),
+    [draft, platformChannels.platform, mpProfiles],
   )
 
   useEffect(() => {
@@ -745,6 +772,32 @@ export default function AdminEventEditor({
     }
     return undefined
   }, [forcedChapter, forcedTab, initialFocus])
+
+  async function handleHeroUpload(file) {
+    const slug = draft.slug || sourceEvent?.slug
+    if (!slug || !file) return
+    setHeroUploading(true)
+    try {
+      const uploaded = await uploadEventHeroRequest(slug, file)
+      const landing = normalizeEventLanding(draft.landing, {
+        publicCopy: draft.publicCopy,
+        slug,
+      })
+      patchDraft({
+        ...draft,
+        heroImageUrl: uploaded.url,
+        landing: {
+          ...landing,
+          slots: { ...landing.slots, heroImagePath: uploaded.path },
+        },
+      })
+      setHeroPreviewUrl(uploaded.url)
+    } catch (error) {
+      setSyncError(error?.message ?? t('admin.eventEditor.landingHeroUploadFailed'))
+    } finally {
+      setHeroUploading(false)
+    }
+  }
 
   function patchDraft(next) {
     onChange(next)
@@ -1099,6 +1152,7 @@ export default function AdminEventEditor({
 
           {activeTab === 'sales' && (
             <EventSalesSection
+              eventScoped={eventScoped}
               activePanelRef={activePanelRef}
               t={t}
               essentials={essentials}
@@ -1149,6 +1203,7 @@ export default function AdminEventEditor({
 
           {activeTab === 'visibility' && (
             <EventVisibilitySection
+              eventScoped={eventScoped}
               activePanelRef={activePanelRef}
               t={t}
               essentials={essentials}
@@ -1164,6 +1219,9 @@ export default function AdminEventEditor({
               err={err}
               sourceEvent={sourceEvent}
               publicCapacityPreview={publicCapacityPreview}
+              heroPreviewUrl={heroPreviewUrl || draft.heroImageUrl || sourceEvent?.heroImageUrl}
+              heroUploading={heroUploading}
+              onHeroUpload={handleHeroUpload}
             />
           )}
         </div>

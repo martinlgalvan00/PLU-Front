@@ -21,6 +21,7 @@ import authVisualPhotoWebp800 from '../assets/DSC00286-display-800.webp'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
+import { pushAdminEventRoute } from '../lib/adminEventRoute.js'
 import { clearPasswordResetToken, readPasswordResetToken } from '../lib/passwordResetRoute.js'
 import { usePluOAuth } from '../providers/oauthContext.js'
 import { forgotAthletePassword, resetAthletePassword } from '../services/athleteApi.js'
@@ -150,7 +151,16 @@ export default function LoginPage({ onLogin, onNavigate }) {
 
   async function enter(credentialsOrType) {
     const session = await onLogin(credentialsOrType)
-    onNavigate(session.role === 'athlete_plu' ? 'profile' : 'admin')
+    if (session.role === 'athlete_plu') {
+      onNavigate('profile')
+      return
+    }
+    // Organizador con un solo evento: entra directo a su workspace.
+    const grants = Array.isArray(session.eventAccess) ? session.eventAccess : []
+    if (session.eventScoped && grants.length === 1 && grants[0]?.eventSlug) {
+      pushAdminEventRoute(grants[0].eventSlug)
+    }
+    onNavigate('admin')
   }
 
   async function handleLoginSubmit(event) {
@@ -409,21 +419,27 @@ export default function LoginPage({ onLogin, onNavigate }) {
                       ) : null}
                     </div>
 
-                    <label className="login-remember" title={t('login.rememberHint')}>
+                    <label className="login-remember" htmlFor="login-remember">
                       <span className="login-remember__control">
                         <input
+                          id="login-remember"
                           type="checkbox"
                           name="remember"
                           className="login-remember__input"
                           checked={rememberMe}
                           onChange={(event) => setRememberMe(event.target.checked)}
+                          aria-describedby="login-remember-hint"
                         />
                         <span className="login-remember__box" aria-hidden="true">
-                          <Check size={12} strokeWidth={3} />
+                          <Check size={11} strokeWidth={2.75} />
                         </span>
                       </span>
-                      <span className="login-remember__label">{t('login.remember')}</span>
-                      <span className="login-remember__hint">{t('login.rememberHint')}</span>
+                      <span className="login-remember__copy">
+                        <span className="login-remember__label">{t('login.remember')}</span>
+                        <span id="login-remember-hint" className="login-remember__hint">
+                          {t('login.rememberHint')}
+                        </span>
+                      </span>
                     </label>
 
                     <AuthSubmit
@@ -468,6 +484,8 @@ export default function LoginPage({ onLogin, onNavigate }) {
                       </>
                     ) : null}
 
+                    {/* Una sola secundaria: afiliarse. Recuperar acceso ya vive
+                        junto a Contraseña (“¿Olvidaste…?”). */}
                     <div className="login-form__footer">
                       <p className="login-join">
                         <span className="login-join__prompt">{t('login.joinPrompt')}</span>
@@ -477,15 +495,6 @@ export default function LoginPage({ onLogin, onNavigate }) {
                           onClick={() => onNavigate('members')}
                         >
                           {t('login.joinLink')}
-                        </button>
-                      </p>
-                      <p className="login-join login-join--service">
-                        <button
-                          type="button"
-                          className="login-join__link login-join__link--service"
-                          onClick={openRecover}
-                        >
-                          {t('login.howToStep2Action')}
                         </button>
                       </p>
                     </div>
