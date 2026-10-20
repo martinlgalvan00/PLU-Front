@@ -137,6 +137,11 @@ function buildRegistrationFilterCounts(registrations, resolvePayment, gatePendin
   return { statusCounts, affiliationCounts }
 }
 
+function liftersScopeSlug(value) {
+  const slug = String(value ?? '').trim()
+  return slug && slug !== 'all' ? slug : null
+}
+
 export default function RegistrationsSection({
   canAssignSchedule = false,
   canEdit,
@@ -206,6 +211,7 @@ export default function RegistrationsSection({
   const [liftersReadiness, setLiftersReadiness] = useState(null)
   const [liftersError, setLiftersError] = useState('')
   const [liftersStudio, setLiftersStudio] = useState(() => loadLiftersExportStudioOptions())
+  const [liftersEventSlug, setLiftersEventSlug] = useState('all')
 
   const updateLiftersStudio = useCallback((patch) => {
     setLiftersStudio((prev) => saveLiftersExportStudioOptions({ ...prev, ...patch, columns: null }))
@@ -339,6 +345,30 @@ export default function RegistrationsSection({
       ...entries.map(([value, entry]) => [value, entry.label, entry.count]),
     ]
   }, [enrichedAdminRegistrations, t])
+  const liftersEventLabel = useMemo(() => {
+    const selected = liftersEventSlug && liftersEventSlug !== 'all' ? liftersEventSlug : 'all'
+    const match = eventOptions.find((option) => option[0] === selected)
+    return match?.[1] ?? t('admin.filters.allEvents')
+  }, [eventOptions, liftersEventSlug, t])
+
+  const loadLiftersReadiness = useCallback(
+    async (nextSlug) => {
+      const slug = nextSlug && nextSlug !== 'all' ? nextSlug : 'all'
+      setLiftersEventSlug(slug)
+      setLiftersOpen(true)
+      setLiftersLoading(true)
+      setLiftersError('')
+      const result = await onFetchLiftersReadiness?.({ eventSlug: liftersScopeSlug(slug) })
+      setLiftersLoading(false)
+      if (result?.error) {
+        setLiftersError(result.error)
+        setLiftersReadiness(null)
+        return
+      }
+      setLiftersReadiness(result?.readiness ?? null)
+    },
+    [onFetchLiftersReadiness],
+  )
 
   const registrationRows = useMemo(
     () =>
@@ -856,123 +886,135 @@ export default function RegistrationsSection({
           aria-label={t('admin.actions.exportLifters')}
         >
           <div className="admin-lifters-export__head">
-            <div>
-              <p className="admin-lifters-export__eyebrow">{t('admin.liftersExport.eyebrow')}</p>
+            <div className="admin-lifters-export__head-copy">
               <strong className="admin-lifters-export__title">{t('admin.liftersExport.title')}</strong>
-              <p className="admin-lifters-export__lead">{t('admin.liftersExport.lead')}</p>
+              <label className="admin-lifters-export__field admin-lifters-export__event-field">
+                <span>{t('admin.liftersExport.eventLabel')}</span>
+                <select
+                  value={liftersEventSlug}
+                  disabled={liftersLoading}
+                  onChange={(event) => {
+                    void loadLiftersReadiness(event.target.value)
+                  }}
+                >
+                  {eventOptions.map(([value, label, count]) => (
+                    <option key={value} value={value}>
+                      {value === 'all' || count == null ? label : `${label} (${count})`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {liftersEventSlug === 'all' ? (
+                <p className="admin-lifters-export__mixed">{t('admin.liftersExport.mixedEvents')}</p>
+              ) : null}
             </div>
             <Button type="button" variant="ghost" onClick={() => setLiftersOpen(false)}>
               {t('admin.liftersExport.close')}
             </Button>
           </div>
-          {liftersLoading ? <p className="admin-lifters-export__status">{t('admin.liftersExport.loading')}</p> : null}
-          {liftersError ? (
-            <p className="admin-lifters-export__error" role="alert">
-              {liftersError}
-            </p>
-          ) : null}
-          {liftersReadiness ? (
-            <div className="admin-lifters-export__grid">
-              <div className="admin-lifters-export__stats">
-                <div className="admin-lifters-export__stat">
-                  <span>{t('admin.liftersExport.statTotal')}</span>
-                  <strong>{liftersReadiness.total}</strong>
-                </div>
-                <div className="admin-lifters-export__stat admin-lifters-export__stat--ok">
-                  <span>{t('admin.liftersExport.statComplete')}</span>
-                  <strong>{liftersReadiness.complete}</strong>
-                </div>
-                <div className="admin-lifters-export__stat admin-lifters-export__stat--warn">
-                  <span>{t('admin.liftersExport.statIncomplete')}</span>
-                  <strong>{liftersReadiness.incomplete}</strong>
-                </div>
-                <div className="admin-lifters-export__stat admin-lifters-export__stat--info">
-                  <span>{t('admin.liftersExport.statOpenUpgrade')}</span>
-                  <strong>{liftersReadiness.divisionOpenUpgrade ?? 0}</strong>
-                </div>
-                <div className="admin-lifters-export__stat admin-lifters-export__stat--danger">
-                  <span>{t('admin.liftersExport.statDivisionMismatch')}</span>
-                  <strong>{liftersReadiness.divisionMismatch ?? 0}</strong>
-                </div>
-              </div>
-              {(liftersReadiness.divisionMismatch ?? 0) > 0 ? (
-                <p className="admin-lifters-export__hint" role="status">
-                  {t('admin.liftersExport.divisionMismatchLead', {
-                    count: liftersReadiness.divisionMismatch,
-                  })}
-                </p>
-              ) : null}
-              {liftersReadiness.incomplete > 0 ? (
-                <>
-                  <div className="admin-lifters-export__gaps">
-                    <h3>{t('admin.liftersExport.gapsTitle')}</h3>
-                    <p className="admin-lifters-export__gaps-lead">{t('admin.liftersExport.gapsLead')}</p>
-                    <ol className="admin-lifters-export__gap-list">
-                      {(liftersReadiness.topGaps ?? liftersReadiness.fieldGaps ?? [])
-                        .slice(0, 8)
-                        .map((gap) => (
-                          <li key={gap.field}>
-                            <div className="admin-lifters-export__gap-meta">
+          <ol className="admin-lifters-export__steps">
+            <li className="admin-lifters-export__step">
+              <div>
+                <h3>{t('admin.liftersExport.steps.review')}</h3>
+                {liftersReadiness ? (
+                  <p className="admin-lifters-export__meta" role="status">
+                    {t('admin.liftersExport.summary', {
+                      complete: liftersReadiness.complete,
+                      total: liftersReadiness.total,
+                      incomplete: liftersReadiness.incomplete,
+                    })}
+                    {(liftersReadiness.divisionOpenUpgrade ?? 0) > 0
+                      ? ` · ${t('admin.liftersExport.openUpgradeCount', {
+                          count: liftersReadiness.divisionOpenUpgrade,
+                        })}`
+                      : ''}
+                    {(liftersReadiness.divisionMismatch ?? 0) > 0 ? (
+                      <span className="admin-lifters-export__meta-alert">
+                        {` · ${t('admin.liftersExport.divisionMismatchLead', {
+                          count: liftersReadiness.divisionMismatch,
+                        })}`}
+                      </span>
+                    ) : null}
+                  </p>
+                ) : null}
+                {liftersLoading ? (
+                  <p className="admin-lifters-export__status">{t('admin.liftersExport.loading')}</p>
+                ) : null}
+                {liftersError ? (
+                  <p className="admin-lifters-export__error" role="alert">
+                    {liftersError}
+                  </p>
+                ) : null}
+                {liftersReadiness?.incomplete > 0 ? (
+                  <div className="admin-lifters-export__grid">
+                    <div className="admin-lifters-export__gaps">
+                      <h4>{t('admin.liftersExport.gapsTitle')}</h4>
+                      <ol className="admin-lifters-export__gap-list">
+                        {(liftersReadiness.topGaps ?? liftersReadiness.fieldGaps ?? [])
+                          .slice(0, 5)
+                          .map((gap) => (
+                            <li key={gap.field}>
                               <span>{t(`admin.liftersExport.fields.${gap.field}`)}</span>
-                              <span>
-                                {t('admin.liftersExport.gapCount', {
-                                  count: gap.count,
-                                  percent: gap.percent,
-                                })}
-                              </span>
-                            </div>
-                            <div
-                              className="admin-lifters-export__gap-bar"
-                              role="presentation"
-                              aria-hidden
-                            >
-                              <span style={{ width: `${Math.min(100, gap.percent)}%` }} />
-                            </div>
-                          </li>
-                        ))}
-                    </ol>
-                  </div>
-                  <div className="admin-lifters-export__athletes">
-                    <h3>{t('admin.liftersExport.athletesTitle')}</h3>
-                    <ul className="admin-lifters-export__list">
-                      {liftersReadiness.athletes.slice(0, 10).map((row) => (
-                        <li key={row.athleteId}>
-                          <button
-                            type="button"
-                            className="admin-empty__text-link"
-                            onClick={() => onSelectAthlete?.(row.athleteId)}
-                          >
-                            {row.name || row.athleteId}
-                          </button>
-                          <span className="admin-lifters-export__missing">
-                            {(row.missing ?? [])
-                              .slice(0, 4)
-                              .map((field) => t(`admin.liftersExport.fields.${field}`))
-                              .join(' · ')}
-                            {(row.missing?.length ?? 0) > 4
-                              ? ` +${row.missing.length - 4}`
+                        <span>
+                          {t('admin.liftersExport.gapCount', {
+                            count: gap.count,
+                            total: liftersReadiness.total,
+                          })}
+                        </span>
+                            </li>
+                          ))}
+                      </ol>
+                    </div>
+                    <div className="admin-lifters-export__athletes">
+                      <h4>{t('admin.liftersExport.athletesTitle')}</h4>
+                      <ul className="admin-lifters-export__list">
+                        {liftersReadiness.athletes.slice(0, 6).map((row) => {
+                          const contact = row.phone || row.email || ''
+                          return (
+                          <li key={row.athleteId}>
+                            <span className="admin-lifters-export__who">
+                              <button
+                                type="button"
+                                className="admin-empty__text-link"
+                                onClick={() => onSelectAthlete?.(row.athleteId)}
+                              >
+                                {row.name || row.athleteId}
+                              </button>
+                              {contact ? (
+                                <span className="admin-lifters-export__contact">{contact}</span>
+                              ) : null}
+                            </span>
+                            <span className="admin-lifters-export__missing">
+                              {(row.missing ?? [])
+                                .slice(0, 3)
+                                .map((field) => t(`admin.liftersExport.fields.${field}`))
+                                .join(' · ')}
+                              {(row.missing?.length ?? 0) > 3
+                                ? ` +${row.missing.length - 3}`
                               : ''}
                           </span>
-                        </li>
-                      ))}
-                    </ul>
-                    {liftersReadiness.athletes.length > 10 ? (
-                      <p className="admin-lifters-export__more">
-                        {t('admin.liftersExport.more', {
-                          count: liftersReadiness.athletes.length - 10,
+                          </li>
+                          )
                         })}
-                      </p>
-                    ) : null}
+                      </ul>
+                      {liftersReadiness.athletes.length > 6 ? (
+                        <p className="admin-lifters-export__more">
+                          {t('admin.liftersExport.more', {
+                            count: liftersReadiness.athletes.length - 6,
+                          })}
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
-                </>
-              ) : (
-                <p className="admin-lifters-export__ready">{t('admin.liftersExport.allComplete')}</p>
-              )}
-            </div>
-          ) : null}
+                ) : liftersReadiness ? (
+                  <p className="admin-lifters-export__ready">{t('admin.liftersExport.allComplete')}</p>
+                ) : null}
+              </div>
+            </li>
+            <li className="admin-lifters-export__step">
+              <div>
+                <h3>{t('admin.liftersExport.steps.build')}</h3>
           <div className="admin-lifters-export__studio">
-            <h3>{t('admin.liftersExport.studioTitle')}</h3>
-            <p className="admin-lifters-export__studio-lead">{t('admin.liftersExport.studioLead')}</p>
             <div className="admin-lifters-export__studio-grid">
               <label className="admin-lifters-export__field">
                 <span>{t('admin.liftersExport.presetLabel')}</span>
@@ -1038,8 +1080,13 @@ export default function RegistrationsSection({
                 })}
               </p>
             ) : null}
-          </div>
-          <div className="admin-lifters-export__actions">
+              </div>
+              </div>
+            </li>
+            <li className="admin-lifters-export__step">
+              <div>
+                <h3>{t('admin.liftersExport.steps.deliver')}</h3>
+            <div className="admin-lifters-export__actions">
             <Button
               type="button"
               variant="primary"
@@ -1050,12 +1097,14 @@ export default function RegistrationsSection({
               }
               onClick={() =>
                 onExportLifters?.({
-                  eventSlug: filters.event && filters.event !== 'all' ? filters.event : null,
+                  eventSlug: liftersScopeSlug(liftersEventSlug),
                   options: liftersStudio,
                 })
               }
             >
-              {t('admin.liftersExport.download')}
+              {liftersScopeSlug(liftersEventSlug)
+                ? t('admin.liftersExport.downloadEvent', { event: liftersEventLabel })
+                : t('admin.liftersExport.download')}
             </Button>
             <Button
               type="button"
@@ -1096,10 +1145,13 @@ export default function RegistrationsSection({
                 ? t('admin.liftersExport.notifying')
                 : t('admin.liftersExport.notify')}
             </Button>
-          </div>
-          {liftersReadiness?.incomplete > 0 ? (
-            <p className="admin-lifters-export__hint">{t('admin.liftersExport.notifyHint')}</p>
-          ) : null}
+            </div>
+            {liftersReadiness?.incomplete > 0 ? (
+              <p className="admin-lifters-export__hint">{t('admin.liftersExport.notifyHint')}</p>
+            ) : null}
+              </div>
+            </li>
+          </ol>
         </div>
       ) : null}
       {!validationEnabled ? (
@@ -1164,20 +1216,9 @@ export default function RegistrationsSection({
               <ExportButton
                 label={t('admin.actions.exportLiftersShort')}
                 ariaLabel={t('admin.actions.exportLifters')}
-                onClick={async () => {
-                  const eventSlug =
-                    filters.event && filters.event !== 'all' ? filters.event : null
-                  setLiftersOpen(true)
-                  setLiftersLoading(true)
-                  setLiftersError('')
-                  setLiftersReadiness(null)
-                  const result = await onFetchLiftersReadiness?.({ eventSlug })
-                  setLiftersLoading(false)
-                  if (result?.error) {
-                    setLiftersError(result.error)
-                    return
-                  }
-                  setLiftersReadiness(result?.readiness ?? null)
+                onClick={() => {
+                  const eventSlug = filters.event && filters.event !== 'all' ? filters.event : 'all'
+                  void loadLiftersReadiness(eventSlug)
                 }}
               />
             </>
