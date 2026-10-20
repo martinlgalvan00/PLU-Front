@@ -1,51 +1,67 @@
 import { ArrowRight } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { buildMailtoHref, CONTACT_EMAIL } from '../../lib/contact.js'
+import {
+  getCompetitionNavEventKey,
+  getFeaturedEventDestination,
+} from '../../lib/eventNavigation.js'
 import AnalyticsOptOut from '../ui/AnalyticsOptOut.jsx'
 import BrandLogo from '../ui/BrandLogo.jsx'
 import { openCookiePreferences } from '../../services/cookieConsentService.js'
 
-const FOOTER_GROUPS = [
-  {
-    labelKey: 'navCompetition',
-    items: [
-      { key: 'members' },
-      { key: 'events', children: [{ key: 'pitbull' }] },
-      // La tienda vivía sólo adentro del desplegable de escritorio: quien
-      // venía a comprar una entrada no la encontraba desde el pie.
-      { key: 'shop' },
-      { key: 'results' },
-      { key: 'records' },
-      { key: 'standards' },
-    ],
-  },
-  {
-    labelKey: 'navResources',
-    items: [
-      { key: 'resources' },
-      { key: 'rulebook' },
-      { key: 'faq' },
-      { key: 'community' },
-      { key: 'staffApplication' },
-    ],
-  },
-  {
-    labelKey: 'navInstitution',
-    items: [{ key: 'team' }, { key: 'sponsors' }, { key: 'contact' }, { key: 'login' }],
-  },
-]
+function competitionFooterItems(navEvents) {
+  return [
+    { key: 'members' },
+    {
+      key: 'events',
+      children: navEvents
+        .filter((event) => event?.slug)
+        .map((event) => {
+          const destination = getFeaturedEventDestination(event)
+          return {
+            key: getCompetitionNavEventKey(event),
+            label: event.title,
+            view: destination.view,
+            options: destination.options,
+          }
+        }),
+    },
+    { key: 'shop' },
+    { key: 'results' },
+    { key: 'records' },
+    { key: 'standards' },
+  ]
+}
 
-function FooterLink({ itemKey, onNavigate, t }) {
+function FooterLink({ item, onNavigate, t }) {
+  const label = item.label ?? (item.key === 'login' ? t('nav.login') : t(`nav.${item.key}`))
   return (
-    <button type="button" onClick={() => onNavigate?.(itemKey)}>
-      {itemKey === 'login' ? t('nav.login') : t(`nav.${itemKey}`)}
+    <button type="button" onClick={() => onNavigate?.(item.view ?? item.key, item.options ?? {})}>
+      {label}
     </button>
   )
 }
 
-export default function Footer({ onNavigate }) {
+export default function Footer({ onNavigate, navEvents = [] }) {
   const { t } = useI18n()
   const year = new Date().getFullYear()
+  const groups = [
+    { labelKey: 'navCompetition', items: competitionFooterItems(navEvents) },
+    {
+      labelKey: 'navResources',
+      items: [
+        { key: 'resources' },
+        { key: 'rulebook' },
+        { key: 'faq' },
+        { key: 'community' },
+        { key: 'staffApplication' },
+      ],
+    },
+    {
+      labelKey: 'navInstitution',
+      items: [{ key: 'team' }, { key: 'sponsors' }, { key: 'contact' }, { key: 'login' }],
+    },
+  ]
 
   return (
     <footer className="site-footer site-footer--institutional">
@@ -87,18 +103,18 @@ export default function Footer({ onNavigate }) {
           </div>
 
           <div className="institutional-footer__directory">
-            {FOOTER_GROUPS.map((group) => (
+            {groups.map((group) => (
               <nav key={group.labelKey} aria-label={t(`footer.${group.labelKey}`)}>
                 <h3>{t(`footer.${group.labelKey}`)}</h3>
                 <ul>
                   {group.items.map((item) => (
                     <li key={item.key}>
-                      <FooterLink itemKey={item.key} onNavigate={onNavigate} t={t} />
+                      <FooterLink item={item} onNavigate={onNavigate} t={t} />
                       {item.children?.length ? (
                         <ul className="institutional-footer__sublist">
                           {item.children.map((child) => (
                             <li key={child.key} className="institutional-footer__subitem">
-                              <FooterLink itemKey={child.key} onNavigate={onNavigate} t={t} />
+                              <FooterLink item={child} onNavigate={onNavigate} t={t} />
                             </li>
                           ))}
                         </ul>
@@ -115,10 +131,7 @@ export default function Footer({ onNavigate }) {
               © {year} {t('brand.name')}
             </p>
 
-            <nav
-              className="institutional-footer__privacy"
-              aria-label={t('footer.privacyNav')}
-            >
+            <nav className="institutional-footer__privacy" aria-label={t('footer.privacyNav')}>
               <AnalyticsOptOut className="institutional-footer__optout" />
               <span className="institutional-footer__privacy-sep" aria-hidden>
                 ·

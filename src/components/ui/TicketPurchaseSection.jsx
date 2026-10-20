@@ -28,6 +28,11 @@ import { env } from '../../config/env.js'
 import { getFormOptions } from '../../lib/formOptions.js'
 import { money } from '../../lib/format.js'
 import { toggleAttendeeAddon as applyAttendeeAddonToggle } from '../../lib/ticketAddons.js'
+
+function transferField(accountDetails, envValue, key) {
+  const raw = accountDetails ? accountDetails[key] : envValue
+  return String(raw ?? '').trim()
+}
 import { groupCredentialsByBundle } from '../../lib/ticketCredentials.js'
 import { TICKETS_PATH } from '../../lib/ticketsRoute.js'
 import { isTicketTypeChannelOpen } from '../../lib/ticketTypePaymentChannels.js'
@@ -645,7 +650,7 @@ export default function TicketPurchaseSection({
   // medio que puede rechazar 409.
   cashEnabled = false,
   wiseEnabled = false,
-  // Datos bancarios del evento (alias/cbu/holder). Vacío = env global.
+  // Datos bancarios ya resueltos del evento. Si llegan, no se mezclan con el env.
   accountDetails = null,
   cashPayment = null,
   pricing = { ticketTypes: [], addons: [] },
@@ -1157,8 +1162,7 @@ export default function TicketPurchaseSection({
                   <div>
                     <dt>{t('account.membership.transferAlias')}</dt>
                     <dd>
-                      {accountDetails?.alias ||
-                        env.payments.transferAlias ||
+                      {transferField(accountDetails, env.payments.transferAlias, 'alias') ||
                         t('account.membership.transferAskAdmin')}
                     </dd>
                   </div>
@@ -1166,17 +1170,16 @@ export default function TicketPurchaseSection({
                     <dt>{t('account.membership.transferAccount')}</dt>
                     <dd>{t('account.membership.transferAccountValue')}</dd>
                   </div>
-                  {accountDetails?.cbu || env.payments.transferCbu ? (
+                  {transferField(accountDetails, env.payments.transferCbu, 'cbu') ? (
                     <div>
                       <dt>{t('account.membership.transferCbu')}</dt>
-                      <dd>{accountDetails?.cbu || env.payments.transferCbu}</dd>
+                      <dd>{transferField(accountDetails, env.payments.transferCbu, 'cbu')}</dd>
                     </div>
                   ) : null}
                   <div>
                     <dt>{t('account.membership.transferHolder')}</dt>
                     <dd>
-                      {accountDetails?.holder ||
-                        env.payments.transferHolder ||
+                      {transferField(accountDetails, env.payments.transferHolder, 'holder') ||
                         t('account.membership.transferAskAdmin')}
                     </dd>
                   </div>

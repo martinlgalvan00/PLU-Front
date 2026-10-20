@@ -529,6 +529,8 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
     const place = screen.getByLabelText(/^dónde se paga/i)
     expect(place.placeholder).toBe('Maximal Strength Club · Buenos Aires')
     expect(screen.getByText(/vacío = la sede del evento: maximal strength club/i)).toBeTruthy()
+    expect(screen.getByText(/sede del evento \(no cargaste un lugar propio\)/i)).toBeTruthy()
+    expect(screen.queryByText(/efectivo está cerrado en este evento/i)).toBeNull()
 
     fireEvent.change(place, { target: { value: 'Recepción del gimnasio' } })
     expect(onChange.mock.calls.at(-1)[0].cashPayment).toEqual({
@@ -548,6 +550,33 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
     await platformMatrix()
 
     expect(screen.queryByLabelText(/^dónde se paga/i)).toBeNull()
+    expect(screen.getByText(/efectivo está cerrado en este evento/i)).toBeTruthy()
+  })
+
+  it('con transferencia cerrada indica que hay que abrirla para cargar alias', async () => {
+    renderEditor({
+      paymentChannelOverrides: {
+        registration: { bank_transfer: false },
+        ticket: { bank_transfer: false },
+      },
+    })
+    openPaymentChapter()
+    await platformMatrix()
+
+    expect(screen.getByText(/transferencia está cerrada en este evento/i)).toBeTruthy()
+    expect(screen.queryByLabelText(/alias/i)).toBeNull()
+  })
+
+  it('avisa si el efectivo está abierto y no hay sede ni lugar', async () => {
+    renderEditor({
+      venue: '',
+      location: '',
+      cashPayment: { place: '', notes: '' },
+    })
+    openPaymentChapter()
+    await platformMatrix()
+
+    expect(screen.getByText(/no hay lugar ni sede/i)).toBeTruthy()
   })
 
   it('abre un medio que la plataforma tiene cerrado, solo para este evento', async () => {

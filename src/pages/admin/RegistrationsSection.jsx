@@ -1019,6 +1019,16 @@ export default function RegistrationsSection({
                 />
                 <span>{t('admin.liftersExport.freezeHeader')}</span>
               </label>
+              <label className="admin-lifters-export__check">
+                <input
+                  type="checkbox"
+                  checked={liftersStudio.includeSummarySheet}
+                  onChange={(event) =>
+                    updateLiftersStudio({ includeSummarySheet: event.target.checked })
+                  }
+                />
+                <span>{t('admin.liftersExport.includeSummarySheet')}</span>
+              </label>
             </div>
             {liftersPreview ? (
               <p className="admin-lifters-export__preview">

@@ -74,13 +74,6 @@ export const PUBLIC_NAVIGATION = {
               hintKey: 'nav.calendarHint',
               icon: 'calendar',
             },
-            {
-              key: 'pitbull',
-              featured: true,
-              labelKey: 'nav.pitbull',
-              hintKey: 'nav.pitbullHint',
-              icon: 'trophy',
-            },
           ],
         },
       ],
@@ -162,11 +155,10 @@ export const PUBLIC_NAVIGATION = {
   ],
 }
 
-const competitionNavigation = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'competition')
 const moreNavigation = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'more')
 
-/** Alias de compatibilidad para consumidores existentes. */
-export const NAV_EVENTOS = competitionNavigation.groups[0].items.filter(({ featured }) => featured)
+/** Alias de compatibilidad. Los meets de Competencia se inyectan en runtime. */
+export const NAV_EVENTOS = []
 export const NAV_RECURSOS = moreNavigation.groups.flatMap(({ items }) => items)
 export const NAV_EVENTOS_VIEWS = ['events', 'pitbull', 'tickets', 'results', 'records']
 export const NAV_RECURSOS_VIEWS = moreNavigation.views

@@ -583,7 +583,7 @@ export const FAQ_ITEMS = [
   },
   {
     q: 'How do I pay for membership or registration?',
-    a: 'For now, memberships and registrations can only be paid through Mercado Pago from the web form. Bank transfer and cash on site will be enabled soon.',
+    a: 'Mercado Pago is the default method. Each event can also open bank transfer (alias/CBU) or cash on site; checkout only shows the channels that meet has open.',
   },
   {
     q: 'What is Pitbull Classic?',

@@ -462,6 +462,7 @@ export default {
     },
     highlightEmpty: 'Highlight empty cells',
     freezeHeader: 'Freeze header',
+    includeSummarySheet: 'Include Summary sheet (gaps)',
     preview: 'Preview: {{rows}} rows × {{columns}} columns',
     download: 'Download Excel',
     notify: 'Ask them to complete it in the app',
@@ -1426,6 +1427,8 @@ export default {
       archive: 'Archive',
       nextKicker: 'Next',
       leadFeatured: 'Main event',
+      inNav: 'In the bar',
+      inNavHint: 'Shown by name under Competition (navbar and footer).',
       viewsAria: 'View events',
       viewUpcoming: 'Upcoming',
       viewArchive: 'Archive',
@@ -4110,7 +4113,7 @@ export default {
     publicStatus: 'Public status',
     featuredTitle: 'Featured event',
     featuredHint:
-      'Shown on home, calendar, shop and spotlight blocks. Only one event can be featured at a time: turning it on here turns it off for the others.',
+      'First Competition slot (navbar and footer), home and shop. The second slot fills itself with Pitbull or the next published meet. Only one featured event: turning it on here turns it off for the others.',
     accessLabel: 'Meet access',
     saveChanges: 'Save changes',
     saveChangesShort: 'Save',
@@ -4173,7 +4176,11 @@ export default {
       'If you change today’s price and save the event, this scheduled change is cancelled.',
     paymentProfileTitle: 'Payment methods for this event',
     paymentProfileHint:
-      'Leave untouched to inherit the platform matrix. Here you can open or close methods for this event only and set your own bank details.',
+      'Order: 1) open the channels, 2) if transfer is on, add an account or alias, 3) if cash is on, set the place (empty = venue). Leave untouched to inherit the platform.',
+    bankTransferClosedHint:
+      'Bank transfer is closed for this event. Open it in the matrix to load an alias, CBU or a reusable account.',
+    cashPaymentClosedHint:
+      'Cash is closed for this event. Open it in the matrix to load the place and instructions.',
     salesIntentAnnounceTitle: 'Announce only (no charging yet)',
     salesIntentAnnounceHint:
       'The meet can be published without registration payment methods. This is not a free entry: turn this off and open payments when you want to sell.',
@@ -4264,6 +4271,10 @@ export default {
     cashPaymentNotes: 'Instructions (optional)',
     cashPaymentNotesPlaceholder: 'E.g.: check-in desk, on event day from 8 am.',
     cashPaymentPreviewLabel: 'What the buyer sees',
+    cashPaymentPreviewOwn: 'Custom place for this event',
+    cashPaymentPreviewVenue: 'Event venue (no custom place loaded)',
+    cashPaymentPreviewMissing:
+      'Cash is open and there is no place or venue. The buyer will not see an address. Load the place here or the venue in Details.',
     mercadoPagoProfileTitle: 'Mercado Pago for this event',
     mercadoPagoProfileHint:
       'Pick which Mercado Pago account this event’s money lands in. Accounts are linked once and reused; orders already open keep collecting in the account they started with.',
@@ -4764,6 +4775,8 @@ export default {
           'Tickets are enabled, but no payment method is open to buy them.',
         transferWithoutDestination:
           'Bank transfer is open and the event has no alias or profile of its own: the global alias will be used.',
+        cashWithoutVenue:
+          'Cash is open and there is no custom place or venue: the buyer will not see an address.',
         mpUsingPlatformDefault:
           'Mercado Pago is open and this event has no own account: charges go to the general PLU account.',
         mpProfileNeedsReconnect:

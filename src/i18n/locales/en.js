@@ -3964,7 +3964,7 @@ export default {
       competitionPaymentDesc: 'Choose how to generate the order.',
       paymentMpHint: 'Automatic confirmation',
       paymentMercadoPagoOnlyHint:
-        'For now, memberships and registrations can only be paid through Mercado Pago. Bank transfer and cash on site will be available soon.',
+        'Only Mercado Pago is available for this payment. If the event opens bank transfer or cash, they will show up here.',
       paymentNoChannelHint:
         'No payment methods are available right now. Try again later or get in touch.',
       manualChannelPriceHint: 'Price with bank transfer or cash on site.',

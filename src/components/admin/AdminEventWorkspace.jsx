@@ -115,6 +115,7 @@ export default function AdminEventWorkspace({
   canManageUsers = false,
   editor = null,
   event,
+  inNav = false,
   onBack,
   onDelete,
   onManageCheckin,
@@ -658,6 +659,14 @@ export default function AdminEventWorkspace({
             <span className="admin-event-workspace__featured">
               <Star size={11} aria-hidden />
               {t('admin.sections.events.leadFeatured')}
+            </span>
+          ) : null}
+          {inNav ? (
+            <span
+              className="admin-event-workspace__featured"
+              title={t('admin.sections.events.inNavHint')}
+            >
+              {t('admin.sections.events.inNav')}
             </span>
           ) : null}
           {sidebarMeta ? (

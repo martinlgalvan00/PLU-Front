@@ -95,7 +95,8 @@ export default function EventSalesSection({
     cbu: selectedBankProfile?.config?.cbu ?? draft.bankTransfer?.cbu ?? '',
     holder: selectedBankProfile?.config?.holder ?? draft.bankTransfer?.holder ?? '',
   }
-  const cashPlacePreview = String(draft.cashPayment?.place ?? '').trim() || eventVenueLabel
+  const ownCashPlace = String(draft.cashPayment?.place ?? '').trim()
+  const cashPlacePreview = ownCashPlace || eventVenueLabel
 
   return (
     <section
@@ -505,6 +506,17 @@ export default function EventSalesSection({
               {t('admin.eventEditor.paymentChannelReset')}
             </button>
           ) : null}
+
+          {channelOpenHere('bank_transfer') ? null : (
+            <p className="admin-event-form__field-hint" data-channel="bank_transfer-closed">
+              {t('admin.eventEditor.bankTransferClosedHint')}
+            </p>
+          )}
+          {channelOpenHere('cash_pitbull') ? null : (
+            <p className="admin-event-form__field-hint" data-channel="cash_pitbull-closed">
+              {t('admin.eventEditor.cashPaymentClosedHint')}
+            </p>
+          )}
 
           {channelOpenHere('mercado_pago') ? (
             <div className="admin-event-form__bank-transfer">
@@ -937,12 +949,21 @@ export default function EventSalesSection({
               {cashPlacePreview ? (
                 <div className="admin-event-form__reference-note" role="note">
                   <strong>{t('admin.eventEditor.cashPaymentPreviewLabel')}</strong>
+                  <p>
+                    {ownCashPlace
+                      ? t('admin.eventEditor.cashPaymentPreviewOwn')
+                      : t('admin.eventEditor.cashPaymentPreviewVenue')}
+                  </p>
                   <p>{cashPlacePreview}</p>
                   {String(draft.cashPayment?.notes ?? '').trim() ? (
                     <p>{String(draft.cashPayment.notes).trim()}</p>
                   ) : null}
                 </div>
-              ) : null}
+              ) : (
+                <p className="admin-event-form__notice" role="status">
+                  {t('admin.eventEditor.cashPaymentPreviewMissing')}
+                </p>
+              )}
             </div>
           ) : null}
         </div>

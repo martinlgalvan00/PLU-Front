@@ -173,34 +173,40 @@ export function normalizeBankTransferInput(raw) {
   }
 }
 
+function pickBankFields(source) {
+  const alias = trimText(source?.alias)
+  const cbu = trimText(source?.cbu)
+  const holder = trimText(source?.holder)
+  if (!alias && !cbu && !holder) return null
+  return { alias, cbu, holder }
+}
+
 /**
  * Alias/CBU/titular resueltos para mostrar en checkout.
- * Prioridad: perfil vinculado > columnas del evento (Fase A) > env global.
+ * Prioridad: perfil vinculado > columnas del evento > env global.
+ * Si el perfil o el evento ya tienen algún dato, no se completa el resto con
+ * el env: un alias del meet no puede ir pegado al CBU de la plataforma.
  */
 export function resolveBankTransferDetails(eventRow = null, env = process.env, profile = null) {
-  const globalAlias = trimText(env.VITE_PAYMENT_TRANSFER_ALIAS ?? env.PAYMENT_TRANSFER_ALIAS)
-  const globalCbu = trimText(env.VITE_PAYMENT_TRANSFER_CBU ?? env.PAYMENT_TRANSFER_CBU)
-  const globalHolder = trimText(env.VITE_PAYMENT_TRANSFER_HOLDER ?? env.PAYMENT_TRANSFER_HOLDER)
-
   const profileConfig =
     profile?.config ??
     eventRow?.bankTransferProfile?.config ??
     eventRow?.payment_profile?.config ??
     null
+  const fromProfile = pickBankFields(profileConfig)
+  if (fromProfile) return fromProfile
+
+  const fromEvent = pickBankFields({
+    alias: eventRow?.bank_transfer_alias ?? eventRow?.bankTransferAlias,
+    cbu: eventRow?.bank_transfer_cbu ?? eventRow?.bankTransferCbu,
+    holder: eventRow?.bank_transfer_holder ?? eventRow?.bankTransferHolder,
+  })
+  if (fromEvent) return fromEvent
 
   return {
-    alias:
-      trimText(profileConfig?.alias) ||
-      trimText(eventRow?.bank_transfer_alias ?? eventRow?.bankTransferAlias) ||
-      globalAlias,
-    cbu:
-      trimText(profileConfig?.cbu) ||
-      trimText(eventRow?.bank_transfer_cbu ?? eventRow?.bankTransferCbu) ||
-      globalCbu,
-    holder:
-      trimText(profileConfig?.holder) ||
-      trimText(eventRow?.bank_transfer_holder ?? eventRow?.bankTransferHolder) ||
-      globalHolder,
+    alias: trimText(env.VITE_PAYMENT_TRANSFER_ALIAS ?? env.PAYMENT_TRANSFER_ALIAS),
+    cbu: trimText(env.VITE_PAYMENT_TRANSFER_CBU ?? env.PAYMENT_TRANSFER_CBU),
+    holder: trimText(env.VITE_PAYMENT_TRANSFER_HOLDER ?? env.PAYMENT_TRANSFER_HOLDER),
   }
 }
 

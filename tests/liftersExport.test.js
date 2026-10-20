@@ -5,6 +5,7 @@ import {
   buildLiftersExportRows,
   buildLiftersFieldGaps,
   buildLiftersReadiness,
+  buildLiftersSummarySheet,
   filterLiftersRowsByCompleteness,
   getMissingLiftersFields,
   liftersRowsForSpreadsheet,
@@ -237,6 +238,7 @@ describe('liftersExport', () => {
       preset: 'minimal',
       highlightEmpty: false,
       freezeHeader: false,
+      includeSummarySheet: false,
     })
     expect(minimalXml).toContain('Birth Date')
     expect(minimalXml).not.toContain('StreetAddress')
@@ -246,8 +248,38 @@ describe('liftersExport', () => {
     const incompleteOnly = serializeLiftersSpreadsheet(rows, 'Lifters', {
       rowFilter: 'incomplete',
       preset: 'contact',
+      includeSummarySheet: false,
     })
     expect(incompleteOnly).toContain('Incompleto')
     expect(incompleteOnly).not.toContain('Gonzalo Taborrelli')
+  })
+
+  it('incluye hoja Summary con ranking de gaps', () => {
+    const rows = buildLiftersExportRows(
+      [
+        { id: 'r1', athleteId: 'a1', category: 'Raw', division: 'Open' },
+        { id: 'r2', athleteId: 'a2', category: 'Raw', division: 'Open' },
+      ],
+      [athlete, { ...athlete, id: 'a2', fullName: 'Incompleto', streetAddress: '', postalCode: '' }],
+      [],
+    )
+    const summary = buildLiftersSummarySheet(rows)
+    expect(summary.sheetName).toBe('Summary')
+    expect(summary.rows.some((row) => row.Type === 'Empty field' && row.Notes === 'postalCode')).toBe(
+      true,
+    )
+    expect(summary.rows.some((row) => row.Type === 'Incomplete athlete')).toBe(true)
+
+    const withSummary = serializeLiftersSpreadsheet(rows, 'Lifters', {
+      includeSummarySheet: true,
+    })
+    expect(withSummary).toContain('ss:Name="Summary"')
+    expect(withSummary).toContain('Empty field')
+    expect(withSummary).toContain('Incomplete athlete')
+
+    const withoutSummary = serializeLiftersSpreadsheet(rows, 'Lifters', {
+      includeSummarySheet: false,
+    })
+    expect(withoutSummary).not.toContain('ss:Name="Summary"')
   })
 })
