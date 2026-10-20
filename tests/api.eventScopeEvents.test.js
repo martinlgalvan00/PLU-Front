@@ -313,6 +313,18 @@ describe('organizador: logo, horario y tandas', () => {
       expect(ajeno.status).toBe(403)
       expect(ajeno.body.code).toBe('event_not_assigned')
 
+      const heroPropio = await call(ctx, 'POST', `/api/events/${A.slug}/hero/upload-url`, {
+        contentType: 'image/png',
+        size: 1024,
+      })
+      expect(heroPropio.status, JSON.stringify(heroPropio.body)).toBe(200)
+      const heroAjeno = await call(ctx, 'POST', `/api/events/${B.slug}/hero/upload-url`, {
+        contentType: 'image/png',
+        size: 1024,
+      })
+      expect(heroAjeno.status).toBe(403)
+      expect(heroAjeno.body.code).toBe('event_not_assigned')
+
       expect((await call(ctx, 'GET', `/api/events/${A.slug}/schedule`)).status).toBe(200)
       const horarioAjeno = await call(ctx, 'GET', `/api/events/${B.slug}/schedule`)
       expect(horarioAjeno.status).toBe(403)

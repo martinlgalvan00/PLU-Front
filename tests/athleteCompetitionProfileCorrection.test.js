@@ -15,6 +15,10 @@ const repository = readFileSync(
   resolve(process.cwd(), 'server/modules/athletes/supabaseAthleteRepository.js'),
   'utf8',
 )
+const profileV6 = readFileSync(
+  resolve(process.cwd(), 'supabase/migrations/20261223100000_athlete_street_postal_lifters.sql'),
+  'utf8',
+)
 
 describe('perfil competitivo editable y corrección staff', () => {
   it('permite a staff saltar el lock de la inscripción con una RPC auditada', () => {
@@ -29,7 +33,8 @@ describe('perfil competitivo editable y corrección staff', () => {
   it('persiste división, categoría y peso estimado desde el perfil del atleta', () => {
     expect(migration).toContain('update_athlete_profile_v5')
     expect(migration).toContain('p_estimated_weight numeric')
-    expect(repository).toMatch(/rpc\(\s*'update_athlete_profile_v5'/)
+    expect(profileV6).toContain('update_athlete_profile_v6')
+    expect(repository).toMatch(/rpc\(\s*'update_athlete_profile_v6'/)
     expect(repository).toContain('p_division: data.division')
     expect(repository).toContain('estimated_weight')
   })
