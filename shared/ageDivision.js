@@ -78,6 +78,15 @@ function isValidCalendarDay(year, month, day) {
  */
 export function toCalendarDate(value) {
   if (value == null || value === '') return ''
+  // `Date` de node-pg (columna date) no debe caer al toString() locale y perderse.
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return ''
+    const year = value.getUTCFullYear()
+    const month = value.getUTCMonth() + 1
+    const day = value.getUTCDate()
+    if (!isValidCalendarDay(year, month, day)) return ''
+    return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  }
   const raw = String(value).trim()
   if (!raw) return ''
 
