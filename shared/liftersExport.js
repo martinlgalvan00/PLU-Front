@@ -298,6 +298,7 @@ export function buildLiftersExportRows(registrations, athletes, memberships) {
         divisionDeclared: divisionFields.divisionDeclared,
         divisionCalculated: divisionFields.divisionCalculated,
         age: divisionFields.age,
+        eventTitle: liftersEventTitle(registration),
       },
     }
   })
@@ -572,16 +573,20 @@ export function buildLiftersReadiness(rows) {
   let openUpgradeCount = 0
   const incompleteAthletes = []
   const mismatchAthletes = []
+  const eventTitles = new Set()
 
   for (const row of list) {
     const meta = row._meta
     if (!meta) continue
+    if (meta.eventTitle) eventTitles.add(meta.eventTitle)
     if (meta.incomplete) {
       incompleteCount += 1
       incompleteAthletes.push({
         athleteId: meta.athleteId,
         registrationId: meta.registrationId,
         name: row.name,
+        phone: row.phoneNumber || '',
+        email: row.email || '',
         missing: meta.missing,
       })
       for (const field of meta.missing ?? []) {
@@ -621,7 +626,15 @@ export function buildLiftersReadiness(rows) {
     topGaps: fieldGaps.slice(0, 5),
     athletes: incompleteAthletes,
     divisionMismatchAthletes: mismatchAthletes,
+    events: [...eventTitles].sort((left, right) => left.localeCompare(right, 'es')),
   }
+}
+
+function liftersEventTitle(registration) {
+  const value = registration?.event
+  if (typeof value === 'string') return value.trim()
+  if (value && typeof value === 'object') return String(value.title ?? '').trim()
+  return ''
 }
 
 /** Spreadsheet Lifters: headers LiftingCast, freeze, celdas vacías / mismatch. */
