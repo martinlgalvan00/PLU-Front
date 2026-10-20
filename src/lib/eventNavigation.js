@@ -122,6 +122,43 @@ export function getFeaturedEvent(events = []) {
 }
 
 /**
+ * Hasta dos eventos vigentes para Competencia (navbar, drawer, footer).
+ * Slot 1: destacado si sigue en el catálogo próximo; si no, el próximo por fecha.
+ * Slot 2: Pitbull si es otro meet publicado vigente; si no, el siguiente upcoming.
+ * Un solo `featured` de staff; el segundo slot es derivado. Stubs y ocultos
+ * no entran (mismo filtro que el catálogo público).
+ */
+export function getCompetitionNavEvents(events = [], now = new Date()) {
+  const eligible = getPublicCatalogEvents(events).filter((event) => event.status !== 'finalizado')
+  if (eligible.length === 0) return []
+
+  const upcoming = getUpcomingEventsByDate(eligible, now)
+  const featured = eligible.find((event) => event.featured)
+  const pitbull = eligible.find(isPitbullClassicEvent)
+
+  const first =
+    featured && upcoming.some((event) => event.slug === featured.slug)
+      ? featured
+      : (upcoming[0] ?? null)
+  if (!first) return []
+
+  const remaining = upcoming.filter((event) => event.slug !== first.slug)
+  const pitbullAsSecond =
+    pitbull &&
+    pitbull.slug !== first.slug &&
+    remaining.some((event) => event.slug === pitbull.slug)
+      ? pitbull
+      : null
+  const second = pitbullAsSecond ?? remaining[0] ?? null
+
+  return second ? [first, second] : [first]
+}
+
+export function getCompetitionNavEventKey(event) {
+  return event?.slug ? `event:${event.slug}` : null
+}
+
+/**
  * Slug canónico del meet insignia. La landing editorial ya no se gatea por
  * slug: usa `landing.templateId === 'editorial'`. Este helper queda para
  * seeds, analytics y el alias `/pitbull`.

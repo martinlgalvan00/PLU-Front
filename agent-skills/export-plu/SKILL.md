@@ -82,8 +82,8 @@ event_name, registration_status, payment_status
 ### 5. UI
 
 Botones en `RegistrationsSection`: pasan `eventSlug` del filtro activo.
-Studio Lifters: presets + filtro de filas + highlight/freeze (`shared/liftersExport.js`
-+ `src/lib/liftersExportStudio.js`, persistido en localStorage).
+Studio Lifters: presets + filtro de filas + highlight/freeze + hoja Summary gaps
+(`shared/liftersExport.js` + `src/lib/liftersExportStudio.js`, localStorage).
 Toasts en `useAppData` para vacío / error / truncado.
 
 ### 6. Excel sin dependencia

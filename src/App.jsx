@@ -45,6 +45,7 @@ import {
 } from './lib/ticketsRoute.js'
 import { resolveEventPricing } from './lib/eventPricing.js'
 import {
+  getCompetitionNavEvents,
   getFeaturedEvent,
   getNextUpcomingEvent,
   getPublicCatalogEvents,
@@ -246,6 +247,8 @@ export default function App() {
   )
   const nextEvent = getNextUpcomingEvent(publicEvents) ?? UPCOMING_EVENTS[0]
   const featuredEvent = getFeaturedEvent(publicEvents) ?? UPCOMING_EVENTS[0]
+  const catalogNavEvents = getCompetitionNavEvents(publicEvents)
+  const navEvents = catalogNavEvents.length > 0 ? catalogNavEvents : [featuredEvent].filter((event) => event?.slug)
 
   useEffect(() => {
     setSelectedEvent((current) => {
@@ -1031,6 +1034,7 @@ export default function App() {
         navigate={navigate}
         transitionDirection={transitionDirection}
         helpEvent={featuredEvent}
+        navEvents={navEvents}
         onSelectEvent={selectEvent}
       >
         <Suspense fallback={<PageLoadFallback />}>
@@ -1075,6 +1079,7 @@ export default function App() {
         navigate={navigate}
         transitionDirection={transitionDirection}
         helpEvent={competitionEvent}
+        navEvents={navEvents}
         onSelectEvent={selectEvent}
       >
         <Suspense fallback={<PageLoadFallback />}>
@@ -1140,6 +1145,7 @@ export default function App() {
         activeEventSlug={eventPageSlug}
         activeView={view}
         latestEvent={featuredEvent}
+        navEvents={navEvents}
         memberships={app.memberships}
         onLogout={app.logout}
         onNavigate={navigate}
@@ -1161,7 +1167,9 @@ export default function App() {
           </Suspense>
         </PageErrorBoundary>
       </PageTransition>
-      {!['login', 'register'].includes(view) && <Footer onNavigate={navigate} />}
+      {!['login', 'register'].includes(view) && (
+        <Footer onNavigate={navigate} navEvents={navEvents} />
+      )}
       {/* Fuera de PageTransition: el botón de ayuda no se desmonta al cambiar
           de pantalla, así que sigue estando donde la persona lo dejó. */}
       <HelpLayer
@@ -1184,6 +1192,7 @@ function PrivateLayout({
   view,
   transitionDirection,
   helpEvent = null,
+  navEvents = [],
   onSelectEvent,
 }) {
   return (
@@ -1200,6 +1209,7 @@ function PrivateLayout({
           getFeaturedEvent(app.adminEvents.filter((event) => event.published !== false)) ??
           UPCOMING_EVENTS[0]
         }
+        navEvents={navEvents}
         memberships={app.memberships}
         onLogout={async () => {
           await app.logout()
@@ -1222,7 +1232,7 @@ function PrivateLayout({
           <Suspense fallback={<PageLoadFallback />}>{children}</Suspense>
         </PageErrorBoundary>
       </PageTransition>
-      <Footer onNavigate={navigate} />
+      <Footer onNavigate={navigate} navEvents={navEvents} />
       <HelpLayer
         event={helpEvent}
         memberships={app.memberships}

@@ -587,7 +587,7 @@ export const FAQ_ITEMS = [
   },
   {
     q: '¿Cómo pago afiliación o inscripción?',
-    a: 'Por el momento, las afiliaciones e inscripciones se pagan únicamente con Mercado Pago desde el formulario web. La transferencia bancaria y el efectivo en el lugar se habilitarán próximamente.',
+    a: 'Mercado Pago es el medio por defecto. Cada evento puede abrir además transferencia (alias/CBU) o efectivo en el lugar; el checkout muestra solo los canales que ese meet tiene abiertos.',
   },
   {
     q: '¿Qué es Pitbull Classic?',

@@ -464,6 +464,7 @@ export default {
     },
     highlightEmpty: 'Resaltar celdas vacías',
     freezeHeader: 'Congelar encabezado',
+    includeSummarySheet: 'Incluir hoja Resumen (gaps)',
     preview: 'Preview: {{rows}} filas × {{columns}} columnas',
     download: 'Descargar Excel',
     notify: 'Pedir que completen en la plataforma',
@@ -1444,6 +1445,8 @@ export default {
       archive: 'Archivo',
       nextKicker: 'Próximo',
       leadFeatured: 'Evento principal',
+      inNav: 'En la barra',
+      inNavHint: 'Se muestra por nombre en Competencia (navbar y pie).',
       viewsAria: 'Ver eventos',
       viewUpcoming: 'Próximos',
       viewArchive: 'Archivo',
@@ -4168,7 +4171,7 @@ export default {
     publicStatus: 'Estado público',
     featuredTitle: 'Evento destacado',
     featuredHint:
-      'Se muestra en home, calendario, tienda y bloques spotlight. Solo puede haber un evento destacado a la vez: al activarlo acá se desactiva en los demás.',
+      'Primer slot de Competencia (navbar y pie), home y tienda. El segundo slot se completa solo con Pitbull o el próximo publicado. Un solo destacado: al activarlo acá se desactiva en los demás.',
     accessLabel: 'Acceso al meet',
     saveChanges: 'Guardar cambios',
     saveChangesShort: 'Guardar',
@@ -4231,7 +4234,11 @@ export default {
       'Si cambiás el precio de hoy y guardás el evento, esta programación se cancela.',
     paymentProfileTitle: 'Medios de cobro de este evento',
     paymentProfileHint:
-      'Si no tocás nada, vale la configuración de la plataforma. Acá podés abrir o cerrar medios solo para este evento y poner datos bancarios propios.',
+      'Orden: 1) abrí los canales, 2) si hay transferencia cargá cuenta o alias, 3) si hay efectivo el lugar (vacío = sede). Si no tocás nada, vale la plataforma.',
+    bankTransferClosedHint:
+      'Transferencia está cerrada en este evento. Abrila en la matriz para cargar alias, CBU o una cuenta reutilizable.',
+    cashPaymentClosedHint:
+      'Efectivo está cerrado en este evento. Abrilo en la matriz para cargar el lugar y las indicaciones.',
     salesIntentAnnounceTitle: 'Solo anuncio (sin cobro todavía)',
     salesIntentAnnounceHint:
       'El meet se puede publicar sin medios de inscripción. No es entrada gratis: cuando quieras vender, desactivá esto y abrí los cobros.',
@@ -4322,6 +4329,10 @@ export default {
     cashPaymentNotes: 'Indicaciones (opcional)',
     cashPaymentNotesPlaceholder: 'Ej.: mesa de acreditación, el día del evento desde las 8.',
     cashPaymentPreviewLabel: 'Lo que ve quien paga',
+    cashPaymentPreviewOwn: 'Lugar propio de este evento',
+    cashPaymentPreviewVenue: 'Sede del evento (no cargaste un lugar propio)',
+    cashPaymentPreviewMissing:
+      'Efectivo está abierto y no hay lugar ni sede. Quien pague no va a ver una dirección. Cargá el lugar acá o la sede en Datos.',
     mercadoPagoProfileTitle: 'Mercado Pago de este evento',
     mercadoPagoProfileHint:
       'Elegí en qué cuenta de Mercado Pago entra la plata de este evento. Las cuentas se vinculan una vez y se reusan; las órdenes ya abiertas siguen cobrando en la cuenta con la que empezaron.',
@@ -4825,6 +4836,8 @@ export default {
           'Las entradas están habilitadas, pero no hay ningún medio de pago abierto para comprarlas.',
         transferWithoutDestination:
           'La transferencia está abierta y no hay un alias o perfil propio del evento: se va a usar el alias global.',
+        cashWithoutVenue:
+          'El efectivo está abierto y no hay un lugar propio ni sede: quien pague no va a ver una dirección.',
         mpUsingPlatformDefault:
           'Mercado Pago está abierto y el evento no tiene cuenta propia: cobra en la cuenta general de PLU.',
         mpProfileNeedsReconnect:

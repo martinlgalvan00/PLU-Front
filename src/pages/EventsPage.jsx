@@ -68,7 +68,6 @@ function EventStatusBadge({ status, t }) {
 
 function EventsDetailPanel({
   event,
-  isFeaturedSelected,
   onRegister,
   onViewEvent,
   registerLabel,
@@ -85,22 +84,6 @@ function EventsDetailPanel({
         className={`events-detail events-detail--empty${minimal ? ' events-detail--minimal' : ''}`}
       >
         <p>{t('pages.events.emptyDetail')}</p>
-      </div>
-    )
-  }
-
-  if (isFeaturedSelected) {
-    return (
-      <div
-        className={`events-detail events-detail--linked${minimal ? ' events-detail--minimal' : ''}`}
-      >
-        <p className="events-detail__linked-copy">{t('pages.events.selectedIsFeatured')}</p>
-        {onViewEvent ? (
-          <button type="button" className="events-detail__text-link" onClick={onViewEvent}>
-            {t('pages.events.viewFull')}
-            <ArrowRight size={14} aria-hidden />
-          </button>
-        ) : null}
       </div>
     )
   }
@@ -595,7 +578,7 @@ export default function EventsPage({
     })
   }, [eventsProp, supabaseBySlug, formatEventDisplayDate, checkoutAvailability.registrationEnabled])
 
-  const pitbull = getFeaturedEvent(events)
+  const spotlightEvent = getFeaturedEvent(events)
   const nextEvent = useMemo(() => getNextUpcomingEvent(events), [events])
   // Se guarda el slug (no el objeto) para que `selected` siempre refleje la
   // versión más reciente del evento en `events` — incluidos los campos que
@@ -605,11 +588,11 @@ export default function EventsPage({
     if (initialEventSlug && eventsProp.some((event) => event.slug === initialEventSlug)) {
       return initialEventSlug
     }
-    return pitbull?.slug ?? null
+    return spotlightEvent?.slug ?? null
   })
   const selected = events.find((event) => event.slug === selectedSlug) ?? null
   const [filter, setFilter] = useState('all')
-  const [calendarFocus, setCalendarFocus] = useState(pitbull?.dateISO ?? '2026-12-01')
+  const [calendarFocus, setCalendarFocus] = useState(spotlightEvent?.dateISO ?? '2026-12-01')
 
   // El catálogo público llega de forma asíncrona. Si el deep-link apunta a
   // un evento que todavía no estaba en el seed inicial, no hay que perder ese
@@ -749,7 +732,7 @@ export default function EventsPage({
     { count: '' },
   ).trim()
 
-  const ticketsEvent = selected ?? nextEvent ?? pitbull
+  const ticketsEvent = selected ?? nextEvent ?? spotlightEvent
 
   return (
     <main className="page page--design page--plu-ref events-page--design events-page--plu-ref events-page--list-first">
@@ -847,11 +830,7 @@ export default function EventsPage({
               event={nextEvent}
               className="events-calendar-board__countdown"
               compact
-              onNavigate={
-                pitbull?.slug && nextEvent.slug === pitbull.slug
-                  ? () => openEvent(pitbull)
-                  : () => openEvent(nextEvent)
-              }
+              onNavigate={() => openEvent(nextEvent)}
             />
           ) : (
             <header className="events-calendar-board__head">
@@ -874,7 +853,6 @@ export default function EventsPage({
               <MotionContentSwap swapKey={selected?.slug || 'none'}>
                 <EventsDetailPanel
                   event={selected}
-                  isFeaturedSelected={false}
                   minimal
                   athleteStatus={
                     selected

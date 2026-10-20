@@ -55,6 +55,7 @@ import {
 } from '../../lib/eventPublishChecks.js'
 import { resolveEventSalesReadiness } from '../../lib/eventSalesReadiness.js'
 import { EVENT_PAYMENT_CHANNELS } from '../../lib/eventPaymentChannels.js'
+import { getCompetitionNavEvents } from '../../lib/eventNavigation.js'
 import useEventPayments from '../../hooks/useEventPayments.js'
 import useEventTickets from '../../hooks/useEventTickets.js'
 import usePlatformPaymentChannels from '../../hooks/usePlatformPaymentChannels.js'
@@ -257,6 +258,7 @@ function EventListRow({
   platform = null,
   selected,
   locale,
+  inNav = false,
   onSelect,
   onTogglePin,
   onDuplicate,
@@ -320,6 +322,14 @@ function EventListRow({
               aria-label={t('admin.sections.events.leadFeatured')}
             >
               <Star size={12} aria-hidden />
+            </span>
+          ) : null}
+          {inNav ? (
+            <span
+              className="admin-event-row__nav-mark"
+              title={t('admin.sections.events.inNavHint')}
+            >
+              {t('admin.sections.events.inNav')}
             </span>
           ) : null}
           {row.requiresMembership === false ? (
@@ -687,6 +697,10 @@ export default function EventsSection({
   }, [adminEvents, selectedId])
 
   const years = useMemo(() => listAdminEventYears(adminEvents), [adminEvents])
+  const navEventSlugs = useMemo(
+    () => new Set(getCompetitionNavEvents(adminEvents).map((event) => event.slug)),
+    [adminEvents],
+  )
   // El año no se recorta solo: «Próximos» son todos los que no terminaron, sea
   // cual sea su año, y los contadores de las pestañas no cambian al pasar de una a
   // otra. Solo filtra por año quien lo elige en el selector.
@@ -1621,6 +1635,7 @@ export default function EventsSection({
               row={row}
               platform={platformChannels.platform}
               selected={row.id === selectedEvent?.id}
+              inNav={navEventSlugs.has(row.slug)}
               locale={locale}
               onSelect={handleSelectEvent}
               onTogglePin={handleTogglePin}
@@ -1834,6 +1849,7 @@ export default function EventsSection({
             ) : null
           }
           event={selectedEvent}
+          inNav={navEventSlugs.has(selectedEvent.slug)}
           onBack={closeEventConsole}
           onDelete={openDeleteDialog}
           onManageCheckin={onManageCheckin}

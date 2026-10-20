@@ -175,6 +175,29 @@ describe('resolveBankTransferDetails', () => {
     ).toEqual({ alias: 'perfil.alias', cbu: '555', holder: 'Club' })
   })
 
+  it('no mezcla el env si el evento ya tiene un dato propio', () => {
+    expect(
+      resolveBankTransferDetails(
+        { bank_transfer_alias: 'evento.alias' },
+        {
+          VITE_PAYMENT_TRANSFER_ALIAS: 'global.alias',
+          VITE_PAYMENT_TRANSFER_CBU: '999',
+          VITE_PAYMENT_TRANSFER_HOLDER: 'Global',
+        },
+      ),
+    ).toEqual({ alias: 'evento.alias', cbu: '', holder: '' })
+  })
+
+  it('no mezcla el env si el perfil vinculado está incompleto', () => {
+    expect(
+      resolveBankTransferDetails(
+        { bank_transfer_cbu: '123', bank_transfer_holder: 'Org Evento' },
+        { VITE_PAYMENT_TRANSFER_ALIAS: 'global.alias', VITE_PAYMENT_TRANSFER_CBU: '999' },
+        { config: { alias: 'perfil.alias' } },
+      ),
+    ).toEqual({ alias: 'perfil.alias', cbu: '', holder: '' })
+  })
+
   it('cae al env cuando el evento no define datos', () => {
     expect(
       resolveBankTransferDetails(null, {

@@ -41,6 +41,7 @@ export function liftersExportOptionsToQuery(options) {
     rowFilter: opts.rowFilter,
     highlightEmpty: opts.highlightEmpty ? '1' : '0',
     freezeHeader: opts.freezeHeader ? '1' : '0',
+    includeSummarySheet: opts.includeSummarySheet ? '1' : '0',
   }
   if (opts.columns?.length) {
     params.columns = opts.columns.join(',')
