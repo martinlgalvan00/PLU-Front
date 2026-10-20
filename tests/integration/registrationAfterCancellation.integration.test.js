@@ -93,7 +93,8 @@ describe('reinscripción después de una inscripción cancelada', () => {
 
   it('reactiva la inscripción que dejó el vencimiento y deja volver a elegir categoría', async () => {
     await createEvent()
-    const athleteId = await createTestAthlete(supabaseAdmin)
+    // 1984-03-01 cumple 42 años en la fecha del evento: Masters, y Open es upgrade válido.
+    const athleteId = await createTestAthlete(supabaseAdmin, { birth_date: '1984-03-01' })
     athleteIds.push(athleteId)
     const cookie = await athleteSessionCookie(supabaseAdmin, athleteId)
 
@@ -151,7 +152,8 @@ describe('reinscripción después de una inscripción cancelada', () => {
   })
 
   it('reemplaza la orden vencida que todavía figura pendiente', async () => {
-    const athleteId = await createTestAthlete(supabaseAdmin)
+    // 2006-04-12 tiene 20 años en la fecha del evento: Junior (Open también sería válido).
+    const athleteId = await createTestAthlete(supabaseAdmin, { birth_date: '2006-04-12' })
     athleteIds.push(athleteId)
     const cookie = await athleteSessionCookie(supabaseAdmin, athleteId)
 
