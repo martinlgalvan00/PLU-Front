@@ -235,7 +235,9 @@ describe('Inscripciones — rieles etiquetados', () => {
   it('mantiene el texto de los exports para poder ocultarlo solo por CSS', () => {
     renderRegistrations()
 
-    const csv = screen.getByRole('button', { name: 'Exportar inscripciones' })
+    const csv = screen.getByRole('button', {
+      name: 'Exportar todas las inscripciones (universo, no solo la pantalla)',
+    })
     expect(csv.querySelector('.export-btn__label')?.textContent).toBe('CSV')
   })
 
