@@ -8,11 +8,13 @@ import {
   assertEventBankTransferReady,
   bankTransferIssueError,
   checkEventBankTransferReady,
+  checkEventMercadoPagoReady,
   assertEventPaymentChannelEnabled,
   assertManualTicketDeadline,
   isEventChannelOpen,
   normalizePaymentChannelOverrides,
   resolveBankTransferDetails,
+  resolveEventMercadoPagoReadiness,
   normalizeCashPaymentInput,
   resolveCashPaymentDetails,
 } from '../server/modules/payments/eventPaymentProfile.js'
@@ -173,6 +175,29 @@ describe('resolveBankTransferDetails', () => {
     ).toEqual({ alias: 'perfil.alias', cbu: '555', holder: 'Club' })
   })
 
+  it('no mezcla el env si el evento ya tiene un dato propio', () => {
+    expect(
+      resolveBankTransferDetails(
+        { bank_transfer_alias: 'evento.alias' },
+        {
+          VITE_PAYMENT_TRANSFER_ALIAS: 'global.alias',
+          VITE_PAYMENT_TRANSFER_CBU: '999',
+          VITE_PAYMENT_TRANSFER_HOLDER: 'Global',
+        },
+      ),
+    ).toEqual({ alias: 'evento.alias', cbu: '', holder: '' })
+  })
+
+  it('no mezcla el env si el perfil vinculado está incompleto', () => {
+    expect(
+      resolveBankTransferDetails(
+        { bank_transfer_cbu: '123', bank_transfer_holder: 'Org Evento' },
+        { VITE_PAYMENT_TRANSFER_ALIAS: 'global.alias', VITE_PAYMENT_TRANSFER_CBU: '999' },
+        { config: { alias: 'perfil.alias' } },
+      ),
+    ).toEqual({ alias: 'perfil.alias', cbu: '', holder: '' })
+  })
+
   it('cae al env cuando el evento no define datos', () => {
     expect(
       resolveBankTransferDetails(null, {
@@ -268,6 +293,80 @@ describe('assertEventBankTransferReady', () => {
         env: { VITE_PAYMENT_TRANSFER_ALIAS: 'plu.alias' },
       }),
     ).not.toThrow()
+  })
+})
+
+describe('resolveEventMercadoPagoReadiness', () => {
+  it('sin perfil usa la cuenta general de la plataforma', () => {
+    expect(resolveEventMercadoPagoReadiness({})).toEqual({
+      destination: 'platform',
+      profileId: null,
+      profileName: null,
+      connectionStatus: null,
+      active: null,
+    })
+  })
+
+  it('marca missing si el perfil no existe o está archivado', () => {
+    expect(
+      resolveEventMercadoPagoReadiness({ mercadoPagoProfileId: 'mp-1', profile: null }),
+    ).toMatchObject({ destination: 'missing', profileId: 'mp-1', active: false })
+    expect(
+      resolveEventMercadoPagoReadiness({
+        mercadoPagoProfileId: 'mp-1',
+        profile: { id: 'mp-1', name: 'Vieja', active: false },
+      }),
+    ).toMatchObject({ destination: 'missing', profileName: 'Vieja' })
+  })
+
+  it('expone connectionStatus de un perfil OAuth activo', () => {
+    expect(
+      resolveEventMercadoPagoReadiness({
+        mercadoPagoProfileId: 'mp-1',
+        profile: {
+          id: 'mp-1',
+          name: 'Club',
+          active: true,
+          connectionStatus: 'needs_reconnect',
+          config: { connection: 'oauth', status: 'needs_reconnect' },
+        },
+      }),
+    ).toEqual({
+      destination: 'profile',
+      profileId: 'mp-1',
+      profileName: 'Club',
+      connectionStatus: 'needs_reconnect',
+      active: true,
+    })
+  })
+})
+
+describe('checkEventMercadoPagoReady', () => {
+  it('no exige nada si hereda plataforma', () => {
+    expect(checkEventMercadoPagoReady({ overrides: null })).toBeNull()
+  })
+
+  it('avisa si el override deja MP abierto con perfil faltante o a reconectar', () => {
+    expect(
+      checkEventMercadoPagoReady({
+        overrides: { mercado_pago: true },
+        mercadoPagoProfileId: 'mp-1',
+        profile: null,
+      }),
+    ).toMatchObject({ code: 'EVENT_MERCADO_PAGO_PROFILE_MISSING' })
+
+    expect(
+      checkEventMercadoPagoReady({
+        overrides: { mercado_pago: true },
+        mercadoPagoProfileId: 'mp-1',
+        profile: {
+          id: 'mp-1',
+          name: 'Club',
+          active: true,
+          connectionStatus: 'needs_reconnect',
+        },
+      }),
+    ).toMatchObject({ code: 'EVENT_MERCADO_PAGO_NEEDS_RECONNECT' })
   })
 })
 

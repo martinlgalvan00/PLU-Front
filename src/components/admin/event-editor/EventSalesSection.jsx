@@ -19,6 +19,9 @@ import { updatePricingField } from './draftPatches.js'
 import { CapacityPublicBreakdown, FormField } from './parts.jsx'
 
 export default function EventSalesSection({
+  // Cuenta por evento (organizador): no abre medios cerrados por PLU, no carga cuentas de
+  // cobro sueltas ni restablece los medios (perdería lo que PLU le abrió).
+  eventScoped = false,
   activePanelRef,
   t,
   essentials,
@@ -92,7 +95,8 @@ export default function EventSalesSection({
     cbu: selectedBankProfile?.config?.cbu ?? draft.bankTransfer?.cbu ?? '',
     holder: selectedBankProfile?.config?.holder ?? draft.bankTransfer?.holder ?? '',
   }
-  const cashPlacePreview = String(draft.cashPayment?.place ?? '').trim() || eventVenueLabel
+  const ownCashPlace = String(draft.cashPayment?.place ?? '').trim()
+  const cashPlacePreview = ownCashPlace || eventVenueLabel
 
   return (
     <section
@@ -455,6 +459,27 @@ export default function EventSalesSection({
             </header>
           )}
 
+          {/* Soft-launch: el meet se anuncia sin exigir medios de inscripción.
+              No es inscripción gratis (price = 0); es “todavía no cobramos”. */}
+          <label className="admin-event-form__toggle admin-event-form__sales-intent">
+            <input
+              type="checkbox"
+              checked={draft.salesIntent === 'announce'}
+              disabled={!canEdit}
+              onChange={(changeEvent) =>
+                patchDraft({
+                  ...draft,
+                  salesIntent: changeEvent.target.checked ? 'announce' : 'charge',
+                })
+              }
+            />
+            <span className="admin-event-form__toggle-ui" aria-hidden />
+            <span className="admin-event-form__toggle-copy">
+              <strong>{t('admin.eventEditor.salesIntentAnnounceTitle')}</strong>
+              <small>{t('admin.eventEditor.salesIntentAnnounceHint')}</small>
+            </span>
+          </label>
+
           {/* La plataforma es el valor por defecto y cada celda del evento
               puede cerrar o abrir. Sin override se muestra lo que hereda, y
               tocar una celda que difiere de Finanzas crea el override solo. */}
@@ -464,13 +489,14 @@ export default function EventSalesSection({
             platform={platformChannels.platform}
             platformStatus={platformChannels.status}
             canEdit={canEdit}
+            restrictOpen={eventScoped}
             ticketError={err('paymentChannelOverrides.ticket')}
           />
 
           {/* Sin override el evento sigue lo que Finanzas abra o cierre
               mañana. Con override queda fijo en lo que difiere, así que
               conviene poder volver. */}
-          {canEdit && draft.paymentChannelOverrides != null ? (
+          {canEdit && !eventScoped && draft.paymentChannelOverrides != null ? (
             <button
               className="button button--ghost admin-event-form__channel-reset"
               type="button"
@@ -480,6 +506,17 @@ export default function EventSalesSection({
               {t('admin.eventEditor.paymentChannelReset')}
             </button>
           ) : null}
+
+          {channelOpenHere('bank_transfer') ? null : (
+            <p className="admin-event-form__field-hint" data-channel="bank_transfer-closed">
+              {t('admin.eventEditor.bankTransferClosedHint')}
+            </p>
+          )}
+          {channelOpenHere('cash_pitbull') ? null : (
+            <p className="admin-event-form__field-hint" data-channel="cash_pitbull-closed">
+              {t('admin.eventEditor.cashPaymentClosedHint')}
+            </p>
+          )}
 
           {channelOpenHere('mercado_pago') ? (
             <div className="admin-event-form__bank-transfer">
@@ -692,7 +729,9 @@ export default function EventSalesSection({
                   onChange={(changeEvent) => applyBankProfile(changeEvent.target.value || null)}
                   disabled={!canEdit || bankProfilesLoading}
                 >
-                  <option value="">{t('admin.eventEditor.bankTransferProfileNone')}</option>
+                  {!eventScoped || !draft.bankTransferProfileId ? (
+                    <option value="">{t('admin.eventEditor.bankTransferProfileNone')}</option>
+                  ) : null}
                   {bankProfiles.map((profile) => (
                     <option key={profile.id} value={profile.id}>
                       {profile.name}
@@ -726,7 +765,7 @@ export default function EventSalesSection({
                       name: selectedBankProfile?.name ?? bankSummary.alias,
                     })}
                   </p>
-                  {canEdit ? (
+                  {canEdit && !eventScoped ? (
                     <button
                       className="button button--ghost admin-event-form__channel-reset"
                       type="button"
@@ -738,7 +777,8 @@ export default function EventSalesSection({
                 </div>
               ) : (
                 <>
-                  {!draft.bankTransferProfileId &&
+                  {!eventScoped &&
+                  !draft.bankTransferProfileId &&
                   (draft.bankTransfer?.alias ||
                     draft.bankTransfer?.cbu ||
                     draft.bankTransfer?.holder) ? (
@@ -768,7 +808,7 @@ export default function EventSalesSection({
                             },
                           })
                         }
-                        disabled={!canEdit}
+                        disabled={!canEdit || eventScoped}
                         placeholder={t('admin.eventEditor.bankTransferAliasPlaceholder')}
                       />
                     </FormField>
@@ -789,7 +829,7 @@ export default function EventSalesSection({
                             },
                           })
                         }
-                        disabled={!canEdit}
+                        disabled={!canEdit || eventScoped}
                       />
                     </FormField>
                     <FormField
@@ -813,7 +853,7 @@ export default function EventSalesSection({
                             },
                           })
                         }
-                        disabled={!canEdit}
+                        disabled={!canEdit || eventScoped}
                       />
                     </FormField>
                   </div>
@@ -909,12 +949,21 @@ export default function EventSalesSection({
               {cashPlacePreview ? (
                 <div className="admin-event-form__reference-note" role="note">
                   <strong>{t('admin.eventEditor.cashPaymentPreviewLabel')}</strong>
+                  <p>
+                    {ownCashPlace
+                      ? t('admin.eventEditor.cashPaymentPreviewOwn')
+                      : t('admin.eventEditor.cashPaymentPreviewVenue')}
+                  </p>
                   <p>{cashPlacePreview}</p>
                   {String(draft.cashPayment?.notes ?? '').trim() ? (
                     <p>{String(draft.cashPayment.notes).trim()}</p>
                   ) : null}
                 </div>
-              ) : null}
+              ) : (
+                <p className="admin-event-form__notice" role="status">
+                  {t('admin.eventEditor.cashPaymentPreviewMissing')}
+                </p>
+              )}
             </div>
           ) : null}
         </div>

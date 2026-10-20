@@ -4817,6 +4817,13 @@
   padding-left: 12px;
 }
 
+.register-competition-division-hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: -6px 0 0;
+}
+
 .register-page--competition
   .register-competition-fields
   :is(input:disabled, .field__choice:has(input:disabled)) {

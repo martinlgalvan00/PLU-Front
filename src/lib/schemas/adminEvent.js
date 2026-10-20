@@ -362,6 +362,44 @@ export const adminEventDraftSchema = z
         inscriptionNote: z.string().trim().max(160, 'inscriptionNoteMax').optional(),
       })
       .optional(),
+    landing: z
+      .object({
+        templateId: z.enum(['meet', 'editorial']).optional(),
+        themeId: z
+          .enum(['plu-default', 'night-steel', 'ember', 'clean-light'])
+          .optional(),
+        slots: z
+          .object({
+            heroTitle: z.string().trim().max(120, 'landingHeroTitleMax').optional(),
+            heroLead: z.string().trim().max(240, 'landingHeroLeadMax').optional(),
+            ctaLabel: z.string().trim().max(40, 'landingCtaLabelMax').optional(),
+            inscriptionMark: z.string().trim().max(40, 'landingInscriptionMarkMax').optional(),
+            inscriptionNote: z.string().trim().max(160, 'landingInscriptionNoteMax').optional(),
+            experienceTitle: z.string().trim().max(120, 'landingExperienceTitleMax').optional(),
+            experienceBody: z.string().trim().max(800, 'landingExperienceBodyMax').optional(),
+            categoriesTitle: z.string().trim().max(120, 'landingCategoriesTitleMax').optional(),
+            categoriesBody: z.string().trim().max(800, 'landingCategoriesBodyMax').optional(),
+            locationTitle: z.string().trim().max(120, 'landingLocationTitleMax').optional(),
+            locationBody: z.string().trim().max(800, 'landingLocationBodyMax').optional(),
+            heroImagePath: z
+              .string()
+              .trim()
+              .max(200, 'landingHeroImagePathMax')
+              .regex(/^[A-Za-z0-9._()+/-]*$/, 'landingHeroImagePathInvalid')
+              .refine((value) => !value.includes('..'), 'landingHeroImagePathInvalid')
+              .optional(),
+            metaTitle: z.string().trim().max(70, 'landingMetaTitleMax').optional(),
+            metaDescription: z.string().trim().max(160, 'landingMetaDescriptionMax').optional(),
+            faq1Question: z.string().trim().max(120, 'landingFaqQuestionMax').optional(),
+            faq1Answer: z.string().trim().max(400, 'landingFaqAnswerMax').optional(),
+            faq2Question: z.string().trim().max(120, 'landingFaqQuestionMax').optional(),
+            faq2Answer: z.string().trim().max(400, 'landingFaqAnswerMax').optional(),
+            faq3Question: z.string().trim().max(120, 'landingFaqQuestionMax').optional(),
+            faq3Answer: z.string().trim().max(400, 'landingFaqAnswerMax').optional(),
+          })
+          .optional(),
+      })
+      .optional(),
     // Por concepto (`{registration, ticket}`) o la forma plana vieja, que vale
     // para los dos. Ambas `strict()`: si no, un objeto por concepto entraría
     // por la rama plana y zod lo vaciaría al descartar claves desconocidas.
@@ -384,6 +422,7 @@ export const adminEventDraftSchema = z
       })
       .optional(),
     mercadoPagoProfileId: z.string().uuid('mpProfileIdInvalid').nullable().optional(),
+    salesIntent: z.enum(['charge', 'announce']).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.startsAt && data.endsAt && data.startsAt > data.endsAt) {
@@ -601,6 +640,7 @@ export function validateAdminEventDraft(draft, t) {
     weighInWindows: draft?.weighInWindows ?? [],
     publicSurface: draft?.publicSurface,
     publicCopy: draft?.publicCopy,
+    landing: draft?.landing,
     paymentChannelOverrides: draft?.paymentChannelOverrides ?? null,
   })
 

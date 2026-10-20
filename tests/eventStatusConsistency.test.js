@@ -117,7 +117,7 @@ describe('cobros de inscripción pausados', () => {
   })
 })
 
-describe('entradas: cortan por el estado guardado, no por la ventana de atletas', () => {
+describe('entradas: independientes de la inscripción; solo finalizado las corta', () => {
   it('con la ventana de inscripción vencida las entradas siguen a la venta', () => {
     const raw = eventWith('inscripcion_abierta', WINDOWS.cierreVencido)
     const mapped = withPublicEventStatus(raw, NOW)
@@ -125,8 +125,8 @@ describe('entradas: cortan por el estado guardado, no por la ventana de atletas'
     expect(isTicketSalesEnabled(mapped)).toBe(true)
   })
 
-  it('con el estado guardado cerrado o finalizado no se venden', () => {
-    expect(isTicketSalesEnabled(withPublicEventStatus(eventWith('cerrado', {}), NOW))).toBe(false)
+  it('cerrado (inscripción) sigue vendiendo; finalizado no', () => {
+    expect(isTicketSalesEnabled(withPublicEventStatus(eventWith('cerrado', {}), NOW))).toBe(true)
     expect(isTicketSalesEnabled(withPublicEventStatus(eventWith('finalizado', {}), NOW))).toBe(false)
   })
 })

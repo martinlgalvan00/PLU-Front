@@ -17,6 +17,7 @@ import {
   manualTicketChannelsOpen,
   normalizeEventPaymentChannelOverrides,
 } from '../../../src/lib/eventPaymentChannels.js'
+import { mercadoPagoConnectionStatus } from './mercadoPagoOAuth.js'
 
 const CHANNEL_LABEL = {
   mercado_pago: 'Mercado Pago',
@@ -172,34 +173,40 @@ export function normalizeBankTransferInput(raw) {
   }
 }
 
+function pickBankFields(source) {
+  const alias = trimText(source?.alias)
+  const cbu = trimText(source?.cbu)
+  const holder = trimText(source?.holder)
+  if (!alias && !cbu && !holder) return null
+  return { alias, cbu, holder }
+}
+
 /**
  * Alias/CBU/titular resueltos para mostrar en checkout.
- * Prioridad: perfil vinculado > columnas del evento (Fase A) > env global.
+ * Prioridad: perfil vinculado > columnas del evento > env global.
+ * Si el perfil o el evento ya tienen algún dato, no se completa el resto con
+ * el env: un alias del meet no puede ir pegado al CBU de la plataforma.
  */
 export function resolveBankTransferDetails(eventRow = null, env = process.env, profile = null) {
-  const globalAlias = trimText(env.VITE_PAYMENT_TRANSFER_ALIAS ?? env.PAYMENT_TRANSFER_ALIAS)
-  const globalCbu = trimText(env.VITE_PAYMENT_TRANSFER_CBU ?? env.PAYMENT_TRANSFER_CBU)
-  const globalHolder = trimText(env.VITE_PAYMENT_TRANSFER_HOLDER ?? env.PAYMENT_TRANSFER_HOLDER)
-
   const profileConfig =
     profile?.config ??
     eventRow?.bankTransferProfile?.config ??
     eventRow?.payment_profile?.config ??
     null
+  const fromProfile = pickBankFields(profileConfig)
+  if (fromProfile) return fromProfile
+
+  const fromEvent = pickBankFields({
+    alias: eventRow?.bank_transfer_alias ?? eventRow?.bankTransferAlias,
+    cbu: eventRow?.bank_transfer_cbu ?? eventRow?.bankTransferCbu,
+    holder: eventRow?.bank_transfer_holder ?? eventRow?.bankTransferHolder,
+  })
+  if (fromEvent) return fromEvent
 
   return {
-    alias:
-      trimText(profileConfig?.alias) ||
-      trimText(eventRow?.bank_transfer_alias ?? eventRow?.bankTransferAlias) ||
-      globalAlias,
-    cbu:
-      trimText(profileConfig?.cbu) ||
-      trimText(eventRow?.bank_transfer_cbu ?? eventRow?.bankTransferCbu) ||
-      globalCbu,
-    holder:
-      trimText(profileConfig?.holder) ||
-      trimText(eventRow?.bank_transfer_holder ?? eventRow?.bankTransferHolder) ||
-      globalHolder,
+    alias: trimText(env.VITE_PAYMENT_TRANSFER_ALIAS ?? env.PAYMENT_TRANSFER_ALIAS),
+    cbu: trimText(env.VITE_PAYMENT_TRANSFER_CBU ?? env.PAYMENT_TRANSFER_CBU),
+    holder: trimText(env.VITE_PAYMENT_TRANSFER_HOLDER ?? env.PAYMENT_TRANSFER_HOLDER),
   }
 }
 
@@ -299,6 +306,91 @@ export function assertEventBankTransferReady({
     env,
   })
   if (issue) throw bankTransferIssueError(issue)
+}
+
+/**
+ * Destino de cobro Mercado Pago del evento (diagnóstico, no bloquea guardar).
+ *
+ * - `platform`: sin perfil propio → cuenta global `MERCADO_PAGO_*`.
+ * - `profile`: perfil activo (OAuth o manual) con su `connectionStatus`.
+ * - `missing`: id apuntando a un perfil inexistente o archivado.
+ *
+ * @param {{ mercadoPagoProfileId?: string|null, profile?: object|null }} args
+ *   `profile` = fila mapeada si se encontró; `null` si se buscó y no existe;
+ *   omitir / `undefined` solo cuando no hay `mercadoPagoProfileId`.
+ */
+export function resolveEventMercadoPagoReadiness({
+  mercadoPagoProfileId = null,
+  profile = undefined,
+} = {}) {
+  const profileId = mercadoPagoProfileId ?? null
+  if (!profileId) {
+    return {
+      destination: 'platform',
+      profileId: null,
+      profileName: null,
+      connectionStatus: null,
+      active: null,
+    }
+  }
+
+  if (profile == null || profile.active === false) {
+    return {
+      destination: 'missing',
+      profileId,
+      profileName: profile?.name ?? null,
+      connectionStatus: null,
+      active: false,
+    }
+  }
+
+  const connectionStatus =
+    profile.connectionStatus ?? mercadoPagoConnectionStatus(profile.config ?? {})
+
+  return {
+    destination: 'profile',
+    profileId,
+    profileName: profile.name ?? null,
+    connectionStatus,
+    active: true,
+  }
+}
+
+/**
+ * Chequeo espejo de transferencia: si MP está abierto por override del evento
+ * y el perfil vinculado falta o necesita reconectar, devuelve el issue.
+ * Sin override (hereda plataforma) o con destino sano → `null`.
+ * No lanza: la ruta decide según publicado / oculto.
+ */
+export function checkEventMercadoPagoReady({
+  overrides,
+  mercadoPagoProfileId = null,
+  profile = undefined,
+} = {}) {
+  const normalized = normalizePaymentChannelOverrides(overrides)
+  if (!normalized) return null
+  if (!isEventChannelOpenAnywhere(normalized, 'mercado_pago')) return null
+
+  const readiness = resolveEventMercadoPagoReadiness({ mercadoPagoProfileId, profile })
+  if (readiness.destination === 'missing') {
+    return {
+      code: 'EVENT_MERCADO_PAGO_PROFILE_MISSING',
+      message:
+        'Mercado Pago está abierto para este evento pero la cuenta vinculada no existe o está archivada. Elegí otra cuenta en Ventas → Cobro o usá la cuenta general de PLU.',
+      field: 'mercadoPagoProfileId',
+      readiness,
+    }
+  }
+  if (readiness.connectionStatus === 'needs_reconnect') {
+    return {
+      code: 'EVENT_MERCADO_PAGO_NEEDS_RECONNECT',
+      message:
+        'Mercado Pago está abierto para este evento pero la cuenta vinculada necesita reconectarse antes de poder cobrar.',
+      field: 'mercadoPagoProfileId',
+      readiness,
+    }
+  }
+  return null
 }
 
 /**

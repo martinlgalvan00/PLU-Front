@@ -543,9 +543,21 @@
 .roles-rail__name {
   align-items: center;
   display: inline-flex;
+  flex-wrap: wrap;
   font-size: 14px;
   font-weight: 600;
   gap: 6px;
+}
+
+.roles-rail__scope {
+  background: color-mix(in srgb, var(--admin-brand) 14%, transparent);
+  border-radius: 999px;
+  color: var(--admin-brand);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  text-transform: uppercase;
 }
 
 .roles-rail__meta {
@@ -557,6 +569,13 @@
   display: grid;
   gap: var(--space-lg);
   min-width: 0;
+}
+
+.roles-editor__scope-hint {
+  color: var(--admin-brand);
+  font-size: 12.5px;
+  font-weight: 600;
+  margin: 6px 0 0;
 }
 
 .roles-editor__head {
@@ -717,6 +736,86 @@
   display: grid;
   padding: 4px;
   place-items: center;
+}
+
+.roles-packages {
+  border: 1px solid var(--admin-hairline);
+  border-radius: var(--radius-md, 12px);
+  display: grid;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 14px 16px;
+}
+
+.roles-packages__head {
+  display: grid;
+  gap: 2px;
+}
+
+.roles-packages__head strong {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.roles-packages__head span {
+  color: var(--admin-ink-muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.roles-packages__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.roles-packages__item {
+  align-items: center;
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 12px 0 10px;
+}
+
+.roles-packages__item.is-on {
+  background: color-mix(in srgb, var(--admin-brand) 14%, var(--admin-surface));
+  border-color: color-mix(in srgb, var(--admin-brand) 40%, var(--admin-hairline));
+}
+
+.roles-packages__item.is-partial {
+  border-style: dashed;
+}
+
+.roles-packages__item.is-locked {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.roles-packages__item input {
+  accent-color: var(--admin-brand);
+  height: 15px;
+  margin: 0;
+  width: 15px;
+}
+
+.roles-packages__label {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.roles-packages__partial {
+  color: var(--admin-ink-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .roles-editor__presets {

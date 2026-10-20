@@ -20,7 +20,7 @@ import { ATHLETE_FILTER_STATUSES, PAYMENT_METHODS } from '../../lib/constants.js
 import { money } from '../../lib/format.js'
 import { actorLabel, formatStateDateTime } from '../../lib/stateProvenance.js'
 import { canApproveManualOrder } from '../../services/paymentValidationService.js'
-import { isProfileComplete } from '../../lib/athleteProfile.js'
+import { isProfileNoticeComplete, getMissingProfileNoticeFields } from '../../lib/athleteProfile.js'
 import { PROFILE_NOTICE_MESSAGE_MAX } from '../../../shared/profileNotice.js'
 import {
   findAthleteStateDivergences,
@@ -121,7 +121,11 @@ export default function AthleteDetailSection({
   // La credencial vigente es la de la afiliación activa; si no hay ninguna, se
   // muestra la última emitida para poder cotejar un QR viejo.
   const credentialMembership = activeMembership ?? memberships[0] ?? null
-  const profileStatus = isProfileComplete(athlete)
+  const profileMissing = getMissingProfileNoticeFields(athlete)
+  const profileStatus = {
+    complete: isProfileNoticeComplete(athlete),
+    missing: profileMissing,
+  }
   const missingFieldLabels = profileStatus.missing
     .map((field) => {
       const keys = {

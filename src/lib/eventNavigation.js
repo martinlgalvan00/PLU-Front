@@ -1,3 +1,7 @@
+import { isTicketSalesEnabled } from './eventPricing.js'
+import { getPublicEventStatus } from './publicRegistrationPhase.js'
+import { isRegistrationOpen } from './status.js'
+
 function eventCreatedRank(event) {
   if (event?.navPinned) return Number.MAX_SAFE_INTEGER
   if (Number.isFinite(Number(event?.createdOrder))) return Number(event.createdOrder)
@@ -118,10 +122,46 @@ export function getFeaturedEvent(events = []) {
 }
 
 /**
- * Pitbull conserva su pagina editorial propia. Cualquier otro evento
- * destacado abre la ficha generica por slug; atar siempre el destacado a la
- * vista Pitbull hacia que un evento nuevo marcado desde el panel terminara en
- * la competencia equivocada.
+ * Hasta dos eventos vigentes para Competencia (navbar, drawer, footer).
+ * Slot 1: destacado si sigue en el catálogo próximo; si no, el próximo por fecha.
+ * Slot 2: Pitbull si es otro meet publicado vigente; si no, el siguiente upcoming.
+ * Un solo `featured` de staff; el segundo slot es derivado. Stubs y ocultos
+ * no entran (mismo filtro que el catálogo público).
+ */
+export function getCompetitionNavEvents(events = [], now = new Date()) {
+  const eligible = getPublicCatalogEvents(events).filter((event) => event.status !== 'finalizado')
+  if (eligible.length === 0) return []
+
+  const upcoming = getUpcomingEventsByDate(eligible, now)
+  const featured = eligible.find((event) => event.featured)
+  const pitbull = eligible.find(isPitbullClassicEvent)
+
+  const first =
+    featured && upcoming.some((event) => event.slug === featured.slug)
+      ? featured
+      : (upcoming[0] ?? null)
+  if (!first) return []
+
+  const remaining = upcoming.filter((event) => event.slug !== first.slug)
+  const pitbullAsSecond =
+    pitbull &&
+    pitbull.slug !== first.slug &&
+    remaining.some((event) => event.slug === pitbull.slug)
+      ? pitbull
+      : null
+  const second = pitbullAsSecond ?? remaining[0] ?? null
+
+  return second ? [first, second] : [first]
+}
+
+export function getCompetitionNavEventKey(event) {
+  return event?.slug ? `event:${event.slug}` : null
+}
+
+/**
+ * Slug canónico del meet insignia. La landing editorial ya no se gatea por
+ * slug: usa `landing.templateId === 'editorial'`. Este helper queda para
+ * seeds, analytics y el alias `/pitbull`.
  */
 export const PITBULL_CLASSIC_SLUG = 'pitbull-classic-2026'
 
@@ -138,10 +178,90 @@ export function getPitbullClassicEvent(events = []) {
   return events.find(isPitbullClassicEvent) ?? null
 }
 
+/**
+ * Destino público de un evento (destacado u otro). Siempre la ficha por slug;
+ * el renderer elige plantilla `meet` vs `editorial`. `/pitbull` queda como
+ * alias deprecado que App reescribe a este destino.
+ */
 export function getFeaturedEventDestination(event) {
   if (!event?.slug) return { view: 'events', options: {} }
-  if (isPitbullClassicEvent(event)) return { view: 'pitbull', options: {} }
   return { view: 'events', options: { eventSlug: event.slug } }
+}
+
+function isBarbellSubmissionEvent(event) {
+  return String(event?.slug ?? '')
+    .toLowerCase()
+    .startsWith('barbell-submission')
+}
+
+/**
+ * Atajos operativos del hero de Home: entradas (Pitbull u otro con tickets) e
+ * inscripción (abierta o teaser "próximamente", prioriza Barbell Submission).
+ * No promociona meets cerrados/finalizados como inscripción.
+ *
+ * @param {object[]} [events]
+ * @param {{
+ *   now?: Date,
+ *   registrationEnabled?: boolean,
+ *   ticketSalesEnabled?: boolean,
+ * }} [options]
+ * @returns {{ kind: 'tickets' | 'registration' | 'registration_soon', event: object }[]}
+ */
+export function getSeasonHomeActions(
+  events = [],
+  { now = new Date(), registrationEnabled = true, ticketSalesEnabled = true } = {},
+) {
+  const catalog = getPublicCatalogEvents(events)
+  const actions = []
+
+  const ticketEvent =
+    [getPitbullClassicEvent(catalog), ...catalog].find(
+      (event) => event && ticketSalesEnabled && isTicketSalesEnabled(event),
+    ) ?? null
+  if (ticketEvent) {
+    actions.push({ kind: 'tickets', event: ticketEvent })
+  }
+
+  const withPublicStatus = (event) => ({
+    event,
+    status: getPublicEventStatus(event, now, { registrationEnabled }),
+  })
+
+  const openForRegistration = catalog
+    .map(withPublicStatus)
+    .filter(({ status }) => isRegistrationOpen(status))
+  const openRegistration =
+    openForRegistration.find(({ event }) => isBarbellSubmissionEvent(event)) ??
+    openForRegistration.find(({ event }) => event?.slug !== ticketEvent?.slug) ??
+    openForRegistration[0] ??
+    null
+
+  if (openRegistration) {
+    actions.push({ kind: 'registration', event: openRegistration.event })
+    return actions
+  }
+
+  // Teaser: próximo meet en "próximamente" (Barbell / Virtus), no cerrado ni finalizado.
+  const upcomingTeasers = catalog
+    .map(withPublicStatus)
+    .filter(
+      ({ event, status }) =>
+        status === 'proximamente' &&
+        event?.slug !== ticketEvent?.slug &&
+        event?.status !== 'finalizado',
+    )
+    .sort((a, b) => eventDateTime(a.event) - eventDateTime(b.event))
+
+  const soonRegistration =
+    upcomingTeasers.find(({ event }) => isBarbellSubmissionEvent(event)) ??
+    upcomingTeasers[0] ??
+    null
+
+  if (soonRegistration) {
+    actions.push({ kind: 'registration_soon', event: soonRegistration.event })
+  }
+
+  return actions
 }
 
 export function getDaysUntilEvent(event, now = new Date()) {

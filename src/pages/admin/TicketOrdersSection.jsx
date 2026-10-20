@@ -80,6 +80,8 @@ function channelLabel(order, t) {
 export default function TicketOrdersSection({
   canEdit,
   initialQuery = '',
+  /** Filtro duro por slug de evento (desde workspace / deep link). */
+  eventSlugFilter = '',
   pendingTicketOrders = [],
   loadError: pendingError = null,
   events = [],
@@ -92,6 +94,7 @@ export default function TicketOrdersSection({
   const [orders, setOrders] = useState(pendingTicketOrders)
   const [status, setStatus] = useState('pending')
   const [channel, setChannel] = useState('all')
+  const [eventSlug, setEventSlug] = useState(eventSlugFilter || 'all')
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(pendingError)
   const [serverCounts, setServerCounts] = useState(null)
@@ -110,8 +113,12 @@ export default function TicketOrdersSection({
     setQuery(initialQuery)
   }, [initialQuery])
 
+  useEffect(() => {
+    setEventSlug(eventSlugFilter || 'all')
+  }, [eventSlugFilter])
+
   const load = useCallback(
-    async (statusFilterKey, channelFilterKey = 'all') => {
+    async (statusFilterKey, channelFilterKey = 'all', eventSlugKey = 'all') => {
       const generation = ++loadGenerationRef.current
       if (!loadedRef.current) setLoading(true)
       setLoadError(null)
@@ -120,6 +127,8 @@ export default function TicketOrdersSection({
           limit: 200,
           statuses: DB_STATUSES_BY_FILTER[statusFilterKey] ?? undefined,
           channel: channelFilterKey === 'all' ? undefined : channelFilterKey,
+          eventSlug:
+            eventSlugKey && eventSlugKey !== 'all' ? eventSlugKey : undefined,
           sort: statusFilterKey === 'pending' ? 'aging' : 'recent',
           withCounts: true,
         })
@@ -138,8 +147,8 @@ export default function TicketOrdersSection({
   )
 
   useEffect(() => {
-    void load(status, channel)
-  }, [channel, load, status])
+    void load(status, channel, eventSlug)
+  }, [channel, eventSlug, load, status])
 
   useEffect(() => {
     if (statusTouchedRef.current || !serverCounts) return
@@ -154,6 +163,8 @@ export default function TicketOrdersSection({
   statusRef.current = status
   const channelRef = useRef(channel)
   channelRef.current = channel
+  const eventSlugRef = useRef(eventSlug)
+  eventSlugRef.current = eventSlug
 
   function handleStatusChange(next) {
     statusTouchedRef.current = true
@@ -162,7 +173,7 @@ export default function TicketOrdersSection({
 
   const refreshList = useCallback(async () => {
     await Promise.all([
-      load(statusRef.current, channelRef.current),
+      load(statusRef.current, channelRef.current, eventSlugRef.current),
       onRefresh?.() ?? Promise.resolve(),
     ])
   }, [load, onRefresh])
@@ -179,6 +190,25 @@ export default function TicketOrdersSection({
     }
   }, [orders, serverCounts])
 
+  const eventFilterOptions = useMemo(() => {
+    const fromCatalog = (events ?? [])
+      .filter((event) => event?.slug)
+      .map((event) => [event.slug, event.title || event.slug])
+    if (fromCatalog.length > 0) {
+      return [['all', t('admin.filters.allEvents')], ...fromCatalog]
+    }
+    const seen = new Map()
+    for (const order of orders) {
+      const slug = String(order.eventSlug ?? '').trim()
+      if (!slug || seen.has(slug)) continue
+      seen.set(slug, order.eventTitle || slug)
+    }
+    return [
+      ['all', t('admin.filters.allEvents')],
+      ...[...seen.entries()].map(([slug, title]) => [slug, title]),
+    ]
+  }, [events, orders, t])
+
   const allRows = useMemo(
     () =>
       orders.map((order) => {
@@ -187,6 +217,7 @@ export default function TicketOrdersSection({
           id: order.orderId,
           reference: order.reference,
           event: order.eventTitle,
+          eventSlug: order.eventSlug ?? null,
           attendees,
           buyerEmail: order.buyerEmail,
           ticketCount: order.ticketCount,
@@ -210,14 +241,22 @@ export default function TicketOrdersSection({
   )
 
   const rows = useMemo(() => {
+    const scoped =
+      !eventSlug || eventSlug === 'all'
+        ? allRows
+        : allRows.filter(
+            (row) =>
+              row.eventSlug === eventSlug ||
+              (!row.eventSlug && row.event && row.event === eventSlug),
+          )
     const normalized = query.trim().toLowerCase()
-    if (!normalized) return allRows
-    return allRows.filter((row) =>
+    if (!normalized) return scoped
+    return scoped.filter((row) =>
       [row.reference, row.event, row.attendees, row.buyerEmail].some((field) =>
         field?.toLowerCase().includes(normalized),
       ),
     )
-  }, [allRows, query])
+  }, [allRows, eventSlug, query])
 
   async function handleApprove(orderId) {
     if (!canEdit) return
@@ -298,7 +337,10 @@ export default function TicketOrdersSection({
   }
 
   const narrowingFilters =
-    channel !== 'all' || Boolean(query.trim()) || (status !== 'pending' && status !== 'all')
+    channel !== 'all' ||
+    (eventSlug !== 'all' && Boolean(eventSlug)) ||
+    Boolean(query.trim()) ||
+    (status !== 'pending' && status !== 'all')
   const openingCatalog =
     !statusTouchedRef.current &&
     status === 'pending' &&
@@ -331,6 +373,7 @@ export default function TicketOrdersSection({
             statusTouchedRef.current = true
             setStatus('all')
             setChannel('all')
+            setEventSlug('all')
           }}
         />
       )
@@ -475,6 +518,16 @@ export default function TicketOrdersSection({
             defaultValue="all"
             options={CHANNEL_FILTERS.map(([value, key]) => [value, t(key)])}
           />
+          {eventFilterOptions.length > 1 ? (
+            <AdminFilterSelect
+              id="ticket-orders-event"
+              ariaLabel={t('admin.filters.event')}
+              value={eventSlug}
+              onChange={setEventSlug}
+              defaultValue="all"
+              options={eventFilterOptions}
+            />
+          ) : null}
         </div>
       </div>
 
@@ -482,7 +535,11 @@ export default function TicketOrdersSection({
       {showInitialSkeleton ? (
         <TableSkeleton rows={6} columns={7} label={t('admin.ticketOrders.loading')} />
       ) : loadError ? (
-        <ErrorState message={loadError} onRetry={() => void load(status, channel)} retryLabel={t('common.retry')} />
+        <ErrorState
+          message={loadError}
+          onRetry={() => void load(status, channel, eventSlug)}
+          retryLabel={t('common.retry')}
+        />
       ) : queueEmpty ? (
         emptyState()
       ) : (

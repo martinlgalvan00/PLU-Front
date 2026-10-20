@@ -29,7 +29,8 @@ import {
   clearAdminEventRoute,
   shouldClearAdminEventWorkspace,
 } from '../lib/adminEventRoute.js'
-import { hasAnyPermission, hasPermission } from '../lib/permissions.js'
+import { hasAnyPermission, hasPermission, isEventScopedSession } from '../lib/permissions.js'
+import { canManageEventTeam } from '../lib/roles.js'
 import { findUnreconciledApprovedPayments } from '../services/paymentReconciliationService.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
@@ -150,6 +151,8 @@ export default function AdminPage({
   onCreateRole,
   onExportAdmin,
   onExportPluUsa,
+  onExportLifters,
+  onFetchLiftersReadiness,
   onSaveEvent,
   onScheduleAssigned,
   onSetEventState,
@@ -158,6 +161,7 @@ export default function AdminPage({
   onUpdateUserRole,
   onBulkUpdateUserRole,
   onUpdateUserStatus,
+  onSetUserEventAccess,
   onUpdateRolePermissions,
   onUpdateRoleStatus,
   permissionCatalog,
@@ -328,7 +332,7 @@ export default function AdminPage({
     if (!allowedSections.includes('registrations')) return
     onSetFilters((current) => ({
       ...current,
-      event: event.title,
+      event: event.slug || event.title,
       query: '',
       status: 'all',
     }))
@@ -340,7 +344,7 @@ export default function AdminPage({
   function handleManageEventPayments(event) {
     if (!allowedSections.includes('payments')) return
     leaveEventWorkspaceIfNeeded('payments')
-    setPaymentEventScope(event.title)
+    setPaymentEventScope(event.slug || event.title || '')
     setSection('payments')
   }
 
@@ -493,6 +497,9 @@ export default function AdminPage({
               onSetPublicVisibility={onSetRegistrationPublicVisibility}
               onExportAdmin={onExportAdmin}
               onExportPluUsa={onExportPluUsa}
+              onExportLifters={onExportLifters}
+              onFetchLiftersReadiness={onFetchLiftersReadiness}
+              onNotifyAthletesIncomplete={onNotifyAthletesIncomplete}
               onGoToEvents={() => setSection('events')}
               onRefreshAthleteData={onRefreshAthleteData}
               onScheduleAssigned={onScheduleAssigned}
@@ -525,10 +532,17 @@ export default function AdminPage({
           loadError={adminEventsError}
           canEdit={hasPermission(authorization, 'admin.events.write')}
           canManageUsers={canManageUsers}
+          canManageEventTeam={canManageEventTeam(authorization)}
+          eventScoped={isEventScopedSession(authorization)}
           canViewScanReport={canViewScanReport}
           canValidatePayments={hasPermission(authorization, 'admin.payments.approve')}
+          canSetRegistrationStatus={hasPermission(authorization, 'admin.registrations.write')}
+          users={users}
+          onCreateUser={onCreateUser}
+          onSetEventAccess={onSetUserEventAccess}
           onApprovePayment={onApprovePayment}
           onApproveTicketOrder={onApproveTicketPurchase}
+          onSetRegistrationStatus={onSetRegistrationStatus}
           onCreateSecurityUser={onCreateSecurityUser}
           onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
           onCreateSecurityAccessLink={onCreateSecurityAccessLink}
@@ -561,11 +575,15 @@ export default function AdminPage({
           onFetchDeleteImpact={onFetchEventDeleteImpact}
           onSetEventRegistrationPrice={onSetEventRegistrationPrice}
           onClearEventPriceSchedule={onClearEventPriceSchedule}
-          onSetEventState={onSetEventState}
+          // Publicar, ocultar y abrir/cerrar inscripciones no son del organizador: sin esta
+          // acción desaparecen la barra de estado, el control de Datos y la selección en lote.
+          onSetEventState={isEventScopedSession(authorization) ? undefined : onSetEventState}
           onSetEventLogo={onSetEventLogo}
           onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
+          gatePendingIds={gatePendingIds}
           payments={payments}
           pendingTicketOrders={pendingTicketOrders}
+          registrations={registrations}
           tickets={tickets}
         />
       )
@@ -594,6 +612,7 @@ export default function AdminPage({
           onResetPassword={onResetStaffPassword}
           onUpdateRole={onUpdateUserRole}
           onUpdateStatus={onUpdateUserStatus}
+          onSetEventAccess={onSetUserEventAccess}
           permissionCatalog={permissionCatalog}
           users={users}
         />

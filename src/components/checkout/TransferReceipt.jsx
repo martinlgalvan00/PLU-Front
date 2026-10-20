@@ -64,8 +64,9 @@ function CopyableValue({ value, copyLabel, copiedLabel, copyAria, meta }) {
  * No confirma nada: el comprobante lo valida Finanzas y la acreditación llega
  * por el mismo camino que el resto de los pagos manuales.
  *
- * `accountDetails` (alias/cbu/holder) viene del perfil del evento cuando hay
- * cobro event-scoped; si falta, se usan los datos globales de `env.payments`.
+ * `accountDetails` (alias/cbu/holder) viene ya resuelto del evento. Si llega,
+ * se muestra tal cual: no se rellena con `env.payments`, porque ese fallback
+ * puede ser otra cuenta. Sin objeto, afiliación usa los datos globales.
  */
 export default function TransferReceipt({
   orderId = null,
@@ -87,9 +88,14 @@ export default function TransferReceipt({
   const isCompetition = purpose === 'competition'
   const isWise = channel === 'wise_transfer'
   const askAdmin = t('account.membership.transferAskAdmin')
-  const transferAlias = accountDetails?.alias || env.payments.transferAlias
-  const transferCbu = accountDetails?.cbu || env.payments.transferCbu
-  const transferHolder = accountDetails?.holder || env.payments.transferHolder
+  const transferSource = accountDetails ?? {
+    alias: env.payments.transferAlias,
+    cbu: env.payments.transferCbu,
+    holder: env.payments.transferHolder,
+  }
+  const transferAlias = String(transferSource.alias ?? '').trim()
+  const transferCbu = String(transferSource.cbu ?? '').trim()
+  const transferHolder = String(transferSource.holder ?? '').trim()
   const holder = (isWise ? env.payments.wiseHolder : transferHolder) || askAdmin
   const copyLabel = t('account.membership.transferCopy')
   const copiedLabel = t('account.membership.transferCopied')

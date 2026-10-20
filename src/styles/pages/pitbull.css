@@ -11391,6 +11391,58 @@
   width: 5px;
 }
 
+/* ── Landing FAQ (slots desde admin) ───────── */
+
+.pitbull-landing-faq {
+  display: grid;
+  gap: clamp(16px, 2.4vw, 24px);
+  margin: 0;
+  padding: clamp(8px, 1.5vw, 16px) 0 0;
+  scroll-margin-top: var(--pitbull-scroll-offset);
+}
+
+.pitbull-landing-faq__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2.8vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0;
+  max-width: 22ch;
+}
+
+.pitbull-landing-faq__list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.pitbull-landing-faq__item {
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 12%, transparent);
+  display: grid;
+  gap: 6px;
+  padding: 14px 0;
+}
+
+.pitbull-landing-faq__item:last-child {
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 12%, transparent);
+}
+
+.pitbull-landing-faq__item dt {
+  font-size: 0.95rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.pitbull-landing-faq__item dd {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
 /* ── FAQ ───────────────────────────────────── */
 
 .pitbull-faq .faq-accordion--ref {

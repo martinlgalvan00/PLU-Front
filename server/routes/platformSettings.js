@@ -115,6 +115,12 @@ export function createPlatformSettingsRoutes({
   const router = Router()
   const prisma = getPrisma()
   const readGuard = requirePermission('admin.registration_access.read', { prisma })
+  // Solo LECTURA para el organizador: el panel de evento dibuja la matriz de medios
+  // contra la de la plataforma. No hay variante de escritura: los interruptores son de PLU.
+  const scopedReadGuard = requirePermission('admin.registration_access.read', { prisma }, {
+    eventScoped: true,
+    scopedPermissions: ['admin.events.read'],
+  })
   const writeGuard = requirePermission('admin.registration_access.write', { prisma })
   const repo = () =>
     repository ??
@@ -158,7 +164,7 @@ export function createPlatformSettingsRoutes({
     },
   )
 
-  router.get('/', ...readGuard, staffLimiter, async (_req, res, next) => {
+  router.get('/', ...scopedReadGuard, staffLimiter, async (_req, res, next) => {
     try {
       // `environmentHolds` viaja con los interruptores para que el panel pueda
       // decir "este interruptor está en ON pero una variable de entorno lo está

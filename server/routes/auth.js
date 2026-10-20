@@ -55,6 +55,7 @@ import {
 } from '../services/passwordService.js'
 import { ensureSupabaseSessionToken } from '../services/supabaseAuthBridge.js'
 import { ACCESS_ROLE_INCLUDE } from '../services/accessControlService.js'
+import { assertEventAccess } from '../lib/eventScope.js'
 import {
   createSession,
   getClearSessionCookieOptions,
@@ -114,7 +115,13 @@ export function createAuthRoutes({
   env,
 } = {}) {
   const router = Router()
-  const manageUsersGuard = requirePermission('admin.users.write', { prisma: getPrisma() })
+  // Equipo de puerta (cuentas seguridad_plu_arg de un evento). `admin.users.write` está
+  // reservado a Super Admin y Administrador; un organizador gestiona SOLO el equipo de
+  // sus eventos con `admin.event_team.write`, y cada handler verifica el evento.
+  const manageUsersGuard = requirePermission('admin.users.write', { prisma: getPrisma() }, {
+    eventScoped: true,
+    scopedPermissions: ['admin.event_team.write'],
+  })
 
   function auditClient() {
     try {
@@ -979,6 +986,9 @@ export function createAuthRoutes({
         const prisma = getPrisma()
         const { name, email, eventId, sendEmail } = req.validatedBody
 
+        // Primero el alcance y después la consulta: así un id ajeno no se distingue de
+        // uno inexistente (403 igual en los dos casos).
+        assertEventAccess(req, { eventId })
         const event = await resolveEvent(eventId)
         assertEventOpen(event)
         await requireSecurityAccessRole(prisma)
@@ -1051,6 +1061,9 @@ export function createAuthRoutes({
         const prisma = getPrisma()
         const { eventId, users, sendEmail } = req.validatedBody
 
+        // Primero el alcance y después la consulta: así un id ajeno no se distingue de
+        // uno inexistente (403 igual en los dos casos).
+        assertEventAccess(req, { eventId })
         const event = await resolveEvent(eventId)
         assertEventOpen(event)
         await requireSecurityAccessRole(prisma)
@@ -1159,6 +1172,7 @@ export function createAuthRoutes({
     async (req, res, next) => {
       try {
         const prisma = getPrisma()
+        assertEventAccess(req, { eventId: req.validatedBody.eventId })
         const result = await prisma.user.updateMany({
           where: {
             role: 'seguridad_plu_arg',
@@ -1190,6 +1204,7 @@ export function createAuthRoutes({
       const prisma = getPrisma()
       const eventId = String(req.query.eventId ?? '')
       if (!eventId) throw new HttpError(400, 'Falta eventId.')
+      assertEventAccess(req, { eventId })
 
       const users = await prisma.user.findMany({
         where: { role: 'seguridad_plu_arg', eventId },
@@ -1220,6 +1235,8 @@ export function createAuthRoutes({
         if (!target || target.role !== 'seguridad_plu_arg') {
           throw new HttpError(404, 'Usuario de seguridad no encontrado.')
         }
+        // Una cuenta por evento solo toca el equipo de SUS eventos.
+        assertEventAccess(req, { eventId: target.eventId })
 
         // status pasa a 'disabled' -> readSession corta la sesion activa en
         // el proximo request (chequea user.status === 'active'), sin tener
@@ -1259,6 +1276,7 @@ export function createAuthRoutes({
         if (!user || user.role !== 'seguridad_plu_arg') {
           throw new HttpError(404, 'Usuario de seguridad no encontrado.')
         }
+        assertEventAccess(req, { eventId: user.eventId })
         if (!user.eventId || !user.eventSlug) {
           throw new HttpError(400, 'La cuenta no tiene un evento asignado.')
         }

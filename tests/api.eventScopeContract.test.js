@@ -28,6 +28,47 @@ const ORGANIZER_ALLOWED = new Set([
   'POST /api/auth/me/password',
   'POST /api/auth/me/email',
   'POST /api/auth/athlete-session',
+  // Eventos: cada una filtra o verifica contra los eventos asignados
+  // (tests/api.eventScopeEvents.test.js).
+  'GET /api/events/',
+  'POST /api/events/upsert',
+  'POST /api/events/:eventSlug/logo/upload-url',
+  'PATCH /api/events/:eventSlug/logo',
+  'GET /api/events/:eventSlug/schedule',
+  'POST /api/events/:eventSlug/sessions',
+  // Cobros: listado por evento y acciones sobre una orden, que verifican el evento
+  // de la orden antes de actuar (tests/api.eventScopePayments.test.js).
+  'GET /api/events/:eventSlug/payments',
+  'POST /api/tickets/orders/:orderId/approve',
+  'POST /api/tickets/orders/:orderId/reject',
+  'GET /api/tickets/orders/:orderId/proof-url',
+  'GET /api/tickets/orders/:orderId/proof',
+  'POST /api/athletes/admin/payment-orders/:orderId/approve',
+  'POST /api/athletes/admin/payment-orders/:orderId/reject',
+  'GET /api/athletes/admin/payment-orders/:orderId/proof-url',
+  'GET /api/athletes/admin/payment-orders/:orderId/proof',
+  // Lo que arma un evento (tests/api.eventScopeCatalog.test.js): catálogo de cuentas
+  // recortado, matriz de medios solo lectura, precio de SU evento y entradas vendidas.
+  'GET /api/payment-profiles/',
+  'GET /api/platform-settings/',
+  'PATCH /api/pricing/events/:eventSlug/registration-price',
+  'DELETE /api/pricing/events/:eventSlug/registration-price/schedule',
+  'GET /api/tickets/',
+  'PUT /api/tickets/:ticketId/access-override',
+  // Equipo de puerta del evento (tests/api.eventScopeTeam.test.js): zonas y cuentas de
+  // seguridad. Las que actúan por id de zona o de usuario verifican el evento de ESA zona/cuenta.
+  'GET /api/security-zones/',
+  'POST /api/security-zones/',
+  'PATCH /api/security-zones/:zoneId',
+  'DELETE /api/security-zones/:zoneId',
+  'POST /api/security-zones/preset',
+  'PATCH /api/security-zones/members/:userId',
+  'GET /api/auth/security-users',
+  'POST /api/auth/security-users',
+  'POST /api/auth/security-users/bulk',
+  'POST /api/auth/security-users/deactivate-all',
+  'PATCH /api/auth/security-users/:userId/status',
+  'POST /api/auth/security-users/:userId/access-link',
 ])
 
 function supabaseDouble() {

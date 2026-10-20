@@ -19,6 +19,10 @@
   margin: 0;
 }
 
+.admin-event-dashboard__figures--ops {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .admin-event-dashboard__figure {
   display: grid;
   gap: 8px;
@@ -68,8 +72,20 @@
   line-height: 1.4;
 }
 
+@media (max-width: 899px) {
+  .admin-event-dashboard__figures--ops {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-event-dashboard__figures--ops .admin-event-dashboard__figure:nth-child(3) {
+    border-left: 0;
+    padding-left: 0;
+  }
+}
+
 @media (max-width: 599px) {
-  .admin-event-dashboard__figures {
+  .admin-event-dashboard__figures,
+  .admin-event-dashboard__figures--ops {
     grid-template-columns: minmax(0, 1fr);
   }
 
