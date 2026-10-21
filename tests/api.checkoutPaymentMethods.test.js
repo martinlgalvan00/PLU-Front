@@ -169,6 +169,7 @@ function registrationBody(paymentMethod, extra = {}) {
     division: 'Open',
     category: 'Raw',
     bodyweightKg: 90,
+    declaredWeightClass: '90',
     paymentMethod,
     idempotencyKey: crypto.randomUUID(),
     ...extra,
@@ -784,6 +785,62 @@ describe('los medios de un codigo forman una lista cerrada', () => {
       const response = await post(app.target, path, body)
       expect(response.status).toBe(201)
       expect(app[spyName]).toHaveBeenCalled()
+    } finally {
+      await app.target.close()
+    }
+  })
+})
+
+describe('categoría de peso en la inscripción', () => {
+  it('rechaza la inscripción si no viene la categoría', async () => {
+    const app = buildApp()
+    try {
+      const body = registrationBody('mercado_pago')
+      delete body.declaredWeightClass
+      const response = await post(app.target, '/api/athletes/me/registrations', body)
+      expect(response.status).toBe(400)
+      const payload = await response.json()
+      expect(payload.error ?? payload.message).toBe(
+        'Seleccioná la categoría de peso en la que vas a competir.',
+      )
+      expect(app.createRegistration).not.toHaveBeenCalled()
+    } finally {
+      await app.target.close()
+    }
+  })
+
+  it('rechaza una clase que no corresponde al sexo', async () => {
+    const app = buildApp()
+    try {
+      const response = await post(
+        app.target,
+        '/api/athletes/me/registrations',
+        registrationBody('mercado_pago', { declaredWeightClass: '44' }),
+      )
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({
+        code: 'WEIGHT_CLASS_INVALID',
+        error: 'Seleccioná la categoría de peso en la que vas a competir.',
+      })
+      expect(app.createRegistration).not.toHaveBeenCalled()
+    } finally {
+      await app.target.close()
+    }
+  })
+
+  it('guarda la clase canónica cuando es válida', async () => {
+    const app = buildApp()
+    try {
+      const response = await post(
+        app.target,
+        '/api/athletes/me/registrations',
+        registrationBody('mercado_pago', { declaredWeightClass: '67.5' }),
+      )
+      expect(response.status).toBe(201)
+      expect(app.createRegistration).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ declaredWeightClass: '67,5' }),
+      )
     } finally {
       await app.target.close()
     }

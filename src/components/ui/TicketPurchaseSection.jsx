@@ -1067,11 +1067,13 @@ export default function TicketPurchaseSection({
 
         {visibleOrder.status !== 'aprobado' ? (
           <p className="ticket-purchase__confirmation-lead">
-            {t('pages.tickets.confirmationQrLead')}
+            {isManualTicketPayment(visibleOrder.paymentMethod)
+              ? t('pages.tickets.qrHeldLead')
+              : t('pages.tickets.confirmationQrLead')}
           </p>
         ) : null}
 
-        {editorial ? (
+        {editorial && visibleOrder.status === 'aprobado' ? (
           <a
             className="ticket-purchase__share-cta"
             href={shareHref}
@@ -1305,22 +1307,25 @@ export default function TicketPurchaseSection({
                       (multi || scopes.some((scope) => scope !== 'gate_tickets'))
 
                     const isDownloading = downloadingPassId === ticket.id
+                    const qrReady = visibleOrder.status === 'aprobado'
 
                     return (
                       <li key={ticket.id} className="ticket-purchase__pass-item">
-                        <div ref={(el) => (passNodesRef.current[ticket.id] = el)}>
-                          <TicketPassPreview
-                            live
-                            interactive={false}
-                            attendeeName={ticket.attendeeName}
-                            date={ticket.eventDate || event?.date}
-                            dayPassLabel={passLabel}
-                            eventSlug={ticket.eventSlug || event?.slug || ''}
-                            eventTitle={ticket.eventTitle || visibleOrder.eventTitle}
-                            qrCode={ticket.qrToken || ticket.ticketCode || ''}
-                            venue={ticket.eventVenue || event?.venue}
-                          />
-                        </div>
+                        {qrReady ? (
+                          <div ref={(el) => (passNodesRef.current[ticket.id] = el)}>
+                            <TicketPassPreview
+                              live
+                              interactive={false}
+                              attendeeName={ticket.attendeeName}
+                              date={ticket.eventDate || event?.date}
+                              dayPassLabel={passLabel}
+                              eventSlug={ticket.eventSlug || event?.slug || ''}
+                              eventTitle={ticket.eventTitle || visibleOrder.eventTitle}
+                              qrCode={ticket.qrToken || ticket.ticketCode || ''}
+                              venue={ticket.eventVenue || event?.venue}
+                            />
+                          </div>
+                        ) : null}
                         <div className="ticket-purchase__pass-actions">
                           <div className="ticket-purchase__ticket-info">
                             <span>
@@ -1341,25 +1346,31 @@ export default function TicketPurchaseSection({
                             ) : null}
                           </div>
                           <StatusPill value={ticket.status} />
-                          <button
-                            type="button"
-                            className="ticket-purchase__qr-btn"
-                            onClick={() => setActiveTicketId(ticket.id)}
-                          >
-                            <QrCode size={14} aria-hidden />
-                            {t('pages.tickets.viewTicket')}
-                          </button>
-                          <button
-                            type="button"
-                            className="ticket-purchase__qr-btn"
-                            disabled={isDownloading}
-                            onClick={() => handleDownloadPass(ticket)}
-                          >
-                            <Download size={14} aria-hidden />
-                            {isDownloading
-                              ? t('pages.tickets.downloadingPass')
-                              : t('pages.tickets.downloadPass')}
-                          </button>
+                          {qrReady ? (
+                            <>
+                              <button
+                                type="button"
+                                className="ticket-purchase__qr-btn"
+                                onClick={() => setActiveTicketId(ticket.id)}
+                              >
+                                <QrCode size={14} aria-hidden />
+                                {t('pages.tickets.viewTicket')}
+                              </button>
+                              <button
+                                type="button"
+                                className="ticket-purchase__qr-btn"
+                                disabled={isDownloading}
+                                onClick={() => handleDownloadPass(ticket)}
+                              >
+                                <Download size={14} aria-hidden />
+                                {isDownloading
+                                  ? t('pages.tickets.downloadingPass')
+                                  : t('pages.tickets.downloadPass')}
+                              </button>
+                            </>
+                          ) : (
+                            <p className="ticket-purchase__payment-note">{t('pages.tickets.qrHeldTicket')}</p>
+                          )}
                         </div>
                       </li>
                     )

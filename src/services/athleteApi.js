@@ -180,6 +180,27 @@ function toCamelRegistrationEntry({ registration, event, checkIn, schedule }) {
     category: registration.category,
     division: registration.division,
     bodyweight: registration.bodyweight_kg,
+    declaredWeightClass:
+      registration.declared_weight_class ?? registration.declaredWeightClass ?? '',
+    officialWeightClass:
+      registration.official_weight_class ?? registration.officialWeightClass ?? '',
+    rosterFrozenAt:
+      event?.roster_frozen_at ??
+      registration.roster_frozen_at ??
+      registration.rosterFrozenAt ??
+      null,
+    weighInBodyweight:
+      registration.weigh_in_bodyweight_kg ?? registration.weighInBodyweight ?? null,
+    weighInRecordedAt: registration.weigh_in_recorded_at ?? registration.weighInRecordedAt ?? null,
+    weighInRecordedBy: registration.weigh_in_recorded_by ?? registration.weighInRecordedBy ?? '',
+    declaredWeightClassSetAt:
+      registration.declared_weight_class_set_at ?? registration.declaredWeightClassSetAt ?? null,
+    declaredWeightClassSetBy:
+      registration.declared_weight_class_set_by ?? registration.declaredWeightClassSetBy ?? '',
+    officialWeightClassSetAt:
+      registration.official_weight_class_set_at ?? registration.officialWeightClassSetAt ?? null,
+    officialWeightClassSetBy:
+      registration.official_weight_class_set_by ?? registration.officialWeightClassSetBy ?? '',
     publicVisible: registration.public_visible ?? registration.publicVisible ?? true,
     status: registration.status,
     paymentOrderId: registration.payment_order_id,
@@ -696,6 +717,7 @@ export async function createCompetitionRegistration({
   division,
   category,
   bodyweightKg,
+  declaredWeightClass,
   paymentMethod,
   idempotencyKey = crypto.randomUUID(),
   discountCode,
@@ -706,6 +728,7 @@ export async function createCompetitionRegistration({
     division,
     category,
     bodyweightKg,
+    declaredWeightClass,
     paymentMethod,
     idempotencyKey,
     discountCode: discountCode || undefined,
@@ -899,6 +922,7 @@ export async function createCompetitionRegistrationCombo({
   division,
   category,
   bodyweightKg,
+  declaredWeightClass,
   paymentMethod,
   idempotencyKey = crypto.randomUUID(),
   membershipAccessCode,
@@ -911,6 +935,7 @@ export async function createCompetitionRegistrationCombo({
     division,
     category,
     bodyweightKg,
+    declaredWeightClass,
     paymentMethod,
     idempotencyKey,
     discountCode: discountCode || undefined,
@@ -1327,6 +1352,71 @@ export async function deleteRegistrationRequest(registrationId) {
     `/api/athletes/admin/registrations/${encodeURIComponent(registrationId)}`,
   )
   return { deletedRegistration: result.deletedRegistration }
+}
+
+function weightClassPatch(registration) {
+  return {
+    id: registration.id,
+    athleteId: registration.athlete_id ?? registration.athleteId,
+    bodyweight: registration.bodyweight_kg ?? registration.bodyweight ?? null,
+    declaredWeightClass:
+      registration.declared_weight_class ?? registration.declaredWeightClass ?? '',
+    officialWeightClass:
+      registration.official_weight_class ?? registration.officialWeightClass ?? '',
+  }
+}
+
+/** Cambia solo la categoría declarada. No toca el peso corporal ni la oficial. */
+export async function correctRegistrationWeightClass(registrationId, declaredWeightClass) {
+  const { registration } = await apiPost(
+    `/api/athletes/admin/registrations/${encodeURIComponent(registrationId)}/weight-class`,
+    { declaredWeightClass },
+  )
+  return { registration: weightClassPatch(registration) }
+}
+
+/** Misma categoría declarada para varias inscripciones. Falla entero si alguna no sirve. */
+export async function correctRegistrationsWeightClass(registrationIds, declaredWeightClass) {
+  const result = await apiPost('/api/athletes/admin/registrations/weight-class/bulk', {
+    registrationIds,
+    declaredWeightClass,
+  })
+  return {
+    updated: (result.updated ?? []).map(weightClassPatch),
+  }
+}
+
+/** Peso medido en el pesaje. No toca el peso declarado ni la categoría. */
+export async function recordRegistrationWeighIn(registrationId, weighInBodyweightKg) {
+  const { registration } = await apiPost(
+    `/api/athletes/admin/registrations/${encodeURIComponent(registrationId)}/weigh-in`,
+    { weighInBodyweightKg },
+  )
+  return { registration: weightClassPatch(registration) }
+}
+
+/** Categoría confirmada en el pesaje. Puede quedar vacía para borrarla. */
+export async function correctOfficialWeightClass(registrationId, officialWeightClass) {
+  const { registration } = await apiPost(
+    `/api/athletes/admin/registrations/${encodeURIComponent(registrationId)}/official-weight-class`,
+    { officialWeightClass },
+  )
+  return { registration: weightClassPatch(registration) }
+}
+
+/** Cierra o reabre el padrón de un evento después del pesaje. */
+export async function setEventRosterFrozen(eventSlug, frozen) {
+  const { event } = await apiPost(
+    `/api/athletes/admin/events/${encodeURIComponent(eventSlug)}/roster-freeze`,
+    { frozen },
+  )
+  return {
+    event: {
+      id: event.id,
+      slug: event.slug,
+      rosterFrozenAt: event.roster_frozen_at ?? null,
+    },
+  }
 }
 
 /** Publica u oculta una inscripción del padrón público del evento. */

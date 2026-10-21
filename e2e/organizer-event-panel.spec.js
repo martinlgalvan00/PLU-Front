@@ -224,7 +224,7 @@ test.describe('Organizador: panel de su evento', () => {
       .getByRole('tab', { name: /ventas y cupos/i })
       .first()
       .click()
-    await page.getByRole('tab', { name: /^Cobro$/i }).click()
+    await page.getByRole('tab', { name: /^Cobro/i }).click()
 
     // En una base nueva la plataforma tiene cerrados los medios manuales de inscripción.
     const transfer = page.getByRole('checkbox', { name: 'Transferencia · Inscripción' })

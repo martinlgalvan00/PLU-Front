@@ -79,14 +79,14 @@ export default function ShopCheckoutSettingsPanel({ canEdit }) {
 
   if (state === 'loading') {
     return (
-      <p className="admin-shop__state" role="status">
+      <p className="admin-shop__state admin-shop-settings" role="status">
         {t(`${k}.loading`)}
       </p>
     )
   }
   if (state === 'error' || !draft) {
     return (
-      <div className="admin-shop__state admin-shop__state--error" role="alert">
+      <div className="admin-shop__state admin-shop__state--error admin-shop-settings" role="alert">
         <p>{t(`${k}.loadError`)}</p>
         <Button variant="outline" onClick={() => void load()}>
           {t(`${k}.retry`)}
@@ -95,6 +95,33 @@ export default function ShopCheckoutSettingsPanel({ canEdit }) {
     )
   }
 
+  const effectiveBlock = effective ? (
+    <section className="admin-shop-settings__effective" aria-labelledby="shop-effective">
+      <h3 id="shop-effective">{t(`${k}.effectiveTitle`)}</h3>
+      {effective.open ? (
+        <ul>
+          {METHODS.map((entry) => (
+            <li key={entry.method} data-on={Boolean(effective.methods?.[entry.method])}>
+              <span aria-hidden className="admin-shop-order__dot" />
+              <span>{t(`${k}.${entry.key}`)}</span>
+              <small>
+                {effective.methods?.[entry.method] ? t(`${k}.effectiveOn`) : t(`${k}.effectiveOff`)}
+              </small>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>{t(`${k}.effectiveClosed`)}</p>
+      )}
+      {draft.bankTransferEnabled && !effective.methods?.bank_transfer ? (
+        <p className="admin-shop-settings__warn">{t(`${k}.bankNeedsDetails`)}</p>
+      ) : null}
+      {draft.mercadoPagoEnabled && !effective.methods?.mercado_pago ? (
+        <p className="admin-shop-settings__warn">{t(`${k}.mpNeedsConfig`)}</p>
+      ) : null}
+    </section>
+  ) : null
+
   return (
     <form className="admin-shop-settings" onSubmit={handleSubmit}>
       <header>
@@ -102,21 +129,25 @@ export default function ShopCheckoutSettingsPanel({ canEdit }) {
         <p>{t(`${k}.lead`)}</p>
       </header>
 
+      {effectiveBlock}
+
       <div className="admin-shop-settings__methods">
         {METHODS.map((entry) => (
           <fieldset key={entry.key} className="admin-shop-settings__method">
             <legend className="visually-hidden">{t(`${k}.${entry.key}`)}</legend>
             <label className="admin-shop-settings__switch">
               <input
+                className="admin-shop-settings__switch-input"
                 type="checkbox"
                 checked={Boolean(draft[entry.flag])}
                 disabled={!canEdit}
                 onChange={(event) => update(entry.flag, event.target.checked)}
               />
-              <span>
+              <span className="admin-shop-settings__switch-copy">
                 <strong>{t(`${k}.${entry.key}`)}</strong>
                 <small>{t(`${k}.${entry.key}Hint`)}</small>
               </span>
+              <span className="admin-shop-settings__switch-ui" aria-hidden />
             </label>
 
             {entry.profile && draft[entry.flag] ? (
@@ -165,35 +196,6 @@ export default function ShopCheckoutSettingsPanel({ canEdit }) {
           onChange={(event) => update('fulfillmentNote', event.target.value)}
         />
       </label>
-
-      {effective ? (
-        <section className="admin-shop-settings__effective" aria-labelledby="shop-effective">
-          <h3 id="shop-effective">{t(`${k}.effectiveTitle`)}</h3>
-          {effective.open ? (
-            <ul>
-              {METHODS.map((entry) => (
-                <li key={entry.method} data-on={Boolean(effective.methods?.[entry.method])}>
-                  <span aria-hidden className="admin-shop-order__dot" />
-                  <span>{t(`${k}.${entry.key}`)}</span>
-                  <small>
-                    {effective.methods?.[entry.method]
-                      ? t(`${k}.effectiveOn`)
-                      : t(`${k}.effectiveOff`)}
-                  </small>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>{t(`${k}.effectiveClosed`)}</p>
-          )}
-          {draft.bankTransferEnabled && !effective.methods?.bank_transfer ? (
-            <p className="admin-shop-settings__warn">{t(`${k}.bankNeedsDetails`)}</p>
-          ) : null}
-          {draft.mercadoPagoEnabled && !effective.methods?.mercado_pago ? (
-            <p className="admin-shop-settings__warn">{t(`${k}.mpNeedsConfig`)}</p>
-          ) : null}
-        </section>
-      ) : null}
 
       <footer className="admin-shop-settings__foot">
         {canEdit ? (

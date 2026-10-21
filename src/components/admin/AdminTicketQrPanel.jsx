@@ -123,6 +123,11 @@ export default function AdminTicketQrPanel({
       validFrom && validUntil && admission !== 'ready' ? `${validFrom} → ${validUntil}` : null,
     ],
   ].filter(([, value]) => Boolean(value))
+  const typeLine = [typeParts.title, credential].filter(Boolean).join(' · ')
+  const showDownload = usable
+  const showCopy = Boolean(buyerUrl) && usable
+  const showOverride = Boolean(canOverride && onOverride) && usable
+  const hasActions = showDownload || showCopy || showOverride
 
   return createPortal(
     <div className="ticket-qr-panel">
@@ -143,9 +148,8 @@ export default function AdminTicketQrPanel({
           <div className="ticket-qr-panel__identity">
             <span className="ticket-qr-panel__eyebrow">{t('admin.eventTicketsSold.qr.eyebrow')}</span>
             <h2 id={titleId}>{ticket.attendeeName || '—'}</h2>
-            <p>
-              {[ticket.attendeeDni, ticket.ticketCode].filter(Boolean).join(' · ')}
-            </p>
+            <p>{[ticket.attendeeDni, ticket.ticketCode].filter(Boolean).join(' · ')}</p>
+            {typeLine ? <p className="ticket-qr-panel__type">{typeLine}</p> : null}
           </div>
           <button
             type="button"
@@ -158,11 +162,6 @@ export default function AdminTicketQrPanel({
         </header>
 
         <div className="ticket-qr-panel__body">
-          <div className="ticket-qr-panel__ticket">
-            <strong>{typeParts.title || '—'}</strong>
-            {credential ? <span className="ticket-qr-panel__credential">{credential}</span> : null}
-          </div>
-
           {usable ? (
             <div className="ticket-qr-panel__code">
               <CredentialQr
@@ -179,10 +178,8 @@ export default function AdminTicketQrPanel({
             <span>
               <strong>{t(`admin.eventTicketsSold.qr.state.${admission}`)}</strong>
               {admissionDetail ? <small>{admissionDetail}</small> : null}
+              <small>{t(`admin.eventTicketsSold.qr.hint.${admission}`)}</small>
             </span>
-          </p>
-          <p className="ticket-qr-panel__hint">
-            {t(`admin.eventTicketsSold.qr.hint.${admission}`)}
           </p>
 
           {details.length > 0 ? (
@@ -197,26 +194,28 @@ export default function AdminTicketQrPanel({
           ) : null}
         </div>
 
-        <footer className="ticket-qr-panel__actions">
-          {usable ? (
-            <Button type="button" variant="gold" disabled={!qrSrc} onClick={downloadQr}>
-              <Download size={15} aria-hidden />
-              {t('admin.eventTicketsSold.qr.download')}
-            </Button>
-          ) : null}
-          {buyerUrl && usable ? (
-            <button type="button" className="ticket-qr-panel__secondary" onClick={copyBuyerLink}>
-              <Copy size={15} aria-hidden />
-              {t('admin.eventTicketsSold.qr.copyLink')}
-            </button>
-          ) : null}
-          {canOverride && onOverride && usable ? (
-            <button type="button" className="ticket-qr-panel__tertiary" onClick={onOverride}>
-              <ShieldPlus size={15} aria-hidden />
-              {t('admin.eventTicketsSold.qr.override')}
-            </button>
-          ) : null}
-        </footer>
+        {hasActions ? (
+          <footer className="ticket-qr-panel__actions">
+            {showDownload ? (
+              <Button type="button" variant="gold" disabled={!qrSrc} onClick={downloadQr}>
+                <Download size={15} aria-hidden />
+                {t('admin.eventTicketsSold.qr.download')}
+              </Button>
+            ) : null}
+            {showCopy ? (
+              <button type="button" className="ticket-qr-panel__secondary" onClick={copyBuyerLink}>
+                <Copy size={15} aria-hidden />
+                {t('admin.eventTicketsSold.qr.copyLink')}
+              </button>
+            ) : null}
+            {showOverride ? (
+              <button type="button" className="ticket-qr-panel__tertiary" onClick={onOverride}>
+                <ShieldPlus size={15} aria-hidden />
+                {t('admin.eventTicketsSold.qr.override')}
+              </button>
+            ) : null}
+          </footer>
+        ) : null}
       </section>
     </div>,
     document.body,

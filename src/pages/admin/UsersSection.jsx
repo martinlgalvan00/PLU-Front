@@ -810,110 +810,111 @@ export default function UsersSection({
   return (
     <section className="admin-users" aria-label={t('admin.sections.users.title')}>
       <div className="admin-users__toolbar">
-        {!isGloballyEmpty ? (
-          <div className="admin-users__search" role="search">
-            <Search size={15} aria-hidden />
-            <input
-              type="search"
-              name="users-search"
-              value={query}
-              placeholder={t('admin.search.users')}
-              aria-label={t('admin.search.users')}
-              autoComplete="off"
-              onChange={(event) => setQuery(event.target.value)}
-            />
-            {query ? (
-              <button
-                type="button"
-                className="admin-users__search-clear"
-                aria-label={t('admin.filters.clearFilter')}
-                onClick={() => setQuery('')}
-              >
-                <X size={13} aria-hidden />
-              </button>
-            ) : null}
-          </div>
-        ) : null}
+        <div className="admin-users__toolbar-filters">
+          {!isGloballyEmpty ? (
+            <div className="admin-users__search" role="search">
+              <Search size={15} aria-hidden />
+              <input
+                type="search"
+                name="users-search"
+                value={query}
+                placeholder={t('admin.search.users')}
+                aria-label={t('admin.search.users')}
+                autoComplete="off"
+                onChange={(event) => setQuery(event.target.value)}
+              />
+              {query ? (
+                <button
+                  type="button"
+                  className="admin-users__search-clear"
+                  aria-label={t('admin.filters.clearFilter')}
+                  onClick={() => setQuery('')}
+                >
+                  <X size={13} aria-hidden />
+                </button>
+              ) : null}
+            </div>
+          ) : null}
 
-        {showStatusFilter ? (
-          <label className={`admin-users__filter${statusFilter !== 'all' ? ' is-active' : ''}`}>
-            <select
-              name="users-status"
-              value={statusFilter}
-              aria-label={t('admin.filters.status')}
-              onChange={(event) => setStatusFilter(event.target.value)}
+          {showStatusFilter ? (
+            <label className={`admin-users__filter${statusFilter !== 'all' ? ' is-active' : ''}`}>
+              <select
+                name="users-status"
+                value={statusFilter}
+                aria-label={t('admin.filters.status')}
+                onChange={(event) => setStatusFilter(event.target.value)}
+              >
+                {statusOptions.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={13} aria-hidden />
+            </label>
+          ) : null}
+
+          {showRoleFilter ? (
+            <label className={`admin-users__filter${roleFilter !== 'all' ? ' is-active' : ''}`}>
+              <select
+                name="users-role"
+                value={roleFilter}
+                aria-label={t('admin.columns.role')}
+                onChange={(event) => setRoleFilter(event.target.value)}
+              >
+                {roleFilterOptions.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={13} aria-hidden />
+            </label>
+          ) : null}
+        </div>
+
+        <div className="admin-users__toolbar-actions">
+          <span className="admin-users__count" aria-live="polite">
+            {isFiltering
+              ? formatRecordCount(t, rows.length, users.length)
+              : users.length === 1
+                ? t('admin.users.totalOne')
+                : t('admin.users.total', { count: users.length })}
+          </span>
+
+          {canManageUsers && onNavigateRoles ? (
+            <button type="button" className="admin-users__link" onClick={onNavigateRoles}>
+              <Shield size={15} aria-hidden />
+              <span>{t('admin.users.managePermissions')}</span>
+            </button>
+          ) : null}
+          {canManageUsers && isCreating ? (
+            <button
+              type="button"
+              className="admin-users__link"
+              aria-controls={formId}
+              aria-expanded
+              onClick={toggleCreateForm}
             >
-              {statusOptions.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={13} aria-hidden />
-          </label>
-        ) : null}
-
-        {showRoleFilter ? (
-          <label className={`admin-users__filter${roleFilter !== 'all' ? ' is-active' : ''}`}>
-            <select
-              name="users-role"
-              value={roleFilter}
-              aria-label={t('admin.columns.role')}
-              onChange={(event) => setRoleFilter(event.target.value)}
+              <X size={15} aria-hidden />
+              <span>{t('admin.users.cancel')}</span>
+            </button>
+          ) : null}
+          {canManageUsers && !isCreating ? (
+            <Button
+              ref={newButtonRef}
+              type="button"
+              variant="gold"
+              className="btn--small admin-users__new-btn"
+              aria-controls={formId}
+              aria-expanded={false}
+              onClick={toggleCreateForm}
             >
-              {roleFilterOptions.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={13} aria-hidden />
-          </label>
-        ) : null}
-
-        <span className="admin-users__count" aria-live="polite">
-          {isFiltering
-            ? formatRecordCount(t, rows.length, users.length)
-            : users.length === 1
-              ? t('admin.users.totalOne')
-              : t('admin.users.total', { count: users.length })}
-        </span>
-
-        {canManageUsers ? (
-          <div className="admin-users__toolbar-actions">
-            {onNavigateRoles ? (
-              <button type="button" className="admin-users__link" onClick={onNavigateRoles}>
-                <Shield size={15} aria-hidden />
-                <span>{t('admin.users.managePermissions')}</span>
-              </button>
-            ) : null}
-            {isCreating ? (
-              <button
-                type="button"
-                className="admin-users__link"
-                aria-controls={formId}
-                aria-expanded
-                onClick={toggleCreateForm}
-              >
-                <X size={15} aria-hidden />
-                <span>{t('admin.users.cancel')}</span>
-              </button>
-            ) : (
-              <Button
-                ref={newButtonRef}
-                type="button"
-                variant="gold"
-                className="btn--small admin-users__new-btn"
-                aria-controls={formId}
-                aria-expanded={false}
-                onClick={toggleCreateForm}
-              >
-                <UserPlus size={15} aria-hidden />
-                <span>{t('admin.users.newUser')}</span>
-              </Button>
-            )}
-          </div>
-        ) : null}
+              <UserPlus size={15} aria-hidden />
+              <span>{t('admin.users.newUser')}</span>
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {canManageUsers && isCreating ? (

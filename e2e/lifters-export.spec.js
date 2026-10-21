@@ -8,8 +8,8 @@ import { FIXTURE_PATH } from './global-setup.js'
 import { ORG_ID, resolveLocalSupabase } from './local-supabase.js'
 
 /**
- * Export Lifters: el Excel descargado trae Birth Date de cada inscripto
- * y la hoja Summary. Corre contra la API real (no demo).
+ * Export Lifters: el Excel descargado trae el header fijo de LiftingCast
+ * (birthDate en DD/MM/YYYY) y la hoja Summary. Corre contra la API real.
  */
 
 function sheetRows(xml, sheetName) {
@@ -123,7 +123,7 @@ test.describe('Export Lifters — fechas y estructura', () => {
     await deleteEventsByIds(admin, created.events)
   })
 
-  test('el Excel Lifters trae Birth Date de cada persona y la hoja Summary', async ({ page }) => {
+  test('el Excel Lifters trae el header fijo y la fecha en DD/MM/YYYY', async ({ page }) => {
     await loginAsAdmin(page, {
       email: fixture.adminEmail,
       password: fixture.adminPassword,
@@ -144,8 +144,8 @@ test.describe('Export Lifters — fechas y estructura', () => {
     await expect(panel.getByRole('heading', { name: /studio de export/i })).toBeVisible()
     await expect(panel.getByText(/preview:/i)).toBeVisible({ timeout: 20_000 })
 
-    const preset = panel.locator('label').filter({ hasText: 'Columnas' }).locator('select')
-    await preset.selectOption('minimal')
+    const preset = panel.locator('label').filter({ hasText: 'Plantilla' }).locator('select')
+    await preset.selectOption('official')
     await expect(panel.getByText(/preview:/i)).toContainText(/columnas/i)
 
     const downloadPromise = page.waitForEvent('download')
@@ -156,14 +156,18 @@ test.describe('Export Lifters — fechas y estructura', () => {
     const xml = (await readFile(await download.path())).toString('utf8')
     const lifters = sheetRows(xml, 'Lifters')
     const headers = indexByHeader(lifters)
-    expect(typeof headers['Birth Date']).toBe('number')
-    expect(typeof headers.Name).toBe('number')
-    expect(headers.StreetAddress).toBeUndefined()
+    expect(typeof headers.birthDate).toBe('number')
+    expect(typeof headers.name).toBe('number')
+    expect(typeof headers.bodyWeight).toBe('number')
+    expect(typeof headers.declaredAwardsWeightClass).toBe('number')
+    expect(typeof headers.squatRackHeight).toBe('number')
+    expect(typeof headers.notes).toBe('number')
 
     for (const person of PEOPLE) {
-      const row = lifters.find((cells) => cells[headers.Name] === person.fullName)
+      const [year, month, day] = person.birthDate.split('-')
+      const row = lifters.find((cells) => cells[headers.name] === person.fullName)
       expect(row, person.fullName).toBeTruthy()
-      expect(row[headers['Birth Date']]).toBe(person.birthDate)
+      expect(row[headers.birthDate]).toBe(`${day}/${month}/${year}`)
     }
 
     const summary = sheetRows(xml, 'Summary')
