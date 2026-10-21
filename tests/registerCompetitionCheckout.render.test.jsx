@@ -102,6 +102,7 @@ const athlete = {
   fullName: 'Ana Torres',
   documentId: '30111222',
   email: 'ana@plu.test',
+  sex: 'Femenino',
 }
 
 const event = {
@@ -148,6 +149,7 @@ function renderCompetition({
         form={{
           division: 'Open',
           category: 'Raw',
+          declaredWeightClass: '75',
           estimatedWeight: '83',
           paymentMethod: 'mercado_pago',
           ...form,
@@ -321,6 +323,7 @@ describe('RegisterPage — link de pago de inscripción', () => {
       const [form, setForm] = useState({
         division: 'Open',
         category: 'Raw',
+        declaredWeightClass: '75',
         estimatedWeight: '83',
         paymentMethod: 'mercado_pago',
       })
@@ -465,6 +468,7 @@ describe('RegisterPage — link de pago de inscripción', () => {
       const [form, setForm] = useState({
         division: 'Open',
         category: 'Raw',
+        declaredWeightClass: '75',
         estimatedWeight: '83',
         paymentMethod: 'mercado_pago',
       })
@@ -537,6 +541,7 @@ describe('RegisterPage — link de pago de inscripción', () => {
       const [form, setForm] = useState({
         division: 'Open',
         category: 'Raw',
+        declaredWeightClass: '75',
         estimatedWeight: '83',
         paymentMethod: 'manual_link',
       })
@@ -605,6 +610,7 @@ describe('RegisterPage — link de pago de inscripción', () => {
       const [form, setForm] = useState({
         division: 'Open',
         category: 'Raw',
+        declaredWeightClass: '75',
         estimatedWeight: '83',
         paymentMethod: 'manual_link',
       })

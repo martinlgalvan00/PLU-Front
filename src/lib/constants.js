@@ -243,6 +243,7 @@ export const DEFAULT_FORM = {
   sex: '',
   division: 'Open',
   category: 'Raw',
+  declaredWeightClass: '',
   estimatedWeight: '',
   password: '',
   paymentMethod: 'mercado_pago',

@@ -3261,6 +3261,8 @@
   display: grid;
   gap: 0.85rem;
   margin: 0 0 1.25rem;
+  max-width: 100%;
+  min-width: 0;
   padding: 0 0 1rem;
   border-bottom: 1px solid var(--admin-border, var(--color-border));
 }
@@ -3337,6 +3339,8 @@
   list-style: none;
   counter-reset: lifters-step;
   margin: 0.15rem 0 0;
+  max-width: 100%;
+  min-width: 0;
   padding: 0;
 }
 
@@ -3429,6 +3433,8 @@
 .admin-lifters-export__studio {
   display: grid;
   gap: 0.65rem;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .admin-lifters-export__studio-grid {
@@ -3436,6 +3442,210 @@
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 0.65rem 1.25rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.admin-lifters-export__columns {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0.35rem 0 0;
+  border: 0;
+  border-top: 1px solid var(--admin-hairline, var(--color-border));
+  max-width: 100%;
+  min-width: 0;
+}
+
+.admin-lifters-export__columns legend {
+  margin-bottom: 0.2rem;
+  padding: 0;
+  font-size: 0.75rem;
+  color: var(--admin-muted, var(--color-text-muted));
+}
+
+.admin-lifters-export__column-group {
+  display: grid;
+  grid-template-columns: 5.25rem minmax(0, 1fr);
+  gap: 0 0.75rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.admin-lifters-export__column-group > span {
+  padding-top: 0.45rem;
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 0.75rem;
+}
+
+.admin-lifters-export__column-group > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.85rem;
+  min-width: 0;
+}
+
+.admin-lifters-export__columns .admin-lifters-export__check {
+  min-height: 2rem;
+}
+
+.admin-lifters-export__hint {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--admin-muted, var(--color-text-muted));
+}
+
+.admin-lifters-export__brief {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.admin-lifters-export__brief > p {
+  margin: 0;
+  max-width: 72ch;
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.admin-lifters-export__brief--alert > p:first-child {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.admin-lifters-export__roster {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: 40rem;
+}
+
+.admin-lifters-export__roster > li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 2rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--admin-hairline, color-mix(in srgb, var(--color-border) 55%, transparent));
+  font-size: 0.8125rem;
+}
+
+.admin-lifters-export__roster > li > span:first-child {
+  min-width: 0;
+}
+
+.admin-lifters-export__roster > li > span:last-child {
+  flex: none;
+  color: var(--admin-muted, var(--color-text-muted));
+  text-align: right;
+}
+
+.admin-meet-facts {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+
+.admin-meet-facts__line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-meet-facts__muted {
+  color: var(--admin-muted, var(--color-text-muted));
+}
+
+.admin-meet-facts__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.75rem;
+  margin-top: 2px;
+}
+
+.admin-meet-facts__actions .admin-empty__text-link {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.admin-meet-facts__warning {
+  color: var(--color-warning-text);
+}
+
+.admin-export-readiness--ready {
+  color: var(--color-success-text);
+}
+
+.admin-export-readiness--warning {
+  color: var(--color-warning-text);
+}
+
+.admin-export-readiness--error {
+  color: var(--color-danger-text);
+}
+
+.admin-lifters-export__file,
+.admin-lifters-export__file-scroll {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.admin-lifters-export__file {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.admin-lifters-export__file h4 {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.admin-lifters-export__file-scroll {
+  max-height: 220px;
+  overflow: auto;
+  border-top: 1px solid var(--admin-hairline, var(--color-border));
+}
+
+.admin-lifters-export__file table {
+  border-collapse: collapse;
+  font-size: 12.5px;
+  width: max-content;
+  min-width: 100%;
+}
+
+.admin-lifters-export__file th,
+.admin-lifters-export__file td {
+  padding: 0.4rem 0.7rem;
+  border-bottom: 1px solid var(--admin-hairline, var(--color-border));
+  text-align: left;
+  white-space: nowrap;
+}
+
+.admin-lifters-export__file th {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg, var(--color-surface));
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-lifters-export__file td.is-empty {
+  color: var(--admin-muted, var(--color-text-muted));
+}
+
+.admin-class-edit {
+  margin-top: 0.75rem;
 }
 
 .admin-lifters-export__field {
@@ -6154,10 +6364,12 @@
 
 .payment-validation-dialog__panel--workspace.payment-validation-dialog__panel--empty-proof,
 .payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof {
-  max-height: none;
-  max-width: min(100%, 400px);
-  overflow: visible;
-  width: min(100%, 400px);
+  justify-self: center;
+  max-height: min(88dvh, 760px);
+  max-width: min(100%, 560px);
+  min-width: 0;
+  overflow: auto;
+  width: min(100%, 560px);
 }
 
 .payment-validation-dialog__rail {
@@ -6173,11 +6385,13 @@
   max-width: none;
 }
 
+.payment-validation-dialog__panel--empty-proof .payment-validation-dialog__head {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
 .payment-validation-dialog__panel--empty-proof .payment-validation-dialog__lead {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
+  max-width: 42ch;
 }
 
 @keyframes payment-validation-dialog-enter {
@@ -6650,6 +6864,55 @@
   grid-column: 1 / -1;
 }
 
+.payment-validation-dialog__meta--rail > .payment-validation-dialog__people-row {
+  grid-column: 1 / -1;
+}
+
+.payment-validation-dialog__people {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.payment-validation-dialog__people li {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.payment-validation-dialog__person-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.payment-validation-dialog__person-doc {
+  color: var(--admin-muted, var(--color-text-muted));
+  flex: 0 0 auto;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+}
+
+.payment-validation-dialog__panel--empty-proof .payment-validation-dialog__people {
+  gap: 0;
+  max-height: 9.5rem;
+  overflow: auto;
+}
+
+.payment-validation-dialog__panel--empty-proof .payment-validation-dialog__people li {
+  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  padding: 7px 0;
+}
+
+.payment-validation-dialog__panel--empty-proof .payment-validation-dialog__people li:last-child {
+  border-bottom: 0;
+}
+
 .payment-validation-dialog__meta--compact {
   gap: var(--space-sm) var(--space-lg);
 }
@@ -6853,7 +7116,16 @@
   .payment-validation-dialog__proof,
 .payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof
   .payment-validation-dialog__proof {
+  background: transparent;
+  border: 0;
   min-height: 0;
+  padding: 0;
+}
+
+.payment-validation-dialog__panel--empty-proof .payment-validation-dialog__empty--workspace,
+.payment-validation-dialog__panel--empty-proof .payment-validation-dialog__empty--view {
+  align-items: center;
+  padding: 2px 0;
 }
 
 .payment-validation-dialog__panel--workspace .payment-validation-dialog__image,
@@ -7087,6 +7359,18 @@
   grid-column: 1 / -1;
 }
 
+/* Ficha sin comprobante: los tres en una fila. El primario queda al final. */
+.payment-validation-dialog__panel--empty-proof
+  .payment-validation-dialog__actions:has(.btn--danger):has(.btn:nth-child(3)) {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.payment-validation-dialog__panel--empty-proof
+  .payment-validation-dialog__actions:has(.btn--danger):has(.btn:nth-child(3))
+  .btn:not(.btn--secondary):not(.btn--danger) {
+  grid-column: auto;
+}
+
 /* Solo Cancelar + Confirmar (sin rechazo): una fila equilibrada. */
 .payment-validation-dialog__actions:not(:has(.btn--danger)) {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -7124,6 +7408,17 @@
     min-height: 44px;
   }
 
+  .payment-validation-dialog__panel--empty-proof .payment-validation-dialog__actions,
+  .payment-validation-dialog__panel--empty-proof
+    .payment-validation-dialog__actions:has(.btn--danger):has(.btn:nth-child(3)) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .payment-validation-dialog__panel--empty-proof .payment-validation-dialog__actions .btn {
+    grid-column: 1 / -1;
+    min-height: 44px;
+  }
+
   .payment-validation-dialog__meta--rail {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -7141,7 +7436,9 @@
 
   .payment-validation-dialog__panel,
   .payment-validation-dialog__panel--workspace,
-  .payment-validation-dialog__panel--view {
+  .payment-validation-dialog__panel--view,
+  .payment-validation-dialog__panel--workspace.payment-validation-dialog__panel--empty-proof,
+  .payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof {
     border-radius: 12px 12px 0 0;
     max-height: min(88dvh, 720px);
     max-width: 100%;
@@ -14001,8 +14298,8 @@ button.action-queue__proof:focus-visible {
 
 .admin-ticket-types__detail {
   display: grid;
-  gap: 14px;
-  margin-top: 14px;
+  gap: 10px;
+  margin-top: 10px;
   min-width: 0;
 }
 
@@ -14784,7 +15081,25 @@ button.action-queue__proof:focus-visible {
 }
 
 .admin-ticket-channels.is-inherit {
-  gap: 0;
+  gap: 8px;
+}
+
+.admin-ticket-channels__accepted {
+  display: flex;
+  flex: 1 1 16rem;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  list-style: none;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.admin-ticket-channels__accepted li {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.4;
 }
 
 .admin-ticket-channels__inherit,

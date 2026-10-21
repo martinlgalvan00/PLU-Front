@@ -6,8 +6,8 @@ import { PERMISSION_CATALOG } from '../../lib/permissions.js'
 
 /**
  * Usuarios dentro del shell real (sidebar, header y hojas del panel), no solo
- * con `admin.css`. Orden de lectura: barra única (búsqueda, estado, permisos,
- * acción dorada) → padrón compacto.
+ * con `admin.css`. Orden de lectura: filtros a la izquierda, conteo y acción
+ * dorada a la derecha → padrón compacto.
  */
 
 export default {

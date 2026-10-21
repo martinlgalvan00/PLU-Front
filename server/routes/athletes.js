@@ -17,6 +17,11 @@ import { PUBLIC_PORTRAIT_CACHE_CONTROL, sendPortraitBinary } from '../lib/portra
 import { touchProofAccessed } from '../modules/payments/paymentProofRetention.js'
 import { resolveEventRegistrationOpensAt } from '../lib/registrationSchedule.js'
 import { promotionCodeAllowsChannel } from '../../shared/promotionPaymentChannels.js'
+import { EQUIPMENT_TYPES, competitionProfileFieldsChanged } from '../../shared/competitionLexicon.js'
+import {
+  canonicalDeclaredWeightClass,
+  isDeclaredWeightClassForSex,
+} from '../../shared/pluWeightClasses.js'
 
 // Solo hace falta resolver la fecha del evento cuando el gate va a mirarla:
 // en produccion y sin kill switch. Evita una consulta a Supabase de mas en
@@ -107,6 +112,7 @@ import {
 } from '../modules/athletes/profileNoticeService.js'
 import { athleteProfileFromRow } from '../../shared/athleteProfile.js'
 import {
+  COMPETITION_DIVISIONS,
   allowedCompetitionDivisions,
   isDivisionAllowedForAge,
 } from '../../shared/ageDivision.js'
@@ -121,9 +127,12 @@ import {
   buildLiftersReadiness,
   filterLiftersRowsByCompleteness,
   liftersRowsForSpreadsheet,
+  liftersImportColumnsMissing,
   normalizeLiftersExportOptions,
   resolveLiftersColumnKeys,
   serializeLiftersSpreadsheet,
+  summarizeLifterMeet,
+  validateLifterExport,
 } from '../../shared/liftersExport.js'
 import { createSupabaseRegistrationAccessRepository } from '../modules/registrationAccess/supabaseRegistrationAccessRepository.js'
 import {
@@ -166,8 +175,7 @@ import {
   revokeAthleteSession,
 } from '../services/athleteSessionService.js'
 
-const COMPETITION_DIVISIONS = ['Open', 'Youth', 'Junior', 'Sub-Masters', 'Masters']
-const COMPETITION_CATEGORIES = ['Raw', 'Raw With Wraps', 'Single-Ply', 'Multi-Ply', 'Unlimited']
+const COMPETITION_CATEGORIES = EQUIPMENT_TYPES
 
 function todayInBuenosAires() {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -355,6 +363,13 @@ const registrationSchema = z.object({
   division: z.enum(COMPETITION_DIVISIONS),
   category: z.enum(COMPETITION_CATEGORIES),
   bodyweightKg: z.number().min(10).max(250).nullable().optional(),
+  declaredWeightClass: z
+    .string({
+      required_error: 'Seleccioná la categoría de peso en la que vas a competir.',
+      invalid_type_error: 'Seleccioná la categoría de peso en la que vas a competir.',
+    })
+    .trim()
+    .min(1, 'Seleccioná la categoría de peso en la que vas a competir.'),
   paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']),
   idempotencyKey: z
     .string()
@@ -1118,6 +1133,28 @@ export function createAthleteRoutes({
   }
 
   /** PLU §1.3: franja de edad (+ Open) según DOB y fecha del evento. */
+  function assertDeclaredWeightClass(sex, value) {
+    const canonical = canonicalDeclaredWeightClass(value)
+    if (!canonical || !isDeclaredWeightClassForSex(sex, canonical)) {
+      throw new HttpError(422, 'Seleccioná la categoría de peso en la que vas a competir.', {
+        code: 'WEIGHT_CLASS_INVALID',
+      })
+    }
+    return canonical
+  }
+
+  function embeddedRelation(value) {
+    return Array.isArray(value) ? (value[0] ?? null) : (value ?? null)
+  }
+
+  function assertRosterOpen(event) {
+    if (event?.roster_frozen_at) {
+      throw new HttpError(409, 'El padrón de este evento está cerrado después del pesaje.', {
+        code: 'ROSTER_FROZEN',
+      })
+    }
+  }
+
   function assertDivisionAllowedForAthlete(division, profile, event) {
     const birthDate = profile?.birth_date ?? profile?.birthDate ?? null
     const eventDate = event?.starts_at ?? event?.startsAt ?? null
@@ -1629,6 +1666,19 @@ export function createAthleteRoutes({
       if (req.validatedBody.gym) {
         req.validatedBody.gym = await resolveGymName(req.validatedBody.gym)
       }
+      if (typeof repo().athleteHasFrozenRoster === 'function' && typeof repo().findCompetitionProfile === 'function') {
+        const frozen = await repo().athleteHasFrozenRoster(auth.athleteId)
+        if (frozen) {
+          const current = await repo().findCompetitionProfile(auth.athleteId)
+          if (competitionProfileFieldsChanged(current, req.validatedBody)) {
+            throw new HttpError(
+              409,
+              'El padrón de tu evento está cerrado. División, equipamiento y peso estimado ya no se pueden cambiar.',
+              { code: 'ROSTER_FROZEN' },
+            )
+          }
+        }
+      }
       const row = await repo().update(auth.athleteId, req.validatedBody)
       if (typeof repo().resolveOpenProfileNotices === 'function') {
         await resolveProfileNoticesIfComplete({
@@ -1885,7 +1935,12 @@ export function createAthleteRoutes({
         await assertCompetitionProfileComplete(competitionProfile)
         const event = await repo().findEventPricing(eventSlug)
         if (!event) throw new HttpError(404, 'Evento no encontrado.')
+        assertRosterOpen(event)
         assertDivisionAllowedForAthlete(req.validatedBody.division, competitionProfile, event)
+        const declaredWeightClass = assertDeclaredWeightClass(
+          competitionProfile?.sex,
+          req.validatedBody.declaredWeightClass,
+        )
         assertEventPaymentChannelEnabled(toggles, 'registration', registrationChannel, {
           override: await manualChannelOverride(req.validatedBody, 'registration'),
           eventOverrides: event.payment_channel_overrides,
@@ -1916,6 +1971,7 @@ export function createAthleteRoutes({
             : null
         const created = await repo().createRegistration(auth.athleteId, {
           ...req.validatedBody,
+          declaredWeightClass,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
           defaultPrice: registrationWisePrice ? registrationWisePrice.amount : event.price,
           manualPrice: registrationWisePrice ? null : event.manual_price,
@@ -1985,6 +2041,7 @@ export function createAthleteRoutes({
         await assertCompetitionProfileComplete(competitionProfile)
         const event = await repo().findEventPricing(eventSlug)
         if (!event) throw new HttpError(404, 'Evento no encontrado.')
+        assertRosterOpen(event)
         assertDivisionAllowedForAthlete(req.validatedBody.division, competitionProfile, event)
         assertEventPaymentChannelEnabled(toggles, 'registration', comboChannel, {
           override: comboOverride,
@@ -2061,8 +2118,13 @@ export function createAthleteRoutes({
           comboChannel === 'wise_transfer'
             ? wisePriceFor({ concept: 'combo', arsAmount: comboOffer.price })
             : null
+        const declaredWeightClass = assertDeclaredWeightClass(
+          competitionProfile?.sex,
+          req.validatedBody.declaredWeightClass,
+        )
         const created = await repo().createRegistrationCombo(auth.athleteId, {
           ...req.validatedBody,
+          declaredWeightClass,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
           defaultPrice: comboWisePrice ? comboWisePrice.amount : comboOffer.price,
           manualPrice: comboWisePrice ? null : comboOffer.manualPrice,
@@ -2688,15 +2750,37 @@ export function createAthleteRoutes({
           throw new HttpError(404, 'No hay datos para exportar con esos filtros.')
         }
         const readiness = buildLiftersReadiness(liftersRows)
+        const filteredRows = filterLiftersRowsByCompleteness(
+          liftersRows,
+          liftersOptions.rowFilter,
+        )
+        const exportCheck = validateLifterExport(filteredRows)
+        const meetSummary = summarizeLifterMeet(filteredRows)
+        const importColumnsMissing = liftersImportColumnsMissing(liftersOptions)
         if (format === 'json') {
           res.setHeader('Cache-Control', 'no-store')
           res.json({
             readiness,
+            exportCheck,
+            meetSummary,
+            importColumnsMissing,
+            rows: liftersRows,
             options: liftersOptions,
             truncated: dataset.truncated,
             event: dataset.event,
           })
           return
+        }
+        if (!exportCheck.valid) {
+          throw new HttpError(422, 'Hay atletas con datos que no se pueden exportar.', {
+            code: 'LIFTERS_EXPORT_INVALID',
+            errors: exportCheck.issues.slice(0, 50),
+          })
+        }
+        if (importColumnsMissing) {
+          throw new HttpError(422, 'La plantilla de importación necesita todas las columnas.', {
+            code: 'LIFTERS_EXPORT_COLUMNS',
+          })
         }
         const slugPart = dataset.event?.slug
           ? `-${dataset.event.slug}`
@@ -2708,10 +2792,6 @@ export function createAthleteRoutes({
           .trim()
           .slice(0, 31) || 'Lifters'
         const columnKeys = resolveLiftersColumnKeys(liftersOptions)
-        const filteredRows = filterLiftersRowsByCompleteness(
-          liftersRows,
-          liftersOptions.rowFilter,
-        )
         const body =
           format === 'xls'
             ? serializeLiftersSpreadsheet(liftersRows, sheetName, liftersOptions)
@@ -3759,6 +3839,240 @@ export function createAthleteRoutes({
       }
     },
   )
+  const weightClassField = z
+    .string({
+      required_error: 'Seleccioná la categoría de peso en la que vas a competir.',
+      invalid_type_error: 'Seleccioná la categoría de peso en la que vas a competir.',
+    })
+    .trim()
+    .min(1, 'Seleccioná la categoría de peso en la que vas a competir.')
+
+  router.post(
+    '/admin/events/:eventSlug/roster-freeze',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(z.object({ frozen: z.boolean() })),
+    async (req, res, next) => {
+      try {
+        const eventSlug = String(req.params.eventSlug ?? '').trim()
+        if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(eventSlug)) {
+          throw new HttpError(400, 'El identificador del evento es inválido.')
+        }
+        const event = await repo().setEventRosterFrozen(eventSlug, req.validatedBody.frozen)
+        if (!event) throw new HttpError(404, 'Evento no encontrado.')
+        await recordOperationalAuditEvent(auditClient(), {
+          source: 'identity',
+          action: req.validatedBody.frozen ? 'event.roster_frozen' : 'event.roster_reopened',
+          entityType: 'event',
+          entityId: event.id,
+          actorType: 'staff',
+          actorId: actorLabel(req),
+          status: req.validatedBody.frozen ? 'frozen' : 'open',
+          severity: 'warning',
+          metadata: requestAuditMetadata(req, { slug: event.slug }),
+        })
+        res.json({ event })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/admin/registrations/weight-class/bulk',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(
+      z.object({
+        registrationIds: z.array(z.string().uuid()).min(1).max(100),
+        declaredWeightClass: weightClassField,
+      }),
+    ),
+    async (req, res, next) => {
+      try {
+        const ids = [...new Set(req.validatedBody.registrationIds)]
+        const rows = await repo().findRegistrationWeightClassContexts(ids)
+        if (!rows || rows.length !== ids.length) {
+          throw new HttpError(404, 'Alguna inscripción no existe.')
+        }
+        const frozen = rows
+          .map((row) => embeddedRelation(row.event))
+          .filter((event) => event?.roster_frozen_at)
+        if (frozen.length) {
+          throw new HttpError(409, 'El padrón de este evento está cerrado después del pesaje.', {
+            code: 'ROSTER_FROZEN',
+          })
+        }
+        const invalid = []
+        let canonical = ''
+        for (const row of rows) {
+          try {
+            canonical = assertDeclaredWeightClass(
+              embeddedRelation(row.athlete)?.sex,
+              req.validatedBody.declaredWeightClass,
+            )
+          } catch (error) {
+            invalid.push({
+              registrationId: row.id,
+              message: error.message,
+            })
+          }
+        }
+        if (invalid.length) {
+          throw new HttpError(422, 'Seleccioná la categoría de peso en la que vas a competir.', {
+            code: 'WEIGHT_CLASS_INVALID',
+            errors: invalid,
+          })
+        }
+        const updated = await repo().updateDeclaredWeightClasses(ids, canonical, actorLabel(req))
+        await recordOperationalAuditEvent(auditClient(), {
+          source: 'identity',
+          action: 'registration.declared_weight_class_bulk',
+          entityType: 'event_registration',
+          entityId: 'bulk',
+          actorType: 'staff',
+          actorId: actorLabel(req),
+          status: 'updated',
+          severity: 'info',
+          metadata: requestAuditMetadata(req, {
+            count: updated?.length ?? ids.length,
+            declaredWeightClass: canonical,
+          }),
+        })
+        res.json({ updated })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/admin/registrations/:registrationId/weight-class',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(
+      z.object({
+        declaredWeightClass: z
+          .string({
+            required_error: 'Seleccioná la categoría de peso en la que vas a competir.',
+            invalid_type_error: 'Seleccioná la categoría de peso en la que vas a competir.',
+          })
+          .trim()
+          .min(1, 'Seleccioná la categoría de peso en la que vas a competir.'),
+      }),
+    ),
+    async (req, res, next) => {
+      try {
+        const registrationId = z.string().uuid().safeParse(req.params.registrationId)
+        if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
+        const current = await repo().findRegistrationWeightClassContext(registrationId.data)
+        if (!current) throw new HttpError(404, 'Inscripción no encontrada.')
+        assertRosterOpen(embeddedRelation(current.event))
+        const declaredWeightClass = assertDeclaredWeightClass(
+          embeddedRelation(current.athlete)?.sex,
+          req.validatedBody.declaredWeightClass,
+        )
+        const registration = await repo().updateDeclaredWeightClass(
+          registrationId.data,
+          declaredWeightClass,
+          actorLabel(req),
+        )
+        await recordOperationalAuditEvent(auditClient(), {
+          source: 'identity',
+          action: 'registration.declared_weight_class_updated',
+          entityType: 'event_registration',
+          entityId: registrationId.data,
+          actorType: 'staff',
+          actorId: actorLabel(req),
+          status: 'updated',
+          severity: 'info',
+          metadata: requestAuditMetadata(req, { declaredWeightClass }),
+        })
+        res.json({ registration })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/admin/registrations/:registrationId/weigh-in',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(
+      z.object({
+        weighInBodyweightKg: z.number().min(20).max(400).nullable(),
+      }),
+    ),
+    async (req, res, next) => {
+      try {
+        const registrationId = z.string().uuid().safeParse(req.params.registrationId)
+        if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
+        const current = await repo().findRegistrationWeightClassContext(registrationId.data)
+        if (!current) throw new HttpError(404, 'Inscripción no encontrada.')
+        assertRosterOpen(embeddedRelation(current.event))
+        const registration = await repo().updateWeighInBodyweight(
+          registrationId.data,
+          req.validatedBody.weighInBodyweightKg,
+          actorLabel(req),
+        )
+        await recordOperationalAuditEvent(auditClient(), {
+          source: 'identity',
+          action: 'registration.weigh_in_recorded',
+          entityType: 'event_registration',
+          entityId: registrationId.data,
+          actorType: 'staff',
+          actorId: actorLabel(req),
+          status: req.validatedBody.weighInBodyweightKg == null ? 'cleared' : 'updated',
+          severity: 'info',
+          metadata: requestAuditMetadata(req, {
+            weighInBodyweightKg: req.validatedBody.weighInBodyweightKg,
+          }),
+        })
+        res.json({ registration })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/admin/registrations/:registrationId/official-weight-class',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(
+      z.object({
+        officialWeightClass: z.string().trim().max(8),
+      }),
+    ),
+    async (req, res, next) => {
+      try {
+        const registrationId = z.string().uuid().safeParse(req.params.registrationId)
+        if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
+        const current = await repo().findRegistrationWeightClassContext(registrationId.data)
+        if (!current) throw new HttpError(404, 'Inscripción no encontrada.')
+        const raw = req.validatedBody.officialWeightClass
+        const officialWeightClass = raw
+          ? assertDeclaredWeightClass(embeddedRelation(current.athlete)?.sex, raw)
+          : null
+        const registration = await repo().updateOfficialWeightClass(
+          registrationId.data,
+          officialWeightClass,
+          actorLabel(req),
+        )
+        await recordOperationalAuditEvent(auditClient(), {
+          source: 'identity',
+          action: 'registration.official_weight_class_updated',
+          entityType: 'event_registration',
+          entityId: registrationId.data,
+          actorType: 'staff',
+          actorId: actorLabel(req),
+          status: officialWeightClass ? 'updated' : 'cleared',
+          severity: 'info',
+          metadata: requestAuditMetadata(req, { officialWeightClass }),
+        })
+        res.json({ registration })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
   router.post(
     '/admin/registrations/:registrationId/competition-correction',
     ...registrationWriteGuard,
@@ -3774,6 +4088,9 @@ export function createAthleteRoutes({
       try {
         const registrationId = z.string().uuid().safeParse(req.params.registrationId)
         if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
+        const current = await repo().findRegistrationWeightClassContext(registrationId.data)
+        if (!current) throw new HttpError(404, 'Inscripción no encontrada.')
+        assertRosterOpen(embeddedRelation(current.event))
         res.json({
           registration: await repo().correctRegistrationCompetition(
             registrationId.data,

@@ -814,10 +814,12 @@ const BODIES = {
   }),
 
   ticket_confirmation: (p) => ({
-    title: 'Tu entrada',
-    preheader: `Entrada para ${p.eventTitle}.`,
+    title: 'Tu QR está habilitado',
+    preheader: `Ya podés ingresar a ${p.eventTitle}.`,
     body: [
-      paragraph(`${greeting(p.name)} esta es tu entrada para ${escapeHtml(p.eventTitle)}.`),
+      paragraph(
+        `${greeting(p.name)} acreditamos tu pago. Tu QR de ingreso para ${escapeHtml(p.eventTitle)} ya está habilitado.`,
+      ),
       dataPanel([
         ['Evento', p.eventTitle],
         ['Fecha', formatDate(p.eventDate)],
@@ -826,10 +828,10 @@ const BODIES = {
         ['Cantidad', p.quantity],
         ['Código', p.reference],
       ]),
-      button(p.ticketUrl, 'Ver entrada'),
+      button(p.ticketUrl, 'Ver mi QR'),
       fallbackLink(p.ticketUrl),
       paragraph(
-        'Te va a pedir el mail con el que compraste para mostrarte el QR. Presentalo desde el celular.',
+        'Abrí el enlace, ingresá el mail con el que compraste y presentá el QR desde el celular.',
         { muted: true },
       ),
     ].join(''),

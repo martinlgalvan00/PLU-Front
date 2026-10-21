@@ -1280,6 +1280,9 @@ export default {
         division: 'División',
         category: 'Categoría',
         weight: 'Peso declarado (kg)',
+        weightClass: 'Categoría de peso *',
+        weightClassSuggestion:
+          'Según el peso corporal, la clase sería {{className}} kg. No se cambia sola.',
         choose: 'Elegí una opción',
         paymentLegend: 'Cómo lo pagás',
         gatewayNote: 'Se paga en el checkout del torneo, con tarjeta o dinero en cuenta.',
@@ -1289,7 +1292,7 @@ export default {
           'Con este código podés pagarlo ahora o más tarde: quedás habilitado igual mientras corra el plazo.',
         submit: 'Confirmar y pagar {{amount}}',
         goToGateway: 'Ir a pagar con Mercado Pago',
-        incomplete: 'Completá división, categoría y peso declarado para seguir.',
+        incomplete: 'Completá división, categoría, categoría de peso y peso declarado para seguir.',
       },
     },
     benefits: {
@@ -3862,6 +3865,9 @@ export default {
       confirmationCount_other: '{{count}} entradas',
       confirmationQrLead:
         'Cuando el pago se confirma, cada entrada queda con su QR de ingreso listo para presentar en puerta.',
+      qrHeldLead:
+        'Tu QR todavía no abre la puerta. Cuando acreditemos la transferencia o el efectivo, te avisamos a este mail y vas a poder verlo acá.',
+      qrHeldTicket: 'QR pendiente de habilitación',
       sealEyebrow: 'Compra confirmada',
       sealDetail: '{{amount}} acreditados. Ya podés presentar el QR en la puerta.',
       shareCta: 'Compartir por WhatsApp',
@@ -3957,7 +3963,11 @@ export default {
       checkoutContinue: 'Continuar al pago',
       checkoutRegistrationLine: 'Inscripción',
       competitionFormTitle: 'Definí tu entrada',
-      competitionFormDesc: 'División, modalidad y categoría.',
+      competitionFormDesc: 'División, modalidad, categoría de peso y peso declarado.',
+      weightClass: 'Categoría de peso *',
+      weightClassPlaceholder: 'Seleccioná la categoría',
+      weightClassSuggestion:
+        'Según el peso corporal, la clase sería {{className}} kg. No se cambia sola: podés competir en otra.',
       divisionAgeHint:
         'Según tu edad al evento: {{division}}. Si aplica, también podés elegir Open.',
       packageLegend: 'Paquete',
@@ -4331,6 +4341,7 @@ export default {
     division: 'Seleccioná una división.',
     divisionAge: 'Esa división no corresponde a tu edad en la fecha del evento.',
     category: 'Seleccioná una categoría.',
+    weightClass: 'Seleccioná la categoría de peso en la que vas a competir.',
     weight: 'Ingresá un peso entre 10 y 250 kg.',
     invalid: 'Datos inválidos',
     attendeeName: 'Falta el nombre',

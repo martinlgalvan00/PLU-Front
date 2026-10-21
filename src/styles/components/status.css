@@ -200,13 +200,13 @@
 }
 
 /* ---- Toast de sesión ----
-   Recibo editorial discreto bajo el header, alineado con la cuenta: la
-   sesión vive arriba a la derecha y el aviso nace ahí sin tapar la
-   navegación. Iniciales, eyebrow + nombre completo, acción como enlace y
-   cierre. Un único filete inferior se consume con DISMISS_MS. */
+   Recibo editorial bajo el header, centrado en el viewport: no tapa la
+   navegación y no se esconde contra la cuenta. Emblema, eyebrow + nombre,
+   acción como enlace y cierre. Un único filete inferior se consume con
+   DISMISS_MS. */
 .session-notice {
   align-items: flex-start;
-  justify-content: flex-end;
+  justify-content: center;
   padding: calc(var(--header-height, 62px) + 20px) var(--space-md) 0;
 }
 
@@ -219,12 +219,12 @@
   border: 1px solid var(--plu-glass-border);
   border-radius: 22px;
   box-shadow: var(--plu-glass-shadow);
-  max-width: min(100%, 372px);
+  max-width: min(92vw, 420px);
   overflow: hidden;
-  padding: 16px 14px 18px 16px;
+  padding: 16px;
   pointer-events: auto;
   position: relative;
-  width: 100%;
+  width: fit-content;
 }
 
 .session-notice--out .session-notice__card {
@@ -341,7 +341,7 @@
   flex: none;
   height: 28px;
   justify-content: center;
-  margin: -2px -2px 0 0;
+  margin: -2px -2px 0 2px;
   position: relative;
   transition:
     background-color var(--motion-fast, 160ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
@@ -420,12 +420,7 @@
 
 @media (max-width: 480px) {
   .session-notice {
-    justify-content: center;
     padding-inline: var(--space-3, 12px);
-  }
-
-  .session-notice__card {
-    max-width: 100%;
   }
 }
 

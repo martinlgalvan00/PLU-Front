@@ -34,6 +34,7 @@ import '../../styles/pages/admin-event-dashboard.css'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatDayMonth, money } from '../../lib/format.js'
 import { buildEventPagePath } from '../../lib/eventPageRoute.js'
+import { openEventChannelsFor } from '../../lib/eventPaymentChannels.js'
 import { buildSecurityGatePath } from '../../lib/securityGateRoute.js'
 import { TICKETS_PATH } from '../../lib/ticketsRoute.js'
 import {
@@ -323,6 +324,12 @@ export default function AdminEventWorkspace({
     {
       id: 'payment',
       label: t('admin.eventEditor.salesChapterPayment'),
+      value: t('admin.eventEditor.salesChapterPaymentMeta', {
+        count: openEventChannelsFor(
+          summarySource?.paymentChannelOverrides ?? event.paymentChannelOverrides ?? null,
+          'ticket',
+        ).length,
+      }),
     },
     {
       id: 'sold',
