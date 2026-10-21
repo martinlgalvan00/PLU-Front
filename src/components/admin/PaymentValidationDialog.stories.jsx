@@ -62,6 +62,36 @@ export const ValidacionConComprobante = {
   },
 }
 
+/**
+ * Transferencia de entradas sin archivo: la ficha pide el motivo y lista a
+ * cada asistente antes de habilitar el QR.
+ */
+export const EntradaSinComprobante = {
+  args: {
+    item: {
+      type: 'ticket',
+      orderId: 'ticket-order-1',
+      requiresProofOverride: true,
+      hasProof: false,
+      paymentProofPath: null,
+      subject: 'Hernán Ali (55954736) · Cristhian Godoy (95994950) · José Martínez (30743158)',
+      subjects: [
+        'Hernán Ali (55954736)',
+        'Cristhian Godoy (95994950)',
+        'José Martínez (30743158)',
+        'Angelo Ruiz (40111222)',
+      ],
+      method: 'Transferencia',
+      detail: 'Pitbull Classic · TORD-1',
+      meta: '$ 60.000',
+    },
+    mode: 'validate',
+    onCancel: () => {},
+    onConfirm: () => {},
+    onReject: () => {},
+  },
+}
+
 export const ConsultaConComprobante = {
   args: {
     item: PAYMENT_WITH_PROOF,
