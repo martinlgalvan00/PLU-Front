@@ -31,9 +31,10 @@ function apiMessage(error, fallback) {
  * edición, renovación, archivo y baja en un solo lugar; cada evento después
  * elige cuál usa desde su editor.
  *
- * Composición: flujo abierto dentro del bloque de "Acceso y habilitación",
- * una lista por medio, sin tarjetas. Cada fila dice quién cobra, si puede
- * seguir cobrando y dónde se usa; las acciones van a la derecha.
+ * Composición: flujo abierto dentro del bloque de "Acceso y habilitación".
+ * En ancho, Mercado Pago y bancos van en columnas; en angosto se apilan.
+ * Cada fila dice quién cobra, si puede seguir cobrando y dónde se usa; las
+ * acciones van a la derecha. Sin tarjetas.
  */
 export default function PaymentAccountsPanel({ t, locale = 'es', canEdit = false }) {
   const [state, setState] = useState({
@@ -438,7 +439,7 @@ export default function PaymentAccountsPanel({ t, locale = 'es', canEdit = false
             key={profile.id}
             className={`payment-accounts__item${profile.active ? '' : ' payment-accounts__item--archived'}`}
           >
-            <div className="payment-accounts__main">
+            <div className="payment-accounts__head">
               <p className="payment-accounts__name">
                 {profile.name}
                 {profile.active ? null : (
@@ -447,6 +448,9 @@ export default function PaymentAccountsPanel({ t, locale = 'es', canEdit = false
                   </span>
                 )}
               </p>
+              {renderActions(profile, kind)}
+            </div>
+            <div className="payment-accounts__main">
               {kind === 'mercado_pago' ? (
                 <MercadoPagoAccountStatus t={t} locale={locale} profile={profile} />
               ) : (
@@ -456,7 +460,6 @@ export default function PaymentAccountsPanel({ t, locale = 'es', canEdit = false
               )}
               <p className="payment-accounts__usage">{usageText(profile.usage)}</p>
             </div>
-            {renderActions(profile, kind)}
             {editing?.id === profile.id ? renderForm(kind) : null}
           </li>
         ))}
@@ -560,10 +563,13 @@ export default function PaymentAccountsPanel({ t, locale = 'es', canEdit = false
       ) : null}
 
       {!state.loading && !state.error ? (
-        <>
+        <div className="payment-accounts__columns">
           <div className="payment-accounts__group" role="group" aria-labelledby="payment-accounts-mp-title">
             <header className="payment-accounts__group-head">
-              <h3 id="payment-accounts-mp-title">{t('admin.paymentAccounts.sectionMercadoPago')}</h3>
+              <div className="payment-accounts__group-title">
+                <h3 id="payment-accounts-mp-title">{t('admin.paymentAccounts.sectionMercadoPago')}</h3>
+                <span className="payment-accounts__count">{mercadoPago.length}</span>
+              </div>
               {canEdit && state.oauth.available ? (
                 <MercadoPagoConnectControl
                   t={t}
@@ -591,7 +597,10 @@ export default function PaymentAccountsPanel({ t, locale = 'es', canEdit = false
 
           <div className="payment-accounts__group" role="group" aria-labelledby="payment-accounts-bank-title">
             <header className="payment-accounts__group-head">
-              <h3 id="payment-accounts-bank-title">{t('admin.paymentAccounts.sectionBank')}</h3>
+              <div className="payment-accounts__group-title">
+                <h3 id="payment-accounts-bank-title">{t('admin.paymentAccounts.sectionBank')}</h3>
+                <span className="payment-accounts__count">{bank.length}</span>
+              </div>
               {canEdit ? (
                 <button
                   type="button"
@@ -607,7 +616,7 @@ export default function PaymentAccountsPanel({ t, locale = 'es', canEdit = false
             {editing && editing.id === null ? renderForm('bank_transfer') : null}
             {renderList(bank, 'bank_transfer')}
           </div>
-        </>
+        </div>
       ) : null}
 
       {deleteTarget ? (

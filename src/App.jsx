@@ -75,6 +75,7 @@ import {
   canViewAdmin,
   canViewScanReport,
   getRoleLabel,
+  hasAccountSession,
   isCheckinOnly,
   isPluUsaPartner,
   isStaffSession,
@@ -268,14 +269,17 @@ export default function App() {
 
     let cancelled = false
     void app.enterAthleteContext().catch((error) => {
-      if (!cancelled) {
-        console.warn('No se pudo abrir el contexto de atleta tras restaurar la sesión.', error)
-      }
+      if (cancelled) return
+      console.warn('No se pudo abrir el contexto de atleta tras restaurar la sesión.', error)
+      if (error?.status !== 401) return
+      app.clearInvalidSession()
+      if (buildPublicViewPath('login')) pushPublicViewPath('login')
+      setView('login')
     })
     return () => {
       cancelled = true
     }
-  }, [app.enterAthleteContext, app.session, app.sessionPending, view])
+  }, [app.clearInvalidSession, app.enterAthleteContext, app.session, app.sessionPending, view])
 
   useEffect(() => {
     // Sin behavior explícito: hereda `scroll-behavior` de CSS, que ya
@@ -455,6 +459,15 @@ export default function App() {
           currentRole = currentSession?.role
         } catch (error) {
           console.warn('No se pudo abrir el contexto de atleta para el staff.', error)
+          // 401: la cookie de staff ya no existe. El avatar no puede seguir.
+          // Otro error: el staff sigue adentro; no se lo manda al login.
+          if (error?.status === 401) {
+            app.clearInvalidSession()
+            currentSession = null
+            currentRole = undefined
+          } else {
+            return
+          }
         }
       }
 
@@ -500,6 +513,9 @@ export default function App() {
       }
 
       if (blocked && athleteRequired) {
+        if (!isStaffSession(currentSession) && !hasAccountSession(currentSession)) {
+          app.clearInvalidSession()
+        }
         setPendingAthleteDestination({ view: requestedView, options: requestedOptions })
       } else if (resumedAthleteDestination || (view === 'login' && resolvedView !== 'login')) {
         setPendingAthleteDestination(null)
@@ -558,7 +574,7 @@ export default function App() {
       setTransitionDirection(getTransitionDirection(view, resolvedView))
       setView(resolvedView)
     },
-    [publicEvents, getSession, pendingAthleteDestination, view, app.enterAthleteContext, app.returnToStaffContext],
+    [publicEvents, getSession, pendingAthleteDestination, view, app.enterAthleteContext, app.returnToStaffContext, app.clearInvalidSession],
   )
 
   // Alias deprecado: `/pitbull` → `/evento/pitbull-classic-2026`.
