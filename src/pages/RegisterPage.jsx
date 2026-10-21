@@ -47,6 +47,7 @@ import RegisterProfileWelcome from '../components/ui/RegisterProfileWelcome.jsx'
 import MercadoPagoEmbeddedCheckout from '../components/ui/MercadoPagoEmbeddedCheckout.jsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
+import { suggestWeightClass, weightClassLabelsForSex } from '../../shared/pluWeightClasses.js'
 import { getFormOptions } from '../lib/formOptions.js'
 import { isNewGymName } from '../lib/gymNormalize.js'
 import { formatShortDate, formatShortStamp, money } from '../lib/format.js'
@@ -436,6 +437,7 @@ function RegisterCompetitionAside({
   const picks = [
     form.division,
     form.category,
+    form.declaredWeightClass ? `${form.declaredWeightClass} kg` : '',
     form.estimatedWeight ? `${form.estimatedWeight} kg` : '',
   ]
     .filter(Boolean)
@@ -507,8 +509,16 @@ export default function RegisterPage({
     () => ({
       birthDate: athlete?.birthDate ?? null,
       eventDate: competitionEventDate,
+      sex: athlete?.sex ?? null,
     }),
-    [athlete?.birthDate, competitionEventDate],
+    [athlete?.birthDate, athlete?.sex, competitionEventDate],
+  )
+  const weightClassOptions = useMemo(
+    () => [
+      ['', t('pages.register.weightClassPlaceholder')],
+      ...weightClassLabelsForSex(athlete?.sex).map((label) => [label, `${label} kg`]),
+    ],
+    [athlete?.sex, t],
   )
   const ageDivision = useAgeDivisionOptions({
     birthDate: flow === 'competition' ? athlete?.birthDate ?? null : null,
@@ -766,6 +776,7 @@ export default function RegisterPage({
       committedCompetitionRegistration.division,
       committedCompetitionRegistration.category,
       committedCompetitionRegistration.bodyweightKg,
+      committedCompetitionRegistration.declaredWeightClass,
     ].join(':')
     if (committedCompetitionPrefillRef.current === prefillKey) return
     committedCompetitionPrefillRef.current = prefillKey
@@ -773,6 +784,7 @@ export default function RegisterPage({
       ['division', committedCompetitionRegistration.division],
       ['category', committedCompetitionRegistration.category],
       ['estimatedWeight', committedCompetitionRegistration.bodyweightKg],
+      ['declaredWeightClass', committedCompetitionRegistration.declaredWeightClass],
     ].forEach(([name, value]) => {
       if (value !== null && value !== undefined && value !== '') {
         onUpdateForm({ target: { name, value: String(value) } })
@@ -2717,6 +2729,17 @@ export default function RegisterPage({
           onChange={changeField}
           options={formOptions.category}
         />
+        <Select
+          className="register-competition-weight-class"
+          disabled={Boolean(committedCompetitionRegistration)}
+          error={errors.declaredWeightClass}
+          label={t('pages.register.weightClass')}
+          name="declaredWeightClass"
+          options={weightClassOptions}
+          value={form.declaredWeightClass ?? ''}
+          onBlur={blurField}
+          onChange={changeField}
+        />
         <Field
           className="register-competition-weight"
           disabled={Boolean(committedCompetitionRegistration)}
@@ -2729,6 +2752,15 @@ export default function RegisterPage({
           onBlur={blurField}
           onChange={changeField}
         />
+        {suggestWeightClass(athlete?.sex, form.estimatedWeight) &&
+        suggestWeightClass(athlete?.sex, form.estimatedWeight) !== form.declaredWeightClass &&
+        !committedCompetitionRegistration ? (
+          <p className="register-competition-division-hint" role="status">
+            {t('pages.register.weightClassSuggestion', {
+              className: suggestWeightClass(athlete?.sex, form.estimatedWeight),
+            })}
+          </p>
+        ) : null}
         {ageDivision.hasAgeRule && ageDivision.suggested && !committedCompetitionRegistration ? (
           <p className="register-competition-division-hint" role="status">
             {t('pages.register.divisionAgeHint', { division: ageDivision.suggested })}

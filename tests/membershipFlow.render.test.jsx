@@ -115,6 +115,7 @@ const ATHLETE = {
   id: 'ath-1',
   fullName: 'Ana Torres',
   documentId: '30111222',
+  sex: 'Femenino',
   photoUrl: null,
   // Estable de por vida: existe desde el alta, mucho antes de cualquier pago.
   credentialToken: 'a4f1c0de-0000-4000-8000-000000000001',
@@ -166,6 +167,7 @@ function renderRegister({
     paymentMethod: 'mercado_pago',
     division: 'Open',
     category: 'Raw',
+    declaredWeightClass: '75',
     estimatedWeight: '83',
   },
 } = {}) {

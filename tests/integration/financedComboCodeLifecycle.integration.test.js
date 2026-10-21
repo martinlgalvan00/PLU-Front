@@ -270,6 +270,7 @@ describe('código-paquete financiado, de punta a punta', () => {
         division: 'Open',
         category: 'Raw',
         bodyweightKg: 90,
+        declaredWeightClass: '90',
         paymentMethod: 'manual_link',
         idempotencyKey: randomUUID(),
         discountCode: code,

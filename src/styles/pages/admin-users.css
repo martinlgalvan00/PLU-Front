@@ -1,8 +1,8 @@
 /* =============================================
    USUARIOS
    Hoja propia de la ruta (se importa desde UsersSection).
-   Orden de lectura: una sola barra (búsqueda, estado si hay más de uno,
-   permisos, y la única acción dorada: "Nuevo usuario") → planilla compacta.
+   Orden de lectura: una barra en dos grupos (filtros a la izquierda;
+   conteo, permisos y la única acción dorada a la derecha) → planilla compacta.
    Monocromo: la identidad es un monograma circular y la jerarquía la dan el
    peso y la atenuación (nombre en tinta, email apagado). El estado es punto +
    texto, sin pastillas. Lo menos frecuente o irreversible vive en un menú.
@@ -26,7 +26,21 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px var(--space-lg);
+  justify-content: space-between;
   min-height: 40px;
+}
+
+.admin-users__toolbar-filters {
+  align-items: center;
+  display: flex;
+  flex: 1 1 20rem;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  min-width: 0;
+}
+
+.admin-users__toolbar-filters:empty {
+  display: none;
 }
 
 .admin-users__search {
@@ -36,7 +50,7 @@
   display: flex;
   flex: 1 1 16rem;
   gap: 10px;
-  max-width: 26rem;
+  max-width: none;
   min-height: 38px;
   min-width: 0;
   transition: border-color var(--motion-fast) var(--ease-out);
@@ -100,7 +114,7 @@
   outline-offset: 2px;
 }
 
-/* Estado: un selector sin caja. Solo existe si hay más de un estado. */
+/* Estado y rol: filete siempre visible. El activo pasa a tinta, no a oro. */
 .admin-users__filter,
 .admin-users__role-select {
   align-items: center;
@@ -131,17 +145,18 @@
 }
 
 .admin-users__filter select {
-  margin-left: -8px;
+  border-color: var(--admin-hairline-strong);
 }
 
 .admin-users__filter.is-active select {
+  border-color: var(--admin-ink);
   color: var(--admin-ink);
   font-weight: 600;
 }
 
 .admin-users__filter select:hover,
 .admin-users__role-select select:hover:not(:disabled) {
-  border-color: var(--admin-hairline-strong);
+  border-color: var(--admin-ink);
   color: var(--admin-ink);
 }
 
@@ -188,13 +203,17 @@ tr:hover .admin-users__role-select svg,
   color: var(--admin-muted);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-  margin-left: auto;
+  white-space: nowrap;
 }
 
 .admin-users__toolbar-actions {
   align-items: center;
   display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
   gap: var(--space-md);
+  justify-content: flex-end;
+  margin-left: auto;
 }
 
 /* "Permisos por rol": acción secundaria, texto con icono, sin caja. */
@@ -1058,13 +1077,16 @@ tr:hover .admin-users__role-select svg,
 }
 
 @media (max-width: 720px) {
+  .admin-users__toolbar-filters,
   .admin-users__search {
     flex-basis: 100%;
     max-width: none;
   }
 
   .admin-users__toolbar-actions {
+    justify-content: flex-end;
     margin-left: auto;
+    width: 100%;
   }
 
   .admin-users__form {

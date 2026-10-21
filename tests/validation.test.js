@@ -116,26 +116,43 @@ describe('validation', () => {
       ({
         'validation.divisionAge': 'División no válida por edad.',
         'validation.invalid': 'Datos inválidos',
+        'validation.weightClass': 'Seleccioná la categoría de peso en la que vas a competir.',
       })[key] ?? key
 
     const form = {
       division: 'Masters',
       category: 'Raw',
+      declaredWeightClass: '90',
       estimatedWeight: '83',
       paymentMethod: 'mercado_pago',
     }
-    const rejected = validateCompetitionForm(form, t, {
+    const age = {
       birthDate: '2005-06-01',
       eventDate: '2026-10-19',
-    })
+      sex: 'Masculino',
+    }
+    const rejected = validateCompetitionForm(form, t, age)
     expect(rejected.success).toBe(false)
     expect(rejected.errors.division).toBe('División no válida por edad.')
 
-    const accepted = validateCompetitionForm(
-      { ...form, division: 'Open' },
-      t,
-      { birthDate: '2005-06-01', eventDate: '2026-10-19' },
-    )
+    const accepted = validateCompetitionForm({ ...form, division: 'Open' }, t, age)
     expect(accepted.success).toBe(true)
+
+    const missingClass = validateCompetitionForm(
+      { ...form, division: 'Open', declaredWeightClass: '' },
+      t,
+      age,
+    )
+    expect(missingClass.success).toBe(false)
+    expect(missingClass.errors.declaredWeightClass).toBe(
+      'Seleccioná la categoría de peso en la que vas a competir.',
+    )
+
+    const womenClassOnMan = validateCompetitionForm(
+      { ...form, division: 'Open', declaredWeightClass: '44' },
+      t,
+      age,
+    )
+    expect(womenClassOnMan.success).toBe(false)
   })
 })

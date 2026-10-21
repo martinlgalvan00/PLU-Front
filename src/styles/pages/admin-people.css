@@ -11,6 +11,7 @@
 
 .admin-people-section {
   gap: var(--space-md);
+  min-width: 0;
 }
 
 .admin-shell .admin-people-section .admin-list-section__chrome {
@@ -90,6 +91,18 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Competencia lleva identidad, peso y la acción de pesaje: no entra en una línea. */
+.admin-shell .admin-people-section .admin-data-table--fit td.data-table__column--meet {
+  height: auto;
+  vertical-align: top;
+}
+
+.admin-shell .admin-people-section .admin-data-table--fit td.data-table__column--meet .data-table__cell-content {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .admin-shell .admin-people-section .admin-data-table--fit .ant-table-selection-column {
@@ -186,68 +199,78 @@
   width: 6px;
 }
 
-/* ---- Selección de perfiles incompletos: una línea, no una banda ---- */
+/* ---- Selección de incompletos: comparte la fila de etiquetas, no una banda ---- */
 
-.admin-shell .admin-people-section .admin-athletes-select-incomplete {
+.admin-shell .admin-people-section .admin-toolbar__tags .admin-athletes-select-incomplete {
   align-items: center;
   background: transparent;
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  display: flex;
-  gap: 14px;
+  display: inline-flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  margin: 0;
+  max-width: 100%;
   min-height: 0;
-  padding: 0 0 10px;
+  padding: 0;
+  width: auto;
 }
 
-.admin-shell .admin-people-section .admin-athletes-select-incomplete::before {
+.admin-shell .admin-people-section .admin-toolbar__tags .admin-athletes-select-incomplete::before {
   display: none;
 }
 
-.admin-shell .admin-people-section .admin-athletes-select-incomplete__stat {
+.admin-shell .admin-people-section .admin-toolbar__tags .admin-athletes-select-incomplete__stat {
   align-items: baseline;
   display: inline-flex;
   gap: 6px;
   margin: 0;
 }
 
-.admin-shell .admin-people-section .admin-athletes-select-incomplete__n {
+.admin-shell .admin-people-section .admin-toolbar__tags .admin-athletes-select-incomplete__n {
   color: var(--admin-ink);
   font-family: inherit;
   font-size: 13px;
   font-weight: 650;
 }
 
-.admin-shell .admin-people-section .admin-athletes-select-incomplete__label {
+.admin-shell .admin-people-section .admin-toolbar__tags .admin-athletes-select-incomplete__label {
   color: var(--admin-text-secondary);
   font-size: 13px;
 }
 
-.admin-shell .admin-people-section .admin-athletes-select-incomplete__btn,
-.admin-shell .admin-people-section .admin-athletes-select-incomplete__ghost {
+.admin-shell .admin-people-section .admin-toolbar__tags .admin-athletes-select-incomplete__btn,
+.admin-shell .admin-people-section .admin-toolbar__tags .admin-athletes-select-incomplete__ghost {
   background: transparent;
   border: 0;
   border-radius: 6px;
   box-shadow: none;
   color: var(--admin-ink);
+  flex: none;
   font-size: 13px;
   font-weight: 600;
+  margin-left: 0;
   min-height: 0;
   padding: 4px 6px;
   text-decoration: underline;
   text-underline-offset: 3px;
+  width: auto;
 }
 
-.admin-shell .admin-people-section .admin-athletes-select-incomplete__btn:hover:not(:disabled),
-.admin-shell .admin-people-section .admin-athletes-select-incomplete__ghost:hover:not(:disabled) {
+.admin-shell .admin-people-section .admin-toolbar__tags .admin-athletes-select-incomplete__btn:hover:not(:disabled),
+.admin-shell .admin-people-section .admin-toolbar__tags .admin-athletes-select-incomplete__ghost:hover:not(:disabled) {
   background: var(--admin-row-hover);
 }
 
-.admin-shell .admin-people-section .admin-athletes-select-incomplete__actions {
+.admin-shell .admin-people-section .admin-toolbar__tags .admin-athletes-select-incomplete__actions {
   align-items: center;
   display: inline-flex;
+  flex: none;
   gap: 4px;
   margin: 0;
+  width: auto;
 }
 
 /* ---- Pie de paginación ---- */

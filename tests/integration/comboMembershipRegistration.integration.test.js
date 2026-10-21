@@ -184,6 +184,7 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
       division: 'Open',
       category: 'Raw',
       bodyweightKg: 90,
+      declaredWeightClass: '90',
       paymentMethod: 'manual_link',
       idempotencyKey,
     }
@@ -327,6 +328,7 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
         division: 'Open',
         category: 'Raw',
         bodyweightKg: 90,
+        declaredWeightClass: '90',
         paymentMethod: 'mercado_pago',
         idempotencyKey: randomUUID(),
       }),
@@ -570,6 +572,7 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
         division: 'Open',
         category: 'Raw',
         bodyweightKg: 90,
+        declaredWeightClass: '90',
         paymentMethod: 'manual_link',
         manualPaymentChannel: 'bank_transfer',
         idempotencyKey: randomUUID(),

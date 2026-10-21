@@ -204,25 +204,31 @@
   padding: 4px 0;
 }
 
-/* Cobro */
+/* Cobro: columna centrada en el panel ancho. Tinta y filetes; el dorado
+   queda solo en Guardar. El interruptor es la acción de cada medio. */
 .admin-shop-settings {
   display: grid;
-  gap: 24px;
+  gap: 28px;
+  margin-inline: auto;
   max-width: 40rem;
+  width: 100%;
 }
 
 .admin-shop-settings header h2 {
-  font-size: 18px;
+  font-size: 1.35rem;
   font-weight: 600;
-  margin: 0 0 4px;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0 0 8px;
 }
 
 .admin-shop-settings header p,
 .admin-shop-settings__switch small {
   color: var(--admin-muted, var(--color-text-muted));
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 13.5px;
+  line-height: 1.5;
   margin: 0;
+  text-wrap: pretty;
 }
 
 .admin-shop-settings__methods {
@@ -235,32 +241,97 @@
   display: grid;
   gap: 14px;
   margin: 0;
-  padding: 16px 0;
+  padding: 18px 0;
+}
+
+.admin-shop-settings__method:last-child {
+  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
 }
 
 .admin-shop-settings__switch {
-  align-items: start;
+  align-items: center;
   cursor: pointer;
   display: grid;
-  gap: 14px;
-  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  position: relative;
 }
 
-.admin-shop-settings__switch input {
-  accent-color: var(--admin-ink, #111);
-  height: 18px;
-  margin: 2px 0 0;
-  width: 18px;
+.admin-shop-settings__switch:has(.admin-shop-settings__switch-input:disabled) {
+  cursor: not-allowed;
 }
 
-.admin-shop-settings__switch span {
+.admin-shop-settings__switch-input {
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  width: 1px;
+}
+
+.admin-shop-settings__switch-copy {
   display: grid;
-  gap: 2px;
+  gap: 3px;
+  min-width: 0;
 }
 
 .admin-shop-settings__switch strong {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.admin-shop-settings__switch-ui {
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 14%, transparent);
+  border-radius: 99px;
+  display: block;
+  flex: none;
+  height: 22px;
+  position: relative;
+  width: 40px;
+}
+
+.admin-shop-settings__switch-ui::after {
+  background: var(--admin-surface, var(--color-bg-surface, #fff));
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 18%, transparent);
+  content: '';
+  height: 16px;
+  left: 3px;
+  position: absolute;
+  top: 3px;
+  width: 16px;
+}
+
+.admin-shop-settings__switch-input:checked ~ .admin-shop-settings__switch-ui {
+  background: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-shop-settings__switch-input:checked ~ .admin-shop-settings__switch-ui::after {
+  background: var(--admin-surface, var(--color-bg-surface));
+  box-shadow: none;
+  transform: translateX(18px);
+}
+
+.admin-shop-settings__switch-input:focus-visible ~ .admin-shop-settings__switch-ui {
+  outline: 2px solid var(--admin-ink, var(--color-text-primary));
+  outline-offset: 3px;
+}
+
+.admin-shop-settings__switch-input:disabled ~ .admin-shop-settings__switch-ui {
+  opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-shop-settings__switch-ui,
+  .admin-shop-settings__switch-ui::after {
+    transition:
+      background-color var(--motion-fast, 160ms) var(--ease-out, ease),
+      transform var(--motion-fast, 160ms) var(--ease-out, ease);
+  }
 }
 
 .admin-shop-settings__field {
@@ -278,7 +349,7 @@
 .admin-shop-settings__field textarea {
   background: transparent;
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--admin-ink, var(--color-text-primary));
   font: inherit;
   font-size: 14px;
@@ -288,17 +359,16 @@
   width: 100%;
 }
 
-.admin-shop-settings__field select:focus,
-.admin-shop-settings__field textarea:focus {
+.admin-shop-settings__field select:focus-visible,
+.admin-shop-settings__field textarea:focus-visible {
   border-color: var(--admin-ink, var(--color-text-primary));
-  outline: none;
+  outline: 2px solid var(--admin-ink, var(--color-text-primary));
+  outline-offset: 2px;
 }
 
 .admin-shop-settings__effective {
-  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: grid;
-  gap: 10px;
-  padding-top: 16px;
+  gap: 12px;
 }
 
 .admin-shop-settings__effective h3 {
@@ -311,8 +381,9 @@
 }
 
 .admin-shop-settings__effective ul {
-  display: grid;
-  gap: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -320,18 +391,23 @@
 
 .admin-shop-settings__effective li {
   align-items: center;
-  display: flex;
+  display: inline-flex;
   font-size: 13px;
   gap: 8px;
+  white-space: nowrap;
 }
 
 .admin-shop-settings__effective li small {
   color: var(--admin-muted, var(--color-text-muted));
-  margin-left: auto;
 }
 
 .admin-shop-settings__effective li[data-on='true'] .admin-shop-order__dot {
   background: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-shop-settings__effective li[data-on='false'] .admin-shop-order__dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--admin-muted, var(--color-text-muted));
 }
 
 .admin-shop-settings__effective p,
@@ -356,6 +432,12 @@
 .admin-shop-settings__foot p[data-tone='error'] {
   color: var(--admin-status-danger, var(--color-brand-red));
   font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .admin-shop-settings__effective li {
+    white-space: normal;
+  }
 }
 
 @media (min-width: 720px) {

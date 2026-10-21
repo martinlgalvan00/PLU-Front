@@ -36,15 +36,33 @@ GET /api/athletes/admin/export?type=admin|plu_usa&format=csv|xls&eventSlug=opcio
   permite. Mismatch duro = inscrita fuera de la franja + Open. En Lifters, filas
   con mismatch duro (sin faltantes) van en azul; incompletas en amarillo.
   Headers `X-PLU-Export-Division-Mismatch` y `X-PLU-Export-Division-Open-Upgrade`.
-- **Lifters:** columnas LiftingCast (sin lot/platform/session/racks/intentos) +
-  columnas de auditoría al final. `format=json` incluye `divisionMismatch` y
-  `divisionOpenUpgrade` en readiness.
-- **Studio Lifters (UI Inscripciones):** presets `audit` / `official` / `minimal` /
-  `contact`, filtro de filas (`all`/`complete`/`incomplete`), resaltar vacíos,
-  freeze y hoja **Summary** (totales + ranking de gaps + atletas incompletos).
-  Opciones en query (`preset`, `columns`, `rowFilter`, `highlightEmpty`,
-  `freezeHeader`, `includeSummarySheet`) y persistidas en `localStorage`
-  (`plu-lifters-export-options-v1`).
+- **Template LiftingCast:** el header de abajo es el que genera el sistema.
+  No hay un CSV oficial del importador en el repo, así que el esquema sigue
+  pendiente de comparación externa (nombres, orden, mayúsculas, delimitador
+  y encoding). Hasta esa comparación no se lo trata como contrato cerrado.
+- **Lifters:** header fijo de importación LiftingCast (`name` … `notes`,
+  incluyendo `lot`, `platform`, `session`, `flight`, openers, racks,
+  `declaredAwardsWeightClass` y `bodyWeight`). `declaredAwardsWeightClass`
+  lleva la categoría oficial del pesaje cuando está cargada; si no, la
+  categoría declarada en la inscripción. `bodyWeight` usa el peso del pesaje
+  cuando está cargado; si no, el peso declarado. Ninguno de los dos se pisa
+  al cargar el otro. `session` es la jornada, `flight` la tanda y `platform`
+  la plataforma ya asignadas en la grilla. `lot` es el orden por nombre
+  dentro de esa tanda; sin tanda queda vacío. La plantilla `official`/`audit` no se descarga si falta
+  una columna.
+  Una celda sin dato queda vacía;
+  la columna no se omite. Fechas `DD/MM/YYYY`. El peso conserva decimales.
+  La auditoría de división va en la hoja Summary, no en el header de importación.
+  `format=json` incluye `divisionMismatch` y `divisionOpenUpgrade` en readiness.
+- **Studio Lifters (UI Inscripciones):** cada columna se puede incluir o
+  sacar. Los presets `audit` y `official` marcan el header completo de
+  LiftingCast; `minimal` y `contact` arrancan con un subconjunto. El Excel
+  descarga exactamente las columnas marcadas, en el orden del template, con
+  celda vacía si el dato no está. Siguen el filtro de filas
+  (`all`/`complete`/`incomplete`), resaltar vacíos, freeze y la hoja
+  **Summary**. Opciones en query (`preset`, `columns`, `rowFilter`,
+  `highlightEmpty`, `freezeHeader`, `includeSummarySheet`) y persistidas en
+  `localStorage` (`plu-lifters-export-options-v1`).
 
 ## Columnas admin
 
