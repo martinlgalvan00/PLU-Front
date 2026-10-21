@@ -72,7 +72,13 @@ async function setup({ role = 'organizer' } = {}) {
   ]
   const prisma = createPrismaDouble(users, { zones })
   const supabase = createSupabase()
-  const target = listen(createApp({ prisma, supabaseAdmin: supabase.client }))
+  const target = listen(
+    createApp({
+      prisma,
+      supabaseAdmin: supabase.client,
+      env: { AUTH_SECRET: 'event-scope-team-test-secret', APP_URL: 'http://localhost:5173' },
+    }),
+  )
   const { cookie } = await loginStaff(target.url, { email: actor.email })
   return { target, cookie, users, zones }
 }

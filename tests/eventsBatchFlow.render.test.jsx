@@ -392,19 +392,16 @@ describe('medios de cobro en el alta, la lista y la publicación', () => {
     }
     renderEvents({}, { events: [PUBLISHED, withCash] })
 
-    const summaries = await waitFor(() => {
-      const found = [...document.querySelectorAll('.admin-event-row__pay')]
-      expect(found.length).toBe(2)
-      return found.map((node) => node.textContent)
+    await waitFor(() => {
+      const groups = [...document.querySelectorAll('.admin-event-row__pay-group')].map((node) =>
+        node.textContent.replace(/\s+/g, ' ').trim(),
+      )
+      // Pitbull Classic hereda: sólo Mercado Pago en inscripción.
+      expect(groups).toContain('InscripciónMercado Pago')
+      // Copa Otoño abre efectivo solo en inscripción y vende entradas.
+      expect(groups).toContain('InscripciónMercado Pago · Efectivo')
+      expect(groups).toContain('EntradasMercado Pago · Transferencia')
     })
-    // Pitbull Classic hereda: sólo Mercado Pago en inscripción.
-    expect(summaries.some((text) => /Inscripción\s*Mercado Pago$/.test(text))).toBe(true)
-    // Copa Otoño abre efectivo solo en inscripción y vende entradas.
-    expect(
-      summaries.some(
-        (text) => /Inscripción\s*Mercado Pago · Efectivo/.test(text) && /EntradasMercado Pago · Transferencia/.test(text),
-      ),
-    ).toBe(true)
   })
 
   it('el alta ofrece los medios de pago y los guarda como override del evento', async () => {

@@ -158,9 +158,9 @@ describe('liftersExport', () => {
     }
     const rows = buildLiftersExportRows(
       [
-        { id: 'r1', athleteId: 'a1', category: 'Raw', division: 'Open' },
-        { id: 'r2', athleteId: 'a2', category: 'Raw', division: 'Open' },
-        { id: 'r3', athleteId: 'a3', category: 'Raw', division: 'Open' },
+        { id: 'r1', athleteId: 'a1', category: 'Raw', division: 'Open', event: 'Pitbull Classic' },
+        { id: 'r2', athleteId: 'a2', category: 'Raw', division: 'Open', event: 'Pitbull Classic' },
+        { id: 'r3', athleteId: 'a3', category: 'Raw', division: 'Open', event: { title: 'Barbell Submission' } },
       ],
       [athlete, almostA, almostB],
       [],
@@ -171,6 +171,8 @@ describe('liftersExport', () => {
     expect(readiness.athletes.map((row) => row.name)).toEqual(
       expect.arrayContaining(['Incompleto A', 'Incompleto B']),
     )
+    expect(readiness.athletes.find((row) => row.name === 'Incompleto A')?.phone).toBe('1554564645')
+    expect(readiness.events).toEqual(['Barbell Submission', 'Pitbull Classic'])
     expect(readiness.fieldGaps[0].field).toBe('postalCode')
     expect(readiness.fieldGaps[0].count).toBe(2)
     expect(readiness.fieldGaps.find((gap) => gap.field === 'streetAddress')?.count).toBe(2)
