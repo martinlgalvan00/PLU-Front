@@ -52,6 +52,10 @@ function formatUploadedAt(value, locale) {
   })
 }
 
+function attendeeVisibleName(line) {
+  return String(line ?? '').replace(/\s+\([^)]*\)\s*$/, '').trim()
+}
+
 function ticketAttendeeLines(order, t) {
   const seen = new Set()
   const people = []
@@ -579,14 +583,28 @@ export default function TicketOrdersSection({
               label: t('admin.columns.attendee'),
               mobile: 'primary',
               sortable: true,
-              render: (row) => (
-                <div className="admin-orders-block__stack">
-                  <span className="admin-orders-block__concept" title={row.attendees}>
-                    {row.attendees}
-                  </span>
-                  <span className="data-table__mono admin-orders-block__ref">{row.reference}</span>
-                </div>
-              ),
+              render: (row) => {
+                const extra = Math.max(0, row.attendeeLines.length - 1)
+                return (
+                  <div className="admin-orders-block__stack">
+                    <span
+                      className="admin-orders-block__concept"
+                      title={row.attendees}
+                      aria-label={row.attendees}
+                    >
+                      <span className="admin-orders-block__concept-name">
+                        {attendeeVisibleName(row.attendeeLines[0])}
+                      </span>
+                      {extra > 0 ? (
+                        <span className="admin-orders-block__more">
+                          {t('admin.ticketOrders.moreAttendees', { count: extra })}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="data-table__mono admin-orders-block__ref">{row.reference}</span>
+                  </div>
+                )
+              },
             },
             {
               key: 'event',
