@@ -7,9 +7,12 @@
 
 .admin-proofs__actions {
   align-items: center;
+  border-top: 1px solid var(--admin-hairline);
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 20px;
+  column-gap: 28px;
+  padding-top: 20px;
+  row-gap: 14px;
 }
 
 .admin-proofs__link {
@@ -52,6 +55,11 @@
   line-height: 1.5;
   margin: 0;
   max-width: 70ch;
+}
+
+/* La ayuda del ZIP es una segunda línea, no un aviso pegado a los botones. */
+.admin-proofs__actions > .admin-proofs__help {
+  margin-top: 6px;
 }
 
 .admin-proofs__notice {
@@ -104,7 +112,7 @@
   border: 0;
   border-top: 1px solid var(--admin-hairline);
   display: grid;
-  gap: 16px;
+  gap: 24px;
   margin: 0;
   min-width: 0;
   padding: 20px 0 0;
@@ -283,9 +291,11 @@
 
 .admin-proofs__save {
   align-items: center;
+  border-top: 1px solid var(--admin-hairline);
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 16px;
+  gap: 12px 24px;
+  padding-top: 18px;
 }
 
 .admin-proofs__status {
@@ -304,11 +314,17 @@
 .admin-proofs__grace {
   border-top: 1px solid var(--admin-hairline);
   display: grid;
-  padding-top: 16px;
+  padding-top: 24px;
+}
+
+.admin-proofs__grace .admin-proofs__days-title {
+  color: var(--admin-text-secondary);
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .admin-proofs__grace .admin-proofs__days-picker {
-  gap: 10px;
+  gap: 12px;
   max-width: 70ch;
 }
 

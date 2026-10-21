@@ -439,12 +439,38 @@ export function createSupabaseTicketRepository(client) {
       const rows = assertSupabaseResult(await builder, 'No se pudo leer la serie de ventas.')
       return bucketByDay(rows ?? [], fromISO, toISO)
     },
-    async approve(orderId, actor) {
-      return rpc(
-        'staff_approve_ticket_order',
-        { p_order_id: orderId, p_actor: actor ?? null },
-        'No se pudo aprobar la orden.',
+    async approve(orderId, actor, { overrideReason = null } = {}) {
+      const order = assertSupabaseResult(
+        await client
+          .from('ticket_orders')
+          .select('provider, status, payment_proof_path, manual_payment_channel')
+          .eq('id', orderId)
+          .maybeSingle(),
+        'No se pudo leer la orden.',
       )
+      if (!order) throw new HttpError(404, 'Orden no encontrada.')
+      if (order.provider !== 'manual') {
+        throw new HttpError(400, 'Mercado Pago solo se acredita por webhook.')
+      }
+      const trimmedOverride =
+        typeof overrideReason === 'string' ? overrideReason.trim() || null : null
+      const hasProof =
+        typeof order.payment_proof_path === 'string' && order.payment_proof_path.trim().length > 0
+      const isCash = order.manual_payment_channel === 'cash_pitbull'
+      // Sin archivo, transferencia y Wise no se acreditan. El motivo viaja a la
+      // RPC, que lo vuelve a exigir y lo deja en la bitácora. El efectivo no lo pide.
+      if (!hasProof && !isCash && !trimmedOverride) {
+        throw new HttpError(
+          409,
+          'Para aprobar una transferencia sin comprobante hay que indicar un motivo.',
+        )
+      }
+      const approvalArgs = {
+        p_order_id: orderId,
+        p_actor: actor ?? null,
+      }
+      if (trimmedOverride) approvalArgs.p_override_reason = trimmedOverride
+      return rpc('staff_approve_ticket_order', approvalArgs, 'No se pudo aprobar la orden.')
     },
     async reject(orderId, reason, actor) {
       return rpc(

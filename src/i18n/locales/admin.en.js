@@ -457,6 +457,13 @@ export default {
     studioLead: 'Pick columns, rows and style before download. Saved in this browser.',
     presetLabel: 'Template',
     columnPicker: 'Excel columns',
+    columnGroups: {
+      identity: 'Athlete',
+      session: 'Session',
+      class: 'Class',
+      lifts: 'Attempts',
+      contact: 'Contact',
+    },
     importColumnsHint: 'LiftingCast import needs every column checked.',
     sheetColumns: {
       name: 'Name',
@@ -505,7 +512,9 @@ export default {
     declaredClassLabel: 'Declared class',
     officialClassLabel: 'Official class',
     editWeightClass: 'Edit declared class',
+    editDeclaredShort: 'Edit declared',
     editOfficialClass: 'Edit official class',
+    editOfficialShort: 'Edit official',
     clearOfficialClass: 'No official class',
     bulkWeightClass: 'Assign declared class',
     freezeRoster: 'Close roster after weigh-in',
@@ -516,8 +525,10 @@ export default {
     fileClassHint:
       'The file uses the official class when it exists. Otherwise it uses the declared class. Body weight in the file is the weigh-in weight once it is recorded.',
     weighInLabel: 'Weigh-in weight',
+    weighInShort: 'Weigh-in {{weight}} kg',
     recordWeighIn: 'Record weigh-in',
     classSuggestion: 'From the weight, the class would be {{className}} kg. It is not applied automatically.',
+    classSuggestionShort: 'Class from weight: {{className}} kg',
     rosterFrozenShort: 'Roster closed',
     meetSummary:
       '{{classes}} classes · {{small}} with 1 or 2 athletes · {{mismatches}} with declared class different from official · {{missingWeighIn}} missing weigh-in on a closed roster',
@@ -3126,6 +3137,7 @@ export default {
       registration_gate: 'Membership required',
       cancelled_registration: 'Cancellation not notified',
       membership: 'Membership',
+      ticket: 'Ticket',
       ticket_order: 'Ticket',
     },
     proofAttached: 'Receipt',
@@ -3469,6 +3481,17 @@ export default {
       'No receipt is attached. You can still credit with an override reason; it is recorded in the audit log under your name.',
     overrideAuditNote:
       'Crediting without a receipt is an operational exception: it activates the membership or registration and is stored in the audit log next to your user.',
+    ticketTitle: 'Enable the QR',
+    ticketLead: 'Check the receipt. Enabling opens the door and we email the buyer.',
+    ticketCashLead: 'Confirm the cash was received at the desk. Enabling opens the door and we email the buyer.',
+    ticketOverrideLead: 'There is no file. If the transfer is in, leave the reason and enable the QR.',
+    ticketOverrideAuditNote:
+      'Enabling without a receipt opens the QR and emails the buyer. It is stored in the audit log under your name.',
+    ticketSubject: 'Attendees',
+    ticketConfirm: 'Enable QR',
+    ticketConfirming: 'Enabling…',
+    ticketOverrideReasonPlaceholder:
+      'E.g.: transfer seen on the 10/21 statement; the buyer did not attach the file.',
     overrideReasonLabel: 'Override reason',
     overrideReasonPlaceholder:
       'E.g.: verified on the bank statement for 08/30; the athlete could not upload the file.',
@@ -3654,7 +3677,7 @@ export default {
         used: 'Entry is already recorded: scanning again does not add another.',
         expired: 'Its validity has passed. If they should get in, add an access exception.',
         upcoming: 'Its validity has not started yet. It becomes valid on its own.',
-        unpaid: 'The QR activates once payment is confirmed. Until then it opens no gate.',
+        unpaid: 'It turns on once the payment is confirmed.',
         cancelled: 'The ticket was cancelled: its QR no longer opens any gate.',
       },
     },
@@ -4624,7 +4647,7 @@ export default {
       ticketTypeChannelsInheritSummary:
         'Sold with the event payment methods. Those are set in Payments, not on each type.',
       ticketTypeChannelsCustomLead: 'This ticket only. The rest still uses the event methods.',
-      ticketTypeChannelsRestrict: 'Restrict this one',
+      ticketTypeChannelsRestrict: 'Choose methods for this ticket',
       ticketTypeChannelsUseEvent: 'Use event methods',
       ticketTypeChannelsHint:
         'It can only close: a method Finance or the event closed cannot be reopened here. When inheriting, the ticket picks up any method the event opens later.',
@@ -5730,7 +5753,7 @@ export default {
     paymentApproved: 'Payment approved',
     paymentRejected: 'Payment rejected',
     proofTrashed: 'Proof moved to the trash',
-    ticketApproved: 'Ticket order approved',
+    ticketApproved: 'QR enabled. We emailed the buyer.',
     ticketRejected: 'Ticket order rejected',
     manualTicketSaleApproved: 'Sale added: ticket issued and email sent',
     manualTicketSalePending: 'Sale added: pending proof review',

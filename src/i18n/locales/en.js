@@ -3823,6 +3823,9 @@ export default {
       confirmationCount_other: '{{count}} tickets',
       confirmationQrLead:
         'Once payment is confirmed, each ticket gets its entry QR ready to show at the door.',
+      qrHeldLead:
+        'Your QR does not open the door yet. When we credit the transfer or the cash payment, we email you and you can see it here.',
+      qrHeldTicket: 'QR waiting to be enabled',
       sealEyebrow: 'Purchase confirmed',
       sealDetail: '{{amount}} charged. You can already show the QR at the door.',
       shareCta: 'Share on WhatsApp',

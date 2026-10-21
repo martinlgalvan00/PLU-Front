@@ -265,6 +265,12 @@ export const createOrderSchema = z
   .superRefine(assertNoDuplicateDni)
 const accessSchema = z.object({ accessToken: z.string().trim().min(32) })
 const rejectOrderSchema = z.object({ reason: z.string().trim().min(3).max(500) })
+// Mismo piso que afiliaciones: acreditar transferencia o Wise sin archivo
+// exige un motivo. La RPC lo vuelve a chequear. Un POST vacío sigue valiendo
+// para efectivo y para órdenes que ya tienen comprobante.
+const approveOrderSchema = z.object({
+  overrideReason: z.string().trim().min(8).max(500).optional(),
+})
 
 const ticketOrderStatusEnum = z.enum([
   'creado',
@@ -1010,7 +1016,15 @@ export function createTicketRoutes({
         const approveOrderId = parseOrderId(req)
         await assertTicketOrderInScope(req, getSupabaseAdmin?.(), approveOrderId)
         assertValidationEnabled(await platformSettingsRepo().get(), 'ticket')
-        const result = await repo().approve(approveOrderId, actor(req))
+        const parsedOverride = approveOrderSchema.safeParse(
+          req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {},
+        )
+        if (!parsedOverride.success) {
+          throw new HttpError(400, 'El motivo de override tiene que tener al menos 8 caracteres.')
+        }
+        const result = await repo().approve(approveOrderId, actor(req), {
+          overrideReason: parsedOverride.data.overrideReason ?? null,
+        })
         // El comprador es anónimo: no tiene cuenta, y la orden vive en el
         // `sessionStorage` de la pestaña en la que compró. Si la cerró —y entre
         // la transferencia y la acreditación pueden pasar 48 horas, así que la

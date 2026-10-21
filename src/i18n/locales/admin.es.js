@@ -459,6 +459,13 @@ export default {
     studioLead: 'Elegí columnas, filas y estilo antes de bajar el Excel. Se guarda en este navegador.',
     presetLabel: 'Plantilla',
     columnPicker: 'Columnas del Excel',
+    columnGroups: {
+      identity: 'Atleta',
+      session: 'Tanda',
+      class: 'Clase',
+      lifts: 'Intentos',
+      contact: 'Contacto',
+    },
     importColumnsHint: 'Para importar en LiftingCast tienen que quedar todas marcadas.',
     sheetColumns: {
       name: 'Nombre',
@@ -507,7 +514,9 @@ export default {
     declaredClassLabel: 'Categoría declarada',
     officialClassLabel: 'Categoría oficial',
     editWeightClass: 'Editar categoría declarada',
+    editDeclaredShort: 'Editar declarada',
     editOfficialClass: 'Editar categoría oficial',
+    editOfficialShort: 'Editar oficial',
     clearOfficialClass: 'Sin categoría oficial',
     bulkWeightClass: 'Asignar categoría declarada',
     freezeRoster: 'Cerrar padrón después del pesaje',
@@ -518,8 +527,10 @@ export default {
     fileClassHint:
       'El archivo usa la categoría oficial cuando existe. Si no, usa la categoría declarada. El peso del archivo es el del pesaje si ya se cargó.',
     weighInLabel: 'Peso de pesaje',
+    weighInShort: 'Pesaje {{weight}} kg',
     recordWeighIn: 'Cargar pesaje',
     classSuggestion: 'Según el peso, la clase sería {{className}} kg. No se aplica sola.',
+    classSuggestionShort: 'Clase según peso: {{className}} kg',
     rosterFrozenShort: 'Padrón cerrado',
     meetSummary:
       '{{classes}} clases · {{small}} con 1 o 2 atletas · {{mismatches}} con declarada distinta de la oficial · {{missingWeighIn}} sin pesaje y padrón cerrado',
@@ -3160,6 +3171,7 @@ export default {
       registration_gate: 'Afiliación requerida',
       cancelled_registration: 'Cancelación sin avisar',
       membership: 'Afiliación',
+      ticket: 'Entrada',
       ticket_order: 'Entrada',
     },
     proofAttached: 'Comprobante',
@@ -3522,6 +3534,17 @@ export default {
       'No hay comprobante adjunto. Podés acreditar igual con un motivo de override; queda en la auditoría a tu nombre.',
     overrideAuditNote:
       'Acreditar sin comprobante es una excepción operativa: activa la afiliación o inscripción y queda registrada en la auditoría junto a tu usuario.',
+    ticketTitle: 'Habilitar el QR',
+    ticketLead: 'Revisá el comprobante. Al habilitar, el QR abre la puerta y le avisamos por mail al comprador.',
+    ticketCashLead: 'Confirmá que el efectivo entró en caja. Al habilitar, el QR abre la puerta y le avisamos por mail.',
+    ticketOverrideLead: 'No hay archivo. Si la transferencia está acreditada, dejá el motivo y habilitá el QR.',
+    ticketOverrideAuditNote:
+      'Habilitar sin comprobante abre el QR y avisa por mail al comprador. Queda en la auditoría a tu nombre.',
+    ticketSubject: 'Asistentes',
+    ticketConfirm: 'Habilitar QR',
+    ticketConfirming: 'Habilitando…',
+    ticketOverrideReasonPlaceholder:
+      'Ej.: transferencia vista en el extracto del 21/10; el comprador no adjuntó el archivo.',
     overrideReasonLabel: 'Motivo del override',
     overrideReasonPlaceholder:
       'Ej.: cobro verificado en extracto bancario del 30/08; el atleta no pudo subir el archivo.',
@@ -3707,7 +3730,7 @@ export default {
         used: 'El ingreso ya está registrado: escanear de nuevo no suma otro.',
         expired: 'Pasó su vigencia. Si corresponde que entre, cargá una excepción de acceso.',
         upcoming: 'Todavía no empezó su vigencia. Se habilita sola cuando arranca.',
-        unpaid: 'El QR se activa cuando se acredita el pago. Hasta entonces no abre ninguna puerta.',
+        unpaid: 'Se habilita cuando se acredita el pago.',
         cancelled: 'La entrada se canceló: su QR ya no abre ninguna puerta.',
       },
     },
@@ -4685,7 +4708,7 @@ export default {
       ticketTypeChannelsInheritSummary:
         'Se cobra con los medios del evento. Se configuran en Cobro, no en cada tipo.',
       ticketTypeChannelsCustomLead: 'Sólo esta entrada. El resto sigue con los medios de Cobro.',
-      ticketTypeChannelsRestrict: 'Restringir esta',
+      ticketTypeChannelsRestrict: 'Elegir medios de esta entrada',
       ticketTypeChannelsUseEvent: 'Usar los del evento',
       ticketTypeChannelsHint:
         'Sólo se puede cerrar: un medio que Finanzas o el evento cerraron no se reabre desde acá. Heredando, la entrada toma sola cualquier medio que el evento abra más adelante.',
@@ -5850,7 +5873,7 @@ export default {
     paymentApproved: 'Pago aprobado',
     paymentRejected: 'Pago rechazado',
     proofTrashed: 'Comprobante movido a la papelera',
-    ticketApproved: 'Orden de entradas aprobada',
+    ticketApproved: 'QR habilitado. Le avisamos por mail al comprador.',
     ticketRejected: 'Orden de entradas rechazada',
     manualTicketSaleApproved: 'Venta cargada: entrada emitida y mail enviado',
     manualTicketSalePending: 'Venta cargada: queda pendiente de comprobante',

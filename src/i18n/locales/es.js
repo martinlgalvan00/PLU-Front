@@ -3865,6 +3865,9 @@ export default {
       confirmationCount_other: '{{count}} entradas',
       confirmationQrLead:
         'Cuando el pago se confirma, cada entrada queda con su QR de ingreso listo para presentar en puerta.',
+      qrHeldLead:
+        'Tu QR todavía no abre la puerta. Cuando acreditemos la transferencia o el efectivo, te avisamos a este mail y vas a poder verlo acá.',
+      qrHeldTicket: 'QR pendiente de habilitación',
       sealEyebrow: 'Compra confirmada',
       sealDetail: '{{amount}} acreditados. Ya podés presentar el QR en la puerta.',
       shareCta: 'Compartir por WhatsApp',
