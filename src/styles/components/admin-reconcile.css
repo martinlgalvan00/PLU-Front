@@ -18,17 +18,19 @@
   align-items: center;
   background: transparent;
   border: 1px solid var(--admin-hairline-strong);
-  border-radius: 50%;
+  border-radius: 999px;
   color: var(--admin-ink);
   cursor: pointer;
   display: inline-flex;
+  gap: 6px;
   height: 40px;
   justify-content: center;
+  min-width: 40px;
+  padding: 0 10px 0 12px;
   position: relative;
   transition:
     background-color var(--motion-fast, 150ms) var(--ease-standard, ease),
     border-color var(--motion-fast, 150ms) var(--ease-standard, ease);
-  width: 40px;
 }
 
 .admin-reconcile__trigger:hover,
@@ -57,9 +59,7 @@
   justify-content: center;
   min-width: 18px;
   padding-inline: 5px;
-  position: absolute;
-  right: -6px;
-  top: -6px;
+  position: static;
 }
 
 .admin-reconcile__panel {
@@ -201,7 +201,7 @@
 
   .admin-reconcile__trigger {
     height: 44px;
-    width: 44px;
+    min-width: 44px;
   }
 }
 

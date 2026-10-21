@@ -33,6 +33,7 @@ const ORGANIZER_ALLOWED = new Set([
   'GET /api/events/',
   'POST /api/events/upsert',
   'POST /api/events/:eventSlug/logo/upload-url',
+  'POST /api/events/:eventSlug/hero/upload-url',
   'PATCH /api/events/:eventSlug/logo',
   'GET /api/events/:eventSlug/schedule',
   'POST /api/events/:eventSlug/sessions',

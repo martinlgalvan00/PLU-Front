@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Button from '../../ui/Button.jsx'
 import SegmentedSwitch from '../../ui/SegmentedSwitch.jsx'
 import SavedMark from './SavedMark.jsx'
@@ -22,11 +22,14 @@ export default function PlatformBar({ busy = false, canEdit = false, onSave, pla
   const [draft, setDraft] = useState(() => platforms.map(({ id, name }) => ({ id, name })))
   const [dirty, setDirty] = useState(false)
   const [saved, flashSaved] = useSavedFlash()
+  // El efecto de sync puede correr después del clic (act + un fetch que llega
+  // tarde). El ref se marca en el mismo turno del usuario, antes de ese flush.
+  const editedRef = useRef(false)
 
   // El server manda: al releer se descarta el borrador salvo que haya edición
   // sin guardar. La firma (y no el array) evita re-sincronizar en cada render.
   useEffect(() => {
-    if (dirty) return
+    if (dirty || editedRef.current) return
     setDraft(platforms.map(({ id, name }) => ({ id, name })))
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `signature` resume `platforms`
   }, [dirty, signature])
@@ -54,6 +57,7 @@ export default function PlatformBar({ busy = false, canEdit = false, onSave, pla
 
   function changeCount(key) {
     const count = Number(key)
+    editedRef.current = true
     setDirty(true)
     setDraft((current) =>
       Array.from({ length: count }, (_, index) => ({
@@ -64,6 +68,7 @@ export default function PlatformBar({ busy = false, canEdit = false, onSave, pla
   }
 
   function rename(index, name) {
+    editedRef.current = true
     setDirty(true)
     setDraft((current) =>
       current.map((entry, position) => (position === index ? { ...entry, name } : entry)),
@@ -80,6 +85,7 @@ export default function PlatformBar({ busy = false, canEdit = false, onSave, pla
       })),
     )
     if (ok) {
+      editedRef.current = false
       setDirty(false)
       flashSaved()
     }
