@@ -70,7 +70,33 @@ import {
   buildAdminFacetOptions,
 } from '../../lib/adminPeopleFilters.js'
 import { registrationEventFilterKey } from '../../lib/athleteEventStatus.js'
-import { resolveLiftersColumnKeys } from '../../../shared/liftersExport.js'
+import { ageOnDate, todayCalendarDate } from '../../../shared/ageDivision.js'
+import { normalizeGender } from '../../../shared/competitionLexicon.js'
+import { formatDeclaredBodyWeight, formatExportDateDmy } from '../../../shared/exportRows.js'
+import {
+  LIFTERS_COLUMNS,
+  classifyLifterExportRow,
+  filterLiftersRowsByCompleteness,
+  liftersImportColumnsMissing,
+  liftersRowsForSpreadsheet,
+  resolveLiftersColumnKeys,
+  summarizeLifterMeet,
+  validateLifterExport,
+} from '../../../shared/liftersExport.js'
+import {
+  competitionBodyweight,
+  competitionWeightClass,
+  getWeightClassWarning,
+  suggestWeightClass,
+  weightClassLabelsForSex,
+} from '../../../shared/pluWeightClasses.js'
+import {
+  correctOfficialWeightClass,
+  correctRegistrationWeightClass,
+  correctRegistrationsWeightClass,
+  recordRegistrationWeighIn,
+  setEventRosterFrozen,
+} from '../../services/athleteApi.js'
 import {
   loadLiftersExportStudioOptions,
   saveLiftersExportStudioOptions,
@@ -81,6 +107,69 @@ import {
 const EMPTY_GATE_PENDING_IDS = new Set()
 /** Con un solo evento el filtro no decide nada. Select nativo recién con muchos. */
 const EVENT_FILTER_CHIP_MAX = 8
+
+function editStamp(actor, at) {
+  const email = String(actor ?? '').includes(':')
+    ? String(actor).split(':').slice(1).join(':')
+    : String(actor ?? '')
+  const match = String(at ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/)
+  const date = match ? `${match[3]}/${match[2]}/${match[1]}` : ''
+  return [email, date].filter(Boolean).join(' · ')
+}
+
+function registrationMeet(registration) {
+  const bodyweight = formatDeclaredBodyWeight(
+    registration.bodyweight ?? registration.athlete?.estimatedWeight,
+  )
+  const weighInBodyweight = formatDeclaredBodyWeight(registration.weighInBodyweight)
+  const declaredClass = String(registration.declaredWeightClass ?? '').trim()
+  const officialClass = String(registration.officialWeightClass ?? '').trim()
+  const weightClass = competitionWeightClass(registration)
+  const competitionKg = formatDeclaredBodyWeight(competitionBodyweight(registration)) || bodyweight
+  const sheetRow = {
+    name: registration.athlete?.fullName ?? '',
+    gender: normalizeGender(registration.athlete?.sex),
+    rawOrEquipped: registration.category ?? '',
+    division: registration.division ?? '',
+    declaredAwardsWeightClass: weightClass,
+    bodyWeight: competitionKg,
+    birthDate: formatExportDateDmy(registration.athlete?.birthDate),
+    squatOpener: '',
+    benchOpener: '',
+    deadliftOpener: '',
+    _meta: {
+      athleteId: registration.athleteId ?? null,
+      bodyweightSource: weighInBodyweight ? 'weigh-in' : 'declared',
+      declaredWeightClass: declaredClass,
+      officialWeightClass: officialClass,
+      weighInBodyweight,
+      rosterFrozen: Boolean(registration.rosterFrozenAt),
+    },
+  }
+  return {
+    sex: registration.athlete?.sex ?? '',
+    age: ageOnDate(
+      registration.athlete?.birthDate,
+      registration.eventStartsAt || todayCalendarDate(),
+    ),
+    equipment: registration.category ?? '',
+    division: registration.division ?? '',
+    bodyweight,
+    weighInBodyweight,
+    declaredClass,
+    officialClass,
+    weightClass,
+    suggestedClass: suggestWeightClass(registration.athlete?.sex, weighInBodyweight || bodyweight),
+    rosterFrozen: Boolean(registration.rosterFrozenAt),
+    declaredStamp: editStamp(registration.declaredWeightClassSetBy, registration.declaredWeightClassSetAt),
+    officialStamp: editStamp(registration.officialWeightClassSetBy, registration.officialWeightClassSetAt),
+    weighInStamp: editStamp(registration.weighInRecordedBy, registration.weighInRecordedAt),
+    warning: getWeightClassWarning(competitionKg, weightClass, {
+      source: weighInBodyweight ? 'weigh-in' : 'declared',
+    }),
+    exportStatus: classifyLifterExportRow(sheetRow),
+  }
+}
 
 function formatRegistrationWeight(registration) {
   const raw = registration.bodyweight ?? registration.athlete?.estimatedWeight ?? null
@@ -212,9 +301,42 @@ export default function RegistrationsSection({
   const [liftersError, setLiftersError] = useState('')
   const [liftersStudio, setLiftersStudio] = useState(() => loadLiftersExportStudioOptions())
   const [liftersEventSlug, setLiftersEventSlug] = useState('all')
+  const [liftersSheetRows, setLiftersSheetRows] = useState([])
+  const [classEdit, setClassEdit] = useState(null)
+  const [classEditMode, setClassEditMode] = useState('declared')
+  const [classEditValue, setClassEditValue] = useState('')
+  const [bulkClassOpen, setBulkClassOpen] = useState(false)
+  const [bulkClassValue, setBulkClassValue] = useState('')
+  const [bulkClassError, setBulkClassError] = useState('')
+  const [savingBulkClass, setSavingBulkClass] = useState(false)
+  const [freezingRoster, setFreezingRoster] = useState(false)
+  const [rosterError, setRosterError] = useState('')
+  const [classEditError, setClassEditError] = useState('')
+  const [savingClass, setSavingClass] = useState(false)
 
   const updateLiftersStudio = useCallback((patch) => {
-    setLiftersStudio((prev) => saveLiftersExportStudioOptions({ ...prev, ...patch, columns: null }))
+    setLiftersStudio((prev) => {
+      const next = { ...prev, ...patch }
+      if ('preset' in patch && !('columns' in patch)) next.columns = null
+      return saveLiftersExportStudioOptions(next)
+    })
+  }, [])
+
+  const liftersSelectedColumns = useMemo(
+    () => resolveLiftersColumnKeys(liftersStudio),
+    [liftersStudio],
+  )
+
+  const toggleLiftersColumn = useCallback((key) => {
+    setLiftersStudio((prev) => {
+      const current = resolveLiftersColumnKeys(prev)
+      if (current.includes(key) && current.length === 1) return prev
+      const selected = new Set(current)
+      if (selected.has(key)) selected.delete(key)
+      else selected.add(key)
+      const columns = LIFTERS_COLUMNS.map((column) => column.key).filter((item) => selected.has(item))
+      return saveLiftersExportStudioOptions({ ...prev, columns })
+    })
   }, [])
 
   const liftersPreview = useMemo(() => {
@@ -366,14 +488,39 @@ export default function RegistrationsSection({
         return
       }
       setLiftersReadiness(result?.readiness ?? null)
+      setLiftersSheetRows(result?.rows ?? [])
     },
     [onFetchLiftersReadiness],
   )
+
+  const liftersFileCheck = useMemo(() => {
+    const filtered = filterLiftersRowsByCompleteness(liftersSheetRows, liftersStudio.rowFilter)
+    if (!liftersSheetRows.length) return null
+    return validateLifterExport(filtered)
+  }, [liftersSheetRows, liftersStudio.rowFilter])
+
+  const liftersMeetSummary = useMemo(() => {
+    const filtered = filterLiftersRowsByCompleteness(liftersSheetRows, liftersStudio.rowFilter)
+    if (!filtered.length) return null
+    return summarizeLifterMeet(filtered)
+  }, [liftersSheetRows, liftersStudio.rowFilter])
+
+  const liftersImportBlocked = liftersImportColumnsMissing(liftersStudio)
+
+  const liftersFilePreview = useMemo(() => {
+    const keys = resolveLiftersColumnKeys(liftersStudio)
+    const filtered = filterLiftersRowsByCompleteness(liftersSheetRows, liftersStudio.rowFilter)
+    return {
+      columns: keys,
+      rows: liftersRowsForSpreadsheet(filtered, keys).slice(0, 5),
+    }
+  }, [liftersSheetRows, liftersStudio])
 
   const registrationRows = useMemo(
     () =>
       filteredRegistrations.map((reg) => {
         const payment = resolvePayment(reg)
+        const meet = registrationMeet(reg)
         return {
           id: reg.id,
           athlete: reg.athlete?.fullName,
@@ -385,6 +532,7 @@ export default function RegistrationsSection({
           eventSlug: reg.eventSlug ?? null,
           category: `${reg.category} · ${reg.division}`,
           bodyweight: formatRegistrationWeight(reg),
+          meet,
           publicVisible: reg.publicVisible !== false,
           schedule: reg.schedule ?? null,
           status: reg.status,
@@ -418,6 +566,15 @@ export default function RegistrationsSection({
     () => registrationRows.filter((row) => selectedIds.has(row.id)),
     [registrationRows, selectedIds],
   )
+
+  const bulkClassLabels = useMemo(() => {
+    if (!visibleSelectedRows.length || visibleSelectedRows.some((row) => !row.meet?.sex)) return []
+    const lists = [...new Set(visibleSelectedRows.map((row) => row.meet.sex))].map((sex) =>
+      weightClassLabelsForSex(sex),
+    )
+    return lists.reduce((shared, list) => shared.filter((label) => list.includes(label)))
+  }, [visibleSelectedRows])
+  const selectedRosterFrozen = visibleSelectedRows.some((row) => row.meet?.rosterFrozen)
 
   const selectedEventSlugs = useMemo(
     () => new Set(visibleSelectedRows.map((row) => row.eventSlug).filter(Boolean)),
@@ -1072,6 +1229,22 @@ export default function RegistrationsSection({
                 <span>{t('admin.liftersExport.includeSummarySheet')}</span>
               </label>
             </div>
+            <fieldset className="admin-lifters-export__columns">
+              <legend>{t('admin.liftersExport.columnPicker')}</legend>
+              {LIFTERS_COLUMNS.map((column) => (
+                <label key={column.key} className="admin-lifters-export__check">
+                  <input
+                    type="checkbox"
+                    checked={liftersSelectedColumns.includes(column.key)}
+                    onChange={() => toggleLiftersColumn(column.key)}
+                  />
+                  <span>{t(`admin.liftersExport.sheetColumns.${column.key}`)}</span>
+                </label>
+              ))}
+            </fieldset>
+            {liftersSelectedColumns.length < LIFTERS_COLUMNS.length ? (
+              <p className="admin-lifters-export__hint">{t('admin.liftersExport.importColumnsHint')}</p>
+            ) : null}
             {liftersPreview ? (
               <p className="admin-lifters-export__preview">
                 {t('admin.liftersExport.preview', {
@@ -1080,12 +1253,93 @@ export default function RegistrationsSection({
                 })}
               </p>
             ) : null}
+            {liftersFilePreview.rows.length ? (
+              <div className="admin-lifters-export__file">
+                <h4>{t('admin.liftersExport.filePreview')}</h4>
+                <p className="admin-lifters-export__hint">{t('admin.liftersExport.fileClassHint')}</p>
+                <div className="admin-lifters-export__file-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        {liftersFilePreview.columns.map((key) => (
+                          <th key={key} scope="col">
+                            {LIFTERS_COLUMNS.find((column) => column.key === key)?.header ?? key}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {liftersFilePreview.rows.map((previewRow, index) => (
+                        <tr key={`${previewRow.name ?? 'row'}-${index}`}>
+                          {liftersFilePreview.columns.map((key) => {
+                            const header =
+                              LIFTERS_COLUMNS.find((column) => column.key === key)?.header ?? key
+                            return <td key={key}>{previewRow[header] || ''}</td>
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : null}
               </div>
               </div>
             </li>
             <li className="admin-lifters-export__step">
               <div>
                 <h3>{t('admin.liftersExport.steps.deliver')}</h3>
+            {liftersImportBlocked ? (
+              <p className="admin-lifters-export__hint" role="alert">
+                {t('admin.liftersExport.importColumnsBlocked')}
+              </p>
+            ) : null}
+            {liftersMeetSummary ? (
+              <div className="admin-lifters-export__hint">
+                <p>
+                  {t('admin.liftersExport.meetSummary', {
+                    classes: liftersMeetSummary.classGroups.length,
+                    small: liftersMeetSummary.smallClasses.length,
+                    mismatches: liftersMeetSummary.mismatches.length,
+                    missingWeighIn: liftersMeetSummary.missingWeighIn.length,
+                  })}
+                </p>
+                {liftersMeetSummary.smallClasses.length ? (
+                  <ul>
+                    {liftersMeetSummary.smallClasses.slice(0, 6).map((group) => (
+                      <li key={`${group.gender}-${group.division}-${group.equipment}-${group.weightClass}`}>
+                        {group.gender} · {group.division} · {group.equipment} · {group.weightClass} kg · {group.count}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
+            {liftersFileCheck ? (
+              <p className="admin-lifters-export__preview" role="status">
+                {t('admin.liftersExport.exportSummary', {
+                  total: liftersFileCheck.total,
+                  ready: liftersFileCheck.ready,
+                  warnings: liftersFileCheck.warnings,
+                  errors: liftersFileCheck.errors,
+                })}
+              </p>
+            ) : null}
+            {liftersFileCheck && !liftersFileCheck.valid ? (
+              <div className="admin-lifters-export__hint" role="alert">
+                <p>{t('admin.liftersExport.exportBlocked')}</p>
+                <ul>
+                  {liftersFileCheck.issues.slice(0, 8).map((issue) => (
+                    <li key={`${issue.athleteId}-${issue.field}`}>
+                      {issue.athleteName || issue.athleteId}: {issue.message}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {liftersFileCheck?.valid && liftersFileCheck.warnings > 0 ? (
+              <p className="admin-lifters-export__hint">{t('admin.liftersExport.exportWarningsOk')}</p>
+            ) : null}
             <div className="admin-lifters-export__actions">
             <Button
               type="button"
@@ -1093,7 +1347,9 @@ export default function RegistrationsSection({
               disabled={
                 liftersLoading ||
                 !onExportLifters ||
-                (liftersPreview != null && liftersPreview.rowCount === 0)
+                (liftersPreview != null && liftersPreview.rowCount === 0) ||
+                (liftersFileCheck != null && !liftersFileCheck.valid) ||
+                liftersImportBlocked
               }
               onClick={() =>
                 onExportLifters?.({
@@ -1285,29 +1541,44 @@ export default function RegistrationsSection({
                 selectedCount={visibleSelectedRows.length}
                 targetEventName={visibleSelectedRows[0]?.event ?? ''}
                 extraAction={
-                  canSetStatus && onBulkSetRegistrationStatus ? (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="btn--small"
-                      onClick={() => {
-                        setBulkStatusError('')
-                        setBulkStatusOpen(true)
-                      }}
-                    >
-                      <Users size={14} aria-hidden />
-                      {t('admin.registrationBulkStatus.action')}
-                    </Button>
-                  ) : null
+                  <>
+                    {canSetStatus && onBulkSetRegistrationStatus ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="btn--small"
+                        onClick={() => {
+                          setBulkStatusError('')
+                          setBulkStatusOpen(true)
+                        }}
+                      >
+                        <Users size={14} aria-hidden />
+                        {t('admin.registrationBulkStatus.action')}
+                      </Button>
+                    ) : null}
+                    {canEdit ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="btn--small"
+                        disabled={selectedRosterFrozen}
+                        onClick={() => {
+                          setBulkClassError(
+                            selectedRosterFrozen ? t('admin.liftersExport.rosterFrozen') : '',
+                          )
+                          setBulkClassOpen(true)
+                        }}
+                      >
+                        {t('admin.liftersExport.bulkWeightClass')}
+                      </Button>
+                    ) : null}
+                  </>
                 }
               />
             )}
             {/* Sin permiso de grilla no hay barra de arriba que lleve la
                 cuenta de la selección -- esta es la única, no una segunda. */}
-            {!canAssignSchedule &&
-            canSetStatus &&
-            onBulkSetRegistrationStatus &&
-            visibleSelectedRows.length > 0 ? (
+            {!canAssignSchedule && canEdit && visibleSelectedRows.length > 0 ? (
               <div
                 className="admin-bulk-status-bar"
                 role="region"
@@ -1317,17 +1588,77 @@ export default function RegistrationsSection({
                   <Users size={15} aria-hidden />
                   {t('admin.schedule.selectedCount', { count: visibleSelectedRows.length })}
                 </span>
+                {canSetStatus && onBulkSetRegistrationStatus ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="btn--small"
+                    onClick={() => {
+                      setBulkStatusError('')
+                      setBulkStatusOpen(true)
+                    }}
+                  >
+                    {t('admin.registrationBulkStatus.action')}
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
                   variant="secondary"
                   className="btn--small"
+                  disabled={selectedRosterFrozen}
                   onClick={() => {
-                    setBulkStatusError('')
-                    setBulkStatusOpen(true)
+                    setBulkClassError(selectedRosterFrozen ? t('admin.liftersExport.rosterFrozen') : '')
+                    setBulkClassOpen(true)
                   }}
                 >
-                  {t('admin.registrationBulkStatus.action')}
+                  {t('admin.liftersExport.bulkWeightClass')}
                 </Button>
+              </div>
+            ) : null}
+            {canEdit && filters.event && filters.event !== 'all' ? (
+              <div className="admin-lifters-export__hint" role="status">
+                <p>
+                  {registrations.some(
+                    (row) =>
+                      registrationEventFilterKey(row) === filters.event && row.rosterFrozenAt,
+                  )
+                    ? t('admin.liftersExport.rosterFrozen')
+                    : t('admin.liftersExport.rosterOpen')}
+                </p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="btn--small"
+                  disabled={freezingRoster}
+                  onClick={async () => {
+                    const frozen = registrations.some(
+                      (row) =>
+                        registrationEventFilterKey(row) === filters.event && row.rosterFrozenAt,
+                    )
+                    setFreezingRoster(true)
+                    setRosterError('')
+                    try {
+                      await setEventRosterFrozen(filters.event, !frozen)
+                      await onRefreshAthleteData?.()
+                    } catch (error) {
+                      setRosterError(error?.message ?? t('admin.liftersExport.rosterSaveError'))
+                    } finally {
+                      setFreezingRoster(false)
+                    }
+                  }}
+                >
+                  {registrations.some(
+                    (row) =>
+                      registrationEventFilterKey(row) === filters.event && row.rosterFrozenAt,
+                  )
+                    ? t('admin.liftersExport.reopenRoster')
+                    : t('admin.liftersExport.freezeRoster')}
+                </Button>
+                {rosterError ? (
+                  <p className="admin-lifters-export__error" role="alert">
+                    {rosterError}
+                  </p>
+                ) : null}
               </div>
             ) : null}
             <AdminDataTable
@@ -1335,7 +1666,7 @@ export default function RegistrationsSection({
               density="compact"
               fit
               columns={[
-                ...(canAssignSchedule
+                ...(canAssignSchedule || canEdit
                   ? [
                       {
                         key: 'select',
@@ -1405,12 +1736,122 @@ export default function RegistrationsSection({
                   render: (row) => (
                     <div className="data-table__stack">
                       <span className="data-table__stack-main">{row.event}</span>
-                      <span className="data-table__sub">
-                        {[row.category, row.bodyweight].filter(Boolean).join(' · ')}
-                      </span>
+                      <span className="data-table__sub">{row.category}</span>
                     </div>
                   ),
                   mobileRender: (row) => row.event,
+                },
+                {
+                  key: 'meet',
+                  label: t('admin.liftersExport.meetColumn'),
+                  width: 196,
+                  mobile: 'default',
+                  mobileMeta: 'labeled',
+                  sortable: false,
+                  render: (row) => {
+                    const statusKey =
+                      row.meet.exportStatus === 'READY'
+                        ? 'exportReady'
+                        : row.meet.exportStatus === 'WARNING'
+                          ? 'exportWarning'
+                          : 'exportError'
+                    return (
+                      <div className="admin-meet-facts">
+                        <span>
+                          {[row.meet.sex, row.meet.age != null ? String(row.meet.age) : '']
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </span>
+                        <span>
+                          {[row.meet.division, row.meet.equipment].filter(Boolean).join(' · ')}
+                        </span>
+                        {row.schedule?.dayLabel || row.schedule?.sessionName || row.schedule?.platform ? (
+                          <span>
+                            {[row.schedule.dayLabel, row.schedule.sessionName, row.schedule.platform]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </span>
+                        ) : null}
+                        <span>
+                          {t('admin.liftersExport.bodyweightLabel')}:{' '}
+                          {row.meet.bodyweight ? `${row.meet.bodyweight} kg` : '—'}
+                        </span>
+                        <span>
+                          {t('admin.liftersExport.weighInLabel')}:{' '}
+                          {row.meet.weighInBodyweight ? `${row.meet.weighInBodyweight} kg` : '—'}
+                          {row.meet.weighInStamp ? ` · ${row.meet.weighInStamp}` : ''}
+                        </span>
+                        <span>
+                          {t('admin.liftersExport.declaredClassLabel')}:{' '}
+                          {row.meet.declaredClass ? `${row.meet.declaredClass} kg` : '—'}
+                        </span>
+                        <span>
+                          {t('admin.liftersExport.officialClassLabel')}:{' '}
+                          {row.meet.officialClass ? `${row.meet.officialClass} kg` : '—'}
+                          {row.meet.officialStamp ? ` · ${row.meet.officialStamp}` : ''}
+                        </span>
+                        {row.meet.suggestedClass && row.meet.suggestedClass !== row.meet.weightClass ? (
+                          <span className="admin-meet-facts__warning">
+                            {t('admin.liftersExport.classSuggestion', { className: row.meet.suggestedClass })}
+                          </span>
+                        ) : null}
+                        {row.meet.rosterFrozen ? (
+                          <span>{t('admin.liftersExport.rosterFrozenShort')}</span>
+                        ) : null}
+                        {row.meet.warning ? (
+                          <span className="admin-meet-facts__warning">{row.meet.warning.message}</span>
+                        ) : null}
+                        <span className={`admin-export-readiness admin-export-readiness--${row.meet.exportStatus.toLowerCase()}`}>
+                          {t(`admin.liftersExport.${statusKey}`)}
+                        </span>
+                        {canEdit && !row.meet.rosterFrozen ? (
+                          <button
+                            type="button"
+                            className="admin-empty__text-link"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              setClassEdit(row)
+                              setClassEditMode('weigh-in')
+                              setClassEditValue(row.meet.weighInBodyweight)
+                              setClassEditError('')
+                            }}
+                          >
+                            {t('admin.liftersExport.recordWeighIn')}
+                          </button>
+                        ) : null}
+                        {canEdit && !row.meet.rosterFrozen ? (
+                          <button
+                            type="button"
+                            className="admin-empty__text-link"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              setClassEdit(row)
+                              setClassEditMode('declared')
+                              setClassEditValue(row.meet.declaredClass)
+                              setClassEditError('')
+                            }}
+                          >
+                            {t('admin.liftersExport.editWeightClass')}
+                          </button>
+                        ) : null}
+                        {canEdit ? (
+                          <button
+                            type="button"
+                            className="admin-empty__text-link"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              setClassEdit(row)
+                              setClassEditMode('official')
+                              setClassEditValue(row.meet.officialClass)
+                              setClassEditError('')
+                            }}
+                          >
+                            {t('admin.liftersExport.editOfficialClass')}
+                          </button>
+                        ) : null}
+                      </div>
+                    )
+                  },
                 },
                 {
                   key: 'category',
@@ -1423,7 +1864,7 @@ export default function RegistrationsSection({
                 },
                 {
                   key: 'bodyweight',
-                  label: t('admin.columns.weight'),
+                  label: t('admin.liftersExport.bodyweightLabel'),
                   cardOnly: true,
                   mobile: 'default',
                   mobileMeta: 'labeled',
@@ -1525,6 +1966,175 @@ export default function RegistrationsSection({
                 onSelectAthlete ? 'data-table__row--clickable data-table__row--registration' : ''
               }
             />
+            {classEdit ? (
+              <form
+                className="admin-lifters-export admin-class-edit"
+                role="dialog"
+                aria-labelledby="class-edit-title"
+                onSubmit={async (event) => {
+                  event.preventDefault()
+                  setSavingClass(true)
+                  setClassEditError('')
+                  try {
+                    if (classEditMode === 'weigh-in') {
+                      await recordRegistrationWeighIn(
+                        classEdit.id,
+                        classEditValue === '' ? null : Number(String(classEditValue).replace(',', '.')),
+                      )
+                    } else if (classEditMode === 'official') {
+                      await correctOfficialWeightClass(classEdit.id, classEditValue)
+                    } else {
+                      await correctRegistrationWeightClass(classEdit.id, classEditValue)
+                    }
+                    await onRefreshAthleteData?.()
+                    setClassEdit(null)
+                    toastSuccess(t('admin.liftersExport.classSaved'))
+                  } catch (error) {
+                    setClassEditError(error?.message ?? t('admin.liftersExport.classSaveError'))
+                  } finally {
+                    setSavingClass(false)
+                  }
+                }}
+              >
+                <h3 id="class-edit-title">
+                  {classEditMode === 'weigh-in'
+                    ? t('admin.liftersExport.recordWeighIn')
+                    : classEditMode === 'official'
+                      ? t('admin.liftersExport.editOfficialClass')
+                      : t('admin.liftersExport.editWeightClass')}
+                </h3>
+                <p>
+                  {classEdit.athlete} · {t('admin.liftersExport.bodyweightLabel')}:{' '}
+                  {classEdit.meet.bodyweight ? `${classEdit.meet.bodyweight} kg` : '—'}
+                </p>
+                {classEditMode === 'weigh-in' ? (
+                  <label className="admin-lifters-export__field">
+                    <span>{t('admin.liftersExport.weighInLabel')}</span>
+                    <input
+                      inputMode="decimal"
+                      value={classEditValue}
+                      onChange={(event) => setClassEditValue(event.target.value)}
+                      required
+                    />
+                  </label>
+                ) : (
+                <label className="admin-lifters-export__field">
+                  <span>
+                    {classEditMode === 'official'
+                      ? t('admin.liftersExport.officialClassLabel')
+                      : t('admin.liftersExport.declaredClassLabel')}
+                  </span>
+                  <select
+                    value={classEditValue}
+                    onChange={(event) => setClassEditValue(event.target.value)}
+                    required={classEditMode !== 'official'}
+                  >
+                    <option value="">
+                      {classEditMode === 'official'
+                        ? t('admin.liftersExport.clearOfficialClass')
+                        : t('admin.liftersExport.chooseClass')}
+                    </option>
+                    {weightClassLabelsForSex(classEdit.meet.sex).map((label) => (
+                      <option key={label} value={label}>
+                        {label} kg
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                )}
+                {classEditError ? (
+                  <p className="admin-lifters-export__error" role="alert">
+                    {classEditError}
+                  </p>
+                ) : null}
+                <div className="admin-lifters-export__actions">
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={savingClass || (classEditMode !== 'official' && !classEditValue)}
+                  >
+                    {savingClass
+                      ? t('admin.liftersExport.classSaving')
+                      : t('admin.liftersExport.classSave')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={savingClass}
+                    onClick={() => setClassEdit(null)}
+                  >
+                    {t('admin.liftersExport.close')}
+                  </Button>
+                </div>
+              </form>
+            ) : null}
+            {bulkClassOpen ? (
+              <form
+                className="admin-lifters-export admin-class-edit"
+                onSubmit={async (event) => {
+                  event.preventDefault()
+                  setSavingBulkClass(true)
+                  setBulkClassError('')
+                  try {
+                    await correctRegistrationsWeightClass(
+                      visibleSelectedRows.map((row) => row.id),
+                      bulkClassValue,
+                    )
+                    await onRefreshAthleteData?.()
+                    setBulkClassOpen(false)
+                    setSelectedIds(new Set())
+                    toastSuccess(t('admin.liftersExport.classSaved'))
+                  } catch (error) {
+                    const details = Array.isArray(error?.body?.errors) ? error.body.errors : []
+                    setBulkClassError(
+                      details.length
+                        ? details.map((item) => item.message).join(' ')
+                        : (error?.message ?? t('admin.liftersExport.classSaveError')),
+                    )
+                  } finally {
+                    setSavingBulkClass(false)
+                  }
+                }}
+              >
+                <h3>{t('admin.liftersExport.bulkWeightClass')}</h3>
+                <p>{t('admin.schedule.selectedCount', { count: visibleSelectedRows.length })}</p>
+                <label className="admin-lifters-export__field">
+                  <span>{t('admin.liftersExport.declaredClassLabel')}</span>
+                  <select
+                    value={bulkClassValue}
+                    onChange={(event) => setBulkClassValue(event.target.value)}
+                    required
+                  >
+                    <option value="">{t('admin.liftersExport.chooseClass')}</option>
+                    {bulkClassLabels.map((label) => (
+                      <option key={label} value={label}>
+                        {label} kg
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {bulkClassError ? (
+                  <p className="admin-lifters-export__error" role="alert">
+                    {bulkClassError}
+                  </p>
+                ) : null}
+                <div className="admin-lifters-export__actions">
+                  <Button type="submit" variant="primary" disabled={savingBulkClass || !bulkClassValue}>
+                    {savingBulkClass
+                      ? t('admin.liftersExport.classSaving')
+                      : t('admin.liftersExport.classSave')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={savingBulkClass}
+                    onClick={() => setBulkClassOpen(false)}
+                  >
+                    {t('admin.liftersExport.close')}
+                  </Button>
+                </div>
+              </form>
+            ) : null}
             {deleteTarget ? (
               <AdminDeleteConfirmDialog
                 busy={deleting}

@@ -21,7 +21,12 @@ import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.j
  * comportamiento: la fila cancelada se reactiva y el atleta vuelve a elegir.
  */
 
-function registerForEvent(baseUrl, cookie, eventSlug, { division, category, bodyweightKg }) {
+function registerForEvent(
+  baseUrl,
+  cookie,
+  eventSlug,
+  { division, category, bodyweightKg, declaredWeightClass = '90' },
+) {
   return fetch(`${baseUrl}/api/athletes/me/registrations`, {
     method: 'POST',
     headers: {
@@ -35,6 +40,7 @@ function registerForEvent(baseUrl, cookie, eventSlug, { division, category, body
       division,
       category,
       bodyweightKg,
+      declaredWeightClass,
       paymentMethod: 'manual_link',
       idempotencyKey: randomUUID(),
     }),
@@ -129,6 +135,7 @@ describe('reinscripción después de una inscripción cancelada', () => {
         division: 'Open',
         category: 'Raw With Wraps',
         bodyweightKg: 90,
+        declaredWeightClass: '90',
       })
       const retryBody = await retry.json()
       expect(

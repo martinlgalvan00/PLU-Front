@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { isDivisionAllowedForAge } from '../../shared/ageDivision.js'
+import { isDeclaredWeightClassForSex } from '../../shared/pluWeightClasses.js'
 
 function todayInBuenosAires() {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -109,8 +110,10 @@ function buildAthleteProfileSchema(t, country) {
   })
 }
 
-function buildCompetitionObjectSchema(t) {
+function buildCompetitionObjectSchema(t, { sex = null } = {}) {
   const msg = (key) => (t ? t(`validation.${key}`) : undefined)
+  const weightClassMessage =
+    msg('weightClass') ?? 'Seleccioná la categoría de peso en la que vas a competir.'
 
   return z.object({
     division: z.enum(['Open', 'Youth', 'Junior', 'Sub-Masters', 'Masters'], {
@@ -119,6 +122,10 @@ function buildCompetitionObjectSchema(t) {
     category: z.enum(['Raw', 'Raw With Wraps', 'Single-Ply', 'Multi-Ply', 'Unlimited'], {
       message: msg('category') ?? 'Seleccioná una categoría válida.',
     }),
+    declaredWeightClass: z.string().trim().refine(
+      (value) => isDeclaredWeightClassForSex(sex, value),
+      weightClassMessage,
+    ),
     estimatedWeight: z.string().refine(
       (value) => {
         const weight = Number(value.replace(',', '.').replace(/\s*kg$/i, ''))
@@ -130,9 +137,9 @@ function buildCompetitionObjectSchema(t) {
   })
 }
 
-function buildCompetitionSchema(t, { birthDate = null, eventDate = null } = {}) {
+function buildCompetitionSchema(t, { birthDate = null, eventDate = null, sex = null } = {}) {
   const msg = (key) => (t ? t(`validation.${key}`) : undefined)
-  return buildCompetitionObjectSchema(t).superRefine((data, ctx) => {
+  return buildCompetitionObjectSchema(t, { sex }).superRefine((data, ctx) => {
     if (!birthDate) return
     if (!isDivisionAllowedForAge(data.division, birthDate, eventDate || undefined)) {
       ctx.addIssue({
@@ -192,7 +199,7 @@ export function validateAthleteFields(form, fields, t) {
 }
 
 export function validateCompetitionFields(form, fields, t, ageContext = {}) {
-  const objectSchema = buildCompetitionObjectSchema(t)
+  const objectSchema = buildCompetitionObjectSchema(t, ageContext)
   const shape = Object.fromEntries(
     fields.filter((field) => objectSchema.shape[field]).map((field) => [field, objectSchema.shape[field]]),
   )

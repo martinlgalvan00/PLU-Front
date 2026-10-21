@@ -24,8 +24,10 @@ const ATHLETE = {
   id: 'ath-1',
   fullName: 'Agustín Di Santo',
   documentId: '30111222',
+  sex: 'Masculino',
   division: 'Open',
   category: 'Raw',
+  declaredWeightClass: '100',
   estimatedWeight: 93,
 }
 
@@ -91,8 +93,9 @@ describe('la ficha del código-paquete', () => {
       </I18nProvider>,
     )
 
-    expect(screen.getByLabelText(/División/i).value).toBe('Open')
-    expect(screen.getByLabelText(/Categoría/i).value).toBe('Raw')
+    expect(screen.getByLabelText(/^División$/i).value).toBe('Open')
+    expect(screen.getByLabelText(/^Categoría$/i).value).toBe('Raw')
+    expect(screen.getByLabelText(/Categoría de peso/i).value).toBe('100')
     expect(screen.getByLabelText(/Peso declarado/i).value).toBe('93')
   })
 
@@ -131,6 +134,7 @@ describe('la ficha del código-paquete', () => {
     expect(call.paymentMethod).toBe('manual_link')
     expect(call.division).toBe('Open')
     expect(call.category).toBe('Raw')
+    expect(call.declaredWeightClass).toBe('100')
     expect(call.bodyweightKg).toBe(93)
     expect(call.event.slug).toBe('pitbull-classic-2026')
     expect(call.offer.code).toBe('ONLY-PITBULL-GOLD')
@@ -153,7 +157,7 @@ describe('la ficha del código-paquete', () => {
     })
 
     expect(onStartOfferPayment).not.toHaveBeenCalled()
-    expect(screen.getByRole('alert').textContent).toMatch(/división, categoría y peso/i)
+    expect(screen.getByRole('alert').textContent).toMatch(/categoría de peso/i)
   })
 
   it('con el derecho ya otorgado manda la cuenta regresiva y retira el formulario', () => {

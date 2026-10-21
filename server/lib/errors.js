@@ -27,6 +27,7 @@ export function errorHandler(err, req, res, _next) {
   const requestId = req?.requestId ?? getRequestId()
   const body = { error: message }
   if (err.details?.code) body.code = err.details.code
+  if (Array.isArray(err.details?.errors)) body.errors = err.details.errors
   if (err.details?.code === 'PLU06') body.alreadyUsed = true
   // Campos concretos del conflicto (ej. email/documento ya usados en el alta).
   if (err.details?.fields && typeof err.details.fields === 'object') {

@@ -21,6 +21,7 @@ function registerForEvent(baseUrl, cookie, eventSlug) {
       division: 'Open',
       category: 'Raw',
       bodyweightKg: 83.5,
+      declaredWeightClass: '90',
       paymentMethod: 'manual_link',
       idempotencyKey: randomUUID(),
     }),

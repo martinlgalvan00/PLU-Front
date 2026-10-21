@@ -7,7 +7,19 @@ import {
   resolveDivisionExportFields,
   todayCalendarDate,
 } from './ageDivision.js'
-import { normalizeExportDate, serializeSpreadsheet } from './exportRows.js'
+import { normalizeDivision, normalizeEquipment, normalizeGender } from './competitionLexicon.js'
+import {
+  formatDeclaredBodyWeight,
+  formatExportDateDmy,
+  normalizeExportDate,
+  serializeSpreadsheet,
+} from './exportRows.js'
+import {
+  competitionBodyweight,
+  competitionWeightClass,
+  getWeightClassWarning,
+  isDeclaredWeightClassForSex,
+} from './pluWeightClasses.js'
 
 /** Campos que pedimos para una planilla Lifters usable. */
 export const REQUIRED_FOR_LIFTERS_EXPORT = Object.freeze([
@@ -69,52 +81,65 @@ export const LIFTERS_FIELD_GROUPS = Object.freeze({
   emergencyContactPhone: 'emergency',
 })
 
-/** Orden y encabezados visibles (formato LiftingCast / Excel de referencia). */
+/**
+ * Planilla de importación de lifters (LiftingCast).
+ * Nombres y orden fijos: el importador rechaza el archivo si falta una columna,
+ * aunque esa celda vaya vacía. No agregar ni quitar columnas según el dato.
+ * Auditoría de división va en la hoja Summary, no en este header.
+ *
+ * Hipótesis: no hay un CSV oficial de LiftingCast en el repo. Hasta compararlo
+ * con el archivo de ejemplo del importador, este header no está verificado.
+ */
 export const LIFTERS_COLUMNS = Object.freeze([
-  { key: 'name', header: 'Name', field: 'fullName' },
-  { key: 'team', header: 'Team', field: 'gym' },
-  { key: 'birthDate', header: 'Birth Date', field: 'birthDate' },
-  { key: 'memberNumber', header: 'Member Number', field: null },
-  { key: 'gender', header: 'Gender', field: 'sex' },
-  { key: 'rawOrEquipped', header: 'RawOrEquipped', field: 'category' },
-  { key: 'division', header: 'Division', field: 'division' },
-  { key: 'country', header: 'Country', field: 'country' },
-  { key: 'streetAddress', header: 'StreetAddress', field: 'streetAddress' },
-  { key: 'city', header: 'City', field: 'city' },
-  { key: 'state', header: 'State', field: 'province' },
-  { key: 'zipCode', header: 'Zip Code', field: 'postalCode' },
-  { key: 'email', header: 'Email', field: 'email' },
-  { key: 'phoneNumber', header: 'Phone', field: 'phone' },
-  { key: 'emergencyContactName', header: 'EmergencyContactName', field: 'emergencyContactName' },
-  {
-    key: 'emergencyContactPhoneNumber',
-    header: 'EmergencyContactPhone',
-    field: 'emergencyContactPhone',
-  },
-  // Auditoría PLU (al final para no correr columnas LiftingCast por índice).
-  { key: 'divisionEntered', header: 'DivisionEntered', field: null },
-  { key: 'divisionMismatch', header: 'DivisionMismatch', field: null },
+  { key: 'name', header: 'name', field: 'fullName' },
+  { key: 'team', header: 'team', field: 'gym' },
+  { key: 'lot', header: 'lot', field: null },
+  { key: 'platform', header: 'platform', field: null },
+  { key: 'session', header: 'session', field: null },
+  { key: 'flight', header: 'flight', field: null },
+  { key: 'birthDate', header: 'birthDate', field: 'birthDate' },
+  { key: 'memberNumber', header: 'memberNumber', field: null },
+  { key: 'gender', header: 'gender', field: 'sex' },
+  { key: 'rawOrEquipped', header: 'rawOrEquipped', field: 'category' },
+  { key: 'division', header: 'division', field: 'division' },
+  { key: 'declaredAwardsWeightClass', header: 'declaredAwardsWeightClass', field: null },
+  { key: 'bodyWeight', header: 'bodyWeight', field: 'estimatedWeight' },
+  { key: 'squatOpener', header: 'squatOpener', field: null },
+  { key: 'benchOpener', header: 'benchOpener', field: null },
+  { key: 'deadliftOpener', header: 'deadliftOpener', field: null },
+  { key: 'squatRackHeight', header: 'squatRackHeight', field: null },
+  { key: 'benchRackHeight', header: 'benchRackHeight', field: null },
+  { key: 'deadliftRackHeight', header: 'deadliftRackHeight', field: null },
+  { key: 'country', header: 'country', field: 'country' },
+  { key: 'state', header: 'state', field: 'province' },
+  { key: 'instagram', header: 'instagram', field: null },
+  { key: 'notes', header: 'notes', field: null },
 ])
 
 const COLUMN_WIDTHS = Object.freeze({
   name: 160,
   team: 120,
+  lot: 50,
+  platform: 90,
+  session: 80,
+  flight: 60,
   birthDate: 90,
   memberNumber: 110,
   gender: 70,
-  rawOrEquipped: 110,
+  rawOrEquipped: 120,
   division: 90,
+  declaredAwardsWeightClass: 90,
+  bodyWeight: 80,
+  squatOpener: 80,
+  benchOpener: 80,
+  deadliftOpener: 90,
+  squatRackHeight: 80,
+  benchRackHeight: 80,
+  deadliftRackHeight: 90,
   country: 60,
-  streetAddress: 160,
-  city: 100,
   state: 100,
-  zipCode: 70,
-  email: 180,
-  phoneNumber: 110,
-  emergencyContactName: 140,
-  emergencyContactPhoneNumber: 130,
-  divisionEntered: 110,
-  divisionMismatch: 100,
+  instagram: 110,
+  notes: 120,
 })
 
 const COLUMN_WIDTHS_LIST = Object.freeze(
@@ -221,10 +246,7 @@ export function athleteFromCompletenessRow(row) {
 }
 
 export function mapSexToLiftersGender(sex) {
-  const value = String(sex ?? '').trim().toLowerCase()
-  if (value === 'masculino' || value === 'male' || value === 'm') return 'Male'
-  if (value === 'femenino' || value === 'female' || value === 'f') return 'Female'
-  return String(sex ?? '').trim()
+  return normalizeGender(sex)
 }
 
 export function mapCountryToLiftersCode(country) {
@@ -245,7 +267,7 @@ export function buildLiftersExportRows(registrations, athletes, memberships) {
   const membershipsByAthlete = new Map((memberships ?? []).map((item) => [item.athleteId, item]))
   const exportDay = todayCalendarDate()
 
-  return (registrations ?? []).map((registration) => {
+  const rows = (registrations ?? []).map((registration) => {
     const athlete = athletesById.get(registration.athleteId) ?? null
     const membership = membershipsByAthlete.get(registration.athleteId)
     const category = registration.category || athlete?.category || ''
@@ -268,23 +290,49 @@ export function buildLiftersExportRows(registrations, athletes, memberships) {
       if (key) emptyColumns.push(key)
     }
 
+    const declaredBodyweight = formatDeclaredBodyWeight(
+      registration.bodyweight ?? registration.bodyweightKg ?? fieldValue(athlete, 'estimatedWeight'),
+    )
+    const weighInBodyweight = formatDeclaredBodyWeight(
+      registration.weighInBodyweight ?? registration.weigh_in_bodyweight_kg,
+    )
+    const bodyWeight = weighInBodyweight || declaredBodyweight
+    const declaredClass = String(
+      registration.declaredWeightClass ?? registration.declared_weight_class ?? '',
+    ).trim()
+    const officialClass = String(
+      registration.officialWeightClass ?? registration.official_weight_class ?? '',
+    ).trim()
+    const declaredAwardsWeightClass = officialClass || declaredClass
+    if (!bodyWeight) emptyColumns.push('bodyWeight')
+    if (!declaredAwardsWeightClass) emptyColumns.push('declaredAwardsWeightClass')
+
     return {
       name: athlete?.fullName ?? '',
       team: athlete?.gym ?? '',
-      birthDate: normalizeExportDate(athlete?.birthDate),
+      lot: '',
+      platform: registration.platform ?? '',
+      session: registration.meetDay ?? '',
+      flight: registration.flight ?? '',
+      birthDate: formatExportDateDmy(athlete?.birthDate),
       memberNumber: membership?.memberCode ?? '',
       gender: mapSexToLiftersGender(athlete?.sex),
       rawOrEquipped: category,
       division,
+      declaredAwardsWeightClass,
+      bodyWeight,
+      squatOpener: '',
+      benchOpener: '',
+      deadliftOpener: '',
+      squatRackHeight: '',
+      benchRackHeight: '',
+      deadliftRackHeight: '',
       country: mapCountryToLiftersCode(athlete?.country),
-      streetAddress: athlete?.streetAddress ?? '',
-      city: athlete?.city ?? '',
       state: athlete?.province ?? '',
-      zipCode: athlete?.postalCode ?? '',
-      email: athlete?.email ?? '',
+      instagram: athlete?.instagramHandle ?? athlete?.instagram_handle ?? '',
+      notes: '',
       phoneNumber: athlete?.phone ?? '',
-      emergencyContactName: athlete?.emergencyContactName ?? '',
-      emergencyContactPhoneNumber: athlete?.emergencyContactPhone ?? '',
+      email: athlete?.email ?? '',
       divisionEntered: divisionFields.divisionDeclared,
       divisionMismatch: mismatchLabel(divisionFields),
       _meta: {
@@ -299,20 +347,46 @@ export function buildLiftersExportRows(registrations, athletes, memberships) {
         divisionCalculated: divisionFields.divisionCalculated,
         age: divisionFields.age,
         eventTitle: liftersEventTitle(registration),
+        declaredBodyweight,
+        weighInBodyweight,
+        bodyweightSource: weighInBodyweight ? 'weigh-in' : 'declared',
+        declaredWeightClass: declaredClass,
+        officialWeightClass: officialClass,
+        rosterFrozen: Boolean(registration.rosterFrozenAt ?? registration.roster_frozen_at),
       },
     }
   })
+  return assignLifterLots(rows)
+}
+
+/** Lote 1..n dentro de cada tanda, por nombre. Sin tanda, el lote queda vacío. */
+export function assignLifterLots(rows) {
+  const groups = new Map()
+  for (const row of rows ?? []) {
+    if (!row?.flight) continue
+    const key = [row.session, row.flight, row.platform].join('|')
+    const list = groups.get(key) ?? []
+    list.push(row)
+    groups.set(key, list)
+  }
+  for (const list of groups.values()) {
+    list.sort((a, b) =>
+      String(a.name ?? '').localeCompare(String(b.name ?? ''), 'es', { sensitivity: 'base' }),
+    )
+    list.forEach((row, index) => {
+      row.lot = String(index + 1)
+    })
+  }
+  return rows
 }
 
 /** Keys válidas en orden canónico. */
 export const LIFTERS_COLUMN_KEYS = Object.freeze(LIFTERS_COLUMNS.map((col) => col.key))
 
-const AUDIT_COLUMN_KEYS = Object.freeze(['divisionEntered', 'divisionMismatch'])
-
-/** Presets de columnas para el studio de export. */
+/** Presets de columnas para el studio. El Excel usa este recorte. */
 export const LIFTERS_EXPORT_PRESETS = Object.freeze({
   audit: Object.freeze([...LIFTERS_COLUMN_KEYS]),
-  official: Object.freeze(LIFTERS_COLUMN_KEYS.filter((key) => !AUDIT_COLUMN_KEYS.includes(key))),
+  official: Object.freeze([...LIFTERS_COLUMN_KEYS]),
   minimal: Object.freeze([
     'name',
     'birthDate',
@@ -320,20 +394,11 @@ export const LIFTERS_EXPORT_PRESETS = Object.freeze({
     'gender',
     'rawOrEquipped',
     'division',
+    'declaredAwardsWeightClass',
+    'bodyWeight',
     'country',
   ]),
-  contact: Object.freeze([
-    'name',
-    'team',
-    'email',
-    'phoneNumber',
-    'streetAddress',
-    'city',
-    'state',
-    'zipCode',
-    'emergencyContactName',
-    'emergencyContactPhoneNumber',
-  ]),
+  contact: Object.freeze(['name', 'team', 'country', 'state', 'instagram']),
 })
 
 export const DEFAULT_LIFTERS_EXPORT_OPTIONS = Object.freeze({
@@ -495,6 +560,56 @@ export function buildLiftersSummarySheet(rows) {
   }
 }
 
+/** La plantilla de importación tiene que salir completa. Los otros presets no. */
+export function liftersImportColumnsMissing(options = {}) {
+  const opts = normalizeLiftersExportOptions(options)
+  if (opts.preset !== 'official' && opts.preset !== 'audit') return false
+  const keys = new Set(resolveLiftersColumnKeys(opts))
+  return LIFTERS_COLUMN_KEYS.some((key) => !keys.has(key))
+}
+
+export function summarizeLifterMeet(rows) {
+  const groups = new Map()
+  const mismatches = []
+  const missingWeighIn = []
+  for (const row of rows ?? []) {
+    const weightClass = String(row?.declaredAwardsWeightClass ?? '').trim() || '—'
+    const key = [row?.gender || '—', row?.division || '—', row?.rawOrEquipped || '—', weightClass].join('|')
+    const current = groups.get(key) ?? {
+      gender: row?.gender || '—',
+      division: row?.division || '—',
+      equipment: row?.rawOrEquipped || '—',
+      weightClass,
+      count: 0,
+    }
+    current.count += 1
+    groups.set(key, current)
+    const declared = String(row?._meta?.declaredWeightClass ?? '').trim()
+    const official = String(row?._meta?.officialWeightClass ?? '').trim()
+    if (official && declared && official !== declared) {
+      mismatches.push({
+        athleteId: row?._meta?.athleteId ?? null,
+        athleteName: row?.name ?? '',
+        declared,
+        official,
+      })
+    }
+    if (row?._meta?.rosterFrozen && !row?._meta?.weighInBodyweight) {
+      missingWeighIn.push({
+        athleteId: row?._meta?.athleteId ?? null,
+        athleteName: row?.name ?? '',
+      })
+    }
+  }
+  const classGroups = [...groups.values()]
+  return {
+    classGroups,
+    smallClasses: classGroups.filter((group) => group.count > 0 && group.count <= 2),
+    mismatches,
+    missingWeighIn,
+  }
+}
+
 export function resolveLiftersColumnKeys(options = {}) {
   const opts = normalizeLiftersExportOptions(options)
   if (opts.columns?.length) {
@@ -635,6 +750,106 @@ function liftersEventTitle(registration) {
   if (typeof value === 'string') return value.trim()
   if (value && typeof value === 'object') return String(value.title ?? '').trim()
   return ''
+}
+
+const OPENER_KEYS = Object.freeze([
+  ['squatOpener', 'squatOpener'],
+  ['benchOpener', 'benchOpener'],
+  ['deadliftOpener', 'deadliftOpener'],
+])
+
+function openerIssue(row, key) {
+  const value = String(row[key] ?? '').trim()
+  if (!value) return null
+  if (!/^\d+(\.\d+)?$/.test(value)) {
+    return { field: key, message: 'El opener no es un número válido.' }
+  }
+  return null
+}
+
+/** Errores de una fila ya armada para la planilla. No incluye la advertencia de peso. */
+export function lifterExportRowErrors(row) {
+  const issues = []
+  const athleteId = row?._meta?.athleteId ?? null
+  const athleteName = row?.name ?? ''
+  const push = (field, message) => issues.push({ athleteId, athleteName, field, message })
+
+  if (!row?.gender) push('gender', 'Sexo desconocido para el importador.')
+  if (!normalizeEquipment(row?.rawOrEquipped)) push('rawOrEquipped', 'Equipamiento desconocido.')
+  if (!normalizeDivision(row?.division)) push('division', 'División desconocida.')
+  if (!row?.birthDate || !/^\d{2}\/\d{2}\/\d{4}$/.test(String(row.birthDate))) {
+    push('birthDate', 'Fecha inválida.')
+  }
+  if (!row?.bodyWeight || !/^\d+(\.\d+)?$/.test(String(row.bodyWeight))) {
+    push('bodyWeight', 'Peso corporal inválido.')
+  }
+  const weightClass = String(row?.declaredAwardsWeightClass ?? '').trim()
+  if (!weightClass) {
+    push('declaredAwardsWeightClass', 'Falta la categoría de peso.')
+  } else if (!isDeclaredWeightClassForSex(row?.gender, weightClass)) {
+    push('declaredAwardsWeightClass', 'La categoría no corresponde al sexo.')
+  }
+  for (const [key] of OPENER_KEYS) {
+    const issue = openerIssue(row, key)
+    if (issue) push(issue.field, issue.message)
+  }
+  return issues
+}
+
+/** READY, WARNING o ERROR. WARNING no bloquea la descarga. */
+export function classifyLifterExportRow(row) {
+  if (lifterExportRowErrors(row).length) return 'ERROR'
+  if (
+    getWeightClassWarning(row?.bodyWeight, row?.declaredAwardsWeightClass, {
+      source: row?._meta?.bodyweightSource,
+    })
+  ) {
+    return 'WARNING'
+  }
+  return 'READY'
+}
+
+/**
+ * Validación previa a generar el archivo. No toca React.
+ * `valid` es false solo cuando hay errores críticos.
+ */
+export function validateLifterExport(rows) {
+  const errors = []
+  const warnings = []
+  let ready = 0
+  let warningCount = 0
+  let errorCount = 0
+  for (const row of rows ?? []) {
+    const rowErrors = lifterExportRowErrors(row)
+    const warning = getWeightClassWarning(row?.bodyWeight, row?.declaredAwardsWeightClass, {
+      source: row?._meta?.bodyweightSource,
+    })
+    if (rowErrors.length) {
+      errorCount += 1
+      errors.push(...rowErrors)
+      continue
+    }
+    if (warning) {
+      warningCount += 1
+      warnings.push({
+        athleteId: row?._meta?.athleteId ?? null,
+        athleteName: row?.name ?? '',
+        field: 'declaredAwardsWeightClass',
+        message: warning.message,
+      })
+      continue
+    }
+    ready += 1
+  }
+  return {
+    valid: errorCount === 0,
+    total: (rows ?? []).length,
+    ready,
+    warnings: warningCount,
+    errors: errorCount,
+    issues: errors,
+    warningIssues: warnings,
+  }
 }
 
 /** Spreadsheet Lifters: headers LiftingCast, freeze, celdas vacías / mismatch. */

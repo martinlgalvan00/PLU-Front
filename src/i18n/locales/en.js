@@ -1265,6 +1265,9 @@ export default {
         division: 'Division',
         category: 'Category',
         weight: 'Declared bodyweight (kg)',
+        weightClass: 'Weight class *',
+        weightClassSuggestion:
+          'From the declared body weight, the class would be {{className}} kg. It is not applied automatically.',
         choose: 'Choose an option',
         paymentLegend: 'How you pay',
         gatewayNote: 'Paid at the meet checkout, with a card or account money.',
@@ -1274,7 +1277,7 @@ export default {
           'With this code you can pay now or later: you are enabled either way while the term runs.',
         submit: 'Confirm and pay {{amount}}',
         goToGateway: 'Pay with Mercado Pago',
-        incomplete: 'Fill in division, category and declared bodyweight to continue.',
+        incomplete: 'Fill in division, category, weight class and declared bodyweight to continue.',
       },
     },
     benefits: {
@@ -3915,7 +3918,11 @@ export default {
       checkoutContinue: 'Continue to payment',
       checkoutRegistrationLine: 'Registration',
       competitionFormTitle: 'Define your entry',
-      competitionFormDesc: 'Division, category and bodyweight.',
+      competitionFormDesc: 'Division, equipment, weight class and declared bodyweight.',
+      weightClass: 'Weight class *',
+      weightClassPlaceholder: 'Select the class',
+      weightClassSuggestion:
+        'From the declared body weight, the class would be {{className}} kg. It is not applied automatically.',
       divisionAgeHint:
         'Based on your age at the event: {{division}}. You can also choose Open when eligible.',
       packageLegend: 'Package',
@@ -4271,6 +4278,7 @@ export default {
     division: 'Select a division.',
     divisionAge: 'That division does not match your age on the event date.',
     category: 'Select a category.',
+    weightClass: 'Select the weight class you will compete in.',
     weight: 'Enter a weight between 10 and 250 kg.',
     errorBestTotal: 'Enter a total between 10 and 2,000 kg.',
     profileComplete: 'Profile complete',
