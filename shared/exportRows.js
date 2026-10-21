@@ -17,6 +17,29 @@ export function normalizeExportDate(value) {
   return toCalendarDate(value)
 }
 
+/**
+ * Fecha de la planilla de importación: `DD/MM/YYYY`.
+ * Parte del día de calendario ya normalizado, sin pasar por la zona horaria.
+ */
+export function formatExportDateDmy(value) {
+  const iso = toCalendarDate(value)
+  if (!iso) return ''
+  const [year, month, day] = iso.split('-')
+  if (!year || !month || !day) return ''
+  return `${day}/${month}/${year}`
+}
+
+/**
+ * Peso declarado para la planilla. Conserva los decimales (`67.5` no pasa a `67`).
+ */
+export function formatDeclaredBodyWeight(value) {
+  if (value == null || value === '') return ''
+  const raw = String(value).trim().replace(/\s*kg$/i, '').replace(',', '.')
+  if (!/^\d+(\.\d+)?$/.test(raw)) return ''
+  if (!raw.includes('.')) return raw
+  return raw.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '')
+}
+
 export { referenceDateForExport }
 
 export function buildAdminExportRows(registrations, athletes, memberships, payments) {

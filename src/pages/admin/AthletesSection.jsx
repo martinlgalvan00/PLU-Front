@@ -423,6 +423,74 @@ export default function AthletesSection({
     return [...fields].map((field) => profileFieldLabel(field, t)).join(', ')
   }, [selectedRows, t])
 
+  const incompleteNotice =
+    canEdit && picking ? (
+      <div className="admin-athletes-select-incomplete admin-athletes-select-incomplete--picking">
+        <p className="admin-athletes-select-incomplete__stat">
+          <span className="admin-athletes-select-incomplete__label">
+            {t('admin.sections.athletes.selectIncompletePicking')}
+          </span>
+        </p>
+        <div className="admin-athletes-select-incomplete__actions">
+          <button
+            type="button"
+            className="admin-athletes-select-incomplete__btn"
+            onClick={() => {
+              setSelectedRowKeys((current) => {
+                const next = new Set(current)
+                for (const id of incompleteOnPageIds) next.add(id)
+                return [...next]
+              })
+            }}
+            disabled={incompleteOnPageIds.length === 0}
+            aria-label={t('admin.sections.athletes.selectIncompleteThisPageAria', {
+              count: incompleteOnPageIds.length,
+            })}
+          >
+            {t('admin.sections.athletes.selectIncompleteThisPage')}
+          </button>
+          <button
+            type="button"
+            className="admin-athletes-select-incomplete__ghost"
+            onClick={() => setPicking(false)}
+          >
+            {t('admin.sections.athletes.selectIncompleteDone')}
+          </button>
+          <button
+            type="button"
+            className="admin-athletes-select-incomplete__ghost"
+            onClick={() => {
+              setPicking(false)
+              setSelectedRowKeys([])
+            }}
+          >
+            {t('admin.sections.athletes.selectIncompleteCancel')}
+          </button>
+        </div>
+      </div>
+    ) : canEdit && incompleteVisibleIds.length > 0 ? (
+      <div className="admin-athletes-select-incomplete">
+        <p className="admin-athletes-select-incomplete__stat">
+          <strong className="admin-athletes-select-incomplete__n">
+            {incompleteVisibleIds.length}
+          </strong>
+          <span className="admin-athletes-select-incomplete__label">
+            {t('admin.sections.athletes.selectIncompleteLabel')}
+          </span>
+        </p>
+        <button
+          type="button"
+          className="admin-athletes-select-incomplete__btn"
+          onClick={() => setPicking(true)}
+          aria-label={t('admin.sections.athletes.selectIncompleteAria', {
+            count: incompleteVisibleIds.length,
+          })}
+        >
+          {t('admin.sections.athletes.selectIncompleteAction')}
+        </button>
+      </div>
+    ) : null
+
   return (
     <AdminListSection
       variant="athletes"
@@ -495,21 +563,24 @@ export default function AthletesSection({
       ]}
       onQueryChange={setQuery}
       beforeFilters={
-        <AdminSavedViews
-          views={savedViews}
-          activeViewId={activeSavedView?.id ?? null}
-          allLabel={t('admin.savedViews.all')}
-          caption={t('admin.savedViews.caption')}
-          addLabel={t('admin.savedViews.add')}
-          namePlaceholder={t('admin.savedViews.namePlaceholder')}
-          removeAriaLabel={(label) => t('admin.savedViews.remove', { label })}
-          canSave={hasFiltersToSave && !activeSavedView}
-          filterSummary={filterSummary}
-          onApply={applySavedView}
-          onClear={clearSavedView}
-          onSave={(label) => saveView(label, savedViewSnapshot)}
-          onRemove={removeView}
-        />
+        <>
+          {incompleteNotice}
+          <AdminSavedViews
+            views={savedViews}
+            activeViewId={activeSavedView?.id ?? null}
+            allLabel={t('admin.savedViews.all')}
+            caption={t('admin.savedViews.caption')}
+            addLabel={t('admin.savedViews.add')}
+            namePlaceholder={t('admin.savedViews.namePlaceholder')}
+            removeAriaLabel={(label) => t('admin.savedViews.remove', { label })}
+            canSave={hasFiltersToSave && !activeSavedView}
+            filterSummary={filterSummary}
+            onApply={applySavedView}
+            onClear={clearSavedView}
+            onSave={(label) => saveView(label, savedViewSnapshot)}
+            onRemove={removeView}
+          />
+        </>
       }
     >
       {canEdit ? (
@@ -527,72 +598,6 @@ export default function AthletesSection({
           notifyMissingFields={notifyMissingFields}
           onClearSelection={() => setSelectedRowKeys([])}
         />
-      ) : null}
-      {canEdit && picking ? (
-        <div className="admin-athletes-select-incomplete admin-athletes-select-incomplete--picking">
-          <p className="admin-athletes-select-incomplete__stat">
-            <span className="admin-athletes-select-incomplete__label">
-              {t('admin.sections.athletes.selectIncompletePicking')}
-            </span>
-          </p>
-          <div className="admin-athletes-select-incomplete__actions">
-            <button
-              type="button"
-              className="admin-athletes-select-incomplete__btn"
-              onClick={() => {
-                setSelectedRowKeys((current) => {
-                  const next = new Set(current)
-                  for (const id of incompleteOnPageIds) next.add(id)
-                  return [...next]
-                })
-              }}
-              disabled={incompleteOnPageIds.length === 0}
-              aria-label={t('admin.sections.athletes.selectIncompleteThisPageAria', {
-                count: incompleteOnPageIds.length,
-              })}
-            >
-              {t('admin.sections.athletes.selectIncompleteThisPage')}
-            </button>
-            <button
-              type="button"
-              className="admin-athletes-select-incomplete__ghost"
-              onClick={() => setPicking(false)}
-            >
-              {t('admin.sections.athletes.selectIncompleteDone')}
-            </button>
-            <button
-              type="button"
-              className="admin-athletes-select-incomplete__ghost"
-              onClick={() => {
-                setPicking(false)
-                setSelectedRowKeys([])
-              }}
-            >
-              {t('admin.sections.athletes.selectIncompleteCancel')}
-            </button>
-          </div>
-        </div>
-      ) : canEdit && incompleteVisibleIds.length > 0 ? (
-        <div className="admin-athletes-select-incomplete">
-          <p className="admin-athletes-select-incomplete__stat">
-            <strong className="admin-athletes-select-incomplete__n">
-              {incompleteVisibleIds.length}
-            </strong>
-            <span className="admin-athletes-select-incomplete__label">
-              {t('admin.sections.athletes.selectIncompleteLabel')}
-            </span>
-          </p>
-          <button
-            type="button"
-            className="admin-athletes-select-incomplete__btn"
-            onClick={() => setPicking(true)}
-            aria-label={t('admin.sections.athletes.selectIncompleteAria', {
-              count: incompleteVisibleIds.length,
-            })}
-          >
-            {t('admin.sections.athletes.selectIncompleteAction')}
-          </button>
-        </div>
       ) : null}
       <AdminDataTable
         variant="admin"
