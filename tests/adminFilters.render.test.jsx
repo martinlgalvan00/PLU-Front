@@ -278,8 +278,12 @@ describe('Inscripciones — exportaciones con etiqueta', () => {
       </I18nProvider>,
     )
 
-    const csv = screen.getByRole('button', { name: 'Exportar inscripciones' })
-    const pluUsa = screen.getByRole('button', { name: 'Descargar reporte PLU USA' })
+    const csv = screen.getByRole('button', {
+      name: 'Exportar todas las inscripciones (universo, no solo la pantalla)',
+    })
+    const pluUsa = screen.getByRole('button', {
+      name: 'Descargar reporte PLU USA (universo, no solo la pantalla)',
+    })
     expect(csv.textContent).toMatch(/CSV/)
     expect(pluUsa.textContent).toMatch(/PLU USA/)
     expect(csv.className).not.toMatch(/icon-only/)
