@@ -644,12 +644,25 @@
 }
 
 .admin-data-table--ticket-orders .admin-orders-block__concept {
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  display: -webkit-box;
-  line-clamp: 2;
+  align-items: baseline;
+  display: flex;
+  gap: 0.45em;
   line-height: 1.45;
+  overflow: hidden;
   white-space: normal;
+}
+
+.admin-data-table--ticket-orders .admin-orders-block__concept-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-data-table--ticket-orders .admin-orders-block__more {
+  color: var(--admin-muted);
+  flex: none;
+  font-weight: 400;
 }
 
 .admin-data-table--athlete-orders tbody tr:hover > td {

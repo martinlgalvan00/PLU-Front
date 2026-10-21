@@ -11,6 +11,13 @@ import {
   isProofOverrideReasonValid,
 } from '../../services/paymentValidationService.js'
 
+function splitAttendeeLine(line) {
+  const text = String(line ?? '').trim()
+  const match = text.match(/^(.*)\s+\(([^)]+)\)\s*$/)
+  if (!match) return { name: text, document: '' }
+  return { name: match[1].trim(), document: match[2].trim() }
+}
+
 function guessProofKind(...sources) {
   for (const source of sources) {
     const path = String(source ?? '')
@@ -433,9 +440,17 @@ export default function PaymentValidationDialog({
           <dd>
             {attendeeLines.length > 1 ? (
               <ul className="payment-validation-dialog__people">
-                {attendeeLines.map((person) => (
-                  <li key={person}>{person}</li>
-                ))}
+                {attendeeLines.map((person) => {
+                  const { name, document } = splitAttendeeLine(person)
+                  return (
+                    <li key={person}>
+                      <span className="payment-validation-dialog__person-name">{name}</span>
+                      {document ? (
+                        <span className="payment-validation-dialog__person-doc">{document}</span>
+                      ) : null}
+                    </li>
+                  )
+                })}
               </ul>
             ) : (
               item.subject

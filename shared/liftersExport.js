@@ -745,13 +745,6 @@ export function buildLiftersReadiness(rows) {
   }
 }
 
-function liftersEventTitle(registration) {
-  const value = registration?.event
-  if (typeof value === 'string') return value.trim()
-  if (value && typeof value === 'object') return String(value.title ?? '').trim()
-  return ''
-}
-
 const OPENER_KEYS = Object.freeze([
   ['squatOpener', 'squatOpener'],
   ['benchOpener', 'benchOpener'],
@@ -850,6 +843,13 @@ export function validateLifterExport(rows) {
     issues: errors,
     warningIssues: warnings,
   }
+}
+
+function liftersEventTitle(registration) {
+  const value = registration?.event
+  if (typeof value === 'string') return value.trim()
+  if (value && typeof value === 'object') return String(value.title ?? '').trim()
+  return ''
 }
 
 /** Spreadsheet Lifters: headers LiftingCast, freeze, celdas vacías / mismatch. */
