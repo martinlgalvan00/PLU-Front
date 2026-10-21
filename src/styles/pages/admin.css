@@ -7419,6 +7419,12 @@
     min-height: 44px;
   }
 
+  /* En la ficha corta el sticky tapa el motivo. Los botones siguen al campo. */
+  .payment-validation-dialog__panel--empty-proof .payment-validation-dialog__actions {
+    background: transparent;
+    position: static;
+  }
+
   .payment-validation-dialog__meta--rail {
     grid-template-columns: minmax(0, 1fr);
   }
