@@ -143,6 +143,7 @@ describe('oauth auth api', () => {
       eventSlug: null,
       // La cuenta común no es de rol por evento: el candado no la toca.
       eventScoped: false,
+      scope: 'global',
       // Zona de seguridad del evento: nula en cuentas de staff.
       securityZoneId: null,
       // El puesto de seguridad (nombre y alcance) viaja con la sesión: sin

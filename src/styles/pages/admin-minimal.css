@@ -4024,6 +4024,7 @@
   display: flex;
   flex: none;
   gap: 8px;
+  overflow: visible;
 }
 
 .admin-people-section__actions:empty {
