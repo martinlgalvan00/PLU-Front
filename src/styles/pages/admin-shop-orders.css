@@ -54,24 +54,55 @@
   padding: 0;
 }
 
+.admin-shop-orders__empty {
+  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  max-width: 36rem;
+  padding: 16px 0 4px;
+}
+
+.admin-shop-orders__empty-title {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.admin-shop-orders__empty-lead {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
 .admin-shop-order {
   border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: grid;
-  gap: 14px 24px;
-  padding: 18px 0;
+  gap: 8px 20px;
+  padding: 16px 0;
 }
 
-.admin-shop-order__main {
-  display: grid;
-  gap: 6px;
+.admin-shop-order__identity,
+.admin-shop-order__buyer,
+.admin-shop-order__items {
   min-width: 0;
+}
+
+.admin-shop-order__identity,
+.admin-shop-order__buyer {
+  align-content: start;
+  display: grid;
+  gap: 4px;
 }
 
 .admin-shop-order__head {
   align-items: baseline;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: 8px 12px;
 }
 
 .admin-shop-order__ref {
@@ -110,7 +141,7 @@
 .admin-shop-order__total {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  margin-left: auto;
+  margin: 0;
 }
 
 .admin-shop-order__meta,
@@ -145,6 +176,7 @@
   font-size: 12.5px;
   font-weight: 600;
   gap: 6px 14px;
+  grid-column: 1 / -1;
   margin: 0;
 }
 
@@ -440,12 +472,27 @@
   }
 }
 
-@media (min-width: 720px) {
+@media (min-width: 900px) {
   .admin-shop-order {
-    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    grid-template-columns:
+      minmax(9.5rem, 0.9fr)
+      minmax(12rem, 1.25fr)
+      minmax(10rem, 1.15fr)
+      auto
+      auto;
+  }
+
+  .admin-shop-order__total {
+    text-align: end;
   }
 
   .admin-shop-order__actions {
     justify-content: flex-end;
+  }
+
+  .admin-shop-order__actions:has(.admin-shop-order__confirm) {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
   }
 }
