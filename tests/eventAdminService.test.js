@@ -113,6 +113,7 @@ describe('eventAdminService', () => {
       ends_at: '2026-08-15T20:00:00.000Z',
       capacity: 120,
       status: 'proximamente',
+      roster_frozen_at: '2026-10-21T12:00:00.000Z',
       published: false,
       price: 75000,
       currency: 'ARS',
@@ -141,6 +142,7 @@ describe('eventAdminService', () => {
     expect(event.eventDays).toEqual([
       { id: 'day-1', dayIndex: 0, label: 'Día 1', date: '2026-08-15' },
     ])
+    expect(event.rosterFrozenAt).toBe('2026-10-21T12:00:00.000Z')
   })
 
   it('mapea las ventanas de pesaje públicas desde rules', () => {

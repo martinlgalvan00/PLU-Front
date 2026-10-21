@@ -1493,6 +1493,8 @@ export function useAppData() {
         const competition = {
           division: options.competition?.division ?? form.division,
           category: options.competition?.category ?? form.category,
+          declaredWeightClass:
+            options.competition?.declaredWeightClass ?? form.declaredWeightClass ?? '',
           bodyweightKg:
             options.competition?.bodyweightKg !== undefined
               ? options.competition.bodyweightKg
@@ -1505,6 +1507,7 @@ export function useAppData() {
           selectedEvent.slug,
           competition.division,
           competition.category,
+          competition.declaredWeightClass,
           competition.bodyweightKg,
           paymentMethod,
           purchaseType,
@@ -1527,6 +1530,7 @@ export function useAppData() {
             eventSlug: selectedEvent.slug,
             division: competition.division,
             category: competition.category,
+            declaredWeightClass: competition.declaredWeightClass,
             bodyweightKg: competition.bodyweightKg,
             paymentMethod,
             idempotencyKey: registrationAttemptRef.current.idempotencyKey,
@@ -1661,7 +1665,15 @@ export function useAppData() {
    * restringido y fija el importe promocional.
    */
   const startOfferPayment = useCallback(
-    ({ offer, event, paymentMethod = 'mercado_pago', division, category, bodyweightKg }) => {
+    ({
+      offer,
+      event,
+      paymentMethod = 'mercado_pago',
+      division,
+      category,
+      declaredWeightClass,
+      bodyweightKg,
+    }) => {
       if (!offer?.code || !event?.slug) {
         return Promise.resolve({ error: 'No se pudo resolver la oferta.' })
       }
@@ -1670,7 +1682,7 @@ export function useAppData() {
         paymentMethod,
         discountCode: offer.code,
         comboAccessCode: offer.code,
-        competition: { division, category, bodyweightKg },
+        competition: { division, category, declaredWeightClass, bodyweightKg },
       })
     },
     [submitCompetition],
@@ -3416,7 +3428,7 @@ export function useAppData() {
         return { error: 'Sin permisos para exportar.' }
       }
       if (env.demoMode || isDemoSession(session)) {
-        const { buildLiftersExportRows, buildLiftersReadiness } = await import(
+        const { buildLiftersExportRows, buildLiftersReadiness, validateLifterExport } = await import(
           '../../shared/liftersExport.js'
         )
         const scoped = eventSlug
@@ -3425,7 +3437,13 @@ export function useAppData() {
             )
           : registrations
         const rows = buildLiftersExportRows(scoped, athletes, memberships)
-        return { readiness: buildLiftersReadiness(rows), truncated: false, event: null }
+        return {
+          readiness: buildLiftersReadiness(rows),
+          exportCheck: validateLifterExport(rows),
+          rows,
+          truncated: false,
+          event: null,
+        }
       }
       try {
         return await fetchLiftersExportReadiness({ eventSlug })
@@ -3447,7 +3465,10 @@ export function useAppData() {
         const {
           buildLiftersExportRows,
           buildLiftersReadiness,
+          filterLiftersRowsByCompleteness,
+          liftersImportColumnsMissing,
           serializeLiftersSpreadsheet,
+          validateLifterExport,
         } = await import('../../shared/liftersExport.js')
         const scoped = eventSlug
           ? registrations.filter(
@@ -3460,6 +3481,17 @@ export function useAppData() {
           return { ok: false, empty: true }
         }
         const readiness = buildLiftersReadiness(liftersRows)
+        const exportCheck = validateLifterExport(
+          filterLiftersRowsByCompleteness(liftersRows, options?.rowFilter),
+        )
+        if (!exportCheck.valid) {
+          notifyError('Hay atletas con datos que no se pueden exportar.')
+          return { ok: false, error: exportCheck }
+        }
+        if (liftersImportColumnsMissing(options ?? {})) {
+          notifyError('La plantilla de importación necesita todas las columnas.')
+          return { ok: false, error: { code: 'LIFTERS_EXPORT_COLUMNS' } }
+        }
         const xml = serializeLiftersSpreadsheet(liftersRows, 'Lifters', options ?? {})
         if (!xml) {
           notifyError('No hay filas para exportar con el filtro del studio.')
@@ -3470,6 +3502,9 @@ export function useAppData() {
           'lifters-export.xls',
         )
         const notes = []
+        if (exportCheck.warnings) {
+          notes.push(`${exportCheck.warnings} con peso por encima de la categoría`)
+        }
         if (readiness.incomplete) notes.push(`${readiness.incomplete} con datos faltantes`)
         if (readiness.divisionMismatch) {
           notes.push(`${readiness.divisionMismatch} con división incorrecta`)

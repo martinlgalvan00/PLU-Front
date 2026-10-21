@@ -5,6 +5,7 @@ import LoadingState from '../../components/ui/LoadingState.jsx'
 import TransferReceipt from '../../components/checkout/TransferReceipt.jsx'
 import ManualPaymentConfirmation from '../../components/checkout/ManualPaymentConfirmation.jsx'
 import { FORM_OPTIONS } from '../../lib/constants.js'
+import { suggestWeightClass, weightClassLabelsForSex } from '../../../shared/pluWeightClasses.js'
 import { money } from '../../lib/format.js'
 import { computeFinancingRemaining, formatFinancingCountdown } from '../../lib/financingCountdown.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -64,6 +65,10 @@ export default function SecretBundleSection({
   const [weight, setWeight] = useState(
     athlete?.estimatedWeight ? String(athlete.estimatedWeight) : '',
   )
+  const [declaredWeightClass, setDeclaredWeightClass] = useState(
+    athlete?.declaredWeightClass ?? '',
+  )
+  const weightClassOptions = weightClassLabelsForSex(athlete?.sex)
   // El canal se guarda, pero el que manda es el que el paquete habilita hoy: la
   // ficha puede haber montado antes de que volviera la lectura de códigos —sin
   // canales todavía— y un estado inicializado en ese hueco dejaba el botón
@@ -143,7 +148,7 @@ export default function SecretBundleSection({
   async function submit(submitEvent) {
     submitEvent.preventDefault()
     if (submitting || !onStartOfferPayment) return
-    if (!division || !category || !weight) {
+    if (!division || !category || !declaredWeightClass || !weight) {
       setError(t('account.bundle.form.incomplete'))
       return
     }
@@ -162,6 +167,7 @@ export default function SecretBundleSection({
         paymentMethod: apiPaymentMethod(method),
         division,
         category,
+        declaredWeightClass,
         bodyweightKg: Number(String(weight).replace(',', '.')),
       })
       if (result?.error) {
@@ -224,6 +230,29 @@ export default function SecretBundleSection({
                     </option>
                   ))}
                 </select>
+              </label>
+              <label>
+                <span>{t('account.bundle.form.weightClass')}</span>
+                <select
+                  value={declaredWeightClass}
+                  onChange={(event) => setDeclaredWeightClass(event.target.value)}
+                  required
+                >
+                  <option value="">{t('account.bundle.form.choose')}</option>
+                  {weightClassOptions.map((item) => (
+                    <option key={item} value={item}>
+                      {item} kg
+                    </option>
+                  ))}
+                </select>
+                {suggestWeightClass(athlete?.sex, weight) &&
+                suggestWeightClass(athlete?.sex, weight) !== declaredWeightClass ? (
+                  <p className="bundle-section__hint">
+                    {t('account.bundle.form.weightClassSuggestion', {
+                      className: suggestWeightClass(athlete?.sex, weight),
+                    })}
+                  </p>
+                ) : null}
               </label>
               <label>
                 <span>{t('account.bundle.form.weight')}</span>

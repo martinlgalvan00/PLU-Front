@@ -107,6 +107,7 @@ describe('validación manual de transferencia y credencial resultante', () => {
           division: 'Open',
           category: 'Raw',
           bodyweightKg: 90,
+          declaredWeightClass: '90',
           paymentMethod: 'manual_link',
           idempotencyKey: randomUUID(),
         },

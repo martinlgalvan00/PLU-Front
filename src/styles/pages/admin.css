@@ -3438,6 +3438,75 @@
   gap: 0.65rem 1.25rem;
 }
 
+.admin-lifters-export__columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.85rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.admin-lifters-export__columns legend {
+  width: 100%;
+  margin-bottom: 0.15rem;
+  padding: 0;
+  font-size: 0.75rem;
+  color: var(--admin-muted, var(--color-text-muted));
+}
+
+.admin-lifters-export__hint {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--admin-muted, var(--color-text-muted));
+}
+
+.admin-meet-facts {
+  display: grid;
+  gap: 0.1rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.admin-meet-facts__warning {
+  color: var(--color-warning-text);
+}
+
+.admin-export-readiness--ready {
+  color: var(--color-success-text);
+}
+
+.admin-export-readiness--warning {
+  color: var(--color-warning-text);
+}
+
+.admin-export-readiness--error {
+  color: var(--color-danger-text);
+}
+
+.admin-lifters-export__file-scroll {
+  overflow-x: auto;
+}
+
+.admin-lifters-export__file table {
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.admin-lifters-export__file th,
+.admin-lifters-export__file td {
+  padding: 0.25rem 0.45rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.admin-class-edit {
+  margin-top: 0.75rem;
+}
+
 .admin-lifters-export__field {
   position: relative;
   display: grid;

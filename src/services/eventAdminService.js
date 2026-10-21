@@ -757,6 +757,7 @@ export function mapSupabaseEventRow(row) {
     ticketSalesClosesAt: row.ticket_sales_closes_at,
     capacity: row.capacity,
     status: row.status,
+    rosterFrozenAt: row.roster_frozen_at ?? row.rosterFrozenAt ?? null,
     published: row.published,
     requiresMembership: row.requires_membership !== false,
     capacityProgressPublic: row.capacity_progress_public !== false,
