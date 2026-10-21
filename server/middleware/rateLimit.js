@@ -60,7 +60,7 @@ function clientKey(req) {
  *   poco (login, checkout, código de acceso); `sampled` acumula y sincroniza por
  *   lotes, para el volumen alto donde interesa frenar abuso, no contar exacto.
  */
-function buildLimiter(windowMs, limit, message, { name, mode = 'sampled' } = {}) {
+function buildLimiter(windowMs, limit, message, { name, mode = 'sampled', skipInTest = false } = {}) {
   return rateLimit({
     windowMs,
     limit,
@@ -69,6 +69,10 @@ function buildLimiter(windowMs, limit, message, { name, mode = 'sampled' } = {})
     keyGenerator: clientKey,
     message: { error: message },
     store: name ? createSharedStore({ name, mode }) : undefined,
+    // La suite entra decenas de veces desde la misma IP. El cupo de producción
+    // (20 logins / 15 min) corta el archivo de eventos con 429 antes de llegar
+    // al caso. En producción el skip no aplica.
+    skip: skipInTest ? () => process.env.NODE_ENV === 'test' : undefined,
   })
 }
 
@@ -77,7 +81,7 @@ export const authLimiter = buildLimiter(
   15 * 60 * 1000,
   20,
   'Demasiados intentos. Proba de nuevo en unos minutos.',
-  { name: 'auth', mode: 'strict' },
+  { name: 'auth', mode: 'strict', skipInTest: true },
 )
 
 /**
@@ -96,7 +100,7 @@ export const athleteAuthLimiter = buildLimiter(
   15 * 60 * 1000,
   40,
   'Demasiados intentos. Proba de nuevo en unos minutos.',
-  { name: 'athlete-auth', mode: 'strict' },
+  { name: 'athlete-auth', mode: 'strict', skipInTest: true },
 )
 
 // Escritura pública sin auth: registro de atleta, alta de orden de membresía.
