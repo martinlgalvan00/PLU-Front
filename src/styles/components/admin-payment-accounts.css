@@ -177,8 +177,21 @@
 }
 
 /* ---- Panel "Cuentas de cobro" (Acceso y habilitación) ----
-   Una lista por medio, en flujo abierto: filas separadas por hairline, quién
-   cobra y dónde se usa a la izquierda, acciones a la derecha. */
+   Flujo abierto: en el contenedor ancho, Mercado Pago y bancos van lado a
+   lado con un hairline; en angosto se apilan. El lead se lee en ~62ch. El
+   aviso de reconexión ocupa el ancho y es el único rojo. */
+
+.payment-accounts .admin-access__block-head {
+  align-items: flex-end;
+}
+
+.payment-accounts .admin-access__block-head > div {
+  min-width: 0;
+}
+
+.payment-accounts .admin-access__block-head p {
+  max-width: 62ch;
+}
 
 .payment-accounts__reconnect-banner {
   border: 1px solid var(--admin-status-danger, var(--color-danger, #b3261e));
@@ -186,8 +199,7 @@
   color: var(--admin-status-danger, var(--color-danger, #b3261e));
   display: grid;
   gap: 10px;
-  margin: 0 0 16px;
-  max-width: 78ch;
+  margin: 0;
   padding: 12px 14px;
 }
 
@@ -231,10 +243,18 @@
   color: var(--admin-muted, var(--color-text-muted));
 }
 
+.payment-accounts__columns {
+  display: grid;
+  gap: 28px;
+  min-width: 0;
+}
+
 .payment-accounts__group {
+  align-content: start;
+  container-name: payment-accounts-group;
+  container-type: inline-size;
   display: grid;
   gap: 10px;
-  max-width: 78ch;
   min-width: 0;
 }
 
@@ -248,11 +268,25 @@
   padding-bottom: 8px;
 }
 
+.payment-accounts__group-title {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
 .payment-accounts__group-head h3 {
   color: var(--admin-ink);
   font-size: 14px;
   font-weight: 650;
   margin: 0;
+}
+
+.payment-accounts__count {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
 }
 
 .payment-accounts__list {
@@ -263,18 +297,26 @@
 }
 
 .payment-accounts__item {
-  align-items: start;
   border-bottom: 1px solid var(--admin-hairline);
   display: grid;
-  gap: 8px 16px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding: 12px 0;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 0 12px;
 }
 
 .payment-accounts__item:last-child {
   border-bottom: 0;
 }
 
+.payment-accounts__head {
+  align-items: center;
+  display: grid;
+  gap: 4px 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+}
+
+.payment-accounts__item--archived .payment-accounts__name,
 .payment-accounts__item--archived .payment-accounts__main {
   opacity: 0.72;
 }
@@ -294,8 +336,9 @@
   color: var(--admin-ink);
   display: flex;
   flex-wrap: wrap;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
+  letter-spacing: -0.01em;
   gap: 8px;
   margin: 0;
   overflow-wrap: anywhere;
@@ -341,31 +384,63 @@
 
 .payment-accounts__toggle {
   align-items: center;
-  color: var(--admin-text-secondary);
+  align-self: flex-end;
+  color: var(--admin-muted);
   cursor: pointer;
   display: inline-flex;
   flex: none;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 550;
-  gap: 8px;
   min-height: 36px;
+  position: relative;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+  text-underline-offset: 3px;
 }
 
 .payment-accounts__toggle input {
-  accent-color: var(--admin-ink);
-  height: 16px;
-  margin: 0;
-  width: 16px;
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.payment-accounts__toggle:has(input:checked) {
+  color: var(--admin-ink);
+  text-decoration-color: currentColor;
 }
 
 .payment-accounts__toggle:focus-within {
+  border-radius: 2px;
   outline: 2px solid var(--admin-focus);
   outline-offset: 2px;
 }
 
 @supports (container-type: inline-size) {
-  @container admin-access (max-width: 640px) {
-    .payment-accounts__item {
+  @container admin-access (min-width: 900px) {
+    .payment-accounts__columns {
+      align-items: start;
+      column-gap: 0;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .payment-accounts__group:first-child {
+      padding-right: 28px;
+    }
+
+    .payment-accounts__group + .payment-accounts__group {
+      border-left: 1px solid var(--admin-hairline);
+      padding-left: 28px;
+    }
+  }
+
+  @container payment-accounts-group (max-width: 480px) {
+    .payment-accounts__head {
       grid-template-columns: minmax(0, 1fr);
     }
 

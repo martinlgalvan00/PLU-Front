@@ -403,7 +403,7 @@ export default function AdminDataTable({
             ? { width: 132 }
             : {}),
         ...(col.fixed ? { fixed: col.fixed } : {}),
-        ...(fitActive && !isActionColumn(col) && col.mobile !== 'select'
+        ...(fitActive && !isActionColumn(col) && col.mobile !== 'select' && col.ellipsis !== false
           ? { ellipsis: { showTitle: false } }
           : {}),
         render: (text, record) => (

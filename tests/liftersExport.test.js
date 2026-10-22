@@ -33,6 +33,7 @@ const athlete = {
   phone: '1554564645',
   category: 'Raw',
   division: 'Open',
+  estimatedWeight: '82.5',
   emergencyContactName: 'Madre',
   emergencyContactPhone: '1199988877',
 }
@@ -40,6 +41,8 @@ const athlete = {
 describe('liftersExport', () => {
   it('mapea gender y country al formato LiftingCast', () => {
     expect(mapSexToLiftersGender('Masculino')).toBe('Male')
+    expect(mapSexToLiftersGender('Hombre')).toBe('Male')
+    expect(mapSexToLiftersGender('Mujer')).toBe('Female')
     expect(mapSexToLiftersGender('Femenino')).toBe('Female')
     expect(mapCountryToLiftersCode('Argentina')).toBe('AR')
   })
@@ -49,7 +52,7 @@ describe('liftersExport', () => {
     expect(getMissingLiftersFields(athlete)).toEqual([])
   })
 
-  it('arma filas con encabezados LiftingCast (sin columnas de grilla/racks)', () => {
+  it('arma filas con el header fijo de LiftingCast, celdas vacías y peso decimal', () => {
     const rows = buildLiftersExportRows(
       [{ id: 'r1', athleteId: 'a1', category: 'Raw', division: 'Open' }],
       [athlete],
@@ -57,18 +60,90 @@ describe('liftersExport', () => {
     )
     const sheet = liftersRowsForSpreadsheet(rows)[0]
     expect(Object.keys(sheet)).toEqual(LIFTERS_COLUMNS.map((col) => col.header))
-    expect(sheet.Name).toBe('Gonzalo Taborrelli')
-    expect(sheet.Team).toBe('Pitbull')
-    expect(sheet['Birth Date']).toBe('1992-02-19')
-    expect(sheet['Member Number']).toBe('PLU-1')
-    expect(sheet.Gender).toBe('Male')
-    expect(sheet.RawOrEquipped).toBe('Raw')
-    expect(sheet.Country).toBe('AR')
-    expect(sheet.StreetAddress).toBe('Calle 845')
-    expect(sheet['Zip Code']).toBe('1881')
-    expect(sheet).not.toHaveProperty('lot')
-    expect(sheet).not.toHaveProperty('bodyWeight')
-    expect(sheet).not.toHaveProperty('squat1')
+    expect(sheet.name).toBe('Gonzalo Taborrelli')
+    expect(sheet.team).toBe('Pitbull')
+    expect(sheet.birthDate).toBe('19/02/1992')
+    expect(sheet.memberNumber).toBe('PLU-1')
+    expect(sheet.gender).toBe('Male')
+    expect(sheet.rawOrEquipped).toBe('Raw')
+    expect(sheet.division).toBe('Open')
+    expect(sheet.country).toBe('AR')
+    expect(sheet.bodyWeight).toBe('82.5')
+    const decimal = buildLiftersExportRows(
+      [{ id: 'r-w', athleteId: 'a1', category: 'Raw', division: 'Open', bodyweight: '67.50', declaredWeightClass: '67,5' }],
+      [athlete],
+      [],
+    )
+    const decimalSheet = liftersRowsForSpreadsheet(decimal)[0]
+    expect(decimalSheet.bodyWeight).toBe('67.5')
+    expect(decimalSheet.declaredAwardsWeightClass).toBe('67,5')
+    const official = buildLiftersExportRows(
+      [
+        {
+          id: 'r-off',
+          athleteId: 'a1',
+          category: 'Raw',
+          division: 'Open',
+          bodyweight: '67.5',
+          declaredWeightClass: '75',
+          officialWeightClass: '82,5',
+        },
+      ],
+      [athlete],
+      [],
+    )
+    expect(liftersRowsForSpreadsheet(official)[0].declaredAwardsWeightClass).toBe('82,5')
+    expect(liftersRowsForSpreadsheet(official)[0].bodyWeight).toBe('67.5')
+    expect(decimalSheet.birthDate).toBe('19/02/1992')
+    const isoDay = buildLiftersExportRows(
+      [{ id: 'r-d', athleteId: 'a-day', category: 'Raw', division: 'Open' }],
+      [{ id: 'a-day', fullName: 'Fecha', birthDate: '2026-10-21', sex: 'Femenino', category: 'Raw' }],
+      [],
+    )
+    expect(liftersRowsForSpreadsheet(isoDay)[0].birthDate).toBe('21/10/2026')
+    expect(liftersRowsForSpreadsheet(isoDay)[0].gender).toBe('Female')
+    expect(sheet.lot).toBe('')
+    const gridded = buildLiftersExportRows(
+      [
+        {
+          id: 'r-b',
+          athleteId: 'a-b',
+          category: 'Raw',
+          division: 'Open',
+          bodyweight: '80',
+          declaredWeightClass: '82,5',
+          meetDay: 'Sábado',
+          flight: 'A',
+          platform: '1',
+        },
+        {
+          id: 'r-a',
+          athleteId: 'a-a',
+          category: 'Raw',
+          division: 'Open',
+          bodyweight: '74',
+          declaredWeightClass: '75',
+          meetDay: 'Sábado',
+          flight: 'A',
+          platform: '1',
+        },
+      ],
+      [
+        { id: 'a-b', fullName: 'Zulema', birthDate: '1992-02-19', sex: 'Femenino', category: 'Raw', division: 'Open' },
+        { id: 'a-a', fullName: 'Ana', birthDate: '1992-02-19', sex: 'Femenino', category: 'Raw', division: 'Open' },
+      ],
+      [],
+    )
+    const gridSheet = liftersRowsForSpreadsheet(gridded)
+    expect(gridSheet.find((row) => row.name === 'Ana')).toMatchObject({
+      session: 'Sábado',
+      flight: 'A',
+      platform: '1',
+      lot: '1',
+    })
+    expect(gridSheet.find((row) => row.name === 'Zulema').lot).toBe('2')
+    expect(sheet.squatOpener).toBe('')
+    expect(Object.keys(sheet)).toHaveLength(LIFTERS_COLUMNS.length)
   })
 
   it('calcula division por DOB; Open inscrito es upgrade (no mismatch duro)', () => {
@@ -98,9 +173,9 @@ describe('liftersExport', () => {
     expect(rows[0]._meta.divisionMismatch).toBe(false)
     expect(rows[0]._meta.divisionOpenUpgrade).toBe(true)
     const sheet = liftersRowsForSpreadsheet(rows)[0]
-    expect(sheet.Division).toBe('Junior')
-    expect(sheet.DivisionEntered).toBe('Open')
-    expect(sheet.DivisionMismatch).toBe('Open')
+    expect(sheet.division).toBe('Junior')
+    expect(rows[0].divisionEntered).toBe('Open')
+    expect(rows[0].divisionMismatch).toBe('Open')
     const readiness = buildLiftersReadiness(rows)
     expect(readiness.divisionMismatch).toBe(0)
     expect(readiness.divisionOpenUpgrade).toBe(1)
@@ -137,7 +212,7 @@ describe('liftersExport', () => {
       [],
     )
     expect(rows[0].division).toBe('Masters')
-    expect(liftersRowsForSpreadsheet(rows)[0].Division).toBe('Masters')
+    expect(liftersRowsForSpreadsheet(rows)[0].division).toBe('Masters')
   })
 
   it('readiness cuenta incompletos y ranking de campos vacíos', () => {
@@ -200,10 +275,10 @@ describe('liftersExport', () => {
       [],
     )
     const xml = serializeLiftersSpreadsheet(rows, 'Lifters')
-    expect(xml).toContain('Birth Date')
-    expect(xml).toContain('StreetAddress')
-    expect(xml).toContain('Zip Code')
-    expect(xml).toContain('EmergencyContactName')
+    expect(xml).toContain('birthDate')
+    expect(xml).toContain('declaredAwardsWeightClass')
+    expect(xml).toContain('bodyWeight')
+    expect(xml).toContain('squatRackHeight')
     expect(xml).toContain('ss:ID="EmptyCell"')
     expect(xml).toContain('ss:StyleID="EmptyCell"')
     expect(xml).toContain('ss:Width=')
@@ -213,7 +288,7 @@ describe('liftersExport', () => {
 
   it('studio: presets, filtro de filas y opciones de estilo', () => {
     expect(resolveLiftersColumnKeys({ preset: 'minimal' })).toEqual(LIFTERS_EXPORT_PRESETS.minimal)
-    expect(resolveLiftersColumnKeys({ preset: 'official' })).not.toContain('divisionEntered')
+    expect(resolveLiftersColumnKeys({ preset: 'official' })).toEqual([...LIFTERS_COLUMNS.map((col) => col.key)])
     expect(normalizeLiftersExportOptions({ preset: 'nope', highlightEmpty: '0' })).toMatchObject({
       preset: 'audit',
       highlightEmpty: false,
@@ -242,10 +317,19 @@ describe('liftersExport', () => {
       freezeHeader: false,
       includeSummarySheet: false,
     })
-    expect(minimalXml).toContain('Birth Date')
-    expect(minimalXml).not.toContain('StreetAddress')
+    expect(minimalXml).toContain('birthDate')
+    expect(minimalXml).not.toContain('squatRackHeight')
+    expect(minimalXml).not.toContain('notes')
     expect(minimalXml).not.toContain('ss:StyleID="EmptyCell"')
     expect(minimalXml).not.toContain('FreezePanes')
+
+    const pickedXml = serializeLiftersSpreadsheet(rows, 'Lifters', {
+      columns: ['name', 'bodyWeight'],
+      includeSummarySheet: false,
+    })
+    expect(pickedXml).toContain('bodyWeight')
+    expect(pickedXml).not.toContain('birthDate')
+    expect(pickedXml).not.toContain('notes')
 
     const incompleteOnly = serializeLiftersSpreadsheet(rows, 'Lifters', {
       rowFilter: 'incomplete',

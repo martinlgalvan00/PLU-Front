@@ -175,6 +175,7 @@ describe('POST /me/registration-combos con combo restringido', () => {
       division: 'Open',
       category: 'Raw',
       bodyweightKg: 90,
+      declaredWeightClass: '90',
       paymentMethod: 'mercado_pago',
       idempotencyKey: crypto.randomUUID(),
       ...extra,

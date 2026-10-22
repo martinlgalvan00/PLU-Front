@@ -324,6 +324,11 @@ function EventListRow({
               <Star size={12} aria-hidden />
             </span>
           ) : null}
+          {row.rosterFrozenAt ? (
+            <span className="admin-event-row__nav-mark" title={t('admin.liftersExport.rosterFrozen')}>
+              {t('admin.liftersExport.rosterFrozenShort')}
+            </span>
+          ) : null}
           {inNav ? (
             <span
               className="admin-event-row__nav-mark"

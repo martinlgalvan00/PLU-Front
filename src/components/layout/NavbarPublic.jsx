@@ -33,7 +33,7 @@ import {
   sessionInitial,
   sessionPhotoUrl,
 } from '../../lib/format.js'
-import { canViewAdmin, resolveSessionIdentity } from '../../lib/roles.js'
+import { canViewAdmin, hasAccountSession, resolveSessionIdentity } from '../../lib/roles.js'
 import { hasCurrentMembership } from '../../services/membershipService.js'
 import { useHeaderScroll } from '../../hooks/useMotion.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -556,12 +556,13 @@ export default function NavbarPublic({
     sessionIdentity.mode === 'admin'
       ? (sessionIdentity.roleLabel ?? t('nav.roleAdmin'))
       : t('nav.roleAthlete')
-  const sessionFullName = session ? sessionDisplayName(session) : ''
-  const sessionInitialLetter = session ? sessionInitial(session) : ''
-  const sessionPhoto = session ? sessionPhotoUrl(session) : ''
+  const hasAccount = hasAccountSession(session)
+  const sessionFullName = hasAccount ? sessionDisplayName(session) : ''
+  const sessionInitialLetter = hasAccount ? sessionInitial(session) : ''
+  const sessionPhoto = hasAccount ? sessionPhotoUrl(session) : ''
   const hasActiveMembership =
     session?.role === 'athlete_plu' && hasCurrentMembership(memberships, session.athleteId)
-  const showNoticeBell = Boolean(session)
+  const showNoticeBell = hasAccount
   const competitionActive = Boolean(COMPETITION_NAVIGATION?.views?.includes(activeView))
   const moreActive = Boolean(MORE_NAVIGATION?.views?.includes(activeView))
   const competitionEvents = resolveCompetitionNavEvents(navEvents, latestEvent)
@@ -953,7 +954,7 @@ export default function NavbarPublic({
                 {profileNoticeUnread ? <span className="plu-global-nav__notice-dot" aria-hidden /> : null}
               </button>
             ) : null}
-            {session ? (
+            {hasAccount ? (
               <div className="plu-global-nav__account">
                 <button
                   type="button"
@@ -1016,7 +1017,7 @@ export default function NavbarPublic({
                   ) : null}
                 </button>
               ) : null}
-              {session ? (
+              {hasAccount ? (
                 <button
                   type="button"
                   id="plu-profile-menu-trigger-mobile"
@@ -1433,7 +1434,7 @@ export default function NavbarPublic({
                     <LanguageToggle compact />
                   </div>
 
-                  {session ? (
+                  {hasAccount ? (
                     <div className="plu-drawer__footer-account">
                       <button
                         type="button"

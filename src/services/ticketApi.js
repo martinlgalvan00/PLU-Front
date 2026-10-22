@@ -167,8 +167,12 @@ export async function createManualTicketOrder({
   }
 }
 
-export async function approveTicketOrder(orderId) {
-  const result = await apiPost(`/api/tickets/orders/${orderId}/approve`, {})
+export async function approveTicketOrder(orderId, { overrideReason } = {}) {
+  const trimmed =
+    typeof overrideReason === 'string' ? overrideReason.trim() : ''
+  const result = await apiPost(`/api/tickets/orders/${orderId}/approve`, {
+    ...(trimmed ? { overrideReason: trimmed } : {}),
+  })
   return {
     order: toCamelOrder(result.order),
     tickets: result.tickets.map((ticket) => toCamelTicket(ticket)),

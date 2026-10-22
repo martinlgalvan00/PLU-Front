@@ -508,19 +508,21 @@ export function createSupabaseAthleteRepository(
       // Lecturas opcionales: columnas de migraciones que pueden no haber
       // corrido todavía. Sin ellas el checkout sigue, con el precio Wise vacío
       // y el efectivo cobrado en la sede del evento.
-      const [wiseResult, cashResult] = await Promise.all([
+      const [wiseResult, cashResult, freezeResult] = await Promise.all([
         client.from('events').select('wise_price').eq('id', event.id).maybeSingle(),
         client
           .from('events')
           .select('cash_payment_place, cash_payment_notes')
           .eq('id', event.id)
           .maybeSingle(),
+        client.from('events').select('roster_frozen_at').eq('id', event.id).maybeSingle(),
       ])
       return {
         ...event,
         wise_price: wiseResult.error ? null : (wiseResult.data?.wise_price ?? null),
         cash_payment_place: cashResult.error ? null : (cashResult.data?.cash_payment_place ?? null),
         cash_payment_notes: cashResult.error ? null : (cashResult.data?.cash_payment_notes ?? null),
+        roster_frozen_at: freezeResult.error ? null : (freezeResult.data?.roster_frozen_at ?? null),
       }
     },
     // Precio vigente del combo (afiliación + inscripción) para el preview de
@@ -660,9 +662,9 @@ export function createSupabaseAthleteRepository(
       // canal pedido tiene que estar en su lista.
       return policy.manualChannels.includes(channel)
     },
-    createRegistration: (athleteId, data) =>
-      rpc(
-        'create_competition_registration_checkout',
+    async createRegistration(athleteId, data) {
+      return rpc(
+        'create_competition_registration_checkout_v2',
         {
           p_athlete_id: athleteId,
           p_event_slug: data.eventSlug,
@@ -676,12 +678,14 @@ export function createSupabaseAthleteRepository(
           p_manual_price: data.manualPrice ?? null,
           p_manual_payment_channel: data.manualPaymentChannel,
           p_currency: data.currency ?? null,
+          p_declared_weight_class: data.declaredWeightClass,
         },
         'No se pudo crear la inscripcion.',
-      ),
-    createRegistrationCombo: (athleteId, data) =>
-      rpc(
-        'create_membership_registration_combo_checkout',
+      )
+    },
+    async createRegistrationCombo(athleteId, data) {
+      return rpc(
+        'create_membership_registration_combo_checkout_v2',
         {
           p_athlete_id: athleteId,
           p_event_slug: data.eventSlug,
@@ -695,9 +699,137 @@ export function createSupabaseAthleteRepository(
           p_manual_payment_channel: data.manualPaymentChannel,
           p_discount_code: data.discountCode || null,
           p_currency: data.currency ?? null,
+          p_declared_weight_class: data.declaredWeightClass,
         },
         'No se pudo crear el combo de afiliacion e inscripcion.',
-      ),
+      )
+    },
+    async findRegistrationWeightClassContext(registrationId) {
+      return assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .select(
+            'id, bodyweight_kg, declared_weight_class, official_weight_class, athlete:athletes(sex), event:events(id, slug, roster_frozen_at)',
+          )
+          .eq('organization_id', organizationId)
+          .eq('id', registrationId)
+          .maybeSingle(),
+        'No se pudo leer la inscripción.',
+      )
+    },
+    async findRegistrationWeightClassContexts(registrationIds) {
+      return assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .select(
+            'id, bodyweight_kg, declared_weight_class, official_weight_class, athlete:athletes(sex), event:events(id, slug, roster_frozen_at)',
+          )
+          .eq('organization_id', organizationId)
+          .in('id', registrationIds),
+        'No se pudieron leer las inscripciones.',
+      )
+    },
+    async updateDeclaredWeightClass(registrationId, declaredWeightClass, actor) {
+      return assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .update({
+            declared_weight_class: declaredWeightClass,
+            declared_weight_class_set_at: new Date().toISOString(),
+            declared_weight_class_set_by: actor ?? null,
+          })
+          .eq('organization_id', organizationId)
+          .eq('id', registrationId)
+          .select('id, athlete_id, bodyweight_kg, declared_weight_class, official_weight_class')
+          .single(),
+        'No se pudo guardar la categoría de peso.',
+      )
+    },
+    async updateDeclaredWeightClasses(registrationIds, declaredWeightClass, actor) {
+      return assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .update({
+            declared_weight_class: declaredWeightClass,
+            declared_weight_class_set_at: new Date().toISOString(),
+            declared_weight_class_set_by: actor ?? null,
+          })
+          .eq('organization_id', organizationId)
+          .in('id', registrationIds)
+          .select('id, athlete_id, bodyweight_kg, declared_weight_class'),
+        'No se pudo guardar la categoría de peso.',
+      )
+    },
+    async updateOfficialWeightClass(registrationId, officialWeightClass, actor) {
+      return assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .update({
+            official_weight_class: officialWeightClass,
+            official_weight_class_set_at: officialWeightClass ? new Date().toISOString() : null,
+            official_weight_class_set_by: officialWeightClass ? (actor ?? null) : null,
+          })
+          .eq('organization_id', organizationId)
+          .eq('id', registrationId)
+          .select('id, athlete_id, bodyweight_kg, declared_weight_class, official_weight_class')
+          .single(),
+        'No se pudo guardar la categoría oficial.',
+      )
+    },
+    async updateWeighInBodyweight(registrationId, weighInBodyweightKg, actor) {
+      const recorded = weighInBodyweightKg != null
+      return assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .update({
+            weigh_in_bodyweight_kg: weighInBodyweightKg,
+            weigh_in_recorded_at: recorded ? new Date().toISOString() : null,
+            weigh_in_recorded_by: recorded ? (actor ?? null) : null,
+          })
+          .eq('organization_id', organizationId)
+          .eq('id', registrationId)
+          .select('id, athlete_id, bodyweight_kg, weigh_in_bodyweight_kg, declared_weight_class')
+          .single(),
+        'No se pudo guardar el peso del pesaje.',
+      )
+    },
+    async athleteHasFrozenRoster(athleteId) {
+      const rows = assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .select('id, status, event:events(roster_frozen_at)')
+          .eq('organization_id', organizationId)
+          .eq('athlete_id', athleteId),
+        'No se pudo leer el padrón del atleta.',
+      )
+      return (rows ?? []).some((row) => {
+        if (row.status === 'cancelada') return false
+        const event = Array.isArray(row.event) ? row.event[0] : row.event
+        return Boolean(event?.roster_frozen_at)
+      })
+    },
+    async setEventRosterFrozen(eventSlug, frozen) {
+      const event = assertSupabaseResult(
+        await client
+          .from('events')
+          .select('id, slug')
+          .eq('organization_id', organizationId)
+          .eq('slug', eventSlug)
+          .maybeSingle(),
+        'No se pudo leer el evento.',
+      )
+      if (!event) return null
+      return assertSupabaseResult(
+        await client
+          .from('events')
+          .update({ roster_frozen_at: frozen ? new Date().toISOString() : null })
+          .eq('organization_id', organizationId)
+          .eq('id', event.id)
+          .select('id, slug, roster_frozen_at')
+          .single(),
+        'No se pudo cerrar el padrón.',
+      )
+    },
     // Datos mínimos de contacto para notificar. No usa get_athlete_snapshot
     // porque ese arma el perfil completo con URLs firmadas de foto.
     async findContact(athleteId) {
@@ -1814,9 +1946,9 @@ export function createSupabaseAthleteRepository(
                   .from('event_registrations')
                   .select(
                     `
-                      id, athlete_id, category, division, bodyweight_kg, public_visible, status, payment_order_id, created_at, updated_at,
+                      id, athlete_id, category, division, bodyweight_kg, weigh_in_bodyweight_kg, declared_weight_class, official_weight_class, declared_weight_class_set_at, declared_weight_class_set_by, official_weight_class_set_at, official_weight_class_set_by, weigh_in_recorded_at, weigh_in_recorded_by, public_visible, status, payment_order_id, created_at, updated_at,
                       manual_override_status, manual_override_channel, manual_override_reason, manual_override_by, manual_override_at,
-                      event:events(title, slug, starts_at, ends_at, requires_membership),
+                      event:events(id, title, slug, starts_at, ends_at, requires_membership, roster_frozen_at),
                       checkIn:check_ins(scanned_at),
                       eventDay:event_days(id, day_index, label, date),
                       eventSession:event_sessions(id, name, platform, weigh_in_at, starts_at)
@@ -2187,12 +2319,14 @@ export function createSupabaseAthleteRepository(
             .from('event_registrations')
             .select(
               `
-                id, athlete_id, category, division, bodyweight_kg, status, payment_order_id, created_at,
-                event:events(title, slug, starts_at),
+                id, athlete_id, category, division, bodyweight_kg, weigh_in_bodyweight_kg, declared_weight_class, official_weight_class, status, payment_order_id, created_at,
+                event:events(title, slug, starts_at, roster_frozen_at),
+                eventDay:event_days(label, day_index),
+                eventSession:event_sessions(name, platform, sort_order),
                 athlete:athletes(
                   id, full_name, document_id, email, birth_date, phone, country, province, city,
                   street_address, postal_code, gym, sex, division, category, estimated_weight,
-                  emergency_contact_name, emergency_contact_phone
+                  emergency_contact_name, emergency_contact_phone, instagram_handle
                 )
               `,
             )
@@ -2318,6 +2452,7 @@ export function createSupabaseAthleteRepository(
         estimatedWeight: row.estimated_weight,
         emergencyContactName: row.emergency_contact_name ?? '',
         emergencyContactPhone: row.emergency_contact_phone ?? '',
+        instagramHandle: row.instagram_handle ?? '',
       })
 
       const registrations = registrationRows.map((row) => {
@@ -2331,6 +2466,13 @@ export function createSupabaseAthleteRepository(
           category: row.category,
           division: row.division,
           bodyweight: row.bodyweight_kg,
+          declaredWeightClass: row.declared_weight_class ?? '',
+          officialWeightClass: row.official_weight_class ?? '',
+          weighInBodyweight: row.weigh_in_bodyweight_kg ?? null,
+          rosterFrozenAt: row.event?.roster_frozen_at ?? null,
+          platform: row.eventSession?.platform ?? '',
+          meetDay: row.eventDay?.label || (row.eventDay?.day_index != null ? String(row.eventDay.day_index + 1) : ''),
+          flight: row.eventSession?.name ?? '',
           status: row.status,
           paymentOrderId: row.payment_order_id,
           paymentStatus: order?.status ?? null,

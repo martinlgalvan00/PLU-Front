@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { BadgeCheck, Paperclip, Plus, Ticket } from 'lucide-react'
+import { BadgeCheck, Eye, Paperclip, Plus, Ticket } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminEmptyState from '../../components/admin/AdminEmptyState.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
@@ -52,7 +52,11 @@ function formatUploadedAt(value, locale) {
   })
 }
 
-function formatTicketAttendees(order, t) {
+function attendeeVisibleName(line) {
+  return String(line ?? '').replace(/\s+\([^)]*\)\s*$/, '').trim()
+}
+
+function ticketAttendeeLines(order, t) {
   const seen = new Set()
   const people = []
   for (const item of order.attendees ?? []) {
@@ -64,8 +68,17 @@ function formatTicketAttendees(order, t) {
     seen.add(key)
     people.push(dni ? `${name} (${dni})` : name)
   }
-  if (people.length) return people.join(' · ')
-  return order.buyerName || t('admin.ticketOrders.unknownBuyer')
+  if (people.length) return people
+  const buyer = String(order.buyerName ?? '').trim()
+  return [buyer || t('admin.ticketOrders.unknownBuyer')]
+}
+
+function isOpenManualTicketOrder(row) {
+  return row.provider === 'manual' && row.status === 'pendiente'
+}
+
+function ticketNeedsProofOverride(row) {
+  return isOpenManualTicketOrder(row) && !row.cashAtPitbull && !row.paymentProofPath
 }
 
 function channelLabel(order, t) {
@@ -212,13 +225,14 @@ export default function TicketOrdersSection({
   const allRows = useMemo(
     () =>
       orders.map((order) => {
-        const attendees = formatTicketAttendees(order, t)
+        const attendeeLines = ticketAttendeeLines(order, t)
         return {
           id: order.orderId,
           reference: order.reference,
           event: order.eventTitle,
           eventSlug: order.eventSlug ?? null,
-          attendees,
+          attendees: attendeeLines.join(' · '),
+          attendeeLines,
           buyerEmail: order.buyerEmail,
           ticketCount: order.ticketCount,
           amount: money(order.amount, locale, order.currency),
@@ -258,12 +272,12 @@ export default function TicketOrdersSection({
     )
   }, [allRows, eventSlug, query])
 
-  async function handleApprove(orderId) {
+  async function handleApprove(orderId, { overrideReason } = {}) {
     if (!canEdit) return
     setApprovingId(orderId)
     setActionError(null)
     try {
-      await onApproveTicketOrder?.(orderId)
+      await onApproveTicketOrder?.(orderId, { overrideReason })
       await refreshList()
       notifySuccess(t('admin.toasts.ticketApproved'))
       return true
@@ -417,8 +431,13 @@ export default function TicketOrdersSection({
       hasProof: Boolean(row.paymentProofPath),
       paymentProofPath: row.paymentProofPath ?? null,
       subject: row.attendees,
+      subjects: row.attendeeLines,
+      method: row.channel || null,
       detail: `${row.event} · ${row.reference}`,
       meta: row.amount,
+      // Transferencia o Wise abierta sin archivo: el diálogo pide el motivo
+      // y la RPC lo vuelve a exigir. Efectivo y Mercado Pago no usan este camino.
+      requiresProofOverride: mode === 'validate' && ticketNeedsProofOverride(row),
       // Sólo una orden ya resuelta puede dar de baja su comprobante.
       canTrashProof: canEdit && PROOF_TRASHABLE_STATUSES.includes(row.status),
     })
@@ -433,16 +452,11 @@ export default function TicketOrdersSection({
 
   function renderTicketRowActions(row, { compact = false } = {}) {
     const approving = approvingId === row.id
-    const isOpen = OPEN_TICKET_STATUSES.includes(row.status)
-    if (!canEdit || !isOpen) return compact ? null : <AdminTableActionsEmpty />
-
-    return (
-      <AdminTableActions>
-        {!row.paymentProofPath && !row.cashAtPitbull ? (
-          <span className="status-pill status-pill--warning">
-            {t('admin.ticketOrders.proofMissing')}
-          </span>
-        ) : (
+    // Orden manual abierta: Validar siempre. Sin archivo, el diálogo pide
+    // motivo. «Sin adjuntar» queda en la columna Comprobante, no acá.
+    if (canEdit && isOpenManualTicketOrder(row)) {
+      return (
+        <AdminTableActions>
           <AdminIconButton
             disabled={approving}
             icon={BadgeCheck}
@@ -451,9 +465,24 @@ export default function TicketOrdersSection({
             onClick={() => openProof(row)}
             variant="celeste"
           />
-        )}
-      </AdminTableActions>
-    )
+        </AdminTableActions>
+      )
+    }
+
+    if (row.paymentProofPath) {
+      return (
+        <AdminTableActions>
+          <AdminIconButton
+            icon={Eye}
+            label={t('admin.ticketOrders.viewProof')}
+            onClick={() => openProof(row, 'view')}
+            variant="ghost"
+          />
+        </AdminTableActions>
+      )
+    }
+
+    return compact ? null : <AdminTableActionsEmpty />
   }
 
   return (
@@ -554,12 +583,28 @@ export default function TicketOrdersSection({
               label: t('admin.columns.attendee'),
               mobile: 'primary',
               sortable: true,
-              render: (row) => (
-                <div className="admin-orders-block__stack">
-                  <span className="admin-orders-block__concept">{row.attendees}</span>
-                  <span className="data-table__mono admin-orders-block__ref">{row.reference}</span>
-                </div>
-              ),
+              render: (row) => {
+                const extra = Math.max(0, row.attendeeLines.length - 1)
+                return (
+                  <div className="admin-orders-block__stack">
+                    <span
+                      className="admin-orders-block__concept"
+                      title={row.attendees}
+                      aria-label={row.attendees}
+                    >
+                      <span className="admin-orders-block__concept-name">
+                        {attendeeVisibleName(row.attendeeLines[0])}
+                      </span>
+                      {extra > 0 ? (
+                        <span className="admin-orders-block__more">
+                          {t('admin.ticketOrders.moreAttendees', { count: extra })}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="data-table__mono admin-orders-block__ref">{row.reference}</span>
+                  </div>
+                )
+              },
             },
             {
               key: 'event',
@@ -654,8 +699,8 @@ export default function TicketOrdersSection({
           busy={approvingId === reviewRow.orderId}
           error={actionError ?? ''}
           onCancel={() => setReviewRow(null)}
-          onConfirm={() => {
-            void handleApprove(reviewRow.orderId).then((done) => {
+          onConfirm={(payload) => {
+            void handleApprove(reviewRow.orderId, payload ?? {}).then((done) => {
               if (done) setReviewRow(null)
             })
           }}

@@ -262,7 +262,15 @@ export function useAppData() {
   // forma síncrona si el visitante tiene sesión). En demo no hay probe.
   const [sessionPending, setSessionPending] = useState(() => !env.demoMode)
   const sessionRef = useRef(null)
+  // Cada logout (o descarte de sesión inválida) sube el epoch. Una
+  // restauración que arrancó antes no puede volver a pintar al usuario.
+  const logoutEpochRef = useRef(0)
+  const logoutInFlightRef = useRef(false)
+  // Cada setSession cuenta. El probe en vuelo no pisa un login o logout
+  // que ocurrió mientras las cookies se estaban leyendo.
+  const sessionWriteRef = useRef(0)
   const setSession = useCallback((next) => {
+    sessionWriteRef.current += 1
     sessionRef.current = next
     setSessionState(next)
   }, [])
@@ -951,8 +959,37 @@ export function useAppData() {
     if (env.demoMode) return undefined
 
     let active = true
+    const epochAtStart = logoutEpochRef.current
+    const writeAtStart = sessionWriteRef.current
+    const startedDuringLogout = logoutInFlightRef.current
+
+    function superseded() {
+      return (
+        !active ||
+        startedDuringLogout ||
+        logoutEpochRef.current !== epochAtStart ||
+        sessionWriteRef.current !== writeAtStart
+      )
+    }
+
+    function isProbeUncertain(error) {
+      if (!error) return false
+      return !error.status || error.status === 0 || error.status !== 401
+    }
+
+    function isConfirmedAbsent(user, error) {
+      if (user) return false
+      if (!error) return true
+      return error.status === 401
+    }
+
+    function dropStaleSession() {
+      if (superseded() || !sessionRef.current) return
+      setSession(null)
+    }
 
     async function applyAthleteSession(athleteSession, { staffAvailable = false } = {}) {
+      if (superseded()) return
       setSession({
         ...athleteSession.user,
         staffAvailable: Boolean(athleteSession.user.staffAvailable || staffAvailable),
@@ -976,7 +1013,7 @@ export function useAppData() {
           .catch((error) => ({ session: null, error })),
       ])
 
-      if (!active) return
+      if (superseded()) return
 
       const staffError = staffOutcome.error
       if (staffError && (!staffError.status || staffError.status === 0)) {
@@ -1017,22 +1054,39 @@ export function useAppData() {
       }
 
       if (mode === 'staff' && restored) {
+        if (superseded()) return
         setSession(restored)
         return
       }
 
-      if (staffError && staffError.status !== 401) return
-      if (!oauth.configured || !oauth.isAuthenticated || oauth.isLoading) return
+      // 5xx o red: la cookie puede seguir viva. No borrar la sesión en memoria.
+      if (isProbeUncertain(staffError) || isProbeUncertain(athleteError)) return
+
+      const bothCookiesGone =
+        isConfirmedAbsent(staffUser, staffError) &&
+        isConfirmedAbsent(athleteSession?.user, athleteError)
+
+      if (!bothCookiesGone) return
+      if (!oauth.configured || !oauth.isAuthenticated || oauth.isLoading) {
+        dropStaleSession()
+        return
+      }
 
       try {
         const accessToken = await oauth.getAccessToken()
-        if (!active || !accessToken) return
+        if (superseded() || !accessToken) {
+          dropStaleSession()
+          return
+        }
 
         const { user: oauthUser, supabaseAuth } = await oauthSessionRequest(accessToken)
-        if (active) setSession(oauthUser)
+        if (superseded()) return
+        if (oauthUser?.role || oauthUser?.id) setSession(oauthUser)
+        else dropStaleSession()
         await establishSupabaseSession(supabaseAuth)
       } catch (oauthError) {
         console.warn('No se pudo iniciar sesion con OAuth.', oauthError)
+        dropStaleSession()
       }
     }
 
@@ -1107,10 +1161,15 @@ export function useAppData() {
       const now = Date.now()
       if (now - sessionReprobeAtRef.current < 5 * 60_000) return
       sessionReprobeAtRef.current = now
+      const epoch = logoutEpochRef.current
+      const write = sessionWriteRef.current
 
       meRequest()
         .then(({ user }) => {
-          if (user && !sessionRef.current) setSession(user)
+          if (logoutEpochRef.current !== epoch || sessionWriteRef.current !== write) return
+          if (user?.role || user?.id) {
+            if (!sessionRef.current) setSession(user)
+          }
         })
         .catch(() => {})
     }
@@ -1493,6 +1552,8 @@ export function useAppData() {
         const competition = {
           division: options.competition?.division ?? form.division,
           category: options.competition?.category ?? form.category,
+          declaredWeightClass:
+            options.competition?.declaredWeightClass ?? form.declaredWeightClass ?? '',
           bodyweightKg:
             options.competition?.bodyweightKg !== undefined
               ? options.competition.bodyweightKg
@@ -1505,6 +1566,7 @@ export function useAppData() {
           selectedEvent.slug,
           competition.division,
           competition.category,
+          competition.declaredWeightClass,
           competition.bodyweightKg,
           paymentMethod,
           purchaseType,
@@ -1527,6 +1589,7 @@ export function useAppData() {
             eventSlug: selectedEvent.slug,
             division: competition.division,
             category: competition.category,
+            declaredWeightClass: competition.declaredWeightClass,
             bodyweightKg: competition.bodyweightKg,
             paymentMethod,
             idempotencyKey: registrationAttemptRef.current.idempotencyKey,
@@ -1661,7 +1724,15 @@ export function useAppData() {
    * restringido y fija el importe promocional.
    */
   const startOfferPayment = useCallback(
-    ({ offer, event, paymentMethod = 'mercado_pago', division, category, bodyweightKg }) => {
+    ({
+      offer,
+      event,
+      paymentMethod = 'mercado_pago',
+      division,
+      category,
+      declaredWeightClass,
+      bodyweightKg,
+    }) => {
       if (!offer?.code || !event?.slug) {
         return Promise.resolve({ error: 'No se pudo resolver la oferta.' })
       }
@@ -1670,7 +1741,7 @@ export function useAppData() {
         paymentMethod,
         discountCode: offer.code,
         comboAccessCode: offer.code,
-        competition: { division, category, bodyweightKg },
+        competition: { division, category, declaredWeightClass, bodyweightKg },
       })
     },
     [submitCompetition],
@@ -1820,12 +1891,14 @@ export function useAppData() {
   // Aprobación operativa reservada a transferencias manuales. Las órdenes
   // Mercado Pago se acreditan exclusivamente mediante webhook.
   const approveTicketPurchase = useCallback(
-    async (orderId) => {
+    async (orderId, { overrideReason } = {}) => {
       if (!hasPermission(session, 'admin.payments.approve')) {
         return { error: 'Sin permisos para aprobar pagos.' }
       }
       try {
-        const { order, tickets: approvedTickets } = await approveTicketOrderRequest(orderId)
+        const { order, tickets: approvedTickets } = await approveTicketOrderRequest(orderId, {
+          overrideReason,
+        })
         setTickets((current) => {
           const byId = new Map(approvedTickets.map((ticket) => [ticket.id, ticket]))
           return current.map((item) =>
@@ -2841,6 +2914,8 @@ export function useAppData() {
   const logout = useCallback(
     async ({ notify = true } = {}) => {
       const currentSession = session
+      logoutEpochRef.current += 1
+      logoutInFlightRef.current = true
       setSession(null)
       adminSnapshotEtagRef.current = null
       athleteSnapshotEtagRef.current = null
@@ -2853,34 +2928,46 @@ export function useAppData() {
         .then((offlineDb) => offlineDb.purgeOfflineCheckinData())
         .catch(() => {})
 
-      if (!isDemoSession(currentSession) && currentSession) {
-        // Con el puente staff↔atleta pueden coexistir ambas cookies: limpiar las dos.
-        await logoutAthleteSession().catch((error) => {
-          if (error?.status !== 401) console.warn('No se pudo cerrar la sesion de atleta.', error)
-        })
+      try {
+        if (!isDemoSession(currentSession) && currentSession) {
+          // Con el puente staff↔atleta pueden coexistir ambas cookies: limpiar las dos.
+          await logoutAthleteSession().catch((error) => {
+            if (error?.status !== 401) console.warn('No se pudo cerrar la sesion de atleta.', error)
+          })
 
-        if (currentSession.role !== 'athlete_plu' || currentSession.staffAvailable) {
-          if (isSupabaseConfigured) {
-            const supabase = await getSupabaseClient()
-            await supabase.auth.signOut().catch(() => {})
-          }
+          if (currentSession.role !== 'athlete_plu' || currentSession.staffAvailable) {
+            if (isSupabaseConfigured) {
+              const supabase = await getSupabaseClient()
+              await supabase.auth.signOut().catch(() => {})
+            }
 
-          try {
-            await logoutRequest()
-          } catch (error) {
-            if (error.status !== 401) {
-              console.warn('No se pudo cerrar la sesion del servidor.', error)
+            try {
+              await logoutRequest()
+            } catch (error) {
+              if (error.status !== 401) {
+                console.warn('No se pudo cerrar la sesion del servidor.', error)
+              }
+            }
+
+            if (oauth.configured && oauth.isAuthenticated) {
+              await oauth.logout()
             }
           }
-
-          if (oauth.configured && oauth.isAuthenticated) {
-            await oauth.logout()
-          }
         }
+      } finally {
+        logoutInFlightRef.current = false
       }
     },
     [oauth, session, setSession],
   )
+
+  // Sesión en memoria que la cookie ya no respalda. No avisa: no fue un
+  // cierre pedido por la persona. El epoch impide que un probe viejo la reviva.
+  const clearInvalidSession = useCallback(() => {
+    if (!sessionRef.current) return
+    logoutEpochRef.current += 1
+    setSession(null)
+  }, [setSession])
 
   /**
    * Staff autenticado → modo atleta (afiliación / inscripción) sin segunda cuenta.
@@ -3416,7 +3503,7 @@ export function useAppData() {
         return { error: 'Sin permisos para exportar.' }
       }
       if (env.demoMode || isDemoSession(session)) {
-        const { buildLiftersExportRows, buildLiftersReadiness } = await import(
+        const { buildLiftersExportRows, buildLiftersReadiness, validateLifterExport } = await import(
           '../../shared/liftersExport.js'
         )
         const scoped = eventSlug
@@ -3425,7 +3512,13 @@ export function useAppData() {
             )
           : registrations
         const rows = buildLiftersExportRows(scoped, athletes, memberships)
-        return { readiness: buildLiftersReadiness(rows), truncated: false, event: null }
+        return {
+          readiness: buildLiftersReadiness(rows),
+          exportCheck: validateLifterExport(rows),
+          rows,
+          truncated: false,
+          event: null,
+        }
       }
       try {
         return await fetchLiftersExportReadiness({ eventSlug })
@@ -3447,7 +3540,10 @@ export function useAppData() {
         const {
           buildLiftersExportRows,
           buildLiftersReadiness,
+          filterLiftersRowsByCompleteness,
+          liftersImportColumnsMissing,
           serializeLiftersSpreadsheet,
+          validateLifterExport,
         } = await import('../../shared/liftersExport.js')
         const scoped = eventSlug
           ? registrations.filter(
@@ -3460,6 +3556,17 @@ export function useAppData() {
           return { ok: false, empty: true }
         }
         const readiness = buildLiftersReadiness(liftersRows)
+        const exportCheck = validateLifterExport(
+          filterLiftersRowsByCompleteness(liftersRows, options?.rowFilter),
+        )
+        if (!exportCheck.valid) {
+          notifyError('Hay atletas con datos que no se pueden exportar.')
+          return { ok: false, error: exportCheck }
+        }
+        if (liftersImportColumnsMissing(options ?? {})) {
+          notifyError('La plantilla de importación necesita todas las columnas.')
+          return { ok: false, error: { code: 'LIFTERS_EXPORT_COLUMNS' } }
+        }
         const xml = serializeLiftersSpreadsheet(liftersRows, 'Lifters', options ?? {})
         if (!xml) {
           notifyError('No hay filas para exportar con el filtro del studio.')
@@ -3470,6 +3577,9 @@ export function useAppData() {
           'lifters-export.xls',
         )
         const notes = []
+        if (exportCheck.warnings) {
+          notes.push(`${exportCheck.warnings} con peso por encima de la categoría`)
+        }
         if (readiness.incomplete) notes.push(`${readiness.incomplete} con datos faltantes`)
         if (readiness.divisionMismatch) {
           notes.push(`${readiness.divisionMismatch} con división incorrecta`)
@@ -4146,6 +4256,7 @@ export function useAppData() {
     getSession,
     login,
     logout,
+    clearInvalidSession,
     enterAthleteContext,
     returnToStaffContext,
     athletes,

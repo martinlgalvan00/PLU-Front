@@ -138,14 +138,46 @@
   margin: 0;
 }
 
-/* ---- Selector de vista ---- */
+/* ---- Selector de vista ----
+   Una sola regla. El oro marca el modo activo; la pestaña inactiva queda en
+   tinta atenuada, sin pastilla. El cambio no sale de esta página. */
 
-.roles-views {
-  border-bottom: 1px solid var(--admin-hairline);
+.roles-page .roles-views {
+  border-bottom: 0;
+  margin-bottom: calc(var(--space-sm) * -1);
 }
 
-.roles-views .detail-tabs {
-  border-bottom: 0;
+.roles-page .roles-views .detail-tabs--editorial {
+  border-bottom: 1px solid var(--admin-hairline);
+  gap: 8px;
+}
+
+.roles-page .roles-views .detail-tabs--editorial .detail-tabs__tab {
+  background: transparent;
+  border-bottom-width: 2px;
+  border-radius: 0;
+  color: var(--admin-muted);
+  font-size: 15px;
+  font-weight: 550;
+  min-height: 44px;
+  padding: 10px 16px 12px;
+}
+
+.roles-page .roles-views .detail-tabs--editorial .detail-tabs__tab:first-child {
+  padding-left: 0;
+}
+
+.roles-page .roles-views .detail-tabs--editorial .detail-tabs__tab:hover {
+  background: transparent;
+  color: var(--admin-ink);
+}
+
+.roles-page .roles-views .detail-tabs--editorial .detail-tabs__tab.is-active {
+  background: transparent;
+  border-bottom-color: var(--color-brand-gold);
+  box-shadow: none;
+  color: var(--admin-ink);
+  font-weight: 650;
 }
 
 /* ---- Comparar roles ---- */

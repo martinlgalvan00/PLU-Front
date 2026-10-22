@@ -54,6 +54,12 @@ export function isStaffSession(subject) {
   return Boolean(subject.id)
 }
 
+/** Cuenta que el header puede mostrar. Un objeto vacío no cuenta. */
+export function hasAccountSession(session) {
+  if (!session || typeof session !== 'object') return false
+  return Boolean(session.role || session.id)
+}
+
 export function canEditOperationalData(subject) {
   return hasAnyPermission(subject, [
     'admin.athletes.write',

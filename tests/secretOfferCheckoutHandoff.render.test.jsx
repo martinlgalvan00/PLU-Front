@@ -108,6 +108,7 @@ const ATHLETE = {
   documentId: '30111222',
   email: 'ana@plu.test',
   emailVerifiedAt: '2026-01-01T00:00:00Z',
+  sex: 'Femenino',
 }
 
 const RESTRICTED_EVENT = {
@@ -177,6 +178,7 @@ const RESOLVED_OFFER = {
 const FORM = {
   division: 'Open',
   category: 'Raw',
+  declaredWeightClass: '75',
   estimatedWeight: '83',
   paymentMethod: 'mercado_pago',
 }

@@ -288,6 +288,54 @@
   order: 3;
 }
 
+/* Ventas de entradas: búsqueda y alta arriba; estado, canal y evento abajo.
+   El número de la cola sigue en el encabezado. No se suma otro contador. */
+.admin-orders-block--tickets .admin-orders-block__toolbar {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-orders-block--tickets .admin-orders-block__toolbar-primary {
+  flex: none;
+  max-width: none;
+  width: 100%;
+}
+
+.admin-orders-block--tickets .admin-orders-block__toolbar-primary .admin-filters__search {
+  flex: 1 1 280px;
+  max-width: 440px;
+}
+
+.admin-orders-block--tickets .admin-orders-block__toolbar-facets {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  width: 100%;
+}
+
+.admin-orders-block--tickets .admin-orders-block__toolbar-facets > .admin-filter-group {
+  flex: 1 1 auto;
+  order: 0;
+  width: auto;
+}
+
+.admin-orders-block--tickets .admin-orders-block__toolbar-facets > .admin-filters__select {
+  order: 1;
+}
+
+.admin-orders-block--tickets .admin-orders-block__toolbar-facets > .admin-filters__select:first-of-type {
+  margin-left: auto;
+}
+
+.admin-shell
+  .admin-orders-block--tickets
+  .admin-orders-block__toolbar-facets
+  .admin-filter-group.admin-filter-group--rail.admin-filter-group--labeled {
+  width: auto;
+}
+
 .admin-shell .admin-orders-block__toolbar .admin-orders-block__search-row {
   display: block;
   position: relative;
@@ -566,6 +614,55 @@
 
 .admin-shell .admin-data-table--athlete-orders.admin-data-table--compact .ant-table-tbody > tr > td {
   height: 50px;
+}
+
+/* Entradas: la fila compacta de 38px aplasta un combo de varios asistentes.
+   La altura queda libre y el nombre puede ocupar dos renglones; el resto de
+   las tablas compactas no cambia. */
+.admin-shell
+  .admin-payments-operations
+  .admin-data-table--ticket-orders.admin-data-table--compact
+  .ant-table-tbody
+  > tr
+  > td {
+  height: auto;
+  min-height: 56px;
+  padding: 12px 16px;
+}
+
+.admin-shell
+  .admin-data-table--ticket-orders.admin-data-table--compact
+  .ant-table-tbody
+  > tr
+  > td.data-table__column--primary {
+  overflow: visible;
+  white-space: normal;
+}
+
+.admin-data-table--ticket-orders .admin-orders-block__stack {
+  gap: 4px;
+}
+
+.admin-data-table--ticket-orders .admin-orders-block__concept {
+  align-items: baseline;
+  display: flex;
+  gap: 0.45em;
+  line-height: 1.45;
+  overflow: hidden;
+  white-space: normal;
+}
+
+.admin-data-table--ticket-orders .admin-orders-block__concept-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-data-table--ticket-orders .admin-orders-block__more {
+  color: var(--admin-muted);
+  flex: none;
+  font-weight: 400;
 }
 
 .admin-data-table--athlete-orders tbody tr:hover > td {

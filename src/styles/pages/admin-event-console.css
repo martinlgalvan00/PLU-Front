@@ -2990,9 +2990,9 @@
   font-family: inherit;
   gap: 1px;
   justify-content: flex-start;
-  min-height: 44px;
-  min-width: 4.5rem;
-  padding: 8px 16px 10px 0;
+  min-height: 58px;
+  min-width: 7.5rem;
+  padding: 10px 20px 12px 0;
   text-align: left;
   width: max-content;
   transition:
@@ -3000,8 +3000,13 @@
     box-shadow var(--motion-fast, 150ms) var(--ease-standard, ease);
 }
 
+.admin-event-workspace__chapter + .admin-event-workspace__chapter {
+  border-left: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  padding-left: 18px;
+}
+
 .admin-event-workspace__chapter:last-child {
-  padding-right: 8px;
+  padding-right: 20px;
 }
 
 .admin-event-workspace__chapter strong {

@@ -11,6 +11,13 @@ import {
   isProofOverrideReasonValid,
 } from '../../services/paymentValidationService.js'
 
+function splitAttendeeLine(line) {
+  const text = String(line ?? '').trim()
+  const match = text.match(/^(.*)\s+\(([^)]+)\)\s*$/)
+  if (!match) return { name: text, document: '' }
+  return { name: match[1].trim(), document: match[2].trim() }
+}
+
 function guessProofKind(...sources) {
   for (const source of sources) {
     const path = String(source ?? '')
@@ -196,7 +203,11 @@ export default function PaymentValidationDialog({
     }
   }
   const needsProofOverride = Boolean(item.requiresProofOverride) && !isSettle && !isView
+  const isTicket = item.type === 'ticket' || item.type === 'ticket_order'
   const typeLabel = t(`admin.actionQueue.types.${item.type}`)
+  const attendeeLines = Array.isArray(item.subjects)
+    ? item.subjects.map((line) => String(line ?? '').trim()).filter(Boolean)
+    : []
   const previewKind = guessProofKind(item.paymentProofPath, proofUrl)
   const showImage = Boolean(
     proofUrl && !imageFailed && (previewKind === 'image' || previewKind === 'unknown'),
@@ -219,13 +230,17 @@ export default function PaymentValidationDialog({
   const showReject = Boolean(onReject) && !isSettle && (hasProof || item.cashAtPitbull || needsProofOverride)
   const noProofLead = isSettle
     ? t('admin.paymentValidation.settleNoProofLead')
-    : item.cashAtPitbull
-      ? 'Confirmá que el efectivo fue recibido en la sede antes de acreditar la orden.'
-      : needsProofOverride
-        ? t('admin.paymentValidation.overrideNoProofLead')
-        : isView
-          ? t('admin.paymentValidation.viewNoProofLead')
-          : t('admin.paymentValidation.noProofLead')
+    : isTicket && item.cashAtPitbull
+      ? t('admin.paymentValidation.ticketCashLead')
+      : isTicket && needsProofOverride
+        ? t('admin.paymentValidation.ticketOverrideLead')
+        : item.cashAtPitbull
+          ? 'Confirmá que el efectivo fue recibido en la sede antes de acreditar la orden.'
+          : needsProofOverride
+            ? t('admin.paymentValidation.overrideNoProofLead')
+            : isView
+              ? t('admin.paymentValidation.viewNoProofLead')
+              : t('admin.paymentValidation.noProofLead')
 
   const panelClassName = [
     'payment-validation-dialog__panel',
@@ -306,7 +321,7 @@ export default function PaymentValidationDialog({
                 ? 'Cobro presencial en Pitbull'
                 : t('admin.paymentValidation.noProofTitle')}
             </strong>
-            <p>{noProofLead}</p>
+            {isTicket && !isView && !isSettle ? null : <p>{noProofLead}</p>}
           </div>
         </div>
       ) : null}
@@ -390,14 +405,22 @@ export default function PaymentValidationDialog({
               ? t('admin.paymentValidation.settleTitle')
               : isView
                 ? t('admin.paymentValidation.viewTitle')
-                : t('admin.paymentValidation.title')}
+                : isTicket
+                  ? t('admin.paymentValidation.ticketTitle')
+                  : t('admin.paymentValidation.title')}
           </h2>
           <p id={descriptionId} className="payment-validation-dialog__lead">
             {isSettle
               ? t('admin.paymentValidation.settleLead')
               : isView
                 ? t('admin.paymentValidation.viewLead')
-                : t('admin.paymentValidation.lead')}
+                : isTicket
+                  ? item.cashAtPitbull
+                    ? t('admin.paymentValidation.ticketCashLead')
+                    : needsProofOverride
+                      ? t('admin.paymentValidation.ticketOverrideLead')
+                      : t('admin.paymentValidation.ticketLead')
+                  : t('admin.paymentValidation.lead')}
           </p>
         </div>
         <button
@@ -412,10 +435,34 @@ export default function PaymentValidationDialog({
       </header>
 
       <dl className="payment-validation-dialog__meta payment-validation-dialog__meta--rail">
-        <div>
-          <dt>{t('admin.paymentValidation.subject')}</dt>
-          <dd>{item.subject}</dd>
+        <div className={attendeeLines.length > 1 ? 'payment-validation-dialog__people-row' : undefined}>
+          <dt>{isTicket ? t('admin.paymentValidation.ticketSubject') : t('admin.paymentValidation.subject')}</dt>
+          <dd>
+            {attendeeLines.length > 1 ? (
+              <ul className="payment-validation-dialog__people">
+                {attendeeLines.map((person) => {
+                  const { name, document } = splitAttendeeLine(person)
+                  return (
+                    <li key={person}>
+                      <span className="payment-validation-dialog__person-name">{name}</span>
+                      {document ? (
+                        <span className="payment-validation-dialog__person-doc">{document}</span>
+                      ) : null}
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : (
+              item.subject
+            )}
+          </dd>
         </div>
+        {item.method ? (
+          <div>
+            <dt>{t('admin.columns.method')}</dt>
+            <dd>{item.method}</dd>
+          </div>
+        ) : null}
         {item.meta ? (
           <div>
             <dt>{t('admin.paymentValidation.amount')}</dt>
@@ -510,7 +557,9 @@ export default function PaymentValidationDialog({
       {needsProofOverride && !rejecting ? (
         <div className="payment-validation-dialog__settle-form">
           <p className="payment-validation-dialog__settle-note" role="note">
-            {t('admin.paymentValidation.overrideAuditNote')}
+            {isTicket
+              ? t('admin.paymentValidation.ticketOverrideAuditNote')
+              : t('admin.paymentValidation.overrideAuditNote')}
           </p>
           <label htmlFor={overrideReasonId}>
             {t('admin.paymentValidation.overrideReasonLabel')}
@@ -523,7 +572,11 @@ export default function PaymentValidationDialog({
             required
             minLength={PROOF_OVERRIDE_REASON_MIN_LENGTH}
             aria-describedby={`${overrideReasonId}-hint`}
-            placeholder={t('admin.paymentValidation.overrideReasonPlaceholder')}
+            placeholder={t(
+              isTicket
+                ? 'admin.paymentValidation.ticketOverrideReasonPlaceholder'
+                : 'admin.paymentValidation.overrideReasonPlaceholder',
+            )}
             onChange={(event) => setOverrideReason(event.target.value)}
           />
           <span id={`${overrideReasonId}-hint`} className="payment-validation-dialog__settle-hint">
@@ -620,10 +673,16 @@ export default function PaymentValidationDialog({
                     <BadgeCheck size={15} aria-hidden />
                   )}
                   {busy
-                    ? t('admin.paymentValidation.confirming')
+                    ? t(
+                        isTicket && !isSettle
+                          ? 'admin.paymentValidation.ticketConfirming'
+                          : 'admin.paymentValidation.confirming',
+                      )
                     : isSettle
                       ? t('admin.paymentValidation.settleConfirm')
-                      : t('admin.paymentValidation.confirm')}
+                      : isTicket
+                        ? t('admin.paymentValidation.ticketConfirm')
+                        : t('admin.paymentValidation.confirm')}
                 </Button>
               </>
             )}
