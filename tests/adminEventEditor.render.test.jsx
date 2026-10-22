@@ -539,6 +539,17 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
     })
   })
 
+  it('resume el destino que verá quien paga antes de guardar', async () => {
+    renderEditor({ bankTransfer: { alias: 'pitbull.clasico', cbu: '', holder: '' } })
+    openPaymentChapter()
+    await platformMatrix()
+
+    expect(screen.getByText('Estado de configuración')).toBeTruthy()
+    expect(screen.getByText('Alias: pitbull.clasico')).toBeTruthy()
+    expect(screen.getByText('Lugar: Maximal Strength Club · Buenos Aires')).toBeTruthy()
+    expect(screen.getByText('Cuenta general de la plataforma.')).toBeTruthy()
+  })
+
   it('con el efectivo cerrado no muestra el bloque de lugar', async () => {
     renderEditor({
       paymentChannelOverrides: {

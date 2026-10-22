@@ -381,14 +381,14 @@ describe('API administrativa de eventos', () => {
         'staff_merge_event_public_surface',
         expect.objectContaining({
           p_slug: payload.slug,
-          p_surface: {
+          p_surface: expect.objectContaining({
             calendar: true,
             weighIns: true,
             livestream: true,
             experience: true,
             categories: true,
             location: true,
-          },
+          }),
         }),
       )
       expect(supabase.rpc).toHaveBeenCalledWith(

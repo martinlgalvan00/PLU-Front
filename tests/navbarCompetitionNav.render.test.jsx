@@ -61,6 +61,11 @@ describe('NavbarPublic Competencia', () => {
     expect(screen.getByRole('menuitem', { name: /calendario/i })).toBeTruthy()
     expect(screen.getByRole('menuitem', { name: /nacional 2026/i })).toBeTruthy()
     expect(screen.getByRole('menuitem', { name: /pitbull classic/i })).toBeTruthy()
+    expect(screen.getByText(/evento principal.*20 dic/i)).toBeTruthy()
+    expect(screen.getByText(/pr.ximo evento.*15 ago/i)).toBeTruthy()
+    expect(screen.getByLabelText('Ver evento anterior')).toBeTruthy()
+    expect(screen.getByLabelText('Ver evento siguiente')).toBeTruthy()
+    expect(document.querySelector('.plu-competition-menu__track')).toBeTruthy()
   })
 
   it('abre cada evento por slug y no por la vista pitbull', () => {

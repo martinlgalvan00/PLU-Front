@@ -183,14 +183,56 @@ export default function EventLandingSection({
         options={[
           ['meet', t('admin.eventEditor.landingTemplateMeet')],
           ['editorial', t('admin.eventEditor.landingTemplateEditorial')],
+          ['submission', t('admin.eventEditor.landingTemplateSubmission')],
         ]}
       />
 
       <p className="admin-event-form__section-note">
         {landing.templateId === 'editorial'
           ? t('admin.eventEditor.landingTemplateEditorialHint')
-          : t('admin.eventEditor.landingTemplateMeetHint')}
+          : landing.templateId === 'submission'
+            ? t('admin.eventEditor.landingTemplateSubmissionHint')
+            : t('admin.eventEditor.landingTemplateMeetHint')}
       </p>
+
+      {landing.templateId === 'submission' ? (
+        <>
+          <label className="admin-event-form__toggle">
+            <input
+              checked={landing.publicVisible}
+              className="admin-event-form__toggle-input"
+              disabled={!canEdit}
+              type="checkbox"
+              onChange={(event) =>
+                patchLanding({ ...landing, publicVisible: event.target.checked })
+              }
+            />
+            <span className="admin-event-form__toggle-ui" aria-hidden />
+            <span className="admin-event-form__toggle-copy">
+              <strong>{t('admin.eventEditor.landingPublicVisibleTitle')}</strong>
+              <small>{t('admin.eventEditor.landingPublicVisibleHint')}</small>
+            </span>
+          </label>
+
+          <AdminFilterChipGroup
+            compact
+            disabled={!canEdit}
+            id="event-landing-submission-phase"
+            label={t('admin.eventEditor.landingSubmissionPhaseLabel')}
+            value={landing.phase}
+            onChange={(phase) => patchLanding({ ...landing, phase })}
+            options={[
+              ['coming_soon', t('admin.eventEditor.landingSubmissionPhaseComingSoon')],
+              ['published', t('admin.eventEditor.landingSubmissionPhasePublished')],
+            ]}
+          />
+          <p className="admin-event-form__section-note">
+            {landing.phase === 'coming_soon'
+              ? t('admin.eventEditor.landingSubmissionComingSoonHint')
+              : t('admin.eventEditor.landingSubmissionPublishedHint')}
+          </p>
+        </>
+      ) : null}
 
       <AdminFilterChipGroup
         compact
@@ -220,12 +262,7 @@ export default function EventLandingSection({
           <p className="admin-event-form__section-note">{t('admin.eventEditor.landingHeroHint')}</p>
           {heroPreviewUrl || draft.heroImageUrl ? (
             <div className="admin-event-form__landing-hero-preview">
-              <img
-                alt=""
-                height={180}
-                src={heroPreviewUrl || draft.heroImageUrl}
-                width={320}
-              />
+              <img alt="" height={180} src={heroPreviewUrl || draft.heroImageUrl} width={320} />
               <button
                 type="button"
                 className="admin-event-form__text-btn"
@@ -255,14 +292,18 @@ export default function EventLandingSection({
             />
           </label>
           {!draft.slug ? (
-            <p className="admin-event-form__section-note">{t('admin.eventEditor.landingHeroNeedsSlug')}</p>
+            <p className="admin-event-form__section-note">
+              {t('admin.eventEditor.landingHeroNeedsSlug')}
+            </p>
           ) : null}
         </div>
       ) : null}
 
-      {landing.templateId === 'editorial' ? (
+      {['editorial', 'submission'].includes(landing.templateId) ? (
         <>
-          <p className="admin-event-form__section-note">{t('admin.eventEditor.landingEditorialSlotsHint')}</p>
+          <p className="admin-event-form__section-note">
+            {t('admin.eventEditor.landingEditorialSlotsHint')}
+          </p>
           <SlotFields
             canEdit={canEdit}
             err={err}

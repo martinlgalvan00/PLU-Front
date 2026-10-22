@@ -702,9 +702,10 @@ export default function EventsSection({
   }, [adminEvents, selectedId])
 
   const years = useMemo(() => listAdminEventYears(adminEvents), [adminEvents])
+  const navigationEvents = useMemo(() => getCompetitionNavEvents(adminEvents), [adminEvents])
   const navEventSlugs = useMemo(
-    () => new Set(getCompetitionNavEvents(adminEvents).map((event) => event.slug)),
-    [adminEvents],
+    () => new Set(navigationEvents.map((event) => event.slug)),
+    [navigationEvents],
   )
   // El año no se recorta solo: «Próximos» son todos los que no terminaron, sea
   // cual sea su año, y los contadores de las pestañas no cambian al pasar de una a
@@ -1743,6 +1744,49 @@ export default function EventsSection({
         </div>
         {unpublishedNotice}
       </div>
+      <section
+        className="admin-events-navigation-preview"
+        aria-labelledby="admin-events-navigation-preview-title"
+      >
+        <div className="admin-events-navigation-preview__heading">
+          <div>
+            <span className="admin-events-navigation-preview__eyebrow">
+              {t('admin.sections.events.navigationPreviewEyebrow')}
+            </span>
+            <h2 id="admin-events-navigation-preview-title">
+              {t('admin.sections.events.navigationPreviewTitle')}
+            </h2>
+          </div>
+          <p>{t('admin.sections.events.navigationPreviewHint')}</p>
+        </div>
+        {navigationEvents.length > 0 ? (
+          <ol className="admin-events-navigation-preview__list">
+            {navigationEvents.map((event, index) => (
+              <li key={event.id ?? event.slug}>
+                <span className="admin-events-navigation-preview__position" aria-hidden="true">
+                  {index + 1}
+                </span>
+                <button type="button" onClick={() => handleSelectEvent(event.id)}>
+                  <span>
+                    <strong>{event.title}</strong>
+                    <small>
+                      {index === 0
+                        ? t('admin.sections.events.navigationPrimary')
+                        : t('admin.sections.events.navigationNext')}
+                      {event.dateISO ? ` - ${formatDayMonth(event.dateISO, locale)}` : ''}
+                    </small>
+                  </span>
+                  {index === 0 ? <Star size={15} aria-hidden /> : <CalendarDays size={15} aria-hidden />}
+                </button>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="admin-events-navigation-preview__empty">
+            {t('admin.sections.events.navigationPreviewEmpty')}
+          </p>
+        )}
+      </section>
       <div
         className="admin-events-views"
         role="tablist"
