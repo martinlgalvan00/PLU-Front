@@ -144,7 +144,7 @@ function hasAdvancedVisibilityContent(draft) {
   return (
     Object.values(copy).some((value) => String(value ?? '').trim() !== '') ||
     Object.values(slots).some((value) => String(value ?? '').trim() !== '') ||
-    draft.landing?.templateId === 'editorial' ||
+    ['editorial', 'submission'].includes(draft.landing?.templateId) ||
     Boolean(draft.liveStreamUrl?.trim?.()) ||
     (draft.liveStatus ?? 'offline') !== 'offline'
   )

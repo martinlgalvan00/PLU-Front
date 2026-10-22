@@ -79,9 +79,18 @@ export function getPublicCatalogEvents(events = [], _options = {}) {
   // una pantalla pública nueva no puede publicar por accidente un evento que
   // el staff acabó de ocultar. La ausencia de `published` se mantiene visible
   // para los datos editoriales legacy que no conocen todavía ese campo.
-  return (Array.isArray(events) ? events : []).filter(
-    (event) => event && event.published !== false && !isPublicCatalogStubEvent(event),
-  )
+  return (Array.isArray(events) ? events : []).filter((event) => {
+    if (!event || event.published === false || isPublicCatalogStubEvent(event)) return false
+
+    // Submission puede mantenerse configurado internamente sin aparecer en
+    // superficies publicas hasta que el staff habilite su landing.
+    const landing = event.rules?.landing
+    const isHiddenSubmission =
+      String(landing?.templateId ?? '').toLowerCase() === 'submission' &&
+      landing?.publicVisible === false
+
+    return !isHiddenSubmission
+  })
 }
 
 /**
@@ -124,7 +133,7 @@ export function getFeaturedEvent(events = []) {
 /**
  * Hasta dos eventos vigentes para Competencia (navbar, drawer, footer).
  * Slot 1: destacado si sigue en el catálogo próximo; si no, el próximo por fecha.
- * Slot 2: Pitbull si es otro meet publicado vigente; si no, el siguiente upcoming.
+ * Slot 2: el siguiente meet publico vigente por fecha.
  * Un solo `featured` de staff; el segundo slot es derivado. Stubs y ocultos
  * no entran (mismo filtro que el catálogo público).
  */
@@ -134,8 +143,6 @@ export function getCompetitionNavEvents(events = [], now = new Date()) {
 
   const upcoming = getUpcomingEventsByDate(eligible, now)
   const featured = eligible.find((event) => event.featured)
-  const pitbull = eligible.find(isPitbullClassicEvent)
-
   const first =
     featured && upcoming.some((event) => event.slug === featured.slug)
       ? featured
@@ -143,13 +150,7 @@ export function getCompetitionNavEvents(events = [], now = new Date()) {
   if (!first) return []
 
   const remaining = upcoming.filter((event) => event.slug !== first.slug)
-  const pitbullAsSecond =
-    pitbull &&
-    pitbull.slug !== first.slug &&
-    remaining.some((event) => event.slug === pitbull.slug)
-      ? pitbull
-      : null
-  const second = pitbullAsSecond ?? remaining[0] ?? null
+  const second = remaining[0] ?? null
 
   return second ? [first, second] : [first]
 }

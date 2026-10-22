@@ -241,7 +241,7 @@ describe('EventsSection — secciones y evento principal', () => {
 
   it('no ofrece fijar sin permiso de edición', () => {
     renderEvents({ adminEvents: [EVENT], canEdit: false })
-    expect(screen.queryByRole('button', { name: /evento principal/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /destacar como evento principal/i })).toBeNull()
   })
 
   it('Resumen vuelve al resumen desde una pestaña que no es del editor', () => {
@@ -309,5 +309,43 @@ describe('EventsSection — precios y logo en la ficha', () => {
         removeBackground: true,
       }),
     )
+  })
+})
+
+describe('EventsSection - preview de Competencia', () => {
+  it('anticipa el orden publico y permite abrir cada evento', () => {
+    const featured = {
+      ...EVENT,
+      id: 'evt-featured',
+      slug: 'nacional-2026',
+      title: 'Nacional',
+      featured: true,
+      dateISO: '2027-12-20',
+    }
+    const next = {
+      ...EVENT,
+      id: 'evt-next',
+      slug: 'regional-2026',
+      title: 'Regional',
+      featured: false,
+      dateISO: '2027-07-12',
+    }
+    const later = {
+      ...EVENT,
+      id: 'evt-later',
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic',
+      featured: false,
+      dateISO: '2027-08-15',
+    }
+    renderEvents({ adminEvents: [featured, later, next] })
+
+    const preview = screen.getByRole('region', { name: /eventos visibles en competencia/i })
+    expect(preview.textContent).toMatch(/Nacional/)
+    expect(preview.textContent).toMatch(/Regional/)
+    expect(preview.textContent).not.toMatch(/Pitbull Classic/)
+
+    fireEvent.click(within(preview).getByRole('button', { name: /regional/i }))
+    expect(screen.getByRole('region', { name: 'Evento seleccionado' }).textContent).toMatch(/Regional/)
   })
 })

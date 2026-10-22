@@ -1531,7 +1531,14 @@ export default {
       nextKicker: 'Próximo',
       leadFeatured: 'Evento principal',
       inNav: 'En la barra',
-      inNavHint: 'Se muestra por nombre en Competencia (navbar y pie).',
+      inNavHint: 'Se muestra por nombre en Competencia (navbar y pie), segun su orden publico.',
+      navigationPreviewEyebrow: 'Navegacion publica',
+      navigationPreviewTitle: 'Eventos visibles en Competencia',
+      navigationPreviewHint:
+        'Este es el orden que vera la gente en el menu y al pie del sitio.',
+      navigationPreviewEmpty: 'No hay eventos publicos vigentes para mostrar en Competencia.',
+      navigationPrimary: 'Evento principal',
+      navigationNext: 'Proximo evento',
       viewsAria: 'Ver eventos',
       viewUpcoming: 'Próximos',
       viewArchive: 'Archivo',
@@ -4380,6 +4387,21 @@ export default {
       goTo: 'Ir',
     },
     paymentChannelMatrixLabel: 'Medios de pago por concepto',
+    paymentReadinessTitle: 'Estado de configuración',
+    paymentReadinessHint:
+      'Antes de publicar, comprobá qué medio verá cada persona y a qué destino se acreditará.',
+    paymentReadinessCount: '{{count}} medio(s) ofrecido(s)',
+    paymentReadinessOff: 'No se ofrece en este evento.',
+    paymentReadinessLoading: 'Verificando los medios de la plataforma.',
+    paymentReadinessTransferReady: 'Alias: {{alias}}',
+    paymentReadinessTransferMissing: 'Falta elegir una cuenta o cargar un alias.',
+    paymentReadinessCashReady: 'Lugar: {{place}}',
+    paymentReadinessCashMissing: 'Falta indicar dónde se cobra el efectivo.',
+    paymentReadinessMpMissing: 'La cuenta elegida no está disponible.',
+    paymentReadinessMpReconnect: 'La cuenta elegida necesita reconectarse.',
+    paymentReadinessMpProfile: 'Cuenta: {{name}}',
+    paymentReadinessMpPlatform: 'Cuenta general de la plataforma.',
+    paymentReadinessWise: 'Datos de Wise configurados por la plataforma.',
     paymentChannelMatrixHint:
       'Tildá los medios con los que cobra este evento. Se define por separado: lo que cambiás para entradas no toca la inscripción de atletas.',
     paymentChannelPlatformUnknown:
@@ -4979,6 +5001,19 @@ export default {
     landingTemplateEditorial: 'Landing editorial',
     landingTemplateEditorialHint:
       'Página completa tipo dossier (hero, experiencia, categorías, sede). Ideal para meets insignia.',
+    landingTemplateSubmission: 'Landing Submission',
+    landingTemplateSubmissionHint:
+      'PÃ¡gina propia para Barbell Submission. Puede mostrarse en preparaciÃ³n antes de abrir inscripciones.',
+    landingPublicVisibleTitle: 'Mostrar landing pÃºblica',
+    landingPublicVisibleHint:
+      'Apagada, Submission no aparece en el calendario, destacados ni navegaciÃ³n pÃºblica.',
+    landingSubmissionPhaseLabel: 'Estado de la landing',
+    landingSubmissionPhaseComingSoon: 'En preparaciÃ³n',
+    landingSubmissionPhasePublished: 'Publicada',
+    landingSubmissionComingSoonHint:
+      'La URL pÃºblica muestra el aviso de preparaciÃ³n y los datos bÃ¡sicos del evento.',
+    landingSubmissionPublishedHint:
+      'La URL pÃºblica muestra la landing de Submission. La inscripciÃ³n mantiene su propio estado.',
     landingThemeLabel: 'Tema de color',
     landingThemeHint:
       'Acento visual del meet. No cambia el layout: solo la paleta sobre los tokens de marca.',
@@ -5027,6 +5062,12 @@ export default {
     publicSurfaceWeighInsTitle: 'Pesajes',
     publicSurfaceWeighInsHint:
       'Horarios de pesaje en la ficha pública. Sin ventanas cargadas, no aparece nada.',
+    publicSurfaceScheduleTitle: 'Cronograma',
+    publicSurfaceScheduleHint:
+      'Grilla de tandas publicada desde Estructura. Debe estar publicada también para que aparezca.',
+    publicSurfaceRecentRegistrantsTitle: 'Últimos inscriptos',
+    publicSurfaceRecentRegistrantsHint:
+      'Lista reciente de atletas confirmados. Al ocultarla, sus datos no se envían al sitio público.',
     publicSurfaceLivestreamTitle: 'Transmisión',
     publicSurfaceLivestreamHint: 'Reproductor en vivo en la ficha, si hay un link cargado.',
     publicSurfaceExperienceTitle: 'Experiencia',

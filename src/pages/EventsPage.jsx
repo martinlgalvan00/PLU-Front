@@ -12,6 +12,7 @@ import EventCalendar from '../components/ui/EventCalendar.jsx'
 import EventCountdown from '../components/ui/EventCountdown.jsx'
 import EventCard from '../components/ui/EventCard.jsx'
 import EventLiveStream from '../components/ui/EventLiveStream.jsx'
+import EventPublicMaterials from '../components/ui/EventPublicMaterials.jsx'
 import EventsTeaser from '../components/ui/EventsTeaser.jsx'
 import PitbullBrandMark from '../components/ui/PitbullBrandMark.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
@@ -324,6 +325,8 @@ function EventsDetailPanel({
           <EventWeighInSchedule windows={event.weighInWindows} />
         </section>
       ) : null}
+
+      <EventPublicMaterials event={event} />
 
       {faqItems.length > 0 ? (
         <section className="events-detail__faq" aria-labelledby="events-detail-faq-title">
