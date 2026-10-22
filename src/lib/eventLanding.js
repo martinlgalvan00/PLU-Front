@@ -12,8 +12,11 @@ import { normalizeEventPublicCopy } from './eventPublicSurface.js'
 
 /** Compat pre-migración: mismo slug canónico que `eventNavigation`. */
 const LEGACY_EDITORIAL_SLUG = 'pitbull-classic-2026'
+const BARBELL_SUBMISSION_SLUG_PREFIX = 'barbell-submission'
 
-export const EVENT_LANDING_TEMPLATES = Object.freeze(['meet', 'editorial'])
+export const EVENT_LANDING_TEMPLATES = Object.freeze(['meet', 'editorial', 'submission'])
+
+export const EVENT_LANDING_PHASES = Object.freeze(['coming_soon', 'published'])
 
 export const DEFAULT_EVENT_LANDING_TEMPLATE = 'meet'
 
@@ -104,6 +107,15 @@ export const EVENT_LANDING_SLOTS_BY_TEMPLATE = Object.freeze({
     'locationTitle',
     'locationBody',
   ],
+  submission: [
+    ...COMMON_SLOTS,
+    'experienceTitle',
+    'experienceBody',
+    'categoriesTitle',
+    'categoriesBody',
+    'locationTitle',
+    'locationBody',
+  ],
 })
 
 function clipSlot(value, max) {
@@ -128,6 +140,13 @@ export function normalizeEventLandingTemplateId(raw) {
     .trim()
     .toLowerCase()
   return EVENT_LANDING_TEMPLATES.includes(value) ? value : DEFAULT_EVENT_LANDING_TEMPLATE
+}
+
+export function normalizeEventLandingPhase(raw) {
+  const value = String(raw ?? '')
+    .trim()
+    .toLowerCase()
+  return EVENT_LANDING_PHASES.includes(value) ? value : 'coming_soon'
 }
 
 /**
@@ -199,10 +218,20 @@ export function normalizeEventLanding(raw, compat = {}) {
   ) {
     templateId = 'editorial'
   }
+  if (
+    (!source.templateId || String(source.templateId).trim() === '') &&
+    String(compat.slug ?? '')
+      .toLowerCase()
+      .startsWith(BARBELL_SUBMISSION_SLUG_PREFIX)
+  ) {
+    templateId = 'submission'
+  }
 
   return {
     templateId,
     themeId: normalizeEventLandingThemeId(source.themeId),
+    publicVisible: source.publicVisible !== false,
+    phase: normalizeEventLandingPhase(source.phase),
     slots: normalizeEventLandingSlots(source.slots, { publicCopy: compat.publicCopy }),
   }
 }
@@ -225,6 +254,18 @@ export function eventLandingThemeId(event) {
 
 export function eventHasEditorialLanding(event) {
   return eventLandingTemplateId(event) === 'editorial'
+}
+
+export function eventHasSubmissionLanding(event) {
+  return eventLandingTemplateId(event) === 'submission'
+}
+
+export function eventLandingIsPublic(event) {
+  return eventLandingFromEvent(event).publicVisible
+}
+
+export function eventLandingPhase(event) {
+  return eventLandingFromEvent(event).phase
 }
 
 /**
@@ -281,6 +322,8 @@ export function syncLandingSlotsFromPublicCopy(landing, publicCopy) {
   return {
     templateId: current.templateId,
     themeId: current.themeId,
+    publicVisible: current.publicVisible,
+    phase: current.phase,
     slots: {
       ...current.slots,
       heroTitle: copy.publicTitle,
@@ -300,6 +343,8 @@ export function landingPayloadForMerge(landing) {
   return {
     templateId: normalized.templateId,
     themeId: normalized.themeId,
+    publicVisible: normalized.publicVisible,
+    phase: normalized.phase,
     slots: { ...normalized.slots },
   }
 }
@@ -311,6 +356,8 @@ export function emptyEventLanding(
   return {
     templateId: normalizeEventLandingTemplateId(templateId),
     themeId: normalizeEventLandingThemeId(themeId),
+    publicVisible: true,
+    phase: 'coming_soon',
     slots: { ...EMPTY_EVENT_LANDING_SLOTS },
   }
 }

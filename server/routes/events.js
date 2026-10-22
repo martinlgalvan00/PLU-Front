@@ -17,7 +17,7 @@ import {
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import { publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
-import { sanitizePublicCatalogEvent } from '../services/publicEventCatalogService.js'
+import { isPublicCatalogEvent, sanitizePublicCatalogEvent } from '../services/publicEventCatalogService.js'
 import { buildTicketCredentialsPayload } from '../../src/lib/ticketCredentials.js'
 import { resolveTicketTypeChannels } from '../../src/lib/ticketTypePaymentChannels.js'
 import {
@@ -30,6 +30,8 @@ import {
 import {
   bankTransferIssueError,
   checkEventBankTransferReady,
+  checkEventCashPaymentReady,
+  cashPaymentIssueError,
   normalizeBankTransferInput,
   normalizeCashPaymentInput,
   normalizePaymentChannelOverrides,
@@ -425,10 +427,15 @@ export const eventSchema = z
       .object({
         calendar: z.boolean().optional(),
         weighIns: z.boolean().optional(),
+        schedule: z.boolean().optional(),
+        recentRegistrants: z.boolean().optional(),
         livestream: z.boolean().optional(),
         experience: z.boolean().optional(),
         categories: z.boolean().optional(),
         location: z.boolean().optional(),
+        faq: z.boolean().optional(),
+        tickets: z.boolean().optional(),
+        countdown: z.boolean().optional(),
       })
       .optional(),
     // Copy del hero público. Techos espejo de la RPC de merge y del esquema
@@ -445,10 +452,12 @@ export const eventSchema = z
     // Plantilla + slots de landing. Merge aparte: el upsert reconstruye rules.
     landing: z
       .object({
-        templateId: z.enum(['meet', 'editorial']).optional(),
+        templateId: z.enum(['meet', 'editorial', 'submission']).optional(),
         themeId: z
           .enum(['plu-default', 'night-steel', 'ember', 'clean-light'])
           .optional(),
+        publicVisible: z.boolean().optional(),
+        phase: z.enum(['coming_soon', 'published']).optional(),
         slots: z
           .object({
             heroTitle: z.string().trim().max(120).optional(),
@@ -849,6 +858,99 @@ function esRelacionFaltante(error) {
   )
 }
 
+/**
+ * Permite publicar Submission durante el despliegue escalonado de la RPC.
+ * `staff_merge_event_landing_state` sigue siendo el camino normal; este
+ * respaldo usa el cliente de servicio y conserva los slots que la RPC anterior
+ * ya haya guardado en `rules.landing`.
+ */
+async function mergeLandingStateCompat(client, { slug, templateId, publicVisible, phase }) {
+  const reader = client.from('events').select('rules').eq('slug', slug)
+  // Un adaptador sin `maybeSingle` no puede hacer el respaldo directo. La RPC
+  // principal ya guardÃ³ el estado; se evita convertir esa limitaciÃ³n en 500.
+  if (typeof reader?.maybeSingle !== 'function') return
+  const current = assertSupabaseResult(
+    await client.from('events').select('rules').eq('slug', slug).maybeSingle(),
+    'No se pudo leer la configuracion de la landing.',
+  )
+  if (!current) throw new HttpError(404, 'El evento no existe.')
+
+  const rules = current.rules && typeof current.rules === 'object' ? current.rules : {}
+  const landing = rules.landing && typeof rules.landing === 'object' ? rules.landing : {}
+  assertSupabaseResult(
+    await client
+      .from('events')
+      .update({
+        rules: {
+          ...rules,
+          landing: {
+            ...landing,
+            templateId,
+            publicVisible,
+            phase,
+          },
+        },
+      })
+      .eq('slug', slug),
+    'No se pudo guardar la visibilidad de la landing.',
+  )
+}
+
+/**
+ * Compatibilidad para los dos módulos agregados después de la RPC original.
+ * La migración actualiza `staff_merge_event_public_surface`, pero la escritura
+ * directa asegura que una API nueva pueda guardar el switch aun si el schema
+ * remoto todavía conserva la versión anterior de esa función.
+ */
+async function mergePublicSurfaceMaterialsCompat(client, { slug, surface }) {
+  const reader = client.from('events').select('rules').eq('slug', slug)
+  // Ver la nota equivalente en `mergeLandingStateCompat`.
+  if (typeof reader?.maybeSingle !== 'function') return
+  const current = assertSupabaseResult(
+    await client.from('events').select('rules').eq('slug', slug).maybeSingle(),
+    'No se pudo leer la superficie pública del evento.',
+  )
+  if (!current) throw new HttpError(404, 'El evento no existe.')
+
+  const rules = current.rules && typeof current.rules === 'object' ? current.rules : {}
+  const publicSurface =
+    rules.publicSurface && typeof rules.publicSurface === 'object' ? rules.publicSurface : {}
+  assertSupabaseResult(
+    await client
+      .from('events')
+      .update({
+        rules: {
+          ...rules,
+          publicSurface: {
+            ...publicSurface,
+            ...surface,
+          },
+        },
+      })
+      .eq('slug', slug),
+    'No se pudo guardar la superficie pública del evento.',
+  )
+}
+
+async function readPublicMaterialVisibility(client, slug) {
+  const reader = client.from('events').select('published, rules').eq('slug', slug)
+  if (typeof reader?.maybeSingle !== 'function') {
+    // El adaptador de lectura no expone reglas por evento. Conservamos la
+    // superficie pÃºblica histÃ³rica en vez de dejar las rutas en error.
+    return { published: true, schedule: true, recentRegistrants: true }
+  }
+  const event = assertSupabaseResult(
+    await client.from('events').select('published, rules').eq('slug', slug).maybeSingle(),
+    'No se pudo leer la visibilidad pública del evento.',
+  )
+  const surface = event?.rules?.publicSurface
+  return {
+    published: event?.published === true,
+    schedule: surface?.schedule !== false,
+    recentRegistrants: surface?.recentRegistrants !== false,
+  }
+}
+
 /** Ruta de Storage del logo -> URL pública estable del bucket. */
 function eventLogoPublicUrl(client, path) {
   if (!path) return null
@@ -1025,7 +1127,9 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       // visible por stale-while-revalidate despues de apagarla o borrarla.
       res.set('Cache-Control', 'no-store')
       res.json({
-        events: Array.isArray(events) ? events.map((row) => sanitizePublicCatalogEvent(row)) : [],
+        events: Array.isArray(events)
+          ? events.filter(isPublicCatalogEvent).map((row) => sanitizePublicCatalogEvent(row))
+          : [],
       })
     } catch (error) {
       next(error)
@@ -1041,6 +1145,12 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
     try {
       const slug = parseEventSlug(req.params.eventSlug)
       const client = requireSupabaseClient(getSupabaseAdmin())
+      const visibility = await readPublicMaterialVisibility(client, slug)
+      if (!visibility.published || !visibility.schedule) {
+        res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.LIVE, { staleFor: 0 }))
+        res.json({ schedule: { enabled: false, platforms: [], days: [] } })
+        return
+      }
       const schedule = assertSupabaseResult(
         await client.rpc('public_event_schedule', { p_event_slug: slug }),
         'No se pudo consultar la grilla del evento.',
@@ -1059,6 +1169,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       const slug = parseEventSlug(req.params.eventSlug)
 
       const client = requireSupabaseClient(getSupabaseAdmin())
+      const visibility = await readPublicMaterialVisibility(client, slug)
       const summary = assertSupabaseResult(
         await client.rpc('get_event_registration_capacity', { p_event_slug: slug }),
         'No se pudo consultar el cupo de inscripción.',
@@ -1066,7 +1177,10 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       // El hook de cupo la pide cada 30 s por visitante (`LIVE_REGISTRATION_POLL_MS`):
       // en una difusión son cientos de invocaciones por minuto contra el mismo número.
       res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.LIVE))
-      res.json({ summary: attachRecentRegistrationPortraits(summary) })
+      const sanitized = attachRecentRegistrationPortraits(summary)
+      res.json({
+        summary: visibility.recentRegistrants ? sanitized : { ...sanitized, recent: [] },
+      })
     } catch (error) {
       next(error)
     }
@@ -1170,6 +1284,23 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           })
         }
 
+        const cashPaymentIssue = checkEventCashPaymentReady({
+          overrides: paymentChannelOverrides,
+          cashPayment: req.validatedBody.cashPayment,
+          event: {
+            venue: req.validatedBody.venue,
+            location: req.validatedBody.location,
+          },
+        })
+        if (cashPaymentIssue) {
+          if (req.validatedBody.published === true) throw cashPaymentIssueError(cashPaymentIssue)
+          warnings.push({
+            code: cashPaymentIssue.code,
+            message: cashPaymentIssue.message,
+            field: cashPaymentIssue.field,
+          })
+        }
+
         // Un tipo de entrada sólo puede cerrar debajo del evento. Que no le
         // quede ninguno abierto —porque cerró los últimos, o porque el evento
         // cerró después el único que tenía— es una entrada que no se puede
@@ -1234,10 +1365,15 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
         const publicSurface = {
           calendar: pEvent.publicSurface?.calendar !== false,
           weighIns: pEvent.publicSurface?.weighIns !== false,
+          schedule: pEvent.publicSurface?.schedule !== false,
+          recentRegistrants: pEvent.publicSurface?.recentRegistrants !== false,
           livestream: pEvent.publicSurface?.livestream !== false,
           experience: pEvent.publicSurface?.experience !== false,
           categories: pEvent.publicSurface?.categories !== false,
           location: pEvent.publicSurface?.location !== false,
+          faq: pEvent.publicSurface?.faq !== false,
+          tickets: pEvent.publicSurface?.tickets !== false,
+          countdown: pEvent.publicSurface?.countdown !== false,
         }
         assertSupabaseResult(
           await client.rpc('staff_merge_event_public_surface', {
@@ -1246,6 +1382,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           }),
           'No se pudo guardar la superficie pública del evento.',
         )
+        await mergePublicSurfaceMaterialsCompat(client, { slug: pEvent.slug, surface: publicSurface })
 
         // Mismo motivo que la superficie: `staff_upsert_event` reconstruye
         // `rules` clave por clave, así que el copy va en su propio merge.
@@ -1270,6 +1407,8 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           const landingMerge = await client.rpc('staff_merge_event_landing', {
             p_slug: pEvent.slug,
             p_landing: {
+              // La RPC histÃ³rica conoce meet/editorial. Submission se persiste
+              // en el merge de estado posterior, sin duplicar la validaciÃ³n de slots.
               templateId: pEvent.landing?.templateId === 'editorial' ? 'editorial' : 'meet',
               themeId: ['plu-default', 'night-steel', 'ember', 'clean-light'].includes(
                 pEvent.landing?.themeId,
@@ -1311,6 +1450,26 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             assertSupabaseResult(
               landingMerge,
               'No se pudo guardar la landing del evento.',
+            )
+          }
+
+          const landingStateMerge = await client.rpc('staff_merge_event_landing_state', {
+            p_slug: pEvent.slug,
+            p_template_id: pEvent.landing?.templateId ?? 'meet',
+            p_public_visible: pEvent.landing?.publicVisible !== false,
+            p_phase: pEvent.landing?.phase ?? 'coming_soon',
+          })
+          if (landingStateMerge.error && esRelacionFaltante(landingStateMerge.error)) {
+            await mergeLandingStateCompat(client, {
+              slug: pEvent.slug,
+              templateId: pEvent.landing?.templateId ?? 'meet',
+              publicVisible: pEvent.landing?.publicVisible !== false,
+              phase: pEvent.landing?.phase ?? 'coming_soon',
+            })
+          } else {
+            assertSupabaseResult(
+              landingStateMerge,
+              'No se pudo guardar la visibilidad de la landing.',
             )
           }
         }

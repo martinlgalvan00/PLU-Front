@@ -3,6 +3,19 @@ function firstEmbeddedRow(value) {
 }
 
 /**
+ * Submission puede prepararse con el evento ya configurado, sin exponerlo
+ * todavía en catálogo, destacados ni navegación. La decisión vive en la misma
+ * landing para no mezclarla con `published`, que también gobierna cobros.
+ */
+export function isPublicCatalogEvent(row) {
+  const landing = row?.rules?.landing
+  return !(
+    String(landing?.templateId ?? '').toLowerCase() === 'submission' &&
+    landing?.publicVisible === false
+  )
+}
+
+/**
  * El service role ignora RLS, por eso el catalogo se depura explicitamente.
  * Lo apagado, vencido, programado o restringido no deja ni precio ni pista en
  * la respuesta publica. La ruta privada de canje es la unica que lo revela.

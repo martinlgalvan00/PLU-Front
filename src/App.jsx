@@ -51,7 +51,11 @@ import {
   getPublicCatalogEvents,
   PITBULL_CLASSIC_SLUG,
 } from './lib/eventNavigation.js'
-import { eventHasEditorialLanding, eventLandingSeo } from './lib/eventLanding.js'
+import {
+  eventHasEditorialLanding,
+  eventHasSubmissionLanding,
+  eventLandingSeo,
+} from './lib/eventLanding.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
 import { reconcileMercadoPagoReturn } from './services/paymentService.js'
 import {
@@ -155,6 +159,7 @@ const MembersPage = lazyWithRetry(() => import('./pages/MembersPage.jsx'))
 const NotFoundPage = lazyWithRetry(() => import('./pages/NotFoundPage.jsx'))
 const PitbullPage = lazyWithRetry(() => import('./pages/PitbullPage.jsx'))
 const EventLandingEditorial = lazyWithRetry(() => import('./pages/EventLandingEditorial.jsx'))
+const SubmissionLandingPage = lazyWithRetry(() => import('./pages/SubmissionLandingPage.jsx'))
 const RecordsPage = lazyWithRetry(() => import('./pages/RecordsPage.jsx'))
 const RegisterPage = lazyWithRetry(() => import('./pages/RegisterPage.jsx'))
 const ResourcesPage = lazyWithRetry(() => import('./pages/ResourcesPage.jsx'))
@@ -952,9 +957,13 @@ export default function App() {
   const showEditorialLanding =
     (view === 'events' && eventPageEvent && eventHasEditorialLanding(eventPageEvent)) ||
     view === 'pitbull'
-  const Page = showEditorialLanding
-    ? EventLandingEditorial
-    : PUBLIC_VIEWS[view] || NotFoundPage
+  const showSubmissionLanding =
+    view === 'events' && eventPageEvent && eventHasSubmissionLanding(eventPageEvent)
+  const Page = showSubmissionLanding
+    ? SubmissionLandingPage
+    : showEditorialLanding
+      ? EventLandingEditorial
+      : PUBLIC_VIEWS[view] || NotFoundPage
 
   const editorialPageProps = {
     onNavigate: navigate,
@@ -967,7 +976,14 @@ export default function App() {
     checkoutAvailability: app.checkoutAvailability,
   }
 
-  const pageProps = showEditorialLanding
+  const pageProps = showSubmissionLanding
+    ? {
+        onNavigate: navigate,
+        onSelectEvent: selectEvent,
+        events: publicEvents,
+        eventSlug: eventPageSlug,
+      }
+    : showEditorialLanding
     ? editorialPageProps
     : view === 'register'
       ? {
@@ -1140,9 +1156,9 @@ export default function App() {
       <CookieConsent />
       <DocumentMetaSync
         view={view}
-        eventSlug={view === 'events' || showEditorialLanding ? eventPageSlug : null}
+        eventSlug={view === 'events' || showEditorialLanding || showSubmissionLanding ? eventPageSlug : null}
         eventTitle={
-          (view === 'events' || showEditorialLanding) && eventPageSlug
+          (view === 'events' || showEditorialLanding || showSubmissionLanding) && eventPageSlug
             ? publicEvents.find((event) => event.slug === eventPageSlug)?.title
             : null
         }

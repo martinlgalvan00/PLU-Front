@@ -422,12 +422,15 @@ export default function AdminEventQuickCreate({
                   options={[
                     ['meet', t('admin.eventEditor.landingTemplateMeet')],
                     ['editorial', t('admin.eventEditor.landingTemplateEditorial')],
+                    ['submission', t('admin.eventEditor.landingTemplateSubmission')],
                   ]}
                 />
                 <p className="admin-event-quick__access-note">
                   {normalizeEventLanding(draft.landing).templateId === 'editorial'
                     ? t('admin.eventEditor.landingTemplateEditorialHint')
-                    : t('admin.eventEditor.landingTemplateMeetHint')}
+                    : normalizeEventLanding(draft.landing).templateId === 'submission'
+                      ? t('admin.eventEditor.landingTemplateSubmissionHint')
+                      : t('admin.eventEditor.landingTemplateMeetHint')}
                 </p>
                 <AdminFilterChipGroup
                   compact

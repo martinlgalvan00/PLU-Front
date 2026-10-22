@@ -1,6 +1,7 @@
 import { normalizeWeighInWindows } from '../lib/weighInWindows.js'
 import {
   emptyEventLanding,
+  eventLandingIsPublic,
   eventLandingFromEvent,
   landingPayloadForMerge,
   normalizeEventLanding,
@@ -936,7 +937,7 @@ export async function fetchPublishedEvents() {
     .select(PUBLISHED_EVENTS_SELECT)
     .eq('published', true)
   if (error) throw error
-  return (data ?? []).map((row) => {
+  const events = (data ?? []).map((row) => {
     const logoUrl =
       row.logo_url ??
       (row.logo_path
@@ -950,6 +951,10 @@ export async function fetchPublishedEvents() {
         : null)
     return mapPublishedEventRow({ ...row, logo_url: logoUrl, hero_image_url: heroImageUrl })
   })
+
+  // Si la API no esta disponible, el fallback debe respetar el mismo
+  // interruptor de visibilidad que protege el catalogo del servidor.
+  return events.filter(eventLandingIsPublic)
 }
 
 /** Guarda el evento completo a través de Express y devuelve el estado

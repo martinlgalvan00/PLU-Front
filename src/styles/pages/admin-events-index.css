@@ -171,6 +171,126 @@
   outline-offset: 2px;
 }
 
+/* Vista derivada de la misma regla del navbar: no es otra configuracion. */
+.admin-events-navigation-preview {
+  border-block: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 12px;
+  margin-block: 16px;
+  padding-block: 14px;
+}
+
+.admin-events-navigation-preview__heading {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 24px;
+  justify-content: space-between;
+}
+
+.admin-events-navigation-preview__eyebrow {
+  color: var(--admin-muted);
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin-events-navigation-preview h2 {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 16px;
+  line-height: 1.2;
+  margin: 3px 0 0;
+}
+
+.admin-events-navigation-preview__heading p,
+.admin-events-navigation-preview__empty {
+  color: var(--admin-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 430px;
+}
+
+.admin-events-navigation-preview__list {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-events-navigation-preview__list li {
+  align-items: stretch;
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+}
+
+.admin-events-navigation-preview__position {
+  align-items: center;
+  color: var(--admin-muted);
+  display: flex;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.admin-events-navigation-preview__list button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 10px;
+  justify-content: space-between;
+  min-height: 54px;
+  padding: 8px 0;
+  text-align: left;
+}
+
+.admin-events-navigation-preview__list button > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-events-navigation-preview__list strong,
+.admin-events-navigation-preview__list small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-events-navigation-preview__list strong {
+  font-size: 13px;
+}
+
+.admin-events-navigation-preview__list small {
+  color: var(--admin-muted);
+  font-size: 11px;
+}
+
+.admin-events-navigation-preview__list button > svg {
+  color: var(--admin-muted);
+  flex: 0 0 auto;
+}
+
+.admin-events-navigation-preview__list button:hover strong,
+.admin-events-navigation-preview__list button:focus-visible strong {
+  color: var(--admin-premium, var(--color-brand-gold));
+}
+
+.admin-events-navigation-preview__list button:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
 /* ---- Barra: secciones a la izquierda, búsqueda y filtros en la misma línea ---- */
 
 .admin-shell .admin-list-section--events.admin-list-section--flow {
@@ -1216,6 +1336,15 @@ button.admin-event-row__vis:focus-visible {
 
   button.admin-event-row__vis {
     min-height: 44px;
+  }
+
+  .admin-events-navigation-preview__heading {
+    align-items: start;
+    display: grid;
+  }
+
+  .admin-events-navigation-preview__list {
+    grid-template-columns: 1fr;
   }
 
   .admin-events-views {

@@ -610,6 +610,10 @@
   min-width: 330px;
 }
 
+.plu-nav-menu--competition {
+  min-width: min(390px, calc(100vw - 48px));
+}
+
 .plu-nav-menu--resources {
   min-width: min(720px, calc(100vw - 48px));
   padding: 0;
@@ -701,6 +705,76 @@
 
 .plu-nav-menu__item--featured .plu-nav-menu__icon {
   color: var(--institution-gold);
+}
+
+.plu-competition-menu {
+  border-top: 1px solid color-mix(in srgb, var(--institution-border) 52%, transparent);
+  margin-top: 6px;
+  padding-top: 8px;
+}
+
+.plu-competition-menu__head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px 7px 10px;
+}
+
+.plu-competition-menu__head > p {
+  color: var(--institution-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.plu-competition-menu__controls {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.plu-competition-menu__controls button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--institution-border) 76%, transparent);
+  border-radius: 4px;
+  color: var(--institution-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  height: 26px;
+  justify-content: center;
+  padding: 0;
+  width: 26px;
+}
+
+.plu-competition-menu__controls button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--institution-gold) 55%, transparent);
+  color: var(--institution-gold);
+}
+
+.plu-competition-menu__controls button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.plu-competition-menu__track {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.plu-competition-menu__track::-webkit-scrollbar {
+  display: none;
+}
+
+.plu-competition-menu__slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
 }
 
 .plu-nav-menu__copy {
