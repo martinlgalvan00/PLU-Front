@@ -95,7 +95,7 @@ describe('navegacion del evento destacado', () => {
 })
 
 describe('eventos de Competencia en la barra', () => {
-  it('lista destacado y Pitbull cuando ambos estan vigentes', () => {
+  it('lista el destacado y el siguiente evento publico por fecha', () => {
     const pitbull = meet({
       slug: 'pitbull-classic-2026',
       title: 'Pitbull Classic',
@@ -115,6 +115,30 @@ describe('eventos de Competencia en la barra', () => {
       'pitbull-classic-2026',
     ])
     expect(getCompetitionNavEventKey(navEvents[0])).toBe('event:nacional-2026')
+  })
+
+  it('no fuerza Pitbull como segundo acceso si hay otro meet mas cercano', () => {
+    const featured = meet({
+      slug: 'nacional-2026',
+      title: 'Nacional 2026',
+      featured: true,
+      dateISO: '2026-12-20',
+    })
+    const closer = meet({
+      slug: 'regional-centro-2026',
+      title: 'Regional Centro',
+      dateISO: '2026-07-12',
+    })
+    const pitbull = meet({
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic',
+      dateISO: '2026-08-15',
+    })
+
+    expect(getCompetitionNavEvents([featured, pitbull, closer], NOW).map((event) => event.slug)).toEqual([
+      'nacional-2026',
+      'regional-centro-2026',
+    ])
   })
 
   it('si el destacado es Pitbull, el segundo slot es el proximo', () => {
@@ -188,6 +212,25 @@ describe('eventos de Competencia en la barra', () => {
 
     expect(getCompetitionNavEvents([stub, hidden, pitbull], NOW).map((event) => event.slug)).toEqual([
       'pitbull-classic-2026',
+    ])
+  })
+
+  it('no muestra una landing Submission que el staff dejo privada', () => {
+    const privateSubmission = meet({
+      slug: 'barbell-submission-2026',
+      title: 'Barbell Submission',
+      featured: true,
+      dateISO: '2026-07-01',
+      rules: { landing: { templateId: 'submission', publicVisible: false } },
+    })
+    const publicMeet = meet({
+      slug: 'regional-2026',
+      title: 'Regional 2026',
+      dateISO: '2026-07-12',
+    })
+
+    expect(getCompetitionNavEvents([privateSubmission, publicMeet], NOW).map((event) => event.slug)).toEqual([
+      'regional-2026',
     ])
   })
 })

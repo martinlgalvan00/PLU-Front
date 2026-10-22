@@ -1513,7 +1513,13 @@ export default {
       nextKicker: 'Next',
       leadFeatured: 'Main event',
       inNav: 'In the bar',
-      inNavHint: 'Shown by name under Competition (navbar and footer).',
+      inNavHint: 'Shown by name under Competition (navbar and footer), in public order.',
+      navigationPreviewEyebrow: 'Public navigation',
+      navigationPreviewTitle: 'Events visible under Competition',
+      navigationPreviewHint: 'This is the order people see in the site menu and footer.',
+      navigationPreviewEmpty: 'There are no current public events to show under Competition.',
+      navigationPrimary: 'Main event',
+      navigationNext: 'Next event',
       viewsAria: 'View events',
       viewUpcoming: 'Upcoming',
       viewArchive: 'Archive',
@@ -4322,6 +4328,21 @@ export default {
       goTo: 'Go',
     },
     paymentChannelMatrixLabel: 'Payment methods by concept',
+    paymentReadinessTitle: 'Configuration status',
+    paymentReadinessHint:
+      'Before publishing, check which method each person will see and where the payment will be received.',
+    paymentReadinessCount: '{{count}} method(s) offered',
+    paymentReadinessOff: 'Not offered for this event.',
+    paymentReadinessLoading: 'Checking platform payment methods.',
+    paymentReadinessTransferReady: 'Alias: {{alias}}',
+    paymentReadinessTransferMissing: 'Choose an account or enter an alias.',
+    paymentReadinessCashReady: 'Place: {{place}}',
+    paymentReadinessCashMissing: 'Enter where cash is collected.',
+    paymentReadinessMpMissing: 'The selected account is not available.',
+    paymentReadinessMpReconnect: 'The selected account needs to reconnect.',
+    paymentReadinessMpProfile: 'Account: {{name}}',
+    paymentReadinessMpPlatform: 'Platform general account.',
+    paymentReadinessWise: 'Wise details are configured at platform level.',
     paymentChannelMatrixHint:
       'Tick the methods this event charges with. Set separately: changing tickets does not affect athlete registration.',
     paymentChannelPlatformUnknown:
@@ -4917,6 +4938,19 @@ export default {
     landingTemplateEditorial: 'Editorial landing',
     landingTemplateEditorialHint:
       'Full dossier-style page (hero, experience, categories, venue). Best for flagship meets.',
+    landingTemplateSubmission: 'Submission landing',
+    landingTemplateSubmissionHint:
+      'Dedicated Barbell Submission page. It can be shown as in progress before registration opens.',
+    landingPublicVisibleTitle: 'Show public landing',
+    landingPublicVisibleHint:
+      'When off, Submission is absent from the calendar, featured areas, and public navigation.',
+    landingSubmissionPhaseLabel: 'Landing status',
+    landingSubmissionPhaseComingSoon: 'In progress',
+    landingSubmissionPhasePublished: 'Published',
+    landingSubmissionComingSoonHint:
+      'The public URL shows the in-progress notice and essential event details.',
+    landingSubmissionPublishedHint:
+      'The public URL shows the Submission landing. Registration keeps its own status.',
     landingThemeLabel: 'Color theme',
     landingThemeHint:
       'Visual accent for this meet. Layout stays the same; only brand-token accents change.',
@@ -4964,6 +4998,12 @@ export default {
     publicSurfaceWeighInsTitle: 'Weigh-ins',
     publicSurfaceWeighInsHint:
       'Weigh-in times on the public page. With no windows loaded, nothing appears.',
+    publicSurfaceScheduleTitle: 'Schedule',
+    publicSurfaceScheduleHint:
+      'Competition schedule published from Structure. It must also be published there to appear.',
+    publicSurfaceRecentRegistrantsTitle: 'Recent registrants',
+    publicSurfaceRecentRegistrantsHint:
+      'Recent list of confirmed athletes. When hidden, their data is not sent to the public site.',
     publicSurfaceLivestreamTitle: 'Livestream',
     publicSurfaceLivestreamHint: 'Live player on the event page, if a link is set.',
     publicSurfaceExperienceTitle: 'Experience',

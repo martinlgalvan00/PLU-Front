@@ -6,6 +6,8 @@ import {
   BookOpen,
   CalendarDays,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   CircleHelp,
   FolderOpen,
   Handshake,
@@ -182,7 +184,10 @@ function buildCompetitionNavItems(navEvents, { activeView, activeEventSlug, loca
       icon: NAV_ICON.trophy,
       featured: index === 0,
       label: event.title || t('nav.pitbull'),
-      hint: navEventHint(event, locale),
+      hint:
+        index === 0
+          ? t('nav.eventPrimaryHint', { date: navEventHint(event, locale) })
+          : t('nav.eventNextHint', { date: navEventHint(event, locale) }),
       active: activeView === destination.view && Boolean(slug) && activeEventSlug === slug,
       destination,
     }
@@ -240,15 +245,7 @@ function NavHoverPill({ show }) {
   )
 }
 
-function NavLink({
-  active,
-  hovered,
-  children,
-  icon: Icon,
-  onClick,
-  onHover,
-  tone = 'default',
-}) {
+function NavLink({ active, hovered, children, icon: Icon, onClick, onHover, tone = 'default' }) {
   return (
     <button
       type="button"
@@ -270,19 +267,20 @@ function NavLink({
 
 function NavDropdownItem({
   active = false,
+  className = '',
   description,
   icon: Icon,
   label,
   onClick,
   tone = 'default',
 }) {
-  const className = `plu-nav-menu__item plu-nav-menu__item--${tone}${active ? ' is-active' : ''}`
+  const itemClassName = `plu-nav-menu__item plu-nav-menu__item--${tone}${active ? ' is-active' : ''}${className ? ` ${className}` : ''}`
 
   return (
     <button
       type="button"
       role="menuitem"
-      className={className}
+      className={itemClassName}
       aria-current={active ? 'page' : undefined}
       onClick={onClick}
     >
@@ -297,6 +295,82 @@ function NavDropdownItem({
       </span>
       <ArrowRight className="plu-nav-menu__item-arrow" size={14} aria-hidden />
     </button>
+  )
+}
+
+function CompetitionEventSlider({ items, onSelect, t }) {
+  const trackRef = useRef(null)
+  const [canMoveBack, setCanMoveBack] = useState(false)
+  const [canMoveForward, setCanMoveForward] = useState(false)
+
+  function syncControls() {
+    const track = trackRef.current
+    if (!track) return
+    const epsilon = 2
+    setCanMoveBack(track.scrollLeft > epsilon)
+    setCanMoveForward(track.scrollLeft + track.clientWidth < track.scrollWidth - epsilon)
+  }
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(syncControls)
+    window.addEventListener('resize', syncControls)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('resize', syncControls)
+    }
+  }, [items.length])
+
+  function move(direction) {
+    const track = trackRef.current
+    if (!track) return
+    track.scrollBy({
+      behavior: 'smooth',
+      left: direction * Math.max(track.clientWidth - 24, 1),
+    })
+  }
+
+  if (items.length === 0) return null
+
+  return (
+    <section className="plu-competition-menu" aria-label={t('nav.competitionEvents')}>
+      <header className="plu-competition-menu__head">
+        <p>{t('nav.competitionEvents')}</p>
+        {items.length > 1 ? (
+          <div className="plu-competition-menu__controls">
+            <button
+              type="button"
+              aria-label={t('nav.sliderPrevious')}
+              disabled={!canMoveBack}
+              onClick={() => move(-1)}
+            >
+              <ChevronLeft aria-hidden size={15} />
+            </button>
+            <button
+              type="button"
+              aria-label={t('nav.sliderNext')}
+              disabled={!canMoveForward}
+              onClick={() => move(1)}
+            >
+              <ChevronRight aria-hidden size={15} />
+            </button>
+          </div>
+        ) : null}
+      </header>
+      <div ref={trackRef} className="plu-competition-menu__track" onScroll={syncControls}>
+        {items.map((navItem) => (
+          <NavDropdownItem
+            key={navItem.key}
+            active={navItem.active}
+            className="plu-competition-menu__slide"
+            description={navItem.hint}
+            icon={navItem.icon}
+            label={navItem.label}
+            tone={navItem.featured ? 'featured' : 'default'}
+            onClick={() => onSelect(navItem)}
+          />
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -751,11 +825,11 @@ export default function NavbarPublic({
     function isInMenuUi(target) {
       return Boolean(
         profileTriggerRef.current?.contains(target) ||
-          mobileProfileTriggerRef.current?.contains(target) ||
-          profileMenuRef.current?.contains(target) ||
-          noticeTriggerRef.current?.contains(target) ||
-          mobileNoticeTriggerRef.current?.contains(target) ||
-          noticeMenuRef.current?.contains(target),
+        mobileProfileTriggerRef.current?.contains(target) ||
+        profileMenuRef.current?.contains(target) ||
+        noticeTriggerRef.current?.contains(target) ||
+        mobileNoticeTriggerRef.current?.contains(target) ||
+        noticeMenuRef.current?.contains(target),
       )
     }
     function handlePointerDown(event) {
@@ -773,7 +847,12 @@ export default function NavbarPublic({
   }, [dropdown])
 
   useEffect(() => {
-    if (dropdown !== 'notices' || !profileNotice?.id || profileNotice.readAt || !onReadProfileNotice) {
+    if (
+      dropdown !== 'notices' ||
+      !profileNotice?.id ||
+      profileNotice.readAt ||
+      !onReadProfileNotice
+    ) {
       return
     }
     void onReadProfileNotice(profileNotice.id)
@@ -841,9 +920,9 @@ export default function NavbarPublic({
                       onToggle={() =>
                         setDropdown((current) => (current === 'competition' ? null : 'competition'))
                       }
-                      variant="compact"
+                      variant="competition"
                     >
-                      {competitionItems.map((navItem) => (
+                      {competitionItems.slice(0, 1).map((navItem) => (
                         <NavDropdownItem
                           key={navItem.key}
                           active={navItem.active}
@@ -854,6 +933,11 @@ export default function NavbarPublic({
                           onClick={() => navigateNavItem(navItem)}
                         />
                       ))}
+                      <CompetitionEventSlider
+                        items={competitionItems.slice(1)}
+                        onSelect={navigateNavItem}
+                        t={t}
+                      />
                     </NavDropdown>
                   )
                 }
@@ -882,7 +966,11 @@ export default function NavbarPublic({
                         </div>
                         <button type="button" role="menuitem" onClick={() => go('resources')}>
                           {t('nav.viewResources')}
-                          <ArrowRight className="plu-resources-menu__head-arrow" size={14} aria-hidden />
+                          <ArrowRight
+                            className="plu-resources-menu__head-arrow"
+                            size={14}
+                            aria-hidden
+                          />
                         </button>
                       </div>
                       <div className="plu-resources-menu__groups" role="presentation">
@@ -914,9 +1002,7 @@ export default function NavbarPublic({
                 return (
                   <NavLink
                     key={item.key}
-                    active={
-                      item.views ? item.views.includes(activeView) : activeView === item.key
-                    }
+                    active={item.views ? item.views.includes(activeView) : activeView === item.key}
                     hovered={hoveredNav === item.key}
                     onHover={() => setHoveredNav(item.key)}
                     tone={item.key === 'members' ? 'affiliate' : 'default'}
@@ -951,7 +1037,9 @@ export default function NavbarPublic({
                 onClick={toggleNoticeMenu}
               >
                 <Bell size={16} strokeWidth={1.75} aria-hidden />
-                {profileNoticeUnread ? <span className="plu-global-nav__notice-dot" aria-hidden /> : null}
+                {profileNoticeUnread ? (
+                  <span className="plu-global-nav__notice-dot" aria-hidden />
+                ) : null}
               </button>
             ) : null}
             {hasAccount ? (
@@ -1443,13 +1531,7 @@ export default function NavbarPublic({
                           sessionIdentity.staffAccess ? ` · ${t('nav.roleStaffAccess')}` : ''
                         }`}
                         onClick={() =>
-                          go(
-                            athleteWithStaffBridge
-                              ? 'admin'
-                              : adminSession
-                                ? 'admin'
-                                : 'profile',
-                          )
+                          go(athleteWithStaffBridge ? 'admin' : adminSession ? 'admin' : 'profile')
                         }
                       >
                         <span className="plu-drawer__account-avatar" aria-hidden>

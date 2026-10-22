@@ -347,10 +347,15 @@ export const adminEventDraftSchema = z
       .object({
         calendar: z.boolean().optional(),
         weighIns: z.boolean().optional(),
+        schedule: z.boolean().optional(),
+        recentRegistrants: z.boolean().optional(),
         livestream: z.boolean().optional(),
         experience: z.boolean().optional(),
         categories: z.boolean().optional(),
         location: z.boolean().optional(),
+        faq: z.boolean().optional(),
+        tickets: z.boolean().optional(),
+        countdown: z.boolean().optional(),
       })
       .optional(),
     publicCopy: z
@@ -364,10 +369,12 @@ export const adminEventDraftSchema = z
       .optional(),
     landing: z
       .object({
-        templateId: z.enum(['meet', 'editorial']).optional(),
+        templateId: z.enum(['meet', 'editorial', 'submission']).optional(),
         themeId: z
           .enum(['plu-default', 'night-steel', 'ember', 'clean-light'])
           .optional(),
+        publicVisible: z.boolean().optional(),
+        phase: z.enum(['coming_soon', 'published']).optional(),
         slots: z
           .object({
             heroTitle: z.string().trim().max(120, 'landingHeroTitleMax').optional(),

@@ -19,6 +19,7 @@ export default function EventLandingCompositionPreview({ event, t }) {
   const heroTitle = slots.heroTitle || eventPublicTitle(event) || event?.title || '—'
   const publicPath = event?.slug ? buildEventPagePath(event.slug) : null
   const isEditorial = landing.templateId === 'editorial'
+  const isSubmission = landing.templateId === 'submission'
 
   const chapters = [
     slots.experienceTitle || slots.experienceBody
@@ -42,7 +43,9 @@ export default function EventLandingCompositionPreview({ event, t }) {
           <LayoutTemplate size={12} aria-hidden />
           {isEditorial
             ? t('admin.eventEditor.landingTemplateEditorial')
-            : t('admin.eventEditor.landingTemplateMeet')}
+            : isSubmission
+              ? t('admin.eventEditor.landingTemplateSubmission')
+              : t('admin.eventEditor.landingTemplateMeet')}
         </span>
         <strong className="admin-landing-compose__title">{heroTitle}</strong>
         {slots.heroLead ? <p className="admin-landing-compose__lead">{slots.heroLead}</p> : null}

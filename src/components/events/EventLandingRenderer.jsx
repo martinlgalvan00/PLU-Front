@@ -1,5 +1,6 @@
 import EventLandingEditorial from '../../pages/EventLandingEditorial.jsx'
-import { eventHasEditorialLanding } from '../../lib/eventLanding.js'
+import SubmissionLandingPage from '../../pages/SubmissionLandingPage.jsx'
+import { eventHasEditorialLanding, eventHasSubmissionLanding } from '../../lib/eventLanding.js'
 
 /**
  * Elige la superficie pública del evento según `landing.templateId`.
@@ -17,6 +18,17 @@ export default function EventLandingRenderer({
   registrations,
   checkoutAvailability,
 }) {
+  if (eventHasSubmissionLanding(event)) {
+    return (
+      <SubmissionLandingPage
+        eventSlug={eventSlug ?? event?.slug}
+        events={events}
+        onNavigate={onNavigate}
+        onSelectEvent={onSelectEvent}
+      />
+    )
+  }
+
   if (!eventHasEditorialLanding(event) && !eventSlug) return null
 
   return (
