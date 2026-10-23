@@ -23,7 +23,10 @@ describe('resolveRegistrationSale', () => {
   it('finalizado y agotado ganan a todo lo demás', () => {
     expect(sale({ ...base, status: 'finalizado', published: false }).state).toBe('ended')
     expect(sale({ ...base, status: 'agotado' }).state).toBe('sold_out')
-    expect(sale({ ...base, registered: 100 }).state).toBe('sold_out')
+  })
+
+  it('agotada la decide la base, no una cuenta del cliente (cupo sin límite = 80 por defecto)', () => {
+    expect(sale({ ...base, slots: 80, registered: 95 }).state).toBe('on_sale')
   })
 
   it('cerrada por el staff, todavía sin abrir, o con la ventana vencida', () => {

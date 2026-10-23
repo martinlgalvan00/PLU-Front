@@ -36,7 +36,7 @@ export function LandingContentEditor({
   revealToken = 0,
   onSelectBlock = null,
 }) {
-  const { landing, patchLanding, patchSlot, applyBlocks } = landingDraft
+  const { landing, patchLanding, patchSlot, applyBlocks, currentBlocks } = landingDraft
   const isBuilder = landing.templateId === 'builder'
   const hasCustomSections = ['editorial', 'submission'].includes(landing.templateId)
 
@@ -70,6 +70,7 @@ export function LandingContentEditor({
           blocks={landing.layout?.blocks ?? []}
           canEdit={canEdit}
           err={err}
+          getCurrentBlocks={currentBlocks}
           hasSlug={Boolean(draft.slug)}
           heroSlot={heroImage}
           imageUploading={heroUploading}

@@ -43,8 +43,11 @@ export default function EventVisibilitySection({
   // "Abre en una fecha" recién elegido: hasta cargar la fecha el borrador se
   // lee como abierta, y el campo no puede desaparecer en ese intervalo.
   const [schedulingPending, setSchedulingPending] = useState(false)
+  // Solo mientras falta la fecha: con una fecha ya pasada la inscripción abre
+  // en cuanto se guarda, y el selector lo dice ("Abierta ya") en vez de
+  // prometer una apertura programada.
   const registrationMode =
-    schedulingPending && registrationModeOfDraft(draft) === 'open'
+    schedulingPending && !draft.registrationOpensAt && registrationModeOfDraft(draft) === 'open'
       ? 'scheduled'
       : registrationModeOfDraft(draft)
 

@@ -12,7 +12,7 @@
  *
  * Estados, en el orden en que se evalúan:
  *   - `ended`      el evento terminó (`finalizado`).
- *   - `sold_out`   sin cupo (`agotado`, o inscriptos >= cupo).
+ *   - `sold_out`   sin cupo (`agotado`, que mantiene la base con el cupo real).
  *   - `closed`     el staff no la abrió todavía o la cerró, o la ventana venció.
  *   - `scheduled`  abierta con fecha de apertura por delante: abre sola.
  *   - `blocked`    abierta y en fecha, pero algo impide cobrar (`blockers`).
@@ -54,11 +54,14 @@ function toDate(value) {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
+/**
+ * Agotada según la base, no según una cuenta del cliente: `agotado` lo pone y
+ * lo saca `sync_event_capacity_status` con el cupo real. Contar acá fallaba con
+ * eventos sin cupo (la base los trata como ilimitados, el cliente les pone 80
+ * por defecto) y los daba por agotados mientras el servidor seguía aceptando.
+ */
 function isFull(event) {
-  if (event?.status === 'agotado') return true
-  const slots = Number(event?.slots)
-  const registered = Number(event?.registered)
-  return Number.isFinite(slots) && slots > 0 && Number.isFinite(registered) && registered >= slots
+  return event?.status === 'agotado'
 }
 
 /**

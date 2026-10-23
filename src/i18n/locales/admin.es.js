@@ -2119,6 +2119,7 @@ export default {
       'El sitio muestra «Inscripciones en breve» con cuenta regresiva y las abre solo a esa hora.',
     regOpenNote: 'Se puede inscribir en cuanto publiques el evento.',
     regClosed: 'Cerrada',
+    regScheduledFuture: 'Elegí una fecha futura: con una pasada, la inscripción abre apenas se crea el evento.',
     regEnded: 'Finalizado',
     regScheduledRequired: 'Elegí cuándo abre la inscripción.',
     regBeforeStart: 'La inscripción tiene que abrir antes del inicio del evento.',
@@ -2175,6 +2176,7 @@ export default {
     siteVisible: 'Visible en el sitio',
     siteHidden: 'Oculto en el sitio',
     siteConstruction: 'En construcción',
+    discardBackConfirm: 'Hay cambios del evento sin guardar. ¿Descartarlos y volver al listado?',
     siteConstructionNote:
       'Publicado, pero el público ve el cartel de "Plataforma en construcción". Se cambia en Página.',
     navEvent: 'Evento',

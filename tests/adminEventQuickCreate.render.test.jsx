@@ -199,4 +199,27 @@ describe('alta de evento como página', () => {
     fireEvent.click(screen.getByRole('button', { name: /Ir al evento/ }))
     expect(onDone).toHaveBeenCalledWith(expect.objectContaining(created), { open: true })
   })
+
+  it('"Abre en una fecha" no acepta una fecha pasada', () => {
+    renderCreate()
+    type('Título público', 'Copa Otoño')
+    fireEvent.change(document.getElementById('quick-event-starts-at'), {
+      target: { value: '2030-12-12T10:00' },
+    })
+    fireEvent.change(document.getElementById('quick-event-ends-at'), {
+      target: { value: '2030-12-12T18:00' },
+    })
+    fireEvent.change(document.getElementById('quick-event-venue'), { target: { value: 'Club' } })
+    fireEvent.change(document.getElementById('quick-event-location'), { target: { value: 'Rosario' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Siguiente/ }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Abre en una fecha' }))
+    fireEvent.change(document.getElementById('quick-event-registration-opens'), {
+      target: { value: '2020-01-01T10:00' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Siguiente/ }))
+
+    expect(screen.getByText(/Elegí una fecha futura/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^Venta$/ }).getAttribute('aria-current')).toBe('step')
+  })
 })
