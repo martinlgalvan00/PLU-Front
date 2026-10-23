@@ -340,6 +340,9 @@ export default function AdminEventQuickCreate({
     if (registrationMode === 'scheduled') {
       if (!draft.registrationOpensAt) {
         errors.registrationOpensAt = t('admin.eventQuickCreate.regScheduledRequired')
+      } else if (new Date(draft.registrationOpensAt) <= new Date()) {
+        // Una fecha pasada abriría la inscripción apenas se crea el evento.
+        errors.registrationOpensAt = t('admin.eventQuickCreate.regScheduledFuture')
       } else if (draft.startsAt && draft.registrationOpensAt >= draft.startsAt) {
         errors.registrationOpensAt = t('admin.eventQuickCreate.regBeforeStart')
       }

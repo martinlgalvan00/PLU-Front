@@ -141,7 +141,7 @@ describe('AdminEventSaleControl', () => {
   })
 
   it('agotada: ofrece ampliar el cupo', async () => {
-    const { fix, section } = renderControl({ ...EVENT, registered: 100 })
+    const { fix, section } = renderControl({ ...EVENT, status: 'agotado', registered: 100 })
     await waitFor(() => expect(stateText(section)).toBe('Agotadas'))
     fireEvent.click(within(section).getByRole('button', { name: 'Ampliar cupo' }))
     expect(fix).toHaveBeenCalledWith('cupo')

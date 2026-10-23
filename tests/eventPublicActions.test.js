@@ -73,8 +73,10 @@ describe('isEventRegistrationOpen — misma regla que el control de venta', () =
     expect(isEventRegistrationOpen({ ...open, salesIntent: 'announce' }, { now })).toBe(false)
   })
 
-  it('sin cupo no ofrece inscribirse', () => {
-    expect(isEventRegistrationOpen({ ...open, slots: 10, registered: 10 }, { now })).toBe(false)
+  it('agotado no ofrece inscribirse; la cuenta del cliente no decide', () => {
+    expect(isEventRegistrationOpen({ ...open, status: 'agotado' }, { now })).toBe(false)
+    // Cupo sin límite en la base: el cliente le pone 80 por defecto.
+    expect(isEventRegistrationOpen({ ...open, slots: 80, registered: 95 }, { now })).toBe(true)
   })
 
   it('lee el estado guardado cuando el público ya lo corrigió por la ventana', () => {

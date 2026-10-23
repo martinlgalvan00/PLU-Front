@@ -2093,6 +2093,7 @@ export default {
       'The site shows "Registration opening soon" with a countdown and opens by itself at that time.',
     regOpenNote: 'People can register as soon as you publish the event.',
     regClosed: 'Closed',
+    regScheduledFuture: 'Pick a future date: a past one opens registration as soon as the event is created.',
     regEnded: 'Finished',
     regScheduledRequired: 'Choose when registration opens.',
     regBeforeStart: 'Registration must open before the event starts.',
@@ -2147,6 +2148,7 @@ export default {
     siteVisible: 'Visible on the site',
     siteHidden: 'Hidden on the site',
     siteConstruction: 'Under construction',
+    discardBackConfirm: 'There are unsaved event changes. Discard them and go back to the list?',
     siteConstructionNote:
       'Published, but the public sees the "Platform under construction" notice. Change it in Page.',
     navEvent: 'Event',

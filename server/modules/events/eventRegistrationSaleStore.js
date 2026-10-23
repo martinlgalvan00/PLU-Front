@@ -36,6 +36,26 @@ function normalizeWindowValue(value) {
 }
 
 /**
+ * Ventana guardada hoy, en la forma que acepta `saveRegistrationWindow`: es lo
+ * que se repone si el cambio de estado que sigue falla.
+ */
+export async function readRegistrationWindow(client, slug) {
+  const row = assertSupabaseResult(
+    await client
+      .from('events')
+      .select('registration_opens_at, registration_closes_at')
+      .eq('slug', slug)
+      .maybeSingle(),
+    'No se pudo leer el evento.',
+  )
+  if (!row) throw new HttpError(404, 'Evento no encontrado.')
+  return {
+    registrationOpensAt: row.registration_opens_at ?? null,
+    registrationClosesAt: row.registration_closes_at ?? null,
+  }
+}
+
+/**
  * @param {object} client Supabase con service role
  * @param {string} slug
  * @param {{ registrationOpensAt?: string|null, registrationClosesAt?: string|null }} window

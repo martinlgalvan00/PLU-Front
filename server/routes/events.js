@@ -8,6 +8,7 @@ import { assertEventAccess } from '../lib/eventScope.js'
 import { saveEventLanding } from '../modules/events/eventLandingStore.js'
 import {
   assertEventPaymentsReadyToPublish,
+  readRegistrationWindow,
   saveRegistrationWindow,
 } from '../modules/events/eventRegistrationSaleStore.js'
 import {
@@ -1724,24 +1725,29 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
         if (body.published === true) await assertEventPaymentsReadyToPublish(client, slug)
 
         // La ventana va antes que el estado: "Abrir ahora" borra una apertura
-        // pendiente y recién después pasa el estado a abierta.
-        const windowSaved = await saveRegistrationWindow(
-          client,
-          slug,
-          {
-            registrationOpensAt: body.registrationOpensAt,
-            registrationClosesAt: body.registrationClosesAt,
-          },
-          actor,
-        )
-
+        // pendiente y recién después pasa el estado a abierta. Son dos llamadas
+        // sin transacción común: si la segunda falla, se repone la ventana
+        // anterior para no dejar el evento a medio cambiar.
+        const saleWindow = {
+          registrationOpensAt: body.registrationOpensAt,
+          registrationClosesAt: body.registrationClosesAt,
+        }
+        const touchesWindow =
+          saleWindow.registrationOpensAt !== undefined ||
+          saleWindow.registrationClosesAt !== undefined
         const stateChanges =
           body.status !== undefined ||
           body.published !== undefined ||
           body.requiresMembership !== undefined ||
           body.capacityProgressPublic !== undefined
-        const result = stateChanges
-          ? assertSupabaseResult(
+        const previousWindow =
+          touchesWindow && stateChanges ? await readRegistrationWindow(client, slug) : null
+        const windowSaved = await saveRegistrationWindow(client, slug, saleWindow, actor)
+
+        let result = null
+        if (stateChanges) {
+          try {
+            result = assertSupabaseResult(
               await client.rpc('staff_set_event_state', {
                 p_event_slug: slug,
                 p_status: body.status ?? null,
@@ -1752,7 +1758,15 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
               }),
               'No se pudo cambiar el estado del evento.',
             )
-          : null
+          } catch (error) {
+            if (previousWindow && windowSaved) {
+              await saveRegistrationWindow(client, slug, previousWindow, actor).catch((rollbackError) =>
+                logger.warn('event.registration_window_rollback_failed', { slug, err: rollbackError }),
+              )
+            }
+            throw error
+          }
+        }
 
         const events = await readEvents(client)
         const event = events.find((candidate) =>

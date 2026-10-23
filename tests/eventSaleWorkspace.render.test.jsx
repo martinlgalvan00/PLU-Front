@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import EventsSection from '../src/pages/admin/EventsSection.jsx'
@@ -170,5 +170,68 @@ describe('venta de inscripciones en la página del evento', { timeout: 30000 }, 
     expect(
       within(workspace).getByRole('tab', { name: /^resumen$/i }).getAttribute('aria-selected'),
     ).toBe('true')
+  })
+
+  it('«Volver» desde el Resumen pregunta si quedaron cambios del evento sin guardar', () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    render(<Panel onSaveEvent={vi.fn()} onSetEventState={vi.fn()} />)
+    const panel = openEvent()
+    fireEvent.change(document.querySelector('[name="title"]'), {
+      target: { value: 'Pitbull Classic 2030' },
+    })
+    fireEvent.click(within(panel).getByRole('tab', { name: /^resumen$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /volver a la lista de eventos/i }))
+
+    expect(confirm).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('region', { name: 'Evento seleccionado' })).toBeTruthy()
+
+    confirm.mockReturnValue(true)
+    fireEvent.click(screen.getByRole('button', { name: /volver a la lista de eventos/i }))
+    expect(screen.queryByRole('region', { name: 'Evento seleccionado' })).toBeNull()
+  })
+
+  it('un cambio de venta que vuelve tarde no pisa lo que se editó mientras tanto', async () => {
+    let resolveState
+    const onSaveEvent = vi.fn(async (draft) => ({ event: { ...EVENT, ...draft }, events: [EVENT] }))
+    function SlowPanel() {
+      const [events, setEvents] = useState([EVENT])
+      return (
+        <I18nProvider>
+          <EventsSection
+            adminEvents={events}
+            canEdit
+            canManageUsers={false}
+            onSaveEvent={onSaveEvent}
+            onSetEventState={(slug, changes) =>
+              new Promise((resolve) => {
+                resolveState = () => {
+                  const next = { ...events[0], ...changes }
+                  setEvents([next])
+                  resolve({ event: next, events: [next] })
+                }
+              })
+            }
+            tickets={[]}
+          />
+        </I18nProvider>
+      )
+    }
+    render(<SlowPanel />)
+    openEvent()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar inscripciones' }))
+    // Mientras el PATCH viaja, se edita el título.
+    fireEvent.change(document.querySelector('[name="title"]'), {
+      target: { value: 'Pitbull Classic 2030' },
+    })
+    await act(async () => resolveState())
+
+    expect(document.querySelector('[name="title"]').value).toBe('Pitbull Classic 2030')
+    fireEvent.click(screen.getByRole('button', { name: /guardar cambios/i }))
+    await waitFor(() => expect(onSaveEvent).toHaveBeenCalledTimes(1))
+    expect(onSaveEvent.mock.calls[0][0]).toMatchObject({
+      title: 'Pitbull Classic 2030',
+      status: 'cerrado',
+    })
   })
 })
