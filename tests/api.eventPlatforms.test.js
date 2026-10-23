@@ -15,12 +15,19 @@ const SLUG = 'pitbull-classic-2026'
 const PLATFORM_ID = '22222222-2222-4222-8222-222222222222'
 const SESSION_ID = '33333333-3333-4333-8333-333333333333'
 
-function createSupabaseDouble() {
+/** `events.select('published, rules').eq('slug', …).maybeSingle()` con la fila dada. */
+function eventsTable(row) {
+  const query = { select: () => query, eq: () => query, maybeSingle: async () => ({ data: row, error: null }) }
+  return query
+}
+
+function createSupabaseDouble({ eventRow = { published: true, rules: {} } } = {}) {
   const rpc = vi.fn(async () => ({
     data: { eventSlug: SLUG, platforms: [], days: [], sessions: [], unassignedCount: 0 },
     error: null,
   }))
-  return { client: { from: vi.fn(), rpc, storage: { from: vi.fn() } }, rpc }
+  const from = vi.fn((table) => (table === 'events' ? eventsTable(eventRow) : undefined))
+  return { client: { from, rpc, storage: { from: vi.fn() } }, rpc }
 }
 
 async function setup(role = 'admin_maximal') {
@@ -154,9 +161,9 @@ describe('API de tandas con tablado', () => {
 describe('API de grilla pública', () => {
   const PUBLIC_SCHEDULE = { enabled: true, platforms: [], days: [] }
 
-  async function publicSetup() {
+  async function publicSetup(eventRow) {
     const staff = await buildStaffUser({ role: 'admin_maximal', email: 'admin_maximal@public.test' })
-    const supabase = createSupabaseDouble()
+    const supabase = createSupabaseDouble({ eventRow })
     supabase.rpc.mockImplementation(async (name) => ({
       data: name === 'public_event_schedule' ? PUBLIC_SCHEDULE : { schedulePublic: true },
       error: null,
@@ -178,6 +185,32 @@ describe('API de grilla pública', () => {
       expect(response.headers.get('cache-control')).toBe(
         'public, max-age=0, s-maxage=10, stale-while-revalidate=0',
       )
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('con la grilla apagada en la superficie pública no consulta la RPC', async () => {
+    const { target, supabase } = await publicSetup({
+      published: true,
+      rules: { publicSurface: { schedule: false } },
+    })
+    try {
+      const response = await fetch(`${target.url}/api/events/${SLUG}/schedule-public`)
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({ schedule: { enabled: false, platforms: [], days: [] } })
+      expect(supabase.rpc).not.toHaveBeenCalledWith('public_event_schedule', expect.anything())
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('un evento sin publicar no expone su grilla', async () => {
+    const { target, supabase } = await publicSetup({ published: false, rules: {} })
+    try {
+      const response = await fetch(`${target.url}/api/events/${SLUG}/schedule-public`)
+      expect(await response.json()).toEqual({ schedule: { enabled: false, platforms: [], days: [] } })
+      expect(supabase.rpc).not.toHaveBeenCalledWith('public_event_schedule', expect.anything())
     } finally {
       await target.close()
     }

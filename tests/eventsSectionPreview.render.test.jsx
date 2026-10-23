@@ -90,8 +90,8 @@ describe('EventsSection — la página del evento', () => {
     expect(within(panel).queryByRole('button', { name: 'Editar evento' })).toBeNull()
 
     const rail = within(panel).getByRole('tablist', { name: /secciones del evento/i })
-    expect(within(rail).getByRole('tab', { name: /datos/i })).toBeTruthy()
-    expect(within(rail).getByRole('tab', { name: /^ventas/i })).toBeTruthy()
+    expect(within(rail).getByRole('tab', { name: /^evento$/i })).toBeTruthy()
+    expect(within(rail).getByRole('tab', { name: /^venta$/i })).toBeTruthy()
   })
 
   it('cambia de evento tocando otra fila desde la lista', () => {
@@ -132,6 +132,25 @@ describe('EventsSection — la página del evento', () => {
     expect(screen.getByRole('region', { name: 'Evento seleccionado' })).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: /volver a la lista de eventos/i }))
+    expect(screen.queryByRole('region', { name: 'Evento seleccionado' })).toBeNull()
+  })
+
+  it('Volver con cambios sin guardar pide confirmación en vez de descartarlos', () => {
+    renderEvents({ adminEvents: [EVENT] })
+    const panel = openConsole(/Pitbull Classic · pitbull-classic-2026/)
+    const title = within(panel).getAllByRole('textbox').find((input) => input.value === 'Pitbull Classic')
+    fireEvent.change(title, { target: { value: 'Pitbull Classic 2026' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /volver a la lista de eventos/i }))
+    expect(screen.getByRole('region', { name: 'Evento seleccionado' })).toBeTruthy()
+    expect(screen.getByText('¿Descartar los cambios?')).toBeTruthy()
+
+    // Seguir editando cancela la salida: el cambio sigue ahí.
+    fireEvent.click(screen.getByRole('button', { name: 'Seguir editando' }))
+    expect(title.value).toBe('Pitbull Classic 2026')
+
+    fireEvent.click(screen.getByRole('button', { name: /volver a la lista de eventos/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Descartar y cerrar' }))
     expect(screen.queryByRole('region', { name: 'Evento seleccionado' })).toBeNull()
   })
 })
@@ -270,7 +289,7 @@ describe('EventsSection — precios y logo en la ficha', () => {
     const panel = openConsole(/Pitbull Classic · pitbull-classic-2026/)
     const rail = within(panel).getByRole('tablist', { name: /secciones del evento/i })
 
-    fireEvent.click(within(rail).getByRole('tab', { name: /^ventas/i }))
+    fireEvent.click(within(rail).getByRole('tab', { name: /^venta$/i }))
     const prices = [...panel.querySelectorAll('.admin-event-workspace__chapter')].find((button) =>
       /Precios/.test(button.textContent),
     )

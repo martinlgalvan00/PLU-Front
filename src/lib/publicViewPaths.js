@@ -40,6 +40,10 @@ const PUBLIC_VIEW_PATHS = Object.freeze({
  */
 const PATH_ALIASES = Object.freeze({
   '/mi-cuenta': 'profile',
+  // Lo primero que alguien escribe a mano o recuerda de un flyer: "/eventos".
+  // La ruta canónica del calendario es `/calendario`.
+  '/eventos': 'events',
+  '/evento': 'events',
 })
 
 const PATH_TO_VIEW = Object.freeze({

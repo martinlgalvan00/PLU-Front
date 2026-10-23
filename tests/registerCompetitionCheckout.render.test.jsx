@@ -289,7 +289,7 @@ describe('RegisterPage competition profile summary', () => {
 
     expect(screen.getByText(/modalidad y categoría declaradas.*asentadas/i)).toBeTruthy()
     expect(screen.getByRole('radio', { name: 'Open' }).disabled).toBe(true)
-    expect(screen.getByLabelText(/^categoría$/i).disabled).toBe(true)
+    expect(screen.getByLabelText(/^peso corporal \(kg\)$/i).disabled).toBe(true)
     expect(onUpdateForm).toHaveBeenCalledWith({ target: { name: 'estimatedWeight', value: '74.5' } })
   })
 
@@ -307,7 +307,7 @@ describe('RegisterPage competition profile summary', () => {
     })
 
     expect(screen.getByRole('radio', { name: 'Open' }).disabled).toBe(false)
-    expect(screen.getByLabelText(/^categoría$/i).disabled).toBe(false)
+    expect(screen.getByLabelText(/^peso corporal \(kg\)$/i).disabled).toBe(false)
     const weightInput = document.querySelector('input[name="estimatedWeight"]')
     expect(weightInput).toBeTruthy()
     expect(weightInput.disabled).toBe(false)
@@ -783,8 +783,8 @@ describe('RegisterPage — cambiar de medio sobre una orden abierta', () => {
     await waitFor(() =>
       expect(screen.getByRole('radiogroup', { name: /^División$/i })).toBeTruthy(),
     )
-    expect(screen.getByRole('radiogroup', { name: /^Modalidad$/i })).toBeTruthy()
-    // La categoría de peso: su label es "Categoría" (`pages.register.bodyWeight`).
+    expect(screen.getByRole('radiogroup', { name: /^Categoría de competencia$/i })).toBeTruthy()
+    // El peso corporal declarado (`pages.register.bodyWeight`).
     expect(document.querySelector('input[name="estimatedWeight"]')).toBeTruthy()
     // Y el selector de medio sigue estando: los datos se corrigen sin perder el
     // motivo por el que se entró a esta vista.

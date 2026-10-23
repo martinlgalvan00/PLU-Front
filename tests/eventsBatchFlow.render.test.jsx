@@ -144,11 +144,22 @@ function fillRequired({ title = 'Copa Primavera', start = '2026-11-12T10:00' } =
   })
 }
 
+/** El alta es guiada: avanza un paso (Evento → Venta → Página). */
+function nextStep() {
+  fireEvent.click(screen.getByRole('button', { name: /^Siguiente/ }))
+}
+
+/** Hasta el último paso, donde están "Crear evento" y "Crear y cargar otro". */
+function toLastStep() {
+  while (screen.queryByRole('button', { name: /^Siguiente/ })) nextStep()
+}
+
 describe('alta en tanda', () => {
   it('«Crear y cargar otro» guarda, se queda y deja lo que se repite', async () => {
     const { onSaveEvent } = renderEvents()
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo evento' }))
     fillRequired()
+    toLastStep()
 
     fireEvent.click(screen.getByRole('button', { name: 'Crear y cargar otro' }))
 
@@ -168,6 +179,7 @@ describe('alta en tanda', () => {
     renderEvents()
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo evento' }))
     fillRequired()
+    toLastStep()
     fireEvent.click(screen.getByRole('button', { name: 'Crear y cargar otro' }))
     await screen.findByText(/«Copa Primavera» creado/)
 
@@ -189,6 +201,7 @@ describe('alta en tanda', () => {
     fireEvent.change(input, { target: { files: [file] } })
     await waitFor(() => expect(document.querySelector('.admin-event-logo__tile img')).toBeTruthy())
 
+    toLastStep()
     fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
 
     await waitFor(() => expect(onSetEventLogo).toHaveBeenCalledTimes(1))
@@ -218,6 +231,7 @@ describe('alta en tanda', () => {
     })
     await waitFor(() => expect(document.querySelector('.admin-event-logo__tile img')).toBeTruthy())
 
+    toLastStep()
     fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
 
     await waitFor(() => expect(toasts.some((toast) => /no se pudo subir el logo/.test(toast.message))).toBe(true))
@@ -371,43 +385,55 @@ describe('crear un evento de otro año', () => {
     renderEvents({ onSaveEvent }, { events: [OLD, PUBLISHED, HIDDEN_A] })
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo evento' }))
     fillRequired({ title: 'aaa', start: '2002-05-15T10:00' })
+    toLastStep()
 
     fireEvent.click(screen.getByRole('button', { name: 'Crear evento' }))
 
     await waitFor(() => expect(onSaveEvent).toHaveBeenCalledTimes(1))
+    // De la pantalla «Listo» a la lista (se espera a que aparezca: el botón del
+    // formulario se llama igual).
+    await screen.findByRole('heading', { name: 'aaa' })
+    fireEvent.click(screen.getByRole('button', { name: 'Volver a eventos' }))
     // Vuelve al listado con todos los años: los eventos existentes siguen ahí.
-    await screen.findByText('Pitbull Classic')
-    expect(screen.getByText('Copa 2025')).toBeTruthy()
-    expect(screen.getByText('Copa Otoño')).toBeTruthy()
+    // El evento destacado también aparece en la vista previa de la navegación.
+    expect((await screen.findAllByText('Pitbull Classic')).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Copa 2025').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Copa Otoño').length).toBeGreaterThan(0)
   })
 })
 
 describe('medios de cobro en el alta, la lista y la publicación', () => {
-  it('la lista muestra con qué cobra cada evento', async () => {
+  it('la lista dice si se puede vender y, si sí, con qué cobra', async () => {
+    const open = { ...PUBLISHED, status: 'inscripcion_abierta' }
     const withCash = {
       ...HIDDEN_A,
+      published: true,
+      status: 'inscripcion_abierta',
       paymentChannelOverrides: { registration: { cash_pitbull: 'open' } },
-      pricing: { ...BASE.pricing, ticketsEnabled: true },
-      ticketTypes: [{ active: true, price: 15000 }],
     }
-    renderEvents({}, { events: [PUBLISHED, withCash] })
+    const hidden = { ...HIDDEN_B, status: 'inscripcion_abierta' }
+    renderEvents({}, { events: [open, withCash, hidden] })
 
     await waitFor(() => {
-      const groups = [...document.querySelectorAll('.admin-event-row__pay-group')].map((node) =>
-        node.textContent.replace(/\s+/g, ' ').trim(),
+      const cells = [...document.querySelectorAll('.admin-event-row__sale')].map(
+        (node) => node.textContent,
       )
-      // Pitbull Classic hereda: sólo Mercado Pago en inscripción.
-      expect(groups).toContain('InscripciónMercado Pago')
-      // Copa Otoño abre efectivo solo en inscripción y vende entradas.
-      expect(groups).toContain('InscripciónMercado Pago · Efectivo')
-      expect(groups).toContain('EntradasMercado Pago · Transferencia')
+      // Pitbull Classic hereda la plataforma: solo Mercado Pago.
+      expect(cells).toContain('A la ventaMercado Pago')
+      // Copa Otoño abre además efectivo para la inscripción.
+      expect(cells).toContain('A la ventaMercado Pago · Efectivo')
+      // Abierta pero oculta: no se puede pagar, y se dice por qué.
+      expect(cells).toContain('Sin poder pagarEvento oculto')
     })
+    // El estado guardado ya no tiene columna propia: lo dice la venta.
+    expect(document.querySelector('.admin-event-row .status-pill')).toBeNull()
   })
 
   it('el alta ofrece los medios de pago y los guarda como override del evento', async () => {
     const { onSaveEvent } = renderEvents()
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo evento' }))
     fillRequired()
+    nextStep()
     const matrix = screen.getByRole('group', { name: /medios de pago por concepto/i })
     await waitFor(() => expect(matrix.getAttribute('aria-busy')).toBeNull())
 
@@ -416,6 +442,7 @@ describe('medios de cobro en el alta, la lista y la publicación', () => {
     // Y como queda abierta pide un destino de cobro.
     expect(document.getElementById('quick-event-bank-profile')).toBeTruthy()
 
+    toLastStep()
     fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
 
     await waitFor(() => expect(onSaveEvent).toHaveBeenCalledTimes(1))
@@ -428,6 +455,7 @@ describe('medios de cobro en el alta, la lista y la publicación', () => {
     const { onSaveEvent } = renderEvents()
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo evento' }))
     fillRequired()
+    toLastStep()
 
     fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
 
@@ -444,6 +472,10 @@ describe('medios de cobro en el alta, la lista y la publicación', () => {
     renderEvents({}, { events: [PUBLISHED, source] })
 
     fireEvent.click(screen.getByRole('button', { name: 'Duplicar Copa Invierno' }))
+    // Los medios de cobro están en el paso Venta; para llegar, las fechas (que
+    // no se copian) tienen que estar.
+    fillRequired({ title: 'Copa Invierno 2' })
+    nextStep()
 
     // El perfil llega con la lectura del catálogo: recién ahí el select puede
     // mostrar la opción elegida.

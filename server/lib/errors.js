@@ -29,6 +29,8 @@ export function errorHandler(err, req, res, _next) {
   if (err.details?.code) body.code = err.details.code
   if (Array.isArray(err.details?.errors)) body.errors = err.details.errors
   if (err.details?.code === 'PLU06') body.alreadyUsed = true
+  // Opciones válidas cuando el pedido eligió una división que no corresponde.
+  if (Array.isArray(err.details?.allowed)) body.allowed = err.details.allowed
   // Campos concretos del conflicto (ej. email/documento ya usados en el alta).
   if (err.details?.fields && typeof err.details.fields === 'object') {
     body.fields = err.details.fields

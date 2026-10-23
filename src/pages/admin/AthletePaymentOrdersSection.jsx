@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { BadgeCheck, HandCoins, Paperclip, Route, ScanSearch } from 'lucide-react'
+import { BadgeCheck, HandCoins, Paperclip, Route, ScanSearch, Trash2 } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
+import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import { PaymentStateCell } from '../../components/admin/AdminStateCell.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
@@ -26,13 +27,14 @@ import {
   OPEN_ORDER_STATUSES,
   PROOF_TRASHABLE_STATUSES,
   buildPaymentValidationItem,
+  canDeleteAthleteOrder,
   canForceSettleOrder,
   canValidateConcept,
   canValidateManualOrder,
   requiresProofOverride,
 } from '../../services/paymentValidationService.js'
 import { VALIDATION_DISABLED_CODES } from '../../services/platformSettingsAdminService.js'
-import { revalidatePaymentOrder } from '../../services/paymentService.js'
+import { deleteAthletePaymentOrder, revalidatePaymentOrder } from '../../services/paymentService.js'
 import { trashOrderProof } from '../../services/paymentProofsAdminService.js'
 import PaymentValidationDialog from '../../components/admin/PaymentValidationDialog.jsx'
 import PaymentTraceDialog from '../../components/admin/PaymentTraceDialog.jsx'
@@ -194,6 +196,9 @@ export default function AthletePaymentOrdersSection({
   const [reviewRow, setReviewRow] = useState(null)
   const [traceOrderId, setTraceOrderId] = useState(null)
   const [revalidatingId, setRevalidatingId] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleteError, setDeleteError] = useState('')
+  const [deleting, setDeleting] = useState(false)
   const [revalidation, setRevalidation] = useState(null)
   const [serverCounts, setServerCounts] = useState(null)
   const [query, setQuery] = useState('')
@@ -488,6 +493,24 @@ export default function AthletePaymentOrdersSection({
       // espera decisión, el archivo es lo que Finanzas tiene que revisar.
       canTrashProof: canEdit && PROOF_TRASHABLE_STATUSES.includes(row.status),
     })
+  }
+
+  // Baja de una fila que no se cobró. La base vuelve a validar (cobrada, con
+  // comprobante, con historial en el libro) y su motivo se muestra en el diálogo.
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await deleteAthletePaymentOrder(deleteTarget.id, t('admin.athletePayments.delete.reason'))
+      notifySuccess(t('admin.toasts.orderDeleted'))
+      setDeleteTarget(null)
+      await load(status, channel)
+    } catch (deleteFail) {
+      setDeleteError(deleteFail?.message ?? t('admin.athletePayments.loadError'))
+    } finally {
+      setDeleting(false)
+    }
   }
 
   async function trashProof(row) {
@@ -838,6 +861,17 @@ export default function AthletePaymentOrdersSection({
                         variant="ghost"
                       />
                     ) : null}
+                    {canEdit && canDeleteAthleteOrder(row) ? (
+                      <AdminIconButton
+                        icon={Trash2}
+                        label={t('admin.athletePayments.delete.action')}
+                        onClick={() => {
+                          setDeleteError('')
+                          setDeleteTarget(row)
+                        }}
+                        variant="danger"
+                      />
+                    ) : null}
                   </AdminActionOverflow>
                 </AdminTableActions>
               ),
@@ -847,6 +881,26 @@ export default function AthletePaymentOrdersSection({
           emptyMessage={t('admin.athletePayments.empty')}
         />
       )}
+
+      {deleteTarget ? (
+        <AdminDeleteConfirmDialog
+          busy={deleting}
+          error={deleteError}
+          title={t('admin.athletePayments.delete.title')}
+          description={t('admin.athletePayments.delete.description', {
+            reference: deleteTarget.reference,
+            amount: money(deleteTarget.amount, locale, deleteTarget.currency),
+          })}
+          warning={t('admin.athletePayments.delete.warning')}
+          cancelLabel={t('common.cancel')}
+          confirmLabel={t('admin.athletePayments.delete.confirm')}
+          busyLabel={t('admin.athletePayments.delete.busy')}
+          onCancel={() => {
+            if (!deleting) setDeleteTarget(null)
+          }}
+          onConfirm={() => void confirmDelete()}
+        />
+      ) : null}
 
       {traceOrderId ? (
         <PaymentTraceDialog orderId={traceOrderId} onClose={() => setTraceOrderId(null)} />

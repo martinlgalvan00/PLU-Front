@@ -111,11 +111,19 @@ import {
   sendProfileNoticesBulk,
 } from '../modules/athletes/profileNoticeService.js'
 import { athleteProfileFromRow } from '../../shared/athleteProfile.js'
+import { COMPETITION_DIVISIONS } from '../../shared/ageDivision.js'
+import { offeringFromRules, validateSelectionAgainstOffering } from '../../shared/eventOffering.js'
+import { isAnnounceOnly } from '../../shared/registrationSaleState.js'
 import {
-  COMPETITION_DIVISIONS,
-  allowedCompetitionDivisions,
-  isDivisionAllowedForAge,
-} from '../../shared/ageDivision.js'
+  BODYWEIGHT_KG_RANGE,
+  REGISTRATION_REQUIRED_MESSAGES,
+} from '../../shared/registrationRequirements.js'
+import {
+  priceRegistrationSelection,
+  secondDivisionSurcharge,
+  validateDivisionSelection,
+  validateModalities,
+} from '../../shared/registrationSelection.js'
 import {
   buildAdminExportRows,
   buildPluUsaExportRows,
@@ -361,8 +369,20 @@ const orderSchema = z.object({
 const registrationSchema = z.object({
   eventSlug: z.string().trim().min(1),
   division: z.enum(COMPETITION_DIVISIONS),
+  // Segunda división (Open al 50%). Se normaliza y valida contra la edad en la ruta.
+  secondaryDivision: z.enum(COMPETITION_DIVISIONS).optional(),
+  // Sin el campo compite Full Power. El catálogo y las combinaciones válidas
+  // las decide `validateModalities`, para responder con un código claro.
+  modalities: z.array(z.string().trim().max(24)).max(5).optional(),
   category: z.enum(COMPETITION_CATEGORIES),
-  bodyweightKg: z.number().min(10).max(250).nullable().optional(),
+  // El peso corporal es obligatorio: sin él no se puede ubicar al atleta ni validar el pesaje.
+  bodyweightKg: z
+    .number({
+      required_error: REGISTRATION_REQUIRED_MESSAGES.bodyweightKg,
+      invalid_type_error: REGISTRATION_REQUIRED_MESSAGES.bodyweightKg,
+    })
+    .min(BODYWEIGHT_KG_RANGE.min, REGISTRATION_REQUIRED_MESSAGES.bodyweightKg)
+    .max(BODYWEIGHT_KG_RANGE.max, REGISTRATION_REQUIRED_MESSAGES.bodyweightKg),
   declaredWeightClass: z
     .string({
       required_error: 'Seleccioná la categoría de peso en la que vas a competir.',
@@ -423,6 +443,8 @@ const discountPreviewSchema = z.object({
   paymentMethod: z
     .enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer'])
     .optional(),
+  // La segunda división suma el 50% a la base sobre la que se cotiza el cupón.
+  secondaryDivision: z.enum(COMPETITION_DIVISIONS).optional(),
 })
 /**
  * Canje de un código secreto de oferta exclusiva. A diferencia del preview, no
@@ -1105,8 +1127,7 @@ export function createAthleteRoutes({
       phone: 'teléfono',
       country: 'país',
       province: 'provincia',
-      division: 'división',
-      category: 'categoría',
+      category: 'categoría de competencia',
       estimated_weight: 'peso estimado',
     }
     const isMissing = (field) => {
@@ -1155,22 +1176,97 @@ export function createAthleteRoutes({
     }
   }
 
-  function assertDivisionAllowedForAthlete(division, profile, event) {
+  /**
+   * "Solo anuncio" (`rules.salesIntent`): el evento se publica para anunciarlo
+   * sin abrir todavía el cobro de inscripciones. Antes solo cambiaba el
+   * semáforo del panel y el checkout seguía cobrando igual.
+   */
+  function assertRegistrationNotAnnounceOnly(event) {
+    if (isAnnounceOnly(event?.rules?.salesIntent)) {
+      throw new HttpError(
+        409,
+        'Este evento todavía no vende inscripciones: por ahora está publicado solo como anuncio.',
+        { code: 'REGISTRATION_ANNOUNCE_ONLY' },
+      )
+    }
+  }
+
+  /**
+   * División(es) y modalidades de la inscripción, validadas contra la edad en la
+   * fecha del evento. Devuelve la selección canónica: la división de edad queda
+   * primera (100%), Open segunda (50%).
+   */
+  function assertCompetitionSelection(body, profile, event) {
     const birthDate = profile?.birth_date ?? profile?.birthDate ?? null
     const eventDate = event?.starts_at ?? event?.startsAt ?? null
-    if (!birthDate) return
-    if (isDivisionAllowedForAge(division, birthDate, eventDate || undefined)) return
-    const allowed = allowedCompetitionDivisions(birthDate, eventDate || undefined)
-    throw new HttpError(
-      422,
-      allowed.length
-        ? `La división no corresponde a tu edad en la fecha del evento. Opciones: ${allowed.join(', ')}.`
-        : 'No hay una división válida para tu edad en la fecha del evento.',
+    const divisions = validateDivisionSelection({
+      division: body.division,
+      secondaryDivision: body.secondaryDivision,
+      birthDate,
+      referenceDate: eventDate || undefined,
+    })
+    if (!divisions.ok && divisions.code === 'DIVISION_INVALID') {
+      throw new HttpError(422, 'Elegí una división válida.', { code: 'DIVISION_INVALID' })
+    }
+    if (!divisions.ok) {
+      const { allowed } = divisions
+      throw new HttpError(
+        422,
+        allowed.length
+          ? `La división no corresponde a tu edad en la fecha del evento. Opciones: ${allowed.join(', ')}.`
+          : 'No hay una división válida para tu edad en la fecha del evento.',
+        { code: 'DIVISION_AGE_MISMATCH', allowed },
+      )
+    }
+
+    const modalities = validateModalities(body.modalities ?? ['full_power'])
+    if (!modalities.ok) {
+      const messages = {
+        MODALITY_REQUIRED: 'Elegí al menos un levantamiento.',
+        MODALITY_INVALID: 'Elegí un levantamiento válido.',
+        MODALITY_COMBINATION_INVALID:
+          'Push-Pull ya incluye banco y peso muerto: no se combina con ellos.',
+      }
+      throw new HttpError(422, messages[modalities.code], { code: modalities.code })
+    }
+    // Lo que el evento ofrece manda sobre el catálogo completo.
+    const offered = validateSelectionAgainstOffering(
       {
-        code: 'DIVISION_AGE_MISMATCH',
-        allowed,
+        category: body.category,
+        division: divisions.primary,
+        secondaryDivision: divisions.secondary,
+        modalities: modalities.modalities,
       },
+      offeringFromRules(event?.rules),
     )
+    if (!offered.ok) {
+      const messages = {
+        OFFERING_CATEGORY_UNAVAILABLE: 'Este evento no ofrece esa categoría de competencia.',
+        OFFERING_DIVISION_UNAVAILABLE: 'Este evento no ofrece esa división.',
+        OFFERING_MODALITY_UNAVAILABLE: 'Este evento no ofrece esa modalidad.',
+      }
+      throw new HttpError(422, messages[offered.code], { code: offered.code })
+    }
+    return {
+      division: divisions.primary,
+      secondaryDivision: divisions.secondary || null,
+      modalities: modalities.modalities,
+    }
+  }
+
+  /** Precios del combo con el 50% de la segunda división sobre la inscripción suelta. */
+  function comboSelectionPrices(event, comboOffer, selection) {
+    if (!selection.secondaryDivision) {
+      return { defaultPrice: comboOffer.price, manualPrice: comboOffer.manualPrice }
+    }
+    const manualBase = comboOffer.manualPrice
+    return {
+      defaultPrice: Number(comboOffer.price) + secondDivisionSurcharge(event.price),
+      manualPrice:
+        manualBase === null || manualBase === undefined
+          ? null
+          : Number(manualBase) + secondDivisionSurcharge(event.manual_price ?? event.price),
+    }
   }
 
   async function recordRegistrationAccessUse(gate, { athleteId, orderId, concept }) {
@@ -1936,11 +2032,18 @@ export function createAthleteRoutes({
         const event = await repo().findEventPricing(eventSlug)
         if (!event) throw new HttpError(404, 'Evento no encontrado.')
         assertRosterOpen(event)
-        assertDivisionAllowedForAthlete(req.validatedBody.division, competitionProfile, event)
+        assertRegistrationNotAnnounceOnly(event)
+        const selection = assertCompetitionSelection(req.validatedBody, competitionProfile, event)
         const declaredWeightClass = assertDeclaredWeightClass(
           competitionProfile?.sex,
           req.validatedBody.declaredWeightClass,
         )
+        // La segunda división suma el 50% sobre cada precio (lista y manual).
+        const pricing = priceRegistrationSelection({
+          basePrice: event.price,
+          manualPrice: event.manual_price,
+          secondary: selection.secondaryDivision,
+        })
         assertEventPaymentChannelEnabled(toggles, 'registration', registrationChannel, {
           override: await manualChannelOverride(req.validatedBody, 'registration'),
           eventOverrides: event.payment_channel_overrides,
@@ -1958,7 +2061,7 @@ export function createAthleteRoutes({
           athleteId: auth.athleteId,
           code: req.validatedBody.discountCode,
           appliesTo: 'registration',
-          baseAmount: event.price,
+          baseAmount: pricing.defaultPrice,
           eventSlug,
         })
         const registrationWisePrice =
@@ -1969,12 +2072,20 @@ export function createAthleteRoutes({
                 configuredUsd: event.wise_price,
               })
             : null
+        // El 50% de la segunda división también aplica al importe en USD de Wise.
+        const wiseAmount = registrationWisePrice
+          ? registrationWisePrice.amount +
+            (selection.secondaryDivision ? secondDivisionSurcharge(registrationWisePrice.amount) : 0)
+          : null
         const created = await repo().createRegistration(auth.athleteId, {
           ...req.validatedBody,
+          division: selection.division,
+          secondaryDivision: selection.secondaryDivision,
+          modalities: selection.modalities,
           declaredWeightClass,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
-          defaultPrice: registrationWisePrice ? registrationWisePrice.amount : event.price,
-          manualPrice: registrationWisePrice ? null : event.manual_price,
+          defaultPrice: registrationWisePrice ? wiseAmount : pricing.defaultPrice,
+          manualPrice: registrationWisePrice ? null : pricing.manualPrice,
           manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
           currency: registrationWisePrice?.currency ?? null,
         })
@@ -2042,7 +2153,8 @@ export function createAthleteRoutes({
         const event = await repo().findEventPricing(eventSlug)
         if (!event) throw new HttpError(404, 'Evento no encontrado.')
         assertRosterOpen(event)
-        assertDivisionAllowedForAthlete(req.validatedBody.division, competitionProfile, event)
+        assertRegistrationNotAnnounceOnly(event)
+        const selection = assertCompetitionSelection(req.validatedBody, competitionProfile, event)
         assertEventPaymentChannelEnabled(toggles, 'registration', comboChannel, {
           override: comboOverride,
           eventOverrides: event.payment_channel_overrides,
@@ -2122,12 +2234,18 @@ export function createAthleteRoutes({
           competitionProfile?.sex,
           req.validatedBody.declaredWeightClass,
         )
+        // La segunda división se suma al paquete: 50% del precio de la inscripción
+        // suelta del evento, en cada canal.
+        const comboSelectionPricing = comboSelectionPrices(event, comboOffer, selection)
         const created = await repo().createRegistrationCombo(auth.athleteId, {
           ...req.validatedBody,
+          division: selection.division,
+          secondaryDivision: selection.secondaryDivision,
+          modalities: selection.modalities,
           declaredWeightClass,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
-          defaultPrice: comboWisePrice ? comboWisePrice.amount : comboOffer.price,
-          manualPrice: comboWisePrice ? null : comboOffer.manualPrice,
+          defaultPrice: comboWisePrice ? comboWisePrice.amount : comboSelectionPricing.defaultPrice,
+          manualPrice: comboWisePrice ? null : comboSelectionPricing.manualPrice,
           manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
           currency: comboWisePrice?.currency ?? null,
         })
@@ -2208,7 +2326,8 @@ export function createAthleteRoutes({
         const auth = await athlete(req)
         const codeGuard = promotionCodeIdentity(auth.athleteId)
         await assertIdentityNotLocked(codeGuard)
-        const { code, appliesTo, planCode, eventSlug, paymentMethod } = req.validatedBody
+        const { code, appliesTo, planCode, eventSlug, paymentMethod, secondaryDivision } =
+          req.validatedBody
         let baseAmount
         let manualPrice
         if (appliesTo === 'membership') {
@@ -2225,12 +2344,25 @@ export function createAthleteRoutes({
           if (!offer) throw new HttpError(404, 'El combo no está disponible para este evento.')
           baseAmount = offer.price
           manualPrice = offer.manualPrice
+          // El combo suma el 50% de la inscripción suelta si compite en dos divisiones.
+          if (secondaryDivision) {
+            const event = await repo().findEventPricing(eventSlug)
+            if (!event) throw new HttpError(404, 'Evento no encontrado.')
+            const priced = comboSelectionPrices(event, offer, { secondaryDivision })
+            baseAmount = priced.defaultPrice
+            manualPrice = priced.manualPrice
+          }
         } else {
           if (!eventSlug) throw new HttpError(400, 'Falta el evento.')
           const event = await repo().findEventPricing(eventSlug)
           if (!event) throw new HttpError(404, 'Evento no encontrado.')
-          baseAmount = event.price
-          manualPrice = event.manual_price
+          const priced = priceRegistrationSelection({
+            basePrice: event.price,
+            manualPrice: event.manual_price,
+            secondary: secondaryDivision,
+          })
+          baseAmount = priced.defaultPrice
+          manualPrice = priced.manualPrice
         }
         // Misma política que usa la creación de la orden: el canal manual cotiza
         // contra el precio manual del plan/evento/combo cuando está configurado,

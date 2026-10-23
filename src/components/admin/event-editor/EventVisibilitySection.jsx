@@ -1,16 +1,16 @@
+import { useMemo, useState } from 'react'
 import AdminFilterChipGroup from '../AdminFilterChipGroup.jsx'
 import { AlertTriangle, Eye, Radio, ShieldCheck, Star, Unlock } from 'lucide-react'
+import EventLandingSection from './EventLandingSection.jsx'
+import EventExternalFormField from './EventExternalFormField.jsx'
+import { AdvancedGroup, FormField } from './parts.jsx'
+import EventPublishChecklist from './EventPublishChecklist.jsx'
+import { resolveEventPublishReadiness } from '../../../lib/eventPublishReadiness.js'
 import {
-  defaultInscriptionCopy,
-  resolveInscriptionCopyVariant,
-} from '../../../lib/eventInscriptionCopy.js'
-import {
-  normalizeEventPublicSurface,
-  publicSurfaceModulesForEvent,
-} from '../../../lib/eventPublicSurface.js'
-import { patchPublicSurface } from './draftPatches.js'
-import EventLandingSection, { patchDraftPublicCopy } from './EventLandingSection.jsx'
-import { AdvancedGroup, CapacityPublicBreakdown, FormField } from './parts.jsx'
+  EVENT_REGISTRATION_MODES,
+  applyRegistrationModeToDraft,
+  registrationModeOfDraft,
+} from '../../../lib/eventRegistrationMode.js'
 
 export default function EventVisibilitySection({
   activePanelRef,
@@ -19,7 +19,6 @@ export default function EventVisibilitySection({
   canEdit,
   draft,
   patchDraft,
-  statusOptions,
   // Cuenta por evento (organizador): estado, publicación, afiliación y destacado los decide
   // PLU. El servidor los fuerza al valor actual; acá se muestran bloqueados para no prometer
   // un cambio que no se guarda.
@@ -33,9 +32,37 @@ export default function EventVisibilitySection({
   sourceEvent,
   publicCapacityPreview,
   onHeroUpload,
+  onImageUpload,
   heroUploading = false,
   heroPreviewUrl = null,
+  platform = null,
+  mpProfiles,
+  onGoTo,
+  studioSave = null,
 }) {
+  // "Abre en una fecha" recién elegido: hasta cargar la fecha el borrador se
+  // lee como abierta, y el campo no puede desaparecer en ese intervalo.
+  const [schedulingPending, setSchedulingPending] = useState(false)
+  const registrationMode =
+    schedulingPending && registrationModeOfDraft(draft) === 'open'
+      ? 'scheduled'
+      : registrationModeOfDraft(draft)
+
+  // Imagen y logo viven en el evento guardado, no en el draft.
+  const readiness = useMemo(
+    () =>
+      resolveEventPublishReadiness(
+        {
+          logoUrl: sourceEvent?.logoUrl,
+          logoPath: sourceEvent?.logoPath,
+          heroImageUrl: heroPreviewUrl ?? sourceEvent?.heroImageUrl,
+          ...draft,
+        },
+        { platform, mpProfiles },
+      ),
+    [draft, sourceEvent, heroPreviewUrl, platform, mpProfiles],
+  )
+
   return (
     <section
       ref={activePanelRef}
@@ -52,15 +79,42 @@ export default function EventVisibilitySection({
 
       {essentials ? null : (
         <>
+          {/* El estado no se elige a mano: se decide cuándo abre la
+              inscripción y el estado y la ventana quedan coherentes. */}
           <AdminFilterChipGroup
             compact
             disabled={!canEdit || eventScoped}
-            id="event-status"
-            label={t('admin.eventEditor.publicStatus')}
-            value={draft.status}
-            onChange={(value) => patchDraft({ ...draft, status: value })}
-            options={statusOptions}
+            id="event-registration-mode"
+            label={t('admin.eventQuickCreate.regLabel')}
+            value={registrationMode}
+            onChange={(mode) => {
+              setSchedulingPending(mode === 'scheduled')
+              patchDraft(applyRegistrationModeToDraft(draft, mode))
+            }}
+            options={EVENT_REGISTRATION_MODES.map((mode) => [
+              mode,
+              t(`admin.eventQuickCreate.reg${mode[0].toUpperCase()}${mode.slice(1)}`),
+            ])}
           />
+          {registrationMode === 'scheduled' ? (
+            <FormField
+              error={err('registrationOpensAt')}
+              htmlFor="event-registration-opens"
+              label={t('admin.eventEditor.supabase.registrationOpensAt')}
+            >
+              <input
+                id="event-registration-opens"
+                disabled={!canEdit || eventScoped}
+                name="registrationOpensAt"
+                type="datetime-local"
+                value={draft.registrationOpensAt ?? ''}
+                aria-invalid={Boolean(err('registrationOpensAt'))}
+                onChange={(event) =>
+                  patchDraft({ ...draft, registrationOpensAt: event.target.value })
+                }
+              />
+            </FormField>
+          ) : null}
 
           {consistencyWarnings.length > 0 ? (
             <div className="admin-event-form__consistency" role="status">
@@ -80,6 +134,8 @@ export default function EventVisibilitySection({
 
       {essentials ? null : (
         <>
+          <EventPublishChecklist readiness={readiness} onGoTo={onGoTo} />
+
           <label className="admin-event-form__toggle">
             <input
               checked={Boolean(draft.published)}
@@ -175,138 +231,15 @@ export default function EventVisibilitySection({
           heroPreviewUrl={heroPreviewUrl}
           heroUploading={heroUploading}
           patchDraft={patchDraft}
+          publicCapacityPreview={publicCapacityPreview}
+          sourceEvent={sourceEvent}
+          studioSave={studioSave}
           t={t}
           onHeroUpload={onHeroUpload}
+          onImageUpload={onImageUpload}
         />
 
-        {/* Copy de cupo: se edita acá con placeholders de estado; los slots
-            hero viven en EventLandingSection y se sincronizan con publicCopy. */}
-        <fieldset className="admin-event-form__public-copy">
-          <legend>{t('admin.eventEditor.inscriptionCopyLegend')}</legend>
-          <p className="admin-event-form__section-note">
-            {t('admin.eventEditor.inscriptionCopyHint')}
-          </p>
-
-          <FormField
-            htmlFor="event-inscription-mark"
-            label={t('admin.eventEditor.inscriptionMarkField')}
-            error={err('publicCopy.inscriptionMark')}
-          >
-            <input
-              id="event-inscription-mark"
-              name="publicCopy.inscriptionMark"
-              data-field="publicCopy.inscriptionMark"
-              type="text"
-              maxLength={40}
-              value={draft.publicCopy?.inscriptionMark ?? ''}
-              placeholder={
-                defaultInscriptionCopy(
-                  resolveInscriptionCopyVariant({
-                    status: draft.status,
-                    progressPublic: draft.capacityProgressPublic !== false,
-                  }),
-                  t,
-                ).mark
-              }
-              disabled={!canEdit}
-              onChange={(event) =>
-                patchDraft(
-                  patchDraftPublicCopy(draft, { inscriptionMark: event.target.value }),
-                )
-              }
-            />
-          </FormField>
-
-          <FormField
-            htmlFor="event-inscription-note"
-            label={t('admin.eventEditor.inscriptionNoteField')}
-            error={err('publicCopy.inscriptionNote')}
-          >
-            <textarea
-              id="event-inscription-note"
-              name="publicCopy.inscriptionNote"
-              data-field="publicCopy.inscriptionNote"
-              rows={2}
-              maxLength={160}
-              value={draft.publicCopy?.inscriptionNote ?? ''}
-              placeholder={
-                defaultInscriptionCopy(
-                  resolveInscriptionCopyVariant({
-                    status: draft.status,
-                    progressPublic: draft.capacityProgressPublic !== false,
-                  }),
-                  t,
-                ).hint
-              }
-              disabled={!canEdit}
-              onChange={(event) =>
-                patchDraft(
-                  patchDraftPublicCopy(draft, { inscriptionNote: event.target.value }),
-                )
-              }
-            />
-          </FormField>
-        </fieldset>
-
-        {essentials ? null : (
-          <fieldset className="admin-event-form__surface">
-            <legend>{t('admin.eventEditor.publicSurfaceLegend')}</legend>
-            {publicSurfaceModulesForEvent({
-              ...(sourceEvent ?? {}),
-              ...draft,
-              // Draft manda: al elegir plantilla editorial los módulos custom
-              // tienen que aparecer antes del guardado.
-              landing: draft.landing ?? sourceEvent?.landing,
-              slug: draft.slug ?? sourceEvent?.slug,
-            }).map((module) => (
-              <label key={module.key} className="admin-event-form__toggle">
-                <input
-                  checked={normalizeEventPublicSurface(draft.publicSurface)[module.key]}
-                  className="admin-event-form__toggle-input"
-                  type="checkbox"
-                  onChange={(event) =>
-                    patchDraft(patchPublicSurface(draft, module.key, event.target.checked))
-                  }
-                  disabled={!canEdit}
-                />
-                <span className="admin-event-form__toggle-ui" aria-hidden />
-                <span className="admin-event-form__toggle-copy">
-                  <strong>
-                    {t(
-                      `admin.eventEditor.publicSurface${module.key.charAt(0).toUpperCase()}${module.key.slice(1)}Title`,
-                    )}
-                  </strong>
-                  <small>
-                    {t(
-                      `admin.eventEditor.publicSurface${module.key.charAt(0).toUpperCase()}${module.key.slice(1)}Hint`,
-                    )}
-                  </small>
-                </span>
-              </label>
-            ))}
-            <CapacityPublicBreakdown
-              canEdit={canEdit}
-              preview={publicCapacityPreview}
-              progressChecked={draft.capacityProgressPublic !== false}
-              progressId="event-capacity-progress-public-surface"
-              t={t}
-              totalChecked={draft.capacityTotalPublic !== false}
-              totalId="event-capacity-total-public-surface"
-              onProgressChange={(value) =>
-                patchDraft({
-                  ...draft,
-                  capacityProgressPublic: value,
-                })
-              }
-              onTotalChange={(value) =>
-                patchDraft({
-                  ...draft,
-                  capacityTotalPublic: value,
-                })
-              }
-            />
-          </fieldset>
-        )}
+        <EventExternalFormField canEdit={canEdit} draft={draft} err={err} patchDraft={patchDraft} />
 
         {/* Transmisión: fuera del acordeón elemental (solo destacado). */}
         {!essentials ? (

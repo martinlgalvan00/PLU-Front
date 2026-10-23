@@ -49,9 +49,12 @@ import {
   getFeaturedEvent,
   getNextUpcomingEvent,
   getPublicCatalogEvents,
+  getUnderConstructionEvents,
+  isUnderConstructionEvent,
   PITBULL_CLASSIC_SLUG,
 } from './lib/eventNavigation.js'
 import {
+  eventHasBuilderLanding,
   eventHasEditorialLanding,
   eventHasSubmissionLanding,
   eventLandingSeo,
@@ -160,6 +163,8 @@ const NotFoundPage = lazyWithRetry(() => import('./pages/NotFoundPage.jsx'))
 const PitbullPage = lazyWithRetry(() => import('./pages/PitbullPage.jsx'))
 const EventLandingEditorial = lazyWithRetry(() => import('./pages/EventLandingEditorial.jsx'))
 const SubmissionLandingPage = lazyWithRetry(() => import('./pages/SubmissionLandingPage.jsx'))
+const EventBuilderLandingPage = lazyWithRetry(() => import('./pages/EventBuilderLandingPage.jsx'))
+const EventUnderConstructionPage = lazyWithRetry(() => import('./pages/EventUnderConstructionPage.jsx'))
 const RecordsPage = lazyWithRetry(() => import('./pages/RecordsPage.jsx'))
 const RegisterPage = lazyWithRetry(() => import('./pages/RegisterPage.jsx'))
 const ResourcesPage = lazyWithRetry(() => import('./pages/ResourcesPage.jsx'))
@@ -254,7 +259,17 @@ export default function App() {
   const nextEvent = getNextUpcomingEvent(publicEvents) ?? UPCOMING_EVENTS[0]
   const featuredEvent = getFeaturedEvent(publicEvents) ?? UPCOMING_EVENTS[0]
   const catalogNavEvents = getCompetitionNavEvents(publicEvents)
-  const navEvents = catalogNavEvents.length > 0 ? catalogNavEvents : [featuredEvent].filter((event) => event?.slug)
+  // Landings con el interruptor apagado: el menú las muestra y al tocarlas dice
+  // "Plataforma en construcción". No entran a listados ni countdowns.
+  const underConstructionEvents = getUnderConstructionEvents(app.adminEvents)
+  const baseNavEvents =
+    catalogNavEvents.length > 0 ? catalogNavEvents : [featuredEvent].filter((event) => event?.slug)
+  const navEvents = [
+    ...baseNavEvents,
+    ...underConstructionEvents.filter(
+      (event) => !baseNavEvents.some((item) => item.slug === event.slug),
+    ),
+  ]
 
   useEffect(() => {
     setSelectedEvent((current) => {
@@ -951,15 +966,32 @@ export default function App() {
   }
 
   const eventPageEvent = eventPageSlug
-    ? publicEvents.find((event) => event.slug === eventPageSlug)
+    ? (publicEvents.find((event) => event.slug === eventPageSlug) ??
+      underConstructionEvents.find((event) => event.slug === eventPageSlug) ??
+      null)
     : null
+  const showUnderConstruction =
+    view === 'events' && Boolean(eventPageEvent) && isUnderConstructionEvent(eventPageEvent)
   const eventPageLandingSeo = eventPageEvent ? eventLandingSeo(eventPageEvent) : null
   const showEditorialLanding =
-    (view === 'events' && eventPageEvent && eventHasEditorialLanding(eventPageEvent)) ||
-    view === 'pitbull'
+    !showUnderConstruction &&
+    ((view === 'events' && eventPageEvent && eventHasEditorialLanding(eventPageEvent)) ||
+      view === 'pitbull')
   const showSubmissionLanding =
-    view === 'events' && eventPageEvent && eventHasSubmissionLanding(eventPageEvent)
-  const Page = showSubmissionLanding
+    !showUnderConstruction &&
+    view === 'events' &&
+    eventPageEvent &&
+    eventHasSubmissionLanding(eventPageEvent)
+  const showBuilderLanding =
+    !showUnderConstruction &&
+    view === 'events' &&
+    Boolean(eventPageEvent) &&
+    eventHasBuilderLanding(eventPageEvent)
+  const Page = showUnderConstruction
+    ? EventUnderConstructionPage
+    : showBuilderLanding
+    ? EventBuilderLandingPage
+    : showSubmissionLanding
     ? SubmissionLandingPage
     : showEditorialLanding
       ? EventLandingEditorial
@@ -976,12 +1008,15 @@ export default function App() {
     checkoutAvailability: app.checkoutAvailability,
   }
 
-  const pageProps = showSubmissionLanding
+  const pageProps = showUnderConstruction
+    ? { event: eventPageEvent, onNavigate: navigate }
+    : showBuilderLanding || showSubmissionLanding
     ? {
         onNavigate: navigate,
         onSelectEvent: selectEvent,
         events: publicEvents,
         eventSlug: eventPageSlug,
+        checkoutAvailability: app.checkoutAvailability,
       }
     : showEditorialLanding
     ? editorialPageProps
@@ -1156,10 +1191,10 @@ export default function App() {
       <CookieConsent />
       <DocumentMetaSync
         view={view}
-        eventSlug={view === 'events' || showEditorialLanding || showSubmissionLanding ? eventPageSlug : null}
+        eventSlug={view === 'events' || showEditorialLanding || showSubmissionLanding || showBuilderLanding ? eventPageSlug : null}
         eventTitle={
-          (view === 'events' || showEditorialLanding || showSubmissionLanding) && eventPageSlug
-            ? publicEvents.find((event) => event.slug === eventPageSlug)?.title
+          (view === 'events' || showEditorialLanding || showSubmissionLanding || showBuilderLanding) && eventPageSlug
+            ? eventPageEvent?.title
             : null
         }
         metaTitle={

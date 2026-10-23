@@ -60,6 +60,7 @@ import {
   eventShowsPublicWeighIns,
 } from '../lib/eventPublicSurface.js'
 import { eventLandingFaqItems, eventLandingFromEvent } from '../lib/eventLanding.js'
+import { landingPaletteStyle } from '../lib/eventLandingPalette.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { getPitbullClassicEvent, PITBULL_CLASSIC_SLUG } from '../lib/eventNavigation.js'
@@ -1427,6 +1428,7 @@ export default function PitbullPage({
     <main
       className="page page--design pitbull-page pitbull-page--premium event-landing-theme"
       data-event-theme={landing.themeId}
+      style={landingPaletteStyle(landing.layout, { withBackground: false })}
     >
       {showCountdown ? (
         <PitbullCountdownIntro dateLabel={eventDateLabel} event={pitbullEvent} />

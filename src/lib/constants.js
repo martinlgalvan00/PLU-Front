@@ -244,6 +244,9 @@ export const DEFAULT_FORM = {
   division: 'Open',
   category: 'Raw',
   declaredWeightClass: '',
+  // Segunda división (vacío u 'Open', al 50%) y modalidades del torneo.
+  secondaryDivision: '',
+  modalities: ['full_power'],
   estimatedWeight: '',
   password: '',
   paymentMethod: 'mercado_pago',
