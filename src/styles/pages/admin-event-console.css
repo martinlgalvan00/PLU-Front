@@ -2571,12 +2571,17 @@
 
 .admin-landing-compose__link {
   align-items: center;
+  background: transparent;
+  border: 0;
   border-top: 1px solid var(--admin-hairline, var(--color-border));
   color: var(--color-accent, var(--color-text));
+  cursor: pointer;
   display: inline-flex;
+  font: inherit;
   font-size: 0.8125rem;
   font-weight: 650;
-  gap: 4px;
+  gap: 6px;
+  min-height: 44px;
   padding: 10px 14px;
   text-decoration: none;
   width: 100%;
@@ -2584,6 +2589,11 @@
 
 .admin-landing-compose__link:hover {
   text-decoration: underline;
+}
+
+.admin-landing-compose__link:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: -2px;
 }
 
 .admin-event-workspace__panel .admin-event-preview--embedded::before {

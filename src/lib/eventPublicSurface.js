@@ -34,7 +34,9 @@ export function eventHasCustomPublicPage(event) {
   const templateId = String(event?.landing?.templateId ?? '')
     .trim()
     .toLowerCase()
-  if (templateId === 'editorial' || templateId === 'submission') return true
+  if (templateId === 'editorial' || templateId === 'submission' || templateId === 'builder') {
+    return true
+  }
   if (templateId === 'meet') return false
   return event?.slug === LEGACY_EDITORIAL_SLUG
 }
@@ -130,4 +132,16 @@ export function normalizeEventPublicCopy(source) {
 /** Título con el que se presenta el evento en público. */
 export function eventPublicTitle(event) {
   return normalizeEventPublicCopy(event?.publicCopy).publicTitle || (event?.title ?? '')
+}
+
+/**
+ * Qué ve el público de un evento, combinando los dos interruptores:
+ * `published` (si existe en el sitio) y `landing.publicVisible` (página
+ * completa o el cartel de "Plataforma en construcción").
+ *
+ * @returns {'hidden' | 'construction' | 'live'}
+ */
+export function eventSiteState(event) {
+  if (event?.published !== true) return 'hidden'
+  return event?.landing?.publicVisible === false ? 'construction' : 'live'
 }

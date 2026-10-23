@@ -87,19 +87,98 @@
   align-self: flex-start;
 }
 
+.admin-event-workspace__sale {
+  --sale-accent: var(--admin-muted);
+  align-items: center;
+  align-self: flex-start;
+  background: none;
+  border: 0;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 7px;
+  line-height: 1.3;
+  margin-block: -12px;
+  min-height: 44px;
+  padding: 0;
+  text-align: left;
+}
+
+.admin-event-workspace__sale.is-on_sale {
+  --sale-accent: var(--admin-status-success);
+}
+
+.admin-event-workspace__sale.is-scheduled {
+  --sale-accent: var(--color-brand-celeste);
+}
+
+.admin-event-workspace__sale.is-blocked {
+  --sale-accent: var(--admin-status-warning);
+}
+
+.admin-event-workspace__sale.is-sold_out {
+  --sale-accent: var(--color-brand-gold);
+}
+
+.admin-event-workspace__sale-dot {
+  background: var(--sale-accent);
+  border-radius: 50%;
+  flex: none;
+  height: 7px;
+  width: 7px;
+}
+
+.admin-event-workspace__sale:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-event-workspace__sale:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
 .admin-event-workspace__site {
   align-items: center;
+  align-self: flex-start;
+  background: none;
+  border: 0;
+  border-radius: 4px;
   color: var(--admin-ink);
+  cursor: pointer;
   display: inline-flex;
+  font: inherit;
   font-size: 12px;
   font-weight: 600;
   gap: 6px;
   line-height: 1.3;
   margin: 0;
+  /* Área táctil de 44px sin agrandar la línea: el padding se compensa. */
+  margin-block: -12px;
+  min-height: 44px;
+  padding: 0;
+  text-align: left;
+}
+
+.admin-event-workspace__site:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-event-workspace__site:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
 }
 
 .admin-event-workspace__site.is-hidden {
   color: var(--admin-muted);
+}
+
+.admin-event-workspace__site.is-construction {
+  color: var(--color-brand-gold);
 }
 
 .admin-event-workspace__featured {
@@ -137,6 +216,17 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.admin-event-workspace__nav-label {
+  border-top: 1px solid var(--admin-hairline);
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  margin: 14px 0 4px;
+  padding: 14px 12px 0;
+  text-transform: uppercase;
 }
 
 .admin-event-workspace__nav-group {
@@ -269,7 +359,8 @@
 
   /* Debajo del estado, en la misma columna: en la tercera le quitaba ancho al
      título. */
-  .admin-event-workspace__site {
+  .admin-event-workspace__site,
+  .admin-event-workspace__sale {
     grid-column: 2;
   }
 
@@ -297,6 +388,18 @@
 
   .admin-event-workspace__nav-group {
     display: contents;
+  }
+
+  /* En la tira horizontal el grupo se marca con una regla vertical. */
+  .admin-event-workspace__nav-label {
+    align-self: center;
+    border-left: 1px solid var(--admin-hairline-strong);
+    border-top: 0;
+    flex: none;
+    font-size: 0;
+    height: 18px;
+    margin: 0 6px;
+    padding: 0;
   }
 
   .admin-event-workspace__nav-item {

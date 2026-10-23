@@ -1,6 +1,7 @@
 import DateTimeLocalInput from '../../ui/DateTimeLocalInput.jsx'
 import { withEventStart } from '../../../services/eventAdminService.js'
 import { FormField } from './parts.jsx'
+import EventOfferingField from './EventOfferingField.jsx'
 
 export default function EventBasicsSection({
   activePanelRef,
@@ -158,6 +159,10 @@ export default function EventBasicsSection({
           </div>
         </div>
       </div>
+
+      {essentials ? null : (
+        <EventOfferingField canEdit={canEdit} draft={draft} patchDraft={patchDraft} />
+      )}
     </section>
   )
 }

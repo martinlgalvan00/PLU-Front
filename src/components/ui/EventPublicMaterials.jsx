@@ -1,6 +1,9 @@
-import { Clock3, UsersRound } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ClipboardList, Clock3, UsersRound } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatRelativeTime } from '../../lib/format.js'
+import { generateCredentialQr } from '../../lib/credentialQr.js'
+import { eventExternalForm } from '../../lib/eventExternalForm.js'
 import {
   eventShowsPublicRecentRegistrants,
   eventShowsPublicSchedule,
@@ -12,14 +15,68 @@ import '../../styles/components/event-public-materials.css'
 
 const MAX_RECENT_REGISTRANTS = 6
 
+/** Botón y QR del Google Form del evento. El QR se arma en el navegador. */
+function ExternalFormBlock({ form }) {
+  const { t } = useI18n()
+  const [qrSrc, setQrSrc] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    setQrSrc('')
+    generateCredentialQr(form.url)
+      .then((dataUrl) => {
+        if (!cancelled) setQrSrc(dataUrl)
+      })
+      .catch(() => {
+        // Sin QR el botón sigue funcionando.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [form.url])
+
+  return (
+    <section className="event-public-materials__section" aria-labelledby="event-public-form-title">
+      <header className="event-public-materials__head">
+        <span className="event-public-materials__icon" aria-hidden>
+          <ClipboardList size={17} />
+        </span>
+        <div>
+          <h3 id="event-public-form-title">{t('pages.events.externalFormTitle')}</h3>
+          <p>{t('pages.events.externalFormLead')}</p>
+        </div>
+      </header>
+      <div className="event-public-materials__form">
+        <a
+          className="event-public-materials__form-link"
+          href={form.url}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          {form.label || t('pages.events.externalFormDefaultLabel')}
+        </a>
+        {qrSrc ? (
+          <img
+            alt={t('pages.events.externalFormQrAlt')}
+            className="event-public-materials__form-qr"
+            height="132"
+            src={qrSrc}
+            width="132"
+          />
+        ) : null}
+      </div>
+    </section>
+  )
+}
+
 /**
  * Material operativo que puede aparecer en la ficha pública de cualquier
  * evento. Cada bloque se carga solo cuando el administrador lo habilitó.
  */
-export default function EventPublicMaterials({ className = '', event }) {
+export default function EventPublicMaterials({ className = '', event, includeSchedule = true }) {
   const { locale, t } = useI18n()
   const eventSlug = event?.slug ?? ''
-  const showSchedule = eventShowsPublicSchedule(event)
+  const showSchedule = includeSchedule && eventShowsPublicSchedule(event)
   const showRecentRegistrants = eventShowsPublicRecentRegistrants(event)
   const { schedule, updatedAt } = usePublicEventSchedule(eventSlug, { enabled: showSchedule })
   const { recent, status } = useEventRegistrationCapacity(eventSlug, {
@@ -29,11 +86,15 @@ export default function EventPublicMaterials({ className = '', event }) {
   const visibleRecent = recent.slice(0, MAX_RECENT_REGISTRANTS)
   const renderSchedule = showSchedule && schedule.hasContent
   const renderRecent = showRecentRegistrants
+  const externalForm = eventExternalForm(event)
+  const renderForm = Boolean(externalForm.url)
 
-  if (!renderSchedule && !renderRecent) return null
+  if (!renderSchedule && !renderRecent && !renderForm) return null
 
   return (
     <div className={`event-public-materials ${className}`.trim()}>
+      {renderForm ? <ExternalFormBlock form={externalForm} /> : null}
+
       {renderSchedule ? (
         <section className="event-public-materials__section" aria-labelledby="event-public-schedule-title">
           <header className="event-public-materials__head">

@@ -69,7 +69,7 @@ GET /api/athletes/admin/export?type=admin|plu_usa&format=csv|xls&eventSlug=opcio
 ```
 atleta, documento, email, telefono, pais, provincia, ciudad, gimnasio, sexo,
 fecha_nacimiento, division, division_inscrita, division_desajuste,
-division_open_upgrade, categoria, peso, codigo_afiliado, estado_afiliacion,
+division_open_upgrade, segunda_division, modalidades, categoria, peso, codigo_afiliado, estado_afiliacion,
 evento, estado_inscripcion, estado_pago, referencia_pago
 ```
 

@@ -1,3 +1,4 @@
+import { formatModalities } from '../../../shared/registrationSelection.js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
@@ -67,9 +68,13 @@ import {
 import { isPlaceholderReason, resolveStateBacking } from '../../services/stateCoherenceService.js'
 import { notifyError as toastError, notifySuccess as toastSuccess } from '../../lib/adminToast.js'
 import {
+  buildAdminDivisionOptions,
   buildAdminFacetOptions,
 } from '../../lib/adminPeopleFilters.js'
-import { registrationEventFilterKey } from '../../lib/athleteEventStatus.js'
+import {
+  matchesRegistrationEventFilter,
+  registrationEventFilterKey,
+} from '../../lib/athleteEventStatus.js'
 import { ageOnDate, todayCalendarDate } from '../../../shared/ageDivision.js'
 import { normalizeGender } from '../../../shared/competitionLexicon.js'
 import { formatDeclaredBodyWeight, formatExportDateDmy } from '../../../shared/exportRows.js'
@@ -106,8 +111,6 @@ import {
 // tener que null-check `gatePendingIds` en cada lugar que lo usa.
 const EMPTY_GATE_PENDING_IDS = new Set()
 /** Con un solo evento el filtro no decide nada. Select nativo recién con muchos. */
-const EVENT_FILTER_CHIP_MAX = 8
-
 function editStamp(actor, at) {
   const email = String(actor ?? '').includes(':')
     ? String(actor).split(':').slice(1).join(':')
@@ -238,6 +241,23 @@ const LIFTERS_COLUMN_GROUPS = [
   ['lifts', ['squatOpener', 'benchOpener', 'deadliftOpener', 'squatRackHeight', 'benchRackHeight', 'deadliftRackHeight']],
   ['contact', ['country', 'state', 'instagram', 'notes']],
 ]
+
+/**
+ * "Raw · Junior + Open · Full Power + Banco": categoría, divisiones y, solo si no
+ * es la modalidad de siempre, las modalidades del torneo.
+ */
+function registrationEntryLabel(reg) {
+  const divisions = [reg.division, reg.secondaryDivision].filter(Boolean).join(' + ')
+  const modalities = reg.modalities ?? []
+  const customModalities =
+    modalities.length > 0 && !(modalities.length === 1 && modalities[0] === 'full_power')
+  return [
+    `${reg.category} · ${divisions}`,
+    customModalities ? formatModalities(modalities) : '',
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}
 
 export default function RegistrationsSection({
   canAssignSchedule = false,
@@ -414,9 +434,18 @@ export default function RegistrationsSection({
     [paymentIndex],
   )
 
+  // Las pestañas de estado cuentan dentro del evento elegido: con "Todos 12"
+  // frente a una lista de 4 filas el número no coincidía con lo que se ve.
   const { statusCounts, affiliationCounts } = useMemo(
-    () => buildRegistrationFilterCounts(enrichedAdminRegistrations, resolvePayment, gatePendingIds),
-    [enrichedAdminRegistrations, resolvePayment, gatePendingIds],
+    () =>
+      buildRegistrationFilterCounts(
+        enrichedAdminRegistrations.filter((registration) =>
+          matchesRegistrationEventFilter(registration, filters.event),
+        ),
+        resolvePayment,
+        gatePendingIds,
+      ),
+    [enrichedAdminRegistrations, filters.event, resolvePayment, gatePendingIds],
   )
 
   const statusOptions = useMemo(
@@ -448,11 +477,7 @@ export default function RegistrationsSection({
   )
   const divisionOptions = useMemo(
     () =>
-      buildAdminFacetOptions(
-        enrichedAdminRegistrations,
-        (registration) => registration.division,
-        t('admin.filters.allDivisions'),
-      ),
+      buildAdminDivisionOptions(enrichedAdminRegistrations, t('admin.filters.allDivisions')),
     [enrichedAdminRegistrations, t],
   )
   const eventOptions = useMemo(() => {
@@ -538,7 +563,7 @@ export default function RegistrationsSection({
           photoUrl: reg.athlete?.photoUrl ?? null,
           event: reg.event,
           eventSlug: reg.eventSlug ?? null,
-          category: `${reg.category} · ${reg.division}`,
+          category: registrationEntryLabel(reg),
           bodyweight: formatRegistrationWeight(reg),
           meet,
           publicVisible: reg.publicVisible !== false,
@@ -868,6 +893,7 @@ export default function RegistrationsSection({
   }
 
   const eventCount = Math.max(0, eventOptions.length - 1)
+  const singleEventScope = Boolean(filters.event && filters.event !== 'all')
   const eventFilter =
     eventCount <= 1
       ? null
@@ -877,7 +903,10 @@ export default function RegistrationsSection({
           value: filters.event ?? 'all',
           onChange: handleEventChange,
           options: eventOptions,
-          variant: eventCount > EVENT_FILTER_CHIP_MAX ? 'select' : undefined,
+          // Siempre a la vista junto al buscador: decide qué filas ve y qué
+          // exporta quien opera varios meets a la vez.
+          surface: 'scope',
+          variant: 'select',
           showLabel: true,
         }
   const affiliationFilter = {
@@ -1767,23 +1796,29 @@ export default function RegistrationsSection({
                     />
                   ),
                 },
-                {
-                  // Tabla: evento y, debajo, categoría · división · peso. Cards:
-                  // el evento solo; categoría y peso van en sus propias filas.
-                  key: 'event',
-                  label: t('admin.columns.event'),
-                  width: 120,
-                  mobile: 'default',
-                  mobileMeta: 'labeled',
-                  sortable: true,
-                  render: (row) => (
-                    <div className="data-table__stack">
-                      <span className="data-table__stack-main">{row.event}</span>
-                      <span className="data-table__sub">{row.category}</span>
-                    </div>
-                  ),
-                  mobileRender: (row) => row.event,
-                },
+                // Con un solo evento filtrado el nombre se repite en cada fila: la
+                // columna se va y el espacio vuelve a la competencia.
+                ...(singleEventScope
+                  ? []
+                  : [
+                    {
+                      // Tabla: evento y, debajo, categoría · división · peso. Cards:
+                      // el evento solo; categoría y peso van en sus propias filas.
+                      key: 'event',
+                      label: t('admin.columns.event'),
+                      width: 120,
+                      mobile: 'default',
+                      mobileMeta: 'labeled',
+                      sortable: true,
+                      render: (row) => (
+                        <div className="data-table__stack">
+                          <span className="data-table__stack-main">{row.event}</span>
+                          <span className="data-table__sub">{row.category}</span>
+                        </div>
+                      ),
+                      mobileRender: (row) => row.event,
+                    },
+                  ]),
                 {
                   key: 'meet',
                   label: t('admin.liftersExport.meetColumn'),

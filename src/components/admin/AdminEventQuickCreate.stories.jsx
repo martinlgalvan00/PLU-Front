@@ -56,3 +56,13 @@ export const Duplicando = {
     },
   },
 }
+
+/** El selector «Tipo de evento» precarga acceso, plantilla de landing e intención de venta. */
+export const ConTipoDeEvento = {
+  play: async ({ canvasElement }) => {
+    const chip = [...canvasElement.querySelectorAll('button')].find(
+      (button) => button.textContent?.trim() === 'Seminario / clínica',
+    )
+    chip?.click()
+  },
+}

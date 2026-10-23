@@ -172,8 +172,14 @@ describe('landing de evento (plantilla + slots)', () => {
     expect(migration).toContain('pitbull-classic-2026')
     expect(migration).not.toContain('create or replace function public.staff_upsert_event')
 
-    const server = readFileSync(resolve(process.cwd(), 'server/routes/events.js'), 'utf8')
-    expect(server).toContain('staff_merge_event_landing')
+    // La ruta delega en el store de la landing; las RPC viven ahí.
+    const route = readFileSync(resolve(process.cwd(), 'server/routes/events.js'), 'utf8')
+    const store = readFileSync(
+      resolve(process.cwd(), 'server/modules/events/eventLandingStore.js'),
+      'utf8',
+    )
+    expect(route).toContain('saveEventLanding(client, pEvent)')
+    expect(store).toContain("'staff_merge_event_landing'")
   })
 
   it('FAQ solo publica pares completos y SEO marca custom', () => {
