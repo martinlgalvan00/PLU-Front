@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  Construction,
   CreditCard,
   ExternalLink,
   Eye,
@@ -25,10 +26,10 @@ import AdminIconButton from './AdminIconButton.jsx'
 import { AdminEventLivePreview } from './AdminEventEditor.jsx'
 import AdminEventDashboard from './AdminEventDashboard.jsx'
 import AdminEventQuickActions from './AdminEventQuickActions.jsx'
+import AdminEventSaleControl from './AdminEventSaleControl.jsx'
 import AdminEventStateControl from './AdminEventStateControl.jsx'
 import AdminEventTicketAddonReport from './AdminEventTicketAddonReport.jsx'
 import AdminEventTicketsSoldSection from './AdminEventTicketsSoldSection.jsx'
-import StatusPill from '../ui/StatusPill.jsx'
 import '../../styles/pages/admin-event-workspace.css'
 import '../../styles/pages/admin-event-dashboard.css'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -37,13 +38,23 @@ import { buildEventPagePath } from '../../lib/eventPageRoute.js'
 import { openEventChannelsFor } from '../../lib/eventPaymentChannels.js'
 import { buildSecurityGatePath } from '../../lib/securityGateRoute.js'
 import { TICKETS_PATH } from '../../lib/ticketsRoute.js'
-import {
-  eventPublicSurfaceFromEvent,
-  publicSurfaceModulesForEvent,
-} from '../../lib/eventPublicSurface.js'
+import { eventSiteState } from '../../lib/eventPublicSurface.js'
+import useEventRegistrationSale from '../../hooks/useEventRegistrationSale.js'
 
-function surfaceModuleTitleKey(key) {
-  return `admin.eventEditor.publicSurface${key.charAt(0).toUpperCase()}${key.slice(1)}Title`
+/** Secciones que agrupa la pestaña "Evento" (como capítulos). */
+const EVENT_SECTIONS = ['basics', 'structure']
+/** Lo que se usa al operar el evento: va aparte, debajo de las pestañas de armado. */
+const OPERATION_SECTIONS = ['registrations', 'payments', 'security']
+
+const SITE_STATE_LABEL = {
+  live: 'admin.eventConsole.siteVisible',
+  construction: 'admin.eventConsole.siteConstruction',
+  hidden: 'admin.eventConsole.siteHidden',
+}
+const SITE_STATE_NOTE = {
+  live: 'admin.eventState.publishedNote',
+  construction: 'admin.eventConsole.siteConstructionNote',
+  hidden: 'admin.eventState.hiddenNote',
 }
 
 /** Venue y sede pueden ser el mismo dato escrito distinto (o exactamente
@@ -128,10 +139,8 @@ export default function AdminEventWorkspace({
   onSetTicketAccessOverride,
   onStatePendingChange,
   onRegisterStateDiscard,
-  onToggleOccupancy,
   onTogglePin,
   pinBusy = false,
-  onTogglePublicModule,
   openChapter = null,
   paymentSummary = '',
   paymentsAttention = null,
@@ -174,6 +183,9 @@ export default function AdminEventWorkspace({
   }, [])
 
   const summarySource = previewDraft ?? event
+  // Antes del `return` temprano: un hook no puede quedar condicionado.
+  const sale = useEventRegistrationSale(event)
+  const ticketsEnabled = event?.pricing?.ticketsEnabled === true
 
   const activeTicketTypeCount = useMemo(() => {
     const types = summarySource?.ticketTypes ?? event?.ticketTypes
@@ -203,9 +215,11 @@ export default function AdminEventWorkspace({
         // "inscripción" (cupo).
         label: t('admin.eventConsole.editSales'),
         icon: Ticket,
-        // Mismo criterio que el checklist de "listo para publicar": sin ningún
-        // tipo de entrada activo, el evento no puede vender.
-        hasError: activeTicketTypeCount === 0,
+        // Sin ningún tipo de entrada activo no se venden entradas; pero solo
+        // es un error si el evento vende entradas. Antes se marcaba en rojo
+        // también en meets sin público, donde no tiene nada que ver con la
+        // venta de inscripciones.
+        hasError: ticketsEnabled && activeTicketTypeCount === 0,
         hasSubnav: true,
       })
     }
@@ -247,6 +261,7 @@ export default function AdminEventWorkspace({
     registrationsSection,
     securitySection,
     t,
+    ticketsEnabled,
   ])
 
   if (!event) return null
@@ -255,15 +270,56 @@ export default function AdminEventWorkspace({
     ? activeSection
     : (tabs[0]?.id ?? null)
 
+  /**
+   * Navegación: cuatro pestañas para armar el evento (Resumen, Evento, Venta,
+   * Página) y, aparte, lo que se usa al operarlo (Inscripciones, Pagos,
+   * Zonas). Las secciones siguen siendo las mismas: "Evento" agrupa Datos y
+   * Estructura como capítulos, igual que Venta agrupa los suyos. Antes eran
+   * ocho pestañas en una sola lista, mezclando armar con operar.
+   */
+  const sectionTab = Object.fromEntries(tabs.map((tab) => [tab.id, tab]))
+  const eventSections = EVENT_SECTIONS.filter((id) => sectionTab[id])
+  const buildNav = [
+    sectionTab.dashboard,
+    eventSections.length
+      ? {
+          id: 'event',
+          label: t('admin.eventConsole.navEvent'),
+          icon: FileText,
+          sections: eventSections,
+        }
+      : null,
+    sectionTab.sales ? { ...sectionTab.sales, label: t('admin.eventConsole.navSales') } : null,
+    sectionTab.visibility
+      ? { ...sectionTab.visibility, label: t('admin.eventConsole.navPage') }
+      : null,
+  ].filter(Boolean)
+  const operationNav = OPERATION_SECTIONS.map((id) => sectionTab[id]).filter(Boolean)
+  const navSections = (item) => item.sections ?? [item.id]
+  const activeNavId =
+    [...buildNav, ...operationNav].find((item) => navSections(item).includes(activeTab))?.id ??
+    activeTab
+  const showEventChapters = eventSections.length > 1 && eventSections.includes(activeTab)
+  const eventChapters = eventSections.map((id) => ({ id, label: sectionTab[id].label, count: sectionTab[id].count }))
+
   const venueLine = formatEventVenueLine(event.venue, event.location)
   const dateLabel = event.dateISO ? formatDayMonth(event.dateISO, locale) : (event.date ?? '')
   const sidebarMeta = [dateLabel, venueLine].filter(Boolean).join(' · ')
 
+  const siteState = eventSiteState(event)
+  // "Arreglar" del control de venta: lleva al capítulo de Ventas que corresponde.
+  const fixSale = onSelectChapter ? (chapter) => onSelectChapter(event, 'sales', chapter) : undefined
   const registered = Number(event.registered) || 0
   const slots = Number(event.slots) || 0
 
   function handleBack() {
-    if (stateDirtyRef.current && !window.confirm(t('admin.eventState.discardUnsavedConfirm'))) {
+    // Con el editor montado, el cambio de estado pendiente es parte de sus
+    // cambios (`extraDirty`) y la confirmación la muestra él: no preguntar dos veces.
+    if (
+      !editor &&
+      stateDirtyRef.current &&
+      !window.confirm(t('admin.eventState.discardUnsavedConfirm'))
+    ) {
       return
     }
     onBack?.()
@@ -287,9 +343,10 @@ export default function AdminEventWorkspace({
     focusStart()
   }
 
-  function handleSelectTab(tabId) {
-    if (tabId === activeTab) return
-    onSelectSection?.(event, tabId)
+  function handleSelectTab(item) {
+    const sections = navSections(item)
+    if (sections.includes(activeTab)) return
+    onSelectSection?.(event, sections[0])
     // Cada pestaña arranca arriba: sin esto, cambiar de sección mantenía el
     // scroll donde había quedado la anterior, que casi nunca tiene sentido
     // para contenido no relacionado.
@@ -319,7 +376,7 @@ export default function AdminEventWorkspace({
       id: 'tickets',
       label: t('admin.eventEditor.salesChapterTickets'),
       value: t('admin.eventEditor.salesChapterTicketsCount', { count: activeTicketTypeCount }),
-      hasError: activeTicketTypeCount === 0,
+      hasError: ticketsEnabled && activeTicketTypeCount === 0,
     },
     {
       id: 'payment',
@@ -337,29 +394,11 @@ export default function AdminEventWorkspace({
     },
   ]
 
-  /** Bloques de la página pública, con su interruptor de un toque. */
-  const surfaceEvent = summarySource ?? event
-  const surface = eventPublicSurfaceFromEvent(surfaceEvent)
-  const siteChapters = [
-    ...publicSurfaceModulesForEvent(surfaceEvent).map((module) => ({
-      id: module.key,
-      kind: 'surface',
-      label: t(surfaceModuleTitleKey(module.key)),
-      on: surface[module.key] === true,
-    })),
-    {
-      id: 'occupancy',
-      kind: 'occupancy',
-      label: t('admin.eventEditor.capacityVisibilityTitle'),
-      on: surfaceEvent.capacityProgressPublic !== false,
-    },
-  ]
-
-  function renderChapters(chapters, section, fallback, ariaLabel) {
+  function renderChapters(chapters, { selectedId, onSelect, ariaLabel }) {
     return (
       <div className="admin-event-workspace__chapters" role="tablist" aria-label={ariaLabel}>
         {chapters.map((chapter) => {
-          const selected = (openChapter ?? fallback) === chapter.id
+          const selected = selectedId === chapter.id
           return (
             <button
               key={chapter.id}
@@ -369,10 +408,13 @@ export default function AdminEventWorkspace({
               className={`admin-event-workspace__chapter${selected ? ' is-active' : ''}${
                 chapter.hasError ? ' has-error' : ''
               }`}
-              onClick={() => onSelectChapter?.(event, section, chapter.id)}
+              onClick={() => onSelect(chapter.id)}
             >
               <strong>{chapter.label}</strong>
               {chapter.value ? <em>{chapter.value}</em> : null}
+              {!chapter.value && typeof chapter.count === 'number' && chapter.count > 0 ? (
+                <em>{chapter.count}</em>
+              ) : null}
             </button>
           )
         })}
@@ -390,6 +432,75 @@ export default function AdminEventWorkspace({
         </span>
         <ChevronRight size={15} aria-hidden className="admin-event-workspace__goto-chevron" />
       </button>
+    )
+  }
+
+  function renderNavItem(tab) {
+    const selected = activeNavId === tab.id
+    const expanded = Boolean(tab.hasSubnav) && selected
+    const tabButton = (
+      <button
+        type="button"
+        role="tab"
+        id={`admin-event-tab-${tab.id}`}
+        aria-selected={selected}
+        aria-expanded={tab.hasSubnav ? expanded : undefined}
+        aria-controls={
+          tab.hasSubnav ? 'admin-event-tabpanel admin-event-sales-subnav' : 'admin-event-tabpanel'
+        }
+        tabIndex={selected ? 0 : -1}
+        className={`admin-event-workspace__nav-item${selected ? ' is-active' : ''}${
+          tab.hasError ? ' has-error' : ''
+        }${expanded ? ' is-expanded' : ''}`}
+        onClick={() => handleSelectTab(tab)}
+      >
+        {tab.icon ? (
+          <tab.icon size={15} aria-hidden className="admin-event-workspace__nav-icon" />
+        ) : null}
+        <span className="admin-event-workspace__nav-item-label">{tab.label}</span>
+        {typeof tab.count === 'number' && tab.count > 0 ? (
+          <span className="admin-event-workspace__nav-count">{tab.count}</span>
+        ) : null}
+        {tab.hasSubnav ? (
+          <ChevronDown size={14} aria-hidden className="admin-event-workspace__nav-chevron" />
+        ) : null}
+      </button>
+    )
+
+    if (!tab.hasSubnav) return <Fragment key={tab.id}>{tabButton}</Fragment>
+
+    const selectedChapter = openChapter ?? 'cupo'
+    return (
+      <div
+        key={tab.id}
+        className={`admin-event-workspace__nav-group${expanded ? ' is-open' : ''}`}
+      >
+        {tabButton}
+        <div
+          id="admin-event-sales-subnav"
+          className="admin-event-workspace__nav-sub"
+          role="group"
+          aria-label={t('admin.eventEditor.salesChapterNavAria')}
+          hidden={!expanded}
+        >
+          {salesChapters.map((chapter) => {
+            const chapterSelected = selectedChapter === chapter.id
+            return (
+              <button
+                key={chapter.id}
+                type="button"
+                className={`admin-event-workspace__nav-subitem${
+                  chapterSelected ? ' is-active' : ''
+                }${chapter.hasError ? ' has-error' : ''}`}
+                aria-current={chapterSelected ? 'true' : undefined}
+                onClick={() => onSelectChapter?.(event, 'sales', chapter.id)}
+              >
+                {chapter.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
     )
   }
 
@@ -521,36 +632,6 @@ export default function AdminEventWorkspace({
       return (
         <div className="admin-event-workspace__split">
           <div className="admin-event-workspace__main-col">
-            {/* Interruptores de un toque: apagan un bloque de la página sin
-                tocar su contenido ni pasar por Guardar. */}
-            <div
-              className="admin-event-workspace__surface"
-              role="group"
-              aria-label={t('admin.eventEditor.publicSurfaceLegend')}
-            >
-              {siteChapters.map((chapter) => (
-                <button
-                  key={chapter.id}
-                  type="button"
-                  role="switch"
-                  aria-checked={chapter.on}
-                  className={`admin-event-workspace__switch-row${chapter.on ? ' is-on' : ''}`}
-                  disabled={!canEdit}
-                  onClick={() => {
-                    if (chapter.kind === 'occupancy') onToggleOccupancy?.(event)
-                    else onTogglePublicModule?.(event, chapter.id)
-                  }}
-                >
-                  <strong>{chapter.label}</strong>
-                  <em className="visually-hidden">
-                    {chapter.on
-                      ? t('admin.eventConsole.surfaceOn')
-                      : t('admin.eventConsole.surfaceOff')}
-                  </em>
-                  <span className="admin-event-workspace__switch" aria-hidden />
-                </button>
-              ))}
-            </div>
             {editor}
           </div>
           <aside
@@ -572,6 +653,14 @@ export default function AdminEventWorkspace({
       return (
         <div className="admin-event-workspace__split">
           <div className="admin-event-workspace__main-col">
+            {/* Lo primero del evento: si se puede vender, y qué hacer si no. */}
+            <AdminEventSaleControl
+              canEdit={canEdit}
+              event={event}
+              hasUnsavedState={() => stateDirtyRef.current}
+              onFix={fixSale}
+              onSetEventState={onSetEventState}
+            />
             <AdminEventDashboard
               event={event}
               registrationCounts={registrationCounts}
@@ -584,10 +673,10 @@ export default function AdminEventWorkspace({
           >
             {gotoCard}
             <AdminEventLivePreview
+              compact
               embedded
               draft={previewDraft ?? event}
               live={Boolean(previewDraft)}
-              showReadiness
               sourceEvent={event}
             />
           </aside>
@@ -617,6 +706,8 @@ export default function AdminEventWorkspace({
               onSelectChapter ? () => onSelectChapter(event, 'sales', 'cupo') : undefined
             }
             onSetState={onSetEventState}
+            // El estado de la inscripción se maneja desde el control de venta (Resumen).
+            showStatus={false}
           />
         ) : null}
         {editor}
@@ -651,17 +742,37 @@ export default function AdminEventWorkspace({
             onSetEventLogo={onSetEventLogo}
           />
           <h1 className="admin-event-workspace__title">{event.title}</h1>
-          <StatusPill value={event.status} />
+          {/* Estado de la venta, no el estado guardado: "Inscripción abierta"
+              con el evento oculto o sin medios de cobro no decía la verdad. */}
+          <button
+            type="button"
+            className={`admin-event-workspace__sale is-${sale.state}`}
+            onClick={() => onSelectSection?.(event, 'dashboard')}
+          >
+            <span className="admin-event-workspace__sale-dot" aria-hidden />
+            {t('admin.eventSale.sidebarLabel', { state: t(`admin.eventSale.state_${sale.state}`) })}
+          </button>
           {/* Qué se ve en el sitio es el dato que más se pregunta después de
               crear un meet: nace oculto. Va junto al estado, con icono y texto
               (no solo color), y refleja lo guardado, no lo que está por guardar. */}
-          <p
-            className={`admin-event-workspace__site${event.published ? '' : ' is-hidden'}`}
-            title={t(event.published ? 'admin.eventState.publishedNote' : 'admin.eventState.hiddenNote')}
+          {/* Tres estados, no dos: publicado con la página completa, publicado
+              con el cartel de "en construcción", u oculto. Lleva a Vista
+              pública, que es donde se cambia la página. */}
+          <button
+            type="button"
+            className={`admin-event-workspace__site is-${siteState}`}
+            title={t(SITE_STATE_NOTE[siteState])}
+            onClick={() => onSelectSection?.(event, 'visibility')}
           >
-            {event.published ? <Eye size={13} aria-hidden /> : <EyeOff size={13} aria-hidden />}
-            {t(event.published ? 'admin.eventConsole.siteVisible' : 'admin.eventConsole.siteHidden')}
-          </p>
+            {siteState === 'live' ? (
+              <Eye size={13} aria-hidden />
+            ) : siteState === 'construction' ? (
+              <Construction size={13} aria-hidden />
+            ) : (
+              <EyeOff size={13} aria-hidden />
+            )}
+            {t(SITE_STATE_LABEL[siteState])}
+          </button>
           {event.featured ? (
             <span className="admin-event-workspace__featured">
               <Star size={11} aria-hidden />
@@ -695,80 +806,14 @@ export default function AdminEventWorkspace({
           aria-orientation="vertical"
           aria-label={t('admin.eventConsole.tabsLabel')}
         >
-          {tabs.map((tab) => {
-            const selected = activeTab === tab.id
-            const expanded = Boolean(tab.hasSubnav) && selected
-            const tabButton = (
-              <button
-                type="button"
-                role="tab"
-                id={`admin-event-tab-${tab.id}`}
-                aria-selected={selected}
-                aria-expanded={tab.hasSubnav ? expanded : undefined}
-                aria-controls={
-                  tab.hasSubnav
-                    ? 'admin-event-tabpanel admin-event-sales-subnav'
-                    : 'admin-event-tabpanel'
-                }
-                tabIndex={selected ? 0 : -1}
-                className={`admin-event-workspace__nav-item${selected ? ' is-active' : ''}${
-                  tab.hasError ? ' has-error' : ''
-                }${expanded ? ' is-expanded' : ''}`}
-                onClick={() => handleSelectTab(tab.id)}
-              >
-                {tab.icon ? <tab.icon size={15} aria-hidden className="admin-event-workspace__nav-icon" /> : null}
-                <span className="admin-event-workspace__nav-item-label">{tab.label}</span>
-                {typeof tab.count === 'number' && tab.count > 0 ? (
-                  <span className="admin-event-workspace__nav-count">{tab.count}</span>
-                ) : null}
-                {tab.hasSubnav ? (
-                  <ChevronDown
-                    size={14}
-                    aria-hidden
-                    className="admin-event-workspace__nav-chevron"
-                  />
-                ) : null}
-              </button>
-            )
-
-            if (!tab.hasSubnav) {
-              return <Fragment key={tab.id}>{tabButton}</Fragment>
-            }
-
-            const selectedChapter = openChapter ?? 'cupo'
-            return (
-              <div
-                key={tab.id}
-                className={`admin-event-workspace__nav-group${expanded ? ' is-open' : ''}`}
-              >
-                {tabButton}
-                <div
-                  id="admin-event-sales-subnav"
-                  className="admin-event-workspace__nav-sub"
-                  role="group"
-                  aria-label={t('admin.eventEditor.salesChapterNavAria')}
-                  hidden={!expanded}
-                >
-                  {salesChapters.map((chapter) => {
-                    const chapterSelected = selectedChapter === chapter.id
-                    return (
-                      <button
-                        key={chapter.id}
-                        type="button"
-                        className={`admin-event-workspace__nav-subitem${
-                          chapterSelected ? ' is-active' : ''
-                        }${chapter.hasError ? ' has-error' : ''}`}
-                        aria-current={chapterSelected ? 'true' : undefined}
-                        onClick={() => onSelectChapter?.(event, 'sales', chapter.id)}
-                      >
-                        {chapter.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })}
+          {buildNav.map((tab) => renderNavItem(tab))}
+          {operationNav.length ? (
+            // Separador visual: no es una pestaña, el lector de pantalla lo saltea.
+            <span className="admin-event-workspace__nav-label" aria-hidden="true">
+              {t('admin.eventConsole.operationLabel')}
+            </span>
+          ) : null}
+          {operationNav.map((tab) => renderNavItem(tab))}
         </div>
         </div>
         <div id="admin-event-workspace-save" className="admin-event-workspace__save" />
@@ -777,16 +822,29 @@ export default function AdminEventWorkspace({
       <div className="admin-event-workspace__panel">
         <div
           className={`admin-event-workspace__toolbar${
-            activeTab === 'sales' ? ' admin-event-workspace__toolbar--chapters' : ''
+            activeTab === 'sales' || showEventChapters
+              ? ' admin-event-workspace__toolbar--chapters'
+              : ''
           }`}
         >
           {activeTab === 'sales'
-            ? renderChapters(
-                salesChapters,
-                'sales',
-                'cupo',
-                t('admin.eventEditor.salesChapterNavAria'),
-              )
+            ? renderChapters(salesChapters, {
+                selectedId: openChapter ?? 'cupo',
+                onSelect: (chapter) => onSelectChapter?.(event, 'sales', chapter),
+                ariaLabel: t('admin.eventEditor.salesChapterNavAria'),
+              })
+            : null}
+          {showEventChapters
+            ? renderChapters(eventChapters, {
+                selectedId: activeTab,
+                onSelect: (section) => {
+                  if (section === activeTab) return
+                  onSelectSection?.(event, section)
+                  // Otro capítulo es otro contenido: arranca arriba, como una pestaña.
+                  scrollHostRef.current?.scrollTo?.({ top: 0 })
+                },
+                ariaLabel: t('admin.eventConsole.navEventChapters'),
+              })
             : null}
           <AdminEventQuickActions
             event={event}
@@ -794,6 +852,7 @@ export default function AdminEventWorkspace({
             onSetEventState={onSetEventState}
             hasUnsavedState={() => stateDirtyRef.current}
             onEditDate={handleEditDate}
+            showRegistrationToggle={activeTab !== 'dashboard'}
           />
           <div className="admin-event-workspace__head-actions">
             {canEdit && onTogglePin && event.status !== 'finalizado' ? (
@@ -827,7 +886,7 @@ export default function AdminEventWorkspace({
           className="admin-event-workspace__body"
           id="admin-event-tabpanel"
           role="tabpanel"
-          aria-labelledby={`admin-event-tab-${activeTab}`}
+          aria-labelledby={`admin-event-tab-${activeNavId}`}
           tabIndex={-1}
         >
           {renderTabPanel()}

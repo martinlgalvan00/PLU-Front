@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  ArrowLeft,
+  ArrowRight,
   ArrowUpRight,
   Banknote,
   CalendarDays,
@@ -25,6 +27,10 @@ import usePlatformPaymentChannels from '../../hooks/usePlatformPaymentChannels.j
 import { platformCellsFor } from '../../lib/platformPaymentChannels.js'
 import { fetchPaymentProfiles } from '../../services/paymentProfileService.js'
 import EventPaymentChannelMatrix from './event-editor/EventPaymentChannelMatrix.jsx'
+import AdminEventSaleControl from './AdminEventSaleControl.jsx'
+import { updatePricingField } from './event-editor/draftPatches.js'
+import { DEFAULT_EVENT_PRICING } from '../../lib/eventPricing.js'
+import { QUICK_CREATE_STEPS as STEPS, quickCreateStepForField } from '../../lib/eventQuickCreateSteps.js'
 import '../../styles/pages/admin-event-quick.css'
 import {
   createAdminEventDraft,
@@ -36,6 +42,12 @@ import {
   EVENT_LANDING_THEMES,
   normalizeEventLanding,
 } from '../../lib/eventLanding.js'
+import {
+  applyEventPreset,
+  DEFAULT_EVENT_PRESET_ID,
+  describeEventPreset,
+  EVENT_PRESET_IDS,
+} from '../../lib/eventPresets.js'
 
 /**
  * AdminEventQuickCreate — PLU ARG
@@ -64,6 +76,7 @@ import {
  * se carga después de elegir el modo: por eso el modo se guarda aparte. */
 const REGISTRATION_MODES = ['soon', 'scheduled', 'open']
 
+
 /**
  * `initialDraft` / `initialLogo` / `duplicateOf` llegan al duplicar un evento: el
  * formulario arranca con sede, ciudad, cupo, acceso y logo del original (las
@@ -78,8 +91,17 @@ export default function AdminEventQuickCreate({
   onCancel,
   onOpenFullEditor,
   onSubmit,
+  /** "Listo": `onDone(event, { open, section?, chapter? })` sale del alta (al evento o a la lista). */
+  onDone,
+  /** Para abrir / publicar desde la pantalla "Listo" con el control de venta real. */
+  onSetEventState,
 }) {
   const { t } = useI18n()
+  const [step, setStep] = useState(0)
+  // Hasta dónde se llegó: se puede volver a cualquier paso visto, no saltear.
+  const [maxStep, setMaxStep] = useState(0)
+  const [doneEvent, setDoneEvent] = useState(null)
+  const stepId = STEPS[step]
   const [draft, setDraft] = useState(() => ({ ...createAdminEventDraft(), ...initialDraft }))
   const [logo, setLogo] = useState(initialLogo)
   const [logoPending, setLogoPending] = useState(false)
@@ -165,6 +187,39 @@ export default function AdminEventQuickCreate({
     }
   }, [mpOpen])
 
+  // El preset solo precarga política (acceso, plantilla, venta); duplicar ya trae
+  // su propia configuración, así que ahí no se ofrece.
+  const [presetId, setPresetId] = useState(DEFAULT_EVENT_PRESET_ID)
+  const presetOptions = EVENT_PRESET_IDS.map((id) => [
+    id,
+    t(`admin.eventQuickCreate.preset${id[0].toUpperCase()}${id.slice(1)}`),
+  ])
+  const presetSummary = describeEventPreset(presetId)
+  const presetNote = presetSummary.length
+    ? t('admin.eventQuickCreate.presetsSummary', {
+        access: t(
+          presetSummary.find((item) => item.key === 'access')?.value === 'members'
+            ? 'admin.eventState.accessMembers'
+            : 'admin.eventState.accessOpen',
+        ),
+        landing: t(
+          `admin.eventEditor.landingTemplate${presetSummary
+            .find((item) => item.key === 'landing')
+            ?.value.replace(/^./, (char) => char.toUpperCase())}`,
+        ),
+        sales: t(
+          presetSummary.find((item) => item.key === 'sales')?.value === 'announce'
+            ? 'admin.eventQuickCreate.presetsSalesAnnounce'
+            : 'admin.eventQuickCreate.presetsSalesCharge',
+        ),
+      })
+    : t('admin.eventQuickCreate.presetsBlankNote')
+
+  function selectPreset(nextId) {
+    setPresetId(nextId)
+    patch(applyEventPreset(draft, nextId))
+  }
+
   const [registrationMode, setRegistrationModeState] = useState('soon')
   const registrationOptions = REGISTRATION_MODES.map((mode) => [
     mode,
@@ -200,7 +255,7 @@ export default function AdminEventQuickCreate({
   // Cerrar la pestaña o recargar con datos cargados pierde el borrador: el
   // navegador pregunta. Volver con el botón pregunta acá (`requestCancel`).
   useEffect(() => {
-    if (!isDirty || submitting) return undefined
+    if (!isDirty || submitting || doneEvent) return undefined
     function warn(event) {
       event.preventDefault()
       // Chrome exige returnValue para mostrar el aviso nativo.
@@ -208,10 +263,14 @@ export default function AdminEventQuickCreate({
     }
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
-  }, [isDirty, submitting])
+  }, [doneEvent, isDirty, submitting])
 
   function requestCancel() {
     if (submitting) return
+    if (doneEvent) {
+      finish({ open: false })
+      return
+    }
     if (isDirty && !window.confirm(t('admin.eventQuickCreate.discardConfirm'))) return
     onCancel?.()
   }
@@ -247,6 +306,11 @@ export default function AdminEventQuickCreate({
       location: draft.location,
       slots: draft.slots,
       requiresMembership: draft.requiresMembership,
+      // Plantilla y tema (parte del preset) se repiten; los slots son del evento anterior.
+      landing: emptyEventLanding(
+        normalizeEventLanding(draft.landing).templateId,
+        normalizeEventLanding(draft.landing).themeId,
+      ),
       status: draft.status,
       published: draft.published,
       // Los medios de cobro se repiten casi siempre de un meet al siguiente.
@@ -263,28 +327,77 @@ export default function AdminEventQuickCreate({
     setStageKey((current) => current + 1)
     setFieldErrors({})
     setCreated((current) => ({ count: current.count + 1, lastTitle: savedTitle }))
+    setDoneEvent(null)
+    setStep(0)
+    setMaxStep(0)
     requestAnimationFrame(() => formRef.current?.querySelector('[name="title"]')?.focus?.())
+  }
+
+  /** Errores del borrador entero: los del esquema más los del modo de inscripción. */
+  function collectErrors() {
+    const validation = validateAdminEventDraft(draft, t)
+    const errors = validation.ok ? {} : { ...validation.fieldErrors }
+    if (registrationMode === 'scheduled') {
+      if (!draft.registrationOpensAt) {
+        errors.registrationOpensAt = t('admin.eventQuickCreate.regScheduledRequired')
+      } else if (draft.startsAt && draft.registrationOpensAt >= draft.startsAt) {
+        errors.registrationOpensAt = t('admin.eventQuickCreate.regBeforeStart')
+      }
+    }
+    return errors
+  }
+
+  function showStep(index) {
+    setStep(index)
+    setMaxStep((current) => Math.max(current, index))
+    requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView?.({ block: 'start' })
+      formRef.current
+        ?.querySelector('.admin-event-quick__body input:not([type="hidden"]), .admin-event-quick__body button')
+        ?.focus?.({ preventScroll: true })
+    })
+  }
+
+  /** "Siguiente": solo frena por los errores de este paso. */
+  function goNext() {
+    const errors = Object.fromEntries(
+      Object.entries(collectErrors()).filter(([key]) => quickCreateStepForField(key) === stepId),
+    )
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      requestAnimationFrame(() => focusFirstInvalid(Object.keys(errors)[0]))
+      return
+    }
+    setFieldErrors({})
+    showStep(Math.min(step + 1, STEPS.length - 1))
+  }
+
+  /** Sale del alta desde "Listo": al evento recién creado o a la lista. */
+  function finish(options) {
+    if (onDone) onDone(doneEvent, options)
+    else onCancel?.()
+  }
+
+  async function setDoneEventState(slug, patch) {
+    const result = await onSetEventState?.(slug, patch)
+    if (result?.event) setDoneEvent(result.event)
+    return result
   }
 
   async function submit({ another }) {
     setSubmitError(null)
 
-    const validation = validateAdminEventDraft(draft, t)
-    const registrationErrors = {}
-    if (registrationMode === 'scheduled') {
-      if (!draft.registrationOpensAt) {
-        registrationErrors.registrationOpensAt = t('admin.eventQuickCreate.regScheduledRequired')
-      } else if (draft.startsAt && draft.registrationOpensAt >= draft.startsAt) {
-        registrationErrors.registrationOpensAt = t('admin.eventQuickCreate.regBeforeStart')
-      }
-    }
-    if (!validation.ok || Object.keys(registrationErrors).length > 0) {
-      setFieldErrors({ ...(validation.ok ? {} : validation.fieldErrors), ...registrationErrors })
-      requestAnimationFrame(() =>
-        focusFirstInvalid(
-          validation.ok ? Object.keys(registrationErrors)[0] : validation.firstKey,
-        ),
-      )
+    const errors = collectErrors()
+    if (Object.keys(errors).length > 0) {
+      // El primer error en el orden de los pasos: se vuelve a ese paso.
+      const firstKey =
+        Object.keys(errors).sort(
+          (a, b) =>
+            STEPS.indexOf(quickCreateStepForField(a)) - STEPS.indexOf(quickCreateStepForField(b)),
+        )[0]
+      setFieldErrors(errors)
+      setStep(STEPS.indexOf(quickCreateStepForField(firstKey)))
+      requestAnimationFrame(() => requestAnimationFrame(() => focusFirstInvalid(firstKey)))
       return
     }
 
@@ -313,6 +426,16 @@ export default function AdminEventQuickCreate({
       const result = await onSubmit?.({ ...draft, slug: preview.slug }, { logo, another })
       if (result?.error) throw new Error(result.error)
       if (another) startNextEvent(draft.title.trim())
+      else {
+        // Lo que devolvió el servidor manda; el borrador completa lo que no traiga.
+        setDoneEvent({
+          ...mapDraftToPreviewEvent(draft),
+          ...draft,
+          slug: preview.slug,
+          ...result?.event,
+        })
+        requestAnimationFrame(() => document.getElementById('admin-event-quick-done-title')?.focus?.())
+      }
     } catch (error) {
       setSubmitError(error?.message ?? t('admin.eventEditor.saveError'))
     } finally {
@@ -321,6 +444,77 @@ export default function AdminEventQuickCreate({
   }
 
   const err = (key) => fieldErrors[key]
+
+  if (doneEvent) {
+    return (
+      <section className="admin-event-quick" aria-labelledby="admin-event-quick-done-title">
+        {/* "Listo": el evento existe. Lo que importa ahora es si ya se puede
+            vender; se responde con el mismo control que el Resumen. */}
+        <div className="admin-event-quick__done">
+          <span className="admin-event-quick__eyebrow">
+            <Check size={13} aria-hidden />
+            {t('admin.eventQuickCreate.doneEyebrow')}
+          </span>
+          <h2 id="admin-event-quick-done-title" tabIndex={-1}>
+            {doneEvent.title}
+          </h2>
+          {doneEvent.slug ? (
+            <p className="admin-event-quick__slug">
+              <Link2 size={14} aria-hidden />
+              <code>/{doneEvent.slug}</code>
+            </p>
+          ) : null}
+          <AdminEventSaleControl
+            canEdit={canEdit}
+            event={doneEvent}
+            onFix={(chapter) => finish({ open: true, section: 'sales', chapter })}
+            onSetEventState={onSetEventState ? setDoneEventState : undefined}
+          />
+          <p className="admin-event-quick__pending">
+            <span className="admin-event-quick__pending-label">
+              {t('admin.eventQuickCreate.pendingLabel')}
+            </span>
+            {[
+              t('admin.eventQuickCreate.pendingTickets'),
+              t('admin.eventQuickCreate.pendingStructure'),
+              t('admin.eventQuickCreate.pendingZones'),
+            ].join(' · ')}
+          </p>
+          <div className="admin-event-quick__done-actions">
+            {onDone ? (
+              <Button
+                type="button"
+                variant="gold"
+                className="btn--small"
+                onClick={() => finish({ open: true })}
+              >
+                {t('admin.eventQuickCreate.doneOpen')}
+                <ArrowRight size={15} aria-hidden />
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              className="btn--small"
+              onClick={() => startNextEvent(doneEvent.title ?? '')}
+            >
+              <Plus size={15} aria-hidden />
+              {t('admin.eventQuickCreate.doneAnother')}
+            </Button>
+            <button
+              type="button"
+              className="admin-event-quick__cancel"
+              onClick={() => finish({ open: false })}
+            >
+              {t('admin.eventQuickCreate.doneList')}
+            </button>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  const lastStep = step === STEPS.length - 1
 
   return (
     <section className="admin-event-quick" aria-labelledby="admin-event-quick-title">
@@ -348,400 +542,522 @@ export default function AdminEventQuickCreate({
               ) : null}
             </div>
 
-            <div className="admin-event-quick__body">
-              {/* El título es el protagonista: se escribe a escala de título y de
-                  él se deriva la dirección pública, que se muestra debajo. */}
-              <label
-                className={`admin-event-quick__hero${err('title') ? ' is-invalid' : ''}`}
-                htmlFor="quick-event-title"
-              >
-                <span className="admin-event-quick__label">
-                  {t('admin.eventEditor.publicTitle')}
-                </span>
-                <input
-                  id="quick-event-title"
-                  name="title"
-                  required
-                  value={draft.title}
-                  aria-invalid={Boolean(err('title'))}
-                  placeholder={t('admin.eventEditor.titlePlaceholder')}
-                  onChange={(event) => patch({ ...draft, title: event.target.value })}
-                  disabled={!canEdit || submitting}
-                />
-                {err('title') ? <small role="alert">{err('title')}</small> : null}
-              </label>
-
-              {/* El slug no se edita al crear: se deriva del título y del año, y
-                  es la dirección pública del evento. Mostrarlo evita el alta a
-                  ciegas de un enlace que después aparece en mails y afiches. */}
-              <p
-                className="admin-event-quick__slug"
-                aria-label={t('admin.eventQuickCreate.slugLabel')}
-              >
-                <Link2 size={14} aria-hidden />
-                <code className={slugPreview ? undefined : 'is-pending'}>
-                  {slugPreview || t('admin.eventQuickCreate.slugPending')}
-                </code>
-              </p>
-
-              {/* El logo se elige acá y se sube apenas el evento existe: antes
-                  había que crearlo, entrar a su ficha y recién ahí subirlo. */}
-              <AdminEventLogoStage
-                key={stageKey}
-                disabled={!canEdit || submitting}
-                initialFile={stageKey === 0 ? initialLogo : null}
-                onChange={setLogo}
-                onPendingChange={setLogoPending}
-              />
-
-              <div
-                className="admin-event-quick__section"
-                role="group"
-                aria-labelledby="quick-event-landing"
-              >
-                <h3 className="admin-event-quick__section-title" id="quick-event-landing">
-                  {t('admin.eventQuickCreate.sectionLanding')}
-                </h3>
-                <AdminFilterChipGroup
-                  compact
-                  disabled={!canEdit || submitting}
-                  id="quick-event-landing-template"
-                  label={t('admin.eventEditor.landingTemplateLabel')}
-                  value={
-                    normalizeEventLanding(draft.landing ?? emptyEventLanding('meet')).templateId
-                  }
-                  onChange={(templateId) =>
-                    patch({
-                      ...draft,
-                      landing: {
-                        ...normalizeEventLanding(draft.landing ?? emptyEventLanding(templateId)),
-                        templateId,
-                      },
-                    })
-                  }
-                  options={[
-                    ['meet', t('admin.eventEditor.landingTemplateMeet')],
-                    ['editorial', t('admin.eventEditor.landingTemplateEditorial')],
-                    ['submission', t('admin.eventEditor.landingTemplateSubmission')],
-                  ]}
-                />
-                <p className="admin-event-quick__access-note">
-                  {normalizeEventLanding(draft.landing).templateId === 'editorial'
-                    ? t('admin.eventEditor.landingTemplateEditorialHint')
-                    : normalizeEventLanding(draft.landing).templateId === 'submission'
-                      ? t('admin.eventEditor.landingTemplateSubmissionHint')
-                      : t('admin.eventEditor.landingTemplateMeetHint')}
-                </p>
-                <AdminFilterChipGroup
-                  compact
-                  disabled={!canEdit || submitting}
-                  id="quick-event-landing-theme"
-                  label={t('admin.eventEditor.landingThemeLabel')}
-                  value={
-                    normalizeEventLanding(draft.landing ?? emptyEventLanding('meet')).themeId
-                  }
-                  onChange={(themeId) =>
-                    patch({
-                      ...draft,
-                      landing: {
-                        ...normalizeEventLanding(draft.landing ?? emptyEventLanding('meet')),
-                        themeId,
-                      },
-                    })
-                  }
-                  options={EVENT_LANDING_THEMES.map((themeId) => [
-                    themeId,
-                    t(`admin.eventEditor.landingTheme_${themeId.replace(/-/g, '_')}`),
-                  ])}
-                />
-              </div>
-
-              <div
-                className="admin-event-quick__section"
-                role="group"
-                aria-labelledby="quick-event-when"
-              >
-                <h3 className="admin-event-quick__section-title" id="quick-event-when">
-                  {t('admin.eventQuickCreate.sectionWhen')}
-                </h3>
-                <div className="admin-event-quick__row">
-                  <label
-                    className={`admin-event-quick__field${err('startsAt') ? ' is-invalid' : ''}`}
-                    htmlFor="quick-event-starts-at"
+            {/* Pasos: se puede volver a cualquiera ya visto; avanzar valida. */}
+            <ol className="admin-event-quick__steps" aria-label={t('admin.eventQuickCreate.stepsLabel')}>
+              {STEPS.map((id, index) => (
+                <li key={id}>
+                  <button
+                    type="button"
+                    className={`admin-event-quick__step${index === step ? ' is-current' : ''}${index < step ? ' is-done' : ''}`}
+                    aria-current={index === step ? 'step' : undefined}
+                    disabled={submitting || index > maxStep}
+                    onClick={() => showStep(index)}
                   >
-                    <span className="admin-event-quick__label">
-                      {t('admin.eventEditor.supabase.startsAt')}
+                    <span className="admin-event-quick__step-index" aria-hidden>
+                      {index < step ? <Check size={12} /> : index + 1}
                     </span>
-                    <input
-                      id="quick-event-starts-at"
-                      name="startsAt"
-                      required
-                      type="datetime-local"
-                      value={draft.startsAt ?? ''}
-                      aria-invalid={Boolean(err('startsAt'))}
-                      onChange={(event) => patch(withEventStart(draft, event.target.value))}
-                      disabled={!canEdit || submitting}
-                    />
-                    {err('startsAt') ? <small role="alert">{err('startsAt')}</small> : null}
-                  </label>
+                    {t(`admin.eventQuickCreate.step_${id}`)}
+                  </button>
+                </li>
+              ))}
+            </ol>
 
-                  <label
-                    className={`admin-event-quick__field${err('endsAt') ? ' is-invalid' : ''}`}
-                    htmlFor="quick-event-ends-at"
-                  >
-                    <span className="admin-event-quick__label">
-                      {t('admin.eventEditor.supabase.endsAt')}
-                    </span>
-                    <input
-                      id="quick-event-ends-at"
-                      name="endsAt"
-                      required
-                      type="datetime-local"
-                      value={draft.endsAt ?? ''}
-                      aria-invalid={Boolean(err('endsAt'))}
-                      onChange={(event) => patch({ ...draft, endsAt: event.target.value })}
-                      disabled={!canEdit || submitting}
-                    />
-                    {err('endsAt') ? <small role="alert">{err('endsAt')}</small> : null}
-                  </label>
-                </div>
-              </div>
-
+            {stepId === 'event' ? (
               <div
-                className="admin-event-quick__section"
+                className="admin-event-quick__body"
                 role="group"
-                aria-labelledby="quick-event-where"
+                aria-labelledby="quick-step-event"
               >
-                <h3 className="admin-event-quick__section-title" id="quick-event-where">
-                  {t('admin.eventQuickCreate.sectionWhere')}
+                <h3 className="admin-event-quick__step-title" id="quick-step-event">
+                  {t('admin.eventQuickCreate.step_event')}
                 </h3>
-                <div className="admin-event-quick__row">
-                  <label
-                    className={`admin-event-quick__field${err('venue') ? ' is-invalid' : ''}`}
-                    htmlFor="quick-event-venue"
+                {duplicateOf ? null : (
+                  <div
+                    className="admin-event-quick__section"
+                    role="group"
+                    aria-labelledby="quick-event-preset"
                   >
-                    <span className="admin-event-quick__label">{t('admin.eventEditor.venue')}</span>
-                    <input
-                      id="quick-event-venue"
-                      name="venue"
-                      required
-                      value={draft.venue}
-                      aria-invalid={Boolean(err('venue'))}
-                      placeholder={t('admin.eventEditor.venuePlaceholder')}
-                      onChange={(event) => patch({ ...draft, venue: event.target.value })}
-                      disabled={!canEdit || submitting}
-                    />
-                    {err('venue') ? <small role="alert">{err('venue')}</small> : null}
-                  </label>
-
-                  <label
-                    className={`admin-event-quick__field${err('location') ? ' is-invalid' : ''}`}
-                    htmlFor="quick-event-location"
-                  >
-                    <span className="admin-event-quick__label">
-                      {t('admin.eventEditor.location')}
-                    </span>
-                    <input
-                      id="quick-event-location"
-                      name="location"
-                      required
-                      value={draft.location}
-                      aria-invalid={Boolean(err('location'))}
-                      placeholder={t('admin.eventEditor.locationPlaceholder')}
-                      onChange={(event) => patch({ ...draft, location: event.target.value })}
-                      disabled={!canEdit || submitting}
-                    />
-                    {err('location') ? <small role="alert">{err('location')}</small> : null}
-                  </label>
-                </div>
-              </div>
-
-              <div
-                className="admin-event-quick__section"
-                role="group"
-                aria-labelledby="quick-event-capacity"
-              >
-                <h3 className="admin-event-quick__section-title" id="quick-event-capacity">
-                  {t('admin.eventQuickCreate.sectionCapacity')}
-                </h3>
-                <div className="admin-event-quick__row admin-event-quick__row--capacity">
-                  <label
-                    className={`admin-event-quick__field admin-event-quick__field--slots${err('slots') ? ' is-invalid' : ''}`}
-                    htmlFor="quick-event-slots"
-                  >
-                    <span className="admin-event-quick__label">
-                      {t('admin.eventEditor.slotsShortLabel')}
-                    </span>
-                    <input
-                      id="quick-event-slots"
-                      name="slots"
-                      required
-                      type="number"
-                      min="1"
-                      max="5000"
-                      value={draft.slots}
-                      aria-invalid={Boolean(err('slots'))}
-                      onChange={(event) => patch({ ...draft, slots: event.target.value })}
-                      disabled={!canEdit || submitting}
-                    />
-                    {err('slots') ? <small role="alert">{err('slots')}</small> : null}
-                  </label>
-
-                  {/* Acceso al meet: mismo control y mismo copy que la consola de
-                      operación, para que no digan dos cosas distintas. */}
-                  <div className="admin-event-quick__access">
+                    <h3 className="admin-event-quick__section-title" id="quick-event-preset">
+                      {t('admin.eventQuickCreate.presetsLabel')}
+                    </h3>
                     <AdminFilterChipGroup
                       compact
                       disabled={!canEdit || submitting}
-                      id="quick-event-access"
-                      label={t('admin.eventEditor.accessLabel')}
-                      value={requiresMembership ? 'members' : 'open'}
-                      onChange={(value) =>
-                        patch({ ...draft, requiresMembership: value === 'members' })
-                      }
-                      options={accessOptions}
+                      id="quick-event-preset-chips"
+                      ariaLabel={t('admin.eventQuickCreate.presetsLabel')}
+                      value={presetId}
+                      onChange={selectPreset}
+                      options={presetOptions}
                     />
+                    <p className="admin-event-quick__access-note">{presetNote}</p>
+                  </div>
+                )}
+
+                {/* El título es el protagonista: se escribe a escala de título y de
+                    él se deriva la dirección pública, que se muestra debajo. */}
+                <label
+                  className={`admin-event-quick__hero${err('title') ? ' is-invalid' : ''}`}
+                  htmlFor="quick-event-title"
+                >
+                  <span className="admin-event-quick__label">
+                    {t('admin.eventEditor.publicTitle')}
+                  </span>
+                  <input
+                    id="quick-event-title"
+                    name="title"
+                    required
+                    value={draft.title}
+                    aria-invalid={Boolean(err('title'))}
+                    placeholder={t('admin.eventEditor.titlePlaceholder')}
+                    onChange={(event) => patch({ ...draft, title: event.target.value })}
+                    disabled={!canEdit || submitting}
+                  />
+                  {err('title') ? <small role="alert">{err('title')}</small> : null}
+                </label>
+
+                {/* El slug no se edita al crear: se deriva del título y del año, y
+                    es la dirección pública del evento. Mostrarlo evita el alta a
+                    ciegas de un enlace que después aparece en mails y afiches. */}
+                <p
+                  className="admin-event-quick__slug"
+                  aria-label={t('admin.eventQuickCreate.slugLabel')}
+                >
+                  <Link2 size={14} aria-hidden />
+                  <code className={slugPreview ? undefined : 'is-pending'}>
+                    {slugPreview || t('admin.eventQuickCreate.slugPending')}
+                  </code>
+                </p>
+
+                {/* El logo se elige acá y se sube apenas el evento existe: antes
+                    había que crearlo, entrar a su ficha y recién ahí subirlo. */}
+                <AdminEventLogoStage
+                  key={stageKey}
+                  disabled={!canEdit || submitting}
+                  initialFile={stageKey === 0 ? initialLogo : null}
+                  onChange={setLogo}
+                  onPendingChange={setLogoPending}
+                />
+
+                <div
+                  className="admin-event-quick__section"
+                  role="group"
+                  aria-labelledby="quick-event-when"
+                >
+                  <h3 className="admin-event-quick__section-title" id="quick-event-when">
+                    {t('admin.eventQuickCreate.sectionWhen')}
+                  </h3>
+                  <div className="admin-event-quick__row">
+                    <label
+                      className={`admin-event-quick__field${err('startsAt') ? ' is-invalid' : ''}`}
+                      htmlFor="quick-event-starts-at"
+                    >
+                      <span className="admin-event-quick__label">
+                        {t('admin.eventEditor.supabase.startsAt')}
+                      </span>
+                      <input
+                        id="quick-event-starts-at"
+                        name="startsAt"
+                        required
+                        type="datetime-local"
+                        value={draft.startsAt ?? ''}
+                        aria-invalid={Boolean(err('startsAt'))}
+                        onChange={(event) => patch(withEventStart(draft, event.target.value))}
+                        disabled={!canEdit || submitting}
+                      />
+                      {err('startsAt') ? <small role="alert">{err('startsAt')}</small> : null}
+                    </label>
+
+                    <label
+                      className={`admin-event-quick__field${err('endsAt') ? ' is-invalid' : ''}`}
+                      htmlFor="quick-event-ends-at"
+                    >
+                      <span className="admin-event-quick__label">
+                        {t('admin.eventEditor.supabase.endsAt')}
+                      </span>
+                      <input
+                        id="quick-event-ends-at"
+                        name="endsAt"
+                        required
+                        type="datetime-local"
+                        value={draft.endsAt ?? ''}
+                        aria-invalid={Boolean(err('endsAt'))}
+                        onChange={(event) => patch({ ...draft, endsAt: event.target.value })}
+                        disabled={!canEdit || submitting}
+                      />
+                      {err('endsAt') ? <small role="alert">{err('endsAt')}</small> : null}
+                    </label>
                   </div>
                 </div>
-                <p className="admin-event-quick__access-note">
-                  {requiresMembership ? (
-                    <ShieldCheck size={14} aria-hidden />
-                  ) : (
-                    <Unlock size={14} aria-hidden />
-                  )}
-                  {requiresMembership
-                    ? t('admin.eventState.accessMembersNote')
-                    : t('admin.eventState.accessOpenNote')}
-                </p>
-              </div>
 
+                <div
+                  className="admin-event-quick__section"
+                  role="group"
+                  aria-labelledby="quick-event-where"
+                >
+                  <h3 className="admin-event-quick__section-title" id="quick-event-where">
+                    {t('admin.eventQuickCreate.sectionWhere')}
+                  </h3>
+                  <div className="admin-event-quick__row">
+                    <label
+                      className={`admin-event-quick__field${err('venue') ? ' is-invalid' : ''}`}
+                      htmlFor="quick-event-venue"
+                    >
+                      <span className="admin-event-quick__label">{t('admin.eventEditor.venue')}</span>
+                      <input
+                        id="quick-event-venue"
+                        name="venue"
+                        required
+                        value={draft.venue}
+                        aria-invalid={Boolean(err('venue'))}
+                        placeholder={t('admin.eventEditor.venuePlaceholder')}
+                        onChange={(event) => patch({ ...draft, venue: event.target.value })}
+                        disabled={!canEdit || submitting}
+                      />
+                      {err('venue') ? <small role="alert">{err('venue')}</small> : null}
+                    </label>
+
+                    <label
+                      className={`admin-event-quick__field${err('location') ? ' is-invalid' : ''}`}
+                      htmlFor="quick-event-location"
+                    >
+                      <span className="admin-event-quick__label">
+                        {t('admin.eventEditor.location')}
+                      </span>
+                      <input
+                        id="quick-event-location"
+                        name="location"
+                        required
+                        value={draft.location}
+                        aria-invalid={Boolean(err('location'))}
+                        placeholder={t('admin.eventEditor.locationPlaceholder')}
+                        onChange={(event) => patch({ ...draft, location: event.target.value })}
+                        disabled={!canEdit || submitting}
+                      />
+                      {err('location') ? <small role="alert">{err('location')}</small> : null}
+                    </label>
+                  </div>
+                </div>
+
+                <div
+                  className="admin-event-quick__section"
+                  role="group"
+                  aria-labelledby="quick-event-capacity"
+                >
+                  <h3 className="admin-event-quick__section-title" id="quick-event-capacity">
+                    {t('admin.eventQuickCreate.sectionCapacity')}
+                  </h3>
+                  <div className="admin-event-quick__row admin-event-quick__row--capacity">
+                    <label
+                      className={`admin-event-quick__field admin-event-quick__field--slots${err('slots') ? ' is-invalid' : ''}`}
+                      htmlFor="quick-event-slots"
+                    >
+                      <span className="admin-event-quick__label">
+                        {t('admin.eventEditor.slotsShortLabel')}
+                      </span>
+                      <input
+                        id="quick-event-slots"
+                        name="slots"
+                        required
+                        type="number"
+                        min="1"
+                        max="5000"
+                        value={draft.slots}
+                        aria-invalid={Boolean(err('slots'))}
+                        onChange={(event) => patch({ ...draft, slots: event.target.value })}
+                        disabled={!canEdit || submitting}
+                      />
+                      {err('slots') ? <small role="alert">{err('slots')}</small> : null}
+                    </label>
+
+                    {/* Acceso al meet: mismo control y mismo copy que la consola de
+                        operación, para que no digan dos cosas distintas. */}
+                    <div className="admin-event-quick__access">
+                      <AdminFilterChipGroup
+                        compact
+                        disabled={!canEdit || submitting}
+                        id="quick-event-access"
+                        label={t('admin.eventEditor.accessLabel')}
+                        value={requiresMembership ? 'members' : 'open'}
+                        onChange={(value) =>
+                          patch({ ...draft, requiresMembership: value === 'members' })
+                        }
+                        options={accessOptions}
+                      />
+                    </div>
+                  </div>
+                  <p className="admin-event-quick__access-note">
+                    {requiresMembership ? (
+                      <ShieldCheck size={14} aria-hidden />
+                    ) : (
+                      <Unlock size={14} aria-hidden />
+                    )}
+                    {requiresMembership
+                      ? t('admin.eventState.accessMembersNote')
+                      : t('admin.eventState.accessOpenNote')}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+            {stepId === 'sales' ? (
               <div
-                className="admin-event-quick__section"
+                className="admin-event-quick__body"
                 role="group"
-                aria-labelledby="quick-event-registration"
+                aria-labelledby="quick-step-sales"
               >
-                <h3 className="admin-event-quick__section-title" id="quick-event-registration">
-                  {t('admin.eventQuickCreate.sectionRegistration')}
+                <h3 className="admin-event-quick__step-title" id="quick-step-sales">
+                  {t('admin.eventQuickCreate.step_sales')}
                 </h3>
-                <AdminFilterChipGroup
-                  compact
-                  disabled={!canEdit || submitting}
-                  id="quick-event-registration-mode"
-                  label={t('admin.eventQuickCreate.regLabel')}
-                  value={registrationMode}
-                  onChange={setRegistrationMode}
-                  options={registrationOptions}
-                />
-                {registrationMode === 'scheduled' ? (
+                <div
+                  className="admin-event-quick__section"
+                  role="group"
+                  aria-labelledby="quick-event-price"
+                >
+                  <h3 className="admin-event-quick__section-title" id="quick-event-price">
+                    {t('admin.eventQuickCreate.sectionPrice')}
+                  </h3>
                   <label
-                    className={`admin-event-quick__field${err('registrationOpensAt') ? ' is-invalid' : ''}`}
-                    htmlFor="quick-event-registration-opens"
+                    className={`admin-event-quick__field admin-event-quick__field--price${err('pricing.registration') ? ' is-invalid' : ''}`}
+                    htmlFor="quick-event-price-registration"
                   >
                     <span className="admin-event-quick__label">
-                      {t('admin.eventEditor.supabase.registrationOpensAt')}
+                      {t('admin.eventEditor.priceRegistration')}
                     </span>
-                    <input
-                      id="quick-event-registration-opens"
-                      name="registrationOpensAt"
-                      required
-                      type="datetime-local"
-                      value={draft.registrationOpensAt ?? ''}
-                      aria-invalid={Boolean(err('registrationOpensAt'))}
-                      onChange={(event) =>
-                        patch({ ...draft, registrationOpensAt: event.target.value })
-                      }
-                      disabled={!canEdit || submitting}
-                    />
-                    {err('registrationOpensAt') ? (
-                      <small role="alert">{err('registrationOpensAt')}</small>
+                    <span className="admin-event-quick__money">
+                      <span aria-hidden>{t('admin.eventEditor.priceCurrency')}</span>
+                      <input
+                        id="quick-event-price-registration"
+                        name="pricing.registration"
+                        min={1}
+                        required
+                        type="number"
+                        value={draft.pricing?.registration ?? DEFAULT_EVENT_PRICING.registration}
+                        aria-invalid={Boolean(err('pricing.registration'))}
+                        onChange={(event) =>
+                          patch(updatePricingField(draft, 'registration', event.target.value))
+                        }
+                        disabled={!canEdit || submitting}
+                      />
+                    </span>
+                    {err('pricing.registration') ? (
+                      <small role="alert">{err('pricing.registration')}</small>
                     ) : null}
                   </label>
-                ) : null}
-                <p className="admin-event-quick__access-note">
-                  <CalendarDays size={14} aria-hidden />
-                  {t(
-                    `admin.eventQuickCreate.reg${registrationMode[0].toUpperCase()}${registrationMode.slice(1)}Note`,
-                  )}
-                </p>
-              </div>
+                  <p className="admin-event-quick__access-note">
+                    {t('admin.eventQuickCreate.priceNote')}
+                  </p>
+                  {draft.salesIntent === 'announce' ? (
+                    <p className="admin-event-quick__access-note">
+                      <Banknote size={14} aria-hidden />
+                      {t('admin.eventQuickCreate.announceNote')}
+                    </p>
+                  ) : null}
+                </div>
 
-              <div
-                className="admin-event-quick__section"
-                role="group"
-                aria-labelledby="quick-event-visibility"
-              >
-                <h3 className="admin-event-quick__section-title" id="quick-event-visibility">
-                  {t('admin.eventQuickCreate.sectionVisibility')}
-                </h3>
-                <AdminFilterChipGroup
-                  compact
-                  disabled={!canEdit || submitting}
-                  id="quick-event-visibility-mode"
-                  label={t('admin.eventQuickCreate.visLabel')}
-                  value={draft.published === true ? 'published' : 'hidden'}
-                  onChange={(value) => patch({ ...draft, published: value === 'published' })}
-                  options={visibilityOptions}
-                />
-                <p className="admin-event-quick__access-note">
-                  {draft.published === true ? (
-                    <Eye size={14} aria-hidden />
-                  ) : (
-                    <EyeOff size={14} aria-hidden />
-                  )}
-                  {draft.published === true
-                    ? t('admin.eventQuickCreate.visPublishedNote')
-                    : t('admin.eventQuickCreate.visHiddenNote')}
-                </p>
-              </div>
-
-              <div
-                className="admin-event-quick__section"
-                role="group"
-                aria-labelledby="quick-event-payments"
-              >
-                <h3 className="admin-event-quick__section-title" id="quick-event-payments">
-                  {t('admin.eventQuickCreate.sectionPayments')}
-                </h3>
-                <p className="admin-event-quick__access-note">
-                  <Banknote size={14} aria-hidden />
-                  {t('admin.eventQuickCreate.paymentsNote')}
-                </p>
-                <EventPaymentChannelMatrix
-                  idPrefix="quick"
-                  showLead={false}
-                  value={draft.paymentChannelOverrides}
-                  onChange={(next) => patch({ ...draft, paymentChannelOverrides: next })}
-                  platform={platformChannels.platform}
-                  platformStatus={platformChannels.status}
-                  canEdit={canEdit && !submitting}
-                  ticketError={err('paymentChannelOverrides.ticket')}
-                />
-                {transferOpen ? (
-                  <label className="admin-event-quick__field" htmlFor="quick-event-bank-profile">
-                    <span className="admin-event-quick__label">
-                      {t('admin.eventEditor.bankTransferProfile')}
-                    </span>
-                    <select
-                      id="quick-event-bank-profile"
-                      name="bankTransferProfileId"
-                      value={draft.bankTransferProfileId ?? ''}
-                      onChange={(event) =>
-                        patch({ ...draft, bankTransferProfileId: event.target.value || null })
-                      }
-                      disabled={!canEdit || submitting}
+                <div
+                  className="admin-event-quick__section"
+                  role="group"
+                  aria-labelledby="quick-event-registration"
+                >
+                  <h3 className="admin-event-quick__section-title" id="quick-event-registration">
+                    {t('admin.eventQuickCreate.sectionRegistration')}
+                  </h3>
+                  <AdminFilterChipGroup
+                    compact
+                    disabled={!canEdit || submitting}
+                    id="quick-event-registration-mode"
+                    label={t('admin.eventQuickCreate.regLabel')}
+                    value={registrationMode}
+                    onChange={setRegistrationMode}
+                    options={registrationOptions}
+                  />
+                  {registrationMode === 'scheduled' ? (
+                    <label
+                      className={`admin-event-quick__field${err('registrationOpensAt') ? ' is-invalid' : ''}`}
+                      htmlFor="quick-event-registration-opens"
                     >
-                      <option value="">{t('admin.eventEditor.bankTransferProfileNone')}</option>
-                      {bankProfiles.map((profile) => (
-                        <option key={profile.id} value={profile.id}>
-                          {profile.name}
-                          {profile.config?.alias ? ` · ${profile.config.alias}` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-              </div>
+                      <span className="admin-event-quick__label">
+                        {t('admin.eventEditor.supabase.registrationOpensAt')}
+                      </span>
+                      <input
+                        id="quick-event-registration-opens"
+                        name="registrationOpensAt"
+                        required
+                        type="datetime-local"
+                        value={draft.registrationOpensAt ?? ''}
+                        aria-invalid={Boolean(err('registrationOpensAt'))}
+                        onChange={(event) =>
+                          patch({ ...draft, registrationOpensAt: event.target.value })
+                        }
+                        disabled={!canEdit || submitting}
+                      />
+                      {err('registrationOpensAt') ? (
+                        <small role="alert">{err('registrationOpensAt')}</small>
+                      ) : null}
+                    </label>
+                  ) : null}
+                  <p className="admin-event-quick__access-note">
+                    <CalendarDays size={14} aria-hidden />
+                    {t(
+                      `admin.eventQuickCreate.reg${registrationMode[0].toUpperCase()}${registrationMode.slice(1)}Note`,
+                    )}
+                  </p>
+                </div>
 
+                <div
+                  className="admin-event-quick__section"
+                  role="group"
+                  aria-labelledby="quick-event-payments"
+                >
+                  <h3 className="admin-event-quick__section-title" id="quick-event-payments">
+                    {t('admin.eventQuickCreate.sectionPayments')}
+                  </h3>
+                  <p className="admin-event-quick__access-note">
+                    <Banknote size={14} aria-hidden />
+                    {t('admin.eventQuickCreate.paymentsNote')}
+                  </p>
+                  <EventPaymentChannelMatrix
+                    idPrefix="quick"
+                    showLead={false}
+                    value={draft.paymentChannelOverrides}
+                    onChange={(next) => patch({ ...draft, paymentChannelOverrides: next })}
+                    platform={platformChannels.platform}
+                    platformStatus={platformChannels.status}
+                    canEdit={canEdit && !submitting}
+                    ticketError={err('paymentChannelOverrides.ticket')}
+                  />
+                  {transferOpen ? (
+                    <label className="admin-event-quick__field" htmlFor="quick-event-bank-profile">
+                      <span className="admin-event-quick__label">
+                        {t('admin.eventEditor.bankTransferProfile')}
+                      </span>
+                      <select
+                        id="quick-event-bank-profile"
+                        name="bankTransferProfileId"
+                        value={draft.bankTransferProfileId ?? ''}
+                        onChange={(event) =>
+                          patch({ ...draft, bankTransferProfileId: event.target.value || null })
+                        }
+                        disabled={!canEdit || submitting}
+                      >
+                        <option value="">{t('admin.eventEditor.bankTransferProfileNone')}</option>
+                        {bankProfiles.map((profile) => (
+                          <option key={profile.id} value={profile.id}>
+                            {profile.name}
+                            {profile.config?.alias ? ` · ${profile.config.alias}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+            {stepId === 'page' ? (
+              <div
+                className="admin-event-quick__body"
+                role="group"
+                aria-labelledby="quick-step-page"
+              >
+                <h3 className="admin-event-quick__step-title" id="quick-step-page">
+                  {t('admin.eventQuickCreate.step_page')}
+                </h3>
+                <div
+                  className="admin-event-quick__section"
+                  role="group"
+                  aria-labelledby="quick-event-landing"
+                >
+                  <h3 className="admin-event-quick__section-title" id="quick-event-landing">
+                    {t('admin.eventQuickCreate.sectionLanding')}
+                  </h3>
+                  <AdminFilterChipGroup
+                    compact
+                    disabled={!canEdit || submitting}
+                    id="quick-event-landing-template"
+                    label={t('admin.eventEditor.landingTemplateLabel')}
+                    value={
+                      normalizeEventLanding(draft.landing ?? emptyEventLanding('meet')).templateId
+                    }
+                    onChange={(templateId) =>
+                      patch({
+                        ...draft,
+                        landing: {
+                          ...normalizeEventLanding(draft.landing ?? emptyEventLanding(templateId)),
+                          templateId,
+                        },
+                      })
+                    }
+                    options={[
+                      ['meet', t('admin.eventEditor.landingTemplateMeet')],
+                      ['editorial', t('admin.eventEditor.landingTemplateEditorial')],
+                      ['submission', t('admin.eventEditor.landingTemplateSubmission')],
+                      ['builder', t('admin.eventEditor.landingTemplateBuilder')],
+                    ]}
+                  />
+                  <p className="admin-event-quick__access-note">
+                    {normalizeEventLanding(draft.landing).templateId === 'editorial'
+                      ? t('admin.eventEditor.landingTemplateEditorialHint')
+                      : normalizeEventLanding(draft.landing).templateId === 'submission'
+                        ? t('admin.eventEditor.landingTemplateSubmissionHint')
+                        : normalizeEventLanding(draft.landing).templateId === 'builder'
+                          ? t('admin.eventEditor.landingTemplateBuilderHint')
+                          : t('admin.eventEditor.landingTemplateMeetHint')}
+                  </p>
+                  <AdminFilterChipGroup
+                    compact
+                    disabled={!canEdit || submitting}
+                    id="quick-event-landing-theme"
+                    label={t('admin.eventEditor.landingThemeLabel')}
+                    value={
+                      normalizeEventLanding(draft.landing ?? emptyEventLanding('meet')).themeId
+                    }
+                    onChange={(themeId) =>
+                      patch({
+                        ...draft,
+                        landing: {
+                          ...normalizeEventLanding(draft.landing ?? emptyEventLanding('meet')),
+                          themeId,
+                        },
+                      })
+                    }
+                    options={EVENT_LANDING_THEMES.map((themeId) => [
+                      themeId,
+                      t(`admin.eventEditor.landingTheme_${themeId.replace(/-/g, '_')}`),
+                    ])}
+                  />
+                </div>
+
+                <div
+                  className="admin-event-quick__section"
+                  role="group"
+                  aria-labelledby="quick-event-visibility"
+                >
+                  <h3 className="admin-event-quick__section-title" id="quick-event-visibility">
+                    {t('admin.eventQuickCreate.sectionVisibility')}
+                  </h3>
+                  <AdminFilterChipGroup
+                    compact
+                    disabled={!canEdit || submitting}
+                    id="quick-event-visibility-mode"
+                    label={t('admin.eventQuickCreate.visLabel')}
+                    value={draft.published === true ? 'published' : 'hidden'}
+                    onChange={(value) => patch({ ...draft, published: value === 'published' })}
+                    options={visibilityOptions}
+                  />
+                  <p className="admin-event-quick__access-note">
+                    {draft.published === true ? (
+                      <Eye size={14} aria-hidden />
+                    ) : (
+                      <EyeOff size={14} aria-hidden />
+                    )}
+                    {draft.published === true
+                      ? t('admin.eventQuickCreate.visPublishedNote')
+                      : t('admin.eventQuickCreate.visHiddenNote')}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="admin-event-quick__messages">
               {created.count > 0 ? (
                 <p className="admin-event-quick__created" role="status">
                   <Check size={15} aria-hidden />
@@ -826,34 +1142,63 @@ export default function AdminEventQuickCreate({
               </button>
             ) : null}
           </div>
-          <button
-            type="button"
-            className="admin-event-quick__cancel"
-            onClick={requestCancel}
-            disabled={submitting}
-          >
-            {created.count > 0 ? t('admin.eventQuickCreate.done') : t('common.cancel')}
-          </button>
-          <Button
-            type="button"
-            variant="outline"
-            className="btn--small"
-            disabled={!canEdit || submitting || logoPending}
-            onClick={() => void submit({ another: true })}
-          >
-            {t('admin.eventQuickCreate.submitAnother')}
-          </Button>
-          <Button
-            type="submit"
-            variant="gold"
-            className="btn--small"
-            disabled={!canEdit || submitting || logoPending}
-          >
-            <Plus size={15} aria-hidden />
-            {submitting
-              ? t('admin.eventQuickCreate.submitting')
-              : t('admin.eventQuickCreate.submit')}
-          </Button>
+          {step > 0 ? (
+            <button
+              type="button"
+              className="admin-event-quick__cancel"
+              onClick={() => showStep(step - 1)}
+              disabled={submitting}
+            >
+              <ArrowLeft size={14} aria-hidden />
+              {t('admin.eventQuickCreate.stepBack')}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="admin-event-quick__cancel"
+              onClick={requestCancel}
+              disabled={submitting}
+            >
+              {created.count > 0 ? t('admin.eventQuickCreate.done') : t('common.cancel')}
+            </button>
+          )}
+          {lastStep ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="btn--small"
+                disabled={!canEdit || submitting || logoPending}
+                onClick={() => void submit({ another: true })}
+              >
+                {t('admin.eventQuickCreate.submitAnother')}
+              </Button>
+              <Button
+                type="submit"
+                variant="gold"
+                className="btn--small"
+                disabled={!canEdit || submitting || logoPending}
+              >
+                <Plus size={15} aria-hidden />
+                {submitting
+                  ? t('admin.eventQuickCreate.submitting')
+                  : t('admin.eventQuickCreate.submit')}
+              </Button>
+            </>
+          ) : (
+            <Button
+              type="button"
+              variant="gold"
+              className="btn--small"
+              disabled={!canEdit || submitting}
+              onClick={goNext}
+            >
+              {t('admin.eventQuickCreate.stepNext', {
+                step: t(`admin.eventQuickCreate.step_${STEPS[step + 1]}`),
+              })}
+              <ArrowRight size={15} aria-hidden />
+            </Button>
+          )}
         </div>
       </form>
     </section>

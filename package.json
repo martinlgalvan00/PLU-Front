@@ -45,6 +45,7 @@
     "db:verify:fixed-price": "node scripts/verify-fixed-price-promotion.mjs",
     "db:verify:requote": "node scripts/verify-requote-open-order.mjs",
     "db:verify:cancel": "node scripts/verify-cancel-open-order.mjs",
+    "db:verify:order-delete": "node scripts/verify-delete-athlete-order.mjs",
     "db:verify:schema": "node scripts/verify-schema-posture.mjs",
     "supabase:assert": "node scripts/assert-supabase-connectivity.mjs",
     "supabase:diagnose": "node scripts/diagnose-supabase-integration.mjs",

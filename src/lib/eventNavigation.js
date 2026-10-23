@@ -69,6 +69,30 @@ export function isPublicCatalogStubEvent(event) {
 
 export const isHomeCalendarStubEvent = isPublicCatalogStubEvent
 
+/**
+ * Landing con el interruptor apagado: el evento existe pero su plataforma está
+ * "en construcción". El evento mapeado trae `landing`; la fila cruda, `rules.landing`.
+ */
+export function isUnderConstructionEvent(event) {
+  const landing = event?.landing ?? event?.rules?.landing
+  return landing?.publicVisible === false
+}
+
+/**
+ * Eventos publicados cuya landing está en construcción. Salen del catálogo, los
+ * destacados y los countdowns (no tienen datos), pero el menú los muestra y al
+ * tocarlos la landing dice "Plataforma en construcción".
+ */
+export function getUnderConstructionEvents(events = []) {
+  return (Array.isArray(events) ? events : []).filter(
+    (event) =>
+      event?.slug &&
+      event.published !== false &&
+      !isPublicCatalogStubEvent(event) &&
+      isUnderConstructionEvent(event),
+  )
+}
+
 export function getPublicCatalogEvents(events = [], _options = {}) {
   // El catálogo público nunca lista stubs ni eventos ocultos. `_options
   // .includeDevelopmentStubs` se ignora a propósito: en Vite/Vitest
@@ -82,14 +106,10 @@ export function getPublicCatalogEvents(events = [], _options = {}) {
   return (Array.isArray(events) ? events : []).filter((event) => {
     if (!event || event.published === false || isPublicCatalogStubEvent(event)) return false
 
-    // Submission puede mantenerse configurado internamente sin aparecer en
-    // superficies publicas hasta que el staff habilite su landing.
-    const landing = event.rules?.landing
-    const isHiddenSubmission =
-      String(landing?.templateId ?? '').toLowerCase() === 'submission' &&
-      landing?.publicVisible === false
-
-    return !isHiddenSubmission
+    // Una landing con el interruptor apagado se puede preparar con el evento ya
+    // configurado: no aparece en listados ni countdowns (ver
+    // `getUnderConstructionEvents` para el menú y la landing "en construcción").
+    return !isUnderConstructionEvent(event)
   })
 }
 

@@ -262,6 +262,9 @@ describe('alta de evento', () => {
     })
     await screen.findByText('Fondo quitado.')
 
+    // El alta es guiada: "Crear evento" está en el último paso.
+    fireEvent.click(screen.getByRole('button', { name: /^Siguiente/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Siguiente/ }))
     fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
 
     await waitFor(() => expect(onSetEventLogo).toHaveBeenCalledTimes(1))

@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowLeft, CalendarDays, MapPin, Sparkles } from 'lucide-react'
 import submissionHeroImage from '../assets/DSC01606-display.webp'
 import { eventLandingFromEvent } from '../lib/eventLanding.js'
+import { landingPaletteStyle } from '../lib/eventLandingPalette.js'
 import { eventPublicTitle } from '../lib/eventPublicSurface.js'
 import EventPublicMaterials from '../components/ui/EventPublicMaterials.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
@@ -107,6 +108,7 @@ export default function SubmissionLandingPage({
       className="page submission-landing event-landing-theme"
       data-event-theme={landing.themeId}
       data-phase={landing.phase}
+      style={landingPaletteStyle(landing.layout, { withBackground: false })}
     >
       <section className="submission-landing__hero">
         <img

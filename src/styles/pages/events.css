@@ -985,6 +985,16 @@
   }
 }
 
+.events-page--plu-ref .events-page__notice {
+  border-left: 2px solid var(--color-brand-celeste);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 18px;
+  max-width: 62ch;
+  padding: 2px 0 2px 12px;
+}
+
 .events-page--plu-ref .events-page__toolbar {
   align-items: center;
   border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);

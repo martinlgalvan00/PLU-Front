@@ -237,6 +237,16 @@ export async function revalidatePaymentOrder(orderId, { apply = true, providerPa
   })
 }
 
+/**
+ * Baja de una fila de Cobros que no se cobró. Es un POST y no un DELETE para que
+ * el motivo viaje en el cuerpo sin depender de cómo cada proxy trata ese verbo.
+ */
+export async function deleteAthletePaymentOrder(orderId, reason) {
+  return apiPost(`/api/payments/athlete-orders/${encodeURIComponent(orderId)}/delete`, {
+    reason,
+  })
+}
+
 /** Barrido de órdenes no aprobadas contra el proveedor. Sin `apply` no toca nada. */
 export async function revalidatePaymentOrders({ sinceDays = 30, limit = 25, apply = false } = {}) {
   return apiPost('/api/payments/operations/revalidate', { sinceDays, limit, apply })

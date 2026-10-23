@@ -97,11 +97,15 @@ export default function AdminFilterToolbar({
   const popoverRef = useRef(null)
 
   const railFilters = useMemo(() => filters.filter((filter) => filter.surface === 'rail'), [filters])
+  // Alcance de la lista (p. ej. el evento): un selector siempre visible junto al
+  // buscador. No se esconde en el popover porque decide qué filas ve y qué
+  // exporta quien opera varios meets a la vez.
+  const scopeFilters = useMemo(() => filters.filter((filter) => filter.surface === 'scope'), [filters])
 
   const quickChips = useMemo(() => {
     const chips = []
     for (const filter of filters) {
-      if (filter.surface === 'rail') continue
+      if (filter.surface === 'rail' || filter.surface === 'scope') continue
       const quick =
         filter.variant === 'toggle' && !filter.advanced ? resolveToggle(filter) : resolveQuick(filter)
       if (!quick) continue
@@ -118,7 +122,10 @@ export default function AdminFilterToolbar({
   const popoverFilters = useMemo(
     () =>
       filters.filter(
-        (filter) => filter.surface !== 'rail' && !(filter.variant === 'toggle' && !filter.advanced),
+        (filter) =>
+          filter.surface !== 'rail' &&
+          filter.surface !== 'scope' &&
+          !(filter.variant === 'toggle' && !filter.advanced),
       ),
     [filters],
   )
@@ -325,6 +332,27 @@ export default function AdminFilterToolbar({
     <div className={['admin-toolbar', className].filter(Boolean).join(' ')}>
       <div className="admin-toolbar__row admin-toolbar__row--search">
         <AdminFilterSearch placeholder={placeholder} query={query} onQueryChange={onQueryChange} />
+
+        {scopeFilters.map((filter) => (
+          <span
+            key={filter.id}
+            className={`admin-toolbar__select admin-toolbar__scope${isFilterActive(filter) ? ' is-active' : ''}`}
+          >
+            <select
+              aria-label={filter.label}
+              value={filter.value}
+              disabled={filter.disabled}
+              onChange={(event) => filter.onChange(event.target.value)}
+            >
+              {(filter.options ?? []).map(([value, optionLabel, optionCount]) => (
+                <option key={value} value={value}>
+                  {hasCount(optionCount) ? `${optionLabel} (${optionCount})` : optionLabel}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={14} aria-hidden />
+          </span>
+        ))}
 
         {showFiltersButton ? (
           <button

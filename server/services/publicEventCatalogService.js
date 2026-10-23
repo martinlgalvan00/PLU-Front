@@ -3,16 +3,38 @@ function firstEmbeddedRow(value) {
 }
 
 /**
- * Submission puede prepararse con el evento ya configurado, sin exponerlo
- * todavía en catálogo, destacados ni navegación. La decisión vive en la misma
- * landing para no mezclarla con `published`, que también gobierna cobros.
+ * Una landing con el interruptor apagado (cualquier plantilla) se puede preparar
+ * con el evento ya configurado sin exponer sus datos. La decisión vive en la
+ * misma landing para no mezclarla con `published`, que también gobierna cobros.
  */
 export function isPublicCatalogEvent(row) {
-  const landing = row?.rules?.landing
-  return !(
-    String(landing?.templateId ?? '').toLowerCase() === 'submission' &&
-    landing?.publicVisible === false
-  )
+  return row?.rules?.landing?.publicVisible !== false
+}
+
+/**
+ * Lo único que el público ve de una landing apagada: que el evento existe y que
+ * su plataforma está en construcción. Sin fecha, sede, precios, cupos ni
+ * descripción. Alcanza para que el menú lo muestre y la landing diga "en
+ * construcción" en vez de un 404.
+ */
+export function underConstructionCatalogEvent(row) {
+  const landing = row?.rules?.landing ?? {}
+  const { palette, motion } = landing.layout ?? {}
+  return {
+    id: row?.id,
+    slug: row?.slug,
+    title: row?.title,
+    published: true,
+    status: 'proximamente',
+    rules: {
+      landing: {
+        templateId: landing.templateId,
+        themeId: landing.themeId,
+        publicVisible: false,
+        ...(palette || motion ? { layout: { ...(palette ? { palette } : {}), ...(motion ? { motion } : {}) } } : {}),
+      },
+    },
+  }
 }
 
 /**

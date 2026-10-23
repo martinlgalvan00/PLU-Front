@@ -222,14 +222,16 @@ describe('Inscripciones — rieles etiquetados', () => {
     )
   }
 
-  it('nombra el estado en la barra y el evento dentro de Filtros', () => {
+  it('nombra el estado en la barra y deja el evento a la vista junto al buscador', () => {
     renderRegistrations()
 
     // El estado parte el listado: queda a la vista, como grupo etiquetado.
     expect(screen.getByRole('group', { name: 'Estado' })).toBeTruthy()
-    // El evento se elige en el popover de «Filtros», también como grupo etiquetado.
+    // El evento decide qué filas se ven y qué se exporta: selector siempre visible,
+    // sin abrir «Filtros».
+    expect(screen.getByRole('combobox', { name: 'Evento' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /^Filtros/ }))
-    expect(screen.getByRole('group', { name: 'Evento' })).toBeTruthy()
+    expect(screen.getAllByRole('combobox', { name: 'Evento' })).toHaveLength(1)
   })
 
   it('mantiene el texto de los exports para poder ocultarlo solo por CSS', () => {

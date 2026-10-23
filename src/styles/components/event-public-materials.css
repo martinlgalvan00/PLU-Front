@@ -125,3 +125,35 @@
     gap: 22px;
   }
 }
+
+.event-public-materials__form {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.event-public-materials__form-link {
+  align-items: center;
+  background: var(--accent, #f7c600);
+  color: #111;
+  display: inline-flex;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 20px;
+  text-decoration: none;
+}
+
+.event-public-materials__form-link:focus-visible {
+  outline: 2px solid var(--text, #f8f8f8);
+  outline-offset: 3px;
+}
+
+.event-public-materials__form-qr {
+  background: #fff;
+  display: block;
+  height: 132px;
+  padding: 6px;
+  width: 132px;
+}

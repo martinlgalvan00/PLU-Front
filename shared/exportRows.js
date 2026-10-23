@@ -9,6 +9,7 @@ import {
   toCalendarDate,
   todayCalendarDate,
 } from './ageDivision.js'
+import { formatModalities } from './registrationSelection.js'
 
 export const EXPORT_ROW_LIMIT = 5000
 
@@ -75,6 +76,8 @@ export function buildAdminExportRows(registrations, athletes, memberships, payme
       division_inscrita: divisionFields.divisionDeclared,
       division_desajuste: divisionFields.divisionMismatch ? '1' : '',
       division_open_upgrade: divisionFields.divisionOpenUpgrade ? '1' : '',
+      segunda_division: registration.secondaryDivision ?? '',
+      modalidades: formatModalities(registration.modalities),
       categoria: registration.category ?? '',
       peso: registration.bodyweight ?? '',
       codigo_afiliado: membership?.memberCode ?? '',
