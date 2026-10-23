@@ -574,6 +574,12 @@ export default function EventsSection({
   const deleteTargetRef = useRef(null)
   /** Cierre dirty-aware del editor embebido en la consola. */
   const exitEditRef = useRef(null)
+  // `formOpen` y el borrador del último render, para callbacks que terminan
+  // después (un PATCH en vuelo, el "Deshacer" de un aviso).
+  const formOpenRef = useRef(false)
+  formOpenRef.current = formOpen
+  const draftRef = useRef(null)
+  draftRef.current = draft
   /** Si el editor dirty pide confirmación, abrir esta sección al descartar. */
   const pendingConsoleSectionRef = useRef(null)
   const pendingConsoleChapterRef = useRef(null)
@@ -627,6 +633,17 @@ export default function EventsSection({
     if (formOpen && draft.id && exitEditRef.current) {
       pendingConsoleSectionRef.current = CONSOLE_BACK
       exitEditRef.current()
+      return
+    }
+    // En el Resumen el editor no está montado pero el borrador sigue vivo (la
+    // vista previa lo usa): si tiene cambios, se pregunta antes de tirarlo.
+    if (
+      formOpen &&
+      draft.id &&
+      editorBaselineSignature != null &&
+      getAdminEventDraftSignature(draft) !== editorBaselineSignature &&
+      !window.confirm(t('admin.eventConsole.discardBackConfirm'))
+    ) {
       return
     }
     closeEventConsole()
@@ -1445,7 +1462,7 @@ export default function EventsSection({
    * las inscripciones desde el control de venta y después guardar un título
    * las volvía a cerrar.
    */
-  function syncOpenDraft(pending, event) {
+  function syncOpenDraft(pending, event, slug = event?.slug) {
     const synced = {}
     if (pending.status !== undefined) synced.status = event?.status ?? pending.status
     if (pending.published !== undefined) synced.published = event?.published ?? pending.published
@@ -1458,8 +1475,11 @@ export default function EventsSection({
       if (pending[key] !== undefined) synced[key] = eventDraft?.[key] ?? ''
     }
     if (Object.keys(synced).length === 0) return synced
-    const nextDraft = { ...draft, ...synced }
-    setDraft(nextDraft)
+    // Sobre el borrador de ahora, no el del render que arrancó el pedido: lo
+    // que se editó mientras viajaba el PATCH (o antes de un "Deshacer" del
+    // aviso) no se pisa.
+    if (slug && draftRef.current?.slug !== slug) return synced
+    setDraft((current) => ({ ...current, ...synced }))
     // La línea base avanza solo en lo que se acaba de guardar. Antes pasaba a
     // la firma del borrador entero: si el upsert siguiente fallaba, lo que
     // estaba editado en Datos quedaba como "Sin cambios pendientes", con
@@ -1469,7 +1489,7 @@ export default function EventsSection({
       try {
         return JSON.stringify({ ...JSON.parse(current), ...synced })
       } catch {
-        return getAdminEventDraftSignature(nextDraft)
+        return current
       }
     })
     return synced
@@ -1478,7 +1498,8 @@ export default function EventsSection({
   /** Acciones rápidas y control de venta del workspace: PATCH + borrador abierto al día. */
   async function setEventStateFromWorkspace(slug, payload) {
     const result = await onSetEventState?.(slug, payload)
-    if (!result?.error && formOpen && draft.slug === slug) syncOpenDraft(payload, result?.event)
+    // El borrador se lee al aplicar (no se captura acá): ver `syncOpenDraft`.
+    if (!result?.error && formOpenRef.current) syncOpenDraft(payload, result?.event, slug)
     return result
   }
 

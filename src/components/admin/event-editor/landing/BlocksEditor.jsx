@@ -48,6 +48,8 @@ export default function BlocksEditor({
   imageUploading = false,
   hasSlug = true,
   heroSlot = null,
+  /** Los bloques de ahora (ver `useLandingDraft`): la subida termina después. */
+  getCurrentBlocks = null,
   selectedId = null,
   revealToken = 0,
   onSelectBlock = null,
@@ -113,8 +115,10 @@ export default function BlocksEditor({
   async function uploadImage(block, file) {
     const uploaded = await onImageUpload?.(file)
     if (uploaded?.path) {
+      // Lo que se editó durante la subida (textos, orden, visibilidad) se conserva.
+      const latest = getCurrentBlocks ? getCurrentBlocks() : blocks
       onChangeBlocks(
-        patchBlockProps(blocks, block.id, { path: uploaded.path, url: uploaded.url ?? '' }),
+        patchBlockProps(latest, block.id, { path: uploaded.path, url: uploaded.url ?? '' }),
       )
     }
   }

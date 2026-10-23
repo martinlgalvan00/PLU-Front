@@ -24,12 +24,21 @@ function isFuture(value, now) {
   return !Number.isNaN(date.getTime()) && date > now
 }
 
+function isPast(value, now) {
+  if (!value) return false
+  const date = new Date(value)
+  return !Number.isNaN(date.getTime()) && date < now
+}
+
 /** El modo que representa el borrador tal como está. */
 export function registrationModeOfDraft(draft, now = new Date()) {
   const status = draft?.status ?? 'proximamente'
   if (status === 'finalizado') return 'ended'
   if (status === 'cerrado') return 'closed'
   if (OPEN_STATUSES.has(status)) {
+    // Abierta pero con el cierre ya vencido: para el sitio y el checkout está
+    // cerrada (ver `resolveRegistrationSale`), así que acá también.
+    if (isPast(draft?.registrationClosesAt, now)) return 'closed'
     return isFuture(draft?.registrationOpensAt, now) ? 'scheduled' : 'open'
   }
   return 'soon'
@@ -45,8 +54,12 @@ export function applyRegistrationModeToDraft(draft, mode, now = new Date()) {
       return {
         ...draft,
         status: 'inscripcion_abierta',
-        // Una apertura pendiente la dejaría "abierta" pero sin poder usarse.
+        // Una apertura pendiente o un cierre vencido la dejarían "abierta" pero
+        // sin poder usarse: lo mismo que hace "Abrir ahora" en el control de venta.
         registrationOpensAt: isFuture(draft?.registrationOpensAt, now) ? '' : (draft?.registrationOpensAt ?? ''),
+        registrationClosesAt: isPast(draft?.registrationClosesAt, now)
+          ? ''
+          : (draft?.registrationClosesAt ?? ''),
       }
     case 'closed':
       return { ...draft, status: 'cerrado' }

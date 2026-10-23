@@ -121,7 +121,7 @@ const event = {
 }
 
 /** Con estado real: los efectos que completan campos se ven en el render. */
-function StatefulPage({ athleteData, eventData, initialForm, onUpdateForm }) {
+function StatefulPage({ athleteData, eventData, initialForm, onUpdateForm, registrations = [] }) {
   const [form, setForm] = useState(initialForm)
   return (
     <RegisterPage
@@ -131,7 +131,7 @@ function StatefulPage({ athleteData, eventData, initialForm, onUpdateForm }) {
       payments={[]}
       form={form}
       memberships={[]}
-      registrations={[]}
+      registrations={registrations}
       total={75000}
       onNavigate={() => {}}
       onSubmit={vi.fn(async () => ({}))}
@@ -144,12 +144,13 @@ function StatefulPage({ athleteData, eventData, initialForm, onUpdateForm }) {
   )
 }
 
-function renderEntry({ athleteData = athlete, eventData = event, form = {} } = {}) {
+function renderEntry({ athleteData = athlete, eventData = event, form = {}, registrations = [] } = {}) {
   return render(
     <I18nProvider>
       <StatefulPage
         athleteData={athleteData}
         eventData={eventData}
+        registrations={registrations}
         initialForm={{
           division: 'Junior',
           category: 'Raw',
@@ -214,6 +215,19 @@ describe('RegisterPage — lo que el torneo fija', () => {
     expect(screen.queryByRole('radiogroup', { name: /Categoría de competencia/i })).toBeNull()
     expect(screen.queryByRole('group', { name: /^Modalidad$/i })).toBeNull()
     expect(screen.getAllByText('Es la única que ofrece este torneo.')).toHaveLength(2)
+  })
+
+  it('con la inscripción ya asentada muestra lo que eligió, aunque el torneo acotó la oferta', async () => {
+    renderEntry({
+      eventData: { ...event, offering: { categories: ['Raw'] } },
+      form: { category: 'Single-Ply' },
+      registrations: [
+        { athleteId: 'ath-1', eventSlug: 'pitbull-classic-2026', status: 'confirmada' },
+      ],
+    })
+    await waitForAccessValidation()
+    expect(screen.queryByText('Es la única que ofrece este torneo.')).toBeNull()
+    expect(screen.getByText(/ya quedaron asentadas/)).toBeTruthy()
   })
 
   it('con varias opciones siguen siendo elegibles', async () => {

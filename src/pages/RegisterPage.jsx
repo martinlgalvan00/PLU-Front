@@ -3014,7 +3014,9 @@ export default function RegisterPage({
             options={divisionOptions}
           />
         )}
-        {categoryOptions.length === 1 ? (
+        {/* Con la inscripción ya asentada se muestra lo que eligió (controles
+            deshabilitados), aunque el torneo después haya acotado la oferta. */}
+        {categoryOptions.length === 1 && !committedCompetitionRegistration ? (
           <RegisterFixedChoice
             hint={t('pages.register.fixedChoiceHint')}
             label={t('pages.register.category')}
@@ -3033,7 +3035,7 @@ export default function RegisterPage({
             options={categoryOptions}
           />
         )}
-        {modalityValues.length === 1 ? (
+        {modalityValues.length === 1 && !committedCompetitionRegistration ? (
           <RegisterFixedChoice
             hint={t('pages.register.fixedChoiceHint')}
             label={t('pages.register.modality')}

@@ -51,9 +51,12 @@ function eventRow(overrides = {}) {
 }
 
 /** Doble mínimo: lista de eventos, lectura por slug/id, update y RPCs por nombre. */
-function supabaseDouble({ row = eventRow(), missingWindowRpc = false } = {}) {
+function supabaseDouble({ row = eventRow(), missingWindowRpc = false, failState = false } = {}) {
   const updates = []
   const rpc = vi.fn(async (name) => {
+    if (name === 'staff_set_event_state' && failState) {
+      return { data: null, error: { code: 'PLU02', message: 'Evento no encontrado.' } }
+    }
     if (name === 'staff_set_event_registration_window' && missingWindowRpc) {
       return { data: null, error: { code: 'PGRST202', message: 'Could not find the function in the schema cache' } }
     }
@@ -183,6 +186,36 @@ describe('control de venta — ventana de inscripción', () => {
       const bad = await postState(ctx, { registrationOpensAt: '2026-08-12T13:00:00.000Z' })
       expect(bad.status).toBe(400)
       expect(ctx.supabase.updates).toHaveLength(1)
+    } finally {
+      await ctx.target.close()
+    }
+  })
+})
+
+describe('control de venta — falla a mitad de camino', () => {
+  it('si el cambio de estado falla, repone la ventana anterior', async () => {
+    const ctx = await setup({
+      row: eventRow({ registration_closes_at: '2026-08-10T00:00:00.000Z' }),
+      failState: true,
+    })
+    try {
+      const response = await postState(ctx, {
+        status: 'inscripcion_abierta',
+        registrationOpensAt: '2026-08-12T13:00:00.000Z',
+        registrationClosesAt: null,
+      })
+      expect(response.ok).toBe(false)
+      const windowCalls = ctx.supabase.rpc.mock.calls.filter(
+        ([name]) => name === 'staff_set_event_registration_window',
+      )
+      expect(windowCalls).toHaveLength(2)
+      // La segunda escritura repone lo que había.
+      expect(windowCalls[1][1]).toMatchObject({
+        p_set_opens: true,
+        p_opens_at: null,
+        p_set_closes: true,
+        p_closes_at: '2026-08-10T00:00:00.000Z',
+      })
     } finally {
       await ctx.target.close()
     }

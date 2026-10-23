@@ -42,3 +42,31 @@ describe('modo de inscripción del borrador', () => {
     ).toBe('2026-10-05T10:00')
   })
 })
+
+describe('modo de inscripción — cierre vencido', () => {
+  it('abierta con el cierre ya pasado se lee como cerrada', () => {
+    expect(
+      registrationModeOfDraft(
+        { status: 'inscripcion_abierta', registrationClosesAt: '2026-10-01T10:00' },
+        NOW,
+      ),
+    ).toBe('closed')
+  })
+
+  it('"Abierta ya" borra el cierre vencido y conserva uno futuro', () => {
+    expect(
+      applyRegistrationModeToDraft({ registrationClosesAt: '2026-10-01T10:00' }, 'open', NOW)
+        .registrationClosesAt,
+    ).toBe('')
+    const reopened = applyRegistrationModeToDraft(
+      { status: 'cerrado', registrationClosesAt: '2026-10-01T10:00' },
+      'open',
+      NOW,
+    )
+    expect(registrationModeOfDraft(reopened, NOW)).toBe('open')
+    expect(
+      applyRegistrationModeToDraft({ registrationClosesAt: '2026-12-01T10:00' }, 'open', NOW)
+        .registrationClosesAt,
+    ).toBe('2026-12-01T10:00')
+  })
+})
