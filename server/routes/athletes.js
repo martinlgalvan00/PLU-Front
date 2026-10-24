@@ -378,15 +378,13 @@ const registrationSchema = z.object({
   // El peso corporal es obligatorio: sin él no se puede ubicar al atleta ni validar el pesaje.
   bodyweightKg: z
     .number({
-      required_error: REGISTRATION_REQUIRED_MESSAGES.bodyweightKg,
-      invalid_type_error: REGISTRATION_REQUIRED_MESSAGES.bodyweightKg,
+      error: REGISTRATION_REQUIRED_MESSAGES.bodyweightKg,
     })
     .min(BODYWEIGHT_KG_RANGE.min, REGISTRATION_REQUIRED_MESSAGES.bodyweightKg)
     .max(BODYWEIGHT_KG_RANGE.max, REGISTRATION_REQUIRED_MESSAGES.bodyweightKg),
   declaredWeightClass: z
     .string({
-      required_error: 'Seleccioná la categoría de peso en la que vas a competir.',
-      invalid_type_error: 'Seleccioná la categoría de peso en la que vas a competir.',
+      error: 'Seleccioná la categoría de peso en la que vas a competir.',
     })
     .trim()
     .min(1, 'Seleccioná la categoría de peso en la que vas a competir.'),
@@ -3973,8 +3971,7 @@ export function createAthleteRoutes({
   )
   const weightClassField = z
     .string({
-      required_error: 'Seleccioná la categoría de peso en la que vas a competir.',
-      invalid_type_error: 'Seleccioná la categoría de peso en la que vas a competir.',
+      error: 'Seleccioná la categoría de peso en la que vas a competir.',
     })
     .trim()
     .min(1, 'Seleccioná la categoría de peso en la que vas a competir.')
@@ -4084,8 +4081,7 @@ export function createAthleteRoutes({
       z.object({
         declaredWeightClass: z
           .string({
-            required_error: 'Seleccioná la categoría de peso en la que vas a competir.',
-            invalid_type_error: 'Seleccioná la categoría de peso en la que vas a competir.',
+            error: 'Seleccioná la categoría de peso en la que vas a competir.',
           })
           .trim()
           .min(1, 'Seleccioná la categoría de peso en la que vas a competir.'),
