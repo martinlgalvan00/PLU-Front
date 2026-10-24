@@ -25,7 +25,9 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Suele tardar ~7', pero con runners lentos `playwright install --with-deps`
+    # llegó a 6,5' (apt) y unit a 7'; con 15' cortaba en medio de Storybook.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
