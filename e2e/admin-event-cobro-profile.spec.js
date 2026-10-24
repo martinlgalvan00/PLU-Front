@@ -156,7 +156,7 @@ test.describe('Panel de eventos: perfil de cobro', () => {
     await expect(page.getByRole('region', { name: /evento seleccionado/i })).toBeVisible({
       timeout: 20_000,
     })
-    await page.getByRole('tab', { name: /ventas y cupos/i }).click()
+    await page.getByRole('tab', { name: /^Venta$/i }).click()
     await page.getByRole('tab', { name: /^Cobro/i }).click()
     await expect(page.locator('#event-bank-profile')).toBeVisible()
   }

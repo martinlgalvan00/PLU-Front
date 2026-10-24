@@ -95,17 +95,20 @@ export const ConfirmandoCancelacion = {
   },
 }
 
-/** Cambiar de medio también deja corregir los datos de la inscripción. */
+/**
+ * Cambiar de medio también deja corregir los datos de la inscripción. Ana tiene
+ * edad de Open: la división se informa (no hay otra para elegir) y quedan
+ * categoría y modalidad.
+ */
 export const CambiandoDeMedio = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await canvas.findByRole('button', { name: /elegir otro medio/i })
     await canvas.getByRole('button', { name: /elegir otro medio/i }).click()
+    await waitFor(() => expect(canvas.getByText(/por tu edad competís en open/i)).toBeVisible())
     await waitFor(() =>
-      expect(canvas.getByRole('radiogroup', { name: /^División$/i })).toBeVisible(),
+      expect(canvas.getByRole('radiogroup', { name: /^Categoría de competencia$/i })).toBeVisible(),
     )
-    await waitFor(() =>
-      expect(canvas.getByRole('radiogroup', { name: /^Modalidad$/i })).toBeVisible(),
-    )
+    await waitFor(() => expect(canvas.getByRole('group', { name: /^Modalidad$/i })).toBeVisible())
   },
 }
