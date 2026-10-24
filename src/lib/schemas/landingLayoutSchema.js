@@ -41,12 +41,22 @@ export function buildLandingLayoutSchema(z) {
   return z.object({
     blocks: z
       .array(
-        z.object({
-          id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,39}$/, 'landingLayoutBlockIdInvalid'),
-          type: z.enum(blockTypes),
-          visible: z.boolean().optional(),
-          props: props.optional(),
-        }),
+        z
+          .object({
+            id: z.string(),
+            type: z.enum(blockTypes),
+            visible: z.boolean().optional(),
+            props: props.optional(),
+          })
+          // Integrado: su id es el tipo (`weighIns` lleva mayúscula). Propio:
+          // minúsculas, números y guiones.
+          .refine(
+            (block) =>
+              CORE_BLOCK_ORDER.includes(block.type)
+                ? block.id === block.type
+                : /^[a-z0-9][a-z0-9-]{0,39}$/.test(block.id),
+            { message: 'landingLayoutBlockIdInvalid', path: ['id'] },
+          ),
       )
       .max(LANDING_BLOCK_LIMITS.maxBlocks, 'landingLayoutBlocksMax')
       .optional(),

@@ -150,7 +150,9 @@ export function normalizeLandingBlock(raw) {
     : String(raw.id ?? '')
         .trim()
         .toLowerCase()
-  if (!BLOCK_ID_PATTERN.test(id)) return null
+  // Los integrados usan su tipo como id (`weighIns` incluido): el patrón de
+  // minúsculas es para los ids que elige el staff en los bloques propios.
+  if (!isCoreBlockType(type) && !BLOCK_ID_PATTERN.test(id)) return null
   const locked = isCoreBlockType(type) && CORE_BLOCK_TYPES[type].locked
   const block = { id, type, visible: locked ? true : raw.visible !== false }
   if (isCustomBlockType(type)) block.props = normalizeCustomProps(type, raw.props)
