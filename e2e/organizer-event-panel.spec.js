@@ -189,7 +189,7 @@ test.describe('Organizador: panel de su evento', () => {
       page.getByRole('button', { name: /^publicar$|abrir inscripciones|ocultar del sitio/i }),
     ).toHaveCount(0)
     // Y sí ve las pestañas de gestión, incluido el equipo de puerta.
-    for (const name of [/^datos$/i, /ventas y cupos/i, /pagos/i, /zonas y seguridad/i]) {
+    for (const name of [/^evento$/i, /^venta$/i, /pagos/i, /zonas y seguridad/i]) {
       await expect(workspace.getByRole('tab', { name }).first()).toBeVisible()
     }
 
@@ -221,7 +221,7 @@ test.describe('Organizador: panel de su evento', () => {
     await page.goto(buildAdminEventPath(eventA.slug))
     const workspace = page.getByRole('region', { name: /evento seleccionado/i })
     await workspace
-      .getByRole('tab', { name: /ventas y cupos/i })
+      .getByRole('tab', { name: /^Venta$/i })
       .first()
       .click()
     await page.getByRole('tab', { name: /^Cobro/i }).click()
