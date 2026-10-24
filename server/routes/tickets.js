@@ -317,16 +317,15 @@ const ticketOrdersQuerySchema = z.object({
  * Venta de mostrador: la carga un operador desde el panel, no el comprador
  * desde el checkout público. Sin `provider` (siempre `manual`) ni
  * `accessToken` (el comprador es anónimo y no tiene pestaña propia; el token
- * lo genera el repositorio igual que en el flujo público). El límite de 8
- * asistentes es el real: la RPC corta ahí aunque el schema público anuncie
- * hasta 10 (`MAX_ATTENDEES_PER_ORDER`), así que acá no se hereda esa
- * discrepancia. Wise queda afuera: es cobro del exterior en USD con
- * cotización propia, no una venta de mostrador.
+ * lo genera el repositorio igual que en el flujo público). Mismo tope de
+ * asistentes que el checkout (`MAX_ATTENDEES_PER_ORDER`): las dos RPC cortan
+ * en 10 desde 20261231110000. Wise queda afuera: es cobro del exterior en USD
+ * con cotización propia, no una venta de mostrador.
  */
 export const createManualOrderSchema = z
   .object({
     eventSlug: z.string().trim().min(1),
-    attendees: z.array(attendeeSchema).min(1).max(8),
+    attendees: z.array(attendeeSchema).min(1).max(MAX_ATTENDEES_PER_ORDER),
     buyer: z.object({
       // El comprador de mostrador no tiene cuenta: el mail es la única forma
       // de entregarle el QR, así que acá es obligatorio (a diferencia del

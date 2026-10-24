@@ -169,7 +169,7 @@ describe('POST /api/tickets/orders/manual', () => {
     )
   })
 
-  it('más de 8 asistentes responde 400 (el límite real de la RPC, no el del checkout público)', async () => {
+  it('más de 10 asistentes responde 400 (el mismo tope que el checkout y la RPC)', async () => {
     const createOrder = vi.fn()
     const approve = vi.fn()
 
@@ -177,13 +177,36 @@ describe('POST /api/tickets/orders/manual', () => {
       async ({ post }) => {
         const response = await post(
           manualOrderBody({
-            attendees: Array.from({ length: 9 }, (_, index) =>
+            attendees: Array.from({ length: 11 }, (_, index) =>
               attendee({ dni: String(30111222 + index) }),
             ),
           }),
         )
         expect(response.status).toBe(400)
         expect(createOrder).not.toHaveBeenCalled()
+      },
+      { createOrder, approve },
+    )
+  })
+
+  it('10 asistentes llegan a la RPC', async () => {
+    const createOrder = vi
+      .fn()
+      .mockResolvedValue({ order: pendingOrder(), tickets: ticketRows(), duplicate: false })
+    const approve = vi.fn()
+
+    await withApp(
+      async ({ post }) => {
+        const response = await post(
+          manualOrderBody({
+            manualPaymentChannel: 'bank_transfer',
+            attendees: Array.from({ length: 10 }, (_, index) =>
+              attendee({ dni: String(30111222 + index) }),
+            ),
+          }),
+        )
+        expect(response.status).toBe(201)
+        expect(createOrder.mock.calls[0][0].attendees).toHaveLength(10)
       },
       { createOrder, approve },
     )
