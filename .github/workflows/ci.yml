@@ -69,7 +69,10 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Supabase + integración tardan ~10'; los 88 e2e corren en serie (1 worker)
+    # y suman otros ~20'. Con 15' el job se cancelaba siempre a mitad del e2e,
+    # antes de que Playwright imprimiera qué falló.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
       - uses: supabase/setup-cli@v1
