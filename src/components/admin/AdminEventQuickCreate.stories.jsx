@@ -17,6 +17,7 @@ export default {
   args: {
     canEdit: true,
     onCancel: () => {},
+    onDone: () => {},
     onOpenFullEditor: () => {},
     onSubmit: async () => ({ event: { id: 'evt-nuevo' } }),
   },

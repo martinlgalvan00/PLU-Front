@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import AdminEventQuickCreate from '../src/components/admin/AdminEventQuickCreate.jsx'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
+import { shouldReopenLandingStudio } from '../src/lib/landingStudioSession.js'
 
 afterEach(() => {
   cleanup()
@@ -221,5 +222,91 @@ describe('alta de evento como página', () => {
 
     expect(screen.getByText(/Elegí una fecha futura/)).toBeTruthy()
     expect(screen.getByRole('button', { name: /^Venta$/ }).getAttribute('aria-current')).toBe('step')
+  })
+})
+
+/** Completa el paso Evento con lo mínimo para poder avanzar. */
+function fillEventStep(title = 'Copa Otoño') {
+  type('Título público', title)
+  fireEvent.change(document.getElementById('quick-event-starts-at'), {
+    target: { value: '2026-12-12T10:00' },
+  })
+  fireEvent.change(document.getElementById('quick-event-ends-at'), {
+    target: { value: '2026-12-12T18:00' },
+  })
+  fireEvent.change(document.getElementById('quick-event-venue'), { target: { value: 'Club' } })
+  fireEvent.change(document.getElementById('quick-event-location'), {
+    target: { value: 'Rosario' },
+  })
+}
+
+describe('alta de evento · paso Página (aspecto de la landing)', () => {
+  it('la plantilla y el tema se eligen como radios y viajan en el alta', async () => {
+    const { onSubmit } = renderCreate()
+    fillEventStep()
+    goToLastStep()
+
+    const templates = screen.getByRole('radiogroup', { name: 'Plantilla' })
+    expect(within(templates).getAllByRole('radio')).toHaveLength(4)
+    fireEvent.click(within(templates).getByRole('radio', { name: /Constructor/ }))
+    expect(screen.getByText(/Armá la página por bloques/)).toBeTruthy()
+
+    const themes = screen.getByRole('radiogroup', { name: 'Tema de color' })
+    fireEvent.click(within(themes).getByRole('radio', { name: 'Ember' }))
+
+    fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
+    expect(onSubmit.mock.calls[0][0].landing).toMatchObject({
+      templateId: 'builder',
+      themeId: 'ember',
+    })
+  })
+
+  it('los colores propios pisan al tema, avisan si no se leen y se guardan', async () => {
+    const { onSubmit } = renderCreate()
+    fillEventStep()
+    goToLastStep()
+
+    const toggle = screen.getByRole('button', { name: /Usar colores propios/ })
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    fireEvent.click(toggle)
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+
+    fireEvent.change(document.getElementById('event-landing-palette-action-hex'), {
+      target: { value: '#111111' },
+    })
+    // Botón casi negro sobre el fondo oscuro por defecto: se avisa, no se bloquea.
+    expect(screen.getByText(/El botón casi no se distingue del fondo/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Colores propios activos/ })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
+    expect(onSubmit.mock.calls[0][0].landing.layout.palette).toEqual({ action: '#111111' })
+  })
+
+  it('la vista previa pasa a ser la portada con el título cargado', () => {
+    renderCreate()
+    fillEventStep('Copa Primavera')
+    goToLastStep()
+    const aside = screen.getByLabelText('Así lo ve el público', { selector: 'aside' })
+    expect(aside.textContent).toContain('Así se ve la portada')
+    expect(aside.textContent).toContain('Copa Primavera')
+    expect(aside.textContent).toContain('Inscribirme')
+  })
+
+  it('"Diseñar la landing" abre el evento en Visibilidad con el editor visual', async () => {
+    const onDone = vi.fn()
+    const created = { id: 'evt-landing', slug: 'copa-otono-2026', title: 'Copa Otoño' }
+    renderCreate({ onDone, onSubmit: vi.fn(async () => ({ event: created })) })
+    fillEventStep()
+    goToLastStep()
+    fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
+
+    fireEvent.click(await screen.findByRole('button', { name: /Diseñar la landing/ }))
+    expect(onDone).toHaveBeenCalledWith(expect.objectContaining(created), {
+      open: true,
+      section: 'visibility',
+    })
+    expect(shouldReopenLandingStudio('evt-landing')).toBe(true)
   })
 })
