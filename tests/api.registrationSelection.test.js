@@ -111,6 +111,7 @@ function registrationBody(extra = {}) {
     eventSlug: 'pitbull-classic-2026',
     division: 'Junior',
     category: 'Raw',
+    modalities: ['full_power'],
     bodyweightKg: 90,
     declaredWeightClass: '90',
     paymentMethod: 'mercado_pago',
@@ -281,9 +282,20 @@ describe('inscripción — segunda división', () => {
 })
 
 describe('inscripción — modalidades', () => {
-  it('sin modalidades compite Full Power, como antes de que existiera el campo', async () => {
+  it('sin modalidades se rechaza: ya no se da por Full Power sin que nadie la elija', async () => {
     await withApp({}, async (app) => {
-      await register(app, registrationBody())
+      const { modalities: _omit, ...body } = registrationBody()
+      const response = await register(app, body)
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({ code: 'MODALITY_REQUIRED' })
+      expect(app.createRegistration).not.toHaveBeenCalled()
+    })
+  })
+
+  it('Full Power elegido explícitamente se guarda', async () => {
+    await withApp({}, async (app) => {
+      const response = await register(app, registrationBody({ modalities: ['full_power'] }))
+      expect(response.status).toBe(201)
       expect(app.createRegistration).toHaveBeenCalledWith(
         ATHLETE_ID,
         expect.objectContaining({ modalities: ['full_power'] }),

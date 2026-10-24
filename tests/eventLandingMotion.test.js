@@ -15,8 +15,8 @@ import { buildLandingLayoutSchema } from '../src/lib/schemas/landingLayoutSchema
 import { z } from 'zod'
 
 describe('animaciones de la landing', () => {
-  it('acepta solo los tres presets y cae al suave ante cualquier otra cosa', () => {
-    expect(LANDING_MOTION_PRESETS).toEqual(['none', 'soft', 'bold'])
+  it('acepta solo los cuatro presets y cae al suave ante cualquier otra cosa', () => {
+    expect(LANDING_MOTION_PRESETS).toEqual(['none', 'soft', 'bold', 'depth'])
     expect(normalizeLandingMotion('bold')).toBe('bold')
     expect(normalizeLandingMotion(' none ')).toBe('none')
     for (const raw of [undefined, null, '', 'wild', 3, {}]) {

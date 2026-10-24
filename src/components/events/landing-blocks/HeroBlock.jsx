@@ -20,7 +20,7 @@ export default function HeroBlock({ block, ctx }) {
         fetchPriority="high"
       />
       <div className="lb-hero__shade" aria-hidden />
-      <div className="lb-hero__inner">
+      <div className="lb-hero__inner" data-scene-content="">
         <button className="lb-hero__back" type="button" onClick={() => onNavigate?.('events')}>
           <ArrowLeft aria-hidden size={17} />
           {t('pages.eventBuilder.back')}

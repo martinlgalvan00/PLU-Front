@@ -32,6 +32,7 @@
     "visual-check": "node scripts/visual-check.mjs",
     "e2e:mercado-pago": "node scripts/e2e-mercado-pago.mjs",
     "test:e2e": "playwright test",
+    "test:e2e:flows": "playwright test --config playwright.flows.config.js",
     "e2e:checkout-coupon": "playwright test",
     "e2e:checkout-coupon:headed": "playwright test --headed",
     "e2e:checkout-coupon:report": "playwright show-report e2e/.report",

@@ -67,7 +67,8 @@
 }
 
 .construction-scene[data-motion='soft'] .construction-scene__plate,
-.construction-scene[data-motion='bold'] .construction-scene__plate {
+.construction-scene[data-motion='bold'] .construction-scene__plate,
+.construction-scene[data-motion='depth'] .construction-scene__plate {
   animation: construction-plate-in var(--motion-slow) var(--ease-cinematic) both;
   transform-box: fill-box;
 }
@@ -76,12 +77,14 @@
   --cs-from: -28px;
 }
 
-.construction-scene[data-motion='bold'] .construction-scene__plate {
+.construction-scene[data-motion='bold'] .construction-scene__plate,
+.construction-scene[data-motion='depth'] .construction-scene__plate {
   animation-duration: var(--motion-cinematic);
   --cs-from: 56px;
 }
 
-.construction-scene[data-motion='bold'] .construction-scene__plate[data-side='left'] {
+.construction-scene[data-motion='bold'] .construction-scene__plate[data-side='left'],
+.construction-scene[data-motion='depth'] .construction-scene__plate[data-side='left'] {
   --cs-from: -56px;
 }
 

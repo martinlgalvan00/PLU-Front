@@ -1,6 +1,13 @@
 /* Landing apagada: "Plataforma en construcción". Una sola columna a la izquierda,
    sin cards: el nombre del evento, el aviso y una salida. */
 .event-under-construction {
+  /* La página es oscura salvo paleta propia del evento, que llega inline
+     (`landingPaletteStyle`) y pisa estos valores. Sin ellos, el texto
+     secundario y las reglas tomaban los del tema claro del sitio: gris oscuro
+     sobre fondo oscuro. */
+  --color-text-secondary: color-mix(in srgb, var(--color-text, #f6f7f8) 74%, transparent);
+  --color-border: color-mix(in srgb, var(--color-text, #f6f7f8) 16%, transparent);
+  --color-border-subtle: color-mix(in srgb, var(--color-text, #f6f7f8) 24%, transparent);
   background: var(--color-bg, #0d0f12);
   color: var(--color-text, #f6f7f8);
   display: grid;
@@ -114,7 +121,73 @@
   background: var(--event-action-hover);
 }
 
+/* Fecha y sede: solo viajan con la inscripción abierta o programada. Lista con
+   regla, sin cards. */
+.event-under-construction__facts {
+  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.14));
+  display: grid;
+  gap: 12px;
+  margin: 8px 0 0;
+  padding-top: 16px;
+}
+
+.event-under-construction__facts > div {
+  display: grid;
+  gap: 2px;
+}
+
+.event-under-construction__facts dt {
+  align-items: center;
+  color: var(--color-text-secondary, inherit);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 6px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.event-under-construction__facts dd {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.event-under-construction__registration {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 8px 0 0;
+  max-width: 52ch;
+}
+
+.event-under-construction__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}
+
+.event-under-construction__secondary {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary, inherit);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  margin-top: 8px;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.event-under-construction__secondary:hover {
+  color: var(--event-accent);
+}
+
 .event-under-construction__back:focus-visible,
+.event-under-construction__secondary:focus-visible,
 .event-under-construction__cta:focus-visible {
   outline: 2px solid var(--event-accent);
   outline-offset: 4px;

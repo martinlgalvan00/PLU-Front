@@ -9,6 +9,7 @@ import { useI18n } from '../i18n/I18nProvider.jsx'
 import { LANDING_BLOCK_COMPONENTS } from '../components/events/landing-blocks/index.js'
 import '../styles/pages/event-landing-themes.css'
 import '../styles/pages/event-builder-landing.css'
+import '../styles/pages/event-landing-motion.css'
 
 /**
  * ¿Se dibuja el bloque? Su propio interruptor y, en los integrados con módulo

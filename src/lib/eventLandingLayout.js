@@ -8,7 +8,7 @@
  *   {
  *     blocks:  [{ id, type, visible, props? }],   // orden = orden de lectura
  *     palette: { accent?, action?, background? },  // hex #rrggbb
- *     motion:  'none' | 'soft' | 'bold'            // ver eventLandingMotion.js
+ *     motion:  'none' | 'soft' | 'bold' | 'depth'  // ver eventLandingMotion.js
  *   }
  *
  * Hay dos familias de bloques:
