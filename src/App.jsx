@@ -229,6 +229,12 @@ export default function App() {
   // Intent liviano al abrir el checkout desde Pagos / Torneos: p.ej. abrir
   // directo el selector de medio (“Elegir otro medio”) sin inventar un RPC.
   const [checkoutIntent, setCheckoutIntent] = useState(null)
+  // La intención dura lo que dura el checkout, no hasta el primer render que la
+  // usa: la pantalla de inscripción puede montarse dos veces al entrar y, si la
+  // primera la consumía, la segunda abría el cobro en vez del selector de medio.
+  useEffect(() => {
+    if (view !== 'competition') setCheckoutIntent(null)
+  }, [view])
   // `?section=` llega en los emails de pago; sin leerlo, "revisá el estado de
   // tu pago" abría la cuenta en la credencial.
   const [profileTab, setProfileTab] = useState(
@@ -1184,7 +1190,6 @@ export default function App() {
             registrations={app.registrations}
             checkoutAvailability={app.checkoutAvailability}
             checkoutIntent={checkoutIntent}
-            onCheckoutIntentConsumed={() => setCheckoutIntent(null)}
             // El precio de la inscripción sale del evento: la RPC cobra
             // `events.price`, así que la constante fija mostraba un total que no
             // era el que se iba a cobrar apenas el panel tocaba el precio.

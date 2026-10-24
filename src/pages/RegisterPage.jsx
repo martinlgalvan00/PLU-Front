@@ -723,6 +723,10 @@ export default function RegisterPage({
   const [transferOpen, setTransferOpen] = useState(false)
   const [transferOrderId, setTransferOrderId] = useState(null)
   const [changingMethod, setChangingMethod] = useState(false)
+  // Orden sobre la que ya se abrió el selector por "Elegir otro medio": la
+  // intención se aplica una vez por orden, así cerrar el selector no lo reabre
+  // cuando se refrescan los pagos.
+  const changeMethodIntentOrderRef = useRef(null)
   // Si el backend rechaza la declaración (orden ya terminal), el settle se
   // cierra acá aunque el snapshot local todavía no haya reconciliado el status.
   const [settleDeclarationClosed, setSettleDeclarationClosed] = useState(false)
@@ -902,6 +906,7 @@ export default function RegisterPage({
     setTransferOpen(false)
     setTransferOrderId(null)
     setChangingMethod(false)
+    changeMethodIntentOrderRef.current = null
     setCancelConfirming(false)
     setDiscountCodeInput('')
     setDiscountPreview(null)
@@ -1357,6 +1362,9 @@ export default function RegisterPage({
     if (checkoutIntent !== 'change_method') return
     if (flow !== 'competition' && flow !== 'membership') return
     if (!visibleOrder) return
+    const orderKey = visibleOrder.paymentId ?? visibleOrder.id ?? 'order'
+    if (changeMethodIntentOrderRef.current === orderKey) return
+    changeMethodIntentOrderRef.current = orderKey
     setChangingMethod(true)
     onCheckoutIntentConsumed?.()
   }, [checkoutIntent, flow, visibleOrder, onCheckoutIntentConsumed])

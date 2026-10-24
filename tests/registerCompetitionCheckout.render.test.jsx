@@ -137,10 +137,14 @@ function renderCompetition({
   payments = [],
   registrations = [],
   checkoutAvailability,
+  checkoutIntent = null,
+  onCheckoutIntentConsumed,
 } = {}) {
   return render(
     <I18nProvider>
       <RegisterPage
+        checkoutIntent={checkoutIntent}
+        onCheckoutIntentConsumed={onCheckoutIntentConsumed}
         athlete={athleteData}
         createdOrder={createdOrder}
         event={event}
@@ -221,6 +225,80 @@ describe('RegisterPage — orden abierta rehidratada del snapshot', () => {
       registrations: [pendingRegistration],
     })
     expect(screen.getByLabelText(/^División$/i)).toBeTruthy()
+  })
+
+  /**
+   * "Elegir otro medio" desde Mi cuenta: la pantalla puede montarse dos veces al
+   * entrar. La intención la conserva App mientras dure el checkout, así que la
+   * segunda instancia también abre el selector en vez del cobro.
+   */
+  it('"Elegir otro medio" abre el selector aunque la pantalla se monte dos veces', () => {
+    const props = {
+      checkoutIntent: 'change_method',
+      payments: [openPayment],
+      registrations: [pendingRegistration],
+    }
+    const first = renderCompetition(props)
+    expect(document.querySelector('.register-competition-form--change-method')).toBeTruthy()
+    first.unmount()
+
+    renderCompetition(props)
+    expect(document.querySelector('.register-competition-form--change-method')).toBeTruthy()
+  })
+
+  it('cerrar el selector no lo reabre cuando se refrescan los pagos', () => {
+    const props = {
+      checkoutIntent: 'change_method',
+      payments: [openPayment],
+      registrations: [pendingRegistration],
+    }
+    const view = renderCompetition(props)
+    fireEvent.click(screen.getByRole('button', { name: /volver a transferencia/i }))
+    expect(document.querySelector('.register-competition-form--change-method')).toBe(null)
+
+    // Mismo pago, objeto nuevo: es lo que llega cuando App relee el snapshot.
+    view.unmount()
+    const refreshed = render(
+      <I18nProvider>
+        <RegisterPage
+          checkoutIntent="change_method"
+          athlete={athlete}
+          event={event}
+          flow="competition"
+          payments={[{ ...openPayment }]}
+          form={{ division: 'Open', category: 'Raw', paymentMethod: 'manual_link' }}
+          memberships={[]}
+          registrations={[{ ...pendingRegistration }]}
+          total={75000}
+          onNavigate={() => {}}
+          onSubmit={vi.fn(async () => ({}))}
+          onUpdateForm={() => {}}
+        />
+      </I18nProvider>,
+    )
+    // Montaje nuevo con la intención todavía viva: vuelve a abrir (es otra
+    // entrada al checkout). Dentro de un mismo montaje, un refresco no.
+    expect(document.querySelector('.register-competition-form--change-method')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /volver a transferencia/i }))
+    refreshed.rerender(
+      <I18nProvider>
+        <RegisterPage
+          checkoutIntent="change_method"
+          athlete={athlete}
+          event={event}
+          flow="competition"
+          payments={[{ ...openPayment }]}
+          form={{ division: 'Open', category: 'Raw', paymentMethod: 'manual_link' }}
+          memberships={[]}
+          registrations={[{ ...pendingRegistration }]}
+          total={75000}
+          onNavigate={() => {}}
+          onSubmit={vi.fn(async () => ({}))}
+          onUpdateForm={() => {}}
+        />
+      </I18nProvider>,
+    )
+    expect(document.querySelector('.register-competition-form--change-method')).toBe(null)
   })
 
   it('createdOrder gana sobre el snapshot: es la orden que esta sesión tocó', () => {
