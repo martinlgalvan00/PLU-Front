@@ -11,6 +11,7 @@ import {
   Eye,
   EyeOff,
   Link2,
+  PanelsTopLeft,
   Plus,
   ShieldCheck,
   Unlock,
@@ -29,6 +30,12 @@ import { fetchPaymentProfiles } from '../../services/paymentProfileService.js'
 import EventPaymentChannelMatrix from './event-editor/EventPaymentChannelMatrix.jsx'
 import AdminEventSaleControl from './AdminEventSaleControl.jsx'
 import { updatePricingField } from './event-editor/draftPatches.js'
+import { markLandingStudioForReopen } from '../../lib/landingStudioSession.js'
+import {
+  LandingColorPicker,
+  LandingCoverPreview,
+  LandingTemplatePicker,
+} from './event-editor/landing/LandingLookPicker.jsx'
 import { DEFAULT_EVENT_PRICING } from '../../lib/eventPricing.js'
 import { QUICK_CREATE_STEPS as STEPS, quickCreateStepForField } from '../../lib/eventQuickCreateSteps.js'
 import '../../styles/pages/admin-event-quick.css'
@@ -39,7 +46,6 @@ import {
 } from '../../services/eventAdminService.js'
 import {
   emptyEventLanding,
-  EVENT_LANDING_THEMES,
   normalizeEventLanding,
 } from '../../lib/eventLanding.js'
 import {
@@ -119,6 +125,8 @@ export default function AdminEventQuickCreate({
   const initialSignatureRef = useRef(JSON.stringify(draft))
 
   const preview = mapDraftToPreviewEvent(draft)
+  // La landing tal como la va a guardar el alta: plantilla, tema y colores.
+  const pageLanding = normalizeEventLanding(draft.landing ?? emptyEventLanding('meet'))
   // El slug se deriva del título y del año. Mientras no haya título no se
   // muestra uno de relleno: "evento-preview" se leía como una dirección real.
   const slugPreview = draft.title?.trim() && draft.startsAt ? `/${preview.slug}` : ''
@@ -399,6 +407,9 @@ export default function AdminEventQuickCreate({
             STEPS.indexOf(quickCreateStepForField(a)) - STEPS.indexOf(quickCreateStepForField(b)),
         )[0]
       setFieldErrors(errors)
+      // La landing no tiene un campo por regla (bloques, colores): sin esto el
+      // alta se frenaba sin decir por qué.
+      if (firstKey.startsWith('landing')) setSubmitError(errors[firstKey])
       setStep(STEPS.indexOf(quickCreateStepForField(firstKey)))
       requestAnimationFrame(() => requestAnimationFrame(() => focusFirstInvalid(firstKey)))
       return
@@ -495,15 +506,30 @@ export default function AdminEventQuickCreate({
                 <ArrowRight size={15} aria-hidden />
               </Button>
             ) : null}
-            <Button
+            {/* La landing se termina en el editor visual: entra directo, sin
+                buscarlo en Visibilidad (ver landingStudioSession.js). */}
+            {onDone && doneEvent.id ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="btn--small"
+                onClick={() => {
+                  markLandingStudioForReopen(doneEvent.id)
+                  finish({ open: true, section: 'visibility' })
+                }}
+              >
+                <PanelsTopLeft size={15} aria-hidden />
+                {t('admin.eventQuickCreate.doneDesignLanding')}
+              </Button>
+            ) : null}
+            <button
               type="button"
-              variant="outline"
-              className="btn--small"
+              className="admin-event-quick__cancel"
               onClick={() => startNextEvent(doneEvent.title ?? '')}
             >
               <Plus size={15} aria-hidden />
               {t('admin.eventQuickCreate.doneAnother')}
-            </Button>
+            </button>
             <button
               type="button"
               className="admin-event-quick__cancel"
@@ -972,60 +998,33 @@ export default function AdminEventQuickCreate({
                   <h3 className="admin-event-quick__section-title" id="quick-event-landing">
                     {t('admin.eventQuickCreate.sectionLanding')}
                   </h3>
-                  <AdminFilterChipGroup
-                    compact
+                  <LandingTemplatePicker
+                    t={t}
                     disabled={!canEdit || submitting}
-                    id="quick-event-landing-template"
-                    label={t('admin.eventEditor.landingTemplateLabel')}
-                    value={
-                      normalizeEventLanding(draft.landing ?? emptyEventLanding('meet')).templateId
-                    }
+                    value={pageLanding.templateId}
+                    themeId={pageLanding.themeId}
+                    palette={pageLanding.layout?.palette}
                     onChange={(templateId) =>
-                      patch({
-                        ...draft,
-                        landing: {
-                          ...normalizeEventLanding(draft.landing ?? emptyEventLanding(templateId)),
-                          templateId,
-                        },
-                      })
+                      patch({ ...draft, landing: { ...pageLanding, templateId } })
                     }
-                    options={[
-                      ['meet', t('admin.eventEditor.landingTemplateMeet')],
-                      ['editorial', t('admin.eventEditor.landingTemplateEditorial')],
-                      ['submission', t('admin.eventEditor.landingTemplateSubmission')],
-                      ['builder', t('admin.eventEditor.landingTemplateBuilder')],
-                    ]}
                   />
-                  <p className="admin-event-quick__access-note">
-                    {normalizeEventLanding(draft.landing).templateId === 'editorial'
-                      ? t('admin.eventEditor.landingTemplateEditorialHint')
-                      : normalizeEventLanding(draft.landing).templateId === 'submission'
-                        ? t('admin.eventEditor.landingTemplateSubmissionHint')
-                        : normalizeEventLanding(draft.landing).templateId === 'builder'
-                          ? t('admin.eventEditor.landingTemplateBuilderHint')
-                          : t('admin.eventEditor.landingTemplateMeetHint')}
-                  </p>
-                  <AdminFilterChipGroup
-                    compact
+                  <LandingColorPicker
+                    t={t}
                     disabled={!canEdit || submitting}
-                    id="quick-event-landing-theme"
-                    label={t('admin.eventEditor.landingThemeLabel')}
-                    value={
-                      normalizeEventLanding(draft.landing ?? emptyEventLanding('meet')).themeId
+                    themeId={pageLanding.themeId}
+                    palette={pageLanding.layout?.palette}
+                    onThemeChange={(themeId) =>
+                      patch({ ...draft, landing: { ...pageLanding, themeId } })
                     }
-                    onChange={(themeId) =>
+                    onPaletteChange={(palette) =>
                       patch({
                         ...draft,
                         landing: {
-                          ...normalizeEventLanding(draft.landing ?? emptyEventLanding('meet')),
-                          themeId,
+                          ...pageLanding,
+                          layout: { ...(pageLanding.layout ?? {}), palette },
                         },
                       })
                     }
-                    options={EVENT_LANDING_THEMES.map((themeId) => [
-                      themeId,
-                      t(`admin.eventEditor.landingTheme_${themeId.replace(/-/g, '_')}`),
-                    ])}
                   />
                 </div>
 
@@ -1090,19 +1089,33 @@ export default function AdminEventQuickCreate({
           >
             <p className="admin-event-quick__preview-label">
               <Eye size={13} aria-hidden />
-              {t('admin.eventQuickCreate.previewLabel')}
+              {stepId === 'page'
+                ? t('admin.eventQuickCreate.previewCoverLabel')
+                : t('admin.eventQuickCreate.previewLabel')}
             </p>
-            <div className="admin-event-quick__preview-card" aria-hidden>
-              <EventCard
-                variant="minimal"
-                date={preview.date}
-                featured={preview.featured}
-                location={preview.location}
-                status={registrationMode === 'scheduled' ? 'proximamente' : preview.status}
-                title={preview.title}
-                venue={preview.venue}
+            {/* En "Página" se decide cómo se ve: la muestra pasa a ser la portada
+                en la plantilla y los colores elegidos. */}
+            {stepId === 'page' ? (
+              <LandingCoverPreview
+                t={t}
+                templateId={pageLanding.templateId}
+                themeId={pageLanding.themeId}
+                palette={pageLanding.layout?.palette}
+                event={preview}
               />
-            </div>
+            ) : (
+              <div className="admin-event-quick__preview-card" aria-hidden>
+                <EventCard
+                  variant="minimal"
+                  date={preview.date}
+                  featured={preview.featured}
+                  location={preview.location}
+                  status={registrationMode === 'scheduled' ? 'proximamente' : preview.status}
+                  title={preview.title}
+                  venue={preview.venue}
+                />
+              </div>
+            )}
             <p className="admin-event-quick__preview-hint">
               {filledCount === 0
                 ? t('admin.eventQuickCreate.previewEmpty')
