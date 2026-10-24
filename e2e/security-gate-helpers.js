@@ -92,8 +92,13 @@ export async function openTicketsAllowlist(page) {
 
 export async function assertAllowlistPerson(page, { name, label }) {
   await openTicketsAllowlist(page)
-  await page.locator('.checkin-app__search input[type="search"]').fill(name)
+  // La pestaña Entradas abre en "Habilitados": quien ya ingresó o no pagó no
+  // aparece hasta pasar el estado a "Todos".
   const list = page.locator('.checkin-app__list')
+  const allStatuses = list.getByRole('button', { name: /^Todos\b/ })
+  await allStatuses.click()
+  await expect(allStatuses).toHaveAttribute('aria-pressed', 'true')
+  await page.locator('.checkin-app__search input[type="search"]').fill(name)
   await expect(list).toContainText(name)
   if (label) await expect(list).toContainText(label)
 }

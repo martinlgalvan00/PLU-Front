@@ -146,7 +146,7 @@ test.describe('Avisos de perfil — atleta con aviso', () => {
     const menu = page.getByRole('dialog')
     await expect(menu).toBeVisible()
     await expect(menu.getByRole('heading', { name: /datos pendientes/i })).toBeVisible()
-    await expect(menu).toContainText(/para inscribirte a un evento oficial faltan/i)
+    await expect(menu).toContainText(/para competir y armar la planilla oficial faltan/i)
     await expect(menu).toContainText(STAFF_NOTE)
 
     await expect(bell).toHaveAttribute('aria-label', /^Avisos$/i, { timeout: 10_000 })
