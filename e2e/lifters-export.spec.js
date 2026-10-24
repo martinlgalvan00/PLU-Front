@@ -141,7 +141,8 @@ test.describe('Export Lifters — fechas y estructura', () => {
     await page.getByRole('button', { name: /planilla lifters/i }).click()
     const panel = page.getByRole('region', { name: /planilla lifters/i })
     await expect(panel).toBeVisible()
-    await expect(panel.getByRole('heading', { name: /studio de export/i })).toBeVisible()
+    // El export va en tres pasos (Revisar · Armar · Bajar); el estudio es "Armar".
+    await expect(panel.getByRole('heading', { name: /^Armar$/i })).toBeVisible()
     await expect(panel.getByText(/preview:/i)).toBeVisible({ timeout: 20_000 })
 
     const preset = panel.locator('label').filter({ hasText: 'Plantilla' }).locator('select')

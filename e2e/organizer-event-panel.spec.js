@@ -33,22 +33,6 @@ async function insert(table, row, select = 'id') {
   return data
 }
 
-// Ítems del menú lateral que un administrador ve y un organizador NO.
-const ADMIN_ONLY_NAV = [
-  'Resumen',
-  'Personas',
-  'Grilla',
-  'Shop',
-  'Cobros',
-  'Libro de caja',
-  'Tarifas',
-  'Acceso y habilitación',
-  'Usuarios',
-  'Roles y permisos',
-  'Auditoría',
-  'Analítica',
-]
-
 const sidebarItem = (page, label) =>
   page
     .locator('.admin-shell .ant-menu-item')
@@ -151,23 +135,30 @@ test.describe('Organizador: panel de su evento', () => {
     await deleteEventsByIds(admin, created.events)
   })
 
-  test('entra directo a Eventos y no ve el resto del panel', async () => {
-    await expect(page.getByRole('heading', { name: /eventos/i }).first()).toBeVisible({
-      timeout: 20_000,
-    })
-    await expect(sidebarItem(page, 'Eventos')).toBeVisible()
-    // Ítems reales del menú de un administrador (tests/_control: los mismos selectores los
-    // encuentran todos con una cuenta de administrador, así que "no está" no es un falso verde).
-    for (const label of ADMIN_ONLY_NAV) {
-      await expect(sidebarItem(page, label), label).toHaveCount(0)
-    }
+  test('entra directo a su evento y no ve el resto del panel', async () => {
+    // El organizador tiene su propio shell (`OrganizerAppPage`), sin el menú
+    // lateral del panel: con un solo evento asignado salta el home y abre el
+    // workspace de ese evento, en vez de aterrizar en el listado "Eventos".
+    await expect(page.locator('.organizer-app')).toBeVisible({ timeout: 20_000 })
+    const workspace = page.getByRole('region', { name: /evento seleccionado/i })
+    await expect(workspace).toBeVisible({ timeout: 20_000 })
+    await expect(
+      workspace.getByRole('heading', { level: 1, name: eventA.title, exact: true }),
+    ).toBeVisible()
+    await expect(page).toHaveURL(new RegExp(`${buildAdminEventPath(eventA.slug)}$`))
+    // Ningún ítem del menú del administrador: ni Eventos, ni Cobros, ni Usuarios.
+    await expect(page.locator('.admin-shell .ant-menu-item')).toHaveCount(0)
+    await expect(page.locator('.admin-shell__nav-body')).toHaveCount(0)
     // Sin el error de "no se pudieron cargar" que daban los listados globales.
     await expect(page.getByText(/no se pudieron cargar/i)).toHaveCount(0)
   })
 
   test('ve solo el evento que se le asignó y no puede crear ni publicar', async () => {
-    await expect(page.getByTitle(new RegExp(eventA.slug))).toBeVisible()
-    await expect(page.getByTitle(new RegExp(eventB.slug))).toHaveCount(0)
+    const workspace = page.getByRole('region', { name: /evento seleccionado/i })
+    await expect(
+      workspace.getByRole('heading', { level: 1, name: eventA.title, exact: true }),
+    ).toBeVisible()
+    await expect(page.getByText(eventB.title)).toHaveCount(0)
     await expect(page.getByRole('button', { name: /nuevo evento/i })).toHaveCount(0)
     await expect(page.getByRole('button', { name: /^seleccionar/i })).toHaveCount(0)
     await expect(page.getByText(/pronto habrá novedades/i)).toHaveCount(0)
@@ -175,8 +166,11 @@ test.describe('Organizador: panel de su evento', () => {
 
   test('el evento de otro no se abre ni siquiera con la URL directa', async () => {
     await page.goto(buildAdminEventPath(eventB.slug))
+    // Un slug ajeno no abre workspace: queda el listado, y en él sólo el suyo.
     await expect(page.getByTitle(new RegExp(eventA.slug))).toBeVisible({ timeout: 20_000 })
     await expect(page.getByRole('region', { name: /evento seleccionado/i })).toHaveCount(0)
+    await expect(page.getByTitle(new RegExp(eventB.slug))).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /nuevo evento/i })).toHaveCount(0)
   })
 
   test('edita los datos de su evento y no puede publicarlo', async () => {
