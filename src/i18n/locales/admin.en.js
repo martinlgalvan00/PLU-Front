@@ -5151,7 +5151,7 @@ export default {
     landingAudiencePage: 'Full page',
     landingAudienceConstruction: 'Under construction',
     landingPublicVisibleHint:
-      'Under construction, visitors opening the event from the menu see the "Platform under construction" notice, with no date, venue or prices. The event stays out of the calendar and featured areas until you show the page.',
+      'Under construction, visitors opening the event from the menu see the "Platform under construction" notice and the event stays out of the calendar and featured areas until you show the page. If registration is open (or scheduled), the notice shows the date, venue and a "Register" button (or when it opens); closed, it reveals nothing else.',
     landingSubmissionPhaseLabel: 'Landing status',
     landingSubmissionPhaseComingSoon: 'In progress',
     landingSubmissionPhasePublished: 'Published',
@@ -5286,12 +5286,15 @@ export default {
     landingMotion_none: 'No animations',
     landingMotion_soft: 'Soft',
     landingMotion_bold: 'Bold',
+    landingMotion_depth: 'Depth',
     landingMotionHint_none: 'Everything appears at once, with no movement.',
     landingMotionHint_soft: 'Each block fades in briefly as it reaches the screen.',
     landingMotionHint_bold:
       'The hero enters in sequence and blocks rise with more travel as they reach the screen.',
+    landingMotionHint_depth:
+      '3D scene change: each block arrives from behind with perspective and the one leaving recedes slightly as you scroll. On slow devices it falls back to a fade.',
     landingMotionScope:
-      'Applies to the Builder landing and the "under construction" scene. Visitors with reduced motion enabled see no animations, whatever you pick.',
+      'Applies to the Builder and Submission landings and the "under construction" scene. Visitors with reduced motion enabled see no animations, whatever you pick.',
     landingPaletteLegend: 'Event colors',
     landingPaletteHint:
       'Empty uses the chosen theme. The text color adjusts itself so it stays readable.',

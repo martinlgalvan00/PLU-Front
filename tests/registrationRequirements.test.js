@@ -9,6 +9,7 @@ import {
 const COMPLETE = {
   division: 'Open',
   category: 'Raw',
+  modalities: ['full_power'],
   declaredWeightClass: '83',
   bodyweightKg: 82.5,
 }
@@ -16,6 +17,16 @@ const COMPLETE = {
 describe('campos obligatorios de la inscripción', () => {
   it('una inscripción completa pasa', () => {
     expect(checkRequiredRegistrationFields(COMPLETE)).toEqual({ ok: true })
+  })
+
+  it('frena si no hay ninguna modalidad elegida', () => {
+    for (const empty of [undefined, null, [], [''], 'full_power']) {
+      expect(checkRequiredRegistrationFields({ ...COMPLETE, modalities: empty })).toEqual({
+        ok: false,
+        field: 'modalities',
+        message: REGISTRATION_REQUIRED_MESSAGES.modalities,
+      })
+    }
   })
 
   it.each(['division', 'category', 'declaredWeightClass', 'bodyweightKg'])(
@@ -35,8 +46,12 @@ describe('campos obligatorios de la inscripción', () => {
     expect(checkRequiredRegistrationFields({}).field).toBe('division')
     expect(checkRequiredRegistrationFields({ division: 'Open' }).field).toBe('category')
     expect(checkRequiredRegistrationFields({ division: 'Open', category: 'Raw' }).field).toBe(
-      'declaredWeightClass',
+      'modalities',
     )
+    expect(
+      checkRequiredRegistrationFields({ division: 'Open', category: 'Raw', modalities: ['squat'] })
+        .field,
+    ).toBe('declaredWeightClass')
   })
 
   it('el peso corporal tiene que ser un número dentro del rango', () => {

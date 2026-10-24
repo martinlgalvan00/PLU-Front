@@ -5217,7 +5217,7 @@ export default {
     landingAudiencePage: 'Página completa',
     landingAudienceConstruction: 'En construcción',
     landingPublicVisibleHint:
-      'En construcción, quien entra al evento desde el menú ve el cartel de "Plataforma en construcción", sin fecha, sede ni precios. El evento sale del calendario y de destacados hasta que muestres la página.',
+      'En construcción, quien entra al evento desde el menú ve el cartel de "Plataforma en construcción" y el evento sale del calendario y de destacados hasta que muestres la página. Si la inscripción está abierta (o programada), el cartel muestra fecha, sede y el botón "Inscribirme" (o cuándo abre); cerrada, no revela nada más.',
     landingSubmissionPhaseLabel: 'Estado de la landing',
     landingSubmissionPhaseComingSoon: 'En preparación',
     landingSubmissionPhasePublished: 'Publicada',
@@ -5353,12 +5353,15 @@ export default {
     landingMotion_none: 'Sin animaciones',
     landingMotion_soft: 'Suave',
     landingMotion_bold: 'Marcada',
+    landingMotion_depth: 'Profundidad',
     landingMotionHint_none: 'Todo aparece de una vez, sin movimiento.',
     landingMotionHint_soft: 'Cada bloque entra con un fundido corto al llegar a la pantalla.',
     landingMotionHint_bold:
       'La portada entra en secuencia y los bloques suben con más recorrido al llegar a la pantalla.',
+    landingMotionHint_depth:
+      'Paso de escena en 3D: cada bloque llega desde atrás con perspectiva y el que se va se aleja apenas al scrollear. En equipos lentos queda como un fundido.',
     landingMotionScope:
-      'Rige la landing del Constructor y la escena de "en construcción". Quien tiene activado el movimiento reducido no ve animaciones, elijas lo que elijas.',
+      'Rige las landings del Constructor y de Submission, y la escena de "en construcción". Quien tiene activado el movimiento reducido no ve animaciones, elijas lo que elijas.',
     landingPaletteLegend: 'Colores del evento',
     landingPaletteHint:
       'Vacío usa el tema elegido. El color del texto se ajusta solo para que se lea.',
@@ -5375,7 +5378,7 @@ export default {
     landingPaletteWarn_actionOnBackground:
       'El botón casi no se distingue del fondo ({{ratio}}:1). Probá un color más claro u oscuro.',
     landingSeoPreview: 'Así se ve en Google',
-    landingSeoEmpty: 'Sin descripción custom: se usa la del sitio o la bajada del hero.',
+    landingSeoEmpty: 'Sin descripción propia: se usa la del sitio o la bajada de la portada.',
     landingMetaTitleField: 'Título SEO',
     landingMetaDescriptionField: 'Descripción SEO',
     landingFaqLegend: 'Preguntas frecuentes',
@@ -5386,7 +5389,7 @@ export default {
     publicTitlePlaceholder: 'Igual al título del evento',
     heroLeadField: 'Bajada del hero',
     heroLeadPlaceholder: 'Una línea que diga de qué se trata el meet',
-    ctaLabelField: 'Texto del boton',
+    ctaLabelField: 'Texto del botón',
     ctaLabelPlaceholder: 'Inscribirme',
     inscriptionCopyLegend: 'Textos del cupo público',
     inscriptionMarkField: 'Título del cupo público',

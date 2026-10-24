@@ -105,6 +105,7 @@
   font-weight: 800;
   letter-spacing: 0.12em;
   margin: 0;
+  text-transform: uppercase;
 }
 
 .submission-landing__identity h1 {
@@ -201,6 +202,7 @@
   font-weight: 800;
   letter-spacing: 0.12em;
   margin: 0 0 12px;
+  text-transform: uppercase;
 }
 
 .submission-landing__story h2 {

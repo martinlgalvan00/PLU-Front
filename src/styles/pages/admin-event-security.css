@@ -66,6 +66,12 @@
   background: var(--admin-row-hover);
 }
 
+@media (pointer: coarse) {
+  .admin-event-security__launch {
+    min-height: 44px;
+  }
+}
+
 .admin-event-security__lifecycle-note {
   align-items: center;
   color: var(--admin-muted);

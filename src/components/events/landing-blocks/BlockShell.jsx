@@ -18,8 +18,9 @@ export default function BlockShell({
       id={`bloque-${id}`}
       className={`lb-block lb-block--${type} ${className}`.trim()}
       aria-labelledby={headingId}
+      data-scene=""
     >
-      <div className="lb-block__inner">
+      <div className="lb-block__inner" data-scene-content="">
         {eyebrow || title || lead ? (
           <header className="lb-block__head">
             {eyebrow ? <p className="lb-block__eyebrow">{eyebrow}</p> : null}

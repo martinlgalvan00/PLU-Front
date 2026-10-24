@@ -269,6 +269,23 @@
   min-width: 0;
 }
 
+/* Tipo de evento: se elige una vez y son pocas opciones. En angosto el riel
+   compacto del panel (scroll horizontal + fundido) escondía las últimas detrás
+   del borde ("Seminario / clíni…"); acá bajan de renglón y se ven todas. */
+.admin-shell .admin-event-quick__section--presets .admin-filter-group--compact .admin-filter-chips,
+.admin-event-quick__section--presets .admin-filter-chips {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  row-gap: 4px;
+  width: auto;
+}
+
+.admin-shell .admin-event-quick__section--presets .admin-filter-chips-rail.is-overflowing,
+.admin-event-quick__section--presets .admin-filter-chips-rail {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
 /* El grupo de acceso comparte renglón con el cupo: sin su rótulo a la izquierda. */
 .admin-event-quick__access .admin-filter-group {
   display: grid;

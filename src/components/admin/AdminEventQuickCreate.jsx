@@ -576,7 +576,7 @@ export default function AdminEventQuickCreate({
                 </h3>
                 {duplicateOf ? null : (
                   <div
-                    className="admin-event-quick__section"
+                    className="admin-event-quick__section admin-event-quick__section--presets"
                     role="group"
                     aria-labelledby="quick-event-preset"
                   >

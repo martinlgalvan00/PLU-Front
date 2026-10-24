@@ -1,3 +1,5 @@
+import { hiddenLandingTakesRegistrations } from '../../shared/registrationSaleState.js'
+
 function firstEmbeddedRow(value) {
   return Array.isArray(value) ? (value[0] ?? null) : (value ?? null)
 }
@@ -18,23 +20,51 @@ export function isPublicCatalogEvent(row) {
  * construcción" en vez de un 404.
  */
 export function underConstructionCatalogEvent(row) {
-  const landing = row?.rules?.landing ?? {}
-  const { palette, motion } = landing.layout ?? {}
   return {
     id: row?.id,
     slug: row?.slug,
     title: row?.title,
     published: true,
     status: 'proximamente',
-    rules: {
-      landing: {
-        templateId: landing.templateId,
-        themeId: landing.themeId,
-        publicVisible: false,
-        ...(palette || motion ? { layout: { ...(palette ? { palette } : {}), ...(motion ? { motion } : {}) } } : {}),
-      },
-    },
+    rules: { landing: constructionLanding(row) },
   }
+}
+
+/**
+ * Landing reducida al aviso: plantilla, tema y los colores/animación del
+ * evento. Sin slots ni bloques, que son la página que todavía se está armando.
+ */
+function constructionLanding(row) {
+  const landing = row?.rules?.landing ?? {}
+  const { palette, motion } = landing.layout ?? {}
+  return {
+    templateId: landing.templateId,
+    themeId: landing.themeId,
+    publicVisible: false,
+    ...(palette || motion ? { layout: { ...(palette ? { palette } : {}), ...(motion ? { motion } : {}) } } : {}),
+  }
+}
+
+/**
+ * Landing apagada con la inscripción abierta (o programada): el aviso "en
+ * construcción" lleva el botón de inscripción, así que el evento viaja con lo
+ * que necesita el checkout (fecha, sede, precio, oferta, ventana). Lo que se
+ * sigue guardando es la página en armado: slots, bloques, copy público y
+ * portada.
+ */
+export function registrationOnlyCatalogEvent(row, now = new Date()) {
+  const event = sanitizePublicCatalogEvent(row, now)
+  const { publicCopy: _publicCopy, landing: _landing, ...rules } = event.rules ?? {}
+  const { hero_image_url: _heroImageUrl, ...rest } = event
+  return { ...rest, rules: { ...rules, landing: constructionLanding(row) } }
+}
+
+/** Lo que el catálogo público entrega de cada fila publicada. */
+export function publicCatalogEventFor(row, now = new Date()) {
+  if (isPublicCatalogEvent(row)) return sanitizePublicCatalogEvent(row, now)
+  return hiddenLandingTakesRegistrations(row, { now })
+    ? registrationOnlyCatalogEvent(row, now)
+    : underConstructionCatalogEvent(row)
 }
 
 /**

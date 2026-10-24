@@ -32,6 +32,9 @@ import AdminEventTicketAddonReport from './AdminEventTicketAddonReport.jsx'
 import AdminEventTicketsSoldSection from './AdminEventTicketsSoldSection.jsx'
 import '../../styles/pages/admin-event-workspace.css'
 import '../../styles/pages/admin-event-dashboard.css'
+// "Abrir control de puerta" usa la pastilla de la sección de seguridad: sin
+// importarla acá dependía de que otra pantalla la hubiera cargado antes.
+import '../../styles/pages/admin-event-security.css'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatDayMonth, money } from '../../lib/format.js'
 import { buildEventPagePath } from '../../lib/eventPageRoute.js'

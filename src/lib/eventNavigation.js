@@ -1,6 +1,7 @@
 import { isTicketSalesEnabled } from './eventPricing.js'
 import { getPublicEventStatus } from './publicRegistrationPhase.js'
 import { isRegistrationOpen } from './status.js'
+import { hiddenLandingTakesRegistrations } from '../../shared/registrationSaleState.js'
 
 function eventCreatedRank(event) {
   if (event?.navPinned) return Number.MAX_SAFE_INTEGER
@@ -26,6 +27,26 @@ function eventDateTime(event) {
   const normalized = String(value).includes('T') ? String(value) : `${value}T12:00:00`
   const time = Date.parse(normalized)
   return Number.isFinite(time) ? time : Number.POSITIVE_INFINITY
+}
+
+/**
+ * Orden de lectura del calendario: lo que viene, del más cercano al más lejano;
+ * lo terminado, del más reciente al más viejo. Sin fecha, al final. No depende
+ * del orden en que llegan los eventos (el catálogo los manda por fecha, pero la
+ * lista del panel que ve el staff no).
+ *
+ * @param {object[]} events
+ * @param {{ finished?: boolean }} [options]
+ */
+export function sortEventsForCalendar(events = [], { finished = false } = {}) {
+  return [...events].sort((a, b) => {
+    const left = eventDateTime(a)
+    const right = eventDateTime(b)
+    if (left === right) return 0
+    if (!Number.isFinite(left)) return 1
+    if (!Number.isFinite(right)) return -1
+    return finished ? right - left : left - right
+  })
 }
 
 export function getUpcomingEventsByDate(events = [], now = new Date()) {
@@ -90,6 +111,26 @@ export function getUnderConstructionEvents(events = []) {
       event.published !== false &&
       !isPublicCatalogStubEvent(event) &&
       isUnderConstructionEvent(event),
+  )
+}
+
+/**
+ * El evento en el que alguien se puede inscribir por slug: el catálogo público
+ * o una landing en construcción con la venta abierta (su aviso lleva
+ * "Inscribirme"). Una landing apagada con la venta cerrada no se ofrece.
+ *
+ * @param {string|null|undefined} slug
+ * @param {object[]} catalogEvents eventos públicos (ya con el estado resuelto)
+ * @param {object[]} [underConstructionEvents]
+ */
+export function findRegistrableEvent(slug, catalogEvents = [], underConstructionEvents = []) {
+  if (!slug) return null
+  return (
+    catalogEvents.find((event) => event?.slug === slug) ??
+    underConstructionEvents.find(
+      (event) => event?.slug === slug && hiddenLandingTakesRegistrations(event),
+    ) ??
+    null
   )
 }
 

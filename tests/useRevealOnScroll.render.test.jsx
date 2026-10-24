@@ -91,3 +91,32 @@ describe('useRevealOnScroll', () => {
     expect(node.dataset.reveal).toBeUndefined()
   })
 })
+
+describe('useRevealOnScroll · escenas de otras plantillas', () => {
+  function ScenePage({ motion = 'depth' }) {
+    const ref = useRef(null)
+    useRevealOnScroll(ref, motion, motion)
+    return (
+      <main ref={ref}>
+        {[0, 1400].map((top, index) => (
+          <section
+            key={top}
+            data-scene=""
+            data-testid={`s${index}`}
+            ref={(node) => {
+              if (node) node.getBoundingClientRect = () => ({ top })
+            }}
+          />
+        ))}
+      </main>
+    )
+  }
+
+  it('también revela las secciones marcadas con data-scene (Submission)', () => {
+    const { getByTestId } = render(<ScenePage />)
+    expect(getByTestId('s0').dataset.reveal).toBeUndefined()
+    expect(getByTestId('s1').dataset.reveal).toBe('hidden')
+    observers[0].callback([{ isIntersecting: true, target: getByTestId('s1') }])
+    expect(getByTestId('s1').dataset.reveal).toBe('shown')
+  })
+})

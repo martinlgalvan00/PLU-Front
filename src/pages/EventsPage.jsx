@@ -27,6 +27,7 @@ import {
   getNextUpcomingEvent,
   getPublicCatalogEvents,
   isPitbullClassicEvent,
+  sortEventsForCalendar,
 } from '../lib/eventNavigation.js'
 import {
   eventHasEditorialLanding,
@@ -648,7 +649,7 @@ export default function EventsPage({
   )
 
   const filteredEvents = useMemo(() => {
-    return events.filter((event) => {
+    const shown = events.filter((event) => {
       if (filter === 'open') {
         return event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
       }
@@ -656,6 +657,7 @@ export default function EventsPage({
       if (filter === 'done') return event.status === 'finalizado'
       return event.status !== 'finalizado'
     })
+    return sortEventsForCalendar(shown, { finished: filter === 'done' })
   }, [events, filter])
 
   const listEvents = filteredEvents

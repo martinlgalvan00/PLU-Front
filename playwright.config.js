@@ -62,6 +62,8 @@ const webEnv = {
 
 export default defineConfig({
   testDir: './e2e',
+  // Los flujos con API simulada tienen su propia config (playwright.flows.config.js).
+  testIgnore: ['flows/**'],
   timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,

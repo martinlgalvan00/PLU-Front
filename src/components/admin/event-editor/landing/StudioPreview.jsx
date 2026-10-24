@@ -4,6 +4,8 @@ import {
   STUDIO_STAGE_PADDING,
   studioPreviewScale,
 } from '../../../../lib/landingStudioLayout.js'
+import { eventLandingFromEvent } from '../../../../lib/eventLanding.js'
+import { normalizeLandingMotion } from '../../../../lib/eventLandingMotion.js'
 import PreviewFrame from './PreviewFrame.jsx'
 
 const EventLandingRenderer = lazy(() => import('../../../events/EventLandingRenderer.jsx'))
@@ -36,6 +38,10 @@ function selectionStyles(selectedId) {
  * Vista previa del editor visual: la landing real (la misma página que ve el
  * público) dibujada al ancho del dispositivo elegido y escalada para entrar en
  * el escenario.
+ *
+ * Elegir otra animación vuelve a montar la página y la sube al principio: la
+ * entrada de la portada se repite y las escenas vuelven a esperar, así el
+ * staff ve el preset que eligió en vez de una página ya asentada.
  *
  * Con `selectable` (Constructor) un clic sobre un bloque lo elige en vez de
  * activar sus botones o links; el bloque elegido lleva un contorno. Cuando la
@@ -72,6 +78,22 @@ export default function StudioPreview({
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
     target?.scrollIntoView?.({ block: 'start', behavior: reduced ? 'auto' : 'smooth' })
   }, [scrollToken, selectedId])
+
+  const motion = useMemo(
+    () => normalizeLandingMotion(eventLandingFromEvent(event).layout?.motion),
+    [event],
+  )
+  const shownMotionRef = useRef(motion)
+  useEffect(() => {
+    if (shownMotionRef.current === motion) return
+    shownMotionRef.current = motion
+    const view = docRef.current?.defaultView
+    if (!view?.scrollTo) return undefined
+    // Al frame siguiente: mientras la página se vuelve a montar, el anclaje de
+    // scroll del navegador corrige la posición y el reset quedaba a medias.
+    const frame = view.requestAnimationFrame(() => view.scrollTo({ top: 0, behavior: 'instant' }))
+    return () => view.cancelAnimationFrame(frame)
+  }, [motion])
 
   const deviceWidth = STUDIO_DEVICE_WIDTHS[device] ?? STUDIO_DEVICE_WIDTHS.desktop
   const scale = studioPreviewScale(stage.width, deviceWidth)
@@ -118,6 +140,7 @@ export default function StudioPreview({
           {selectable ? <style>{selectionStyles(selectedId)}</style> : null}
           <Suspense fallback={<p className="admin-landing-preview__loading">…</p>}>
             <EventLandingRenderer
+              key={motion}
               event={event}
               events={shownEvents}
               eventSlug={event?.slug}

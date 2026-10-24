@@ -108,3 +108,70 @@ describe('EventUnderConstructionPage · escena interactiva', () => {
     expect(screen.getByRole('button', { name: /ver el calendario/i })).toBeTruthy()
   })
 })
+
+describe('EventUnderConstructionPage · inscripción con la página oculta', () => {
+  const sellingEvent = {
+    ...hiddenEvent,
+    status: 'inscripcion_abierta',
+    published: true,
+    startsAt: '2027-03-06T12:00:00Z',
+    venue: 'Virtus Fitness',
+    location: 'Berazategui',
+  }
+
+  function renderSelling(event, props = {}) {
+    return render(
+      <I18nProvider>
+        <EventUnderConstructionPage
+          event={event}
+          onNavigate={vi.fn()}
+          onSelectEvent={vi.fn()}
+          {...props}
+        />
+      </I18nProvider>,
+    )
+  }
+
+  it('dice que se construye la página oficial del evento por su nombre', () => {
+    renderSelling(hiddenEvent)
+    expect(screen.getByText(/construyendo la página oficial de Barbell Submission/i)).toBeTruthy()
+  })
+
+  it('con la venta abierta ofrece "Inscribirme" con fecha y sede', () => {
+    const onSelectEvent = vi.fn()
+    const { container } = renderSelling(sellingEvent, { onSelectEvent })
+
+    expect(container.querySelector('main').dataset.registration).toBe('open')
+    expect(screen.getByText('Virtus Fitness · Berazategui')).toBeTruthy()
+    expect(screen.getByText(/2027/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Inscribirme' }))
+    expect(onSelectEvent).toHaveBeenCalledWith(sellingEvent)
+    // El calendario queda como salida secundaria.
+    expect(screen.getByRole('button', { name: /ver el calendario/i })).toBeTruthy()
+  })
+
+  it('programada: dice cuándo abre y no ofrece inscribirse todavía', () => {
+    const { container } = renderSelling({
+      ...sellingEvent,
+      registrationOpensAt: '2099-01-10T15:00:00Z',
+    })
+    expect(container.querySelector('main').dataset.registration).toBe('scheduled')
+    expect(screen.getByText(/la inscripción abre el/i)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Inscribirme' })).toBeNull()
+  })
+
+  it.each([
+    ['cerrada', { status: 'cerrado' }],
+    ['solo anuncio', { salesIntent: 'announce' }],
+  ])('%s: no ofrece inscribirse ni muestra fecha o sede', (_label, patch) => {
+    const { container } = renderSelling({ ...sellingEvent, ...patch })
+    expect(container.querySelector('main').dataset.registration).toBe('closed')
+    expect(screen.queryByRole('button', { name: 'Inscribirme' })).toBeNull()
+    expect(screen.queryByText(/Virtus/)).toBeNull()
+  })
+
+  it('con las inscripciones pausadas en la plataforma no ofrece el botón', () => {
+    renderSelling(sellingEvent, { registrationEnabled: false })
+    expect(screen.queryByRole('button', { name: 'Inscribirme' })).toBeNull()
+  })
+})

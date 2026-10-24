@@ -753,6 +753,16 @@ export default function RegisterPage({
       ) ?? null
     )
   }, [athlete, event?.slug, flow, registrations])
+  // Lo que ofrece el evento se valida igual que en el servidor. Con la
+  // inscripción ya asentada no: se muestra lo que eligió aunque el torneo
+  // después haya acotado la oferta.
+  const competitionValidationContext = useMemo(
+    () =>
+      committedCompetitionRegistration
+        ? competitionAgeContext
+        : { ...competitionAgeContext, offering: event?.offering ?? null },
+    [committedCompetitionRegistration, competitionAgeContext, event?.offering],
+  )
 
   // La clase de peso sigue al peso corporal mientras el atleta no la elija a
   // mano: así no tiene que recorrer 14 opciones para dar con la obvia. Si ya
@@ -1949,7 +1959,7 @@ export default function RegisterPage({
     const snapshot = { ...form, [field]: rawValue }
     const validation =
       flow === 'competition'
-        ? validateCompetitionFields(snapshot, [field], t, competitionAgeContext)
+        ? validateCompetitionFields(snapshot, [field], t, competitionValidationContext)
         : flow === 'profile'
           ? validateAthleteFields(snapshot, [field], t)
           : null
@@ -2166,7 +2176,7 @@ export default function RegisterPage({
       flow === 'profile'
         ? validateAthleteForm(form, t)
         : flow === 'competition'
-          ? validateCompetitionForm(form, t, competitionAgeContext)
+          ? validateCompetitionForm(form, t, competitionValidationContext)
           : validateMembershipForm(form, t)
 
     if (!validation.success) {
