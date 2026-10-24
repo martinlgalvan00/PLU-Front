@@ -139,6 +139,8 @@ jobs:
             e2e/.report/
           retention-days: 7
           if-no-files-found: ignore
+          # Las carpetas de Playwright empiezan con punto y v4 las saltea por defecto.
+          include-hidden-files: true
       # Postura de seguridad contra el catalogo real: RLS activo, el navegador
       # sin escritura, las RPC de cobro cerradas y toda funcion definer con
       # search_path. Los tests estaticos auditan lo que dicen las migraciones;

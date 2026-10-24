@@ -29,28 +29,6 @@ test.beforeAll(async () => {
   })
 })
 
-/**
- * La jornada del evento de QA cae a 30 días (global-setup.js) y el canje
- * resuelve la vigencia del tipo de entrada al momento del escaneo
- * (`resolve_ticket_type_access_window`, migración 20261125120000): sin más,
- * todo QR se lee como "todavía no vigente". Se abre una excepción de acceso
- * de hoy por la misma RPC que usa el panel (TicketAccessOverrideDialog), así
- * lo que decide cada caso es el pago, la zona y el uso, no la fecha.
- */
-async function openAccessToday(ticketIds) {
-  const now = Date.now()
-  for (const ticketId of ticketIds) {
-    const { error } = await admin.rpc('staff_set_ticket_access_override', {
-      p_ticket_id: ticketId,
-      p_enabled: true,
-      p_valid_from: new Date(now - 60 * 60_000).toISOString(),
-      p_valid_until: new Date(now + 24 * 60 * 60_000).toISOString(),
-      p_actor: 'e2e:security-gate',
-    })
-    if (error) throw new Error(error.message)
-  }
-}
-
 async function buyTicket({ fullName, dni, ticketTypeId, key, paid = true }) {
   const idempotencyKey = key ?? `e2e-gate-${randomUUID()}`
   const { data, error } = await admin.rpc('create_ticket_order_v2', {
@@ -76,11 +54,10 @@ async function buyTicket({ fullName, dni, ticketTypeId, key, paid = true }) {
 
   const { data: credentials, error: readError } = await admin
     .from('tickets')
-    .select('id, qr_token, credential_label, ticket_type_id, attendee_name, status')
+    .select('qr_token, credential_label, ticket_type_id, attendee_name, status')
     .eq('order_id', orderId)
     .order('is_primary_credential', { ascending: false })
   if (readError) throw new Error(readError.message)
-  await openAccessToday(credentials.map((row) => row.id))
   return { order: data, credentials }
 }
 
