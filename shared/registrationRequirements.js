@@ -3,9 +3,11 @@
  * cliente para frenar antes de pedir el cobro y el servidor (autoridad) para
  * rechazar el alta con el mismo criterio y los mismos textos.
  *
- * Una inscripción sin división, categoría, categoría de peso o peso corporal no
- * se puede ubicar en la tarima ni cobrar bien (la segunda división paga el 50%
- * sobre una selección completa), así que ninguno es opcional.
+ * Una inscripción sin división, categoría, modalidad, categoría de peso o peso
+ * corporal no se puede ubicar en la tarima ni cobrar bien (la segunda división
+ * paga el 50% sobre una selección completa), así que ninguno es opcional. La
+ * modalidad tampoco se completa sola: antes, sin el campo, el servidor la daba
+ * por Full Power y nadie la había elegido.
  */
 
 export const BODYWEIGHT_KG_RANGE = Object.freeze({ min: 10, max: 250 })
@@ -13,6 +15,7 @@ export const BODYWEIGHT_KG_RANGE = Object.freeze({ min: 10, max: 250 })
 export const REGISTRATION_REQUIRED_MESSAGES = Object.freeze({
   division: 'Elegí la división en la que vas a competir.',
   category: 'Elegí la categoría de competencia.',
+  modalities: 'Elegí al menos una modalidad.',
   declaredWeightClass: 'Seleccioná la categoría de peso en la que vas a competir.',
   bodyweightKg: `Ingresá tu peso corporal (entre ${BODYWEIGHT_KG_RANGE.min} y ${BODYWEIGHT_KG_RANGE.max} kg).`,
 })
@@ -21,6 +24,7 @@ export const REGISTRATION_REQUIRED_MESSAGES = Object.freeze({
 export const REGISTRATION_REQUIRED_FIELDS = Object.freeze([
   'division',
   'category',
+  'modalities',
   'declaredWeightClass',
   'bodyweightKg',
 ])
@@ -34,14 +38,18 @@ export function isValidBodyweightKg(value) {
 }
 
 /**
- * @param {{ division?: unknown, category?: unknown, declaredWeightClass?: unknown, bodyweightKg?: unknown }} selection
+ * @param {{ division?: unknown, category?: unknown, modalities?: unknown, declaredWeightClass?: unknown, bodyweightKg?: unknown }} selection
  * @returns {{ ok: true } | { ok: false, field: string, message: string }}
  */
 export function checkRequiredRegistrationFields(selection = {}) {
   for (const field of REGISTRATION_REQUIRED_FIELDS) {
     const value = selection?.[field]
     const present =
-      field === 'bodyweightKg' ? isValidBodyweightKg(value) : String(value ?? '').trim() !== ''
+      field === 'bodyweightKg'
+        ? isValidBodyweightKg(value)
+        : field === 'modalities'
+          ? Array.isArray(value) && value.some((item) => String(item ?? '').trim() !== '')
+          : String(value ?? '').trim() !== ''
     if (!present) return { ok: false, field, message: REGISTRATION_REQUIRED_MESSAGES[field] }
   }
   return { ok: true }

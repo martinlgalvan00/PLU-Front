@@ -111,6 +111,7 @@ function registrationBody(extra = {}) {
     eventSlug: 'pitbull-classic-2026',
     division: 'Junior',
     category: 'Raw',
+    modalities: ['full_power'],
     bodyweightKg: 90,
     declaredWeightClass: '90',
     paymentMethod: 'mercado_pago',

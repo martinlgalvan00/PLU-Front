@@ -26,11 +26,7 @@ import {
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import { publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
-import {
-  isPublicCatalogEvent,
-  sanitizePublicCatalogEvent,
-  underConstructionCatalogEvent,
-} from '../services/publicEventCatalogService.js'
+import { publicCatalogEventFor } from '../services/publicEventCatalogService.js'
 import { buildTicketCredentialsPayload } from '../../src/lib/ticketCredentials.js'
 import {
   EVENT_OFFERING_CATEGORIES,
@@ -1158,13 +1154,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       // visible por stale-while-revalidate despues de apagarla o borrarla.
       res.set('Cache-Control', 'no-store')
       res.json({
-        events: Array.isArray(events)
-          ? events.map((row) =>
-              isPublicCatalogEvent(row)
-                ? sanitizePublicCatalogEvent(row)
-                : underConstructionCatalogEvent(row),
-            )
-          : [],
+        events: Array.isArray(events) ? events.map((row) => publicCatalogEventFor(row)) : [],
       })
     } catch (error) {
       next(error)

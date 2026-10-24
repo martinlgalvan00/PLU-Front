@@ -1,9 +1,11 @@
 import { useEffect } from 'react'
 
 /**
- * Entrada de los bloques de una landing al llegar a la pantalla.
+ * Entrada de las escenas de una landing al llegar a la pantalla: los bloques
+ * del Constructor y las secciones marcadas con `data-scene` en las otras
+ * plantillas (CSS en `event-landing-motion.css`).
  *
- * Marca `data-reveal="hidden"` solo en los bloques que están debajo del primer
+ * Marca `data-reveal="hidden"` solo en las escenas que están debajo del primer
  * pantallazo y los pasa a `shown` cuando entran (el CSS hace la transición). Lo
  * que ya se ve al cargar nunca se oculta, y sin `IntersectionObserver` o con
  * movimiento reducido no se toca nada: el contenido siempre queda visible.
@@ -12,7 +14,7 @@ import { useEffect } from 'react'
  * vista previa del panel.
  *
  * @param {{ current: HTMLElement | null }} rootRef contenedor de la landing
- * @param {string} motion `none` | `soft` | `bold`
+ * @param {string} motion `none` | `soft` | `bold` | `depth`
  * @param {unknown} watch cambia cuando cambian los bloques (re-observa)
  */
 export default function useRevealOnScroll(rootRef, motion, watch) {
@@ -22,7 +24,7 @@ export default function useRevealOnScroll(rootRef, motion, watch) {
     if (!root || !view || motion === 'none' || !view.IntersectionObserver) return undefined
     if (view.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined
 
-    const blocks = [...root.querySelectorAll('.lb-block')]
+    const blocks = [...root.querySelectorAll('.lb-block, [data-scene]')]
     const below = blocks.filter((el) => el.getBoundingClientRect().top > view.innerHeight * 0.92)
     for (const el of below) el.dataset.reveal = 'hidden'
 

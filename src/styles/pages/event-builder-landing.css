@@ -307,9 +307,10 @@
 
 /* =============================================
    Animaciones por evento (`layout.motion` → `data-motion` del <main>)
-   Solo `transform` y `opacity`. `none` no anima nada; `soft` es un fundido
-   corto; `bold` suma recorrido, duración y la portada en secuencia. Con
-   `prefers-reduced-motion` todo queda quieto, elija lo que elija el staff.
+   El paso entre bloques (entrada al llegar, Profundidad, salida ligada al
+   scroll) es común a las plantillas y vive en `event-landing-motion.css`.
+   Acá queda lo propio del Constructor: el fundido de la página y la portada
+   en secuencia. Solo `transform` y `opacity`.
    ============================================= */
 
 @keyframes lb-fade-in {
@@ -324,7 +325,7 @@
 @keyframes lb-rise-in {
   from {
     opacity: 0;
-    transform: translateY(var(--lb-rise));
+    transform: translateY(var(--scene-rise));
   }
   to {
     opacity: 1;
@@ -332,70 +333,61 @@
   }
 }
 
-.event-builder[data-motion='soft'] {
-  --lb-rise: 8px;
-  --lb-reveal-time: var(--motion-slow);
+@keyframes lb-depth-in {
+  from {
+    opacity: 0;
+    transform: perspective(1200px) translate3d(0, var(--scene-rise), var(--scene-depth)) rotateX(5deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.event-builder[data-motion='bold'] {
-  --lb-rise: 32px;
-  --lb-reveal-time: var(--motion-cinematic);
-}
-
-.event-builder[data-motion='soft'],
-.event-builder[data-motion='bold'] {
+.event-builder:is([data-motion='soft'], [data-motion='bold'], [data-motion='depth']) {
   animation: lb-fade-in var(--motion-base) var(--ease-out) both;
 }
 
-/* Bloques: los marca `useRevealOnScroll` solo si están debajo del primer pantallazo. */
-.event-builder .lb-block[data-reveal] {
-  transition:
-    opacity var(--lb-reveal-time) var(--ease-cinematic),
-    transform var(--lb-reveal-time) var(--ease-cinematic);
+.event-builder:is([data-motion='soft'], [data-motion='bold']) .lb-hero__identity > * {
+  animation: lb-rise-in var(--scene-reveal-time) var(--ease-cinematic) both;
 }
 
-.event-builder .lb-block[data-reveal='hidden'] {
-  opacity: 0;
-  transform: translateY(var(--lb-rise));
+.event-builder[data-motion='depth'] .lb-hero__identity > * {
+  animation: lb-depth-in var(--scene-reveal-time) var(--ease-cinematic) both;
 }
 
-.event-builder .lb-block[data-reveal='shown'] {
-  opacity: 1;
-  transform: none;
+[data-motion-tier='low'] .event-builder[data-motion='depth'] .lb-hero__identity > * {
+  animation-name: lb-rise-in;
 }
 
-/* Portada: el contenido entra de a uno con `bold`, junto con `soft`. */
-.event-builder[data-motion='soft'] .lb-hero__identity > *,
-.event-builder[data-motion='bold'] .lb-hero__identity > * {
-  animation: lb-rise-in var(--lb-reveal-time) var(--ease-cinematic) both;
-}
-
-.event-builder[data-motion='bold'] .lb-hero__identity > :nth-child(2) {
+/* Portada en secuencia: `bold` y `depth`. */
+.event-builder:is([data-motion='bold'], [data-motion='depth'])
+  .lb-hero__identity
+  > :nth-child(2) {
   animation-delay: var(--stagger-step);
 }
 
-.event-builder[data-motion='bold'] .lb-hero__identity > :nth-child(3) {
+.event-builder:is([data-motion='bold'], [data-motion='depth'])
+  .lb-hero__identity
+  > :nth-child(3) {
   animation-delay: calc(var(--stagger-step) * 2);
 }
 
-.event-builder[data-motion='bold'] .lb-hero__identity > :nth-child(4) {
+.event-builder:is([data-motion='bold'], [data-motion='depth'])
+  .lb-hero__identity
+  > :nth-child(4) {
   animation-delay: calc(var(--stagger-step) * 3);
 }
 
-.event-builder[data-motion='bold'] .lb-hero__identity > :nth-child(n + 5) {
+.event-builder:is([data-motion='bold'], [data-motion='depth'])
+  .lb-hero__identity
+  > :nth-child(n + 5) {
   animation-delay: calc(var(--stagger-step) * 4);
 }
 
-/* Misma especificidad que las reglas de cada preset: tiene que ganar siempre. */
 @media (prefers-reduced-motion: reduce) {
   .event-builder[data-motion],
   .event-builder[data-motion] .lb-hero__identity > * {
     animation: none;
-  }
-
-  .event-builder .lb-block[data-reveal] {
-    opacity: 1;
-    transform: none;
-    transition: none;
   }
 }

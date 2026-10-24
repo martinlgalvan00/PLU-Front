@@ -26,10 +26,10 @@ describe('SubmissionLandingPage', () => {
   it('muestra una landing completa aun cuando las inscripciones estan proximas', () => {
     renderLanding()
     expect(screen.getByRole('heading', { name: 'Barbell Submission' })).toBeTruthy()
-    expect(screen.getAllByText('EN PREPARACION')).toHaveLength(2)
+    expect(screen.getAllByText('En preparación')).toHaveLength(2)
     expect(screen.getByText('Virtus Fitness')).toBeTruthy()
-    expect(screen.getByRole('heading', { name: 'LA EXPERIENCIA' })).toBeTruthy()
-    expect(screen.getByRole('heading', { name: 'INFORMACION DE COMPETENCIA' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'La experiencia' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Información de competencia' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Ver calendario' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Inscribirme' })).toBeNull()
   })

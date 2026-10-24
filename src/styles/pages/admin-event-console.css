@@ -1303,6 +1303,56 @@
   }
 }
 
+/* Rieles deslizables del evento en mobile (acciones, pestañas y capítulos de
+   Venta): el borde derecho se funde mientras queda contenido por ver y se
+   limpia al llegar al final. Sin esto el siguiente botón quedaba como una
+   astilla cortada y no se notaba que la fila se desliza.
+
+   El fundido lo maneja una animación ligada al scroll del propio riel: sin JS,
+   y si el riel no desborda (timeline inactiva) vale 0 y no tapa nada. Sin
+   soporte de `animation-timeline`, queda como antes. */
+@property --admin-rail-fade {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes admin-rail-fade {
+  from {
+    --admin-rail-fade: 32px;
+  }
+  to {
+    --admin-rail-fade: 0px;
+  }
+}
+
+@media (max-width: 719px) {
+  :is(.admin-event-bar, .admin-event-workspace__nav, .admin-event-workspace__chapters) {
+    scroll-snap-type: x proximity;
+  }
+
+  :is(.admin-event-bar, .admin-event-workspace__nav, .admin-event-workspace__chapters) > * {
+    scroll-snap-align: start;
+  }
+
+  @supports (animation-timeline: scroll(self inline)) {
+    :is(.admin-event-bar, .admin-event-workspace__nav, .admin-event-workspace__chapters) {
+      animation: admin-rail-fade linear both;
+      animation-timeline: scroll(self inline);
+      -webkit-mask-image: linear-gradient(
+        to right,
+        #000 calc(100% - var(--admin-rail-fade)),
+        transparent 100%
+      );
+      mask-image: linear-gradient(
+        to right,
+        #000 calc(100% - var(--admin-rail-fade)),
+        transparent 100%
+      );
+    }
+  }
+}
+
 @media (max-width: 719px) {
   .admin-event-workspace__toolbar {
     padding: 8px 14px 0;
@@ -2555,7 +2605,9 @@
 }
 
 .admin-landing-compose__seo-title {
-  color: #1a0dab;
+  /* Token de links: en el panel (monocromo) es el color de texto. El #1a0dab
+     del buscador sobre el fondo oscuro del panel no llegaba a AA. */
+  color: var(--color-brand-celeste);
   font-size: 0.875rem;
   font-weight: 650;
   line-height: 1.3;
@@ -2879,6 +2931,12 @@
 
 .admin-event-workspace__security-link:hover {
   color: var(--admin-ink);
+}
+
+@media (pointer: coarse) {
+  .admin-event-workspace__security-link {
+    min-height: 44px;
+  }
 }
 
 .admin-event-workspace__security-link:focus-visible {

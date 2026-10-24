@@ -123,6 +123,38 @@ export function resolveRegistrationSale(event, options = {}) {
 }
 
 /**
+ * ¿Una landing oculta ("en construcción") igual tiene que dejar inscribirse?
+ *
+ * Mostrar u ocultar la página y vender inscripciones son decisiones separadas:
+ * el staff puede abrir la venta mientras arma la página oficial. Con la venta
+ * abierta (o programada, para anunciar cuándo abre) el aviso de "en
+ * construcción" lleva el botón de inscripción y el catálogo entrega lo justo
+ * para el checkout; cerrada, el aviso sigue sin revelar nada del evento.
+ *
+ * Acepta la fila cruda (`registration_opens_at`, `rules.salesIntent`) o el
+ * evento mapeado: la usan el catálogo del servidor y el respaldo del cliente.
+ *
+ * @param {object|null|undefined} event
+ * @param {{ now?: Date|number }} [options]
+ */
+export function hiddenLandingTakesRegistrations(event, { now = new Date() } = {}) {
+  if (!event) return false
+  const sale = resolveRegistrationSale(
+    {
+      status: event.storedStatus ?? event.status,
+      published: event.published,
+      registrationOpensAt: event.registrationOpensAt ?? event.registration_opens_at ?? null,
+      registrationClosesAt: event.registrationClosesAt ?? event.registration_closes_at ?? null,
+      salesIntent: event.salesIntent ?? event.rules?.salesIntent,
+    },
+    { now },
+  )
+  // Programada pero con un bloqueo (p. ej. "Solo anuncio") no va a cobrar al
+  // abrir: tampoco se expone.
+  return sale.state === 'on_sale' || (sale.state === 'scheduled' && sale.blockers.length === 0)
+}
+
+/**
  * Lo que decide el staff, como se guarda: estado + ventana. Es la escritura
  * inversa de `resolveRegistrationSale` y la comparten el alta, el editor y el
  * control de venta.

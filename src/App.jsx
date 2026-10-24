@@ -51,6 +51,7 @@ import {
   getPublicCatalogEvents,
   getUnderConstructionEvents,
   isUnderConstructionEvent,
+  findRegistrableEvent,
   PITBULL_CLASSIC_SLUG,
 } from './lib/eventNavigation.js'
 import {
@@ -261,7 +262,11 @@ export default function App() {
   const catalogNavEvents = getCompetitionNavEvents(publicEvents)
   // Landings con el interruptor apagado: el menú las muestra y al tocarlas dice
   // "Plataforma en construcción". No entran a listados ni countdowns.
-  const underConstructionEvents = getUnderConstructionEvents(app.adminEvents)
+  const underConstructionEvents = getUnderConstructionEvents(app.adminEvents).map((event) =>
+    withPublicEventStatus(event, new Date(), {
+      registrationEnabled: app.checkoutAvailability?.registrationEnabled !== false,
+    }),
+  )
   const baseNavEvents =
     catalogNavEvents.length > 0 ? catalogNavEvents : [featuredEvent].filter((event) => event?.slug)
   const navEvents = [
@@ -582,11 +587,13 @@ export default function App() {
         // cualquier atleta normal queda vacío y este lookup nunca encontraba
         // nada, así que `selectedEvent` se quedaba con lo que hubiera antes
         // (otro torneo, o el de arranque) y la navegación por código secreto
-        // terminaba en el checkout equivocado. `publicEvents` es el catálogo
-        // público, sin permiso de por medio, y ya es lo que usa el resto de
-        // la app para mostrar/elegir eventos.
-        const promotionEvent = publicEvents.find(
-          (event) => event.slug === resolvedOptions.eventSlug,
+        // terminaba en el checkout equivocado. `findRegistrableEvent` busca en
+        // el catálogo público (más las landings en construcción que venden),
+        // sin permiso de por medio.
+        const promotionEvent = findRegistrableEvent(
+          resolvedOptions.eventSlug,
+          publicEvents,
+          underConstructionEvents,
         )
         if (promotionEvent) setSelectedEvent(promotionEvent)
       }
@@ -594,7 +601,7 @@ export default function App() {
       setTransitionDirection(getTransitionDirection(view, resolvedView))
       setView(resolvedView)
     },
-    [publicEvents, getSession, pendingAthleteDestination, view, app.enterAthleteContext, app.returnToStaffContext, app.clearInvalidSession],
+    [publicEvents, underConstructionEvents, getSession, pendingAthleteDestination, view, app.enterAthleteContext, app.returnToStaffContext, app.clearInvalidSession],
   )
 
   // Alias deprecado: `/pitbull` → `/evento/pitbull-classic-2026`.
@@ -1009,7 +1016,12 @@ export default function App() {
   }
 
   const pageProps = showUnderConstruction
-    ? { event: eventPageEvent, onNavigate: navigate }
+    ? {
+        event: eventPageEvent,
+        onNavigate: navigate,
+        onSelectEvent: selectEvent,
+        registrationEnabled: app.checkoutAvailability?.registrationEnabled !== false,
+      }
     : showBuilderLanding || showSubmissionLanding
     ? {
         onNavigate: navigate,
@@ -1135,8 +1147,11 @@ export default function App() {
 
   if (view === 'competition' && app.session?.role === 'athlete_plu') {
     const athlete = app.athletes.find((item) => item.id === app.session.athleteId)
+    // Con una landing en construcción que vende, el evento no está en el
+    // catálogo: sin buscarlo ahí el checkout caía en el destacado y la persona
+    // terminaba pagando otro torneo.
     const competitionEvent =
-      publicEvents.find((event) => event.slug === selectedEvent?.slug) ??
+      findRegistrableEvent(selectedEvent?.slug, publicEvents, underConstructionEvents) ??
       featuredEvent ??
       selectedEvent
     return (

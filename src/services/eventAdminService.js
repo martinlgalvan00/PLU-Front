@@ -21,6 +21,7 @@ import {
 } from '../lib/eventPricing.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { isRegistrationOpen } from '../lib/status.js'
+import { hiddenLandingTakesRegistrations } from '../../shared/registrationSaleState.js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 import { ApiError, apiDelete, apiGet, apiPatch, apiPost } from '../lib/api.js'
 import { compressImageFile } from '../lib/compressImageFile.js'
@@ -911,26 +912,41 @@ function mapAdminEventRow(row, index = 0) {
   }
 }
 
+function constructionLandingRules(event) {
+  const landing = event.landing ?? {}
+  return {
+    templateId: landing.templateId,
+    themeId: landing.themeId,
+    publicVisible: false,
+    ...(landing.layout
+      ? { layout: { palette: landing.layout.palette, motion: landing.layout.motion } }
+      : {}),
+  }
+}
+
 /** Espejo cliente de `underConstructionCatalogEvent` (server): solo slug y título. */
 function underConstructionPublicEvent(event) {
-  const landing = event.landing ?? {}
   return mapSupabaseEventRow({
     id: event.id,
     slug: event.slug,
     title: event.title,
     published: true,
     status: 'proximamente',
-    rules: {
-      landing: {
-        templateId: landing.templateId,
-        themeId: landing.themeId,
-        publicVisible: false,
-        ...(landing.layout
-          ? { layout: { palette: landing.layout.palette, motion: landing.layout.motion } }
-          : {}),
-      },
-    },
+    rules: { landing: constructionLandingRules(event) },
   })
+}
+
+/**
+ * Espejo cliente de `registrationOnlyCatalogEvent` (server): el evento entero
+ * para poder inscribirse, sin la página que todavía se está armando.
+ */
+function registrationOnlyPublicEvent(event) {
+  return {
+    ...event,
+    heroImageUrl: null,
+    publicCopy: normalizeEventPublicCopy(null),
+    landing: normalizeEventLanding(constructionLandingRules(event), { slug: event.slug }),
+  }
 }
 
 export const PUBLISHED_EVENTS_SELECT = `
@@ -1000,9 +1016,12 @@ export async function fetchPublishedEvents() {
   // Si la API no esta disponible, el fallback debe respetar el mismo
   // interruptor de visibilidad que protege el catalogo del servidor: una landing
   // apagada queda solo como "en construccion", sin datos del evento.
-  return events.map((event) =>
-    eventLandingIsPublic(event) ? event : underConstructionPublicEvent(event),
-  )
+  return events.map((event) => {
+    if (eventLandingIsPublic(event)) return event
+    return hiddenLandingTakesRegistrations(event)
+      ? registrationOnlyPublicEvent(event)
+      : underConstructionPublicEvent(event)
+  })
 }
 
 /** Guarda el evento completo a través de Express y devuelve el estado

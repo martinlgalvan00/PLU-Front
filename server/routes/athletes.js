@@ -371,8 +371,9 @@ const registrationSchema = z.object({
   division: z.enum(COMPETITION_DIVISIONS),
   // Segunda división (Open al 50%). Se normaliza y valida contra la edad en la ruta.
   secondaryDivision: z.enum(COMPETITION_DIVISIONS).optional(),
-  // Sin el campo compite Full Power. El catálogo y las combinaciones válidas
-  // las decide `validateModalities`, para responder con un código claro.
+  // Obligatoria, aunque el esquema la deje pasar: sin el campo antes se daba
+  // por Full Power sin que nadie la eligiera. Faltante, vacía, desconocida o
+  // redundante la rechaza `validateModalities` con un código claro (422).
   modalities: z.array(z.string().trim().max(24)).max(5).optional(),
   category: z.enum(COMPETITION_CATEGORIES),
   // El peso corporal es obligatorio: sin él no se puede ubicar al atleta ni validar el pesaje.
@@ -1217,7 +1218,7 @@ export function createAthleteRoutes({
       )
     }
 
-    const modalities = validateModalities(body.modalities ?? ['full_power'])
+    const modalities = validateModalities(body.modalities)
     if (!modalities.ok) {
       const messages = {
         MODALITY_REQUIRED: 'Elegí al menos un levantamiento.',

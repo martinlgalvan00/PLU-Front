@@ -41,7 +41,9 @@ describe('migración staff_merge_event_landing_layout', () => {
   })
 
   it('valida el preset de animación y lo guarda dentro del layout', () => {
-    expect(sqlList('v_motions')).toEqual(LANDING_MOTION_PRESETS)
+    // La lista vigente la amplió 20261231100000 (Profundidad): esta conserva
+    // los presets originales, todos todavía válidos.
+    expect(LANDING_MOTION_PRESETS).toEqual(expect.arrayContaining(sqlList('v_motions')))
     expect(sql).toContain("'motion', v_motion")
     expect(sql).toMatch(/not \(v_motion = any \(v_motions\)\)/)
   })

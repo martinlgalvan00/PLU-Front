@@ -31,6 +31,37 @@ ofrece; si un evento lo tiene, cuenta como abierta.
 - Editor completo y alta rápida: "Cuándo se puede inscribir la gente"
   (`src/lib/eventRegistrationMode.js`).
 
+## Página oculta ("en construcción") con la venta abierta
+
+Mostrar u ocultar la landing (Página → "Qué ve el público") y vender inscripciones son
+decisiones separadas: `hiddenLandingTakesRegistrations` (mismo archivo).
+
+| Landing | Venta | Lo que ve el público |
+|---|---|---|
+| Oculta | `on_sale` | Aviso "Estamos construyendo la página oficial de …", fecha, sede y **Inscribirme** |
+| Oculta | `scheduled` (sin bloqueos) | Aviso + "La inscripción abre el …" |
+| Oculta | cualquier otra | Solo el aviso: el catálogo no entrega fecha, sede ni precio |
+| Visible | — | La landing de su plantilla, con el botón según `isEventRegistrationOpen` |
+
+El catálogo (`publicCatalogEventFor` en `server/services/publicEventCatalogService.js`) manda el
+evento completo para el checkout pero sin la página en armado (slots, bloques, copy público,
+portada). El evento oculto sigue fuera del calendario y de destacados; el checkout lo encuentra
+con `findRegistrableEvent` (`src/lib/eventNavigation.js`).
+
+## Datos obligatorios de la inscripción
+
+División, categoría, **modalidad**, categoría de peso y peso corporal
+(`shared/registrationRequirements.js`). Sin modalidad el servidor responde 422
+`MODALITY_REQUIRED` (antes la daba por Full Power). El formulario además valida categoría,
+división y modalidad contra lo que ofrece el evento, con la misma regla que el servidor
+(`validateSelectionAgainstOffering`).
+
+## Tests de flujo
+
+`npm run test:e2e:flows` (`playwright.flows.config.js`, `e2e/flows/`): solo Vite, con la API
+simulada en el navegador, así que corre sin Docker. Cubre las combinaciones de arriba y el POST
+de la inscripción. Los rechazos del servidor los cubren `tests/api.registration*.test.js`.
+
 ## Lo que hace cumplir el servidor
 
 - **"Solo anuncio" no cobra**: `POST /api/athletes/me/registrations` (y el combo) responden

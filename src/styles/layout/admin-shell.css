@@ -599,6 +599,26 @@ button.admin-shell__account:hover,
   outline-offset: 2px;
 }
 
+/* Táctil: la cabecera mantiene su escala (íconos de 36px, idioma de 26px) y
+   lo que crece es el área que recibe el toque, hasta los 44px de alto. */
+@media (pointer: coarse) {
+  .admin-shell__icon-button {
+    position: relative;
+  }
+
+  .admin-shell__icon-button::after {
+    content: '';
+    inset: -4px;
+    position: absolute;
+  }
+
+  .admin-shell__header-actions .locale-switch__segment-option::after {
+    content: '';
+    inset: -9px 0;
+    position: absolute;
+  }
+}
+
 /* ---- Drawer (teléfono) ---- */
 
 .admin-shell__drawer .ant-drawer-content,
