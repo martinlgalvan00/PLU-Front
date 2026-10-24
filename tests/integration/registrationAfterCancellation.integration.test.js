@@ -38,6 +38,7 @@ function registerForEvent(
     body: JSON.stringify({
       eventSlug,
       division,
+      modalities: ['full_power'],
       category,
       bodyweightKg,
       declaredWeightClass,
