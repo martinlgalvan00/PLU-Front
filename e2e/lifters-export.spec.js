@@ -40,8 +40,8 @@ let fixture
 const created = { events: [], athletes: [], registrations: [] }
 
 const PEOPLE = [
-  { suffix: 'Ana', birthDate: '1992-02-19', sex: 'Femenino' },
-  { suffix: 'Luis', birthDate: '2005-06-01', sex: 'Masculino' },
+  { suffix: 'Ana', birthDate: '1992-02-19', sex: 'Femenino', bodyweightKg: 58, weightClass: '60' },
+  { suffix: 'Luis', birthDate: '2005-06-01', sex: 'Masculino', bodyweightKg: 88, weightClass: '90' },
 ]
 
 test.describe('Export Lifters — fechas y estructura', () => {
@@ -103,6 +103,10 @@ test.describe('Export Lifters — fechas y estructura', () => {
           event_id: event.id,
           division: 'Open',
           category: 'Raw',
+          // Sin peso ni categoría de peso la fila es un error del importador y
+          // "Descargar Excel" queda deshabilitado a propósito.
+          bodyweight_kg: person.bodyweightKg,
+          declared_weight_class: person.weightClass,
           status: 'confirmada',
         })
         .select('id')

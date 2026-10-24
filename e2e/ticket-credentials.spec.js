@@ -137,24 +137,6 @@ test.describe('Credenciales de ingreso', () => {
       .in('id', [espectador.id, entrenador.id])
     expect(payError).toBeNull()
 
-    // Y que esté vigente hoy: el canje resuelve la ventana del tipo de entrada
-    // (`resolve_ticket_type_access_window`, migración 20261125120000) y la
-    // jornada del evento de QA cae a 30 días, así que sin esto la RPC corta
-    // con "todavía no está habilitada" antes de mirar la zona. Se abre una
-    // excepción de acceso con la misma RPC que usa el panel; la regla que se
-    // prueba acá es la de zonas y uso único, no la de fechas.
-    const now = Date.now()
-    for (const credential of [espectador, entrenador]) {
-      const { error: overrideError } = await admin.rpc('staff_set_ticket_access_override', {
-        p_ticket_id: credential.id,
-        p_enabled: true,
-        p_valid_from: new Date(now - 60 * 60_000).toISOString(),
-        p_valid_until: new Date(now + 24 * 60 * 60_000).toISOString(),
-        p_actor: 'e2e:ticket-credentials',
-      })
-      expect(overrideError).toBeNull()
-    }
-
     // 1. La de ENTRENADOR abre la entrada en calor.
     const ok = await admin.rpc('staff_check_in_ticket', {
       p_qr_token: entrenador.qr_token,
