@@ -1,5 +1,7 @@
+import { readFile } from 'node:fs/promises'
 import { expect } from '@playwright/test'
 import { TICKETS_PATH } from '../src/lib/ticketsRoute.js'
+import { FIXTURE_PATH } from './global-setup.js'
 
 /**
  * ticket-purchase-helpers.js — PLU ARG
@@ -179,16 +181,22 @@ export async function assertPaymentMethodsVisible(page) {
   await expect(page.locator('input[name="ticket-payment"][value="transferencia"]')).toBeVisible()
 }
 
+// Cada acción dentro de un intento lleva su propio tope: sin él, si el form
+// desaparece a mitad de camino (llegó la confirmación, o React lo remontó) el
+// intento queda colgado esperando un nodo que no vuelve y `toPass` se come
+// todo su presupuesto sin probar de nuevo.
+const STEP_TIMEOUT = 5_000
+
 async function typeAttendee(page, index, { fullName, dni }) {
   const digits = String(dni).replace(/\D/g, '')
   const form = page.locator('#checkout form.ticket-purchase')
   const nameInput = form.locator(`input[name="attendee-${index}-fullName"]`)
   const dniInput = form.locator(`input[name="attendee-${index}-dni"]`)
-  await nameInput.waitFor({ state: 'visible', timeout: 5_000 })
-  await nameInput.fill(fullName)
-  await dniInput.fill(String(dni))
-  expect(await nameInput.inputValue()).toBe(fullName)
-  expect(await dniInput.inputValue()).toBe(digits)
+  await nameInput.waitFor({ state: 'visible', timeout: STEP_TIMEOUT })
+  await nameInput.fill(fullName, { timeout: STEP_TIMEOUT })
+  await dniInput.fill(String(dni), { timeout: STEP_TIMEOUT })
+  await expect(nameInput).toHaveValue(fullName, { timeout: 2_000 })
+  await expect(dniInput).toHaveValue(digits, { timeout: 2_000 })
 }
 
 /**
@@ -235,59 +243,137 @@ async function applyTicketCheckout(
     name: first.fullName,
     email: `e2e-ticket-${String(first.dni).replace(/\D/g, '')}@pluarg.test`,
   }
-  await page.locator('#checkout input[name="buyer-name"]').fill(buyerData.name)
-  await page.locator('#checkout input[name="buyer-email"]').fill(buyerData.email)
+  await page
+    .locator('#checkout input[name="buyer-name"]')
+    .fill(buyerData.name, { timeout: STEP_TIMEOUT })
+  await page
+    .locator('#checkout input[name="buyer-email"]')
+    .fill(buyerData.email, { timeout: STEP_TIMEOUT })
   if (buyerData.phone) {
-    await page.locator('#checkout input[name="buyer-phone"]').fill(buyerData.phone)
+    await page
+      .locator('#checkout input[name="buyer-phone"]')
+      .fill(buyerData.phone, { timeout: STEP_TIMEOUT })
   }
 
   await selectPaymentMethod(page, paymentMethod)
-  expect(await page.locator('#checkout input[name="attendee-0-fullName"]').inputValue()).toBe(
+  await expect(page.locator('#checkout input[name="attendee-0-fullName"]')).toHaveValue(
     attendees[0].fullName,
+    { timeout: 2_000 },
   )
-  expect(
-    await page.locator(`input[name="ticket-payment"][value="${paymentMethod}"]`).isChecked(),
-  ).toBe(true)
+  await expect(page.locator(`input[name="ticket-payment"][value="${paymentMethod}"]`)).toBeChecked(
+    { timeout: 2_000 },
+  )
+}
+
+/**
+ * Espera lo que pasó después de tocar "Pagar": la confirmación, un rechazo del
+ * backend, o un form que no llegó a mandar nada. Devuelve el motivo legible
+ * para que un fallo en CI diga qué vio, no sólo "timeout".
+ */
+async function waitForPurchaseOutcome(page, { posts, sent, timeout = 25_000 }) {
+  const confirmation = page.locator('.ticket-purchase--confirmation')
+  const submitError = page.locator('#checkout form.ticket-purchase .ticket-purchase__submit-error')
+  const invalidFields = page.locator('#checkout form.ticket-purchase [aria-invalid="true"]')
+  const deadline = Date.now() + timeout
+
+  while (Date.now() < deadline) {
+    if (await confirmation.isVisible()) return { kind: 'confirmed' }
+
+    const post = posts.slice(sent).at(-1)
+    if (post && post.status >= 400) {
+      const detail = post.body?.error ?? post.body?.message ?? ''
+      return {
+        kind: 'rejected',
+        message: `POST /api/tickets/orders → ${post.status}${detail ? `: ${detail}` : ''}`,
+      }
+    }
+    if (!post) {
+      const invalid = await invalidFields.evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute('name') ?? node.id ?? node.tagName),
+      )
+      if (invalid.length) {
+        return {
+          kind: 'invalid',
+          message: `el form no mandó la compra, marcó inválidos: ${invalid.join(', ')}`,
+        }
+      }
+      if (await submitError.isVisible()) {
+        return {
+          kind: 'invalid',
+          message: `el form no mandó la compra: ${(await submitError.innerText()).trim()}`,
+        }
+      }
+    }
+    await page.waitForTimeout(250)
+  }
+
+  return {
+    kind: 'timeout',
+    message:
+      posts.length > sent
+        ? `POST /api/tickets/orders → ${posts.at(-1).status}, pero la confirmación no apareció`
+        : 'el click en "Pagar" no generó ningún POST /api/tickets/orders',
+  }
 }
 
 /**
  * Compra por el formulario real. Si React remonta el checkout entre el fill
  * y el click, no hubo POST: se vuelve a llenar en vez de afirmar a ciegas
  * la pantalla de confirmación.
+ *
+ * Los POST se escuchan durante toda la compra (no sólo dentro de un intento):
+ * una respuesta lenta que vuelve después de que el intento se rindió igual
+ * cuenta, y el intento siguiente ve la confirmación en vez de volver a llenar
+ * un form que ya no está. Devuelve el cuerpo del último POST aceptado.
  */
 export async function purchaseTickets(
   page,
   { attendees, buyer, paymentMethod = 'transferencia', quantity, expectOk = true } = {},
 ) {
-  await expect(async () => {
-    if (expectOk && (await page.locator('.ticket-purchase--confirmation').isVisible())) return
-
-    await applyTicketCheckout(page, { attendees, buyer, paymentMethod, quantity })
-    const submit = page.locator('#checkout form.ticket-purchase .ticket-purchase__submit')
-    const responsePromise = page.waitForResponse(isTicketOrderPost, { timeout: 8_000 })
-    await submit.click()
-
-    if (expectOk) {
-      const confirmation = page.locator('.ticket-purchase--confirmation')
-      const nameInput = page.locator('#checkout input[name="attendee-0-fullName"]')
-      if (
-        !(await confirmation.isVisible()) &&
-        (await nameInput.count()) > 0 &&
-        (await nameInput.inputValue()) !== attendees[0].fullName
-      ) {
-        throw new Error('el checkout se remontó al enviar')
-      }
-    }
-
-    const response = await responsePromise
-    if (expectOk && !response.ok()) {
-      throw new Error(`POST /api/tickets/orders → ${response.status()}`)
-    }
-  }).toPass({ timeout: 40_000 })
-
-  if (expectOk) {
-    await expect(page.locator('.ticket-purchase--confirmation')).toBeVisible({ timeout: 15_000 })
+  const confirmation = page.locator('.ticket-purchase--confirmation')
+  const submit = page.locator('#checkout form.ticket-purchase .ticket-purchase__submit')
+  const posts = []
+  const recordPost = (response) => {
+    if (!isTicketOrderPost(response)) return
+    const entry = { status: response.status(), body: null }
+    posts.push(entry)
+    response
+      .json()
+      .then((body) => {
+        entry.body = body
+      })
+      .catch(() => {})
   }
+
+  page.on('response', recordPost)
+  try {
+    await expect(async () => {
+      if (expectOk && (await confirmation.isVisible())) return
+
+      // Un POST anterior que todavía no volvió deja el botón en "Procesando…".
+      // Llenar el form encima no cambia nada: se espera y el intento siguiente
+      // decide con la pantalla que haya quedado.
+      if ((await submit.count()) > 0 && (await submit.isDisabled())) {
+        throw new Error('la compra anterior sigue en curso (botón "Procesando…")')
+      }
+
+      await applyTicketCheckout(page, { attendees, buyer, paymentMethod, quantity })
+      const sent = posts.length
+      await submit.click({ timeout: STEP_TIMEOUT })
+      const outcome = await waitForPurchaseOutcome(page, { posts, sent })
+
+      if (outcome.kind === 'confirmed') return
+      // Sin `expectOk` el test busca justamente el rechazo: alcanza con que el
+      // backend haya contestado.
+      if (!expectOk && outcome.kind === 'rejected') return
+      throw new Error(outcome.message)
+    }).toPass({ timeout: 60_000 })
+  } finally {
+    page.off('response', recordPost)
+  }
+
+  if (expectOk) await expect(confirmation).toBeVisible({ timeout: 15_000 })
+  return posts.findLast((post) => post.status < 400)?.body ?? null
 }
 
 /**
@@ -308,8 +394,13 @@ export async function selectTicketType(page, index, typeName) {
   if (!optionValue) {
     throw new Error(`tipo "${typeName}" no está en el select de la entrada ${index + 1}`)
   }
-  await select.selectOption(optionValue)
-  await expect(select).toHaveValue(optionValue)
+  // En CI se vio el select volver al tipo anterior justo después de elegir
+  // (toHaveValue esperó 10 s con el valor viejo). Se vuelve a elegir en vez de
+  // esperar a un valor que ya no va a llegar solo.
+  await expect(async () => {
+    await select.selectOption(optionValue, { timeout: STEP_TIMEOUT })
+    await expect(select).toHaveValue(optionValue, { timeout: 2_000 })
+  }).toPass({ timeout: 10_000 })
 }
 
 /**
@@ -318,19 +409,20 @@ export async function selectTicketType(page, index, typeName) {
  */
 export async function setTicketQuantity(page, quantity) {
   const stepper = page.locator('.ticket-purchase__stepper')
-  await stepper.waitFor({ state: 'visible', timeout: 5_000 })
+  await stepper.waitFor({ state: 'visible', timeout: STEP_TIMEOUT })
   const valueLocator = stepper.locator('span').first()
-  const current = Number.parseInt((await valueLocator.textContent()) ?? '1', 10) || 1
+  const current =
+    Number.parseInt((await valueLocator.textContent({ timeout: STEP_TIMEOUT })) ?? '1', 10) || 1
 
   if (quantity > current) {
     const addButton = stepper.getByRole('button', { name: /sumar entrada/i })
     for (let i = current; i < quantity; i++) {
-      await addButton.click()
+      await addButton.click({ timeout: STEP_TIMEOUT })
     }
   } else if (quantity < current) {
     const removeButton = stepper.getByRole('button', { name: /restar entrada/i })
     for (let i = current; i > quantity; i--) {
-      await removeButton.click()
+      await removeButton.click({ timeout: STEP_TIMEOUT })
     }
   }
 
@@ -390,35 +482,143 @@ export function confirmationPasses(page) {
 }
 
 /**
- * Verifica los pases de la confirmación: etiquetas, código TCK- y QR real.
+ * La orden en curso tal como la guarda la app (sessionStorage), con sus
+ * credenciales. Es de donde la confirmación se rehidrata al recargar, así que
+ * lo que hay acá es exactamente lo que la pantalla está mostrando.
+ */
+export async function readCurrentTicketOrder(page) {
+  let order = null
+  await expect
+    .poll(
+      async () => {
+        order = await page.evaluate((key) => {
+          try {
+            return JSON.parse(window.sessionStorage.getItem(key) ?? 'null')
+          } catch {
+            return null
+          }
+        }, CURRENT_ORDER_KEY)
+        return order?.type === 'tickets' && Array.isArray(order.tickets) ? order.tickets.length : 0
+      },
+      { message: 'la orden de entradas no quedó guardada en sessionStorage', timeout: 10_000 },
+    )
+    .toBeGreaterThan(0)
+  return order
+}
+
+/**
+ * Nombres de los tipos de la fixture (global-setup.js). Las credenciales que
+ * devuelve la compra traen el id del tipo, no el nombre; la confirmación lo
+ * resuelve con el catálogo del evento y acá con lo que sembró el setup.
+ */
+let fixtureTypeNames
+function fixtureTicketTypeNames() {
+  fixtureTypeNames ??= readFile(FIXTURE_PATH, 'utf8').then((raw) => {
+    const fixture = JSON.parse(raw)
+    return new Map([
+      [fixture.coachTypeId, 'Entrenadores'],
+      [fixture.generalTypeId, 'Público general'],
+      [fixture.vipTypeId, 'VIP'],
+    ])
+  })
+  return fixtureTypeNames
+}
+
+/**
+ * Lo que imprime cada pase, con la misma regla que `TicketPurchaseSection`:
+ * la etiqueta de la credencial sólo cuando la compra de esa persona emitió más
+ * de una (entrenador: "Espectador" + "ENTRENADOR"); si no, el nombre del tipo.
+ */
+async function printedPassLabels(order) {
+  const typeNames = await fixtureTicketTypeNames()
+  const tickets = order.tickets.filter((ticket) => ticket.orderId === order.orderId)
+  const bundleSize = new Map()
+  for (const ticket of tickets) {
+    const key = ticket.bundleId ?? ticket.id
+    bundleSize.set(key, (bundleSize.get(key) ?? 0) + 1)
+  }
+  return new Map(
+    tickets.map((ticket) => [
+      ticket.id,
+      (bundleSize.get(ticket.bundleId ?? ticket.id) > 1 ? ticket.credentialLabel : null) ??
+        ticket.ticketTypeName ??
+        typeNames.get(ticket.ticketTypeId) ??
+        '',
+    ]),
+  )
+}
+
+function countBy(values) {
+  const counts = {}
+  for (const value of values) counts[value] = (counts[value] ?? 0) + 1
+  return counts
+}
+
+/**
+ * Verifica los pases de la confirmación y devuelve sus QR.
+ *
+ * Desde que el QR se retiene hasta acreditar el pago (TicketPurchaseSection,
+ * `qrReady`), la confirmación de una orden pendiente ya no dibuja el pase: cada
+ * credencial muestra DNI · código TCK y "QR pendiente de habilitación", sin
+ * QR ni "Ver mi entrada". Por eso:
+ *
+ * - Pendiente: se afirma que el QR NO se filtra, y las etiquetas se comparan
+ *   con lo que esos pases van a imprimir al habilitarse (orden guardada).
+ * - Aprobada: el pase está dibujado y se lee la etiqueta y el QR de la pantalla.
+ *
+ * En los dos casos los tokens salen de la credencial que muestra cada fila
+ * (por su código TCK), así que siguen sirviendo para abrir la verificación.
  */
 export async function assertPassesOnConfirmation(page, { labels, ticketCodePattern = TICKET_CODE } = {}) {
+  const confirmation = page.locator('.ticket-purchase--confirmation')
+  await expect(confirmation).toBeVisible({ timeout: 15_000 })
   const passes = confirmationPasses(page)
-  if (labels?.length) {
-    await expect(passes).toHaveCount(labels.length)
-    const expectedCounts = new Map()
-    for (const label of labels) {
-      expectedCounts.set(label, (expectedCounts.get(label) ?? 0) + 1)
-    }
-    for (const [label, count] of expectedCounts) {
-      await expect(
-        page.locator('.ticket-purchase--confirmation .ticket-pass-preview__meta dd', {
-          hasText: label,
-        }),
-      ).toHaveCount(count)
+  if (labels?.length) await expect(passes).toHaveCount(labels.length)
+
+  const order = await readCurrentTicketOrder(page)
+  const approved = order.status === 'aprobado'
+  const count = await passes.count()
+  const shownTickets = []
+
+  for (let index = 0; index < count; index += 1) {
+    const pass = passes.nth(index)
+    const info = pass.locator('.ticket-purchase__ticket-info')
+    await expect(info).toContainText(ticketCodePattern)
+    const code = (await info.innerText()).match(TICKET_CODE)?.[0]
+    const ticket = order.tickets.find((item) => item.ticketCode === code)
+    expect(ticket, `el pase ${code} no está en la orden en curso`).toBeTruthy()
+    await expect(info).toContainText(`DNI ${ticket.attendeeDni}`)
+    shownTickets.push(ticket)
+
+    if (approved) {
+      const qr = (await pass.locator('.ticket-pass-preview__code').textContent())?.trim() ?? ''
+      expect(qr, 'el QR de confirmación no puede ser un preview PREV-').not.toMatch(/^PREV-/i)
+      expect(qr).toBe(ticket.qrToken)
+      await expect(pass.locator('.ticket-pass-preview__guest')).toHaveText(ticket.attendeeName)
+    } else {
+      await expect(pass.locator('.ticket-pass-preview')).toHaveCount(0)
+      await expect(pass).toContainText('QR pendiente de habilitación')
+      await expect(pass.getByRole('button', { name: /ver mi entrada/i })).toHaveCount(0)
     }
   }
 
-  const count = await passes.count()
-  const tokens = []
-  for (let index = 0; index < count; index += 1) {
-    const pass = passes.nth(index)
-    const code = (await pass.locator('.ticket-pass-preview__code').textContent())?.trim() ?? ''
-    expect(code, 'el QR de confirmación no puede ser un preview PREV-').not.toMatch(/^PREV-/i)
-    expect(code).toMatch(QR_TOKEN)
-    tokens.push(code)
-    await expect(pass.locator('.ticket-purchase__ticket-info')).toContainText(ticketCodePattern)
+  if (labels?.length) {
+    if (approved) {
+      for (const [label, expected] of Object.entries(countBy(labels))) {
+        await expect(
+          confirmation.locator('.ticket-pass-preview__meta dd', { hasText: label }),
+        ).toHaveCount(expected)
+      }
+    } else {
+      const printed = await printedPassLabels(order)
+      expect(countBy(shownTickets.map((ticket) => printed.get(ticket.id)))).toEqual(
+        countBy(labels),
+      )
+    }
   }
+
+  const tokens = shownTickets.map((ticket) => ticket.qrToken)
+  for (const token of tokens) expect(token).toMatch(QR_TOKEN)
   expect(new Set(tokens).size).toBe(tokens.length)
   return tokens
 }
@@ -533,13 +733,20 @@ export const MINIMAL_JPEG = Buffer.from(
 
 export const OVERSIZED_JPEG = Buffer.concat([MINIMAL_JPEG, Buffer.alloc(2 * 1024 * 1024 + 1, 0xff)])
 
+/**
+ * Confirmación de una compra pendiente vista por quien compró. `name` es
+ * opcional: con el QR retenido hasta acreditar, una entrada suelta ya no
+ * muestra el nombre del asistente (sólo DNI · código); un juego de varias
+ * credenciales sí lo dice en el encabezado ("Credenciales de …").
+ */
 export async function assertCustomerConfirmation(page, { eventTitle, name, dni, amount }) {
   const confirmation = page.locator('.ticket-purchase--confirmation')
   await expect(confirmation).toBeVisible({ timeout: 15_000 })
   await expect(confirmation.getByRole('heading', { name: new RegExp(eventTitle, 'i') })).toBeVisible()
   await expect(confirmation).toContainText(/pendiente/i)
-  await expect(confirmation).toContainText(name)
-  await expect(confirmation).toContainText(String(dni).replace(/\D/g, ''))
+  await expect(confirmation).toContainText('Tu QR todavía no abre la puerta')
+  if (name) await expect(confirmation).toContainText(name)
+  await expect(confirmation).toContainText(`DNI ${String(dni).replace(/\D/g, '')}`)
   await expect(confirmation).toContainText(TICKET_CODE)
   if (amount) await expect(confirmation).toContainText(amount)
 }
@@ -552,12 +759,34 @@ export async function openTicketPassModal(page, { name } = {}) {
   return dialog
 }
 
+function proofUpload(page) {
+  return page.locator('.ticket-purchase--confirmation .ticket-purchase__proof-upload')
+}
+
+/**
+ * Elige un comprobante válido. El archivo se valida al elegirlo: si pasa, la
+ * zona de carga muestra su nombre y aparece "Enviar comprobante".
+ */
 export async function chooseTicketProofFile(page, { name, mimeType, buffer }) {
-  const input = page.locator('.ticket-purchase__proof-upload input[type="file"]')
-  await input.setInputFiles({ name, mimeType, buffer })
-  await expect(page.locator('.ticket-purchase__proof-upload')).toContainText(name)
+  const upload = proofUpload(page)
+  await upload.locator('input[type="file"]').setInputFiles({ name, mimeType, buffer })
+  await expect(upload.locator('.ticket-purchase__proof-dropzone')).toContainText(name)
+  await expect(upload.getByRole('button', { name: /enviar comprobante/i })).toBeVisible()
+}
+
+/**
+ * Elige un comprobante que la pantalla tiene que rechazar (formato o peso).
+ * El rechazo es inmediato, antes de subir nada: el archivo no queda elegido y
+ * no se ofrece "Enviar comprobante".
+ */
+export async function rejectTicketProofFile(page, { name, mimeType, buffer, message }) {
+  const upload = proofUpload(page)
+  await upload.locator('input[type="file"]').setInputFiles({ name, mimeType, buffer })
+  await expect(upload.locator('.ticket-purchase__submit-error')).toContainText(message)
+  await expect(upload.locator('.ticket-purchase__proof-dropzone')).not.toContainText(name)
+  await expect(upload.getByRole('button', { name: /enviar comprobante/i })).toHaveCount(0)
 }
 
 export async function submitTicketProof(page) {
-  await page.getByRole('button', { name: /enviar comprobante/i }).click()
+  await proofUpload(page).getByRole('button', { name: /enviar comprobante/i }).click()
 }

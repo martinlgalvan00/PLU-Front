@@ -64,10 +64,14 @@ test.describe('Venta de Entradas', () => {
     const warmupZone = access.locator('.tickets-page__access-zone', {
       has: page.getByRole('heading', { name: 'Entrada en calor' }),
     })
-    await expect(warmupZone).toContainText('Entrenadores')
-    await expect(warmupZone).toContainText(/no la abren/i)
-    await expect(warmupZone).toContainText('Público general')
-    await expect(warmupZone).toContainText('VIP')
+    await expect(warmupZone.locator('.tickets-page__access-opens')).toContainText('Entrenadores')
+    const warmupClosed = warmupZone.locator('.tickets-page__access-closed')
+    await expect(warmupClosed).toContainText(/no la abren/i)
+    await expect(warmupClosed).toContainText('Público general')
+    // La matriz pasa a formato título los nombres cargados en mayúsculas
+    // (`shortTicketTypeName`), así que "VIP" se lee "Vip". Lo que importa acá
+    // es que figure entre los que no abren la zona, no cómo se capitaliza.
+    await expect(warmupClosed).toContainText('VIP', { ignoreCase: true })
   })
 
   test('el total sigue al tipo, a la cantidad y al beneficio extra', async ({ page }) => {
@@ -164,7 +168,9 @@ test.describe('Venta de Entradas', () => {
     await assertTransferPanelVisible(page)
     const tokens = await assertPassesOnConfirmation(page, { labels: ['Público general'] })
     expect(tokens).toHaveLength(1)
-    await expect(page.locator('.ticket-purchase--confirmation')).toContainText('Juan Público')
+    // Pendiente de pago, la fila del pase se identifica por DNI y código: el
+    // pase con el nombre se dibuja recién cuando se acredita.
+    await expect(page.locator('.ticket-purchase--confirmation')).toContainText('DNI 40111222')
   })
 
   test('dos entradas generales suman el doble y emiten dos pases', async ({ page }) => {
@@ -221,10 +227,14 @@ test.describe('Venta de Entradas', () => {
       attendees: [{ fullName: 'Rita Recarga', dni: '40123456', type: 'Público general' }],
     })
     const tokens = await assertPassesOnConfirmation(page, { labels: ['Público general'] })
+    const passInfo = page.locator('.ticket-purchase--confirmation .ticket-purchase__ticket-info')
+    const shownBefore = await passInfo.allInnerTexts()
 
     await page.reload()
     await expect(page.locator('.ticket-purchase--confirmation')).toBeVisible({ timeout: 15_000 })
-    await expect(page.locator('.ticket-purchase--confirmation')).toContainText('Rita Recarga')
+    // La misma fila (DNI · código TCK) y la misma credencial detrás.
+    await expect(passInfo).toHaveText(shownBefore)
+    await expect(passInfo.first()).toContainText('DNI 40123456')
     const reloaded = await assertPassesOnConfirmation(page, { labels: ['Público general'] })
     expect(reloaded).toEqual(tokens)
   })

@@ -127,6 +127,18 @@ jobs:
       - name: Install Playwright Chromium for checkout E2E
         run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      # Sin esto, una falla en CI deja solo el mensaje: el snapshot de la página
+      # (error-context.md), la captura y el trace quedan en el runner.
+      - name: Upload Playwright results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e-results
+          path: |
+            e2e/.test-results/
+            e2e/.report/
+          retention-days: 7
+          if-no-files-found: ignore
       # Postura de seguridad contra el catalogo real: RLS activo, el navegador
       # sin escritura, las RPC de cobro cerradas y toda funcion definer con
       # search_path. Los tests estaticos auditan lo que dicen las migraciones;

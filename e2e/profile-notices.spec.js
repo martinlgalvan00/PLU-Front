@@ -103,9 +103,11 @@ test.describe('Avisos de perfil — panel admin', () => {
     await expect(completeName.first()).toBeVisible({ timeout: 15_000 })
     await completeName.first().getByText(/E2E Cupón/i).first().click()
     await expect(page.locator('.athlete-detail')).toBeVisible({ timeout: 15_000 })
-    await expect(page.locator('#athlete-profile-notice-title')).toHaveText(/perfil para inscribirse/i)
+    await expect(page.locator('#athlete-profile-notice-title')).toHaveText(
+      /perfil para planilla \/ inscripción/i,
+    )
     await expect(page.locator('.athlete-detail__notice-status')).toContainText(
-      /completo\. puede inscribirse/i,
+      /completo para planilla e inscripción/i,
     )
     await expect(page.getByRole('button', { name: /enviar aviso al atleta/i })).toHaveCount(0)
     await errors.assertClean()
