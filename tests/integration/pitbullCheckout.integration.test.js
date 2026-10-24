@@ -116,6 +116,7 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
       body: JSON.stringify({
         eventSlug: EVENT_SLUG,
         division: 'Open',
+        modalities: ['full_power'],
         category: 'Raw',
         bodyweightKg: 90,
         declaredWeightClass: '90',
@@ -183,6 +184,7 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
       body: JSON.stringify({
         eventSlug: EVENT_SLUG,
         division: 'Open',
+        modalities: ['full_power'],
         category: 'Raw',
         bodyweightKg: 90,
         declaredWeightClass: '90',

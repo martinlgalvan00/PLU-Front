@@ -230,6 +230,7 @@ describe('retiro de la oferta exclusiva por código contra Supabase', () => {
       body: JSON.stringify({
         eventSlug: slug,
         division: 'Open',
+        modalities: ['full_power'],
         category: 'Raw',
         bodyweightKg: 90,
         declaredWeightClass: '90',
@@ -323,6 +324,7 @@ describe('retiro de la oferta exclusiva por código contra Supabase', () => {
       body: JSON.stringify({
         eventSlug: slug,
         division: 'Open',
+        modalities: ['full_power'],
         category: 'Raw',
         bodyweightKg: 90,
         declaredWeightClass: '90',
