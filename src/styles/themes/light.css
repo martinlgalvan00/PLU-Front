@@ -1,6 +1,17 @@
 [data-theme='light'] {
   color-scheme: light;
 
+  /* ── Status chips — los de fondo claro (variables.css). dark.css declara
+     los suyos en `:root, [data-theme='dark']` y, sin redefinirlos acá, el
+     tema claro heredaba el verde/ámbar/rojo pensados para fondo oscuro: el
+     chip "Inscripción abierta" quedaba en ~1.5:1. ── */
+  --color-success-bg: var(--plu-success-bg);
+  --color-success-text: var(--plu-success-600);
+  --color-warning-bg: #fef3c7;
+  --color-warning-text: #92400e;
+  --color-danger-bg: #fee2e2;
+  --color-danger-text: #991b1b;
+
   --scrollbar-thumb: rgba(15, 17, 23, 0.16);
   --scrollbar-thumb-hover: rgba(169, 121, 15, 0.48);
   --scrollbar-track: transparent;
