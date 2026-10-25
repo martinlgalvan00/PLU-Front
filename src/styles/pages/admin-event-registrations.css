@@ -31,7 +31,15 @@
   margin: 0;
 }
 
-.admin-event-regs__open-full {
+.admin-event-regs__head-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+/* Una sola acción con borde por bloque: el CSV. El padrón completo es un link. */
+.admin-event-regs__export {
   align-items: center;
   background: transparent;
   border: 1px solid var(--admin-hairline-strong);
@@ -39,14 +47,206 @@
   color: var(--admin-ink);
   cursor: pointer;
   display: inline-flex;
+  font: inherit;
   font-size: 0.85rem;
   font-weight: 600;
   gap: 6px;
-  padding: 8px 12px;
+  min-height: 36px;
+  padding: 0 12px;
+  transition: border-color var(--motion-fast) var(--ease-out);
 }
 
-.admin-event-regs__open-full:hover {
+.admin-event-regs__export:hover:not(:disabled) {
   border-color: var(--admin-ink);
+}
+
+.admin-event-regs__export:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-event-regs__open-full,
+.admin-event-regs__clear {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 4px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-event-regs__open-full:hover,
+.admin-event-regs__clear:hover {
+  color: var(--admin-ink);
+}
+
+.admin-event-regs__export:focus-visible,
+.admin-event-regs__open-full:focus-visible,
+.admin-event-regs__clear:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+/* ---- Resumen ---- */
+
+.admin-event-regs__summary {
+  border-block: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 0;
+}
+
+.admin-event-regs__stat {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 16px;
+  position: relative;
+}
+
+.admin-event-regs__stat:first-child {
+  padding-left: 0;
+}
+
+.admin-event-regs__stat + .admin-event-regs__stat {
+  border-left: 1px solid var(--admin-hairline);
+}
+
+.admin-event-regs__stat dt {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-event-regs__stat dd {
+  align-items: baseline;
+  color: var(--admin-ink);
+  display: flex;
+  flex-wrap: wrap;
+  font-family: var(--font-display, var(--font-family));
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  gap: 6px;
+  margin: 0;
+}
+
+.admin-event-regs__stat dd small {
+  color: var(--admin-muted);
+  font-family: var(--font-family);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.admin-event-regs__stat .admin-event-regs__money {
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+/* Cupo ocupado: una línea, sin gráfico. */
+.admin-event-regs__meter {
+  background: var(--admin-hairline);
+  border-radius: 2px;
+  display: block;
+  height: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.admin-event-regs__meter::after {
+  background: var(--admin-accent);
+  content: '';
+  inset: 0;
+  position: absolute;
+  transform: scaleX(var(--regs-share, 0));
+  transform-origin: left;
+}
+
+/* ---- Filtros ---- */
+
+.admin-event-regs__filters {
+  display: grid;
+  gap: 12px;
+}
+
+/* El buscador compartido trae su forma solo dentro de la barra de Cobros: acá
+   el mismo campo, icono y texto en una línea. */
+.admin-event-regs__filters .admin-filters__search {
+  align-items: center;
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 12px;
+  display: flex;
+  gap: 10px;
+  max-width: 30rem;
+  min-height: 44px;
+  padding: 0 12px;
+  position: relative;
+}
+
+.admin-event-regs__filters .admin-filters__search:focus-within {
+  border-color: var(--admin-ink);
+}
+
+.admin-event-regs__filters .admin-filters__search-icon {
+  color: var(--admin-muted);
+  flex: none;
+  position: static;
+}
+
+.admin-event-regs__filters .admin-filters__search-input {
+  background: transparent;
+  border: 0;
+  color: var(--admin-ink);
+  flex: 1 1 auto;
+  font: inherit;
+  font-size: 14px;
+  min-height: 42px;
+  min-width: 0;
+  outline: 0;
+  padding: 0;
+  width: auto;
+}
+
+.admin-event-regs__filters .admin-filters__search-clear {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  padding: 4px;
+}
+
+.admin-event-regs__facets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+.admin-event-regs__facets:empty {
+  display: none;
+}
+
+.admin-event-regs__count {
+  align-items: center;
+  color: var(--admin-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  gap: 4px 10px;
+  margin: 0;
 }
 
 .admin-event-regs__list {
@@ -96,4 +296,87 @@
   display: inline-flex;
   flex-shrink: 0;
   gap: 8px;
+}
+
+.admin-event-regs__payment {
+  display: grid;
+  font-variant-numeric: tabular-nums;
+  justify-items: end;
+  line-height: 1.25;
+}
+
+.admin-event-regs__payment strong {
+  color: var(--admin-ink);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.admin-event-regs__payment span {
+  color: var(--admin-muted);
+  font-size: 0.75rem;
+}
+
+@media (max-width: 900px) {
+  /* Cupo a lo ancho y el resto de a pares. */
+  .admin-event-regs__summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-event-regs__summary .admin-event-regs__stat {
+    border-left: 0;
+    border-top: 1px solid var(--admin-hairline);
+    padding: 12px 0;
+  }
+
+  .admin-event-regs__summary .admin-event-regs__stat--capacity {
+    border-top: 0;
+    grid-column: 1 / -1;
+  }
+
+  .admin-event-regs__summary .admin-event-regs__stat:nth-child(3),
+  .admin-event-regs__summary .admin-event-regs__stat:nth-child(5) {
+    border-left: 1px solid var(--admin-hairline);
+    padding-left: 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .admin-event-regs__facets {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-event-regs__facets .admin-filters__select,
+  .admin-event-regs__facets select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .admin-event-regs__row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-event-regs__actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .admin-event-regs__payment {
+    justify-items: start;
+  }
+}
+
+@media (pointer: coarse) {
+  .admin-event-regs__export,
+  .admin-event-regs__open-full,
+  .admin-event-regs__clear {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-event-regs__export {
+    transition: none;
+  }
 }
