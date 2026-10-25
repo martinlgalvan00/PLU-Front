@@ -90,8 +90,13 @@
   text-align: left;
 }
 
-.institutional-hero--editorial.institutional-hero--with-aside .institutional-hero__grid {
-  grid-template-columns: minmax(0, 1fr) minmax(290px, 0.4fr);
+/* Solo desktop: sin el media query esta regla le ganaba por especificidad a
+   la de mobile que apila el hero (institutional-shell.css, ≤760px) y en un
+   teléfono la bajada quedaba en una columna de ~30px debajo del aside. */
+@media (min-width: 901px) {
+  .institutional-hero--editorial.institutional-hero--with-aside .institutional-hero__grid {
+    grid-template-columns: minmax(0, 1fr) minmax(290px, 0.4fr);
+  }
 }
 
 .institutional-hero--editorial .contact-hero__email {
