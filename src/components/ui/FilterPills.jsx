@@ -1,3 +1,4 @@
+import '../../styles/components/filter-pills.css'
 import SegmentedSwitch from './SegmentedSwitch.jsx'
 
 export default function FilterPills({
