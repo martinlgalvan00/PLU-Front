@@ -2618,6 +2618,9 @@ export default {
       venue: 'Sede',
       location: 'Ubicación',
       openMaps: 'Abrir en Google Maps',
+      directions: 'Cómo llegar',
+      videoFallbackTitle: 'Video del evento',
+      videoPlay: 'Reproducir {{title}}',
       openWaze: 'Abrir en Waze',
     },
     eventUnderConstruction: {

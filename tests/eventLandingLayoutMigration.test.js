@@ -12,14 +12,20 @@ import { LANDING_MOTION_PRESETS } from '../src/lib/eventLandingMotion.js'
  * La migración no se puede ejecutar en CI sin una base: se ancla acá a las
  * constantes del código para que los topes y tipos no se desalineen.
  */
-const sql = readFileSync(
+const stateSql = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/20261229100000_event_landing_layout.sql'),
+  'utf8',
+)
+// La RPC del layout se redefinió después (Profundidad, ids integrados, bloques
+// nuevos): se ancla la versión vigente.
+const sql = readFileSync(
+  resolve(process.cwd(), 'supabase/migrations/20261231130000_event_landing_more_blocks.sql'),
   'utf8',
 )
 
 describe('migración staff_merge_event_landing_layout', () => {
   it('acepta la plantilla builder en la RPC de estado', () => {
-    expect(sql).toMatch(/v_template not in \('meet', 'editorial', 'submission', 'builder'\)/)
+    expect(stateSql).toMatch(/v_template not in \('meet', 'editorial', 'submission', 'builder'\)/)
   })
 
   /** Lista `array['a', 'b']` de una variable constante de la función SQL. */
@@ -34,9 +40,15 @@ describe('migración staff_merge_event_landing_layout', () => {
   })
 
   it('los topes espejan LANDING_BLOCK_LIMITS', () => {
-    for (const key of ['eyebrow', 'title', 'body', 'label', 'href', 'path', 'alt', 'caption']) {
+    for (const key of ['eyebrow', 'title', 'body', 'label', 'href', 'path', 'alt', 'caption', 'video']) {
       expect(sql, key).toContain(`'${key}', ${LANDING_BLOCK_LIMITS[key]}`)
     }
+    // Galería y sponsors: una ruta por foto o logo, con el tope de `path`.
+    for (let n = 1; n <= LANDING_BLOCK_LIMITS.sponsorLogos; n += 1) {
+      expect(sql, `path${n}`).toContain(`'path${n}', ${LANDING_BLOCK_LIMITS.path}`)
+    }
+    expect(sql).toContain("v_key ~ '^path[1-8]$'")
+    expect(sql).toMatch(/v_key = 'video' and v_val !~\* '\^https:\/\/\(\(www/)
     expect(sql).toContain(`> ${LANDING_BLOCK_LIMITS.maxBlocks} then`)
   })
 

@@ -3,6 +3,7 @@ import {
   CUSTOM_BLOCK_TYPES,
   isSafeLandingHref,
   isSafeLandingImagePath,
+  isSafeLandingVideoUrl,
   LANDING_BLOCK_LIMITS,
 } from '../eventLandingLayout.js'
 import { LANDING_MOTION_PRESETS } from '../eventLandingMotion.js'
@@ -33,6 +34,18 @@ export function buildLandingLayoutSchema(z) {
         .optional(),
       alt: text(LANDING_BLOCK_LIMITS.alt).optional(),
       caption: text(LANDING_BLOCK_LIMITS.caption).optional(),
+      video: text(LANDING_BLOCK_LIMITS.video)
+        .refine(isSafeLandingVideoUrl, 'landingLayoutVideoInvalid')
+        .optional(),
+      // Galería y sponsors: una ruta por foto o logo.
+      ...Object.fromEntries(
+        Array.from({ length: LANDING_BLOCK_LIMITS.sponsorLogos }, (_, index) => [
+          `path${index + 1}`,
+          text(LANDING_BLOCK_LIMITS.path)
+            .refine(isSafeLandingImagePath, 'landingHeroImagePathInvalid')
+            .optional(),
+        ]),
+      ),
     })
     .strict()
 

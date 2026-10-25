@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import photoA from '../../../../assets/DSC00346-display-640.webp'
+import photoB from '../../../../assets/DSC00286-display-480.webp'
 import { expect, userEvent, within } from 'storybook/test'
 import { useI18n } from '../../../../i18n/I18nProvider.jsx'
 import { AdminPreviewShell } from '../../../../pages/admin/adminPreviewShell.jsx'
@@ -175,4 +177,54 @@ export const CopiarDeOtroEvento = {
     await expect(copy.getByRole('status')).toHaveTextContent(/Copa Norte 2025/)
     await expect(within(dialog).getByRole('button', { name: 'Deshacer' })).toBeEnabled()
   },
+}
+
+/** Los bloques propios nuevos: galería, sponsors, video y cómo llegar. */
+export const BloquesNuevos = {
+  render: () => (
+    <Studio
+      landing={builderLanding({
+        layout: {
+          blocks: [
+            { id: 'hero', type: 'hero' },
+            {
+              id: 'gallery-1',
+              type: 'gallery',
+              props: {
+                title: 'La edición anterior',
+                caption: 'Fotos de la Copa 2025.',
+                path1: 'demo/1.webp',
+                url1: photoA,
+                path2: 'demo/2.webp',
+                url2: photoB,
+                path3: 'demo/3.webp',
+                url3: photoA,
+              },
+            },
+            {
+              id: 'sponsors-1',
+              type: 'sponsors',
+              props: {
+                title: 'Nos acompañan',
+                path1: 'demo/logo.png',
+                url1: '/brand/plu-official-logo.png',
+                path2: 'demo/logo2.png',
+                url2: '/brand/plu-argentina-emblem.png',
+              },
+            },
+            {
+              id: 'video-1',
+              type: 'video',
+              props: { title: 'Así fue', video: 'https://vimeo.com/123456789' },
+            },
+            {
+              id: 'map-1',
+              type: 'map',
+              props: { title: 'Cómo llegar', body: 'Av. Mitre 1234, Berazategui' },
+            },
+          ],
+        },
+      })}
+    />
+  ),
 }

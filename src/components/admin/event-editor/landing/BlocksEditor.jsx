@@ -4,6 +4,7 @@ import {
   addCustomBlock,
   CORE_BLOCK_TYPES,
   CUSTOM_BLOCK_TYPES,
+  imageUrlKey,
   isCoreBlockType,
   LANDING_BLOCK_LIMITS,
   moveBlock,
@@ -112,13 +113,16 @@ export default function BlocksEditor({
     )
   }
 
-  async function uploadImage(block, file) {
+  async function uploadImage(block, file, pathKey = 'path') {
     const uploaded = await onImageUpload?.(file)
     if (uploaded?.path) {
       // Lo que se editó durante la subida (textos, orden, visibilidad) se conserva.
       const latest = getCurrentBlocks ? getCurrentBlocks() : blocks
       onChangeBlocks(
-        patchBlockProps(latest, block.id, { path: uploaded.path, url: uploaded.url ?? '' }),
+        patchBlockProps(latest, block.id, {
+          [pathKey]: uploaded.path,
+          [imageUrlKey(pathKey)]: uploaded.url ?? '',
+        }),
       )
     }
   }
@@ -134,7 +138,7 @@ export default function BlocksEditor({
           imageUploading={imageUploading}
           t={t}
           onPatch={(patch) => onChangeBlocks(patchBlockProps(blocks, block.id, patch))}
-          onUploadImage={(file) => uploadImage(block, file)}
+          onUploadImage={(file, pathKey) => uploadImage(block, file, pathKey)}
         />
       )
     }
