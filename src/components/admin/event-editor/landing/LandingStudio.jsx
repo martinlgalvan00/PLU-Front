@@ -377,6 +377,9 @@ export default function LandingStudio({
             selectedId={selection.id}
             title={text('landingPreviewTitle')}
             onSelectBlock={selectBlock}
+            blocks={canEdit && isBuilder ? (landing.layout?.blocks ?? []) : null}
+            onBlocksChange={canEdit && isBuilder ? landingDraft.applyBlocks : null}
+            t={t}
           />
         </section>
       </div>
