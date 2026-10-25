@@ -1946,6 +1946,7 @@ export default function EventsSection({
                   onManageRegistrations ? () => onManageRegistrations(selectedEvent) : undefined
                 }
                 onSetRegistrationStatus={onSetRegistrationStatus}
+                payments={paymentsSource.payments}
                 registrations={registrations}
               />
             ) : null
