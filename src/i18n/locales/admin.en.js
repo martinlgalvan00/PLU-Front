@@ -2078,6 +2078,7 @@ export default {
     doneEyebrow: 'Event created',
     doneOpen: 'Go to the event',
     doneDesignLanding: 'Design the landing page',
+    mpAccountLabel: 'Mercado Pago account',
     doneAnother: 'Create another',
     doneList: 'Back to events',
     sectionWhen: 'When',

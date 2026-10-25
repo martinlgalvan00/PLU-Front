@@ -2104,6 +2104,7 @@ export default {
     doneEyebrow: 'Evento creado',
     doneOpen: 'Ir al evento',
     doneDesignLanding: 'Diseñar la landing',
+    mpAccountLabel: 'Cuenta de Mercado Pago',
     doneAnother: 'Crear otro',
     doneList: 'Volver a eventos',
     sectionWhen: 'Cuándo',

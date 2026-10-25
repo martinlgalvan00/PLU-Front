@@ -31,6 +31,8 @@ import EventPaymentChannelMatrix from './event-editor/EventPaymentChannelMatrix.
 import AdminEventSaleControl from './AdminEventSaleControl.jsx'
 import { updatePricingField } from './event-editor/draftPatches.js'
 import { markLandingStudioForReopen } from '../../lib/landingStudioSession.js'
+import MercadoPagoAccountStatus from './payment-accounts/MercadoPagoAccountStatus.jsx'
+import { paymentAccountOptionLabel } from './payment-accounts/paymentAccountText.js'
 import {
   LandingColorPicker,
   LandingCoverPreview,
@@ -102,7 +104,7 @@ export default function AdminEventQuickCreate({
   /** Para abrir / publicar desde la pantalla "Listo" con el control de venta real. */
   onSetEventState,
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [step, setStep] = useState(0)
   // Hasta dónde se llegó: se puede volver a cualquier paso visto, no saltear.
   const [maxStep, setMaxStep] = useState(0)
@@ -194,6 +196,12 @@ export default function AdminEventQuickCreate({
       alive = false
     }
   }, [mpOpen])
+
+  // Las archivadas sirven para leer la cuenta de un evento duplicado, no para
+  // elegirlas en uno nuevo.
+  const activeMpProfiles = mpProfiles.filter((profile) => profile.active !== false)
+  const selectedMpProfile =
+    activeMpProfiles.find((profile) => profile.id === draft.mercadoPagoProfileId) ?? null
 
   // El preset solo precarga política (acceso, plantilla, venta); duplicar ya trae
   // su propia configuración, así que ahí no se ofrece.
@@ -977,6 +985,45 @@ export default function AdminEventQuickCreate({
                         ))}
                       </select>
                     </label>
+                  ) : null}
+                  {/* En qué cuenta entra la plata de Mercado Pago y si puede
+                      cobrar: la misma línea de estado que el editor completo. */}
+                  {mpOpen ? (
+                    <div className="admin-event-quick__mp">
+                      <label className="admin-event-quick__field" htmlFor="quick-event-mp-profile">
+                        <span className="admin-event-quick__label">
+                          {t('admin.eventQuickCreate.mpAccountLabel')}
+                        </span>
+                        <select
+                          id="quick-event-mp-profile"
+                          name="mercadoPagoProfileId"
+                          value={draft.mercadoPagoProfileId ?? ''}
+                          onChange={(event) =>
+                            patch({ ...draft, mercadoPagoProfileId: event.target.value || null })
+                          }
+                          disabled={!canEdit || submitting}
+                        >
+                          <option value="">{t('admin.eventEditor.mercadoPagoProfileNone')}</option>
+                          {draft.mercadoPagoProfileId && !selectedMpProfile ? (
+                            <option value={draft.mercadoPagoProfileId}>
+                              {t('admin.paymentAccounts.editorArchivedOption')}
+                            </option>
+                          ) : null}
+                          {activeMpProfiles.map((profile) => (
+                            <option key={profile.id} value={profile.id}>
+                              {paymentAccountOptionLabel(profile)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      {selectedMpProfile ? (
+                        <MercadoPagoAccountStatus t={t} locale={locale} profile={selectedMpProfile} />
+                      ) : (
+                        <p className="admin-event-quick__access-note">
+                          {t('admin.paymentAccounts.editorGlobalAccount')}
+                        </p>
+                      )}
+                    </div>
                   ) : null}
                 </div>
               </div>
