@@ -7,6 +7,7 @@ import { ArrowRight, CalendarDays, Ticket } from 'lucide-react'
 import PluPageHero from '../components/layout/PluPageHero.jsx'
 import FilterPills from '../components/ui/FilterPills.jsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
+import { findMorphSource, morphNavigate } from '../motion/routeMorph.ts'
 import Button from '../components/ui/Button.jsx'
 import EventCalendar from '../components/ui/EventCalendar.jsx'
 import EventCountdown from '../components/ui/EventCountdown.jsx'
@@ -818,7 +819,12 @@ export default function EventsPage({
                     memberships,
                   })}
                   ticketsAvailable={eventTicketsAvailable(event)}
-                  onSelect={() => openEvent(event)}
+                  onSelect={(interaction) =>
+                    morphNavigate(
+                      findMorphSource(interaction?.currentTarget, '.event-card__title'),
+                      () => openEvent(event),
+                    )
+                  }
                   onAction={() => handleEventCardAction(event)}
                   actionLabel={eventCardActionLabel(event)}
                   actionLive={isRegistrationOpen(event) || eventTicketsAvailable(event)}

@@ -96,7 +96,7 @@ function SeasonLane({ action, onActivate, t, locale }) {
       type="button"
       className={`home-season-actions__lane home-season-actions__lane--${kind}`}
       aria-label={copy.aria}
-      onClick={() => onActivate?.(action)}
+      onClick={(clickEvent) => onActivate?.(action, clickEvent)}
     >
       <span className="home-season-actions__body">
         {dateParts ? (

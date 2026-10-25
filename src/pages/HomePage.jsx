@@ -25,6 +25,7 @@ import { useHelp } from '../providers/HelpProvider.jsx'
 import { resolvePublicRegistrationPhase } from '../lib/publicRegistrationPhase.js'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import { MOTION_TIER_SCALE } from '../motion/tokens.ts'
+import { findMorphSource, morphNavigate } from '../motion/routeMorph.ts'
 import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
 
@@ -89,6 +90,15 @@ export default function HomePage({
 
   function openFeaturedEvent() {
     onNavigate?.(featuredDestination.view, featuredDestination.options)
+  }
+
+  /** Desde el spotlight: el título del meet viaja hasta el de su ficha (las
+   * fichas de marca muestran el logo y entran con el fundido de siempre). */
+  function openFeaturedEventFromSpotlight() {
+    morphNavigate(
+      findMorphSource(document.getElementById('torneo-destacado'), '.pitbull-spotlight__home-title'),
+      openFeaturedEvent,
+    )
   }
 
   const TeaserDuo = reducedMotion ? 'div' : m.div
@@ -170,7 +180,7 @@ export default function HomePage({
             athleteStatus={athleteEventStatus}
             capacityStatus={capacityStatus}
             event={launchEvent}
-            onDetail={openFeaturedEvent}
+            onDetail={openFeaturedEventFromSpotlight}
             onRegister={handlePitbullRegister}
             onJoin={() => onNavigate?.('members')}
             onProfile={() => onNavigate?.('profile')}

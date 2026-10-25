@@ -4,6 +4,7 @@ import { MOTION_DURATION, MOTION_EASE, scaleDuration } from './tokens'
 import { pageSectionTransition } from './variants'
 import { useMotionConfig } from './MotionProvider'
 import { useMobileViewport } from './useMobileViewport'
+import { isRouteMorphing } from './routeMorph'
 
 const INSTANT = { duration: 0 }
 const STILL_STATE = { opacity: 1, x: 0, y: 0 }
@@ -89,13 +90,19 @@ export default function RouteTransition({
       }
 
   return (
-    <AnimatePresence mode="wait">
+    // Durante un morph de ruta la nueva monta junto a la saliente: con
+    // `wait` la nueva esperaba una salida animada por rAF, que el navegador no
+    // corre mientras la View Transition espera el DOM nuevo (routeMorph.ts).
+    <AnimatePresence mode={isRouteMorphing() ? 'sync' : 'wait'}>
       <m.div
         key={viewKey}
         className={`page-transition ${still ? 'page-transition--idle' : 'page-transition--motion'}`}
         id={id}
         tabIndex={tabIndex}
-        initial={still || isFirstRender.current ? false : initial}
+        // Con un morph de ruta en curso (routeMorph.ts) la View Transition ya
+        // es la entrada: la página monta quieta para que la captura nueva la
+        // vea completa.
+        initial={still || isRouteMorphing() || isFirstRender.current ? false : initial}
         animate={still ? STILL_STATE : isMobile ? { opacity: 1, x: 0 } : 'visible'}
         variants={still || isMobile ? undefined : pageSectionTransition}
         exit={still ? STILL_EXIT : exit}

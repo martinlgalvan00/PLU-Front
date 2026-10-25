@@ -75,7 +75,7 @@ export default function EventCard({
           ? (event) => {
               if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault()
-                onSelect()
+                onSelect(event)
               }
             }
           : undefined

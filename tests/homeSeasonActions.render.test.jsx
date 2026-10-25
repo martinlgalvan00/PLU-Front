@@ -49,7 +49,8 @@ describe('HomeSeasonActions', () => {
 
     expect(screen.getByText('Ya podés inscribirte')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /Barbell Submission/i }))
-    expect(onActivate).toHaveBeenCalledWith(ACTIONS_OPEN[1])
+    // El segundo argumento es el click: el carril lo usa para el morph de ruta.
+    expect(onActivate).toHaveBeenCalledWith(ACTIONS_OPEN[1], expect.anything())
   })
 
   it('con Virtus en teaser dice Inscripciones próximamente, no finalizadas', () => {
@@ -66,7 +67,8 @@ describe('HomeSeasonActions', () => {
     expect(document.body.textContent).not.toMatch(/finalizad/i)
 
     fireEvent.click(screen.getByRole('button', { name: /Barbell Submission/i }))
-    expect(onActivate).toHaveBeenCalledWith(ACTIONS_SOON[1])
+    // El segundo argumento es el click: el carril lo usa para el morph de ruta.
+    expect(onActivate).toHaveBeenCalledWith(ACTIONS_SOON[1], expect.anything())
   })
 
   it('no renderiza nada sin acciones', () => {

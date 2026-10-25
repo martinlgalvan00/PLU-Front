@@ -603,7 +603,8 @@
   text-align: left;
   transition:
     border-color var(--motion-fast, 160ms) var(--ease-out, ease),
-    background-color var(--motion-fast, 160ms) var(--ease-out, ease);
+    background-color var(--motion-fast, 160ms) var(--ease-out, ease),
+    scale var(--motion-fast, 160ms) var(--ease-out, ease);
   width: 100%;
 }
 
