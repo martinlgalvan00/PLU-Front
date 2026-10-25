@@ -6,6 +6,7 @@ import {
 } from '../../../../lib/landingStudioLayout.js'
 import { eventLandingFromEvent } from '../../../../lib/eventLanding.js'
 import { normalizeLandingMotion } from '../../../../lib/eventLandingMotion.js'
+import PreviewBlockToolbar from './PreviewBlockToolbar.jsx'
 import PreviewFrame from './PreviewFrame.jsx'
 
 const EventLandingRenderer = lazy(() => import('../../../events/EventLandingRenderer.jsx'))
@@ -14,9 +15,9 @@ function noop() {}
 
 /** Estilos que se inyectan en la vista previa: contorno al pasar y al bloque elegido. */
 function selectionStyles(selectedId) {
-  // Los ids de bloque ya vienen validados (`[a-z0-9-]`, ver `normalizeLandingBlock`):
-  // van tal cual al selector.
-  const selected = /^[a-z0-9-]+$/.test(selectedId ?? '') ? `#bloque-${selectedId}` : null
+  // Los ids de bloque ya vienen validados (`normalizeLandingBlock`): los propios
+  // son `[a-z0-9-]` y los integrados su tipo (`weighIns` lleva mayúscula).
+  const selected = /^[A-Za-z0-9-]+$/.test(selectedId ?? '') ? `#bloque-${selectedId}` : null
   return `
     .event-builder [id^="bloque-"] {
       cursor: pointer;
@@ -28,6 +29,56 @@ function selectionStyles(selectedId) {
       outline-color: color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
     }
     ${selected ? `${selected}, ${selected}:hover { outline-color: var(--color-brand-celeste); }` : ''}
+    .studio-block-toolbar {
+      align-items: center;
+      background: #14181f;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 10px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+      display: flex;
+      gap: 2px;
+      padding: 4px;
+      position: absolute;
+      transform-origin: top right;
+      z-index: 50;
+    }
+    .studio-block-toolbar button {
+      align-items: center;
+      background: transparent;
+      border: 0;
+      border-radius: 7px;
+      color: #ffffff;
+      cursor: pointer;
+      display: inline-flex;
+      height: 32px;
+      justify-content: center;
+      width: 32px;
+    }
+    .studio-block-toolbar button:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .studio-block-toolbar button:disabled {
+      cursor: not-allowed;
+      opacity: 0.35;
+    }
+    .studio-block-toolbar button:focus-visible {
+      outline: 2px solid var(--color-brand-celeste);
+      outline-offset: 1px;
+    }
+    .studio-block-toolbar__grip {
+      cursor: grab !important;
+      touch-action: none;
+    }
+    .studio-block-drop {
+      background: var(--color-brand-celeste);
+      border-radius: 2px;
+      height: 4px;
+      left: 0;
+      pointer-events: none;
+      position: absolute;
+      right: 0;
+      z-index: 49;
+    }
     @media (prefers-reduced-motion: reduce) {
       .event-builder [id^="bloque-"] { transition: none; }
     }
@@ -56,9 +107,14 @@ export default function StudioPreview({
   scrollToken = 0,
   onSelectBlock,
   title,
+  /** Bloques del Constructor y su cambio: habilitan la barra sobre el bloque elegido. */
+  blocks = null,
+  onBlocksChange = null,
+  t = null,
 }) {
   const stageRef = useRef(null)
   const docRef = useRef(null)
+  const [previewDoc, setPreviewDoc] = useState(null)
   const [stage, setStage] = useState({ width: 0, height: 0 })
 
   useLayoutEffect(() => {
@@ -135,6 +191,7 @@ export default function StudioPreview({
           title={title}
           onDocument={(doc) => {
             docRef.current = doc
+            setPreviewDoc(doc)
           }}
         >
           {selectable ? <style>{selectionStyles(selectedId)}</style> : null}
@@ -149,6 +206,16 @@ export default function StudioPreview({
               preview
             />
           </Suspense>
+          {selectable && blocks && onBlocksChange && t ? (
+            <PreviewBlockToolbar
+              blocks={blocks}
+              doc={previewDoc}
+              scale={scale}
+              selectedId={selectedId}
+              t={t}
+              onChange={onBlocksChange}
+            />
+          ) : null}
         </PreviewFrame>
       </div>
     </div>

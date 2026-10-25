@@ -5176,7 +5176,7 @@ export default {
     landingStudioTab_design: 'Design',
     landingStudioTab_seo: 'Google',
     landingStudioContentHint:
-      'Click a block in the preview to edit it. Drag blocks by the handle to reorder them; new ones are added below the selected block.',
+      'Click a block in the preview to edit it: a bar appears on top to drag, move or hide it. You can also reorder them by the handle in this list; new ones are added below the selected block.',
     landingStudioFixedTemplateHint:
       'This template has a fixed order. To move, add or pick blocks from the preview, switch to Builder in Design.',
     landingStudioConstructionNotice: 'The public sees the construction notice. Here you edit the page.',
@@ -5322,6 +5322,9 @@ export default {
     landingBlockAdd_sponsors: 'Sponsors',
     landingBlockAdd_video: 'Video',
     landingBlockAdd_map: 'Directions',
+    landingPreviewToolbar: 'Actions for “{{name}}”',
+    landingPreviewDrag: 'Drag “{{name}}” to move it',
+    landingPreviewHide: 'Hide “{{name}}”',
     landingBlockLimit: 'You reached the maximum of {{max}} blocks.',
     landingBlockEyebrow: 'Eyebrow',
     landingBlockTitle: 'Title',

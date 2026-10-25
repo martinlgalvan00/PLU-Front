@@ -5242,7 +5242,7 @@ export default {
     landingStudioTab_design: 'Diseño',
     landingStudioTab_seo: 'Google',
     landingStudioContentHint:
-      'Tocá un bloque en la vista previa para editarlo. Arrastralos desde la manija para cambiar el orden; los nuevos se agregan debajo del bloque elegido.',
+      'Tocá un bloque en la vista previa para editarlo: encima aparece una barra para arrastrarlo, subirlo, bajarlo u ocultarlo. En esta lista también se reordenan desde la manija; los nuevos se agregan debajo del bloque elegido.',
     landingStudioFixedTemplateHint:
       'Esta plantilla tiene un orden fijo. Para mover, agregar o elegir bloques desde la vista previa, pasá a Constructor en Diseño.',
     landingStudioConstructionNotice: 'El público ve el cartel de construcción. Acá editás la página.',
@@ -5390,6 +5390,9 @@ export default {
     landingBlockAdd_video: 'Video',
     landingBlockAdd_map: 'Cómo llegar',
     landingBlockLimit: 'Llegaste al máximo de {{max}} bloques.',
+    landingPreviewToolbar: 'Acciones de «{{name}}»',
+    landingPreviewDrag: 'Arrastrar «{{name}}» para moverlo',
+    landingPreviewHide: 'Ocultar «{{name}}»',
     landingBlockEyebrow: 'Sobretítulo',
     landingBlockTitle: 'Título',
     landingBlockBody: 'Texto',

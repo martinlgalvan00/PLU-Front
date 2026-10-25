@@ -15,14 +15,10 @@ import {
 } from '../../../../lib/eventLandingLayout.js'
 import { dropDelta } from '../../../../lib/landingStudioLayout.js'
 import BlockRow from './BlockRow.jsx'
+import { landingBlockLabel as blockLabel } from './blockLabel.js'
 import CustomBlockFields from './CustomBlockFields.jsx'
 import { SlotFields } from './SlotFields.jsx'
 
-/** "Portada", "Texto 2": los bloques propios llevan su número para distinguirlos. */
-function blockLabel(block, t) {
-  const name = t(`admin.eventEditor.landingBlockType_${block.type}`)
-  return isCoreBlockType(block.type) ? name : `${name} ${block.id.split('-').at(-1)}`
-}
 
 /**
  * Lista de bloques del Constructor: ordenar (arrastrando, con botones o con las
