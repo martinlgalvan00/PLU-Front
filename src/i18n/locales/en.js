@@ -104,6 +104,9 @@ export default {
       venue: 'Venue',
       location: 'Location',
       openMaps: 'Open in Google Maps',
+      directions: 'Get directions',
+      videoFallbackTitle: 'Event video',
+      videoPlay: 'Play {{title}}',
       openWaze: 'Open in Waze',
     },
     eventUnderConstruction: {

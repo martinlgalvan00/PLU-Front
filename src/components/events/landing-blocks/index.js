@@ -1,8 +1,12 @@
 import CalendarBlock from './CalendarBlock.jsx'
 import CountdownBlock from './CountdownBlock.jsx'
 import CustomCtaBlock from './CustomCtaBlock.jsx'
+import CustomGalleryBlock from './CustomGalleryBlock.jsx'
 import CustomImageBlock from './CustomImageBlock.jsx'
+import CustomMapBlock from './CustomMapBlock.jsx'
+import CustomSponsorsBlock from './CustomSponsorsBlock.jsx'
 import CustomTextBlock from './CustomTextBlock.jsx'
+import CustomVideoBlock from './CustomVideoBlock.jsx'
 import FactsBlock from './FactsBlock.jsx'
 import FaqBlock from './FaqBlock.jsx'
 import HeroBlock from './HeroBlock.jsx'
@@ -32,4 +36,8 @@ export const LANDING_BLOCK_COMPONENTS = Object.freeze({
   text: CustomTextBlock,
   image: CustomImageBlock,
   cta: CustomCtaBlock,
+  gallery: CustomGalleryBlock,
+  sponsors: CustomSponsorsBlock,
+  video: CustomVideoBlock,
+  map: CustomMapBlock,
 })

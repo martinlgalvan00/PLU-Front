@@ -36,6 +36,10 @@ export const LANDING_BLOCK_LIMITS = Object.freeze({
   alt: 140,
   caption: 200,
   path: 200,
+  video: 300,
+  /** Fotos de una galería y logos de sponsors (`path1`…). */
+  galleryImages: 6,
+  sponsorLogos: 8,
 })
 
 /**
@@ -83,12 +87,38 @@ export const CORE_BLOCK_TYPES = Object.freeze({
   materials: { surfaceKey: null, locked: false, fields: [] },
 })
 
-/** Props que acepta cada bloque propio, con su tope de largo. */
+/** `path1`…`pathN`: las fotos de una galería o los logos de sponsors. */
+function numberedPaths(count) {
+  return Object.fromEntries(Array.from({ length: count }, (_, index) => [`path${index + 1}`, 'path']))
+}
+
+/**
+ * Props que acepta cada bloque propio, con su tope de largo. Son planas (texto
+ * por clave) a propósito: la RPC las valida clave por clave con el mismo tope.
+ */
 export const CUSTOM_BLOCK_TYPES = Object.freeze({
   text: { eyebrow: 'eyebrow', title: 'title', body: 'body' },
   image: { path: 'path', alt: 'alt', caption: 'caption' },
   cta: { title: 'title', body: 'body', label: 'label', href: 'href' },
+  gallery: { title: 'title', caption: 'caption', ...numberedPaths(6) },
+  sponsors: { title: 'title', ...numberedPaths(8) },
+  video: { title: 'title', body: 'body', video: 'video' },
+  map: { title: 'title', body: 'body', href: 'href' },
 })
+
+/** Claves de imagen de un bloque propio (`path`, `path1`…), en orden. */
+export function customBlockImageKeys(type) {
+  const props = CUSTOM_BLOCK_TYPES[type]
+  if (!props) return []
+  return Object.entries(props)
+    .filter(([, limitKey]) => limitKey === 'path')
+    .map(([key]) => key)
+}
+
+/** La URL derivada de cada imagen: `path` → `url`, `path3` → `url3`. */
+export function imageUrlKey(pathKey) {
+  return pathKey.replace(/^path/, 'url')
+}
 
 export const CORE_BLOCK_ORDER = Object.freeze(Object.keys(CORE_BLOCK_TYPES))
 
@@ -112,6 +142,59 @@ export function isSafeLandingHref(href) {
   return /^\/(?!\/)[^\s]*$/.test(value)
 }
 
+const VIDEO_PATTERNS = [
+  [/^https:\/\/(?:www\.|m\.)?youtube\.com\/watch\?(?:[^#\s]*&)?v=([A-Za-z0-9_-]{6,20})/i, 'youtube'],
+  [/^https:\/\/(?:www\.)?youtube\.com\/(?:shorts|embed|live)\/([A-Za-z0-9_-]{6,20})/i, 'youtube'],
+  [/^https:\/\/youtu\.be\/([A-Za-z0-9_-]{6,20})/i, 'youtube'],
+  [/^https:\/\/(?:www\.)?vimeo\.com\/(\d{5,12})/i, 'vimeo'],
+]
+
+function parseLandingVideo(url) {
+  const value = String(url ?? '').trim()
+  for (const [pattern, provider] of VIDEO_PATTERNS) {
+    const match = value.match(pattern)
+    if (match) return { provider, id: match[1] }
+  }
+  return null
+}
+
+/** Solo YouTube o Vimeo por `https://`: es lo único que se embebe. Vacío vale. */
+export function isSafeLandingVideoUrl(url) {
+  const value = String(url ?? '').trim()
+  if (!value) return true
+  return value.length <= LANDING_BLOCK_LIMITS.video && parseLandingVideo(value) !== null
+}
+
+/**
+ * URL del reproductor embebido. YouTube va por `youtube-nocookie` y Vimeo con
+ * `dnt=1`: nadie queda rastreado por abrir la landing.
+ */
+export function landingVideoEmbedUrl(url) {
+  const video = parseLandingVideo(url)
+  if (!video) return null
+  return video.provider === 'youtube'
+    ? `https://www.youtube-nocookie.com/embed/${video.id}`
+    : `https://player.vimeo.com/video/${video.id}?dnt=1`
+}
+
+/** Portada del video para mostrar antes de cargar el reproductor (solo YouTube la expone sin API). */
+export function landingVideoPoster(url) {
+  const video = parseLandingVideo(url)
+  return video?.provider === 'youtube' ? `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg` : null
+}
+
+/**
+ * "Cómo llegar": el link cargado o, si no hay, la búsqueda de la dirección en
+ * Google Maps. Sin dirección ni link no hay a dónde mandar.
+ */
+export function landingMapHref({ href, body } = {}) {
+  const link = String(href ?? '').trim()
+  if (link && isSafeLandingHref(link)) return link
+  const address = String(body ?? '').trim()
+  if (!address) return null
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+}
+
 export function isSafeLandingImagePath(path) {
   const value = String(path ?? '').trim()
   if (!value) return true
@@ -130,12 +213,14 @@ function normalizeCustomProps(type, raw) {
   }
   // El link se conserva tal cual se escribe (si no, no se podría tipear `https://`
   // letra por letra); el panel marca el inválido y `layoutPayloadForMerge` lo
-  // descarta al guardar. La ruta de imagen no se tipea: se sanea de entrada.
-  if (!isSafeLandingImagePath(props.path)) props.path = ''
-  // `url` la resuelve el servidor desde `path` (bucket público): se conserva para
-  // renderizar, pero nunca se guarda (ver `layoutPayloadForMerge`).
-  if (type === 'image' && typeof source.url === 'string' && /^https:\/\//i.test(source.url)) {
-    props.url = source.url
+  // descarta al guardar. Las rutas de imagen no se tipean: se sanean de entrada.
+  // La URL de cada imagen la resuelve el servidor desde su ruta (bucket
+  // público): se conserva para renderizar, pero nunca se guarda.
+  for (const pathKey of customBlockImageKeys(type)) {
+    if (!isSafeLandingImagePath(props[pathKey])) props[pathKey] = ''
+    const urlKey = imageUrlKey(pathKey)
+    const url = source[urlKey]
+    if (props[pathKey] && typeof url === 'string' && /^https:\/\//i.test(url)) props[urlKey] = url
   }
   return props
 }
@@ -214,11 +299,15 @@ export function layoutPayloadForMerge(layout, { templateId = 'builder' } = {}) {
   return {
     blocks: normalized.blocks.map((block) => {
       if (!block.props) return { id: block.id, type: block.type, visible: block.visible }
-      const { url: _url, ...raw } = block.props
+      // Solo las claves del tipo: las URL derivadas (`url`, `url3`) no se guardan.
       const props = Object.fromEntries(
-        Object.entries(raw).map(([key, value]) => [key, String(value ?? '').trim()]),
+        Object.keys(CUSTOM_BLOCK_TYPES[block.type] ?? {}).map((key) => [
+          key,
+          String(block.props[key] ?? '').trim(),
+        ]),
       )
-      if (!isSafeLandingHref(props.href)) props.href = ''
+      if ('href' in props && !isSafeLandingHref(props.href)) props.href = ''
+      if ('video' in props && !isSafeLandingVideoUrl(props.video)) props.video = ''
       return { id: block.id, type: block.type, visible: block.visible, props }
     }),
     palette: normalized.palette,
@@ -234,23 +323,23 @@ export function layoutPayloadForMerge(layout, { templateId = 'builder' } = {}) {
  */
 export function withLandingBlockImageUrls(rules, resolveUrl) {
   const blocks = rules?.landing?.layout?.blocks
-  if (
-    !Array.isArray(blocks) ||
-    !blocks.some((block) => block?.type === 'image' && block.props?.path)
-  ) {
-    return rules
-  }
+  const hasImage = (block) =>
+    customBlockImageKeys(block?.type).some((pathKey) => block.props?.[pathKey])
+  if (!Array.isArray(blocks) || !blocks.some(hasImage)) return rules
   return {
     ...rules,
     landing: {
       ...rules.landing,
       layout: {
         ...rules.landing.layout,
-        blocks: blocks.map((block) =>
-          block?.type === 'image' && block.props?.path
-            ? { ...block, props: { ...block.props, url: resolveUrl(block.props.path) } }
-            : block,
-        ),
+        blocks: blocks.map((block) => {
+          if (!hasImage(block)) return block
+          const props = { ...block.props }
+          for (const pathKey of customBlockImageKeys(block.type)) {
+            if (props[pathKey]) props[imageUrlKey(pathKey)] = resolveUrl(props[pathKey])
+          }
+          return { ...block, props }
+        }),
       },
     },
   }
