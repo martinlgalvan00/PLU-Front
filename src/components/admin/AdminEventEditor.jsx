@@ -395,6 +395,8 @@ function useWorkspaceSaveHost(enabled) {
 
 export default function AdminEventEditor({
   canEdit,
+  /** Otros eventos, para "Copiar de otro evento" en la landing. */
+  landingSourceEvents = [],
   // Cuenta por evento (organizador): ver EventSalesSection / EventVisibilitySection.
   eventScoped = false,
   draft,
@@ -1270,6 +1272,7 @@ export default function AdminEventEditor({
               platform={platformChannels.platform}
               mpProfiles={mpProfiles}
               onGoTo={handleReadinessGoTo}
+              landingSourceEvents={landingSourceEvents}
               studioSave={{
                 // El editor visual guarda con el mismo formulario (y las mismas
                 // validaciones) que el botón Guardar del evento.

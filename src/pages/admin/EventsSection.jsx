@@ -1855,6 +1855,7 @@ export default function EventsSection({
             formOpen && draft.id && EDITOR_SECTIONS.has(consoleSection) ? (
               <AdminEventEditor
                 key={draft.id}
+                landingSourceEvents={adminEvents}
                 accordion
                 embedded
                 eventScoped={eventScoped}
@@ -2295,6 +2296,7 @@ export default function EventsSection({
       {formOpen && !draft.id ? (
         <AdminEventEditor
           canEdit={canEdit}
+          landingSourceEvents={adminEvents}
           draft={draft}
           initialFocus={editorFocus}
           sourceEvent={editingSource}

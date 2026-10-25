@@ -4,6 +4,7 @@ import { landingSectionsForEvent } from '../../../lib/eventLandingSections.js'
 import { shouldReopenLandingStudio } from '../../../lib/landingStudioSession.js'
 import BlocksEditor from './landing/BlocksEditor.jsx'
 import FormatFieldset from './landing/FormatFieldset.jsx'
+import LandingCopyFrom from './landing/LandingCopyFrom.jsx'
 import HeroImageField from './landing/HeroImageField.jsx'
 import InscriptionFields from './landing/InscriptionFields.jsx'
 import SectionsList from './landing/SectionsList.jsx'
@@ -155,6 +156,15 @@ export default function EventLandingSection(props) {
           {t('admin.eventEditor.landingStudioOpen')}
         </button>
       </div>
+
+      <LandingCopyFrom
+        t={t}
+        canEdit={canEdit}
+        events={props.landingSourceEvents}
+        currentEventId={draft.id ?? null}
+        landing={landing}
+        patchLanding={patchLanding}
+      />
 
       <FormatFieldset
         canEdit={canEdit}

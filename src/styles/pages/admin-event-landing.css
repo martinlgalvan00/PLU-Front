@@ -637,3 +637,215 @@
     transition: none;
   }
 }
+
+/* ---- Copiar de otro evento ---- */
+
+.admin-landing-copy {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.admin-landing-copy__toggle,
+.admin-landing-copy__cancel {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--admin-text-secondary, var(--color-text-secondary));
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 6px;
+  justify-self: start;
+  min-height: 36px;
+  padding: 0 4px;
+}
+
+.admin-landing-copy__toggle:hover:not(:disabled),
+.admin-landing-copy__cancel:hover {
+  color: var(--admin-ink, var(--color-text));
+}
+
+.admin-landing-copy__toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-landing-copy__chevron {
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.admin-landing-copy__toggle[aria-expanded='true'] .admin-landing-copy__chevron {
+  transform: rotate(180deg);
+}
+
+.admin-landing-copy__panel {
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 10px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.admin-landing-copy__field {
+  display: grid;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.admin-landing-copy__field select {
+  background: var(--admin-control-bg, transparent);
+  border: 1px solid var(--admin-hairline-strong, var(--color-border-subtle));
+  border-radius: 10px;
+  color: var(--admin-ink, var(--color-text));
+  font: inherit;
+  font-weight: 500;
+  min-height: 44px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.admin-landing-copy__scope {
+  border: 0;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-landing-copy__scope legend {
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.admin-landing-copy__scope label {
+  align-items: flex-start;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+}
+
+.admin-landing-copy__scope input {
+  margin-top: 3px;
+}
+
+.admin-landing-copy__scope span {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-landing-copy__scope strong {
+  font-size: 13px;
+}
+
+.admin-landing-copy__scope small {
+  color: var(--admin-muted, var(--color-text-secondary));
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.admin-landing-copy__actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.admin-landing-copy__confirm {
+  background: var(--admin-ink, var(--color-text));
+  border: 0;
+  border-radius: 8px;
+  color: var(--admin-surface, var(--color-bg));
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 36px;
+  padding: 0 16px;
+}
+
+.admin-landing-copy__confirm:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.admin-landing-copy__done {
+  color: var(--admin-text-secondary, var(--color-text-secondary));
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.admin-landing-copy__toggle:focus-visible,
+.admin-landing-copy__cancel:focus-visible,
+.admin-landing-copy__confirm:focus-visible {
+  outline: 2px solid var(--admin-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .admin-landing-copy__toggle,
+  .admin-landing-copy__cancel,
+  .admin-landing-copy__confirm {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-landing-copy__chevron {
+    transition: none;
+  }
+}
+
+/* Los formularios del editor estilan todo `label` como rótulo (mayúsculas) y
+   todo `input` a ancho completo: el selector de alcance vuelve a lo suyo. */
+.admin-landing-copy .admin-landing-copy__scope label,
+.admin-landing-copy .admin-landing-copy__scope label * {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-landing-copy .admin-landing-copy__panel .admin-landing-copy__scope label.admin-landing-copy__option {
+  align-items: flex-start;
+  color: var(--admin-ink, var(--color-text));
+  display: flex;
+  flex-direction: row;
+  font-size: 13px;
+  font-weight: 400;
+  gap: 10px;
+}
+
+.admin-landing-copy .admin-landing-copy__panel .admin-landing-copy__option span {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-landing-copy .admin-landing-copy__scope label strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-landing-copy .admin-landing-copy__scope label small {
+  color: var(--admin-muted, var(--color-text-secondary));
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.admin-landing-copy .admin-landing-copy__scope input[type='radio'] {
+  accent-color: var(--admin-accent, var(--color-brand-celeste));
+  appearance: auto;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  flex: none;
+  height: 16px;
+  margin: 2px 0 0;
+  min-height: 0;
+  padding: 0;
+  width: 16px;
+}
