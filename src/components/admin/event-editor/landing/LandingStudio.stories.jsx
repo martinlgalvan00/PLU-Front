@@ -138,6 +138,17 @@ export const PlantillaEditorial = {
       }}
     />
   ),
+  // Pasar a Constructor arma los bloques con lo que ya tenía, y se deshace de una.
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    const dialog = await body.findByRole('dialog', { name: /Editor visual de la landing/i })
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Pasar a Constructor' }))
+    await expect(await within(dialog).findByText('Bloques de la página')).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Deshacer' }))
+    await expect(
+      await within(dialog).findByRole('button', { name: 'Pasar a Constructor' }),
+    ).toBeInTheDocument()
+  },
 }
 
 /** Meets anteriores para "Copiar de otro evento". */

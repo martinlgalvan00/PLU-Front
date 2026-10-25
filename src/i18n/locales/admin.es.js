@@ -5244,7 +5244,10 @@ export default {
     landingStudioContentHint:
       'Tocá un bloque en la vista previa para editarlo: encima aparece una barra para arrastrarlo, subirlo, bajarlo u ocultarlo. En esta lista también se reordenan desde la manija; los nuevos se agregan debajo del bloque elegido.',
     landingStudioFixedTemplateHint:
-      'Esta plantilla tiene un orden fijo. Para mover, agregar o elegir bloques desde la vista previa, pasá a Constructor en Diseño.',
+      'Esta plantilla tiene un orden fijo. Para mover, agregar o elegir bloques desde la vista previa, pasala a Constructor.',
+    landingConvertToBuilder: 'Pasar a Constructor',
+    landingConvertToBuilderNote:
+      'Conserva los textos, la foto principal, los colores y si la página se ve; el diseño pasa a ser el del Constructor. Si no te convence, usá Deshacer.',
     landingStudioConstructionNotice: 'El público ve el cartel de construcción. Acá editás la página.',
     landingStudioShowNotice: 'Ver el cartel',
     landingStudioShowPage: 'Ver la página',

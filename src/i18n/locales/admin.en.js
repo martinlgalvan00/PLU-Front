@@ -5178,7 +5178,10 @@ export default {
     landingStudioContentHint:
       'Click a block in the preview to edit it: a bar appears on top to drag, move or hide it. You can also reorder them by the handle in this list; new ones are added below the selected block.',
     landingStudioFixedTemplateHint:
-      'This template has a fixed order. To move, add or pick blocks from the preview, switch to Builder in Design.',
+      'This template has a fixed order. To move, add or pick blocks from the preview, switch it to Builder.',
+    landingConvertToBuilder: 'Switch to Builder',
+    landingConvertToBuilderNote:
+      "Keeps the texts, main photo, colors and whether the page is public; the layout becomes the Builder's. Don't like it? Use Undo.",
     landingStudioConstructionNotice: 'The public sees the construction notice. Here you edit the page.',
     landingStudioShowNotice: 'View the notice',
     landingStudioShowPage: 'View the page',

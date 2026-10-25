@@ -1,6 +1,6 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, Construction, Eye, Redo2, Save, Undo2, X } from 'lucide-react'
+import { Blocks, Check, Construction, Eye, Redo2, Save, Undo2, X } from 'lucide-react'
 import useModalDialog from '../../../../hooks/useModalDialog.js'
 import { mapDraftToPreviewEvent } from '../../../../services/eventAdminService.js'
 import {
@@ -10,6 +10,7 @@ import {
 import { LandingContentEditor } from '../EventLandingSection.jsx'
 import FormatFieldset from './FormatFieldset.jsx'
 import LandingCopyFrom from './LandingCopyFrom.jsx'
+import { convertLandingToBuilder } from '../../../../lib/eventLandingCopy.js'
 import SeoFieldset from './SeoFieldset.jsx'
 import Segmented from './Segmented.jsx'
 import StudioPreview from './StudioPreview.jsx'
@@ -297,9 +298,22 @@ export default function LandingStudio({
                     {text('landingStudioContentHint')}
                   </p>
                 ) : (
-                  <p className="admin-event-form__section-note">
-                    {text('landingStudioFixedTemplateHint')}
-                  </p>
+                  <div className="admin-landing-convert">
+                    <p className="admin-event-form__section-note">
+                      {text('landingStudioFixedTemplateHint')}
+                    </p>
+                    {canEdit ? (
+                      <button
+                        type="button"
+                        className="admin-landing-convert__button"
+                        onClick={() => patchLanding(convertLandingToBuilder(landing))}
+                      >
+                        <Blocks size={14} aria-hidden />
+                        {text('landingConvertToBuilder')}
+                      </button>
+                    ) : null}
+                    <p className="admin-landing-convert__note">{text('landingConvertToBuilderNote')}</p>
+                  </div>
                 )}
                 <LandingContentEditor
                   canEdit={canEdit}

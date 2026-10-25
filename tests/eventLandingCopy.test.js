@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { copyLandingFrom, landingCopySources } from '../src/lib/eventLandingCopy.js'
+import {
+  convertLandingToBuilder,
+  copyLandingFrom,
+  landingCopySources,
+} from '../src/lib/eventLandingCopy.js'
 
 const sourceEvent = {
   id: 'evt-2025',
@@ -97,5 +101,52 @@ describe('copiar la landing de otro evento', () => {
       { id: 'c', title: 'Sin landing', startsAt: '2026-04-01T12:00:00Z' },
     ]
     expect(landingCopySources(events, 'current').map((event) => event.id)).toEqual(['b', 'a'])
+  })
+})
+
+describe('pasar a Constructor sin perder nada', () => {
+  const editorial = {
+    templateId: 'editorial',
+    themeId: 'night-steel',
+    publicVisible: false,
+    phase: 'coming_soon',
+    slots: {
+      heroTitle: 'Pitbull Classic 2026',
+      heroLead: 'El clásico de PLU',
+      heroImagePath: 'events/pitbull/hero.webp',
+      experienceTitle: 'La experiencia',
+      experienceBody: 'Dos días de powerlifting.',
+      faq1Question: '¿Hay que estar afiliado?',
+      faq1Answer: 'Sí.',
+    },
+    layout: { palette: { accent: '#e4002b' }, motion: 'depth' },
+  }
+
+  it('conserva textos, foto, tema, colores, animación, visibilidad y fase', () => {
+    const converted = convertLandingToBuilder(editorial)
+    expect(converted.templateId).toBe('builder')
+    expect(converted.themeId).toBe('night-steel')
+    expect(converted.publicVisible).toBe(false)
+    expect(converted.phase).toBe('coming_soon')
+    expect(converted.slots).toMatchObject(editorial.slots)
+    expect(converted.layout.palette).toEqual({ accent: '#e4002b' })
+    expect(converted.layout.motion).toBe('depth')
+  })
+
+  it('arma los bloques integrados y oculta las secciones de texto vacías', () => {
+    const { layout } = convertLandingToBuilder(editorial)
+    const byId = Object.fromEntries(layout.blocks.map((block) => [block.id, block.visible]))
+    expect(layout.blocks[0].id).toBe('hero')
+    expect(byId.experience).toBe(true)
+    expect(byId.faq).toBe(true)
+    expect(byId.categories).toBe(false)
+    expect(byId.weighIns).toBe(true)
+  })
+
+  it('una landing que ya es Constructor queda igual', () => {
+    const builder = { templateId: 'builder', layout: { blocks: [{ id: 'hero', type: 'hero' }] } }
+    expect(convertLandingToBuilder(builder).layout.blocks.map((block) => block.id)).toEqual([
+      'hero',
+    ])
   })
 })
