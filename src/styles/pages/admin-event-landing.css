@@ -923,3 +923,49 @@
   cursor: not-allowed;
   opacity: 0.5;
 }
+
+/* ---- Pasar a Constructor ---- */
+
+.admin-landing-convert {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.admin-landing-convert__button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong, var(--color-border-subtle));
+  border-radius: 8px;
+  color: var(--admin-ink, var(--color-text));
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.admin-landing-convert__button:hover {
+  border-color: var(--admin-ink, var(--color-text));
+}
+
+.admin-landing-convert__button:focus-visible {
+  outline: 2px solid var(--admin-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
+.admin-landing-convert__note {
+  color: var(--admin-muted, var(--color-text-secondary));
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+@media (pointer: coarse) {
+  .admin-landing-convert__button {
+    min-height: 44px;
+  }
+}

@@ -1,4 +1,5 @@
 import { normalizeEventLanding } from './eventLanding.js'
+import { defaultLandingBlocks } from './eventLandingLayout.js'
 
 /**
  * Copiar la landing de otro evento — PLU ARG
@@ -60,4 +61,38 @@ export function copyLandingFrom(targetLanding, sourceEvent, { includeTexts = fal
   else delete copied.layout
 
   return normalizeEventLanding(copied)
+}
+
+/** Secciones de texto que, vacías, solo agregarían bloques sin contenido a la lista. */
+const TEXT_BLOCK_SLOTS = Object.freeze({
+  experience: ['experienceTitle', 'experienceBody'],
+  categories: ['categoriesTitle', 'categoriesBody'],
+  faq: ['faq1Question', 'faq2Question', 'faq3Question'],
+})
+
+/**
+ * Pasa una landing de plantilla fija (Ficha meet, Editorial, Submission) al
+ * Constructor sin perder nada: los textos viven en los mismos `slots`, así que
+ * los bloques integrados los muestran tal cual; la foto, los colores, la
+ * animación, la visibilidad y la fase quedan como estaban. Las secciones de
+ * texto vacías arrancan ocultas (se prenden desde la lista cuando haga falta).
+ */
+export function convertLandingToBuilder(landing) {
+  const current = normalizeEventLanding(landing)
+  if (current.templateId === 'builder') return current
+  const slots = current.slots
+  const blocks = defaultLandingBlocks().map((block) => {
+    const keys = TEXT_BLOCK_SLOTS[block.type]
+    if (!keys) return block
+    return { ...block, visible: keys.some((key) => String(slots[key] ?? '').trim() !== '') }
+  })
+  return normalizeEventLanding({
+    ...current,
+    templateId: 'builder',
+    layout: {
+      blocks,
+      palette: current.layout?.palette ?? {},
+      motion: current.layout?.motion,
+    },
+  })
 }
