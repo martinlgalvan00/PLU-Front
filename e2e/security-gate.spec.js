@@ -186,7 +186,15 @@ test.describe('Puerta de seguridad — entradas', () => {
     await expect(page.locator('.checkin-app__list')).toContainText('ENTRENADOR')
     await openScanTab(page)
 
+    // Salir cierra la sesión del puesto: hay que esperar el logout antes de
+    // volver a abrir la puerta, o la sesión vieja todavía está viva y no hay
+    // formulario para entrar con la cuenta del calentamiento.
+    const loggedOut = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/auth/logout') && response.request().method() === 'POST',
+    )
     await page.locator('.checkin-app__exit').click()
+    await loggedOut
     await openSecurityGate(page, fixture.ticketEventSlug)
     await loginSecurityGate(page, {
       email: fixture.warmupEmail,
