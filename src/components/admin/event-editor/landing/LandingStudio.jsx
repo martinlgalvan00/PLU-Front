@@ -9,6 +9,7 @@ import {
 } from '../../../../lib/landingStudioSession.js'
 import { LandingContentEditor } from '../EventLandingSection.jsx'
 import FormatFieldset from './FormatFieldset.jsx'
+import LandingCopyFrom from './LandingCopyFrom.jsx'
 import SeoFieldset from './SeoFieldset.jsx'
 import Segmented from './Segmented.jsx'
 import StudioPreview from './StudioPreview.jsx'
@@ -61,6 +62,8 @@ export default function LandingStudio({
   heroPreviewUrl = null,
   save = null,
   onClose,
+  /** Eventos de los que se puede copiar la landing ("Copiar de otro evento"). */
+  landingSourceEvents = [],
 }) {
   const text = (key, params) => t(`admin.eventEditor.${key}`, params)
   const history = useLandingHistory(draft, patchDraft)
@@ -318,15 +321,26 @@ export default function LandingStudio({
               </>
             ) : null}
             {panel === 'design' ? (
-              <FormatFieldset
-                canEdit={canEdit}
-                landing={landing}
-                patchLanding={patchLanding}
-                patchMotion={patchMotion}
-                patchPalette={patchPalette}
-                showAudience={false}
-                t={t}
-              />
+              <>
+                <LandingCopyFrom
+                  t={t}
+                  canEdit={canEdit}
+                  events={landingSourceEvents}
+                  currentEventId={draft.id ?? null}
+                  landing={landing}
+                  patchLanding={patchLanding}
+                  undoable
+                />
+                <FormatFieldset
+                  canEdit={canEdit}
+                  landing={landing}
+                  patchLanding={patchLanding}
+                  patchMotion={patchMotion}
+                  patchPalette={patchPalette}
+                  showAudience={false}
+                  t={t}
+                />
+              </>
             ) : null}
             {panel === 'seo' ? (
               <SeoFieldset

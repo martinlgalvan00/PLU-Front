@@ -39,6 +39,7 @@ export default function EventVisibilitySection({
   mpProfiles,
   onGoTo,
   studioSave = null,
+  landingSourceEvents = [],
 }) {
   // "Abre en una fecha" recién elegido: hasta cargar la fecha el borrador se
   // lee como abierta, y el campo no puede desaparecer en ese intervalo.
@@ -233,6 +234,7 @@ export default function EventVisibilitySection({
           err={err}
           heroPreviewUrl={heroPreviewUrl}
           heroUploading={heroUploading}
+          landingSourceEvents={landingSourceEvents}
           patchDraft={patchDraft}
           publicCapacityPreview={publicCapacityPreview}
           sourceEvent={sourceEvent}

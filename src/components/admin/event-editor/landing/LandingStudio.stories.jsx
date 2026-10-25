@@ -71,7 +71,7 @@ function builderLanding(overrides = {}) {
   }
 }
 
-function Studio({ landing }) {
+function Studio({ landing, landingSourceEvents = [] }) {
   const { t } = useI18n()
   const source = { ...EVENT, landing }
   const [draft, setDraft] = useState(() => buildAdminEventDraft(source))
@@ -94,6 +94,7 @@ function Studio({ landing }) {
         }}
         sourceEvent={source}
         t={t}
+        landingSourceEvents={landingSourceEvents}
         onClose={() => setOpen(false)}
       />
     </AdminPreviewShell>
@@ -135,4 +136,43 @@ export const PlantillaEditorial = {
       }}
     />
   ),
+}
+
+/** Meets anteriores para "Copiar de otro evento". */
+const PAST_EVENTS = [
+  {
+    id: 'evt-copa-2025',
+    slug: 'copa-norte-2025',
+    title: 'Copa Norte 2025',
+    startsAt: '2025-11-08T12:00:00Z',
+    landing: {
+      templateId: 'builder',
+      themeId: 'ember',
+      slots: { heroLead: 'El meet del norte', experienceTitle: 'Cómo es el día' },
+      layout: { palette: { accent: '#e4002b', action: '#00a86b' }, motion: 'depth' },
+    },
+  },
+  {
+    id: 'evt-pitbull-2025',
+    slug: 'pitbull-classic-2025',
+    title: 'Pitbull Classic 2025',
+    startsAt: '2025-06-14T12:00:00Z',
+    landing: { templateId: 'editorial', themeId: 'night-steel' },
+  },
+]
+
+/** Copiar el diseño de un meet anterior desde Diseño, y deshacerlo de una. */
+export const CopiarDeOtroEvento = {
+  render: () => <Studio landing={builderLanding()} landingSourceEvents={PAST_EVENTS} />,
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    const dialog = await body.findByRole('dialog', { name: /Editor visual de la landing/i })
+    await userEvent.click(within(dialog).getByRole('tab', { name: 'Diseño' }))
+    const copy = within(dialog.querySelector('.admin-landing-copy'))
+    await userEvent.click(copy.getByRole('button', { name: /Copiar de otro evento/ }))
+    await userEvent.selectOptions(copy.getByLabelText('Evento'), 'evt-copa-2025')
+    await userEvent.click(copy.getByRole('button', { name: 'Copiar' }))
+    await expect(copy.getByRole('status')).toHaveTextContent(/Copa Norte 2025/)
+    await expect(within(dialog).getByRole('button', { name: 'Deshacer' })).toBeEnabled()
+  },
 }
