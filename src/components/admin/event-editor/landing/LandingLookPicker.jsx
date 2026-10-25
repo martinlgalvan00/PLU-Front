@@ -1,7 +1,10 @@
 import { useId, useState } from 'react'
 import { Check, ChevronDown, Palette } from 'lucide-react'
 import { EVENT_LANDING_THEMES } from '../../../../lib/eventLanding.js'
-import { landingPaletteStyle, normalizeLandingPalette } from '../../../../lib/eventLandingPalette.js'
+import {
+  landingPaletteStyle,
+  normalizeLandingPalette,
+} from '../../../../lib/eventLandingPalette.js'
 import PaletteEditor from './PaletteEditor.jsx'
 import '../../../../styles/pages/admin-landing-look.css'
 
@@ -130,7 +133,9 @@ export function LandingTemplatePicker({ t, disabled, value, themeId, palette, on
           )
         })}
       </div>
-      <p className="admin-landing-look__hint">{text(`${TEMPLATE_KEY[value] ?? TEMPLATE_KEY.meet}Hint`)}</p>
+      <p className="admin-landing-look__hint">
+        {text(`${TEMPLATE_KEY[value] ?? TEMPLATE_KEY.meet}Hint`)}
+      </p>
     </div>
   )
 }
@@ -139,7 +144,14 @@ export function LandingTemplatePicker({ t, disabled, value, themeId, palette, on
  * Tema de color con sus dos colores a la vista (acento y botón) y, debajo, los
  * colores propios del evento. Los propios pisan al tema; vaciarlos vuelve a él.
  */
-export function LandingColorPicker({ t, disabled, themeId, palette, onThemeChange, onPaletteChange }) {
+export function LandingColorPicker({
+  t,
+  disabled,
+  themeId,
+  palette,
+  onThemeChange,
+  onPaletteChange,
+}) {
   const name = useId()
   const labelId = `${name}-label`
   const panelId = `${name}-custom`
@@ -166,7 +178,11 @@ export function LandingColorPicker({ t, disabled, themeId, palette, onThemeChang
                 disabled={disabled}
                 onChange={() => onThemeChange(id)}
               />
-              <span className="admin-landing-look__swatches event-landing-theme" data-event-theme={id} aria-hidden>
+              <span
+                className="admin-landing-look__swatches event-landing-theme"
+                data-event-theme={id}
+                aria-hidden
+              >
                 <span className="admin-landing-look__swatch admin-landing-look__swatch--accent" />
                 <span className="admin-landing-look__swatch admin-landing-look__swatch--action" />
               </span>
