@@ -773,3 +773,9 @@
   outline: 2px solid var(--color-brand-celeste);
   outline-offset: 2px;
 }
+
+/* Cuenta de Mercado Pago del evento: el selector y, debajo, su estado. */
+.admin-event-quick__mp {
+  display: grid;
+  gap: 8px;
+}
