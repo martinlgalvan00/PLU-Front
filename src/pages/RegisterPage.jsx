@@ -490,6 +490,7 @@ function RegisterCompetitionAside({
   paymentMethod,
   t,
   total,
+  breakdown = null,
 }) {
   const pending = t('pages.register.competitionSummaryPending')
   const picks = competitionPicksLabel(form, t)
@@ -525,6 +526,16 @@ function RegisterCompetitionAside({
             </div>
           </fieldset>
         ) : null}
+        {breakdown?.length ? (
+          <dl className="register-competition-ticket__breakdown">
+            {breakdown.map((line) => (
+              <div key={line.key}>
+                <dt>{line.label}</dt>
+                <dd>{money(line.amount, locale)}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
         <div className="register-competition-ticket__total">
           <span>{t('pages.register.total')}</span>
           <strong>{money(total, locale)}</strong>
@@ -533,6 +544,9 @@ function RegisterCompetitionAside({
     </aside>
   )
 }
+
+/** Datos del perfil que el formulario de inscripción ya pide. */
+const CHECKOUT_COLLECTED_PROFILE_FIELDS = new Set(['category', 'estimatedWeight'])
 
 export default function RegisterPage({
   athlete,
@@ -551,11 +565,16 @@ export default function RegisterPage({
   checkoutAvailability = {},
   checkoutIntent = null,
   onCheckoutIntentConsumed,
+  // Alta que arrancó en "Inscribirme": al terminar se retoma ese torneo.
+  resumeEventTitle = null,
 }) {
   const { locale, t } = useI18n()
   const formOptions = useMemo(() => getFormOptions(t), [t])
   const profileSteps = useMemo(() => getProfileSteps(t), [t])
   const competitionEventDate = event?.startsAt ?? event?.starts_at ?? event?.date ?? null
+  // Día para mostrar: los eventos del catálogo traen `dateISO`, no `date`
+  // (que solo tenían los datos editoriales viejos), y el checkout no lo mostraba.
+  const competitionEventDay = event?.dateISO || event?.date || ''
   const competitionAgeContext = useMemo(
     () => ({
       birthDate: athlete?.birthDate ?? null,
@@ -733,10 +752,20 @@ export default function RegisterPage({
   const availabilityRequestRef = useRef(0)
   const submissionInFlightRef = useRef(false)
   const emailVerifyRef = useRef(null)
+  const settleRef = useRef(null)
+  const wasSettlingRef = useRef(false)
   const competitionPrefillRef = useRef(null)
   const committedCompetitionPrefillRef = useRef(null)
+  // Categoría y peso los pide el propio formulario de inscripción: contarlos
+  // como "datos pendientes" del perfil mandaba a una cuenta nueva a completar
+  // afuera lo que tenía que completar acá abajo.
   const competitionProfileMissing = useMemo(
-    () => (flow === 'competition' && athlete ? getMissingCompetitionProfileFields(athlete) : []),
+    () =>
+      flow === 'competition' && athlete
+        ? getMissingCompetitionProfileFields(athlete).filter(
+            (field) => !CHECKOUT_COLLECTED_PROFILE_FIELDS.has(field),
+          )
+        : [],
     [athlete, flow],
   )
   useEffect(() => {
@@ -919,7 +948,10 @@ export default function RegisterPage({
   useEffect(() => {
     if (flow !== 'competition' || !athlete || competitionPrefillRef.current === athlete.id) return
     competitionPrefillRef.current = athlete.id
-    const division = ageDivision.value || athlete.division
+    // La franja de edad primero: `ageDivision.value` arranca en el 'Open' del
+    // formulario vacío y un Junior quedaba anotado solo en Open (mismo precio,
+    // pero fuera de su franja). Open se sigue pudiendo sumar o elegir.
+    const division = ageDivision.suggested || athlete.division || ageDivision.value
     ;[
       ['division', division],
       ['category', athlete.category],
@@ -929,7 +961,7 @@ export default function RegisterPage({
         onUpdateForm({ target: { name, value: String(value) } })
       }
     })
-  }, [ageDivision.value, athlete, flow, onUpdateForm])
+  }, [ageDivision.suggested, ageDivision.value, athlete, flow, onUpdateForm])
 
   // Vacío, inválida o cambio de evento/DOB → sugerida (autocomplete).
   useEffect(() => {
@@ -1306,7 +1338,9 @@ export default function RegisterPage({
   const content = {
     profile: [
       t('pages.register.profileTitle'),
-      t('pages.register.profileDesc'),
+      resumeEventTitle
+        ? t('pages.register.profileDescResume', { event: resumeEventTitle })
+        : t('pages.register.profileDesc'),
       t('pages.register.profileSubmit'),
     ],
     competition: [
@@ -1458,6 +1492,35 @@ export default function RegisterPage({
       ? discountedTotal
       : checkoutListTotal
   const wiseBaseUsd = Number(eventPricing.wisePrice) > 0 ? Number(eventPricing.wisePrice) : null
+  // Con segunda división el total sube un 50% y el chip "+$X" era la única
+  // pista: el resumen lo explica línea por línea. Wise cobra en USD con su
+  // propio precio, así que ahí no se desglosa en pesos.
+  const checkoutBreakdown =
+    secondDivisionSelected && form.paymentMethod !== 'wise_transfer'
+      ? [
+          {
+            key: 'base',
+            label: t('pages.register.breakdownRegistration', { division: form.division }),
+            amount: checkoutListTotal - secondDivisionFee,
+          },
+          {
+            key: 'second',
+            label: t('pages.register.breakdownSecondDivision', {
+              division: form.secondaryDivision,
+            }),
+            amount: secondDivisionFee,
+          },
+          ...(checkoutTotal !== checkoutListTotal
+            ? [
+                {
+                  key: 'discount',
+                  label: t('pages.register.breakdownDiscount'),
+                  amount: checkoutTotal - checkoutListTotal,
+                },
+              ]
+            : []),
+        ]
+      : null
   const checkoutTotalLabel =
     form.paymentMethod === 'wise_transfer'
       ? wisePriceLabel(
@@ -1822,7 +1885,7 @@ export default function RegisterPage({
           athletePhotoUrl: athlete?.photoUrl,
           qrCode: credentialCode,
           eventTitle: event?.title,
-          eventDate: event?.date,
+          eventDate: competitionEventDay,
           eventVenue: event?.venue,
           eventLocation: event?.location,
           category: form.category,
@@ -2093,10 +2156,15 @@ export default function RegisterPage({
 
   function applyRegisterSubmitResult(result, { requestedPaymentMethod } = {}) {
     if (result?.error) {
+      // El rescate ("¿problemas para pagar?") es para fallas de la pasarela o
+      // de red. Un 4xx es una regla de negocio (cupo lleno, solo anuncio,
+      // falta la modalidad): ofrecer transferencia ahí era engañoso.
+      const businessRejection = result.status >= 400 && result.status < 500
       const canRecoverPayment =
         requestedPaymentMethod === 'mercado_pago' &&
         isPaidCheckout &&
         !result.fields &&
+        !businessRejection &&
         result.code !== 'EMAIL_NOT_VERIFIED' &&
         result.code !== 'PLU08'
       if (canRecoverPayment) {
@@ -2471,6 +2539,18 @@ export default function RegisterPage({
   const competitionOrderConfirmed =
     flow === 'competition' && Boolean(visibleOrder) && registrationAdmitted
   const competitionSettling = flow === 'competition' && Boolean(visibleOrder) && !changingMethod
+
+  // Al pasar del formulario al pago, el formulario se achica y el scroll
+  // quedaba donde estaba: en mobile la persona terminaba mirando el footer
+  // justo cuando tenía que pagar. Se lleva la vista y el foco al panel.
+  useEffect(() => {
+    const entered = competitionSettling && !wasSettlingRef.current
+    wasSettlingRef.current = competitionSettling
+    if (!entered || !settleRef.current) return
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    settleRef.current.scrollIntoView?.({ block: 'start', behavior: reduced ? 'auto' : 'smooth' })
+    settleRef.current.focus({ preventScroll: true })
+  }, [competitionSettling])
   /**
    * "Settling" es el rato en que la orden todavía se está cobrando. Con la
    * inscripción ya admitida eso terminó: el brick embebido mostraba
@@ -2580,7 +2660,9 @@ export default function RegisterPage({
           {athlete?.fullName ? (
             <strong className="register-intro__athlete">{athlete.fullName}</strong>
           ) : null}
-          {event?.date ? <span>{formatShortDate(event.date, locale)}</span> : null}
+          {competitionEventDay ? (
+            <span>{formatShortDate(competitionEventDay, locale)}</span>
+          ) : null}
           {event?.venue || event?.location ? <span>{event?.venue || event?.location}</span> : null}
         </div>
       )}
@@ -3218,6 +3300,7 @@ export default function RegisterPage({
               paymentMethod={form.paymentMethod}
               t={t}
               total={checkoutTotal}
+              breakdown={checkoutBreakdown}
             />
           )}
           {registerProgress}
@@ -3249,6 +3332,7 @@ export default function RegisterPage({
               <RegisterProfileWelcome
                 athleteName={visibleOrder.athleteName}
                 onNavigate={onNavigate}
+                resumeEventTitle={resumeEventTitle}
               />
             </div>
           ) : membershipOrderConfirmed ? (
@@ -3327,7 +3411,7 @@ export default function RegisterPage({
               />
             </div>
           ) : competitionSettling ? (
-            <div className="register-settle">
+            <div ref={settleRef} className="register-settle" tabIndex={-1}>
               {/* El acuse y el error de esta pantalla. `submitError` sólo se
                   pintaba dentro del formulario, así que una acción hecha desde
                   la liquidación —cancelar la orden— no tenía dónde contar cómo
@@ -4044,6 +4128,16 @@ export default function RegisterPage({
                       <p className="register-competition-picks-mobile">
                         {competitionPicksLabel(form, t)}
                       </p>
+                    ) : null}
+                    {flow === 'competition' && checkoutBreakdown?.length ? (
+                      <dl className="register-competition-ticket__breakdown register-competition-breakdown-mobile">
+                        {checkoutBreakdown.map((line) => (
+                          <div key={line.key}>
+                            <dt>{line.label}</dt>
+                            <dd>{money(line.amount, locale)}</dd>
+                          </div>
+                        ))}
+                      </dl>
                     ) : null}
                     {isPaidCheckout ? (
                       <RegisterCheckoutBar

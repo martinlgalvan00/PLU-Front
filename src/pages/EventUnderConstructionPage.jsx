@@ -31,6 +31,8 @@ function formatDate(value, locale, withTime = false) {
  */
 export default function EventUnderConstructionPage({
   event = null,
+  // A dónde lleva "Volver": la portada si se llegó desde su carril.
+  backView = 'events',
   onNavigate,
   onSelectEvent,
   registrationEnabled = true,
@@ -63,10 +65,12 @@ export default function EventUnderConstructionPage({
         <button
           className="event-under-construction__back"
           type="button"
-          onClick={() => onNavigate?.('events')}
+          onClick={() => onNavigate?.(backView)}
         >
           <ArrowLeft aria-hidden size={17} />
-          {t('pages.eventUnderConstruction.back')}
+          {backView === 'home'
+            ? t('pages.eventUnderConstruction.backHome')
+            : t('pages.eventUnderConstruction.back')}
         </button>
 
         <div className="event-under-construction__layout">

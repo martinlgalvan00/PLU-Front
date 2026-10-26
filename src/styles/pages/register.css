@@ -2341,9 +2341,15 @@
    uno pegado al borde izquierdo del viewport. */
 
 .register-settle {
+  scroll-margin-top: calc(var(--header-height-scrolled, 52px) + 16px);
   display: grid;
   gap: 10px;
   min-width: 0;
+}
+
+/* Recibe el foco por código al aparecer (no es un control): sin anillo. */
+.register-settle:focus {
+  outline: none;
 }
 
 .register-settle__toolbar {
@@ -4609,6 +4615,31 @@
   color: var(--color-text-secondary);
 }
 
+.register-competition-ticket__breakdown {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+}
+
+.register-competition-ticket__breakdown > div {
+  align-items: baseline;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.register-competition-ticket__breakdown dt {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+}
+
+.register-competition-ticket__breakdown dd {
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
 .register-competition-ticket__total {
   align-items: baseline;
   display: flex;
@@ -6399,7 +6430,8 @@
 }
 
 @media (min-width: 900px) {
-  .register-competition-picks-mobile {
+  .register-competition-picks-mobile,
+  .register-competition-breakdown-mobile {
     display: none;
   }
 }

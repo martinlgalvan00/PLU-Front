@@ -767,6 +767,41 @@ export function createSupabaseAthleteRepository(
         'No se pudo guardar la categoría de peso.',
       )
     },
+    /** Lo que necesita la importación de la planilla para comparar y validar. */
+    async findRegistrationImportContexts(registrationIds) {
+      const rows = []
+      // `.in()` viaja en la URL: de a tandas para no pasar el límite de PostgREST.
+      for (let index = 0; index < registrationIds.length; index += 200) {
+        const chunk = registrationIds.slice(index, index + 200)
+        const data = assertSupabaseResult(
+          await client
+            .from('event_registrations')
+            .select(
+              'id, status, division, secondary_division, category, modalities, bodyweight_kg, declared_weight_class, athlete:athletes(full_name, sex), event:events(id, slug, title, roster_frozen_at, rules)',
+            )
+            .eq('organization_id', organizationId)
+            .in('id', chunk),
+          'No se pudieron leer las inscripciones.',
+        )
+        rows.push(...(data ?? []))
+      }
+      return rows
+    },
+    // Las modalidades no están bajo el lock de la selección competitiva (solo
+    // división, categoría y peso): se corrigen con un update directo y el
+    // CHECK de la columna valida la combinación.
+    async updateRegistrationModalities(registrationId, modalities) {
+      return assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .update({ modalities, updated_at: new Date().toISOString() })
+          .eq('organization_id', organizationId)
+          .eq('id', registrationId)
+          .select('id, modalities')
+          .single(),
+        'No se pudieron guardar las modalidades.',
+      )
+    },
     async updateOfficialWeightClass(registrationId, officialWeightClass, actor) {
       return assertSupabaseResult(
         await client

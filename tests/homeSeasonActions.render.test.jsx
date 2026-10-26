@@ -39,7 +39,7 @@ const ACTIONS_SOON = [
 ]
 
 describe('HomeSeasonActions', () => {
-  it('muestra inscripción abierta cuando el meet está live', () => {
+  it('inscripción abierta: el carril lleva "Página oficial" e "Inscribirme"', () => {
     const onActivate = vi.fn()
     render(
       <I18nProvider>
@@ -48,9 +48,15 @@ describe('HomeSeasonActions', () => {
     )
 
     expect(screen.getByText('Ya podés inscribirte')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /Barbell Submission/i }))
+    const lane = screen.getByRole('group', { name: 'Barbell Submission' })
+    expect(lane.tagName).not.toBe('BUTTON')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Página oficial de Barbell Submission' }))
     // El segundo argumento es el click: el carril lo usa para el morph de ruta.
-    expect(onActivate).toHaveBeenCalledWith(ACTIONS_OPEN[1], expect.anything())
+    expect(onActivate).toHaveBeenLastCalledWith(ACTIONS_OPEN[1], expect.anything(), 'page')
+
+    fireEvent.click(screen.getByRole('button', { name: /Barbell Submission\. Inscripción abierta/i }))
+    expect(onActivate).toHaveBeenLastCalledWith(ACTIONS_OPEN[1], expect.anything(), 'register')
   })
 
   it('con Virtus en teaser dice Inscripciones próximamente, no finalizadas', () => {

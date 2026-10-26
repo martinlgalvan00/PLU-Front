@@ -65,11 +65,11 @@ describe('EventUnderConstructionPage', () => {
     )
   }
 
-  it('dice "Plataforma en construcción" con el nombre del evento y nada más', () => {
+  it('dice "Próximamente" con el nombre del evento y nada más', () => {
     renderPage()
 
     expect(screen.getByRole('heading', { level: 1, name: 'Barbell Submission' })).toBeTruthy()
-    expect(screen.getByRole('status').textContent).toMatch(/plataforma en construcción/i)
+    expect(screen.getByRole('status').textContent).toMatch(/próximamente/i)
   })
 
   it('usa el tema del evento', () => {
@@ -134,7 +134,7 @@ describe('EventUnderConstructionPage · inscripción con la página oculta', () 
 
   it('dice que se construye la página oficial del evento por su nombre', () => {
     renderSelling(hiddenEvent)
-    expect(screen.getByText(/construyendo la página oficial de Barbell Submission/i)).toBeTruthy()
+    expect(screen.getByText(/construyendo algo genial: la página oficial de Barbell Submission/i)).toBeTruthy()
   })
 
   it('con la venta abierta ofrece "Inscribirme" con fecha y sede', () => {

@@ -1730,6 +1730,7 @@ export function useAppData() {
           return {
             error: error.message,
             code: error.body?.code ?? null,
+            status: error.status ?? null,
             resumeMembershipPayment: membershipPaymentInProgress,
           }
         }

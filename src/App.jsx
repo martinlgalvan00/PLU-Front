@@ -224,6 +224,10 @@ export default function App() {
     matchAdminEventRoute()?.eventSlug ?? null,
   )
   const [transitionDirection, setTransitionDirection] = useState('forward')
+  // De qué vista se llegó a la actual: el aviso de "en construcción" vuelve a
+  // la portada si se abrió desde su carril, no siempre al calendario.
+  const [viewTrail, setViewTrail] = useState({ current: view, previous: null })
+  if (viewTrail.current !== view) setViewTrail({ current: view, previous: viewTrail.current })
   const [selectedEvent, setSelectedEvent] = useState(UPCOMING_EVENTS[0])
   const [pendingAthleteDestination, setPendingAthleteDestination] = useState(null)
   // Intent liviano al abrir el checkout desde Pagos / Torneos: p.ej. abrir
@@ -1024,6 +1028,7 @@ export default function App() {
   const pageProps = showUnderConstruction
     ? {
         event: eventPageEvent,
+        backView: viewTrail.previous === 'home' ? 'home' : 'events',
         onNavigate: navigate,
         onSelectEvent: selectEvent,
         registrationEnabled: app.checkoutAvailability?.registrationEnabled !== false,
@@ -1044,6 +1049,9 @@ export default function App() {
           form: app.form,
           onApprovePayment: app.handleApprovePayment,
           flow: 'profile',
+          // El alta que viene de "Inscribirme" dice a qué torneo vuelve.
+          resumeEventTitle:
+            pendingAthleteDestination?.view === 'competition' ? (selectedEvent?.title ?? null) : null,
           onNavigate: navigate,
           onSubmit: app.registerAthlete,
           onUpdateForm: app.updateForm,
@@ -1057,6 +1065,7 @@ export default function App() {
               onNavigate: navigate,
               onSelectEvent: selectEvent,
               events: publicEvents,
+              underConstructionEvents,
               initialEventSlug: eventPageSlug,
               session: app.session,
               memberships: app.memberships,
@@ -1068,6 +1077,7 @@ export default function App() {
                 onNavigate: navigate,
                 onSelectEvent: selectEvent,
                 events: publicEvents,
+                underConstructionEvents,
                 session: app.session,
                 memberships: app.memberships,
                 registrations: app.registrations,

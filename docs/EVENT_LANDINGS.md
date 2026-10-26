@@ -8,7 +8,7 @@ Cada evento tiene una página pública en `/evento/:slug`. Qué se ve ahí lo de
 | Concepto | Campo | Efecto |
 |---|---|---|
 | Plantilla | `templateId` | `meet` (ficha del calendario), `editorial` (dossier Pitbull), `submission`, `builder` (Constructor). |
-| Interruptor | `publicVisible` | Apagado: el público ve **"Plataforma en construcción"**. El evento sigue en el menú pero fuera de calendario, destacados y countdowns. |
+| Interruptor | `publicVisible` | Apagado: el público ve el aviso **"Próximamente"** (pantalla "en construcción"). El evento sigue en el menú pero fuera de destacados y countdowns; fuera del calendario salvo que venda inscripciones, en cuyo caso el calendario y la portada lo ofrecen con "Página oficial" e "Inscribirme" (ver `REGISTRATION_SALES.md`). |
 | Tema | `themeId` | Uno de 4 presets de acento (`event-landing-themes.css`). |
 | Colores propios | `layout.palette` | `accent`, `action` (botón) y `background`, en `#rrggbb`. El texto se deriva del fondo (blanco o grafito). |
 | Textos | `slots` | Portada, experiencia, categorías, lugar, FAQ (3 pares), SEO. Máximos en `EVENT_LANDING_SLOT_LIMITS`. |

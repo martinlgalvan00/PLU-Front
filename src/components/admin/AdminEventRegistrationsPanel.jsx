@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
-import { ClipboardList, Download, ExternalLink, PencilLine } from 'lucide-react'
+import { ClipboardList, Download, ExternalLink, FileSpreadsheet, PencilLine, Upload } from 'lucide-react'
 import AdminEmptyState from './AdminEmptyState.jsx'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
 import AdminFilterSearch from './AdminFilterSearch.jsx'
 import AdminFilterSelect from './AdminFilterSelect.jsx'
 import AdminIconButton from './AdminIconButton.jsx'
+import RegistrationSheetImportDialog from './RegistrationSheetImportDialog.jsx'
 import RegistrationStatusDialog from './RegistrationStatusDialog.jsx'
 import StatusPill from '../ui/StatusPill.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -15,6 +16,7 @@ import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { money } from '../../lib/format.js'
 import { getStatusMeta } from '../../lib/status.js'
 import { createCsv } from '../../services/exportService.js'
+import { downloadRegistrationSheet } from '../../services/registrationSheetService.js'
 import {
   buildEventRegistrationRows,
   EMPTY_TRACKING_FILTERS,
@@ -51,6 +53,7 @@ export default function AdminEventRegistrationsPanel({
   event,
   gatePendingIds = EMPTY_GATE,
   onOpenFullList,
+  onRefreshRegistrations,
   onSetRegistrationStatus,
   payments = NO_PAYMENTS,
   registrations = [],
@@ -60,6 +63,8 @@ export default function AdminEventRegistrationsPanel({
   const [statusTarget, setStatusTarget] = useState(null)
   const [statusBusy, setStatusBusy] = useState(false)
   const [statusError, setStatusError] = useState('')
+  const [sheetImportOpen, setSheetImportOpen] = useState(false)
+  const [sheetExporting, setSheetExporting] = useState(false)
   const setFilter = (key) => (value) => setFilters((current) => ({ ...current, [key]: value }))
 
   const rows = useMemo(
@@ -132,6 +137,28 @@ export default function AdminEventRegistrationsPanel({
     createCsv(`inscripciones-${event.slug || event.id}.csv`, csvRows)
   }
 
+  /** Planilla .xlsx de lo que muestra el padrón filtrado, para corregir y reimportar. */
+  async function exportSheet() {
+    setSheetExporting(true)
+    try {
+      const result = await downloadRegistrationSheet({
+        registrations: visible,
+        athletes,
+        payments,
+        events: [event],
+        scope: event.slug || event.id,
+      })
+      if (result.ok) {
+        notifySuccess(t('admin.registrationSheet.exportDone', { count: result.rows }))
+      }
+    } catch (error) {
+      console.warn('No se pudo generar la planilla de inscripciones.', error)
+      notifyError(t('admin.registrationSheet.exportError'))
+    } finally {
+      setSheetExporting(false)
+    }
+  }
+
   async function handleConfirmStatus(status, reason) {
     if (!statusTarget || !onSetRegistrationStatus) return
     setStatusBusy(true)
@@ -178,6 +205,28 @@ export default function AdminEventRegistrationsPanel({
             <Download size={14} aria-hidden />
             {filtered ? text('exportFiltered') : text('export')}
           </button>
+          <button
+            type="button"
+            className="admin-event-regs__export"
+            aria-label={t('admin.registrationSheet.exportAria', { count: visible.length })}
+            disabled={visible.length === 0 || sheetExporting}
+            onClick={() => void exportSheet()}
+          >
+            <FileSpreadsheet size={14} aria-hidden />
+            {t('admin.registrationSheet.export')}
+          </button>
+          {canSetStatus ? (
+            <button
+              type="button"
+              className="admin-event-regs__export"
+              aria-label={t('admin.registrationSheet.importAria')}
+              disabled={rows.length === 0}
+              onClick={() => setSheetImportOpen(true)}
+            >
+              <Upload size={14} aria-hidden />
+              {t('admin.registrationSheet.import')}
+            </button>
+          ) : null}
           {onOpenFullList ? (
             <button type="button" className="admin-event-regs__open-full" onClick={onOpenFullList}>
               <ExternalLink size={14} aria-hidden />
@@ -378,6 +427,14 @@ export default function AdminEventRegistrationsPanel({
             setStatusError('')
           }}
           onConfirm={handleConfirmStatus}
+        />
+      ) : null}
+      {sheetImportOpen ? (
+        <RegistrationSheetImportDialog
+          eventSlug={event.slug}
+          eventLabel={event.title ?? event.slug}
+          onClose={() => setSheetImportOpen(false)}
+          onApplied={() => void onRefreshRegistrations?.()}
         />
       ) : null}
     </section>
