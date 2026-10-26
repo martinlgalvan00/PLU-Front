@@ -52,6 +52,22 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      # Flujos públicos de inscripción con la API simulada (sin base): portada,
+      # calendario, landing en construcción, checkout por URL, pago, efectivo y
+      # transferencia. Son los que dicen si alguien se puede inscribir.
+      - name: Registration flows E2E
+        run: npm run test:e2e:flows
+      - name: Upload registration flows results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-flows-results
+          path: |
+            e2e/.test-results-flows/
+            e2e/.report-flows/
+          retention-days: 7
+          if-no-files-found: ignore
+          include-hidden-files: true
       - name: Reject local API URLs in production assets
         run: |
           if grep -RE "https?://(localhost|127\\.0\\.0\\.1|\\[::1\\]):(3001|5173)" dist; then
