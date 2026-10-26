@@ -78,7 +78,7 @@ describe('repositorio: alta de inscripción con división y modalidades', () => 
     return { rpc, repository: createSupabaseAthleteRepository({ rpc, from: vi.fn() }) }
   }
 
-  it('la inscripción suelta llama a la RPC v3 con segunda división y modalidades', async () => {
+  it('la inscripción suelta llama a la RPC v4 con segunda división, modalidades y categorías adicionales', async () => {
     const { rpc, repository } = repo()
     await repository.createRegistration('athlete-1', {
       ...base,
@@ -86,11 +86,12 @@ describe('repositorio: alta de inscripción con división y modalidades', () => 
       modalities: ['full_power', 'bench'],
     })
     expect(rpc).toHaveBeenCalledWith(
-      'create_competition_registration_checkout_v3',
+      'create_competition_registration_checkout_v4',
       expect.objectContaining({
         p_division: 'Junior',
         p_secondary_division: 'Open',
         p_modalities: ['full_power', 'bench'],
+        p_additional_categories: [],
         p_default_price: 112500,
         p_manual_price: 90000,
         p_declared_weight_class: '90',
@@ -102,12 +103,16 @@ describe('repositorio: alta de inscripción con división y modalidades', () => 
     const { rpc, repository } = repo()
     await repository.createRegistration('athlete-1', base)
     expect(rpc).toHaveBeenCalledWith(
-      'create_competition_registration_checkout_v3',
-      expect.objectContaining({ p_secondary_division: null, p_modalities: ['full_power'] }),
+      'create_competition_registration_checkout_v4',
+      expect.objectContaining({
+        p_secondary_division: null,
+        p_modalities: ['full_power'],
+        p_additional_categories: [],
+      }),
     )
   })
 
-  it('el combo también usa la RPC v3', async () => {
+  it('el combo también usa la RPC v4', async () => {
     const { rpc, repository } = repo()
     await repository.createRegistrationCombo('athlete-1', {
       ...base,
@@ -115,8 +120,12 @@ describe('repositorio: alta de inscripción con división y modalidades', () => 
       modalities: ['full_power'],
     })
     expect(rpc).toHaveBeenCalledWith(
-      'create_membership_registration_combo_checkout_v3',
-      expect.objectContaining({ p_secondary_division: 'Open', p_modalities: ['full_power'] }),
+      'create_membership_registration_combo_checkout_v4',
+      expect.objectContaining({
+        p_secondary_division: 'Open',
+        p_modalities: ['full_power'],
+        p_additional_categories: [],
+      }),
     )
   })
 })

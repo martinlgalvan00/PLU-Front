@@ -57,6 +57,7 @@ import { resolveEventPricing } from '../lib/eventPricing.js'
 import { getStatusMeta, isRegistrationAdmitted, normalizeStatus } from '../lib/status.js'
 import { hasCurrentMembership, isMembershipCurrent } from '../services/membershipService.js'
 import { getEventComboAvailability } from '../services/comboOfferService.js'
+import { eventHasSubmissionLanding } from '../lib/eventLanding.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { channelOpen } from '../lib/paymentChannels.js'
@@ -470,7 +471,9 @@ function competitionPicksLabel(form, t, { withBodyweight = true } = {}) {
     .join(' + ')
   return [
     [form.division, form.secondaryDivision].filter(Boolean).join(' + '),
-    form.category,
+    (form.categories?.includes(form.category) ? form.categories : [form.category])
+      .filter(Boolean)
+      .join(' + '),
     modalities,
     form.declaredWeightClass ? `${form.declaredWeightClass} kg` : '',
     withBodyweight && form.estimatedWeight
@@ -607,6 +610,19 @@ export default function RegisterPage({
   const categoryOptions = formOptions.category.filter((option) =>
     eventOffering.categories.includes(optionValue(option)),
   )
+  const submissionCategoriesEnabled = flow === 'competition' && eventHasSubmissionLanding(event)
+  const selectedRegistrationCategories = useMemo(
+    () =>
+      (
+        submissionCategoriesEnabled && form.categories?.includes(form.category)
+          ? form.categories
+          : [form.category]
+      ).filter((category) => eventOffering.categories.includes(category)),
+    [eventOffering.categories, form.categories, form.category, submissionCategoriesEnabled],
+  )
+  const registrationCategoryCount = submissionCategoriesEnabled
+    ? Math.max(1, selectedRegistrationCategories.length)
+    : 1
   const modalityValues = REGISTRATION_MODALITIES.filter((value) =>
     eventOffering.modalities.includes(value),
   )
@@ -996,6 +1012,7 @@ export default function RegisterPage({
       committedCompetitionRegistration.bodyweightKg,
       committedCompetitionRegistration.declaredWeightClass,
       committedCompetitionRegistration.secondaryDivision,
+      (committedCompetitionRegistration.categories ?? []).join(','),
       (committedCompetitionRegistration.modalities ?? []).join(','),
     ].join(':')
     if (committedCompetitionPrefillRef.current === prefillKey) return
@@ -1014,6 +1031,7 @@ export default function RegisterPage({
     // valor viejo del formulario se mostraría como si fuera de la inscripción.
     ;[
       ['secondaryDivision', committedCompetitionRegistration.secondaryDivision ?? ''],
+      ['categories', committedCompetitionRegistration.categories ?? [committedCompetitionRegistration.category]],
       [
         'modalities',
         committedCompetitionRegistration.modalities?.length
@@ -1056,6 +1074,7 @@ export default function RegisterPage({
       appliesTo: 'combo',
       eventSlug: event.slug,
       paymentMethod: toApiPaymentMethod(form.paymentMethod),
+      categories: selectedRegistrationCategories,
     })
     if (isCancelled?.()) return null
     if (!preview?.valid) return preview ?? { valid: false }
@@ -1201,6 +1220,7 @@ export default function RegisterPage({
         eventSlug: event.slug,
         paymentMethod: toApiPaymentMethod(previewPaymentMethod),
         secondaryDivision: secondDivisionSelected ? form.secondaryDivision : undefined,
+        categories: selectedRegistrationCategories,
       })
       if (staleEvent()) return
       if (!preview.valid) {
@@ -1215,6 +1235,7 @@ export default function RegisterPage({
             appliesTo: 'combo',
             eventSlug: event.slug,
             paymentMethod: toApiPaymentMethod(previewPaymentMethod),
+            categories: selectedRegistrationCategories,
           })
           if (staleEvent()) return
           if (comboPreview.valid) {
@@ -1468,12 +1489,12 @@ export default function RegisterPage({
     paymentMethod: form.paymentMethod,
     manualPrice: eventPricing.registrationManual,
     fallback: registrationListPrice,
-  })
+  }) * registrationCategoryCount
   const secondDivisionFee = secondDivisionSelected
     ? secondDivisionSurcharge(registrationChannelPrice)
     : 0
   const secondDivisionListFee = secondDivisionSelected
-    ? secondDivisionSurcharge(registrationListPrice)
+    ? secondDivisionSurcharge(registrationListPrice * registrationCategoryCount)
     : 0
   const checkoutListTotal =
     previewCheckoutPrice({
@@ -1483,7 +1504,7 @@ export default function RegisterPage({
           ? comboAvailability.offer.manualPrice
           : eventPricing.registrationManual,
       fallback: effectivePurchaseType === 'combo' ? comboAvailability.offer.price : total,
-    }) + secondDivisionFee
+    }) * registrationCategoryCount + secondDivisionFee
   // Con un código aplicado, lo que se cobra es el importe del preview — sea un
   // descuento porcentual o una promo de precio fijo. Mostrar el de lista dejaba
   // el resumen y la barra de checkout diciendo un número que no era el de la
@@ -1530,12 +1551,16 @@ export default function RegisterPage({
           checkoutTotal,
           locale,
           wiseBaseUsd && secondDivisionSelected
-            ? wiseBaseUsd + secondDivisionSurcharge(wiseBaseUsd)
-            : eventPricing.wisePrice,
+            ? wiseBaseUsd * registrationCategoryCount +
+              secondDivisionSurcharge(wiseBaseUsd * registrationCategoryCount)
+            : wiseBaseUsd
+              ? wiseBaseUsd * registrationCategoryCount
+              : eventPricing.wisePrice,
         )
       : checkoutTotal
   const catalogCheckoutTotal =
-    (effectivePurchaseType === 'combo' ? comboListPrice : registrationListPrice) +
+    (effectivePurchaseType === 'combo' ? comboListPrice : registrationListPrice) *
+      registrationCategoryCount +
     secondDivisionListFee
   const showChannelCompareTotal =
     (form.paymentMethod === 'manual_link' || form.paymentMethod === 'cash_pitbull') &&
@@ -1567,6 +1592,7 @@ export default function RegisterPage({
           eventSlug: event.slug,
           paymentMethod: toApiPaymentMethod(form.paymentMethod),
           secondaryDivision: secondDivisionSelected ? form.secondaryDivision : undefined,
+          categories: selectedRegistrationCategories,
         })
         if (!cancelled) setPublicPromo(preview.valid ? preview : null)
       } catch {
@@ -1583,6 +1609,7 @@ export default function RegisterPage({
     event?.slug,
     flow,
     form.paymentMethod,
+    selectedRegistrationCategories,
     form.secondaryDivision,
     hasAppliedDiscountCode,
     secondDivisionSelected,
@@ -1958,6 +1985,14 @@ export default function RegisterPage({
     changeField({
       target: { name: 'modalities', value: toggleModality(form.modalities ?? ['full_power'], value) },
     })
+  }
+
+  function changeRegistrationCategory(value, checked) {
+    const next = checked
+      ? [...new Set([...selectedRegistrationCategories, value])]
+      : selectedRegistrationCategories.filter((category) => category !== value)
+    changeField({ target: { name: 'categories', value: next } })
+    changeField({ target: { name: 'category', value: next[0] ?? '' } })
   }
 
   function ensureGymNameConfirmed(resume) {
@@ -3139,7 +3174,19 @@ export default function RegisterPage({
         )}
         {/* Con la inscripción ya asentada se muestra lo que eligió (controles
             deshabilitados), aunque el torneo después haya acotado la oferta. */}
-        {categoryOptions.length === 1 && !committedCompetitionRegistration ? (
+        {submissionCategoriesEnabled ? (
+          <CheckboxGroupField
+            className="register-competition-choice register-competition-choice--category"
+            disabled={Boolean(committedCompetitionRegistration)}
+            error={errors.category}
+            hint={t('pages.register.categoryMultipleHint')}
+            label={t('pages.register.category')}
+            name="categories"
+            values={selectedRegistrationCategories}
+            onChange={changeRegistrationCategory}
+            options={categoryOptions.map((option) => [optionValue(option), optionLabel(option)])}
+          />
+        ) : categoryOptions.length === 1 && !committedCompetitionRegistration ? (
           <RegisterFixedChoice
             hint={t('pages.register.fixedChoiceHint')}
             label={t('pages.register.category')}

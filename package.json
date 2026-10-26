@@ -10,9 +10,10 @@
   "scripts": {
     "dev": "npm run dev:services",
     "dev:web": "vite",
-    "predev:api": "node scripts/prisma-supabase.mjs generate",
-    "dev:api": "node --watch server/index.js",
-    "dev:services": "concurrently -n web,api -c cyan,magenta \"npm run dev:web\" \"npm run dev:api\"",
+    "dev:api": "node server/index.js",
+    "dev:api:watch": "node --watch server/index.js",
+    "dev:api:generate": "node scripts/prisma-supabase.mjs generate",
+    "dev:services": "concurrently --kill-others-on-fail -n web,api -c cyan,magenta \"npm run dev:web\" \"npm run dev:api\"",
     "dev:all": "node scripts/bootstrap-all.mjs --start",
     "setup:all": "node scripts/bootstrap-all.mjs",
     "start:all": "npm run dev:all",

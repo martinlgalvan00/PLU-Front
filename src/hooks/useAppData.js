@@ -1567,6 +1567,7 @@ export function useAppData() {
           secondaryDivision: selection.secondaryDivision,
           modalities: selection.modalities,
           category: options.competition?.category ?? form.category,
+          categories: options.competition?.categories ?? form.categories ?? [form.category],
           declaredWeightClass:
             options.competition?.declaredWeightClass ?? form.declaredWeightClass ?? '',
           bodyweightKg:
@@ -1593,6 +1594,7 @@ export function useAppData() {
           competition.secondaryDivision,
           competition.modalities,
           competition.category,
+          competition.categories,
           competition.declaredWeightClass,
           competition.bodyweightKg,
           paymentMethod,
@@ -1618,6 +1620,7 @@ export function useAppData() {
             secondaryDivision: competition.secondaryDivision,
             modalities: competition.modalities,
             category: competition.category,
+            categories: competition.categories,
             declaredWeightClass: competition.declaredWeightClass,
             bodyweightKg: competition.bodyweightKg,
             paymentMethod,
