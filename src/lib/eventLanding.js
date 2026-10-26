@@ -9,11 +9,17 @@
  */
 
 import { normalizeEventPublicCopy } from './eventPublicSurface.js'
+import { layoutPayloadForMerge, normalizeLandingLayout } from './eventLandingLayout.js'
+import { hasCustomLandingMotion, normalizeLandingMotion } from './eventLandingMotion.js'
+import { normalizeLandingPalette } from './eventLandingPalette.js'
 
 /** Compat pre-migración: mismo slug canónico que `eventNavigation`. */
 const LEGACY_EDITORIAL_SLUG = 'pitbull-classic-2026'
+const BARBELL_SUBMISSION_SLUG_PREFIX = 'barbell-submission'
 
-export const EVENT_LANDING_TEMPLATES = Object.freeze(['meet', 'editorial'])
+export const EVENT_LANDING_TEMPLATES = Object.freeze(['meet', 'editorial', 'submission', 'builder'])
+
+export const EVENT_LANDING_PHASES = Object.freeze(['coming_soon', 'published'])
 
 export const DEFAULT_EVENT_LANDING_TEMPLATE = 'meet'
 
@@ -50,6 +56,16 @@ export const EVENT_LANDING_SLOT_LIMITS = Object.freeze({
   faq3Question: 120,
   faq3Answer: 400,
 })
+
+/** Pares pregunta/respuesta de la FAQ, en orden de lectura. */
+export const FAQ_SLOT_KEYS = Object.freeze([
+  'faq1Question',
+  'faq1Answer',
+  'faq2Question',
+  'faq2Answer',
+  'faq3Question',
+  'faq3Answer',
+])
 
 export const EMPTY_EVENT_LANDING_SLOTS = Object.freeze({
   heroTitle: '',
@@ -104,12 +120,33 @@ export const EVENT_LANDING_SLOTS_BY_TEMPLATE = Object.freeze({
     'locationTitle',
     'locationBody',
   ],
+  submission: [
+    ...COMMON_SLOTS,
+    'experienceTitle',
+    'experienceBody',
+    'categoriesTitle',
+    'categoriesBody',
+    'locationTitle',
+    'locationBody',
+  ],
+  builder: [
+    ...COMMON_SLOTS,
+    'experienceTitle',
+    'experienceBody',
+    'categoriesTitle',
+    'categoriesBody',
+    'locationTitle',
+    'locationBody',
+  ],
 })
 
+/**
+ * Recorta al tope sin tocar los espacios: el panel normaliza en cada tecla y
+ * recortar acá se comía el espacio de "uno dos" apenas se escribía. El `trim`
+ * se hace al guardar (`landingPayloadForMerge`).
+ */
 function clipSlot(value, max) {
-  return String(value ?? '')
-    .trim()
-    .slice(0, max)
+  return String(value ?? '').slice(0, max)
 }
 
 function isSafeHeroImagePath(path) {
@@ -121,13 +158,20 @@ function isSafeHeroImagePath(path) {
 
 /**
  * @param {unknown} raw
- * @returns {'meet' | 'editorial'}
+ * @returns {'meet' | 'editorial' | 'submission' | 'builder'}
  */
 export function normalizeEventLandingTemplateId(raw) {
   const value = String(raw ?? '')
     .trim()
     .toLowerCase()
   return EVENT_LANDING_TEMPLATES.includes(value) ? value : DEFAULT_EVENT_LANDING_TEMPLATE
+}
+
+export function normalizeEventLandingPhase(raw) {
+  const value = String(raw ?? '')
+    .trim()
+    .toLowerCase()
+  return EVENT_LANDING_PHASES.includes(value) ? value : 'coming_soon'
 }
 
 /**
@@ -199,11 +243,37 @@ export function normalizeEventLanding(raw, compat = {}) {
   ) {
     templateId = 'editorial'
   }
+  if (
+    (!source.templateId || String(source.templateId).trim() === '') &&
+    String(compat.slug ?? '')
+      .toLowerCase()
+      .startsWith(BARBELL_SUBMISSION_SLUG_PREFIX)
+  ) {
+    templateId = 'submission'
+  }
 
   return {
     templateId,
     themeId: normalizeEventLandingThemeId(source.themeId),
+    publicVisible: source.publicVisible !== false,
+    phase: normalizeEventLandingPhase(source.phase),
     slots: normalizeEventLandingSlots(source.slots, { publicCopy: compat.publicCopy }),
+    ...normalizeLayoutField(templateId, source.layout),
+  }
+}
+
+/**
+ * `layout` solo viaja cuando hace falta: el Constructor siempre lo lleva (bloques
+ * + paleta + animaciones); el resto de las plantillas solo si el staff les puso
+ * colores o animaciones propias. Así las landings existentes conservan su forma.
+ */
+function normalizeLayoutField(templateId, rawLayout) {
+  if (templateId === 'builder') return { layout: normalizeLandingLayout(rawLayout) }
+  const palette = normalizeLandingPalette(rawLayout?.palette)
+  const customMotion = hasCustomLandingMotion(rawLayout?.motion)
+  if (Object.keys(palette).length === 0 && !customMotion) return {}
+  return {
+    layout: { blocks: [], palette, motion: normalizeLandingMotion(rawLayout?.motion) },
   }
 }
 
@@ -225,6 +295,32 @@ export function eventLandingThemeId(event) {
 
 export function eventHasEditorialLanding(event) {
   return eventLandingTemplateId(event) === 'editorial'
+}
+
+export function eventHasSubmissionLanding(event) {
+  return eventLandingTemplateId(event) === 'submission'
+}
+
+export function eventHasBuilderLanding(event) {
+  return eventLandingTemplateId(event) === 'builder'
+}
+
+/** Colores propios del evento (vacío = rige el tema). */
+export function eventLandingPalette(event) {
+  return eventLandingFromEvent(event).layout?.palette ?? {}
+}
+
+export function eventLandingIsPublic(event) {
+  return eventLandingFromEvent(event).publicVisible
+}
+
+/** Interruptor apagado: el público ve "Plataforma en construcción". */
+export function eventLandingUnderConstruction(event) {
+  return !eventLandingFromEvent(event).publicVisible
+}
+
+export function eventLandingPhase(event) {
+  return eventLandingFromEvent(event).phase
 }
 
 /**
@@ -281,6 +377,8 @@ export function syncLandingSlotsFromPublicCopy(landing, publicCopy) {
   return {
     templateId: current.templateId,
     themeId: current.themeId,
+    publicVisible: current.publicVisible,
+    phase: current.phase,
     slots: {
       ...current.slots,
       heroTitle: copy.publicTitle,
@@ -289,6 +387,7 @@ export function syncLandingSlotsFromPublicCopy(landing, publicCopy) {
       inscriptionMark: copy.inscriptionMark,
       inscriptionNote: copy.inscriptionNote,
     },
+    ...(current.layout ? { layout: current.layout } : {}),
   }
 }
 
@@ -300,7 +399,14 @@ export function landingPayloadForMerge(landing) {
   return {
     templateId: normalized.templateId,
     themeId: normalized.themeId,
-    slots: { ...normalized.slots },
+    publicVisible: normalized.publicVisible,
+    phase: normalized.phase,
+    slots: Object.fromEntries(
+      Object.entries(normalized.slots).map(([key, value]) => [key, String(value ?? '').trim()]),
+    ),
+    ...(normalized.layout
+      ? { layout: layoutPayloadForMerge(normalized.layout, { templateId: normalized.templateId }) }
+      : {}),
   }
 }
 
@@ -311,6 +417,11 @@ export function emptyEventLanding(
   return {
     templateId: normalizeEventLandingTemplateId(templateId),
     themeId: normalizeEventLandingThemeId(themeId),
+    publicVisible: true,
+    phase: 'coming_soon',
     slots: { ...EMPTY_EVENT_LANDING_SLOTS },
+    ...(normalizeEventLandingTemplateId(templateId) === 'builder'
+      ? { layout: normalizeLandingLayout(null) }
+      : {}),
   }
 }

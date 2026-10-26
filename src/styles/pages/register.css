@@ -2340,10 +2340,20 @@
    sin tener que abrir un modal y el papel sale de un sello centrado en vez de
    uno pegado al borde izquierdo del viewport. */
 
+.register-settle,
+.register-status--settle {
+  scroll-margin-top: calc(var(--header-height-scrolled, 52px) + 16px);
+}
+
 .register-settle {
   display: grid;
   gap: 10px;
   min-width: 0;
+}
+
+/* Recibe el foco por código al aparecer (no es un control): sin anillo. */
+.register-settle:focus {
+  outline: none;
 }
 
 .register-settle__toolbar {
@@ -4609,6 +4619,31 @@
   color: var(--color-text-secondary);
 }
 
+.register-competition-ticket__breakdown {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+}
+
+.register-competition-ticket__breakdown > div {
+  align-items: baseline;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.register-competition-ticket__breakdown dt {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+}
+
+.register-competition-ticket__breakdown dd {
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
 .register-competition-ticket__total {
   align-items: baseline;
   display: flex;
@@ -4725,6 +4760,65 @@
   min-width: 0;
 }
 
+.register-profile-readiness__missing {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.register-profile-readiness__disclosure > summary {
+  align-items: center;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  font-size: 12.5px;
+  gap: 8px;
+  list-style: none;
+  min-height: 44px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.register-profile-readiness__disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.register-profile-readiness__disclosure > summary::after {
+  border-bottom: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  content: '';
+  flex: none;
+  height: 6px;
+  margin-left: auto;
+  transform: rotate(45deg);
+  transition: transform 180ms var(--ease-out);
+  width: 6px;
+}
+
+.register-profile-readiness__disclosure[open] > summary::after {
+  transform: rotate(-135deg);
+}
+
+.register-profile-readiness__disclosure > summary:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.register-profile-readiness__disclosure[open] .register-profile-readiness__details {
+  border-top: none;
+  padding-top: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .register-profile-readiness__disclosure > summary::after {
+    transition: none;
+  }
+}
+
 .register-profile-readiness__details dt {
   color: var(--color-text-muted);
   font-size: 10px;
@@ -4779,12 +4873,26 @@
   outline-offset: 3px;
 }
 
+/* Con el perfil completo "Revisar perfil" es secundario: enlace, no un
+   segundo botón dorado compitiendo con el pago. */
+.register-profile-readiness__action--quiet {
+  border-color: transparent;
+  padding-inline: 0;
+}
+
+.register-profile-readiness__action--quiet:hover {
+  background: transparent;
+  border-color: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 @media (max-width: 620px) {
   .register-profile-readiness__header {
     flex-direction: column;
   }
 
-  .register-profile-readiness__action {
+  .register-profile-readiness__action:not(.register-profile-readiness__action--quiet) {
     width: 100%;
   }
 
@@ -4815,6 +4923,15 @@
   line-height: 1.5;
   margin: 0 0 20px;
   padding-left: 12px;
+}
+
+.register-competition-secondary {
+  display: grid;
+  gap: 14px;
+}
+
+.register-competition-secondary > .register-competition-division-hint {
+  margin: 0;
 }
 
 .register-competition-division-hint {
@@ -4984,6 +5101,53 @@
    de estirarse hasta el borde del formulario. */
 .register-page--competition .register-competition-weight .field__control-shell {
   max-width: 220px;
+}
+
+/* Peso y clase van juntos: uno define al otro. Lado a lado desde que entran,
+   apilados en mobile angosto. */
+.register-competition-weight-row {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 480px) {
+  .register-competition-weight-row {
+    grid-template-columns: minmax(0, 180px) minmax(0, 260px);
+  }
+
+  .register-page--competition .register-competition-weight-row .field__control-shell {
+    max-width: none;
+  }
+}
+
+/* Lo que el torneo fija (una sola categoría o modalidad): dato, no control. */
+.register-competition-fixed {
+  align-items: baseline;
+  column-gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.register-competition-fixed__label {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.register-competition-fixed__value {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.register-competition-fixed__hint {
+  color: var(--color-text-muted);
+  flex-basis: 100%;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 /* Filas etiquetadas: mientras la pantalla es de una sola columna, la etiqueta
@@ -6268,5 +6432,24 @@
   .field__toggle {
     height: 44px;
     width: 44px;
+  }
+}
+
+/* Resumen de la elección sobre la barra de pago: solo mientras el aside de
+   desktop no está a la vista. */
+.register-competition-picks-mobile {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  margin: 0;
+  padding-top: 14px;
+}
+
+@media (min-width: 900px) {
+  .register-competition-picks-mobile,
+  .register-competition-breakdown-mobile {
+    display: none;
   }
 }

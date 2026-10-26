@@ -17,6 +17,8 @@ import {
   resolveEventMercadoPagoReadiness,
   normalizeCashPaymentInput,
   resolveCashPaymentDetails,
+  checkEventCashPaymentReady,
+  cashPaymentIssueError,
 } from '../server/modules/payments/eventPaymentProfile.js'
 
 describe('normalizePaymentChannelOverrides', () => {
@@ -237,6 +239,89 @@ describe('resolveCashPaymentDetails', () => {
       notes: 'n'.repeat(400),
     })
     expect(normalizeCashPaymentInput(null)).toEqual({ place: '', notes: '' })
+  })
+})
+
+describe('checkEventCashPaymentReady', () => {
+  const venue = { venue: 'Maximal Strength Club', location: 'Buenos Aires' }
+
+  it('no exige nada si el evento hereda plataforma', () => {
+    expect(checkEventCashPaymentReady({ overrides: null, event: {} })).toBeNull()
+  })
+
+  it('no exige nada si el efectivo está cerrado en los dos conceptos', () => {
+    expect(
+      checkEventCashPaymentReady({
+        overrides: {
+          registration: { cash_pitbull: false },
+          ticket: { cash_pitbull: false },
+        },
+        cashPayment: {},
+        event: {},
+      }),
+    ).toBeNull()
+  })
+
+  it('alcanza con la sede del evento: sin lugar propio se cobra ahí', () => {
+    expect(
+      checkEventCashPaymentReady({
+        overrides: { registration: { mercado_pago: false } },
+        cashPayment: {},
+        event: venue,
+      }),
+    ).toBeNull()
+  })
+
+  it('alcanza con un lugar propio aunque el evento no tenga sede', () => {
+    expect(
+      checkEventCashPaymentReady({
+        overrides: { registration: { mercado_pago: false } },
+        cashPayment: { place: ' Virtus Fitness ' },
+        event: {},
+      }),
+    ).toBeNull()
+  })
+
+  it('avisa si el efectivo queda abierto y no hay ni lugar propio ni sede', () => {
+    const issue = checkEventCashPaymentReady({
+      overrides: { registration: { mercado_pago: false } },
+      cashPayment: { place: '   ' },
+      event: { venue: '', location: '' },
+    })
+    expect(issue).toMatchObject({
+      code: 'EVENT_CASH_PAYMENT_PLACE_REQUIRED',
+      field: 'cashPayment.place',
+    })
+    expect(issue.message).toMatch(/efectivo/i)
+  })
+
+  it('sigue avisando si el efectivo queda abierto en un solo concepto', () => {
+    const issue = checkEventCashPaymentReady({
+      overrides: {
+        registration: { cash_pitbull: false },
+        ticket: { mercado_pago: false },
+      },
+      cashPayment: {},
+      event: {},
+    })
+    expect(issue?.code).toBe('EVENT_CASH_PAYMENT_PLACE_REQUIRED')
+  })
+})
+
+describe('cashPaymentIssueError', () => {
+  it('es un 400 con el campo a completar', () => {
+    const issue = checkEventCashPaymentReady({
+      overrides: { registration: { mercado_pago: false } },
+      cashPayment: {},
+      event: {},
+    })
+    const error = cashPaymentIssueError(issue)
+    expect(error).toBeInstanceOf(HttpError)
+    expect(error.status).toBe(400)
+    expect(error.details).toMatchObject({
+      code: 'EVENT_CASH_PAYMENT_PLACE_REQUIRED',
+      fields: { 'cashPayment.place': issue.message },
+    })
   })
 })
 

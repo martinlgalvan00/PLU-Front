@@ -60,6 +60,18 @@ function clientKey(req) {
  *   poco (login, checkout, código de acceso); `sampled` acumula y sincroniza por
  *   lotes, para el volumen alto donde interesa frenar abuso, no contar exacto.
  */
+/**
+ * Vitest corre con NODE_ENV=test. El server de Playwright no puede (con
+ * NODE_ENV=test `app.js` deja sin cliente admin de Supabase), así que lo pide
+ * con E2E_DISABLE_AUTH_RATE_LIMIT; con APP_PRODUCTION=true se ignora.
+ */
+function isAuthRateLimitSkipped() {
+  if (process.env.NODE_ENV === 'test') return true
+  return (
+    process.env.E2E_DISABLE_AUTH_RATE_LIMIT === 'true' && process.env.APP_PRODUCTION !== 'true'
+  )
+}
+
 function buildLimiter(windowMs, limit, message, { name, mode = 'sampled', skipInTest = false } = {}) {
   return rateLimit({
     windowMs,
@@ -72,7 +84,7 @@ function buildLimiter(windowMs, limit, message, { name, mode = 'sampled', skipIn
     // La suite entra decenas de veces desde la misma IP. El cupo de producción
     // (20 logins / 15 min) corta el archivo de eventos con 429 antes de llegar
     // al caso. En producción el skip no aplica.
-    skip: skipInTest ? () => process.env.NODE_ENV === 'test' : undefined,
+    skip: skipInTest ? isAuthRateLimitSkipped : undefined,
   })
 }
 

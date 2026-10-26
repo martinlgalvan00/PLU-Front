@@ -508,7 +508,7 @@ export function createSupabaseAthleteRepository(
       // Lecturas opcionales: columnas de migraciones que pueden no haber
       // corrido todavía. Sin ellas el checkout sigue, con el precio Wise vacío
       // y el efectivo cobrado en la sede del evento.
-      const [wiseResult, cashResult, freezeResult] = await Promise.all([
+      const [wiseResult, cashResult, freezeResult, rulesResult] = await Promise.all([
         client.from('events').select('wise_price').eq('id', event.id).maybeSingle(),
         client
           .from('events')
@@ -516,9 +516,12 @@ export function createSupabaseAthleteRepository(
           .eq('id', event.id)
           .maybeSingle(),
         client.from('events').select('roster_frozen_at').eq('id', event.id).maybeSingle(),
+        // `rules.offering`: qué ofrece el evento. Sin lectura = ofrece todo.
+        client.from('events').select('rules').eq('id', event.id).maybeSingle(),
       ])
       return {
         ...event,
+        rules: rulesResult.error ? null : (rulesResult.data?.rules ?? null),
         wise_price: wiseResult.error ? null : (wiseResult.data?.wise_price ?? null),
         cash_payment_place: cashResult.error ? null : (cashResult.data?.cash_payment_place ?? null),
         cash_payment_notes: cashResult.error ? null : (cashResult.data?.cash_payment_notes ?? null),
@@ -664,12 +667,13 @@ export function createSupabaseAthleteRepository(
     },
     async createRegistration(athleteId, data) {
       return rpc(
-        'create_competition_registration_checkout_v2',
+        'create_competition_registration_checkout_v4',
         {
           p_athlete_id: athleteId,
           p_event_slug: data.eventSlug,
           p_division: data.division,
           p_category: data.category,
+          p_additional_categories: (data.categories ?? []).slice(1),
           p_bodyweight_kg: data.bodyweightKg,
           p_payment_method: data.paymentMethod,
           p_idempotency_key: data.idempotencyKey,
@@ -679,18 +683,21 @@ export function createSupabaseAthleteRepository(
           p_manual_payment_channel: data.manualPaymentChannel,
           p_currency: data.currency ?? null,
           p_declared_weight_class: data.declaredWeightClass,
+          p_secondary_division: data.secondaryDivision ?? null,
+          p_modalities: data.modalities ?? ['full_power'],
         },
         'No se pudo crear la inscripcion.',
       )
     },
     async createRegistrationCombo(athleteId, data) {
       return rpc(
-        'create_membership_registration_combo_checkout_v2',
+        'create_membership_registration_combo_checkout_v4',
         {
           p_athlete_id: athleteId,
           p_event_slug: data.eventSlug,
           p_division: data.division,
           p_category: data.category,
+          p_additional_categories: (data.categories ?? []).slice(1),
           p_bodyweight_kg: data.bodyweightKg,
           p_payment_method: data.paymentMethod,
           p_idempotency_key: data.idempotencyKey,
@@ -700,6 +707,8 @@ export function createSupabaseAthleteRepository(
           p_discount_code: data.discountCode || null,
           p_currency: data.currency ?? null,
           p_declared_weight_class: data.declaredWeightClass,
+          p_secondary_division: data.secondaryDivision ?? null,
+          p_modalities: data.modalities ?? ['full_power'],
         },
         'No se pudo crear el combo de afiliacion e inscripcion.',
       )
@@ -758,6 +767,41 @@ export function createSupabaseAthleteRepository(
           .in('id', registrationIds)
           .select('id, athlete_id, bodyweight_kg, declared_weight_class'),
         'No se pudo guardar la categoría de peso.',
+      )
+    },
+    /** Lo que necesita la importación de la planilla para comparar y validar. */
+    async findRegistrationImportContexts(registrationIds) {
+      const rows = []
+      // `.in()` viaja en la URL: de a tandas para no pasar el límite de PostgREST.
+      for (let index = 0; index < registrationIds.length; index += 200) {
+        const chunk = registrationIds.slice(index, index + 200)
+        const data = assertSupabaseResult(
+          await client
+            .from('event_registrations')
+            .select(
+              'id, status, division, secondary_division, category, modalities, bodyweight_kg, declared_weight_class, athlete:athletes(full_name, sex), event:events(id, slug, title, roster_frozen_at, rules)',
+            )
+            .eq('organization_id', organizationId)
+            .in('id', chunk),
+          'No se pudieron leer las inscripciones.',
+        )
+        rows.push(...(data ?? []))
+      }
+      return rows
+    },
+    // Las modalidades no están bajo el lock de la selección competitiva (solo
+    // división, categoría y peso): se corrigen con un update directo y el
+    // CHECK de la columna valida la combinación.
+    async updateRegistrationModalities(registrationId, modalities) {
+      return assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .update({ modalities, updated_at: new Date().toISOString() })
+          .eq('organization_id', organizationId)
+          .eq('id', registrationId)
+          .select('id, modalities')
+          .single(),
+        'No se pudieron guardar las modalidades.',
       )
     },
     async updateOfficialWeightClass(registrationId, officialWeightClass, actor) {
@@ -1946,7 +1990,7 @@ export function createSupabaseAthleteRepository(
                   .from('event_registrations')
                   .select(
                     `
-                      id, athlete_id, category, division, bodyweight_kg, weigh_in_bodyweight_kg, declared_weight_class, official_weight_class, declared_weight_class_set_at, declared_weight_class_set_by, official_weight_class_set_at, official_weight_class_set_by, weigh_in_recorded_at, weigh_in_recorded_by, public_visible, status, payment_order_id, created_at, updated_at,
+                      id, athlete_id, category, additional_categories, division, secondary_division, modalities, bodyweight_kg, weigh_in_bodyweight_kg, declared_weight_class, official_weight_class, declared_weight_class_set_at, declared_weight_class_set_by, official_weight_class_set_at, official_weight_class_set_by, weigh_in_recorded_at, weigh_in_recorded_by, public_visible, status, payment_order_id, created_at, updated_at,
                       manual_override_status, manual_override_channel, manual_override_reason, manual_override_by, manual_override_at,
                       event:events(id, title, slug, starts_at, ends_at, requires_membership, roster_frozen_at),
                       checkIn:check_ins(scanned_at),
@@ -2319,7 +2363,7 @@ export function createSupabaseAthleteRepository(
             .from('event_registrations')
             .select(
               `
-                id, athlete_id, category, division, bodyweight_kg, weigh_in_bodyweight_kg, declared_weight_class, official_weight_class, status, payment_order_id, created_at,
+                id, athlete_id, category, additional_categories, division, secondary_division, modalities, bodyweight_kg, weigh_in_bodyweight_kg, declared_weight_class, official_weight_class, status, payment_order_id, created_at,
                 event:events(title, slug, starts_at, roster_frozen_at),
                 eventDay:event_days(label, day_index),
                 eventSession:event_sessions(name, platform, sort_order),
@@ -2464,7 +2508,10 @@ export function createSupabaseAthleteRepository(
           eventSlug: row.event?.slug ?? event?.slug ?? '',
           eventStartsAt: normalizeExportDate(row.event?.starts_at),
           category: row.category,
+          categories: [row.category, ...(row.additional_categories ?? [])].filter(Boolean),
           division: row.division,
+          secondaryDivision: row.secondary_division ?? '',
+          modalities: row.modalities ?? ['full_power'],
           bodyweight: row.bodyweight_kg,
           declaredWeightClass: row.declared_weight_class ?? '',
           officialWeightClass: row.official_weight_class ?? '',

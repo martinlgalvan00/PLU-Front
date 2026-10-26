@@ -603,7 +603,8 @@
   text-align: left;
   transition:
     border-color var(--motion-fast, 160ms) var(--ease-out, ease),
-    background-color var(--motion-fast, 160ms) var(--ease-out, ease);
+    background-color var(--motion-fast, 160ms) var(--ease-out, ease),
+    scale var(--motion-fast, 160ms) var(--ease-out, ease);
   width: 100%;
 }
 
@@ -815,11 +816,110 @@
     transform var(--motion-fast, 160ms) var(--ease-out, ease);
 }
 
+/* Inscripción abierta: el carril deja de ser un botón y su pie lleva dos
+   destinos. "Página oficial" queda subordinada; "Inscribirme" conserva el oro. */
+.home-season-actions .home-season-actions__lane--split {
+  cursor: default;
+}
+
+.home-season-actions .home-season-actions__lane--split:hover {
+  background: var(--home-hero-status-panel-bg);
+  border-color: var(--home-hero-status-panel-border);
+}
+
+.home-season-actions .home-season-actions__lane--split:active {
+  opacity: 1;
+  scale: none;
+}
+
+.home-season-actions__lane--split:hover .home-season-actions__go {
+  background: var(--home-hero-status-tickets-bg, transparent);
+}
+
+.home-season-actions__lane--split:hover .home-season-actions__arrow {
+  opacity: 0.62;
+  transform: none;
+}
+
+.home-season-actions__go--split {
+  display: grid;
+  gap: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 0;
+}
+
+.home-season-actions__page,
+.home-season-actions__register {
+  -webkit-tap-highlight-color: transparent;
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  min-height: 44px;
+}
+
+.home-season-actions__page {
+  border-right: 1px solid var(--home-hero-status-tickets-rule, var(--home-hero-status-panel-border));
+  color: var(--home-hero-status-value, var(--color-text-secondary));
+  font-size: 12.5px;
+  font-weight: 550;
+  padding: 0 16px 0 18px;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition:
+    color var(--motion-fast, 160ms) var(--ease-out, ease),
+    text-decoration-color var(--motion-fast, 160ms) var(--ease-out, ease);
+  white-space: nowrap;
+}
+
+.home-season-actions__page:hover {
+  color: var(--home-hero-status-year, var(--color-text-primary));
+  text-decoration-color: currentColor;
+}
+
+.home-season-actions__register {
+  color: var(--home-hero-status-tickets-action, var(--plu-gold-400, var(--color-brand-gold)));
+  gap: 7px;
+  justify-content: space-between;
+  padding: 0 16px;
+  transition: background-color var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.home-season-actions__register:hover {
+  background: color-mix(
+    in oklab,
+    var(--plu-gold-500, var(--color-brand-gold)) 8%,
+    var(--home-hero-status-tickets-bg, transparent)
+  );
+}
+
+.home-season-actions__register:hover .home-season-actions__arrow {
+  opacity: 1;
+  transform: translateX(3px);
+}
+
+.home-season-actions__page:focus-visible,
+.home-season-actions__register:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: -2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .home-season-actions__arrow,
   .home-season-actions__lane,
-  .home-season-actions__go {
+  .home-season-actions__go,
+  .home-season-actions__page,
+  .home-season-actions__register {
     transition: none;
+  }
+
+  .home-season-actions__register:hover .home-season-actions__arrow {
+    transform: none;
   }
 }
 

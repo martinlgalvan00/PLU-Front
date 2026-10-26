@@ -228,4 +228,50 @@ describe('deep-link de eventos con datos asincronos', () => {
       '07:00 — 08:30',
     )
   })
+
+  it('avisa cuando el slug del link no existe, recién con el catálogo ya cargado', async () => {
+    let resolveCatalog
+    fetchPublishedEvents.mockReturnValue(new Promise((resolve) => (resolveCatalog = resolve)))
+
+    render(
+      <I18nProvider>
+        <EventsPage
+          initialEventSlug="no-existe-2026"
+          events={[pitbull]}
+          onNavigate={vi.fn()}
+          onSelectEvent={vi.fn()}
+          session={null}
+        />
+      </I18nProvider>,
+    )
+
+    // Mientras el catálogo carga no es un error: todavía puede llegar.
+    expect(document.querySelector('.events-page__notice')).toBeNull()
+
+    resolveCatalog([])
+    await waitFor(() => {
+      expect(document.querySelector('.events-page__notice')?.textContent).toMatch(/no-existe-2026/)
+    })
+  })
+
+  it('no avisa cuando el evento del link sí está en el catálogo', async () => {
+    fetchPublishedEvents.mockResolvedValue([linkedEvent])
+
+    render(
+      <I18nProvider>
+        <EventsPage
+          initialEventSlug={linkedEvent.slug}
+          events={[pitbull]}
+          onNavigate={vi.fn()}
+          onSelectEvent={vi.fn()}
+          session={null}
+        />
+      </I18nProvider>,
+    )
+
+    await waitFor(() => {
+      expect(document.querySelector('.events-detail__title')?.textContent).toBe(linkedEvent.title)
+    })
+    expect(document.querySelector('.events-page__notice')).toBeNull()
+  })
 })

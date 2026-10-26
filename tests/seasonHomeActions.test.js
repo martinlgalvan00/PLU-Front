@@ -112,6 +112,75 @@ describe('getSeasonHomeActions', () => {
     )
   })
 
+  describe('landing en construcción', () => {
+    const hidden = (overrides = {}) => ({
+      ...BARBELL_OPEN,
+      registrationOpensAt: null,
+      salesIntent: 'charge',
+      landing: { templateId: 'submission', publicVisible: false },
+      ...overrides,
+    })
+
+    it('con la venta abierta ocupa el carril de inscripción aunque no esté en el catálogo', () => {
+      const event = hidden()
+      // El catálogo público la excluye: llega solo por `underConstructionEvents`.
+      const actions = getSeasonHomeActions([PITBULL, event], {
+        now: NOW,
+        registrationEnabled: true,
+        ticketSalesEnabled: true,
+        underConstructionEvents: [event],
+      })
+
+      expect(actions.map((action) => [action.kind, action.event.slug])).toEqual([
+        ['tickets', 'pitbull-classic-2026'],
+        ['registration', 'barbell-submission-2027'],
+      ])
+    })
+
+    it('programada sale como "próximamente"', () => {
+      const event = hidden({ registrationOpensAt: '2026-11-20T12:00:00-03:00' })
+      const actions = getSeasonHomeActions([PITBULL], {
+        now: NOW,
+        registrationEnabled: true,
+        ticketSalesEnabled: true,
+        underConstructionEvents: [event],
+      })
+
+      expect(actions.map((action) => action.kind)).toEqual(['tickets', 'registration_soon'])
+    })
+
+    it('con la venta cerrada o en "Solo anuncio" no aparece', () => {
+      const options = { now: NOW, registrationEnabled: true, ticketSalesEnabled: true }
+      for (const event of [hidden({ status: 'cerrado' }), hidden({ salesIntent: 'announce' })]) {
+        expect(
+          getSeasonHomeActions([PITBULL], { ...options, underConstructionEvents: [event] }),
+        ).toEqual([{ kind: 'tickets', event: PITBULL }])
+      }
+    })
+
+    it('con la inscripción pausada en la plataforma no aparece', () => {
+      const actions = getSeasonHomeActions([PITBULL], {
+        now: NOW,
+        registrationEnabled: false,
+        ticketSalesEnabled: true,
+        underConstructionEvents: [hidden()],
+      })
+
+      expect(actions).toEqual([{ kind: 'tickets', event: PITBULL }])
+    })
+
+    it('despublicada no aparece', () => {
+      const actions = getSeasonHomeActions([PITBULL], {
+        now: NOW,
+        registrationEnabled: true,
+        ticketSalesEnabled: true,
+        underConstructionEvents: [hidden({ published: false })],
+      })
+
+      expect(actions).toEqual([{ kind: 'tickets', event: PITBULL }])
+    })
+  })
+
   it('devuelve vacío si no hay nada operable', () => {
     expect(
       getSeasonHomeActions(

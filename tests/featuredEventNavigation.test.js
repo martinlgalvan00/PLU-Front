@@ -5,6 +5,7 @@ import {
   getFeaturedEvent,
   getFeaturedEventDestination,
   getPitbullClassicEvent,
+  getPublicCatalogEvents,
 } from '../src/lib/eventNavigation.js'
 
 const NOW = new Date('2026-06-01T12:00:00')
@@ -95,7 +96,7 @@ describe('navegacion del evento destacado', () => {
 })
 
 describe('eventos de Competencia en la barra', () => {
-  it('lista destacado y Pitbull cuando ambos estan vigentes', () => {
+  it('lista el destacado y el siguiente evento publico por fecha', () => {
     const pitbull = meet({
       slug: 'pitbull-classic-2026',
       title: 'Pitbull Classic',
@@ -115,6 +116,30 @@ describe('eventos de Competencia en la barra', () => {
       'pitbull-classic-2026',
     ])
     expect(getCompetitionNavEventKey(navEvents[0])).toBe('event:nacional-2026')
+  })
+
+  it('no fuerza Pitbull como segundo acceso si hay otro meet mas cercano', () => {
+    const featured = meet({
+      slug: 'nacional-2026',
+      title: 'Nacional 2026',
+      featured: true,
+      dateISO: '2026-12-20',
+    })
+    const closer = meet({
+      slug: 'regional-centro-2026',
+      title: 'Regional Centro',
+      dateISO: '2026-07-12',
+    })
+    const pitbull = meet({
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic',
+      dateISO: '2026-08-15',
+    })
+
+    expect(getCompetitionNavEvents([featured, pitbull, closer], NOW).map((event) => event.slug)).toEqual([
+      'nacional-2026',
+      'regional-centro-2026',
+    ])
   })
 
   it('si el destacado es Pitbull, el segundo slot es el proximo', () => {
@@ -188,6 +213,68 @@ describe('eventos de Competencia en la barra', () => {
 
     expect(getCompetitionNavEvents([stub, hidden, pitbull], NOW).map((event) => event.slug)).toEqual([
       'pitbull-classic-2026',
+    ])
+  })
+
+  it('no muestra una landing Submission que el staff dejo privada', () => {
+    const privateSubmission = meet({
+      slug: 'barbell-submission-2026',
+      title: 'Barbell Submission',
+      featured: true,
+      dateISO: '2026-07-01',
+      rules: { landing: { templateId: 'submission', publicVisible: false } },
+    })
+    const publicMeet = meet({
+      slug: 'regional-2026',
+      title: 'Regional 2026',
+      dateISO: '2026-07-12',
+    })
+
+    expect(getCompetitionNavEvents([privateSubmission, publicMeet], NOW).map((event) => event.slug)).toEqual([
+      'regional-2026',
+    ])
+  })
+
+  it('también la oculta cuando el evento llega mapeado, con `landing` y sin `rules`', () => {
+    // El catálogo público trae eventos ya mapeados por `eventAdminService`: ahí
+    // la landing vive en `landing` y `rules` no existe.
+    const privateSubmission = meet({
+      slug: 'barbell-submission-2026',
+      title: 'Barbell Submission',
+      featured: true,
+      dateISO: '2026-07-01',
+      landing: { templateId: 'submission', publicVisible: false, phase: 'coming_soon' },
+    })
+    const publicMeet = meet({ slug: 'regional-2026', title: 'Regional 2026', dateISO: '2026-07-12' })
+
+    expect(getCompetitionNavEvents([privateSubmission, publicMeet], NOW).map((event) => event.slug)).toEqual([
+      'regional-2026',
+    ])
+    expect(getPublicCatalogEvents([privateSubmission, publicMeet]).map((event) => event.slug)).toEqual([
+      'regional-2026',
+    ])
+  })
+
+  it('una Submission visible en preparación sí figura en la navegación', () => {
+    const preparing = meet({
+      slug: 'barbell-submission-2026',
+      title: 'Barbell Submission',
+      featured: true,
+      dateISO: '2026-07-01',
+      landing: { templateId: 'submission', publicVisible: true, phase: 'coming_soon' },
+    })
+    expect(getCompetitionNavEvents([preparing], NOW).map((event) => event.slug)).toEqual([
+      'barbell-submission-2026',
+    ])
+  })
+
+  it('el destacado y el siguiente por fecha son los dos que muestra la navegación', () => {
+    const featured = meet({ slug: 'a', title: 'A', featured: true, dateISO: '2026-09-01' })
+    const sooner = meet({ slug: 'b', title: 'B', dateISO: '2026-07-10' })
+    const later = meet({ slug: 'c', title: 'C', dateISO: '2026-12-01' })
+    expect(getCompetitionNavEvents([later, featured, sooner], NOW).map((event) => event.slug)).toEqual([
+      'a',
+      'b',
     ])
   })
 })

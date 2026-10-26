@@ -171,6 +171,126 @@
   outline-offset: 2px;
 }
 
+/* Vista derivada de la misma regla del navbar: no es otra configuracion. */
+.admin-events-navigation-preview {
+  border-block: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 12px;
+  margin-block: 16px;
+  padding-block: 14px;
+}
+
+.admin-events-navigation-preview__heading {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 24px;
+  justify-content: space-between;
+}
+
+.admin-events-navigation-preview__eyebrow {
+  color: var(--admin-muted);
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin-events-navigation-preview h2 {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 16px;
+  line-height: 1.2;
+  margin: 3px 0 0;
+}
+
+.admin-events-navigation-preview__heading p,
+.admin-events-navigation-preview__empty {
+  color: var(--admin-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 430px;
+}
+
+.admin-events-navigation-preview__list {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-events-navigation-preview__list li {
+  align-items: stretch;
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+}
+
+.admin-events-navigation-preview__position {
+  align-items: center;
+  color: var(--admin-muted);
+  display: flex;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.admin-events-navigation-preview__list button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 10px;
+  justify-content: space-between;
+  min-height: 54px;
+  padding: 8px 0;
+  text-align: left;
+}
+
+.admin-events-navigation-preview__list button > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-events-navigation-preview__list strong,
+.admin-events-navigation-preview__list small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-events-navigation-preview__list strong {
+  font-size: 13px;
+}
+
+.admin-events-navigation-preview__list small {
+  color: var(--admin-muted);
+  font-size: 11px;
+}
+
+.admin-events-navigation-preview__list button > svg {
+  color: var(--admin-muted);
+  flex: 0 0 auto;
+}
+
+.admin-events-navigation-preview__list button:hover strong,
+.admin-events-navigation-preview__list button:focus-visible strong {
+  color: var(--admin-premium, var(--color-brand-gold));
+}
+
+.admin-events-navigation-preview__list button:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
 /* ---- Barra: secciones a la izquierda, búsqueda y filtros en la misma línea ---- */
 
 .admin-shell .admin-list-section--events.admin-list-section--flow {
@@ -220,7 +340,10 @@
   }
 
   .admin-list-section--events .admin-list-section__header,
-  .admin-list-section--events .admin-events-summary {
+  .admin-list-section--events .admin-events-summary,
+  .admin-list-section--events .admin-events-navigation-preview {
+    /* El bloque de navegación pública va a todo el ancho: si no, ocupaba la
+       columna de las pestañas y las empujaba al lado, lejos de la búsqueda. */
     grid-column: 1 / -1;
   }
 }
@@ -326,7 +449,9 @@
 
 .admin-list-section--events .admin-event-list {
   --event-actions-w: 184px;
-  --event-cols: 40px minmax(0, 2fr) 72px minmax(0, 1.2fr) minmax(0, 1.5fr) 64px 124px;
+  /* Logo, evento, fecha, sede, inscripción (estado de venta) e inscriptos. El
+     estado guardado ya no tiene columna: lo dice la venta. */
+  --event-cols: 40px minmax(0, 2fr) 72px minmax(0, 1.2fr) minmax(0, 1.4fr) 72px;
   container: events / inline-size;
 }
 
@@ -1218,6 +1343,15 @@ button.admin-event-row__vis:focus-visible {
     min-height: 44px;
   }
 
+  .admin-events-navigation-preview__heading {
+    align-items: start;
+    display: grid;
+  }
+
+  .admin-events-navigation-preview__list {
+    grid-template-columns: 1fr;
+  }
+
   .admin-events-views {
     justify-self: stretch;
   }
@@ -1540,4 +1674,60 @@ button.admin-event-row__vis:focus-visible {
     text-overflow: clip;
     white-space: normal;
   }
+}
+
+/* Inscripción: estado de venta (un punto como único acento) y un dato debajo. */
+.admin-event-row__sale {
+  --sale-accent: var(--admin-muted);
+  flex-direction: column;
+  gap: 1px;
+}
+
+.admin-event-row__sale.is-on_sale {
+  --sale-accent: var(--admin-status-success);
+}
+
+.admin-event-row__sale.is-scheduled {
+  --sale-accent: var(--color-brand-celeste);
+}
+
+.admin-event-row__sale.is-blocked {
+  --sale-accent: var(--admin-status-warning);
+}
+
+.admin-event-row__sale.is-sold_out {
+  --sale-accent: var(--color-brand-gold);
+}
+
+.admin-event-row__sale-state {
+  align-items: center;
+  color: var(--admin-ink);
+  display: inline-flex;
+  font-weight: 650;
+  gap: 6px;
+}
+
+.admin-event-row__sale.is-closed .admin-event-row__sale-state,
+.admin-event-row__sale.is-ended .admin-event-row__sale-state {
+  color: var(--admin-text-secondary);
+  font-weight: 600;
+}
+
+.admin-event-row__sale-dot {
+  background: var(--sale-accent);
+  border-radius: 50%;
+  flex: none;
+  height: 7px;
+  width: 7px;
+}
+
+.admin-event-row__sale-detail {
+  color: var(--admin-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-event-row__vis svg {
+  flex: none;
 }

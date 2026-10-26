@@ -23,7 +23,12 @@ const DEFAULT_IMAGE = '/brand/plu-argentina-emblem.png'
  */
 export function buildDocumentMeta(view, t, context = {}) {
   const isEventDetail = view === 'events' && context.eventSlug
-  const key = isEventDetail ? 'seo.views.eventDetail' : `seo.views.${view}`
+  // Sin el título del evento (todavía cargando, o el slug no existe) la plantilla
+  // de detalle quedaba como "| PLU Argentina": se usa la del calendario.
+  const hasEventTitle = Boolean(
+    String(context.eventTitle ?? '').trim() || String(context.metaTitle ?? '').trim(),
+  )
+  const key = isEventDetail && hasEventTitle ? 'seo.views.eventDetail' : `seo.views.${view}`
   const fallbackKey = 'seo.views.home'
   const title = t(`${key}.title`, context)
   const description = t(`${key}.description`, context)

@@ -1,0 +1,518 @@
+/* =============================================
+   Aspecto de la landing en el alta (LandingLookPicker)
+   Plantilla, tema y colores se eligen viendo: cada muestra se dibuja con los
+   tokens del tema (`data-event-theme`, event-landing-themes.css) y los colores
+   propios del evento encima, igual que la landing pública. Fondo y texto son
+   los del sitio (`--color-bg` / `--color-text`), que es lo que ve el público.
+   ============================================= */
+
+@import './event-landing-themes.css';
+/* Editor de colores (PaletteEditor): la misma hoja que el editor completo. */
+@import './admin-event-landing.css';
+
+.admin-landing-look__group {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-landing-look__label {
+  color: var(--admin-text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.admin-landing-look__hint {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Radios nativos: invisibles, pero en el árbol y con foco propio. */
+.admin-landing-look__template input,
+.admin-landing-look__theme input {
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+}
+
+/* ---- Plantillas ---- */
+
+.admin-landing-look__templates {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-landing-look__template {
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  position: relative;
+}
+
+.admin-landing-look__frame {
+  aspect-ratio: 4 / 3;
+  background: var(--color-bg);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 10px;
+  color: var(--color-text);
+  display: block;
+  overflow: hidden;
+  padding: 10px;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+}
+
+.admin-landing-look__template:hover .admin-landing-look__frame {
+  border-color: var(--admin-hairline-strong);
+}
+
+.admin-landing-look__template.is-checked .admin-landing-look__frame {
+  border-color: var(--admin-accent);
+  box-shadow: 0 0 0 1px var(--admin-accent);
+}
+
+.admin-landing-look__template:has(input:focus-visible) .admin-landing-look__frame,
+.admin-landing-look__theme:has(input:focus-visible) {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-landing-look__template:has(input:disabled),
+.admin-landing-look__theme:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.admin-landing-look__name {
+  align-items: center;
+  color: var(--admin-text-secondary);
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 500;
+  gap: 4px;
+  line-height: 1.3;
+}
+
+.admin-landing-look__template.is-checked .admin-landing-look__name {
+  color: var(--admin-ink);
+  font-weight: 600;
+}
+
+.admin-landing-look__name svg {
+  color: var(--admin-accent);
+  flex: none;
+}
+
+/* ---- Esquemas (solo forma: barras, bloques y el botón en su color) ---- */
+
+.admin-landing-look__sketch {
+  display: grid;
+  gap: 5px;
+  height: 100%;
+}
+
+.admin-landing-look__line {
+  background: currentColor;
+  border-radius: 2px;
+  display: block;
+  height: 3px;
+  opacity: 0.28;
+  width: 70%;
+}
+
+.admin-landing-look__line--title {
+  height: 5px;
+  opacity: 0.85;
+  width: 80%;
+}
+
+.admin-landing-look__line--display {
+  height: 7px;
+  opacity: 0.85;
+  width: 92%;
+}
+
+.admin-landing-look__line--short {
+  width: 46%;
+}
+
+.admin-landing-look__line--accent {
+  background: var(--event-accent);
+  opacity: 1;
+}
+
+.admin-landing-look__cta {
+  background: var(--event-action);
+  border-radius: 3px;
+  display: block;
+  height: 8px;
+  width: 38%;
+}
+
+.admin-landing-look__sketch--meet {
+  align-content: start;
+  column-gap: 7px;
+  grid-template-columns: auto 1fr;
+}
+
+.admin-landing-look__date {
+  border: 1px solid var(--event-accent);
+  border-radius: 4px;
+  height: 22px;
+  width: 20px;
+}
+
+.admin-landing-look__lines {
+  align-content: start;
+  display: grid;
+  gap: 4px;
+}
+
+.admin-landing-look__rows {
+  display: grid;
+  gap: 4px;
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
+
+.admin-landing-look__rows span {
+  border-top: 1px solid currentColor;
+  height: 7px;
+  opacity: 0.18;
+}
+
+.admin-landing-look__sketch--editorial {
+  align-content: start;
+  gap: 4px;
+}
+
+.admin-landing-look__columns {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 6px;
+}
+
+.admin-landing-look__columns span {
+  background:
+    linear-gradient(currentColor, currentColor) 0 0 / 100% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 6px / 80% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 12px / 90% 2px no-repeat;
+  height: 16px;
+  opacity: 0.25;
+}
+
+.admin-landing-look__sketch--submission {
+  margin: -10px;
+}
+
+.admin-landing-look__hero {
+  align-content: end;
+  background: var(--event-accent-soft);
+  display: grid;
+  gap: 6px;
+  height: 100%;
+  justify-items: start;
+  padding: 10px;
+}
+
+.admin-landing-look__countdown {
+  display: flex;
+  gap: 4px;
+}
+
+.admin-landing-look__countdown span {
+  border: 1px solid var(--event-accent);
+  border-radius: 3px;
+  height: 11px;
+  width: 13px;
+}
+
+.admin-landing-look__sketch--builder {
+  align-content: start;
+  gap: 5px;
+}
+
+.admin-landing-look__block {
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  display: block;
+  height: 12px;
+  opacity: 0.3;
+}
+
+.admin-landing-look__block--hero {
+  align-content: center;
+  border-color: var(--event-accent);
+  display: grid;
+  gap: 4px;
+  height: 26px;
+  opacity: 1;
+  padding: 0 6px;
+}
+
+.admin-landing-look__block--add {
+  border-style: dashed;
+  opacity: 0.22;
+}
+
+/* ---- Temas ---- */
+
+.admin-landing-look__themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-landing-look__theme {
+  align-items: center;
+  border: 1px solid var(--admin-hairline);
+  border-radius: 999px;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 500;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px 0 6px;
+  position: relative;
+  transition: border-color var(--motion-fast) var(--ease-out);
+}
+
+.admin-landing-look__theme:hover {
+  border-color: var(--admin-hairline-strong);
+}
+
+.admin-landing-look__theme.is-checked {
+  border-color: var(--admin-accent);
+  color: var(--admin-ink);
+  font-weight: 600;
+}
+
+.admin-landing-look__swatches {
+  background: var(--color-bg);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 3px;
+  padding: 4px;
+}
+
+.admin-landing-look__swatch {
+  border-radius: 50%;
+  display: block;
+  height: 14px;
+  width: 14px;
+}
+
+.admin-landing-look__swatch--accent {
+  background: var(--event-accent);
+}
+
+.admin-landing-look__swatch--action {
+  background: var(--event-action);
+}
+
+/* ---- Colores propios ---- */
+
+.admin-landing-look__custom-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  gap: 6px;
+  justify-self: start;
+  margin-left: -4px;
+  min-height: 32px;
+  padding: 0 4px;
+}
+
+.admin-landing-look__custom-toggle:hover {
+  color: var(--admin-ink);
+}
+
+.admin-landing-look__custom-toggle:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-landing-look__chevron {
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.admin-landing-look__custom-toggle[aria-expanded='true'] .admin-landing-look__chevron {
+  transform: rotate(180deg);
+}
+
+.admin-landing-look__custom {
+  border-left: 2px solid var(--admin-hairline);
+  padding-left: 14px;
+}
+
+/* El editor de colores se pensó dentro de `.admin-event-form`, que estila sus
+   campos. En el alta lleva los mismos campos que el resto del formulario. */
+.admin-landing-look__custom .admin-landing-palette > legend {
+  font-size: 11px;
+}
+
+.admin-landing-look__custom .admin-event-form__section-note {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.admin-landing-look__custom .admin-landing-palette__control input[type='text'] {
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 10px;
+  color: var(--admin-ink);
+  flex: 1 1 7ch;
+  font-family: ui-monospace, monospace;
+  font-size: 13.5px;
+  height: 44px;
+  min-width: 7ch;
+  padding: 0 12px;
+}
+
+.admin-landing-look__custom .admin-landing-palette__control input[type='text']:focus-visible {
+  border-color: var(--admin-ink);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-ink) 14%, transparent);
+  outline: none;
+}
+
+.admin-landing-look__custom .admin-landing-palette__control input[aria-invalid='true'] {
+  border-color: var(--admin-status-danger);
+}
+
+.admin-landing-look__custom input.admin-landing-palette__swatch {
+  background: none;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 10px;
+  cursor: pointer;
+  flex: none;
+  height: 44px;
+  padding: 3px;
+  width: 44px;
+}
+
+.admin-landing-look__custom .admin-event-form__text-btn {
+  background: transparent;
+  border: 0;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-landing-look__custom .admin-event-form__text-btn:hover {
+  color: var(--admin-ink);
+}
+
+.admin-landing-look__custom .admin-event-form__text-btn:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+/* ---- Portada (columna de vista previa) ---- */
+
+.admin-landing-look__cover {
+  background: var(--color-bg);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 12px;
+  color: var(--color-text);
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  min-height: 11.5rem;
+  align-content: end;
+  overflow: hidden;
+  padding: 20px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.admin-landing-look__cover--submission {
+  background:
+    linear-gradient(var(--event-accent-soft), var(--event-accent-soft)),
+    var(--color-bg);
+}
+
+.admin-landing-look__cover--editorial {
+  align-content: start;
+}
+
+.admin-landing-look__cover-meta {
+  color: var(--event-accent);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-landing-look__cover-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+
+.admin-landing-look__cover--editorial .admin-landing-look__cover-title {
+  font-size: 26px;
+}
+
+.admin-landing-look__cover-venue {
+  color: var(--color-text-secondary, var(--admin-muted));
+  font-size: 12.5px;
+}
+
+.admin-landing-look__cover-cta {
+  background: var(--event-action);
+  border-radius: 8px;
+  color: var(--event-action-text);
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-top: 6px;
+  padding: 8px 14px;
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 900px) {
+  .admin-landing-look__templates {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (pointer: coarse) {
+  .admin-landing-look__theme,
+  .admin-landing-look__custom-toggle {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-landing-look__frame,
+  .admin-landing-look__theme,
+  .admin-landing-look__chevron {
+    transition: none;
+  }
+}

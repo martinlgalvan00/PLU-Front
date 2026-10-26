@@ -224,6 +224,7 @@ describe('cierre por cupo: sello, pausa manual y achique contra Supabase', () =>
       body: JSON.stringify({
         eventSlug: event.slug,
         division: 'Open',
+        modalities: ['full_power'],
         category: 'Raw',
         bodyweightKg: 90,
         declaredWeightClass: '90',

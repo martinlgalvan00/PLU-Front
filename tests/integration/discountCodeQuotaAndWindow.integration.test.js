@@ -225,6 +225,7 @@ describe('cupo y ventana de un código contra Supabase', () => {
       body: JSON.stringify({
         eventSlug: event.slug,
         division: 'Open',
+        modalities: ['full_power'],
         category: 'Raw',
         bodyweightKg: 90,
         declaredWeightClass: '90',

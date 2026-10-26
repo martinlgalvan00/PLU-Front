@@ -801,24 +801,18 @@
 
 /* ?? Events toolbar (lista + filtros) ????????? */
 
-.filter-pills__label--short {
-  display: none;
-}
-
-.filter-pills__item:has(.filter-pills__label--short) .filter-pills__label--full {
-  display: inline;
-}
+/* La regla base de la etiqueta corta vive en components/filter-pills.css. */
 
 /* Toolbar premium: anula estilos legacy de design-phase2 */
 
 @supports (container-type: inline-size) {
   @container events-main (max-width: 680px) {
 
-    .filter-pills__item:has(.filter-pills__label--short) .filter-pills__label--full {
+    .events-main-column .filter-pills__item:has(.filter-pills__label--short) .filter-pills__label--full {
       display: none;
     }
 
-    .filter-pills__label--short {
+    .events-main-column .filter-pills__label--short {
       display: inline;
     }
   }
@@ -858,11 +852,13 @@
     width: 100%;
   }
 
-  .filter-pills__item:has(.filter-pills__label--short) .filter-pills__label--full {
+  /* Acotado a Eventos: sin el prefijo, esta hoja seguía cargada al pasar a
+     Resultados y le cambiaba las etiquetas a "Pub." / "Espera". */
+  .events-page--design .filter-pills__item:has(.filter-pills__label--short) .filter-pills__label--full {
     display: none;
   }
 
-  .filter-pills__label--short {
+  .events-page--design .filter-pills__label--short {
     display: inline;
   }
 
@@ -983,6 +979,16 @@
     font-size: 14.5px;
     margin-top: 10px;
   }
+}
+
+.events-page--plu-ref .events-page__notice {
+  border-left: 2px solid var(--color-brand-celeste);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 18px;
+  max-width: 62ch;
+  padding: 2px 0 2px 12px;
 }
 
 .events-page--plu-ref .events-page__toolbar {
@@ -2184,7 +2190,8 @@
   transition:
     background-color var(--motion-fast, 160ms) var(--ease-out, ease),
     border-color var(--motion-fast, 160ms) var(--ease-out, ease),
-    padding-left var(--motion-fast, 160ms) var(--ease-out, ease);
+    padding-left var(--motion-fast, 160ms) var(--ease-out, ease),
+    scale var(--motion-fast, 160ms) var(--ease-out, ease);
 }
 
 .events-page--list-first .events-list--minimal .event-card::before {

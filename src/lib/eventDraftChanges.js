@@ -39,6 +39,8 @@ const AREA_OF_FIELD = {
   liveStreamUrl: 'visibility',
   liveStreamProvider: 'visibility',
   liveStatus: 'visibility',
+  externalForm: 'visibility',
+  offering: 'basics',
 }
 
 /** Orden de aparición en el panel. */

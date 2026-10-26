@@ -52,3 +52,39 @@ jobs:
             echo "::error title=Cabecera x-powered-by presente::el runtime está anunciando su motor."
             exit 1
           fi
+      - name: Verify registrations are reachable
+        env:
+          DEPLOYMENT_URL: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+        run: |
+          set -euo pipefail
+          # El catálogo público es lo que decide si alguien se puede inscribir
+          # (portada, calendario y checkout lo leen). Tiene que responder JSON.
+          curl --fail --show-error --silent \
+            --retry 5 --retry-all-errors --retry-delay 5 --max-time 20 \
+            "$DEPLOYMENT_URL/api/events/catalog" > catalog.json
+          node -e '
+            const body = JSON.parse(require("fs").readFileSync("catalog.json", "utf8"))
+            if (!Array.isArray(body.events)) {
+              console.error("::error title=Catálogo inválido::/api/events/catalog no devolvió events[]")
+              process.exit(1)
+            }
+            const open = body.events.filter((event) => event.status === "inscripcion_abierta")
+            const lines = [
+              "### Inscripciones en el despliegue",
+              "",
+              `Eventos publicados: ${body.events.length} · con inscripción abierta: ${open.length}`,
+              "",
+              ...open.map((event) => `- ${event.title} — /evento/${event.slug}/inscripcion`),
+            ]
+            require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n")
+            if (open.length === 0) {
+              console.log("::warning title=Sin inscripciones abiertas::ningún evento del catálogo tiene la venta abierta.")
+            }
+          '
+          # El checkout tiene URL propia: un recargo no puede terminar en 404.
+          checkout_status=$(curl --show-error --silent --output checkout.html --write-out '%{http_code}' \
+            --max-time 20 "$DEPLOYMENT_URL/evento/smoke-check/inscripcion")
+          if [[ "$checkout_status" != "200" ]] || ! grep -qi '<div id="root"' checkout.html; then
+            echo "::error title=Checkout sin ruta::/evento/:slug/inscripcion respondió $checkout_status sin la SPA."
+            exit 1
+          fi

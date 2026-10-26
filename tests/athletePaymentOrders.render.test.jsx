@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
@@ -28,6 +28,11 @@ vi.mock('../src/services/athleteApi.js', async (importOriginal) => {
   }
 })
 
+vi.mock('../src/services/paymentService.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  deleteAthletePaymentOrder: vi.fn(),
+}))
+
 // La baja del comprobante pega al servidor: acá se fija qué se pide y qué recarga la sección.
 vi.mock('../src/services/paymentProofsAdminService.js', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -36,6 +41,7 @@ vi.mock('../src/services/paymentProofsAdminService.js', async (importOriginal) =
 
 const { listAthletePaymentOrders } = await import('../src/services/athleteApi.js')
 const { trashOrderProof } = await import('../src/services/paymentProofsAdminService.js')
+const { deleteAthletePaymentOrder } = await import('../src/services/paymentService.js')
 
 beforeAll(() => {
   if (typeof window.matchMedia !== 'function') {
@@ -316,6 +322,79 @@ describe('baja del comprobante', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sí, mover' }))
 
     expect(await screen.findByText('La orden ya no admite la baja.')).toBeTruthy()
+    expect(listAthletePaymentOrders).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('Finanzas — borrar una fila que no se cobró', () => {
+  function openMoreActions() {
+    fireEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+  }
+
+  it('una orden cancelada sin comprobante ofrece borrarla', async () => {
+    await renderSection([order({ status: 'cancelado', paymentProofPath: null })])
+    openMoreActions()
+    expect(await screen.findByRole('button', { name: 'Borrar orden' })).toBeTruthy()
+  })
+
+  it('confirma, borra con un motivo y recarga la lista', async () => {
+    deleteAthletePaymentOrder.mockResolvedValue({ deleted: true })
+    await renderSection([order({ status: 'cancelado', paymentProofPath: null })])
+    openMoreActions()
+    fireEvent.click(await screen.findByRole('button', { name: 'Borrar orden' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.textContent).toMatch(/MORD-abc/)
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Borrar orden' }))
+
+    await waitFor(() =>
+      expect(deleteAthletePaymentOrder).toHaveBeenCalledWith('ord-1', 'Baja manual desde Cobros'),
+    )
+    await waitFor(() => expect(listAthletePaymentOrders).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('cancelar el diálogo no borra nada', async () => {
+    await renderSection([order({ status: 'cancelado', paymentProofPath: null })])
+    openMoreActions()
+    fireEvent.click(await screen.findByRole('button', { name: 'Borrar orden' }))
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: /cancelar/i }))
+    expect(deleteAthletePaymentOrder).not.toHaveBeenCalled()
+  })
+
+  it('una orden cobrada no ofrece borrarla', async () => {
+    await renderSection([order({ status: 'aprobado', paymentProofPath: null })])
+    openMoreActions()
+    await screen.findByRole('button', { name: /traza/i })
+    expect(screen.queryByRole('button', { name: 'Borrar orden' })).toBeNull()
+  })
+
+  it('con comprobante adjunto tampoco: primero va a la papelera', async () => {
+    await renderSection([order({ status: 'rechazado' })])
+    openMoreActions()
+    await screen.findByRole('button', { name: /traza/i })
+    expect(screen.queryByRole('button', { name: 'Borrar orden' })).toBeNull()
+  })
+
+  it('sin permiso de edición no se ofrece', async () => {
+    await renderSection([order({ status: 'cancelado', paymentProofPath: null })], { canEdit: false })
+    openMoreActions()
+    await screen.findByRole('button', { name: /traza/i })
+    expect(screen.queryByRole('button', { name: 'Borrar orden' })).toBeNull()
+  })
+
+  it('si la base rechaza la baja, se ve el motivo y la lista no se recarga', async () => {
+    deleteAthletePaymentOrder.mockRejectedValue(
+      new Error('La orden tiene movimientos en el libro de pagos: se conserva como historial.'),
+    )
+    await renderSection([order({ status: 'cancelado', paymentProofPath: null })])
+    openMoreActions()
+    fireEvent.click(await screen.findByRole('button', { name: 'Borrar orden' }))
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Borrar orden' }))
+
+    expect(await screen.findByText(/se conserva como historial/)).toBeTruthy()
     expect(listAthletePaymentOrders).toHaveBeenCalledTimes(1)
   })
 })

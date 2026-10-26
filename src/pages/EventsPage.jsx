@@ -7,11 +7,13 @@ import { ArrowRight, CalendarDays, Ticket } from 'lucide-react'
 import PluPageHero from '../components/layout/PluPageHero.jsx'
 import FilterPills from '../components/ui/FilterPills.jsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
+import { findMorphSource, morphNavigate } from '../motion/routeMorph.ts'
 import Button from '../components/ui/Button.jsx'
 import EventCalendar from '../components/ui/EventCalendar.jsx'
 import EventCountdown from '../components/ui/EventCountdown.jsx'
 import EventCard from '../components/ui/EventCard.jsx'
 import EventLiveStream from '../components/ui/EventLiveStream.jsx'
+import EventPublicMaterials from '../components/ui/EventPublicMaterials.jsx'
 import EventsTeaser from '../components/ui/EventsTeaser.jsx'
 import PitbullBrandMark from '../components/ui/PitbullBrandMark.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
@@ -24,8 +26,9 @@ import {
   getFeaturedEvent,
   getFeaturedEventDestination,
   getNextUpcomingEvent,
-  getPublicCatalogEvents,
+  getRegistrableCatalogEvents,
   isPitbullClassicEvent,
+  sortEventsForCalendar,
 } from '../lib/eventNavigation.js'
 import {
   eventHasEditorialLanding,
@@ -33,6 +36,7 @@ import {
   eventLandingFromEvent,
   eventLandingThemeId,
 } from '../lib/eventLanding.js'
+import { landingPaletteStyle } from '../lib/eventLandingPalette.js'
 import EventCalendarActions from '../components/ui/EventCalendarActions.jsx'
 import EventWeighInSchedule, {
   eventHasWeighInWindows,
@@ -56,6 +60,7 @@ import { money } from '../lib/format.js'
 import { fetchPublishedEvents } from '../services/eventAdminService.js'
 import { fetchSiteTeaser } from '../services/siteTeaserService.js'
 import { env } from '../config/env.js'
+import { canBuyEventTickets, isEventRegistrationOpen } from '../lib/eventPublicActions.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { getEventComboAvailability } from '../services/comboOfferService.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
@@ -115,6 +120,7 @@ function EventsDetailPanel({
   const landing = eventLandingFromEvent(event)
   const faqItems = eventShowsPublicFaq(event) ? eventLandingFaqItems(landing.slots) : []
   const themeId = eventLandingThemeId(event)
+  const paletteStyle = landingPaletteStyle(landing.layout, { withBackground: false })
 
   if (minimal) {
     const hintReady =
@@ -137,6 +143,7 @@ function EventsDetailPanel({
       <div
         className="events-detail events-detail--minimal event-landing-theme"
         data-event-theme={themeId}
+        style={paletteStyle}
       >
         <p className="events-detail__panel-eyebrow">{t('pages.events.detailPanelEyebrow')}</p>
 
@@ -269,7 +276,7 @@ function EventsDetailPanel({
   }
 
   return (
-    <div className="events-detail event-landing-theme" data-event-theme={themeId}>
+    <div className="events-detail event-landing-theme" data-event-theme={themeId} style={paletteStyle}>
       <div className="events-detail__head">
         {isPitbullClassicEvent(event) ? (
           <>
@@ -324,6 +331,8 @@ function EventsDetailPanel({
           <EventWeighInSchedule windows={event.weighInWindows} />
         </section>
       ) : null}
+
+      <EventPublicMaterials event={event} />
 
       {faqItems.length > 0 ? (
         <section className="events-detail__faq" aria-labelledby="events-detail-faq-title">
@@ -477,10 +486,15 @@ export default function EventsPage({
   onNavigate,
   onSelectEvent,
   events: eventsProp = UPCOMING_EVENTS,
+  // Landings en construcción: solo entran al calendario las que venden.
+  underConstructionEvents = [],
   session,
   memberships = [],
   registrations = [],
   checkoutAvailability = {},
+  // Vista previa del staff: muestra el evento tal cual llega por props, sin
+  // pisarlo con lo guardado en el servidor.
+  disableRemote = false,
 }) {
   const { locale, t } = useI18n()
   // El catálogo (título/venue/pricing) sigue viniendo del prop de arriba
@@ -488,8 +502,15 @@ export default function EventsPage({
   // Supabase (calendario/directo) matcheando por slug — sin bloquear el
   // render si Supabase no responde (queda el evento tal cual vino).
   const [supabaseBySlug, setSupabaseBySlug] = useState({})
+  // La consulta ya respondió (bien o mal): recién ahí un slug ausente es "no existe"
+  // y no "todavía no llegó".
+  const [catalogSettled, setCatalogSettled] = useState(false)
 
   useEffect(() => {
+    if (disableRemote) {
+      setCatalogSettled(true)
+      return undefined
+    }
     let active = true
     fetchPublishedEvents()
       .then((rows) => {
@@ -499,16 +520,20 @@ export default function EventsPage({
       .catch((error) => {
         console.warn('No se pudieron cargar los eventos de Supabase.', error)
       })
+      .finally(() => {
+        if (active) setCatalogSettled(true)
+      })
     return () => {
       active = false
     }
-  }, [])
+  }, [disableRemote])
 
   // Anuncio "Pronto habrá novedades". Arranca apagado y así se queda si la
   // lectura falla: un anuncio de hype no puede aparecer por un error de red.
   const [teaserEnabled, setTeaserEnabled] = useState(false)
 
   useEffect(() => {
+    if (disableRemote) return undefined
     let active = true
     fetchSiteTeaser()
       .then((teaser) => {
@@ -518,7 +543,7 @@ export default function EventsPage({
     return () => {
       active = false
     }
-  }, [])
+  }, [disableRemote])
 
   const dateFormatter = useMemo(
     () =>
@@ -556,15 +581,17 @@ export default function EventsPage({
 
   const events = useMemo(() => {
     const eventsBySlug = new Map()
-    for (const event of eventsProp) {
+    for (const event of [...eventsProp, ...underConstructionEvents]) {
       if (event?.slug) eventsBySlug.set(event.slug, event)
     }
     for (const event of Object.values(supabaseBySlug)) {
       if (event?.slug) eventsBySlug.set(event.slug, { ...eventsBySlug.get(event.slug), ...event })
     }
 
-    return getPublicCatalogEvents([...eventsBySlug.values()], {
-      includeDevelopmentStubs: false,
+    // Una landing en construcción que ya vende se lista: la inscripción no
+    // espera a la página oficial. Cerrada, sigue fuera del calendario.
+    return getRegistrableCatalogEvents([...eventsBySlug.values()], {
+      registrationEnabled: checkoutAvailability.registrationEnabled !== false,
     }).map((event) => {
       const merged = withPublicEventStatus(
         ensureEventCalendarFields({ ...event, ...supabaseBySlug[event.slug] }),
@@ -576,7 +603,13 @@ export default function EventsPage({
         displayDate: formatEventDisplayDate(merged),
       }
     })
-  }, [eventsProp, supabaseBySlug, formatEventDisplayDate, checkoutAvailability.registrationEnabled])
+  }, [
+    eventsProp,
+    underConstructionEvents,
+    supabaseBySlug,
+    formatEventDisplayDate,
+    checkoutAvailability.registrationEnabled,
+  ])
 
   const spotlightEvent = getFeaturedEvent(events)
   const nextEvent = useMemo(() => getNextUpcomingEvent(events), [events])
@@ -627,7 +660,7 @@ export default function EventsPage({
   )
 
   const filteredEvents = useMemo(() => {
-    return events.filter((event) => {
+    const shown = events.filter((event) => {
       if (filter === 'open') {
         return event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
       }
@@ -635,6 +668,7 @@ export default function EventsPage({
       if (filter === 'done') return event.status === 'finalizado'
       return event.status !== 'finalizado'
     })
+    return sortEventsForCalendar(shown, { finished: filter === 'done' })
   }, [events, filter])
 
   const listEvents = filteredEvents
@@ -685,22 +719,9 @@ export default function EventsPage({
     onSelectEvent?.(event)
   }
 
-  function isRegistrationOpen(event) {
-    return (
-      registrationCheckoutEnabled &&
-      isPaidCheckoutOpen(event, env, new Date(), { checkoutKind: 'registration' }) &&
-      (event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados')
-    )
-  }
-
-  function eventTicketsAvailable(event) {
-    return (
-      env.ticketSalesEnabled &&
-      Boolean(event) &&
-      !eventStatusClosesTicketSales(event) &&
-      resolveEventPricing(event).ticketsEnabled === true
-    )
-  }
+  const isRegistrationOpen = (event) =>
+    isEventRegistrationOpen(event, { registrationEnabled: registrationCheckoutEnabled })
+  const eventTicketsAvailable = canBuyEventTickets
 
   function handleEventCardAction(event) {
     if (isRegistrationOpen(event)) {
@@ -734,6 +755,14 @@ export default function EventsPage({
 
   const ticketsEvent = selected ?? nextEvent ?? spotlightEvent
 
+  // Link a un evento que el catálogo ya cargado no tiene (despublicado, terminado
+  // o mal tipeado): sin aviso la persona cae en otro evento sin saber por qué.
+  const linkedEventMissing =
+    Boolean(initialEventSlug) &&
+    catalogSettled &&
+    events.length > 0 &&
+    !events.some((event) => event.slug === initialEventSlug)
+
   return (
     <main className="page page--design page--plu-ref events-page--design events-page--plu-ref events-page--list-first">
       <PluPageHero
@@ -746,6 +775,11 @@ export default function EventsPage({
       />
 
       <div className="events-page__body">
+        {linkedEventMissing ? (
+          <p className="events-page__notice" role="status">
+            {t('pages.events.eventNotFound', { slug: initialEventSlug })}
+          </p>
+        ) : null}
         <div className="events-page__toolbar">
           <div className="events-page__filters-shell plu-tab-rail__shell">
             <FilterPills
@@ -795,7 +829,12 @@ export default function EventsPage({
                     memberships,
                   })}
                   ticketsAvailable={eventTicketsAvailable(event)}
-                  onSelect={() => openEvent(event)}
+                  onSelect={(interaction) =>
+                    morphNavigate(
+                      findMorphSource(interaction?.currentTarget, '.event-card__title'),
+                      () => openEvent(event),
+                    )
+                  }
                   onAction={() => handleEventCardAction(event)}
                   actionLabel={eventCardActionLabel(event)}
                   actionLive={isRegistrationOpen(event) || eventTicketsAvailable(event)}

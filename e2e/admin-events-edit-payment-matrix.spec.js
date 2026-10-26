@@ -80,7 +80,7 @@ test.describe('Panel de eventos: edición y medios de cobro', () => {
     await expect(page.getByRole('region', { name: /evento seleccionado/i })).toBeVisible({
       timeout: 20_000,
     })
-    await page.getByRole('tab', { name: /ventas y cupos/i }).click()
+    await page.getByRole('tab', { name: /^Venta$/i }).click()
     await page.getByRole('tab', { name: /^Cobro/i }).click()
     // Con una cuenta elegida sus datos se muestran de solo lectura.
     await expect(page.locator('[data-field="bankTransfer.linked"]')).toContainText('plu.e2e.qa')

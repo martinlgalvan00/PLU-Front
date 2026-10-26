@@ -202,6 +202,10 @@ const dismissDriftSchema = z.object({
   reason: z.string().trim().min(3).max(500),
 })
 
+const deleteAthleteOrderSchema = z.object({
+  reason: z.string().trim().min(3).max(500),
+})
+
 const searchOrdersQuerySchema = z.object({
   q: z.string().trim().min(2).max(120),
   limit: z.coerce.number().int().min(1).max(50).optional().default(15),
@@ -865,6 +869,32 @@ export function createPaymentRoutes(deps = {}) {
           ...req.validatedBody,
           actor: `${req.auth.user.id}:${req.auth.user.email}`,
         })
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /**
+   * Borra una fila de Cobros que no se cobró (cancelada, rechazada o abierta
+   * sin movimiento). Las guardas viven en `staff_delete_athlete_payment_order`:
+   * una orden pagada, con comprobante, con pago declarado o con intentos en el
+   * libro responde 409 con su motivo. Queda en la auditoría con quién y por qué.
+   */
+  router.post(
+    '/athlete-orders/:orderId/delete',
+    ...financeWriteGuard,
+    staffLimiter,
+    validateBody(deleteAthleteOrderSchema),
+    async (req, res, next) => {
+      try {
+        const orderId = parseInput(z.string().uuid(), req.params.orderId)
+        const result = await repository().deleteAthleteOrder(
+          orderId,
+          `${req.auth.user.id}:${req.auth.user.email}`,
+          req.validatedBody.reason,
+        )
         res.json(result)
       } catch (error) {
         next(error)

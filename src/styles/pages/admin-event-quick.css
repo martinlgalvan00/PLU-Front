@@ -269,6 +269,23 @@
   min-width: 0;
 }
 
+/* Tipo de evento: se elige una vez y son pocas opciones. En angosto el riel
+   compacto del panel (scroll horizontal + fundido) escondía las últimas detrás
+   del borde ("Seminario / clíni…"); acá bajan de renglón y se ven todas. */
+.admin-shell .admin-event-quick__section--presets .admin-filter-group--compact .admin-filter-chips,
+.admin-event-quick__section--presets .admin-filter-chips {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  row-gap: 4px;
+  width: auto;
+}
+
+.admin-shell .admin-event-quick__section--presets .admin-filter-chips-rail.is-overflowing,
+.admin-event-quick__section--presets .admin-filter-chips-rail {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
 /* El grupo de acceso comparte renglón con el cupo: sin su rótulo a la izquierda. */
 .admin-event-quick__access .admin-filter-group {
   display: grid;
@@ -534,4 +551,231 @@
 [data-theme='light'] .admin-event-preview__card .event-card__meta,
 [data-theme='light'] .admin-event-preview__card .event-card__status {
   color: var(--admin-muted);
+}
+
+/* ---- Alta guiada: pasos ---- */
+
+/* Tres pasos en una línea: número, nombre y una regla que se enciende con el
+   actual. Sin cápsulas ni barra de progreso: el orden ya es la información. */
+.admin-event-quick__steps {
+  border-bottom: 1px solid var(--admin-hairline);
+  display: flex;
+  gap: 4px;
+  list-style: none;
+  margin: 0 0 28px;
+  padding: 0;
+}
+
+.admin-event-quick__step {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  gap: 8px;
+  margin-bottom: -1px;
+  min-height: 44px;
+  padding: 0 14px 0 0;
+}
+
+.admin-event-quick__step:hover:not(:disabled) {
+  color: var(--admin-ink);
+}
+
+.admin-event-quick__step.is-current {
+  border-bottom-color: var(--admin-ink);
+  color: var(--admin-ink);
+}
+
+.admin-event-quick__step:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.admin-event-quick__step:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-event-quick__step-index {
+  align-items: center;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 50%;
+  display: inline-flex;
+  flex: none;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  height: 22px;
+  justify-content: center;
+  width: 22px;
+}
+
+.admin-event-quick__step.is-current .admin-event-quick__step-index {
+  background: var(--admin-ink);
+  border-color: var(--admin-ink);
+  color: var(--admin-surface);
+}
+
+.admin-event-quick__step.is-done .admin-event-quick__step-index {
+  border-color: var(--admin-ink);
+  color: var(--admin-ink);
+}
+
+/* El nombre del paso ya está en la tira: el título queda para lectores de pantalla. */
+.admin-event-quick__step-title {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.admin-event-quick__messages {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.admin-event-quick__messages:empty {
+  display: none;
+}
+
+/* Precio: el importe a escala, con la moneda adelante. */
+.admin-event-quick__money {
+  align-items: center;
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 10px;
+  display: flex;
+  gap: 8px;
+  max-width: 260px;
+  padding-left: 14px;
+}
+
+.admin-event-quick__money > span {
+  color: var(--admin-muted);
+  font-weight: 600;
+}
+
+.admin-event-quick__field .admin-event-quick__money input {
+  background: transparent;
+  border: 0;
+  flex: 1 1 auto;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  min-width: 0;
+  padding-left: 0;
+}
+
+.admin-event-quick__money:focus-within {
+  border-color: var(--admin-ink);
+}
+
+.admin-event-quick__field.is-invalid .admin-event-quick__money {
+  border-color: var(--admin-status-danger);
+}
+
+/* ---- «Listo» ---- */
+
+.admin-event-quick__done {
+  display: grid;
+  gap: 18px;
+  margin: 0 auto;
+  max-width: 680px;
+  padding-top: 8px;
+}
+
+.admin-event-quick__done .admin-event-quick__eyebrow {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.admin-event-quick__done h2 {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4.2vw, 40px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.admin-event-quick__done h2:focus {
+  outline: none;
+}
+
+.admin-event-quick__done .admin-event-sale {
+  margin-bottom: 0;
+}
+
+.admin-event-quick__done-actions {
+  align-items: center;
+  border-top: 1px solid var(--admin-hairline);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 18px;
+}
+
+.admin-event-quick__done-actions .btn {
+  min-height: 44px;
+}
+
+@media (max-width: 520px) {
+  .admin-event-quick__step {
+    font-size: 12.5px;
+    padding-right: 8px;
+  }
+}
+
+/* "Atrás" lleva flecha: icono y texto alineados. */
+.admin-event-quick__cancel {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+/* La tira de pasos ya separa: la primera sección de cada paso no repite la regla. */
+.admin-event-quick__step-title + .admin-event-quick__section,
+.admin-event-quick__step-title + .admin-event-quick__hero {
+  border-top: 0;
+  padding-top: 0;
+}
+
+/* El foco lo marca el contenedor del importe, no el input (un solo borde). */
+.admin-event-quick__field .admin-event-quick__money input:focus-visible {
+  border: 0;
+  box-shadow: none;
+  outline: none;
+}
+
+.admin-event-quick__money input::-webkit-inner-spin-button,
+.admin-event-quick__money input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.admin-event-quick__money input[type='number'] {
+  appearance: textfield;
+}
+
+.admin-event-quick__money:focus-within {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+/* Cuenta de Mercado Pago del evento: el selector y, debajo, su estado. */
+.admin-event-quick__mp {
+  display: grid;
+  gap: 8px;
 }

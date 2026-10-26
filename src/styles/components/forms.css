@@ -1129,3 +1129,27 @@
     letter-spacing: 0.08em;
   }
 }
+
+.field__hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* Varios campos a corregir: lista corta debajo del resumen. El cartel es
+   flex en fila (ícono + texto, auth.css): la lista baja a su propia línea. */
+.form-submit-error:has(> .form-submit-error__list) {
+  flex-wrap: wrap;
+}
+
+.form-submit-error:has(> .form-submit-error__list) > p {
+  margin-block: 0;
+}
+
+.form-submit-error__list {
+  display: grid;
+  flex-basis: 100%;
+  gap: 2px;
+  margin: 2px 0 0;
+  padding-left: 18px;
+}
