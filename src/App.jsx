@@ -63,6 +63,7 @@ import {
   eventHasEditorialLanding,
   eventHasSubmissionLanding,
   eventLandingSeo,
+  eventSubmissionLandingInPreparation,
 } from './lib/eventLanding.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
 import { reconcileMercadoPagoReturn } from './services/paymentService.js'
@@ -1046,7 +1047,10 @@ export default function App() {
       null)
     : null
   const showUnderConstruction =
-    view === 'events' && Boolean(eventPageEvent) && isUnderConstructionEvent(eventPageEvent)
+    view === 'events' &&
+    Boolean(eventPageEvent) &&
+    (isUnderConstructionEvent(eventPageEvent) ||
+      eventSubmissionLandingInPreparation(eventPageEvent))
   const eventPageLandingSeo = eventPageEvent ? eventLandingSeo(eventPageEvent) : null
   const showEditorialLanding =
     !showUnderConstruction &&

@@ -122,6 +122,7 @@ import {
   divisionsFromChoices,
   extraModalityCount,
   extraModalitySurcharge,
+  normalizeModalities,
   priceRegistrationSelection,
   secondDivisionSurcharge,
   toggleModality,
@@ -1538,15 +1539,30 @@ export default function RegisterPage({
       ? discountedTotal
       : checkoutListTotal
   const wiseBaseUsd = Number(eventPricing.wisePrice) > 0 ? Number(eventPricing.wisePrice) : null
-  // Con recargos (segunda división, modalidades extra) el total sube y el chip
-  // "+$X" era la única pista: el resumen lo explica línea por línea. Wise cobra
-  // en USD con su propio precio, así que ahí no se desglosa en pesos.
+  // La primera modalidad va en la inscripción. Cada una más es su propia línea
+  // al 50%, con el nombre: el total no las junta en "N × 50%". Wise cobra en
+  // USD con su propio precio, así que ahí no se desglosa en pesos.
+  const orderedModalities = normalizeModalities(
+    pricedModalities.length ? pricedModalities : ['full_power'],
+  )
+  const includedModality = orderedModalities[0] ?? 'full_power'
+  const extraModalityLines = orderedModalities.slice(1).map((value) => ({
+    key: `modality-${value}`,
+    label: t('pages.register.breakdownModality', {
+      modality: t(`pages.register.modalityOptions.${value}`),
+    }),
+    amount: modalityUnitFee,
+  }))
   const checkoutBreakdown =
-    (secondDivisionSelected || extraModalities > 0) && form.paymentMethod !== 'wise_transfer'
+    (secondDivisionSelected || extraModalityLines.length > 0) &&
+    form.paymentMethod !== 'wise_transfer'
       ? [
           {
             key: 'base',
-            label: t('pages.register.breakdownRegistration', { division: form.division }),
+            label: t('pages.register.breakdownRegistrationModality', {
+              division: form.division,
+              modality: t(`pages.register.modalityOptions.${includedModality}`),
+            }),
             amount: checkoutListTotal - secondDivisionFee - modalityFee,
           },
           ...(secondDivisionSelected
@@ -1560,17 +1576,7 @@ export default function RegisterPage({
                 },
               ]
             : []),
-          ...(extraModalities > 0
-            ? [
-                {
-                  key: 'modalities',
-                  label: t('pages.register.breakdownExtraModalities', {
-                    count: extraModalities,
-                  }),
-                  amount: modalityFee,
-                },
-              ]
-            : []),
+          ...extraModalityLines,
           ...(checkoutTotal !== checkoutListTotal
             ? [
                 {

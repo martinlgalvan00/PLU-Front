@@ -22,7 +22,10 @@ const BASE = {
   status: 'proximamente',
 }
 
-const visible = { ...BASE, landing: { templateId: 'submission', publicVisible: true, slots: {} } }
+const visible = {
+  ...BASE,
+  landing: { templateId: 'submission', publicVisible: true, phase: 'published', slots: {} },
+}
 const hidden = { ...BASE, landing: { templateId: 'submission', publicVisible: false, slots: {} } }
 
 // El panel pasa `t` desde el provider de i18n del admin.

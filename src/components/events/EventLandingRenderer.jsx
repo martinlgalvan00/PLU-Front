@@ -8,6 +8,7 @@ import {
   eventHasEditorialLanding,
   eventHasSubmissionLanding,
   eventLandingUnderConstruction,
+  eventSubmissionLandingInPreparation,
 } from '../../lib/eventLanding.js'
 
 /**
@@ -39,8 +40,15 @@ export default function EventLandingRenderer({
   const slug = eventSlug ?? event?.slug
   const catalog = events ?? (event ? [event] : [])
 
-  if (eventLandingUnderConstruction(event)) {
-    return <EventUnderConstructionPage event={event} onNavigate={onNavigate} />
+  if (eventLandingUnderConstruction(event) || eventSubmissionLandingInPreparation(event)) {
+    return (
+      <EventUnderConstructionPage
+        event={event}
+        onNavigate={onNavigate}
+        onSelectEvent={onSelectEvent}
+        registrationEnabled={checkoutAvailability?.registrationEnabled !== false}
+      />
+    )
   }
 
   if (eventHasBuilderLanding(event)) {

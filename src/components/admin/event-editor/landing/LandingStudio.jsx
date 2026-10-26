@@ -117,6 +117,9 @@ export default function LandingStudio({
       landing: {
         ...previewEvent.landing,
         publicVisible: !(underConstruction && showConstruction),
+        // El estudio edita la página. «En preparación» y el interruptor apagado
+        // muestran el aviso en el sitio; acá el aviso aparece solo si se pide.
+        phase: underConstruction && showConstruction ? previewEvent.landing?.phase : 'published',
       },
     }),
     [previewEvent, showConstruction, underConstruction],

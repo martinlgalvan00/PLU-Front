@@ -284,7 +284,15 @@ describe('RegisterPage — modalidad', () => {
   it('Full Power + una especialidad suma el 50% y lo desglosa', () => {
     renderCompetition({ form: { modalities: ['full_power', 'bench'] } })
     expect(screen.getAllByText(/112\.500/).length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Modalidades extra · 1 × 50%').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Inscripción · Junior · Full Power').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Especialista en banco (50%)').length).toBeGreaterThan(0)
+  })
+
+  it('cada modalidad extra es una línea del total', () => {
+    renderCompetition({ form: { modalities: ['full_power', 'squat', 'bench'] } })
+    expect(screen.getAllByText('Especialista en sentadilla (50%)').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Especialista en banco (50%)').length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/150\.000/).length).toBeGreaterThan(0)
   })
 
   it('una especialidad sola, sin Full Power, no suma recargo', () => {
