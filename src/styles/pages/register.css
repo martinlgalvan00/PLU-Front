@@ -2340,8 +2340,12 @@
    sin tener que abrir un modal y el papel sale de un sello centrado en vez de
    uno pegado al borde izquierdo del viewport. */
 
-.register-settle {
+.register-settle,
+.register-status--settle {
   scroll-margin-top: calc(var(--header-height-scrolled, 52px) + 16px);
+}
+
+.register-settle {
   display: grid;
   gap: 10px;
   min-width: 0;
@@ -4869,12 +4873,26 @@
   outline-offset: 3px;
 }
 
+/* Con el perfil completo "Revisar perfil" es secundario: enlace, no un
+   segundo botón dorado compitiendo con el pago. */
+.register-profile-readiness__action--quiet {
+  border-color: transparent;
+  padding-inline: 0;
+}
+
+.register-profile-readiness__action--quiet:hover {
+  background: transparent;
+  border-color: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 @media (max-width: 620px) {
   .register-profile-readiness__header {
     flex-direction: column;
   }
 
-  .register-profile-readiness__action {
+  .register-profile-readiness__action:not(.register-profile-readiness__action--quiet) {
     width: 100%;
   }
 

@@ -17,6 +17,10 @@ import {
   matchEventPageRoute,
   pushEventPageRoute,
 } from './lib/eventPageRoute.js'
+import {
+  matchRegistrationCheckoutRoute,
+  pushRegistrationCheckoutRoute,
+} from './lib/registrationCheckoutRoute.js'
 import { matchAdminEventRoute } from './lib/adminEventRoute.js'
 import { isCanonicalPathname, resolvePathnamePublicView } from './lib/canonicalPaths.js'
 import {
@@ -251,6 +255,11 @@ export default function App() {
   const [eventPageSlug, setEventPageSlug] = useState(() =>
     matchTicketsRoute() ? null : (matchEventPageRoute()?.eventSlug ?? null),
   )
+  // Evento del checkout según la URL (/evento/:slug/inscripcion): con esto un
+  // recargo o un link compartido vuelve al mismo checkout y no a la portada.
+  const [checkoutRouteSlug, setCheckoutRouteSlug] = useState(
+    () => matchRegistrationCheckoutRoute()?.eventSlug ?? null,
+  )
   const paymentReturnInFlightRef = useRef(null)
   const app = useAppData()
   const getSession = app.getSession
@@ -422,6 +431,13 @@ export default function App() {
 
   useEffect(() => {
     function onPopState() {
+      const checkoutMatch = matchRegistrationCheckoutRoute()
+      if (checkoutMatch) {
+        setCheckoutRouteSlug(checkoutMatch.eventSlug)
+        setView('competition')
+        return
+      }
+      setCheckoutRouteSlug(null)
       if (matchTicketsRoute()) {
         setTicketEventSlug(getTicketsRouteEventSlug())
         setView('tickets')
@@ -462,6 +478,8 @@ export default function App() {
       setView((current) => {
         if (current === 'tickets') return 'pitbull'
         if (current === 'events') return 'home'
+        // El checkout tiene URL propia: volver a `/` es volver a la portada.
+        if (current === 'competition') return 'home'
         if (current === 'notFound') return 'home'
         if (matchPublicViewPath() == null && buildPublicViewPath(current)) return 'home'
         return current
@@ -606,6 +624,13 @@ export default function App() {
           underConstructionEvents,
         )
         if (promotionEvent) setSelectedEvent(promotionEvent)
+        pushRegistrationCheckoutRoute(resolvedOptions.eventSlug)
+        setCheckoutRouteSlug(resolvedOptions.eventSlug)
+      } else if (resolvedView !== 'competition' && matchRegistrationCheckoutRoute()) {
+        // Salir del checkout a una vista sin URL propia (portada, perfil por
+        // estado…): la barra no puede seguir diciendo /inscripcion.
+        window.history.pushState({ view: resolvedView }, '', '/')
+        setCheckoutRouteSlug(null)
       }
 
       setTransitionDirection(getTransitionDirection(view, resolvedView))
@@ -621,6 +646,8 @@ export default function App() {
   }, [view, navigate])
 
   async function selectEvent(event, options = {}) {
+    // El slug viaja a la URL del checkout (/evento/:slug/inscripcion).
+    const checkoutOptions = event?.slug ? { eventSlug: event.slug } : {}
     setSelectedEvent(event)
     setCheckoutIntent(options.checkoutIntent ?? null)
     if (app.checkoutAvailability?.registrationEnabled === false) {
@@ -631,18 +658,49 @@ export default function App() {
     if (current?.role !== 'athlete_plu') {
       if (isStaffSession(current)) {
         // Staff: puente a atleta e inscripción directa, sin /crear-cuenta.
-        navigate('competition')
+        navigate('competition', checkoutOptions)
         return
       }
       // Conserva el evento elegido mientras la persona crea su ficha. Al
       // terminar el alta, `navigate('profile')` retoma automáticamente la
       // inscripción en vez de mandarla a empezar de nuevo desde el calendario.
-      setPendingAthleteDestination({ view: 'competition', options: {} })
+      setPendingAthleteDestination({ view: 'competition', options: checkoutOptions })
       navigate('register')
       return
     }
-    navigate('competition')
+    navigate('competition', checkoutOptions)
   }
+
+  // Checkout abierto por URL (recargo, link compartido, atrás/adelante): se
+  // resuelve el evento cuando hay sesión y catálogo. Sin cuenta de atleta pasa
+  // por el mismo camino que "Inscribirme" (alta o puente de staff).
+  useEffect(() => {
+    if (view !== 'competition' || !checkoutRouteSlug || app.sessionPending) return
+    const isAthlete = app.session?.role === 'athlete_plu'
+    if (isAthlete && selectedEvent?.slug === checkoutRouteSlug) return
+    const routeEvent = findRegistrableEvent(
+      checkoutRouteSlug,
+      publicEvents,
+      underConstructionEvents,
+    )
+    if (!routeEvent) {
+      if (app.publicCatalogSettled) navigate('events', { eventSlug: checkoutRouteSlug })
+      return
+    }
+    if (isAthlete) setSelectedEvent(routeEvent)
+    else void selectEvent(routeEvent)
+    // `selectEvent` se recrea en cada render; lo que decide son estos datos.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    view,
+    checkoutRouteSlug,
+    app.sessionPending,
+    app.session?.role,
+    app.publicCatalogSettled,
+    selectedEvent?.slug,
+    publicEvents,
+    underConstructionEvents,
+  ])
 
   async function exitSecurityRoute() {
     window.history.pushState({}, '', '/')
@@ -1012,7 +1070,10 @@ export default function App() {
     ? SubmissionLandingPage
     : showEditorialLanding
       ? EventLandingEditorial
-      : PUBLIC_VIEWS[view] || NotFoundPage
+      : view === 'competition'
+        ? // Checkout por URL mientras se resuelve la sesión: espera, no 404.
+          PageLoadFallback
+        : PUBLIC_VIEWS[view] || NotFoundPage
 
   const editorialPageProps = {
     onNavigate: navigate,
@@ -1329,7 +1390,11 @@ function PrivateLayout({
           <Suspense fallback={<PageLoadFallback />}>{children}</Suspense>
         </PageErrorBoundary>
       </PageTransition>
-      <Footer onNavigate={navigate} navEvents={navEvents} />
+      <Footer
+        onNavigate={navigate}
+        navEvents={navEvents}
+        checkoutFocus={view === 'competition'}
+      />
       <HelpLayer
         event={helpEvent}
         memberships={app.memberships}

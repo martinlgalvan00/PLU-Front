@@ -396,4 +396,78 @@ test.describe('atleta · checkout de competencia', () => {
     await expect(checkout.getByText('No quedan cupos para este evento.').first()).toBeVisible()
     await expect(page.getByText('¿Tenés problemas para pagar?')).toHaveCount(0)
   })
+
+  test('el checkout tiene URL propia y sobrevive a un recargo', async ({ page }) => {
+    await openCheckout(page)
+    await expect(page).toHaveURL(new RegExp(`/evento/${SUBMISSION_SLUG}/inscripcion$`))
+
+    await page.reload()
+    const checkout = page.locator('main')
+    await expect(checkout.getByRole('button', { name: /continuar al pago/i })).toBeVisible()
+    await expect(checkout.getByRole('heading', { name: 'Barbell Submission' })).toBeVisible()
+  })
+
+  test('sin cuenta, el link del checkout lleva al alta y la retoma', async ({ page }) => {
+    await mockApi(page)
+    await page.goto(`/evento/${SUBMISSION_SLUG}/inscripcion`)
+    await acceptCookies(page)
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Perfil de atleta' })).toBeVisible()
+    await expect(
+      page
+        .getByText('seguís con tu inscripción a Barbell Submission', { exact: false })
+        .filter({ visible: true }),
+    ).toHaveCount(1)
+  })
+
+  test('durante el pago no compiten "Afiliar" ni "Afiliarme ahora"', async ({ page }) => {
+    const { checkout } = await openCheckout(page)
+    await fillAndSubmit(checkout)
+
+    await expect(page.locator('.register-settle')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Afiliarme ahora' })).toHaveCount(0)
+  })
+
+  test('pago aprobado: confirma el lugar y lleva el foco a la confirmación', async ({ page }) => {
+    const { checkout } = await openCheckout(page)
+    await fillAndSubmit(checkout)
+    await page.getByRole('button', { name: /confirmar pago/i }).click()
+
+    const title = page.getByRole('heading', { name: 'Tu lugar está confirmado' })
+    await expect(title).toBeFocused()
+    await expect(page.getByText('PLU-E2E-0001').filter({ visible: true }).first()).toBeVisible()
+  })
+
+  test('efectivo: el estado de la orden con las instrucciones queda a la vista', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    const channels = { mercado_pago: true, bank_transfer: true, cash_pitbull: true }
+    const { api, checkout } = await openCheckout(page, {
+      events: [submissionEvent({ payment_channel_overrides: channels })],
+      platform: { paymentChannels: { membership: channels, registration: channels } },
+    })
+    await checkout.getByLabel(/peso corporal/i).fill('66')
+    await checkout.getByLabel(/categoría de peso/i).selectOption('67,5')
+    await page.getByRole('radio', { name: /efectivo/i }).first().check({ force: true })
+    await page.getByRole('button', { name: /continuar al pago/i }).click()
+
+    expect(api.registrationRequests[0].paymentMethod).toBe('cash_pitbull')
+    await expect(page.getByText(/Pagá en efectivo/).filter({ visible: true })).toBeInViewport()
+    await expect(page.getByRole('button', { name: /ya entregué el efectivo/i })).toBeVisible()
+    await expect(page.getByText(/datos de transferencia/i).filter({ visible: true })).toHaveCount(0)
+  })
+
+  test('con varios datos mal, el aviso los lista todos', async ({ page }) => {
+    const { api, checkout } = await openCheckout(page)
+    await checkout.getByRole('checkbox', { name: /full power/i }).uncheck()
+    await checkout.getByLabel(/peso corporal/i).fill('')
+    await checkout.getByRole('button', { name: /continuar al pago/i }).click()
+
+    const alert = page.locator('.form-submit-error').filter({ visible: true })
+    await expect(alert).toContainText(/Revisá estos \d datos/)
+    await expect(alert).toContainText('Elegí al menos una modalidad.')
+    await expect(alert).toContainText('Ingresá tu peso corporal.')
+    expect(api.registrationRequests).toHaveLength(0)
+  })
 })

@@ -6,6 +6,11 @@
  * anotado en `unhandled`, para que un endpoint nuevo no pase en silencio.
  */
 
+import {
+  manualPaymentChannel,
+  storagePaymentMethod,
+} from '../../server/modules/pricing/checkoutPricePolicy.js'
+
 export const ATHLETE_ID = '11111111-1111-4111-8111-111111111111'
 export const SUBMISSION_SLUG = 'barbell-submission-2027'
 export const OPEN_SLUG = 'winter-open-2026'
@@ -130,8 +135,25 @@ export async function mockApi(page, scenario = {}) {
       ...scenario.platform,
     },
     registrationRequests: [],
+    // Lo que el servidor ya guardó: la sesión lo devuelve y el pago lo aprueba.
+    registrations: [],
+    paymentOrders: [],
     unhandled: [],
   }
+
+  const sessionRegistrations = () =>
+    state.registrations.map((registration) => {
+      const event = state.events.find((item) => item.slug === registration.event_slug) ?? {}
+      return {
+        registration,
+        event: {
+          slug: event.slug,
+          title: event.title,
+          starts_at: event.starts_at,
+          ends_at: event.ends_at,
+        },
+      }
+    })
 
   const json = (route, body, status = 200) =>
     route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
@@ -164,8 +186,8 @@ export async function mockApi(page, scenario = {}) {
         },
         athlete: state.athlete,
         memberships: [],
-        registrations: [],
-        paymentOrders: [],
+        registrations: sessionRegistrations(),
+        paymentOrders: state.paymentOrders,
       })
     }
     if (method === 'GET' && /^\/api\/events\/[^/]+\/registration-summary$/.test(pathname)) {
@@ -178,17 +200,43 @@ export async function mockApi(page, scenario = {}) {
       if (scenario.registrationResponse) {
         return json(route, scenario.registrationResponse.body, scenario.registrationResponse.status)
       }
+      const createdAt = new Date().toISOString()
+      state.paymentOrders = [
+        {
+          id: 'order-e2e-1',
+          athlete_id: ATHLETE_ID,
+          concept: 'registration',
+          amount: 75000,
+          currency: 'ARS',
+          // Igual que el servidor: efectivo y Wise se guardan como manual_link
+          // con su canal; sin esto el settle de efectivo se veía como transferencia.
+          method: storagePaymentMethod(body.paymentMethod),
+          manual_payment_channel: manualPaymentChannel(body.paymentMethod),
+          status: 'pendiente',
+          reference: 'PLU-E2E-0001',
+          created_at: createdAt,
+        },
+      ]
+      state.registrations = [
+        {
+          id: 'reg-e2e-1',
+          athlete_id: ATHLETE_ID,
+          event_slug: body.eventSlug,
+          division: body.division,
+          secondary_division: body.secondaryDivision ?? null,
+          category: body.category,
+          modalities: body.modalities,
+          declared_weight_class: body.declaredWeightClass,
+          bodyweight_kg: body.bodyweightKg,
+          status: 'pendiente_pago',
+          payment_order_id: 'order-e2e-1',
+          created_at: createdAt,
+        },
+      ]
       return json(
         route,
         {
-          order: {
-            id: 'order-e2e-1',
-            amount: 75000,
-            method: body.paymentMethod,
-            status: 'pendiente',
-            reference: 'PLU-E2E-0001',
-            createdAt: new Date().toISOString(),
-          },
+          order: state.paymentOrders[0],
           registration: {
             id: 'reg-e2e-1',
             athleteId: ATHLETE_ID,
@@ -203,6 +251,15 @@ export async function mockApi(page, scenario = {}) {
         },
         201,
       )
+    }
+    // Pago con el brick simulado (PAYMENTS_MOCK): aprueba la orden y confirma
+    // la inscripción, como el webhook real.
+    if (method === 'POST' && pathname === '/api/payments/embedded/process') {
+      const order = state.paymentOrders[0]
+      if (!order) return json(route, { error: 'Orden inexistente.' }, 404)
+      order.status = 'aprobado'
+      for (const registration of state.registrations) registration.status = 'confirmada'
+      return json(route, { payment: { id: 'mp-e2e-1', status: 'approved' }, order }, 201)
     }
     if (method === 'GET' && pathname === '/api/athletes/gyms') {
       return json(route, { gyms: [] })

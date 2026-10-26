@@ -3954,6 +3954,7 @@ export default {
       breakdownRegistration: 'Registration · {{division}}',
       breakdownSecondDivision: 'Second division · {{division}} (50%)',
       breakdownDiscount: 'Discount',
+      fixErrorsSummary: 'Check these {{count}} fields before continuing:',
       profileWelcomeCtaResume: 'Continue registering for {{event}}',
       competitionTitle: 'Registration',
       competitionEyebrow: 'Competition registration',

@@ -636,6 +636,7 @@ export default function NavbarPublic({
   const sessionPhoto = hasAccount ? sessionPhotoUrl(session) : ''
   const hasActiveMembership =
     session?.role === 'athlete_plu' && hasCurrentMembership(memberships, session.athleteId)
+  const checkoutFocus = activeView === 'competition' || activeView === 'register'
   const showNoticeBell = hasAccount
   const competitionActive = Boolean(COMPETITION_NAVIGATION?.views?.includes(activeView))
   const moreActive = Boolean(MORE_NAVIGATION?.views?.includes(activeView))
@@ -1138,37 +1139,43 @@ export default function NavbarPublic({
                   {t('nav.login')}
                 </button>
               )}
-              <span className="plu-global-nav__mobile-divider" aria-hidden />
-              <button
-                type="button"
-                className={`plu-global-nav__mobile-affiliate${
-                  hasActiveMembership ? ' plu-global-nav__mobile-affiliate--member' : ''
-                }${
-                  hasActiveMembership
-                    ? activeView === 'profile'
-                      ? ' is-active'
-                      : ''
-                    : activeView === 'members'
-                      ? ' is-active'
-                      : ''
-                }`}
-                aria-current={
-                  hasActiveMembership
-                    ? activeView === 'profile'
-                      ? 'page'
-                      : undefined
-                    : activeView === 'members'
-                      ? 'page'
-                      : undefined
-                }
-                aria-label={hasActiveMembership ? t('nav.affiliatedAria') : t('nav.affiliate')}
-                title={hasActiveMembership ? t('nav.affiliatedShort') : t('nav.affiliate')}
-                onClick={() => go(hasActiveMembership ? 'profile' : 'members')}
-              >
-                <span className="plu-global-nav__mobile-affiliate-label">
-                  {hasActiveMembership ? t('nav.affiliatedShort') : t('nav.affiliateShort')}
-                </span>
-              </button>
+              {/* En el checkout (alta o inscripción) "Afiliar" compite con el pago
+                  que la persona vino a hacer; el combo ya se ofrece adentro. */}
+              {checkoutFocus ? null : (
+                <>
+                  <span className="plu-global-nav__mobile-divider" aria-hidden />
+                  <button
+                    type="button"
+                    className={`plu-global-nav__mobile-affiliate${
+                      hasActiveMembership ? ' plu-global-nav__mobile-affiliate--member' : ''
+                    }${
+                      hasActiveMembership
+                        ? activeView === 'profile'
+                          ? ' is-active'
+                          : ''
+                        : activeView === 'members'
+                          ? ' is-active'
+                          : ''
+                    }`}
+                    aria-current={
+                      hasActiveMembership
+                        ? activeView === 'profile'
+                          ? 'page'
+                          : undefined
+                        : activeView === 'members'
+                          ? 'page'
+                          : undefined
+                    }
+                    aria-label={hasActiveMembership ? t('nav.affiliatedAria') : t('nav.affiliate')}
+                    title={hasActiveMembership ? t('nav.affiliatedShort') : t('nav.affiliate')}
+                    onClick={() => go(hasActiveMembership ? 'profile' : 'members')}
+                  >
+                    <span className="plu-global-nav__mobile-affiliate-label">
+                      {hasActiveMembership ? t('nav.affiliatedShort') : t('nav.affiliateShort')}
+                    </span>
+                  </button>
+                </>
+              )}
             </div>
             <button
               type="button"
