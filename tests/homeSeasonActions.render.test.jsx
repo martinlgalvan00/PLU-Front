@@ -1,7 +1,16 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
+import MotionProvider from '../src/motion/MotionProvider.tsx'
 import HomeSeasonActions from '../src/components/ui/HomeSeasonActions.jsx'
+
+function renderActions(ui) {
+  return render(
+    <MotionProvider>
+      <I18nProvider>{ui}</I18nProvider>
+    </MotionProvider>,
+  )
+}
 
 afterEach(cleanup)
 
@@ -41,11 +50,7 @@ const ACTIONS_SOON = [
 describe('HomeSeasonActions', () => {
   it('inscripción abierta: el carril lleva "Página oficial" e "Inscribirme"', () => {
     const onActivate = vi.fn()
-    render(
-      <I18nProvider>
-        <HomeSeasonActions actions={ACTIONS_OPEN} onActivate={onActivate} />
-      </I18nProvider>,
-    )
+    renderActions(<HomeSeasonActions actions={ACTIONS_OPEN} onActivate={onActivate} />)
 
     expect(screen.getByText('Ya podés inscribirte')).toBeTruthy()
     const lane = screen.getByRole('group', { name: 'Barbell Submission' })
@@ -61,11 +66,7 @@ describe('HomeSeasonActions', () => {
 
   it('con Virtus en teaser dice Inscripciones próximamente, no finalizadas', () => {
     const onActivate = vi.fn()
-    render(
-      <I18nProvider>
-        <HomeSeasonActions actions={ACTIONS_SOON} onActivate={onActivate} />
-      </I18nProvider>,
-    )
+    renderActions(<HomeSeasonActions actions={ACTIONS_SOON} onActivate={onActivate} />)
 
     expect(screen.getByText('Inscripciones próximamente')).toBeTruthy()
     expect(screen.getByText('Ver ficha')).toBeTruthy()
@@ -78,11 +79,7 @@ describe('HomeSeasonActions', () => {
   })
 
   it('no renderiza nada sin acciones', () => {
-    const { container } = render(
-      <I18nProvider>
-        <HomeSeasonActions actions={[]} />
-      </I18nProvider>,
-    )
+    const { container } = renderActions(<HomeSeasonActions actions={[]} />)
     expect(container.querySelector('.home-season-actions')).toBeNull()
   })
 })

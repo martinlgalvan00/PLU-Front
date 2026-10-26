@@ -39,6 +39,76 @@
   text-transform: uppercase;
 }
 
+/* La plantilla vive en una columna ancha: los controles se miden a su
+   contenido y se centran. El riel de filtros, si queda al 100%, deja un
+   vacío largo a la derecha de cuatro chips. */
+.admin-event-form__landing > .admin-landing-copy {
+  justify-items: center;
+  justify-self: center;
+  width: min(100%, 40rem);
+}
+
+.admin-event-form__landing > .admin-landing-copy .admin-landing-copy__toggle {
+  justify-self: center;
+}
+
+.admin-event-form__landing-format {
+  justify-items: center;
+}
+
+.admin-event-form__landing-format > legend {
+  justify-content: center;
+}
+
+.admin-shell .admin-event-form__landing-format .admin-filter-group--rail {
+  justify-items: center;
+  max-width: 100%;
+  width: fit-content;
+}
+
+.admin-shell .admin-event-form__landing-format .admin-filter-chips-rail,
+.admin-shell .admin-event-form__landing-format .admin-filter-group--compact .admin-filter-chips {
+  justify-content: center;
+  width: auto;
+}
+
+.admin-event-form__landing-format .admin-filter-group__label,
+.admin-event-form__landing-format .admin-event-form__section-note {
+  text-align: center;
+}
+
+.admin-event-form__landing-format > .admin-event-form__section-note,
+.admin-event-form__landing-format > .admin-landing-motion,
+.admin-event-form__landing-format > .admin-landing-palette {
+  width: min(100%, 40rem);
+}
+
+.admin-landing-motion {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+.admin-landing-copy__panel {
+  justify-self: stretch;
+  text-align: start;
+  width: 100%;
+}
+
+@media (max-width: 719px) {
+  .admin-shell .admin-event-form__landing-format .admin-filter-group--rail,
+  .admin-shell .admin-event-form__landing-format .admin-filter-chips-rail,
+  .admin-shell .admin-event-form__landing-format .admin-filter-group--compact .admin-filter-chips {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .admin-event-form__landing-format .admin-filter-group__label,
+  .admin-event-form__landing-format .admin-event-form__section-note {
+    text-align: start;
+  }
+}
+
 .admin-event-form__landing-section-list {
   display: grid;
   list-style: none;

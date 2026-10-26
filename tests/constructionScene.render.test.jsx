@@ -16,6 +16,11 @@ function Scene({ motion }) {
   return <ConstructionScene motion={motion} t={t} />
 }
 
+function SceneAmbient() {
+  const { t } = useI18n()
+  return <ConstructionScene interactive={false} motion="soft" statusLabel="Armando la página" t={t} />
+}
+
 const renderScene = (motion) =>
   render(
     <I18nProvider>
@@ -99,6 +104,21 @@ describe('ConstructionScene', () => {
     expect(plateCount(container)).toBe(STATIC_PLATES)
     act(() => vi.advanceTimersByTime(INTRO_STEP_MS * 10))
     expect(plateCount(container)).toBe(STATIC_PLATES)
+  })
+
+  it('sin controles repite la carga y no ofrece manejar la barra', () => {
+    vi.useFakeTimers()
+    const { container } = render(
+      <I18nProvider>
+        <SceneAmbient />
+      </I18nProvider>,
+    )
+    expect(screen.queryByRole('button', { name: /sumar discos/i })).toBeNull()
+    expect(screen.getByRole('img', { name: 'Armando la página' })).toBeTruthy()
+    advanceSteps(MAX_PLATES)
+    expect(plateCount(container)).toBe(MAX_PLATES)
+    act(() => vi.advanceTimersByTime(INTRO_STEP_MS * 3))
+    expect(plateCount(container)).toBe(0)
   })
 
   it('anuncia el peso cargado y nombra la imagen para lectores de pantalla', () => {

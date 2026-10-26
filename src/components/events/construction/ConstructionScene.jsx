@@ -32,22 +32,49 @@ function prefersReducedMotion() {
  * mouse y la entrada automática se apagan con `motion = none` y con movimiento
  * reducido; los botones andan igual con teclado y táctil.
  */
-export default function ConstructionScene({ motion = 'soft', t }) {
+export default function ConstructionScene({
+  motion = 'soft',
+  t,
+  interactive = true,
+  statusLabel = '',
+}) {
   const animated = motion !== 'none' && !prefersReducedMotion()
   const [count, setCount] = useState(() => initialPlates({ animated }))
   const [autoplay, setAutoplay] = useState(animated)
   const figureRef = useRef(null)
+  const label = String(statusLabel ?? '').trim()
+  const [captionCycle, setCaptionCycle] = useState(0)
+  const captionArmed = useRef(false)
 
-  // Entrada automática: un disco por vez hasta llenar la barra o hasta que el visitante toque algo.
+  // Entrada automática: un disco por vez. En la escena de juego se detiene al
+  // llenarse o cuando el visitante toca un control. En la de obra vuelve a
+  // empezar: la página se sigue armando, no hay un peso que completar.
   useEffect(() => {
     if (!autoplay) return undefined
     if (count >= MAX_PLATES) {
-      setAutoplay(false)
-      return undefined
+      if (interactive) {
+        setAutoplay(false)
+        return undefined
+      }
+      const timer = setTimeout(() => setCount(0), INTRO_STEP_MS * 3)
+      return () => clearTimeout(timer)
     }
     const timer = setTimeout(() => setCount((current) => clampPlates(current + 1)), INTRO_STEP_MS)
     return () => clearTimeout(timer)
-  }, [autoplay, count])
+  }, [autoplay, count, interactive])
+
+  // El rótulo entra con la barra y se repite cuando la escena de obra vuelve
+  // a cero. No es un loop aparte: usa el mismo ciclo de los discos.
+  useEffect(() => {
+    if (interactive || !animated || !label) return
+    if (count > 0) {
+      captionArmed.current = true
+      return
+    }
+    if (!captionArmed.current) return
+    captionArmed.current = false
+    setCaptionCycle((cycle) => cycle + 1)
+  }, [animated, count, interactive, label])
 
   function change(next) {
     setAutoplay(false)
@@ -61,7 +88,7 @@ export default function ConstructionScene({ motion = 'soft', t }) {
 
   // La barra se inclina hacia el mouse (hasta 2.5°). Sin re-render: solo una variable CSS.
   function tilt(event) {
-    if (!animated || event.pointerType !== 'mouse') return
+    if (!interactive || !animated || event.pointerType !== 'mouse') return
     const box = figureRef.current?.getBoundingClientRect()
     if (!box?.width) return
     const ratio = ((event.clientX - box.left) / box.width) * 2 - 1
@@ -96,7 +123,7 @@ export default function ConstructionScene({ motion = 'soft', t }) {
           className="construction-scene__svg"
           viewBox="0 0 640 220"
           role="img"
-          aria-label={t('pages.eventUnderConstruction.sceneLabel', { kg })}
+          aria-label={label || t('pages.eventUnderConstruction.sceneLabel', { kg })}
         >
           <g className="construction-scene__bar">
             <rect
@@ -139,19 +166,31 @@ export default function ConstructionScene({ motion = 'soft', t }) {
                 )
               })
             })}
-            <title>{t('pages.eventUnderConstruction.sceneLabel', { kg })}</title>
+            <title>{label || t('pages.eventUnderConstruction.sceneLabel', { kg })}</title>
           </g>
         </svg>
-        <figcaption className="construction-scene__caption" aria-live="polite">
-          <strong>{kg} kg</strong>
-          <span>
-            {full
-              ? t('pages.eventUnderConstruction.sceneFull')
-              : t('pages.eventUnderConstruction.sceneHint', { bar: BAR_KG })}
-          </span>
+        <figcaption
+          className={`construction-scene__caption${label ? ' construction-scene__caption--status' : ''}`}
+          aria-live={interactive ? 'polite' : undefined}
+        >
+          {label ? (
+            <span key={captionCycle} className="construction-scene__status">
+              {label}
+            </span>
+          ) : (
+            <>
+              <strong>{kg} kg</strong>
+              <span>
+                {full
+                  ? t('pages.eventUnderConstruction.sceneFull')
+                  : t('pages.eventUnderConstruction.sceneHint', { bar: BAR_KG })}
+              </span>
+            </>
+          )}
         </figcaption>
       </figure>
 
+      {interactive ? (
       <div
         className="construction-scene__controls"
         role="group"
@@ -170,6 +209,7 @@ export default function ConstructionScene({ motion = 'soft', t }) {
           {t('pages.eventUnderConstruction.sceneReplay')}
         </button>
       </div>
+      ) : null}
     </div>
   )
 }

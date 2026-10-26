@@ -107,6 +107,63 @@
   font-size: 14px;
 }
 
+.construction-scene__caption--status {
+  justify-content: center;
+  overflow: clip;
+  padding-bottom: 2px;
+}
+
+.construction-scene__caption--status .construction-scene__status {
+  color: var(--event-accent);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.construction-scene__status::after {
+  background: var(--event-accent);
+  content: '';
+  display: block;
+  height: 1px;
+  margin-top: 8px;
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+
+.construction-scene[data-motion='soft'] .construction-scene__status,
+.construction-scene[data-motion='bold'] .construction-scene__status,
+.construction-scene[data-motion='depth'] .construction-scene__status {
+  animation: construction-status-in var(--motion-cinematic) var(--ease-cinematic) both;
+}
+
+.construction-scene[data-motion='soft'] .construction-scene__status::after,
+.construction-scene[data-motion='bold'] .construction-scene__status::after,
+.construction-scene[data-motion='depth'] .construction-scene__status::after {
+  animation: construction-status-rule var(--motion-slow) var(--ease-cinematic) 180ms both;
+  transform: scaleX(0);
+}
+
+@keyframes construction-status-in {
+  from {
+    opacity: 0;
+    transform: translateY(110%);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes construction-status-rule {
+  to {
+    transform: scaleX(1);
+  }
+}
+
 .construction-scene__controls {
   display: flex;
   flex-wrap: wrap;
@@ -153,7 +210,15 @@
     transition: none;
   }
 
-  .construction-scene[data-motion] .construction-scene__plate {
+  .construction-scene[data-motion] .construction-scene__plate,
+  .construction-scene__status,
+  .construction-scene__status::after {
     animation: none;
+  }
+
+  .construction-scene__status,
+  .construction-scene__status::after {
+    opacity: 1;
+    transform: none;
   }
 }
