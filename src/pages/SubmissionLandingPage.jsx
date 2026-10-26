@@ -1,6 +1,10 @@
-import { useRef } from 'react'
-import { ArrowDown, ArrowLeft, CalendarDays, MapPin, Sparkles } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { ArrowDown, ArrowLeft, ArrowRight, CalendarDays, MapPin } from 'lucide-react'
 import submissionHeroImage from '../assets/DSC01606-display.webp'
+import SubmissionLogoCover from '../components/events/SubmissionLogoCover.jsx'
+import ConstructionScene from '../components/events/construction/ConstructionScene.jsx'
+import { BRAND } from '../lib/brand.js'
+import { eventExternalForm } from '../lib/eventExternalForm.js'
 import { eventLandingFromEvent } from '../lib/eventLanding.js'
 import { normalizeLandingMotion } from '../lib/eventLandingMotion.js'
 import useRevealOnScroll from '../hooks/useRevealOnScroll.js'
@@ -9,8 +13,11 @@ import { isEventRegistrationOpen } from '../lib/eventPublicActions.js'
 import { eventPublicTitle } from '../lib/eventPublicSurface.js'
 import EventPublicMaterials from '../components/ui/EventPublicMaterials.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
+import { useMotionConfig } from '../motion/MotionProvider.tsx'
+import { prefersReducedMotion } from '../motion/useReducedMotion.ts'
 import '../styles/pages/event-landing-themes.css'
 import '../styles/pages/submission-landing.css'
+import '../styles/pages/submission-logo-cover.css'
 import '../styles/pages/event-landing-motion.css'
 
 function formatEventDate(event, locale) {
@@ -35,9 +42,12 @@ function copyFor(locale) {
         back: 'Back to calendar',
         eyebrow: 'PLU ARG presents',
         comingSoon: 'In progress',
-        comingSoonTitle: 'Registration will open soon.',
-        comingSoonLead:
-          'The event is already underway. Official information will be published here as it is confirmed.',
+        comingSoonTitle: 'We are building this page.',
+        comingSoonLead: 'Official information is published here as it is confirmed.',
+        building: 'Building the page',
+        registerOpen: 'Registration open',
+        registerReady: 'Registration is already open.',
+        form: 'Fill in the form',
         published: 'Official event',
         overview: 'The event',
         overviewFallback:
@@ -56,14 +66,22 @@ function copyFor(locale) {
         information: 'View event information',
         officialInfo: 'Official information',
         materials: 'Updates and materials',
+        buildEyebrow: 'Official page',
+        buildTitle: 'We are building the official tournament page.',
+        buildQuiet: 'We are building',
+        buildStrong: 'the official',
+        buildClose: 'tournament page.',
       }
     : {
         back: 'Volver al calendario',
         eyebrow: 'PLU ARG presenta',
         comingSoon: 'En preparación',
-        comingSoonTitle: 'Las inscripciones abren próximamente.',
-        comingSoonLead:
-          'El evento ya está en marcha. La información oficial se publicará acá a medida que se confirme.',
+        comingSoonTitle: 'Estamos armando esta página.',
+        comingSoonLead: 'La información oficial se publica acá a medida que se confirma.',
+        building: 'Armando la página',
+        registerOpen: 'Inscripción abierta',
+        registerReady: 'La inscripción ya está abierta.',
+        form: 'Responder el formulario',
         published: 'Evento oficial',
         overview: 'El evento',
         overviewFallback:
@@ -82,7 +100,23 @@ function copyFor(locale) {
         information: 'Ver información del evento',
         officialInfo: 'Información oficial',
         materials: 'Novedades y materiales',
+        buildEyebrow: 'Página oficial',
+        buildTitle: 'Estamos construyendo la página oficial del torneo.',
+        buildQuiet: 'Estamos construyendo',
+        buildStrong: 'la página oficial',
+        buildClose: 'del torneo.',
       }
+}
+
+function CtaContent({ children }) {
+  return (
+    <>
+      <span>{children}</span>
+      <span className="submission-landing__cta-mark">
+        <ArrowRight aria-hidden className="submission-landing__cta-icon" size={16} strokeWidth={1.75} />
+      </span>
+    </>
+  )
 }
 
 /** Landing propia de Barbell Submission, separada del dossier de Pitbull. */
@@ -93,11 +127,18 @@ export default function SubmissionLandingPage({
   onSelectEvent,
   checkoutAvailability = null,
 }) {
-  const { locale } = useI18n()
+  const { locale, t } = useI18n()
+  const { reducedMotion } = useMotionConfig()
   const event = events.find((item) => item.slug === eventSlug) ?? null
   const landing = eventLandingFromEvent(event)
   const motion = normalizeLandingMotion(landing.layout?.motion)
   const mainRef = useRef(null)
+  const heroLogoRef = useRef(null)
+  const [dismissedSlug, setDismissedSlug] = useState(null)
+  const coverEnabled =
+    Boolean(event?.logoUrl) && motion !== 'none' && !reducedMotion && !prefersReducedMotion()
+  const coverActive = coverEnabled && dismissedSlug !== eventSlug
+  const paletteStyle = landingPaletteStyle(landing.layout, { withBackground: false })
   useRevealOnScroll(mainRef, motion, event?.slug)
   const copy = copyFor(locale)
   const comingSoon = landing.phase === 'coming_soon'
@@ -109,6 +150,7 @@ export default function SubmissionLandingPage({
   const registrationOpen = isEventRegistrationOpen(event, {
     registrationEnabled: checkoutAvailability?.registrationEnabled !== false,
   })
+  const externalForm = eventExternalForm(event)
   const experienceTitle = landing.slots.experienceTitle || copy.experience
   const experienceBody = landing.slots.experienceBody || copy.experienceFallback
   const categoriesTitle = landing.slots.categoriesTitle || copy.categories
@@ -124,12 +166,22 @@ export default function SubmissionLandingPage({
   return (
     <main
       ref={mainRef}
-      className="page submission-landing event-landing-theme"
+      className={`page submission-landing event-landing-theme${coverActive ? ' submission-landing--logo-cover' : ''}`}
       data-event-theme={landing.themeId}
       data-motion={motion}
       data-phase={landing.phase}
-      style={landingPaletteStyle(landing.layout, { withBackground: false })}
+      data-skip-route-morph={coverActive ? '' : undefined}
+      style={paletteStyle}
     >
+      {coverActive ? (
+        <SubmissionLogoCover
+          heroLogoRef={heroLogoRef}
+          logoUrl={event.logoUrl}
+          paletteStyle={paletteStyle}
+          themeId={landing.themeId}
+          onDone={() => setDismissedSlug(eventSlug)}
+        />
+      ) : null}
       <section className="submission-landing__hero">
         <img
           alt=""
@@ -149,6 +201,7 @@ export default function SubmissionLandingPage({
           <div className="submission-landing__identity">
             {event?.logoUrl ? (
               <img
+                ref={heroLogoRef}
                 alt={`Logo de ${title}`}
                 className="submission-landing__logo"
                 src={event.logoUrl}
@@ -157,15 +210,45 @@ export default function SubmissionLandingPage({
             <p>{copy.eyebrow}</p>
             <h1>{title}</h1>
             {lead ? <p className="submission-landing__lead">{lead}</p> : null}
+            {registrationOpen ? (
+              <button className="submission-landing__cta" type="button" onClick={openRegistration}>
+                <CtaContent>{landing.slots.ctaLabel || copy.register}</CtaContent>
+              </button>
+            ) : null}
           </div>
           {comingSoon ? (
-            <div className="submission-landing__progress" role="status">
-              <Sparkles aria-hidden size={19} />
-              <div>
-                <span>{copy.comingSoon}</span>
-                <strong>{copy.comingSoonTitle}</strong>
+            <div className="submission-landing__progress">
+              <div className="submission-landing__progress-copy" role="status">
+                <span>{registrationOpen ? copy.registerOpen : copy.comingSoon}</span>
+                <strong>{registrationOpen ? copy.registerReady : copy.comingSoonTitle}</strong>
                 <p>{copy.comingSoonLead}</p>
+                {externalForm.url ? (
+                  <div className="submission-landing__progress-actions">
+                    <a
+                      className={
+                        registrationOpen
+                          ? 'submission-landing__form'
+                          : 'submission-landing__cta'
+                      }
+                      href={externalForm.url}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      {registrationOpen ? (
+                        externalForm.label || copy.form
+                      ) : (
+                        <CtaContent>{externalForm.label || copy.form}</CtaContent>
+                      )}
+                    </a>
+                  </div>
+                ) : null}
               </div>
+              <ConstructionScene
+                interactive={false}
+                motion={motion}
+                statusLabel={registrationOpen ? copy.registerOpen : copy.building}
+                t={t}
+              />
             </div>
           ) : null}
           <a className="submission-landing__hero-action" href="#submission-information">
@@ -183,7 +266,7 @@ export default function SubmissionLandingPage({
       >
         <div className="submission-landing__details-inner" data-scene-content="">
           <div className="submission-landing__copy">
-            <p>{comingSoon ? copy.comingSoon : copy.published}</p>
+            <p>{comingSoon ? (registrationOpen ? copy.registerOpen : copy.comingSoon) : copy.published}</p>
             <h2>{overviewTitle}</h2>
             <p>{locationBody}</p>
           </div>
@@ -217,10 +300,50 @@ export default function SubmissionLandingPage({
             ) : null}
           </dl>
           <button className="submission-landing__cta" type="button" onClick={openRegistration}>
-            {registrationOpen ? landing.slots.ctaLabel || copy.register : copy.calendar}
+            <CtaContent>
+              {registrationOpen ? landing.slots.ctaLabel || copy.register : copy.calendar}
+            </CtaContent>
           </button>
         </div>
       </section>
+
+      {comingSoon ? (
+        <section className="submission-landing__build" aria-label={copy.buildTitle} data-scene="">
+          <div className="submission-landing__build-inner" data-scene-content="">
+            <div className="submission-landing__lockup">
+              {event?.logoUrl ? (
+                <img
+                  alt={`Logo de ${title}`}
+                  className="submission-landing__lockup-event"
+                  src={event.logoUrl}
+                />
+              ) : null}
+              {event?.logoUrl ? (
+                <span aria-hidden="true" className="submission-landing__lockup-mark">
+                  ×
+                </span>
+              ) : null}
+              <img
+                alt={BRAND.logoArgentinaAlt}
+                className="submission-landing__lockup-plu"
+                decoding="async"
+                height="180"
+                src={BRAND.appleTouchIconUrl}
+                width="180"
+              />
+            </div>
+            <div className="submission-landing__build-copy">
+              <p>{copy.buildEyebrow}</p>
+              <h2>
+                <span className="submission-landing__build-quiet">{copy.buildQuiet}</span>{' '}
+                <span className="submission-landing__build-strong">{copy.buildStrong}</span>{' '}
+                <span className="submission-landing__build-strong">{copy.buildClose}</span>
+              </h2>
+              <p>{copy.comingSoonLead}</p>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="submission-landing__story" aria-label={copy.officialInfo} data-scene="">
         <div className="submission-landing__story-inner" data-scene-content="">
@@ -238,7 +361,7 @@ export default function SubmissionLandingPage({
       </section>
 
       <section className="submission-landing__materials" aria-label={copy.materials} data-scene="">
-        <EventPublicMaterials event={event} />
+        <EventPublicMaterials event={event} hideEmptyRecent />
       </section>
     </main>
   )

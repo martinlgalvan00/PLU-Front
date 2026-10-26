@@ -143,6 +143,32 @@ describe('morphNavigate', () => {
     expect(container.style.display).toBe('')
   })
 
+  it('un h1 dentro de data-skip-route-morph no recibe nombre de transición', async () => {
+    const oldPage = page('home', 'Calendario')
+    const source = sized(document.createElement('span'), 120, 20)
+    source.textContent = 'Barbell Submission'
+    oldPage.append(source)
+    document.body.append(oldPage)
+
+    const started = performance.now()
+    morphNavigate(source, () => {
+      const landing = page('landing', 'Barbell Submission')
+      const main = document.createElement('main')
+      main.setAttribute('data-skip-route-morph', '')
+      const heading = landing.querySelector('h1')
+      main.append(heading)
+      landing.append(main)
+      document.body.append(landing)
+    })
+    await finishTransition()
+
+    expect(performance.now() - started).toBeLessThan(200)
+    expect(transitionNames).toEqual([])
+    expect(document.querySelector('#landing h1').style.viewTransitionName).toBe('')
+    expect(oldPage.style.display).toBe('none')
+    expect(isRouteMorphing()).toBe(false)
+  })
+
   it('si la página nueva no muestra un h1 a tiempo, termina sin par y sin ocultar nada', async () => {
     vi.useFakeTimers()
     const oldPage = page('home', 'Inicio')

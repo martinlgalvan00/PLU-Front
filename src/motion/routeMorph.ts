@@ -7,7 +7,14 @@
  * montadas a la vez (`RouteTransition` usa `AnimatePresence mode="wait"` y las
  * landings son lazy). Es genérico a propósito: el destino es el primer `h1`
  * de la página nueva, sea cual sea la plantilla (Constructor, editorial,
- * submission, en construcción), así que ninguna plantilla tiene que cablearlo.
+ * submission, en construcción).
+ *
+ * Una landing puede pedir que ese título no viaje (`data-skip-route-morph` en
+ * un ancestro del h1). La portada de logo de Submission es la entrada, y el
+ * grupo del título quedaría encima del velo. En ese caso no se asigna nombre
+ * y el callback cierra con el primer h1, sin esperar el timeout. Si la página
+ * saliente vive en otro contenedor, se oculta igual para que el fundido
+ * muestre la portada.
  *
  * Sin soporte, con movimiento reducido o en tier 'low' se navega igual que
  * siempre. Si el destino no aparece a tiempo, la transición termina como un
@@ -115,7 +122,8 @@ export function morphNavigate(
     source.style.viewTransitionName = ''
     await navigate()
     target = await waitForTarget(headingsBefore)
-    if (target) target.style.viewTransitionName = MORPH_NAME
+    const skipTitleMorph = Boolean(target?.closest('[data-skip-route-morph]'))
+    if (target && !skipTitleMorph) target.style.viewTransitionName = MORPH_NAME
     // `RouteTransition` monta la página nueva junto a la saliente durante el
     // morph (sin rAF, la salida animada de Motion no termina hasta que la
     // transición suelta el pintado). La saliente ya está en la captura vieja:

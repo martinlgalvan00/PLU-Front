@@ -29,6 +29,7 @@ import {
   MOTION_EASE,
   MOTION_STAGGER_BY_TIER,
   SHOWCASE_TILT_MAX_DEG,
+  scaleDuration,
 } from '../../motion/tokens.ts'
 import {
   heroActionsItem,
@@ -93,6 +94,13 @@ export default function HeroSection({
   const [titleLineVariants] = useState(() =>
     tier !== 'low' && hasFinePointer() ? heroTitleLineWipe : heroTitleLine,
   )
+  // El díptico anima sus propios carriles al montar (también cuando el
+  // catálogo llega después). Este wrapper no se desplaza: si no, el texto
+  // entra dos veces y, si el tier cambia a mitad, puede quedar invisible.
+  const [seasonProofRest] = useState(() => ({
+    hidden: { opacity: 1, y: 0 },
+    visible: { opacity: 1, y: 0, transition: { duration: scaleDuration(MOTION_DURATION.instant, tier) } },
+  }))
   const eventStatus = getPublicEventStatus(event, new Date(), { registrationEnabled })
   const registrationCheckoutOpen = isPaidCheckoutOpen(event, env, new Date(), {
     checkoutKind: 'registration',
@@ -331,7 +339,7 @@ export default function HeroSection({
                 className="hero__proof"
                 initial="hidden"
                 animate="visible"
-                variants={heroProofItem}
+                variants={seasonActions.length > 0 ? seasonProofRest : heroProofItem}
               >
                 {proofBody}
               </m.div>

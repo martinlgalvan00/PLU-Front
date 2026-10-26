@@ -500,7 +500,6 @@
 }
 
 .event-card[role='button']:active,
-.home-season-actions__lane:active,
 .hero-meta--action:active {
   scale: 0.985;
 }
@@ -532,7 +531,6 @@
 
   /* Sin escala: la respuesta al toque pasa a ser un leve atenuado. */
   .event-card[role='button']:active,
-  .home-season-actions__lane:active,
   .hero-meta--action:active {
     opacity: 0.86;
     scale: none;

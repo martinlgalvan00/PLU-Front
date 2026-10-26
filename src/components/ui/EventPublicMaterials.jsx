@@ -73,7 +73,12 @@ function ExternalFormBlock({ form }) {
  * Material operativo que puede aparecer en la ficha pública de cualquier
  * evento. Cada bloque se carga solo cuando el administrador lo habilitó.
  */
-export default function EventPublicMaterials({ className = '', event, includeSchedule = true }) {
+export default function EventPublicMaterials({
+  className = '',
+  event,
+  includeSchedule = true,
+  hideEmptyRecent = false,
+}) {
   const { locale, t } = useI18n()
   const eventSlug = event?.slug ?? ''
   const showSchedule = includeSchedule && eventShowsPublicSchedule(event)
@@ -85,7 +90,8 @@ export default function EventPublicMaterials({ className = '', event, includeSch
 
   const visibleRecent = recent.slice(0, MAX_RECENT_REGISTRANTS)
   const renderSchedule = showSchedule && schedule.hasContent
-  const renderRecent = showRecentRegistrants
+  const renderRecent =
+    showRecentRegistrants && (!hideEmptyRecent || visibleRecent.length > 0)
   const externalForm = eventExternalForm(event)
   const renderForm = Boolean(externalForm.url)
 

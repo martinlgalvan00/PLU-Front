@@ -1,12 +1,26 @@
 .submission-landing {
-  background: var(--color-bg, #0d0f12);
-  color: var(--color-text, #f6f7f8);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
   min-height: 100dvh;
 }
 
+/* `.page` trae padding y, en dark, el canvas del shell lo deja transparente.
+   Sin esto el hero no llega al borde ni pinta el fondo del tema. */
+.app-shell main.submission-landing.page.event-landing-theme {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  padding: 0;
+}
+
 .submission-landing__hero {
+  /* Texto claro sobre la foto, en los dos temas. La escena lee estos tokens. */
+  --color-text: var(--plu-ink-inverse);
+  --color-text-secondary: color-mix(in srgb, var(--plu-ink-inverse) 72%, transparent);
+  --color-border: color-mix(in srgb, var(--plu-ink-inverse) 16%, transparent);
+  --color-border-subtle: color-mix(in srgb, var(--plu-ink-inverse) 24%, transparent);
+  color: var(--plu-ink-inverse);
   isolation: isolate;
-  min-height: min(720px, 76dvh);
+  min-height: calc(100dvh - var(--header-height));
   overflow: hidden;
   position: relative;
 }
@@ -26,7 +40,7 @@
 }
 
 .submission-landing__hero-shade {
-  background: rgba(9, 11, 14, 0.72);
+  background: color-mix(in srgb, var(--plu-cool-950) 72%, transparent);
   z-index: -1;
 }
 
@@ -42,7 +56,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: min(720px, 76dvh);
+  min-height: calc(100dvh - var(--header-height));
   padding-bottom: clamp(40px, 7vw, 96px);
   padding-top: clamp(24px, 4vw, 52px);
 }
@@ -61,7 +75,7 @@
 }
 
 .submission-landing__hero-action:hover {
-  color: var(--color-text, #f6f7f8);
+  color: var(--plu-ink-inverse);
 }
 
 .submission-landing__back {
@@ -98,7 +112,8 @@
 
 .submission-landing__identity > p:first-of-type,
 .submission-landing__copy > p:first-child,
-.submission-landing__progress span,
+.submission-landing__build-copy > p:first-child,
+.submission-landing__progress-copy > span,
 .submission-landing__facts dt {
   color: var(--event-accent);
   font-size: 12px;
@@ -118,48 +133,159 @@
 }
 
 .submission-landing__lead {
-  color: color-mix(in srgb, currentColor 76%, transparent);
+  color: var(--color-text-secondary);
   font-size: clamp(17px, 2.1vw, 22px);
   line-height: 1.45;
   margin: 0;
   max-width: 58ch;
 }
 
+.submission-landing__identity .submission-landing__cta {
+  align-self: start;
+  margin-top: 28px;
+}
+
 .submission-landing__progress {
-  align-items: flex-start;
-  border-left: 2px solid var(--event-accent);
-  display: flex;
-  gap: 14px;
-  margin-top: 42px;
-  max-width: 650px;
-  padding: 5px 0 5px 16px;
+  align-items: center;
+  display: grid;
+  gap: clamp(24px, 4vw, 48px);
+  grid-template-columns: minmax(0, 0.9fr) minmax(280px, 1.1fr);
+  margin-top: clamp(28px, 4vw, 48px);
+  width: 100%;
 }
 
-.submission-landing__progress > svg {
-  color: var(--event-accent);
-  flex: none;
-  margin-top: 3px;
-}
-
-.submission-landing__progress div {
+.submission-landing__progress-copy {
   display: grid;
   gap: 6px;
+  max-width: 36rem;
 }
 
-.submission-landing__progress strong {
+.submission-landing__progress-copy strong {
   font-family: var(--font-display, var(--font-family));
   font-size: clamp(22px, 3vw, 32px);
   line-height: 1.1;
 }
 
-.submission-landing__progress p {
-  color: color-mix(in srgb, currentColor 72%, transparent);
+.submission-landing__progress-copy p {
+  color: var(--color-text-secondary);
   line-height: 1.45;
   margin: 0;
 }
 
+.submission-landing__progress-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-top: 8px;
+}
+
+.submission-landing__progress-actions .submission-landing__cta {
+  align-self: auto;
+}
+
+a.submission-landing__cta {
+  align-items: center;
+  display: inline-flex;
+  text-decoration: none;
+}
+
+.submission-landing__form {
+  align-items: center;
+  color: var(--plu-ink-inverse);
+  display: inline-flex;
+  font-weight: 700;
+  min-height: 44px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.submission-landing__form:hover {
+  color: var(--event-accent);
+}
+
 .submission-landing__details {
-  border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-top: 1px solid var(--color-border);
+}
+
+.submission-landing__build {
+  border-top: 1px solid var(--color-border);
+}
+
+.submission-landing__build-inner {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(32px, 5vw, 56px);
+  margin: 0 auto;
+  max-width: 920px;
+  padding: clamp(72px, 10vw, 128px) clamp(24px, 5vw, 72px);
+  text-align: center;
+}
+
+.submission-landing__lockup {
+  align-items: center;
+  display: flex;
+  gap: clamp(20px, 3.5vw, 40px);
+  justify-content: center;
+}
+
+.submission-landing__lockup-event,
+.submission-landing__lockup-plu {
+  display: block;
+  flex: none;
+  height: clamp(92px, 14vw, 128px);
+  object-fit: contain;
+  width: clamp(92px, 14vw, 128px);
+}
+
+.submission-landing__lockup-mark {
+  color: var(--color-text-secondary);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 300;
+  line-height: 1;
+}
+
+.submission-landing__build-copy {
+  display: grid;
+  justify-items: center;
+}
+
+.submission-landing__build-copy h2 {
+  font-family: var(--font-display, var(--font-family));
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 0.94;
+  margin: 18px 0 0;
+}
+
+.submission-landing__build-quiet {
+  color: var(--color-text-secondary);
+  display: block;
+  font-size: clamp(16px, 1.8vw, 22px);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.3;
+  margin-bottom: 14px;
+}
+
+.submission-landing__build-strong {
+  display: block;
+  font-size: clamp(44px, 6.4vw, 80px);
+  font-weight: 600;
+  letter-spacing: -0.055em;
+  line-height: 0.92;
+}
+
+.submission-landing__build-copy > p:last-child {
+  color: var(--color-text-secondary);
+  font-size: clamp(16px, 1.6vw, 19px);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.55;
+  margin: 28px 0 0;
+  max-width: 34ch;
 }
 
 .submission-landing__details-inner {
@@ -177,9 +303,9 @@
 }
 
 .submission-landing__story {
-  background: color-mix(in srgb, var(--color-text, #f6f7f8) 3%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent);
-  border-top: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border);
 }
 
 .submission-landing__story-inner {
@@ -192,7 +318,7 @@
 }
 
 .submission-landing__story article + article {
-  border-left: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-left: 1px solid var(--color-border);
   padding-left: clamp(28px, 5vw, 80px);
 }
 
@@ -214,7 +340,7 @@
 }
 
 .submission-landing__story article > p:last-child {
-  color: color-mix(in srgb, currentColor 72%, transparent);
+  color: var(--color-text-secondary);
   line-height: 1.55;
   margin: 0;
   max-width: 48ch;
@@ -228,7 +354,7 @@
 }
 
 .submission-landing__copy > p:last-child {
-  color: color-mix(in srgb, currentColor 70%, transparent);
+  color: var(--color-text-secondary);
   line-height: 1.55;
   margin: 0;
   max-width: 52ch;
@@ -241,7 +367,7 @@
 }
 
 .submission-landing__facts div {
-  border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-top: 1px solid var(--color-border);
   padding-top: 12px;
 }
 
@@ -258,28 +384,77 @@
 }
 
 .submission-landing__cta {
+  align-items: center;
   align-self: end;
   background: var(--event-action);
-  border: 0;
-  border-radius: 5px;
+  border: 1px solid color-mix(in oklab, var(--event-action-text) 16%, var(--event-action));
+  border-radius: 2px;
+  box-shadow: inset 0 1px 0 color-mix(in oklab, #fff 48%, transparent);
   color: var(--event-action-text);
   cursor: pointer;
+  display: inline-flex;
   font: inherit;
-  font-weight: 800;
-  min-height: 46px;
-  padding: 0 22px;
+  font-size: 15px;
+  font-weight: 650;
+  gap: 18px;
+  justify-content: space-between;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  min-height: 56px;
+  min-width: 196px;
+  padding: 0 18px 0 22px;
+  transition:
+    background var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
   white-space: nowrap;
+}
+
+.submission-landing__cta-mark {
+  align-items: center;
+  border-left: 1px solid color-mix(in oklab, currentColor 24%, transparent);
+  display: inline-flex;
+  flex: none;
+  padding-left: 14px;
+}
+
+.submission-landing__cta-icon {
+  display: block;
+  flex: none;
+  transition: transform var(--motion-fast) var(--ease-emphasized);
 }
 
 .submission-landing__cta:hover {
   background: var(--event-action-hover);
+  border-color: color-mix(in oklab, var(--event-action-text) 10%, var(--event-action-hover));
+  box-shadow: inset 0 1px 0 color-mix(in oklab, #fff 46%, transparent);
+  transform: translateY(-1px);
+}
+
+.submission-landing__cta:hover .submission-landing__cta-icon,
+.submission-landing__cta:focus-visible .submission-landing__cta-icon {
+  transform: translateX(3px);
+}
+
+.submission-landing__cta:active {
+  box-shadow: inset 0 1px 0 color-mix(in oklab, #000 16%, transparent);
+  transform: translateY(0);
 }
 
 .submission-landing__back:focus-visible,
 .submission-landing__cta:focus-visible,
+.submission-landing__form:focus-visible,
 .submission-landing__hero-action:focus-visible {
   outline: 2px solid var(--event-accent);
   outline-offset: 4px;
+}
+
+@media (max-width: 900px) {
+  .submission-landing__progress {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 780px) {
@@ -297,19 +472,102 @@
 
   .submission-landing__story article + article {
     border-left: 0;
-    border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+    border-top: 1px solid var(--color-border);
     padding-left: 0;
     padding-top: 32px;
   }
 }
 
 @media (max-width: 480px) {
-  .submission-landing__hero,
-  .submission-landing__hero-inner {
-    min-height: 640px;
-  }
-
   .submission-landing__logo {
     height: 54px;
+  }
+}
+
+/* Los sellos se encuentran una sola vez. Sin loop: el estado de obra ya
+   lo dice el texto. Se apaga con motion none, gama baja o reduced-motion. */
+@keyframes submission-lockup-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--motion-enter-x) * -1.75));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes submission-lockup-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--motion-enter-x) * 1.75));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes submission-lockup-mark {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.event-landing-theme[data-motion='soft'] .submission-landing__lockup-event,
+.event-landing-theme[data-motion='bold'] .submission-landing__lockup-event,
+.event-landing-theme[data-motion='depth'] .submission-landing__lockup-event {
+  animation: submission-lockup-from-left var(--motion-slow) var(--ease-cinematic) backwards;
+}
+
+.event-landing-theme[data-motion='soft'] .submission-landing__lockup-plu,
+.event-landing-theme[data-motion='bold'] .submission-landing__lockup-plu,
+.event-landing-theme[data-motion='depth'] .submission-landing__lockup-plu {
+  animation: submission-lockup-from-right var(--motion-slow) var(--ease-cinematic) backwards;
+}
+
+.event-landing-theme[data-motion='soft'] .submission-landing__lockup-mark,
+.event-landing-theme[data-motion='bold'] .submission-landing__lockup-mark,
+.event-landing-theme[data-motion='depth'] .submission-landing__lockup-mark {
+  animation: submission-lockup-mark var(--motion-base) var(--ease-cinematic) 140ms backwards;
+}
+
+.event-landing-theme [data-reveal='hidden'] .submission-landing__lockup-event,
+.event-landing-theme [data-reveal='hidden'] .submission-landing__lockup-plu,
+.event-landing-theme [data-reveal='hidden'] .submission-landing__lockup-mark {
+  animation: none;
+}
+
+[data-motion-tier='low'] .event-landing-theme .submission-landing__lockup-event,
+[data-motion-tier='low'] .event-landing-theme .submission-landing__lockup-plu,
+[data-motion-tier='low'] .event-landing-theme .submission-landing__lockup-mark {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .submission-landing__cta,
+  .submission-landing__cta-icon {
+    transition: none;
+  }
+
+  .submission-landing__cta:hover,
+  .submission-landing__cta:active,
+  .submission-landing__cta:hover .submission-landing__cta-icon,
+  .submission-landing__cta:focus-visible .submission-landing__cta-icon {
+    transform: none;
+  }
+
+  .event-landing-theme[data-motion] .submission-landing__lockup-event,
+  .event-landing-theme[data-motion] .submission-landing__lockup-plu,
+  .event-landing-theme[data-motion] .submission-landing__lockup-mark {
+    animation: none;
   }
 }
