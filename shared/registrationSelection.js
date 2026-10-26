@@ -16,6 +16,7 @@ import {
   normalizeCompetitionDivision,
   todayCalendarDate,
 } from './ageDivision.js'
+import { EQUIPMENT_TYPES } from './competitionLexicon.js'
 
 /** La segunda división paga esta fracción del precio de la primera. */
 export const SECOND_DIVISION_PRICE_RATIO = 0.5
@@ -27,6 +28,8 @@ export const REGISTRATION_MODALITIES = Object.freeze([
   'bench',
   'deadlift',
 ])
+
+export const REGISTRATION_CATEGORIES = Object.freeze([...EQUIPMENT_TYPES])
 
 const FULL_POWER = 'full_power'
 
@@ -85,14 +88,40 @@ export function secondDivisionSurcharge(basePrice) {
  * Importes a cobrar para la selección: precio de lista (Mercado Pago / Wise) y
  * precio del canal manual, cada uno con su propio 50%.
  */
-export function priceRegistrationSelection({ basePrice, manualPrice = null, secondary = '' } = {}) {
+export function registrationCategoryCount(input) {
+  const raw = Array.isArray(input) ? input : input ? [input] : []
+  const selected = new Set(raw.map((item) => String(item ?? '').trim()))
+  return Math.max(1, REGISTRATION_CATEGORIES.filter((item) => selected.has(item)).length)
+}
+
+/** Lista canónica de categorías, sin repetidos ni valores fuera del catálogo. */
+export function normalizeRegistrationCategories(input) {
+  const raw = Array.isArray(input) ? input : input ? [input] : []
+  const selected = new Set(raw.map((item) => String(item ?? '').trim()))
+  return REGISTRATION_CATEGORIES.filter((item) => selected.has(item))
+}
+
+/**
+ * Precio de inscripción. En Submission cada categoría elegida representa una
+ * participación independiente, por eso multiplica tanto la base como una
+ * eventual segunda división.
+ */
+export function priceRegistrationSelection({
+  basePrice,
+  manualPrice = null,
+  secondary = '',
+  categoryCount = 1,
+} = {}) {
+  const multiplier = Math.max(1, Number(categoryCount) || 1)
   const hasSecond = Boolean(secondary)
-  const surcharge = hasSecond ? secondDivisionSurcharge(basePrice) : 0
+  const base = Number(basePrice) * multiplier
+  const surcharge = hasSecond ? secondDivisionSurcharge(base) : 0
   const hasManual = manualPrice !== null && manualPrice !== undefined
-  const manualSurcharge = hasSecond && hasManual ? secondDivisionSurcharge(manualPrice) : 0
+  const manualBase = hasManual ? Number(manualPrice) * multiplier : null
+  const manualSurcharge = hasSecond && hasManual ? secondDivisionSurcharge(manualBase) : 0
   return {
-    defaultPrice: Number(basePrice) + surcharge,
-    manualPrice: hasManual ? Number(manualPrice) + manualSurcharge : null,
+    defaultPrice: base + surcharge,
+    manualPrice: hasManual ? manualBase + manualSurcharge : null,
     surcharge,
     manualSurcharge,
   }

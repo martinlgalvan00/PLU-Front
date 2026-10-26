@@ -178,6 +178,10 @@ function toCamelRegistrationEntry({ registration, event, checkIn, schedule }) {
     eventStartsAt: event?.starts_at ?? registration.event_starts_at ?? null,
     eventEndsAt: event?.ends_at ?? registration.event_ends_at ?? null,
     category: registration.category,
+    categories: [
+      registration.category,
+      ...(registration.additional_categories ?? registration.additionalCategories ?? []),
+    ].filter(Boolean),
     division: registration.division,
     secondaryDivision: registration.secondary_division ?? registration.secondaryDivision ?? '',
     modalities: registration.modalities ?? ['full_power'],
@@ -720,6 +724,7 @@ export async function createCompetitionRegistration({
   secondaryDivision,
   modalities,
   category,
+  categories,
   bodyweightKg,
   declaredWeightClass,
   paymentMethod,
@@ -733,6 +738,7 @@ export async function createCompetitionRegistration({
     secondaryDivision: secondaryDivision || undefined,
     modalities: modalities?.length ? modalities : undefined,
     category,
+    categories: categories?.length ? categories : undefined,
     bodyweightKg,
     declaredWeightClass,
     paymentMethod,
@@ -772,6 +778,7 @@ export async function previewDiscountCode({
   eventSlug,
   paymentMethod,
   secondaryDivision,
+  categories,
 } = {}) {
   const result = await apiPost('/api/athletes/me/discount-preview', {
     code,
@@ -780,6 +787,7 @@ export async function previewDiscountCode({
     eventSlug: eventSlug || undefined,
     // La segunda división suma el 50% a la base sobre la que se cotiza el cupón.
     secondaryDivision: secondaryDivision || undefined,
+    categories: categories?.length ? categories : undefined,
     // Sin el canal, el servidor calcula el ahorro sobre el precio de catálogo
     // y muestra un número distinto al que se cobra durante la ventana Pitbull.
     paymentMethod: paymentMethod || undefined,
@@ -932,6 +940,7 @@ export async function createCompetitionRegistrationCombo({
   secondaryDivision,
   modalities,
   category,
+  categories,
   bodyweightKg,
   declaredWeightClass,
   paymentMethod,
@@ -947,6 +956,7 @@ export async function createCompetitionRegistrationCombo({
     secondaryDivision: secondaryDivision || undefined,
     modalities: modalities?.length ? modalities : undefined,
     category,
+    categories: categories?.length ? categories : undefined,
     bodyweightKg,
     declaredWeightClass,
     paymentMethod,

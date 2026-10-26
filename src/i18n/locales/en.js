@@ -3997,6 +3997,7 @@ export default {
       divisionsEventOpenOnly: 'This event only offers Open for your age.',
       modality: 'Event type',
       modalityHint: 'Choose one or more. Combining them has no extra cost.',
+      categoryMultipleHint: 'Choose more than one. Each category adds the price of one registration.',
       modalityOptions: {
         full_power: 'Full Power',
         push_pull: 'Push-Pull',

@@ -78,7 +78,9 @@ export function buildAdminExportRows(registrations, athletes, memberships, payme
       division_open_upgrade: divisionFields.divisionOpenUpgrade ? '1' : '',
       segunda_division: registration.secondaryDivision ?? '',
       modalidades: formatModalities(registration.modalities),
-      categoria: registration.category ?? '',
+      categoria: (registration.categories?.length ? registration.categories : [registration.category])
+        .filter(Boolean)
+        .join(' + '),
       peso: registration.bodyweight ?? '',
       codigo_afiliado: membership?.memberCode ?? '',
       estado_afiliacion: membership?.status ?? '',
@@ -125,7 +127,10 @@ export function buildPluUsaExportRows(athletes, memberships, registrations) {
       division_entered: divisionFields.divisionDeclared,
       division_mismatch: divisionFields.divisionMismatch ? '1' : '',
       division_open_upgrade: divisionFields.divisionOpenUpgrade ? '1' : '',
-      category: registration?.category || athlete.category || '',
+      category:
+        (registration?.categories?.length ? registration.categories : [registration?.category])
+          .filter(Boolean)
+          .join(' + ') || athlete.category || '',
       bodyweight: registration?.bodyweight || athlete.estimatedWeight || '',
       membership_year: membership?.year || '2026',
       membership_status: membership?.status || '',
