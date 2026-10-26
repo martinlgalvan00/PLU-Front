@@ -261,7 +261,9 @@ describe('RegisterPage — modalidad', () => {
     for (const name of [/push-pull/i, /especialista en sentadilla/i, /especialista en banco/i, /especialista en peso muerto/i]) {
       expect(within(group).getByRole('checkbox', { name }).checked).toBe(false)
     }
-    expect(screen.getByText(/combinarlas no tiene costo extra/i)).toBeTruthy()
+    // Cada modalidad además de Full Power suma el 50% de la inscripción.
+    expect(screen.getByText(/cada modalidad extra suma \$\s?37\.500/i)).toBeTruthy()
+    expect(within(group).getByRole('checkbox', { name: /especialista en banco · \+\$\s?37\.500/i })).toBeTruthy()
   })
 
   it('el campo de equipamiento se llama Categoría de competencia', () => {
@@ -269,7 +271,7 @@ describe('RegisterPage — modalidad', () => {
     expect(screen.getByRole('radiogroup', { name: /^Categoría de competencia$/i })).toBeTruthy()
   })
 
-  it('marcar una especialidad la suma y no cambia el total', () => {
+  it('marcar una especialidad la suma a Full Power', () => {
     const onUpdateForm = vi.fn()
     renderCompetition({ onUpdateForm })
     fireEvent.click(screen.getByRole('checkbox', { name: /especialista en banco/i }))
@@ -277,7 +279,18 @@ describe('RegisterPage — modalidad', () => {
       name: 'modalities',
       value: ['full_power', 'bench'],
     })
+  })
+
+  it('Full Power + una especialidad suma el 50% y lo desglosa', () => {
+    renderCompetition({ form: { modalities: ['full_power', 'bench'] } })
+    expect(screen.getAllByText(/112\.500/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Modalidades extra · 1 × 50%').length).toBeGreaterThan(0)
+  })
+
+  it('una especialidad sola, sin Full Power, no suma recargo', () => {
+    renderCompetition({ form: { modalities: ['bench'] } })
     expect(screen.queryByText(/112\.500/)).toBeNull()
+    expect(screen.queryByText(/Modalidades extra/)).toBeNull()
   })
 
   it('se puede ser especialista sin Full Power y en más de una', () => {
@@ -375,7 +388,11 @@ describe('RegisterPage — lo que ofrece el evento', () => {
     renderCompetition({ eventData: restricted })
     const group = screen.getByRole('group', { name: /^Modalidad$/i })
     const labels = within(group).getAllByRole('checkbox').map((box) => box.parentElement.textContent)
-    expect(labels).toEqual(['Full Power', 'Especialista en banco'])
+    // La libre lleva su recargo ("· +$ …"); acá importa qué se lista.
+    expect(labels.map((label) => label.replace(/ · \+.*$/, ''))).toEqual([
+      'Full Power',
+      'Especialista en banco',
+    ])
   })
 
   it('si el evento no ofrece su división por edad, solo queda Open', async () => {

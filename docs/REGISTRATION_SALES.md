@@ -55,11 +55,24 @@ En la portada, el carril de inscripción del hero (`getSeasonHomeActions`, que r
 e **Inscribirme** (va directo al formulario). Con la venta programada sale como "Inscripciones
 próximamente". Así la venta no espera a que la landing esté terminada.
 
+**Ocultar la landing ≠ ocultar el evento.** El ojo de la lista de eventos (y "Ocultar N" en la
+selección) cambia `published`: el evento sale del sitio y la venta queda bloqueada (`hidden`).
+Si el evento está vendiendo (o tiene la venta programada) la lista avisa antes y sugiere
+"En construcción", que es lo que hay que usar para vender sin la página lista.
+
 ## Datos obligatorios de la inscripción
 
 División, categoría, **modalidad**, categoría de peso y peso corporal
 (`shared/registrationRequirements.js`). Sin modalidad el servidor responde 422
-`MODALITY_REQUIRED` (antes la daba por Full Power). El formulario además valida categoría,
+`MODALITY_REQUIRED` (antes la daba por Full Power).
+
+Submission (plantilla `submission` o slug `barbell-submission*`) admite varias categorías en la
+misma inscripción (`categories`, cada una suma una inscripción); el resto de los eventos, una
+sola (422 `MULTIPLE_CATEGORIES_UNAVAILABLE`). El checkout manda las categorías que muestra
+marcadas, y el servidor rechaza un `categories` que no incluya `category` (422
+`CATEGORY_MISMATCH`) en vez de inscribir en otra categoría. Requiere la migración
+`20270101100000_submission_multi_categories.sql` (RPC `_v4`) aplicada **antes** de desplegar el
+servidor. El formulario además valida categoría,
 división y modalidad contra lo que ofrece el evento, con la misma regla que el servidor
 (`validateSelectionAgainstOffering`).
 

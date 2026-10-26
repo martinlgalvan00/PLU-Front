@@ -8,7 +8,9 @@
  * (exportar y leer el archivo) y la API (validar y aplicar). Puro, sin I/O.
  *
  * Se editan los datos competitivos que no mueven plata ni cupo: división,
- * categoría, modalidades (sin recargo), categoría de peso y peso corporal. La
+ * categoría, modalidades, categoría de peso y peso corporal. Ojo: desde oct 2026
+ * cada modalidad extra cuesta 50% más y la planilla no recotiza la orden; sumar
+ * una acá es una corrección del staff, no un cobro. La
  * segunda división cambia el precio (50%) y el estado pasa por Cobros: quedan
  * de solo lectura. Una celda editable vacía significa "no cambiar", nunca
  * "borrar": todos esos datos son obligatorios en una inscripción.

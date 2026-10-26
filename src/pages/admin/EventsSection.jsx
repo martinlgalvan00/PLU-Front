@@ -855,11 +855,33 @@ export default function EventsSection({
     )
   }
 
+  /**
+   * Ocultar un evento del sitio corta su venta (`hidden` bloquea el cobro).
+   * Para seguir vendiendo sin la página lista existe "En construcción", que
+   * oculta solo la landing: se avisa antes de cortar una venta abierta o
+   * programada. Es un aviso, no un bloqueo.
+   */
+  function confirmHideSelling(targets) {
+    const selling = targets.filter((row) => {
+      const { state } = resolveRegistrationSale(row)
+      return state === 'on_sale' || state === 'scheduled'
+    })
+    if (selling.length === 0) return true
+    return window.confirm(
+      [
+        t('admin.sections.events.hideSellingIntro', { count: selling.length }),
+        selling.map((row) => `• ${row.title}`).join('\n'),
+        t('admin.sections.events.hideSellingOutro'),
+      ].join('\n\n'),
+    )
+  }
+
   /** Publicar u ocultar un solo evento desde su fila, sin abrir la consola. */
   async function handleToggleVisibility(row) {
     if (!canEdit || !onSetEventState || visibilityBusyId) return
     const published = row.published === false
     if (published && !confirmPublishChecks([row])) return
+    if (!published && !confirmHideSelling([row])) return
     setVisibilityBusyId(row.id)
     setMessage(null)
     const { done, failed } = await setVisibilityFor([row], published)
@@ -891,6 +913,7 @@ export default function EventsSection({
       return
     }
     if (published && !confirmPublishChecks(targets)) return
+    if (!published && !confirmHideSelling(targets)) return
     setBulkBusy(true)
     setMessage(null)
     const { done, failed } = await setVisibilityFor(targets, published)

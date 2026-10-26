@@ -89,7 +89,8 @@ export const Inscripcion = {
 
 /**
  * Atleta Junior: elige su división por edad y/o Open (la segunda paga el 50%) y
- * combina modalidades sin recargo. El total ya incluye el 50% adicional.
+ * suma Banco a Full Power (cada modalidad extra paga el 50%). El total ya
+ * incluye los dos recargos: 75.000 + 37.500 + 37.500.
  */
 export const InscripcionDosDivisiones = {
   args: {
@@ -112,6 +113,8 @@ export const InscripcionDosDivisiones = {
     const divisions = canvas.getByRole('group', { name: /^Divisiones$/i })
     await expect(within(divisions).getByRole('checkbox', { name: /Open/ })).toBeChecked()
     await expect(canvas.getByRole('group', { name: /^Modalidad$/i })).toBeInTheDocument()
+    await expect(canvas.getAllByText(/Modalidades extra · 1 × 50%/).length).toBeGreaterThan(0)
+    await expect(canvas.getAllByText(/150\.000/).length).toBeGreaterThan(0)
   },
 }
 

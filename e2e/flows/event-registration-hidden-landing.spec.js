@@ -321,7 +321,9 @@ test.describe('atleta · inscripción desde la página en construcción', () => 
   }) => {
     const { api, checkout } = await startCheckout(page)
 
-    await checkout.getByRole('radio', { name: /raw with wraps/i }).check()
+    // Submission elige categorías con casillas: queda solo Raw With Wraps.
+    await checkout.getByRole('checkbox', { name: /raw with wraps/i }).check()
+    await checkout.getByRole('checkbox', { name: /^raw$/i }).uncheck()
     await checkout.getByRole('checkbox', { name: /banco/i }).check()
     await checkout.getByLabel(/peso corporal/i).fill('66')
     await checkout.getByLabel(/categoría de peso/i).selectOption('67,5')
@@ -337,6 +339,7 @@ test.describe('atleta · inscripción desde la página en construcción', () => 
       eventSlug: SUBMISSION_SLUG,
       division: 'Open',
       category: 'Raw With Wraps',
+      categories: ['Raw With Wraps'],
       modalities: ['full_power', 'bench'],
       declaredWeightClass: '67,5',
       bodyweightKg: 66,
@@ -449,7 +452,11 @@ test.describe('atleta · checkout de competencia', () => {
     })
     await checkout.getByLabel(/peso corporal/i).fill('66')
     await checkout.getByLabel(/categoría de peso/i).selectOption('67,5')
-    await page.getByRole('radio', { name: /efectivo/i }).first().check({ force: true })
+    // Click + toBeChecked, no `check()`: el radio es controlado y en dev el
+    // re-render tarda ~150 ms; `check()` mira el estado antes de que llegue.
+    const cash = page.getByRole('radio', { name: /efectivo/i }).first()
+    await cash.click({ force: true })
+    await expect(cash).toBeChecked()
     await page.getByRole('button', { name: /continuar al pago/i }).click()
 
     expect(api.registrationRequests[0].paymentMethod).toBe('cash_pitbull')
@@ -469,5 +476,131 @@ test.describe('atleta · checkout de competencia', () => {
     await expect(alert).toContainText('Elegí al menos una modalidad.')
     await expect(alert).toContainText('Ingresá tu peso corporal.')
     expect(api.registrationRequests).toHaveLength(0)
+  })
+})
+
+test.describe('atleta · categorías de competencia', () => {
+  function registrationPost(page) {
+    return page.waitForRequest(
+      (request) =>
+        request.url().endsWith('/api/athletes/me/registrations') && request.method() === 'POST',
+    )
+  }
+
+  async function fillWeight(checkout) {
+    await checkout.getByLabel(/peso corporal/i).fill('66')
+    await checkout.getByLabel(/categoría de peso/i).selectOption('67,5')
+  }
+
+  test('Submission: dos categorías cobran dos inscripciones y viajan las dos', async ({ page }) => {
+    const api = await mockApi(page, { athlete: athleteRow() })
+    await page.goto(`/evento/${SUBMISSION_SLUG}/inscripcion`)
+    await acceptCookies(page)
+    const checkout = page.locator('main')
+    await expect(checkout.getByRole('button', { name: /continuar al pago/i })).toBeVisible()
+
+    await checkout.getByRole('checkbox', { name: /raw with wraps/i }).check()
+    await expect(checkout).toContainText('$ 150.000')
+    await fillWeight(checkout)
+
+    const sent = registrationPost(page)
+    await checkout.getByRole('button', { name: /continuar al pago/i }).click()
+    const body = (await sent).postDataJSON()
+
+    expect(body.categories).toEqual(['Raw', 'Raw With Wraps'])
+    expect(body.categories).toContain(body.category)
+    expect(api.registrationRequests).toHaveLength(1)
+  })
+
+  test('evento común: se inscribe en la categoría elegida, no en la del formulario por defecto', async ({
+    page,
+  }) => {
+    await mockApi(page, { athlete: athleteRow() })
+    await page.goto(`/evento/${OPEN_SLUG}/inscripcion`)
+    await acceptCookies(page)
+    const checkout = page.locator('main')
+    await expect(checkout.getByRole('heading', { name: 'Winter Open' })).toBeVisible()
+    // Fuera de Submission la categoría es una sola: radio, no casillas.
+    await expect(checkout.getByRole('checkbox', { name: /raw with wraps/i })).toHaveCount(0)
+
+    const wraps = checkout.getByRole('radio', { name: /raw with wraps/i })
+    await wraps.click()
+    await expect(wraps).toBeChecked()
+    await fillWeight(checkout)
+
+    const sent = registrationPost(page)
+    await checkout.getByRole('button', { name: /continuar al pago/i }).click()
+    const body = (await sent).postDataJSON()
+
+    expect(body).toMatchObject({
+      eventSlug: OPEN_SLUG,
+      category: 'Raw With Wraps',
+      categories: ['Raw With Wraps'],
+    })
+  })
+})
+
+test.describe('atleta · división por edad, Open y modalidades extra', () => {
+  async function openJuniorCheckout(page) {
+    const api = await mockApi(page, {
+      athlete: athleteRow({ birth_date: '2006-05-10', division: 'Open' }),
+    })
+    await page.goto(`/evento/${SUBMISSION_SLUG}/inscripcion`)
+    await acceptCookies(page)
+    const checkout = page.locator('main')
+    await expect(checkout.getByRole('button', { name: /continuar al pago/i })).toBeVisible()
+    return { api, checkout }
+  }
+
+  test('arranca con su división por edad y Full Power, al precio base', async ({ page }) => {
+    const { checkout } = await openJuniorCheckout(page)
+
+    await expect(checkout.getByRole('checkbox', { name: /junior/i })).toBeChecked()
+    await expect(checkout.getByRole('checkbox', { name: /^open/i })).not.toBeChecked()
+    await expect(checkout.getByRole('checkbox', { name: /^full power/i })).toBeChecked()
+    // Cada opción que suma dice cuánto: Open y las modalidades libres, +50%.
+    await expect(checkout.getByRole('checkbox', { name: /^open · \+\$\s?37\.500/i })).toBeVisible()
+    await expect(checkout.getByRole('checkbox', { name: /banco · \+\$\s?37\.500/i })).toBeVisible()
+    await expect(checkout).toContainText('$ 75.000')
+  })
+
+  test('Open + Banco: cada uno suma el 50% de la base y la orden lleva los dos', async ({
+    page,
+  }) => {
+    const { api, checkout } = await openJuniorCheckout(page)
+
+    await checkout.getByRole('checkbox', { name: /^open/i }).check()
+    await checkout.getByRole('checkbox', { name: /banco/i }).check()
+
+    await expect(checkout.getByText('Segunda división · Open (50%)').first()).toBeVisible()
+    await expect(checkout.getByText('Modalidades extra · 1 × 50%').first()).toBeVisible()
+    await expect(checkout).toContainText('$ 150.000')
+
+    await checkout.getByLabel(/peso corporal/i).fill('66')
+    await checkout.getByLabel(/categoría de peso/i).selectOption('67,5')
+    const sent = page.waitForRequest(
+      (request) =>
+        request.url().endsWith('/api/athletes/me/registrations') && request.method() === 'POST',
+    )
+    await checkout.getByRole('button', { name: /continuar al pago/i }).click()
+    const body = (await sent).postDataJSON()
+
+    expect(body).toMatchObject({
+      eventSlug: SUBMISSION_SLUG,
+      division: 'Junior',
+      secondaryDivision: 'Open',
+      modalities: ['full_power', 'bench'],
+    })
+    expect(api.registrationRequests).toHaveLength(1)
+  })
+
+  test('cambiar Full Power por otra modalidad sola no suma recargo', async ({ page }) => {
+    const { checkout } = await openJuniorCheckout(page)
+
+    await checkout.getByRole('checkbox', { name: /banco/i }).check()
+    await checkout.getByRole('checkbox', { name: /^full power/i }).uncheck()
+
+    await expect(checkout.getByText(/Modalidades extra/)).toHaveCount(0)
+    await expect(checkout).not.toContainText('$ 112.500')
   })
 })

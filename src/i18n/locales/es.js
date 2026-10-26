@@ -3995,6 +3995,7 @@ export default {
       profileWelcomeCta: 'Ir a mi perfil',
       breakdownRegistration: 'Inscripción · {{division}}',
       breakdownSecondDivision: 'Segunda división · {{division}} (50%)',
+      breakdownExtraModalities: 'Modalidades extra · {{count}} × 50%',
       breakdownDiscount: 'Descuento',
       fixErrorsSummary: 'Revisá estos {{count}} datos antes de seguir:',
       profileWelcomeCtaResume: 'Continuar con la inscripción a {{event}}',
@@ -4047,7 +4048,10 @@ export default {
       divisionsOpenOnlyHint: 'Por tu edad competís en Open.',
       divisionsEventOpenOnly: 'Este evento solo ofrece Open para tu edad.',
       modality: 'Modalidad',
-      modalityHint: 'Elegí una o más. Combinarlas no tiene costo extra.',
+      modalityHint: 'Full Power viene marcada. Podés sumar otras: cada modalidad extra suma el 50% de la inscripción.',
+      modalityFeeHint:
+        'Full Power viene marcada. Podés sumar otras: cada modalidad extra suma {{amount}} (50% de la inscripción).',
+      modalityOptionFee: '{{modality}} · +{{amount}}',
       categoryMultipleHint:
         'Podés competir en más de una. Cada categoría suma el valor de una inscripción.',
       modalityOptions: {

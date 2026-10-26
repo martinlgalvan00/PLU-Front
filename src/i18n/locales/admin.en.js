@@ -1603,6 +1603,9 @@ export default {
       bulkPublishedMany: '{{count}} events published.',
       bulkHiddenOne: 'Event hidden.',
       bulkHiddenMany: '{{count}} events hidden.',
+      hideSellingIntro: 'Hiding from the site stops registration sales for:',
+      hideSellingOutro:
+        'To keep selling while you build the page, keep it published and choose Page → "What the public sees" → "Under construction". Hide it anyway?',
       bulkUndo: 'Undo',
       bulkNothing: 'The chosen events were already like that.',
       bulkPartial: '{{done}} of {{total}} changed. "{{title}}" failed: {{reason}}',

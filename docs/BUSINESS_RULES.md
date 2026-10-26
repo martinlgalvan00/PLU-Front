@@ -76,17 +76,23 @@ abre una segunda fila.
   `division` es la que paga el **100%** (la de la franja de edad, u Open si es la
   única) y `secondary_division` (siempre `Open`) paga el **50%**. Quien ya está en
   Open por edad no tiene segunda división.
-- **Precio.** `priceRegistrationSelection` (`shared/registrationSelection.js`)
-  suma el 50% sobre cada precio —lista y manual— y la ruta lo manda como
+- **Precio.** `priceRegistrationSelection` (`shared/registrationSelection.js`),
+  por categoría: base + 50% si suma Open + 50% por cada modalidad extra, todos
+  sobre la base (se suman, no se componen); en Submission se repite por cada
+  categoría. Aplica sobre cada precio —lista y manual— y la ruta lo manda como
   `defaultPrice` / `manualPrice`; la base lo fija en la misma transacción que crea
-  la orden. Wise suma el 50% de su importe en USD. El combo suma el 50% de la
-  inscripción suelta. Un cupón porcentual se calcula sobre el total con la
-  segunda división; un cupón de **precio fijo** cobra su precio fijo (no suma el
-  50%).
-- **Modalidad** (`modalities`): `full_power`, `push_pull`, `squat`, `bench`,
-  `deadlift` (especialistas), en **cualquier combinación y sin recargo**. Solo se
-  rechaza lo redundante: Push-Pull ya incluye banco y peso muerto. Sin el campo,
-  la inscripción compite Full Power. «Categoría de competencia» es el
+  la orden. Wise suma los recargos sobre su importe en USD. El combo suma los
+  recargos cotizados sobre la inscripción suelta. Un cupón porcentual se calcula
+  sobre el total con recargos; un cupón de **precio fijo** cobra su precio fijo
+  (no suma recargos).
+  Ejemplo con base $100.000: Junior + Full Power = $100.000; + Open = $150.000;
+  + Open + Banco = $200.000; Full Power + Banco + Sentadilla = $200.000.
+- **Modalidad** (`modalities`): `full_power` (marcada por defecto en el
+  checkout), `push_pull`, `squat`, `bench`, `deadlift` (especialistas), en
+  cualquier combinación. **La primera va incluida y cada una más suma el 50%**
+  (decisión de oct 2026; antes no tenía recargo). Solo se rechaza lo
+  redundante: Push-Pull ya incluye banco y peso muerto. Sin el campo, la API
+  responde 422 `MODALITY_REQUIRED`. «Categoría de competencia» es el
   equipamiento (Raw, Single-Ply…); «Modalidad», lo que levanta.
 - **Qué ofrece cada evento.** `rules.offering = { categories?, divisions?, modalities? }`
   (RPC `staff_merge_event_offering`, después del upsert; el panel lo edita en

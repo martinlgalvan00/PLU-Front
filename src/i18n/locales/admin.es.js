@@ -1622,6 +1622,9 @@ export default {
       bulkPublishedMany: '{{count}} eventos publicados.',
       bulkHiddenOne: 'Evento oculto.',
       bulkHiddenMany: '{{count}} eventos ocultos.',
+      hideSellingIntro: 'Ocultar del sitio corta la venta de inscripciones de:',
+      hideSellingOutro:
+        'Para seguir vendiendo mientras armás la página, dejalo publicado y elegí Página → «Qué ve el público» → «En construcción». ¿Ocultarlo igual?',
       bulkUndo: 'Deshacer',
       bulkNothing: 'Los eventos elegidos ya estaban así.',
       bulkPartial: 'Se cambiaron {{done}} de {{total}}. Falló «{{title}}»: {{reason}}',

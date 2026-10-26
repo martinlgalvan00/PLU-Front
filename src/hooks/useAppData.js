@@ -1567,7 +1567,12 @@ export function useAppData() {
           secondaryDivision: selection.secondaryDivision,
           modalities: selection.modalities,
           category: options.competition?.category ?? form.category,
-          categories: options.competition?.categories ?? form.categories ?? [form.category],
+          // Lo que marcó el checkout (`options.categories`) o la categoría sola.
+          // `form.categories` no: fuera de Submission queda en su default y
+          // mandaba "Raw" aunque se hubiera elegido otra.
+          categories: options.competition
+            ? (options.competition.categories ?? [options.competition.category])
+            : (options.categories ?? [form.category]),
           declaredWeightClass:
             options.competition?.declaredWeightClass ?? form.declaredWeightClass ?? '',
           bodyweightKg:

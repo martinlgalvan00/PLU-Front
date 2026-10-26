@@ -6,9 +6,13 @@
  * · Todos pueden anotarse en Open; el resto de las divisiones depende de la edad.
  * · Se puede competir en dos divisiones a la vez. La primera (la de la franja de
  *   edad) se paga al 100% y la segunda (Open) al 50%. Quien solo elige Open paga 100%.
- * · La modalidad es Full Power o especialidades (Push-Pull, sentadilla, banco,
- *   peso muerto), en cualquier combinación y sin recargo. Lo único que se evita
- *   es lo redundante: Push-Pull ya incluye banco y peso muerto.
+ * · La modalidad es Full Power (por defecto) o especialidades (Push-Pull,
+ *   sentadilla, banco, peso muerto), en cualquier combinación. La primera va
+ *   incluida y cada una más suma el 50% (decisión de oct 2026). Lo único que se
+ *   evita es lo redundante: Push-Pull ya incluye banco y peso muerto.
+ * · Los recargos se suman sobre la base, no se componen: Junior + Open +
+ *   Full Power + Banco = 100% + 50% + 50%. En Submission se repiten por cada
+ *   categoría elegida (cada una es una participación completa).
  */
 
 import {
@@ -20,6 +24,9 @@ import { EQUIPMENT_TYPES } from './competitionLexicon.js'
 
 /** La segunda división paga esta fracción del precio de la primera. */
 export const SECOND_DIVISION_PRICE_RATIO = 0.5
+
+/** Cada modalidad además de la primera paga esta fracción del precio base. */
+export const EXTRA_MODALITY_PRICE_RATIO = 0.5
 
 export const REGISTRATION_MODALITIES = Object.freeze([
   'full_power',
@@ -84,10 +91,19 @@ export function secondDivisionSurcharge(basePrice) {
   return Math.round(price * SECOND_DIVISION_PRICE_RATIO)
 }
 
-/**
- * Importes a cobrar para la selección: precio de lista (Mercado Pago / Wise) y
- * precio del canal manual, cada uno con su propio 50%.
- */
+/** Modalidades que se cobran aparte: todas menos la primera (que va incluida). */
+export function extraModalityCount(input) {
+  return Math.max(0, normalizeModalities(input).length - 1)
+}
+
+/** Recargo por las modalidades extra, en pesos enteros: 50% de la base por cada una. */
+export function extraModalitySurcharge(basePrice, modalities) {
+  const price = Number(basePrice)
+  if (!Number.isFinite(price) || price <= 0) return 0
+  return Math.round(price * EXTRA_MODALITY_PRICE_RATIO) * extraModalityCount(modalities)
+}
+
+/** Cuántas categorías se cobran (Submission admite varias; mínimo una). */
 export function registrationCategoryCount(input) {
   const raw = Array.isArray(input) ? input : input ? [input] : []
   const selected = new Set(raw.map((item) => String(item ?? '').trim()))
@@ -102,28 +118,40 @@ export function normalizeRegistrationCategories(input) {
 }
 
 /**
- * Precio de inscripción. En Submission cada categoría elegida representa una
- * participación independiente, por eso multiplica tanto la base como una
- * eventual segunda división.
+ * Importes a cobrar para la selección: precio de lista (Mercado Pago / Wise) y
+ * precio del canal manual, cada uno con sus propios recargos.
+ *
+ * Por categoría: base + 50% si suma Open + 50% por cada modalidad extra, todos
+ * sobre la base. En Submission cada categoría es una participación completa,
+ * así que todo se multiplica por la cantidad de categorías.
+ *
+ * `surcharge` / `manualSurcharge` son los de la segunda división (nombre
+ * histórico); los de modalidad van en `modalitySurcharge` / `manualModalitySurcharge`.
+ * Sin `modalities` no hay recargo por modalidad (compat con quien no la manda).
  */
 export function priceRegistrationSelection({
   basePrice,
   manualPrice = null,
   secondary = '',
   categoryCount = 1,
+  modalities = [],
 } = {}) {
   const multiplier = Math.max(1, Number(categoryCount) || 1)
   const hasSecond = Boolean(secondary)
   const base = Number(basePrice) * multiplier
   const surcharge = hasSecond ? secondDivisionSurcharge(base) : 0
+  const modalitySurcharge = extraModalitySurcharge(base, modalities)
   const hasManual = manualPrice !== null && manualPrice !== undefined
   const manualBase = hasManual ? Number(manualPrice) * multiplier : null
   const manualSurcharge = hasSecond && hasManual ? secondDivisionSurcharge(manualBase) : 0
+  const manualModalitySurcharge = hasManual ? extraModalitySurcharge(manualBase, modalities) : 0
   return {
-    defaultPrice: base + surcharge,
-    manualPrice: hasManual ? manualBase + manualSurcharge : null,
+    defaultPrice: base + surcharge + modalitySurcharge,
+    manualPrice: hasManual ? manualBase + manualSurcharge + manualModalitySurcharge : null,
     surcharge,
     manualSurcharge,
+    modalitySurcharge,
+    manualModalitySurcharge,
   }
 }
 

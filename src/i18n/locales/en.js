@@ -3953,6 +3953,7 @@ export default {
       profileWelcomeCta: 'Go to my profile',
       breakdownRegistration: 'Registration · {{division}}',
       breakdownSecondDivision: 'Second division · {{division}} (50%)',
+      breakdownExtraModalities: 'Extra lifts · {{count}} × 50%',
       breakdownDiscount: 'Discount',
       fixErrorsSummary: 'Check these {{count}} fields before continuing:',
       profileWelcomeCtaResume: 'Continue registering for {{event}}',
@@ -4006,7 +4007,10 @@ export default {
       divisionsOpenOnlyHint: 'By your age you compete in Open.',
       divisionsEventOpenOnly: 'This event only offers Open for your age.',
       modality: 'Event type',
-      modalityHint: 'Choose one or more. Combining them has no extra cost.',
+      modalityHint: 'Full Power comes selected. You can add others: each extra lift adds 50% of the registration.',
+      modalityFeeHint:
+        'Full Power comes selected. You can add others: each extra lift adds {{amount}} (50% of the registration).',
+      modalityOptionFee: '{{modality}} · +{{amount}}',
       categoryMultipleHint: 'Choose more than one. Each category adds the price of one registration.',
       modalityOptions: {
         full_power: 'Full Power',
