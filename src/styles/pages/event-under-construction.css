@@ -1,24 +1,27 @@
-/* Landing apagada: "Plataforma en construcción". Una sola columna a la izquierda,
-   sin cards: el nombre del evento, el aviso y una salida. */
+/* Aviso de página en preparación. Sigue el tema del sitio (claro u oscuro).
+   El acento del evento tiñe la marca y la barra; el fondo no se fija. */
 .event-under-construction {
-  /* La página es oscura salvo paleta propia del evento, que llega inline
-     (`landingPaletteStyle`) y pisa estos valores. Sin ellos, el texto
-     secundario y las reglas tomaban los del tema claro del sitio: gris oscuro
-     sobre fondo oscuro. */
-  --color-text-secondary: color-mix(in srgb, var(--color-text, #f6f7f8) 74%, transparent);
-  --color-border: color-mix(in srgb, var(--color-text, #f6f7f8) 16%, transparent);
-  --color-border-subtle: color-mix(in srgb, var(--color-text, #f6f7f8) 24%, transparent);
-  background: var(--color-bg, #0d0f12);
-  color: var(--color-text, #f6f7f8);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
   display: grid;
   min-height: 100dvh;
 }
 
-/* Ver el comentario equivalente en event-builder-landing.css. */
 .app-shell main.event-under-construction.page.event-landing-theme {
-  background: var(--color-bg, #0d0f12);
-  color: var(--color-text, #f6f7f8);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
   padding: 0;
+}
+
+/* La barra de la escena usa el texto del tema, no un blanco fijo. */
+.event-under-construction .construction-scene__shaft,
+.event-under-construction .construction-scene__plate--5 {
+  fill: var(--color-text-secondary);
+}
+
+.event-under-construction .construction-scene__collar,
+.event-under-construction .construction-scene__plate--10 {
+  fill: var(--color-text-primary);
 }
 
 .event-under-construction__inner {
@@ -65,42 +68,67 @@
 
 .event-under-construction__body {
   display: grid;
-  gap: 16px;
-  max-width: 44rem;
+  gap: 22px;
+  justify-items: start;
+  max-width: 38rem;
+}
+
+.event-under-construction__identity {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+}
+
+.event-under-construction__logo {
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--color-border);
+  display: block;
+  flex: none;
+  height: 72px;
+  object-fit: cover;
+  width: 72px;
 }
 
 .event-under-construction__eyebrow {
-  align-items: center;
   color: var(--event-accent);
-  display: inline-flex;
   font-size: 11px;
   font-weight: 700;
-  gap: 8px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
+  line-height: 1.35;
   margin: 0;
+  max-width: 12rem;
   text-transform: uppercase;
 }
 
+.event-under-construction__intro {
+  display: grid;
+  gap: 4px;
+}
+
 .event-under-construction__event {
-  font-size: clamp(28px, 4.2vw, 46px);
+  font-family: var(--font-display);
+  font-size: clamp(36px, 4.4vw, 48px);
   font-weight: 700;
-  line-height: 1.1;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
   margin: 0;
 }
 
-.event-under-construction__title {
-  font-size: clamp(22px, 3.2vw, 36px);
-  font-weight: 700;
-  line-height: 1.15;
+.event-under-construction__status {
+  color: var(--color-text-primary);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
   margin: 0;
 }
 
 .event-under-construction__lead {
-  color: var(--color-text-secondary, inherit);
-  font-size: 16px;
-  line-height: 1.6;
-  margin: 0;
-  max-width: 52ch;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  line-height: 1.55;
+  margin: 4px 0 0;
+  max-width: 42ch;
 }
 
 .event-under-construction__cta {
@@ -123,8 +151,36 @@
 
 /* Fecha y sede: solo viajan con la inscripción abierta o programada. Lista con
    regla, sin cards. */
+.event-under-construction .construction-scene {
+  gap: 8px;
+}
+
+.event-under-construction .construction-scene__caption strong {
+  font-size: 22px;
+  font-weight: 650;
+}
+
+.event-under-construction .construction-scene__controls {
+  border-top: 1px solid var(--color-border);
+  gap: 0 4px;
+  padding-top: 4px;
+}
+
+.event-under-construction .construction-scene__controls button {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text-secondary);
+  padding-inline: 10px;
+}
+
+.event-under-construction .construction-scene__controls button:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--event-accent);
+}
+
 .event-under-construction__facts {
-  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.14));
+  border-top: 1px solid var(--color-border);
   display: grid;
   gap: 12px;
   margin: 8px 0 0;
@@ -188,7 +244,52 @@
 
 .event-under-construction__back:focus-visible,
 .event-under-construction__secondary:focus-visible,
-.event-under-construction__cta:focus-visible {
+.event-under-construction__cta:focus-visible,
+.event-under-construction .construction-scene__controls button:focus-visible {
   outline: 2px solid var(--event-accent);
   outline-offset: 4px;
+}
+
+@keyframes event-under-construction-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-enter-y));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .event-under-construction:not([data-motion='none']) .event-under-construction__body > *,
+  .event-under-construction:not([data-motion='none']) .construction-scene {
+    animation: event-under-construction-enter var(--motion-base) var(--ease-out) both;
+  }
+
+  .event-under-construction:not([data-motion='none']) .event-under-construction__body > *:nth-child(2) {
+    animation-delay: 50ms;
+  }
+
+  .event-under-construction:not([data-motion='none']) .event-under-construction__body > *:nth-child(3) {
+    animation-delay: 100ms;
+  }
+
+  .event-under-construction:not([data-motion='none']) .event-under-construction__body > *:nth-child(4) {
+    animation-delay: 140ms;
+  }
+
+  .event-under-construction:not([data-motion='none']) .event-under-construction__body > *:nth-child(5) {
+    animation-delay: 180ms;
+  }
+
+  .event-under-construction:not([data-motion='none']) .event-under-construction__body > *:nth-child(6) {
+    animation-delay: 220ms;
+  }
+
+  .event-under-construction:not([data-motion='none']) .construction-scene {
+    animation-delay: 80ms;
+    animation-duration: var(--motion-slow);
+  }
 }

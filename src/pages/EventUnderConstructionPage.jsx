@@ -1,8 +1,9 @@
-import { ArrowLeft, CalendarDays, Construction, MapPin } from 'lucide-react'
+import { ArrowLeft, CalendarDays, MapPin } from 'lucide-react'
 import ConstructionScene from '../components/events/construction/ConstructionScene.jsx'
 import { eventLandingFromEvent } from '../lib/eventLanding.js'
 import { normalizeLandingMotion } from '../lib/eventLandingMotion.js'
 import { landingPaletteStyle } from '../lib/eventLandingPalette.js'
+import { resolveEventLogo } from '../lib/eventMark.js'
 import { isEventRegistrationOpen } from '../lib/eventPublicActions.js'
 import { eventPublicTitle } from '../lib/eventPublicSurface.js'
 import { hiddenLandingTakesRegistrations } from '../../shared/registrationSaleState.js'
@@ -40,6 +41,7 @@ export default function EventUnderConstructionPage({
   const { t, locale } = useI18n()
   const landing = eventLandingFromEvent(event)
   const title = landing.slots.heroTitle || eventPublicTitle(event) || event?.title || ''
+  const logoUrl = resolveEventLogo(event)
   const motion = normalizeLandingMotion(landing.layout?.motion)
   const takesRegistrations = hiddenLandingTakesRegistrations(event)
   const canRegister =
@@ -59,7 +61,7 @@ export default function EventUnderConstructionPage({
       data-event-theme={landing.themeId}
       data-motion={motion}
       data-registration={canRegister ? 'open' : opensAt ? 'scheduled' : 'closed'}
-      style={landingPaletteStyle(landing.layout)}
+      style={landingPaletteStyle(landing.layout, { withBackground: false })}
     >
       <div className="event-under-construction__inner">
         <button
@@ -75,14 +77,27 @@ export default function EventUnderConstructionPage({
 
         <div className="event-under-construction__layout">
           <div className="event-under-construction__body">
-            <p className="event-under-construction__eyebrow">
-              <Construction aria-hidden size={16} />
-              {t('pages.eventUnderConstruction.eyebrow')}
-            </p>
-            {title ? <h1 className="event-under-construction__event">{title}</h1> : null}
-            <h2 className="event-under-construction__title" role="status">
-              {t('pages.eventUnderConstruction.title')}
-            </h2>
+            <div className="event-under-construction__identity">
+              {logoUrl ? (
+                <img
+                  alt=""
+                  className="event-under-construction__logo"
+                  decoding="async"
+                  height={72}
+                  src={logoUrl}
+                  width={72}
+                />
+              ) : null}
+              <p className="event-under-construction__eyebrow">
+                {t('pages.eventUnderConstruction.eyebrow')}
+              </p>
+            </div>
+            <div className="event-under-construction__intro">
+              {title ? <h1 className="event-under-construction__event">{title}</h1> : null}
+              <p className="event-under-construction__status" role="status">
+                {t('pages.eventUnderConstruction.title')}
+              </p>
+            </div>
             <p className="event-under-construction__lead">
               {title
                 ? t('pages.eventUnderConstruction.leadNamed', { event: title })
