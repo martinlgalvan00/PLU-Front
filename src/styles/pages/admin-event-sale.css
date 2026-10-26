@@ -1,0 +1,233 @@
+/* =============================================
+   Venta de inscripciones (AdminEventSaleControl)
+   Un estado grande, una línea de contexto y las acciones que corresponden.
+   Sin card: regla superior e inferior, un único acento por estado (el punto).
+   ============================================= */
+
+.admin-event-sale {
+  --sale-accent: var(--admin-muted);
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 14px;
+  /* Sin regla inferior: la que sigue la pone el bloque de cifras. */
+  margin-bottom: 24px;
+  padding: 18px 0 0;
+}
+
+.admin-event-sale.is-on_sale {
+  --sale-accent: var(--admin-status-success);
+}
+
+.admin-event-sale.is-scheduled {
+  --sale-accent: var(--color-brand-celeste);
+}
+
+.admin-event-sale.is-blocked {
+  --sale-accent: var(--admin-status-warning);
+}
+
+.admin-event-sale.is-sold_out {
+  --sale-accent: var(--color-brand-gold);
+}
+
+.admin-event-sale__head {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-event-sale__eyebrow {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.admin-event-sale__state {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  margin: 0;
+}
+
+.admin-event-sale__state strong {
+  color: var(--admin-ink);
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.2vw, 24px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.admin-event-sale__dot {
+  background: var(--sale-accent);
+  border-radius: 50%;
+  flex: none;
+  height: 9px;
+  width: 9px;
+}
+
+.admin-event-sale__detail {
+  color: var(--admin-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 60ch;
+}
+
+.admin-event-sale__actions,
+.admin-event-sale__schedule-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-event-sale__btn {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 8px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 14px;
+  transition:
+    border-color 160ms var(--ease-out),
+    opacity 160ms var(--ease-out);
+}
+
+.admin-event-sale__btn:hover:not(:disabled) {
+  border-color: var(--admin-ink);
+}
+
+.admin-event-sale__btn--primary {
+  background: var(--admin-action);
+  border-color: transparent;
+  color: var(--admin-on-action);
+}
+
+.admin-event-sale__btn--primary:hover:not(:disabled) {
+  border-color: transparent;
+  opacity: 0.9;
+}
+
+.admin-event-sale__btn--quiet {
+  border-color: transparent;
+  color: var(--admin-muted);
+}
+
+.admin-event-sale__btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-event-sale__schedule {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+}
+
+.admin-event-sale__schedule-field {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-event-sale__schedule-field span {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-event-sale__schedule-field input {
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 8px;
+  color: var(--admin-ink);
+  font: inherit;
+  font-size: 13px;
+  min-height: 44px;
+  padding: 0 12px;
+}
+
+.admin-event-sale__hint {
+  color: var(--admin-muted);
+  flex-basis: 100%;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Lo que impide vender: lista abierta, cada motivo con su arreglo al lado. */
+.admin-event-sale__issues {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-event-sale__issues li {
+  align-items: center;
+  border-top: 1px solid var(--admin-hairline);
+  color: var(--admin-ink);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  gap: 4px 12px;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 6px 0;
+}
+
+.admin-event-sale__issues li > span {
+  padding-left: 14px;
+  position: relative;
+}
+
+.admin-event-sale__issues li > span::before {
+  background: var(--admin-status-warning);
+  border-radius: 50%;
+  content: '';
+  height: 5px;
+  left: 0;
+  position: absolute;
+  top: 0.55em;
+  width: 5px;
+}
+
+.admin-event-sale__issues--warning li > span::before {
+  background: var(--admin-muted);
+}
+
+.admin-event-sale__fix {
+  background: none;
+  border: 0;
+  color: var(--admin-ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  min-height: 36px;
+  padding: 0 2px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-event-sale :is(.admin-event-sale__btn, .admin-event-sale__fix):focus-visible,
+.admin-event-sale__schedule-field input:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-event-sale__btn {
+    transition: none;
+  }
+}

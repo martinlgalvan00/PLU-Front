@@ -118,25 +118,78 @@ describe('filtros de evento en Inscripciones', () => {
     expect(screen.queryByRole('combobox', { name: /evento/i })).toBeNull()
   })
 
-  it('usa chips de evento cuando hay más de uno', () => {
-    renderSection({
-      registrations: [
-        registration(),
-        registration({
-          id: 'reg-2',
-          athleteId: 'ath-2',
-          athlete: { fullName: 'Lucas Ferro', documentId: '31222333' },
-          event: 'Copa Invierno 2026',
-          eventSlug: 'copa-invierno-2026',
-        }),
-      ],
-    })
-    // Los eventos van como opciones etiquetadas dentro de «Filtros»: con dos
-    // meets se elige en un toque, sin listas con scroll.
+  const TWO_EVENTS = () => [
+    registration(),
+    registration({
+      id: 'reg-2',
+      athleteId: 'ath-2',
+      athlete: { fullName: 'Lucas Ferro', documentId: '31222333' },
+      event: 'Copa Invierno 2026',
+      eventSlug: 'copa-invierno-2026',
+    }),
+    registration({
+      id: 'reg-3',
+      athleteId: 'ath-3',
+      athlete: { fullName: 'Sol Paz', documentId: '32333444' },
+      event: 'Copa Invierno 2026',
+      eventSlug: 'copa-invierno-2026',
+      status: 'pendiente_pago',
+    }),
+  ]
+
+  it('con más de un evento deja el selector a la vista, sin abrir «Filtros»', () => {
+    renderSection({ registrations: TWO_EVENTS() })
+
+    const select = screen.getByRole('combobox', { name: /^evento$/i })
+    const options = within(select)
+      .getAllByRole('option')
+      .map((option) => option.textContent)
+    expect(options).toEqual([
+      expect.stringMatching(/todos los eventos \(3\)/i),
+      'Copa Invierno 2026 (2)',
+      'Pitbull Classic 2026 (1)',
+    ])
+    // No se repite adentro del popover.
     fireEvent.click(screen.getByRole('button', { name: /^Filtros/ }))
-    expect(screen.getByRole('group', { name: /^evento$/i })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /pitbull classic/i })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /copa invierno/i })).toBeTruthy()
+    expect(screen.getAllByRole('combobox', { name: /^evento$/i })).toHaveLength(1)
+  })
+
+  it('elegir un evento filtra con su slug', () => {
+    const onSetFilters = vi.fn()
+    renderSection({ registrations: TWO_EVENTS(), onSetFilters })
+
+    fireEvent.change(screen.getByRole('combobox', { name: /^evento$/i }), {
+      target: { value: 'copa-invierno-2026' },
+    })
+
+    const updater = onSetFilters.mock.calls.at(-1)[0]
+    expect(updater({ event: 'all', status: 'all' }).event).toBe('copa-invierno-2026')
+  })
+
+  it('las pestañas de estado cuentan dentro del evento elegido', () => {
+    const all = TWO_EVENTS()
+    renderSection({
+      registrations: all,
+      filters: { event: 'copa-invierno-2026', status: 'all', query: '' },
+      filteredRegistrations: all.filter((row) => row.eventSlug === 'copa-invierno-2026'),
+    })
+
+    expect(screen.getByRole('button', { name: /^Todos\s*2$/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /pendiente de pago\s*1/i })).toBeTruthy()
+  })
+
+  it('con un evento elegido la columna Evento sobra; con todos se muestra', () => {
+    const all = TWO_EVENTS()
+    renderSection({ registrations: all })
+    expect(screen.getAllByRole('columnheader', { name: /^evento$/i }).length).toBeGreaterThan(0)
+
+    cleanup()
+    renderSection({
+      registrations: all,
+      filters: { event: 'pitbull-classic-2026', status: 'all', query: '' },
+      filteredRegistrations: [all[0]],
+    })
+    expect(screen.queryByRole('columnheader', { name: /^evento$/i })).toBeNull()
   })
 })
 

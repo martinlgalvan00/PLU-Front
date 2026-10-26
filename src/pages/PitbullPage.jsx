@@ -54,10 +54,13 @@ import {
   eventShowsPublicExperience,
   eventShowsPublicFaq,
   eventShowsPublicLocation,
+  eventShowsPublicRecentRegistrants,
+  eventShowsPublicSchedule,
   eventShowsPublicTickets,
   eventShowsPublicWeighIns,
 } from '../lib/eventPublicSurface.js'
 import { eventLandingFaqItems, eventLandingFromEvent } from '../lib/eventLanding.js'
+import { landingPaletteStyle } from '../lib/eventLandingPalette.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { getPitbullClassicEvent, PITBULL_CLASSIC_SLUG } from '../lib/eventNavigation.js'
@@ -814,6 +817,7 @@ function PitbullInscriptionSection({
   registered,
   registeredToday = 0,
   registrationPhase,
+  showRecentRegistrants = true,
   slots,
   softLaunch = false,
   t,
@@ -1128,7 +1132,7 @@ function PitbullInscriptionSection({
         </div>
       </div>
 
-      {!softLaunch && capacityLive ? (
+      {!softLaunch && capacityLive && showRecentRegistrants ? (
         <PitbullRecentRegistrants
           capacityStatus={capacityStatus}
           locale={locale}
@@ -1322,9 +1326,11 @@ export default function PitbullPage({
   })
   // La grilla la publica la organización a propósito (arranca apagada): el
   // servidor decide, esta página solo pinta lo que llega.
+  const scheduleVisible = eventShowsPublicSchedule(pitbullEvent)
   const { schedule: publicSchedule, updatedAt: publicScheduleUpdatedAt } =
-    usePublicEventSchedule(resolvedEventSlug)
-  const showSchedule = publicSchedule.hasContent
+    usePublicEventSchedule(resolvedEventSlug, { enabled: scheduleVisible })
+  const showSchedule = publicSchedule.hasContent && scheduleVisible
+  const showRecentRegistrants = eventShowsPublicRecentRegistrants(pitbullEvent)
   const showWeighIns =
     eventHasWeighInWindows(pitbullEvent) && eventShowsPublicWeighIns(pitbullEvent)
   const showCategories = eventShowsPublicCategories(pitbullEvent)
@@ -1422,6 +1428,7 @@ export default function PitbullPage({
     <main
       className="page page--design pitbull-page pitbull-page--premium event-landing-theme"
       data-event-theme={landing.themeId}
+      style={landingPaletteStyle(landing.layout, { withBackground: false })}
     >
       {showCountdown ? (
         <PitbullCountdownIntro dateLabel={eventDateLabel} event={pitbullEvent} />
@@ -1475,6 +1482,7 @@ export default function PitbullPage({
             registered={liveRegistered}
             registeredToday={liveRegisteredToday}
             registrationPhase={registration.phase}
+            showRecentRegistrants={showRecentRegistrants}
             slots={liveSlots}
             softLaunch={softLaunch}
             t={t}

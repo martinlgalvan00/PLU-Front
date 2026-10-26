@@ -7,6 +7,9 @@ import AdminEventPriceSchedule from '../AdminEventPriceSchedule.jsx'
 import { effectiveEventChannelsFor } from '../../../lib/eventPaymentChannels.js'
 import { platformCellsFor } from '../../../lib/platformPaymentChannels.js'
 import EventPaymentChannelMatrix from './EventPaymentChannelMatrix.jsx'
+import EventPaymentReadiness from './EventPaymentReadiness.jsx'
+import { buildPaymentReadiness } from '../../../lib/eventPaymentReadiness.js'
+import { env } from '../../../config/env.js'
 import MercadoPagoAccountStatus from '../payment-accounts/MercadoPagoAccountStatus.jsx'
 import MercadoPagoConnectControl from '../payment-accounts/MercadoPagoConnectControl.jsx'
 import {
@@ -97,6 +100,18 @@ export default function EventSalesSection({
   }
   const ownCashPlace = String(draft.cashPayment?.place ?? '').trim()
   const cashPlacePreview = ownCashPlace || eventVenueLabel
+  const paymentReadiness = buildPaymentReadiness({
+    overrides: draft.paymentChannelOverrides,
+    platform: platformChannels?.platform,
+    platformStatus: platformChannels?.status,
+    venueLabel: eventVenueLabel,
+    ownCashPlace,
+    bankAlias: bankSummary.alias,
+    fallbackBankAlias: env.payments.transferAlias,
+    mercadoPagoProfileId: draft.mercadoPagoProfileId,
+    mercadoPagoProfile: selectedMpProfile,
+    profilesLoading: mpProfilesLoading,
+  })
 
   return (
     <section
@@ -506,6 +521,8 @@ export default function EventSalesSection({
               {t('admin.eventEditor.paymentChannelReset')}
             </button>
           ) : null}
+
+          <EventPaymentReadiness readiness={paymentReadiness} />
 
           {channelOpenHere('bank_transfer') ? null : (
             <p className="admin-event-form__field-hint" data-channel="bank_transfer-closed">

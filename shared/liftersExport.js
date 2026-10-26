@@ -48,7 +48,6 @@ export const REQUIRED_FOR_PROFILE_NOTICE = Object.freeze([
   'city',
   'province',
   'gym',
-  'division',
   'category',
   'estimatedWeight',
   'fullName',

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { within } from 'storybook/test'
 import RegistrationsSection from './RegistrationsSection.jsx'
 import { AppConfigProvider } from '../../providers/AppConfigProvider.jsx'
@@ -312,3 +313,55 @@ export const PendientesDePagoParaCancelar = {
     checkboxes[1].click()
   },
 }
+
+const MULTI_EVENTS = [
+  { event: 'Pitbull Classic 2026', eventSlug: 'pitbull-classic-2026' },
+  { event: 'Barbell Submission 2027', eventSlug: 'barbell-submission-2027' },
+  { event: 'Winter Open 2026', eventSlug: 'winter-open-2026' },
+]
+
+const MULTI_ROWS = FULL_ROWS.map((row, index) => ({
+  ...row,
+  ...MULTI_EVENTS[index % MULTI_EVENTS.length],
+}))
+
+function MultiEventScreen() {
+  const [filters, setFilters] = useState({ event: 'all', status: 'all', query: '' })
+  const rows =
+    filters.event === 'all'
+      ? MULTI_ROWS
+      : MULTI_ROWS.filter((row) => row.eventSlug === filters.event)
+  return (
+    <AppConfigProvider>
+      <div className="admin-shell" style={{ background: 'var(--admin-canvas)', padding: '24px' }}>
+        <div className="admin-page admin-people-section">
+          <RegistrationsSection
+            canAssignSchedule
+            canEdit
+            canSetStatus
+            canValidatePayments
+            filters={filters}
+            filteredRegistrations={rows}
+            payments={FULL_PAYMENTS}
+            registrations={MULTI_ROWS}
+            registrationsCount={MULTI_ROWS.length}
+            onApprovePayment={() => {}}
+            onExportAdmin={() => {}}
+            onExportPluUsa={() => {}}
+            onExportLifters={() => {}}
+            onFetchLiftersReadiness={async () => ({ readiness: null, rows: [] })}
+            onRejectPayment={() => {}}
+            onSelectAthlete={() => {}}
+            onSetFilters={(next) =>
+              setFilters((current) => (typeof next === 'function' ? next(current) : next))
+            }
+            onSetRegistrationStatus={() => {}}
+          />
+        </div>
+      </div>
+    </AppConfigProvider>
+  )
+}
+
+/** Tres eventos en la misma lista: el caso del admin que opera varios meets a la vez. */
+export const VariosEventos = { decorators: [withPlatformToggles], render: () => <MultiEventScreen /> }

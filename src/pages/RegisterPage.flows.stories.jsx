@@ -88,6 +88,37 @@ export const Inscripcion = {
 }
 
 /**
+ * Atleta Junior: elige su división por edad y/o Open (la segunda paga el 50%) y
+ * suma Banco a Full Power (cada modalidad extra paga el 50%). El total ya
+ * incluye los dos recargos: 75.000 + 37.500 + 37.500.
+ */
+export const InscripcionDosDivisiones = {
+  args: {
+    athlete: { ...athlete, birthDate: '2005-06-01' },
+    event: { ...event, startsAt: '2026-12-12T12:00:00Z' },
+    flow: 'competition',
+    form: {
+      division: 'Junior',
+      secondaryDivision: 'Open',
+      modalities: ['full_power', 'bench'],
+      category: 'Raw',
+      declaredWeightClass: '60',
+      estimatedWeight: '58',
+      paymentMethod: 'mercado_pago',
+    },
+    total: 75000,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const divisions = canvas.getByRole('group', { name: /^Divisiones$/i })
+    await expect(within(divisions).getByRole('checkbox', { name: /Open/ })).toBeChecked()
+    await expect(canvas.getByRole('group', { name: /^Modalidad$/i })).toBeInTheDocument()
+    await expect(canvas.getAllByText(/Modalidades extra · 1 × 50%/).length).toBeGreaterThan(0)
+    await expect(canvas.getAllByText(/150\.000/).length).toBeGreaterThan(0)
+  },
+}
+
+/**
  * Inscripción confirmada: el único estado del flujo de competencia que cierra
  * algo y por lo tanto el único que festeja. La credencial del meet se emite
  * cuando el ingreso ya está habilitado (`isRegistrationAdmitted`), no cuando

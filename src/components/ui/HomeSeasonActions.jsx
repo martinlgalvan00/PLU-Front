@@ -82,6 +82,27 @@ function laneCopy(kind, title, t) {
   }
 }
 
+function LaneBody({ dateParts, copy, title, place }) {
+  return (
+    <span className="home-season-actions__body">
+      {dateParts ? (
+        <span className="home-season-actions__date" aria-hidden>
+          <span className="home-season-actions__day">{dateParts.day}</span>
+          <span className="home-season-actions__month">{dateParts.month}</span>
+          <span className="home-season-actions__year">{dateParts.year}</span>
+        </span>
+      ) : null}
+
+      <span className="home-season-actions__copy">
+        <span className="home-season-actions__eyebrow">{copy.eyebrow}</span>
+        <span className="home-season-actions__meet">{title}</span>
+        {place ? <span className="home-season-actions__place">{place}</span> : null}
+        <span className="home-season-actions__status">{copy.status}</span>
+      </span>
+    </span>
+  )
+}
+
 function SeasonLane({ action, onActivate, t, locale }) {
   const { kind, event } = action
   const dateParts = formatSeasonDateParts(event, locale)
@@ -90,30 +111,50 @@ function SeasonLane({ action, onActivate, t, locale }) {
     (kind === 'tickets' ? t('hero.seasonTicketsFallback') : t('hero.seasonRegisterFallback'))
   const place = [event?.venue, event?.location].filter(Boolean).join(' · ')
   const copy = laneCopy(kind, title, t)
+  const body = <LaneBody dateParts={dateParts} copy={copy} title={title} place={place} />
+
+  // Inscripción abierta: dos destinos. La página oficial (o el aviso de
+  // "en construcción" si todavía no se publicó) y el formulario directo; así
+  // la venta no espera a que la landing esté terminada.
+  if (kind === 'registration') {
+    return (
+      <div
+        className="home-season-actions__lane home-season-actions__lane--registration home-season-actions__lane--split"
+        role="group"
+        aria-label={title}
+      >
+        {body}
+        <div className="home-season-actions__go home-season-actions__go--split">
+          <button
+            type="button"
+            className="home-season-actions__page"
+            aria-label={t('hero.seasonRegisterPageAria', { event: title })}
+            onClick={(clickEvent) => onActivate?.(action, clickEvent, 'page')}
+          >
+            {t('hero.seasonRegisterPage')}
+          </button>
+          <button
+            type="button"
+            className="home-season-actions__register"
+            aria-label={copy.aria}
+            onClick={(clickEvent) => onActivate?.(action, clickEvent, 'register')}
+          >
+            <span className="home-season-actions__cue">{copy.cue}</span>
+            <ArrowRight size={13} strokeWidth={1.75} className="home-season-actions__arrow" />
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <button
       type="button"
       className={`home-season-actions__lane home-season-actions__lane--${kind}`}
       aria-label={copy.aria}
-      onClick={() => onActivate?.(action)}
+      onClick={(clickEvent) => onActivate?.(action, clickEvent)}
     >
-      <span className="home-season-actions__body">
-        {dateParts ? (
-          <span className="home-season-actions__date" aria-hidden>
-            <span className="home-season-actions__day">{dateParts.day}</span>
-            <span className="home-season-actions__month">{dateParts.month}</span>
-            <span className="home-season-actions__year">{dateParts.year}</span>
-          </span>
-        ) : null}
-
-        <span className="home-season-actions__copy">
-          <span className="home-season-actions__eyebrow">{copy.eyebrow}</span>
-          <span className="home-season-actions__meet">{title}</span>
-          {place ? <span className="home-season-actions__place">{place}</span> : null}
-          <span className="home-season-actions__status">{copy.status}</span>
-        </span>
-      </span>
+      {body}
 
       <span className="home-season-actions__go" aria-hidden>
         <span className="home-season-actions__cue">{copy.cue}</span>
@@ -125,7 +166,9 @@ function SeasonLane({ action, onActivate, t, locale }) {
 
 /**
  * Díptico editorial del hero: entradas + inscripción (abierta o próximamente).
- * Sin cards gemelas: carriles apilados con una sola superficie.
+ * Sin cards gemelas: carriles apilados con una sola superficie. El carril de
+ * inscripción abierta no es un botón entero: lleva "Página oficial" e
+ * "Inscribirme" (`onActivate(action, event, 'page' | 'register')`).
  */
 export default function HomeSeasonActions({ actions = [], onActivate }) {
   const { t, locale } = useI18n()

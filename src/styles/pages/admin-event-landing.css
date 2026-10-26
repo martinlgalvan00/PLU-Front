@@ -1,0 +1,971 @@
+/* =============================================
+   Editor de la landing del evento (panel de staff)
+   - Formato, secciones y SEO        (.admin-event-form__landing*)
+   - Constructor: bloques y colores  (.admin-landing-blocks*, .admin-landing-palette*)
+   - Visor de la landing             (.admin-landing-preview*)
+   Lo importa `EventLandingSection.jsx` y `landing/PreviewDialog.jsx`: vive junto
+   al editor y no engorda `admin.css`. Las reglas que compiten con las genéricas del
+   formulario (`.admin-event-form input…`) llevan el prefijo necesario para ganar sin
+   `!important`.
+   ============================================= */
+
+/* Landing del evento: formato, secciones (interruptor + textos juntos) y SEO.
+   Flujo abierto con reglas, sin cards ni superficies anidadas. */
+.admin-event-form__landing {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+
+.admin-event-form__landing > fieldset {
+  border: 0;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.admin-event-form__landing > fieldset > legend {
+  align-items: center;
+  color: var(--admin-muted, var(--color-text-muted));
+  display: flex;
+  font-size: 11px;
+  font-weight: 650;
+  gap: 6px;
+  letter-spacing: 0.08em;
+  margin: 0 0 4px;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.admin-event-form__landing-section-list {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-event-form__landing-section {
+  border-top: 1px solid
+    color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 85%, transparent);
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 0 6px;
+}
+
+.admin-event-form__landing-section:first-child {
+  border-top: 0;
+  padding-top: 4px;
+}
+
+.admin-event-form__landing-section.is-hidden .admin-event-form__toggle-copy strong {
+  color: var(--admin-muted, var(--color-text-muted));
+}
+
+.admin-event-form__landing-section-head {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-event-form__landing-section-head strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-event-form__landing-section-head small {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12px;
+  line-height: 1.45;
+  max-width: 62ch;
+}
+
+.admin-event-form__landing .admin-event-form__section-note {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 62ch;
+}
+
+/* El switch de cada sección es una fila de la lista, no una card propia. */
+.admin-event-form__landing .admin-event-form__landing-section > .admin-event-form__toggle,
+.admin-event-form__landing .admin-event-form__landing-section > .admin-event-form__toggle:hover {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 0;
+  min-height: 44px;
+  padding: 4px 0;
+}
+
+.admin-event-form__landing-section .admin-event-form__toggle-copy strong {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-event-form__landing-section .admin-event-form__toggle-copy small {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.45;
+  text-transform: none;
+}
+
+/* Constructor: lista de bloques (orden, visibilidad, contenido) y colores. */
+.admin-landing-blocks,
+.admin-landing-palette {
+  border: 0;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.admin-landing-blocks > legend,
+.admin-landing-palette > legend {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  margin: 0 0 4px;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.admin-landing-blocks__list {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-landing-blocks__item {
+  border-top: 1px solid
+    color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 85%, transparent);
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 0 4px;
+}
+
+.admin-landing-blocks__item:first-child {
+  border-top: 0;
+}
+
+.admin-landing-blocks__head {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.admin-landing-blocks__locked {
+  display: grid;
+  gap: 2px;
+  min-height: 44px;
+}
+
+.admin-landing-blocks__locked strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-landing-blocks__locked small {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12px;
+}
+
+.admin-landing-blocks .admin-landing-blocks__toggle,
+.admin-landing-blocks .admin-landing-blocks__toggle:hover,
+.admin-event-editor-modal__panel .admin-landing-blocks .admin-landing-blocks__toggle,
+.admin-event-editor-modal__panel .admin-landing-blocks .admin-landing-blocks__toggle:hover {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 0;
+  flex: 1 1 auto;
+  min-height: 44px;
+  min-width: 0;
+  padding: 4px 0;
+}
+
+.admin-landing-blocks__item.is-hidden .admin-event-form__toggle-copy strong {
+  color: var(--admin-muted, var(--color-text-muted));
+}
+
+.admin-landing-blocks .admin-event-form__toggle-copy strong {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-landing-blocks .admin-event-form__toggle-copy small {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-landing-blocks__actions {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
+.admin-landing-blocks__icon {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong, var(--color-border-subtle));
+  border-radius: 8px;
+  color: var(--admin-ink, inherit);
+  cursor: pointer;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.admin-landing-blocks__icon:hover:not(:disabled) {
+  border-color: var(--admin-ink, currentColor);
+}
+
+.admin-landing-blocks__icon:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.admin-landing-blocks__icon--danger:hover:not(:disabled) {
+  color: var(--color-brand-red, #d64545);
+}
+
+.admin-landing-blocks__icon:focus-visible,
+.admin-landing-blocks__add-btn:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-landing-blocks__item {
+  position: relative;
+}
+
+/* Manija de arrastre: también reordena con las flechas del teclado. */
+.admin-landing-blocks__grip {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--admin-muted, var(--color-text-muted));
+  cursor: grab;
+  display: inline-flex;
+  flex: none;
+  height: 44px;
+  justify-content: center;
+  margin-left: -8px;
+  touch-action: none;
+  width: 32px;
+}
+
+.admin-landing-blocks__grip:hover:not(:disabled) {
+  color: var(--admin-ink, inherit);
+}
+
+.admin-landing-blocks__grip:active {
+  cursor: grabbing;
+}
+
+.admin-landing-blocks__grip:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 0;
+}
+
+.admin-landing-blocks__grip:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.admin-landing-blocks__item.is-dragging {
+  opacity: 0.45;
+}
+
+/* Dónde cae el bloque: una regla celeste en el borde de destino. */
+.admin-landing-blocks__item.is-drop-before::before,
+.admin-landing-blocks__item.is-drop-after::after {
+  background: var(--color-brand-celeste);
+  border-radius: 2px;
+  content: '';
+  height: 2px;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+}
+
+.admin-landing-blocks__item.is-drop-before::before {
+  top: -1px;
+}
+
+.admin-landing-blocks__item.is-drop-after::after {
+  bottom: -1px;
+}
+
+/* El bloque elegido en el editor visual: marca a la izquierda, sin card. */
+.admin-landing-blocks__item.is-selected {
+  box-shadow: inset 2px 0 0 var(--color-brand-celeste);
+  padding-left: 12px;
+}
+
+.admin-landing-blocks__add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-landing-blocks__add-btn {
+  align-items: center;
+  background: transparent;
+  border: 1px dashed var(--admin-hairline-strong, var(--color-border-subtle));
+  border-radius: 8px;
+  color: var(--admin-ink, inherit);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+}
+
+.admin-landing-blocks__add-btn:hover:not(:disabled) {
+  border-style: solid;
+}
+
+.admin-landing-blocks__add-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.admin-landing-palette__grid {
+  align-items: start;
+  display: grid;
+  gap: 14px 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+}
+
+.admin-landing-palette__field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-landing-palette__field > label {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.admin-landing-palette__field > small {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.admin-landing-palette__control {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* El formulario del editor estila todo `input` a ancho completo: estas reglas
+   llevan `.admin-event-form` delante para ganarle sin `!important`. */
+.admin-event-form .admin-landing-palette__control input[type='text'] {
+  flex: 1 1 7ch;
+  font-family: ui-monospace, monospace;
+  min-width: 7ch;
+  width: auto;
+}
+
+.admin-event-form .admin-landing-palette input.admin-landing-palette__swatch {
+  background: none;
+  border: 1px solid var(--admin-hairline-strong, var(--color-border-subtle));
+  border-radius: 8px;
+  cursor: pointer;
+  flex: none;
+  height: 44px;
+  padding: 3px;
+  width: 44px;
+}
+
+.admin-landing-palette .admin-event-form__text-btn {
+  font-size: 13px;
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 4px;
+  width: auto;
+}
+
+.admin-landing-palette__warnings {
+  color: var(--plu-warning-500, #c9a227);
+  display: grid;
+  font-size: 12.5px;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-event-form__landing-details > summary {
+  align-items: center;
+  color: var(--admin-muted, var(--color-text-muted));
+  cursor: pointer;
+  display: flex;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 8px;
+  justify-content: space-between;
+  list-style: none;
+  min-height: 44px;
+}
+
+.admin-event-form__landing-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-event-form__landing-details > summary:hover {
+  color: var(--admin-text-secondary, inherit);
+}
+
+.admin-event-form__landing-details > summary:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-event-form__landing-details > summary svg {
+  flex: none;
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.admin-event-form__landing-details[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+.admin-event-form__landing-details-body {
+  display: grid;
+  gap: 12px;
+  padding: 2px 0 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-event-form__landing-details > summary svg {
+    transition: none;
+  }
+}
+
+/* Visor de la landing dentro de la plataforma: pantalla completa, barra fija
+   arriba y la página tal como la ve el público debajo. */
+.admin-landing-preview {
+  background: var(--color-bg, #0d0f12);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  inset: 0;
+  position: fixed;
+  z-index: 1400;
+}
+
+.admin-landing-preview__bar {
+  align-items: center;
+  background: var(--admin-surface, #14181f);
+  border-bottom: 1px solid var(--admin-hairline, rgba(255, 255, 255, 0.12));
+  color: var(--admin-ink, #f6f7f8);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  justify-content: space-between;
+  padding: 10px clamp(14px, 3vw, 28px);
+}
+
+.admin-landing-preview__heading {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-landing-preview__heading strong {
+  font-size: 14px;
+}
+
+.admin-landing-preview__heading small {
+  color: var(--admin-muted, #a7adb8);
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 62ch;
+}
+
+.admin-landing-preview__modes {
+  background: color-mix(in srgb, var(--admin-ink, #fff) 8%, transparent);
+  border-radius: 8px;
+  display: inline-flex;
+  padding: 3px;
+}
+
+.admin-landing-preview__modes button {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--admin-muted, #a7adb8);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  min-height: 38px;
+  padding: 0 12px;
+}
+
+.admin-landing-preview__modes button.is-active {
+  background: var(--admin-ink, #f6f7f8);
+  color: var(--admin-surface, #14181f);
+}
+
+.admin-landing-preview__close {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong, rgba(255, 255, 255, 0.24));
+  border-radius: 8px;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+}
+
+.admin-landing-preview__modes button:focus-visible,
+.admin-landing-preview__close:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-landing-preview__stage {
+  background: color-mix(in srgb, var(--admin-ink, #fff) 6%, var(--admin-surface, #14181f));
+  display: flex;
+  justify-content: center;
+  min-height: 0;
+}
+
+.admin-landing-preview__frame {
+  background: var(--color-bg, #0d0f12);
+  border: 0;
+  height: 100%;
+  max-width: 100%;
+  width: 100%;
+}
+
+/* Tablet / móvil: el marco se centra con un borde, como un dispositivo. */
+.admin-landing-preview__stage.is-framed {
+  padding: 16px;
+}
+
+.admin-landing-preview__stage.is-framed .admin-landing-preview__frame {
+  border: 1px solid var(--admin-hairline-strong, rgba(255, 255, 255, 0.24));
+  border-radius: 10px;
+}
+
+.admin-landing-preview__loading {
+  color: var(--admin-muted, #a7adb8);
+  padding: 32px;
+}
+
+/* Entrada al editor visual: arriba de la landing, una sola acción. */
+.admin-landing-studio-entry {
+  align-items: center;
+  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  justify-content: space-between;
+  padding-bottom: 18px;
+}
+
+.admin-landing-studio-entry strong {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.admin-landing-studio-entry p {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 2px 0 0;
+  max-width: 56ch;
+}
+
+.admin-landing-studio-entry__open {
+  align-items: center;
+  background: var(--admin-ink, var(--color-text-primary));
+  border: 0;
+  border-radius: 8px;
+  color: var(--admin-surface, var(--color-bg-surface));
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  transition: opacity 160ms var(--ease-out);
+}
+
+.admin-landing-studio-entry__open:hover {
+  opacity: 0.88;
+}
+
+.admin-landing-studio-entry__open:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-landing-studio-entry__open {
+    transition: none;
+  }
+}
+
+/* ---- Copiar de otro evento ---- */
+
+.admin-landing-copy {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.admin-landing-copy__toggle,
+.admin-landing-copy__cancel {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--admin-text-secondary, var(--color-text-secondary));
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 6px;
+  justify-self: start;
+  min-height: 36px;
+  padding: 0 4px;
+}
+
+.admin-landing-copy__toggle:hover:not(:disabled),
+.admin-landing-copy__cancel:hover {
+  color: var(--admin-ink, var(--color-text));
+}
+
+.admin-landing-copy__toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-landing-copy__chevron {
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.admin-landing-copy__toggle[aria-expanded='true'] .admin-landing-copy__chevron {
+  transform: rotate(180deg);
+}
+
+.admin-landing-copy__panel {
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 10px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.admin-landing-copy__field {
+  display: grid;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.admin-landing-copy__field select {
+  background: var(--admin-control-bg, transparent);
+  border: 1px solid var(--admin-hairline-strong, var(--color-border-subtle));
+  border-radius: 10px;
+  color: var(--admin-ink, var(--color-text));
+  font: inherit;
+  font-weight: 500;
+  min-height: 44px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.admin-landing-copy__scope {
+  border: 0;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-landing-copy__scope legend {
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.admin-landing-copy__scope label {
+  align-items: flex-start;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+}
+
+.admin-landing-copy__scope input {
+  margin-top: 3px;
+}
+
+.admin-landing-copy__scope span {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-landing-copy__scope strong {
+  font-size: 13px;
+}
+
+.admin-landing-copy__scope small {
+  color: var(--admin-muted, var(--color-text-secondary));
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.admin-landing-copy__actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.admin-landing-copy__confirm {
+  background: var(--admin-ink, var(--color-text));
+  border: 0;
+  border-radius: 8px;
+  color: var(--admin-surface, var(--color-bg));
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 36px;
+  padding: 0 16px;
+}
+
+.admin-landing-copy__confirm:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.admin-landing-copy__done {
+  color: var(--admin-text-secondary, var(--color-text-secondary));
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.admin-landing-copy__toggle:focus-visible,
+.admin-landing-copy__cancel:focus-visible,
+.admin-landing-copy__confirm:focus-visible {
+  outline: 2px solid var(--admin-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .admin-landing-copy__toggle,
+  .admin-landing-copy__cancel,
+  .admin-landing-copy__confirm {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-landing-copy__chevron {
+    transition: none;
+  }
+}
+
+/* Los formularios del editor estilan todo `label` como rótulo (mayúsculas) y
+   todo `input` a ancho completo: el selector de alcance vuelve a lo suyo. */
+.admin-landing-copy .admin-landing-copy__scope label,
+.admin-landing-copy .admin-landing-copy__scope label * {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-landing-copy .admin-landing-copy__panel .admin-landing-copy__scope label.admin-landing-copy__option {
+  align-items: flex-start;
+  color: var(--admin-ink, var(--color-text));
+  display: flex;
+  flex-direction: row;
+  font-size: 13px;
+  font-weight: 400;
+  gap: 10px;
+}
+
+.admin-landing-copy .admin-landing-copy__panel .admin-landing-copy__option span {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-landing-copy .admin-landing-copy__scope label strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-landing-copy .admin-landing-copy__scope label small {
+  color: var(--admin-muted, var(--color-text-secondary));
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.admin-landing-copy .admin-landing-copy__scope input[type='radio'] {
+  accent-color: var(--admin-accent, var(--color-brand-celeste));
+  appearance: auto;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  flex: none;
+  height: 16px;
+  margin: 2px 0 0;
+  min-height: 0;
+  padding: 0;
+  width: 16px;
+}
+
+/* ---- Lugares de imagen (galería y sponsors) ---- */
+
+.admin-landing-slots {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-landing-slots__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.admin-landing-slots__grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-landing-slots__slot {
+  align-content: start;
+  display: grid;
+  gap: 4px;
+}
+
+.admin-landing-slots__slot img {
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 8px;
+  display: block;
+  object-fit: cover;
+  width: 100%;
+}
+
+.admin-landing-slots__upload {
+  align-items: center;
+  aspect-ratio: 4 / 3;
+  border: 1px dashed var(--admin-hairline-strong, var(--color-border-subtle));
+  border-radius: 8px;
+  color: var(--admin-muted, var(--color-text-secondary));
+  cursor: pointer;
+  display: flex;
+  font-size: 12px;
+  font-weight: 600;
+  justify-content: center;
+  position: relative;
+  text-align: center;
+}
+
+.admin-landing-slots__upload:hover {
+  border-color: var(--admin-ink, var(--color-text));
+  color: var(--admin-ink, var(--color-text));
+}
+
+.admin-landing-slots__upload input {
+  cursor: pointer;
+  inset: 0;
+  opacity: 0;
+  position: absolute;
+}
+
+.admin-landing-slots__upload:has(input:focus-visible) {
+  outline: 2px solid var(--admin-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
+.admin-landing-slots__upload:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ---- Pasar a Constructor ---- */
+
+.admin-landing-convert {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.admin-landing-convert__button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong, var(--color-border-subtle));
+  border-radius: 8px;
+  color: var(--admin-ink, var(--color-text));
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.admin-landing-convert__button:hover {
+  border-color: var(--admin-ink, var(--color-text));
+}
+
+.admin-landing-convert__button:focus-visible {
+  outline: 2px solid var(--admin-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
+.admin-landing-convert__note {
+  color: var(--admin-muted, var(--color-text-secondary));
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+@media (pointer: coarse) {
+  .admin-landing-convert__button {
+    min-height: 44px;
+  }
+}

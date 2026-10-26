@@ -182,6 +182,7 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
     const payload = {
       eventSlug: slug,
       division: 'Open',
+      modalities: ['full_power'],
       category: 'Raw',
       bodyweightKg: 90,
       declaredWeightClass: '90',
@@ -326,6 +327,7 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
       body: JSON.stringify({
         eventSlug: slug,
         division: 'Open',
+        modalities: ['full_power'],
         category: 'Raw',
         bodyweightKg: 90,
         declaredWeightClass: '90',
@@ -570,6 +572,7 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
       body: JSON.stringify({
         eventSlug: slug,
         division: 'Open',
+        modalities: ['full_power'],
         category: 'Raw',
         bodyweightKg: 90,
         declaredWeightClass: '90',

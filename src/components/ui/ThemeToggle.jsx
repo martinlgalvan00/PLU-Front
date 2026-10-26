@@ -9,9 +9,12 @@ export default function ThemeToggle({ compact = false }) {
   const [switching, setSwitching] = useState(false)
   const isDark = theme === 'dark'
 
-  function handleToggle() {
+  function handleToggle(event) {
+    // El tema nuevo se revela desde el centro del botón: mismo punto con
+    // mouse, dedo o teclado.
+    const rect = event.currentTarget.getBoundingClientRect()
     setSwitching(true)
-    toggleTheme()
+    toggleTheme({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 })
     window.setTimeout(() => setSwitching(false), 480)
   }
 

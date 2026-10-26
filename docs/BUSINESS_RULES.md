@@ -26,6 +26,20 @@ guardado usa `staff_merge_event_landing` (merge JSON, no upsert del evento
 completo). Sin fila `landing`, el default es `meet` + `plu-default`; el slug
 histórico `pitbull-classic-2026` cae a `editorial` por compatibilidad.
 
+`landing.publicVisible` (switch "mostrar la página") y `landing.phase`
+(`coming_soon` = "en preparación", `published`) gobiernan la landing
+`submission`: con el switch apagado el evento no sale en catálogo, destacados ni
+navegación (el servidor filtra y el cliente lo repite sobre el evento mapeado,
+que trae `landing` y no `rules`). `phase` arranca en `coming_soon`.
+
+**Formulario de Google.** `rules.externalForm = { url, label }` (RPC
+`staff_merge_event_external_form`, que corre después del upsert igual que
+`publicSurface`). Solo `https` y dominios de Google Forms (`forms.gle`,
+`docs.google.com/forms`, `forms.google.com`): la URL termina en un link público y
+en un QR impreso. La misma regla vive en `src/lib/eventExternalForm.js` (API y
+panel) y en la RPC. El editor muestra el QR descargable; el sitio público (ficha
+`meet` y landing Submission) muestra botón + QR. Vacío quita el formulario.
+
 ## Operación admin por evento
 
 Los filtros de inscripciones y ventas de entradas del panel usan el **slug**
@@ -50,6 +64,49 @@ padrón de inscripciones, triage de pagos y KPIs operativos. Las cuentas
 ### Pago
 
 `creado` → `pendiente` → `aprobado` | `rechazado` | `cancelado` | `reembolsado`
+
+## Divisiones y modalidades de una inscripción
+
+Una inscripción sigue siendo **una fila por atleta y evento** (check-in, grilla y
+cupo dependen de `unique (event_id, athlete_id)`); competir en dos divisiones no
+abre una segunda fila.
+
+- **División de edad + Open.** Todos pueden anotarse en Open; el resto depende de
+  la edad al día del evento (PLU §1.3). Se puede competir en las dos:
+  `division` es la que paga el **100%** (la de la franja de edad, u Open si es la
+  única) y `secondary_division` (siempre `Open`) paga el **50%**. Quien ya está en
+  Open por edad no tiene segunda división.
+- **Precio.** `priceRegistrationSelection` (`shared/registrationSelection.js`),
+  por categoría: base + 50% si suma Open + 50% por cada modalidad extra, todos
+  sobre la base (se suman, no se componen); en Submission se repite por cada
+  categoría. Aplica sobre cada precio —lista y manual— y la ruta lo manda como
+  `defaultPrice` / `manualPrice`; la base lo fija en la misma transacción que crea
+  la orden. Wise suma los recargos sobre su importe en USD. El combo suma los
+  recargos cotizados sobre la inscripción suelta. Un cupón porcentual se calcula
+  sobre el total con recargos; un cupón de **precio fijo** cobra su precio fijo
+  (no suma recargos).
+  Ejemplo con base $100.000: Junior + Full Power = $100.000; + Open = $150.000;
+  + Open + Banco = $200.000; Full Power + Banco + Sentadilla = $200.000.
+- **Modalidad** (`modalities`): `full_power` (marcada por defecto en el
+  checkout), `push_pull`, `squat`, `bench`, `deadlift` (especialistas), en
+  cualquier combinación. **La primera va incluida y cada una más suma el 50%**
+  (decisión de oct 2026; antes no tenía recargo). Solo se rechaza lo
+  redundante: Push-Pull ya incluye banco y peso muerto. Sin el campo, la API
+  responde 422 `MODALITY_REQUIRED`. «Categoría de competencia» es el
+  equipamiento (Raw, Single-Ply…); «Modalidad», lo que levanta.
+- **Qué ofrece cada evento.** `rules.offering = { categories?, divisions?, modalities? }`
+  (RPC `staff_merge_event_offering`, después del upsert; el panel lo edita en
+  Datos → «Qué se compite»). Ausente = ofrece todo, así los eventos existentes no
+  cambian y lo nuevo del catálogo se ofrece por defecto; solo se guardan las
+  listas que restringen algo. Open no se puede apagar. El formulario de
+  inscripción solo lista lo que el evento ofrece y la API rechaza lo demás
+  (`OFFERING_*_UNAVAILABLE`, 422). Si la división por edad del atleta no se
+  ofrece, queda solo Open.
+- **Dónde se valida.** La API es la autoridad (`DIVISION_AGE_MISMATCH`,
+  `MODALITY_*`, 422); el formulario solo previsualiza.
+- **Exportaciones.** El export admin agrega `segunda_division` y `modalidades`.
+  El export de lifters (LiftingCast) no cambió: no se sabe cómo espera
+  LiftingCast un atleta en dos divisiones.
 
 ## Precios
 
@@ -285,6 +342,22 @@ Reglas:
   el módulo.
 - Si una matriz personalizada deja de coincidir con un rol base, no se emite un
   token Supabase privilegiado que pueda eludir la autorización de Express.
+
+## Cobros: borrar una orden que no se cobró
+
+`staff_delete_athlete_payment_order` (permiso `admin.payments.approve`, motivo
+obligatorio) da de baja una fila de Cobros. **Nunca** borra plata:
+
+- `PLU31` orden cobrada/reembolsada, o combo financiado con derechos otorgados;
+- `PLU32` comprobante adjunto (primero va a la papelera);
+- `PLU33` pago declarado en una orden abierta;
+- `PLU34` intento de pasarela en vuelo;
+- `PLU35` movimientos en el libro de pagos o suscripción: queda como historial.
+
+Una orden abierta se cancela antes (cupón devuelto, inscripción liberada) y recién
+después se borra. Queda `payment_order.deleted` en la auditoría con quién, por qué
+y una foto de la orden. Hoy cubre las órdenes de atleta (afiliación, inscripción,
+combo); las de entradas y tienda no.
 
 ## Libro de caja
 

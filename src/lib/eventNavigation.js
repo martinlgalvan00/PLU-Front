@@ -1,6 +1,7 @@
 import { isTicketSalesEnabled } from './eventPricing.js'
 import { getPublicEventStatus } from './publicRegistrationPhase.js'
 import { isRegistrationOpen } from './status.js'
+import { hiddenLandingTakesRegistrations } from '../../shared/registrationSaleState.js'
 
 function eventCreatedRank(event) {
   if (event?.navPinned) return Number.MAX_SAFE_INTEGER
@@ -26,6 +27,26 @@ function eventDateTime(event) {
   const normalized = String(value).includes('T') ? String(value) : `${value}T12:00:00`
   const time = Date.parse(normalized)
   return Number.isFinite(time) ? time : Number.POSITIVE_INFINITY
+}
+
+/**
+ * Orden de lectura del calendario: lo que viene, del más cercano al más lejano;
+ * lo terminado, del más reciente al más viejo. Sin fecha, al final. No depende
+ * del orden en que llegan los eventos (el catálogo los manda por fecha, pero la
+ * lista del panel que ve el staff no).
+ *
+ * @param {object[]} events
+ * @param {{ finished?: boolean }} [options]
+ */
+export function sortEventsForCalendar(events = [], { finished = false } = {}) {
+  return [...events].sort((a, b) => {
+    const left = eventDateTime(a)
+    const right = eventDateTime(b)
+    if (left === right) return 0
+    if (!Number.isFinite(left)) return 1
+    if (!Number.isFinite(right)) return -1
+    return finished ? right - left : left - right
+  })
 }
 
 export function getUpcomingEventsByDate(events = [], now = new Date()) {
@@ -69,6 +90,76 @@ export function isPublicCatalogStubEvent(event) {
 
 export const isHomeCalendarStubEvent = isPublicCatalogStubEvent
 
+/**
+ * Landing con el interruptor apagado: el evento existe pero su plataforma está
+ * "en construcción". El evento mapeado trae `landing`; la fila cruda, `rules.landing`.
+ */
+export function isUnderConstructionEvent(event) {
+  const landing = event?.landing ?? event?.rules?.landing
+  return landing?.publicVisible === false
+}
+
+/**
+ * Eventos publicados cuya landing está en construcción. Salen del catálogo, los
+ * destacados y los countdowns (no tienen datos), pero el menú los muestra y al
+ * tocarlos la landing dice "Plataforma en construcción".
+ */
+export function getUnderConstructionEvents(events = []) {
+  return (Array.isArray(events) ? events : []).filter(
+    (event) =>
+      event?.slug &&
+      event.published !== false &&
+      !isPublicCatalogStubEvent(event) &&
+      isUnderConstructionEvent(event),
+  )
+}
+
+/**
+ * El evento en el que alguien se puede inscribir por slug: el catálogo público
+ * o una landing en construcción con la venta abierta (su aviso lleva
+ * "Inscribirme"). Una landing apagada con la venta cerrada no se ofrece.
+ *
+ * @param {string|null|undefined} slug
+ * @param {object[]} catalogEvents eventos públicos (ya con el estado resuelto)
+ * @param {object[]} [underConstructionEvents]
+ */
+export function findRegistrableEvent(slug, catalogEvents = [], underConstructionEvents = []) {
+  if (!slug) return null
+  return (
+    catalogEvents.find((event) => event?.slug === slug) ??
+    underConstructionEvents.find(
+      (event) => event?.slug === slug && hiddenLandingTakesRegistrations(event),
+    ) ??
+    null
+  )
+}
+
+/**
+ * Catálogo + landings en construcción que venden inscripciones. Lo usan las
+ * superficies donde alguien se inscribe (calendario, carril de la portada):
+ * la venta puede abrir antes que la página oficial. Countdowns, destacados y
+ * navegación de Competencia siguen leyendo `getPublicCatalogEvents`.
+ *
+ * Con la inscripción pausada en la plataforma una landing oculta no vende:
+ * vuelve a quedar solo en el menú, con su aviso.
+ *
+ * @param {object[]} events catálogo crudo (incluye los stubs en construcción)
+ * @param {{ now?: Date, registrationEnabled?: boolean }} [options]
+ */
+export function getRegistrableCatalogEvents(
+  events = [],
+  { now = new Date(), registrationEnabled = true } = {},
+) {
+  const catalog = getPublicCatalogEvents(events)
+  if (!registrationEnabled) return catalog
+  const selling = getUnderConstructionEvents(events).filter(
+    (event) =>
+      hiddenLandingTakesRegistrations(event, { now }) &&
+      !catalog.some((item) => item.slug === event.slug),
+  )
+  return [...catalog, ...selling]
+}
+
 export function getPublicCatalogEvents(events = [], _options = {}) {
   // El catálogo público nunca lista stubs ni eventos ocultos. `_options
   // .includeDevelopmentStubs` se ignora a propósito: en Vite/Vitest
@@ -79,9 +170,14 @@ export function getPublicCatalogEvents(events = [], _options = {}) {
   // una pantalla pública nueva no puede publicar por accidente un evento que
   // el staff acabó de ocultar. La ausencia de `published` se mantiene visible
   // para los datos editoriales legacy que no conocen todavía ese campo.
-  return (Array.isArray(events) ? events : []).filter(
-    (event) => event && event.published !== false && !isPublicCatalogStubEvent(event),
-  )
+  return (Array.isArray(events) ? events : []).filter((event) => {
+    if (!event || event.published === false || isPublicCatalogStubEvent(event)) return false
+
+    // Una landing con el interruptor apagado se puede preparar con el evento ya
+    // configurado: no aparece en listados ni countdowns (ver
+    // `getUnderConstructionEvents` para el menú y la landing "en construcción").
+    return !isUnderConstructionEvent(event)
+  })
 }
 
 /**
@@ -124,7 +220,7 @@ export function getFeaturedEvent(events = []) {
 /**
  * Hasta dos eventos vigentes para Competencia (navbar, drawer, footer).
  * Slot 1: destacado si sigue en el catálogo próximo; si no, el próximo por fecha.
- * Slot 2: Pitbull si es otro meet publicado vigente; si no, el siguiente upcoming.
+ * Slot 2: el siguiente meet publico vigente por fecha.
  * Un solo `featured` de staff; el segundo slot es derivado. Stubs y ocultos
  * no entran (mismo filtro que el catálogo público).
  */
@@ -134,8 +230,6 @@ export function getCompetitionNavEvents(events = [], now = new Date()) {
 
   const upcoming = getUpcomingEventsByDate(eligible, now)
   const featured = eligible.find((event) => event.featured)
-  const pitbull = eligible.find(isPitbullClassicEvent)
-
   const first =
     featured && upcoming.some((event) => event.slug === featured.slug)
       ? featured
@@ -143,13 +237,7 @@ export function getCompetitionNavEvents(events = [], now = new Date()) {
   if (!first) return []
 
   const remaining = upcoming.filter((event) => event.slug !== first.slug)
-  const pitbullAsSecond =
-    pitbull &&
-    pitbull.slug !== first.slug &&
-    remaining.some((event) => event.slug === pitbull.slug)
-      ? pitbull
-      : null
-  const second = pitbullAsSecond ?? remaining[0] ?? null
+  const second = remaining[0] ?? null
 
   return second ? [first, second] : [first]
 }
@@ -199,19 +287,33 @@ function isBarbellSubmissionEvent(event) {
  * inscripción (abierta o teaser "próximamente", prioriza Barbell Submission).
  * No promociona meets cerrados/finalizados como inscripción.
  *
+ * Una landing en construcción que vende (`hiddenLandingTakesRegistrations`)
+ * también ocupa el carril de inscripción: la venta puede abrir antes que la
+ * página oficial. Entradas no, porque el catálogo no entrega sus datos.
+ *
  * @param {object[]} [events]
  * @param {{
  *   now?: Date,
  *   registrationEnabled?: boolean,
  *   ticketSalesEnabled?: boolean,
+ *   underConstructionEvents?: object[],
  * }} [options]
  * @returns {{ kind: 'tickets' | 'registration' | 'registration_soon', event: object }[]}
  */
 export function getSeasonHomeActions(
   events = [],
-  { now = new Date(), registrationEnabled = true, ticketSalesEnabled = true } = {},
+  {
+    now = new Date(),
+    registrationEnabled = true,
+    ticketSalesEnabled = true,
+    underConstructionEvents = [],
+  } = {},
 ) {
   const catalog = getPublicCatalogEvents(events)
+  const registrable = getRegistrableCatalogEvents([...events, ...underConstructionEvents], {
+    now,
+    registrationEnabled,
+  })
   const actions = []
 
   const ticketEvent =
@@ -227,7 +329,7 @@ export function getSeasonHomeActions(
     status: getPublicEventStatus(event, now, { registrationEnabled }),
   })
 
-  const openForRegistration = catalog
+  const openForRegistration = registrable
     .map(withPublicStatus)
     .filter(({ status }) => isRegistrationOpen(status))
   const openRegistration =
@@ -242,7 +344,7 @@ export function getSeasonHomeActions(
   }
 
   // Teaser: próximo meet en "próximamente" (Barbell / Virtus), no cerrado ni finalizado.
-  const upcomingTeasers = catalog
+  const upcomingTeasers = registrable
     .map(withPublicStatus)
     .filter(
       ({ event, status }) =>

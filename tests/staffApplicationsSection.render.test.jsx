@@ -26,12 +26,15 @@ vi.mock('../src/services/staffApplicationService.js', () => ({
   })),
 }))
 
-const StaffApplicationsSection = (
-  await import('../src/pages/admin/StaffApplicationsSection.jsx')
-).default
-const { listStaffApplications, reviewStaffApplication } = await import(
-  '../src/services/staffApplicationService.js'
-)
+vi.mock('../src/lib/credentialQr.js', () => ({
+  generateCredentialQr: vi.fn(async () => 'data:image/png;base64,staff-application-qr'),
+}))
+
+const StaffApplicationsSection = (await import('../src/pages/admin/StaffApplicationsSection.jsx'))
+  .default
+const { listStaffApplications, reviewStaffApplication } =
+  await import('../src/services/staffApplicationService.js')
+const { generateCredentialQr } = await import('../src/lib/credentialQr.js')
 
 afterEach(cleanup)
 
@@ -44,6 +47,18 @@ function renderSection(props = {}) {
 }
 
 describe('StaffApplicationsSection', () => {
+  it('genera un QR para compartir el formulario público de postulación', async () => {
+    renderSection()
+
+    const qr = await screen.findByAltText('Código QR para postularse al Cuerpo de Staff')
+    expect(qr.getAttribute('src')).toBe('data:image/png;base64,staff-application-qr')
+    const publicUrl = 'https://www.powerliftingunited.ar/sumate-al-staff'
+    expect(generateCredentialQr).toHaveBeenCalledWith(publicUrl)
+    expect(screen.getByRole('link', { name: /sumate-al-staff/i }).getAttribute('href')).toBe(
+      publicUrl,
+    )
+  })
+
   it('lista las postulaciones pendientes con sus datos y un link de WhatsApp', async () => {
     renderSection({ canEdit: true })
     await waitFor(() => expect(listStaffApplications).toHaveBeenCalled())

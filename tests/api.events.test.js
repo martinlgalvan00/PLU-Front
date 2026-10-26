@@ -381,14 +381,14 @@ describe('API administrativa de eventos', () => {
         'staff_merge_event_public_surface',
         expect.objectContaining({
           p_slug: payload.slug,
-          p_surface: {
+          p_surface: expect.objectContaining({
             calendar: true,
             weighIns: true,
             livestream: true,
             experience: true,
             categories: true,
             location: true,
-          },
+          }),
         }),
       )
       expect(supabase.rpc).toHaveBeenCalledWith(
@@ -691,6 +691,154 @@ describe('API administrativa de eventos', () => {
             field: 'cashPayment.place',
           }),
         ]),
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
+  // Un solo test con un solo login: el limitador de logins es por archivo.
+  it('guarda el formulario de Google del evento, lo valida y avisa si falta la migración', async () => {
+    const { target, cookie, supabase } = await setup()
+    const upsert = (body) =>
+      fetch(`${target.url}/api/events/upsert`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify(body),
+      })
+
+    try {
+      const saved = await upsert(
+        eventPayload({
+          externalForm: { url: ' https://forms.gle/AbC123xyz ', label: ' Encuesta de atletas ' },
+        }),
+      )
+      expect(saved.status).toBe(201)
+      expect(supabase.rpc).toHaveBeenCalledWith('staff_merge_event_external_form', {
+        p_slug: 'pitbull-classic-2026',
+        p_url: 'https://forms.gle/AbC123xyz',
+        p_label: 'Encuesta de atletas',
+      })
+
+      // Un guardado que no manda el formulario no lo pisa.
+      supabase.rpc.mockClear()
+      expect((await upsert(eventPayload())).status).toBe(201)
+      expect(supabase.rpc).not.toHaveBeenCalledWith(
+        'staff_merge_event_external_form',
+        expect.anything(),
+      )
+
+      // Vaciar la URL lo quita.
+      supabase.rpc.mockClear()
+      expect((await upsert(eventPayload({ externalForm: { url: '', label: '' } }))).status).toBe(201)
+      expect(supabase.rpc).toHaveBeenCalledWith('staff_merge_event_external_form', {
+        p_slug: 'pitbull-classic-2026',
+        p_url: '',
+        p_label: '',
+      })
+
+      // Solo Google Forms por https: nada llega a la base.
+      supabase.rpc.mockClear()
+      for (const url of ['https://evil.example/forms', 'http://forms.gle/AbC123', 'javascript:alert(1)']) {
+        const rejected = await upsert(eventPayload({ externalForm: { url, label: '' } }))
+        expect(rejected.status, url).toBe(400)
+      }
+      expect(supabase.rpc).not.toHaveBeenCalledWith(
+        'staff_merge_event_external_form',
+        expect.anything(),
+      )
+
+      supabase.rpc.mockImplementation(async (name) => {
+        if (name === 'staff_merge_event_external_form') {
+          return {
+            data: null,
+            error: {
+              code: 'PGRST202',
+              message:
+                'Could not find the function public.staff_merge_event_external_form(p_label, p_slug, p_url) in the schema cache',
+            },
+          }
+        }
+        return { data: { id: EVENT_ID }, error: null }
+      })
+      const pending = await upsert(
+        eventPayload({ externalForm: { url: 'https://forms.gle/AbC123xyz', label: '' } }),
+      )
+      expect(pending.status).toBe(201)
+      expect((await pending.json()).warnings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: 'EVENT_EXTERNAL_FORM_NOT_SAVED',
+            field: 'externalForm.url',
+          }),
+        ]),
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('guarda qué ofrece el evento, solo lo que restringe, y rechaza lo inválido', async () => {
+    const { target, cookie, supabase } = await setup()
+    const upsert = (body) =>
+      fetch(`${target.url}/api/events/upsert`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify(body),
+      })
+
+    try {
+      const saved = await upsert(
+        eventPayload({
+          offering: {
+            categories: ['Raw'],
+            divisions: ['Open', 'Junior', 'Masters', 'Youth', 'Sub-Masters'],
+            modalities: ['full_power', 'bench'],
+          },
+        }),
+      )
+      expect(saved.status).toBe(201)
+      // Las divisiones están todas: no se guarda la clave, queda "ofrece todo".
+      expect(supabase.rpc).toHaveBeenCalledWith('staff_merge_event_offering', {
+        p_slug: 'pitbull-classic-2026',
+        p_offering: { categories: ['Raw'], modalities: ['full_power', 'bench'] },
+      })
+
+      // Un guardado que no manda la oferta no la pisa.
+      supabase.rpc.mockClear()
+      expect((await upsert(eventPayload())).status).toBe(201)
+      expect(supabase.rpc).not.toHaveBeenCalledWith('staff_merge_event_offering', expect.anything())
+
+      // Todo seleccionado = sin restricción: manda vacío para quitar la anterior.
+      supabase.rpc.mockClear()
+      expect((await upsert(eventPayload({ offering: {} }))).status).toBe(201)
+      expect(supabase.rpc).toHaveBeenCalledWith('staff_merge_event_offering', {
+        p_slug: 'pitbull-classic-2026',
+        p_offering: {},
+      })
+
+      supabase.rpc.mockClear()
+      const invalid = await upsert(eventPayload({ offering: { categories: ['Fantasía'] } }))
+      expect(invalid.status).toBe(400)
+      expect(supabase.rpc).not.toHaveBeenCalledWith('staff_merge_event_offering', expect.anything())
+
+      supabase.rpc.mockImplementation(async (name) => {
+        if (name === 'staff_merge_event_offering') {
+          return {
+            data: null,
+            error: {
+              code: 'PGRST202',
+              message:
+                'Could not find the function public.staff_merge_event_offering(p_offering, p_slug) in the schema cache',
+            },
+          }
+        }
+        return { data: { id: EVENT_ID }, error: null }
+      })
+      const pending = await upsert(eventPayload({ offering: { categories: ['Raw'] } }))
+      expect(pending.status).toBe(201)
+      expect((await pending.json()).warnings).toEqual(
+        expect.arrayContaining([expect.objectContaining({ code: 'EVENT_OFFERING_NOT_SAVED' })]),
       )
     } finally {
       await target.close()

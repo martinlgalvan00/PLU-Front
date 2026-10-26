@@ -105,6 +105,7 @@ describe('validación manual de transferencia y credencial resultante', () => {
         {
           eventSlug: EVENT_SLUG,
           division: 'Open',
+          modalities: ['full_power'],
           category: 'Raw',
           bodyweightKg: 90,
           declaredWeightClass: '90',

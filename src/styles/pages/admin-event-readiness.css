@@ -1,0 +1,170 @@
+/* =============================================
+   LISTO PARA PUBLICAR
+   Checklist de contenido en la pestaña Publicación. Informativo: no bloquea.
+   Sin tarjeta ni fondos: filas con hairline. El estado lo dice el ícono + la
+   palabra (Listo / Falta / Revisar); el ámbar marca lo pendiente, nunca rojo.
+   ============================================= */
+
+.admin-event-readiness {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding-top: var(--space-md);
+}
+
+.admin-event-readiness__head {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--space-md);
+  justify-content: space-between;
+}
+
+.admin-event-readiness__title {
+  color: var(--admin-ink);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.admin-event-readiness__count {
+  color: var(--admin-ink);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  margin: 0;
+}
+
+.admin-event-readiness__summary {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 62ch;
+}
+
+.admin-event-readiness__group {
+  display: grid;
+  gap: 2px;
+  margin-top: var(--space-xs);
+}
+
+.admin-event-readiness__group-title {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.admin-event-readiness__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-event-readiness__row {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: var(--space-sm);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 9px 0;
+}
+
+.admin-event-readiness__row:last-child {
+  border-bottom: 0;
+}
+
+.admin-event-readiness__icon {
+  color: var(--color-text-muted);
+  flex: none;
+  margin-top: 2px;
+}
+
+.admin-event-readiness__row--todo .admin-event-readiness__icon,
+.admin-event-readiness__row--warning .admin-event-readiness__icon {
+  color: var(--admin-status-warning);
+}
+
+.admin-event-readiness__copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-event-readiness__label,
+.admin-event-readiness__hint {
+  margin: 0;
+}
+
+.admin-event-readiness__label {
+  align-items: baseline;
+  color: var(--admin-ink);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  gap: 2px var(--space-sm);
+}
+
+.admin-event-readiness__state {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.admin-event-readiness__row--todo .admin-event-readiness__state,
+.admin-event-readiness__row--warning .admin-event-readiness__state {
+  color: var(--admin-status-warning);
+}
+
+.admin-event-readiness__hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  max-width: 62ch;
+}
+
+.admin-event-readiness__goto {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--border-radius-sm);
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 5px;
+  min-height: 32px;
+  padding: 0 var(--space-sm);
+  text-decoration: underline;
+  text-decoration-color: var(--color-border-subtle);
+  text-underline-offset: 3px;
+  transition: text-decoration-color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.admin-event-readiness__goto:hover {
+  text-decoration-color: currentColor;
+}
+
+.admin-event-readiness__goto:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+  .admin-event-readiness__row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .admin-event-readiness__goto {
+    grid-column: 2;
+    justify-self: start;
+    margin-left: calc(var(--space-sm) * -1);
+  }
+}

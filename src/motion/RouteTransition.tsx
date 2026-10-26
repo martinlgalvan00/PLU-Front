@@ -4,6 +4,11 @@ import { MOTION_DURATION, MOTION_EASE, scaleDuration } from './tokens'
 import { pageSectionTransition } from './variants'
 import { useMotionConfig } from './MotionProvider'
 import { useMobileViewport } from './useMobileViewport'
+import { isRouteMorphing } from './routeMorph'
+
+const INSTANT = { duration: 0 }
+const STILL_STATE = { opacity: 1, x: 0, y: 0 }
+const STILL_EXIT = { opacity: 1, transition: INSTANT }
 
 type RouteTransitionProps = {
   children: ReactNode
@@ -59,13 +64,12 @@ export default function RouteTransition({
     isFirstRender.current = false
   }, [])
 
-  if (reducedMotion || tier === 'low') {
-    return (
-      <div className="page-transition page-transition--idle" id={id} tabIndex={tabIndex}>
-        {children}
-      </div>
-    )
-  }
+  // Sin movimiento (reducido o equipo lento) la página cambia en seco, pero el
+  // árbol es el mismo: antes devolvía un <div> en lugar del <m.div> y, como el
+  // tier se mide en vivo los primeros segundos (MotionProvider), bajar a 'low'
+  // con la página abierta la remontaba entera — se perdía lo cargado, como el
+  // código aplicado en el checkout o "Elegir otro medio".
+  const still = reducedMotion || tier === 'low'
 
   const mobileEnterX = direction === 'back' ? -14 : 24
   // Settle cinematográfico con la duración de página (0.34s) escalada por
@@ -86,20 +90,28 @@ export default function RouteTransition({
       }
 
   return (
-    <AnimatePresence mode="wait">
+    // Durante un morph de ruta la nueva monta junto a la saliente: con
+    // `wait` la nueva esperaba una salida animada por rAF, que el navegador no
+    // corre mientras la View Transition espera el DOM nuevo (routeMorph.ts).
+    <AnimatePresence mode={isRouteMorphing() ? 'sync' : 'wait'}>
       <m.div
         key={viewKey}
-        className="page-transition page-transition--motion"
+        className={`page-transition ${still ? 'page-transition--idle' : 'page-transition--motion'}`}
         id={id}
         tabIndex={tabIndex}
-        initial={isFirstRender.current ? false : initial}
-        animate={isMobile ? { opacity: 1, x: 0 } : 'visible'}
-        variants={isMobile ? undefined : pageSectionTransition}
-        exit={exit}
+        // Con un morph de ruta en curso (routeMorph.ts) la View Transition ya
+        // es la entrada: la página monta quieta para que la captura nueva la
+        // vea completa.
+        initial={still || isRouteMorphing() || isFirstRender.current ? false : initial}
+        animate={still ? STILL_STATE : isMobile ? { opacity: 1, x: 0 } : 'visible'}
+        variants={still || isMobile ? undefined : pageSectionTransition}
+        exit={still ? STILL_EXIT : exit}
         transition={
-          isMobile
-            ? { duration: mobileDuration, ease: MOTION_EASE.cinematic }
-            : undefined
+          still
+            ? INSTANT
+            : isMobile
+              ? { duration: mobileDuration, ease: MOTION_EASE.cinematic }
+              : undefined
         }
       >
         {children}

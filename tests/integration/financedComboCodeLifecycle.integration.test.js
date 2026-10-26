@@ -268,6 +268,7 @@ describe('código-paquete financiado, de punta a punta', () => {
       body: JSON.stringify({
         eventSlug: slug,
         division: 'Open',
+        modalities: ['full_power'],
         category: 'Raw',
         bodyweightKg: 90,
         declaredWeightClass: '90',

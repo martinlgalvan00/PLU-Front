@@ -40,8 +40,8 @@ let fixture
 const created = { events: [], athletes: [], registrations: [] }
 
 const PEOPLE = [
-  { suffix: 'Ana', birthDate: '1992-02-19', sex: 'Femenino' },
-  { suffix: 'Luis', birthDate: '2005-06-01', sex: 'Masculino' },
+  { suffix: 'Ana', birthDate: '1992-02-19', sex: 'Femenino', bodyweightKg: 58, weightClass: '60' },
+  { suffix: 'Luis', birthDate: '2005-06-01', sex: 'Masculino', bodyweightKg: 88, weightClass: '90' },
 ]
 
 test.describe('Export Lifters — fechas y estructura', () => {
@@ -103,6 +103,10 @@ test.describe('Export Lifters — fechas y estructura', () => {
           event_id: event.id,
           division: 'Open',
           category: 'Raw',
+          // Sin peso ni categoría de peso la fila es un error del importador y
+          // "Descargar Excel" queda deshabilitado a propósito.
+          bodyweight_kg: person.bodyweightKg,
+          declared_weight_class: person.weightClass,
           status: 'confirmada',
         })
         .select('id')
@@ -141,7 +145,8 @@ test.describe('Export Lifters — fechas y estructura', () => {
     await page.getByRole('button', { name: /planilla lifters/i }).click()
     const panel = page.getByRole('region', { name: /planilla lifters/i })
     await expect(panel).toBeVisible()
-    await expect(panel.getByRole('heading', { name: /studio de export/i })).toBeVisible()
+    // El export va en tres pasos (Revisar · Armar · Bajar); el estudio es "Armar".
+    await expect(panel.getByRole('heading', { name: /^Armar$/i })).toBeVisible()
     await expect(panel.getByText(/preview:/i)).toBeVisible({ timeout: 20_000 })
 
     const preset = panel.locator('label').filter({ hasText: 'Plantilla' }).locator('select')

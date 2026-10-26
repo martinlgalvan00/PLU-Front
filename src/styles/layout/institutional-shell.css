@@ -610,6 +610,10 @@
   min-width: 330px;
 }
 
+.plu-nav-menu--competition {
+  min-width: min(390px, calc(100vw - 48px));
+}
+
 .plu-nav-menu--resources {
   min-width: min(720px, calc(100vw - 48px));
   padding: 0;
@@ -701,6 +705,76 @@
 
 .plu-nav-menu__item--featured .plu-nav-menu__icon {
   color: var(--institution-gold);
+}
+
+.plu-competition-menu {
+  border-top: 1px solid color-mix(in srgb, var(--institution-border) 52%, transparent);
+  margin-top: 6px;
+  padding-top: 8px;
+}
+
+.plu-competition-menu__head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px 7px 10px;
+}
+
+.plu-competition-menu__head > p {
+  color: var(--institution-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.plu-competition-menu__controls {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.plu-competition-menu__controls button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--institution-border) 76%, transparent);
+  border-radius: 4px;
+  color: var(--institution-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  height: 26px;
+  justify-content: center;
+  padding: 0;
+  width: 26px;
+}
+
+.plu-competition-menu__controls button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--institution-gold) 55%, transparent);
+  color: var(--institution-gold);
+}
+
+.plu-competition-menu__controls button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.plu-competition-menu__track {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.plu-competition-menu__track::-webkit-scrollbar {
+  display: none;
+}
+
+.plu-competition-menu__slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
 }
 
 .plu-nav-menu__copy {
@@ -1448,8 +1522,11 @@ html.plu-drawer-open body {
   opacity: 0.7;
 }
 
+/* Reposo legible sin hover: en touch no existe y el menú es, sobre todo,
+   mobile. 0.38 daba ~3:1 en los títulos y fallaba AA en las bajadas de 11px;
+   la jerarquía con el activo la sostienen el blanco pleno y el indicador. */
 [data-theme='dark'] .plu-drawer__nav-primary .plu-drawer__row--flush .plu-drawer__row-copy strong {
-  color: rgba(236, 236, 232, 0.38);
+  color: rgba(236, 236, 232, 0.66);
   font-weight: 650;
 }
 
@@ -1467,10 +1544,9 @@ html.plu-drawer-open body {
 }
 
 [data-theme='dark'] .plu-drawer__nav-primary .plu-drawer__row--flush .plu-drawer__row-copy small {
-  color: rgba(236, 236, 232, 0.38);
+  color: rgba(236, 236, 232, 0.56);
   font-weight: 600;
   letter-spacing: 0.08em;
-  opacity: 0.85;
 }
 
 [data-theme='dark']
@@ -1502,7 +1578,7 @@ html.plu-drawer-open body {
   .plu-drawer__row--flush
   .plu-drawer__row-copy
   strong {
-  color: rgba(236, 236, 232, 0.4);
+  color: rgba(236, 236, 232, 0.62);
   font-weight: 600;
 }
 
@@ -1615,7 +1691,11 @@ html.plu-drawer-open body {
     box-shadow: -18px 0 48px rgba(15, 17, 23, 0.18);
   }
 
+  /* Opaco: en mobile el sheet va de borde a borde y performance.css le saca
+     el blur; el 4% de transparencia no aportaba material y dejaba el titular
+     dorado del hero fantasmeando detrás de los ítems. */
   [data-theme='dark'] .plu-drawer {
+    background: #090b0e;
     border-left-color: rgba(255, 255, 255, 0.08);
     box-shadow: -28px 0 72px rgba(0, 0, 0, 0.82);
   }
@@ -2011,29 +2091,28 @@ html.plu-drawer-open body {
 
 /* Secundario — línea de utilidad horizontal: texto corrido separado por puntos. */
 
+/* Directorio en dos columnas: con separadores "·" en una fila que cortaba
+   línea quedaban puntos huérfanos al inicio del renglón, y los links medían
+   ~25px de alto. Ahora cada uno es un target de 44px alineado a la grilla. */
 .plu-drawer__nav-secondary {
-  align-items: baseline;
   border-top: 1px solid var(--institution-border);
-  column-gap: 0;
-  display: flex;
-  flex-wrap: wrap;
+  column-gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: auto;
-  padding-top: 14px;
-  row-gap: 2px;
+  padding-top: 10px;
+  row-gap: 0;
 }
 
 .plu-drawer__nav-secondary-sep {
-  color: var(--institution-text-muted);
-  font-size: 11px;
-  opacity: 0.4;
-  padding: 0 9px;
+  display: none;
 }
 
 .plu-drawer__nav-secondary .plu-drawer__row--flush {
   display: inline-flex;
-  min-height: 0;
-  padding: 4px 0;
-  width: auto;
+  min-height: 44px;
+  padding: 0;
+  width: 100%;
 }
 
 .plu-drawer__nav-secondary .plu-drawer__row-indicator {
@@ -2042,7 +2121,7 @@ html.plu-drawer-open body {
 
 .plu-drawer__nav-secondary .plu-drawer__row--flush .plu-drawer__row-copy strong {
   color: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 550;
   letter-spacing: -0.01em;
   text-transform: none;
@@ -2367,8 +2446,10 @@ html.plu-drawer-open body {
   cursor: pointer;
   font: inherit;
   letter-spacing: inherit;
-  min-height: 32px;
-  padding: 3px 0;
+  /* Mismo target que .plu-page-hero__breadcrumb: 44px sin mover la línea. */
+  margin-block: -12px;
+  min-height: 44px;
+  padding: 0;
 }
 
 .institutional-hero__breadcrumb button:hover {
@@ -2691,7 +2772,14 @@ html.plu-drawer-open body {
   margin: 0;
   max-width: 100%;
   text-wrap: balance;
-  background: linear-gradient(135deg, var(--plu-gold-400), var(--plu-gold-600));
+  /* Mismo gesto que en dark (tinta plena que se atenúa), en la tinta clara.
+     El degradé oro 400→600 sobre el fondo claro del footer arrancaba en
+     ~1.4:1: el titular más grande del sitio era el menos legible. */
+  background: linear-gradient(
+    135deg,
+    var(--institution-text),
+    color-mix(in srgb, var(--institution-text) 62%, transparent)
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -3885,7 +3973,7 @@ html.plu-drawer-open body {
   }
 
   .institutional-hero__inner {
-    padding: 28px 18px 46px;
+    padding: 28px var(--institution-gutter) 46px;
   }
 
   .institutional-hero__breadcrumb {
@@ -3925,7 +4013,7 @@ html.plu-drawer-open body {
   }
 
   .institutional-page__inner {
-    padding: 48px 18px 72px;
+    padding: 48px var(--institution-gutter) 72px;
   }
 
   .institutional-section-head,
@@ -3939,7 +4027,7 @@ html.plu-drawer-open body {
   }
 
   .institutional-footer__inner {
-    padding-inline: 18px;
+    padding-inline: var(--institution-gutter);
   }
   .institutional-footer__lead {
     grid-template-columns: 1fr;
@@ -3970,6 +4058,28 @@ html.plu-drawer-open body {
   }
   .institutional-footer__directory nav:last-child {
     border-bottom: 0;
+  }
+  /* Dos columnas por grupo: en una sola el directorio medía ~900px y el
+     footer casi dos pantallas. Con `columns` (no grid) el orden visual sigue
+     al del DOM — baja por la primera y sigue en la segunda — y "Eventos" no
+     se separa de sus fechas. */
+  .institutional-footer__directory ul:not(.institutional-footer__sublist) {
+    column-gap: 16px;
+    columns: 2;
+    display: block;
+  }
+  .institutional-footer__directory ul:not(.institutional-footer__sublist) > li {
+    break-inside: avoid;
+  }
+  .institutional-footer__directory h3 {
+    margin-bottom: 8px;
+  }
+  .institutional-footer__directory button {
+    min-height: 44px;
+  }
+  .institutional-footer__directory .institutional-footer__sublist {
+    gap: 0;
+    margin-top: 0;
   }
 }
 
@@ -4020,10 +4130,6 @@ html.plu-drawer-open body {
     max-width: 320px;
     width: min(92vw, 320px);
   }
-  .institutional-footer__directory ul {
-    grid-template-columns: 1fr;
-  }
-
   .plu-global-nav {
     gap: 6px;
     padding: 0 10px 0 8px;

@@ -526,6 +526,7 @@ export default function AdminPage({
       return (
         <EventsSection
           adminEvents={adminEvents}
+          onRefreshAthleteData={onRefreshAthleteData}
           adminEventWorkspaceSlug={adminEventWorkspaceSlug}
           athletes={athletes}
           isLoading={adminEventsLoading}
