@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   CalendarDays,
   ChevronRight,
+  Construction,
   Copy,
   Eye,
   EyeOff,
@@ -34,7 +35,6 @@ import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminSiteTeaserControl from '../../components/admin/AdminSiteTeaserControl.jsx'
 import Button from '../../components/ui/Button.jsx'
-import StatusPill from '../../components/ui/StatusPill.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
@@ -48,12 +48,12 @@ import {
 import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { formatDayMonth, formatMonthYear } from '../../lib/format.js'
 import { getStatusMeta } from '../../lib/status.js'
-import { normalizeEventPublicSurface } from '../../lib/eventPublicSurface.js'
 import {
   resolveEventPublishConfirmChecks,
   summarizeEventPaymentChannels,
 } from '../../lib/eventPublishChecks.js'
-import { resolveEventSalesReadiness } from '../../lib/eventSalesReadiness.js'
+import { resolveRegistrationSale } from '../../../shared/registrationSaleState.js'
+import { eventSiteState } from '../../lib/eventPublicSurface.js'
 import { EVENT_PAYMENT_CHANNELS } from '../../lib/eventPaymentChannels.js'
 import { getCompetitionNavEvents } from '../../lib/eventNavigation.js'
 import useEventPayments from '../../hooks/useEventPayments.js'
@@ -114,106 +114,63 @@ function groupByYearKey(list) {
   return byYear
 }
 
-/**
- * Destino de Mercado Pago en la fila: cuenta general PLU, nombre del perfil o
- * aviso de reconectar / faltante. Evita abrir cada meet para saber quién cobra.
- */
-function EventMpDestination({ row, summary, t }) {
-  const mpOpen =
-    summary.registration.includes('mercado_pago') ||
-    (Array.isArray(summary.ticket) && summary.ticket.includes('mercado_pago'))
-  if (!mpOpen) return null
-
+/** Lo único de Mercado Pago que la lista tiene que decir: que no va a poder cobrar. */
+function mercadoPagoIssue(row, summary) {
+  if (!summary.registration.includes('mercado_pago')) return null
   const readiness = row.mercadoPagoReadiness
   const destination =
     readiness?.destination ?? (row.mercadoPagoProfileId ? 'profile' : 'platform')
-  const status = readiness?.connectionStatus ?? null
-
-  if (destination === 'missing') {
-    return (
-      <span className="admin-event-row__mp admin-event-row__mp--warn">
-        {t('admin.sections.events.mpMissing')}
-      </span>
-    )
-  }
-  if (status === 'needs_reconnect') {
-    return (
-      <span className="admin-event-row__mp admin-event-row__mp--warn">
-        {t('admin.sections.events.mpNeedsReconnect')}
-      </span>
-    )
-  }
-  if (destination === 'profile') {
-    const name = readiness?.profileName
-    return (
-      <span className="admin-event-row__mp">
-        {name
-          ? t('admin.sections.events.mpProfile', { name })
-          : t('admin.sections.events.mpProfileGeneric')}
-      </span>
-    )
-  }
-  return (
-    <span className="admin-event-row__mp admin-event-row__mp--muted">
-      {t('admin.sections.events.mpPlatform')}
-    </span>
-  )
+  if (destination === 'missing') return 'mpMissing'
+  if (readiness?.connectionStatus === 'needs_reconnect') return 'mpNeedsReconnect'
+  return null
 }
 
 /**
- * Con qué cobra el evento, en la lista: es lo que Finanzas pregunta antes de
- * abrir una venta y hasta ahora obligaba a entrar a la ficha de cada meet.
- * Un concepto sin ningún medio se marca, porque es una venta que no existe.
+ * La venta de inscripciones del evento, en la lista: el mismo estado que el
+ * control de venta del Resumen (`resolveRegistrationSale`) y, debajo, un solo
+ * dato que lo explica — con qué cobra, qué la bloquea o cuándo abre.
+ *
+ * Antes la columna "Cobro" apilaba hasta cuatro líneas por fila (semáforo,
+ * medios de inscripción, de entradas y la cuenta de Mercado Pago) iguales en
+ * casi todos los eventos, y la columna "Estado" repetía el estado guardado,
+ * que podía decir "Inscripción abierta" con el evento oculto.
  */
-function EventSalesReadyBadge({ row, platform, t }) {
-  const readiness = resolveEventSalesReadiness(row, platform)
-  const label =
-    readiness.mode === 'announce'
-      ? t('admin.sections.events.salesReadyAnnounce')
-      : readiness.level === 'red'
-        ? t('admin.sections.events.salesReadyRed')
-        : readiness.level === 'yellow'
-          ? t('admin.sections.events.salesReadyYellow')
-          : t('admin.sections.events.salesReadyGreen')
-  return (
-    <span
-      className={`admin-event-row__sales-ready admin-event-row__sales-ready--${readiness.level}${
-        readiness.mode === 'announce' ? ' is-announce' : ''
-      }`}
-      title={label}
-    >
-      <span className="admin-event-row__sales-ready-dot" aria-hidden />
-      {label}
-    </span>
-  )
-}
-
-function EventPaySummary({ row, platform, t }) {
+function EventSaleCell({ row, platform, locale, t }) {
   const summary = summarizeEventPaymentChannels(row, platform)
-  const group = (concept, channels) => {
-    if (!channels) return null
-    return (
-      <span
-        key={concept}
-        className={`admin-event-row__pay-group${channels.length === 0 ? ' is-empty' : ''}`}
-      >
-        <span className="admin-event-row__pay-concept">
-          {t(`admin.eventEditor.paymentChannelConcept.${concept}`)}
-        </span>
-        {channels.length === 0
-          ? t('admin.sections.events.payNone')
-          : channels.length === EVENT_PAYMENT_CHANNELS.length
-            ? t('admin.sections.events.payAll')
-            : channels.map((channel) => t(`admin.eventEditor.paymentChannelShort.${channel}`)).join(' · ')}
-      </span>
-    )
+  const sale = resolveRegistrationSale(row, {
+    platform,
+    registrationChannels: platform ? summary.registration : null,
+  })
+  const mpIssue = mercadoPagoIssue(row, summary)
+
+  let detail = null
+  if (sale.state === 'on_sale') {
+    detail =
+      summary.registration.length === EVENT_PAYMENT_CHANNELS.length
+        ? t('admin.sections.events.payAll')
+        : summary.registration
+            .map((channel) => t(`admin.eventEditor.paymentChannelShort.${channel}`))
+            .join(' · ')
+  } else if (sale.state === 'scheduled') {
+    detail = t('admin.eventSale.listOpensOn', { date: formatDayMonth(sale.opensAt, locale) })
+  } else if (sale.state === 'blocked') {
+    detail = t(`admin.eventSale.listBlocker_${sale.blockers[0]}`)
+  } else if (sale.state === 'closed') {
+    detail = t(`admin.eventSale.listClosed_${sale.reason ?? 'notOpened'}`)
   }
+
   return (
-    <span className="admin-event-row__pay" aria-label={t('admin.sections.events.payLabel')}>
-      <EventSalesReadyBadge row={row} platform={platform} t={t} />
-      {group('registration', summary.registration)}
-      {group('ticket', summary.ticket)}
-      <EventMpDestination row={row} summary={summary} t={t} />
+    <span className={`admin-event-row__pay admin-event-row__sale is-${sale.state}`}>
+      <span className="admin-event-row__sale-state">
+        <span className="admin-event-row__sale-dot" aria-hidden />
+        {t(`admin.eventSale.listState_${sale.state}`)}
+      </span>
+      {detail ? <span className="admin-event-row__sale-detail">{detail}</span> : null}
+      {mpIssue && ['on_sale', 'scheduled', 'blocked'].includes(sale.state) ? (
+        <span className="admin-event-row__mp admin-event-row__mp--warn">
+          {t(`admin.sections.events.${mpIssue}`)}
+        </span>
+      ) : null}
     </span>
   )
 }
@@ -225,8 +182,14 @@ function EventPaySummary({ row, platform, t }) {
  */
 function EventVisibilityControl({ row, canToggle, busy, onToggle, t }) {
   const published = row.published !== false
-  const label = published ? t('admin.eventState.published') : t('admin.eventState.hidden')
-  const Icon = published ? Eye : EyeOff
+  // Publicado con la landing apagada: se ve el cartel de "en construcción".
+  const construction = published && eventSiteState(row) === 'construction'
+  const label = construction
+    ? t('admin.eventConsole.siteConstruction')
+    : published
+      ? t('admin.eventState.published')
+      : t('admin.eventState.hidden')
+  const Icon = construction ? Construction : published ? Eye : EyeOff
   const content = (
     <>
       <Icon size={14} aria-hidden />
@@ -353,11 +316,7 @@ function EventListRow({
           {venueLine ? <span className="admin-event-row__venue">{venueLine}</span> : null}
         </span>
 
-        {finished ? (
-          <span className="admin-event-row__pay" aria-hidden />
-        ) : (
-          <EventPaySummary row={row} platform={platform} t={t} />
-        )}
+        <EventSaleCell locale={locale} platform={platform} row={row} t={t} />
 
         <span className="admin-event-row__status">
           <span className={`admin-event-row__capacity admin-event-row__capacity--${capacityTone}`}>
@@ -366,10 +325,6 @@ function EventListRow({
               <span>/{row.slots}</span>
             </strong>
             <small>{t('admin.sections.events.registeredCaption')}</small>
-          </span>
-
-          <span className="admin-event-row__badge">
-            <StatusPill value={row.status} />
           </span>
         </span>
       </button>
@@ -422,6 +377,8 @@ const NON_EDITOR_SECTIONS = new Set(['structure', 'security', 'payments', 'regis
  *  “Cerrar sección” va a dashboard y la invariante rearma el form, el botón
  *  no cierra nada. */
 const EDITOR_SECTIONS = new Set(['basics', 'sales', 'visibility'])
+/** Destino pendiente de `closeForm`: salir del workspace al listado. */
+const CONSOLE_BACK = '__back__'
 
 export default function EventsSection({
   adminEvents,
@@ -617,6 +574,12 @@ export default function EventsSection({
   const deleteTargetRef = useRef(null)
   /** Cierre dirty-aware del editor embebido en la consola. */
   const exitEditRef = useRef(null)
+  // `formOpen` y el borrador del último render, para callbacks que terminan
+  // después (un PATCH en vuelo, el "Deshacer" de un aviso).
+  const formOpenRef = useRef(false)
+  formOpenRef.current = formOpen
+  const draftRef = useRef(null)
+  draftRef.current = draft
   /** Si el editor dirty pide confirmación, abrir esta sección al descartar. */
   const pendingConsoleSectionRef = useRef(null)
   const pendingConsoleChapterRef = useRef(null)
@@ -658,6 +621,32 @@ export default function EventsSection({
   function closeEventConsole() {
     resetEventConsole()
     clearAdminEventRoute()
+  }
+
+  /**
+   * "Volver" del workspace. Con el editor abierto, la salida pasa por él: si
+   * hay cambios sin guardar muestra su confirmación (guardar / descartar) y
+   * recién después `closeForm` cierra la consola. Antes se reseteaba el draft
+   * directo y los cambios de la landing se perdían sin aviso.
+   */
+  function backFromEventConsole() {
+    if (formOpen && draft.id && exitEditRef.current) {
+      pendingConsoleSectionRef.current = CONSOLE_BACK
+      exitEditRef.current()
+      return
+    }
+    // En el Resumen el editor no está montado pero el borrador sigue vivo (la
+    // vista previa lo usa): si tiene cambios, se pregunta antes de tirarlo.
+    if (
+      formOpen &&
+      draft.id &&
+      editorBaselineSignature != null &&
+      getAdminEventDraftSignature(draft) !== editorBaselineSignature &&
+      !window.confirm(t('admin.eventConsole.discardBackConfirm'))
+    ) {
+      return
+    }
+    closeEventConsole()
   }
 
   /**
@@ -1311,62 +1300,6 @@ export default function EventsSection({
     openEditForm(event, section, chapter)
   }
 
-  /**
-   * Interruptor de un toque de un bloque de la pagina publica. Escribe sobre
-   * el draft y deja abierta la pestaña Vista publica: es el atajo que evita
-   * entrar al formulario para apagar el livestream.
-   */
-  function togglePublicModule(event, key) {
-    if (!event || !canEdit) return
-    const apply = (current) => {
-      const surface = normalizeEventPublicSurface(current.publicSurface)
-      return {
-        ...current,
-        publicSurface: { ...surface, [key]: !surface[key] },
-      }
-    }
-    if (formOpen && draft.id === event.id) {
-      setDraft(apply)
-      setConsoleSection('visibility')
-      setEditorFocus('visibility')
-      return
-    }
-    const baseline = buildAdminEventDraft(event)
-    setSelectedId(event.id)
-    setEditorFocus('visibility')
-    setConsoleSection('visibility')
-    setConsoleChapter(null)
-    setDraft(apply(baseline))
-    setEditorBaselineSignature(getAdminEventDraftSignature(baseline))
-    setMessage(null)
-    setConsoleOpen(true)
-    setFormOpen(true)
-  }
-
-  function toggleOccupancy(event) {
-    if (!event || !canEdit) return
-    const apply = (current) => ({
-      ...current,
-      capacityProgressPublic: current.capacityProgressPublic === false,
-    })
-    if (formOpen && draft.id === event.id) {
-      setDraft(apply)
-      setConsoleSection('visibility')
-      setEditorFocus('visibility')
-      return
-    }
-    const baseline = buildAdminEventDraft(event)
-    setSelectedId(event.id)
-    setEditorFocus('visibility')
-    setConsoleSection('visibility')
-    setConsoleChapter(null)
-    setDraft(apply(baseline))
-    setEditorBaselineSignature(getAdminEventDraftSignature(baseline))
-    setMessage(null)
-    setConsoleOpen(true)
-    setFormOpen(true)
-  }
-
   function closeForm({ returnToDashboard = false } = {}) {
     const wasEditingExisting = Boolean(draft.id)
     const pendingSection = pendingConsoleSectionRef.current
@@ -1374,6 +1307,10 @@ export default function EventsSection({
     pendingConsoleSectionRef.current = null
     pendingConsoleChapterRef.current = null
     discardStateRef.current?.()
+    if (pendingSection === CONSOLE_BACK) {
+      closeEventConsole()
+      return
+    }
     setFormOpen(false)
     setEditorBaselineSignature(null)
     setDraft(createAdminEventDraft())
@@ -1432,14 +1369,36 @@ export default function EventsSection({
       }
     }
 
-    // «Crear y cargar otro»: el alta se queda abierta para el siguiente.
-    if (another) return saved
+    // El alta se queda abierta: con «Crear y cargar otro» para el siguiente, y
+    // si no en su pantalla «Listo», que dice si ya se puede vender. De ahí se
+    // sale con `finishQuickCreate`.
+    void another
+    return saved
+  }
 
+  /**
+   * Salida de la pantalla «Listo» del alta: al evento recién creado (en el
+   * Resumen, o en el capítulo de Venta que arregla lo que falta) o a la lista.
+   */
+  function finishQuickCreate(created, { open = false, section = 'dashboard', chapter = null } = {}) {
     setQuickCreateOpen(false)
     setDuplicateSource(null)
-    showCreatedEvent(saved?.event)
     if (createRouteActive) clearAdminEventRoute()
-    return saved
+    const match = adminEvents.find((event) => event.id === created?.id) ?? null
+    if (!open || !match) {
+      showCreatedEvent(created)
+      return
+    }
+    setSelectedId(match.id)
+    setJustCreatedId(null)
+    if (section === 'dashboard') {
+      setConsoleSection('dashboard')
+      setConsoleChapter(null)
+      setConsoleOpen(true)
+    } else {
+      openEditForm(match, section, chapter)
+    }
+    if (match.slug) pushAdminEventRoute(match.slug)
   }
 
   /**
@@ -1488,15 +1447,39 @@ export default function EventsSection({
     if (!slug || !pending || Object.keys(pending).length === 0) return null
     const result = await onSetEventState?.(slug, pending)
     if (result?.error) throw new Error(result.error)
-    const event = result?.event
+    const synced = syncOpenDraft(pending, result?.event)
+    setMessage({
+      tone: 'success',
+      text: t('admin.sections.events.updated'),
+    })
+    return synced
+  }
+
+  /**
+   * Lleva al borrador abierto lo que un PATCH parcial acaba de guardar
+   * (estado, publicación, acceso, ventana de inscripción). Sin esto, el
+   * próximo "Guardar" del editor volvía a escribir los valores viejos: abrir
+   * las inscripciones desde el control de venta y después guardar un título
+   * las volvía a cerrar.
+   */
+  function syncOpenDraft(pending, event, slug = event?.slug) {
     const synced = {}
     if (pending.status !== undefined) synced.status = event?.status ?? pending.status
     if (pending.published !== undefined) synced.published = event?.published ?? pending.published
     if (pending.requiresMembership !== undefined) {
       synced.requiresMembership = event?.requiresMembership ?? pending.requiresMembership
     }
-    const nextDraft = { ...draft, ...synced }
-    setDraft(nextDraft)
+    // El borrador guarda las fechas como `datetime-local`, igual que al abrirlo.
+    const eventDraft = event ? buildAdminEventDraft(event) : null
+    for (const key of ['registrationOpensAt', 'registrationClosesAt']) {
+      if (pending[key] !== undefined) synced[key] = eventDraft?.[key] ?? ''
+    }
+    if (Object.keys(synced).length === 0) return synced
+    // Sobre el borrador de ahora, no el del render que arrancó el pedido: lo
+    // que se editó mientras viajaba el PATCH (o antes de un "Deshacer" del
+    // aviso) no se pisa.
+    if (slug && draftRef.current?.slug !== slug) return synced
+    setDraft((current) => ({ ...current, ...synced }))
     // La línea base avanza solo en lo que se acaba de guardar. Antes pasaba a
     // la firma del borrador entero: si el upsert siguiente fallaba, lo que
     // estaba editado en Datos quedaba como "Sin cambios pendientes", con
@@ -1506,14 +1489,18 @@ export default function EventsSection({
       try {
         return JSON.stringify({ ...JSON.parse(current), ...synced })
       } catch {
-        return getAdminEventDraftSignature(nextDraft)
+        return current
       }
     })
-    setMessage({
-      tone: 'success',
-      text: t('admin.sections.events.updated'),
-    })
     return synced
+  }
+
+  /** Acciones rápidas y control de venta del workspace: PATCH + borrador abierto al día. */
+  async function setEventStateFromWorkspace(slug, payload) {
+    const result = await onSetEventState?.(slug, payload)
+    // El borrador se lee al aplicar (no se captura acá): ver `syncOpenDraft`.
+    if (!result?.error && formOpenRef.current) syncOpenDraft(payload, result?.event, slug)
+    return result
   }
 
   async function handleStructureSave(submittedDraft) {
@@ -1868,6 +1855,7 @@ export default function EventsSection({
             formOpen && draft.id && EDITOR_SECTIONS.has(consoleSection) ? (
               <AdminEventEditor
                 key={draft.id}
+                landingSourceEvents={adminEvents}
                 accordion
                 embedded
                 eventScoped={eventScoped}
@@ -1893,20 +1881,26 @@ export default function EventsSection({
                 extraDirty={stateDirty}
                 onExtraSave={handleExtraStateSave}
                 onExtraDiscard={() => discardStateRef.current?.()}
+                onKeepEditing={() => {
+                  // Sin esto, el destino que pidió la salida (Volver, otra
+                  // pestaña) quedaba vivo y el próximo guardado lo ejecutaba.
+                  pendingConsoleSectionRef.current = null
+                  pendingConsoleChapterRef.current = null
+                }}
                 onSaved={() => notifySuccess(t('admin.sections.events.updated'))}
               />
             ) : null
           }
           event={selectedEvent}
           inNav={navEventSlugs.has(selectedEvent.slug)}
-          onBack={closeEventConsole}
+          onBack={backFromEventConsole}
           onDelete={openDeleteDialog}
           onManageCheckin={onManageCheckin}
           onManageRegistrations={onManageRegistrations}
           onSelectChapter={selectConsoleChapter}
           onSelectSection={selectConsoleSection}
           onSetEventLogo={onSetEventLogo}
-          onSetEventState={onSetEventState}
+          onSetEventState={onSetEventState ? setEventStateFromWorkspace : undefined}
           onSetTicketAccessOverride={onSetTicketAccessOverride}
           onStatePendingChange={(payload) => {
             const next = payload && typeof payload === 'object' ? payload : {}
@@ -1916,10 +1910,8 @@ export default function EventsSection({
           onRegisterStateDiscard={(fn) => {
             discardStateRef.current = fn
           }}
-          onToggleOccupancy={toggleOccupancy}
           onTogglePin={eventScoped ? undefined : handleTogglePin}
           pinBusy={pinBusyId === selectedEvent.id}
-          onTogglePublicModule={togglePublicModule}
           openChapter={consoleChapter}
           paymentSummary={selectedPaymentSummary}
           paymentsAttention={selectedPaymentTriage?.needsAttention?.length ?? null}
@@ -1955,6 +1947,7 @@ export default function EventsSection({
                   onManageRegistrations ? () => onManageRegistrations(selectedEvent) : undefined
                 }
                 onSetRegistrationStatus={onSetRegistrationStatus}
+                payments={paymentsSource.payments}
                 registrations={registrations}
               />
             ) : null
@@ -2059,6 +2052,8 @@ export default function EventsSection({
         onCancel={closeQuickCreate}
         onOpenFullEditor={openFullEditorFromQuickCreate}
         onSubmit={handleQuickCreate}
+        onDone={finishQuickCreate}
+        onSetEventState={onSetEventState}
       />
     )
   }
@@ -2211,9 +2206,8 @@ export default function EventsSection({
                     <span>{t('admin.sections.events.cols.event')}</span>
                     <span>{t('admin.sections.events.cols.date')}</span>
                     <span>{t('admin.sections.events.cols.venue')}</span>
-                    <span>{t('admin.sections.events.cols.pay')}</span>
+                    <span>{t('admin.sections.events.cols.sale')}</span>
                     <span className="is-num">{t('admin.sections.events.cols.registered')}</span>
-                    <span>{t('admin.sections.events.cols.status')}</span>
                   </span>
                   <span className="admin-event-list__head-actions">
                     {t('admin.sections.events.cols.visibility')}
@@ -2302,6 +2296,7 @@ export default function EventsSection({
       {formOpen && !draft.id ? (
         <AdminEventEditor
           canEdit={canEdit}
+          landingSourceEvents={adminEvents}
           draft={draft}
           initialFocus={editorFocus}
           sourceEvent={editingSource}

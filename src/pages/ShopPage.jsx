@@ -65,6 +65,33 @@ function parseShopDateParts(dateStr = '') {
   return { raw: cleaned }
 }
 
+/**
+ * Día (o rango del mismo mes) y mes de una fila de evento. El catálogo
+ * público trae `dateISO`/`endsAt` y no `date` (eso solo lo arma el panel):
+ * leyendo únicamente `date`, las filas salían sin fecha. Misma derivación
+ * que el calendario; en UTC porque `dateISO` es la fecha de `starts_at`.
+ */
+function shopEventDateParts(event, locale) {
+  const startKey = /^\d{4}-\d{2}-\d{2}/.exec(String(event?.dateISO ?? ''))?.[0]
+  if (!startKey) return parseShopDateParts(event?.date)
+  const toDate = (key) => new Date(`${key}T00:00:00Z`)
+  const monthOf = (date) =>
+    new Intl.DateTimeFormat(locale, { month: 'short', timeZone: 'UTC' })
+      .format(date)
+      .replace(/\./g, '')
+      .slice(0, 3)
+      .toUpperCase()
+  const start = toDate(startKey)
+  const day = String(start.getUTCDate()).padStart(2, '0')
+  const endKey = /^\d{4}-\d{2}-\d{2}/.exec(String(event?.endsAt ?? ''))?.[0]
+  const end = endKey && endKey > startKey ? toDate(endKey) : null
+  const sameMonth = end && end.getUTCMonth() === start.getUTCMonth()
+  return {
+    day: sameMonth ? `${day}–${String(end.getUTCDate()).padStart(2, '0')}` : day,
+    month: monthOf(start),
+  }
+}
+
 const panelVariants = {
   hidden: { opacity: 0, y: 14 },
   visible: {
@@ -176,7 +203,7 @@ function ShopEventRow({ event, locale, checkoutOpen, onOpenDetail, t }) {
   const fromPrice = cheapestTicketTypePrice(pricing)
   const salesOpen = checkoutOpen && isTicketSalesEnabled(event)
   const remaining = useTicketAvailability(salesOpen ? event.slug : null)
-  const dateParts = parseShopDateParts(event.date)
+  const dateParts = shopEventDateParts(event, locale)
   const { reducedMotion, tier } = useMotionConfig()
   const still = reducedMotion || tier === 'low'
   const Row = still ? 'li' : m.li
@@ -184,7 +211,12 @@ function ShopEventRow({ event, locale, checkoutOpen, onOpenDetail, t }) {
   return (
     <Row className="shop-row" {...(still ? {} : { variants: rowVariants })}>
       <button type="button" className="shop-row__hit" onClick={() => onOpenDetail(event)}>
-        <span className="shop-row__date" aria-label={event.date}>
+        <span
+          className="shop-row__date"
+          aria-label={
+            dateParts?.day ? `${dateParts.day} ${dateParts.month}` : (dateParts?.raw ?? event.date)
+          }
+        >
           {dateParts?.day ? (
             <>
               <span className="shop-row__day">{dateParts.day}</span>

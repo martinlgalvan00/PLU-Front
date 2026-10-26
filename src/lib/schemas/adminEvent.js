@@ -1,6 +1,8 @@
 import { z } from 'zod'
+import { buildLandingLayoutSchema } from './landingLayoutSchema.js'
 import { EVENT_PAYMENT_CHANNELS, eventChannelOverridesFor } from '../eventPaymentChannels.js'
 import { resolveTicketTypeChannels } from '../ticketTypePaymentChannels.js'
+import { EXTERNAL_FORM_LABEL_MAX, normalizeExternalFormUrl } from '../eventExternalForm.js'
 import {
   MAX_TICKET_QR_VALIDITY_MINUTES,
   TICKET_ACCESS_USAGE_MODE,
@@ -369,12 +371,13 @@ export const adminEventDraftSchema = z
       .optional(),
     landing: z
       .object({
-        templateId: z.enum(['meet', 'editorial', 'submission']).optional(),
+        templateId: z.enum(['meet', 'editorial', 'submission', 'builder']).optional(),
         themeId: z
           .enum(['plu-default', 'night-steel', 'ember', 'clean-light'])
           .optional(),
         publicVisible: z.boolean().optional(),
         phase: z.enum(['coming_soon', 'published']).optional(),
+        layout: buildLandingLayoutSchema(z).optional(),
         slots: z
           .object({
             heroTitle: z.string().trim().max(120, 'landingHeroTitleMax').optional(),
@@ -430,6 +433,18 @@ export const adminEventDraftSchema = z
       .optional(),
     mercadoPagoProfileId: z.string().uuid('mpProfileIdInvalid').nullable().optional(),
     salesIntent: z.enum(['charge', 'announce']).optional(),
+    externalForm: z
+      .object({
+        url: z
+          .string()
+          .trim()
+          .optional()
+          .nullable()
+          .transform((value) => value || '')
+          .refine((value) => normalizeExternalFormUrl(value).ok, 'externalFormInvalid'),
+        label: optionalText(EXTERNAL_FORM_LABEL_MAX, 'externalFormLabelMax'),
+      })
+      .optional(),
   })
   .superRefine((data, ctx) => {
     if (data.startsAt && data.endsAt && data.startsAt > data.endsAt) {
@@ -648,6 +663,7 @@ export function validateAdminEventDraft(draft, t) {
     publicSurface: draft?.publicSurface,
     publicCopy: draft?.publicCopy,
     landing: draft?.landing,
+    externalForm: draft?.externalForm,
     paymentChannelOverrides: draft?.paymentChannelOverrides ?? null,
   })
 

@@ -1129,3 +1129,9 @@
     letter-spacing: 0.08em;
   }
 }
+
+.field__hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}

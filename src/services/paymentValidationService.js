@@ -135,6 +135,24 @@ export function canForceSettleOrder(order) {
 }
 
 /**
+ * Filas de Cobros que se pueden dar de baja: todo lo que no se cobró. Espejo de
+ * `staff_delete_athlete_payment_order`, que es quien manda (además rechaza las
+ * órdenes con movimientos en el libro de pagos, que acá no se ven).
+ */
+export function canDeleteAthleteOrder(order) {
+  if (!order) return false
+  if (order.status === 'aprobado' || order.status === 'reembolsado') return false
+  if (hasPaymentProof(order)) return false
+  const declaredAt = order.manualPaymentDeclaredAt ?? order.manual_payment_declared_at ?? null
+  if (declaredAt && (isOpenOrder(order) || order.status === 'creado')) return false
+  const entitlementsAt = order.financedEntitlementsAt ?? order.financed_entitlements_at ?? null
+  const revokedAt =
+    order.financedEntitlementsRevokedAt ?? order.financed_entitlements_revoked_at ?? null
+  if (entitlementsAt && !revokedAt) return false
+  return true
+}
+
+/**
  * Con el interruptor de validación del concepto apagado no se acredita ni se
  * rechaza esa orden. El combo pesa en los dos: acredita afiliación e
  * inscripción en la misma transacción, así que alcanza uno congelado.

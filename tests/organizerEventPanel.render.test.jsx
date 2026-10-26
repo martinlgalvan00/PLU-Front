@@ -204,10 +204,10 @@ describe('organizador: pestañas del evento', () => {
     expect(within(tabRail(panel)).queryByRole('tab', { name: /zonas y seguridad/i })).toBeNull()
   })
 
-  it('Vista pública: el destacado queda bloqueado para el organizador', () => {
+  it('Página: el destacado queda bloqueado para el organizador', () => {
     renderEvents()
     const panel = openWorkspace()
-    openTab(panel, /vista pública/i)
+    openTab(panel, /^página$/i)
     const region = screen.getByRole('region', { name: 'Evento seleccionado' })
 
     expect(within(region).getByRole('checkbox', { name: /evento destacado/i }).disabled).toBe(true)
@@ -222,7 +222,7 @@ describe('organizador: resumen del evento', () => {
     openTab(panel, /resumen/i)
 
     await waitFor(() => expect(listTicketsForEvent).toHaveBeenCalledWith(EVENT.slug))
-    expect(await screen.findByText(/según 2 entradas emitidas/i)).toBeTruthy()
+    expect(await screen.findByText(/^2 entradas emitidas$/i)).toBeTruthy()
     expect(screen.getByText(/24\.000/)).toBeTruthy()
   })
 

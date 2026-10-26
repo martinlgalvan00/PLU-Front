@@ -25,7 +25,9 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Suele tardar ~7', pero con runners lentos `playwright install --with-deps`
+    # llegó a 6,5' (apt) y unit a 7'; con 15' cortaba en medio de Storybook.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -69,7 +71,10 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Supabase + integración tardan ~10'; los 88 e2e corren en serie (1 worker)
+    # y suman otros ~20'. Con 15' el job se cancelaba siempre a mitad del e2e,
+    # antes de que Playwright imprimiera qué falló.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
       - uses: supabase/setup-cli@v1
@@ -122,6 +127,20 @@ jobs:
       - name: Install Playwright Chromium for checkout E2E
         run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      # Sin esto, una falla en CI deja solo el mensaje: el snapshot de la página
+      # (error-context.md), la captura y el trace quedan en el runner.
+      - name: Upload Playwright results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e-results
+          path: |
+            e2e/.test-results/
+            e2e/.report/
+          retention-days: 7
+          if-no-files-found: ignore
+          # Las carpetas de Playwright empiezan con punto y v4 las saltea por defecto.
+          include-hidden-files: true
       # Postura de seguridad contra el catalogo real: RLS activo, el navegador
       # sin escritura, las RPC de cobro cerradas y toda funcion definer con
       # search_path. Los tests estaticos auditan lo que dicen las migraciones;

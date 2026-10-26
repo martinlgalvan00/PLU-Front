@@ -1,6 +1,7 @@
 import { isTicketSalesEnabled } from './eventPricing.js'
 import { getPublicEventStatus } from './publicRegistrationPhase.js'
 import { isRegistrationOpen } from './status.js'
+import { hiddenLandingTakesRegistrations } from '../../shared/registrationSaleState.js'
 
 function eventCreatedRank(event) {
   if (event?.navPinned) return Number.MAX_SAFE_INTEGER
@@ -26,6 +27,26 @@ function eventDateTime(event) {
   const normalized = String(value).includes('T') ? String(value) : `${value}T12:00:00`
   const time = Date.parse(normalized)
   return Number.isFinite(time) ? time : Number.POSITIVE_INFINITY
+}
+
+/**
+ * Orden de lectura del calendario: lo que viene, del más cercano al más lejano;
+ * lo terminado, del más reciente al más viejo. Sin fecha, al final. No depende
+ * del orden en que llegan los eventos (el catálogo los manda por fecha, pero la
+ * lista del panel que ve el staff no).
+ *
+ * @param {object[]} events
+ * @param {{ finished?: boolean }} [options]
+ */
+export function sortEventsForCalendar(events = [], { finished = false } = {}) {
+  return [...events].sort((a, b) => {
+    const left = eventDateTime(a)
+    const right = eventDateTime(b)
+    if (left === right) return 0
+    if (!Number.isFinite(left)) return 1
+    if (!Number.isFinite(right)) return -1
+    return finished ? right - left : left - right
+  })
 }
 
 export function getUpcomingEventsByDate(events = [], now = new Date()) {
@@ -69,6 +90,50 @@ export function isPublicCatalogStubEvent(event) {
 
 export const isHomeCalendarStubEvent = isPublicCatalogStubEvent
 
+/**
+ * Landing con el interruptor apagado: el evento existe pero su plataforma está
+ * "en construcción". El evento mapeado trae `landing`; la fila cruda, `rules.landing`.
+ */
+export function isUnderConstructionEvent(event) {
+  const landing = event?.landing ?? event?.rules?.landing
+  return landing?.publicVisible === false
+}
+
+/**
+ * Eventos publicados cuya landing está en construcción. Salen del catálogo, los
+ * destacados y los countdowns (no tienen datos), pero el menú los muestra y al
+ * tocarlos la landing dice "Plataforma en construcción".
+ */
+export function getUnderConstructionEvents(events = []) {
+  return (Array.isArray(events) ? events : []).filter(
+    (event) =>
+      event?.slug &&
+      event.published !== false &&
+      !isPublicCatalogStubEvent(event) &&
+      isUnderConstructionEvent(event),
+  )
+}
+
+/**
+ * El evento en el que alguien se puede inscribir por slug: el catálogo público
+ * o una landing en construcción con la venta abierta (su aviso lleva
+ * "Inscribirme"). Una landing apagada con la venta cerrada no se ofrece.
+ *
+ * @param {string|null|undefined} slug
+ * @param {object[]} catalogEvents eventos públicos (ya con el estado resuelto)
+ * @param {object[]} [underConstructionEvents]
+ */
+export function findRegistrableEvent(slug, catalogEvents = [], underConstructionEvents = []) {
+  if (!slug) return null
+  return (
+    catalogEvents.find((event) => event?.slug === slug) ??
+    underConstructionEvents.find(
+      (event) => event?.slug === slug && hiddenLandingTakesRegistrations(event),
+    ) ??
+    null
+  )
+}
+
 export function getPublicCatalogEvents(events = [], _options = {}) {
   // El catálogo público nunca lista stubs ni eventos ocultos. `_options
   // .includeDevelopmentStubs` se ignora a propósito: en Vite/Vitest
@@ -82,14 +147,10 @@ export function getPublicCatalogEvents(events = [], _options = {}) {
   return (Array.isArray(events) ? events : []).filter((event) => {
     if (!event || event.published === false || isPublicCatalogStubEvent(event)) return false
 
-    // Submission puede mantenerse configurado internamente sin aparecer en
-    // superficies publicas hasta que el staff habilite su landing.
-    const landing = event.rules?.landing
-    const isHiddenSubmission =
-      String(landing?.templateId ?? '').toLowerCase() === 'submission' &&
-      landing?.publicVisible === false
-
-    return !isHiddenSubmission
+    // Una landing con el interruptor apagado se puede preparar con el evento ya
+    // configurado: no aparece en listados ni countdowns (ver
+    // `getUnderConstructionEvents` para el menú y la landing "en construcción").
+    return !isUnderConstructionEvent(event)
   })
 }
 

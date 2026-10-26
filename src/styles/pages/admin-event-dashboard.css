@@ -1,6 +1,6 @@
 /* =============================================
    RESUMEN DEL EVENTO
-   Tres cifras en una franja con hairlines (sin cajas ni íconos decorativos), un
+   Hasta tres cifras en una franja con hairlines (sin cajas ni íconos decorativos), un
    acceso a la página pública y, en el rail, la operación como lista de filas.
    Sin barras de progreso: la ocupación es una cifra con su porcentaje.
    ============================================= */
@@ -20,7 +20,17 @@
 }
 
 .admin-event-dashboard__figures--ops {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr));
+}
+
+/* Meet sin entradas de público: una sola cifra, la que importa. */
+.admin-event-dashboard__figures--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Inscriptos manda: un escalón más grande que el resto. */
+.admin-event-dashboard__figure--lead dd strong {
+  font-size: clamp(36px, 4.2vw, 48px);
 }
 
 .admin-event-dashboard__figure {
@@ -73,13 +83,8 @@
 }
 
 @media (max-width: 899px) {
-  .admin-event-dashboard__figures--ops {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .admin-event-dashboard__figures--ops .admin-event-dashboard__figure:nth-child(3) {
-    border-left: 0;
-    padding-left: 0;
+  .admin-event-dashboard__figures--ops:not(.admin-event-dashboard__figures--single) {
+    grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 1fr));
   }
 }
 

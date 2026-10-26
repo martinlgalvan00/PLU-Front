@@ -341,6 +341,7 @@ describe('códigos de descuento y promoción en el checkout', () => {
       const orderBody = {
         eventSlug: event.slug,
         division: 'Open',
+        modalities: ['full_power'],
         category: 'Raw',
         bodyweightKg: 90,
         declaredWeightClass: '90',
@@ -416,6 +417,7 @@ describe('códigos de descuento y promoción en el checkout', () => {
       body: JSON.stringify({
         eventSlug: slug,
         division: 'Open',
+        modalities: ['full_power'],
         category: 'Raw',
         bodyweightKg: 90,
         declaredWeightClass: '90',
@@ -588,6 +590,7 @@ describe('códigos de descuento y promoción en el checkout', () => {
           body: JSON.stringify({
             eventSlug: slug,
             division: 'Open',
+            modalities: ['full_power'],
             category: 'Raw',
             bodyweightKg: 90,
             declaredWeightClass: '90',

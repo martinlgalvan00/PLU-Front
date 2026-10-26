@@ -32,6 +32,7 @@
     "visual-check": "node scripts/visual-check.mjs",
     "e2e:mercado-pago": "node scripts/e2e-mercado-pago.mjs",
     "test:e2e": "playwright test",
+    "test:e2e:flows": "playwright test --config playwright.flows.config.js",
     "e2e:checkout-coupon": "playwright test",
     "e2e:checkout-coupon:headed": "playwright test --headed",
     "e2e:checkout-coupon:report": "playwright show-report e2e/.report",
@@ -45,6 +46,7 @@
     "db:verify:fixed-price": "node scripts/verify-fixed-price-promotion.mjs",
     "db:verify:requote": "node scripts/verify-requote-open-order.mjs",
     "db:verify:cancel": "node scripts/verify-cancel-open-order.mjs",
+    "db:verify:order-delete": "node scripts/verify-delete-athlete-order.mjs",
     "db:verify:schema": "node scripts/verify-schema-posture.mjs",
     "supabase:assert": "node scripts/assert-supabase-connectivity.mjs",
     "supabase:diagnose": "node scripts/diagnose-supabase-integration.mjs",
@@ -96,7 +98,7 @@
     "qrcode": "^1.5.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "zod": "^3.25.76"
+    "zod": "^4.6.7"
   },
   "overrides": {
     "valibot": "1.4.2",

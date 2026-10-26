@@ -216,6 +216,33 @@ button:disabled {
   z-index: 2;
 }
 
+/* Morph de ruta (src/motion/routeMorph.ts): el título de la tarjeta viaja
+   hasta el h1 de la página nueva. Las dos capturas se cruzan mientras el
+   grupo interpola posición y tamaño; el resto de la pantalla usa el fundido
+   de arriba. */
+::view-transition-group(route-morph-title) {
+  animation-duration: var(--motion-slow);
+  animation-timing-function: var(--ease-cinematic);
+}
+
+::view-transition-old(route-morph-title),
+::view-transition-new(route-morph-title) {
+  animation-duration: var(--motion-slow);
+  animation-timing-function: var(--ease-cinematic);
+  /* Alto completo y sin estirar: el texto escala desde su esquina en vez de
+     deformarse cuando cambia de una línea a dos. */
+  height: 100%;
+  object-fit: contain;
+  object-position: left top;
+}
+
+/* Revelado circular desde el toggle (ThemeProvider): el círculo lo anima
+   `element.animate()` sobre la capa nueva; la vieja queda quieta debajo. */
+[data-theme-reveal]::view-transition-old(root),
+[data-theme-reveal]::view-transition-new(root) {
+  animation: none;
+}
+
 /* ── Icono del toggle con spin al cambiar ── */
 .pref-toggle {
   position: relative;

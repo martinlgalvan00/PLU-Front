@@ -42,6 +42,11 @@ const serverEnv = {
   // y terminan en 429 aunque cada una arranca un server nuevo. Sin esto cae al
   // store en memoria, que sí resetea con cada proceso.
   SHARED_RATE_LIMIT_ENABLED: 'false',
+  // Aun en memoria, el cupo de login (20 cada 15' por IP) se agota a mitad de
+  // la suite: todo sale de 127.0.0.1 y los specs de admin, organizador y
+  // puerta entran por el formulario real. Pasado el login 20, el resto caía en
+  // 429 y el cliente lo mostraba como "credenciales inválidas".
+  E2E_DISABLE_AUTH_RATE_LIMIT: 'true',
 }
 
 const webEnv = {
@@ -62,6 +67,8 @@ const webEnv = {
 
 export default defineConfig({
   testDir: './e2e',
+  // Los flujos con API simulada tienen su propia config (playwright.flows.config.js).
+  testIgnore: ['flows/**'],
   timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,

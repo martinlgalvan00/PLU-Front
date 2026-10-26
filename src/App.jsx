@@ -49,9 +49,13 @@ import {
   getFeaturedEvent,
   getNextUpcomingEvent,
   getPublicCatalogEvents,
+  getUnderConstructionEvents,
+  isUnderConstructionEvent,
+  findRegistrableEvent,
   PITBULL_CLASSIC_SLUG,
 } from './lib/eventNavigation.js'
 import {
+  eventHasBuilderLanding,
   eventHasEditorialLanding,
   eventHasSubmissionLanding,
   eventLandingSeo,
@@ -160,6 +164,8 @@ const NotFoundPage = lazyWithRetry(() => import('./pages/NotFoundPage.jsx'))
 const PitbullPage = lazyWithRetry(() => import('./pages/PitbullPage.jsx'))
 const EventLandingEditorial = lazyWithRetry(() => import('./pages/EventLandingEditorial.jsx'))
 const SubmissionLandingPage = lazyWithRetry(() => import('./pages/SubmissionLandingPage.jsx'))
+const EventBuilderLandingPage = lazyWithRetry(() => import('./pages/EventBuilderLandingPage.jsx'))
+const EventUnderConstructionPage = lazyWithRetry(() => import('./pages/EventUnderConstructionPage.jsx'))
 const RecordsPage = lazyWithRetry(() => import('./pages/RecordsPage.jsx'))
 const RegisterPage = lazyWithRetry(() => import('./pages/RegisterPage.jsx'))
 const ResourcesPage = lazyWithRetry(() => import('./pages/ResourcesPage.jsx'))
@@ -223,6 +229,12 @@ export default function App() {
   // Intent liviano al abrir el checkout desde Pagos / Torneos: p.ej. abrir
   // directo el selector de medio (“Elegir otro medio”) sin inventar un RPC.
   const [checkoutIntent, setCheckoutIntent] = useState(null)
+  // La intención dura lo que dura el checkout, no hasta el primer render que la
+  // usa: la pantalla de inscripción puede montarse dos veces al entrar y, si la
+  // primera la consumía, la segunda abría el cobro en vez del selector de medio.
+  useEffect(() => {
+    if (view !== 'competition') setCheckoutIntent(null)
+  }, [view])
   // `?section=` llega en los emails de pago; sin leerlo, "revisá el estado de
   // tu pago" abría la cuenta en la credencial.
   const [profileTab, setProfileTab] = useState(
@@ -254,7 +266,21 @@ export default function App() {
   const nextEvent = getNextUpcomingEvent(publicEvents) ?? UPCOMING_EVENTS[0]
   const featuredEvent = getFeaturedEvent(publicEvents) ?? UPCOMING_EVENTS[0]
   const catalogNavEvents = getCompetitionNavEvents(publicEvents)
-  const navEvents = catalogNavEvents.length > 0 ? catalogNavEvents : [featuredEvent].filter((event) => event?.slug)
+  // Landings con el interruptor apagado: el menú las muestra y al tocarlas dice
+  // "Plataforma en construcción". No entran a listados ni countdowns.
+  const underConstructionEvents = getUnderConstructionEvents(app.adminEvents).map((event) =>
+    withPublicEventStatus(event, new Date(), {
+      registrationEnabled: app.checkoutAvailability?.registrationEnabled !== false,
+    }),
+  )
+  const baseNavEvents =
+    catalogNavEvents.length > 0 ? catalogNavEvents : [featuredEvent].filter((event) => event?.slug)
+  const navEvents = [
+    ...baseNavEvents,
+    ...underConstructionEvents.filter(
+      (event) => !baseNavEvents.some((item) => item.slug === event.slug),
+    ),
+  ]
 
   useEffect(() => {
     setSelectedEvent((current) => {
@@ -567,11 +593,13 @@ export default function App() {
         // cualquier atleta normal queda vacío y este lookup nunca encontraba
         // nada, así que `selectedEvent` se quedaba con lo que hubiera antes
         // (otro torneo, o el de arranque) y la navegación por código secreto
-        // terminaba en el checkout equivocado. `publicEvents` es el catálogo
-        // público, sin permiso de por medio, y ya es lo que usa el resto de
-        // la app para mostrar/elegir eventos.
-        const promotionEvent = publicEvents.find(
-          (event) => event.slug === resolvedOptions.eventSlug,
+        // terminaba en el checkout equivocado. `findRegistrableEvent` busca en
+        // el catálogo público (más las landings en construcción que venden),
+        // sin permiso de por medio.
+        const promotionEvent = findRegistrableEvent(
+          resolvedOptions.eventSlug,
+          publicEvents,
+          underConstructionEvents,
         )
         if (promotionEvent) setSelectedEvent(promotionEvent)
       }
@@ -579,7 +607,7 @@ export default function App() {
       setTransitionDirection(getTransitionDirection(view, resolvedView))
       setView(resolvedView)
     },
-    [publicEvents, getSession, pendingAthleteDestination, view, app.enterAthleteContext, app.returnToStaffContext, app.clearInvalidSession],
+    [publicEvents, underConstructionEvents, getSession, pendingAthleteDestination, view, app.enterAthleteContext, app.returnToStaffContext, app.clearInvalidSession],
   )
 
   // Alias deprecado: `/pitbull` → `/evento/pitbull-classic-2026`.
@@ -951,15 +979,32 @@ export default function App() {
   }
 
   const eventPageEvent = eventPageSlug
-    ? publicEvents.find((event) => event.slug === eventPageSlug)
+    ? (publicEvents.find((event) => event.slug === eventPageSlug) ??
+      underConstructionEvents.find((event) => event.slug === eventPageSlug) ??
+      null)
     : null
+  const showUnderConstruction =
+    view === 'events' && Boolean(eventPageEvent) && isUnderConstructionEvent(eventPageEvent)
   const eventPageLandingSeo = eventPageEvent ? eventLandingSeo(eventPageEvent) : null
   const showEditorialLanding =
-    (view === 'events' && eventPageEvent && eventHasEditorialLanding(eventPageEvent)) ||
-    view === 'pitbull'
+    !showUnderConstruction &&
+    ((view === 'events' && eventPageEvent && eventHasEditorialLanding(eventPageEvent)) ||
+      view === 'pitbull')
   const showSubmissionLanding =
-    view === 'events' && eventPageEvent && eventHasSubmissionLanding(eventPageEvent)
-  const Page = showSubmissionLanding
+    !showUnderConstruction &&
+    view === 'events' &&
+    eventPageEvent &&
+    eventHasSubmissionLanding(eventPageEvent)
+  const showBuilderLanding =
+    !showUnderConstruction &&
+    view === 'events' &&
+    Boolean(eventPageEvent) &&
+    eventHasBuilderLanding(eventPageEvent)
+  const Page = showUnderConstruction
+    ? EventUnderConstructionPage
+    : showBuilderLanding
+    ? EventBuilderLandingPage
+    : showSubmissionLanding
     ? SubmissionLandingPage
     : showEditorialLanding
       ? EventLandingEditorial
@@ -976,12 +1021,20 @@ export default function App() {
     checkoutAvailability: app.checkoutAvailability,
   }
 
-  const pageProps = showSubmissionLanding
+  const pageProps = showUnderConstruction
+    ? {
+        event: eventPageEvent,
+        onNavigate: navigate,
+        onSelectEvent: selectEvent,
+        registrationEnabled: app.checkoutAvailability?.registrationEnabled !== false,
+      }
+    : showBuilderLanding || showSubmissionLanding
     ? {
         onNavigate: navigate,
         onSelectEvent: selectEvent,
         events: publicEvents,
         eventSlug: eventPageSlug,
+        checkoutAvailability: app.checkoutAvailability,
       }
     : showEditorialLanding
     ? editorialPageProps
@@ -1100,8 +1153,11 @@ export default function App() {
 
   if (view === 'competition' && app.session?.role === 'athlete_plu') {
     const athlete = app.athletes.find((item) => item.id === app.session.athleteId)
+    // Con una landing en construcción que vende, el evento no está en el
+    // catálogo: sin buscarlo ahí el checkout caía en el destacado y la persona
+    // terminaba pagando otro torneo.
     const competitionEvent =
-      publicEvents.find((event) => event.slug === selectedEvent?.slug) ??
+      findRegistrableEvent(selectedEvent?.slug, publicEvents, underConstructionEvents) ??
       featuredEvent ??
       selectedEvent
     return (
@@ -1134,7 +1190,6 @@ export default function App() {
             registrations={app.registrations}
             checkoutAvailability={app.checkoutAvailability}
             checkoutIntent={checkoutIntent}
-            onCheckoutIntentConsumed={() => setCheckoutIntent(null)}
             // El precio de la inscripción sale del evento: la RPC cobra
             // `events.price`, así que la constante fija mostraba un total que no
             // era el que se iba a cobrar apenas el panel tocaba el precio.
@@ -1156,10 +1211,10 @@ export default function App() {
       <CookieConsent />
       <DocumentMetaSync
         view={view}
-        eventSlug={view === 'events' || showEditorialLanding || showSubmissionLanding ? eventPageSlug : null}
+        eventSlug={view === 'events' || showEditorialLanding || showSubmissionLanding || showBuilderLanding ? eventPageSlug : null}
         eventTitle={
-          (view === 'events' || showEditorialLanding || showSubmissionLanding) && eventPageSlug
-            ? publicEvents.find((event) => event.slug === eventPageSlug)?.title
+          (view === 'events' || showEditorialLanding || showSubmissionLanding || showBuilderLanding) && eventPageSlug
+            ? eventPageEvent?.title
             : null
         }
         metaTitle={

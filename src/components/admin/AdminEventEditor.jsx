@@ -17,10 +17,7 @@ import EventCard from '../ui/EventCard.jsx'
 import CapacityBar from '../ui/CapacityBar.jsx'
 import { describePublicCapacity } from '../../lib/eventCapacityPublic.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import {
-  ADMIN_EVENT_STATUS_OPTIONS,
-  EVENT_QUICK_STATUS_VALUES,
   getEventConsistencyWarnings,
   getEventRegistrationAvailability,
   mapDraftToPreviewEvent,
@@ -120,6 +117,7 @@ function resolveTabForField(key) {
   if (
     VISIBILITY_FIELD_KEYS.has(key) ||
     key.startsWith('publicCopy.') ||
+    key.startsWith('externalForm') ||
     key.startsWith('landing.')
   ) {
     return 'visibility'
@@ -132,6 +130,7 @@ function isAdvancedVisibilityField(key) {
   return (
     key.startsWith('publicCopy.') ||
     key.startsWith('landing.') ||
+    key.startsWith('externalForm') ||
     key.startsWith('liveStream') ||
     key === 'liveStatus'
   )
@@ -144,8 +143,9 @@ function hasAdvancedVisibilityContent(draft) {
   return (
     Object.values(copy).some((value) => String(value ?? '').trim() !== '') ||
     Object.values(slots).some((value) => String(value ?? '').trim() !== '') ||
-    ['editorial', 'submission'].includes(draft.landing?.templateId) ||
+    ['editorial', 'submission', 'builder'].includes(draft.landing?.templateId) ||
     Boolean(draft.liveStreamUrl?.trim?.()) ||
+    Boolean(draft.externalForm?.url?.trim?.()) ||
     (draft.liveStatus ?? 'offline') !== 'offline'
   )
 }
@@ -155,6 +155,12 @@ function AdminEventLivePreview({
   embedded = false,
   live = false,
   showReadiness = false,
+  /**
+   * Solo "Así se ve en el sitio" (landing + Google). En el Resumen, la card,
+   * el estado, el cupo, la fecha, la sede y el checklist ya están en el
+   * control de venta y en la cabecera del evento: repetirlos era ruido.
+   */
+  compact = false,
   sourceEvent,
 }) {
   const { t } = useI18n()
@@ -174,6 +180,17 @@ function AdminEventLivePreview({
     () => ({ ...sourceEvent, ...previewEvent, ...draft }),
     [draft, previewEvent, sourceEvent],
   )
+
+  if (compact) {
+    return (
+      <div className="admin-event-preview admin-event-preview--embedded admin-event-preview--compact">
+        <p className="admin-event-preview__site-caption">
+          {t('admin.eventEditor.sitePreviewCaption')}
+        </p>
+        <EventLandingCompositionPreview event={composeEvent} t={t} />
+      </div>
+    )
+  }
 
   const readinessItems = showReadiness
     ? [
@@ -378,6 +395,8 @@ function useWorkspaceSaveHost(enabled) {
 
 export default function AdminEventEditor({
   canEdit,
+  /** Otros eventos, para "Copiar de otro evento" en la landing. */
+  landingSourceEvents = [],
   // Cuenta por evento (organizador): ver EventSalesSection / EventVisibilitySection.
   eventScoped = false,
   draft,
@@ -410,6 +429,8 @@ export default function AdminEventEditor({
   extraDirty = false,
   onExtraSave = null,
   onExtraDiscard = null,
+  /** "Seguir editando" en la confirmación de descarte: el destino pendiente se cancela. */
+  onKeepEditing = null,
   onSaved = null,
   /**
    * Precio de inscripción programado: mismo contrato que Tarifas. No viaja
@@ -606,16 +627,6 @@ export default function AdminEventEditor({
   // `agotado` lo pone y lo saca la base según el cupo; solo se ofrece como
   // opción cuando el evento ya está en ese estado (mismo criterio que el
   // control rápido de la lista).
-  const statusOptions = useMemo(
-    () =>
-      translateFilterOptions(
-        ADMIN_EVENT_STATUS_OPTIONS.filter(
-          ([value]) => EVENT_QUICK_STATUS_VALUES.includes(value) || value === draft.status,
-        ),
-        t,
-      ),
-    [t, draft.status],
-  )
 
   // Mismo par de opciones y mismo copy que la consola de operación del panel:
   // el requisito de afiliación se decide en los dos lugares y no puede leerse
@@ -673,7 +684,10 @@ export default function AdminEventEditor({
 
   useEffect(() => {
     function handleKeyDown(event) {
-      if (event.key === 'Escape') {
+      // Embebido en el workspace el editor es parte de una página, no un
+      // diálogo: Escape no lo cierra (ni lo saca de la pestaña). Así tampoco
+      // le roba el Escape a los diálogos que se abren encima, como la vista previa.
+      if (event.key === 'Escape' && !embedded) {
         event.preventDefault()
         event.stopPropagation()
         requestCloseRef.current?.()
@@ -799,6 +813,21 @@ export default function AdminEventEditor({
     }
   }
 
+  /** Sube una imagen para un bloque propio de la landing; el bloque guarda la ruta. */
+  async function handleBlockImageUpload(file) {
+    const slug = draft.slug || sourceEvent?.slug
+    if (!slug || !file) return null
+    setHeroUploading(true)
+    try {
+      return await uploadEventHeroRequest(slug, file)
+    } catch (error) {
+      setSyncError(error?.message ?? t('admin.eventEditor.landingHeroUploadFailed'))
+      return null
+    } finally {
+      setHeroUploading(false)
+    }
+  }
+
   function patchDraft(next) {
     onChange(next)
     setConfirmDiscard(false)
@@ -843,6 +872,24 @@ export default function AdminEventEditor({
     setActiveTab(nextTab)
     formBodyRef.current?.scrollTo?.({ top: 0, behavior: 'auto' })
     requestAnimationFrame(() => activePanelRef.current?.focus?.())
+  }
+
+  /**
+   * «Ir a …» del checklist: lo de la portada vive en el bloque avanzado de
+   * Publicación; cupo y ventana, en el capítulo Cupo de Ventas.
+   */
+  function handleReadinessGoTo(target, key) {
+    if (target === 'visibility') setAdvancedOpen(true)
+    if (target === 'sales') {
+      setSalesChapter(
+        resolveSalesChapterForField(key === 'registrationWindow' ? 'registrationOpensAt' : 'slots'),
+      )
+    }
+    if (accordion && target !== forcedTab) {
+      onRequestSection?.(target)
+      return
+    }
+    handleTabChange(target)
   }
 
   function handleSalesChapterChange(nextChapter) {
@@ -1210,7 +1257,6 @@ export default function AdminEventEditor({
               canEdit={canEdit}
               draft={draft}
               patchDraft={patchDraft}
-              statusOptions={statusOptions}
               consistencyWarnings={consistencyWarnings}
               publishChecks={publishChecks}
               accessOptions={accessOptions}
@@ -1222,6 +1268,19 @@ export default function AdminEventEditor({
               heroPreviewUrl={heroPreviewUrl || draft.heroImageUrl || sourceEvent?.heroImageUrl}
               heroUploading={heroUploading}
               onHeroUpload={handleHeroUpload}
+              onImageUpload={handleBlockImageUpload}
+              platform={platformChannels.platform}
+              mpProfiles={mpProfiles}
+              onGoTo={handleReadinessGoTo}
+              landingSourceEvents={landingSourceEvents}
+              studioSave={{
+                // El editor visual guarda con el mismo formulario (y las mismas
+                // validaciones) que el botón Guardar del evento.
+                onSave: () => formRef.current?.requestSubmit(),
+                dirty: hasUnsavedChanges,
+                syncing,
+                error: syncError,
+              }}
             />
           )}
         </div>
@@ -1283,7 +1342,10 @@ export default function AdminEventEditor({
                   type="button"
                   variant="outline"
                   className="btn--small"
-                  onClick={() => setConfirmDiscard(false)}
+                  onClick={() => {
+                    setConfirmDiscard(false)
+                    onKeepEditing?.()
+                  }}
                 >
                   {t('admin.eventEditor.keepEditing')}
                 </Button>

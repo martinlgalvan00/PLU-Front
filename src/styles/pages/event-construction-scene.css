@@ -1,0 +1,159 @@
+/* Escena interactiva de "en construcción": barra que se carga con discos.
+   Colores del evento (`--event-accent` / `--event-action`) y movimiento solo con
+   transform/opacity; todo se apaga con `prefers-reduced-motion` o `data-motion="none"`. */
+
+.construction-scene {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+}
+
+.construction-scene__figure {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.construction-scene__svg {
+  display: block;
+  height: auto;
+  max-width: 100%;
+  overflow: visible;
+  width: 100%;
+}
+
+.construction-scene__bar {
+  transform: rotate(var(--cs-tilt, 0deg));
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform var(--motion-slow) var(--ease-out);
+}
+
+.construction-scene__shaft {
+  fill: var(--color-text-secondary, rgba(246, 247, 248, 0.6));
+}
+
+.construction-scene__collar {
+  fill: var(--color-text, #f6f7f8);
+}
+
+.construction-scene__plate--20 {
+  fill: var(--event-accent);
+}
+
+.construction-scene__plate--15 {
+  fill: var(--event-action, var(--event-accent));
+}
+
+.construction-scene__plate--10 {
+  fill: var(--color-text, #f6f7f8);
+  opacity: 0.86;
+}
+
+.construction-scene__plate--5 {
+  fill: var(--color-text-secondary, rgba(246, 247, 248, 0.6));
+}
+
+/* Cada disco entra desde afuera hacia la barra. */
+@keyframes construction-plate-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--cs-from, 28px));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.construction-scene[data-motion='soft'] .construction-scene__plate,
+.construction-scene[data-motion='bold'] .construction-scene__plate,
+.construction-scene[data-motion='depth'] .construction-scene__plate {
+  animation: construction-plate-in var(--motion-slow) var(--ease-cinematic) both;
+  transform-box: fill-box;
+}
+
+.construction-scene__plate[data-side='left'] {
+  --cs-from: -28px;
+}
+
+.construction-scene[data-motion='bold'] .construction-scene__plate,
+.construction-scene[data-motion='depth'] .construction-scene__plate {
+  animation-duration: var(--motion-cinematic);
+  --cs-from: 56px;
+}
+
+.construction-scene[data-motion='bold'] .construction-scene__plate[data-side='left'],
+.construction-scene[data-motion='depth'] .construction-scene__plate[data-side='left'] {
+  --cs-from: -56px;
+}
+
+.construction-scene__caption {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.construction-scene__caption strong {
+  color: var(--event-accent);
+  font-size: clamp(22px, 3.2vw, 36px);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.construction-scene__caption span {
+  color: var(--color-text-secondary, inherit);
+  font-size: 14px;
+}
+
+.construction-scene__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.construction-scene__controls button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.24));
+  border-radius: var(--radius-md, 8px);
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.construction-scene__controls button:hover:not(:disabled) {
+  border-color: var(--event-accent);
+  color: var(--event-accent);
+}
+
+.construction-scene__controls button:focus-visible {
+  outline: 2px solid var(--event-accent);
+  outline-offset: 2px;
+}
+
+.construction-scene__controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .construction-scene__bar {
+    transform: none;
+    transition: none;
+  }
+
+  .construction-scene[data-motion] .construction-scene__plate {
+    animation: none;
+  }
+}

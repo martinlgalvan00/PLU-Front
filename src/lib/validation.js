@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import { isDivisionAllowedForAge } from '../../shared/ageDivision.js'
 import { isDeclaredWeightClassForSex } from '../../shared/pluWeightClasses.js'
+import { validateDivisionSelection, validateModalities } from '../../shared/registrationSelection.js'
+import { validateSelectionAgainstOffering } from '../../shared/eventOffering.js'
 
 function todayInBuenosAires() {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -134,12 +136,97 @@ function buildCompetitionObjectSchema(t, { sex = null } = {}) {
       msg('weight') ?? 'Ingresá un peso entre 10 y 250 kg.',
     ),
     paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']),
+    // Opcionales: el formulario viejo no los manda y compite Full Power en una división.
+    secondaryDivision: z.string().optional(),
+    modalities: z.array(z.string()).optional(),
   })
 }
 
-function buildCompetitionSchema(t, { birthDate = null, eventDate = null, sex = null } = {}) {
+/**
+ * Reglas cruzadas de la selección competitiva: la segunda división tiene que
+ * corresponder a la edad y distinta de la primera, las modalidades tienen que
+ * ser una combinación válida (al menos una, sin Push-Pull + banco/peso muerto)
+ * y, si se conoce, todo tiene que estar en lo que ofrece el evento (la misma
+ * regla que aplica el servidor, para no llegar al cobro y recibir un 422).
+ */
+function competitionSelectionIssues(data, { birthDate, eventDate, offering = null }, msg) {
+  const issues = []
+  const secondary = String(data.secondaryDivision ?? '').trim()
+  if (secondary) {
+    const check = validateDivisionSelection({
+      division: data.division,
+      secondaryDivision: secondary,
+      birthDate,
+      referenceDate: eventDate || undefined,
+    })
+    const sameAsFirst = secondary === data.division
+    if (!check.ok || !check.secondary || sameAsFirst) {
+      issues.push({
+        path: 'secondaryDivision',
+        message:
+          msg('divisionSecond') ?? 'Esa segunda división no está disponible para tu edad.',
+      })
+    }
+  }
+  if (Array.isArray(data.modalities)) {
+    const lifts = validateModalities(data.modalities)
+    if (!lifts.ok) {
+      const key = {
+        MODALITY_REQUIRED: ['modalityRequired', 'Elegí al menos una modalidad.'],
+        MODALITY_INVALID: ['modality', 'Elegí una modalidad válida.'],
+        MODALITY_COMBINATION_INVALID: [
+          'modalityCombination',
+          'Push-Pull ya incluye banco y peso muerto: no se combina con ellos.',
+        ],
+      }[lifts.code]
+      issues.push({ path: 'modalities', message: msg(key[0]) ?? key[1] })
+    }
+  }
+  if (offering) {
+    const offered = validateSelectionAgainstOffering(
+      {
+        category: data.category,
+        division: data.division,
+        secondaryDivision: secondary,
+        modalities: Array.isArray(data.modalities) ? data.modalities : [],
+      },
+      offering,
+    )
+    if (!offered.ok) {
+      const [path, key, fallback] = {
+        OFFERING_CATEGORY_UNAVAILABLE: [
+          'category',
+          'offeringCategory',
+          'Este evento no ofrece esa categoría de competencia.',
+        ],
+        OFFERING_DIVISION_UNAVAILABLE: [
+          offered.value === secondary && secondary !== data.division ? 'secondaryDivision' : 'division',
+          'offeringDivision',
+          'Este evento no ofrece esa división.',
+        ],
+        OFFERING_MODALITY_UNAVAILABLE: [
+          'modalities',
+          'offeringModality',
+          'Este evento no ofrece esa modalidad.',
+        ],
+      }[offered.code]
+      if (!issues.some((issue) => issue.path === path)) {
+        issues.push({ path, message: msg(key) ?? fallback })
+      }
+    }
+  }
+  return issues
+}
+
+function buildCompetitionSchema(
+  t,
+  { birthDate = null, eventDate = null, sex = null, offering = null } = {},
+) {
   const msg = (key) => (t ? t(`validation.${key}`) : undefined)
   return buildCompetitionObjectSchema(t, { sex }).superRefine((data, ctx) => {
+    for (const issue of competitionSelectionIssues(data, { birthDate, eventDate, offering }, msg)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: [issue.path], message: issue.message })
+    }
     if (!birthDate) return
     if (!isDivisionAllowedForAge(data.division, birthDate, eventDate || undefined)) {
       ctx.addIssue({
@@ -212,6 +299,15 @@ export function validateCompetitionFields(form, fields, t, ageContext = {}) {
   ) {
     const message = divisionAgeError(t)
     return { success: false, error: message, errors: { division: message } }
+  }
+  if (result.success) {
+    const msg = (key) => (t ? t(`validation.${key}`) : undefined)
+    const issue = competitionSelectionIssues(form, ageContext, msg).find((item) =>
+      fields.includes(item.path),
+    )
+    if (issue) {
+      return { success: false, error: issue.message, errors: { [issue.path]: issue.message } }
+    }
   }
   return result
 }

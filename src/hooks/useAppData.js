@@ -37,7 +37,7 @@ import {
   setStaffUserEventAccessRequest,
 } from '../lib/api.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
-import { normalizeAdminFacetValue } from '../lib/adminPeopleFilters.js'
+import { normalizeAdminFacetValue, registrationMatchesDivision } from '../lib/adminPeopleFilters.js'
 import { env } from '../config/env.js'
 import { sessionDisplayName } from '../lib/format.js'
 import { markSignedOut, markSignedIn } from '../lib/sessionNotice.js'
@@ -218,6 +218,8 @@ import {
   fetchPublicCheckoutAvailability,
 } from '../services/platformSettingsService.js'
 import { findGatePendingRegistrations } from '../lib/gateAccess.js'
+import { checkRequiredRegistrationFields } from '../../shared/registrationRequirements.js'
+import { selectionFromForm } from '../../shared/registrationSelection.js'
 import { matchesRegistrationEventFilter } from '../lib/athleteEventStatus.js'
 
 // Los derechos de una persona se confirman en el backend (webhook de Mercado
@@ -1319,10 +1321,7 @@ export function useAppData() {
         !filters.gym ||
         filters.gym === 'all' ||
         normalizeAdminFacetValue(registration.athlete?.gym) === filters.gym
-      const divisionMatch =
-        !filters.division ||
-        filters.division === 'all' ||
-        normalizeAdminFacetValue(registration.division) === filters.division
+      const divisionMatch = registrationMatchesDivision(registration, filters.division)
       const dateMatch = matchesDateRange(registration.createdAt, filters.createdAtRange)
       const query = filters.query.trim().toLowerCase()
       const queryMatch =
@@ -1549,8 +1548,20 @@ export function useAppData() {
         // La ficha de oferta exclusiva cobra desde Mi cuenta, donde el
         // formulario del checkout no existe: manda sus propios datos de
         // inscripción. Sin override, sigue mandando el formulario global.
-        const competition = {
+        // La ficha de oferta trae su propia selección: no hereda segunda división
+        // ni modalidad del formulario global, que puede tener valores de otro intento.
+        const selection = selectionFromForm({
           division: options.competition?.division ?? form.division,
+          secondaryDivision: options.competition
+            ? options.competition.secondaryDivision
+            : form.secondaryDivision,
+          // Una ficha de oferta sin modalidades propias compite Full Power.
+          modalities: options.competition ? options.competition.modalities : form.modalities,
+        })
+        const competition = {
+          division: selection.division,
+          secondaryDivision: selection.secondaryDivision,
+          modalities: selection.modalities,
           category: options.competition?.category ?? form.category,
           declaredWeightClass:
             options.competition?.declaredWeightClass ?? form.declaredWeightClass ?? '',
@@ -1561,10 +1572,22 @@ export function useAppData() {
                 ? Number(String(form.estimatedWeight).replace(',', '.'))
                 : null,
         }
+        // Sin división, categoría, categoría de peso y peso corporal no se pide el cobro:
+        // el servidor lo rechazaría igual y el atleta perdería el intento.
+        const required = checkRequiredRegistrationFields(competition)
+        if (!required.ok) {
+          return {
+            error: required.message,
+            code: 'REGISTRATION_FIELD_REQUIRED',
+            field: required.field,
+          }
+        }
         const attemptFingerprint = JSON.stringify([
           athlete.id,
           selectedEvent.slug,
           competition.division,
+          competition.secondaryDivision,
+          competition.modalities,
           competition.category,
           competition.declaredWeightClass,
           competition.bodyweightKg,
@@ -1588,6 +1611,8 @@ export function useAppData() {
             athleteId: athlete.id,
             eventSlug: selectedEvent.slug,
             division: competition.division,
+            secondaryDivision: competition.secondaryDivision,
+            modalities: competition.modalities,
             category: competition.category,
             declaredWeightClass: competition.declaredWeightClass,
             bodyweightKg: competition.bodyweightKg,
@@ -3685,6 +3710,14 @@ export function useAppData() {
             requiresMembership: changes.requiresMembership ?? event.requiresMembership,
             capacityProgressPublic:
               changes.capacityProgressPublic ?? event.capacityProgressPublic,
+            registrationOpensAt:
+              changes.registrationOpensAt !== undefined
+                ? changes.registrationOpensAt
+                : event.registrationOpensAt,
+            registrationClosesAt:
+              changes.registrationClosesAt !== undefined
+                ? changes.registrationClosesAt
+                : event.registrationClosesAt,
             updatedAt: new Date().toISOString(),
           }
           // El demo replica la regla de la base: sin esto el cupo lleno se
