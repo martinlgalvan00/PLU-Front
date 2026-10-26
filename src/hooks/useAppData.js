@@ -263,6 +263,9 @@ export function useAppData() {
   // Restauración de sesión en vuelo (cookie httpOnly: no se puede saber de
   // forma síncrona si el visitante tiene sesión). En demo no hay probe.
   const [sessionPending, setSessionPending] = useState(() => !env.demoMode)
+  // La primera lectura del catálogo público ya respondió (bien o mal): recién
+  // ahí un slug que no aparece es "no existe" y no "todavía no llegó".
+  const [publicCatalogSettled, setPublicCatalogSettled] = useState(() => env.demoMode)
   const sessionRef = useRef(null)
   // Cada logout (o descarte de sesión inválida) sube el epoch. Una
   // restauración que arrancó antes no puede volver a pintar al usuario.
@@ -499,6 +502,7 @@ export function useAppData() {
         })
         .catch((error) => console.warn('No se pudieron cargar los eventos publicados.', error))
         .finally(() => {
+          if (active) setPublicCatalogSettled(true)
           // Solo se libera si nadie la reemplazó (el reintento de arriba).
           if (refreshInFlight === request) refreshInFlight = null
           if (rerunRequested && refreshInFlight == null) {
@@ -4287,6 +4291,7 @@ export function useAppData() {
     role,
     session,
     sessionPending,
+    publicCatalogSettled,
     getSession,
     login,
     logout,

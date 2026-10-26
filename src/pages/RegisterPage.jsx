@@ -636,6 +636,9 @@ export default function RegisterPage({
   const [touched, setTouched] = useState({})
   const [profileErrorStepIndex, setProfileErrorStepIndex] = useState(null)
   const [submitError, setSubmitError] = useState('')
+  // Detalle de un error de validación con varios campos: solo se muestra
+  // mientras `submitError` siga siendo el mensaje al que pertenece.
+  const [submitErrorDetails, setSubmitErrorDetails] = useState(null)
   // Acuse de una acción que salió bien y no navega a ningún lado (cancelar la
   // orden abierta). Va en el mismo lugar que `submitError` para que el
   // resultado de un clic siempre aparezca donde se hizo el clic.
@@ -2285,7 +2288,16 @@ export default function RegisterPage({
         // silencio y "Continuar al pago" parece un botón roto. Pasó con una
         // cuenta sin división, categoría ni peso cargados en su ficha: el
         // formulario nacía vacío y el pago nunca arrancaba.
-        setSubmitError(validation.error)
+        // Con varios campos mal, el cartel decía solo el primero: corregirlo y
+        // volver a tocar el botón revelaba el siguiente. Ahora los lista.
+        const messages = [...new Set(Object.values(validation.errors).filter(Boolean))]
+        if (messages.length > 1) {
+          const summary = t('pages.register.fixErrorsSummary', { count: messages.length })
+          setSubmitErrorDetails({ message: summary, items: messages })
+          setSubmitError(summary)
+        } else {
+          setSubmitError(validation.error)
+        }
       }
 
       submissionInFlightRef.current = false
@@ -2548,7 +2560,18 @@ export default function RegisterPage({
     wasSettlingRef.current = competitionSettling
     if (!entered || !settleRef.current) return
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    settleRef.current.scrollIntoView?.({ block: 'start', behavior: reduced ? 'auto' : 'smooth' })
+    // En mobile el estado de la orden (con las instrucciones de transferencia
+    // o efectivo) queda apilado arriba del panel: se arranca desde ahí.
+    // Se renderiza en el aside (desktop) y en el contexto mobile: va el visible.
+    const status = [...document.querySelectorAll('.register-status--settle')].find(
+      (element) => element.getClientRects().length > 0,
+    )
+    const statusAbove =
+      status && status.getBoundingClientRect().top < settleRef.current.getBoundingClientRect().top
+    ;(statusAbove ? status : settleRef.current).scrollIntoView?.({
+      block: 'start',
+      behavior: reduced ? 'auto' : 'smooth',
+    })
     settleRef.current.focus({ preventScroll: true })
   }, [competitionSettling])
   /**
@@ -3901,7 +3924,7 @@ export default function RegisterPage({
                         </p>
                       </div>
                       <button
-                        className="register-profile-readiness__action"
+                        className={`register-profile-readiness__action${competitionProfileMissing.length ? '' : ' register-profile-readiness__action--quiet'}`}
                         type="button"
                         onClick={() => onNavigate?.('profile', { tab: 'account-personal-data' })}
                       >
@@ -4021,6 +4044,14 @@ export default function RegisterPage({
                       ? t('pages.register.membershipPaymentInProgress')
                       : submitError}
                   </p>
+                  {!membershipPaymentInProgress &&
+                  submitErrorDetails?.message === submitError ? (
+                    <ul className="form-submit-error__list">
+                      {submitErrorDetails.items.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : null}
                   {membershipPaymentInProgress ? (
                     <button
                       type="button"

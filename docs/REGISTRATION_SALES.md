@@ -125,3 +125,15 @@ que muestra la tabla (con sus filtros) y **Importar** lo vuelve a subir para cor
   peso por `updateDeclaredWeightClass`, modalidades por update directo (las valida el CHECK de la
   columna). Una fila que falla no frena al resto. Un evento de auditoría `registration.sheet_import`
   resume cada aplicación.
+
+## Checkout de inscripción
+
+- Ruta propia: `/evento/:slug/inscripcion` (`src/lib/registrationCheckoutRoute.js`). Recargar o
+  compartir el link vuelve al mismo checkout; sin cuenta de atleta pasa por el alta (o el puente de
+  staff) y la retoma, igual que "Inscribirme". Un slug que no vende cae en la ficha del evento.
+- Durante el alta y el checkout se ocultan los CTA de afiliación del header y del prefooter.
+- Al pasar al pago, la vista y el foco van al panel de pago (en mobile, al estado de la orden con
+  las instrucciones de transferencia/efectivo); al confirmarse, el foco va a "Tu lugar está
+  confirmado".
+- Los 4xx de negocio (cupo, solo anuncio, modalidad) no ofrecen el rescate de pago; con varios
+  datos mal, el aviso sobre el botón los lista todos.

@@ -3996,6 +3996,7 @@ export default {
       breakdownRegistration: 'Inscripción · {{division}}',
       breakdownSecondDivision: 'Segunda división · {{division}} (50%)',
       breakdownDiscount: 'Descuento',
+      fixErrorsSummary: 'Revisá estos {{count}} datos antes de seguir:',
       profileWelcomeCtaResume: 'Continuar con la inscripción a {{event}}',
       competitionTitle: 'Inscripción',
       competitionEyebrow: 'Inscripción a competencia',

@@ -42,7 +42,12 @@ function FooterLink({ item, onNavigate, t }) {
   )
 }
 
-export default function Footer({ onNavigate, navEvents = [] }) {
+/**
+ * `checkoutFocus`: durante el alta o la inscripción se omite el bloque
+ * "Empezá tu recorrido · Afiliarme ahora" — otra acción principal compitiendo
+ * con el pago que la persona vino a completar.
+ */
+export default function Footer({ onNavigate, navEvents = [], checkoutFocus = false }) {
   const { t } = useI18n()
   const year = new Date().getFullYear()
   const groups = [
@@ -70,24 +75,26 @@ export default function Footer({ onNavigate, navEvents = [] }) {
       </div>
 
       <div className="institutional-footer__inner">
-        <div className="institutional-footer__cta">
-          <p className="institutional-footer__kicker">{t('footer.actionEyebrow')}</p>
-          <h2 className="institutional-footer__cta-title">{t('footer.actionTitle')}</h2>
+        {checkoutFocus ? null : (
+          <div className="institutional-footer__cta">
+            <p className="institutional-footer__kicker">{t('footer.actionEyebrow')}</p>
+            <h2 className="institutional-footer__cta-title">{t('footer.actionTitle')}</h2>
 
-          <div className="institutional-footer__cta-row">
-            <button
-              type="button"
-              className="institutional-footer__action-editorial motion-icon-shift"
-              onClick={() => onNavigate?.('members')}
-            >
-              <span>{t('footer.actionCta')}</span>
-              <ArrowRight size={20} aria-hidden className="motion-icon-shift__target" />
-            </button>
-            <a href={buildMailtoHref()} className="institutional-footer__mail-editorial">
-              {CONTACT_EMAIL}
-            </a>
+            <div className="institutional-footer__cta-row">
+              <button
+                type="button"
+                className="institutional-footer__action-editorial motion-icon-shift"
+                onClick={() => onNavigate?.('members')}
+              >
+                <span>{t('footer.actionCta')}</span>
+                <ArrowRight size={20} aria-hidden className="motion-icon-shift__target" />
+              </button>
+              <a href={buildMailtoHref()} className="institutional-footer__mail-editorial">
+                {CONTACT_EMAIL}
+              </a>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="institutional-footer__lead">
           <div className="institutional-footer__brand">
