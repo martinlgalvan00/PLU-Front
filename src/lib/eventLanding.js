@@ -324,6 +324,16 @@ export function eventLandingPhase(event) {
 }
 
 /**
+ * Submission marcada «En preparación»: la URL pública muestra el aviso y los
+ * datos básicos, no la landing que todavía se está armando. «Publicada» la
+ * muestra. El interruptor `publicVisible` es aparte (apagado = el mismo aviso).
+ */
+export function eventSubmissionLandingInPreparation(event) {
+  const landing = eventLandingFromEvent(event)
+  return landing.templateId === 'submission' && landing.phase !== 'published'
+}
+
+/**
  * FAQ con pregunta y respuesta. Vacío o incompleto no se publica.
  * @param {object} [slots]
  * @returns {{ question: string, answer: string }[]}

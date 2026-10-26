@@ -5,6 +5,7 @@ import {
   eventHasEditorialLanding,
   eventHasSubmissionLanding,
   eventLandingIsPublic,
+  eventSubmissionLandingInPreparation,
   eventLandingFaqItems,
   eventLandingSeo,
   eventLandingTemplateId,
@@ -97,6 +98,13 @@ describe('landing de evento (plantilla + slots)', () => {
     expect(eventLandingTemplateId(event)).toBe('submission')
     expect(eventHasSubmissionLanding(event)).toBe(true)
     expect(eventLandingIsPublic(event)).toBe(true)
+    expect(eventSubmissionLandingInPreparation(event)).toBe(true)
+    expect(
+      eventSubmissionLandingInPreparation({
+        ...event,
+        landing: { templateId: 'submission', publicVisible: true, phase: 'published' },
+      }),
+    ).toBe(false)
     expect(
       eventLandingIsPublic({
         ...event,

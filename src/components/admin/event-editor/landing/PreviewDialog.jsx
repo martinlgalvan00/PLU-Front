@@ -2,7 +2,10 @@ import { lazy, Suspense, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import useModalDialog from '../../../../hooks/useModalDialog.js'
-import { eventLandingFromEvent } from '../../../../lib/eventLanding.js'
+import {
+  eventLandingFromEvent,
+  eventSubmissionLandingInPreparation,
+} from '../../../../lib/eventLanding.js'
 import PreviewFrame from './PreviewFrame.jsx'
 import Segmented from './Segmented.jsx'
 import '../../../../styles/pages/admin-event-landing.css'
@@ -31,16 +34,19 @@ export default function EventLandingPreviewDialog({ event, onClose, t }) {
 
   const landing = useMemo(() => eventLandingFromEvent(event), [event])
   const underConstruction = !landing.publicVisible
+  const inPreparation = eventSubmissionLandingInPreparation(event)
+  const comparesPublicFace = underConstruction || inPreparation
   const deviceWidth = DEVICES.find(([id]) => id === device)?.[1] ?? null
 
-  // `public` respeta el interruptor; `published` fuerza la landing encendida.
-  // Memoizado: un objeto nuevo en cada render volvería a montar toda la página.
+  // `public` es lo que ve el sitio (aviso si está apagada o en preparación).
+  // `published` fuerza la landing armada. Memoizado: un objeto nuevo en cada
+  // render volvería a montar toda la página.
   const shownEvent = useMemo(
     () =>
-      mode === 'published' && underConstruction
-        ? { ...event, landing: { ...landing, publicVisible: true } }
+      mode === 'published' && comparesPublicFace
+        ? { ...event, landing: { ...landing, publicVisible: true, phase: 'published' } }
         : event,
-    [mode, underConstruction, event, landing],
+    [mode, comparesPublicFace, event, landing],
   )
   const shownEvents = useMemo(() => [shownEvent], [shownEvent])
 
@@ -63,13 +69,13 @@ export default function EventLandingPreviewDialog({ event, onClose, t }) {
         <div className="admin-landing-preview__heading">
           <strong>{t('admin.eventEditor.landingPreviewTitle')}</strong>
           <small>
-            {underConstruction && mode === 'public'
+            {comparesPublicFace && mode === 'public'
               ? t('admin.eventEditor.landingPreviewUnderConstruction')
               : t('admin.eventEditor.landingPreviewDraftNote')}
           </small>
         </div>
 
-        {underConstruction ? (
+        {comparesPublicFace ? (
           <Segmented
             label={t('admin.eventEditor.landingPreviewModes')}
             options={[
