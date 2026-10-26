@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  EXTRA_MODALITY_PRICE_RATIO,
   REGISTRATION_MODALITIES,
   SECOND_DIVISION_PRICE_RATIO,
+  extraModalityCount,
+  extraModalitySurcharge,
   normalizeDivisionSelection,
   normalizeModalities,
   priceRegistrationSelection,
@@ -120,6 +123,8 @@ describe('precio de la segunda división', () => {
       manualPrice: 60000,
       surcharge: 0,
       manualSurcharge: 0,
+      modalitySurcharge: 0,
+      manualModalitySurcharge: 0,
     })
   })
 
@@ -131,6 +136,8 @@ describe('precio de la segunda división', () => {
       manualPrice: 90000,
       surcharge: 37500,
       manualSurcharge: 30000,
+      modalitySurcharge: 0,
+      manualModalitySurcharge: 0,
     })
   })
 
@@ -139,6 +146,66 @@ describe('precio de la segunda división', () => {
       defaultPrice: 112500,
       manualPrice: null,
     })
+  })
+})
+
+describe('precio de las modalidades extra', () => {
+  it('Full Power sola, o cualquier modalidad sola, paga el 100%', () => {
+    expect(EXTRA_MODALITY_PRICE_RATIO).toBe(0.5)
+    for (const modalities of [['full_power'], ['bench'], ['push_pull'], []]) {
+      expect(extraModalityCount(modalities)).toBe(0)
+      expect(priceRegistrationSelection({ basePrice: 100000, modalities }).defaultPrice).toBe(100000)
+    }
+  })
+
+  it('cada modalidad además de la primera suma el 50% de la base', () => {
+    expect(extraModalityCount(['full_power', 'bench'])).toBe(1)
+    expect(extraModalitySurcharge(100000, ['full_power', 'bench'])).toBe(50000)
+    expect(
+      priceRegistrationSelection({ basePrice: 100000, modalities: ['full_power', 'bench'] }),
+    ).toMatchObject({ defaultPrice: 150000, modalitySurcharge: 50000 })
+    expect(
+      priceRegistrationSelection({
+        basePrice: 100000,
+        modalities: ['full_power', 'bench', 'squat'],
+      }).defaultPrice,
+    ).toBe(200000)
+  })
+
+  it('no cuenta repetidos ni valores desconocidos', () => {
+    expect(extraModalityCount(['full_power', 'full_power', 'snatch'])).toBe(0)
+  })
+
+  it('Open y modalidad extra se suman sobre la base, no se componen', () => {
+    expect(
+      priceRegistrationSelection({
+        basePrice: 100000,
+        secondary: 'Open',
+        modalities: ['full_power', 'bench'],
+      }),
+    ).toMatchObject({ defaultPrice: 200000, surcharge: 50000, modalitySurcharge: 50000 })
+  })
+
+  it('aplica a cada canal con su propio precio', () => {
+    expect(
+      priceRegistrationSelection({
+        basePrice: 100000,
+        manualPrice: 80000,
+        secondary: 'Open',
+        modalities: ['full_power', 'deadlift'],
+      }),
+    ).toMatchObject({ defaultPrice: 200000, manualPrice: 160000, manualModalitySurcharge: 40000 })
+  })
+
+  it('en Submission los recargos se repiten por categoría', () => {
+    expect(
+      priceRegistrationSelection({
+        basePrice: 100000,
+        secondary: 'Open',
+        categoryCount: 2,
+        modalities: ['full_power', 'bench'],
+      }).defaultPrice,
+    ).toBe(400000)
   })
 })
 

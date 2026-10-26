@@ -120,6 +120,9 @@ import {
   REGISTRATION_MODALITIES,
   choicesFromDivisions,
   divisionsFromChoices,
+  extraModalityCount,
+  extraModalitySurcharge,
+  priceRegistrationSelection,
   secondDivisionSurcharge,
   toggleModality,
 } from '../../shared/registrationSelection.js'
@@ -1075,6 +1078,7 @@ export default function RegisterPage({
       eventSlug: event.slug,
       paymentMethod: toApiPaymentMethod(form.paymentMethod),
       categories: selectedRegistrationCategories,
+      modalities: pricedModalities,
     })
     if (isCancelled?.()) return null
     if (!preview?.valid) return preview ?? { valid: false }
@@ -1221,6 +1225,7 @@ export default function RegisterPage({
         paymentMethod: toApiPaymentMethod(previewPaymentMethod),
         secondaryDivision: secondDivisionSelected ? form.secondaryDivision : undefined,
         categories: selectedRegistrationCategories,
+        modalities: pricedModalities,
       })
       if (staleEvent()) return
       if (!preview.valid) {
@@ -1236,6 +1241,7 @@ export default function RegisterPage({
             eventSlug: event.slug,
             paymentMethod: toApiPaymentMethod(previewPaymentMethod),
             categories: selectedRegistrationCategories,
+            modalities: pricedModalities,
           })
           if (staleEvent()) return
           if (comboPreview.valid) {
@@ -1480,11 +1486,17 @@ export default function RegisterPage({
   const membershipListPrice = Number(eventPricing.membership) || 0
   const registrationListPrice = Number(total) || Number(eventPricing.registration) || 0
   const comboListPrice = comboAvailability.offer ? Number(comboAvailability.offer.price) : 0
-  // Segunda división (Open al 50%): se suma sobre el precio de la inscripción
-  // suelta del canal elegido, tanto en la inscripción como dentro del combo. La
-  // API repite la cuenta con `priceRegistrationSelection`; esto solo previsualiza.
+  // Segunda división (Open al 50%) y cada modalidad extra (50%): se suman sobre
+  // el precio de la inscripción suelta del canal elegido, tanto en la
+  // inscripción como dentro del combo. La API repite la cuenta con
+  // `priceRegistrationSelection`; esto solo previsualiza.
   const secondDivisionSelected =
     flow === 'competition' && canAddSecondDivision && Boolean(form.secondaryDivision)
+  // Sin lista en el formulario se compite Full Power (igual que las casillas).
+  const pricedModalities = flow === 'competition' ? (form.modalities ?? ['full_power']) : []
+  const extraModalities = extraModalityCount(pricedModalities)
+  // Clave estable para dependencias: la lista cambia de identidad en cada render.
+  const pricedModalitiesKey = pricedModalities.join(',')
   const registrationChannelPrice = previewCheckoutPrice({
     paymentMethod: form.paymentMethod,
     manualPrice: eventPricing.registrationManual,
@@ -1496,6 +1508,13 @@ export default function RegisterPage({
   const secondDivisionListFee = secondDivisionSelected
     ? secondDivisionSurcharge(registrationListPrice * registrationCategoryCount)
     : 0
+  const modalityFee = extraModalitySurcharge(registrationChannelPrice, pricedModalities)
+  const modalityListFee = extraModalitySurcharge(
+    registrationListPrice * registrationCategoryCount,
+    pricedModalities,
+  )
+  // Lo que se ve al lado de una modalidad sin marcar: el 50% de una inscripción.
+  const modalityUnitFee = extraModalitySurcharge(registrationChannelPrice, ['full_power', 'bench'])
   const checkoutListTotal =
     previewCheckoutPrice({
       paymentMethod: form.paymentMethod,
@@ -1504,7 +1523,10 @@ export default function RegisterPage({
           ? comboAvailability.offer.manualPrice
           : eventPricing.registrationManual,
       fallback: effectivePurchaseType === 'combo' ? comboAvailability.offer.price : total,
-    }) * registrationCategoryCount + secondDivisionFee
+    }) *
+      registrationCategoryCount +
+    secondDivisionFee +
+    modalityFee
   // Con un código aplicado, lo que se cobra es el importe del preview — sea un
   // descuento porcentual o una promo de precio fijo. Mostrar el de lista dejaba
   // el resumen y la barra de checkout diciendo un número que no era el de la
@@ -1516,24 +1538,39 @@ export default function RegisterPage({
       ? discountedTotal
       : checkoutListTotal
   const wiseBaseUsd = Number(eventPricing.wisePrice) > 0 ? Number(eventPricing.wisePrice) : null
-  // Con segunda división el total sube un 50% y el chip "+$X" era la única
-  // pista: el resumen lo explica línea por línea. Wise cobra en USD con su
-  // propio precio, así que ahí no se desglosa en pesos.
+  // Con recargos (segunda división, modalidades extra) el total sube y el chip
+  // "+$X" era la única pista: el resumen lo explica línea por línea. Wise cobra
+  // en USD con su propio precio, así que ahí no se desglosa en pesos.
   const checkoutBreakdown =
-    secondDivisionSelected && form.paymentMethod !== 'wise_transfer'
+    (secondDivisionSelected || extraModalities > 0) && form.paymentMethod !== 'wise_transfer'
       ? [
           {
             key: 'base',
             label: t('pages.register.breakdownRegistration', { division: form.division }),
-            amount: checkoutListTotal - secondDivisionFee,
+            amount: checkoutListTotal - secondDivisionFee - modalityFee,
           },
-          {
-            key: 'second',
-            label: t('pages.register.breakdownSecondDivision', {
-              division: form.secondaryDivision,
-            }),
-            amount: secondDivisionFee,
-          },
+          ...(secondDivisionSelected
+            ? [
+                {
+                  key: 'second',
+                  label: t('pages.register.breakdownSecondDivision', {
+                    division: form.secondaryDivision,
+                  }),
+                  amount: secondDivisionFee,
+                },
+              ]
+            : []),
+          ...(extraModalities > 0
+            ? [
+                {
+                  key: 'modalities',
+                  label: t('pages.register.breakdownExtraModalities', {
+                    count: extraModalities,
+                  }),
+                  amount: modalityFee,
+                },
+              ]
+            : []),
           ...(checkoutTotal !== checkoutListTotal
             ? [
                 {
@@ -1550,18 +1587,21 @@ export default function RegisterPage({
       ? wisePriceLabel(
           checkoutTotal,
           locale,
-          wiseBaseUsd && secondDivisionSelected
-            ? wiseBaseUsd * registrationCategoryCount +
-              secondDivisionSurcharge(wiseBaseUsd * registrationCategoryCount)
-            : wiseBaseUsd
-              ? wiseBaseUsd * registrationCategoryCount
-              : eventPricing.wisePrice,
+          wiseBaseUsd
+            ? priceRegistrationSelection({
+                basePrice: wiseBaseUsd,
+                secondary: secondDivisionSelected ? form.secondaryDivision : '',
+                categoryCount: registrationCategoryCount,
+                modalities: pricedModalities,
+              }).defaultPrice
+            : eventPricing.wisePrice,
         )
       : checkoutTotal
   const catalogCheckoutTotal =
     (effectivePurchaseType === 'combo' ? comboListPrice : registrationListPrice) *
       registrationCategoryCount +
-    secondDivisionListFee
+    secondDivisionListFee +
+    modalityListFee
   const showChannelCompareTotal =
     (form.paymentMethod === 'manual_link' || form.paymentMethod === 'cash_pitbull') &&
     Number.isFinite(Number(catalogCheckoutTotal)) &&
@@ -1593,6 +1633,7 @@ export default function RegisterPage({
           paymentMethod: toApiPaymentMethod(form.paymentMethod),
           secondaryDivision: secondDivisionSelected ? form.secondaryDivision : undefined,
           categories: selectedRegistrationCategories,
+          modalities: pricedModalitiesKey ? pricedModalitiesKey.split(',') : [],
         })
         if (!cancelled) setPublicPromo(preview.valid ? preview : null)
       } catch {
@@ -1610,6 +1651,7 @@ export default function RegisterPage({
     flow,
     form.paymentMethod,
     selectedRegistrationCategories,
+    pricedModalitiesKey,
     form.secondaryDivision,
     hasAppliedDiscountCode,
     secondDivisionSelected,
@@ -1819,34 +1861,54 @@ export default function RegisterPage({
   // porque hoy no existe una opcion Wise dentro de su lista de medios.
   const wiseEnabled = resolvedChannels.wiseTransfer
   const wiseAvailableForPurchase = wiseEnabled && effectivePurchaseType !== 'combo'
-  // Las etiquetas de precio de cada medio incluyen el 50% de la segunda división.
-  const withSecondDivision = (amount) =>
-    amount === null || amount === undefined || !secondDivisionSelected
+  // Las etiquetas de precio de cada medio incluyen las categorías y los
+  // recargos (segunda división, modalidades extra): el número que se cobra.
+  const withSelectionPrice = (amount) =>
+    amount === null || amount === undefined
       ? amount
-      : Number(amount) + secondDivisionSurcharge(amount)
+      : priceRegistrationSelection({
+          basePrice: amount,
+          secondary: secondDivisionSelected ? form.secondaryDivision : '',
+          categoryCount: registrationCategoryCount,
+          modalities: pricedModalities,
+        }).defaultPrice
+  const selectionExtras = (registrationAmount) => {
+    const priced = priceRegistrationSelection({
+      basePrice: registrationAmount,
+      secondary: secondDivisionSelected ? form.secondaryDivision : '',
+      categoryCount: registrationCategoryCount,
+      modalities: pricedModalities,
+    })
+    return priced.surcharge + priced.modalitySurcharge
+  }
+  const comboHasExtras =
+    secondDivisionSelected || extraModalities > 0 || registrationCategoryCount > 1
   const competitionPaymentMethods =
     flow === 'competition'
       ? buildRegisterPaymentMethods({
           cashEnabled,
           comboOffer:
-            comboAvailability.offer && secondDivisionSelected
+            comboAvailability.offer && comboHasExtras
               ? {
                   ...comboAvailability.offer,
-                  price: Number(comboAvailability.offer.price) + secondDivisionListFee,
+                  price:
+                    Number(comboAvailability.offer.price) * registrationCategoryCount +
+                    selectionExtras(registrationListPrice),
                   manualPrice:
                     comboAvailability.offer.manualPrice == null
                       ? comboAvailability.offer.manualPrice
-                      : Number(comboAvailability.offer.manualPrice) +
-                        secondDivisionSurcharge(
-                          eventPricing.registrationManual ?? registrationListPrice,
-                        ),
+                      : Number(comboAvailability.offer.manualPrice) * registrationCategoryCount +
+                        selectionExtras(eventPricing.registrationManual ?? registrationListPrice),
                 }
               : comboAvailability.offer,
           locale,
           mercadoPagoEnabled,
-          registrationManualPrice: withSecondDivision(eventPricing.registrationManual),
-          registrationPrice: withSecondDivision(registrationListPrice),
-          registrationWisePrice: Number(eventPricing.wisePrice) > 0 ? withSecondDivision(eventPricing.wisePrice) : eventPricing.wisePrice,
+          registrationManualPrice: withSelectionPrice(eventPricing.registrationManual),
+          registrationPrice: withSelectionPrice(registrationListPrice),
+          registrationWisePrice:
+            Number(eventPricing.wisePrice) > 0
+              ? withSelectionPrice(eventPricing.wisePrice)
+              : eventPricing.wisePrice,
           purchaseType: effectivePurchaseType,
           t,
           transferEnabled,
@@ -2382,6 +2444,9 @@ export default function RegisterPage({
         // El servidor vuelve a exigirlo: destrabar el paquete en pantalla no
         // alcanza para comprarlo.
         comboAccessCode: effectivePurchaseType === 'combo' ? comboCode || undefined : undefined,
+        // Las categorías que se ven marcadas, no `form.categories`: en un evento
+        // común queda en su default y mandaba otra categoría que la elegida.
+        categories: selectedRegistrationCategories,
       })
     } catch (error) {
       result = { error: error?.message ?? t('common.errorMessage') }
@@ -2438,6 +2503,9 @@ export default function RegisterPage({
         // El servidor vuelve a exigirlo: destrabar el paquete en pantalla no
         // alcanza para comprarlo.
         comboAccessCode: effectivePurchaseType === 'combo' ? comboCode || undefined : undefined,
+        // Las categorías que se ven marcadas, no `form.categories`: en un evento
+        // común queda en su default y mandaba otra categoría que la elegida.
+        categories: selectedRegistrationCategories,
       })
     } catch (error) {
       result = { error: error?.message ?? t('common.errorMessage') }
@@ -3216,15 +3284,30 @@ export default function RegisterPage({
             className="register-competition-choice register-competition-choice--modality"
             disabled={Boolean(committedCompetitionRegistration)}
             error={errors.modalities}
-            hint={t('pages.register.modalityHint')}
+            hint={
+              modalityUnitFee > 0
+                ? t('pages.register.modalityFeeHint', { amount: money(modalityUnitFee, locale) })
+                : t('pages.register.modalityHint')
+            }
             label={t('pages.register.modality')}
             name="modalities"
             values={form.modalities ?? ['full_power']}
             onChange={changeModalities}
-            options={modalityValues.map((value) => [
-              value,
-              t(`pages.register.modalityOptions.${value}`),
-            ])}
+            options={modalityValues.map((value) => {
+              const label = t(`pages.register.modalityOptions.${value}`)
+              // Con una ya marcada, cada casilla libre dice cuánto suma.
+              const chosen = form.modalities ?? ['full_power']
+              const adds = modalityUnitFee > 0 && chosen.length > 0 && !chosen.includes(value)
+              return [
+                value,
+                adds
+                  ? t('pages.register.modalityOptionFee', {
+                      modality: label,
+                      amount: money(modalityUnitFee, locale),
+                    })
+                  : label,
+              ]
+            })}
           />
         )}
         {/* Primero el peso: de él sale la clase sugerida, que se completa sola

@@ -100,6 +100,7 @@ function buildApp({ birthDate = '2005-06-01', event = {}, toggles = {} } = {}) {
         .mockResolvedValue({ found: false, manualChannels: [], mercadoPagoEnabled: true }),
       previewDiscountCode,
       createRegistration,
+      findEventComboOffer: vi.fn().mockResolvedValue({ price: 120000, manualPrice: 100000 }),
     },
   })
 
@@ -309,6 +310,37 @@ describe('inscripción Submission — categorías múltiples', () => {
       expect(app.createRegistration).not.toHaveBeenCalled()
     })
   })
+
+  it('un evento común inscribe en la categoría elegida, no en la primera del catálogo', async () => {
+    await withApp({}, async (app) => {
+      const response = await register(
+        app,
+        registrationBody({ category: 'Single-Ply', categories: ['Single-Ply'] }),
+      )
+      expect(response.status).toBe(201)
+      expect(app.createRegistration).toHaveBeenCalledWith(
+        ATHLETE_ID,
+        expect.objectContaining({
+          category: 'Single-Ply',
+          categories: ['Single-Ply'],
+          defaultPrice: EVENT_PRICE,
+        }),
+      )
+    })
+  })
+
+  it('rechaza una lista de categorías que no incluye la categoría elegida', async () => {
+    await withApp({}, async (app) => {
+      // Lo que mandaba un checkout desfasado: eligió Single-Ply y viajaba ["Raw"].
+      const response = await register(
+        app,
+        registrationBody({ category: 'Single-Ply', categories: ['Raw'] }),
+      )
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({ code: 'CATEGORY_MISMATCH' })
+      expect(app.createRegistration).not.toHaveBeenCalled()
+    })
+  })
 })
 
 describe('inscripción — modalidades', () => {
@@ -333,13 +365,47 @@ describe('inscripción — modalidades', () => {
     })
   })
 
-  it('Full Power y una parcial a la vez se guardan, sin recargo', async () => {
+  it('Full Power y una más: la extra suma el 50% sobre cada precio', async () => {
     await withApp({}, async (app) => {
       const response = await register(app, registrationBody({ modalities: ['bench', 'full_power'] }))
       expect(response.status).toBe(201)
       expect(app.createRegistration).toHaveBeenCalledWith(
         ATHLETE_ID,
-        expect.objectContaining({ modalities: ['full_power', 'bench'], defaultPrice: EVENT_PRICE }),
+        expect.objectContaining({
+          modalities: ['full_power', 'bench'],
+          defaultPrice: 112500,
+          manualPrice: 90000,
+        }),
+      )
+    })
+  })
+
+  it('una modalidad sola, aunque no sea Full Power, paga el 100%', async () => {
+    await withApp({}, async (app) => {
+      const response = await register(app, registrationBody({ modalities: ['bench'] }))
+      expect(response.status).toBe(201)
+      expect(app.createRegistration).toHaveBeenCalledWith(
+        ATHLETE_ID,
+        expect.objectContaining({ modalities: ['bench'], defaultPrice: EVENT_PRICE }),
+      )
+    })
+  })
+
+  it('Junior + Open + Full Power + Banco: los dos 50% se suman sobre la base', async () => {
+    await withApp({}, async (app) => {
+      const response = await register(
+        app,
+        registrationBody({ secondaryDivision: 'Open', modalities: ['full_power', 'bench'] }),
+      )
+      expect(response.status).toBe(201)
+      expect(app.createRegistration).toHaveBeenCalledWith(
+        ATHLETE_ID,
+        expect.objectContaining({
+          division: 'Junior',
+          secondaryDivision: 'Open',
+          defaultPrice: 150000,
+          manualPrice: 120000,
+        }),
       )
     })
   })
@@ -361,7 +427,8 @@ describe('inscripción — modalidades', () => {
       expect(response.status).toBe(201)
       expect(app.createRegistration).toHaveBeenCalledWith(
         ATHLETE_ID,
-        expect.objectContaining({ modalities: ['squat', 'bench', 'deadlift'], defaultPrice: EVENT_PRICE }),
+        // Tres modalidades: la primera incluida y dos extra al 50%.
+        expect.objectContaining({ modalities: ['squat', 'bench', 'deadlift'], defaultPrice: 150000 }),
       )
     })
   })
@@ -410,6 +477,47 @@ describe('preview de cupón con segunda división', () => {
       expect(app.previewDiscountCode).toHaveBeenCalledWith(
         ATHLETE_ID,
         expect.objectContaining({ baseAmount: 112500 }),
+      )
+    })
+  })
+
+  it('cotiza el cupón sobre el total con las modalidades extra', async () => {
+    await withApp({}, async (app) => {
+      await fetch(`${app.target.url}/api/athletes/me/discount-preview`, {
+        method: 'POST',
+        headers: athleteHeaders(),
+        body: JSON.stringify({
+          code: 'PLU10',
+          appliesTo: 'registration',
+          eventSlug: 'pitbull-classic-2026',
+          secondaryDivision: 'Open',
+          modalities: ['full_power', 'bench'],
+        }),
+      })
+      expect(app.previewDiscountCode).toHaveBeenCalledWith(
+        ATHLETE_ID,
+        expect.objectContaining({ baseAmount: 150000 }),
+      )
+    })
+  })
+
+  it('el combo suma los recargos cotizados sobre la inscripción suelta', async () => {
+    await withApp({}, async (app) => {
+      await fetch(`${app.target.url}/api/athletes/me/discount-preview`, {
+        method: 'POST',
+        headers: athleteHeaders(),
+        body: JSON.stringify({
+          code: 'PLU10',
+          appliesTo: 'combo',
+          eventSlug: 'pitbull-classic-2026',
+          secondaryDivision: 'Open',
+          modalities: ['full_power', 'bench'],
+        }),
+      })
+      // Paquete 120.000 + Open 37.500 + Banco 37.500 (50% de la inscripción suelta).
+      expect(app.previewDiscountCode).toHaveBeenCalledWith(
+        ATHLETE_ID,
+        expect.objectContaining({ baseAmount: 195000 }),
       )
     })
   })

@@ -121,10 +121,10 @@ import {
   REGISTRATION_REQUIRED_MESSAGES,
 } from '../../shared/registrationRequirements.js'
 import {
+  normalizeModalities,
   normalizeRegistrationCategories,
   priceRegistrationSelection,
   registrationCategoryCount,
-  secondDivisionSurcharge,
   validateDivisionSelection,
   validateModalities,
 } from '../../shared/registrationSelection.js'
@@ -452,6 +452,8 @@ const discountPreviewSchema = z.object({
   // La segunda división suma el 50% a la base sobre la que se cotiza el cupón.
   secondaryDivision: z.enum(COMPETITION_DIVISIONS).optional(),
   categories: z.array(z.enum(COMPETITION_CATEGORIES)).min(1).max(5).optional(),
+  // Cada modalidad extra suma el 50% a la base sobre la que se cotiza el cupón.
+  modalities: z.array(z.string().trim().max(24)).max(5).optional(),
 })
 /**
  * Canje de un código secreto de oferta exclusiva. A diferencia del preview, no
@@ -1249,6 +1251,13 @@ export function createAthleteRoutes({
         code: 'CATEGORY_REQUIRED',
       })
     }
+    // `category` es obligatoria y tiene que estar entre las elegidas: si no, un
+    // cliente desfasado inscribía en otra categoría sin que nadie lo notara.
+    if (body.categories?.length && !categories.includes(body.category)) {
+      throw new HttpError(422, 'La categoría elegida no coincide con la inscripción. Volvé a elegirla.', {
+        code: 'CATEGORY_MISMATCH',
+      })
+    }
     if (categories.length > 1 && !eventAllowsMultipleCategories(event)) {
       throw new HttpError(422, 'Este evento permite una sola categoría de competencia.', {
         code: 'MULTIPLE_CATEGORIES_UNAVAILABLE',
@@ -1281,28 +1290,29 @@ export function createAthleteRoutes({
     }
   }
 
-  /** Precios del combo con el 50% de la segunda división sobre la inscripción suelta. */
+  /**
+   * Precios del combo: el paquete por cada categoría, más los recargos (50% por
+   * la segunda división y por cada modalidad extra) cotizados sobre la
+   * inscripción suelta del evento, en cada canal.
+   */
   function comboSelectionPrices(event, comboOffer, selection) {
     const categoryCount = registrationCategoryCount(selection.categories)
-    if (!selection.secondaryDivision) {
-      return {
-        defaultPrice: Number(comboOffer.price) * categoryCount,
-        manualPrice:
-          comboOffer.manualPrice === null || comboOffer.manualPrice === undefined
-            ? null
-            : Number(comboOffer.manualPrice) * categoryCount,
-      }
+    const extras = (registrationPrice) => {
+      const priced = priceRegistrationSelection({
+        basePrice: registrationPrice,
+        secondary: selection.secondaryDivision,
+        categoryCount,
+        modalities: selection.modalities,
+      })
+      return priced.surcharge + priced.modalitySurcharge
     }
     const manualBase = comboOffer.manualPrice
     return {
-      defaultPrice:
-        Number(comboOffer.price) * categoryCount +
-        secondDivisionSurcharge(Number(event.price) * categoryCount),
+      defaultPrice: Number(comboOffer.price) * categoryCount + extras(event.price),
       manualPrice:
         manualBase === null || manualBase === undefined
           ? null
-          : Number(manualBase) * categoryCount +
-            secondDivisionSurcharge(Number(event.manual_price ?? event.price) * categoryCount),
+          : Number(manualBase) * categoryCount + extras(event.manual_price ?? event.price),
     }
   }
 
@@ -2075,12 +2085,14 @@ export function createAthleteRoutes({
           competitionProfile?.sex,
           req.validatedBody.declaredWeightClass,
         )
-        // La segunda división suma el 50% sobre cada precio (lista y manual).
+        // La segunda división y cada modalidad extra suman el 50% sobre cada
+        // precio (lista y manual).
         const pricing = priceRegistrationSelection({
           basePrice: event.price,
           manualPrice: event.manual_price,
           secondary: selection.secondaryDivision,
           categoryCount: registrationCategoryCount(selection.categories),
+          modalities: selection.modalities,
         })
         assertEventPaymentChannelEnabled(toggles, 'registration', registrationChannel, {
           override: await manualChannelOverride(req.validatedBody, 'registration'),
@@ -2110,12 +2122,13 @@ export function createAthleteRoutes({
                 configuredUsd: event.wise_price,
               })
             : null
-        // El 50% de la segunda división también aplica al importe en USD de Wise.
+        // Los recargos también aplican al importe en USD de Wise.
         const wiseAmount = registrationWisePrice
           ? priceRegistrationSelection({
               basePrice: registrationWisePrice.amount,
               secondary: selection.secondaryDivision,
               categoryCount: registrationCategoryCount(selection.categories),
+              modalities: selection.modalities,
             }).defaultPrice
           : null
         const created = await repo().createRegistration(auth.athleteId, {
@@ -2277,8 +2290,8 @@ export function createAthleteRoutes({
           competitionProfile?.sex,
           req.validatedBody.declaredWeightClass,
         )
-        // La segunda división se suma al paquete: 50% del precio de la inscripción
-        // suelta del evento, en cada canal.
+        // La segunda división y las modalidades extra se suman al paquete: 50%
+        // del precio de la inscripción suelta del evento, en cada canal.
         const comboSelectionPricing = comboSelectionPrices(event, comboOffer, selection)
         const comboCategoryCount = registrationCategoryCount(selection.categories)
         const created = await repo().createRegistrationCombo(auth.athleteId, {
@@ -2295,6 +2308,7 @@ export function createAthleteRoutes({
                 basePrice: comboWisePrice.amount,
                 secondary: selection.secondaryDivision,
                 categoryCount: comboCategoryCount,
+                modalities: selection.modalities,
               }).defaultPrice
             : comboSelectionPricing.defaultPrice,
           manualPrice: comboWisePrice ? null : comboSelectionPricing.manualPrice,
@@ -2378,8 +2392,18 @@ export function createAthleteRoutes({
         const auth = await athlete(req)
         const codeGuard = promotionCodeIdentity(auth.athleteId)
         await assertIdentityNotLocked(codeGuard)
-        const { code, appliesTo, planCode, eventSlug, paymentMethod, secondaryDivision, categories } =
-          req.validatedBody
+        const {
+          code,
+          appliesTo,
+          planCode,
+          eventSlug,
+          paymentMethod,
+          secondaryDivision,
+          categories,
+          modalities: requestedModalities,
+        } = req.validatedBody
+        // Solo cotiza: una combinación inválida se rechaza al crear la orden.
+        const modalities = normalizeModalities(requestedModalities)
         let baseAmount
         let manualPrice
         if (appliesTo === 'membership') {
@@ -2396,8 +2420,9 @@ export function createAthleteRoutes({
           if (!offer) throw new HttpError(404, 'El combo no está disponible para este evento.')
           baseAmount = offer.price
           manualPrice = offer.manualPrice
-          // El combo suma el 50% de la inscripción suelta si compite en dos divisiones.
-          if (secondaryDivision || categories?.length > 1) {
+          // El combo suma el 50% de la inscripción suelta por la segunda
+          // división y por cada modalidad extra, y se repite por categoría.
+          if (secondaryDivision || categories?.length > 1 || modalities.length > 1) {
             const event = await repo().findEventPricing(eventSlug)
             if (!event) throw new HttpError(404, 'Evento no encontrado.')
             const priced = comboSelectionPrices(event, offer, {
@@ -2405,6 +2430,7 @@ export function createAthleteRoutes({
               categories: eventAllowsMultipleCategories(event)
                 ? normalizeRegistrationCategories(categories)
                 : [],
+              modalities,
             })
             baseAmount = priced.defaultPrice
             manualPrice = priced.manualPrice
@@ -2420,6 +2446,7 @@ export function createAthleteRoutes({
             categoryCount: eventAllowsMultipleCategories(event)
               ? registrationCategoryCount(categories)
               : 1,
+            modalities,
           })
           baseAmount = priced.defaultPrice
           manualPrice = priced.manualPrice

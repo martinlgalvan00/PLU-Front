@@ -779,6 +779,7 @@ export async function previewDiscountCode({
   paymentMethod,
   secondaryDivision,
   categories,
+  modalities,
 } = {}) {
   const result = await apiPost('/api/athletes/me/discount-preview', {
     code,
@@ -788,6 +789,8 @@ export async function previewDiscountCode({
     // La segunda división suma el 50% a la base sobre la que se cotiza el cupón.
     secondaryDivision: secondaryDivision || undefined,
     categories: categories?.length ? categories : undefined,
+    // Cada modalidad extra suma el 50%: sin ellas el cupón cotiza otro número.
+    modalities: modalities?.length ? modalities : undefined,
     // Sin el canal, el servidor calcula el ahorro sobre el precio de catálogo
     // y muestra un número distinto al que se cobra durante la ventana Pitbull.
     paymentMethod: paymentMethod || undefined,

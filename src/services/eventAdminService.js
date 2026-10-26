@@ -1022,10 +1022,6 @@ export async function fetchPublishedEvents() {
       ? registrationOnlyPublicEvent(event)
       : underConstructionPublicEvent(event)
   })
-
-  // Si la API no esta disponible, el fallback debe respetar el mismo
-  // interruptor de visibilidad que protege el catalogo del servidor.
-  return events.filter(eventLandingIsPublic)
 }
 
 /** Guarda el evento completo a través de Express y devuelve el estado
