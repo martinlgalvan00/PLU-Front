@@ -281,6 +281,36 @@ describe('inscripción — segunda división', () => {
   })
 })
 
+describe('inscripción Submission — categorías múltiples', () => {
+  it('dos categorías cobran dos inscripciones y se guardan en la misma orden', async () => {
+    await withApp({ event: { slug: 'barbell-submission-2027' } }, async (app) => {
+      const response = await register(
+        app,
+        registrationBody({ categories: ['Raw', 'Single-Ply'] }),
+      )
+      expect(response.status).toBe(201)
+      expect(app.createRegistration).toHaveBeenCalledWith(
+        ATHLETE_ID,
+        expect.objectContaining({
+          category: 'Raw',
+          categories: ['Raw', 'Single-Ply'],
+          defaultPrice: EVENT_PRICE * 2,
+          manualPrice: EVENT_MANUAL_PRICE * 2,
+        }),
+      )
+    })
+  })
+
+  it('un evento común rechaza seleccionar más de una categoría', async () => {
+    await withApp({}, async (app) => {
+      const response = await register(app, registrationBody({ categories: ['Raw', 'Single-Ply'] }))
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({ code: 'MULTIPLE_CATEGORIES_UNAVAILABLE' })
+      expect(app.createRegistration).not.toHaveBeenCalled()
+    })
+  })
+})
+
 describe('inscripción — modalidades', () => {
   it('sin modalidades se rechaza: ya no se da por Full Power sin que nadie la elija', async () => {
     await withApp({}, async (app) => {

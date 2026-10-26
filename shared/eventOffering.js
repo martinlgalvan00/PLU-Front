@@ -69,8 +69,13 @@ export function offeringForStorage(offering) {
  */
 export function validateSelectionAgainstOffering(selection, offering) {
   const { categories, divisions, modalities } = normalizeEventOffering(offering)
-  if (selection.category && !categories.includes(selection.category)) {
-    return { ok: false, code: 'OFFERING_CATEGORY_UNAVAILABLE', value: selection.category }
+  const selectedCategories = Array.isArray(selection.categories)
+    ? selection.categories
+    : [selection.category]
+  for (const category of selectedCategories.filter(Boolean)) {
+    if (!categories.includes(category)) {
+      return { ok: false, code: 'OFFERING_CATEGORY_UNAVAILABLE', value: category }
+    }
   }
   for (const division of [selection.division, selection.secondaryDivision].filter(Boolean)) {
     if (!divisions.includes(division)) {

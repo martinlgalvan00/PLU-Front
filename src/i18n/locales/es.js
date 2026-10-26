@@ -4048,6 +4048,8 @@ export default {
       divisionsEventOpenOnly: 'Este evento solo ofrece Open para tu edad.',
       modality: 'Modalidad',
       modalityHint: 'Elegí una o más. Combinarlas no tiene costo extra.',
+      categoryMultipleHint:
+        'Podés competir en más de una. Cada categoría suma el valor de una inscripción.',
       modalityOptions: {
         full_power: 'Full Power',
         push_pull: 'Push-Pull',
