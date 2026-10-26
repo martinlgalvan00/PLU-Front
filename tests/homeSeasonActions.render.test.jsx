@@ -1,7 +1,16 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
+import MotionProvider from '../src/motion/MotionProvider.tsx'
 import HomeSeasonActions from '../src/components/ui/HomeSeasonActions.jsx'
+
+function renderActions(ui) {
+  return render(
+    <MotionProvider>
+      <I18nProvider>{ui}</I18nProvider>
+    </MotionProvider>,
+  )
+}
 
 afterEach(cleanup)
 
@@ -39,26 +48,25 @@ const ACTIONS_SOON = [
 ]
 
 describe('HomeSeasonActions', () => {
-  it('muestra inscripción abierta cuando el meet está live', () => {
+  it('inscripción abierta: el carril lleva "Página oficial" e "Inscribirme"', () => {
     const onActivate = vi.fn()
-    render(
-      <I18nProvider>
-        <HomeSeasonActions actions={ACTIONS_OPEN} onActivate={onActivate} />
-      </I18nProvider>,
-    )
+    renderActions(<HomeSeasonActions actions={ACTIONS_OPEN} onActivate={onActivate} />)
 
     expect(screen.getByText('Ya podés inscribirte')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /Barbell Submission/i }))
-    expect(onActivate).toHaveBeenCalledWith(ACTIONS_OPEN[1])
+    const lane = screen.getByRole('group', { name: 'Barbell Submission' })
+    expect(lane.tagName).not.toBe('BUTTON')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Página oficial de Barbell Submission' }))
+    // El segundo argumento es el click: el carril lo usa para el morph de ruta.
+    expect(onActivate).toHaveBeenLastCalledWith(ACTIONS_OPEN[1], expect.anything(), 'page')
+
+    fireEvent.click(screen.getByRole('button', { name: /Barbell Submission\. Inscripción abierta/i }))
+    expect(onActivate).toHaveBeenLastCalledWith(ACTIONS_OPEN[1], expect.anything(), 'register')
   })
 
   it('con Virtus en teaser dice Inscripciones próximamente, no finalizadas', () => {
     const onActivate = vi.fn()
-    render(
-      <I18nProvider>
-        <HomeSeasonActions actions={ACTIONS_SOON} onActivate={onActivate} />
-      </I18nProvider>,
-    )
+    renderActions(<HomeSeasonActions actions={ACTIONS_SOON} onActivate={onActivate} />)
 
     expect(screen.getByText('Inscripciones próximamente')).toBeTruthy()
     expect(screen.getByText('Ver ficha')).toBeTruthy()
@@ -66,15 +74,12 @@ describe('HomeSeasonActions', () => {
     expect(document.body.textContent).not.toMatch(/finalizad/i)
 
     fireEvent.click(screen.getByRole('button', { name: /Barbell Submission/i }))
-    expect(onActivate).toHaveBeenCalledWith(ACTIONS_SOON[1])
+    // El segundo argumento es el click: el carril lo usa para el morph de ruta.
+    expect(onActivate).toHaveBeenCalledWith(ACTIONS_SOON[1], expect.anything())
   })
 
   it('no renderiza nada sin acciones', () => {
-    const { container } = render(
-      <I18nProvider>
-        <HomeSeasonActions actions={[]} />
-      </I18nProvider>,
-    )
+    const { container } = renderActions(<HomeSeasonActions actions={[]} />)
     expect(container.querySelector('.home-season-actions')).toBeNull()
   })
 })

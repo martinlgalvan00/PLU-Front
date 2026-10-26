@@ -122,3 +122,77 @@ function CashScreen() {
  * la sede del evento; abrí Ventas → Cobro para verlo.
  */
 export const CobroEfectivo = { render: () => <CashScreen /> }
+
+function LandingScreen() {
+  const [draft, setDraft] = useState(() =>
+    buildAdminEventDraft({
+      ...EXISTING,
+      landing: {
+        templateId: 'editorial',
+        slots: {
+          experienceTitle: 'Jueces y equipo',
+          experienceBody: 'Jueces internacionales, speaker y transmisión en vivo.',
+        },
+      },
+      publicSurface: { recentRegistrants: false, tickets: false },
+    }),
+  )
+  return (
+    <AdminPreviewShell section="events">
+      <AdminEventEditor
+        canEdit
+        draft={draft}
+        initialFocus="visibility"
+        onCancel={() => {}}
+        onChange={setDraft}
+        onSubmit={async () => ({ event: { id: 'evt-1' } })}
+      />
+    </AdminPreviewShell>
+  )
+}
+
+/**
+ * Landing por secciones: cada bloque con su interruptor y sus textos juntos.
+ * Acá "Últimos inscriptos" y "Entradas" están ocultos; "Experiencia" tiene
+ * textos propios.
+ */
+export const LandingPorSecciones = { render: () => <LandingScreen /> }
+
+function BuilderScreen() {
+  const [draft, setDraft] = useState(() =>
+    buildAdminEventDraft({
+      ...EXISTING,
+      landing: {
+        templateId: 'builder',
+        publicVisible: false,
+        slots: { heroTitle: 'Barbell Submission', experienceTitle: 'Jueces y equipo' },
+        layout: {
+          palette: { accent: '#ff8800', action: '#f5c518', background: '#101820' },
+          blocks: [
+            { id: 'hero', type: 'hero' },
+            { id: 'facts', type: 'facts' },
+            { id: 'text-1', type: 'text', props: { title: 'Cómo se compite', body: 'Tres intentos por movimiento.' } },
+            { id: 'experience', type: 'experience' },
+            { id: 'faq', type: 'faq', visible: false },
+            { id: 'cta-1', type: 'cta', props: { label: 'Leer reglamento', href: 'https://plu.com.ar/reglamento' } },
+          ],
+        },
+      },
+    }),
+  )
+  return (
+    <AdminPreviewShell section="events">
+      <AdminEventEditor
+        canEdit
+        draft={draft}
+        initialFocus="visibility"
+        onCancel={() => {}}
+        onChange={setDraft}
+        onSubmit={async () => ({ event: { id: 'evt-1' } })}
+      />
+    </AdminPreviewShell>
+  )
+}
+
+/** Constructor: bloques ordenables, colores propios y la landing apagada ("en construcción"). */
+export const LandingConstructor = { render: () => <BuilderScreen /> }

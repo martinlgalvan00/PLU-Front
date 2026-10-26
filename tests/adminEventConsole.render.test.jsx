@@ -125,9 +125,30 @@ function salesSubnav(panel) {
   return within(tabRail(panel)).getByRole('group', { name: /capítulos/i })
 }
 
+/** Datos y Estructura son capítulos de la pestaña "Evento". */
+function eventChapters(panel) {
+  return within(panel).getByRole('tablist', { name: /partes del evento/i })
+}
+
+const EVENT_CHAPTER = /datos|estructura/i
+
 function openTab(panel, name) {
+  if (EVENT_CHAPTER.test(String(name))) {
+    const eventTab = within(tabRail(panel)).getByRole('tab', { name: /^evento$/i })
+    if (eventTab.getAttribute('aria-selected') !== 'true') fireEvent.click(eventTab)
+    const current = screen.getByRole('region', { name: 'Evento seleccionado' })
+    fireEvent.click(within(eventChapters(current)).getByRole('tab', { name }))
+    return screen.getByRole('region', { name: 'Evento seleccionado' })
+  }
   fireEvent.click(within(tabRail(panel)).getByRole('tab', { name }))
   return screen.getByRole('region', { name: 'Evento seleccionado' })
+}
+
+/** La pestaña o el capítulo de Evento con ese nombre. */
+function sectionTab(panel, name) {
+  return EVENT_CHAPTER.test(String(name))
+    ? within(eventChapters(panel)).getByRole('tab', { name })
+    : within(tabRail(panel)).getByRole('tab', { name })
 }
 
 function mainCol() {
@@ -145,7 +166,7 @@ describe('EventsSection — página del evento', () => {
     // arrancaba en 'basics' y retornaba temprano al clickear la pestaña
     // activa, así que el editor de Datos no se podía abrir nunca.
     expect(
-      within(tabRail(panel)).getByRole('tab', { name: /datos/i }).getAttribute('aria-selected'),
+      sectionTab(panel, /datos/i).getAttribute('aria-selected'),
     ).toBe('true')
     expect(panel.querySelector('.admin-event-editor--accordion')).not.toBeNull()
     expect(panel.querySelector('.admin-event-workspace__toolbar')).not.toBeNull()
@@ -172,7 +193,7 @@ describe('EventsSection — página del evento', () => {
     const scrollTo = vi.fn()
     host.scrollTo = scrollTo
 
-    fireEvent.click(within(tabRail(panel)).getByRole('tab', { name: /estructura/i }))
+    openTab(panel, /estructura/i)
 
     expect(scrollTo).toHaveBeenCalledWith({ top: 0 })
   })
@@ -186,12 +207,16 @@ describe('EventsSection — página del evento', () => {
     const panel = workspace()
     const rail = tabRail(panel)
 
-    expect(within(rail).getByRole('tab', { name: /datos/i })).toBeTruthy()
-    expect(within(rail).getByRole('tab', { name: /estructura/i })).toBeTruthy()
-    expect(within(rail).getByRole('tab', { name: /^ventas/i })).toBeTruthy()
+    // Cuatro pestañas para armar el evento y, aparte, las de operación.
+    const names = within(rail)
+      .getAllByRole('tab')
+      .map((tab) => tab.textContent.replace(/\d+$/, '').trim())
+    expect(names.slice(0, 4)).toEqual(['Resumen', 'Evento', 'Venta', 'Página'])
     expect(within(rail).getByRole('tab', { name: /zonas y seguridad/i })).toBeTruthy()
     expect(within(rail).getByRole('tab', { name: /pagos/i })).toBeTruthy()
-    expect(within(rail).getByRole('tab', { name: /vista pública/i })).toBeTruthy()
+    // Datos y Estructura son capítulos de Evento.
+    expect(within(eventChapters(panel)).getByRole('tab', { name: /datos/i })).toBeTruthy()
+    expect(within(eventChapters(panel)).getByRole('tab', { name: /estructura/i })).toBeTruthy()
 
     expect(panel.textContent).toContain('Pitbull Classic')
 
@@ -202,7 +227,8 @@ describe('EventsSection — página del evento', () => {
     const resumen = openTab(panel, /resumen/i)
     expect(resumen.textContent).toContain('48 de 80')
     expect(resumen.textContent).toContain('1 pendientes')
-    expect(resumen.textContent).toContain('Ocupación')
+    // Una sola cifra contra el cupo (antes Ocupación e Inscripciones por separado).
+    expect(resumen.textContent).toContain('Inscriptos')
   })
 
   it('Inscripciones es pestaña del meet; Check-in sigue como acceso', () => {
@@ -232,14 +258,14 @@ describe('EventsSection — página del evento', () => {
     renderEvents()
     const panel = workspace()
     const afterOpen = openTab(panel, /estructura/i)
-    const tab = within(tabRail(afterOpen)).getByRole('tab', { name: /estructura/i })
+    const tab = sectionTab(afterOpen, /estructura/i)
     expect(tab.getAttribute('aria-selected')).toBe('true')
 
     fireEvent.click(tab)
 
     const after = screen.getByRole('region', { name: 'Evento seleccionado' })
     expect(
-      within(tabRail(after)).getByRole('tab', { name: /estructura/i }).getAttribute('aria-selected'),
+      sectionTab(after, /estructura/i).getAttribute('aria-selected'),
     ).toBe('true')
     expect(after.querySelector('.admin-event-structure')).not.toBeNull()
   })
@@ -249,12 +275,12 @@ describe('EventsSection — página del evento', () => {
     const panel = workspace()
     expect(panel.querySelector('.admin-event-editor--essentials')).not.toBeNull()
 
-    const after = openTab(panel, /^ventas/i)
+    const after = openTab(panel, /^venta$/i)
     expect(
-      within(tabRail(after)).getByRole('tab', { name: /^ventas/i }).getAttribute('aria-selected'),
+      within(tabRail(after)).getByRole('tab', { name: /^venta$/i }).getAttribute('aria-selected'),
     ).toBe('true')
     expect(
-      within(tabRail(after)).getByRole('tab', { name: /datos/i }).getAttribute('aria-selected'),
+      within(tabRail(after)).getByRole('tab', { name: /^evento$/i }).getAttribute('aria-selected'),
     ).toBe('false')
     expect(after.querySelectorAll('.admin-event-editor--accordion')).toHaveLength(1)
   })
@@ -264,7 +290,7 @@ describe('EventsSection — página del evento', () => {
     const panel = workspace()
 
     expect(
-      within(tabRail(panel)).getByRole('tab', { name: /datos/i }).getAttribute('aria-selected'),
+      sectionTab(panel, /datos/i).getAttribute('aria-selected'),
     ).toBe('true')
     expect(panel.querySelector('.admin-event-editor--accordion')).not.toBeNull()
 
@@ -374,7 +400,7 @@ describe('EventsSection — página del evento', () => {
     const panel = workspace()
     expect(panel.querySelector('.admin-event-preview')).toBeNull()
 
-    const after = openTab(panel, /vista pública/i)
+    const after = openTab(panel, /^página$/i)
     expect(after.querySelector('.admin-event-preview')).not.toBeNull()
     expect(after.querySelector('.admin-event-preview__readiness')).not.toBeNull()
     expect(after.querySelector('.admin-event-visual-builder')).toBeNull()
@@ -382,18 +408,18 @@ describe('EventsSection — página del evento', () => {
 
   it('en Vista pública no duplica estado ni acceso', () => {
     renderEvents()
-    openTab(workspace(), /vista pública/i)
+    openTab(workspace(), /^página$/i)
     const col = mainCol()
 
     expect(col.querySelector('#event-status')).toBeNull()
     expect(col.querySelector('#event-access')).toBeNull()
     expect(within(col).queryByRole('heading', { name: /^publicación$/i })).toBeNull()
-    expect(within(col).getByRole('group', { name: /qué se muestra en el sitio/i })).toBeTruthy()
+    expect(within(col).getByRole('group', { name: /secciones de la página/i })).toBeTruthy()
   })
 
   it('en Entradas muestra cobro sin tipos de entrada', () => {
     renderEvents()
-    openTab(workspace(), /^ventas/i)
+    openTab(workspace(), /^venta$/i)
     const col = mainCol()
 
     expect(col.querySelector('#event-slots')).not.toBeNull()
@@ -412,7 +438,7 @@ describe('EventsSection — página del evento', () => {
     renderEvents()
     const panel = workspace()
     expect(within(tabRail(panel)).queryByRole('group', { name: /capítulos/i })).toBeNull()
-    const after = openTab(panel, /^ventas/i)
+    const after = openTab(panel, /^venta$/i)
     const col = mainCol()
     const chapters = chaptersRail(after)
     const subnav = salesSubnav(after)
@@ -420,7 +446,7 @@ describe('EventsSection — página del evento', () => {
     expect(after.contains(chapters)).toBe(true)
     expect(after.querySelector('.admin-event-workspace__toolbar')?.contains(chapters)).toBe(true)
     expect(
-      within(tabRail(after)).getByRole('tab', { name: /^ventas/i }).getAttribute('aria-expanded'),
+      within(tabRail(after)).getByRole('tab', { name: /^venta$/i }).getAttribute('aria-expanded'),
     ).toBe('true')
     expect(within(subnav).getByRole('button', { name: /^cupo$/i })).toBeTruthy()
     expect(within(subnav).getByRole('button', { name: /^precios$/i })).toBeTruthy()
@@ -453,7 +479,7 @@ describe('EventsSection — página del evento', () => {
 
   it('en Cupo deja publicar u ocultar la ocupación del sitio', () => {
     renderEvents()
-    openTab(workspace(), /^ventas/i)
+    openTab(workspace(), /^venta$/i)
     const cupo = mainCol().querySelector('.admin-event-form__lane--cupo')
     const toggle = cupo?.querySelector('#event-capacity-progress-public')
 
@@ -472,7 +498,7 @@ describe('EventsSection — página del evento', () => {
     renderEvents({
       adminEvents: [{ ...EVENT, pricing: { ...EVENT.pricing, ticketsEnabled: true } }],
     })
-    const panel = openTab(workspace(), /^ventas/i)
+    const panel = openTab(workspace(), /^venta$/i)
     fireEvent.click(within(chaptersRail(panel)).getByRole('tab', { name: /entradas/i }))
     const col = mainCol()
 
@@ -491,7 +517,7 @@ describe('EventsSection — página del evento', () => {
         { ...EVENT, eventDays: [], pricing: { ...EVENT.pricing, ticketsEnabled: true } },
       ],
     })
-    const panel = openTab(workspace(), /^ventas/i)
+    const panel = openTab(workspace(), /^venta$/i)
     const col = mainCol()
 
     expect(col.querySelector('.admin-ticket-types__need-days')).not.toBeNull()
@@ -553,8 +579,9 @@ describe('EventsSection — alta rápida', () => {
     for (const name of ['title', 'startsAt', 'endsAt', 'venue', 'location', 'slots']) {
       expect(dialog.querySelector(`[name="${name}"]`)).not.toBeNull()
     }
-    // Precios y ventanas no se piden en el alta: viven en el editor.
-    expect(dialog.querySelector('[name="registration"]')).toBeNull()
+    // El primer paso es el evento: el precio vive en el paso Venta (con el de
+    // lista precargado) y la ventana solo aparece si se programa la apertura.
+    expect(dialog.querySelector('[name="pricing.registration"]')).toBeNull()
     expect(dialog.querySelector('[name="registrationOpensAt"]')).toBeNull()
   })
 
@@ -576,7 +603,8 @@ describe('EventsSection — alta rápida', () => {
     fireEvent.click(screen.getByRole('button', { name: /nuevo evento/i }))
     const dialog = await findCreatePage()
 
-    fireEvent.click(within(dialog).getByRole('button', { name: /crear evento/i }))
+    // El alta es guiada: el primer paso no deja avanzar incompleto.
+    fireEvent.click(within(dialog).getByRole('button', { name: /^siguiente/i }))
 
     await waitFor(() => expect(within(dialog).getAllByRole('alert').length).toBeGreaterThan(0))
     expect(onSaveEvent).not.toHaveBeenCalled()
@@ -604,6 +632,8 @@ describe('EventsSection — alta rápida', () => {
     fireEvent.change(dialog.querySelector('[name="slots"]'), { target: { value: '40' } })
     fireEvent.click(within(dialog).getByRole('button', { name: /sin afiliación/i }))
 
+    fireEvent.click(within(dialog).getByRole('button', { name: /^siguiente/i }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /^siguiente/i }))
     fireEvent.click(within(dialog).getByRole('button', { name: /crear evento/i }))
 
     await waitFor(() => expect(onSaveEvent).toHaveBeenCalledTimes(1))
@@ -635,7 +665,7 @@ describe('EventsSection — alta rápida', () => {
     expect(editor.querySelector('[name="title"]')?.value).toBe('Copa Norte')
   })
 
-  it('cambia el estado del meet con el Guardar del editor, sin upsert ni barra pending', async () => {
+  it('cambia el acceso del meet con el Guardar del editor, sin upsert ni barra pending', async () => {
     const onSaveEvent = vi.fn(async () => ({ event: EVENT, events: [EVENT] }))
     const onSetEventState = vi.fn(async () => ({
       event: { ...EVENT, status: 'cerrado' },
@@ -645,8 +675,10 @@ describe('EventsSection — alta rápida', () => {
     workspace()
 
     fireEvent.click(
+      // El estado de la inscripción se maneja desde el control de venta; el
+      // acceso sigue en Datos y se guarda con el "Guardar" del editor.
       [...document.querySelectorAll('.admin-event-state__option')].find((option) =>
-        /^cerrado$/i.test(option.textContent ?? ''),
+        /^sin afiliación$/i.test(option.textContent ?? ''),
       ),
     )
 
@@ -658,7 +690,9 @@ describe('EventsSection — alta rápida', () => {
     fireEvent.click(save)
 
     await waitFor(() => expect(onSetEventState).toHaveBeenCalledTimes(1))
-    expect(onSetEventState).toHaveBeenCalledWith('pitbull-classic-2026', { status: 'cerrado' })
+    expect(onSetEventState).toHaveBeenCalledWith('pitbull-classic-2026', {
+      requiresMembership: false,
+    })
     expect(onSaveEvent).not.toHaveBeenCalled()
   })
 })

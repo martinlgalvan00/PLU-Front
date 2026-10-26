@@ -1,308 +1,189 @@
-import AdminFilterChipGroup from '../AdminFilterChipGroup.jsx'
-import { LayoutTemplate } from 'lucide-react'
-import {
-  EVENT_LANDING_SLOT_LIMITS,
-  EVENT_LANDING_THEMES,
-  emptyEventLanding,
-  normalizeEventLanding,
-  syncLandingSlotsFromPublicCopy,
-} from '../../../lib/eventLanding.js'
-import { FormField } from './parts.jsx'
+import { lazy, Suspense, useState } from 'react'
+import { PanelsTopLeft } from 'lucide-react'
+import { landingSectionsForEvent } from '../../../lib/eventLandingSections.js'
+import { shouldReopenLandingStudio } from '../../../lib/landingStudioSession.js'
+import BlocksEditor from './landing/BlocksEditor.jsx'
+import FormatFieldset from './landing/FormatFieldset.jsx'
+import LandingCopyFrom from './landing/LandingCopyFrom.jsx'
+import HeroImageField from './landing/HeroImageField.jsx'
+import InscriptionFields from './landing/InscriptionFields.jsx'
+import SectionsList from './landing/SectionsList.jsx'
+import SeoFieldset from './landing/SeoFieldset.jsx'
+import useLandingDraft from './landing/useLandingDraft.js'
+import '../../../styles/pages/admin-event-landing.css'
 
-const HERO_FIELDS = [
-  { key: 'heroTitle', labelKey: 'publicTitleField', max: EVENT_LANDING_SLOT_LIMITS.heroTitle },
-  { key: 'heroLead', labelKey: 'heroLeadField', max: EVENT_LANDING_SLOT_LIMITS.heroLead },
-  { key: 'ctaLabel', labelKey: 'ctaLabelField', max: EVENT_LANDING_SLOT_LIMITS.ctaLabel },
-]
-
-const EDITORIAL_FIELDS = [
-  {
-    key: 'experienceTitle',
-    labelKey: 'landingExperienceTitleField',
-    max: EVENT_LANDING_SLOT_LIMITS.experienceTitle,
-  },
-  {
-    key: 'experienceBody',
-    labelKey: 'landingExperienceBodyField',
-    max: EVENT_LANDING_SLOT_LIMITS.experienceBody,
-    multiline: true,
-  },
-  {
-    key: 'categoriesTitle',
-    labelKey: 'landingCategoriesTitleField',
-    max: EVENT_LANDING_SLOT_LIMITS.categoriesTitle,
-  },
-  {
-    key: 'categoriesBody',
-    labelKey: 'landingCategoriesBodyField',
-    max: EVENT_LANDING_SLOT_LIMITS.categoriesBody,
-    multiline: true,
-  },
-  {
-    key: 'locationTitle',
-    labelKey: 'landingLocationTitleField',
-    max: EVENT_LANDING_SLOT_LIMITS.locationTitle,
-  },
-  {
-    key: 'locationBody',
-    labelKey: 'landingLocationBodyField',
-    max: EVENT_LANDING_SLOT_LIMITS.locationBody,
-    multiline: true,
-  },
-]
-
-const SEO_FIELDS = [
-  { key: 'metaTitle', labelKey: 'landingMetaTitleField', max: EVENT_LANDING_SLOT_LIMITS.metaTitle },
-  {
-    key: 'metaDescription',
-    labelKey: 'landingMetaDescriptionField',
-    max: EVENT_LANDING_SLOT_LIMITS.metaDescription,
-    multiline: true,
-  },
-]
-
-const FAQ_FIELDS = [1, 2, 3].flatMap((index) => [
-  {
-    key: `faq${index}Question`,
-    labelKey: 'landingFaqQuestionField',
-    labelParams: { n: index },
-    max: EVENT_LANDING_SLOT_LIMITS.faq1Question,
-  },
-  {
-    key: `faq${index}Answer`,
-    labelKey: 'landingFaqAnswerField',
-    labelParams: { n: index },
-    max: EVENT_LANDING_SLOT_LIMITS.faq1Answer,
-    multiline: true,
-  },
-])
-
-const HERO_SLOT_TO_PUBLIC_COPY = {
-  heroTitle: 'publicTitle',
-  heroLead: 'heroLead',
-  ctaLabel: 'ctaLabel',
-}
-
-function SlotFields({ fields, landing, canEdit, err, patchSlot, t }) {
-  return fields.map((field) => {
-    const fieldId = `event-landing-${field.key}`
-    const errorKey =
-      HERO_SLOT_TO_PUBLIC_COPY[field.key] != null
-        ? `publicCopy.${HERO_SLOT_TO_PUBLIC_COPY[field.key]}`
-        : `landing.slots.${field.key}`
-    const label = t(`admin.eventEditor.${field.labelKey}`, field.labelParams)
-    const common = {
-      id: fieldId,
-      name: `landing.slots.${field.key}`,
-      'data-field': `landing.slots.${field.key}`,
-      maxLength: field.max,
-      value: landing.slots[field.key] ?? '',
-      disabled: !canEdit,
-      onChange: (event) => patchSlot(field.key, event.target.value),
-    }
-    return (
-      <FormField key={field.key} htmlFor={fieldId} label={label} error={err(errorKey)}>
-        {field.multiline ? <textarea {...common} rows={3} /> : <input {...common} type="text" />}
-      </FormField>
-    )
-  })
-}
+// El editor visual pesa (vista previa completa de la landing): se carga al abrirlo.
+const LandingStudio = lazy(() => import('./landing/LandingStudio.jsx'))
 
 /**
- * Plantilla de landing + slots editoriales. El copy del hero también vive en
- * publicCopy por compat; acá se editan juntos.
+ * Contenido editable de la landing: bloques del Constructor o secciones de las
+ * plantillas fijas, más la imagen de portada y el cupo. Lo comparten el editor
+ * en línea y el editor visual; este último le pasa además la selección.
  */
-export default function EventLandingSection({
+export function LandingContentEditor({
   t,
   canEdit,
   draft,
   patchDraft,
+  landingDraft,
   err,
+  sourceEvent,
+  publicCapacityPreview,
   onHeroUpload,
+  onImageUpload,
   heroUploading = false,
   heroPreviewUrl = null,
+  selectedId = null,
+  revealToken = 0,
+  onSelectBlock = null,
 }) {
-  const landing = normalizeEventLanding(draft.landing ?? emptyEventLanding('meet'), {
-    publicCopy: draft.publicCopy,
-    slug: draft.slug,
-  })
+  const { landing, patchLanding, patchSlot, applyBlocks, currentBlocks } = landingDraft
+  const isBuilder = landing.templateId === 'builder'
+  const hasCustomSections = ['editorial', 'submission'].includes(landing.templateId)
 
-  function patchLanding(nextLanding) {
-    const normalized = normalizeEventLanding(nextLanding, {
-      publicCopy: draft.publicCopy,
-      slug: draft.slug,
-    })
-    const publicCopy = {
-      ...(draft.publicCopy ?? {}),
-      publicTitle: normalized.slots.heroTitle,
-      heroLead: normalized.slots.heroLead,
-      ctaLabel: normalized.slots.ctaLabel,
-      inscriptionMark: normalized.slots.inscriptionMark,
-      inscriptionNote: normalized.slots.inscriptionNote,
-    }
-    patchDraft({
-      ...draft,
-      landing: normalized,
-      publicCopy,
-    })
-  }
+  const heroImage = onHeroUpload ? (
+    <HeroImageField
+      canEdit={canEdit}
+      hasSlug={Boolean(draft.slug)}
+      previewUrl={heroPreviewUrl || draft.heroImageUrl}
+      t={t}
+      uploading={heroUploading}
+      onRemove={() => patchLanding({ ...landing, slots: { ...landing.slots, heroImagePath: '' } })}
+      onUpload={onHeroUpload}
+    />
+  ) : null
 
-  function patchTemplate(templateId) {
-    patchLanding({
-      ...landing,
-      templateId,
-    })
-  }
+  const inscription = (
+    <InscriptionFields
+      canEdit={canEdit}
+      draft={draft}
+      err={err}
+      patchDraft={patchDraft}
+      publicCapacityPreview={publicCapacityPreview}
+      t={t}
+    />
+  )
 
-  function patchTheme(themeId) {
-    patchLanding({
-      ...landing,
-      themeId,
-    })
-  }
-
-  function patchSlot(key, value) {
-    patchLanding({ ...landing, slots: { ...landing.slots, [key]: value } })
+  if (isBuilder) {
+    return (
+      <>
+        <BlocksEditor
+          blocks={landing.layout?.blocks ?? []}
+          canEdit={canEdit}
+          err={err}
+          getCurrentBlocks={currentBlocks}
+          hasSlug={Boolean(draft.slug)}
+          heroSlot={heroImage}
+          imageUploading={heroUploading}
+          landing={landing}
+          patchSlot={patchSlot}
+          revealToken={revealToken}
+          selectedId={selectedId}
+          t={t}
+          onChangeBlocks={applyBlocks}
+          onImageUpload={onImageUpload}
+          onSelectBlock={onSelectBlock}
+        />
+        <fieldset className="admin-event-form__landing-sections">
+          <legend>{t('admin.eventEditor.landingSectionInscriptionTitle')}</legend>
+          <p className="admin-event-form__section-note">
+            {t('admin.eventEditor.landingSectionInscriptionHint')}
+          </p>
+          <div className="admin-event-form__landing-details-body">{inscription}</div>
+        </fieldset>
+      </>
+    )
   }
 
   return (
-    <fieldset className="admin-event-form__landing">
-      <legend>
-        <LayoutTemplate size={13} aria-hidden />
-        {t('admin.eventEditor.landingLegend')}
-      </legend>
-      <p className="admin-event-form__section-note">{t('admin.eventEditor.landingHint')}</p>
-
-      <AdminFilterChipGroup
-        compact
-        disabled={!canEdit}
-        id="event-landing-template"
-        label={t('admin.eventEditor.landingTemplateLabel')}
-        value={landing.templateId}
-        onChange={patchTemplate}
-        options={[
-          ['meet', t('admin.eventEditor.landingTemplateMeet')],
-          ['editorial', t('admin.eventEditor.landingTemplateEditorial')],
-        ]}
-      />
-
-      <p className="admin-event-form__section-note">
-        {landing.templateId === 'editorial'
-          ? t('admin.eventEditor.landingTemplateEditorialHint')
-          : t('admin.eventEditor.landingTemplateMeetHint')}
-      </p>
-
-      <AdminFilterChipGroup
-        compact
-        disabled={!canEdit}
-        id="event-landing-theme"
-        label={t('admin.eventEditor.landingThemeLabel')}
-        value={landing.themeId}
-        onChange={patchTheme}
-        options={EVENT_LANDING_THEMES.map((themeId) => [
-          themeId,
-          t(`admin.eventEditor.landingTheme_${themeId.replace(/-/g, '_')}`),
-        ])}
-      />
-      <p className="admin-event-form__section-note">{t('admin.eventEditor.landingThemeHint')}</p>
-
-      <SlotFields
-        canEdit={canEdit}
-        err={err}
-        fields={HERO_FIELDS}
-        landing={landing}
-        patchSlot={patchSlot}
-        t={t}
-      />
-
-      {onHeroUpload ? (
-        <div className="admin-event-form__landing-hero">
-          <p className="admin-event-form__section-note">{t('admin.eventEditor.landingHeroHint')}</p>
-          {heroPreviewUrl || draft.heroImageUrl ? (
-            <div className="admin-event-form__landing-hero-preview">
-              <img
-                alt=""
-                height={180}
-                src={heroPreviewUrl || draft.heroImageUrl}
-                width={320}
-              />
-              <button
-                type="button"
-                className="admin-event-form__text-btn"
-                disabled={!canEdit || heroUploading}
-                onClick={() =>
-                  patchLanding({
-                    ...landing,
-                    slots: { ...landing.slots, heroImagePath: '' },
-                  })
-                }
-              >
-                {t('admin.eventEditor.landingHeroRemove')}
-              </button>
-            </div>
-          ) : null}
-          <label className="admin-event-form__file">
-            <span>{t('admin.eventEditor.landingHeroUpload')}</span>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              disabled={!canEdit || heroUploading || !draft.slug}
-              onChange={(event) => {
-                const file = event.target.files?.[0]
-                event.target.value = ''
-                if (file) onHeroUpload(file)
-              }}
-            />
-          </label>
-          {!draft.slug ? (
-            <p className="admin-event-form__section-note">{t('admin.eventEditor.landingHeroNeedsSlug')}</p>
-          ) : null}
-        </div>
-      ) : null}
-
-      {landing.templateId === 'editorial' ? (
-        <>
-          <p className="admin-event-form__section-note">{t('admin.eventEditor.landingEditorialSlotsHint')}</p>
-          <SlotFields
-            canEdit={canEdit}
-            err={err}
-            fields={EDITORIAL_FIELDS}
-            landing={landing}
-            patchSlot={patchSlot}
-            t={t}
-          />
-        </>
-      ) : null}
-
-      <p className="admin-event-form__section-note">{t('admin.eventEditor.landingSeoHint')}</p>
-      <SlotFields
-        canEdit={canEdit}
-        err={err}
-        fields={SEO_FIELDS}
-        landing={landing}
-        patchSlot={patchSlot}
-        t={t}
-      />
-
-      <p className="admin-event-form__section-note">{t('admin.eventEditor.landingFaqHint')}</p>
-      <SlotFields
-        canEdit={canEdit}
-        err={err}
-        fields={FAQ_FIELDS}
-        landing={landing}
-        patchSlot={patchSlot}
-        t={t}
-      />
-    </fieldset>
+    <SectionsList
+      canEdit={canEdit}
+      draft={draft}
+      err={err}
+      extras={{ hero: heroImage, inscription }}
+      hint={t(
+        hasCustomSections
+          ? 'admin.eventEditor.landingSectionsHintCustom'
+          : 'admin.eventEditor.landingSectionsHint',
+      )}
+      landing={landing}
+      patchDraft={patchDraft}
+      patchSlot={patchSlot}
+      sections={landingSectionsForEvent({
+        ...(sourceEvent ?? {}),
+        ...draft,
+        // El borrador manda: al elegir otra plantilla las secciones cambian antes de guardar.
+        landing: draft.landing ?? sourceEvent?.landing,
+        slug: draft.slug ?? sourceEvent?.slug,
+      })}
+      t={t}
+    />
   )
 }
 
-/** Asegura que un patch de publicCopy también actualice landing.slots hero. */
-export function patchDraftPublicCopy(draft, publicCopyPatch) {
-  const publicCopy = { ...(draft.publicCopy ?? {}), ...publicCopyPatch }
-  return {
-    ...draft,
-    publicCopy,
-    landing: syncLandingSlotsFromPublicCopy(draft.landing, publicCopy),
-  }
+/**
+ * Landing del evento dentro del editor: formato (plantilla, tema, colores),
+ * contenido (secciones fijas o bloques del Constructor) y SEO.
+ *
+ * Arriba de todo, la entrada al editor visual: la misma edición a pantalla
+ * completa, con la landing real al lado actualizándose mientras se edita.
+ *
+ * El copy de la portada y del cupo también vive en `publicCopy` por compat con la
+ * ficha, Pitbull y la inscripción; `useLandingDraft` los mantiene sincronizados.
+ * Este componente solo compone: cada pieza tiene su archivo en `./landing/`.
+ */
+export default function EventLandingSection(props) {
+  const { t, canEdit, draft, patchDraft, err, studioSave = null } = props
+  const landingDraft = useLandingDraft(draft, patchDraft)
+  const { landing, patchLanding, patchSlot, patchPalette, patchMotion } = landingDraft
+  // Recién guardado desde el editor visual: el editor se vuelve a armar y el
+  // visual se reabre solo (ver `landingStudioSession.js`).
+  const [studioOpen, setStudioOpen] = useState(() => shouldReopenLandingStudio(draft.id))
+
+  return (
+    <div className="admin-event-form__landing">
+      <div className="admin-landing-studio-entry">
+        <div>
+          <strong>{t('admin.eventEditor.landingStudioEntryTitle')}</strong>
+          <p>{t('admin.eventEditor.landingStudioEntryHint')}</p>
+        </div>
+        <button
+          type="button"
+          className="admin-landing-studio-entry__open"
+          onClick={() => setStudioOpen(true)}
+        >
+          <PanelsTopLeft size={15} aria-hidden />
+          {t('admin.eventEditor.landingStudioOpen')}
+        </button>
+      </div>
+
+      <LandingCopyFrom
+        t={t}
+        canEdit={canEdit}
+        events={props.landingSourceEvents}
+        currentEventId={draft.id ?? null}
+        landing={landing}
+        patchLanding={patchLanding}
+      />
+
+      <FormatFieldset
+        canEdit={canEdit}
+        landing={landing}
+        patchLanding={patchLanding}
+        patchMotion={patchMotion}
+        patchPalette={patchPalette}
+        t={t}
+      />
+
+      <LandingContentEditor {...props} landingDraft={landingDraft} />
+
+      <SeoFieldset canEdit={canEdit} err={err} landing={landing} patchSlot={patchSlot} t={t} />
+
+      {studioOpen ? (
+        <Suspense fallback={null}>
+          <LandingStudio {...props} save={studioSave} onClose={() => setStudioOpen(false)} />
+        </Suspense>
+      ) : null}
+    </div>
+  )
 }

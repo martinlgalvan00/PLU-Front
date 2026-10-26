@@ -128,6 +128,10 @@ function fillRequired({ title = 'Copa Primavera', start = '2027-03-12T10:00' } =
   })
   fireEvent.change(document.getElementById('quick-event-venue'), { target: { value: 'Club Central' } })
   fireEvent.change(document.getElementById('quick-event-location'), { target: { value: 'Rosario' } })
+  // El alta es guiada: "Crear evento" y la visibilidad viven en el último paso.
+  while (screen.queryByRole('button', { name: /^Siguiente/ })) {
+    fireEvent.click(screen.getByRole('button', { name: /^Siguiente/ }))
+  }
 }
 
 describe('alta de un evento: vuelve a la lista', () => {
@@ -136,6 +140,9 @@ describe('alta de un evento: vuelve a la lista', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo evento' }))
     fillRequired()
     fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
+    // La pantalla «Listo» dice si ya se puede vender; de ahí, a la lista.
+    await screen.findByRole('heading', { name: 'Copa Primavera' })
+    fireEvent.click(screen.getByRole('button', { name: 'Volver a eventos' }))
 
     const list = await screen.findByRole('list', { name: 'Evento' })
     const row = await within(list).findByTitle(/^Copa Primavera · /)

@@ -17,6 +17,7 @@ export default {
   args: {
     canEdit: true,
     onCancel: () => {},
+    onDone: () => {},
     onOpenFullEditor: () => {},
     onSubmit: async () => ({ event: { id: 'evt-nuevo' } }),
   },
@@ -54,5 +55,15 @@ export const Duplicando = {
       slots: 40,
       requiresMembership: false,
     },
+  },
+}
+
+/** El selector «Tipo de evento» precarga acceso, plantilla de landing e intención de venta. */
+export const ConTipoDeEvento = {
+  play: async ({ canvasElement }) => {
+    const chip = [...canvasElement.querySelectorAll('button')].find(
+      (button) => button.textContent?.trim() === 'Seminario / clínica',
+    )
+    chip?.click()
   },
 }

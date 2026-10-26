@@ -86,11 +86,12 @@ describe('avisos de perfil incompleto', () => {
       'city',
       'province',
       'gym',
-      'division',
       'category',
       'estimatedWeight',
     ])
     expect(isProfileComplete(completeAthlete).complete).toBe(true)
+    // La división se deduce de la fecha de nacimiento y se elige al inscribirse.
+    expect(isProfileComplete({ ...completeAthlete, division: '' }).complete).toBe(true)
     expect(isProfileComplete({ ...completeAthlete, phone: '  ' }).missing).toEqual(['phone'])
   })
 

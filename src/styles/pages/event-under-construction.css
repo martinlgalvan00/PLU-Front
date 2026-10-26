@@ -1,0 +1,194 @@
+/* Landing apagada: "Plataforma en construcción". Una sola columna a la izquierda,
+   sin cards: el nombre del evento, el aviso y una salida. */
+.event-under-construction {
+  /* La página es oscura salvo paleta propia del evento, que llega inline
+     (`landingPaletteStyle`) y pisa estos valores. Sin ellos, el texto
+     secundario y las reglas tomaban los del tema claro del sitio: gris oscuro
+     sobre fondo oscuro. */
+  --color-text-secondary: color-mix(in srgb, var(--color-text, #f6f7f8) 74%, transparent);
+  --color-border: color-mix(in srgb, var(--color-text, #f6f7f8) 16%, transparent);
+  --color-border-subtle: color-mix(in srgb, var(--color-text, #f6f7f8) 24%, transparent);
+  background: var(--color-bg, #0d0f12);
+  color: var(--color-text, #f6f7f8);
+  display: grid;
+  min-height: 100dvh;
+}
+
+/* Ver el comentario equivalente en event-builder-landing.css. */
+.app-shell main.event-under-construction.page.event-landing-theme {
+  background: var(--color-bg, #0d0f12);
+  color: var(--color-text, #f6f7f8);
+  padding: 0;
+}
+
+.event-under-construction__inner {
+  align-content: space-between;
+  display: grid;
+  gap: 48px;
+  margin: 0 auto;
+  max-width: 1180px;
+  padding: clamp(24px, 4vw, 52px) clamp(24px, 5vw, 72px) clamp(48px, 8vw, 112px);
+  width: 100%;
+}
+
+.event-under-construction__back {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary, inherit);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0;
+  width: fit-content;
+}
+
+.event-under-construction__back:hover {
+  color: var(--event-accent);
+}
+
+.event-under-construction__layout {
+  align-items: center;
+  display: grid;
+  gap: clamp(32px, 6vw, 72px);
+}
+
+@media (min-width: 900px) {
+  .event-under-construction__layout {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  }
+}
+
+.event-under-construction__body {
+  display: grid;
+  gap: 16px;
+  max-width: 44rem;
+}
+
+.event-under-construction__eyebrow {
+  align-items: center;
+  color: var(--event-accent);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 8px;
+  letter-spacing: 0.12em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.event-under-construction__event {
+  font-size: clamp(28px, 4.2vw, 46px);
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.event-under-construction__title {
+  font-size: clamp(22px, 3.2vw, 36px);
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.event-under-construction__lead {
+  color: var(--color-text-secondary, inherit);
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.event-under-construction__cta {
+  background: var(--event-action);
+  border: 0;
+  border-radius: 5px;
+  color: var(--event-action-text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  justify-self: start;
+  margin-top: 8px;
+  min-height: 46px;
+  padding: 0 22px;
+}
+
+.event-under-construction__cta:hover {
+  background: var(--event-action-hover);
+}
+
+/* Fecha y sede: solo viajan con la inscripción abierta o programada. Lista con
+   regla, sin cards. */
+.event-under-construction__facts {
+  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.14));
+  display: grid;
+  gap: 12px;
+  margin: 8px 0 0;
+  padding-top: 16px;
+}
+
+.event-under-construction__facts > div {
+  display: grid;
+  gap: 2px;
+}
+
+.event-under-construction__facts dt {
+  align-items: center;
+  color: var(--color-text-secondary, inherit);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 6px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.event-under-construction__facts dd {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.event-under-construction__registration {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 8px 0 0;
+  max-width: 52ch;
+}
+
+.event-under-construction__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}
+
+.event-under-construction__secondary {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary, inherit);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  margin-top: 8px;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.event-under-construction__secondary:hover {
+  color: var(--event-accent);
+}
+
+.event-under-construction__back:focus-visible,
+.event-under-construction__secondary:focus-visible,
+.event-under-construction__cta:focus-visible {
+  outline: 2px solid var(--event-accent);
+  outline-offset: 4px;
+}

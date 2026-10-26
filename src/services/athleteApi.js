@@ -178,7 +178,13 @@ function toCamelRegistrationEntry({ registration, event, checkIn, schedule }) {
     eventStartsAt: event?.starts_at ?? registration.event_starts_at ?? null,
     eventEndsAt: event?.ends_at ?? registration.event_ends_at ?? null,
     category: registration.category,
+    categories: [
+      registration.category,
+      ...(registration.additional_categories ?? registration.additionalCategories ?? []),
+    ].filter(Boolean),
     division: registration.division,
+    secondaryDivision: registration.secondary_division ?? registration.secondaryDivision ?? '',
+    modalities: registration.modalities ?? ['full_power'],
     bodyweight: registration.bodyweight_kg,
     declaredWeightClass:
       registration.declared_weight_class ?? registration.declaredWeightClass ?? '',
@@ -715,7 +721,10 @@ export async function createMembershipOrder(
 export async function createCompetitionRegistration({
   eventSlug,
   division,
+  secondaryDivision,
+  modalities,
   category,
+  categories,
   bodyweightKg,
   declaredWeightClass,
   paymentMethod,
@@ -726,7 +735,10 @@ export async function createCompetitionRegistration({
   const result = await apiPost('/api/athletes/me/registrations', {
     eventSlug,
     division,
+    secondaryDivision: secondaryDivision || undefined,
+    modalities: modalities?.length ? modalities : undefined,
     category,
+    categories: categories?.length ? categories : undefined,
     bodyweightKg,
     declaredWeightClass,
     paymentMethod,
@@ -765,12 +777,20 @@ export async function previewDiscountCode({
   planCode,
   eventSlug,
   paymentMethod,
+  secondaryDivision,
+  categories,
+  modalities,
 } = {}) {
   const result = await apiPost('/api/athletes/me/discount-preview', {
     code,
     appliesTo,
     planCode: planCode || undefined,
     eventSlug: eventSlug || undefined,
+    // La segunda división suma el 50% a la base sobre la que se cotiza el cupón.
+    secondaryDivision: secondaryDivision || undefined,
+    categories: categories?.length ? categories : undefined,
+    // Cada modalidad extra suma el 50%: sin ellas el cupón cotiza otro número.
+    modalities: modalities?.length ? modalities : undefined,
     // Sin el canal, el servidor calcula el ahorro sobre el precio de catálogo
     // y muestra un número distinto al que se cobra durante la ventana Pitbull.
     paymentMethod: paymentMethod || undefined,
@@ -920,7 +940,10 @@ export async function deferAthleteFinancedPayment(orderId) {
 export async function createCompetitionRegistrationCombo({
   eventSlug,
   division,
+  secondaryDivision,
+  modalities,
   category,
+  categories,
   bodyweightKg,
   declaredWeightClass,
   paymentMethod,
@@ -933,7 +956,10 @@ export async function createCompetitionRegistrationCombo({
   const result = await apiPost('/api/athletes/me/registration-combos', {
     eventSlug,
     division,
+    secondaryDivision: secondaryDivision || undefined,
+    modalities: modalities?.length ? modalities : undefined,
     category,
+    categories: categories?.length ? categories : undefined,
     bodyweightKg,
     declaredWeightClass,
     paymentMethod,

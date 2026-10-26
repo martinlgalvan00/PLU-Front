@@ -3361,7 +3361,10 @@
 
 /* ── PLU USA reference — hero + pricing cards ─ */
 
+/* Mismo criterio que `.page--plu-ref` (plu-page-hero.css): el hero y el
+   cuerpo traen su gutter y el de `.page` se sumaba encima. */
 .members-page--plu-ref.page {
+  padding-inline: 0;
   padding-top: 0;
 }
 

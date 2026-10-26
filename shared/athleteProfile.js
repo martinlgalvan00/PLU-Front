@@ -8,10 +8,12 @@ export const REQUIRED_FOR_REGISTRATION = [
   'city',
   'province',
   'gym',
-  'division',
   'category',
   'estimatedWeight',
 ]
+
+// `division` ya no se pide: se deduce de la fecha de nacimiento y se elige, junto
+// con Open, al inscribirse a cada torneo.
 
 export { REQUIRED_FOR_PROFILE_NOTICE, LIFTERS_FIELD_GROUPS } from './liftersExport.js'
 export {
@@ -29,7 +31,6 @@ export const PROFILE_FIELD_GROUPS = {
   email: 'contact',
   gym: 'sports',
   sex: 'sports',
-  division: 'competition',
   category: 'competition',
   estimatedWeight: 'competition',
   fullName: 'official',

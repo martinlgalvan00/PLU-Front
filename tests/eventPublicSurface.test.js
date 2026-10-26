@@ -5,6 +5,8 @@ import {
   eventShowsPublicCalendar,
   eventShowsPublicCategories,
   eventShowsPublicExperience,
+  eventShowsPublicRecentRegistrants,
+  eventShowsPublicSchedule,
   eventShowsPublicWeighIns,
   normalizeEventPublicSurface,
   publicSurfaceModulesForEvent,
@@ -23,9 +25,19 @@ describe('eventPublicSurface', () => {
   })
 
   it('lee los flags desde el evento mapeado', () => {
-    const event = { publicSurface: { calendar: false, weighIns: false, categories: true } }
+    const event = {
+      publicSurface: {
+        calendar: false,
+        weighIns: false,
+        schedule: false,
+        recentRegistrants: false,
+        categories: true,
+      },
+    }
     expect(eventShowsPublicCalendar(event)).toBe(false)
     expect(eventShowsPublicWeighIns(event)).toBe(false)
+    expect(eventShowsPublicSchedule(event)).toBe(false)
+    expect(eventShowsPublicRecentRegistrants(event)).toBe(false)
     expect(eventShowsPublicCategories(event)).toBe(true)
     expect(eventShowsPublicExperience(event)).toBe(true)
   })
@@ -36,6 +48,8 @@ describe('eventPublicSurface', () => {
     expect(publicSurfaceModulesForEvent(event).map((module) => module.key)).toEqual([
       'calendar',
       'weighIns',
+      'schedule',
+      'recentRegistrants',
       'livestream',
       'faq',
       'experience',
@@ -56,6 +70,8 @@ describe('eventPublicSurface', () => {
     expect(publicSurfaceModulesForEvent({ slug: 'winter-open-2026' }).map((module) => module.key)).toEqual([
       'calendar',
       'weighIns',
+      'schedule',
+      'recentRegistrants',
       'livestream',
       'faq',
     ])

@@ -129,8 +129,10 @@ describe('guardar el evento con cambio de estado y de Datos a la vez', () => {
     await screen.findByRole('region', { name: 'Evento seleccionado' })
 
     fireEvent.click(
+      // El estado de la inscripción se maneja desde el control de venta; el
+      // acceso sigue en Datos y se guarda con el "Guardar" del editor.
       [...document.querySelectorAll('.admin-event-state__option')].find((option) =>
-        /^cerrado$/i.test(option.textContent ?? ''),
+        /^sin afiliación$/i.test(option.textContent ?? ''),
       ),
     )
     const title = await waitFor(() => {
@@ -163,8 +165,10 @@ describe('guardar el evento con cambio de estado y de Datos a la vez', () => {
     await screen.findByRole('region', { name: 'Evento seleccionado' })
 
     fireEvent.click(
+      // El estado de la inscripción se maneja desde el control de venta; el
+      // acceso sigue en Datos y se guarda con el "Guardar" del editor.
       [...document.querySelectorAll('.admin-event-state__option')].find((option) =>
-        /^cerrado$/i.test(option.textContent ?? ''),
+        /^sin afiliación$/i.test(option.textContent ?? ''),
       ),
     )
     const title = await waitFor(() => {

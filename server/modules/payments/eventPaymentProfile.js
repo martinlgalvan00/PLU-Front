@@ -235,6 +235,44 @@ export function resolveCashPaymentDetails(eventRow = null) {
   }
 }
 
+export const CASH_PAYMENT_PLACE_REQUIRED_CODE = 'EVENT_CASH_PAYMENT_PLACE_REQUIRED'
+
+export const CASH_PAYMENT_PLACE_REQUIRED_MESSAGE =
+  'El efectivo está abierto para este evento pero no tiene dónde cobrarse: el evento no tiene sede cargada ni un lugar propio para el efectivo. Cargá el lugar en Ventas → Cobro, o cerrá el efectivo para este evento.'
+
+/**
+ * Si el evento personaliza canales y deja el efectivo abierto, el comprador
+ * tiene que saber a dónde ir: un lugar propio o, a falta de uno, la sede del
+ * evento. Mismo contrato que `checkEventBankTransferReady`: `null` si está
+ * todo bien o `{ code, message, field }`, y la ruta decide si bloquea (evento
+ * publicado) o avisa (evento oculto).
+ */
+export function checkEventCashPaymentReady({ overrides, cashPayment, event } = {}) {
+  const normalized = normalizePaymentChannelOverrides(overrides)
+  if (!normalized) return null
+  if (!isEventChannelOpenAnywhere(normalized, 'cash_pitbull')) return null
+
+  const { place } = resolveCashPaymentDetails({
+    venue: event?.venue,
+    location: event?.location,
+    cash_payment_place: normalizeCashPaymentInput(cashPayment).place,
+  })
+  if (place) return null
+  return {
+    code: CASH_PAYMENT_PLACE_REQUIRED_CODE,
+    message: CASH_PAYMENT_PLACE_REQUIRED_MESSAGE,
+    field: 'cashPayment.place',
+  }
+}
+
+/** El 400 de un lugar de efectivo faltante, con el campo que hay que completar. */
+export function cashPaymentIssueError(issue) {
+  return new HttpError(400, issue.message, {
+    code: issue.code,
+    fields: { [issue.field]: issue.message },
+  })
+}
+
 export const BANK_TRANSFER_ALIAS_REQUIRED_CODE ='EVENT_BANK_TRANSFER_ALIAS_REQUIRED'
 
 export const BANK_TRANSFER_ALIAS_REQUIRED_MESSAGE =

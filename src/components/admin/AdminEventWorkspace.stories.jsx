@@ -6,10 +6,13 @@ import '../../styles/pages/admin.css'
 import '../../styles/pages/admin-institutional.css'
 import '../../styles/pages/admin-minimal.css'
 import '../../styles/pages/admin-event-console.css'
+import { useState } from 'react'
 import { Save } from 'lucide-react'
 import Button from '../ui/Button.jsx'
+import AdminEventEditor from './AdminEventEditor.jsx'
 import AdminEventStructureEditor from './AdminEventStructureEditor.jsx'
 import AdminEventWorkspace from './AdminEventWorkspace.jsx'
+import { buildAdminEventDraft } from '../../services/eventAdminService.js'
 
 /**
  * La página del evento: seis pestañas planas con URL propia, en reemplazo de
@@ -153,8 +156,6 @@ const baseArgs = {
   onSelectChapter: () => {},
   onSelectSection: () => {},
   onSetEventState: async () => ({ event: EVENT, events: [EVENT] }),
-  onToggleOccupancy: () => {},
-  onTogglePublicModule: () => {},
   paymentSummary: '3 pendientes',
   paymentsAttention: 3,
   paymentsSection: <EditorStub label="Triage de pagos del meet" />,
@@ -289,3 +290,35 @@ export const Angosto = {
     ),
   ],
 }
+
+function SitioConEditorReal() {
+  const [draft, setDraft] = useState(() =>
+    buildAdminEventDraft({ ...EVENT, publicSurface: { recentRegistrants: false } }),
+  )
+  return (
+    <AdminEventWorkspace
+      {...baseArgs}
+      activeSection="visibility"
+      previewDraft={draft}
+      editor={
+        <AdminEventEditor
+          accordion
+          embedded
+          canEdit
+          draft={draft}
+          forcedTab="visibility"
+          sourceEvent={EVENT}
+          onCancel={() => {}}
+          onChange={setDraft}
+          onSubmit={async () => ({ event: EVENT })}
+        />
+      }
+    />
+  )
+}
+
+/**
+ * Sitio con el editor real: cada sección de la landing con su interruptor y
+ * sus textos juntos, y la vista previa a la derecha.
+ */
+export const SitioPorSecciones = { render: () => <SitioConEditorReal /> }

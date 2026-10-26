@@ -99,6 +99,12 @@ export default async function globalSetup() {
       country: 'Argentina',
       province: 'Buenos Aires',
       city: 'CABA',
+      // Completo también para la planilla oficial (dirección y emergencia),
+      // que es lo que mira el aviso de perfil del panel.
+      street_address: 'Av. Siempreviva 742',
+      postal_code: '1405',
+      emergency_contact_name: 'Contacto E2E',
+      emergency_contact_phone: '+5491100000001',
       // Perfil competitivo precargado: el checkout de competencia no exige
       // llenar división/categoría/peso si el atleta ya los trae.
       division: 'Open',
@@ -358,7 +364,15 @@ export default async function globalSetup() {
       event_id: ticketEvent.id,
       day_index: 0,
       label: 'Jornada E2E',
-      date: startsAt.slice(0, 10),
+      // Hoy en Argentina, no la fecha del evento (+30 días): cada entrada
+      // congela su vigencia con las jornadas de su tipo al emitirse
+      // (`set_ticket_validity_snapshot`) y la puerta y la verificación pública
+      // solo habilitan dentro de esa ventana. Con la jornada a un mes, todo QR
+      // de la suite era "todavía no vigente". La venta tiene su propia ventana
+      // (ticket_sales_*), así que esto no la cierra.
+      date: new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(
+        new Date(),
+      ),
     })
     .select('id')
     .single()

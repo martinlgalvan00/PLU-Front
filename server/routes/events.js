@@ -1,8 +1,16 @@
 import { Router } from 'express'
 import { z } from 'zod'
+import { withLandingBlockImageUrls } from '../../src/lib/eventLandingLayout.js'
+import { buildLandingLayoutSchema } from '../../src/lib/schemas/landingLayoutSchema.js'
 import { HttpError } from '../lib/errors.js'
 import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
 import { assertEventAccess } from '../lib/eventScope.js'
+import { saveEventLanding } from '../modules/events/eventLandingStore.js'
+import {
+  assertEventPaymentsReadyToPublish,
+  readRegistrationWindow,
+  saveRegistrationWindow,
+} from '../modules/events/eventRegistrationSaleStore.js'
 import {
   applyOrganizerUpsertPolicy,
   filterEventsForScope,
@@ -11,14 +19,27 @@ import { logger } from '../lib/logger.js'
 import { EVENT_LOGO_BUCKET, EVENT_MEDIA_BUCKET, PROOF_BUCKET } from '../lib/supabaseAdmin.js'
 import {
   assertSupabaseResult,
+  isMissingRelation as esRelacionFaltante,
   isMissingSchemaColumn,
   requireSupabaseClient,
 } from '../lib/supabaseRpc.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import { publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
-import { sanitizePublicCatalogEvent } from '../services/publicEventCatalogService.js'
+import { publicCatalogEventFor } from '../services/publicEventCatalogService.js'
 import { buildTicketCredentialsPayload } from '../../src/lib/ticketCredentials.js'
+import {
+  EVENT_OFFERING_CATEGORIES,
+  EVENT_OFFERING_DIVISIONS,
+  EVENT_OFFERING_MODALITIES,
+  normalizeEventOffering,
+  offeringForStorage,
+} from '../../shared/eventOffering.js'
+import {
+  EXTERNAL_FORM_LABEL_MAX,
+  EXTERNAL_FORM_URL_MAX,
+  normalizeExternalFormUrl,
+} from '../../src/lib/eventExternalForm.js'
 import { resolveTicketTypeChannels } from '../../src/lib/ticketTypePaymentChannels.js'
 import {
   MAX_TICKET_QR_VALIDITY_MINUTES,
@@ -30,6 +51,8 @@ import {
 import {
   bankTransferIssueError,
   checkEventBankTransferReady,
+  checkEventCashPaymentReady,
+  cashPaymentIssueError,
   normalizeBankTransferInput,
   normalizeCashPaymentInput,
   normalizePaymentChannelOverrides,
@@ -425,10 +448,15 @@ export const eventSchema = z
       .object({
         calendar: z.boolean().optional(),
         weighIns: z.boolean().optional(),
+        schedule: z.boolean().optional(),
+        recentRegistrants: z.boolean().optional(),
         livestream: z.boolean().optional(),
         experience: z.boolean().optional(),
         categories: z.boolean().optional(),
         location: z.boolean().optional(),
+        faq: z.boolean().optional(),
+        tickets: z.boolean().optional(),
+        countdown: z.boolean().optional(),
       })
       .optional(),
     // Copy del hero público. Techos espejo de la RPC de merge y del esquema
@@ -445,10 +473,13 @@ export const eventSchema = z
     // Plantilla + slots de landing. Merge aparte: el upsert reconstruye rules.
     landing: z
       .object({
-        templateId: z.enum(['meet', 'editorial']).optional(),
+        templateId: z.enum(['meet', 'editorial', 'submission', 'builder']).optional(),
         themeId: z
           .enum(['plu-default', 'night-steel', 'ember', 'clean-light'])
           .optional(),
+        publicVisible: z.boolean().optional(),
+        phase: z.enum(['coming_soon', 'published']).optional(),
+        layout: buildLandingLayoutSchema(z).optional(),
         slots: z
           .object({
             heroTitle: z.string().trim().max(120).optional(),
@@ -519,6 +550,32 @@ export const eventSchema = z
       .object({
         place: z.string().trim().max(160).optional(),
         notes: z.string().trim().max(400).optional(),
+      })
+      .nullable()
+      .optional(),
+    // Qué ofrece el evento. Listas ausentes = ofrece todo (ver shared/eventOffering.js).
+    offering: z
+      .object({
+        categories: z.array(z.enum(EVENT_OFFERING_CATEGORIES)).max(10).optional(),
+        divisions: z.array(z.enum(EVENT_OFFERING_DIVISIONS)).max(10).optional(),
+        modalities: z.array(z.enum(EVENT_OFFERING_MODALITIES)).max(10).optional(),
+      })
+      .nullable()
+      .optional(),
+    // Google Form del evento. Vacío = sin formulario. Solo https y dominios de
+    // Google Forms: termina en un link público y en un QR impreso.
+    externalForm: z
+      .object({
+        url: z
+          .string()
+          .trim()
+          .max(EXTERNAL_FORM_URL_MAX)
+          .refine(
+            (value) => normalizeExternalFormUrl(value).ok,
+            'El formulario debe ser un link https de Google Forms.',
+          )
+          .optional(),
+        label: z.string().trim().max(EXTERNAL_FORM_LABEL_MAX).optional(),
       })
       .nullable()
       .optional(),
@@ -657,6 +714,13 @@ export const eventSchema = z
  * pero mandar el body vacío no tiene sentido y se rechaza acá en vez de gastar
  * un viaje a la base.
  */
+const nullableWindowDateTime = z
+  .string()
+  .trim()
+  .refine((value) => !Number.isNaN(Date.parse(value)), 'Fecha y hora inválidas.')
+  .nullable()
+  .optional()
+
 const eventStateSchema = z
   .object({
     status: z.enum(EVENT_STATUSES).optional(),
@@ -668,14 +732,30 @@ const eventStateSchema = z
     // Mostrar/ocultar la ocupación pública (contador y barra) sin reescribir
     // el evento: misma clase de decisión operativa que los dos de arriba.
     capacityProgressPublic: z.boolean().optional(),
+    // Ventana de inscripción desde el control de venta ("Abrir ahora",
+    // "Programar apertura"): ISO para fijarla, null para borrarla.
+    registrationOpensAt: nullableWindowDateTime,
+    registrationClosesAt: nullableWindowDateTime,
   })
   .refine(
     (body) =>
       body.status !== undefined ||
       body.published !== undefined ||
       body.requiresMembership !== undefined ||
-      body.capacityProgressPublic !== undefined,
+      body.capacityProgressPublic !== undefined ||
+      body.registrationOpensAt !== undefined ||
+      body.registrationClosesAt !== undefined,
     'No hay ningún cambio para aplicar.',
+  )
+  .refine(
+    (body) =>
+      !body.registrationOpensAt ||
+      !body.registrationClosesAt ||
+      new Date(body.registrationClosesAt) >= new Date(body.registrationOpensAt),
+    {
+      message: 'El cierre de la inscripción tiene que ser posterior a la apertura.',
+      path: ['registrationClosesAt'],
+    },
   )
 
 /** Tandas de un evento: el grupo con el que un atleta entra a plataforma. */
@@ -837,16 +917,58 @@ const EVENT_SELECT_SIN_CREDENCIALES = EVENT_SELECT.replace(
 )
 
 /**
- * PostgREST cuando no encuentra algo en el schema cache: PGRST200 es una tabla
- * o su relación, PGRST202 una función. Los dos casos son "la migración no
- * corrió acá todavía", no "el pedido estaba mal".
+ * Compatibilidad para los dos módulos agregados después de la RPC original.
+ * La migración actualiza `staff_merge_event_public_surface`, pero la escritura
+ * directa asegura que una API nueva pueda guardar el switch aun si el schema
+ * remoto todavía conserva la versión anterior de esa función.
  */
-function esRelacionFaltante(error) {
-  return (
-    error?.code === 'PGRST200' ||
-    error?.code === 'PGRST202' ||
-    /schema cache/i.test(error?.message ?? '')
+async function mergePublicSurfaceMaterialsCompat(client, { slug, surface }) {
+  const reader = client.from('events').select('rules').eq('slug', slug)
+  // Un adaptador sin `maybeSingle` no puede hacer el respaldo directo (ver eventLandingStore.js).
+  if (typeof reader?.maybeSingle !== 'function') return
+  const current = assertSupabaseResult(
+    await client.from('events').select('rules').eq('slug', slug).maybeSingle(),
+    'No se pudo leer la superficie pública del evento.',
   )
+  if (!current) throw new HttpError(404, 'El evento no existe.')
+
+  const rules = current.rules && typeof current.rules === 'object' ? current.rules : {}
+  const publicSurface =
+    rules.publicSurface && typeof rules.publicSurface === 'object' ? rules.publicSurface : {}
+  assertSupabaseResult(
+    await client
+      .from('events')
+      .update({
+        rules: {
+          ...rules,
+          publicSurface: {
+            ...publicSurface,
+            ...surface,
+          },
+        },
+      })
+      .eq('slug', slug),
+    'No se pudo guardar la superficie pública del evento.',
+  )
+}
+
+async function readPublicMaterialVisibility(client, slug) {
+  const reader = client.from('events').select('published, rules').eq('slug', slug)
+  if (typeof reader?.maybeSingle !== 'function') {
+    // El adaptador de lectura no expone reglas por evento. Conservamos la
+    // superficie pÃºblica histÃ³rica en vez de dejar las rutas en error.
+    return { published: true, schedule: true, recentRegistrants: true }
+  }
+  const event = assertSupabaseResult(
+    await client.from('events').select('published, rules').eq('slug', slug).maybeSingle(),
+    'No se pudo leer la visibilidad pública del evento.',
+  )
+  const surface = event?.rules?.publicSurface
+  return {
+    published: event?.published === true,
+    schedule: surface?.schedule !== false,
+    recentRegistrants: surface?.recentRegistrants !== false,
+  }
 }
 
 /** Ruta de Storage del logo -> URL pública estable del bucket. */
@@ -867,6 +989,13 @@ function withLogoUrls(client, rows) {
     const heroPath = row?.rules?.landing?.slots?.heroImagePath ?? null
     return {
       ...row,
+      ...(row?.rules
+        ? {
+            rules: withLandingBlockImageUrls(row.rules, (path) =>
+              eventHeroImagePublicUrl(client, path),
+            ),
+          }
+        : {}),
       logo_url: eventLogoPublicUrl(client, row.logo_path),
       hero_image_url: eventHeroImagePublicUrl(client, heroPath),
     }
@@ -1025,7 +1154,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       // visible por stale-while-revalidate despues de apagarla o borrarla.
       res.set('Cache-Control', 'no-store')
       res.json({
-        events: Array.isArray(events) ? events.map((row) => sanitizePublicCatalogEvent(row)) : [],
+        events: Array.isArray(events) ? events.map((row) => publicCatalogEventFor(row)) : [],
       })
     } catch (error) {
       next(error)
@@ -1041,6 +1170,12 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
     try {
       const slug = parseEventSlug(req.params.eventSlug)
       const client = requireSupabaseClient(getSupabaseAdmin())
+      const visibility = await readPublicMaterialVisibility(client, slug)
+      if (!visibility.published || !visibility.schedule) {
+        res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.LIVE, { staleFor: 0 }))
+        res.json({ schedule: { enabled: false, platforms: [], days: [] } })
+        return
+      }
       const schedule = assertSupabaseResult(
         await client.rpc('public_event_schedule', { p_event_slug: slug }),
         'No se pudo consultar la grilla del evento.',
@@ -1059,6 +1194,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       const slug = parseEventSlug(req.params.eventSlug)
 
       const client = requireSupabaseClient(getSupabaseAdmin())
+      const visibility = await readPublicMaterialVisibility(client, slug)
       const summary = assertSupabaseResult(
         await client.rpc('get_event_registration_capacity', { p_event_slug: slug }),
         'No se pudo consultar el cupo de inscripción.',
@@ -1066,7 +1202,10 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       // El hook de cupo la pide cada 30 s por visitante (`LIVE_REGISTRATION_POLL_MS`):
       // en una difusión son cientos de invocaciones por minuto contra el mismo número.
       res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.LIVE))
-      res.json({ summary: attachRecentRegistrationPortraits(summary) })
+      const sanitized = attachRecentRegistrationPortraits(summary)
+      res.json({
+        summary: visibility.recentRegistrants ? sanitized : { ...sanitized, recent: [] },
+      })
     } catch (error) {
       next(error)
     }
@@ -1170,6 +1309,23 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           })
         }
 
+        const cashPaymentIssue = checkEventCashPaymentReady({
+          overrides: paymentChannelOverrides,
+          cashPayment: req.validatedBody.cashPayment,
+          event: {
+            venue: req.validatedBody.venue,
+            location: req.validatedBody.location,
+          },
+        })
+        if (cashPaymentIssue) {
+          if (req.validatedBody.published === true) throw cashPaymentIssueError(cashPaymentIssue)
+          warnings.push({
+            code: cashPaymentIssue.code,
+            message: cashPaymentIssue.message,
+            field: cashPaymentIssue.field,
+          })
+        }
+
         // Un tipo de entrada sólo puede cerrar debajo del evento. Que no le
         // quede ninguno abierto —porque cerró los últimos, o porque el evento
         // cerró después el único que tenía— es una entrada que no se puede
@@ -1234,10 +1390,15 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
         const publicSurface = {
           calendar: pEvent.publicSurface?.calendar !== false,
           weighIns: pEvent.publicSurface?.weighIns !== false,
+          schedule: pEvent.publicSurface?.schedule !== false,
+          recentRegistrants: pEvent.publicSurface?.recentRegistrants !== false,
           livestream: pEvent.publicSurface?.livestream !== false,
           experience: pEvent.publicSurface?.experience !== false,
           categories: pEvent.publicSurface?.categories !== false,
           location: pEvent.publicSurface?.location !== false,
+          faq: pEvent.publicSurface?.faq !== false,
+          tickets: pEvent.publicSurface?.tickets !== false,
+          countdown: pEvent.publicSurface?.countdown !== false,
         }
         assertSupabaseResult(
           await client.rpc('staff_merge_event_public_surface', {
@@ -1246,6 +1407,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           }),
           'No se pudo guardar la superficie pública del evento.',
         )
+        await mergePublicSurfaceMaterialsCompat(client, { slug: pEvent.slug, surface: publicSurface })
 
         // Mismo motivo que la superficie: `staff_upsert_event` reconstruye
         // `rules` clave por clave, así que el copy va en su propio merge.
@@ -1263,57 +1425,9 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           'No se pudo guardar el copy público del evento.',
         )
 
-        // Plantilla + slots: mismo motivo que publicCopy (el upsert reconstruye rules).
-        // Si la RPC aún no está en la base, el evento se guarda igual y avisamos.
-        {
-          const landingSlots = pEvent.landing?.slots ?? {}
-          const landingMerge = await client.rpc('staff_merge_event_landing', {
-            p_slug: pEvent.slug,
-            p_landing: {
-              templateId: pEvent.landing?.templateId === 'editorial' ? 'editorial' : 'meet',
-              themeId: ['plu-default', 'night-steel', 'ember', 'clean-light'].includes(
-                pEvent.landing?.themeId,
-              )
-                ? pEvent.landing.themeId
-                : 'plu-default',
-              slots: {
-                heroTitle:
-                  landingSlots.heroTitle ?? pEvent.publicCopy?.publicTitle ?? '',
-                heroLead: landingSlots.heroLead ?? pEvent.publicCopy?.heroLead ?? '',
-                ctaLabel: landingSlots.ctaLabel ?? pEvent.publicCopy?.ctaLabel ?? '',
-                inscriptionMark:
-                  landingSlots.inscriptionMark ?? pEvent.publicCopy?.inscriptionMark ?? '',
-                inscriptionNote:
-                  landingSlots.inscriptionNote ?? pEvent.publicCopy?.inscriptionNote ?? '',
-                experienceTitle: landingSlots.experienceTitle ?? '',
-                experienceBody: landingSlots.experienceBody ?? '',
-                categoriesTitle: landingSlots.categoriesTitle ?? '',
-                categoriesBody: landingSlots.categoriesBody ?? '',
-                locationTitle: landingSlots.locationTitle ?? '',
-                locationBody: landingSlots.locationBody ?? '',
-                heroImagePath: landingSlots.heroImagePath ?? '',
-                metaTitle: landingSlots.metaTitle ?? '',
-                metaDescription: landingSlots.metaDescription ?? '',
-                faq1Question: landingSlots.faq1Question ?? '',
-                faq1Answer: landingSlots.faq1Answer ?? '',
-                faq2Question: landingSlots.faq2Question ?? '',
-                faq2Answer: landingSlots.faq2Answer ?? '',
-                faq3Question: landingSlots.faq3Question ?? '',
-                faq3Answer: landingSlots.faq3Answer ?? '',
-              },
-            },
-          })
-          if (landingMerge.error && esRelacionFaltante(landingMerge.error)) {
-            console.warn(
-              '[eventos] `staff_merge_event_landing` no existe en esta base: el evento se guardó sin la plantilla de landing. Aplicá las migraciones 20261219100000_event_landing.sql y 20261220100000_event_landing_faq_seo.sql.',
-            )
-          } else {
-            assertSupabaseResult(
-              landingMerge,
-              'No se pudo guardar la landing del evento.',
-            )
-          }
-        }
+        // Plantilla, slots, estado y layout de la landing: el upsert reconstruye
+        // `rules`, así que se persisten aparte (ver eventLandingStore).
+        await saveEventLanding(client, pEvent)
 
         // Misma razón: el upsert no escribe columnas nuevas. El total público
         // viaja aparte para no redefinir staff_upsert_event.
@@ -1385,6 +1499,60 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             }
           } else {
             assertSupabaseResult(cashMerge, 'No se pudo guardar el lugar del efectivo.')
+          }
+        }
+
+        // Qué ofrece el evento (categorías, divisiones, modalidades): mismo
+        // patrón. Solo viajan las listas que restringen algo; `{}` = todo.
+        if (req.validatedBody.offering !== undefined) {
+          const offeringForRpc = offeringForStorage(
+            normalizeEventOffering(req.validatedBody.offering ?? {}),
+          )
+          const offeringMerge = await client.rpc('staff_merge_event_offering', {
+            p_slug: pEvent.slug,
+            p_offering: offeringForRpc,
+          })
+          if (offeringMerge.error && esRelacionFaltante(offeringMerge.error)) {
+            console.warn(
+              '[eventos] `staff_merge_event_offering` no existe en esta base: el evento se guardó sin su oferta. Aplicá la migración 20261228130000_event_offering.sql.',
+            )
+            if (Object.keys(offeringForRpc).length > 0) {
+              warnings.push({
+                code: 'EVENT_OFFERING_NOT_SAVED',
+                message:
+                  'El evento se guardó, pero lo que ofrece todavía no: falta aplicar una migración en la base. Mientras tanto se ofrece todo.',
+                field: 'offering',
+              })
+            }
+          } else {
+            assertSupabaseResult(offeringMerge, 'No se pudo guardar lo que ofrece el evento.')
+          }
+        }
+
+        // Formulario de Google del evento: mismo patrón. Sin la migración el
+        // evento se guarda igual y, si alguien cargó un link, se avisa.
+        if (req.validatedBody.externalForm !== undefined) {
+          const externalForm = req.validatedBody.externalForm ?? {}
+          const formUrl = externalForm.url ?? ''
+          const formMerge = await client.rpc('staff_merge_event_external_form', {
+            p_slug: pEvent.slug,
+            p_url: formUrl,
+            p_label: formUrl ? (externalForm.label ?? '') : '',
+          })
+          if (formMerge.error && esRelacionFaltante(formMerge.error)) {
+            console.warn(
+              '[eventos] `staff_merge_event_external_form` no existe en esta base: el evento se guardó sin el formulario. Aplicá la migración 20261228120000_event_external_form.sql.',
+            )
+            if (formUrl) {
+              warnings.push({
+                code: 'EVENT_EXTERNAL_FORM_NOT_SAVED',
+                message:
+                  'El evento se guardó, pero el formulario todavía no: falta aplicar una migración en la base.',
+                field: 'externalForm.url',
+              })
+            }
+          } else {
+            assertSupabaseResult(formMerge, 'No se pudo guardar el formulario del evento.')
           }
         }
 
@@ -1540,25 +1708,65 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       try {
         const slug = parseEventSlug(req.params.eventSlug)
         const client = requireSupabaseClient(getSupabaseAdmin())
-        const result = assertSupabaseResult(
-          await client.rpc('staff_set_event_state', {
-            p_event_slug: slug,
-            p_status: req.validatedBody.status ?? null,
-            p_published: req.validatedBody.published ?? null,
-            p_requires_membership: req.validatedBody.requiresMembership ?? null,
-            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
-            p_capacity_progress_public: req.validatedBody.capacityProgressPublic ?? null,
-          }),
-          'No se pudo cambiar el estado del evento.',
-        )
+        const body = req.validatedBody
+        const actor = `${req.auth.user.id}:${req.auth.user.email}`
+
+        // Publicar desde acá exige lo mismo que el guardado del editor.
+        if (body.published === true) await assertEventPaymentsReadyToPublish(client, slug)
+
+        // La ventana va antes que el estado: "Abrir ahora" borra una apertura
+        // pendiente y recién después pasa el estado a abierta. Son dos llamadas
+        // sin transacción común: si la segunda falla, se repone la ventana
+        // anterior para no dejar el evento a medio cambiar.
+        const saleWindow = {
+          registrationOpensAt: body.registrationOpensAt,
+          registrationClosesAt: body.registrationClosesAt,
+        }
+        const touchesWindow =
+          saleWindow.registrationOpensAt !== undefined ||
+          saleWindow.registrationClosesAt !== undefined
+        const stateChanges =
+          body.status !== undefined ||
+          body.published !== undefined ||
+          body.requiresMembership !== undefined ||
+          body.capacityProgressPublic !== undefined
+        const previousWindow =
+          touchesWindow && stateChanges ? await readRegistrationWindow(client, slug) : null
+        const windowSaved = await saveRegistrationWindow(client, slug, saleWindow, actor)
+
+        let result = null
+        if (stateChanges) {
+          try {
+            result = assertSupabaseResult(
+              await client.rpc('staff_set_event_state', {
+                p_event_slug: slug,
+                p_status: body.status ?? null,
+                p_published: body.published ?? null,
+                p_requires_membership: body.requiresMembership ?? null,
+                p_actor: actor,
+                p_capacity_progress_public: body.capacityProgressPublic ?? null,
+              }),
+              'No se pudo cambiar el estado del evento.',
+            )
+          } catch (error) {
+            if (previousWindow && windowSaved) {
+              await saveRegistrationWindow(client, slug, previousWindow, actor).catch((rollbackError) =>
+                logger.warn('event.registration_window_rollback_failed', { slug, err: rollbackError }),
+              )
+            }
+            throw error
+          }
+        }
 
         const events = await readEvents(client)
-        const event = events.find((candidate) => candidate.id === result.event?.id)
+        const event = events.find((candidate) =>
+          result ? candidate.id === result.event?.id : windowSaved && candidate.slug === slug,
+        )
         if (!event) {
           throw new HttpError(503, 'El estado se guardó, pero no se pudo volver a leer.')
         }
 
-        res.json({ event, events, statusOverridden: result.statusOverridden === true })
+        res.json({ event, events, statusOverridden: result?.statusOverridden === true })
       } catch (error) {
         next(error)
       }

@@ -12,7 +12,7 @@
 }
 
 .admin-staff-applications__header {
-  align-items: flex-end;
+  align-items: flex-start;
   border-bottom: 1px solid var(--admin-hairline);
   display: flex;
   flex-wrap: wrap;
@@ -28,13 +28,130 @@
   letter-spacing: -0.025em;
   line-height: 1.1;
   margin: 0;
-  padding-bottom: 14px;
+  padding: 0;
+}
+
+.admin-staff-applications__title {
+  display: grid;
+  gap: 6px;
+  padding: 4px 0 14px;
+}
+
+.admin-staff-applications__title p {
+  color: var(--admin-muted);
+  font-size: 13px;
+  margin: 0;
 }
 
 .admin-staff-applications__filters {
   display: flex;
   flex-wrap: wrap;
   gap: 4px clamp(16px, 3vw, 28px);
+}
+
+.admin-staff-applications__share {
+  align-items: center;
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 86px minmax(0, 1fr);
+  max-width: 520px;
+  padding: 10px;
+}
+
+.admin-staff-applications__share-code {
+  align-items: center;
+  background: #fff;
+  border-radius: 4px;
+  color: #131416;
+  display: flex;
+  height: 86px;
+  justify-content: center;
+  overflow: hidden;
+  width: 86px;
+}
+
+.admin-staff-applications__share-code img {
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
+}
+
+.admin-staff-applications__share-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-staff-applications__share-copy > span {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.admin-staff-applications__share-copy strong {
+  color: var(--admin-ink);
+  font-size: 14px;
+}
+
+.admin-staff-applications__share-copy > a {
+  align-items: center;
+  color: var(--admin-muted);
+  display: flex;
+  font-size: 12px;
+  gap: 5px;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.admin-staff-applications__share-copy > a span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-staff-applications__share-copy > a:hover {
+  color: var(--admin-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-staff-applications__share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.admin-staff-applications__share-actions button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 5px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 9px;
+}
+
+.admin-staff-applications__share-actions button:hover:not(:disabled) {
+  background: var(--admin-row-hover);
+  border-color: var(--admin-ink);
+}
+
+.admin-staff-applications__share-actions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
 }
 
 .admin-staff-applications__filters button {
@@ -70,6 +187,12 @@
 .admin-staff-applications__reject textarea:focus-visible,
 .admin-staff-applications__doc-link:focus-visible,
 .admin-staff-applications__whatsapp:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-staff-applications__share-copy > a:focus-visible,
+.admin-staff-applications__share-actions button:focus-visible {
   outline: 2px solid var(--admin-focus);
   outline-offset: 2px;
 }
@@ -264,5 +387,19 @@
   .admin-staff-applications__actions button,
   .admin-staff-applications__reject button {
     min-height: 44px;
+  }
+}
+
+@media (max-width: 620px) {
+  .admin-staff-applications__header {
+    display: grid;
+  }
+
+  .admin-staff-applications__share {
+    max-width: none;
+  }
+
+  .admin-staff-applications__share-actions button {
+    min-height: 40px;
   }
 }

@@ -90,8 +90,8 @@ describe('EventsSection — la página del evento', () => {
     expect(within(panel).queryByRole('button', { name: 'Editar evento' })).toBeNull()
 
     const rail = within(panel).getByRole('tablist', { name: /secciones del evento/i })
-    expect(within(rail).getByRole('tab', { name: /datos/i })).toBeTruthy()
-    expect(within(rail).getByRole('tab', { name: /^ventas/i })).toBeTruthy()
+    expect(within(rail).getByRole('tab', { name: /^evento$/i })).toBeTruthy()
+    expect(within(rail).getByRole('tab', { name: /^venta$/i })).toBeTruthy()
   })
 
   it('cambia de evento tocando otra fila desde la lista', () => {
@@ -132,6 +132,25 @@ describe('EventsSection — la página del evento', () => {
     expect(screen.getByRole('region', { name: 'Evento seleccionado' })).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: /volver a la lista de eventos/i }))
+    expect(screen.queryByRole('region', { name: 'Evento seleccionado' })).toBeNull()
+  })
+
+  it('Volver con cambios sin guardar pide confirmación en vez de descartarlos', () => {
+    renderEvents({ adminEvents: [EVENT] })
+    const panel = openConsole(/Pitbull Classic · pitbull-classic-2026/)
+    const title = within(panel).getAllByRole('textbox').find((input) => input.value === 'Pitbull Classic')
+    fireEvent.change(title, { target: { value: 'Pitbull Classic 2026' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /volver a la lista de eventos/i }))
+    expect(screen.getByRole('region', { name: 'Evento seleccionado' })).toBeTruthy()
+    expect(screen.getByText('¿Descartar los cambios?')).toBeTruthy()
+
+    // Seguir editando cancela la salida: el cambio sigue ahí.
+    fireEvent.click(screen.getByRole('button', { name: 'Seguir editando' }))
+    expect(title.value).toBe('Pitbull Classic 2026')
+
+    fireEvent.click(screen.getByRole('button', { name: /volver a la lista de eventos/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Descartar y cerrar' }))
     expect(screen.queryByRole('region', { name: 'Evento seleccionado' })).toBeNull()
   })
 })
@@ -241,7 +260,7 @@ describe('EventsSection — secciones y evento principal', () => {
 
   it('no ofrece fijar sin permiso de edición', () => {
     renderEvents({ adminEvents: [EVENT], canEdit: false })
-    expect(screen.queryByRole('button', { name: /evento principal/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /destacar como evento principal/i })).toBeNull()
   })
 
   it('Resumen vuelve al resumen desde una pestaña que no es del editor', () => {
@@ -270,7 +289,7 @@ describe('EventsSection — precios y logo en la ficha', () => {
     const panel = openConsole(/Pitbull Classic · pitbull-classic-2026/)
     const rail = within(panel).getByRole('tablist', { name: /secciones del evento/i })
 
-    fireEvent.click(within(rail).getByRole('tab', { name: /^ventas/i }))
+    fireEvent.click(within(rail).getByRole('tab', { name: /^venta$/i }))
     const prices = [...panel.querySelectorAll('.admin-event-workspace__chapter')].find((button) =>
       /Precios/.test(button.textContent),
     )
@@ -309,5 +328,43 @@ describe('EventsSection — precios y logo en la ficha', () => {
         removeBackground: true,
       }),
     )
+  })
+})
+
+describe('EventsSection - preview de Competencia', () => {
+  it('anticipa el orden publico y permite abrir cada evento', () => {
+    const featured = {
+      ...EVENT,
+      id: 'evt-featured',
+      slug: 'nacional-2026',
+      title: 'Nacional',
+      featured: true,
+      dateISO: '2027-12-20',
+    }
+    const next = {
+      ...EVENT,
+      id: 'evt-next',
+      slug: 'regional-2026',
+      title: 'Regional',
+      featured: false,
+      dateISO: '2027-07-12',
+    }
+    const later = {
+      ...EVENT,
+      id: 'evt-later',
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic',
+      featured: false,
+      dateISO: '2027-08-15',
+    }
+    renderEvents({ adminEvents: [featured, later, next] })
+
+    const preview = screen.getByRole('region', { name: /eventos visibles en competencia/i })
+    expect(preview.textContent).toMatch(/Nacional/)
+    expect(preview.textContent).toMatch(/Regional/)
+    expect(preview.textContent).not.toMatch(/Pitbull Classic/)
+
+    fireEvent.click(within(preview).getByRole('button', { name: /regional/i }))
+    expect(screen.getByRole('region', { name: 'Evento seleccionado' }).textContent).toMatch(/Regional/)
   })
 })

@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 import { m, useScroll, useTransform } from 'motion/react'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import heroPhoto from '../../assets/DSC00346-display.jpg'
 import heroPhotoAvif from '../../assets/DSC00346-display.avif'
 import heroPhotoAvif640 from '../../assets/DSC00346-display-640.avif'
@@ -14,6 +14,7 @@ import HomeSeasonActions from '../ui/HomeSeasonActions.jsx'
 import ResponsivePhoto from '../ui/ResponsivePhoto.jsx'
 import { env } from '../../config/env.js'
 import TiltCard from '../../motion/TiltCard.tsx'
+import { findMorphSource, morphNavigate } from '../../motion/routeMorph.ts'
 import { hasFinePointer } from '../../motion/useReducedMotion.ts'
 import { useMagneticHover } from '../../motion/useMagneticHover.ts'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -28,6 +29,7 @@ import {
   MOTION_EASE,
   MOTION_STAGGER_BY_TIER,
   SHOWCASE_TILT_MAX_DEG,
+  scaleDuration,
 } from '../../motion/tokens.ts'
 import {
   heroActionsItem,
@@ -77,15 +79,28 @@ export default function HeroSection({
   onSelectEvent,
   event,
   events = [],
+  underConstructionEvents = [],
   registrationEnabled = true,
 }) {
   const { t } = useI18n()
   const { reducedMotion, tier } = useMotionConfig()
   const magneticProps = useMagneticHover()
-  const titleLineVariants = useMemo(
-    () => (tier !== 'low' && hasFinePointer() ? heroTitleLineWipe : heroTitleLine),
-    [tier],
+  // La variante se elige una vez, al montar. El tier se sigue midiendo en vivo
+  // (MotionProvider) y baja a 'low' a los ~1.5s en equipos que no sostienen
+  // 60fps: si la variante cambiaba de wipe a fade, Motion dejaba de animar
+  // `clipPath` y el título quedaba en `inset(100%)` — el H1 de la portada
+  // desaparecía después de haberse mostrado. La entrada ya está corriendo o
+  // terminó; cambiarle la coreografía a mitad no tiene nada que ganar.
+  const [titleLineVariants] = useState(() =>
+    tier !== 'low' && hasFinePointer() ? heroTitleLineWipe : heroTitleLine,
   )
+  // El díptico anima sus propios carriles al montar (también cuando el
+  // catálogo llega después). Este wrapper no se desplaza: si no, el texto
+  // entra dos veces y, si el tier cambia a mitad, puede quedar invisible.
+  const [seasonProofRest] = useState(() => ({
+    hidden: { opacity: 1, y: 0 },
+    visible: { opacity: 1, y: 0, transition: { duration: scaleDuration(MOTION_DURATION.instant, tier) } },
+  }))
   const eventStatus = getPublicEventStatus(event, new Date(), { registrationEnabled })
   const registrationCheckoutOpen = isPaidCheckoutOpen(event, env, new Date(), {
     checkoutKind: 'registration',
@@ -104,8 +119,9 @@ export default function HeroSection({
       getSeasonHomeActions(events.length ? events : event ? [event] : [], {
         registrationEnabled,
         ticketSalesEnabled: env.ticketSalesEnabled,
+        underConstructionEvents,
       }),
-    [events, event, registrationEnabled],
+    [events, event, registrationEnabled, underConstructionEvents],
   )
   // Cascada propia del hero (no la heroStaggerContainer compartida con
   // Tickets/PluPageHero/PitbullHero) para escalarla por tier de dispositivo
@@ -174,21 +190,36 @@ export default function HeroSection({
     </span>
   )
 
-  function handleSeasonAction(action) {
+  /** `intent: 'page'` llega del link "Página oficial" del carril de
+   * inscripción: abre la ficha (o el aviso de construcción) sin el wizard. */
+  function handleSeasonAction(action, clickEvent, intent) {
     if (!action?.event) return
     if (action.kind === 'tickets') {
       onNavigate?.('tickets', { eventSlug: action.event.slug ?? action.event.id })
       return
     }
-    if (action.kind === 'registration' && typeof onSelectEvent === 'function') {
+    if (
+      action.kind === 'registration' &&
+      intent !== 'page' &&
+      typeof onSelectEvent === 'function'
+    ) {
       onSelectEvent(action.event)
       return
     }
-    // registration_soon (y fallback): ficha del evento, sin forzar el wizard.
+    // registration_soon, "Página oficial" (y fallback): ficha del evento, sin
+    // forzar el wizard. El nombre del meet del carril viaja hasta el título de
+    // la ficha.
     const destination = action.event.slug
       ? { view: 'events', options: { eventSlug: action.event.slug } }
       : { view: 'events', options: {} }
-    onNavigate?.(destination.view, destination.options)
+    morphNavigate(
+      findMorphSource(
+        clickEvent?.currentTarget?.closest?.('.home-season-actions__lane') ??
+          clickEvent?.currentTarget,
+        '.home-season-actions__meet',
+      ),
+      () => onNavigate?.(destination.view, destination.options),
+    )
   }
 
   const proofCard =
@@ -197,7 +228,11 @@ export default function HeroSection({
     ) : (
       <HeroStatusCard
         event={event}
-        onSelect={() => onNavigate('pitbull')}
+        onSelect={(clickEvent) =>
+          morphNavigate(findMorphSource(clickEvent?.currentTarget, '.hero-meta__meet'), () =>
+            onNavigate('pitbull'),
+          )
+        }
         onSelectTickets={
           ticketsAvailable
             ? () => onNavigate('tickets', { eventSlug: event?.slug ?? event?.id })
@@ -304,7 +339,7 @@ export default function HeroSection({
                 className="hero__proof"
                 initial="hidden"
                 animate="visible"
-                variants={heroProofItem}
+                variants={seasonActions.length > 0 ? seasonProofRest : heroProofItem}
               >
                 {proofBody}
               </m.div>

@@ -63,6 +63,10 @@ const STATUS_BY_CODE = {
   PLU32: 409,
   PLU33: 409,
   PLU34: 409,
+  // Baja de una orden desde Cobros (20261228110000): la orden tiene historial en
+  // el libro de pagos o suscripciones y se conserva. Conflicto con salida, no
+  // indisponibilidad.
+  PLU35: 409,
   // Analítica / defensa: input inválido. Varias RPCs levantan estos códigos
   // con `errcode = '22023'` (Postgres) y el mensaje `PLU9x · …`; sin mapeo
   // caían al 503 y el tracker pintaba "servicio no disponible" en consola.
@@ -129,6 +133,19 @@ export function assertSupabaseResult(result, fallback = 'No se pudo completar la
     details: result.error.details,
     ...(leaksConstraintName && raw ? { raw } : {}),
   })
+}
+
+/**
+ * PostgREST no encuentra una tabla, una relación o una función en el schema
+ * cache (PGRST200 / PGRST202): "la migración no corrió acá todavía", no "el
+ * pedido estaba mal".
+ */
+export function isMissingRelation(error) {
+  return (
+    error?.code === 'PGRST200' ||
+    error?.code === 'PGRST202' ||
+    /schema cache/i.test(error?.message ?? '')
+  )
 }
 
 /**

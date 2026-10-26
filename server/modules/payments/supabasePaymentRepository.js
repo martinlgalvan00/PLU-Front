@@ -896,6 +896,22 @@ export function createSupabasePaymentRepository(
       )
     },
 
+    /**
+     * Baja de una fila de Cobros que no se cobró. La RPC es la autoridad: si la
+     * orden tiene plata, comprobante, pago declarado o historial en el libro,
+     * responde con un PLU31-35 que la ruta devuelve como 409.
+     */
+    async deleteAthleteOrder(orderId, actor, reason) {
+      return assertResult(
+        await client.rpc('staff_delete_athlete_payment_order', {
+          p_order_id: orderId,
+          p_actor: actor,
+          p_reason: reason,
+        }),
+        'No se pudo borrar la orden.',
+      )
+    },
+
     async restorePaymentDriftDismissal(dismissalId, actor) {
       return assertResult(
         await client.rpc('staff_restore_payment_drift_dismissal', {

@@ -47,7 +47,7 @@ function firstIncompleteGroup(missing) {
   ) {
     return 'contact'
   }
-  if (missing.some((field) => ['division', 'category', 'estimatedWeight'].includes(field))) {
+  if (missing.some((field) => ['category', 'estimatedWeight'].includes(field))) {
     return 'competition'
   }
   if (missing.some((field) => ['gym', 'sex'].includes(field))) return 'sports'
@@ -59,7 +59,7 @@ function firstIncompleteGroup(missing) {
 
 function firstErrorGroup(nextErrors) {
   if (nextErrors.email || nextErrors.phone) return 'contact'
-  if (nextErrors.division || nextErrors.category || nextErrors.estimatedWeight) return 'competition'
+  if (nextErrors.category || nextErrors.estimatedWeight) return 'competition'
   if (nextErrors.instagramHandle || nextErrors.bestTotalKg || nextErrors.sex) return 'sports'
   if (nextErrors.emergencyContactPhone) return 'emergency'
   return null
@@ -325,9 +325,6 @@ export default function PersonalDataSection({
         nextErrors.bestTotalKg = t('account.personalData.errorBestTotal')
       }
     }
-    if (!ageDivision.options.includes(form.division)) {
-      nextErrors.division = t('account.personalData.errorDivision')
-    }
     if (!formOptions.category.includes(form.category)) {
       nextErrors.category = t('account.personalData.errorCategory')
     }
@@ -373,7 +370,7 @@ export default function PersonalDataSection({
     ['phone', 'city', 'province'].includes(field),
   )
   const competitionPending = profileStatus.missing.some((field) =>
-    ['division', 'category', 'estimatedWeight'].includes(field),
+    ['category', 'estimatedWeight'].includes(field),
   )
   const teamPending = profileStatus.missing.includes('gym')
 
@@ -702,14 +699,6 @@ export default function PersonalDataSection({
             hidden={!openGroups.competition}
           >
             <Select
-              error={errors.division}
-              label={`${t('account.personalData.division')} *`}
-              name="division"
-              options={[['', t('formOptions.selectPlaceholder')], ...ageDivision.options]}
-              value={form.division}
-              onChange={changeField}
-            />
-            <Select
               error={errors.category}
               label={`${t('account.personalData.category')} *`}
               name="category"
@@ -728,7 +717,7 @@ export default function PersonalDataSection({
             />
             {ageDivision.hasAgeRule && ageDivision.suggested ? (
               <p className="account-data-group__note form-grid__span-full" role="status">
-                {t('account.personalData.divisionAgeHint', {
+                {t('account.personalData.divisionByAge', {
                   division: ageDivision.suggested,
                 })}
               </p>

@@ -3,6 +3,9 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   eventHasEditorialLanding,
+  eventHasSubmissionLanding,
+  eventLandingIsPublic,
+  eventSubmissionLandingInPreparation,
   eventLandingFaqItems,
   eventLandingSeo,
   eventLandingTemplateId,
@@ -25,12 +28,18 @@ const themeMigration = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/20261222100000_event_landing_theme.sql'),
   'utf8',
 )
+const submissionMigration = readFileSync(
+  resolve(process.cwd(), 'supabase/migrations/20261226100000_submission_landing.sql'),
+  'utf8',
+)
 
 describe('landing de evento (plantilla + slots)', () => {
   it('default meet y slots vacíos sin inventar', () => {
     expect(normalizeEventLanding(null)).toEqual({
       templateId: 'meet',
       themeId: 'plu-default',
+      publicVisible: true,
+      phase: 'coming_soon',
       slots: {
         heroTitle: '',
         heroLead: '',
@@ -80,6 +89,26 @@ describe('landing de evento (plantilla + slots)', () => {
       eventHasCustomPublicPage({
         slug: 'pitbull-classic-2026',
         landing: { templateId: 'meet' },
+      }),
+    ).toBe(false)
+  })
+
+  it('Barbell Submission cae a su landing propia y se puede ocultar', () => {
+    const event = { slug: 'barbell-submission-2027', publicCopy: {} }
+    expect(eventLandingTemplateId(event)).toBe('submission')
+    expect(eventHasSubmissionLanding(event)).toBe(true)
+    expect(eventLandingIsPublic(event)).toBe(true)
+    expect(eventSubmissionLandingInPreparation(event)).toBe(true)
+    expect(
+      eventSubmissionLandingInPreparation({
+        ...event,
+        landing: { templateId: 'submission', publicVisible: true, phase: 'published' },
+      }),
+    ).toBe(false)
+    expect(
+      eventLandingIsPublic({
+        ...event,
+        landing: { templateId: 'submission', publicVisible: false },
       }),
     ).toBe(false)
   })
@@ -151,8 +180,14 @@ describe('landing de evento (plantilla + slots)', () => {
     expect(migration).toContain('pitbull-classic-2026')
     expect(migration).not.toContain('create or replace function public.staff_upsert_event')
 
-    const server = readFileSync(resolve(process.cwd(), 'server/routes/events.js'), 'utf8')
-    expect(server).toContain('staff_merge_event_landing')
+    // La ruta delega en el store de la landing; las RPC viven ahí.
+    const route = readFileSync(resolve(process.cwd(), 'server/routes/events.js'), 'utf8')
+    const store = readFileSync(
+      resolve(process.cwd(), 'server/modules/events/eventLandingStore.js'),
+      'utf8',
+    )
+    expect(route).toContain('saveEventLanding(client, pEvent)')
+    expect(store).toContain("'staff_merge_event_landing'")
   })
 
   it('FAQ solo publica pares completos y SEO marca custom', () => {
@@ -211,10 +246,28 @@ describe('landing de evento (plantilla + slots)', () => {
     expect(themeMigration).toContain('staff_merge_event_landing')
   })
 
-  it('landingPayloadForMerge incluye themeId', async () => {
+  it('la migraciÃ³n de Submission persiste plantilla, visibilidad y estado', () => {
+    expect(submissionMigration).toContain('staff_merge_event_landing_state')
+    expect(submissionMigration).toContain("'submission'")
+    expect(submissionMigration).toContain("'publicVisible'")
+    expect(submissionMigration).toContain("'coming_soon'")
+  })
+
+  it('landingPayloadForMerge incluye themeId y estado de Submission', async () => {
     const { landingPayloadForMerge } = await import('../src/lib/eventLanding.js')
     expect(
-      landingPayloadForMerge({ templateId: 'editorial', themeId: 'ember', slots: {} }),
-    ).toMatchObject({ templateId: 'editorial', themeId: 'ember' })
+      landingPayloadForMerge({
+        templateId: 'submission',
+        themeId: 'ember',
+        publicVisible: false,
+        phase: 'published',
+        slots: {},
+      }),
+    ).toMatchObject({
+      templateId: 'submission',
+      themeId: 'ember',
+      publicVisible: false,
+      phase: 'published',
+    })
   })
 })

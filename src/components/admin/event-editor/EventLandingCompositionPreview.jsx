@@ -1,10 +1,11 @@
-import { ArrowUpRight, LayoutTemplate } from 'lucide-react'
+import { useState } from 'react'
+import { Eye, LayoutTemplate } from 'lucide-react'
 import {
   eventLandingFaqItems,
   eventLandingFromEvent,
   eventLandingSeo,
 } from '../../../lib/eventLanding.js'
-import { buildEventPagePath } from '../../../lib/eventPageRoute.js'
+import EventLandingPreviewDialog from './landing/PreviewDialog.jsx'
 import { eventPublicTitle } from '../../../lib/eventPublicSurface.js'
 
 /**
@@ -17,8 +18,9 @@ export default function EventLandingCompositionPreview({ event, t }) {
   const seo = eventLandingSeo(event)
   const faqItems = eventLandingFaqItems(slots)
   const heroTitle = slots.heroTitle || eventPublicTitle(event) || event?.title || '—'
-  const publicPath = event?.slug ? buildEventPagePath(event.slug) : null
+  const [previewOpen, setPreviewOpen] = useState(false)
   const isEditorial = landing.templateId === 'editorial'
+  const isSubmission = landing.templateId === 'submission'
 
   const chapters = [
     slots.experienceTitle || slots.experienceBody
@@ -42,7 +44,11 @@ export default function EventLandingCompositionPreview({ event, t }) {
           <LayoutTemplate size={12} aria-hidden />
           {isEditorial
             ? t('admin.eventEditor.landingTemplateEditorial')
-            : t('admin.eventEditor.landingTemplateMeet')}
+            : isSubmission
+              ? t('admin.eventEditor.landingTemplateSubmission')
+              : landing.templateId === 'builder'
+                ? t('admin.eventEditor.landingTemplateBuilder')
+                : t('admin.eventEditor.landingTemplateMeet')}
         </span>
         <strong className="admin-landing-compose__title">{heroTitle}</strong>
         {slots.heroLead ? <p className="admin-landing-compose__lead">{slots.heroLead}</p> : null}
@@ -81,16 +87,17 @@ export default function EventLandingCompositionPreview({ event, t }) {
         </p>
       </div>
 
-      {publicPath ? (
-        <a
-          className="admin-landing-compose__link"
-          href={publicPath}
-          target="_blank"
-          rel="noreferrer"
-        >
-          {t('admin.eventEditor.landingOpenPublic')}
-          <ArrowUpRight size={13} aria-hidden />
-        </a>
+      <button
+        type="button"
+        className="admin-landing-compose__link"
+        onClick={() => setPreviewOpen(true)}
+      >
+        <Eye size={13} aria-hidden />
+        {t('admin.eventEditor.landingPreviewOpen')}
+      </button>
+
+      {previewOpen ? (
+        <EventLandingPreviewDialog event={event} t={t} onClose={() => setPreviewOpen(false)} />
       ) : null}
     </div>
   )

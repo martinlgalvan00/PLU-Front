@@ -1,5 +1,6 @@
 import { ArrowRight, ImageDown } from 'lucide-react'
 import { m } from 'motion/react'
+import { useEffect, useRef } from 'react'
 import ConfirmationSeal from './ConfirmationSeal.jsx'
 import EventShareCard from './EventShareCard.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -91,6 +92,12 @@ export default function RegisterCompetitionConfirmation({
   const { locale, t } = useI18n()
   const { reducedMotion } = useMotionConfig()
   const showCardPreview = Boolean(cardData)
+  // Al confirmarse el pago se desmonta el panel que tenía el foco y caía en
+  // <body>: un lector de pantalla no anunciaba nada. Se lleva al título.
+  const titleRef = useRef(null)
+  useEffect(() => {
+    titleRef.current?.focus({ preventScroll: true })
+  }, [])
 
   const Section = reducedMotion ? 'section' : m.section
   const Block = reducedMotion ? 'div' : m.div
@@ -109,7 +116,12 @@ export default function RegisterCompetitionConfirmation({
       {/* El título de la pantalla ya vive en el intro de la ruta (aside en
           desktop, contexto en mobile). Acá sólo queda el nombre accesible del
           bloque para que el aria-labelledby siga apuntando a algo. */}
-      <h2 id="register-confirmation-competition-title" className="visually-hidden">
+      <h2
+        ref={titleRef}
+        id="register-confirmation-competition-title"
+        className="visually-hidden"
+        tabIndex={-1}
+      >
         {t('pages.register.competitionCardEyebrow')}
       </h2>
 

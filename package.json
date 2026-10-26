@@ -10,9 +10,10 @@
   "scripts": {
     "dev": "npm run dev:services",
     "dev:web": "vite",
-    "predev:api": "node scripts/prisma-supabase.mjs generate",
-    "dev:api": "node --watch server/index.js",
-    "dev:services": "concurrently -n web,api -c cyan,magenta \"npm run dev:web\" \"npm run dev:api\"",
+    "dev:api": "node server/index.js",
+    "dev:api:watch": "node --watch server/index.js",
+    "dev:api:generate": "node scripts/prisma-supabase.mjs generate",
+    "dev:services": "concurrently --kill-others-on-fail -n web,api -c cyan,magenta \"npm run dev:web\" \"npm run dev:api\"",
     "dev:all": "node scripts/bootstrap-all.mjs --start",
     "setup:all": "node scripts/bootstrap-all.mjs",
     "start:all": "npm run dev:all",
@@ -32,6 +33,7 @@
     "visual-check": "node scripts/visual-check.mjs",
     "e2e:mercado-pago": "node scripts/e2e-mercado-pago.mjs",
     "test:e2e": "playwright test",
+    "test:e2e:flows": "playwright test --config playwright.flows.config.js",
     "e2e:checkout-coupon": "playwright test",
     "e2e:checkout-coupon:headed": "playwright test --headed",
     "e2e:checkout-coupon:report": "playwright show-report e2e/.report",
@@ -45,6 +47,7 @@
     "db:verify:fixed-price": "node scripts/verify-fixed-price-promotion.mjs",
     "db:verify:requote": "node scripts/verify-requote-open-order.mjs",
     "db:verify:cancel": "node scripts/verify-cancel-open-order.mjs",
+    "db:verify:order-delete": "node scripts/verify-delete-athlete-order.mjs",
     "db:verify:schema": "node scripts/verify-schema-posture.mjs",
     "supabase:assert": "node scripts/assert-supabase-connectivity.mjs",
     "supabase:diagnose": "node scripts/diagnose-supabase-integration.mjs",
@@ -96,7 +99,9 @@
     "qrcode": "^1.5.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "zod": "^3.25.76"
+    "read-excel-file": "9.3.12",
+    "write-excel-file": "4.1.1",
+    "zod": "^4.6.7"
   },
   "overrides": {
     "valibot": "1.4.2",

@@ -16,6 +16,7 @@ import {
   clearCurrentTicketOrder,
   openTicketCredential,
   setTicketQuantity,
+  rejectTicketProofFile,
 } from './ticket-purchase-helpers.js'
 
 let fixture
@@ -204,13 +205,15 @@ test.describe('Errores de compra de entradas', () => {
     expect(posts).toHaveLength(0)
   })
 
-  test('no se pueden pedir más de 8 entradas', async ({ page }) => {
+  // El tope por compra pasó de 8 a 10 (MAX_TICKETS en el checkout y
+  // MAX_ATTENDEES_PER_ORDER en el schema de la API).
+  test('no se pueden pedir más de 10 entradas', async ({ page }) => {
     await navigateToTickets(page, fixture.ticketEventSlug, { title: fixture.ticketEventTitle })
-    await setTicketQuantity(page, 8)
+    await setTicketQuantity(page, 10)
     const addButton = page.getByRole('button', { name: /sumar entrada/i })
     await expect(addButton).toBeDisabled()
-    await expect(page.locator('input[name="attendee-7-fullName"]')).toBeVisible()
-    await expect(page.locator('input[name="attendee-8-fullName"]')).toHaveCount(0)
+    await expect(page.locator('input[name="attendee-9-fullName"]')).toBeVisible()
+    await expect(page.locator('input[name="attendee-10-fullName"]')).toHaveCount(0)
   })
 
   test('un comprobante que no es imagen ni PDF se rechaza', async ({ page }) => {
@@ -220,12 +223,13 @@ test.describe('Errores de compra de entradas', () => {
     })
     await assertOrderCreated(page, { expectedAmount: '20.000', expectedQuantity: 1 })
 
-    await page.locator('.ticket-purchase__proof-upload input[type="file"]').setInputFiles({
+    // El formato se controla al elegir el archivo: no llega a ofrecerse
+    // "Enviar comprobante" ni se sube nada.
+    await rejectTicketProofFile(page, {
       name: 'comprobante.txt',
       mimeType: 'text/plain',
       buffer: Buffer.from('esto no es un comprobante'),
+      message: /JPG|PNG|PDF/,
     })
-    await page.getByRole('button', { name: /enviar comprobante/i }).click()
-    await expect(page.locator('.ticket-purchase__submit-error')).toContainText(/formato|JPG|PNG|PDF/i)
   })
 })

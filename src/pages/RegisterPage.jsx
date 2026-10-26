@@ -34,6 +34,7 @@ import {
   Field,
   Select,
   ChoiceField,
+  CheckboxGroupField,
 } from '../components/ui/FormFields.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
 import Pill from '../components/ui/Pill.jsx'
@@ -56,6 +57,7 @@ import { resolveEventPricing } from '../lib/eventPricing.js'
 import { getStatusMeta, isRegistrationAdmitted, normalizeStatus } from '../lib/status.js'
 import { hasCurrentMembership, isMembershipCurrent } from '../services/membershipService.js'
 import { getEventComboAvailability } from '../services/comboOfferService.js'
+import { eventHasSubmissionLanding } from '../lib/eventLanding.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { channelOpen } from '../lib/paymentChannels.js'
@@ -113,6 +115,18 @@ import {
   validateMembershipForm,
 } from '../lib/validation.js'
 import { ageOnDate } from '../../shared/ageDivision.js'
+import { normalizeEventOffering } from '../../shared/eventOffering.js'
+import {
+  REGISTRATION_MODALITIES,
+  choicesFromDivisions,
+  divisionsFromChoices,
+  extraModalityCount,
+  extraModalitySurcharge,
+  normalizeModalities,
+  priceRegistrationSelection,
+  secondDivisionSurcharge,
+  toggleModality,
+} from '../../shared/registrationSelection.js'
 import { useAgeDivisionOptions } from '../hooks/useAgeDivisionOptions.js'
 
 const PASSWORD_STRENGTH_LABEL_KEYS = [
@@ -423,6 +437,57 @@ function RegisterMembershipAside({ athlete, locale, t, total }) {
   )
 }
 
+/** Etiqueta de cada dato que `getMissingCompetitionProfileFields` puede pedir. */
+const COMPETITION_PROFILE_FIELD_LABELS = {
+  fullName: 'account.personalData.fullName',
+  birthDate: 'account.personalData.birthDate',
+  sex: 'pages.register.competitionProfileSex',
+  gym: 'account.personalData.gym',
+  phone: 'account.personalData.phone',
+  country: 'pages.register.country',
+  province: 'account.personalData.province',
+  category: 'account.personalData.category',
+  estimatedWeight: 'account.personalData.estimatedWeight',
+}
+
+/**
+ * Una elección con una sola opción no es elección: el torneo la fija. Se
+ * muestra como dato, sin radio ni casilla que no cambian nada.
+ */
+function RegisterFixedChoice({ hint, label, value }) {
+  return (
+    <div className="register-competition-fixed">
+      <span className="register-competition-fixed__label">{label}</span>
+      <strong className="register-competition-fixed__value">{value}</strong>
+      {hint ? <span className="register-competition-fixed__hint">{hint}</span> : null}
+    </div>
+  )
+}
+
+/**
+ * Lo que eligió para este torneo, en una línea: divisiones, categoría,
+ * modalidades y clase. Lo comparten el aside, el resumen mobile y la
+ * confirmación, para que las tres digan lo mismo.
+ */
+function competitionPicksLabel(form, t, { withBodyweight = true } = {}) {
+  const modalities = (form.modalities ?? [])
+    .map((value) => t(`pages.register.modalityOptions.${value}`))
+    .join(' + ')
+  return [
+    [form.division, form.secondaryDivision].filter(Boolean).join(' + '),
+    (form.categories?.includes(form.category) ? form.categories : [form.category])
+      .filter(Boolean)
+      .join(' + '),
+    modalities,
+    form.declaredWeightClass ? `${form.declaredWeightClass} kg` : '',
+    withBodyweight && form.estimatedWeight
+      ? t('pages.register.competitionPicksBodyweight', { weight: form.estimatedWeight })
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}
+
 function RegisterCompetitionAside({
   athlete,
   form,
@@ -432,16 +497,10 @@ function RegisterCompetitionAside({
   paymentMethod,
   t,
   total,
+  breakdown = null,
 }) {
   const pending = t('pages.register.competitionSummaryPending')
-  const picks = [
-    form.division,
-    form.category,
-    form.declaredWeightClass ? `${form.declaredWeightClass} kg` : '',
-    form.estimatedWeight ? `${form.estimatedWeight} kg` : '',
-  ]
-    .filter(Boolean)
-    .join(' · ')
+  const picks = competitionPicksLabel(form, t)
 
   return (
     <aside className="register-competition-aside" aria-label={t('pages.register.competitionTitle')}>
@@ -474,6 +533,16 @@ function RegisterCompetitionAside({
             </div>
           </fieldset>
         ) : null}
+        {breakdown?.length ? (
+          <dl className="register-competition-ticket__breakdown">
+            {breakdown.map((line) => (
+              <div key={line.key}>
+                <dt>{line.label}</dt>
+                <dd>{money(line.amount, locale)}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
         <div className="register-competition-ticket__total">
           <span>{t('pages.register.total')}</span>
           <strong>{money(total, locale)}</strong>
@@ -482,6 +551,9 @@ function RegisterCompetitionAside({
     </aside>
   )
 }
+
+/** Datos del perfil que el formulario de inscripción ya pide. */
+const CHECKOUT_COLLECTED_PROFILE_FIELDS = new Set(['category', 'estimatedWeight'])
 
 export default function RegisterPage({
   athlete,
@@ -500,11 +572,16 @@ export default function RegisterPage({
   checkoutAvailability = {},
   checkoutIntent = null,
   onCheckoutIntentConsumed,
+  // Alta que arrancó en "Inscribirme": al terminar se retoma ese torneo.
+  resumeEventTitle = null,
 }) {
   const { locale, t } = useI18n()
   const formOptions = useMemo(() => getFormOptions(t), [t])
   const profileSteps = useMemo(() => getProfileSteps(t), [t])
   const competitionEventDate = event?.startsAt ?? event?.starts_at ?? event?.date ?? null
+  // Día para mostrar: los eventos del catálogo traen `dateISO`, no `date`
+  // (que solo tenían los datos editoriales viejos), y el checkout no lo mostraba.
+  const competitionEventDay = event?.dateISO || event?.date || ''
   const competitionAgeContext = useMemo(
     () => ({
       birthDate: athlete?.birthDate ?? null,
@@ -526,15 +603,62 @@ export default function RegisterPage({
     allDivisions: formOptions.division,
     currentDivision: form.division,
   })
-  const divisionOptions =
-    flow === 'competition' && ageDivision.hasAgeRule
-      ? ageDivision.options
-      : formOptions.division
+  // Lo que este evento ofrece (categorías, divisiones, modalidades). Sin
+  // configurar ofrece todo; la API vuelve a validar.
+  const eventOffering = useMemo(() => normalizeEventOffering(event?.offering), [event?.offering])
+  const optionValue = (option) => (Array.isArray(option) ? option[0] : option)
+  const optionLabel = (option) => (Array.isArray(option) ? option[1] : option)
+  const divisionOptions = (
+    flow === 'competition' && ageDivision.hasAgeRule ? ageDivision.options : formOptions.division
+  ).filter((option) => eventOffering.divisions.includes(optionValue(option)))
+  const categoryOptions = formOptions.category.filter((option) =>
+    eventOffering.categories.includes(optionValue(option)),
+  )
+  const submissionCategoriesEnabled = flow === 'competition' && eventHasSubmissionLanding(event)
+  const selectedRegistrationCategories = useMemo(
+    () =>
+      (
+        submissionCategoriesEnabled && form.categories?.includes(form.category)
+          ? form.categories
+          : [form.category]
+      ).filter((category) => eventOffering.categories.includes(category)),
+    [eventOffering.categories, form.categories, form.category, submissionCategoriesEnabled],
+  )
+  const registrationCategoryCount = submissionCategoriesEnabled
+    ? Math.max(1, selectedRegistrationCategories.length)
+    : 1
+  const modalityValues = REGISTRATION_MODALITIES.filter((value) =>
+    eventOffering.modalities.includes(value),
+  )
+  // Su división por edad no está entre las que ofrece el evento: queda Open.
+  const ageDivisionOffered = eventOffering.divisions.includes(ageDivision.suggested)
+  // Casillas de división: su franja de edad y/o Open. La de edad paga el 100% y
+  // Open, sumada a ella, el 50%; Open sola paga el 100%.
+  const divisionChoices = choicesFromDivisions(
+    { division: form.division, secondaryDivision: form.secondaryDivision },
+    ageDivision.suggested,
+  )
+  const canAddSecondDivision =
+    flow === 'competition' &&
+    ageDivision.hasAgeRule &&
+    ageDivision.suggested !== 'Open' &&
+    ageDivisionOffered &&
+    divisionChoices.age
+
+  // La segunda división deja de existir si cambia la primera a Open o la edad no
+  // la admite: se limpia para no cobrar ni mandar algo que el atleta ya no ve.
+  useEffect(() => {
+    if (flow !== 'competition' || canAddSecondDivision || !form.secondaryDivision) return
+    onUpdateForm({ target: { name: 'secondaryDivision', value: '' } })
+  }, [canAddSecondDivision, flow, form.secondaryDivision, onUpdateForm])
 
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
   const [profileErrorStepIndex, setProfileErrorStepIndex] = useState(null)
   const [submitError, setSubmitError] = useState('')
+  // Detalle de un error de validación con varios campos: solo se muestra
+  // mientras `submitError` siga siendo el mensaje al que pertenece.
+  const [submitErrorDetails, setSubmitErrorDetails] = useState(null)
   // Acuse de una acción que salió bien y no navega a ningún lado (cancelar la
   // orden abierta). Va en el mismo lugar que `submitError` para que el
   // resultado de un clic siempre aparezca donde se hizo el clic.
@@ -641,16 +765,30 @@ export default function RegisterPage({
   const [transferOpen, setTransferOpen] = useState(false)
   const [transferOrderId, setTransferOrderId] = useState(null)
   const [changingMethod, setChangingMethod] = useState(false)
+  // Orden sobre la que ya se abrió el selector por "Elegir otro medio": la
+  // intención se aplica una vez por orden, así cerrar el selector no lo reabre
+  // cuando se refrescan los pagos.
+  const changeMethodIntentOrderRef = useRef(null)
   // Si el backend rechaza la declaración (orden ya terminal), el settle se
   // cierra acá aunque el snapshot local todavía no haya reconciliado el status.
   const [settleDeclarationClosed, setSettleDeclarationClosed] = useState(false)
   const availabilityRequestRef = useRef(0)
   const submissionInFlightRef = useRef(false)
   const emailVerifyRef = useRef(null)
+  const settleRef = useRef(null)
+  const wasSettlingRef = useRef(false)
   const competitionPrefillRef = useRef(null)
   const committedCompetitionPrefillRef = useRef(null)
+  // Categoría y peso los pide el propio formulario de inscripción: contarlos
+  // como "datos pendientes" del perfil mandaba a una cuenta nueva a completar
+  // afuera lo que tenía que completar acá abajo.
   const competitionProfileMissing = useMemo(
-    () => (flow === 'competition' && athlete ? getMissingCompetitionProfileFields(athlete) : []),
+    () =>
+      flow === 'competition' && athlete
+        ? getMissingCompetitionProfileFields(athlete).filter(
+            (field) => !CHECKOUT_COLLECTED_PROFILE_FIELDS.has(field),
+          )
+        : [],
     [athlete, flow],
   )
   useEffect(() => {
@@ -671,6 +809,90 @@ export default function RegisterPage({
       ) ?? null
     )
   }, [athlete, event?.slug, flow, registrations])
+  // Lo que ofrece el evento se valida igual que en el servidor. Con la
+  // inscripción ya asentada no: se muestra lo que eligió aunque el torneo
+  // después haya acotado la oferta.
+  const competitionValidationContext = useMemo(
+    () =>
+      committedCompetitionRegistration
+        ? competitionAgeContext
+        : { ...competitionAgeContext, offering: event?.offering ?? null },
+    [committedCompetitionRegistration, competitionAgeContext, event?.offering],
+  )
+
+  // La clase de peso sigue al peso corporal mientras el atleta no la elija a
+  // mano: así no tiene que recorrer 14 opciones para dar con la obvia. Si ya
+  // venía una clase distinta de la sugerida (orden retomada, elección previa),
+  // se respeta como manual. Elegir otra en el selector también la fija.
+  const suggestedWeightClass =
+    flow === 'competition' ? suggestWeightClass(athlete?.sex, form.estimatedWeight) : ''
+  const weightClassManualRef = useRef(null)
+  useEffect(() => {
+    if (flow !== 'competition' || committedCompetitionRegistration || !suggestedWeightClass) return
+    if (weightClassManualRef.current === null) {
+      weightClassManualRef.current = Boolean(
+        form.declaredWeightClass && form.declaredWeightClass !== suggestedWeightClass,
+      )
+    }
+    if (weightClassManualRef.current || form.declaredWeightClass === suggestedWeightClass) return
+    onUpdateForm({ target: { name: 'declaredWeightClass', value: suggestedWeightClass } })
+  }, [
+    committedCompetitionRegistration,
+    flow,
+    form.declaredWeightClass,
+    onUpdateForm,
+    suggestedWeightClass,
+  ])
+
+  function changeDeclaredWeightClass(event) {
+    weightClassManualRef.current = true
+    changeField(event)
+  }
+
+  // Lo elegido deja de ser válido si el evento no lo ofrece (otro evento, o la
+  // oferta cambió): pasa a lo primero que sí ofrece, en vez de mandar algo que la
+  // API rechaza.
+  useEffect(() => {
+    if (flow !== 'competition' || committedCompetitionRegistration) return
+    const offered = (value, list) => list.includes(value)
+    if (form.category && !offered(form.category, eventOffering.categories)) {
+      onUpdateForm({ target: { name: 'category', value: eventOffering.categories[0] } })
+    }
+    const current = form.modalities ?? ['full_power']
+    if (current.length > 0 && current.some((value) => !offered(value, eventOffering.modalities))) {
+      const kept = current.filter((value) => offered(value, eventOffering.modalities))
+      onUpdateForm({
+        target: {
+          name: 'modalities',
+          value: kept.length > 0 ? kept : [eventOffering.modalities[0]],
+        },
+      })
+    }
+    if (
+      ageDivision.hasAgeRule &&
+      ageDivision.suggested &&
+      ageDivision.suggested !== 'Open' &&
+      !ageDivisionOffered &&
+      (form.division !== 'Open' || form.secondaryDivision)
+    ) {
+      onUpdateForm({ target: { name: 'division', value: 'Open' } })
+      if (form.secondaryDivision) {
+        onUpdateForm({ target: { name: 'secondaryDivision', value: '' } })
+      }
+    }
+  }, [
+    ageDivision.hasAgeRule,
+    ageDivision.suggested,
+    ageDivisionOffered,
+    committedCompetitionRegistration,
+    eventOffering,
+    flow,
+    form.category,
+    form.division,
+    form.modalities,
+    form.secondaryDivision,
+    onUpdateForm,
+  ])
   const competitionProfileDetails = useMemo(() => {
     if (flow !== 'competition' || !athlete) return []
     const age = ageOnDate(athlete.birthDate, competitionEventDate)
@@ -701,6 +923,18 @@ export default function RegisterPage({
       ],
     ].filter(([, value]) => value)
   }, [athlete, competitionEventDate, flow, locale, t])
+  const competitionProfileSummary = useMemo(() => {
+    if (flow !== 'competition' || !athlete) return ''
+    const age = ageOnDate(athlete.birthDate, competitionEventDate)
+    return [
+      athlete.fullName,
+      age === null ? '' : `${age} ${t('pages.register.competitionProfileYears')}`,
+      athlete.sex,
+      athlete.gym,
+    ]
+      .filter(Boolean)
+      .join(' · ')
+  }, [athlete, competitionEventDate, flow, t])
   const profileProgress = useMemo(
     () => (flow === 'profile' ? getProfileProgress(form, profileSteps) : null),
     [flow, form, profileSteps],
@@ -724,6 +958,7 @@ export default function RegisterPage({
     setTransferOpen(false)
     setTransferOrderId(null)
     setChangingMethod(false)
+    changeMethodIntentOrderRef.current = null
     setCancelConfirming(false)
     setDiscountCodeInput('')
     setDiscountPreview(null)
@@ -736,7 +971,10 @@ export default function RegisterPage({
   useEffect(() => {
     if (flow !== 'competition' || !athlete || competitionPrefillRef.current === athlete.id) return
     competitionPrefillRef.current = athlete.id
-    const division = ageDivision.value || athlete.division
+    // La franja de edad primero: `ageDivision.value` arranca en el 'Open' del
+    // formulario vacío y un Junior quedaba anotado solo en Open (mismo precio,
+    // pero fuera de su franja). Open se sigue pudiendo sumar o elegir.
+    const division = ageDivision.suggested || athlete.division || ageDivision.value
     ;[
       ['division', division],
       ['category', athlete.category],
@@ -746,7 +984,7 @@ export default function RegisterPage({
         onUpdateForm({ target: { name, value: String(value) } })
       }
     })
-  }, [ageDivision.value, athlete, flow, onUpdateForm])
+  }, [ageDivision.suggested, ageDivision.value, athlete, flow, onUpdateForm])
 
   // Vacío, inválida o cambio de evento/DOB → sugerida (autocomplete).
   useEffect(() => {
@@ -777,6 +1015,9 @@ export default function RegisterPage({
       committedCompetitionRegistration.category,
       committedCompetitionRegistration.bodyweightKg,
       committedCompetitionRegistration.declaredWeightClass,
+      committedCompetitionRegistration.secondaryDivision,
+      (committedCompetitionRegistration.categories ?? []).join(','),
+      (committedCompetitionRegistration.modalities ?? []).join(','),
     ].join(':')
     if (committedCompetitionPrefillRef.current === prefillKey) return
     committedCompetitionPrefillRef.current = prefillKey
@@ -790,6 +1031,18 @@ export default function RegisterPage({
         onUpdateForm({ target: { name, value: String(value) } })
       }
     })
+    // Segunda división y levantamientos viajan siempre, también vacíos: si no, un
+    // valor viejo del formulario se mostraría como si fuera de la inscripción.
+    ;[
+      ['secondaryDivision', committedCompetitionRegistration.secondaryDivision ?? ''],
+      ['categories', committedCompetitionRegistration.categories ?? [committedCompetitionRegistration.category]],
+      [
+        'modalities',
+        committedCompetitionRegistration.modalities?.length
+          ? committedCompetitionRegistration.modalities
+          : ['full_power'],
+      ],
+    ].forEach(([name, value]) => onUpdateForm({ target: { name, value } }))
   }, [committedCompetitionRegistration, onUpdateForm])
 
   /**
@@ -825,6 +1078,8 @@ export default function RegisterPage({
       appliesTo: 'combo',
       eventSlug: event.slug,
       paymentMethod: toApiPaymentMethod(form.paymentMethod),
+      categories: selectedRegistrationCategories,
+      modalities: pricedModalities,
     })
     if (isCancelled?.()) return null
     if (!preview?.valid) return preview ?? { valid: false }
@@ -969,6 +1224,9 @@ export default function RegisterPage({
         appliesTo: scope,
         eventSlug: event.slug,
         paymentMethod: toApiPaymentMethod(previewPaymentMethod),
+        secondaryDivision: secondDivisionSelected ? form.secondaryDivision : undefined,
+        categories: selectedRegistrationCategories,
+        modalities: pricedModalities,
       })
       if (staleEvent()) return
       if (!preview.valid) {
@@ -983,6 +1241,8 @@ export default function RegisterPage({
             appliesTo: 'combo',
             eventSlug: event.slug,
             paymentMethod: toApiPaymentMethod(previewPaymentMethod),
+            categories: selectedRegistrationCategories,
+            modalities: pricedModalities,
           })
           if (staleEvent()) return
           if (comboPreview.valid) {
@@ -1058,7 +1318,7 @@ export default function RegisterPage({
     if (!discountPreview) return
     void applyDiscountCode()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.paymentMethod])
+  }, [form.paymentMethod, form.secondaryDivision])
 
   function clearDiscountCode() {
     // Si el código quitado era el que destrabó el combo, hay que re-trabar el
@@ -1109,7 +1369,9 @@ export default function RegisterPage({
   const content = {
     profile: [
       t('pages.register.profileTitle'),
-      t('pages.register.profileDesc'),
+      resumeEventTitle
+        ? t('pages.register.profileDescResume', { event: resumeEventTitle })
+        : t('pages.register.profileDesc'),
       t('pages.register.profileSubmit'),
     ],
     competition: [
@@ -1165,6 +1427,9 @@ export default function RegisterPage({
     if (checkoutIntent !== 'change_method') return
     if (flow !== 'competition' && flow !== 'membership') return
     if (!visibleOrder) return
+    const orderKey = visibleOrder.paymentId ?? visibleOrder.id ?? 'order'
+    if (changeMethodIntentOrderRef.current === orderKey) return
+    changeMethodIntentOrderRef.current = orderKey
     setChangingMethod(true)
     onCheckoutIntentConsumed?.()
   }, [checkoutIntent, flow, visibleOrder, onCheckoutIntentConsumed])
@@ -1222,14 +1487,47 @@ export default function RegisterPage({
   const membershipListPrice = Number(eventPricing.membership) || 0
   const registrationListPrice = Number(total) || Number(eventPricing.registration) || 0
   const comboListPrice = comboAvailability.offer ? Number(comboAvailability.offer.price) : 0
-  const checkoutListTotal = previewCheckoutPrice({
+  // Segunda división (Open al 50%) y cada modalidad extra (50%): se suman sobre
+  // el precio de la inscripción suelta del canal elegido, tanto en la
+  // inscripción como dentro del combo. La API repite la cuenta con
+  // `priceRegistrationSelection`; esto solo previsualiza.
+  const secondDivisionSelected =
+    flow === 'competition' && canAddSecondDivision && Boolean(form.secondaryDivision)
+  // Sin lista en el formulario se compite Full Power (igual que las casillas).
+  const pricedModalities = flow === 'competition' ? (form.modalities ?? ['full_power']) : []
+  const extraModalities = extraModalityCount(pricedModalities)
+  // Clave estable para dependencias: la lista cambia de identidad en cada render.
+  const pricedModalitiesKey = pricedModalities.join(',')
+  const registrationChannelPrice = previewCheckoutPrice({
     paymentMethod: form.paymentMethod,
-    manualPrice:
-      effectivePurchaseType === 'combo'
-        ? comboAvailability.offer.manualPrice
-        : eventPricing.registrationManual,
-    fallback: effectivePurchaseType === 'combo' ? comboAvailability.offer.price : total,
-  })
+    manualPrice: eventPricing.registrationManual,
+    fallback: registrationListPrice,
+  }) * registrationCategoryCount
+  const secondDivisionFee = secondDivisionSelected
+    ? secondDivisionSurcharge(registrationChannelPrice)
+    : 0
+  const secondDivisionListFee = secondDivisionSelected
+    ? secondDivisionSurcharge(registrationListPrice * registrationCategoryCount)
+    : 0
+  const modalityFee = extraModalitySurcharge(registrationChannelPrice, pricedModalities)
+  const modalityListFee = extraModalitySurcharge(
+    registrationListPrice * registrationCategoryCount,
+    pricedModalities,
+  )
+  // Lo que se ve al lado de una modalidad sin marcar: el 50% de una inscripción.
+  const modalityUnitFee = extraModalitySurcharge(registrationChannelPrice, ['full_power', 'bench'])
+  const checkoutListTotal =
+    previewCheckoutPrice({
+      paymentMethod: form.paymentMethod,
+      manualPrice:
+        effectivePurchaseType === 'combo'
+          ? comboAvailability.offer.manualPrice
+          : eventPricing.registrationManual,
+      fallback: effectivePurchaseType === 'combo' ? comboAvailability.offer.price : total,
+    }) *
+      registrationCategoryCount +
+    secondDivisionFee +
+    modalityFee
   // Con un código aplicado, lo que se cobra es el importe del preview — sea un
   // descuento porcentual o una promo de precio fijo. Mostrar el de lista dejaba
   // el resumen y la barra de checkout diciendo un número que no era el de la
@@ -1240,12 +1538,76 @@ export default function RegisterPage({
     activeDiscount?.valid && Number.isFinite(discountedTotal) && discountedTotal > 0
       ? discountedTotal
       : checkoutListTotal
+  const wiseBaseUsd = Number(eventPricing.wisePrice) > 0 ? Number(eventPricing.wisePrice) : null
+  // La primera modalidad va en la inscripción. Cada una más es su propia línea
+  // al 50%, con el nombre: el total no las junta en "N × 50%". Wise cobra en
+  // USD con su propio precio, así que ahí no se desglosa en pesos.
+  const orderedModalities = normalizeModalities(
+    pricedModalities.length ? pricedModalities : ['full_power'],
+  )
+  const includedModality = orderedModalities[0] ?? 'full_power'
+  const extraModalityLines = orderedModalities.slice(1).map((value) => ({
+    key: `modality-${value}`,
+    label: t('pages.register.breakdownModality', {
+      modality: t(`pages.register.modalityOptions.${value}`),
+    }),
+    amount: modalityUnitFee,
+  }))
+  const checkoutBreakdown =
+    (secondDivisionSelected || extraModalityLines.length > 0) &&
+    form.paymentMethod !== 'wise_transfer'
+      ? [
+          {
+            key: 'base',
+            label: t('pages.register.breakdownRegistrationModality', {
+              division: form.division,
+              modality: t(`pages.register.modalityOptions.${includedModality}`),
+            }),
+            amount: checkoutListTotal - secondDivisionFee - modalityFee,
+          },
+          ...(secondDivisionSelected
+            ? [
+                {
+                  key: 'second',
+                  label: t('pages.register.breakdownSecondDivision', {
+                    division: form.secondaryDivision,
+                  }),
+                  amount: secondDivisionFee,
+                },
+              ]
+            : []),
+          ...extraModalityLines,
+          ...(checkoutTotal !== checkoutListTotal
+            ? [
+                {
+                  key: 'discount',
+                  label: t('pages.register.breakdownDiscount'),
+                  amount: checkoutTotal - checkoutListTotal,
+                },
+              ]
+            : []),
+        ]
+      : null
   const checkoutTotalLabel =
     form.paymentMethod === 'wise_transfer'
-      ? wisePriceLabel(checkoutTotal, locale, eventPricing.wisePrice)
+      ? wisePriceLabel(
+          checkoutTotal,
+          locale,
+          wiseBaseUsd
+            ? priceRegistrationSelection({
+                basePrice: wiseBaseUsd,
+                secondary: secondDivisionSelected ? form.secondaryDivision : '',
+                categoryCount: registrationCategoryCount,
+                modalities: pricedModalities,
+              }).defaultPrice
+            : eventPricing.wisePrice,
+        )
       : checkoutTotal
   const catalogCheckoutTotal =
-    effectivePurchaseType === 'combo' ? comboListPrice : registrationListPrice
+    (effectivePurchaseType === 'combo' ? comboListPrice : registrationListPrice) *
+      registrationCategoryCount +
+    secondDivisionListFee +
+    modalityListFee
   const showChannelCompareTotal =
     (form.paymentMethod === 'manual_link' || form.paymentMethod === 'cash_pitbull') &&
     Number.isFinite(Number(catalogCheckoutTotal)) &&
@@ -1275,6 +1637,9 @@ export default function RegisterPage({
           appliesTo: effectivePurchaseType === 'combo' ? 'combo' : 'registration',
           eventSlug: event.slug,
           paymentMethod: toApiPaymentMethod(form.paymentMethod),
+          secondaryDivision: secondDivisionSelected ? form.secondaryDivision : undefined,
+          categories: selectedRegistrationCategories,
+          modalities: pricedModalitiesKey ? pricedModalitiesKey.split(',') : [],
         })
         if (!cancelled) setPublicPromo(preview.valid ? preview : null)
       } catch {
@@ -1286,7 +1651,17 @@ export default function RegisterPage({
     return () => {
       cancelled = true
     }
-  }, [effectivePurchaseType, event?.slug, flow, form.paymentMethod, hasAppliedDiscountCode])
+  }, [
+    effectivePurchaseType,
+    event?.slug,
+    flow,
+    form.paymentMethod,
+    selectedRegistrationCategories,
+    pricedModalitiesKey,
+    form.secondaryDivision,
+    hasAppliedDiscountCode,
+    secondDivisionSelected,
+  ])
 
   const comboSavings =
     comboAvailability.offer && membershipListPrice + registrationListPrice > comboListPrice
@@ -1492,16 +1867,54 @@ export default function RegisterPage({
   // porque hoy no existe una opcion Wise dentro de su lista de medios.
   const wiseEnabled = resolvedChannels.wiseTransfer
   const wiseAvailableForPurchase = wiseEnabled && effectivePurchaseType !== 'combo'
+  // Las etiquetas de precio de cada medio incluyen las categorías y los
+  // recargos (segunda división, modalidades extra): el número que se cobra.
+  const withSelectionPrice = (amount) =>
+    amount === null || amount === undefined
+      ? amount
+      : priceRegistrationSelection({
+          basePrice: amount,
+          secondary: secondDivisionSelected ? form.secondaryDivision : '',
+          categoryCount: registrationCategoryCount,
+          modalities: pricedModalities,
+        }).defaultPrice
+  const selectionExtras = (registrationAmount) => {
+    const priced = priceRegistrationSelection({
+      basePrice: registrationAmount,
+      secondary: secondDivisionSelected ? form.secondaryDivision : '',
+      categoryCount: registrationCategoryCount,
+      modalities: pricedModalities,
+    })
+    return priced.surcharge + priced.modalitySurcharge
+  }
+  const comboHasExtras =
+    secondDivisionSelected || extraModalities > 0 || registrationCategoryCount > 1
   const competitionPaymentMethods =
     flow === 'competition'
       ? buildRegisterPaymentMethods({
           cashEnabled,
-          comboOffer: comboAvailability.offer,
+          comboOffer:
+            comboAvailability.offer && comboHasExtras
+              ? {
+                  ...comboAvailability.offer,
+                  price:
+                    Number(comboAvailability.offer.price) * registrationCategoryCount +
+                    selectionExtras(registrationListPrice),
+                  manualPrice:
+                    comboAvailability.offer.manualPrice == null
+                      ? comboAvailability.offer.manualPrice
+                      : Number(comboAvailability.offer.manualPrice) * registrationCategoryCount +
+                        selectionExtras(eventPricing.registrationManual ?? registrationListPrice),
+                }
+              : comboAvailability.offer,
           locale,
           mercadoPagoEnabled,
-          registrationManualPrice: eventPricing.registrationManual,
-          registrationPrice: registrationListPrice,
-          registrationWisePrice: eventPricing.wisePrice,
+          registrationManualPrice: withSelectionPrice(eventPricing.registrationManual),
+          registrationPrice: withSelectionPrice(registrationListPrice),
+          registrationWisePrice:
+            Number(eventPricing.wisePrice) > 0
+              ? withSelectionPrice(eventPricing.wisePrice)
+              : eventPricing.wisePrice,
           purchaseType: effectivePurchaseType,
           t,
           transferEnabled,
@@ -1570,7 +1983,7 @@ export default function RegisterPage({
           athletePhotoUrl: athlete?.photoUrl,
           qrCode: credentialCode,
           eventTitle: event?.title,
-          eventDate: event?.date,
+          eventDate: competitionEventDay,
           eventVenue: event?.venue,
           eventLocation: event?.location,
           category: form.category,
@@ -1617,6 +2030,37 @@ export default function RegisterPage({
     if (errors[field]) setErrors((current) => ({ ...current, [field]: '' }))
     setSubmitError('')
     setEmailBlocked(false)
+  }
+
+  // Divisiones: las casillas (edad / Open) se traducen a `division` (la que paga el
+  // 100%) y `secondaryDivision` (Open al 50%), que es lo que viaja a la API.
+  function changeDivisionChoice(value, checked) {
+    const current = choicesFromDivisions(
+      { division: form.division, secondaryDivision: form.secondaryDivision },
+      ageDivision.suggested,
+    )
+    const next = {
+      natural: ageDivision.suggested,
+      age: value === 'age' ? checked : current.age,
+      open: value === 'open' ? checked : current.open,
+    }
+    const { division, secondaryDivision } = divisionsFromChoices(next)
+    changeField({ target: { name: 'division', value: division } })
+    changeField({ target: { name: 'secondaryDivision', value: secondaryDivision } })
+  }
+
+  function changeModalities(value) {
+    changeField({
+      target: { name: 'modalities', value: toggleModality(form.modalities ?? ['full_power'], value) },
+    })
+  }
+
+  function changeRegistrationCategory(value, checked) {
+    const next = checked
+      ? [...new Set([...selectedRegistrationCategories, value])]
+      : selectedRegistrationCategories.filter((category) => category !== value)
+    changeField({ target: { name: 'categories', value: next } })
+    changeField({ target: { name: 'category', value: next[0] ?? '' } })
   }
 
   function ensureGymNameConfirmed(resume) {
@@ -1692,7 +2136,7 @@ export default function RegisterPage({
     const snapshot = { ...form, [field]: rawValue }
     const validation =
       flow === 'competition'
-        ? validateCompetitionFields(snapshot, [field], t, competitionAgeContext)
+        ? validateCompetitionFields(snapshot, [field], t, competitionValidationContext)
         : flow === 'profile'
           ? validateAthleteFields(snapshot, [field], t)
           : null
@@ -1818,10 +2262,15 @@ export default function RegisterPage({
 
   function applyRegisterSubmitResult(result, { requestedPaymentMethod } = {}) {
     if (result?.error) {
+      // El rescate ("¿problemas para pagar?") es para fallas de la pasarela o
+      // de red. Un 4xx es una regla de negocio (cupo lleno, solo anuncio,
+      // falta la modalidad): ofrecer transferencia ahí era engañoso.
+      const businessRejection = result.status >= 400 && result.status < 500
       const canRecoverPayment =
         requestedPaymentMethod === 'mercado_pago' &&
         isPaidCheckout &&
         !result.fields &&
+        !businessRejection &&
         result.code !== 'EMAIL_NOT_VERIFIED' &&
         result.code !== 'PLU08'
       if (canRecoverPayment) {
@@ -1909,7 +2358,7 @@ export default function RegisterPage({
       flow === 'profile'
         ? validateAthleteForm(form, t)
         : flow === 'competition'
-          ? validateCompetitionForm(form, t, competitionAgeContext)
+          ? validateCompetitionForm(form, t, competitionValidationContext)
           : validateMembershipForm(form, t)
 
     if (!validation.success) {
@@ -1942,7 +2391,16 @@ export default function RegisterPage({
         // silencio y "Continuar al pago" parece un botón roto. Pasó con una
         // cuenta sin división, categoría ni peso cargados en su ficha: el
         // formulario nacía vacío y el pago nunca arrancaba.
-        setSubmitError(validation.error)
+        // Con varios campos mal, el cartel decía solo el primero: corregirlo y
+        // volver a tocar el botón revelaba el siguiente. Ahora los lista.
+        const messages = [...new Set(Object.values(validation.errors).filter(Boolean))]
+        if (messages.length > 1) {
+          const summary = t('pages.register.fixErrorsSummary', { count: messages.length })
+          setSubmitErrorDetails({ message: summary, items: messages })
+          setSubmitError(summary)
+        } else {
+          setSubmitError(validation.error)
+        }
       }
 
       submissionInFlightRef.current = false
@@ -1992,6 +2450,9 @@ export default function RegisterPage({
         // El servidor vuelve a exigirlo: destrabar el paquete en pantalla no
         // alcanza para comprarlo.
         comboAccessCode: effectivePurchaseType === 'combo' ? comboCode || undefined : undefined,
+        // Las categorías que se ven marcadas, no `form.categories`: en un evento
+        // común queda en su default y mandaba otra categoría que la elegida.
+        categories: selectedRegistrationCategories,
       })
     } catch (error) {
       result = { error: error?.message ?? t('common.errorMessage') }
@@ -2048,6 +2509,9 @@ export default function RegisterPage({
         // El servidor vuelve a exigirlo: destrabar el paquete en pantalla no
         // alcanza para comprarlo.
         comboAccessCode: effectivePurchaseType === 'combo' ? comboCode || undefined : undefined,
+        // Las categorías que se ven marcadas, no `form.categories`: en un evento
+        // común queda en su default y mandaba otra categoría que la elegida.
+        categories: selectedRegistrationCategories,
       })
     } catch (error) {
       result = { error: error?.message ?? t('common.errorMessage') }
@@ -2196,6 +2660,29 @@ export default function RegisterPage({
   const competitionOrderConfirmed =
     flow === 'competition' && Boolean(visibleOrder) && registrationAdmitted
   const competitionSettling = flow === 'competition' && Boolean(visibleOrder) && !changingMethod
+
+  // Al pasar del formulario al pago, el formulario se achica y el scroll
+  // quedaba donde estaba: en mobile la persona terminaba mirando el footer
+  // justo cuando tenía que pagar. Se lleva la vista y el foco al panel.
+  useEffect(() => {
+    const entered = competitionSettling && !wasSettlingRef.current
+    wasSettlingRef.current = competitionSettling
+    if (!entered || !settleRef.current) return
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    // En mobile el estado de la orden (con las instrucciones de transferencia
+    // o efectivo) queda apilado arriba del panel: se arranca desde ahí.
+    // Se renderiza en el aside (desktop) y en el contexto mobile: va el visible.
+    const status = [...document.querySelectorAll('.register-status--settle')].find(
+      (element) => element.getClientRects().length > 0,
+    )
+    const statusAbove =
+      status && status.getBoundingClientRect().top < settleRef.current.getBoundingClientRect().top
+    ;(statusAbove ? status : settleRef.current).scrollIntoView?.({
+      block: 'start',
+      behavior: reduced ? 'auto' : 'smooth',
+    })
+    settleRef.current.focus({ preventScroll: true })
+  }, [competitionSettling])
   /**
    * "Settling" es el rato en que la orden todavía se está cobrando. Con la
    * inscripción ya admitida eso terminó: el brick embebido mostraba
@@ -2305,7 +2792,9 @@ export default function RegisterPage({
           {athlete?.fullName ? (
             <strong className="register-intro__athlete">{athlete.fullName}</strong>
           ) : null}
-          {event?.date ? <span>{formatShortDate(event.date, locale)}</span> : null}
+          {competitionEventDay ? (
+            <span>{formatShortDate(competitionEventDay, locale)}</span>
+          ) : null}
           {event?.venue || event?.location ? <span>{event?.venue || event?.location}</span> : null}
         </div>
       )}
@@ -2707,63 +3196,158 @@ export default function RegisterPage({
         </p>
       ) : null}
       <div className="register-competition-fields">
-        <ChoiceField
-          className="register-competition-choice register-competition-choice--division"
-          disabled={Boolean(committedCompetitionRegistration)}
-          error={errors.division}
-          label={t('pages.register.division')}
-          name="division"
-          value={form.division}
-          onBlur={blurField}
-          onChange={changeField}
-          options={divisionOptions}
-        />
-        <ChoiceField
-          className="register-competition-choice register-competition-choice--category"
-          disabled={Boolean(committedCompetitionRegistration)}
-          error={errors.category}
-          label={t('pages.register.category')}
-          name="category"
-          value={form.category}
-          onBlur={blurField}
-          onChange={changeField}
-          options={formOptions.category}
-        />
-        <Select
-          className="register-competition-weight-class"
-          disabled={Boolean(committedCompetitionRegistration)}
-          error={errors.declaredWeightClass}
-          label={t('pages.register.weightClass')}
-          name="declaredWeightClass"
-          options={weightClassOptions}
-          value={form.declaredWeightClass ?? ''}
-          onBlur={blurField}
-          onChange={changeField}
-        />
-        <Field
-          className="register-competition-weight"
-          disabled={Boolean(committedCompetitionRegistration)}
-          error={errors.estimatedWeight}
-          inputMode="decimal"
-          label={t('pages.register.bodyWeight')}
-          name="estimatedWeight"
-          placeholder={t('pages.register.bodyWeightPlaceholder')}
-          value={form.estimatedWeight}
-          onBlur={blurField}
-          onChange={changeField}
-        />
-        {suggestWeightClass(athlete?.sex, form.estimatedWeight) &&
-        suggestWeightClass(athlete?.sex, form.estimatedWeight) !== form.declaredWeightClass &&
-        !committedCompetitionRegistration ? (
-          <p className="register-competition-division-hint" role="status">
-            {t('pages.register.weightClassSuggestion', {
-              className: suggestWeightClass(athlete?.sex, form.estimatedWeight),
+        {flow === 'competition' && ageDivision.hasAgeRule ? (
+          <div className="register-competition-secondary">
+            {ageDivision.suggested === 'Open' ? (
+              <p className="register-competition-division-hint">
+                {t('pages.register.divisionsOpenOnlyHint')}
+              </p>
+            ) : !ageDivisionOffered ? (
+              <p className="register-competition-division-hint">
+                {t('pages.register.divisionsEventOpenOnly')}
+              </p>
+            ) : (
+              <CheckboxGroupField
+                className="register-competition-choice register-competition-choice--division"
+                disabled={Boolean(committedCompetitionRegistration)}
+                error={errors.division}
+                hint={t('pages.register.divisionsHint')}
+                label={t('pages.register.divisions')}
+                name="divisions"
+                values={[
+                  ...(divisionChoices.age ? ['age'] : []),
+                  ...(divisionChoices.open ? ['open'] : []),
+                ]}
+                onChange={changeDivisionChoice}
+                options={[
+                  ['age', t('pages.register.divisionAgeOption', { division: ageDivision.suggested })],
+                  [
+                    'open',
+                    divisionChoices.age
+                      ? t('pages.register.divisionOpenFee', {
+                          amount: money(secondDivisionSurcharge(registrationChannelPrice), locale),
+                        })
+                      : t('pages.register.divisionOpenOption'),
+                  ],
+                ]}
+              />
+            )}
+          </div>
+        ) : (
+          <ChoiceField
+            className="register-competition-choice register-competition-choice--division"
+            disabled={Boolean(committedCompetitionRegistration)}
+            error={errors.division}
+            label={t('pages.register.division')}
+            name="division"
+            value={form.division}
+            onBlur={blurField}
+            onChange={changeField}
+            options={divisionOptions}
+          />
+        )}
+        {/* Con la inscripción ya asentada se muestra lo que eligió (controles
+            deshabilitados), aunque el torneo después haya acotado la oferta. */}
+        {submissionCategoriesEnabled ? (
+          <CheckboxGroupField
+            className="register-competition-choice register-competition-choice--category"
+            disabled={Boolean(committedCompetitionRegistration)}
+            error={errors.category}
+            hint={t('pages.register.categoryMultipleHint')}
+            label={t('pages.register.category')}
+            name="categories"
+            values={selectedRegistrationCategories}
+            onChange={changeRegistrationCategory}
+            options={categoryOptions.map((option) => [optionValue(option), optionLabel(option)])}
+          />
+        ) : categoryOptions.length === 1 && !committedCompetitionRegistration ? (
+          <RegisterFixedChoice
+            hint={t('pages.register.fixedChoiceHint')}
+            label={t('pages.register.category')}
+            value={optionLabel(categoryOptions[0])}
+          />
+        ) : (
+          <ChoiceField
+            className="register-competition-choice register-competition-choice--category"
+            disabled={Boolean(committedCompetitionRegistration)}
+            error={errors.category}
+            label={t('pages.register.category')}
+            name="category"
+            value={form.category}
+            onBlur={blurField}
+            onChange={changeField}
+            options={categoryOptions}
+          />
+        )}
+        {modalityValues.length === 1 && !committedCompetitionRegistration ? (
+          <RegisterFixedChoice
+            hint={t('pages.register.fixedChoiceHint')}
+            label={t('pages.register.modality')}
+            value={t(`pages.register.modalityOptions.${modalityValues[0]}`)}
+          />
+        ) : (
+          <CheckboxGroupField
+            className="register-competition-choice register-competition-choice--modality"
+            disabled={Boolean(committedCompetitionRegistration)}
+            error={errors.modalities}
+            hint={
+              modalityUnitFee > 0
+                ? t('pages.register.modalityFeeHint', { amount: money(modalityUnitFee, locale) })
+                : t('pages.register.modalityHint')
+            }
+            label={t('pages.register.modality')}
+            name="modalities"
+            values={form.modalities ?? ['full_power']}
+            onChange={changeModalities}
+            options={modalityValues.map((value) => {
+              const label = t(`pages.register.modalityOptions.${value}`)
+              // Con una ya marcada, cada casilla libre dice cuánto suma.
+              const chosen = form.modalities ?? ['full_power']
+              const adds = modalityUnitFee > 0 && chosen.length > 0 && !chosen.includes(value)
+              return [
+                value,
+                adds
+                  ? t('pages.register.modalityOptionFee', {
+                      modality: label,
+                      amount: money(modalityUnitFee, locale),
+                    })
+                  : label,
+              ]
             })}
-          </p>
-        ) : null}
-        {ageDivision.hasAgeRule && ageDivision.suggested && !committedCompetitionRegistration ? (
+          />
+        )}
+        {/* Primero el peso: de él sale la clase sugerida, que se completa sola
+            hasta que el atleta elige otra. */}
+        <div className="register-competition-weight-row">
+          <Field
+            className="register-competition-weight"
+            disabled={Boolean(committedCompetitionRegistration)}
+            error={errors.estimatedWeight}
+            inputMode="decimal"
+            label={t('pages.register.bodyWeight')}
+            name="estimatedWeight"
+            placeholder={t('pages.register.bodyWeightPlaceholder')}
+            value={form.estimatedWeight}
+            onBlur={blurField}
+            onChange={changeField}
+          />
+          <Select
+            className="register-competition-weight-class"
+            disabled={Boolean(committedCompetitionRegistration)}
+            error={errors.declaredWeightClass}
+            label={t('pages.register.weightClass')}
+            name="declaredWeightClass"
+            options={weightClassOptions}
+            value={form.declaredWeightClass ?? ''}
+            onBlur={blurField}
+            onChange={changeDeclaredWeightClass}
+          />
+        </div>
+        {suggestedWeightClass && !committedCompetitionRegistration ? (
           <p className="register-competition-division-hint" role="status">
-            {t('pages.register.divisionAgeHint', { division: ageDivision.suggested })}
+            {suggestedWeightClass === form.declaredWeightClass
+              ? t('pages.register.weightClassAuto')
+              : t('pages.register.weightClassSuggestion', { className: suggestedWeightClass })}
           </p>
         ) : null}
       </div>
@@ -2875,6 +3459,7 @@ export default function RegisterPage({
               paymentMethod={form.paymentMethod}
               t={t}
               total={checkoutTotal}
+              breakdown={checkoutBreakdown}
             />
           )}
           {registerProgress}
@@ -2906,6 +3491,7 @@ export default function RegisterPage({
               <RegisterProfileWelcome
                 athleteName={visibleOrder.athleteName}
                 onNavigate={onNavigate}
+                resumeEventTitle={resumeEventTitle}
               />
             </div>
           ) : membershipOrderConfirmed ? (
@@ -2944,7 +3530,7 @@ export default function RegisterPage({
               <RegisterCompetitionConfirmation
                 cardData={cardData}
                 order={visibleOrder}
-                slotLabel={[form.division, form.category].filter(Boolean).join(' · ')}
+                slotLabel={competitionPicksLabel(form, t, { withBodyweight: false })}
                 onNavigate={onNavigate}
                 onOpenCard={openCardModal}
               />
@@ -2984,7 +3570,7 @@ export default function RegisterPage({
               />
             </div>
           ) : competitionSettling ? (
-            <div className="register-settle">
+            <div ref={settleRef} className="register-settle" tabIndex={-1}>
               {/* El acuse y el error de esta pantalla. `submitError` sólo se
                   pintaba dentro del formulario, así que una acción hecha desde
                   la liquidación —cancelar la orden— no tenía dónde contar cómo
@@ -3474,7 +4060,7 @@ export default function RegisterPage({
                         </p>
                       </div>
                       <button
-                        className="register-profile-readiness__action"
+                        className={`register-profile-readiness__action${competitionProfileMissing.length ? '' : ' register-profile-readiness__action--quiet'}`}
                         type="button"
                         onClick={() => onNavigate?.('profile', { tab: 'account-personal-data' })}
                       >
@@ -3486,15 +4072,37 @@ export default function RegisterPage({
                         <ArrowRight aria-hidden size={15} strokeWidth={2.25} />
                       </button>
                     </div>
+                    {competitionProfileMissing.length ? (
+                      <p className="register-profile-readiness__missing">
+                        {t('pages.register.competitionProfileMissingList', {
+                          fields: competitionProfileMissing
+                            .map((field) => t(COMPETITION_PROFILE_FIELD_LABELS[field]))
+                            .join(', '),
+                        })}
+                      </p>
+                    ) : null}
+                    {/* Con el perfil completo los datos son para revisar, no
+                        para leer: se pliegan y el formulario sube al primer
+                        viewport. Si falta algo, quedan a la vista. */}
                     {competitionProfileDetails.length ? (
-                      <dl className="register-profile-readiness__details">
-                        {competitionProfileDetails.map(([label, value]) => (
-                          <div key={label}>
-                            <dt>{label}</dt>
-                            <dd title={value}>{value}</dd>
-                          </div>
-                        ))}
-                      </dl>
+                      <details
+                        className="register-profile-readiness__disclosure"
+                        open={competitionProfileMissing.length > 0}
+                      >
+                        <summary>
+                          {competitionProfileMissing.length
+                            ? t('pages.register.competitionProfileDetailsLoaded')
+                            : competitionProfileSummary}
+                        </summary>
+                        <dl className="register-profile-readiness__details">
+                          {competitionProfileDetails.map(([label, value]) => (
+                            <div key={label}>
+                              <dt>{label}</dt>
+                              <dd title={value}>{value}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      </details>
                     ) : null}
                   </section>
                   {/* Sin `step`: la inscripción tiene una sola sección. El "01"
@@ -3572,6 +4180,14 @@ export default function RegisterPage({
                       ? t('pages.register.membershipPaymentInProgress')
                       : submitError}
                   </p>
+                  {!membershipPaymentInProgress &&
+                  submitErrorDetails?.message === submitError ? (
+                    <ul className="form-submit-error__list">
+                      {submitErrorDetails.items.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : null}
                   {membershipPaymentInProgress ? (
                     <button
                       type="button"
@@ -3673,6 +4289,23 @@ export default function RegisterPage({
                   </button>
                 ) : (
                   <>
+                    {flow === 'competition' && competitionPicksLabel(form, t) ? (
+                      // El aside con el resumen se oculta debajo de 900px: sin
+                      // esta línea, en mobile se pagaba sin ver qué se eligió.
+                      <p className="register-competition-picks-mobile">
+                        {competitionPicksLabel(form, t)}
+                      </p>
+                    ) : null}
+                    {flow === 'competition' && checkoutBreakdown?.length ? (
+                      <dl className="register-competition-ticket__breakdown register-competition-breakdown-mobile">
+                        {checkoutBreakdown.map((line) => (
+                          <div key={line.key}>
+                            <dt>{line.label}</dt>
+                            <dd>{money(line.amount, locale)}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    ) : null}
                     {isPaidCheckout ? (
                       <RegisterCheckoutBar
                         checkoutTotal={checkoutTotalLabel}
