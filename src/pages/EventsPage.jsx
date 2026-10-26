@@ -26,7 +26,7 @@ import {
   getFeaturedEvent,
   getFeaturedEventDestination,
   getNextUpcomingEvent,
-  getPublicCatalogEvents,
+  getRegistrableCatalogEvents,
   isPitbullClassicEvent,
   sortEventsForCalendar,
 } from '../lib/eventNavigation.js'
@@ -486,6 +486,8 @@ export default function EventsPage({
   onNavigate,
   onSelectEvent,
   events: eventsProp = UPCOMING_EVENTS,
+  // Landings en construcción: solo entran al calendario las que venden.
+  underConstructionEvents = [],
   session,
   memberships = [],
   registrations = [],
@@ -579,15 +581,17 @@ export default function EventsPage({
 
   const events = useMemo(() => {
     const eventsBySlug = new Map()
-    for (const event of eventsProp) {
+    for (const event of [...eventsProp, ...underConstructionEvents]) {
       if (event?.slug) eventsBySlug.set(event.slug, event)
     }
     for (const event of Object.values(supabaseBySlug)) {
       if (event?.slug) eventsBySlug.set(event.slug, { ...eventsBySlug.get(event.slug), ...event })
     }
 
-    return getPublicCatalogEvents([...eventsBySlug.values()], {
-      includeDevelopmentStubs: false,
+    // Una landing en construcción que ya vende se lista: la inscripción no
+    // espera a la página oficial. Cerrada, sigue fuera del calendario.
+    return getRegistrableCatalogEvents([...eventsBySlug.values()], {
+      registrationEnabled: checkoutAvailability.registrationEnabled !== false,
     }).map((event) => {
       const merged = withPublicEventStatus(
         ensureEventCalendarFields({ ...event, ...supabaseBySlug[event.slug] }),
@@ -599,7 +603,13 @@ export default function EventsPage({
         displayDate: formatEventDisplayDate(merged),
       }
     })
-  }, [eventsProp, supabaseBySlug, formatEventDisplayDate, checkoutAvailability.registrationEnabled])
+  }, [
+    eventsProp,
+    underConstructionEvents,
+    supabaseBySlug,
+    formatEventDisplayDate,
+    checkoutAvailability.registrationEnabled,
+  ])
 
   const spotlightEvent = getFeaturedEvent(events)
   const nextEvent = useMemo(() => getNextUpcomingEvent(events), [events])

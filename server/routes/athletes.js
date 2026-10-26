@@ -31,6 +31,8 @@ async function resolveScopedRegistrationOpensAt(env, supabase, eventSlug) {
   return resolveEventRegistrationOpensAt(supabase, { eventSlug })
 }
 import { validateBody } from '../lib/validate.js'
+import { REGISTRATION_IMPORT_BATCH_SIZE } from '../../shared/registrationSheet.js'
+import { runRegistrationSheetImport } from '../services/registrationSheetImport.js'
 import { requirePermission } from '../middleware/auth.js'
 import { readSessionFromRequest } from '../services/sessionService.js'
 import {
@@ -4002,6 +4004,75 @@ export function createAthleteRoutes({
           metadata: requestAuditMetadata(req, { slug: event.slug }),
         })
         res.json({ event })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Planilla de inscripciones (.xlsx) de vuelta: `apply: false` devuelve qué
+   * cambiaría cada fila; `apply: true` aplica las válidas. El archivo se lee
+   * en el navegador y llega en tandas (`REGISTRATION_IMPORT_BATCH_SIZE`).
+   */
+  router.post(
+    '/admin/registrations/import',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(
+      z.object({
+        apply: z.boolean().default(false),
+        eventSlug: z.string().trim().min(1).max(160).nullable().optional(),
+        rows: z
+          .array(
+            z.object({
+              row: z.number().int().min(1).max(1_000_000),
+              registrationId: z.string().uuid(),
+              values: z
+                .object({
+                  division: z.string().trim().max(40).optional(),
+                  category: z.string().trim().max(40).optional(),
+                  modalities: z.array(z.string().trim().max(30)).max(10).optional(),
+                  declaredWeightClass: z.string().trim().max(20).optional(),
+                  bodyweightKg: z.number().nullable().optional(),
+                })
+                .strict(),
+            }),
+          )
+          .min(1)
+          .max(REGISTRATION_IMPORT_BATCH_SIZE),
+      }),
+    ),
+    async (req, res, next) => {
+      try {
+        const { apply, eventSlug = null, rows } = req.validatedBody
+        const result = await runRegistrationSheetImport({
+          repository: repo(),
+          rows,
+          apply,
+          eventSlug,
+          actor: actorLabel(req),
+        })
+        if (apply && result.summary.applied + result.summary.failed > 0) {
+          await recordOperationalAuditEvent(auditClient(), {
+            source: 'identity',
+            action: 'registration.sheet_import',
+            entityType: 'event_registration',
+            entityId: 'bulk',
+            actorType: 'staff',
+            actorId: actorLabel(req),
+            status: result.summary.failed ? 'partial' : 'updated',
+            severity: result.summary.failed ? 'warning' : 'info',
+            metadata: requestAuditMetadata(req, {
+              eventSlug,
+              applied: result.summary.applied,
+              failed: result.summary.failed,
+              registrationIds: result.rows
+                .filter((row) => row.state === 'applied')
+                .map((row) => row.registrationId),
+            }),
+          })
+        }
+        res.json(result)
       } catch (error) {
         next(error)
       }

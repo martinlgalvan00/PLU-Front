@@ -429,6 +429,7 @@ export default function EventsSection({
   showRegistrations = true,
   onPresetSecurityZones,
   onRefresh,
+  onRefreshAthleteData,
   onRefreshPayments,
   onRejectPayment,
   onRejectTicketOrder,
@@ -1946,6 +1947,7 @@ export default function EventsSection({
                 onOpenFullList={
                   onManageRegistrations ? () => onManageRegistrations(selectedEvent) : undefined
                 }
+                onRefreshRegistrations={onRefreshAthleteData}
                 onSetRegistrationStatus={onSetRegistrationStatus}
                 payments={paymentsSource.payments}
                 registrations={registrations}

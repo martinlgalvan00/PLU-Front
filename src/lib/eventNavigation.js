@@ -134,6 +134,32 @@ export function findRegistrableEvent(slug, catalogEvents = [], underConstruction
   )
 }
 
+/**
+ * Catálogo + landings en construcción que venden inscripciones. Lo usan las
+ * superficies donde alguien se inscribe (calendario, carril de la portada):
+ * la venta puede abrir antes que la página oficial. Countdowns, destacados y
+ * navegación de Competencia siguen leyendo `getPublicCatalogEvents`.
+ *
+ * Con la inscripción pausada en la plataforma una landing oculta no vende:
+ * vuelve a quedar solo en el menú, con su aviso.
+ *
+ * @param {object[]} events catálogo crudo (incluye los stubs en construcción)
+ * @param {{ now?: Date, registrationEnabled?: boolean }} [options]
+ */
+export function getRegistrableCatalogEvents(
+  events = [],
+  { now = new Date(), registrationEnabled = true } = {},
+) {
+  const catalog = getPublicCatalogEvents(events)
+  if (!registrationEnabled) return catalog
+  const selling = getUnderConstructionEvents(events).filter(
+    (event) =>
+      hiddenLandingTakesRegistrations(event, { now }) &&
+      !catalog.some((item) => item.slug === event.slug),
+  )
+  return [...catalog, ...selling]
+}
+
 export function getPublicCatalogEvents(events = [], _options = {}) {
   // El catálogo público nunca lista stubs ni eventos ocultos. `_options
   // .includeDevelopmentStubs` se ignora a propósito: en Vite/Vitest
@@ -261,19 +287,33 @@ function isBarbellSubmissionEvent(event) {
  * inscripción (abierta o teaser "próximamente", prioriza Barbell Submission).
  * No promociona meets cerrados/finalizados como inscripción.
  *
+ * Una landing en construcción que vende (`hiddenLandingTakesRegistrations`)
+ * también ocupa el carril de inscripción: la venta puede abrir antes que la
+ * página oficial. Entradas no, porque el catálogo no entrega sus datos.
+ *
  * @param {object[]} [events]
  * @param {{
  *   now?: Date,
  *   registrationEnabled?: boolean,
  *   ticketSalesEnabled?: boolean,
+ *   underConstructionEvents?: object[],
  * }} [options]
  * @returns {{ kind: 'tickets' | 'registration' | 'registration_soon', event: object }[]}
  */
 export function getSeasonHomeActions(
   events = [],
-  { now = new Date(), registrationEnabled = true, ticketSalesEnabled = true } = {},
+  {
+    now = new Date(),
+    registrationEnabled = true,
+    ticketSalesEnabled = true,
+    underConstructionEvents = [],
+  } = {},
 ) {
   const catalog = getPublicCatalogEvents(events)
+  const registrable = getRegistrableCatalogEvents([...events, ...underConstructionEvents], {
+    now,
+    registrationEnabled,
+  })
   const actions = []
 
   const ticketEvent =
@@ -289,7 +329,7 @@ export function getSeasonHomeActions(
     status: getPublicEventStatus(event, now, { registrationEnabled }),
   })
 
-  const openForRegistration = catalog
+  const openForRegistration = registrable
     .map(withPublicStatus)
     .filter(({ status }) => isRegistrationOpen(status))
   const openRegistration =
@@ -304,7 +344,7 @@ export function getSeasonHomeActions(
   }
 
   // Teaser: próximo meet en "próximamente" (Barbell / Virtus), no cerrado ni finalizado.
-  const upcomingTeasers = catalog
+  const upcomingTeasers = registrable
     .map(withPublicStatus)
     .filter(
       ({ event, status }) =>

@@ -41,8 +41,8 @@ test.describe('landing oculta · lo que ve el público', () => {
     const main = constructionPage(page)
     await expect(main).toHaveAttribute('data-registration', 'open')
     await expect(main.getByRole('heading', { level: 1 })).toHaveText('Barbell Submission')
-    await expect(main.getByRole('status')).toHaveText(/plataforma en construcción/i)
-    await expect(main).toContainText('Estamos construyendo la página oficial de Barbell Submission')
+    await expect(main.getByRole('status')).toHaveText(/próximamente/i)
+    await expect(main).toContainText('Estamos construyendo algo genial: la página oficial de Barbell Submission')
     await expect(main).toContainText('6 de marzo de 2027')
     await expect(main).toContainText('Virtus Fitness · Berazategui, Buenos Aires')
     await expect(main.getByRole('button', { name: 'Inscribirme' })).toBeVisible()
@@ -57,7 +57,7 @@ test.describe('landing oculta · lo que ve el público', () => {
 
     const main = constructionPage(page)
     await expect(main).toHaveAttribute('data-registration', 'closed')
-    await expect(main).toContainText('Estamos construyendo la página oficial de Barbell Submission')
+    await expect(main).toContainText('Estamos construyendo algo genial: la página oficial de Barbell Submission')
     await expect(main.getByRole('button', { name: 'Inscribirme' })).toHaveCount(0)
     await expect(main).not.toContainText('Virtus')
     await expect(main.getByRole('button', { name: /ver el calendario/i })).toBeVisible()
@@ -80,18 +80,54 @@ test.describe('landing oculta · lo que ve el público', () => {
     await openEventPage(page)
 
     const main = constructionPage(page)
-    await expect(main).toContainText('Estamos construyendo la página oficial de Barbell Submission')
+    await expect(main).toContainText('Estamos construyendo algo genial: la página oficial de Barbell Submission')
     await expect(main.getByRole('button', { name: 'Inscribirme' })).toHaveCount(0)
   })
 
-  test('el evento oculto no aparece en el calendario, el visible sí', async ({ page }) => {
-    await mockApi(page)
+  test('con la venta cerrada el evento oculto no aparece en el calendario', async ({ page }) => {
+    await mockApi(page, { events: [hiddenStub(), openEvent()] })
     await page.goto('/eventos')
     await acceptCookies(page)
 
     const main = page.locator('main')
     await expect(main.getByText('Winter Open').first()).toBeVisible()
     await expect(main.getByText('Barbell Submission')).toHaveCount(0)
+  })
+
+  test('con la venta abierta el calendario lo lista y deja inscribirse', async ({ page }) => {
+    await mockApi(page)
+    await page.goto('/eventos')
+    await acceptCookies(page)
+
+    const card = page.locator('.event-card', { hasText: 'Barbell Submission' })
+    await expect(card).toBeVisible()
+    await expect(card.getByRole('button', { name: /inscribirme/i })).toBeVisible()
+  })
+
+  test('con la inscripción pausada en la plataforma no se lista', async ({ page }) => {
+    await mockApi(page, { platform: { registrationEnabled: false } })
+    await page.goto('/eventos')
+    await acceptCookies(page)
+
+    await expect(page.locator('main').getByText('Winter Open').first()).toBeVisible()
+    await expect(page.locator('.event-card', { hasText: 'Barbell Submission' })).toHaveCount(0)
+  })
+
+  test('el aviso vuelve a donde se abrió: portada o calendario', async ({ page }) => {
+    await mockApi(page)
+    await page.goto('/')
+    await acceptCookies(page)
+    await page
+      .getByRole('group', { name: 'Barbell Submission' })
+      .getByRole('button', { name: /página oficial/i })
+      .click()
+    await constructionPage(page).getByRole('button', { name: 'Volver al inicio' }).click()
+    await expect(page).toHaveURL(/\/$/)
+
+    await openEventPage(page)
+    await expect(
+      constructionPage(page).getByRole('button', { name: 'Volver al calendario' }),
+    ).toBeVisible()
   })
 
   test('el calendario lista por fecha aunque el catálogo llegue desordenado', async ({ page }) => {
@@ -117,6 +153,63 @@ test.describe('landing oculta · lo que ve el público', () => {
     await constructionPage(page).getByRole('button', { name: 'Inscribirme' }).click()
     await expect(page.locator('main.event-under-construction')).toHaveCount(0)
     await expect(page.getByRole('heading', { level: 1, name: 'Perfil de atleta' })).toBeVisible()
+    // El alta dice a qué torneo vuelve al terminar.
+    await expect(
+      page
+        .getByText('seguís con tu inscripción a Barbell Submission', { exact: false })
+        .filter({ visible: true }),
+    ).toHaveCount(1)
+  })
+})
+
+test.describe('portada · viñeta de inscripción con la landing oculta', () => {
+  function seasonLane(page) {
+    return page.getByRole('group', { name: 'Barbell Submission' })
+  }
+
+  test('con la venta abierta muestra "Página oficial" e "Inscribirme"', async ({ page }) => {
+    await mockApi(page)
+    await page.goto('/')
+    await acceptCookies(page)
+
+    const lane = seasonLane(page)
+    await expect(lane).toContainText('Ya podés inscribirte')
+    await expect(lane.getByRole('button', { name: /página oficial/i })).toBeVisible()
+    await expect(lane.getByRole('button', { name: /inscribirme/i })).toBeVisible()
+  })
+
+  test('"Página oficial" abre el aviso de próximamente con Inscribirme', async ({ page }) => {
+    await mockApi(page)
+    await page.goto('/')
+    await acceptCookies(page)
+
+    await seasonLane(page).getByRole('button', { name: /página oficial/i }).click()
+    await expect(page).toHaveURL(new RegExp(`${eventPath(SUBMISSION_SLUG)}$`))
+    const main = constructionPage(page)
+    await expect(main.getByRole('status')).toHaveText(/próximamente/i)
+    await expect(main.getByRole('button', { name: 'Inscribirme' })).toBeVisible()
+  })
+
+  test('"Inscribirme" va directo al formulario de Barbell Submission', async ({ page }) => {
+    await mockApi(page, { athlete: athleteRow() })
+    await page.goto('/')
+    await acceptCookies(page)
+
+    await seasonLane(page).getByRole('button', { name: /inscribirme/i }).click()
+    const checkout = page.locator('main')
+    await expect(checkout.getByRole('button', { name: /continuar al pago/i })).toBeVisible()
+    await expect(checkout.getByRole('heading', { name: 'Barbell Submission' })).toBeVisible()
+    await expect(checkout).not.toContainText('Winter Open')
+  })
+
+  test('con la venta cerrada no aparece en la portada', async ({ page }) => {
+    await mockApi(page, { events: [hiddenStub(), openEvent()] })
+    await page.goto('/')
+    await acceptCookies(page)
+
+    await expect(page.locator('.home-season-actions').first()).toBeVisible()
+    await expect(seasonLane(page)).toHaveCount(0)
+    await expect(page.locator('.home-season-actions')).not.toContainText('Barbell Submission')
   })
 })
 
@@ -251,5 +344,56 @@ test.describe('atleta · inscripción desde la página en construcción', () => 
     })
     expect(body.eventSlug).not.toBe(OPEN_SLUG)
     expect(api.registrationRequests).toHaveLength(1)
+  })
+})
+
+test.describe('atleta · checkout de competencia', () => {
+  async function openCheckout(page, scenario = {}) {
+    const api = await mockApi(page, { athlete: athleteRow(), ...scenario })
+    await openEventPage(page)
+    await constructionPage(page).getByRole('button', { name: 'Inscribirme' }).click()
+    const checkout = page.locator('main')
+    await expect(checkout.getByRole('button', { name: /continuar al pago/i })).toBeVisible()
+    return { api, checkout }
+  }
+
+  async function fillAndSubmit(checkout) {
+    await checkout.getByLabel(/peso corporal/i).fill('66')
+    await checkout.getByLabel(/categoría de peso/i).selectOption('67,5')
+    await checkout.getByRole('button', { name: /continuar al pago/i }).click()
+  }
+
+  test('un atleta Junior arranca anotado en su franja de edad, no solo en Open', async ({
+    page,
+  }) => {
+    const { checkout } = await openCheckout(page, {
+      athlete: athleteRow({ birth_date: '2006-05-10', division: 'Open' }),
+    })
+
+    await expect(checkout.getByRole('checkbox', { name: /junior/i })).toBeChecked()
+  })
+
+  test('después de "Continuar al pago" la pantalla queda en el panel de pago', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    const { checkout } = await openCheckout(page)
+    await fillAndSubmit(checkout)
+
+    await expect(page.locator('.register-settle')).toBeInViewport()
+    await expect(page.locator('.register-settle')).toBeFocused()
+  })
+
+  test('un rechazo de negocio no se presenta como problema de pago', async ({ page }) => {
+    const { checkout } = await openCheckout(page, {
+      registrationResponse: {
+        status: 409,
+        body: { error: 'No quedan cupos para este evento.', code: 'PLU04' },
+      },
+    })
+    await fillAndSubmit(checkout)
+
+    await expect(checkout.getByText('No quedan cupos para este evento.').first()).toBeVisible()
+    await expect(page.getByText('¿Tenés problemas para pagar?')).toHaveCount(0)
   })
 })

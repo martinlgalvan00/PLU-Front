@@ -52,14 +52,14 @@ describe('EventLandingPreviewDialog', { timeout: 30000 }, () => {
   it('con el interruptor apagado muestra "en construcción" y deja ver la landing publicada', async () => {
     render(<Harness event={hidden} />)
 
-    expect((await inFrame().findByRole('status', {}, SLOW)).textContent).toMatch(/plataforma en construcción/i)
+    expect((await inFrame().findByRole('status', {}, SLOW)).textContent).toMatch(/próximamente/i)
 
     fireEvent.click(screen.getByRole('button', { name: /con la landing publicada/i }))
     expect(await inFrame().findByText('Virtus Fitness', {}, SLOW)).toBeTruthy()
-    expect(inFrame().queryByText(/plataforma en construcción/i)).toBeNull()
+    expect(inFrame().queryByText(/construyendo algo genial/i)).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: /como la ve el público/i }))
-    expect(await inFrame().findByText(/plataforma en construcción/i, {}, SLOW)).toBeTruthy()
+    expect(await inFrame().findByText(/construyendo algo genial/i, {}, SLOW)).toBeTruthy()
   })
 
   it('cierra con Escape y con el botón, y devuelve el foco', async () => {

@@ -9,6 +9,7 @@ import {
   MessageSquare,
   PencilLine,
   Trash2,
+  Upload,
   Users,
 } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
@@ -34,6 +35,8 @@ import {
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import { EntitlementStateCell } from '../../components/admin/AdminStateCell.jsx'
 import ExportButton from '../../components/ui/ExportButton.jsx'
+import RegistrationSheetImportDialog from '../../components/admin/RegistrationSheetImportDialog.jsx'
+import { downloadRegistrationSheet } from '../../services/registrationSheetService.js'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
@@ -305,6 +308,8 @@ export default function RegistrationsSection({
   const hasAnyRegistrationEditCapability =
     canSetStatus || canValidatePayments || canForceSettle || canManageVisibility || canDelete
   const [selectedIds, setSelectedIds] = useState(() => new Set())
+  const [sheetImportOpen, setSheetImportOpen] = useState(false)
+  const [sheetExporting, setSheetExporting] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteError, setDeleteError] = useState('')
   const [deleting, setDeleting] = useState(false)
@@ -548,6 +553,31 @@ export default function RegistrationsSection({
       rows: liftersRowsForSpreadsheet(filtered, keys).slice(0, 5),
     }
   }, [liftersSheetRows, liftersStudio])
+
+  const sheetEventSlug = filters.event && filters.event !== 'all' ? filters.event : null
+
+  /** Planilla .xlsx de lo que muestra la tabla (con sus filtros). */
+  async function exportRegistrationSheet() {
+    if (!filteredRegistrations.length) {
+      toastError(t('admin.registrationSheet.exportEmpty'))
+      return
+    }
+    setSheetExporting(true)
+    try {
+      const result = await downloadRegistrationSheet({
+        registrations: filteredRegistrations,
+        athletes,
+        payments,
+        scope: sheetEventSlug ?? '',
+      })
+      if (result.ok) toastSuccess(t('admin.registrationSheet.exportDone', { count: result.rows }))
+    } catch (error) {
+      console.warn('No se pudo generar la planilla de inscripciones.', error)
+      toastError(t('admin.registrationSheet.exportError'))
+    } finally {
+      setSheetExporting(false)
+    }
+  }
 
   const registrationRows = useMemo(
     () =>
@@ -1512,6 +1542,26 @@ export default function RegistrationsSection({
           isGloballyEmpty ? null : (
             <>
               <ExportButton
+                label={t('admin.registrationSheet.export')}
+                ariaLabel={t('admin.registrationSheet.exportAria', {
+                  count: filteredRegistrations.length,
+                })}
+                onClick={() => void exportRegistrationSheet()}
+                disabled={sheetExporting || filteredRegistrations.length === 0}
+              />
+              {canSetStatus ? (
+                <button
+                  type="button"
+                  className="export-btn export-btn--default"
+                  aria-label={t('admin.registrationSheet.importAria')}
+                  title={t('admin.registrationSheet.importAria')}
+                  onClick={() => setSheetImportOpen(true)}
+                >
+                  <Upload size={16} aria-hidden />
+                  <span className="export-btn__label">{t('admin.registrationSheet.import')}</span>
+                </button>
+              ) : null}
+              <ExportButton
                 label={t('admin.actions.exportCsvShort')}
                 ariaLabel={
                   filters.event && filters.event !== 'all'
@@ -2310,6 +2360,19 @@ export default function RegistrationsSection({
           </>
         )}
       </AdminListSection>
+      {sheetImportOpen ? (
+        <RegistrationSheetImportDialog
+          eventSlug={sheetEventSlug}
+          eventLabel={
+            sheetEventSlug
+              ? (filteredRegistrations.find((item) => item.eventSlug === sheetEventSlug)?.event ??
+                sheetEventSlug)
+              : ''
+          }
+          onClose={() => setSheetImportOpen(false)}
+          onApplied={() => void onRefreshAthleteData?.()}
+        />
+      ) : null}
     </>
   )
 }

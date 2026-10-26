@@ -112,7 +112,12 @@ export function athleteRow(overrides = {}) {
 
 /**
  * @param {import('@playwright/test').Page} page
- * @param {{ events?: object[], athlete?: object|null, platform?: object }} scenario
+ * @param {{
+ *   events?: object[],
+ *   athlete?: object|null,
+ *   platform?: object,
+ *   registrationResponse?: { status: number, body: object },
+ * }} scenario
  */
 export async function mockApi(page, scenario = {}) {
   const state = {
@@ -169,6 +174,10 @@ export async function mockApi(page, scenario = {}) {
     if (method === 'POST' && pathname === '/api/athletes/me/registrations') {
       const body = request.postDataJSON()
       state.registrationRequests.push(body)
+      // Rechazo del servidor (cupo lleno, solo anuncio…) para probar el mensaje.
+      if (scenario.registrationResponse) {
+        return json(route, scenario.registrationResponse.body, scenario.registrationResponse.status)
+      }
       return json(
         route,
         {

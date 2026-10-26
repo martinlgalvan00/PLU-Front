@@ -128,13 +128,24 @@ function buildCompetitionObjectSchema(t, { sex = null } = {}) {
       (value) => isDeclaredWeightClassForSex(sex, value),
       weightClassMessage,
     ),
-    estimatedWeight: z.string().refine(
-      (value) => {
-        const weight = Number(value.replace(',', '.').replace(/\s*kg$/i, ''))
-        return Number.isFinite(weight) && weight >= 10 && weight <= 250
-      },
-      msg('weight') ?? 'Ingresá un peso entre 10 y 250 kg.',
-    ),
+    // Vacío pide el dato; con algo escrito, el rango. Un único mensaje de
+    // rango para el campo vacío se leía como un error de lo que se escribió.
+    estimatedWeight: z.string().superRefine((value, ctx) => {
+      if (!value.trim()) {
+        ctx.addIssue({
+          code: 'custom',
+          message: msg('weightRequired') ?? 'Ingresá tu peso corporal.',
+        })
+        return
+      }
+      const weight = Number(value.replace(',', '.').replace(/\s*kg$/i, ''))
+      if (!(Number.isFinite(weight) && weight >= 10 && weight <= 250)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: msg('weight') ?? 'Ingresá un peso entre 10 y 250 kg.',
+        })
+      }
+    }),
     paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']),
     // Opcionales: el formulario viejo no los manda y compite Full Power en una división.
     secondaryDivision: z.string().optional(),

@@ -78,6 +78,7 @@ export default function HeroSection({
   onSelectEvent,
   event,
   events = [],
+  underConstructionEvents = [],
   registrationEnabled = true,
 }) {
   const { t } = useI18n()
@@ -110,8 +111,9 @@ export default function HeroSection({
       getSeasonHomeActions(events.length ? events : event ? [event] : [], {
         registrationEnabled,
         ticketSalesEnabled: env.ticketSalesEnabled,
+        underConstructionEvents,
       }),
-    [events, event, registrationEnabled],
+    [events, event, registrationEnabled, underConstructionEvents],
   )
   // Cascada propia del hero (no la heroStaggerContainer compartida con
   // Tickets/PluPageHero/PitbullHero) para escalarla por tier de dispositivo
@@ -180,23 +182,34 @@ export default function HeroSection({
     </span>
   )
 
-  function handleSeasonAction(action, clickEvent) {
+  /** `intent: 'page'` llega del link "Página oficial" del carril de
+   * inscripción: abre la ficha (o el aviso de construcción) sin el wizard. */
+  function handleSeasonAction(action, clickEvent, intent) {
     if (!action?.event) return
     if (action.kind === 'tickets') {
       onNavigate?.('tickets', { eventSlug: action.event.slug ?? action.event.id })
       return
     }
-    if (action.kind === 'registration' && typeof onSelectEvent === 'function') {
+    if (
+      action.kind === 'registration' &&
+      intent !== 'page' &&
+      typeof onSelectEvent === 'function'
+    ) {
       onSelectEvent(action.event)
       return
     }
-    // registration_soon (y fallback): ficha del evento, sin forzar el wizard.
-    // El nombre del meet del carril viaja hasta el título de la ficha.
+    // registration_soon, "Página oficial" (y fallback): ficha del evento, sin
+    // forzar el wizard. El nombre del meet del carril viaja hasta el título de
+    // la ficha.
     const destination = action.event.slug
       ? { view: 'events', options: { eventSlug: action.event.slug } }
       : { view: 'events', options: {} }
     morphNavigate(
-      findMorphSource(clickEvent?.currentTarget, '.home-season-actions__meet'),
+      findMorphSource(
+        clickEvent?.currentTarget?.closest?.('.home-season-actions__lane') ??
+          clickEvent?.currentTarget,
+        '.home-season-actions__meet',
+      ),
       () => onNavigate?.(destination.view, destination.options),
     )
   }

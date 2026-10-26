@@ -48,6 +48,7 @@ export default function HomePage({
   onNavigate,
   onSelectEvent,
   events = [],
+  underConstructionEvents = [],
   session,
   memberships = [],
   registrations = [],
@@ -145,6 +146,7 @@ export default function HomePage({
         onSelectEvent={onSelectEvent}
         event={launchEvent}
         events={events}
+        underConstructionEvents={underConstructionEvents}
         registrationEnabled={registrationCheckoutEnabled}
       />
 
