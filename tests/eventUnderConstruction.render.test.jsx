@@ -77,6 +77,15 @@ describe('EventUnderConstructionPage', () => {
     expect(container.querySelector('main')?.getAttribute('data-event-theme')).toBe('ember')
   })
 
+  it('muestra el logo del evento cuando tiene uno', () => {
+    const { container } = renderPage({
+      event: { ...hiddenEvent, logoUrl: 'https://cdn.example/barbell.png' },
+    })
+    const logo = container.querySelector('.event-under-construction__logo')
+    expect(logo?.getAttribute('src')).toBe('https://cdn.example/barbell.png')
+    expect(logo?.getAttribute('alt')).toBe('')
+  })
+
   it('ofrece volver al calendario', () => {
     const onNavigate = vi.fn()
     renderPage({ onNavigate })
