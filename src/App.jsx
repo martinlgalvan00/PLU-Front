@@ -327,11 +327,16 @@ export default function App() {
     }
   }, [app.clearInvalidSession, app.enterAthleteContext, app.session, app.sessionPending, view])
 
+  // Calendario → página de un evento (y de un evento a otro) es la misma vista
+  // `events`: con la vista sola como clave no había transición ni vuelta al
+  // tope, y entrar a un evento desde el footer dejaba la pantalla en el footer.
+  const routeKey = view === 'events' && eventPageSlug ? `events:${eventPageSlug}` : view
+
   useEffect(() => {
     // Sin behavior explícito: hereda `scroll-behavior` de CSS, que ya
     // respeta prefers-reduced-motion.
     window.scrollTo({ top: 0 })
-  }, [view])
+  }, [routeKey])
 
   useEffect(() => {
     if (import.meta.env.DEV) window.__pluNav = setView
@@ -1345,12 +1350,12 @@ export default function App() {
         onReadProfileNotice={app.markAthleteProfileNoticeReadAction}
       />
       <PageTransition
-        viewKey={view}
+        viewKey={routeKey}
         direction={transitionDirection}
         id="main-content"
         tabIndex={-1}
       >
-        <PageErrorBoundary onGoHome={() => navigate('home')} resetKey={view}>
+        <PageErrorBoundary onGoHome={() => navigate('home')} resetKey={routeKey}>
           <Suspense fallback={<PageLoadFallback />}>
             <Page {...pageProps} />
           </Suspense>

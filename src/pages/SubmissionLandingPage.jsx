@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react'
 import { ArrowDown, ArrowLeft, ArrowRight, CalendarDays, MapPin } from 'lucide-react'
-import submissionHeroImage from '../assets/DSC01606-display.webp'
 import SubmissionLogoCover from '../components/events/SubmissionLogoCover.jsx'
 import ConstructionScene from '../components/events/construction/ConstructionScene.jsx'
 import { BRAND } from '../lib/brand.js'
@@ -19,6 +18,15 @@ import '../styles/pages/event-landing-themes.css'
 import '../styles/pages/submission-landing.css'
 import '../styles/pages/submission-logo-cover.css'
 import '../styles/pages/event-landing-motion.css'
+
+/** Días enteros hasta el evento; `null` si ya pasó o no hay fecha. */
+function daysUntil(event, now = new Date()) {
+  const value = event?.startsAt ?? (event?.dateISO ? `${event.dateISO}T12:00:00` : '')
+  const date = value ? new Date(value) : null
+  if (!date || Number.isNaN(date.getTime())) return null
+  const days = Math.ceil((date.getTime() - now.getTime()) / 86_400_000)
+  return days >= 0 ? days : null
+}
 
 function formatEventDate(event, locale) {
   const value = event?.startsAt ?? (event?.dateISO ? `${event.dateISO}T12:00:00` : '')
@@ -71,6 +79,8 @@ function copyFor(locale) {
         buildQuiet: 'We are building',
         buildStrong: 'the official',
         buildClose: 'tournament page.',
+        remaining: 'Time left',
+        days: (count) => (count === 0 ? 'Today' : count === 1 ? '1 day' : `${count} days`),
       }
     : {
         back: 'Volver al calendario',
@@ -105,6 +115,8 @@ function copyFor(locale) {
         buildQuiet: 'Estamos construyendo',
         buildStrong: 'la página oficial',
         buildClose: 'del torneo.',
+        remaining: 'Faltan',
+        days: (count) => (count === 0 ? 'Es hoy' : count === 1 ? '1 día' : `${count} días`),
       }
 }
 
@@ -113,7 +125,12 @@ function CtaContent({ children }) {
     <>
       <span>{children}</span>
       <span className="submission-landing__cta-mark">
-        <ArrowRight aria-hidden className="submission-landing__cta-icon" size={16} strokeWidth={1.75} />
+        <ArrowRight
+          aria-hidden
+          className="submission-landing__cta-icon"
+          size={16}
+          strokeWidth={1.75}
+        />
       </span>
     </>
   )
@@ -156,7 +173,15 @@ export default function SubmissionLandingPage({
   const categoriesTitle = landing.slots.categoriesTitle || copy.categories
   const categoriesBody = landing.slots.categoriesBody || copy.categoriesFallback
   const overviewTitle = landing.slots.locationTitle || copy.overview
-  const locationBody = landing.slots.locationBody || lead || copy.overviewFallback
+  // La bajada ya está en la portada: repetirla como texto de "El evento" decía
+  // lo mismo dos veces seguidas.
+  const locationBody = landing.slots.locationBody || copy.overviewFallback
+  // Sin foto propia, la portada es tipográfica con el logo como emblema. Antes
+  // caía en una foto de medallas de Pitbull Classic: otro evento.
+  const heroImage = event?.heroImageUrl || null
+  const stage = !heroImage
+  const remaining = daysUntil(event)
+  const place = [event?.venue, event?.location].filter(Boolean)
 
   function openRegistration() {
     if (registrationOpen) onSelectEvent?.(event)
@@ -182,13 +207,13 @@ export default function SubmissionLandingPage({
           onDone={() => setDismissedSlug(eventSlug)}
         />
       ) : null}
-      <section className="submission-landing__hero">
-        <img
-          alt=""
-          className="submission-landing__hero-image"
-          src={event?.heroImageUrl || submissionHeroImage}
-        />
-        <div className="submission-landing__hero-shade" aria-hidden />
+      <section className="submission-landing__hero" data-hero={stage ? 'stage' : 'photo'}>
+        {heroImage ? (
+          <>
+            <img alt="" className="submission-landing__hero-image" src={heroImage} />
+            <div className="submission-landing__hero-shade" aria-hidden />
+          </>
+        ) : null}
         <div className="submission-landing__hero-inner" data-scene-content="">
           <button
             className="submission-landing__back"
@@ -198,22 +223,53 @@ export default function SubmissionLandingPage({
             <ArrowLeft aria-hidden size={17} />
             {copy.back}
           </button>
-          <div className="submission-landing__identity">
-            {event?.logoUrl ? (
-              <img
-                ref={heroLogoRef}
-                alt={`Logo de ${title}`}
-                className="submission-landing__logo"
-                src={event.logoUrl}
-              />
-            ) : null}
-            <p>{copy.eyebrow}</p>
-            <h1>{title}</h1>
-            {lead ? <p className="submission-landing__lead">{lead}</p> : null}
-            {registrationOpen ? (
-              <button className="submission-landing__cta" type="button" onClick={openRegistration}>
-                <CtaContent>{landing.slots.ctaLabel || copy.register}</CtaContent>
-              </button>
+          <div className="submission-landing__hero-grid">
+            <div className="submission-landing__identity">
+              {event?.logoUrl && !stage ? (
+                <img
+                  ref={heroLogoRef}
+                  alt={`Logo de ${title}`}
+                  className="submission-landing__logo"
+                  src={event.logoUrl}
+                />
+              ) : null}
+              <p className="submission-landing__eyebrow">{copy.eyebrow}</p>
+              <h1>{title}</h1>
+              {lead ? <p className="submission-landing__lead">{lead}</p> : null}
+              {!comingSoon && registrationOpen ? (
+                <p className="submission-landing__status" role="status">
+                  <span className="submission-landing__status-dot" aria-hidden />
+                  {copy.registerOpen}
+                </p>
+              ) : null}
+              {registrationOpen ? (
+                <button
+                  className="submission-landing__cta"
+                  type="button"
+                  onClick={openRegistration}
+                >
+                  <CtaContent>{landing.slots.ctaLabel || copy.register}</CtaContent>
+                </button>
+              ) : null}
+            </div>
+            {event?.logoUrl && stage ? (
+              <figure className="submission-landing__emblem">
+                <svg
+                  className="submission-landing__ring"
+                  viewBox="0 0 200 200"
+                  aria-hidden
+                  focusable="false"
+                >
+                  <circle className="submission-landing__ring-track" cx="100" cy="100" r="96" />
+                  <circle className="submission-landing__ring-draw" cx="100" cy="100" r="96" />
+                </svg>
+                <img
+                  ref={heroLogoRef}
+                  alt={`Logo de ${title}`}
+                  className="submission-landing__emblem-logo"
+                  src={event.logoUrl}
+                />
+              </figure>
             ) : null}
           </div>
           {comingSoon ? (
@@ -226,9 +282,7 @@ export default function SubmissionLandingPage({
                   <div className="submission-landing__progress-actions">
                     <a
                       className={
-                        registrationOpen
-                          ? 'submission-landing__form'
-                          : 'submission-landing__cta'
+                        registrationOpen ? 'submission-landing__form' : 'submission-landing__cta'
                       }
                       href={externalForm.url}
                       rel="noopener noreferrer"
@@ -251,6 +305,31 @@ export default function SubmissionLandingPage({
               />
             </div>
           ) : null}
+          {!comingSoon && (date || place.length || remaining != null) ? (
+            <dl className="submission-landing__band">
+              {date ? (
+                <div>
+                  <dt>{copy.date}</dt>
+                  <dd>{date}</dd>
+                </div>
+              ) : null}
+              {place.length ? (
+                <div>
+                  <dt>{copy.venue}</dt>
+                  <dd>
+                    <span>{place[0]}</span>
+                    {place[1] ? <small>{place[1]}</small> : null}
+                  </dd>
+                </div>
+              ) : null}
+              {remaining != null ? (
+                <div>
+                  <dt>{copy.remaining}</dt>
+                  <dd>{copy.days(remaining)}</dd>
+                </div>
+              ) : null}
+            </dl>
+          ) : null}
           <a className="submission-landing__hero-action" href="#submission-information">
             {copy.information}
             <ArrowDown aria-hidden size={17} />
@@ -266,39 +345,47 @@ export default function SubmissionLandingPage({
       >
         <div className="submission-landing__details-inner" data-scene-content="">
           <div className="submission-landing__copy">
-            <p>{comingSoon ? (registrationOpen ? copy.registerOpen : copy.comingSoon) : copy.published}</p>
+            <p>
+              {comingSoon
+                ? registrationOpen
+                  ? copy.registerOpen
+                  : copy.comingSoon
+                : copy.published}
+            </p>
             <h2>{overviewTitle}</h2>
             <p>{locationBody}</p>
           </div>
-          <dl className="submission-landing__facts">
-            {date ? (
-              <div>
-                <dt>
-                  <CalendarDays aria-hidden size={16} />
-                  {copy.date}
-                </dt>
-                <dd>{date}</dd>
-              </div>
-            ) : null}
-            {event?.venue ? (
-              <div>
-                <dt>
-                  <MapPin aria-hidden size={16} />
-                  {copy.venue}
-                </dt>
-                <dd>{event.venue}</dd>
-              </div>
-            ) : null}
-            {event?.location ? (
-              <div>
-                <dt>
-                  <MapPin aria-hidden size={16} />
-                  {copy.location}
-                </dt>
-                <dd>{event.location}</dd>
-              </div>
-            ) : null}
-          </dl>
+          {comingSoon ? (
+            <dl className="submission-landing__facts">
+              {date ? (
+                <div>
+                  <dt>
+                    <CalendarDays aria-hidden size={16} />
+                    {copy.date}
+                  </dt>
+                  <dd>{date}</dd>
+                </div>
+              ) : null}
+              {event?.venue ? (
+                <div>
+                  <dt>
+                    <MapPin aria-hidden size={16} />
+                    {copy.venue}
+                  </dt>
+                  <dd>{event.venue}</dd>
+                </div>
+              ) : null}
+              {event?.location ? (
+                <div>
+                  <dt>
+                    <MapPin aria-hidden size={16} />
+                    {copy.location}
+                  </dt>
+                  <dd>{event.location}</dd>
+                </div>
+              ) : null}
+            </dl>
+          ) : null}
           <button className="submission-landing__cta" type="button" onClick={openRegistration}>
             <CtaContent>
               {registrationOpen ? landing.slots.ctaLabel || copy.register : copy.calendar}
@@ -347,13 +434,12 @@ export default function SubmissionLandingPage({
 
       <section className="submission-landing__story" aria-label={copy.officialInfo} data-scene="">
         <div className="submission-landing__story-inner" data-scene-content="">
+          <p className="submission-landing__story-eyebrow">{copy.officialInfo}</p>
           <article>
-            <p>{copy.officialInfo}</p>
             <h2>{experienceTitle}</h2>
             <p>{experienceBody}</p>
           </article>
           <article>
-            <p>{copy.officialInfo}</p>
             <h2>{categoriesTitle}</h2>
             <p>{categoriesBody}</p>
           </article>

@@ -2906,6 +2906,9 @@ html.plu-drawer-open body {
    Evita que controles de 44px y textos legales peleen en un solo wrap. */
 .institutional-footer__bottom {
   align-items: center;
+  /* El contenedor es una columna flex alineada al inicio: sin esto la fila se
+     encogía a su contenido y el filete llegaba hasta la mitad del footer. */
+  align-self: stretch;
   border-top: 1px solid color-mix(in srgb, var(--institution-text) 8%, transparent);
   color: var(--footer-heading, var(--institution-text-muted));
   column-gap: clamp(16px, 3vw, 28px);

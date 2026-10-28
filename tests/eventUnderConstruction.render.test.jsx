@@ -97,8 +97,8 @@ describe('EventUnderConstructionPage', () => {
   })
 })
 
-describe('EventUnderConstructionPage · escena interactiva', () => {
-  it('muestra la barra con los controles y respeta la animación del evento', () => {
+describe('EventUnderConstructionPage · portada', () => {
+  it('respeta "Sin animaciones" del evento y no muestra la escena de juego', () => {
     const quiet = mapSupabaseEventRow(
       underConstructionCatalogEvent({
         ...hiddenRow,
@@ -111,10 +111,20 @@ describe('EventUnderConstructionPage · escena interactiva', () => {
       </I18nProvider>,
     )
     expect(container.querySelector('main').dataset.motion).toBe('none')
-    expect(screen.getByRole('img', { name: /barra olímpica cargada con/i })).toBeTruthy()
-    expect(screen.getByRole('group', { name: /cargar la barra/i })).toBeTruthy()
+    // La barra con "Sacar/Sumar discos" se leía como un juego: ya no está.
+    expect(screen.queryByRole('group', { name: /cargar la barra/i })).toBeNull()
     // Una sola vía de salida primaria: el CTA al calendario sigue ahí.
     expect(screen.getByRole('button', { name: /ver el calendario/i })).toBeTruthy()
+  })
+
+  it('sin logo no dibuja el emblema', () => {
+    const { container } = render(
+      <I18nProvider>
+        <EventUnderConstructionPage event={hiddenEvent} onNavigate={vi.fn()} />
+      </I18nProvider>,
+    )
+    expect(container.querySelector('.event-under-construction__emblem')).toBeNull()
+    expect(container.querySelector('main').dataset.emblem).toBeUndefined()
   })
 })
 
@@ -151,12 +161,26 @@ describe('EventUnderConstructionPage · inscripción con la página oculta', () 
     const { container } = renderSelling(sellingEvent, { onSelectEvent })
 
     expect(container.querySelector('main').dataset.registration).toBe('open')
+    // Un solo estado: abierta. Antes decía "Próximamente" y "ya está abierta" a la vez.
+    expect(screen.getByRole('status').textContent).toMatch(/inscripción abierta/i)
+    expect(screen.getByRole('status').textContent).not.toMatch(/próximamente/i)
     expect(screen.getByText('Virtus Fitness · Berazategui')).toBeTruthy()
     expect(screen.getByText(/2027/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Inscribirme' }))
     expect(onSelectEvent).toHaveBeenCalledWith(sellingEvent)
     // El calendario queda como salida secundaria.
     expect(screen.getByRole('button', { name: /ver el calendario/i })).toBeTruthy()
+  })
+
+  it('cuenta los días que faltan para el evento', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2027-03-01T12:00:00Z'))
+    try {
+      renderSelling(sellingEvent)
+      expect(screen.getByText('5 días')).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('programada: dice cuándo abre y no ofrece inscribirse todavía', () => {

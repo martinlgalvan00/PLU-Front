@@ -13,16 +13,19 @@
 }
 
 .submission-landing__hero {
+  isolation: isolate;
+  min-height: calc(100dvh - var(--header-height));
+  overflow: hidden;
+  position: relative;
+}
+
+.submission-landing__hero[data-hero='photo'] {
   /* Texto claro sobre la foto, en los dos temas. La escena lee estos tokens. */
   --color-text: var(--plu-ink-inverse);
   --color-text-secondary: color-mix(in srgb, var(--plu-ink-inverse) 72%, transparent);
   --color-border: color-mix(in srgb, var(--plu-ink-inverse) 16%, transparent);
   --color-border-subtle: color-mix(in srgb, var(--plu-ink-inverse) 24%, transparent);
   color: var(--plu-ink-inverse);
-  isolation: isolate;
-  min-height: calc(100dvh - var(--header-height));
-  overflow: hidden;
-  position: relative;
 }
 
 .submission-landing__hero-image,
@@ -75,6 +78,10 @@
 }
 
 .submission-landing__hero-action:hover {
+  color: var(--color-text-primary);
+}
+
+.submission-landing__hero[data-hero='photo'] .submission-landing__hero-action:hover {
   color: var(--plu-ink-inverse);
 }
 
@@ -98,7 +105,10 @@
 }
 
 .submission-landing__identity {
+  display: grid;
+  justify-items: start;
   max-width: 760px;
+  min-width: 0;
 }
 
 .submission-landing__logo {
@@ -125,11 +135,191 @@
 
 .submission-landing__identity h1 {
   font-family: var(--font-display, var(--font-family));
-  font-size: clamp(46px, 7vw, 96px);
+  font-size: clamp(44px, 6.6vw, 96px);
+  letter-spacing: -0.045em;
+  line-height: 0.94;
+  margin: 14px 0 18px;
+  max-width: 11ch;
+  text-wrap: balance;
+}
+
+/* Regla corta antes del eyebrow: el detalle de marca de la portada. */
+.submission-landing__eyebrow {
+  align-items: center;
+  display: inline-flex;
+  gap: 14px;
+}
+
+.submission-landing__eyebrow::before {
+  background: currentColor;
+  content: '';
+  display: block;
+  height: 1px;
+  width: 40px;
+}
+
+.submission-landing__status {
+  align-items: center;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 600;
+  gap: 10px;
+  margin: 18px 0 0;
+}
+
+.submission-landing__status-dot {
+  background: var(--color-status-success, #3fb37f);
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-status-success, #3fb37f) 18%, transparent);
+  display: block;
+  height: 8px;
+  width: 8px;
+}
+
+/* ---- Portada tipográfica (sin foto propia): nombre + emblema ---- */
+
+.submission-landing__hero-grid {
+  align-items: center;
+  display: grid;
+  gap: clamp(32px, 6vw, 88px);
+}
+
+@media (min-width: 960px) {
+  .submission-landing__hero[data-hero='stage'] .submission-landing__hero-grid {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  }
+}
+
+.submission-landing__emblem {
+  aspect-ratio: 1;
+  display: grid;
+  justify-self: center;
+  margin: 0;
+  place-items: center;
+  position: relative;
+  width: min(100%, 380px);
+}
+
+.submission-landing__emblem::before {
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--event-accent) 16%, transparent),
+    transparent
+  );
+  content: '';
+  inset: -12%;
+  pointer-events: none;
+  position: absolute;
+}
+
+.submission-landing__ring {
+  inset: 0;
+  overflow: visible;
+  position: absolute;
+  transform: rotate(-90deg);
+}
+
+.submission-landing__ring circle {
+  fill: none;
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.submission-landing__ring-track {
+  stroke: var(--color-border);
+}
+
+.submission-landing__ring-draw {
+  stroke: var(--event-accent);
+  stroke-dasharray: 604;
+  stroke-linecap: round;
+}
+
+.submission-landing__emblem-logo {
+  border-radius: 50%;
+  display: block;
+  height: 78%;
+  object-fit: cover;
+  position: relative;
+  width: 78%;
+}
+
+@media (max-width: 959px) {
+  .submission-landing__emblem {
+    grid-row: 1;
+    justify-self: start;
+    width: clamp(120px, 34vw, 200px);
+  }
+}
+
+@keyframes submission-ring-draw {
+  from {
+    stroke-dashoffset: 604;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .event-landing-theme:not([data-motion='none']) .submission-landing__ring-draw {
+    animation: submission-ring-draw 1100ms var(--ease-cinematic) 200ms both;
+  }
+}
+
+/* ---- Banda de datos de la portada ---- */
+
+.submission-landing__band {
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  margin: clamp(32px, 5vw, 56px) 0 0;
+}
+
+.submission-landing__band > div {
+  align-content: start;
+  border-bottom: 1px solid var(--color-border);
+  display: grid;
+  gap: 8px;
+  padding: 18px 24px 20px 0;
+}
+
+@media (min-width: 720px) {
+  .submission-landing__band > div {
+    border-bottom: 0;
+    padding: 22px 32px 0 0;
+  }
+
+  .submission-landing__band > div + div {
+    border-left: 1px solid var(--color-border);
+    padding-left: 32px;
+  }
+}
+
+.submission-landing__band dt {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.submission-landing__band dd {
+  display: grid;
+  font-size: clamp(16px, 1.4vw, 19px);
+  font-weight: 600;
+  gap: 2px;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.submission-landing__band dd small {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
   letter-spacing: 0;
-  line-height: 0.95;
-  margin: 12px 0 18px;
-  max-width: 12ch;
 }
 
 .submission-landing__lead {
@@ -310,7 +500,7 @@ a.submission-landing__cta {
 
 .submission-landing__story-inner {
   display: grid;
-  gap: clamp(32px, 7vw, 112px);
+  gap: 28px clamp(32px, 7vw, 112px);
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0 auto;
   max-width: 1180px;
@@ -322,21 +512,23 @@ a.submission-landing__cta {
   padding-left: clamp(28px, 5vw, 80px);
 }
 
-.submission-landing__story article > p:first-child {
+/* Un solo eyebrow para la sección: antes se repetía en cada columna. */
+.submission-landing__story-eyebrow {
   color: var(--event-accent);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 700;
+  grid-column: 1 / -1;
+  letter-spacing: 0.16em;
+  margin: 0;
   text-transform: uppercase;
 }
 
 .submission-landing__story h2 {
   font-family: var(--font-display, var(--font-family));
-  font-size: clamp(28px, 3.4vw, 46px);
-  letter-spacing: 0;
-  line-height: 1;
-  margin: 0 0 18px;
+  font-size: clamp(22px, 2.6vw, 32px);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0 0 14px;
 }
 
 .submission-landing__story article > p:last-child {
@@ -348,9 +540,16 @@ a.submission-landing__cta {
 
 .submission-landing__copy h2 {
   font-family: var(--font-display, var(--font-family));
-  font-size: clamp(28px, 4vw, 48px);
-  letter-spacing: 0;
-  margin: 8px 0 14px;
+  font-size: clamp(24px, 3.2vw, 36px);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 10px 0 14px;
+}
+
+/* Publicada: los datos ya están en la portada; acá queda texto + acción. */
+.submission-landing[data-phase='published'] .submission-landing__details-inner {
+  align-items: end;
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .submission-landing__copy > p:last-child {
@@ -387,22 +586,20 @@ a.submission-landing__cta {
   align-items: center;
   align-self: end;
   background: var(--event-action);
-  border: 1px solid color-mix(in oklab, var(--event-action-text) 16%, var(--event-action));
-  border-radius: 2px;
-  box-shadow: inset 0 1px 0 color-mix(in oklab, #fff 48%, transparent);
+  border: 0;
+  border-radius: 6px;
   color: var(--event-action-text);
   cursor: pointer;
   display: inline-flex;
   font: inherit;
   font-size: 15px;
-  font-weight: 650;
-  gap: 18px;
-  justify-content: space-between;
-  letter-spacing: 0.03em;
+  font-weight: 700;
+  gap: 12px;
+  justify-content: center;
+  letter-spacing: 0.01em;
   line-height: 1;
-  min-height: 56px;
-  min-width: 196px;
-  padding: 0 18px 0 22px;
+  min-height: 52px;
+  padding: 0 26px;
   transition:
     background var(--motion-fast) var(--ease-standard),
     border-color var(--motion-fast) var(--ease-standard),
@@ -413,10 +610,8 @@ a.submission-landing__cta {
 
 .submission-landing__cta-mark {
   align-items: center;
-  border-left: 1px solid color-mix(in oklab, currentColor 24%, transparent);
   display: inline-flex;
   flex: none;
-  padding-left: 14px;
 }
 
 .submission-landing__cta-icon {
@@ -427,9 +622,6 @@ a.submission-landing__cta {
 
 .submission-landing__cta:hover {
   background: var(--event-action-hover);
-  border-color: color-mix(in oklab, var(--event-action-text) 10%, var(--event-action-hover));
-  box-shadow: inset 0 1px 0 color-mix(in oklab, #fff 46%, transparent);
-  transform: translateY(-1px);
 }
 
 .submission-landing__cta:hover .submission-landing__cta-icon,
@@ -438,8 +630,7 @@ a.submission-landing__cta {
 }
 
 .submission-landing__cta:active {
-  box-shadow: inset 0 1px 0 color-mix(in oklab, #000 16%, transparent);
-  transform: translateY(0);
+  transform: scale(0.98);
 }
 
 .submission-landing__back:focus-visible,
@@ -458,7 +649,8 @@ a.submission-landing__cta {
 }
 
 @media (max-width: 780px) {
-  .submission-landing__details-inner {
+  .submission-landing__details-inner,
+  .submission-landing[data-phase='published'] .submission-landing__details-inner {
     grid-template-columns: 1fr;
   }
 

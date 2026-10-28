@@ -1917,7 +1917,10 @@
     display: inline;
   }
 
-  .events-page--plu-ref .events-page__count {
+  /* Con la clase del divisor la regla general (más abajo, misma
+     especificidad) volvía a dibujar el filete vertical en mobile. */
+  .events-page--plu-ref .events-page__count,
+  .events-page--plu-ref .events-page__count.plu-meta-chip--divider {
     align-self: flex-start;
     border-left: none;
     margin-left: 0;
