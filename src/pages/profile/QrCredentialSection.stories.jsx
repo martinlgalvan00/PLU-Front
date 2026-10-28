@@ -2,6 +2,7 @@
 // AthleteProfilePage, no el entry global): sin este import la story mostraba la
 // sección sin grilla ni estilos de la vista de escaneo, igual que las stories
 // hermanas de PersonalData y Security.
+import { expect, fn, userEvent, within } from 'storybook/test'
 import '../../styles/pages/account.css'
 import QrCredentialSection from './QrCredentialSection.jsx'
 
@@ -86,5 +87,94 @@ export const SinCredencial = {
   args: {
     athlete: { id: 'ath-story-2', fullName: 'Bruno Sosa', credentialToken: null, photoUrl: null },
     membership: null,
+  },
+}
+
+// Fechas relativas: la story no "vence" cuando el evento queda en el pasado.
+const inDays = (days) => new Date(Date.now() + days * 86_400_000).toISOString()
+
+const PASS_EVENTS = [
+  {
+    slug: 'pitbull-classic-2026',
+    venue: 'La Troupé multieventos',
+    location: 'Banfield, Buenos Aires',
+  },
+  { slug: 'barbell-submission-2027', venue: 'Virtus Fitness', location: 'Berazategui' },
+]
+
+/**
+ * Tus accesos: el mismo QR, un veredicto por evento. Uno listo para entrar
+ * (con "Cómo llegar"), otro con el pago pendiente y un tercero ya usado.
+ */
+export const AccesosPorEvento = {
+  args: {
+    athlete: {
+      id: 'ath-story-3',
+      fullName: 'Martina Rivas',
+      credentialToken: 'PLU-ARG-2026-001',
+      photoUrl: null,
+    },
+    events: PASS_EVENTS,
+    registrations: [
+      {
+        id: 'reg-ready',
+        event: 'Pitbull Classic',
+        eventSlug: 'pitbull-classic-2026',
+        eventStartsAt: inDays(40),
+        status: 'confirmada',
+        requiresMembership: false,
+      },
+      {
+        id: 'reg-pending',
+        event: 'Barbell Submission',
+        eventSlug: 'barbell-submission-2027',
+        eventStartsAt: inDays(120),
+        status: 'pendiente_pago',
+        requiresMembership: false,
+      },
+      {
+        id: 'reg-used',
+        event: 'Copa Apertura',
+        eventSlug: 'copa-apertura',
+        eventStartsAt: inDays(-30),
+        status: 'confirmada',
+        checkedInAt: inDays(-30),
+      },
+    ],
+  },
+}
+
+/**
+ * Solo una inscripción con pago pendiente: antes caía en "Activá tu
+ * credencial" con un botón a la afiliación. Ahora dice que el QR se habilita
+ * al acreditarse el pago y lleva a Pagos.
+ */
+export const PagoPendiente = {
+  args: {
+    athlete: {
+      id: 'ath-story-4',
+      fullName: 'Bruno Sosa',
+      credentialToken: 'tok-4',
+      photoUrl: null,
+    },
+    membership: null,
+    events: PASS_EVENTS,
+    registrations: [
+      {
+        id: 'reg-pending-only',
+        event: 'Pitbull Classic',
+        eventSlug: 'pitbull-classic-2026',
+        eventStartsAt: inDays(40),
+        status: 'pendiente_pago',
+        requiresMembership: false,
+      },
+    ],
+    onNavigateSection: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Pago pendiente')).toBeVisible()
+    await userEvent.click(canvas.getByRole('button', { name: /ver mis pagos/i }))
+    await expect(args.onNavigateSection).toHaveBeenCalledWith('account-payments')
   },
 }

@@ -312,6 +312,8 @@ export default function AdminEventWorkspace({
   const siteState = eventSiteState(event)
   // "Arreglar" del control de venta: lleva al capítulo de Ventas que corresponde.
   const fixSale = onSelectChapter ? (chapter) => onSelectChapter(event, 'sales', chapter) : undefined
+  // Capítulo de Venta abierto; sin elegir, el acordeón arranca en Cupo.
+  const saleChapter = openChapter ?? 'cupo'
   const registered = Number(event.registered) || 0
   const slots = Number(event.slots) || 0
 
@@ -618,6 +620,18 @@ export default function AdminEventWorkspace({
       // pedirle al acordeón algo que no sabe mostrar.
       return (
         <div className="admin-event-workspace__main-col">
+          {/* Abrir, programar y cerrar viven acá, arriba de las fechas que
+              gobiernan: antes las fechas se veían sin decir que la venta
+              estaba cerrada a mano, y el mismo botón estaba en la cabecera. */}
+          {saleChapter === 'cupo' ? (
+            <AdminEventSaleControl
+              canEdit={canEdit}
+              event={event}
+              hasUnsavedState={() => stateDirtyRef.current}
+              onFix={fixSale}
+              onSetEventState={onSetEventState}
+            />
+          ) : null}
           {openChapter === 'sold' ? (
             <AdminEventTicketsSoldSection
               canOverride={canEdit}
@@ -855,7 +869,9 @@ export default function AdminEventWorkspace({
             onSetEventState={onSetEventState}
             hasUnsavedState={() => stateDirtyRef.current}
             onEditDate={handleEditDate}
-            showRegistrationToggle={activeTab !== 'dashboard'}
+            showRegistrationToggle={
+              activeTab !== 'dashboard' && !(activeTab === 'sales' && saleChapter === 'cupo')
+            }
           />
           <div className="admin-event-workspace__head-actions">
             {canEdit && onTogglePin && event.status !== 'finalizado' ? (

@@ -213,7 +213,12 @@ function AdminEventLivePreview({
           ok: activeTicketTypes > 0,
           label:
             activeTicketTypes > 0
-              ? t('admin.eventEditor.readinessTickets', { count: activeTicketTypes })
+              ? t(
+                  activeTicketTypes === 1
+                    ? 'admin.eventEditor.readinessTickets_one'
+                    : 'admin.eventEditor.readinessTickets',
+                  { count: activeTicketTypes },
+                )
               : t('admin.eventEditor.readinessTicketsMissing'),
         },
       ]
@@ -561,6 +566,8 @@ export default function AdminEventEditor({
         alias: profile.config?.alias ?? '',
         cbu: profile.config?.cbu ?? '',
         holder: profile.config?.holder ?? '',
+        cuit: profile.config?.cuit ?? '',
+        bankName: profile.config?.bankName ?? '',
       },
     })
   }
@@ -581,7 +588,8 @@ export default function AdminEventEditor({
   async function handleMpProfileConnected({ profileId }) {
     if (!profileId) return
     try {
-      const mp = await fetchPaymentProfiles({ kind: 'mercado_pago' })
+      // La cuenta se vinculó en otra ventana: la lista cacheada no la tiene.
+      const mp = await fetchPaymentProfiles({ kind: 'mercado_pago', fresh: true })
       setMpProfiles(mp.profiles)
     } catch {
       // La lista vieja sigue sirviendo; el id igual queda elegido.
@@ -618,7 +626,7 @@ export default function AdminEventEditor({
         collectorId: '',
       })
     } catch (error) {
-      setMpCreateError(error?.message ?? t('admin.eventEditor.mercadoPagoSecretsKeyMissing'))
+      setMpCreateError(error?.message || t('admin.eventEditor.mercadoPagoProfileCreateFailed'))
     } finally {
       setMpCreating(false)
     }

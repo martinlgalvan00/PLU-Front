@@ -322,3 +322,84 @@ function SitioConEditorReal() {
  * sus textos juntos, y la vista previa a la derecha.
  */
 export const SitioPorSecciones = { render: () => <SitioConEditorReal /> }
+
+const MP_PROFILES = [
+  {
+    id: 'mp-1',
+    name: 'PLU · Cuenta general',
+    kind: 'mercado_pago',
+    active: true,
+    connectionStatus: 'connected',
+    config: { connection: 'oauth', accountNickname: 'PLUARGENTINA', liveMode: true },
+  },
+]
+const BANK_PROFILES = [
+  {
+    id: 'bank-1',
+    name: 'Cuenta PLU ARG',
+    kind: 'bank_transfer',
+    active: true,
+    config: { alias: 'PLU.ARG.EVENTOS', cbu: '0000003100012345678901', holder: 'Maximal SRL' },
+  },
+]
+
+/** Perfiles de cobro y matriz de plataforma, sin backend. */
+function mockPaymentApis({ oauthAvailable = true } = {}) {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async (input, options = {}) => {
+    const url = String(input)
+    const json = (body) =>
+      new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    if (url.includes('/api/payment-profiles')) {
+      const kind = new URL(url, 'http://local').searchParams.get('kind')
+      return json({
+        profiles: kind === 'mercado_pago' ? MP_PROFILES : BANK_PROFILES,
+        secretsKeyConfigured: true,
+        mercadoPagoOAuth: { available: oauthAvailable, missing: [] },
+      })
+    }
+    if (url.includes('/api/platform-settings')) return json({})
+    return originalFetch(input, options)
+  }
+  return () => {
+    globalThis.fetch = originalFetch
+  }
+}
+
+function VentaConEditorReal({ chapter }) {
+  const [draft, setDraft] = useState(() => buildAdminEventDraft(EVENT))
+  return (
+    <AdminEventWorkspace
+      {...baseArgs}
+      activeSection="sales"
+      openChapter={chapter}
+      previewDraft={draft}
+      editor={
+        <AdminEventEditor
+          accordion
+          embedded
+          canEdit
+          draft={draft}
+          forcedTab="sales"
+          forcedChapter={chapter}
+          sourceEvent={EVENT}
+          onCancel={() => {}}
+          onChange={setDraft}
+          onSubmit={async () => ({ event: EVENT })}
+        />
+      }
+    />
+  )
+}
+
+/**
+ * Venta → Cobro con el editor real: Mercado Pago (vincular o cargar
+ * credenciales), transferencia y efectivo se configuran desde el evento.
+ */
+export const VentaCobro = {
+  render: () => <VentaConEditorReal chapter="payment" />,
+  beforeEach: () => mockPaymentApis(),
+}

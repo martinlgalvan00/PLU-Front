@@ -7,7 +7,6 @@ import AdminEventPriceSchedule from '../AdminEventPriceSchedule.jsx'
 import { effectiveEventChannelsFor } from '../../../lib/eventPaymentChannels.js'
 import { platformCellsFor } from '../../../lib/platformPaymentChannels.js'
 import EventPaymentChannelMatrix from './EventPaymentChannelMatrix.jsx'
-import EventPaymentReadiness from './EventPaymentReadiness.jsx'
 import { buildPaymentReadiness } from '../../../lib/eventPaymentReadiness.js'
 import { env } from '../../../config/env.js'
 import MercadoPagoAccountStatus from '../payment-accounts/MercadoPagoAccountStatus.jsx'
@@ -20,6 +19,10 @@ import AdminTicketAddonsEditor from '../AdminTicketAddonsEditor.jsx'
 import AdminTicketTypesEditor from '../AdminTicketTypesEditor.jsx'
 import { updatePricingField } from './draftPatches.js'
 import { CapacityPublicBreakdown, FormField } from './parts.jsx'
+import CashPaymentPlace from '../../ui/CashPaymentPlace.jsx'
+
+/** Public key y access token de MP: `APP_USR-…` en producción, `TEST-…` en sandbox. */
+const MP_CREDENTIAL_PATTERN = /^(APP_USR|TEST)-[A-Za-z0-9-]{8,}$/
 
 export default function EventSalesSection({
   // Cuenta por evento (organizador): no abre medios cerrados por PLU, no carga cuentas de
@@ -97,8 +100,23 @@ export default function EventSalesSection({
     alias: selectedBankProfile?.config?.alias ?? draft.bankTransfer?.alias ?? '',
     cbu: selectedBankProfile?.config?.cbu ?? draft.bankTransfer?.cbu ?? '',
     holder: selectedBankProfile?.config?.holder ?? draft.bankTransfer?.holder ?? '',
+    cuit: selectedBankProfile?.config?.cuit ?? draft.bankTransfer?.cuit ?? '',
+    bankName: selectedBankProfile?.config?.bankName ?? draft.bankTransfer?.bankName ?? '',
   }
+  // Escribir un dato a mano desvincula la cuenta elegida: al guardar se crea
+  // (o reusa) una con estos datos.
+  const setBankField = (key) => (changeEvent) =>
+    patchDraft({
+      ...draft,
+      bankTransferProfileId: null,
+      bankTransfer: { ...(draft.bankTransfer ?? {}), [key]: changeEvent.target.value },
+    })
   const ownCashPlace = String(draft.cashPayment?.place ?? '').trim()
+  const setCashField = (key) => (changeEvent) =>
+    patchDraft({
+      ...draft,
+      cashPayment: { ...(draft.cashPayment ?? {}), [key]: changeEvent.target.value },
+    })
   const cashPlacePreview = ownCashPlace || eventVenueLabel
   const paymentReadiness = buildPaymentReadiness({
     overrides: draft.paymentChannelOverrides,
@@ -112,6 +130,38 @@ export default function EventSalesSection({
     mercadoPagoProfile: selectedMpProfile,
     profilesLoading: mpProfilesLoading,
   })
+
+  /** "Configurar" de la tabla: lleva al bloque del medio y deja el foco en su primer campo. */
+  function focusChannelConfig(channel) {
+    const block = document.getElementById(`event-payment-config-${channel}`)
+    if (!block) return
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    block.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' })
+    const field = block.querySelector('select, input:not([type="hidden"]), textarea, button')
+    field?.focus({ preventScroll: true })
+  }
+
+  // Credenciales cargadas a mano: el formato se valida antes de mandarlas para
+  // que un token pegado en el campo de la public key (o con espacios) no
+  // termine en un perfil que después rechaza cada cobro.
+  const mpPublicKey = mpDraft.publicKey.trim()
+  const mpAccessToken = mpDraft.accessToken.trim()
+  const mpPublicKeyError =
+    mpPublicKey && !MP_CREDENTIAL_PATTERN.test(mpPublicKey)
+      ? t('admin.eventEditor.mercadoPagoPublicKeyInvalid')
+      : ''
+  const mpAccessTokenError =
+    mpAccessToken && !MP_CREDENTIAL_PATTERN.test(mpAccessToken)
+      ? t('admin.eventEditor.mercadoPagoAccessTokenInvalid')
+      : ''
+  const mpModeMismatch =
+    Boolean(mpPublicKey && mpAccessToken && !mpPublicKeyError && !mpAccessTokenError) &&
+    mpPublicKey.startsWith('TEST-') !== mpAccessToken.startsWith('TEST-')
+  const mpCredentialsReady =
+    Boolean(mpPublicKey && mpAccessToken) &&
+    !mpPublicKeyError &&
+    !mpAccessTokenError &&
+    !mpModeMismatch
 
   return (
     <section
@@ -332,6 +382,11 @@ export default function EventSalesSection({
             />
           </FormField>
         </div>
+        {/* Dos maneras de mover la venta, dichas una vez: la ventana se guarda
+            con el evento; el control de venta aplica al instante. */}
+        <p className="admin-event-form__field-hint">
+          {t('admin.eventEditor.registrationWindowHint')}
+        </p>
       </div>
 
       <div
@@ -478,6 +533,7 @@ export default function EventSalesSection({
               No es inscripción gratis (price = 0); es “todavía no cobramos”. */}
           <label className="admin-event-form__toggle admin-event-form__sales-intent">
             <input
+              className="admin-event-form__toggle-input"
               type="checkbox"
               checked={draft.salesIntent === 'announce'}
               disabled={!canEdit}
@@ -506,6 +562,8 @@ export default function EventSalesSection({
             canEdit={canEdit}
             restrictOpen={eventScoped}
             ticketError={err('paymentChannelOverrides.ticket')}
+            readiness={paymentReadiness}
+            onConfigure={focusChannelConfig}
           />
 
           {/* Sin override el evento sigue lo que Finanzas abra o cierre
@@ -522,8 +580,6 @@ export default function EventSalesSection({
             </button>
           ) : null}
 
-          <EventPaymentReadiness readiness={paymentReadiness} />
-
           {channelOpenHere('bank_transfer') ? null : (
             <p className="admin-event-form__field-hint" data-channel="bank_transfer-closed">
               {t('admin.eventEditor.bankTransferClosedHint')}
@@ -536,14 +592,12 @@ export default function EventSalesSection({
           )}
 
           {channelOpenHere('mercado_pago') ? (
-            <div className="admin-event-form__bank-transfer">
+            <div className="admin-event-form__bank-transfer" id="event-payment-config-mercado_pago">
               <header className="admin-event-form__lane-head">
                 <h5 className="admin-event-form__lane-title">
-                  {essentials
-                    ? t('admin.eventEditor.paymentChannelMercadoPago')
-                    : t('admin.eventEditor.mercadoPagoProfileTitle')}
+                  {t('admin.eventEditor.mercadoPagoProfileTitle')}
                 </h5>
-                {essentials ? null : <p>{t('admin.eventEditor.mercadoPagoProfileHint')}</p>}
+                <p>{t('admin.eventEditor.mercadoPagoProfileHint')}</p>
               </header>
 
               {!mpSecretsKeyConfigured ? (
@@ -613,7 +667,10 @@ export default function EventSalesSection({
                 </p>
               )}
 
-              {!essentials && canEdit && (mpOAuthAvailable || mpSecretsKeyConfigured) ? (
+              {/* El alta de la cuenta vive acá también en la consola del evento:
+                  antes solo existía en el editor modal y desde la página del
+                  evento no había forma de vincular un Mercado Pago nuevo. */}
+              {canEdit && (mpOAuthAvailable || (mpSecretsKeyConfigured && !eventScoped)) ? (
                 <div className="admin-event-form__mp-actions">
                   {mpOAuthAvailable ? (
                     <MercadoPagoConnectControl
@@ -625,7 +682,7 @@ export default function EventSalesSection({
                   {/* Cargar las credenciales a mano queda como alternativa
                       (o como único camino si la app de MP no está configurada
                       en el servidor). */}
-                  {mpSecretsKeyConfigured ? (
+                  {mpSecretsKeyConfigured && !eventScoped ? (
                     <button
                       className={
                         mpOAuthAvailable ? 'payment-account-connect__link' : 'btn--small btn--ghost'
@@ -642,87 +699,148 @@ export default function EventSalesSection({
                 </div>
               ) : null}
 
-              {!essentials && mpCreateOpen ? (
-                <div className="admin-event-form__grid">
-                  <FormField
-                    htmlFor="event-mp-name"
-                    label={t('admin.eventEditor.mercadoPagoProfileName')}
-                  >
-                    <input
-                      id="event-mp-name"
-                      value={mpDraft.name}
-                      onChange={(changeEvent) =>
-                        setMpDraft({ ...mpDraft, name: changeEvent.target.value })
-                      }
-                    />
-                  </FormField>
-                  <FormField
-                    htmlFor="event-mp-public-key"
-                    label={t('admin.eventEditor.mercadoPagoPublicKey')}
-                  >
-                    <input
-                      id="event-mp-public-key"
-                      value={mpDraft.publicKey}
-                      onChange={(changeEvent) =>
-                        setMpDraft({ ...mpDraft, publicKey: changeEvent.target.value })
-                      }
-                      autoComplete="off"
-                    />
-                  </FormField>
-                  <FormField
-                    htmlFor="event-mp-access-token"
-                    label={t('admin.eventEditor.mercadoPagoAccessToken')}
-                  >
-                    <input
-                      id="event-mp-access-token"
-                      type="password"
-                      value={mpDraft.accessToken}
-                      onChange={(changeEvent) =>
-                        setMpDraft({
-                          ...mpDraft,
-                          accessToken: changeEvent.target.value,
-                        })
-                      }
-                      autoComplete="new-password"
-                    />
-                  </FormField>
-                  <FormField
-                    htmlFor="event-mp-webhook-secret"
-                    label={t('admin.eventEditor.mercadoPagoWebhookSecret')}
-                  >
-                    <input
-                      id="event-mp-webhook-secret"
-                      type="password"
-                      value={mpDraft.webhookSecret}
-                      onChange={(changeEvent) =>
-                        setMpDraft({
-                          ...mpDraft,
-                          webhookSecret: changeEvent.target.value,
-                        })
-                      }
-                      autoComplete="new-password"
-                    />
-                  </FormField>
+              {mpCreateOpen && !eventScoped ? (
+                <fieldset
+                  className="admin-event-form__mp-manual"
+                  aria-describedby="event-mp-manual-hint"
+                >
+                  <legend>{t('admin.eventEditor.mercadoPagoManualTitle')}</legend>
+                  <p className="admin-event-form__mp-manual-hint" id="event-mp-manual-hint">
+                    {t('admin.eventEditor.mercadoPagoManualHint')}
+                  </p>
+                  <div className="admin-event-form__grid">
+                    <FormField
+                      htmlFor="event-mp-name"
+                      label={t('admin.eventEditor.mercadoPagoProfileName')}
+                      wide
+                    >
+                      <input
+                        id="event-mp-name"
+                        value={mpDraft.name}
+                        maxLength={120}
+                        placeholder={t('admin.eventEditor.mercadoPagoProfileNamePlaceholder', {
+                          event: draft.title || draft.slug || 'evento',
+                        })}
+                        onChange={(changeEvent) =>
+                          setMpDraft({ ...mpDraft, name: changeEvent.target.value })
+                        }
+                      />
+                    </FormField>
+                    <FormField
+                      htmlFor="event-mp-public-key"
+                      label={t('admin.eventEditor.mercadoPagoPublicKey')}
+                      error={mpPublicKeyError}
+                    >
+                      <input
+                        id="event-mp-public-key"
+                        value={mpDraft.publicKey}
+                        aria-invalid={Boolean(mpPublicKeyError)}
+                        placeholder="APP_USR-…"
+                        spellCheck={false}
+                        onChange={(changeEvent) =>
+                          setMpDraft({ ...mpDraft, publicKey: changeEvent.target.value })
+                        }
+                        autoComplete="off"
+                      />
+                    </FormField>
+                    <FormField
+                      htmlFor="event-mp-access-token"
+                      label={t('admin.eventEditor.mercadoPagoAccessToken')}
+                      error={mpAccessTokenError}
+                    >
+                      <input
+                        id="event-mp-access-token"
+                        type="password"
+                        value={mpDraft.accessToken}
+                        aria-invalid={Boolean(mpAccessTokenError)}
+                        placeholder="APP_USR-…"
+                        spellCheck={false}
+                        onChange={(changeEvent) =>
+                          setMpDraft({
+                            ...mpDraft,
+                            accessToken: changeEvent.target.value,
+                          })
+                        }
+                        autoComplete="new-password"
+                      />
+                    </FormField>
+                    <FormField
+                      htmlFor="event-mp-webhook-secret"
+                      label={t('admin.eventEditor.mercadoPagoWebhookSecret')}
+                    >
+                      <input
+                        id="event-mp-webhook-secret"
+                        type="password"
+                        value={mpDraft.webhookSecret}
+                        spellCheck={false}
+                        onChange={(changeEvent) =>
+                          setMpDraft({
+                            ...mpDraft,
+                            webhookSecret: changeEvent.target.value,
+                          })
+                        }
+                        autoComplete="new-password"
+                      />
+                    </FormField>
+                    <FormField
+                      htmlFor="event-mp-collector-id"
+                      label={t('admin.eventEditor.mercadoPagoCollectorId')}
+                    >
+                      <input
+                        id="event-mp-collector-id"
+                        inputMode="numeric"
+                        value={mpDraft.collectorId}
+                        spellCheck={false}
+                        onChange={(changeEvent) =>
+                          setMpDraft({
+                            ...mpDraft,
+                            collectorId: changeEvent.target.value.replace(/\D+/g, ''),
+                          })
+                        }
+                        autoComplete="off"
+                      />
+                    </FormField>
+                  </div>
+                  {mpModeMismatch ? (
+                    <p className="admin-event-form__notice" role="status">
+                      {t('admin.eventEditor.mercadoPagoModeMismatch')}
+                    </p>
+                  ) : null}
                   {mpCreateError ? (
-                    <p className="admin-event-form__pricing-note" role="alert">
+                    <p className="admin-event-form__alert" role="alert">
                       {mpCreateError}
                     </p>
                   ) : null}
-                  <button
-                    className="button button--primary"
-                    type="button"
-                    disabled={mpCreating}
-                    onClick={() => void handleCreateMpProfile()}
-                  >
-                    {t('admin.eventEditor.mercadoPagoProfileCreate')}
-                  </button>
-                </div>
+                  <div className="admin-event-form__mp-manual-actions">
+                    <button
+                      className="btn btn--outline"
+                      type="button"
+                      onClick={() => setMpCreateOpen(false)}
+                    >
+                      {t('admin.paymentAccounts.connectCancel')}
+                    </button>
+                    <button
+                      className="btn btn--gold"
+                      type="button"
+                      disabled={mpCreating || !mpCredentialsReady}
+                      aria-busy={mpCreating || undefined}
+                      onClick={() => void handleCreateMpProfile()}
+                    >
+                      {mpCreating
+                        ? t('admin.eventEditor.mercadoPagoProfileCreating')
+                        : t('admin.eventEditor.mercadoPagoProfileCreate')}
+                    </button>
+                  </div>
+                </fieldset>
               ) : null}
             </div>
           ) : null}
 
           {channelOpenHere('bank_transfer') ? (
-            <div className="admin-event-form__bank-transfer">
+            <div
+              className="admin-event-form__bank-transfer"
+              id="event-payment-config-bank_transfer"
+            >
               <header className="admin-event-form__lane-head">
                 <h5 className="admin-event-form__lane-title">
                   {essentials
@@ -775,6 +893,14 @@ export default function EventSalesSection({
                     <div>
                       <dt>{t('admin.eventEditor.bankTransferHolder')}</dt>
                       <dd>{bankSummary.holder || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('admin.paymentAccounts.fieldCuit')}</dt>
+                      <dd>{bankSummary.cuit || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('admin.paymentAccounts.fieldBankName')}</dt>
+                      <dd>{bankSummary.bankName || '—'}</dd>
                     </div>
                   </dl>
                   <p className="admin-event-form__field-hint">
@@ -829,7 +955,10 @@ export default function EventSalesSection({
                         placeholder={t('admin.eventEditor.bankTransferAliasPlaceholder')}
                       />
                     </FormField>
-                    <FormField htmlFor="event-bank-cbu" label={t('admin.eventEditor.bankTransferCbu')}>
+                    <FormField
+                      htmlFor="event-bank-cbu"
+                      label={t('admin.eventEditor.bankTransferCbu')}
+                    >
                       <input
                         id="event-bank-cbu"
                         name="bankTransfer.cbu"
@@ -860,16 +989,38 @@ export default function EventSalesSection({
                         type="text"
                         maxLength={160}
                         value={draft.bankTransfer?.holder ?? ''}
-                        onChange={(changeEvent) =>
-                          patchDraft({
-                            ...draft,
-                            bankTransferProfileId: null,
-                            bankTransfer: {
-                              ...(draft.bankTransfer ?? {}),
-                              holder: changeEvent.target.value,
-                            },
-                          })
-                        }
+                        onChange={setBankField('holder')}
+                        disabled={!canEdit || eventScoped}
+                      />
+                    </FormField>
+                    <FormField
+                      htmlFor="event-bank-cuit"
+                      label={t('admin.paymentAccounts.fieldCuit')}
+                    >
+                      <input
+                        id="event-bank-cuit"
+                        name="bankTransfer.cuit"
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={20}
+                        placeholder="20-12345678-9"
+                        value={draft.bankTransfer?.cuit ?? ''}
+                        onChange={setBankField('cuit')}
+                        disabled={!canEdit || eventScoped}
+                      />
+                    </FormField>
+                    <FormField
+                      htmlFor="event-bank-name"
+                      label={t('admin.paymentAccounts.fieldBankName')}
+                    >
+                      <input
+                        id="event-bank-name"
+                        name="bankTransfer.bankName"
+                        type="text"
+                        maxLength={80}
+                        placeholder="Banco Galicia, Mercado Pago…"
+                        value={draft.bankTransfer?.bankName ?? ''}
+                        onChange={setBankField('bankName')}
                         disabled={!canEdit || eventScoped}
                       />
                     </FormField>
@@ -894,7 +1045,11 @@ export default function EventSalesSection({
           {/* Efectivo en el lugar: nada que vincular, solo dónde se paga. Vacío
               cae en la sede del evento, que es lo que ve el comprador. */}
           {channelOpenHere('cash_pitbull') ? (
-            <div className="admin-event-form__bank-transfer" data-channel="cash_pitbull">
+            <div
+              className="admin-event-form__bank-transfer"
+              data-channel="cash_pitbull"
+              id="event-payment-config-cash_pitbull"
+            >
               <header className="admin-event-form__lane-head">
                 <h5 className="admin-event-form__lane-title">
                   {t('admin.eventEditor.cashPaymentTitle')}
@@ -917,15 +1072,7 @@ export default function EventSalesSection({
                     value={draft.cashPayment?.place ?? ''}
                     aria-invalid={Boolean(err('cashPayment.place'))}
                     aria-describedby="event-cash-place-hint"
-                    onChange={(changeEvent) =>
-                      patchDraft({
-                        ...draft,
-                        cashPayment: {
-                          ...(draft.cashPayment ?? {}),
-                          place: changeEvent.target.value,
-                        },
-                      })
-                    }
+                    onChange={setCashField('place')}
                     disabled={!canEdit}
                     placeholder={eventVenueLabel || undefined}
                   />
@@ -934,6 +1081,60 @@ export default function EventSalesSection({
                       ? t('admin.eventEditor.cashPaymentPlaceHint', { venue: eventVenueLabel })
                       : t('admin.eventEditor.cashPaymentPlaceHintNoVenue')}
                   </small>
+                </FormField>
+                <FormField
+                  htmlFor="event-cash-address"
+                  label={t('admin.eventEditor.cashPaymentAddress')}
+                  error={err('cashPayment.address')}
+                  wide
+                >
+                  <input
+                    id="event-cash-address"
+                    name="cashPayment.address"
+                    type="text"
+                    maxLength={200}
+                    autoComplete="off"
+                    value={draft.cashPayment?.address ?? ''}
+                    onChange={setCashField('address')}
+                    disabled={!canEdit}
+                    placeholder={
+                      ownCashPlace
+                        ? t('admin.eventEditor.cashPaymentAddressPlaceholder')
+                        : draft.venueAddress || t('admin.eventEditor.cashPaymentAddressPlaceholder')
+                    }
+                  />
+                </FormField>
+                <FormField
+                  htmlFor="event-cash-hours"
+                  label={t('admin.eventEditor.cashPaymentHours')}
+                  error={err('cashPayment.hours')}
+                >
+                  <input
+                    id="event-cash-hours"
+                    name="cashPayment.hours"
+                    type="text"
+                    maxLength={160}
+                    value={draft.cashPayment?.hours ?? ''}
+                    onChange={setCashField('hours')}
+                    disabled={!canEdit}
+                    placeholder={t('admin.eventEditor.cashPaymentHoursPlaceholder')}
+                  />
+                </FormField>
+                <FormField
+                  htmlFor="event-cash-contact"
+                  label={t('admin.eventEditor.cashPaymentContact')}
+                  error={err('cashPayment.contact')}
+                >
+                  <input
+                    id="event-cash-contact"
+                    name="cashPayment.contact"
+                    type="text"
+                    maxLength={120}
+                    value={draft.cashPayment?.contact ?? ''}
+                    onChange={setCashField('contact')}
+                    disabled={!canEdit}
+                    placeholder={t('admin.eventEditor.cashPaymentContactPlaceholder')}
+                  />
                 </FormField>
                 <FormField
                   htmlFor="event-cash-notes"
@@ -948,15 +1149,7 @@ export default function EventSalesSection({
                     maxLength={400}
                     value={draft.cashPayment?.notes ?? ''}
                     aria-invalid={Boolean(err('cashPayment.notes'))}
-                    onChange={(changeEvent) =>
-                      patchDraft({
-                        ...draft,
-                        cashPayment: {
-                          ...(draft.cashPayment ?? {}),
-                          notes: changeEvent.target.value,
-                        },
-                      })
-                    }
+                    onChange={setCashField('notes')}
                     disabled={!canEdit}
                     placeholder={t('admin.eventEditor.cashPaymentNotesPlaceholder')}
                   />
@@ -971,10 +1164,18 @@ export default function EventSalesSection({
                       ? t('admin.eventEditor.cashPaymentPreviewOwn')
                       : t('admin.eventEditor.cashPaymentPreviewVenue')}
                   </p>
-                  <p>{cashPlacePreview}</p>
-                  {String(draft.cashPayment?.notes ?? '').trim() ? (
-                    <p>{String(draft.cashPayment.notes).trim()}</p>
-                  ) : null}
+                  {/* Lo mismo que ve el atleta, con Google Maps y Waze para probar
+                      que la dirección lleva al lugar correcto. */}
+                  <CashPaymentPlace
+                    cashPayment={{
+                      ...draft.cashPayment,
+                      place: cashPlacePreview,
+                      address:
+                        String(draft.cashPayment?.address ?? '').trim() ||
+                        (ownCashPlace ? '' : String(draft.venueAddress ?? '').trim()),
+                    }}
+                    event={{ location: draft.location }}
+                  />
                 </div>
               ) : (
                 <p className="admin-event-form__notice" role="status">

@@ -1,6 +1,13 @@
+import { ImagePlus, Trash2 } from 'lucide-react'
+import useImageDrop from '../../../../hooks/useImageDrop.js'
+
 /**
  * Imagen de la portada: vista previa, subida y quitar. La ruta se guarda en
  * `landing.slots.heroImagePath` al guardar el evento (la subida solo emite el archivo).
+ *
+ * Las tres formas de traer la foto que ya tiene el logo del evento (elegir,
+ * arrastrar o pegar), en vez del `input type="file"` nativo, que se veía con el
+ * "Choose File" del navegador en medio del panel.
  */
 export default function HeroImageField({
   t,
@@ -11,40 +18,60 @@ export default function HeroImageField({
   onUpload,
   onRemove,
 }) {
+  const disabled = !canEdit || uploading || !hasSlug
+  const { dragging, dropProps, inputProps, inputRef, openPicker } = useImageDrop({
+    disabled,
+    onFile: onUpload,
+  })
+  const text = (key) => t(`admin.eventEditor.${key}`)
+
   return (
-    <div className="admin-event-form__landing-hero">
-      <p className="admin-event-form__section-note">{t('admin.eventEditor.landingHeroHint')}</p>
-      {previewUrl ? (
-        <div className="admin-event-form__landing-hero-preview">
+    <div
+      className={`admin-landing-hero${dragging ? ' is-dragging' : ''}${uploading ? ' is-busy' : ''}`}
+      {...dropProps}
+    >
+      <div className="admin-landing-hero__frame" aria-hidden={!previewUrl || undefined}>
+        {previewUrl ? (
           <img alt="" height={180} src={previewUrl} width={320} />
+        ) : (
+          <ImagePlus size={20} aria-hidden />
+        )}
+        {uploading ? <span className="plu-spinner plu-spinner--sm" aria-hidden="true" /> : null}
+      </div>
+      <div className="admin-landing-hero__copy">
+        <p className="admin-landing-hero__hint">
+          {dragging ? text('landingHeroDrop') : text('landingHeroHint')}
+        </p>
+        <div className="admin-landing-hero__actions">
           <button
             type="button"
-            className="admin-event-form__text-btn"
-            disabled={!canEdit || uploading}
-            onClick={onRemove}
+            className="admin-landing-hero__button"
+            disabled={disabled}
+            aria-busy={uploading || undefined}
+            onClick={openPicker}
           >
-            {t('admin.eventEditor.landingHeroRemove')}
+            <ImagePlus size={14} aria-hidden />
+            {uploading
+              ? text('landingHeroUploading')
+              : previewUrl
+                ? text('landingHeroReplace')
+                : text('landingHeroUpload')}
           </button>
+          {previewUrl ? (
+            <button
+              type="button"
+              className="admin-landing-hero__remove"
+              disabled={!canEdit || uploading}
+              onClick={onRemove}
+            >
+              <Trash2 size={14} aria-hidden />
+              {text('landingHeroRemove')}
+            </button>
+          ) : null}
         </div>
-      ) : null}
-      <label className="admin-event-form__file">
-        <span>{t('admin.eventEditor.landingHeroUpload')}</span>
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          disabled={!canEdit || uploading || !hasSlug}
-          onChange={(event) => {
-            const file = event.target.files?.[0]
-            event.target.value = ''
-            if (file) onUpload(file)
-          }}
-        />
-      </label>
-      {!hasSlug ? (
-        <p className="admin-event-form__section-note">
-          {t('admin.eventEditor.landingHeroNeedsSlug')}
-        </p>
-      ) : null}
+        {!hasSlug ? <p className="admin-landing-hero__hint">{text('landingHeroNeedsSlug')}</p> : null}
+      </div>
+      <input ref={inputRef} {...inputProps} />
     </div>
   )
 }

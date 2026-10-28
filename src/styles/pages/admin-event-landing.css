@@ -39,54 +39,37 @@
   text-transform: uppercase;
 }
 
-/* La plantilla vive en una columna ancha: los controles se miden a su
-   contenido y se centran. El riel de filtros, si queda al 100%, deja un
-   vacío largo a la derecha de cuatro chips. */
+/* Formato de la landing: un solo eje a la izquierda y un ancho de lectura.
+   Antes los controles se centraban y las notas largas quedaban centradas al
+   lado de bloques alineados a la izquierda: dos ejes en la misma columna. */
 .admin-event-form__landing > .admin-landing-copy {
-  justify-items: center;
-  justify-self: center;
-  width: min(100%, 40rem);
-}
-
-.admin-event-form__landing > .admin-landing-copy .admin-landing-copy__toggle {
-  justify-self: center;
+  justify-items: start;
+  max-width: 44rem;
 }
 
 .admin-event-form__landing-format {
-  justify-items: center;
+  gap: 22px;
+  max-width: 44rem;
 }
 
-.admin-event-form__landing-format > legend {
-  justify-content: center;
-}
-
-.admin-shell .admin-event-form__landing-format .admin-filter-group--rail {
-  justify-items: center;
-  max-width: 100%;
-  width: fit-content;
+.admin-event-form__landing-format > .admin-event-form__section-note {
+  margin-top: -14px;
+  max-width: 62ch;
 }
 
 .admin-shell .admin-event-form__landing-format .admin-filter-chips-rail,
-.admin-shell .admin-event-form__landing-format .admin-filter-group--compact .admin-filter-chips {
-  justify-content: center;
-  width: auto;
+.admin-shell .admin-event-form__landing-format .admin-filter-group--compact .admin-filter-chips,
+.admin-landing-studio .admin-event-form__landing-format .admin-filter-group--compact .admin-filter-chips {
+  justify-content: flex-start;
 }
 
-.admin-event-form__landing-format .admin-filter-group__label,
-.admin-event-form__landing-format .admin-event-form__section-note {
-  text-align: center;
-}
-
-.admin-event-form__landing-format > .admin-event-form__section-note,
-.admin-event-form__landing-format > .admin-landing-motion,
-.admin-event-form__landing-format > .admin-landing-palette {
-  width: min(100%, 40rem);
+.admin-event-form__landing-format .admin-landing-look__templates {
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
 }
 
 .admin-landing-motion {
   display: grid;
-  gap: 8px;
-  justify-items: center;
+  gap: 10px;
 }
 
 .admin-landing-copy__panel {
@@ -95,17 +78,146 @@
   width: 100%;
 }
 
-@media (max-width: 719px) {
-  .admin-shell .admin-event-form__landing-format .admin-filter-group--rail,
-  .admin-shell .admin-event-form__landing-format .admin-filter-chips-rail,
-  .admin-shell .admin-event-form__landing-format .admin-filter-group--compact .admin-filter-chips {
-    justify-content: flex-start;
-    width: 100%;
-  }
+/* Qué ve el público: dos opciones con su consecuencia, no un chip suelto. */
+.admin-landing-audience {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+}
 
-  .admin-event-form__landing-format .admin-filter-group__label,
-  .admin-event-form__landing-format .admin-event-form__section-note {
-    text-align: start;
+.admin-landing-audience__option {
+  align-items: start;
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 10px;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 44px;
+  padding: 12px 14px;
+  position: relative;
+  transition: border-color var(--motion-fast) var(--ease-out);
+}
+
+.admin-landing-audience__option input {
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.admin-landing-audience__option:hover {
+  border-color: var(--admin-hairline-strong, var(--color-border-subtle));
+}
+
+.admin-landing-audience__option.is-checked {
+  border-color: var(--admin-accent);
+  box-shadow: 0 0 0 1px var(--admin-accent);
+}
+
+.admin-landing-audience__option:has(input:focus-visible) {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-landing-audience__option:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.admin-landing-audience__icon {
+  color: var(--admin-muted, var(--color-text-muted));
+  margin-top: 2px;
+}
+
+.admin-landing-audience__option.is-checked .admin-landing-audience__icon {
+  color: var(--admin-accent);
+}
+
+.admin-landing-audience__copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-event-form .admin-landing-audience__copy strong {
+  align-items: center;
+  color: var(--admin-ink, var(--color-text-primary));
+  display: inline-flex;
+  font-size: 13.5px;
+  font-weight: 600;
+  gap: 6px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-landing-audience__copy strong svg {
+  color: var(--admin-accent);
+}
+
+.admin-event-form .admin-landing-audience__copy small {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12.5px;
+  letter-spacing: 0;
+  line-height: 1.45;
+  text-transform: none;
+}
+
+.admin-landing-audience__details > summary {
+  align-items: center;
+  color: var(--admin-text-secondary, var(--color-text-secondary));
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 500;
+  gap: 6px;
+  list-style: none;
+  min-height: 32px;
+}
+
+.admin-landing-audience__details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-landing-audience__details > summary:hover {
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-landing-audience__details > summary:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-landing-audience__details > summary svg {
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.admin-landing-audience__details[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+.admin-landing-audience__details > p {
+  border-left: 2px solid var(--admin-hairline, var(--color-border-subtle));
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin: 4px 0 0;
+  max-width: 62ch;
+  padding-left: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-landing-audience__option,
+  .admin-landing-audience__details > summary svg {
+    transition: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .admin-landing-audience__details > summary {
+    min-height: 44px;
   }
 }
 
@@ -1037,5 +1149,169 @@
 @media (pointer: coarse) {
   .admin-landing-convert__button {
     min-height: 44px;
+  }
+}
+
+/* Las muestras de plantilla y tema viven dentro de `.admin-event-form` en el
+   editor del evento y en el editor visual. Ahí dos reglas genéricas del
+   formulario les ganaban: `label:not(...)` las volvía grilla (el nombre del
+   tema caía debajo de la pastilla) y `label span` pasaba los nombres a
+   versales de 10px. Estas devuelven el dibujo del alta rápida. */
+.admin-event-form .admin-landing-look__group .admin-landing-look__themes > label.admin-landing-look__theme {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.admin-event-form .admin-landing-look__group .admin-landing-look__templates > label.admin-landing-look__template {
+  gap: 8px;
+}
+
+.admin-event-form .admin-landing-look__group .admin-landing-audience > label.admin-landing-audience__option {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-event-form .admin-landing-look__name,
+.admin-event-form .admin-landing-look__theme-name {
+  color: inherit;
+  font-size: 12.5px;
+  font-weight: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-event-form .admin-landing-look__name {
+  color: var(--admin-text-secondary, var(--color-text-secondary));
+  font-weight: 500;
+}
+
+.admin-event-form .admin-landing-look__template.is-checked .admin-landing-look__name {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-weight: 600;
+}
+
+/* Imagen de portada: miniatura + acciones, con arrastrar y pegar. */
+.admin-landing-hero {
+  align-items: center;
+  border: 1px dashed var(--admin-hairline-strong, var(--color-border-subtle));
+  border-radius: 12px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 8.5rem minmax(0, 1fr);
+  padding: 12px;
+  transition: border-color var(--motion-fast) var(--ease-out);
+}
+
+.admin-landing-hero.is-dragging {
+  border-color: var(--admin-accent);
+  border-style: solid;
+}
+
+.admin-landing-hero__frame {
+  align-items: center;
+  aspect-ratio: 16 / 9;
+  background: var(--admin-control-bg, rgba(255, 255, 255, 0.03));
+  border-radius: 8px;
+  color: var(--admin-muted, var(--color-text-muted));
+  display: grid;
+  justify-items: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.admin-landing-hero__frame > * {
+  grid-area: 1 / 1;
+}
+
+.admin-landing-hero__frame img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.admin-landing-hero.is-busy .admin-landing-hero__frame img {
+  opacity: 0.5;
+}
+
+.admin-landing-hero__copy {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-landing-hero__hint {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.admin-landing-hero__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.admin-landing-hero__button,
+.admin-landing-hero__remove {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong, var(--color-border-subtle));
+  border-radius: 999px;
+  color: var(--admin-ink, var(--color-text-primary));
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+}
+
+.admin-landing-hero__remove {
+  border-color: transparent;
+  color: var(--admin-text-secondary, var(--color-text-secondary));
+  font-weight: 500;
+  padding: 0 6px;
+}
+
+.admin-landing-hero__button:hover:not(:disabled) {
+  border-color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-landing-hero__remove:hover:not(:disabled) {
+  color: var(--admin-status-danger, var(--color-danger));
+}
+
+.admin-landing-hero__button:focus-visible,
+.admin-landing-hero__remove:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-landing-hero__button:disabled,
+.admin-landing-hero__remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (max-width: 480px) {
+  .admin-landing-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (pointer: coarse) {
+  .admin-landing-hero__button,
+  .admin-landing-hero__remove {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-landing-hero {
+    transition: none;
   }
 }

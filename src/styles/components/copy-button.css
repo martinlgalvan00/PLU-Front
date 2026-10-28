@@ -1,0 +1,43 @@
+/* Copiar un dato de pago. Etiqueta visible ("Copiar" / "Copiado"): el ícono
+   solo no alcanza para alguien que transfiere desde el celular por primera
+   vez. 44 px de alto táctil aunque se vea compacto. */
+.copy-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  position: relative;
+  transition:
+    color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
+}
+
+.copy-button::before {
+  content: '';
+  inset: -6px 0;
+  position: absolute;
+}
+
+.copy-button:hover {
+  border-color: var(--color-brand-celeste);
+  color: var(--color-text-primary);
+}
+
+.copy-button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.copy-button[data-copied] {
+  border-color: var(--color-success-text);
+  color: var(--color-success-text);
+}

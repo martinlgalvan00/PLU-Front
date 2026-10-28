@@ -5426,3 +5426,172 @@
     justify-items: start;
   }
 }
+
+/* ── Tus accesos ──
+   Un renglón por evento con el veredicto que va a dar la puerta. Verde para
+   lo que ya entra, ámbar para lo que falta (pago, afiliación): nada de rojo,
+   no es un error del atleta sino un paso pendiente. */
+.account-passes {
+  display: grid;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.account-passes__head h3 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 4px;
+}
+
+.account-passes__head p {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 56ch;
+}
+
+.account-passes__list {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.account-passes__item {
+  align-items: center;
+  border-bottom: 1px solid var(--color-border-subtle);
+  column-gap: 16px;
+  display: grid;
+  grid-template-areas:
+    'event state'
+    'detail action';
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 14px 0;
+  row-gap: 6px;
+}
+
+.account-passes__event {
+  display: grid;
+  gap: 2px;
+  grid-area: event;
+  min-width: 0;
+}
+
+.account-passes__event strong {
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.account-passes__event span {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+}
+
+.account-passes__state {
+  align-items: center;
+  color: var(--color-warning-text);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  grid-area: state;
+  justify-self: end;
+  letter-spacing: 0.04em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.account-passes__item[data-state='ready'] .account-passes__state,
+.account-passes__item[data-state='checked_in'] .account-passes__state {
+  color: var(--color-success-text);
+}
+
+.account-passes__detail {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  grid-area: detail;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.account-passes__action {
+  align-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-primary);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  grid-area: action;
+  justify-self: end;
+  min-height: 44px;
+  padding: 0 16px;
+  text-decoration: none;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    background-color var(--motion-fast) var(--ease-out);
+  white-space: nowrap;
+}
+
+.account-passes__action:hover {
+  background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
+  border-color: var(--color-brand-celeste);
+}
+
+.account-passes__action:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+  .account-passes__item {
+    grid-template-areas:
+      'event'
+      'state'
+      'detail'
+      'action';
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .account-passes__state,
+  .account-passes__action {
+    justify-self: start;
+  }
+}
+
+a.account-qr__share {
+  text-decoration: none;
+}
+
+/* Ver la credencial en 3D: acción secundaria debajo de la tarjeta. */
+.account-qr__view3d {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  margin-top: 14px;
+  min-height: 44px;
+  padding: 0 18px;
+  transition: border-color var(--motion-fast) var(--ease-out);
+}
+
+.account-qr__view3d:hover {
+  border-color: var(--color-brand-gold);
+}
+
+.account-qr__view3d:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}

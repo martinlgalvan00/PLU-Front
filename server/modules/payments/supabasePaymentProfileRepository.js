@@ -69,6 +69,8 @@ function mapBankConfig(config) {
     alias: trimText(config.alias),
     cbu: trimText(config.cbu),
     holder: trimText(config.holder),
+    cuit: trimText(config.cuit),
+    bankName: trimText(config.bankName),
     notes: trimText(config.notes),
   }
 }
@@ -145,6 +147,8 @@ function buildConfig(kind, config = {}) {
     alias: trimText(config.alias).slice(0, 120),
     cbu: trimText(config.cbu).slice(0, 30),
     holder: trimText(config.holder).slice(0, 160),
+    cuit: trimText(config.cuit).slice(0, 20),
+    bankName: trimText(config.bankName).slice(0, 80),
     notes: trimText(config.notes).slice(0, 500),
   }
 }
@@ -602,7 +606,7 @@ export function createSupabasePaymentProfileRepository(
      *   otro guardado simultáneo toma el nombre entre la lectura y el alta, se
      *   relee y se reintenta: el catálogo lo ve completo en la segunda vuelta.
      */
-    async ensureBankTransferProfile({ name, alias, cbu, holder }) {
+    async ensureBankTransferProfile({ name, alias, cbu, holder, cuit = '', bankName = '' }) {
       const normalizedAlias = trimText(alias)
       if (!normalizedAlias) {
         throw new HttpError(400, 'El perfil bancario necesita un alias.')
@@ -625,10 +629,14 @@ export function createSupabasePaymentProfileRepository(
           (profile) => nameKey(profile.config.alias) === nameKey(normalizedAlias),
         )
         if (existing) {
-          const nextCbu = trimText(cbu) || existing.config.cbu
-          const nextHolder = trimText(holder) || existing.config.holder
-          if (nextCbu !== existing.config.cbu || nextHolder !== existing.config.holder) {
-            return this.update(existing.id, { config: { cbu: nextCbu, holder: nextHolder } })
+          const next = {
+            cbu: trimText(cbu) || existing.config.cbu,
+            holder: trimText(holder) || existing.config.holder,
+            cuit: trimText(cuit) || existing.config.cuit || '',
+            bankName: trimText(bankName) || existing.config.bankName || '',
+          }
+          if (Object.entries(next).some(([key, value]) => value !== (existing.config[key] ?? ''))) {
+            return this.update(existing.id, { config: next })
           }
           return existing
         }
@@ -639,7 +647,7 @@ export function createSupabasePaymentProfileRepository(
           return await this.create({
             name: freeProfileName(baseName.slice(0, PROFILE_NAME_MAX), normalizedAlias, taken),
             kind: 'bank_transfer',
-            config: { alias: normalizedAlias, cbu, holder },
+            config: { alias: normalizedAlias, cbu, holder, cuit, bankName },
           })
         } catch (error) {
           if (error?.details?.code === PAYMENT_PROFILE_NAME_TAKEN_CODE && attempt < 2) continue

@@ -537,7 +537,28 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
     expect(onChange.mock.calls.at(-1)[0].cashPayment).toEqual({
       place: 'Recepción del gimnasio',
       notes: '',
+      address: '',
+      hours: '',
+      contact: '',
     })
+  })
+
+  it('el efectivo lleva dirección, horario y contacto, con Google Maps y Waze para probarla', async () => {
+    const onChange = vi.fn()
+    renderEditor(
+      { cashPayment: { place: 'Gimnasio Pitbull', notes: '', address: 'Av. Mitre 1234, Avellaneda' } },
+      { onChange },
+    )
+    openPaymentChapter()
+    await platformMatrix()
+
+    fireEvent.change(screen.getByLabelText(/días y horario/i), {
+      target: { value: 'Lun a vie de 18 a 21' },
+    })
+    expect(onChange.mock.calls.at(-1)[0].cashPayment.hours).toBe('Lun a vie de 18 a 21')
+    const maps = screen.getByRole('link', { name: /abrir en google maps/i })
+    expect(maps.getAttribute('href')).toContain('Av.%20Mitre%201234')
+    expect(screen.getByRole('link', { name: /abrir en waze/i })).toBeTruthy()
   })
 
   it('resume el destino que verá quien paga antes de guardar', async () => {
@@ -545,7 +566,8 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
     openPaymentChapter()
     await platformMatrix()
 
-    expect(screen.getByText('Estado de configuración')).toBeTruthy()
+    // El estado vive en la fila de cada medio, junto a sus interruptores.
+    expect(screen.getByText(/^acepta .*transferencia/i)).toBeTruthy()
     expect(screen.getByText('Alias: pitbull.clasico')).toBeTruthy()
     expect(screen.getByText('Lugar: Maximal Strength Club · Buenos Aires')).toBeTruthy()
     expect(screen.getByText('Cuenta general de la plataforma.')).toBeTruthy()
@@ -1005,7 +1027,9 @@ describe('AdminEventEditor — landing Constructor', () => {
       'location',
     ])
     expect(within(items[0]).queryByRole('checkbox')).toBeNull()
-    expect(within(items[0]).queryByRole('button', { name: /subir|bajar/i })).toBeNull()
+    // Las flechas de orden se llaman «Subir «bloque»» / «Bajar «bloque»»; la
+    // portada tiene "Subir imagen del hero", que no es mover el bloque.
+    expect(within(items[0]).queryByRole('button', { name: /^(subir|bajar) «/i })).toBeNull()
   })
 
   it('sube y baja bloques, sin pasar por encima de la portada', () => {
@@ -1089,7 +1113,7 @@ describe('AdminEventEditor — landing Constructor', () => {
       .getByText(/textos de la página, módulos y transmisión/i)
       .closest('details').open = true
 
-    fireEvent.click(screen.getByRole('button', { name: /^constructor$/i }))
+    fireEvent.click(screen.getByRole('radio', { name: /^constructor$/i }))
     const next = onChange.mock.calls.at(-1)[0].landing
     expect(next.templateId).toBe('builder')
     expect(next.layout.blocks[0].type).toBe('hero')
@@ -1097,7 +1121,12 @@ describe('AdminEventEditor — landing Constructor', () => {
   })
 
   describe('colores', () => {
-    const palette = () => within(screen.getByRole('group', { name: /colores del evento/i }))
+    // Sin colores propios el editor arranca plegado bajo "Usar colores propios".
+    const palette = () => {
+      const toggle = screen.queryByRole('button', { name: /usar colores propios/i })
+      if (toggle?.getAttribute('aria-expanded') === 'false') fireEvent.click(toggle)
+      return within(screen.getByRole('group', { name: /colores del evento/i }))
+    }
 
     it('guarda un color válido en la paleta y muestra el aviso de contraste', () => {
       const onChange = vi.fn()

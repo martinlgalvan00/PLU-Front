@@ -14,7 +14,15 @@ import MercadoPagoConnectControl from './MercadoPagoConnectControl.jsx'
 import { mercadoPagoAccountStatus, paymentAccountHolder } from './paymentAccountText.js'
 import '../../../styles/components/admin-payment-accounts.css'
 
-const EMPTY_BANK = { name: '', alias: '', cbu: '', holder: '', notes: '' }
+const EMPTY_BANK = {
+  name: '',
+  alias: '',
+  cbu: '',
+  holder: '',
+  cuit: '',
+  bankName: '',
+  notes: '',
+}
 
 function isInUse(usage) {
   return Boolean(usage && (usage.events?.length > 0 || usage.shop || usage.pinnedOrders > 0))
@@ -150,6 +158,8 @@ export default function PaymentAccountsPanel({ t, locale = 'es', canEdit = false
         alias: profile.config?.alias ?? '',
         cbu: profile.config?.cbu ?? '',
         holder: profile.config?.holder ?? '',
+        cuit: profile.config?.cuit ?? '',
+        bankName: profile.config?.bankName ?? '',
         notes: profile.config?.notes ?? '',
       },
     })
@@ -173,6 +183,8 @@ export default function PaymentAccountsPanel({ t, locale = 'es', canEdit = false
             alias: draft.alias.trim(),
             cbu: draft.cbu.trim(),
             holder: draft.holder.trim(),
+            cuit: draft.cuit.trim(),
+            bankName: draft.bankName.trim(),
             notes: draft.notes.trim(),
           }
         : { notes: draft.notes.trim() }
@@ -278,6 +290,28 @@ export default function PaymentAccountsPanel({ t, locale = 'es', canEdit = false
                   value={draft.holder}
                   onChange={setField('holder')}
                   maxLength={160}
+                />
+              </label>
+              <label htmlFor={`${formId}-cuit`}>
+                <span>{t('admin.paymentAccounts.fieldCuit')}</span>
+                <input
+                  id={`${formId}-cuit`}
+                  value={draft.cuit}
+                  onChange={setField('cuit')}
+                  maxLength={20}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="20-12345678-9"
+                />
+              </label>
+              <label htmlFor={`${formId}-bank`}>
+                <span>{t('admin.paymentAccounts.fieldBankName')}</span>
+                <input
+                  id={`${formId}-bank`}
+                  value={draft.bankName}
+                  onChange={setField('bankName')}
+                  maxLength={80}
+                  placeholder="Banco Galicia, Mercado Pago, Brubank…"
                 />
               </label>
             </>

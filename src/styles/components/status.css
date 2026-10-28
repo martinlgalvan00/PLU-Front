@@ -480,6 +480,28 @@
   --toast-accent: var(--color-danger-text, var(--color-brand-red));
 }
 
+.admin-toasts__item--warning {
+  --toast-accent: var(--color-warning-text);
+}
+
+.admin-toasts__item--info {
+  --toast-accent: var(--color-brand-celeste);
+}
+
+/* Tiempo que le queda: se congela al pasar el mouse o tomar el foco, igual
+   que el auto-cierre. Sin movimiento, la barra no aparece. */
+.admin-toasts__timer {
+  background: color-mix(in oklab, var(--toast-accent) 55%, transparent);
+  border-radius: 0 0 12px 12px;
+  bottom: 0;
+  display: none;
+  height: 2px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  transform-origin: left center;
+}
+
 .admin-toasts__icon {
   align-items: center;
   border: 1px solid color-mix(in oklab, var(--toast-accent) 38%, transparent);
@@ -566,6 +588,38 @@
 @media (prefers-reduced-motion: no-preference) {
   .admin-toasts__item {
     animation: admin-toast-in var(--motion-base, 240ms) var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  }
+
+  .admin-toasts__item[data-leaving] {
+    animation: admin-toast-out 180ms var(--ease-in-out, ease) both;
+    pointer-events: none;
+  }
+
+  .admin-toasts__timer {
+    animation: admin-toast-timer var(--toast-duration, 5000ms) linear both;
+    display: block;
+  }
+
+  .admin-toasts__item:hover .admin-toasts__timer,
+  .admin-toasts__item:focus-within .admin-toasts__timer {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes admin-toast-out {
+  to {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+@keyframes admin-toast-timer {
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
   }
 }
 

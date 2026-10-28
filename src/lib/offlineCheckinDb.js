@@ -85,8 +85,13 @@ export async function findInAllowlist(eventSlug, code) {
   )
   if (ticket) return { kind: 'ticket', entry: ticket }
 
+  // `credentialToken` es el QR del perfil (uno por persona); `qrToken`, la
+  // credencial impresa de la membresía, que se sigue aceptando.
   const registration = allowlist.registrations.find(
-    (item) => item.qrToken === code || (item.memberCode ?? '').toLowerCase() === normalized,
+    (item) =>
+      (item.credentialToken && item.credentialToken === code) ||
+      item.qrToken === code ||
+      (item.memberCode ?? '').toLowerCase() === normalized,
   )
   if (registration) return { kind: 'registration', entry: registration }
 
@@ -98,13 +103,25 @@ export async function findInAllowlist(eventSlug, code) {
  * offline -- evita que ESTE dispositivo deje pasar dos veces el mismo QR
  * antes de poder sincronizar contra el servidor.
  */
-export async function markCheckedInLocally(eventSlug, qrToken) {
+export async function markCheckedInLocally(eventSlug, { qrToken, registrationId } = {}) {
   const allowlist = await getAllowlist(eventSlug)
   if (!allowlist) return
 
-  const patch = (item) => (item.qrToken === qrToken ? { ...item, checkedInLocally: true } : item)
-  allowlist.tickets = allowlist.tickets.map(patch)
-  allowlist.registrations = allowlist.registrations.map(patch)
+  // Inscripciones por id: un atleta sin membresía no tiene `qrToken`, y
+  // comparar `null === null` marcaba como ingresados a todos los que tampoco.
+  const used = (item) => ({ ...item, checkedInLocally: true })
+  allowlist.tickets = allowlist.tickets.map((item) =>
+    qrToken && item.qrToken === qrToken ? used(item) : item,
+  )
+  allowlist.registrations = allowlist.registrations.map((item) =>
+    registrationId
+      ? item.registrationId === registrationId
+        ? used(item)
+        : item
+      : qrToken && item.qrToken === qrToken
+        ? used(item)
+        : item,
+  )
   await set(ALLOWLIST_KEY(eventSlug), allowlist, store)
 }
 
@@ -131,7 +148,7 @@ export async function enqueueCheckin({ eventSlug, kind, qrToken, registrationId,
     status: 'pending',
   }
   await setPendingQueue([...queue, entry])
-  await markCheckedInLocally(eventSlug, qrToken)
+  await markCheckedInLocally(eventSlug, { qrToken, registrationId })
   return entry
 }
 

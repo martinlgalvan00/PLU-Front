@@ -66,10 +66,13 @@ import { summarizeEventPayments } from '../modules/events/eventPaymentsSummary.j
 /** Cuentas temporales de puerta: viven en Prisma, atadas al evento por uuid. */
 const SECURITY_ROLE = 'seguridad_plu_arg'
 
+// Inscriptos: la base cuenta (filtrado por estado activo en `readEventRows`).
+// Antes viajaba una fila por inscripción de todos los eventos en cada lectura,
+// guardado, cambio de estado y logo, solo para contarlas en el cliente.
 const EVENT_SELECT = `
   *,
   capacityRules:event_capacity_rules(*),
-  eventRegistrations:event_registrations(status),
+  eventRegistrations:event_registrations(count),
   eventDays:event_days(*),
   comboOffer:event_combo_offers(
     id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience, financed, archived_at
@@ -416,6 +419,8 @@ export const eventSchema = z
     description: z.string().trim().max(1000).optional(),
     venue: z.string().trim().min(2).max(120),
     location: z.string().trim().min(2).max(120),
+    // Calle y número de la sede: alimenta Google Maps y Waze.
+    venueAddress: z.string().trim().max(200).optional(),
     startsAt: z
       .string()
       .trim()
@@ -540,6 +545,8 @@ export const eventSchema = z
         alias: z.string().trim().max(120).optional(),
         cbu: z.string().trim().max(30).optional(),
         holder: z.string().trim().max(160).optional(),
+        cuit: z.string().trim().max(20).optional(),
+        bankName: z.string().trim().max(80).optional(),
       })
       .nullable()
       .optional(),
@@ -550,6 +557,9 @@ export const eventSchema = z
       .object({
         place: z.string().trim().max(160).optional(),
         notes: z.string().trim().max(400).optional(),
+        address: z.string().trim().max(200).optional(),
+        hours: z.string().trim().max(160).optional(),
+        contact: z.string().trim().max(120).optional(),
       })
       .nullable()
       .optional(),
@@ -1038,7 +1048,13 @@ async function readEvents(client) {
 }
 
 async function readEventRows(client) {
-  const result = await client.from('events').select(EVENT_SELECT).order('starts_at')
+  const run = (select) =>
+    client
+      .from('events')
+      .select(select)
+      .in('event_registrations.status', ACTIVE_REGISTRATION_STATUSES)
+      .order('starts_at')
+  const result = await run(EVENT_SELECT)
 
   // Degradar antes que caerse: sin la migración aplicada el panel sigue
   // funcionando y lo único que falta es el detalle de credenciales por tipo de
@@ -1048,7 +1064,7 @@ async function readEventRows(client) {
       '[eventos] `ticket_type_credentials` no existe en esta base: se leen los eventos sin las credenciales de entrada. Aplicá la migración 20261107100000_ticket_credential_classes.sql.',
     )
     return assertSupabaseResult(
-      await client.from('events').select(EVENT_SELECT_SIN_CREDENCIALES).order('starts_at'),
+      await run(EVENT_SELECT_SIN_CREDENCIALES),
       'No se pudieron leer los eventos.',
     )
   }
@@ -1252,6 +1268,8 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             alias: linkedProfile.config.alias,
             cbu: linkedProfile.config.cbu,
             holder: linkedProfile.config.holder,
+            cuit: linkedProfile.config.cuit ?? '',
+            bankName: linkedProfile.config.bankName ?? '',
           }
         } else if (bankTransfer.alias && !req.eventScope) {
           // Un organizador no crea cuentas de cobro globales: sin perfil elegido y con el
@@ -1499,6 +1517,39 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             }
           } else {
             assertSupabaseResult(cashMerge, 'No se pudo guardar el lugar del efectivo.')
+          }
+        }
+
+        // Direcciones (sede y efectivo) para Maps/Waze: columnas de
+        // 20270102110000. `null` = no tocar; así un cliente que no manda uno de
+        // los dos bloques no borra el otro.
+        const cashInput =
+          req.validatedBody.cashPayment === undefined
+            ? null
+            : normalizeCashPaymentInput(req.validatedBody.cashPayment)
+        const venueAddress = req.validatedBody.venueAddress
+        if (cashInput || venueAddress !== undefined) {
+          const placesMerge = await client.rpc('staff_merge_event_places', {
+            p_slug: pEvent.slug,
+            p_venue_address: venueAddress ?? null,
+            p_cash_address: cashInput?.address ?? null,
+            p_cash_hours: cashInput?.hours ?? null,
+            p_cash_contact: cashInput?.contact ?? null,
+          })
+          if (placesMerge.error && esRelacionFaltante(placesMerge.error)) {
+            console.warn(
+              '[eventos] `staff_merge_event_places` no existe en esta base: el evento se guardó sin direcciones. Aplicá la migración 20270102110000_event_places.sql.',
+            )
+            if (venueAddress || cashInput?.address || cashInput?.hours || cashInput?.contact) {
+              warnings.push({
+                code: 'EVENT_PLACES_NOT_SAVED',
+                message:
+                  'El evento se guardó, pero las direcciones todavía no: falta aplicar una migración en la base.',
+                field: 'venueAddress',
+              })
+            }
+          } else {
+            assertSupabaseResult(placesMerge, 'No se pudieron guardar las direcciones del evento.')
           }
         }
 

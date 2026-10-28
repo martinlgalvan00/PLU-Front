@@ -1,3 +1,4 @@
+import { AlertTriangle, CheckCircle2, CircleDashed, MinusCircle } from 'lucide-react'
 import { useI18n } from '../../../i18n/I18nProvider.jsx'
 import {
   EVENT_CHANNEL_OPEN,
@@ -16,6 +17,17 @@ const CHANNEL_LABEL_KEY = {
   cash_pitbull: 'paymentChannelCashPitbull',
   wise_transfer: 'paymentChannelWise',
 }
+
+const STATE_ICON = {
+  ready: CheckCircle2,
+  warning: AlertTriangle,
+  missing: AlertTriangle,
+  loading: CircleDashed,
+  off: MinusCircle,
+}
+
+/** Medios con datos propios en el evento (cuenta, alias, lugar): llevan "Configurar". */
+const CONFIGURABLE = new Set(['mercado_pago', 'bank_transfer', 'cash_pitbull'])
 
 /**
  * Celda cruda de la plataforma. Si todavía no se leyó (o la lectura falló) se
@@ -48,11 +60,24 @@ export default function EventPaymentChannelMatrix({
   // Cuenta por evento: puede CERRAR un medio, pero no abrir uno que la plataforma tiene
   // cerrado (saltearía la política de canales manuales). El servidor lo rechaza igual.
   restrictOpen = false,
+  /**
+   * Estado de cada medio (`buildPaymentReadiness`). Con él, cada fila dice si el
+   * medio está listo y qué falta, en el mismo lugar donde se abre o se cierra:
+   * antes era una lista aparte debajo de la tabla.
+   */
+  readiness = null,
+  /** Lleva al bloque de configuración del medio (cuenta, alias, lugar). */
+  onConfigure = null,
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const loading = platformStatus === 'loading'
   const channelLabel = (channel) => t(`admin.eventEditor.${CHANNEL_LABEL_KEY[channel]}`)
   const conceptLabel = (concept) => t(`admin.eventEditor.paymentChannelConcept.${concept}`)
+  const readinessOf = (channel) => readiness?.rows?.find((row) => row.channel === channel) ?? null
+  const pending = readiness
+    ? readiness.rows.filter((row) => row.offered && ['missing', 'warning'].includes(row.state))
+        .length
+    : 0
 
   function patchCell(concept, channel, want) {
     const flag = eventChannelFlagFor(want, platformCellOf(platform, concept, channel))
@@ -85,6 +110,33 @@ export default function EventPaymentChannelMatrix({
           {t('admin.eventEditor.paymentChannelMatrixHint')}
         </p>
       ) : null}
+      {readiness && !readiness.loading ? (
+        <p
+          className="admin-event-form__channel-summary"
+          role="status"
+          data-pending={pending > 0 || undefined}
+        >
+          {/* Por nombre: "Acepta Mercado Pago, Transferencia y Efectivo" se
+              lee de un vistazo; "3 medios ofrecidos" obligaba a recorrer la tabla. */}
+          {readiness.offeredCount > 0
+            ? t('admin.eventEditor.paymentChannelAccepts', {
+                list: new Intl.ListFormat(locale === 'en' ? 'en' : 'es', {
+                  type: 'conjunction',
+                }).format(
+                  readiness.rows.filter((row) => row.offered).map((row) => channelLabel(row.channel)),
+                ),
+              })
+            : t('admin.eventEditor.paymentChannelSummary', { count: 0 })}
+          {pending > 0
+            ? ` · ${t(
+                pending === 1
+                  ? 'admin.eventEditor.paymentChannelPending_one'
+                  : 'admin.eventEditor.paymentChannelPending',
+                { count: pending },
+              )}`
+            : ''}
+        </p>
+      ) : null}
       {platformStatus === 'error' ? (
         <p className="admin-event-form__notice" role="status">
           {t('admin.eventEditor.paymentChannelPlatformUnknown')}
@@ -112,10 +164,28 @@ export default function EventPaymentChannelMatrix({
         const { opened, closed } = divergence(channel)
         const noteId = `${idPrefix}-channel-note-${channel}`
         const hasNote = opened.length > 0 || closed.length > 0
+        const state = readinessOf(channel)
+        const StateIcon = state ? (STATE_ICON[state.state] ?? CircleDashed) : null
+        const configurable = Boolean(onConfigure) && state?.offered && CONFIGURABLE.has(channel)
         return (
-          <div className="admin-event-form__channel-row" key={channel}>
+          <div className="admin-event-form__channel-row" key={channel} data-state={state?.state}>
             <span className="admin-event-form__channel-name">
               {channelLabel(channel)}
+              {state && !readiness.loading ? (
+                <small className="admin-event-form__channel-state" data-state={state.state}>
+                  <StateIcon aria-hidden size={13} />
+                  <span>{t(`admin.eventEditor.${state.detail.key}`, state.detail.params)}</span>
+                  {configurable ? (
+                    <button
+                      type="button"
+                      className="admin-event-form__channel-configure"
+                      onClick={() => onConfigure(channel)}
+                    >
+                      {t('admin.eventEditor.paymentChannelConfigure')}
+                    </button>
+                  ) : null}
+                </small>
+              ) : null}
               {hasNote ? (
                 <small className="admin-event-form__channel-note" id={noteId}>
                   {opened.length > 0
