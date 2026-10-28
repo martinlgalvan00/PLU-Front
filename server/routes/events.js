@@ -36,6 +36,13 @@ import {
   offeringForStorage,
 } from '../../shared/eventOffering.js'
 import {
+  MAX_INSTALLMENTS,
+  eventModulesForStorage,
+  eventModulesFromRules,
+  paymentPolicyForStorage,
+  paymentPolicyFromRules,
+} from '../../shared/eventModules.js'
+import {
   EXTERNAL_FORM_LABEL_MAX,
   EXTERNAL_FORM_URL_MAX,
   normalizeExternalFormUrl,
@@ -62,6 +69,12 @@ import { createSupabasePaymentProfileRepository } from '../modules/payments/supa
 import { createSupabaseAthleteRepository } from '../modules/athletes/supabaseAthleteRepository.js'
 import { createSupabaseTicketRepository } from '../modules/ticketing/supabaseTicketRepository.js'
 import { summarizeEventPayments } from '../modules/events/eventPaymentsSummary.js'
+
+/** Tope de cuotas de un concepto: `null` = decide Mercado Pago. */
+const INSTALLMENT_CAP_SCHEMA = z
+  .object({ maxInstallments: z.number().int().min(1).max(MAX_INSTALLMENTS).nullable().optional() })
+  .nullable()
+  .optional()
 
 /** Cuentas temporales de puerta: viven en Prisma, atadas al evento por uuid. */
 const SECURITY_ROLE = 'seguridad_plu_arg'
@@ -569,6 +582,23 @@ export const eventSchema = z
         categories: z.array(z.enum(EVENT_OFFERING_CATEGORIES)).max(10).optional(),
         divisions: z.array(z.enum(EVENT_OFFERING_DIVISIONS)).max(10).optional(),
         modalities: z.array(z.enum(EVENT_OFFERING_MODALITIES)).max(10).optional(),
+      })
+      .nullable()
+      .optional(),
+    // Módulos apagados (combo, extras de entradas, puerta) y tope de cuotas por
+    // concepto. Ausentes = se conservan los guardados (ver shared/eventModules.js).
+    modules: z
+      .object({
+        combo: z.boolean().optional(),
+        ticketAddons: z.boolean().optional(),
+        door: z.boolean().optional(),
+      })
+      .nullable()
+      .optional(),
+    paymentPolicy: z
+      .object({
+        registration: INSTALLMENT_CAP_SCHEMA,
+        ticket: INSTALLMENT_CAP_SCHEMA,
       })
       .nullable()
       .optional(),
@@ -1388,6 +1418,26 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           pEvent.mercadoPagoProfileId = mercadoPagoProfileId
         }
 
+        // `staff_save_event` reconstruye `rules` y se lleva puestos los módulos y
+        // el tope de cuotas. Un cliente que no los manda (versión anterior del
+        // panel) no tiene por qué borrarlos: se leen antes y se vuelven a escribir.
+        const keepModules = req.validatedBody.modules === undefined
+        const keepPaymentPolicy = req.validatedBody.paymentPolicy === undefined
+        let previousRules = null
+        if (mode === 'updated' && (keepModules || keepPaymentPolicy)) {
+          // Sin lectura no hay nada que conservar: el guardado sigue igual.
+          try {
+            const previous = await client
+              .from('events')
+              .select('rules')
+              .eq('id', req.validatedBody.id)
+              .maybeSingle()
+            previousRules = previous?.error ? null : (previous?.data?.rules ?? null)
+          } catch {
+            previousRules = null
+          }
+        }
+
         const savedEvent = assertSupabaseResult(
           await client.rpc('staff_save_event', {
             p_event: pEvent,
@@ -1577,6 +1627,39 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             }
           } else {
             assertSupabaseResult(offeringMerge, 'No se pudo guardar lo que ofrece el evento.')
+          }
+        }
+
+        // Módulos y tope de cuotas: mismo patrón. Solo se guarda lo apagado y
+        // los conceptos con tope; `{}` = todo prendido y sin tope.
+        if (!keepModules || !keepPaymentPolicy || previousRules) {
+          const modulesForRpc = eventModulesForStorage(
+            keepModules ? eventModulesFromRules(previousRules) : (req.validatedBody.modules ?? {}),
+          )
+          const policyForRpc = paymentPolicyForStorage(
+            keepPaymentPolicy
+              ? paymentPolicyFromRules(previousRules)
+              : (req.validatedBody.paymentPolicy ?? {}),
+          )
+          const modulesMerge = await client.rpc('staff_merge_event_modules', {
+            p_slug: pEvent.slug,
+            p_modules: modulesForRpc,
+            p_payment_policy: policyForRpc,
+          })
+          if (modulesMerge.error && esRelacionFaltante(modulesMerge.error)) {
+            console.warn(
+              '[eventos] `staff_merge_event_modules` no existe en esta base: el evento se guardó sin sus módulos ni tope de cuotas. Aplicá la migración 20270103100000_event_modules_payment_policy.sql.',
+            )
+            if (Object.keys(modulesForRpc).length > 0 || Object.keys(policyForRpc).length > 0) {
+              warnings.push({
+                code: 'EVENT_MODULES_NOT_SAVED',
+                message:
+                  'El evento se guardó, pero los módulos apagados y el tope de cuotas todavía no: falta aplicar una migración en la base. Mientras tanto todo queda prendido y sin tope.',
+                field: 'modules',
+              })
+            }
+          } else {
+            assertSupabaseResult(modulesMerge, 'No se pudieron guardar los módulos del evento.')
           }
         }
 

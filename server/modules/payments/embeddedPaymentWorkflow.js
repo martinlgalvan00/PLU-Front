@@ -121,6 +121,22 @@ export async function processEmbeddedPayment(input, options = {}) {
     throw error
   }
 
+  // Tope de cuotas del evento: el Brick ya no ofrece más, pero un formulario
+  // viejo o armado a mano podría pedirlas. Se corta antes de reservar el intento
+  // para que no quede uno abierto por un pedido que nunca va a cobrarse.
+  const installments = Number(input.formData?.installments ?? 1)
+  if (order.maxInstallments != null && installments > order.maxInstallments) {
+    const error = new HttpError(
+      422,
+      order.maxInstallments === 1
+        ? 'Este evento se paga en un solo pago.'
+        : `Este evento acepta hasta ${order.maxInstallments} cuotas.`,
+      { code: 'INSTALLMENTS_NOT_ALLOWED' },
+    )
+    await auditTrail?.recordFailure({ stage: 'embedded', order, error })
+    throw error
+  }
+
   const tokenFingerprint = fingerprint(input.formData)
   const claimed = await repository.claimEmbeddedAttempt({
     order,

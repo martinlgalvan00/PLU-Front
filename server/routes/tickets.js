@@ -152,6 +152,7 @@ import { createSupabasePaymentProfileRepository } from '../modules/payments/supa
 import { resolveMercadoPagoPublicKeyForProfileId } from '../modules/payments/mercadoPagoProfileRuntime.js'
 import { wisePriceFor } from '../modules/pricing/checkoutPricePolicy.js'
 import { resolveTicketOrderWisePricing } from '../../shared/ticketWisePricing.js'
+import { EVENT_MODULE_DISABLED, isStoredEventModuleOn } from '../../shared/eventModules.js'
 import { recordScanEvent, recordScanEvents } from '../modules/checkin/scanEventRecorder.js'
 
 const attendeeSchema = z.object({
@@ -641,6 +642,18 @@ export function createTicketRoutes({
           ticketChannel,
           eventPricing?.payment_channel_overrides ?? null,
         )
+        // Módulo «Extras de entradas» apagado: no se venden extras aparte. Los
+        // que un tipo trae incluidos no viajan en `addonIds` (el checkout los
+        // saca), así que cualquier id acá es un extra comprado.
+        if (
+          eventPricing &&
+          !isStoredEventModuleOn(eventPricing, 'ticketAddons') &&
+          req.validatedBody.attendees.some((attendee) => attendee.addonIds?.length > 0)
+        ) {
+          throw new HttpError(409, 'Este evento no vende extras con las entradas.', {
+            code: EVENT_MODULE_DISABLED,
+          })
+        }
         // Y contra el calendario: una transferencia vendida sobre la fecha no
         // llega a ser un QR antes de que abra la puerta.
         assertManualTicketDeadline(ticketChannel, eventPricing?.starts_at ?? null)

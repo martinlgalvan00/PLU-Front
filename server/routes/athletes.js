@@ -120,6 +120,7 @@ import { athleteProfileFromRow } from '../../shared/athleteProfile.js'
 import { COMPETITION_DIVISIONS } from '../../shared/ageDivision.js'
 import { offeringFromRules, validateSelectionAgainstOffering } from '../../shared/eventOffering.js'
 import { isAnnounceOnly } from '../../shared/registrationSaleState.js'
+import { EVENT_MODULE_DISABLED, isStoredEventModuleOn } from '../../shared/eventModules.js'
 import {
   BODYWEIGHT_KG_RANGE,
   REGISTRATION_REQUIRED_MESSAGES,
@@ -1232,6 +1233,19 @@ export function createAthleteRoutes({
     }
   }
 
+  /**
+   * Módulo «Combo» apagado en el evento: no se vende aunque haya una oferta
+   * vigente. El catálogo ya no la publica; esto cubre una pestaña vieja o un
+   * pedido armado a mano.
+   */
+  function assertComboModuleOn(event) {
+    if (!isStoredEventModuleOn(event, 'combo')) {
+      throw new HttpError(409, 'Este evento no ofrece el combo de afiliación e inscripción.', {
+        code: EVENT_MODULE_DISABLED,
+      })
+    }
+  }
+
   /** Submission admite una inscripción por cada categoría elegida. */
   function eventAllowsMultipleCategories(event) {
     const template = String(event?.rules?.landing?.templateId ?? '').trim().toLowerCase()
@@ -2276,6 +2290,7 @@ export function createAthleteRoutes({
         if (!event) throw new HttpError(404, 'Evento no encontrado.')
         assertRosterOpen(event)
         assertRegistrationNotAnnounceOnly(event)
+        assertComboModuleOn(event)
         const selection = assertCompetitionSelection(req.validatedBody, competitionProfile, event)
         assertEventPaymentChannelEnabled(toggles, 'registration', comboChannel, {
           override: comboOverride,
