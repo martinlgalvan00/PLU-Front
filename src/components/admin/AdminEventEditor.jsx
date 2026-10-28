@@ -566,6 +566,8 @@ export default function AdminEventEditor({
         alias: profile.config?.alias ?? '',
         cbu: profile.config?.cbu ?? '',
         holder: profile.config?.holder ?? '',
+        cuit: profile.config?.cuit ?? '',
+        bankName: profile.config?.bankName ?? '',
       },
     })
   }

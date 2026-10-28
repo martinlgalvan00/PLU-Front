@@ -854,6 +854,7 @@ export default {
     switchToEs: 'Switch to Spanish',
   },
   common: {
+    openInApp: 'Open in {{app}} (opens in a new tab)',
     loading: 'Loading…',
     retry: 'Retry',
     export: 'Export',
@@ -1799,6 +1800,7 @@ export default {
       transferAccount: 'Account',
       transferAccountValue: 'Mercado Pago',
       transferHolder: 'Account holder',
+      transferCuit: 'Holder tax ID (CUIT / CUIL)',
       transferWiseTitle: 'Wise',
       transferWiseEmail: 'Wise email',
       transferWiseSwiftIban: 'SWIFT/IBAN',
@@ -4135,6 +4137,10 @@ export default {
       paymentLinkHint: 'Administrative validation · up to 48 hours',
       cashPitbullCreated: 'Your order is ready. You can pay cash at the event venue.',
       cashVenueFallback: 'the event venue',
+      cashPlaceTitle: 'Where to pay in cash',
+      cashPlaceAddress: 'Address',
+      cashPlaceHours: 'Hours',
+      cashPlaceContact: 'Ask for',
       cashPitbullSettleNote:
         'Pay cash at {{venue}}. When you hand it over, report it in the panel below.',
       cashPitbullDeclaredNote:

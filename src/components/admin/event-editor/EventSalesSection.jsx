@@ -19,6 +19,7 @@ import AdminTicketAddonsEditor from '../AdminTicketAddonsEditor.jsx'
 import AdminTicketTypesEditor from '../AdminTicketTypesEditor.jsx'
 import { updatePricingField } from './draftPatches.js'
 import { CapacityPublicBreakdown, FormField } from './parts.jsx'
+import CashPaymentPlace from '../../ui/CashPaymentPlace.jsx'
 
 /** Public key y access token de MP: `APP_USR-…` en producción, `TEST-…` en sandbox. */
 const MP_CREDENTIAL_PATTERN = /^(APP_USR|TEST)-[A-Za-z0-9-]{8,}$/
@@ -99,8 +100,23 @@ export default function EventSalesSection({
     alias: selectedBankProfile?.config?.alias ?? draft.bankTransfer?.alias ?? '',
     cbu: selectedBankProfile?.config?.cbu ?? draft.bankTransfer?.cbu ?? '',
     holder: selectedBankProfile?.config?.holder ?? draft.bankTransfer?.holder ?? '',
+    cuit: selectedBankProfile?.config?.cuit ?? draft.bankTransfer?.cuit ?? '',
+    bankName: selectedBankProfile?.config?.bankName ?? draft.bankTransfer?.bankName ?? '',
   }
+  // Escribir un dato a mano desvincula la cuenta elegida: al guardar se crea
+  // (o reusa) una con estos datos.
+  const setBankField = (key) => (changeEvent) =>
+    patchDraft({
+      ...draft,
+      bankTransferProfileId: null,
+      bankTransfer: { ...(draft.bankTransfer ?? {}), [key]: changeEvent.target.value },
+    })
   const ownCashPlace = String(draft.cashPayment?.place ?? '').trim()
+  const setCashField = (key) => (changeEvent) =>
+    patchDraft({
+      ...draft,
+      cashPayment: { ...(draft.cashPayment ?? {}), [key]: changeEvent.target.value },
+    })
   const cashPlacePreview = ownCashPlace || eventVenueLabel
   const paymentReadiness = buildPaymentReadiness({
     overrides: draft.paymentChannelOverrides,
@@ -873,6 +889,14 @@ export default function EventSalesSection({
                       <dt>{t('admin.eventEditor.bankTransferHolder')}</dt>
                       <dd>{bankSummary.holder || '—'}</dd>
                     </div>
+                    <div>
+                      <dt>{t('admin.paymentAccounts.fieldCuit')}</dt>
+                      <dd>{bankSummary.cuit || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('admin.paymentAccounts.fieldBankName')}</dt>
+                      <dd>{bankSummary.bankName || '—'}</dd>
+                    </div>
                   </dl>
                   <p className="admin-event-form__field-hint">
                     {t('admin.eventEditor.bankTransferLinkedHint', {
@@ -960,16 +984,38 @@ export default function EventSalesSection({
                         type="text"
                         maxLength={160}
                         value={draft.bankTransfer?.holder ?? ''}
-                        onChange={(changeEvent) =>
-                          patchDraft({
-                            ...draft,
-                            bankTransferProfileId: null,
-                            bankTransfer: {
-                              ...(draft.bankTransfer ?? {}),
-                              holder: changeEvent.target.value,
-                            },
-                          })
-                        }
+                        onChange={setBankField('holder')}
+                        disabled={!canEdit || eventScoped}
+                      />
+                    </FormField>
+                    <FormField
+                      htmlFor="event-bank-cuit"
+                      label={t('admin.paymentAccounts.fieldCuit')}
+                    >
+                      <input
+                        id="event-bank-cuit"
+                        name="bankTransfer.cuit"
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={20}
+                        placeholder="20-12345678-9"
+                        value={draft.bankTransfer?.cuit ?? ''}
+                        onChange={setBankField('cuit')}
+                        disabled={!canEdit || eventScoped}
+                      />
+                    </FormField>
+                    <FormField
+                      htmlFor="event-bank-name"
+                      label={t('admin.paymentAccounts.fieldBankName')}
+                    >
+                      <input
+                        id="event-bank-name"
+                        name="bankTransfer.bankName"
+                        type="text"
+                        maxLength={80}
+                        placeholder="Banco Galicia, Mercado Pago…"
+                        value={draft.bankTransfer?.bankName ?? ''}
+                        onChange={setBankField('bankName')}
                         disabled={!canEdit || eventScoped}
                       />
                     </FormField>
@@ -1021,15 +1067,7 @@ export default function EventSalesSection({
                     value={draft.cashPayment?.place ?? ''}
                     aria-invalid={Boolean(err('cashPayment.place'))}
                     aria-describedby="event-cash-place-hint"
-                    onChange={(changeEvent) =>
-                      patchDraft({
-                        ...draft,
-                        cashPayment: {
-                          ...(draft.cashPayment ?? {}),
-                          place: changeEvent.target.value,
-                        },
-                      })
-                    }
+                    onChange={setCashField('place')}
                     disabled={!canEdit}
                     placeholder={eventVenueLabel || undefined}
                   />
@@ -1038,6 +1076,60 @@ export default function EventSalesSection({
                       ? t('admin.eventEditor.cashPaymentPlaceHint', { venue: eventVenueLabel })
                       : t('admin.eventEditor.cashPaymentPlaceHintNoVenue')}
                   </small>
+                </FormField>
+                <FormField
+                  htmlFor="event-cash-address"
+                  label={t('admin.eventEditor.cashPaymentAddress')}
+                  error={err('cashPayment.address')}
+                  wide
+                >
+                  <input
+                    id="event-cash-address"
+                    name="cashPayment.address"
+                    type="text"
+                    maxLength={200}
+                    autoComplete="off"
+                    value={draft.cashPayment?.address ?? ''}
+                    onChange={setCashField('address')}
+                    disabled={!canEdit}
+                    placeholder={
+                      ownCashPlace
+                        ? t('admin.eventEditor.cashPaymentAddressPlaceholder')
+                        : draft.venueAddress || t('admin.eventEditor.cashPaymentAddressPlaceholder')
+                    }
+                  />
+                </FormField>
+                <FormField
+                  htmlFor="event-cash-hours"
+                  label={t('admin.eventEditor.cashPaymentHours')}
+                  error={err('cashPayment.hours')}
+                >
+                  <input
+                    id="event-cash-hours"
+                    name="cashPayment.hours"
+                    type="text"
+                    maxLength={160}
+                    value={draft.cashPayment?.hours ?? ''}
+                    onChange={setCashField('hours')}
+                    disabled={!canEdit}
+                    placeholder={t('admin.eventEditor.cashPaymentHoursPlaceholder')}
+                  />
+                </FormField>
+                <FormField
+                  htmlFor="event-cash-contact"
+                  label={t('admin.eventEditor.cashPaymentContact')}
+                  error={err('cashPayment.contact')}
+                >
+                  <input
+                    id="event-cash-contact"
+                    name="cashPayment.contact"
+                    type="text"
+                    maxLength={120}
+                    value={draft.cashPayment?.contact ?? ''}
+                    onChange={setCashField('contact')}
+                    disabled={!canEdit}
+                    placeholder={t('admin.eventEditor.cashPaymentContactPlaceholder')}
+                  />
                 </FormField>
                 <FormField
                   htmlFor="event-cash-notes"
@@ -1052,15 +1144,7 @@ export default function EventSalesSection({
                     maxLength={400}
                     value={draft.cashPayment?.notes ?? ''}
                     aria-invalid={Boolean(err('cashPayment.notes'))}
-                    onChange={(changeEvent) =>
-                      patchDraft({
-                        ...draft,
-                        cashPayment: {
-                          ...(draft.cashPayment ?? {}),
-                          notes: changeEvent.target.value,
-                        },
-                      })
-                    }
+                    onChange={setCashField('notes')}
                     disabled={!canEdit}
                     placeholder={t('admin.eventEditor.cashPaymentNotesPlaceholder')}
                   />
@@ -1075,10 +1159,18 @@ export default function EventSalesSection({
                       ? t('admin.eventEditor.cashPaymentPreviewOwn')
                       : t('admin.eventEditor.cashPaymentPreviewVenue')}
                   </p>
-                  <p>{cashPlacePreview}</p>
-                  {String(draft.cashPayment?.notes ?? '').trim() ? (
-                    <p>{String(draft.cashPayment.notes).trim()}</p>
-                  ) : null}
+                  {/* Lo mismo que ve el atleta, con Google Maps y Waze para probar
+                      que la dirección lleva al lugar correcto. */}
+                  <CashPaymentPlace
+                    cashPayment={{
+                      ...draft.cashPayment,
+                      place: cashPlacePreview,
+                      address:
+                        String(draft.cashPayment?.address ?? '').trim() ||
+                        (ownCashPlace ? '' : String(draft.venueAddress ?? '').trim()),
+                    }}
+                    event={{ location: draft.location }}
+                  />
                 </div>
               ) : (
                 <p className="admin-event-form__notice" role="status">

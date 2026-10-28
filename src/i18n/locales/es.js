@@ -864,6 +864,7 @@ export default {
     switchToEs: 'Cambiar a español',
   },
   common: {
+    openInApp: 'Abrir en {{app}} (se abre en otra pestaña)',
     loading: 'Cargando…',
     retry: 'Reintentar',
     export: 'Exportar',
@@ -1818,6 +1819,7 @@ export default {
       transferAccount: 'Cuenta',
       transferAccountValue: 'Mercado Pago',
       transferHolder: 'Titular',
+      transferCuit: 'CUIT / CUIL del titular',
       // Wise reusa el mismo modal de transferencia (comprobante + aprobación
       // manual), pero con datos de cuenta distintos: email en vez de alias,
       // SWIFT/IBAN en vez de CBU.
@@ -4182,6 +4184,10 @@ export default {
       paymentLinkHint: 'Validación administrativa · hasta 48 horas',
       cashPitbullCreated: 'Tu orden quedó creada. Podés pagar en efectivo en la sede del evento.',
       cashVenueFallback: 'la sede del evento',
+      cashPlaceTitle: 'Dónde pagar en efectivo',
+      cashPlaceAddress: 'Dirección',
+      cashPlaceHours: 'Horario',
+      cashPlaceContact: 'Preguntá por',
       cashPitbullSettleNote:
         'Pagá en efectivo en {{venue}}. Cuando lo entregues, avisá en el panel de abajo.',
       cashPitbullDeclaredNote:

@@ -164,12 +164,15 @@ function trimText(value) {
 
 export function normalizeBankTransferInput(raw) {
   if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
-    return { alias: '', cbu: '', holder: '' }
+    return { alias: '', cbu: '', holder: '', cuit: '', bankName: '' }
   }
   return {
     alias: trimText(raw.alias).slice(0, 120),
     cbu: trimText(raw.cbu).slice(0, 30),
     holder: trimText(raw.holder).slice(0, 160),
+    // Viven en la cuenta (perfil), no en columnas del evento.
+    cuit: trimText(raw.cuit).slice(0, 20),
+    bankName: trimText(raw.bankName).slice(0, 80),
   }
 }
 
@@ -178,7 +181,10 @@ function pickBankFields(source) {
   const cbu = trimText(source?.cbu)
   const holder = trimText(source?.holder)
   if (!alias && !cbu && !holder) return null
-  return { alias, cbu, holder }
+  // CUIT y banco solo si están: la forma de siempre no cambia para quien no los cargó.
+  const cuit = trimText(source?.cuit)
+  const bankName = trimText(source?.bankName)
+  return { alias, cbu, holder, ...(cuit ? { cuit } : {}), ...(bankName ? { bankName } : {}) }
 }
 
 /**
@@ -212,11 +218,14 @@ export function resolveBankTransferDetails(eventRow = null, env = process.env, p
 
 export function normalizeCashPaymentInput(raw) {
   if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
-    return { place: '', notes: '' }
+    return { place: '', notes: '', address: '', hours: '', contact: '' }
   }
   return {
     place: trimText(raw.place).slice(0, 160),
     notes: trimText(raw.notes).slice(0, 400),
+    address: trimText(raw.address).slice(0, 200),
+    hours: trimText(raw.hours).slice(0, 160),
+    contact: trimText(raw.contact).slice(0, 120),
   }
 }
 
@@ -229,9 +238,22 @@ export function resolveCashPaymentDetails(eventRow = null) {
   const venue = [trimText(eventRow?.venue), trimText(eventRow?.location)]
     .filter(Boolean)
     .join(' · ')
+  const ownPlace = trimText(eventRow?.cash_payment_place)
+  // Sin dirección propia, la de la sede solo si el lugar ES la sede: un
+  // gimnasio distinto con la dirección del estadio mandaría a otro lado.
+  const address =
+    trimText(eventRow?.cash_payment_address) ||
+    (ownPlace ? '' : trimText(eventRow?.venue_address)) ||
+    null
+  const hours = trimText(eventRow?.cash_payment_hours)
+  const contact = trimText(eventRow?.cash_payment_contact)
   return {
-    place: trimText(eventRow?.cash_payment_place) || venue || null,
+    place: ownPlace || venue || null,
     notes: trimText(eventRow?.cash_payment_notes) || null,
+    // Solo si existen: la forma de siempre no cambia para quien no los cargó.
+    ...(address ? { address } : {}),
+    ...(hours ? { hours } : {}),
+    ...(contact ? { contact } : {}),
   }
 }
 

@@ -1706,3 +1706,17 @@
     position: static;
   }
 }
+
+/* Dato copiable: valor a la izquierda, "Copiar" a la derecha. */
+.ticket-purchase__transfer-data dd.ticket-purchase__copyable {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.ticket-purchase__copyable > span {
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}

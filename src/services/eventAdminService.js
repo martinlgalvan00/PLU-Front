@@ -114,6 +114,7 @@ export function buildAdminEventDraft(event) {
     description: event.description ?? '',
     dateISO: event.dateISO ?? event.startsAt?.slice(0, 10) ?? '',
     venue: event.venue ?? '',
+    venueAddress: event.venueAddress ?? '',
     location: event.location ?? '',
     status: event.status ?? 'proximamente',
     featured: Boolean(event.featured),
@@ -170,6 +171,8 @@ export function buildAdminEventDraft(event) {
       alias: event.bankTransfer?.alias ?? '',
       cbu: event.bankTransfer?.cbu ?? '',
       holder: event.bankTransfer?.holder ?? '',
+      cuit: event.bankTransfer?.cuit ?? '',
+      bankName: event.bankTransfer?.bankName ?? '',
     },
     bankTransferProfileId: event.bankTransferProfileId ?? null,
     mercadoPagoProfileId: event.mercadoPagoProfileId ?? null,
@@ -178,6 +181,9 @@ export function buildAdminEventDraft(event) {
     cashPayment: {
       place: event.cashPayment?.place ?? '',
       notes: event.cashPayment?.notes ?? '',
+      address: event.cashPayment?.address ?? '',
+      hours: event.cashPayment?.hours ?? '',
+      contact: event.cashPayment?.contact ?? '',
     },
     externalForm: normalizeExternalForm(event.externalForm),
     offering: normalizeEventOffering(event.offering),
@@ -206,6 +212,7 @@ export function mapDraftToPreviewEvent(draft, sourceEvent = null) {
     date: dateISO ? formatEventDate(dateISO) : '—',
     dateISO,
     venue: draft.venue?.trim() || 'Sede del evento',
+    venueAddress: draft.venueAddress?.trim() ?? '',
     location: draft.location?.trim() || 'Ciudad',
     status: draft.status || 'proximamente',
     featured: Boolean(draft.featured),
@@ -624,6 +631,7 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   description: '',
   dateISO: '',
   venue: '',
+  venueAddress: '',
   location: '',
   status: 'proximamente',
   featured: false,
@@ -662,7 +670,7 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   mercadoPagoProfileId: null,
   mercadoPagoReadiness: null,
   salesIntent: 'charge',
-  cashPayment: { place: '', notes: '' },
+  cashPayment: { place: '', notes: '', address: '', hours: '', contact: '' },
   externalForm: { url: '', label: '' },
   offering: normalizeEventOffering(null),
 }
@@ -765,6 +773,8 @@ export function mapSupabaseEventRow(row) {
     title: row.title,
     description: row.description ?? '',
     venue: row.venue,
+    // Calle y número (20270102110000): Google Maps y Waze.
+    venueAddress: row.venue_address ?? '',
     location: row.location,
     startsAt: row.starts_at,
     endsAt: row.ends_at,
@@ -803,6 +813,9 @@ export function mapSupabaseEventRow(row) {
     cashPayment: {
       place: row.cash_payment_place ?? '',
       notes: row.cash_payment_notes ?? '',
+      address: row.cash_payment_address ?? '',
+      hours: row.cash_payment_hours ?? '',
+      contact: row.cash_payment_contact ?? '',
     },
     externalForm: externalFormFromRules(rules),
     offering: offeringFromRules(rules),
@@ -1062,6 +1075,9 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
       alias: draft.bankTransfer?.alias ?? '',
       cbu: draft.bankTransfer?.cbu ?? '',
       holder: draft.bankTransfer?.holder ?? '',
+      // Van a la cuenta reutilizable que se crea con estos datos, no al evento.
+      cuit: draft.bankTransfer?.cuit ?? '',
+      bankName: draft.bankTransfer?.bankName ?? '',
     },
     bankTransferProfileId: draft.bankTransferProfileId ?? null,
     mercadoPagoProfileId: draft.mercadoPagoProfileId ?? null,
@@ -1069,7 +1085,11 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
     cashPayment: {
       place: String(draft.cashPayment?.place ?? '').trim(),
       notes: String(draft.cashPayment?.notes ?? '').trim(),
+      address: String(draft.cashPayment?.address ?? '').trim(),
+      hours: String(draft.cashPayment?.hours ?? '').trim(),
+      contact: String(draft.cashPayment?.contact ?? '').trim(),
     },
+    venueAddress: String(draft.venueAddress ?? '').trim(),
     // Siempre se manda (aunque esté vacío): el upsert reconstruye `rules`, y sin
     // este merge un guardado borraría el formulario cargado.
     externalForm: {

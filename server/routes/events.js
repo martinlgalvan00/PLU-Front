@@ -419,6 +419,8 @@ export const eventSchema = z
     description: z.string().trim().max(1000).optional(),
     venue: z.string().trim().min(2).max(120),
     location: z.string().trim().min(2).max(120),
+    // Calle y número de la sede: alimenta Google Maps y Waze.
+    venueAddress: z.string().trim().max(200).optional(),
     startsAt: z
       .string()
       .trim()
@@ -543,6 +545,8 @@ export const eventSchema = z
         alias: z.string().trim().max(120).optional(),
         cbu: z.string().trim().max(30).optional(),
         holder: z.string().trim().max(160).optional(),
+        cuit: z.string().trim().max(20).optional(),
+        bankName: z.string().trim().max(80).optional(),
       })
       .nullable()
       .optional(),
@@ -553,6 +557,9 @@ export const eventSchema = z
       .object({
         place: z.string().trim().max(160).optional(),
         notes: z.string().trim().max(400).optional(),
+        address: z.string().trim().max(200).optional(),
+        hours: z.string().trim().max(160).optional(),
+        contact: z.string().trim().max(120).optional(),
       })
       .nullable()
       .optional(),
@@ -1261,6 +1268,8 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             alias: linkedProfile.config.alias,
             cbu: linkedProfile.config.cbu,
             holder: linkedProfile.config.holder,
+            cuit: linkedProfile.config.cuit ?? '',
+            bankName: linkedProfile.config.bankName ?? '',
           }
         } else if (bankTransfer.alias && !req.eventScope) {
           // Un organizador no crea cuentas de cobro globales: sin perfil elegido y con el
@@ -1508,6 +1517,39 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             }
           } else {
             assertSupabaseResult(cashMerge, 'No se pudo guardar el lugar del efectivo.')
+          }
+        }
+
+        // Direcciones (sede y efectivo) para Maps/Waze: columnas de
+        // 20270102110000. `null` = no tocar; así un cliente que no manda uno de
+        // los dos bloques no borra el otro.
+        const cashInput =
+          req.validatedBody.cashPayment === undefined
+            ? null
+            : normalizeCashPaymentInput(req.validatedBody.cashPayment)
+        const venueAddress = req.validatedBody.venueAddress
+        if (cashInput || venueAddress !== undefined) {
+          const placesMerge = await client.rpc('staff_merge_event_places', {
+            p_slug: pEvent.slug,
+            p_venue_address: venueAddress ?? null,
+            p_cash_address: cashInput?.address ?? null,
+            p_cash_hours: cashInput?.hours ?? null,
+            p_cash_contact: cashInput?.contact ?? null,
+          })
+          if (placesMerge.error && esRelacionFaltante(placesMerge.error)) {
+            console.warn(
+              '[eventos] `staff_merge_event_places` no existe en esta base: el evento se guardó sin direcciones. Aplicá la migración 20270102110000_event_places.sql.',
+            )
+            if (venueAddress || cashInput?.address || cashInput?.hours || cashInput?.contact) {
+              warnings.push({
+                code: 'EVENT_PLACES_NOT_SAVED',
+                message:
+                  'El evento se guardó, pero las direcciones todavía no: falta aplicar una migración en la base.',
+                field: 'venueAddress',
+              })
+            }
+          } else {
+            assertSupabaseResult(placesMerge, 'No se pudieron guardar las direcciones del evento.')
           }
         }
 

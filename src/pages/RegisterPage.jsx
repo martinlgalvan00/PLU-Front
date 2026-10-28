@@ -37,6 +37,7 @@ import {
   CheckboxGroupField,
 } from '../components/ui/FormFields.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
+import CashPaymentPlace from '../components/ui/CashPaymentPlace.jsx'
 import Pill from '../components/ui/Pill.jsx'
 import CardPreviewModal from '../components/ui/CardPreviewModal.jsx'
 import GymNameConfirmationDialog from '../components/ui/GymNameConfirmationDialog.jsx'
@@ -2905,10 +2906,15 @@ export default function RegisterPage({
                         event?.venue ||
                         t('pages.register.cashVenueFallback'),
                     })}
-                {!settleDeclared && accessRequirements.cashPayment?.notes
-                  ? ` ${accessRequirements.cashPayment.notes}`
-                  : null}
               </p>
+              {/* Lugar, dirección, horario y Cómo llegar: antes, una oración. */}
+              {settleDeclared ? null : (
+                <CashPaymentPlace
+                  cashPayment={accessRequirements.cashPayment}
+                  event={event}
+                  fallback={t('pages.register.cashVenueFallback')}
+                />
+              )}
             </div>
           ) : flow === 'competition' ? (
             <div className="register-status__manual-actions">

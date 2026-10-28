@@ -317,6 +317,7 @@ export const adminEventDraftSchema = z
       .min(1, 'slotsMin')
       .max(5000, 'slotsMax'),
     venue: z.string().trim().min(2, 'venueMin').max(120, 'venueMax'),
+    venueAddress: optionalText(200, 'venueAddressMax'),
     location: z.string().trim().min(2, 'locationMin').max(120, 'locationMax'),
     status: z.string().trim().min(1, 'statusRequired'),
     pricing: z.object({
@@ -422,6 +423,8 @@ export const adminEventDraftSchema = z
         alias: optionalText(120, 'bankAliasMax'),
         cbu: optionalText(30, 'bankCbuMax'),
         holder: optionalText(160, 'bankHolderMax'),
+        cuit: optionalText(20, 'bankCuitMax'),
+        bankName: optionalText(80, 'bankNameMax'),
       })
       .optional(),
     bankTransferProfileId: z.string().uuid('bankProfileIdInvalid').nullable().optional(),
@@ -429,6 +432,9 @@ export const adminEventDraftSchema = z
       .object({
         place: optionalText(160, 'cashPlaceMax'),
         notes: optionalText(400, 'cashNotesMax'),
+        address: optionalText(200, 'cashAddressMax'),
+        hours: optionalText(160, 'cashHoursMax'),
+        contact: optionalText(120, 'cashContactMax'),
       })
       .optional(),
     mercadoPagoProfileId: z.string().uuid('mpProfileIdInvalid').nullable().optional(),
@@ -638,6 +644,7 @@ export function validateAdminEventDraft(draft, t) {
     description: draft?.description ?? '',
     slots: draft?.slots,
     venue: draft?.venue ?? '',
+    venueAddress: draft?.venueAddress ?? '',
     location: draft?.location ?? '',
     status: draft?.status ?? '',
     pricing: {

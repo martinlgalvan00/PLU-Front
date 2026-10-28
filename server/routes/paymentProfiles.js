@@ -28,6 +28,10 @@ const bankConfigSchema = z.object({
   alias: z.string().trim().max(120).optional().default(''),
   cbu: z.string().trim().max(30).optional().default(''),
   holder: z.string().trim().max(160).optional().default(''),
+  // CUIT/CUIL del titular y banco: con alias y CBU solos, quien transfiere no
+  // puede confirmar a quién le está mandando la plata antes de apretar.
+  cuit: z.string().trim().max(20).optional().default(''),
+  bankName: z.string().trim().max(80).optional().default(''),
   notes: z.string().trim().max(500).optional().default(''),
 })
 
@@ -96,6 +100,8 @@ function organizerProfileView(profile) {
             alias: profile.config?.alias ?? '',
             cbu: profile.config?.cbu ?? '',
             holder: profile.config?.holder ?? '',
+            cuit: profile.config?.cuit ?? '',
+            bankName: profile.config?.bankName ?? '',
           }
         : {},
     ...(profile.connectionStatus ? { connectionStatus: profile.connectionStatus } : {}),

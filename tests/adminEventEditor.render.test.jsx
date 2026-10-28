@@ -537,7 +537,28 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
     expect(onChange.mock.calls.at(-1)[0].cashPayment).toEqual({
       place: 'Recepción del gimnasio',
       notes: '',
+      address: '',
+      hours: '',
+      contact: '',
     })
+  })
+
+  it('el efectivo lleva dirección, horario y contacto, con Google Maps y Waze para probarla', async () => {
+    const onChange = vi.fn()
+    renderEditor(
+      { cashPayment: { place: 'Gimnasio Pitbull', notes: '', address: 'Av. Mitre 1234, Avellaneda' } },
+      { onChange },
+    )
+    openPaymentChapter()
+    await platformMatrix()
+
+    fireEvent.change(screen.getByLabelText(/días y horario/i), {
+      target: { value: 'Lun a vie de 18 a 21' },
+    })
+    expect(onChange.mock.calls.at(-1)[0].cashPayment.hours).toBe('Lun a vie de 18 a 21')
+    const maps = screen.getByRole('link', { name: /abrir en google maps/i })
+    expect(maps.getAttribute('href')).toContain('Av.%20Mitre%201234')
+    expect(screen.getByRole('link', { name: /abrir en waze/i })).toBeTruthy()
   })
 
   it('resume el destino que verá quien paga antes de guardar', async () => {
