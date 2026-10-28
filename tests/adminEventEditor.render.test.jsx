@@ -1005,7 +1005,9 @@ describe('AdminEventEditor — landing Constructor', () => {
       'location',
     ])
     expect(within(items[0]).queryByRole('checkbox')).toBeNull()
-    expect(within(items[0]).queryByRole('button', { name: /subir|bajar/i })).toBeNull()
+    // Las flechas de orden se llaman «Subir «bloque»» / «Bajar «bloque»»; la
+    // portada tiene "Subir imagen del hero", que no es mover el bloque.
+    expect(within(items[0]).queryByRole('button', { name: /^(subir|bajar) «/i })).toBeNull()
   })
 
   it('sube y baja bloques, sin pasar por encima de la portada', () => {
@@ -1089,7 +1091,7 @@ describe('AdminEventEditor — landing Constructor', () => {
       .getByText(/textos de la página, módulos y transmisión/i)
       .closest('details').open = true
 
-    fireEvent.click(screen.getByRole('button', { name: /^constructor$/i }))
+    fireEvent.click(screen.getByRole('radio', { name: /^constructor$/i }))
     const next = onChange.mock.calls.at(-1)[0].landing
     expect(next.templateId).toBe('builder')
     expect(next.layout.blocks[0].type).toBe('hero')
@@ -1097,7 +1099,12 @@ describe('AdminEventEditor — landing Constructor', () => {
   })
 
   describe('colores', () => {
-    const palette = () => within(screen.getByRole('group', { name: /colores del evento/i }))
+    // Sin colores propios el editor arranca plegado bajo "Usar colores propios".
+    const palette = () => {
+      const toggle = screen.queryByRole('button', { name: /usar colores propios/i })
+      if (toggle?.getAttribute('aria-expanded') === 'false') fireEvent.click(toggle)
+      return within(screen.getByRole('group', { name: /colores del evento/i }))
+    }
 
     it('guarda un color válido en la paleta y muestra el aviso de contraste', () => {
       const onChange = vi.fn()

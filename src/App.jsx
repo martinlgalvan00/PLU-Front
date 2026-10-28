@@ -58,6 +58,7 @@ import {
   findRegistrableEvent,
   PITBULL_CLASSIC_SLUG,
 } from './lib/eventNavigation.js'
+import { isEventRegistrationOpen } from './lib/eventPublicActions.js'
 import {
   eventHasBuilderLanding,
   eventHasEditorialLanding,
@@ -590,13 +591,23 @@ export default function App() {
         setEventPageSlug(null)
         pushPublicViewPath('events')
       } else if (view === 'events' && resolvedView !== 'events') {
-        clearEventPageRoute()
+        // Si el destino tiene URL propia la empuja él. Limpiar antes dejaba una
+        // entrada "/" intermedia: desde el evento, "Inscribirme" llevaba a
+        // /crear-cuenta y "Atrás" caía en la portada en vez de volver al evento.
+        if (!buildPublicViewPath(resolvedView) && resolvedView !== 'competition') {
+          clearEventPageRoute()
+        }
         setEventPageSlug(null)
       }
 
       if (buildPublicViewPath(resolvedView) && !(resolvedView === 'events')) {
         pushPublicViewPath(resolvedView)
-      } else if (matchPublicViewPath() && resolvedView !== 'tickets' && resolvedView !== 'events') {
+      } else if (
+        matchPublicViewPath() &&
+        resolvedView !== 'tickets' &&
+        resolvedView !== 'events' &&
+        resolvedView !== 'competition'
+      ) {
         clearPublicViewPath()
       }
 
@@ -688,8 +699,23 @@ export default function App() {
       if (app.publicCatalogSettled) navigate('events', { eventSlug: checkoutRouteSlug })
       return
     }
-    if (isAthlete) setSelectedEvent(routeEvent)
-    else void selectEvent(routeEvent)
+    if (isAthlete) {
+      setSelectedEvent(routeEvent)
+      return
+    }
+    // Sin cuenta de atleta, un link a la inscripción de un evento que no vende
+    // (cerrado, agotado, finalizado) mandaba igual a crear la ficha "para
+    // seguir con tu inscripción". El atleta logueado sí entra: puede tener una
+    // orden pendiente que pagar o retomar en ese checkout.
+    const registrationEnabled = app.checkoutAvailability?.registrationEnabled !== false
+    if (
+      !isStaffSession(app.session) &&
+      !isEventRegistrationOpen(routeEvent, { registrationEnabled })
+    ) {
+      navigate('events', { eventSlug: checkoutRouteSlug })
+      return
+    }
+    void selectEvent(routeEvent)
     // `selectEvent` se recrea en cada render; lo que decide son estos datos.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -698,6 +724,7 @@ export default function App() {
     app.sessionPending,
     app.session?.role,
     app.publicCatalogSettled,
+    app.checkoutAvailability?.registrationEnabled,
     selectedEvent?.slug,
     publicEvents,
     underConstructionEvents,

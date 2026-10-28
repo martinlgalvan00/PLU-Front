@@ -1751,6 +1751,20 @@
   line-height: 1.45;
 }
 
+/* `.admin-event-form label span` es la regla de los rótulos de campo (10px,
+   mayúsculas). El texto de un interruptor también es un span dentro de un
+   label y heredaba eso entero: la descripción de "Solo anuncio" salía en
+   versales de 10px. */
+.admin-event-form .admin-event-form__toggle-copy {
+  color: inherit;
+  display: grid;
+  font-size: inherit;
+  font-weight: inherit;
+  gap: 2px;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
 .admin-event-preview--live {
   background: rgba(116, 172, 223, 0.03);
   border-left: 1px solid var(--color-border-subtle);

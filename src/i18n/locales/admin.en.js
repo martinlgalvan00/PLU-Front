@@ -4393,6 +4393,7 @@ export default {
     readinessRegistrationLive: 'Registration open',
     readinessRegistrationOff: 'Registration not enabled',
     readinessTickets: '{{count}} ticket types',
+    readinessTickets_one: '1 ticket type',
     readinessTicketsMissing: 'No ticket types',
     visibilityOwnedByConsole:
       'Status, site visibility and access are controlled above in the console. Here you only feature the meet.',
@@ -4628,6 +4629,17 @@ export default {
     mercadoPagoSecretsKeyMissing:
       'Manual Mercado Pago account entry is not enabled in this environment. Connect the account with Mercado Pago or use the general account.',
     mercadoPagoProfileCreated: 'Profile created and linked to the event.',
+    mercadoPagoManualTitle: 'Mercado Pago credentials',
+    mercadoPagoManualHint:
+      'Find them in Mercado Pago Developers → Your integrations → Production credentials. The access token and webhook secret are stored encrypted and never shown again.',
+    mercadoPagoProfileNamePlaceholder: 'Mercado Pago · {{event}}',
+    mercadoPagoCollectorId: 'User ID (optional)',
+    mercadoPagoPublicKeyInvalid: 'The public key starts with APP_USR- (production) or TEST- (sandbox).',
+    mercadoPagoAccessTokenInvalid: 'The access token starts with APP_USR- (production) or TEST- (sandbox).',
+    mercadoPagoModeMismatch:
+      'The public key and access token belong to different environments (one sandbox, one production): they must be the same pair.',
+    mercadoPagoProfileCreating: 'Creating profile…',
+    mercadoPagoProfileCreateFailed: 'Could not create the Mercado Pago profile. Check the credentials and try again.',
     priceCurrency: 'ARS',
     ticketAddonsTitle: 'Spectator ticket perks',
     ticketAddonsLead:
@@ -5277,6 +5289,10 @@ export default {
     landingAudienceLabel: 'What the public sees',
     landingAudiencePage: 'Full page',
     landingAudienceConstruction: 'Under construction',
+    landingAudiencePageHint: 'The full landing, with everything you set up here.',
+    landingAudienceConstructionHint:
+      '"Coming soon" notice with date, venue and registration if it is open.',
+    landingAudienceDetails: 'What changes in the calendar and home page',
     landingPublicVisibleHint:
       'Under construction, visitors opening the event from the menu see the "Coming soon" notice and the event stays out of featured areas until you show the page. If registration is open (or scheduled), the notice shows the date, venue and a "Register" button (or when it opens), and the event shows up in the calendar and on the home page with "Official page" and "Register"; closed, it leaves the calendar and the notice reveals nothing else.',
     landingSubmissionPhaseLabel: 'Landing status',
@@ -5302,6 +5318,9 @@ export default {
     landingHeroHint: 'Optional hero image (JPG, PNG or WEBP, up to 5 MB).',
     landingHeroUpload: 'Upload hero image',
     landingHeroRemove: 'Remove hero image',
+    landingHeroDrop: 'Drop the image to use it on the cover.',
+    landingHeroReplace: 'Change image',
+    landingHeroUploading: 'Uploading…',
     landingHeroNeedsSlug: 'Save the event once before uploading a hero image.',
     landingHeroUploadFailed: 'Could not upload the hero image.',
     landingOpenPublic: 'Open landing on the site',

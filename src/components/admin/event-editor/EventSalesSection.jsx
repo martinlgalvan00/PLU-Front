@@ -21,6 +21,9 @@ import AdminTicketTypesEditor from '../AdminTicketTypesEditor.jsx'
 import { updatePricingField } from './draftPatches.js'
 import { CapacityPublicBreakdown, FormField } from './parts.jsx'
 
+/** Public key y access token de MP: `APP_USR-…` en producción, `TEST-…` en sandbox. */
+const MP_CREDENTIAL_PATTERN = /^(APP_USR|TEST)-[A-Za-z0-9-]{8,}$/
+
 export default function EventSalesSection({
   // Cuenta por evento (organizador): no abre medios cerrados por PLU, no carga cuentas de
   // cobro sueltas ni restablece los medios (perdería lo que PLU le abrió).
@@ -112,6 +115,28 @@ export default function EventSalesSection({
     mercadoPagoProfile: selectedMpProfile,
     profilesLoading: mpProfilesLoading,
   })
+
+  // Credenciales cargadas a mano: el formato se valida antes de mandarlas para
+  // que un token pegado en el campo de la public key (o con espacios) no
+  // termine en un perfil que después rechaza cada cobro.
+  const mpPublicKey = mpDraft.publicKey.trim()
+  const mpAccessToken = mpDraft.accessToken.trim()
+  const mpPublicKeyError =
+    mpPublicKey && !MP_CREDENTIAL_PATTERN.test(mpPublicKey)
+      ? t('admin.eventEditor.mercadoPagoPublicKeyInvalid')
+      : ''
+  const mpAccessTokenError =
+    mpAccessToken && !MP_CREDENTIAL_PATTERN.test(mpAccessToken)
+      ? t('admin.eventEditor.mercadoPagoAccessTokenInvalid')
+      : ''
+  const mpModeMismatch =
+    Boolean(mpPublicKey && mpAccessToken && !mpPublicKeyError && !mpAccessTokenError) &&
+    mpPublicKey.startsWith('TEST-') !== mpAccessToken.startsWith('TEST-')
+  const mpCredentialsReady =
+    Boolean(mpPublicKey && mpAccessToken) &&
+    !mpPublicKeyError &&
+    !mpAccessTokenError &&
+    !mpModeMismatch
 
   return (
     <section
@@ -478,6 +503,7 @@ export default function EventSalesSection({
               No es inscripción gratis (price = 0); es “todavía no cobramos”. */}
           <label className="admin-event-form__toggle admin-event-form__sales-intent">
             <input
+              className="admin-event-form__toggle-input"
               type="checkbox"
               checked={draft.salesIntent === 'announce'}
               disabled={!canEdit}
@@ -539,11 +565,9 @@ export default function EventSalesSection({
             <div className="admin-event-form__bank-transfer">
               <header className="admin-event-form__lane-head">
                 <h5 className="admin-event-form__lane-title">
-                  {essentials
-                    ? t('admin.eventEditor.paymentChannelMercadoPago')
-                    : t('admin.eventEditor.mercadoPagoProfileTitle')}
+                  {t('admin.eventEditor.mercadoPagoProfileTitle')}
                 </h5>
-                {essentials ? null : <p>{t('admin.eventEditor.mercadoPagoProfileHint')}</p>}
+                <p>{t('admin.eventEditor.mercadoPagoProfileHint')}</p>
               </header>
 
               {!mpSecretsKeyConfigured ? (
@@ -613,7 +637,10 @@ export default function EventSalesSection({
                 </p>
               )}
 
-              {!essentials && canEdit && (mpOAuthAvailable || mpSecretsKeyConfigured) ? (
+              {/* El alta de la cuenta vive acá también en la consola del evento:
+                  antes solo existía en el editor modal y desde la página del
+                  evento no había forma de vincular un Mercado Pago nuevo. */}
+              {canEdit && (mpOAuthAvailable || (mpSecretsKeyConfigured && !eventScoped)) ? (
                 <div className="admin-event-form__mp-actions">
                   {mpOAuthAvailable ? (
                     <MercadoPagoConnectControl
@@ -625,7 +652,7 @@ export default function EventSalesSection({
                   {/* Cargar las credenciales a mano queda como alternativa
                       (o como único camino si la app de MP no está configurada
                       en el servidor). */}
-                  {mpSecretsKeyConfigured ? (
+                  {mpSecretsKeyConfigured && !eventScoped ? (
                     <button
                       className={
                         mpOAuthAvailable ? 'payment-account-connect__link' : 'btn--small btn--ghost'
@@ -642,81 +669,139 @@ export default function EventSalesSection({
                 </div>
               ) : null}
 
-              {!essentials && mpCreateOpen ? (
-                <div className="admin-event-form__grid">
-                  <FormField
-                    htmlFor="event-mp-name"
-                    label={t('admin.eventEditor.mercadoPagoProfileName')}
-                  >
-                    <input
-                      id="event-mp-name"
-                      value={mpDraft.name}
-                      onChange={(changeEvent) =>
-                        setMpDraft({ ...mpDraft, name: changeEvent.target.value })
-                      }
-                    />
-                  </FormField>
-                  <FormField
-                    htmlFor="event-mp-public-key"
-                    label={t('admin.eventEditor.mercadoPagoPublicKey')}
-                  >
-                    <input
-                      id="event-mp-public-key"
-                      value={mpDraft.publicKey}
-                      onChange={(changeEvent) =>
-                        setMpDraft({ ...mpDraft, publicKey: changeEvent.target.value })
-                      }
-                      autoComplete="off"
-                    />
-                  </FormField>
-                  <FormField
-                    htmlFor="event-mp-access-token"
-                    label={t('admin.eventEditor.mercadoPagoAccessToken')}
-                  >
-                    <input
-                      id="event-mp-access-token"
-                      type="password"
-                      value={mpDraft.accessToken}
-                      onChange={(changeEvent) =>
-                        setMpDraft({
-                          ...mpDraft,
-                          accessToken: changeEvent.target.value,
-                        })
-                      }
-                      autoComplete="new-password"
-                    />
-                  </FormField>
-                  <FormField
-                    htmlFor="event-mp-webhook-secret"
-                    label={t('admin.eventEditor.mercadoPagoWebhookSecret')}
-                  >
-                    <input
-                      id="event-mp-webhook-secret"
-                      type="password"
-                      value={mpDraft.webhookSecret}
-                      onChange={(changeEvent) =>
-                        setMpDraft({
-                          ...mpDraft,
-                          webhookSecret: changeEvent.target.value,
-                        })
-                      }
-                      autoComplete="new-password"
-                    />
-                  </FormField>
+              {mpCreateOpen && !eventScoped ? (
+                <fieldset
+                  className="admin-event-form__mp-manual"
+                  aria-describedby="event-mp-manual-hint"
+                >
+                  <legend>{t('admin.eventEditor.mercadoPagoManualTitle')}</legend>
+                  <p className="admin-event-form__mp-manual-hint" id="event-mp-manual-hint">
+                    {t('admin.eventEditor.mercadoPagoManualHint')}
+                  </p>
+                  <div className="admin-event-form__grid">
+                    <FormField
+                      htmlFor="event-mp-name"
+                      label={t('admin.eventEditor.mercadoPagoProfileName')}
+                      wide
+                    >
+                      <input
+                        id="event-mp-name"
+                        value={mpDraft.name}
+                        maxLength={120}
+                        placeholder={t('admin.eventEditor.mercadoPagoProfileNamePlaceholder', {
+                          event: draft.title || draft.slug || 'evento',
+                        })}
+                        onChange={(changeEvent) =>
+                          setMpDraft({ ...mpDraft, name: changeEvent.target.value })
+                        }
+                      />
+                    </FormField>
+                    <FormField
+                      htmlFor="event-mp-public-key"
+                      label={t('admin.eventEditor.mercadoPagoPublicKey')}
+                      error={mpPublicKeyError}
+                    >
+                      <input
+                        id="event-mp-public-key"
+                        value={mpDraft.publicKey}
+                        aria-invalid={Boolean(mpPublicKeyError)}
+                        placeholder="APP_USR-…"
+                        spellCheck={false}
+                        onChange={(changeEvent) =>
+                          setMpDraft({ ...mpDraft, publicKey: changeEvent.target.value })
+                        }
+                        autoComplete="off"
+                      />
+                    </FormField>
+                    <FormField
+                      htmlFor="event-mp-access-token"
+                      label={t('admin.eventEditor.mercadoPagoAccessToken')}
+                      error={mpAccessTokenError}
+                    >
+                      <input
+                        id="event-mp-access-token"
+                        type="password"
+                        value={mpDraft.accessToken}
+                        aria-invalid={Boolean(mpAccessTokenError)}
+                        placeholder="APP_USR-…"
+                        spellCheck={false}
+                        onChange={(changeEvent) =>
+                          setMpDraft({
+                            ...mpDraft,
+                            accessToken: changeEvent.target.value,
+                          })
+                        }
+                        autoComplete="new-password"
+                      />
+                    </FormField>
+                    <FormField
+                      htmlFor="event-mp-webhook-secret"
+                      label={t('admin.eventEditor.mercadoPagoWebhookSecret')}
+                    >
+                      <input
+                        id="event-mp-webhook-secret"
+                        type="password"
+                        value={mpDraft.webhookSecret}
+                        spellCheck={false}
+                        onChange={(changeEvent) =>
+                          setMpDraft({
+                            ...mpDraft,
+                            webhookSecret: changeEvent.target.value,
+                          })
+                        }
+                        autoComplete="new-password"
+                      />
+                    </FormField>
+                    <FormField
+                      htmlFor="event-mp-collector-id"
+                      label={t('admin.eventEditor.mercadoPagoCollectorId')}
+                    >
+                      <input
+                        id="event-mp-collector-id"
+                        inputMode="numeric"
+                        value={mpDraft.collectorId}
+                        spellCheck={false}
+                        onChange={(changeEvent) =>
+                          setMpDraft({
+                            ...mpDraft,
+                            collectorId: changeEvent.target.value.replace(/\D+/g, ''),
+                          })
+                        }
+                        autoComplete="off"
+                      />
+                    </FormField>
+                  </div>
+                  {mpModeMismatch ? (
+                    <p className="admin-event-form__notice" role="status">
+                      {t('admin.eventEditor.mercadoPagoModeMismatch')}
+                    </p>
+                  ) : null}
                   {mpCreateError ? (
-                    <p className="admin-event-form__pricing-note" role="alert">
+                    <p className="admin-event-form__alert" role="alert">
                       {mpCreateError}
                     </p>
                   ) : null}
-                  <button
-                    className="button button--primary"
-                    type="button"
-                    disabled={mpCreating}
-                    onClick={() => void handleCreateMpProfile()}
-                  >
-                    {t('admin.eventEditor.mercadoPagoProfileCreate')}
-                  </button>
-                </div>
+                  <div className="admin-event-form__mp-manual-actions">
+                    <button
+                      className="btn btn--outline"
+                      type="button"
+                      onClick={() => setMpCreateOpen(false)}
+                    >
+                      {t('admin.paymentAccounts.connectCancel')}
+                    </button>
+                    <button
+                      className="btn btn--gold"
+                      type="button"
+                      disabled={mpCreating || !mpCredentialsReady}
+                      aria-busy={mpCreating || undefined}
+                      onClick={() => void handleCreateMpProfile()}
+                    >
+                      {mpCreating
+                        ? t('admin.eventEditor.mercadoPagoProfileCreating')
+                        : t('admin.eventEditor.mercadoPagoProfileCreate')}
+                    </button>
+                  </div>
+                </fieldset>
               ) : null}
             </div>
           ) : null}

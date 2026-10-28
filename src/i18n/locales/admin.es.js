@@ -4453,6 +4453,7 @@ export default {
     readinessRegistrationLive: 'Inscripciones abiertas',
     readinessRegistrationOff: 'Inscripciones no habilitadas',
     readinessTickets: '{{count}} tipos de entrada',
+    readinessTickets_one: '1 tipo de entrada',
     readinessTicketsMissing: 'Sin tipos de entrada',
     visibilityOwnedByConsole:
       'Estado, sitio y acceso se controlan arriba en la consola. Acá solo destacás el meet.',
@@ -4688,6 +4689,17 @@ export default {
     mercadoPagoSecretsKeyMissing:
       'La carga manual de cuentas de Mercado Pago no está habilitada en este entorno. Conectá la cuenta con Mercado Pago o usá la cuenta general.',
     mercadoPagoProfileCreated: 'Perfil creado y vinculado al evento.',
+    mercadoPagoManualTitle: 'Credenciales de Mercado Pago',
+    mercadoPagoManualHint:
+      'Las encontrás en Mercado Pago Developers → Tus integraciones → Credenciales de producción. El access token y el webhook secret se guardan cifrados y no se vuelven a mostrar.',
+    mercadoPagoProfileNamePlaceholder: 'Mercado Pago · {{event}}',
+    mercadoPagoCollectorId: 'User ID (opcional)',
+    mercadoPagoPublicKeyInvalid: 'La public key empieza con APP_USR- (producción) o TEST- (pruebas).',
+    mercadoPagoAccessTokenInvalid: 'El access token empieza con APP_USR- (producción) o TEST- (pruebas).',
+    mercadoPagoModeMismatch:
+      'La public key y el access token son de entornos distintos (uno de prueba y otro de producción): tienen que ser del mismo par.',
+    mercadoPagoProfileCreating: 'Creando perfil…',
+    mercadoPagoProfileCreateFailed: 'No se pudo crear el perfil de Mercado Pago. Revisá las credenciales y probá de nuevo.',
     priceCurrency: 'ARS',
     ticketAddonsTitle: 'Beneficios en la compra de entradas',
     ticketAddonsLead:
@@ -5343,6 +5355,10 @@ export default {
     landingAudienceLabel: 'Qué ve el público',
     landingAudiencePage: 'Página completa',
     landingAudienceConstruction: 'En construcción',
+    landingAudiencePageHint: 'La landing completa, con todo lo que cargues acá.',
+    landingAudienceConstructionHint:
+      'Cartel de "Próximamente" con fecha, sede e inscripción si está abierta.',
+    landingAudienceDetails: 'Qué cambia en el calendario y la portada',
     landingPublicVisibleHint:
       'En construcción, quien entra al evento desde el menú ve el cartel de "Próximamente" y el evento sale de destacados hasta que muestres la página. Si la inscripción está abierta (o programada), el cartel muestra fecha, sede y el botón "Inscribirme" (o cuándo abre), y el evento aparece en el calendario y en la portada con "Página oficial" e "Inscribirme"; cerrada, sale del calendario y el cartel no revela nada más.',
     landingSubmissionPhaseLabel: 'Estado de la landing',
@@ -5368,6 +5384,9 @@ export default {
     landingHeroHint: 'Imagen opcional del hero (JPG, PNG o WEBP, hasta 5 MB).',
     landingHeroUpload: 'Subir imagen del hero',
     landingHeroRemove: 'Quitar imagen del hero',
+    landingHeroDrop: 'Soltá la imagen para usarla en la portada.',
+    landingHeroReplace: 'Cambiar imagen',
+    landingHeroUploading: 'Subiendo…',
     landingHeroNeedsSlug: 'Guardá el evento una vez para poder subir el hero.',
     landingHeroUploadFailed: 'No se pudo subir la imagen del hero.',
     landingOpenPublic: 'Ver landing en el sitio',

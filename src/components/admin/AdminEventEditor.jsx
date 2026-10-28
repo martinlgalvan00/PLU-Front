@@ -213,7 +213,12 @@ function AdminEventLivePreview({
           ok: activeTicketTypes > 0,
           label:
             activeTicketTypes > 0
-              ? t('admin.eventEditor.readinessTickets', { count: activeTicketTypes })
+              ? t(
+                  activeTicketTypes === 1
+                    ? 'admin.eventEditor.readinessTickets_one'
+                    : 'admin.eventEditor.readinessTickets',
+                  { count: activeTicketTypes },
+                )
               : t('admin.eventEditor.readinessTicketsMissing'),
         },
       ]
@@ -618,7 +623,7 @@ export default function AdminEventEditor({
         collectorId: '',
       })
     } catch (error) {
-      setMpCreateError(error?.message ?? t('admin.eventEditor.mercadoPagoSecretsKeyMissing'))
+      setMpCreateError(error?.message || t('admin.eventEditor.mercadoPagoProfileCreateFailed'))
     } finally {
       setMpCreating(false)
     }

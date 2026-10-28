@@ -143,7 +143,7 @@ describe('EventUnderConstructionPage · inscripción con la página oculta', () 
 
   it('dice que se construye la página oficial del evento por su nombre', () => {
     renderSelling(hiddenEvent)
-    expect(screen.getByText(/construyendo algo genial: la página oficial de Barbell Submission/i)).toBeTruthy()
+    expect(screen.getByText(/preparando la página oficial de Barbell Submission/i)).toBeTruthy()
   })
 
   it('con la venta abierta ofrece "Inscribirme" con fecha y sede', () => {

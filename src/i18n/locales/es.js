@@ -96,6 +96,18 @@ export default {
         title: 'Mi perfil | PLU Argentina',
         description: 'Credencial, membresía e inscripciones de tu cuenta PLU Argentina.',
       },
+      competition: {
+        title: 'Inscripción | PLU Argentina',
+        description: 'Checkout de inscripción a competencias oficiales de PLU Argentina.',
+      },
+      thanks: {
+        title: 'Gracias | PLU Argentina',
+        description: 'Confirmación de tu trámite en PLU Argentina.',
+      },
+      staffApplication: {
+        title: 'Sumate al Staff | PLU Argentina',
+        description: 'Postulate al Cuerpo de Staff Operativo o Técnico de PLU Argentina.',
+      },
       notFound: {
         title: 'Página no encontrada | PLU Argentina',
         description: 'La ruta solicitada no existe en PLU Argentina.',
@@ -2630,9 +2642,9 @@ export default {
       backHome: 'Volver al inicio',
       eyebrow: 'PLU ARG presenta',
       title: 'Próximamente',
-      lead: 'Estamos construyendo algo genial: la página oficial de este evento. Muy pronto vas a encontrar acá toda la información.',
+      lead: 'Estamos preparando la página oficial de este evento. Muy pronto vas a encontrar acá toda la información.',
       leadNamed:
-        'Estamos construyendo algo genial: la página oficial de {{event}}. Muy pronto vas a encontrar acá toda la información.',
+        'Estamos preparando la página oficial de {{event}}. Muy pronto vas a encontrar acá toda la información.',
       cta: 'Ver el calendario',
       register: 'Inscribirme',
       registrationOpen: 'La inscripción ya está abierta: podés asegurar tu lugar ahora.',

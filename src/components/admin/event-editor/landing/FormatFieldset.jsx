@@ -1,24 +1,78 @@
-import { LayoutTemplate } from 'lucide-react'
+import { useId } from 'react'
+import { Check, ChevronDown, Construction, LayoutTemplate, PanelsTopLeft } from 'lucide-react'
 import AdminFilterChipGroup from '../../AdminFilterChipGroup.jsx'
-import { EVENT_LANDING_THEMES } from '../../../../lib/eventLanding.js'
 import MotionPicker from './MotionPicker.jsx'
-import PaletteEditor from './PaletteEditor.jsx'
+import { LandingColorPicker, LandingTemplatePicker } from './LandingLookPicker.jsx'
 
-const TEMPLATES = ['meet', 'editorial', 'submission', 'builder']
-const TEMPLATE_KEY = {
-  meet: 'landingTemplateMeet',
-  editorial: 'landingTemplateEditorial',
-  submission: 'landingTemplateSubmission',
-  builder: 'landingTemplateBuilder',
-}
 const PHASES = [
   ['coming_soon', 'landingSubmissionPhaseComingSoon'],
   ['published', 'landingSubmissionPhasePublished'],
 ]
 
+const AUDIENCES = [
+  ['page', 'landingAudiencePage', PanelsTopLeft],
+  ['construction', 'landingAudienceConstruction', Construction],
+]
+
 /**
- * Formato de la landing: plantilla, si está publicada, fase (Submission), tema de
- * color y colores propios. Todo lo que define "cómo se ve" antes del contenido.
+ * Qué ve el público: la página o el cartel de "en construcción". Dos opciones
+ * con su consecuencia a la vista; el detalle largo (calendario, portada,
+ * destacados) queda plegado para quien lo necesite.
+ */
+function AudiencePicker({ t, disabled, value, onChange }) {
+  const name = useId()
+  const labelId = `${name}-label`
+  const text = (key) => t(`admin.eventEditor.${key}`)
+
+  return (
+    <div className="admin-landing-look__group">
+      <p className="admin-landing-look__label" id={labelId}>
+        {text('landingAudienceLabel')}
+      </p>
+      <div className="admin-landing-audience" role="radiogroup" aria-labelledby={labelId}>
+        {AUDIENCES.map(([id, key, Icon]) => {
+          const checked = value === id
+          return (
+            <label key={id} className={`admin-landing-audience__option${checked ? ' is-checked' : ''}`}>
+              <input
+                type="radio"
+                name={name}
+                value={id}
+                checked={checked}
+                disabled={disabled}
+                onChange={() => onChange(id)}
+              />
+              <Icon size={16} aria-hidden className="admin-landing-audience__icon" />
+              <span className="admin-landing-audience__copy">
+                <strong>
+                  {text(key)}
+                  {checked ? <Check size={14} aria-hidden /> : null}
+                </strong>
+                <small>{text(`${key}Hint`)}</small>
+              </span>
+            </label>
+          )
+        })}
+      </div>
+      <details className="admin-landing-audience__details">
+        <summary>
+          {text('landingAudienceDetails')}
+          <ChevronDown size={14} aria-hidden />
+        </summary>
+        <p>{text('landingPublicVisibleHint')}</p>
+      </details>
+    </div>
+  )
+}
+
+/**
+ * Formato de la landing: qué ve el público, plantilla, fase (Submission), tema
+ * de color, colores propios y animación. Todo lo que define "cómo se ve" antes
+ * del contenido.
+ *
+ * Plantilla y tema se eligen viendo (las mismas muestras que el alta rápida):
+ * cada tarjeta se dibuja con los colores del tema y los propios del evento, así
+ * que cambiar un color repinta las muestras antes de mirar la vista previa.
  */
 export default function FormatFieldset({
   t,
@@ -31,6 +85,7 @@ export default function FormatFieldset({
   showAudience = true,
 }) {
   const text = (key, params) => t(`admin.eventEditor.${key}`, params)
+  const palette = landing.layout?.palette
 
   return (
     <fieldset className="admin-event-form__landing-format">
@@ -41,43 +96,27 @@ export default function FormatFieldset({
       <p className="admin-event-form__section-note">{text('landingHint')}</p>
 
       {/* Primero, qué ve el público: es la decisión que más se busca (mostrar
-          la página o el cartel de "en construcción") y antes quedaba debajo
-          de la plantilla, como un interruptor más. */}
+          la página o el cartel de "en construcción"). */}
       {showAudience ? (
-        <>
-          <AdminFilterChipGroup
-            compact
-            disabled={!canEdit}
-            id="event-landing-public-visible"
-            label={text('landingAudienceLabel')}
-            value={landing.publicVisible ? 'page' : 'construction'}
-            onChange={(audience) =>
-              patchLanding({ ...landing, publicVisible: audience === 'page' })
-            }
-            options={[
-              ['page', text('landingAudiencePage')],
-              ['construction', text('landingAudienceConstruction')],
-            ]}
-          />
-          <p className="admin-event-form__section-note">{text('landingPublicVisibleHint')}</p>
-        </>
+        <AudiencePicker
+          t={t}
+          disabled={!canEdit}
+          value={landing.publicVisible ? 'page' : 'construction'}
+          onChange={(audience) => patchLanding({ ...landing, publicVisible: audience === 'page' })}
+        />
       ) : null}
 
-      <AdminFilterChipGroup
-        compact
+      <LandingTemplatePicker
+        t={t}
         disabled={!canEdit}
-        id="event-landing-template"
-        label={text('landingTemplateLabel')}
         value={landing.templateId}
+        themeId={landing.themeId}
+        palette={palette}
         onChange={(templateId) => patchLanding({ ...landing, templateId })}
-        options={TEMPLATES.map((id) => [id, text(TEMPLATE_KEY[id])])}
       />
-      <p className="admin-event-form__section-note">
-        {text(`${TEMPLATE_KEY[landing.templateId]}Hint`)}
-      </p>
 
       {landing.templateId === 'submission' ? (
-        <>
+        <div className="admin-landing-look__group">
           <AdminFilterChipGroup
             compact
             disabled={!canEdit}
@@ -87,33 +126,21 @@ export default function FormatFieldset({
             onChange={(phase) => patchLanding({ ...landing, phase })}
             options={PHASES.map(([id, key]) => [id, text(key)])}
           />
-          <p className="admin-event-form__section-note">
+          <p className="admin-landing-look__hint">
             {landing.phase === 'coming_soon'
               ? text('landingSubmissionComingSoonHint')
               : text('landingSubmissionPublishedHint')}
           </p>
-        </>
+        </div>
       ) : null}
 
-      <AdminFilterChipGroup
-        compact
-        disabled={!canEdit}
-        id="event-landing-theme"
-        label={text('landingThemeLabel')}
-        value={landing.themeId}
-        onChange={(themeId) => patchLanding({ ...landing, themeId })}
-        options={EVENT_LANDING_THEMES.map((id) => [
-          id,
-          text(`landingTheme_${id.replace(/-/g, '_')}`),
-        ])}
-      />
-      <p className="admin-event-form__section-note">{text('landingThemeHint')}</p>
-
-      <PaletteEditor
-        canEdit={canEdit}
-        palette={landing.layout?.palette}
+      <LandingColorPicker
         t={t}
-        onChange={patchPalette}
+        disabled={!canEdit}
+        themeId={landing.themeId}
+        palette={palette}
+        onThemeChange={(themeId) => patchLanding({ ...landing, themeId })}
+        onPaletteChange={patchPalette}
       />
 
       <MotionPicker

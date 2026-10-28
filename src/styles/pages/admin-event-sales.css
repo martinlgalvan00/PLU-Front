@@ -345,6 +345,63 @@
   outline-offset: 1px;
 }
 
+/* "Solo anuncio": misma lectura que el interruptor de venta de Entradas. */
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__sales-intent strong {
+  color: var(--admin-ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__sales-intent small {
+  color: var(--admin-muted);
+  font-size: 13px;
+  max-width: 62ch;
+}
+
+/* Alta de la cuenta de Mercado Pago: vincular manda, la carga manual acompaña. */
+.admin-event-form__mp-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.admin-event-form__mp-manual {
+  border: 1px solid var(--admin-hairline-strong, var(--color-border-subtle));
+  border-radius: 12px;
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  min-width: 0;
+  padding: 16px;
+}
+
+.admin-event-form__mp-manual legend {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0 6px;
+}
+
+.admin-event-form__mp-manual-hint {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 62ch;
+}
+
+.admin-event-form__mp-manual-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.admin-event-form__mp-manual-actions .btn {
+  min-height: 44px;
+}
+
 /* ---- Entradas: interruptor de venta ---- */
 
 .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__lane--tickets > .admin-event-form__toggle {
