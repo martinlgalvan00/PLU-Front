@@ -5568,3 +5568,30 @@
 a.account-qr__share {
   text-decoration: none;
 }
+
+/* Ver la credencial en 3D: acción secundaria debajo de la tarjeta. */
+.account-qr__view3d {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  margin-top: 14px;
+  min-height: 44px;
+  padding: 0 18px;
+  transition: border-color var(--motion-fast) var(--ease-out);
+}
+
+.account-qr__view3d:hover {
+  border-color: var(--color-brand-gold);
+}
+
+.account-qr__view3d:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}

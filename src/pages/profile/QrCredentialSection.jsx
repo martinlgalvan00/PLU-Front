@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { CheckCircle2, Clock, Download, Lock, Share2 } from 'lucide-react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Box, CheckCircle2, Clock, Download, Lock, Share2 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
 import ConfirmationSeal from '../../components/ui/ConfirmationSeal.jsx'
 import CredentialCard from '../../components/ui/CredentialCard.jsx'
 import CredentialMergeRitual from '../../components/ui/CredentialMergeRitual.jsx'
 import EventPassList from './EventPassList.jsx'
+import { supportsCredential3D } from '../../components/ui/credential3d/supportsCredential3D.js'
 import {
   buildAthleteCredentialUrl,
   generateCredentialQr,
@@ -23,6 +24,11 @@ import {
 } from '../../lib/gateAccess.js'
 import { isRegistrationAdmitted } from '../../lib/status.js'
 import { isMembershipCurrent } from '../../services/membershipService.js'
+
+// Three.js viaja en su propio chunk: solo se descarga al abrir la vista 3D.
+const Credential3DViewer = lazy(
+  () => import('../../components/ui/credential3d/Credential3DViewer.jsx'),
+)
 
 function QrSectionHeading({ title, eyebrow }) {
   return (
@@ -51,6 +57,8 @@ export default function QrCredentialSection({
   const [qrSrc, setQrSrc] = useState(null)
   const [qrFailed, setQrFailed] = useState(false)
   const [mergeDone, setMergeDone] = useState(false)
+  const [can3d] = useState(supportsCredential3D)
+  const [view3dOpen, setView3dOpen] = useState(false)
   // La decisión de mostrar el acuse de emisión se toma una sola vez, cuando el
   // código existe: la ráfaga marca la clave al dispararse, así que releer
   // `hasCelebrated` en cada render haría desaparecer el sello a mitad del
@@ -188,6 +196,37 @@ export default function QrCredentialSection({
       }
     : null
 
+  const cardStatus =
+    membershipCurrent && primaryMeet
+      ? t('account.qr.unifiedStatus')
+      : membershipCurrent
+        ? t('account.membershipActive')
+        : gateLabelKey
+          ? t(gateLabelKey)
+          : t('account.qr.meetPassMeta')
+  // Lo mismo que la credencial plana, para la vista 3D (memo: la escena se
+  // vuelve a armar si cambia el objeto).
+  const card3d = useMemo(
+    () => ({
+      eyebrow: t('account.credential.athlete'),
+      name: athlete?.fullName ?? '',
+      code: memberCode ?? credentialCode ?? '',
+      codeLabel: t('account.qr.cardCodeLabel'),
+      season: t('account.qr.cardSeason', { year: credentialSeasonYear }),
+      status: cardStatus,
+      qrSrc,
+      qrCaption: t('account.qr.cardScanHint'),
+    }),
+    [athlete?.fullName, cardStatus, credentialCode, credentialSeasonYear, memberCode, qrSrc, t],
+  )
+  const view3dButton =
+    can3d && qrSrc ? (
+      <button className="account-qr__view3d" type="button" onClick={() => setView3dOpen(true)}>
+        <Box aria-hidden size={15} strokeWidth={1.8} />
+        {t('account.qr.view3d')}
+      </button>
+    ) : null
+
   const credentialCard = (
     <CredentialCard
       eyebrow={t('account.credential.athlete')}
@@ -195,15 +234,7 @@ export default function QrCredentialSection({
       code={memberCode ?? credentialCode}
       codeLabel={t('account.qr.cardCodeLabel')}
       season={t('account.qr.cardSeason', { year: credentialSeasonYear })}
-      status={
-        membershipCurrent && primaryMeet
-          ? t('account.qr.unifiedStatus')
-          : membershipCurrent
-            ? t('account.membershipActive')
-            : gateLabelKey
-              ? t(gateLabelKey)
-              : t('account.qr.meetPassMeta')
-      }
+      status={cardStatus}
       qrSrc={qrSrc}
       qrAlt={t('account.qr.imageAlt')}
       qrFailed={qrFailed}
@@ -271,6 +302,7 @@ export default function QrCredentialSection({
               <div className="account-qr account-qr--split account-qr--with-credential">
                 <div className="account-qr__credential-col" aria-busy={qrBusy || undefined}>
                   {credentialCard}
+                  {view3dButton}
                 </div>
                 <div className="account-qr__preview-col">
                   <p className="account-qr__preview-caption">{t('account.qr.membershipPassTitle')}</p>
@@ -317,6 +349,7 @@ export default function QrCredentialSection({
               <div className="account-qr account-qr--split account-qr--with-credential">
                 <div className="account-qr__credential-col" aria-busy={qrBusy || undefined}>
                   {credentialCard}
+                  {view3dButton}
                 </div>
 
                 <div className="account-qr__preview-col">
@@ -399,6 +432,12 @@ export default function QrCredentialSection({
                 initialFormat={cardInitialFormat}
               />
             )}
+
+            {view3dOpen ? (
+              <Suspense fallback={null}>
+                <Credential3DViewer card={card3d} onClose={() => setView3dOpen(false)} />
+              </Suspense>
+            ) : null}
 
             <EventPassList
               events={events}
