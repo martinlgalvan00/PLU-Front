@@ -7,7 +7,6 @@ import AdminEventPriceSchedule from '../AdminEventPriceSchedule.jsx'
 import { effectiveEventChannelsFor } from '../../../lib/eventPaymentChannels.js'
 import { platformCellsFor } from '../../../lib/platformPaymentChannels.js'
 import EventPaymentChannelMatrix from './EventPaymentChannelMatrix.jsx'
-import EventPaymentReadiness from './EventPaymentReadiness.jsx'
 import { buildPaymentReadiness } from '../../../lib/eventPaymentReadiness.js'
 import { env } from '../../../config/env.js'
 import MercadoPagoAccountStatus from '../payment-accounts/MercadoPagoAccountStatus.jsx'
@@ -115,6 +114,16 @@ export default function EventSalesSection({
     mercadoPagoProfile: selectedMpProfile,
     profilesLoading: mpProfilesLoading,
   })
+
+  /** "Configurar" de la tabla: lleva al bloque del medio y deja el foco en su primer campo. */
+  function focusChannelConfig(channel) {
+    const block = document.getElementById(`event-payment-config-${channel}`)
+    if (!block) return
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    block.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' })
+    const field = block.querySelector('select, input:not([type="hidden"]), textarea, button')
+    field?.focus({ preventScroll: true })
+  }
 
   // Credenciales cargadas a mano: el formato se valida antes de mandarlas para
   // que un token pegado en el campo de la public key (o con espacios) no
@@ -532,6 +541,8 @@ export default function EventSalesSection({
             canEdit={canEdit}
             restrictOpen={eventScoped}
             ticketError={err('paymentChannelOverrides.ticket')}
+            readiness={paymentReadiness}
+            onConfigure={focusChannelConfig}
           />
 
           {/* Sin override el evento sigue lo que Finanzas abra o cierre
@@ -548,8 +559,6 @@ export default function EventSalesSection({
             </button>
           ) : null}
 
-          <EventPaymentReadiness readiness={paymentReadiness} />
-
           {channelOpenHere('bank_transfer') ? null : (
             <p className="admin-event-form__field-hint" data-channel="bank_transfer-closed">
               {t('admin.eventEditor.bankTransferClosedHint')}
@@ -562,7 +571,7 @@ export default function EventSalesSection({
           )}
 
           {channelOpenHere('mercado_pago') ? (
-            <div className="admin-event-form__bank-transfer">
+            <div className="admin-event-form__bank-transfer" id="event-payment-config-mercado_pago">
               <header className="admin-event-form__lane-head">
                 <h5 className="admin-event-form__lane-title">
                   {t('admin.eventEditor.mercadoPagoProfileTitle')}
@@ -807,7 +816,10 @@ export default function EventSalesSection({
           ) : null}
 
           {channelOpenHere('bank_transfer') ? (
-            <div className="admin-event-form__bank-transfer">
+            <div
+              className="admin-event-form__bank-transfer"
+              id="event-payment-config-bank_transfer"
+            >
               <header className="admin-event-form__lane-head">
                 <h5 className="admin-event-form__lane-title">
                   {essentials
@@ -914,7 +926,10 @@ export default function EventSalesSection({
                         placeholder={t('admin.eventEditor.bankTransferAliasPlaceholder')}
                       />
                     </FormField>
-                    <FormField htmlFor="event-bank-cbu" label={t('admin.eventEditor.bankTransferCbu')}>
+                    <FormField
+                      htmlFor="event-bank-cbu"
+                      label={t('admin.eventEditor.bankTransferCbu')}
+                    >
                       <input
                         id="event-bank-cbu"
                         name="bankTransfer.cbu"
@@ -979,7 +994,11 @@ export default function EventSalesSection({
           {/* Efectivo en el lugar: nada que vincular, solo dónde se paga. Vacío
               cae en la sede del evento, que es lo que ve el comprador. */}
           {channelOpenHere('cash_pitbull') ? (
-            <div className="admin-event-form__bank-transfer" data-channel="cash_pitbull">
+            <div
+              className="admin-event-form__bank-transfer"
+              data-channel="cash_pitbull"
+              id="event-payment-config-cash_pitbull"
+            >
               <header className="admin-event-form__lane-head">
                 <h5 className="admin-event-form__lane-title">
                   {t('admin.eventEditor.cashPaymentTitle')}

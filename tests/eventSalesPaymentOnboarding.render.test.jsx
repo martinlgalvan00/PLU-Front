@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useState } from 'react'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
@@ -136,5 +136,27 @@ describe('Venta → Cobro en la consola del evento', () => {
       await screen.findByRole('button', { name: /conectar cuenta de mercado pago/i }),
     ).toBeTruthy()
     expect(screen.queryByRole('button', { name: /cargar credenciales a mano/i })).toBeNull()
+  })
+})
+
+describe('Venta → Cobro: tabla de medios con su estado', () => {
+  it('cada medio dice si está listo o qué falta, en su propia fila', async () => {
+    renderConsole()
+    const transfer = (await screen.findByText(/falta elegir una cuenta o cargar un alias/i)).closest(
+      '.admin-event-form__channel-row',
+    )
+    expect(transfer.dataset.state).toBe('missing')
+    expect(screen.getByText(/1 por completar/i)).toBeTruthy()
+  })
+
+  it('"Configurar" lleva al bloque del medio y deja el foco en su primer campo', async () => {
+    renderConsole()
+    const row = (await screen.findByText(/falta elegir una cuenta o cargar un alias/i)).closest(
+      '.admin-event-form__channel-row',
+    )
+    fireEvent.click(within(row).getByRole('button', { name: /configurar/i }))
+    const block = document.getElementById('event-payment-config-bank_transfer')
+    expect(block).toBeTruthy()
+    expect(block.contains(document.activeElement)).toBe(true)
   })
 })

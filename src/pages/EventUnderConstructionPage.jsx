@@ -4,13 +4,20 @@ import { normalizeLandingMotion } from '../lib/eventLandingMotion.js'
 import { landingPaletteStyle } from '../lib/eventLandingPalette.js'
 import { resolveEventLogo } from '../lib/eventMark.js'
 import { isEventRegistrationOpen } from '../lib/eventPublicActions.js'
-import { eventPublicTitle } from '../lib/eventPublicSurface.js'
+import {
+  eventPublicTitle,
+  eventShowsPublicRecentRegistrants,
+} from '../lib/eventPublicSurface.js'
+import { describePublicCapacity } from '../lib/eventCapacityPublic.js'
+import { formatRelativeTime } from '../lib/format.js'
+import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
 import { hiddenLandingTakesRegistrations } from '../../shared/registrationSaleState.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import '../styles/pages/event-landing-themes.css'
 import '../styles/pages/event-under-construction.css'
 
 const DAY_MS = 86_400_000
+const MAX_RECENT = 6
 
 function toDate(value) {
   const date = value ? new Date(value) : null
@@ -74,9 +81,8 @@ export default function EventUnderConstructionPage({
     takesRegistrations && !canRegister ? formatDate(event?.registrationOpensAt, locale, true) : ''
   const registration = canRegister ? 'open' : opensAt ? 'scheduled' : 'closed'
   const date = takesRegistrations ? formatDate(event?.startsAt, locale) : ''
-  const place = takesRegistrations
-    ? [event?.venue, event?.location].filter(Boolean).join(' · ')
-    : ''
+  // Sede arriba y ciudad debajo: en una sola línea la banda se partía en tres.
+  const place = takesRegistrations ? [event?.venue, event?.location].filter(Boolean) : []
   const remaining = takesRegistrations ? daysUntil(event?.startsAt) : null
   const countdown =
     remaining == null
@@ -84,6 +90,28 @@ export default function EventUnderConstructionPage({
       : remaining === 0
         ? text('countdownToday')
         : text(remaining === 1 ? 'countdownDays_one' : 'countdownDays', { count: remaining })
+
+  // Cupo e inscriptos en vivo (el mismo resumen que la portada y Pitbull). Solo
+  // con la venta abierta: cerrada, la página no revela nada más.
+  const live = useEventRegistrationCapacity(event?.slug, { enabled: canRegister })
+  const capacityLabel = (() => {
+    if (!canRegister || live.status !== 'live' || !live.slots) return ''
+    const view = describePublicCapacity({
+      progressPublic: live.progressPublic,
+      totalPublic: live.totalPublic,
+      registered: live.registered,
+      slots: live.slots,
+      remaining: live.remaining,
+    })
+    if (view.mode === 'hidden') return text('capacityLimited')
+    return view.showTotal
+      ? text('capacityRemaining', { remaining: view.remaining, slots: view.slots })
+      : text(view.registered === 1 ? 'capacityRegistered_one' : 'capacityRegistered', {
+          count: view.registered,
+        })
+  })()
+  const recent =
+    canRegister && eventShowsPublicRecentRegistrants(event) ? live.recent.slice(0, MAX_RECENT) : []
 
   const status = {
     open: text('statusOpen'),
@@ -177,7 +205,7 @@ export default function EventUnderConstructionPage({
           ) : null}
         </section>
 
-        {date || place || countdown ? (
+        {date || place.length || countdown || capacityLabel ? (
           <dl className="event-under-construction__facts">
             {date ? (
               <div>
@@ -185,10 +213,13 @@ export default function EventUnderConstructionPage({
                 <dd>{date}</dd>
               </div>
             ) : null}
-            {place ? (
+            {place.length ? (
               <div>
                 <dt>{text('venue')}</dt>
-                <dd>{place}</dd>
+                <dd>
+                  <span>{place[0]}</span>
+                  {place[1] ? <small>{place[1]}</small> : null}
+                </dd>
               </div>
             ) : null}
             {countdown ? (
@@ -197,7 +228,38 @@ export default function EventUnderConstructionPage({
                 <dd>{countdown}</dd>
               </div>
             ) : null}
+            {capacityLabel ? (
+              <div>
+                <dt>{text('capacityLabel')}</dt>
+                <dd>{capacityLabel}</dd>
+              </div>
+            ) : null}
           </dl>
+        ) : null}
+
+        {recent.length > 0 ? (
+          <section className="event-under-construction__recent" aria-labelledby="euc-recent-title">
+            <header>
+              <h2 id="euc-recent-title">{t('pages.events.recentRegistrantsTitle')}</h2>
+              <span className="event-under-construction__live">
+                <span aria-hidden />
+                {t('pages.events.recentRegistrantsLive')}
+              </span>
+            </header>
+            <ol>
+              {recent.map((item, index) => (
+                <li key={`${item.displayName}-${item.registeredAt ?? index}`}>
+                  <strong>{item.displayName}</strong>
+                  {item.gym ? <span>{item.gym}</span> : <span />}
+                  {item.registeredAt ? (
+                    <time dateTime={item.registeredAt}>
+                      {formatRelativeTime(item.registeredAt, locale)}
+                    </time>
+                  ) : null}
+                </li>
+              ))}
+            </ol>
+          </section>
         ) : null}
       </div>
     </main>

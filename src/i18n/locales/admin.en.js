@@ -4549,6 +4549,11 @@ export default {
       goTo: 'Go',
     },
     paymentChannelMatrixLabel: 'Payment methods by concept',
+    paymentChannelSummary: '{{count}} payment methods offered',
+    paymentChannelSummary_one: '1 payment method offered',
+    paymentChannelPending: '{{count}} to complete',
+    paymentChannelPending_one: '1 to complete',
+    paymentChannelConfigure: 'Set up',
     paymentReadinessTitle: 'Configuration status',
     paymentReadinessHint:
       'Before publishing, check which method each person will see and where the payment will be received.',

@@ -1804,14 +1804,22 @@ export default function RegisterPage({
   const registrationAvailability = accessRequirements.paymentChannels
     ? { paymentChannels: accessRequirements.paymentChannels }
     : checkoutAvailability
+  // Qué conceptos cobra esta orden. La afiliación solo entra en el combo (o en
+  // el flujo de afiliación): una inscripción sola la valida el servidor
+  // únicamente contra el concepto "inscripción" (`POST /me/registrations`), con
+  // las aperturas del evento ya aplicadas. Exigir también el casillero de
+  // afiliación escondía transferencia y efectivo —cerrados por defecto para
+  // afiliación— a quien ya está afiliado, aunque el evento los abriera.
+  const chargesMembership = flow === 'membership' || effectivePurchaseType === 'combo'
+  const chargesRegistration = flow === 'competition'
   const legacyManualChannelsOpenGlobally =
-    checkoutAvailability.membershipManualEnabled !== false &&
+    (!chargesMembership || checkoutAvailability.membershipManualEnabled !== false) &&
     (flow !== 'competition' || checkoutAvailability.registrationManualEnabled !== false) &&
     // accessRequirements todavía no resolvió (arranca undefined): con !==
     // false acá el selector mostraría transferencia/efectivo un instante y
     // los sacaría al terminar de cargar, el mismo flash-y-409 que
     // `manualChannelEnabled` evita en MembershipPurchaseSection.
-    accessRequirements.membershipManualEnabled === true &&
+    (!chargesMembership || accessRequirements.membershipManualEnabled === true) &&
     (flow !== 'competition' || accessRequirements.registrationManualEnabled === true)
   const paymentChannels = checkoutAvailability.paymentChannels
   const hasPaymentChannelMatrix = Boolean(paymentChannels)
@@ -1822,18 +1830,18 @@ export default function RegisterPage({
       // en accessRequirements; si no, cae a la de plataforma.
       const registrationOpen =
         registrationAvailability.paymentChannels?.registration?.[channel] === true
-      return flow === 'membership' ? membershipOpen : membershipOpen && registrationOpen
+      return (!chargesMembership || membershipOpen) && (!chargesRegistration || registrationOpen)
     }
     return legacyManualChannelsOpenGlobally
   }
   const mercadoPagoOpen =
-    channelOpen(checkoutAvailability, 'membership', 'mercado_pago') &&
-    (flow !== 'competition' ||
+    (!chargesMembership || channelOpen(checkoutAvailability, 'membership', 'mercado_pago')) &&
+    (!chargesRegistration ||
       channelOpen(registrationAvailability, 'registration', 'mercado_pago'))
+  // Wise nunca cobra afiliación ni combo (el servidor lo rechaza y el combo lo
+  // excluye más abajo): solo cuenta el casillero de inscripción.
   const wiseOpen =
-    flow === 'competition' &&
-    channelOpen(checkoutAvailability, 'membership', 'wise_transfer') &&
-    channelOpen(registrationAvailability, 'registration', 'wise_transfer')
+    flow === 'competition' && channelOpen(registrationAvailability, 'registration', 'wise_transfer')
   const resolvedChannels = resolvePromotionPaymentChannels({
     policy: discountPreview,
     mercadoPagoOpen,

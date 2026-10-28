@@ -4609,6 +4609,11 @@ export default {
       goTo: 'Ir',
     },
     paymentChannelMatrixLabel: 'Medios de pago por concepto',
+    paymentChannelSummary: '{{count}} medios ofrecidos',
+    paymentChannelSummary_one: '1 medio ofrecido',
+    paymentChannelPending: '{{count}} por completar',
+    paymentChannelPending_one: '1 por completar',
+    paymentChannelConfigure: 'Configurar',
     paymentReadinessTitle: 'Estado de configuración',
     paymentReadinessHint:
       'Antes de publicar, comprobá qué medio verá cada persona y a qué destino se acreditará.',

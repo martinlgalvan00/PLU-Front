@@ -234,6 +234,87 @@
   font-weight: 600;
 }
 
+/* Estado del medio debajo del nombre: listo, qué falta o "no se ofrece". */
+.admin-event-form__channel-name {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-event-form__channel-state {
+  color: var(--admin-muted, var(--color-text-muted));
+  display: block;
+  font-size: 12.5px;
+  font-weight: 450;
+  line-height: 1.45;
+}
+
+/* Ícono en línea con el texto: con flex-wrap se iba solo a otro renglón. */
+.admin-event-form__channel-state svg {
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: -2px;
+}
+
+.admin-event-form__channel-state .admin-event-form__channel-configure {
+  margin-left: 6px;
+}
+
+.admin-event-form__channel-state[data-state='ready'] svg {
+  color: var(--color-status-success, #3fb37f);
+}
+
+.admin-event-form__channel-state[data-state='missing'],
+.admin-event-form__channel-state[data-state='warning'] {
+  color: var(--admin-status-warning, var(--plu-warning-500, #c9a227));
+}
+
+.admin-event-form__channel-row[data-state='off'] .admin-event-form__channel-name > :first-child,
+.admin-event-form__channel-row[data-state='off'] .admin-event-form__channel-name {
+  color: var(--admin-muted, var(--color-text-muted));
+}
+
+.admin-event-form__channel-configure {
+  background: transparent;
+  border: 0;
+  color: var(--admin-ink, var(--color-text-primary));
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  min-height: 32px;
+  padding: 0 2px;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset: 3px;
+}
+
+.admin-event-form__channel-configure:hover {
+  text-decoration-color: currentColor;
+}
+
+.admin-event-form__channel-configure:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid var(--admin-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .admin-event-form__channel-configure {
+    min-height: 44px;
+  }
+}
+
+.admin-event-form__channel-summary {
+  color: var(--admin-text-secondary, var(--color-text-secondary));
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.admin-event-form__channel-summary[data-pending] {
+  color: var(--admin-status-warning, var(--plu-warning-500, #c9a227));
+}
+
 /* La celda es solo el check: el rótulo de columna ya está en el encabezado. */
 .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-cell {
   background: transparent;
@@ -460,5 +541,67 @@
   .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-head,
   .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-row {
     grid-template-columns: minmax(0, 1fr) 84px 84px;
+  }
+}
+
+/* En claro el ámbar de estado no llega a AA en texto de 12.5px. */
+[data-theme='light'] .admin-event-form__channel-state[data-state='missing'],
+[data-theme='light'] .admin-event-form__channel-state[data-state='warning'],
+[data-theme='light'] .admin-event-form__channel-summary[data-pending] {
+  color: var(--color-warning-text, #92400e);
+}
+
+/* Con el estado debajo del nombre la fila gana una línea: aire parejo arriba y abajo. */
+.admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-row {
+  padding-block: 10px;
+}
+
+/* Mobile: el nombre y su estado a todo el ancho; debajo, los dos interruptores
+   con su rótulo visible. En tres columnas de 84px el estado se partía en
+   cinco renglones al lado de los checks. */
+@media (max-width: 560px) {
+  .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-head {
+    display: none;
+  }
+
+  .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-row {
+    gap: 4px 16px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__channel-name {
+    grid-column: 1 / -1;
+  }
+
+  /* `.admin-event-form label:not(...)` la volvía grilla (rótulo debajo del
+     check) y `label span` pasaba el rótulo a versales de 10px. */
+  .admin-event-workspace__panel
+    .admin-event-editor--accordion
+    .admin-event-form__channel-row
+    > label.admin-event-form__channel-cell {
+    align-items: center;
+    display: inline-flex;
+    gap: 10px;
+    height: auto;
+    justify-self: start;
+    width: auto;
+  }
+
+  .admin-event-workspace__panel
+    .admin-event-editor--accordion
+    .admin-event-form__channel-row
+    > label.admin-event-form__channel-cell
+    > span {
+    block-size: auto;
+    clip-path: none;
+    color: var(--admin-text-secondary, var(--color-text-secondary));
+    font-size: 13px;
+    font-weight: 500;
+    inline-size: auto;
+    letter-spacing: 0;
+    overflow: visible;
+    position: static;
+    text-transform: none;
+    white-space: nowrap;
   }
 }
