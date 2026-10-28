@@ -1912,6 +1912,40 @@ export function createAthleteRoutes({
       }
     },
   )
+  /**
+   * Cómo se paga la inscripción de un evento, para el bloque "Cómo pagar" de
+   * la landing pública: qué medios acepta (mismo cruce plataforma × evento que
+   * el checkout) y dónde se paga en efectivo. Sin datos bancarios: alias y CBU
+   * se muestran en el checkout, a quien ya está pagando.
+   */
+  router.get('/public/events/:eventSlug/payment-info', publicReadLimiter, async (req, res, next) => {
+    try {
+      const eventSlug = String(req.params.eventSlug ?? '').trim()
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(eventSlug)) {
+        throw new HttpError(400, 'El identificador del evento es inválido.')
+      }
+      const [toggles, event] = await Promise.all([
+        platformSettingsRepo().get(),
+        repo().findEventPricing(eventSlug),
+      ])
+      if (!event) throw new HttpError(404, 'El evento no existe.')
+      const availability = applyEventPaymentChannelOverrides(
+        resolvePublicCheckoutAvailability(
+          applyEventChannelOpens(toggles, event.payment_channel_overrides),
+        ),
+        event.payment_channel_overrides,
+      )
+      const registration = availability.paymentChannels?.registration ?? {}
+      res.set('Cache-Control', 'public, max-age=60')
+      res.json({
+        registrationEnabled: availability.registrationEnabled,
+        channels: Object.keys(registration).filter((channel) => registration[channel] === true),
+        cashPayment: resolveCashPaymentDetails(event),
+      })
+    } catch (error) {
+      next(error)
+    }
+  })
   router.get(
     '/me/registration-access-requirements',
     athleteWriteLimiter,

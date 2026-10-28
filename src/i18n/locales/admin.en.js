@@ -5442,6 +5442,9 @@ export default {
     landingBlockHint_video: 'A YouTube or Vimeo video, without tracking cookies.',
     landingBlockType_map: 'Directions',
     landingBlockHint_map: 'The venue address and a map link.',
+    landingBlockType_payments: 'How to pay',
+    landingBlockHint_payments:
+      'The payment methods registration accepts and where to pay in cash, with Maps and Waze. Built from the event data.',
     landingTemplateBuilder: 'Builder',
     landingTemplateBuilderHint:
       'Build the page from blocks: reorder them, hide them and add your own text, images and buttons.',
@@ -5460,6 +5463,7 @@ export default {
     landingBlockAdd_sponsors: 'Sponsors',
     landingBlockAdd_video: 'Video',
     landingBlockAdd_map: 'Directions',
+    landingBlockAdd_payments: 'How to pay',
     landingPreviewToolbar: 'Actions for “{{name}}”',
     landingPreviewDrag: 'Drag “{{name}}” to move it',
     landingPreviewHide: 'Hide “{{name}}”',

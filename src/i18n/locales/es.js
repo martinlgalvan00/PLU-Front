@@ -2659,6 +2659,21 @@ export default {
       actionsAria: 'Acciones del padrón de récords',
     },
     eventBuilder: {
+      paymentsTitle: 'Cómo pagar la inscripción',
+      paymentsLead: 'Elegís el medio al inscribirte. Los datos de la cuenta aparecen en el checkout.',
+      paymentsChannel: {
+        mercado_pago: 'Mercado Pago',
+        bank_transfer: 'Transferencia bancaria',
+        cash_pitbull: 'Efectivo',
+        wise_transfer: 'Wise (desde el exterior)',
+      },
+      paymentsChannelHint: {
+        mercado_pago: 'Tarjeta, débito o dinero en cuenta. Se acredita al instante.',
+        bank_transfer: 'Subís el comprobante y Administración lo valida.',
+        cash_pitbull: 'Pagás en persona y avisás la entrega desde tu cuenta.',
+        wise_transfer: 'Para atletas que pagan desde fuera de Argentina.',
+      },
+      paymentsClosed: 'La inscripción no está recibiendo pagos en este momento.',
       back: 'Volver al calendario',
       eyebrow: 'PLU ARG presenta',
       register: 'Inscribirme',

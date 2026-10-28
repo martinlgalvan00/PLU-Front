@@ -5509,6 +5509,9 @@ export default {
     landingBlockHint_video: 'Un video de YouTube o Vimeo, sin cookies de seguimiento.',
     landingBlockType_map: 'Cómo llegar',
     landingBlockHint_map: 'La dirección de la sede y un link al mapa.',
+    landingBlockType_payments: 'Cómo pagar',
+    landingBlockHint_payments:
+      'Los medios que acepta la inscripción y dónde se paga en efectivo, con Maps y Waze. Se arma solo con los datos del evento.',
     landingTemplateBuilder: 'Constructor',
     landingTemplateBuilderHint:
       'Armá la página por bloques: ordenalos, ocultalos y sumá textos, imágenes y botones propios.',
@@ -5527,6 +5530,7 @@ export default {
     landingBlockAdd_sponsors: 'Sponsors',
     landingBlockAdd_video: 'Video',
     landingBlockAdd_map: 'Cómo llegar',
+    landingBlockAdd_payments: 'Cómo pagar',
     landingBlockLimit: 'Llegaste al máximo de {{max}} bloques.',
     landingPreviewToolbar: 'Acciones de «{{name}}»',
     landingPreviewDrag: 'Arrastrar «{{name}}» para moverlo',

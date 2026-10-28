@@ -9,7 +9,11 @@ import { normalizeLandingMotion } from '../lib/eventLandingMotion.js'
 import useRevealOnScroll from '../hooks/useRevealOnScroll.js'
 import { landingPaletteStyle } from '../lib/eventLandingPalette.js'
 import { isEventRegistrationOpen } from '../lib/eventPublicActions.js'
-import { eventPublicTitle } from '../lib/eventPublicSurface.js'
+import {
+  eventPublicTitle,
+  eventShowsPublicCategories,
+  eventShowsPublicExperience,
+} from '../lib/eventPublicSurface.js'
 import EventPublicMaterials from '../components/ui/EventPublicMaterials.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
@@ -172,6 +176,8 @@ export default function SubmissionLandingPage({
   const experienceBody = landing.slots.experienceBody || copy.experienceFallback
   const categoriesTitle = landing.slots.categoriesTitle || copy.categories
   const categoriesBody = landing.slots.categoriesBody || copy.categoriesFallback
+  const showExperience = eventShowsPublicExperience(event)
+  const showCategories = eventShowsPublicCategories(event)
   const overviewTitle = landing.slots.locationTitle || copy.overview
   // La bajada ya está en la portada: repetirla como texto de "El evento" decía
   // lo mismo dos veces seguidas.
@@ -432,19 +438,27 @@ export default function SubmissionLandingPage({
         </section>
       ) : null}
 
-      <section className="submission-landing__story" aria-label={copy.officialInfo} data-scene="">
-        <div className="submission-landing__story-inner" data-scene-content="">
-          <p className="submission-landing__story-eyebrow">{copy.officialInfo}</p>
-          <article>
-            <h2>{experienceTitle}</h2>
-            <p>{experienceBody}</p>
-          </article>
-          <article>
-            <h2>{categoriesTitle}</h2>
-            <p>{categoriesBody}</p>
-          </article>
-        </div>
-      </section>
+      {/* Respeta los interruptores del editor: antes "Experiencia" y
+          "Categorías" se podían apagar en el panel y la página los mostraba igual. */}
+      {showExperience || showCategories ? (
+        <section className="submission-landing__story" aria-label={copy.officialInfo} data-scene="">
+          <div className="submission-landing__story-inner" data-scene-content="">
+            <p className="submission-landing__story-eyebrow">{copy.officialInfo}</p>
+            {showExperience ? (
+              <article>
+                <h2>{experienceTitle}</h2>
+                <p>{experienceBody}</p>
+              </article>
+            ) : null}
+            {showCategories ? (
+              <article>
+                <h2>{categoriesTitle}</h2>
+                <p>{categoriesBody}</p>
+              </article>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       <section className="submission-landing__materials" aria-label={copy.materials} data-scene="">
         <EventPublicMaterials event={event} hideEmptyRecent />

@@ -4,6 +4,7 @@ import CustomCtaBlock from './CustomCtaBlock.jsx'
 import CustomGalleryBlock from './CustomGalleryBlock.jsx'
 import CustomImageBlock from './CustomImageBlock.jsx'
 import CustomMapBlock from './CustomMapBlock.jsx'
+import CustomPaymentsBlock from './CustomPaymentsBlock.jsx'
 import CustomSponsorsBlock from './CustomSponsorsBlock.jsx'
 import CustomTextBlock from './CustomTextBlock.jsx'
 import CustomVideoBlock from './CustomVideoBlock.jsx'
@@ -38,6 +39,7 @@ export const LANDING_BLOCK_COMPONENTS = Object.freeze({
   cta: CustomCtaBlock,
   gallery: CustomGalleryBlock,
   sponsors: CustomSponsorsBlock,
+  payments: CustomPaymentsBlock,
   video: CustomVideoBlock,
   map: CustomMapBlock,
 })

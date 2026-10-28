@@ -232,3 +232,17 @@ describe('SubmissionLandingPage', () => {
     }
   })
 })
+
+describe('SubmissionLandingPage: interruptores del editor', () => {
+  afterEach(cleanup)
+
+  it('"La experiencia" apagada en el panel no aparece en la página', () => {
+    renderLanding({
+      ...EVENT,
+      landing: { templateId: 'submission', phase: 'published', slots: {} },
+      publicSurface: { experience: false },
+    })
+    expect(screen.queryByRole('heading', { name: 'La experiencia' })).toBeNull()
+    expect(screen.getByRole('heading', { name: 'Información de competencia' })).toBeTruthy()
+  })
+})

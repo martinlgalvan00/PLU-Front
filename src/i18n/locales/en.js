@@ -2627,6 +2627,21 @@ export default {
       actionsAria: 'Records register actions',
     },
     eventBuilder: {
+      paymentsTitle: 'How to pay for registration',
+      paymentsLead: 'You choose the method when you register. Account details appear at checkout.',
+      paymentsChannel: {
+        mercado_pago: 'Mercado Pago',
+        bank_transfer: 'Bank transfer',
+        cash_pitbull: 'Cash',
+        wise_transfer: 'Wise (from abroad)',
+      },
+      paymentsChannelHint: {
+        mercado_pago: 'Card, debit or account balance. Credited instantly.',
+        bank_transfer: 'Upload your receipt and Administration validates it.',
+        cash_pitbull: 'Pay in person and confirm the handover from your account.',
+        wise_transfer: 'For athletes paying from outside Argentina.',
+      },
+      paymentsClosed: 'Registration is not taking payments right now.',
       back: 'Back to calendar',
       eyebrow: 'PLU ARG presents',
       register: 'Register',
