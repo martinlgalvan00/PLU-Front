@@ -1356,6 +1356,101 @@
   }
 }
 
+/* ---- Portada en mobile (≤ 639px) ----
+   Un solo borde izquierdo para todo (rótulo, título, bajada, botón): antes el
+   texto arrancaba 16px más adentro que el botón por el filete vertical, y el
+   bloque se leía corrido. El rótulo baja hasta despegarse de la píldora del
+   menú (que flota 6px por debajo del borde). La foto lleva un velo más firme
+   donde hay texto, y "Eventos" es un link del ancho de su texto: como botón
+   de ancho completo, su subrayado quedaba como un trazo suelto a la izquierda. */
+@media (max-width: 639px) {
+  .home-page .hero--statement .hero__copy {
+    padding-top: calc(var(--header-height) + 34px);
+  }
+
+  .hero--statement .hero__editorial {
+    gap: 12px;
+    padding-left: 0;
+  }
+
+  .hero--statement .hero__editorial::before {
+    content: none;
+  }
+
+  .hero--statement .hero__title--design {
+    font-size: clamp(2.5rem, 11.4vw, 3.05rem);
+    line-height: 0.96;
+    margin-top: 4px;
+  }
+
+  .hero--statement .hero__lead {
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 15.5px;
+  }
+
+  .hero--statement .hero__kicker {
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  /* Bajada → botón: el gap de la grilla y un paso chico. Sumaban 74px entre
+     márgenes y paddings heredados del layout de escritorio. */
+  .hero--statement .hero__actions {
+    border-top: 0;
+    margin-top: 0;
+    padding-inline: 0;
+    padding-top: 6px;
+  }
+
+  .hero--statement .hero__cta-row {
+    margin-top: 0;
+  }
+
+  /* La ficha del meet al mismo ancho que el botón: un solo borde derecho. */
+  .hero--statement .hero__proof,
+  .hero--statement .home-season-actions {
+    max-width: none;
+  }
+
+  /* Accesos rápidos: al partirse en dos líneas, la barra inclinada quedaba
+     huérfana al principio de la segunda ("/ Reglamento"). En mobile van sin
+     separador y con aire entre ítems. */
+  .home-quick-band .home-quick-band__menu {
+    column-gap: 22px;
+  }
+
+  .home-quick-band .home-quick-band__menu li + li::before {
+    content: none;
+  }
+
+  .hero--statement .hero__events-link {
+    color: rgba(255, 255, 255, 0.86);
+    justify-self: center;
+    width: auto;
+  }
+
+  .hero--statement .hero__backdrop::after {
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--home-hero-bg) 82%, transparent) 0%,
+      color-mix(in oklab, var(--home-hero-bg) 66%, transparent) 42%,
+      color-mix(in oklab, var(--home-hero-bg) 48%, transparent) 62%,
+      color-mix(in oklab, var(--home-hero-bg) 88%, transparent) 100%
+    );
+  }
+
+  [data-theme='light'] .hero--statement .hero__lead {
+    color: color-mix(in oklab, var(--plu-ink-900) 84%, transparent);
+  }
+
+  [data-theme='light'] .hero--statement .hero__kicker {
+    color: color-mix(in oklab, var(--plu-ink-900) 72%, var(--plu-celeste-700));
+  }
+
+  [data-theme='light'] .hero--statement .hero__events-link {
+    color: color-mix(in oklab, var(--plu-ink-900) 80%, transparent);
+  }
+}
+
 [data-theme='light'] .hero--statement .hero__editorial::before {
   background: var(--plu-gold-600);
   opacity: 0.9;
