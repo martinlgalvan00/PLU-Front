@@ -73,6 +73,7 @@ import {
 } from '../../services/eventPaymentTriage.js'
 
 import '../../styles/pages/admin-events-index.css'
+import { isStoredEventModuleOn } from '../../../shared/eventModules.js'
 
 function isFinishedEvent(event) {
   return event?.status === 'finalizado'
@@ -1237,7 +1238,7 @@ export default function EventsSection({
     const nextDraft = buildAdminEventDraft(event)
     setEditorFocus(section)
     setConsoleSection(section)
-    setConsoleChapter(section === 'sales' ? (chapter ?? 'cupo') : chapter)
+    setConsoleChapter(section === 'sales' ? (chapter ?? 'modules') : chapter)
     setDraft(nextDraft)
     setEditorBaselineSignature(getAdminEventDraftSignature(nextDraft))
     setFormOpen(true)
@@ -1301,7 +1302,7 @@ export default function EventsSection({
     if (formOpen && draft.id) {
       setEditorFocus(section)
       setConsoleSection(section)
-      setConsoleChapter(section === 'sales' ? 'cupo' : null)
+      setConsoleChapter(section === 'sales' ? 'modules' : null)
       return
     }
     openEditForm(event, section)
@@ -1902,6 +1903,18 @@ export default function EventsSection({
                 draft={draft}
                 forcedTab={consoleSection}
                 forcedChapter={consoleChapter}
+                onRequestChapter={(chapter) =>
+                  selectConsoleChapter(selectedEvent, 'sales', chapter)
+                }
+                onRequestWorkspaceSection={(section) =>
+                  selectConsoleSection(selectedEvent, section)
+                }
+                workspaceSections={[
+                  'structure',
+                  ...(teamAccess && isStoredEventModuleOn(selectedEvent, 'door')
+                    ? ['security']
+                    : []),
+                ]}
                 sourceEvent={editingSource}
                 onSetEventRegistrationPrice={onSetEventRegistrationPrice}
                 onClearEventPriceSchedule={onClearEventPriceSchedule}
@@ -1913,7 +1926,7 @@ export default function EventsSection({
                 onRequestSection={(section) => {
                   setEditorFocus(section)
                   setConsoleSection(section)
-                  setConsoleChapter(section === 'sales' ? (consoleChapter ?? 'cupo') : null)
+                  setConsoleChapter(section === 'sales' ? (consoleChapter ?? 'modules') : null)
                 }}
                 onSubmit={handleSubmit}
                 extraDirty={stateDirty}

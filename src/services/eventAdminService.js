@@ -34,6 +34,15 @@ import {
   offeringForStorage,
   offeringFromRules,
 } from '../../shared/eventOffering.js'
+import {
+  eventModulesForStorage,
+  eventModulesFromRules,
+  isStoredEventModuleOn,
+  normalizeEventModules,
+  normalizeEventPaymentPolicy,
+  paymentPolicyForStorage,
+  paymentPolicyFromRules,
+} from '../../shared/eventModules.js'
 import { normalizeTicketTypePaymentChannels } from '../lib/ticketTypePaymentChannels.js'
 import { catalogPriceFromRow, normalizeTicketTypePrices } from '../lib/ticketTypePrices.js'
 import { TICKET_ACCESS_USAGE_MODE, TICKET_QR_VALIDITY_MODE } from '../lib/ticketValidityPolicy.js'
@@ -187,6 +196,8 @@ export function buildAdminEventDraft(event) {
     },
     externalForm: normalizeExternalForm(event.externalForm),
     offering: normalizeEventOffering(event.offering),
+    modules: normalizeEventModules(event.modules),
+    paymentPolicy: normalizeEventPaymentPolicy(event.paymentPolicy),
   }
 }
 
@@ -447,6 +458,8 @@ export function createAdminEvent(events, payload) {
     liveStatus: payload.liveStatus ?? 'offline',
     externalForm: normalizeExternalForm(payload.externalForm),
     offering: normalizeEventOffering(payload.offering),
+    modules: normalizeEventModules(payload.modules),
+    paymentPolicy: normalizeEventPaymentPolicy(payload.paymentPolicy),
     published: Boolean(payload.published),
     requiresMembership: payload.requiresMembership !== false,
   }
@@ -506,6 +519,8 @@ export function updateAdminEvent(events, eventId, payload) {
       liveStatus: payload.liveStatus ?? event.liveStatus ?? 'offline',
       externalForm: normalizeExternalForm(payload.externalForm ?? event.externalForm),
       offering: normalizeEventOffering(payload.offering ?? event.offering),
+      modules: normalizeEventModules(payload.modules ?? event.modules),
+      paymentPolicy: normalizeEventPaymentPolicy(payload.paymentPolicy ?? event.paymentPolicy),
       published: Boolean(payload.published),
       requiresMembership:
         payload.requiresMembership !== undefined
@@ -673,6 +688,8 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   cashPayment: { place: '', notes: '', address: '', hours: '', contact: '' },
   externalForm: { url: '', label: '' },
   offering: normalizeEventOffering(null),
+  modules: normalizeEventModules(null),
+  paymentPolicy: normalizeEventPaymentPolicy(null),
 }
 
 /** Reconstruye eventDays/ticketTypes desde las filas joineadas de Supabase. */
@@ -819,6 +836,8 @@ export function mapSupabaseEventRow(row) {
     },
     externalForm: externalFormFromRules(rules),
     offering: offeringFromRules(rules),
+    modules: eventModulesFromRules(rules),
+    paymentPolicy: paymentPolicyFromRules(rules),
     comboOffer: comboOfferRow
       ? {
           id: comboOfferRow.id,
@@ -900,7 +919,11 @@ export function mapSupabaseEventRow(row) {
  */
 export function mapPublishedEventRow(row, now = new Date()) {
   const event = mapSupabaseEventRow(row)
-  const publicOffer = resolveLiveComboOffer(event, now)
+  // Combo apagado: mismo recorte que `sanitizePublicCatalogEvent` (server),
+  // porque el respaldo a Supabase directo no pasa por él.
+  const publicOffer = isStoredEventModuleOn(event, 'combo')
+    ? resolveLiveComboOffer(event, now)
+    : null
   return {
     ...event,
     comboOffer: publicOffer,
@@ -1099,6 +1122,9 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
     // También siempre: el upsert reconstruye `rules`. Solo viajan las listas que
     // restringen algo; `{}` = ofrece todo.
     offering: offeringForStorage(draft.offering),
+    // También siempre: solo viaja lo apagado y los conceptos con tope de cuotas.
+    modules: eventModulesForStorage(draft.modules),
+    paymentPolicy: paymentPolicyForStorage(draft.paymentPolicy),
   })
 
   return {

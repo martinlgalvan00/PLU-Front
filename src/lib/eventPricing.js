@@ -1,6 +1,7 @@
 import { PRICING } from './constants.js'
 
 import { getEnabledTicketAddons, normalizeTicketAddons } from './ticketAddons.js'
+import { isStoredEventModuleOn } from '../../shared/eventModules.js'
 import { summarizeTicketCredentials } from './ticketCredentials.js'
 
 /** Precios por defecto cuando un evento no tiene overrides en admin. */
@@ -192,7 +193,14 @@ export function resolveTicketTypeSaleWindow(type, now = new Date()) {
 /** Formato esperado por ticketService y TicketPurchaseSection. */
 export function ticketPricingFromEvent(event, now = new Date()) {
   const pricing = resolveEventPricing(event)
-  const catalog = getEnabledTicketAddons(pricing.ticketAddons)
+  const enabledAddons = getEnabledTicketAddons(pricing.ticketAddons)
+  // Módulo «Extras de entradas» apagado: no se venden extras aparte. Los que un
+  // tipo de entrada trae incluidos siguen (son parte de esa entrada), así que
+  // el catálogo se queda solo con esos. La ruta de órdenes rechaza el resto.
+  const includedIds = new Set((event?.ticketTypes ?? []).flatMap((type) => type.includedAddonIds ?? []))
+  const catalog = isStoredEventModuleOn(event, 'ticketAddons')
+    ? enabledAddons
+    : enabledAddons.filter((addon) => includedIds.has(addon.id))
   const eventDays = [...(event?.eventDays ?? [])].sort((a, b) => a.dayIndex - b.dayIndex)
   const ticketTypes = (event?.ticketTypes ?? [])
     .filter((type) => type.active !== false)

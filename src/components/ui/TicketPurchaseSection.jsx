@@ -65,6 +65,7 @@ import { resolveTicketCheckoutProgress } from '../../services/ticketCheckoutProg
 import { buildTicketPaymentPriceLabels } from '../../lib/ticketPaymentMethods.js'
 import { formatWisePrice } from '../../services/checkoutPricing.js'
 import { resolveTicketOrderWisePricing } from '../../../shared/ticketWisePricing.js'
+import { maxInstallmentsFor } from '../../../shared/eventModules.js'
 import {
   buildCardFilename,
   downloadCard,
@@ -1113,7 +1114,10 @@ export default function TicketPurchaseSection({
             <p className="ticket-purchase__payment-note ticket-purchase__payment-note--auto">
               {t('pages.tickets.paymentMpPending')}
             </p>
-            <MercadoPagoEmbeddedCheckout order={visibleOrder} />
+            <MercadoPagoEmbeddedCheckout
+              maxInstallments={maxInstallmentsFor(event, 'ticket')}
+              order={visibleOrder}
+            />
           </>
         ) : isManualTicketPayment(visibleOrder.paymentMethod) &&
           visibleOrder.status !== 'aprobado' ? (

@@ -66,6 +66,7 @@ const SALES_FIELD_KEYS = new Set([
 
 function resolveSalesChapterForField(key) {
   if (!key) return 'cupo'
+  if (key.startsWith('modules') || key.startsWith('paymentPolicy')) return 'modules'
   if (
     key === 'ticketTypes' ||
     key === 'eventDays' ||
@@ -110,6 +111,8 @@ function resolveTabForField(key) {
     key.startsWith('paymentChannelOverrides') ||
     key.startsWith('bankTransfer') ||
     key.startsWith('cashPayment') ||
+    key.startsWith('modules') ||
+    key.startsWith('paymentPolicy') ||
     key === 'mercadoPagoProfileId' ||
     SALES_FIELD_KEYS.has(key)
   )
@@ -436,6 +439,13 @@ export default function AdminEventEditor({
   onExtraDiscard = null,
   /** "Seguir editando" en la confirmación de descarte: el destino pendiente se cancela. */
   onKeepEditing = null,
+  /**
+   * Acordeón: el tablero de Módulos lleva a otro capítulo de Venta o a otra
+   * sección del workspace (Estructura, Zonas). Ver EventSalesSection.
+   */
+  onRequestChapter = null,
+  onRequestWorkspaceSection = null,
+  workspaceSections = [],
   onSaved = null,
   /**
    * Precio de inscripción programado: mismo contrato que Tarifas. No viaja
@@ -464,7 +474,8 @@ export default function AdminEventEditor({
   const [fieldErrors, setFieldErrors] = useState({})
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [activeTab, setActiveTab] = useState('basics')
-  const [salesChapter, setSalesChapter] = useState('cupo')
+  // Módulos abre Venta: es la vista de conjunto (qué se vende y cómo se cobra).
+  const [salesChapter, setSalesChapter] = useState('modules')
   const [advancedOpen, setAdvancedOpen] = useState(() => hasAdvancedVisibilityContent(draft))
   const [bankProfiles, setBankProfiles] = useState([])
   const [bankProfilesLoading, setBankProfilesLoading] = useState(false)
@@ -767,7 +778,7 @@ export default function AdminEventEditor({
       setActiveTab(forcedTab)
       if (
         forcedTab === 'sales' &&
-        ['cupo', 'prices', 'tickets', 'payment'].includes(forcedChapter)
+        ['modules', 'cupo', 'prices', 'tickets', 'payment'].includes(forcedChapter)
       ) {
         setSalesChapter(forcedChapter)
       }
@@ -1253,6 +1264,9 @@ export default function AdminEventEditor({
               onRequestSection={onRequestSection}
               mpOAuthAvailable={mpOAuthAvailable}
               onMpProfileConnected={handleMpProfileConnected}
+              onRequestChapter={onRequestChapter}
+              onRequestWorkspaceSection={onRequestWorkspaceSection}
+              workspaceSections={workspaceSections}
             />
           )}
 

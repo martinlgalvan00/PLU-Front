@@ -129,6 +129,7 @@ import {
   toggleModality,
 } from '../../shared/registrationSelection.js'
 import { useAgeDivisionOptions } from '../hooks/useAgeDivisionOptions.js'
+import { maxInstallmentsFor } from '../../shared/eventModules.js'
 
 const PASSWORD_STRENGTH_LABEL_KEYS = [
   'pages.register.passwordStrengthWeak',
@@ -3723,6 +3724,11 @@ export default function RegisterPage({
               {registrationAdmitted || settleOrderRejected ? null : mpSettling ? (
                 <>
                   <MercadoPagoEmbeddedCheckout
+                    maxInstallments={
+                      checkoutKind === 'membership'
+                        ? null
+                        : maxInstallmentsFor(event, 'registration')
+                    }
                     onCheckoutError={handleMercadoPagoError}
                     onResult={handleMercadoPagoResult}
                     order={visibleOrder}

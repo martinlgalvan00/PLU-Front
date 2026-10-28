@@ -308,6 +308,48 @@
   color: var(--admin-status-danger);
 }
 
+/* ---- Indicador deslizante (useActiveIndicator) ----
+   Un solo fondo que viaja hasta la pestaña activa en vez de aparecer de golpe.
+   Sin medición (`data-indicator` ausente) no se dibuja y la pestaña conserva
+   su fondo propio: nunca queda la navegación sin marca. */
+
+.admin-event-workspace__nav {
+  position: relative;
+}
+
+.admin-event-workspace__nav > .admin-event-workspace__nav-item,
+.admin-event-workspace__nav-group > .admin-event-workspace__nav-item {
+  position: relative;
+  z-index: 1;
+}
+
+.admin-event-workspace__nav-indicator {
+  background: var(--admin-brand-soft);
+  border-radius: 10px;
+  height: var(--indicator-h, 40px);
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transform: translate3d(0, var(--indicator-y, 0), 0);
+}
+
+.admin-event-workspace__nav[data-indicator] .admin-event-workspace__nav-indicator {
+  opacity: 1;
+}
+
+.admin-event-workspace__nav[data-indicator='ready'] .admin-event-workspace__nav-indicator {
+  transition:
+    transform var(--motion-base) var(--ease-cinematic),
+    height var(--motion-base) var(--ease-cinematic);
+}
+
+.admin-event-workspace__nav[data-indicator] .admin-event-workspace__nav-item.is-active {
+  background: transparent;
+}
+
 /* Los capítulos de Ventas viven en la tira del panel: el submenú queda en el
    DOM (aria y tests) pero no se dibuja, ni su chevron. */
 .admin-event-workspace__nav-chevron,
@@ -424,11 +466,69 @@
     background: transparent;
     box-shadow: inset 0 -2px 0 var(--admin-ink);
   }
+
+  /* En la tira horizontal el indicador es el subrayado: 1px escalado al ancho
+     de la pestaña, así se mueve y se estira solo con `transform`. */
+  .admin-event-workspace__nav-indicator {
+    background: var(--admin-ink);
+    border-radius: 0;
+    bottom: 0;
+    height: 2px;
+    right: auto;
+    top: auto;
+    transform: translate3d(var(--indicator-x, 0), 0, 0) scaleX(var(--indicator-w, 0));
+    transform-origin: left center;
+    width: 1px;
+  }
+
+  .admin-event-workspace__nav[data-indicator] .admin-event-workspace__nav-item.is-active {
+    box-shadow: none;
+  }
+}
+
+/* Tira de capítulos (Venta, Evento): el mismo subrayado deslizante. */
+.admin-event-workspace__chapters {
+  position: relative;
+}
+
+.admin-event-workspace__chapters-indicator {
+  background: var(--admin-brand, var(--color-brand-celeste));
+  bottom: 0;
+  height: 2px;
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: translate3d(var(--indicator-x, 0), 0, 0) scaleX(var(--indicator-w, 0));
+  transform-origin: left center;
+  width: 1px;
+}
+
+.admin-event-workspace__chapters[data-indicator] .admin-event-workspace__chapters-indicator {
+  opacity: 1;
+}
+
+/* No son destinos de la tira con snap (ver admin-event-console.css). */
+.admin-event-workspace__nav > .admin-event-workspace__nav-indicator,
+.admin-event-workspace__chapters > .admin-event-workspace__chapters-indicator {
+  scroll-snap-align: none;
+}
+
+.admin-event-workspace__chapters[data-indicator='ready']
+  .admin-event-workspace__chapters-indicator {
+  transition: transform var(--motion-base) var(--ease-cinematic);
+}
+
+.admin-event-workspace__chapters[data-indicator] .admin-event-workspace__chapter.is-active {
+  box-shadow: inset 0 -2px 0 transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .admin-event-workspace__back,
-  .admin-event-workspace__nav-item {
+  .admin-event-workspace__nav-item,
+  .admin-event-workspace__nav[data-indicator='ready'] .admin-event-workspace__nav-indicator,
+  .admin-event-workspace__chapters[data-indicator='ready']
+    .admin-event-workspace__chapters-indicator {
     transition: none;
   }
 }

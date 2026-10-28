@@ -403,3 +403,60 @@ export const VentaCobro = {
   render: () => <VentaConEditorReal chapter="payment" />,
   beforeEach: () => mockPaymentApis(),
 }
+
+/** Venta con capítulo navegable: la tira y los atajos de Módulos cambian de capítulo. */
+function VentaNavegable({ initialChapter = 'modules', event = EVENT }) {
+  const [draft, setDraft] = useState(() => buildAdminEventDraft(event))
+  const [chapter, setChapter] = useState(initialChapter)
+  return (
+    <AdminEventWorkspace
+      {...baseArgs}
+      event={event}
+      activeSection="sales"
+      openChapter={chapter}
+      previewDraft={draft}
+      onSelectChapter={(_event, _section, next) => setChapter(next)}
+      editor={
+        <AdminEventEditor
+          accordion
+          embedded
+          canEdit
+          draft={draft}
+          forcedTab="sales"
+          forcedChapter={chapter}
+          sourceEvent={event}
+          onCancel={() => {}}
+          onChange={setDraft}
+          onRequestChapter={setChapter}
+          onSubmit={async () => ({ event })}
+          workspaceSections={['structure']}
+        />
+      }
+    />
+  )
+}
+
+/**
+ * Venta → Módulos: qué partes del evento están prendidas y cómo cobra cada una
+ * (medios propios y tope de cuotas). Es el capítulo con el que abre Venta.
+ */
+export const VentaModulos = {
+  render: () => <VentaNavegable />,
+  beforeEach: () => mockPaymentApis(),
+}
+
+/** Exhibición sin atletas: inscripciones en solo anuncio, entradas y puerta prendidas. */
+export const VentaModulosSoloEntradas = {
+  render: () => (
+    <VentaNavegable
+      event={{
+        ...EVENT,
+        salesIntent: 'announce',
+        pricing: { ...EVENT.pricing, ticketsEnabled: true },
+        modules: { combo: true, ticketAddons: false, door: true },
+        paymentPolicy: { ticket: { maxInstallments: 3 } },
+      }}
+    />
+  ),
+  beforeEach: () => mockPaymentApis(),
+}

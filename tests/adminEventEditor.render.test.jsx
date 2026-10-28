@@ -149,6 +149,8 @@ describe('AdminEventEditor — estructura del formulario', () => {
   it('deja los dos cierres a un clic de capítulo, sin desplegables', () => {
     renderEditor()
     activateEditorTab(/ventas y cupos/i)
+    // Venta abre en Módulos; los cierres viven en Cupo y Entradas.
+    fireEvent.click(salesChapter(/^cupo/i))
 
     const athleteIds = ['#event-reg-opens', '#event-reg-closes']
     for (const id of athleteIds) {
@@ -183,6 +185,7 @@ describe('AdminEventEditor — estructura del formulario', () => {
     const onChange = vi.fn()
     renderEditor({ capacityProgressPublic: true }, { onChange })
     activateEditorTab(/ventas y cupos/i)
+    fireEvent.click(salesChapter(/^cupo/i))
 
     const toggle = document.querySelector('#event-capacity-progress-public')
     expect(toggle).not.toBeNull()
@@ -265,6 +268,7 @@ describe('AdminEventEditor — estructura del formulario', () => {
           canEdit
           draft={draft}
           forcedTab="sales"
+          forcedChapter="cupo"
           onCancel={() => {}}
           onChange={() => {}}
           onSubmit={() => {}}
@@ -295,7 +299,7 @@ describe('AdminEventEditor — estructura del formulario', () => {
   it('agrupa el cupo de atletas junto a su ventana de inscripción', () => {
     renderEditor()
     activateEditorTab(/ventas y cupos/i)
-    const lane = document.querySelector('#event-section-sales .admin-event-form__lane')
+    const lane = document.querySelector('#event-section-sales .admin-event-form__lane--cupo')
 
     expect(lane.querySelector('[name="slots"]')).not.toBeNull()
     expect(lane.querySelector('.admin-event-form__occupancy')).not.toBeNull()

@@ -7,6 +7,8 @@ import AdminEventPriceSchedule from '../AdminEventPriceSchedule.jsx'
 import { effectiveEventChannelsFor } from '../../../lib/eventPaymentChannels.js'
 import { platformCellsFor } from '../../../lib/platformPaymentChannels.js'
 import EventPaymentChannelMatrix from './EventPaymentChannelMatrix.jsx'
+import EventModulesBoard from './EventModulesBoard.jsx'
+import { resolveEventModules } from '../../../../shared/eventModules.js'
 import { buildPaymentReadiness } from '../../../lib/eventPaymentReadiness.js'
 import { env } from '../../../config/env.js'
 import MercadoPagoAccountStatus from '../payment-accounts/MercadoPagoAccountStatus.jsx'
@@ -73,6 +75,14 @@ export default function EventSalesSection({
   onRequestSection,
   mpOAuthAvailable = false,
   onMpProfileConnected,
+  /**
+   * Acordeón del workspace: la tira de capítulos la dibuja el workspace, así
+   * que "Configurar" desde Módulos le pide a él el capítulo (o la sección)
+   * en vez de cambiar solo el estado interno y desincronizar la tira.
+   */
+  onRequestChapter = null,
+  onRequestWorkspaceSection = null,
+  workspaceSections = [],
 }) {
   // Los bloques de perfil (alias de transferencia, cuenta de MP) se necesitan
   // mientras el canal se use en algún concepto: abierto por la plataforma o por
@@ -118,6 +128,7 @@ export default function EventSalesSection({
       cashPayment: { ...(draft.cashPayment ?? {}), [key]: changeEvent.target.value },
     })
   const cashPlacePreview = ownCashPlace || eventVenueLabel
+  const moduleStates = resolveEventModules(draft)
   const paymentReadiness = buildPaymentReadiness({
     overrides: draft.paymentChannelOverrides,
     platform: platformChannels?.platform,
@@ -130,6 +141,16 @@ export default function EventSalesSection({
     mercadoPagoProfile: selectedMpProfile,
     profilesLoading: mpProfilesLoading,
   })
+
+  /** Destino de "Configurar" en Módulos: otro capítulo de Venta o una sección del workspace. */
+  function goToModuleTarget({ chapter, section }) {
+    if (section) {
+      onRequestWorkspaceSection?.(section)
+      return
+    }
+    if (accordion && onRequestChapter) onRequestChapter(chapter)
+    else handleSalesChapterChange(chapter)
+  }
 
   /** "Configurar" de la tabla: lleva al bloque del medio y deja el foco en su primer campo. */
   function focusChannelConfig(channel) {
@@ -183,6 +204,15 @@ export default function EventSalesSection({
             aria-label={t('admin.eventEditor.salesChapterNavAria')}
           >
             {[
+              {
+                id: 'modules',
+                label: t('admin.eventEditor.salesChapterModules'),
+                meta: t('admin.eventEditor.salesChapterModulesValue', {
+                  count: moduleStates.filter((module) => module.on).length,
+                  total: moduleStates.length,
+                }),
+                panelId: 'event-section-sales-modules',
+              },
               {
                 id: 'cupo',
                 label: t('admin.eventEditor.salesChapterCapacity'),
@@ -240,11 +270,13 @@ export default function EventSalesSection({
         <p>
           {salesChapter === 'tickets'
             ? t('admin.eventEditor.laneSpectatorsLead')
-            : salesChapter === 'payment'
-              ? t('admin.eventEditor.paymentProfileHint')
-              : salesChapter === 'prices'
-                ? t('admin.eventEditor.lanePricesLead')
-                : t('admin.eventEditor.laneAthletesLead')}
+            : salesChapter === 'modules'
+              ? t('admin.eventEditor.eventModules.lead')
+              : salesChapter === 'payment'
+                ? t('admin.eventEditor.paymentProfileHint')
+                : salesChapter === 'prices'
+                  ? t('admin.eventEditor.lanePricesLead')
+                  : t('admin.eventEditor.laneAthletesLead')}
         </p>
       </header>
 
@@ -256,6 +288,32 @@ export default function EventSalesSection({
       {essentials || !draft.id ? null : (
         <AdminTicketSalesStatus draft={draft} onGoToChapter={handleSalesChapterChange} />
       )}
+
+      <div
+        id="event-section-sales-modules"
+        className="admin-event-form__lane admin-event-form__lane--modules"
+        role="tabpanel"
+        aria-labelledby="event-sales-chapter-modules"
+        hidden={salesChapter !== 'modules'}
+      >
+        {/* Solo se monta abierto: no tiene campos que validar (los otros
+            capítulos sí quedan montados para enfocar errores) y repetiría
+            avisos de Cobro en el DOM. */}
+        {salesChapter === 'modules' ? (
+          <EventModulesBoard
+            canEdit={canEdit}
+            draft={draft}
+            gotoSections={workspaceSections}
+            locale={locale}
+            onGoTo={goToModuleTarget}
+            patchDraft={patchDraft}
+            platformChannels={platformChannels}
+            readiness={paymentReadiness}
+            restrictOpen={eventScoped}
+            t={t}
+          />
+        ) : null}
+      </div>
 
       <div
         id="event-section-sales-cupo"
