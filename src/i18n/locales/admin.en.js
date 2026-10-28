@@ -4564,6 +4564,7 @@ export default {
     },
     paymentChannelMatrixLabel: 'Payment methods by concept',
     paymentChannelSummary: '{{count}} payment methods offered',
+    paymentChannelAccepts: 'Accepts {{list}}',
     paymentChannelSummary_one: '1 payment method offered',
     paymentChannelPending: '{{count}} to complete',
     paymentChannelPending_one: '1 to complete',
@@ -4628,6 +4629,8 @@ export default {
     cashPaymentPlaceHint: 'Empty = the event venue: {{venue}}.',
     cashPaymentPlaceHintNoVenue: 'Empty = the event venue (not set yet in Details).',
     cashPaymentNotes: 'Instructions (optional)',
+    registrationWindowHint:
+      'Automatic window: registration opens and closes on these dates (applied when you save). To open or close right now, use the sales control above.',
     cashPaymentNotesPlaceholder: 'E.g.: check-in desk, on event day from 8 am.',
     cashPaymentAddress: 'Address (for Google Maps and Waze)',
     cashPaymentAddressPlaceholder: 'Street and number, city',

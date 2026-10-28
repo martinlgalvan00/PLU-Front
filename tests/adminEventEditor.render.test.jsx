@@ -567,7 +567,7 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
     await platformMatrix()
 
     // El estado vive en la fila de cada medio, junto a sus interruptores.
-    expect(screen.getByText(/medios ofrecidos/i)).toBeTruthy()
+    expect(screen.getByText(/^acepta .*transferencia/i)).toBeTruthy()
     expect(screen.getByText('Alias: pitbull.clasico')).toBeTruthy()
     expect(screen.getByText('Lugar: Maximal Strength Club · Buenos Aires')).toBeTruthy()
     expect(screen.getByText('Cuenta general de la plataforma.')).toBeTruthy()

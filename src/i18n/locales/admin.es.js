@@ -4624,6 +4624,7 @@ export default {
     },
     paymentChannelMatrixLabel: 'Medios de pago por concepto',
     paymentChannelSummary: '{{count}} medios ofrecidos',
+    paymentChannelAccepts: 'Acepta {{list}}',
     paymentChannelSummary_one: '1 medio ofrecido',
     paymentChannelPending: '{{count}} por completar',
     paymentChannelPending_one: '1 por completar',
@@ -4688,6 +4689,8 @@ export default {
     cashPaymentPlaceHint: 'Vacío = la sede del evento: {{venue}}.',
     cashPaymentPlaceHintNoVenue: 'Vacío = la sede del evento (todavía no está cargada en Datos).',
     cashPaymentNotes: 'Indicaciones (opcional)',
+    registrationWindowHint:
+      'Ventana automática: la inscripción abre y cierra sola en estas fechas (se aplican al guardar). Para abrir o cerrar ya, usá el control de venta de arriba.',
     cashPaymentNotesPlaceholder: 'Ej.: mesa de acreditación, el día del evento desde las 8.',
     cashPaymentAddress: 'Dirección (para Google Maps y Waze)',
     cashPaymentAddressPlaceholder: 'Calle y número, localidad',

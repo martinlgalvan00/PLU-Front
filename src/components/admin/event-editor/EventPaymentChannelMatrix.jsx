@@ -69,7 +69,7 @@ export default function EventPaymentChannelMatrix({
   /** Lleva al bloque de configuración del medio (cuenta, alias, lugar). */
   onConfigure = null,
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const loading = platformStatus === 'loading'
   const channelLabel = (channel) => t(`admin.eventEditor.${CHANNEL_LABEL_KEY[channel]}`)
   const conceptLabel = (concept) => t(`admin.eventEditor.paymentChannelConcept.${concept}`)
@@ -116,12 +116,17 @@ export default function EventPaymentChannelMatrix({
           role="status"
           data-pending={pending > 0 || undefined}
         >
-          {t(
-            readiness.offeredCount === 1
-              ? 'admin.eventEditor.paymentChannelSummary_one'
-              : 'admin.eventEditor.paymentChannelSummary',
-            { count: readiness.offeredCount },
-          )}
+          {/* Por nombre: "Acepta Mercado Pago, Transferencia y Efectivo" se
+              lee de un vistazo; "3 medios ofrecidos" obligaba a recorrer la tabla. */}
+          {readiness.offeredCount > 0
+            ? t('admin.eventEditor.paymentChannelAccepts', {
+                list: new Intl.ListFormat(locale === 'en' ? 'en' : 'es', {
+                  type: 'conjunction',
+                }).format(
+                  readiness.rows.filter((row) => row.offered).map((row) => channelLabel(row.channel)),
+                ),
+              })
+            : t('admin.eventEditor.paymentChannelSummary', { count: 0 })}
           {pending > 0
             ? ` · ${t(
                 pending === 1

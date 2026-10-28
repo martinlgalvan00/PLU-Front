@@ -382,6 +382,11 @@ export default function EventSalesSection({
             />
           </FormField>
         </div>
+        {/* Dos maneras de mover la venta, dichas una vez: la ventana se guarda
+            con el evento; el control de venta aplica al instante. */}
+        <p className="admin-event-form__field-hint">
+          {t('admin.eventEditor.registrationWindowHint')}
+        </p>
       </div>
 
       <div
