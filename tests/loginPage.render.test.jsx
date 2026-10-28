@@ -144,7 +144,7 @@ describe('LoginPage', () => {
       </I18nProvider>,
     )
 
-    const oauthButton = screen.getByRole('button', { name: /Ingresar con OAuth/i })
+    const oauthButton = screen.getByRole('button', { name: /Ingresar con la cuenta del equipo/i })
     expect(oauthButton.getAttribute('type')).toBe('button')
     fireEvent.click(oauthButton)
 
@@ -195,5 +195,23 @@ describe('LoginPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Recuperar acceso' })).toBeTruthy()
     })
+  })
+})
+
+describe('LoginPage: errores accesibles', () => {
+  it('lleva el foco al primer campo con error y lo asocia a su mensaje', () => {
+    const onLogin = vi.fn()
+    renderLogin({ onLogin })
+    const password = screen.getByLabelText('Contraseña')
+    fireEvent.change(screen.getByPlaceholderText('tu@email.com'), {
+      target: { value: 'atleta@plu.test' },
+    })
+    fireEvent.change(password, { target: { value: 'ab' } })
+    fireEvent.click(screen.getByRole('button', { name: /^ingresar$/i }))
+
+    expect(onLogin).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(password)
+    const message = document.getElementById(password.getAttribute('aria-describedby'))
+    expect(message.textContent).toMatch(/la contraseña es más larga/i)
   })
 })

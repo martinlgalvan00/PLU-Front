@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Mail, QrCode } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { notifyError, notifySuccess } from '../../lib/adminToast.js'
+import { notifyError, notifySuccess, notifyWarning } from '../../lib/adminToast.js'
 import { sendEventCredentials } from '../../services/athleteApi.js'
 
 /**
@@ -34,7 +34,7 @@ export default function AdminEventCredentialSend({ eventSlug }) {
       const result = await sendEventCredentials(eventSlug)
       setPreview(null)
       if (result.failed > 0) {
-        notifyError(text('partial', { sent: result.sent, failed: result.failed }))
+        notifyWarning(text('partial', { sent: result.sent, failed: result.failed }))
       } else {
         notifySuccess(text('done', { sent: result.sent, already: result.already }))
       }

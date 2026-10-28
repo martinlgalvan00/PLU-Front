@@ -45,7 +45,7 @@ import {
   pushAdminEventCreateRoute,
   pushAdminEventRoute,
 } from '../../lib/adminEventRoute.js'
-import { notifyError, notifySuccess } from '../../lib/adminToast.js'
+import { notifyError, notifySuccess, notifyWarning } from '../../lib/adminToast.js'
 import { formatDayMonth, formatMonthYear } from '../../lib/format.js'
 import { getStatusMeta } from '../../lib/status.js'
 import {
@@ -1467,7 +1467,7 @@ export default function EventsSection({
     // Guardado, pero con algo a medio configurar (p. ej. el cobro): el editor
     // se vuelve a armar al cerrar el formulario y su propio aviso se perdía.
     if (saved?.warnings?.length) {
-      notifyError(
+      notifyWarning(
         t('admin.sections.events.updatedWithWarning', { message: saved.warnings[0].message }),
       )
     }

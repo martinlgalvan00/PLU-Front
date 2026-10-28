@@ -125,8 +125,13 @@ export default function LoginPage({ onLogin, onNavigate }) {
     else if (normalized.includes('@') && !EMAIL_RE.test(normalized))
       next.email = t('login.errorEmailInvalid')
     if (!password) next.password = t('login.errorPasswordRequired')
-    else if (password.length < 3) next.password = t('login.errorPasswordRequired')
+    // Escrita pero corta: decir "ingresá tu contraseña" a quien ya la escribió confundía.
+    else if (password.length < 3) next.password = t('login.errorPasswordTooShort')
     setFieldErrors(next)
+    // El foco va al primer campo con error: el lector de pantalla lee el
+    // mensaje asociado (aria-describedby) y el teclado queda donde hay que corregir.
+    const firstInvalid = next.email ? 'login-email' : next.password ? 'login-password' : null
+    if (firstInvalid) document.getElementById(firstInvalid)?.focus()
     return Object.keys(next).length === 0
   }
 
@@ -359,11 +364,12 @@ export default function LoginPage({ onLogin, onNavigate }) {
                           enterKeyHint="next"
                           autoFocus
                           aria-invalid={Boolean(fieldErrors.email)}
+                          aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
                           required
                         />
                       </span>
                       {fieldErrors.email ? (
-                        <span className="login-field__error" role="alert">
+                        <span className="login-field__error" id="login-email-error">
                           <AlertCircle size={14} className="error-icon" />
                           <span>{fieldErrors.email}</span>
                         </span>
@@ -396,6 +402,9 @@ export default function LoginPage({ onLogin, onNavigate }) {
                           autoComplete="current-password"
                           enterKeyHint="go"
                           aria-invalid={Boolean(fieldErrors.password)}
+                          aria-describedby={
+                            fieldErrors.password ? 'login-password-error' : undefined
+                          }
                           required
                         />
                         <button
@@ -412,7 +421,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
                       </span>
                       {capsLockHint}
                       {fieldErrors.password ? (
-                        <span className="login-field__error" role="alert">
+                        <span className="login-field__error" id="login-password-error">
                           <AlertCircle size={14} className="error-icon" />
                           <span>{fieldErrors.password}</span>
                         </span>
@@ -442,6 +451,15 @@ export default function LoginPage({ onLogin, onNavigate }) {
                       </span>
                     </label>
 
+                    {/* El error del envío va antes del botón: es lo que se lee
+                        justo antes de volver a intentar. */}
+                    {submitError ? (
+                      <p className="form-submit-error" role="alert">
+                        <AlertCircle size={14} className="error-icon" />
+                        <span>{submitError}</span>
+                      </p>
+                    ) : null}
+
                     <AuthSubmit
                       busy={isSubmitting}
                       busyLabel={t('login.submitting')}
@@ -451,12 +469,6 @@ export default function LoginPage({ onLogin, onNavigate }) {
                     {recoverMessage ? (
                       <p className="login-form__notice" role="status">
                         {recoverMessage}
-                      </p>
-                    ) : null}
-                    {submitError ? (
-                      <p className="form-submit-error" role="alert">
-                        <AlertCircle size={14} className="error-icon" />
-                        <span>{submitError}</span>
                       </p>
                     ) : null}
 
@@ -516,11 +528,12 @@ export default function LoginPage({ onLogin, onNavigate }) {
                           autoComplete="email"
                           autoFocus
                           aria-invalid={Boolean(fieldErrors.email)}
+                          aria-describedby={fieldErrors.email ? 'recover-email-error' : undefined}
                           required
                         />
                       </span>
                       {fieldErrors.email ? (
-                        <span className="login-field__error" role="alert">
+                        <span className="login-field__error" id="recover-email-error">
                           <AlertCircle size={14} className="error-icon" />
                           <span>{fieldErrors.email}</span>
                         </span>
