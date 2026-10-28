@@ -1978,6 +1978,9 @@ export default function EventsSection({
             showRegistrations ? (
               <AdminEventRegistrationsPanel
                 athletes={athletes}
+                // El envío masivo es de staff general: la ruta no admite
+                // cuentas por evento.
+                canSendCredentials={canSetRegistrationStatus && !eventScoped}
                 canSetStatus={canSetRegistrationStatus}
                 event={selectedEvent}
                 gatePendingIds={gatePendingIds}

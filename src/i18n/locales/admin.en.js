@@ -2251,6 +2251,19 @@ export default {
   },
 
   eventRegistrations: {
+    credentials: {
+      title: 'Entry credentials',
+      lead: 'Every confirmed athlete already has a QR in their profile. Email it to them as an attachment so they have it at the gate.',
+      confirmLead:
+        'Goes to {{ready}} of {{confirmed}} confirmed athletes. Anyone who already got it will not get it again.',
+      blocked: '{{count}} without an active membership (the event requires it)',
+      noEmail: '{{count}} without email',
+      action: 'Send credentials',
+      confirm: 'Send to {{count}}',
+      done: 'Credentials sent: {{sent}}. Already had them: {{already}}.',
+      partial: '{{sent}} sent, {{failed}} failed. Try again: nothing is duplicated.',
+      error: 'Could not send the credentials.',
+    },
     lead: '{{count}} registrations for this meet',
     openFullList: 'Open full roster',
     empty: 'No registrations yet',

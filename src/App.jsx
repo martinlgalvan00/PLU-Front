@@ -32,6 +32,7 @@ import {
 } from './lib/publicViewPaths.js'
 import { readPasswordResetToken } from './lib/passwordResetRoute.js'
 import { buildSecurityGatePath, matchSecurityGateRoute } from './lib/securityGateRoute.js'
+import { resolveCheckinEvent } from './lib/checkinEvent.js'
 import {
   clearStaffEmailChangeToken,
   readStaffEmailChangeToken,
@@ -866,11 +867,16 @@ export default function App() {
 
   if (view === 'admin' && canViewAdmin(app.session)) {
     if (isCheckinOnly(app.session)) {
+      const checkinEvent = resolveCheckinEvent(app.session, app.adminEvents)
       return (
         <Suspense fallback={<PageLoadFallback />}>
           <CheckInAppPage
             athletes={app.athletes}
             canCheckIn={canCheckIn(app.session)}
+            eventDays={checkinEvent?.eventDays ?? []}
+            eventSlug={checkinEvent?.slug}
+            eventTitle={checkinEvent?.title}
+            ticketTypes={checkinEvent?.ticketTypes ?? []}
             onCheckInRegistration={app.checkInRegistrationAction}
             onCheckInTicket={app.checkInTicketAction}
             onExit={() => navigate('home')}

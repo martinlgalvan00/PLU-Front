@@ -748,6 +748,27 @@ const BODIES = {
     ].join(''),
   }),
 
+  event_credential: (p) => ({
+    title: 'Tu credencial está lista',
+    preheader: `Ya podés ingresar a ${p.eventTitle} con tu QR.`,
+    body: [
+      paragraph(`${greeting(p.name)} tu credencial para ${p.eventTitle} está lista.`),
+      dataPanel([
+        ['Evento', p.eventTitle],
+        ['Fecha', formatDate(p.eventDate)],
+        ['Sede', p.venue],
+        ['División', p.division],
+        ['Categoría', p.category],
+      ]),
+      paragraph(
+        'Te adjuntamos tu QR en este mail: guardalo en el teléfono por si en la puerta no hay señal. ' +
+          'También lo tenés siempre en tu perfil. Mostralo con el brillo al máximo.',
+      ),
+      button(p.accountUrl, 'Ver mi credencial'),
+      fallbackLink(p.accountUrl),
+    ].join(''),
+  }),
+
   registration_cancelled: (p) => ({
     title: 'Inscripción cancelada',
     preheader: `Tu inscripción a ${p.eventTitle} fue cancelada.`,

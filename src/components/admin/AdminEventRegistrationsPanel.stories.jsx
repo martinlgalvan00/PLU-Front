@@ -151,3 +151,11 @@ export const Default = {}
 export const SinInscripciones = {
   args: { registrations: [], payments: [] },
 }
+
+/**
+ * Staff general con permiso de escritura: la franja "Credenciales de ingreso"
+ * manda el mail con el QR adjunto a los confirmados.
+ */
+export const ConEnvioDeCredenciales = {
+  args: { canSendCredentials: true },
+}

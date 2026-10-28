@@ -261,6 +261,17 @@ export const EMAIL_CATALOG = Object.freeze({
     optOutAllowed: false,
     critical: false,
   },
+  // La credencial de ingreso de una inscripción confirmada, con el QR
+  // adjunto. Ver eventCredentialNotificationService.js.
+  event_credential: {
+    category: EMAIL_CATEGORIES.event,
+    templateEnv: 'BREVO_TEMPLATE_EVENT_CREDENTIAL',
+    subject: 'Tu credencial de ingreso · PLU ARG',
+    entityType: 'event_registration',
+    requiredParams: ['name', 'eventTitle', 'accountUrl'],
+    optOutAllowed: false,
+    critical: true,
+  },
   ticket_confirmation: {
     category: EMAIL_CATEGORIES.event,
     templateEnv: 'BREVO_TEMPLATE_TICKET_CONFIRMATION',

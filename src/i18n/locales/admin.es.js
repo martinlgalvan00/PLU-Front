@@ -2279,6 +2279,19 @@ export default {
   },
 
   eventRegistrations: {
+    credentials: {
+      title: 'Credenciales de ingreso',
+      lead: 'Cada confirmado ya tiene su QR en el perfil. Mandales el mail con el QR adjunto para que lo tengan a mano en la puerta.',
+      confirmLead:
+        'Le llega a {{ready}} de {{confirmed}} confirmados. Quien ya lo recibió no lo vuelve a recibir.',
+      blocked: '{{count}} sin afiliación vigente (el evento la pide)',
+      noEmail: '{{count}} sin email',
+      action: 'Enviar credenciales',
+      confirm: 'Enviar a {{count}}',
+      done: 'Credenciales enviadas: {{sent}}. Ya las tenían: {{already}}.',
+      partial: 'Se enviaron {{sent}}, fallaron {{failed}}. Volvé a intentar: no se duplican.',
+      error: 'No se pudieron enviar las credenciales.',
+    },
     lead: '{{count}} inscripciones en este meet',
     openFullList: 'Abrir padrón completo',
     empty: 'Todavía no hay inscripciones',
