@@ -52,6 +52,7 @@ function createSupabase({ rowsById = {} } = {}) {
     const filters = []
     const query = {
       select: () => query,
+      in: () => query,
       order: () => Promise.resolve({ data: rows, error: null }),
       eq: (column, value) => (filters.push([column, value]), query),
       maybeSingle: async () => ({

@@ -6,6 +6,7 @@ import DocumentMetaSync from './components/layout/DocumentMetaSync.jsx'
 import PageTransition from './components/layout/PageTransition.jsx'
 import PageErrorBoundary from './components/layout/PageErrorBoundary.jsx'
 import lazyWithRetry from './lib/lazyWithRetry.js'
+import { loadAdminMessagesForStoredLocale } from './i18n/adminMessages.js'
 import PageLoadFallback from './components/ui/PageLoadFallback.jsx'
 import HelpLayer from './components/ui/HelpLayer.jsx'
 import { useAppData } from './hooks/useAppData.js'
@@ -121,6 +122,8 @@ const AdminPage = lazyWithRetry(async () => {
   const [{ default: Page }, { AppConfigProvider }] = await Promise.all([
     import('./pages/AdminPage.jsx'),
     import('./providers/AppConfigProvider.jsx'),
+    // Textos del panel: fuera del bundle público (ver i18n/adminMessages.js).
+    loadAdminMessagesForStoredLocale(),
   ])
   return {
     default: (props) => (
@@ -134,6 +137,8 @@ const CheckInAppPage = lazyWithRetry(async () => {
   const [{ default: Page }, { AppConfigProvider }] = await Promise.all([
     import('./pages/CheckInAppPage.jsx'),
     import('./providers/AppConfigProvider.jsx'),
+    // Textos del panel: fuera del bundle público (ver i18n/adminMessages.js).
+    loadAdminMessagesForStoredLocale(),
   ])
   return {
     default: (props) => (
@@ -147,6 +152,8 @@ const OrganizerAppPage = lazyWithRetry(async () => {
   const [{ default: Page }, { AppConfigProvider }] = await Promise.all([
     import('./pages/OrganizerAppPage.jsx'),
     import('./providers/AppConfigProvider.jsx'),
+    // Textos del panel: fuera del bundle público (ver i18n/adminMessages.js).
+    loadAdminMessagesForStoredLocale(),
   ])
   return {
     default: (props) => (
@@ -183,7 +190,13 @@ const StaffApplicationPage = lazyWithRetry(() => import('./pages/StaffApplicatio
 const StaffEmailChangePage = lazyWithRetry(() => import('./pages/StaffEmailChangePage.jsx'))
 const StaffInvitationPage = lazyWithRetry(() => import('./pages/StaffInvitationPage.jsx'))
 const StaffPasswordChangePage = lazyWithRetry(() => import('./pages/StaffPasswordChangePage.jsx'))
-const MercadoPagoLinkResultPage = lazyWithRetry(() => import('./pages/MercadoPagoLinkResultPage.jsx'))
+const MercadoPagoLinkResultPage = lazyWithRetry(async () => {
+  const [module] = await Promise.all([
+    import('./pages/MercadoPagoLinkResultPage.jsx'),
+    loadAdminMessagesForStoredLocale(),
+  ])
+  return module
+})
 
 function isMercadoPagoLinkResultRoute() {
   return (

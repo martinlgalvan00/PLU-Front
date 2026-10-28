@@ -1065,6 +1065,13 @@ export default function EventsSection({
   const scopedTickets = useEventTickets(selectedEvent?.slug, {
     enabled: eventScoped && Boolean(selectedEvent),
   })
+  // Staff general: `tickets` es la lista de todo el sistema. El Resumen sumaba
+  // recaudación, check-ins y pendientes de todos los eventos en cada consola.
+  const selectedSlug = selectedEvent?.slug ?? null
+  const selectedEventTickets = useMemo(
+    () => (selectedSlug ? tickets.filter((ticket) => ticket.eventSlug === selectedSlug) : []),
+    [tickets, selectedSlug],
+  )
   const paymentsSource = eventScoped
     ? {
         payments: scopedPayments.payments,
@@ -1457,6 +1464,13 @@ export default function EventsSection({
       return saved
     }
     if (saved?.event?.id) setSelectedId(saved.event.id)
+    // Guardado, pero con algo a medio configurar (p. ej. el cobro): el editor
+    // se vuelve a armar al cerrar el formulario y su propio aviso se perdía.
+    if (saved?.warnings?.length) {
+      notifyError(
+        t('admin.sections.events.updatedWithWarning', { message: saved.warnings[0].message }),
+      )
+    }
     setMessage({ tone: 'success', text: t('admin.sections.events.updated') })
     return saved
   }
@@ -2055,7 +2069,7 @@ export default function EventsSection({
               onSaveEvent={handleStructureSave}
             />
           }
-          tickets={eventScoped ? scopedTickets : tickets}
+          tickets={eventScoped ? scopedTickets : selectedEventTickets}
         />
         {deleteDialog}
       </>

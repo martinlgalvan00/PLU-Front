@@ -1648,6 +1648,7 @@ export default {
         saveError: 'No se pudo cambiar el anuncio.',
       },
       updated: 'Los cambios quedaron guardados y sincronizados.',
+      updatedWithWarning: 'Se guardó, pero falta un dato de cobro: {{message}}',
       delete: {
         action: 'Eliminar evento',
         confirmTitle: 'Eliminar evento definitivamente',

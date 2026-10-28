@@ -1,5 +1,3 @@
-import admin from './admin.en.js'
-
 export default {
   brand: {
     name: 'PLU ARG',
@@ -954,7 +952,6 @@ export default {
     viewPanel: 'View in admin',
     backHome: 'Back to home',
   },
-  admin,
   footer: {
     brandDesc:
       'Argentine chapter of Powerlifting United. Memberships, competitions and international recognition. Operated by Maximal.',

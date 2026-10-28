@@ -1629,6 +1629,7 @@ export default {
         saveError: 'Could not change the announcement.',
       },
       updated: 'Changes were saved and synchronized.',
+      updatedWithWarning: 'Saved, but a payment detail is missing: {{message}}',
       delete: {
         action: 'Delete event',
         confirmTitle: 'Delete event permanently',

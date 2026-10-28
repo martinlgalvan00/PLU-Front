@@ -586,7 +586,8 @@ export default function AdminEventEditor({
   async function handleMpProfileConnected({ profileId }) {
     if (!profileId) return
     try {
-      const mp = await fetchPaymentProfiles({ kind: 'mercado_pago' })
+      // La cuenta se vinculó en otra ventana: la lista cacheada no la tiene.
+      const mp = await fetchPaymentProfiles({ kind: 'mercado_pago', fresh: true })
       setMpProfiles(mp.profiles)
     } catch {
       // La lista vieja sigue sirviendo; el id igual queda elegido.

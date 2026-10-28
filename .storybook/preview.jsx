@@ -5,6 +5,15 @@ import { I18nProvider, useI18n } from '../src/i18n/I18nProvider.jsx'
 import { OAuthProvider } from '../src/providers/OAuthProvider.jsx'
 import MotionProvider from '../src/motion/MotionProvider.tsx'
 import '../src/styles/index.css'
+import { registerAdminMessages } from '../src/i18n/adminMessages.js'
+import { resetMemoryCaches } from '../src/lib/memoryCaches.js'
+import adminEs from '../src/i18n/locales/admin.es.js'
+import adminEn from '../src/i18n/locales/admin.en.js'
+
+// Los textos del panel viajan aparte del bundle público; las historias montan
+// pantallas del panel sueltas, así que se registran de entrada.
+registerAdminMessages('es', adminEs)
+registerAdminMessages('en', adminEn)
 
 // El runner browser de Storybook/Vitest no aplica siempre el runtime JSX
 // automatico de Vite a los componentes importados. Exponer React mantiene
@@ -48,6 +57,11 @@ function LocaleSync({ locale, children }) {
 
 /** @type { import('@storybook/react-vite').Preview } */
 const preview = {
+  // Las cuentas de cobro se cachean entre pantallas: cada historia monta con
+  // sus propios dobles de red.
+  beforeEach: () => {
+    resetMemoryCaches()
+  },
   parameters: {
     controls: {
       matchers: {

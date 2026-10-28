@@ -66,10 +66,13 @@ import { summarizeEventPayments } from '../modules/events/eventPaymentsSummary.j
 /** Cuentas temporales de puerta: viven en Prisma, atadas al evento por uuid. */
 const SECURITY_ROLE = 'seguridad_plu_arg'
 
+// Inscriptos: la base cuenta (filtrado por estado activo en `readEventRows`).
+// Antes viajaba una fila por inscripción de todos los eventos en cada lectura,
+// guardado, cambio de estado y logo, solo para contarlas en el cliente.
 const EVENT_SELECT = `
   *,
   capacityRules:event_capacity_rules(*),
-  eventRegistrations:event_registrations(status),
+  eventRegistrations:event_registrations(count),
   eventDays:event_days(*),
   comboOffer:event_combo_offers(
     id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience, financed, archived_at
@@ -1038,7 +1041,13 @@ async function readEvents(client) {
 }
 
 async function readEventRows(client) {
-  const result = await client.from('events').select(EVENT_SELECT).order('starts_at')
+  const run = (select) =>
+    client
+      .from('events')
+      .select(select)
+      .in('event_registrations.status', ACTIVE_REGISTRATION_STATUSES)
+      .order('starts_at')
+  const result = await run(EVENT_SELECT)
 
   // Degradar antes que caerse: sin la migración aplicada el panel sigue
   // funcionando y lo único que falta es el detalle de credenciales por tipo de
@@ -1048,7 +1057,7 @@ async function readEventRows(client) {
       '[eventos] `ticket_type_credentials` no existe en esta base: se leen los eventos sin las credenciales de entrada. Aplicá la migración 20261107100000_ticket_credential_classes.sql.',
     )
     return assertSupabaseResult(
-      await client.from('events').select(EVENT_SELECT_SIN_CREDENCIALES).order('starts_at'),
+      await run(EVENT_SELECT_SIN_CREDENCIALES),
       'No se pudieron leer los eventos.',
     )
   }
