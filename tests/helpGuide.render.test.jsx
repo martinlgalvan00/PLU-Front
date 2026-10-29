@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import HelpLayer from '../src/components/ui/HelpLayer.jsx'
 import HelpPanel from '../src/components/ui/HelpPanel.jsx'
@@ -416,7 +416,9 @@ describe('HelpLayer', () => {
     expect(hasSeenHomeGuide()).toBe(true)
 
     fireEvent.click(screen.getByRole('button', { name: /^cerrar la ayuda$/i }))
-    expect(screen.queryByRole('dialog', { name: /qué tengo que hacer/i })).toBeNull()
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /qué tengo que hacer/i })).toBeNull()
+    })
   })
 
   it('la acción del panel usa selectEvent para inscribirse, el mismo camino que el CTA del meet', () => {

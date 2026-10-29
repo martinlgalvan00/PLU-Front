@@ -38,6 +38,9 @@
   --plu-gold-500: #f2b705;
   --plu-gold-400: #ffd23f;
   --plu-gold-300: #ffe8a3;
+  /* Texto: el 400/500 es relleno de botón. En tipografía ese amarillo queda fluorescente. */
+  --plu-gold-ink: oklch(46% 0.09 78);
+  --plu-gold-ink-on-dark: oklch(80% 0.07 78);
   --plu-gold-oklch: oklch(80% 0.16 85);
   --plu-gold-alpha-18: oklch(80% 0.16 85 / 0.2);
   --plu-gold-alpha-12: rgba(242, 183, 5, 0.14);
@@ -105,6 +108,7 @@
   --color-brand-gold: var(--plu-gold-500);
   --color-brand-gold-light: var(--plu-gold-400);
   --color-brand-gold-dark: var(--plu-gold-600);
+  --color-brand-gold-ink: var(--plu-gold-ink);
   --color-brand-celeste: var(--plu-celeste-400);
   --color-brand-celeste-dim: var(--plu-celeste-alpha-18);
   --color-brand-celeste-glow: var(--plu-celeste-alpha-35);

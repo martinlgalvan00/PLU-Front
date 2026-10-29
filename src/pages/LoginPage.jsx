@@ -306,7 +306,10 @@ export default function LoginPage({ onLogin, onNavigate }) {
               {t('login.visualSlogan')}{' '}
               <span className="auth-layout__slogan-line">{t('login.visualSloganAccent')}</span>
             </h2>
-            <p className="auth-layout__lead">{t('login.visualLead')}</p>
+            <p className="auth-layout__lead">
+              {t('login.visualLead')}
+              <span className="auth-layout__lead-close">{t('login.visualLeadClose')}</span>
+            </p>
           </div>
           <p className="auth-layout__meta">{t('login.visualMeta')}</p>
         </div>

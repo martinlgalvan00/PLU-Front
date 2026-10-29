@@ -39,6 +39,10 @@ export default function EventCard({
   const secondaryLabel = t('pages.events.listViewEvent')
   const isMinimal = variant === 'minimal'
   const isPitbull = brand === 'pitbull'
+  const showAction = Boolean(onAction && (!closed || showTicketsCue))
+  // La fila elige el evento. La acción (inscribirse, comprar, ver ficha) es
+  // otro botón hermano: un botón adentro de otro botón activaba las dos cosas.
+  const splitSelection = Boolean(onSelect && showAction)
   const eventLogo = resolveEventLogo({ slug, title, logoUrl })
   const hasPlace = Boolean(venue || location)
   const showAthleteStatus = PERSONAL_ATHLETE_STATUSES.has(athleteStatus)
@@ -54,32 +58,8 @@ export default function EventCard({
           ? 'info'
           : 'neutral'
 
-  return (
-    <SpotlightCard
-      as="article"
-      className={[
-        'event-card',
-        isMinimal ? 'event-card--minimal' : '',
-        featured ? 'event-card--featured' : '',
-        selected ? 'event-card--selected' : '',
-        isPitbull ? 'event-card--pitbull' : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-      onClick={onSelect}
-      role={onSelect ? 'button' : undefined}
-      tabIndex={onSelect ? 0 : undefined}
-      onKeyDown={
-        onSelect
-          ? (event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                onSelect(event)
-              }
-            }
-          : undefined
-      }
-    >
+  const cardIdentity = (
+    <>
       <div className="event-card__date-block" data-tone={tone}>
         <span className="event-card__day">{day}</span>
         <span className="event-card__month">{month}</span>
@@ -137,8 +117,63 @@ export default function EventCard({
           </p>
         ) : null}
       </div>
+    </>
+  )
 
-      {onAction && (!closed || showTicketsCue) ? (
+  return (
+    <SpotlightCard
+      as="article"
+      className={[
+        'event-card',
+        isMinimal ? 'event-card--minimal' : '',
+        featured ? 'event-card--featured' : '',
+        selected ? 'event-card--selected' : '',
+        isPitbull ? 'event-card--pitbull' : '',
+        splitSelection ? 'event-card--selectable' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      aria-current={selected ? 'true' : undefined}
+      onClick={
+        onSelect && !splitSelection
+          ? onSelect
+          : onSelect
+            ? (event) => {
+                if (event.target instanceof Element && event.target.closest('button')) return
+                onSelect(event)
+              }
+            : undefined
+      }
+      role={!splitSelection && onSelect ? 'button' : undefined}
+      tabIndex={!splitSelection && onSelect ? 0 : undefined}
+      onKeyDown={
+        !splitSelection && onSelect
+          ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onSelect(event)
+              }
+            }
+          : undefined
+      }
+    >
+      {splitSelection ? (
+        <button
+          type="button"
+          className="event-card__select"
+          aria-pressed={selected}
+          onClick={(event) => {
+            event.stopPropagation()
+            onSelect(event)
+          }}
+        >
+          {cardIdentity}
+        </button>
+      ) : (
+        cardIdentity
+      )}
+
+      {showAction ? (
         <button
           type="button"
           className={[

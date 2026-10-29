@@ -874,13 +874,12 @@ export default function PersonalDataSection({
           )}
         </div>
       </form>
-      {pendingGymConfirmation ? (
-        <GymNameConfirmationDialog
-          gymName={pendingGymConfirmation}
-          onCancel={cancelGymNameConfirmation}
-          onConfirm={confirmGymName}
-        />
-      ) : null}
+      <GymNameConfirmationDialog
+        open={Boolean(pendingGymConfirmation)}
+        gymName={pendingGymConfirmation ?? ''}
+        onCancel={cancelGymNameConfirmation}
+        onConfirm={confirmGymName}
+      />
     </section>
   )
 }

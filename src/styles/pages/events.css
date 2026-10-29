@@ -2221,6 +2221,34 @@
     border-color var(--motion-fast, 160ms) var(--ease-out, ease);
 }
 
+.events-page--list-first .events-list--minimal .event-card--selectable {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.events-page--list-first .events-list--minimal .event-card__select {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 16px 22px;
+  grid-template-columns: 84px minmax(0, 1fr);
+  min-height: 44px;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.events-page--list-first .events-list--minimal .event-card__select:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid
+    color-mix(in oklab, var(--institution-gold, var(--color-brand-gold)) 55%, transparent);
+  outline-offset: 4px;
+}
+
 .events-page--list-first .events-list--minimal .event-card::before {
   display: none;
 }
@@ -2483,6 +2511,16 @@
     gap: 10px 14px;
     grid-template-columns: 72px minmax(0, 1fr);
     padding: 18px 0 18px 12px;
+  }
+
+  .events-page--list-first .events-list--minimal .event-card--selectable {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .events-page--list-first .events-list--minimal .event-card__select {
+    gap: 10px 14px;
+    grid-column: 1 / -1;
+    grid-template-columns: 72px minmax(0, 1fr);
   }
 
   .events-page--list-first .events-list--minimal .event-card__action,

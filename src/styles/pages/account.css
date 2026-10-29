@@ -2519,7 +2519,6 @@
 
 .account-payment-modal__overlay {
   align-items: center;
-  animation: account-payment-modal-fade var(--motion-base, 280ms) var(--ease-out, ease) both;
   background: rgba(5, 6, 9, 0.76);
   display: flex;
   inset: 0;
@@ -2530,7 +2529,6 @@
 }
 
 .account-payment-modal {
-  animation: account-payment-modal-rise var(--motion-base, 280ms) var(--ease-out, ease) both;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-strong);
   border-radius: 8px;
@@ -2899,27 +2897,6 @@
   min-height: 0;
   overflow: visible;
   padding: 0;
-}
-
-@keyframes account-payment-modal-fade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes account-payment-modal-rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

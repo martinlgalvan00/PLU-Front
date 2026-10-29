@@ -3448,7 +3448,7 @@ export default function RegisterPage({
             {flow === 'profile' && !profileOrderConfirmed && (
               <button
                 type="button"
-                className="register-topbar__link"
+                className="register-topbar__link register-topbar__link--account"
                 onClick={() => onNavigate('login')}
               >
                 {t('pages.register.haveAccount')}
@@ -4389,13 +4389,15 @@ export default function RegisterPage({
           )}
         </div>
       </div>
-      {transferOpen &&
-      athlete &&
-      (visibleOrder?.paymentMethod === 'manual_link' ||
-        form.paymentMethod === 'manual_link' ||
-        form.paymentMethod === 'wise_transfer') ? (
-        <TransferPayModal
-          amount={visibleOrder?.amount ?? checkoutTotal}
+      <TransferPayModal
+        open={Boolean(
+          transferOpen &&
+            athlete &&
+            (visibleOrder?.paymentMethod === 'manual_link' ||
+              form.paymentMethod === 'manual_link' ||
+              form.paymentMethod === 'wise_transfer'),
+        )}
+        amount={visibleOrder?.amount ?? checkoutTotal}
           currency={
             visibleOrder?.currency ?? (form.paymentMethod === 'wise_transfer' ? 'USD' : 'ARS')
           }
@@ -4410,16 +4412,14 @@ export default function RegisterPage({
           accountDetails={flow === 'membership' ? null : (accessRequirements.bankTransfer ?? null)}
           onClose={() => setTransferOpen(false)}
           purpose={flow === 'membership' ? 'membership' : 'competition'}
-        />
-      ) : null}
-      {accessGateOpen && accessLocked ? (
-        <RegistrationAccessGateModal
-          scopes={requiredAccessScopes}
-          eventSlug={event?.slug ?? null}
-          onUnlock={handleAccessUnlock}
-          onCancel={() => setAccessGateOpen(false)}
-        />
-      ) : null}
+      />
+      <RegistrationAccessGateModal
+        open={Boolean(accessGateOpen && accessLocked)}
+        scopes={requiredAccessScopes}
+        eventSlug={event?.slug ?? null}
+        onUnlock={handleAccessUnlock}
+        onCancel={() => setAccessGateOpen(false)}
+      />
 
       {/* El momento del canje. Acá la acción principal no navega —el atleta ya
           está en el checkout que va a cobrar el código—: cierra el anuncio y
@@ -4446,13 +4446,12 @@ export default function RegisterPage({
           remaining={promotionScarcityPresentation(revealPromotion)?.remaining ?? null}
         />
       ) : null}
-      {pendingGymConfirmation ? (
-        <GymNameConfirmationDialog
-          gymName={pendingGymConfirmation}
-          onCancel={cancelGymNameConfirmation}
-          onConfirm={confirmGymName}
-        />
-      ) : null}
+      <GymNameConfirmationDialog
+        open={Boolean(pendingGymConfirmation)}
+        gymName={pendingGymConfirmation ?? ''}
+        onCancel={cancelGymNameConfirmation}
+        onConfirm={confirmGymName}
+      />
     </main>
   )
 }

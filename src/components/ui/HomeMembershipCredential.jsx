@@ -127,12 +127,6 @@ export default function HomeMembershipCredential() {
 
   const body = (
     <div className="home-credential__stack" aria-label={t('pages.home.credentialAria')}>
-      <span className="home-credential__glow" aria-hidden />
-      <span className="home-credential__grain" aria-hidden />
-      <span className="home-credential__watermark" aria-hidden>
-        {seasonYear.slice(-2) || 'PL'}
-      </span>
-
       {reducedMotion ? (
         <div className="home-credential__face">
           <CredentialFaceContent seasonYear={seasonYear} qrSrc={qrSrc} t={t} />
@@ -223,14 +217,13 @@ function CredentialFaceContent({ seasonYear, qrSrc, t, motion = false }) {
         <div className="home-credential__qr" aria-hidden>
           <div className="home-credential__qr-frame">
             {qrSrc ? (
-              <img src={qrSrc} alt="" className="home-credential__qr-img" />
+              <img src={qrSrc} alt="" className="home-credential__qr-img" decoding="async" />
             ) : (
               <span className="home-credential__qr-fallback">
                 <QrCode size={36} strokeWidth={1.4} />
               </span>
             )}
           </div>
-          <span className="home-credential__qr-label">{t('pages.home.credentialQrLabel')}</span>
         </div>
       </Item>
 
