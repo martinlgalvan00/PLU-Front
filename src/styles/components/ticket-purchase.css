@@ -1110,6 +1110,27 @@
   padding: 12px 0 4px;
 }
 
+/* El lugar del efectivo comparte esta columna: sin una segunda card adentro. */
+.ticket-purchase__transfer-panel .cash-place {
+  border: 0;
+  border-radius: 0;
+  gap: 8px;
+  padding: 0;
+}
+
+.ticket-purchase__transfer-panel .cash-place__eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.ticket-purchase__transfer-panel .cash-place__name {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
 .ticket-purchase__transfer-data {
   display: grid;
   gap: 8px;

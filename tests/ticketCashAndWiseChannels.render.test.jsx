@@ -14,7 +14,9 @@ vi.mock('../src/components/ui/TicketPassPreview.jsx', () => ({
   default: () => <div data-testid="ticket-pass-preview" />,
 }))
 vi.mock('../src/components/ui/MercadoPagoEmbeddedCheckout.jsx', () => ({
-  default: () => <div data-testid="mp-embedded" />,
+  default: ({ maxInstallments = null }) => (
+    <div data-installments={maxInstallments ?? ''} data-testid="mp-embedded" />
+  ),
 }))
 
 const TicketPurchaseSection = (await import('../src/components/ui/TicketPurchaseSection.jsx'))
@@ -102,6 +104,90 @@ describe('medios de pago de la compra de entradas', () => {
     expect(screen.getByText('Recepción de Virtus')).toBeTruthy()
     expect(screen.getByText('Lunes a viernes de 18 a 21.')).toBeTruthy()
     expect(screen.queryByText('Virtus Fitness · Berazategui')).toBeNull()
+  })
+
+  it('muestra dirección, horario y Cómo llegar, y no la dirección de otra sede', () => {
+    renderSection({
+      event: {
+        ...event,
+        venue: 'Estadio',
+        location: 'La Plata',
+        venueAddress: 'Av. Siempre Viva 742',
+      },
+      cashPayment: {
+        place: 'Gimnasio Pitbull',
+        address: 'Calle Falsa 123',
+        hours: 'El día del evento desde las 8',
+        contact: 'Agus',
+      },
+      createdOrder: {
+        type: 'tickets',
+        id: 'order-cash',
+        reference: 'TCK-CASH',
+        status: 'pendiente',
+        paymentMethod: 'manual_link',
+        manualPaymentChannel: 'cash_pitbull',
+        quantity: 1,
+        eventTitle: 'Pitbull Classic 2026',
+        tickets: [],
+      },
+    })
+    expect(screen.getByText('Gimnasio Pitbull')).toBeTruthy()
+    expect(screen.getByText('Calle Falsa 123')).toBeTruthy()
+    expect(screen.getByText('El día del evento desde las 8')).toBeTruthy()
+    expect(screen.getByText('Agus')).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Google Maps/ })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Waze/ })).toBeTruthy()
+    expect(screen.queryByText('Av. Siempre Viva 742')).toBeNull()
+    expect(document.querySelector('.ticket-purchase__transfer-panel .cash-place')).not.toBeNull()
+  })
+
+  it('la transferencia deja copiar alias, CBU y muestra el banco y el CUIT', () => {
+    renderSection({
+      accountDetails: {
+        alias: 'plu.cobros',
+        cbu: '0000003100012345678901',
+        holder: 'PLU ARG',
+        bankName: 'Galicia',
+        cuit: '30-71234567-8',
+      },
+      createdOrder: {
+        type: 'tickets',
+        id: 'order-transfer',
+        reference: 'TCK-TR',
+        status: 'pendiente',
+        paymentMethod: 'manual_link',
+        manualPaymentChannel: 'bank_transfer',
+        amount: 20000,
+        currency: 'ARS',
+        quantity: 1,
+        eventTitle: 'Pitbull Classic 2026',
+        tickets: [],
+      },
+    })
+    expect(screen.getByText('plu.cobros')).toBeTruthy()
+    expect(screen.getByText('Galicia')).toBeTruthy()
+    expect(screen.getByText('30-71234567-8')).toBeTruthy()
+    expect(screen.getAllByRole('button', { name: /Copiar/ }).length).toBeGreaterThan(1)
+  })
+
+  it('el checkout de Mercado Pago recibe el tope de cuotas del evento', () => {
+    renderSection({
+      event: { ...event, paymentPolicy: { ticket: { maxInstallments: 3 } } },
+      createdOrder: {
+        type: 'tickets',
+        id: 'order-mp',
+        reference: 'TCK-MP',
+        status: 'pendiente',
+        paymentMethod: 'mercado_pago',
+        amount: 20000,
+        currency: 'ARS',
+        quantity: 1,
+        eventTitle: 'Pitbull Classic 2026',
+        tickets: [],
+      },
+    })
+    expect(screen.getByTestId('mp-embedded').getAttribute('data-installments')).toBe('3')
   })
 
   it('cada celda gobierna sólo su opción', () => {

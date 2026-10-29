@@ -372,6 +372,7 @@ export function useAppData() {
   const membershipAttemptRef = useRef(null)
   const registrationAttemptRef = useRef(null)
   const ticketAttemptRef = useRef(null)
+  const manualSaleAttemptRef = useRef(null)
   const liveRefreshInFlightRef = useRef(false)
   const athleteDataLoadedRef = useRef(false)
   // Huellas del último payload aplicado de cada poll: sin esto, cada ciclo
@@ -626,6 +627,10 @@ export function useAppData() {
         timerId = null
         void publicCatalogRefreshRef.current?.()
         void refreshCheckoutAvailability()
+        // La disponibilidad de entradas cachea el interruptor del evento.
+        // Sin esto, apagar la venta en el panel deja la página abierta hasta
+        // que vence el TTL.
+        invalidateEventLiveData()
         const write = localEventsWriteRef.current
         const ownEcho =
           write.pending > 0 || Date.now() - write.finishedAt < LOCAL_EVENTS_WRITE_ECHO_MS
@@ -2068,7 +2073,27 @@ export function useAppData() {
         return { error: 'Sin permisos para cargar una venta manual.' }
       }
       try {
-        const result = await createManualTicketOrderRequest(payload)
+        // Misma venta, misma clave. Si el request se cortó después de crear
+        // la orden, el reintento la encuentra y —en efectivo— la acredita.
+        // Recién un alta que salió bien suelta la clave, para que la próxima
+        // carga de las mismas personas sea otra venta.
+        const fingerprint = JSON.stringify([
+          payload?.eventSlug ?? null,
+          payload?.attendees ?? null,
+          payload?.buyer ?? null,
+          payload?.manualPaymentChannel ?? null,
+        ])
+        if (manualSaleAttemptRef.current?.fingerprint !== fingerprint) {
+          manualSaleAttemptRef.current = {
+            fingerprint,
+            idempotencyKey: crypto.randomUUID(),
+          }
+        }
+        const result = await createManualTicketOrderRequest({
+          ...payload,
+          idempotencyKey: manualSaleAttemptRef.current.idempotencyKey,
+        })
+        manualSaleAttemptRef.current = null
         await refreshPendingTicketOrders()
         return result
       } catch (error) {
@@ -3754,6 +3779,17 @@ export function useAppData() {
               changes.registrationClosesAt !== undefined
                 ? changes.registrationClosesAt
                 : event.registrationClosesAt,
+            ...(changes.ticketsEnabled !== undefined
+              ? {
+                  pricing: {
+                    ...event.pricing,
+                    ticketsEnabled: changes.ticketsEnabled === true,
+                  },
+                  ...(changes.ticketsEnabled === true
+                    ? { publicSurface: { ...event.publicSurface, tickets: true } }
+                    : {}),
+                }
+              : {}),
             updatedAt: new Date().toISOString(),
           }
           // El demo replica la regla de la base: sin esto el cupo lleno se

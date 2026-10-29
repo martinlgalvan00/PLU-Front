@@ -35,6 +35,17 @@
   gap: 4px;
 }
 
+.admin-event-sale__tickets {
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 8px;
+  padding-top: 14px;
+}
+
+.admin-event-sale__tickets.is-on {
+  --sale-accent: var(--admin-status-success);
+}
+
 .admin-event-sale__eyebrow {
   color: var(--admin-muted);
   font-size: 11px;

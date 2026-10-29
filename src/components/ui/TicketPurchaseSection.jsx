@@ -96,6 +96,13 @@ async function waitForPassImagesReady(node, { timeoutMs = 4000 } = {}) {
 }
 
 const MAX_TICKETS = 10
+
+/** La base rechazó la compra: no queda un Pagar activo debajo del aviso. */
+function isTicketSaleBlockedError(message) {
+  return /venta de entradas (esta cerrada|esta deshabilitada|ya cerro|todavia no abrio)/i.test(
+    String(message ?? ''),
+  )
+}
 const CHANNEL_KEYS = ['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer']
 const MAX_PROOF_FILE_BYTES = 2 * 1024 * 1024
 const PROOF_FILE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
@@ -1452,6 +1459,7 @@ export default function TicketPurchaseSection({
     : quantity === 1
       ? t('pages.tickets.buy_one')
       : t('pages.tickets.buy_other', { count: quantity })
+  const saleBlocked = isTicketSaleBlockedError(submitError)
 
   const formClass = [
     'ticket-purchase',
@@ -1674,9 +1682,9 @@ export default function TicketPurchaseSection({
                 <button
                   type="submit"
                   className="ticket-purchase__submit ticket-purchase__submit--primary"
-                  disabled={submitting}
+                  disabled={submitting || saleBlocked}
                 >
-                  {buyLabel}
+                  {saleBlocked ? t('pages.events.publicTicketsSalesClosed') : buyLabel}
                   <ArrowRight size={14} aria-hidden />
                 </button>
               </div>
@@ -1698,8 +1706,8 @@ export default function TicketPurchaseSection({
                 </div>
               </div>
               {submitError && <p className="ticket-purchase__submit-error">{submitError}</p>}
-              <Button type="submit" className="btn--small" disabled={submitting}>
-                {buyLabel}
+              <Button type="submit" className="btn--small" disabled={submitting || saleBlocked}>
+                {saleBlocked ? t('pages.events.publicTicketsSalesClosed') : buyLabel}
               </Button>
             </>
           )}

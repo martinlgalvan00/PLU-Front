@@ -1165,6 +1165,7 @@ export async function setEventStateRequest(
     capacityProgressPublic,
     registrationOpensAt,
     registrationClosesAt,
+    ticketsEnabled,
   } = {},
 ) {
   if (!slug) throw new Error('Falta el slug del evento.')
@@ -1177,6 +1178,7 @@ export async function setEventStateRequest(
   // Control de venta: ISO fija la fecha, null la borra.
   if (registrationOpensAt !== undefined) payload.registrationOpensAt = registrationOpensAt
   if (registrationClosesAt !== undefined) payload.registrationClosesAt = registrationClosesAt
+  if (ticketsEnabled !== undefined) payload.ticketsEnabled = ticketsEnabled === true
 
   const response = await apiPost(`/api/events/${encodeURIComponent(slug)}/state`, payload)
 

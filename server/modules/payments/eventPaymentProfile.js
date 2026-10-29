@@ -112,6 +112,32 @@ export function applyEventPaymentChannelOverrides(availability, overrides) {
 }
 
 /**
+ * Interruptor de entradas del evento (`rules.ticketsEnabled`).
+ *
+ * `null` cuando la fila no trajo `rules`: los tests y una lectura vieja no
+ * opinan. En producción `findEventPricing` siempre manda la clave; si el
+ * valor no es `true`, la venta pública está cerrada, igual que la RPC.
+ */
+export function eventPublicTicketSalesEnabled(eventRow) {
+  if (!eventRow || !Object.prototype.hasOwnProperty.call(eventRow, 'rules')) return null
+  return eventRow.rules?.ticketsEnabled === true
+}
+
+/** Cierra el checkout público cuando el evento apagó las entradas. */
+export function applyEventTicketSalesSwitch(availability, eventRow) {
+  if (!availability) return availability
+  const eventTicketsEnabled = eventPublicTicketSalesEnabled(eventRow)
+  if (eventTicketsEnabled !== false) {
+    return { ...availability, eventTicketsEnabled }
+  }
+  return {
+    ...availability,
+    ticketEnabled: false,
+    eventTicketsEnabled: false,
+  }
+}
+
+/**
  * Canales manuales de entradas contra el calendario.
  *
  * Una transferencia necesita hasta 72 horas para convertirse en un QR (24 para

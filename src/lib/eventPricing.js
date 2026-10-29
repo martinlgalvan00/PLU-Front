@@ -320,6 +320,18 @@ export function isTicketSalesEnabled(event) {
   return resolveEventPricing(event).ticketsEnabled === true && !eventStatusClosesTicketSales(event)
 }
 
+/**
+ * El checkout en vivo gana al catálogo cuando ya respondió. `null` o
+ * `undefined` (todavía no llegó, o el pedido falló) deja la decisión en el
+ * evento que ya tiene la pantalla: cerrar por falta de dato tumbaría la venta
+ * por un problema de red. Un evento finalizado sigue cerrado aunque el vivo
+ * diga que el interruptor está prendido.
+ */
+export function eventAllowsPublicTickets(event, liveEventTicketsEnabled) {
+  if (liveEventTicketsEnabled == null) return isTicketSalesEnabled(event)
+  return liveEventTicketsEnabled === true && !eventStatusClosesTicketSales(event)
+}
+
 export function normalizeEventPricingInput(pricing = {}) {
   const numberOrDefault = (value, fallback) => {
     const parsed = Number(value)

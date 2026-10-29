@@ -256,6 +256,32 @@ describe('control de venta — publicar exige cobro configurado', () => {
     }
   })
 
+  it('habilitar entradas persiste el interruptor y muestra el bloque público', async () => {
+    const ctx = await setup()
+    try {
+      const response = await postState(ctx, { ticketsEnabled: true })
+      expect(response.status).toBe(200)
+      const ticketUpdate = ctx.supabase.updates.find((patch) => patch.rules?.ticketsEnabled === true)
+      expect(ticketUpdate?.rules?.publicSurface?.tickets).toBe(true)
+    } finally {
+      await ctx.target.close()
+    }
+  })
+
+  it('cerrar entradas no vuelve a ocultar el bloque de la ficha', async () => {
+    const ctx = await setup({
+      row: eventRow({ rules: { ticketsEnabled: true, publicSurface: { tickets: true, faq: false } } }),
+    })
+    try {
+      const response = await postState(ctx, { ticketsEnabled: false })
+      expect(response.status).toBe(200)
+      const ticketUpdate = ctx.supabase.updates.find((patch) => patch.rules?.ticketsEnabled === false)
+      expect(ticketUpdate?.rules?.publicSurface).toEqual({ tickets: true, faq: false })
+    } finally {
+      await ctx.target.close()
+    }
+  })
+
   it('despublicar no exige nada', async () => {
     const ctx = await setup({ row: eventRow({ payment_channel_overrides: transferOpen }) })
     try {

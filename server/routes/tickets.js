@@ -142,7 +142,9 @@ import {
 } from '../services/platformFeatureToggleService.js'
 import {
   applyEventPaymentChannelOverrides,
+  applyEventTicketSalesSwitch,
   applyManualTicketDeadline,
+  eventPublicTicketSalesEnabled,
   assertEventPaymentChannelEnabled,
   assertManualTicketDeadline,
   resolveBankTransferDetails,
@@ -630,6 +632,14 @@ export function createTicketRoutes({
         if (getSupabaseAdmin?.() && !eventPricing) {
           throw new HttpError(404, 'Evento no encontrado.')
         }
+        // Mismo corte que `create_ticket_order`: sin el interruptor del evento
+        // el público no compra. El mostrador (`POST /orders/manual`) no pasa
+        // por acá.
+        if (eventPublicTicketSalesEnabled(eventPricing) === false) {
+          throw new HttpError(409, 'La venta de entradas esta deshabilitada para este evento.', {
+            code: 'PLU03',
+          })
+        }
         assertEventPaymentChannelEnabled(toggles, 'ticket', ticketChannel, {
           eventOverrides: eventPricing?.payment_channel_overrides ?? null,
         })
@@ -830,12 +840,15 @@ export function createTicketRoutes({
         applyEventChannelOpens(toggles, eventPricing?.payment_channel_overrides),
         env,
       )
-      const scoped = applyManualTicketDeadline(
-        applyEventPaymentChannelOverrides(
-          platformAvailability,
-          eventPricing?.payment_channel_overrides,
+      const scoped = applyEventTicketSalesSwitch(
+        applyManualTicketDeadline(
+          applyEventPaymentChannelOverrides(
+            platformAvailability,
+            eventPricing?.payment_channel_overrides,
+          ),
+          eventPricing?.starts_at ?? null,
         ),
-        eventPricing?.starts_at ?? null,
+        eventPricing,
       )
       // Los dos perfiles de cobro son independientes entre sí: el alias del
       // banco no condiciona la clave pública de Mercado Pago. Encadenarlos
@@ -862,6 +875,7 @@ export function createTicketRoutes({
         availability,
         checkout: {
           ticketEnabled: scoped.ticketEnabled,
+          eventTicketsEnabled: scoped.eventTicketsEnabled,
           ticketManualEnabled: scoped.ticketManualEnabled,
           channels: scoped.paymentChannels.ticket,
           bankTransfer: resolveBankTransferDetails(eventPricing, env, bankProfile),
@@ -968,7 +982,9 @@ export function createTicketRoutes({
    * ventanas de venta online). El resto de las reglas de negocio se
    * mantienen: interruptor maestro de cobros, medios habilitados por evento
    * y por tipo de entrada, cupo y precio de catálogo -- un operador no
-   * evade eso, lo hace desde la configuración del evento.
+   * evade eso, lo hace desde la configuración del evento. El interruptor
+   * público `ticketsEnabled` sí se saltea: una venta ya cobrada en la puerta
+   * se puede cargar aunque la página no esté vendiendo.
    *
    * Efectivo se auto-aprueba en el mismo request (el operador ya cobró en
    * mano); transferencia queda `pendiente` y sigue el circuito de

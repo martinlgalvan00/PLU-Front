@@ -23,7 +23,7 @@ import {
 import { getUpcomingEventsByDate } from '../lib/eventNavigation.js'
 import {
   cheapestTicketTypePrice,
-  isTicketSalesEnabled,
+  eventAllowsPublicTickets,
   shortTicketTypeName,
   ticketPricingFromEvent,
 } from '../lib/eventPricing.js'
@@ -144,13 +144,16 @@ export default function TicketsPage({
   const paidCheckoutOpen = isPaidCheckoutOpen(selectedEvent, env, new Date(), {
     checkoutKind: 'ticket',
   })
-  const eventSalesOpen =
-    env.ticketSalesEnabled && paidCheckoutOpen && isTicketSalesEnabled(selectedEvent)
-  // El interruptor global del panel se pide con el mismo request que el cupo, así
-  // que se consulta con el slug del evento aunque la venta ya esté cerrada por
-  // fecha o por configuración del torneo.
+  // El interruptor del evento viaja en el mismo request que el cupo. Si ya
+  // respondió, gana al catálogo: prender o apagar en el panel se ve sin esperar
+  // a que la lista pública se refresque. Mientras no hay dato, manda el evento
+  // que ya tiene la pantalla.
   const ticketCheckout = useTicketCheckoutAvailability(selectedEvent?.slug ?? null)
-  const ticketSalesOpen = eventSalesOpen && ticketCheckout.ticketEnabled
+  const ticketSalesOpen =
+    env.ticketSalesEnabled &&
+    paidCheckoutOpen &&
+    eventAllowsPublicTickets(selectedEvent, ticketCheckout.eventTicketsEnabled) &&
+    ticketCheckout.ticketEnabled
   const availabilityRemaining = useTicketAvailability(ticketSalesOpen ? selectedEvent?.slug : null)
   const visibleCreatedOrder =
     createdOrder?.type === 'tickets' && createdOrder.eventTitle === selectedEvent?.title

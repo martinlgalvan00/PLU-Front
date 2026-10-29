@@ -14,7 +14,10 @@ import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.js
 import { zoneScopeLabel } from '../components/ui/TicketTypeOptions.jsx'
 import { useShopCart } from '../hooks/useShopCart.js'
 import { useShopProducts } from '../hooks/useShopProducts.js'
-import { useTicketAvailability } from '../hooks/useTicketAvailability.js'
+import {
+  useTicketAvailability,
+  useTicketCheckoutAvailability,
+} from '../hooks/useTicketAvailability.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import {
   getFeaturedEvent,
@@ -23,7 +26,7 @@ import {
 } from '../lib/eventNavigation.js'
 import {
   cheapestTicketTypePrice,
-  isTicketSalesEnabled,
+  eventAllowsPublicTickets,
   ticketPricingFromEvent,
 } from '../lib/eventPricing.js'
 import { FEATURE_KEYS, isFeatureEnabled } from '../lib/featureAvailability.js'
@@ -126,7 +129,11 @@ function ShopFeatured({
 }) {
   const pricing = ticketPricingFromEvent(event)
   const fromPrice = cheapestTicketTypePrice(pricing)
-  const salesOpen = checkoutOpen && isTicketSalesEnabled(event)
+  const ticketCheckout = useTicketCheckoutAvailability(event.slug)
+  const salesOpen =
+    checkoutOpen &&
+    eventAllowsPublicTickets(event, ticketCheckout.eventTicketsEnabled) &&
+    ticketCheckout.ticketEnabled
   const remaining = useTicketAvailability(salesOpen ? event.slug : null)
   const canBuy = salesOpen && remaining !== 0
 
@@ -201,7 +208,11 @@ function ShopFeatured({
 function ShopEventRow({ event, locale, checkoutOpen, onOpenDetail, t }) {
   const pricing = ticketPricingFromEvent(event)
   const fromPrice = cheapestTicketTypePrice(pricing)
-  const salesOpen = checkoutOpen && isTicketSalesEnabled(event)
+  const ticketCheckout = useTicketCheckoutAvailability(event.slug)
+  const salesOpen =
+    checkoutOpen &&
+    eventAllowsPublicTickets(event, ticketCheckout.eventTicketsEnabled) &&
+    ticketCheckout.ticketEnabled
   const remaining = useTicketAvailability(salesOpen ? event.slug : null)
   const dateParts = shopEventDateParts(event, locale)
   const { reducedMotion, tier } = useMotionConfig()
@@ -260,7 +271,11 @@ function ShopEventRow({ event, locale, checkoutOpen, onOpenDetail, t }) {
             {shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t)}
           </span>
           <span className="shop-row__hint">
-            {checkoutOpen ? t('pages.shop.cardHint') : t('pages.shop.cardHintSoon')}
+            {checkoutOpen && salesOpen
+              ? t('pages.shop.buyTickets')
+              : checkoutOpen
+                ? t('pages.shop.cardHint')
+                : t('pages.shop.cardHintSoon')}
             <ArrowRight size={14} aria-hidden />
           </span>
         </span>

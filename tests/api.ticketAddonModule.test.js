@@ -37,7 +37,7 @@ async function postOrder(modules) {
     athleteRepository: {
       findEventPricing: async () => ({
         slug: 'pitbull-classic-2026',
-        rules: { modules },
+        rules: { modules, ticketsEnabled: true },
       }),
     },
     env: {

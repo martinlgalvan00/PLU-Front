@@ -156,6 +156,14 @@ describe('AdminEventSaleControl', () => {
     )
   })
 
+  it('habilitar entradas escribe el interruptor público, aparte de las inscripciones', async () => {
+    const { setState, section } = renderControl(EVENT)
+    fireEvent.click(within(section).getByRole('button', { name: 'Habilitar venta' }))
+    await waitFor(() =>
+      expect(setState).toHaveBeenCalledWith('pitbull-classic-2026', { ticketsEnabled: true }),
+    )
+  })
+
   it('sin permiso de edición se lee pero no ofrece acciones', async () => {
     render(
       <I18nProvider>

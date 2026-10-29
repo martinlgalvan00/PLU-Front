@@ -776,6 +776,8 @@ const eventStateSchema = z
     // "Programar apertura"): ISO para fijarla, null para borrarla.
     registrationOpensAt: nullableWindowDateTime,
     registrationClosesAt: nullableWindowDateTime,
+    // Venta pública de entradas, sin reescribir días ni tipos.
+    ticketsEnabled: z.boolean().optional(),
   })
   .refine(
     (body) =>
@@ -784,7 +786,8 @@ const eventStateSchema = z
       body.requiresMembership !== undefined ||
       body.capacityProgressPublic !== undefined ||
       body.registrationOpensAt !== undefined ||
-      body.registrationClosesAt !== undefined,
+      body.registrationClosesAt !== undefined ||
+      body.ticketsEnabled !== undefined,
     'No hay ningún cambio para aplicar.',
   )
   .refine(
@@ -989,6 +992,42 @@ async function mergePublicSurfaceMaterialsCompat(client, { slug, surface }) {
       })
       .eq('slug', slug),
     'No se pudo guardar la superficie pública del evento.',
+  )
+}
+
+/**
+ * Prende o apaga la venta pública de entradas sin reescribir el evento.
+ * Al habilitar también muestra el bloque de entradas de la ficha: si queda
+ * oculto, el público no ve el botón aunque la venta esté abierta.
+ */
+async function mergeTicketSalesSwitch(client, { slug, enabled }) {
+  const reader = client.from('events').select('rules').eq('slug', slug)
+  if (typeof reader?.maybeSingle !== 'function') {
+    throw new HttpError(503, 'No se pudo cambiar la venta de entradas.')
+  }
+  const current = assertSupabaseResult(
+    await client.from('events').select('rules').eq('slug', slug).maybeSingle(),
+    'No se pudo leer la venta de entradas del evento.',
+  )
+  if (!current) throw new HttpError(404, 'El evento no existe.')
+
+  const rules = current.rules && typeof current.rules === 'object' ? current.rules : {}
+  const nextRules = { ...rules, ticketsEnabled: enabled === true }
+  if (enabled === true) {
+    const publicSurface =
+      rules.publicSurface && typeof rules.publicSurface === 'object' ? rules.publicSurface : {}
+    nextRules.publicSurface = { ...publicSurface, tickets: true }
+  }
+
+  assertSupabaseResult(
+    await client
+      .from('events')
+      .update({
+        rules: nextRules,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('slug', slug),
+    'No se pudo cambiar la venta de entradas.',
   )
 }
 
@@ -1867,6 +1906,10 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
         const previousWindow =
           touchesWindow && stateChanges ? await readRegistrationWindow(client, slug) : null
         const windowSaved = await saveRegistrationWindow(client, slug, saleWindow, actor)
+        const ticketSalesSaved = body.ticketsEnabled !== undefined
+        if (ticketSalesSaved) {
+          await mergeTicketSalesSwitch(client, { slug, enabled: body.ticketsEnabled === true })
+        }
 
         let result = null
         if (stateChanges) {
@@ -1894,7 +1937,9 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
 
         const events = await readEvents(client)
         const event = events.find((candidate) =>
-          result ? candidate.id === result.event?.id : windowSaved && candidate.slug === slug,
+          result
+            ? candidate.id === result.event?.id
+            : (windowSaved || ticketSalesSaved) && candidate.slug === slug,
         )
         if (!event) {
           throw new HttpError(503, 'El estado se guardó, pero no se pudo volver a leer.')

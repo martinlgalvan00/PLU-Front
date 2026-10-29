@@ -4,7 +4,9 @@ import { applyEventChannelOpens } from '../src/lib/eventPaymentChannels.js'
 import { resolvePublicCheckoutAvailability } from '../server/services/platformFeatureToggleService.js'
 import {
   applyEventPaymentChannelOverrides,
+  applyEventTicketSalesSwitch,
   applyManualTicketDeadline,
+  eventPublicTicketSalesEnabled,
   assertEventBankTransferReady,
   bankTransferIssueError,
   checkEventBankTransferReady,
@@ -933,5 +935,31 @@ describe('resolveCashPaymentDetails: dirección, horario y contacto', () => {
         cash_payment_place: 'Gimnasio Pitbull',
       }),
     ).toEqual({ place: 'Gimnasio Pitbull', notes: null })
+  })
+})
+
+describe('interruptor de entradas del evento', () => {
+  const open = { ticketEnabled: true, paymentChannels: { ticket: { mercado_pago: true } } }
+
+  it('sin la clave rules no opina', () => {
+    expect(eventPublicTicketSalesEnabled({ slug: 'pitbull' })).toBeNull()
+    expect(applyEventTicketSalesSwitch(open, { slug: 'pitbull' }).ticketEnabled).toBe(true)
+  })
+
+  it('apagado cierra el checkout público', () => {
+    const closed = applyEventTicketSalesSwitch(open, { rules: { ticketsEnabled: false } })
+    expect(closed.ticketEnabled).toBe(false)
+    expect(closed.eventTicketsEnabled).toBe(false)
+  })
+
+  it('prendido deja la venta de la plataforma', () => {
+    const venta = applyEventTicketSalesSwitch(open, { rules: { ticketsEnabled: true } })
+    expect(venta.ticketEnabled).toBe(true)
+    expect(venta.eventTicketsEnabled).toBe(true)
+  })
+
+  it('una fila leída sin el flag queda cerrada, igual que la RPC', () => {
+    expect(eventPublicTicketSalesEnabled({ rules: {} })).toBe(false)
+    expect(eventPublicTicketSalesEnabled({ rules: null })).toBe(false)
   })
 })

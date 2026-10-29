@@ -7,6 +7,7 @@ import {
   eventShowsPublicExperience,
   eventShowsPublicRecentRegistrants,
   eventShowsPublicSchedule,
+  eventShowsPublicTickets,
   eventShowsPublicWeighIns,
   normalizeEventPublicSurface,
   publicSurfaceModulesForEvent,
@@ -75,5 +76,29 @@ describe('eventPublicSurface', () => {
       'livestream',
       'faq',
     ])
+  })
+
+  it('muestra la compra cuando la venta está habilitada aunque el bloque esté oculto', () => {
+    expect(
+      eventShowsPublicTickets({
+        status: 'cerrado',
+        pricing: { ticketsEnabled: true },
+        publicSurface: { tickets: false },
+      }),
+    ).toBe(true)
+    expect(
+      eventShowsPublicTickets({
+        status: 'cerrado',
+        pricing: { ticketsEnabled: false },
+        publicSurface: { tickets: false },
+      }),
+    ).toBe(false)
+    expect(
+      eventShowsPublicTickets({
+        status: 'finalizado',
+        pricing: { ticketsEnabled: true },
+        publicSurface: { tickets: false },
+      }),
+    ).toBe(false)
   })
 })

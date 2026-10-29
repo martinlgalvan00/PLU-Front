@@ -116,7 +116,7 @@ es otra forma de tocar el mismo dato, no un segundo interruptor.
 | Módulo | Campo | Apagado |
 |---|---|---|
 | Inscripciones | `salesIntent` | "Solo anuncio" (409 `REGISTRATION_ANNOUNCE_ONLY`) |
-| Entradas de público | `pricing.ticketsEnabled` | No se venden entradas |
+| Entradas de público | `pricing.ticketsEnabled` | El público no compra: `GET /api/tickets/availability` manda `ticketEnabled: false` y `POST /api/tickets/orders` responde 409 `PLU03`. El mostrador (`POST /orders/manual`) puede cargar una venta ya cobrada |
 | Combo afiliación + inscripción | `rules.modules.combo` | El catálogo no publica la oferta; `POST /me/registration-combos` responde 409 `EVENT_MODULE_DISABLED` |
 | Extras de entradas | `rules.modules.ticketAddons` | Solo quedan los extras incluidos en un tipo; `POST /api/tickets/orders` con `addonIds` responde 409 `EVENT_MODULE_DISABLED` |
 | Cronograma público | `publicSurface.schedule` | La página no muestra la grilla |
