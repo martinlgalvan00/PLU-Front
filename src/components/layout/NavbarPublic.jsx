@@ -207,7 +207,7 @@ function SharedActiveIndicator() {
       transition={
         reducedMotion
           ? { duration: 0.01 }
-          : { type: 'spring', stiffness: 280, damping: 34, mass: 0.9 }
+          : { duration: MOTION_DURATION.base, ease: MOTION_EASE.out }
       }
     />
   )
@@ -237,7 +237,7 @@ function NavHoverPill({ show }) {
           transition={
             reducedMotion
               ? { duration: 0.01 }
-              : { type: 'spring', stiffness: 300, damping: 32, mass: 0.75 }
+              : { duration: MOTION_DURATION.base, ease: MOTION_EASE.out }
           }
         />
       ) : null}
@@ -523,7 +523,7 @@ function DrawerRowIndicator() {
       transition={
         reducedMotion
           ? { duration: 0.01 }
-          : { type: 'spring', stiffness: 300, damping: 32, mass: 0.9 }
+          : { duration: MOTION_DURATION.base, ease: MOTION_EASE.out }
       }
     />
   )

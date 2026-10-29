@@ -122,7 +122,6 @@ export const pageSectionTransition: Variants = {
   },
   exit: {
     opacity: 0,
-    y: -6,
     transition: { duration: MOTION_DURATION.fast, ease: MOTION_EASE.standard },
   },
 }

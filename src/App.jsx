@@ -79,6 +79,7 @@ import {
   getTransitionDirection,
   resolveAfterLoginDestination,
   resolveMembershipCheckout,
+  scrollWindowTo,
 } from './lib/navigation.js'
 import {
   canCheckIn,
@@ -345,11 +346,54 @@ export default function App() {
   // `events`: con la vista sola como clave no había transición ni vuelta al
   // tope, y entrar a un evento desde el footer dejaba la pantalla en el footer.
   const routeKey = view === 'events' && eventPageSlug ? `events:${eventPageSlug}` : view
+  const routeKeyRef = useRef(routeKey)
+  const scrollMemoryRef = useRef(new Map())
+  const navKindRef = useRef('push')
+  const ignoreScrollSaveRef = useRef(false)
+  routeKeyRef.current = routeKey
 
   useEffect(() => {
-    // Sin behavior explícito: hereda `scroll-behavior` de CSS, que ya
-    // respeta prefers-reduced-motion.
-    window.scrollTo({ top: 0 })
+    const previous = window.history.scrollRestoration
+    window.history.scrollRestoration = 'manual'
+    return () => {
+      window.history.scrollRestoration = previous
+    }
+  }, [])
+
+  useEffect(() => {
+    const remember = () => {
+      if (ignoreScrollSaveRef.current) return
+      scrollMemoryRef.current.set(routeKeyRef.current, window.scrollY)
+    }
+    // El foco del ítem de la barra, si está fijo arriba, sube el scroll antes
+    // del click. `pointerdown` alcanza a guardar la posición real; los dos
+    // frames siguientes ignoran ese salto para no pisarla.
+    const rememberBeforeFocus = (event) => {
+      if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return
+      remember()
+      ignoreScrollSaveRef.current = true
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          ignoreScrollSaveRef.current = false
+        })
+      })
+    }
+    window.addEventListener('scroll', remember, { passive: true })
+    window.addEventListener('pointerdown', rememberBeforeFocus, true)
+    window.addEventListener('keydown', rememberBeforeFocus, true)
+    return () => {
+      window.removeEventListener('scroll', remember)
+      window.removeEventListener('pointerdown', rememberBeforeFocus, true)
+      window.removeEventListener('keydown', rememberBeforeFocus, true)
+    }
+  }, [])
+
+  useEffect(() => {
+    const top = navKindRef.current === 'pop' ? (scrollMemoryRef.current.get(routeKey) ?? 0) : 0
+    navKindRef.current = 'push'
+    ignoreScrollSaveRef.current = true
+    scrollWindowTo(top)
+    ignoreScrollSaveRef.current = false
   }, [routeKey])
 
   useEffect(() => {
@@ -452,6 +496,8 @@ export default function App() {
 
   useEffect(() => {
     function onPopState() {
+      navKindRef.current = 'pop'
+      setTransitionDirection('back')
       const checkoutMatch = matchRegistrationCheckoutRoute()
       if (checkoutMatch) {
         setCheckoutRouteSlug(checkoutMatch.eventSlug)
@@ -573,6 +619,7 @@ export default function App() {
         pushTicketsRoute(resolvedOptions.eventSlug)
         setTicketEventSlug(resolvedOptions.eventSlug ?? null)
         setTransitionDirection(getTransitionDirection(view, 'tickets'))
+        navKindRef.current = 'push'
         setView('tickets')
         return
       }
@@ -665,6 +712,7 @@ export default function App() {
       }
 
       setTransitionDirection(getTransitionDirection(view, resolvedView))
+      navKindRef.current = 'push'
       setView(resolvedView)
     },
     [publicEvents, underConstructionEvents, getSession, pendingAthleteDestination, view, app.enterAthleteContext, app.returnToStaffContext, app.clearInvalidSession],
