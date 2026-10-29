@@ -3542,7 +3542,7 @@ export default {
       chooseEventEyebrow: 'Calendario',
       chooseEventTitle: 'Elegí el evento',
       chooseEventLead:
-        'Mostramos primero el evento más cercano. Si hay eventos posteriores, podés desplazarte y comprar para cualquiera.',
+        'Mostramos primero el evento más cercano. Los que siguen se ven al lado; se compra solo cuando la venta está habilitada.',
       currentEvent: 'Seleccionado',
       availableEvent: 'Disponible',
       fromPerDay: 'por día',

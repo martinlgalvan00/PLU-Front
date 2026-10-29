@@ -24,6 +24,7 @@ import { getUpcomingEventsByDate } from '../lib/eventNavigation.js'
 import {
   cheapestTicketTypePrice,
   eventAllowsPublicTickets,
+  isTicketSalesEnabled,
   shortTicketTypeName,
   ticketPricingFromEvent,
 } from '../lib/eventPricing.js'
@@ -141,6 +142,7 @@ export default function TicketsPage({
     ticketEvents[0] ??
     event
   const pricing = ticketPricingFromEvent(selectedEvent)
+  const listedPrice = cheapestTicketTypePrice(pricing)
   const paidCheckoutOpen = isPaidCheckoutOpen(selectedEvent, env, new Date(), {
     checkoutKind: 'ticket',
   })
@@ -153,7 +155,9 @@ export default function TicketsPage({
     env.ticketSalesEnabled &&
     paidCheckoutOpen &&
     eventAllowsPublicTickets(selectedEvent, ticketCheckout.eventTicketsEnabled) &&
-    ticketCheckout.ticketEnabled
+    ticketCheckout.ticketEnabled &&
+    listedPrice != null &&
+    listedPrice > 0
   const availabilityRemaining = useTicketAvailability(ticketSalesOpen ? selectedEvent?.slug : null)
   const visibleCreatedOrder =
     createdOrder?.type === 'tickets' && createdOrder.eventTitle === selectedEvent?.title
@@ -363,6 +367,14 @@ export default function TicketsPage({
               const active =
                 itemId === (selectedEvent?.id ?? selectedEvent?.slug ?? selectedEvent?.title)
               const itemPricing = ticketPricingFromEvent(item)
+              const fromPrice = cheapestTicketTypePrice(itemPricing)
+              const catalogListed =
+                env.ticketSalesEnabled &&
+                paidCheckoutOpen &&
+                isTicketSalesEnabled(item) &&
+                fromPrice != null &&
+                fromPrice > 0
+              const saleOpen = active ? ticketSalesOpen : catalogListed
               return (
                 <button
                   key={itemId}
@@ -370,6 +382,7 @@ export default function TicketsPage({
                   className={[
                     'tickets-page__event-option',
                     active ? 'tickets-page__event-option--active' : '',
+                    saleOpen ? '' : 'tickets-page__event-option--soon',
                   ]
                     .filter(Boolean)
                     .join(' ')}
@@ -379,17 +392,27 @@ export default function TicketsPage({
                   <span>
                     {active
                       ? t('pages.ticketsPage.currentEvent')
-                      : t('pages.ticketsPage.availableEvent')}
+                      : saleOpen
+                        ? t('pages.ticketsPage.availableEvent')
+                        : t('pages.ticketsPage.salesPausedTitle')}
                   </span>
                   <strong>{item.title ?? t('pages.ticketsPage.eventFallback')}</strong>
                   <small>
                     {item.date ?? t('pages.ticketsPage.dateFallback')} ·{' '}
                     {item.venue ?? t('pages.ticketsPage.venueFallback')}
                   </small>
-                  <em>
-                    {money(cheapestTicketTypePrice(itemPricing), locale)}{' '}
-                    {t('pages.ticketsPage.fromPerDay')}
-                  </em>
+                  {saleOpen ? (
+                    <em>
+                      <span className="tickets-page__event-price">{money(fromPrice, locale)}</span>
+                      <span className="tickets-page__event-price-note">
+                        {t('pages.ticketsPage.fromPerDay')}
+                      </span>
+                    </em>
+                  ) : active ? (
+                    <em className="tickets-page__event-price-note">
+                      {t('pages.ticketsPage.salesPausedTitle')}
+                    </em>
+                  ) : null}
                 </button>
               )
             })}

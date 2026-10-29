@@ -3505,7 +3505,7 @@ export default {
       chooseEventEyebrow: 'Calendar',
       chooseEventTitle: 'Choose the event',
       chooseEventLead:
-        'We show the nearest event first. If there are later events, you can scroll and buy for any of them.',
+        'We show the nearest event first. Later ones sit beside it; you can buy only when ticket sales are open.',
       currentEvent: 'Selected',
       availableEvent: 'Available',
       fromPerDay: 'per day',
