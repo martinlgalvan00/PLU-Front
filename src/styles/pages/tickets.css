@@ -572,7 +572,7 @@
 }
 
 .tickets-page__event-picker-head span {
-  color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--color-text-muted));
+  color: var(--color-text-muted);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.14em;
@@ -659,7 +659,7 @@
 
 .tickets-page__event-option small {
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.45;
 }
 
@@ -1288,7 +1288,7 @@
 
 [data-theme='light'] .tickets-page__event-option--active,
 [data-theme='light'] .tickets-page__event-option--active:hover {
-  border-color: transparent;
+  border-color: rgba(15, 17, 23, 0.08);
   border-top-color: color-mix(in srgb, var(--plu-gold-600) 65%, transparent);
 }
 
