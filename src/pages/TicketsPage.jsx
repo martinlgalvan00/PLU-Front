@@ -462,23 +462,24 @@ export default function TicketsPage({
                   ? t('pages.ticketsPage.checkoutTitle')
                   : t('pages.ticketsPage.salesPausedTitle')}
               </h2>
-              <p>
+              <p className="tickets-page__checkout-lead">
                 {ticketSalesOpen
                   ? t('pages.ticketsPage.checkoutLead')
                   : t('pages.ticketsPage.salesPausedLead')}
               </p>
             </div>
-            {ticketSalesOpen ? (
-              <p className="tickets-page__trust">
-                <ShieldCheck size={16} aria-hidden />
-                {t('pages.ticketsPage.secureFlow')}
-              </p>
-            ) : null}
+            <div className="tickets-page__checkout-meta">
+              {ticketSalesOpen ? (
+                <p className="tickets-page__trust">
+                  <ShieldCheck size={16} aria-hidden />
+                  {t('pages.ticketsPage.secureFlow')}
+                </p>
+              ) : null}
+              {!visibleCreatedOrder ? (
+                <TicketOrderLookup onLookup={handleLookupTicketOrder} />
+              ) : null}
+            </div>
           </header>
-
-          {!visibleCreatedOrder ? (
-            <TicketOrderLookup onLookup={handleLookupTicketOrder} />
-          ) : null}
 
           <div className="tickets-page__checkout-panel">
             {ticketSalesOpen ? (

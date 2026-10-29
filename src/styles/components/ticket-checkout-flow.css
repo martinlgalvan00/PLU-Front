@@ -29,15 +29,11 @@
 }
 
 .ticket-flow-rail__line {
-  background: var(--color-brand-gold);
-  bottom: 0;
-  height: 1px;
+  height: 0;
   left: 0;
   position: absolute;
-  right: 0;
   transform: scaleX(var(--ticket-flow-fill, 0));
-  transform-origin: left center;
-  transition: transform var(--motion-cinematic, 700ms) var(--ease-cinematic, ease);
+  width: 0;
 }
 
 .ticket-flow-rail__steps {
@@ -58,13 +54,18 @@
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  gap: 10px;
-  letter-spacing: 0.04em;
+  font-size: 14px;
+  font-weight: 550;
+  gap: 8px;
+  letter-spacing: -0.01em;
   min-height: 44px;
   padding: 0;
+  position: relative;
   transition: color var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.ticket-flow-rail__step button:hover {
+  color: var(--color-text-primary);
 }
 
 .ticket-flow-rail__step button:focus-visible {
@@ -74,38 +75,34 @@
 
 .ticket-flow-rail__mark {
   align-items: center;
-  border: 1px solid color-mix(in srgb, var(--color-text-primary) 28%, transparent);
-  border-radius: 50%;
+  color: inherit;
   display: inline-flex;
   flex: 0 0 auto;
-  font-size: 11px;
+  font-family: var(--font-display);
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
-  height: 22px;
+  font-weight: 650;
   justify-content: center;
-  transition:
-    background-color var(--motion-base, 240ms) var(--ease-out, ease),
-    border-color var(--motion-base, 240ms) var(--ease-out, ease),
-    color var(--motion-base, 240ms) var(--ease-out, ease);
-  width: 22px;
+  letter-spacing: -0.03em;
+  line-height: 1;
 }
 
 .ticket-flow-rail__step[data-state='current'] button {
   color: var(--color-text-primary);
 }
 
-.ticket-flow-rail__step[data-state='current'] .ticket-flow-rail__mark {
-  border-color: var(--color-brand-gold);
-  color: var(--color-text-primary);
+.ticket-flow-rail__step[data-state='current'] button::after {
+  background: var(--color-brand-gold);
+  bottom: -14px;
+  content: '';
+  height: 1px;
+  left: 0;
+  position: absolute;
+  right: 0;
 }
 
 .ticket-flow-rail__step[data-state='done'] button {
   color: var(--color-text-primary);
-}
-
-.ticket-flow-rail__step[data-state='done'] .ticket-flow-rail__mark {
-  background: var(--color-brand-gold);
-  border-color: var(--color-brand-gold);
-  color: var(--color-brand-action-text, #14181f);
 }
 
 .ticket-flow-rail__sr {
@@ -130,20 +127,20 @@
 
 .ticket-flow-rail__total span {
   color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-transform: none;
 }
 
 .ticket-flow-rail__total strong {
   animation: ticket-flow-figure var(--motion-base, 240ms) var(--ease-out, ease) both;
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(17px, 2.4vw, 22px);
+  font-size: clamp(20px, 2.4vw, 26px);
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-weight: 650;
+  letter-spacing: -0.04em;
 }
 
 @keyframes ticket-flow-figure {
@@ -347,7 +344,6 @@
     animation: none;
   }
 
-  .ticket-flow-rail__line,
   .ticket-flow-chapter .ticket-purchase__payment-option::before,
   .ticket-flow-chapter .ticket-purchase__submit svg {
     transition: none;
