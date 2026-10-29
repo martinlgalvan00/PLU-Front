@@ -1497,8 +1497,15 @@ export async function checkInRegistration(registrationId, gate) {
   }
 }
 
-export async function getEventCheckinAllowlist(eventSlug) {
-  return apiGet(`/api/tickets/allowlist/${encodeURIComponent(eventSlug)}`)
+export async function getEventCheckinAllowlist(eventSlug, { etag = null } = {}) {
+  const result = await apiGetMeta(`/api/tickets/allowlist/${encodeURIComponent(eventSlug)}`, {
+    etag,
+  })
+  return {
+    notModified: result.notModified,
+    etag: result.etag,
+    data: result.data,
+  }
 }
 
 /**

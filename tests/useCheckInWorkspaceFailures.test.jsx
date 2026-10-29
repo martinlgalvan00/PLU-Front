@@ -25,6 +25,8 @@ vi.mock('../src/services/checkinScanService.js', async (importOriginal) => ({
 vi.mock('../src/lib/offlineCheckinDb.js', () => ({
   enqueueCheckin: (...args) => enqueueCheckin(...args),
   findInAllowlist: (...args) => findInAllowlist(...args),
+  getAllowlist: vi.fn(async () => null),
+  downloadAllowlist: vi.fn(async (_eventSlug, data) => data),
 }))
 vi.mock('../src/services/checkinTelemetry.js', () => ({
   reportScanAttempt: (...args) => reportScanAttempt(...args),

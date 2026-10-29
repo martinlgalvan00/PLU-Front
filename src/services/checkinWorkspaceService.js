@@ -29,6 +29,10 @@ function matchesStatus(row, status) {
   if (status === 'ready') return isReady
   // Subconjunto de "sin habilitar": los que la puerta puede resolver cobrando.
   if (status === 'to_validate') return Boolean(row.pendingOrder)
+  if (status === 'unpaid') return row.status === 'pendiente_pago'
+  if (status === 'blocked') {
+    return row.status !== 'usada' && row.status !== 'pendiente_pago' && !isReady
+  }
   return row.status !== 'usada' && !isReady
 }
 
@@ -60,7 +64,7 @@ export function mapAllowlistToCheckinSources(allowlist, eventSlug) {
     category: entry.category ?? null,
     division: entry.division ?? null,
     status: entry.status,
-    checkedInAt: entry.checkedInAt ?? null,
+    checkedInAt: entry.checkedInAt ?? (entry.checkedInLocally ? 'offline' : null),
   }))
   const athletes = (allowlist?.registrations ?? []).map((entry) => ({
     id: entry.registrationId,
@@ -80,7 +84,7 @@ export function mapAllowlistToCheckinSources(allowlist, eventSlug) {
     credentialLabel: entry.credentialLabel ?? null,
     credentialScopes: entry.credentialScopes ?? [],
     status: entry.status,
-    checkedInAt: entry.checkedInAt ?? null,
+    checkedInAt: entry.checkedInAt ?? (entry.checkedInLocally ? 'offline' : null),
     validFrom: entry.validFrom ?? null,
     validUntil: entry.validUntil ?? null,
   }))
@@ -180,6 +184,7 @@ export function summarizeCheckinRows(rows = [], eventDays = []) {
         row.status !== 'usada' &&
         !(row.status === 'pagada' && (row.type === 'atleta' || ticketIsCurrentlyValid(row))),
     ),
+    unpaid: count((row) => row.status === 'pendiente_pago'),
     // Cuántos de los que no pueden ingresar se destraban cobrando en la puerta.
     toValidate: count((row) => Boolean(row.pendingOrder)),
     athletes: count((row) => row.type === 'atleta'),
@@ -187,6 +192,27 @@ export function summarizeCheckinRows(rows = [], eventDays = []) {
     byDay: Object.fromEntries(
       eventDays.map((day) => [day.dayIndex, count((row) => matchesDay(row, day.dayIndex))]),
     ),
+  }
+}
+
+/**
+ * Control de entradas para la puerta. No mezcla atletas: seguridad tiene que
+ * ver, sobre las entradas del evento, quién puede entrar, quién ya entró,
+ * quién no pagó y quién está paga pero fuera de vigencia.
+ */
+export function summarizeTicketControl(rows = []) {
+  const tickets = rows.filter((row) => row.type === 'espectador')
+  const ready = tickets.filter(
+    (row) => row.status === 'pagada' && ticketIsCurrentlyValid(row),
+  ).length
+  const inside = tickets.filter((row) => row.status === 'usada').length
+  const unpaid = tickets.filter((row) => row.status === 'pendiente_pago').length
+  return {
+    total: tickets.length,
+    ready,
+    inside,
+    unpaid,
+    blocked: tickets.length - ready - inside - unpaid,
   }
 }
 

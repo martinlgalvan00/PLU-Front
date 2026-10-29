@@ -8892,8 +8892,6 @@
 }
 
 .admin-checkin-result--offline {
-  border-color: rgba(237, 176, 90, 0.35);
-  background: rgba(237, 176, 90, 0.08);
   border-style: dashed;
 }
 
@@ -9006,6 +9004,31 @@
 .admin-offline-sync-status__meta--warning {
   color: rgb(237, 176, 90);
   width: 100%;
+}
+
+.admin-offline-sync-status__queue {
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.admin-offline-sync-status__queue-item {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.admin-offline-sync-status__queue-label {
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-offline-sync-status__conflicts-toggle {

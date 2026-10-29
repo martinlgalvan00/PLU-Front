@@ -3,7 +3,7 @@
    ============================================= */
 
 .checkin-app {
-  --checkin-app-header-height: 57px;
+  --checkin-app-header-height: 66px;
   background: var(--admin-canvas);
   color: var(--admin-ink);
   min-height: 100dvh;
@@ -16,7 +16,7 @@
   display: flex;
   gap: 16px;
   justify-content: space-between;
-  padding: 12px clamp(14px, 3vw, 32px);
+  padding: 8px clamp(14px, 3vw, 32px);
   position: sticky;
   top: 0;
   z-index: 30;
@@ -60,10 +60,10 @@
   align-items: center;
   color: var(--admin-brand);
   display: flex;
-  font-size: 8px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: 700;
   gap: 5px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -80,11 +80,11 @@
   color: var(--admin-ink-muted);
   cursor: pointer;
   display: inline-flex;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   gap: 6px;
-  min-height: 34px;
-  padding: 0 10px;
+  min-height: 44px;
+  padding: 0 12px;
 }
 
 .checkin-app__exit:hover {
@@ -164,6 +164,43 @@
   color: var(--admin-brand);
 }
 
+.checkin-app__ticket-control {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--admin-hairline);
+  border-radius: var(--radius-md, 8px);
+  background: var(--admin-surface, transparent);
+}
+
+.checkin-app__ticket-control .checkin-app__metric {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--admin-hairline);
+  cursor: pointer;
+  font: inherit;
+  min-height: 44px;
+  text-align: left;
+}
+
+.checkin-app__ticket-control .checkin-app__metric:last-child {
+  border-right: 0;
+}
+
+.checkin-app__ticket-control .checkin-app__metric.is-active {
+  background: var(--admin-brand-soft);
+}
+
+.checkin-app__metric--inside strong,
+.checkin-app__metric--unpaid strong,
+.checkin-app__metric--blocked strong {
+  color: var(--admin-ink);
+}
+
+.checkin-app__metric--unpaid strong {
+  color: var(--color-warning, var(--plu-gold-400));
+}
+
 .checkin-app__metric--warning strong {
   color: var(--color-warning, var(--plu-gold-400));
 }
@@ -238,6 +275,17 @@
 
 .checkin-app--scan .checkin-app__main {
   padding-top: 12px;
+}
+
+.checkin-app__scan-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.checkin-app__scan-toggle {
+  align-self: flex-start;
 }
 
 .checkin-app__scan-layout {
@@ -633,6 +681,14 @@
     padding-inline: 10px;
   }
 
+  .checkin-app__ticket-control {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .checkin-app__ticket-control .checkin-app__metric:nth-child(2) {
+    border-right: 0;
+  }
+
   .checkin-app__tabs {
     padding-inline: 10px;
     scroll-padding-inline: 10px;
@@ -659,6 +715,10 @@
   .checkin-app *::before,
   .checkin-app *::after {
     scroll-behavior: auto !important;
+  }
+
+  .checkin-app .admin-checkin-result {
+    animation: none;
   }
 }
 
@@ -748,6 +808,116 @@
 .checkin-app .admin-checkin-history--empty .admin-checkin-history__empty-icon,
 .checkin-app .admin-checkin-history--empty .admin-checkin-history__hint {
   display: none;
+}
+
+/* El veredicto es la pieza. Una regla del color del estado, el texto a escala
+   de quien está de pie, y el oro sólo en Ingresar. La ficha no se tiñe: el
+   color dice la decisión, no ambienta la tarjeta. */
+@keyframes checkin-verdict-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.checkin-app .admin-checkin-result {
+  animation: checkin-verdict-in var(--motion-base) var(--ease-out) both;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 12px;
+  border-top-width: 3px;
+  margin: 0;
+  padding: 16px 16px 14px;
+}
+
+.checkin-app .admin-checkin-result--success,
+.checkin-app .admin-checkin-result--warning,
+.checkin-app .admin-checkin-result--danger {
+  background: var(--admin-surface);
+  border-color: var(--admin-hairline);
+}
+
+.checkin-app .admin-checkin-result--success {
+  border-top-color: var(--admin-status-success);
+}
+
+.checkin-app .admin-checkin-result--warning {
+  border-top-color: var(--admin-status-warning);
+}
+
+.checkin-app .admin-checkin-result--danger {
+  border-top-color: var(--admin-status-danger);
+}
+
+.checkin-app .admin-checkin-result--success .admin-checkin-result__header {
+  color: var(--admin-status-success);
+}
+
+.checkin-app .admin-checkin-result--warning .admin-checkin-result__header {
+  color: var(--admin-status-warning);
+}
+
+.checkin-app .admin-checkin-result--danger .admin-checkin-result__header {
+  color: var(--admin-status-danger);
+}
+
+.checkin-app .admin-checkin-result--decision .admin-checkin-result__header {
+  align-items: center;
+  gap: 12px;
+}
+
+.checkin-app .admin-checkin-result--decision .admin-checkin-result__header strong {
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(26px, 5vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.checkin-app .admin-checkin-result--decision .admin-checkin-result__header svg {
+  flex: none;
+  height: 28px;
+  width: 28px;
+}
+
+.checkin-app .admin-checkin-result--offline {
+  background: var(--admin-surface);
+  border-style: dashed;
+  border-top-width: 3px;
+}
+
+.checkin-app .admin-checkin-result__actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.checkin-app .admin-checkin-result__actions .btn--primary {
+  font-size: 16px;
+  min-height: 52px;
+  width: 100%;
+}
+
+.checkin-app .admin-checkin-result__actions .btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--admin-ink-muted);
+  min-height: 44px;
+}
+
+.checkin-app .admin-checkin-result__actions .btn--ghost:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--admin-ink);
+}
+
+.checkin-app .admin-checkin-result__meta dd.admin-checkin-result__credential {
+  font-size: clamp(20px, 3vw, 24px);
 }
 
 /* En la puerta el DNI físico se coteja contra esta ficha: nombre y documento

@@ -107,7 +107,9 @@ export default function CheckInSection({
             isOnline={workspace.offlineSync.isOnline}
             lastDownloadedAt={workspace.offlineSync.lastDownloadedAt}
             lastSyncedAt={workspace.offlineSync.lastSyncedAt}
+            failedCount={workspace.offlineSync.failedCount}
             pendingCount={workspace.offlineSync.pendingCount}
+            queueLog={workspace.offlineSync.queueLog}
             syncIssue={workspace.offlineSync.syncIssue}
             syncNow={workspace.offlineSync.syncNow}
             syncing={workspace.offlineSync.syncing}

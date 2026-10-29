@@ -10,7 +10,8 @@ import {
   assertPaidCheckoutAvailable,
   resolvePaidCheckoutOverride,
 } from '../lib/featureAvailability.js'
-import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
+import { checkinAllowlistCache } from '../lib/checkinAllowlistCache.js'
+import { PRIVATE_REVALIDATE_CACHE, PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
 import { sendPortraitBinary } from '../lib/portraitBinaryCache.js'
 import { resolveEventRegistrationOpensAt } from '../lib/registrationSchedule.js'
 import { touchProofAccessed } from '../modules/payments/paymentProofRetention.js'
@@ -1200,8 +1201,23 @@ export function createTicketRoutes({
   })
   router.get('/allowlist/:eventSlug', ...guard, staffLimiter, async (req, res, next) => {
     try {
-      assertEventSlugScope(req, req.params.eventSlug)
-      res.json(await repo().allowlist(req.params.eventSlug))
+      const eventSlug = req.params.eventSlug
+      assertEventSlugScope(req, eventSlug)
+      const ticketRepo = repo()
+      const revision =
+        typeof ticketRepo.allowlistRevision === 'function'
+          ? await ticketRepo.allowlistRevision(eventSlug)
+          : null
+      const cache = checkinAllowlistCache(eventSlug, revision, req.headers['if-none-match'])
+      if (cache.etag) {
+        res.set('ETag', cache.etag)
+        res.set('Cache-Control', PRIVATE_REVALIDATE_CACHE)
+        if (cache.notModified) {
+          res.status(304).end()
+          return
+        }
+      }
+      res.json(await ticketRepo.allowlist(eventSlug))
     } catch (error) {
       next(error)
     }

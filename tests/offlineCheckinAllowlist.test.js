@@ -51,4 +51,63 @@ describe('allowlist offline de inscripciones', () => {
     expect(registrations.find((item) => item.registrationId === 'r1').checkedInLocally).toBe(true)
     expect(registrations.find((item) => item.registrationId === 'r2').checkedInLocally).toBe(false)
   })
+
+  it('encuentra una entrada por código sin recorrer a mano y no encola dos veces el mismo QR', async () => {
+    await db.downloadAllowlist('pitbull', {
+      tickets: [
+        { qrToken: 'qr-1', ticketCode: 'TCK-1', attendeeName: 'Ana' },
+        { qrToken: 'qr-2', ticketCode: 'TCK-2', attendeeName: 'Luis' },
+      ],
+    })
+
+    expect((await db.findInAllowlist('pitbull', 'tck-2'))?.entry.attendeeName).toBe('Luis')
+
+    const first = await db.enqueueCheckin({
+      eventSlug: 'pitbull',
+      kind: 'ticket',
+      qrToken: 'qr-1',
+    })
+    const second = await db.enqueueCheckin({
+      eventSlug: 'pitbull',
+      kind: 'ticket',
+      qrToken: 'qr-1',
+    })
+
+    expect(second.localId).toBe(first.localId)
+    expect(await db.listPending()).toHaveLength(1)
+    expect((await db.findInAllowlist('pitbull', 'qr-1'))?.entry.checkedInLocally).toBe(true)
+  })
+
+  it('anota el QR en la bitácora y, al enviarlo, queda como registrado', async () => {
+    const entry = await db.enqueueCheckin({
+      eventSlug: 'pitbull',
+      kind: 'ticket',
+      qrToken: 'qr-1',
+      label: 'TCK-1',
+    })
+
+    expect(await db.listDoorSyncStatus()).toEqual([
+      expect.objectContaining({ localId: entry.localId, label: 'TCK-1', status: 'pending' }),
+    ])
+
+    await db.removePending(entry.localId)
+    await db.noteSyncJournal({ ...entry, status: 'synced' })
+
+    expect(await db.listDoorSyncStatus()).toEqual([
+      expect.objectContaining({ localId: entry.localId, label: 'TCK-1', status: 'synced' }),
+    ])
+  })
+
+  it('marcar un ingreso no reescribe la lista entera', async () => {
+    await db.downloadAllowlist('pitbull', {
+      tickets: [{ qrToken: 'qr-1', ticketCode: 'TCK-1', attendeeName: 'Ana' }],
+    })
+    const stored = memory.get('allowlist:pitbull')
+
+    await db.markCheckedInLocally('pitbull', { qrToken: 'qr-1' })
+
+    expect(memory.get('allowlist:pitbull')).toBe(stored)
+    expect(memory.get('local-admits:pitbull').tickets).toEqual(['qr-1'])
+    expect((await db.findInAllowlist('pitbull', 'qr-1'))?.entry.checkedInLocally).toBe(true)
+  })
 })

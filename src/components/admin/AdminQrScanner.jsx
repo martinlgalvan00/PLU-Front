@@ -19,12 +19,15 @@ import { classifyCameraError, isCameraErrorRetryable } from '../../lib/cameraErr
 // media, suficiente para leer un QR a distancia de escaneo normal.
 const FALLBACK_SCAN_WIDTH = 480
 
-// Un QR quieto en el recuadro no necesita 60 intentos de decodificación por
-// segundo (el ritmo de requestAnimationFrame): eso es todo el frame a 480px
-// (getImageData + jsQR) corriendo en el hilo principal en cada tick. ~9 Hz
-// sigue siendo instantáneo para quien escanea y corta ese costo casi un
-// orden de magnitud.
+// Un QR quieto no necesita 60 decodificaciones por segundo. ~9 Hz se siente
+// instantáneo y el temporizador duerme entre intentos, en vez de despertar
+// el hilo en cada frame de la cámara.
 const DECODE_INTERVAL_MS = 110
+
+// 720p alcanza para un QR a distancia de puerta. Sin un tope, el celular
+// entrega 4K y el detector procesa un frame que no mejora la lectura.
+const CAMERA_WIDTH = 1280
+const CAMERA_HEIGHT = 720
 
 const FEEDBACK_STORAGE_KEY = 'plu-checkin-feedback'
 
@@ -163,21 +166,28 @@ export default function AdminQrScanner({
     }
 
     let stream
-    let raf
+    let decodeTimer = 0
     let detector
     let cancelled = false
-    let lastDecodeAt = 0
-    // Canvas fuera de pantalla para el decoder de respaldo (jsQR) -- no
-    // necesita estar en el DOM, solo sirve para extraer ImageData del frame.
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    // El canvas del respaldo (jsQR) se crea recién si el navegador no tiene
+    // BarcodeDetector. Con el detector nativo no hace falta.
+    let canvas
+    let ctx
+
+    function scheduleDecode() {
+      decodeTimer = window.setTimeout(() => {
+        void scanLoop()
+      }, DECODE_INTERVAL_MS)
+    }
 
     function scanFrameWithFallback(video) {
+      if (!canvas) {
+        canvas = document.createElement('canvas')
+        ctx = canvas.getContext('2d', { willReadFrequently: true })
+      }
       const scale = FALLBACK_SCAN_WIDTH / video.videoWidth
       const width = FALLBACK_SCAN_WIDTH
       const height = Math.round(video.videoHeight * scale)
-      // El video no cambia de resolución entre frames -- redimensionar el
-      // canvas en cada tick fuerza una realocación que no hace falta.
       if (canvas.width !== width || canvas.height !== height) {
         canvas.width = width
         canvas.height = height
@@ -187,17 +197,12 @@ export default function AdminQrScanner({
       return jsQR(frame.data, frame.width, frame.height, { inversionAttempts: 'dontInvert' })
     }
 
-    async function scanLoop(timestamp = 0) {
+    async function scanLoop() {
       if (cancelled) return
       if (!videoRef.current || videoRef.current.readyState < 2) {
-        raf = requestAnimationFrame(scanLoop)
+        scheduleDecode()
         return
       }
-      if (timestamp - lastDecodeAt < DECODE_INTERVAL_MS) {
-        raf = requestAnimationFrame(scanLoop)
-        return
-      }
-      lastDecodeAt = timestamp
 
       try {
         if (detector) {
@@ -208,10 +213,10 @@ export default function AdminQrScanner({
           if (result?.data) emitScan(result.data)
         }
       } catch {
-        // Frame inválido — seguimos en el próximo tick.
+        // Frame inválido — seguimos en el próximo intento.
       }
 
-      raf = requestAnimationFrame(scanLoop)
+      if (!cancelled) scheduleDecode()
     }
 
     async function startCamera() {
@@ -234,7 +239,11 @@ export default function AdminQrScanner({
 
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' } },
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: CAMERA_WIDTH },
+            height: { ideal: CAMERA_HEIGHT },
+          },
           audio: false,
         })
         if (cancelled) return
@@ -261,7 +270,7 @@ export default function AdminQrScanner({
     const currentVideo = videoRef.current
     return () => {
       cancelled = true
-      cancelAnimationFrame(raf)
+      window.clearTimeout(decodeTimer)
       trackRef.current = null
       stream?.getTracks().forEach((track) => track.stop())
       if (currentVideo) {

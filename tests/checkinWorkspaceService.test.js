@@ -5,6 +5,7 @@ import {
   formatCheckinRowDay,
   mapAllowlistToCheckinSources,
   summarizeCheckinRows,
+  summarizeTicketControl,
 } from '../src/services/checkinWorkspaceService.js'
 
 const athletes = [
@@ -197,6 +198,34 @@ describe('checkinWorkspaceService', () => {
     expect(summarizeCheckinRows(rows, eventDays)).toMatchObject({ ready: 0, pending: 1 })
     expect(filterCheckinRows(rows, { status: 'ready' })).toHaveLength(0)
     expect(filterCheckinRows(rows, { status: 'pending' })).toHaveLength(1)
+    expect(filterCheckinRows(rows, { status: 'blocked' })).toHaveLength(1)
+  })
+
+  it('separa las entradas que seguridad tiene que controlar', () => {
+    const rows = [
+      { type: 'espectador', status: 'pagada' },
+      { type: 'espectador', status: 'usada' },
+      { type: 'espectador', status: 'pendiente_pago' },
+      {
+        type: 'espectador',
+        status: 'pagada',
+        validFrom: '2000-01-01T03:00:00.000Z',
+        validUntil: '2000-01-02T03:00:00.000Z',
+      },
+      { type: 'atleta', status: 'pendiente_pago' },
+    ]
+
+    expect(summarizeTicketControl(rows)).toEqual({
+      total: 4,
+      ready: 1,
+      inside: 1,
+      unpaid: 1,
+      blocked: 1,
+    })
+    expect(filterCheckinRows(rows, { status: 'unpaid' }).map((row) => row.type)).toEqual([
+      'espectador',
+      'atleta',
+    ])
   })
 })
 

@@ -54,6 +54,7 @@
     "supabase:optimize": "node scripts/optimize-supabase-storage.mjs",
     "email:doctor": "node scripts/email-doctor.mjs",
     "invite:doctor": "node scripts/invite-doctor.mjs",
+    "security:assign-coordinator": "node scripts/assign-security-coordinator.mjs",
     "email:previews": "node scripts/render-email-previews.mjs",
     "share-cards:previews": "node scripts/render-share-card-previews.mjs",
     "mercado-pago:doctor": "node scripts/mercado-pago-doctor.mjs",
@@ -137,6 +138,7 @@
     "supabase": "2.109.1",
     "typescript": "^7.0.2",
     "vite": "^8.1.0",
+    "vite-plugin-pwa": "^2.0.0",
     "vitest": "^5.0.3"
   }
 }

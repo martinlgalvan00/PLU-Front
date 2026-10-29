@@ -129,6 +129,33 @@ describe('AdminOfflineSyncStatus: sesión vencida', () => {
     withI18n(<AdminOfflineSyncStatus {...props} pendingCount={0} syncIssue="auth" />)
     expect(screen.queryByRole('alert')).toBeNull()
   })
+
+  it('sin internet avisa que el ingreso quedó en el teléfono y muestra el QR', () => {
+    withI18n(
+      <AdminOfflineSyncStatus
+        {...props}
+        isOnline={false}
+        pendingCount={1}
+        queueLog={[{ localId: '1', label: 'TCK-1', status: 'pending' }]}
+      />,
+    )
+    expect(screen.getByRole('status').textContent).toMatch(/este teléfono/i)
+    expect(screen.getByText('TCK-1')).toBeTruthy()
+    expect(screen.getByText('En este teléfono')).toBeTruthy()
+  })
+
+  it('al volver la señal se puede ver qué QR ya se registró', () => {
+    withI18n(
+      <AdminOfflineSyncStatus
+        {...props}
+        pendingCount={0}
+        queueLog={[{ localId: '9', label: 'TCK-9', status: 'synced' }]}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /ingresos de este teléfono/i }))
+    expect(screen.getByText('TCK-9')).toBeTruthy()
+    expect(screen.getByText('Registrado')).toBeTruthy()
+  })
 })
 
 describe('CheckInScanResult: ya ingresó', () => {

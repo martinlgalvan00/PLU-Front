@@ -5,7 +5,8 @@ import { useOfflineCheckinSync } from './useOfflineCheckinSync.js'
 import { buildEventTicketAddonReport } from '../lib/ticketAddons.js'
 import { parseCredentialScan } from '../lib/credentialQr.js'
 import { getFeedbackTone, playCheckinFeedback } from '../lib/checkinFeedback.js'
-import { enqueueCheckin, findInAllowlist } from '../lib/offlineCheckinDb.js'
+import { isSnapshotFresh } from '../lib/checkinSyncConfig.js'
+import { enqueueCheckin, findInAllowlist, getAllowlist } from '../lib/offlineCheckinDb.js'
 import { credentialOpensZone } from '../services/securityZoneService.js'
 import { TICKET_VALIDITY_STATUS, ticketValidityStatus } from '../lib/ticketValidity.js'
 import {
@@ -21,7 +22,8 @@ import {
   mapAllowlistToCheckinSources,
   summarizeCheckinRows,
 } from '../services/checkinWorkspaceService.js'
-import { getEventCheckinAllowlist } from '../services/athleteApi.js'
+import { resolveDoorScan } from '../services/checkinScanBudget.js'
+import { downloadAllowlist as refreshCheckinAllowlist } from '../services/offlineCheckinSync.js'
 import { reportScanAttempt } from '../services/checkinTelemetry.js'
 import { classifyCheckinFailure, isRetryableCheckinFailure } from '../services/checkinFailure.js'
 
@@ -40,6 +42,7 @@ export const STATUS_FILTERS = [
   ['all', 'admin.checkin.filterAllStatuses'],
   ['ready', 'admin.checkin.filterReady'],
   ['done', 'admin.checkin.filterDone'],
+  ['unpaid', 'admin.checkin.filterUnpaid'],
   ['pending', 'admin.checkin.filterPending'],
   // Sólo aparece cuando hay algo que cobrar: ver `statusOptions`.
   ['to_validate', 'admin.checkin.filterToValidate'],
@@ -50,6 +53,7 @@ const STATUS_FILTER_COUNT_KEYS = Object.freeze({
   all: 'total',
   ready: 'ready',
   done: 'done',
+  unpaid: 'unpaid',
   pending: 'pending',
   to_validate: 'toValidate',
 })
@@ -235,6 +239,8 @@ export function useCheckInWorkspace({
   // Un QR lento no puede pisar el resultado de uno más nuevo: con dos
   // escaneos seguidos la respuesta tardía mostraba la persona equivocada.
   const scanSeqRef = useRef(0)
+  // El ingreso ya se encoló o se confirmó: una respuesta tardía no lo reabre.
+  const scanSettledRef = useRef(false)
   const [highlightRowId, setHighlightRowId] = useState(null)
   const [scanHistory, setScanHistory] = useState([])
   const [activeHistoryId, setActiveHistoryId] = useState(null)
@@ -242,7 +248,9 @@ export function useCheckInWorkspace({
   const [redeemBusyId, setRedeemBusyId] = useState(null)
   const [redeemError, setRedeemError] = useState('')
   const [allowlistSources, setAllowlistSources] = useState(null)
+  const [localAdmittedIds, setLocalAdmittedIds] = useState(() => new Set())
   const offlineSync = useOfflineCheckinSync(eventSlug)
+  const noteSnapshot = offlineSync.noteSnapshot
   const zoneScope = securityZone?.scope ?? null
 
   function persistFeedbackPrefs(next) {
@@ -286,32 +294,62 @@ export function useCheckInWorkspace({
   useEffect(() => {
     if ((registrations?.length ?? 0) > 0 || !eventSlug) return undefined
     let live = true
-    getEventCheckinAllowlist(eventSlug)
-      .then((data) => {
-        if (live) setAllowlistSources(mapAllowlistToCheckinSources(data, eventSlug))
-      })
-      .catch(() => {
-        if (live) setAllowlistSources(null)
-      })
+
+    async function hydrate() {
+      let cached = null
+      try {
+        cached = await getAllowlist(eventSlug)
+      } catch {
+        cached = null
+      }
+      if (!live) return
+      if (cached) {
+        setAllowlistSources(mapAllowlistToCheckinSources(cached, eventSlug))
+        noteSnapshot?.(cached.downloadedAt)
+      }
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+      if (isSnapshotFresh(cached?.downloadedAt)) return
+      try {
+        const saved = await refreshCheckinAllowlist(eventSlug)
+        if (!live || !saved) return
+        setAllowlistSources(mapAllowlistToCheckinSources(saved, eventSlug))
+        noteSnapshot?.(saved.downloadedAt)
+      } catch {
+        // Sin red o sin permiso de bajarla: queda la foto que ya estaba.
+      }
+    }
+
+    hydrate()
     return () => {
       live = false
     }
-  }, [eventSlug, registrations])
+  }, [eventSlug, noteSnapshot, registrations])
 
-  const allRows = useMemo(
-    () =>
-      buildCheckinRows({
-        athletes: athletes?.length ? athletes : (allowlistSources?.athletes ?? []),
-        payments,
-        registrations: registrations?.length
-          ? registrations
-          : (allowlistSources?.registrations ?? []),
-        tickets: tickets?.length ? tickets : (allowlistSources?.tickets ?? []),
-        eventSlug,
-        ticketTypes,
-      }),
-    [allowlistSources, athletes, eventSlug, payments, registrations, ticketTypes, tickets],
-  )
+  const allRows = useMemo(() => {
+    const rows = buildCheckinRows({
+      athletes: athletes?.length ? athletes : (allowlistSources?.athletes ?? []),
+      payments,
+      registrations: registrations?.length
+        ? registrations
+        : (allowlistSources?.registrations ?? []),
+      tickets: tickets?.length ? tickets : (allowlistSources?.tickets ?? []),
+      eventSlug,
+      ticketTypes,
+    })
+    if (localAdmittedIds.size === 0) return rows
+    return rows.map((row) =>
+      localAdmittedIds.has(row.id) ? { ...row, status: 'usada' } : row,
+    )
+  }, [
+    allowlistSources,
+    athletes,
+    eventSlug,
+    localAdmittedIds,
+    payments,
+    registrations,
+    ticketTypes,
+    tickets,
+  ])
 
   const statusCounts = useMemo(() => summarizeCheckinRows(allRows, eventDays), [allRows, eventDays])
 
@@ -347,7 +385,11 @@ export function useCheckInWorkspace({
       STATUS_FILTERS
         // "Por cobrar" no es un estado permanente de la puerta: sin órdenes
         // abiertas el filtro sería una opción que siempre da cero.
-        .filter(([value]) => value !== 'to_validate' || filteredScopeCounts.toValidate > 0)
+        .filter(([value]) => {
+          if (value === 'to_validate') return filteredScopeCounts.toValidate > 0
+          if (value === 'unpaid') return filteredScopeCounts.unpaid > 0
+          return true
+        })
         .map(([value, key]) => [
           value,
           t(key),
@@ -374,72 +416,100 @@ export function useCheckInWorkspace({
       }
 
       const scanSeq = ++scanSeqRef.current
+      scanSettledRef.current = false
       const isStale = () => scanSeq !== scanSeqRef.current
       setScanBusy(true)
       setScanResult(null)
 
+      let shownOutcome = null
+      const publish = (result, { correct = false } = {}) => {
+        if (isStale() || scanSettledRef.current) return
+        const nextOutcome = result.outcome ?? 'invalid'
+        const sameVerdict = correct && shownOutcome === nextOutcome
+        shownOutcome = nextOutcome
+        setScanResult(result)
+        setRedeemError('')
+        if (sameVerdict) return
+        if (correct) {
+          setScanHistory((current) => {
+            const [latest, ...rest] = current
+            if (!latest || latest.raw !== raw) return current
+            if (latest.outcome === 'queued_offline' || latest.outcome === 'checked_in') return current
+            const next = buildHistoryEntry(result, raw)
+            return [{ ...next, id: latest.id, scannedAt: latest.scannedAt }, ...rest]
+          })
+        } else {
+          prependHistoryEntry(buildHistoryEntry(result, raw))
+        }
+        playCheckinFeedback(nextOutcome, feedbackPrefs)
+        if (result.row?.id) setHighlightRowId(result.row.id)
+        if (result.outcome !== 'session_expired') {
+          reportScanAttempt({
+            eventSlug,
+            kind: result.kind ?? 'unknown',
+            outcome: result.outcome ?? 'invalid',
+            qrToken: result.qrToken ?? null,
+            offline: Boolean(result.offline),
+          })
+        }
+      }
+
+      const publishFailure = (error) => {
+        const failure = classifyCheckinFailure(error)
+        if (isRetryableCheckinFailure(error)) return false
+        console.error('checkin scan:', error)
+        const failedOutcome = failure === 'auth' ? 'session_expired' : 'not_found'
+        publish({ outcome: failedOutcome })
+        return true
+      }
+
       try {
         // `staff` pide la proyección con documento: el workspace solo se
         // renderiza detrás de admin.checkin.execute, que es el mismo permiso
-        // que exige el endpoint.
-        const resolved = await resolveCredentialScan(parsed, {
-          defaultEventSlug: eventSlug,
-          staff: canCheckIn,
-          zoneScope,
+        // que exige el endpoint. Si la red no contesta enseguida, se muestra
+        // la foto local y el servidor corrige después.
+        const decision = await resolveDoorScan({
+          online: typeof navigator === 'undefined' || navigator.onLine !== false,
+          readLocal: () => findInAllowlist(eventSlug, parsed.code),
+          readNetwork: () =>
+            resolveCredentialScan(parsed, {
+              defaultEventSlug: eventSlug,
+              staff: canCheckIn,
+              zoneScope,
+            }),
+          onNetwork: (late) => {
+            if (isStale() || checkInLockRef.current || scanSettledRef.current) return
+            if (late.source === 'network') {
+              publish(late.value, { correct: true })
+              return
+            }
+            publishFailure(late.error)
+          },
         })
         if (isStale()) return
-        const historyEntry = buildHistoryEntry(resolved, raw)
-        setScanResult(resolved)
-        setRedeemError('')
-        prependHistoryEntry(historyEntry)
-        playCheckinFeedback(resolved.outcome ?? 'invalid', feedbackPrefs)
-        if (resolved.row?.id) {
-          setHighlightRowId(resolved.row.id)
-        }
-        reportScanAttempt({
-          eventSlug,
-          kind: resolved.kind ?? 'unknown',
-          outcome: resolved.outcome ?? 'invalid',
-          qrToken: resolved.qrToken ?? null,
-        })
-      } catch (error) {
-        if (isStale()) return
-        const failure = classifyCheckinFailure(error)
-
-        if (isRetryableCheckinFailure(error)) {
-          // Sin red, 429 o 5xx: se valida contra la lista descargada. Si no hay
-          // lista, se dice que el servicio no contestó en vez de acusar al QR.
-          const found = await findInAllowlist(eventSlug, parsed.code)
-          if (isStale()) return
-          const offlineResult = found
-            ? buildOfflineScanResult(found, zoneScope)
-            : { outcome: 'service_unavailable', offline: true }
-          setScanResult(offlineResult)
-          setRedeemError('')
-          prependHistoryEntry(buildHistoryEntry(offlineResult, raw))
-          playCheckinFeedback(offlineResult.outcome ?? 'invalid', feedbackPrefs)
-          if (offlineResult.row?.id) setHighlightRowId(offlineResult.row.id)
-          reportScanAttempt({
-            eventSlug,
-            kind: offlineResult.kind ?? 'unknown',
-            outcome: offlineResult.outcome ?? 'invalid',
-            qrToken: offlineResult.qrToken ?? null,
-            offline: true,
-          })
-          setScanBusy(false)
+        if (decision.source === 'network') {
+          publish(decision.value)
           return
         }
-
-        console.error('checkin scan:', error)
-        const failedOutcome = failure === 'auth' ? 'session_expired' : 'not_found'
-        const failedResult = { outcome: failedOutcome }
-        setScanResult(failedResult)
-        prependHistoryEntry(buildHistoryEntry(failedResult, raw))
-        playCheckinFeedback(failedOutcome, feedbackPrefs)
-        // Una sesión vencida no es un intento sobre ese QR: no ensucia el reporte.
-        if (failure !== 'auth') {
-          reportScanAttempt({ eventSlug, kind: 'unknown', outcome: 'not_found' })
+        if (decision.source === 'network-error') {
+          if (publishFailure(decision.error)) return
+          const found = await findInAllowlist(eventSlug, parsed.code)
+          if (isStale()) return
+          publish(
+            found
+              ? buildOfflineScanResult(found, zoneScope)
+              : { outcome: 'service_unavailable', offline: true },
+          )
+          return
         }
+        publish(
+          decision.local
+            ? buildOfflineScanResult(decision.local, zoneScope)
+            : { outcome: 'service_unavailable', offline: true },
+        )
+      } catch (error) {
+        if (isStale()) return
+        publishFailure(error)
       } finally {
         if (!isStale()) setScanBusy(false)
       }
@@ -457,17 +527,57 @@ export function useCheckInWorkspace({
     }
   }
 
+  function rememberAdmitted(rowId) {
+    if (!rowId) return
+    setLocalAdmittedIds((current) => {
+      if (current.has(rowId)) return current
+      const next = new Set(current)
+      next.add(rowId)
+      return next
+    })
+  }
+
+  async function queueAdmission(row) {
+    await enqueueCheckin({
+      eventSlug,
+      kind: row.type === 'atleta' ? 'registration' : 'ticket',
+      qrToken: row.type === 'atleta' ? null : (row.qrToken ?? null),
+      registrationId: row.type === 'atleta' ? row.registrationId : null,
+      gate: securityZone?.name ?? null,
+      label: row.ticketCode || row.name || null,
+    })
+    rememberAdmitted(row.id)
+    scanSettledRef.current = true
+    playCheckinFeedback('queued_offline', feedbackPrefs)
+    offlineSync.refreshCounts?.()
+  }
+
   async function handleCheckIn(row) {
+    if (!canCheckIn) return
+
     if (row.type === 'atleta') {
-      const result = await onCheckInRegistration(row.registrationId)
-      if (result?.outcome === 'ok') {
-        playCheckinFeedback('checkin_ok', feedbackPrefs)
-        if (activeHistoryId) markHistoryCheckedIn(activeHistoryId)
-        setScanResult((current) =>
-          current?.row?.id === row.id
-            ? { ...current, outcome: 'checked_in', canCheckIn: false, status: 'usada' }
-            : current,
-        )
+      if (!offlineSync.isOnline) {
+        await queueAdmission(row)
+        return
+      }
+      try {
+        const result = await onCheckInRegistration(row.registrationId)
+        if (result?.outcome === 'ok') {
+          rememberAdmitted(row.id)
+          playCheckinFeedback('checkin_ok', feedbackPrefs)
+          if (activeHistoryId) markHistoryCheckedIn(activeHistoryId)
+          setScanResult((current) =>
+            current?.row?.id === row.id
+              ? { ...current, outcome: 'checked_in', canCheckIn: false, status: 'usada' }
+              : current,
+          )
+        }
+      } catch (error) {
+        if (isRetryableCheckinFailure(error)) {
+          await queueAdmission(row)
+          return
+        }
+        console.error('checkin registration:', error)
       }
       return
     }
@@ -507,31 +617,45 @@ export function useCheckInWorkspace({
       return
     }
 
-    const result = await onCheckInTicket(row.qrToken)
-    onRefreshTickets?.(eventSlug)
-
-    if (result?.outcome === 'ok') {
-      playCheckinFeedback('checkin_ok', feedbackPrefs)
-      if (activeHistoryId) markHistoryCheckedIn(activeHistoryId)
-      setScanResult((current) =>
-        current?.row?.id === row.id
-          ? { ...current, outcome: 'checked_in', canCheckIn: false, status: 'usada' }
-          : current,
-      )
+    if (!offlineSync.isOnline) {
+      await queueAdmission(row)
       return
     }
 
-    const uiOutcome = CHECKIN_REJECTION_UI_OUTCOME[result?.outcome]
-    if (uiOutcome) {
-      playCheckinFeedback(uiOutcome, feedbackPrefs)
-      setScanResult({
-        kind: 'ticket',
-        outcome: uiOutcome,
-        canCheckIn: false,
-        qrToken: row.qrToken,
-        status: row.status,
-        row,
-      })
+    try {
+      const result = await onCheckInTicket(row.qrToken)
+      onRefreshTickets?.(eventSlug)
+
+      if (result?.outcome === 'ok') {
+        rememberAdmitted(row.id)
+        playCheckinFeedback('checkin_ok', feedbackPrefs)
+        if (activeHistoryId) markHistoryCheckedIn(activeHistoryId)
+        setScanResult((current) =>
+          current?.row?.id === row.id
+            ? { ...current, outcome: 'checked_in', canCheckIn: false, status: 'usada' }
+            : current,
+        )
+        return
+      }
+
+      const uiOutcome = CHECKIN_REJECTION_UI_OUTCOME[result?.outcome]
+      if (uiOutcome) {
+        playCheckinFeedback(uiOutcome, feedbackPrefs)
+        setScanResult({
+          kind: 'ticket',
+          outcome: uiOutcome,
+          canCheckIn: false,
+          qrToken: row.qrToken,
+          status: row.status,
+          row,
+        })
+      }
+    } catch (error) {
+      if (isRetryableCheckinFailure(error)) {
+        await queueAdmission(row)
+        return
+      }
+      console.error('checkin ticket:', error)
     }
   }
 
@@ -592,7 +716,9 @@ export function useCheckInWorkspace({
       qrToken: scanResult.kind === 'ticket' ? scanResult.qrToken : null,
       registrationId: scanResult.kind === 'registration' ? scanResult.registrationId : null,
       gate: securityZone?.name ?? null,
+      label: scanResult.row?.ticketCode || scanResult.row?.name || null,
     })
+    scanSettledRef.current = true
     playCheckinFeedback('queued_offline', feedbackPrefs)
     if (activeHistoryId) {
       setScanHistory((current) =>
