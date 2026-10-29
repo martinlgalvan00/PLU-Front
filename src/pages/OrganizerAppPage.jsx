@@ -67,6 +67,7 @@ export default function OrganizerAppPage({
 }) {
   const { locale, t } = useI18n()
   const sessionName = authorization?.name ?? ''
+  const isSecurityCoordinator = authorization?.roleKey === 'coordinador_seguridad'
   const canEdit = hasPermission(authorization, 'admin.events.write')
   const teamAccess = canManageEventTeam(authorization)
   const canValidatePayments = hasPermission(authorization, 'admin.payments.approve')
@@ -110,9 +111,29 @@ export default function OrganizerAppPage({
         <div className="organizer-app__brand">
           <BrandLogo variant="argentina" height={28} />
           <div className="organizer-app__brand-copy">
-            <span className="organizer-app__eyebrow">{t('admin.organizer.eyebrow')}</span>
-            <strong>{sessionName || t('admin.organizer.title')}</strong>
-            <span>{roleLabel || t('admin.organizer.roleFallback')}</span>
+            <span className="organizer-app__eyebrow">
+              {t(
+                isSecurityCoordinator
+                  ? 'admin.organizer.coordinatorEyebrow'
+                  : 'admin.organizer.eyebrow',
+              )}
+            </span>
+            <strong>
+              {sessionName ||
+                t(
+                  isSecurityCoordinator
+                    ? 'admin.organizer.coordinatorTitle'
+                    : 'admin.organizer.title',
+                )}
+            </strong>
+            <span>
+              {roleLabel ||
+                t(
+                  isSecurityCoordinator
+                    ? 'admin.organizer.coordinatorRoleFallback'
+                    : 'admin.organizer.roleFallback',
+                )}
+            </span>
           </div>
         </div>
         <div className="organizer-app__top-actions">
@@ -208,8 +229,20 @@ export default function OrganizerAppPage({
         ) : (
           <section className="organizer-home" aria-labelledby="organizer-home-title">
             <header className="organizer-home__head">
-              <h1 id="organizer-home-title">{t('admin.organizer.homeTitle')}</h1>
-              <p>{t('admin.organizer.homeLead')}</p>
+              <h1 id="organizer-home-title">
+                {t(
+                  isSecurityCoordinator
+                    ? 'admin.organizer.coordinatorHomeTitle'
+                    : 'admin.organizer.homeTitle',
+                )}
+              </h1>
+              <p>
+                {t(
+                  isSecurityCoordinator
+                    ? 'admin.organizer.coordinatorHomeLead'
+                    : 'admin.organizer.homeLead',
+                )}
+              </p>
             </header>
             <ul className="organizer-home__list">
               {homeEvents.map((event) => {

@@ -198,6 +198,23 @@ describe('organizador: pestañas del evento', () => {
     expect(screen.queryByRole('button', { name: /publicar|abrir inscripciones|ocultar/i })).toBeNull()
   })
 
+  it('sin cobros ni inscripciones, esas pestañas no aparecen y la puerta sí', () => {
+    renderEvents({
+      canEdit: false,
+      canValidatePayments: false,
+      showRegistrations: false,
+      onApprovePayment: undefined,
+      onApproveTicketOrder: undefined,
+      onRejectPayment: undefined,
+      onRejectTicketOrder: undefined,
+    })
+    const panel = openWorkspace()
+    const rail = tabRail(panel)
+    expect(within(rail).queryByRole('tab', { name: /pagos/i })).toBeNull()
+    expect(within(rail).queryByRole('tab', { name: /inscripciones/i })).toBeNull()
+    expect(within(rail).getByRole('tab', { name: /zonas y seguridad/i })).toBeTruthy()
+  })
+
   it('sin permiso de equipo de puerta, esa pestaña no aparece', () => {
     renderEvents({ canManageEventTeam: false })
     const panel = openWorkspace()

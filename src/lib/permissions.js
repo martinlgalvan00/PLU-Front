@@ -373,8 +373,11 @@ export const ACCESS_ROLE_SCOPE = Object.freeze({
   event: 'event',
 })
 
-/** Claves legacy de roles por evento — solo respaldo si aún no hay `scope`. */
-export const EVENT_SCOPED_ROLE_KEYS = Object.freeze(['organizador_evento'])
+/** Claves de roles por evento — respaldo si la sesión todavía no trae `scope`. */
+export const EVENT_SCOPED_ROLE_KEYS = Object.freeze([
+  'organizador_evento',
+  'coordinador_seguridad',
+])
 
 /**
  * Resuelve el alcance de un rol/sesión: mira `scope` del AccessRole y, si no
@@ -454,6 +457,13 @@ export const DEFAULT_ROLE_PERMISSIONS = Object.freeze({
     'admin.payments.approve',
     'admin.event_team.write',
   ],
+  // Puerta de los eventos asignados: equipo, zonas, lista y escaneo.
+  // Sin cobros, inscripciones ni edición del evento.
+  coordinador_seguridad: [
+    'admin.events.read',
+    'admin.checkin.execute',
+    'admin.event_team.write',
+  ],
 })
 
 export const ACCESS_ROLE_TEMPLATES = Object.freeze([
@@ -511,6 +521,18 @@ export const ACCESS_ROLE_TEMPLATES = Object.freeze([
     isProtected: false,
     assignableByAdmin: true,
     // Como cualquier rol fuera de la jerarquía fija: nivel operativo.
+    hierarchyLevel: 3,
+  },
+  {
+    key: 'coordinador_seguridad',
+    name: 'Coordinador de seguridad',
+    description:
+      'Coordina la puerta de los eventos que se le asignan: equipo, zonas, lista y escaneo.',
+    baseRole: 'operador_plu_arg',
+    scope: ACCESS_ROLE_SCOPE.event,
+    isSystem: true,
+    isProtected: false,
+    assignableByAdmin: true,
     hierarchyLevel: 3,
   },
 ])
@@ -613,9 +635,23 @@ export function hasAnyPermission(subject, permissionKeys) {
 
 export function hasEventScopeAccess(subject, { eventId = null, eventSlug = null } = {}) {
   if (!hasPermission(subject, 'admin.checkin.execute')) return false
+  if (!subject || typeof subject !== 'object') return false
 
-  const assignedEventId = subject && typeof subject === 'object' ? subject.eventId : null
-  const assignedEventSlug = subject && typeof subject === 'object' ? subject.eventSlug : null
+  // Cuenta por evento: la lista de grants es la misma que usa el servidor.
+  // Sin eventId/eventSlug en el usuario (el coordinador vive así) no se
+  // interpreta como "cualquier evento".
+  if (subject.eventScoped || isEventScopedRole(subject)) {
+    const access = Array.isArray(subject.eventAccess) ? subject.eventAccess : []
+    if (!eventId && !eventSlug) return false
+    return access.some(
+      (grant) =>
+        (eventId ? grant.eventId === eventId : true) &&
+        (eventSlug ? grant.eventSlug === eventSlug : true),
+    )
+  }
+
+  const assignedEventId = subject.eventId ?? null
+  const assignedEventSlug = subject.eventSlug ?? null
 
   if (!assignedEventId && !assignedEventSlug) return true
   if (assignedEventId && eventId) return assignedEventId === eventId

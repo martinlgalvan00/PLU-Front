@@ -28,6 +28,17 @@ describe('alta de organizador con eventos', () => {
     expect(result.data.eventIds).toEqual([EVENT_A, EVENT_B])
   })
 
+  it('exige un evento para el coordinador de seguridad', () => {
+    const result = createStaffUserSchema.safeParse({
+      name: 'Agus Coordinador',
+      email: 'agusdisanto99@gmail.com',
+      role: 'coordinador_seguridad',
+      eventIds: [],
+    })
+    expect(result.success).toBe(false)
+    expect(result.error.issues.some((issue) => issue.path.includes('eventIds'))).toBe(true)
+  })
+
   it('no exige eventIds para otros roles', () => {
     const result = createStaffUserSchema.safeParse({
       name: 'Operador PLU',
@@ -51,6 +62,14 @@ describe('cambio de rol a organizador', () => {
       eventIds: [EVENT_A],
     })
     expect(result.success).toBe(true)
+  })
+
+  it('el lote no admite el coordinador de seguridad', () => {
+    const result = bulkUserAccessRoleSchema.safeParse({
+      userIds: ['user-1'],
+      roleKey: 'coordinador_seguridad',
+    })
+    expect(result.success).toBe(false)
   })
 
   it('el lote no admite Organizador', () => {
