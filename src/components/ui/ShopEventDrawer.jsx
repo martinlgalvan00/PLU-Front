@@ -6,14 +6,22 @@ import StatusPill from './StatusPill.jsx'
 import TicketAvailabilityBadge from './TicketAvailabilityBadge.jsx'
 import LaunchInterestForm from './LaunchInterestForm.jsx'
 import TicketTypeOptions from './TicketTypeOptions.jsx'
-import { useTicketAvailability } from '../../hooks/useTicketAvailability.js'
+import {
+  useTicketAvailability,
+  useTicketCheckoutAvailability,
+} from '../../hooks/useTicketAvailability.js'
 import {
   cheapestTicketTypePrice,
-  isTicketSalesEnabled,
+  eventAllowsPublicTickets,
   ticketPricingFromEvent,
 } from '../../lib/eventPricing.js'
 import { money } from '../../lib/format.js'
-import { drawerBackdropTransition, drawerTransition } from '../../motion/variants.ts'
+import {
+  drawerBackdropTransition,
+  drawerTransition,
+  staggerContainer,
+  staggerItem,
+} from '../../motion/variants.ts'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 
 /**
@@ -34,7 +42,11 @@ export default function ShopEventDrawer({
   const { reducedMotion } = useMotionConfig()
   const pricing = ticketPricingFromEvent(event)
   const fromPrice = cheapestTicketTypePrice(pricing)
-  const salesOpen = checkoutOpen && isTicketSalesEnabled(event)
+  const ticketCheckout = useTicketCheckoutAvailability(open ? event?.slug : null)
+  const salesOpen =
+    checkoutOpen &&
+    eventAllowsPublicTickets(event, ticketCheckout.eventTicketsEnabled) &&
+    ticketCheckout.ticketEnabled
   const remaining = useTicketAvailability(open && salesOpen ? event?.slug : null)
   const soldOut = remaining === 0
   const canBuy = salesOpen && !soldOut
@@ -120,37 +132,39 @@ export default function ShopEventDrawer({
               </button>
             </header>
 
-            <div className="shop-event-drawer__body">
-              <section
+            <m.div
+              className="shop-event-drawer__body"
+              {...(reducedMotion
+                ? {}
+                : { initial: 'hidden', animate: 'visible', variants: staggerContainer })}
+            >
+              <m.section
                 className="shop-event-drawer__block shop-event-drawer__block--tickets"
                 aria-labelledby="shop-drawer-tickets-title"
+                {...(reducedMotion ? {} : { variants: staggerItem })}
               >
-                <h3 id="shop-drawer-tickets-title" className="shop-event-drawer__block-title">
-                  {t('pages.shop.drawerTicketsHeading')}
-                </h3>
-
-                <div className="shop-event-drawer__offer">
-                  <div className="shop-event-drawer__offer-main">
-                    {canBuy && fromPrice != null ? (
-                      <>
-                        <span className="shop-event-drawer__price-caption">
-                          {t('pages.shop.fromPriceCaption')}
-                        </span>
-                        <p className="shop-event-drawer__price">{money(fromPrice, locale)}</p>
-                      </>
-                    ) : (
-                      <p className="shop-event-drawer__price shop-event-drawer__price--status">
-                        {priceLabel}
-                      </p>
-                    )}
-                  </div>
-                  {salesOpen ? (
-                    <TicketAvailabilityBadge
-                      remaining={remaining}
-                      className="shop-event-drawer__availability"
-                    />
-                  ) : null}
+                <div className="shop-event-drawer__section-head">
+                  <h3 id="shop-drawer-tickets-title" className="shop-event-drawer__block-title">
+                    {t('pages.shop.drawerTicketsHeading')}
+                  </h3>
+                  {canBuy && fromPrice != null ? (
+                    <p className="shop-event-drawer__from">
+                      <span>{t('pages.shop.fromPriceCaption')}</span>
+                      <strong>{money(fromPrice, locale)}</strong>
+                    </p>
+                  ) : (
+                    <p className="shop-event-drawer__price shop-event-drawer__price--status">
+                      {priceLabel}
+                    </p>
+                  )}
                 </div>
+
+                {salesOpen ? (
+                  <TicketAvailabilityBadge
+                    remaining={remaining}
+                    className="shop-event-drawer__availability"
+                  />
+                ) : null}
 
                 {/* "Desde $X" no distingue una entrada de espectador de una de
                     entrenador, que es justo lo que se viene a mirar acá. Los
@@ -196,18 +210,19 @@ export default function ShopEventDrawer({
                           : t('pages.shop.checkoutSoonNote')}
                       </p>
                       {!checkoutOpen && (
-                        <div style={{ marginTop: '1rem' }}>
+                        <div className="shop-event-drawer__interest">
                           <LaunchInterestForm source="shop_drawer" eventSlug={event.slug} />
                         </div>
                       )}
                     </>
                   )}
                 </div>
-              </section>
+              </m.section>
 
-              <section
+              <m.section
                 className="shop-event-drawer__block shop-event-drawer__block--merch"
                 aria-labelledby="shop-drawer-merch-title"
+                {...(reducedMotion ? {} : { variants: staggerItem })}
               >
                 <div className="shop-event-drawer__merch-head">
                   <h3 id="shop-drawer-merch-title" className="shop-event-drawer__block-title">
@@ -216,8 +231,8 @@ export default function ShopEventDrawer({
                   <span className="shop-event-drawer__soon">{t('pages.shop.merchSoon')}</span>
                 </div>
                 <p className="shop-event-drawer__text">{t('pages.shop.merchText')}</p>
-              </section>
-            </div>
+              </m.section>
+            </m.div>
 
             <footer className="shop-event-drawer__foot">
               <button
