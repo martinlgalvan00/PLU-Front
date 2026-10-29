@@ -847,3 +847,46 @@ describe('categoría de peso en la inscripción', () => {
     }
   })
 })
+
+/**
+ * El bloque "Cómo pagar" de la landing lee esto sin sesión: tiene que decir lo
+ * mismo que el checkout (si no, la página promete un medio que después no está)
+ * y no exponer datos bancarios.
+ */
+describe('cómo pagar, sin sesión (landing)', () => {
+  async function paymentInfo(toggles) {
+    const { target } = buildApp({ toggles })
+    try {
+      const response = await fetch(
+        `${target.url}/api/athletes/public/events/pitbull-classic-2026/payment-info`,
+      )
+      expect(response.status).toBe(200)
+      return await response.json()
+    } finally {
+      await target.close()
+    }
+  }
+
+  it('sin configuración ofrece solo Mercado Pago, como el checkout', async () => {
+    const info = await paymentInfo({})
+    expect(info.channels).toEqual(['mercado_pago'])
+    expect(JSON.stringify(info)).not.toMatch(/alias|cbu|holder/i)
+  })
+
+  it('con la inscripción pausada en la plataforma no ofrece nada', async () => {
+    const info = await paymentInfo({ checkoutEnabled: false })
+    expect(info.registrationEnabled).toBe(false)
+  })
+
+  it('rechaza un identificador de evento mal formado', async () => {
+    const { target } = buildApp()
+    try {
+      const response = await fetch(
+        `${target.url}/api/athletes/public/events/..%2Fadmin/payment-info`,
+      )
+      expect(response.status).toBe(400)
+    } finally {
+      await target.close()
+    }
+  })
+})

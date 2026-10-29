@@ -2,7 +2,6 @@ import { ArrowRight } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getStatusMeta } from '../../lib/status.js'
 import { resolveEventLogo } from '../../lib/eventMark.js'
-import PitbullBrandMark from './PitbullBrandMark.jsx'
 import SpotlightCard from './SpotlightCard.jsx'
 
 const LIVE_STATUSES = new Set(['inscripcion_abierta', 'cupos_limitados'])
@@ -100,52 +99,33 @@ export default function EventCard({
           </p>
         ) : null}
 
-        {isPitbull ? (
-          <>
-            <div className="event-card__brand">
-              <PitbullBrandMark size="sm" label={title} />
-            </div>
-            <h3 className="event-card__title event-card__title--brand visually-hidden">{title}</h3>
-          </>
-        ) : (
-          <div className="event-card__identity">
-            {eventLogo ? (
-              <span className="event-card__mark" aria-hidden="true">
-                <img
-                  src={eventLogo}
-                  alt=""
-                  width={72}
-                  height={72}
-                  loading="lazy"
-                  decoding="async"
-                />
-              </span>
-            ) : null}
-            <h3 className="event-card__title">{title}</h3>
-          </div>
-        )}
+        {/* Mismo lockup para todos los meets: emblema + nombre en texto. El
+            wordmark de Pitbull en la lista medía 22px de alto y no se leía en
+            mobile, y el título real quedaba oculto. */}
+        <div className="event-card__identity">
+          {eventLogo ? (
+            <span className="event-card__mark" aria-hidden="true">
+              <img
+                src={eventLogo}
+                alt=""
+                width={72}
+                height={72}
+                loading="lazy"
+                decoding="async"
+              />
+            </span>
+          ) : null}
+          <h3 className="event-card__title">{title}</h3>
+        </div>
 
-        {isMinimal ? (
-          <p className="event-card__meta">
-            {status ? (
-              <span className="event-card__status event-card__status--inline" data-tone={tone}>
-                {statusLabel}
-              </span>
-            ) : null}
-            {status && hasPlace ? (
-              <span className="event-card__meta-sep" aria-hidden>
-                ·
-              </span>
-            ) : null}
-            {venue ? <span>{venue}</span> : null}
-            {venue && location ? (
-              <span className="event-card__meta-sep" aria-hidden>
-                ·
-              </span>
-            ) : null}
-            {location ? <span>{location}</span> : null}
+        {isMinimal && status ? (
+          <p className="event-card__status" data-tone={tone}>
+            <span className="event-card__status-dot" aria-hidden />
+            {statusLabel}
           </p>
-        ) : hasPlace ? (
+        ) : null}
+
+        {hasPlace ? (
           <p className="event-card__meta">
             {venue ? <span>{venue}</span> : null}
             {venue && location ? (

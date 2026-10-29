@@ -45,7 +45,7 @@ import {
   pushAdminEventCreateRoute,
   pushAdminEventRoute,
 } from '../../lib/adminEventRoute.js'
-import { notifyError, notifySuccess } from '../../lib/adminToast.js'
+import { notifyError, notifySuccess, notifyWarning } from '../../lib/adminToast.js'
 import { formatDayMonth, formatMonthYear } from '../../lib/format.js'
 import { getStatusMeta } from '../../lib/status.js'
 import {
@@ -73,6 +73,7 @@ import {
 } from '../../services/eventPaymentTriage.js'
 
 import '../../styles/pages/admin-events-index.css'
+import { isStoredEventModuleOn } from '../../../shared/eventModules.js'
 
 function isFinishedEvent(event) {
   return event?.status === 'finalizado'
@@ -1065,6 +1066,13 @@ export default function EventsSection({
   const scopedTickets = useEventTickets(selectedEvent?.slug, {
     enabled: eventScoped && Boolean(selectedEvent),
   })
+  // Staff general: `tickets` es la lista de todo el sistema. El Resumen sumaba
+  // recaudación, check-ins y pendientes de todos los eventos en cada consola.
+  const selectedSlug = selectedEvent?.slug ?? null
+  const selectedEventTickets = useMemo(
+    () => (selectedSlug ? tickets.filter((ticket) => ticket.eventSlug === selectedSlug) : []),
+    [tickets, selectedSlug],
+  )
   const paymentsSource = eventScoped
     ? {
         payments: scopedPayments.payments,
@@ -1230,7 +1238,7 @@ export default function EventsSection({
     const nextDraft = buildAdminEventDraft(event)
     setEditorFocus(section)
     setConsoleSection(section)
-    setConsoleChapter(section === 'sales' ? (chapter ?? 'cupo') : chapter)
+    setConsoleChapter(section === 'sales' ? (chapter ?? 'modules') : chapter)
     setDraft(nextDraft)
     setEditorBaselineSignature(getAdminEventDraftSignature(nextDraft))
     setFormOpen(true)
@@ -1294,7 +1302,7 @@ export default function EventsSection({
     if (formOpen && draft.id) {
       setEditorFocus(section)
       setConsoleSection(section)
-      setConsoleChapter(section === 'sales' ? 'cupo' : null)
+      setConsoleChapter(section === 'sales' ? 'modules' : null)
       return
     }
     openEditForm(event, section)
@@ -1457,6 +1465,13 @@ export default function EventsSection({
       return saved
     }
     if (saved?.event?.id) setSelectedId(saved.event.id)
+    // Guardado, pero con algo a medio configurar (p. ej. el cobro): el editor
+    // se vuelve a armar al cerrar el formulario y su propio aviso se perdía.
+    if (saved?.warnings?.length) {
+      notifyWarning(
+        t('admin.sections.events.updatedWithWarning', { message: saved.warnings[0].message }),
+      )
+    }
     setMessage({ tone: 'success', text: t('admin.sections.events.updated') })
     return saved
   }
@@ -1888,6 +1903,18 @@ export default function EventsSection({
                 draft={draft}
                 forcedTab={consoleSection}
                 forcedChapter={consoleChapter}
+                onRequestChapter={(chapter) =>
+                  selectConsoleChapter(selectedEvent, 'sales', chapter)
+                }
+                onRequestWorkspaceSection={(section) =>
+                  selectConsoleSection(selectedEvent, section)
+                }
+                workspaceSections={[
+                  'structure',
+                  ...(teamAccess && isStoredEventModuleOn(selectedEvent, 'door')
+                    ? ['security']
+                    : []),
+                ]}
                 sourceEvent={editingSource}
                 onSetEventRegistrationPrice={onSetEventRegistrationPrice}
                 onClearEventPriceSchedule={onClearEventPriceSchedule}
@@ -1899,7 +1926,7 @@ export default function EventsSection({
                 onRequestSection={(section) => {
                   setEditorFocus(section)
                   setConsoleSection(section)
-                  setConsoleChapter(section === 'sales' ? (consoleChapter ?? 'cupo') : null)
+                  setConsoleChapter(section === 'sales' ? (consoleChapter ?? 'modules') : null)
                 }}
                 onSubmit={handleSubmit}
                 extraDirty={stateDirty}
@@ -1964,6 +1991,9 @@ export default function EventsSection({
             showRegistrations ? (
               <AdminEventRegistrationsPanel
                 athletes={athletes}
+                // El envío masivo es de staff general: la ruta no admite
+                // cuentas por evento.
+                canSendCredentials={canSetRegistrationStatus && !eventScoped}
                 canSetStatus={canSetRegistrationStatus}
                 event={selectedEvent}
                 gatePendingIds={gatePendingIds}
@@ -2055,7 +2085,7 @@ export default function EventsSection({
               onSaveEvent={handleStructureSave}
             />
           }
-          tickets={eventScoped ? scopedTickets : tickets}
+          tickets={eventScoped ? scopedTickets : selectedEventTickets}
         />
         {deleteDialog}
       </>

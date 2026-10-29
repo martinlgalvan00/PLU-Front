@@ -15,6 +15,7 @@ import {
   normalizePaymentChannelOverrides,
   resolveBankTransferDetails,
   resolveEventMercadoPagoReadiness,
+  normalizeBankTransferInput,
   normalizeCashPaymentInput,
   resolveCashPaymentDetails,
   checkEventCashPaymentReady,
@@ -237,8 +238,17 @@ describe('resolveCashPaymentDetails', () => {
     expect(normalizeCashPaymentInput({ place: '  x  ', notes: 'n'.repeat(500) })).toEqual({
       place: 'x',
       notes: 'n'.repeat(400),
+      address: '',
+      hours: '',
+      contact: '',
     })
-    expect(normalizeCashPaymentInput(null)).toEqual({ place: '', notes: '' })
+    expect(normalizeCashPaymentInput(null)).toEqual({
+      place: '',
+      notes: '',
+      address: '',
+      hours: '',
+      contact: '',
+    })
   })
 })
 
@@ -834,5 +844,94 @@ describe('checkEventBankTransferReady', () => {
     const error = bankTransferIssueError(issue)
     expect(error.status).toBe(400)
     expect(error.details.fields).toEqual({ bankTransferProfileId: issue.message })
+  })
+})
+
+describe('normalizeBankTransferInput', () => {
+  it('recorta CUIT y banco junto con alias, CBU y titular', () => {
+    expect(
+      normalizeBankTransferInput({
+        alias: ' plu.alias ',
+        cbu: '1',
+        holder: 'PLU',
+        cuit: ' 30-71234567-8 ',
+        bankName: ' Galicia ',
+      }),
+    ).toEqual({
+      alias: 'plu.alias',
+      cbu: '1',
+      holder: 'PLU',
+      cuit: '30-71234567-8',
+      bankName: 'Galicia',
+    })
+  })
+
+  it('sin datos deja los cinco campos vacíos', () => {
+    expect(normalizeBankTransferInput(null)).toEqual({
+      alias: '',
+      cbu: '',
+      holder: '',
+      cuit: '',
+      bankName: '',
+    })
+  })
+})
+
+describe('resolveBankTransferDetails: CUIT y banco de la cuenta', () => {
+  it('no los agrega si la cuenta no los cargó', () => {
+    expect(
+      resolveBankTransferDetails(
+        null,
+        {},
+        { config: { alias: 'plu.cobros', cbu: '', holder: 'PLU', cuit: ' ', bankName: '' } },
+      ),
+    ).toEqual({ alias: 'plu.cobros', cbu: '', holder: 'PLU' })
+  })
+
+  it('los muestra cuando la cuenta vinculada los tiene', async () => {
+    const { resolveBankTransferDetails } = await import(
+      '../server/modules/payments/eventPaymentProfile.js'
+    )
+    expect(
+      resolveBankTransferDetails(null, {}, {
+        config: { alias: 'plu.cobros', cbu: '', holder: 'PLU', cuit: '30-71234567-8', bankName: 'Galicia' },
+      }),
+    ).toEqual({ alias: 'plu.cobros', cbu: '', holder: 'PLU', cuit: '30-71234567-8', bankName: 'Galicia' })
+  })
+})
+
+describe('resolveCashPaymentDetails: dirección, horario y contacto', () => {
+  it('suma lo que cargó el panel y, sin lugar propio, usa la dirección de la sede', async () => {
+    const { resolveCashPaymentDetails } = await import(
+      '../server/modules/payments/eventPaymentProfile.js'
+    )
+    expect(
+      resolveCashPaymentDetails({
+        venue: 'Virtus Fitness',
+        location: 'Berazategui',
+        venue_address: 'Calle 14 4567, Berazategui',
+        cash_payment_hours: 'Lunes a viernes de 18 a 21',
+        cash_payment_contact: 'Preguntar por Agus',
+      }),
+    ).toEqual({
+      place: 'Virtus Fitness · Berazategui',
+      notes: null,
+      address: 'Calle 14 4567, Berazategui',
+      hours: 'Lunes a viernes de 18 a 21',
+      contact: 'Preguntar por Agus',
+    })
+  })
+
+  it('un lugar propio sin dirección no hereda la de la sede', async () => {
+    const { resolveCashPaymentDetails } = await import(
+      '../server/modules/payments/eventPaymentProfile.js'
+    )
+    expect(
+      resolveCashPaymentDetails({
+        venue: 'Estadio',
+        venue_address: 'Av. Siempre Viva 742',
+        cash_payment_place: 'Gimnasio Pitbull',
+      }),
+    ).toEqual({ place: 'Gimnasio Pitbull', notes: null })
   })
 })

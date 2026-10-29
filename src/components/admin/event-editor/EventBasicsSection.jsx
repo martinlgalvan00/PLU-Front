@@ -2,6 +2,7 @@ import DateTimeLocalInput from '../../ui/DateTimeLocalInput.jsx'
 import { withEventStart } from '../../../services/eventAdminService.js'
 import { FormField } from './parts.jsx'
 import EventOfferingField from './EventOfferingField.jsx'
+import PlaceDirections from '../../ui/PlaceDirections.jsx'
 
 export default function EventBasicsSection({
   activePanelRef,
@@ -156,6 +157,41 @@ export default function EventBasicsSection({
                 disabled={!canEdit}
               />
             </FormField>
+
+            <FormField
+              htmlFor="event-venue-address"
+              label={t('admin.eventEditor.venueAddress')}
+              error={err('venueAddress')}
+              wide
+            >
+              <input
+                id="event-venue-address"
+                name="venueAddress"
+                data-field="venueAddress"
+                maxLength={200}
+                autoComplete="off"
+                value={draft.venueAddress ?? ''}
+                aria-describedby="event-venue-address-hint"
+                aria-invalid={Boolean(err('venueAddress'))}
+                onChange={(event) => patchDraft({ ...draft, venueAddress: event.target.value })}
+                placeholder={t('admin.eventEditor.venueAddressPlaceholder')}
+                disabled={!canEdit}
+              />
+              <small className="admin-event-form__field-hint" id="event-venue-address-hint">
+                {t('admin.eventEditor.venueAddressHint')}
+              </small>
+            </FormField>
+            {/* Para probar que la dirección lleva al lugar correcto. */}
+            {String(draft.venueAddress ?? '').trim() ? (
+              <div className="admin-event-form__field admin-event-form__field--wide">
+                <PlaceDirections
+                  address={draft.venueAddress}
+                  city={draft.location}
+                  compact
+                  name={draft.venue}
+                />
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

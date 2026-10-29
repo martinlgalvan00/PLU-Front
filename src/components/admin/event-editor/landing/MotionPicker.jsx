@@ -13,7 +13,7 @@ export default function MotionPicker({ t, canEdit, motion, onChange }) {
   const text = (key) => t(`admin.eventEditor.${key}`)
 
   return (
-    <div className="admin-landing-motion">
+    <div className="admin-landing-motion admin-landing-look__group">
       <AdminFilterChipGroup
         compact
         disabled={!canEdit}
@@ -23,8 +23,9 @@ export default function MotionPicker({ t, canEdit, motion, onChange }) {
         onChange={onChange}
         options={LANDING_MOTION_PRESETS.map((id) => [id, text(`landingMotion_${id}`)])}
       />
-      <p className="admin-event-form__section-note">{text(`landingMotionHint_${current}`)}</p>
-      <p className="admin-event-form__section-note">{text('landingMotionScope')}</p>
+      <p className="admin-landing-look__hint">
+        {text(`landingMotionHint_${current}`)} {text('landingMotionScope')}
+      </p>
     </div>
   )
 }

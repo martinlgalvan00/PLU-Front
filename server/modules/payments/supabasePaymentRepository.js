@@ -7,6 +7,7 @@ import {
   paymentConceptInputFromOrder,
 } from '../../../src/lib/paymentConcept.js'
 import { mapMercadoPagoStatus } from './paymentWorkflow.js'
+import { maxInstallmentsFor } from '../../../shared/eventModules.js'
 
 function assertResult(result, fallbackMessage) {
   return assertSupabaseResult(result, fallbackMessage)
@@ -30,7 +31,7 @@ export function createSupabasePaymentRepository(
       // título que sale de acá es el que ve el atleta en el resumen de la
       // tarjeta y Finanzas en la app de Mercado Pago.
       .select(
-        '*, athlete:athletes(id, full_name, email, document_id), plan:membership_plans(billing_frequency), membership:memberships(year), registration:event_registrations(id, division, category, event:events(id, title, slug, starts_at, venue, registration_opens_at, mercado_pago_profile_id))',
+        '*, athlete:athletes(id, full_name, email, document_id), plan:membership_plans(billing_frequency), membership:memberships(year), registration:event_registrations(id, division, category, event:events(id, title, slug, starts_at, venue, registration_opens_at, mercado_pago_profile_id, rules))',
       )
       .eq('id', orderId)
       .eq('organization_id', organizationId)
@@ -82,6 +83,12 @@ export function createSupabasePaymentRepository(
               ? data.registration[0]?.event?.mercado_pago_profile_id
               : data.registration?.event?.mercado_pago_profile_id) ?? null),
         mercadoPagoAccountPinned: Boolean(data.mercado_pago_account_pinned_at),
+        // Tope de cuotas del evento (inscripción y combo cobran como
+        // inscripción). Una afiliación sola no tiene evento: sin tope.
+        maxInstallments: maxInstallmentsFor(
+          (Array.isArray(data.registration) ? data.registration[0] : data.registration)?.event,
+          'registration',
+        ),
       }
     }
 
@@ -89,7 +96,7 @@ export function createSupabasePaymentRepository(
       await client
         .from('ticket_orders')
         .select(
-          '*, event:events(id, title, slug, registration_opens_at, mercado_pago_profile_id)',
+          '*, event:events(id, title, slug, registration_opens_at, mercado_pago_profile_id, rules)',
         )
         .eq('id', orderId)
         .eq('organization_id', organizationId)
@@ -127,6 +134,7 @@ export function createSupabasePaymentRepository(
         ? (ticketData.mercado_pago_profile_id ?? null)
         : (ticketData.event?.mercado_pago_profile_id ?? null),
       mercadoPagoAccountPinned: Boolean(ticketData.mercado_pago_account_pinned_at),
+      maxInstallments: maxInstallmentsFor(ticketData.event, 'ticket'),
     }
   }
 

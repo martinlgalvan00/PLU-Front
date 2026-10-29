@@ -121,6 +121,9 @@ describe('organizador: catálogo de cuentas de cobro', () => {
         alias: 'plu.cobros',
         cbu: '0000003100000000000001',
         holder: 'PLU',
+        // Lo mismo que ve el comprador en el checkout: CUIT y banco del titular.
+        cuit: '',
+        bankName: '',
       })
 
       const text = JSON.stringify(result.body)

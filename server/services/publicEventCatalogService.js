@@ -1,3 +1,4 @@
+import { isStoredEventModuleOn } from '../../shared/eventModules.js'
 import { hiddenLandingTakesRegistrations } from '../../shared/registrationSaleState.js'
 
 function firstEmbeddedRow(value) {
@@ -76,7 +77,10 @@ export function sanitizePublicCatalogEvent(row, now = new Date()) {
   const combo = firstEmbeddedRow(row?.comboOffer ?? row?.combo_offer)
   const startsAt = combo?.starts_at ? new Date(combo.starts_at) : null
   const endsAt = combo?.ends_at ? new Date(combo.ends_at) : null
+  // Con el módulo Combo apagado la oferta no se ofrece aunque esté vigente: el
+  // checkout la trataría como disponible y el servidor la rechazaría (409).
   const visible =
+    isStoredEventModuleOn(row, 'combo') &&
     combo?.active === true &&
     combo?.audience === 'public' &&
     !combo?.archived_at &&

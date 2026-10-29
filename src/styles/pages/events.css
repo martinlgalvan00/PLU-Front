@@ -906,13 +906,33 @@
 
 /* ?? PLU reference ? events page ????????????????? */
 
+.events-page--plu-ref {
+  /* Un solo ancho de contenido para el encabezado y el cuerpo. Antes el cuerpo
+     contaba el padding dentro del max-width y el hero no: el título arrancaba
+     en x=64 y la lista en x=127 (1366px), y al revés en 1920. */
+  --events-shell-max: var(--max-width-content);
+  --events-shell-pad: clamp(20px, 5vw, 64px);
+}
+
+.events-page--plu-ref .events-page__hero .plu-page-hero__inner {
+  max-width: calc(var(--events-shell-max) - 2 * var(--events-shell-pad));
+}
+
+/* Hasta 900px el hero usa 20px fijos de gutter (plu-page-hero.css): el cuerpo
+   acompaña, si no en tablet la lista quedaba 18px adentro del título. */
+@media (max-width: 900px) {
+  .events-page--plu-ref {
+    --events-shell-pad: 20px;
+  }
+}
+
 .events-page--plu-ref .events-page__body {
   display: grid;
   gap: clamp(16px, 2.2vw, 24px);
   margin: 0 auto;
-  max-width: var(--max-width-content);
-  /* Toolbar m�s cerca del hero: menos aire superior */
-  padding: clamp(10px, 1.6vw, 18px) clamp(20px, 5vw, 64px) clamp(48px, 7vw, 72px);
+  max-width: var(--events-shell-max);
+  /* Toolbar más cerca del hero: menos aire superior */
+  padding: clamp(10px, 1.6vw, 18px) var(--events-shell-pad) clamp(48px, 7vw, 72px);
 }
 
 /* Hero Eventos: m�s compacto y editorial en notebook */
@@ -1794,10 +1814,13 @@
 
 /* Desktop grande: rebalancear para que no se ?estire? el main */
 @media (min-width: 1440px) {
+  .events-page--plu-ref {
+    --events-shell-max: min(1520px, var(--max-width-content));
+    --events-shell-pad: clamp(40px, 4.5vw, 88px);
+  }
+
   .events-page--plu-ref .events-page__body {
     gap: clamp(28px, 2vw, 40px);
-    max-width: min(1520px, var(--max-width-content));
-    padding-inline: clamp(40px, 4.5vw, 88px);
     padding-bottom: clamp(56px, 5.5vw, 88px);
   }
 
@@ -1814,10 +1837,13 @@
 
 /* Full HD+ / TV: m�s presencia, sidebar m�s ancho, menos vac�o visual */
 @media (min-width: 1920px) {
+  .events-page--plu-ref {
+    --events-shell-max: min(1680px, var(--max-width-content));
+    --events-shell-pad: clamp(56px, 5vw, 112px);
+  }
+
   .events-page--plu-ref .events-page__body {
     gap: clamp(32px, 1.8vw, 44px);
-    max-width: min(1680px, var(--max-width-content));
-    padding-inline: clamp(56px, 5vw, 112px);
     padding-bottom: clamp(72px, 6vw, 104px);
   }
 
@@ -1891,7 +1917,10 @@
     display: inline;
   }
 
-  .events-page--plu-ref .events-page__count {
+  /* Con la clase del divisor la regla general (más abajo, misma
+     especificidad) volvía a dibujar el filete vertical en mobile. */
+  .events-page--plu-ref .events-page__count,
+  .events-page--plu-ref .events-page__count.plu-meta-chip--divider {
     align-self: flex-start;
     border-left: none;
     margin-left: 0;
@@ -2181,17 +2210,15 @@
   border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 6%, transparent);
   border-radius: 0;
   box-shadow: none;
-  gap: 18px 24px;
-  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 16px 22px;
+  grid-template-columns: 84px minmax(0, 1fr) auto;
   min-height: 0;
-  padding: 18px 2px 18px 0;
+  padding: 22px 4px 22px 16px;
   position: relative;
   transform: none;
   transition:
     background-color var(--motion-fast, 160ms) var(--ease-out, ease),
-    border-color var(--motion-fast, 160ms) var(--ease-out, ease),
-    padding-left var(--motion-fast, 160ms) var(--ease-out, ease),
-    scale var(--motion-fast, 160ms) var(--ease-out, ease);
+    border-color var(--motion-fast, 160ms) var(--ease-out, ease);
 }
 
 .events-page--list-first .events-list--minimal .event-card::before {
@@ -2212,14 +2239,14 @@
 
 .events-page--list-first .events-list--minimal .event-card:hover,
 .events-page--list-first .events-list--minimal .event-card--selected {
-  background: transparent;
+  background: color-mix(in oklab, var(--institution-gold, var(--color-brand-gold)) 5%, transparent);
   border-bottom-color: color-mix(in oklab, var(--color-text-primary) 10%, transparent);
   box-shadow: none;
-  padding-left: 12px;
   transform: none;
 }
 
 .events-page--list-first .events-list--minimal .event-card--selected {
+  background: color-mix(in oklab, var(--institution-gold, var(--color-brand-gold)) 8%, transparent);
   border-bottom-color: color-mix(
     in oklab,
     var(--institution-gold, var(--color-brand-gold)) 28%,
@@ -2266,10 +2293,12 @@
 .events-page--list-first .events-list--minimal .event-card__day {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(1.55rem, 2.2vw, 1.85rem);
+  font-size: clamp(1.6rem, 2.15vw, 1.9rem);
+  font-variant-numeric: tabular-nums;
   font-weight: 650;
   letter-spacing: -0.06em;
   line-height: 0.88;
+  white-space: nowrap;
 }
 
 .events-page--list-first .events-list--minimal .event-card__month {
@@ -2304,33 +2333,16 @@
   margin: 0;
 }
 
-.events-page--list-first .events-list--minimal .event-card--pitbull .event-card__brand {
-  align-items: center;
-  display: flex;
-  margin: 0;
-  max-width: min(220px, 100%);
-  min-height: 0;
+.events-page--list-first .events-list--minimal .event-card--selected .event-card__title {
+  font-weight: 700;
 }
 
-.events-page--list-first .events-list--minimal .event-card--pitbull .pitbull-brand-mark--sm {
-  gap: 8px;
-}
-
-.events-page--list-first
-  .events-list--minimal
-  .event-card--pitbull
-  .pitbull-brand-mark--sm
-  .pitbull-brand-mark__emblem {
-  height: 28px;
-}
-
-.events-page--list-first
-  .events-list--minimal
-  .event-card--pitbull
-  .pitbull-brand-mark--sm
-  .pitbull-brand-mark__wordmark {
-  height: 22px;
-  max-width: min(44vw, 160px);
+.events-page--list-first .events-list--minimal .event-card__mark {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  height: 32px;
+  width: 32px;
 }
 
 .events-page--list-first .events-list--minimal .event-card__meta {
@@ -2349,31 +2361,23 @@
   opacity: 0.45;
 }
 
-.events-page--list-first .events-list--minimal .event-card__status--inline {
-  color: var(--color-text-muted);
-  display: inline;
-  font-size: inherit;
-  font-weight: 500;
+.events-page--list-first .events-list--minimal .event-card__status {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.01em;
+  line-height: 1.3;
   margin: 0;
   text-transform: none;
 }
 
-.events-page--list-first .events-list--minimal .event-card__status--inline[data-tone='success'] {
+.events-page--list-first .events-list--minimal .event-card__status[data-tone='success'] {
   color: color-mix(in srgb, var(--color-brand-celeste, #4aa3c7) 68%, var(--color-text-primary));
 }
 
-.events-page--list-first .events-list--minimal .event-card__action--tickets {
-  color: var(--institution-gold, var(--color-brand-gold));
-}
-
-.events-page--list-first .events-list--minimal .event-card__action--tickets:hover,
-.events-page--list-first .events-list--minimal .event-card__action--tickets:focus-visible {
-  color: color-mix(in oklab, var(--institution-gold, var(--color-brand-gold)) 82%, white);
-}
-
-.events-page--list-first .events-list--minimal .event-card__status--inline[data-tone='warning'] {
-  color: color-mix(in srgb, var(--color-brand-gold, #c9a227) 48%, var(--color-text-muted));
+.events-page--list-first .events-list--minimal .event-card__status[data-tone='warning'],
+.events-page--list-first .events-list--minimal .event-card__status[data-tone='info'] {
+  color: color-mix(in srgb, var(--color-brand-gold, #c9a227) 42%, var(--color-text-secondary));
 }
 
 .events-page--list-first .events-list--minimal .event-card__action,
@@ -2395,6 +2399,12 @@
   transition:
     color var(--motion-fast, 160ms) var(--ease-out, ease),
     opacity var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+/* Inscribirme / Comprar entradas: acción principal de la fila, a tinta plena. */
+.events-page--list-first .events-list--minimal .event-card__action--live {
+  color: var(--color-text-primary);
+  opacity: 1;
 }
 
 .events-page--list-first .events-list--minimal .event-card__action:hover,
@@ -2432,7 +2442,12 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .events-page--list-first .events-list--minimal .event-card__action--editorial {
+  /* Solo las acciones de consulta se revelan al pasar. "Inscribirme" o
+     "Comprar entradas" (`--live`) quedaban invisibles en toda fila no
+     seleccionada: el evento con inscripción abierta no mostraba su botón. */
+  .events-page--list-first
+    .events-list--minimal
+    .event-card__action--editorial:not(.event-card__action--live) {
     opacity: 0;
   }
 
@@ -2465,27 +2480,22 @@
   .events-page--list-first .events-list--minimal .event-card,
   .events-page--list-first .events-list--minimal .event-card--minimal {
     align-items: start;
-    gap: 12px 14px;
-    grid-template-columns: 52px minmax(0, 1fr);
-    padding: 16px 0;
-  }
-
-  .events-page--list-first .events-list--minimal .event-card:hover,
-  .events-page--list-first .events-list--minimal .event-card--selected {
-    padding-left: 10px;
+    gap: 10px 14px;
+    grid-template-columns: 72px minmax(0, 1fr);
+    padding: 18px 0 18px 12px;
   }
 
   .events-page--list-first .events-list--minimal .event-card__action,
   .events-page--list-first .events-list--minimal .event-card__action--editorial {
     grid-column: 2;
     justify-self: start;
-    min-height: 36px;
+    min-height: 44px;
     opacity: 1;
     padding: 2px 0 0;
   }
 
   .events-page--list-first .events-list--minimal .event-card__day {
-    font-size: 1.4rem;
+    font-size: 1.45rem;
   }
 
   .events-page--list-first .events-list--minimal .event-card__meta {
@@ -2505,7 +2515,9 @@
     transition: none;
   }
 
-  .events-page--list-first .events-list--minimal .event-card__action--editorial {
+  .events-page--list-first
+    .events-list--minimal
+    .event-card__action--editorial:not(.event-card__action--live) {
     opacity: 1;
   }
 }

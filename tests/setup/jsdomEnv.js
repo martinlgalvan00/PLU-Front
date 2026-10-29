@@ -1,6 +1,10 @@
 // `globals` está apagado en vitest.config.js: los hooks se importan, no se
 // asumen en el scope.
 import { beforeEach } from 'vitest'
+import { registerAdminMessages } from '../../src/i18n/adminMessages.js'
+import adminEs from '../../src/i18n/locales/admin.es.js'
+import adminEn from '../../src/i18n/locales/admin.en.js'
+import { resetMemoryCaches } from '../../src/lib/memoryCaches.js'
 
 // jsdom no implementa ResizeObserver. Los componentes de antd (Table, Menu
 // colapsable, Select) lo usan internamente para medir su propio tamaño, y
@@ -66,4 +70,18 @@ beforeEach(async () => {
   } catch {
     // Sin módulo de server disponible no hay caché que vaciar.
   }
+})
+
+// Los textos del panel se cargan aparte del bundle público (adminMessages.js).
+// En los tests se registran de entrada: los componentes del panel se montan
+// sin pasar por la ruta que los pide.
+
+registerAdminMessages('es', adminEs)
+registerAdminMessages('en', adminEn)
+
+// Las cuentas de cobro se cachean un minuto entre pantallas: cada test arranca
+// sin caché para que sus propios dobles de red manden. El registro no importa
+// ningún servicio, así que no adelanta la carga de `api.js` a los `vi.doMock`.
+beforeEach(() => {
+  resetMemoryCaches()
 })

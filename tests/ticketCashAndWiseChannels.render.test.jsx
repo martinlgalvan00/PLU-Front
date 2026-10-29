@@ -76,7 +76,7 @@ describe('medios de pago de la compra de entradas', () => {
         tickets: [],
       },
     })
-    expect(screen.getByText('Dónde pagar')).toBeTruthy()
+    expect(screen.getByText('Dónde pagar en efectivo')).toBeTruthy()
     expect(screen.getByText('Virtus Fitness · Berazategui')).toBeTruthy()
     expect(screen.queryByText(/Pitbull Gym/)).toBeNull()
     // Sin la demora de una transferencia: el efectivo se acredita en caja.
@@ -171,14 +171,14 @@ describe('instrucciones posteriores a la compra en efectivo', () => {
   it('no pide comprobante: el cobro fue en caja y no genera archivo', () => {
     renderSection({ cashEnabled: true, createdOrder: cashOrder })
     expect(screen.queryByText('Comprobante de pago')).toBeNull()
-    expect(screen.getByText('Dónde pagar')).toBeTruthy()
+    expect(screen.getByText('Dónde pagar en efectivo')).toBeTruthy()
   })
 
   it('la transferencia sí lo sigue pidiendo', () => {
     renderSection({
       createdOrder: { ...cashOrder, manualPaymentChannel: 'bank_transfer' },
     })
-    expect(screen.queryByText('Dónde pagar')).toBeNull()
+    expect(screen.queryByText('Dónde pagar en efectivo')).toBeNull()
     expect(document.querySelector('.ticket-purchase__proof-upload')).not.toBeNull()
   })
 })

@@ -1,6 +1,10 @@
 import { DEFAULT_EVENT_PRICING } from '../../../lib/eventPricing.js'
 import { normalizeEventLanding, syncLandingSlotsFromPublicCopy } from '../../../lib/eventLanding.js'
 import { normalizeEventPublicSurface } from '../../../lib/eventPublicSurface.js'
+import {
+  normalizeEventModules,
+  normalizeEventPaymentPolicy,
+} from '../../../../shared/eventModules.js'
 
 /** Parches puros sobre el borrador del evento: devuelven un borrador nuevo. */
 
@@ -80,4 +84,29 @@ export function patchDraftLandingBlocks(draft, landing, blocks, surfaceChange = 
   return surfaceChange?.key
     ? patchPublicSurface(next, surfaceChange.key, surfaceChange.visible)
     : next
+}
+
+/**
+ * Prende o apaga un módulo en el borrador, sobre el campo que ya lo gobernaba.
+ * Ver la tabla de `shared/eventModules.js`: no hay un segundo interruptor.
+ */
+export function setEventModule(draft, key, on) {
+  switch (key) {
+    case 'registration':
+      return { ...draft, salesIntent: on ? 'charge' : 'announce' }
+    case 'tickets':
+      return updatePricingField(draft, 'ticketsEnabled', on)
+    case 'schedule':
+      return patchPublicSurface(draft, 'schedule', on)
+    default:
+      return { ...draft, modules: { ...normalizeEventModules(draft.modules), [key]: on } }
+  }
+}
+
+export function setEventInstallmentCap(draft, concept, cap) {
+  const policy = normalizeEventPaymentPolicy(draft.paymentPolicy)
+  return {
+    ...draft,
+    paymentPolicy: { ...policy, [concept]: { maxInstallments: cap } },
+  }
 }

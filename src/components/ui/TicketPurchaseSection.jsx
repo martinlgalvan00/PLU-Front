@@ -15,6 +15,8 @@ import {
 } from 'lucide-react'
 import Button from './Button.jsx'
 import CardPreviewModal from './CardPreviewModal.jsx'
+import CashPaymentPlace from './CashPaymentPlace.jsx'
+import CopyButton from './CopyButton.jsx'
 import ConfirmationSeal from './ConfirmationSeal.jsx'
 import FormSection from './FormSection.jsx'
 import { Field, Select } from './FormFields.jsx'
@@ -28,11 +30,6 @@ import { env } from '../../config/env.js'
 import { getFormOptions } from '../../lib/formOptions.js'
 import { money } from '../../lib/format.js'
 import { toggleAttendeeAddon as applyAttendeeAddonToggle } from '../../lib/ticketAddons.js'
-
-function transferField(accountDetails, envValue, key) {
-  const raw = accountDetails ? accountDetails[key] : envValue
-  return String(raw ?? '').trim()
-}
 import { groupCredentialsByBundle } from '../../lib/ticketCredentials.js'
 import { TICKETS_PATH } from '../../lib/ticketsRoute.js'
 import { isTicketTypeChannelOpen } from '../../lib/ticketTypePaymentChannels.js'
@@ -42,12 +39,39 @@ import { resolveTicketCheckoutProgress } from '../../services/ticketCheckoutProg
 import { buildTicketPaymentPriceLabels } from '../../lib/ticketPaymentMethods.js'
 import { formatWisePrice } from '../../services/checkoutPricing.js'
 import { resolveTicketOrderWisePricing } from '../../../shared/ticketWisePricing.js'
+import { maxInstallmentsFor } from '../../../shared/eventModules.js'
 import {
   buildCardFilename,
   downloadCard,
   generateEventCard,
   preloadEventCardCapture,
 } from '../../services/eventCardService.js'
+
+function transferField(accountDetails, envValue, key) {
+  const raw = accountDetails ? accountDetails[key] : envValue
+  return String(raw ?? '').trim()
+}
+
+/**
+ * Un dato de la transferencia con su botón de copiar. Sin valor: el texto de
+ * respaldo ("Solicitar a administración") o nada si no hay respaldo.
+ */
+function CopyableRow({ label, value, fallback = '', copyable = true }) {
+  if (!value && !fallback) return null
+  return (
+    <div>
+      <dt>{label}</dt>
+      {value ? (
+        <dd className="ticket-purchase__copyable">
+          <span>{value}</span>
+          {copyable ? <CopyButton field={label} value={value} /> : null}
+        </dd>
+      ) : (
+        <dd>{fallback}</dd>
+      )}
+    </div>
+  )
+}
 
 /**
  * Espera a que las imágenes dentro del nodo (QR, logo) terminen de cargar
@@ -1090,7 +1114,10 @@ export default function TicketPurchaseSection({
             <p className="ticket-purchase__payment-note ticket-purchase__payment-note--auto">
               {t('pages.tickets.paymentMpPending')}
             </p>
-            <MercadoPagoEmbeddedCheckout order={visibleOrder} />
+            <MercadoPagoEmbeddedCheckout
+              maxInstallments={maxInstallmentsFor(event, 'ticket')}
+              order={visibleOrder}
+            />
           </>
         ) : isManualTicketPayment(visibleOrder.paymentMethod) &&
           visibleOrder.status !== 'aprobado' ? (
@@ -1107,20 +1134,17 @@ export default function TicketPurchaseSection({
             {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? null : (
               <p className="ticket-purchase__payment-note">{t('pages.tickets.transferQrDelay')}</p>
             )}
+            {/* Lugar del efectivo: lo carga el panel por evento; sin eso, la
+                sede. Nunca un lugar fijo. Con dirección, horario y Cómo llegar. */}
+            {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? (
+              <CashPaymentPlace
+                cashPayment={cashPayment}
+                event={event}
+                fallback={t('pages.tickets.cashWhereFallback')}
+              />
+            ) : null}
             <dl className="ticket-purchase__transfer-data">
-              {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? (
-                <div>
-                  <dt>{t('pages.tickets.cashWhereLabel')}</dt>
-                  {/* Lo carga el panel por evento; sin eso, la sede del evento.
-                      Nunca un lugar fijo. */}
-                  <dd>
-                    {cashPayment?.place ||
-                      [event?.venue, event?.location].filter(Boolean).join(' · ') ||
-                      t('pages.tickets.cashWhereFallback')}
-                  </dd>
-                  {cashPayment?.notes ? <dd>{cashPayment.notes}</dd> : null}
-                </div>
-              ) : visibleOrder.manualPaymentChannel === 'wise_transfer' ? (
+              {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? null : visibleOrder.manualPaymentChannel === 'wise_transfer' ? (
                 <>
                   <div>
                     <dt>{t('account.membership.transferHolder')}</dt>
@@ -1161,39 +1185,50 @@ export default function TicketPurchaseSection({
                 </>
               ) : (
                 <>
-                  <div>
-                    <dt>{t('account.membership.transferAlias')}</dt>
-                    <dd>
-                      {transferField(accountDetails, env.payments.transferAlias, 'alias') ||
-                        t('account.membership.transferAskAdmin')}
-                    </dd>
-                  </div>
+                  <CopyableRow
+                    label={t('account.membership.transferAlias')}
+                    value={transferField(accountDetails, env.payments.transferAlias, 'alias')}
+                    fallback={t('account.membership.transferAskAdmin')}
+                  />
                   <div>
                     <dt>{t('account.membership.transferAccount')}</dt>
-                    <dd>{t('account.membership.transferAccountValue')}</dd>
-                  </div>
-                  {transferField(accountDetails, env.payments.transferCbu, 'cbu') ? (
-                    <div>
-                      <dt>{t('account.membership.transferCbu')}</dt>
-                      <dd>{transferField(accountDetails, env.payments.transferCbu, 'cbu')}</dd>
-                    </div>
-                  ) : null}
-                  <div>
-                    <dt>{t('account.membership.transferHolder')}</dt>
+                    {/* El banco real de la cuenta; "Mercado Pago" quedaba fijo
+                        aunque el alias fuera de un banco. */}
                     <dd>
-                      {transferField(accountDetails, env.payments.transferHolder, 'holder') ||
-                        t('account.membership.transferAskAdmin')}
+                      {transferField(accountDetails, '', 'bankName') ||
+                        t('account.membership.transferAccountValue')}
                     </dd>
                   </div>
+                  <CopyableRow
+                    label={t('account.membership.transferCbu')}
+                    value={transferField(accountDetails, env.payments.transferCbu, 'cbu')}
+                  />
+                  <CopyableRow
+                    label={t('account.membership.transferHolder')}
+                    value={transferField(accountDetails, env.payments.transferHolder, 'holder')}
+                    fallback={t('account.membership.transferAskAdmin')}
+                    copyable={false}
+                  />
+                  <CopyableRow
+                    label={t('account.membership.transferCuit')}
+                    value={transferField(accountDetails, '', 'cuit')}
+                  />
                 </>
               )}
-              <div>
-                <dt>{t('account.membership.transferReference')}</dt>
-                <dd>{visibleOrder.reference}</dd>
-              </div>
+              <CopyableRow
+                label={t('account.membership.transferReference')}
+                value={visibleOrder.reference}
+              />
               <div>
                 <dt>{t('account.membership.transferAmount')}</dt>
-                <dd>{money(visibleOrder.amount, locale, visibleOrder.currency)}</dd>
+                <dd className="ticket-purchase__copyable">
+                  <span>{money(visibleOrder.amount, locale, visibleOrder.currency)}</span>
+                  {/* Se copia el número limpio: el home banking no acepta "$" ni puntos. */}
+                  <CopyButton
+                    field={t('account.membership.transferAmount')}
+                    value={String(visibleOrder.amount)}
+                  />
+                </dd>
               </div>
             </dl>
             <p className="ticket-purchase__transfer-warning" role="note">

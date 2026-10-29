@@ -508,7 +508,7 @@ export function createSupabaseAthleteRepository(
       // Lecturas opcionales: columnas de migraciones que pueden no haber
       // corrido todavía. Sin ellas el checkout sigue, con el precio Wise vacío
       // y el efectivo cobrado en la sede del evento.
-      const [wiseResult, cashResult, freezeResult, rulesResult] = await Promise.all([
+      const [wiseResult, cashResult, freezeResult, rulesResult, placesResult] = await Promise.all([
         client.from('events').select('wise_price').eq('id', event.id).maybeSingle(),
         client
           .from('events')
@@ -518,7 +518,14 @@ export function createSupabaseAthleteRepository(
         client.from('events').select('roster_frozen_at').eq('id', event.id).maybeSingle(),
         // `rules.offering`: qué ofrece el evento. Sin lectura = ofrece todo.
         client.from('events').select('rules').eq('id', event.id).maybeSingle(),
+        // Direcciones para Maps/Waze (20270102110000).
+        client
+          .from('events')
+          .select('venue_address, cash_payment_address, cash_payment_hours, cash_payment_contact')
+          .eq('id', event.id)
+          .maybeSingle(),
       ])
+      const places = placesResult?.error ? {} : (placesResult?.data ?? {})
       return {
         ...event,
         rules: rulesResult.error ? null : (rulesResult.data?.rules ?? null),
@@ -526,6 +533,10 @@ export function createSupabaseAthleteRepository(
         cash_payment_place: cashResult.error ? null : (cashResult.data?.cash_payment_place ?? null),
         cash_payment_notes: cashResult.error ? null : (cashResult.data?.cash_payment_notes ?? null),
         roster_frozen_at: freezeResult.error ? null : (freezeResult.data?.roster_frozen_at ?? null),
+        venue_address: places.venue_address ?? null,
+        cash_payment_address: places.cash_payment_address ?? null,
+        cash_payment_hours: places.cash_payment_hours ?? null,
+        cash_payment_contact: places.cash_payment_contact ?? null,
       }
     },
     // Precio vigente del combo (afiliación + inscripción) para el preview de

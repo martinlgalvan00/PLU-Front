@@ -434,7 +434,7 @@ describe('EventsSection — página del evento', () => {
     expect(col.querySelector('.admin-event-form__ticket-config')).toBeNull()
   })
 
-  it('divide Entradas en Cupo, Precios, Entradas y Cobro, un capítulo a la vez', () => {
+  it('divide Venta en Módulos, Cupo, Precios, Entradas y Cobro, un capítulo a la vez', () => {
     renderEvents()
     const panel = workspace()
     expect(within(tabRail(panel)).queryByRole('group', { name: /capítulos/i })).toBeNull()
@@ -448,16 +448,20 @@ describe('EventsSection — página del evento', () => {
     expect(
       within(tabRail(after)).getByRole('tab', { name: /^venta$/i }).getAttribute('aria-expanded'),
     ).toBe('true')
+    expect(within(subnav).getByRole('button', { name: /^módulos$/i })).toBeTruthy()
     expect(within(subnav).getByRole('button', { name: /^cupo$/i })).toBeTruthy()
     expect(within(subnav).getByRole('button', { name: /^precios$/i })).toBeTruthy()
     expect(within(subnav).getByRole('button', { name: /^entradas$/i })).toBeTruthy()
     expect(within(subnav).getByRole('button', { name: /^cobro$/i })).toBeTruthy()
 
+    expect(within(chapters).getByRole('tab', { name: /módulos/i })).toBeTruthy()
     expect(within(chapters).getByRole('tab', { name: /cupo/i })).toBeTruthy()
     expect(within(chapters).getByRole('tab', { name: /precios/i })).toBeTruthy()
     expect(within(chapters).getByRole('tab', { name: /entradas/i })).toBeTruthy()
     expect(within(chapters).getByRole('tab', { name: /cobro/i })).toBeTruthy()
-    expect(col.querySelector('.admin-event-form__lane--cupo').hidden).toBe(false)
+    // Venta abre en Módulos: la vista de conjunto de qué se vende y cómo se cobra.
+    expect(col.querySelector('.admin-event-form__lane--modules').hidden).toBe(false)
+    expect(col.querySelector('.admin-event-form__lane--cupo').hidden).toBe(true)
     expect(col.querySelector('.admin-event-form__lane--prices').hidden).toBe(true)
     expect(col.querySelector('.admin-event-form__lane--tickets').hidden).toBe(true)
     expect(col.querySelector('.admin-event-form__lane--payment').hidden).toBe(true)
@@ -479,7 +483,8 @@ describe('EventsSection — página del evento', () => {
 
   it('en Cupo deja publicar u ocultar la ocupación del sitio', () => {
     renderEvents()
-    openTab(workspace(), /^venta$/i)
+    const panel = openTab(workspace(), /^venta$/i)
+    fireEvent.click(within(chaptersRail(panel)).getByRole('tab', { name: /cupo/i }))
     const cupo = mainCol().querySelector('.admin-event-form__lane--cupo')
     const toggle = cupo?.querySelector('#event-capacity-progress-public')
 

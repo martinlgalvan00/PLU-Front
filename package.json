@@ -100,6 +100,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "read-excel-file": "9.3.12",
+    "three": "0.186.1",
     "write-excel-file": "4.1.1",
     "zod": "^4.6.7"
   },

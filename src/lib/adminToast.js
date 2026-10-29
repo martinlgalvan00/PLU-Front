@@ -29,3 +29,13 @@ export function notifySuccess(message, action) {
 export function notifyError(message) {
   emitToast('error', message)
 }
+
+/** Algo que conviene saber, sin que haya fallado nada (p. ej. "se guardó, pero…"). */
+export function notifyWarning(message, action) {
+  emitToast('warning', message, action)
+}
+
+/** Información neutra: un proceso en segundo plano empezó o terminó. */
+export function notifyInfo(message, action) {
+  emitToast('info', message, action)
+}

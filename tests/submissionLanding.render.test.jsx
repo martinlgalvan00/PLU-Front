@@ -127,6 +127,44 @@ describe('SubmissionLandingPage', () => {
     expect(within(view.container).queryByRole('img', { name: 'PLU Argentina — emblema oficial' })).toBeNull()
   })
 
+  it('publicada sin foto propia no usa una imagen de otro evento y muestra los datos en la portada', () => {
+    const view = renderLanding({
+      ...EVENT,
+      status: 'inscripcion_abierta',
+      logoUrl: LOGO,
+      landing: {
+        templateId: 'submission',
+        phase: 'published',
+        slots: {},
+        layout: { motion: 'none' },
+      },
+    })
+    const hero = view.container.querySelector('.submission-landing__hero')
+    expect(hero.dataset.hero).toBe('stage')
+    // Antes caía en una foto de medallas de Pitbull Classic.
+    expect(hero.querySelector('.submission-landing__hero-image')).toBeNull()
+    expect(hero.querySelector('.submission-landing__emblem img').getAttribute('src')).toBe(LOGO)
+    const band = within(hero.querySelector('.submission-landing__band'))
+    expect(band.getByText('Virtus Fitness')).toBeTruthy()
+    expect(band.getByText('Berazategui')).toBeTruthy()
+    expect(within(hero).getByRole('status').textContent).toMatch(/inscripción abierta/i)
+    // La bajada vive en la portada y no se repite como texto de "El evento".
+    expect(screen.getAllByText(EVENT.description)).toHaveLength(1)
+  })
+
+  it('con foto propia la usa de fondo', () => {
+    const view = renderLanding({
+      ...EVENT,
+      heroImageUrl: 'https://cdn.example/hero.webp',
+      landing: { templateId: 'submission', phase: 'published', slots: {} },
+    })
+    const hero = view.container.querySelector('.submission-landing__hero')
+    expect(hero.dataset.hero).toBe('photo')
+    expect(hero.querySelector('.submission-landing__hero-image').getAttribute('src')).toBe(
+      'https://cdn.example/hero.webp',
+    )
+  })
+
   it('con logo muestra la portada y reserva el lugar del logo en el hero', () => {
     const view = renderCover({ ...EVENT, logoUrl: LOGO })
     const cover = document.querySelector('[data-submission-logo-cover]')
@@ -192,5 +230,19 @@ describe('SubmissionLandingPage', () => {
     } finally {
       window.matchMedia = original
     }
+  })
+})
+
+describe('SubmissionLandingPage: interruptores del editor', () => {
+  afterEach(cleanup)
+
+  it('"La experiencia" apagada en el panel no aparece en la página', () => {
+    renderLanding({
+      ...EVENT,
+      landing: { templateId: 'submission', phase: 'published', slots: {} },
+      publicSurface: { experience: false },
+    })
+    expect(screen.queryByRole('heading', { name: 'La experiencia' })).toBeNull()
+    expect(screen.getByRole('heading', { name: 'Información de competencia' })).toBeTruthy()
   })
 })

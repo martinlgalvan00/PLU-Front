@@ -69,6 +69,7 @@ function supabaseDouble({ row = eventRow(), missingWindowRpc = false, failState 
   const from = vi.fn(() => ({
     select: () => ({
       order: async () => ({ data: [row], error: null }),
+      in: () => ({ order: async () => ({ data: [row], error: null }) }),
       eq: () => ({
         maybeSingle: single,
         in: () => ({ order: async () => ({ data: [row], error: null }) }),

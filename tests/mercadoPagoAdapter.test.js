@@ -210,6 +210,32 @@ describe('adaptador de Mercado Pago', () => {
     expect(body.expiration_date_to).toBe(new Date(expiresAt).toISOString().replace('Z', '+00:00'))
   })
 
+  it('la preferencia respeta el tope de cuotas del evento, y sin tope no lo manda', async () => {
+    mpMocks.preferenceCreate.mockResolvedValue({
+      id: 'pref-cuotas',
+      init_point: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-cuotas',
+      sandbox_init_point: 'https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-cuotas',
+    })
+    const adapter = createMercadoPagoAdapter({
+      env: {
+        MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
+        MERCADO_PAGO_ENV: 'production',
+        APP_URL: 'https://powerliftingunited.ar',
+      },
+    })
+
+    await adapter.createPreference({
+      order: { ...order, maxInstallments: 3 },
+      idempotencyKey: 'registration-order-cuotas',
+    })
+    expect(mpMocks.preferenceCreate.mock.calls.at(-1)[0].body.payment_methods).toEqual({
+      installments: 3,
+    })
+
+    await adapter.createPreference({ order, idempotencyKey: 'registration-order-sin-tope' })
+    expect(mpMocks.preferenceCreate.mock.calls.at(-1)[0].body.payment_methods).toBeUndefined()
+  })
+
   it('omite la expiracion cuando la orden no la tiene o ya esta al borde de vencer', async () => {
     mpMocks.preferenceCreate.mockResolvedValue({
       id: 'pref-sin-exp',

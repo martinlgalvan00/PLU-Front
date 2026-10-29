@@ -128,7 +128,7 @@ describe('POST /me/combo-access/verify', () => {
 // orden vuelve a exigir el mismo código. Sin esto, cualquiera que supiera que
 // el combo existe podría postear el checkout y llevarse el precio cerrado.
 describe('POST /me/registration-combos con combo restringido', () => {
-  function buildCheckoutApp(comboOffer, { previewDiscountCode } = {}) {
+  function buildCheckoutApp(comboOffer, { previewDiscountCode, rules = null } = {}) {
     const createRegistrationCombo = vi.fn().mockResolvedValue({ order: { id: 'order-combo' } })
     const target = listen(
       createApp({
@@ -157,6 +157,7 @@ describe('POST /me/registration-combos con combo restringido', () => {
             price: 85000,
             manual_price: null,
             payment_channel_overrides: null,
+            rules,
           }),
           findEventComboOffer: vi.fn().mockResolvedValue(comboOffer),
           discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
@@ -227,6 +228,26 @@ describe('POST /me/registration-combos con combo restringido', () => {
 
       expect(response.status, JSON.stringify(await response.clone().json())).toBe(201)
       expect(createRegistrationCombo).toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('con el módulo Combo apagado no crea la orden aunque la oferta esté vigente', async () => {
+    const { target, createRegistrationCombo } = buildCheckoutApp(
+      { ...RESTRICTED, audience: 'public', accessCode: null },
+      { rules: { modules: { combo: false } } },
+    )
+    try {
+      const response = await fetch(`${target.url}/api/athletes/me/registration-combos`, {
+        method: 'POST',
+        headers: athleteHeaders,
+        body: JSON.stringify(comboBody()),
+      })
+
+      expect(response.status).toBe(409)
+      expect((await response.json()).code).toBe('EVENT_MODULE_DISABLED')
+      expect(createRegistrationCombo).not.toHaveBeenCalled()
     } finally {
       await target.close()
     }
