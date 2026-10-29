@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import es from '../src/i18n/locales/es.js'
+import es from '../src/i18n/locales/esFull.js'
 import { translate } from '../src/i18n/translate.js'
 import { translateFilterOptions } from '../src/i18n/adminHelpers.js'
 import { REGISTRATION_FILTER_STATUSES } from '../src/lib/constants.js'

@@ -114,7 +114,10 @@ export default function StaffInvitationPage({ token, onAccept, onCancel, onLoadI
             {t('login.visualSlogan')}
             <span className="auth-layout__slogan-line">{t('login.visualSloganAccent')}</span>
           </h2>
-          <p className="auth-layout__lead">{t('login.visualLead')}</p>
+          <p className="auth-layout__lead">
+            {t('login.visualLead')}
+            <span className="auth-layout__lead-close">{t('login.visualLeadClose')}</span>
+          </p>
           <span className="auth-layout__rule" aria-hidden="true" />
           <p className="auth-layout__meta">{t('login.visualMeta')}</p>
         </div>

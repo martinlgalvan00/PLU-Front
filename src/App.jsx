@@ -6,6 +6,7 @@ import DocumentMetaSync from './components/layout/DocumentMetaSync.jsx'
 import PageTransition from './components/layout/PageTransition.jsx'
 import PageErrorBoundary from './components/layout/PageErrorBoundary.jsx'
 import lazyWithRetry from './lib/lazyWithRetry.js'
+import { loadAdminMessagesForStoredLocale } from './i18n/adminMessages.js'
 import PageLoadFallback from './components/ui/PageLoadFallback.jsx'
 import HelpLayer from './components/ui/HelpLayer.jsx'
 import { useAppData } from './hooks/useAppData.js'
@@ -31,6 +32,7 @@ import {
 } from './lib/publicViewPaths.js'
 import { readPasswordResetToken } from './lib/passwordResetRoute.js'
 import { buildSecurityGatePath, matchSecurityGateRoute } from './lib/securityGateRoute.js'
+import { resolveCheckinEvent } from './lib/checkinEvent.js'
 import {
   clearStaffEmailChangeToken,
   readStaffEmailChangeToken,
@@ -58,6 +60,7 @@ import {
   findRegistrableEvent,
   PITBULL_CLASSIC_SLUG,
 } from './lib/eventNavigation.js'
+import { isEventRegistrationOpen } from './lib/eventPublicActions.js'
 import {
   eventHasBuilderLanding,
   eventHasEditorialLanding,
@@ -76,6 +79,7 @@ import {
   getTransitionDirection,
   resolveAfterLoginDestination,
   resolveMembershipCheckout,
+  scrollWindowTo,
 } from './lib/navigation.js'
 import {
   canCheckIn,
@@ -120,6 +124,8 @@ const AdminPage = lazyWithRetry(async () => {
   const [{ default: Page }, { AppConfigProvider }] = await Promise.all([
     import('./pages/AdminPage.jsx'),
     import('./providers/AppConfigProvider.jsx'),
+    // Textos del panel: fuera del bundle público (ver i18n/adminMessages.js).
+    loadAdminMessagesForStoredLocale(),
   ])
   return {
     default: (props) => (
@@ -133,6 +139,8 @@ const CheckInAppPage = lazyWithRetry(async () => {
   const [{ default: Page }, { AppConfigProvider }] = await Promise.all([
     import('./pages/CheckInAppPage.jsx'),
     import('./providers/AppConfigProvider.jsx'),
+    // Textos del panel: fuera del bundle público (ver i18n/adminMessages.js).
+    loadAdminMessagesForStoredLocale(),
   ])
   return {
     default: (props) => (
@@ -146,6 +154,8 @@ const OrganizerAppPage = lazyWithRetry(async () => {
   const [{ default: Page }, { AppConfigProvider }] = await Promise.all([
     import('./pages/OrganizerAppPage.jsx'),
     import('./providers/AppConfigProvider.jsx'),
+    // Textos del panel: fuera del bundle público (ver i18n/adminMessages.js).
+    loadAdminMessagesForStoredLocale(),
   ])
   return {
     default: (props) => (
@@ -182,7 +192,13 @@ const StaffApplicationPage = lazyWithRetry(() => import('./pages/StaffApplicatio
 const StaffEmailChangePage = lazyWithRetry(() => import('./pages/StaffEmailChangePage.jsx'))
 const StaffInvitationPage = lazyWithRetry(() => import('./pages/StaffInvitationPage.jsx'))
 const StaffPasswordChangePage = lazyWithRetry(() => import('./pages/StaffPasswordChangePage.jsx'))
-const MercadoPagoLinkResultPage = lazyWithRetry(() => import('./pages/MercadoPagoLinkResultPage.jsx'))
+const MercadoPagoLinkResultPage = lazyWithRetry(async () => {
+  const [module] = await Promise.all([
+    import('./pages/MercadoPagoLinkResultPage.jsx'),
+    loadAdminMessagesForStoredLocale(),
+  ])
+  return module
+})
 
 function isMercadoPagoLinkResultRoute() {
   return (
@@ -326,11 +342,59 @@ export default function App() {
     }
   }, [app.clearInvalidSession, app.enterAthleteContext, app.session, app.sessionPending, view])
 
+  // Calendario → página de un evento (y de un evento a otro) es la misma vista
+  // `events`: con la vista sola como clave no había transición ni vuelta al
+  // tope, y entrar a un evento desde el footer dejaba la pantalla en el footer.
+  const routeKey = view === 'events' && eventPageSlug ? `events:${eventPageSlug}` : view
+  const routeKeyRef = useRef(routeKey)
+  const scrollMemoryRef = useRef(new Map())
+  const navKindRef = useRef('push')
+  const ignoreScrollSaveRef = useRef(false)
+  routeKeyRef.current = routeKey
+
   useEffect(() => {
-    // Sin behavior explícito: hereda `scroll-behavior` de CSS, que ya
-    // respeta prefers-reduced-motion.
-    window.scrollTo({ top: 0 })
-  }, [view])
+    const previous = window.history.scrollRestoration
+    window.history.scrollRestoration = 'manual'
+    return () => {
+      window.history.scrollRestoration = previous
+    }
+  }, [])
+
+  useEffect(() => {
+    const remember = () => {
+      if (ignoreScrollSaveRef.current) return
+      scrollMemoryRef.current.set(routeKeyRef.current, window.scrollY)
+    }
+    // El foco del ítem de la barra, si está fijo arriba, sube el scroll antes
+    // del click. `pointerdown` alcanza a guardar la posición real; los dos
+    // frames siguientes ignoran ese salto para no pisarla.
+    const rememberBeforeFocus = (event) => {
+      if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return
+      remember()
+      ignoreScrollSaveRef.current = true
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          ignoreScrollSaveRef.current = false
+        })
+      })
+    }
+    window.addEventListener('scroll', remember, { passive: true })
+    window.addEventListener('pointerdown', rememberBeforeFocus, true)
+    window.addEventListener('keydown', rememberBeforeFocus, true)
+    return () => {
+      window.removeEventListener('scroll', remember)
+      window.removeEventListener('pointerdown', rememberBeforeFocus, true)
+      window.removeEventListener('keydown', rememberBeforeFocus, true)
+    }
+  }, [])
+
+  useEffect(() => {
+    const top = navKindRef.current === 'pop' ? (scrollMemoryRef.current.get(routeKey) ?? 0) : 0
+    navKindRef.current = 'push'
+    ignoreScrollSaveRef.current = true
+    scrollWindowTo(top)
+    ignoreScrollSaveRef.current = false
+  }, [routeKey])
 
   useEffect(() => {
     if (import.meta.env.DEV) window.__pluNav = setView
@@ -432,6 +496,8 @@ export default function App() {
 
   useEffect(() => {
     function onPopState() {
+      navKindRef.current = 'pop'
+      setTransitionDirection('back')
       const checkoutMatch = matchRegistrationCheckoutRoute()
       if (checkoutMatch) {
         setCheckoutRouteSlug(checkoutMatch.eventSlug)
@@ -553,6 +619,7 @@ export default function App() {
         pushTicketsRoute(resolvedOptions.eventSlug)
         setTicketEventSlug(resolvedOptions.eventSlug ?? null)
         setTransitionDirection(getTransitionDirection(view, 'tickets'))
+        navKindRef.current = 'push'
         setView('tickets')
         return
       }
@@ -590,13 +657,23 @@ export default function App() {
         setEventPageSlug(null)
         pushPublicViewPath('events')
       } else if (view === 'events' && resolvedView !== 'events') {
-        clearEventPageRoute()
+        // Si el destino tiene URL propia la empuja él. Limpiar antes dejaba una
+        // entrada "/" intermedia: desde el evento, "Inscribirme" llevaba a
+        // /crear-cuenta y "Atrás" caía en la portada en vez de volver al evento.
+        if (!buildPublicViewPath(resolvedView) && resolvedView !== 'competition') {
+          clearEventPageRoute()
+        }
         setEventPageSlug(null)
       }
 
       if (buildPublicViewPath(resolvedView) && !(resolvedView === 'events')) {
         pushPublicViewPath(resolvedView)
-      } else if (matchPublicViewPath() && resolvedView !== 'tickets' && resolvedView !== 'events') {
+      } else if (
+        matchPublicViewPath() &&
+        resolvedView !== 'tickets' &&
+        resolvedView !== 'events' &&
+        resolvedView !== 'competition'
+      ) {
         clearPublicViewPath()
       }
 
@@ -635,6 +712,7 @@ export default function App() {
       }
 
       setTransitionDirection(getTransitionDirection(view, resolvedView))
+      navKindRef.current = 'push'
       setView(resolvedView)
     },
     [publicEvents, underConstructionEvents, getSession, pendingAthleteDestination, view, app.enterAthleteContext, app.returnToStaffContext, app.clearInvalidSession],
@@ -688,8 +766,23 @@ export default function App() {
       if (app.publicCatalogSettled) navigate('events', { eventSlug: checkoutRouteSlug })
       return
     }
-    if (isAthlete) setSelectedEvent(routeEvent)
-    else void selectEvent(routeEvent)
+    if (isAthlete) {
+      setSelectedEvent(routeEvent)
+      return
+    }
+    // Sin cuenta de atleta, un link a la inscripción de un evento que no vende
+    // (cerrado, agotado, finalizado) mandaba igual a crear la ficha "para
+    // seguir con tu inscripción". El atleta logueado sí entra: puede tener una
+    // orden pendiente que pagar o retomar en ese checkout.
+    const registrationEnabled = app.checkoutAvailability?.registrationEnabled !== false
+    if (
+      !isStaffSession(app.session) &&
+      !isEventRegistrationOpen(routeEvent, { registrationEnabled })
+    ) {
+      navigate('events', { eventSlug: checkoutRouteSlug })
+      return
+    }
+    void selectEvent(routeEvent)
     // `selectEvent` se recrea en cada render; lo que decide son estos datos.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -698,6 +791,7 @@ export default function App() {
     app.sessionPending,
     app.session?.role,
     app.publicCatalogSettled,
+    app.checkoutAvailability?.registrationEnabled,
     selectedEvent?.slug,
     publicEvents,
     underConstructionEvents,
@@ -821,11 +915,16 @@ export default function App() {
 
   if (view === 'admin' && canViewAdmin(app.session)) {
     if (isCheckinOnly(app.session)) {
+      const checkinEvent = resolveCheckinEvent(app.session, app.adminEvents)
       return (
         <Suspense fallback={<PageLoadFallback />}>
           <CheckInAppPage
             athletes={app.athletes}
             canCheckIn={canCheckIn(app.session)}
+            eventDays={checkinEvent?.eventDays ?? []}
+            eventSlug={checkinEvent?.slug}
+            eventTitle={checkinEvent?.title}
+            ticketTypes={checkinEvent?.ticketTypes ?? []}
             onCheckInRegistration={app.checkInRegistrationAction}
             onCheckInTicket={app.checkInTicketAction}
             onExit={() => navigate('home')}
@@ -1318,12 +1417,12 @@ export default function App() {
         onReadProfileNotice={app.markAthleteProfileNoticeReadAction}
       />
       <PageTransition
-        viewKey={view}
+        viewKey={routeKey}
         direction={transitionDirection}
         id="main-content"
         tabIndex={-1}
       >
-        <PageErrorBoundary onGoHome={() => navigate('home')} resetKey={view}>
+        <PageErrorBoundary onGoHome={() => navigate('home')} resetKey={routeKey}>
           <Suspense fallback={<PageLoadFallback />}>
             <Page {...pageProps} />
           </Suspense>

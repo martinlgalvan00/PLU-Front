@@ -96,6 +96,10 @@ export default function TransferReceipt({
   const transferAlias = String(transferSource.alias ?? '').trim()
   const transferCbu = String(transferSource.cbu ?? '').trim()
   const transferHolder = String(transferSource.holder ?? '').trim()
+  // Banco y CUIT del titular viven en la cuenta de cobro del evento. Antes la
+  // línea "Cuenta" decía siempre "Mercado Pago", aunque fuera un banco.
+  const transferBank = String(transferSource.bankName ?? '').trim()
+  const transferCuit = String(transferSource.cuit ?? '').trim()
   const holder = (isWise ? env.payments.wiseHolder : transferHolder) || askAdmin
   const copyLabel = t('account.membership.transferCopy')
   const copiedLabel = t('account.membership.transferCopied')
@@ -131,11 +135,14 @@ export default function TransferReceipt({
     {
       labelKey: 'account.membership.transferAlias',
       value: transferAlias || askAdmin,
-      meta: t('account.membership.transferAccountValue'),
+      meta: transferBank || t('account.membership.transferAccountValue'),
       className: 'account-transfer-data__row--alias',
     },
     ...(transferCbu ? [{ labelKey: 'account.membership.transferCbu', value: transferCbu }] : []),
     { labelKey: 'account.membership.transferHolder', value: holder },
+    ...(transferCuit
+      ? [{ labelKey: 'account.membership.transferCuit', value: transferCuit }]
+      : []),
   ]
 
   const transferRows = isWise ? wiseRows : bankRows

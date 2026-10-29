@@ -481,7 +481,7 @@ export function createUserRoutes({
     })
     if (!target) throw new HttpError(404, 'El usuario no existe.')
     if (!isEventScopedRole(target.accessRole ?? target.accessRole?.key ?? target.role)) {
-      throw new HttpError(400, 'Solo las cuentas con rol Organizador tienen eventos asignados.')
+      throw new HttpError(400, 'Solo las cuentas por evento tienen eventos asignados.')
     }
     return target
   }
@@ -589,7 +589,7 @@ export function createUserRoutes({
           throw new HttpError(400, 'Asigná Seguridad desde el evento correspondiente.')
         }
         if (isEventScopedRole(accessRole)) {
-          throw new HttpError(400, 'El rol Organizador se asigna de a una cuenta, con sus eventos.')
+          throw new HttpError(400, 'Un rol por evento se asigna de a una cuenta, con sus eventos.')
         }
 
         const results = []

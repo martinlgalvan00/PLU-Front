@@ -1751,6 +1751,20 @@
   line-height: 1.45;
 }
 
+/* `.admin-event-form label span` es la regla de los rótulos de campo (10px,
+   mayúsculas). El texto de un interruptor también es un span dentro de un
+   label y heredaba eso entero: la descripción de "Solo anuncio" salía en
+   versales de 10px. */
+.admin-event-form .admin-event-form__toggle-copy {
+  color: inherit;
+  display: grid;
+  font-size: inherit;
+  font-weight: inherit;
+  gap: 2px;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
 .admin-event-preview--live {
   background: rgba(116, 172, 223, 0.03);
   border-left: 1px solid var(--color-border-subtle);
@@ -8878,8 +8892,6 @@
 }
 
 .admin-checkin-result--offline {
-  border-color: rgba(237, 176, 90, 0.35);
-  background: rgba(237, 176, 90, 0.08);
   border-style: dashed;
 }
 
@@ -8992,6 +9004,31 @@
 .admin-offline-sync-status__meta--warning {
   color: rgb(237, 176, 90);
   width: 100%;
+}
+
+.admin-offline-sync-status__queue {
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.admin-offline-sync-status__queue-item {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.admin-offline-sync-status__queue-label {
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-offline-sync-status__conflicts-toggle {

@@ -1542,9 +1542,9 @@ export default function MembershipPurchaseSection({
         />
       ) : null}
 
-      {transferOpen && (
-        <TransferPayModal
-          amount={transferAmount ?? selectedPlan?.price ?? 0}
+      <TransferPayModal
+        open={transferOpen}
+        amount={transferAmount ?? selectedPlan?.price ?? 0}
           currency={transferChannel === 'wise_transfer' ? 'USD' : 'ARS'}
           channel={transferChannel}
           orderId={transferOrderId}
@@ -1552,16 +1552,14 @@ export default function MembershipPurchaseSection({
           manualPaymentDeclaredAt={manualOrder?.manualPaymentDeclaredAt ?? null}
           financedEntitlementsAt={manualOrder?.financedEntitlementsAt ?? null}
           onClose={() => setTransferOpen(false)}
-        />
-      )}
+      />
 
-      {accessGateOpen && accessLocked ? (
-        <RegistrationAccessGateModal
-          scopes={['membership']}
-          onUnlock={handleAccessUnlock}
-          onCancel={() => setAccessGateOpen(false)}
-        />
-      ) : null}
+      <RegistrationAccessGateModal
+        open={Boolean(accessGateOpen && accessLocked)}
+        scopes={['membership']}
+        onUnlock={handleAccessUnlock}
+        onCancel={() => setAccessGateOpen(false)}
+      />
 
       {/* El momento del canje. Acá la acción principal no navega —el atleta ya
           está en el checkout que va a cobrar el código—: cierra el anuncio y

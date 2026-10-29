@@ -690,12 +690,19 @@ body:not(:has(.app-shell)) .auth-layout {
   animation-delay: 200ms;
   color: var(--auth-visual-ink-muted);
   font-family: var(--font-display);
-  font-size: clamp(0.9375rem, 1.2vw, 1.0625rem);
+  font-size: clamp(0.95rem, 1.15vw, 1.0625rem);
   font-weight: 400;
-  letter-spacing: -0.01em;
-  line-height: 1.55;
+  letter-spacing: 0;
+  line-height: 1.5;
   margin: 0;
-  max-width: 34ch;
+  max-width: 32ch;
+}
+
+.auth-layout__lead-close {
+  color: var(--auth-visual-ink);
+  display: block;
+  font-weight: 500;
+  margin-top: 0.55em;
 }
 
 .auth-layout__meta {

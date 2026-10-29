@@ -72,10 +72,9 @@ function canonicalEvent() {
     created_at: '2026-07-01T00:00:00.000Z',
     updated_at: '2026-07-26T12:00:00.000Z',
     capacityRules: [{ key: '', limit_count: 120 }],
-    eventRegistrations: [
-      ...Array.from({ length: 48 }, () => ({ status: 'confirmada' })),
-      { status: 'cancelada' },
-    ],
+    // La base ya cuenta solo las inscripciones que ocupan cupo (ver el filtro
+    // `.in('event_registrations.status', …)` de readEventRows).
+    eventRegistrations: [{ count: 48 }],
     eventDays: [
       {
         id: '22222222-2222-4222-8222-222222222222',
@@ -113,7 +112,8 @@ function createSupabaseDouble({ rpcResult, publishedRows, storageFiles = [] } = 
   const orderPublished = vi.fn(async () => ({ data: published, error: null }))
   const inFilter = vi.fn(() => ({ order: orderPublished }))
   const eq = vi.fn(() => ({ in: inFilter }))
-  const select = vi.fn(() => ({ order: orderAll, eq }))
+  const selectIn = vi.fn(() => ({ order: orderAll }))
+  const select = vi.fn(() => ({ order: orderAll, eq, in: selectIn }))
   const rpc = vi.fn(async () => rpcResult ?? { data: { id: EVENT_ID }, error: null })
   const list = vi.fn(async () => ({ data: storageFiles, error: null }))
   const remove = vi.fn(async () => ({ data: [], error: null }))
@@ -127,6 +127,7 @@ function createSupabaseDouble({ rpcResult, publishedRows, storageFiles = [] } = 
     rpc,
     eq,
     inFilter,
+    selectIn,
     orderPublished,
     storage,
     list,
@@ -156,7 +157,7 @@ async function setup(role = 'admin_maximal', supabaseOptions, extraUsers = []) {
 
 describe('API administrativa de eventos', () => {
   it('lee eventos completos con cupo, inscripciones y catálogo', async () => {
-    const { target, cookie } = await setup()
+    const { target, cookie, supabase } = await setup()
 
     try {
       const response = await fetch(`${target.url}/api/events`, {
@@ -166,10 +167,14 @@ describe('API administrativa de eventos', () => {
 
       expect(response.status).toBe(200)
       expect(body.events[0]).toMatchObject({ id: EVENT_ID, capacity: 120 })
-      // El embed viaja con el status de cada inscripción: es lo que permite a
-      // mapSupabaseEventRow contar solo las que realmente ocupan cupo.
-      expect(body.events[0].eventRegistrations).toHaveLength(49)
-      expect(body.events[0].eventRegistrations.at(-1)).toEqual({ status: 'cancelada' })
+      // El conteo se resuelve en la base y solo con las inscripciones que
+      // ocupan cupo: antes viajaba una fila por inscripción para contarlas acá.
+      expect(supabase.selectIn).toHaveBeenCalledWith('event_registrations.status', [
+        'pendiente_pago',
+        'pagada',
+        'confirmada',
+      ])
+      expect(body.events[0].eventRegistrations).toEqual([{ count: 48 }])
       expect(body.events[0].eventDays).toHaveLength(1)
       expect(body.events[0].ticketTypes).toHaveLength(1)
     } finally {

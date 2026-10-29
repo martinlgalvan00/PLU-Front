@@ -44,7 +44,7 @@ import { usePublicEventSchedule } from '../hooks/usePublicEventSchedule.js'
 import { useTicketCheckoutAvailability } from '../hooks/useTicketAvailability.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import {
-  isTicketSalesEnabled,
+  eventAllowsPublicTickets,
   resolveEventPricing,
   resolveLiveComboOffer,
 } from '../lib/eventPricing.js'
@@ -1236,9 +1236,13 @@ export default function PitbullPage({
     ? PITBULL_VENUE
     : {
         name: pitbullEvent?.venue || pitbullEvent?.title || '',
-        street: '',
+        // Calle y número cargados en el panel: Maps y Waze llegan a la puerta,
+        // no a una búsqueda por nombre de la sede.
+        street: pitbullEvent?.venueAddress || '',
         locality: pitbullEvent?.location || '',
-        address: [pitbullEvent?.venue, pitbullEvent?.location].filter(Boolean).join(', '),
+        address: pitbullEvent?.venueAddress
+          ? [pitbullEvent.venueAddress, pitbullEvent?.location].filter(Boolean).join(', ')
+          : [pitbullEvent?.venue, pitbullEvent?.location].filter(Boolean).join(', '),
         latitude: pitbullEvent?.latitude ?? null,
         longitude: pitbullEvent?.longitude ?? null,
         mapsUrl: pitbullEvent?.mapsUrl || '',
@@ -1305,7 +1309,7 @@ export default function PitbullPage({
   const ticketsOpen =
     env.ticketSalesEnabled &&
     ticketCheckoutOpen &&
-    isTicketSalesEnabled(pitbullEvent) &&
+    eventAllowsPublicTickets(pitbullEvent, ticketCheckout.eventTicketsEnabled) &&
     ticketCheckout.ticketEnabled
   const {
     status: capacityStatus,

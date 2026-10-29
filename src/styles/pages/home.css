@@ -757,12 +757,7 @@
 }
 
 .home-season-actions__lane--tickets .home-season-actions__cue {
-  color: var(--home-hero-status-tickets-action, var(--color-brand-gold));
-}
-
-[data-theme='light'] .home-season-actions__lane--tickets .home-season-actions__cue,
-[data-theme='light'] .home-season-actions__register .home-season-actions__cue {
-  color: color-mix(in oklab, var(--plu-gold-600) 68%, var(--plu-ink-900));
+  color: var(--home-hero-status-tickets-action, var(--color-brand-gold-ink));
 }
 
 .home-season-actions__cue {
@@ -836,7 +831,7 @@
 
 .home-season-actions__register .home-season-actions__go {
   align-items: center;
-  color: var(--home-hero-status-tickets-action, var(--color-brand-gold));
+  color: var(--home-hero-status-tickets-action, var(--color-brand-gold-ink));
   display: flex;
   flex: 1;
   gap: 7px;
@@ -845,7 +840,7 @@
 }
 
 .home-season-actions__register .home-season-actions__cue {
-  color: var(--home-hero-status-tickets-action, var(--color-brand-gold));
+  color: var(--home-hero-status-tickets-action, var(--color-brand-gold-ink));
 }
 
 .home-season-actions__register:hover .home-season-actions__arrow {
@@ -1254,7 +1249,7 @@
 }
 
 .hero--statement .hero__title-line--accent {
-  color: var(--plu-gold-400);
+  color: var(--color-brand-gold-ink);
   font-weight: 800;
 }
 
@@ -1356,6 +1351,101 @@
   }
 }
 
+/* ---- Portada en mobile (≤ 639px) ----
+   Un solo borde izquierdo para todo (rótulo, título, bajada, botón): antes el
+   texto arrancaba 16px más adentro que el botón por el filete vertical, y el
+   bloque se leía corrido. El rótulo baja hasta despegarse de la píldora del
+   menú (que flota 6px por debajo del borde). La foto lleva un velo más firme
+   donde hay texto, y "Eventos" es un link del ancho de su texto: como botón
+   de ancho completo, su subrayado quedaba como un trazo suelto a la izquierda. */
+@media (max-width: 639px) {
+  .home-page .hero--statement .hero__copy {
+    padding-top: calc(var(--header-height) + 34px);
+  }
+
+  .hero--statement .hero__editorial {
+    gap: 12px;
+    padding-left: 0;
+  }
+
+  .hero--statement .hero__editorial::before {
+    content: none;
+  }
+
+  .hero--statement .hero__title--design {
+    font-size: clamp(2.5rem, 11.4vw, 3.05rem);
+    line-height: 0.96;
+    margin-top: 4px;
+  }
+
+  .hero--statement .hero__lead {
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 15.5px;
+  }
+
+  .hero--statement .hero__kicker {
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  /* Bajada → botón: el gap de la grilla y un paso chico. Sumaban 74px entre
+     márgenes y paddings heredados del layout de escritorio. */
+  .hero--statement .hero__actions {
+    border-top: 0;
+    margin-top: 0;
+    padding-inline: 0;
+    padding-top: 6px;
+  }
+
+  .hero--statement .hero__cta-row {
+    margin-top: 0;
+  }
+
+  /* La ficha del meet al mismo ancho que el botón: un solo borde derecho. */
+  .hero--statement .hero__proof,
+  .hero--statement .home-season-actions {
+    max-width: none;
+  }
+
+  /* Accesos rápidos: al partirse en dos líneas, la barra inclinada quedaba
+     huérfana al principio de la segunda ("/ Reglamento"). En mobile van sin
+     separador y con aire entre ítems. */
+  .home-quick-band .home-quick-band__menu {
+    column-gap: 22px;
+  }
+
+  .home-quick-band .home-quick-band__menu li + li::before {
+    content: none;
+  }
+
+  .hero--statement .hero__events-link {
+    color: rgba(255, 255, 255, 0.86);
+    justify-self: center;
+    width: auto;
+  }
+
+  .hero--statement .hero__backdrop::after {
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--home-hero-bg) 82%, transparent) 0%,
+      color-mix(in oklab, var(--home-hero-bg) 66%, transparent) 42%,
+      color-mix(in oklab, var(--home-hero-bg) 48%, transparent) 62%,
+      color-mix(in oklab, var(--home-hero-bg) 88%, transparent) 100%
+    );
+  }
+
+  [data-theme='light'] .hero--statement .hero__lead {
+    color: color-mix(in oklab, var(--plu-ink-900) 84%, transparent);
+  }
+
+  [data-theme='light'] .hero--statement .hero__kicker {
+    color: color-mix(in oklab, var(--plu-ink-900) 72%, var(--plu-celeste-700));
+  }
+
+  [data-theme='light'] .hero--statement .hero__events-link {
+    color: color-mix(in oklab, var(--plu-ink-900) 80%, transparent);
+  }
+}
+
 [data-theme='light'] .hero--statement .hero__editorial::before {
   background: var(--plu-gold-600);
   opacity: 0.9;
@@ -1367,7 +1457,7 @@
 }
 
 [data-theme='light'] .hero--statement .hero__title-line--accent {
-  color: var(--plu-gold-600);
+  color: var(--color-brand-gold-ink);
 }
 
 [data-theme='light'] .hero--statement .hero__lead {
@@ -3048,7 +3138,7 @@
 }
 
 .about-section__title-line--accent {
-  color: var(--home-hero-title-accent-fg, var(--plu-gold-400));
+  color: var(--home-hero-title-accent-fg, var(--color-brand-gold-ink));
   font-weight: 750;
 }
 
@@ -3091,9 +3181,9 @@
   background: color-mix(in srgb, var(--home-canvas-fg) 16%, transparent);
 }
 
-/* Regla dorada: se dibuja sobre la gris cuando la fila es la que se lee. */
+/* La fila que se lee marca con el bronce de texto, no con el amarillo del botón. */
 .about-section__plate-item::after {
-  background: var(--color-brand-gold);
+  background: var(--color-brand-gold-ink);
   height: 2px;
   transform: scaleX(0);
   transition: transform var(--motion-cinematic) var(--ease-cinematic);
@@ -3112,7 +3202,7 @@
 }
 
 .about-section__plate-index {
-  color: color-mix(in srgb, var(--plu-gold-500) 72%, var(--home-canvas-fg-muted));
+  color: color-mix(in oklab, var(--color-brand-gold-ink) 62%, var(--home-canvas-fg-muted));
   font-family: var(--font-display);
   font-size: clamp(1rem, 1.6vw, 1.25rem);
   font-variant-numeric: tabular-nums;
@@ -3123,7 +3213,7 @@
 }
 
 .about-section__plate-item[data-active='true'] .about-section__plate-index {
-  color: var(--color-brand-gold);
+  color: var(--color-brand-gold-ink);
 }
 
 .about-section__plate-title {
@@ -3208,7 +3298,7 @@
 }
 
 [data-theme='dark'] .home-section--about .about-section__title-line--accent {
-  color: var(--home-hero-title-accent-fg, var(--plu-gold-400));
+  color: var(--home-hero-title-accent-fg, var(--color-brand-gold-ink));
 }
 
 [data-theme='dark'] .home-section--about .about-section__desc,
@@ -4051,7 +4141,7 @@
   --cred-gap: clamp(10px, 2.4cqi, 16px);
   --cred-photo-w: clamp(52px, 15cqi, 68px);
   --cred-photo-h: clamp(62px, 18cqi, 82px);
-  --cred-qr: clamp(58px, 18cqi, 80px);
+  --cred-qr: clamp(76px, 24cqi, 104px);
   --cred-name: clamp(15px, 4.8cqi, 23px);
   border-radius: 14px;
   max-width: 100%;
@@ -4067,15 +4157,10 @@
 
 .home-credential__card {
   aspect-ratio: 1.586;
-  background:
-    radial-gradient(ellipse 55% 42% at 92% 0%, rgba(116, 172, 223, 0.14), transparent 48%),
-    radial-gradient(ellipse 40% 36% at 8% 100%, rgba(242, 183, 5, 0.07), transparent 55%),
-    linear-gradient(155deg, #1a1c26 0%, #0e0f14 55%, #0a0b0f 100%);
-  border: 1px solid color-mix(in oklab, var(--plu-gold-500) 38%, rgba(255, 255, 255, 0.12));
+  background: linear-gradient(168deg, #171920 0%, #0c0d11 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 14px;
-  box-shadow:
-    0 22px 48px rgba(0, 0, 0, 0.32),
-    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
   color: #f7f7f5;
   isolation: isolate;
   max-width: 100%;
@@ -4084,28 +4169,7 @@
   padding: 0;
   position: relative;
   text-align: left;
-  transition: box-shadow 280ms var(--ease-out);
   width: 100%;
-}
-
-.home-credential__card::before {
-  background:
-    linear-gradient(
-      115deg,
-      transparent 28%,
-      color-mix(in srgb, var(--plu-ink-inverse) 4.5%, transparent) 48%,
-      transparent 68%
-    ),
-    repeating-linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--plu-ink-inverse) 2%, transparent) 0 1px,
-      transparent 1px 10px
-    );
-  content: '';
-  inset: 0;
-  pointer-events: none;
-  position: absolute;
-  z-index: 1;
 }
 
 .home-credential__card::after {
@@ -4144,74 +4208,6 @@
   width: 100%;
 }
 
-.home-credential__glow {
-  background: radial-gradient(
-    200px 140px at var(--tilt-glare-x, 50%) var(--tilt-glare-y, 0%),
-    color-mix(in oklab, var(--plu-gold-400) 14%, transparent) 0%,
-    color-mix(in oklab, var(--color-brand-celeste) 9%, transparent) 40%,
-    transparent 68%
-  );
-  inset: 0;
-  mix-blend-mode: screen;
-  opacity: calc(0.1 + var(--tilt-active, 0) * 0.18);
-  pointer-events: none;
-  position: absolute;
-  transition: opacity 0.35s var(--ease-out);
-  z-index: 3;
-}
-
-.home-credential__grain {
-  background: linear-gradient(
-    122deg,
-    transparent 36%,
-    rgba(255, 255, 255, 0.035) 48%,
-    transparent 60%
-  );
-  inset: 0;
-  opacity: 0.55;
-  pointer-events: none;
-  position: absolute;
-  transform: translate3d(calc(var(--tilt-px, 0) * 5px), calc(var(--tilt-py, 0) * 3px), 0);
-  transition: transform 140ms var(--ease-out);
-  will-change: transform;
-  z-index: 2;
-}
-
-/* Sentado en el hueco superior-derecho de la ficha, entre la fila de marca
-   y la fila de identidad/QR -- antes ocupaba ese mismo espacio que el QR y
-   quedaba tapado por su fondo opaco, dejando solo un resto del número. */
-.home-credential__watermark {
-  color: color-mix(in oklab, #fff 7%, transparent);
-  font-family: var(--font-display);
-  font-size: clamp(2.6rem, 17cqi, 4.6rem);
-  font-weight: 800;
-  letter-spacing: -0.07em;
-  line-height: 0.8;
-  pointer-events: none;
-  position: absolute;
-  right: 5%;
-  top: 7%;
-  transform: translate3d(calc(var(--tilt-px, 0) * -9px), calc(var(--tilt-py, 0) * -6px), -8px);
-  transition: transform 160ms var(--ease-out);
-  user-select: none;
-  z-index: 1;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .home-credential__watermark {
-    animation: home-credential-watermark-in 0.7s var(--ease-out) 0.2s both;
-  }
-}
-
-@keyframes home-credential-watermark-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 .home-credential__face {
   display: grid;
   gap: var(--cred-gap);
@@ -4219,8 +4215,6 @@
   height: 100%;
   padding: var(--cred-pad-block) var(--cred-pad-inline) var(--cred-pad-bottom);
   position: relative;
-  transform: translate3d(calc(var(--tilt-px, 0) * 4px), calc(var(--tilt-py, 0) * 2.5px), 0);
-  transition: transform 140ms var(--ease-out);
   z-index: 5;
 }
 
@@ -4261,10 +4255,10 @@
 }
 
 .home-credential__brand-copy span {
-  color: color-mix(in oklab, var(--plu-gold-400) 62%, rgba(255, 255, 255, 0.55));
-  font-size: 9px;
+  color: rgba(255, 255, 255, 0.46);
+  font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.03em;
+  letter-spacing: 0;
 }
 
 .home-credential__main {
@@ -4304,13 +4298,12 @@
 }
 
 .home-credential__photo-label {
-  font-size: 7px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0;
   line-height: 1.15;
-  opacity: 0.58;
+  opacity: 0.7;
   text-align: center;
-  text-transform: uppercase;
 }
 
 .home-credential__identity-copy {
@@ -4320,11 +4313,10 @@
 }
 
 .home-credential__identity-copy small {
-  color: rgba(255, 255, 255, 0.34);
-  font-size: 9px;
-  font-weight: 550;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .home-credential__name {
@@ -4348,22 +4340,20 @@
 
 .home-credential__season-inline {
   align-items: baseline;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.42);
   display: flex;
-  font-size: 8.5px;
+  font-size: 11px;
   font-weight: 500;
   gap: 6px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   margin: 8px 0 0;
-  text-transform: uppercase;
 }
 
 .home-credential__season-inline strong {
-  color: color-mix(in oklab, var(--plu-gold-400) 72%, #fff);
+  color: #fff;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 650;
   letter-spacing: -0.01em;
-  text-transform: none;
 }
 
 .home-credential__qr {
@@ -4375,14 +4365,12 @@
 .home-credential__qr-frame {
   align-items: center;
   background: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 9px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+  border-radius: 8px;
   display: grid;
   height: var(--cred-qr);
   justify-items: center;
   overflow: hidden;
-  padding: 5px;
+  padding: 4px;
   place-content: center;
   width: var(--cred-qr);
 }
@@ -4400,14 +4388,6 @@
   place-items: center;
 }
 
-.home-credential__qr-label {
-  color: rgba(255, 255, 255, 0.28);
-  font-size: 7.5px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
 .home-credential__foot {
   align-items: center;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
@@ -4419,41 +4399,30 @@
 }
 
 .home-credential__scan-hint {
-  color: rgba(255, 255, 255, 0.24);
-  font-size: clamp(8px, 2.3cqi, 9.5px);
+  color: rgba(255, 255, 255, 0.46);
+  flex: 1;
+  font-size: 12px;
   line-height: 1.35;
   margin: 0;
-  max-width: 22ch;
   min-width: 0;
 }
 
 .home-credential__status {
   align-items: center;
-  background: rgba(61, 154, 98, 0.08);
-  border: 1px solid rgba(121, 210, 155, 0.22);
-  border-radius: var(--border-radius-pill);
-  color: #7fc89a;
+  color: var(--plu-celeste-300, #9ec8ef);
   display: inline-flex;
   flex: none;
-  font-size: clamp(8px, 2.3cqi, 9px);
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 550;
   gap: 6px;
-  letter-spacing: 0.01em;
-  padding: 5px 9px;
   white-space: nowrap;
-}
-
-.home-credential__status.is-active {
-  background: rgba(61, 154, 98, 0.1);
-  color: #8fd4a8;
 }
 
 .home-credential__status-dot {
   background: currentColor;
   border-radius: 50%;
-  box-shadow: 0 0 0 3px rgba(121, 210, 155, 0.12);
-  height: 6px;
-  width: 6px;
+  height: 5px;
+  width: 5px;
 }
 
 .home-credential__caption {
@@ -4467,21 +4436,7 @@
 }
 
 [data-theme='light'] .home-credential__card {
-  box-shadow:
-    0 26px 52px -28px rgba(15, 17, 23, 0.46),
-    0 1px 0 rgba(255, 255, 255, 0.08) inset;
-}
-
-.home-credential__tilt:hover .home-credential__card {
-  box-shadow:
-    0 28px 56px rgba(0, 0, 0, 0.38),
-    0 1px 0 rgba(255, 255, 255, 0.08) inset;
-}
-
-[data-theme='light'] .home-credential__tilt:hover .home-credential__card {
-  box-shadow:
-    0 30px 58px -28px rgba(15, 17, 23, 0.52),
-    0 1px 0 rgba(255, 255, 255, 0.1) inset;
+  box-shadow: 0 22px 44px -24px rgba(15, 17, 23, 0.4);
 }
 
 @media (min-width: 981px) {
@@ -4554,12 +4509,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-credential__glow,
-  .home-credential__grain,
-  .home-credential__watermark,
-  .home-credential__face {
-    transform: none;
-    transition: none;
+  .home-credential__card::after {
+    animation: none;
   }
 }
 
@@ -5356,7 +5307,7 @@
   background:
     radial-gradient(
       ellipse 70% 55% at 30% 40%,
-      color-mix(in oklab, var(--plu-gold-500) 18%, transparent),
+      color-mix(in oklab, var(--plu-gold-ink-on-dark) 18%, transparent),
       transparent 70%
     ),
     radial-gradient(
@@ -5372,7 +5323,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    color-mix(in srgb, var(--plu-gold-500) 55%, transparent) 40%,
+    color-mix(in srgb, var(--plu-gold-ink-on-dark) 55%, transparent) 40%,
     transparent
   );
   height: 1px;
@@ -5405,10 +5356,8 @@
 }
 
 .pitbull-spotlight__home-kicker-dot {
-  background: var(--plu-gold-500, var(--color-brand-gold));
+  background: var(--plu-gold-ink-on-dark);
   border-radius: 50%;
-  box-shadow: 0 0 0 3px
-    color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 22%, transparent);
   flex: none;
   height: 6px;
   width: 6px;
@@ -5471,7 +5420,8 @@
 }
 
 /* Ocupación live del torneo. Sin card: una cifra, una regla y una línea de
-   nombres, en el mismo acento oro que el kicker y el CTA del bloque. */
+   nombres. La regla usa el bronce de texto; el botón de inscripción sigue
+   en el amarillo de relleno. La foto queda oscura en los dos temas. */
 .pitbull-spotlight__home-live {
   display: grid;
   gap: 8px;
@@ -5508,7 +5458,7 @@
 }
 
 .pitbull-spotlight__home-live-fill {
-  background: var(--plu-gold-500, var(--color-brand-gold));
+  background: var(--plu-gold-ink-on-dark);
   block-size: 100%;
   border-radius: inherit;
   display: block;
@@ -5576,7 +5526,7 @@
 }
 
 .pitbull-spotlight__home-cta-secondary::after {
-  background: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 70%, transparent);
+  background: color-mix(in srgb, var(--plu-gold-ink-on-dark) 70%, transparent);
   bottom: 10px;
   content: '';
   height: 1px;
@@ -5658,7 +5608,7 @@
 
 .pitbull-spotlight__home-cta-secondary:focus-visible {
   border-radius: 4px;
-  outline: 2px solid color-mix(in srgb, var(--plu-gold-500) 55%, transparent);
+  outline: 2px solid var(--color-brand-celeste);
   outline-offset: 4px;
 }
 

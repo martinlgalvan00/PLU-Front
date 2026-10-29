@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CloudOff, Download, RefreshCw, Wifi } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
@@ -19,10 +19,12 @@ export default function AdminOfflineSyncStatus({
   compact = false,
   conflictCount,
   downloadAllowlist,
+  failedCount = 0,
   isOnline,
   lastDownloadedAt,
   lastSyncedAt,
   pendingCount,
+  queueLog = [],
   syncIssue = null,
   syncNow,
   syncing,
@@ -30,6 +32,11 @@ export default function AdminOfflineSyncStatus({
   const { t } = useI18n()
   const [downloading, setDownloading] = useState(false)
   const [showConflicts, setShowConflicts] = useState(false)
+  const [showQueue, setShowQueue] = useState(pendingCount > 0)
+
+  useEffect(() => {
+    if (pendingCount > 0) setShowQueue(true)
+  }, [pendingCount])
 
   const needsDownload = !lastDownloadedAt
   const hasPending = pendingCount > 0
@@ -117,6 +124,51 @@ export default function AdminOfflineSyncStatus({
           </button>
         </div>
       </div>
+
+      {!isOnline && !needsDownload ? (
+        <p className="admin-offline-sync-status__meta admin-offline-sync-status__meta--warning" role="status">
+          {t('admin.checkin.offline.savedOnDevice')}
+        </p>
+      ) : null}
+
+      {isOnline && hasPending ? (
+        <p className="admin-offline-sync-status__meta admin-offline-sync-status__meta--warning" role="status">
+          {syncing
+            ? t('admin.checkin.offline.sendingNow')
+            : t('admin.checkin.offline.waitingToSend')}
+        </p>
+      ) : null}
+
+      {queueLog.length > 0 ? (
+        <button
+          type="button"
+          className="admin-offline-sync-status__conflicts-toggle"
+          aria-expanded={showQueue}
+          onClick={() => setShowQueue((current) => !current)}
+        >
+          {t('admin.checkin.offline.queueTitle', { count: queueLog.length })}
+        </button>
+      ) : null}
+
+      {showQueue && queueLog.length > 0 ? (
+        <ul className="admin-offline-sync-status__queue">
+          {queueLog.map((item) => (
+            <li key={item.localId} className="admin-offline-sync-status__queue-item">
+              <span className="admin-offline-sync-status__queue-label">{item.label}</span>
+              <span>{t(`admin.checkin.offline.queueStatus.${item.status}`)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {failedCount > 0 ? (
+        <p
+          className="admin-offline-sync-status__meta admin-offline-sync-status__meta--warning"
+          role="alert"
+        >
+          {t('admin.checkin.offline.exhausted', { count: failedCount })}
+        </p>
+      ) : null}
 
       {syncIssue === 'auth' && hasPending ? (
         <p

@@ -62,6 +62,10 @@ import {
 } from '../modules/pricing/checkoutPricePolicy.js'
 import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.js'
 import {
+  createEventCredentialNotificationService,
+  createEventCredentialRepository,
+} from '../modules/notifications/eventCredentialNotificationService.js'
+import {
   buildPaymentConfirmationParams,
   displayPaymentConcept,
 } from '../modules/notifications/paymentNotificationService.js'
@@ -116,6 +120,7 @@ import { athleteProfileFromRow } from '../../shared/athleteProfile.js'
 import { COMPETITION_DIVISIONS } from '../../shared/ageDivision.js'
 import { offeringFromRules, validateSelectionAgainstOffering } from '../../shared/eventOffering.js'
 import { isAnnounceOnly } from '../../shared/registrationSaleState.js'
+import { EVENT_MODULE_DISABLED, isStoredEventModuleOn } from '../../shared/eventModules.js'
 import {
   BODYWEIGHT_KG_RANGE,
   REGISTRATION_REQUIRED_MESSAGES,
@@ -567,6 +572,10 @@ const registrationNotifySchema = z.object({
 // Corrección masiva: el mismo motivo se aplica a todas las filas
 // seleccionadas. Tope de 50 por la misma razón que el aviso por mail — un
 // click no puede tocar de más por error.
+const eventCredentialSendSchema = z.object({
+  dryRun: z.boolean().default(false),
+  resend: z.boolean().default(false),
+})
 const registrationBulkStatusSchema = z.object({
   registrationIds: z.array(z.string().uuid()).min(1).max(50),
   status: z.enum(['confirmada', 'observada', 'cancelada']),
@@ -727,6 +736,7 @@ export function createAthleteRoutes({
   repository,
   registrationAccessRepository,
   platformSettingsRepository,
+  eventCredentialRepository,
   env = process.env,
   brevo,
 }) {
@@ -1062,6 +1072,29 @@ export function createAthleteRoutes({
     return result?.status === 'sent'
   }
 
+  // Mail "Tu credencial para {evento}" (QR adjunto). Sin Supabase ni doble de
+  // repositorio no hay de dónde leer la inscripción: se omite en silencio.
+  function credentialMailer() {
+    const credentialRepository =
+      eventCredentialRepository ?? (client() ? createEventCredentialRepository(client()) : null)
+    if (!credentialRepository) return null
+    return createEventCredentialNotificationService({
+      repository: credentialRepository,
+      dispatcher: mailDispatcher(),
+      env,
+    })
+  }
+
+  /** Al confirmar a mano: la confirmación ya quedó en la base, el mail no la revierte. */
+  async function sendCredentialBestEffort(registrationId) {
+    try {
+      return (await credentialMailer()?.sendForRegistration(registrationId)) ?? 'skipped'
+    } catch (error) {
+      console.warn('[email:event_credential] no se pudo enviar', error?.message ?? error)
+      return 'failed'
+    }
+  }
+
   async function sendOnboardingEmails(row) {
     // Un solo mail de alta: bienvenida + confirmación + OTP.
     // Antes salían `welcome` y `email_verification` en paralelo y duplicaban
@@ -1197,6 +1230,19 @@ export function createAthleteRoutes({
         'Este evento todavía no vende inscripciones: por ahora está publicado solo como anuncio.',
         { code: 'REGISTRATION_ANNOUNCE_ONLY' },
       )
+    }
+  }
+
+  /**
+   * Módulo «Combo» apagado en el evento: no se vende aunque haya una oferta
+   * vigente. El catálogo ya no la publica; esto cubre una pestaña vieja o un
+   * pedido armado a mano.
+   */
+  function assertComboModuleOn(event) {
+    if (!isStoredEventModuleOn(event, 'combo')) {
+      throw new HttpError(409, 'Este evento no ofrece el combo de afiliación e inscripción.', {
+        code: EVENT_MODULE_DISABLED,
+      })
     }
   }
 
@@ -1880,6 +1926,40 @@ export function createAthleteRoutes({
       }
     },
   )
+  /**
+   * Cómo se paga la inscripción de un evento, para el bloque "Cómo pagar" de
+   * la landing pública: qué medios acepta (mismo cruce plataforma × evento que
+   * el checkout) y dónde se paga en efectivo. Sin datos bancarios: alias y CBU
+   * se muestran en el checkout, a quien ya está pagando.
+   */
+  router.get('/public/events/:eventSlug/payment-info', publicReadLimiter, async (req, res, next) => {
+    try {
+      const eventSlug = String(req.params.eventSlug ?? '').trim()
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(eventSlug)) {
+        throw new HttpError(400, 'El identificador del evento es inválido.')
+      }
+      const [toggles, event] = await Promise.all([
+        platformSettingsRepo().get(),
+        repo().findEventPricing(eventSlug),
+      ])
+      if (!event) throw new HttpError(404, 'El evento no existe.')
+      const availability = applyEventPaymentChannelOverrides(
+        resolvePublicCheckoutAvailability(
+          applyEventChannelOpens(toggles, event.payment_channel_overrides),
+        ),
+        event.payment_channel_overrides,
+      )
+      const registration = availability.paymentChannels?.registration ?? {}
+      res.set('Cache-Control', 'public, max-age=60')
+      res.json({
+        registrationEnabled: availability.registrationEnabled,
+        channels: Object.keys(registration).filter((channel) => registration[channel] === true),
+        cashPayment: resolveCashPaymentDetails(event),
+      })
+    } catch (error) {
+      next(error)
+    }
+  })
   router.get(
     '/me/registration-access-requirements',
     athleteWriteLimiter,
@@ -2210,6 +2290,7 @@ export function createAthleteRoutes({
         if (!event) throw new HttpError(404, 'Evento no encontrado.')
         assertRosterOpen(event)
         assertRegistrationNotAnnounceOnly(event)
+        assertComboModuleOn(event)
         const selection = assertCompetitionSelection(req.validatedBody, competitionProfile, event)
         assertEventPaymentChannelEnabled(toggles, 'registration', comboChannel, {
           override: comboOverride,
@@ -3567,14 +3648,17 @@ export function createAthleteRoutes({
       try {
         const registrationId = z.string().uuid().safeParse(req.params.registrationId)
         if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
-        res.json(
-          await repo().setRegistrationStatus(
-            registrationId.data,
-            req.validatedBody.status,
-            req.validatedBody.reason,
-            actorLabel(req),
-          ),
+        const updated = await repo().setRegistrationStatus(
+          registrationId.data,
+          req.validatedBody.status,
+          req.validatedBody.reason,
+          actorLabel(req),
         )
+        // Confirmar a mano no avisaba nada: ahora sale la credencial con el QR.
+        if (req.validatedBody.status === 'confirmada') {
+          await sendCredentialBestEffort(registrationId.data)
+        }
+        res.json(updated)
       } catch (error) {
         next(error)
       }
@@ -3600,6 +3684,7 @@ export function createAthleteRoutes({
         for (const registrationId of registrationIds) {
           try {
             await repo().setRegistrationStatus(registrationId, status, reason, actorLabel(req))
+            if (status === 'confirmada') await sendCredentialBestEffort(registrationId)
             results.push({ registrationId, status: 'updated' })
           } catch (error) {
             results.push({
@@ -3614,6 +3699,35 @@ export function createAthleteRoutes({
           updated: results.filter((row) => row.status === 'updated').length,
           failed: results.filter((row) => row.status === 'failed').length,
         })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * "Enviar credenciales": el mail con el QR a todos los confirmados del
+   * evento que todavía no lo recibieron. `dryRun` devuelve el conteo para el
+   * diálogo de confirmación sin mandar nada; `resend` vuelve a mandarlo a
+   * todos (una vez por día como máximo).
+   */
+  router.post(
+    '/admin/events/:eventSlug/credentials/send',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(eventCredentialSendSchema),
+    async (req, res, next) => {
+      try {
+        const eventSlug = z.string().trim().min(1).max(160).safeParse(req.params.eventSlug)
+        if (!eventSlug.success) throw new HttpError(400, 'Evento inválido.')
+        const mailer = credentialMailer()
+        if (!mailer) throw new HttpError(503, 'Supabase Admin no está configurado.')
+        res.json(
+          await mailer.sendForEvent({
+            eventSlug: eventSlug.data,
+            dryRun: req.validatedBody.dryRun,
+            resend: req.validatedBody.resend,
+          }),
+        )
       } catch (error) {
         next(error)
       }

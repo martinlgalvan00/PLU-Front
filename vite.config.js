@@ -1,6 +1,11 @@
 import path from 'node:path'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
+import {
+  CHECKIN_SHELL_PRECACHE_IGNORE,
+  isCheckinShellAsset,
+} from './src/lib/checkinShellPrecache.js'
 
 export default defineConfig(({ mode }) => {
   // Sin prefijo: también lee PORT del .env para alinear el proxy con la API.
@@ -18,7 +23,49 @@ export default defineConfig(({ mode }) => {
   console.info(`[vite] /api proxy → ${apiProxyTarget}`)
 
   return {
-    plugins: [react()],
+    plugins: [
+      react(),
+      // Sin el HTML y el JS de arranque, reabrir el teléfono sin señal no tiene
+      // app. La instalación precachea solo eso (y las fuentes). Check-in y el
+      // resto se guardan la primera vez que se abren. Mapas, 3D y el checkout
+      // ni siquiera entran en esa lista. cleanupOutdatedCaches suelta el
+      // build anterior después de un deploy.
+      VitePWA({
+        registerType: 'autoUpdate',
+        injectRegister: null,
+        manifest: false,
+        workbox: {
+          cleanupOutdatedCaches: true,
+          navigateFallback: 'index.html',
+          globPatterns: ['**/*.{js,css,html,woff2}'],
+          globIgnores: [...CHECKIN_SHELL_PRECACHE_IGNORE],
+          maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+          manifestTransforms: [
+            (entries) => ({
+              manifest: entries.filter((entry) => isCheckinShellAsset(entry.url)),
+              warnings: [],
+            }),
+          ],
+          // Lo que la puerta abre después del arranque (check-in, antd, textos)
+          // queda en cache la primera vez que hay señal. No entra en la instalación.
+          runtimeCaching: [
+            {
+              urlPattern: /\/assets\/.+\.(?:js|css|woff2)$/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'plu-door-assets',
+                expiration: {
+                  maxEntries: 64,
+                  maxAgeSeconds: 60 * 60 * 24 * 7,
+                },
+                cacheableResponse: { statuses: [200] },
+              },
+            },
+          ],
+        },
+        devOptions: { enabled: false },
+      }),
+    ],
     // Flags compartidas front/back: PAYMENTS_MOCK / PAID_CHECKOUT_*
     envPrefix: ['VITE_', 'PAYMENTS_', 'APP_', 'PAID_'],
     // Vite no inyecta VITE_* desde process.env, sólo desde archivos .env.
@@ -51,6 +98,12 @@ export default defineConfig(({ mode }) => {
         // sólo baja cuando el atleta/staff realmente lo usa.
         if (id.includes('node_modules/lucide-react')) {
           return 'vendor-lucide'
+        }
+        if (id.includes('node_modules/three')) {
+          return 'three'
+        }
+        if (id.includes('node_modules/maplibre-gl')) {
+          return 'maplibre'
         }
             if (id.includes('node_modules/@mercadopago') || id.includes('node_modules/mercadopago')) {
               return 'vendor-mp'

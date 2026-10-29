@@ -1,18 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../src/lib/api.js'
+import { CHECKIN_SYNC } from '../src/lib/checkinSyncConfig.js'
 
 const pending = []
 const conflicts = []
+const { noteSyncJournal } = vi.hoisted(() => ({ noteSyncJournal: vi.fn() }))
 
 vi.mock('../src/lib/offlineCheckinDb.js', () => ({
   addResolvedConflict: vi.fn(async (entry) => {
     conflicts.push(entry)
   }),
+  noteSyncJournal,
   downloadAllowlist: vi.fn(),
   listPending: vi.fn(async () => [...pending]),
   removePending: vi.fn(async (localId) => {
     const index = pending.findIndex((item) => item.localId === localId)
     if (index >= 0) pending.splice(index, 1)
+  }),
+  updatePending: vi.fn(async (localId, patch) => {
+    const item = pending.find((entry) => entry.localId === localId)
+    if (item) Object.assign(item, patch)
   }),
 }))
 
@@ -41,6 +48,7 @@ beforeEach(() => {
   conflicts.length = 0
   checkInTicket.mockReset()
   checkInRegistration.mockReset()
+  noteSyncJournal.mockClear()
 })
 
 describe('syncPendingCheckins', () => {
@@ -53,6 +61,8 @@ describe('syncPendingCheckins', () => {
     expect(results.map((item) => item.outcome)).toEqual(['ok', 'ok'])
     expect(checkInTicket.mock.calls.map((call) => call[0])).toEqual(['qr-a', 'qr-b'])
     expect(pending).toHaveLength(0)
+    expect(noteSyncJournal).toHaveBeenCalledWith(expect.objectContaining({ localId: 'a', status: 'synced' }))
+    expect(noteSyncJournal).toHaveBeenCalledWith(expect.objectContaining({ localId: 'b', status: 'synced' }))
   })
 
   it('PLU06 es un conflicto de carrera entre dispositivos', async () => {
@@ -82,7 +92,7 @@ describe('syncPendingCheckins', () => {
     pending.push(ticketEntry('a'), ticketEntry('b'), ticketEntry('c'))
     checkInTicket.mockRejectedValue(apiError(401))
 
-    const results = await syncPendingCheckins()
+    const results = await syncPendingCheckins({ concurrency: 1 })
 
     expect(results).toHaveLength(1)
     expect(results[0].outcome).toBe('auth')
@@ -128,5 +138,44 @@ describe('syncPendingCheckins', () => {
 
     expect(result.outcome).toBe('ok')
     expect(checkInRegistration).toHaveBeenCalledWith('reg-1', 'Pesaje')
+  })
+
+  it('no manda dos veces el mismo QR en el mismo drenaje', async () => {
+    pending.push(ticketEntry('a', 'same'), ticketEntry('b', 'same'))
+    checkInTicket.mockResolvedValue({})
+
+    const results = await syncPendingCheckins()
+
+    expect(checkInTicket).toHaveBeenCalledTimes(1)
+    expect(results).toHaveLength(1)
+    expect(results[0].outcome).toBe('ok')
+    expect(pending.map((item) => item.localId)).toEqual(['b'])
+  })
+
+  it('no reintenta antes de nextAttemptAt', async () => {
+    const now = Date.parse('2026-10-29T12:00:00.000Z')
+    pending.push({
+      ...ticketEntry('a'),
+      attemptCount: 1,
+      nextAttemptAt: new Date(now + 60_000).toISOString(),
+    })
+
+    const results = await syncPendingCheckins({ now })
+
+    expect(results).toEqual([])
+    expect(checkInTicket).not.toHaveBeenCalled()
+    expect(pending).toHaveLength(1)
+  })
+
+  it('al agotar intentos deja el ingreso en la cola, no lo borra', async () => {
+    pending.push({ ...ticketEntry('a'), attemptCount: CHECKIN_SYNC.maxAttempts - 1 })
+    checkInTicket.mockRejectedValue(apiError(0))
+
+    const [result] = await syncPendingCheckins({ now: 1_000 })
+
+    expect(result.outcome).toBe('exhausted')
+    expect(pending).toHaveLength(1)
+    expect(pending[0].status).toBe('exhausted')
+    expect(checkInTicket).toHaveBeenCalledTimes(1)
   })
 })

@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { listPending, listResolvedConflicts } from '../lib/offlineCheckinDb.js'
+import { CHECKIN_SYNC } from '../lib/checkinSyncConfig.js'
+import {
+  getAllowlist,
+  listDoorSyncStatus,
+  listPending,
+  listResolvedConflicts,
+} from '../lib/offlineCheckinDb.js'
 import {
   downloadAllowlist as downloadAllowlistRequest,
   syncPendingCheckins,
 } from '../services/offlineCheckinSync.js'
 import { syncPendingScanEvents } from '../services/checkinTelemetry.js'
-
-const SYNC_INTERVAL_MS = 25000
 
 /**
  * useOfflineCheckinSync — PLU ARG
@@ -20,7 +24,9 @@ export function useOfflineCheckinSync(eventSlug) {
     typeof navigator === 'undefined' ? true : navigator.onLine,
   )
   const [pendingCount, setPendingCount] = useState(0)
+  const [failedCount, setFailedCount] = useState(0)
   const [conflictCount, setConflictCount] = useState(0)
+  const [queueLog, setQueueLog] = useState([])
   const [syncing, setSyncing] = useState(false)
   const [lastSyncedAt, setLastSyncedAt] = useState(null)
   const [lastDownloadedAt, setLastDownloadedAt] = useState(null)
@@ -29,9 +35,19 @@ export function useOfflineCheckinSync(eventSlug) {
   const syncingRef = useRef(false)
 
   const refreshCounts = useCallback(async () => {
-    const [pending, conflicts] = await Promise.all([listPending(), listResolvedConflicts()])
-    setPendingCount(pending.length)
+    const [pending, conflicts, log] = await Promise.all([
+      listPending(),
+      listResolvedConflicts(),
+      listDoorSyncStatus(),
+    ])
+    setPendingCount(pending.filter((item) => item.status !== 'exhausted').length)
+    setFailedCount(pending.filter((item) => item.status === 'exhausted').length)
     setConflictCount(conflicts.length)
+    setQueueLog(log)
+  }, [])
+
+  const noteSnapshot = useCallback((downloadedAt) => {
+    if (downloadedAt) setLastDownloadedAt(downloadedAt)
   }, [])
 
   const syncNow = useCallback(async () => {
@@ -63,6 +79,19 @@ export function useOfflineCheckinSync(eventSlug) {
   }, [refreshCounts])
 
   useEffect(() => {
+    if (!eventSlug) return undefined
+    let live = true
+    getAllowlist(eventSlug)
+      .then((data) => {
+        if (live && data?.downloadedAt) setLastDownloadedAt(data.downloadedAt)
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [eventSlug])
+
+  useEffect(() => {
     function handleOnline() {
       setIsOnline(true)
       syncNow()
@@ -82,14 +111,16 @@ export function useOfflineCheckinSync(eventSlug) {
   useEffect(() => {
     const interval = setInterval(() => {
       if (navigator.onLine) syncNow()
-    }, SYNC_INTERVAL_MS)
+    }, CHECKIN_SYNC.intervalMs)
     return () => clearInterval(interval)
   }, [syncNow])
 
   return {
     isOnline,
     pendingCount,
+    failedCount,
     conflictCount,
+    queueLog,
     syncing,
     syncIssue,
     lastSyncedAt,
@@ -97,5 +128,6 @@ export function useOfflineCheckinSync(eventSlug) {
     syncNow,
     downloadAllowlist,
     refreshCounts,
+    noteSnapshot,
   }
 }

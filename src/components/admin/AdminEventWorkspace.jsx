@@ -32,6 +32,7 @@ import AdminEventTicketAddonReport from './AdminEventTicketAddonReport.jsx'
 import AdminEventTicketsSoldSection from './AdminEventTicketsSoldSection.jsx'
 import '../../styles/pages/admin-event-workspace.css'
 import '../../styles/pages/admin-event-dashboard.css'
+import '../../styles/pages/admin-event-modules.css'
 // "Abrir control de puerta" usa la pastilla de la sección de seguridad: sin
 // importarla acá dependía de que otra pantalla la hubiera cargado antes.
 import '../../styles/pages/admin-event-security.css'
@@ -43,6 +44,9 @@ import { buildSecurityGatePath } from '../../lib/securityGateRoute.js'
 import { TICKETS_PATH } from '../../lib/ticketsRoute.js'
 import { eventSiteState } from '../../lib/eventPublicSurface.js'
 import useEventRegistrationSale from '../../hooks/useEventRegistrationSale.js'
+import { isStoredEventModuleOn, resolveEventModules } from '../../../shared/eventModules.js'
+import { useMotionConfig } from '../../motion/MotionProvider.tsx'
+import { useActiveIndicator, usePanelEnter } from '../../motion/useActiveIndicator.ts'
 
 /** Secciones que agrupa la pestaña "Evento" (como capítulos). */
 const EVENT_SECTIONS = ['basics', 'structure']
@@ -160,6 +164,16 @@ export default function AdminEventWorkspace({
   const stateDirtyRef = useRef(false)
   const sidebarRef = useRef(null)
   const scrollHostRef = useRef(null)
+  const navRef = useRef(null)
+  const chaptersRef = useRef(null)
+  const bodyRef = useRef(null)
+  const { reducedMotion, tier } = useMotionConfig()
+  // Movimiento de navegación: el fondo de la pestaña viaja hasta la nueva y el
+  // panel entra con 6px. Antes que el `return` temprano (son hooks).
+  const panelKey = `${activeSection}:${activeSection === 'sales' ? (openChapter ?? '') : ''}`
+  useActiveIndicator(navRef, activeSection)
+  useActiveIndicator(chaptersRef, panelKey)
+  usePanelEnter(bodyRef, panelKey, { disabled: reducedMotion || tier === 'low' })
 
   useEffect(() => {
     scrollHostRef.current = sidebarRef.current?.closest('.admin-shell__content') ?? null
@@ -189,6 +203,9 @@ export default function AdminEventWorkspace({
   // Antes del `return` temprano: un hook no puede quedar condicionado.
   const sale = useEventRegistrationSale(event)
   const ticketsEnabled = event?.pricing?.ticketsEnabled === true
+  // Módulo «Puerta» apagado: el evento no usa check-in ni zonas, y el panel no
+  // los muestra. Lee lo guardado, no el borrador.
+  const doorOn = isStoredEventModuleOn(event, 'door')
 
   const activeTicketTypeCount = useMemo(() => {
     const types = summarySource?.ticketTypes ?? event?.ticketTypes
@@ -236,7 +253,7 @@ export default function AdminEventWorkspace({
           : {}),
       })
     }
-    if (canManageUsers && securitySection) {
+    if (canManageUsers && securitySection && doorOn) {
       list.push({ id: 'security', label: t('admin.eventConsole.zones'), icon: ShieldCheck })
     }
     if (paymentsSection) {
@@ -257,6 +274,7 @@ export default function AdminEventWorkspace({
     activeTicketTypeCount,
     canEdit,
     canManageUsers,
+    doorOn,
     event?.eventDays?.length,
     paymentsAttention,
     paymentsSection,
@@ -312,6 +330,8 @@ export default function AdminEventWorkspace({
   const siteState = eventSiteState(event)
   // "Arreglar" del control de venta: lleva al capítulo de Ventas que corresponde.
   const fixSale = onSelectChapter ? (chapter) => onSelectChapter(event, 'sales', chapter) : undefined
+  // Capítulo de Venta abierto; sin elegir, el acordeón arranca en Módulos.
+  const saleChapter = openChapter ?? 'modules'
   const registered = Number(event.registered) || 0
   const slots = Number(event.slots) || 0
 
@@ -361,7 +381,16 @@ export default function AdminEventWorkspace({
    * del rail queda en el DOM (tests y aria) pero no se dibuja. El editor
    * en acordeón no renderiza su propia navegación.
    */
+  const savedModules = resolveEventModules(summarySource)
   const salesChapters = [
+    {
+      id: 'modules',
+      label: t('admin.eventEditor.salesChapterModules'),
+      value: t('admin.eventEditor.salesChapterModulesValue', {
+        count: savedModules.filter((module) => module.on).length,
+        total: savedModules.length,
+      }),
+    },
     {
       id: 'cupo',
       label: t('admin.eventEditor.salesChapterCapacity'),
@@ -399,7 +428,13 @@ export default function AdminEventWorkspace({
 
   function renderChapters(chapters, { selectedId, onSelect, ariaLabel }) {
     return (
-      <div className="admin-event-workspace__chapters" role="tablist" aria-label={ariaLabel}>
+      <div
+        ref={chaptersRef}
+        className="admin-event-workspace__chapters"
+        role="tablist"
+        aria-label={ariaLabel}
+      >
+        <span className="admin-event-workspace__chapters-indicator" aria-hidden />
         {chapters.map((chapter) => {
           const selected = selectedId === chapter.id
           return (
@@ -472,7 +507,7 @@ export default function AdminEventWorkspace({
 
     if (!tab.hasSubnav) return <Fragment key={tab.id}>{tabButton}</Fragment>
 
-    const selectedChapter = openChapter ?? 'cupo'
+    const selectedChapter = openChapter ?? 'modules'
     return (
       <div
         key={tab.id}
@@ -508,7 +543,10 @@ export default function AdminEventWorkspace({
   }
 
   const gotoCard =
-    registrationsSection || onManageRegistrations || paymentsSection || onManageCheckin ? (
+    registrationsSection ||
+    onManageRegistrations ||
+    paymentsSection ||
+    (onManageCheckin && doorOn) ? (
       <section className="admin-event-workspace__card">
         <header className="admin-event-workspace__card-head">
           <h2 className="admin-event-workspace__card-title">
@@ -539,7 +577,7 @@ export default function AdminEventWorkspace({
                 onClick: () => onSelectSection?.(event, 'payments'),
               })
             : null}
-          {onManageCheckin
+          {onManageCheckin && doorOn
             ? renderGoto({
                 icon: ScanLine,
                 label: t('admin.eventConsole.checkin'),
@@ -550,6 +588,54 @@ export default function AdminEventWorkspace({
         </div>
       </section>
     ) : null
+
+  // Qué partes del evento están prendidas, de un vistazo. Refleja el borrador
+  // mientras se edita (igual que la vista previa) y lleva al tablero de Venta.
+  const modulesCard = canEdit ? (
+    <section className="admin-event-workspace__card admin-event-workspace__modules">
+      <header className="admin-event-workspace__card-head">
+        <h2 className="admin-event-workspace__card-title">
+          {t('admin.eventEditor.eventModules.title')}
+        </h2>
+        <span className="admin-event-workspace__modules-count">
+          {t('admin.eventEditor.salesChapterModulesValue', {
+            count: savedModules.filter((module) => module.on).length,
+            total: savedModules.length,
+          })}
+        </span>
+      </header>
+      <ul className="admin-event-workspace__modules-list">
+        {savedModules.map((module) => {
+          const state = module.active ? 'on' : module.on ? 'idle' : 'off'
+          return (
+            <li key={module.key} className="admin-event-workspace__module" data-state={state}>
+              <span className="admin-event-workspace__module-dot" aria-hidden />
+              <span className="admin-event-workspace__module-name">
+                {t(`admin.eventEditor.eventModules.name.${module.key}`)}
+              </span>
+              <span className="admin-event-workspace__module-state">
+                {t(
+                  `admin.eventEditor.eventModules.${
+                    state === 'on' ? 'stateOnLabel' : state === 'idle' ? 'stateIdleLabel' : 'stateOffLabel'
+                  }`,
+                )}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+      {onSelectChapter ? (
+        <button
+          type="button"
+          className="admin-event-workspace__modules-link"
+          onClick={() => onSelectChapter(event, 'sales', 'modules')}
+        >
+          {t('admin.eventEditor.eventModules.configure')}
+          <ChevronRight size={14} aria-hidden />
+        </button>
+      ) : null}
+    </section>
+  ) : null
 
   function renderTabPanel() {
     if (activeTab === 'structure') {
@@ -589,7 +675,7 @@ export default function AdminEventWorkspace({
                   {t('admin.eventEditor.security.previewControl')}
                 </a>
               ) : null}
-              {onManageCheckin ? (
+              {onManageCheckin && doorOn ? (
                 <button
                   type="button"
                   className="admin-event-workspace__security-link"
@@ -618,6 +704,18 @@ export default function AdminEventWorkspace({
       // pedirle al acordeón algo que no sabe mostrar.
       return (
         <div className="admin-event-workspace__main-col">
+          {/* Abrir, programar y cerrar viven acá, arriba de las fechas que
+              gobiernan: antes las fechas se veían sin decir que la venta
+              estaba cerrada a mano, y el mismo botón estaba en la cabecera. */}
+          {saleChapter === 'cupo' ? (
+            <AdminEventSaleControl
+              canEdit={canEdit}
+              event={event}
+              hasUnsavedState={() => stateDirtyRef.current}
+              onFix={fixSale}
+              onSetEventState={onSetEventState}
+            />
+          ) : null}
           {openChapter === 'sold' ? (
             <AdminEventTicketsSoldSection
               canOverride={canEdit}
@@ -675,6 +773,7 @@ export default function AdminEventWorkspace({
             aria-label={t('admin.sections.events.publicPreviewLabel')}
           >
             {gotoCard}
+            {modulesCard}
             <AdminEventLivePreview
               compact
               embedded
@@ -804,11 +903,13 @@ export default function AdminEventWorkspace({
             color -- un lector de pantalla no tenía forma de saber cuál estaba
             abierta, y ninguna forma de recorrerlas como grupo. */}
         <div
+          ref={navRef}
           className="admin-event-workspace__nav"
           role="tablist"
           aria-orientation="vertical"
           aria-label={t('admin.eventConsole.tabsLabel')}
         >
+          <span className="admin-event-workspace__nav-indicator" aria-hidden />
           {buildNav.map((tab) => renderNavItem(tab))}
           {operationNav.length ? (
             // Separador visual: no es una pestaña, el lector de pantalla lo saltea.
@@ -832,7 +933,7 @@ export default function AdminEventWorkspace({
         >
           {activeTab === 'sales'
             ? renderChapters(salesChapters, {
-                selectedId: openChapter ?? 'cupo',
+                selectedId: openChapter ?? 'modules',
                 onSelect: (chapter) => onSelectChapter?.(event, 'sales', chapter),
                 ariaLabel: t('admin.eventEditor.salesChapterNavAria'),
               })
@@ -855,7 +956,9 @@ export default function AdminEventWorkspace({
             onSetEventState={onSetEventState}
             hasUnsavedState={() => stateDirtyRef.current}
             onEditDate={handleEditDate}
-            showRegistrationToggle={activeTab !== 'dashboard'}
+            showRegistrationToggle={
+              activeTab !== 'dashboard' && !(activeTab === 'sales' && saleChapter === 'cupo')
+            }
           />
           <div className="admin-event-workspace__head-actions">
             {canEdit && onTogglePin && event.status !== 'finalizado' ? (
@@ -886,6 +989,7 @@ export default function AdminEventWorkspace({
         </div>
 
         <div
+          ref={bodyRef}
           className="admin-event-workspace__body"
           id="admin-event-tabpanel"
           role="tabpanel"

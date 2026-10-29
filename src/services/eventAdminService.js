@@ -34,6 +34,15 @@ import {
   offeringForStorage,
   offeringFromRules,
 } from '../../shared/eventOffering.js'
+import {
+  eventModulesForStorage,
+  eventModulesFromRules,
+  isStoredEventModuleOn,
+  normalizeEventModules,
+  normalizeEventPaymentPolicy,
+  paymentPolicyForStorage,
+  paymentPolicyFromRules,
+} from '../../shared/eventModules.js'
 import { normalizeTicketTypePaymentChannels } from '../lib/ticketTypePaymentChannels.js'
 import { catalogPriceFromRow, normalizeTicketTypePrices } from '../lib/ticketTypePrices.js'
 import { TICKET_ACCESS_USAGE_MODE, TICKET_QR_VALIDITY_MODE } from '../lib/ticketValidityPolicy.js'
@@ -114,6 +123,7 @@ export function buildAdminEventDraft(event) {
     description: event.description ?? '',
     dateISO: event.dateISO ?? event.startsAt?.slice(0, 10) ?? '',
     venue: event.venue ?? '',
+    venueAddress: event.venueAddress ?? '',
     location: event.location ?? '',
     status: event.status ?? 'proximamente',
     featured: Boolean(event.featured),
@@ -170,6 +180,8 @@ export function buildAdminEventDraft(event) {
       alias: event.bankTransfer?.alias ?? '',
       cbu: event.bankTransfer?.cbu ?? '',
       holder: event.bankTransfer?.holder ?? '',
+      cuit: event.bankTransfer?.cuit ?? '',
+      bankName: event.bankTransfer?.bankName ?? '',
     },
     bankTransferProfileId: event.bankTransferProfileId ?? null,
     mercadoPagoProfileId: event.mercadoPagoProfileId ?? null,
@@ -178,9 +190,14 @@ export function buildAdminEventDraft(event) {
     cashPayment: {
       place: event.cashPayment?.place ?? '',
       notes: event.cashPayment?.notes ?? '',
+      address: event.cashPayment?.address ?? '',
+      hours: event.cashPayment?.hours ?? '',
+      contact: event.cashPayment?.contact ?? '',
     },
     externalForm: normalizeExternalForm(event.externalForm),
     offering: normalizeEventOffering(event.offering),
+    modules: normalizeEventModules(event.modules),
+    paymentPolicy: normalizeEventPaymentPolicy(event.paymentPolicy),
   }
 }
 
@@ -206,6 +223,7 @@ export function mapDraftToPreviewEvent(draft, sourceEvent = null) {
     date: dateISO ? formatEventDate(dateISO) : '—',
     dateISO,
     venue: draft.venue?.trim() || 'Sede del evento',
+    venueAddress: draft.venueAddress?.trim() ?? '',
     location: draft.location?.trim() || 'Ciudad',
     status: draft.status || 'proximamente',
     featured: Boolean(draft.featured),
@@ -440,6 +458,8 @@ export function createAdminEvent(events, payload) {
     liveStatus: payload.liveStatus ?? 'offline',
     externalForm: normalizeExternalForm(payload.externalForm),
     offering: normalizeEventOffering(payload.offering),
+    modules: normalizeEventModules(payload.modules),
+    paymentPolicy: normalizeEventPaymentPolicy(payload.paymentPolicy),
     published: Boolean(payload.published),
     requiresMembership: payload.requiresMembership !== false,
   }
@@ -499,6 +519,8 @@ export function updateAdminEvent(events, eventId, payload) {
       liveStatus: payload.liveStatus ?? event.liveStatus ?? 'offline',
       externalForm: normalizeExternalForm(payload.externalForm ?? event.externalForm),
       offering: normalizeEventOffering(payload.offering ?? event.offering),
+      modules: normalizeEventModules(payload.modules ?? event.modules),
+      paymentPolicy: normalizeEventPaymentPolicy(payload.paymentPolicy ?? event.paymentPolicy),
       published: Boolean(payload.published),
       requiresMembership:
         payload.requiresMembership !== undefined
@@ -624,6 +646,7 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   description: '',
   dateISO: '',
   venue: '',
+  venueAddress: '',
   location: '',
   status: 'proximamente',
   featured: false,
@@ -662,9 +685,11 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   mercadoPagoProfileId: null,
   mercadoPagoReadiness: null,
   salesIntent: 'charge',
-  cashPayment: { place: '', notes: '' },
+  cashPayment: { place: '', notes: '', address: '', hours: '', contact: '' },
   externalForm: { url: '', label: '' },
   offering: normalizeEventOffering(null),
+  modules: normalizeEventModules(null),
+  paymentPolicy: normalizeEventPaymentPolicy(null),
 }
 
 /** Reconstruye eventDays/ticketTypes desde las filas joineadas de Supabase. */
@@ -765,6 +790,8 @@ export function mapSupabaseEventRow(row) {
     title: row.title,
     description: row.description ?? '',
     venue: row.venue,
+    // Calle y número (20270102110000): Google Maps y Waze.
+    venueAddress: row.venue_address ?? '',
     location: row.location,
     startsAt: row.starts_at,
     endsAt: row.ends_at,
@@ -803,9 +830,14 @@ export function mapSupabaseEventRow(row) {
     cashPayment: {
       place: row.cash_payment_place ?? '',
       notes: row.cash_payment_notes ?? '',
+      address: row.cash_payment_address ?? '',
+      hours: row.cash_payment_hours ?? '',
+      contact: row.cash_payment_contact ?? '',
     },
     externalForm: externalFormFromRules(rules),
     offering: offeringFromRules(rules),
+    modules: eventModulesFromRules(rules),
+    paymentPolicy: paymentPolicyFromRules(rules),
     comboOffer: comboOfferRow
       ? {
           id: comboOfferRow.id,
@@ -887,7 +919,11 @@ export function mapSupabaseEventRow(row) {
  */
 export function mapPublishedEventRow(row, now = new Date()) {
   const event = mapSupabaseEventRow(row)
-  const publicOffer = resolveLiveComboOffer(event, now)
+  // Combo apagado: mismo recorte que `sanitizePublicCatalogEvent` (server),
+  // porque el respaldo a Supabase directo no pasa por él.
+  const publicOffer = isStoredEventModuleOn(event, 'combo')
+    ? resolveLiveComboOffer(event, now)
+    : null
   return {
     ...event,
     comboOffer: publicOffer,
@@ -1062,6 +1098,9 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
       alias: draft.bankTransfer?.alias ?? '',
       cbu: draft.bankTransfer?.cbu ?? '',
       holder: draft.bankTransfer?.holder ?? '',
+      // Van a la cuenta reutilizable que se crea con estos datos, no al evento.
+      cuit: draft.bankTransfer?.cuit ?? '',
+      bankName: draft.bankTransfer?.bankName ?? '',
     },
     bankTransferProfileId: draft.bankTransferProfileId ?? null,
     mercadoPagoProfileId: draft.mercadoPagoProfileId ?? null,
@@ -1069,7 +1108,11 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
     cashPayment: {
       place: String(draft.cashPayment?.place ?? '').trim(),
       notes: String(draft.cashPayment?.notes ?? '').trim(),
+      address: String(draft.cashPayment?.address ?? '').trim(),
+      hours: String(draft.cashPayment?.hours ?? '').trim(),
+      contact: String(draft.cashPayment?.contact ?? '').trim(),
     },
+    venueAddress: String(draft.venueAddress ?? '').trim(),
     // Siempre se manda (aunque esté vacío): el upsert reconstruye `rules`, y sin
     // este merge un guardado borraría el formulario cargado.
     externalForm: {
@@ -1079,6 +1122,9 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
     // También siempre: el upsert reconstruye `rules`. Solo viajan las listas que
     // restringen algo; `{}` = ofrece todo.
     offering: offeringForStorage(draft.offering),
+    // También siempre: solo viaja lo apagado y los conceptos con tope de cuotas.
+    modules: eventModulesForStorage(draft.modules),
+    paymentPolicy: paymentPolicyForStorage(draft.paymentPolicy),
   })
 
   return {
@@ -1119,6 +1165,7 @@ export async function setEventStateRequest(
     capacityProgressPublic,
     registrationOpensAt,
     registrationClosesAt,
+    ticketsEnabled,
   } = {},
 ) {
   if (!slug) throw new Error('Falta el slug del evento.')
@@ -1131,6 +1178,7 @@ export async function setEventStateRequest(
   // Control de venta: ISO fija la fecha, null la borra.
   if (registrationOpensAt !== undefined) payload.registrationOpensAt = registrationOpensAt
   if (registrationClosesAt !== undefined) payload.registrationClosesAt = registrationClosesAt
+  if (ticketsEnabled !== undefined) payload.ticketsEnabled = ticketsEnabled === true
 
   const response = await apiPost(`/api/events/${encodeURIComponent(slug)}/state`, payload)
 

@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Download, Share2, X } from 'lucide-react'
 import EventShareCard from './EventShareCard.jsx'
+import PublicDialogFrame from './PublicDialogFrame.jsx'
 import SegmentedSwitch from './SegmentedSwitch.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import {
@@ -122,23 +123,11 @@ export default function CardPreviewModal({
     clearGeneratedBlob()
   }, [format])
 
-  // Cerrar con Escape
-  useEffect(() => {
-    if (!open) return
-    function onKey(e) {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [open, onClose])
-
   // Cuando el nodo de captura monta, liberar a quien espera el ref.
   useLayoutEffect(() => {
     if (!captureMounted || !captureRef.current) return
     resolveCaptureWaiters(captureRef.current)
   }, [captureMounted, format])
-
-  if (!open) return null
 
   const isStory = format === 'story'
   const filename = buildCardFilename(
@@ -215,17 +204,13 @@ export default function CardPreviewModal({
         </div>
       ) : null}
 
-      {/* ── Overlay del modal ── */}
-      <div
-        className="card-modal-overlay"
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('cardModal.modalAria')}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) onClose()
-        }}
+      <PublicDialogFrame
+        open={open}
+        onClose={onClose}
+        overlayClassName="card-modal-overlay"
+        panelClassName="card-modal"
+        ariaLabel={t('cardModal.modalAria')}
       >
-        <div className="card-modal">
           {/* Header */}
           <div className="card-modal__header">
             <span className="card-modal__title">{t('cardModal.title')}</span>
@@ -306,8 +291,7 @@ export default function CardPreviewModal({
               {t('cardModal.doneMessage')}
             </p>
           )}
-        </div>
-      </div>
+      </PublicDialogFrame>
     </>
   )
 }

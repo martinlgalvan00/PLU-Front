@@ -17,9 +17,9 @@ const stateSql = readFileSync(
   'utf8',
 )
 // La RPC del layout se redefinió después (Profundidad, ids integrados, bloques
-// nuevos): se ancla la versión vigente.
+// nuevos, "Cómo pagar"): se ancla la versión vigente.
 const sql = readFileSync(
-  resolve(process.cwd(), 'supabase/migrations/20261231130000_event_landing_more_blocks.sql'),
+  resolve(process.cwd(), 'supabase/migrations/20270102120000_event_landing_payments_block.sql'),
   'utf8',
 )
 

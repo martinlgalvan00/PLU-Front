@@ -1,19 +1,12 @@
 .gym-confirmation-dialog {
   align-items: center;
+  background: color-mix(in srgb, var(--color-bg-primary) 78%, transparent);
   display: grid;
   inset: 0;
   justify-items: center;
   padding: var(--space-md, 16px);
   position: fixed;
   z-index: 1200;
-}
-
-.gym-confirmation-dialog__backdrop {
-  background: color-mix(in srgb, var(--color-bg-primary) 78%, transparent);
-  border: 0;
-  cursor: default;
-  inset: 0;
-  position: absolute;
 }
 
 .gym-confirmation-dialog__panel {

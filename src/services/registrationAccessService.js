@@ -18,12 +18,17 @@ export async function fetchRegistrationAccessRequirements({ eventSlug } = {}) {
       alias: result?.bankTransfer?.alias ?? '',
       cbu: result?.bankTransfer?.cbu ?? '',
       holder: result?.bankTransfer?.holder ?? '',
+      cuit: result?.bankTransfer?.cuit ?? '',
+      bankName: result?.bankTransfer?.bankName ?? '',
     },
     // Dónde se paga el efectivo. Vacío con un API viejo: la pantalla usa la
     // sede del evento.
     cashPayment: {
       place: result?.cashPayment?.place ?? '',
       notes: result?.cashPayment?.notes ?? '',
+      address: result?.cashPayment?.address ?? '',
+      hours: result?.cashPayment?.hours ?? '',
+      contact: result?.cashPayment?.contact ?? '',
     },
   }
 }

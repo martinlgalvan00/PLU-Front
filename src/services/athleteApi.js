@@ -1497,6 +1497,24 @@ export async function checkInRegistration(registrationId, gate) {
   }
 }
 
-export async function getEventCheckinAllowlist(eventSlug) {
-  return apiGet(`/api/tickets/allowlist/${encodeURIComponent(eventSlug)}`)
+export async function getEventCheckinAllowlist(eventSlug, { etag = null } = {}) {
+  const result = await apiGetMeta(`/api/tickets/allowlist/${encodeURIComponent(eventSlug)}`, {
+    etag,
+  })
+  return {
+    notModified: result.notModified,
+    etag: result.etag,
+    data: result.data,
+  }
+}
+
+/**
+ * "Enviar credenciales" de un evento: el mail con el QR adjunto a los
+ * confirmados que todavía no lo recibieron. Con `dryRun` solo cuenta.
+ */
+export async function sendEventCredentials(eventSlug, { dryRun = false, resend = false } = {}) {
+  return apiPost(`/api/athletes/admin/events/${encodeURIComponent(eventSlug)}/credentials/send`, {
+    dryRun,
+    resend,
+  })
 }

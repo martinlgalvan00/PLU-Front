@@ -113,7 +113,8 @@ export const InscripcionDosDivisiones = {
     const divisions = canvas.getByRole('group', { name: /^Divisiones$/i })
     await expect(within(divisions).getByRole('checkbox', { name: /Open/ })).toBeChecked()
     await expect(canvas.getByRole('group', { name: /^Modalidad$/i })).toBeInTheDocument()
-    await expect(canvas.getAllByText(/Modalidades extra · 1 × 50%/).length).toBeGreaterThan(0)
+    // Cada modalidad extra es su propia línea con el nombre (no "N × 50%").
+    await expect(canvas.getAllByText(/Especialista en banco \(50%\)/).length).toBeGreaterThan(0)
     await expect(canvas.getAllByText(/150\.000/).length).toBeGreaterThan(0)
   },
 }

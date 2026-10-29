@@ -312,7 +312,7 @@
 .ticket-pass-preview__qr-img {
   display: block;
   height: 100%;
-  image-rendering: pixelated;
+  image-rendering: auto;
   object-fit: contain;
   width: 100%;
 }

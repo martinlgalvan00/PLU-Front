@@ -24,7 +24,10 @@ import { useCheckInWorkspace } from '../hooks/useCheckInWorkspace.js'
 import { formatDocumentWithKind } from '../lib/format.js'
 import { downloadCheckinListExcel } from '../services/checkinExport.js'
 import { checkinTypeLabel } from '../services/checkinScanService.js'
-import { formatCheckinRowDay } from '../services/checkinWorkspaceService.js'
+import {
+  formatCheckinRowDay,
+  summarizeTicketControl,
+} from '../services/checkinWorkspaceService.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
 function CheckinMetric({ label, tone = 'neutral', value }) {
@@ -58,6 +61,7 @@ export default function CheckInAppPage({
 }) {
   const { locale, t } = useI18n()
   const [tab, setTab] = useState('scan')
+  const [listScannerOpen, setListScannerOpen] = useState(false)
   const workspace = useCheckInWorkspace({
     athletes,
     canCheckIn,
@@ -108,9 +112,14 @@ export default function CheckInAppPage({
     } else if (tab === 'tickets') {
       setType('espectador')
       setDay('all')
-      setCheckinStatus('ready')
+      setCheckinStatus('all')
     }
   }, [setCheckinStatus, setCredential, setDay, setType, tab])
+
+  const ticketControl = useMemo(
+    () => summarizeTicketControl(workspace.allRows),
+    [workspace.allRows],
+  )
 
   const activeDayLabel = tab.startsWith(DAY_TAB_PREFIX)
     ? tabs.find((item) => item.id === tab)?.label
@@ -134,6 +143,24 @@ export default function CheckInAppPage({
       t,
     })
   }, [eventDays, eventSlug, t, workspace.allRows, workspace.offlineSync])
+
+  const scanResultPanel = (
+    <CheckInScanResult
+      canCheckIn={canCheckIn}
+      locale={locale}
+      onDismiss={() => workspace.setScanResult(null)}
+      onRedeemAddon={workspace.handleRedeemAddon}
+      onScanCheckIn={workspace.handleScanCheckIn}
+      redeemBusyId={workspace.redeemBusyId}
+      redeemError={workspace.redeemError}
+      scanBusy={workspace.scanBusy}
+      scanPersonDoc={workspace.scanPersonDoc}
+      scanPersonName={workspace.scanPersonName}
+      scanResult={workspace.scanResult}
+      scanTicketPaid={workspace.scanTicketPaid}
+      scanVerdict={workspace.scanVerdict}
+    />
+  )
 
   return (
     <div className={`checkin-app${tab === 'scan' ? ' checkin-app--scan' : ''}`}>
@@ -237,21 +264,7 @@ export default function CheckInAppPage({
                 onScan={workspace.handleScan}
               />
 
-              <CheckInScanResult
-                canCheckIn={canCheckIn}
-                locale={locale}
-                onDismiss={() => workspace.setScanResult(null)}
-                onRedeemAddon={workspace.handleRedeemAddon}
-                onScanCheckIn={workspace.handleScanCheckIn}
-                redeemBusyId={workspace.redeemBusyId}
-                redeemError={workspace.redeemError}
-                scanBusy={workspace.scanBusy}
-                scanPersonDoc={workspace.scanPersonDoc}
-                scanPersonName={workspace.scanPersonName}
-                scanResult={workspace.scanResult}
-                scanTicketPaid={workspace.scanTicketPaid}
-                scanVerdict={workspace.scanVerdict}
-              />
+              {scanResultPanel}
             </section>
 
             <aside className="checkin-app__scan-aside">
@@ -262,7 +275,9 @@ export default function CheckInAppPage({
                 isOnline={workspace.offlineSync.isOnline}
                 lastDownloadedAt={workspace.offlineSync.lastDownloadedAt}
                 lastSyncedAt={workspace.offlineSync.lastSyncedAt}
+                failedCount={workspace.offlineSync.failedCount}
                 pendingCount={workspace.offlineSync.pendingCount}
+                queueLog={workspace.offlineSync.queueLog}
                 syncIssue={workspace.offlineSync.syncIssue}
                 syncNow={workspace.offlineSync.syncNow}
                 syncing={workspace.offlineSync.syncing}
@@ -283,6 +298,70 @@ export default function CheckInAppPage({
           </div>
         ) : (
           <section className="checkin-app__list" aria-labelledby="checkin-list-title">
+            <div className="checkin-app__scan-bar">
+              <AdminOfflineSyncStatus
+                compact
+                conflictCount={workspace.offlineSync.conflictCount}
+                downloadAllowlist={handleDownloadAllowlist}
+                failedCount={workspace.offlineSync.failedCount}
+                isOnline={workspace.offlineSync.isOnline}
+                lastDownloadedAt={workspace.offlineSync.lastDownloadedAt}
+                lastSyncedAt={workspace.offlineSync.lastSyncedAt}
+                pendingCount={workspace.offlineSync.pendingCount}
+                queueLog={workspace.offlineSync.queueLog}
+                syncIssue={workspace.offlineSync.syncIssue}
+                syncNow={workspace.offlineSync.syncNow}
+                syncing={workspace.offlineSync.syncing}
+              />
+              <button
+                type="button"
+                className="btn btn--small checkin-app__scan-toggle"
+                aria-expanded={listScannerOpen}
+                onClick={() => setListScannerOpen((open) => !open)}
+              >
+                <ScanLine size={15} aria-hidden />
+                {listScannerOpen
+                  ? t('admin.checkinApp.hideScanOnList')
+                  : t('admin.checkinApp.scanOnList')}
+              </button>
+              {listScannerOpen ? (
+                <AdminQrScanner
+                  busy={workspace.scanBusy}
+                  compact
+                  disabled={!canCheckIn}
+                  feedbackPrefs={workspace.feedbackPrefs}
+                  onFeedbackPrefsChange={workspace.persistFeedbackPrefs}
+                  onScan={workspace.handleScan}
+                />
+              ) : null}
+              {workspace.scanResult ? scanResultPanel : null}
+            </div>
+            {tab === 'tickets' ? (
+              <div className="checkin-app__ticket-control" role="group" aria-label={listTitle}>
+                {[
+                  ['ready', 'ready', ticketControl.ready, 'admin.checkinApp.ticketReady'],
+                  ['done', 'inside', ticketControl.inside, 'admin.checkinApp.ticketInside'],
+                  ['unpaid', 'unpaid', ticketControl.unpaid, 'admin.checkinApp.ticketUnpaid'],
+                  ['blocked', 'blocked', ticketControl.blocked, 'admin.checkinApp.ticketBlocked'],
+                ].map(([status, tone, value, labelKey]) => (
+                  <button
+                    key={status}
+                    type="button"
+                    className={`checkin-app__metric checkin-app__metric--${tone}${
+                      workspace.checkinStatus === status ? ' is-active' : ''
+                    }`}
+                    aria-pressed={workspace.checkinStatus === status}
+                    onClick={() =>
+                      workspace.setCheckinStatus(workspace.checkinStatus === status ? 'all' : status)
+                    }
+                  >
+                    <strong>{value}</strong>
+                    <small>{t(labelKey)}</small>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
             <header className="checkin-app__list-head">
               <div>
                 <h1 id="checkin-list-title">{listTitle}</h1>

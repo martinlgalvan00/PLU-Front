@@ -4,6 +4,7 @@ import AdminEmptyState from './AdminEmptyState.jsx'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
 import AdminFilterSearch from './AdminFilterSearch.jsx'
 import AdminFilterSelect from './AdminFilterSelect.jsx'
+import AdminEventCredentialSend from './AdminEventCredentialSend.jsx'
 import AdminIconButton from './AdminIconButton.jsx'
 import RegistrationSheetImportDialog from './RegistrationSheetImportDialog.jsx'
 import RegistrationStatusDialog from './RegistrationStatusDialog.jsx'
@@ -49,6 +50,7 @@ function formatTotals(totals, locale) {
  */
 export default function AdminEventRegistrationsPanel({
   athletes = [],
+  canSendCredentials = false,
   canSetStatus = false,
   event,
   gatePendingIds = EMPTY_GATE,
@@ -235,6 +237,10 @@ export default function AdminEventRegistrationsPanel({
           ) : null}
         </div>
       </header>
+
+      {canSendCredentials && summary.confirmed > 0 ? (
+        <AdminEventCredentialSend eventSlug={event.slug} />
+      ) : null}
 
       {rows.length > 0 ? (
         <dl className="admin-event-regs__summary">

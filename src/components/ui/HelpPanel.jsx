@@ -1,8 +1,8 @@
+import { AnimatePresence, m } from 'motion/react'
 import {
   ArrowRight,
   Check,
   ChevronDown,
-  CircleHelp,
   Compass,
   MapPin,
   MessageCircle,
@@ -15,6 +15,8 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useAssist } from '../../providers/AssistProvider.jsx'
 import { formatShortDate } from '../../lib/format.js'
 import { JOURNEY_STATES } from '../../lib/athleteJourney.js'
+import { useMotionConfig } from '../../motion/MotionProvider.tsx'
+import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
 
 const { DONE, TODO, BLOCKED, PENDING, CLOSED, UNAVAILABLE } = JOURNEY_STATES
 
@@ -98,7 +100,7 @@ function stepDetail(step, journey, t, locale) {
  * `HelpLayer` ejecuta la acción con las mismas funciones que usan los CTA de
  * cada pantalla.
  */
-export default function HelpPanel({
+function HelpPanelBody({
   journey,
   view = null,
   atDestination = false,
@@ -177,21 +179,9 @@ export default function HelpPanel({
   }
 
   return (
-    <div className="help-panel__scrim" role="presentation" onMouseDown={onClose}>
-      <section
-        ref={panelRef}
-        className="help-panel"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="help-panel-title"
-        aria-describedby="help-panel-lead"
-        onMouseDown={(event_) => event_.stopPropagation()}
-      >
+    <div ref={panelRef} className="help-panel__dialog">
         <header className="help-panel__head">
           <p className="help-panel__identity">
-            <span className="help-panel__avatar" aria-hidden>
-              <CircleHelp size={16} strokeWidth={2} />
-            </span>
             <span className="help-panel__eyebrow">{t('help.assistantName')}</span>
           </p>
           <h2 className="help-panel__title" id="help-panel-title">
@@ -360,7 +350,69 @@ export default function HelpPanel({
             {t(assist ? 'help.assist.activeHint' : 'help.assist.hint')}
           </p>
         </footer>
-      </section>
     </div>
   )
+}
+
+const STILL = { duration: 0 }
+
+/**
+ * El velo y la hoja son hijos directos de `AnimatePresence`: al cerrar, cada
+ * uno sale por donde entró (el velo se disuelve, la hoja vuelve hacia el
+ * botón) en vez de desaparecer de un corte.
+ */
+export function HelpPanelPresence({ open, onClose, ...panelProps }) {
+  const { reducedMotion } = useMotionConfig()
+  const enter = reducedMotion
+    ? STILL
+    : { duration: MOTION_DURATION.base, ease: MOTION_EASE.out }
+  const leave = reducedMotion
+    ? STILL
+    : { duration: MOTION_DURATION.fast, ease: MOTION_EASE.standard }
+
+  return (
+    <AnimatePresence>
+      {open ? (
+        <m.div
+          key="help-scrim"
+          className="help-panel__scrim"
+          role="presentation"
+          initial={reducedMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: leave }}
+          transition={enter}
+          onMouseDown={onClose}
+        />
+      ) : null}
+      {open ? (
+        <m.section
+          key="help-panel"
+          className="help-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="help-panel-title"
+          aria-describedby="help-panel-lead"
+          initial={reducedMotion ? false : { opacity: 0, y: 12, scale: 0.985 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={
+            reducedMotion
+              ? { opacity: 1, transition: STILL }
+              : { opacity: 0, y: 8, scale: 0.99, transition: leave }
+          }
+          transition={
+            reducedMotion
+              ? STILL
+              : { duration: MOTION_DURATION.base, ease: MOTION_EASE.cinematic }
+          }
+          onMouseDown={(event_) => event_.stopPropagation()}
+        >
+          <HelpPanelBody onClose={onClose} {...panelProps} />
+        </m.section>
+      ) : null}
+    </AnimatePresence>
+  )
+}
+
+export default function HelpPanel(props) {
+  return <HelpPanelPresence open {...props} />
 }

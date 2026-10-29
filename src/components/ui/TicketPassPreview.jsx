@@ -207,7 +207,7 @@ export default function TicketPassPreview({
             </span>
             <div className="ticket-pass-preview__qr" aria-hidden>
               {qrSrc ? (
-                <img src={qrSrc} alt="" className="ticket-pass-preview__qr-img" />
+                <img src={qrSrc} alt="" className="ticket-pass-preview__qr-img" decoding="async" />
               ) : (
                 <span className="ticket-pass-preview__qr-fallback">
                   <QrCode size={44} strokeWidth={1.5} />

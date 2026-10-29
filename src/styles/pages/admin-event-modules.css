@@ -1,0 +1,566 @@
+/* ==========================================================================
+   Módulos del evento — Venta → Módulos y tarjeta del Resumen
+   --------------------------------------------------------------------------
+   Lista con reglas, no cards: los módulos se comparan entre sí y cada fila
+   tiene un solo control dominante (el interruptor). El detalle (medios de
+   cobro, cuotas, atajo) se pliega con la fila; queda montado para que la
+   transición no dependa de medir contenido.
+   Tokens del panel (`--admin-*`): el mismo dibujo en claro y oscuro.
+   ========================================================================== */
+
+.admin-event-modules {
+  display: grid;
+  gap: 28px;
+  max-width: 760px;
+}
+
+.admin-event-modules__head {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-event-modules__title {
+  color: var(--admin-ink);
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.admin-event-modules__lead {
+  color: var(--admin-text-secondary);
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 62ch;
+}
+
+.admin-event-modules__summary {
+  color: var(--admin-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  gap: 6px;
+  margin: 2px 0 0;
+}
+
+.admin-event-modules__group {
+  display: grid;
+}
+
+.admin-event-modules__group-title {
+  border-bottom: 1px solid var(--admin-hairline-strong);
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  margin: 0;
+  padding: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.admin-event-modules__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* ---- Fila ---- */
+
+.admin-event-module {
+  border-bottom: 1px solid var(--admin-hairline);
+}
+
+.admin-event-module__row {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  min-height: 68px;
+  padding: 14px 0;
+}
+
+.admin-event-module__icon {
+  align-items: center;
+  background: var(--admin-brand-soft);
+  border-radius: 9px;
+  color: var(--admin-muted);
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  transition: color var(--motion-fast) var(--ease-standard);
+  width: 32px;
+}
+
+.admin-event-module.is-on .admin-event-module__icon {
+  color: var(--admin-ink);
+}
+
+.admin-event-module__copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-event-module__copy strong {
+  color: var(--admin-text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+
+.admin-event-module.is-on .admin-event-module__copy strong {
+  color: var(--admin-ink);
+}
+
+.admin-event-module__copy small {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  max-width: 58ch;
+}
+
+/* ---- Interruptor ----
+   Pista de tinta cuando está prendido, igual que el resto de los switches del
+   panel. La perilla se desliza con un leve rebote: es el único gesto con
+   overshoot de la pantalla y confirma el cambio. */
+
+.admin-event-module__switch {
+  appearance: none;
+  background: color-mix(in srgb, var(--admin-ink) 16%, transparent);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  flex: none;
+  height: 24px;
+  padding: 0;
+  position: relative;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+  width: 40px;
+}
+
+/* Área táctil de 44px sin agrandar el dibujo. */
+.admin-event-module__switch::before {
+  content: '';
+  inset: -10px -4px;
+  position: absolute;
+}
+
+.admin-event-module__switch-thumb {
+  background: color-mix(in srgb, var(--admin-ink) 58%, transparent);
+  border-radius: 50%;
+  height: 18px;
+  left: 3px;
+  position: absolute;
+  top: 3px;
+  transition:
+    transform var(--motion-base) var(--ease-spring),
+    background-color var(--motion-fast) var(--ease-standard);
+  width: 18px;
+}
+
+.admin-event-module__switch.is-on {
+  background: var(--admin-brand);
+}
+
+.admin-event-module__switch.is-on .admin-event-module__switch-thumb {
+  background: var(--admin-on-brand);
+  transform: translateX(16px);
+}
+
+.admin-event-module__switch:active:not(:disabled) .admin-event-module__switch-thumb {
+  transform: scale(0.88);
+}
+
+.admin-event-module__switch.is-on:active:not(:disabled) .admin-event-module__switch-thumb {
+  transform: translateX(16px) scale(0.88);
+}
+
+.admin-event-module__switch:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 3px;
+}
+
+.admin-event-module__switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+/* ---- Detalle plegable ---- */
+
+.admin-event-module__detail {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--motion-base) var(--ease-standard),
+    opacity var(--motion-fast) var(--ease-standard);
+}
+
+.admin-event-module.is-on .admin-event-module__detail {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.admin-event-module__detail-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Alineado con el título: ícono (32) + separación (14). */
+.admin-event-module__detail-body {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding: 0 0 18px 46px;
+}
+
+.admin-event-module__detail-body:empty {
+  display: none;
+}
+
+.admin-event-module__note {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.admin-event-module.is-blocked .admin-event-module__note:first-child {
+  color: var(--admin-status-warning);
+}
+
+/* ---- Medios de cobro del módulo ---- */
+
+.admin-event-module__commerce {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+
+.admin-event-module__channels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-event-module__channel {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 999px;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 550;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px 0 8px;
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+
+.admin-event-module__channel-mark {
+  align-items: center;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 50%;
+  color: transparent;
+  display: inline-flex;
+  flex: none;
+  height: 18px;
+  justify-content: center;
+  transform: scale(0.86);
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard),
+    transform var(--motion-base) var(--ease-spring);
+  width: 18px;
+}
+
+.admin-event-module__channel:hover:not(:disabled) {
+  border-color: var(--admin-ink);
+  color: var(--admin-ink);
+}
+
+.admin-event-module__channel.is-on {
+  background: var(--admin-brand-soft);
+  border-color: var(--admin-ink);
+  color: var(--admin-ink);
+}
+
+.admin-event-module__channel.is-on .admin-event-module__channel-mark {
+  background: var(--admin-brand);
+  border-color: var(--admin-brand);
+  color: var(--admin-on-brand);
+  transform: scale(1);
+}
+
+.admin-event-module__channel.is-pending {
+  border-color: var(--admin-status-warning-border);
+}
+
+.admin-event-module__channel.is-pending .admin-event-module__channel-mark {
+  background: var(--admin-status-warning-bg);
+  border-color: var(--admin-status-warning-border);
+  color: var(--admin-status-warning);
+}
+
+.admin-event-module__channel:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-event-module__channel:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.admin-event-module__warning {
+  align-items: center;
+  color: var(--admin-status-warning);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  gap: 4px 6px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.admin-event-module__warning > svg {
+  flex: none;
+}
+
+.admin-event-module__inline-link {
+  background: none;
+  border: 0;
+  color: var(--admin-ink);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-event-module__inline-link:focus-visible,
+.admin-event-module__goto:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-event-module__installments {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  width: 100%;
+}
+
+.admin-event-module__installments label {
+  color: var(--admin-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-event-module__installments select {
+  flex: 0 1 260px;
+  min-width: 0;
+}
+
+.admin-event-module__installments small {
+  color: var(--admin-muted);
+  flex-basis: 100%;
+  font-size: 12px;
+  line-height: 1.45;
+  max-width: 60ch;
+}
+
+.admin-event-module__goto {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0;
+}
+
+.admin-event-module__goto svg {
+  transition: transform var(--motion-fast) var(--ease-standard);
+}
+
+.admin-event-module__goto:hover svg {
+  transform: translateX(3px);
+}
+
+.admin-event-module__sr {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+@media (pointer: coarse) {
+  .admin-event-module__channel,
+  .admin-event-module__goto {
+    min-height: 44px;
+  }
+}
+
+@container event-workspace-main (max-width: 520px) {
+  .admin-event-module__row {
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-event-module__icon {
+    display: none;
+  }
+
+  .admin-event-module__detail-body {
+    padding-left: 0;
+  }
+
+  .admin-event-module__installments select {
+    flex-basis: 100%;
+  }
+}
+
+/* ==========================================================================
+   Resumen: tarjeta "Módulos del evento" en el rail
+   ========================================================================== */
+
+.admin-event-workspace__modules-count {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+.admin-event-workspace__modules-list {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+}
+
+.admin-event-workspace__module {
+  align-items: center;
+  color: var(--admin-ink);
+  display: flex;
+  font-size: 13.5px;
+  gap: 10px;
+  min-height: 34px;
+  padding: 0 4px;
+}
+
+.admin-event-workspace__module-dot {
+  background: var(--admin-status-success);
+  border-radius: 50%;
+  flex: none;
+  height: 7px;
+  width: 7px;
+}
+
+.admin-event-workspace__module[data-state='idle'] .admin-event-workspace__module-dot {
+  background: var(--admin-status-warning);
+}
+
+.admin-event-workspace__module[data-state='off'] .admin-event-workspace__module-dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--admin-hairline-strong);
+}
+
+.admin-event-workspace__module[data-state='off'] .admin-event-workspace__module-name {
+  color: var(--admin-muted);
+}
+
+.admin-event-workspace__module-name {
+  min-width: 0;
+}
+
+.admin-event-workspace__module-state {
+  color: var(--admin-muted);
+  flex: none;
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.admin-event-workspace__modules-link {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--admin-hairline);
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  justify-content: space-between;
+  min-height: 46px;
+  padding: 0 4px;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+  width: 100%;
+}
+
+.admin-event-workspace__modules-link:hover {
+  background: var(--admin-row-hover);
+}
+
+.admin-event-workspace__modules-link svg {
+  transition: transform var(--motion-fast) var(--ease-standard);
+}
+
+.admin-event-workspace__modules-link:hover svg {
+  transform: translateX(2px);
+}
+
+.admin-event-workspace__modules-link:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-event-module__icon,
+  .admin-event-module__copy strong,
+  .admin-event-module__switch,
+  .admin-event-module__switch-thumb,
+  .admin-event-module__detail,
+  .admin-event-module__channel,
+  .admin-event-module__channel-mark,
+  .admin-event-module__goto svg,
+  .admin-event-workspace__modules-link,
+  .admin-event-workspace__modules-link svg {
+    transition: none;
+  }
+
+  .admin-event-module__switch:active:not(:disabled) .admin-event-module__switch-thumb {
+    transform: none;
+  }
+
+  .admin-event-module__switch.is-on:active:not(:disabled) .admin-event-module__switch-thumb {
+    transform: translateX(16px);
+  }
+
+  .admin-event-module__goto:hover svg,
+  .admin-event-workspace__modules-link:hover svg {
+    transform: none;
+  }
+}

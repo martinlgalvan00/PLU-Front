@@ -36,6 +36,13 @@ import {
   offeringForStorage,
 } from '../../shared/eventOffering.js'
 import {
+  MAX_INSTALLMENTS,
+  eventModulesForStorage,
+  eventModulesFromRules,
+  paymentPolicyForStorage,
+  paymentPolicyFromRules,
+} from '../../shared/eventModules.js'
+import {
   EXTERNAL_FORM_LABEL_MAX,
   EXTERNAL_FORM_URL_MAX,
   normalizeExternalFormUrl,
@@ -63,13 +70,22 @@ import { createSupabaseAthleteRepository } from '../modules/athletes/supabaseAth
 import { createSupabaseTicketRepository } from '../modules/ticketing/supabaseTicketRepository.js'
 import { summarizeEventPayments } from '../modules/events/eventPaymentsSummary.js'
 
+/** Tope de cuotas de un concepto: `null` = decide Mercado Pago. */
+const INSTALLMENT_CAP_SCHEMA = z
+  .object({ maxInstallments: z.number().int().min(1).max(MAX_INSTALLMENTS).nullable().optional() })
+  .nullable()
+  .optional()
+
 /** Cuentas temporales de puerta: viven en Prisma, atadas al evento por uuid. */
 const SECURITY_ROLE = 'seguridad_plu_arg'
 
+// Inscriptos: la base cuenta (filtrado por estado activo en `readEventRows`).
+// Antes viajaba una fila por inscripción de todos los eventos en cada lectura,
+// guardado, cambio de estado y logo, solo para contarlas en el cliente.
 const EVENT_SELECT = `
   *,
   capacityRules:event_capacity_rules(*),
-  eventRegistrations:event_registrations(status),
+  eventRegistrations:event_registrations(count),
   eventDays:event_days(*),
   comboOffer:event_combo_offers(
     id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience, financed, archived_at
@@ -416,6 +432,8 @@ export const eventSchema = z
     description: z.string().trim().max(1000).optional(),
     venue: z.string().trim().min(2).max(120),
     location: z.string().trim().min(2).max(120),
+    // Calle y número de la sede: alimenta Google Maps y Waze.
+    venueAddress: z.string().trim().max(200).optional(),
     startsAt: z
       .string()
       .trim()
@@ -540,6 +558,8 @@ export const eventSchema = z
         alias: z.string().trim().max(120).optional(),
         cbu: z.string().trim().max(30).optional(),
         holder: z.string().trim().max(160).optional(),
+        cuit: z.string().trim().max(20).optional(),
+        bankName: z.string().trim().max(80).optional(),
       })
       .nullable()
       .optional(),
@@ -550,6 +570,9 @@ export const eventSchema = z
       .object({
         place: z.string().trim().max(160).optional(),
         notes: z.string().trim().max(400).optional(),
+        address: z.string().trim().max(200).optional(),
+        hours: z.string().trim().max(160).optional(),
+        contact: z.string().trim().max(120).optional(),
       })
       .nullable()
       .optional(),
@@ -559,6 +582,23 @@ export const eventSchema = z
         categories: z.array(z.enum(EVENT_OFFERING_CATEGORIES)).max(10).optional(),
         divisions: z.array(z.enum(EVENT_OFFERING_DIVISIONS)).max(10).optional(),
         modalities: z.array(z.enum(EVENT_OFFERING_MODALITIES)).max(10).optional(),
+      })
+      .nullable()
+      .optional(),
+    // Módulos apagados (combo, extras de entradas, puerta) y tope de cuotas por
+    // concepto. Ausentes = se conservan los guardados (ver shared/eventModules.js).
+    modules: z
+      .object({
+        combo: z.boolean().optional(),
+        ticketAddons: z.boolean().optional(),
+        door: z.boolean().optional(),
+      })
+      .nullable()
+      .optional(),
+    paymentPolicy: z
+      .object({
+        registration: INSTALLMENT_CAP_SCHEMA,
+        ticket: INSTALLMENT_CAP_SCHEMA,
       })
       .nullable()
       .optional(),
@@ -736,6 +776,8 @@ const eventStateSchema = z
     // "Programar apertura"): ISO para fijarla, null para borrarla.
     registrationOpensAt: nullableWindowDateTime,
     registrationClosesAt: nullableWindowDateTime,
+    // Venta pública de entradas, sin reescribir días ni tipos.
+    ticketsEnabled: z.boolean().optional(),
   })
   .refine(
     (body) =>
@@ -744,7 +786,8 @@ const eventStateSchema = z
       body.requiresMembership !== undefined ||
       body.capacityProgressPublic !== undefined ||
       body.registrationOpensAt !== undefined ||
-      body.registrationClosesAt !== undefined,
+      body.registrationClosesAt !== undefined ||
+      body.ticketsEnabled !== undefined,
     'No hay ningún cambio para aplicar.',
   )
   .refine(
@@ -952,6 +995,42 @@ async function mergePublicSurfaceMaterialsCompat(client, { slug, surface }) {
   )
 }
 
+/**
+ * Prende o apaga la venta pública de entradas sin reescribir el evento.
+ * Al habilitar también muestra el bloque de entradas de la ficha: si queda
+ * oculto, el público no ve el botón aunque la venta esté abierta.
+ */
+async function mergeTicketSalesSwitch(client, { slug, enabled }) {
+  const reader = client.from('events').select('rules').eq('slug', slug)
+  if (typeof reader?.maybeSingle !== 'function') {
+    throw new HttpError(503, 'No se pudo cambiar la venta de entradas.')
+  }
+  const current = assertSupabaseResult(
+    await client.from('events').select('rules').eq('slug', slug).maybeSingle(),
+    'No se pudo leer la venta de entradas del evento.',
+  )
+  if (!current) throw new HttpError(404, 'El evento no existe.')
+
+  const rules = current.rules && typeof current.rules === 'object' ? current.rules : {}
+  const nextRules = { ...rules, ticketsEnabled: enabled === true }
+  if (enabled === true) {
+    const publicSurface =
+      rules.publicSurface && typeof rules.publicSurface === 'object' ? rules.publicSurface : {}
+    nextRules.publicSurface = { ...publicSurface, tickets: true }
+  }
+
+  assertSupabaseResult(
+    await client
+      .from('events')
+      .update({
+        rules: nextRules,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('slug', slug),
+    'No se pudo cambiar la venta de entradas.',
+  )
+}
+
 async function readPublicMaterialVisibility(client, slug) {
   const reader = client.from('events').select('published, rules').eq('slug', slug)
   if (typeof reader?.maybeSingle !== 'function') {
@@ -1038,7 +1117,13 @@ async function readEvents(client) {
 }
 
 async function readEventRows(client) {
-  const result = await client.from('events').select(EVENT_SELECT).order('starts_at')
+  const run = (select) =>
+    client
+      .from('events')
+      .select(select)
+      .in('event_registrations.status', ACTIVE_REGISTRATION_STATUSES)
+      .order('starts_at')
+  const result = await run(EVENT_SELECT)
 
   // Degradar antes que caerse: sin la migración aplicada el panel sigue
   // funcionando y lo único que falta es el detalle de credenciales por tipo de
@@ -1048,7 +1133,7 @@ async function readEventRows(client) {
       '[eventos] `ticket_type_credentials` no existe en esta base: se leen los eventos sin las credenciales de entrada. Aplicá la migración 20261107100000_ticket_credential_classes.sql.',
     )
     return assertSupabaseResult(
-      await client.from('events').select(EVENT_SELECT_SIN_CREDENCIALES).order('starts_at'),
+      await run(EVENT_SELECT_SIN_CREDENCIALES),
       'No se pudieron leer los eventos.',
     )
   }
@@ -1252,6 +1337,8 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             alias: linkedProfile.config.alias,
             cbu: linkedProfile.config.cbu,
             holder: linkedProfile.config.holder,
+            cuit: linkedProfile.config.cuit ?? '',
+            bankName: linkedProfile.config.bankName ?? '',
           }
         } else if (bankTransfer.alias && !req.eventScope) {
           // Un organizador no crea cuentas de cobro globales: sin perfil elegido y con el
@@ -1368,6 +1455,26 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
         }
         if (mercadoPagoProfileId !== undefined) {
           pEvent.mercadoPagoProfileId = mercadoPagoProfileId
+        }
+
+        // `staff_save_event` reconstruye `rules` y se lleva puestos los módulos y
+        // el tope de cuotas. Un cliente que no los manda (versión anterior del
+        // panel) no tiene por qué borrarlos: se leen antes y se vuelven a escribir.
+        const keepModules = req.validatedBody.modules === undefined
+        const keepPaymentPolicy = req.validatedBody.paymentPolicy === undefined
+        let previousRules = null
+        if (mode === 'updated' && (keepModules || keepPaymentPolicy)) {
+          // Sin lectura no hay nada que conservar: el guardado sigue igual.
+          try {
+            const previous = await client
+              .from('events')
+              .select('rules')
+              .eq('id', req.validatedBody.id)
+              .maybeSingle()
+            previousRules = previous?.error ? null : (previous?.data?.rules ?? null)
+          } catch {
+            previousRules = null
+          }
         }
 
         const savedEvent = assertSupabaseResult(
@@ -1502,6 +1609,39 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           }
         }
 
+        // Direcciones (sede y efectivo) para Maps/Waze: columnas de
+        // 20270102110000. `null` = no tocar; así un cliente que no manda uno de
+        // los dos bloques no borra el otro.
+        const cashInput =
+          req.validatedBody.cashPayment === undefined
+            ? null
+            : normalizeCashPaymentInput(req.validatedBody.cashPayment)
+        const venueAddress = req.validatedBody.venueAddress
+        if (cashInput || venueAddress !== undefined) {
+          const placesMerge = await client.rpc('staff_merge_event_places', {
+            p_slug: pEvent.slug,
+            p_venue_address: venueAddress ?? null,
+            p_cash_address: cashInput?.address ?? null,
+            p_cash_hours: cashInput?.hours ?? null,
+            p_cash_contact: cashInput?.contact ?? null,
+          })
+          if (placesMerge.error && esRelacionFaltante(placesMerge.error)) {
+            console.warn(
+              '[eventos] `staff_merge_event_places` no existe en esta base: el evento se guardó sin direcciones. Aplicá la migración 20270102110000_event_places.sql.',
+            )
+            if (venueAddress || cashInput?.address || cashInput?.hours || cashInput?.contact) {
+              warnings.push({
+                code: 'EVENT_PLACES_NOT_SAVED',
+                message:
+                  'El evento se guardó, pero las direcciones todavía no: falta aplicar una migración en la base.',
+                field: 'venueAddress',
+              })
+            }
+          } else {
+            assertSupabaseResult(placesMerge, 'No se pudieron guardar las direcciones del evento.')
+          }
+        }
+
         // Qué ofrece el evento (categorías, divisiones, modalidades): mismo
         // patrón. Solo viajan las listas que restringen algo; `{}` = todo.
         if (req.validatedBody.offering !== undefined) {
@@ -1526,6 +1666,39 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             }
           } else {
             assertSupabaseResult(offeringMerge, 'No se pudo guardar lo que ofrece el evento.')
+          }
+        }
+
+        // Módulos y tope de cuotas: mismo patrón. Solo se guarda lo apagado y
+        // los conceptos con tope; `{}` = todo prendido y sin tope.
+        if (!keepModules || !keepPaymentPolicy || previousRules) {
+          const modulesForRpc = eventModulesForStorage(
+            keepModules ? eventModulesFromRules(previousRules) : (req.validatedBody.modules ?? {}),
+          )
+          const policyForRpc = paymentPolicyForStorage(
+            keepPaymentPolicy
+              ? paymentPolicyFromRules(previousRules)
+              : (req.validatedBody.paymentPolicy ?? {}),
+          )
+          const modulesMerge = await client.rpc('staff_merge_event_modules', {
+            p_slug: pEvent.slug,
+            p_modules: modulesForRpc,
+            p_payment_policy: policyForRpc,
+          })
+          if (modulesMerge.error && esRelacionFaltante(modulesMerge.error)) {
+            console.warn(
+              '[eventos] `staff_merge_event_modules` no existe en esta base: el evento se guardó sin sus módulos ni tope de cuotas. Aplicá la migración 20270103100000_event_modules_payment_policy.sql.',
+            )
+            if (Object.keys(modulesForRpc).length > 0 || Object.keys(policyForRpc).length > 0) {
+              warnings.push({
+                code: 'EVENT_MODULES_NOT_SAVED',
+                message:
+                  'El evento se guardó, pero los módulos apagados y el tope de cuotas todavía no: falta aplicar una migración en la base. Mientras tanto todo queda prendido y sin tope.',
+                field: 'modules',
+              })
+            }
+          } else {
+            assertSupabaseResult(modulesMerge, 'No se pudieron guardar los módulos del evento.')
           }
         }
 
@@ -1733,6 +1906,10 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
         const previousWindow =
           touchesWindow && stateChanges ? await readRegistrationWindow(client, slug) : null
         const windowSaved = await saveRegistrationWindow(client, slug, saleWindow, actor)
+        const ticketSalesSaved = body.ticketsEnabled !== undefined
+        if (ticketSalesSaved) {
+          await mergeTicketSalesSwitch(client, { slug, enabled: body.ticketsEnabled === true })
+        }
 
         let result = null
         if (stateChanges) {
@@ -1760,7 +1937,9 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
 
         const events = await readEvents(client)
         const event = events.find((candidate) =>
-          result ? candidate.id === result.event?.id : windowSaved && candidate.slug === slug,
+          result
+            ? candidate.id === result.event?.id
+            : (windowSaved || ticketSalesSaved) && candidate.slug === slug,
         )
         if (!event) {
           throw new HttpError(503, 'El estado se guardó, pero no se pudo volver a leer.')

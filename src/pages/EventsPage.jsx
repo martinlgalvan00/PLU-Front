@@ -7,7 +7,6 @@ import { ArrowRight, CalendarDays, Ticket } from 'lucide-react'
 import PluPageHero from '../components/layout/PluPageHero.jsx'
 import FilterPills from '../components/ui/FilterPills.jsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
-import { findMorphSource, morphNavigate } from '../motion/routeMorph.ts'
 import Button from '../components/ui/Button.jsx'
 import EventCalendar from '../components/ui/EventCalendar.jsx'
 import EventCountdown from '../components/ui/EventCountdown.jsx'
@@ -407,8 +406,8 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = 
   // Solo `finalizado` corta la venta: `cerrado` es de inscripción de atletas.
   // Si aplica, se dice "Venta cerrada" en vez de ofrecer una compra que rebota.
   const salesClosed = eventStatusClosesTicketSales(event)
-  const hasPublishedPrice =
-    event?.pricing?.ticketsEnabled === true && ticketPrice != null && !salesClosed
+  const salesOn = event?.pricing?.ticketsEnabled === true && !salesClosed
+  const hasPublishedPrice = salesOn && ticketPrice != null
   const closedLabel = t(
     salesClosed ? 'pages.events.publicTicketsSalesClosed' : 'pages.events.publicTicketsClosed',
   )
@@ -434,14 +433,16 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = 
                 </span>
               </>
             ) : (
-              <span className="events-public-tickets__price-closed">{closedLabel}</span>
+              <span className="events-public-tickets__price-closed">
+                {salesOn ? t('pages.events.ticketsOnSaleStatus') : closedLabel}
+              </span>
             )}
           </p>
           <button
             type="button"
             className="events-public-tickets__text-link motion-icon-shift"
             onClick={onBuyTickets}
-            disabled={!hasPublishedPrice}
+            disabled={!salesOn}
           >
             {t('pages.events.publicTicketsCta')}
             <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
@@ -464,13 +465,15 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = 
         <p className="events-public-tickets__price">
           {hasPublishedPrice
             ? t('pages.events.publicTicketsFrom', { price: money(ticketPrice, locale) })
-            : closedLabel}
+            : salesOn
+              ? t('pages.events.ticketsOnSaleStatus')
+              : closedLabel}
         </p>
         <Button
           variant="outline"
           className="events-public-tickets__cta motion-icon-shift"
           onClick={onBuyTickets}
-          disabled={!hasPublishedPrice}
+          disabled={!salesOn}
         >
           <Ticket size={14} aria-hidden />
           {t('pages.events.publicTicketsCta')}
@@ -829,12 +832,7 @@ export default function EventsPage({
                     memberships,
                   })}
                   ticketsAvailable={eventTicketsAvailable(event)}
-                  onSelect={(interaction) =>
-                    morphNavigate(
-                      findMorphSource(interaction?.currentTarget, '.event-card__title'),
-                      () => openEvent(event),
-                    )
-                  }
+                  onSelect={() => focusEvent(event)}
                   onAction={() => handleEventCardAction(event)}
                   actionLabel={eventCardActionLabel(event)}
                   actionLive={isRegistrationOpen(event) || eventTicketsAvailable(event)}

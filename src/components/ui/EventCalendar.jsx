@@ -11,6 +11,19 @@ const MAX_EVENT_SPAN_DAYS = 45
 const MIN_WEEKS = 5
 /** Chips visibles por día antes de agrupar el resto en "+N". */
 const MAX_CHIPS_PER_DAY = 2
+/** Estados de la leyenda cuando no hay eventos que la definan. */
+const DEFAULT_LEGEND = ['proximamente', 'inscripcion_abierta', 'cupos_limitados']
+
+/**
+ * Tono de la ficha en la grilla. El rojo queda para errores: un evento con la
+ * inscripción cerrada (que puede seguir vendiendo entradas) o con el cupo lleno
+ * no es un peligro. Antes "Cerrado" pintaba el meet de rojo en el calendario.
+ */
+function chipTone(status) {
+  if (status === 'cerrado' || status === 'finalizado') return 'neutral'
+  if (status === 'agotado') return 'warning'
+  return EVENT_STATUS[status]?.tone ?? 'neutral'
+}
 
 function intlLocale(locale) {
   return locale === 'en' ? 'en-US' : 'es-AR'
@@ -133,6 +146,14 @@ export default function EventCalendar({
   }, [events])
 
   const cells = useMemo(() => buildMonthCells(cursor.year, cursor.month), [cursor])
+  // La leyenda explica los colores que de verdad aparecen: los estados de los
+  // eventos del calendario, en el orden de EVENT_STATUS. Sin eventos, los tres
+  // de siempre.
+  const legendStatuses = useMemo(() => {
+    const present = new Set(events.map((event) => event?.status).filter(Boolean))
+    const ordered = Object.keys(EVENT_STATUS).filter((key) => present.has(key))
+    return ordered.length ? ordered : DEFAULT_LEGEND
+  }, [events])
   const todayKey = toDayKey(today)
   const isTodayVisible = cursor.year === todayMonth.year && cursor.month === todayMonth.month
 
@@ -236,7 +257,7 @@ export default function EventCalendar({
                 {dayNumber}
                 <span className="event-calendar__chips">
                   {visible.map(({ event, isSpan, isStart, isEnd }) => {
-                    const tone = EVENT_STATUS[event.status]?.tone ?? 'neutral'
+                    const tone = chipTone(event.status)
                     return (
                       <span
                         key={event.slug}
@@ -268,14 +289,12 @@ export default function EventCalendar({
 
       <footer className="event-calendar__footer">
         <div className="event-calendar__legend event-calendar__legend--compact">
-          {Object.entries(EVENT_STATUS)
-            .slice(0, 3)
-            .map(([key, meta]) => (
-              <span key={key} className="event-calendar__legend-item">
-                <span className={`event-calendar__dot event-calendar__dot--${meta.tone}`} />
-                {getStatusMeta(key, t).label}
-              </span>
-            ))}
+          {legendStatuses.map((key) => (
+            <span key={key} className="event-calendar__legend-item">
+              <span className={`event-calendar__dot event-calendar__dot--${chipTone(key)}`} />
+              {getStatusMeta(key, t).label}
+            </span>
+          ))}
         </div>
       </footer>
     </div>

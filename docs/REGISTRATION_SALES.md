@@ -102,9 +102,44 @@ operación. Las secciones internas no cambiaron, solo cómo se agrupan:
 |---|---|
 | Resumen | control de venta + cifras |
 | Evento | capítulos Datos · Estructura |
-| Venta | capítulos Cupo · Precios · Entradas · Cobro · Vendidas |
+| Venta | capítulos Módulos · Cupo · Precios · Entradas · Cobro · Vendidas (abre en Módulos) |
 | Página | landing, editor visual, SEO |
 | *Operación* | Inscripciones · Pagos · Zonas y seguridad |
+
+## Módulos del evento
+
+Venta → **Módulos** (`EventModulesBoard`) dice qué partes del evento están prendidas y cómo
+cobra cada una. La regla vive en [`shared/eventModules.js`](../shared/eventModules.js) y la leen
+el panel, el sitio y el servidor. Los módulos que ya tenían campo lo siguen usando: el tablero
+es otra forma de tocar el mismo dato, no un segundo interruptor.
+
+| Módulo | Campo | Apagado |
+|---|---|---|
+| Inscripciones | `salesIntent` | "Solo anuncio" (409 `REGISTRATION_ANNOUNCE_ONLY`) |
+| Entradas de público | `pricing.ticketsEnabled` | El público no compra: `GET /api/tickets/availability` manda `ticketEnabled: false` y `POST /api/tickets/orders` responde 409 `PLU03`. El mostrador (`POST /orders/manual`) puede cargar una venta ya cobrada |
+| Combo afiliación + inscripción | `rules.modules.combo` | El catálogo no publica la oferta; `POST /me/registration-combos` responde 409 `EVENT_MODULE_DISABLED` |
+| Extras de entradas | `rules.modules.ticketAddons` | Solo quedan los extras incluidos en un tipo; `POST /api/tickets/orders` con `addonIds` responde 409 `EVENT_MODULE_DISABLED` |
+| Cronograma público | `publicSurface.schedule` | La página no muestra la grilla |
+| Puerta: check-in y zonas | `rules.modules.door` | El workspace oculta Zonas y Check-in (las entradas conservan su QR) |
+
+Combo depende de Inscripciones y Extras de Entradas: prendidos sin su módulo no tienen efecto y
+el tablero lo dice.
+
+**Medios por módulo.** Inscripciones y Entradas abren o cierran sus medios en el mismo tablero
+(la misma columna de `paymentChannelOverrides` que Cobro). Combo cobra con los de Inscripciones;
+los extras, con la entrada.
+
+**Tope de cuotas** (`rules.paymentPolicy`, `{registration|ticket: {maxInstallments}}`, sin
+tope = decide Mercado Pago). Se elige por módulo cuando Mercado Pago está abierto. La orden
+lleva el tope de su evento (`supabasePaymentRepository.getOrder`): el Brick no ofrece más cuotas
+(`maxInstallments`), la preferencia lo limita (`payment_methods.installments`) y el pago
+embebido con más cuotas responde 422 `INSTALLMENTS_NOT_ALLOWED`. Una afiliación sola no tiene
+evento ni tope.
+
+Se guardan con `staff_merge_event_modules` (migración
+`20270103100000_event_modules_payment_policy.sql`) después del upsert, como `offering`. Sin la
+migración el evento se guarda igual con el aviso `EVENT_MODULES_NOT_SAVED` y todo queda prendido
+y sin tope. Un cliente que no manda `modules`/`paymentPolicy` conserva los guardados.
 
 Alta (`AdminEventQuickCreate`): tres pasos — **Evento** (tipo, título, logo, fechas, sede,
 cupo, acceso), **Venta** (precio de lista, cuándo abre, medios de cobro) y **Página**

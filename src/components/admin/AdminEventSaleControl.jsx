@@ -48,16 +48,27 @@ function defaultScheduleValue(opensAt) {
 function previousFor(event, patch) {
   const previous = {}
   for (const key of Object.keys(patch)) {
+    if (key === 'ticketsEnabled') {
+      previous.ticketsEnabled = event?.pricing?.ticketsEnabled === true
+      continue
+    }
     previous[key] = event?.[key] ?? (key.startsWith('registration') ? null : undefined)
   }
   return previous
 }
 
+function hasPublicTicketPrice(event) {
+  return (event?.pricing?.ticketTypes ?? []).some(
+    (type) => type?.active !== false && Number(type?.price) > 0,
+  )
+}
+
 /**
  * AdminEventSaleControl — PLU ARG
  *
- * El único lugar donde se abre, se programa o se cierra la venta de
- * inscripciones de un evento, y donde se ve si de verdad se puede pagar.
+ * El lugar donde se abre, se programa o se cierra la venta de inscripciones
+ * y donde se habilita la venta pública de entradas. Las dos son interruptores
+ * distintos: abrir inscripciones no prende el botón de compra del público.
  *
  * El estado del evento ya no se elige a mano: "Abrir ahora", "Programar" y
  * "Cerrar" escriben estado + ventana (`registrationSalePatch`) y la lectura
@@ -178,6 +189,9 @@ export default function AdminEventSaleControl({
   const canOpen = ['closed', 'scheduled'].includes(sale.state)
   const canClose = ['on_sale', 'blocked', 'scheduled'].includes(sale.state)
   const canSchedule = ['closed', 'scheduled'].includes(sale.state)
+  const ticketsOn = event.pricing?.ticketsEnabled === true
+  const ticketsEnded = event.status === 'finalizado'
+  const platformTicketsOff = sale.platform?.ticketEnabled === false
 
   return (
     <section
@@ -194,6 +208,60 @@ export default function AdminEventSaleControl({
         </p>
         <p className="admin-event-sale__detail">{stateLine}</p>
       </div>
+
+      {editable && !ticketsEnded ? (
+        <div className={`admin-event-sale__tickets${ticketsOn ? ' is-on' : ''}`}>
+          <p className="admin-event-sale__eyebrow">{text('ticketsTitle')}</p>
+          <p className="admin-event-sale__state">
+            <span className="admin-event-sale__dot" aria-hidden />
+            <strong>{ticketsOn ? text('ticketsOn') : text('ticketsOff')}</strong>
+          </p>
+          <p className="admin-event-sale__detail">
+            {ticketsOn ? text('ticketsDetailOn') : text('ticketsDetailOff')}
+          </p>
+          {ticketsOn && !hasPublicTicketPrice(event) ? (
+            <p className="admin-event-sale__detail">{text('ticketsNeedPrice')}</p>
+          ) : null}
+          {ticketsOn && !event.published ? (
+            <p className="admin-event-sale__detail">{text('ticketsHidden')}</p>
+          ) : null}
+          {ticketsOn && platformTicketsOff ? (
+            <p className="admin-event-sale__detail">{text('ticketsPlatformOff')}</p>
+          ) : null}
+          <div className="admin-event-sale__actions">
+            {ticketsOn ? (
+              <button
+                type="button"
+                className="admin-event-sale__btn"
+                disabled={busy}
+                onClick={() => void apply({ ticketsEnabled: false }, text('ticketsClosedToast'))}
+              >
+                <LockKeyhole size={14} aria-hidden />
+                {text('ticketsClose')}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="admin-event-sale__btn admin-event-sale__btn--primary"
+                disabled={busy}
+                onClick={() => void apply({ ticketsEnabled: true }, text('ticketsOpenedToast'))}
+              >
+                <Unlock size={14} aria-hidden />
+                {text('ticketsOpen')}
+              </button>
+            )}
+            {onFix ? (
+              <button
+                type="button"
+                className="admin-event-sale__btn admin-event-sale__btn--quiet"
+                onClick={() => onFix('tickets')}
+              >
+                {text('ticketsEditTypes')}
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       {/* Programando, la única acción es confirmar la fecha. */}
       {editable && !scheduling ? (

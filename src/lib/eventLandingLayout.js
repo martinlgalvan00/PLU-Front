@@ -104,6 +104,8 @@ export const CUSTOM_BLOCK_TYPES = Object.freeze({
   sponsors: { title: 'title', ...numberedPaths(8) },
   video: { title: 'title', body: 'body', video: 'video' },
   map: { title: 'title', body: 'body', href: 'href' },
+  // Cómo pagar: el contenido sale del evento (medios abiertos, lugar del efectivo).
+  payments: { title: 'title', body: 'body' },
 })
 
 /** Claves de imagen de un bloque propio (`path`, `path1`…), en orden. */

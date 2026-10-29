@@ -81,13 +81,12 @@ export default function RouteTransition({
     ? { opacity: 0, x: mobileEnterX }
     : { opacity: 0, y: 14 }
 
-  const exit = isMobile
-    ? { opacity: 0, transition: { duration: MOTION_DURATION.fast, ease: MOTION_EASE.standard } }
-    : {
-        opacity: 0,
-        y: direction === 'back' ? 6 : -3,
-        transition: { duration: MOTION_DURATION.fast, ease: MOTION_EASE.standard },
-      }
+  // La saliente solo se disuelve. Si además se desplaza, hay dos superficies
+  // en movimiento y el cambio de página se siente como un empujón.
+  const exit = {
+    opacity: 0,
+    transition: { duration: MOTION_DURATION.fast, ease: MOTION_EASE.standard },
+  }
 
   return (
     // Durante un morph de ruta la nueva monta junto a la saliente: con

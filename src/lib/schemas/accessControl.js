@@ -43,7 +43,7 @@ export const updateAccessRolePermissionsSchema = z.object({
 
 export const updateAccessRoleStatusSchema = z.object({ active: z.boolean() })
 
-// Al pasar a Organizador hay que autorizar eventos en el mismo acto.
+// Al pasar a un rol por evento hay que autorizar eventos en el mismo acto.
 export const updateUserAccessRoleSchema = z
   .object({
     roleKey: roleKeySchema,
@@ -51,13 +51,13 @@ export const updateUserAccessRoleSchema = z
   })
   .refine((value) => !isEventScopedRole(value.roleKey) || (value.eventIds?.length ?? 0) > 0, {
     path: ['eventIds'],
-    message: 'Asigná al menos un evento al organizador.',
+    message: 'Asigná al menos un evento.',
   })
 
 /** Tope de cuentas por pedido: acota el trabajo de un request y su auditoría. */
 export const BULK_USER_ROLE_MAX = 100
 
-// El lote no admite Organizador: cada cuenta necesita su propia lista de eventos.
+// El lote no admite roles por evento: cada cuenta necesita su propia lista.
 export const bulkUserAccessRoleSchema = z
   .object({
     userIds: z
@@ -70,5 +70,5 @@ export const bulkUserAccessRoleSchema = z
   })
   .refine((value) => !isEventScopedRole(value.roleKey), {
     path: ['roleKey'],
-    message: 'El rol Organizador se asigna de a una cuenta, con sus eventos.',
+    message: 'Un rol por evento se asigna de a una cuenta, con sus eventos.',
   })

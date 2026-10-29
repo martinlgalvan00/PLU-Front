@@ -9,6 +9,8 @@
  * de este archivo (compat hero ← publicCopy).
  */
 
+import { isTicketSalesEnabled } from './eventPricing.js'
+
 /** Compat pre-migración: mismo slug que `eventNavigation.PITBULL_CLASSIC_SLUG`. */
 const LEGACY_EDITORIAL_SLUG = 'pitbull-classic-2026'
 
@@ -96,6 +98,9 @@ export function eventShowsPublicFaq(event) {
 }
 
 export function eventShowsPublicTickets(event) {
+  // La venta prendida manda sobre el bloque editorial: si el staff habilitó
+  // entradas, la ficha tiene que mostrar la compra aunque el módulo esté oculto.
+  if (isTicketSalesEnabled(event)) return true
   return eventPublicSurfaceFromEvent(event).tickets
 }
 

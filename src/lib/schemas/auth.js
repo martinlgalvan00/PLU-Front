@@ -49,7 +49,7 @@ export const createStaffUserSchema = z
   })
   .refine((value) => !isEventScopedRole(value.role) || value.eventIds.length > 0, {
     path: ['eventIds'],
-    message: 'Asigná al menos un evento al organizador.',
+    message: 'Asigná al menos un evento.',
   })
 
 /** Reenvío de invitación / reseteo de la credencial de una cuenta de staff. */

@@ -379,6 +379,7 @@ export default function AthleteProfilePage({
         membership={membership}
         latestMembership={storedMembership}
         registrations={athleteRegistrations}
+        events={events}
         pendingFinancedPayment={pendingFinancedPayment}
         onNavigateSection={openTab}
         onNavigate={onNavigate}

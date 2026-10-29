@@ -10,7 +10,8 @@ import {
   assertPaidCheckoutAvailable,
   resolvePaidCheckoutOverride,
 } from '../lib/featureAvailability.js'
-import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
+import { checkinAllowlistCache } from '../lib/checkinAllowlistCache.js'
+import { PRIVATE_REVALIDATE_CACHE, PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
 import { sendPortraitBinary } from '../lib/portraitBinaryCache.js'
 import { resolveEventRegistrationOpensAt } from '../lib/registrationSchedule.js'
 import { touchProofAccessed } from '../modules/payments/paymentProofRetention.js'
@@ -141,7 +142,9 @@ import {
 } from '../services/platformFeatureToggleService.js'
 import {
   applyEventPaymentChannelOverrides,
+  applyEventTicketSalesSwitch,
   applyManualTicketDeadline,
+  eventPublicTicketSalesEnabled,
   assertEventPaymentChannelEnabled,
   assertManualTicketDeadline,
   resolveBankTransferDetails,
@@ -152,6 +155,7 @@ import { createSupabasePaymentProfileRepository } from '../modules/payments/supa
 import { resolveMercadoPagoPublicKeyForProfileId } from '../modules/payments/mercadoPagoProfileRuntime.js'
 import { wisePriceFor } from '../modules/pricing/checkoutPricePolicy.js'
 import { resolveTicketOrderWisePricing } from '../../shared/ticketWisePricing.js'
+import { EVENT_MODULE_DISABLED, isStoredEventModuleOn } from '../../shared/eventModules.js'
 import { recordScanEvent, recordScanEvents } from '../modules/checkin/scanEventRecorder.js'
 
 const attendeeSchema = z.object({
@@ -628,6 +632,14 @@ export function createTicketRoutes({
         if (getSupabaseAdmin?.() && !eventPricing) {
           throw new HttpError(404, 'Evento no encontrado.')
         }
+        // Mismo corte que `create_ticket_order`: sin el interruptor del evento
+        // el público no compra. El mostrador (`POST /orders/manual`) no pasa
+        // por acá.
+        if (eventPublicTicketSalesEnabled(eventPricing) === false) {
+          throw new HttpError(409, 'La venta de entradas esta deshabilitada para este evento.', {
+            code: 'PLU03',
+          })
+        }
         assertEventPaymentChannelEnabled(toggles, 'ticket', ticketChannel, {
           eventOverrides: eventPricing?.payment_channel_overrides ?? null,
         })
@@ -641,6 +653,18 @@ export function createTicketRoutes({
           ticketChannel,
           eventPricing?.payment_channel_overrides ?? null,
         )
+        // Módulo «Extras de entradas» apagado: no se venden extras aparte. Los
+        // que un tipo trae incluidos no viajan en `addonIds` (el checkout los
+        // saca), así que cualquier id acá es un extra comprado.
+        if (
+          eventPricing &&
+          !isStoredEventModuleOn(eventPricing, 'ticketAddons') &&
+          req.validatedBody.attendees.some((attendee) => attendee.addonIds?.length > 0)
+        ) {
+          throw new HttpError(409, 'Este evento no vende extras con las entradas.', {
+            code: EVENT_MODULE_DISABLED,
+          })
+        }
         // Y contra el calendario: una transferencia vendida sobre la fecha no
         // llega a ser un QR antes de que abra la puerta.
         assertManualTicketDeadline(ticketChannel, eventPricing?.starts_at ?? null)
@@ -816,12 +840,15 @@ export function createTicketRoutes({
         applyEventChannelOpens(toggles, eventPricing?.payment_channel_overrides),
         env,
       )
-      const scoped = applyManualTicketDeadline(
-        applyEventPaymentChannelOverrides(
-          platformAvailability,
-          eventPricing?.payment_channel_overrides,
+      const scoped = applyEventTicketSalesSwitch(
+        applyManualTicketDeadline(
+          applyEventPaymentChannelOverrides(
+            platformAvailability,
+            eventPricing?.payment_channel_overrides,
+          ),
+          eventPricing?.starts_at ?? null,
         ),
-        eventPricing?.starts_at ?? null,
+        eventPricing,
       )
       // Los dos perfiles de cobro son independientes entre sí: el alias del
       // banco no condiciona la clave pública de Mercado Pago. Encadenarlos
@@ -848,6 +875,7 @@ export function createTicketRoutes({
         availability,
         checkout: {
           ticketEnabled: scoped.ticketEnabled,
+          eventTicketsEnabled: scoped.eventTicketsEnabled,
           ticketManualEnabled: scoped.ticketManualEnabled,
           channels: scoped.paymentChannels.ticket,
           bankTransfer: resolveBankTransferDetails(eventPricing, env, bankProfile),
@@ -954,7 +982,9 @@ export function createTicketRoutes({
    * ventanas de venta online). El resto de las reglas de negocio se
    * mantienen: interruptor maestro de cobros, medios habilitados por evento
    * y por tipo de entrada, cupo y precio de catálogo -- un operador no
-   * evade eso, lo hace desde la configuración del evento.
+   * evade eso, lo hace desde la configuración del evento. El interruptor
+   * público `ticketsEnabled` sí se saltea: una venta ya cobrada en la puerta
+   * se puede cargar aunque la página no esté vendiendo.
    *
    * Efectivo se auto-aprueba en el mismo request (el operador ya cobró en
    * mano); transferencia queda `pendiente` y sigue el circuito de
@@ -1187,8 +1217,23 @@ export function createTicketRoutes({
   })
   router.get('/allowlist/:eventSlug', ...guard, staffLimiter, async (req, res, next) => {
     try {
-      assertEventSlugScope(req, req.params.eventSlug)
-      res.json(await repo().allowlist(req.params.eventSlug))
+      const eventSlug = req.params.eventSlug
+      assertEventSlugScope(req, eventSlug)
+      const ticketRepo = repo()
+      const revision =
+        typeof ticketRepo.allowlistRevision === 'function'
+          ? await ticketRepo.allowlistRevision(eventSlug)
+          : null
+      const cache = checkinAllowlistCache(eventSlug, revision, req.headers['if-none-match'])
+      if (cache.etag) {
+        res.set('ETag', cache.etag)
+        res.set('Cache-Control', PRIVATE_REVALIDATE_CACHE)
+        if (cache.notModified) {
+          res.status(304).end()
+          return
+        }
+      }
+      res.json(await ticketRepo.allowlist(eventSlug))
     } catch (error) {
       next(error)
     }

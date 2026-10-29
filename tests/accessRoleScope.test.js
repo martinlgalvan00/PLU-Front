@@ -18,6 +18,7 @@ describe('AccessRole.scope', () => {
 
   it('usa la clave legacy si no hay scope', () => {
     expect(resolveAccessRoleScope('organizador_evento')).toBe(ACCESS_ROLE_SCOPE.event)
+    expect(resolveAccessRoleScope('coordinador_seguridad')).toBe(ACCESS_ROLE_SCOPE.event)
     expect(resolveAccessRoleScope({ roleKey: 'organizador_evento' })).toBe(
       ACCESS_ROLE_SCOPE.event,
     )

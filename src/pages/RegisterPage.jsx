@@ -37,6 +37,7 @@ import {
   CheckboxGroupField,
 } from '../components/ui/FormFields.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
+import CashPaymentPlace from '../components/ui/CashPaymentPlace.jsx'
 import Pill from '../components/ui/Pill.jsx'
 import CardPreviewModal from '../components/ui/CardPreviewModal.jsx'
 import GymNameConfirmationDialog from '../components/ui/GymNameConfirmationDialog.jsx'
@@ -128,6 +129,7 @@ import {
   toggleModality,
 } from '../../shared/registrationSelection.js'
 import { useAgeDivisionOptions } from '../hooks/useAgeDivisionOptions.js'
+import { maxInstallmentsFor } from '../../shared/eventModules.js'
 
 const PASSWORD_STRENGTH_LABEL_KEYS = [
   'pages.register.passwordStrengthWeak',
@@ -1804,14 +1806,22 @@ export default function RegisterPage({
   const registrationAvailability = accessRequirements.paymentChannels
     ? { paymentChannels: accessRequirements.paymentChannels }
     : checkoutAvailability
+  // Qué conceptos cobra esta orden. La afiliación solo entra en el combo (o en
+  // el flujo de afiliación): una inscripción sola la valida el servidor
+  // únicamente contra el concepto "inscripción" (`POST /me/registrations`), con
+  // las aperturas del evento ya aplicadas. Exigir también el casillero de
+  // afiliación escondía transferencia y efectivo —cerrados por defecto para
+  // afiliación— a quien ya está afiliado, aunque el evento los abriera.
+  const chargesMembership = flow === 'membership' || effectivePurchaseType === 'combo'
+  const chargesRegistration = flow === 'competition'
   const legacyManualChannelsOpenGlobally =
-    checkoutAvailability.membershipManualEnabled !== false &&
+    (!chargesMembership || checkoutAvailability.membershipManualEnabled !== false) &&
     (flow !== 'competition' || checkoutAvailability.registrationManualEnabled !== false) &&
     // accessRequirements todavía no resolvió (arranca undefined): con !==
     // false acá el selector mostraría transferencia/efectivo un instante y
     // los sacaría al terminar de cargar, el mismo flash-y-409 que
     // `manualChannelEnabled` evita en MembershipPurchaseSection.
-    accessRequirements.membershipManualEnabled === true &&
+    (!chargesMembership || accessRequirements.membershipManualEnabled === true) &&
     (flow !== 'competition' || accessRequirements.registrationManualEnabled === true)
   const paymentChannels = checkoutAvailability.paymentChannels
   const hasPaymentChannelMatrix = Boolean(paymentChannels)
@@ -1822,18 +1832,18 @@ export default function RegisterPage({
       // en accessRequirements; si no, cae a la de plataforma.
       const registrationOpen =
         registrationAvailability.paymentChannels?.registration?.[channel] === true
-      return flow === 'membership' ? membershipOpen : membershipOpen && registrationOpen
+      return (!chargesMembership || membershipOpen) && (!chargesRegistration || registrationOpen)
     }
     return legacyManualChannelsOpenGlobally
   }
   const mercadoPagoOpen =
-    channelOpen(checkoutAvailability, 'membership', 'mercado_pago') &&
-    (flow !== 'competition' ||
+    (!chargesMembership || channelOpen(checkoutAvailability, 'membership', 'mercado_pago')) &&
+    (!chargesRegistration ||
       channelOpen(registrationAvailability, 'registration', 'mercado_pago'))
+  // Wise nunca cobra afiliación ni combo (el servidor lo rechaza y el combo lo
+  // excluye más abajo): solo cuenta el casillero de inscripción.
   const wiseOpen =
-    flow === 'competition' &&
-    channelOpen(checkoutAvailability, 'membership', 'wise_transfer') &&
-    channelOpen(registrationAvailability, 'registration', 'wise_transfer')
+    flow === 'competition' && channelOpen(registrationAvailability, 'registration', 'wise_transfer')
   const resolvedChannels = resolvePromotionPaymentChannels({
     policy: discountPreview,
     mercadoPagoOpen,
@@ -2897,10 +2907,15 @@ export default function RegisterPage({
                         event?.venue ||
                         t('pages.register.cashVenueFallback'),
                     })}
-                {!settleDeclared && accessRequirements.cashPayment?.notes
-                  ? ` ${accessRequirements.cashPayment.notes}`
-                  : null}
               </p>
+              {/* Lugar, dirección, horario y Cómo llegar: antes, una oración. */}
+              {settleDeclared ? null : (
+                <CashPaymentPlace
+                  cashPayment={accessRequirements.cashPayment}
+                  event={event}
+                  fallback={t('pages.register.cashVenueFallback')}
+                />
+              )}
             </div>
           ) : flow === 'competition' ? (
             <div className="register-status__manual-actions">
@@ -3433,7 +3448,7 @@ export default function RegisterPage({
             {flow === 'profile' && !profileOrderConfirmed && (
               <button
                 type="button"
-                className="register-topbar__link"
+                className="register-topbar__link register-topbar__link--account"
                 onClick={() => onNavigate('login')}
               >
                 {t('pages.register.haveAccount')}
@@ -3709,6 +3724,11 @@ export default function RegisterPage({
               {registrationAdmitted || settleOrderRejected ? null : mpSettling ? (
                 <>
                   <MercadoPagoEmbeddedCheckout
+                    maxInstallments={
+                      checkoutKind === 'membership'
+                        ? null
+                        : maxInstallmentsFor(event, 'registration')
+                    }
                     onCheckoutError={handleMercadoPagoError}
                     onResult={handleMercadoPagoResult}
                     order={visibleOrder}
@@ -4369,13 +4389,15 @@ export default function RegisterPage({
           )}
         </div>
       </div>
-      {transferOpen &&
-      athlete &&
-      (visibleOrder?.paymentMethod === 'manual_link' ||
-        form.paymentMethod === 'manual_link' ||
-        form.paymentMethod === 'wise_transfer') ? (
-        <TransferPayModal
-          amount={visibleOrder?.amount ?? checkoutTotal}
+      <TransferPayModal
+        open={Boolean(
+          transferOpen &&
+            athlete &&
+            (visibleOrder?.paymentMethod === 'manual_link' ||
+              form.paymentMethod === 'manual_link' ||
+              form.paymentMethod === 'wise_transfer'),
+        )}
+        amount={visibleOrder?.amount ?? checkoutTotal}
           currency={
             visibleOrder?.currency ?? (form.paymentMethod === 'wise_transfer' ? 'USD' : 'ARS')
           }
@@ -4390,16 +4412,14 @@ export default function RegisterPage({
           accountDetails={flow === 'membership' ? null : (accessRequirements.bankTransfer ?? null)}
           onClose={() => setTransferOpen(false)}
           purpose={flow === 'membership' ? 'membership' : 'competition'}
-        />
-      ) : null}
-      {accessGateOpen && accessLocked ? (
-        <RegistrationAccessGateModal
-          scopes={requiredAccessScopes}
-          eventSlug={event?.slug ?? null}
-          onUnlock={handleAccessUnlock}
-          onCancel={() => setAccessGateOpen(false)}
-        />
-      ) : null}
+      />
+      <RegistrationAccessGateModal
+        open={Boolean(accessGateOpen && accessLocked)}
+        scopes={requiredAccessScopes}
+        eventSlug={event?.slug ?? null}
+        onUnlock={handleAccessUnlock}
+        onCancel={() => setAccessGateOpen(false)}
+      />
 
       {/* El momento del canje. Acá la acción principal no navega —el atleta ya
           está en el checkout que va a cobrar el código—: cierra el anuncio y
@@ -4426,13 +4446,12 @@ export default function RegisterPage({
           remaining={promotionScarcityPresentation(revealPromotion)?.remaining ?? null}
         />
       ) : null}
-      {pendingGymConfirmation ? (
-        <GymNameConfirmationDialog
-          gymName={pendingGymConfirmation}
-          onCancel={cancelGymNameConfirmation}
-          onConfirm={confirmGymName}
-        />
-      ) : null}
+      <GymNameConfirmationDialog
+        open={Boolean(pendingGymConfirmation)}
+        gymName={pendingGymConfirmation ?? ''}
+        onCancel={cancelGymNameConfirmation}
+        onConfirm={confirmGymName}
+      />
     </main>
   )
 }

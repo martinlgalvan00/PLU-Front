@@ -8,6 +8,19 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { checkinTypeLabel } from '../../services/checkinScanService.js'
 import { TICKET_VALIDITY_STATUS, ticketValidityTiming } from '../../lib/ticketValidity.js'
 
+// Decisiones que se leen de pie. El resto (sesión, cola, servidor) es un aviso
+// y no tiene que ocupar el mismo cuerpo tipográfico.
+const DECISION_OUTCOMES = new Set([
+  'ready',
+  'checked_in',
+  'already_used',
+  'not_found',
+  'invalid',
+  'wrong_zone',
+  'not_yet_valid',
+  'expired',
+])
+
 function formatRelativeValidityTime(milliseconds, direction, locale) {
   const absolute = Math.max(0, Number(milliseconds) || 0)
   const unit = absolute < 60_000 ? ['second', 1_000] : absolute < 60 * 60_000 ? ['minute', 60_000] : ['hour', 60 * 60_000]
@@ -112,9 +125,14 @@ export default function CheckInScanResult({
           })
         : null
 
+  const resultKey = `${effectiveOutcome}:${scanResult.row?.id ?? ''}:${scanResult.offline ? 'local' : 'net'}`
+
   return (
     <div
-      className={`admin-checkin-result admin-checkin-result--${effectiveVerdict.tone}${scanResult.offline ? ' admin-checkin-result--offline' : ''}`}
+      key={resultKey}
+      className={`admin-checkin-result admin-checkin-result--${effectiveVerdict.tone}${
+        DECISION_OUTCOMES.has(effectiveOutcome) ? ' admin-checkin-result--decision' : ''
+      }${scanResult.offline ? ' admin-checkin-result--offline' : ''}`}
       role="status"
       aria-live="polite"
     >

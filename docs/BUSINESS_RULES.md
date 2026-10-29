@@ -338,6 +338,12 @@ Reglas:
   desde el workspace del evento). Al ingresar, la cuenta entra a un shell
   exclusivo (sin menú global del admin). La API vuelve a validar el alcance con
   `eventScope`. El lote de cambio de rol no admite Organizador.
+- El rol de sistema **Coordinador de seguridad** (`coordinador_seguridad`)
+  también es por evento, con `baseRole` `operador_plu_arg` para no mezclarse
+  con las cuentas de puerta. Solo puede leer sus eventos, armar el equipo y
+  las zonas, y escanear. No cobra, no edita el evento y no administra usuarios
+  globales. Las cuentas que da de alta siguen siendo `seguridad_plu_arg`
+  atadas a ese evento. El lote de cambio de rol tampoco lo admite.
 - Toda ruta sensible valida permisos en Express aunque la navegación no muestre
   el módulo.
 - Si una matriz personalizada deja de coincidir con un rol base, no se emite un

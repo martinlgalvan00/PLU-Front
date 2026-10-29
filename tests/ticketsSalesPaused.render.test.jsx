@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
@@ -137,5 +137,63 @@ describe('TicketsPage con ventas habilitadas', () => {
     expect(board.querySelectorAll('.tickets-page__access-cell')).toHaveLength(0)
     expect(board.querySelector('.tickets-page__access-zone--all')).not.toBeNull()
     expect(board.querySelectorAll('.tickets-page__access-opens li').length).toBeGreaterThan(0)
+  })
+
+  it('no abre la venta si el único precio publicado es cero', () => {
+    checkoutState.ticketEnabled = true
+
+    render(
+      <I18nProvider>
+        <TicketsPage
+          event={{
+            ...event,
+            ticketTypes: [{ id: 'ticket-day', name: 'General', price: 0 }],
+          }}
+          onNavigate={() => {}}
+        />
+      </I18nProvider>,
+    )
+
+    expect(screen.queryByRole('link', { name: /comprar entradas/i })).toBeNull()
+    expect(screen.getAllByText(/próximamente/i).length).toBeGreaterThan(0)
+  })
+
+  it('no ofrece como venta un evento sin precio publicado', () => {
+    checkoutState.ticketEnabled = true
+
+    render(
+      <I18nProvider>
+        <TicketsPage
+          event={{ ...event, dateISO: '2026-12-12' }}
+          events={[
+            {
+              id: 'barbell-submission',
+              slug: 'barbell-submission',
+              title: 'Barbell Submission',
+              date: 'Fecha a confirmar',
+              dateISO: '2027-03-01',
+              venue: 'Virtus fitness',
+              pricing: { ticketsEnabled: false },
+              eventDays: [],
+              ticketTypes: [],
+            },
+          ]}
+          onNavigate={() => {}}
+        />
+      </I18nProvider>,
+    )
+
+    const options = document.querySelectorAll('.tickets-page__event-option')
+    expect(options).toHaveLength(2)
+    expect(options[0].textContent).toMatch(/10\.000/)
+    expect(options[0].textContent).toMatch(/por día/i)
+    expect(options[1].textContent).toMatch(/próximamente/i)
+    expect(options[1].textContent).not.toMatch(/disponible/i)
+    expect(options[1].textContent).not.toMatch(/\$\s*0/)
+
+    fireEvent.click(options[1])
+
+    expect(screen.queryByRole('link', { name: /comprar entradas/i })).toBeNull()
+    expect(options[1].textContent).not.toMatch(/\$\s*0/)
   })
 })

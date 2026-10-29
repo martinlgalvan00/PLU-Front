@@ -25,7 +25,11 @@ function createSupabase() {
     let rows = table === 'events' ? [...events] : []
     const query = {
       select: () => query,
-      in: (column, values) => ((rows = rows.filter((row) => values.includes(row[column]))), query),
+      // `event_registrations.status` filtra el conteo embebido, no las filas.
+      in: (column, values) =>
+        column.includes('.')
+          ? query
+          : ((rows = rows.filter((row) => values.includes(row[column]))), query),
       eq: (column, value) => ((rows = rows.filter((row) => String(row[column]) === String(value))), query),
       order: () => query,
       limit: () => query,

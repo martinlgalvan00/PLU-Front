@@ -27,6 +27,19 @@ export function getTransitionDirection(fromView, toView) {
   return toRank >= fromRank ? 'forward' : 'back'
 }
 
+/**
+ * El documento tiene `scroll-behavior: smooth`. En un cambio de ruta ese
+ * deslizamiento pelea con la entrada de la página. Acá el salto es seco;
+ * las anclas de la misma pantalla siguen suaves.
+ */
+export function scrollWindowTo(top) {
+  const root = document.documentElement
+  const previous = root.style.scrollBehavior
+  root.style.scrollBehavior = 'auto'
+  window.scrollTo({ top, left: 0 })
+  root.style.scrollBehavior = previous
+}
+
 const ATHLETE_DESTINATIONS = new Set(['profile', 'membership', 'competition'])
 
 export const DEFAULT_ACCOUNT_TAB = 'account-qr'

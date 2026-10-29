@@ -380,3 +380,92 @@
     transition: none;
   }
 }
+
+/* Credenciales de ingreso: una franja con el envío masivo del QR, entre la
+   cabecera y los números. Sin tarjeta: misma hairline que el resumen. */
+.admin-event-credentials {
+  align-items: center;
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 16px 0;
+}
+
+.admin-event-credentials__icon {
+  align-self: start;
+  color: var(--color-brand-celeste);
+  margin-top: 1px;
+}
+
+.admin-event-credentials__copy h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 2px;
+}
+
+.admin-event-credentials__copy p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 68ch;
+}
+
+.admin-event-credentials__copy .admin-event-credentials__note {
+  color: var(--color-warning-text);
+  margin-top: 4px;
+}
+
+.admin-event-credentials__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.admin-event-credentials__send {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-md);
+  color: var(--color-brand-action-text);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.admin-event-credentials__send:hover:not(:disabled) {
+  background: var(--color-brand-action-hover);
+}
+
+.admin-event-credentials__send:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.admin-event-credentials__send:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 720px) {
+  .admin-event-credentials {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .admin-event-credentials__actions {
+    grid-column: 1 / -1;
+    justify-content: stretch;
+  }
+
+  .admin-event-credentials__actions > button {
+    flex: 1;
+    justify-content: center;
+    min-height: 44px;
+  }
+}

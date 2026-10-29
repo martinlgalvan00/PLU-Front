@@ -243,6 +243,10 @@ const LIVE_REFRESH_HINT_DELAY_MS = 600
 const LIVE_PUBLIC_CATALOG_SYNC_MS = 30_000
 // Varios cambios seguidos (guardar un evento toca varias filas) se leen juntos.
 const CATALOG_NOTICE_DEBOUNCE_MS = 400
+// Un guardado propio dispara varios avisos `catalog-changed` (cada RPC del
+// upsert toca `events`). La respuesta del guardado ya trae la lista completa:
+// mientras dura y unos segundos después, el aviso no vuelve a pedirla.
+const LOCAL_EVENTS_WRITE_ECHO_MS = 3_000
 
 /**
  * Precio de inscripción de UN evento. `admin.pricing.write` está reservado a Super Admin
@@ -368,6 +372,7 @@ export function useAppData() {
   const membershipAttemptRef = useRef(null)
   const registrationAttemptRef = useRef(null)
   const ticketAttemptRef = useRef(null)
+  const manualSaleAttemptRef = useRef(null)
   const liveRefreshInFlightRef = useRef(false)
   const athleteDataLoadedRef = useRef(false)
   // Huellas del último payload aplicado de cada poll: sin esto, cada ciclo
@@ -439,6 +444,8 @@ export function useAppData() {
   // "cerrado" que el staff acaba de guardar con el "abierto" de antes.
   const eventsEpochRef = useRef(0)
   const publicCatalogRefreshRef = useRef(null)
+  // Escrituras de eventos de esta pestaña: en curso y cuándo terminó la última.
+  const localEventsWriteRef = useRef({ pending: 0, finishedAt: 0 })
   useEffect(() => {
     eventsEpochRef.current += 1
   }, [adminEvents])
@@ -458,24 +465,27 @@ export function useAppData() {
         if (fresh) rerunRequested = true
         return refreshInFlight
       }
+      // Con permiso de lectura, la lista es la del panel (incluye lo no
+      // publicado y su estado guardado): el catálogo público, que es un
+      // subconjunto, no puede reemplazarla. Se decide antes de pedirlo: antes
+      // el staff bajaba el catálogo cada 30 s (y al volver a la pestaña) para
+      // descartarlo al llegar.
+      // Un organizador NO tiene la lista del panel completa (solo sus eventos): para él el
+      // catálogo público sigue siendo la fuente de las páginas públicas.
+      const staff = sessionRef.current
+      if (
+        staff &&
+        !isDemoSession(staff) &&
+        !isEventScopedSession(staff) &&
+        hasPermission(staff, 'admin.events.read')
+      ) {
+        if (active) setPublicCatalogSettled(true)
+        return Promise.resolve()
+      }
       const epoch = eventsEpochRef.current
       const request = fetchPublishedEvents()
         .then((remoteEvents) => {
           if (!active) return
-          // Con permiso de lectura, la lista es la del panel (incluye lo no
-          // publicado y su estado guardado): el catálogo público, que es un
-          // subconjunto, no puede reemplazarla.
-          const staff = sessionRef.current
-          // Un organizador NO tiene la lista del panel completa (solo sus eventos): para él el
-          // catálogo público sigue siendo la fuente de las páginas públicas.
-          if (
-            staff &&
-            !isDemoSession(staff) &&
-            !isEventScopedSession(staff) &&
-            hasPermission(staff, 'admin.events.read')
-          ) {
-            return
-          }
           if (eventsEpochRef.current !== epoch) {
             // Respuesta vieja: se descarta y se pide de nuevo una vez.
             if (retriesLeft > 0) {
@@ -617,7 +627,14 @@ export function useAppData() {
         timerId = null
         void publicCatalogRefreshRef.current?.()
         void refreshCheckoutAvailability()
-        void refreshAdminEvents({ silent: true })
+        // La disponibilidad de entradas cachea el interruptor del evento.
+        // Sin esto, apagar la venta en el panel deja la página abierta hasta
+        // que vence el TTL.
+        invalidateEventLiveData()
+        const write = localEventsWriteRef.current
+        const ownEcho =
+          write.pending > 0 || Date.now() - write.finishedAt < LOCAL_EVENTS_WRITE_ECHO_MS
+        if (!ownEcho) void refreshAdminEvents({ silent: true })
       }, CATALOG_NOTICE_DEBOUNCE_MS)
     }
 
@@ -2056,7 +2073,27 @@ export function useAppData() {
         return { error: 'Sin permisos para cargar una venta manual.' }
       }
       try {
-        const result = await createManualTicketOrderRequest(payload)
+        // Misma venta, misma clave. Si el request se cortó después de crear
+        // la orden, el reintento la encuentra y —en efectivo— la acredita.
+        // Recién un alta que salió bien suelta la clave, para que la próxima
+        // carga de las mismas personas sea otra venta.
+        const fingerprint = JSON.stringify([
+          payload?.eventSlug ?? null,
+          payload?.attendees ?? null,
+          payload?.buyer ?? null,
+          payload?.manualPaymentChannel ?? null,
+        ])
+        if (manualSaleAttemptRef.current?.fingerprint !== fingerprint) {
+          manualSaleAttemptRef.current = {
+            fingerprint,
+            idempotencyKey: crypto.randomUUID(),
+          }
+        }
+        const result = await createManualTicketOrderRequest({
+          ...payload,
+          idempotencyKey: manualSaleAttemptRef.current.idempotencyKey,
+        })
+        manualSaleAttemptRef.current = null
         await refreshPendingTicketOrders()
         return result
       } catch (error) {
@@ -3665,6 +3702,17 @@ export function useAppData() {
     [athletes, memberships, registrations, session],
   )
 
+  /** Marca una escritura de eventos propia mientras dura (ver LOCAL_EVENTS_WRITE_ECHO_MS). */
+  const trackLocalEventsWrite = useCallback(async (request) => {
+    localEventsWriteRef.current.pending += 1
+    try {
+      return await request()
+    } finally {
+      localEventsWriteRef.current.pending -= 1
+      localEventsWriteRef.current.finishedAt = Date.now()
+    }
+  }, [])
+
   const saveAdminEvent = useCallback(
     async (draft) => {
       if (!hasPermission(session, 'admin.events.write')) {
@@ -3687,12 +3735,12 @@ export function useAppData() {
       const sourceEvent = draft.id
         ? (adminEventsRef.current.find((event) => event.id === draft.id) ?? null)
         : null
-      const result = await saveAdminEventRequest(draft, sourceEvent)
+      const result = await trackLocalEventsWrite(() => saveAdminEventRequest(draft, sourceEvent))
       setAdminEvents(result.events)
       setAdminEventsError(null)
       return result
     },
-    [adminEvents, adminEventsRef, session, setAdminEvents],
+    [adminEvents, adminEventsRef, session, setAdminEvents, trackLocalEventsWrite],
   )
 
   /**
@@ -3731,6 +3779,17 @@ export function useAppData() {
               changes.registrationClosesAt !== undefined
                 ? changes.registrationClosesAt
                 : event.registrationClosesAt,
+            ...(changes.ticketsEnabled !== undefined
+              ? {
+                  pricing: {
+                    ...event.pricing,
+                    ticketsEnabled: changes.ticketsEnabled === true,
+                  },
+                  ...(changes.ticketsEnabled === true
+                    ? { publicSurface: { ...event.publicSurface, tickets: true } }
+                    : {}),
+                }
+              : {}),
             updatedAt: new Date().toISOString(),
           }
           // El demo replica la regla de la base: sin esto el cupo lleno se
@@ -3754,7 +3813,7 @@ export function useAppData() {
       }
 
       try {
-        const result = await setEventStateRequest(slug, changes)
+        const result = await trackLocalEventsWrite(() => setEventStateRequest(slug, changes))
         setAdminEvents(result.events)
         setAdminEventsError(null)
         return result
@@ -3762,7 +3821,7 @@ export function useAppData() {
         return { error: error?.message ?? 'No se pudo cambiar el estado del evento.' }
       }
     },
-    [adminEvents, session, setAdminEvents],
+    [adminEvents, session, setAdminEvents, trackLocalEventsWrite],
   )
 
   /**
@@ -3794,7 +3853,7 @@ export function useAppData() {
       }
 
       try {
-        const result = await setEventLogoRequest(slug, file, options)
+        const result = await trackLocalEventsWrite(() => setEventLogoRequest(slug, file, options))
         setAdminEvents(result.events)
         setAdminEventsError(null)
         return result
@@ -3802,7 +3861,7 @@ export function useAppData() {
         return { error: error?.message ?? 'No se pudo guardar el logo del evento.' }
       }
     },
-    [adminEvents, session, setAdminEvents],
+    [adminEvents, session, setAdminEvents, trackLocalEventsWrite],
   )
 
   /**
@@ -3873,7 +3932,7 @@ export function useAppData() {
         return { deletedEvent: { id: target.id, slug, title: target.title }, events: result.events }
       }
 
-      const result = await deleteAdminEventRequest(slug, { force })
+      const result = await trackLocalEventsWrite(() => deleteAdminEventRequest(slug, { force }))
       setAdminEvents(result.events)
       // Inscripciones y entradas del evento ya no existen en la base: sin esto
       // las secciones de inscripciones y entradas siguen mostrando filas de un
@@ -3883,7 +3942,7 @@ export function useAppData() {
       setAdminEventsError(null)
       return result
     },
-    [adminEvents, session, setAdminEvents],
+    [adminEvents, session, setAdminEvents, trackLocalEventsWrite],
   )
 
   const refreshPricingConfiguration = useCallback(async () => {

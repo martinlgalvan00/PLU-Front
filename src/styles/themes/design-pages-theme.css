@@ -3,6 +3,7 @@
    ============================================= */
 
 [data-theme='dark'] {
+  --color-brand-gold-ink: var(--plu-gold-ink-on-dark);
   --color-page-canvas: var(--plu-cool-950);
   --color-section-muted: var(--plu-cool-750);
   --color-bg-about: var(--plu-cool-750);
@@ -163,7 +164,7 @@
   );
   --home-hero-editorial-rule-accent: rgba(91, 163, 217, 0.55);
   --home-hero-title: #fff;
-  --home-hero-title-accent-fg: var(--plu-gold-400);
+  --home-hero-title-accent-fg: var(--color-brand-gold-ink);
   --home-hero-title-accent: linear-gradient(
     108deg,
     var(--plu-gold-300) 0%,
@@ -197,7 +198,7 @@
   --home-hero-status-tickets-border: var(--home-hero-status-panel-border);
   --home-hero-status-tickets-rule: color-mix(in oklab, var(--plu-gold-500) 40%, transparent);
   --home-hero-status-tickets-muted: var(--home-hero-status-value);
-  --home-hero-status-tickets-action: var(--plu-gold-400);
+  --home-hero-status-tickets-action: var(--color-brand-gold-ink);
   --home-hero-status-tickets-hover-bg: color-mix(
     in oklab,
     var(--plu-gold-500) 10%,
@@ -706,7 +707,7 @@
   );
   --home-hero-editorial-rule-accent: var(--plu-celeste-600);
   --home-hero-title: var(--plu-ink-900);
-  --home-hero-title-accent-fg: var(--plu-gold-600);
+  --home-hero-title-accent-fg: var(--color-brand-gold-ink);
   --home-hero-title-accent: linear-gradient(
     108deg,
     var(--plu-gold-500) 0%,
@@ -740,7 +741,7 @@
   --home-hero-status-tickets-border: var(--home-hero-status-panel-border);
   --home-hero-status-tickets-rule: color-mix(in oklab, var(--plu-gold-600) 42%, transparent);
   --home-hero-status-tickets-muted: var(--home-hero-status-value);
-  --home-hero-status-tickets-action: var(--plu-gold-600);
+  --home-hero-status-tickets-action: var(--color-brand-gold-ink);
   --home-hero-status-tickets-hover-bg: color-mix(
     in oklab,
     var(--plu-gold-500) 8%,

@@ -59,10 +59,10 @@ describe('EventLandingPreviewDialog', { timeout: 30000 }, () => {
 
     fireEvent.click(screen.getByRole('button', { name: /con la landing publicada/i }))
     expect(await inFrame().findByText('Virtus Fitness', {}, SLOW)).toBeTruthy()
-    expect(inFrame().queryByText(/construyendo algo genial/i)).toBeNull()
+    expect(inFrame().queryByText(/preparando la página oficial/i)).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: /como la ve el público/i }))
-    expect(await inFrame().findByText(/construyendo algo genial/i, {}, SLOW)).toBeTruthy()
+    expect(await inFrame().findByText(/preparando la página oficial/i, {}, SLOW)).toBeTruthy()
   })
 
   it('cierra con Escape y con el botón, y devuelve el foco', async () => {

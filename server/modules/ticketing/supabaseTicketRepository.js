@@ -1,10 +1,34 @@
-import { createHash, randomBytes } from 'node:crypto'
+import { createHash, createHmac, randomBytes } from 'node:crypto'
 import { HttpError } from '../../lib/errors.js'
 import { assertSupabaseResult, requireSupabaseClient } from '../../lib/supabaseRpc.js'
 import { PROOF_BUCKET } from '../../lib/supabaseAdmin.js'
 import { aggregateCapacity, aggregateRevenue, bucketByDay } from './ticketSalesAggregation.js'
 
 const hash = (value) => createHash('sha256').update(value).digest('hex')
+// El mostrador no manda token. Si cada reintento inventa uno nuevo, la RPC
+// rechaza la clave de idempotencia ("ya pertenece a otra solicitud") y una
+// venta en efectivo queda creada pero sin acreditar: el QR no sirve en la
+// puerta. La misma clave tiene que producir el mismo token en cualquier
+// instancia. El secreto de entorno permite rotarlo; sin él, el pepper fijo
+// mantiene el acuerdo entre procesos.
+const STAFF_TICKET_TOKEN_PEPPER =
+  process.env.TICKET_ORDER_TOKEN_SECRET || 'plu-staff-ticket-order-v1'
+
+export function staffTicketAccessToken(idempotencyKey) {
+  const key = String(idempotencyKey ?? '')
+  if (key.length < 16) {
+    throw new Error('Falta una clave de idempotencia valida.')
+  }
+  return createHmac('sha256', STAFF_TICKET_TOKEN_PEPPER).update(key).digest('base64url')
+}
+
+function resolveOrderAccessToken(data) {
+  const provided = typeof data.accessToken === 'string' ? data.accessToken.trim() : ''
+  if (provided.length >= 32) return provided
+  if (data.staffActor) return staffTicketAccessToken(data.idempotencyKey)
+  return randomBytes(32).toString('base64url')
+}
+
 const ORDER_ACCESS_SELECT = 'id,provider'
 // Misma proyección para la cola de pendientes y para el historial completo:
 // las dos pantallas arman la misma fila (orden + evento + asistentes), solo
@@ -56,7 +80,7 @@ export function createSupabaseTicketRepository(client) {
 
   return {
     async createOrder(data) {
-      const accessToken = data.accessToken ?? randomBytes(32).toString('base64url')
+      const accessToken = resolveOrderAccessToken(data)
       const result = await rpc(
         'create_ticket_order_v3',
         {
@@ -131,6 +155,26 @@ export function createSupabaseTicketRepository(client) {
         { p_event_slug: eventSlug },
         'No se pudo descargar la lista de ingreso.',
       ),
+    /**
+     * Sello corto de la lista. Si la función todavía no está en esta base
+     * (migración sin aplicar), devolvemos null y el endpoint baja el JSON
+     * completo en vez de dejar la puerta sin lista.
+     */
+    async allowlistRevision(eventSlug) {
+      try {
+        const revision = await rpc(
+          'staff_get_event_checkin_allowlist_revision',
+          { p_event_slug: eventSlug },
+          'No se pudo revisar la lista de ingreso.',
+        )
+        if (revision == null || revision === '') return null
+        return String(revision)
+      } catch (error) {
+        const code = error?.details?.code ?? error?.code
+        if (code === 'PGRST202' || code === '42883') return null
+        throw error
+      }
+    },
     /**
      * Resuelve el evento server-side a partir del slug. La ingesta de
      * telemetría de escaneo (`POST /checkin/scan-events`) nunca acepta un
