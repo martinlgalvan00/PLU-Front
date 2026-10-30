@@ -61,6 +61,13 @@ describe('alta de evento · cuenta de Mercado Pago', () => {
     fillEventStep()
     fireEvent.click(screen.getByRole('button', { name: /^Siguiente/ }))
 
+    fireEvent.change(document.getElementById('quick-event-registration-opens'), {
+      target: { value: '2026-06-01T10:00' },
+    })
+    fireEvent.change(document.getElementById('quick-event-registration-closes'), {
+      target: { value: '2026-12-01T18:00' },
+    })
+
     const select = await screen.findByLabelText('Cuenta de Mercado Pago')
     await waitFor(() => expect(select.querySelectorAll('option')).toHaveLength(2))
     expect(select.textContent).toContain('Club Norte')

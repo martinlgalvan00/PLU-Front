@@ -56,6 +56,7 @@ const SALES_FIELD_KEYS = new Set([
   'registrationClosesAt',
   'ticketSalesOpensAt',
   'ticketSalesClosesAt',
+  'ticketCapacity',
   // Claves de raíz, sin índice: `ticketsNeedType` y `ticketsNeedDays` las
   // emiten como `ticketTypes` y `eventDays` pelados, y `startsWith('x.')` no
   // los agarra. Sin esto el guardado rebotaba a Datos -- otra pestaña, sin
@@ -73,7 +74,8 @@ function resolveSalesChapterForField(key) {
     key.startsWith('ticketTypes.') ||
     key.startsWith('pricing.ticketAddons') ||
     key === 'ticketSalesOpensAt' ||
-    key === 'ticketSalesClosesAt'
+    key === 'ticketSalesClosesAt' ||
+    key === 'ticketCapacity'
   ) {
     // `eventDays` cae acá y no en Estructura a propósito: el error lo dispara
     // haber prendido la venta de entradas, y el capítulo ya ofrece el atajo a

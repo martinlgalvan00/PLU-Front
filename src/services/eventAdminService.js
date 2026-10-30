@@ -128,6 +128,7 @@ export function buildAdminEventDraft(event) {
     status: event.status ?? 'proximamente',
     featured: Boolean(event.featured),
     slots: event.slots ?? DEFAULT_SLOTS,
+    ticketCapacity: event.ticketCapacity ?? '',
     pricing: clonePricing(event.pricing),
     startsAt: toDateTimeLocal(event.startsAt),
     endsAt: toDateTimeLocal(event.endsAt),
@@ -440,6 +441,7 @@ export function createAdminEvent(events, payload) {
     updatedAt: createdAt,
     createdOrder: Date.now(),
     slots: Number(payload.slots) || DEFAULT_SLOTS,
+    ticketCapacity: payload.ticketCapacity ?? '',
     registered: 0,
     pricing: normalizeEventPricingInput(payload.pricing),
     startsAt: payload.startsAt ?? '',
@@ -501,6 +503,8 @@ export function updateAdminEvent(events, eventId, payload) {
       status: payload.status ?? event.status,
       featured: payload.featured ?? event.featured,
       slots: Number(payload.slots) || event.slots,
+      ticketCapacity:
+        payload.ticketCapacity !== undefined ? payload.ticketCapacity : (event.ticketCapacity ?? ''),
       slug: event.slug ?? slugify(payload.title ?? event.title, dateISO),
       pricing: normalizeEventPricingInput(payload.pricing ?? event.pricing),
       startsAt: payload.startsAt ?? event.startsAt ?? '',
@@ -659,6 +663,7 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   registrationClosesAt: '',
   ticketSalesOpensAt: '',
   ticketSalesClosesAt: '',
+  ticketCapacity: '',
   eventDays: [],
   ticketTypes: [],
   weighInWindows: [],
@@ -934,7 +939,7 @@ export function mapPublishedEventRow(row, now = new Date()) {
   }
 }
 
-function mapAdminEventRow(row, index = 0) {
+export function mapAdminEventRow(row, index = 0) {
   const capacity = Object.fromEntries(
     (row.capacityRules ?? []).map((item) => [item.key || 'event', item.limit_count]),
   )
@@ -943,7 +948,10 @@ function mapAdminEventRow(row, index = 0) {
   return {
     ...event,
     date: event.dateISO ? formatEventDate(event.dateISO) : '—',
-    slots: row.capacity ?? capacity.event ?? event.slots ?? DEFAULT_SLOTS,
+    // events.capacity es el cupo de atletas. La regla scope=event (key '')
+    // es el tope de entradas y puede no existir: no se hereda del cupo.
+    slots: row.capacity ?? event.slots ?? DEFAULT_SLOTS,
+    ticketCapacity: capacity.event ?? null,
     createdOrder: row.created_at ? new Date(row.created_at).getTime() : index,
   }
 }
@@ -1060,6 +1068,13 @@ export async function fetchPublishedEvents() {
   })
 }
 
+/** Vacío = sin tope de entradas. El número viaja tal cual, incluso 0. */
+function normalizeTicketCapacity(value) {
+  if (value === '' || value == null) return null
+  const number = Number(value)
+  return Number.isFinite(number) ? number : null
+}
+
 /** Guarda el evento completo a través de Express y devuelve el estado
  * canónico de la colección. El navegador nunca escribe Supabase directo. */
 export async function saveAdminEventRequest(draft, sourceEvent = null) {
@@ -1073,6 +1088,9 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
 
   const response = await apiPost('/api/events/upsert', {
     ...draft,
+    // Siempre viaja: null borra el tope de entradas. Omitirlo conservaría
+    // el cupo de atletas que antes se copiaba a esa fila.
+    ticketCapacity: normalizeTicketCapacity(draft.ticketCapacity),
     id: sourceEvent?.id ?? draft.id,
     expectedUpdatedAt: sourceEvent?.updatedAt ?? draft.expectedUpdatedAt,
     slug,

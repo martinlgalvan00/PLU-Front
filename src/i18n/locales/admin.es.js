@@ -4787,7 +4787,11 @@ export default {
     cashPaymentPlaceHintNoVenue: 'Vacío = la sede del evento (todavía no está cargada en Datos).',
     cashPaymentNotes: 'Indicaciones (opcional)',
     registrationWindowHint:
-      'Ventana automática: la inscripción abre y cierra sola en estas fechas (se aplican al guardar). Para abrir o cerrar ya, usá el control de venta de arriba.',
+      'Las dos fechas son obligatorias. La inscripción abre y cierra sola en ese rango (se aplica al guardar). Para abrir o cerrar ya, usá el control de venta de arriba.',
+    ticketCapacity: 'Cantidad máxima',
+    ticketCapacityPlaceholder: 'Sin tope',
+    ticketCapacityHint:
+      'Opcional. Vacío = sin máximo de entradas. No usa el cupo de inscripción.',
     cashPaymentNotesPlaceholder: 'Ej.: mesa de acreditación, el día del evento desde las 8.',
     cashPaymentAddress: 'Dirección (para Google Maps y Waze)',
     cashPaymentAddressPlaceholder: 'Calle y número, localidad',
@@ -5076,7 +5080,8 @@ export default {
       ticketTypeWiseAddonsMissing:
         'Hay beneficios pagos sin USD. Hasta que los cargues, Wise convierte el total en pesos y no usa el precio de esta entrada.',
       ticketTypeQuota: 'Máximo a vender',
-      ticketTypeQuotaHint: 'Vacío = sin tope propio; vale el cupo del evento.',
+      ticketTypeQuotaHint:
+        'Vacío = este tipo no tiene tope propio. Si el evento tiene un máximo de entradas, ese sigue aplicando.',
       ticketTypeActive: 'A la venta',
       ticketTypeColumnName: 'Entrada',
       ticketTypeColumnPrice: 'Precios',
@@ -5772,6 +5777,11 @@ export default {
       descriptionMax: 'La descripción no puede superar los 1000 caracteres.',
       startsAtRequired: 'Elegí la fecha y hora de inicio.',
       endsAtRequired: 'Elegí la fecha y hora de fin.',
+      registrationOpensAtRequired: 'Elegí cuándo abre la inscripción.',
+      registrationClosesAtRequired: 'Elegí cuándo cierra la inscripción.',
+      ticketCapacityInvalid: 'La cantidad máxima de entradas tiene que ser un número entero.',
+      ticketCapacityMin: 'La cantidad máxima no puede ser negativa.',
+      ticketCapacityMax: 'La cantidad máxima de entradas no puede superar 5000.',
       slotsInvalid: 'Ingresá un número de cupos válido.',
       slotsInt: 'Los cupos tienen que ser un número entero.',
       slotsMin: 'Definí al menos 1 cupo.',

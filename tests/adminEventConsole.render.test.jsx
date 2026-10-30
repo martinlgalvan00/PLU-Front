@@ -638,6 +638,12 @@ describe('EventsSection — alta rápida', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: /sin afiliación/i }))
 
     fireEvent.click(within(dialog).getByRole('button', { name: /^siguiente/i }))
+    fireEvent.change(dialog.querySelector('[name="registrationOpensAt"]'), {
+      target: { value: '2026-08-01T10:00' },
+    })
+    fireEvent.change(dialog.querySelector('[name="registrationClosesAt"]'), {
+      target: { value: '2026-09-01T18:00' },
+    })
     fireEvent.click(within(dialog).getByRole('button', { name: /^siguiente/i }))
     fireEvent.click(within(dialog).getByRole('button', { name: /crear evento/i }))
 

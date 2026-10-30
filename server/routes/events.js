@@ -197,6 +197,25 @@ const optionalDateTime = z
   .transform((value) => value ?? '')
   .refine((value) => value === '' || !Number.isNaN(Date.parse(value)), 'Fecha y hora inválidas.')
 
+const requiredDateTime = (missing) =>
+  z
+    .string({ required_error: missing })
+    .trim()
+    .min(1, missing)
+    .refine((value) => !Number.isNaN(Date.parse(value)), 'Fecha y hora inválidas.')
+
+/**
+ * Tope de entradas. Ausente = no tocar la fila. null o '' = sin tope.
+ * No convierte null en 0: un coerce sobre null contaría como tope cero.
+ */
+const optionalTicketCapacity = z
+  .union([
+    z.null(),
+    z.literal('').transform(() => null),
+    z.coerce.number().int().min(0).max(5000),
+  ])
+  .optional()
+
 const ticketAddonSchema = z.object({
   id: z.string().trim().min(1).max(80),
   label: z.string().trim().min(1).max(100),
@@ -451,12 +470,14 @@ export const eventSchema = z
     // Independiente: si el medidor también publica el número total (“de 200”).
     capacityTotalPublic: z.boolean().default(true),
     slots: z.coerce.number().int().min(1).max(5000),
+    // Tope de público. Independiente de slots. Ausente = se conserva el guardado.
+    ticketCapacity: optionalTicketCapacity,
     pricing: pricingSchema,
     featured: z.boolean().optional(),
     // charge (default) | announce: soft-launch sin exigir medios de cobro.
     salesIntent: z.enum(['charge', 'announce']).optional(),
-    registrationOpensAt: optionalDateTime,
-    registrationClosesAt: optionalDateTime,
+    registrationOpensAt: requiredDateTime('Elegí cuándo abre la inscripción.'),
+    registrationClosesAt: requiredDateTime('Elegí cuándo cierra la inscripción.'),
     ticketSalesOpensAt: optionalDateTime,
     ticketSalesClosesAt: optionalDateTime,
     eventDays: z.array(eventDaySchema).max(31).optional(),

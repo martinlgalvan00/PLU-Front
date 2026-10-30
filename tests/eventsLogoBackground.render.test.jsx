@@ -264,6 +264,12 @@ describe('alta de evento', () => {
 
     // El alta es guiada: "Crear evento" está en el último paso.
     fireEvent.click(screen.getByRole('button', { name: /^Siguiente/ }))
+    fireEvent.change(document.getElementById('quick-event-registration-opens'), {
+      target: { value: '2026-06-01T10:00' },
+    })
+    fireEvent.change(document.getElementById('quick-event-registration-closes'), {
+      target: { value: '2026-12-01T18:00' },
+    })
     fireEvent.click(screen.getByRole('button', { name: /^Siguiente/ }))
     fireEvent.click(screen.getByRole('button', { name: /Crear evento/ }))
 

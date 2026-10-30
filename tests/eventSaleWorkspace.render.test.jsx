@@ -19,6 +19,8 @@ const EVENT = {
   dateISO: '2030-08-15',
   startsAt: '2030-08-15T12:00:00.000Z',
   endsAt: '2030-08-15T22:00:00.000Z',
+  registrationOpensAt: '2026-01-01T10:00:00.000Z',
+  registrationClosesAt: '2030-08-01T18:00:00.000Z',
   venue: 'Maximal Strength Club',
   location: 'Buenos Aires',
   status: 'inscripcion_abierta',
@@ -154,6 +156,8 @@ describe('venta de inscripciones en la página del evento', { timeout: 30000 }, 
     fireEvent.click(within(page).getByRole('button', { name: /^siguiente/i }))
     // Venta: abre ya.
     fireEvent.click(within(page).getByRole('button', { name: 'Abierta ya' }))
+    set('registrationOpensAt', '2026-06-01T10:00')
+    set('registrationClosesAt', '2030-09-01T18:00')
     fireEvent.click(within(page).getByRole('button', { name: /^siguiente/i }))
     fireEvent.click(within(page).getByRole('button', { name: /crear evento/i }))
 

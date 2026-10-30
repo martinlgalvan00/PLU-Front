@@ -130,6 +130,13 @@ function fillRequired({ title = 'Copa Primavera', start = '2027-03-12T10:00' } =
   fireEvent.change(document.getElementById('quick-event-location'), { target: { value: 'Rosario' } })
   // El alta es guiada: "Crear evento" y la visibilidad viven en el último paso.
   while (screen.queryByRole('button', { name: /^Siguiente/ })) {
+    const opens = document.getElementById('quick-event-registration-opens')
+    if (opens && !opens.value) {
+      fireEvent.change(opens, { target: { value: '2026-06-01T10:00' } })
+      fireEvent.change(document.getElementById('quick-event-registration-closes'), {
+        target: { value: '2026-12-01T18:00' },
+      })
+    }
     fireEvent.click(screen.getByRole('button', { name: /^Siguiente/ }))
   }
 }

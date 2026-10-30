@@ -413,6 +413,7 @@ export default function EventSalesSection({
               id="event-reg-opens"
               name="registrationOpensAt"
               data-field="registrationOpensAt"
+              required
               value={draft.registrationOpensAt ?? ''}
               aria-invalid={Boolean(err('registrationOpensAt'))}
               onChange={(event) =>
@@ -431,6 +432,7 @@ export default function EventSalesSection({
               id="event-reg-closes"
               name="registrationClosesAt"
               data-field="registrationClosesAt"
+              required
               value={draft.registrationClosesAt ?? ''}
               aria-invalid={Boolean(err('registrationClosesAt'))}
               onChange={(event) =>
@@ -1324,6 +1326,33 @@ export default function EventSalesSection({
                         inscripción: son las dos palancas de cierre del evento y
                         antes esta vivía dos <details> más adentro. */}
               <div className="admin-event-form__grid">
+                <FormField
+                  htmlFor="event-ticket-capacity"
+                  label={t('admin.eventEditor.ticketCapacity')}
+                  error={err('ticketCapacity')}
+                >
+                  <input
+                    id="event-ticket-capacity"
+                    name="ticketCapacity"
+                    data-field="ticketCapacity"
+                    min={0}
+                    max={5000}
+                    type="number"
+                    value={draft.ticketCapacity ?? ''}
+                    aria-invalid={Boolean(err('ticketCapacity'))}
+                    placeholder={t('admin.eventEditor.ticketCapacityPlaceholder')}
+                    onChange={(event) =>
+                      patchDraft({
+                        ...draft,
+                        ticketCapacity: event.target.value === '' ? '' : event.target.value,
+                      })
+                    }
+                    disabled={!canEdit}
+                  />
+                  <small className="admin-event-form__field-hint">
+                    {t('admin.eventEditor.ticketCapacityHint')}
+                  </small>
+                </FormField>
                 <FormField
                   htmlFor="event-ticket-opens"
                   label={t('admin.eventEditor.supabase.ticketSalesOpensAt')}

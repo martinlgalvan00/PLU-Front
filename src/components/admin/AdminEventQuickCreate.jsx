@@ -40,6 +40,7 @@ import {
 } from './event-editor/landing/LandingLookPicker.jsx'
 import { DEFAULT_EVENT_PRICING } from '../../lib/eventPricing.js'
 import { QUICK_CREATE_STEPS as STEPS, quickCreateStepForField } from '../../lib/eventQuickCreateSteps.js'
+import { applyRegistrationModeToDraft } from '../../lib/eventRegistrationMode.js'
 import '../../styles/pages/admin-event-quick.css'
 import {
   createAdminEventDraft,
@@ -244,12 +245,9 @@ export default function AdminEventQuickCreate({
 
   function setRegistrationMode(mode) {
     setRegistrationModeState(mode)
-    // Próximamente: la abrís vos. Abre en una fecha: queda "abierta" con la
-    // ventana (el sitio la muestra como próxima hasta esa hora y abre sola).
-    // Abierta ya: sin ventana.
-    if (mode === 'soon') patch({ ...draft, status: 'proximamente', registrationOpensAt: '' })
-    else if (mode === 'scheduled') patch({ ...draft, status: 'inscripcion_abierta' })
-    else patch({ ...draft, status: 'inscripcion_abierta', registrationOpensAt: '' })
+    // El estado sale del modo. Las dos fechas de la ventana se conservan:
+    // el guardado las exige, aparte de cuándo se abre la venta.
+    patch(applyRegistrationModeToDraft(draft, mode))
   }
 
   const visibilityOptions = [
@@ -907,31 +905,52 @@ export default function AdminEventQuickCreate({
                     onChange={setRegistrationMode}
                     options={registrationOptions}
                   />
-                  {registrationMode === 'scheduled' ? (
-                    <label
-                      className={`admin-event-quick__field${err('registrationOpensAt') ? ' is-invalid' : ''}`}
-                      htmlFor="quick-event-registration-opens"
-                    >
-                      <span className="admin-event-quick__label">
-                        {t('admin.eventEditor.supabase.registrationOpensAt')}
-                      </span>
-                      <input
-                        id="quick-event-registration-opens"
-                        name="registrationOpensAt"
-                        required
-                        type="datetime-local"
-                        value={draft.registrationOpensAt ?? ''}
-                        aria-invalid={Boolean(err('registrationOpensAt'))}
-                        onChange={(event) =>
-                          patch({ ...draft, registrationOpensAt: event.target.value })
-                        }
-                        disabled={!canEdit || submitting}
-                      />
-                      {err('registrationOpensAt') ? (
-                        <small role="alert">{err('registrationOpensAt')}</small>
-                      ) : null}
-                    </label>
-                  ) : null}
+                  <label
+                    className={`admin-event-quick__field${err('registrationOpensAt') ? ' is-invalid' : ''}`}
+                    htmlFor="quick-event-registration-opens"
+                  >
+                    <span className="admin-event-quick__label">
+                      {t('admin.eventEditor.supabase.registrationOpensAt')}
+                    </span>
+                    <input
+                      id="quick-event-registration-opens"
+                      name="registrationOpensAt"
+                      required
+                      type="datetime-local"
+                      value={draft.registrationOpensAt ?? ''}
+                      aria-invalid={Boolean(err('registrationOpensAt'))}
+                      onChange={(event) =>
+                        patch({ ...draft, registrationOpensAt: event.target.value })
+                      }
+                      disabled={!canEdit || submitting}
+                    />
+                    {err('registrationOpensAt') ? (
+                      <small role="alert">{err('registrationOpensAt')}</small>
+                    ) : null}
+                  </label>
+                  <label
+                    className={`admin-event-quick__field${err('registrationClosesAt') ? ' is-invalid' : ''}`}
+                    htmlFor="quick-event-registration-closes"
+                  >
+                    <span className="admin-event-quick__label">
+                      {t('admin.eventEditor.supabase.registrationClosesAt')}
+                    </span>
+                    <input
+                      id="quick-event-registration-closes"
+                      name="registrationClosesAt"
+                      required
+                      type="datetime-local"
+                      value={draft.registrationClosesAt ?? ''}
+                      aria-invalid={Boolean(err('registrationClosesAt'))}
+                      onChange={(event) =>
+                        patch({ ...draft, registrationClosesAt: event.target.value })
+                      }
+                      disabled={!canEdit || submitting}
+                    />
+                    {err('registrationClosesAt') ? (
+                      <small role="alert">{err('registrationClosesAt')}</small>
+                    ) : null}
+                  </label>
                   <p className="admin-event-quick__access-note">
                     <CalendarDays size={14} aria-hidden />
                     {t(

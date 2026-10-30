@@ -12,6 +12,7 @@ export function quickCreateStepForField(key = '') {
   if (
     key.startsWith('pricing') ||
     key.startsWith('registration') ||
+    key === 'ticketCapacity' ||
     key.startsWith('paymentChannel') ||
     key.startsWith('bankTransfer') ||
     key.startsWith('cashPayment')

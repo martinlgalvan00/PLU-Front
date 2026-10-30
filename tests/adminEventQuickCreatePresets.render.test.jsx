@@ -39,6 +39,13 @@ function fillRequired(title = 'Copa Otoño') {
   })
   // El alta es guiada: "Crear evento" vive en el último paso.
   for (let i = 0; i < 2; i += 1) {
+    const opens = document.getElementById('quick-event-registration-opens')
+    if (opens && !opens.value) {
+      fireEvent.change(opens, { target: { value: '2026-06-01T10:00' } })
+      fireEvent.change(document.getElementById('quick-event-registration-closes'), {
+        target: { value: '2026-12-01T18:00' },
+      })
+    }
     const next = screen.queryByRole('button', { name: /^Siguiente/ })
     if (next) fireEvent.click(next)
   }

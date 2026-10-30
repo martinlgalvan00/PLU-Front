@@ -304,8 +304,28 @@ function requiredDateTime(missingMessage) {
 }
 
 /**
+ * Tope de entradas del evento. Vacío = sin máximo. No es el cupo de atletas.
+ * `''` y null quedan en null; un número se valida como entero entre 0 y 5000.
+ */
+function optionalTicketCapacity() {
+  return z
+    .union([
+      z.literal(''),
+      z.null(),
+      z.coerce
+        .number({ invalid_type_error: 'ticketCapacityInvalid' })
+        .int('ticketCapacityInvalid')
+        .min(0, 'ticketCapacityMin')
+        .max(5000, 'ticketCapacityMax'),
+    ])
+    .optional()
+    .transform((value) => (value === '' || value == null ? null : value))
+}
+
+/**
  * Validación del draft de creación/edición de eventos.
- * Campos críticos obligatorios; ventanas y live opcionales con consistencia.
+ * Cupo y ventana de inscripción son obligatorios. La ventana de entradas y su
+ * tope son opcionales: vacío significa sin máximo y sin fecha.
  */
 export const adminEventDraftSchema = z
   .object({
@@ -330,10 +350,11 @@ export const adminEventDraftSchema = z
     }),
     startsAt: requiredDateTime('startsAtRequired'),
     endsAt: requiredDateTime('endsAtRequired'),
-    registrationOpensAt: optionalDateTime(),
-    registrationClosesAt: optionalDateTime(),
+    registrationOpensAt: requiredDateTime('registrationOpensAtRequired'),
+    registrationClosesAt: requiredDateTime('registrationClosesAtRequired'),
     ticketSalesOpensAt: optionalDateTime(),
     ticketSalesClosesAt: optionalDateTime(),
+    ticketCapacity: optionalTicketCapacity(),
     liveStreamUrl: z
       .string()
       .trim()
@@ -661,6 +682,7 @@ export function validateAdminEventDraft(draft, t) {
     registrationClosesAt: draft?.registrationClosesAt ?? '',
     ticketSalesOpensAt: draft?.ticketSalesOpensAt ?? '',
     ticketSalesClosesAt: draft?.ticketSalesClosesAt ?? '',
+    ticketCapacity: draft?.ticketCapacity ?? '',
     liveStreamUrl: draft?.liveStreamUrl ?? '',
     liveStreamProvider: draft?.liveStreamProvider ?? 'youtube',
     liveStatus: draft?.liveStatus ?? 'offline',

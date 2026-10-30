@@ -22,6 +22,8 @@ function eventPayload(overrides = {}) {
     location: 'Buenos Aires',
     startsAt: '2026-08-15T09:00',
     endsAt: '2026-08-15T20:00',
+    registrationOpensAt: '2026-06-01T10:00',
+    registrationClosesAt: '2026-08-10T18:00',
     status: 'proximamente',
     published: false,
     slots: 120,

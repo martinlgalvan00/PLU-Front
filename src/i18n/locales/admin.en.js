@@ -4725,7 +4725,11 @@ export default {
     cashPaymentPlaceHintNoVenue: 'Empty = the event venue (not set yet in Details).',
     cashPaymentNotes: 'Instructions (optional)',
     registrationWindowHint:
-      'Automatic window: registration opens and closes on these dates (applied when you save). To open or close right now, use the sales control above.',
+      'Both dates are required. Registration opens and closes on its own in that range (applied when you save). To open or close right now, use the sales control above.',
+    ticketCapacity: 'Maximum quantity',
+    ticketCapacityPlaceholder: 'No cap',
+    ticketCapacityHint:
+      'Optional. Empty = no ticket maximum. It does not use the registration capacity.',
     cashPaymentNotesPlaceholder: 'E.g.: check-in desk, on event day from 8 am.',
     cashPaymentAddress: 'Address (for Google Maps and Waze)',
     cashPaymentAddressPlaceholder: 'Street and number, city',
@@ -5011,7 +5015,8 @@ export default {
       ticketTypeWiseAddonsMissing:
         'Some paid perks have no USD. Until you set them, Wise converts the peso total and ignores this ticket’s Wise price.',
       ticketTypeQuota: 'Maximum to sell',
-      ticketTypeQuotaHint: 'Empty = no cap of its own; the event capacity applies.',
+      ticketTypeQuotaHint:
+        'Empty = this type has no cap of its own. If the event has a ticket maximum, that still applies.',
       ticketTypeActive: 'On sale',
       ticketTypeColumnName: 'Ticket',
       ticketTypeColumnPrice: 'Prices',
@@ -5703,6 +5708,11 @@ export default {
       descriptionMax: 'Description cannot exceed 1000 characters.',
       startsAtRequired: 'Choose the start date and time.',
       endsAtRequired: 'Choose the end date and time.',
+      registrationOpensAtRequired: 'Choose when registration opens.',
+      registrationClosesAtRequired: 'Choose when registration closes.',
+      ticketCapacityInvalid: 'The ticket maximum has to be a whole number.',
+      ticketCapacityMin: 'The ticket maximum cannot be negative.',
+      ticketCapacityMax: 'The ticket maximum cannot exceed 5000.',
       slotsInvalid: 'Enter a valid slots number.',
       slotsInt: 'Slots must be a whole number.',
       slotsMin: 'Set at least 1 slot.',

@@ -84,6 +84,8 @@ function eventPayload(overrides = {}) {
     location: 'CABA',
     startsAt: '2026-12-01T09:00',
     endsAt: '2026-12-01T20:00',
+    registrationOpensAt: '2026-10-01T10:00',
+    registrationClosesAt: '2026-11-20T18:00',
     status: 'proximamente',
     published: false,
     slots: 100,
