@@ -41,10 +41,14 @@ test.describe('landing oculta · lo que ve el público', () => {
     const main = constructionPage(page)
     await expect(main).toHaveAttribute('data-registration', 'open')
     await expect(main.getByRole('heading', { level: 1 })).toHaveText('Barbell Submission')
-    await expect(main.getByRole('status')).toHaveText(/próximamente/i)
-    await expect(main).toContainText('Estamos construyendo algo genial: la página oficial de Barbell Submission')
+    // Un solo estado: abierta. "Próximamente" queda para cuando la venta está cerrada.
+    await expect(main.getByRole('status')).toHaveText(/inscripción abierta/i)
+    await expect(main).toContainText(
+      'Estamos preparando la página oficial de Barbell Submission. Muy pronto vas a encontrar acá toda la información.',
+    )
     await expect(main).toContainText('6 de marzo de 2027')
-    await expect(main).toContainText('Virtus Fitness · Berazategui, Buenos Aires')
+    await expect(main).toContainText('Virtus Fitness')
+    await expect(main).toContainText('Berazategui, Buenos Aires')
     await expect(main.getByRole('button', { name: 'Inscribirme' })).toBeVisible()
     await expect(main.getByRole('button', { name: /ver el calendario/i })).toBeVisible()
   })
@@ -57,7 +61,9 @@ test.describe('landing oculta · lo que ve el público', () => {
 
     const main = constructionPage(page)
     await expect(main).toHaveAttribute('data-registration', 'closed')
-    await expect(main).toContainText('Estamos construyendo algo genial: la página oficial de Barbell Submission')
+    await expect(main).toContainText(
+      'Estamos preparando la página oficial de Barbell Submission. Muy pronto vas a encontrar acá toda la información.',
+    )
     await expect(main.getByRole('button', { name: 'Inscribirme' })).toHaveCount(0)
     await expect(main).not.toContainText('Virtus')
     await expect(main.getByRole('button', { name: /ver el calendario/i })).toBeVisible()
@@ -80,7 +86,9 @@ test.describe('landing oculta · lo que ve el público', () => {
     await openEventPage(page)
 
     const main = constructionPage(page)
-    await expect(main).toContainText('Estamos construyendo algo genial: la página oficial de Barbell Submission')
+    await expect(main).toContainText(
+      'Estamos preparando la página oficial de Barbell Submission. Muy pronto vas a encontrar acá toda la información.',
+    )
     await expect(main.getByRole('button', { name: 'Inscribirme' })).toHaveCount(0)
   })
 
@@ -186,7 +194,7 @@ test.describe('portada · viñeta de inscripción con la landing oculta', () => 
     await seasonLane(page).getByRole('button', { name: /página oficial/i }).click()
     await expect(page).toHaveURL(new RegExp(`${eventPath(SUBMISSION_SLUG)}$`))
     const main = constructionPage(page)
-    await expect(main.getByRole('status')).toHaveText(/próximamente/i)
+    await expect(main.getByRole('status')).toHaveText(/inscripción abierta/i)
     await expect(main.getByRole('button', { name: 'Inscribirme' })).toBeVisible()
   })
 
@@ -222,7 +230,11 @@ test.describe('landing visible de Barbell Submission · botón de inscripción',
 
     const landing = page.locator('main.submission-landing')
     await expect(landing).toBeVisible()
-    await expect(landing.getByRole('button', { name: 'Inscribirme' })).toBeVisible()
+    // El hero y el cierre de la ficha ofrecen el mismo alta.
+    const register = landing.getByRole('button', { name: 'Inscribirme' })
+    await expect(register).toHaveCount(2)
+    await expect(register.first()).toBeVisible()
+    await expect(register.nth(1)).toBeVisible()
   })
 
   test('"Solo anuncio" no ofrece inscribirse (el servidor lo rechazaría con 409)', async ({
@@ -452,11 +464,13 @@ test.describe('atleta · checkout de competencia', () => {
     })
     await checkout.getByLabel(/peso corporal/i).fill('66')
     await checkout.getByLabel(/categoría de peso/i).selectOption('67,5')
-    // Click + toBeChecked, no `check()`: el radio es controlado y en dev el
-    // re-render tarda ~150 ms; `check()` mira el estado antes de que llegue.
-    const cash = page.getByRole('radio', { name: /efectivo/i }).first()
-    await cash.click({ force: true })
-    await expect(cash).toBeChecked()
+    // El input está recortado a 1px: el click forzado no lo marca. Se toca la
+    // pastilla, que es lo que usa el atleta, y se espera el estado de React.
+    const cashPill = page
+      .locator('.register-competition-form label.plu-checkout__pill', { hasText: /efectivo/i })
+      .first()
+    await cashPill.click()
+    await expect(cashPill.locator('input')).toBeChecked()
     await page.getByRole('button', { name: /continuar al pago/i }).click()
 
     expect(api.registrationRequests[0].paymentMethod).toBe('cash_pitbull')
@@ -573,7 +587,7 @@ test.describe('atleta · división por edad, Open y modalidades extra', () => {
     await checkout.getByRole('checkbox', { name: /banco/i }).check()
 
     await expect(checkout.getByText('Segunda división · Open (50%)').first()).toBeVisible()
-    await expect(checkout.getByText('Modalidades extra · 1 × 50%').first()).toBeVisible()
+    await expect(checkout.getByText('Especialista en banco (50%)').first()).toBeVisible()
     await expect(checkout).toContainText('$ 150.000')
 
     await checkout.getByLabel(/peso corporal/i).fill('66')

@@ -31,8 +31,8 @@ function register(baseUrl, cookie, body) {
 }
 
 /**
- * La regla de cobro de dos divisiones contra la base real: la de edad al 100%,
- * Open al 50%, y lo que se elige queda guardado en la inscripción. Los tests de
+ * La regla de cobro contra la base real: la división de edad al 100%, Open al
+ * 50% y cada modalidad extra al 50%. Lo que se elige queda guardado. Los tests de
  * API (api.registrationSelection) la prueban con el repositorio simulado; acá
  * se confirma que la RPC guarda la segunda división, las modalidades y el
  * importe que calculó el server.
@@ -101,7 +101,7 @@ describe('inscripción en dos divisiones (create_competition_registration_checko
     if (eventId) await supabaseAdmin.from('events').delete().eq('id', eventId)
   })
 
-  it('división de edad + Open: 100% + 50%, con las dos divisiones y las modalidades guardadas', async () => {
+  it('división de edad + Open + Banco: 100% + 50% + 50%, y queda guardado', async () => {
     await setup()
     const ageDivision = resolveCompetitionDivision(
       MASTERS_BIRTH_DATE,
@@ -123,7 +123,8 @@ describe('inscripción en dos divisiones (create_competition_registration_checko
     expect(saved.division).toBe(ageDivision)
     expect(saved.secondary_division).toBe('Open')
     expect(saved.modalities).toEqual(['full_power', 'bench'])
-    expect(Number(saved.order.amount)).toBe(PRICE * 1.5)
+    // Edad al 100%, Open al 50% y la modalidad extra (Banco) al 50%.
+    expect(Number(saved.order.amount)).toBe(PRICE * 2)
   })
 
   it('una sola división paga el 100%', async () => {

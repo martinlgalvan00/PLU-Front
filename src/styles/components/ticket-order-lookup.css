@@ -4,20 +4,33 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 .ticket-order-lookup__toggle {
-  align-self: flex-start;
+  align-self: center;
   background: none;
   border: none;
+  border-radius: 2px;
   color: var(--color-brand-celeste);
   cursor: pointer;
+  flex: none;
   font-size: 13px;
   font-weight: 600;
-  padding: 0;
+  line-height: 1.3;
+  margin-left: auto;
+  min-height: 44px;
+  padding: 10px 2px;
+  text-align: end;
   text-decoration: underline;
+  text-decoration-thickness: 1px;
   text-underline-offset: 3px;
+  width: auto;
 }
 
 .ticket-order-lookup__toggle:hover {
   color: var(--color-brand-celeste-dim);
+}
+
+.ticket-order-lookup__toggle:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
 }
 
 .ticket-order-lookup {

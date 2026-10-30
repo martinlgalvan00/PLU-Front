@@ -1103,39 +1103,62 @@
 
 .tickets-page__checkout-inner {
   display: grid;
-  gap: clamp(24px, 3.5vw, 36px);
-  max-width: 880px;
+  gap: clamp(18px, 2.4vw, 24px);
+  /* El shell ya trae padding: el formulario conserva los 680px de lectura. */
+  max-width: calc(680px + 2 * clamp(24px, 5vw, 72px));
 }
 
 .tickets-page__checkout-head {
-  align-items: end;
   display: grid;
-  gap: 14px 28px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
 }
 
 .tickets-page__checkout-copy {
   display: grid;
   gap: 8px;
-  max-width: 32rem;
 }
 
 .tickets-page__checkout-head h2 {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(1.65rem, 3.6vw, 2.2rem);
-  font-weight: 600;
-  letter-spacing: -0.04em;
+  font-size: clamp(1.7rem, 3.6vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
   margin: 0;
 }
 
-.tickets-page__checkout-head p {
+.tickets-page__checkout-lead {
   color: var(--color-text-secondary);
-  font-size: clamp(13.5px, 1.4vw, 15px);
+  font-size: clamp(14px, 1.5vw, 16px);
   font-weight: 400;
   line-height: 1.5;
   margin: 0;
-  max-width: 42ch;
+  max-width: 38ch;
+}
+
+.tickets-page__checkout-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  justify-content: space-between;
+  min-height: 44px;
+}
+
+.tickets-page__checkout-meta:has(.ticket-order-lookup) {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.tickets-page__checkout-meta > .ticket-order-lookup {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  margin-left: 0;
+  padding: 16px 0 0;
+  width: 100%;
 }
 
 .tickets-page__trust {
@@ -1144,20 +1167,22 @@
   border: none;
   color: var(--color-text-muted);
   display: inline-flex;
-  flex: none;
-  font-size: 11px;
+  flex: 1 1 auto;
+  font-size: 13px;
   font-weight: 400;
-  gap: 6px;
+  gap: 8px;
   letter-spacing: 0;
-  line-height: 1.4;
-  max-width: 22ch;
-  padding: 0 0 2px;
+  line-height: 1.35;
+  margin: 0;
+  max-width: none;
+  min-width: min(100%, 16rem);
+  padding: 0;
 }
 
 .tickets-page__trust svg {
   color: var(--color-text-muted);
   flex: none;
-  opacity: 0.7;
+  opacity: 0.85;
 }
 
 .tickets-page__checkout-panel {
@@ -1165,8 +1190,8 @@
   border: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
   border-radius: 0;
   box-sizing: border-box;
-  margin-inline: auto;
-  max-width: 680px;
+  margin-inline: 0;
+  max-width: none;
   padding: clamp(20px, 3vw, 32px) clamp(18px, 3vw, 36px);
   width: 100%;
 }
@@ -1313,12 +1338,8 @@
     grid-template-columns: 1fr;
   }
 
-  .tickets-page__checkout-head {
-    grid-template-columns: 1fr;
-  }
-
-  .tickets-page__trust {
-    padding-bottom: 0;
+  .tickets-page__checkout-meta .ticket-order-lookup__toggle {
+    margin-left: 0;
   }
 }
 
