@@ -464,11 +464,13 @@ test.describe('atleta · checkout de competencia', () => {
     })
     await checkout.getByLabel(/peso corporal/i).fill('66')
     await checkout.getByLabel(/categoría de peso/i).selectOption('67,5')
-    // Click + toBeChecked, no `check()`: el radio es controlado y en dev el
-    // re-render tarda ~150 ms; `check()` mira el estado antes de que llegue.
-    const cash = page.getByRole('radio', { name: /efectivo/i }).first()
-    await cash.click({ force: true })
-    await expect(cash).toBeChecked()
+    // El input está recortado a 1px: el click forzado no lo marca. Se toca la
+    // pastilla, que es lo que usa el atleta, y se espera el estado de React.
+    const cashPill = page
+      .locator('.register-competition-form label.plu-checkout__pill', { hasText: /efectivo/i })
+      .first()
+    await cashPill.click()
+    await expect(cashPill.locator('input')).toBeChecked()
     await page.getByRole('button', { name: /continuar al pago/i }).click()
 
     expect(api.registrationRequests[0].paymentMethod).toBe('cash_pitbull')
