@@ -162,9 +162,10 @@ export function hiddenLandingTakesRegistrations(event, { now = new Date() } = {}
  *   - `open`       abre ya: estado abierto, sin apertura pendiente y, si la
  *                  ventana de cierre ya venció, sin cierre (si no, no abriría).
  *   - `scheduled`  abre sola en `opensAt`.
- *   - `closed`     la cierra el staff.
+ *   - `closed`     la cierra el staff. Solo cambia el estado de la inscripción:
+ *                  no toca la venta de entradas (`ticketsEnabled` ni su ventana).
  *   - `soon`       todavía no se abrió (anunciada como próxima).
- *   - `ended`      el evento terminó.
+ *   - `ended`      el evento terminó. Ese sí corta la venta de entradas.
  *
  * @returns {{ status: string, registrationOpensAt?: string|null, registrationClosesAt?: string|null }}
  *   solo las claves que cambian; `null` borra la fecha.

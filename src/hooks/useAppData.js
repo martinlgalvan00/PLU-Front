@@ -3738,6 +3738,8 @@ export function useAppData() {
       const result = await trackLocalEventsWrite(() => saveAdminEventRequest(draft, sourceEvent))
       setAdminEvents(result.events)
       setAdminEventsError(null)
+      const savedSlug = result.event?.slug ?? sourceEvent?.slug ?? draft.slug
+      if (savedSlug) invalidateTicketAvailability(savedSlug)
       return result
     },
     [adminEvents, adminEventsRef, session, setAdminEvents, trackLocalEventsWrite],
@@ -3805,6 +3807,7 @@ export function useAppData() {
 
         if (!updated) return { error: 'No se encontró el evento.' }
         setAdminEvents(events)
+        invalidateTicketAvailability(slug)
         return {
           event: updated,
           events,
@@ -3816,6 +3819,7 @@ export function useAppData() {
         const result = await trackLocalEventsWrite(() => setEventStateRequest(slug, changes))
         setAdminEvents(result.events)
         setAdminEventsError(null)
+        invalidateTicketAvailability(slug)
         return result
       } catch (error) {
         return { error: error?.message ?? 'No se pudo cambiar el estado del evento.' }

@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ticketAvailabilityStore } from '../services/eventLiveStore.js'
 import { summarizeAvailability } from '../lib/ticketAvailability.js'
+import { resolvePublicTicketOffer } from '../lib/ticketSalesState.js'
 
 /**
  * `null` mientras no hay dato (evento sin slug, fetch en curso, o el
@@ -39,8 +40,40 @@ export function useTicketCheckoutAvailability(eventSlug) {
   return useAvailabilitySlice(eventSlug, selectCheckout, CHECKOUT_PENDING)
 }
 
+/**
+ * La misma oferta en calendario, compra, tienda y landing. El vivo viaja en
+ * el request de disponibilidad; mientras no llegó, decide el evento que ya
+ * tiene la pantalla.
+ */
+export function usePublicTicketOffer(event, { catalogSettled = true, checkoutOpen = true, enabled = true } = {}) {
+  const live = useTicketCheckoutAvailability(enabled ? (event?.slug ?? null) : null)
+  return useMemo(
+    () =>
+      resolvePublicTicketOffer({
+        event,
+        live,
+        catalogSettled,
+        checkoutOpen,
+      }),
+    [event, live, catalogSettled, checkoutOpen],
+  )
+}
+
+function readAvailability(eventSlug, select, fallback) {
+  if (!eventSlug) return fallback
+  return select(ticketAvailabilityStore.read(eventSlug)?.data)
+}
+
 function useAvailabilitySlice(eventSlug, select, fallback) {
-  const [value, setValue] = useState(() => select(ticketAvailabilityStore.read(eventSlug)?.data))
+  const [trackedSlug, setTrackedSlug] = useState(eventSlug)
+  const [value, setValue] = useState(() => readAvailability(eventSlug, select, fallback))
+
+  // El efecto corre después de pintar. Si el slug cambió, el checkout del
+  // evento anterior no puede decidir esta oferta ni un frame.
+  if (trackedSlug !== eventSlug) {
+    setTrackedSlug(eventSlug)
+    setValue(readAvailability(eventSlug, select, fallback))
+  }
 
   useEffect(() => {
     if (!eventSlug) {

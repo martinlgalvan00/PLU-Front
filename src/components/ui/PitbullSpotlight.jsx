@@ -33,7 +33,7 @@ import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER } from '../../motion/tokens.ts'
 import BrandLogo from './BrandLogo.jsx'
 import Button from './Button.jsx'
-import { isTicketSalesEnabled } from '../../lib/eventPricing.js'
+import { canBuyEventTickets } from '../../lib/eventPublicActions.js'
 import CapacityBar from './CapacityBar.jsx'
 import { describePublicCapacity } from '../../lib/eventCapacityPublic.js'
 import { resolvePublicInscriptionCopy } from '../../lib/eventInscriptionCopy.js'
@@ -501,7 +501,7 @@ export default function PitbullSpotlight({
                     que hasta acá no tenía ninguna entrada desde la portada.
                     Sólo aparece si el evento tiene la venta prendida: un link
                     a una compra cerrada es peor que no tenerlo. */}
-                {onTickets && isTicketSalesEnabled(event) ? (
+                {onTickets && canBuyEventTickets(event) ? (
                   <button
                     type="button"
                     className="pitbull-spotlight__home-cta-tickets motion-icon-shift"

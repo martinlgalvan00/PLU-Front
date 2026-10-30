@@ -114,9 +114,9 @@ export function applyEventPaymentChannelOverrides(availability, overrides) {
 /**
  * Interruptor de entradas del evento (`rules.ticketsEnabled`).
  *
- * `null` cuando la fila no trajo `rules`: los tests y una lectura vieja no
- * opinan. En producción `findEventPricing` siempre manda la clave; si el
- * valor no es `true`, la venta pública está cerrada, igual que la RPC.
+ * `null` cuando la fila no trajo `rules`: los tests, una lectura vieja y un
+ * error de esa columna opcional no opinan. Si la clave vino y el valor no es
+ * `true`, la venta pública está cerrada, igual que la RPC.
  */
 export function eventPublicTicketSalesEnabled(eventRow) {
   if (!eventRow || !Object.prototype.hasOwnProperty.call(eventRow, 'rules')) return null

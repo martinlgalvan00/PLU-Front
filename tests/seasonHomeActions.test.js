@@ -10,6 +10,8 @@ const PITBULL = {
   published: true,
   dateISO: '2026-12-12',
   pricing: { ticketsEnabled: true },
+  eventDays: [{ dayIndex: 0, label: 'Día 1' }],
+  ticketTypes: [{ id: 'general', name: 'General', price: 15000, active: true }],
 }
 
 const BARBELL_OPEN = {
@@ -179,6 +181,14 @@ describe('getSeasonHomeActions', () => {
 
       expect(actions).toEqual([{ kind: 'tickets', event: PITBULL }])
     })
+  })
+
+  it('no ofrece entradas si el interruptor está prendido pero falta el precio', () => {
+    const actions = getSeasonHomeActions(
+      [{ ...PITBULL, ticketTypes: [{ id: 'general', price: 0, active: true }] }],
+      { now: NOW, registrationEnabled: true, ticketSalesEnabled: true },
+    )
+    expect(actions).toEqual([])
   })
 
   it('devuelve vacío si no hay nada operable', () => {

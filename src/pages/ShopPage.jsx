@@ -14,21 +14,15 @@ import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.js
 import { zoneScopeLabel } from '../components/ui/TicketTypeOptions.jsx'
 import { useShopCart } from '../hooks/useShopCart.js'
 import { useShopProducts } from '../hooks/useShopProducts.js'
-import {
-  useTicketAvailability,
-  useTicketCheckoutAvailability,
-} from '../hooks/useTicketAvailability.js'
+import { usePublicTicketOffer, useTicketAvailability } from '../hooks/useTicketAvailability.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import {
   getFeaturedEvent,
   getFeaturedEventDestination,
   getUpcomingEventsByDate,
 } from '../lib/eventNavigation.js'
-import {
-  cheapestTicketTypePrice,
-  eventAllowsPublicTickets,
-  ticketPricingFromEvent,
-} from '../lib/eventPricing.js'
+import { cheapestTicketTypePrice, ticketPricingFromEvent } from '../lib/eventPricing.js'
+import { ticketOfferCopyKey } from '../lib/ticketSalesState.js'
 import { FEATURE_KEYS, isFeatureEnabled } from '../lib/featureAvailability.js'
 import { money } from '../lib/format.js'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
@@ -41,9 +35,10 @@ import '../styles/pages/shop.css'
 import '../styles/pages/shop-luxe.css'
 import '../styles/pages/shop-checkout.css'
 
-function shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t) {
+function shopTicketPriceLabel(checkoutOpen, offer, fromPrice, locale, t) {
   if (!checkoutOpen) return t('pages.shop.checkoutSoonLabel')
-  if (!salesOpen) return t('pages.shop.salesClosed')
+  if (offer?.status === 'blocked') return t(ticketOfferCopyKey(offer))
+  if (offer?.status !== 'open') return t('pages.shop.salesClosed')
   if (fromPrice == null) return t('pages.shop.ticketsAvailable')
   return t('pages.shop.fromPrice', { amount: money(fromPrice, locale) })
 }
@@ -129,11 +124,8 @@ function ShopFeatured({
 }) {
   const pricing = ticketPricingFromEvent(event)
   const fromPrice = cheapestTicketTypePrice(pricing)
-  const ticketCheckout = useTicketCheckoutAvailability(event.slug)
-  const salesOpen =
-    checkoutOpen &&
-    eventAllowsPublicTickets(event, ticketCheckout.eventTicketsEnabled) &&
-    ticketCheckout.ticketEnabled
+  const offer = usePublicTicketOffer(event, { checkoutOpen })
+  const salesOpen = offer.status === 'open'
   const remaining = useTicketAvailability(salesOpen ? event.slug : null)
   const canBuy = salesOpen && remaining !== 0
 
@@ -166,7 +158,7 @@ function ShopFeatured({
             </p>
           ) : (
             <p className="shop-feature__price shop-feature__price--status">
-              {shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t)}
+              {shopTicketPriceLabel(checkoutOpen, offer, fromPrice, locale, t)}
             </p>
           )}
 
@@ -208,11 +200,8 @@ function ShopFeatured({
 function ShopEventRow({ event, locale, checkoutOpen, onOpenDetail, t }) {
   const pricing = ticketPricingFromEvent(event)
   const fromPrice = cheapestTicketTypePrice(pricing)
-  const ticketCheckout = useTicketCheckoutAvailability(event.slug)
-  const salesOpen =
-    checkoutOpen &&
-    eventAllowsPublicTickets(event, ticketCheckout.eventTicketsEnabled) &&
-    ticketCheckout.ticketEnabled
+  const offer = usePublicTicketOffer(event, { checkoutOpen })
+  const salesOpen = offer.status === 'open'
   const remaining = useTicketAvailability(salesOpen ? event.slug : null)
   const dateParts = shopEventDateParts(event, locale)
   const { reducedMotion, tier } = useMotionConfig()
@@ -268,7 +257,7 @@ function ShopEventRow({ event, locale, checkoutOpen, onOpenDetail, t }) {
 
         <span className="shop-row__foot">
           <span className="shop-row__price">
-            {shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t)}
+            {shopTicketPriceLabel(checkoutOpen, offer, fromPrice, locale, t)}
           </span>
           <span className="shop-row__hint">
             {checkoutOpen && salesOpen

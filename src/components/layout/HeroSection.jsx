@@ -19,7 +19,7 @@ import { hasFinePointer } from '../../motion/useReducedMotion.ts'
 import { useMagneticHover } from '../../motion/useMagneticHover.ts'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getSeasonHomeActions } from '../../lib/eventNavigation.js'
-import { isTicketSalesEnabled } from '../../lib/eventPricing.js'
+import { canBuyEventTickets } from '../../lib/eventPublicActions.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { getPublicEventStatus } from '../../lib/publicRegistrationPhase.js'
 import { isRegistrationOpen } from '../../lib/status.js'
@@ -108,7 +108,7 @@ export default function HeroSection({
   const registrationAvailable = registrationCheckoutOpen && isRegistrationOpen(eventStatus)
   // Mismo interruptor que PitbullSpotlight: si el evento vende entradas, el
   // hero no puede seguir diciendo "Cerrado" (eso es la inscripción de atletas).
-  const ticketsAvailable = env.ticketSalesEnabled && isTicketSalesEnabled(event)
+  const ticketsAvailable = canBuyEventTickets(event, { config: env })
   const statusLabelOverride = ticketsAvailable
     ? t('hero.statusTicketsOpen')
     : registrationAvailable

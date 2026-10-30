@@ -23,11 +23,10 @@ import {
 import { getUpcomingEventsByDate } from '../lib/eventNavigation.js'
 import {
   cheapestTicketTypePrice,
-  eventAllowsPublicTickets,
-  isTicketSalesEnabled,
   shortTicketTypeName,
   ticketPricingFromEvent,
 } from '../lib/eventPricing.js'
+import { resolvePublicTicketOffer, ticketOfferCopyKey } from '../lib/ticketSalesState.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { money } from '../lib/format.js'
@@ -142,7 +141,6 @@ export default function TicketsPage({
     ticketEvents[0] ??
     event
   const pricing = ticketPricingFromEvent(selectedEvent)
-  const listedPrice = cheapestTicketTypePrice(pricing)
   const paidCheckoutOpen = isPaidCheckoutOpen(selectedEvent, env, new Date(), {
     checkoutKind: 'ticket',
   })
@@ -151,13 +149,24 @@ export default function TicketsPage({
   // a que la lista pública se refresque. Mientras no hay dato, manda el evento
   // que ya tiene la pantalla.
   const ticketCheckout = useTicketCheckoutAvailability(selectedEvent?.slug ?? null)
-  const ticketSalesOpen =
-    env.ticketSalesEnabled &&
-    paidCheckoutOpen &&
-    eventAllowsPublicTickets(selectedEvent, ticketCheckout.eventTicketsEnabled) &&
-    ticketCheckout.ticketEnabled &&
-    listedPrice != null &&
-    listedPrice > 0
+  const ticketOffer = useMemo(
+    () =>
+      resolvePublicTicketOffer({
+        event: selectedEvent,
+        live: ticketCheckout,
+        checkoutOpen: paidCheckoutOpen,
+      }),
+    [paidCheckoutOpen, selectedEvent, ticketCheckout],
+  )
+  const ticketSalesOpen = ticketOffer.status === 'open'
+  const ticketClosedLead =
+    ticketOffer.status === 'blocked'
+      ? t(ticketOfferCopyKey(ticketOffer))
+      : t('pages.ticketsPage.salesPausedLead')
+  const ticketClosedTitle =
+    ticketOffer.status === 'blocked'
+      ? t('pages.ticketOffer.blockedTitle')
+      : t('pages.ticketsPage.salesPausedTitle')
   const availabilityRemaining = useTicketAvailability(ticketSalesOpen ? selectedEvent?.slug : null)
   const visibleCreatedOrder =
     createdOrder?.type === 'tickets' && createdOrder.eventTitle === selectedEvent?.title
@@ -287,11 +296,15 @@ export default function TicketsPage({
                 </Item>
               ) : null}
 
-              {!ticketSalesOpen ? (
+              {!ticketSalesOpen && ticketOffer.status !== 'pending' ? (
                 <Item {...itemProps}>
                   <p className="tickets-page__sales-paused" role="status">
                     <Clock3 size={15} aria-hidden />
-                    <span>{t('pages.ticketsPage.salesPaused')}</span>
+                    <span>
+                      {ticketOffer.status === 'blocked'
+                        ? ticketClosedLead
+                        : t('pages.ticketsPage.salesPaused')}
+                    </span>
                   </p>
                 </Item>
               ) : null}
@@ -368,13 +381,10 @@ export default function TicketsPage({
                 itemId === (selectedEvent?.id ?? selectedEvent?.slug ?? selectedEvent?.title)
               const itemPricing = ticketPricingFromEvent(item)
               const fromPrice = cheapestTicketTypePrice(itemPricing)
-              const catalogListed =
-                env.ticketSalesEnabled &&
-                paidCheckoutOpen &&
-                isTicketSalesEnabled(item) &&
-                fromPrice != null &&
-                fromPrice > 0
-              const saleOpen = active ? ticketSalesOpen : catalogListed
+              const itemOffer = active
+                ? ticketOffer
+                : resolvePublicTicketOffer({ event: item, checkoutOpen: paidCheckoutOpen })
+              const saleOpen = itemOffer.status === 'open'
               return (
                 <button
                   key={itemId}
@@ -394,7 +404,9 @@ export default function TicketsPage({
                       ? t('pages.ticketsPage.currentEvent')
                       : saleOpen
                         ? t('pages.ticketsPage.availableEvent')
-                        : t('pages.ticketsPage.salesPausedTitle')}
+                        : itemOffer.status === 'blocked'
+                          ? t(ticketOfferCopyKey(itemOffer))
+                          : t('pages.ticketsPage.salesPausedTitle')}
                   </span>
                   <strong>{item.title ?? t('pages.ticketsPage.eventFallback')}</strong>
                   <small>
@@ -410,7 +422,9 @@ export default function TicketsPage({
                     </em>
                   ) : active ? (
                     <em className="tickets-page__event-price-note">
-                      {t('pages.ticketsPage.salesPausedTitle')}
+                      {itemOffer.status === 'blocked'
+                        ? t(ticketOfferCopyKey(itemOffer))
+                        : t('pages.ticketsPage.salesPausedTitle')}
                     </em>
                   ) : null}
                 </button>
@@ -458,14 +472,10 @@ export default function TicketsPage({
                   : t('pages.ticketsPage.salesPausedEyebrow')}
               </span>
               <h2 id="tickets-checkout-title">
-                {ticketSalesOpen
-                  ? t('pages.ticketsPage.checkoutTitle')
-                  : t('pages.ticketsPage.salesPausedTitle')}
+                {ticketSalesOpen ? t('pages.ticketsPage.checkoutTitle') : ticketClosedTitle}
               </h2>
               <p className="tickets-page__checkout-lead">
-                {ticketSalesOpen
-                  ? t('pages.ticketsPage.checkoutLead')
-                  : t('pages.ticketsPage.salesPausedLead')}
+                {ticketSalesOpen ? t('pages.ticketsPage.checkoutLead') : ticketClosedLead}
               </p>
             </div>
             <div className="tickets-page__checkout-meta">
@@ -507,7 +517,7 @@ export default function TicketsPage({
                 onUploadPaymentProof={onUploadPaymentProof}
               />
             ) : (
-              <p className="tickets-page__closed">{t('pages.ticketsPage.salesPausedLead')}</p>
+              <p className="tickets-page__closed">{ticketClosedLead}</p>
             )}
           </div>
         </div>
