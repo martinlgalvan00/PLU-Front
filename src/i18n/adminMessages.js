@@ -19,15 +19,28 @@ const loaded = { es: null, en: null }
 const inflight = {}
 const listeners = new Set()
 
+/**
+ * Foto estable para `useSyncExternalStore`. Se reemplaza entera al llegar un
+ * idioma: React compara por identidad y, si devolvemos un objeto nuevo en cada
+ * lectura, entra en un bucle de render.
+ */
+let snapshot = { es: null, en: null }
+
 /** Mensajes `admin` ya cargados para el idioma, o `null`. */
 export function adminMessagesFor(locale) {
   return loaded[locale] ?? null
+}
+
+/** Foto actual de los textos del panel. Misma referencia hasta que cambian. */
+export function getAdminMessagesSnapshot() {
+  return snapshot
 }
 
 /** Carga síncrona (tests, Storybook) o al resolver el import diferido. */
 export function registerAdminMessages(locale, messages) {
   if (!messages || loaded[locale] === messages) return
   loaded[locale] = messages
+  snapshot = { es: loaded.es, en: loaded.en }
   listeners.forEach((listener) => listener())
 }
 
