@@ -4,7 +4,10 @@ import { canBuyEventTickets, isEventRegistrationOpen } from '../src/lib/eventPub
 const open = { status: 'inscripcion_abierta' }
 const withTickets = (extra = {}) => ({
   status: 'proximamente',
+  published: true,
   pricing: { ticketsEnabled: true, ticketAddons: [] },
+  eventDays: [{ dayIndex: 0, label: 'Día 1' }],
+  ticketTypes: [{ id: 'general', name: 'General', price: 15000, active: true }],
   ...extra,
 })
 
@@ -28,13 +31,14 @@ describe('isEventRegistrationOpen', () => {
 })
 
 describe('canBuyEventTickets', () => {
-  it('necesita la venta habilitada en la plataforma', () => {
-    expect(canBuyEventTickets(withTickets(), { config: { ticketSalesEnabled: true } })).toBe(true)
+  it('abre solo cuando la oferta pública está open', () => {
+    const config = { ticketSalesEnabled: true }
+    expect(canBuyEventTickets(withTickets(), { config })).toBe(true)
     expect(canBuyEventTickets(withTickets(), { config: { ticketSalesEnabled: false } })).toBe(false)
-    expect(canBuyEventTickets(withTickets(), { config: {} })).toBe(false)
+    expect(canBuyEventTickets(withTickets({ ticketTypes: [] }), { config })).toBe(false)
   })
 
-  it('necesita entradas activas en el evento', () => {
+  it('necesita el interruptor del evento prendido', () => {
     const config = { ticketSalesEnabled: true }
     expect(canBuyEventTickets(withTickets({ pricing: { ticketsEnabled: false } }), { config })).toBe(false)
     expect(canBuyEventTickets(null, { config })).toBe(false)

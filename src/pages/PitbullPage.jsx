@@ -41,13 +41,10 @@ import TicketPassPreview from '../components/ui/TicketPassPreview.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
 import { usePublicEventSchedule } from '../hooks/usePublicEventSchedule.js'
-import { useTicketCheckoutAvailability } from '../hooks/useTicketAvailability.js'
+import { usePublicTicketOffer } from '../hooks/useTicketAvailability.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
-import {
-  eventAllowsPublicTickets,
-  resolveEventPricing,
-  resolveLiveComboOffer,
-} from '../lib/eventPricing.js'
+import { resolveEventPricing, resolveLiveComboOffer } from '../lib/eventPricing.js'
+import { ticketOfferCopyKey } from '../lib/ticketSalesState.js'
 import {
   eventShowsPublicCategories,
   eventShowsPublicCountdown,
@@ -614,7 +611,7 @@ function PitbullLocationSection({ event, venue, t, title, lead: leadOverride }) 
   )
 }
 
-function PitbullTicketsBand({ event, index, onOpen, soon = false, t }) {
+function PitbullTicketsBand({ event, index, onOpen, soon = false, blockedNote = null, t }) {
   return (
     <section
       id="entradas"
@@ -642,14 +639,22 @@ function PitbullTicketsBand({ event, index, onOpen, soon = false, t }) {
             {index ?? t('pages.pitbull.ticketsIndex')}
           </span>
           <span className="pitbull-tickets-band__eyebrow">
-            {soon ? t('pages.pitbull.ticketsSoonEyebrow') : t('pages.pitbull.ticketsEyebrow')}
+            {soon && !blockedNote
+              ? t('pages.pitbull.ticketsSoonEyebrow')
+              : t('pages.pitbull.ticketsEyebrow')}
           </span>
         </p>
         <h2 id="pitbull-tickets-title" className="pitbull-tickets-band__title">
-          {soon ? t('pages.pitbull.ticketsSoonTitle') : t('pages.pitbull.ticketsTitle')}
+          {soon && !blockedNote
+            ? t('pages.pitbull.ticketsSoonTitle')
+            : t('pages.pitbull.ticketsTitle')}
         </h2>
         <p className="pitbull-tickets-band__lead">
-          {soon ? t('pages.pitbull.ticketsSoonLead') : t('pages.pitbull.ticketsLead')}
+          {blockedNote
+            ? blockedNote
+            : soon
+              ? t('pages.pitbull.ticketsSoonLead')
+              : t('pages.pitbull.ticketsLead')}
         </p>
         <p className="pitbull-tickets-band__facts" aria-label={t('pages.pitbull.ticketsFactsAria')}>
           <span>{t('pages.pitbull.ticketsFactId')}</span>
@@ -658,7 +663,7 @@ function PitbullTicketsBand({ event, index, onOpen, soon = false, t }) {
           <span aria-hidden>·</span>
           <span>{t('pages.pitbull.ticketsNote')}</span>
         </p>
-        {soon ? (
+        {blockedNote ? null : soon ? (
           <p className="pitbull-tickets-band__soon">{t('pages.pitbull.ticketsSoonMark')}</p>
         ) : (
           <button
@@ -1305,12 +1310,12 @@ export default function PitbullPage({
       ? null
       : resolveLiveComboOffer(pitbullEvent)
   const resolvedEventSlug = pitbullEvent?.slug ?? PITBULL_CLASSIC_SLUG
-  const ticketCheckout = useTicketCheckoutAvailability(resolvedEventSlug)
-  const ticketsOpen =
-    env.ticketSalesEnabled &&
-    ticketCheckoutOpen &&
-    eventAllowsPublicTickets(pitbullEvent, ticketCheckout.eventTicketsEnabled) &&
-    ticketCheckout.ticketEnabled
+  const ticketOffer = usePublicTicketOffer(pitbullEvent ?? { slug: resolvedEventSlug }, {
+    checkoutOpen: ticketCheckoutOpen,
+  })
+  const ticketsOpen = ticketOffer.status === 'open'
+  const ticketBlockedNote =
+    ticketOffer.status === 'blocked' ? t(ticketOfferCopyKey(ticketOffer)) : null
   const {
     status: capacityStatus,
     registered: liveRegistered,
@@ -1540,7 +1545,8 @@ export default function PitbullPage({
               <PitbullTicketsBand
                 event={pitbullEvent}
                 index={showSchedule ? '07' : undefined}
-                soon={!ticketsOpen}
+                soon={!ticketsOpen && !ticketBlockedNote}
+                blockedNote={ticketBlockedNote}
                 onOpen={goToTicketsPage}
                 t={t}
               />

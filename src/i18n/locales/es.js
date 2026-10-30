@@ -3589,6 +3589,18 @@ export default {
       checkoutSoon:
         'La venta de entradas abre junto con las inscripciones. Pedí aviso desde la home o Pitbull Classic.',
     },
+    ticketOffer: {
+      off: 'Próximamente',
+      salesClosed: 'Venta cerrada',
+      blockedTitle: 'No se pueden comprar ahora',
+      noPrice: 'Las entradas están habilitadas. Falta publicar un precio.',
+      noDays: 'Las entradas están habilitadas. Falta cargar al menos un día del evento.',
+      window: 'La venta de entradas todavía no abrió.',
+      windowClosed: 'La ventana de venta de entradas ya cerró.',
+      platform: 'La venta de entradas está pausada en la plataforma.',
+      channels: 'No hay un medio de pago abierto para estas entradas.',
+      environment: 'La venta de entradas está pausada por el momento.',
+    },
     shop: {
       checkout: {
         add: 'Agregar al pedido',

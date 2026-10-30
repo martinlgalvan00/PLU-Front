@@ -3549,6 +3549,18 @@ export default {
       checkoutSoon:
         'Ticket sales open with registration. Ask for a notification from Home or Pitbull Classic.',
     },
+    ticketOffer: {
+      off: 'Coming soon',
+      salesClosed: 'Sales closed',
+      blockedTitle: 'Tickets cannot be bought right now',
+      noPrice: 'Tickets are enabled. A price still needs to be published.',
+      noDays: 'Tickets are enabled. The event still needs at least one day.',
+      window: 'Ticket sales have not opened yet.',
+      windowClosed: 'The ticket sales window has already closed.',
+      platform: 'Ticket sales are paused on the platform.',
+      channels: 'There is no open payment method for these tickets.',
+      environment: 'Ticket sales are paused for now.',
+    },
     shop: {
       checkout: {
         add: 'Add to order',

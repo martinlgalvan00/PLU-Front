@@ -6,7 +6,7 @@
 
 import { env } from '../config/env.js'
 import { resolveRegistrationSale } from '../../shared/registrationSaleState.js'
-import { eventStatusClosesTicketSales, resolveEventPricing } from './eventPricing.js'
+import { resolvePublicTicketOffer } from './ticketSalesState.js'
 
 /**
  * ¿Se puede abrir el checkout de inscripción? La misma regla que el control de
@@ -39,17 +39,15 @@ export function isEventRegistrationOpen(event, { registrationEnabled = true, now
 }
 
 /**
- * ¿Se pueden comprar entradas? Venta habilitada en la plataforma, evento no
- * finalizado y entradas activas en su precio.
+ * ¿Se pueden comprar entradas ahora? Es el estado `open` de la oferta pública:
+ * interruptor prendido, con precio, dentro de la ventana y con un medio. Un
+ * corte distinto (plataforma, canales, falta de precio) no cuenta como compra
+ * abierta: la pantalla lo explica aparte.
  *
  * @param {object} event
- * @param {{ config?: object }} [options]
+ * @param {object} [options] Los mismos que `resolvePublicTicketOffer`.
  */
-export function canBuyEventTickets(event, { config = env } = {}) {
-  return (
-    config.ticketSalesEnabled === true &&
-    Boolean(event) &&
-    !eventStatusClosesTicketSales(event) &&
-    resolveEventPricing(event).ticketsEnabled === true
-  )
+export function canBuyEventTickets(event, options = {}) {
+  const { config = env, ...rest } = options
+  return resolvePublicTicketOffer({ event, config, ...rest }).status === 'open'
 }

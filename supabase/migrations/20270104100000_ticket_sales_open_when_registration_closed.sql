@@ -6,8 +6,36 @@
 -- "La venta de entradas esta cerrada." (PLU03), así que Pagar fallaba igual
 -- con una entrada que con varias.
 --
--- Solo `finalizado` corta la venta. El cuerpo es el de
--- 20261231110000, con ese único cambio en v2 y v3.
+-- La regla vive en `event_status_blocks_ticket_sales`. v2 y v3 la llaman:
+-- reescribir el alta de la orden no tiene que volver a opinar sobre la
+-- inscripción. El cuerpo de las dos funciones es el de 20261231110000.
+
+comment on column public.events.status is
+  'Inscripción de atletas (proximamente, inscripcion_abierta, cupos_limitados, agotado, cerrado, finalizado). cerrado no cierra la venta de entradas: eso lo deciden ticketsEnabled, la ventana de venta y event_status_blocks_ticket_sales (solo finalizado).';
+
+-- ---------------------------------------------------------------------------
+-- 0. Una sola regla: el estado de la inscripción no vende ni deja de vender
+-- ---------------------------------------------------------------------------
+
+create or replace function public.event_status_blocks_ticket_sales(p_status text)
+returns boolean
+language sql
+immutable
+parallel safe
+set search_path = public
+as $$
+  -- `cerrado` es la inscripción de atletas. La venta de entradas termina
+  -- solo cuando el evento está finalizado.
+  select p_status = 'finalizado';
+$$;
+
+comment on function public.event_status_blocks_ticket_sales(text) is
+  'True solo si el estado del evento termina la venta de entradas. cerrado no entra: es la inscripción de atletas. ticketsEnabled y las ventanas se evalúan aparte.';
+
+revoke all on function public.event_status_blocks_ticket_sales(text)
+  from public, anon, authenticated;
+grant execute on function public.event_status_blocks_ticket_sales(text)
+  to service_role;
 
 -- ---------------------------------------------------------------------------
 -- 1. create_ticket_order_v2
@@ -80,7 +108,7 @@ begin
   if not found or not v_event.published then
     raise exception 'Evento no encontrado o no publicado.' using errcode = 'PLU02';
   end if;
-  if v_event.status = 'finalizado' then
+  if public.event_status_blocks_ticket_sales(v_event.status) then
     raise exception 'La venta de entradas esta cerrada.' using errcode = 'PLU03';
   end if;
   if v_event.ticket_sales_opens_at is not null and now() < v_event.ticket_sales_opens_at then
@@ -360,13 +388,13 @@ begin
   if not found or not v_event.published then
     raise exception 'Evento no encontrado o no publicado.' using errcode = 'PLU02';
   end if;
-  if v_event.status = 'finalizado' then
+  if public.event_status_blocks_ticket_sales(v_event.status) then
     raise exception 'La venta de entradas esta cerrada.' using errcode = 'PLU03';
   end if;
   -- Las ventanas de venta online (evento y por tipo, más abajo) y el
   -- interruptor `ticketsEnabled` gobiernan el checkout público. Una venta de
   -- mostrador ocurre justo cuando esa ventana ya cerró: el staff las saltea,
-  -- pero sigue atado al `status` de arriba y al cupo, más abajo.
+  -- pero sigue atado al corte de arriba (evento finalizado) y al cupo.
   if p_staff_actor is null then
     if v_event.ticket_sales_opens_at is not null and now() < v_event.ticket_sales_opens_at then
       raise exception 'La venta de entradas todavia no abrio.' using errcode = 'PLU03';
@@ -595,15 +623,21 @@ begin
     or position('> 10 then' in pg_get_functiondef(
       'public.create_ticket_order_v3(text,jsonb,jsonb,text,text,text)'::regprocedure
     )) = 0
-    or position('v_event.status = ''finalizado''' in pg_get_functiondef(
+    or position('event_status_blocks_ticket_sales(v_event.status)' in pg_get_functiondef(
       'public.create_ticket_order_v2(text,jsonb,jsonb,text,text)'::regprocedure
     )) = 0
-    or position('v_event.status = ''finalizado''' in pg_get_functiondef(
+    or position('event_status_blocks_ticket_sales(v_event.status)' in pg_get_functiondef(
       'public.create_ticket_order_v3(text,jsonb,jsonb,text,text,text)'::regprocedure
     )) = 0
     or position('cerrado' in pg_get_functiondef(
       'public.create_ticket_order_v2(text,jsonb,jsonb,text,text)'::regprocedure
-    )) > 0 then
+    )) > 0
+    or position('cerrado' in pg_get_functiondef(
+      'public.create_ticket_order_v3(text,jsonb,jsonb,text,text,text)'::regprocedure
+    )) > 0
+    or position('p_status = ''finalizado''' in pg_get_functiondef(
+      'public.event_status_blocks_ticket_sales(text)'::regprocedure
+    )) = 0 then
     raise exception 'La verificación de la venta con inscripción cerrada no fue superada.'
       using errcode = 'PLU01';
   end if;

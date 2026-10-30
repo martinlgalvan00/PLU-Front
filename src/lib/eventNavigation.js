@@ -1,4 +1,4 @@
-import { isTicketSalesEnabled } from './eventPricing.js'
+import { canBuyEventTickets } from './eventPublicActions.js'
 import { getPublicEventStatus } from './publicRegistrationPhase.js'
 import { isRegistrationOpen } from './status.js'
 import { hiddenLandingTakesRegistrations } from '../../shared/registrationSaleState.js'
@@ -318,7 +318,9 @@ export function getSeasonHomeActions(
 
   const ticketEvent =
     [getPitbullClassicEvent(catalog), ...catalog].find(
-      (event) => event && ticketSalesEnabled && isTicketSalesEnabled(event),
+      (event) =>
+        event &&
+        canBuyEventTickets(event, { config: { ticketSalesEnabled }, now }),
     ) ?? null
   if (ticketEvent) {
     actions.push({ kind: 'tickets', event: ticketEvent })

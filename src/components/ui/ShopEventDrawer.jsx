@@ -6,15 +6,9 @@ import StatusPill from './StatusPill.jsx'
 import TicketAvailabilityBadge from './TicketAvailabilityBadge.jsx'
 import LaunchInterestForm from './LaunchInterestForm.jsx'
 import TicketTypeOptions from './TicketTypeOptions.jsx'
-import {
-  useTicketAvailability,
-  useTicketCheckoutAvailability,
-} from '../../hooks/useTicketAvailability.js'
-import {
-  cheapestTicketTypePrice,
-  eventAllowsPublicTickets,
-  ticketPricingFromEvent,
-} from '../../lib/eventPricing.js'
+import { usePublicTicketOffer, useTicketAvailability } from '../../hooks/useTicketAvailability.js'
+import { cheapestTicketTypePrice, ticketPricingFromEvent } from '../../lib/eventPricing.js'
+import { ticketOfferCopyKey } from '../../lib/ticketSalesState.js'
 import { money } from '../../lib/format.js'
 import {
   drawerBackdropTransition,
@@ -42,21 +36,20 @@ export default function ShopEventDrawer({
   const { reducedMotion } = useMotionConfig()
   const pricing = ticketPricingFromEvent(event)
   const fromPrice = cheapestTicketTypePrice(pricing)
-  const ticketCheckout = useTicketCheckoutAvailability(open ? event?.slug : null)
-  const salesOpen =
-    checkoutOpen &&
-    eventAllowsPublicTickets(event, ticketCheckout.eventTicketsEnabled) &&
-    ticketCheckout.ticketEnabled
+  const offer = usePublicTicketOffer(event, { checkoutOpen, enabled: open })
+  const salesOpen = offer.status === 'open'
   const remaining = useTicketAvailability(open && salesOpen ? event?.slug : null)
   const soldOut = remaining === 0
   const canBuy = salesOpen && !soldOut
   const priceLabel = !checkoutOpen
     ? t('pages.shop.checkoutSoonLabel')
-    : !salesOpen
-      ? t('pages.shop.salesClosed')
-      : fromPrice == null
-        ? t('pages.shop.ticketsAvailable')
-        : t('pages.shop.fromPrice', { amount: money(fromPrice, locale) })
+    : offer.status === 'blocked'
+      ? t(ticketOfferCopyKey(offer))
+      : !salesOpen
+        ? t('pages.shop.salesClosed')
+        : fromPrice == null
+          ? t('pages.shop.ticketsAvailable')
+          : t('pages.shop.fromPrice', { amount: money(fromPrice, locale) })
 
   useEffect(() => {
     if (!open) return undefined
@@ -205,9 +198,11 @@ export default function ShopEventDrawer({
                         <ArrowRight size={16} aria-hidden />
                       </button>
                       <p className="shop-event-drawer__cta-hint">
-                        {checkoutOpen
-                          ? t('pages.shop.salesClosed')
-                          : t('pages.shop.checkoutSoonNote')}
+                        {!checkoutOpen
+                          ? t('pages.shop.checkoutSoonNote')
+                          : offer.status === 'blocked'
+                            ? t(ticketOfferCopyKey(offer))
+                            : t('pages.shop.salesClosed')}
                       </p>
                       {!checkoutOpen && (
                         <div className="shop-event-drawer__interest">

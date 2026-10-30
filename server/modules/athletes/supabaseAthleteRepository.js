@@ -528,7 +528,10 @@ export function createSupabaseAthleteRepository(
       const places = placesResult?.error ? {} : (placesResult?.data ?? {})
       return {
         ...event,
-        rules: rulesResult.error ? null : (rulesResult.data?.rules ?? null),
+        // Si la lectura de `rules` falla, no se manda la clave: un error de esa
+        // columna opcional no puede cerrar la venta. `rules: null` sí cierra,
+        // porque es una fila leída sin el interruptor, igual que la RPC.
+        ...(rulesResult.error ? {} : { rules: rulesResult.data?.rules ?? null }),
         wise_price: wiseResult.error ? null : (wiseResult.data?.wise_price ?? null),
         cash_payment_place: cashResult.error ? null : (cashResult.data?.cash_payment_place ?? null),
         cash_payment_notes: cashResult.error ? null : (cashResult.data?.cash_payment_notes ?? null),

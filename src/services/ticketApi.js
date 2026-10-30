@@ -275,6 +275,10 @@ export async function fetchTicketAvailability(eventSlug) {
     // ofrecer Wise/transferencia aunque el panel los tenga abiertos.
     checkout: {
       ticketEnabled: checkout?.ticketEnabled !== false,
+      // El interruptor del evento no se inventa: si el API no lo mandó, queda
+      // undefined y la pantalla usa el catálogo. `false` cierra aunque el
+      // objeto en memoria siga diciendo que está habilitado.
+      eventTicketsEnabled: checkout?.eventTicketsEnabled,
       ticketManualEnabled: checkout?.ticketManualEnabled !== false,
       channels: checkout?.channels,
       bankTransfer: checkout?.bankTransfer ?? null,

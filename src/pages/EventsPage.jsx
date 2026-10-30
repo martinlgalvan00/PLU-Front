@@ -51,7 +51,6 @@ import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
 import { isStaffSession } from '../lib/roles.js'
 import {
   cheapestTicketTypePrice,
-  eventStatusClosesTicketSales,
   resolveEventPricing,
   ticketPricingFromEvent,
 } from '../lib/eventPricing.js'
@@ -60,6 +59,8 @@ import { fetchPublishedEvents } from '../services/eventAdminService.js'
 import { fetchSiteTeaser } from '../services/siteTeaserService.js'
 import { env } from '../config/env.js'
 import { canBuyEventTickets, isEventRegistrationOpen } from '../lib/eventPublicActions.js'
+import { ticketOfferCopyKey } from '../lib/ticketSalesState.js'
+import { usePublicTicketOffer } from '../hooks/useTicketAvailability.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { getEventComboAvailability } from '../services/comboOfferService.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
@@ -400,17 +401,15 @@ function EventsDetailPanel({
   )
 }
 
-function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = false }) {
+function EventsAudienceTicketsPanel({ event, locale, offer, onBuyTickets, t, minimal = false }) {
   const pricing = ticketPricingFromEvent(event)
   const ticketPrice = cheapestTicketTypePrice(pricing)
-  // Solo `finalizado` corta la venta: `cerrado` es de inscripción de atletas.
-  // Si aplica, se dice "Venta cerrada" en vez de ofrecer una compra que rebota.
-  const salesClosed = eventStatusClosesTicketSales(event)
-  const salesOn = event?.pricing?.ticketsEnabled === true && !salesClosed
+  // La misma oferta que la página de compra. `pending` no anuncia
+  // "deshabilitadas": el catálogo todavía no asentó.
+  const salesOn = offer?.status === 'open'
   const hasPublishedPrice = salesOn && ticketPrice != null
-  const closedLabel = t(
-    salesClosed ? 'pages.events.publicTicketsSalesClosed' : 'pages.events.publicTicketsClosed',
-  )
+  const closedKey = ticketOfferCopyKey(offer)
+  const closedLabel = closedKey ? t(closedKey) : null
 
   if (minimal) {
     return (
@@ -724,25 +723,6 @@ export default function EventsPage({
 
   const isRegistrationOpen = (event) =>
     isEventRegistrationOpen(event, { registrationEnabled: registrationCheckoutEnabled })
-  const eventTicketsAvailable = canBuyEventTickets
-
-  function handleEventCardAction(event) {
-    if (isRegistrationOpen(event)) {
-      handleRegister(event)
-      return
-    }
-    if (eventTicketsAvailable(event)) {
-      onNavigate?.('tickets', { eventSlug: event.slug })
-      return
-    }
-    openEvent(event)
-  }
-
-  function eventCardActionLabel(event) {
-    if (isRegistrationOpen(event)) return registerLabel
-    if (eventTicketsAvailable(event)) return t('pages.events.publicTicketsCta')
-    return t('pages.events.viewFull')
-  }
 
   const visibleEventCount = listEvents.length
 
@@ -757,6 +737,41 @@ export default function EventsPage({
   ).trim()
 
   const ticketsEvent = selected ?? nextEvent ?? spotlightEvent
+  const ticketCheckoutOpen = isPaidCheckoutOpen(ticketsEvent, env, new Date(), {
+    checkoutKind: 'ticket',
+  })
+  const ticketsOffer = usePublicTicketOffer(ticketsEvent, {
+    catalogSettled: disableRemote || catalogSettled,
+    checkoutOpen: ticketCheckoutOpen,
+  })
+
+  function eventTicketsOpen(event) {
+    if (ticketsEvent && event?.slug && event.slug === ticketsEvent.slug) {
+      return ticketsOffer.status === 'open'
+    }
+    return canBuyEventTickets(event, {
+      catalogSettled: disableRemote || catalogSettled,
+      checkoutOpen: ticketCheckoutOpen,
+    })
+  }
+
+  function handleEventCardAction(event) {
+    if (isRegistrationOpen(event)) {
+      handleRegister(event)
+      return
+    }
+    if (eventTicketsOpen(event)) {
+      onNavigate?.('tickets', { eventSlug: event.slug })
+      return
+    }
+    openEvent(event)
+  }
+
+  function eventCardActionLabel(event) {
+    if (isRegistrationOpen(event)) return registerLabel
+    if (eventTicketsOpen(event)) return t('pages.events.publicTicketsCta')
+    return t('pages.events.viewFull')
+  }
 
   // Link a un evento que el catálogo ya cargado no tiene (despublicado, terminado
   // o mal tipeado): sin aviso la persona cae en otro evento sin saber por qué.
@@ -831,11 +846,11 @@ export default function EventsPage({
                     registrations,
                     memberships,
                   })}
-                  ticketsAvailable={eventTicketsAvailable(event)}
+                  ticketsAvailable={eventTicketsOpen(event)}
                   onSelect={() => focusEvent(event)}
                   onAction={() => handleEventCardAction(event)}
                   actionLabel={eventCardActionLabel(event)}
-                  actionLive={isRegistrationOpen(event) || eventTicketsAvailable(event)}
+                  actionLive={isRegistrationOpen(event) || eventTicketsOpen(event)}
                   variant="minimal"
                 />
               ))}
@@ -915,6 +930,7 @@ export default function EventsPage({
                   event={ticketsEvent}
                   locale={locale}
                   minimal
+                  offer={ticketsOffer}
                   onBuyTickets={() => onNavigate('tickets', { eventSlug: ticketsEvent.slug })}
                   t={t}
                 />

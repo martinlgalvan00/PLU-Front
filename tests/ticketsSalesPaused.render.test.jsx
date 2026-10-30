@@ -37,7 +37,7 @@ const event = {
   date: '12 de diciembre',
   venue: 'Maximal Strength Club',
   pricing: { ticketsEnabled: true },
-  eventDays: [],
+  eventDays: [{ dayIndex: 0, label: 'Día 1' }],
   ticketTypes: [{ id: 'ticket-day', name: 'General', price: 10000 }],
 }
 
@@ -51,14 +51,15 @@ beforeEach(() => {
 afterEach(() => cleanup())
 
 describe('TicketsPage con ventas suspendidas', () => {
-  it('comunica Próximamente y no renderiza precios ni el formulario de compra', () => {
+  it('comunica la pausa de plataforma y no renderiza precios ni el formulario de compra', () => {
     render(
       <I18nProvider>
         <TicketsPage event={event} onNavigate={() => {}} />
       </I18nProvider>,
     )
 
-    expect(screen.getAllByText(/próximamente/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/pausada en la plataforma/i).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/próximamente/i)).toBeNull()
     expect(screen.queryByText(/elegí tu entrada/i)).toBeNull()
     expect(screen.queryByText(/reservá tu lugar/i)).toBeNull()
     expect(screen.queryByRole('button', { name: /pagar/i })).toBeNull()
@@ -91,7 +92,7 @@ describe('TicketsPage con ventas habilitadas', () => {
       </I18nProvider>,
     )
 
-    expect(screen.getAllByText(/próximamente/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/pausada por el momento/i).length).toBeGreaterThan(0)
     expect(screen.queryByRole('link', { name: /comprar entradas/i })).toBeNull()
   })
 
@@ -155,7 +156,8 @@ describe('TicketsPage con ventas habilitadas', () => {
     )
 
     expect(screen.queryByRole('link', { name: /comprar entradas/i })).toBeNull()
-    expect(screen.getAllByText(/próximamente/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/falta publicar un precio/i).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/próximamente/i)).toBeNull()
   })
 
   it('no ofrece como venta un evento sin precio publicado', () => {

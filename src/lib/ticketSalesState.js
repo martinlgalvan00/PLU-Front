@@ -16,9 +16,15 @@
  * catálogo, que es lo que el editor puede arreglar solo.
  */
 
+import { env } from '../config/env.js'
 import { applyEventChannelOpens, isEventChannelOpenForConcept } from './eventPaymentChannels.js'
 import { resolveTicketTypeChannels } from './ticketTypePaymentChannels.js'
-import { resolveTicketTypeSaleWindow, TICKET_SALES_CLOSED_STATUSES } from './eventPricing.js'
+import {
+  eventStatusClosesTicketSales,
+  resolveEventPricing,
+  resolveTicketTypeSaleWindow,
+  TICKET_SALES_CLOSED_STATUSES,
+} from './eventPricing.js'
 
 export const TICKET_SALES_CHANNELS = [
   'mercado_pago',
@@ -134,4 +140,145 @@ export function resolveTicketSalesState({ event, platform = null, now = new Date
     typesInWindow: inWindow.length,
     typesWithChannel: typesWithChannel.length,
   }
+}
+
+/**
+ * Motivo público de un corte que no es el interruptor del evento. El de
+ * "deshabilitadas" queda solo para `off`.
+ */
+const PUBLIC_BLOCK_REASON = {
+  environmentHold: 'environment',
+  platformCheckout: 'platform',
+  platformTicket: 'platform',
+  noChannel: 'channels',
+  unpublished: 'eventDisabled',
+  eventStatus: 'eventStatus',
+  windowUpcoming: 'window',
+  windowClosed: 'windowClosed',
+  noDays: 'noDays',
+  noSellableType: 'noPrice',
+  noTypeInWindow: 'window',
+  noTypeWithChannel: 'channels',
+}
+
+const TICKET_OFFER_COPY = {
+  eventDisabled: 'pages.ticketOffer.off',
+  eventStatus: 'pages.ticketOffer.salesClosed',
+  noPrice: 'pages.ticketOffer.noPrice',
+  noDays: 'pages.ticketOffer.noDays',
+  window: 'pages.ticketOffer.window',
+  windowClosed: 'pages.ticketOffer.windowClosed',
+  platform: 'pages.ticketOffer.platform',
+  channels: 'pages.ticketOffer.channels',
+  environment: 'pages.ticketOffer.environment',
+}
+
+/** Clave i18n del motivo. `null` cuando no hay que anunciar un corte. */
+export function ticketOfferCopyKey(offer) {
+  if (!offer || offer.status === 'open' || offer.status === 'pending') return null
+  return TICKET_OFFER_COPY[offer.reason] ?? TICKET_OFFER_COPY.eventDisabled
+}
+
+function blockReason(code) {
+  return PUBLIC_BLOCK_REASON[code] ?? 'platform'
+}
+
+/** Si ningún tipo está en ventana, distingue "todavía no abrió" de "ya cerró". */
+function typeWindowReason(event, now) {
+  const sellable = (event?.ticketTypes ?? []).filter(
+    (type) => type.active !== false && Number(type.price) > 0,
+  )
+  const upcoming = sellable.some(
+    (type) => resolveTicketTypeSaleWindow(type, now).reason === 'upcoming',
+  )
+  return upcoming ? 'window' : 'windowClosed'
+}
+
+/**
+ * Oferta pública de entradas. Una sola decisión para el calendario, la página
+ * de compra, la tienda y la landing.
+ *
+ * `off`: el interruptor del evento está apagado, el evento finalizó, o el
+ * checkout en vivo ya dijo `eventTicketsEnabled: false`.
+ * `open`: el interruptor está prendido y hay precio, ventana y un medio.
+ * `blocked`: el interruptor está prendido, pero otro corte impide comprar.
+ * `pending`: todavía no llegó el catálogo ni el vivo; no se afirma que esté
+ * deshabilitada.
+ *
+ * El vivo gana al objeto en memoria: `true` abre el interruptor aunque el
+ * seed diga `false`, y `false` lo cierra aunque el catálogo diga `true`.
+ * `ticketEnabled: true` atrasado no reabre un interruptor que el vivo ya
+ * marcó en false.
+ *
+ * @param {object} input
+ * @param {object|null} [input.event]
+ * @param {{ eventTicketsEnabled?: boolean|null, ticketEnabled?: boolean, channels?: object }|null} [input.live]
+ * @param {{ ticketSalesEnabled?: boolean }} [input.config]
+ * @param {Date} [input.now]
+ * @param {boolean} [input.catalogSettled]
+ * @param {boolean} [input.checkoutOpen]
+ * @returns {{ status: 'off'|'open'|'blocked'|'pending', reason: string|null, canBuy: boolean }}
+ */
+export function resolvePublicTicketOffer({
+  event = null,
+  live = null,
+  config = env,
+  now = new Date(),
+  catalogSettled = true,
+  checkoutOpen = true,
+} = {}) {
+  if (!event) return { status: 'off', reason: 'eventDisabled', canBuy: false }
+  if (eventStatusClosesTicketSales(event)) {
+    return { status: 'off', reason: 'eventStatus', canBuy: false }
+  }
+
+  const liveSwitch = live?.eventTicketsEnabled
+  let switchOn
+  if (liveSwitch === false) switchOn = false
+  else if (liveSwitch === true) switchOn = true
+  else if (catalogSettled === false) return { status: 'pending', reason: null, canBuy: false }
+  else switchOn = resolveEventPricing(event).ticketsEnabled === true
+
+  if (!switchOn) return { status: 'off', reason: 'eventDisabled', canBuy: false }
+
+  if (config?.ticketSalesEnabled === false) {
+    return { status: 'blocked', reason: 'environment', canBuy: false }
+  }
+  if (checkoutOpen === false) return { status: 'blocked', reason: 'platform', canBuy: false }
+
+  // El interruptor ya se resolvió arriba. Acá solo importan ventana, precio
+  // y medios: se le pasa prendido para que este corte no lo vuelva a opinar.
+  const state = resolveTicketSalesState({
+    event: {
+      ...event,
+      published: event.published !== false,
+      status: event.storedStatus ?? event.status,
+      pricing: { ...(event.pricing ?? {}), ticketsEnabled: true },
+    },
+    platform: null,
+    now,
+  })
+  const blocker = state.blockers.find((item) => item.code !== 'eventDisabled')
+  if (blocker) {
+    const reason =
+      blocker.code === 'noTypeInWindow' ? typeWindowReason(event, now) : blockReason(blocker.code)
+    if (reason === 'eventDisabled' || reason === 'eventStatus') {
+      return { status: 'off', reason, canBuy: false }
+    }
+    return { status: 'blocked', reason, canBuy: false }
+  }
+
+  // El vivo ya confirmó el interruptor y aun así no deja cobrar: plataforma
+  // o canales. Un `ticketEnabled: true` de una respuesta vieja no llega acá
+  // si `eventTicketsEnabled` ya cerró arriba.
+  if (live?.ticketEnabled === false) {
+    const channels = live.channels
+    const noneOpen =
+      channels &&
+      typeof channels === 'object' &&
+      !Object.values(channels).some((open) => open === true)
+    return { status: 'blocked', reason: noneOpen ? 'channels' : 'platform', canBuy: false }
+  }
+
+  return { status: 'open', reason: null, canBuy: true }
 }
