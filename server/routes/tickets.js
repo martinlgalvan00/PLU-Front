@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { hasEventScopeAccess } from '../../src/lib/permissions.js'
 import { resolveTicketTypeChannels } from '../../src/lib/ticketTypePaymentChannels.js'
 import { ticketValidityTiming } from '../../src/lib/ticketValidity.js'
+import { normalizeGateCode } from '../../src/lib/ticketGateCode.js'
 import { HttpError } from '../lib/errors.js'
 import { isMissingSchemaColumn } from '../lib/supabaseRpc.js'
 import {
@@ -20,6 +21,15 @@ import { PROOF_BUCKET } from '../lib/supabaseAdmin.js'
 // Solo hace falta resolver la fecha del evento cuando el gate va a mirarla:
 // en produccion y sin kill switch. Evita una consulta a Supabase de mas en
 // dev/tests y cuando PAID_CHECKOUT_ENABLED ya decide.
+async function resolveDoorQrToken(repo, raw) {
+  const value = String(raw ?? '').trim()
+  const gateCode = normalizeGateCode(value)
+  if (!gateCode) return value
+  const qrToken = await repo().findQrTokenByGateCode(gateCode)
+  if (!qrToken) throw new HttpError(404, 'Entrada no encontrada.')
+  return qrToken
+}
+
 async function resolveScopedRegistrationOpensAt(env, supabase, eventSlug) {
   if (resolvePaidCheckoutOverride(env) !== null) return null
   return resolveEventRegistrationOpensAt(supabase, { eventSlug })
@@ -112,7 +122,9 @@ function ticketAddonCatalog(rules) {
 }
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
+import { doorCodeAttempts } from '../lib/doorCodeAttempts.js'
 import {
+  doorCodeLookupLimiter,
   publicReadLimiter,
   scanTelemetryLimiter,
   staffLimiter,
@@ -808,6 +820,7 @@ export function createTicketRoutes({
               bundle_id: ticket.bundle_id,
               ticket_code: ticket.ticket_code,
               qr_token: ticket.qr_token,
+              gate_code: ticket.gate_code ?? null,
               attendee_name: ticket.attendee_name,
               status: ticket.status,
               credential_label: ticket.credential_label,
@@ -1456,16 +1469,62 @@ export function createTicketRoutes({
     },
   )
 
+  const doorCodeBodySchema = z.object({
+    code: z.string().trim().min(1).max(80),
+  })
+
+  async function answerDoorCode(req, res, rawCode) {
+    const gateCode = normalizeGateCode(rawCode)
+    if (!gateCode) throw new HttpError(400, 'Código de puerta inválido.')
+    const accountKey = req.auth?.user?.id ? String(req.auth.user.id) : ''
+    const attempt = doorCodeAttempts.check(accountKey)
+    if (!attempt.ok) {
+      throw new HttpError(429, 'Demasiados códigos incorrectos. Esperá un momento y reintentá.')
+    }
+    const qrToken = await repo().findQrTokenByGateCode(gateCode)
+    doorCodeAttempts.record(accountKey, Boolean(qrToken))
+    if (!qrToken) {
+      logger.info('checkin.door_code_miss', { userId: accountKey || null })
+      throw new HttpError(404, 'Entrada no encontrada.')
+    }
+    res.json({ qrToken })
+  }
+
+  // El código va en el cuerpo: la URL queda en logs, historial y proxies.
+  router.post(
+    '/door-code',
+    ...guard,
+    doorCodeLookupLimiter,
+    validateBody(doorCodeBodySchema),
+    async (req, res, next) => {
+      try {
+        await answerDoorCode(req, res, req.validatedBody.code)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.get('/door-code/:code', ...guard, doorCodeLookupLimiter, async (req, res, next) => {
+    try {
+      await answerDoorCode(req, res, req.params.code)
+    } catch (error) {
+      next(error)
+    }
+  })
+
   router.post('/checkin/:qrToken', ...guard, staffLimiter, async (req, res, next) => {
     let ticket
+    let qrToken = req.params.qrToken
     const gate = resolveGateLabel(req)
     try {
-      ticket = await repo().verify(req.params.qrToken)
+      qrToken = await resolveDoorQrToken(repo, req.params.qrToken)
+      ticket = await repo().verify(qrToken)
       const eventId = verifiedTicketEventId(ticket)
       assertEventScope(req, eventId)
       assertTicketValidity(ticket)
       const zoneScope = await scannerZoneScope(req)
-      const result = await repo().checkIn(req.params.qrToken, gate, actor(req), zoneScope)
+      const result = await repo().checkIn(qrToken, gate, actor(req), zoneScope)
       // Autoritativo: el servidor observó el ingreso. No bloquea la
       // respuesta -- un rastro de puerta perdido no puede volver a fallar
       // un check-in que ya se acreditó.
@@ -1475,7 +1534,7 @@ export function createTicketRoutes({
         kind: 'ticket',
         evidence: 'server',
         ticketId: ticket?.ticket?.id ?? null,
-        qrToken: req.params.qrToken,
+        qrToken,
         gate,
         zoneScope,
         actorLabel: actor(req),
@@ -1495,7 +1554,7 @@ export function createTicketRoutes({
           kind: 'ticket',
           evidence: 'server',
           ticketId: ticket?.ticket?.id ?? null,
-          qrToken: req.params.qrToken,
+          qrToken,
           gate,
           actorLabel: actor(req),
           errorCode: error?.details?.code ?? null,

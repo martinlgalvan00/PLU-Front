@@ -23,16 +23,20 @@ export default function AdminOfflineSyncStatus({
   isOnline,
   lastDownloadedAt,
   lastSyncedAt,
+  onReloadAndSync = null,
   pendingCount,
   queueLog = [],
   syncIssue = null,
   syncNow,
   syncing,
+  workList = false,
 }) {
   const { t } = useI18n()
   const [downloading, setDownloading] = useState(false)
+  const [reloading, setReloading] = useState(false)
   const [showConflicts, setShowConflicts] = useState(false)
   const [showQueue, setShowQueue] = useState(pendingCount > 0)
+  const queueOpen = workList || showQueue
 
   useEffect(() => {
     if (pendingCount > 0) setShowQueue(true)
@@ -50,12 +54,28 @@ export default function AdminOfflineSyncStatus({
     }
   }
 
+  async function handleReloadAndSync() {
+    if (!onReloadAndSync || !isOnline) return
+    setReloading(true)
+    try {
+      await onReloadAndSync()
+    } finally {
+      setReloading(false)
+    }
+  }
+
+  function queueStatusKey(item) {
+    if (syncIssue === 'auth' && item.status === 'pending') return 'session'
+    return item.status
+  }
+
   const statusClass = [
     'admin-offline-sync-status',
     `admin-offline-sync-status--${isOnline ? 'online' : 'offline'}`,
     compact ? 'admin-offline-sync-status--compact' : '',
     needsDownload ? 'admin-offline-sync-status--setup' : '',
     hasPending ? 'admin-offline-sync-status--pending' : '',
+    workList ? 'admin-offline-sync-status--worklist' : '',
   ]
     .filter(Boolean)
     .join(' ')
@@ -97,7 +117,21 @@ export default function AdminOfflineSyncStatus({
         </div>
 
         <div className="admin-offline-sync-status__actions">
-          {hasPending && (
+          {onReloadAndSync ? (
+            <button
+              type="button"
+              className="btn btn--small"
+              onClick={handleReloadAndSync}
+              disabled={reloading || syncing || !isOnline}
+            >
+              <RefreshCw size={14} aria-hidden />
+              {reloading || syncing
+                ? t('admin.checkin.offline.reloading')
+                : t('admin.checkin.offline.reloadAndSync')}
+            </button>
+          ) : null}
+
+          {hasPending && !onReloadAndSync ? (
             <button
               type="button"
               className="btn btn--ghost btn--small"
@@ -107,7 +141,7 @@ export default function AdminOfflineSyncStatus({
               <RefreshCw size={14} aria-hidden />
               {syncing ? t('admin.checkin.offline.syncing') : t('admin.checkin.offline.syncNow')}
             </button>
-          )}
+          ) : null}
 
           <button
             type="button"
@@ -139,7 +173,7 @@ export default function AdminOfflineSyncStatus({
         </p>
       ) : null}
 
-      {queueLog.length > 0 ? (
+      {queueLog.length > 0 && !workList ? (
         <button
           type="button"
           className="admin-offline-sync-status__conflicts-toggle"
@@ -150,14 +184,27 @@ export default function AdminOfflineSyncStatus({
         </button>
       ) : null}
 
-      {showQueue && queueLog.length > 0 ? (
+      {workList && queueLog.length > 0 ? (
+        <p className="admin-offline-sync-status__queue-title">
+          {t('admin.checkin.offline.queueTitle', { count: queueLog.length })}
+        </p>
+      ) : null}
+
+      {queueOpen && queueLog.length > 0 ? (
         <ul className="admin-offline-sync-status__queue">
-          {queueLog.map((item) => (
-            <li key={item.localId} className="admin-offline-sync-status__queue-item">
-              <span className="admin-offline-sync-status__queue-label">{item.label}</span>
-              <span>{t(`admin.checkin.offline.queueStatus.${item.status}`)}</span>
-            </li>
-          ))}
+          {queueLog.map((item) => {
+            const when = formatTime(item.at)
+            const detail = [item.gate, when].filter(Boolean).join(' · ')
+            return (
+              <li key={item.localId} className="admin-offline-sync-status__queue-item">
+                <span className="admin-offline-sync-status__queue-label">{item.label}</span>
+                <span>{t(`admin.checkin.offline.queueStatus.${queueStatusKey(item)}`)}</span>
+                {detail ? (
+                  <span className="admin-offline-sync-status__queue-meta">{detail}</span>
+                ) : null}
+              </li>
+            )
+          })}
         </ul>
       ) : null}
 

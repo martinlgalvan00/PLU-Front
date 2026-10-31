@@ -532,6 +532,8 @@ export default function AdminPage({
           isLoading={adminEventsLoading}
           loadError={adminEventsError}
           canEdit={hasPermission(authorization, 'admin.events.write')}
+          canReadResults={hasPermission(authorization, 'admin.results.read')}
+          canWriteResults={hasPermission(authorization, 'admin.results.write')}
           canManageUsers={canManageUsers}
           canManageEventTeam={canManageEventTeam(authorization)}
           eventScoped={isEventScopedSession(authorization)}

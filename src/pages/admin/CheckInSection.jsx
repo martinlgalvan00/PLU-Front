@@ -108,11 +108,13 @@ export default function CheckInSection({
             lastDownloadedAt={workspace.offlineSync.lastDownloadedAt}
             lastSyncedAt={workspace.offlineSync.lastSyncedAt}
             failedCount={workspace.offlineSync.failedCount}
+            onReloadAndSync={workspace.reloadAndSync}
             pendingCount={workspace.offlineSync.pendingCount}
             queueLog={workspace.offlineSync.queueLog}
             syncIssue={workspace.offlineSync.syncIssue}
             syncNow={workspace.offlineSync.syncNow}
             syncing={workspace.offlineSync.syncing}
+            workList={!workspace.offlineSync.isOnline || workspace.offlineSync.pendingCount > 0}
           />
 
           <AdminQrScanner
@@ -216,6 +218,12 @@ export default function CheckInSection({
     >
       <AdminDataTable
         variant="admin"
+        pageResetKey={[
+          workspace.query,
+          workspace.type,
+          workspace.day,
+          workspace.checkinStatus,
+        ].join('|')}
         getRowClassName={(row) =>
           row.id === workspace.highlightRowId ? 'data-table__row--selected' : ''
         }
@@ -260,11 +268,22 @@ export default function CheckInSection({
             mobile: 'action',
             render: (row) => {
               if (row.status === 'usada') {
+                const at =
+                  row.checkedInAt && row.checkedInAt !== 'offline' ? new Date(row.checkedInAt) : null
+                const valid = at && !Number.isNaN(at.getTime())
+                if (!valid) {
+                  return (
+                    <span className="admin-checkin__done">
+                      <CheckCircle2 size={15} aria-hidden />
+                      <span className="admin-checkin__done-time">{t('admin.checkin.admittedAt')}</span>
+                    </span>
+                  )
+                }
                 const timeLabel = t('admin.checkin.checkedInAt', {
                   time: new Intl.DateTimeFormat(undefined, {
                     dateStyle: 'short',
                     timeStyle: 'short',
-                  }).format(new Date(row.checkedInAt)),
+                  }).format(at),
                 })
 
                 return (
@@ -274,7 +293,7 @@ export default function CheckInSection({
                       {new Intl.DateTimeFormat(undefined, {
                         hour: '2-digit',
                         minute: '2-digit',
-                      }).format(new Date(row.checkedInAt))}
+                      }).format(at)}
                     </span>
                   </span>
                 )

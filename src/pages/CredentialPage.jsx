@@ -15,6 +15,7 @@ import { zoneScopeLabel } from '../components/ui/TicketTypeOptions.jsx'
 import { getMembershipByCodeOrToken } from '../services/athleteApi.js'
 import { isMembershipCurrent } from '../services/membershipService.js'
 import { ticketValidityStatus } from '../lib/ticketValidity.js'
+import { speakDoorCode } from '../lib/doorCodeSpeech.js'
 
 const VERDICT_META = {
   valid: {
@@ -838,6 +839,15 @@ function TicketCredential({ code, onCheckIn }) {
               <p className="credential-page__member-code">
                 <span className="credential-page__member-code-label">Entrada</span>
                 <span className="credential-page__member-code-value">{ticket.ticketCode}</span>
+              </p>
+            ) : null}
+            {ticket.gateCode ? (
+              <p className="credential-page__member-code">
+                <span className="credential-page__member-code-label">Código de puerta</span>
+                <span className="credential-page__door-code-value">{ticket.gateCode}</span>
+                <button type="button" className="btn btn--ghost btn--sm" onClick={() => speakDoorCode(ticket.gateCode)}>
+                  Cantar código
+                </button>
               </p>
             ) : null}
           </div>

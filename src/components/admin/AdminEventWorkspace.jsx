@@ -19,6 +19,7 @@ import {
   Star,
   Ticket,
   Trash2,
+  Trophy,
 } from 'lucide-react'
 import AdminCopyLinkMenu from './AdminCopyLinkMenu.jsx'
 import AdminEventLogoControl from './AdminEventLogoControl.jsx'
@@ -26,6 +27,7 @@ import AdminIconButton from './AdminIconButton.jsx'
 import { AdminEventLivePreview } from './AdminEventEditor.jsx'
 import AdminEventDashboard from './AdminEventDashboard.jsx'
 import AdminEventQuickActions from './AdminEventQuickActions.jsx'
+import AdminEventResults from './AdminEventResults.jsx'
 import AdminEventSaleControl from './AdminEventSaleControl.jsx'
 import AdminEventStateControl from './AdminEventStateControl.jsx'
 import AdminEventTicketAddonReport from './AdminEventTicketAddonReport.jsx'
@@ -51,7 +53,7 @@ import { useActiveIndicator, usePanelEnter } from '../../motion/useActiveIndicat
 /** Secciones que agrupa la pestaña "Evento" (como capítulos). */
 const EVENT_SECTIONS = ['basics', 'structure']
 /** Lo que se usa al operar el evento: va aparte, debajo de las pestañas de armado. */
-const OPERATION_SECTIONS = ['registrations', 'payments', 'security']
+const OPERATION_SECTIONS = ['registrations', 'results', 'payments', 'security']
 
 const SITE_STATE_LABEL = {
   live: 'admin.eventConsole.siteVisible',
@@ -132,6 +134,8 @@ export default function AdminEventWorkspace({
   canDelete = false,
   canEdit = false,
   canManageUsers = false,
+  canReadResults = false,
+  canWriteResults = false,
   editor = null,
   event,
   inNav = false,
@@ -253,6 +257,13 @@ export default function AdminEventWorkspace({
           : {}),
       })
     }
+    if (canReadResults) {
+      list.push({
+        id: 'results',
+        label: t('admin.eventConsole.results'),
+        icon: Trophy,
+      })
+    }
     if (canManageUsers && securitySection && doorOn) {
       list.push({ id: 'security', label: t('admin.eventConsole.zones'), icon: ShieldCheck })
     }
@@ -274,6 +285,7 @@ export default function AdminEventWorkspace({
     activeTicketTypeCount,
     canEdit,
     canManageUsers,
+    canReadResults,
     doorOn,
     event?.eventDays?.length,
     paymentsAttention,
@@ -656,6 +668,7 @@ export default function AdminEventWorkspace({
               borde, una "Consola de ingreso" a mitad de página y una tarjeta
               "Check-in" en un rail aparte que decían lo mismo tres veces. */}
           <div className="admin-event-workspace__security-bar">
+            <div className="admin-event-workspace__security-bar-top">
             <div className="admin-event-workspace__notice" role="note">
               <ShieldAlert size={16} aria-hidden />
               <div className="admin-event-workspace__notice-copy">
@@ -686,6 +699,15 @@ export default function AdminEventWorkspace({
                 </button>
               ) : null}
             </div>
+            </div>
+            <ol
+              className="admin-event-workspace__door-protocol"
+              aria-label={t('admin.eventConsole.doorProtocolLabel')}
+            >
+              <li>{t('admin.eventConsole.doorProtocolZones')}</li>
+              <li>{t('admin.eventConsole.doorProtocolTeam')}</li>
+              <li>{t('admin.eventConsole.doorProtocolAccess')}</li>
+            </ol>
           </div>
           {securitySection}
         </div>
@@ -693,6 +715,13 @@ export default function AdminEventWorkspace({
     }
     if (activeTab === 'registrations') {
       return <div className="admin-event-workspace__wide">{registrationsSection}</div>
+    }
+    if (activeTab === 'results') {
+      return (
+        <div className="admin-event-workspace__wide">
+          <AdminEventResults canWrite={canWriteResults} event={event} />
+        </div>
+      )
     }
     if (activeTab === 'payments') {
       return <div className="admin-event-workspace__wide">{paymentsSection}</div>
@@ -896,6 +925,16 @@ export default function AdminEventWorkspace({
               </span>
             </p>
           ) : null}
+          <AdminEventQuickActions
+            event={event}
+            canEdit={canEdit}
+            onSetEventState={onSetEventState}
+            hasUnsavedState={() => stateDirtyRef.current}
+            onEditDate={handleEditDate}
+            showRegistrationToggle={
+              activeTab !== 'dashboard' && !(activeTab === 'sales' && saleChapter === 'cupo')
+            }
+          />
         </div>
 
         {/* Es un tablist, no una lista de botones: el panel de la derecha cambia
@@ -950,16 +989,6 @@ export default function AdminEventWorkspace({
                 ariaLabel: t('admin.eventConsole.navEventChapters'),
               })
             : null}
-          <AdminEventQuickActions
-            event={event}
-            canEdit={canEdit}
-            onSetEventState={onSetEventState}
-            hasUnsavedState={() => stateDirtyRef.current}
-            onEditDate={handleEditDate}
-            showRegistrationToggle={
-              activeTab !== 'dashboard' && !(activeTab === 'sales' && saleChapter === 'cupo')
-            }
-          />
           <div className="admin-event-workspace__head-actions">
             {canEdit && onTogglePin && event.status !== 'finalizado' ? (
               <AdminIconButton

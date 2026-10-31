@@ -141,7 +141,46 @@ describe('AdminOfflineSyncStatus: sesión vencida', () => {
     )
     expect(screen.getByRole('status').textContent).toMatch(/este teléfono/i)
     expect(screen.getByText('TCK-1')).toBeTruthy()
-    expect(screen.getByText('En este teléfono')).toBeTruthy()
+    expect(screen.getByText('En cola')).toBeTruthy()
+  })
+
+  it('sin internet la cola queda a la vista y no se puede sincronizar', () => {
+    const reload = vi.fn()
+    withI18n(
+      <AdminOfflineSyncStatus
+        {...props}
+        isOnline={false}
+        onReloadAndSync={reload}
+        pendingCount={1}
+        queueLog={[{ localId: '1', label: 'Ana Torres', gate: 'Puerta', at: '2026-10-30T18:00:00.000Z', status: 'pending' }]}
+        workList
+      />,
+    )
+    expect(screen.getByText('Ana Torres')).toBeTruthy()
+    expect(screen.getByText('En cola')).toBeTruthy()
+    expect(screen.getByText(/Puerta/)).toBeTruthy()
+    const button = screen.getByRole('button', { name: /volver a cargar y sincronizar/i })
+    expect(button.disabled).toBe(true)
+    fireEvent.click(button)
+    expect(reload).not.toHaveBeenCalled()
+  })
+
+  it('con señal, volver a cargar sincroniza la cola', () => {
+    const reload = vi.fn()
+    withI18n(
+      <AdminOfflineSyncStatus
+        {...props}
+        isOnline
+        onReloadAndSync={reload}
+        pendingCount={1}
+        queueLog={[{ localId: '2', label: 'Luis Gómez', status: 'pending' }]}
+        syncIssue="auth"
+        workList
+      />,
+    )
+    expect(screen.getByText('Sin sesión')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /volver a cargar y sincronizar/i }))
+    expect(reload).toHaveBeenCalledTimes(1)
   })
 
   it('al volver la señal se puede ver qué QR ya se registró', () => {
@@ -154,7 +193,7 @@ describe('AdminOfflineSyncStatus: sesión vencida', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: /ingresos de este teléfono/i }))
     expect(screen.getByText('TCK-9')).toBeTruthy()
-    expect(screen.getByText('Registrado')).toBeTruthy()
+    expect(screen.getByText('Enviado')).toBeTruthy()
   })
 })
 

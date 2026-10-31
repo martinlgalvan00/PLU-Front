@@ -1,4 +1,5 @@
 import { createStore, del, get, keys, set } from 'idb-keyval'
+import { normalizeGateCode } from './ticketGateCode.js'
 
 /**
  * offlineCheckinDb.js — PLU ARG
@@ -68,6 +69,13 @@ function targetKey(entry) {
   return `t:${entry?.qrToken ?? ''}`
 }
 
+function indexGateCode(ticketsByCode, item) {
+  const gate = normalizeGateCode(item.gateCode)
+  if (!gate) return
+  ticketsByCode.set(gate.toLowerCase(), item)
+  ticketsByCode.set(gate.replace('-', '').toLowerCase(), item)
+}
+
 function buildAllowlistIndex(allowlist) {
   const ticketsByQr = new Map()
   const ticketsByCode = new Map()
@@ -75,6 +83,7 @@ function buildAllowlistIndex(allowlist) {
     if (item.qrToken) ticketsByQr.set(item.qrToken, item)
     const code = (item.ticketCode ?? '').toLowerCase()
     if (code) ticketsByCode.set(code, item)
+    indexGateCode(ticketsByCode, item)
   }
 
   const registrationsByCredential = new Map()
@@ -244,8 +253,8 @@ export async function getAllowlist(eventSlug) {
 }
 
 /**
- * Busca un código (qrToken opaco, o el código/ticketCode legible para
- * pegado manual) en la allow-list descargada de un evento.
+ * Busca un código (qrToken opaco, ticketCode o el XXX-XXX de puerta) en la
+ * allow-list descargada de un evento.
  */
 export async function findInAllowlist(eventSlug, code) {
   const allowlist = await getAllowlist(eventSlug)
@@ -253,8 +262,12 @@ export async function findInAllowlist(eventSlug, code) {
 
   const index = indexFor(allowlist)
   const normalized = code.toLowerCase()
+  const gate = normalizeGateCode(code)
 
-  const ticket = index.ticketsByQr.get(code) ?? index.ticketsByCode.get(normalized)
+  const ticket =
+    index.ticketsByQr.get(code) ??
+    index.ticketsByCode.get(normalized) ??
+    (gate ? index.ticketsByCode.get(gate.toLowerCase()) : undefined)
   if (ticket) return { kind: 'ticket', entry: ticket }
 
   // `credentialToken` es el QR del perfil (uno por persona); `qrToken`, la

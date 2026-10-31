@@ -373,7 +373,7 @@ function EventListRow({
 }
 
 /** Pestañas del workspace que no montan el editor del evento. */
-const NON_EDITOR_SECTIONS = new Set(['structure', 'security', 'payments', 'registrations'])
+const NON_EDITOR_SECTIONS = new Set(['structure', 'security', 'payments', 'registrations', 'results'])
 /** Pestañas que sí viven del draft del editor. El resumen no entra: si
  *  “Cerrar sección” va a dashboard y la invariante rearma el form, el botón
  *  no cierra nada. */
@@ -388,6 +388,8 @@ export default function EventsSection({
   athletes = [],
   canEdit,
   canDeleteEvents = false,
+  canReadResults = false,
+  canWriteResults = false,
   canManageUsers,
   // Equipo de puerta del evento: lo gestionan quienes administran usuarios Y el
   // organizador (con `admin.event_team.write`) sobre sus eventos. Sin valor, vale
@@ -1890,6 +1892,8 @@ export default function EventsSection({
           canDelete={canDeleteEvents && Boolean(onDeleteEvent)}
           canEdit={canEdit}
           canManageUsers={teamAccess}
+          canReadResults={canReadResults}
+          canWriteResults={canWriteResults}
           editor={
             formOpen && draft.id && EDITOR_SECTIONS.has(consoleSection) ? (
               <AdminEventEditor
@@ -2013,16 +2017,6 @@ export default function EventsSection({
           securitySection={
             teamAccess || canManageUsers ? (
               <div className="admin-event-workspace__security-stack">
-                {canManageUsers && onCreateUser ? (
-                  <AdminEventOrganizersSection
-                    canManage={canManageUsers}
-                    eventId={selectedEvent.id}
-                    eventTitle={selectedEvent.title}
-                    onCreateOrganizer={onCreateUser}
-                    onSetEventAccess={onSetEventAccess}
-                    users={users}
-                  />
-                ) : null}
                 {teamAccess ? (
                   <>
                     <AdminEventZonesSection
@@ -2071,6 +2065,16 @@ export default function EventsSection({
                     eventSlug={selectedEvent.slug}
                     onGetReport={onGetEventScanReport}
                     onSetTicketAccessOverride={onSetTicketAccessOverride}
+                  />
+                ) : null}
+                {canManageUsers && onCreateUser ? (
+                  <AdminEventOrganizersSection
+                    canManage={canManageUsers}
+                    eventId={selectedEvent.id}
+                    eventTitle={selectedEvent.title}
+                    onCreateOrganizer={onCreateUser}
+                    onSetEventAccess={onSetEventAccess}
+                    users={users}
                   />
                 ) : null}
               </div>

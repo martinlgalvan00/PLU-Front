@@ -33,6 +33,65 @@ export const TICKET_ACCESS_USAGE_MODE = Object.freeze({
 
 export const TICKET_ACCESS_USAGE_MODES = Object.freeze(Object.values(TICKET_ACCESS_USAGE_MODE))
 
+/**
+ * Modo que se guarda cuando el editor o el API no eligieron uno.
+ * Un pase de dos o más jornadas entra una vez por día. Uno de un día, o
+ * cualquier vigencia que no sea por jornadas, se consume una sola vez.
+ * Un modo explícito no se pisa.
+ */
+export function resolveTicketAccessUsageMode(type = {}) {
+  if (TICKET_ACCESS_USAGE_MODES.includes(type?.accessUsageMode)) return type.accessUsageMode
+  const dayCount = Array.isArray(type?.dayIndexes) ? type.dayIndexes.length : 0
+  const validityMode = TICKET_ACCESS_POLICY_MODES.includes(type?.validityMode)
+    ? type.validityMode
+    : TICKET_ACCESS_POLICY_MODE.EVENT_DAYS
+  if (validityMode === TICKET_ACCESS_POLICY_MODE.EVENT_DAYS && dayCount > 1) {
+    return TICKET_ACCESS_USAGE_MODE.ONCE_PER_EVENT_DAY
+  }
+  return TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL
+}
+
+/**
+ * Al marcar o desmarcar jornadas, el modo acompaña al default nuevo sólo si
+ * nadie lo eligió a mano. Un `once_total` explícito en un pase de dos días
+ * se queda.
+ */
+export function ticketTypeDaysUsagePatch(type = {}, nextDayIndexes = []) {
+  const previousDefault = resolveTicketAccessUsageMode({ ...type, accessUsageMode: undefined })
+  const nextDefault = resolveTicketAccessUsageMode({
+    ...type,
+    accessUsageMode: undefined,
+    dayIndexes: nextDayIndexes,
+  })
+  const current = type?.accessUsageMode
+  const untouched = !current || current === previousDefault
+  return {
+    dayIndexes: nextDayIndexes,
+    ...(untouched ? { accessUsageMode: nextDefault } : {}),
+  }
+}
+
+/**
+ * Misma llave que `staff_check_in_ticket`: `once_total` quema la entrada;
+ * `event_day:YYYY-MM-DD` quema sólo esa jornada. El canje por código y el
+ * canje por QR escriben la misma llave, así que el segundo intento del mismo
+ * día no entra.
+ */
+export function ticketDoorWindowKey(usageMode, dayKey) {
+  if (usageMode === TICKET_ACCESS_USAGE_MODE.ONCE_PER_EVENT_DAY) {
+    const day = String(dayKey ?? '').trim()
+    return /^\d{4}-\d{2}-\d{2}$/.test(day) ? `event_day:${day}` : null
+  }
+  return 'once_total'
+}
+
+export function ticketDoorAdmit({ usageMode, admittedKeys = [], dayKey } = {}) {
+  const key = ticketDoorWindowKey(usageMode, dayKey)
+  if (!key) return { admit: false, reason: 'not_ready', key: null }
+  if (admittedKeys.includes(key)) return { admit: false, reason: 'already_used', key }
+  return { admit: true, reason: 'ready', key }
+}
+
 // Alias de transición para no romper integraciones que todavía importan el
 // nombre anterior. La semántica pública ya es "acceso de entrada", no QR.
 export const TICKET_QR_VALIDITY_MODE = TICKET_ACCESS_POLICY_MODE
@@ -86,9 +145,7 @@ export function summarizeTicketQrValidity(type = {}, eventDays = []) {
   const validityMode = TICKET_ACCESS_POLICY_MODES.includes(type?.validityMode)
     ? type.validityMode
     : TICKET_ACCESS_POLICY_MODE.EVENT_DAYS
-  const accessUsageMode = TICKET_ACCESS_USAGE_MODES.includes(type?.accessUsageMode)
-    ? type.accessUsageMode
-    : TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL
+  const accessUsageMode = resolveTicketAccessUsageMode(type)
 
   const days = selectedEventDays(type?.dayIndexes, eventDays)
   const labels = days

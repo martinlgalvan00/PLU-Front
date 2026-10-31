@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { money } from '../../../lib/format.js'
 import AdminTicketSalesStatus from '../AdminTicketSalesStatus.jsx'
 import { Banknote, RotateCcw, Ticket, Users } from 'lucide-react'
@@ -183,6 +184,21 @@ export default function EventSalesSection({
     !mpPublicKeyError &&
     !mpAccessTokenError &&
     !mpModeMismatch
+  const salesNavRef = useRef(null)
+
+  // En el celular la tira no entra entera: al cambiar de capítulo el activo
+  // queda a la vista. `nearest` no mueve la página si la pestaña ya se ve.
+  useEffect(() => {
+    const nav = salesNavRef.current
+    const active = nav?.querySelector('[aria-selected="true"]')
+    if (!active?.scrollIntoView) return
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    active.scrollIntoView({
+      inline: 'nearest',
+      block: 'nearest',
+      behavior: reduce ? 'auto' : 'smooth',
+    })
+  }, [salesChapter])
 
   return (
     <section
@@ -199,6 +215,7 @@ export default function EventSalesSection({
         {essentials ? null : <h4>{t('admin.eventEditor.sectionSales')}</h4>}
         {essentials ? null : (
           <div
+            ref={salesNavRef}
             className="admin-event-form__sales-nav"
             role="tablist"
             aria-label={t('admin.eventEditor.salesChapterNavAria')}
@@ -1325,7 +1342,7 @@ export default function EventSalesSection({
               {/* La ventana de venta queda al mismo nivel que la de
                         inscripción: son las dos palancas de cierre del evento y
                         antes esta vivía dos <details> más adentro. */}
-              <div className="admin-event-form__grid">
+              <div className="admin-event-form__grid admin-event-form__grid--ticket-window">
                 <FormField
                   htmlFor="event-ticket-capacity"
                   label={t('admin.eventEditor.ticketCapacity')}

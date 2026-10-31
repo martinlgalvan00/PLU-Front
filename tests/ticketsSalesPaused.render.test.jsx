@@ -77,9 +77,13 @@ describe('TicketsPage con ventas habilitadas', () => {
     )
 
     expect(screen.queryByRole('status')).toBeNull()
-    expect(screen.getByRole('link', { name: /comprar entradas/i })).toBeTruthy()
+    expect(screen.queryByRole('link', { name: /comprar entradas/i })).toBeNull()
+    expect(screen.getByRole('radio', { name: /general/i })).toBeTruthy()
     expect(screen.getByText(/reservá tu lugar/i)).toBeTruthy()
     expect(screen.getByTestId('ticket-purchase')).toBeTruthy()
+    const checkout = document.getElementById('checkout')
+    const pass = document.getElementById('pass-preview')
+    expect(checkout.compareDocumentPosition(pass) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('respeta el freno de entorno aunque el panel tenga la venta abierta', () => {

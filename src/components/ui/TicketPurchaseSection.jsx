@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Download,
   FileText,
+  Printer,
   IdCard,
   Minus,
   Plus,
@@ -26,6 +27,7 @@ import { credentialCountLabel, zoneScopeList } from './TicketTypeOptions.jsx'
 import MercadoPagoEmbeddedCheckout from './MercadoPagoEmbeddedCheckout.jsx'
 import { TicketCheckoutChapter, TicketCheckoutRail } from './TicketCheckoutFlow.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { speakDoorCode } from '../../lib/doorCodeSpeech.js'
 import { env } from '../../config/env.js'
 import { getFormOptions } from '../../lib/formOptions.js'
 import { money } from '../../lib/format.js'
@@ -118,6 +120,7 @@ function emptyAttendee(pricing) {
 }
 
 function ticketTypeOptionLabel(type, locale) {
+  if (!type) return ''
   return `${type.name} · ${money(type.price, locale)}`
 }
 
@@ -244,6 +247,7 @@ function EditorialAttendeesBatch({
   addons,
   attendees,
   errors,
+  hideTypePicker = false,
   locale,
   onAddonToggle,
   onChange,
@@ -340,16 +344,25 @@ function EditorialAttendeesBatch({
                 />
 
                 <div className="ticket-purchase__attendees-batch-day">
-                  <TicketTypePicker
-                    className="ticket-purchase__field-batch"
-                    error={errors[`attendee-${index}-ticketTypeId`]}
-                    label={`${t('pages.tickets.ticketTypes.legend')} · ${t('pages.tickets.attendee', { index: index + 1 })}`}
-                    locale={locale}
-                    name={`attendee-${index}-ticketTypeId`}
-                    ticketTypes={pricing.ticketTypes}
-                    value={attendee.ticketTypeId}
-                    onChange={(ticketTypeId) => onChange(index, 'ticketTypeId', ticketTypeId)}
-                  />
+                  {hideTypePicker ? (
+                    <p className="ticket-purchase__chosen-type">
+                      {ticketTypeOptionLabel(
+                        (pricing.ticketTypes ?? []).find((type) => type.id === attendee.ticketTypeId),
+                        locale,
+                      )}
+                    </p>
+                  ) : (
+                    <TicketTypePicker
+                      className="ticket-purchase__field-batch"
+                      error={errors[`attendee-${index}-ticketTypeId`]}
+                      label={`${t('pages.tickets.ticketTypes.legend')} · ${t('pages.tickets.attendee', { index: index + 1 })}`}
+                      locale={locale}
+                      name={`attendee-${index}-ticketTypeId`}
+                      ticketTypes={pricing.ticketTypes}
+                      value={attendee.ticketTypeId}
+                      onChange={(ticketTypeId) => onChange(index, 'ticketTypeId', ticketTypeId)}
+                    />
+                  )}
                 </div>
 
                 <span className="ticket-purchase__attendees-batch-price">
@@ -388,6 +401,7 @@ function EditorialAttendeeFields({
   addons,
   attendee,
   errors,
+  hideTypePicker = false,
   index,
   locale,
   onAddonToggle,
@@ -442,6 +456,7 @@ function EditorialAttendeeFields({
           maxLength={16}
           autoComplete="off"
         />
+        {hideTypePicker ? null : (
         <div className="ticket-purchase__field-day">
           <TicketTypePicker
             error={errors[`attendee-${index}-ticketTypeId`]}
@@ -458,6 +473,7 @@ function EditorialAttendeeFields({
             type={pricing.ticketTypes.find((item) => item.id === attendee.ticketTypeId)}
           />
         </div>
+        )}
       </div>
 
       <TicketAddonPicker
@@ -685,6 +701,7 @@ export default function TicketPurchaseSection({
   accountDetails = null,
   cashPayment = null,
   pricing = { ticketTypes: [], addons: [] },
+  selectedTicketTypeId = '',
   tickets,
   createdOrder,
   onSubmit,
@@ -694,6 +711,7 @@ export default function TicketPurchaseSection({
   const formOptions = useMemo(() => getFormOptions(t), [t])
   const [quantity, setQuantity] = useState(1)
   const [attendees, setAttendees] = useState([emptyAttendee(pricing)])
+  const typeChosenInCatalog = Boolean(selectedTicketTypeId)
   const [paymentMethod, setPaymentMethod] = useState('mercado_pago')
   // Quien compra no es necesariamente quien entra: una persona puede comprar
   // seis entradas para otras seis. El email es la única vía por la que le llega
@@ -906,14 +924,29 @@ export default function TicketPurchaseSection({
     [attendees, buyer, paymentMethod, pricing.ticketTypes],
   )
 
+  useEffect(() => {
+    if (!selectedTicketTypeId) return
+    setAttendees((current) =>
+      current.map((attendee) =>
+        attendee.ticketTypeId === selectedTicketTypeId
+          ? attendee
+          : { ...attendee, ticketTypeId: selectedTicketTypeId, addonIds: [] },
+      ),
+    )
+  }, [selectedTicketTypeId])
+
   function changeQuantity(next) {
     const clamped = Math.min(MAX_TICKETS, Math.max(1, next))
     setQuantity(clamped)
     setAttendees((current) => {
       if (clamped > current.length) {
+        const seed = selectedTicketTypeId || current[0]?.ticketTypeId
         return [
           ...current,
-          ...Array.from({ length: clamped - current.length }, () => emptyAttendee(pricing)),
+          ...Array.from({ length: clamped - current.length }, () => ({
+            ...emptyAttendee(pricing),
+            ticketTypeId: seed || emptyAttendee(pricing).ticketTypeId,
+          })),
         ]
       }
       return current.slice(0, clamped)
@@ -1026,6 +1059,46 @@ export default function TicketPurchaseSection({
       downloadCard(blob, filename)
     } catch (err) {
       console.error('TicketPurchaseSection: descarga de entrada', err)
+      setDownloadPassError(t('pages.tickets.downloadPassError'))
+    } finally {
+      setDownloadingPassId(null)
+    }
+  }
+
+  async function handlePrintPass(ticket) {
+    const node = passNodesRef.current[ticket.id]
+    if (!node) return
+    setDownloadingPassId(ticket.id)
+    setDownloadPassError('')
+    try {
+      await waitForPassImagesReady(node)
+      const blob = await generateEventCard(node)
+      const filename = buildCardFilename(
+        ticket.attendeeName,
+        ticket.eventSlug || event?.slug || 'evento',
+        ticket.ticketCode || '',
+      )
+      const url = URL.createObjectURL(blob)
+      const frame = window.open('', '_blank')
+      if (!frame) {
+        downloadCard(blob, filename)
+        URL.revokeObjectURL(url)
+        return
+      }
+      frame.opener = null
+      frame.document.open()
+      frame.document.write(
+        '<!doctype html><html><head><title>Entrada</title></head><body style="margin:0"><img alt="" src="' +
+          url +
+          '" style="max-width:100%;height:auto" onload="window.focus();window.print()"></body></html>',
+      )
+      frame.document.close()
+      frame.addEventListener('afterprint', () => {
+        URL.revokeObjectURL(url)
+        frame.close()
+      })
+    } catch (err) {
+      console.error('TicketPurchaseSection: impresión de entrada', err)
       setDownloadPassError(t('pages.tickets.downloadPassError'))
     } finally {
       setDownloadingPassId(null)
@@ -1387,6 +1460,24 @@ export default function TicketPurchaseSection({
                               </span>
                             ) : null}
                           </div>
+                          {qrReady && ticket.gateCode ? (
+                            <p className="ticket-purchase__gate-code">
+                              <span className="ticket-purchase__gate-code-label">
+                                {t('pages.tickets.gateCodeLabel')}
+                              </span>
+                              <span className="ticket-purchase__gate-code-value">{ticket.gateCode}</span>
+                              <span className="ticket-purchase__gate-code-hint">
+                                {t('pages.tickets.gateCodeHint')}
+                              </span>
+                              <button
+                                type="button"
+                                className="ticket-purchase__qr-btn"
+                                onClick={() => speakDoorCode(ticket.gateCode)}
+                              >
+                                {t('pages.tickets.speakGateCode')}
+                              </button>
+                            </p>
+                          ) : null}
                           <StatusPill value={ticket.status} />
                           {qrReady ? (
                             <>
@@ -1408,6 +1499,15 @@ export default function TicketPurchaseSection({
                                 {isDownloading
                                   ? t('pages.tickets.downloadingPass')
                                   : t('pages.tickets.downloadPass')}
+                              </button>
+                              <button
+                                type="button"
+                                className="ticket-purchase__qr-btn"
+                                disabled={isDownloading}
+                                onClick={() => handlePrintPass(ticket)}
+                              >
+                                <Printer size={14} aria-hidden />
+                                {t('pages.tickets.printPass')}
                               </button>
                             </>
                           ) : (
@@ -1546,6 +1646,7 @@ export default function TicketPurchaseSection({
                 addons={ticketAddons}
                 attendees={attendees}
                 errors={errors}
+                hideTypePicker={typeChosenInCatalog}
                 locale={locale}
                 onAddonToggle={handleAddonToggle}
                 onChange={changeAttendee}
@@ -1561,6 +1662,7 @@ export default function TicketPurchaseSection({
                     addons={ticketAddons}
                     attendee={attendee}
                     errors={errors}
+                    hideTypePicker={typeChosenInCatalog}
                     index={index}
                     locale={locale}
                     onAddonToggle={handleAddonToggle}

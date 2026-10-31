@@ -26,6 +26,7 @@ import {
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import { publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
+import { registerEventResultRoutes } from './eventResults.js'
 import { publicCatalogEventFor } from '../services/publicEventCatalogService.js'
 import { buildTicketCredentialsPayload } from '../../src/lib/ticketCredentials.js'
 import {
@@ -52,6 +53,7 @@ import {
   MAX_TICKET_QR_VALIDITY_MINUTES,
   TICKET_ACCESS_USAGE_MODE,
   TICKET_ACCESS_USAGE_MODES,
+  resolveTicketAccessUsageMode,
   TICKET_QR_VALIDITY_MODE,
   TICKET_QR_VALIDITY_MODES,
 } from '../../src/lib/ticketValidityPolicy.js'
@@ -1201,6 +1203,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
   // entradas y acreditaciones. Mismo techo que el borrado de atletas y de
   // cuentas de staff -- solo Super Admin, no `admin.events.write`.
   const deleteGuard = requirePermission('admin.events.delete', { prisma })
+  registerEventResultRoutes(router, { prisma, getSupabaseAdmin })
 
   router.get('/', ...scopedViewGuard, staffLimiter, async (req, res, next) => {
     try {
@@ -1852,7 +1855,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             p_event_slug: pEvent.slug,
             p_types: pEvent.ticketTypes.map((type, index) => ({
               ...(type?.id ? { ticketTypeId: type.id } : { sortOrder: type?.sortOrder ?? index }),
-              accessUsageMode: type?.accessUsageMode ?? TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL,
+              accessUsageMode: resolveTicketAccessUsageMode(type),
             })),
             p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
           })

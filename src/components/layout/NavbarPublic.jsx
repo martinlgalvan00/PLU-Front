@@ -1465,7 +1465,7 @@ export default function NavbarPublic({
                             </DrawerRow>
                           ))}
                         <DrawerRow
-                          active={['shop', 'tickets'].includes(activeView)}
+                          active={activeView === 'shop'}
                           delay={MOTION_STAGGER.stepFast * 3}
                           description={t('nav.shopHint')}
                           onClick={() => go('shop')}

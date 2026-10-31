@@ -1,6 +1,10 @@
 import { createHash, createHmac, randomBytes } from 'node:crypto'
 import { HttpError } from '../../lib/errors.js'
-import { assertSupabaseResult, requireSupabaseClient } from '../../lib/supabaseRpc.js'
+import {
+  assertSupabaseResult,
+  isMissingSchemaColumn,
+  requireSupabaseClient,
+} from '../../lib/supabaseRpc.js'
 import { PROOF_BUCKET } from '../../lib/supabaseAdmin.js'
 import { aggregateCapacity, aggregateRevenue, bucketByDay } from './ticketSalesAggregation.js'
 
@@ -125,6 +129,16 @@ export function createSupabaseTicketRepository(client) {
     },
     verify: (qrToken) =>
       rpc('get_ticket_by_qr_token', { p_qr_token: qrToken }, 'No se pudo verificar la entrada.'),
+    async findQrTokenByGateCode(gateCode) {
+      const result = await client
+        .from('tickets')
+        .select('qr_token')
+        .eq('gate_code', gateCode)
+        .maybeSingle()
+      if (result.error && isMissingSchemaColumn(result.error)) return null
+      const row = assertSupabaseResult(result, 'No se pudo resolver el código de puerta.')
+      return row?.qr_token ?? null
+    },
     availability: (eventSlug) =>
       rpc(
         'get_event_ticket_availability',
@@ -286,15 +300,22 @@ export function createSupabaseTicketRepository(client) {
         'No se pudo buscar la orden.',
       )
       if (!order) return null
+      const ticketColumns =
+        'id, order_id, bundle_id, ticket_code, qr_token, attendee_name, status, credential_label, credential_scopes, is_primary_credential, addons, ticket_types(name)'
+      const withGate = await client
+        .from('tickets')
+        .select(ticketColumns.replace('qr_token,', 'qr_token, gate_code,'))
+        .eq('order_id', order.id)
+        .order('created_at')
       const tickets =
         assertSupabaseResult(
-          await client
-            .from('tickets')
-            .select(
-              'id, order_id, bundle_id, ticket_code, qr_token, attendee_name, status, credential_label, credential_scopes, is_primary_credential, addons, ticket_types(name)',
-            )
-            .eq('order_id', order.id)
-            .order('created_at'),
+          withGate.error && isMissingSchemaColumn(withGate.error)
+            ? await client
+                .from('tickets')
+                .select(ticketColumns)
+                .eq('order_id', order.id)
+                .order('created_at')
+            : withGate,
           'No se pudieron leer las entradas de la orden.',
         ) ?? []
       return { order, tickets }

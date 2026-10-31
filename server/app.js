@@ -78,7 +78,16 @@ export function createApp(deps = {}) {
   // -- incluido el stack de una falla de cobro -- queda atado al mismo
   // requestId, que ademas viaja al cliente en `X-Request-Id`.
   app.use(requestContext)
-  app.use(express.json({ limit: '100kb' }))
+  // El resto de la API sigue en 100kb. La planilla de un meet, con los tres
+  // intentos de cada levantamiento, no entra en ese techo.
+  const jsonParser = express.json({ limit: '100kb' })
+  const resultsImportParser = express.json({ limit: '1mb' })
+  app.use((req, res, next) => {
+    const resultsImport =
+      req.method === 'POST' &&
+      /^\/api\/events\/[a-z0-9]+(?:-[a-z0-9]+)*\/results\/import$/.test(req.path)
+    return (resultsImport ? resultsImportParser : jsonParser)(req, res, next)
+  })
   app.use(cookieParser())
   app.use(requireTrustedMutation)
   const healthRoutes = () =>

@@ -165,7 +165,15 @@ const OrganizerAppPage = lazyWithRetry(async () => {
     ),
   }
 })
-const SecurityGatePage = lazyWithRetry(() => import('./pages/SecurityGatePage.jsx'))
+const SecurityGatePage = lazyWithRetry(async () => {
+  const [{ default: Page }] = await Promise.all([
+    import('./pages/SecurityGatePage.jsx'),
+    // La puerta monta CheckInAppPage directo: sin esto el scanner muestra
+    // claves crudas (admin.checkin.*), porque esos textos no van en el bundle público.
+    loadAdminMessagesForStoredLocale(),
+  ])
+  return { default: Page }
+})
 const HomePage = lazyWithRetry(() => import('./pages/HomePage.jsx'))
 const AthleteProfilePage = lazyWithRetry(() => import('./pages/AthleteProfilePage.jsx'))
 const CommunityPage = lazyWithRetry(() => import('./pages/CommunityPage.jsx'))

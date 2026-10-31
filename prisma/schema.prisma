@@ -1378,6 +1378,7 @@ model LiftingResult {
   bodyweightKg   Decimal?  @db.Decimal(6, 2)
   weightClassKg  Decimal?  @db.Decimal(6, 2)
   equipment      String?
+  teamName       String?
   squat1Kg       Decimal?  @db.Decimal(6, 2)
   squat2Kg       Decimal?  @db.Decimal(6, 2)
   squat3Kg       Decimal?  @db.Decimal(6, 2)

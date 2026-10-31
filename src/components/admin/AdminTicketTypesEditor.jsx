@@ -19,6 +19,7 @@ import {
   TICKET_ACCESS_USAGE_MODES,
   isTicketDurationValidityMode,
   summarizeTicketQrValidity,
+  ticketTypeDaysUsagePatch,
   ticketValidityDurationParts,
 } from '../../lib/ticketValidityPolicy.js'
 
@@ -408,11 +409,12 @@ export default function AdminTicketTypesEditor({
   }
 
   function toggleTicketTypeDay(target, dayIndex) {
-    const currentDays = ticketTypes[target]?.dayIndexes ?? []
+    const type = ticketTypes[target] ?? {}
+    const currentDays = type.dayIndexes ?? []
     const next = currentDays.includes(dayIndex)
       ? currentDays.filter((value) => value !== dayIndex)
       : [...currentDays, dayIndex]
-    patchTicketType(target, { dayIndexes: next })
+    patchTicketType(target, ticketTypeDaysUsagePatch(type, next))
   }
 
   function toggleTicketTypeAddon(target, addonId) {

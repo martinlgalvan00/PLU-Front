@@ -109,6 +109,19 @@ function monthFromISO(value, fallback) {
   return { year: date.getFullYear(), month: date.getMonth() }
 }
 
+/**
+ * El título va en el día de inicio, al empezar la semana o al entrar el mes.
+ * El resto del tramo es solo la barra, para que no se repita en cada celda.
+ */
+function showChipLabel(cell, entry) {
+  if (!entry.isSpan || entry.isStart || cell.isWeekStart) return true
+  const previous = dayKeyToDate(addDaysToKey(cell.key, -1))
+  return (
+    previous.getMonth() !== cell.date.getMonth() ||
+    previous.getFullYear() !== cell.date.getFullYear()
+  )
+}
+
 export default function EventCalendar({
   events = [],
   onEventSelect,
@@ -133,11 +146,16 @@ export default function EventCalendar({
       const dayKeys = getEventDayKeys(event)
       dayKeys.forEach((key, index) => {
         const list = map.get(key) ?? []
+        const date = dayKeyToDate(key)
+        const mondayIndex = (date.getDay() + 6) % 7
+        const daysLeftInWeek = 7 - mondayIndex
+        const daysLeftInEvent = dayKeys.length - index
         list.push({
           event,
           isStart: index === 0,
           isEnd: index === dayKeys.length - 1,
           isSpan: dayKeys.length > 1,
+          labelCols: Math.max(1, Math.min(daysLeftInWeek, daysLeftInEvent)),
         })
         map.set(key, list)
       })
@@ -256,22 +274,28 @@ export default function EventCalendar({
               >
                 {dayNumber}
                 <span className="event-calendar__chips">
-                  {visible.map(({ event, isSpan, isStart, isEnd }) => {
+                  {visible.map((entry) => {
+                    const { event, isSpan, isStart, isEnd, labelCols } = entry
                     const tone = chipTone(event.status)
+                    const labeled = showChipLabel(cell, entry)
+                    const runsAcross = labeled && labelCols > 1
                     return (
                       <span
                         key={event.slug}
                         className={[
                           'event-calendar__chip',
                           `event-calendar__chip--${tone}`,
+                          labeled ? 'event-calendar__chip--labeled' : '',
+                          runsAcross ? 'event-calendar__chip--label-run' : '',
                           isSpan ? 'event-calendar__chip--span' : '',
                           isSpan && isStart ? 'event-calendar__chip--span-start' : '',
                           isSpan && isEnd ? 'event-calendar__chip--span-end' : '',
                         ]
                           .filter(Boolean)
                           .join(' ')}
+                        style={runsAcross ? { '--label-cols': labelCols } : undefined}
                       >
-                        {!isSpan || isStart || cell.date.getDay() === 1 ? (
+                        {labeled ? (
                           <span className="event-calendar__chip-label">{event.title}</span>
                         ) : null}
                       </span>

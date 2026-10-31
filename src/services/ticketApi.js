@@ -50,6 +50,7 @@ function toCamelTicket(row, { event, checkIn, order } = {}) {
     id: row.id,
     ticketCode: row.ticket_code,
     qrToken: row.qr_token,
+    gateCode: row.gate_code ?? row.gateCode ?? null,
     orderId: row.order_id,
     eventId: row.event_id,
     attendeeName: row.attendee_name,
@@ -252,6 +253,12 @@ export async function getTicketPaymentProofUrl(orderId) {
   return `/api/tickets/orders/${orderId}/proof`
 }
 
+export async function resolveTicketGateCode(code) {
+  // El código va en el cuerpo para que no quede en la URL (logs, historial, proxy).
+  const result = await apiPost('/api/tickets/door-code', { code })
+  return result.qrToken
+}
+
 export async function verifyTicketByQrToken(qrToken) {
   const { ticket: result } = await apiGet(`/api/tickets/verify/${qrToken}`)
   return { ticket: toCamelTicket(result.ticket, { event: result.event, checkIn: result.checkIn }) }
@@ -370,6 +377,7 @@ export function mapApiTicket(apiTicket, purchaseEvent) {
     orderId: apiTicket.orderId,
     ticketCode: apiTicket.ticketCode,
     qrToken: apiTicket.qrToken,
+    gateCode: apiTicket.gateCode ?? null,
     attendeeName: apiTicket.attendeeName,
     attendeeDni: apiTicket.attendeeDni,
     ticketTypeId: apiTicket.ticketTypeId,

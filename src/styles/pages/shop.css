@@ -329,65 +329,9 @@
   justify-content: space-between;
 }
 
+/* La carta vive en `.ticket-type-options--catalog`. Acá sólo el margen. */
 .shop-event-drawer__types {
   margin: 0;
-}
-
-.shop-event-drawer .ticket-type-options {
-  gap: 0;
-}
-
-.shop-event-drawer .ticket-type-options__option {
-  border: 0;
-  border-radius: 0;
-  border-top: 1px solid color-mix(in srgb, var(--color-border-subtle) 70%, transparent);
-  gap: 10px;
-  padding: 18px 0 16px;
-}
-
-.shop-event-drawer .ticket-type-options__option:first-child {
-  border-top: 0;
-  padding-top: 0;
-}
-
-.shop-event-drawer .ticket-type-options__name {
-  font-size: 15.5px;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
-}
-
-.shop-event-drawer .ticket-type-options__description {
-  line-height: 1.45;
-}
-
-.shop-event-drawer .ticket-type-options__price {
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 650;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
-  min-width: 5.75rem;
-  padding-top: 1px;
-  text-align: right;
-}
-
-.shop-event-drawer .ticket-type-options__facts {
-  align-items: start;
-  border-top: 1px solid color-mix(in srgb, var(--color-border-subtle) 55%, transparent);
-  display: grid;
-  gap: 6px;
-  margin-top: 2px;
-  padding-top: 10px;
-}
-
-/* El texto ya dice el dato. El ícono repetía calendario y puerta; el acento
-   de la entrada en calor queda en el color del rótulo. */
-.shop-event-drawer .ticket-type-options__facts svg {
-  display: none;
-}
-
-.shop-event-drawer .ticket-type-options__zones {
-  gap: 2px 12px;
 }
 
 .shop-event-drawer__offer-main {
@@ -466,21 +410,19 @@
   align-items: center;
   background: var(--color-brand-action, var(--plu-gold-500));
   border: 1px solid var(--color-brand-action, var(--plu-gold-500));
-  border-radius: 999px;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 28%, transparent);
+  border-radius: var(--border-radius-sm, 6px);
   color: var(--color-brand-action-text, #14181f);
   display: inline-flex;
   font-size: 14px;
   font-weight: 650;
   gap: 10px;
-  justify-content: space-between;
+  justify-content: center;
   letter-spacing: -0.01em;
   min-height: 52px;
-  padding: 0 18px 0 22px;
+  padding: 0 18px;
   transition:
     background-color var(--motion-fast, 160ms) var(--ease-out, ease),
     border-color var(--motion-fast, 160ms) var(--ease-out, ease),
-    box-shadow var(--motion-fast, 160ms) var(--ease-out, ease),
     transform var(--motion-fast, 160ms) var(--ease-out, ease);
   width: 100%;
 }
@@ -497,6 +439,11 @@
 
 .shop-event-drawer__cta.btn:hover:not(:disabled) svg {
   transform: translateX(3px);
+}
+
+.shop-event-drawer__cta.btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+  outline-offset: 3px;
 }
 
 .shop-event-drawer__cta.btn:active:not(:disabled) {
@@ -554,9 +501,24 @@
 }
 
 .shop-event-drawer__foot {
+  background: var(--color-bg-surface);
   border-top: 1px solid color-mix(in srgb, var(--color-border-subtle) 88%, transparent);
+  display: grid;
   flex-shrink: 0;
-  padding: 16px clamp(22px, 3vw, 28px) 20px;
+  gap: 8px;
+  padding: 14px clamp(22px, 3vw, 28px) 16px;
+}
+
+.shop-event-drawer__foot--buy {
+  gap: 6px;
+}
+
+.shop-event-drawer__foot--buy .shop-event-drawer__cta-wrap {
+  gap: 6px;
+}
+
+.shop-event-drawer__foot--buy .shop-event-drawer__view-link {
+  justify-content: center;
 }
 
 .shop-event-drawer__view-link {

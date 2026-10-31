@@ -69,10 +69,23 @@ export function useOfflineCheckinSync(eventSlug) {
   }, [eventSlug, refreshCounts])
 
   const downloadAllowlist = useCallback(async () => {
-    if (!eventSlug) return
+    if (!eventSlug) return null
     const data = await downloadAllowlistRequest(eventSlug)
-    setLastDownloadedAt(data.downloadedAt)
+    if (data?.downloadedAt) setLastDownloadedAt(data.downloadedAt)
+    return data
   }, [eventSlug])
+
+  const reloadAndSync = useCallback(async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return null
+    let data = null
+    try {
+      data = await downloadAllowlist()
+    } catch {
+      data = null
+    }
+    await syncNow()
+    return data
+  }, [downloadAllowlist, syncNow])
 
   useEffect(() => {
     refreshCounts()
@@ -127,6 +140,7 @@ export function useOfflineCheckinSync(eventSlug) {
     lastDownloadedAt,
     syncNow,
     downloadAllowlist,
+    reloadAndSync,
     refreshCounts,
     noteSnapshot,
   }

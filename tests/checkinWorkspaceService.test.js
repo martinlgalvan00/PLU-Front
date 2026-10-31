@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  applyServerAdmissions,
   buildCheckinRows,
   filterCheckinRows,
   formatCheckinRowDay,
@@ -105,6 +106,36 @@ describe('checkinWorkspaceService', () => {
     expect(filterCheckinRows(rows, { type: 'coach' })).toHaveLength(1)
     expect(filterCheckinRows(rows, { credential: 'ENTRENADOR' })).toHaveLength(1)
     expect(filterCheckinRows(rows, { credential: 'VIP' })).toHaveLength(0)
+  })
+
+  it('busca por código de entrada y por DNI escrito con puntos', () => {
+    const rows = buildCheckinRows({
+      athletes,
+      registrations,
+      tickets: [
+        {
+          id: 'tkt-code',
+          eventSlug: 'pitbull-2026',
+          attendeeName: 'Sofía López',
+          attendeeDni: '39111444',
+          ticketCode: 'PLU-D1-001',
+          ticketTypeId: 'day1-type',
+          status: 'pagada',
+        },
+      ],
+      eventSlug: 'pitbull-2026',
+      ticketTypes,
+    })
+
+    expect(filterCheckinRows(rows, { query: 'plu-d1-001' }).map((row) => row.name)).toEqual([
+      'Sofía López',
+    ])
+    expect(filterCheckinRows(rows, { query: '39.111.444' }).map((row) => row.name)).toEqual([
+      'Sofía López',
+    ])
+    expect(filterCheckinRows(rows, { query: '40.111.222' }).map((row) => row.name)).toEqual([
+      'Martina Rivas',
+    ])
   })
 
   it('arma atletas y entradas desde la allowlist de puerta', () => {
@@ -243,5 +274,71 @@ describe('formatCheckinRowDay', () => {
     expect(formatCheckinRowDay({ type: 'espectador', dayIndexes: [0, 1] }, eventDays, t)).toBe(
       'Día 1 · Día 2',
     )
+  })
+})
+
+describe('applyServerAdmissions', () => {
+  it('marca en la lista a quien otro puesto ya acreditó', () => {
+    const rows = buildCheckinRows({
+      athletes,
+      registrations,
+      tickets: [
+        ...tickets,
+        {
+          id: 'tkt-ana',
+          eventSlug: 'pitbull-2026',
+          attendeeName: 'Ana Puerta',
+          attendeeDni: '9',
+          qrToken: 'qr-ana',
+          ticketTypeId: 'day1-type',
+          status: 'pagada',
+        },
+      ],
+      eventSlug: 'pitbull-2026',
+      ticketTypes,
+    })
+    const next = applyServerAdmissions(rows, {
+      registrations: [{ id: 'reg-1', checkedInAt: '2026-10-30T18:00:00.000Z' }],
+      tickets: [{ qrToken: 'qr-ana', checkedInAt: '2026-10-30T18:01:00.000Z' }],
+    })
+
+    expect(next.find((row) => row.registrationId === 'reg-1')).toMatchObject({
+      status: 'usada',
+      checkedInAt: '2026-10-30T18:00:00.000Z',
+    })
+    expect(next.find((row) => row.qrToken === 'qr-ana')).toMatchObject({
+      status: 'usada',
+      checkedInAt: '2026-10-30T18:01:00.000Z',
+    })
+    expect(next.find((row) => row.name === 'Bruno')?.status).not.toBe('usada')
+  })
+
+  it('no toma la marca local de un teléfono sin señal ni reabre un ingreso', () => {
+    const rows = buildCheckinRows({
+      athletes,
+      registrations: [
+        ...registrations,
+        {
+          id: 'reg-dentro',
+          athleteId: 'ath-1',
+          eventSlug: 'pitbull-2026',
+          status: 'confirmada',
+          checkedInAt: '2026-10-30T12:00:00.000Z',
+        },
+      ],
+      tickets,
+      eventSlug: 'pitbull-2026',
+      ticketTypes,
+    })
+    const next = applyServerAdmissions(rows, {
+      registrations: [
+        { id: 'reg-1', checkedInAt: 'offline' },
+        { id: 'reg-dentro', checkedInAt: null },
+      ],
+      tickets: [],
+    })
+
+    expect(next.find((row) => row.registrationId === 'reg-1')?.status).not.toBe('usada')
+    expect(next.find((row) => row.registrationId === 'reg-dentro')?.status).toBe('usada')
   })
 })

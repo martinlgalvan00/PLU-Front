@@ -322,6 +322,12 @@ export default function AdminDataTable({
   /** `table` fuerza la tabla también en anchos de celular (p. ej. puerta). */
   layout = 'auto',
   /**
+   * Vuelve a la página 1 solo cuando cambia esta clave (búsqueda, filtro,
+   * pestaña). Sin ella, cualquier lista nueva —también un refresco de las
+   * mismas personas— reinicia la página.
+   */
+  pageResetKey,
+  /**
    * `compact` apila filas de planilla (solo en modo tabla; las cards móviles
    * no cambian). Sin la prop, la tabla se ve igual que siempre.
    */
@@ -361,12 +367,28 @@ export default function AdminDataTable({
   }, [pageSizeProp])
 
   useEffect(() => {
+    if (pageResetKey !== undefined) return
     setCardPage(1)
-  }, [rows, cardPageSize, useCompactCards])
+  }, [rows, cardPageSize, useCompactCards, pageResetKey])
 
   useEffect(() => {
+    if (pageResetKey !== undefined) return
     setTablePage(1)
-  }, [rows, tablePageSize, useCompactCards])
+  }, [rows, tablePageSize, useCompactCards, pageResetKey])
+
+  useEffect(() => {
+    if (pageResetKey === undefined) return
+    setCardPage(1)
+    setTablePage(1)
+  }, [pageResetKey])
+
+  useEffect(() => {
+    if (pageResetKey === undefined) return
+    const tablePages = Math.max(1, Math.ceil(rows.length / tablePageSize) || 1)
+    const cardPages = Math.max(1, Math.ceil(rows.length / cardPageSize) || 1)
+    setTablePage((current) => (current > tablePages ? tablePages : current))
+    setCardPage((current) => (current > cardPages ? cardPages : current))
+  }, [cardPageSize, pageResetKey, rows.length, tablePageSize])
 
   // Si el alto disponible cambia y la página actual deja de existir, vuelve a la última.
   useEffect(() => {
