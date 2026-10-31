@@ -5237,6 +5237,75 @@
   }
 }
 
+.register-competition-total {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  padding-top: 18px;
+  width: 100%;
+}
+
+.register-first-meet {
+  align-items: center;
+  color: var(--color-text);
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  line-height: 1.2;
+  min-height: 1.25rem;
+}
+
+.register-page--competition .register-card .register-first-meet input {
+  accent-color: var(--color-brand-gold);
+  block-size: 1.25rem;
+  flex: 0 0 1.25rem;
+  height: 1.25rem;
+  inline-size: 1.25rem;
+  margin-top: 0.15rem;
+  max-height: 1.25rem;
+  max-width: 1.25rem;
+  min-height: 1.25rem;
+  min-width: 1.25rem;
+  width: 1.25rem;
+}
+
+.register-first-meet input:disabled {
+  cursor: not-allowed;
+}
+
+.register-first-meet__label {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  transition: color var(--transition-fast);
+}
+
+.register-first-meet:has(input:checked) .register-first-meet__label {
+  color: var(--color-brand-gold);
+}
+
+.register-first-meet:has(input:disabled) {
+  cursor: not-allowed;
+}
+
+.register-competition-total .register-competition-total-field {
+  max-width: 11rem;
+  width: 100%;
+}
+
+.register-page--competition .register-card .field.register-competition-total-field input::placeholder {
+  color: color-mix(in srgb, var(--color-text-muted) 62%, transparent);
+  font-weight: 500;
+}
+
+.register-competition-total .register-competition-division-hint {
+  margin: 0;
+  max-width: 36rem;
+}
+
 /* Lo que el torneo fija (una sola categoría o modalidad): dato, no control. */
 .register-competition-fixed {
   align-items: baseline;

@@ -805,6 +805,10 @@ export default function App() {
     underConstructionEvents,
   ])
 
+  async function reauthenticateKeepingQueue() {
+    await app.logout({ notify: false, preserveOfflineQueue: true })
+  }
+
   async function exitSecurityRoute() {
     window.history.pushState({}, '', '/')
 
@@ -840,6 +844,7 @@ export default function App() {
           onExit={exitSecurityRoute}
           onLogin={app.login}
           onLoginWithToken={app.loginWithGateToken}
+          onReauthenticate={reauthenticateKeepingQueue}
           onRedeemTicketAddon={app.redeemTicketAddonAction}
           onRefreshTickets={app.refreshTickets}
           registrations={app.registrations}
@@ -936,6 +941,7 @@ export default function App() {
             onCheckInRegistration={app.checkInRegistrationAction}
             onCheckInTicket={app.checkInTicketAction}
             onExit={() => navigate('home')}
+            onReauthenticate={reauthenticateKeepingQueue}
             onRedeemTicketAddon={app.redeemTicketAddonAction}
             onRefreshTickets={app.refreshTickets}
             registrations={app.registrations}
@@ -1143,6 +1149,7 @@ export default function App() {
           isPluUsaPartner={isPluUsaPartner(app.session)}
           isCheckinOnly={false}
           onExit={() => navigate('home')}
+          onReauthenticate={reauthenticateKeepingQueue}
         />
       </Suspense>
     )

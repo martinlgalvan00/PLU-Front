@@ -189,6 +189,7 @@ export default function AdminPage({
   onRequestEmailChange,
   onResetStaffPassword,
   onExit,
+  onReauthenticate,
 }) {
   const { t } = useI18n()
   const [accountOpen, setAccountOpen] = useState(false)
@@ -776,6 +777,7 @@ export default function AdminPage({
           onApprovePayment={onApprovePayment}
           onCheckInRegistration={onCheckInRegistration}
           onCheckInTicket={onCheckInTicket}
+          onReauthenticate={onReauthenticate}
           onRedeemTicketAddon={onRedeemTicketAddon}
           onRefreshTickets={onRefreshTickets}
           onRejectPayment={onRejectPayment}

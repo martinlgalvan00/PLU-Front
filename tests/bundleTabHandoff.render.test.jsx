@@ -124,6 +124,7 @@ const ATHLETE = {
   category: 'Raw',
   declaredWeightClass: '67,5',
   estimatedWeight: 72,
+  bestTotalKg: 500,
   photoUrl: null,
   credentialToken: 'a4f1c0de-0000-4000-8000-000000000001',
 }

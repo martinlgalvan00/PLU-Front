@@ -116,6 +116,7 @@ import {
   validateMembershipForm,
 } from '../lib/validation.js'
 import { ageOnDate } from '../../shared/ageDivision.js'
+import { carryDeclaredTotalOnModeChange } from '../../shared/declaredMeetTotal.js'
 import { normalizeEventOffering } from '../../shared/eventOffering.js'
 import {
   REGISTRATION_MODALITIES,
@@ -780,6 +781,7 @@ export default function RegisterPage({
   const settleRef = useRef(null)
   const wasSettlingRef = useRef(false)
   const competitionPrefillRef = useRef(null)
+  const competitionHandoffRef = useRef(null)
   const committedCompetitionPrefillRef = useRef(null)
   // Categoría y peso los pide el propio formulario de inscripción: contarlos
   // como "datos pendientes" del perfil mandaba a una cuenta nueva a completar
@@ -851,6 +853,31 @@ export default function RegisterPage({
     changeField(event)
   }
 
+  function changeFirstMeet(event) {
+    const next = carryDeclaredTotalOnModeChange({
+      competition: form.competitionBestTotalKg ?? '',
+      training: form.trainingBestTotalKg ?? '',
+      firstMeet: event.target.checked,
+    })
+    onUpdateForm({ target: { name: 'firstMeet', value: next.firstMeet } })
+    if (String(form.competitionBestTotalKg ?? '') !== String(next.competition ?? '')) {
+      onUpdateForm({
+        target: { name: 'competitionBestTotalKg', value: String(next.competition ?? '') },
+      })
+    }
+    if (String(form.trainingBestTotalKg ?? '') !== String(next.training ?? '')) {
+      onUpdateForm({
+        target: { name: 'trainingBestTotalKg', value: String(next.training ?? '') },
+      })
+    }
+    setErrors((current) => ({
+      ...current,
+      competitionBestTotalKg: '',
+      trainingBestTotalKg: '',
+    }))
+    setSubmitError('')
+  }
+
   // Lo elegido deja de ser válido si el evento no lo ofrece (otro evento, o la
   // oferta cambió): pasa a lo primero que sí ofrece, en vez de mandar algo que la
   // API rechaza.
@@ -898,6 +925,12 @@ export default function RegisterPage({
   const competitionProfileDetails = useMemo(() => {
     if (flow !== 'competition' || !athlete) return []
     const age = ageOnDate(athlete.birthDate, competitionEventDate)
+    const carriedTotals = carryDeclaredTotalOnModeChange({
+      competition: athlete.bestTotalKg ?? '',
+      training: athlete.trainingBestTotalKg ?? '',
+      firstMeet: athlete.isFirstMeet === true,
+    })
+    const declaredKg = carriedTotals.firstMeet ? carriedTotals.training : carriedTotals.competition
     return [
       [t('account.personalData.fullName'), athlete.fullName],
       [
@@ -920,8 +953,10 @@ export default function RegisterPage({
         athlete.estimatedWeight ? `${athlete.estimatedWeight} kg` : null,
       ],
       [
-        t('account.personalData.bestTotal'),
-        athlete.bestTotalKg ? `${athlete.bestTotalKg} kg` : null,
+        carriedTotals.firstMeet
+          ? t('account.personalData.trainingBestTotal')
+          : t('account.personalData.bestTotal'),
+        declaredKg === '' || declaredKg == null ? null : `${declaredKg} kg`,
       ],
     ].filter(([, value]) => value)
   }, [athlete, competitionEventDate, flow, locale, t])
@@ -977,15 +1012,23 @@ export default function RegisterPage({
     // formulario vacío y un Junior quedaba anotado solo en Open (mismo precio,
     // pero fuera de su franja). Open se sigue pudiendo sumar o elegir.
     const division = ageDivision.suggested || athlete.division || ageDivision.value
+    const carriedTotals = carryDeclaredTotalOnModeChange({
+      competition: athlete.bestTotalKg ?? '',
+      training: athlete.trainingBestTotalKg ?? '',
+      firstMeet: athlete.isFirstMeet === true,
+    })
     ;[
       ['division', division],
       ['category', athlete.category],
       ['estimatedWeight', athlete.estimatedWeight],
+      ['competitionBestTotalKg', carriedTotals.competition],
+      ['trainingBestTotalKg', carriedTotals.training],
     ].forEach(([name, value]) => {
       if (value !== null && value !== undefined && value !== '') {
         onUpdateForm({ target: { name, value: String(value) } })
       }
     })
+    onUpdateForm({ target: { name: 'firstMeet', value: carriedTotals.firstMeet } })
   }, [ageDivision.suggested, ageDivision.value, athlete, flow, onUpdateForm])
 
   // Vacío, inválida o cambio de evento/DOB → sugerida (autocomplete).
@@ -1003,6 +1046,34 @@ export default function RegisterPage({
     onUpdateForm,
   ])
 
+  // La ficha del paquete no cobra Mercado Pago: el atleta carga ahí la
+  // inscripción y sigue en este checkout. Esos datos tienen que llegar ya
+  // puestos; si no, los vuelve a tipear encima del perfil.
+  useEffect(() => {
+    if (flow !== 'competition' || !event?.slug || !athlete || committedCompetitionRegistration) return
+    const pending = readPendingPromotionCode()
+    const destination = pending?.context?.destination
+    const competition = pending?.context?.competition
+    if (!competition || destination?.view !== 'competition') return
+    if (destination.eventSlug && destination.eventSlug !== event.slug) return
+    const key = `${event.slug}:${pending.code}`
+    if (competitionHandoffRef.current === key) return
+    competitionHandoffRef.current = key
+    ;[
+      ['division', competition.division],
+      ['category', competition.category],
+      ['declaredWeightClass', competition.declaredWeightClass],
+      ['estimatedWeight', competition.estimatedWeight],
+      ['competitionBestTotalKg', competition.competitionBestTotalKg],
+      ['trainingBestTotalKg', competition.trainingBestTotalKg],
+    ].forEach(([name, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        onUpdateForm({ target: { name, value: String(value) } })
+      }
+    })
+    onUpdateForm({ target: { name: 'firstMeet', value: competition.firstMeet === true } })
+  }, [athlete, committedCompetitionRegistration, event?.slug, flow, onUpdateForm])
+
   // La categoría, división y peso declarados pertenecen a la inscripción, no
   // a las preferencias del perfil. Si ya existe una inscripción activa para
   // este evento, se muestran exactamente esos datos y quedan sólo de lectura.
@@ -1015,8 +1086,11 @@ export default function RegisterPage({
       committedCompetitionRegistration.id,
       committedCompetitionRegistration.division,
       committedCompetitionRegistration.category,
-      committedCompetitionRegistration.bodyweightKg,
+      committedCompetitionRegistration.bodyweight ?? committedCompetitionRegistration.bodyweightKg,
       committedCompetitionRegistration.declaredWeightClass,
+      committedCompetitionRegistration.isFirstMeet,
+      committedCompetitionRegistration.competitionBestTotalKg,
+      committedCompetitionRegistration.trainingBestTotalKg,
       committedCompetitionRegistration.secondaryDivision,
       (committedCompetitionRegistration.categories ?? []).join(','),
       (committedCompetitionRegistration.modalities ?? []).join(','),
@@ -1026,12 +1100,21 @@ export default function RegisterPage({
     ;[
       ['division', committedCompetitionRegistration.division],
       ['category', committedCompetitionRegistration.category],
-      ['estimatedWeight', committedCompetitionRegistration.bodyweightKg],
+      [
+        'estimatedWeight',
+        committedCompetitionRegistration.bodyweight ??
+          committedCompetitionRegistration.bodyweightKg,
+      ],
       ['declaredWeightClass', committedCompetitionRegistration.declaredWeightClass],
+      ['competitionBestTotalKg', committedCompetitionRegistration.competitionBestTotalKg],
+      ['trainingBestTotalKg', committedCompetitionRegistration.trainingBestTotalKg],
     ].forEach(([name, value]) => {
       if (value !== null && value !== undefined && value !== '') {
         onUpdateForm({ target: { name, value: String(value) } })
       }
+    })
+    onUpdateForm({
+      target: { name: 'firstMeet', value: committedCompetitionRegistration.isFirstMeet === true },
     })
     // Segunda división y levantamientos viajan siempre, también vacíos: si no, un
     // valor viejo del formulario se mostraría como si fuera de la inscripción.
@@ -3365,6 +3448,49 @@ export default function RegisterPage({
               : t('pages.register.weightClassSuggestion', { className: suggestedWeightClass })}
           </p>
         ) : null}
+        <div className="register-competition-total">
+          <label className="register-first-meet">
+            <input
+              type="checkbox"
+              name="firstMeet"
+              checked={form.firstMeet === true}
+              disabled={Boolean(committedCompetitionRegistration)}
+              onChange={changeFirstMeet}
+            />
+            <span className="register-first-meet__label">{t('pages.register.firstMeet')}</span>
+          </label>
+          <Field
+            key={form.firstMeet === true ? 'training-total' : 'competition-total'}
+            aria-required="true"
+            className="register-competition-total-field"
+            disabled={Boolean(committedCompetitionRegistration)}
+            error={form.firstMeet === true ? errors.trainingBestTotalKg : errors.competitionBestTotalKg}
+            inputMode="decimal"
+            label={
+              form.firstMeet === true
+                ? t('pages.register.trainingBestTotal')
+                : t('pages.register.competitionBestTotal')
+            }
+            name={form.firstMeet === true ? 'trainingBestTotalKg' : 'competitionBestTotalKg'}
+            placeholder={
+              form.firstMeet === true
+                ? t('pages.register.trainingBestTotalPlaceholder')
+                : t('pages.register.competitionBestTotalPlaceholder')
+            }
+            value={
+              form.firstMeet === true
+                ? (form.trainingBestTotalKg ?? '')
+                : (form.competitionBestTotalKg ?? '')
+            }
+            onBlur={blurField}
+            onChange={changeField}
+          />
+          <p className="register-competition-division-hint">
+            {form.firstMeet === true
+              ? t('pages.register.trainingBestTotalHint')
+              : t('pages.register.competitionBestTotalHint')}
+          </p>
+        </div>
       </div>
     </FormSection>
   )

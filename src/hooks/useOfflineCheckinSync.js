@@ -4,6 +4,7 @@ import {
   getAllowlist,
   listDoorSyncStatus,
   listPending,
+  listPendingScanEvents,
   listResolvedConflicts,
 } from '../lib/offlineCheckinDb.js'
 import {
@@ -16,8 +17,8 @@ import { syncPendingScanEvents } from '../services/checkinTelemetry.js'
  * useOfflineCheckinSync — PLU ARG
  *
  * Estado de conectividad + cola offline para el scanner de seguridad
- * (CheckInSection.jsx). Sincroniza automáticamente al reconectar y cada
- * ~25s mientras haya pendientes, sin bloquear la fila de entrada al evento.
+ * (CheckInSection.jsx). Sincroniza al entrar, al reconectar y cada ~25s
+ * mientras haya pendientes, sin bloquear la fila de entrada al evento.
  */
 export function useOfflineCheckinSync(eventSlug) {
   const [isOnline, setIsOnline] = useState(
@@ -52,6 +53,17 @@ export function useOfflineCheckinSync(eventSlug) {
 
   const syncNow = useCallback(async () => {
     if (syncingRef.current || (typeof navigator !== 'undefined' && !navigator.onLine)) return
+    // Sin cola no hay red: el intervalo y el montaje no tienen que marcar
+    // "sincronizando" ni pegarle al servidor para no hacer nada.
+    try {
+      const pending = await listPending()
+      const waiting = pending.some((item) => item.status !== 'exhausted')
+      const scans = eventSlug ? await listPendingScanEvents() : []
+      const hasScans = scans.some((item) => item.eventSlug === eventSlug)
+      if (!waiting && !hasScans) return
+    } catch {
+      // Si la foto local no se lee, se intenta igual: peor es dejar la cola quieta.
+    }
     syncingRef.current = true
     setSyncing(true)
     try {
@@ -88,8 +100,16 @@ export function useOfflineCheckinSync(eventSlug) {
   }, [downloadAllowlist, syncNow])
 
   useEffect(() => {
-    refreshCounts()
-  }, [refreshCounts])
+    let live = true
+    refreshCounts().finally(() => {
+      if (!live) return
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+      syncNow()
+    })
+    return () => {
+      live = false
+    }
+  }, [refreshCounts, syncNow])
 
   useEffect(() => {
     if (!eventSlug) return undefined

@@ -1,3 +1,5 @@
+import { registrationDeclaredTotalView } from '../../../shared/declaredMeetTotal.js'
+import { formatDeclaredBodyWeight } from '../../../shared/exportRows.js'
 import { useMemo, useState } from 'react'
 import { ArrowLeft, Bell, Check, CircleAlert, Pencil, Route, Trash2, X } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
@@ -200,6 +202,32 @@ export default function AthleteDetailSection({
             key: 'estimatedWeight',
             label: t('admin.athleteDetail.fields.estimatedWeight'),
             value: athlete?.estimatedWeight ? `${athlete.estimatedWeight} kg` : '',
+          },
+          {
+            key: 'bestTotal',
+            label: t('admin.athleteDetail.fields.bestTotal'),
+            value:
+              athlete?.bestTotalKg != null
+                ? `${formatDeclaredBodyWeight(athlete.bestTotalKg)} kg`
+                : '',
+          },
+          {
+            key: 'trainingBestTotal',
+            label: t('admin.athleteDetail.fields.trainingBestTotal'),
+            value:
+              athlete?.trainingBestTotalKg != null
+                ? `${formatDeclaredBodyWeight(athlete.trainingBestTotalKg)} kg`
+                : '',
+          },
+          {
+            key: 'firstMeet',
+            label: t('admin.athleteDetail.fields.firstMeet'),
+            value:
+              athlete?.isFirstMeet == null
+                ? ''
+                : athlete.isFirstMeet
+                  ? t('admin.athleteDetail.yes')
+                  : t('admin.athleteDetail.no'),
           },
         ],
       },
@@ -577,6 +605,20 @@ export default function AthleteDetailSection({
               { key: 'event', label: t('admin.columns.event'), mobile: 'primary' },
               { key: 'category', label: t('admin.columns.category') },
               { key: 'division', label: t('admin.columns.division') },
+              {
+                key: 'declaredTotal',
+                label: t('admin.columns.declaredTotal'),
+                render: (row) => {
+                  const declaredTotal = registrationDeclaredTotalView(row)
+                  if (!declaredTotal) return '—'
+                  return t(
+                    declaredTotal.source === 'training'
+                      ? 'admin.liftersExport.trainingTotalLine'
+                      : 'admin.liftersExport.competitionTotalLine',
+                    { total: formatDeclaredBodyWeight(declaredTotal.kg) },
+                  )
+                },
+              },
               {
                 key: 'status',
                 label: t('admin.columns.status'),

@@ -23,6 +23,7 @@ function register(baseUrl, cookie, body) {
       category: 'Raw',
       bodyweightKg: 88,
       declaredWeightClass: '90',
+      competitionBestTotalKg: 500,
       paymentMethod: 'manual_link',
       idempotencyKey: randomUUID(),
       ...body,

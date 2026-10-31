@@ -244,6 +244,26 @@
   gap: 8px;
 }
 
+.security-team-delivery__code {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  margin: 0;
+}
+
+.security-team-delivery__code span {
+  color: var(--admin-muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.security-team-delivery__code strong {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 18px;
+  letter-spacing: 0.08em;
+}
+
 .security-team-builder__tools button,
 .security-team-builder__import button,
 .security-team-delivery__head > button,

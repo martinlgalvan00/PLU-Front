@@ -86,7 +86,7 @@ describe('repositorio: alta de inscripción con división y modalidades', () => 
       modalities: ['full_power', 'bench'],
     })
     expect(rpc).toHaveBeenCalledWith(
-      'create_competition_registration_checkout_v4',
+      'create_competition_registration_checkout_v5',
       expect.objectContaining({
         p_division: 'Junior',
         p_secondary_division: 'Open',
@@ -103,7 +103,7 @@ describe('repositorio: alta de inscripción con división y modalidades', () => 
     const { rpc, repository } = repo()
     await repository.createRegistration('athlete-1', base)
     expect(rpc).toHaveBeenCalledWith(
-      'create_competition_registration_checkout_v4',
+      'create_competition_registration_checkout_v5',
       expect.objectContaining({
         p_secondary_division: null,
         p_modalities: ['full_power'],
@@ -120,7 +120,7 @@ describe('repositorio: alta de inscripción con división y modalidades', () => 
       modalities: ['full_power'],
     })
     expect(rpc).toHaveBeenCalledWith(
-      'create_membership_registration_combo_checkout_v4',
+      'create_membership_registration_combo_checkout_v5',
       expect.objectContaining({
         p_secondary_division: 'Open',
         p_modalities: ['full_power'],

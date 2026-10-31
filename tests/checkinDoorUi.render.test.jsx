@@ -120,6 +120,14 @@ describe('AdminOfflineSyncStatus: sesión vencida', () => {
     expect(alert.textContent).toMatch(/no se pierden/i)
   })
 
+  it('volver a entrar avisa y no toca la cola desde este aviso', () => {
+    const reenter = vi.fn()
+    withI18n(<AdminOfflineSyncStatus {...props} onReauthenticate={reenter} syncIssue="auth" />)
+    fireEvent.click(screen.getByRole('button', { name: /volver a entrar/i }))
+    expect(reenter).toHaveBeenCalledTimes(1)
+    expect(screen.getByText(/3 ingreso/i)).toBeTruthy()
+  })
+
   it('sin problema de sesión no muestra el aviso', () => {
     withI18n(<AdminOfflineSyncStatus {...props} syncIssue={null} />)
     expect(screen.queryByRole('alert')).toBeNull()

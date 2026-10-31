@@ -1,3 +1,4 @@
+import { registrationDeclaredTotalView } from '../../../shared/declaredMeetTotal.js'
 import { formatModalities } from '../../../shared/registrationSelection.js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
@@ -170,6 +171,7 @@ function registrationMeet(registration) {
     declaredStamp: editStamp(registration.declaredWeightClassSetBy, registration.declaredWeightClassSetAt),
     officialStamp: editStamp(registration.officialWeightClassSetBy, registration.officialWeightClassSetAt),
     weighInStamp: editStamp(registration.weighInRecordedBy, registration.weighInRecordedAt),
+    declaredTotal: registrationDeclaredTotalView(registration),
     warning: getWeightClassWarning(competitionKg, weightClass, {
       source: weighInBodyweight ? 'weigh-in' : 'declared',
     }),
@@ -1894,6 +1896,15 @@ export default function RegistrationsSection({
                       .filter(Boolean)
                       .join(' · ')
                     const competingClass = row.meet.officialClass || row.meet.declaredClass || ''
+                    const declaredTotal = row.meet.declaredTotal
+                    const totalLine = declaredTotal
+                      ? t(
+                          declaredTotal.source === 'training'
+                            ? 'admin.liftersExport.trainingTotalLine'
+                            : 'admin.liftersExport.competitionTotalLine',
+                          { total: formatDeclaredBodyWeight(declaredTotal.kg) },
+                        )
+                      : ''
                     const weightLine = [
                       row.meet.bodyweight ? `${row.meet.bodyweight} kg` : '',
                       row.meet.weighInBodyweight
@@ -1906,15 +1917,21 @@ export default function RegistrationsSection({
                     const dossier = [
                       identity,
                       `${t('admin.liftersExport.bodyweightLabel')}: ${row.meet.bodyweight ? `${row.meet.bodyweight} kg` : '—'}`,
+                      totalLine,
                       `${t('admin.liftersExport.weighInLabel')}: ${row.meet.weighInBodyweight ? `${row.meet.weighInBodyweight} kg` : '—'}${row.meet.weighInStamp ? ` · ${row.meet.weighInStamp}` : ''}`,
                       `${t('admin.liftersExport.declaredClassLabel')}: ${row.meet.declaredClass ? `${row.meet.declaredClass} kg` : '—'}`,
                       `${t('admin.liftersExport.officialClassLabel')}: ${row.meet.officialClass ? `${row.meet.officialClass} kg` : '—'}${row.meet.officialStamp ? ` · ${row.meet.officialStamp}` : ''}`,
-                    ].join('\n')
+                    ]
+                      .filter(Boolean)
+                      .join('\n')
                     return (
                       <div className="admin-meet-facts" title={dossier}>
                         {identity ? <span className="admin-meet-facts__line">{identity}</span> : null}
                         {weightLine ? (
                           <span className="admin-meet-facts__line admin-meet-facts__muted">{weightLine}</span>
+                        ) : null}
+                        {totalLine ? (
+                          <span className="admin-meet-facts__line admin-meet-facts__muted">{totalLine}</span>
                         ) : null}
                         {row.meet.suggestedClass && row.meet.suggestedClass !== row.meet.weightClass ? (
                           <span

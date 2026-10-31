@@ -27,8 +27,12 @@ const LIST_LIMIT = 60
 function formatValue(field, value, locale) {
   if (value == null || value === '' || (Array.isArray(value) && value.length === 0)) return '—'
   if (field === 'modalities') return formatModalities(value)
-  if (field === 'bodyweightKg') {
+  if (field === 'bodyweightKg' || field === 'declaredTotalKg') {
     return `${Number(value).toLocaleString(locale === 'en' ? 'en-US' : 'es-AR')} kg`
+  }
+  if (field === 'firstMeet') {
+    if (value === true) return locale === 'en' ? 'Yes' : 'Sí'
+    if (value === false) return locale === 'en' ? 'No' : 'No'
   }
   if (field === 'declaredWeightClass') return `${value} kg`
   return String(value)

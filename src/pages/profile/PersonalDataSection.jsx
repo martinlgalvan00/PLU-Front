@@ -11,6 +11,11 @@ import {
   Medal,
   Trash2,
 } from 'lucide-react'
+import {
+  carryDeclaredTotalOnModeChange,
+  isValidDeclaredTotalKg,
+  optionalDeclaredTotalKg,
+} from '../../../shared/declaredMeetTotal.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { AutocompleteField, DateField, Field, Select } from '../../components/ui/FormFields.jsx'
 import GymNameConfirmationDialog from '../../components/ui/GymNameConfirmationDialog.jsx'
@@ -60,7 +65,14 @@ function firstIncompleteGroup(missing) {
 function firstErrorGroup(nextErrors) {
   if (nextErrors.email || nextErrors.phone) return 'contact'
   if (nextErrors.category || nextErrors.estimatedWeight) return 'competition'
-  if (nextErrors.instagramHandle || nextErrors.bestTotalKg || nextErrors.sex) return 'sports'
+  if (
+    nextErrors.instagramHandle ||
+    nextErrors.bestTotalKg ||
+    nextErrors.trainingBestTotalKg ||
+    nextErrors.sex
+  ) {
+    return 'sports'
+  }
   if (nextErrors.emergencyContactPhone) return 'emergency'
   return null
 }
@@ -87,10 +99,24 @@ export default function PersonalDataSection({
     emergencyContactName: athlete.emergencyContactName ?? '',
     emergencyContactPhone: athlete.emergencyContactPhone ?? '',
     instagramHandle: athlete.instagramHandle ?? '',
-    bestTotalKg:
-      athlete.bestTotalKg === null || athlete.bestTotalKg === undefined
-        ? ''
-        : String(athlete.bestTotalKg),
+    ...(() => {
+      const carried = carryDeclaredTotalOnModeChange({
+        competition:
+          athlete.bestTotalKg === null || athlete.bestTotalKg === undefined
+            ? ''
+            : String(athlete.bestTotalKg),
+        training:
+          athlete.trainingBestTotalKg === null || athlete.trainingBestTotalKg === undefined
+            ? ''
+            : String(athlete.trainingBestTotalKg),
+        firstMeet: athlete.isFirstMeet === true,
+      })
+      return {
+        bestTotalKg: String(carried.competition ?? ''),
+        firstMeet: carried.firstMeet,
+        trainingBestTotalKg: String(carried.training ?? ''),
+      }
+    })(),
     division: athlete.division ?? '',
     category: athlete.category ?? '',
     estimatedWeight:
@@ -319,11 +345,11 @@ export default function PersonalDataSection({
     if (instagramHandle && !/^[A-Za-z0-9._]{1,30}$/.test(instagramHandle)) {
       nextErrors.instagramHandle = t('account.personalData.errorInstagram')
     }
-    if (form.bestTotalKg.trim()) {
-      const total = Number(form.bestTotalKg.replace(',', '.').replace(/\s*kg$/i, ''))
-      if (!Number.isFinite(total) || total < 10 || total > 2000) {
-        nextErrors.bestTotalKg = t('account.personalData.errorBestTotal')
-      }
+    if (form.bestTotalKg.trim() && !isValidDeclaredTotalKg(form.bestTotalKg)) {
+      nextErrors.bestTotalKg = t('account.personalData.errorBestTotal')
+    }
+    if (form.trainingBestTotalKg.trim() && !isValidDeclaredTotalKg(form.trainingBestTotalKg)) {
+      nextErrors.trainingBestTotalKg = t('account.personalData.errorBestTotal')
     }
     if (!formOptions.category.includes(form.category)) {
       nextErrors.category = t('account.personalData.errorCategory')
@@ -345,13 +371,14 @@ export default function PersonalDataSection({
 
     setErrors({})
     setSaving(true)
-    const bestTotalKg = form.bestTotalKg.trim()
-      ? Number(form.bestTotalKg.replace(',', '.').replace(/\s*kg$/i, ''))
-      : null
+    const bestTotalKg = optionalDeclaredTotalKg(form.bestTotalKg)
+    const trainingBestTotalKg = optionalDeclaredTotalKg(form.trainingBestTotalKg)
     const result = await onUpdateProfile(athlete.id, {
       ...form,
       instagramHandle,
       bestTotalKg,
+      firstMeet: form.firstMeet === true,
+      trainingBestTotalKg,
       estimatedWeight,
     })
     setSaving(false)
@@ -790,13 +817,57 @@ export default function PersonalDataSection({
               error={errors.instagramHandle}
               onChange={changeField}
             />
+            <label className="account-first-meet">
+              <input
+                type="checkbox"
+                name="firstMeet"
+                checked={form.firstMeet === true}
+                onChange={(event) => {
+                  setForm((current) => {
+                    const carried = carryDeclaredTotalOnModeChange({
+                      competition: current.bestTotalKg,
+                      training: current.trainingBestTotalKg,
+                      firstMeet: event.target.checked,
+                    })
+                    return {
+                      ...current,
+                      firstMeet: carried.firstMeet,
+                      bestTotalKg: String(carried.competition ?? ''),
+                      trainingBestTotalKg: String(carried.training ?? ''),
+                    }
+                  })
+                  setErrors((current) => ({
+                    ...current,
+                    bestTotalKg: '',
+                    trainingBestTotalKg: '',
+                  }))
+                }}
+              />
+              <span>
+                <span className="account-first-meet__label">
+                  {t('account.personalData.firstMeet')}
+                </span>
+                <span className="account-first-meet__note">
+                  {t('account.personalData.firstMeetNote')}
+                </span>
+              </span>
+            </label>
             <Field
-              error={errors.bestTotalKg}
+              key={form.firstMeet === true ? 'training-total' : 'competition-total'}
+              error={form.firstMeet === true ? errors.trainingBestTotalKg : errors.bestTotalKg}
               inputMode="decimal"
-              label={t('account.personalData.bestTotal')}
-              name="bestTotalKg"
-              placeholder={t('account.personalData.bestTotalPlaceholder')}
-              value={form.bestTotalKg}
+              label={
+                form.firstMeet === true
+                  ? t('account.personalData.trainingBestTotal')
+                  : t('account.personalData.bestTotal')
+              }
+              name={form.firstMeet === true ? 'trainingBestTotalKg' : 'bestTotalKg'}
+              placeholder={
+                form.firstMeet === true
+                  ? t('account.personalData.trainingBestTotalPlaceholder')
+                  : t('account.personalData.bestTotalPlaceholder')
+              }
+              value={form.firstMeet === true ? form.trainingBestTotalKg : form.bestTotalKg}
               onChange={changeField}
             />
           </div>

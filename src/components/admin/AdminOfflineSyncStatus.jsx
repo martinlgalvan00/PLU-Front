@@ -23,6 +23,7 @@ export default function AdminOfflineSyncStatus({
   isOnline,
   lastDownloadedAt,
   lastSyncedAt,
+  onReauthenticate = null,
   onReloadAndSync = null,
   pendingCount,
   queueLog = [],
@@ -218,12 +219,22 @@ export default function AdminOfflineSyncStatus({
       ) : null}
 
       {syncIssue === 'auth' && hasPending ? (
-        <p
+        <div
           className="admin-offline-sync-status__meta admin-offline-sync-status__meta--warning"
           role="alert"
         >
-          {t('admin.checkin.offline.sessionExpired', { count: pendingCount })}
-        </p>
+          <p>{t('admin.checkin.offline.sessionExpired', { count: pendingCount })}</p>
+          {onReauthenticate ? (
+            <button
+              type="button"
+              className="btn btn--small"
+              onClick={onReauthenticate}
+              disabled={!isOnline}
+            >
+              {t('admin.checkin.offline.reenter')}
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       {conflictCount > 0 && (

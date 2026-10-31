@@ -121,6 +121,7 @@ import { COMPETITION_DIVISIONS } from '../../shared/ageDivision.js'
 import { offeringFromRules, validateSelectionAgainstOffering } from '../../shared/eventOffering.js'
 import { isAnnounceOnly } from '../../shared/registrationSaleState.js'
 import { EVENT_MODULE_DISABLED, isStoredEventModuleOn } from '../../shared/eventModules.js'
+import { resolveRegistrationDeclaredTotals } from '../../shared/declaredMeetTotal.js'
 import {
   BODYWEIGHT_KG_RANGE,
   REGISTRATION_REQUIRED_MESSAGES,
@@ -342,6 +343,8 @@ const updateSchema = z.object({
       'Ingresá sólo tu usuario de Instagram, sin espacios ni enlace.',
     ),
   bestTotalKg: optionalDeclaredBestTotal,
+  firstMeet: z.boolean().optional().default(false),
+  trainingBestTotalKg: optionalDeclaredBestTotal,
   division: z.enum(COMPETITION_DIVISIONS),
   category: z.enum(COMPETITION_CATEGORIES),
   estimatedWeight: z.preprocess((value) => {
@@ -401,6 +404,9 @@ const registrationSchema = z.object({
     })
     .trim()
     .min(1, 'Seleccioná la categoría de peso en la que vas a competir.'),
+  firstMeet: z.boolean().optional().default(false),
+  competitionBestTotalKg: z.union([z.number(), z.string(), z.null()]).optional(),
+  trainingBestTotalKg: z.union([z.number(), z.string(), z.null()]).optional(),
   paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']),
   idempotencyKey: z
     .string()
@@ -432,6 +438,17 @@ const registrationAccessVerifySchema = z.object({
   eventSlug: z.string().trim().min(1).max(120).optional(),
   code: z.string().trim().min(1).max(72),
 })
+
+function assertRegistrationDeclaredTotals(body) {
+  const resolved = resolveRegistrationDeclaredTotals(body)
+  if (!resolved.ok) {
+    throw new HttpError(422, resolved.message, {
+      code: 'DECLARED_TOTAL_REQUIRED',
+      fields: { [resolved.field]: 'invalid' },
+    })
+  }
+  return resolved
+}
 
 const comboAccessVerifySchema = z.object({
   eventSlug: z.string().trim().min(1).max(120),
@@ -2161,6 +2178,7 @@ export function createAthleteRoutes({
         assertRosterOpen(event)
         assertRegistrationNotAnnounceOnly(event)
         const selection = assertCompetitionSelection(req.validatedBody, competitionProfile, event)
+        const declaredTotals = assertRegistrationDeclaredTotals(req.validatedBody)
         const declaredWeightClass = assertDeclaredWeightClass(
           competitionProfile?.sex,
           req.validatedBody.declaredWeightClass,
@@ -2219,6 +2237,9 @@ export function createAthleteRoutes({
           secondaryDivision: selection.secondaryDivision,
           modalities: selection.modalities,
           declaredWeightClass,
+          isFirstMeet: declaredTotals.isFirstMeet,
+          competitionBestTotalKg: declaredTotals.competitionBestTotalKg,
+          trainingBestTotalKg: declaredTotals.trainingBestTotalKg,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
           defaultPrice: registrationWisePrice ? wiseAmount : pricing.defaultPrice,
           manualPrice: registrationWisePrice ? null : pricing.manualPrice,
@@ -2292,6 +2313,7 @@ export function createAthleteRoutes({
         assertRegistrationNotAnnounceOnly(event)
         assertComboModuleOn(event)
         const selection = assertCompetitionSelection(req.validatedBody, competitionProfile, event)
+        const declaredTotals = assertRegistrationDeclaredTotals(req.validatedBody)
         assertEventPaymentChannelEnabled(toggles, 'registration', comboChannel, {
           override: comboOverride,
           eventOverrides: event.payment_channel_overrides,
@@ -2383,6 +2405,9 @@ export function createAthleteRoutes({
           secondaryDivision: selection.secondaryDivision,
           modalities: selection.modalities,
           declaredWeightClass,
+          isFirstMeet: declaredTotals.isFirstMeet,
+          competitionBestTotalKg: declaredTotals.competitionBestTotalKg,
+          trainingBestTotalKg: declaredTotals.trainingBestTotalKg,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
           defaultPrice: comboWisePrice
             ? priceRegistrationSelection({

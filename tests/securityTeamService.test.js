@@ -60,6 +60,14 @@ describe('securityTeamService', () => {
     ])
 
     expect(text).toContain('Ana Pérez · ana@empresa.com\nhttps://plu.test/acceso/ana')
+    const withCode = formatSecurityAccessList([
+      {
+        user: { name: 'Ana Pérez', email: 'ana@empresa.com' },
+        accessCode: 'AB2-K4M',
+        accessUrl: 'https://plu.test/acceso/ana',
+      },
+    ])
+    expect(withCode).toContain('AB2-K4M')
     expect(text).toContain('Juan López · juan@empresa.com\nhttps://plu.test/acceso/juan')
   })
 })

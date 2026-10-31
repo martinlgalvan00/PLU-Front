@@ -4416,6 +4416,40 @@
   max-width: 56ch;
 }
 
+.account-first-meet {
+  align-items: flex-start;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  grid-column: 1 / -1;
+  max-width: 40rem;
+}
+
+.account-first-meet input {
+  accent-color: var(--color-brand-gold);
+  block-size: 1.25rem;
+  flex: 0 0 auto;
+  inline-size: 1.25rem;
+  margin-top: 0.2rem;
+}
+
+.account-first-meet__label,
+.account-first-meet__note {
+  display: block;
+}
+
+.account-first-meet__label {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.account-first-meet__note {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin-top: 2px;
+}
+
 /* Chip circular que antecede cada título de grupo (foto de identidad
    exceptuada): mismo lenguaje visual en el bloque de completar datos
    oficiales y en las tres divulgaciones. */

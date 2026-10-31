@@ -58,9 +58,11 @@ async function mockDeactivateAll() {
   return MOCK_USERS.filter((user) => user.status === 'active').length
 }
 
-async function mockCreateAccessLink(userId, sendEmail) {
+async function mockCreateAccessLink(userId, options = {}) {
+  const sendEmail = typeof options === 'boolean' ? options : options.sendEmail
   return {
-    url: `https://plu-arg.com/evento/pitbull-classic-2026/seguridad?acceso=demo-token-${userId}`,
+    url: 'https://plu-arg.com/evento/pitbull-classic-2026/seguridad?c=AB2-K4M',
+    code: 'AB2-K4M',
     token: `demo-token-${userId}`,
     expiresAt: '2026-12-20T00:00:00.000Z',
     emailed: Boolean(sendEmail),

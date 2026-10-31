@@ -3,9 +3,11 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, m } from 'motion/react'
 import { usePaymentModal } from '../checkout/usePaymentModal.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
-import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
-
-const STILL = { duration: 0 }
+import {
+  overlayPanelTransition,
+  overlayScrimTransition,
+  resolveOverlayVariants,
+} from '../../motion/variants.ts'
 
 /**
  * El candado vive adentro del panel que sale: el scroll del body sigue
@@ -44,24 +46,8 @@ export default function PublicDialogFrame({
 
   if (!mounted || typeof document === 'undefined') return null
 
-  const enter = reducedMotion ? STILL : { duration: MOTION_DURATION.base, ease: MOTION_EASE.out }
-  const leave = reducedMotion ? STILL : { duration: MOTION_DURATION.fast, ease: MOTION_EASE.standard }
-  const panelEnter = reducedMotion
-    ? STILL
-    : { duration: MOTION_DURATION.base, ease: MOTION_EASE.cinematic }
-
-  const scrimVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: enter },
-    exit: { opacity: reducedMotion ? 1 : 0, transition: leave },
-  }
-  const panelVariants = {
-    hidden: reducedMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 12, scale: 0.985 },
-    visible: { opacity: 1, y: 0, scale: 1, transition: panelEnter },
-    exit: reducedMotion
-      ? { opacity: 1, y: 0, scale: 1, transition: STILL }
-      : { opacity: 0, y: 8, scale: 0.99, transition: leave },
-  }
+  const scrimVariants = resolveOverlayVariants(overlayScrimTransition, reducedMotion)
+  const panelVariants = resolveOverlayVariants(overlayPanelTransition, reducedMotion)
 
   const tree = (
     <AnimatePresence>
@@ -84,6 +70,9 @@ export default function PublicDialogFrame({
             aria-describedby={describedBy}
             aria-label={ariaLabel}
             variants={panelVariants}
+            initial={reducedMotion ? false : 'hidden'}
+            animate="visible"
+            exit="exit"
             onMouseDown={(event) => event.stopPropagation()}
           >
             <DialogLock onClose={onClose}>{children}</DialogLock>

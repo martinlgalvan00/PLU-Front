@@ -60,6 +60,7 @@ export default function CheckInAppPage({
   onCheckInRegistration,
   onCheckInTicket,
   onExit,
+  onReauthenticate = null,
   onRedeemTicketAddon,
   onRefreshTickets,
   registrations,
@@ -185,6 +186,7 @@ export default function CheckInAppPage({
       onReloadAndSync={workspace.reloadAndSync}
       pendingCount={workspace.offlineSync.pendingCount}
       queueLog={workspace.offlineSync.queueLog}
+      onReauthenticate={onReauthenticate}
       syncIssue={workspace.offlineSync.syncIssue}
       syncNow={workspace.offlineSync.syncNow}
       syncing={workspace.offlineSync.syncing}

@@ -9,7 +9,11 @@ import { HttpError } from '../lib/errors.js'
  * contraseña. Es stateless a propósito — no hay tabla nueva ni columna:
  *
  *   token = base64url(payload).base64url(hmac(payload))
- *   payload = { uid, eid, exp }   // exp en epoch-segundos
+ *   payload = { uid, eid, exp, ver? }   // exp en epoch-segundos
+ *
+ * `ver` aparece solo cuando la cuenta ya rotó una credencial guardada.
+ * Un token viejo, sin `ver`, sigue siendo válido mientras la versión
+ * almacenada sea 0.
  *
  * Garantías:
  *  - Integridad: la firma HMAC impide fabricar o alterar un token sin el
@@ -34,14 +38,29 @@ function sign(payloadB64, secret) {
 }
 
 /**
- * @param {{ userId: string, eventId: string, expiresAt: Date, secret?: string }} params
+ * @param {{ userId: string, eventId: string, expiresAt: Date, secret?: string, version?: number }} params
  * @returns {string}
  */
-export function createAccessToken({ userId, eventId, expiresAt, secret }) {
+export function createAccessToken({ userId, eventId, expiresAt, secret, version }) {
   const key = resolveSecret(secret)
   const payload = { uid: userId, eid: eventId, exp: Math.floor(expiresAt.getTime() / 1000) }
+  if (Number.isInteger(version) && version > 0) payload.ver = version
   const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url')
   return `${payloadB64}.${sign(payloadB64, key)}`
+}
+
+/**
+ * Un token sin `ver` solo entra si la cuenta todavía no rotó (versión 0).
+ * Con versión guardada, el token tiene que traer exactamente esa.
+ * @param {{ ver?: number } | null | undefined} payload
+ * @param {number | null | undefined} storedVersion
+ * @returns {boolean}
+ */
+export function accessTokenMatchesVersion(payload, storedVersion) {
+  const current = Number(storedVersion) || 0
+  const tokenVersion = Number.isInteger(payload?.ver) ? payload.ver : 0
+  if (current <= 0) return tokenVersion === 0
+  return tokenVersion === current
 }
 
 /**

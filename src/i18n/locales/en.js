@@ -1193,6 +1193,8 @@ export default {
     tokenLoadingLead: 'We are verifying your gate access…',
     tokenLoadingLeadWithEvent: 'Verifying your gate access for {{event}}…',
     tokenError: 'This credential is invalid or expired. Sign in with your email and password.',
+    doorCodeLabel: 'Door code',
+    doorCodeHint: 'If someone read you the credential code, enter it here. Otherwise use email and password.',
   },
   financedDebt: {
     membership: {
@@ -1294,7 +1296,12 @@ export default {
           'With this code you can pay now or later: you are enabled either way while the term runs.',
         submit: 'Confirm and pay {{amount}}',
         goToGateway: 'Pay with Mercado Pago',
-        incomplete: 'Fill in division, category, weight class and declared bodyweight to continue.',
+        firstMeet: 'This is my first meet',
+        firstMeetNote: 'If you have not competed yet, the field below asks only for your training max.',
+        competitionBestTotal: 'Best competition total (kg) *',
+        trainingBestTotal: 'Best training total (kg) *',
+        incomplete:
+          'Fill in division, category, weight class, declared bodyweight and best total to continue.',
       },
     },
     benefits: {
@@ -1889,6 +1896,10 @@ export default {
       bestTotal: 'Best competition total',
       bestTotalPlaceholder: 'e.g. 625.5 kg',
       bestTotalNote: 'Self-declared. Does not replace the official meet total.',
+      firstMeet: 'This is my first meet',
+      firstMeetNote: 'If you have not competed yet, the field below asks only for your training max.',
+      trainingBestTotal: 'Best training total',
+      trainingBestTotalPlaceholder: 'e.g. 500 kg',
       division: 'Division',
       divisionAgeHint:
         'Based on your date of birth: {{division}}. You can also choose Open when eligible.',
@@ -4081,7 +4092,17 @@ export default {
       checkoutContinue: 'Continue to payment',
       checkoutRegistrationLine: 'Registration',
       competitionFormTitle: 'Define your entry',
-      competitionFormDesc: 'Division, category, event type and bodyweight. The weight class follows your bodyweight.',
+      competitionFormDesc:
+        'Division, category, event type and bodyweight. The best total is a single number. The weight class follows your bodyweight.',
+      firstMeet: 'This is my first meet',
+      firstMeetNote: 'If you have not competed yet, the number below is your training max.',
+      competitionBestTotal: 'Competition total *',
+      competitionBestTotalPlaceholder: '625.5',
+      competitionBestTotalHint:
+        'Squat, bench and deadlift. It does not replace the official total.',
+      trainingBestTotal: 'Training total *',
+      trainingBestTotalPlaceholder: '500',
+      trainingBestTotalHint: 'Your best gym lifts. It is used to build the flights.',
       weightClass: 'Weight class *',
       weightClassPlaceholder: 'Select the class',
       weightClassSuggestion:
@@ -4482,6 +4503,9 @@ export default {
     weightClass: 'Select the weight class you will compete in.',
     weight: 'Enter a weight between 10 and 250 kg.',
     weightRequired: 'Enter your bodyweight.',
+    declaredTotal: 'Enter a total between 10 and 2,000 kg.',
+    competitionBestTotal: 'Enter your best competition total (between 10 and 2,000 kg).',
+    trainingBestTotal: 'Enter your best training total (between 10 and 2,000 kg).',
     errorBestTotal: 'Enter a total between 10 and 2,000 kg.',
     profileComplete: 'Profile complete',
     profileIncomplete_one: '{{count}} field pending',

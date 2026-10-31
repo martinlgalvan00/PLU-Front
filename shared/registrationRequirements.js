@@ -1,13 +1,16 @@
+import { resolveRegistrationDeclaredTotals } from './declaredMeetTotal.js'
+
 /**
  * Campos obligatorios de una inscripción competitiva. Puro, sin I/O: lo usa el
  * cliente para frenar antes de pedir el cobro y el servidor (autoridad) para
  * rechazar el alta con el mismo criterio y los mismos textos.
  *
- * Una inscripción sin división, categoría, modalidad, categoría de peso o peso
- * corporal no se puede ubicar en la tarima ni cobrar bien (la segunda división
- * paga el 50% sobre una selección completa), así que ninguno es opcional. La
- * modalidad tampoco se completa sola: antes, sin el campo, el servidor la daba
- * por Full Power y nadie la había elegido.
+ * Una inscripción sin división, categoría, modalidad, categoría de peso, peso
+ * corporal o máximo total no se puede ubicar en la tarima ni armar las tandas
+ * (la segunda división paga el 50% sobre una selección completa), así que
+ * ninguno es opcional. La modalidad tampoco se completa sola: antes, sin el
+ * campo, el servidor la daba por Full Power y nadie la había elegido.
+ * El máximo es el de competencia, o el de entrenamiento si es el primer torneo.
  */
 
 export const BODYWEIGHT_KG_RANGE = Object.freeze({ min: 10, max: 250 })
@@ -52,5 +55,7 @@ export function checkRequiredRegistrationFields(selection = {}) {
           : String(value ?? '').trim() !== ''
     if (!present) return { ok: false, field, message: REGISTRATION_REQUIRED_MESSAGES[field] }
   }
+  const totals = resolveRegistrationDeclaredTotals(selection)
+  if (!totals.ok) return { ok: false, field: totals.field, message: totals.message }
   return { ok: true }
 }

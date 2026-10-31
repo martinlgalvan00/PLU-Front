@@ -9,6 +9,7 @@ import { useI18n } from '../i18n/I18nProvider.jsx'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { canCheckIn, getRoleLabel } from '../lib/roles.js'
 import { canAccessSecurityEvent } from '../lib/permissions.js'
+import { normalizeGateCode } from '../lib/ticketGateCode.js'
 
 function resolveGateEvent(adminEvents, eventSlug) {
   const fromAdmin = adminEvents?.find((item) => item.slug === eventSlug)
@@ -17,20 +18,28 @@ function resolveGateEvent(adminEvents, eventSlug) {
 }
 
 /**
- * Lee el token de credencial de acceso del query param (?acceso=...) y lo
- * limpia de la URL, para que quede en el historial/barra de direcciones.
+ * Lee la credencial de la URL (?c= código corto, o ?acceso= HMAC viejo) y la
+ * limpia de la barra, para que no quede en el historial.
  */
-function readAccessToken() {
-  if (typeof window === 'undefined') return ''
-  const token = new URLSearchParams(window.location.search).get('acceso')
-  return token ?? ''
+function readGateCredential() {
+  if (typeof window === 'undefined') return { token: '', code: '' }
+  const params = new URLSearchParams(window.location.search)
+  return {
+    token: params.get('acceso') ?? '',
+    code: params.get('c') ?? '',
+  }
 }
 
-function stripAccessTokenFromUrl() {
+function stripGateCredentialFromUrl() {
   if (typeof window === 'undefined') return
   const url = new URL(window.location.href)
-  if (!url.searchParams.has('acceso')) return
-  url.searchParams.delete('acceso')
+  let changed = false
+  for (const key of ['acceso', 'c']) {
+    if (!url.searchParams.has(key)) continue
+    url.searchParams.delete(key)
+    changed = true
+  }
+  if (!changed) return
   window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
 }
 
@@ -49,6 +58,7 @@ export default function SecurityGatePage({
   onExit,
   onLogin,
   onLoginWithToken,
+  onReauthenticate,
   onRedeemTicketAddon,
   onRefreshTickets,
   registrations,
@@ -61,24 +71,30 @@ export default function SecurityGatePage({
 
   // Credencial de acceso: si la URL trae ?acceso=<token>, intentamos entrar
   // sin contraseña. 'idle' | 'loading' | 'error'.
-  const [tokenPhase, setTokenPhase] = useState(() => (readAccessToken() ? 'loading' : 'idle'))
+  const [tokenPhase, setTokenPhase] = useState(() => {
+    const credential = readGateCredential()
+    return credential.token || credential.code ? 'loading' : 'idle'
+  })
   const attemptedRef = useRef(false)
 
   useEffect(() => {
     if (attemptedRef.current || isAuthorized) return
-    const token = readAccessToken()
-    if (!token || !onLoginWithToken) {
+    const credential = readGateCredential()
+    if ((!credential.token && !credential.code) || !onLoginWithToken) {
       setTokenPhase('idle')
       return
     }
     attemptedRef.current = true
-    stripAccessTokenFromUrl()
-    onLoginWithToken(token)
+    stripGateCredentialFromUrl()
+    const login = credential.code
+      ? onLoginWithToken({ code: credential.code, eventSlug })
+      : onLoginWithToken(credential.token)
+    login
       .then(() => {
         // El éxito re-renderiza con session activa (isAuthorized) y monta el scanner.
       })
       .catch(() => setTokenPhase('error'))
-  }, [isAuthorized, onLoginWithToken])
+  }, [eventSlug, isAuthorized, onLoginWithToken])
 
   if (isAuthorized) {
     return (
@@ -91,6 +107,7 @@ export default function SecurityGatePage({
         onCheckInRegistration={onCheckInRegistration}
         onCheckInTicket={onCheckInTicket}
         onExit={onExit}
+        onReauthenticate={onReauthenticate}
         onRedeemTicketAddon={onRedeemTicketAddon}
         onRefreshTickets={onRefreshTickets}
         registrations={registrations}
@@ -135,15 +152,25 @@ export default function SecurityGatePage({
       eventSlug={eventSlug}
       hadSession={Boolean(session)}
       onLogin={onLogin}
+      onLoginWithToken={onLoginWithToken}
       tokenError={tokenPhase === 'error'}
       t={t}
     />
   )
 }
 
-function SecurityGateLogin({ event, eventSlug, hadSession, onLogin, tokenError = false, t }) {
+function SecurityGateLogin({
+  event,
+  eventSlug,
+  hadSession,
+  onLogin,
+  onLoginWithToken,
+  tokenError = false,
+  t,
+}) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [doorCode, setDoorCode] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -157,6 +184,19 @@ function SecurityGateLogin({ event, eventSlug, hadSession, onLogin, tokenError =
     setIsSubmitting(true)
 
     try {
+      const normalized = normalizeGateCode(doorCode)
+      if (doorCode.trim() && !normalized) {
+        setSubmitError(t('securityGate.tokenError'))
+        return
+      }
+      if (normalized && onLoginWithToken) {
+        try {
+          await onLoginWithToken({ code: normalized, eventSlug })
+        } catch {
+          setSubmitError(t('securityGate.tokenError'))
+        }
+        return
+      }
       await onLogin({ email, password, eventSlug })
     } catch {
       setSubmitError(t('securityGate.errorInvalid'))
@@ -191,6 +231,23 @@ function SecurityGateLogin({ event, eventSlug, hadSession, onLogin, tokenError =
           </header>
 
           <form className="login-form" onSubmit={handleSubmit} noValidate>
+            <label className="login-field">
+              <span className="login-field__label">{t('securityGate.doorCodeLabel')}</span>
+              <span className="login-field__control">
+                <input
+                  type="text"
+                  name="doorCode"
+                  value={doorCode}
+                  onChange={(formEvent) => setDoorCode(formEvent.target.value.toUpperCase())}
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  inputMode="text"
+                />
+              </span>
+              <small className="security-gate-card__meta">{t('securityGate.doorCodeHint')}</small>
+            </label>
+
             <label className="login-field">
               <span className="login-field__label">{t('login.email')}</span>
               <span className="login-field__control">

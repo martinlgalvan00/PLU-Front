@@ -245,6 +245,9 @@ export const DEFAULT_FORM = {
   secondaryDivision: '',
   modalities: ['full_power'],
   estimatedWeight: '',
+  firstMeet: false,
+  competitionBestTotalKg: '',
+  trainingBestTotalKg: '',
   password: '',
   paymentMethod: 'mercado_pago',
 }

@@ -6,8 +6,6 @@ import {
   BookOpen,
   CalendarDays,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   CircleHelp,
   FolderOpen,
   Handshake,
@@ -237,7 +235,7 @@ function NavHoverPill({ show }) {
           transition={
             reducedMotion
               ? { duration: 0.01 }
-              : { duration: MOTION_DURATION.base, ease: MOTION_EASE.out }
+              : { duration: MOTION_DURATION.fast, ease: MOTION_EASE.out }
           }
         />
       ) : null}
@@ -298,65 +296,15 @@ function NavDropdownItem({
   )
 }
 
-function CompetitionEventSlider({ items, onSelect, t }) {
-  const trackRef = useRef(null)
-  const [canMoveBack, setCanMoveBack] = useState(false)
-  const [canMoveForward, setCanMoveForward] = useState(false)
-
-  function syncControls() {
-    const track = trackRef.current
-    if (!track) return
-    const epsilon = 2
-    setCanMoveBack(track.scrollLeft > epsilon)
-    setCanMoveForward(track.scrollLeft + track.clientWidth < track.scrollWidth - epsilon)
-  }
-
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(syncControls)
-    window.addEventListener('resize', syncControls)
-    return () => {
-      window.cancelAnimationFrame(frame)
-      window.removeEventListener('resize', syncControls)
-    }
-  }, [items.length])
-
-  function move(direction) {
-    const track = trackRef.current
-    if (!track) return
-    track.scrollBy({
-      behavior: 'smooth',
-      left: direction * Math.max(track.clientWidth - 24, 1),
-    })
-  }
-
+function CompetitionEventList({ items, onSelect, t }) {
   if (items.length === 0) return null
 
   return (
     <section className="plu-competition-menu" aria-label={t('nav.competitionEvents')}>
       <header className="plu-competition-menu__head">
         <p>{t('nav.competitionEvents')}</p>
-        {items.length > 1 ? (
-          <div className="plu-competition-menu__controls">
-            <button
-              type="button"
-              aria-label={t('nav.sliderPrevious')}
-              disabled={!canMoveBack}
-              onClick={() => move(-1)}
-            >
-              <ChevronLeft aria-hidden size={15} />
-            </button>
-            <button
-              type="button"
-              aria-label={t('nav.sliderNext')}
-              disabled={!canMoveForward}
-              onClick={() => move(1)}
-            >
-              <ChevronRight aria-hidden size={15} />
-            </button>
-          </div>
-        ) : null}
       </header>
-      <div ref={trackRef} className="plu-competition-menu__track" onScroll={syncControls}>
+      <div className="plu-competition-menu__track">
         {items.map((navItem) => (
           <NavDropdownItem
             key={navItem.key}
@@ -444,8 +392,8 @@ function NavDropdown({
       opacity: 1,
       y: 0,
       transition: {
-        duration: reducedMotion ? 0.01 : MOTION_DURATION.fast,
-        ease: MOTION_EASE.out,
+        duration: reducedMotion ? 0.01 : MOTION_DURATION.base,
+        ease: MOTION_EASE.cinematic,
       },
     },
     exit: {
@@ -934,7 +882,7 @@ export default function NavbarPublic({
                           onClick={() => navigateNavItem(navItem)}
                         />
                       ))}
-                      <CompetitionEventSlider
+                      <CompetitionEventList
                         items={competitionItems.slice(1)}
                         onSelect={navigateNavItem}
                         t={t}

@@ -1205,6 +1205,8 @@ export default {
     tokenLoadingLead: 'Estamos verificando tu acceso a la puerta…',
     tokenLoadingLeadWithEvent: 'Verificando tu acceso a la puerta de {{event}}…',
     tokenError: 'La credencial no es válida o venció. Ingresá con tu email y contraseña.',
+    doorCodeLabel: 'Código de puerta',
+    doorCodeHint: 'Si te dictaron el código de la credencial, ingresalo acá. Si no, usá email y contraseña.',
   },
   financedDebt: {
     membership: {
@@ -1310,7 +1312,13 @@ export default {
           'Con este código podés pagarlo ahora o más tarde: quedás habilitado igual mientras corra el plazo.',
         submit: 'Confirmar y pagar {{amount}}',
         goToGateway: 'Ir a pagar con Mercado Pago',
-        incomplete: 'Completá división, categoría, categoría de peso y peso declarado para seguir.',
+        firstMeet: 'Es mi primer torneo',
+        firstMeetNote:
+          'Si todavía no competiste, el campo de abajo pide sólo el máximo entrenando.',
+        competitionBestTotal: 'Máximo total en competencia (kg) *',
+        trainingBestTotal: 'Máximo total entrenando (kg) *',
+        incomplete:
+          'Completá división, categoría, categoría de peso, peso declarado y máximo total para seguir.',
       },
     },
     benefits: {
@@ -1912,6 +1920,11 @@ export default {
       bestTotal: 'Mejor total en competencia',
       bestTotalPlaceholder: 'Ej.: 625,5 kg',
       bestTotalNote: 'Dato declarado. No reemplaza el total oficial del torneo.',
+      firstMeet: 'Es mi primer torneo',
+      firstMeetNote:
+        'Si todavía no competiste, el campo de abajo pide sólo el máximo entrenando.',
+      trainingBestTotal: 'Máximo total entrenando',
+      trainingBestTotalPlaceholder: 'Ej.: 500 kg',
       division: 'División',
       divisionAgeHint:
         'Según tu fecha de nacimiento: {{division}}. Si aplica, también podés elegir Open.',
@@ -4124,7 +4137,18 @@ export default {
       checkoutContinue: 'Continuar al pago',
       checkoutRegistrationLine: 'Inscripción',
       competitionFormTitle: 'Definí tu entrada',
-      competitionFormDesc: 'División, categoría, modalidad y peso. La clase de peso sale de tu peso corporal.',
+      competitionFormDesc:
+        'División, categoría, modalidad y peso. El máximo es un solo número. La clase de peso sale de tu peso corporal.',
+      firstMeet: 'Es mi primer torneo',
+      firstMeetNote:
+        'Si todavía no competiste, el número de abajo es el máximo entrenando.',
+      competitionBestTotal: 'Máximo en competencia *',
+      competitionBestTotalPlaceholder: '625,5',
+      competitionBestTotalHint:
+        'Sentadilla, banco y peso muerto. No reemplaza el total oficial.',
+      trainingBestTotal: 'Máximo entrenando *',
+      trainingBestTotalPlaceholder: '500',
+      trainingBestTotalHint: 'Tus mejores marcas en el gimnasio. Sirve para armar las tandas.',
       weightClass: 'Categoría de peso *',
       weightClassPlaceholder: 'Seleccioná la categoría',
       weightClassSuggestion:
@@ -4544,6 +4568,9 @@ export default {
     weightClass: 'Seleccioná la categoría de peso en la que vas a competir.',
     weight: 'Ingresá un peso entre 10 y 250 kg.',
     weightRequired: 'Ingresá tu peso corporal.',
+    declaredTotal: 'Ingresá un total entre 10 y 2.000 kg.',
+    competitionBestTotal: 'Ingresá tu máximo total en competencia (entre 10 y 2.000 kg).',
+    trainingBestTotal: 'Ingresá tu máximo total entrenando (entre 10 y 2.000 kg).',
     invalid: 'Datos inválidos',
     attendeeName: 'Falta el nombre',
     buyerName: 'Ingresá tu nombre y apellido.',

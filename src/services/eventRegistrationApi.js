@@ -131,6 +131,18 @@ export async function assignRegistrationSchedule(
   }
 }
 
+function optionalBoardKg(value) {
+  if (value === null || value === undefined || value === '') return null
+  const number = Number(value)
+  return Number.isFinite(number) ? number : null
+}
+
+function optionalBoardFirstMeet(value) {
+  if (value === true) return true
+  if (value === false) return false
+  return null
+}
+
 /** Fila de atleta en el tablero de armado de grilla. */
 function toCamelBoardAthlete(row) {
   return {
@@ -141,6 +153,11 @@ function toCamelBoardAthlete(row) {
     division: row.division ?? '',
     category: row.category ?? '',
     bodyweightKg: row.bodyweightKg ?? row.bodyweight_kg ?? null,
+    isFirstMeet: optionalBoardFirstMeet(row.isFirstMeet ?? row.is_first_meet),
+    competitionBestTotalKg: optionalBoardKg(
+      row.competitionBestTotalKg ?? row.competition_best_total_kg,
+    ),
+    trainingBestTotalKg: optionalBoardKg(row.trainingBestTotalKg ?? row.training_best_total_kg),
     sex: row.sex ?? null,
     // Edad al día que arranca el evento; null si el atleta no cargó nacimiento.
     age: row.age === null || row.age === undefined ? null : Number(row.age),

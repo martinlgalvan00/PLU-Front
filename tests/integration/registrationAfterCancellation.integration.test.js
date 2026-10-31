@@ -42,6 +42,7 @@ function registerForEvent(
       category,
       bodyweightKg,
       declaredWeightClass,
+      competitionBestTotalKg: 500,
       paymentMethod: 'manual_link',
       idempotencyKey: randomUUID(),
     }),

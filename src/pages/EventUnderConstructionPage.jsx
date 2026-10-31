@@ -43,6 +43,38 @@ function daysUntil(value, now = new Date()) {
   return days >= 0 ? days : null
 }
 
+/** Día grande y mes con año al lado. Sale del `Date`, no del string ya armado. */
+function formatDateLockup(value, locale) {
+  const date = toDate(value)
+  if (!date) return null
+  const loc = locale === 'en' ? 'en-US' : 'es-AR'
+  const day = new Intl.DateTimeFormat(loc, { day: 'numeric' }).format(date)
+  const month = new Intl.DateTimeFormat(loc, { month: 'long' }).format(date)
+  const year = new Intl.DateTimeFormat(loc, { year: 'numeric' }).format(date)
+  return { figure: day, rest: `${month} ${year}` }
+}
+
+/** “5 días” → cifra y contexto, reusando el copy que ya existe. */
+function splitCountPhrase(phrase, count) {
+  const figure = String(count)
+  const rest = phrase.replace(figure, '').replace(/\s+/g, ' ').trim()
+  return rest ? { figure, rest } : { phrase }
+}
+
+function FactValue({ value }) {
+  if (value.phrase) {
+    return <dd className="event-under-construction__fact-phrase">{value.phrase}</dd>
+  }
+  return (
+    <dd className="event-under-construction__fact-line">
+      <span className="event-under-construction__fact-figure">{value.figure}</span>
+      {value.rest ? (
+        <span className="event-under-construction__fact-rest">{value.rest}</span>
+      ) : null}
+    </dd>
+  )
+}
+
 /**
  * Lo que ve el público de una landing con el interruptor apagado: el nombre del
  * evento y el aviso de que la página oficial se está preparando.
@@ -52,8 +84,9 @@ function daysUntil(value, now = new Date()) {
  * caso); programada, dice cuándo abre. Cerrada, no revela nada más.
  *
  * Composición: el nombre del evento a gran escala con su logo como emblema, y
- * una banda reglada con los datos que deciden la inscripción. Un solo estado
- * ("Inscripción abierta" o "Próximamente"): antes decía las dos cosas a la vez.
+ * debajo una ficha editorial (el dato grande, el rótulo debajo) con lo que
+ * decide la inscripción. Un solo estado ("Inscripción abierta" o
+ * "Próximamente"): antes decía las dos cosas a la vez.
  */
 export default function EventUnderConstructionPage({
   event = null,
@@ -80,22 +113,25 @@ export default function EventUnderConstructionPage({
   const opensAt =
     takesRegistrations && !canRegister ? formatDate(event?.registrationOpensAt, locale, true) : ''
   const registration = canRegister ? 'open' : opensAt ? 'scheduled' : 'closed'
-  const date = takesRegistrations ? formatDate(event?.startsAt, locale) : ''
+  const dateLockup = takesRegistrations ? formatDateLockup(event?.startsAt, locale) : null
   // Sede arriba y ciudad debajo: en una sola línea la banda se partía en tres.
   const place = takesRegistrations ? [event?.venue, event?.location].filter(Boolean) : []
   const remaining = takesRegistrations ? daysUntil(event?.startsAt) : null
   const countdown =
     remaining == null
-      ? ''
+      ? null
       : remaining === 0
-        ? text('countdownToday')
-        : text(remaining === 1 ? 'countdownDays_one' : 'countdownDays', { count: remaining })
+        ? { phrase: text('countdownToday') }
+        : splitCountPhrase(
+            text(remaining === 1 ? 'countdownDays_one' : 'countdownDays', { count: remaining }),
+            remaining,
+          )
 
   // Cupo e inscriptos en vivo (el mismo resumen que la portada y Pitbull). Solo
   // con la venta abierta: cerrada, la página no revela nada más.
   const live = useEventRegistrationCapacity(event?.slug, { enabled: canRegister })
-  const capacityLabel = (() => {
-    if (!canRegister || live.status !== 'live' || !live.slots) return ''
+  const capacity = (() => {
+    if (!canRegister || live.status !== 'live' || !live.slots) return null
     const view = describePublicCapacity({
       progressPublic: live.progressPublic,
       totalPublic: live.totalPublic,
@@ -103,12 +139,18 @@ export default function EventUnderConstructionPage({
       slots: live.slots,
       remaining: live.remaining,
     })
-    if (view.mode === 'hidden') return text('capacityLimited')
-    return view.showTotal
-      ? text('capacityRemaining', { remaining: view.remaining, slots: view.slots })
-      : text(view.registered === 1 ? 'capacityRegistered_one' : 'capacityRegistered', {
-          count: view.registered,
-        })
+    if (view.mode === 'hidden') return { phrase: text('capacityLimited') }
+    if (view.showTotal) {
+      return {
+        phrase: text('capacityRemaining', { remaining: view.remaining, slots: view.slots }),
+      }
+    }
+    return splitCountPhrase(
+      text(view.registered === 1 ? 'capacityRegistered_one' : 'capacityRegistered', {
+        count: view.registered,
+      }),
+      view.registered,
+    )
   })()
   const recent =
     canRegister && eventShowsPublicRecentRegistrants(event) ? live.recent.slice(0, MAX_RECENT) : []
@@ -123,6 +165,7 @@ export default function EventUnderConstructionPage({
     <main
       className="page event-under-construction event-landing-theme"
       data-event-theme={landing.themeId}
+      data-template={landing.templateId}
       data-motion={motion}
       data-registration={registration}
       data-emblem={logoUrl ? 'logo' : undefined}
@@ -205,61 +248,67 @@ export default function EventUnderConstructionPage({
           ) : null}
         </section>
 
-        {date || place.length || countdown || capacityLabel ? (
-          <dl className="event-under-construction__facts">
-            {date ? (
-              <div>
-                <dt>{text('date')}</dt>
-                <dd>{date}</dd>
-              </div>
+        {dateLockup || place.length || countdown || capacity || recent.length > 0 ? (
+          <div className="event-under-construction__dossier">
+            {dateLockup || place.length || countdown || capacity ? (
+              <dl className="event-under-construction__facts">
+                {dateLockup ? (
+                  <div>
+                    <dt>{text('date')}</dt>
+                    <FactValue value={dateLockup} />
+                  </div>
+                ) : null}
+                {place.length ? (
+                  <div>
+                    <dt>{text('venue')}</dt>
+                    <dd>
+                      <span className="event-under-construction__fact-name">{place[0]}</span>
+                      {place[1] ? <small>{place[1]}</small> : null}
+                    </dd>
+                  </div>
+                ) : null}
+                {countdown ? (
+                  <div>
+                    <dt>{text('countdownLabel')}</dt>
+                    <FactValue value={countdown} />
+                  </div>
+                ) : null}
+                {capacity ? (
+                  <div>
+                    <dt>{text('capacityLabel')}</dt>
+                    <FactValue value={capacity} />
+                  </div>
+                ) : null}
+              </dl>
             ) : null}
-            {place.length ? (
-              <div>
-                <dt>{text('venue')}</dt>
-                <dd>
-                  <span>{place[0]}</span>
-                  {place[1] ? <small>{place[1]}</small> : null}
-                </dd>
-              </div>
-            ) : null}
-            {countdown ? (
-              <div>
-                <dt>{text('countdownLabel')}</dt>
-                <dd>{countdown}</dd>
-              </div>
-            ) : null}
-            {capacityLabel ? (
-              <div>
-                <dt>{text('capacityLabel')}</dt>
-                <dd>{capacityLabel}</dd>
-              </div>
-            ) : null}
-          </dl>
-        ) : null}
 
-        {recent.length > 0 ? (
-          <section className="event-under-construction__recent" aria-labelledby="euc-recent-title">
-            <header>
-              <h2 id="euc-recent-title">{t('pages.events.recentRegistrantsTitle')}</h2>
-              <span className="event-under-construction__live">
-                <span aria-hidden />
-                {t('pages.events.recentRegistrantsLive')}
-              </span>
-            </header>
-            <ol>
-              {recent.map((item, index) => (
-                <li key={`${item.displayName}-${item.registeredAt ?? index}`}>
-                  <strong>{item.displayName}</strong>
-                  {item.gym ? <span>{item.gym}</span> : <span />}
-                  {item.registeredAt ? (
-                    <time dateTime={item.registeredAt}>
-                      {formatRelativeTime(item.registeredAt, locale)}
-                    </time>
-                  ) : null}
-                </li>
-              ))}
-            </ol>
-          </section>
+            {recent.length > 0 ? (
+              <section className="event-under-construction__recent" aria-labelledby="euc-recent-title">
+                <header>
+                  <h2 id="euc-recent-title">{t('pages.events.recentRegistrantsTitle')}</h2>
+                  <span className="event-under-construction__live">
+                    <span aria-hidden />
+                    {t('pages.events.recentRegistrantsLive')}
+                  </span>
+                </header>
+                <ol>
+                  {recent.map((item, index) => (
+                    <li key={`${item.displayName}-${item.registeredAt ?? index}`}>
+                      <span className="event-under-construction__athlete">
+                        <strong>{item.displayName}</strong>
+                        {item.gym ? <span>{item.gym}</span> : null}
+                      </span>
+                      {item.registeredAt ? (
+                        <time dateTime={item.registeredAt}>
+                          {formatRelativeTime(item.registeredAt, locale)}
+                        </time>
+                      ) : null}
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </main>

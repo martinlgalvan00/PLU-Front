@@ -5,6 +5,7 @@ import {
   acceptStaffInvitationRequest,
   createAccessRoleRequest,
   createSecurityAccessLinkRequest,
+  getSecurityAccessLinkRequest,
   createSecurityUserRequest,
   createSecurityUsersBulkRequest,
   changeOwnPasswordRequest,
@@ -1592,6 +1593,11 @@ export function useAppData() {
             : (options.categories ?? [form.category]),
           declaredWeightClass:
             options.competition?.declaredWeightClass ?? form.declaredWeightClass ?? '',
+          firstMeet: options.competition?.firstMeet ?? form.firstMeet === true,
+          competitionBestTotalKg:
+            options.competition?.competitionBestTotalKg ?? form.competitionBestTotalKg ?? '',
+          trainingBestTotalKg:
+            options.competition?.trainingBestTotalKg ?? form.trainingBestTotalKg ?? '',
           bodyweightKg:
             options.competition?.bodyweightKg !== undefined
               ? options.competition.bodyweightKg
@@ -1618,6 +1624,9 @@ export function useAppData() {
           competition.category,
           competition.categories,
           competition.declaredWeightClass,
+          competition.firstMeet,
+          competition.competitionBestTotalKg,
+          competition.trainingBestTotalKg,
           competition.bodyweightKg,
           paymentMethod,
           purchaseType,
@@ -1644,6 +1653,9 @@ export function useAppData() {
             category: competition.category,
             categories: competition.categories,
             declaredWeightClass: competition.declaredWeightClass,
+            firstMeet: competition.firstMeet === true,
+            competitionBestTotalKg: competition.competitionBestTotalKg,
+            trainingBestTotalKg: competition.trainingBestTotalKg,
             bodyweightKg: competition.bodyweightKg,
             paymentMethod,
             idempotencyKey: registrationAttemptRef.current.idempotencyKey,
@@ -1787,6 +1799,9 @@ export function useAppData() {
       category,
       declaredWeightClass,
       bodyweightKg,
+      firstMeet = false,
+      competitionBestTotalKg = '',
+      trainingBestTotalKg = '',
     }) => {
       if (!offer?.code || !event?.slug) {
         return Promise.resolve({ error: 'No se pudo resolver la oferta.' })
@@ -1796,7 +1811,15 @@ export function useAppData() {
         paymentMethod,
         discountCode: offer.code,
         comboAccessCode: offer.code,
-        competition: { division, category, declaredWeightClass, bodyweightKg },
+        competition: {
+          division,
+          category,
+          declaredWeightClass,
+          bodyweightKg,
+          firstMeet,
+          competitionBestTotalKg,
+          trainingBestTotalKg,
+        },
       })
     },
     [submitCompetition],
@@ -2800,8 +2823,10 @@ export function useAppData() {
   }, [])
 
   const createSecurityAccessLinkAction = useCallback(
-    (userId, { sendEmail = false, expiresAt } = {}) =>
-      createSecurityAccessLinkRequest(userId, { sendEmail, expiresAt }),
+    (userId, { sendEmail = false, expiresAt, rotate = false, read = false } = {}) =>
+      read
+        ? getSecurityAccessLinkRequest(userId)
+        : createSecurityAccessLinkRequest(userId, { sendEmail, expiresAt, rotate }),
     [],
   )
 
@@ -2841,8 +2866,8 @@ export function useAppData() {
   // Login passwordless de puerta: la credencial (token firmado) crea una
   // sesión real igual que loginRequest, incluyendo el puente de Supabase Auth.
   const loginWithGateToken = useCallback(
-    async (token) => {
-      const { user, supabaseAuth } = await securityGateRequest(token)
+    async (credential) => {
+      const { user, supabaseAuth } = await securityGateRequest(credential)
       setSession(user)
       await establishSupabaseSession(supabaseAuth)
       return user
@@ -2987,7 +3012,7 @@ export function useAppData() {
   )
 
   const logout = useCallback(
-    async ({ notify = true } = {}) => {
+    async ({ notify = true, preserveOfflineQueue = false } = {}) => {
       const currentSession = session
       logoutEpochRef.current += 1
       logoutInFlightRef.current = true
@@ -2999,9 +3024,12 @@ export function useAppData() {
       // tiene que decir quién salió, no un genérico.
       if (notify) markSignedOut(sessionDisplayName(currentSession ?? {}, { short: true }))
       // Las listas de la puerta (nombre y DNI) no se quedan en el equipo al salir.
-      void import('../lib/offlineCheckinDb.js')
-        .then((offlineDb) => offlineDb.purgeOfflineCheckinData())
-        .catch(() => {})
+      // Quien vuelve a entrar para sincronizar una cola no tiene que perderla.
+      if (!preserveOfflineQueue) {
+        void import('../lib/offlineCheckinDb.js')
+          .then((offlineDb) => offlineDb.purgeOfflineCheckinData())
+          .catch(() => {})
+      }
 
       try {
         if (!isDemoSession(currentSession) && currentSession) {

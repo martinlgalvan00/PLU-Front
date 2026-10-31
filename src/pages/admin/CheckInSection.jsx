@@ -50,6 +50,7 @@ export default function CheckInSection({
   onApprovePayment,
   onCheckInRegistration,
   onCheckInTicket,
+  onReauthenticate = null,
   onRedeemTicketAddon,
   onRefreshTickets,
   onRejectPayment,
@@ -111,6 +112,7 @@ export default function CheckInSection({
             onReloadAndSync={workspace.reloadAndSync}
             pendingCount={workspace.offlineSync.pendingCount}
             queueLog={workspace.offlineSync.queueLog}
+            onReauthenticate={onReauthenticate}
             syncIssue={workspace.offlineSync.syncIssue}
             syncNow={workspace.offlineSync.syncNow}
             syncing={workspace.offlineSync.syncing}

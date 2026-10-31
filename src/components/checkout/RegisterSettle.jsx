@@ -171,9 +171,7 @@ export default function RegisterSettle({
         ? t('pages.register.paymentWisePriceHint')
         : showChannelCompare
           ? t('pages.register.manualChannelPriceHint')
-          : mercadoPagoEnabled && !transferOffered && !cashOffered && !wiseEnabled
-            ? t('pages.register.paymentMercadoPagoOnlyHint')
-            : '')
+          : '')
 
   return (
     <CheckoutDesk

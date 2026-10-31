@@ -8,7 +8,8 @@
  * (exportar y leer el archivo) y la API (validar y aplicar). Puro, sin I/O.
  *
  * Se editan los datos competitivos que no mueven plata ni cupo: división,
- * categoría, modalidades, categoría de peso y peso corporal. Ojo: desde oct 2026
+ * categoría, modalidades, categoría de peso, peso corporal, si es el primer
+ * torneo y el máximo total. Ojo: desde oct 2026
  * cada modalidad extra cuesta 50% más y la planilla no recotiza la orden; sumar
  * una acá es una corrección del staff, no un cobro. La
  * segunda división cambia el precio (50%) y el estado pasa por Cobros: quedan
@@ -26,6 +27,11 @@ import {
   MEN_WEIGHT_CLASSES,
   WOMEN_WEIGHT_CLASSES,
 } from './pluWeightClasses.js'
+import {
+  isValidDeclaredTotalKg,
+  registrationDeclaredTotalView,
+  resolveRegistrationDeclaredTotals,
+} from './declaredMeetTotal.js'
 import { BODYWEIGHT_KG_RANGE, isValidBodyweightKg } from './registrationRequirements.js'
 import {
   formatModalities,
@@ -48,6 +54,8 @@ export const REGISTRATION_SHEET_EDITABLE_FIELDS = Object.freeze([
   'modalities',
   'declaredWeightClass',
   'bodyweightKg',
+  'firstMeet',
+  'declaredTotalKg',
 ])
 
 /**
@@ -90,6 +98,21 @@ export const REGISTRATION_SHEET_COLUMNS = Object.freeze([
     editable: true,
     numeric: true,
     aliases: ['peso corporal', 'peso', 'peso declarado', 'bodyweight'],
+  },
+  {
+    key: 'firstMeet',
+    header: 'Primer torneo',
+    width: 16,
+    editable: true,
+    aliases: ['primer meet', 'first meet'],
+  },
+  {
+    key: 'declaredTotalKg',
+    header: 'Máximo total (kg)',
+    width: 18,
+    editable: true,
+    numeric: true,
+    aliases: ['maximo total', 'mejor total', 'total', 'best total'],
   },
   { key: 'status', header: 'Estado inscripción', width: 18 },
   { key: 'paymentStatus', header: 'Estado de pago', width: 16 },
@@ -174,6 +197,9 @@ export function buildRegistrationSheetRows({
       modalities: formatModalities(registration.modalities),
       declaredWeightClass: registration.declaredWeightClass ?? '',
       bodyweightKg: Number.isFinite(bodyweight) && bodyweight > 0 ? bodyweight : '',
+      firstMeet:
+        registration.isFirstMeet == null ? '' : registration.isFirstMeet ? 'Sí' : 'No',
+      declaredTotalKg: registrationDeclaredTotalView(registration)?.kg ?? '',
       status: registration.status ?? '',
       paymentStatus: payment?.status ?? registration.paymentStatus ?? '',
       createdAt: calendarDay(registration.createdAt),
@@ -202,6 +228,12 @@ export function registrationSheetAllowedValues() {
       header: header('bodyweightKg'),
       values: `Número entre ${BODYWEIGHT_KG_RANGE.min} y ${BODYWEIGHT_KG_RANGE.max} (acepta 67,5 o 67.5)`,
     },
+    { header: header('firstMeet'), values: 'Sí, No' },
+    {
+      header: header('declaredTotalKg'),
+      values:
+        'Número entre 10 y 2.000. Si Primer torneo es Sí, es el máximo entrenando; si es No, el de competencia.',
+    },
   ]
 }
 
@@ -224,6 +256,15 @@ export function parseModalitiesCell(value) {
     codes.push(code)
   }
   return { ok: true, modalities: codes }
+}
+
+/** "Sí" / "No" / vacío. Texto desconocido → NaN. */
+function parseFirstMeetCell(value) {
+  const key = plainKey(value)
+  if (!key) return null
+  if (['si', 'yes', 'true', '1'].includes(key)) return true
+  if (['no', 'false', '0'].includes(key)) return false
+  return Number.NaN
 }
 
 /** `67,5` / `67.5 kg` / 67.5 → 67.5; vacío → null; texto → NaN. */
@@ -351,6 +392,20 @@ export function parseRegistrationSheet(sheet) {
           continue
         }
         values.bodyweightKg = kg
+      } else if (field === 'firstMeet') {
+        const firstMeet = parseFirstMeetCell(text)
+        if (Number.isNaN(firstMeet)) {
+          issues.push({ row, field, code: 'FIRST_MEET_INVALID', value: text })
+          continue
+        }
+        values.firstMeet = firstMeet
+      } else if (field === 'declaredTotalKg') {
+        const kg = parseKg(raw)
+        if (Number.isNaN(kg) || !isValidDeclaredTotalKg(kg)) {
+          issues.push({ row, field, code: 'DECLARED_TOTAL_INVALID', value: text })
+          continue
+        }
+        values.declaredTotalKg = kg
       }
     }
     rows.push({ row, registrationId, values })
@@ -404,6 +459,9 @@ export function diffRegistrationImportRow(current, values = {}) {
     ),
     declaredWeightClass: current.declaredWeightClass ?? '',
     bodyweightKg: current.bodyweightKg ?? null,
+    isFirstMeet: current.isFirstMeet === true ? true : current.isFirstMeet === false ? false : null,
+    competitionBestTotalKg: current.competitionBestTotalKg ?? null,
+    trainingBestTotalKg: current.trainingBestTotalKg ?? null,
   }
 
   if (values.division != null) {
@@ -481,6 +539,48 @@ export function diffRegistrationImportRow(current, values = {}) {
     } else if (!sameKg(kg, next.bodyweightKg)) {
       changes.push({ field: 'bodyweightKg', from: next.bodyweightKg, to: kg })
       next.bodyweightKg = kg
+    }
+  }
+
+  if (values.firstMeet != null || values.declaredTotalKg != null) {
+    const firstMeet = values.firstMeet != null ? values.firstMeet === true : next.isFirstMeet
+    const currentKg =
+      next.isFirstMeet === true
+        ? next.trainingBestTotalKg
+        : next.isFirstMeet === false
+          ? next.competitionBestTotalKg
+          : null
+    const kg = values.declaredTotalKg != null ? Number(values.declaredTotalKg) : currentKg
+    const resolved = resolveRegistrationDeclaredTotals({
+      firstMeet,
+      competitionBestTotalKg: firstMeet ? null : kg,
+      trainingBestTotalKg: firstMeet ? kg : null,
+    })
+    if (firstMeet == null || !resolved.ok) {
+      errors.push({
+        field: firstMeet == null ? 'firstMeet' : 'declaredTotalKg',
+        code: firstMeet == null ? 'DECLARED_TOTAL_REQUIRED' : 'DECLARED_TOTAL_INVALID',
+        value: firstMeet == null ? '' : String(values.declaredTotalKg ?? ''),
+      })
+    } else if (
+      resolved.isFirstMeet !== next.isFirstMeet ||
+      !sameKg(resolved.competitionBestTotalKg, next.competitionBestTotalKg) ||
+      !sameKg(resolved.trainingBestTotalKg, next.trainingBestTotalKg)
+    ) {
+      if (resolved.isFirstMeet !== next.isFirstMeet) {
+        changes.push({
+          field: 'firstMeet',
+          from: next.isFirstMeet,
+          to: resolved.isFirstMeet,
+        })
+      }
+      const nextKg = resolved.isFirstMeet ? resolved.trainingBestTotalKg : resolved.competitionBestTotalKg
+      if (!sameKg(nextKg, currentKg)) {
+        changes.push({ field: 'declaredTotalKg', from: currentKg, to: nextKg })
+      }
+      next.isFirstMeet = resolved.isFirstMeet
+      next.competitionBestTotalKg = resolved.competitionBestTotalKg
+      next.trainingBestTotalKg = resolved.trainingBestTotalKg
     }
   }
 

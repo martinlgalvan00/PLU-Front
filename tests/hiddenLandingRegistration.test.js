@@ -174,6 +174,7 @@ describe('validación del formulario contra lo que ofrece el evento', () => {
     category: 'Raw',
     declaredWeightClass: '90',
     estimatedWeight: '89',
+    competitionBestTotalKg: '500',
     paymentMethod: 'mercado_pago',
     modalities: ['full_power'],
   }

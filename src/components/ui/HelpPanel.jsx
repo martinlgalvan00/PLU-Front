@@ -16,7 +16,11 @@ import { useAssist } from '../../providers/AssistProvider.jsx'
 import { formatShortDate } from '../../lib/format.js'
 import { JOURNEY_STATES } from '../../lib/athleteJourney.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
-import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
+import {
+  overlayPanelTransition,
+  overlayScrimTransition,
+  resolveOverlayVariants,
+} from '../../motion/variants.ts'
 
 const { DONE, TODO, BLOCKED, PENDING, CLOSED, UNAVAILABLE } = JOURNEY_STATES
 
@@ -354,21 +358,15 @@ function HelpPanelBody({
   )
 }
 
-const STILL = { duration: 0 }
-
 /**
  * El velo y la hoja son hijos directos de `AnimatePresence`: al cerrar, cada
- * uno sale por donde entró (el velo se disuelve, la hoja vuelve hacia el
- * botón) en vez de desaparecer de un corte.
+ * uno sale por donde entró (el velo se disuelve, la hoja desaparece en
+ * el lugar) en vez de desaparecer de un corte.
  */
 export function HelpPanelPresence({ open, onClose, ...panelProps }) {
   const { reducedMotion } = useMotionConfig()
-  const enter = reducedMotion
-    ? STILL
-    : { duration: MOTION_DURATION.base, ease: MOTION_EASE.out }
-  const leave = reducedMotion
-    ? STILL
-    : { duration: MOTION_DURATION.fast, ease: MOTION_EASE.standard }
+  const scrimVariants = resolveOverlayVariants(overlayScrimTransition, reducedMotion)
+  const panelVariants = resolveOverlayVariants(overlayPanelTransition, reducedMotion)
 
   return (
     <AnimatePresence>
@@ -377,10 +375,10 @@ export function HelpPanelPresence({ open, onClose, ...panelProps }) {
           key="help-scrim"
           className="help-panel__scrim"
           role="presentation"
-          initial={reducedMotion ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: leave }}
-          transition={enter}
+          variants={scrimVariants}
+          initial={reducedMotion ? false : 'hidden'}
+          animate="visible"
+          exit="exit"
           onMouseDown={onClose}
         />
       ) : null}
@@ -392,18 +390,10 @@ export function HelpPanelPresence({ open, onClose, ...panelProps }) {
           aria-modal="true"
           aria-labelledby="help-panel-title"
           aria-describedby="help-panel-lead"
-          initial={reducedMotion ? false : { opacity: 0, y: 12, scale: 0.985 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={
-            reducedMotion
-              ? { opacity: 1, transition: STILL }
-              : { opacity: 0, y: 8, scale: 0.99, transition: leave }
-          }
-          transition={
-            reducedMotion
-              ? STILL
-              : { duration: MOTION_DURATION.base, ease: MOTION_EASE.cinematic }
-          }
+          variants={panelVariants}
+          initial={reducedMotion ? false : 'hidden'}
+          animate="visible"
+          exit="exit"
           onMouseDown={(event_) => event_.stopPropagation()}
         >
           <HelpPanelBody onClose={onClose} {...panelProps} />

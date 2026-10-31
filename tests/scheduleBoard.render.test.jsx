@@ -158,6 +158,27 @@ describe('tablero de armado de grilla', () => {
     expect(screen.getByText('Tanda G')).toBeTruthy()
   })
 
+  it('muestra el máximo total declarado para armar la tanda', async () => {
+    const data = board()
+    data.unassigned[0] = athlete({
+      isFirstMeet: false,
+      competitionBestTotalKg: 500,
+    })
+    data.days[0].sessions[0].athletes[0] = athlete({
+      registrationId: 'reg-3',
+      fullName: 'Martín Sosa',
+      isFirstMeet: true,
+      trainingBestTotalKg: 410.5,
+    })
+    fetchEventBoard.mockResolvedValue(data)
+    renderBoard()
+
+    expect(await screen.findByText(/Total 500 kg/)).toBeTruthy()
+    expect(screen.getByText(/Entrena 410\.5 kg/)).toBeTruthy()
+    // Sin el dato (inscripción anterior) no se inventa un número.
+    expect(screen.getByText('Lucas Ferro').closest('label').textContent).not.toMatch(/Total|Entrena/)
+  })
+
   it('la barra de movimiento aparece recién con selección', async () => {
     fetchEventBoard.mockResolvedValue(board())
     renderBoard()

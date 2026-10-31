@@ -115,6 +115,7 @@ function registrationBody(extra = {}) {
     modalities: ['full_power'],
     bodyweightKg: 90,
     declaredWeightClass: '90',
+    competitionBestTotalKg: 500,
     paymentMethod: 'mercado_pago',
     idempotencyKey: crypto.randomUUID(),
     ...extra,
