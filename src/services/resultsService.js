@@ -56,11 +56,17 @@ export const RESULTS_FILTER_LABELS = {
   pending: 'en espera',
 }
 
-export function getResultsArchive(events = UPCOMING_EVENTS) {
-  return events.map((event) => ({
-    ...event,
-    resultsStatus: PUBLISHED_RESULT_SLUGS.has(event.slug) ? 'published' : 'pending',
-  }))
+export function getResultsArchive(events = UPCOMING_EVENTS, publishedSlugs = []) {
+  const sheets = new Set(publishedSlugs)
+  return events.map((event) => {
+    const sheet = sheets.has(event.slug)
+    const sample = PUBLISHED_RESULT_SLUGS.has(event.slug)
+    return {
+      ...event,
+      resultsStatus: sheet || sample ? 'published' : 'pending',
+      resultsSource: sheet ? 'sheet' : sample ? 'static' : null,
+    }
+  })
 }
 
 export function getEventResults(slug) {
@@ -71,7 +77,7 @@ export function hasEventResults(slug) {
   return Boolean(EVENT_RESULTS_BY_SLUG[slug])
 }
 
-/** Meets con planilla publicada (fuente para resultados y padrón de récords). */
+/** Muestras estáticas. Los récords no leen las planillas importadas. */
 export function listPublishedEventResults() {
   return Object.values(EVENT_RESULTS_BY_SLUG)
 }

@@ -296,6 +296,7 @@ export default function AdminEventSecuritySection({
     <section className="admin-event-security" aria-labelledby="admin-event-security-title">
       <header className="admin-event-security__head">
         <div className="admin-event-security__head-copy">
+          <p className="admin-event-security__step">{t('admin.eventEditor.security.stepTeam')}</p>
           <h3 id="admin-event-security-title">{t('admin.eventEditor.security.title')}</h3>
           <p className="admin-event-security__lead">{t('admin.eventEditor.security.lead')}</p>
         </div>
@@ -465,8 +466,8 @@ export default function AdminEventSecuritySection({
                   )}
                   <Pill tone={active ? 'success' : 'neutral'}>
                     {active
-                      ? t('admin.eventEditor.security.statusActive')
-                      : t('admin.eventEditor.security.statusDisabled')}
+                      ? t('admin.eventEditor.security.canEnter')
+                      : t('admin.eventEditor.security.cannotEnter')}
                   </Pill>
                   {canManageUsers && (
                     <div className="admin-event-security__item-actions">

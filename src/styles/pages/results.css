@@ -3586,6 +3586,43 @@
   border-color: color-mix(in oklab, var(--color-text-primary) 14%, transparent);
 }
 
+.results-event-panel__awards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 32px;
+  margin: 0;
+  padding: 2px 0 4px;
+}
+
+.results-event-panel__award {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.results-event-panel__award dt {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.results-event-panel__award dd {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.results-event-panel__status {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0;
+}
+
 .results-event-panel--editorial .results-podium--embedded {
   padding-bottom: clamp(4px, 1vw, 8px);
 }

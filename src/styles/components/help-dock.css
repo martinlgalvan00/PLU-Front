@@ -1,8 +1,8 @@
 /* =============================================
    AYUDA GUIADA PÚBLICA — botón persistente + panel del trámite
 
-   Colores del chip: tokens semánticos, así light y dark quedan al mismo
-   nivel. El tema claro sólo refuerza la sombra al final del archivo.
+   El lanzador y la hoja usan la misma superficie sólida en los dos temas.
+   Sin blur ni brillo interior: el oro queda para el paso que toca y el CTA.
 
    Escala de apilamiento: el botón queda por DEBAJO de los diálogos públicos
    (200) y del navbar, para no flotar encima de un checkout abierto; el panel
@@ -17,11 +17,8 @@
      equivalentes lógicos) fijan la esquina al viewport aunque `.app-shell`
      tenga overflow/isolation. Los colores salen de tokens semánticos para
      que el chip siga light y dark, no un grafito permanente. */
-  --help-dock-bg: var(--color-bg-elevated);
-  --help-dock-bg-hover: color-mix(in srgb, var(--color-text-primary) 8%, var(--color-bg-elevated));
-  --help-dock-border: var(--color-border);
+  --help-dock-bg-hover: color-mix(in srgb, var(--color-text-primary) 6%, var(--color-bg-surface));
   --help-dock-ink: var(--color-text-primary);
-  --help-dock-shadow: var(--elevation-md);
   bottom: calc(
     var(--space-lg) + env(safe-area-inset-bottom, 0px) + var(--sticky-cta-clearance, 0px)
   );
@@ -37,14 +34,15 @@
   z-index: 120;
 }
 
-/* Rectángulo sólido con un solo ícono: sin texto visible, filete ni halo. */
+/* Cuadrado de 44px, misma superficie que la hoja. El punto de oro es el
+   único acento, y solo cuando hay un paso pendiente. */
 .help-dock__button {
   align-items: center;
   animation: help-dock-in var(--motion-slow) var(--ease-standard) both;
-  background: var(--help-dock-bg);
-  border: 1px solid var(--help-dock-border);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--border-radius-md);
-  box-shadow: var(--elevation-sm);
+  box-shadow: none;
   color: var(--help-dock-ink);
   cursor: pointer;
   display: inline-flex;
@@ -56,7 +54,6 @@
   transition:
     background var(--motion-fast) var(--ease-standard),
     border-color var(--motion-fast) var(--ease-standard),
-    color var(--motion-fast) var(--ease-standard),
     transform var(--motion-fast) var(--ease-standard);
   width: 44px;
 }
@@ -81,7 +78,7 @@
 .help-dock__pending {
   background: var(--color-brand-gold);
   border-radius: 999px;
-  box-shadow: 0 0 0 2px var(--help-dock-bg);
+  box-shadow: 0 0 0 2px var(--color-bg-surface);
   height: 7px;
   position: absolute;
   right: 7px;
@@ -92,7 +89,7 @@
 @media (hover: hover) and (pointer: fine) {
   .help-dock__button:hover {
     background: var(--help-dock-bg-hover);
-    color: var(--color-brand-celeste);
+    border-color: var(--color-border-strong);
   }
 }
 
@@ -106,9 +103,9 @@
 }
 
 .help-dock__button.is-open {
-  background: var(--help-dock-bg-hover);
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 42%, var(--help-dock-border));
-  color: var(--color-brand-celeste);
+  background: var(--color-bg-surface);
+  border-color: var(--color-border-strong);
+  color: var(--help-dock-ink);
 }
 
 @keyframes help-dock-in {
@@ -129,23 +126,17 @@
    Mobile: hoja inferior (ver media query). */
 
 .help-panel__scrim {
-  background: rgba(5, 6, 10, 0.28);
+  background: color-mix(in srgb, #0d0e12 36%, transparent);
   inset: 0;
   position: fixed;
   z-index: 880;
 }
 
 .help-panel {
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
-  background: color-mix(in srgb, var(--color-bg-surface) 84%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 72%, transparent);
-  border-top-color: color-mix(in srgb, #fff 26%, transparent);
-  border-bottom-color: color-mix(in srgb, #000 16%, var(--color-border-subtle));
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--border-radius-lg);
-  box-shadow:
-    var(--elevation-md),
-    inset 0 1px 0 color-mix(in srgb, #fff 16%, transparent);
+  box-shadow: var(--elevation-md);
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -178,7 +169,7 @@
 }
 
 .help-panel__head {
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border-subtle) 80%, transparent);
+  border-bottom: 1px solid var(--color-border);
   display: grid;
   flex: none;
   gap: 4px;
@@ -219,10 +210,9 @@
 
 .help-panel__close {
   align-items: center;
-  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 80%, transparent);
-  border-radius: 999px;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 22%, transparent);
+  background: transparent;
+  border: 0;
+  border-radius: var(--border-radius-md);
   color: var(--color-text-muted);
   cursor: pointer;
   display: inline-flex;
@@ -233,7 +223,6 @@
   top: 12px;
   transition:
     background-color var(--motion-fast) var(--ease-out),
-    border-color var(--motion-fast) var(--ease-out),
     color var(--motion-fast) var(--ease-out),
     transform var(--motion-fast) var(--ease-out);
   width: 32px;
@@ -250,8 +239,7 @@
 }
 
 .help-panel__close:hover {
-  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
-  border-color: color-mix(in srgb, var(--color-text-primary) 16%, transparent);
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
   color: var(--color-text-primary);
 }
 
@@ -299,8 +287,8 @@
 }
 
 .help-panel__settings {
-  background: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
-  border-top: 1px solid color-mix(in srgb, var(--color-border-subtle) 80%, transparent);
+  background: transparent;
+  border-top: 1px solid var(--color-border);
   display: grid;
   flex: none;
   gap: 0;
@@ -452,7 +440,6 @@
 
 .help-panel__cta {
   align-items: center;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 28%, transparent);
   background: var(--color-brand-action);
   border: 0;
   border-radius: var(--border-radius-md);
@@ -647,6 +634,12 @@
 /* ── Mobile: hoja inferior ───────────────────── */
 
 @media (max-width: 640px) {
+  /* La hoja ocupa el borde inferior. El lanzador se esconde para no
+     tapar el pie; se cierra con la X, Escape o el velo. */
+  .help-dock.is-open {
+    visibility: hidden;
+  }
+
   .help-dock {
     bottom: calc(
       var(--space-md) + env(safe-area-inset-bottom, 0px) + var(--sticky-cta-clearance, 0px)
@@ -656,14 +649,10 @@
   }
 
   .help-panel__scrim {
-    background: rgba(5, 6, 10, 0.46);
+    background: color-mix(in srgb, #0d0e12 48%, transparent);
   }
 
-  .help-panel,
-  [data-theme='light'] .help-panel {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: var(--color-bg-surface);
+  .help-panel {
     border-bottom: 0;
     border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
     inset-block-end: 0;
@@ -727,51 +716,10 @@
   }
 }
 
-/* ── Tema claro ────────────────────────────────
-   El chip hereda tokens semánticos; acá sólo se refuerza la sombra para
-   que no se funda con el canvas claro. */
-
-[data-theme='light'] .help-dock {
-  --help-dock-shadow: var(--elevation-sm);
-}
-
-[data-theme='light'] .help-dock__pending {
-  box-shadow: 0 0 0 2px var(--help-dock-bg);
-}
-
-@media (min-width: 641px) {
-  [data-theme='light'] .help-panel {
-    background: color-mix(in srgb, #fff 86%, transparent);
-    border-color: color-mix(in srgb, var(--color-border-subtle) 80%, transparent);
-    border-top-color: color-mix(in srgb, #fff 90%, transparent);
-    border-bottom-color: color-mix(in srgb, #0f1117 10%, transparent);
-    box-shadow:
-      var(--elevation-md),
-      inset 0 1px 0 color-mix(in srgb, #fff 72%, transparent);
-  }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .help-panel,
-  [data-theme='light'] .help-panel {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: var(--color-bg-surface);
-  }
-}
-
-[data-theme='light'] .help-panel__scrim {
-  background: rgba(15, 17, 23, 0.38);
-}
-
+/* El marcador cerrado es tinta plena. En claro el tilde tiene que seguir
+   siendo claro sobre ese fondo, igual que en oscuro. */
 [data-theme='light'] .help-panel__step.is-done .help-panel__marker {
-  color: #ffffff;
-}
-
-@media (max-width: 640px) {
-  [data-theme='light'] .help-panel__scrim {
-    background: rgba(15, 17, 23, 0.42);
-  }
+  color: var(--color-bg-surface);
 }
 
 /* Cuando la acción principal es el recorrido (ya estamos en la pantalla del

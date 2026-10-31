@@ -7,9 +7,19 @@
 /* `.page` trae padding y, en dark, el canvas del shell lo deja transparente.
    Sin esto el hero no llega al borde ni pinta el fondo del tema. */
 .app-shell main.submission-landing.page.event-landing-theme {
-  background: var(--color-bg-primary);
+  background-color: var(--color-bg-primary);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
   color: var(--color-text-primary);
   padding: 0;
+}
+
+[data-theme='light'] .app-shell main.submission-landing.page.event-landing-theme {
+  background-image: var(--theme-paper-wash);
+}
+
+[data-theme='dark'] .app-shell main.submission-landing.page.event-landing-theme {
+  background-image: var(--theme-atmosphere-layer);
 }
 
 .submission-landing__hero {
@@ -127,8 +137,8 @@
 .submission-landing__facts dt {
   color: var(--event-accent);
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   margin: 0;
   text-transform: uppercase;
 }
@@ -170,7 +180,6 @@
 .submission-landing__status-dot {
   background: var(--color-status-success, #3fb37f);
   border-radius: 50%;
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-status-success, #3fb37f) 18%, transparent);
   display: block;
   height: 8px;
   width: 8px;
@@ -201,15 +210,7 @@
 }
 
 .submission-landing__emblem::before {
-  background: radial-gradient(
-    closest-side,
-    color-mix(in srgb, var(--event-accent) 16%, transparent),
-    transparent
-  );
-  content: '';
-  inset: -12%;
-  pointer-events: none;
-  position: absolute;
+  content: none;
 }
 
 .submission-landing__ring {
@@ -516,9 +517,9 @@ a.submission-landing__cta {
 .submission-landing__story-eyebrow {
   color: var(--event-accent);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   grid-column: 1 / -1;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.08em;
   margin: 0;
   text-transform: uppercase;
 }

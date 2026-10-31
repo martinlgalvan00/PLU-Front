@@ -12,6 +12,8 @@ const COMPLETE = {
   modalities: ['full_power'],
   declaredWeightClass: '83',
   bodyweightKg: 82.5,
+  firstMeet: false,
+  competitionBestTotalKg: 500,
 }
 
 describe('campos obligatorios de la inscripción', () => {
@@ -63,6 +65,29 @@ describe('campos obligatorios de la inscripción', () => {
     expect(checkRequiredRegistrationFields({ ...COMPLETE, bodyweightKg: 400 }).field).toBe(
       'bodyweightKg',
     )
+  })
+
+  it('exige el máximo de competencia, o el de entrenamiento si es el primer torneo', () => {
+    expect(checkRequiredRegistrationFields({ ...COMPLETE, competitionBestTotalKg: '' })).toEqual({
+      ok: false,
+      field: 'competitionBestTotalKg',
+      message: 'Ingresá tu máximo total en competencia (entre 10 y 2.000 kg).',
+    })
+    expect(
+      checkRequiredRegistrationFields({
+        ...COMPLETE,
+        firstMeet: true,
+        competitionBestTotalKg: '',
+        trainingBestTotalKg: '480,5',
+      }),
+    ).toEqual({ ok: true })
+    expect(
+      checkRequiredRegistrationFields({
+        ...COMPLETE,
+        firstMeet: true,
+        trainingBestTotalKg: '9',
+      }).field,
+    ).toBe('trainingBestTotalKg')
   })
 
   it('el mensaje del peso nombra el rango real', () => {

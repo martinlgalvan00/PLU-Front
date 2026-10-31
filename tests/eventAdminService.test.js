@@ -10,6 +10,7 @@ import {
   getEventRegistrationAvailability,
   getInitialAdminEvents,
   getEventConsistencyWarnings,
+  mapAdminEventRow,
   mapDraftToPreviewEvent,
   mapPublishedEventRow,
   mapSupabaseEventRow,
@@ -143,6 +144,36 @@ describe('eventAdminService', () => {
       { id: 'day-1', dayIndex: 0, label: 'Día 1', date: '2026-08-15' },
     ])
     expect(event.rosterFrozenAt).toBe('2026-10-21T12:00:00.000Z')
+  })
+
+  it('el tope de entradas no hereda el cupo de inscripción', () => {
+    const row = {
+      id: '11111111-1111-4111-8111-111111111111',
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic',
+      venue: 'Maximal',
+      location: 'Buenos Aires',
+      starts_at: '2026-08-15T12:00:00.000Z',
+      ends_at: '2026-08-15T20:00:00.000Z',
+      capacity: 120,
+      status: 'proximamente',
+      published: false,
+      price: 75000,
+      currency: 'ARS',
+      rules: {},
+    }
+    const capped = mapAdminEventRow({
+      ...row,
+      capacityRules: [{ scope: 'event', key: '', limit_count: 40 }],
+    })
+    const unlimited = mapAdminEventRow({ ...row, capacityRules: [] })
+
+    expect(capped.slots).toBe(120)
+    expect(capped.ticketCapacity).toBe(40)
+    expect(unlimited.slots).toBe(120)
+    expect(unlimited.ticketCapacity).toBeNull()
+    expect(buildAdminEventDraft(capped).ticketCapacity).toBe(40)
+    expect(buildAdminEventDraft(unlimited).ticketCapacity).toBe('')
   })
 
   it('mapea las ventanas de pesaje públicas desde rules', () => {

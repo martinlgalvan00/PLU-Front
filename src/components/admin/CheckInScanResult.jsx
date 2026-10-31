@@ -7,6 +7,7 @@ import { formatDocumentWithKind } from '../../lib/format.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { checkinTypeLabel } from '../../services/checkinScanService.js'
 import { TICKET_VALIDITY_STATUS, ticketValidityTiming } from '../../lib/ticketValidity.js'
+import { speakDoorCode } from '../../lib/doorCodeSpeech.js'
 
 // Decisiones que se leen de pie. El resto (sesión, cola, servidor) es un aviso
 // y no tiene que ocupar el mismo cuerpo tipográfico.
@@ -126,6 +127,7 @@ export default function CheckInScanResult({
         : null
 
   const resultKey = `${effectiveOutcome}:${scanResult.row?.id ?? ''}:${scanResult.offline ? 'local' : 'net'}`
+  const doorCode = scanResult.gateCode || scanResult.row?.gateCode || scanResult.ticket?.gateCode || ''
 
   return (
     <div
@@ -284,6 +286,31 @@ export default function CheckInScanResult({
           redeemError={redeemError}
           ticketPaid={scanTicketPaid}
         />
+      ) : null}
+
+      {scanResult.outcome === 'door_malformed' ? (
+        <p className="admin-checkin-result__reason">
+          {scanResult.reason === 'ambiguous'
+            ? t('admin.checkin.scanner.malformedAmbiguous')
+            : t('admin.checkin.scanner.malformedLength', { count: scanResult.heard ?? 0 })}
+        </p>
+      ) : null}
+
+      {Array.isArray(scanResult.repairs) && scanResult.repairs.length > 0 ? (
+        <ul className="admin-checkin-result__repairs">
+          {scanResult.repairs.map((key) => (
+            <li key={key}>{t(`admin.checkin.scanner.repair.${key}`)}</li>
+          ))}
+        </ul>
+      ) : null}
+
+      {doorCode && scanResult.outcome !== 'door_malformed' ? (
+        <div className="admin-checkin-result__actions">
+          <p className="admin-checkin-result__gate-code">{doorCode}</p>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => speakDoorCode(doorCode)}>
+            {t('admin.checkin.scanner.speakCode')}
+          </button>
+        </div>
       ) : null}
 
       <div className="admin-checkin-result__actions">

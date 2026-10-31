@@ -1,7 +1,8 @@
 import { ApiError } from '../lib/api.js'
 import { credentialOpensZone } from './securityZoneService.js'
 import { getMembershipByCodeOrToken, getStaffMembershipCredential } from './athleteApi.js'
-import { mapApiTicket, verifyTicketByQrToken } from './ticketApi.js'
+import { resolveTicketDoorCredential } from '../lib/ticketGateCode.js'
+import { mapApiTicket, resolveTicketGateCode, verifyTicketByQrToken } from './ticketApi.js'
 import { TICKET_VALIDITY_STATUS, ticketValidityStatus } from '../lib/ticketValidity.js'
 
 /**
@@ -86,6 +87,7 @@ export function buildTicketRow(ticket) {
   return {
     id: `tkt-${ticket.id}`,
     ticketCode: ticket.ticketCode,
+    gateCode: ticket.gateCode ?? null,
     qrToken: ticket.qrToken,
     type: 'espectador',
     name: ticket.attendeeName,
@@ -197,8 +199,10 @@ export async function resolveRegistrationScan({ code, eventSlug }, ctx) {
   }
 }
 
-export async function resolveTicketScan(qrToken, { zoneScope } = {}) {
+export async function resolveTicketScan(rawCode, { zoneScope } = {}) {
   try {
+    const qrToken = await resolveTicketDoorCredential(rawCode, resolveTicketGateCode)
+    if (!qrToken) return { kind: 'ticket', outcome: 'not_found' }
     const { ticket } = await verifyTicketByQrToken(qrToken)
     const mapped = mapApiTicket(ticket)
     const status = mapped.checkedInAt ? 'usada' : mapped.status

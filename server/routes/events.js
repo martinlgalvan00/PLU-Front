@@ -26,6 +26,7 @@ import {
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import { publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
+import { registerEventResultRoutes } from './eventResults.js'
 import { publicCatalogEventFor } from '../services/publicEventCatalogService.js'
 import { buildTicketCredentialsPayload } from '../../src/lib/ticketCredentials.js'
 import {
@@ -52,6 +53,7 @@ import {
   MAX_TICKET_QR_VALIDITY_MINUTES,
   TICKET_ACCESS_USAGE_MODE,
   TICKET_ACCESS_USAGE_MODES,
+  resolveTicketAccessUsageMode,
   TICKET_QR_VALIDITY_MODE,
   TICKET_QR_VALIDITY_MODES,
 } from '../../src/lib/ticketValidityPolicy.js'
@@ -196,6 +198,25 @@ const optionalDateTime = z
   .optional()
   .transform((value) => value ?? '')
   .refine((value) => value === '' || !Number.isNaN(Date.parse(value)), 'Fecha y hora inválidas.')
+
+const requiredDateTime = (missing) =>
+  z
+    .string({ required_error: missing })
+    .trim()
+    .min(1, missing)
+    .refine((value) => !Number.isNaN(Date.parse(value)), 'Fecha y hora inválidas.')
+
+/**
+ * Tope de entradas. Ausente = no tocar la fila. null o '' = sin tope.
+ * No convierte null en 0: un coerce sobre null contaría como tope cero.
+ */
+const optionalTicketCapacity = z
+  .union([
+    z.null(),
+    z.literal('').transform(() => null),
+    z.coerce.number().int().min(0).max(5000),
+  ])
+  .optional()
 
 const ticketAddonSchema = z.object({
   id: z.string().trim().min(1).max(80),
@@ -451,12 +472,14 @@ export const eventSchema = z
     // Independiente: si el medidor también publica el número total (“de 200”).
     capacityTotalPublic: z.boolean().default(true),
     slots: z.coerce.number().int().min(1).max(5000),
+    // Tope de público. Independiente de slots. Ausente = se conserva el guardado.
+    ticketCapacity: optionalTicketCapacity,
     pricing: pricingSchema,
     featured: z.boolean().optional(),
     // charge (default) | announce: soft-launch sin exigir medios de cobro.
     salesIntent: z.enum(['charge', 'announce']).optional(),
-    registrationOpensAt: optionalDateTime,
-    registrationClosesAt: optionalDateTime,
+    registrationOpensAt: requiredDateTime('Elegí cuándo abre la inscripción.'),
+    registrationClosesAt: requiredDateTime('Elegí cuándo cierra la inscripción.'),
     ticketSalesOpensAt: optionalDateTime,
     ticketSalesClosesAt: optionalDateTime,
     eventDays: z.array(eventDaySchema).max(31).optional(),
@@ -1180,6 +1203,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
   // entradas y acreditaciones. Mismo techo que el borrado de atletas y de
   // cuentas de staff -- solo Super Admin, no `admin.events.write`.
   const deleteGuard = requirePermission('admin.events.delete', { prisma })
+  registerEventResultRoutes(router, { prisma, getSupabaseAdmin })
 
   router.get('/', ...scopedViewGuard, staffLimiter, async (req, res, next) => {
     try {
@@ -1831,7 +1855,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             p_event_slug: pEvent.slug,
             p_types: pEvent.ticketTypes.map((type, index) => ({
               ...(type?.id ? { ticketTypeId: type.id } : { sortOrder: type?.sortOrder ?? index }),
-              accessUsageMode: type?.accessUsageMode ?? TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL,
+              accessUsageMode: resolveTicketAccessUsageMode(type),
             })),
             p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
           })

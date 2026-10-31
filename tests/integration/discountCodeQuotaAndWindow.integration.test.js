@@ -229,6 +229,7 @@ describe('cupo y ventana de un código contra Supabase', () => {
         category: 'Raw',
         bodyweightKg: 90,
         declaredWeightClass: '90',
+        competitionBestTotalKg: 500,
         paymentMethod: 'manual_link',
         idempotencyKey: randomUUID(),
         discountCode: code,

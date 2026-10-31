@@ -139,7 +139,10 @@ export default function TicketTypeOptions({
 
   if (!onChange) {
     return (
-      <ul className={`${rootClass} ticket-type-options--readonly`} aria-label={legend}>
+      <ul
+        className={`${rootClass} ticket-type-options--readonly ticket-type-options--catalog`}
+        aria-label={legend}
+      >
         {ticketTypes.map((type) => (
           <li key={type.id} className="ticket-type-options__option">
             <TicketTypeBody type={type} locale={locale} t={t} showAddons={showAddons} />

@@ -292,11 +292,11 @@
 /* Medio de pago: la barra de selección entra desde abajo en vez de saltar. */
 .ticket-flow-chapter .ticket-purchase__payment-option::before {
   background: var(--color-brand-celeste);
-  bottom: -1px;
+  bottom: 12px;
   content: '';
-  left: -1px;
+  left: 0;
   position: absolute;
-  top: -1px;
+  top: 12px;
   transform: scaleY(0);
   transform-origin: bottom center;
   transition: transform var(--motion-base, 240ms) var(--ease-out, ease);

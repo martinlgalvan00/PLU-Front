@@ -4,6 +4,8 @@ import { useI18n } from '../i18n/I18nProvider.jsx'
 import { useOfflineCheckinSync } from './useOfflineCheckinSync.js'
 import { buildEventTicketAddonReport } from '../lib/ticketAddons.js'
 import { parseCredentialScan } from '../lib/credentialQr.js'
+import { prepareCheckinScan } from '../lib/doorSpokenCode.js'
+import { announceCheckinVerdict } from '../lib/doorCodeSpeech.js'
 import { getFeedbackTone, playCheckinFeedback } from '../lib/checkinFeedback.js'
 import { isSnapshotFresh } from '../lib/checkinSyncConfig.js'
 import { enqueueCheckin, findInAllowlist, getAllowlist } from '../lib/offlineCheckinDb.js'
@@ -17,6 +19,7 @@ import {
   resolveCredentialScan,
 } from '../services/checkinScanService.js'
 import {
+  applyServerAdmissions,
   buildCheckinRows,
   filterCheckinRows,
   mapAllowlistToCheckinSources,
@@ -26,6 +29,8 @@ import { resolveDoorScan } from '../services/checkinScanBudget.js'
 import { downloadAllowlist as refreshCheckinAllowlist } from '../services/offlineCheckinSync.js'
 import { reportScanAttempt } from '../services/checkinTelemetry.js'
 import { classifyCheckinFailure, isRetryableCheckinFailure } from '../services/checkinFailure.js'
+import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
+import { readCheckinBroadcastSlug } from '../services/checkinRealtime.js'
 
 const MAX_SCAN_HISTORY = 15
 const COUNTER_REFRESH_MS = 30_000
@@ -74,6 +79,8 @@ export const SCAN_VERDICT_META = {
   // del puesto venció. Se muestran como lo que son, nunca como "no encontrada".
   service_unavailable: { Icon: AlertTriangle, tone: 'warning' },
   session_expired: { Icon: XCircle, tone: 'danger' },
+  door_malformed: { Icon: HelpCircle, tone: 'warning' },
+  rate_limited: { Icon: AlertTriangle, tone: 'warning' },
 }
 
 /**
@@ -125,6 +132,7 @@ function buildOfflineScanResult(found, zoneScope) {
         row: {
           id: `tkt-${entry.qrToken}`,
           ticketCode: entry.ticketCode,
+          gateCode: entry.gateCode ?? null,
           qrToken: entry.qrToken,
           type: 'espectador',
           name: entry.attendeeName,
@@ -227,7 +235,7 @@ export function useCheckInWorkspace({
   ticketTypes = [],
   tickets,
 }) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const [query, setQuery] = useState('')
   const [type, setType] = useState('all')
   const [day, setDay] = useState('all')
@@ -251,6 +259,11 @@ export function useCheckInWorkspace({
   const [localAdmittedIds, setLocalAdmittedIds] = useState(() => new Set())
   const offlineSync = useOfflineCheckinSync(eventSlug)
   const noteSnapshot = offlineSync.noteSnapshot
+  const pullAllowlist = offlineSync.downloadAllowlist
+  const drainAndPull = offlineSync.reloadAndSync
+  const liveRefreshTimer = useRef(null)
+  const admissionBaselineSlug = useRef(null)
+  const admissionPullGen = useRef(0)
   const zoneScope = securityZone?.scope ?? null
 
   function persistFeedbackPrefs(next) {
@@ -277,18 +290,6 @@ export function useCheckInWorkspace({
 
   useEffect(() => {
     onRefreshTickets?.(eventSlug)
-  }, [eventSlug, onRefreshTickets])
-
-  // Con varias puertas abiertas los contadores sólo se movían con los ingresos
-  // de ESTE equipo. Se vuelven a pedir cada tanto, y sólo con la pestaña a la
-  // vista y con conexión: de fondo o sin señal sería gasto sin nadie mirando.
-  useEffect(() => {
-    if (!eventSlug || !onRefreshTickets) return undefined
-    const intervalId = window.setInterval(() => {
-      if (document.visibilityState !== 'visible' || !navigator.onLine) return
-      onRefreshTickets(eventSlug)
-    }, COUNTER_REFRESH_MS)
-    return () => window.clearInterval(intervalId)
   }, [eventSlug, onRefreshTickets])
 
   useEffect(() => {
@@ -325,17 +326,111 @@ export function useCheckInWorkspace({
     }
   }, [eventSlug, noteSnapshot, registrations])
 
+  const applyAllowlist = useCallback(
+    (saved) => {
+      if (!saved || !eventSlug) return
+      setAllowlistSources(mapAllowlistToCheckinSources(saved, eventSlug))
+      noteSnapshot?.(saved.downloadedAt)
+    },
+    [eventSlug, noteSnapshot],
+  )
+
+  const reloadAndSync = useCallback(async () => {
+    if (!drainAndPull) return null
+    const saved = await drainAndPull()
+    applyAllowlist(saved)
+    return saved
+  }, [applyAllowlist, drainAndPull])
+
+  const refreshLiveCheckins = useCallback(() => {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+    if (liveRefreshTimer.current) window.clearTimeout(liveRefreshTimer.current)
+    liveRefreshTimer.current = window.setTimeout(() => {
+      liveRefreshTimer.current = null
+      onRefreshTickets?.(eventSlug)
+      Promise.resolve()
+        .then(() => pullAllowlist?.())
+        .then(applyAllowlist)
+        .catch(() => {})
+    }, 400)
+  }, [applyAllowlist, eventSlug, onRefreshTickets, pullAllowlist])
+
+  // Con varias puertas abiertas los contadores sólo se movían con los ingresos
+  // de ESTE equipo. Cada tanto se piden de nuevo las entradas y la foto de
+  // ingresos, y sólo con la pestaña a la vista: de fondo o sin señal no aporta.
+  useEffect(() => {
+    if (!eventSlug || !onRefreshTickets) return undefined
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState !== 'visible' || !navigator.onLine) return
+      refreshLiveCheckins()
+    }, COUNTER_REFRESH_MS)
+    return () => window.clearInterval(intervalId)
+  }, [eventSlug, onRefreshTickets, refreshLiveCheckins])
+
+  useEffect(
+    () => () => {
+      if (liveRefreshTimer.current) window.clearTimeout(liveRefreshTimer.current)
+    },
+    [],
+  )
+
+  useEffect(() => {
+    const hasLiveList = (registrations?.length ?? 0) > 0 || (tickets?.length ?? 0) > 0
+    if (!eventSlug || !hasLiveList || admissionBaselineSlug.current === eventSlug) return
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+    admissionBaselineSlug.current = eventSlug
+    const generation = ++admissionPullGen.current
+    Promise.resolve()
+      .then(() => pullAllowlist?.())
+      .then((saved) => {
+        if (admissionPullGen.current !== generation) return
+        applyAllowlist(saved)
+      })
+      .catch(() => {
+        if (admissionPullGen.current === generation) admissionBaselineSlug.current = null
+      })
+  }, [applyAllowlist, eventSlug, pullAllowlist, registrations?.length, tickets?.length])
+
+  useEffect(() => {
+    if (!eventSlug || !isSupabaseConfigured) return undefined
+    let disposed = false
+    let client = null
+    let channel = null
+
+    void getSupabaseClient()
+      .then((supabase) => {
+        if (disposed || !supabase) return
+        client = supabase
+        channel = supabase
+          .channel(`event-checkin:${eventSlug}`, { config: { broadcast: { self: false } } })
+          .on('broadcast', { event: 'checkin-changed' }, (message) => {
+            if (readCheckinBroadcastSlug(message) !== eventSlug) return
+            void refreshLiveCheckins()
+          })
+          .subscribe()
+      })
+      .catch(() => {})
+
+    return () => {
+      disposed = true
+      if (client && channel) void client.removeChannel(channel)
+    }
+  }, [eventSlug, refreshLiveCheckins])
+
   const allRows = useMemo(() => {
-    const rows = buildCheckinRows({
-      athletes: athletes?.length ? athletes : (allowlistSources?.athletes ?? []),
-      payments,
-      registrations: registrations?.length
-        ? registrations
-        : (allowlistSources?.registrations ?? []),
-      tickets: tickets?.length ? tickets : (allowlistSources?.tickets ?? []),
-      eventSlug,
-      ticketTypes,
-    })
+    const rows = applyServerAdmissions(
+      buildCheckinRows({
+        athletes: athletes?.length ? athletes : (allowlistSources?.athletes ?? []),
+        payments,
+        registrations: registrations?.length
+          ? registrations
+          : (allowlistSources?.registrations ?? []),
+        tickets: tickets?.length ? tickets : (allowlistSources?.tickets ?? []),
+        eventSlug,
+        ticketTypes,
+      }),
+      allowlistSources,
+    )
     if (localAdmittedIds.size === 0) return rows
     return rows.map((row) =>
       localAdmittedIds.has(row.id) ? { ...row, status: 'usada' } : row,
@@ -350,6 +445,26 @@ export function useCheckInWorkspace({
     ticketTypes,
     tickets,
   ])
+
+  useEffect(() => {
+    setScanResult((current) => {
+      if (!current?.canCheckIn) return current
+      const match = allRows.find((row) => {
+        if (current.kind === 'registration') return row.registrationId === current.registrationId
+        if (current.kind === 'ticket') return Boolean(row.qrToken) && row.qrToken === current.qrToken
+        return false
+      })
+      if (!match || match.status !== 'usada' || !match.checkedInAt || match.checkedInAt === 'offline') {
+        return current
+      }
+      return {
+        ...current,
+        outcome: 'already_used',
+        canCheckIn: false,
+        status: 'usada',
+      }
+    })
+  }, [allRows])
 
   const statusCounts = useMemo(() => summarizeCheckinRows(allRows, eventDays), [allRows, eventDays])
 
@@ -405,12 +520,31 @@ export function useCheckInWorkspace({
 
   const handleScan = useCallback(
     async (raw) => {
-      const parsed = parseCredentialScan(raw)
+      const prepared = prepareCheckinScan(raw)
+      const scanRaw = prepared.kind === 'door' ? prepared.display : prepared.raw || String(raw ?? '')
+
+      if (prepared.kind === 'malformed') {
+        const invalidResult = {
+          outcome: 'door_malformed',
+          reason: prepared.reason ?? 'length',
+          heard: prepared.heard ?? 0,
+          repairs: prepared.repairs ?? ['speech'],
+        }
+        setScanResult(invalidResult)
+        prependHistoryEntry(buildHistoryEntry(invalidResult, scanRaw))
+        playCheckinFeedback('door_malformed', feedbackPrefs)
+        if (feedbackPrefs.soundEnabled) announceCheckinVerdict({ outcome: 'door_malformed' }, { locale })
+        reportScanAttempt({ eventSlug, kind: 'unknown', outcome: 'door_malformed' })
+        return
+      }
+
+      const parsed = prepared.kind === 'credential' ? prepared.parsed : parseCredentialScan(scanRaw)
       if (!parsed?.code) {
         const invalidResult = { outcome: 'invalid' }
         setScanResult(invalidResult)
-        prependHistoryEntry(buildHistoryEntry(invalidResult, raw))
+        prependHistoryEntry(buildHistoryEntry(invalidResult, scanRaw))
         playCheckinFeedback('invalid', feedbackPrefs)
+        if (feedbackPrefs.soundEnabled) announceCheckinVerdict({ outcome: 'invalid' }, { locale })
         reportScanAttempt({ eventSlug, kind: 'unknown', outcome: 'invalid' })
         return
       }
@@ -424,24 +558,42 @@ export function useCheckInWorkspace({
       let shownOutcome = null
       const publish = (result, { correct = false } = {}) => {
         if (isStale() || scanSettledRef.current) return
-        const nextOutcome = result.outcome ?? 'invalid'
+        const next =
+          prepared.kind === 'door' && result
+            ? {
+                ...result,
+                gateCode: result.gateCode || result.ticket?.gateCode || result.row?.gateCode || prepared.display,
+                repairs: result.repairs ?? prepared.repairs,
+              }
+            : result
+        const nextOutcome = next.outcome ?? 'invalid'
         const sameVerdict = correct && shownOutcome === nextOutcome
         shownOutcome = nextOutcome
-        setScanResult(result)
+        setScanResult(next)
         setRedeemError('')
         if (sameVerdict) return
         if (correct) {
           setScanHistory((current) => {
             const [latest, ...rest] = current
-            if (!latest || latest.raw !== raw) return current
+            if (!latest || latest.raw !== scanRaw) return current
             if (latest.outcome === 'queued_offline' || latest.outcome === 'checked_in') return current
-            const next = buildHistoryEntry(result, raw)
-            return [{ ...next, id: latest.id, scannedAt: latest.scannedAt }, ...rest]
+            const entry = buildHistoryEntry(next, scanRaw)
+            return [{ ...entry, id: latest.id, scannedAt: latest.scannedAt }, ...rest]
           })
         } else {
-          prependHistoryEntry(buildHistoryEntry(result, raw))
+          prependHistoryEntry(buildHistoryEntry(next, scanRaw))
         }
         playCheckinFeedback(nextOutcome, feedbackPrefs)
+        if (feedbackPrefs.soundEnabled) {
+          announceCheckinVerdict(
+            {
+              outcome: nextOutcome,
+              name: next.row?.name ?? next.athlete?.fullName ?? next.ticket?.attendeeName,
+              credentialLabel: next.row?.credentialLabel ?? next.ticket?.credentialLabel,
+            },
+            { locale },
+          )
+        }
         if (result.row?.id) setHighlightRowId(result.row.id)
         if (result.outcome !== 'session_expired') {
           reportScanAttempt({
@@ -495,9 +647,16 @@ export function useCheckInWorkspace({
           if (publishFailure(decision.error)) return
           const found = await findInAllowlist(eventSlug, parsed.code)
           if (isStale()) return
+          if (found) {
+            publish(buildOfflineScanResult(found, zoneScope))
+            return
+          }
+          const lockedDoorCode =
+            classifyCheckinFailure(decision.error) === 'rate_limited' &&
+            /códigos incorrectos/i.test(String(decision.error?.message ?? ''))
           publish(
-            found
-              ? buildOfflineScanResult(found, zoneScope)
+            lockedDoorCode
+              ? { outcome: 'rate_limited', gateCode: prepared.display ?? null }
               : { outcome: 'service_unavailable', offline: true },
           )
           return
@@ -514,7 +673,7 @@ export function useCheckInWorkspace({
         if (!isStale()) setScanBusy(false)
       }
     },
-    [canCheckIn, eventSlug, feedbackPrefs, zoneScope],
+    [canCheckIn, eventSlug, feedbackPrefs, locale, zoneScope],
   )
 
   function handleHistorySelect(item) {
@@ -553,8 +712,18 @@ export function useCheckInWorkspace({
   }
 
   async function handleCheckIn(row) {
-    if (!canCheckIn) return
+    if (!canCheckIn || checkInLockRef.current) return
+    checkInLockRef.current = true
+    setHighlightRowId(row.id)
 
+    try {
+      await admitFromList(row)
+    } finally {
+      checkInLockRef.current = false
+    }
+  }
+
+  async function admitFromList(row) {
     if (row.type === 'atleta') {
       if (!offlineSync.isOnline) {
         await queueAdmission(row)
@@ -562,15 +731,43 @@ export function useCheckInWorkspace({
       }
       try {
         const result = await onCheckInRegistration(row.registrationId)
-        if (result?.outcome === 'ok') {
+        if (result?.outcome === 'ok' || result?.outcome === 'already_used') {
           rememberAdmitted(row.id)
-          playCheckinFeedback('checkin_ok', feedbackPrefs)
-          if (activeHistoryId) markHistoryCheckedIn(activeHistoryId)
-          setScanResult((current) =>
-            current?.row?.id === row.id
-              ? { ...current, outcome: 'checked_in', canCheckIn: false, status: 'usada' }
-              : current,
+          playCheckinFeedback(
+            result.outcome === 'ok' ? 'checkin_ok' : 'already_used',
+            feedbackPrefs,
           )
+          if (activeHistoryId) markHistoryCheckedIn(activeHistoryId)
+          if (result.outcome === 'already_used') {
+            setScanResult({
+              kind: 'registration',
+              outcome: 'already_used',
+              canCheckIn: false,
+              registrationId: row.registrationId,
+              status: 'usada',
+              row: { ...row, status: 'usada' },
+            })
+          }
+          return
+        }
+        const rejected =
+          result?.outcome === 'not_paid'
+            ? 'not_ready'
+            : result?.outcome === 'not_found'
+              ? 'not_found'
+              : result?.outcome === 'forbidden'
+                ? 'not_ready'
+                : null
+        if (rejected) {
+          playCheckinFeedback(rejected, feedbackPrefs)
+          setScanResult({
+            kind: 'registration',
+            outcome: rejected,
+            canCheckIn: false,
+            registrationId: row.registrationId,
+            status: row.status,
+            row,
+          })
         }
       } catch (error) {
         if (isRetryableCheckinFailure(error)) {
@@ -856,6 +1053,7 @@ export function useCheckInWorkspace({
     query,
     redeemBusyId,
     redeemError,
+    reloadAndSync,
     rows,
     scanBusy,
     scanHistory,

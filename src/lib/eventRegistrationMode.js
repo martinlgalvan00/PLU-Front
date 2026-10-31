@@ -30,6 +30,12 @@ function isPast(value, now) {
   return !Number.isNaN(date.getTime()) && date < now
 }
 
+/** `datetime-local` en la hora del navegador, para no dejar la apertura vacía. */
+function toDateTimeLocal(date) {
+  const pad = (part) => String(part).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 /** El modo que representa el borrador tal como está. */
 export function registrationModeOfDraft(draft, now = new Date()) {
   const status = draft?.status ?? 'proximamente'
@@ -54,9 +60,13 @@ export function applyRegistrationModeToDraft(draft, mode, now = new Date()) {
       return {
         ...draft,
         status: 'inscripcion_abierta',
-        // Una apertura pendiente o un cierre vencido la dejarían "abierta" pero
-        // sin poder usarse: lo mismo que hace "Abrir ahora" en el control de venta.
-        registrationOpensAt: isFuture(draft?.registrationOpensAt, now) ? '' : (draft?.registrationOpensAt ?? ''),
+        // Una apertura futura la dejaría programada. Se adelanta a ahora en vez
+        // de borrarla: la ventana de inscripción es obligatoria al guardar.
+        registrationOpensAt: isFuture(draft?.registrationOpensAt, now)
+          ? toDateTimeLocal(now)
+          : (draft?.registrationOpensAt ?? ''),
+        // Un cierre ya vencido la deja cerrada. Se vacía para que el staff
+        // elija uno nuevo; sin esa fecha el guardado no pasa.
         registrationClosesAt: isPast(draft?.registrationClosesAt, now)
           ? ''
           : (draft?.registrationClosesAt ?? ''),
@@ -66,6 +76,8 @@ export function applyRegistrationModeToDraft(draft, mode, now = new Date()) {
     case 'ended':
       return { ...draft, status: 'finalizado' }
     default:
-      return { ...draft, status: 'proximamente', registrationOpensAt: '' }
+      // Próximamente cierra la venta por estado. La ventana queda: es el
+      // contrato de la inscripción y el guardado la exige completa.
+      return { ...draft, status: 'proximamente' }
   }
 }

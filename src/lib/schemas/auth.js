@@ -153,6 +153,7 @@ export const deactivateAllSecurityUsersSchema = z.object({
 
 export const createSecurityAccessLinkSchema = z.object({
   sendEmail: z.boolean().optional().default(false),
+  rotate: z.boolean().optional().default(false),
   expiresAt: z
     .string()
     .trim()
@@ -160,6 +161,12 @@ export const createSecurityAccessLinkSchema = z.object({
     .refine((value) => !value || !Number.isNaN(Date.parse(value)), 'Vencimiento inválido.'),
 })
 
-export const securityGateSchema = z.object({
-  token: z.string().trim().min(10, 'Credencial inválida.'),
-})
+export const securityGateSchema = z
+  .object({
+    token: z.string().trim().min(10, 'Credencial inválida.').optional(),
+    code: z.string().trim().min(1).max(16).optional(),
+    eventSlug: z.string().trim().min(1).optional(),
+  })
+  .refine((value) => Boolean(value.token) || Boolean(value.code && value.eventSlug), {
+    message: 'Credencial inválida.',
+  })

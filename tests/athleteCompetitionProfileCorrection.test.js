@@ -34,7 +34,7 @@ describe('perfil competitivo editable y corrección staff', () => {
     expect(migration).toContain('update_athlete_profile_v5')
     expect(migration).toContain('p_estimated_weight numeric')
     expect(profileV6).toContain('update_athlete_profile_v6')
-    expect(repository).toMatch(/rpc\(\s*'update_athlete_profile_v6'/)
+    expect(repository).toMatch(/rpc\(\s*'update_athlete_profile_v7'/)
     expect(repository).toContain('p_division: data.division')
     expect(repository).toContain('estimated_weight')
   })

@@ -320,6 +320,19 @@ export const scanTelemetryLimiter = buildLimiter(
 // puerta: varios dispositivos detrás del mismo NAT de wifi del venue,
 // escaneando a su cooldown máximo (~27/min c/u, ver SCAN_COOLDOWN_MS en
 // AdminQrScanner.jsx), no deberían acercarse a este límite.
+/**
+ * Lookup del código hablado XXX-XXX. No comparte balde con el resto del
+ * panel: una cuenta que pruebe códigos no tiene que dejar sin cupo al escaneo
+ * de QR, y el QR no tiene que poder esconder una ráfaga contra este alias.
+ * El freno por cuenta (doorCodeAttempts) corta antes que este techo de IP.
+ */
+export const doorCodeLookupLimiter = buildLimiter(
+  60 * 1000,
+  90,
+  'Demasiados códigos de puerta. Esperá un momento y reintentá.',
+  { name: 'door-code', mode: 'sampled' },
+)
+
 export const staffLimiter = buildLimiter(
   5 * 60 * 1000,
   900,

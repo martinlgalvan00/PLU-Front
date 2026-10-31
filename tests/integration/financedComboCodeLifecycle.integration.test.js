@@ -36,7 +36,6 @@ const mutationHeaders = {
 const FINANCING_TERM_DAYS = 14
 const DAY_MS = 86_400_000
 
-
 describe('código-paquete financiado, de punta a punta', () => {
   const admin = createSupabaseTestClient()
   const createdAthleteIds = []
@@ -272,6 +271,7 @@ describe('código-paquete financiado, de punta a punta', () => {
         category: 'Raw',
         bodyweightKg: 90,
         declaredWeightClass: '90',
+        competitionBestTotalKg: 500,
         paymentMethod: 'manual_link',
         idempotencyKey: randomUUID(),
         discountCode: code,

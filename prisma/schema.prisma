@@ -472,6 +472,12 @@ model User {
   // Zona del evento a la que está asignada esta cuenta de seguridad. Nulo en
   // cuentas de staff y en cuentas de seguridad todavía sin asignar.
   securityZoneId String?
+  // Credencial vigente del puesto. El código XXX-XXX es el que va en el QR
+  // corto. La versión sube solo al regenerar: un HMAC viejo sin `ver` sigue
+  // valiendo mientras esta cuenta no haya rotado (versión 0).
+  securityAccessCode      String?
+  securityAccessExpiresAt DateTime?
+  securityAccessVersion   Int       @default(0)
 
   // Eventos que una cuenta de rol "por evento" (organizador) puede gestionar.
   eventAccess UserEventAccess[]
@@ -495,6 +501,7 @@ model User {
 
   @@index([role, status])
   @@index([accessRoleId, status])
+  @@unique([eventId, securityAccessCode])
   @@index([eventId])
   @@index([securityZoneId])
 }
@@ -1378,6 +1385,7 @@ model LiftingResult {
   bodyweightKg   Decimal?  @db.Decimal(6, 2)
   weightClassKg  Decimal?  @db.Decimal(6, 2)
   equipment      String?
+  teamName       String?
   squat1Kg       Decimal?  @db.Decimal(6, 2)
   squat2Kg       Decimal?  @db.Decimal(6, 2)
   squat3Kg       Decimal?  @db.Decimal(6, 2)

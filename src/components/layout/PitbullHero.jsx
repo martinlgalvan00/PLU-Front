@@ -86,6 +86,7 @@ function PitbullHeroPanel({
   registrationFee,
   registrationPhase,
   t,
+  ticketsOpen = false,
   title,
   motion = false,
 }) {
@@ -120,6 +121,12 @@ function PitbullHeroPanel({
   } else if (isComingSoon) {
     primaryLabel = presentation.primaryCtaLabel || t('pages.pitbull.ctaComingSoon')
     primaryDisabled = true
+  } else if (isClosedOrFull && ticketsOpen) {
+    // La inscripción queda dicha en la línea de estado. El botón dorado es
+    // la venta que sí está abierta.
+    primaryLabel = t('pages.pitbull.heroTickets')
+    primaryDisabled = false
+    showJoinSecondary = presentation.showJoinSecondary
   } else if (isClosedOrFull) {
     primaryLabel = presentation.primaryCtaLabel || t('pages.pitbull.ctaClosed')
     primaryDisabled = true
@@ -306,6 +313,7 @@ export default function PitbullHero({
   registerLabel = '',
   registrationFee,
   registrationPhase,
+  ticketsOpen = false,
   title,
 }) {
   const { t } = useI18n()
@@ -324,6 +332,7 @@ export default function PitbullHero({
       registrationFee={registrationFee}
       registrationPhase={registrationPhase}
       t={t}
+      ticketsOpen={ticketsOpen}
       title={title}
       motion={!reducedMotion}
     />

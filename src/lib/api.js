@@ -226,15 +226,24 @@ export function deactivateAllSecurityUsersRequest(eventId) {
   return apiPost('/api/auth/security-users/deactivate-all', { eventId })
 }
 
-export function createSecurityAccessLinkRequest(userId, { sendEmail = false, expiresAt } = {}) {
+export function getSecurityAccessLinkRequest(userId) {
+  return apiGet(`/api/auth/security-users/${encodeURIComponent(userId)}/access-link`)
+}
+
+export function createSecurityAccessLinkRequest(
+  userId,
+  { sendEmail = false, expiresAt, rotate = false } = {},
+) {
   return apiPost(`/api/auth/security-users/${encodeURIComponent(userId)}/access-link`, {
     sendEmail,
+    rotate,
     ...(expiresAt ? { expiresAt } : {}),
   })
 }
 
-export function securityGateRequest(token) {
-  return apiPost('/api/auth/security-gate', { token })
+export function securityGateRequest(credential) {
+  const body = typeof credential === 'string' ? { token: credential } : credential
+  return apiPost('/api/auth/security-gate', body)
 }
 
 export function listSecurityUsersRequest(eventId) {

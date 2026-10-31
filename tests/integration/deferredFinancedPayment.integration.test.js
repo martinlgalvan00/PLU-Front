@@ -224,6 +224,7 @@ describe('pago diferido de una orden financiada', () => {
         category: 'Raw',
         bodyweightKg: 90,
         declaredWeightClass: '90',
+        competitionBestTotalKg: 500,
         paymentMethod: 'manual_link',
         idempotencyKey: randomUUID(),
         discountCode: code,

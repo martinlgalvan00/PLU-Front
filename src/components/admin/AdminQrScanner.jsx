@@ -4,6 +4,7 @@ import {
   CameraOff,
   Flashlight,
   FlashlightOff,
+  Mic,
   RefreshCw,
   Smartphone,
   Volume2,
@@ -13,6 +14,8 @@ import SegmentedSwitch from '../ui/SegmentedSwitch.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { shouldAcceptScan } from '../../lib/checkinScanCooldown.js'
 import { classifyCameraError, isCameraErrorRetryable } from '../../lib/cameraError.js'
+import { formatManualScanInput, prepareCheckinScan } from '../../lib/doorSpokenCode.js'
+import { listenForDoorUtterance, speechInputSupported } from '../../lib/doorCodeSpeech.js'
 
 // Frame de trabajo para el decoder de respaldo (jsQR) -- más chico que la
 // resolución real de la cámara para no cargar la CPU en celulares de gama
@@ -59,6 +62,10 @@ export default function AdminQrScanner({
   const lastScanRef = useRef({ value: '', at: 0 })
   const [mode, setMode] = useState('camera')
   const [manualValue, setManualValue] = useState('')
+  const [listening, setListening] = useState(false)
+  const [speechNote, setSpeechNote] = useState('')
+  const listenRef = useRef(null)
+  const canListen = speechInputSupported()
   const [cameraError, setCameraError] = useState(null)
   const [cameraReady, setCameraReady] = useState(false)
   // Cambia para volver a pedir la cámara sin recargar la página.
@@ -148,6 +155,21 @@ export default function AdminQrScanner({
       setMode('manual')
     }
   }, [cameraError])
+
+  useEffect(() => {
+    return () => {
+      listenRef.current?.stop()
+      listenRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    if (mode === 'manual' && !disabled) return undefined
+    listenRef.current?.stop()
+    listenRef.current = null
+    setListening(false)
+    return undefined
+  }, [disabled, mode])
 
   useEffect(() => {
     if (mode !== 'manual' || disabled) return undefined
@@ -294,9 +316,69 @@ export default function AdminQrScanner({
     }
   }
 
+  function stopListening() {
+    try {
+      listenRef.current?.stop()
+    } catch {
+      // El reconocimiento ya se había cerrado solo.
+    }
+    listenRef.current = null
+    setListening(false)
+  }
+
+  function toggleListen() {
+    if (listening) {
+      stopListening()
+      return
+    }
+    const session = listenForDoorUtterance({
+      onUtterance(text, isFinal) {
+        if (!isFinal) {
+          setManualValue(text)
+          return
+        }
+        const prepared = prepareCheckinScan(text)
+        if (prepared.kind === 'door') {
+          setManualValue(prepared.display)
+          setSpeechNote('ready')
+          stopListening()
+          return
+        }
+        setManualValue(text)
+        setSpeechNote(prepared.kind === 'malformed' ? prepared.reason || 'length' : '')
+      },
+      onEnd() {
+        listenRef.current = null
+        setListening(false)
+      },
+      onError(reason) {
+        setSpeechNote(reason === 'not-allowed' ? 'denied' : 'unavailable')
+        setListening(false)
+      },
+    })
+    if (!session) {
+      setSpeechNote('unavailable')
+      return
+    }
+    listenRef.current = session
+    setListening(true)
+    setSpeechNote('')
+    try {
+      session.start()
+    } catch {
+      stopListening()
+      setSpeechNote('unavailable')
+    }
+  }
+
   function handleManualSubmit(event) {
     event.preventDefault()
-    if (emitScan(manualValue, 'manual')) setManualValue('')
+    const prepared = prepareCheckinScan(manualValue)
+    const value = prepared.kind === 'door' ? prepared.display : manualValue
+    if (emitScan(value, 'manual')) {
+      setManualValue('')
+      setSpeechNote('')
+    }
   }
 
   const cameraBlocked = mode === 'camera' && Boolean(cameraError) && cameraError !== 'unsupported'
@@ -461,16 +543,54 @@ export default function AdminQrScanner({
               placeholder={t('admin.checkin.scanner.manualPlaceholder')}
               spellCheck={false}
               value={manualValue}
-              onChange={(event) => setManualValue(event.target.value)}
+              onChange={(event) => {
+                setSpeechNote('')
+                setManualValue(formatManualScanInput(event.target.value))
+              }}
             />
-            <button
-              type="submit"
-              className="btn btn--primary btn--sm"
-              disabled={disabled || busy || !manualValue.trim()}
-            >
-              {t('admin.checkin.scanner.verify')}
-            </button>
+            <div className="admin-checkin-scanner__manual-actions">
+              {canListen ? (
+                <button
+                  type="button"
+                  className={`btn btn--ghost admin-checkin-scanner__mic${listening ? ' is-listening' : ''}`}
+                  aria-pressed={listening}
+                  aria-label={t('admin.checkin.scanner.speakToggle')}
+                  disabled={disabled || busy}
+                  onClick={toggleListen}
+                >
+                  <Mic size={16} aria-hidden />
+                </button>
+              ) : null}
+              <button
+                type="submit"
+                className="btn btn--primary btn--sm"
+                disabled={disabled || busy || !manualValue.trim()}
+              >
+                {t('admin.checkin.scanner.verify')}
+              </button>
+            </div>
           </div>
+          {listening ? (
+            <p className="admin-checkin-scanner__note" role="status">
+              {t('admin.checkin.scanner.speakListening')}
+            </p>
+          ) : null}
+          {speechNote ? (
+            <p className="admin-checkin-scanner__note" role={speechNote === 'ready' ? 'status' : 'alert'}>
+              {t(
+                speechNote === 'ready'
+                  ? 'admin.checkin.scanner.speechHeard'
+                  : speechNote === 'ambiguous'
+                    ? 'admin.checkin.scanner.speechAmbiguous'
+                    : speechNote === 'denied'
+                      ? 'admin.checkin.scanner.speechDenied'
+                      : speechNote === 'unavailable'
+                        ? 'admin.checkin.scanner.speechUnavailable'
+                        : 'admin.checkin.scanner.speechLength',
+                speechNote === 'ready' ? { code: manualValue } : undefined,
+              )}
+            </p>
+          ) : null}
         </form>
       )}
     </section>

@@ -29,6 +29,7 @@ const ATHLETE = {
   category: 'Raw',
   declaredWeightClass: '100',
   estimatedWeight: 93,
+  bestTotalKg: 600,
 }
 
 /** Un código-paquete tal como lo devuelve `athlete_list_offer_unlocks`. */
@@ -136,6 +137,8 @@ describe('la ficha del código-paquete', () => {
     expect(call.category).toBe('Raw')
     expect(call.declaredWeightClass).toBe('100')
     expect(call.bodyweightKg).toBe(93)
+    expect(call.firstMeet).toBe(false)
+    expect(call.competitionBestTotalKg).toBe('600')
     expect(call.event.slug).toBe('pitbull-classic-2026')
     expect(call.offer.code).toBe('ONLY-PITBULL-GOLD')
   })
@@ -224,6 +227,15 @@ describe('la ficha del código-paquete', () => {
     expect(pending.context.destination).toEqual({
       view: 'competition',
       eventSlug: 'pitbull-classic-2026',
+    })
+    expect(pending.context.competition).toEqual({
+      division: 'Open',
+      category: 'Raw',
+      declaredWeightClass: '100',
+      estimatedWeight: '93',
+      firstMeet: false,
+      competitionBestTotalKg: '600',
+      trainingBestTotalKg: '',
     })
   })
 
@@ -359,6 +371,7 @@ describe('la ficha del código-paquete', () => {
       view: 'competition',
       eventSlug: 'pitbull-classic-2026',
     })
+    expect(pending.context.competition).toBeUndefined()
   })
 
   it('la ficha cotiza el canal de la orden, no el del selector', () => {

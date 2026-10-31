@@ -79,6 +79,12 @@ export default function SecurityTeamDelivery({ result, onOpenCredential, onClose
             </div>
             {item.accessUrl ? (
               <div className="security-team-delivery__access">
+                {item.accessCode ? (
+                  <p className="security-team-delivery__code">
+                    <span>{t('admin.eventEditor.security.credentialCodeLabel')}</span>
+                    <strong>{item.accessCode}</strong>
+                  </p>
+                ) : null}
                 <code>{item.accessUrl}</code>
                 <div>
                   <button type="button" onClick={() => handleCopy(item.user.id, item.accessUrl)}>

@@ -194,6 +194,7 @@ export default function AdminEventZonesSection({
     <section className="admin-event-zones" aria-labelledby="admin-event-zones-title">
       <header className="admin-event-zones__head">
         <div className="admin-event-zones__head-copy">
+          <p className="admin-event-zones__step">{t('admin.eventZones.stepEyebrow')}</p>
           <h3 id="admin-event-zones-title">{t('admin.eventZones.title')}</h3>
           <p className="admin-event-zones__lead">{t('admin.eventZones.lead')}</p>
         </div>

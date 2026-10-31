@@ -534,7 +534,8 @@
 
 @media (max-width: 720px) {
   .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__rate-cards,
-  .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__lane--cupo .admin-event-form__grid {
+  .admin-event-workspace__panel .admin-event-editor--accordion .admin-event-form__lane--cupo .admin-event-form__grid,
+  .admin-event-form__section--sales .admin-event-form__grid--ticket-window {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -603,5 +604,63 @@
     position: static;
     text-transform: none;
     white-space: nowrap;
+  }
+}
+
+/* Capítulo de ventas en el celular: la tira se desplaza, el panel entra.
+   160 ms porque el staff cambia de capítulo todo el tiempo. Solo opacidad
+   y desplazamiento; el interruptor de entradas ya tiene su propia perilla. */
+.admin-event-form__section--sales .admin-event-form__sales-nav-item {
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+@media (max-width: 720px) {
+  .admin-event-form__section--sales .admin-event-form__sales-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-padding-inline: 3px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .admin-event-form__section--sales .admin-event-form__sales-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-event-form__section--sales .admin-event-form__sales-nav-item {
+    flex: 1 0 7.25rem;
+    scroll-snap-align: center;
+  }
+}
+
+@media (max-width: 720px) and (prefers-reduced-motion: no-preference) {
+  .admin-event-form__section--sales .admin-event-form__sales-nav-item:active {
+    transform: scale(0.98);
+  }
+
+  .admin-event-form__section--sales .admin-event-form__lane:not([hidden]) {
+    animation: admin-sales-lane-in var(--motion-fast) var(--ease-out) both;
+  }
+}
+
+@keyframes admin-sales-lane-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-enter-y));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-event-form__section--sales .admin-event-form__sales-nav-item {
+    transition: none;
   }
 }

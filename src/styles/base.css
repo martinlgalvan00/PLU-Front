@@ -151,6 +151,25 @@ button:disabled {
   opacity: 1;
 }
 
+/* Papel del tema claro: un solo wash cálido, estático. Misma técnica que el
+   dark — la imagen no cambia entre temas, solo la opacidad — para que el
+   cruce no corte el fondo de golpe. */
+.app-shell::after {
+  background-image: var(--theme-paper-wash);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  content: '';
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+}
+
+[data-theme='light'] .app-shell::after {
+  opacity: 1;
+}
+
 /* =============================================
    THEME TRANSITION — View Transition API + fallback CSS
    ============================================= */
@@ -174,7 +193,8 @@ button:disabled {
 
 /* La atmósfera del dark interpola solo `opacity` (nunca `background-image`):
    es lo que el compositor resuelve en GPU sin repintar el documento entero. */
-[data-theme-transition] .app-shell::before {
+[data-theme-transition] .app-shell::before,
+[data-theme-transition] .app-shell::after {
   transition: opacity var(--transition-theme);
 }
 
@@ -255,32 +275,29 @@ button:disabled {
 }
 
 .pref-toggle:active svg {
-  transform: rotate(180deg) scale(0.85);
-  opacity: 0.7;
+  opacity: 0.65;
+  transform: scale(0.92);
 }
 
-/* ── Efecto visual de "cambio" en el ícono del toggle ── */
+/* El revelado circular es el cambio de tema. El ícono solo se apaga y vuelve:
+   un giro extra competía con ese gesto. */
 @keyframes theme-icon-swap {
   0% {
-    transform: rotate(0deg) scale(1);
     opacity: 1;
+    transform: scale(1);
   }
-  30% {
-    transform: rotate(90deg) scale(0.7);
+  42% {
     opacity: 0;
-  }
-  60% {
-    transform: rotate(-30deg) scale(1.15);
-    opacity: 0;
+    transform: scale(0.88);
   }
   100% {
-    transform: rotate(0deg) scale(1);
     opacity: 1;
+    transform: scale(1);
   }
 }
 
 .pref-toggle--switching svg {
-  animation: theme-icon-swap 0.5s var(--ease-spring) forwards;
+  animation: theme-icon-swap 280ms var(--ease-out) forwards;
 }
 
 /* Reduced motion: las transiciones de la capa de tema ya las anula la regla

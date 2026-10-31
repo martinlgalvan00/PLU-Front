@@ -34,6 +34,16 @@
   margin: 0;
 }
 
+.admin-event-security__step {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+  margin: 0 0 4px;
+  text-transform: uppercase;
+}
+
 .admin-event-security__lead {
   color: var(--admin-muted);
   font-size: 13px;
@@ -232,6 +242,26 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.security-team-delivery__code {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  margin: 0;
+}
+
+.security-team-delivery__code span {
+  color: var(--admin-muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.security-team-delivery__code strong {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 18px;
+  letter-spacing: 0.08em;
 }
 
 .security-team-builder__tools button,
@@ -508,7 +538,7 @@
   border-top: 1px solid var(--admin-hairline);
   display: grid;
   gap: 12px 20px;
-  grid-template-columns: minmax(0, 1fr) 200px 104px 88px;
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 200px) auto auto;
   padding: 14px 0;
 }
 

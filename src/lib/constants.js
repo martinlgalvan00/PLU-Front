@@ -63,7 +63,7 @@ export const PUBLIC_NAVIGATION = {
       key: 'competition',
       labelKey: 'nav.moreCompetition',
       type: 'menu',
-      views: ['events', 'pitbull'],
+      views: ['events', 'pitbull', 'tickets'],
       groups: [
         {
           labelKey: 'nav.moreCompetition',
@@ -78,11 +78,7 @@ export const PUBLIC_NAVIGATION = {
         },
       ],
     },
-    // Comprar una entrada no puede vivir adentro de un desplegable: es la
-    // única acción de la barra para quien viene a mirar, no a competir.
-    // `views` cubre las dos vistas del recorrido de compra (catálogo y
-    // checkout del evento) para que la pestaña quede marcada en las dos.
-    { key: 'shop', labelKey: 'nav.shop', views: ['shop', 'tickets'] },
+    { key: 'shop', labelKey: 'nav.shop', views: ['shop'] },
     { key: 'results', labelKey: 'nav.results' },
     { key: 'records', labelKey: 'nav.records' },
     {
@@ -249,6 +245,9 @@ export const DEFAULT_FORM = {
   secondaryDivision: '',
   modalities: ['full_power'],
   estimatedWeight: '',
+  firstMeet: false,
+  competitionBestTotalKg: '',
+  trainingBestTotalKg: '',
   password: '',
   paymentMethod: 'mercado_pago',
 }

@@ -139,6 +139,16 @@ export function createPrismaDouble(users, { events = [], zones = [] } = {}) {
         if (where.email) return users.find((user) => user.email === where.email) ?? null
         return users.find((user) => user.id === where.id) ?? null
       },
+      findFirst: async ({ where } = {}) =>
+        users.find((user) => {
+          if (where?.eventId && user.eventId !== where.eventId) return false
+          if (where?.eventSlug && user.eventSlug !== where.eventSlug) return false
+          if (where?.role && user.role !== where.role) return false
+          if (where?.securityAccessCode && user.securityAccessCode !== where.securityAccessCode) {
+            return false
+          }
+          return true
+        }) ?? null,
       findMany: async ({ where }) => {
         const emailFilter = where?.email?.in
         return users.filter((user) => {

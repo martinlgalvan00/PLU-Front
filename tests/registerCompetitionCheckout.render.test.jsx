@@ -156,6 +156,7 @@ function renderCompetition({
           declaredWeightClass: '75',
           estimatedWeight: '83',
           paymentMethod: 'mercado_pago',
+          competitionBestTotalKg: '500',
           ...form,
         }}
         memberships={[]}
@@ -403,6 +404,7 @@ describe('RegisterPage — link de pago de inscripción', () => {
         category: 'Raw',
         declaredWeightClass: '75',
         estimatedWeight: '83',
+        competitionBestTotalKg: '500',
         paymentMethod: 'mercado_pago',
       })
       return (
@@ -448,7 +450,7 @@ describe('RegisterPage — link de pago de inscripción', () => {
     expect(screen.getByRole('radio', { name: /mercado pago/i }).checked).toBe(true)
     expect(screen.queryByRole('radio', { name: /transferencia/i })).toBeNull()
     expect(screen.queryByRole('radio', { name: /efectivo/i })).toBeNull()
-    expect(screen.getByText(/solo está disponible Mercado Pago/i)).toBeTruthy()
+    expect(screen.queryByText(/solo está disponible Mercado Pago/i)).toBeNull()
   })
 
   it('no muestra el texto crudo de PLU08 si la inscripción ya está confirmada', async () => {
@@ -548,6 +550,7 @@ describe('RegisterPage — link de pago de inscripción', () => {
         category: 'Raw',
         declaredWeightClass: '75',
         estimatedWeight: '83',
+        competitionBestTotalKg: '500',
         paymentMethod: 'mercado_pago',
       })
       return (
@@ -621,6 +624,7 @@ describe('RegisterPage — link de pago de inscripción', () => {
         category: 'Raw',
         declaredWeightClass: '75',
         estimatedWeight: '83',
+        competitionBestTotalKg: '500',
         paymentMethod: 'manual_link',
       })
       return (
@@ -690,6 +694,7 @@ describe('RegisterPage — link de pago de inscripción', () => {
         category: 'Raw',
         declaredWeightClass: '75',
         estimatedWeight: '83',
+        competitionBestTotalKg: '500',
         paymentMethod: 'manual_link',
       })
       return (

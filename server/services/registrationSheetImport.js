@@ -17,6 +17,11 @@ export function importCurrentFromContext(row) {
     modalities: row.modalities ?? ['full_power'],
     declaredWeightClass: row.declared_weight_class ?? '',
     bodyweightKg: Number.isFinite(bodyweight) ? bodyweight : null,
+    isFirstMeet: row.is_first_meet === true ? true : row.is_first_meet === false ? false : null,
+    competitionBestTotalKg:
+      row.competition_best_total_kg == null ? null : Number(row.competition_best_total_kg),
+    trainingBestTotalKg:
+      row.training_best_total_kg == null ? null : Number(row.training_best_total_kg),
     status: row.status ?? '',
     sex: athlete?.sex ?? '',
     rosterFrozen: Boolean(event?.roster_frozen_at),
@@ -119,6 +124,13 @@ export async function runRegistrationSheetImport({
             result.registrationId,
             result.next.modalities,
           )
+        }
+        if (fields.has('firstMeet') || fields.has('declaredTotalKg')) {
+          await repository.updateRegistrationDeclaredTotals(result.registrationId, {
+            isFirstMeet: result.next.isFirstMeet,
+            competitionBestTotalKg: result.next.competitionBestTotalKg,
+            trainingBestTotalKg: result.next.trainingBestTotalKg,
+          })
         }
         result.state = 'applied'
       } catch (error) {

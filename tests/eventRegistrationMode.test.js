@@ -31,11 +31,25 @@ describe('modo de inscripción del borrador', () => {
     expect(registrationModeOfDraft(scheduled, NOW)).toBe('scheduled')
   })
 
-  it('abrir ya borra una apertura futura y conserva una pasada', () => {
+  it('próximamente conserva la ventana ya cargada', () => {
+    const next = applyRegistrationModeToDraft(
+      {
+        registrationOpensAt: '2026-11-05T10:00',
+        registrationClosesAt: '2026-11-20T18:00',
+      },
+      'soon',
+      NOW,
+    )
+    expect(next.status).toBe('proximamente')
+    expect(next.registrationOpensAt).toBe('2026-11-05T10:00')
+    expect(next.registrationClosesAt).toBe('2026-11-20T18:00')
+  })
+
+  it('abrir ya adelanta una apertura futura y conserva una pasada', () => {
     expect(
       applyRegistrationModeToDraft({ registrationOpensAt: '2026-11-05T10:00' }, 'open', NOW)
         .registrationOpensAt,
-    ).toBe('')
+    ).toBe('2026-11-01T12:00')
     expect(
       applyRegistrationModeToDraft({ registrationOpensAt: '2026-10-05T10:00' }, 'open', NOW)
         .registrationOpensAt,

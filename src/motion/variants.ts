@@ -76,39 +76,72 @@ export const staggerItem: Variants = {
   },
 }
 
-export const modalTransition: Variants = {
-  hidden: { opacity: 0, scale: 0.98, y: 8 },
+const INSTANT_TRANSITION = { duration: 0 } as const
+
+/** Velo de diálogo, ayuda y drawer. Solo opacity. */
+export const overlayScrimTransition: Variants = {
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    scale: 1,
-    y: 0,
     transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out },
   },
   exit: {
     opacity: 0,
-    scale: 0.98,
-    y: 6,
     transition: { duration: MOTION_DURATION.fast, ease: MOTION_EASE.standard },
   },
+}
+
+/**
+ * Panel de diálogo y de ayuda. Entra desde 12px; la salida no se traslada,
+ * para que el cierre se lea como desaparición y no como otro viaje.
+ */
+export const overlayPanelTransition: Variants = {
+  hidden: { opacity: 0, y: 12, scale: 0.985 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.cinematic },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.99,
+    transition: { duration: MOTION_DURATION.fast, ease: MOTION_EASE.standard },
+  },
+}
+
+/** Misma receta que el panel de overlay. El tour admin la consume. */
+export const modalTransition: Variants = overlayPanelTransition
+
+/**
+ * Con reduced-motion el overlay monta y sale en la pose final.
+ * La receta animada vive en las variantes; acá solo se apaga.
+ */
+export function resolveOverlayVariants(variants: Variants, reducedMotion: boolean): Variants {
+  if (!reducedMotion) return variants
+  const visible = variants.visible
+  if (!visible || typeof visible !== 'object') return variants
+  const { transition: _transition, ...pose } = visible
+  return {
+    hidden: pose,
+    visible: { ...pose, transition: INSTANT_TRANSITION },
+    exit: { ...pose, transition: INSTANT_TRANSITION },
+  }
 }
 
 export const drawerTransition: Variants = {
   hidden: { x: '100%' },
   visible: {
     x: 0,
-    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
+    transition: { duration: MOTION_DURATION.page, ease: MOTION_EASE.out },
   },
   exit: {
     x: '100%',
-    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.inOut },
+    transition: { duration: MOTION_DURATION.fast, ease: MOTION_EASE.standard },
   },
 }
 
-export const drawerBackdropTransition: Variants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: MOTION_DURATION.base } },
-  exit: { opacity: 0, transition: { duration: MOTION_DURATION.fast } },
-}
+export const drawerBackdropTransition: Variants = overlayScrimTransition
 
 export const pageSectionTransition: Variants = {
   hidden: { opacity: 0, y: 14 },

@@ -11,6 +11,8 @@ function validEvent(overrides = {}) {
     location: 'Buenos Aires',
     startsAt: '2026-08-15T09:00',
     endsAt: '2026-08-15T20:00',
+    registrationOpensAt: '2026-06-01T10:00',
+    registrationClosesAt: '2026-08-10T18:00',
     status: 'proximamente',
     published: false,
     slots: 120,
@@ -43,6 +45,23 @@ describe('eventSchema del backend', () => {
     expect(result.success).toBe(true)
     expect(result.data.slots).toBe(120)
     expect(result.data.requiresMembership).toBe(true)
+    expect(result.data.ticketCapacity).toBeUndefined()
+  })
+
+  it('separa el tope de entradas del cupo y exige la ventana de inscripción', () => {
+    const missingWindow = eventSchema.safeParse(validEvent({ registrationOpensAt: '' }))
+    const capped = eventSchema.safeParse(validEvent({ ticketCapacity: '40', slots: 120 }))
+    const unlimited = eventSchema.safeParse(validEvent({ ticketCapacity: null, slots: 80 }))
+
+    expect(missingWindow.success).toBe(false)
+    expect(missingWindow.error.issues.some((issue) => issue.path[0] === 'registrationOpensAt')).toBe(
+      true,
+    )
+    expect(capped.success).toBe(true)
+    expect(capped.data.slots).toBe(120)
+    expect(capped.data.ticketCapacity).toBe(40)
+    expect(unlimited.success).toBe(true)
+    expect(unlimited.data.ticketCapacity).toBeNull()
   })
 
   it('acepta requiresMembership false y default true si falta', () => {
@@ -161,6 +180,8 @@ describe('validateAdminEventDraft del editor', () => {
       status: 'proximamente',
       startsAt: '2026-08-15T09:00',
       endsAt: '2026-08-15T20:00',
+      registrationOpensAt: '2026-06-01T10:00',
+      registrationClosesAt: '2026-08-10T18:00',
       pricing: { membership: 75000, registration: 75000, combo: 120000 },
       ...overrides,
     }
@@ -168,6 +189,24 @@ describe('validateAdminEventDraft del editor', () => {
 
   it('acepta un draft completo', () => {
     expect(validateAdminEventDraft(validDraft(), t).ok).toBe(true)
+  })
+
+  it('exige apertura y cierre de inscripción, y deja el tope de entradas vacío', () => {
+    const missingOpen = validateAdminEventDraft(validDraft({ registrationOpensAt: '' }), t)
+    const missingClose = validateAdminEventDraft(validDraft({ registrationClosesAt: '' }), t)
+    const unlimited = validateAdminEventDraft(validDraft({ ticketCapacity: '' }), t)
+    const capped = validateAdminEventDraft(validDraft({ ticketCapacity: 300 }), t)
+
+    expect(missingOpen.ok).toBe(false)
+    expect(missingOpen.fieldErrors.registrationOpensAt).toBe(
+      'admin.eventEditor.validation.registrationOpensAtRequired',
+    )
+    expect(missingClose.ok).toBe(false)
+    expect(missingClose.fieldErrors.registrationClosesAt).toBe(
+      'admin.eventEditor.validation.registrationClosesAtRequired',
+    )
+    expect(unlimited.ok).toBe(true)
+    expect(capped.ok).toBe(true)
   })
 
   // startsAt/endsAt pasaron de opcionales a requeridos: eran opcionales acá pero
@@ -372,6 +411,8 @@ describe('tipo de entrada: precio Wise y ventana propia', () => {
       status: 'proximamente',
       startsAt: '2026-08-15T09:00',
       endsAt: '2026-08-15T20:00',
+      registrationOpensAt: '2026-06-01T10:00',
+      registrationClosesAt: '2026-08-10T18:00',
       pricing: { membership: 75000, registration: 75000, combo: 120000 },
       ticketTypes: [{ name: 'Pase general', price: 20000, ...type }],
     }
@@ -452,6 +493,8 @@ describe('tipo de entrada: políticas de vigencia QR', () => {
       status: 'proximamente',
       startsAt: '2026-08-15T09:00',
       endsAt: '2026-08-15T20:00',
+      registrationOpensAt: '2026-06-01T10:00',
+      registrationClosesAt: '2026-08-10T18:00',
       pricing: { membership: 75000, registration: 75000, combo: 120000 },
       ticketTypes: [{ name: 'Pase general', price: 20000, ...type }],
     }
@@ -530,6 +573,8 @@ describe('tipo de entrada: precio manual (transferencia/efectivo)', () => {
       status: 'proximamente',
       startsAt: '2026-08-15T09:00',
       endsAt: '2026-08-15T20:00',
+      registrationOpensAt: '2026-06-01T10:00',
+      registrationClosesAt: '2026-08-10T18:00',
       pricing: { membership: 75000, registration: 75000, combo: 120000 },
       ticketTypes: [{ name: 'Pase general', price: 20000, ...type }],
     }

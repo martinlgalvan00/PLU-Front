@@ -24,6 +24,7 @@ const AREA_OF_FIELD = {
   eventDays: 'tickets',
   ticketSalesOpensAt: 'tickets',
   ticketSalesClosesAt: 'tickets',
+  ticketCapacity: 'tickets',
   paymentChannelOverrides: 'payment',
   bankTransfer: 'payment',
   bankTransferProfileId: 'payment',

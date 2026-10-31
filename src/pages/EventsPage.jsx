@@ -414,7 +414,7 @@ function EventsAudienceTicketsPanel({ event, locale, offer, onBuyTickets, t, min
   if (minimal) {
     return (
       <section
-        className="events-public-tickets events-public-tickets--minimal"
+        className={`events-public-tickets events-public-tickets--minimal${salesOn ? '' : ' events-public-tickets--closed'}`}
         aria-labelledby="events-public-tickets-title"
       >
         <div className="events-public-tickets__band">
@@ -437,15 +437,16 @@ function EventsAudienceTicketsPanel({ event, locale, offer, onBuyTickets, t, min
               </span>
             )}
           </p>
-          <button
-            type="button"
-            className="events-public-tickets__text-link motion-icon-shift"
-            onClick={onBuyTickets}
-            disabled={!salesOn}
-          >
-            {t('pages.events.publicTicketsCta')}
-            <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
-          </button>
+          {salesOn ? (
+            <button
+              type="button"
+              className="events-public-tickets__text-link motion-icon-shift"
+              onClick={onBuyTickets}
+            >
+              {t('pages.events.publicTicketsCta')}
+              <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
+            </button>
+          ) : null}
         </div>
       </section>
     )

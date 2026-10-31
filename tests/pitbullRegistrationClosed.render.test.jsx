@@ -111,4 +111,45 @@ describe('Pitbull · inscripción cerrada', () => {
       /inscripción está cerrada/i,
     )
   })
+
+  it('con la inscripción cerrada y entradas abiertas, el botón dorado compra la entrada', () => {
+    const onNavigate = vi.fn()
+    const { container } = render(
+      <I18nProvider>
+        <PitbullPage
+          events={[
+            {
+              slug: 'pitbull-classic-2026',
+              title: 'Pitbull Classic',
+              featured: true,
+              published: true,
+              status: 'cerrado',
+              price: 115000,
+              eventDays: [{ id: 'd1', label: 'Día 1' }],
+              ticketTypes: [{ id: 'general', name: 'Público General', price: 17000, active: true }],
+              pricing: { membership: 85000, registration: 115000, ticketsEnabled: true },
+            },
+          ]}
+          onNavigate={onNavigate}
+          onSelectEvent={vi.fn()}
+        />
+      </I18nProvider>,
+    )
+
+    const heroBadge = container.querySelector('.pitbull-hero-masthead__status-badge')
+    expect(heroBadge?.textContent).toMatch(/Inscripción cerrada/i)
+
+    const heroPrimary = container.querySelector('.pitbull-hero-masthead__cta--primary')
+    expect(heroPrimary?.textContent).toMatch(/Conseguir entrada/i)
+    expect(heroPrimary?.disabled).toBe(false)
+    fireEvent.click(heroPrimary)
+    expect(onNavigate).toHaveBeenCalledWith('tickets', { eventSlug: 'pitbull-classic-2026' })
+
+    const heroSecondary = container.querySelector('.pitbull-hero-masthead__cta--secondary')
+    expect(heroSecondary?.textContent).toMatch(/Afiliarme/i)
+
+    const shellPrimary = container.querySelector('.pitbull-inscription__cta--primary')
+    expect(shellPrimary?.textContent).toMatch(/Conseguir entrada/i)
+    expect(shellPrimary?.disabled).toBe(false)
+  })
 })

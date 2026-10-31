@@ -4,14 +4,22 @@
 
 .checkin-app {
   --checkin-app-header-height: 66px;
+  --checkin-app-ops-offset: 128px;
   background: var(--admin-canvas);
   color: var(--admin-ink);
   min-height: 100dvh;
 }
 
+.checkin-app--pending {
+  align-items: center;
+  display: grid;
+  font-size: 14px;
+  place-items: center;
+}
+
 .checkin-app__top {
   align-items: center;
-  background: color-mix(in srgb, var(--admin-surface) 94%, transparent);
+  background: var(--admin-canvas);
   border-bottom: 1px solid var(--admin-hairline);
   display: flex;
   gap: 16px;
@@ -119,21 +127,26 @@
 }
 
 .checkin-app__metrics {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 14px;
   display: grid;
   flex: 1;
   gap: 0;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   min-width: 0;
+  overflow: hidden;
 }
 
 .checkin-app__metric {
   border-right: 1px solid var(--admin-hairline);
   color: var(--admin-ink-muted);
   display: grid;
-  gap: 1px;
-  min-height: 40px;
+  gap: 2px;
+  align-content: center;
+  min-height: 68px;
   min-width: 0;
-  padding: 4px 10px;
+  padding: 10px 14px 12px;
 }
 
 .checkin-app__metric:last-child {
@@ -142,18 +155,23 @@
 
 .checkin-app__metric strong {
   color: var(--admin-ink);
-  font-size: 16px;
+  font-size: clamp(22px, 2.6vw, 30px);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.03em;
+  font-weight: 700;
+  letter-spacing: -0.04em;
   line-height: 1;
 }
 
 .checkin-app__metric small {
-  font-size: 10px;
+  display: -webkit-box;
+  font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.25;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-transform: none;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .checkin-app__metric--success strong {
@@ -311,7 +329,7 @@
 
 .checkin-app__scan-aside {
   position: sticky;
-  top: 70px;
+  top: calc(var(--checkin-app-header-height) + var(--checkin-app-ops-offset) + 8px);
 }
 
 .checkin-app__list {
@@ -366,7 +384,7 @@
   min-width: 0;
   padding: 8px 14px 10px;
   position: sticky;
-  top: calc(var(--checkin-app-header-height) + 88px);
+  top: calc(var(--checkin-app-header-height) + var(--checkin-app-ops-offset));
   z-index: 20;
 }
 
@@ -412,11 +430,15 @@
 
 .checkin-app__filters .admin-filter-group__label {
   color: var(--admin-ink-muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  line-height: 1;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: none;
+}
+
+.checkin-app__list .data-table__row--selected > td {
+  background: color-mix(in srgb, var(--color-brand-action) 14%, var(--admin-surface));
 }
 
 .checkin-app__filters .admin-filter-chips-rail,
@@ -484,6 +506,27 @@
   border-radius: 0;
 }
 
+.checkin-app__list .admin-data-table .ant-table-content > table,
+.checkin-app__list .admin-data-table .ant-table-body > table {
+  table-layout: fixed;
+}
+
+.checkin-app__list td.data-table__column--clip {
+  overflow: hidden;
+}
+
+.checkin-app__list td.data-table__column--clip .data-table__cell-content {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.checkin-app__clip {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .checkin-app__admit-btn,
 .checkin-app__admitted {
   border-radius: 8px;
@@ -498,10 +541,14 @@
 }
 
 .checkin-app__admit-btn {
-  background: var(--admin-brand);
-  border: 1px solid var(--admin-brand);
-  color: var(--admin-on-brand);
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  color: var(--color-brand-action-text);
   cursor: pointer;
+}
+
+.checkin-app__admit-btn:hover:not(:disabled) {
+  background: var(--color-brand-action-hover);
 }
 
 .checkin-app__admit-btn:disabled {
@@ -550,7 +597,19 @@
 
 @media (max-width: 760px) {
   .checkin-app {
-    --checkin-app-header-height: 53px;
+    --checkin-app-header-height: 58px;
+    --checkin-app-ops-offset: 196px;
+  }
+
+  .checkin-app__top {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .checkin-app__top-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 58%;
   }
 
   .checkin-app__overview {
@@ -558,11 +617,20 @@
   }
 
   .checkin-app__metrics {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .checkin-app__metric {
-    padding-inline: 8px;
+  .checkin-app__metrics .checkin-app__metric:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .checkin-app__metrics .checkin-app__metric:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--admin-hairline);
+  }
+
+  .checkin-app__metrics .checkin-app__metric {
+    min-height: 64px;
+    padding: 10px 12px;
   }
 
   .checkin-app__tabs {
@@ -584,6 +652,23 @@
     border: 1px solid var(--admin-hairline);
     border-radius: 10px;
     margin: 0;
+  }
+
+  .checkin-app__scan-primary .admin-offline-sync-status--compact .admin-offline-sync-status__main,
+  .checkin-app__scan-bar .admin-offline-sync-status--compact .admin-offline-sync-status__main {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .checkin-app__scan-primary .admin-offline-sync-status--compact .admin-offline-sync-status__actions,
+  .checkin-app__scan-bar .admin-offline-sync-status--compact .admin-offline-sync-status__actions {
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .checkin-app__scan-primary .admin-offline-sync-status--compact .admin-offline-sync-status__actions .btn,
+  .checkin-app__scan-bar .admin-offline-sync-status--compact .admin-offline-sync-status__actions .btn {
+    flex: 1 1 auto;
   }
 
   .checkin-app .admin-offline-sync-status__badge {
@@ -635,7 +720,6 @@
 
   .checkin-app__list-toolbar {
     padding: 8px 10px 10px;
-    top: calc(var(--checkin-app-header-height) + 84px);
   }
 
   .checkin-app__list .data-table__avatar {
@@ -674,7 +758,7 @@
   }
 
   .checkin-app__brand-copy strong {
-    max-width: 155px;
+    max-width: 100%;
   }
 
   .checkin-app__overview {
@@ -700,13 +784,26 @@
     padding-inline: 10px;
   }
 
-  .checkin-app__metric {
-    min-height: 36px;
-    padding-inline: 6px;
+  .checkin-app__metrics .checkin-app__metric {
+    min-height: 60px;
+    padding: 8px 10px;
   }
 
-  .checkin-app__metric strong {
-    font-size: 15px;
+  .checkin-app__metrics .checkin-app__metric strong {
+    font-size: 22px;
+  }
+
+  .checkin-app__exit {
+    min-width: 44px;
+    padding-inline: 12px;
+  }
+
+  .checkin-app .segmented-switch--checkin .segmented-switch__label--full {
+    display: none;
+  }
+
+  .checkin-app .segmented-switch--checkin .segmented-switch__label--short {
+    display: inline;
   }
 }
 
@@ -754,6 +851,18 @@
   white-space: nowrap;
 }
 
+@media (max-width: 760px) {
+  .checkin-app__zone-notice {
+    align-items: flex-start;
+  }
+
+  .checkin-app__zone-notice span {
+    overflow: visible;
+    text-overflow: unset;
+    white-space: normal;
+  }
+}
+
 .checkin-app__zone-notice strong {
   color: var(--admin-ink, var(--color-text-primary));
   font-size: 12.5px;
@@ -761,8 +870,93 @@
   margin-right: 6px;
 }
 
+.checkin-app .admin-checkin-scanner {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 16px;
+}
+
+.checkin-app .admin-checkin-scanner__mode-switch {
+  flex: 1 1 180px;
+  max-width: 320px;
+  min-width: 0;
+  width: auto;
+}
+
+.checkin-app .segmented-switch--checkin .segmented-switch__option {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0;
+  min-height: 40px;
+  min-width: 0;
+  text-transform: none;
+}
+
+.checkin-app .segmented-switch--checkin .segmented-switch__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .checkin-app .admin-checkin-scanner--compact {
-  padding: 8px;
+  padding: 10px;
+}
+
+.checkin-app .admin-checkin-scanner--compact .segmented-switch--checkin {
+  min-height: 44px;
+}
+
+.checkin-app__scan-aside .admin-offline-sync-status--compact .admin-offline-sync-status__main {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.checkin-app__scan-aside .admin-offline-sync-status--compact .admin-offline-sync-status__actions {
+  justify-content: stretch;
+  width: 100%;
+}
+
+.checkin-app .admin-offline-sync-status--compact .admin-offline-sync-status__actions .btn {
+  justify-content: center;
+  min-height: 44px;
+  white-space: normal;
+}
+
+.checkin-app__scan-aside .admin-offline-sync-status--compact .admin-offline-sync-status__actions .btn {
+  flex: 1 1 auto;
+}
+
+.checkin-app .admin-offline-sync-status__badge {
+  background: color-mix(in srgb, var(--color-status-success) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-status-success) 28%, transparent);
+  border-radius: 999px;
+  color: var(--color-status-success);
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+.checkin-app .admin-offline-sync-status--offline .admin-offline-sync-status__badge {
+  background: color-mix(in srgb, var(--color-warning, var(--plu-gold-400)) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-warning, var(--plu-gold-400)) 28%, transparent);
+  color: var(--color-warning, var(--plu-gold-400));
+}
+
+.checkin-app .admin-offline-sync-status__title,
+.checkin-app .admin-offline-sync-status__meta {
+  overflow-wrap: break-word;
+}
+
+.checkin-app .admin-checkin-history__title {
+  font-size: 14px;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.checkin-app .admin-checkin-history__empty {
+  color: var(--admin-ink-muted);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 4px 0 0;
 }
 
 .checkin-app .admin-checkin-scanner__manual-input {
@@ -802,12 +996,22 @@
 }
 
 .checkin-app .admin-checkin-history--empty {
-  padding: 10px 12px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 14px;
+  padding: 14px 16px;
 }
 
-.checkin-app .admin-checkin-history--empty .admin-checkin-history__empty-icon,
-.checkin-app .admin-checkin-history--empty .admin-checkin-history__hint {
+.checkin-app .admin-checkin-history--empty .admin-checkin-history__empty-icon {
   display: none;
+}
+
+.checkin-app .admin-checkin-history--empty .admin-checkin-history__hint {
+  color: var(--admin-ink-muted);
+  display: block;
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 4px 0 0;
 }
 
 /* El veredicto es la pieza. Una regla del color del estado, el texto a escala

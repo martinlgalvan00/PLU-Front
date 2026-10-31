@@ -10,19 +10,7 @@ import {
   reviewStaffApplication,
 } from '../../services/staffApplicationService.js'
 
-const STATUS_FILTERS = [
-  ['pendiente', 'Pendientes'],
-  ['aprobada', 'Aprobadas'],
-  ['rechazada', 'Rechazadas'],
-  ['', 'Todas'],
-]
-
-const STAFF_BODY_LABEL = { operativo: 'Operativo', tecnico: 'Técnico' }
-const TRAINING_LABEL = {
-  aprobada: 'PDCA aprobada',
-  en_curso: 'PDCA en curso',
-  no_realizada: 'PDCA no realizada',
-}
+const STATUS_FILTERS = ['pendiente', 'aprobada', 'rechazada', '']
 
 function staffApplicationUrl() {
   // El QR se comparte fuera del panel: nunca debe codificar localhost ni un
@@ -31,6 +19,7 @@ function staffApplicationUrl() {
 }
 
 function StaffApplicationShare() {
+  const { t } = useI18n()
   const publicUrl = staffApplicationUrl()
   const [qrSrc, setQrSrc] = useState('')
   const [qrFailed, setQrFailed] = useState(false)
@@ -55,9 +44,9 @@ function StaffApplicationShare() {
     try {
       if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable')
       await navigator.clipboard.writeText(publicUrl)
-      notifySuccess('Enlace de postulación copiado.')
+      notifySuccess(t('admin.staffApplications.copied'))
     } catch {
-      notifyError('No se pudo copiar el enlace. Podés abrirlo y copiarlo desde el navegador.')
+      notifyError(t('admin.staffApplications.copyFailed'))
     }
   }
 
@@ -72,17 +61,15 @@ function StaffApplicationShare() {
   }
 
   return (
-    <aside className="admin-staff-applications__share" aria-label="Difundir postulación de staff">
+    <aside className="admin-staff-applications__share" aria-label={t('admin.staffApplications.shareAria')}>
       <div className="admin-staff-applications__share-code" aria-busy={!qrSrc && !qrFailed}>
         {qrSrc ? (
-          <img alt="Código QR para postularse al Cuerpo de Staff" src={qrSrc} />
+          <img alt={t('admin.staffApplications.qrAlt')} src={qrSrc} />
         ) : (
-          <QrCode aria-hidden size={36} strokeWidth={1.5} />
+          <QrCode aria-hidden size={28} strokeWidth={1.5} />
         )}
       </div>
       <div className="admin-staff-applications__share-copy">
-        <span>Convocatoria pública</span>
-        <strong>QR de postulación al Staff</strong>
         <a href={publicUrl} rel="noreferrer" target="_blank">
           <Link aria-hidden size={13} />
           <span>{publicUrl}</span>
@@ -90,11 +77,11 @@ function StaffApplicationShare() {
         <div className="admin-staff-applications__share-actions">
           <button type="button" onClick={copyLink}>
             <Copy aria-hidden size={14} />
-            Copiar enlace
+            {t('admin.staffApplications.copyLink')}
           </button>
           <button disabled={!qrSrc} type="button" onClick={downloadQr}>
             <Download aria-hidden size={14} />
-            Descargar QR
+            {t('admin.staffApplications.downloadQr')}
           </button>
         </div>
       </div>
@@ -126,6 +113,7 @@ function DocumentLink({ applicationId, children, kind }) {
 }
 
 function ReviewActions({ application, canEdit, onReviewed }) {
+  const { t } = useI18n()
   const [rejecting, setRejecting] = useState(false)
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
@@ -143,9 +131,13 @@ function ReviewActions({ application, canEdit, onReviewed }) {
     setBusy(true)
     try {
       await onReviewed(application.id, { status, notes: reviewNotes })
-      notifySuccess(status === 'aprobada' ? 'Postulación aprobada.' : 'Postulación rechazada.')
+      notifySuccess(
+        status === 'aprobada'
+          ? t('admin.staffApplications.approved')
+          : t('admin.staffApplications.rejected'),
+      )
     } catch (error) {
-      notifyError(error?.message ?? 'No se pudo registrar la revisión.')
+      notifyError(error?.message ?? t('admin.staffApplications.reviewFailed'))
     } finally {
       setBusy(false)
       setRejecting(false)
@@ -156,14 +148,14 @@ function ReviewActions({ application, canEdit, onReviewed }) {
     return (
       <div className="admin-staff-applications__reject">
         <textarea
-          placeholder="Motivo del rechazo (opcional)"
+          placeholder={t('admin.staffApplications.rejectPlaceholder')}
           rows={2}
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
         />
         <div>
           <button type="button" disabled={busy} onClick={() => setRejecting(false)}>
-            Cancelar
+            {t('admin.staffApplications.cancel')}
           </button>
           <button
             type="button"
@@ -171,7 +163,7 @@ function ReviewActions({ application, canEdit, onReviewed }) {
             disabled={busy}
             onClick={() => review('rechazada', notes)}
           >
-            Confirmar rechazo
+            {t('admin.staffApplications.confirmReject')}
           </button>
         </div>
       </div>
@@ -181,17 +173,17 @@ function ReviewActions({ application, canEdit, onReviewed }) {
   return (
     <div className="admin-staff-applications__actions">
       <button type="button" disabled={busy} onClick={() => review('aprobada', '')}>
-        Aprobar
+        {t('admin.staffApplications.approve')}
       </button>
       <button type="button" disabled={busy} onClick={() => setRejecting(true)}>
-        Rechazar
+        {t('admin.staffApplications.reject')}
       </button>
     </div>
   )
 }
 
 export default function StaffApplicationsSection({ canEdit = false }) {
-  const { locale } = useI18n()
+  const { locale, t } = useI18n()
   const [applications, setApplications] = useState([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('pendiente')
@@ -204,7 +196,7 @@ export default function StaffApplicationsSection({ canEdit = false }) {
       const result = await listStaffApplications({ status: statusFilter || null, limit: 100 })
       setApplications(result)
     } catch (loadError) {
-      setError(loadError?.message ?? 'No se pudieron cargar las postulaciones.')
+      setError(loadError?.message ?? t('admin.staffApplications.loadFailed'))
     } finally {
       setLoading(false)
     }
@@ -227,7 +219,7 @@ export default function StaffApplicationsSection({ canEdit = false }) {
   const columns = [
     {
       key: 'applicant',
-      label: 'Postulante',
+      label: t('admin.staffApplications.columns.applicant'),
       render: (row) => (
         <div className="admin-staff-applications__applicant">
           <strong>
@@ -239,7 +231,7 @@ export default function StaffApplicationsSection({ canEdit = false }) {
     },
     {
       key: 'contact',
-      label: 'Contacto',
+      label: t('admin.staffApplications.columns.contact'),
       render: (row) => (
         <div className="admin-staff-applications__contact">
           <span>{row.email}</span>
@@ -252,7 +244,7 @@ export default function StaffApplicationsSection({ canEdit = false }) {
               target="_blank"
             >
               <MessageCircle size={14} aria-hidden />
-              WhatsApp
+              {t('admin.staffApplications.whatsapp')}
             </a>
           ) : null}
         </div>
@@ -260,52 +252,66 @@ export default function StaffApplicationsSection({ canEdit = false }) {
     },
     {
       key: 'staffBody',
-      label: 'Cuerpo',
-      render: (row) => (
-        <div className="admin-staff-applications__body">
-          <span>{STAFF_BODY_LABEL[row.staff_body] ?? row.staff_body}</span>
-          {row.technical_training_status ? (
-            <small>{TRAINING_LABEL[row.technical_training_status]}</small>
-          ) : null}
-        </div>
-      ),
+      label: t('admin.staffApplications.columns.body'),
+      render: (row) => {
+        const bodyKey = `admin.staffApplications.body.${row.staff_body}`
+        const bodyLabel = t(bodyKey)
+        const trainingKey = `admin.staffApplications.training.${row.technical_training_status}`
+        const trainingLabel = row.technical_training_status ? t(trainingKey) : ''
+        return (
+          <div className="admin-staff-applications__meta">
+            <span>{bodyLabel === bodyKey ? row.staff_body : bodyLabel}</span>
+            {row.technical_training_status ? (
+              <small>{trainingLabel === trainingKey ? row.technical_training_status : trainingLabel}</small>
+            ) : null}
+          </div>
+        )
+      },
     },
-    { key: 'shirtSize', label: 'Talle', render: (row) => row.shirt_size },
+    {
+      key: 'shirtSize',
+      label: t('admin.staffApplications.columns.shirt'),
+      render: (row) => <span className="admin-staff-applications__meta">{row.shirt_size}</span>,
+    },
     {
       key: 'documents',
-      label: 'Documentación',
+      label: t('admin.staffApplications.columns.documents'),
       render: (row) => (
         <div className="admin-staff-applications__docs">
           <DocumentLink applicationId={row.id} kind="photo">
-            Foto
+            {t('admin.staffApplications.photo')}
           </DocumentLink>
           <DocumentLink applicationId={row.id} kind="certificate">
-            Certificado
+            {t('admin.staffApplications.certificate')}
           </DocumentLink>
         </div>
       ),
     },
     {
       key: 'createdAt',
-      label: 'Fecha',
-      render: (row) => formatShortDate(String(row.created_at).slice(0, 10), locale),
-    },
-    {
-      key: 'status',
-      label: 'Estado',
+      label: t('admin.staffApplications.columns.date'),
       render: (row) => (
-        <span className={`admin-staff-applications__status is-${row.status}`}>
-          {row.status === 'pendiente'
-            ? 'Pendiente'
-            : row.status === 'aprobada'
-              ? 'Aprobada'
-              : 'Rechazada'}
+        <span className="admin-staff-applications__meta">
+          {formatShortDate(String(row.created_at).slice(0, 10), locale)}
         </span>
       ),
     },
     {
+      key: 'status',
+      label: t('admin.staffApplications.columns.status'),
+      render: (row) => {
+        const statusKey = `admin.staffApplications.statusLabel.${row.status}`
+        const statusLabel = t(statusKey)
+        return (
+          <span className={`admin-staff-applications__status is-${row.status}`}>
+            {statusLabel === statusKey ? row.status : statusLabel}
+          </span>
+        )
+      },
+    },
+    {
       key: 'action',
-      label: 'Acción',
+      label: t('admin.staffApplications.columns.action'),
       render: (row) => (
         <ReviewActions application={row} canEdit={canEdit} onReviewed={handleReviewed} />
       ),
@@ -316,13 +322,13 @@ export default function StaffApplicationsSection({ canEdit = false }) {
     <section className="admin-staff-applications">
       <header className="admin-staff-applications__header">
         <div className="admin-staff-applications__title">
-          <h2>Postulaciones al Cuerpo de Staff</h2>
-          <p>Revisá las postulaciones y compartí el acceso público al formulario.</p>
+          <h2>{t('admin.staffApplications.title')}</h2>
+          <p>{t('admin.staffApplications.lead')}</p>
         </div>
         <StaffApplicationShare />
       </header>
       <div className="admin-staff-applications__filters" role="tablist">
-        {STATUS_FILTERS.map(([value, label]) => (
+        {STATUS_FILTERS.map((value) => (
           <button
             key={value || 'all'}
             type="button"
@@ -331,7 +337,7 @@ export default function StaffApplicationsSection({ canEdit = false }) {
             className={statusFilter === value ? 'is-active' : ''}
             onClick={() => setStatusFilter(value)}
           >
-            {label}
+            {t(`admin.staffApplications.filters.${value || 'all'}`)}
           </button>
         ))}
       </div>
@@ -344,7 +350,7 @@ export default function StaffApplicationsSection({ canEdit = false }) {
         columns={columns}
         rows={applications}
         loading={loading}
-        emptyMessage="No hay postulaciones para este filtro."
+        emptyMessage={t('admin.staffApplications.empty')}
       />
     </section>
   )

@@ -38,6 +38,8 @@ import { useGridTemplates } from '../../hooks/useGridTemplates.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { clockFromIso, draftTimesFromSession, isoFromDraftTime } from '../../lib/boardTimes.js'
 import { formatScheduleTime } from '../../lib/eventSchedule.js'
+import { registrationDeclaredTotalView } from '../../../shared/declaredMeetTotal.js'
+import { formatDeclaredBodyWeight } from '../../../shared/exportRows.js'
 import AnimatedNumber from '../../motion/AnimatedNumber.tsx'
 import {
   DEFAULT_MINUTES_PER_ATHLETE,
@@ -155,11 +157,21 @@ function ageLabel(athlete, t) {
     : t('admin.board.athleteAge', { age: athlete.age })
 }
 
+function declaredTotalLabel(athlete, t) {
+  const declared = registrationDeclaredTotalView(athlete)
+  if (!declared) return null
+  return t(
+    declared.source === 'training' ? 'admin.board.trainingTotal' : 'admin.board.competitionTotal',
+    { total: formatDeclaredBodyWeight(declared.kg) },
+  )
+}
+
 function athleteMeta(athlete, t) {
   return [
     athlete.category,
     athlete.division,
     athlete.bodyweightKg ? `${athlete.bodyweightKg} kg` : null,
+    declaredTotalLabel(athlete, t),
     ageLabel(athlete, t),
     athlete.gym,
   ]
@@ -1606,7 +1618,13 @@ const AthleteRow = memo(function AthleteRow({
 
   // En la bolsa el peso va aparte (es el dato por el que se ordena) y el resto
   // en una sola línea: categoría · división · edad · club.
-  const poolMeta = [athlete.category, athlete.division, ageLabel(athlete, t), athlete.gym]
+  const poolMeta = [
+    athlete.category,
+    athlete.division,
+    declaredTotalLabel(athlete, t),
+    ageLabel(athlete, t),
+    athlete.gym,
+  ]
     .filter(Boolean)
     .join(' · ')
 

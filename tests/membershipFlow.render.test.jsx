@@ -169,6 +169,7 @@ function renderRegister({
     category: 'Raw',
     declaredWeightClass: '75',
     estimatedWeight: '83',
+    competitionBestTotalKg: '500',
   },
 } = {}) {
   return render(

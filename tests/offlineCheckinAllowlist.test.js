@@ -78,6 +78,19 @@ describe('allowlist offline de inscripciones', () => {
     expect((await db.findInAllowlist('pitbull', 'qr-1'))?.entry.checkedInLocally).toBe(true)
   })
 
+  it('el código dictado encuentra la misma entrada que el QR', async () => {
+    await db.downloadAllowlist('pitbull-puerta', {
+      tickets: [{ qrToken: 'qr-1', ticketCode: 'TCK-1', gateCode: 'K4M-7QP', attendeeName: 'Ana' }],
+    })
+
+    const byQr = await db.findInAllowlist('pitbull-puerta', 'qr-1')
+    const bySpoken = await db.findInAllowlist('pitbull-puerta', 'k4m 7qp')
+    const byCompact = await db.findInAllowlist('pitbull-puerta', 'k4m7qp')
+
+    expect(bySpoken?.entry.qrToken).toBe(byQr?.entry.qrToken)
+    expect(byCompact?.entry.attendeeName).toBe('Ana')
+  })
+
   it('anota el QR en la bitácora y, al enviarlo, queda como registrado', async () => {
     const entry = await db.enqueueCheckin({
       eventSlug: 'pitbull',

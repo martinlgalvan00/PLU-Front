@@ -19,6 +19,12 @@ import { derivePaymentProgress } from '../lib/paymentProgress.js'
  * para no tener que reescribirlos.
  */
 
+function numericKg(value) {
+  if (value === null || value === undefined || value === '') return null
+  const total = Number(value)
+  return Number.isFinite(total) ? total : null
+}
+
 function toCamelAthlete(row) {
   if (!row) return row
   return {
@@ -38,7 +44,14 @@ function toCamelAthlete(row) {
     division: row.division,
     category: row.category,
     estimatedWeight: row.estimated_weight,
-    bestTotalKg: row.declared_best_total_kg ?? row.bestTotalKg ?? null,
+    bestTotalKg: numericKg(row.declared_best_total_kg ?? row.bestTotalKg),
+    isFirstMeet:
+      (row.is_first_meet ?? row.isFirstMeet) === true
+        ? true
+        : (row.is_first_meet ?? row.isFirstMeet) === false
+          ? false
+          : null,
+    trainingBestTotalKg: numericKg(row.training_best_total_kg ?? row.trainingBestTotalKg),
     emergencyContactName: row.emergency_contact_name ?? row.emergencyContactName ?? '',
     emergencyContactPhone: row.emergency_contact_phone ?? row.emergencyContactPhone ?? '',
     instagramHandle: row.instagram_handle ?? row.instagramHandle ?? '',
@@ -186,6 +199,18 @@ function toCamelRegistrationEntry({ registration, event, checkIn, schedule }) {
     secondaryDivision: registration.secondary_division ?? registration.secondaryDivision ?? '',
     modalities: registration.modalities ?? ['full_power'],
     bodyweight: registration.bodyweight_kg,
+    isFirstMeet:
+      (registration.is_first_meet ?? registration.isFirstMeet) === true
+        ? true
+        : (registration.is_first_meet ?? registration.isFirstMeet) === false
+          ? false
+          : null,
+    competitionBestTotalKg: numericKg(
+      registration.competition_best_total_kg ?? registration.competitionBestTotalKg,
+    ),
+    trainingBestTotalKg: numericKg(
+      registration.training_best_total_kg ?? registration.trainingBestTotalKg,
+    ),
     declaredWeightClass:
       registration.declared_weight_class ?? registration.declaredWeightClass ?? '',
     officialWeightClass:
@@ -727,6 +752,9 @@ export async function createCompetitionRegistration({
   categories,
   bodyweightKg,
   declaredWeightClass,
+  firstMeet = false,
+  competitionBestTotalKg,
+  trainingBestTotalKg,
   paymentMethod,
   idempotencyKey = crypto.randomUUID(),
   discountCode,
@@ -741,6 +769,9 @@ export async function createCompetitionRegistration({
     categories: categories?.length ? categories : undefined,
     bodyweightKg,
     declaredWeightClass,
+    firstMeet: firstMeet === true,
+    competitionBestTotalKg: competitionBestTotalKg ?? null,
+    trainingBestTotalKg: trainingBestTotalKg ?? null,
     paymentMethod,
     idempotencyKey,
     discountCode: discountCode || undefined,
@@ -946,6 +977,9 @@ export async function createCompetitionRegistrationCombo({
   categories,
   bodyweightKg,
   declaredWeightClass,
+  firstMeet = false,
+  competitionBestTotalKg,
+  trainingBestTotalKg,
   paymentMethod,
   idempotencyKey = crypto.randomUUID(),
   membershipAccessCode,
@@ -962,6 +996,9 @@ export async function createCompetitionRegistrationCombo({
     categories: categories?.length ? categories : undefined,
     bodyweightKg,
     declaredWeightClass,
+    firstMeet: firstMeet === true,
+    competitionBestTotalKg: competitionBestTotalKg ?? null,
+    trainingBestTotalKg: trainingBestTotalKg ?? null,
     paymentMethod,
     idempotencyKey,
     discountCode: discountCode || undefined,

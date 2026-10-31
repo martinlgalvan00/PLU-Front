@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { isDivisionAllowedForAge } from '../../shared/ageDivision.js'
+import { isValidDeclaredTotalKg } from '../../shared/declaredMeetTotal.js'
 import { isDeclaredWeightClassForSex } from '../../shared/pluWeightClasses.js'
 import { validateDivisionSelection, validateModalities } from '../../shared/registrationSelection.js'
 import { validateSelectionAgainstOffering } from '../../shared/eventOffering.js'
@@ -112,6 +113,19 @@ function buildAthleteProfileSchema(t, country) {
   })
 }
 
+function optionalDeclaredTotalField(message) {
+  return z
+    .string()
+    .optional()
+    .default('')
+    .superRefine((value, ctx) => {
+      if (!String(value ?? '').trim()) return
+      if (!isValidDeclaredTotalKg(value)) {
+        ctx.addIssue({ code: 'custom', message })
+      }
+    })
+}
+
 function buildCompetitionObjectSchema(t, { sex = null } = {}) {
   const msg = (key) => (t ? t(`validation.${key}`) : undefined)
   const weightClassMessage =
@@ -147,6 +161,13 @@ function buildCompetitionObjectSchema(t, { sex = null } = {}) {
       }
     }),
     paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']),
+    firstMeet: z.boolean().optional().default(false),
+    competitionBestTotalKg: optionalDeclaredTotalField(
+      msg('declaredTotal') ?? 'Ingresá un total entre 10 y 2.000 kg.',
+    ),
+    trainingBestTotalKg: optionalDeclaredTotalField(
+      msg('declaredTotal') ?? 'Ingresá un total entre 10 y 2.000 kg.',
+    ),
     // Opcionales: el formulario viejo no los manda y compite Full Power en una división.
     secondaryDivision: z.string().optional(),
     modalities: z.array(z.string()).optional(),
@@ -235,6 +256,18 @@ function buildCompetitionSchema(
 ) {
   const msg = (key) => (t ? t(`validation.${key}`) : undefined)
   return buildCompetitionObjectSchema(t, { sex }).superRefine((data, ctx) => {
+    const firstMeet = data.firstMeet === true
+    const totalField = firstMeet ? 'trainingBestTotalKg' : 'competitionBestTotalKg'
+    if (!isValidDeclaredTotalKg(data[totalField])) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [totalField],
+        message: firstMeet
+          ? (msg('trainingBestTotal') ?? 'Ingresá tu máximo total entrenando (entre 10 y 2.000 kg).')
+          : (msg('competitionBestTotal') ??
+            'Ingresá tu máximo total en competencia (entre 10 y 2.000 kg).'),
+      })
+    }
     for (const issue of competitionSelectionIssues(data, { birthDate, eventDate, offering }, msg)) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: [issue.path], message: issue.message })
     }

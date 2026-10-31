@@ -21,7 +21,8 @@
   --color-page-canvas: var(--plu-warm-50);
   --color-section-muted: var(--plu-warm-100);
 
-  /* Sin atmósfera en light */
+  /* El grafito atmosférico del dark no se pinta en claro. El acabado del
+     papel es --theme-paper-wash, en .app-shell::after. */
   --theme-atmosphere-stack: none;
   --theme-atmosphere-stack-admin: none;
   --theme-page-sheen: none;

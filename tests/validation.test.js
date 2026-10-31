@@ -125,6 +125,7 @@ describe('validation', () => {
       declaredWeightClass: '90',
       estimatedWeight: '83',
       paymentMethod: 'mercado_pago',
+      competitionBestTotalKg: '500',
     }
     const age = {
       birthDate: '2005-06-01',
@@ -175,6 +176,7 @@ describe('validation', () => {
       declaredWeightClass: '90',
       estimatedWeight: '83',
       paymentMethod: 'mercado_pago',
+      competitionBestTotalKg: '500',
     }
 
     it('Junior puede sumar Open', () => {

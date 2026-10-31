@@ -102,6 +102,11 @@ abre una segunda fila.
   inscripción solo lista lo que el evento ofrece y la API rechaza lo demás
   (`OFFERING_*_UNAVAILABLE`, 422). Si la división por edad del atleta no se
   ofrece, queda solo Open.
+- **Máximo total.** Cada inscripción nueva declara un solo número, entre 10 y
+  2.000 kg: el máximo en competencia, o el máximo entrenando si es el primer
+  torneo (`is_first_meet`). Queda en la inscripción (para tandas y planilla) y
+  se copia al perfil sin borrar el otro total. Las inscripciones anteriores
+  quedan en null. La planilla puede corregir «Primer torneo» y «Máximo total».
 - **Dónde se valida.** La API es la autoridad (`DIVISION_AGE_MISMATCH`,
   `MODALITY_*`, 422); el formulario solo previsualiza.
 - **Exportaciones.** El export admin agrega `segunda_division` y `modalidades`.

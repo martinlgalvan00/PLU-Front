@@ -30,6 +30,8 @@ function eventPayload(overrides = {}) {
     location: 'CABA',
     startsAt: '2027-03-15T09:00',
     endsAt: '2027-03-15T20:00',
+    registrationOpensAt: '2027-01-10T10:00',
+    registrationClosesAt: '2027-03-01T18:00',
     status: 'proximamente',
     published: false,
     slots: 80,

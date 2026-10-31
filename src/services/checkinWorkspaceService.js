@@ -91,6 +91,45 @@ export function mapAllowlistToCheckinSources(allowlist, eventSlug) {
   return { athletes, registrations, tickets }
 }
 
+function serverAdmissionAt(value) {
+  if (!value || value === 'offline') return null
+  return value
+}
+
+/**
+ * La lista del panel puede estar atrasada respecto de otro puesto.
+ * La foto del servidor pisa solo el ingreso ya acreditado: no reabre a nadie
+ * y no toma la marca local de "sin señal".
+ */
+export function applyServerAdmissions(rows = [], sources) {
+  if (!sources) return rows
+  const registrations = new Map()
+  for (const entry of sources.registrations ?? []) {
+    const at = serverAdmissionAt(entry.checkedInAt)
+    if (at && entry.id) registrations.set(entry.id, at)
+  }
+  const tickets = new Map()
+  for (const entry of sources.tickets ?? []) {
+    const at = serverAdmissionAt(entry.checkedInAt)
+    if (at && entry.qrToken) tickets.set(entry.qrToken, at)
+  }
+  if (registrations.size === 0 && tickets.size === 0) return rows
+
+  let changed = false
+  const next = rows.map((row) => {
+    if (row.status === 'usada') return row
+    const at = row.registrationId
+      ? registrations.get(row.registrationId)
+      : row.qrToken
+        ? tickets.get(row.qrToken)
+        : null
+    if (!at) return row
+    changed = true
+    return { ...row, status: 'usada', checkedInAt: at }
+  })
+  return changed ? next : rows
+}
+
 const STATUS_ORDER = { pagada: 0, pendiente: 1, pendiente_pago: 1, confirmada: 1, usada: 2 }
 
 export function buildCheckinRows({
@@ -216,21 +255,29 @@ export function summarizeTicketControl(rows = []) {
   }
 }
 
+function digitsOnly(value) {
+  return String(value ?? '').replace(/\D/g, '')
+}
+
 export function filterCheckinRows(
   rows = [],
   { query = '', type = 'all', day = 'all', status = 'all', credential = 'all' } = {},
 ) {
   const normalizedQuery = query.trim().toLocaleLowerCase('es')
+  const queryDigits = digitsOnly(normalizedQuery)
 
   return rows.filter((row) => {
     const typeMatch = matchesType(row, type)
     const dayMatch = matchesDay(row, day)
     const statusMatch = matchesStatus(row, status)
     const credentialMatch = matchesCredential(row, credential)
+    const documentDigits = digitsOnly(row.document)
     const queryMatch =
       !normalizedQuery ||
       row.name?.toLocaleLowerCase('es').includes(normalizedQuery) ||
-      row.document?.includes(normalizedQuery) ||
+      row.document?.toLocaleLowerCase('es').includes(normalizedQuery) ||
+      (queryDigits.length >= 3 && documentDigits.includes(queryDigits)) ||
+      row.ticketCode?.toLocaleLowerCase('es').includes(normalizedQuery) ||
       row.meta?.toLocaleLowerCase('es').includes(normalizedQuery) ||
       row.credentialLabel?.toLocaleLowerCase('es').includes(normalizedQuery)
 

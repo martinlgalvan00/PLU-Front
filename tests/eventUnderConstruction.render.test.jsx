@@ -75,6 +75,7 @@ describe('EventUnderConstructionPage', () => {
   it('usa el tema del evento', () => {
     const { container } = renderPage()
     expect(container.querySelector('main')?.getAttribute('data-event-theme')).toBe('ember')
+    expect(container.querySelector('main')?.getAttribute('data-template')).toBe('submission')
   })
 
   it('muestra el logo del evento cuando tiene uno', () => {
@@ -178,7 +179,8 @@ describe('EventUnderConstructionPage · inscripción con la página oculta', () 
     vi.setSystemTime(new Date('2027-03-01T12:00:00Z'))
     try {
       renderSelling(sellingEvent)
-      expect(screen.getByText('5 días')).toBeTruthy()
+      expect(screen.getByText('5')).toBeTruthy()
+      expect(screen.getByText('días')).toBeTruthy()
     } finally {
       vi.useRealTimers()
     }

@@ -21,6 +21,7 @@ import BrandLogo from '../components/ui/BrandLogo.jsx'
 import LanguageToggle from '../components/ui/LanguageToggle.jsx'
 import ThemeToggle from '../components/ui/ThemeToggle.jsx'
 import { useCheckInWorkspace } from '../hooks/useCheckInWorkspace.js'
+import { loadAdminMessagesForStoredLocale } from '../i18n/adminMessages.js'
 import { formatDocumentWithKind } from '../lib/format.js'
 import { downloadCheckinListExcel } from '../services/checkinExport.js'
 import { checkinTypeLabel } from '../services/checkinScanService.js'
@@ -41,6 +42,15 @@ function CheckinMetric({ label, tone = 'neutral', value }) {
 
 const DAY_TAB_PREFIX = 'day-'
 
+function DoorClip({ children }) {
+  const text = children == null || children === '' ? '—' : String(children)
+  return (
+    <span className="checkin-app__clip" title={text}>
+      {text}
+    </span>
+  )
+}
+
 export default function CheckInAppPage({
   athletes,
   canCheckIn,
@@ -50,6 +60,7 @@ export default function CheckInAppPage({
   onCheckInRegistration,
   onCheckInTicket,
   onExit,
+  onReauthenticate = null,
   onRedeemTicketAddon,
   onRefreshTickets,
   registrations,
@@ -59,8 +70,17 @@ export default function CheckInAppPage({
   ticketTypes = [],
   tickets,
 }) {
-  const { locale, t } = useI18n()
+  const { locale, t, messages } = useI18n()
+  const adminReady = Boolean(messages?.admin?.checkinApp?.exit)
   const [tab, setTab] = useState('scan')
+
+  // La ruta de la puerta ya espera estos textos. Si esta pantalla se monta
+  // igual sin ellos, se piden una vez y no se pinta ninguna clave.
+  useEffect(() => {
+    if (adminReady) return
+    loadAdminMessagesForStoredLocale().catch(() => {})
+  }, [adminReady])
+
   const [listScannerOpen, setListScannerOpen] = useState(false)
   const workspace = useCheckInWorkspace({
     athletes,
@@ -77,6 +97,13 @@ export default function CheckInAppPage({
     tickets,
   })
   const { setDay, setType, setCheckinStatus, setCredential } = workspace
+
+  useEffect(() => {
+    if (tab === 'scan' || !workspace.highlightRowId) return
+    document
+      .querySelector('.checkin-app__list .data-table__row--selected')
+      ?.scrollIntoView({ block: 'nearest' })
+  }, [tab, workspace.highlightRowId])
 
   const eventLabel = useMemo(
     () =>
@@ -144,6 +171,29 @@ export default function CheckInAppPage({
     })
   }, [eventDays, eventSlug, t, workspace.allRows, workspace.offlineSync])
 
+  const queueIsWork =
+    !workspace.offlineSync.isOnline || workspace.offlineSync.pendingCount > 0
+
+  const offlineStatus = (
+    <AdminOfflineSyncStatus
+      compact
+      conflictCount={workspace.offlineSync.conflictCount}
+      downloadAllowlist={handleDownloadAllowlist}
+      failedCount={workspace.offlineSync.failedCount}
+      isOnline={workspace.offlineSync.isOnline}
+      lastDownloadedAt={workspace.offlineSync.lastDownloadedAt}
+      lastSyncedAt={workspace.offlineSync.lastSyncedAt}
+      onReloadAndSync={workspace.reloadAndSync}
+      pendingCount={workspace.offlineSync.pendingCount}
+      queueLog={workspace.offlineSync.queueLog}
+      onReauthenticate={onReauthenticate}
+      syncIssue={workspace.offlineSync.syncIssue}
+      syncNow={workspace.offlineSync.syncNow}
+      syncing={workspace.offlineSync.syncing}
+      workList={queueIsWork}
+    />
+  )
+
   const scanResultPanel = (
     <CheckInScanResult
       canCheckIn={canCheckIn}
@@ -161,6 +211,14 @@ export default function CheckInAppPage({
       scanVerdict={workspace.scanVerdict}
     />
   )
+
+  if (!adminReady) {
+    return (
+      <div className="checkin-app checkin-app--pending" role="status">
+        {locale === 'en' ? 'Loading gate…' : 'Cargando puesto…'}
+      </div>
+    )
+  }
 
   return (
     <div className={`checkin-app${tab === 'scan' ? ' checkin-app--scan' : ''}`}>
@@ -183,7 +241,12 @@ export default function CheckInAppPage({
         <div className="checkin-app__top-actions">
           <LanguageToggle compact />
           <ThemeToggle compact />
-          <button type="button" className="checkin-app__exit" onClick={onExit}>
+          <button
+            type="button"
+            className="checkin-app__exit"
+            aria-label={t('admin.checkinApp.exit')}
+            onClick={onExit}
+          >
             <LogOut size={16} aria-hidden />
             <span>{t('admin.checkinApp.exit')}</span>
           </button>
@@ -255,6 +318,8 @@ export default function CheckInAppPage({
                 </p>
               ) : null}
 
+              {queueIsWork ? offlineStatus : null}
+
               <AdminQrScanner
                 busy={workspace.scanBusy}
                 compact
@@ -268,20 +333,7 @@ export default function CheckInAppPage({
             </section>
 
             <aside className="checkin-app__scan-aside">
-              <AdminOfflineSyncStatus
-                compact
-                conflictCount={workspace.offlineSync.conflictCount}
-                downloadAllowlist={handleDownloadAllowlist}
-                isOnline={workspace.offlineSync.isOnline}
-                lastDownloadedAt={workspace.offlineSync.lastDownloadedAt}
-                lastSyncedAt={workspace.offlineSync.lastSyncedAt}
-                failedCount={workspace.offlineSync.failedCount}
-                pendingCount={workspace.offlineSync.pendingCount}
-                queueLog={workspace.offlineSync.queueLog}
-                syncIssue={workspace.offlineSync.syncIssue}
-                syncNow={workspace.offlineSync.syncNow}
-                syncing={workspace.offlineSync.syncing}
-              />
+              {queueIsWork ? null : offlineStatus}
 
               <AdminCheckinScanHistory
                 items={workspace.scanHistory.map((item) => ({
@@ -299,20 +351,7 @@ export default function CheckInAppPage({
         ) : (
           <section className="checkin-app__list" aria-labelledby="checkin-list-title">
             <div className="checkin-app__scan-bar">
-              <AdminOfflineSyncStatus
-                compact
-                conflictCount={workspace.offlineSync.conflictCount}
-                downloadAllowlist={handleDownloadAllowlist}
-                failedCount={workspace.offlineSync.failedCount}
-                isOnline={workspace.offlineSync.isOnline}
-                lastDownloadedAt={workspace.offlineSync.lastDownloadedAt}
-                lastSyncedAt={workspace.offlineSync.lastSyncedAt}
-                pendingCount={workspace.offlineSync.pendingCount}
-                queueLog={workspace.offlineSync.queueLog}
-                syncIssue={workspace.offlineSync.syncIssue}
-                syncNow={workspace.offlineSync.syncNow}
-                syncing={workspace.offlineSync.syncing}
-              />
+              {offlineStatus}
               <button
                 type="button"
                 className="btn btn--small checkin-app__scan-toggle"
@@ -372,7 +411,12 @@ export default function CheckInAppPage({
                 </p>
               </div>
               <span className="checkin-app__result-count">
-                {t('admin.checkinApp.visiblePeople', { count: workspace.rows.length })}
+                {t(
+                  workspace.rows.length === 1
+                    ? 'admin.checkinApp.visiblePerson'
+                    : 'admin.checkinApp.visiblePeople',
+                  { count: workspace.rows.length },
+                )}
               </span>
             </header>
 
@@ -435,6 +479,14 @@ export default function CheckInAppPage({
             <AdminDataTable
               ariaLabel={listTitle}
               layout="table"
+              pageResetKey={[
+                tab,
+                workspace.query,
+                workspace.type,
+                workspace.day,
+                workspace.checkinStatus,
+                workspace.credential,
+              ].join('|')}
               getRowClassName={(row) =>
                 row.id === workspace.highlightRowId ? 'data-table__row--selected' : ''
               }
@@ -448,7 +500,9 @@ export default function CheckInAppPage({
                   render: (row) => (
                     <AdminIdentityCell
                       name={row.name}
-                      sub={formatDocumentWithKind(row.document)}
+                      sub={[formatDocumentWithKind(row.document), row.ticketCode]
+                        .filter(Boolean)
+                        .join(' · ')}
                       subMono
                     />
                   ),
@@ -456,17 +510,26 @@ export default function CheckInAppPage({
                 {
                   key: 'type',
                   label: t('admin.checkin.type'),
+                  className: 'data-table__column--clip',
                   mobile: 'hidden',
                   width: 120,
-                  render: (row) => checkinTypeLabel(row, t),
+                  render: (row) => <DoorClip>{checkinTypeLabel(row, t)}</DoorClip>,
                 },
-                { key: 'meta', label: t('admin.columns.category'), mobile: 'hidden', width: 140 },
+                {
+                  key: 'meta',
+                  label: t('admin.columns.category'),
+                  className: 'data-table__column--clip',
+                  mobile: 'hidden',
+                  width: 180,
+                  render: (row) => <DoorClip>{row.meta}</DoorClip>,
+                },
                 {
                   key: 'day',
                   label: t('admin.checkin.dayLabel'),
+                  className: 'data-table__column--clip',
                   mobile: tab === 'tickets' ? 'default' : 'hidden',
                   width: 140,
-                  render: (row) => formatCheckinRowDay(row, eventDays, t),
+                  render: (row) => <DoorClip>{formatCheckinRowDay(row, eventDays, t)}</DoorClip>,
                 },
                 {
                   key: 'status',

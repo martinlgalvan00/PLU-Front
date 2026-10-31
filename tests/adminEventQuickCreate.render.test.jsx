@@ -30,11 +30,17 @@ function type(label, value) {
 
 /** Avanza los pasos del alta hasta el último ("Página"), donde está "Crear evento". */
 function goToLastStep() {
-  for (let i = 0; i < 2; i += 1) {
-    const next = screen.queryByRole('button', { name: /^Siguiente/ })
-    if (!next) return
-    fireEvent.click(next)
+  const next = screen.queryByRole('button', { name: /^Siguiente/ })
+  if (next) fireEvent.click(next)
+  const opens = document.getElementById('quick-event-registration-opens')
+  if (opens) {
+    fireEvent.change(opens, { target: { value: '2026-06-01T10:00' } })
+    fireEvent.change(document.getElementById('quick-event-registration-closes'), {
+      target: { value: '2026-12-01T18:00' },
+    })
   }
+  const nextAgain = screen.queryByRole('button', { name: /^Siguiente/ })
+  if (nextAgain) fireEvent.click(nextAgain)
 }
 
 describe('alta de evento como página', () => {

@@ -813,6 +813,7 @@ function PitbullInscriptionSection({
   locale,
   onChangePaymentMethod,
   onNavigate,
+  onBuyTickets,
   onRegister,
   presentation,
   pricing,
@@ -826,6 +827,7 @@ function PitbullInscriptionSection({
   slots,
   softLaunch = false,
   t,
+  ticketsOpen = false,
   totalPublic = true,
 }) {
   const { reducedMotion } = useMotionConfig()
@@ -1091,6 +1093,27 @@ function PitbullInscriptionSection({
                     {hasActiveMembership
                       ? t('pages.pitbull.viewMyMembership')
                       : t('launchTeaser.createAccountCta')}
+                  </button>
+                </>
+              ) : isClosedOrFull && ticketsOpen ? (
+                <>
+                  <button
+                    type="button"
+                    className="pitbull-inscription__cta pitbull-inscription__cta--primary"
+                    onClick={onBuyTickets}
+                  >
+                    {t('pages.pitbull.heroTickets')}
+                    <ArrowRight size={14} aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    className="pitbull-inscription__cta pitbull-inscription__cta--secondary"
+                    onClick={() => onNavigate(hasActiveMembership ? 'profile' : 'members')}
+                  >
+                    {hasActiveMembership
+                      ? t('pages.pitbull.viewMyMembership')
+                      : t('pages.pitbull.joinNow')}
+                    <ArrowRight size={14} aria-hidden />
                   </button>
                 </>
               ) : isClosedOrFull ? (
@@ -1404,8 +1427,11 @@ export default function PitbullPage({
       onNavigate('results')
       return
     }
-    // Soft-launch / cerrado: el CTA primario queda disabled; el secundario
-    // "Afiliarme" usa handleHeroJoin. Por si acaso, anclar al aviso.
+    if (ticketsOpen) {
+      goToTicketsPage()
+      return
+    }
+    // Soft-launch o cerrado sin entradas: el CTA primario queda disabled.
     scrollToSection('inscripcion')
   }
 
@@ -1453,6 +1479,7 @@ export default function PitbullPage({
         presentation={registrationPresentation}
         registrationFee={money(eventPricing.registration, locale)}
         registrationPhase={registration.phase}
+        ticketsOpen={ticketsOpen}
         title={heroTitle}
         lead={heroLead}
         registerLabel={heroCtaLabel}
@@ -1493,8 +1520,10 @@ export default function PitbullPage({
             registrationPhase={registration.phase}
             showRecentRegistrants={showRecentRegistrants}
             slots={liveSlots}
+            onBuyTickets={goToTicketsPage}
             softLaunch={softLaunch}
             t={t}
+            ticketsOpen={ticketsOpen}
             totalPublic={totalPublic}
           />
 

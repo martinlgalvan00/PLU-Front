@@ -189,6 +189,7 @@ export default function AdminPage({
   onRequestEmailChange,
   onResetStaffPassword,
   onExit,
+  onReauthenticate,
 }) {
   const { t } = useI18n()
   const [accountOpen, setAccountOpen] = useState(false)
@@ -532,6 +533,8 @@ export default function AdminPage({
           isLoading={adminEventsLoading}
           loadError={adminEventsError}
           canEdit={hasPermission(authorization, 'admin.events.write')}
+          canReadResults={hasPermission(authorization, 'admin.results.read')}
+          canWriteResults={hasPermission(authorization, 'admin.results.write')}
           canManageUsers={canManageUsers}
           canManageEventTeam={canManageEventTeam(authorization)}
           eventScoped={isEventScopedSession(authorization)}
@@ -774,6 +777,7 @@ export default function AdminPage({
           onApprovePayment={onApprovePayment}
           onCheckInRegistration={onCheckInRegistration}
           onCheckInTicket={onCheckInTicket}
+          onReauthenticate={onReauthenticate}
           onRedeemTicketAddon={onRedeemTicketAddon}
           onRefreshTickets={onRefreshTickets}
           onRejectPayment={onRejectPayment}

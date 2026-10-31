@@ -84,7 +84,8 @@ export function formatSecurityAccessList(created) {
   return created
     .map((item) => {
       const access = item.accessUrl || item.tempPassword || ''
-      return `${item.user.name} · ${item.user.email}\n${access}`
+      const code = item.accessCode || ''
+      return [item.user.name + ' · ' + item.user.email, code, access].filter(Boolean).join('\n')
     })
     .join('\n\n')
 }

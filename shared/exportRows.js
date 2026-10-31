@@ -9,6 +9,7 @@ import {
   toCalendarDate,
   todayCalendarDate,
 } from './ageDivision.js'
+import { registrationDeclaredTotalView } from './declaredMeetTotal.js'
 import { formatModalities } from './registrationSelection.js'
 
 export const EXPORT_ROW_LIMIT = 5000
@@ -54,6 +55,7 @@ export function buildAdminExportRows(registrations, athletes, memberships, payme
     const membership = membershipsByAthlete.get(registration.athleteId)
     const payment = paymentsByAthlete.get(registration.athleteId)
     const referenceDate = referenceDateForExport(registration, exportDay)
+    const declaredTotal = registrationDeclaredTotalView(registration)
     const declaredDivision = registration.division ?? athlete?.division ?? ''
     const divisionFields = resolveDivisionExportFields(
       athlete?.birthDate,
@@ -82,6 +84,15 @@ export function buildAdminExportRows(registrations, athletes, memberships, payme
         .filter(Boolean)
         .join(' + '),
       peso: registration.bodyweight ?? '',
+      primer_torneo:
+        registration.isFirstMeet == null ? '' : registration.isFirstMeet ? 'si' : 'no',
+      maximo_total_kg: declaredTotal?.kg ?? '',
+      origen_total:
+        declaredTotal?.source === 'training'
+          ? 'entrenando'
+          : declaredTotal?.source === 'competition'
+            ? 'competencia'
+            : '',
       codigo_afiliado: membership?.memberCode ?? '',
       estado_afiliacion: membership?.status ?? '',
       evento: registration.event ?? '',

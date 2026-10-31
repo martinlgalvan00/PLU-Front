@@ -171,6 +171,7 @@ function registrationBody(paymentMethod, extra = {}) {
     modalities: ['full_power'],
     bodyweightKg: 90,
     declaredWeightClass: '90',
+    competitionBestTotalKg: 500,
     paymentMethod,
     idempotencyKey: crypto.randomUUID(),
     ...extra,

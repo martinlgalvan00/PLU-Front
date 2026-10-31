@@ -5,6 +5,7 @@ import Reveal from './Reveal.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatShortDate } from '../../lib/format.js'
 import MotionContentSwap from '../../motion/MotionContentSwap.tsx'
+import { getPublicMeetSheet } from '../../services/publicResultsService.js'
 import {
   buildDivisionNav,
   filterDivisionNav,
@@ -19,12 +20,50 @@ function formatWeight(value, locale) {
   return locale === 'en' ? `${formatted} kg` : `${formatted} kg`
 }
 
+function formatAwardScore(value) {
+  const number = Number(value)
+  if (!Number.isFinite(number)) return '—'
+  return number.toFixed(1)
+}
+
 export default function ResultsEventPanel({ entry, onClose }) {
   const { locale, t } = useI18n()
-  const results = getEventResults(entry.slug)
+  const sample = getEventResults(entry.slug)
+  const wantsSheet = entry.resultsSource === 'sheet'
+  const [sheet, setSheet] = useState(null)
+  const [phase, setPhase] = useState(wantsSheet && !sample ? 'loading' : 'ready')
   const baseId = useId()
   const [sexFilter, setSexFilter] = useState('all')
   const [groupFilter, setGroupFilter] = useState('all')
+
+  useEffect(() => {
+    if (!wantsSheet) {
+      setSheet(null)
+      setPhase('ready')
+      return undefined
+    }
+
+    let cancelled = false
+    setSheet(null)
+    setPhase(sample ? 'ready' : 'loading')
+    getPublicMeetSheet(entry.slug)
+      .then((data) => {
+        if (cancelled) return
+        setSheet(data)
+        setPhase('ready')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setPhase(sample ? 'ready' : 'error')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [entry.slug, sample, wantsSheet])
+
+  const results = sheet ?? sample
+  const showStatus = !results && phase !== 'ready'
 
   const navItems = useMemo(() => buildDivisionNav(results?.divisions ?? []), [results])
   const sexOptions = useMemo(() => getDivisionSexOptions(navItems, t), [navItems, t])
@@ -47,7 +86,7 @@ export default function ResultsEventPanel({ entry, onClose }) {
     if (!stillVisible) setGroupFilter('all')
   }, [groupFilter, navItems, sexFilter])
 
-  if (!results) return null
+  if (!results && !showStatus) return null
 
   const showNav = Boolean(sexOptions || groupOptions)
   const filterKey = `${sexFilter}|${groupFilter}`
@@ -83,6 +122,39 @@ export default function ResultsEventPanel({ entry, onClose }) {
           <X size={16} aria-hidden />
         </button>
       </Reveal>
+
+      {showStatus ? (
+        <p className="results-event-panel__status" role="status">
+          {phase === 'error' ? t('pages.results.sheetError') : t('pages.results.sheetLoading')}
+        </p>
+      ) : (
+        <>
+      {results.awards?.bestLifter || results.awards?.bestTeam ? (
+        <dl className="results-event-panel__awards">
+          {results.awards.bestLifter ? (
+            <div className="results-event-panel__award">
+              <dt>{t('pages.results.awardsBestLifter')}</dt>
+              <dd>
+                {t('pages.results.awardsValue', {
+                  name: results.awards.bestLifter.name,
+                  score: formatAwardScore(results.awards.bestLifter.score),
+                })}
+              </dd>
+            </div>
+          ) : null}
+          {results.awards.bestTeam ? (
+            <div className="results-event-panel__award">
+              <dt>{t('pages.results.awardsBestTeam')}</dt>
+              <dd>
+                {t('pages.results.awardsValue', {
+                  name: results.awards.bestTeam.name,
+                  score: formatAwardScore(results.awards.bestTeam.score),
+                })}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+      ) : null}
 
       <Reveal className="results-podium results-podium--embedded" delay={160} distance={16}>
         <header className="results-podium__header results-podium__header--editorial">
@@ -217,6 +289,8 @@ export default function ResultsEventPanel({ entry, onClose }) {
           ))
         )}
       </MotionContentSwap>
+        </>
+      )}
     </div>
   )
 }

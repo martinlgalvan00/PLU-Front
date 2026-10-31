@@ -170,48 +170,30 @@ export default function ShopEventDrawer({
                     t={t}
                     ticketTypes={pricing.ticketTypes}
                   />
-                ) : null}
-
-                <div className="shop-event-drawer__cta-wrap">
-                  {canBuy ? (
-                    <>
-                      <button
-                        type="button"
-                        className="btn shop-event-drawer__cta"
-                        onClick={() => onBuyTickets(event)}
-                      >
-                        <span>{t('pages.shop.buyTickets')}</span>
-                        <ArrowRight size={16} aria-hidden />
-                      </button>
-                      <p className="shop-event-drawer__cta-hint">
-                        {t('pages.shop.drawerTicketsHint')}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        className="btn shop-event-drawer__cta shop-event-drawer__cta--editorial"
-                        onClick={() => onViewEvent(event)}
-                      >
-                        <span>{t('pages.shop.featuredViewDetail')}</span>
-                        <ArrowRight size={16} aria-hidden />
-                      </button>
-                      <p className="shop-event-drawer__cta-hint">
-                        {!checkoutOpen
-                          ? t('pages.shop.checkoutSoonNote')
-                          : offer.status === 'blocked'
-                            ? t(ticketOfferCopyKey(offer))
-                            : t('pages.shop.salesClosed')}
-                      </p>
-                      {!checkoutOpen && (
-                        <div className="shop-event-drawer__interest">
-                          <LaunchInterestForm source="shop_drawer" eventSlug={event.slug} />
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
+                ) : (
+                  <div className="shop-event-drawer__cta-wrap">
+                    <button
+                      type="button"
+                      className="btn shop-event-drawer__cta shop-event-drawer__cta--editorial"
+                      onClick={() => onViewEvent(event)}
+                    >
+                      <span>{t('pages.shop.featuredViewDetail')}</span>
+                      <ArrowRight size={16} aria-hidden />
+                    </button>
+                    <p className="shop-event-drawer__cta-hint">
+                      {!checkoutOpen
+                        ? t('pages.shop.checkoutSoonNote')
+                        : offer.status === 'blocked'
+                          ? t(ticketOfferCopyKey(offer))
+                          : t('pages.shop.salesClosed')}
+                    </p>
+                    {!checkoutOpen && (
+                      <div className="shop-event-drawer__interest">
+                        <LaunchInterestForm source="shop_drawer" eventSlug={event.slug} />
+                      </div>
+                    )}
+                  </div>
+                )}
               </m.section>
 
               <m.section
@@ -229,7 +211,24 @@ export default function ShopEventDrawer({
               </m.section>
             </m.div>
 
-            <footer className="shop-event-drawer__foot">
+            <footer
+              className={`shop-event-drawer__foot${canBuy ? ' shop-event-drawer__foot--buy' : ''}`}
+            >
+              {canBuy ? (
+                <div className="shop-event-drawer__cta-wrap">
+                  <button
+                    type="button"
+                    className="btn shop-event-drawer__cta"
+                    onClick={() => onBuyTickets(event)}
+                  >
+                    <span>{t('pages.shop.buyTickets')}</span>
+                    <ArrowRight size={16} aria-hidden />
+                  </button>
+                  <p className="shop-event-drawer__cta-hint">
+                    {t('pages.shop.drawerTicketsHint')}
+                  </p>
+                </div>
+              ) : null}
               <button
                 type="button"
                 className="shop-event-drawer__view-link"

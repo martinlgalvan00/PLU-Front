@@ -190,7 +190,7 @@ test.describe('Admin — zonas y equipo de puerta', () => {
     })
 
     const accessUrl = await createDoorPerson(page, person)
-    expect(accessUrl).toMatch(/acceso=/)
+    expect(accessUrl).toMatch(/\?c=/)
     await finishDelivery(page)
 
     await expect(page.locator('.admin-event-security__list')).toContainText(person.email, {
@@ -218,7 +218,7 @@ test.describe('Admin — zonas y equipo de puerta', () => {
     await openAdminEventSecurity(page, event.slug)
     await ensureStandardZones(page)
     const accessUrl = await createDoorPerson(page, person)
-    expect(accessUrl).toMatch(/acceso=/)
+    expect(accessUrl).toMatch(/\?c=/)
     await finishDelivery(page)
 
     await expect(page.locator('.admin-event-security__list')).toContainText(person.email, {

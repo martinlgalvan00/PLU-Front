@@ -198,3 +198,100 @@ label.ticket-type-options__option:hover {
     transition: none;
   }
 }
+
+/* Carta de sólo lectura. La usa el drawer de la tienda; la página de entradas
+   elige con radio y conserva la caja. Precio a la derecha aunque el ancho
+   baje de 480px: es el dato que se compara. */
+.ticket-type-options--catalog {
+  gap: 0;
+}
+
+.ticket-type-options--catalog .ticket-type-options__option {
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-border-subtle) 70%, transparent);
+  gap: 8px;
+  padding: 16px 0 14px;
+}
+
+.ticket-type-options--catalog .ticket-type-options__option:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.ticket-type-options--catalog .ticket-type-options__head {
+  align-items: start;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.ticket-type-options--catalog .ticket-type-options__name {
+  font-size: 16px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.ticket-type-options--catalog .ticket-type-options__description {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--color-text-muted);
+  display: -webkit-box;
+  font-size: 12.5px;
+  line-height: 1.45;
+  overflow: hidden;
+}
+
+.ticket-type-options--catalog .ticket-type-options__price {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  min-width: 5.75rem;
+  padding-top: 2px;
+  text-align: right;
+}
+
+.ticket-type-options--catalog .ticket-type-options__facts {
+  border: 0;
+  display: block;
+  line-height: 1.45;
+  margin: 0;
+  padding: 0;
+}
+
+.ticket-type-options--catalog .ticket-type-options__meta,
+.ticket-type-options--catalog .ticket-type-options__validity,
+.ticket-type-options--catalog .ticket-type-options__zones,
+.ticket-type-options--catalog .ticket-type-options__zone,
+.ticket-type-options--catalog .ticket-type-options__credentials {
+  display: inline;
+}
+
+.ticket-type-options--catalog .ticket-type-options__zone,
+.ticket-type-options--catalog .ticket-type-options__credentials {
+  white-space: nowrap;
+}
+
+.ticket-type-options--catalog .ticket-type-options__validity::after,
+.ticket-type-options--catalog .ticket-type-options__zones::after,
+.ticket-type-options--catalog .ticket-type-options__zone + .ticket-type-options__zone::before {
+  color: var(--color-text-muted);
+  content: ' · ';
+  font-weight: 500;
+}
+
+.ticket-type-options--catalog .ticket-type-options__quota {
+  color: var(--color-text-muted);
+  display: block;
+  margin-top: 2px;
+  opacity: 1;
+}
+
+.ticket-type-options--catalog .ticket-type-options__facts svg {
+  display: none;
+}
+
+.ticket-type-options--catalog .ticket-type-options__zones {
+  gap: 0;
+}

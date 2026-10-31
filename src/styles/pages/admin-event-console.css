@@ -1196,6 +1196,26 @@
   padding-bottom: 8px;
 }
 
+/* En la cabecera lateral: una sola fila que scrollea. No apila capítulos. */
+.admin-event-workspace__sidebar-head .admin-event-bar {
+  align-self: stretch;
+  flex-wrap: nowrap;
+  margin: 2px 0 0;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 0;
+  scrollbar-width: none;
+  width: 100%;
+}
+
+.admin-event-workspace__sidebar-head .admin-event-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-event-workspace__sidebar-head .admin-event-bar__btn {
+  flex: 0 0 auto;
+}
+
 /* Sin capítulos, la tira es el centro de la barra: pin, copiar y borrar
    siguen a la derecha y no empujan las acciones del evento hacia el borde. */
 @media (min-width: 720px) {
@@ -2887,13 +2907,55 @@
 /* ── Aviso honesto (zonas) ──────────────────────────────────────────────── */
 
 .admin-event-workspace__security-bar {
-  align-items: center;
   border-bottom: 1px solid var(--admin-hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: var(--space-lg);
+}
+
+.admin-event-workspace__security-bar-top {
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 16px 32px;
   justify-content: space-between;
-  padding-bottom: var(--space-lg);
+}
+
+.admin-event-workspace__door-protocol {
+  counter-reset: door-step;
+  display: grid;
+  gap: 6px 28px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-event-workspace__door-protocol li {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+  padding-left: 1.6em;
+  position: relative;
+}
+
+.admin-event-workspace__door-protocol li::before {
+  color: var(--admin-ink);
+  content: counter(door-step);
+  counter-increment: door-step;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  left: 0;
+  position: absolute;
+}
+
+@media (max-width: 800px) {
+  .admin-event-workspace__door-protocol {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* La regla del puesto es una nota, no una tarjeta: texto con ícono, sin caja. */

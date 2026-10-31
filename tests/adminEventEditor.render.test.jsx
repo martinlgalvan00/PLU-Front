@@ -419,6 +419,8 @@ describe('AdminEventEditor — venta de entradas bloqueada', () => {
       slots: 120,
       startsAt: '2026-09-15T12:00:00.000Z',
       endsAt: '2026-09-15T23:00:00.000Z',
+      registrationOpensAt: '2026-06-01T10:00',
+      registrationClosesAt: '2026-09-01T18:00',
       pricing: { membership: 75000, registration: 75000, combo: 120000, ticketsEnabled: true },
       eventDays: [{ dayIndex: 0, label: 'Sábado' }],
       ticketTypes: [],

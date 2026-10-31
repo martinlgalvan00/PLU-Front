@@ -8,6 +8,7 @@ import ResultsArchiveList from '../components/ui/ResultsArchiveList.jsx'
 import ResultsArchiveToolbar from '../components/ui/ResultsArchiveToolbar.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { UPCOMING_EVENTS } from '../lib/events.js'
+import { listPublishedMeetSlugs } from '../services/publicResultsService.js'
 import {
   filterResultsArchive,
   getResultsArchive,
@@ -23,6 +24,21 @@ export default function ResultsPage({ onNavigate, events = UPCOMING_EVENTS }) {
   const [filter, setFilter] = useState('all')
   const [sort, setSort] = useState('recent')
   const [selectedSlug, setSelectedSlug] = useState(null)
+  const [publishedSlugs, setPublishedSlugs] = useState([])
+
+  useEffect(() => {
+    let cancelled = false
+    listPublishedMeetSlugs()
+      .then((payload) => {
+        if (!cancelled) setPublishedSlugs(Array.isArray(payload?.slugs) ? payload.slugs : [])
+      })
+      .catch(() => {
+        if (!cancelled) setPublishedSlugs([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   function handleSelectSlug(slug) {
     setSelectedSlug((current) => (current === slug ? null : slug))
@@ -52,7 +68,10 @@ export default function ResultsPage({ onNavigate, events = UPCOMING_EVENTS }) {
   )
 
   const nextEvent = useMemo(() => events.find((event) => event.featured) ?? events[0], [events])
-  const archive = useMemo(() => getResultsArchive(events), [events])
+  const archive = useMemo(
+    () => getResultsArchive(events, publishedSlugs),
+    [events, publishedSlugs],
+  )
   const summary = useMemo(() => getResultsSummary(archive), [archive])
 
   const filteredEvents = useMemo(() => {
