@@ -3,6 +3,7 @@ import { buildLandingLayoutSchema } from './landingLayoutSchema.js'
 import { EVENT_PAYMENT_CHANNELS, eventChannelOverridesFor } from '../eventPaymentChannels.js'
 import { resolveTicketTypeChannels } from '../ticketTypePaymentChannels.js'
 import { EXTERNAL_FORM_LABEL_MAX, normalizeExternalFormUrl } from '../eventExternalForm.js'
+import { MAX_TICKET_REVEAL_LEAD_HOURS } from '../ticketReveal.js'
 import {
   MAX_TICKET_QR_VALIDITY_MINUTES,
   TICKET_ACCESS_USAGE_MODE,
@@ -355,6 +356,14 @@ export const adminEventDraftSchema = z
     ticketSalesOpensAt: optionalDateTime(),
     ticketSalesClosesAt: optionalDateTime(),
     ticketCapacity: optionalTicketCapacity(),
+    ticketRevealLeadHours: z.preprocess(
+      (value) => (value === '' || value == null ? 24 : value),
+      z.coerce
+        .number({ invalid_type_error: 'ticketRevealLeadInvalid' })
+        .int('ticketRevealLeadInvalid')
+        .min(0, 'ticketRevealLeadMin')
+        .max(MAX_TICKET_REVEAL_LEAD_HOURS, 'ticketRevealLeadMax'),
+    ),
     liveStreamUrl: z
       .string()
       .trim()
@@ -683,6 +692,7 @@ export function validateAdminEventDraft(draft, t) {
     ticketSalesOpensAt: draft?.ticketSalesOpensAt ?? '',
     ticketSalesClosesAt: draft?.ticketSalesClosesAt ?? '',
     ticketCapacity: draft?.ticketCapacity ?? '',
+    ticketRevealLeadHours: draft?.ticketRevealLeadHours ?? 24,
     liveStreamUrl: draft?.liveStreamUrl ?? '',
     liveStreamProvider: draft?.liveStreamProvider ?? 'youtube',
     liveStatus: draft?.liveStatus ?? 'offline',

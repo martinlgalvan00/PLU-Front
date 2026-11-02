@@ -36,6 +36,7 @@ describe('cinta de la cuenta como fuente única del orden', () => {
       // poder abrirla: `fetchOfferUnlocks` filtra por la modalidad viva.
       'account-offer',
       'account-events',
+      'account-tickets',
       'account-history',
       'account-membership',
       // Los pagos van pegados a Afiliación: es donde nace el cobro y adonde

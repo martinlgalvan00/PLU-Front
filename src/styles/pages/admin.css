@@ -14360,6 +14360,41 @@ button.action-queue__proof:focus-visible {
   line-height: 1.4;
 }
 
+.admin-event-form__reveal-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.admin-event-form__reveal-preset {
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 8px 14px;
+}
+
+.admin-event-form__reveal-preset[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 70%, transparent);
+  color: var(--color-text-primary);
+}
+
+.admin-event-form__reveal-preset:focus-visible {
+  outline: 2px solid var(--color-brand-gold);
+  outline-offset: 3px;
+}
+
+.admin-event-form__reveal-preset:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 [data-theme='light'] .admin-event-form__pricing {
   background: var(--admin-surface-muted, rgba(15, 17, 23, 0.02));
 }

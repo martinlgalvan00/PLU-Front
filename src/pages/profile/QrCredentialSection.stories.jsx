@@ -82,6 +82,32 @@ export const CredencialConMeet = {
   },
 }
 
+/**
+ * Inscripción confirmada y afiliación todavía no vigente. Una credencial,
+ * el meet como título y una sola acción. El token de la credencial no se imprime.
+ */
+export const MeetSinAfiliacion = {
+  args: {
+    athlete: {
+      id: 'ath-story-dual',
+      fullName: 'Martina Rivas',
+      credentialToken: '7c4f31c0-7dd9-401a-bb3f-613ab123a3db',
+      photoUrl: null,
+    },
+    membership: null,
+    latestMembership: { id: 'mem-story-dual', status: 'vencida', memberCode: null },
+    registrations: [
+      {
+        id: 'reg-story-dual',
+        event: 'Pitbull Classic',
+        eventSlug: 'pitbull-classic-2026',
+        status: 'confirmada',
+        requiresMembership: false,
+      },
+    ],
+  },
+}
+
 /** Sin afiliación ni inscripción: la placa bloqueada, sin festejo posible. */
 export const SinCredencial = {
   args: {

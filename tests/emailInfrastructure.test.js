@@ -84,6 +84,15 @@ function memoryRepository() {
       if (Number.isInteger(patch.attempt)) row.attempts_count = patch.attempt
       return row
     },
+    async reopenFailedEmail(id) {
+      const row = [...rows.values()].find((candidate) => candidate.id === id && candidate.status === 'failed')
+      if (!row) return null
+      row.status = 'processing'
+      row.error = null
+      row.error_code = null
+      row.next_retry_at = null
+      return row
+    },
     async findSuppression(email) {
       return suppressions.get(email) ?? null
     },
@@ -553,6 +562,37 @@ describe('dispatcher de emails', () => {
     expect(first.created).toBe(true)
     expect(second.created).toBe(false)
     expect(send).toHaveBeenCalledTimes(1)
+  })
+
+  it('reintenta la credencial que falló y no repite la que ya salió', async () => {
+    const repository = memoryRepository()
+    const send = vi
+      .fn()
+      .mockRejectedValueOnce(Object.assign(new Error('brevo down'), { retryable: true }))
+      .mockResolvedValue({ messageId: 'm-2' })
+    const dispatcher = createEmailDispatcher({
+      repository,
+      brevo: { configured: true, send },
+      env: { APP_URL: 'https://plu.example' },
+    })
+    const input = {
+      to: 'a@example.com',
+      idempotencyKey: 'email:password-reset:retry',
+      params: { resetUrl: 'https://plu.example/reset?token=vivo' },
+    }
+
+    await expect(dispatcher.send('password_reset', input)).rejects.toThrow(/brevo down/)
+    const retried = await dispatcher.send('password_reset', input)
+    const stored = [...repository.rows.values()][0]
+
+    expect(retried.status).toBe('sent')
+    expect(send).toHaveBeenCalledTimes(2)
+    expect(send.mock.calls[1][0].params.resetUrl).toContain('token=vivo')
+    expect(JSON.stringify(stored.payload)).not.toContain('token=vivo')
+
+    const duplicate = await dispatcher.send('password_reset', input)
+    expect(duplicate.created).toBe(false)
+    expect(send).toHaveBeenCalledTimes(2)
   })
 
   it('rechaza el envío si faltan params obligatorios', async () => {

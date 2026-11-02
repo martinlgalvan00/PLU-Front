@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   accessDaysFromValidityWindow,
   collectBuyerTicketDayFilters,
+  compactAccessDaysLabel,
   describeBuyerTicketDays,
   lookupTicketAccessDays,
 } from '../src/lib/buyerTicketDays.js'
@@ -20,6 +21,9 @@ describe('jornadas que ve el comprador', () => {
     expect(described.days.map((day) => day.date)).toEqual(['2026-12-12', '2026-12-13'])
     expect(described.label).toContain('Sábado')
     expect(described.label).toContain('Domingo')
+    expect(compactAccessDaysLabel(described, 'es')).not.toContain('Sábado')
+    expect(compactAccessDaysLabel(described, 'es')).toContain('12')
+    expect(compactAccessDaysLabel(described, 'es')).toContain('13')
     expect(collectBuyerTicketDayFilters([ticket], { locale: 'es' })).toHaveLength(2)
   })
 

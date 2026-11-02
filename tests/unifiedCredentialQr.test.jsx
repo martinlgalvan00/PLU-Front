@@ -245,7 +245,10 @@ describe('QR único por atleta', () => {
     )
 
     expect(await screen.findByTestId('credential-status')).toBeTruthy()
-    expect(screen.getByText('Pendiente de activación')).toBeTruthy()
+    expect(
+      screen.getByText('La inscripción está. La afiliación se activa cuando se acredite el pago.'),
+    ).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Pitbull Classic 2026' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Pagar afiliación' })).toBeTruthy()
     expect(screen.queryByTestId('share-card-variant')).toBeNull()
   })

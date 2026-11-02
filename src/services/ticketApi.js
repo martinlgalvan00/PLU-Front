@@ -50,8 +50,10 @@ function toCamelTicket(row, { event, checkIn, order } = {}) {
   return {
     id: row.id,
     ticketCode: row.ticket_code,
-    qrToken: row.qr_token,
+    qrToken: row.qr_token ?? null,
     gateCode: row.gate_code ?? row.gateCode ?? null,
+    passSealed: row.pass_sealed === true || row.passSealed === true,
+    revealAt: row.reveal_at ?? row.revealAt ?? null,
     orderId: row.order_id,
     eventId: row.event_id,
     attendeeName: row.attendee_name,
@@ -398,6 +400,22 @@ export async function lookupTicketOrder(reference, email, { openKey } = {}) {
   }
 }
 
+export async function listMyTickets() {
+  const result = await apiGet('/api/tickets/mine')
+  return {
+    orders: (result.orders ?? []).map((item) => ({
+      role: item.role,
+      order: item.order,
+      tickets: (item.tickets ?? []).map((ticket) => toCamelTicket(ticket)),
+    })),
+    attendeeTickets: (result.attendeeTickets ?? []).map((item) => ({
+      role: item.role,
+      order: item.order,
+      ticket: toCamelTicket(item.ticket),
+    })),
+  }
+}
+
 export async function redeemTicketAddon(qrToken, addonId) {
   const result = await apiPost(`/api/tickets/checkin/${qrToken}/addons/${addonId}/redeem`, {})
   return {
@@ -417,8 +435,10 @@ export function mapApiTicket(apiTicket, purchaseEvent) {
     id: apiTicket.id,
     orderId: apiTicket.orderId,
     ticketCode: apiTicket.ticketCode,
-    qrToken: apiTicket.qrToken,
+    qrToken: apiTicket.qrToken ?? null,
     gateCode: apiTicket.gateCode ?? null,
+    passSealed: apiTicket.passSealed === true,
+    revealAt: apiTicket.revealAt ?? null,
     attendeeName: apiTicket.attendeeName,
     attendeeDni: apiTicket.attendeeDni,
     accessDays: Array.isArray(apiTicket.accessDays) ? apiTicket.accessDays : [],

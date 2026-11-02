@@ -8,9 +8,12 @@ import { speakDoorCode } from '../../lib/doorCodeSpeech.js'
 import { formatPromoDeadline } from '../../lib/format.js'
 import {
   collectBuyerTicketDayFilters,
+  compactAccessDaysLabel,
   describeBuyerTicketDays,
 } from '../../lib/buyerTicketDays.js'
+import { ticketTypeNameParts } from '../../lib/eventPricing.js'
 import { groupCredentialsByBundle } from '../../lib/ticketCredentials.js'
+import { formatTicketRevealWhen } from '../../lib/ticketReveal.js'
 import { TICKET_VALIDITY_STATUS, ticketValidityStatus } from '../../lib/ticketValidity.js'
 import {
   buildCardFilename,
@@ -83,6 +86,11 @@ export default function BuyerTicketsWallet({
     days: describeBuyerTicketDays(ticket, dayOptions),
   }))
   const filters = collectBuyerTicketDayFilters(tickets, dayOptions)
+  const filtersHelp =
+    filters.length > 1 &&
+    filters.some((filter) =>
+      described.some((item) => !item.days.days.some((day) => day.key === filter.key)),
+    )
 
   const visible = described.filter(
     (item) => dayKey === 'all' || item.days.days.some((day) => day.key === dayKey),
@@ -95,7 +103,16 @@ export default function BuyerTicketsWallet({
   const selectedMulti =
     (bundles.find((bundle) => bundle.credentials.some((item) => item.id === selected?.id))
       ?.credentials.length ?? 0) > 1
-  const selectedAccess = selected ? kindLabel(selected, selectedMulti) : ''
+  const selectedAccess = selected
+    ? ticketTypeNameParts(kindLabel(selected, selectedMulti), locale)
+    : { title: '', note: '' }
+
+  const selectedSealed = Boolean(
+    selected && qrReady && !selected.qrToken && (selected.passSealed || selected.revealAt),
+  )
+  const selectedRevealWhen = selectedSealed
+    ? formatTicketRevealWhen(selected.revealAt, locale)
+    : ''
 
   const selectedIndex = Math.max(
     0,
@@ -108,8 +125,8 @@ export default function BuyerTicketsWallet({
   }
 
   useEffect(() => {
-    if (qrReady && selected?.id) preloadEventCardCapture().catch(() => {})
-  }, [qrReady, selected?.id])
+    if (qrReady && selected?.qrToken) preloadEventCardCapture().catch(() => {})
+  }, [qrReady, selected?.qrToken])
 
   async function capturePass(ticket) {
     const node = passRef.current
@@ -182,7 +199,7 @@ export default function BuyerTicketsWallet({
         showTicketAt(selectedIndex + (event.key === 'ArrowRight' ? 1 : -1))
       }}
     >
-      {filters.length > 1 ? (
+      {filtersHelp ? (
         <div className="buyer-tickets-wallet__filters" role="group" aria-label={t('pages.tickets.wallet.filterAria')}>
           <button
             type="button"
@@ -258,7 +275,11 @@ export default function BuyerTicketsWallet({
                   {bundle.credentials.map((ticket) => {
                     const days = daysById.get(ticket.id)
                     const active = selected?.id === ticket.id
-                    const statusLabel = qrReady ? validityCopy(ticketValidityStatus(ticket), t) : ''
+                    const typeName = ticketTypeNameParts(kindLabel(ticket, multi), locale)
+                    const dayLabel = compactAccessDaysLabel(days, locale)
+                    const statusLabel = qrReady
+                      ? validityCopy(ticketValidityStatus(ticket), t)
+                      : t('pages.tickets.qrHeldTicket')
                     const scopes = ticket.credentialScopes ?? []
                     const showZones =
                       scopes.length > 0 &&
@@ -273,20 +294,23 @@ export default function BuyerTicketsWallet({
                         >
                           <span className="buyer-tickets-wallet__row-main">
                             <strong>{ticket.attendeeName}</strong>
-                            <span>{kindLabel(ticket, multi)}</span>
-                          </span>
-                          <span className="buyer-tickets-wallet__row-meta">
-                            {days?.label ? <span>{days.label}</span> : null}
-                            {statusLabel ? <span>{statusLabel}</span> : null}
-                            {!qrReady ? <span>{t('pages.tickets.qrHeldTicket')}</span> : null}
-                            {showZones ? (
-                              <span>
-                                {t('pages.tickets.credentialOpens', {
-                                  zones: zoneScopeList(scopes, t),
-                                })}
-                              </span>
+                            {typeName.title ? (
+                              <span className="buyer-tickets-wallet__row-type">{typeName.title}</span>
                             ) : null}
                           </span>
+                          {dayLabel ? (
+                            <span className="buyer-tickets-wallet__row-meta">{dayLabel}</span>
+                          ) : null}
+                          {statusLabel ? (
+                            <span className="buyer-tickets-wallet__row-status">{statusLabel}</span>
+                          ) : null}
+                          {showZones ? (
+                            <span className="buyer-tickets-wallet__row-meta">
+                              {t('pages.tickets.credentialOpens', {
+                                zones: zoneScopeList(scopes, t),
+                              })}
+                            </span>
+                          ) : null}
                         </button>
                       </li>
                     )
@@ -295,6 +319,29 @@ export default function BuyerTicketsWallet({
               </section>
             )
           })}
+        </div>
+      ) : null}
+
+      {selectedSealed ? (
+        <div className="buyer-tickets-wallet__pass">
+          <div className="buyer-tickets-wallet__sheet">
+            {selectedAccess.title ? (
+              <p className="buyer-tickets-wallet__access">{selectedAccess.title}</p>
+            ) : null}
+            {selectedAccess.note ? (
+              <p className="buyer-tickets-wallet__note">{selectedAccess.note}</p>
+            ) : null}
+            <p className="buyer-tickets-wallet__who">
+              {t('pages.tickets.dni')} {selected.attendeeDni}
+              {selected.ticketCode ? ` · ${selected.ticketCode}` : ''}
+            </p>
+            <p className="buyer-tickets-wallet__sealed">
+              {selectedRevealWhen
+                ? t('pages.tickets.wallet.sealed', { when: selectedRevealWhen })
+                : t('pages.tickets.wallet.sealedSoon')}
+            </p>
+            <p className="buyer-tickets-wallet__note">{t('pages.tickets.wallet.sealedNote')}</p>
+          </div>
         </div>
       ) : null}
 
@@ -315,8 +362,11 @@ export default function BuyerTicketsWallet({
             />
           </div>
           <div className="buyer-tickets-wallet__sheet">
-            {selectedAccess ? (
-              <p className="buyer-tickets-wallet__access">{selectedAccess}</p>
+            {selectedAccess.title ? (
+              <p className="buyer-tickets-wallet__access">{selectedAccess.title}</p>
+            ) : null}
+            {selectedAccess.note ? (
+              <p className="buyer-tickets-wallet__note">{selectedAccess.note}</p>
             ) : null}
             <p className="buyer-tickets-wallet__who">
               {t('pages.tickets.dni')} {selected.attendeeDni}

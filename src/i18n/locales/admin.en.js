@@ -5123,6 +5123,12 @@ export default {
       registrationClosesAt: 'Registration closes',
       ticketSalesOpensAt: 'Sales open',
       ticketSalesClosesAt: 'Sales close',
+      ticketRevealLeadHours: 'Hours before the ticket can be viewed',
+      ticketRevealLeadHint:
+        'The QR and the door code become visible this many hours before validity starts. 0 shows them as soon as payment is credited. It does not change when the door opens.',
+      ticketRevealLeadPresets: 'Usual lead time',
+      ticketRevealLeadImmediate: 'On payment',
+      ticketRevealLeadPreset: '{{count}} h',
       ticketDaysTitle: 'Event days',
       ticketDaysHint:
         'Days are set here, in Structure. Sales only picks which days each ticket type covers. A day that already has flights or assigned athletes cannot be deleted.',
@@ -5866,6 +5872,9 @@ export default {
       slotsInvalid: 'Enter a valid slots number.',
       slotsInt: 'Slots must be a whole number.',
       slotsMin: 'Set at least 1 slot.',
+      ticketRevealLeadInvalid: 'The lead time has to be a whole number of hours.',
+      ticketRevealLeadMin: 'The lead time cannot be negative. Use 0 to show the ticket on payment.',
+      ticketRevealLeadMax: 'The lead time cannot exceed 366 days.',
       slotsBelowRegistered:
         'Capacity cannot be lower than the {{count}} registrations already reserved.',
       slotsMax: 'Maximum allowed is 5000 slots.',

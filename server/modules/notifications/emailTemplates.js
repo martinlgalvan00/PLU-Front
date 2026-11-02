@@ -873,36 +873,69 @@ const BODIES = {
     ].join(''),
   }),
 
-  ticket_confirmation: (p) => ({
-    title: 'Tu QR está habilitado',
-    preheader: `Ya podés ingresar a ${p.eventTitle}.`,
-    body: [
-      paragraph(
-        `${greeting(p.name)} acreditamos tu pago. Tu QR de ingreso para ${escapeHtml(p.eventTitle)} ya está habilitado.`,
-      ),
-      dataPanel([
-        ['Evento', p.eventTitle],
-        ['Fecha', formatDate(p.eventDate)],
-        ['Sede', p.venue],
-        ['Tipo', p.ticketType],
-        ['Cantidad', p.quantity],
-        ['Código', p.reference],
-      ]),
-      ticketPassBlocks(p.passes),
-      Array.isArray(p.passes) && p.passes.length > 0
-        ? paragraph(
-            'Te adjuntamos un PNG por cada ingreso. Guardalo en el teléfono por si en la puerta no hay señal.',
-            { muted: true },
-          )
-        : '',
-      button(p.ticketUrl, 'Ver mi QR'),
-      fallbackLink(p.ticketUrl),
-      paragraph(
-        'El enlace abre tu QR. Si te lo pide, ingresá el mail con el que compraste.',
-        { muted: true },
-      ),
-    ].join(''),
-  }),
+  ticket_confirmation: (p) => {
+    const sealed = p.sealed === true || p.sealed === 'true'
+    const facts = dataPanel([
+      ['Evento', p.eventTitle],
+      ['Fecha', formatDate(p.eventDate)],
+      ['Sede', p.venue],
+      ['Tipo', p.ticketType],
+      ['Cantidad', p.quantity],
+      ['Código', p.reference],
+    ])
+    if (sealed) {
+      const when = p.revealWhen ? escapeHtml(p.revealWhen) : ''
+      return {
+        title: 'Tu compra está confirmada',
+        preheader: when
+          ? `Tu entrada se habilita el ${p.revealWhen}.`
+          : `Tu entrada para ${p.eventTitle} se habilita antes del evento.`,
+        body: [
+          paragraph(
+            `${greeting(p.name)} acreditamos tu pago para ${escapeHtml(p.eventTitle)}.`,
+          ),
+          facts,
+          ticketPassBlocks(p.passes),
+          paragraph(
+            when
+              ? `El QR y el código de puerta se habilitan el ${when}. Hasta ese momento no van en este mail.`
+              : 'El QR y el código de puerta se habilitan antes del evento. Te los mandamos cuando se puedan ver.',
+          ),
+          button(p.ticketUrl, 'Ver mis entradas'),
+          fallbackLink(p.ticketUrl),
+        ].join(''),
+      }
+    }
+    return {
+      title: 'Tu QR está habilitado',
+      preheader: `Ya podés ingresar a ${p.eventTitle}.`,
+      body: [
+        paragraph(
+          `${greeting(p.name)} acreditamos tu pago. Tu QR de ingreso para ${escapeHtml(p.eventTitle)} ya está habilitado.`,
+        ),
+        facts,
+        ticketPassBlocks(p.passes),
+        Array.isArray(p.passes) && p.passes.some((pass) => pass?.gateCode)
+          ? paragraph(
+              'Te adjuntamos un PNG por cada ingreso. Guardalo en el teléfono por si en la puerta no hay señal.',
+              { muted: true },
+            )
+          : '',
+        p.revealWhen
+          ? paragraph(
+              `Hay ingresos de esta compra que todavía no se pueden ver. El próximo se habilita el ${escapeHtml(p.revealWhen)}.`,
+              { muted: true },
+            )
+          : '',
+        button(p.ticketUrl, 'Ver mi QR'),
+        fallbackLink(p.ticketUrl),
+        paragraph(
+          'El enlace abre tu QR. Si te lo pide, ingresá el mail con el que compraste.',
+          { muted: true },
+        ),
+      ].join(''),
+    }
+  },
 
   event_announcement: (p) => ({
     title: p.eventTitle ? String(p.eventTitle) : 'Nueva fecha',

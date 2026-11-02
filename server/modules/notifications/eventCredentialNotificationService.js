@@ -190,8 +190,10 @@ export function createEventCredentialNotificationService({
         memberCode,
       },
     })
+    if (result?.status === 'failed') return 'failed'
     if (result?.created === false) return 'already'
-    return result?.status === 'sent' ? 'sent' : result?.status === 'skipped' ? 'skipped' : 'failed'
+    if (result?.status === 'sent' || result?.status === 'skipped') return result.status
+    return 'failed'
   }
 
   async function sendForEvent({ eventSlug, dryRun = false, resend = false }) {

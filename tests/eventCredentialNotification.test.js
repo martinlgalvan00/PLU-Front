@@ -86,6 +86,15 @@ describe('Enviar credenciales de un evento', () => {
     expect(again).toMatchObject({ sent: 0, already: 2 })
   })
 
+  it('un envío que falló no se cuenta como ya enviado', async () => {
+    const { service } = setup({
+      registrations,
+      sendResult: { status: 'failed', created: false },
+    })
+    const result = await service.sendForEvent({ eventSlug: EVENT.slug })
+    expect(result).toMatchObject({ sent: 0, already: 0, failed: 2 })
+  })
+
   it('si el evento pide afiliación, no le dice "ya podés entrar" a quien la puerta rechazaría', async () => {
     const { service, dispatcher } = setup({
       event: { ...EVENT, requires_membership: true },

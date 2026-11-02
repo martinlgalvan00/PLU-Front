@@ -1277,6 +1277,7 @@ export default function App() {
                       onSubmitTicketPurchase: app.submitTicketPurchase,
                       onUploadPaymentProof: app.uploadTicketPaymentProofAction,
                       onLookupTicketOrder: app.lookupTicketOrderAction,
+                      session: app.session,
                     }
                   : view === 'results'
                     ? { onNavigate: navigate, events: publicEvents }

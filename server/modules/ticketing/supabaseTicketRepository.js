@@ -8,6 +8,7 @@ import {
 } from '../../lib/supabaseRpc.js'
 import { PROOF_BUCKET } from '../../lib/supabaseAdmin.js'
 import { aggregateCapacity, aggregateRevenue, bucketByDay } from './ticketSalesAggregation.js'
+import { legacyEmailClaim } from './accountTickets.js'
 
 const hash = (value) => createHash('sha256').update(value).digest('hex')
 // El mostrador no manda token. Si cada reintento inventa uno nuevo, la RPC
@@ -67,6 +68,7 @@ function isInvalidUuid(error) {
  * QR. La pantalla arma el día con lo que haya; nunca pierde la entrada.
  */
 const BUYER_ORDER_SELECTS = [
+  'id, status, reference, buyer_email, event:events(title, slug, starts_at, venue, ticket_reveal_lead_minutes)',
   'id, status, reference, buyer_email, event:events(title, slug, starts_at, venue)',
   'id, status, reference, buyer_email, event:events(title, slug)',
 ]
@@ -123,6 +125,127 @@ async function loadBuyerOrder(client, reference, email) {
       'No se pudieron leer las entradas de la orden.',
     )) ?? []
   return { order, tickets }
+}
+
+const ACCOUNT_ORDER_LIMIT = 50
+const ACCOUNT_TICKET_LIMIT = 200
+
+const ATTENDEE_EVENT_EMBEDS = [
+  'order:ticket_orders(id, status, reference, event:events(title, slug, starts_at, venue, ticket_reveal_lead_minutes))',
+  'order:ticket_orders(id, status, reference, event:events(title, slug, starts_at, venue))',
+]
+const ATTENDEE_TICKET_SELECTS = ATTENDEE_EVENT_EMBEDS.flatMap((embed) =>
+  BUYER_TICKET_SELECTS.map((columns) => `${columns}, ${embed}`),
+)
+
+function ownerColumnMissing(error) {
+  if (!isMissingSchemaColumn(error)) return false
+  return /buyer_athlete_id|buyer_staff_user_id|attendee_document_key/i.test(
+    String(error?.message ?? ''),
+  )
+}
+
+/**
+ * Lectura de la cuenta. Si la columna del dueño todavía no existe, devuelve
+ * vacío en vez de tumbar la pantalla: la compra pública no depende de esto.
+ */
+async function readAccountRows(attempts, fallback) {
+  let last = null
+  for (const attempt of attempts) {
+    const result = await attempt()
+    if (!result?.error) return result?.data ?? []
+    last = result
+    if (ownerColumnMissing(result.error)) return []
+    if (!buyerReadCanRetry(result.error)) break
+  }
+  if (last?.error && (ownerColumnMissing(last.error) || isMissingSchemaColumn(last.error))) {
+    return []
+  }
+  return (await assertSupabaseResult(last, fallback)) ?? []
+}
+
+function mergeOrders(lists) {
+  const seen = new Set()
+  const merged = []
+  for (const order of lists.flat()) {
+    if (!order?.id || seen.has(order.id)) continue
+    seen.add(order.id)
+    merged.push(order)
+  }
+  return merged
+}
+
+async function loadOrdersForAccount(client, account) {
+  const column = account.kind === 'staff' ? 'buyer_staff_user_id' : 'buyer_athlete_id'
+  const owned = await readAccountRows(
+    BUYER_ORDER_SELECTS.map(
+      (columns) => () =>
+        client
+          .from('ticket_orders')
+          .select(columns)
+          .eq(column, account.id)
+          .order('created_at', { ascending: false })
+          .limit(ACCOUNT_ORDER_LIMIT),
+    ),
+    'No se pudieron leer las compras de la cuenta.',
+  )
+  const email = legacyEmailClaim(account)
+  if (!email) return owned ?? []
+  const legacy = await readAccountRows(
+    BUYER_ORDER_SELECTS.map(
+      (columns) => () =>
+        client
+          .from('ticket_orders')
+          .select(columns)
+          .is('buyer_athlete_id', null)
+          .is('buyer_staff_user_id', null)
+          .ilike('buyer_email', email)
+          .order('created_at', { ascending: false })
+          .limit(ACCOUNT_ORDER_LIMIT),
+    ),
+    'No se pudieron leer las compras anteriores de la cuenta.',
+  )
+  return mergeOrders([owned ?? [], legacy ?? []])
+}
+
+async function loadTicketsForOrders(client, orderIds) {
+  if (!orderIds.length) return []
+  return readAccountRows(
+    BUYER_TICKET_SELECTS.map(
+      (columns) => () =>
+        client
+          .from('tickets')
+          .select(columns)
+          .in('order_id', orderIds)
+          .order('created_at')
+          .limit(ACCOUNT_TICKET_LIMIT),
+    ),
+    'No se pudieron leer las entradas de la cuenta.',
+  )
+}
+
+async function loadAttendeeTickets(client, documentKeys, ownedOrderIds) {
+  const keys = [...new Set((documentKeys ?? []).filter(Boolean))]
+  if (!keys.length) return []
+  const rows =
+    (await readAccountRows(
+      ATTENDEE_TICKET_SELECTS.map(
+        (columns) => () =>
+          client
+            .from('tickets')
+            .select(columns)
+            .in('attendee_document_key', keys)
+            .order('created_at', { ascending: false })
+            .limit(ACCOUNT_TICKET_LIMIT),
+      ),
+      'No se pudieron leer las entradas a tu nombre.',
+    )) ?? []
+  return rows
+    .filter((row) => row?.order?.id && !ownedOrderIds.has(row.order.id))
+    .map((row) => {
+      const { order, ...ticket } = row
+      return { order, ticket }
+    })
 }
 
 function mapTicketOrderRow(order) {
@@ -182,6 +305,46 @@ export function createSupabaseTicketRepository(client) {
         'No se pudo crear la orden de entradas.',
       )
       return { ...result, orderAccessToken: accessToken }
+    },
+    /**
+     * La compra ya existe. El id de la cuenta sale de la sesión, nunca del
+     * body. Si la columna todavía no está, la compra sigue y el mail
+     * verificado puede reclamarla después.
+     * No pisa un dueño ya grabado: un reintento no se la lleva otra cuenta.
+     */
+    async attachBuyerAccount(orderId, account) {
+      if (!orderId || !account?.id) return null
+      const column = account.kind === 'staff' ? 'buyer_staff_user_id' : 'buyer_athlete_id'
+      const result = await client
+        .from('ticket_orders')
+        .update({ [column]: account.id })
+        .eq('id', orderId)
+        .is('buyer_athlete_id', null)
+        .is('buyer_staff_user_id', null)
+      if (result?.error && isMissingSchemaColumn(result.error)) return null
+      assertSupabaseResult(result, 'No se pudo asociar la compra a la cuenta.')
+      return { [column]: account.id }
+    },
+    async listTicketsForAccount(account) {
+      const orders = await loadOrdersForAccount(client, account)
+      const orderIds = orders.map((order) => order.id)
+      const tickets = await loadTicketsForOrders(client, orderIds)
+      const byOrder = new Map()
+      for (const ticket of tickets ?? []) {
+        const list = byOrder.get(ticket.order_id) ?? []
+        list.push(ticket)
+        byOrder.set(ticket.order_id, list)
+      }
+      const buyerOrders = orders.map((order) => ({
+        order,
+        tickets: byOrder.get(order.id) ?? [],
+      }))
+      const attendeeTickets = await loadAttendeeTickets(
+        client,
+        account.documentKeys,
+        new Set(orderIds),
+      )
+      return { buyerOrders, attendeeTickets }
     },
     /**
      * Medios de cobro propios de los tipos que entran en una compra. Se lee

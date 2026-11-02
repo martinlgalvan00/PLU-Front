@@ -9,6 +9,7 @@ import {
   Receipt,
   ShieldCheck,
   Sparkles,
+  Ticket,
   Trophy,
   UserRound,
 } from 'lucide-react'
@@ -28,6 +29,7 @@ const ITEM_CHROME = {
   'account-benefits': { icon: BadgePercent, labelKey: 'benefits' },
   'account-offer': { icon: Sparkles, labelKey: 'offer' },
   'account-events': { icon: Trophy, labelKey: 'events' },
+  'account-tickets': { icon: Ticket, labelKey: 'tickets' },
   'account-history': { icon: History, labelKey: 'history' },
   'account-membership': { icon: ShieldCheck, labelKey: 'membership' },
   'account-payments': { icon: Receipt, labelKey: 'payments' },

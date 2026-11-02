@@ -265,6 +265,15 @@ La regla de consumo también pertenece al tipo: puede ser **un ingreso total**
 en cualquiera de sus jornadas o **un ingreso por jornada asignada**. En ambos
 casos se conserva la misma credencial QR; no se emite un QR distinto por fecha.
 
+Ver el pase y entrar por la puerta son dos relojes. Cada evento define
+`ticket_reveal_lead_minutes` (24 horas por defecto, 0 para mostrar el QR al
+acreditar). El comprador ve el QR y el código de puerta recién en
+`valid_from` menos esa anticipación. Hasta entonces la API pública, Mis
+entradas y el mail de confirmación no entregan ni el token ni el código. El
+mail con el PNG sale cuando la ventana abre. La puerta no se adelanta: el
+scan sigue exigiendo `valid_from` / `valid_until`. El panel y Seguridad ven
+el QR siempre. La credencial de atleta no usa esta reserva.
+
 El límite superior siempre es exclusivo. Los cambios de política se aplican al
 tipo de entrada y se reflejan al próximo escaneo; la auditoría conserva la
 ventana efectiva y la jornada de cada ingreso. La duración relativa se cuenta

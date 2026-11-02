@@ -21,6 +21,7 @@ import {
 import AdminTicketAddonsEditor from '../AdminTicketAddonsEditor.jsx'
 import AdminTicketTypesEditor from '../AdminTicketTypesEditor.jsx'
 import { updatePricingField } from './draftPatches.js'
+import { TICKET_REVEAL_LEAD_HOUR_PRESETS } from '../../../lib/ticketReveal.js'
 import { CapacityPublicBreakdown, FormField } from './parts.jsx'
 import CashPaymentPlace from '../../ui/CashPaymentPlace.jsx'
 
@@ -1405,6 +1406,54 @@ export default function EventSalesSection({
                   />
                 </FormField>
               </div>
+
+              <FormField
+                htmlFor="event-ticket-reveal-lead"
+                label={t('admin.eventEditor.supabase.ticketRevealLeadHours')}
+                error={err('ticketRevealLeadHours')}
+              >
+                <input
+                  id="event-ticket-reveal-lead"
+                  name="ticketRevealLeadHours"
+                  data-field="ticketRevealLeadHours"
+                  min={0}
+                  max={366 * 24}
+                  type="number"
+                  value={draft.ticketRevealLeadHours ?? 24}
+                  aria-invalid={Boolean(err('ticketRevealLeadHours'))}
+                  onChange={(event) =>
+                    patchDraft({
+                      ...draft,
+                      ticketRevealLeadHours:
+                        event.target.value === '' ? '' : Number(event.target.value),
+                    })
+                  }
+                  disabled={!canEdit}
+                />
+                <div
+                  className="admin-event-form__reveal-presets"
+                  role="group"
+                  aria-label={t('admin.eventEditor.supabase.ticketRevealLeadPresets')}
+                >
+                  {TICKET_REVEAL_LEAD_HOUR_PRESETS.map((hours) => (
+                    <button
+                      key={hours}
+                      type="button"
+                      className="admin-event-form__reveal-preset"
+                      aria-pressed={Number(draft.ticketRevealLeadHours) === hours}
+                      disabled={!canEdit}
+                      onClick={() => patchDraft({ ...draft, ticketRevealLeadHours: hours })}
+                    >
+                      {hours === 0
+                        ? t('admin.eventEditor.supabase.ticketRevealLeadImmediate')
+                        : t('admin.eventEditor.supabase.ticketRevealLeadPreset', { count: hours })}
+                    </button>
+                  ))}
+                </div>
+                <small className="admin-event-form__field-hint">
+                  {t('admin.eventEditor.supabase.ticketRevealLeadHint')}
+                </small>
+              </FormField>
 
               <div className="admin-event-form__ticket-config">
                 <div className="admin-event-form__ticket-config-body">

@@ -117,6 +117,20 @@ export function describeBuyerTicketDays(ticket, { locale = 'es', catalogTypes = 
   }
 }
 
+/**
+ * Línea corta para la fila de la cuenta. Un solo día conserva su nombre.
+ * Varios días muestran la fecha: el tipo de entrada ya dice que son dos.
+ */
+export function compactAccessDaysLabel(described, locale = 'es') {
+  const days = described?.days ?? []
+  if (!days.length) return ''
+  if (days.length === 1) return formatAccessDayLabel(days[0], locale)
+  return days
+    .map((day) => (day.date ? formatAccessDayDate(day.date, locale) : String(day.label ?? '').trim()))
+    .filter(Boolean)
+    .join(' · ')
+}
+
 export function formatAccessDayLabel(day, locale = 'es') {
   const dateLabel = day?.date ? formatAccessDayDate(day.date, locale) : ''
   const label = String(day?.label ?? '').trim()

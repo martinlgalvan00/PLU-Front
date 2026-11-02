@@ -63,7 +63,7 @@ export const PUBLIC_NAVIGATION = {
       key: 'competition',
       labelKey: 'nav.moreCompetition',
       type: 'menu',
-      views: ['events', 'pitbull', 'tickets'],
+      views: ['events', 'pitbull'],
       groups: [
         {
           labelKey: 'nav.moreCompetition',
@@ -78,7 +78,7 @@ export const PUBLIC_NAVIGATION = {
         },
       ],
     },
-    { key: 'shop', labelKey: 'nav.shop', views: ['shop'] },
+    { key: 'shop', labelKey: 'nav.shop', views: ['shop', 'tickets'] },
     { key: 'results', labelKey: 'nav.results' },
     { key: 'records', labelKey: 'nav.records' },
     {

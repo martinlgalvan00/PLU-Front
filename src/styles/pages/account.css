@@ -3071,6 +3071,60 @@
   min-width: 0;
 }
 
+.account-qr__aside {
+  align-content: start;
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+  max-width: 34ch;
+  min-width: 0;
+  padding-top: 6px;
+}
+
+.account-qr__aside-title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.account-qr__aside-note {
+  color: var(--color-text-secondary);
+  font-size: 14.5px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 36ch;
+}
+
+.account-qr__facts {
+  display: grid;
+  margin: 0;
+}
+
+.account-qr__facts > div {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 4px;
+  padding: 12px 0;
+}
+
+.account-qr__facts dt {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.account-qr__facts dd {
+  color: var(--color-text-primary);
+  font-size: 14.5px;
+  margin: 0;
+}
+
 .account-qr__preview-caption {
   color: var(--color-text-muted);
   font-size: 11px;

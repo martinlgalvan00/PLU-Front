@@ -5,6 +5,7 @@ import { hasEventScopeAccess } from '../../src/lib/permissions.js'
 import { resolveTicketTypeChannels } from '../../src/lib/ticketTypePaymentChannels.js'
 import { lookupTicketAccessDays } from '../../src/lib/buyerTicketDays.js'
 import { ticketValidityTiming } from '../../src/lib/ticketValidity.js'
+import { resolveTicketRevealLeadMinutes, ticketRevealState } from '../../src/lib/ticketReveal.js'
 import { normalizeGateCode } from '../../src/lib/ticketGateCode.js'
 import {
   attachStaffBuyerOpenKeys,
@@ -148,18 +149,26 @@ import {
   publicReadLimiter,
   scanTelemetryLimiter,
   staffLimiter,
+  ticketMineLimiter,
   ticketOrderLookupLimiter,
   ticketPublicWriteLimiter,
 } from '../middleware/rateLimit.js'
 import { createSupabaseAthleteRepository } from '../modules/athletes/supabaseAthleteRepository.js'
 import { createSupabaseTicketRepository } from '../modules/ticketing/supabaseTicketRepository.js'
+import {
+  resolveTicketAccount,
+  serializeAccountTickets,
+} from '../modules/ticketing/accountTickets.js'
 import { assertEventAccess } from '../lib/eventScope.js'
 import { assertTicketOrderInScope } from '../modules/events/orderEventScope.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { fetchScanTrail } from '../modules/checkin/scanTrail.js'
 import { INCIDENT_KINDS, createCheckinIncidentRepository } from '../modules/checkin/incidents.js'
 import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.js'
-import { buildTicketConfirmationDelivery } from '../modules/notifications/ticketConfirmationMail.js'
+import {
+  buildTicketConfirmationDelivery,
+  ticketRevealMailSettled,
+} from '../modules/notifications/ticketConfirmationMail.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
 import { displayPaymentConcept } from '../modules/notifications/paymentNotificationService.js'
 import { buildEventPagePath } from '../../src/lib/eventPageRoute.js'
@@ -530,18 +539,39 @@ export function createTicketRoutes({
    * El link abre la entrada con una clave firmada (`?ref=&k=`). Sin esa clave,
    * `TicketOrderLookup` pide el mail del comprador como segundo factor.
    */
-  async function sendTicketConfirmation(result, { resend = false } = {}) {
+  async function markPassRevealed(orderId) {
+    const client = getSupabaseAdmin?.()
+    if (!client || !orderId) return
+    const result = await client
+      .from('ticket_orders')
+      .update({ pass_revealed_at: new Date().toISOString() })
+      .eq('id', orderId)
+      .is('pass_revealed_at', null)
+    if (result?.error && !isMissingSchemaColumn(result.error)) {
+      logger.warn('ticket.pass_reveal_mark_failed', { err: result.error, orderId })
+    }
+  }
+
+  async function sendTicketConfirmation(result, { resend = false, now = new Date() } = {}) {
     const order = result?.order
     if (!order || (!resend && result?.duplicate)) return null
     if (order.status !== 'aprobado' || !order.buyer_email) return null
 
     const preset = result?.event ?? order.event ?? null
-    const event =
-      preset?.title && preset?.slug
-        ? preset
-        : await athleteRepo()
-            .findEventSummary(order.event_id)
-            .catch(() => preset)
+    const summary = order.event_id
+      ? await athleteRepo()
+          .findEventSummary(order.event_id)
+          .catch(() => null)
+      : null
+    const event = {
+      ...(summary ?? {}),
+      ...(preset ?? {}),
+      ticket_reveal_lead_minutes:
+        preset?.ticket_reveal_lead_minutes ??
+        preset?.ticketRevealLeadMinutes ??
+        summary?.ticket_reveal_lead_minutes ??
+        null,
+    }
 
     const delivery = await buildTicketConfirmationDelivery({
       order,
@@ -549,10 +579,15 @@ export function createTicketRoutes({
       event,
       appUrl,
       resend,
+      now,
       openKey: signTicketOpenKey(order.reference),
     })
     if (!delivery) return null
-    return sendBestEffort('ticket_confirmation', delivery)
+    const sent = await sendBestEffort('ticket_confirmation', delivery)
+    if (delivery.revealComplete && ticketRevealMailSettled(sent)) {
+      await markPassRevealed(order.id)
+    }
+    return sent
   }
 
   function confirmationMailStatus(result) {
@@ -636,6 +671,26 @@ export function createTicketRoutes({
     if (req.eventScope) return assertEventAccess(req, { slug: targetEventSlug })
     if (hasEventScopeAccess(req.auth.user, { eventSlug: targetEventSlug })) return
     throw new HttpError(403, 'Esta cuenta no tiene acceso a este evento.')
+  }
+
+  function ticketAccountFromRequest(req) {
+    return resolveTicketAccount({
+      req,
+      prisma,
+      supabase: getSupabaseAdmin?.() ?? null,
+    })
+  }
+
+  async function rememberBuyerAccount(orderId, account) {
+    if (!orderId || !account?.id) return
+    const repository = repo()
+    if (typeof repository.attachBuyerAccount !== 'function') return
+    try {
+      await repository.attachBuyerAccount(orderId, account)
+    } catch (error) {
+      if (isMissingSchemaColumn(error)) return
+      logger.warn('ticket.buyer_account_attach_failed', { orderId, err: error })
+    }
   }
 
   router.post(
@@ -750,16 +805,23 @@ export function createTicketRoutes({
           (value) => ({ value }),
           (error) => ({ error }),
         )
+        // La sesión se lee en paralelo. Si no hay cookie, la orden queda
+        // invitada y se recupera como hasta ahora.
+        const accountPromise = ticketAccountFromRequest(req).catch((error) => {
+          logger.warn('ticket.buyer_account_unresolved', { err: error })
+          return null
+        })
         let created
         try {
           created = await repo().createOrder(orderInput)
         } catch (error) {
-          await publicKey
+          await Promise.all([publicKey, accountPromise])
           throw error
         }
-        const keyResult = await publicKey
+        const [keyResult, account] = await Promise.all([publicKey, accountPromise])
         if (keyResult.error) throw keyResult.error
         const mercadoPagoPublicKey = keyResult.value
+        await rememberBuyerAccount(created?.order?.id ?? null, account)
         res.status(201).json({
           ...created,
           mercadoPagoPublicKey,
@@ -828,8 +890,9 @@ export function createTicketRoutes({
    * Sin acreditar, no viaja el QR: una entrada pendiente no abre la puerta.
    * Snake_case a propósito: `toCamelTicket` espera este shape.
    */
-  function serializeBuyerOrder(found) {
+  function serializeBuyerOrder(found, now = new Date()) {
     const paid = found.order.status === 'aprobado'
+    const leadMinutes = resolveTicketRevealLeadMinutes(found.order.event)
     return {
       order: {
         reference: found.order.reference,
@@ -838,30 +901,56 @@ export function createTicketRoutes({
         eventSlug: found.order.event?.slug ?? null,
         eventStartsAt: found.order.event?.starts_at ?? null,
         eventVenue: found.order.event?.venue ?? null,
+        ticketRevealLeadMinutes: leadMinutes,
       },
       tickets: paid
-        ? (found.tickets ?? []).map((ticket) => ({
-            id: ticket.id,
-            order_id: ticket.order_id,
-            bundle_id: ticket.bundle_id,
-            ticket_code: ticket.ticket_code,
-            qr_token: ticket.qr_token,
-            gate_code: ticket.gate_code ?? null,
-            attendee_name: ticket.attendee_name,
-            attendee_dni: ticket.attendee_dni ?? null,
-            status: ticket.status,
-            credential_label: ticket.credential_label,
-            credential_scopes: ticket.credential_scopes,
-            is_primary_credential: ticket.is_primary_credential !== false,
-            addons: Array.isArray(ticket.addons) ? ticket.addons : [],
-            valid_from: ticket.valid_from ?? null,
-            valid_until: ticket.valid_until ?? null,
-            access_days: lookupTicketAccessDays(ticket),
-            ticket_type_name: ticket.ticket_types?.name ?? ticket.ticket_type_name ?? null,
-          }))
+        ? (found.tickets ?? []).map((ticket) => {
+            const reveal = ticketRevealState(ticket, leadMinutes, now)
+            return {
+              id: ticket.id,
+              order_id: ticket.order_id,
+              bundle_id: ticket.bundle_id,
+              ticket_code: ticket.ticket_code,
+              qr_token: reveal.sealed ? null : ticket.qr_token,
+              gate_code: reveal.sealed ? null : (ticket.gate_code ?? null),
+              pass_sealed: reveal.sealed,
+              reveal_at: reveal.revealAt,
+              attendee_name: ticket.attendee_name,
+              attendee_dni: ticket.attendee_dni ?? null,
+              status: ticket.status,
+              credential_label: ticket.credential_label,
+              credential_scopes: ticket.credential_scopes,
+              is_primary_credential: ticket.is_primary_credential !== false,
+              addons: Array.isArray(ticket.addons) ? ticket.addons : [],
+              valid_from: ticket.valid_from ?? null,
+              valid_until: ticket.valid_until ?? null,
+              access_days: lookupTicketAccessDays(ticket),
+              ticket_type_name: ticket.ticket_types?.name ?? ticket.ticket_type_name ?? null,
+            }
+          })
         : [],
     }
   }
+
+  /**
+   * Entradas de la cuenta. La cookie decide quién mira: el comprador ve la
+   * orden completa y el asistente sólo la fila de su documento. Sin sesión
+   * no hay listado — el invitado sigue por `/orders/lookup`.
+   */
+  router.get('/mine', ticketMineLimiter, async (req, res, next) => {
+    try {
+      const account = await ticketAccountFromRequest(req)
+      if (!account?.id) throw new HttpError(401, 'No autenticado.')
+      const repository = repo()
+      if (typeof repository.listTicketsForAccount !== 'function') {
+        throw new HttpError(503, 'No se pudieron leer las entradas de la cuenta.')
+      }
+      const found = await repository.listTicketsForAccount(account)
+      res.json(serializeAccountTickets(found))
+    } catch (error) {
+      next(error)
+    }
+  })
 
   /**
    * Recuperar una compra sin sesión. El mail trae `?ref=&k=` y abre directo.
@@ -1704,13 +1793,19 @@ export function createTicketRoutes({
     let ticket
     let qrToken = req.params.qrToken
     const gate = resolveGateLabel(req)
+    const zoneScopeResult = scannerZoneScope(req).then(
+      (scope) => ({ scope }),
+      (error) => ({ error }),
+    )
     try {
       qrToken = await resolveDoorQrToken(repo, req.params.qrToken)
       ticket = await loadTicketBeforeCheckIn(repo(), qrToken)
       const eventId = verifiedTicketEventId(ticket)
       assertEventScope(req, eventId)
       assertTicketValidity(ticket)
-      const zoneScope = await scannerZoneScope(req)
+      const zone = await zoneScopeResult
+      if (zone.error) throw zone.error
+      const zoneScope = zone.scope
       const result = await repo().checkIn(qrToken, gate, actor(req), zoneScope)
       // Autoritativo: el servidor observó el ingreso. No bloquea la
       // respuesta -- un rastro de puerta perdido no puede volver a fallar

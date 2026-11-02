@@ -1103,6 +1103,14 @@
   max-width: 42ch;
 }
 
+.tickets-page__my-tickets-status {
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 42ch;
+}
+
 /* ── Checkout ────────────────────────────────── */
 
 .tickets-page__checkout {

@@ -52,6 +52,7 @@ describe('Vercel deployment contract', () => {
       { path: '/api/internal/jobs/shop-order-expiry', schedule: '45 3 * * *' },
       // Renovación de tokens OAuth de MP: duran 180 días, una vez por día sobra.
       { path: '/api/internal/jobs/mercado-pago-oauth-refresh', schedule: '0 4 * * *' },
+      { path: '/api/internal/jobs/ticket-reveal', schedule: '15 4 * * *' },
     ])
   })
 

@@ -1,3 +1,8 @@
+.account-ticket-list {
+  display: grid;
+  gap: clamp(16px, 2.4vw, 22px);
+}
+
 .buyer-tickets-wallet {
   display: grid;
   gap: 18px;
@@ -75,42 +80,52 @@
   display: grid;
   font: inherit;
   gap: 4px;
+  justify-items: start;
   min-height: 44px;
-  padding: 12px 2px;
+  padding: 16px 2px 18px;
   text-align: start;
   width: 100%;
 }
 
 .buyer-tickets-wallet__row.is-active {
   box-shadow: inset 2px 0 0 var(--color-brand-gold);
-  padding-left: 10px;
+  padding-left: 12px;
 }
 
 .buyer-tickets-wallet__row-main {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 12px;
-  justify-content: space-between;
+  display: grid;
+  gap: 2px;
+  justify-items: start;
 }
 
 .buyer-tickets-wallet__row-main strong {
   font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  font-size: clamp(18px, 2.4vw, 22px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
 }
 
-.buyer-tickets-wallet__row-main span,
-.buyer-tickets-wallet__row-meta {
+.buyer-tickets-wallet__row-type {
   color: var(--color-text-secondary);
+  font-size: 13.5px;
+  line-height: 1.35;
+  max-width: 36ch;
+}
+
+.buyer-tickets-wallet__row-meta,
+.buyer-tickets-wallet__row-status {
   font-size: 13px;
   line-height: 1.4;
 }
 
 .buyer-tickets-wallet__row-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
+  color: var(--color-text-muted);
+}
+
+.buyer-tickets-wallet__row-status {
+  color: var(--color-text-secondary);
+  margin-top: 4px;
 }
 
 .buyer-tickets-wallet__pass {
@@ -194,6 +209,17 @@
   color: var(--color-text-muted);
   font-size: 13px;
   margin: 0;
+}
+
+.buyer-tickets-wallet__sealed {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(22px, 4vw, 32px);
+  font-weight: 550;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 8px 0 0;
+  max-width: 22ch;
 }
 
 .buyer-tickets-wallet__gate {

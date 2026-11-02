@@ -143,12 +143,14 @@ export async function paintCardFaces(card, palette, family) {
   fitText(frontContext, card.name ?? '', TEXTURE_W - pad * 2, 112, 700, family)
   frontContext.fillText(card.name ?? '', pad, 640)
 
-  frontContext.letterSpacing = '6px'
-  frontContext.font = `600 34px ui-monospace, 'JetBrains Mono', monospace`
-  frontContext.fillStyle = 'rgba(255,255,255,0.55)'
-  frontContext.fillText(String(card.codeLabel ?? '').toUpperCase(), pad, 730)
-  frontContext.fillStyle = palette.gold
-  frontContext.fillText(card.code ?? '', pad + 200, 730)
+  if (card.code) {
+    frontContext.letterSpacing = '6px'
+    frontContext.font = `600 34px ui-monospace, 'JetBrains Mono', monospace`
+    frontContext.fillStyle = 'rgba(255,255,255,0.55)'
+    frontContext.fillText(String(card.codeLabel ?? '').toUpperCase(), pad, 730)
+    frontContext.fillStyle = palette.gold
+    frontContext.fillText(card.code, pad + 200, 730)
+  }
 
   frontContext.letterSpacing = '0px'
   frontContext.fillStyle = 'rgba(255,255,255,0.12)'
@@ -182,10 +184,13 @@ export async function paintCardFaces(card, palette, family) {
   backContext.font = `600 34px ${family}`
   backContext.textAlign = 'center'
   backContext.fillText(card.qrCaption ?? '', TEXTURE_W / 2, qrY + qrSize + 100)
-  backContext.fillStyle = palette.gold
-  backContext.font = `600 32px ui-monospace, 'JetBrains Mono', monospace`
-  backContext.letterSpacing = '6px'
-  backContext.fillText(card.code ?? '', TEXTURE_W / 2, qrY + qrSize + 150)
+  if (card.code) {
+    backContext.fillStyle = palette.gold
+    backContext.font = `600 32px ui-monospace, 'JetBrains Mono', monospace`
+    backContext.letterSpacing = '6px'
+    backContext.fillText(card.code, TEXTURE_W / 2, qrY + qrSize + 150)
+    backContext.letterSpacing = '0px'
+  }
   restoreBack()
 
   return { front, back }

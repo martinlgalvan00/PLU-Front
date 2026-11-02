@@ -128,6 +128,22 @@ export function createEmailDispatcher({
     return null
   }
 
+  /**
+   * Una fila `failed` se retoma sólo si este request trae el contenido vivo.
+   * El job automático sigue sin rearmar credenciales redactadas.
+   */
+  async function claimFailedEmail(started) {
+    if (started.created || started.emailLog?.status !== 'failed') return started
+    if (typeof repository.reopenFailedEmail !== 'function') return started
+    const prior = Number(started.emailLog.attempts_count ?? started.emailLog.attemptsCount ?? 1)
+    if (prior >= MAX_EMAIL_ATTEMPTS) return started
+    const reopened = await repository.reopenFailedEmail(started.emailLog.id)
+    if (!reopened) {
+      return { emailLog: { ...started.emailLog, status: 'duplicate' }, created: false }
+    }
+    return { emailLog: reopened, created: true, reclaimed: true }
+  }
+
   async function send(type, input = {}) {
     const definition = getEmailDefinition(type)
     if (!definition) {
@@ -170,20 +186,23 @@ export function createEmailDispatcher({
     // La reserva ocurre antes de las validaciones operativas y de la lista de
     // supresión. Así un flujo que intentó mandar un email incompleto o a una
     // dirección suprimida deja evidencia durable en Auditoría.
-    const started = await repository.beginEmail({
-      type,
-      to,
-      entityType,
-      entityId,
-      idempotencyKey,
-      templateId: resolveTemplateId(type, env),
-      category: definition.category,
-      // Los links firmados, códigos y contraseñas sólo existen durante este
-      // request. El outbox conserva el contexto auditable, nunca el bearer.
-      params: redactSensitiveEmailParams(type, params),
-    })
+    const started = await claimFailedEmail(
+      await repository.beginEmail({
+        type,
+        to,
+        entityType,
+        entityId,
+        idempotencyKey,
+        templateId: resolveTemplateId(type, env),
+        category: definition.category,
+        // Los links firmados, códigos y contraseñas sólo existen durante este
+        // request. El outbox conserva el contexto auditable, nunca el bearer.
+        params: redactSensitiveEmailParams(type, params),
+      }),
+    )
 
-    // Ya existía: otro proceso (o un reintento de webhook) lo tomó primero.
+    // Ya existía y no está para retomar: otro proceso lo mandó, o este día
+    // agotó los intentos. Un reintento de webhook no manda dos comprobantes.
     if (!started.created) {
       return {
         status: started.emailLog?.status ?? 'duplicate',
@@ -252,7 +271,10 @@ export function createEmailDispatcher({
       })
       return { status: 'sent', created: true, emailLog, response }
     } catch (error) {
-      const emailLog = await recordFailure(started.emailLog, error, 1, definition)
+      const attempt = started.reclaimed
+        ? Number(started.emailLog.attempts_count ?? started.emailLog.attemptsCount ?? 1) + 1
+        : 1
+      const emailLog = await recordFailure(started.emailLog, error, attempt, definition)
       // Se propaga para que el llamador decida. Todos los callers de negocio lo
       // atrapan: el email nunca revierte la operación que lo disparó.
       error.emailLog = emailLog

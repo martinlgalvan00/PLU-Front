@@ -30,6 +30,7 @@ import { getFormOptions } from '../../lib/formOptions.js'
 import { money } from '../../lib/format.js'
 import { toggleAttendeeAddon as applyAttendeeAddonToggle } from '../../lib/ticketAddons.js'
 import { describeBuyerTicketDays } from '../../lib/buyerTicketDays.js'
+import { formatTicketRevealWhen } from '../../lib/ticketReveal.js'
 import { TICKETS_PATH } from '../../lib/ticketsRoute.js'
 import { isTicketTypeChannelOpen } from '../../lib/ticketTypePaymentChannels.js'
 import { validateTicketAttendees, validateTicketBuyer } from '../../lib/validation.js'
@@ -1027,6 +1028,19 @@ export default function TicketPurchaseSection({
     })
     const shareHref = `https://wa.me/?text=${encodeURIComponent(shareText)}`
     const awaitingPayment = ticketOrderAwaitingPayment(visibleOrder.status)
+    const revealLeadHours = Number(event?.ticketRevealLeadHours)
+    const revealLead =
+      Number.isFinite(revealLeadHours) && revealLeadHours >= 0 ? revealLeadHours : 24
+    const allPassesSealed =
+      orderTickets.length > 0 &&
+      orderTickets.every((ticket) => ticket.passSealed === true && !ticket.qrToken)
+    const sealedWhen = formatTicketRevealWhen(
+      orderTickets
+        .map((ticket) => ticket.revealAt)
+        .filter(Boolean)
+        .sort()[0],
+      locale,
+    )
     const wallet = showWallet ? (
       <BuyerTicketsWallet
         anchorId="mis-tickets"
@@ -1055,9 +1069,15 @@ export default function TicketPurchaseSection({
             eyebrow={t('pages.tickets.sealEyebrow')}
             seal={countLabel}
             title={t('pages.tickets.confirmationTitle', { event: visibleOrder.eventTitle })}
-            detail={t('pages.tickets.sealDetail', {
-              amount: money(visibleOrder.amount, locale, visibleOrder.currency),
-            })}
+            detail={
+              allPassesSealed
+                ? sealedWhen
+                  ? t('pages.tickets.sealDetailSealed', { when: sealedWhen })
+                  : t('pages.tickets.sealDetailSealedSoon')
+                : t('pages.tickets.sealDetail', {
+                    amount: money(visibleOrder.amount, locale, visibleOrder.currency),
+                  })
+            }
           />
         ) : (
           <div className="ticket-purchase__confirmation-head">
@@ -1076,7 +1096,9 @@ export default function TicketPurchaseSection({
           <p className="ticket-purchase__confirmation-lead">
             {isManualTicketPayment(visibleOrder.paymentMethod)
               ? t('pages.tickets.qrHeldLead')
-              : t('pages.tickets.confirmationQrLead')}
+              : revealLead > 0
+                ? t('pages.tickets.confirmationQrLeadHeld', { hours: revealLead })
+                : t('pages.tickets.confirmationQrLead')}
           </p>
         ) : null}
 

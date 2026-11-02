@@ -27,6 +27,7 @@ import { ApiError, apiDelete, apiGet, apiPatch, apiPost } from '../lib/api.js'
 import { compressImageFile } from '../lib/compressImageFile.js'
 import { removeImageBackground } from '../lib/removeImageBackground.js'
 import { normalizeTicketCredentials } from '../lib/ticketCredentials.js'
+import { ticketRevealLeadHoursFromMinutes } from '../lib/ticketReveal.js'
 import { normalizeEventPaymentChannelOverrides } from '../lib/eventPaymentChannels.js'
 import { externalFormFromRules, normalizeExternalForm } from '../lib/eventExternalForm.js'
 import {
@@ -136,6 +137,9 @@ export function buildAdminEventDraft(event) {
     registrationClosesAt: toDateTimeLocal(event.registrationClosesAt),
     ticketSalesOpensAt: toDateTimeLocal(event.ticketSalesOpensAt),
     ticketSalesClosesAt: toDateTimeLocal(event.ticketSalesClosesAt),
+    ticketRevealLeadHours:
+      event.ticketRevealLeadHours ??
+      ticketRevealLeadHoursFromMinutes(event.ticketRevealLeadMinutes),
     eventDays: (event.eventDays ?? []).map((day) => ({ ...day })),
     ticketTypes: (event.ticketTypes ?? []).map((type) => ({
       ...type,
@@ -450,6 +454,7 @@ export function createAdminEvent(events, payload) {
     registrationClosesAt: payload.registrationClosesAt ?? '',
     ticketSalesOpensAt: payload.ticketSalesOpensAt ?? '',
     ticketSalesClosesAt: payload.ticketSalesClosesAt ?? '',
+    ticketRevealLeadHours: payload.ticketRevealLeadHours ?? 24,
     eventDays: payload.eventDays ?? [],
     ticketTypes: payload.ticketTypes ?? [],
     weighInWindows: normalizeWeighInWindows(payload.weighInWindows),
@@ -513,6 +518,7 @@ export function updateAdminEvent(events, eventId, payload) {
       registrationClosesAt: payload.registrationClosesAt ?? event.registrationClosesAt ?? '',
       ticketSalesOpensAt: payload.ticketSalesOpensAt ?? event.ticketSalesOpensAt ?? '',
       ticketSalesClosesAt: payload.ticketSalesClosesAt ?? event.ticketSalesClosesAt ?? '',
+      ticketRevealLeadHours: payload.ticketRevealLeadHours ?? event.ticketRevealLeadHours ?? 24,
       eventDays: payload.eventDays ?? event.eventDays ?? [],
       ticketTypes: payload.ticketTypes ?? event.ticketTypes ?? [],
       weighInWindows: normalizeWeighInWindows(payload.weighInWindows ?? event.weighInWindows),
@@ -664,6 +670,7 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   ticketSalesOpensAt: '',
   ticketSalesClosesAt: '',
   ticketCapacity: '',
+  ticketRevealLeadHours: 24,
   eventDays: [],
   ticketTypes: [],
   weighInWindows: [],
@@ -804,6 +811,8 @@ export function mapSupabaseEventRow(row) {
     registrationClosesAt: row.registration_closes_at,
     ticketSalesOpensAt: row.ticket_sales_opens_at,
     ticketSalesClosesAt: row.ticket_sales_closes_at,
+    ticketRevealLeadMinutes: row.ticket_reveal_lead_minutes ?? null,
+    ticketRevealLeadHours: ticketRevealLeadHoursFromMinutes(row.ticket_reveal_lead_minutes),
     capacity: row.capacity,
     status: row.status,
     rosterFrozenAt: row.roster_frozen_at ?? row.rosterFrozenAt ?? null,

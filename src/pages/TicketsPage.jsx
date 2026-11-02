@@ -30,6 +30,8 @@ import {
 } from '../lib/eventPricing.js'
 import { resolvePublicTicketOffer, ticketOfferCopyKey } from '../lib/ticketSalesState.js'
 import { resendTicketOrderByBuyer } from '../services/ticketApi.js'
+import { useAccountTickets } from '../hooks/useAccountTickets.js'
+import AccountTicketWallets from '../components/ui/AccountTicketWallets.jsx'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { money } from '../lib/format.js'
@@ -126,9 +128,11 @@ export default function TicketsPage({
   onLookupTicketOrder,
   onSubmitTicketPurchase,
   onUploadPaymentProof,
+  session = null,
 }) {
   const { locale, t } = useI18n()
   const { reducedMotion } = useMotionConfig()
+  const accountTickets = useAccountTickets(session)
   const ticketEvents = useMemo(() => {
     const keyed = new Map()
     for (const item of getUpcomingEventsByDate([event, ...events].filter(Boolean))) {
@@ -194,6 +198,10 @@ export default function TicketsPage({
     pageOrder?.eventSlug && (selectedEvent?.slug ?? selectedEvent?.id) === pageOrder.eventSlug
       ? pricing.ticketTypes
       : []
+  const accountRefs = new Set(
+    accountTickets.wallets.map((wallet) => wallet.order?.reference).filter(Boolean),
+  )
+  const lookupAlreadyListed = Boolean(pageOrder?.reference && accountRefs.has(pageOrder.reference))
 
   const heroMark =
     String(selectedEvent?.title ?? '')
@@ -386,9 +394,27 @@ export default function TicketsPage({
             <header className="tickets-page__my-tickets-head">
               <span className="tickets-page__eyebrow">{t('pages.ticketsPage.myTicketsEyebrow')}</span>
               <h2 id="tickets-mine-title">{t('pages.ticketsPage.myTicketsTitle')}</h2>
-              <p>{t('pages.ticketsPage.myTicketsLead')}</p>
+              <p>
+                {session
+                  ? t('pages.ticketsPage.myTicketsLeadSignedIn')
+                  : t('pages.ticketsPage.myTicketsLead')}
+              </p>
             </header>
-            {pageOrder ? (
+            {session && accountTickets.status === 'loading' ? (
+              <p className="tickets-page__my-tickets-status" role="status">
+                {t('pages.ticketsPage.myTicketsLoading')}
+              </p>
+            ) : null}
+            {session && accountTickets.status === 'error' ? (
+              <p className="tickets-page__my-tickets-status" role="alert">
+                {t('pages.ticketsPage.myTicketsError')}
+              </p>
+            ) : null}
+            {session && accountTickets.status === 'ready' && accountTickets.wallets.length === 0 ? (
+              <p className="tickets-page__my-tickets-status">{t('pages.ticketsPage.myTicketsEmpty')}</p>
+            ) : null}
+            <AccountTicketWallets wallets={accountTickets.wallets} />
+            {pageOrder && !lookupAlreadyListed ? (
               <BuyerTicketsWallet
                 catalogTypes={pageCatalog}
                 event={selectedEvent}
@@ -431,7 +457,11 @@ export default function TicketsPage({
               </h2>
               <p className="tickets-page__checkout-lead">
                 {holdingPass
-                  ? t('pages.ticketsPage.myTicketsLead')
+                  ? t(
+                      session
+                        ? 'pages.ticketsPage.myTicketsLeadSignedIn'
+                        : 'pages.ticketsPage.myTicketsLead',
+                    )
                   : ticketSalesOpen
                     ? t('pages.ticketsPage.checkoutLead')
                     : ticketClosedLead}

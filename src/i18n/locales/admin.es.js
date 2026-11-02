@@ -5187,6 +5187,12 @@ export default {
       registrationClosesAt: 'Cierra la inscripción',
       ticketSalesOpensAt: 'Abre la venta',
       ticketSalesClosesAt: 'Cierra la venta',
+      ticketRevealLeadHours: 'Horas antes de mostrar la entrada',
+      ticketRevealLeadHint:
+        'El QR y el código de puerta se habilitan para verlos esta cantidad de horas antes de que empiece la vigencia. 0 los muestra al acreditar el pago. No cambia cuándo abre la puerta.',
+      ticketRevealLeadPresets: 'Anticipación habitual',
+      ticketRevealLeadImmediate: 'Al pagar',
+      ticketRevealLeadPreset: '{{count}} h',
       ticketDaysTitle: 'Días del evento',
       ticketDaysHint:
         'Los días se cargan acá, en Estructura. Ventas solo elige a cuáles da acceso cada tipo. Si un día ya tiene tandas o atletas, no se puede borrar.',
@@ -5934,6 +5940,9 @@ export default {
       slotsInvalid: 'Ingresá un número de cupos válido.',
       slotsInt: 'Los cupos tienen que ser un número entero.',
       slotsMin: 'Definí al menos 1 cupo.',
+      ticketRevealLeadInvalid: 'La anticipación tiene que ser un número entero de horas.',
+      ticketRevealLeadMin: 'La anticipación no puede ser negativa. Usá 0 para mostrarla al pagar.',
+      ticketRevealLeadMax: 'La anticipación no puede pasar de 366 días.',
       slotsBelowRegistered:
         'El cupo no puede ser menor a las {{count}} inscripciones ya reservadas.',
       slotsMax: 'El máximo permitido es 5000 cupos.',

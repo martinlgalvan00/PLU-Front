@@ -2,6 +2,7 @@ import { timingSafeEqual } from 'node:crypto'
 import { Router } from 'express'
 import { runDomainMaintenanceJob } from '../jobs/domainMaintenanceJob.js'
 import { runEmailDispatchJob } from '../jobs/emailDispatchJob.js'
+import { runTicketRevealMailJob } from '../jobs/ticketRevealMailJob.js'
 import { runMembershipRenewalJob } from '../jobs/membershipRenewalJob.js'
 import { runMercadoPagoOAuthRefreshJob } from '../jobs/mercadoPagoOAuthRefreshJob.js'
 import { runPaymentOrderExpiryJob } from '../jobs/paymentOrderExpiryJob.js'
@@ -29,6 +30,7 @@ export function createInternalJobRoutes({
   const run = {
     domainMaintenance: runners.domainMaintenance ?? runDomainMaintenanceJob,
     emailDispatch: runners.emailDispatch ?? runEmailDispatchJob,
+    ticketReveal: runners.ticketReveal ?? runTicketRevealMailJob,
     membershipRenewal: runners.membershipRenewal ?? runMembershipRenewalJob,
     mercadoPagoOAuthRefresh: runners.mercadoPagoOAuthRefresh ?? runMercadoPagoOAuthRefreshJob,
     paymentOrderExpiry: runners.paymentOrderExpiry ?? runPaymentOrderExpiryJob,
@@ -89,6 +91,17 @@ export function createInternalJobRoutes({
     }
     const result = await run.emailDispatch({ client: getSupabaseAdmin?.(), env })
     res.json({ status: 'completed', job: 'email-dispatch', result })
+  })
+
+  // Habilita el mail con QR de las entradas cuya ventana de visualización
+  // ya abrió. El sitio las muestra en hora; este envío es el aviso.
+  router.get('/jobs/ticket-reveal', async (_req, res) => {
+    if (env.TICKET_REVEAL_JOB_ENABLED === 'false') {
+      res.json({ status: 'disabled', job: 'ticket-reveal' })
+      return
+    }
+    const result = await run.ticketReveal({ client: getSupabaseAdmin?.(), env })
+    res.json({ status: 'completed', job: 'ticket-reveal', result })
   })
 
   router.get('/jobs/membership-renewal', async (_req, res) => {

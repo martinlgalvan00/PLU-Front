@@ -24,6 +24,9 @@ function paidOrder(overrides = {}) {
       slug: 'pitbull-classic-2026',
       starts_at: '2026-12-12T03:00:00.000Z',
       venue: 'Club Atlético',
+      // 0 mantiene el pase visible al acreditar: este test fija el shape
+      // del QR, no la ventana de 24 horas.
+      ticket_reveal_lead_minutes: 0,
     },
     ...overrides,
   }
@@ -108,6 +111,37 @@ describe('GET /api/tickets/orders/lookup', () => {
         access_days: [{ label: 'Sábado', date: '2026-12-12', day_index: 0 }],
       })
       expect(find).toHaveBeenCalledWith('TORD-abc123', 'camila@example.com')
+    })
+  })
+
+  it('no entrega el QR ni el código antes de la ventana de visualización', async () => {
+    const find = vi.fn().mockResolvedValue({
+      order: paidOrder({
+        event: {
+          title: 'Pitbull Classic 2026',
+          slug: 'pitbull-classic-2026',
+          starts_at: '2099-01-02T03:00:00.000Z',
+          venue: 'Club Atlético',
+        },
+      }),
+      tickets: ticketRows().map((ticket) => ({
+        ...ticket,
+        valid_from: '2099-01-02T03:00:00.000Z',
+        valid_until: '2099-01-03T03:00:00.000Z',
+      })),
+    })
+    await withApp(find, async (server) => {
+      const response = await fetch(
+        `${server.url}/api/tickets/orders/lookup?reference=TORD-abc123&email=camila@example.com`,
+      )
+      expect(response.status).toBe(200)
+      const body = await response.json()
+      expect(body.tickets[0].qr_token).toBeNull()
+      expect(body.tickets[0].gate_code).toBeNull()
+      expect(body.tickets[0].pass_sealed).toBe(true)
+      expect(body.tickets[0].reveal_at).toBe('2099-01-01T03:00:00.000Z')
+      expect(body.tickets[0].attendee_name).toBe('Camila Rearte')
+      expect(body.tickets[0].ticket_code).toBe('PLU-0001')
     })
   })
 

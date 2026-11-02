@@ -69,6 +69,77 @@ describe('mail de confirmación de entradas', () => {
     expect(buildTicketScanUrl('https://plu.test', QR_A, 'pitbull')).toContain('tipo=ticket')
   })
 
+  it('dibuja los QR a la vez y deja primero la credencial primaria', async () => {
+    let active = 0
+    let peak = 0
+    const delivery = await buildTicketConfirmationDelivery({
+      order: ORDER,
+      tickets: TICKETS,
+      event: { slug: 'pitbull' },
+      appUrl: 'https://plu.test',
+      renderQr: async (text) => {
+        active += 1
+        peak = Math.max(peak, active)
+        await new Promise((resolve) => setTimeout(resolve, 30))
+        active -= 1
+        return Buffer.from(text)
+      },
+    })
+
+    expect(peak).toBe(2)
+    expect(delivery.attachment.map((file) => file.name)).toEqual(['qr-TCK-1.png', 'qr-TCK-2.png'])
+    expect(delivery.params.passes.map((pass) => pass.type)).toEqual(['Espectador', 'Entrenador'])
+  })
+
+  it('antes de la ventana no adjunta el QR ni el código de puerta', async () => {
+    const delivery = await buildTicketConfirmationDelivery({
+      order: ORDER,
+      tickets: TICKETS.map((ticket) => ({
+        ...ticket,
+        valid_from: '2099-01-02T03:00:00.000Z',
+        valid_until: '2099-01-03T03:00:00.000Z',
+      })),
+      event: { title: 'Pitbull', slug: 'pitbull', ticket_reveal_lead_minutes: 1440 },
+      appUrl: 'https://plu.test',
+      now: new Date('2026-11-02T15:00:00.000Z'),
+      renderQr: async () => {
+        throw new Error('no tenía que dibujar el QR')
+      },
+    })
+
+    expect(delivery.revealComplete).toBe(false)
+    expect(delivery.params.sealed).toBe(true)
+    expect(delivery.attachment).toEqual([])
+    expect(delivery.params.passes.map((pass) => pass.gateCode)).toEqual(['', ''])
+    const dumped = JSON.stringify(delivery.params)
+    expect(dumped).not.toContain(QR_A)
+    expect(dumped).not.toContain('K4M-7QP')
+    expect(delivery.params.revealWhen).toContain('2099')
+
+    const { htmlContent } = renderEmail('ticket_confirmation', delivery.params)
+    expect(htmlContent).toContain('Tu compra está confirmada')
+    expect(htmlContent).not.toContain('K4M-7QP')
+  })
+
+  it('con anticipación 0 el QR sale aunque la vigencia no haya empezado', async () => {
+    const delivery = await buildTicketConfirmationDelivery({
+      order: ORDER,
+      tickets: TICKETS.map((ticket) => ({
+        ...ticket,
+        valid_from: '2099-01-02T03:00:00.000Z',
+      })),
+      event: { title: 'Pitbull', slug: 'pitbull', ticket_reveal_lead_minutes: 0 },
+      appUrl: 'https://plu.test',
+      now: new Date('2026-11-02T15:00:00.000Z'),
+      renderQr: async (text) => Buffer.from(text),
+    })
+
+    expect(delivery.revealComplete).toBe(true)
+    expect(delivery.params.sealed).toBe(false)
+    expect(delivery.attachment).toHaveLength(2)
+    expect(delivery.params.passes.map((pass) => pass.gateCode)).toEqual(['K4M-7QP', 'N8R-3WK'])
+  })
+
   it('la primera vez y el reenvío del día siguiente no comparten clave', () => {
     const first = ticketConfirmationIdempotencyKey(ORDER)
     const sameDay = ticketConfirmationIdempotencyKey(ORDER, {

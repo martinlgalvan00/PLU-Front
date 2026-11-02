@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
-import { Box, CheckCircle2, Clock, Download, Lock, Share2 } from 'lucide-react'
+import { Box, Clock, Download, Lock, Share2 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
 import ConfirmationSeal from '../../components/ui/ConfirmationSeal.jsx'
@@ -9,6 +9,7 @@ import EventPassList from './EventPassList.jsx'
 import { supportsCredential3D } from '../../components/ui/credential3d/supportsCredential3D.js'
 import {
   buildAthleteCredentialUrl,
+  credentialDisplayCode,
   generateCredentialQr,
   resolveCredentialCode,
 } from '../../lib/credentialQr.js'
@@ -67,6 +68,7 @@ export default function QrCredentialSection({
 
   const memberCode = membership?.memberCode ?? latestMembership?.memberCode
   const credentialCode = resolveCredentialCode({ athlete, membership, latestMembership })
+  const displayCode = credentialDisplayCode(memberCode ?? credentialCode)
   const membershipCurrent = isMembershipCurrent(membership)
   const membershipForPass = membershipCurrent ? membership : latestMembership
 
@@ -101,6 +103,14 @@ export default function QrCredentialSection({
   )
   const qrFileName = `credencial-plu-${memberCode ?? 'atleta'}.png`
   const showDual = hasCredential && Boolean(primaryMeet) && !membershipCurrent
+  const dualNote =
+    membershipForPass?.status === 'pendiente_pago'
+      ? t('account.qr.dualPendingNote')
+      : gateReady
+        ? t('account.qr.dualReadyNote')
+        : meetRequiresMembership
+          ? t('account.qr.gateBlockedNote')
+          : t('account.qr.dualReservedNote')
   const shouldPlayMerge =
     hasCredential &&
     membershipCurrent &&
@@ -210,14 +220,14 @@ export default function QrCredentialSection({
     () => ({
       eyebrow: t('account.credential.athlete'),
       name: athlete?.fullName ?? '',
-      code: memberCode ?? credentialCode ?? '',
+      code: displayCode ?? '',
       codeLabel: t('account.qr.cardCodeLabel'),
       season: t('account.qr.cardSeason', { year: credentialSeasonYear }),
       status: cardStatus,
       qrSrc,
       qrCaption: t('account.qr.cardScanHint'),
     }),
-    [athlete?.fullName, cardStatus, credentialCode, credentialSeasonYear, memberCode, qrSrc, t],
+    [athlete?.fullName, cardStatus, credentialSeasonYear, displayCode, qrSrc, t],
   )
   const view3dButton =
     can3d && qrSrc ? (
@@ -231,7 +241,7 @@ export default function QrCredentialSection({
     <CredentialCard
       eyebrow={t('account.credential.athlete')}
       name={athlete.fullName}
-      code={memberCode ?? credentialCode}
+      code={displayCode}
       codeLabel={t('account.qr.cardCodeLabel')}
       season={t('account.qr.cardSeason', { year: credentialSeasonYear })}
       status={cardStatus}
@@ -268,28 +278,6 @@ export default function QrCredentialSection({
 
       {hasCredential ? (
         <>
-            {showIssueSeal ? (
-              <ConfirmationSeal
-                className="account-qr__issued-seal"
-                variant="membership"
-                celebrate
-                celebrateKey={credentialIssueKey ?? undefined}
-                /* Sin vibración: acá nadie acaba de cerrar un trámite, la persona
-                   entró a ver su credencial. El acuse registra la emisión; el
-                   teléfono vibra en la pantalla de confirmación del pago, que es
-                   donde la acción existió. */
-                haptic={false}
-                eyebrow={t('account.qr.sealIssuedEyebrow')}
-                seal={memberCode ?? undefined}
-                title={t('account.qr.sealIssuedTitle')}
-                detail={
-                  validUntil
-                    ? t('account.qr.validUntil', { date: validUntil })
-                    : t('account.qr.sealIssuedDetail')
-                }
-              />
-            ) : null}
-
             <p className="account-section__lead">
               {showDual
                 ? t('account.qr.leadDual')
@@ -297,53 +285,31 @@ export default function QrCredentialSection({
                   ? t('account.qr.leadUnified')
                   : t('account.qr.lead')}
             </p>
-
             {showDual ? (
               <div className="account-qr account-qr--split account-qr--with-credential">
                 <div className="account-qr__credential-col" aria-busy={qrBusy || undefined}>
                   {credentialCard}
                   {view3dButton}
                 </div>
-                <div className="account-qr__preview-col">
-                  <p className="account-qr__preview-caption">{t('account.qr.membershipPassTitle')}</p>
-                  <aside
-                    className="account-qr__convert"
-                    aria-label={t('account.qr.membershipPassTitle')}
+                <aside
+                  className="account-qr__aside"
+                  aria-label={t('account.qr.membershipPassTitle')}
+                >
+                  <h3 className="account-qr__aside-title">
+                    {primaryMeet?.event ?? t('account.qr.meetPassMeta')}
+                  </h3>
+                  <p className="account-qr__aside-note">{dualNote}</p>
+                  {qrFailed ? (
+                    <p className="account-qr__error">{t('account.qr.generateError')}</p>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="account-primary-action"
+                    onClick={() => onNavigateSection('account-membership')}
                   >
-                    {gateLabelKey ? (
-                      <p
-                        className={`account-qr__convert-status ${
-                          gateReady
-                            ? 'account-qr__convert-status--ready'
-                            : 'account-qr__convert-status--reserved'
-                        }`}
-                      >
-                        {t(gateLabelKey)}
-                      </p>
-                    ) : null}
-                    <h3 className="account-qr__convert-event">
-                      {primaryMeet?.event ?? t('account.qr.meetPassMeta')}
-                    </h3>
-                    <p className="account-qr__convert-meta">
-                      {membershipForPass?.status === 'pendiente_pago'
-                        ? t('account.qr.membershipPassPending')
-                        : t('account.qr.scanPreviewNoMembership')}
-                    </p>
-                    {!gateReady && meetRequiresMembership ? (
-                      <p className="account-qr__convert-note">{t('account.qr.gateBlockedNote')}</p>
-                    ) : null}
-                    {qrFailed ? (
-                      <p className="account-qr__error">{t('account.qr.generateError')}</p>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="account-primary-action"
-                      onClick={() => onNavigateSection('account-membership')}
-                    >
-                      {t('pages.register.membershipRequiredAction')}
-                    </button>
-                  </aside>
-                </div>
+                    {t('pages.register.membershipRequiredAction')}
+                  </button>
+                </aside>
               </div>
             ) : (
               <div className="account-qr account-qr--split account-qr--with-credential">
@@ -353,46 +319,33 @@ export default function QrCredentialSection({
                 </div>
 
                 <div className="account-qr__preview-col">
-                  <p className="account-qr__preview-caption">{t('account.qr.scanPreviewCaption')}</p>
-                  <aside
-                    className="account-qr__preview"
-                    aria-label={t('account.qr.scanPreviewCaption')}
-                  >
-                    <div className="account-qr__preview-verdict">
-                      <CheckCircle2 size={16} aria-hidden />
-                      <span>
-                        {gateLabelKey ? t(gateLabelKey) : t('account.qr.scanPreviewVerdict')}
-                      </span>
+                  <p className="account-qr__aside-note">{t('account.qr.scanPreviewCaption')}</p>
+                  <dl className="account-qr__facts">
+                    <div>
+                      <dt>{t('account.qr.scanPreviewMembership')}</dt>
+                      <dd>
+                        {membershipCurrent
+                          ? t('account.membershipActive')
+                          : t('account.qr.scanPreviewNoMembership')}
+                      </dd>
                     </div>
-                    <p className="account-qr__preview-name">{athlete.fullName}</p>
-                    {memberCode && <p className="account-qr__preview-code">{memberCode}</p>}
-                    <dl className="account-qr__preview-rows">
+                    {membershipCurrent && validUntil ? (
                       <div>
-                        <dt>{t('account.qr.scanPreviewMembership')}</dt>
+                        <dt>{t('account.credential.expiration')}</dt>
+                        <dd>{validUntil}</dd>
+                      </div>
+                    ) : null}
+                    {admittedRegistrations.map((registration) => (
+                      <div key={registration.id ?? registration.eventSlug ?? registration.event}>
+                        <dt>{t('account.qr.scanPreviewRegistration')}</dt>
                         <dd>
-                          {membershipCurrent
-                            ? t('account.membershipActive')
-                            : t('account.qr.scanPreviewNoMembership')}
+                          {registration.event
+                            ? `${registration.event} · ${t('account.qr.scanPreviewRegistered')}`
+                            : t('account.qr.scanPreviewRegistered')}
                         </dd>
                       </div>
-                      {membershipCurrent && validUntil && (
-                        <div>
-                          <dt>{t('account.credential.expiration')}</dt>
-                          <dd>{validUntil}</dd>
-                        </div>
-                      )}
-                      {admittedRegistrations.map((registration) => (
-                        <div key={registration.id ?? registration.eventSlug ?? registration.event}>
-                          <dt>{t('account.qr.scanPreviewRegistration')}</dt>
-                          <dd>
-                            {registration.event
-                              ? `${registration.event} · ${t('account.qr.scanPreviewRegistered')}`
-                              : t('account.qr.scanPreviewRegistered')}
-                          </dd>
-                        </div>
-                      ))}
-                    </dl>
-                  </aside>
+                    ))}
+                  </dl>
                   {qrFailed ? (
                     <p className="account-qr__error">{t('account.qr.generateError')}</p>
                   ) : null}
@@ -424,6 +377,24 @@ export default function QrCredentialSection({
               </div>
             )}
 
+            {showIssueSeal ? (
+              <ConfirmationSeal
+                className="account-qr__issued-seal"
+                variant="membership"
+                celebrate
+                celebrateKey={credentialIssueKey ?? undefined}
+                haptic={false}
+                eyebrow={t('account.qr.sealIssuedEyebrow')}
+                seal={memberCode ?? undefined}
+                title={t('account.qr.sealIssuedTitle')}
+                detail={
+                  validUntil
+                    ? t('account.qr.validUntil', { date: validUntil })
+                    : t('account.qr.sealIssuedDetail')
+                }
+              />
+            ) : null}
+
             {!showDual && (
               <CardPreviewModal
                 open={modalOpen}
@@ -443,7 +414,11 @@ export default function QrCredentialSection({
               events={events}
               memberCode={memberCode ?? ''}
               onNavigateSection={onNavigateSection}
-              passes={passes}
+              passes={
+                showDual
+                  ? passes.filter((pass) => pass.registration !== primaryMeet)
+                  : passes
+              }
             />
 
             {financingCountdownLabel ? (
