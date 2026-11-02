@@ -52,4 +52,36 @@ describe('escaneo de puerta con código dictado', () => {
     expect(spoken.ticket.gateCode).toBe('K4M-7QP')
     expect(apiPost).toHaveBeenCalledTimes(1)
   })
+
+  it('con sesión de puerta resuelve código y token en una sola llamada', async () => {
+    apiPost.mockImplementation(async (path) => {
+      if (path !== '/api/tickets/checkin/preview') throw new Error(`apiPost inesperado: ${path}`)
+      return {
+        ticket: {
+          ticket: {
+            id: 't1',
+            ticket_code: 'TCK-00000001',
+            qr_token: QR_TOKEN,
+            gate_code: 'K4M-7QP',
+            attendee_name: 'Ana',
+            status: 'pagada',
+            credential_scopes: ['gate_tickets'],
+          },
+          event: null,
+          checkIn: null,
+        },
+      }
+    })
+
+    const spoken = await resolveTicketScan('k4m 7qp', { staff: true })
+    const scanned = await resolveTicketScan(QR_TOKEN, { staff: true })
+
+    expect(apiGet).not.toHaveBeenCalled()
+    expect(apiPost).toHaveBeenCalledTimes(2)
+    expect(apiPost).toHaveBeenCalledWith('/api/tickets/checkin/preview', { code: 'k4m 7qp' })
+    expect(apiPost).toHaveBeenCalledWith('/api/tickets/checkin/preview', { code: QR_TOKEN })
+    expect(spoken.qrToken).toBe(QR_TOKEN)
+    expect(scanned.outcome).toBe('ready')
+    expect(spoken.ticket.gateCode).toBe('K4M-7QP')
+  })
 })

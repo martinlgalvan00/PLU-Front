@@ -245,6 +245,29 @@ function credentialPanel({ label, value, meta = null, caption = '' }) {
     </table>`
 }
 
+/**
+ * Una ficha por credencial de la compra. El código de puerta es lo que se
+ * canta si el PNG no escanea; el token del QR no entra acá.
+ */
+function ticketPassBlocks(passes) {
+  if (!Array.isArray(passes) || passes.length === 0) return ''
+  return passes
+    .map((pass) => {
+      const who = [pass?.name, pass?.type].filter(Boolean).join(' · ')
+      if (pass?.gateCode) {
+        return credentialPanel({
+          label: 'Código de puerta',
+          value: pass.gateCode,
+          meta: who ? { label: 'Entrada', value: who } : null,
+          caption:
+            'El PNG adjunto con este nombre es este ingreso. Si no pueden escanearlo, cantá este código.',
+        })
+      }
+      return who ? dataPanel([['Entrada', who]]) : ''
+    })
+    .join('')
+}
+
 /** Aviso acotado: tipografía muted, sin caja. */
 function noticePanel(html) {
   return `<p style="margin:0 0 20px;font-family:${FONT_STACK};font-size:13px;line-height:1.55;color:${INK_500};">${html}</p>`
@@ -590,7 +613,9 @@ const BODIES = {
 
     const registrationSection = p.includesRegistration
       ? [
-          paragraph('Tu inscripción quedó confirmada.'),
+          paragraph(
+            'Tu inscripción quedó confirmada. El ingreso usa el QR de tu credencial, el mismo de tu perfil.',
+          ),
           dataPanel([
             ['Evento', p.eventTitle],
             ['Fecha', formatDate(p.eventDate)],
@@ -598,7 +623,8 @@ const BODIES = {
             ['División', p.division],
             ['Categoría', p.category],
           ]),
-          p.eventUrl ? button(p.eventUrl, 'Ver evento') : '',
+          !p.includesMembership && p.accountUrl ? button(p.accountUrl, 'Ver mi credencial') : '',
+          !p.includesMembership && p.accountUrl ? fallbackLink(p.accountUrl) : '',
         ].join('')
       : ''
 
@@ -612,7 +638,7 @@ const BODIES = {
           p.ticketUrl ? button(p.ticketUrl, 'Ver entradas') : '',
           p.ticketUrl ? fallbackLink(p.ticketUrl) : '',
           paragraph(
-            'Te va a pedir el mail con el que compraste para mostrarte el QR. Presentalo desde el celular al ingresar.',
+            'El enlace abre tu QR. Si te lo pide, ingresá el mail con el que compraste.',
             { muted: true },
           ),
         ].join('')
@@ -743,8 +769,16 @@ const BODIES = {
         ['División', p.division],
         ['Categoría', p.category],
       ]),
-      paragraph('En tu perfil te espera el código QR asociado a tu cuenta.'),
-      button(p.eventUrl, 'Ver evento'),
+      credentialPanel({
+        label: 'Número de socio',
+        value: p.memberCode,
+        caption: 'Si no pueden escanear el QR, decí este número. Es la misma credencial.',
+      }),
+      paragraph(
+        'El ingreso usa el QR de tu credencial, el mismo de tu perfil. No adjuntamos otro: ya está en tu cuenta.',
+      ),
+      button(p.accountUrl || p.eventUrl, p.accountUrl ? 'Ver mi credencial' : 'Ver evento'),
+      fallbackLink(p.accountUrl || p.eventUrl),
     ].join(''),
   }),
 
@@ -760,6 +794,11 @@ const BODIES = {
         ['División', p.division],
         ['Categoría', p.category],
       ]),
+      credentialPanel({
+        label: 'Número de socio',
+        value: p.memberCode,
+        caption: 'Si no pueden escanear el QR, decí este número. Es la misma credencial.',
+      }),
       paragraph(
         'Te adjuntamos tu QR en este mail: guardalo en el teléfono por si en la puerta no hay señal. ' +
           'También lo tenés siempre en tu perfil. Mostralo con el brillo al máximo.',
@@ -849,10 +888,17 @@ const BODIES = {
         ['Cantidad', p.quantity],
         ['Código', p.reference],
       ]),
+      ticketPassBlocks(p.passes),
+      Array.isArray(p.passes) && p.passes.length > 0
+        ? paragraph(
+            'Te adjuntamos un PNG por cada ingreso. Guardalo en el teléfono por si en la puerta no hay señal.',
+            { muted: true },
+          )
+        : '',
       button(p.ticketUrl, 'Ver mi QR'),
       fallbackLink(p.ticketUrl),
       paragraph(
-        'Abrí el enlace, ingresá el mail con el que compraste y presentá el QR desde el celular.',
+        'El enlace abre tu QR. Si te lo pide, ingresá el mail con el que compraste.',
         { muted: true },
       ),
     ].join(''),

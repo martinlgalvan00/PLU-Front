@@ -1595,7 +1595,13 @@
 
 
 .ticket-purchase--confirmation-editorial {
-  gap: 18px;
+  gap: 22px;
+}
+
+.ticket-purchase--confirmation-editorial .buyer-tickets-wallet__pass {
+  margin-inline: auto;
+  max-width: 640px;
+  width: 100%;
 }
 
 .ticket-purchase__confirmation-lead {
@@ -1676,52 +1682,6 @@
   list-style: none;
   margin: 0;
   padding: 0;
-}
-
-.ticket-purchase__pass-item {
-  display: grid;
-  gap: 12px;
-}
-
-.ticket-purchase__pass-actions {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 12px;
-  justify-content: space-between;
-}
-
-.ticket-purchase__pass-actions .ticket-purchase__ticket-info {
-  flex: 1 1 200px;
-  min-width: 0;
-}
-
-.ticket-purchase__pass-actions .ticket-purchase__ticket-info strong {
-  display: none;
-}
-
-.ticket-purchase__gate-code {
-  display: flex;
-  flex: 1 1 100%;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0;
-}
-
-.ticket-purchase__gate-code-label,
-.ticket-purchase__gate-code-hint {
-  color: var(--color-text-muted);
-  font-size: 12px;
-  letter-spacing: 0;
-}
-
-.ticket-purchase__gate-code-value {
-  color: var(--color-text);
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 500;
-  letter-spacing: 0.18em;
-  line-height: 1.1;
 }
 
 @media (max-width: 960px) {

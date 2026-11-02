@@ -87,7 +87,7 @@ describe('Enviar credenciales de un evento', () => {
   })
 
   it('si el evento pide afiliación, no le dice "ya podés entrar" a quien la puerta rechazaría', async () => {
-    const { service } = setup({
+    const { service, dispatcher } = setup({
       event: { ...EVENT, requires_membership: true },
       registrations,
       memberships: [
@@ -96,6 +96,7 @@ describe('Enviar credenciales de un evento', () => {
           status: 'activa',
           start_date: '2026-01-01',
           expiration_date: '2027-01-31',
+          member_code: 'PLU-ARG-2026-014',
         },
         {
           athlete_id: 'a3',
@@ -107,6 +108,8 @@ describe('Enviar credenciales de un evento', () => {
     })
     const result = await service.sendForEvent({ eventSlug: EVENT.slug })
     expect(result).toMatchObject({ ready: 1, blocked: 1, sent: 1 })
+    expect(dispatcher.send.mock.calls[0][1].params.memberCode).toBe('PLU-ARG-2026-014')
+    expect(JSON.stringify(dispatcher.send.mock.calls[0][1].params)).not.toContain('tok-a1')
   })
 
   it('al confirmar una inscripción a mano sale su credencial', async () => {

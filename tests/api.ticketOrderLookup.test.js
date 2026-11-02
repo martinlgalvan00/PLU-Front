@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createApp } from '../server/app.js'
 import { createPrismaDouble } from './integration/helpers/staffSession.js'
 import { listen } from './integration/helpers/supabaseTestClient.js'
-import { lookupTicketOrder } from '../src/services/ticketApi.js'
+import { lookupTicketOrder, mapApiTicket } from '../src/services/ticketApi.js'
 
 const realFetch = globalThis.fetch
 
@@ -19,7 +19,12 @@ function paidOrder(overrides = {}) {
     status: 'aprobado',
     reference: 'TORD-abc123',
     buyer_email: 'camila@example.com',
-    event: { title: 'Pitbull Classic 2026', slug: 'pitbull-classic-2026' },
+    event: {
+      title: 'Pitbull Classic 2026',
+      slug: 'pitbull-classic-2026',
+      starts_at: '2026-12-12T03:00:00.000Z',
+      venue: 'Club Atlético',
+    },
     ...overrides,
   }
 }
@@ -34,12 +39,20 @@ function ticketRows() {
       qr_token: 'qr-token-1',
       gate_code: 'K4M-7QP',
       attendee_name: 'Camila Rearte',
+      attendee_dni: '30111222',
       status: 'pagada',
       credential_label: 'Entrada general',
       credential_scopes: ['gate_tickets'],
       is_primary_credential: true,
       addons: [{ id: 'addon-1', label: 'Remera' }],
-      ticket_types: { name: 'General' },
+      valid_from: '2026-12-12T03:00:00.000Z',
+      valid_until: '2026-12-13T03:00:00.000Z',
+      ticket_types: {
+        name: 'General',
+        ticket_type_days: [
+          { event_days: { label: 'Sábado', date: '2026-12-12', day_index: 0 } },
+        ],
+      },
     },
   ]
 }
@@ -76,6 +89,8 @@ describe('GET /api/tickets/orders/lookup', () => {
         status: 'aprobado',
         eventTitle: 'Pitbull Classic 2026',
         eventSlug: 'pitbull-classic-2026',
+        eventStartsAt: '2026-12-12T03:00:00.000Z',
+        eventVenue: 'Club Atlético',
       })
       expect(body.tickets).toHaveLength(1)
       // Snake_case a propósito: es lo que `toCamelTicket` (ticketApi.js)
@@ -86,7 +101,11 @@ describe('GET /api/tickets/orders/lookup', () => {
         qr_token: 'qr-token-1',
         ticket_code: 'PLU-0001',
         attendee_name: 'Camila Rearte',
+        attendee_dni: '30111222',
         order_id: 'order-1',
+        valid_from: '2026-12-12T03:00:00.000Z',
+        valid_until: '2026-12-13T03:00:00.000Z',
+        access_days: [{ label: 'Sábado', date: '2026-12-12', day_index: 0 }],
       })
       expect(find).toHaveBeenCalledWith('TORD-abc123', 'camila@example.com')
     })
@@ -159,10 +178,31 @@ describe('GET /api/tickets/orders/lookup', () => {
           qrToken: 'qr-token-1',
           gateCode: 'K4M-7QP',
           attendeeName: 'Camila Rearte',
+          attendeeDni: '30111222',
           credentialLabel: 'Entrada general',
           ticketTypeName: 'General',
+          validFrom: '2026-12-12T03:00:00.000Z',
           addons: [{ id: 'addon-1', label: 'Remera' }],
         })
+        expect(tickets[0].accessDays[0]).toMatchObject({
+          label: 'Sábado',
+          date: '2026-12-12',
+          dayIndex: 0,
+          key: '2026-12-12',
+        })
+        const mapped = mapApiTicket(tickets[0], {
+          slug: order.eventSlug,
+          title: order.eventTitle,
+          date: order.eventStartsAt,
+          venue: order.eventVenue,
+        })
+        expect(mapped).toMatchObject({
+          attendeeDni: '30111222',
+          eventDate: '2026-12-12T03:00:00.000Z',
+          eventVenue: 'Club Atlético',
+          qrToken: 'qr-token-1',
+        })
+        expect(mapped.accessDays).toHaveLength(1)
       })
     })
   })

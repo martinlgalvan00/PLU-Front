@@ -128,6 +128,11 @@ export default function CheckInScanResult({
 
   const resultKey = `${effectiveOutcome}:${scanResult.row?.id ?? ''}:${scanResult.offline ? 'local' : 'net'}`
   const doorCode = scanResult.gateCode || scanResult.row?.gateCode || scanResult.ticket?.gateCode || ''
+  const memberCode = scanResult.row?.memberCode || scanResult.membership?.memberCode || ''
+  const humanCode = isTicket ? doorCode : memberCode
+  const humanCodeLabel = isTicket
+    ? t('admin.checkin.scanner.doorCode')
+    : t('admin.checkin.scanner.memberCode')
 
   return (
     <div
@@ -210,9 +215,7 @@ export default function CheckInScanResult({
           {/* "Ya ingresó" sin decir cuándo ni por dónde obliga al guardia a
               discutir en la puerta. Con la hora y el puesto, la discusión se
               resuelve sola: la misma persona dos veces, o un QR compartido. */}
-          {scanResult.kind === 'ticket' &&
-          effectiveOutcome === 'already_used' &&
-          scanResult.row?.checkedInAt ? (
+          {effectiveOutcome === 'already_used' && scanResult.row?.checkedInAt ? (
             <div>
               <dt>{t('admin.checkin.admittedAt')}</dt>
               <dd>
@@ -304,13 +307,18 @@ export default function CheckInScanResult({
         </ul>
       ) : null}
 
-      {doorCode && scanResult.outcome !== 'door_malformed' ? (
-        <div className="admin-checkin-result__actions">
-          <p className="admin-checkin-result__gate-code">{doorCode}</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => speakDoorCode(doorCode)}>
-            {t('admin.checkin.scanner.speakCode')}
-          </button>
-        </div>
+      {humanCode && scanResult.outcome !== 'door_malformed' ? (
+        <p className="admin-checkin-result__human-code">
+          <span>{humanCodeLabel}</span>
+          <strong>{humanCode}</strong>
+          {isTicket ? (
+            <button type="button" className="admin-checkin-result__text-action" onClick={() => speakDoorCode(doorCode)}>
+              {t('admin.checkin.scanner.speakCode')}
+            </button>
+          ) : (
+            <span className="admin-checkin-result__human-hint">{t('admin.checkin.scanner.memberCodeHint')}</span>
+          )}
+        </p>
       ) : null}
 
       <div className="admin-checkin-result__actions">

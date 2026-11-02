@@ -2,6 +2,7 @@ import { HttpError } from '../../lib/errors.js'
 import { resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
 import { findMissingParams, getEmailDefinition, resolveTemplateId } from './emailCatalog.js'
 import { hasHtmlFallback, renderEmail } from './emailTemplates.js'
+import { withSignedTicketOpenUrl } from '../ticketing/ticketOpenLink.js'
 
 /**
  * emailDispatcher.js — PLU ARG
@@ -73,20 +74,34 @@ export function createEmailDispatcher({
    * El template de Brevo tiene prioridad: es lo que el equipo edita en el
    * dashboard. Sin template, cae al HTML del repo para que el mail salga igual.
    */
+  /**
+   * El comprobante de una entrada abre el QR con la firma. Esa firma se calcula
+   * acá, al salir el mail: el outbox guarda el enlace sin `k` y un reintento
+   * la vuelve a armar. No es un dato sensible del catálogo, así que el
+   * reintento de afiliaciones e inscripciones sigue igual.
+   */
+  function presentParams(type, params) {
+    if (type !== 'payment_confirmation' || !params?.includesTicket) return params
+    const ticketUrl = withSignedTicketOpenUrl(params.ticketUrl, params.reference)
+    if (!ticketUrl || ticketUrl === params.ticketUrl) return params
+    return { ...params, ticketUrl }
+  }
+
   function resolveContent(type, params, subjectOverride) {
+    const live = presentParams(type, params)
     const templateId = resolveTemplateId(type, env)
-    if (templateId) return { templateId, mode: 'brevo_template' }
+    if (templateId) return { templateId, mode: 'brevo_template', params: live }
 
     if (!hasHtmlFallback(type)) return { mode: 'none' }
     const definition = getEmailDefinition(type)
-    const rendered = renderEmail(type, params, {
+    const rendered = renderEmail(type, live, {
       // El catálogo define el asunto del fallback; el título visible del body
       // puede ser más corto. Un caller puede pisarlo con `input.subject`.
       subject: subjectOverride ?? definition?.subject,
       appUrl,
       logoUrl: env.EMAIL_LOGO_URL,
     })
-    return { ...rendered, mode: 'html_fallback' }
+    return { ...rendered, mode: 'html_fallback', params: live }
   }
 
   async function isSuppressed(email, definition, suppressionCache) {
@@ -246,11 +261,12 @@ export function createEmailDispatcher({
   }
 
   function deliver({ type, to, input = {}, definition, params, content }) {
+    const live = content?.params ?? presentParams(type, params)
     return brevo.send({
       to,
-      toName: input.toName ?? params.name ?? undefined,
+      toName: input.toName ?? live.name ?? undefined,
       templateId: content.templateId,
-      params,
+      params: live,
       subject: content.subject,
       htmlContent: content.htmlContent,
       textContent: content.textContent,

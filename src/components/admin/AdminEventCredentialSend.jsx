@@ -28,13 +28,17 @@ export default function AdminEventCredentialSend({ eventSlug }) {
     }
   }
 
-  async function send() {
+  async function send({ resend = false } = {}) {
     setBusy(true)
     try {
-      const result = await sendEventCredentials(eventSlug)
+      const result = resend
+        ? await sendEventCredentials(eventSlug, { resend: true })
+        : await sendEventCredentials(eventSlug)
       setPreview(null)
       if (result.failed > 0) {
         notifyWarning(text('partial', { sent: result.sent, failed: result.failed }))
+      } else if (resend) {
+        notifySuccess(text('resendDone', { sent: result.sent, already: result.already }))
       } else {
         notifySuccess(text('done', { sent: result.sent, already: result.already }))
       }
@@ -81,6 +85,14 @@ export default function AdminEventCredentialSend({ eventSlug }) {
             >
               <Mail aria-hidden size={14} />
               {text('confirm', { count: preview.ready })}
+            </button>
+            <button
+              className="admin-event-regs__export"
+              disabled={busy || preview.ready === 0}
+              type="button"
+              onClick={() => void send({ resend: true })}
+            >
+              {text('resend')}
             </button>
           </>
         ) : (

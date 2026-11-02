@@ -10,6 +10,7 @@ import heroPhotoWebp480 from '../assets/DSC00392-display-480.webp'
 import heroPhotoWebp800 from '../assets/DSC00392-display-800.webp'
 import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
+import BuyerTicketsWallet from '../components/ui/BuyerTicketsWallet.jsx'
 import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.jsx'
 import TicketOrderLookup from '../components/ui/TicketOrderLookup.jsx'
 import TicketPassPreview from '../components/ui/TicketPassPreview.jsx'
@@ -28,6 +29,7 @@ import {
   ticketPricingFromEvent,
 } from '../lib/eventPricing.js'
 import { resolvePublicTicketOffer, ticketOfferCopyKey } from '../lib/ticketSalesState.js'
+import { resendTicketOrderByBuyer } from '../services/ticketApi.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { money } from '../lib/format.js'
@@ -146,6 +148,7 @@ export default function TicketsPage({
   const [catalogTypeId, setCatalogTypeId] = useState(
     () => pricing.ticketTypes?.[0]?.id ?? '',
   )
+  const [ticketScroll, setTicketScroll] = useState(0)
   const paidCheckoutOpen = isPaidCheckoutOpen(selectedEvent, env, new Date(), {
     checkoutKind: 'ticket',
   })
@@ -177,6 +180,20 @@ export default function TicketsPage({
     createdOrder?.type === 'tickets' && createdOrder.eventTitle === selectedEvent?.title
       ? createdOrder
       : null
+  const recoveredOrder = createdOrder?.type === 'tickets' ? createdOrder : null
+  const checkoutOwnsTickets = Boolean(ticketSalesOpen && visibleCreatedOrder)
+  const holdingPass = visibleCreatedOrder?.status === 'aprobado'
+  const pageOrder = checkoutOwnsTickets ? null : recoveredOrder
+  const pageTickets =
+    pageOrder?.tickets?.length
+      ? pageOrder.tickets
+      : pageOrder?.orderId
+        ? tickets.filter((item) => item.orderId === pageOrder.orderId)
+        : []
+  const pageCatalog =
+    pageOrder?.eventSlug && (selectedEvent?.slug ?? selectedEvent?.id) === pageOrder.eventSlug
+      ? pricing.ticketTypes
+      : []
 
   const heroMark =
     String(selectedEvent?.title ?? '')
@@ -188,16 +205,25 @@ export default function TicketsPage({
   // recuperada es de otro evento en venta (dos eventos con venta simultánea),
   // sin este ajuste el QR quedaba encontrado pero invisible -- la pantalla
   // seguía mostrando el evento por defecto.
-  async function handleLookupTicketOrder(reference, email) {
-    const result = await onLookupTicketOrder?.(reference, email)
+  async function handleLookupTicketOrder(reference, email, options) {
+    const result = await onLookupTicketOrder?.(reference, email, options)
     if (result?.order?.eventSlug) {
       const match = ticketEvents.find(
         (item) => (item.slug ?? item.id) === result.order.eventSlug,
       )
       if (match) setSelectedEventId(match.id ?? match.slug ?? match.title)
     }
+    if (result?.order?.status === 'aprobado') setTicketScroll((current) => current + 1)
     return result
   }
+
+  useEffect(() => {
+    if (!ticketScroll) return
+    document.getElementById('mis-tickets')?.scrollIntoView?.({
+      behavior: reducedMotion ? 'auto' : 'smooth',
+      block: 'start',
+    })
+  }, [reducedMotion, ticketScroll])
 
   useEffect(() => {
     setSelectedEventId(resolveInitialEventId(initialEventSlug, ticketEvents, event))
@@ -216,12 +242,14 @@ export default function TicketsPage({
     : { initial: 'hidden', animate: 'visible', variants: heroStaggerContainer }
 
   return (
-    <main className="tickets-page">
+    <main className={`tickets-page${holdingPass ? ' tickets-page--holding' : ''}`}>
       <HeroRoot
         className={`tickets-page__hero${reducedMotion ? '' : ' tickets-page__hero--motion'}`}
         aria-labelledby="tickets-page-title"
         {...heroRootProps}
       >
+        {holdingPass ? null : (
+          <>
         <div className="tickets-page__hero-backdrop" aria-hidden>
           <ResponsivePhoto
             className="tickets-page__hero-backdrop-img"
@@ -255,6 +283,8 @@ export default function TicketsPage({
             {heroMark}
           </m.p>
         )}
+          </>
+        )}
 
         <div className="tickets-page__shell tickets-page__hero-inner">
           <Item {...itemProps}>
@@ -268,10 +298,16 @@ export default function TicketsPage({
             </button>
           </Item>
 
-          <Item {...itemProps} className="tickets-page__hero-stripe" aria-hidden />
+          {holdingPass ? null : <Item {...itemProps} className="tickets-page__hero-stripe" aria-hidden />}
 
           <div className="tickets-page__hero-frame">
             <div className="tickets-page__hero-copy">
+              {holdingPass ? (
+                <h1 id="tickets-page-title">
+                  {selectedEvent?.title ?? t('pages.ticketsPage.title')}
+                </h1>
+              ) : (
+                <>
               <Item {...itemProps}>
                 <p className="tickets-page__brand">{t('pages.ticketsPage.passBrand')}</p>
               </Item>
@@ -319,19 +355,55 @@ export default function TicketsPage({
                 </Item>
               ) : null}
 
-              {ticketSalesOpen ? (
-                <Item {...itemProps}>
-                  <div className="tickets-page__hero-actions">
+              <Item {...itemProps}>
+                <div className="tickets-page__hero-actions">
+                  <a className="tickets-page__hero-link" href="#mis-tickets">
+                    {t('pages.ticketsPage.heroMyTickets')}
+                  </a>
+                  {ticketSalesOpen ? (
                     <a className="tickets-page__hero-link" href="#pass-preview">
                       {t('pages.ticketsPage.heroSeePass')}
                     </a>
-                  </div>
-                </Item>
-              ) : null}
+                  ) : null}
+                </div>
+              </Item>
+                </>
+              )}
             </div>
           </div>
         </div>
       </HeroRoot>
+
+      {checkoutOwnsTickets ? null : (
+        <Reveal
+          as="section"
+          id="mis-tickets"
+          variant="fade"
+          className="tickets-page__my-tickets"
+          aria-labelledby="tickets-mine-title"
+        >
+          <div className="tickets-page__shell tickets-page__my-tickets-inner">
+            <header className="tickets-page__my-tickets-head">
+              <span className="tickets-page__eyebrow">{t('pages.ticketsPage.myTicketsEyebrow')}</span>
+              <h2 id="tickets-mine-title">{t('pages.ticketsPage.myTicketsTitle')}</h2>
+              <p>{t('pages.ticketsPage.myTicketsLead')}</p>
+            </header>
+            {pageOrder ? (
+              <BuyerTicketsWallet
+                catalogTypes={pageCatalog}
+                event={selectedEvent}
+                orderStatus={pageOrder.status}
+                tickets={pageTickets}
+              />
+            ) : (
+              <TicketOrderLookup
+                onLookup={handleLookupTicketOrder}
+                onResend={resendTicketOrderByBuyer}
+              />
+            )}
+          </div>
+        </Reveal>
+      )}
 
       <Reveal
         as="section"
@@ -344,33 +416,63 @@ export default function TicketsPage({
           <header className="tickets-page__checkout-head">
             <div className="tickets-page__checkout-copy">
               <span className="tickets-page__eyebrow">
-                {ticketSalesOpen
-                  ? t('pages.ticketsPage.checkoutEyebrow')
-                  : t('pages.ticketsPage.salesPausedEyebrow')}
+                {holdingPass
+                  ? t('pages.ticketsPage.myTicketsEyebrow')
+                  : ticketSalesOpen
+                    ? t('pages.ticketsPage.checkoutEyebrow')
+                    : t('pages.ticketsPage.salesPausedEyebrow')}
               </span>
               <h2 id="tickets-checkout-title">
-                {ticketSalesOpen ? t('pages.ticketsPage.checkoutTitle') : ticketClosedTitle}
+                {holdingPass
+                  ? t('pages.ticketsPage.myTicketsTitle')
+                  : ticketSalesOpen
+                    ? t('pages.ticketsPage.checkoutTitle')
+                    : ticketClosedTitle}
               </h2>
               <p className="tickets-page__checkout-lead">
-                {ticketSalesOpen ? t('pages.ticketsPage.checkoutLead') : ticketClosedLead}
+                {holdingPass
+                  ? t('pages.ticketsPage.myTicketsLead')
+                  : ticketSalesOpen
+                    ? t('pages.ticketsPage.checkoutLead')
+                    : ticketClosedLead}
               </p>
             </div>
             <div className="tickets-page__checkout-meta">
-              {ticketSalesOpen ? (
+              {ticketSalesOpen && !holdingPass ? (
                 <p className="tickets-page__trust">
                   <ShieldCheck size={16} aria-hidden />
                   {t('pages.ticketsPage.secureFlow')}
                 </p>
               ) : null}
-              {!visibleCreatedOrder ? (
-                <TicketOrderLookup onLookup={handleLookupTicketOrder} />
-              ) : null}
             </div>
           </header>
 
           <div className="tickets-page__checkout-panel">
-            {ticketSalesOpen ? (
+            {!ticketSalesOpen && pageOrder && pageOrder.status !== 'aprobado' ? (
+              <TicketPurchaseSection
+                editorial
+                showPassPreview={false}
+                showWallet={false}
+                event={selectedEvent}
+                manualPaymentEnabled={
+                  ticketCheckout.channels
+                    ? ticketCheckout.channels.bank_transfer === true
+                    : ticketCheckout.ticketManualEnabled !== false
+                }
+                mercadoPagoEnabled={ticketCheckout.channels?.mercado_pago !== false}
+                cashEnabled={ticketCheckout.channels?.cash_pitbull === true}
+                wiseEnabled={ticketCheckout.channels?.wise_transfer === true}
+                accountDetails={ticketCheckout.bankTransfer ?? null}
+                cashPayment={ticketCheckout.cashPayment ?? null}
+                pricing={pricing}
+                tickets={tickets}
+                createdOrder={pageOrder}
+                onSubmit={onSubmitTicketPurchase}
+                onUploadPaymentProof={onUploadPaymentProof}
+              />
+            ) : ticketSalesOpen ? (
               <>
+              {visibleCreatedOrder ? null : (
               <TicketTypeOptions
                 className="tickets-page__offers-grid"
                 locale={locale}
@@ -380,6 +482,7 @@ export default function TicketsPage({
                 value={catalogTypeId}
                 onChange={setCatalogTypeId}
               />
+              )}
               <TicketPurchaseSection
                 editorial
                 selectedTicketTypeId={catalogTypeId}
@@ -412,6 +515,7 @@ export default function TicketsPage({
         </div>
       </Reveal>
 
+      {holdingPass ? null : (
       <Reveal
         as="section"
         id="pass-preview"
@@ -436,6 +540,7 @@ export default function TicketsPage({
           />
         </div>
       </Reveal>
+      )}
 
       {ticketEvents.length > 1 && (
         <Reveal

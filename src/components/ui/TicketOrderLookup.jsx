@@ -1,26 +1,83 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { LoaderCircle, Search } from 'lucide-react'
 import Button from './Button.jsx'
 import { Field } from './FormFields.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { getTicketsRouteOrderReference } from '../../lib/ticketsRoute.js'
+import { getTicketsRouteOpenKey, getTicketsRouteOrderReference } from '../../lib/ticketsRoute.js'
 import '../../styles/components/ticket-order-lookup.css'
 
 /**
  * Recuperar una compra ya hecha, sin sesión: el link del mail de confirmación
- * cae acá con `?ref=` precargado. `onLookup` alimenta el mismo `createdOrder`
+ * cae acá con `?ref=` y, si el mail lo firmó, `?k=` abre el QR solo.
+ * `onLookup` alimenta el mismo `createdOrder`
  * que una compra recién hecha (ver useAppData.js), así que encontrar la orden
  * alcanza para que la pantalla de al lado (TicketPurchaseSection) muestre el
  * QR con el render que ya existe -- esta pieza sólo resuelve la búsqueda.
  */
-export default function TicketOrderLookup({ onLookup }) {
+export default function TicketOrderLookup({ onLookup, onResend }) {
   const { t } = useI18n()
   const [initialReference] = useState(() => getTicketsRouteOrderReference() ?? '')
+  const [openKey] = useState(() => getTicketsRouteOpenKey() ?? '')
   const [open, setOpen] = useState(() => Boolean(initialReference))
   const [reference, setReference] = useState(initialReference)
   const [email, setEmail] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [matched, setMatched] = useState(null)
   const [feedback, setFeedback] = useState(null)
+  const lookupRef = useRef(onLookup)
+  const onResendRef = useRef(onResend)
+  lookupRef.current = onLookup
+  onResendRef.current = onResend
+
+  function settleLookup(result, identity) {
+    const status = result?.order?.status
+    if (status === 'aprobado') {
+      if (onResendRef.current) setMatched(identity)
+      return
+    }
+    setMatched(null)
+    if (status === 'rechazado' || status === 'cancelado') {
+      setFeedback({ tone: 'error', message: t('pages.tickets.lookup.rejected') })
+      return
+    }
+    setFeedback({ tone: 'info', message: t('pages.tickets.lookup.pending') })
+  }
+
+  function failLookup(error) {
+    setMatched(null)
+    setFeedback({
+      tone: 'error',
+      message:
+        error?.status === 404
+          ? t('pages.tickets.lookup.notFound')
+          : t('pages.tickets.lookup.genericError'),
+    })
+  }
+
+  useEffect(() => {
+    const lookup = lookupRef.current
+    if (!openKey || !initialReference || !lookup) return undefined
+    let active = true
+    setSubmitting(true)
+    lookup(initialReference, '', { openKey })
+      .then((result) => {
+        if (active) {
+          settleLookup(result, { reference: initialReference, email: '', openKey })
+        }
+      })
+      .catch((error) => {
+        if (active) failLookup(error)
+      })
+      .finally(() => {
+        if (active) setSubmitting(false)
+      })
+    return () => {
+      active = false
+    }
+    // La firma y la referencia salen de la URL: una sola apertura.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialReference, openKey])
 
   if (!onLookup) return null
 
@@ -31,25 +88,33 @@ export default function TicketOrderLookup({ onLookup }) {
     setFeedback(null)
     try {
       const result = await onLookup(reference.trim(), email.trim())
-      const status = result?.order?.status
-      // 'aprobado' no necesita feedback propio: createdOrder ya se actualizó
-      // y TicketPurchaseSection pasa a mostrar el QR en el próximo render.
-      if (status === 'aprobado') return
-      if (status === 'rechazado' || status === 'cancelado') {
-        setFeedback({ tone: 'error', message: t('pages.tickets.lookup.rejected') })
-        return
-      }
-      setFeedback({ tone: 'info', message: t('pages.tickets.lookup.pending') })
+      settleLookup(result, { reference: reference.trim(), email: email.trim(), openKey: '' })
+    } catch (error) {
+      failLookup(error)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleResend() {
+    if (!matched || !onResend || resending) return
+    if (!matched.email && !matched.openKey) return
+    setResending(true)
+    setFeedback(null)
+    try {
+      const result = await onResend(matched.reference, matched.email, { openKey: matched.openKey })
+      const already = result?.status === 'already'
+      setFeedback({
+        tone: 'info',
+        message: t(already ? 'pages.tickets.lookup.already' : 'pages.tickets.lookup.resent'),
+      })
     } catch (error) {
       setFeedback({
         tone: 'error',
-        message:
-          error?.status === 404
-            ? t('pages.tickets.lookup.notFound')
-            : t('pages.tickets.lookup.genericError'),
+        message: error?.message || t('pages.tickets.lookup.resendFailed'),
       })
     } finally {
-      setSubmitting(false)
+      setResending(false)
     }
   }
 
@@ -92,6 +157,11 @@ export default function TicketOrderLookup({ onLookup }) {
           )}
           {submitting ? t('pages.tickets.lookup.submitting') : t('pages.tickets.lookup.submit')}
         </Button>
+        {matched && onResend ? (
+          <Button type="button" variant="secondary" disabled={resending} onClick={() => void handleResend()}>
+            {resending ? t('pages.tickets.lookup.resending') : t('pages.tickets.lookup.resend')}
+          </Button>
+        ) : null}
       </form>
       {feedback ? (
         <p

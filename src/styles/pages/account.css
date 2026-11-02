@@ -5473,22 +5473,47 @@
 }
 
 .account-passes__item {
-  align-items: center;
   border-bottom: 1px solid var(--color-border-subtle);
-  column-gap: 16px;
   display: grid;
-  grid-template-areas:
-    'event state'
-    'detail action';
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding: 14px 0;
-  row-gap: 6px;
+  gap: 6px;
+  padding: 18px 0;
+}
+
+.account-passes__verdict {
+  align-items: center;
+  color: var(--color-warning-text);
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: clamp(20px, 3vw, 26px);
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.account-passes__code {
+  display: grid;
+  gap: 2px;
+  margin: 4px 0 2px;
+}
+
+.account-passes__code span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.account-passes__code strong {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 550;
+  letter-spacing: 0.08em;
 }
 
 .account-passes__event {
   display: grid;
   gap: 2px;
-  grid-area: event;
   min-width: 0;
 }
 
@@ -5503,29 +5528,14 @@
   font-size: 12.5px;
 }
 
-.account-passes__state {
-  align-items: center;
-  color: var(--color-warning-text);
-  display: inline-flex;
-  font-size: 12px;
-  font-weight: 600;
-  gap: 6px;
-  grid-area: state;
-  justify-self: end;
-  letter-spacing: 0.04em;
-  margin: 0;
-  text-transform: uppercase;
-}
-
-.account-passes__item[data-state='ready'] .account-passes__state,
-.account-passes__item[data-state='checked_in'] .account-passes__state {
+.account-passes__item[data-state='ready'] .account-passes__verdict,
+.account-passes__item[data-state='checked_in'] .account-passes__verdict {
   color: var(--color-success-text);
 }
 
 .account-passes__detail {
   color: var(--color-text-secondary);
   font-size: 13px;
-  grid-area: detail;
   line-height: 1.45;
   margin: 0;
 }
@@ -5539,8 +5549,8 @@
   font-size: 13px;
   font-weight: 600;
   gap: 6px;
-  grid-area: action;
-  justify-self: end;
+  justify-self: start;
+  margin-top: 4px;
   min-height: 44px;
   padding: 0 16px;
   text-decoration: none;
@@ -5561,16 +5571,6 @@
 }
 
 @media (max-width: 560px) {
-  .account-passes__item {
-    grid-template-areas:
-      'event'
-      'state'
-      'detail'
-      'action';
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .account-passes__state,
   .account-passes__action {
     justify-self: start;
   }

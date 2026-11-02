@@ -272,12 +272,15 @@ export const EMAIL_CATALOG = Object.freeze({
     optOutAllowed: false,
     critical: true,
   },
+  // QR en adjunto PNG. `passes` lleva el código de puerta: se redacta en el
+  // outbox. El token del QR no es un param. Ver ticketConfirmationMail.js.
   ticket_confirmation: {
     category: EMAIL_CATEGORIES.event,
     templateEnv: 'BREVO_TEMPLATE_TICKET_CONFIRMATION',
     subject: 'Tu entrada · PLU ARG',
     entityType: 'ticket_order',
     requiredParams: ['name', 'eventTitle'],
+    sensitiveParams: ['passes', 'ticketUrl'],
     optOutAllowed: false,
     critical: true,
   },

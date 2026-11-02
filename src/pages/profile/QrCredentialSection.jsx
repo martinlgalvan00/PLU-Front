@@ -441,6 +441,7 @@ export default function QrCredentialSection({
 
             <EventPassList
               events={events}
+              memberCode={memberCode ?? ''}
               onNavigateSection={onNavigateSection}
               passes={passes}
             />
@@ -500,6 +501,7 @@ export default function QrCredentialSection({
         </div>
         <EventPassList
           events={events}
+          memberCode={memberCode ?? ''}
           onNavigateSection={onNavigateSection}
           passes={passes}
         />

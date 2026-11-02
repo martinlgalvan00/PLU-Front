@@ -1,4 +1,5 @@
 import { apiGet, apiPost, apiRequest } from '../lib/api.js'
+import { normalizeAccessDays } from '../lib/buyerTicketDays.js'
 
 /**
  * ticketApi.js — PLU ARG
@@ -55,6 +56,7 @@ function toCamelTicket(row, { event, checkIn, order } = {}) {
     eventId: row.event_id,
     attendeeName: row.attendee_name,
     attendeeDni: row.attendee_dni,
+    accessDays: normalizeAccessDays(row.access_days ?? row.accessDays),
     ticketTypeId: row.ticket_type_id,
     ticketTypeName: row.ticketTypeName ?? row.ticket_type_name ?? null,
     ticketTypeDescription: row.ticketTypeDescription ?? row.ticket_type_description ?? null,
@@ -104,6 +106,7 @@ function toCamelOrder(row) {
     manualPaymentChannel: row.manual_payment_channel ?? row.manualPaymentChannel ?? null,
     status: row.status,
     reference: row.reference,
+    openKey: row.openKey ?? row.open_key ?? null,
     rejectedBy: row.rejected_by ?? row.rejectedBy ?? null,
     rejectionReason: row.rejection_reason ?? row.rejectionReason ?? null,
     rejectedAt: row.rejected_at ?? row.rejectedAt ?? null,
@@ -259,6 +262,28 @@ export async function resolveTicketGateCode(code) {
   return result.qrToken
 }
 
+/**
+ * Puerta con sesión: token o código dictado en un solo viaje. Misma lectura
+ * que `verify`, sin acreditar el ingreso.
+ */
+export async function previewTicketScan(code) {
+  const { ticket: result } = await apiPost('/api/tickets/checkin/preview', { code })
+  return {
+    ticket: toCamelTicket(result.ticket, { event: result.event, checkIn: result.checkIn }),
+  }
+}
+
+export async function resendTicketOrder(orderId) {
+  return apiPost(`/api/tickets/orders/${encodeURIComponent(orderId)}/resend`, {})
+}
+
+export async function resendTicketOrderByBuyer(reference, email, { openKey } = {}) {
+  const body = { reference }
+  if (openKey) body.k = openKey
+  else body.email = email
+  return apiPost('/api/tickets/orders/resend', body)
+}
+
 export async function verifyTicketByQrToken(qrToken) {
   const { ticket: result } = await apiGet(`/api/tickets/verify/${qrToken}`)
   return { ticket: toCamelTicket(result.ticket, { event: result.event, checkIn: result.checkIn }) }
@@ -348,8 +373,24 @@ export async function getEventScanReport(eventSlug, { from, until, limit } = {})
  * `apiGet` tira un `ApiError` con `status: 404` -- el caller decide el
  * mensaje, no esta capa.
  */
-export async function lookupTicketOrder(reference, email) {
-  const params = new URLSearchParams({ reference, email })
+/**
+ * La pestaña que acaba de pagar pide el QR acreditado con el token de la
+ * compra. Sin acreditar, `tickets` vuelve vacío.
+ */
+export async function fetchTicketOrderPass(orderId, accessToken) {
+  const result = await apiRequest(`/api/tickets/orders/${encodeURIComponent(orderId)}/pass`, {
+    headers: { 'X-Order-Access-Token': accessToken },
+  })
+  return {
+    order: result.order,
+    tickets: (result.tickets ?? []).map((ticket) => toCamelTicket(ticket)),
+  }
+}
+
+export async function lookupTicketOrder(reference, email, { openKey } = {}) {
+  const params = new URLSearchParams({ reference })
+  if (openKey) params.set('k', openKey)
+  else params.set('email', email)
   const result = await apiGet(`/api/tickets/orders/lookup?${params.toString()}`)
   return {
     order: result.order,
@@ -380,6 +421,7 @@ export function mapApiTicket(apiTicket, purchaseEvent) {
     gateCode: apiTicket.gateCode ?? null,
     attendeeName: apiTicket.attendeeName,
     attendeeDni: apiTicket.attendeeDni,
+    accessDays: Array.isArray(apiTicket.accessDays) ? apiTicket.accessDays : [],
     ticketTypeId: apiTicket.ticketTypeId,
     ticketTypeName: apiTicket.ticketTypeName,
     ticketTypeDescription: apiTicket.ticketTypeDescription ?? null,

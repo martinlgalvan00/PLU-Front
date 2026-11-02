@@ -90,6 +90,18 @@
   box-shadow: 0 40px 72px -28px rgba(0, 0, 0, 0.64), 0 16px 32px -18px var(--ticket-accent-ring);
 }
 
+/* Entrada real: plana y con el QR grande. La inclinación es del mostrador,
+   no de la puerta. Hex/rgba planos: esta pieza también se descarga como PNG. */
+.ticket-pass-preview--live .ticket-pass-preview__card {
+  box-shadow: 0 28px 48px -32px rgba(0, 0, 0, 0.55);
+  grid-template-columns: minmax(0, 0.9fr) 14px minmax(240px, 1fr);
+  transform: none;
+}
+
+.ticket-pass-preview--live .ticket-pass-preview__qr {
+  width: min(100%, 280px);
+}
+
 .ticket-pass-preview__card::before {
   background: var(--gradient-brand);
   content: '';
@@ -437,5 +449,36 @@
   .ticket-pass-preview__qr-hint {
     grid-column: 2;
     max-width: none;
+  }
+
+  .ticket-pass-preview--live .ticket-pass-preview__card {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 14px auto;
+  }
+
+  .ticket-pass-preview--live .ticket-pass-preview__qr-pane {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    order: 1;
+    text-align: center;
+  }
+
+  .ticket-pass-preview--live .ticket-pass-preview__perforation {
+    order: 2;
+  }
+
+  .ticket-pass-preview--live .ticket-pass-preview__stub {
+    order: 3;
+  }
+
+  .ticket-pass-preview--live .ticket-pass-preview__qr,
+  .ticket-pass-preview--live .ticket-pass-preview__qr-label,
+  .ticket-pass-preview--live .ticket-pass-preview__qr-hint {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .ticket-pass-preview--live .ticket-pass-preview__qr {
+    width: min(72vw, 280px);
   }
 }

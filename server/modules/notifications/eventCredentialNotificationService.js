@@ -102,7 +102,7 @@ export function createEventCredentialRepository(client) {
       return rows(
         await client
           .from('memberships')
-          .select('athlete_id, status, start_date, expiration_date')
+          .select('athlete_id, status, start_date, expiration_date, member_code')
           .in('athlete_id', athleteIds)
           .eq('status', 'activa'),
         'No se pudieron leer las afiliaciones.',
@@ -130,13 +130,14 @@ export function createEventCredentialNotificationService({
   async function classify(event, registrations) {
     const today = now().toISOString().slice(0, 10)
     const needsMembership = event.requires_membership !== false
+    const ids = [...new Set(registrations.map((row) => row.athlete?.id).filter(Boolean))]
+    const memberships = ids.length ? await repository.listMemberships(ids) : []
     const currentMembers = new Set()
-    if (needsMembership) {
-      const ids = [...new Set(registrations.map((row) => row.athlete?.id).filter(Boolean))]
-      const memberships = await repository.listMemberships(ids)
-      memberships
-        .filter((membership) => isMembershipCurrent(membership, today))
-        .forEach((membership) => currentMembers.add(membership.athlete_id))
+    const memberCodes = new Map()
+    for (const membership of memberships) {
+      if (!isMembershipCurrent(membership, today)) continue
+      currentMembers.add(membership.athlete_id)
+      if (membership.member_code) memberCodes.set(membership.athlete_id, membership.member_code)
     }
 
     const ready = []
@@ -154,10 +155,10 @@ export function createEventCredentialNotificationService({
       }
       ready.push(registration)
     }
-    return { ready, noEmail, blocked }
+    return { ready, noEmail, blocked, memberCodes }
   }
 
-  async function sendOne(event, registration, { resend = false } = {}) {
+  async function sendOne(event, registration, { resend = false, memberCode = '' } = {}) {
     const athlete = registration.athlete
     const png = await renderQr(buildCredentialScanUrl(appUrl, athlete.credential_token))
     const day = now().toISOString().slice(0, 10)
@@ -186,6 +187,7 @@ export function createEventCredentialNotificationService({
         category: registration.category ?? '',
         accountUrl: `${appUrl}/mi-cuenta?section=qr`,
         eventUrl: event.slug ? `${appUrl}${buildEventPagePath(event.slug)}` : '',
+        memberCode,
       },
     })
     if (result?.created === false) return 'already'
@@ -196,7 +198,7 @@ export function createEventCredentialNotificationService({
     const event = await repository.findEventBySlug(eventSlug)
     if (!event) throw new HttpError(404, 'El evento no existe.')
     const registrations = await repository.listConfirmedRegistrations(event.id)
-    const { ready, noEmail, blocked } = await classify(event, registrations)
+    const { ready, noEmail, blocked, memberCodes } = await classify(event, registrations)
     const summary = {
       confirmed: registrations.length,
       ready: ready.length,
@@ -206,7 +208,10 @@ export function createEventCredentialNotificationService({
     if (dryRun) return { ...summary, dryRun: true }
 
     const settled = await mapWithConcurrency(ready, concurrency, (registration) =>
-      sendOne(event, registration, { resend }),
+      sendOne(event, registration, {
+        resend,
+        memberCode: memberCodes.get(registration.athlete?.id) ?? '',
+      }),
     )
     const outcomes = settled.map((item) => (item.status === 'fulfilled' ? item.value : 'failed'))
     const count = (value) => outcomes.filter((outcome) => outcome === value).length
@@ -223,9 +228,11 @@ export function createEventCredentialNotificationService({
   async function sendForRegistration(registrationId) {
     const registration = await repository.findRegistration(registrationId)
     if (!registration?.event || registration.status !== 'confirmada') return 'skipped'
-    const { ready } = await classify(registration.event, [registration])
+    const { ready, memberCodes } = await classify(registration.event, [registration])
     if (ready.length === 0) return 'skipped'
-    return sendOne(registration.event, registration)
+    return sendOne(registration.event, registration, {
+      memberCode: memberCodes.get(registration.athlete?.id) ?? '',
+    })
   }
 
   return { sendForEvent, sendForRegistration }

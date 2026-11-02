@@ -20220,6 +20220,51 @@ button.action-queue__proof:focus-visible {
   width: 28px;
 }
 
+.admin-checkin-result__human-code {
+  display: grid;
+  gap: 2px;
+  margin: 12px 0 0;
+}
+
+.admin-checkin-result__human-code > span,
+.admin-checkin-result__human-hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  letter-spacing: 0;
+  line-height: 1.4;
+  max-width: 36ch;
+}
+
+.admin-checkin-result__human-code strong {
+  color: var(--color-text-primary);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(28px, 5vw, 40px);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.05;
+}
+
+.admin-checkin-result__text-action {
+  background: none;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  justify-self: start;
+  min-height: 44px;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  width: fit-content;
+}
+
+.admin-checkin-result__text-action:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
 /* La credencial, en grande. Es lo que distingue las dos entradas de un
    entrenador -- mismo nombre y mismo DNI en las dos -- y por lo tanto lo único
    que decide si esta persona pasa por este puesto. */

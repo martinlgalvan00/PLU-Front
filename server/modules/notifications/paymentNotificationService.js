@@ -68,7 +68,8 @@ export function buildPaymentConfirmationParams({
     expirationDate: membership?.expiration_date ?? '',
     membershipPending: includesMembership && !membership?.id,
     isFirstMembership: includesMembership && isFirstMembership,
-    accountUrl: includesMembership ? `${baseUrl}/mi-cuenta` : '',
+    accountUrl:
+      includesMembership || includesRegistration ? `${baseUrl}/mi-cuenta?section=qr` : '',
 
     eventTitle: event?.title ?? '',
     eventDate: event?.starts_at ?? '',
@@ -78,9 +79,8 @@ export function buildPaymentConfirmationParams({
     eventUrl,
 
     ticketQuantity: Array.isArray(result?.tickets) ? result.tickets.length : '',
-    // El link no puede llevar directo al QR (no hay cuenta que lo guarde):
-    // lleva a /entradas?ref=..., donde TicketOrderLookup pide el mail del
-    // comprador como segundo factor y recupera la entrada con ese código.
+    // El outbox guarda este enlace sin firma. El dispatcher agrega `k` al
+    // enviarlo, así el reintento automático no queda desactivado.
     ticketUrl: includesTicket
       ? `${baseUrl}${SHORT_TICKETS_PATH}?ref=${encodeURIComponent(order?.reference ?? '')}`
       : '',

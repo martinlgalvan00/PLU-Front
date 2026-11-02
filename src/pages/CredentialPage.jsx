@@ -508,7 +508,6 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
       verdictIcon={Icon}
       verdictLabel={verdictLabel}
       verdictClass={verdictClass}
-      code={code}
       verifiedAt={verifiedAt}
     >
       <div className="credential-page__body">
@@ -521,16 +520,19 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
             {membership?.memberCode ? (
               <p className="credential-page__member-code">
                 <span className="credential-page__member-code-label">Nº de socio</span>
-                <span className="credential-page__member-code-value">{membership.memberCode}</span>
+                <span className="credential-page__door-code-value">{membership.memberCode}</span>
+                <span className="credential-page__gate-hint">
+                  Si no pueden escanear el QR, decí este número. Es la misma credencial.
+                </span>
               </p>
             ) : null}
           </div>
         </div>
 
-        <IdentityFacts facts={buildAthleteIdentityFacts(athlete)} />
-
-        {/* Escaneo con evento: la grilla de esa inscripción manda. */}
+        {/* Escaneo con evento: la grilla de esa inscripción es el acceso. */}
         {eventSlug && registration && <ScheduleBlock registration={registration} showEventTitle />}
+
+        <IdentityFacts facts={buildAthleteIdentityFacts(athlete)} />
 
         <dl className="credential-page__rows">
           <div className="credential-page__row">
@@ -825,7 +827,6 @@ function TicketCredential({ code, onCheckIn }) {
       verdictIcon={Icon}
       verdictLabel={verdictLabel}
       verdictClass={verdictClass}
-      code={code}
       verifiedAt={verifiedAt}
     >
       <div className="credential-page__body">
@@ -835,43 +836,33 @@ function TicketCredential({ code, onCheckIn }) {
           <AthletePortrait name={ticket.attendeeName} photoUrl={null} />
           <div className="credential-page__identity-hero-copy">
             <p className="credential-page__athlete-name">{ticket.attendeeName}</p>
+            {ticket.gateCode ? (
+              <p className="credential-page__member-code">
+                <span className="credential-page__member-code-label">Código de puerta</span>
+                <span className="credential-page__door-code-value">{ticket.gateCode}</span>
+                <span className="credential-page__gate-hint">
+                  Si no pueden escanear el QR, cantale este código a seguridad.
+                </span>
+                <button
+                  type="button"
+                  className="credential-page__text-action"
+                  onClick={() => speakDoorCode(ticket.gateCode)}
+                >
+                  Cantar código
+                </button>
+              </p>
+            ) : null}
             {ticket.ticketCode ? (
               <p className="credential-page__member-code">
                 <span className="credential-page__member-code-label">Entrada</span>
                 <span className="credential-page__member-code-value">{ticket.ticketCode}</span>
               </p>
             ) : null}
-            {ticket.gateCode ? (
-              <p className="credential-page__member-code">
-                <span className="credential-page__member-code-label">Código de puerta</span>
-                <span className="credential-page__door-code-value">{ticket.gateCode}</span>
-                <button type="button" className="btn btn--ghost btn--sm" onClick={() => speakDoorCode(ticket.gateCode)}>
-                  Cantar código
-                </button>
-              </p>
-            ) : null}
           </div>
         </div>
 
-        <IdentityFacts
-          facts={[
-            ticket.attendeeDni ? { label: 'Documento', value: ticket.attendeeDni } : null,
-            // El tipo baja a dato: una compra de entrenador emite dos
-            // credenciales del mismo tipo, así que acá abajo ubica y arriba
-            // confundiría.
-            ticket.ticketTypeName
-              ? { label: 'Tipo de entrada', value: ticket.ticketTypeName }
-              : null,
-          ].filter(Boolean)}
-        />
-
-        {/* La entrada es un pase de un solo uso, no una identidad: lo que
-            manda es a qué da acceso, y por eso ocupa el lugar que en la
-            credencial de atleta ocupa la grilla.
-            Lo que se muestra es la CREDENCIAL, no el tipo: una entrada de
-            entrenador emite "Espectador" y "ENTRENADOR", y mostrar el nombre
-            del tipo las dejaba idénticas — el mismo problema que la puerta ya
-            tenía resuelto. */}
+        {/* La entrada es un pase de un solo uso: después de la persona y el
+            código, lo que manda es a qué da acceso. */}
         <div className="credential-page__schedule-block">
           <span className="credential-page__schedule-eyebrow">Acceso</span>
           <p className="credential-page__schedule-day">
@@ -891,6 +882,15 @@ function TicketCredential({ code, onCheckIn }) {
             </ul>
           ) : null}
         </div>
+
+        <IdentityFacts
+          facts={[
+            ticket.attendeeDni ? { label: 'Documento', value: ticket.attendeeDni } : null,
+            ticket.ticketTypeName
+              ? { label: 'Tipo de entrada', value: ticket.ticketTypeName }
+              : null,
+          ].filter(Boolean)}
+        />
 
         <dl className="credential-page__rows">
           <div className="credential-page__row">

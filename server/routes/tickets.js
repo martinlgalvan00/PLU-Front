@@ -3,8 +3,14 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { hasEventScopeAccess } from '../../src/lib/permissions.js'
 import { resolveTicketTypeChannels } from '../../src/lib/ticketTypePaymentChannels.js'
+import { lookupTicketAccessDays } from '../../src/lib/buyerTicketDays.js'
 import { ticketValidityTiming } from '../../src/lib/ticketValidity.js'
 import { normalizeGateCode } from '../../src/lib/ticketGateCode.js'
+import {
+  attachStaffBuyerOpenKeys,
+  signTicketOpenKey,
+  ticketOpenKeyMatches,
+} from '../modules/ticketing/ticketOpenLink.js'
 import { HttpError } from '../lib/errors.js'
 import { isMissingSchemaColumn } from '../lib/supabaseRpc.js'
 import {
@@ -21,6 +27,20 @@ import { PROOF_BUCKET } from '../lib/supabaseAdmin.js'
 // Solo hace falta resolver la fecha del evento cuando el gate va a mirarla:
 // en produccion y sin kill switch. Evita una consulta a Supabase de mas en
 // dev/tests y cuando PAID_CHECKOUT_ENABLED ya decide.
+/**
+ * Antes de acreditar, el alcance del operador necesita el evento. La RPC de
+ * check-in ya valida pago, vigencia y zona, así que no hace falta el verify
+ * completo. Los tests que no tienen esta lectura siguen usando `verify`.
+ */
+async function loadTicketBeforeCheckIn(repository, qrToken) {
+  if (typeof repository.locateTicketForCheckIn === 'function') {
+    const located = await repository.locateTicketForCheckIn(qrToken)
+    if (!located) throw new HttpError(404, 'Entrada no encontrada.')
+    return { ticket: located }
+  }
+  return repository.verify(qrToken)
+}
+
 async function resolveDoorQrToken(repo, raw) {
   const value = String(raw ?? '').trim()
   const gateCode = normalizeGateCode(value)
@@ -139,10 +159,10 @@ import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { fetchScanTrail } from '../modules/checkin/scanTrail.js'
 import { INCIDENT_KINDS, createCheckinIncidentRepository } from '../modules/checkin/incidents.js'
 import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.js'
+import { buildTicketConfirmationDelivery } from '../modules/notifications/ticketConfirmationMail.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
 import { displayPaymentConcept } from '../modules/notifications/paymentNotificationService.js'
 import { buildEventPagePath } from '../../src/lib/eventPageRoute.js'
-import { SHORT_TICKETS_PATH } from '../../src/lib/ticketsRoute.js'
 import { resolveDeploymentAppUrl } from '../lib/deploymentEnvironment.js'
 import { logger } from '../lib/logger.js'
 import { createSupabasePlatformSettingsRepository } from '../modules/settings/supabasePlatformSettingsRepository.js'
@@ -413,6 +433,7 @@ export function createTicketRoutes({
   incidentRepository,
   athleteRepository,
   platformSettingsRepository,
+  notificationRepository = null,
   env = process.env,
   brevo,
 }) {
@@ -480,14 +501,17 @@ export function createTicketRoutes({
   // Espejo del dispatcher de athletes.js: sin Supabase queda en modo
   // degradado (envía sin log) en vez de romper el armado de la app.
   function mailDispatcher() {
-    let notificationRepository = null
+    if (typeof notificationRepository?.beginEmail === 'function') {
+      return createEmailDispatcher({ repository: notificationRepository, brevo: mailer, env })
+    }
+    let repositoryForMail = null
     try {
       const supabase = getSupabaseAdmin?.()
-      if (supabase) notificationRepository = createSupabaseNotificationRepository(supabase)
+      if (supabase) repositoryForMail = createSupabaseNotificationRepository(supabase)
     } catch {
-      notificationRepository = null
+      repositoryForMail = null
     }
-    return createEmailDispatcher({ repository: notificationRepository, brevo: mailer, env })
+    return createEmailDispatcher({ repository: repositoryForMail, brevo: mailer, env })
   }
 
   async function sendBestEffort(type, input) {
@@ -503,43 +527,43 @@ export function createTicketRoutes({
    * de idempotencia lleva el `updated_at` de la orden, así que reaprobar una
    * orden ya aprobada (la RPC devuelve `duplicate`) no reenvía nada.
    *
-   * El QR sigue viviendo sólo en la pestaña donde se compró (no hay cuenta
-   * que lo guarde), así que el link no puede llevar directo a él. Lleva a
-   * `/entradas?ref=...`: ahí `TicketOrderLookup` pide el mail del comprador
-   * como segundo factor y, si coincide, recupera la entrada con el mismo
-   * render que una compra recién hecha (ver GET /orders/lookup).
+   * El link abre la entrada con una clave firmada (`?ref=&k=`). Sin esa clave,
+   * `TicketOrderLookup` pide el mail del comprador como segundo factor.
    */
-  async function sendTicketConfirmation(result) {
+  async function sendTicketConfirmation(result, { resend = false } = {}) {
     const order = result?.order
-    if (!order || result?.duplicate) return
-    if (order.status !== 'aprobado' || !order.buyer_email) return
+    if (!order || (!resend && result?.duplicate)) return null
+    if (order.status !== 'aprobado' || !order.buyer_email) return null
 
-    const event = await athleteRepo()
-      .findEventSummary(order.event_id)
-      .catch(() => null)
+    const preset = result?.event ?? order.event ?? null
+    const event =
+      preset?.title && preset?.slug
+        ? preset
+        : await athleteRepo()
+            .findEventSummary(order.event_id)
+            .catch(() => preset)
 
-    // Una compra de entrenador emite dos credenciales y es UNA entrada: se
-    // cuentan las primarias, igual que el cupo.
-    const tickets = Array.isArray(result.tickets) ? result.tickets : []
-    const quantity =
-      tickets.filter((ticket) => ticket.is_primary_credential !== false).length || tickets.length
-
-    await sendBestEffort('ticket_confirmation', {
-      to: order.buyer_email,
-      toName: order.buyer_name,
-      entityType: 'ticket_order',
-      entityId: order.id,
-      idempotencyKey: `email:ticket-confirmation:${order.id}:${order.updated_at}`,
-      params: {
-        name: order.buyer_name,
-        eventTitle: event?.title ?? 'PLU ARG',
-        eventDate: event?.starts_at ?? null,
-        venue: event?.venue ?? null,
-        quantity: String(quantity),
-        reference: order.reference,
-        ticketUrl: `${appUrl}${SHORT_TICKETS_PATH}?ref=${encodeURIComponent(order.reference)}`,
-      },
+    const delivery = await buildTicketConfirmationDelivery({
+      order,
+      tickets: Array.isArray(result.tickets) ? result.tickets : [],
+      event,
+      appUrl,
+      resend,
+      openKey: signTicketOpenKey(order.reference),
     })
+    if (!delivery) return null
+    return sendBestEffort('ticket_confirmation', delivery)
+  }
+
+  function confirmationMailStatus(result) {
+    if (!result) return 'skipped'
+    // Un envío que tiró error también llega con `created: false` (el catch de
+    // sendBestEffort). Eso no es "ya lo mandamos hoy".
+    if (result.status === 'failed') return 'failed'
+    if (result.created === false) return 'already'
+    if (result.status === 'sent' || result.status === 'skipped') return result.status
+    if (result.status === 'suppressed') return 'skipped'
+    return 'failed'
   }
 
   function parseOrderId(req) {
@@ -620,17 +644,18 @@ export function createTicketRoutes({
     validateBody(createOrderSchema),
     async (req, res, next) => {
       try {
-        const registrationOpensAt = await resolveScopedRegistrationOpensAt(
-          env,
-          getSupabaseAdmin?.(),
-          req.validatedBody.eventSlug,
-        )
+        const eventSlug = req.validatedBody.eventSlug
+        // Agenda, interruptores y perfil del evento no se necesitan entre sí.
+        const [registrationOpensAt, toggles, eventPricing] = await Promise.all([
+          resolveScopedRegistrationOpensAt(env, getSupabaseAdmin?.(), eventSlug),
+          platformSettingsRepo().get(),
+          loadEventPaymentProfile(eventSlug),
+        ])
         await assertPaidCheckoutAvailable(env, new Date(), {
           registrationOpensAt,
           skipScheduleLookup: true,
           checkoutKind: 'ticket',
         })
-        const toggles = await platformSettingsRepo().get()
         assertCheckoutEnabled(toggles)
         assertTicketCheckoutEnabled(toggles, env)
         // `manual` cubre los tres canales que se acreditan a mano:
@@ -640,7 +665,6 @@ export function createTicketRoutes({
           req.validatedBody.provider === 'manual'
             ? (req.validatedBody.manualPaymentChannel ?? 'bank_transfer')
             : 'mercado_pago'
-        const eventPricing = await loadEventPaymentProfile(req.validatedBody.eventSlug)
         if (getSupabaseAdmin?.() && !eventPricing) {
           throw new HttpError(404, 'Evento no encontrado.')
         }
@@ -655,16 +679,6 @@ export function createTicketRoutes({
         assertEventPaymentChannelEnabled(toggles, 'ticket', ticketChannel, {
           eventOverrides: eventPricing?.payment_channel_overrides ?? null,
         })
-        // Y contra los medios propios de cada tipo del carrito. El canal se
-        // elige una vez para toda la compra, así que alcanza con que una
-        // entrada no lo acepte para que la orden entera no se pueda cobrar
-        // así. Sin esto la pantalla ofrecía transferencia para un palco que
-        // sólo acepta Mercado Pago y el rechazo llegaba al confirmar el pago.
-        await assertTicketTypesAcceptChannel(
-          req.validatedBody.attendees,
-          ticketChannel,
-          eventPricing?.payment_channel_overrides ?? null,
-        )
         // Módulo «Extras de entradas» apagado: no se venden extras aparte. Los
         // que un tipo trae incluidos no viajan en `addonIds` (el checkout los
         // saca), así que cualquier id acá es un extra comprado.
@@ -680,15 +694,28 @@ export function createTicketRoutes({
         // Y contra el calendario: una transferencia vendida sobre la fecha no
         // llega a ser un QR antes de que abra la puerta.
         assertManualTicketDeadline(ticketChannel, eventPricing?.starts_at ?? null)
-        const ticketWiseQuote =
+        // El canal del tipo y la cotización Wise leen cosas distintas. Si uno
+        // falla, el otro no puede quedar como rechazo suelto.
+        const channelCheck = assertTicketTypesAcceptChannel(
+          req.validatedBody.attendees,
+          ticketChannel,
+          eventPricing?.payment_channel_overrides ?? null,
+        ).then(
+          () => ({ ok: true }),
+          (error) => ({ error }),
+        )
+        const wiseQuote = (
           ticketChannel === 'wise_transfer'
-            ? await resolveTicketOrderWiseQuote(
-                getSupabaseAdmin?.(),
-                req.validatedBody,
-                env,
-                eventPricing,
-              )
-            : null
+            ? resolveTicketOrderWiseQuote(getSupabaseAdmin?.(), req.validatedBody, env, eventPricing)
+            : Promise.resolve(null)
+        ).then(
+          (value) => ({ value }),
+          (error) => ({ error }),
+        )
+        const [channelResult, wiseResult] = await Promise.all([channelCheck, wiseQuote])
+        if (channelResult.error) throw channelResult.error
+        if (wiseResult.error) throw wiseResult.error
+        const ticketWiseQuote = wiseResult.value
         // `wisePriceFor` sigue siendo el que valida y el que aplica el override
         // de entorno; lo que cambió es de dónde sale el número que recibe. Con
         // precios cargados en el panel entra ya resuelto (`configuredUsd`) y la
@@ -705,19 +732,34 @@ export function createTicketRoutes({
                 env,
               )
             : null
-        const created = await repo().createOrder({
+        const orderInput = {
           ...req.validatedBody,
           // Precio calculado por la API, nunca por el cliente: el monto
           // por asistente (`wisePriceFor`) se multiplica acá y viaja como
           // total ya cerrado, igual que el resto de las órdenes manuales.
           wiseAmount: ticketWisePrice ? ticketWisePrice.amount : null,
           wiseCurrency: ticketWisePrice?.currency ?? null,
-        })
-        const mercadoPagoPublicKey = await resolveMercadoPagoPublicKeyForProfileId(
+        }
+        // La clave pública no depende de que la orden se haya insertado.
+        // Si la orden falla, igual se espera la clave para no dejar un rechazo suelto.
+        const publicKey = resolveMercadoPagoPublicKeyForProfileId(
           getSupabaseAdmin?.(),
           eventPricing?.mercado_pago_profile_id,
           env,
+        ).then(
+          (value) => ({ value }),
+          (error) => ({ error }),
         )
+        let created
+        try {
+          created = await repo().createOrder(orderInput)
+        } catch (error) {
+          await publicKey
+          throw error
+        }
+        const keyResult = await publicKey
+        if (keyResult.error) throw keyResult.error
+        const mercadoPagoPublicKey = keyResult.value
         res.status(201).json({
           ...created,
           mercadoPagoPublicKey,
@@ -782,59 +824,159 @@ export function createTicketRoutes({
     }
   })
   /**
-   * Recuperar una compra desde el link del mail de confirmación, sin sesión.
-   * `reference` sale de la URL (`?ref=`) y el mail nunca pide el mail del
-   * comprador -- lo tipea la persona acá, como segundo factor.
+   * Misma forma para el link del mail y para la pestaña que acaba de pagar.
+   * Sin acreditar, no viaja el QR: una entrada pendiente no abre la puerta.
+   * Snake_case a propósito: `toCamelTicket` espera este shape.
+   */
+  function serializeBuyerOrder(found) {
+    const paid = found.order.status === 'aprobado'
+    return {
+      order: {
+        reference: found.order.reference,
+        status: found.order.status,
+        eventTitle: found.order.event?.title ?? null,
+        eventSlug: found.order.event?.slug ?? null,
+        eventStartsAt: found.order.event?.starts_at ?? null,
+        eventVenue: found.order.event?.venue ?? null,
+      },
+      tickets: paid
+        ? (found.tickets ?? []).map((ticket) => ({
+            id: ticket.id,
+            order_id: ticket.order_id,
+            bundle_id: ticket.bundle_id,
+            ticket_code: ticket.ticket_code,
+            qr_token: ticket.qr_token,
+            gate_code: ticket.gate_code ?? null,
+            attendee_name: ticket.attendee_name,
+            attendee_dni: ticket.attendee_dni ?? null,
+            status: ticket.status,
+            credential_label: ticket.credential_label,
+            credential_scopes: ticket.credential_scopes,
+            is_primary_credential: ticket.is_primary_credential !== false,
+            addons: Array.isArray(ticket.addons) ? ticket.addons : [],
+            valid_from: ticket.valid_from ?? null,
+            valid_until: ticket.valid_until ?? null,
+            access_days: lookupTicketAccessDays(ticket),
+            ticket_type_name: ticket.ticket_types?.name ?? ticket.ticket_type_name ?? null,
+          }))
+        : [],
+    }
+  }
+
+  /**
+   * Recuperar una compra sin sesión. El mail trae `?ref=&k=` y abre directo.
+   * Sin esa clave, la persona tipea el mail como segundo factor.
    */
   router.get('/orders/lookup', ticketOrderLookupLimiter, async (req, res, next) => {
     try {
       const referenceResult = z.string().trim().min(1).max(60).safeParse(req.query.reference)
-      const emailResult = z.string().trim().email().safeParse(req.query.email)
-      if (!referenceResult.success || !emailResult.success) {
+      if (!referenceResult.success) {
         throw new HttpError(400, 'Referencia o mail invalidos.')
       }
       const reference = referenceResult.data
-      const email = emailResult.data
-      const found = await repo().findOrderByReferenceAndEmail(reference, email)
+      const openKey = typeof req.query.k === 'string' ? req.query.k.trim() : ''
+      let found = null
+      if (openKey) {
+        if (!ticketOpenKeyMatches(reference, openKey)) {
+          throw new HttpError(404, 'No encontramos una compra con esos datos.')
+        }
+        found = await repo().findOrderByReference(reference)
+      } else {
+        const emailResult = z.string().trim().email().safeParse(req.query.email)
+        if (!emailResult.success) {
+          throw new HttpError(400, 'Referencia o mail invalidos.')
+        }
+        found = await repo().findOrderByReferenceAndEmail(reference, emailResult.data)
+      }
       if (!found) throw new HttpError(404, 'No encontramos una compra con esos datos.')
-      const paid = found.order.status === 'aprobado'
-      res.json({
-        order: {
-          reference: found.order.reference,
-          status: found.order.status,
-          eventTitle: found.order.event?.title ?? null,
-          eventSlug: found.order.event?.slug ?? null,
-        },
-        // Sin acreditar todavía no hay nada que mostrar en la puerta: el QR
-        // de una entrada `pendiente_pago` no habilita nada igual.
-        //
-        // Snake_case a propósito, igual que cualquier otra fila de `tickets`
-        // que devuelve esta API (ver `verify`/`createOrder`): `toCamelTicket`
-        // en ticketApi.js espera este shape para id/ticketCode/qrToken/
-        // orderId/attendeeName -- no tienen fallback camelCase como sí tienen
-        // credentialLabel o ticketTypeName.
-        tickets: paid
-          ? found.tickets.map((ticket) => ({
-              id: ticket.id,
-              order_id: ticket.order_id,
-              bundle_id: ticket.bundle_id,
-              ticket_code: ticket.ticket_code,
-              qr_token: ticket.qr_token,
-              gate_code: ticket.gate_code ?? null,
-              attendee_name: ticket.attendee_name,
-              status: ticket.status,
-              credential_label: ticket.credential_label,
-              credential_scopes: ticket.credential_scopes,
-              is_primary_credential: ticket.is_primary_credential !== false,
-              addons: Array.isArray(ticket.addons) ? ticket.addons : [],
-              ticket_type_name: ticket.ticket_types?.name ?? null,
-            }))
-          : [],
-      })
+      res.json(serializeBuyerOrder(found))
     } catch (error) {
       next(error)
     }
   })
+
+  /**
+   * La compra en curso ya demostró el token. La pestaña lo consulta mientras
+   * espera la acreditación y, cuando cierra, pide el QR real. No comparte el
+   * límite de la búsqueda por mail: ese balde es corto a propósito.
+   */
+  router.get('/orders/:orderId/pass', publicReadLimiter, async (req, res, next) => {
+    try {
+      const orderIdResult = z.string().uuid().safeParse(req.params.orderId)
+      const token = String(req.get('x-order-access-token') ?? '').trim()
+      if (!orderIdResult.success) throw new HttpError(400, 'Orden invalida.')
+      if (token.length < 32) throw new HttpError(401, 'Falta el token de acceso de la orden.')
+      const found = await repo().findOrderForBuyer(orderIdResult.data, token)
+      if (!found?.order) throw new HttpError(404, 'Orden no encontrada.')
+      res.json(serializeBuyerOrder(found))
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  const resendByBuyerSchema = z.object({
+    reference: z.string().trim().min(1).max(60),
+    email: z.string().trim().email().optional(),
+    k: z.string().trim().min(1).max(200).optional(),
+  })
+
+  async function resendFoundOrder(found, missingMessage) {
+    if (!found?.order) throw new HttpError(404, missingMessage)
+    if (found.order.status !== 'aprobado') {
+      throw new HttpError(409, 'La entrada todavía no está acreditada.')
+    }
+    const result = await sendTicketConfirmation(
+      {
+        order: found.order,
+        tickets: found.tickets,
+        event: found.event ?? found.order.event ?? null,
+        duplicate: false,
+      },
+      { resend: true },
+    )
+    return { status: confirmationMailStatus(result) }
+  }
+
+  // El comprador ya demostró referencia + mail. No confirma direcciones a ciegas:
+  // sin esa pareja la respuesta es la misma que la búsqueda.
+  router.post(
+    '/orders/resend',
+    ticketOrderLookupLimiter,
+    validateBody(resendByBuyerSchema),
+    async (req, res, next) => {
+      try {
+        const { reference, email, k } = req.validatedBody
+        const found =
+          k && ticketOpenKeyMatches(reference, k)
+            ? await repo().findOrderForConfirmation({ reference })
+            : email
+              ? await repo().findOrderForConfirmation({ reference, email })
+              : null
+        res.json(
+          await resendFoundOrder(found, 'No encontramos una compra con esos datos.'),
+        )
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.post(
+    '/orders/:orderId/resend',
+    ...scopedFinanceWriteGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const orderId = parseOrderId(req)
+        await assertTicketOrderInScope(req, getSupabaseAdmin?.(), orderId)
+        const found = await repo().findOrderForConfirmation({ orderId })
+        res.json(await resendFoundOrder(found, 'Orden no encontrada.'))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
   /**
    * `checkout` viaja junto a la disponibilidad porque la pantalla de entradas
    * necesita las dos cosas para armarse: cuántos lugares quedan y qué medios de
@@ -1184,7 +1326,7 @@ export function createTicketRoutes({
       const eventSlug = String(req.query.eventSlug ?? '')
       if (!eventSlug) throw new HttpError(400, 'Falta eventSlug.')
       assertEventSlugScope(req, eventSlug)
-      res.json({ tickets: await repo().listForEvent(eventSlug) })
+      res.json({ tickets: attachStaffBuyerOpenKeys(await repo().listForEvent(eventSlug)) })
     } catch (error) {
       next(error)
     }
@@ -1513,13 +1655,58 @@ export function createTicketRoutes({
     }
   })
 
+  const previewBodySchema = z.object({
+    code: z.string().trim().min(1).max(500),
+  })
+
+  /**
+   * Vista previa de puerta en un solo viaje: token opaco o código dictado.
+   * No acredita el ingreso. El código de puerta no se resuelve en el verify
+   * público, para que no se pueda enumerar desde afuera.
+   */
+  async function previewTicket(req, rawCode) {
+    const gateCode = normalizeGateCode(rawCode)
+    const accountKey = req.auth?.user?.id ? String(req.auth.user.id) : ''
+    if (gateCode) {
+      const attempt = doorCodeAttempts.check(accountKey)
+      if (!attempt.ok) {
+        throw new HttpError(429, 'Demasiados códigos incorrectos. Esperá un momento y reintentá.')
+      }
+    }
+    let qrToken
+    try {
+      qrToken = await resolveDoorQrToken(repo, rawCode)
+      if (gateCode) doorCodeAttempts.record(accountKey, true)
+    } catch (error) {
+      if (gateCode) doorCodeAttempts.record(accountKey, false)
+      throw error
+    }
+    const ticket = await repo().verify(qrToken)
+    assertEventScope(req, verifiedTicketEventId(ticket))
+    return ticket
+  }
+
+  router.post(
+    '/checkin/preview',
+    ...guard,
+    staffLimiter,
+    validateBody(previewBodySchema),
+    async (req, res, next) => {
+      try {
+        res.json({ ticket: await previewTicket(req, req.validatedBody.code) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
   router.post('/checkin/:qrToken', ...guard, staffLimiter, async (req, res, next) => {
     let ticket
     let qrToken = req.params.qrToken
     const gate = resolveGateLabel(req)
     try {
       qrToken = await resolveDoorQrToken(repo, req.params.qrToken)
-      ticket = await repo().verify(qrToken)
+      ticket = await loadTicketBeforeCheckIn(repo(), qrToken)
       const eventId = verifiedTicketEventId(ticket)
       assertEventScope(req, eventId)
       assertTicketValidity(ticket)
@@ -1570,7 +1757,7 @@ export function createTicketRoutes({
     staffLimiter,
     async (req, res, next) => {
       try {
-        const ticket = await repo().verify(req.params.qrToken)
+        const ticket = await loadTicketBeforeCheckIn(repo(), req.params.qrToken)
         assertEventScope(req, verifiedTicketEventId(ticket))
         assertTicketValidity(ticket)
         res.json(await repo().redeemAddon(req.params.qrToken, req.params.addonId, actor(req)))

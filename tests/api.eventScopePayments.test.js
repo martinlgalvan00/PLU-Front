@@ -112,6 +112,7 @@ describe('organizador: órdenes de entradas', () => {
     try {
       for (const [method, path, body] of [
         ['POST', `/api/tickets/orders/${T_B}/approve`, undefined],
+        ['POST', `/api/tickets/orders/${T_B}/resend`, undefined],
         ['POST', `/api/tickets/orders/${T_B}/reject`, { reason: 'comprobante ilegible' }],
         ['GET', `/api/tickets/orders/${T_B}/proof-url`, undefined],
         ['GET', `/api/tickets/orders/${T_B}/proof`, undefined],
@@ -130,10 +131,12 @@ describe('organizador: órdenes de entradas', () => {
     const ctx = await setup()
     try {
       const approve = await call(ctx, 'POST', `/api/tickets/orders/${T_A}/approve`)
+      const resend = await call(ctx, 'POST', `/api/tickets/orders/${T_A}/resend`)
       const reject = await call(ctx, 'POST', `/api/tickets/orders/${T_A}/reject`, {
         reason: 'comprobante ilegible',
       })
       expect(blockedByScope(approve)).toBe(false)
+      expect(blockedByScope(resend)).toBe(false)
       expect(blockedByScope(reject)).toBe(false)
       expect(approve.body?.code).not.toBe('event_scope_denied')
     } finally {

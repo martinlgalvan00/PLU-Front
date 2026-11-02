@@ -128,6 +128,13 @@ import {
 } from '../services/competitionCheckoutService.js'
 import { readStorage, writeCurrentOrder, writeStorage } from '../services/storageService.js'
 import {
+  TICKET_PASS_CLOSED_STATUSES,
+  TICKET_PASS_SETTLE_ATTEMPTS,
+  TICKET_PASS_SETTLE_MS,
+  TICKET_PASS_WATCH_MS,
+  ticketPassWatchMode,
+} from '../services/ticketPassWatch.js'
+import {
   approveTicketOrder as approveTicketOrderRequest,
   checkInTicket as checkInTicketRequest,
   createManualTicketOrder as createManualTicketOrderRequest,
@@ -135,6 +142,7 @@ import {
   getEventScanReport,
   listPendingTicketOrders as listPendingTicketOrdersRequest,
   listTicketsForEvent as listTicketsForEventRequest,
+  fetchTicketOrderPass,
   lookupTicketOrder as lookupTicketOrderRequest,
   mapApiTicket,
   redeemTicketAddon as redeemTicketAddonRequest,
@@ -1933,18 +1941,124 @@ export function useAppData() {
     writeCurrentOrder(null)
   }, [])
 
+  // Mercado Pago puede figurar acreditado antes de que el QR esté listo.
+  // Transferencia y efectivo se quedan en pendiente hasta que Finanzas acredita:
+  // mientras la pestaña está visible, la misma lectura espera ese cierre.
+  useEffect(() => {
+    const mode = ticketPassWatchMode(createdOrder)
+    if (!mode) return undefined
+    const order = createdOrder
+    let cancelled = false
+    let timer = 0
+    let attempts = 0
+
+    function commitPass(found, foundTickets) {
+      const purchaseEvent = {
+        slug: found.eventSlug,
+        title: found.eventTitle,
+        venue: found.eventVenue ?? null,
+        date: found.eventStartsAt ?? null,
+      }
+      const mappedTickets = foundTickets.map((ticket) => mapApiTicket(ticket, purchaseEvent))
+      setTickets((current) => {
+        const byId = new Map(mappedTickets.map((ticket) => [ticket.id, ticket]))
+        const merged = current.map((item) => byId.get(item.id) ?? item)
+        const newOnes = mappedTickets.filter((ticket) => !current.some((item) => item.id === ticket.id))
+        return [...newOnes, ...merged]
+      })
+      setCreatedOrder((current) => {
+        if (current?.orderId !== order.orderId) return current
+        return {
+          ...current,
+          status: 'aprobado',
+          tickets: mappedTickets,
+          passFresh: true,
+          eventTitle: found.eventTitle || current.eventTitle,
+          eventSlug: found.eventSlug || current.eventSlug,
+        }
+      })
+    }
+
+    function schedule(delay) {
+      if (cancelled) return
+      if (mode === 'watch' && document.visibilityState === 'hidden') return
+      timer = window.setTimeout(() => {
+        void pull()
+      }, delay)
+    }
+
+    async function pull() {
+      if (cancelled) return
+      if (mode === 'watch' && document.visibilityState === 'hidden') return
+      try {
+        const { order: found, tickets: foundTickets } = await fetchTicketOrderPass(
+          order.orderId,
+          order.orderAccessToken,
+        )
+        if (cancelled || !found) return
+        if (found.status === 'aprobado' && foundTickets.length > 0) {
+          commitPass(found, foundTickets)
+          return
+        }
+        if (TICKET_PASS_CLOSED_STATUSES.has(found.status)) {
+          setCreatedOrder((current) => {
+            if (current?.orderId !== order.orderId || current.status === found.status) return current
+            return { ...current, status: found.status }
+          })
+          return
+        }
+        if (found.status === 'aprobado' && order.status !== 'aprobado') {
+          setCreatedOrder((current) => {
+            if (current?.orderId !== order.orderId || current.status === 'aprobado') return current
+            return { ...current, status: 'aprobado' }
+          })
+          return
+        }
+      } catch (error) {
+        if (error?.status === 401 || error?.status === 403) return
+      }
+      if (cancelled) return
+      if (mode === 'settle') {
+        attempts += 1
+        if (attempts >= TICKET_PASS_SETTLE_ATTEMPTS) return
+        schedule(TICKET_PASS_SETTLE_MS)
+        return
+      }
+      schedule(TICKET_PASS_WATCH_MS)
+    }
+
+    function onVisible() {
+      if (cancelled || mode !== 'watch' || document.visibilityState !== 'visible') return
+      window.clearTimeout(timer)
+      void pull()
+    }
+
+    void pull()
+    if (mode === 'watch') document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [createdOrder])
+
   /**
    * Recupera una compra de entradas ya hecha por referencia + mail (link del
    * mail de confirmación, sin sesión). Alimenta el mismo `createdOrder` que
    * usa una compra recién hecha, así que `TicketPurchaseSection` la muestra
    * con el mismo render -- QR incluido -- sin código nuevo.
    */
-  const lookupTicketOrderAction = useCallback(async (reference, email) => {
-    const { order, tickets: foundTickets } = await lookupTicketOrderRequest(reference, email)
+  const lookupTicketOrderAction = useCallback(async (reference, email, options) => {
+    const { order, tickets: foundTickets } = await lookupTicketOrderRequest(reference, email, options)
     if (order.status !== 'aprobado') {
       return { order }
     }
-    const purchaseEvent = { slug: order.eventSlug, title: order.eventTitle }
+    const purchaseEvent = {
+      slug: order.eventSlug,
+      title: order.eventTitle,
+      venue: order.eventVenue ?? null,
+      date: order.eventStartsAt ?? null,
+    }
     const mappedTickets = foundTickets.map((ticket) => mapApiTicket(ticket, purchaseEvent))
     setTickets((current) => {
       const byId = new Map(mappedTickets.map((ticket) => [ticket.id, ticket]))
