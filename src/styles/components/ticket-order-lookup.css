@@ -8,7 +8,7 @@
   background: none;
   border: none;
   border-radius: 2px;
-  color: var(--color-brand-celeste);
+  color: var(--color-text-secondary);
   cursor: pointer;
   flex: none;
   font-size: 13px;
@@ -19,17 +19,19 @@
   padding: 10px 2px;
   text-align: end;
   text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-brand-gold) 72%, transparent);
   text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
+  text-underline-offset: 5px;
+  transition: color var(--motion-fast) var(--ease-out);
   width: auto;
 }
 
 .ticket-order-lookup__toggle:hover {
-  color: var(--color-brand-celeste-dim);
+  color: var(--color-text-primary);
 }
 
 .ticket-order-lookup__toggle:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
+  outline: 2px solid var(--color-brand-gold);
   outline-offset: 3px;
 }
 

@@ -7904,6 +7904,12 @@
   margin: 12px var(--admin-checkin-gutter) 0;
 }
 
+.admin-list-section--checkin .admin-checkin-result--decision .admin-checkin-result__actions .btn--primary {
+  font-size: 16px;
+  min-height: 48px;
+  width: 100%;
+}
+
 .admin-checkin-scanner {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--color-border-subtle);
@@ -8921,25 +8927,30 @@
 
 .admin-checkin-result {
   margin: 0 var(--admin-checkin-gutter, 18px) 14px;
-  padding: 12px 14px;
+  padding: 14px 16px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--admin-hairline, rgba(255, 255, 255, 0.1));
+  border-top-width: 3px;
+  background: var(--admin-surface, transparent);
+}
+
+.admin-checkin-result--success,
+.admin-checkin-result--warning,
+.admin-checkin-result--danger {
+  border-color: var(--admin-hairline, rgba(255, 255, 255, 0.1));
+  background: var(--admin-surface, transparent);
 }
 
 .admin-checkin-result--success {
-  border-color: rgba(72, 187, 120, 0.35);
-  background: rgba(72, 187, 120, 0.08);
+  border-top-color: var(--admin-status-success);
 }
 
 .admin-checkin-result--warning {
-  border-color: rgba(237, 176, 90, 0.35);
-  background: rgba(237, 176, 90, 0.08);
+  border-top-color: var(--admin-status-warning);
 }
 
 .admin-checkin-result--danger {
-  border-color: rgba(245, 101, 101, 0.35);
-  background: rgba(245, 101, 101, 0.08);
+  border-top-color: var(--admin-status-danger);
 }
 
 .admin-checkin-result__header {
@@ -8962,10 +8973,10 @@
 .admin-checkin-result__person-name {
   color: var(--admin-ink, var(--color-text-primary));
   font-family: var(--font-display, var(--font-family));
-  font-size: clamp(20px, 2.4vw, 26px);
+  font-size: clamp(24px, 3.2vw, 32px);
   font-weight: 700;
   letter-spacing: -0.03em;
-  line-height: 1.12;
+  line-height: 1.08;
 }
 
 .admin-checkin-result__person-doc {
@@ -9450,15 +9461,18 @@
 }
 
 .admin-checkin-history__item--success {
-  border-color: rgba(72, 187, 120, 0.25);
+  border-color: var(--admin-hairline, rgba(255, 255, 255, 0.08));
+  box-shadow: inset 3px 0 0 var(--admin-status-success);
 }
 
 .admin-checkin-history__item--warning {
-  border-color: rgba(237, 176, 90, 0.25);
+  border-color: var(--admin-hairline, rgba(255, 255, 255, 0.08));
+  box-shadow: inset 3px 0 0 var(--admin-status-warning);
 }
 
 .admin-checkin-history__item--danger {
-  border-color: rgba(245, 101, 101, 0.25);
+  border-color: var(--admin-hairline, rgba(255, 255, 255, 0.08));
+  box-shadow: inset 3px 0 0 var(--admin-status-danger);
 }
 
 .admin-checkin-history__item--active {
@@ -20184,16 +20198,26 @@ button.action-queue__proof:focus-visible {
 }
 
 /* ── Resultado del escaneo: jerarquía para leer en la puerta ─────────────────
-   Quien controla el ingreso mira esta tarjeta de pie, apurado y a veces al sol.
-   Los dos datos sobre los que actúa son el veredicto y QUÉ credencial leyó, y
-   eran los dos más chicos: el titular en 14px y la credencial en 13px, debajo
-   de un rótulo diminuto. El resto (nombre, documento, estado) es verificación
-   secundaria y se queda donde está. */
-.admin-checkin-result__header strong {
-  font-size: 17px;
+   Quien controla el ingreso mira esta tarjeta de pie. Primero la decisión, en
+   escala de display. Después el nombre, para cotejar el DNI. La credencial
+   concreta sigue grande porque distingue dos entradas del mismo documento. */
+.admin-checkin-result--decision .admin-checkin-result__header {
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-checkin-result--decision .admin-checkin-result__header strong {
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(26px, 4vw, 34px);
   font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+
+.admin-checkin-result--decision .admin-checkin-result__header svg {
+  flex: none;
+  height: 28px;
+  width: 28px;
 }
 
 /* La credencial, en grande. Es lo que distingue las dos entradas de un

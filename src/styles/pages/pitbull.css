@@ -10940,9 +10940,9 @@
 }
 
 [data-theme='light'] .pitbull-hero__badge {
-  background: rgba(31, 95, 158, 0.08);
-  border-color: rgba(31, 95, 158, 0.18);
-  color: var(--plu-celeste-700, #1f5f9e);
+  background: color-mix(in srgb, var(--plu-gold-600) 10%, transparent);
+  border-color: color-mix(in srgb, var(--plu-gold-600) 28%, transparent);
+  color: var(--color-brand-gold-ink);
 }
 
 .pitbull-hero-visual {
@@ -11964,8 +11964,18 @@
 .pitbull-page--premium {
   --pitbull-chapter-border: color-mix(in oklab, var(--color-text-primary) 10%, transparent);
   --pitbull-chapter-surface: color-mix(in oklab, var(--color-text-primary) 2.5%, transparent);
-  --pitbull-scroll-offset: calc(var(--header-height) + 24px);
+  --pitbull-nav-clearance: 48px;
+  --pitbull-scroll-offset: calc(
+    var(--header-height-scrolled) + var(--pitbull-nav-clearance) + 12px
+  );
   background: var(--color-page-canvas);
+}
+
+.pitbull-page--premium .pitbull-section-nav {
+  background: var(--color-page-canvas);
+  position: sticky;
+  top: var(--header-height-scrolled);
+  z-index: 4;
 }
 
 /* Portada showcase */
@@ -12122,7 +12132,7 @@
   min-width: 44px;
 }
 
-/* Índice de recorrido — puente tipográfico con el masthead; no sticky. */
+/* Índice de recorrido. En la ficha premium queda fijo bajo el header. */
 .pitbull-section-nav {
   background: var(--color-page-canvas);
   border-bottom: 1px solid var(--pitbull-chapter-border);
@@ -12832,6 +12842,10 @@
 }
 
 @media (max-width: 767px) {
+  .pitbull-page--premium {
+    --pitbull-nav-clearance: 56px;
+  }
+
   .pitbull-section-nav__inner {
     display: block;
     padding-inline: var(--layout-gutter-sm);

@@ -5004,6 +5004,7 @@ export default {
       rosterTitle: 'Personal del evento',
       rosterLead: 'Generá o renová el acceso individual cuando lo necesites.',
       rosterNoZone: 'Sin zona',
+      unassignedCount: '{{count}} sin puesto',
       addPeople: 'Agregar personas',
       credentialFor: 'Credencial de {{name}}',
       deactivateFor: 'Dar de baja a {{name}}',

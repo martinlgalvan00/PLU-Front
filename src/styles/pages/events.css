@@ -1900,7 +1900,7 @@
   }
 
   .events-page--plu-ref .events-page__filters-shell.plu-tab-rail__shell .filter-pills__item {
-    min-height: 34px;
+    min-height: 44px;
     padding: 0 11px;
   }
 
@@ -2343,11 +2343,25 @@
 }
 
 .events-page--list-first .events-list--minimal .event-card__athlete-status {
+  border-left: 2px solid currentColor;
   color: var(--color-text-secondary);
   font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.01em;
   margin: 0;
+  padding-left: 8px;
+}
+
+.events-page--list-first .events-list--minimal .event-card__athlete-status[data-tone='success'] {
+  color: var(--color-status-success, #3d9a6a);
+}
+
+.events-page--list-first .events-list--minimal .event-card__athlete-status[data-tone='warning'] {
+  color: var(--color-status-warning, #c48a2a);
+}
+
+.events-page--list-first .events-list--minimal .event-card__athlete-status[data-tone='info'] {
+  color: var(--color-brand-celeste);
 }
 
 .events-page--list-first .events-list--minimal .event-card__body {
@@ -2780,6 +2794,13 @@
   .events-page--list-first .events-calendar-board__panel {
     border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 7%, transparent);
     order: 0;
+  }
+}
+
+@media (max-width: 1023px) {
+  .events-page--list-first .events-calendar-board__panel {
+    order: -1;
+    scroll-margin-top: calc(var(--header-height-scrolled, 52px) + 16px);
   }
 }
 

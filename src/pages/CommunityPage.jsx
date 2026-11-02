@@ -59,8 +59,10 @@ export default function CommunityPage({ onNavigate }) {
           </section>
         </Reveal>
 
-        <section
+        <Reveal
+          as="section"
           className="community-participation"
+          variant="fade"
           aria-labelledby="community-participation-title"
         >
           <header className="institutional-section-head">
@@ -91,7 +93,7 @@ export default function CommunityPage({ onNavigate }) {
               </li>
             ))}
           </ol>
-        </section>
+        </Reveal>
 
         <section className="community-directory" aria-labelledby="community-directory-title">
           <header className="institutional-section-head institutional-section-head--compact">

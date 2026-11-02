@@ -3269,31 +3269,33 @@ export default function RegisterPage({
     ) : null
 
   /**
-   * Los datos de la inscripción: división, categoría y peso declarado.
+   * Los datos de la inscripción, en dos bloques del mismo envío: lo que arma
+   * el precio y lo que arma las tandas. No hay wizard: el botón sigue siendo
+   * uno y los dos bloques quedan visibles.
    *
    * Vive como constante y no dentro del formulario porque "Elegir otro medio"
-   * los necesita igual. El POST que reanuda una orden impaga manda los tres
-   * campos y `resume_pending_event_registration_checkout` (20260816120000) los
-   * reescribe sobre la inscripción pendiente: mostrando sólo el selector de
-   * medio, la pantalla escondía la única corrección que todavía se podía
-   * hacer, y quien se había equivocado de categoría no tenía más salida que
+   * los necesita igual. El POST que reanuda una orden impaga reescribe la
+   * selección sobre la inscripción pendiente: mostrando sólo el selector de
+   * medio, quien se había equivocado de categoría no tenía más salida que
    * cancelar la orden y volver a empezar.
    */
   const competitionFieldsSection = (
-    <FormSection
-      title={t('pages.register.competitionFormTitle')}
-      description={t(
-        changingMethod
-          ? 'pages.register.changePaymentDataDesc'
-          : 'pages.register.competitionFormDesc',
-      )}
-    >
+    <>
       {committedCompetitionRegistration ? (
         <p className="register-competition-commitment" role="status">
           {t('pages.register.competitionCommitmentLocked')}
         </p>
       ) : null}
       <div className="register-competition-fields">
+        <FormSection
+          title={t('pages.register.competitionEntryTitle')}
+          description={t(
+            changingMethod
+              ? 'pages.register.changePaymentDataDesc'
+              : 'pages.register.competitionEntryDesc',
+          )}
+        >
+          <div className="register-competition-fields__group">
         {flow === 'competition' && ageDivision.hasAgeRule ? (
           <div className="register-competition-secondary">
             {ageDivision.suggested === 'Open' ? (
@@ -3414,6 +3416,13 @@ export default function RegisterPage({
             })}
           />
         )}
+          </div>
+        </FormSection>
+        <FormSection
+          title={t('pages.register.competitionPlatformTitle')}
+          description={t('pages.register.competitionPlatformDesc')}
+        >
+          <div className="register-competition-fields__group">
         {/* Primero el peso: de él sale la clase sugerida, que se completa sola
             hasta que el atleta elige otra. */}
         <div className="register-competition-weight-row">
@@ -3491,8 +3500,10 @@ export default function RegisterPage({
               : t('pages.register.competitionBestTotalHint')}
           </p>
         </div>
+          </div>
+        </FormSection>
       </div>
-    </FormSection>
+    </>
   )
 
   /**
@@ -4184,6 +4195,20 @@ export default function RegisterPage({
                 </div>
               ) : flow === 'competition' ? (
                 <div className="register-competition-form">
+                  {athlete && competitionProfileMissing.length === 0 ? (
+                    <p className="register-profile-ready">
+                      <span className="register-profile-ready__summary" title={competitionProfileSummary}>
+                        {competitionProfileSummary}
+                      </span>
+                      <button
+                        type="button"
+                        className="register-profile-ready__review"
+                        onClick={() => onNavigate?.('profile', { tab: 'account-personal-data' })}
+                      >
+                        {t('pages.register.competitionProfileReview')}
+                      </button>
+                    </p>
+                  ) : (
                   <section
                     aria-labelledby="competition-profile-title"
                     className={`register-profile-readiness${competitionProfileMissing.length ? ' register-profile-readiness--incomplete' : ''}`}
@@ -4227,9 +4252,8 @@ export default function RegisterPage({
                         })}
                       </p>
                     ) : null}
-                    {/* Con el perfil completo los datos son para revisar, no
-                        para leer: se pliegan y el formulario sube al primer
-                        viewport. Si falta algo, quedan a la vista. */}
+                    {/* Perfil incompleto: lo que ya está cargado queda a la vista.
+                        El completo es una línea, más arriba. */}
                     {competitionProfileDetails.length ? (
                       <details
                         className="register-profile-readiness__disclosure"
@@ -4251,8 +4275,8 @@ export default function RegisterPage({
                       </details>
                     ) : null}
                   </section>
-                  {/* Sin `step`: la inscripción tiene una sola sección. El "01"
-                    prometía una secuencia que no existe. */}
+                  )}
+                  {/* Dos bloques, un solo envío. Sin numerar: no hay un paso intermedio. */}
                   {competitionFieldsSection}
 
                   {showComboChoice || (isPaidCheckout && flow === 'competition') ? (

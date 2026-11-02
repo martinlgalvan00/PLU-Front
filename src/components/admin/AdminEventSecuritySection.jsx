@@ -10,7 +10,9 @@ import SecurityTeamDelivery from './SecurityTeamDelivery.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import {
   SECURITY_TEAM_MAX,
+  countUnassignedActive,
   createSecurityTeamMember,
+  orderSecurityRoster,
   parseSecurityTeamImport,
   validateSecurityTeamMembers,
 } from '../../services/securityTeamService.js'
@@ -37,16 +39,23 @@ export default function AdminEventSecuritySection({
   onTeamChange,
   onUpdateSecurityUserStatus,
   reloadToken = 0,
+  directory = null,
 }) {
   const { t } = useI18n()
   const memberIdRef = useRef(1)
-  const [users, setUsers] = useState([])
-  const [zones, setZones] = useState([])
+  const shared = directory != null
+  const [ownUsers, setOwnUsers] = useState([])
+  const [ownZones, setOwnZones] = useState([])
   const [builderOpen, setBuilderOpen] = useState(false)
   const [assigningId, setAssigningId] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(null)
+  const [ownLoading, setOwnLoading] = useState(!shared)
+  const [ownLoadError, setOwnLoadError] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const users = shared ? directory.users : ownUsers
+  const setUsers = shared ? directory.setUsers : setOwnUsers
+  const zones = shared ? directory.zones : ownZones
+  const loading = shared ? directory.loading : ownLoading
+  const loadError = shared ? directory.error : ownLoadError
 
   const [members, setMembers] = useState(() => [createSecurityTeamMember('security-member-1')])
   const [memberErrors, setMemberErrors] = useState({})
@@ -62,6 +71,8 @@ export default function AdminEventSecuritySection({
   const [credentialUser, setCredentialUser] = useState(null)
 
   const activeCount = users.filter((user) => user.status === 'active').length
+  const unassignedActive = countUnassignedActive(users)
+  const roster = orderSecurityRoster(users)
   const eventEnded = Boolean(eventEndsAt) && new Date(eventEndsAt).getTime() < Date.now()
 
   function nextMember(values = {}) {
@@ -71,10 +82,10 @@ export default function AdminEventSecuritySection({
 
   useEffect(() => {
     let active = true
-    if (!eventId) return undefined
+    if (shared || !eventId) return undefined
 
-    setLoading(true)
-    setLoadError(null)
+    setOwnLoading(true)
+    setOwnLoadError(null)
     // Las zonas se leen para ofrecer el reparto en cada fila del equipo; si no
     // cargan, el listado sigue siendo útil (muestra la zona, no la edita).
     Promise.all([
@@ -83,20 +94,20 @@ export default function AdminEventSecuritySection({
     ])
       .then(([rows, zoneRows]) => {
         if (!active) return
-        setUsers(rows)
-        setZones(Array.isArray(zoneRows) ? zoneRows : [])
+        setOwnUsers(rows)
+        setOwnZones(Array.isArray(zoneRows) ? zoneRows : [])
       })
       .catch((error) => {
-        if (active) setLoadError(error)
+        if (active) setOwnLoadError(error)
       })
       .finally(() => {
-        if (active) setLoading(false)
+        if (active) setOwnLoading(false)
       })
 
     return () => {
       active = false
     }
-  }, [eventId, onListSecurityUsers, onListZones, reloadKey, reloadToken])
+  }, [eventId, onListSecurityUsers, onListZones, reloadKey, reloadToken, shared])
 
   function handleMemberChange(id, field, value) {
     setMembers((current) =>
@@ -324,7 +335,7 @@ export default function AdminEventSecuritySection({
         <AdminApiConnectionNotice
           error={loadError}
           retrying={loading}
-          onRetry={() => setReloadKey((current) => current + 1)}
+          onRetry={() => (shared ? directory.reload() : setReloadKey((current) => current + 1))}
         />
       )}
 
@@ -390,6 +401,11 @@ export default function AdminEventSecuritySection({
                 total: users.length,
               })}
             </small>
+            {unassignedActive > 0 ? (
+              <span className="admin-event-security__gap" role="status">
+                {t('admin.eventEditor.security.unassignedCount', { count: unassignedActive })}
+              </span>
+            ) : null}
             {canManageUsers && activeCount > 0 && (
               <div className="admin-event-security__list-actions">
                 {confirmingDeactivateAll ? (
@@ -432,7 +448,7 @@ export default function AdminEventSecuritySection({
           </div>
 
           <ul className="admin-event-security__list">
-            {users.map((user) => {
+            {roster.map((user) => {
               const active = user.status === 'active'
               const canAssign = canManageUsers && onAssignMember && zones.length > 0
               return (

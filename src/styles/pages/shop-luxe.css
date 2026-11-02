@@ -26,7 +26,10 @@
   display: flex;
   gap: clamp(20px, 4vw, 44px);
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   position: relative;
+  scroll-padding-inline: 4px;
+  scroll-snap-type: x proximity;
   scrollbar-width: none;
 }
 
@@ -49,6 +52,7 @@
   letter-spacing: -0.01em;
   min-height: 48px;
   padding: 10px 0 14px;
+  scroll-snap-align: start;
   transition: color var(--motion-base) var(--ease-out);
 }
 
@@ -754,6 +758,31 @@
     letter-spacing: 0.14em;
     min-height: 48px;
     width: 100%;
+  }
+
+  .shop-feature__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .shop-feature__actions .shop-cta,
+  .shop-feature__actions .shop-link {
+    justify-content: center;
+    min-height: 48px;
+    width: 100%;
+  }
+
+  .shop-drawer {
+    padding:
+      calc(16px + env(safe-area-inset-top, 0px))
+      16px
+      calc(24px + env(safe-area-inset-bottom, 0px));
+    width: 100%;
+  }
+
+  .shop-drawer__close {
+    height: 44px;
+    width: 44px;
   }
 }
 

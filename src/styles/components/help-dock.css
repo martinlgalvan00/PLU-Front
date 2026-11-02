@@ -172,8 +172,8 @@
   border-bottom: 1px solid var(--color-border);
   display: grid;
   flex: none;
-  gap: 4px;
-  padding: 16px 20px 12px;
+  gap: 2px;
+  padding: 14px 20px 12px;
   padding-right: calc(20px + 36px);
   position: relative;
 }
@@ -201,11 +201,16 @@
   margin: 0;
 }
 
+/* Sigue en el DOM para aria-describedby del diálogo. No suma un renglón. */
 .help-panel__lead {
-  color: var(--color-text-secondary);
-  font-size: 13.5px;
-  line-height: 1.5;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
   margin: 0;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 .help-panel__close {
@@ -279,11 +284,24 @@
   text-transform: none;
 }
 
+/* Una línea, y solo cuando el interruptor tiene foco o acaba de usarse.
+   El texto completo sigue en el árbol para el nombre accesible. */
 .help-panel__assist-hint {
   color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.4;
-  margin: 0 0 6px;
+  margin: 0;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.help-panel__settings:focus-within .help-panel__assist-hint {
+  margin-bottom: 6px;
+  max-height: 1.4em;
+  opacity: 1;
 }
 
 .help-panel__settings {
@@ -310,6 +328,12 @@
   grid-template-columns: 26px 1fr;
   padding: 11px 10px;
   position: relative;
+}
+
+.help-panel__step.is-done,
+.help-panel__step.is-closed,
+.help-panel__step.is-unavailable {
+  padding-block: 8px;
 }
 
 /* Riel que conecta los marcadores: lista editorial, no tres cards apiladas. */
@@ -664,7 +688,7 @@
   }
 
   .help-panel__head {
-    padding: var(--space-lg) var(--space-md) var(--space-md);
+    padding: 14px var(--space-md) 12px;
     padding-right: calc(var(--space-md) + 28px);
   }
 
@@ -775,10 +799,10 @@
   align-items: center;
   column-gap: var(--space-md);
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: space-between;
-  padding-block: 7px;
-  row-gap: 4px;
+  min-height: 44px;
+  padding-block: 4px;
 }
 
 /* "Estás en Crear tu cuenta": orientación básica para quien abre la ayuda
@@ -787,10 +811,18 @@
   align-items: center;
   color: var(--color-text-muted);
   display: flex;
+  flex: 1 1 auto;
   font-size: 12.5px;
   gap: 8px;
   margin: 0;
   min-width: 0;
+}
+
+.help-panel__location span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .help-panel__assist {
@@ -803,7 +835,8 @@
   flex: none;
   font-family: var(--font-family);
   gap: 8px;
-  min-height: 40px;
+  margin-inline-start: auto;
+  min-height: 44px;
   padding: 0;
 }
 

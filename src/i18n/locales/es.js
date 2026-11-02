@@ -1194,9 +1194,10 @@ export default {
     areaLabel: 'Área de seguridad',
     title: 'Ingreso de seguridad',
     titleWithEvent: 'Ingreso de seguridad — {{event}}',
-    subtitle: 'Iniciá sesión con la cuenta que te asignó el administrador del evento.',
+    subtitle: 'Entrá con el código de la credencial, o con la cuenta que te asignó el administrador.',
     subtitleWithEvent:
-      'Estás entrando al control de acceso de {{event}}. Usá la cuenta de seguridad asignada para este evento.',
+      'Control de acceso de {{event}}. El código de la credencial abre la puerta; si no lo tenés, usá la cuenta asignada.',
+    accountDivider: 'o con tu cuenta',
     submit: 'Entrar a seguridad',
     demoHint: 'Demo: usuario demo · contraseña 123',
     errorInvalid: 'Email, contraseña o evento incorrectos.',
@@ -4139,6 +4140,11 @@ export default {
       competitionFormTitle: 'Definí tu entrada',
       competitionFormDesc:
         'División, categoría, modalidad y peso. El máximo es un solo número. La clase de peso sale de tu peso corporal.',
+      competitionEntryTitle: 'Cómo competís',
+      competitionEntryDesc: 'División, categoría y modalidad. Esto arma el precio.',
+      competitionPlatformTitle: 'Para la tarima',
+      competitionPlatformDesc:
+        'No cambia el importe. El peso, la clase y el máximo arman las tandas.',
       firstMeet: 'Es mi primer torneo',
       firstMeetNote:
         'Si todavía no competiste, el número de abajo es el máximo entrenando.',

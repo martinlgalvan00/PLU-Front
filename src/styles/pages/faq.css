@@ -9,6 +9,10 @@
   padding: 0;
 }
 
+.faq-page--institutional .faq-institutional-section {
+  scroll-margin-top: calc(var(--header-height-scrolled, 52px) + 16px);
+}
+
 .faq-page--institutional .faq-accordion--ref {
   display: grid;
   gap: 0;

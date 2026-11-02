@@ -9,6 +9,7 @@ import heroPhotoWebp from '../assets/DSC00392-display.webp'
 import heroPhotoWebp480 from '../assets/DSC00392-display-480.webp'
 import heroPhotoWebp800 from '../assets/DSC00392-display-800.webp'
 import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
+import Reveal from '../components/ui/Reveal.jsx'
 import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.jsx'
 import TicketOrderLookup from '../components/ui/TicketOrderLookup.jsx'
 import TicketPassPreview from '../components/ui/TicketPassPreview.jsx'
@@ -332,8 +333,10 @@ export default function TicketsPage({
         </div>
       </HeroRoot>
 
-      <section
+      <Reveal
+        as="section"
         id="checkout"
+        variant="fade"
         className="tickets-page__checkout"
         aria-labelledby="tickets-checkout-title"
       >
@@ -407,10 +410,12 @@ export default function TicketsPage({
             )}
           </div>
         </div>
-      </section>
+      </Reveal>
 
-      <section
+      <Reveal
+        as="section"
         id="pass-preview"
+        variant="fade"
         className="tickets-page__pass tickets-page__shell"
         aria-labelledby="tickets-pass-title"
       >
@@ -430,10 +435,12 @@ export default function TicketsPage({
             venue={selectedEvent?.venue ?? t('pages.ticketsPage.venueFallback')}
           />
         </div>
-      </section>
+      </Reveal>
 
       {ticketEvents.length > 1 && (
-        <section
+        <Reveal
+          as="section"
+          variant="fade"
           className="tickets-page__event-picker tickets-page__shell"
           aria-label={t('pages.ticketsPage.chooseEventAria')}
         >
@@ -499,16 +506,18 @@ export default function TicketsPage({
               )
             })}
           </div>
-        </section>
+        </Reveal>
       )}
 
       {ticketSalesOpen ? (
-        <section
+        <Reveal
+          as="section"
+          variant="fade"
           className="tickets-page__offers tickets-page__shell"
           aria-label={t('pages.ticketsPage.offersTitle')}
         >
           <TicketAccessMatrix locale={locale} ticketTypes={pricing.ticketTypes} t={t} />
-        </section>
+        </Reveal>
       ) : null}
 
     </main>

@@ -83,6 +83,19 @@ export default function SecurityTeamDelivery({ result, onOpenCredential, onClose
                   <p className="security-team-delivery__code">
                     <span>{t('admin.eventEditor.security.credentialCodeLabel')}</span>
                     <strong>{item.accessCode}</strong>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(`${item.user.id}:code`, item.accessCode)}
+                    >
+                      {copied === `${item.user.id}:code` ? (
+                        <Check size={13} aria-hidden />
+                      ) : (
+                        <Copy size={13} aria-hidden />
+                      )}
+                      {copied === `${item.user.id}:code`
+                        ? t('admin.eventEditor.security.copied')
+                        : t('admin.eventEditor.security.copyCode')}
+                    </button>
                   </p>
                 ) : null}
                 <code>{item.accessUrl}</code>

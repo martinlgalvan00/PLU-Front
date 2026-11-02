@@ -559,13 +559,15 @@ export default function NavbarPublic({
   const [profileMenuPos, setProfileMenuPos] = useState(null)
   const restoreDrawerFocusRef = useRef(true)
   const suppressScrollRestoreRef = useRef(false)
-  /* Morph compositor (~140px, cuantizado 24 pasos). Compact layout solo al
-     cruzar scrolled — evita thrash de height/font en cada frame (PC/desktop). */
+  /* Morph compositor (~140px, cuantizado 24 pasos). La clase compacta
+     coincide con el final del fade: la histeresis cabe en el tramo en el
+     que el wordmark ya está en opacidad 0, así el ancho abre sin un segundo
+     salto. */
   const { scrolled } = useHeaderScroll(shellRef, {
     autoHide: false,
     range: 140,
-    threshold: 120,
-    hysteresis: 40,
+    threshold: 140,
+    hysteresis: 8,
     steps: 24,
   })
   const { reducedMotion } = useMotionConfig()
@@ -1354,9 +1356,9 @@ export default function NavbarPublic({
                       <BrandLogo
                         variant="argentina"
                         imgClassName="plu-drawer__emblem"
-                        height={38}
+                        height={44}
                       />
-                      <BrandLogo variant="letterhead" imgClassName="plu-drawer__logo" height={18} />
+                      <BrandLogo variant="letterhead" imgClassName="plu-drawer__logo" height={20} />
                     </button>
                     <button
                       type="button"
@@ -1399,48 +1401,53 @@ export default function NavbarPublic({
                   <LayoutGroup id={`plu-drawer-nav-${locale}`}>
                     <nav className="plu-drawer__nav" aria-label={t('nav.mobileMenu')}>
                       <div className="plu-drawer__nav-primary">
-                        {competitionItems
-                          .filter((item) => item.key !== 'events')
-                          .map((item, index) => (
-                            <DrawerRow
-                              key={item.key}
-                              active={item.active}
-                              delay={MOTION_STAGGER.stepFast * (index + 1)}
-                              description={item.hint}
-                              onClick={() => navigateNavItem(item)}
-                            >
-                              {item.label}
-                            </DrawerRow>
-                          ))}
-                        <DrawerRow
-                          active={activeView === 'shop'}
-                          delay={MOTION_STAGGER.stepFast * 3}
-                          description={t('nav.shopHint')}
-                          onClick={() => go('shop')}
-                        >
-                          {t('nav.shop')}
-                        </DrawerRow>
-                        <DrawerRow
-                          active={activeView === 'events' && !activeEventSlug}
-                          delay={MOTION_STAGGER.stepFast * 4}
-                          onClick={() => go('events')}
-                        >
-                          {t('nav.calendarOfficial')}
-                        </DrawerRow>
-                        <DrawerRow
-                          active={activeView === 'results'}
-                          delay={MOTION_STAGGER.stepFast * 5}
-                          onClick={() => go('results')}
-                        >
-                          {t('nav.results')}
-                        </DrawerRow>
-                        <DrawerRow
-                          active={activeView === 'records'}
-                          delay={MOTION_STAGGER.stepFast * 6}
-                          onClick={() => go('records')}
-                        >
-                          {t('nav.records')}
-                        </DrawerRow>
+                        <div className="plu-drawer__program">
+                          {competitionItems
+                            .filter((item) => item.key !== 'events')
+                            .map((item, index) => (
+                              <DrawerRow
+                                key={item.key}
+                                feature
+                                active={item.active}
+                                delay={MOTION_STAGGER.stepFast * (index + 1)}
+                                description={item.hint}
+                                onClick={() => navigateNavItem(item)}
+                              >
+                                {item.label}
+                              </DrawerRow>
+                            ))}
+                        </div>
+                        <div className="plu-drawer__index">
+                          <DrawerRow
+                            active={activeView === 'shop'}
+                            delay={MOTION_STAGGER.stepFast * 3}
+                            description={t('nav.shopHint')}
+                            onClick={() => go('shop')}
+                          >
+                            {t('nav.shop')}
+                          </DrawerRow>
+                          <DrawerRow
+                            active={activeView === 'events' && !activeEventSlug}
+                            delay={MOTION_STAGGER.stepFast * 4}
+                            onClick={() => go('events')}
+                          >
+                            {t('nav.calendarOfficial')}
+                          </DrawerRow>
+                          <DrawerRow
+                            active={activeView === 'results'}
+                            delay={MOTION_STAGGER.stepFast * 5}
+                            onClick={() => go('results')}
+                          >
+                            {t('nav.results')}
+                          </DrawerRow>
+                          <DrawerRow
+                            active={activeView === 'records'}
+                            delay={MOTION_STAGGER.stepFast * 6}
+                            onClick={() => go('records')}
+                          >
+                            {t('nav.records')}
+                          </DrawerRow>
+                        </div>
                       </div>
 
                       <div

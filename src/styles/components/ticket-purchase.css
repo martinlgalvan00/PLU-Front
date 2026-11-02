@@ -38,20 +38,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid var(--color-border-subtle);
   background: var(--color-bg-surface);
   color: var(--color-text-primary);
   cursor: pointer;
   transition:
-    background 150ms ease,
-    border-color 150ms ease;
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
 }
 
 .ticket-purchase__stepper button:hover:not(:disabled) {
-  border-color: var(--color-brand-celeste);
+  border-color: var(--color-brand-gold);
 }
 
 .ticket-purchase__stepper button:disabled {
@@ -98,7 +98,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-brand-celeste);
+  color: var(--color-brand-gold);
 }
 
 .ticket-purchase__attendee-price {
@@ -194,9 +194,9 @@
   gap: 6px;
   padding: 8px 14px;
   border-radius: var(--border-radius-pill);
-  border: 1px solid var(--color-brand-celeste);
-  background: var(--color-brand-celeste-dim);
-  color: var(--color-brand-celeste);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 55%, transparent);
+  background: transparent;
+  color: var(--color-text-primary);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -205,7 +205,7 @@
 }
 
 .ticket-purchase__qr-btn:hover {
-  background: rgba(116, 172, 223, 0.22);
+  background: color-mix(in srgb, var(--color-brand-gold) 12%, transparent);
 }
 
 /* ─── Modo editorial (Pitbull / páginas premium) ─────────────── */
@@ -306,13 +306,13 @@
   background: transparent;
   border-color: transparent;
   border-radius: 50%;
-  height: 30px;
-  width: 30px;
+  height: 44px;
+  width: 44px;
 }
 
 .ticket-purchase--editorial .ticket-purchase__stepper button:hover:not(:disabled) {
-  background: rgba(116, 172, 223, 0.1);
-  border-color: rgba(116, 172, 223, 0.22);
+  background: color-mix(in srgb, var(--color-brand-gold) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
 }
 
 .ticket-purchase--editorial .ticket-purchase__stepper span {
@@ -403,12 +403,12 @@
 }
 
 .ticket-purchase--editorial .ticket-purchase__submit:hover {
-  color: var(--color-brand-celeste);
+  color: var(--color-brand-gold);
   gap: 9px;
 }
 
 .ticket-purchase--editorial .ticket-purchase__submit:focus-visible {
-  outline: 2px solid rgba(116, 172, 223, 0.42);
+  outline: 2px solid color-mix(in srgb, var(--color-brand-gold) 55%, transparent);
   outline-offset: 3px;
 }
 
@@ -928,11 +928,11 @@
 }
 
 .ticket-purchase--editorial .ticket-purchase__payment-option.is-selected {
-  background: color-mix(in srgb, var(--color-brand-celeste) 6%, transparent);
+  background: color-mix(in srgb, var(--color-brand-gold) 8%, transparent);
 }
 
 .ticket-purchase--editorial .ticket-purchase__payment-option:has(input:focus-visible) {
-  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 42%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
   outline-offset: 2px;
 }
 
@@ -1075,7 +1075,7 @@
 }
 
 .ticket-purchase__payment-note--auto {
-  color: color-mix(in srgb, var(--color-brand-celeste) 78%, var(--color-text-muted));
+  color: color-mix(in srgb, var(--color-brand-gold) 72%, var(--color-text-muted));
 }
 
 .ticket-purchase__payment-note--transfer {
@@ -1189,8 +1189,8 @@
 
 .ticket-purchase__proof-dropzone:hover,
 .ticket-purchase__proof-dropzone:focus-within {
-  background: color-mix(in srgb, var(--color-brand-celeste) 8%, var(--color-bg-elevated));
-  border-color: var(--color-brand-celeste);
+  background: color-mix(in srgb, var(--color-brand-gold) 8%, var(--color-bg-elevated));
+  border-color: var(--color-brand-gold);
 }
 
 .ticket-purchase__proof-dropzone.is-selected {
@@ -1209,9 +1209,9 @@
 
 .ticket-purchase__proof-dropzone-icon {
   align-items: center;
-  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
+  background: color-mix(in srgb, var(--color-brand-gold) 14%, transparent);
   border-radius: 50%;
-  color: var(--color-brand-celeste);
+  color: var(--color-brand-gold);
   display: inline-flex;
   height: 38px;
   justify-content: center;
@@ -1243,7 +1243,7 @@
 }
 
 .ticket-purchase__proof-change {
-  color: var(--color-brand-celeste);
+  color: var(--color-brand-gold);
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
@@ -1287,8 +1287,8 @@
   min-height: 36px;
   padding: 8px 14px;
   border-radius: var(--border-radius-md);
-  border: 1px solid var(--color-brand-celeste);
-  background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 55%, transparent);
+  background: color-mix(in srgb, var(--color-brand-gold) 12%, transparent);
   color: var(--color-text-primary);
   font-size: 12px;
   font-weight: 600;
@@ -1606,8 +1606,7 @@
   max-width: 52ch;
 }
 
-/* Compartir el link de compra: acción secundaria, mismo trato que
-   `.ticket-purchase__qr-btn` (celeste, no oro — no compite con "Pagar"). */
+/* Compartir el link: acción secundaria, filo dorado fino, sin competir con "Pagar". */
 .ticket-purchase__share-cta {
   display: inline-flex;
   align-items: center;
@@ -1615,9 +1614,9 @@
   align-self: flex-start;
   padding: 9px 16px;
   border-radius: var(--border-radius-pill);
-  border: 1px solid var(--color-brand-celeste);
-  background: var(--color-brand-celeste-dim);
-  color: var(--color-brand-celeste);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 55%, transparent);
+  background: transparent;
+  color: var(--color-text-primary);
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
@@ -1625,7 +1624,7 @@
 }
 
 .ticket-purchase__share-cta:hover {
-  background: rgba(116, 172, 223, 0.22);
+  background: color-mix(in srgb, var(--color-brand-gold) 12%, transparent);
 }
 
 /* ─── Credenciales emitidas, agrupadas por compra ───────────────

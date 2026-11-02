@@ -28,6 +28,7 @@ import AdminEventRegistrationsPanel, {
 import AdminEventQuickCreate from '../../components/admin/AdminEventQuickCreate.jsx'
 import AdminEventScanReportSection from '../../components/admin/AdminEventScanReportSection.jsx'
 import AdminEventOrganizersSection from '../../components/admin/AdminEventOrganizersSection.jsx'
+import AdminEventSecurityBoard from '../../components/admin/AdminEventSecurityBoard.jsx'
 import AdminEventSecuritySection from '../../components/admin/AdminEventSecuritySection.jsx'
 import AdminEventStructureEditor from '../../components/admin/AdminEventStructureEditor.jsx'
 import AdminEventZonesSection from '../../components/admin/AdminEventZonesSection.jsx'
@@ -2018,46 +2019,49 @@ export default function EventsSection({
             teamAccess || canManageUsers ? (
               <div className="admin-event-workspace__security-stack">
                 {teamAccess ? (
-                  <>
-                    <AdminEventZonesSection
-                      canManageUsers={teamAccess}
-                      eventId={selectedEvent.id}
-                      eventSlug={selectedEvent.slug}
-                      onAssignMember={
-                        onAssignSecurityZone
-                          ? async (userId, zoneId) => {
-                              const zones = await onAssignSecurityZone(userId, zoneId)
-                              setZonesReloadToken((current) => current + 1)
-                              return zones
-                            }
-                          : undefined
-                      }
-                      onCreateAccessLink={onCreateSecurityAccessLink}
-                      onCreateZone={onCreateSecurityZone}
-                      onDeleteZone={onDeleteSecurityZone}
-                      onListSecurityUsers={onListSecurityUsers}
-                      onListZones={onListSecurityZones}
-                      onPresetZones={onPresetSecurityZones}
-                      onUpdateZone={onUpdateSecurityZone}
-                      reloadToken={zonesReloadToken}
-                    />
-                    <AdminEventSecuritySection
-                      canManageUsers={teamAccess}
-                      eventId={selectedEvent.id}
-                      eventSlug={selectedEvent.slug}
-                      eventEndsAt={selectedEvent.endsAt}
-                      onCreateSecurityUser={onCreateSecurityUser}
-                      onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
-                      onCreateSecurityAccessLink={onCreateSecurityAccessLink}
-                      onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
-                      onListSecurityUsers={onListSecurityUsers}
-                      onAssignMember={onAssignSecurityZone}
-                      onListZones={onListSecurityZones}
-                      onTeamChange={() => setZonesReloadToken((current) => current + 1)}
-                      onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
-                      reloadToken={zonesReloadToken}
-                    />
-                  </>
+                  <AdminEventSecurityBoard
+                    eventId={selectedEvent.id}
+                    onListSecurityUsers={onListSecurityUsers}
+                    onListZones={onListSecurityZones}
+                    reloadToken={zonesReloadToken}
+                  >
+                    {(directory) => (
+                      <>
+                        <AdminEventZonesSection
+                          canManageUsers={teamAccess}
+                          directory={directory}
+                          eventId={selectedEvent.id}
+                          eventSlug={selectedEvent.slug}
+                          onAssignMember={onAssignSecurityZone}
+                          onCreateAccessLink={onCreateSecurityAccessLink}
+                          onCreateZone={onCreateSecurityZone}
+                          onDeleteZone={onDeleteSecurityZone}
+                          onListSecurityUsers={onListSecurityUsers}
+                          onListZones={onListSecurityZones}
+                          onPresetZones={onPresetSecurityZones}
+                          onUpdateZone={onUpdateSecurityZone}
+                          reloadToken={zonesReloadToken}
+                        />
+                        <AdminEventSecuritySection
+                          canManageUsers={teamAccess}
+                          directory={directory}
+                          eventId={selectedEvent.id}
+                          eventSlug={selectedEvent.slug}
+                          eventEndsAt={selectedEvent.endsAt}
+                          onCreateSecurityUser={onCreateSecurityUser}
+                          onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
+                          onCreateSecurityAccessLink={onCreateSecurityAccessLink}
+                          onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
+                          onListSecurityUsers={onListSecurityUsers}
+                          onAssignMember={onAssignSecurityZone}
+                          onListZones={onListSecurityZones}
+                          onTeamChange={() => setZonesReloadToken((current) => current + 1)}
+                          onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
+                          reloadToken={zonesReloadToken}
+                        />
+                      </>
+                    )}
+                  </AdminEventSecurityBoard>
                 ) : null}
                 {canViewScanReport ? (
                   <AdminEventScanReportSection

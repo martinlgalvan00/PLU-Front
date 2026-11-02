@@ -256,7 +256,7 @@
   justify-content: center;
   letter-spacing: -0.01em;
   line-height: 1;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 12px;
   white-space: nowrap;
 }
@@ -291,7 +291,7 @@
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.08em;
-  min-height: 40px;
+  min-height: 44px;
   padding: 8px 14px 10px;
   text-transform: uppercase;
 }
@@ -421,7 +421,9 @@
 .records-class__table-wrap {
   border: 1px solid var(--color-border-subtle);
   border-radius: 2px;
+  max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
 }
 
 .records-class__table {
@@ -478,7 +480,9 @@
 .records-sheet__table-wrap {
   border: 1px solid var(--color-border-subtle);
   border-radius: 2px;
+  max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
 }
 
 .records-sheet__table {
@@ -892,6 +896,13 @@
 }
 
 @media (max-width: 719px) {
+  .records-page--plu-ref,
+  .records-page--plu-ref .records-page__body,
+  .records-sheet {
+    max-width: 100%;
+    min-width: 0;
+  }
+
   .records-page--plu-ref .records-page__body {
     padding: clamp(28px, 5vw, 40px) 16px clamp(36px, 8vw, 56px);
   }

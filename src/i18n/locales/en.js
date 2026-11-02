@@ -1182,9 +1182,10 @@ export default {
     areaLabel: 'Security area',
     title: 'Security check-in',
     titleWithEvent: 'Security check-in — {{event}}',
-    subtitle: 'Sign in with the account the event admin created for you.',
+    subtitle: 'Enter with the credential code, or with the account the event admin created for you.',
     subtitleWithEvent:
-      'You are entering the access control for {{event}}. Use the security account assigned to this event.',
+      'Access control for {{event}}. The credential code opens the gate; otherwise use the assigned account.',
+    accountDivider: 'or with your account',
     submit: 'Enter security',
     demoHint: 'Demo: user demo · password 123',
     errorInvalid: 'Wrong email, password, or event.',
@@ -4094,6 +4095,11 @@ export default {
       competitionFormTitle: 'Define your entry',
       competitionFormDesc:
         'Division, category, event type and bodyweight. The best total is a single number. The weight class follows your bodyweight.',
+      competitionEntryTitle: 'How you compete',
+      competitionEntryDesc: 'Division, category and event type. This sets the price.',
+      competitionPlatformTitle: 'For the platform',
+      competitionPlatformDesc:
+        'This does not change the amount. Bodyweight, class and best total build the flights.',
       firstMeet: 'This is my first meet',
       firstMeetNote: 'If you have not competed yet, the number below is your training max.',
       competitionBestTotal: 'Competition total *',

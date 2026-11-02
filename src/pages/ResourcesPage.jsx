@@ -158,7 +158,7 @@ export default function ResourcesPage({ onNavigate }) {
           </ol>
         </section>
 
-        <section className="resource-support" aria-labelledby="resource-support-title">
+        <Reveal as="section" variant="fade" className="resource-support" aria-labelledby="resource-support-title">
           <header className="institutional-section-head institutional-section-head--compact">
             <p className="institutional-kicker">03 / {t('pages.resources.supportEyebrow')}</p>
             <div>
@@ -197,7 +197,7 @@ export default function ResourcesPage({ onNavigate }) {
               </ActionLink>
             </aside>
           </div>
-        </section>
+        </Reveal>
       </div>
     </main>
   )

@@ -220,8 +220,14 @@ export default function CheckInAppPage({
     )
   }
 
+  const verdictOnScan = tab === 'scan' && Boolean(workspace.scanResult)
+
   return (
-    <div className={`checkin-app${tab === 'scan' ? ' checkin-app--scan' : ''}`}>
+    <div
+      className={`checkin-app${tab === 'scan' ? ' checkin-app--scan' : ''}${
+        verdictOnScan ? ' checkin-app--verdict' : ''
+      }`}
+    >
       <header className="checkin-app__top">
         <div className="checkin-app__brand">
           <BrandLogo variant="argentina" height={28} />
@@ -298,7 +304,11 @@ export default function CheckInAppPage({
 
       <main className="checkin-app__main">
         {tab === 'scan' ? (
-          <div className="checkin-app__scan-layout">
+          <div
+            className={`checkin-app__scan-layout${
+              workspace.scanResult ? ' checkin-app__scan-layout--verdict' : ''
+            }`}
+          >
             <section className="checkin-app__scan-primary">
               <h1 className="visually-hidden">{t('admin.checkinApp.title')}</h1>
               {/* Qué abre este puesto, dicho antes de escanear y no después de
@@ -320,6 +330,8 @@ export default function CheckInAppPage({
 
               {queueIsWork ? offlineStatus : null}
 
+              {workspace.scanResult ? scanResultPanel : null}
+
               <AdminQrScanner
                 busy={workspace.scanBusy}
                 compact
@@ -328,8 +340,6 @@ export default function CheckInAppPage({
                 onFeedbackPrefsChange={workspace.persistFeedbackPrefs}
                 onScan={workspace.handleScan}
               />
-
-              {scanResultPanel}
             </section>
 
             <aside className="checkin-app__scan-aside">
@@ -363,6 +373,7 @@ export default function CheckInAppPage({
                   ? t('admin.checkinApp.hideScanOnList')
                   : t('admin.checkinApp.scanOnList')}
               </button>
+              {workspace.scanResult ? scanResultPanel : null}
               {listScannerOpen ? (
                 <AdminQrScanner
                   busy={workspace.scanBusy}
@@ -373,7 +384,6 @@ export default function CheckInAppPage({
                   onScan={workspace.handleScan}
                 />
               ) : null}
-              {workspace.scanResult ? scanResultPanel : null}
             </div>
             {tab === 'tickets' ? (
               <div className="checkin-app__ticket-control" role="group" aria-label={listTitle}>

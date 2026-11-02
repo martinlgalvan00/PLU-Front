@@ -54,13 +54,21 @@ export default function AdminEventZonesSection({
   onPresetZones,
   onUpdateZone,
   reloadToken = 0,
+  directory = null,
 }) {
   const { locale, t } = useI18n()
-  const [zones, setZones] = useState([])
-  const [users, setUsers] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(null)
+  const shared = directory != null
+  const [ownZones, setOwnZones] = useState([])
+  const [ownUsers, setOwnUsers] = useState([])
+  const [ownLoading, setOwnLoading] = useState(!shared)
+  const [ownLoadError, setOwnLoadError] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const zones = shared ? directory.zones : ownZones
+  const setZones = shared ? directory.setZones : setOwnZones
+  const users = shared ? directory.users : ownUsers
+  const setUsers = shared ? directory.setUsers : setOwnUsers
+  const loading = shared ? directory.loading : ownLoading
+  const loadError = shared ? directory.error : ownLoadError
   const [expandedId, setExpandedId] = useState(null)
   const [formOpen, setFormOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -71,31 +79,37 @@ export default function AdminEventZonesSection({
 
   const scopeOptions = useMemo(() => getZoneScopeOptions(t), [t])
 
-  const reload = useCallback(() => setReloadKey((current) => current + 1), [])
+  const reload = useCallback(() => {
+    if (directory) {
+      directory.reload()
+      return
+    }
+    setReloadKey((current) => current + 1)
+  }, [directory])
 
   useEffect(() => {
-    if (!eventId) return undefined
+    if (shared || !eventId) return undefined
     let active = true
 
-    setLoading(true)
-    setLoadError(null)
+    setOwnLoading(true)
+    setOwnLoadError(null)
     Promise.all([onListZones(eventId), onListSecurityUsers(eventId)])
       .then(([zoneRows, userRows]) => {
         if (!active) return
-        setZones(zoneRows)
-        setUsers(userRows)
+        setOwnZones(zoneRows)
+        setOwnUsers(userRows)
       })
       .catch((error) => {
-        if (active) setLoadError(error?.message ?? t('admin.eventZones.loadError'))
+        if (active) setOwnLoadError(error?.message ?? t('admin.eventZones.loadError'))
       })
       .finally(() => {
-        if (active) setLoading(false)
+        if (active) setOwnLoading(false)
       })
 
     return () => {
       active = false
     }
-  }, [eventId, onListSecurityUsers, onListZones, reloadKey, reloadToken, t])
+  }, [eventId, onListSecurityUsers, onListZones, reloadKey, reloadToken, shared, t])
 
   const grouped = useMemo(() => groupSecurityTeamByZone(zones, users), [users, zones])
   const summary = useMemo(() => buildZoneTeamSummary(grouped), [grouped])

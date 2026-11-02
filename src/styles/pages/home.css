@@ -6302,6 +6302,12 @@
   .sticky-mobile-cta {
     display: block;
   }
+
+  /* La barra es fija: el alto publicado reserva el final de la home y el
+     foco de lo que queda debajo no queda tapado. */
+  .home-page {
+    padding-bottom: var(--sticky-cta-clearance, 0px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

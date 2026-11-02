@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
 /**
- * "Definí tu entrada": la clase de peso sale del peso corporal, lo que el
- * torneo fija no se pregunta y el perfil completo se pliega.
+ * Checkout de competencia: la clase de peso sale del peso corporal, lo que el
+ * torneo fija no se pregunta y el perfil completo es una línea.
  */
 
 beforeAll(() => {
@@ -235,15 +235,37 @@ describe('RegisterPage — lo que el torneo fija', () => {
     await waitForAccessValidation()
     expect(screen.getByRole('group', { name: /^Modalidad$/i })).toBeTruthy()
   })
+
+  it('separa lo que arma el precio de lo que arma las tandas', async () => {
+    renderEntry()
+    await waitForAccessValidation()
+    expect(screen.getByRole('heading', { name: 'Cómo competís' })).toBeTruthy()
+    expect(screen.getByText(/Esto arma el precio/i)).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Para la tarima' })).toBeTruthy()
+    expect(screen.getByText(/No cambia el importe/i)).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Continuar al pago/i })).toBeTruthy()
+  })
+
+  it('el primer torneo cambia el rótulo del máximo sin agregar otro envío', async () => {
+    renderEntry()
+    await waitForAccessValidation()
+    expect(screen.getByRole('textbox', { name: /Máximo en competencia/i })).toBeTruthy()
+    fireEvent.click(screen.getByRole('checkbox', { name: /Es mi primer torneo/i }))
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', { name: /Máximo entrenando/i })).toBeTruthy(),
+    )
+    expect(screen.getAllByRole('button', { name: /Continuar al pago/i })).toHaveLength(1)
+  })
 })
 
 describe('RegisterPage — perfil de competencia', () => {
-  it('completo: los datos quedan plegados detrás de un resumen', async () => {
+  it('completo: es una línea con el resumen y el enlace a revisar', async () => {
     const { container } = renderEntry()
     await waitForAccessValidation()
-    const disclosure = container.querySelector('.register-profile-readiness__disclosure')
-    expect(disclosure.open).toBe(false)
-    expect(within(disclosure).getByText(/Ana Torres · 21 años · Femenino/)).toBeTruthy()
+    expect(container.querySelector('.register-profile-readiness')).toBeNull()
+    expect(screen.getByText(/Ana Torres · 21 años · Femenino/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Revisar perfil/i })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: /Perfil de competencia/i })).toBeNull()
   })
 
   it('incompleto: dice qué falta y deja los datos a la vista', async () => {

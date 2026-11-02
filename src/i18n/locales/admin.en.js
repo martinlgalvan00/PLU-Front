@@ -4942,6 +4942,7 @@ export default {
       rosterTitle: 'Event staff',
       rosterLead: 'Generate or renew individual access whenever needed.',
       rosterNoZone: 'No zone',
+      unassignedCount: '{{count}} without a post',
       addPeople: 'Add people',
       credentialFor: 'Credential for {{name}}',
       deactivateFor: 'Deactivate {{name}}',

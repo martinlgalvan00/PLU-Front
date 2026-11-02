@@ -83,10 +83,10 @@ function FactValue({ value }) {
  * lleva "Inscribirme" (y la fecha y sede, que el catálogo entrega solo en ese
  * caso); programada, dice cuándo abre. Cerrada, no revela nada más.
  *
- * Composición: el nombre del evento a gran escala con su logo como emblema, y
- * debajo una ficha editorial (el dato grande, el rótulo debajo) con lo que
- * decide la inscripción. Un solo estado ("Inscripción abierta" o
- * "Próximamente"): antes decía las dos cosas a la vez.
+ * Composición: el nombre del evento a gran escala, el emblema como sello (en
+ * mobile al lado del eyebrow, en desktop a la derecha) y, antes del aviso,
+ * la banda con lo que decide la inscripción. Un solo estado ("Inscripción
+ * abierta" o "Próximamente"): antes decía las dos cosas a la vez.
  */
 export default function EventUnderConstructionPage({
   event = null,
@@ -182,9 +182,9 @@ export default function EventUnderConstructionPage({
         </button>
 
         <section className="event-under-construction__stage" aria-labelledby="euc-title">
-          <div className="event-under-construction__body">
-            <p className="event-under-construction__eyebrow">{text('eyebrow')}</p>
+          <p className="event-under-construction__eyebrow">{text('eyebrow')}</p>
 
+          <div className="event-under-construction__body">
             <h1 className="event-under-construction__event" id="euc-title">
               <span className="event-under-construction__event-line">{title}</span>
             </h1>
@@ -195,6 +195,38 @@ export default function EventUnderConstructionPage({
               <span className="event-under-construction__status-dot" aria-hidden />
               {status}
             </p>
+
+            {dateLockup || place.length || countdown || capacity ? (
+              <dl className="event-under-construction__facts">
+                {dateLockup ? (
+                  <div>
+                    <dt>{text('date')}</dt>
+                    <FactValue value={dateLockup} />
+                  </div>
+                ) : null}
+                {place.length ? (
+                  <div>
+                    <dt>{text('venue')}</dt>
+                    <dd>
+                      <span className="event-under-construction__fact-name">{place[0]}</span>
+                      {place[1] ? <small>{place[1]}</small> : null}
+                    </dd>
+                  </div>
+                ) : null}
+                {countdown ? (
+                  <div>
+                    <dt>{text('countdownLabel')}</dt>
+                    <FactValue value={countdown} />
+                  </div>
+                ) : null}
+                {capacity ? (
+                  <div>
+                    <dt>{text('capacityLabel')}</dt>
+                    <FactValue value={capacity} />
+                  </div>
+                ) : null}
+              </dl>
+            ) : null}
 
             <p className="event-under-construction__lead">
               {title ? text('leadNamed', { event: title }) : text('lead')}
@@ -248,42 +280,9 @@ export default function EventUnderConstructionPage({
           ) : null}
         </section>
 
-        {dateLockup || place.length || countdown || capacity || recent.length > 0 ? (
+        {recent.length > 0 ? (
           <div className="event-under-construction__dossier">
-            {dateLockup || place.length || countdown || capacity ? (
-              <dl className="event-under-construction__facts">
-                {dateLockup ? (
-                  <div>
-                    <dt>{text('date')}</dt>
-                    <FactValue value={dateLockup} />
-                  </div>
-                ) : null}
-                {place.length ? (
-                  <div>
-                    <dt>{text('venue')}</dt>
-                    <dd>
-                      <span className="event-under-construction__fact-name">{place[0]}</span>
-                      {place[1] ? <small>{place[1]}</small> : null}
-                    </dd>
-                  </div>
-                ) : null}
-                {countdown ? (
-                  <div>
-                    <dt>{text('countdownLabel')}</dt>
-                    <FactValue value={countdown} />
-                  </div>
-                ) : null}
-                {capacity ? (
-                  <div>
-                    <dt>{text('capacityLabel')}</dt>
-                    <FactValue value={capacity} />
-                  </div>
-                ) : null}
-              </dl>
-            ) : null}
-
-            {recent.length > 0 ? (
-              <section className="event-under-construction__recent" aria-labelledby="euc-recent-title">
+            <section className="event-under-construction__recent" aria-labelledby="euc-recent-title">
                 <header>
                   <h2 id="euc-recent-title">{t('pages.events.recentRegistrantsTitle')}</h2>
                   <span className="event-under-construction__live">
@@ -307,7 +306,6 @@ export default function EventUnderConstructionPage({
                   ))}
                 </ol>
               </section>
-            ) : null}
           </div>
         ) : null}
       </div>

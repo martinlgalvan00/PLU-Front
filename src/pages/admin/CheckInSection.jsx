@@ -119,14 +119,6 @@ export default function CheckInSection({
             workList={!workspace.offlineSync.isOnline || workspace.offlineSync.pendingCount > 0}
           />
 
-          <AdminQrScanner
-            busy={workspace.scanBusy}
-            disabled={!canCheckIn}
-            feedbackPrefs={workspace.feedbackPrefs}
-            onFeedbackPrefsChange={workspace.persistFeedbackPrefs}
-            onScan={workspace.handleScan}
-          />
-
           <CheckInScanResult
             canCheckIn={canCheckIn}
             locale={locale}
@@ -141,6 +133,14 @@ export default function CheckInSection({
             scanResult={workspace.scanResult}
             scanTicketPaid={workspace.scanTicketPaid}
             scanVerdict={workspace.scanVerdict}
+          />
+
+          <AdminQrScanner
+            busy={workspace.scanBusy}
+            disabled={!canCheckIn}
+            feedbackPrefs={workspace.feedbackPrefs}
+            onFeedbackPrefsChange={workspace.persistFeedbackPrefs}
+            onScan={workspace.handleScan}
           />
 
           <AdminCheckinScanHistory
