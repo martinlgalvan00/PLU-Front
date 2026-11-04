@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Clock, ScanLine, XCircle } from 'lucide-react'
 import AdminTicketAddonRedemption from './AdminTicketAddonRedemption.jsx'
+import DoorTicketDecision from './DoorTicketDecision.jsx'
 import { StatusBadge } from '../ui/DataTable.jsx'
 import { formatScheduleSummary, formatSessionDetail } from '../../lib/eventSchedule.js'
 import { formatDocumentWithKind } from '../../lib/format.js'
@@ -34,9 +35,14 @@ function formatRelativeValidityTime(milliseconds, direction, locale) {
 
 export default function CheckInScanResult({
   canCheckIn,
+  canEnableTickets = false,
+  canForceCheckIn = false,
   locale,
   onDismiss,
+  onEnableTicket,
+  onForceCheckIn,
   onRedeemAddon,
+  onRejectTicket,
   onScanCheckIn,
   redeemBusyId,
   redeemError,
@@ -49,6 +55,8 @@ export default function CheckInScanResult({
 }) {
   const { t } = useI18n()
   const [clockNow, setClockNow] = useState(() => Date.now())
+  const [decision, setDecision] = useState(null)
+  const [decisionError, setDecisionError] = useState('')
   const hasTicketWindow = Boolean(
     scanResult?.kind === 'ticket' && scanResult.row?.validFrom && scanResult.row?.validUntil,
   )
@@ -320,6 +328,98 @@ export default function CheckInScanResult({
           )}
         </p>
       ) : null}
+
+      {(() => {
+        const ticketStatus = scanResult.row?.status ?? scanResult.ticket?.status ?? scanResult.status
+        const paid =
+          (ticketStatus === 'pagada' || scanTicketPaid) &&
+          ticketStatus !== 'usada' &&
+          ticketStatus !== 'cancelada' &&
+          effectiveOutcome !== 'checked_in' &&
+          effectiveOutcome !== 'already_used'
+        const orderId = scanResult.row?.orderId ?? scanResult.ticket?.orderId ?? null
+        const forceKind =
+          effectiveOutcome === 'wrong_zone'
+            ? 'zone'
+            : effectiveOutcome === 'not_yet_valid' || effectiveOutcome === 'expired'
+              ? 'validity'
+              : null
+        const showForce = Boolean(canForceCheckIn && isTicket && paid && forceKind && onForceCheckIn)
+        const showEnable = Boolean(
+          canEnableTickets && isTicket && ticketStatus === 'pendiente_pago' && orderId && onEnableTicket,
+        )
+        if (!showForce && !showEnable) return null
+        return (
+          <>
+            {decision ? (
+              <DoorTicketDecision
+                busy={scanBusy}
+                error={decisionError}
+                kind={decision}
+                proofOrderId={
+                  decision === 'enable' && (scanResult.row?.paymentProofPath || scanResult.ticket?.paymentProofPath)
+                    ? orderId
+                    : null
+                }
+                onCancel={() => {
+                  setDecision(null)
+                  setDecisionError('')
+                }}
+                onConfirm={async (reason) => {
+                  try {
+                    if (decision === 'force') await onForceCheckIn(forceKind, reason)
+                    else await onEnableTicket(orderId, reason)
+                    setDecision(null)
+                  } catch (error) {
+                    setDecisionError(error?.message || t('admin.checkin.decisionShort'))
+                  }
+                }}
+                onReject={
+                  showEnable && onRejectTicket
+                    ? async (reason) => {
+                        try {
+                          await onRejectTicket(orderId, reason)
+                          setDecision(null)
+                        } catch (error) {
+                          setDecisionError(error?.message || t('admin.checkin.decisionShort'))
+                        }
+                      }
+                    : null
+                }
+              />
+            ) : (
+              <div className="admin-checkin-result__actions">
+                {showForce ? (
+                  <button
+                    type="button"
+                    className="btn btn--primary btn--sm"
+                    disabled={scanBusy}
+                    onClick={() => {
+                      setDecisionError('')
+                      setDecision('force')
+                    }}
+                  >
+                    {t('admin.checkin.forceEntry')}
+                  </button>
+                ) : null}
+                {showEnable ? (
+                  <button
+                    type="button"
+                    className="btn btn--primary btn--sm"
+                    disabled={scanBusy}
+                    onClick={() => {
+                      setDecisionError('')
+                      setDecision('enable')
+                    }}
+                  >
+                    {t('admin.checkin.enableEntry')}
+                  </button>
+                ) : null}
+              </div>
+            )}
+          </>
+        )
+      })()}
 
       <div className="admin-checkin-result__actions">
         {scanResult.canCheckIn && (

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   formatManualScanInput,
   gateCodeUtterance,
+  chooseSpokenDoorCode,
   prepareCheckinScan,
   publicSpokenName,
 } from '../src/lib/doorSpokenCode.js'
@@ -31,6 +32,14 @@ describe('código de puerta cantado', () => {
     expect(prepareCheckinScan(token).kind).toBe('credential')
     expect(prepareCheckinScan('TCK-00000001').kind).toBe('credential')
     expect(prepareCheckinScan('https://plu.test/?credencial=abc').kind).toBe('credential')
+  })
+
+  it('entre varias escuchas se queda con el código que cierra y lo manda a validar', () => {
+    const chosen = chooseSpokenDoorCode([
+      'el código de la entrada por favor',
+      'ka cuatro eme siete cu pe',
+    ])
+    expect(chosen).toMatchObject({ kind: 'door', display: 'K4M-7QP' })
   })
 
   it('pide los seis signos si la frase quedó corta', () => {

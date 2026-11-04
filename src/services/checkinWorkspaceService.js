@@ -181,6 +181,8 @@ export function buildCheckinRows({
       ticketTypeDescription: ticket.ticketTypeDescription ?? null,
       credentialLabel: ticket.credentialLabel ?? null,
       credentialScopes: ticket.credentialScopes ?? [],
+      orderId: ticket.orderId ?? ticket.order?.id ?? null,
+      paymentProofPath: ticket.paymentProofPath ?? ticket.order?.paymentProofPath ?? null,
       dayIndexes: ticketDayIndexes(ticket, ticketTypes),
       status: ticket.checkedInAt ? 'usada' : ticket.status,
       checkedInAt: ticket.checkedInAt,

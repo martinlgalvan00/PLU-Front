@@ -255,7 +255,11 @@ describe('organizador: entradas vendidas', () => {
     try {
       const result = await call(ctx, 'POST', '/api/tickets/checkin/token-cualquiera', {})
       expect(result.status).toBe(403)
-      expect(result.body.code).toBe('event_scope_denied')
+      // La puerta está abierta a una cuenta por evento que sí tiene check-in
+      // (seguridad del meet). El organizador no lo tiene: el corte es el permiso,
+      // no el candado de alcance de las rutas que no son de un evento.
+      expect(result.body.error).toMatch(/permisos/i)
+      expect(result.body.code).toBeUndefined()
     } finally {
       await ctx.target.close()
     }

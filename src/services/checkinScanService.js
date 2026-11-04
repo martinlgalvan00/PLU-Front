@@ -107,6 +107,8 @@ export function buildTicketRow(ticket) {
     // puerta son indistinguibles.
     credentialLabel: ticket.credentialLabel ?? null,
     credentialScopes: ticket.credentialScopes ?? [],
+    orderId: ticket.orderId ?? ticket.order?.id ?? null,
+    paymentProofPath: ticket.paymentProofPath ?? ticket.order?.paymentProofPath ?? null,
     status: ticket.checkedInAt ? 'usada' : ticket.status,
     checkedInAt: ticket.checkedInAt,
     checkedInGate: ticket.checkedInGate ?? null,

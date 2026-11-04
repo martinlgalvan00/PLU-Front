@@ -29,6 +29,7 @@ import { resolveDoorScan } from '../services/checkinScanBudget.js'
 import { downloadAllowlist as refreshCheckinAllowlist } from '../services/offlineCheckinSync.js'
 import { reportScanAttempt } from '../services/checkinTelemetry.js'
 import { classifyCheckinFailure, isRetryableCheckinFailure } from '../services/checkinFailure.js'
+import { runDoorAttempts } from '../services/doorRetry.js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 import { readCheckinBroadcastSlug } from '../services/checkinRealtime.js'
 
@@ -222,12 +223,16 @@ function buildHistoryEntry(resolved, raw) {
 export function useCheckInWorkspace({
   athletes,
   canCheckIn,
+  canEnableTickets = false,
+  canForceCheckIn = false,
   eventDays = [],
   eventSlug = 'pitbull-classic-2026',
+  onApproveTicketOrder,
   onCheckInRegistration,
   onCheckInTicket,
   onRedeemTicketAddon,
   onRefreshTickets,
+  onRejectTicketOrder,
   payments = [],
   registrations,
   /** Puesto de quien opera. Nulo = no filtra zona (misma regla que el API). */
@@ -730,7 +735,7 @@ export function useCheckInWorkspace({
         return
       }
       try {
-        const result = await onCheckInRegistration(row.registrationId)
+        const result = await runDoorAttempts(() => onCheckInRegistration(row.registrationId))
         if (result?.outcome === 'ok' || result?.outcome === 'already_used') {
           rememberAdmitted(row.id)
           playCheckinFeedback(
@@ -820,7 +825,7 @@ export function useCheckInWorkspace({
     }
 
     try {
-      const result = await onCheckInTicket(row.qrToken)
+      const result = await runDoorAttempts(() => onCheckInTicket(row.qrToken))
       onRefreshTickets?.(eventSlug)
 
       if (result?.outcome === 'ok') {
@@ -906,7 +911,7 @@ export function useCheckInWorkspace({
     }
   }
 
-  async function queueScanOffline() {
+  async function queueScanOffline({ force = null, reason = null } = {}) {
     await enqueueCheckin({
       eventSlug,
       kind: scanResult.kind,
@@ -914,6 +919,8 @@ export function useCheckInWorkspace({
       registrationId: scanResult.kind === 'registration' ? scanResult.registrationId : null,
       gate: securityZone?.name ?? null,
       label: scanResult.row?.ticketCode || scanResult.row?.name || null,
+      force,
+      reason,
     })
     scanSettledRef.current = true
     playCheckinFeedback('queued_offline', feedbackPrefs)
@@ -947,7 +954,7 @@ export function useCheckInWorkspace({
     }
 
     if (scanResult.kind === 'ticket') {
-      const result = await onCheckInTicket(scanResult.qrToken)
+      const result = await runDoorAttempts(() => onCheckInTicket(scanResult.qrToken))
       onRefreshTickets?.(eventSlug)
       if (result?.outcome === 'ok' || result?.outcome === 'already_used') {
         playCheckinFeedback(result.outcome === 'ok' ? 'checkin_ok' : 'already_used', feedbackPrefs)
@@ -976,7 +983,7 @@ export function useCheckInWorkspace({
     }
 
     if (scanResult.kind === 'registration') {
-      const result = await onCheckInRegistration(scanResult.registrationId)
+      const result = await runDoorAttempts(() => onCheckInRegistration(scanResult.registrationId))
       if (result?.outcome === 'ok') {
         playCheckinFeedback('checkin_ok', feedbackPrefs)
         if (activeHistoryId) markHistoryCheckedIn(activeHistoryId)
@@ -990,7 +997,7 @@ export function useCheckInWorkspace({
     setRedeemBusyId(addonId)
     setRedeemError('')
     try {
-      const result = await onRedeemTicketAddon(scanResult.qrToken, addonId)
+      const result = await runDoorAttempts(() => onRedeemTicketAddon(scanResult.qrToken, addonId))
       if (result?.error) {
         setRedeemError(result.error)
         return
@@ -1027,8 +1034,95 @@ export function useCheckInWorkspace({
   const scanTicketPaid =
     scanResult?.kind === 'ticket' &&
     (['pagada', 'usada'].includes(scanResult.ticket?.status) ||
+      ['pagada', 'usada'].includes(scanResult.row?.status) ||
       scanResult.status === 'usada' ||
       Boolean(scanResult.ticket?.checkedInAt))
+
+  async function handleForceCheckIn(force, reason) {
+    if (!canForceCheckIn || !scanResult?.qrToken || scanBusy) return
+    setScanBusy(true)
+    try {
+      if (!offlineSync.isOnline) {
+        await queueScanOffline({ force, reason })
+        return
+      }
+      let result
+      try {
+        result = await runDoorAttempts(() => onCheckInTicket(scanResult.qrToken, { force, reason }))
+      } catch (error) {
+        if (isRetryableCheckinFailure(error)) {
+          await queueScanOffline({ force, reason })
+          return
+        }
+        throw error
+      }
+      onRefreshTickets?.(eventSlug)
+      if (result?.outcome === 'ok') {
+        playCheckinFeedback('checkin_ok', feedbackPrefs)
+        setScanResult({
+          ...scanResult,
+          outcome: 'checked_in',
+          canCheckIn: false,
+          status: 'usada',
+        })
+        return
+      }
+      if (result?.outcome === 'forbidden') {
+        throw new Error(t('admin.checkin.scanner.outcome.not_ready'))
+      }
+      throw new Error(result?.error || t('admin.checkin.scanner.outcome.invalid'))
+    } finally {
+      setScanBusy(false)
+    }
+  }
+
+  async function handleEnableTicket(orderId, reason) {
+    if (!canEnableTickets || !onApproveTicketOrder) return
+    setScanBusy(true)
+    try {
+      const result = await runDoorAttempts(() =>
+        onApproveTicketOrder(orderId, { overrideReason: reason }),
+      )
+      if (result?.error) throw new Error(result.error)
+      onRefreshTickets?.(eventSlug)
+      setScanResult((current) =>
+        current
+          ? {
+              ...current,
+              outcome: 'ready',
+              canCheckIn: true,
+              status: 'pagada',
+              row: current.row ? { ...current.row, status: 'pagada' } : current.row,
+            }
+          : current,
+      )
+    } finally {
+      setScanBusy(false)
+    }
+  }
+
+  async function handleRejectTicket(orderId, reason) {
+    if (!canEnableTickets || !onRejectTicketOrder) return
+    setScanBusy(true)
+    try {
+      const result = await runDoorAttempts(() => onRejectTicketOrder(orderId, reason))
+      if (result?.error) throw new Error(result.error)
+      onRefreshTickets?.(eventSlug)
+      setScanResult((current) =>
+        current
+          ? {
+              ...current,
+              outcome: 'not_ready',
+              canCheckIn: false,
+              status: 'cancelada',
+              row: current.row ? { ...current.row, status: 'cancelada' } : current.row,
+            }
+          : current,
+      )
+    } finally {
+      setScanBusy(false)
+    }
+  }
 
   return {
     activeHistoryId,
@@ -1043,7 +1137,10 @@ export function useCheckInWorkspace({
     dayOptions,
     feedbackPrefs,
     handleCheckIn,
+    handleEnableTicket,
+    handleForceCheckIn,
     handleHistorySelect,
+    handleRejectTicket,
     handleRedeemAddon,
     handleScan,
     handleScanCheckIn,

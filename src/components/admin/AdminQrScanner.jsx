@@ -14,8 +14,8 @@ import SegmentedSwitch from '../ui/SegmentedSwitch.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { shouldAcceptScan } from '../../lib/checkinScanCooldown.js'
 import { classifyCameraError, isCameraErrorRetryable } from '../../lib/cameraError.js'
+import { createDoorDictation } from '../../lib/doorDictation.js'
 import { formatManualScanInput, prepareCheckinScan } from '../../lib/doorSpokenCode.js'
-import { listenForDoorUtterance, speechInputSupported } from '../../lib/doorCodeSpeech.js'
 
 // Frame de trabajo para el decoder de respaldo (jsQR) -- más chico que la
 // resolución real de la cámara para no cargar la CPU en celulares de gama
@@ -33,6 +33,7 @@ const CAMERA_WIDTH = 1280
 const CAMERA_HEIGHT = 720
 
 const FEEDBACK_STORAGE_KEY = 'plu-checkin-feedback'
+const DOOR_OPEN_ATTEMPTS = 3
 
 function readFeedbackPrefs() {
   if (typeof window === 'undefined') {
@@ -64,8 +65,6 @@ export default function AdminQrScanner({
   const [manualValue, setManualValue] = useState('')
   const [listening, setListening] = useState(false)
   const [speechNote, setSpeechNote] = useState('')
-  const listenRef = useRef(null)
-  const canListen = speechInputSupported()
   const [cameraError, setCameraError] = useState(null)
   const [cameraReady, setCameraReady] = useState(false)
   // Cambia para volver a pedir la cámara sin recargar la página.
@@ -150,26 +149,37 @@ export default function AdminQrScanner({
     return true
   }, [])
 
+  const dictation = useMemo(
+    () =>
+      createDoorDictation({
+        attempts: DOOR_OPEN_ATTEMPTS,
+        onAccepted: (display) => emitScan(display, 'manual'),
+        onListening: setListening,
+        onNote: setSpeechNote,
+        onPreview: setManualValue,
+      }),
+    [emitScan],
+  )
+
+  useEffect(() => () => dictation.dispose(), [dictation])
+
   useEffect(() => {
     if (cameraError === 'unsupported') {
       setMode('manual')
+      return
+    }
+    // Tres intentos adentro de la cámara ya fallaron: el puesto sigue por el código.
+    if (cameraError === 'busy' || cameraError === 'unknown') {
+      setMode('manual')
+      setSpeechNote('camera')
     }
   }, [cameraError])
 
   useEffect(() => {
-    return () => {
-      listenRef.current?.stop()
-      listenRef.current = null
-    }
-  }, [])
-
-  useEffect(() => {
     if (mode === 'manual' && !disabled) return undefined
-    listenRef.current?.stop()
-    listenRef.current = null
-    setListening(false)
+    dictation.stop()
     return undefined
-  }, [disabled, mode])
+  }, [dictation, disabled, mode])
 
   useEffect(() => {
     if (mode !== 'manual' || disabled) return undefined
@@ -221,7 +231,9 @@ export default function AdminQrScanner({
 
     async function scanLoop() {
       if (cancelled) return
-      if (!videoRef.current || videoRef.current.readyState < 2) {
+      // Mientras se valida un ingreso no se decodifica: el celular de la
+      // puerta no puede gastar la CPU en frames que igual se van a descartar.
+      if (busyRef.current || !videoRef.current || videoRef.current.readyState < 2) {
         scheduleDecode()
         return
       }
@@ -259,31 +271,43 @@ export default function AdminQrScanner({
         detector = new window.BarcodeDetector({ formats: ['qr_code'] })
       }
 
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { ideal: CAMERA_WIDTH },
-            height: { ideal: CAMERA_HEIGHT },
-          },
-          audio: false,
-        })
-        if (cancelled) return
+      for (let attempt = 1; attempt <= DOOR_OPEN_ATTEMPTS; attempt += 1) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: CAMERA_WIDTH },
+              height: { ideal: CAMERA_HEIGHT },
+            },
+            audio: false,
+          })
+          if (cancelled) return
 
-        const video = videoRef.current
-        if (!video) return
+          const video = videoRef.current
+          if (!video) return
 
-        video.srcObject = stream
-        await video.play()
-        // La linterna sólo existe en algunas cámaras traseras; se ofrece si el
-        // track la declara. En la puerta de noche decide si el QR se lee.
-        const [track] = stream.getVideoTracks()
-        trackRef.current = track ?? null
-        setTorchSupported(Boolean(track?.getCapabilities?.().torch))
-        setCameraReady(true)
-        scanLoop()
-      } catch (error) {
-        if (!cancelled) setCameraError(classifyCameraError(error))
+          video.srcObject = stream
+          await video.play()
+          // La linterna sólo existe en algunas cámaras traseras; se ofrece si el
+          // track la declara. En la puerta de noche decide si el QR se lee.
+          const [track] = stream.getVideoTracks()
+          trackRef.current = track ?? null
+          setTorchSupported(Boolean(track?.getCapabilities?.().torch))
+          setCameraReady(true)
+          scanLoop()
+          return
+        } catch (error) {
+          stream?.getTracks().forEach((track) => track.stop())
+          stream = undefined
+          const kind = classifyCameraError(error)
+          const retry = isCameraErrorRetryable(kind) && attempt < DOOR_OPEN_ATTEMPTS
+          if (cancelled || !retry) {
+            if (!cancelled) setCameraError(kind)
+            return
+          }
+          await new Promise((resolve) => window.setTimeout(resolve, 400))
+          if (cancelled) return
+        }
       }
     }
 
@@ -316,61 +340,6 @@ export default function AdminQrScanner({
     }
   }
 
-  function stopListening() {
-    try {
-      listenRef.current?.stop()
-    } catch {
-      // El reconocimiento ya se había cerrado solo.
-    }
-    listenRef.current = null
-    setListening(false)
-  }
-
-  function toggleListen() {
-    if (listening) {
-      stopListening()
-      return
-    }
-    const session = listenForDoorUtterance({
-      onUtterance(text, isFinal) {
-        if (!isFinal) {
-          setManualValue(text)
-          return
-        }
-        const prepared = prepareCheckinScan(text)
-        if (prepared.kind === 'door') {
-          setManualValue(prepared.display)
-          setSpeechNote('ready')
-          stopListening()
-          return
-        }
-        setManualValue(text)
-        setSpeechNote(prepared.kind === 'malformed' ? prepared.reason || 'length' : '')
-      },
-      onEnd() {
-        listenRef.current = null
-        setListening(false)
-      },
-      onError(reason) {
-        setSpeechNote(reason === 'not-allowed' ? 'denied' : 'unavailable')
-        setListening(false)
-      },
-    })
-    if (!session) {
-      setSpeechNote('unavailable')
-      return
-    }
-    listenRef.current = session
-    setListening(true)
-    setSpeechNote('')
-    try {
-      session.start()
-    } catch {
-      stopListening()
-      setSpeechNote('unavailable')
-    }
-  }
-
   function handleManualSubmit(event) {
     event.preventDefault()
     const prepared = prepareCheckinScan(manualValue)
@@ -386,6 +355,7 @@ export default function AdminQrScanner({
     ? `admin.checkin.scanner.camera.${cameraError}`
     : 'admin.checkin.scanner.permission'
   const showUnsupportedNote = cameraError === 'unsupported' && mode === 'manual'
+  const canListen = dictation.supported
 
   return (
     <section
@@ -556,7 +526,7 @@ export default function AdminQrScanner({
                   aria-pressed={listening}
                   aria-label={t('admin.checkin.scanner.speakToggle')}
                   disabled={disabled || busy}
-                  onClick={toggleListen}
+                  onClick={() => dictation.toggle()}
                 >
                   <Mic size={16} aria-hidden />
                 </button>
@@ -576,17 +546,24 @@ export default function AdminQrScanner({
             </p>
           ) : null}
           {speechNote ? (
-            <p className="admin-checkin-scanner__note" role={speechNote === 'ready' ? 'status' : 'alert'}>
+            <p
+              className="admin-checkin-scanner__note"
+              role={speechNote === 'ready' || speechNote === 'camera' ? 'status' : 'alert'}
+            >
               {t(
                 speechNote === 'ready'
                   ? 'admin.checkin.scanner.speechHeard'
-                  : speechNote === 'ambiguous'
-                    ? 'admin.checkin.scanner.speechAmbiguous'
-                    : speechNote === 'denied'
-                      ? 'admin.checkin.scanner.speechDenied'
-                      : speechNote === 'unavailable'
-                        ? 'admin.checkin.scanner.speechUnavailable'
-                        : 'admin.checkin.scanner.speechLength',
+                  : speechNote === 'camera'
+                    ? 'admin.checkin.scanner.cameraFallback'
+                    : speechNote === 'ambiguous'
+                      ? 'admin.checkin.scanner.speechAmbiguous'
+                      : speechNote === 'denied'
+                        ? 'admin.checkin.scanner.speechDenied'
+                        : speechNote === 'unavailable'
+                          ? 'admin.checkin.scanner.speechUnavailable'
+                          : speechNote === 'missed'
+                            ? 'admin.checkin.scanner.speechMissed'
+                            : 'admin.checkin.scanner.speechLength',
                 speechNote === 'ready' ? { code: manualValue } : undefined,
               )}
             </p>

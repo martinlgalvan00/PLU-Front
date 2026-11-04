@@ -249,6 +249,7 @@ describe('admitir un ingreso con la conexión caída', () => {
       await result.current.handleScanCheckIn()
     })
 
+    expect(onCheckInTicket).toHaveBeenCalledTimes(3)
     expect(enqueueCheckin).toHaveBeenCalledWith(
       expect.objectContaining({ kind: 'ticket', qrToken: 'qr-1', gate: 'Puerta 1' }),
     )
@@ -264,6 +265,7 @@ describe('admitir un ingreso con la conexión caída', () => {
       await result.current.handleScanCheckIn()
     })
 
+    expect(onCheckInTicket).toHaveBeenCalledTimes(3)
     expect(enqueueCheckin).toHaveBeenCalled()
   })
 
@@ -276,6 +278,7 @@ describe('admitir un ingreso con la conexión caída', () => {
       await result.current.handleScanCheckIn()
     })
 
+    expect(onCheckInTicket).toHaveBeenCalledTimes(1)
     expect(enqueueCheckin).not.toHaveBeenCalled()
     expect(result.current.scanResult.outcome).toBe('session_expired')
   })

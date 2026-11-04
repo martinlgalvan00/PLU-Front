@@ -6,11 +6,14 @@ import {
   canDeleteRegistrations,
   canDeleteUsers,
   canEditOperationalData,
+  canEnableTicketOrders,
   canExport,
+  canOverrideCheckIn,
   canExportPluUsa,
   canManageEventTeam,
   canManageRoles,
   canManageUsers,
+  canSetTicketAccessWindow,
   canViewAdmin,
   getRoleLabel,
   isCheckinOnly,
@@ -238,6 +241,8 @@ describe('roles', () => {
         'admin.events.read',
         'admin.checkin.execute',
         'admin.event_team.write',
+        'admin.tickets.enable',
+        'admin.checkin.override',
       ])
       expect(getAllowedAdminSections(coordinator)).toEqual(['events'])
       expect(isCheckinOnly(coordinator)).toBe(false)
@@ -263,6 +268,14 @@ describe('roles', () => {
       expect(canManageEventTeam(coordinator)).toBe(true)
       expect(canManageUsers(coordinator)).toBe(false)
       expect(canApproveManualPayments(coordinator)).toBe(false)
+      expect(canEnableTicketOrders(coordinator)).toBe(true)
+      expect(canOverrideCheckIn(coordinator)).toBe(true)
+      expect(canSetTicketAccessWindow(coordinator)).toBe(true)
+      expect(
+        canSetTicketAccessWindow({
+          permissions: ['admin.checkin.override'],
+        }),
+      ).toBe(false)
       expect(hasPermission(coordinator, 'admin.events.write')).toBe(false)
       expect(
         isCheckinOnly({

@@ -90,9 +90,8 @@ async function recoverPaidPass(page, { reference, email, gateCode, name }) {
 
   const confirmation = page.locator('.ticket-purchase--confirmation')
   await expect(confirmation).toBeVisible({ timeout: 15_000 })
-  await expect(confirmation.locator('.ticket-purchase__gate-code-value')).toHaveText(gateCode)
-  await expect(confirmation).toContainText(name)
-  await expect(confirmation.getByRole('button', { name: /ver mi entrada/i })).toBeEnabled()
+  await expect(confirmation.locator('.buyer-tickets-wallet__gate-value')).toHaveText(gateCode)
+  await expect(confirmation.locator('.ticket-pass-preview__guest')).toHaveText(name)
   await expect(confirmation.getByRole('button', { name: /descargar entrada/i })).toBeEnabled()
   await expect(confirmation.getByRole('button', { name: /imprimir entrada/i })).toBeEnabled()
 }
@@ -116,13 +115,6 @@ test.describe('Código de puerta', () => {
       gateCode: pass.gate_code,
       name: 'Sol Puerta',
     })
-
-    await page.getByRole('button', { name: /ver mi entrada/i }).click()
-    const dialog = page.getByRole('dialog')
-    await expect(dialog).toBeVisible()
-    await expect(dialog).toContainText('Sol Puerta')
-    await page.keyboard.press('Escape')
-    await expect(dialog).toHaveCount(0)
 
     const downloadPromise = page.waitForEvent('download', { timeout: 25_000 })
     await page.getByRole('button', { name: /descargar entrada/i }).click()

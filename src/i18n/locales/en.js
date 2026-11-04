@@ -1195,7 +1195,16 @@ export default {
     tokenLoadingLeadWithEvent: 'Verifying your gate access for {{event}}…',
     tokenError: 'This credential is invalid or expired. Sign in with your email and password.',
     doorCodeLabel: 'Door code',
-    doorCodeHint: 'If someone read you the credential code, enter it here. Otherwise use email and password.',
+    doorCodeHint: 'If someone read you the credential code, say it or type it. Otherwise use email and password.',
+    speakToggle: 'Say the code',
+    speakListening: 'Listening… say the six characters',
+    speechDenied: 'The microphone is blocked. Allow it or type the code.',
+    speechUnavailable: 'This browser cannot listen. Type the code.',
+    speechAmbiguous: 'That code cannot use I, L, O, 0 or 1. Say it again.',
+    speechLength: 'It has to be six characters, in two groups of three.',
+    speechHeard: 'Heard {{code}}. Tap enter when the previous attempt finishes.',
+    speechMissed: 'The code was not heard after 3 tries. Say it again or type it.',
+    networkError: 'No signal. The code is still there: try again.',
   },
   financedDebt: {
     membership: {

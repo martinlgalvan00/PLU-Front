@@ -67,5 +67,72 @@ describe('CheckInScanResult: reloj de vigencia', () => {
     expect(screen.getByText(/este qr ya venció/i)).toBeTruthy()
     expect(screen.getByText(/venció hace 1 segundo/i)).toBeTruthy()
     expect(screen.getByRole('button', { name: /registrar ingreso/i }).disabled).toBe(true)
+    expect(screen.queryByRole('button', { name: /forzar ingreso/i })).toBeNull()
+  })
+
+  it('ofrece forzar este ingreso cuando la entrada paga está vencida', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-08-15T13:00:00.000Z'))
+    render(
+      <I18nProvider>
+        <CheckInScanResult
+          canCheckIn
+          canForceCheckIn
+          locale="es-AR"
+          onDismiss={() => {}}
+          onForceCheckIn={() => {}}
+          onScanCheckIn={() => {}}
+          scanBusy={false}
+          scanPersonDoc="30111222"
+          scanPersonName="Juana Pérez"
+          scanTicketPaid
+          scanVerdict={{ Icon: CheckCircle2, tone: 'success' }}
+          scanResult={{
+            kind: 'ticket',
+            outcome: 'expired',
+            canCheckIn: false,
+            status: 'pagada',
+            row: {
+              status: 'pagada',
+              validFrom: '2026-08-15T10:00:00.000Z',
+              validUntil: '2026-08-15T12:00:00.000Z',
+            },
+          }}
+        />
+      </I18nProvider>,
+    )
+
+    expect(screen.getByRole('button', { name: /forzar ingreso/i })).toBeTruthy()
+  })
+
+  it('ofrece habilitar una entrada que todavía no está paga', () => {
+    render(
+      <I18nProvider>
+        <CheckInScanResult
+          canCheckIn
+          canEnableTickets
+          locale="es-AR"
+          onDismiss={() => {}}
+          onEnableTicket={() => {}}
+          onRejectTicket={() => {}}
+          onScanCheckIn={() => {}}
+          scanBusy={false}
+          scanPersonDoc="30111222"
+          scanPersonName="Juana Pérez"
+          scanTicketPaid={false}
+          scanVerdict={{ Icon: CheckCircle2, tone: 'warning' }}
+          scanResult={{
+            kind: 'ticket',
+            outcome: 'not_ready',
+            canCheckIn: false,
+            status: 'pendiente_pago',
+            row: { status: 'pendiente_pago', orderId: 'order-1' },
+          }}
+        />
+      </I18nProvider>,
+    )
+
+    expect(screen.getByRole('button', { name: /habilitar entrada/i })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /forzar ingreso/i })).toBeNull()
   })
 })

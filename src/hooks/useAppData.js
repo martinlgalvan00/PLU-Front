@@ -37,6 +37,7 @@ import {
   updateStaffUserStatusRequest,
   setStaffUserEventAccessRequest,
 } from '../lib/api.js'
+import { isRetryableCheckinFailure } from '../services/checkinFailure.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
 import { normalizeAdminFacetValue, registrationMatchesDivision } from '../lib/adminPeopleFilters.js'
 import { env } from '../config/env.js'
@@ -2084,8 +2085,8 @@ export function useAppData() {
   // Mercado Pago se acreditan exclusivamente mediante webhook.
   const approveTicketPurchase = useCallback(
     async (orderId, { overrideReason } = {}) => {
-      if (!hasPermission(session, 'admin.payments.approve')) {
-        return { error: 'Sin permisos para aprobar pagos.' }
+      if (!hasAnyPermission(session, ['admin.payments.approve', 'admin.tickets.enable'])) {
+        return { error: 'Sin permisos para habilitar esta entrada.' }
       }
       try {
         const { order, tickets: approvedTickets } = await approveTicketOrderRequest(orderId, {
@@ -2114,8 +2115,8 @@ export function useAppData() {
   // bandeja de pendientes, igual que una aprobación.
   const rejectTicketPurchase = useCallback(
     async (orderId, reason) => {
-      if (!hasPermission(session, 'admin.payments.approve')) {
-        return { error: 'Sin permisos para rechazar pagos.' }
+      if (!hasAnyPermission(session, ['admin.payments.approve', 'admin.tickets.enable'])) {
+        return { error: 'Sin permisos para rechazar esta entrada.' }
       }
       try {
         const { order, tickets: rejectedTickets } = await rejectTicketOrderRequest(orderId, reason)
@@ -2132,6 +2133,7 @@ export function useAppData() {
         return { order }
       } catch (error) {
         console.error('rejectTicketPurchase:', error)
+        if (isRetryableCheckinFailure(error)) throw error
         return { error: error?.message ?? 'No se pudo rechazar la orden.' }
       }
     },
@@ -2253,14 +2255,18 @@ export function useAppData() {
   }, [session, refreshPendingTicketOrders])
 
   const checkInTicketAction = useCallback(
-    async (qrToken) => {
+    async (qrToken, { force, reason } = {}) => {
       if (!hasPermission(session, 'admin.checkin.execute')) {
+        return { outcome: 'forbidden' }
+      }
+      if (force && !hasPermission(session, 'admin.checkin.override')) {
         return { outcome: 'forbidden' }
       }
       try {
         const { ticket, checkIn } = await checkInTicketRequest(
           qrToken,
           session.securityZone?.name,
+          { force, reason },
         )
         const updated = { ...mapApiTicket(ticket), checkedInAt: checkIn.scannedAt }
         setTickets((current) => current.map((item) => (item.qrToken === qrToken ? updated : item)))

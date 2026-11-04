@@ -207,8 +207,13 @@ export async function downloadAllowlist(eventSlug, data, { etag = null } = {}) {
   }
   await set(ALLOWLIST_KEY(eventSlug), payload, store)
   await set(ALLOWLIST_META_KEY(eventSlug), { downloadedAt, etag }, store)
-  forgetAllowlist(eventSlug)
-  return payload
+  // Se reemplaza la foto anterior recién cuando la nueva ya está en disco.
+  // La vista es otra referencia: un 304 mueve la hora sin reescribir las entradas.
+  const view = { ...payload }
+  invalidateAllowlistIndex(eventSlug)
+  allowlistMemory.set(eventSlug, view)
+  indexFor(view)
+  return view
 }
 
 /**
@@ -216,6 +221,18 @@ export async function downloadAllowlist(eventSlug, data, { etag = null } = {}) {
  * entradas en IndexedDB. Los ingresos locales quedan donde estaban.
  */
 export async function touchAllowlistDownload(eventSlug, etag = null) {
+  const cached = allowlistMemory.get(eventSlug)
+  if (cached) {
+    const meta = {
+      downloadedAt: new Date().toISOString(),
+      etag: etag ?? cached.etag ?? null,
+    }
+    await set(ALLOWLIST_META_KEY(eventSlug), meta, store)
+    cached.downloadedAt = meta.downloadedAt
+    cached.etag = meta.etag
+    return cached
+  }
+
   const payload = await get(ALLOWLIST_KEY(eventSlug), store)
   if (!payload) return null
   const meta = {
@@ -223,13 +240,10 @@ export async function touchAllowlistDownload(eventSlug, etag = null) {
     etag: etag ?? payload.etag ?? null,
   }
   await set(ALLOWLIST_META_KEY(eventSlug), meta, store)
-  const cached = allowlistMemory.get(eventSlug)
-  if (cached) {
-    cached.downloadedAt = meta.downloadedAt
-    cached.etag = meta.etag
-    return cached
-  }
-  return { ...payload, downloadedAt: meta.downloadedAt, etag: meta.etag }
+  const view = { ...payload, downloadedAt: meta.downloadedAt, etag: meta.etag }
+  allowlistMemory.set(eventSlug, view)
+  indexFor(view)
+  return view
 }
 
 export async function getAllowlist(eventSlug) {
@@ -249,6 +263,7 @@ export async function getAllowlist(eventSlug) {
   }
   applyLocalAdmits(view, admits)
   allowlistMemory.set(eventSlug, view)
+  indexFor(view)
   return view
 }
 
@@ -286,7 +301,8 @@ export async function findInAllowlist(eventSlug, code) {
  * offline -- evita que ESTE dispositivo deje pasar dos veces el mismo QR
  * antes de poder sincronizar contra el servidor.
  */
-export async function markCheckedInLocally(eventSlug, { qrToken, registrationId } = {}) {
+export function markCheckedInLocally(eventSlug, { qrToken, registrationId } = {}) {
+  return withStoreWrite(async () => {
   const admits = (await get(LOCAL_ADMITS_KEY(eventSlug), store)) ?? {
     tickets: [],
     registrations: [],
@@ -301,6 +317,7 @@ export async function markCheckedInLocally(eventSlug, { qrToken, registrationId 
 
   const allowlist = allowlistMemory.get(eventSlug) ?? (await getAllowlist(eventSlug))
   applyLocalAdmits(allowlist, admits)
+  })
 }
 
 async function getPendingQueue() {
@@ -311,12 +328,63 @@ async function setPendingQueue(queue) {
   await set(PENDING_KEY, queue, store)
 }
 
+// IndexedDB cede el hilo entre el get y el set. Sin esta cola, dos ingresos
+// a la vez leen la misma foto y el último write pisa al otro.
+let storeWrite = Promise.resolve()
+let storeWriteDepth = 0
+
+function withStoreWrite(task) {
+  if (storeWriteDepth > 0) return task()
+  const run = storeWrite.then(async () => {
+    storeWriteDepth += 1
+    try {
+      return await task()
+    } finally {
+      storeWriteDepth -= 1
+    }
+  })
+  storeWrite = run.then(
+    () => {},
+    () => {},
+  )
+  return run
+}
+
+function forcedEntry(force, reason) {
+  if (force !== 'validity' && force !== 'zone') return null
+  const trimmed = typeof reason === 'string' ? reason.trim() : ''
+  if (trimmed.length < 8) return null
+  return { force, reason: trimmed.slice(0, 500) }
+}
+
 /** Encola un check-in hecho sin conexión para sincronizar más tarde. */
-export async function enqueueCheckin({ eventSlug, kind, qrToken, registrationId, gate, label }) {
+export function enqueueCheckin({
+  eventSlug,
+  kind,
+  qrToken,
+  registrationId,
+  gate,
+  label,
+  force = null,
+  reason = null,
+}) {
+  return withStoreWrite(async () => {
   const queue = await getPendingQueue()
   const key = targetKey({ kind, qrToken, registrationId })
+  const exception = forcedEntry(force, reason)
   const existing = queue.find((item) => targetKey(item) === key)
-  if (existing) return existing
+  if (existing) {
+    if (!exception) return existing
+    const patched = {
+      ...existing,
+      ...exception,
+      status: 'pending',
+      attemptCount: 0,
+      nextAttemptAt: null,
+    }
+    await setPendingQueue(queue.map((item) => (item.localId === existing.localId ? patched : item)))
+    return patched
+  }
 
   const entry = {
     localId: crypto.randomUUID(),
@@ -331,15 +399,18 @@ export async function enqueueCheckin({ eventSlug, kind, qrToken, registrationId,
     attemptCount: 0,
     nextAttemptAt: null,
     status: 'pending',
+    ...(exception ?? {}),
   }
   await setPendingQueue([...queue, entry])
   await markCheckedInLocally(eventSlug, { qrToken, registrationId })
   await noteSyncJournal({ ...entry, status: 'pending' })
   return entry
+  })
 }
 
 /** Bitácora del puesto: qué QR quedó en el teléfono y en qué terminó. */
-export async function noteSyncJournal(entry) {
+export function noteSyncJournal(entry) {
+  return withStoreWrite(async () => {
   const journal = (await get(JOURNAL_KEY, store)) ?? []
   const next = {
     localId: entry.localId,
@@ -354,6 +425,7 @@ export async function noteSyncJournal(entry) {
     [next, ...journal.filter((item) => item.localId !== next.localId)].slice(0, JOURNAL_MAX),
     store,
   )
+  })
 }
 
 export async function listSyncJournal() {
@@ -379,20 +451,39 @@ export async function listDoorSyncStatus() {
 }
 
 /** Actualiza intentos, backoff o el tope de una entrada que sigue en la cola. */
-export async function updatePending(localId, patch) {
+export function updatePending(localId, patch) {
+  return withStoreWrite(async () => {
   const queue = await getPendingQueue()
   await setPendingQueue(
     queue.map((item) => (item.localId === localId ? { ...item, ...patch } : item)),
   )
+  })
 }
 
 export async function listPending() {
   return getPendingQueue()
 }
 
-export async function removePending(localId) {
+/** Vuelve a dejar en cola los ingresos que ya fallaron tres veces. */
+export function reopenExhaustedCheckins() {
+  return withStoreWrite(async () => {
+  const queue = await getPendingQueue()
+  let reopened = 0
+  const next = queue.map((item) => {
+    if (item.status !== 'exhausted') return item
+    reopened += 1
+    return { ...item, status: 'pending', attemptCount: 0, nextAttemptAt: null }
+  })
+  if (reopened > 0) await setPendingQueue(next)
+  return reopened
+  })
+}
+
+export function removePending(localId) {
+  return withStoreWrite(async () => {
   const queue = await getPendingQueue()
   await setPendingQueue(queue.filter((item) => item.localId !== localId))
+  })
 }
 
 export async function listResolvedConflicts() {
@@ -400,13 +491,15 @@ export async function listResolvedConflicts() {
 }
 
 /** Log corto de auditoría: check-ins offline que perdieron la carrera contra otro dispositivo. */
-export async function addResolvedConflict(entry) {
+export function addResolvedConflict(entry) {
+  return withStoreWrite(async () => {
   const conflicts = await listResolvedConflicts()
   await set(
     CONFLICTS_KEY,
     [{ ...entry, resolvedAt: new Date().toISOString() }, ...conflicts].slice(0, 50),
     store,
   )
+  })
 }
 
 /**
@@ -415,10 +508,12 @@ export async function addResolvedConflict(entry) {
  * para intentos, no para check-ins reales. Se drena cuando vuelve la
  * conexión (`useOfflineCheckinSync.js`).
  */
-export async function enqueueScanEvent(attempt) {
+export function enqueueScanEvent(attempt) {
+  return withStoreWrite(async () => {
   const queue = (await get(SCAN_TELEMETRY_KEY, store)) ?? []
   const next = [...queue, attempt].slice(-SCAN_TELEMETRY_MAX)
   await set(SCAN_TELEMETRY_KEY, next, store)
+  })
 }
 
 export async function listPendingScanEvents() {
@@ -426,7 +521,8 @@ export async function listPendingScanEvents() {
 }
 
 /** Saca del disco sólo los intentos ya confirmados por el servidor. */
-export async function clearScanEvents(clientIds) {
+export function clearScanEvents(clientIds) {
+  return withStoreWrite(async () => {
   const ids = new Set(clientIds)
   const queue = (await get(SCAN_TELEMETRY_KEY, store)) ?? []
   await set(
@@ -434,4 +530,5 @@ export async function clearScanEvents(clientIds) {
     queue.filter((item) => !ids.has(item.clientId)),
     store,
   )
+  })
 }

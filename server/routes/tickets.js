@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { Router } from 'express'
 import { z } from 'zod'
-import { hasEventScopeAccess } from '../../src/lib/permissions.js'
+import { hasEventScopeAccess, hasPermission } from '../../src/lib/permissions.js'
 import { resolveTicketTypeChannels } from '../../src/lib/ticketTypePaymentChannels.js'
 import { lookupTicketAccessDays } from '../../src/lib/buyerTicketDays.js'
 import { ticketValidityTiming } from '../../src/lib/ticketValidity.js'
@@ -316,6 +316,26 @@ const rejectOrderSchema = z.object({ reason: z.string().trim().min(3).max(500) }
 const approveOrderSchema = z.object({
   overrideReason: z.string().trim().min(8).max(500).optional(),
 })
+const forceCheckInSchema = z
+  .object({
+    // El puesto llega sucio o de más de 200 caracteres y se recorta más
+    // adelante. Un número no es un puesto: se ignora y la puerta usa el suyo.
+    gate: z.preprocess(
+      (value) => (typeof value === 'string' ? value : undefined),
+      z.string().optional(),
+    ),
+    force: z.enum(['validity', 'zone']).optional(),
+    reason: z.string().trim().min(8).max(500).optional(),
+  })
+  .superRefine((value, context) => {
+    if (!value.force) return
+    if (!value.reason) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'El motivo de la excepción tiene que tener al menos 8 caracteres.',
+      })
+    }
+  })
 
 const ticketOrderStatusEnum = z.enum([
   'creado',
@@ -466,6 +486,10 @@ export function createTicketRoutes({
   }
   const prisma = getPrisma()
   const guard = requirePermission('admin.checkin.execute', { prisma })
+  // La misma operación, abierta a una cuenta por evento (coordinador). Cada
+  // handler vuelve a filtrar el evento: sin eso el candado de `requireAuth`
+  // le cerraba el escaneo al coordinador.
+  const doorGuard = requirePermission('admin.checkin.execute', { prisma }, { eventScoped: true })
   // El informe de errores de escaneo es lectura de auditoría, no operación de
   // puerta: `admin.audit.read` deja afuera al preset seguridad_plu_arg
   // (sólo admin.events.read + admin.checkin.execute) a propósito -- quien
@@ -479,29 +503,41 @@ export function createTicketRoutes({
   const scanAuditGuard = requirePermission('admin.audit.read', { prisma })
   const financeReadGuard = requirePermission('admin.payments.read', { prisma })
   const financeWriteGuard = requirePermission('admin.payments.approve', { prisma })
-  // Variantes que un organizador (rol por evento) SÍ puede usar: antes de actuar sobre
-  // una orden se verifica que sea de un evento asignado (`assertTicketOrderInScope`).
-  const scopedFinanceReadGuard = requirePermission(
-    'admin.payments.read',
-    { prisma },
-    { eventScoped: true },
-  )
+  // Reenviar la credencial sigue siendo de Finanzas. Antes de actuar se verifica
+  // que la orden sea de un evento asignado (`assertTicketOrderInScope`).
   const scopedFinanceWriteGuard = requirePermission(
     'admin.payments.approve',
     { prisma },
     { eventScoped: true },
   )
   const ticketAccessOverrideGuard = requirePermission('admin.events.write', { prisma })
+  // Habilitar una orden de entradas: Finanzas o el cuerpo de seguridad del
+  // evento. No reemplaza `admin.payments.approve` en afiliaciones ni en caja.
+  const ticketDoorFinanceGuard = requirePermission(
+    ['admin.payments.approve', 'admin.tickets.enable'],
+    { prisma },
+    { mode: 'any', eventScoped: true },
+  )
+  const ticketDoorProofGuard = requirePermission(
+    ['admin.payments.read', 'admin.tickets.enable'],
+    { prisma },
+    { mode: 'any', eventScoped: true },
+  )
+  // Vigencia que queda en la credencial: quien edita el evento, o el
+  // coordinador (excepción + equipo). El puesto de puerta no llega.
+  const lastingWindowGuard = requirePermission(
+    ['admin.events.write', 'admin.checkin.override'],
+    { prisma },
+    { mode: 'any', eventScoped: true },
+  )
   // "Vendidas" del panel de evento: la lista pide `admin.checkin.execute` (operar la
   // puerta), que un organizador no tiene; para él alcanza con poder ver cobros.
-  const scopedTicketsViewGuard = requirePermission('admin.checkin.execute', { prisma }, {
-    eventScoped: true,
-    scopedPermissions: ['admin.payments.read'],
-  })
-  const scopedTicketAccessOverrideGuard = requirePermission(
-    'admin.events.write',
+  // Vendidas: la puerta (check-in) o quien ve cobros del evento. `scopedPermissions`
+  // reemplazaba el permiso y le cerraba la lista al coordinador, que no cobra.
+  const scopedTicketsViewGuard = requirePermission(
+    ['admin.checkin.execute', 'admin.payments.read'],
     { prisma },
-    { eventScoped: true },
+    { mode: 'any', eventScoped: true },
   )
   const actor = (req) => `${req.auth.user.id}:${req.auth.user.email}`
   const mailer = brevo ?? createBrevoAdapter({ env })
@@ -558,11 +594,18 @@ export function createTicketRoutes({
     if (order.status !== 'aprobado' || !order.buyer_email) return null
 
     const preset = result?.event ?? order.event ?? null
-    const summary = order.event_id
-      ? await athleteRepo()
-          .findEventSummary(order.event_id)
-          .catch(() => null)
-      : null
+    // El mail sale con el evento que ya trajo la orden. La lectura extra sólo
+    // aporta la anticipación del QR. Si Supabase no está (tests) el cliente
+    // tira al construirse, antes del `.catch` de la promesa, y el reenvío
+    // devolvía 503 aunque la compra ya estuviera demostrada.
+    let summary = null
+    if (order.event_id) {
+      try {
+        summary = await athleteRepo().findEventSummary(order.event_id)
+      } catch {
+        summary = null
+      }
+    }
     const event = {
       ...(summary ?? {}),
       ...(preset ?? {}),
@@ -1282,7 +1325,7 @@ export function createTicketRoutes({
   )
   router.post(
     '/orders/:orderId/approve',
-    ...scopedFinanceWriteGuard,
+    ...ticketDoorFinanceGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
@@ -1325,7 +1368,7 @@ export function createTicketRoutes({
    */
   router.post(
     '/orders/:orderId/reject',
-    ...scopedFinanceWriteGuard,
+    ...ticketDoorFinanceGuard,
     staffLimiter,
     validateBody(rejectOrderSchema),
     async (req, res, next) => {
@@ -1364,7 +1407,7 @@ export function createTicketRoutes({
   )
   router.get(
     '/orders/:orderId/proof-url',
-    ...scopedFinanceReadGuard,
+    ...ticketDoorProofGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
@@ -1379,7 +1422,7 @@ export function createTicketRoutes({
 
   router.get(
     '/orders/:orderId/proof',
-    ...scopedFinanceReadGuard,
+    ...ticketDoorProofGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
@@ -1423,11 +1466,18 @@ export function createTicketRoutes({
 
   router.put(
     '/:ticketId/access-override',
-    ...scopedTicketAccessOverrideGuard,
+    ...lastingWindowGuard,
     staffLimiter,
     validateBody(ticketAccessOverrideSchema),
     async (req, res, next) => {
       try {
+        const canLast =
+          hasPermission(req.auth.user, 'admin.events.write') ||
+          (hasPermission(req.auth.user, 'admin.checkin.override') &&
+            hasPermission(req.auth.user, 'admin.event_team.write'))
+        if (!canLast) {
+          throw new HttpError(403, 'No tenés permisos para dejar una vigencia individual.')
+        }
         const ticketId = z.string().uuid().parse(req.params.ticketId)
         const ticket = await repo().resolveTicketById?.(ticketId)
         if (!ticket) throw new HttpError(404, 'Entrada no encontrada.')
@@ -1446,7 +1496,7 @@ export function createTicketRoutes({
    * DNI físico contra el registro. Detrás de admin.checkin.execute y del mismo
    * alcance de evento que el resto del portal.
    */
-  router.get('/credentials/:code', ...guard, staffLimiter, async (req, res, next) => {
+  router.get('/credentials/:code', ...doorGuard, staffLimiter, async (req, res, next) => {
     try {
       const eventSlug = req.query.eventSlug ? String(req.query.eventSlug) : null
       // La RPC no filtra por evento (solo usa eventSlug para adjuntar la
@@ -1459,7 +1509,7 @@ export function createTicketRoutes({
       next(error)
     }
   })
-  router.get('/allowlist/:eventSlug', ...guard, staffLimiter, async (req, res, next) => {
+  router.get('/allowlist/:eventSlug', ...doorGuard, staffLimiter, async (req, res, next) => {
     try {
       const eventSlug = req.params.eventSlug
       assertEventSlugScope(req, eventSlug)
@@ -1534,7 +1584,7 @@ export function createTicketRoutes({
    */
   router.post(
     '/checkin/scan-events',
-    ...guard,
+    ...doorGuard,
     scanTelemetryLimiter,
     validateBody(reportScanTelemetrySchema),
     async (req, res, next) => {
@@ -1601,7 +1651,7 @@ export function createTicketRoutes({
    */
   router.post(
     '/checkin/trail',
-    ...guard,
+    ...doorGuard,
     staffLimiter,
     validateBody(scanTrailSchema),
     async (req, res, next) => {
@@ -1624,7 +1674,7 @@ export function createTicketRoutes({
    */
   router.post(
     '/checkin/incidents',
-    ...guard,
+    ...doorGuard,
     staffLimiter,
     validateBody(reportIncidentSchema),
     async (req, res, next) => {
@@ -1777,7 +1827,7 @@ export function createTicketRoutes({
 
   router.post(
     '/checkin/preview',
-    ...guard,
+    ...doorGuard,
     staffLimiter,
     validateBody(previewBodySchema),
     async (req, res, next) => {
@@ -1789,7 +1839,7 @@ export function createTicketRoutes({
     },
   )
 
-  router.post('/checkin/:qrToken', ...guard, staffLimiter, async (req, res, next) => {
+  router.post('/checkin/:qrToken', ...doorGuard, staffLimiter, async (req, res, next) => {
     let ticket
     let qrToken = req.params.qrToken
     const gate = resolveGateLabel(req)
@@ -1797,16 +1847,34 @@ export function createTicketRoutes({
       (scope) => ({ scope }),
       (error) => ({ error }),
     )
+    const parsedForce = forceCheckInSchema.safeParse(
+      req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {},
+    )
     try {
+      if (!parsedForce.success) {
+        throw new HttpError(400, 'El motivo de la excepción tiene que tener al menos 8 caracteres.')
+      }
+      const force = parsedForce.data.force ?? null
+      const forceReason = parsedForce.data.reason ?? null
+      if (force && !hasPermission(req.auth.user, 'admin.checkin.override')) {
+        throw new HttpError(403, 'No tenés permisos para forzar este ingreso.')
+      }
       qrToken = await resolveDoorQrToken(repo, req.params.qrToken)
       ticket = await loadTicketBeforeCheckIn(repo(), qrToken)
       const eventId = verifiedTicketEventId(ticket)
       assertEventScope(req, eventId)
-      assertTicketValidity(ticket)
+      const ticketStatus = ticket?.ticket?.status
+      if (force && ticketStatus && ticketStatus !== 'pagada') {
+        throw new HttpError(409, 'Esta entrada no tiene el pago acreditado.', { code: 'PLU05' })
+      }
+      if (force !== 'validity') assertTicketValidity(ticket)
       const zone = await zoneScopeResult
       if (zone.error) throw zone.error
       const zoneScope = zone.scope
-      const result = await repo().checkIn(qrToken, gate, actor(req), zoneScope)
+      const ticketRepository = repo()
+      const result = force
+        ? await ticketRepository.checkInForce(qrToken, gate, actor(req), zoneScope, force, forceReason)
+        : await ticketRepository.checkIn(qrToken, gate, actor(req), zoneScope)
       // Autoritativo: el servidor observó el ingreso. No bloquea la
       // respuesta -- un rastro de puerta perdido no puede volver a fallar
       // un check-in que ya se acreditó.
@@ -1820,7 +1888,10 @@ export function createTicketRoutes({
         gate,
         zoneScope,
         actorLabel: actor(req),
-        metadata: ticketScanValidityMetadata(ticket),
+        metadata: {
+          ...ticketScanValidityMetadata(ticket),
+          ...(force ? { override: { force, reason: forceReason } } : {}),
+        },
       })
       res.json(result)
     } catch (error) {
@@ -1848,7 +1919,7 @@ export function createTicketRoutes({
   })
   router.post(
     '/checkin/:qrToken/addons/:addonId/redeem',
-    ...guard,
+    ...doorGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
@@ -1863,7 +1934,7 @@ export function createTicketRoutes({
   )
   router.post(
     '/registrations/:registrationId/checkin',
-    ...guard,
+    ...doorGuard,
     staffLimiter,
     async (req, res, next) => {
       try {

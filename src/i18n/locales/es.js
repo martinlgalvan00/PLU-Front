@@ -1207,7 +1207,16 @@ export default {
     tokenLoadingLeadWithEvent: 'Verificando tu acceso a la puerta de {{event}}…',
     tokenError: 'La credencial no es válida o venció. Ingresá con tu email y contraseña.',
     doorCodeLabel: 'Código de puerta',
-    doorCodeHint: 'Si te dictaron el código de la credencial, ingresalo acá. Si no, usá email y contraseña.',
+    doorCodeHint: 'Si te dictaron el código de la credencial, cantalo o tipealo. Si no, usá email y contraseña.',
+    speakToggle: 'Cantar el código',
+    speakListening: 'Escuchando… cantá los seis signos',
+    speechDenied: 'El micrófono está bloqueado. Habilitalo o tipeá el código.',
+    speechUnavailable: 'Este navegador no puede escuchar. Tipeá el código.',
+    speechAmbiguous: 'Ese código no usa I, L, O, 0 ni 1. Cantalo de nuevo.',
+    speechLength: 'Tienen que ser seis signos, en dos grupos de tres.',
+    speechHeard: 'Se entendió {{code}}. Tocá entrar cuando termine el intento anterior.',
+    speechMissed: 'No se escuchó el código después de 3 intentos. Repetilo o tipealo.',
+    networkError: 'No hay señal. El código sigue escrito: probá de nuevo.',
   },
   financedDebt: {
     membership: {

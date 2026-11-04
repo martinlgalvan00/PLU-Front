@@ -58,6 +58,18 @@ function validityMetadata(value) {
   }
 }
 
+/** Motivo de una excepción de ingreso. No acepta QR ni documento al lado. */
+function overrideMetadata(value) {
+  const override = value?.override
+  if (!override || (override.force !== 'validity' && override.force !== 'zone')) return {}
+  const reason =
+    typeof override.reason === 'string'
+      ? override.reason.replace(/\p{Cc}/gu, '').trim().slice(0, 500)
+      : ''
+  if (reason.length < 8) return {}
+  return { override: { force: override.force, reason } }
+}
+
 /**
  * Fila lista para insertar en `checkin_scan_events`. Nunca guarda el token
  * crudo del QR (es una credencial al portador) ni nombre/DNI -- sólo el
@@ -103,7 +115,7 @@ export function buildScanEventRow({
     offline: Boolean(offline),
     error_code: errorCode ? String(errorCode).slice(0, 20) : null,
     scanned_at: clampScannedAt(scannedAt),
-    metadata: validityMetadata(metadata),
+    metadata: { ...validityMetadata(metadata), ...overrideMetadata(metadata) },
   }
 }
 

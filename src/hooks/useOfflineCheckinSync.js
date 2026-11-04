@@ -6,6 +6,7 @@ import {
   listPending,
   listPendingScanEvents,
   listResolvedConflicts,
+  reopenExhaustedCheckins,
 } from '../lib/offlineCheckinDb.js'
 import {
   downloadAllowlist as downloadAllowlistRequest,
@@ -87,6 +88,12 @@ export function useOfflineCheckinSync(eventSlug) {
     return data
   }, [eventSlug])
 
+  const continueExhausted = useCallback(async () => {
+    const reopened = await reopenExhaustedCheckins()
+    if (reopened > 0) await syncNow()
+    else await refreshCounts()
+  }, [refreshCounts, syncNow])
+
   const reloadAndSync = useCallback(async () => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) return null
     let data = null
@@ -159,6 +166,7 @@ export function useOfflineCheckinSync(eventSlug) {
     lastSyncedAt,
     lastDownloadedAt,
     syncNow,
+    continueExhausted,
     downloadAllowlist,
     reloadAndSync,
     refreshCounts,

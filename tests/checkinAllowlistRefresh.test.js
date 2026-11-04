@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ApiError } from '../src/lib/api.js'
 
 const memory = new Map()
 vi.mock('idb-keyval', () => ({
@@ -92,5 +93,40 @@ describe('refresco de la lista de puerta', () => {
     const refreshed = await downloadAllowlist('pitbull')
     expect(refreshed.tickets[0].checkedInLocally).toBe(false)
     expect(refreshed.tickets[0].checkedInAt).toBe('2026-10-29T15:00:00.000Z')
+  })
+
+  it('dos pedidos juntos bajan la lista una sola vez', async () => {
+    let release = () => {}
+    const gate = new Promise((resolve) => {
+      release = resolve
+    })
+    getEventCheckinAllowlist.mockImplementation(() =>
+      gate.then(() => ({
+        notModified: false,
+        etag: 'W/"once"',
+        data: { tickets: [{ qrToken: 'qr-once', status: 'pagada' }] },
+      })),
+    )
+
+    const first = downloadAllowlist('pitbull-once')
+    const second = downloadAllowlist('pitbull-once')
+    release()
+    const [left, right] = await Promise.all([first, second])
+
+    expect(left).toBe(right)
+    expect(getEventCheckinAllowlist).toHaveBeenCalledTimes(1)
+  })
+
+  it('reintenta tres veces la descarga y conserva la foto anterior si no hay respuesta', async () => {
+    await db.downloadAllowlist('pitbull', {
+      tickets: [{ qrToken: 'qr-1', status: 'pagada', attendeeName: 'Ana' }],
+    })
+    const storedBefore = memory.get('allowlist:pitbull')
+    getEventCheckinAllowlist.mockRejectedValue(new ApiError('sin red', { status: 0 }))
+
+    await expect(downloadAllowlist('pitbull')).rejects.toMatchObject({ status: 0 })
+
+    expect(getEventCheckinAllowlist).toHaveBeenCalledTimes(3)
+    expect(memory.get('allowlist:pitbull')).toBe(storedBefore)
   })
 })

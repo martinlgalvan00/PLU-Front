@@ -843,10 +843,15 @@ export function createAthleteRoutes({
    *
    * Preferencia de nombre: entre variantes del mismo core, gana el más completo
    * (más largo). Si el input es más largo que el canónico guardado, se actualiza.
+   *
+   * El corte es antes de Prisma: sin `DATABASE_URL` el cliente igual loguea
+   * `Environment variable not found` y recién después tira. En CI la suite de
+   * integración no tiene ese esquema, y el alta tiene que seguir en silencio.
    */
   const resolveGymName = async (rawName) => {
     if (!rawName || !rawName.trim()) return rawName
     const cleanName = String(rawName).trim()
+    if (!process.env.DATABASE_URL?.trim()) return cleanName
     const core = getCoreName(cleanName)
 
     try {

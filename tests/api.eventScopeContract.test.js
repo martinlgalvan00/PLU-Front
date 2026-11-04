@@ -58,6 +58,17 @@ const ORGANIZER_ALLOWED = new Set([
   'DELETE /api/pricing/events/:eventSlug/registration-price/schedule',
   'GET /api/tickets/',
   'PUT /api/tickets/:ticketId/access-override',
+  // Puerta: el coordinador es cuenta por evento y estas rutas vuelven a
+  // filtrar el evento en el handler. Quien no tiene check-in sigue en 403.
+  'GET /api/tickets/credentials/:code',
+  'GET /api/tickets/allowlist/:eventSlug',
+  'POST /api/tickets/checkin/scan-events',
+  'POST /api/tickets/checkin/trail',
+  'POST /api/tickets/checkin/incidents',
+  'POST /api/tickets/checkin/preview',
+  'POST /api/tickets/checkin/:qrToken',
+  'POST /api/tickets/checkin/:qrToken/addons/:addonId/redeem',
+  'POST /api/tickets/registrations/:registrationId/checkin',
   // Equipo de puerta del evento (tests/api.eventScopeTeam.test.js): zonas y cuentas de
   // seguridad. Las que actúan por id de zona o de usuario verifican el evento de ESA zona/cuenta.
   'GET /api/security-zones/',

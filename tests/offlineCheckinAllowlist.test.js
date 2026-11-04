@@ -37,6 +37,16 @@ describe('allowlist offline de inscripciones', () => {
     expect((await db.findInAllowlist('pitbull', 'plu-0001'))?.entry.registrationId).toBe('r1')
   })
 
+  it('el escaneo siguiente usa la foto en memoria y no vuelve a abrir la lista', async () => {
+    await db.downloadAllowlist('pitbull', {
+      tickets: [{ qrToken: 'qr-1', gateCode: 'K4M-7QP', ticketCode: 'TCK-1' }],
+    })
+    memory.delete('allowlist:pitbull')
+
+    expect((await db.findInAllowlist('pitbull', 'K4M-7QP'))?.entry.qrToken).toBe('qr-1')
+    expect((await db.findInAllowlist('pitbull', 'tck-1'))?.entry.qrToken).toBe('qr-1')
+  })
+
   it('un ingreso sin conexión marca solo esa inscripción, aunque varias no tengan membresía', async () => {
     await db.downloadAllowlist('pitbull', {
       registrations: [
@@ -122,5 +132,18 @@ describe('allowlist offline de inscripciones', () => {
     expect(memory.get('allowlist:pitbull')).toBe(stored)
     expect(memory.get('local-admits:pitbull').tickets).toEqual(['qr-1'])
     expect((await db.findInAllowlist('pitbull', 'qr-1'))?.entry.checkedInLocally).toBe(true)
+  })
+
+  it('dos ingresos encolados a la vez quedan los dos', async () => {
+    await Promise.all([
+      db.enqueueCheckin({ eventSlug: 'pitbull', kind: 'ticket', qrToken: 'qr-a', label: 'A' }),
+      db.enqueueCheckin({ eventSlug: 'pitbull', kind: 'ticket', qrToken: 'qr-b', label: 'B' }),
+    ])
+
+    const pending = await db.listPending()
+    expect(pending.map((item) => item.qrToken).sort()).toEqual(['qr-a', 'qr-b'])
+
+    await Promise.all(pending.map((item) => db.removePending(item.localId)))
+    expect(await db.listPending()).toEqual([])
   })
 })

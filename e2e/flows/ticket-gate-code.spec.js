@@ -127,16 +127,9 @@ test('el comprador ve el código, lo abre, lo descarga y lo imprime', async ({ p
 
   const confirmation = page.locator('.ticket-purchase--confirmation')
   await expect(confirmation).toBeVisible({ timeout: 15_000 })
-  await expect(confirmation.locator('.ticket-purchase__gate-code-value')).toHaveText(GATE_CODE)
+  await expect(confirmation.locator('.buyer-tickets-wallet__gate-value')).toHaveText(GATE_CODE)
   await expect(confirmation).toContainText(/misma entrada/i)
-  await expect(confirmation).toContainText('Sol Puerta')
-
-  await confirmation.getByRole('button', { name: /ver mi entrada/i }).click()
-  const dialog = page.getByRole('dialog')
-  await expect(dialog).toBeVisible()
-  await expect(dialog).toContainText('Sol Puerta')
-  await page.keyboard.press('Escape')
-  await expect(dialog).toHaveCount(0)
+  await expect(confirmation.locator('.ticket-pass-preview__guest')).toHaveText('Sol Puerta')
 
   const downloadPromise = page.waitForEvent('download', { timeout: 25_000 })
   await confirmation.getByRole('button', { name: /descargar entrada/i }).click()

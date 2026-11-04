@@ -42,18 +42,22 @@ function dayLabel(dayIndexes, eventDays, t) {
 export default function CheckInSection({
   athletes,
   canCheckIn,
+  canEnableTickets = false,
+  canForceCheckIn = false,
   canValidatePayments = false,
   eventDays = [],
   eventSlug = 'pitbull-classic-2026',
   eventTitle = null,
   memberships = [],
   onApprovePayment,
+  onApproveTicketOrder,
   onCheckInRegistration,
   onCheckInTicket,
   onReauthenticate = null,
   onRedeemTicketAddon,
   onRefreshTickets,
   onRejectPayment,
+  onRejectTicketOrder,
   payments = [],
   registrations,
   ticketTypes = [],
@@ -70,12 +74,16 @@ export default function CheckInSection({
   const workspace = useCheckInWorkspace({
     athletes,
     canCheckIn,
+    canEnableTickets,
+    canForceCheckIn,
     eventDays,
     eventSlug,
+    onApproveTicketOrder,
     onCheckInRegistration,
     onCheckInTicket,
     onRedeemTicketAddon,
     onRefreshTickets,
+    onRejectTicketOrder,
     payments,
     registrations,
     ticketTypes,
@@ -113,6 +121,7 @@ export default function CheckInSection({
             pendingCount={workspace.offlineSync.pendingCount}
             queueLog={workspace.offlineSync.queueLog}
             onReauthenticate={onReauthenticate}
+            onRetryExhausted={workspace.offlineSync.continueExhausted}
             syncIssue={workspace.offlineSync.syncIssue}
             syncNow={workspace.offlineSync.syncNow}
             syncing={workspace.offlineSync.syncing}
@@ -121,9 +130,14 @@ export default function CheckInSection({
 
           <CheckInScanResult
             canCheckIn={canCheckIn}
+            canEnableTickets={canEnableTickets}
+            canForceCheckIn={canForceCheckIn}
             locale={locale}
             onDismiss={() => workspace.setScanResult(null)}
+            onEnableTicket={workspace.handleEnableTicket}
+            onForceCheckIn={workspace.handleForceCheckIn}
             onRedeemAddon={workspace.handleRedeemAddon}
+            onRejectTicket={workspace.handleRejectTicket}
             onScanCheckIn={workspace.handleScanCheckIn}
             redeemBusyId={workspace.redeemBusyId}
             redeemError={workspace.redeemError}

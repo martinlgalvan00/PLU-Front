@@ -83,6 +83,8 @@ import {
 } from './lib/navigation.js'
 import {
   canCheckIn,
+  canEnableTicketOrders,
+  canOverrideCheckIn,
   canDeleteAthletes,
   canDeleteEvents,
   canDeleteMemberships,
@@ -838,7 +840,10 @@ export default function App() {
         <SecurityGatePage
           adminEvents={app.adminEvents}
           athletes={app.athletes}
+          canEnableTickets={canEnableTicketOrders(app.session)}
+          canForceCheckIn={canOverrideCheckIn(app.session)}
           eventSlug={securityRoute.eventSlug}
+          onApproveTicketOrder={app.approveTicketPurchase}
           onCheckInRegistration={app.checkInRegistrationAction}
           onCheckInTicket={app.checkInTicketAction}
           onExit={exitSecurityRoute}
@@ -847,6 +852,7 @@ export default function App() {
           onReauthenticate={reauthenticateKeepingQueue}
           onRedeemTicketAddon={app.redeemTicketAddonAction}
           onRefreshTickets={app.refreshTickets}
+          onRejectTicketOrder={app.rejectTicketPurchase}
           registrations={app.registrations}
           session={app.session}
           tickets={app.tickets}
@@ -934,16 +940,20 @@ export default function App() {
           <CheckInAppPage
             athletes={app.athletes}
             canCheckIn={canCheckIn(app.session)}
+            canEnableTickets={canEnableTicketOrders(app.session)}
+            canForceCheckIn={canOverrideCheckIn(app.session)}
             eventDays={checkinEvent?.eventDays ?? []}
             eventSlug={checkinEvent?.slug}
             eventTitle={checkinEvent?.title}
             ticketTypes={checkinEvent?.ticketTypes ?? []}
+            onApproveTicketOrder={app.approveTicketPurchase}
             onCheckInRegistration={app.checkInRegistrationAction}
             onCheckInTicket={app.checkInTicketAction}
             onExit={() => navigate('home')}
             onReauthenticate={reauthenticateKeepingQueue}
             onRedeemTicketAddon={app.redeemTicketAddonAction}
             onRefreshTickets={app.refreshTickets}
+            onRejectTicketOrder={app.rejectTicketPurchase}
             registrations={app.registrations}
             roleLabel={getRoleLabel(app.session)}
             securityZone={app.session?.securityZone ?? null}

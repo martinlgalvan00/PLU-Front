@@ -56,15 +56,19 @@ describe('AdminQrScanner: cámara', () => {
     expect((await screen.findByRole('alert')).textContent).toMatch(/no encontramos una cámara/i)
   })
 
-  it('con la cámara ocupada ofrece reintentar y vuelve a pedirla', async () => {
+  it('con la cámara ocupada prueba tres veces y deja cargar el código', async () => {
     getUserMedia.mockRejectedValue(named('NotReadableError'))
     renderScanner()
 
-    expect((await screen.findByRole('alert')).textContent).toMatch(/en uso/i)
-    expect(getUserMedia).toHaveBeenCalledTimes(1)
+    // Tres intentos solos y después el puesto sigue por el código, no por un botón
+    // que desaparece con el cambio de modo.
+    expect(await screen.findByText(/no abrió después de 3 intentos/i)).toBeTruthy()
+    expect(getUserMedia).toHaveBeenCalledTimes(3)
+    expect(screen.getByRole('tab', { name: /manual/i }).getAttribute('aria-selected')).toBe('true')
 
-    fireEvent.click(screen.getByRole('button', { name: /reintentar/i }))
-    await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(2))
+    fireEvent.click(screen.getByRole('tab', { name: /cámara/i }))
+    await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(6), { timeout: 3000 })
+    expect(await screen.findByText(/no abrió después de 3 intentos/i)).toBeTruthy()
   })
 
   it('ofrece la linterna sólo si la cámara la declara y la prende con aplicarConstraints', async () => {

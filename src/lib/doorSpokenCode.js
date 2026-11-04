@@ -230,6 +230,23 @@ function interpretSpokenGateCode(raw) {
   }
 }
 
+/**
+ * Entre lo que oyó el micrófono, se queda con el XXX-XXX válido.
+ * Si ninguna alternativa cierra, devuelve el primer código mal formado.
+ */
+export function chooseSpokenDoorCode(transcripts) {
+  const list = (Array.isArray(transcripts) ? transcripts : [transcripts])
+    .map((item) => String(item ?? '').trim())
+    .filter(Boolean)
+  let malformed = null
+  for (const text of list) {
+    const prepared = prepareCheckinScan(text)
+    if (prepared.kind === 'door') return prepared
+    if (!malformed && prepared.kind === 'malformed') malformed = prepared
+  }
+  return malformed
+}
+
 export function prepareCheckinScan(raw) {
   const cleaned = stripInvisibles(raw).trim()
   if (!cleaned) return { kind: 'empty', raw: '' }

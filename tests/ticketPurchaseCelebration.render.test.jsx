@@ -112,7 +112,10 @@ describe('TicketPurchaseSection — festejo de compra', () => {
     expect(screen.queryByText('Compra confirmada')).toBeNull()
     expect(document.querySelector('.ticket-purchase__confirmation-head')).toBeTruthy()
     expect(screen.getByText(/tu qr todavía no abre la puerta/i)).toBeTruthy()
-    expect(screen.getByText(/qr pendiente de habilitación/i)).toBeTruthy()
+    // La fila de la billetera dice cuándo se habilita. El token no puede
+    // filtrarse en esa pantalla: el pase se dibuja recién al acreditar.
+    expect(screen.getByText(/se habilita cuando se acredite el pago/i)).toBeTruthy()
+    expect(screen.queryByText('qr-1')).toBeNull()
     expect(screen.queryByRole('button', { name: /ver mi entrada/i })).toBeNull()
     expect(screen.queryByTestId('ticket-pass-preview')).toBeNull()
   })

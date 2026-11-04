@@ -20,6 +20,30 @@ const hash = (value) => createHash('sha256').update(value).digest('hex')
 const STAFF_TICKET_TOKEN_PEPPER =
   process.env.TICKET_ORDER_TOKEN_SECRET || 'plu-staff-ticket-order-v1'
 
+/**
+ * Ventana que usa el pre-chequeo de Node antes de `staff_check_in_ticket`.
+ *
+ * `tickets.valid_from/until` quedan congelados al emitir la entrada. La
+ * vigencia que abre la puerta sale de `resolve_ticket_type_access_window`,
+ * y esa función mira primero la excepción de acceso. Si el pre-chequeo lee
+ * las columnas congeladas, un QR reabierto para hoy responde PLU14 y la RPC
+ * —que sí dejaría pasar— no llega a correr.
+ */
+export function ticketWindowForCheckIn(row) {
+  if (!row) return null
+  const override =
+    row.access_override_enabled === true &&
+    row.access_override_valid_from &&
+    row.access_override_valid_until
+  return {
+    id: row.id,
+    event_id: row.event_id,
+    status: row.status ?? null,
+    valid_from: override ? row.access_override_valid_from : (row.valid_from ?? null),
+    valid_until: override ? row.access_override_valid_until : (row.valid_until ?? null),
+  }
+}
+
 export function staffTicketAccessToken(idempotencyKey) {
   const key = String(idempotencyKey ?? '')
   if (key.length < 16) {
@@ -442,19 +466,22 @@ export function createSupabaseTicketRepository(client) {
     },
     /**
      * Lectura corta antes de acreditar. `staff_check_in_ticket` vuelve a
-     * validar pago, vigencia y zona; acá sólo hace falta el evento para el
-     * alcance del operador y las fechas para la telemetría. Un UUID inválido
-     * es "no encontrada"; un error de base se propaga.
+     * validar pago, vigencia y zona; acá hace falta el evento para el
+     * alcance del operador y la ventana efectiva para el pre-chequeo de
+     * Node. Un UUID inválido es "no encontrada"; un error de base se propaga.
      */
     async locateTicketForCheckIn(qrToken) {
       if (!qrToken) return null
       const result = await client
         .from('tickets')
-        .select('id, event_id, valid_from, valid_until')
+        .select(
+          'id, event_id, status, valid_from, valid_until, access_override_enabled, access_override_valid_from, access_override_valid_until',
+        )
         .eq('qr_token', qrToken)
         .maybeSingle()
       if (result.error && isInvalidUuid(result.error)) return null
-      return assertSupabaseResult(result, 'No se pudo resolver la entrada.') ?? null
+      const row = assertSupabaseResult(result, 'No se pudo resolver la entrada.')
+      return ticketWindowForCheckIn(row)
     },
     /**
      * Ídem para el ticket: un dispositivo de puerta reporta el código que
@@ -510,6 +537,23 @@ export function createSupabaseTicketRepository(client) {
         'staff_check_in_ticket',
         { p_qr_token: qrToken, p_gate: gate || 'Puerta', p_actor: actor, p_zone_scope: zoneScope },
         'No se pudo registrar el ingreso.',
+      ),
+    /**
+     * Un ingreso que saltea solo vigencia o zona. La RPC no reescribe la
+     * credencial y audita `ticket.checked_in_override`.
+     */
+    checkInForce: (qrToken, gate, actor, zoneScope, force, reason) =>
+      rpc(
+        'staff_force_check_in_ticket',
+        {
+          p_qr_token: qrToken,
+          p_gate: gate || 'Puerta',
+          p_actor: actor,
+          p_zone_scope: zoneScope,
+          p_force: force,
+          p_reason: reason,
+        },
+        'No se pudo registrar la excepción de ingreso.',
       ),
     async getRegistrationEventId(registrationId) {
       const registration = assertSupabaseResult(

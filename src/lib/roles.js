@@ -143,6 +143,28 @@ export function canCheckIn(subject) {
   return hasPermission(subject, 'admin.checkin.execute')
 }
 
+/** Aprobar o rechazar una orden de entradas. No abre el resto de Finanzas. */
+export function canEnableTicketOrders(subject) {
+  return hasAnyPermission(subject, ['admin.tickets.enable', 'admin.payments.approve'])
+}
+
+/** Forzar este ingreso de una entrada ya paga, fuera de vigencia o de zona. */
+export function canOverrideCheckIn(subject) {
+  return hasPermission(subject, 'admin.checkin.override')
+}
+
+/**
+ * Vigencia individual que queda en la credencial. El puesto de puerta no:
+ * hace falta editar el evento o coordinar el equipo de ese evento.
+ */
+export function canSetTicketAccessWindow(subject) {
+  return (
+    hasPermission(subject, 'admin.events.write') ||
+    (hasPermission(subject, 'admin.checkin.override') &&
+      hasPermission(subject, 'admin.event_team.write'))
+  )
+}
+
 export function canApproveStaffApplications(subject) {
   return hasPermission(subject, 'admin.staff_applications.approve')
 }

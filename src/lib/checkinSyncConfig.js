@@ -9,7 +9,10 @@
 export const CHECKIN_SYNC = Object.freeze({
   intervalMs: 25_000,
   concurrency: 4,
-  maxAttempts: 8,
+  // Tres fallos transitorios y el puesto sigue: el ingreso queda en el
+  // teléfono y el operador puede reintentar el envío sin frenar la fila.
+  maxAttempts: 3,
+  liveRetryDelaysMs: Object.freeze([250, 500]),
   baseDelayMs: 2_000,
   maxDelayMs: 60_000,
   jitterRatio: 0.2,

@@ -30,7 +30,11 @@ import {
   shouldClearAdminEventWorkspace,
 } from '../lib/adminEventRoute.js'
 import { hasAnyPermission, hasPermission, isEventScopedSession } from '../lib/permissions.js'
-import { canManageEventTeam } from '../lib/roles.js'
+import {
+  canEnableTicketOrders,
+  canManageEventTeam,
+  canOverrideCheckIn,
+} from '../lib/roles.js'
 import { findUnreconciledApprovedPayments } from '../services/paymentReconciliationService.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
@@ -767,20 +771,24 @@ export default function AdminPage({
         <CheckInSection
           athletes={athletes}
           canCheckIn={canCheckIn}
-          // Mismo permiso que Finanzas: la puerta no gana la facultad de
-          // acreditar por estar operando el evento.
+          canEnableTickets={canEnableTicketOrders(authorization)}
+          canForceCheckIn={canOverrideCheckIn(authorization)}
+          // Acreditar una orden de atleta sigue siendo de Finanzas. Las
+          // entradas del evento usan canEnableTickets, más arriba.
           canValidatePayments={hasPermission(authorization, 'admin.payments.approve')}
           eventDays={checkinEvent?.eventDays ?? []}
           eventSlug={checkinEvent?.slug ?? undefined}
           eventTitle={checkinEvent?.title ?? null}
           memberships={enrichedMemberships}
           onApprovePayment={onApprovePayment}
+          onApproveTicketOrder={onApproveTicketPurchase}
           onCheckInRegistration={onCheckInRegistration}
           onCheckInTicket={onCheckInTicket}
           onReauthenticate={onReauthenticate}
           onRedeemTicketAddon={onRedeemTicketAddon}
           onRefreshTickets={onRefreshTickets}
           onRejectPayment={onRejectPayment}
+          onRejectTicketOrder={onRejectTicketOrder}
           payments={payments}
           registrations={registrations}
           ticketTypes={checkinEvent?.ticketTypes ?? []}

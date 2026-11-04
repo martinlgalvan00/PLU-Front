@@ -167,6 +167,32 @@ describe('syncPendingCheckins', () => {
     expect(pending).toHaveLength(1)
   })
 
+  it('reenvía una excepción de ingreso con el mismo motivo', async () => {
+    pending.push({
+      ...ticketEntry('a'),
+      force: 'validity',
+      reason: 'Llegó antes de la ventana',
+    })
+    checkInTicket.mockResolvedValue({})
+
+    const [result] = await syncPendingCheckins()
+
+    expect(result.outcome).toBe('ok')
+    expect(checkInTicket).toHaveBeenCalledWith('qr-a', 'Puerta 1', {
+      force: 'validity',
+      reason: 'Llegó antes de la ventana',
+    })
+  })
+
+  it('no manda la excepción si el motivo no alcanza', async () => {
+    pending.push({ ...ticketEntry('a'), force: 'zone', reason: 'corto' })
+    checkInTicket.mockResolvedValue({})
+
+    await syncPendingCheckins()
+
+    expect(checkInTicket).toHaveBeenCalledWith('qr-a', 'Puerta 1', {})
+  })
+
   it('al agotar intentos deja el ingreso en la cola, no lo borra', async () => {
     pending.push({ ...ticketEntry('a'), attemptCount: CHECKIN_SYNC.maxAttempts - 1 })
     checkInTicket.mockRejectedValue(apiError(0))

@@ -8,6 +8,7 @@ import {
   purchaseTickets,
   assertOrderCreated,
   assertPassesOnConfirmation,
+  readCurrentTicketOrder,
   openTicketCredential,
   assertCredentialPage,
 } from './ticket-purchase-helpers.js'
@@ -45,10 +46,8 @@ test.describe('Verificación pública de credenciales de entrada', () => {
     })
     expect(tokens).toHaveLength(2)
 
-    const ticketCode = await page
-      .locator('.ticket-purchase--confirmation .ticket-purchase__ticket-info')
-      .first()
-      .innerText()
+    const order = await readCurrentTicketOrder(page)
+    const ticketCode = order.tickets.find((ticket) => ticket.qrToken === tokens[0])?.ticketCode
 
     await openTicketCredential(page, { qrToken: tokens[0], eventSlug: fixture.ticketEventSlug })
     await assertCredentialPage(page, {

@@ -354,10 +354,19 @@ Reglas:
   `eventScope`. El lote de cambio de rol no admite Organizador.
 - El rol de sistema **Coordinador de seguridad** (`coordinador_seguridad`)
   también es por evento, con `baseRole` `operador_plu_arg` para no mezclarse
-  con las cuentas de puerta. Solo puede leer sus eventos, armar el equipo y
-  las zonas, y escanear. No cobra, no edita el evento y no administra usuarios
-  globales. Las cuentas que da de alta siguen siendo `seguridad_plu_arg`
-  atadas a ese evento. El lote de cambio de rol tampoco lo admite.
+  con las cuentas de puerta. Puede leer sus eventos, armar el equipo y las
+  zonas, ver quién compró y el QR, escanear, habilitar o rechazar una orden
+  de **entradas** de ese evento (`admin.tickets.enable`) y dejar una vigencia
+  individual para que el mismo QR siga abriendo. No cobra afiliaciones,
+  inscripciones, tienda ni el libro de caja, no edita el evento y no
+  administra usuarios globales. Las cuentas que da de alta siguen siendo
+  `seguridad_plu_arg` atadas a ese evento. El lote de cambio de rol tampoco
+  lo admite.
+- La puerta (`seguridad_plu_arg`) escanea, habilita esas mismas órdenes de
+  entradas y puede forzar **este** ingreso de una entrada ya paga que está
+  fuera de vigencia o de zona (`admin.checkin.override`), con motivo. Ese
+  ingreso queda en la telemetría y en la auditoría como excepción. No
+  reescribe la vigencia ni la zona de la credencial, y no cobra el resto.
 - Toda ruta sensible valida permisos en Express aunque la navegación no muestre
   el módulo.
 - Si una matriz personalizada deja de coincidir con un rol base, no se emite un

@@ -53,7 +53,7 @@ import { useActiveIndicator, usePanelEnter } from '../../motion/useActiveIndicat
 /** Secciones que agrupa la pestaña "Evento" (como capítulos). */
 const EVENT_SECTIONS = ['basics', 'structure']
 /** Lo que se usa al operar el evento: va aparte, debajo de las pestañas de armado. */
-const OPERATION_SECTIONS = ['registrations', 'results', 'payments', 'security']
+const OPERATION_SECTIONS = ['sold', 'registrations', 'results', 'payments', 'security']
 
 const SITE_STATE_LABEL = {
   live: 'admin.eventConsole.siteVisible',
@@ -133,17 +133,21 @@ export default function AdminEventWorkspace({
   activeSection = 'basics',
   canDelete = false,
   canEdit = false,
+  canEnableTickets = false,
   canManageUsers = false,
+  canSetTicketWindow = false,
   canReadResults = false,
   canWriteResults = false,
   editor = null,
   event,
   inNav = false,
+  onApproveTicketOrder,
   onBack,
   onDelete,
   onManageCheckin,
   onManageRegistrations,
   onSelectChapter,
+  onRejectTicketOrder,
   onSelectSection,
   onSetEventLogo,
   onSetEventState,
@@ -161,6 +165,7 @@ export default function AdminEventWorkspace({
   registrationsAttention = null,
   registrationsSection = null,
   securitySection = null,
+  showSoldTickets = false,
   structureEditor = null,
   tickets = [],
 }) {
@@ -247,6 +252,13 @@ export default function AdminEventWorkspace({
         hasSubnav: true,
       })
     }
+    if (showSoldTickets) {
+      list.push({
+        id: 'sold',
+        label: t('admin.eventConsole.soldBuyers'),
+        icon: Ticket,
+      })
+    }
     if (registrationsSection) {
       list.push({
         id: 'registrations',
@@ -293,6 +305,7 @@ export default function AdminEventWorkspace({
     registrationsAttention,
     registrationsSection,
     securitySection,
+    showSoldTickets,
     t,
     ticketsEnabled,
   ])
@@ -710,6 +723,21 @@ export default function AdminEventWorkspace({
             </ol>
           </div>
           {securitySection}
+        </div>
+      )
+    }
+    if (activeTab === 'sold') {
+      return (
+        <div className="admin-event-workspace__wide">
+          <AdminEventTicketsSoldSection
+            canEnableTickets={canEnableTickets}
+            canOverride={canSetTicketWindow}
+            canResendCredentials={false}
+            event={event}
+            onApproveTicketOrder={onApproveTicketOrder}
+            onRejectTicketOrder={onRejectTicketOrder}
+            onSetTicketAccessOverride={onSetTicketAccessOverride}
+          />
         </div>
       )
     }

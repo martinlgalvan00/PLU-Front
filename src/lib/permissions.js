@@ -262,6 +262,28 @@ export const PERMISSION_CATALOG = [
     sortOrder: 100,
   },
   {
+    // No es `admin.payments.approve`: habilitar una entrada no abre
+    // afiliaciones, inscripciones, tienda ni el libro de caja.
+    key: 'admin.tickets.enable',
+    module: 'checkin',
+    moduleLabel: 'Check-in',
+    action: 'approve',
+    actionLabel: 'Habilitar entradas',
+    description: 'Aprobar o rechazar una orden de entradas pendiente del evento asignado.',
+    sortOrder: 101,
+  },
+  {
+    // Excepción de este ingreso. Dejar una vigencia que siga abriendo pide
+    // además `admin.event_team.write` (coordinador) o `admin.events.write`.
+    key: 'admin.checkin.override',
+    module: 'checkin',
+    moduleLabel: 'Check-in',
+    action: 'override',
+    actionLabel: 'Excepción de ingreso',
+    description: 'Forzar el ingreso de una entrada ya paga fuera de vigencia o de zona.',
+    sortOrder: 102,
+  },
+  {
     key: 'admin.users.read',
     module: 'users',
     moduleLabel: 'Usuarios',
@@ -444,7 +466,12 @@ export const DEFAULT_ROLE_PERMISSIONS = Object.freeze({
     'admin.exports.admin',
     'admin.staff_applications.read',
   ],
-  seguridad_plu_arg: ['admin.events.read', 'admin.checkin.execute'],
+  seguridad_plu_arg: [
+    'admin.events.read',
+    'admin.checkin.execute',
+    'admin.tickets.enable',
+    'admin.checkin.override',
+  ],
   // Rol "por evento": estos permisos valen SOLO sobre los eventos asignados a la
   // cuenta. El servidor le niega cualquier ruta que no filtre por evento (ver
   // `requireAuth` y `eventScope`). No hay `admin.users.*`, `admin.pricing.*`,
@@ -457,12 +484,15 @@ export const DEFAULT_ROLE_PERMISSIONS = Object.freeze({
     'admin.payments.approve',
     'admin.event_team.write',
   ],
-  // Puerta de los eventos asignados: equipo, zonas, lista y escaneo.
-  // Sin cobros, inscripciones ni edición del evento.
+  // Puerta de los eventos asignados: equipo, zonas, lista, escaneo,
+  // habilitar entradas de ese evento y forzar un ingreso pago.
+  // Sin cobros de atletas, inscripciones ni edición del evento.
   coordinador_seguridad: [
     'admin.events.read',
     'admin.checkin.execute',
     'admin.event_team.write',
+    'admin.tickets.enable',
+    'admin.checkin.override',
   ],
 })
 
@@ -527,7 +557,7 @@ export const ACCESS_ROLE_TEMPLATES = Object.freeze([
     key: 'coordinador_seguridad',
     name: 'Coordinador de seguridad',
     description:
-      'Coordina la puerta de los eventos que se le asignan: equipo, zonas, lista y escaneo.',
+      'Coordina la puerta de los eventos que se le asignan: equipo, zonas, quién compró, habilitación de entradas y excepciones de ingreso.',
     baseRole: 'operador_plu_arg',
     scope: ACCESS_ROLE_SCOPE.event,
     isSystem: true,

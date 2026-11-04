@@ -18,6 +18,8 @@ const EVENT = {
   dateISO: '2026-08-15',
   startsAt: '2026-08-15T12:00:00.000Z',
   endsAt: '2026-08-15T22:00:00.000Z',
+  registrationOpensAt: '2026-07-01T10:00:00.000Z',
+  registrationClosesAt: '2026-08-14T18:00:00.000Z',
   venue: 'Maximal Strength Club',
   location: 'Buenos Aires',
   status: 'inscripcion_abierta',

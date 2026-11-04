@@ -345,8 +345,11 @@ export async function setTicketAccessOverride(ticketId, { enabled, validFrom = n
   return { ticket: toCamelTicket(result.ticket) }
 }
 
-export async function checkInTicket(qrToken, gate) {
-  const result = await apiPost(`/api/tickets/checkin/${qrToken}`, { gate })
+export async function checkInTicket(qrToken, gate, { force, reason } = {}) {
+  const result = await apiPost(`/api/tickets/checkin/${qrToken}`, {
+    gate,
+    ...(force ? { force, reason } : {}),
+  })
   return { ticket: toCamelTicket(result.ticket), checkIn: toCamelCheckIn(result.checkIn) }
 }
 

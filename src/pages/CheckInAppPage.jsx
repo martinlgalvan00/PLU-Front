@@ -54,15 +54,19 @@ function DoorClip({ children }) {
 export default function CheckInAppPage({
   athletes,
   canCheckIn,
+  canEnableTickets = false,
+  canForceCheckIn = false,
   eventDays = [],
   eventSlug = 'pitbull-classic-2026',
   eventTitle,
+  onApproveTicketOrder,
   onCheckInRegistration,
   onCheckInTicket,
   onExit,
   onReauthenticate = null,
   onRedeemTicketAddon,
   onRefreshTickets,
+  onRejectTicketOrder,
   registrations,
   roleLabel,
   /** Puesto asignado a la cuenta: nombre y alcance. Nulo = sin zona. */
@@ -85,12 +89,16 @@ export default function CheckInAppPage({
   const workspace = useCheckInWorkspace({
     athletes,
     canCheckIn,
+    canEnableTickets,
+    canForceCheckIn,
     eventDays,
     eventSlug,
+    onApproveTicketOrder,
     onCheckInRegistration,
     onCheckInTicket,
     onRedeemTicketAddon,
     onRefreshTickets,
+    onRejectTicketOrder,
     registrations,
     securityZone,
     ticketTypes,
@@ -187,6 +195,7 @@ export default function CheckInAppPage({
       pendingCount={workspace.offlineSync.pendingCount}
       queueLog={workspace.offlineSync.queueLog}
       onReauthenticate={onReauthenticate}
+      onRetryExhausted={workspace.offlineSync.continueExhausted}
       syncIssue={workspace.offlineSync.syncIssue}
       syncNow={workspace.offlineSync.syncNow}
       syncing={workspace.offlineSync.syncing}
@@ -197,9 +206,14 @@ export default function CheckInAppPage({
   const scanResultPanel = (
     <CheckInScanResult
       canCheckIn={canCheckIn}
+      canEnableTickets={canEnableTickets}
+      canForceCheckIn={canForceCheckIn}
       locale={locale}
       onDismiss={() => workspace.setScanResult(null)}
+      onEnableTicket={workspace.handleEnableTicket}
+      onForceCheckIn={workspace.handleForceCheckIn}
       onRedeemAddon={workspace.handleRedeemAddon}
+      onRejectTicket={workspace.handleRejectTicket}
       onScanCheckIn={workspace.handleScanCheckIn}
       redeemBusyId={workspace.redeemBusyId}
       redeemError={workspace.redeemError}
@@ -541,6 +555,33 @@ export default function CheckInAppPage({
                   width: 140,
                   render: (row) => <DoorClip>{formatCheckinRowDay(row, eventDays, t)}</DoorClip>,
                 },
+                ...(tab === 'tickets'
+                  ? [
+                      {
+                        key: 'validity',
+                        label: t('admin.checkin.validUntil'),
+                        className: 'data-table__column--clip',
+                        mobile: 'hidden',
+                        width: 140,
+                        render: (row) => (
+                          <DoorClip>
+                            {row.validUntil
+                              ? new Date(row.validUntil).toLocaleString(
+                                  locale === 'en' ? 'en-US' : 'es-AR',
+                                  {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: false,
+                                  },
+                                )
+                              : '—'}
+                          </DoorClip>
+                        ),
+                      },
+                    ]
+                  : []),
                 {
                   key: 'status',
                   label: t('admin.columns.status'),

@@ -22,7 +22,6 @@ import {
   acceptCookies,
   MINIMAL_JPEG,
   OVERSIZED_JPEG,
-  TICKET_CODE,
 } from './ticket-purchase-helpers.js'
 
 let fixture
@@ -54,11 +53,11 @@ test.describe('Cliente — flujo de compra de entradas', () => {
     })
 
     await assertOrderCreated(page, { expectedAmount: '20.000', expectedQuantity: 1 })
-    // Con el pago pendiente el pase (nombre + QR) no se dibuja: la fila dice
-    // DNI · código y "QR pendiente de habilitación". El nombre se verifica
-    // abajo, en la credencial pública.
+    // Con el pago pendiente la billetera muestra el nombre y que el QR se
+    // habilita al acreditar. El nombre también se verifica en la credencial.
     await assertCustomerConfirmation(page, {
       eventTitle: fixture.ticketEventTitle,
+      name: 'Camila Cliente',
       dni: '42111222',
       amount: '20.000',
     })
@@ -66,16 +65,14 @@ test.describe('Cliente — flujo de compra de entradas', () => {
     const tokens = await assertPassesOnConfirmation(page, { labels: ['Público general'] })
     expect(tokens).toHaveLength(1)
 
-    // "Ver mi entrada" abre el pase con el QR: no se ofrece hasta acreditar.
     await expect(page.getByRole('button', { name: /ver mi entrada/i })).toHaveCount(0)
-    const passInfo = page.locator('.ticket-purchase--confirmation .ticket-purchase__ticket-info')
-    const ticketCode = (await passInfo.first().innerText()).match(TICKET_CODE)?.[0]
-    expect(ticketCode).toMatch(TICKET_CODE)
+    const heldRow = page.locator('.ticket-purchase--confirmation .buyer-tickets-wallet__row')
 
     await page.goto('/')
     await page.goto(`${TICKETS_PATH}?evento=${encodeURIComponent(fixture.ticketEventSlug)}`)
     await expect(page.locator('.ticket-purchase--confirmation')).toBeVisible({ timeout: 15_000 })
-    await expect(passInfo.first()).toContainText(`DNI 42111222 · ${ticketCode}`)
+    await expect(heldRow).toContainText('Camila Cliente')
+    await expect(heldRow).toContainText(/se habilita cuando se acredite el pago/i)
 
     await openTicketCredential(page, {
       qrToken: tokens[0],

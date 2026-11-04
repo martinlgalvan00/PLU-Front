@@ -374,7 +374,14 @@ function EventListRow({
 }
 
 /** Pestañas del workspace que no montan el editor del evento. */
-const NON_EDITOR_SECTIONS = new Set(['structure', 'security', 'payments', 'registrations', 'results'])
+const NON_EDITOR_SECTIONS = new Set([
+  'structure',
+  'security',
+  'payments',
+  'registrations',
+  'results',
+  'sold',
+])
 /** Pestañas que sí viven del draft del editor. El resumen no entra: si
  *  “Cerrar sección” va a dashboard y la invariante rearma el form, el botón
  *  no cierra nada. */
@@ -403,8 +410,11 @@ export default function EventsSection({
   users = [],
   onCreateUser,
   onSetEventAccess,
+  canEnableTickets = false,
+  canSetTicketWindow = false,
   canViewScanReport = false,
   canValidatePayments = false,
+  showSoldTickets = false,
   canSetRegistrationStatus = false,
   isLoading = false,
   loadError = null,
@@ -1892,7 +1902,9 @@ export default function EventsSection({
           activeSection={consoleSection}
           canDelete={canDeleteEvents && Boolean(onDeleteEvent)}
           canEdit={canEdit}
+          canEnableTickets={canEnableTickets}
           canManageUsers={teamAccess}
+          canSetTicketWindow={canSetTicketWindow}
           canReadResults={canReadResults}
           canWriteResults={canWriteResults}
           editor={
@@ -1949,10 +1961,12 @@ export default function EventsSection({
           }
           event={selectedEvent}
           inNav={navEventSlugs.has(selectedEvent.slug)}
+          onApproveTicketOrder={onApproveTicketOrder}
           onBack={backFromEventConsole}
           onDelete={openDeleteDialog}
           onManageCheckin={onManageCheckin}
           onManageRegistrations={onManageRegistrations}
+          onRejectTicketOrder={onRejectTicketOrder}
           onSelectChapter={selectConsoleChapter}
           onSelectSection={selectConsoleSection}
           onSetEventLogo={onSetEventLogo}
@@ -2015,6 +2029,7 @@ export default function EventsSection({
           previewDraft={
             formOpen && draft.id && draft.id === selectedEvent.id ? draft : null
           }
+          showSoldTickets={showSoldTickets}
           securitySection={
             teamAccess || canManageUsers ? (
               <div className="admin-event-workspace__security-stack">
