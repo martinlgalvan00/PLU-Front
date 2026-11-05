@@ -164,7 +164,8 @@ describe('descargar entrada', () => {
       expect(screen.getByText('No pudimos generar la imagen. Probá de nuevo.')).toBeTruthy(),
     )
     expect(downloadCard).not.toHaveBeenCalled()
-    // La pantalla sigue viva: el botón para ver la entrada sigue ahí.
-    expect(screen.getByRole('button', { name: 'Ver mi entrada' })).toBeTruthy()
+    // La pantalla sigue viva: el pase y la descarga siguen ahí.
+    expect(screen.getByTestId('ticket-pass-preview')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Descargar entrada' })).toBeTruthy()
   })
 })

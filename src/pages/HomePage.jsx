@@ -11,7 +11,6 @@ import HomeResultsTeaser from '../components/ui/HomeResultsTeaser.jsx'
 import HomeRulebookTeaser from '../components/ui/HomeRulebookTeaser.jsx'
 import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.jsx'
 import PitbullSpotlight from '../components/ui/PitbullSpotlight.jsx'
-import Reveal from '../components/ui/Reveal.jsx'
 import StickyMobileCta from '../components/ui/StickyMobileCta.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
@@ -232,9 +231,9 @@ export default function HomePage({
       </section>
 
       <section className="home-section home-section--immersive home-section--community">
-        <Reveal className="home-section__inner" variant="fade">
+        <div className="home-section__inner">
           <CommunitySpotlight onNavigate={onNavigate} />
-        </Reveal>
+        </div>
       </section>
 
       <StickyMobileCta onBecameVisible={handleStickyVisible} onNavigate={onNavigate} />

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { QrCode, Ticket } from 'lucide-react'
+import { Mail, QrCode, Ticket } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from './AdminDataTable.jsx'
 import AdminEmptyState from './AdminEmptyState.jsx'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
@@ -11,11 +11,12 @@ import ErrorState from '../ui/ErrorState.jsx'
 import ExportButton from '../ui/ExportButton.jsx'
 import TableSkeleton from '../ui/TableSkeleton.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { money } from '../../lib/format.js'
 import { ticketTypeNameParts } from '../../lib/eventPricing.js'
 import { summarizeSoldTickets } from '../../lib/ticketAdmission.js'
 import { createCsv } from '../../services/exportService.js'
-import { listTicketsForEvent } from '../../services/ticketApi.js'
+import { listTicketsForEvent, resendTicketOrder } from '../../services/ticketApi.js'
 // El bloque `admin-orders-block` (cabecera, buscador, filtros) vive en la hoja de
 // Cobros, que solo carga esa ruta: sin este import, "Vendidas" salía sin estilos.
 import '../../styles/pages/admin-payments.css'
@@ -83,6 +84,7 @@ export default function AdminEventTicketsSoldSection({
   const [overrideOpen, setOverrideOpen] = useState(false)
   const [overrideBusy, setOverrideBusy] = useState(false)
   const [overrideError, setOverrideError] = useState('')
+  const [resendingOrderId, setResendingOrderId] = useState(null)
 
   useEffect(() => {
     let active = true
@@ -162,6 +164,8 @@ export default function AdminEventTicketsSoldSection({
         channel: channelLabel(ticket.order, t) ?? '—',
         status: ticket.status,
         buyer: ticket.order?.buyerName || ticket.order?.buyerEmail || '—',
+        orderId: ticket.order?.id || ticket.orderId || null,
+        canResend: ticket.status === 'pagada' && Boolean(ticket.order?.id || ticket.orderId),
         reference: ticket.order?.reference ?? '—',
         checkInAt: ticket.checkIn?.scannedAt ? formatDate(ticket.checkIn.scannedAt, locale) : null,
       })),
@@ -198,6 +202,21 @@ export default function AdminEventTicketsSoldSection({
       [t('admin.eventTicketsSold.colCheckIn')]: row.checkInAt ?? '—',
     }))
     createCsv(`entradas-${event.slug}.csv`, body)
+  }
+
+  async function resendCredential(row) {
+    if (!row.orderId || resendingOrderId) return
+    setResendingOrderId(row.orderId)
+    try {
+      const result = await resendTicketOrder(row.orderId)
+      if (result?.status === 'already') notifySuccess(t('admin.eventTicketsSold.qr.already'))
+      else if (result?.status === 'sent') notifySuccess(t('admin.eventTicketsSold.qr.resent'))
+      else notifyError(t('admin.eventTicketsSold.qr.resendFailed'))
+    } catch (err) {
+      notifyError(err?.message || t('admin.eventTicketsSold.qr.resendFailed'))
+    } finally {
+      setResendingOrderId(null)
+    }
   }
 
   function closeQr() {
@@ -399,14 +418,30 @@ export default function AdminEventTicketsSoldSection({
               key: 'actions',
               label: t('admin.eventTicketsSold.qr.column'),
               mobile: 'action',
-              width: 64,
+              width: 104,
               align: 'end',
               render: (row) => (
-                <AdminIconButton
-                  icon={QrCode}
-                  label={t('admin.eventTicketsSold.qr.open', { name: row.attendee })}
-                  onClick={() => setQrTicketId(row.id)}
-                />
+                <span className="sold-tickets__actions">
+                  {row.canResend ? (
+                    <AdminIconButton
+                      disabled={resendingOrderId === row.orderId}
+                      icon={Mail}
+                      label={t('admin.eventTicketsSold.qr.resendRow', { buyer: row.buyer })}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        void resendCredential(row)
+                      }}
+                    />
+                  ) : null}
+                  <AdminIconButton
+                    icon={QrCode}
+                    label={t('admin.eventTicketsSold.qr.open', { name: row.attendee })}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setQrTicketId(row.id)
+                    }}
+                  />
+                </span>
               ),
             },
           ]}

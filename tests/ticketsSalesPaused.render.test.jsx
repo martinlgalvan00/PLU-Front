@@ -202,4 +202,30 @@ describe('TicketsPage con ventas habilitadas', () => {
     expect(screen.queryByRole('link', { name: /comprar entradas/i })).toBeNull()
     expect(options[1].textContent).not.toMatch(/\$\s*0/)
   })
+
+  it('con la entrada paga deja el nombre del evento y abre directo al pase', () => {
+    checkoutState.ticketEnabled = true
+
+    const { container } = render(
+      <I18nProvider>
+        <TicketsPage
+          event={event}
+          createdOrder={{
+            type: 'tickets',
+            status: 'aprobado',
+            eventTitle: event.title,
+            orderId: 'ord-1',
+          }}
+          onNavigate={() => {}}
+        />
+      </I18nProvider>,
+    )
+
+    expect(container.querySelector('main')?.className).toContain('tickets-page--holding')
+    expect(screen.getByRole('heading', { level: 1, name: event.title })).toBeTruthy()
+    expect(screen.queryByText('Sin afiliación. Cargás el DNI, pagás y entrás con QR.')).toBeNull()
+    expect(container.querySelector('.tickets-page__hero-stripe')).toBeNull()
+    expect(container.querySelector('.tickets-page__hero-backdrop')).toBeNull()
+    expect(screen.queryByRole('radio', { name: /general/i })).toBeNull()
+  })
 })

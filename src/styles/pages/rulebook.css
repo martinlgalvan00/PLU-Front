@@ -247,7 +247,7 @@
 }
 
 .rulebook-judging-list__numeral {
-  color: var(--color-brand-celeste);
+  color: var(--color-brand-gold-ink);
   flex: none;
   font-family: var(--font-mono);
   font-size: 13px;
@@ -653,7 +653,7 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;
-  min-height: 34px;
+  min-height: 44px;
   padding-inline: 14px;
 }
 
@@ -736,8 +736,8 @@
 }
 
 .rulebook-icon-action--compact {
-  height: 32px;
-  width: 32px;
+  height: 44px;
+  width: 44px;
 }
 
 .rulebook-doc-shell__locale-note {
@@ -751,9 +751,7 @@
 .rulebook-pdf-modal-overlay {
   align-items: center;
   animation: rulebook-modal-fade-in 200ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) forwards;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  background: rgba(8, 10, 14, 0.82);
+  background: rgba(8, 10, 14, 0.88);
   display: flex;
   inset: 0;
   justify-content: center;
@@ -1118,7 +1116,7 @@
   font-size: 12px;
   gap: 6px;
   justify-self: start;
-  min-height: 36px;
+  min-height: 44px;
   padding-inline: 16px;
   text-decoration: none;
 }
@@ -1456,7 +1454,7 @@
 }
 
 .rulebook-lift-card__section {
-  color: var(--color-brand-celeste);
+  color: var(--color-brand-gold-ink);
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
@@ -1782,7 +1780,7 @@
   background: var(--rulebook-canon-bg, rgba(116, 172, 223, 0.08));
   border: 1px solid var(--rulebook-canon-border, rgba(116, 172, 223, 0.14));
   border-radius: 8px;
-  color: var(--rulebook-canon-fg, var(--color-brand-celeste));
+  color: var(--rulebook-canon-fg, var(--color-brand-gold-ink));
   display: inline-flex;
   font-family: var(--font-display);
   font-size: 11px;

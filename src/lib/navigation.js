@@ -58,6 +58,8 @@ export const ACCOUNT_OFFER_TAB = 'account-offer'
 /** Estado de los cobros de la cuenta: es a donde apuntan los emails de pago. */
 export const ACCOUNT_PAYMENTS_TAB = 'account-payments'
 
+export const ACCOUNT_TICKETS_TAB = 'account-tickets'
+
 /**
  * Orden de las fichas de la cuenta, en un solo lugar. Lo consumen la cinta
  * (`AccountNav`, que lo recorre para dibujar los tabs) y la página
@@ -72,6 +74,7 @@ export const ACCOUNT_TAB_IDS = [
   // panel; qué fichas se dibujan lo decide `visibleIds` en AccountNav.
   ACCOUNT_OFFER_TAB,
   ACCOUNT_EVENTS_TAB,
+  ACCOUNT_TICKETS_TAB,
   'account-history',
   ACCOUNT_MEMBERSHIP_TAB,
   ACCOUNT_PAYMENTS_TAB,
@@ -90,6 +93,8 @@ const ACCOUNT_TAB_BY_SECTION = Object.freeze({
   payments: ACCOUNT_PAYMENTS_TAB,
   membership: ACCOUNT_MEMBERSHIP_TAB,
   events: ACCOUNT_EVENTS_TAB,
+  tickets: ACCOUNT_TICKETS_TAB,
+  entradas: ACCOUNT_TICKETS_TAB,
   // Beneficios salió de la cinta: los links que ya se repartieron con
   // `?section=benefits` aterrizan donde hoy se canjea un código —Afiliación—,
   // en vez de resolver a una ficha que no se renderiza y caer en la credencial

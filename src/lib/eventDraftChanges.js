@@ -25,6 +25,7 @@ const AREA_OF_FIELD = {
   ticketSalesOpensAt: 'tickets',
   ticketSalesClosesAt: 'tickets',
   ticketCapacity: 'tickets',
+  ticketRevealLeadHours: 'tickets',
   paymentChannelOverrides: 'payment',
   bankTransfer: 'payment',
   bankTransferProfileId: 'payment',

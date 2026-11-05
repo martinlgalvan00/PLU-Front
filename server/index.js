@@ -5,6 +5,7 @@ import { applyServerRuntimeDefaults } from './lib/runtime.js'
 import { getPrisma } from './lib/prisma.js'
 import { getSupabaseAdmin } from './lib/supabaseAdmin.js'
 import { startEmailDispatchJob } from './jobs/emailDispatchJob.js'
+import { startTicketRevealMailJob } from './jobs/ticketRevealMailJob.js'
 import { startMembershipRenewalJob } from './jobs/membershipRenewalJob.js'
 import { startMercadoPagoOAuthRefreshJob } from './jobs/mercadoPagoOAuthRefreshJob.js'
 import { startPaymentOrderExpiryJob } from './jobs/paymentOrderExpiryJob.js'
@@ -49,6 +50,7 @@ server.on('error', (error) => {
 
 applyServerRuntimeDefaults(server)
 startEmailDispatchJob({ client: getSupabaseAdmin() })
+startTicketRevealMailJob({ client: getSupabaseAdmin() })
 startMembershipRenewalJob({ client: getSupabaseAdmin() })
 startMercadoPagoOAuthRefreshJob({ client: getSupabaseAdmin() })
 startPaymentOrderExpiryJob({ client: getSupabaseAdmin() })

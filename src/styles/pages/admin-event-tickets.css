@@ -105,6 +105,12 @@
   line-height: 1.35;
 }
 
+.sold-tickets__actions {
+  display: inline-flex;
+  gap: 2px;
+  justify-content: flex-end;
+}
+
 /* ---- Panel de la entrada ---- */
 
 .ticket-qr-panel {

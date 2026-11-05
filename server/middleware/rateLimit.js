@@ -144,6 +144,15 @@ export const ticketOrderLookupLimiter = buildLimiter(
   { name: 'ticket-order-lookup', mode: 'strict' },
 )
 
+// Entradas de la cuenta logueada. No comparte el balde corto del lookup
+// público: quien ya tiene sesión no está adivinando una referencia.
+export const ticketMineLimiter = buildLimiter(
+  60 * 1000,
+  60,
+  'Demasiadas solicitudes. Proba de nuevo en un momento.',
+  { name: 'ticket-mine', mode: 'sampled' },
+)
+
 // Lecturas públicas sin auth (verificación de QR, estado de pago con
 // polling durante checkout, catálogo de planes) -- ventana corta y volumen
 // generoso, pensado para no frenar el polling legítimo del frontend.

@@ -368,6 +368,7 @@
   font-size: clamp(20px, 2.6vw, 30px);
   font-weight: 620;
   letter-spacing: -0.03em;
+  min-height: 44px;
 }
 
 .standards-page--institutional .standards-lookup__results {
@@ -645,9 +646,28 @@
   }
 }
 
+@media (max-width: 760px) {
+  .faq-page--institutional .faq-categories {
+    flex-wrap: nowrap;
+    gap: 0 22px;
+    margin-inline: -18px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding: 0 18px 8px;
+    scroll-padding-inline: 18px;
+    scroll-snap-type: x proximity;
+  }
+
+  .faq-page--institutional .faq-categories button {
+    flex: none;
+    scroll-snap-align: start;
+  }
+}
+
 @media (max-width: 560px) {
   .faq-page--institutional .faq-categories {
     gap: 0 20px;
+    flex-wrap: nowrap;
   }
 
   .faq-page--institutional .faq-accordion--ref .faq-item__trigger {

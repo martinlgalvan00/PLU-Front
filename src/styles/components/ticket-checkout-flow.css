@@ -69,7 +69,7 @@
 }
 
 .ticket-flow-rail__step button:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
+  outline: 2px solid var(--color-brand-gold);
   outline-offset: 4px;
 }
 
@@ -291,7 +291,7 @@
 
 /* Medio de pago: la barra de selección entra desde abajo en vez de saltar. */
 .ticket-flow-chapter .ticket-purchase__payment-option::before {
-  background: var(--color-brand-celeste);
+  background: var(--color-brand-gold);
   bottom: 12px;
   content: '';
   left: 0;

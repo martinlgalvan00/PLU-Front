@@ -81,6 +81,7 @@ describe('buildBuyerTicketsUrl', () => {
   it('arma el enlace a "Mis entradas" con la referencia y devuelve vacío sin ella', () => {
     expect(buildBuyerTicketsUrl('TORD-abc 1')).toMatch(/\/entradas\?ref=TORD-abc%201$/)
     expect(buildBuyerTicketsUrl(null)).toBe('')
+    expect(buildBuyerTicketsUrl('TORD-abc123', 'firma')).toMatch(/ref=TORD-abc123&k=firma$/)
   })
 })
 

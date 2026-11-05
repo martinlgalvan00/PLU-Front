@@ -71,6 +71,7 @@ describe('estado de una credencial escaneada', () => {
 
     expect(result.outcome).toBe('ready')
     expect(result.canCheckIn).toBe(true)
+    expect(result.row.memberCode).toBe('PLU-ARG-2026-014')
   })
 })
 

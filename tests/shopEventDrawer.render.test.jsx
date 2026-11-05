@@ -7,6 +7,13 @@ import { I18nProvider, useI18n } from '../src/i18n/I18nProvider.jsx'
 vi.mock('../src/hooks/useTicketAvailability.js', () => ({
   useTicketAvailability: () => null,
   useTicketCheckoutAvailability: () => ({ ticketEnabled: true, ticketManualEnabled: false }),
+  usePublicTicketOffer: (event, { checkoutOpen = true } = {}) => {
+    if (event?.pricing?.ticketsEnabled === false) {
+      return { status: 'off', reason: 'eventDisabled', canBuy: false }
+    }
+    if (!checkoutOpen) return { status: 'blocked', reason: 'platform', canBuy: false }
+    return { status: 'open', reason: null, canBuy: true }
+  },
 }))
 
 const EVENT = {

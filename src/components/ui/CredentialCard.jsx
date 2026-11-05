@@ -35,8 +35,9 @@ export default function CredentialCard({
   brandSub = 'Argentina',
   className = '',
   maxTilt = 3,
+  initialFlipped = false,
 }) {
-  const [isFlipped, setIsFlipped] = useState(false)
+  const [isFlipped, setIsFlipped] = useState(initialFlipped)
 
   const toggleFlip = () => setIsFlipped((value) => !value)
 
@@ -89,10 +90,12 @@ export default function CredentialCard({
               <div className="credential-card__identity">
                 <p className="credential-card__eyebrow">{eyebrow}</p>
                 <p className="credential-card__name">{name}</p>
-                <p className="credential-card__code">
-                  <span className="credential-card__code-label">{codeLabel}</span>
-                  <span className="credential-card__code-value">{code}</span>
-                </p>
+                {code ? (
+                  <p className="credential-card__code">
+                    <span className="credential-card__code-label">{codeLabel}</span>
+                    <span className="credential-card__code-value">{code}</span>
+                  </p>
+                ) : null}
               </div>
 
               <footer className="credential-card__foot">
@@ -140,7 +143,7 @@ export default function CredentialCard({
               </div>
 
               <footer className="credential-card__foot credential-card__foot--back">
-                <span className="credential-card__code-value">{code}</span>
+                {code ? <span className="credential-card__code-value">{code}</span> : null}
                 <span className="credential-card__flip-badge" aria-hidden>
                   <RotateCcw size={13} strokeWidth={2} />
                   {flipToFrontLabel}

@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
@@ -88,7 +88,15 @@ afterEach(cleanup)
 
 describe('TicketPurchaseSection — festejo de compra', () => {
   it('muestra el sello de compra confirmada cuando la orden ya está aprobada', () => {
-    renderSection({ createdOrder: order({ status: 'aprobado' }) })
+    const scroll = vi.fn()
+    window.HTMLElement.prototype.scrollIntoView = scroll
+    const { container } = renderSection({ createdOrder: order({ status: 'aprobado' }) })
+    const pass = within(container).getByTestId('ticket-pass-preview')
+    const share = container.querySelector('.ticket-purchase__share-cta')
+    const seal = screen.getByText('Compra confirmada')
+    expect(pass.compareDocumentPosition(seal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(pass.compareDocumentPosition(share) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(scroll).toHaveBeenCalled()
     expect(screen.getByText('Compra confirmada')).toBeTruthy()
     expect(screen.getByText(/Tus entradas para Pitbull Classic 2026/)).toBeTruthy()
     // El encabezado plano (ícono + StatusPill) no convive con el sello: sería
@@ -116,5 +124,16 @@ describe('TicketPurchaseSection — festejo de compra', () => {
     })
     expect(screen.queryByText('Compra confirmada')).toBeNull()
     expect(screen.getByTestId('mp-embedded')).toBeTruthy()
+  })
+
+  it('no vuelve a pedir la transferencia si la compra fue rechazada', () => {
+    renderSection({
+      createdOrder: order({ status: 'rechazado', paymentMethod: 'transferencia' }),
+      tickets: [ticket({ status: 'pendiente_pago' })],
+    })
+    expect(screen.queryByText('Compra confirmada')).toBeNull()
+    expect(screen.queryByText(/tu qr todavía no abre la puerta/i)).toBeNull()
+    expect(document.querySelector('.ticket-purchase__transfer-panel')).toBeNull()
+    expect(screen.queryByTestId('ticket-pass-preview')).toBeNull()
   })
 })

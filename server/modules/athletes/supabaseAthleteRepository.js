@@ -3,7 +3,11 @@ import { HttpError } from '../../lib/errors.js'
 import { PRIMARY_ORGANIZATION_ID } from '../../lib/organizations.js'
 import { authenticatedPortraitUrl } from '../../lib/publicPortraitUrl.js'
 import { forgetPortraitCache } from '../../lib/portraitBinaryCache.js'
-import { assertSupabaseResult, requireSupabaseClient } from '../../lib/supabaseRpc.js'
+import {
+  assertSupabaseResult,
+  isMissingSchemaColumn,
+  requireSupabaseClient,
+} from '../../lib/supabaseRpc.js'
 import { forgetAthleteSessionCache } from '../../services/athleteSessionService.js'
 import { trashFilesOfOrders } from '../payments/paymentProofTrash.js'
 
@@ -1092,6 +1096,15 @@ export function createSupabaseAthleteRepository(
       ),
 
     async findEventSummary(eventId) {
+      const withLead = await client
+        .from('events')
+        .select('id, title, slug, starts_at, venue, ticket_reveal_lead_minutes')
+        .eq('id', eventId)
+        .maybeSingle()
+      if (!withLead.error) return withLead.data ?? null
+      if (!isMissingSchemaColumn(withLead.error)) {
+        return assertSupabaseResult(withLead, 'No se pudo leer el evento.')
+      }
       return assertSupabaseResult(
         await client
           .from('events')

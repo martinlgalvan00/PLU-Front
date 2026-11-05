@@ -1242,6 +1242,38 @@
   margin: 10px 0 0;
 }
 
+.security-gate-card__header .security-gate-card__meta {
+  text-wrap: balance;
+}
+
+.security-gate-card__code .login-field__control input {
+  font-family: var(--font-display, var(--font-family));
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.security-gate-card__split {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: grid;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 12px;
+  grid-template-columns: 1fr auto 1fr;
+  letter-spacing: 0.04em;
+  margin: 6px 0 2px;
+}
+
+.security-gate-card__split::before,
+.security-gate-card__split::after {
+  background: var(--color-border-subtle);
+  content: '';
+  height: 1px;
+}
+
 .security-gate-card__demo-hint {
   color: rgba(255, 255, 255, 0.42);
   font-size: 12.5px;

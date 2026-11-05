@@ -2,6 +2,7 @@ import { HttpError } from '../../lib/errors.js'
 import { resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
 import { findMissingParams, getEmailDefinition, resolveTemplateId } from './emailCatalog.js'
 import { hasHtmlFallback, renderEmail } from './emailTemplates.js'
+import { withSignedTicketOpenUrl } from '../ticketing/ticketOpenLink.js'
 
 /**
  * emailDispatcher.js — PLU ARG
@@ -73,20 +74,34 @@ export function createEmailDispatcher({
    * El template de Brevo tiene prioridad: es lo que el equipo edita en el
    * dashboard. Sin template, cae al HTML del repo para que el mail salga igual.
    */
+  /**
+   * El comprobante de una entrada abre el QR con la firma. Esa firma se calcula
+   * acá, al salir el mail: el outbox guarda el enlace sin `k` y un reintento
+   * la vuelve a armar. No es un dato sensible del catálogo, así que el
+   * reintento de afiliaciones e inscripciones sigue igual.
+   */
+  function presentParams(type, params) {
+    if (type !== 'payment_confirmation' || !params?.includesTicket) return params
+    const ticketUrl = withSignedTicketOpenUrl(params.ticketUrl, params.reference)
+    if (!ticketUrl || ticketUrl === params.ticketUrl) return params
+    return { ...params, ticketUrl }
+  }
+
   function resolveContent(type, params, subjectOverride) {
+    const live = presentParams(type, params)
     const templateId = resolveTemplateId(type, env)
-    if (templateId) return { templateId, mode: 'brevo_template' }
+    if (templateId) return { templateId, mode: 'brevo_template', params: live }
 
     if (!hasHtmlFallback(type)) return { mode: 'none' }
     const definition = getEmailDefinition(type)
-    const rendered = renderEmail(type, params, {
+    const rendered = renderEmail(type, live, {
       // El catálogo define el asunto del fallback; el título visible del body
       // puede ser más corto. Un caller puede pisarlo con `input.subject`.
       subject: subjectOverride ?? definition?.subject,
       appUrl,
       logoUrl: env.EMAIL_LOGO_URL,
     })
-    return { ...rendered, mode: 'html_fallback' }
+    return { ...rendered, mode: 'html_fallback', params: live }
   }
 
   async function isSuppressed(email, definition, suppressionCache) {
@@ -111,6 +126,22 @@ export function createEmailDispatcher({
     if (definition.optOutAllowed) return suppression
 
     return null
+  }
+
+  /**
+   * Una fila `failed` se retoma sólo si este request trae el contenido vivo.
+   * El job automático sigue sin rearmar credenciales redactadas.
+   */
+  async function claimFailedEmail(started) {
+    if (started.created || started.emailLog?.status !== 'failed') return started
+    if (typeof repository.reopenFailedEmail !== 'function') return started
+    const prior = Number(started.emailLog.attempts_count ?? started.emailLog.attemptsCount ?? 1)
+    if (prior >= MAX_EMAIL_ATTEMPTS) return started
+    const reopened = await repository.reopenFailedEmail(started.emailLog.id)
+    if (!reopened) {
+      return { emailLog: { ...started.emailLog, status: 'duplicate' }, created: false }
+    }
+    return { emailLog: reopened, created: true, reclaimed: true }
   }
 
   async function send(type, input = {}) {
@@ -155,20 +186,23 @@ export function createEmailDispatcher({
     // La reserva ocurre antes de las validaciones operativas y de la lista de
     // supresión. Así un flujo que intentó mandar un email incompleto o a una
     // dirección suprimida deja evidencia durable en Auditoría.
-    const started = await repository.beginEmail({
-      type,
-      to,
-      entityType,
-      entityId,
-      idempotencyKey,
-      templateId: resolveTemplateId(type, env),
-      category: definition.category,
-      // Los links firmados, códigos y contraseñas sólo existen durante este
-      // request. El outbox conserva el contexto auditable, nunca el bearer.
-      params: redactSensitiveEmailParams(type, params),
-    })
+    const started = await claimFailedEmail(
+      await repository.beginEmail({
+        type,
+        to,
+        entityType,
+        entityId,
+        idempotencyKey,
+        templateId: resolveTemplateId(type, env),
+        category: definition.category,
+        // Los links firmados, códigos y contraseñas sólo existen durante este
+        // request. El outbox conserva el contexto auditable, nunca el bearer.
+        params: redactSensitiveEmailParams(type, params),
+      }),
+    )
 
-    // Ya existía: otro proceso (o un reintento de webhook) lo tomó primero.
+    // Ya existía y no está para retomar: otro proceso lo mandó, o este día
+    // agotó los intentos. Un reintento de webhook no manda dos comprobantes.
     if (!started.created) {
       return {
         status: started.emailLog?.status ?? 'duplicate',
@@ -237,7 +271,10 @@ export function createEmailDispatcher({
       })
       return { status: 'sent', created: true, emailLog, response }
     } catch (error) {
-      const emailLog = await recordFailure(started.emailLog, error, 1, definition)
+      const attempt = started.reclaimed
+        ? Number(started.emailLog.attempts_count ?? started.emailLog.attemptsCount ?? 1) + 1
+        : 1
+      const emailLog = await recordFailure(started.emailLog, error, attempt, definition)
       // Se propaga para que el llamador decida. Todos los callers de negocio lo
       // atrapan: el email nunca revierte la operación que lo disparó.
       error.emailLog = emailLog
@@ -246,11 +283,12 @@ export function createEmailDispatcher({
   }
 
   function deliver({ type, to, input = {}, definition, params, content }) {
+    const live = content?.params ?? presentParams(type, params)
     return brevo.send({
       to,
-      toName: input.toName ?? params.name ?? undefined,
+      toName: input.toName ?? live.name ?? undefined,
       templateId: content.templateId,
-      params,
+      params: live,
       subject: content.subject,
       htmlContent: content.htmlContent,
       textContent: content.textContent,

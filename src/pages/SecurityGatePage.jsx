@@ -231,7 +231,7 @@ function SecurityGateLogin({
           </header>
 
           <form className="login-form" onSubmit={handleSubmit} noValidate>
-            <label className="login-field">
+            <label className="login-field security-gate-card__code">
               <span className="login-field__label">{t('securityGate.doorCodeLabel')}</span>
               <span className="login-field__control">
                 <input
@@ -241,12 +241,15 @@ function SecurityGateLogin({
                   onChange={(formEvent) => setDoorCode(formEvent.target.value.toUpperCase())}
                   autoComplete="off"
                   autoCapitalize="characters"
+                  autoFocus
                   spellCheck={false}
                   inputMode="text"
                 />
               </span>
               <small className="security-gate-card__meta">{t('securityGate.doorCodeHint')}</small>
             </label>
+
+            <p className="security-gate-card__split">{t('securityGate.accountDivider')}</p>
 
             <label className="login-field">
               <span className="login-field__label">{t('login.email')}</span>
@@ -258,8 +261,7 @@ function SecurityGateLogin({
                   onChange={(formEvent) => setEmail(formEvent.target.value)}
                   placeholder={t('login.emailPlaceholder')}
                   autoComplete="username"
-                  autoFocus
-                  required
+                  required={!doorCode.trim()}
                 />
               </span>
             </label>
@@ -274,7 +276,7 @@ function SecurityGateLogin({
                   onChange={(formEvent) => setPassword(formEvent.target.value)}
                   placeholder="••••••••"
                   autoComplete="current-password"
-                  required
+                  required={!doorCode.trim()}
                 />
                 <button
                   type="button"

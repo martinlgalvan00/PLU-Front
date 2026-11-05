@@ -690,9 +690,18 @@ export default function EventsPage({
     }
   }, [listEvents, selectedSlug])
 
-  function focusEvent(event) {
+  function focusEvent(event, { revealPanel = false } = {}) {
     setSelectedSlug(event.slug)
     setCalendarFocus(event.dateISO)
+    if (!revealPanel || typeof window === 'undefined') return
+    if (!window.matchMedia('(max-width: 1023px)').matches) return
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.requestAnimationFrame(() => {
+      document.getElementById('events-selected-panel')?.scrollIntoView({
+        behavior: reduced ? 'auto' : 'smooth',
+        block: 'start',
+      })
+    })
   }
 
   /** Abre la ficha del evento: Pitbull a su página editorial; el resto a /evento/:slug. */
@@ -848,7 +857,7 @@ export default function EventsPage({
                     memberships,
                   })}
                   ticketsAvailable={eventTicketsOpen(event)}
-                  onSelect={() => focusEvent(event)}
+                  onSelect={() => focusEvent(event, { revealPanel: true })}
                   onAction={() => handleEventCardAction(event)}
                   actionLabel={eventCardActionLabel(event)}
                   actionLive={isRegistrationOpen(event) || eventTicketsOpen(event)}
@@ -899,10 +908,10 @@ export default function EventsPage({
                 initialDate="2026-12-01"
                 focusDateISO={calendarFocus}
                 selectedEventSlug={selected?.slug}
-                onEventSelect={focusEvent}
+                onEventSelect={(event) => focusEvent(event, { revealPanel: true })}
               />
             </div>
-            <div className="events-calendar-board__panel">
+            <div className="events-calendar-board__panel" id="events-selected-panel">
               <MotionContentSwap swapKey={selected?.slug || 'none'}>
                 <EventsDetailPanel
                   event={selected}

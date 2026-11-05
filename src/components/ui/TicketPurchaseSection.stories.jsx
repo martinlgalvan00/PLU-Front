@@ -75,7 +75,7 @@ export const Confirmation = {
       eventTitle: event.title,
       quantity: 1,
       amount: 15000,
-      status: 'pagada',
+      status: 'aprobado',
       paymentMethod: 'mercado_pago',
     },
     tickets: [
@@ -85,6 +85,8 @@ export const Confirmation = {
         attendeeName: 'Juan Pérez',
         attendeeDni: '30111222',
         ticketCode: 'TCK-0001',
+        gateCode: 'K4M-7QP',
+        qrToken: 'qr-story-1',
         ticketTypeId: 'both',
         ticketTypeName: 'Ambos días',
         status: 'pagada',

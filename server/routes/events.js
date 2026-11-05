@@ -116,12 +116,13 @@ const CATALOG_TICKET_TYPE_EMBED = `
     credentials:ticket_type_credentials(id, label, zone_scopes, sort_order)
 `
 
-function catalogEventSelect(ticketTypeColumns) {
+function catalogEventSelect(ticketTypeColumns, { revealLead = false } = {}) {
+  const revealColumn = revealLead ? 'ticket_reveal_lead_minutes, ' : ''
   return `
   id, slug, title, description, venue, location,
   starts_at, ends_at,
   registration_opens_at, registration_closes_at,
-  ticket_sales_opens_at, ticket_sales_closes_at,
+  ticket_sales_opens_at, ticket_sales_closes_at, ${revealColumn}
   capacity, status, published, requires_membership, capacity_progress_public, price, manual_price, currency, rules,
   logo_path,
   scheduled_price, scheduled_manual_price, price_effective_at, wise_price,
@@ -140,6 +141,7 @@ function catalogEventSelect(ticketTypeColumns) {
 
 const CATALOG_EVENT_SELECT = catalogEventSelect(
   'id, name, description, price, wise_price, manual_price, quota, sort_order, active, sales_opens_at, sales_closes_at, valid_from, valid_until, qr_validity_mode, qr_validity_duration_minutes, access_usage_mode, payment_channels,',
+  { revealLead: true },
 )
 const CATALOG_EVENT_SELECT_COMPAT = catalogEventSelect(
   'id, name, price, quota, sort_order, active,',
@@ -482,6 +484,8 @@ export const eventSchema = z
     registrationClosesAt: requiredDateTime('Elegí cuándo cierra la inscripción.'),
     ticketSalesOpensAt: optionalDateTime,
     ticketSalesClosesAt: optionalDateTime,
+    // Horas antes de valid_from en las que el comprador ve el QR. 0 = al pagar.
+    ticketRevealLeadHours: z.coerce.number().int().min(0).max(366 * 24).optional(),
     eventDays: z.array(eventDaySchema).max(31).optional(),
     ticketTypes: z.array(ticketTypeSchema).max(50).optional(),
     weighInWindows: z.array(weighInWindowSchema).max(60).optional(),
@@ -1566,6 +1570,23 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           p_slug: pEvent.slug,
           p_total_public: pEvent.capacityTotalPublic !== false,
         })
+
+        if (pEvent.ticketRevealLeadHours !== undefined) {
+          const revealMerge = await client.rpc('staff_merge_event_ticket_reveal', {
+            p_slug: pEvent.slug,
+            p_lead_minutes: Math.round(Number(pEvent.ticketRevealLeadHours) * 60),
+          })
+          if (revealMerge.error && esRelacionFaltante(revealMerge.error)) {
+            console.warn(
+              '[eventos] `staff_merge_event_ticket_reveal` no existe en esta base: el evento se guardó sin la anticipación del QR. Aplicá la migración 20270113100000_ticket_reveal_lead.sql.',
+            )
+          } else {
+            assertSupabaseResult(
+              revealMerge,
+              'No se pudo guardar cuándo se habilita la entrada para verla.',
+            )
+          }
+        }
 
         // Sin esta RPC el staff_save_event ya corrió y pisó `updated_at`.
         // Abortar acá devolvía 500 y el reintento chocaba con PLU09.

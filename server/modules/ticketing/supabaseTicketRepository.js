@@ -2,11 +2,13 @@ import { createHash, createHmac, randomBytes } from 'node:crypto'
 import { HttpError } from '../../lib/errors.js'
 import {
   assertSupabaseResult,
+  isMissingRelation,
   isMissingSchemaColumn,
   requireSupabaseClient,
 } from '../../lib/supabaseRpc.js'
 import { PROOF_BUCKET } from '../../lib/supabaseAdmin.js'
 import { aggregateCapacity, aggregateRevenue, bucketByDay } from './ticketSalesAggregation.js'
+import { legacyEmailClaim } from './accountTickets.js'
 
 const hash = (value) => createHash('sha256').update(value).digest('hex')
 // El mostrador no manda token. Si cada reintento inventa uno nuevo, la RPC
@@ -49,6 +51,202 @@ const OPEN_TICKET_ORDER_STATUSES = ['creado', 'pendiente']
 // Igual que en el repo de atletas: sumar el importe pendiente sobre una
 // muestra acotada en vez de traer la tabla entera para un número.
 const OPEN_AMOUNT_SAMPLE_LIMIT = 500
+
+function isInvalidUuid(error) {
+  return (
+    error?.code === '22P02' ||
+    /invalid input syntax for type uuid/i.test(String(error?.message ?? ''))
+  )
+}
+
+/**
+ * Compra pública por referencia. El mail es el segundo factor; si viene vacío
+ * la firma del enlace ya lo reemplazó y no se filtra por comprador.
+ *
+ * Las jornadas y la ventana son un extra. Si esa relación o esas columnas
+ * todavía no están en la base, se reintenta con el select que ya devolvía el
+ * QR. La pantalla arma el día con lo que haya; nunca pierde la entrada.
+ */
+const BUYER_ORDER_SELECTS = [
+  'id, status, reference, buyer_email, event:events(title, slug, starts_at, venue, ticket_reveal_lead_minutes)',
+  'id, status, reference, buyer_email, event:events(title, slug, starts_at, venue)',
+  'id, status, reference, buyer_email, event:events(title, slug)',
+]
+
+const BUYER_TICKET_DAYS =
+  'ticket_types(name, ticket_type_days(event_days(label, date, day_index)))'
+const BUYER_TICKET_CORE =
+  'id, order_id, bundle_id, ticket_code, qr_token, attendee_name, status, credential_label, credential_scopes, is_primary_credential, addons'
+
+const BUYER_TICKET_SELECTS = [
+  `${BUYER_TICKET_CORE}, gate_code, attendee_dni, valid_from, valid_until, ${BUYER_TICKET_DAYS}`,
+  `${BUYER_TICKET_CORE}, attendee_dni, valid_from, valid_until, ${BUYER_TICKET_DAYS}`,
+  `${BUYER_TICKET_CORE}, gate_code, attendee_dni, valid_from, valid_until, ticket_types(name)`,
+  `${BUYER_TICKET_CORE}, attendee_dni, valid_from, valid_until, ticket_types(name)`,
+  `${BUYER_TICKET_CORE}, ticket_types(name)`,
+]
+
+function buyerReadCanRetry(error) {
+  if (!error) return false
+  if (isMissingSchemaColumn(error) || isMissingRelation(error)) return true
+  const message = String(error.message ?? '')
+  return error.code === 'PGRST201' || /could not embed|more than one relationship/i.test(message)
+}
+
+async function readWithFallback(attempts, fallback) {
+  let last = null
+  for (const attempt of attempts) {
+    const result = await attempt()
+    if (!result?.error) return result?.data ?? null
+    last = result
+    if (!buyerReadCanRetry(result.error)) break
+  }
+  return assertSupabaseResult(last, fallback)
+}
+
+async function loadBuyerOrder(client, reference, email) {
+  const order = await readWithFallback(
+    BUYER_ORDER_SELECTS.map(
+      (columns) => () => {
+        let query = client.from('ticket_orders').select(columns).eq('reference', reference)
+        if (email) query = query.ilike('buyer_email', email)
+        return query.maybeSingle()
+      },
+    ),
+    'No se pudo buscar la orden.',
+  )
+  if (!order) return null
+  const tickets =
+    (await readWithFallback(
+      BUYER_TICKET_SELECTS.map(
+        (columns) => () =>
+          client.from('tickets').select(columns).eq('order_id', order.id).order('created_at'),
+      ),
+      'No se pudieron leer las entradas de la orden.',
+    )) ?? []
+  return { order, tickets }
+}
+
+const ACCOUNT_ORDER_LIMIT = 50
+const ACCOUNT_TICKET_LIMIT = 200
+
+const ATTENDEE_EVENT_EMBEDS = [
+  'order:ticket_orders(id, status, reference, event:events(title, slug, starts_at, venue, ticket_reveal_lead_minutes))',
+  'order:ticket_orders(id, status, reference, event:events(title, slug, starts_at, venue))',
+]
+const ATTENDEE_TICKET_SELECTS = ATTENDEE_EVENT_EMBEDS.flatMap((embed) =>
+  BUYER_TICKET_SELECTS.map((columns) => `${columns}, ${embed}`),
+)
+
+function ownerColumnMissing(error) {
+  if (!isMissingSchemaColumn(error)) return false
+  return /buyer_athlete_id|buyer_staff_user_id|attendee_document_key/i.test(
+    String(error?.message ?? ''),
+  )
+}
+
+/**
+ * Lectura de la cuenta. Si la columna del dueño todavía no existe, devuelve
+ * vacío en vez de tumbar la pantalla: la compra pública no depende de esto.
+ */
+async function readAccountRows(attempts, fallback) {
+  let last = null
+  for (const attempt of attempts) {
+    const result = await attempt()
+    if (!result?.error) return result?.data ?? []
+    last = result
+    if (ownerColumnMissing(result.error)) return []
+    if (!buyerReadCanRetry(result.error)) break
+  }
+  if (last?.error && (ownerColumnMissing(last.error) || isMissingSchemaColumn(last.error))) {
+    return []
+  }
+  return (await assertSupabaseResult(last, fallback)) ?? []
+}
+
+function mergeOrders(lists) {
+  const seen = new Set()
+  const merged = []
+  for (const order of lists.flat()) {
+    if (!order?.id || seen.has(order.id)) continue
+    seen.add(order.id)
+    merged.push(order)
+  }
+  return merged
+}
+
+async function loadOrdersForAccount(client, account) {
+  const column = account.kind === 'staff' ? 'buyer_staff_user_id' : 'buyer_athlete_id'
+  const owned = await readAccountRows(
+    BUYER_ORDER_SELECTS.map(
+      (columns) => () =>
+        client
+          .from('ticket_orders')
+          .select(columns)
+          .eq(column, account.id)
+          .order('created_at', { ascending: false })
+          .limit(ACCOUNT_ORDER_LIMIT),
+    ),
+    'No se pudieron leer las compras de la cuenta.',
+  )
+  const email = legacyEmailClaim(account)
+  if (!email) return owned ?? []
+  const legacy = await readAccountRows(
+    BUYER_ORDER_SELECTS.map(
+      (columns) => () =>
+        client
+          .from('ticket_orders')
+          .select(columns)
+          .is('buyer_athlete_id', null)
+          .is('buyer_staff_user_id', null)
+          .ilike('buyer_email', email)
+          .order('created_at', { ascending: false })
+          .limit(ACCOUNT_ORDER_LIMIT),
+    ),
+    'No se pudieron leer las compras anteriores de la cuenta.',
+  )
+  return mergeOrders([owned ?? [], legacy ?? []])
+}
+
+async function loadTicketsForOrders(client, orderIds) {
+  if (!orderIds.length) return []
+  return readAccountRows(
+    BUYER_TICKET_SELECTS.map(
+      (columns) => () =>
+        client
+          .from('tickets')
+          .select(columns)
+          .in('order_id', orderIds)
+          .order('created_at')
+          .limit(ACCOUNT_TICKET_LIMIT),
+    ),
+    'No se pudieron leer las entradas de la cuenta.',
+  )
+}
+
+async function loadAttendeeTickets(client, documentKeys, ownedOrderIds) {
+  const keys = [...new Set((documentKeys ?? []).filter(Boolean))]
+  if (!keys.length) return []
+  const rows =
+    (await readAccountRows(
+      ATTENDEE_TICKET_SELECTS.map(
+        (columns) => () =>
+          client
+            .from('tickets')
+            .select(columns)
+            .in('attendee_document_key', keys)
+            .order('created_at', { ascending: false })
+            .limit(ACCOUNT_TICKET_LIMIT),
+      ),
+      'No se pudieron leer las entradas a tu nombre.',
+    )) ?? []
+  return rows
+    .filter((row) => row?.order?.id && !ownedOrderIds.has(row.order.id))
+    .map((row) => {
+      const { order, ...ticket } = row
+      return { order, ticket }
+    })
+}
 
 function mapTicketOrderRow(order) {
   return {
@@ -107,6 +305,46 @@ export function createSupabaseTicketRepository(client) {
         'No se pudo crear la orden de entradas.',
       )
       return { ...result, orderAccessToken: accessToken }
+    },
+    /**
+     * La compra ya existe. El id de la cuenta sale de la sesión, nunca del
+     * body. Si la columna todavía no está, la compra sigue y el mail
+     * verificado puede reclamarla después.
+     * No pisa un dueño ya grabado: un reintento no se la lleva otra cuenta.
+     */
+    async attachBuyerAccount(orderId, account) {
+      if (!orderId || !account?.id) return null
+      const column = account.kind === 'staff' ? 'buyer_staff_user_id' : 'buyer_athlete_id'
+      const result = await client
+        .from('ticket_orders')
+        .update({ [column]: account.id })
+        .eq('id', orderId)
+        .is('buyer_athlete_id', null)
+        .is('buyer_staff_user_id', null)
+      if (result?.error && isMissingSchemaColumn(result.error)) return null
+      assertSupabaseResult(result, 'No se pudo asociar la compra a la cuenta.')
+      return { [column]: account.id }
+    },
+    async listTicketsForAccount(account) {
+      const orders = await loadOrdersForAccount(client, account)
+      const orderIds = orders.map((order) => order.id)
+      const tickets = await loadTicketsForOrders(client, orderIds)
+      const byOrder = new Map()
+      for (const ticket of tickets ?? []) {
+        const list = byOrder.get(ticket.order_id) ?? []
+        list.push(ticket)
+        byOrder.set(ticket.order_id, list)
+      }
+      const buyerOrders = orders.map((order) => ({
+        order,
+        tickets: byOrder.get(order.id) ?? [],
+      }))
+      const attendeeTickets = await loadAttendeeTickets(
+        client,
+        account.documentKeys,
+        new Set(orderIds),
+      )
+      return { buyerOrders, attendeeTickets }
     },
     /**
      * Medios de cobro propios de los tipos que entran en una compra. Se lee
@@ -203,6 +441,22 @@ export function createSupabaseTicketRepository(client) {
       return event?.id ?? null
     },
     /**
+     * Lectura corta antes de acreditar. `staff_check_in_ticket` vuelve a
+     * validar pago, vigencia y zona; acá sólo hace falta el evento para el
+     * alcance del operador y las fechas para la telemetría. Un UUID inválido
+     * es "no encontrada"; un error de base se propaga.
+     */
+    async locateTicketForCheckIn(qrToken) {
+      if (!qrToken) return null
+      const result = await client
+        .from('tickets')
+        .select('id, event_id, valid_from, valid_until')
+        .eq('qr_token', qrToken)
+        .maybeSingle()
+      if (result.error && isInvalidUuid(result.error)) return null
+      return assertSupabaseResult(result, 'No se pudo resolver la entrada.') ?? null
+    },
+    /**
      * Ídem para el ticket: un dispositivo de puerta reporta el código que
      * escaneó, pero el ticketId que se guarda en la telemetría siempre sale
      * de resolverlo acá, nunca de confiar en lo que mandó el cliente.
@@ -289,19 +543,34 @@ export function createSupabaseTicketRepository(client) {
      * aleatoriedad (`TORD-` + 6 bytes al azar); exigir también el mail evita
      * que alcance con adivinarla sola.
      */
-    async findOrderByReferenceAndEmail(reference, email) {
+    findOrderByReferenceAndEmail(reference, email) {
+      return loadBuyerOrder(client, reference, email)
+    },
+    findOrderByReference(reference) {
+      return loadBuyerOrder(client, reference, null)
+    },
+    /**
+     * Orden lista para el mail de confirmación: reenvío de staff (por id) o
+     * del comprador (referencia + mail). No devuelve el token de acceso.
+     */
+    async findOrderForConfirmation({ orderId = null, reference = null, email = null } = {}) {
+      let orderQuery = client
+        .from('ticket_orders')
+        .select(
+          'id, event_id, status, buyer_name, buyer_email, reference, updated_at, event:events(id, title, slug, starts_at, venue)',
+        )
+      if (orderId) orderQuery = orderQuery.eq('id', orderId)
+      else {
+        orderQuery = orderQuery.eq('reference', reference)
+        if (email) orderQuery = orderQuery.ilike('buyer_email', email)
+      }
       const order = assertSupabaseResult(
-        await client
-          .from('ticket_orders')
-          .select('id, status, reference, buyer_email, event:events(title, slug)')
-          .eq('reference', reference)
-          .ilike('buyer_email', email)
-          .maybeSingle(),
-        'No se pudo buscar la orden.',
+        await orderQuery.maybeSingle(),
+        'No se pudo leer la orden.',
       )
       if (!order) return null
       const ticketColumns =
-        'id, order_id, bundle_id, ticket_code, qr_token, attendee_name, status, credential_label, credential_scopes, is_primary_credential, addons, ticket_types(name)'
+        'id, order_id, ticket_code, qr_token, attendee_name, status, credential_label, is_primary_credential, ticket_types(name)'
       const withGate = await client
         .from('tickets')
         .select(ticketColumns.replace('qr_token,', 'qr_token, gate_code,'))
@@ -318,7 +587,15 @@ export function createSupabaseTicketRepository(client) {
             : withGate,
           'No se pudieron leer las entradas de la orden.',
         ) ?? []
-      return { order, tickets }
+      return { order, tickets, event: order.event ?? null }
+    },
+    /**
+     * La pestaña que acaba de pagar todavía tiene el token de la compra.
+     * Con eso lee el QR ya acreditado, sin volver a pedir el mail.
+     */
+    async findOrderForBuyer(orderId, accessToken) {
+      await requireOrderAccess(orderId, accessToken)
+      return this.findOrderForConfirmation({ orderId })
     },
     async listPending() {
       const rows = assertSupabaseResult(

@@ -36,7 +36,12 @@ function formatDateTime(value, locale) {
  * El QR es uno solo (el del perfil); cada renglón dice si ese evento ya lo
  * acepta y, si no, qué falta y dónde resolverlo.
  */
-export default function EventPassList({ passes, events = [], onNavigateSection }) {
+export default function EventPassList({
+  memberCode = '',
+  passes,
+  events = [],
+  onNavigateSection,
+}) {
   const { t, locale } = useI18n()
   if (!passes.length) return null
 
@@ -59,14 +64,20 @@ export default function EventPassList({ passes, events = [], onNavigateSection }
               data-state={state}
               key={registration.id ?? registration.eventSlug}
             >
+              <p className="account-passes__verdict">
+                <Icon aria-hidden size={18} strokeWidth={1.9} />
+                {t(`account.qr.passState.${state}`)}
+              </p>
+              {memberCode ? (
+                <p className="account-passes__code">
+                  <span>{t('account.qr.passMemberCode')}</span>
+                  <strong>{memberCode}</strong>
+                </p>
+              ) : null}
               <div className="account-passes__event">
                 <strong>{registration.event}</strong>
                 {date || place ? <span>{[date, place].filter(Boolean).join(' · ')}</span> : null}
               </div>
-              <p className="account-passes__state">
-                <Icon aria-hidden size={15} strokeWidth={1.9} />
-                {t(`account.qr.passState.${state}`)}
-              </p>
               <p className="account-passes__detail">
                 {t(`account.qr.passDetail.${state}`, {
                   date: formatDateTime(registration.checkedInAt, locale),

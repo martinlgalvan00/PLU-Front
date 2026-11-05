@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  countUnassignedActive,
   createSecurityTeamMember,
   formatSecurityAccessList,
+  orderSecurityRoster,
   parseSecurityTeamImport,
   validateSecurityTeamMembers,
 } from '../src/services/securityTeamService.js'
@@ -69,5 +71,17 @@ describe('securityTeamService', () => {
     ])
     expect(withCode).toContain('AB2-K4M')
     expect(text).toContain('Juan López · juan@empresa.com\nhttps://plu.test/acceso/juan')
+  })
+
+  it('pone primero a quien está activo y todavía no tiene puesto', () => {
+    const roster = orderSecurityRoster([
+      { name: 'Zoe', status: 'active', securityZoneId: 'zone-1' },
+      { name: 'Ana', status: 'disabled', securityZoneId: null },
+      { name: 'Luis', status: 'active', securityZoneId: null },
+      { name: 'Mario', status: 'active', securityZoneId: null },
+    ])
+
+    expect(roster.map((user) => user.name)).toEqual(['Luis', 'Mario', 'Zoe', 'Ana'])
+    expect(countUnassignedActive(roster)).toBe(2)
   })
 })

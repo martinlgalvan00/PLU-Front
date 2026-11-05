@@ -2,9 +2,7 @@ import '../../styles/components/ticket-purchase.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowRight,
-  Download,
   FileText,
-  Printer,
   IdCard,
   Minus,
   Plus,
@@ -15,7 +13,7 @@ import {
   X,
 } from 'lucide-react'
 import Button from './Button.jsx'
-import CardPreviewModal from './CardPreviewModal.jsx'
+import BuyerTicketsWallet from './BuyerTicketsWallet.jsx'
 import CashPaymentPlace from './CashPaymentPlace.jsx'
 import CopyButton from './CopyButton.jsx'
 import ConfirmationSeal from './ConfirmationSeal.jsx'
@@ -27,28 +25,22 @@ import { credentialCountLabel, zoneScopeList } from './TicketTypeOptions.jsx'
 import MercadoPagoEmbeddedCheckout from './MercadoPagoEmbeddedCheckout.jsx'
 import { TicketCheckoutChapter, TicketCheckoutRail } from './TicketCheckoutFlow.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { speakDoorCode } from '../../lib/doorCodeSpeech.js'
 import { env } from '../../config/env.js'
 import { getFormOptions } from '../../lib/formOptions.js'
 import { money } from '../../lib/format.js'
 import { toggleAttendeeAddon as applyAttendeeAddonToggle } from '../../lib/ticketAddons.js'
-import { groupCredentialsByBundle } from '../../lib/ticketCredentials.js'
+import { describeBuyerTicketDays } from '../../lib/buyerTicketDays.js'
+import { formatTicketRevealWhen } from '../../lib/ticketReveal.js'
 import { TICKETS_PATH } from '../../lib/ticketsRoute.js'
 import { isTicketTypeChannelOpen } from '../../lib/ticketTypePaymentChannels.js'
 import { validateTicketAttendees, validateTicketBuyer } from '../../lib/validation.js'
 import { priceForAttendee, priceForOrder } from '../../services/ticketService.js'
+import { ticketOrderAwaitingPayment } from '../../services/ticketPassWatch.js'
 import { resolveTicketCheckoutProgress } from '../../services/ticketCheckoutProgress.js'
 import { buildTicketPaymentPriceLabels } from '../../lib/ticketPaymentMethods.js'
 import { formatWisePrice } from '../../services/checkoutPricing.js'
 import { resolveTicketOrderWisePricing } from '../../../shared/ticketWisePricing.js'
 import { maxInstallmentsFor } from '../../../shared/eventModules.js'
-import {
-  buildCardFilename,
-  downloadCard,
-  generateEventCard,
-  preloadEventCardCapture,
-} from '../../services/eventCardService.js'
-
 function transferField(accountDetails, envValue, key) {
   const raw = accountDetails ? accountDetails[key] : envValue
   return String(raw ?? '').trim()
@@ -73,28 +65,6 @@ function CopyableRow({ label, value, fallback = '', copyable = true }) {
       )}
     </div>
   )
-}
-
-/**
- * Espera a que las imágenes dentro del nodo (QR, logo) terminen de cargar
- * antes de rasterizar — sin esto, un tap muy rápido después de abrir la
- * confirmación podía descargar la entrada con el QR todavía en blanco.
- */
-async function waitForPassImagesReady(node, { timeoutMs = 4000 } = {}) {
-  if (!node) return
-  const images = [...node.querySelectorAll('img')]
-  await Promise.race([
-    Promise.all(
-      images.map((img) => {
-        if (img.complete) return Promise.resolve()
-        return new Promise((resolve) => {
-          img.addEventListener('load', resolve, { once: true })
-          img.addEventListener('error', resolve, { once: true })
-        })
-      }),
-    ),
-    new Promise((resolve) => setTimeout(resolve, timeoutMs)),
-  ])
 }
 
 const MAX_TICKETS = 10
@@ -704,6 +674,7 @@ export default function TicketPurchaseSection({
   selectedTicketTypeId = '',
   tickets,
   createdOrder,
+  showWallet = true,
   onSubmit,
   onUploadPaymentProof,
 }) {
@@ -719,7 +690,6 @@ export default function TicketPurchaseSection({
   const [buyer, setBuyer] = useState({ name: '', email: '', phone: '' })
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState('')
-  const [activeTicketId, setActiveTicketId] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [proofFile, setProofFile] = useState(null)
   const [proofFileName, setProofFileName] = useState('')
@@ -727,9 +697,6 @@ export default function TicketPurchaseSection({
   const [proofUploadError, setProofUploadError] = useState('')
   const [proofUploaded, setProofUploaded] = useState(false)
   const proofInputRef = useRef(null)
-  const [downloadingPassId, setDownloadingPassId] = useState(null)
-  const [downloadPassError, setDownloadPassError] = useState('')
-  const passNodesRef = useRef({})
 
   // Memoizado desde que la cotización en USD lo toma como dependencia: el `??
   // []` devolvía un array nuevo por render y recalculaba el total en cada tecla.
@@ -875,43 +842,29 @@ export default function TicketPurchaseSection({
       return changed ? next : current
     })
   }, [pricing?.ticketTypes])
-  const ticketTypeNames = useMemo(
-    () => Object.fromEntries((pricing.ticketTypes ?? []).map((type) => [type.id, type.name])),
-    [pricing.ticketTypes],
-  )
   const ticketTypeSelectOptions = useMemo(
     () => (pricing.ticketTypes ?? []).map((type) => [type.id, type.name]),
     [pricing.ticketTypes],
   )
   const visibleOrder = createdOrder?.type === 'tickets' ? createdOrder : null
 
-  // Precarga el chunk de html2canvas apenas se ve la confirmación, para que
-  // el primer tap en "Descargar entrada" no espere el import.
-  useEffect(() => {
-    if (visibleOrder) preloadEventCardCapture().catch(() => {})
-  }, [visibleOrder])
-
   const orderTickets = visibleOrder
     ? tickets.filter((item) => item.orderId === visibleOrder.orderId)
     : []
-  // Las credenciales que salieron de una misma compra van juntas: dos filas con
-  // el mismo nombre y el mismo DNI, sueltas, se leían como dos compras.
-  const ticketBundles = groupCredentialsByBundle(orderTickets)
-  // Qué dice cada pase impreso. La etiqueta de la credencial manda sólo cuando
-  // la compra emitió más de una, que es donde distingue; para una entrada común
-  // "Espectador" dice más que "Entrada general".
-  const passLabelById = new Map(
-    ticketBundles.flatMap((bundle) =>
-      bundle.credentials.map((ticket) => [
-        ticket.id,
-        (bundle.credentials.length > 1 ? ticket.credentialLabel : null) ??
-          ticket.ticketTypeName ??
-          ticketTypeNames[ticket.ticketTypeId] ??
-          '',
-      ]),
-    ),
-  )
-  const activeTicket = orderTickets.find((item) => item.id === activeTicketId) ?? null
+
+  useEffect(() => {
+    if (!showWallet || visibleOrder?.status !== 'aprobado') return undefined
+    const node = document.getElementById('mis-tickets')
+    if (!node?.scrollIntoView) return undefined
+    let behavior = 'auto'
+    try {
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) behavior = 'smooth'
+    } catch {
+      behavior = 'auto'
+    }
+    node.scrollIntoView({ behavior, block: 'start' })
+    return undefined
+  }, [showWallet, visibleOrder?.orderId, visibleOrder?.status])
   const total = priceForOrder(attendees, pricing, ticketAddons, paymentMethod)
   const checkoutProgress = useMemo(
     () =>
@@ -1043,68 +996,6 @@ export default function TicketPurchaseSection({
     if (proofInputRef.current) proofInputRef.current.value = ''
   }
 
-  async function handleDownloadPass(ticket) {
-    const node = passNodesRef.current[ticket.id]
-    if (!node) return
-    setDownloadingPassId(ticket.id)
-    setDownloadPassError('')
-    try {
-      await waitForPassImagesReady(node)
-      const blob = await generateEventCard(node)
-      const filename = buildCardFilename(
-        ticket.attendeeName,
-        ticket.eventSlug || event?.slug || 'evento',
-        ticket.ticketCode || '',
-      )
-      downloadCard(blob, filename)
-    } catch (err) {
-      console.error('TicketPurchaseSection: descarga de entrada', err)
-      setDownloadPassError(t('pages.tickets.downloadPassError'))
-    } finally {
-      setDownloadingPassId(null)
-    }
-  }
-
-  async function handlePrintPass(ticket) {
-    const node = passNodesRef.current[ticket.id]
-    if (!node) return
-    setDownloadingPassId(ticket.id)
-    setDownloadPassError('')
-    try {
-      await waitForPassImagesReady(node)
-      const blob = await generateEventCard(node)
-      const filename = buildCardFilename(
-        ticket.attendeeName,
-        ticket.eventSlug || event?.slug || 'evento',
-        ticket.ticketCode || '',
-      )
-      const url = URL.createObjectURL(blob)
-      const frame = window.open('', '_blank')
-      if (!frame) {
-        downloadCard(blob, filename)
-        URL.revokeObjectURL(url)
-        return
-      }
-      frame.opener = null
-      frame.document.open()
-      frame.document.write(
-        '<!doctype html><html><head><title>Entrada</title></head><body style="margin:0"><img alt="" src="' +
-          url +
-          '" style="max-width:100%;height:auto" onload="window.focus();window.print()"></body></html>',
-      )
-      frame.document.close()
-      frame.addEventListener('afterprint', () => {
-        URL.revokeObjectURL(url)
-        frame.close()
-      })
-    } catch (err) {
-      console.error('TicketPurchaseSection: impresión de entrada', err)
-      setDownloadPassError(t('pages.tickets.downloadPassError'))
-    } finally {
-      setDownloadingPassId(null)
-    }
-  }
-
   function selectProofFile(file) {
     if (!file) return
     if (!PROOF_FILE_TYPES.has(file.type)) {
@@ -1136,15 +1027,41 @@ export default function TicketPurchaseSection({
       link: shareUrl,
     })
     const shareHref = `https://wa.me/?text=${encodeURIComponent(shareText)}`
+    const awaitingPayment = ticketOrderAwaitingPayment(visibleOrder.status)
+    const revealLeadHours = Number(event?.ticketRevealLeadHours)
+    const revealLead =
+      Number.isFinite(revealLeadHours) && revealLeadHours >= 0 ? revealLeadHours : 24
+    const allPassesSealed =
+      orderTickets.length > 0 &&
+      orderTickets.every((ticket) => ticket.passSealed === true && !ticket.qrToken)
+    const sealedWhen = formatTicketRevealWhen(
+      orderTickets
+        .map((ticket) => ticket.revealAt)
+        .filter(Boolean)
+        .sort()[0],
+      locale,
+    )
+    const wallet = showWallet ? (
+      <BuyerTicketsWallet
+        anchorId="mis-tickets"
+        catalogTypes={pricing.ticketTypes ?? []}
+        event={event}
+        orderStatus={visibleOrder.status}
+        tickets={orderTickets}
+      />
+    ) : null
 
     return (
       <div className="ticket-purchase ticket-purchase--confirmation ticket-purchase--confirmation-editorial">
+        {visibleOrder.status === 'aprobado' ? wallet : null}
+
         {visibleOrder.status === 'aprobado' ? (
           // El pago ya está acreditado: es uno de los momentos que cierra un
           // trámite (ver celebration.js), así que el sello reemplaza al
           // encabezado plano y festeja una sola vez por orden (`celebrateKey`
           // evita que se repita si la persona recarga la página o vuelve a
           // encontrar esta misma compra desde TicketOrderLookup).
+          // El QR va primero: en la puerta el sello es el comprobante, no la entrada.
           <ConfirmationSeal
             variant="payment"
             celebrate
@@ -1152,9 +1069,15 @@ export default function TicketPurchaseSection({
             eyebrow={t('pages.tickets.sealEyebrow')}
             seal={countLabel}
             title={t('pages.tickets.confirmationTitle', { event: visibleOrder.eventTitle })}
-            detail={t('pages.tickets.sealDetail', {
-              amount: money(visibleOrder.amount, locale, visibleOrder.currency),
-            })}
+            detail={
+              allPassesSealed
+                ? sealedWhen
+                  ? t('pages.tickets.sealDetailSealed', { when: sealedWhen })
+                  : t('pages.tickets.sealDetailSealedSoon')
+                : t('pages.tickets.sealDetail', {
+                    amount: money(visibleOrder.amount, locale, visibleOrder.currency),
+                  })
+            }
           />
         ) : (
           <div className="ticket-purchase__confirmation-head">
@@ -1169,11 +1092,13 @@ export default function TicketPurchaseSection({
           </div>
         )}
 
-        {visibleOrder.status !== 'aprobado' ? (
+        {awaitingPayment ? (
           <p className="ticket-purchase__confirmation-lead">
             {isManualTicketPayment(visibleOrder.paymentMethod)
               ? t('pages.tickets.qrHeldLead')
-              : t('pages.tickets.confirmationQrLead')}
+              : revealLead > 0
+                ? t('pages.tickets.confirmationQrLeadHeld', { hours: revealLead })
+                : t('pages.tickets.confirmationQrLead')}
           </p>
         ) : null}
 
@@ -1189,7 +1114,7 @@ export default function TicketPurchaseSection({
           </a>
         ) : null}
 
-        {visibleOrder.paymentMethod === 'mercado_pago' && visibleOrder.status !== 'aprobado' ? (
+        {visibleOrder.paymentMethod === 'mercado_pago' && awaitingPayment ? (
           <>
             <p className="ticket-purchase__payment-note ticket-purchase__payment-note--auto">
               {t('pages.tickets.paymentMpPending')}
@@ -1199,8 +1124,7 @@ export default function TicketPurchaseSection({
               order={visibleOrder}
             />
           </>
-        ) : isManualTicketPayment(visibleOrder.paymentMethod) &&
-          visibleOrder.status !== 'aprobado' ? (
+        ) : isManualTicketPayment(visibleOrder.paymentMethod) && awaitingPayment ? (
           <div className="ticket-purchase__transfer-panel">
             <p className="ticket-purchase__manual-note">
               {/* El efectivo no tiene destino de cobro que copiar: se paga en
@@ -1389,167 +1313,7 @@ export default function TicketPurchaseSection({
           </div>
         ) : null}
 
-        <div className="ticket-purchase__bundles">
-          {ticketBundles.map((bundle) => {
-            // Una compra de entrenador emite dos credenciales con el mismo
-            // nombre y el mismo DNI. Sin agruparlas parecían dos compras
-            // distintas, y sin la etiqueta se leían idénticas.
-            const multi = bundle.credentials.length > 1
-            const holder = bundle.credentials[0]?.attendeeName ?? ''
-
-            return (
-              <section key={bundle.bundleId} className="ticket-purchase__bundle">
-                {multi ? (
-                  <header className="ticket-purchase__bundle-head">
-                    <h4>{t('pages.tickets.credentialsFor', { name: holder })}</h4>
-                    <p>
-                      {t('pages.tickets.bundleNote_other', {
-                        count: bundle.credentials.length,
-                      })}
-                    </p>
-                  </header>
-                ) : null}
-
-                <ul className="ticket-purchase__list ticket-purchase__list--passes">
-                  {bundle.credentials.map((ticket) => {
-                    const passLabel = passLabelById.get(ticket.id) ?? ''
-                    const scopes = ticket.credentialScopes ?? []
-                    // "Abre Puerta general" en una entrada común es ruido; en un
-                    // juego de dos, o cuando abre algo más que la puerta, es el
-                    // dato.
-                    const showZones =
-                      scopes.length > 0 &&
-                      (multi || scopes.some((scope) => scope !== 'gate_tickets'))
-
-                    const isDownloading = downloadingPassId === ticket.id
-                    const qrReady = visibleOrder.status === 'aprobado'
-
-                    return (
-                      <li key={ticket.id} className="ticket-purchase__pass-item">
-                        {qrReady ? (
-                          <div ref={(el) => (passNodesRef.current[ticket.id] = el)}>
-                            <TicketPassPreview
-                              live
-                              interactive={false}
-                              attendeeName={ticket.attendeeName}
-                              date={ticket.eventDate || event?.date}
-                              dayPassLabel={passLabel}
-                              eventSlug={ticket.eventSlug || event?.slug || ''}
-                              eventTitle={ticket.eventTitle || visibleOrder.eventTitle}
-                              qrCode={ticket.qrToken || ticket.ticketCode || ''}
-                              venue={ticket.eventVenue || event?.venue}
-                            />
-                          </div>
-                        ) : null}
-                        <div className="ticket-purchase__pass-actions">
-                          <div className="ticket-purchase__ticket-info">
-                            <span>
-                              {t('pages.tickets.dni')} {ticket.attendeeDni} · {ticket.ticketCode}
-                            </span>
-                            {showZones ? (
-                              <span className="ticket-purchase__ticket-zones">
-                                {t('pages.tickets.credentialOpens', {
-                                  zones: zoneScopeList(scopes, t),
-                                })}
-                              </span>
-                            ) : null}
-                            {ticket.addons?.length ? (
-                              <span className="ticket-purchase__ticket-benefits">
-                                {t('pages.tickets.redeemBenefits')}:{' '}
-                                {ticket.addons.map((addon) => addon.label).join(' · ')}
-                              </span>
-                            ) : null}
-                          </div>
-                          {qrReady && ticket.gateCode ? (
-                            <p className="ticket-purchase__gate-code">
-                              <span className="ticket-purchase__gate-code-label">
-                                {t('pages.tickets.gateCodeLabel')}
-                              </span>
-                              <span className="ticket-purchase__gate-code-value">{ticket.gateCode}</span>
-                              <span className="ticket-purchase__gate-code-hint">
-                                {t('pages.tickets.gateCodeHint')}
-                              </span>
-                              <button
-                                type="button"
-                                className="ticket-purchase__qr-btn"
-                                onClick={() => speakDoorCode(ticket.gateCode)}
-                              >
-                                {t('pages.tickets.speakGateCode')}
-                              </button>
-                            </p>
-                          ) : null}
-                          <StatusPill value={ticket.status} />
-                          {qrReady ? (
-                            <>
-                              <button
-                                type="button"
-                                className="ticket-purchase__qr-btn"
-                                onClick={() => setActiveTicketId(ticket.id)}
-                              >
-                                <QrCode size={14} aria-hidden />
-                                {t('pages.tickets.viewTicket')}
-                              </button>
-                              <button
-                                type="button"
-                                className="ticket-purchase__qr-btn"
-                                disabled={isDownloading}
-                                onClick={() => handleDownloadPass(ticket)}
-                              >
-                                <Download size={14} aria-hidden />
-                                {isDownloading
-                                  ? t('pages.tickets.downloadingPass')
-                                  : t('pages.tickets.downloadPass')}
-                              </button>
-                              <button
-                                type="button"
-                                className="ticket-purchase__qr-btn"
-                                disabled={isDownloading}
-                                onClick={() => handlePrintPass(ticket)}
-                              >
-                                <Printer size={14} aria-hidden />
-                                {t('pages.tickets.printPass')}
-                              </button>
-                            </>
-                          ) : (
-                            <p className="ticket-purchase__payment-note">{t('pages.tickets.qrHeldTicket')}</p>
-                          )}
-                        </div>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </section>
-            )
-          })}
-        </div>
-
-        {downloadPassError ? (
-          <p className="ticket-purchase__submit-error" role="alert">
-            {downloadPassError}
-          </p>
-        ) : null}
-
-        <CardPreviewModal
-          open={Boolean(activeTicket)}
-          onClose={() => setActiveTicketId(null)}
-          cardData={
-            activeTicket
-              ? {
-                  athleteName: activeTicket.attendeeName,
-                  athleteCode: activeTicket.ticketCode,
-                  qrCode: activeTicket.qrToken,
-                  attendeeDocument: activeTicket.attendeeDni,
-                  eventTitle: activeTicket.eventTitle,
-                  eventDate: activeTicket.eventDate,
-                  eventVenue: activeTicket.eventVenue,
-                  eventLocation: activeTicket.eventLocation,
-                  eventSlug: activeTicket.eventSlug,
-                  dayPassLabel: passLabelById.get(activeTicket.id) ?? '',
-                  variant: 'ticket',
-                }
-              : {}
-          }
-        />
+        {awaitingPayment ? wallet : null}
       </div>
     )
   }
@@ -1818,7 +1582,11 @@ export default function TicketPurchaseSection({
     </>
   )
 
-  const previewDayLabel = ticketTypeNames[attendees[0]?.ticketTypeId] ?? ''
+  const previewType = (pricing.ticketTypes ?? []).find((type) => type.id === attendees[0]?.ticketTypeId)
+  const previewDayLabel = describeBuyerTicketDays(
+    { accessDays: previewType?.accessDays ?? [], ticketTypeId: previewType?.id },
+    { locale, catalogTypes: pricing.ticketTypes ?? [] },
+  ).label
 
   return (
     <form className={formClass} onSubmit={handleSubmit}>

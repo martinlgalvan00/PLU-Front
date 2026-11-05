@@ -26,6 +26,7 @@ import ProfileHero from './profile/ProfileHero.jsx'
 import QrCredentialSection from './profile/QrCredentialSection.jsx'
 import UpcomingEventsSection from './profile/UpcomingEventsSection.jsx'
 import HistorySection from './profile/HistorySection.jsx'
+import AccountTicketsSection from './profile/AccountTicketsSection.jsx'
 import MembershipPurchaseSection from './profile/MembershipPurchaseSection.jsx'
 import PaymentsSection from './profile/PaymentsSection.jsx'
 import PersonalDataSection from './profile/PersonalDataSection.jsx'
@@ -408,6 +409,7 @@ export default function AthleteProfilePage({
         pendingFinancedPayment={pendingFinancedPayment}
       />
     ),
+    'account-tickets': <AccountTicketsSection session={demoMode ? null : session} />,
     'account-history': (
       <HistorySection
         athleteRegistrations={athleteRegistrations}

@@ -1102,6 +1102,10 @@ model TicketOrder {
   buyerName              String?
   buyerEmail             String?
   buyerPhone             String?
+  // Dueño de la compra cuando se hizo con sesión. El camino real es Supabase
+  // (buyer_athlete_id / buyer_staff_user_id); acá el modelo no miente.
+  buyerAthleteId         String?
+  buyerStaffUserId       String?
   totalAmount            Int
   currency               String            @default("ARS")
   provider               PaymentProvider   @default(mercado_pago)
@@ -1122,6 +1126,8 @@ model TicketOrder {
   @@index([organizationId, status, createdAt])
   @@index([eventId, status])
   @@index([paymentOrderId])
+  @@index([buyerAthleteId])
+  @@index([buyerStaffUserId])
 }
 
 model Ticket {

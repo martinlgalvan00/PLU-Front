@@ -93,6 +93,28 @@ describe('Seguridad: acciones sobre QR', () => {
     }
   })
 
+  it('acredita con la lectura corta y no vuelve a verificar el QR', async () => {
+    readSessionFromRequest.mockResolvedValue(securitySession('seguridad-1'))
+    const verify = vi.fn()
+    const checkIn = vi.fn(async (token) => ({ ticket: { qr_token: token }, checkIn: { id: 'in-1' } }))
+    const locateTicketForCheckIn = vi.fn(async () => ({
+      id: 'ticket-1',
+      event_id: EVENT_ID,
+      valid_from: '2020-01-01T00:00:00.000Z',
+      valid_until: '2099-01-01T00:00:00.000Z',
+    }))
+    const server = listen(appWith({ verify, checkIn, locateTicketForCheckIn }))
+    try {
+      const response = await post(server, '/api/tickets/checkin/token-1')
+      expect(response.status).toBe(200)
+      expect(locateTicketForCheckIn).toHaveBeenCalledWith('token-1')
+      expect(verify).not.toHaveBeenCalled()
+      expect(checkIn.mock.calls[0][0]).toBe('token-1')
+    } finally {
+      await server.close()
+    }
+  })
+
   it('Seguridad no puede modificar la excepción individual de una entrada', async () => {
     readSessionFromRequest.mockResolvedValue(securitySession('seguridad-1'))
     const server = listen(appWith())

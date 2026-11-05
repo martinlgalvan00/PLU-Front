@@ -1,12 +1,13 @@
 import { ArrowRight, CheckCircle2, Clock3 } from 'lucide-react'
 import '../styles/pages/thank-you.css'
+import Reveal from '../components/ui/Reveal.jsx'
 
 export default function ThankYouPage({ onNavigate }) {
   const payment = new URLSearchParams(window.location.search).get('payment')
   const pending = payment === 'pending'
   return (
     <main className="thank-you-page">
-      <section className="thank-you-page__content" aria-labelledby="thank-you-title">
+      <Reveal as="section" variant="fade" className="thank-you-page__content" aria-labelledby="thank-you-title">
         <div className="thank-you-page__icon" aria-hidden>
           {pending ? <Clock3 size={34} /> : <CheckCircle2 size={34} />}
         </div>
@@ -25,7 +26,7 @@ export default function ThankYouPage({ onNavigate }) {
             Volver al inicio
           </button>
         </div>
-      </section>
+      </Reveal>
     </main>
   )
 }

@@ -245,8 +245,9 @@
 }
 
 .security-team-delivery__code {
-  align-items: baseline;
+  align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin: 0;
 }
@@ -269,6 +270,7 @@
 .security-team-delivery__head > button,
 .security-team-delivery__copy-all,
 .security-team-delivery__access button,
+.security-team-delivery__code button,
 .security-team-delivery__fallback button {
   align-items: center;
   background: transparent;
@@ -281,7 +283,7 @@
   font-size: 13px;
   font-weight: 600;
   gap: 8px;
-  min-height: 38px;
+  min-height: 44px;
   padding: 0 16px;
   transition:
     background-color var(--motion-fast, 150ms) var(--ease-standard, ease),
@@ -293,6 +295,7 @@
 .security-team-delivery__head > button:hover,
 .security-team-delivery__copy-all:hover,
 .security-team-delivery__access button:hover,
+.security-team-delivery__code button:hover,
 .security-team-delivery__fallback button:hover {
   background: var(--admin-row-hover);
   border-color: var(--admin-ink);
@@ -513,6 +516,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+.admin-event-security__gap {
+  color: var(--color-brand-gold);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
 .admin-event-security__list-actions {
   align-items: center;
   display: flex;
@@ -554,7 +564,7 @@
   color: var(--admin-ink);
   font: inherit;
   font-size: 13.5px;
-  min-height: 40px;
+  min-height: 44px;
   min-width: 0;
   padding: 0 10px;
   width: 100%;

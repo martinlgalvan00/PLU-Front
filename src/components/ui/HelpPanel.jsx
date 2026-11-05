@@ -44,6 +44,12 @@ const ACTION_LABEL_KEY = Object.freeze({
   events: 'help.actionEvents',
 })
 
+/** El párrafo explica el paso que toca ahora, el que está trabado o el pago
+ *  que falta. Hecho, cerrado y sin fecha se leen en una línea. */
+function stepShowsDetail(state) {
+  return state === TODO || state === BLOCKED || state === PENDING
+}
+
 function stepTitle(step, journey, t) {
   if (step.id !== 'registration') return t(`help.steps.${step.id}.title`)
   return journey.eventTitle
@@ -191,6 +197,8 @@ function HelpPanelBody({
           <h2 className="help-panel__title" id="help-panel-title">
             {t(journey.complete ? 'help.titleComplete' : 'help.title')}
           </h2>
+          {/* El lead sigue describiendo el diálogo, pero no ocupa un tercer
+              renglón: el título ya dice de qué se trata. */}
           <p className="help-panel__lead" id="help-panel-lead">
             {t(journey.complete ? 'help.leadComplete' : 'help.lead')}
           </p>
@@ -263,7 +271,11 @@ function HelpPanelBody({
                         {t(STATE_LABEL_KEY[step.state])}
                       </span>
                     </p>
-                    <p className="help-panel__step-detail">{stepDetail(step, journey, t, locale)}</p>
+                    {stepShowsDetail(step.state) ? (
+                      <p className="help-panel__step-detail">
+                        {stepDetail(step, journey, t, locale)}
+                      </p>
+                    ) : null}
                   </div>
                 </li>
               ))}
@@ -332,9 +344,7 @@ function HelpPanelBody({
                   {t('help.locationLabel')} <strong>{viewName}</strong>
                 </span>
               </p>
-            ) : (
-              <span />
-            )}
+            ) : null}
             <button
               type="button"
               className="help-panel__assist"

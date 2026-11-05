@@ -344,10 +344,10 @@ describe('RegisterPage competition profile summary', () => {
       },
     })
 
-    expect(screen.getByText(/perfil completo/i)).toBeTruthy()
-    expect(screen.getByText(/tus datos están listos/i)).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: /perfil de competencia/i })).toBeNull()
+    expect(screen.queryByText(/perfil completo/i)).toBeNull()
+    expect(screen.getByText(/Masculino · Maximal Strength Club/)).toBeTruthy()
     expect(screen.getByRole('button', { name: /revisar perfil/i })).toBeTruthy()
-    expect(screen.getByText('Maximal Strength Club')).toBeTruthy()
   })
 
   it('muestra y bloquea el compromiso competitivo de una inscripción ya creada', () => {

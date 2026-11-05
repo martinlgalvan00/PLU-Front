@@ -170,8 +170,9 @@
   gap: 7px;
   justify-self: start;
   margin: 0;
+  min-height: 44px;
   padding: 0;
-  transition: color var(--transition-fast);
+  transition: color var(--motion-fast) var(--ease-out);
   width: fit-content;
 }
 
@@ -287,7 +288,7 @@
 }
 
 .tickets-page__hero .tickets-page__eyebrow {
-  color: var(--design-hero-eyebrow, var(--color-brand-celeste));
+  color: var(--color-brand-gold);
   margin: 0;
 }
 
@@ -392,12 +393,15 @@
 }
 
 .tickets-page__hero-link {
+  align-items: center;
   color: color-mix(in oklab, #fff 68%, transparent);
+  display: inline-flex;
   font-size: 14px;
   font-weight: 600;
   letter-spacing: -0.01em;
+  min-height: 44px;
   text-decoration: none;
-  transition: color var(--transition-fast);
+  transition: color var(--motion-fast) var(--ease-out);
 }
 
 .tickets-page__hero-link:hover {
@@ -613,7 +617,7 @@
 }
 
 .tickets-page__event-option:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--color-brand-gold) 55%, transparent);
   outline-offset: 3px;
 }
 
@@ -1062,6 +1066,51 @@
   }
 }
 
+/* ── Mis tickets ─────────────────────────────── */
+
+.tickets-page__my-tickets {
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  padding: clamp(36px, 5.5vw, 64px) 0 clamp(8px, 2vw, 16px);
+  scroll-margin-top: calc(var(--header-height, 72px) + 12px);
+}
+
+.tickets-page__my-tickets-inner {
+  display: grid;
+  gap: clamp(16px, 2.4vw, 22px);
+  max-width: calc(680px + 2 * clamp(24px, 5vw, 72px));
+}
+
+.tickets-page__my-tickets-head {
+  display: grid;
+  gap: 8px;
+}
+
+.tickets-page__my-tickets-head h2 {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 3.6vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.tickets-page__my-tickets-head p {
+  color: var(--color-text-secondary);
+  font-size: clamp(14px, 1.5vw, 16px);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 42ch;
+}
+
+.tickets-page__my-tickets-status {
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 42ch;
+}
+
 /* ── Checkout ────────────────────────────────── */
 
 .tickets-page__checkout {
@@ -1073,6 +1122,40 @@
   padding: clamp(36px, 5.5vw, 64px) 0 clamp(24px, 4vw, 40px);
   position: relative;
   scroll-margin-top: calc(var(--header-height, 72px) + 12px);
+}
+
+/* Con la entrada paga, el pase es la portada. El hero de venta se aplasta
+   y el título de checkout queda sólo para el lector de pantalla. */
+.tickets-page--holding .tickets-page__hero-watermark,
+.tickets-page--holding .tickets-page__hero-atmosphere {
+  display: none;
+}
+
+.tickets-page--holding .tickets-page__hero-inner {
+  padding-block: calc(var(--header-height, 72px) + 8px) 8px;
+}
+
+.tickets-page--holding .tickets-page__checkout {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: clamp(16px, 2.4vw, 24px);
+}
+
+.tickets-page--holding .tickets-page__checkout::before {
+  content: none;
+}
+
+.tickets-page--holding .tickets-page__checkout-head {
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 .tickets-page__checkout::before {
@@ -1275,7 +1358,7 @@
 }
 
 [data-theme='light'] .tickets-page__hero .tickets-page__eyebrow {
-  color: var(--plu-celeste-700, var(--plu-celeste-600));
+  color: var(--color-brand-gold-ink);
 }
 
 [data-theme='light'] .tickets-page__hero h1,
@@ -1298,7 +1381,7 @@
 }
 
 [data-theme='light'] .tickets-page label.ticket-type-options__option.is-selected {
-  background: color-mix(in srgb, var(--color-brand-celeste) 12%, #fff);
+  background: color-mix(in srgb, var(--color-brand-gold) 12%, #fff);
 }
 
 [data-theme='light'] .tickets-page__event-option--active,
@@ -1373,4 +1456,34 @@
   .tickets-page__pass-stage {
     max-width: 100%;
   }
+}
+
+/* La entrada paga no hereda el color del hero de venta (blanco sobre foto). */
+.tickets-page--holding .tickets-page__hero {
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+.tickets-page--holding .tickets-page__hero h1,
+[data-theme='light'] .tickets-page--holding .tickets-page__hero h1 {
+  color: var(--color-text-primary);
+  font-size: clamp(1.35rem, 2.2vw, 1.75rem);
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin: 0;
+  max-width: 22ch;
+}
+
+.tickets-page--holding .tickets-page__back,
+.tickets-page--holding .tickets-page__back:hover,
+[data-theme='light'] .tickets-page--holding .tickets-page__back,
+[data-theme='light'] .tickets-page--holding .tickets-page__back:hover {
+  color: var(--color-text-secondary);
+}
+
+.tickets-page--holding .tickets-page__checkout-panel,
+[data-theme='light'] .tickets-page--holding .tickets-page__checkout-panel {
+  background: transparent;
+  border: 0;
+  padding: 0;
 }

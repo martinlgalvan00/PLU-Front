@@ -209,6 +209,7 @@ export function createApp(deps = {}) {
       incidentRepository: deps.checkinIncidentRepository,
       athleteRepository: deps.athleteRepository,
       platformSettingsRepository: deps.platformSettingsRepository,
+      notificationRepository: deps.notificationRepository,
       env: deps.env ?? process.env,
       brevo: deps.brevo,
     }),

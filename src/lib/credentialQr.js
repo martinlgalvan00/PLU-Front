@@ -64,6 +64,23 @@ export function resolveCredentialCode({ athlete, membership, latestMembership } 
   )
 }
 
+const CREDENTIAL_TOKEN_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+/**
+ * Lo que se puede leer en la credencial. El token opaco va dentro del QR;
+ * imprimirlo como si fuera un número de socio lo degrada a un identificador
+ * de sistema. El número de socio, si existe, sí se muestra.
+ * @param {string | null | undefined} code
+ * @returns {string | null}
+ */
+export function credentialDisplayCode(code) {
+  if (typeof code !== 'string') return null
+  const trimmed = code.trim()
+  if (!trimmed || CREDENTIAL_TOKEN_PATTERN.test(trimmed)) return null
+  return trimmed
+}
+
 function blobToDataUrl(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()

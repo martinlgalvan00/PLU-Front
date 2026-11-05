@@ -16,7 +16,7 @@
   --home-accent-border: rgba(255, 255, 255, 0.08);
   --home-accent-title: #fff;
   --home-accent-desc: rgba(255, 255, 255, 0.58);
-  --home-accent-eyebrow: var(--color-brand-celeste);
+  --home-accent-eyebrow: var(--color-brand-gold-ink);
   --home-accent-outline-border: rgba(255, 255, 255, 0.28);
   --home-accent-outline-text: #fff;
   --home-accent-outline-hover-bg: rgba(255, 255, 255, 0.06);
@@ -53,7 +53,7 @@
   --home-immersive-glow: var(--plu-celeste-alpha-18);
   --home-immersive-fg: #fff;
   --home-immersive-fg-muted: rgba(255, 255, 255, 0.58);
-  --home-immersive-eyebrow: var(--color-brand-celeste);
+  --home-immersive-eyebrow: var(--color-brand-gold-ink);
   --home-immersive-photo-label: rgba(255, 255, 255, 0.38);
   --home-immersive-link-border: rgba(116, 172, 223, 0.35);
   --home-quick-band-bg: var(--plu-cool-750);
@@ -206,7 +206,7 @@
   );
   --home-hero-status-tickets-hover-rule: color-mix(in oklab, var(--plu-gold-400) 72%, transparent);
   --home-hero-proof-bg: rgba(255, 255, 255, 0.04);
-  --home-hero-eyebrow-dot: var(--plu-celeste-400);
+  --home-hero-eyebrow-dot: var(--plu-gold-400);
   --home-spotlight-section-bg: var(--home-immersive-bg);
   --home-spotlight-card-bg: transparent;
   --home-spotlight-card-border: transparent;
@@ -224,7 +224,7 @@
   --home-spotlight-visual-caption: oklch(50% 0.006 260);
   --home-spotlight-soon-border: oklch(28% 0.006 260);
   --home-spotlight-soon-fg: oklch(72% 0.006 260);
-  --home-spotlight-community-eyebrow: var(--color-brand-celeste);
+  --home-spotlight-community-eyebrow: var(--color-brand-gold-ink);
   --home-spotlight-photo-label: rgba(255, 255, 255, 0.38);
   --home-spotlight-link-border: rgba(116, 172, 223, 0.35);
   --design-hero-bg: var(--plu-cool-950);
@@ -237,9 +237,9 @@
   --design-hero-breadcrumb-hover: #fff;
   --design-hero-breadcrumb-bg: rgba(255, 255, 255, 0.06);
   --design-hero-breadcrumb-border: rgba(255, 255, 255, 0.1);
-  --design-hero-eyebrow: var(--color-brand-celeste);
+  --design-hero-eyebrow: var(--color-brand-gold-ink);
   --design-hero-eyebrow-border: rgba(255, 255, 255, 0.12);
-  --design-hero-eyebrow-dot: var(--plu-celeste-400);
+  --design-hero-eyebrow-dot: var(--plu-gold-400);
   --design-hero-fade: var(--color-page-canvas);
   --design-hero-ambient-red: rgba(31, 95, 158, 0.14);
   --design-hero-ambient-celeste: rgba(116, 172, 223, 0.14);
@@ -501,8 +501,8 @@
   --community-story-hover-border: rgba(242, 183, 5, 0.28);
   --community-story-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
   --register-page-glow: rgba(116, 172, 223, 0.1);
-  --register-eyebrow: var(--color-brand-celeste);
-  --register-eyebrow-dot: var(--plu-celeste-400);
+  --register-eyebrow: var(--color-brand-gold-ink);
+  --register-eyebrow-dot: var(--plu-gold-400);
   --register-card-bg: var(--color-surface-card);
   --register-card-border: var(--color-surface-card-border);
   --register-card-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
@@ -574,7 +574,7 @@
   --home-accent-border: rgba(15, 17, 23, 0.08);
   --home-accent-title: var(--plu-ink-900);
   --home-accent-desc: rgba(15, 17, 23, 0.58);
-  --home-accent-eyebrow: #1a6bb0;
+  --home-accent-eyebrow: var(--color-brand-gold-ink);
   --home-accent-outline-border: rgba(15, 17, 23, 0.18);
   --home-accent-outline-text: var(--plu-ink-900);
   --home-accent-outline-hover-bg: rgba(15, 17, 23, 0.04);
@@ -611,7 +611,7 @@
   --home-immersive-glow: var(--plu-celeste-alpha-18);
   --home-immersive-fg: #fff;
   --home-immersive-fg-muted: oklch(66% 0.006 260);
-  --home-immersive-eyebrow: var(--plu-celeste-oklch);
+  --home-immersive-eyebrow: var(--color-brand-gold-ink);
   --home-immersive-photo-label: oklch(42% 0.006 260);
   --home-immersive-link-border: oklch(78% 0.06 230 / 0.4);
   --home-quick-band-bg: var(--plu-warm-oklch-98);
@@ -697,8 +697,8 @@
     ),
     linear-gradient(180deg, rgba(247, 246, 243, 0) 0%, rgba(247, 246, 243, 0.4) 100%);
   --home-hero-eyebrow-border: rgba(15, 17, 23, 0.1);
-  --home-hero-eyebrow-fg: var(--plu-celeste-700);
-  --home-hero-eyebrow-stripe: var(--plu-celeste-600);
+  --home-hero-eyebrow-fg: var(--color-brand-gold-ink);
+  --home-hero-eyebrow-stripe: var(--plu-gold-600);
   --home-hero-editorial-rule: linear-gradient(
     180deg,
     var(--plu-celeste-600) 0%,
@@ -749,7 +749,7 @@
   );
   --home-hero-status-tickets-hover-rule: color-mix(in oklab, var(--plu-gold-600) 70%, transparent);
   --home-hero-proof-bg: transparent;
-  --home-hero-eyebrow-dot: var(--plu-celeste-600);
+  --home-hero-eyebrow-dot: var(--plu-gold-600);
   --home-spotlight-section-bg: var(--color-page-canvas);
   --home-spotlight-card-bg: #fff;
   --home-spotlight-card-border: rgba(15, 17, 23, 0.08);
@@ -767,7 +767,7 @@
   --home-spotlight-visual-caption: rgba(15, 17, 23, 0.42);
   --home-spotlight-soon-border: rgba(15, 17, 23, 0.12);
   --home-spotlight-soon-fg: rgba(15, 17, 23, 0.55);
-  --home-spotlight-community-eyebrow: #1a6bb0;
+  --home-spotlight-community-eyebrow: var(--color-brand-gold-ink);
   --home-spotlight-photo-label: rgba(15, 17, 23, 0.38);
   --home-spotlight-link-border: rgba(26, 107, 176, 0.35);
   --design-hero-bg: var(--plu-warm-50);
@@ -780,9 +780,9 @@
   --design-hero-breadcrumb-hover: var(--plu-ink-900);
   --design-hero-breadcrumb-bg: rgba(255, 255, 255, 0.72);
   --design-hero-breadcrumb-border: rgba(15, 17, 23, 0.08);
-  --design-hero-eyebrow: #1a6bb0;
+  --design-hero-eyebrow: var(--color-brand-gold-ink);
   --design-hero-eyebrow-border: rgba(15, 17, 23, 0.12);
-  --design-hero-eyebrow-dot: var(--plu-celeste-400);
+  --design-hero-eyebrow-dot: var(--plu-gold-600);
   --design-hero-fade: var(--color-page-canvas);
   --design-hero-ambient-red: transparent;
   --design-hero-ambient-celeste: transparent;
@@ -1038,8 +1038,8 @@
   --community-story-hover-border: rgba(169, 121, 15, 0.32);
   --community-story-shadow: none;
   --register-page-glow: rgba(116, 172, 223, 0.06);
-  --register-eyebrow: #1a6bb0;
-  --register-eyebrow-dot: var(--plu-celeste-400);
+  --register-eyebrow: var(--color-brand-gold-ink);
+  --register-eyebrow-dot: var(--plu-gold-600);
   --register-card-bg: #fff;
   --register-card-border: rgba(15, 17, 23, 0.08);
   --register-card-shadow: 0 16px 48px rgba(15, 17, 23, 0.06);
@@ -1177,7 +1177,7 @@
 }
 
 [data-theme='dark'] .results-panel__eyebrow {
-  color: var(--color-brand-celeste);
+  color: var(--color-brand-gold-ink);
 }
 
 [data-theme='dark'] .results-status-table,

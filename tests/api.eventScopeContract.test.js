@@ -25,6 +25,7 @@ import { listen } from './integration/helpers/supabaseTestClient.js'
  */
 const ORGANIZER_ALLOWED = new Set([
   // Cuenta propia.
+  'GET /api/tickets/mine',
   'POST /api/auth/me/password',
   'POST /api/auth/me/email',
   'POST /api/auth/athlete-session',
@@ -42,6 +43,7 @@ const ORGANIZER_ALLOWED = new Set([
   'GET /api/events/:eventSlug/payments',
   'POST /api/tickets/orders/:orderId/approve',
   'POST /api/tickets/orders/:orderId/reject',
+  'POST /api/tickets/orders/:orderId/resend',
   'GET /api/tickets/orders/:orderId/proof-url',
   'GET /api/tickets/orders/:orderId/proof',
   'POST /api/athletes/admin/payment-orders/:orderId/approve',
@@ -69,6 +71,7 @@ const ORGANIZER_ALLOWED = new Set([
   'POST /api/auth/security-users/bulk',
   'POST /api/auth/security-users/deactivate-all',
   'PATCH /api/auth/security-users/:userId/status',
+  'GET /api/auth/security-users/:userId/access-link',
   'POST /api/auth/security-users/:userId/access-link',
 ])
 
