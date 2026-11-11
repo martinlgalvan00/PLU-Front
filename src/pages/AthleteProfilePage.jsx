@@ -16,11 +16,13 @@ import { isRegistrationAdmitted } from '../lib/status.js'
 import { isPaymentActionable } from '../lib/paymentProgress.js'
 import { isMembershipCurrent } from '../services/membershipService.js'
 import { isProfileComplete, visibleProfileNotice } from '../lib/athleteProfile.js'
+import { isDocumentPackComplete } from '../lib/athleteDocuments.js'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import EmailVerificationBanner from '../components/ui/EmailVerificationBanner.jsx'
 import GateMembershipBanner from '../components/ui/GateMembershipBanner.jsx'
 import ProfileIncompleteNoticeBanner from '../components/ui/ProfileIncompleteNoticeBanner.jsx'
+import DocumentsPendingBanner from '../components/ui/DocumentsPendingBanner.jsx'
 import AccountNav from './profile/AccountNav.jsx'
 import ProfileHero from './profile/ProfileHero.jsx'
 import QrCredentialSection from './profile/QrCredentialSection.jsx'
@@ -73,6 +75,8 @@ export default function AthleteProfilePage({
   onSelectEvent,
   onUpdateProfile,
   onUpdatePhoto,
+  onUploadDocument,
+  onSaveMembershipFile,
   onRemovePhoto,
   onReadProfileNotice,
   onDismissProfileNotice,
@@ -151,8 +155,13 @@ export default function AthleteProfilePage({
   // Cobro rechazado/vencido sin resolver: la ficha "Pagos" lo marca desde la
   // navegación para que se note sin tener que entrar a leer la lista.
   const paymentsNeedAttention = athletePayments.some((item) => isPaymentActionable(item.progress))
+  const documentsNeedAttention = Boolean(
+    athlete && !isDocumentPackComplete(athlete, athlete.documents).complete,
+  )
   const profileNeedsAttention = Boolean(
-    visibleProfileNotice(athlete?.profileNotices) || (athlete && !isProfileComplete(athlete).complete),
+    visibleProfileNotice(athlete?.profileNotices) ||
+      (athlete && !isProfileComplete(athlete).complete) ||
+      documentsNeedAttention,
   )
   const navAttentionIds = [
     paymentsNeedAttention ? 'account-payments' : null,
@@ -409,7 +418,9 @@ export default function AthleteProfilePage({
         pendingFinancedPayment={pendingFinancedPayment}
       />
     ),
-    'account-tickets': <AccountTicketsSection session={demoMode ? null : session} />,
+    'account-tickets': (
+      <AccountTicketsSection onNavigate={onNavigate} session={demoMode ? null : session} />
+    ),
     'account-history': (
       <HistorySection
         athleteRegistrations={athleteRegistrations}
@@ -433,6 +444,8 @@ export default function AthleteProfilePage({
         pendingFinancedPayment={pendingFinancedPayment}
         checkoutIntent={membershipCheckoutIntent}
         onCheckoutIntentConsumed={() => setMembershipCheckoutIntent(null)}
+        onUploadDocument={onUploadDocument}
+        onSaveMembershipFile={onSaveMembershipFile}
       />
     ),
     'account-payments': (
@@ -458,6 +471,7 @@ export default function AthleteProfilePage({
         athlete={athlete}
         onUpdateProfile={onUpdateProfile}
         onUpdatePhoto={onUpdatePhoto}
+        onUploadDocument={onUploadDocument}
         onRemovePhoto={onRemovePhoto}
       />
     ),
@@ -494,6 +508,10 @@ export default function AthleteProfilePage({
             onComplete={() => openTab('account-personal-data')}
             onDismiss={onDismissProfileNotice}
             onRead={onReadProfileNotice}
+          />
+          <DocumentsPendingBanner
+            athlete={athlete}
+            onComplete={() => openTab('account-personal-data')}
           />
           <GateMembershipBanner
             pendingEvents={gatePendingRegistrations}

@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { act } from 'react'
 import { CheckCircle2 } from 'lucide-react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -64,7 +64,7 @@ describe('CheckInScanResult: reloj de vigencia', () => {
 
     act(() => vi.advanceTimersByTime(2_000))
 
-    expect(screen.getByText(/este qr ya venció/i)).toBeTruthy()
+    expect(screen.getByText(/credencial vencida/i)).toBeTruthy()
     expect(screen.getByText(/venció hace 1 segundo/i)).toBeTruthy()
     expect(screen.getByRole('button', { name: /registrar ingreso/i }).disabled).toBe(true)
     expect(screen.queryByRole('button', { name: /forzar ingreso/i })).toBeNull()
@@ -134,5 +134,43 @@ describe('CheckInScanResult: reloj de vigencia', () => {
 
     expect(screen.getByRole('button', { name: /habilitar entrada/i })).toBeTruthy()
     expect(screen.queryByRole('button', { name: /forzar ingreso/i })).toBeNull()
+  })
+})
+
+describe('CheckInScanResult: quiosco de molinete', () => {
+  it('no pide confirmación y reenvía el pulso sin otro ingreso', () => {
+    const onScanCheckIn = vi.fn()
+    const onRetryTurnstile = vi.fn()
+    render(
+      <I18nProvider>
+        <CheckInScanResult
+          canCheckIn
+          kiosk
+          locale="es-AR"
+          onDismiss={() => {}}
+          onRetryTurnstile={onRetryTurnstile}
+          onScanCheckIn={onScanCheckIn}
+          scanBusy={false}
+          scanPersonDoc="30111222"
+          scanPersonName="Juana Pérez"
+          scanTicketPaid
+          scanVerdict={{ Icon: CheckCircle2, tone: 'success' }}
+          turnstileGate="failed"
+          scanResult={{
+            kind: 'ticket',
+            outcome: 'checked_in',
+            canCheckIn: true,
+            status: 'usada',
+            row: { status: 'usada', name: 'Juana Pérez', document: '30111222' },
+          }}
+        />
+      </I18nProvider>,
+    )
+
+    expect(screen.getByRole('alert').textContent).toMatch(/el molinete no respondió/i)
+    expect(screen.queryByRole('button', { name: /registrar ingreso/i })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /reenviar pulso/i }))
+    expect(onRetryTurnstile).toHaveBeenCalledOnce()
+    expect(onScanCheckIn).not.toHaveBeenCalled()
   })
 })

@@ -87,6 +87,7 @@ export function mapAllowlistToCheckinSources(allowlist, eventSlug) {
     checkedInAt: entry.checkedInAt ?? (entry.checkedInLocally ? 'offline' : null),
     validFrom: entry.validFrom ?? null,
     validUntil: entry.validUntil ?? null,
+    validityMode: entry.validityMode ?? null,
   }))
   return { athletes, registrations, tickets }
 }
@@ -189,6 +190,7 @@ export function buildCheckinRows({
       addons: ticket.addons ?? [],
       validFrom: ticket.validFrom ?? null,
       validUntil: ticket.validUntil ?? null,
+      validityMode: ticket.validityMode ?? null,
     }))
 
   return [...athleteRows, ...ticketRows].sort((left, right) => {

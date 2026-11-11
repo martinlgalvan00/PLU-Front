@@ -1,4 +1,5 @@
 import { lookupTicketAccessDays } from '../../../src/lib/buyerTicketDays.js'
+import { holderCredentialState, holderMayShowQr } from '../../../src/lib/ticketHolderState.js'
 import { resolveTicketRevealLeadMinutes, ticketRevealState } from '../../../src/lib/ticketReveal.js'
 import { readAthleteSession, ATHLETE_SESSION_COOKIE_NAME } from '../../services/athleteSessionService.js'
 import { readSessionFromRequest } from '../../services/sessionService.js'
@@ -35,16 +36,21 @@ function presentOrderMeta(order) {
   }
 }
 
-function presentTicket(ticket, paid, leadMinutes) {
-  const reveal = paid ? ticketRevealState(ticket, leadMinutes) : { sealed: false, revealAt: null }
+export function presentTicket(ticket, paid, leadMinutes, now = new Date()) {
+  const reveal = paid ? ticketRevealState(ticket, leadMinutes, now) : { sealed: false, revealAt: null }
   const visible = paid && !reveal.sealed
+  const credentialState = visible ? holderCredentialState(ticket, now) : null
+  const showQr = visible && holderMayShowQr(credentialState)
   return {
     id: ticket.id,
     order_id: ticket.order_id ?? ticket.orderId ?? null,
     bundle_id: ticket.bundle_id ?? ticket.bundleId ?? null,
-    ticket_code: visible ? (ticket.ticket_code ?? ticket.ticketCode ?? null) : null,
-    qr_token: visible ? (ticket.qr_token ?? ticket.qrToken ?? null) : null,
+    ticket_code: paid ? (ticket.ticket_code ?? ticket.ticketCode ?? null) : null,
+    qr_token: showQr ? (ticket.qr_token ?? ticket.qrToken ?? null) : null,
     gate_code: visible ? (ticket.gate_code ?? ticket.gateCode ?? null) : null,
+    credential_state: credentialState,
+    qr_validity_mode: ticket.qr_validity_mode ?? ticket.validityMode ?? null,
+    access_activated_at: ticket.access_activated_at ?? ticket.accessActivatedAt ?? null,
     pass_sealed: Boolean(paid && reveal.sealed),
     reveal_at: paid ? reveal.revealAt : null,
     attendee_name: ticket.attendee_name ?? ticket.attendeeName ?? null,

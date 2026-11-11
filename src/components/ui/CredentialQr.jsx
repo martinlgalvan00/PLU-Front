@@ -25,6 +25,7 @@ export default function CredentialQr({
   src = null,
   alt = '',
   failed = false,
+  spent = false,
   size = 'md',
   className = '',
 }) {
@@ -45,7 +46,15 @@ export default function CredentialQr({
     if (img?.complete && img.naturalWidth > 0) setRevealed(true)
   }, [src])
 
-  const state = src ? (revealed ? 'ready' : 'loading') : failed ? 'failed' : 'pending'
+  const state = spent
+    ? 'spent'
+    : src
+      ? revealed
+        ? 'ready'
+        : 'loading'
+      : failed
+        ? 'failed'
+        : 'pending'
 
   return (
     <span className={`credential-qr credential-qr--${size} ${className}`.trim()} data-state={state}>
@@ -59,7 +68,7 @@ export default function CredentialQr({
         ) : null}
       </span>
 
-      {src ? (
+      {src && !spent ? (
         <img
           ref={imgRef}
           src={src}

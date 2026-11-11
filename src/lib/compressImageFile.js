@@ -16,6 +16,13 @@ export const SHOP_PRODUCT_MAX_EDGE = 1200
 export const SHOP_PRODUCT_WEBP_QUALITY = 0.7
 export const SHOP_PRODUCT_TARGET_MAX_BYTES = 280 * 1024
 
+/** Legajo (DNI / certificado): legible, lo más chico posible. */
+export const ATHLETE_DOCUMENT_MAX_EDGE = 1280
+export const ATHLETE_DOCUMENT_WEBP_QUALITY = 0.5
+export const ATHLETE_DOCUMENT_TARGET_MAX_BYTES = 150 * 1024
+export const ATHLETE_DOCUMENT_PDF_MAX_BYTES = 200 * 1024
+export const ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES = 400 * 1024
+
 export function fitImageWithin(width, height, maxEdge = ATHLETE_PHOTO_MAX_EDGE) {
   const safeWidth = Math.max(1, Number(width) || 1)
   const safeHeight = Math.max(1, Number(height) || 1)
@@ -60,6 +67,7 @@ export async function compressImageFile(
     mimeType = 'image/webp',
     targetMaxBytes = ATHLETE_PHOTO_TARGET_MAX_BYTES,
     skipUnderBytes = SKIP_IF_ALREADY_UNDER_BYTES,
+    qualityPasses = [0.55, 0.45],
   } = {},
 ) {
   if (!file?.type?.startsWith('image/')) return file
@@ -100,7 +108,7 @@ export async function compressImageFile(
   let bestBlob = blob
   let bestType = type
   if (bestBlob.size > targetMaxBytes && mimeType === 'image/webp') {
-    for (const passQuality of [0.55, 0.45]) {
+    for (const passQuality of qualityPasses) {
       const pass = await canvasToBlob(canvas, mimeType, passQuality)
       if (pass.blob && pass.blob.size > 0 && pass.blob.size < bestBlob.size) {
         bestBlob = pass.blob
@@ -136,5 +144,30 @@ export async function compressShopProductImage(file) {
     quality: SHOP_PRODUCT_WEBP_QUALITY,
     targetMaxBytes: SHOP_PRODUCT_TARGET_MAX_BYTES,
     skipUnderBytes: SHOP_PRODUCT_TARGET_MAX_BYTES,
+  })
+}
+
+/**
+ * DNI / certificado médico: achica JPG/PNG/WebP a ≤ ~150 KB.
+ * Un PDF chico se deja; uno pesado se rechaza para que fotografíen la hoja.
+ */
+export async function compressAthleteDocumentFile(file) {
+  if (file?.type === 'application/pdf') {
+    if (file.size > ATHLETE_DOCUMENT_PDF_MAX_BYTES) {
+      const error = new Error(
+        'Sacá una foto del certificado; el PDF es demasiado pesado.',
+      )
+      error.code = 'DOCUMENT_PDF_TOO_LARGE'
+      throw error
+    }
+    return file
+  }
+  if (!file?.type?.startsWith('image/')) return file
+  return compressImageFile(file, {
+    maxEdge: ATHLETE_DOCUMENT_MAX_EDGE,
+    quality: ATHLETE_DOCUMENT_WEBP_QUALITY,
+    targetMaxBytes: ATHLETE_DOCUMENT_TARGET_MAX_BYTES,
+    skipUnderBytes: ATHLETE_DOCUMENT_TARGET_MAX_BYTES,
+    qualityPasses: [0.4, 0.32],
   })
 }

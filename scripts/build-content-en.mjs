@@ -179,23 +179,23 @@ export const MEMBERSHIP_BENEFITS = [
 export const MEMBERSHIP_REQUIREMENTS = [
   {
     id: 'id',
-    title: 'Valid ID',
-    text: 'National ID or passport to verify identity.',
+    title: 'ID',
+    text: 'Photo of a valid national ID or passport, front and back. Required to validate the request.',
   },
   {
     id: 'age',
-    title: 'Minimum age 14',
-    text: 'Under 18 requires legal guardian authorization.',
+    title: 'Age',
+    text: 'From 14 years old. Under 18: guardian authorization, also uploaded in the account.',
   },
   {
     id: 'health',
-    title: 'Medical clearance or affidavit',
-    text: 'Valid medical certificate or health affidavit.',
+    title: 'Fitness',
+    text: 'Medical certificate or health affidavit. Upload a photo or a small PDF.',
   },
   {
     id: 'photo',
-    title: 'Credential photo',
-    text: 'Recent digital photo for the member card.',
+    title: 'Photo',
+    text: 'Recent digital portrait, front-facing and well lit.',
   },
 ]
 

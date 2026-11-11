@@ -103,7 +103,7 @@ const BUYER_TICKET_CORE =
   'id, order_id, bundle_id, ticket_code, qr_token, attendee_name, status, credential_label, credential_scopes, is_primary_credential, addons'
 
 const BUYER_TICKET_SELECTS = [
-  `${BUYER_TICKET_CORE}, gate_code, attendee_dni, valid_from, valid_until, ${BUYER_TICKET_DAYS}`,
+  `${BUYER_TICKET_CORE}, gate_code, attendee_dni, valid_from, valid_until, qr_validity_mode, access_activated_at, ${BUYER_TICKET_DAYS}`,
   `${BUYER_TICKET_CORE}, attendee_dni, valid_from, valid_until, ${BUYER_TICKET_DAYS}`,
   `${BUYER_TICKET_CORE}, gate_code, attendee_dni, valid_from, valid_until, ticket_types(name)`,
   `${BUYER_TICKET_CORE}, attendee_dni, valid_from, valid_until, ticket_types(name)`,

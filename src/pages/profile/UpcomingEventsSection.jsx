@@ -9,6 +9,10 @@ import { money } from '../../lib/format.js'
 import { isMembershipCurrent } from '../../services/membershipService.js'
 import { isProfileComplete } from '../../lib/athleteProfile.js'
 import {
+  documentPackGate,
+  ATHLETE_DOCUMENT_KIND_LABELS,
+} from '../../lib/athleteDocuments.js'
+import {
   findAthleteEventRegistration,
   isPendingRegistration,
 } from '../../lib/athleteEventStatus.js'
@@ -44,6 +48,7 @@ export default function UpcomingEventsSection({
     : null
   const registrationCheckoutEnabled = checkoutAvailability.registrationEnabled !== false
   const [incompleteWarningEvent, setIncompleteWarningEvent] = useState(null)
+  const [documentsWarningEvent, setDocumentsWarningEvent] = useState(null)
 
   function goToRegistration(event) {
     // `onSelectEvent` fija el evento de la fila clickeada antes de navegar;
@@ -64,14 +69,23 @@ export default function UpcomingEventsSection({
     const profileStatus = isProfileComplete(athlete)
     if (!profileStatus.complete) {
       setIncompleteWarningEvent(event.slug)
+      setDocumentsWarningEvent(null)
+      return
+    }
+    const documents = documentPackGate(athlete, athlete.documents, { purpose: 'registration' })
+    if (documents.blocked) {
+      setDocumentsWarningEvent(event.slug)
+      setIncompleteWarningEvent(null)
       return
     }
     setIncompleteWarningEvent(null)
+    setDocumentsWarningEvent(null)
     goToRegistration(event)
   }
 
   function handleGoToProfile() {
     setIncompleteWarningEvent(null)
+    setDocumentsWarningEvent(null)
     if (onNavigateSection) {
       onNavigateSection('account-personal-data')
     }
@@ -92,6 +106,12 @@ export default function UpcomingEventsSection({
     if (!athlete) return ''
     const { missing } = isProfileComplete(athlete)
     return missing.map((f) => FIELD_LABELS[f] ?? f).join(', ')
+  }
+
+  function getMissingDocumentsLabel() {
+    if (!athlete) return ''
+    const { missing } = documentPackGate(athlete, athlete.documents, { purpose: 'registration' })
+    return missing.map((kind) => t(`account.documents.kinds.${kind}`) ?? ATHLETE_DOCUMENT_KIND_LABELS[kind]).join(', ')
   }
 
   return (
@@ -118,6 +138,22 @@ export default function UpcomingEventsSection({
           </div>
           <button type="button" className="account-inline-alert__action" onClick={handleGoToProfile}>
             {t('account.events.profileIncompleteAction')}
+            <ArrowRight size={14} aria-hidden />
+          </button>
+        </div>
+      )}
+
+      {documentsWarningEvent && (
+        <div className="account-inline-alert" role="alert">
+          <div className="account-inline-alert__icon">
+            <AlertTriangle size={18} aria-hidden />
+          </div>
+          <div className="account-inline-alert__body">
+            <strong>{t('account.events.documentsIncompleteTitle')}</strong>
+            <p>{t('account.events.documentsIncompleteBody', { fields: getMissingDocumentsLabel() })}</p>
+          </div>
+          <button type="button" className="account-inline-alert__action" onClick={handleGoToProfile}>
+            {t('account.events.documentsIncompleteAction')}
             <ArrowRight size={14} aria-hidden />
           </button>
         </div>

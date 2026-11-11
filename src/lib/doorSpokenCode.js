@@ -1,4 +1,5 @@
 import { parseCredentialScan } from './credentialQr.js'
+import { parseSpokenMemberInput } from '../../shared/spokenMemberCode.js'
 import { TICKET_GATE_CODE_ALPHABET, normalizeGateCode } from './ticketGateCode.js'
 
 /**
@@ -150,6 +151,12 @@ export function formatManualScanInput(value) {
   const raw = stripInvisibles(value)
   if (raw.includes('://') || /credencial=/i.test(raw)) return raw
   if (/[a-z]{2,}/i.test(raw) && !normalizeGateCode(raw)) return raw
+  const digitsOnly = raw.replace(/[\s.\-·]/g, '')
+  if (/^\d+$/.test(digitsOnly) && digitsOnly.length !== 6) {
+    const digits = digitsOnly.slice(0, 10)
+    if (digits.length <= 2) return digits
+    return `${digits.slice(0, 2)} ${digits.slice(2)}`
+  }
   const compact = raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
   if (!compact) return raw.trim()
   if (compact.length <= 3) return compact
@@ -234,17 +241,92 @@ function interpretSpokenGateCode(raw) {
  * Entre lo que oyó el micrófono, se queda con el XXX-XXX válido.
  * Si ninguna alternativa cierra, devuelve el primer código mal formado.
  */
+const MEMBER_DIGIT = Object.freeze({
+  cero: '0',
+  zero: '0',
+  uno: '1',
+  una: '1',
+  one: '1',
+  dos: '2',
+  two: '2',
+  tres: '3',
+  three: '3',
+  cuatro: '4',
+  four: '4',
+  cinco: '5',
+  five: '5',
+  seis: '6',
+  six: '6',
+  siete: '7',
+  seven: '7',
+  ocho: '8',
+  eight: '8',
+  nueve: '9',
+  nine: '9',
+})
+
+function groupDigits(part) {
+  const tokens = part.split(/[^a-z0-9]+/).filter(Boolean)
+  let digits = ''
+  let saw = false
+  for (const token of tokens) {
+    if (token === 'y' || token === 'and') continue
+    if (MEMBER_DIGIT[token]) {
+      digits += MEMBER_DIGIT[token]
+      saw = true
+      continue
+    }
+    if (/^\d+$/.test(token)) {
+      digits += token
+      saw = true
+      continue
+    }
+    return null
+  }
+  return saw ? digits : null
+}
+
+/**
+ * "dos seis, ocho seis cinco" → 26 865. Una frase de entrada (con letras
+ * que no son dígitos) no entra acá.
+ */
+function interpretSpokenMemberCode(raw) {
+  const groups = preparePhrase(raw)
+    .replace(/\bcoma\b/g, ',')
+    .replace(/\bpunto\b/g, '.')
+    .split(/[,.]+/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+  if (groups.length === 0 || groups.length > 2) return null
+  const digits = groups.map(groupDigits)
+  if (digits.some((value) => !value)) return null
+  if (digits.length === 1) return parseSpokenMemberInput(digits[0])
+  return parseSpokenMemberInput(`${digits[0]} ${digits[1]}`)
+}
+
+function memberScan(raw, parsed, repairs) {
+  return {
+    kind: 'member',
+    raw,
+    display: parsed.display,
+    repairs,
+    parsed: { code: parsed.display, eventSlug: null, type: null },
+  }
+}
+
 export function chooseSpokenDoorCode(transcripts) {
   const list = (Array.isArray(transcripts) ? transcripts : [transcripts])
     .map((item) => String(item ?? '').trim())
     .filter(Boolean)
   let malformed = null
+  let member = null
   for (const text of list) {
     const prepared = prepareCheckinScan(text)
     if (prepared.kind === 'door') return prepared
+    if (!member && prepared.kind === 'member') member = prepared
     if (!malformed && prepared.kind === 'malformed') malformed = prepared
   }
-  return malformed
+  return member ?? malformed
 }
 
 export function prepareCheckinScan(raw) {
@@ -252,6 +334,14 @@ export function prepareCheckinScan(raw) {
   if (!cleaned) return { kind: 'empty', raw: '' }
   if (cleaned.includes('://') || /credencial=/i.test(cleaned)) {
     return { kind: 'credential', raw: cleaned, parsed: parseCredentialScan(cleaned) }
+  }
+
+  const typedMember = parseSpokenMemberInput(cleaned)
+  if (typedMember) return memberScan(cleaned, typedMember, cleaned === typedMember.display ? [] : ['formatted'])
+
+  if (/[a-z]/i.test(cleaned)) {
+    const spokenMember = interpretSpokenMemberCode(cleaned)
+    if (spokenMember) return memberScan(cleaned, spokenMember, ['speech'])
   }
 
   const gate = normalizeGateCode(cleaned)

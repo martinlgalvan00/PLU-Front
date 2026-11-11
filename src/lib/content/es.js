@@ -216,23 +216,23 @@ export const MEMBERSHIP_INSTITUTIONAL = {
 export const MEMBERSHIP_REQUIREMENTS = [
   {
     id: 'id',
-    title: 'Documento',
-    text: 'DNI o pasaporte vigente. Sin eso no se valida la solicitud.',
+    title: 'DNI — frente',
+    text: 'Foto nítida del frente, o un PDF liviano. Se sube en la cuenta, antes de pagar.',
   },
   {
-    id: 'age',
-    title: 'Edad',
-    text: 'Desde 14 años. Menores de 18: autorización del tutor.',
+    id: 'dni_back',
+    title: 'DNI — dorso',
+    text: 'Foto nítida del dorso. Frente y dorso son obligatorios.',
   },
   {
     id: 'health',
-    title: 'Aptitud',
-    text: 'Certificado médico o declaración jurada de salud al día.',
+    title: 'Certificado médico',
+    text: 'Foto o PDF liviano. Sin este archivo no se habilita el pago.',
   },
   {
-    id: 'photo',
-    title: 'Foto',
-    text: 'Retrato digital reciente, de frente y con buena luz.',
+    id: 'age',
+    title: 'Menores de 18',
+    text: 'Desde los 14 años. Además se sube la autorización del tutor.',
   },
 ]
 
@@ -252,7 +252,7 @@ export const MEMBERSHIP_ANNUAL_STEPS = [
   {
     step: '2',
     title: 'Pagás online',
-    text: 'Mercado Pago o transferencia con comprobante en la plataforma.',
+    text: 'Con el DNI y el certificado médico ya subidos. Mercado Pago o transferencia.',
   },
   {
     step: '3',
@@ -275,7 +275,7 @@ export const MEMBERSHIP_FAQ = [
   {
     id: 'data',
     q: '¿Qué datos necesito cargar?',
-    a: 'Datos personales, documento, contacto, ubicación, gimnasio y sexo competitivo. Menores de 18 requieren autorización del tutor.',
+    a: 'Datos personales, documento, contacto, ubicación, gimnasio y sexo competitivo. Para pagar la afiliación subís DNI frente y dorso y el certificado médico. Menores de 18, también la autorización del tutor.',
   },
   {
     id: 'status',

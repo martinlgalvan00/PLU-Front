@@ -92,6 +92,29 @@ describe('proyección según quién escanea', () => {
     expect(result.row.document).toBe('30111222')
   })
 
+  it('el código corto busca el número de socio de 8 dígitos y, si no está, el histórico', async () => {
+    getStaffMembershipCredential
+      .mockRejectedValueOnce(new ApiError('Credencial no encontrada.', { status: 404 }))
+      .mockResolvedValueOnce(credential({ documentId: '30111222' }))
+
+    const result = await resolveRegistrationScan(
+      { code: '26 14', eventSlug: 'pitbull-classic-2026' },
+      { defaultEventSlug: 'pitbull-classic-2026', staff: true },
+    )
+
+    expect(getStaffMembershipCredential).toHaveBeenNthCalledWith(
+      1,
+      'PLU-ARG-2026-00000014',
+      'pitbull-classic-2026',
+    )
+    expect(getStaffMembershipCredential).toHaveBeenNthCalledWith(
+      2,
+      'PLU-ARG-2026-014',
+      'pitbull-classic-2026',
+    )
+    expect(result.row.document).toBe('30111222')
+  })
+
   it('sin sesión de staff usa la proyección pública, sin PII', async () => {
     getMembershipByCodeOrToken.mockResolvedValue(credential())
 

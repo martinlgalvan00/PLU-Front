@@ -20,6 +20,7 @@ const FEEDBACK_BY_OUTCOME = {
   session_expired: 'error',
   door_malformed: 'warning',
   rate_limited: 'warning',
+  needs_online: 'warning',
 }
 
 const VIBRATION_PATTERNS = {

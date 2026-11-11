@@ -1,6 +1,7 @@
 import { ApiError } from '../lib/api.js'
 import { credentialOpensZone } from './securityZoneService.js'
 import { getMembershipByCodeOrToken, getStaffMembershipCredential } from './athleteApi.js'
+import { memberCodeLookupCandidates } from '../../shared/spokenMemberCode.js'
 import { resolveTicketDoorCredential } from '../lib/ticketGateCode.js'
 import {
   mapApiTicket,
@@ -115,6 +116,7 @@ export function buildTicketRow(ticket) {
     addons: ticket.addons ?? [],
     validFrom: ticket.validFrom ?? null,
     validUntil: ticket.validUntil ?? null,
+    validityMode: ticket.validityMode ?? null,
   }
 }
 
@@ -163,7 +165,7 @@ function readCredential(code, slug, staff) {
   })
 }
 
-export async function resolveRegistrationScan({ code, eventSlug }, ctx) {
+async function resolveOneRegistrationScan({ code, eventSlug }, ctx) {
   const { defaultEventSlug, staff = false } = ctx
   const slug = eventSlug || defaultEventSlug
 
@@ -206,6 +208,18 @@ export async function resolveRegistrationScan({ code, eventSlug }, ctx) {
     }
     throw error
   }
+}
+
+export async function resolveRegistrationScan({ code, eventSlug }, ctx) {
+  const candidates = memberCodeLookupCandidates(code)
+  const list = candidates.length > 0 ? candidates : [String(code ?? '')]
+  let last = { kind: 'registration', outcome: 'not_found' }
+  for (const candidate of list) {
+    const result = await resolveOneRegistrationScan({ code: candidate, eventSlug }, ctx)
+    if (result.outcome !== 'not_found') return result
+    last = result
+  }
+  return last
 }
 
 export async function resolveTicketScan(rawCode, { zoneScope, staff = false } = {}) {

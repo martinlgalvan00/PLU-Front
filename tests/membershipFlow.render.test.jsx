@@ -116,6 +116,11 @@ const ATHLETE = {
   fullName: 'Ana Torres',
   documentId: '30111222',
   sex: 'Femenino',
+  birthDate: '1994-04-12',
+  phone: '1112345678',
+  country: 'Argentina',
+  province: 'Buenos Aires',
+  city: 'La Plata',
   photoUrl: null,
   // Estable de por vida: existe desde el alta, mucho antes de cualquier pago.
   credentialToken: 'a4f1c0de-0000-4000-8000-000000000001',
@@ -403,6 +408,36 @@ describe('credencial de inscripción a torneo', () => {
 })
 
 describe('sección de afiliación de la cuenta', () => {
+  it('pide los datos de la ficha antes de los documentos y del pago', () => {
+    renderPurchaseSection(null, {
+      athlete: { ...ATHLETE, city: '' },
+    })
+
+    expect(screen.getByRole('heading', { name: 'Datos para afiliarte' })).toBeTruthy()
+    expect(screen.getByLabelText('Ciudad')).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: 'Completá el legajo para pagar' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /continuar con mercado pago/i })).toBeNull()
+  })
+
+  it('pide DNI y certificado en el mismo trámite, antes de cobrar', () => {
+    renderPurchaseSection(null, {
+      athlete: {
+        ...ATHLETE,
+        birthDate: '1990-04-12',
+        documents: [],
+      },
+      onUploadDocument: vi.fn(),
+    })
+
+    expect(screen.getByRole('heading', { name: 'Completá el legajo para pagar' })).toBeTruthy()
+    expect(screen.getByText('DNI — frente')).toBeTruthy()
+    expect(screen.getByText('DNI — dorso')).toBeTruthy()
+    expect(screen.getByText('Certificado médico')).toBeTruthy()
+    expect(screen.queryByText('Autorización del tutor')).toBeNull()
+    expect(screen.getAllByLabelText('Subir')).toHaveLength(3)
+    expect(screen.queryByRole('button', { name: /continuar con mercado pago/i })).toBeNull()
+  })
+
   it('muestra el precio del catálogo, no un fallback local', async () => {
     listMembershipPlans.mockResolvedValueOnce({
       plans: [

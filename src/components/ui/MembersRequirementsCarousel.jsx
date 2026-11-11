@@ -13,6 +13,7 @@ import MembersBlockHead from './MembersBlockHead.jsx'
 
 const REQUIREMENT_ICONS = {
   id: IdCard,
+  dni_back: IdCard,
   age: UserRound,
   health: HeartPulse,
   photo: Camera,

@@ -23,6 +23,8 @@ import { money } from '../../lib/format.js'
 import { actorLabel, formatStateDateTime } from '../../lib/stateProvenance.js'
 import { canApproveManualOrder } from '../../services/paymentValidationService.js'
 import { isProfileNoticeComplete, getMissingProfileNoticeFields } from '../../lib/athleteProfile.js'
+import { isDocumentPackComplete, requiredDocumentKinds } from '../../lib/athleteDocuments.js'
+import { adminAthleteDocumentUrl } from '../../services/athleteDocumentService.js'
 import { PROFILE_NOTICE_MESSAGE_MAX } from '../../../shared/profileNotice.js'
 import {
   findAthleteStateDivergences,
@@ -506,6 +508,53 @@ export default function AthleteDetailSection({
                 </div>
               </div>
             ) : null}
+          </section>
+          <section className="athlete-detail__documents" aria-labelledby="athlete-documents-title">
+            <h3 id="athlete-documents-title" className="athlete-detail__group-title">
+              {t('admin.athleteDetail.documents.title')}
+            </h3>
+            {(() => {
+              const pack = isDocumentPackComplete(athlete, athlete.documents)
+              const kinds = requiredDocumentKinds(athlete)
+              const uploaded = new Map((athlete.documents ?? []).map((row) => [row.kind, row]))
+              return (
+                <>
+                  <p className="athlete-detail__notice-status">
+                    {pack.complete
+                      ? t('admin.athleteDetail.documents.complete')
+                      : t('admin.athleteDetail.documents.pending')}
+                    {athlete.documentsGrandfathered
+                      ? ` · ${t('admin.athleteDetail.documents.grandfathered')}`
+                      : ''}
+                  </p>
+                  {kinds.length === 0 ? (
+                    <p>{t('admin.athleteDetail.documents.empty')}</p>
+                  ) : (
+                    <ul className="athlete-detail__documents-list">
+                      {kinds.map((kind) => {
+                        const row = uploaded.get(kind)
+                        return (
+                          <li key={kind}>
+                            <span>{t(`admin.athleteDetail.documents.kinds.${kind}`)}</span>
+                            {row ? (
+                              <a
+                                href={adminAthleteDocumentUrl(athlete.id, kind)}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                {t('admin.athleteDetail.documents.open')}
+                              </a>
+                            ) : (
+                              <span>—</span>
+                            )}
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  )}
+                </>
+              )
+            })()}
           </section>
           <div className="athlete-detail__sheet">
             {profileGroups.map((group) => (

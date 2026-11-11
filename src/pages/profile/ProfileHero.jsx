@@ -24,6 +24,7 @@ export default function ProfileHero({
 
   const registrationCount = activeRegistrations.length
   const memberSince = membership?.startDate ? formatShortDate(membership.startDate) : null
+  const isFreshAccount = !membership && registrationCount === 0
 
   return (
     <section className="account-hero">
@@ -38,30 +39,36 @@ export default function ProfileHero({
           </div>
 
           <p className="account-hero__meta">
-            <span className="account-hero__meta-regs">
-              {t(
-                `account.hero.activeRegistrations_${registrationCount === 1 ? 'one' : 'other'}`,
-                { count: registrationCount },
-              )}
-            </span>
-            {nextEvent?.title ? (
+            {isFreshAccount ? (
+              <span className="account-hero__meta-fresh">{t('account.hero.freshStatus')}</span>
+            ) : (
               <>
-                <span className="account-hero__meta-sep" aria-hidden>
-                  ·
+                <span className="account-hero__meta-regs">
+                  {t(
+                    `account.hero.activeRegistrations_${registrationCount === 1 ? 'one' : 'other'}`,
+                    { count: registrationCount },
+                  )}
                 </span>
-                <span className="account-hero__meta-event">{nextEvent.title}</span>
+                {nextEvent?.title ? (
+                  <>
+                    <span className="account-hero__meta-sep" aria-hidden>
+                      ·
+                    </span>
+                    <span className="account-hero__meta-event">{nextEvent.title}</span>
+                  </>
+                ) : null}
+                {memberSince ? (
+                  <>
+                    <span className="account-hero__meta-sep" aria-hidden>
+                      ·
+                    </span>
+                    <span className="account-hero__meta-since">
+                      {t('account.hero.memberSince')} {memberSince}
+                    </span>
+                  </>
+                ) : null}
               </>
-            ) : null}
-            {memberSince ? (
-              <>
-                <span className="account-hero__meta-sep" aria-hidden>
-                  ·
-                </span>
-                <span className="account-hero__meta-since">
-                  {t('account.hero.memberSince')} {memberSince}
-                </span>
-              </>
-            ) : null}
+            )}
           </p>
 
           <button

@@ -35,12 +35,12 @@ export function createDoorDictation({
     const chosen = chooseSpokenDoorCode(transcripts)
     const preview = Array.isArray(transcripts) ? (transcripts[0] ?? '') : String(transcripts ?? '')
     if (!isFinal) {
-      if (chosen?.kind === 'door') onPreview?.(chosen.display)
+      if (chosen?.kind === 'door' || chosen?.kind === 'member') onPreview?.(chosen.display)
       else if (preview) onPreview?.(preview)
       return
     }
     misses = 0
-    if (chosen?.kind === 'door') {
+    if (chosen?.kind === 'door' || chosen?.kind === 'member') {
       stop()
       const accepted = onAccepted?.(chosen.display)
       if (accepted === false) {

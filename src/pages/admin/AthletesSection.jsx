@@ -19,6 +19,7 @@ import {
 import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
 import { matchesDateRange } from '../../lib/adminDateRangeFilter.js'
 import { isProfileComplete } from '../../lib/athleteProfile.js'
+import { isDocumentPackComplete } from '../../lib/athleteDocuments.js'
 import {
   createRegistrationPaymentIndex,
   groupRegistrationsByAthlete,
@@ -78,6 +79,7 @@ export default function AthletesSection({
   const [gym, setGym] = useState('all')
   const [division, setDivision] = useState('all')
   const [profileCompleteness, setProfileCompleteness] = useState('all')
+  const [documentsCompleteness, setDocumentsCompleteness] = useState('all')
   const [registeredRange, setRegisteredRange] = useState({ from: '', to: '' })
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const [picking, setPicking] = useState(false)
@@ -232,6 +234,29 @@ export default function AthletesSection({
     [profileCompletenessCounts, t],
   )
 
+  const documentsCompletenessCounts = useMemo(() => {
+    let incomplete = 0
+    let complete = 0
+    for (const athlete of athletes) {
+      if (isDocumentPackComplete(athlete, athlete.documents).complete) complete += 1
+      else incomplete += 1
+    }
+    return { all: athletes.length, incomplete, complete }
+  }, [athletes])
+
+  const documentsCompletenessOptions = useMemo(
+    () => [
+      ['all', t('admin.filters.documentsAll'), documentsCompletenessCounts.all],
+      [
+        'incomplete',
+        t('admin.filters.documentsIncomplete'),
+        documentsCompletenessCounts.incomplete,
+      ],
+      ['complete', t('admin.filters.documentsComplete'), documentsCompletenessCounts.complete],
+    ],
+    [documentsCompletenessCounts, t],
+  )
+
   const savedViewSnapshot = useMemo(
     () => ({
       query,
@@ -240,9 +265,19 @@ export default function AthletesSection({
       gym,
       division,
       profileCompleteness,
+      documentsCompleteness,
       registeredRange,
     }),
-    [query, status, registrationStatus, gym, division, profileCompleteness, registeredRange],
+    [
+      query,
+      status,
+      registrationStatus,
+      gym,
+      division,
+      profileCompleteness,
+      documentsCompleteness,
+      registeredRange,
+    ],
   )
   const activeSavedView = useMemo(
     () => findMatchingView(savedViews, savedViewSnapshot),
@@ -255,6 +290,7 @@ export default function AthletesSection({
     gym !== 'all' ||
     division !== 'all' ||
     profileCompleteness !== 'all' ||
+    documentsCompleteness !== 'all' ||
     Boolean(registeredRange.from) ||
     Boolean(registeredRange.to)
 
@@ -282,6 +318,10 @@ export default function AthletesSection({
       const opt = profileCompletenessOptions.find(([v]) => v === profileCompleteness)
       if (opt) items.push({ label: t('admin.filters.profileCompleteness'), value: opt[1] })
     }
+    if (documentsCompleteness !== 'all') {
+      const opt = documentsCompletenessOptions.find(([v]) => v === documentsCompleteness)
+      if (opt) items.push({ label: t('admin.filters.documentsCompleteness'), value: opt[1] })
+    }
     if (registeredRange.from || registeredRange.to) {
       const value =
         registeredRange.from && registeredRange.to
@@ -299,12 +339,14 @@ export default function AthletesSection({
     gym,
     division,
     profileCompleteness,
+    documentsCompleteness,
     registeredRange,
     statusOptions,
     registrationStatusOptions,
     gymOptions,
     divisionOptions,
     profileCompletenessOptions,
+    documentsCompletenessOptions,
     t,
   ])
 
@@ -315,6 +357,7 @@ export default function AthletesSection({
     setGym(view.snapshot.gym ?? 'all')
     setDivision(view.snapshot.division ?? 'all')
     setProfileCompleteness(view.snapshot.profileCompleteness ?? 'all')
+    setDocumentsCompleteness(view.snapshot.documentsCompleteness ?? 'all')
     setRegisteredRange(view.snapshot.registeredRange ?? { from: '', to: '' })
   }
 
@@ -325,6 +368,7 @@ export default function AthletesSection({
     setGym('all')
     setDivision('all')
     setProfileCompleteness('all')
+    setDocumentsCompleteness('all')
     setRegisteredRange({ from: '', to: '' })
   }
 
@@ -342,6 +386,11 @@ export default function AthletesSection({
           (profileCompleteness === 'complete'
             ? isProfileComplete(athlete).complete
             : !isProfileComplete(athlete).complete)
+        const documentsMatch =
+          documentsCompleteness === 'all' ||
+          (documentsCompleteness === 'complete'
+            ? isDocumentPackComplete(athlete, athlete.documents).complete
+            : !isDocumentPackComplete(athlete, athlete.documents).complete)
         const dateMatch = matchesDateRange(athlete.createdAt, registeredRange)
         const queryMatch =
           !normalizedQuery ||
@@ -355,6 +404,7 @@ export default function AthletesSection({
           gymMatch &&
           divisionMatch &&
           profileMatch &&
+          documentsMatch &&
           dateMatch &&
           queryMatch
         )
@@ -369,6 +419,7 @@ export default function AthletesSection({
     gym,
     division,
     profileCompleteness,
+    documentsCompleteness,
     registeredRange,
     paymentIndex,
     registrationsByAthlete,
@@ -527,6 +578,14 @@ export default function AthletesSection({
           quickOption: 'incomplete',
         },
         {
+          id: 'documentsCompleteness',
+          label: t('admin.filters.documentsCompleteness'),
+          value: documentsCompleteness,
+          onChange: setDocumentsCompleteness,
+          options: documentsCompletenessOptions,
+          quickOption: 'incomplete',
+        },
+        {
           id: 'registrationStatus',
           label: t('admin.filters.registrationStatus'),
           value: registrationStatus,
@@ -678,6 +737,34 @@ export default function AthletesSection({
                   {status.complete
                     ? t('admin.sections.athletes.profileOk')
                     : t(pendingKey, { count: status.missing.length })}
+                </span>
+              )
+            },
+          },
+          {
+            key: 'documents',
+            label: t('admin.filters.documentsCompleteness'),
+            width: 140,
+            mobile: 'default',
+            className: 'data-table__column--meta',
+            sortable: false,
+            mobileSortable: false,
+            render: (row) => {
+              const pack = isDocumentPackComplete(row, row.documents)
+              const label = pack.complete
+                ? t('admin.sections.athletes.documentsOk')
+                : row.documentsGrandfathered
+                  ? t('admin.sections.athletes.documentsGrandfathered')
+                  : t('admin.sections.athletes.documentsPending')
+              return (
+                <span
+                  className={`admin-athlete-profile-flag${pack.complete ? ' is-complete' : ' is-pending'}`}
+                  title={label}
+                >
+                  {pack.complete ? null : (
+                    <span className="admin-athlete-profile-flag__mark" aria-hidden="true" />
+                  )}
+                  {label}
                 </span>
               )
             },

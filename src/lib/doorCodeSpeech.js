@@ -36,6 +36,8 @@ const VERDICT = {
     wrong_zone: 'No abre esta zona.',
     not_yet_valid: 'Todavía no está vigente.',
     expired: 'Ya venció.',
+    credential_expired: 'Credencial vencida.',
+    needs_online: 'Hace falta internet para esta credencial.',
     service_unavailable: 'Sin conexión. No se pudo validar.',
     session_expired: 'La sesión del puesto venció.',
     not_in_allowlist: 'No está en la lista de este teléfono.',
@@ -54,6 +56,8 @@ const VERDICT = {
     wrong_zone: 'Does not open this zone.',
     not_yet_valid: 'Not valid yet.',
     expired: 'Expired.',
+    credential_expired: 'Credential expired.',
+    needs_online: 'This credential needs a connection.',
     service_unavailable: 'No connection. Could not validate.',
     session_expired: 'This station session expired.',
     not_in_allowlist: 'Not in the list on this phone.',
@@ -62,10 +66,17 @@ const VERDICT = {
   },
 }
 
-export function checkinVerdictUtterance({ outcome, name, credentialLabel, locale = 'es' } = {}) {
+export function checkinVerdictUtterance({
+  outcome,
+  kind,
+  name,
+  credentialLabel,
+  locale = 'es',
+} = {}) {
   const english = String(locale).toLowerCase().startsWith('en')
   const table = english ? VERDICT.en : VERDICT.es
-  const verdict = table[outcome]
+  const spokenOutcome = kind === 'ticket' && outcome === 'expired' ? 'credential_expired' : outcome
+  const verdict = table[spokenOutcome]
   if (!verdict) return ''
   const who = publicSpokenName(name)
   const entry = String(credentialLabel ?? '').trim()

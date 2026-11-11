@@ -57,6 +57,28 @@ padrón de inscripciones, triage de pagos y KPIs operativos. Las cuentas
 
 `pendiente_pago` → `activa` → `vencida` | `cancelada` | `reembolsada`
 
+### Documentos de afiliación
+
+Para **pagar afiliación** (alta o renovación) y para el **combo** afiliación+inscripción
+el atleta tiene que tener cargados en Storage: DNI frente, DNI dorso y certificado
+médico (foto o PDF liviano). Si es menor de 18, también la autorización del tutor.
+No hay cola de aprobación: alcanza con subirlos. Los archivos no van a Postgres;
+solo se guarda el path. El frontend nunca confirma pagos: el cobro sigue en
+Mercado Pago o validación manual.
+
+Antes de los documentos y del pago, la ficha tiene que tener nombre, documento,
+fecha de nacimiento, sexo, teléfono, país, provincia y ciudad. La afiliación es
+a partir de los 14 años. Categoría, peso, gimnasio y contacto de emergencia no
+bloquean este cobro. Si falta algo, la API responde 422
+`ATHLETE_MEMBERSHIP_DATA_INCOMPLETE` y Afiliación muestra el formulario. Se
+guarda con `PATCH /api/athletes/me/membership-file`, sin tocar la ficha
+competitiva.
+
+Cuentas existentes al momento del feature quedan `documents_grandfathered`: pueden
+seguir inscribiéndose a eventos sin el pack, pero el próximo pago de afiliación
+sí lo exige. Las cuentas nuevas no pueden inscribirse ni pagar afiliación sin el
+legajo.
+
 ### Inscripción
 
 `borrador` → `pendiente_pago` → `pagada` → `confirmada` | `observada` | `cancelada`

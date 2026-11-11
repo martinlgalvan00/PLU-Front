@@ -1,4 +1,5 @@
 import { createStore, del, get, keys, set } from 'idb-keyval'
+import { memberCodeLookupCandidates, spokenMemberCode } from '../../shared/spokenMemberCode.js'
 import { normalizeGateCode } from './ticketGateCode.js'
 
 /**
@@ -69,6 +70,19 @@ function targetKey(entry) {
   return `t:${entry?.qrToken ?? ''}`
 }
 
+function rememberMemberCode(map, memberCode, item) {
+  const member = String(memberCode ?? '').trim().toLowerCase()
+  if (!member) return
+  map.set(member, item)
+  const spoken = spokenMemberCode(memberCode)
+  if (!spoken) return
+  map.set(spoken.display.toLowerCase(), item)
+  map.set(spoken.compact.toLowerCase(), item)
+  for (const candidate of memberCodeLookupCandidates(spoken.display)) {
+    map.set(candidate.toLowerCase(), item)
+  }
+}
+
 function indexGateCode(ticketsByCode, item) {
   const gate = normalizeGateCode(item.gateCode)
   if (!gate) return
@@ -92,8 +106,7 @@ function buildAllowlistIndex(allowlist) {
   for (const item of allowlist.registrations ?? []) {
     if (item.credentialToken) registrationsByCredential.set(item.credentialToken, item)
     if (item.qrToken) registrationsByQr.set(item.qrToken, item)
-    const member = (item.memberCode ?? '').toLowerCase()
-    if (member) registrationsByMember.set(member, item)
+    rememberMemberCode(registrationsByMember, item.memberCode, item)
   }
 
   return {
@@ -278,6 +291,7 @@ export async function findInAllowlist(eventSlug, code) {
   const index = indexFor(allowlist)
   const normalized = code.toLowerCase()
   const gate = normalizeGateCode(code)
+  const memberKeys = new Set([normalized, ...memberCodeLookupCandidates(code).map((item) => item.toLowerCase())])
 
   const ticket =
     index.ticketsByQr.get(code) ??
@@ -287,10 +301,14 @@ export async function findInAllowlist(eventSlug, code) {
 
   // `credentialToken` es el QR del perfil (uno por persona); `qrToken`, la
   // credencial impresa de la membresía, que se sigue aceptando.
-  const registration =
-    index.registrationsByCredential.get(code) ??
-    index.registrationsByQr.get(code) ??
-    index.registrationsByMember.get(normalized)
+  let registration =
+    index.registrationsByCredential.get(code) ?? index.registrationsByQr.get(code) ?? null
+  if (!registration) {
+    for (const key of memberKeys) {
+      registration = index.registrationsByMember.get(key)
+      if (registration) break
+    }
+  }
   if (registration) return { kind: 'registration', entry: registration }
 
   return null

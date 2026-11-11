@@ -37,6 +37,24 @@ describe('allowlist offline de inscripciones', () => {
     expect((await db.findInAllowlist('pitbull', 'plu-0001'))?.entry.registrationId).toBe('r1')
   })
 
+  it('encuentra la credencial por el código corto que se canta', async () => {
+    await db.downloadAllowlist('pitbull-spoken', {
+      registrations: [
+        {
+          registrationId: 'r-short',
+          credentialToken: PERSON,
+          memberCode: 'PLU-ARG-2026-00000865',
+        },
+      ],
+    })
+
+    expect((await db.findInAllowlist('pitbull-spoken', '26 865'))?.entry.registrationId).toBe('r-short')
+    expect((await db.findInAllowlist('pitbull-spoken', '26865'))?.entry.registrationId).toBe('r-short')
+    expect(
+      (await db.findInAllowlist('pitbull-spoken', 'PLU-ARG-2026-00000865'))?.entry.registrationId,
+    ).toBe('r-short')
+  })
+
   it('el escaneo siguiente usa la foto en memoria y no vuelve a abrir la lista', async () => {
     await db.downloadAllowlist('pitbull', {
       tickets: [{ qrToken: 'qr-1', gateCode: 'K4M-7QP', ticketCode: 'TCK-1' }],

@@ -22,6 +22,7 @@ import GymNameConfirmationDialog from '../../components/ui/GymNameConfirmationDi
 import { formatIdentityDocumentId, formatShortDate, initials } from '../../lib/format.js'
 import { isNewGymName } from '../../lib/gymNormalize.js'
 import { isProfileComplete, PROFILE_FIELD_GROUPS } from '../../lib/athleteProfile.js'
+import DocumentPackSection from './DocumentPackSection.jsx'
 import { getFormOptions } from '../../lib/formOptions.js'
 import { useAgeDivisionOptions } from '../../hooks/useAgeDivisionOptions.js'
 import { fetchGyms } from '../../services/athleteApi.js'
@@ -82,6 +83,7 @@ export default function PersonalDataSection({
   onUpdateProfile,
   onUpdatePhoto,
   onRemovePhoto,
+  onUploadDocument,
 }) {
   const { t } = useI18n()
   const [form, setForm] = useState({
@@ -455,6 +457,8 @@ export default function PersonalDataSection({
       <p className="account-section__lead account-section__lead--compact">
         {t('account.personalData.lead')}
       </p>
+
+      <DocumentPackSection athlete={athlete} onUploadDocument={onUploadDocument} />
 
       {/* Identidad: foto + datos oficiales readonly en una sola franja */}
       <div className="account-identity">

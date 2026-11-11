@@ -11,6 +11,7 @@ import { isSnapshotFresh } from '../lib/checkinSyncConfig.js'
 import { enqueueCheckin, findInAllowlist, getAllowlist } from '../lib/offlineCheckinDb.js'
 import { credentialOpensZone } from '../services/securityZoneService.js'
 import { TICKET_VALIDITY_STATUS, ticketValidityStatus } from '../lib/ticketValidity.js'
+import { ticketRequiresLiveDoor } from '../lib/ticketValidityPolicy.js'
 import {
   applyTicketZoneOutcome,
   buildTicketRow,
@@ -82,6 +83,7 @@ export const SCAN_VERDICT_META = {
   session_expired: { Icon: XCircle, tone: 'danger' },
   door_malformed: { Icon: HelpCircle, tone: 'warning' },
   rate_limited: { Icon: AlertTriangle, tone: 'warning' },
+  needs_online: { Icon: AlertTriangle, tone: 'warning' },
 }
 
 /**
@@ -112,6 +114,36 @@ function buildOfflineScanResult(found, zoneScope) {
   const alreadyUsed = Boolean(entry.checkedInAt) || entry.checkedInLocally
 
   if (kind === 'ticket') {
+    if (ticketRequiresLiveDoor(entry)) {
+      return applyTicketZoneOutcome(
+        {
+          kind: 'ticket',
+          outcome: 'needs_online',
+          offline: true,
+          canCheckIn: false,
+          qrToken: entry.qrToken,
+          status: entry.status,
+          row: {
+            id: `tkt-${entry.qrToken}`,
+            ticketCode: entry.ticketCode,
+            gateCode: entry.gateCode ?? null,
+            qrToken: entry.qrToken,
+            type: 'espectador',
+            name: entry.attendeeName,
+            document: entry.attendeeDni,
+            meta: entry.ticketTypeName ?? entry.ticketCode,
+            ticketTypeName: entry.ticketTypeName,
+            validityMode: entry.validityMode,
+            credentialLabel: entry.credentialLabel ?? null,
+            credentialScopes: entry.credentialScopes ?? [],
+            status: entry.status,
+            validFrom: entry.validFrom ?? null,
+            validUntil: entry.validUntil ?? null,
+          },
+        },
+        zoneScope,
+      )
+    }
     const validity = ticketValidityStatus(entry)
     const outcome = alreadyUsed
       ? 'already_used'
@@ -526,7 +558,10 @@ export function useCheckInWorkspace({
   const handleScan = useCallback(
     async (raw) => {
       const prepared = prepareCheckinScan(raw)
-      const scanRaw = prepared.kind === 'door' ? prepared.display : prepared.raw || String(raw ?? '')
+      const scanRaw =
+        prepared.kind === 'door' || prepared.kind === 'member'
+          ? prepared.display
+          : prepared.raw || String(raw ?? '')
 
       if (prepared.kind === 'malformed') {
         const invalidResult = {
@@ -543,7 +578,10 @@ export function useCheckInWorkspace({
         return
       }
 
-      const parsed = prepared.kind === 'credential' ? prepared.parsed : parseCredentialScan(scanRaw)
+      const parsed =
+        prepared.kind === 'credential' || prepared.kind === 'member'
+          ? prepared.parsed
+          : parseCredentialScan(scanRaw)
       if (!parsed?.code) {
         const invalidResult = { outcome: 'invalid' }
         setScanResult(invalidResult)
@@ -593,6 +631,7 @@ export function useCheckInWorkspace({
           announceCheckinVerdict(
             {
               outcome: nextOutcome,
+              kind: next.kind,
               name: next.row?.name ?? next.athlete?.fullName ?? next.ticket?.attendeeName,
               credentialLabel: next.row?.credentialLabel ?? next.ticket?.credentialLabel,
             },
@@ -820,6 +859,10 @@ export function useCheckInWorkspace({
     }
 
     if (!offlineSync.isOnline) {
+      if (ticketRequiresLiveDoor(row)) {
+        blockLiveDoorOffline(row)
+        return
+      }
       await queueAdmission(row)
       return
     }
@@ -854,6 +897,10 @@ export function useCheckInWorkspace({
       }
     } catch (error) {
       if (isRetryableCheckinFailure(error)) {
+        if (ticketRequiresLiveDoor(row)) {
+          blockLiveDoorOffline(row)
+          return
+        }
         await queueAdmission(row)
         return
       }
@@ -892,13 +939,21 @@ export function useCheckInWorkspace({
       // palito, 5xx, 429) el guardia quedaba con "inválido" y la persona sin
       // entrar. Se encola igual: si el servidor sí lo registró, la
       // sincronización recibe PLU06 y queda como conflicto benigno.
-      if (isRetryableCheckinFailure(error) && hasTarget) {
+      if (
+        isRetryableCheckinFailure(error) &&
+        hasTarget &&
+        !ticketRequiresLiveDoor(scanResult.ticket ?? scanResult.row)
+      ) {
         try {
           await queueScanOffline()
           return
         } catch (queueError) {
           console.error('checkin queue:', queueError)
         }
+      }
+      if (ticketRequiresLiveDoor(scanResult.ticket ?? scanResult.row) && isRetryableCheckinFailure(error)) {
+        blockLiveDoorOffline(scanResult.row ?? scanResult.ticket)
+        return
       }
       const failedOutcome = classifyCheckinFailure(error) === 'auth' ? 'session_expired' : 'invalid'
       playCheckinFeedback(failedOutcome, feedbackPrefs)
@@ -947,7 +1002,28 @@ export function useCheckInWorkspace({
     offlineSync.refreshCounts()
   }
 
+  function blockLiveDoorOffline(row) {
+    playCheckinFeedback('needs_online', feedbackPrefs)
+    setScanResult({
+      kind: 'ticket',
+      outcome: 'needs_online',
+      offline: true,
+      canCheckIn: false,
+      qrToken: row?.qrToken ?? null,
+      status: row?.status,
+      row,
+    })
+  }
+
   async function runScanCheckIn() {
+    const liveDoorTicket = scanResult.ticket ?? scanResult.row
+    if (
+      (scanResult.offline || !offlineSync.isOnline) &&
+      (scanResult.outcome === 'needs_online' || ticketRequiresLiveDoor(liveDoorTicket))
+    ) {
+      blockLiveDoorOffline(scanResult.row ?? liveDoorTicket)
+      return
+    }
     if (scanResult.offline || !offlineSync.isOnline) {
       await queueScanOffline()
       return
@@ -1043,6 +1119,10 @@ export function useCheckInWorkspace({
     setScanBusy(true)
     try {
       if (!offlineSync.isOnline) {
+        if (ticketRequiresLiveDoor(scanResult.ticket ?? scanResult.row)) {
+          blockLiveDoorOffline(scanResult.row ?? scanResult.ticket)
+          return
+        }
         await queueScanOffline({ force, reason })
         return
       }
@@ -1051,6 +1131,10 @@ export function useCheckInWorkspace({
         result = await runDoorAttempts(() => onCheckInTicket(scanResult.qrToken, { force, reason }))
       } catch (error) {
         if (isRetryableCheckinFailure(error)) {
+          if (ticketRequiresLiveDoor(scanResult.ticket ?? scanResult.row)) {
+            blockLiveDoorOffline(scanResult.row ?? scanResult.ticket)
+            return
+          }
           await queueScanOffline({ force, reason })
           return
         }

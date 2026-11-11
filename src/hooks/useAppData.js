@@ -93,6 +93,7 @@ import {
   previewRegistrationNotification as previewRegistrationNotificationRequest,
   setMembershipStatus as setMembershipStatusRequest,
   setRegistrationPublicVisibility as setRegistrationPublicVisibilityRequest,
+  saveMembershipFile as saveMembershipFileRequest,
   updateAthleteProfile as updateAthleteProfileRequest,
   sendAthleteProfileNotice as sendAthleteProfileNoticeRequest,
   sendAthleteProfileNoticesBulk as sendAthleteProfileNoticesBulkRequest,
@@ -100,6 +101,9 @@ import {
   dismissAthleteProfileNotice as dismissAthleteProfileNoticeRequest,
 } from '../services/athleteApi.js'
 import { uploadAthletePhoto } from '../services/athletePhotoService.js'
+import { uploadAthleteDocument } from '../services/athleteDocumentService.js'
+import { documentPackGate } from '../lib/athleteDocuments.js'
+import { membershipFileStatus } from '../../shared/membershipFile.js'
 import {
   invalidateEventLiveData,
   invalidateEventRegistrationSummary,
@@ -1428,6 +1432,22 @@ export function useAppData() {
     ) => {
       const athlete = athletes.find((item) => item.id === session?.athleteId)
       if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
+      const membershipFile = membershipFileStatus(athlete)
+      if (!membershipFile.complete) {
+        return {
+          error: 'Completá los datos de afiliación antes de pagar.',
+          code: 'ATHLETE_MEMBERSHIP_DATA_INCOMPLETE',
+          missing: membershipFile.missing,
+        }
+      }
+      const documentsGate = documentPackGate(athlete, athlete.documents, { purpose: 'membership' })
+      if (documentsGate.blocked) {
+        return {
+          error: 'Subí el DNI y el certificado médico antes de pagar la afiliación.',
+          code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+          missing: documentsGate.missing,
+        }
+      }
 
       try {
         const normalizedMethod = paymentMethod === 'transferencia' ? 'manual_link' : paymentMethod
@@ -1572,6 +1592,27 @@ export function useAppData() {
       event.preventDefault()
       const athlete = athletes.find((item) => item.id === session?.athleteId)
       if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
+      if (options.purchaseType === 'combo') {
+        const membershipFile = membershipFileStatus(athlete)
+        if (!membershipFile.complete) {
+          return {
+            error: 'Completá los datos de afiliación antes de pagar.',
+            code: 'ATHLETE_MEMBERSHIP_DATA_INCOMPLETE',
+            missing: membershipFile.missing,
+          }
+        }
+      }
+      const documentsPurpose = options.purchaseType === 'combo' ? 'combo' : 'registration'
+      const documentsGate = documentPackGate(athlete, athlete.documents, {
+        purpose: documentsPurpose,
+      })
+      if (documentsGate.blocked) {
+        return {
+          error: 'Subí el DNI y el certificado médico antes de inscribirte.',
+          code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+          missing: documentsGate.missing,
+        }
+      }
 
       try {
         const purchaseType = options.purchaseType === 'combo' ? 'combo' : 'registration'
@@ -3584,6 +3625,33 @@ export function useAppData() {
     return { success: true }
   }, [])
 
+  const saveMembershipFileAction = useCallback(async (athleteId, file) => {
+    try {
+      const { athlete } = await saveMembershipFileRequest(file)
+      setAthletes((current) =>
+        current.map((item) =>
+          item.id === athleteId
+            ? {
+                ...item,
+                fullName: athlete.fullName ?? item.fullName,
+                documentId: athlete.documentId ?? item.documentId,
+                birthDate: athlete.birthDate ?? item.birthDate,
+                sex: athlete.sex ?? item.sex,
+                phone: athlete.phone ?? item.phone,
+                country: athlete.country ?? item.country,
+                province: athlete.province ?? item.province,
+                city: athlete.city ?? item.city,
+              }
+            : item,
+        ),
+      )
+      return { athlete }
+    } catch (error) {
+      if (error instanceof ApiError) return { error: error.message, code: error.body?.code ?? null }
+      throw error
+    }
+  }, [])
+
   const updateAthleteProfileAction = useCallback(async (athleteId, updates) => {
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailPattern.test(updates.email ?? '')) {
@@ -3606,6 +3674,35 @@ export function useAppData() {
       const { athlete } = await registerAthletePhotoRequest(athleteId, storagePath)
       setAthletes((current) => current.map((item) => (item.id === athleteId ? athlete : item)))
       return { athlete }
+    } catch (error) {
+      if (error instanceof ApiError) return { error: error.message }
+      throw error
+    }
+  }, [])
+
+  const uploadAthleteDocumentAction = useCallback(async (athleteId, kind, file) => {
+    try {
+      await uploadAthleteDocument(kind, file)
+      setAthletes((current) =>
+        current.map((item) => {
+          if (item.id !== athleteId) return item
+          const documents = (item.documents ?? []).filter((row) => row.kind !== kind)
+          return {
+            ...item,
+            documents: [
+              ...documents,
+              {
+                kind,
+                contentType: file.type,
+                sizeBytes: file.size,
+                originalName: file.name,
+                uploadedAt: new Date().toISOString(),
+              },
+            ],
+          }
+        }),
+      )
+      return { ok: true }
     } catch (error) {
       if (error instanceof ApiError) return { error: error.message }
       throw error
@@ -4590,8 +4687,10 @@ export function useAppData() {
     adminNavBadges,
     getAthleteDetail,
     updateForm,
+    saveMembershipFileAction,
     updateAthleteProfileAction,
     updateAthletePhotoAction,
+    uploadAthleteDocumentAction,
     removeAthletePhotoAction,
     registerAthlete,
     submitMembership,

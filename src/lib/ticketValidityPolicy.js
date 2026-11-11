@@ -1,3 +1,5 @@
+import { calendarDateInTimeZone } from './format.js'
+
 /**
  * Políticas de acceso de un tipo de entrada.
  *
@@ -9,6 +11,7 @@ export const TICKET_ACCESS_POLICY_MODE = Object.freeze({
   FIXED_WINDOW: 'fixed_window',
   FROM_PAYMENT: 'from_payment',
   FROM_FIRST_SCAN: 'from_first_scan',
+  FIRST_ENTRY_DAY: 'first_entry_day',
 })
 
 export const TICKET_ACCESS_POLICY_MODES = Object.freeze(Object.values(TICKET_ACCESS_POLICY_MODE))
@@ -107,6 +110,37 @@ function asPositiveInteger(value) {
   return Math.round(number)
 }
 
+/**
+ * Medianoche de un `YYYY-MM-DD` en Argentina, como instante UTC.
+ * El país está en UTC−3 todo el año. Coincide con
+ * `date::timestamp at time zone 'America/Argentina/Buenos_Aires'`.
+ */
+export function argentinaMidnight(isoDate) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(isoDate ?? '').trim())
+  if (!match) return null
+  return new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 3, 0, 0))
+}
+
+/**
+ * Ventana que deja el primer ingreso: el día calendario de Argentina en que
+ * se activó, desde las 00:00 inclusive hasta las 00:00 del día siguiente.
+ * Un ingreso a las 23:50 vence a la medianoche, no 24 horas después.
+ */
+export function firstEntryDayWindow(activatedAt) {
+  const day = calendarDateInTimeZone(activatedAt)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null
+  const validFrom = argentinaMidnight(day)
+  const validUntil = argentinaMidnight(addCalendarDay(day))
+  if (!validFrom || !validUntil) return null
+  return { day, validFrom, validUntil, key: `event_day:${day}` }
+}
+
+/** Este modo no se puede admitir con la lista offline: el día lo traba el servidor. */
+export function ticketRequiresLiveDoor(ticket) {
+  const mode = ticket?.validityMode ?? ticket?.qrValidityMode ?? ticket?.qr_validity_mode ?? null
+  return mode === TICKET_ACCESS_POLICY_MODE.FIRST_ENTRY_DAY
+}
+
 /** Suma un día de calendario a un `YYYY-MM-DD` sin pasar por la zona local. */
 export function addCalendarDay(isoDate) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(isoDate ?? '').trim())
@@ -189,6 +223,11 @@ export function summarizeTicketQrValidity(type = {}, eventDays = []) {
       return { ...base, kind: 'missing' }
     }
     return { ...base, kind: validityMode }
+  }
+
+  if (validityMode === TICKET_ACCESS_POLICY_MODE.FIRST_ENTRY_DAY) {
+    if (labels.length === 0) return { ...base, kind: 'missing' }
+    return { ...base, kind: 'first_entry_day' }
   }
 
   if (labels.length === 0) {

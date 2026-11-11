@@ -3,9 +3,8 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { hasEventScopeAccess, hasPermission } from '../../src/lib/permissions.js'
 import { resolveTicketTypeChannels } from '../../src/lib/ticketTypePaymentChannels.js'
-import { lookupTicketAccessDays } from '../../src/lib/buyerTicketDays.js'
 import { ticketValidityTiming } from '../../src/lib/ticketValidity.js'
-import { resolveTicketRevealLeadMinutes, ticketRevealState } from '../../src/lib/ticketReveal.js'
+import { resolveTicketRevealLeadMinutes } from '../../src/lib/ticketReveal.js'
 import { normalizeGateCode } from '../../src/lib/ticketGateCode.js'
 import {
   attachStaffBuyerOpenKeys,
@@ -156,6 +155,7 @@ import {
 import { createSupabaseAthleteRepository } from '../modules/athletes/supabaseAthleteRepository.js'
 import { createSupabaseTicketRepository } from '../modules/ticketing/supabaseTicketRepository.js'
 import {
+  presentTicket,
   resolveTicketAccount,
   serializeAccountTickets,
 } from '../modules/ticketing/accountTickets.js'
@@ -947,30 +947,7 @@ export function createTicketRoutes({
         ticketRevealLeadMinutes: leadMinutes,
       },
       tickets: paid
-        ? (found.tickets ?? []).map((ticket) => {
-            const reveal = ticketRevealState(ticket, leadMinutes, now)
-            return {
-              id: ticket.id,
-              order_id: ticket.order_id,
-              bundle_id: ticket.bundle_id,
-              ticket_code: ticket.ticket_code,
-              qr_token: reveal.sealed ? null : ticket.qr_token,
-              gate_code: reveal.sealed ? null : (ticket.gate_code ?? null),
-              pass_sealed: reveal.sealed,
-              reveal_at: reveal.revealAt,
-              attendee_name: ticket.attendee_name,
-              attendee_dni: ticket.attendee_dni ?? null,
-              status: ticket.status,
-              credential_label: ticket.credential_label,
-              credential_scopes: ticket.credential_scopes,
-              is_primary_credential: ticket.is_primary_credential !== false,
-              addons: Array.isArray(ticket.addons) ? ticket.addons : [],
-              valid_from: ticket.valid_from ?? null,
-              valid_until: ticket.valid_until ?? null,
-              access_days: lookupTicketAccessDays(ticket),
-              ticket_type_name: ticket.ticket_types?.name ?? ticket.ticket_type_name ?? null,
-            }
-          })
+        ? (found.tickets ?? []).map((ticket) => presentTicket(ticket, true, leadMinutes, now))
         : [],
     }
   }

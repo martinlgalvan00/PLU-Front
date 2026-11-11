@@ -108,6 +108,7 @@ export default function SecurityGatePage({
   if (isAuthorized) {
     return (
       <CheckInAppPage
+        kiosk={new URLSearchParams(window.location.search).get('puesto') === 'molinete'}
         athletes={athletes}
         canCheckIn={canCheckIn(session)}
         canEnableTickets={canEnableTickets}

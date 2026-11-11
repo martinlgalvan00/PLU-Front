@@ -58,6 +58,8 @@ import { resolveEventPricing } from '../lib/eventPricing.js'
 import { getStatusMeta, isRegistrationAdmitted, normalizeStatus } from '../lib/status.js'
 import { hasCurrentMembership, isMembershipCurrent } from '../services/membershipService.js'
 import { getEventComboAvailability } from '../services/comboOfferService.js'
+import { documentPackGate, isDocumentPackComplete } from '../lib/athleteDocuments.js'
+import DocumentPackSection from './profile/DocumentPackSection.jsx'
 import { eventHasSubmissionLanding } from '../lib/eventLanding.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
@@ -567,6 +569,7 @@ export default function RegisterPage({
   memberships = [],
   onClearCreatedOrder,
   onNavigate,
+  onUploadDocument,
   onSubmit,
   onUpdateForm,
   payments = [],
@@ -698,6 +701,7 @@ export default function RegisterPage({
   // vivía solo en el banner del perfil, así que acá el atleta leía "confirmá tu
   // correo" y no tenía nada que tocar.
   const [emailBlocked, setEmailBlocked] = useState(false)
+  const [documentsBlocked, setDocumentsBlocked] = useState(false)
   const [resendState, setResendState] = useState('idle')
   const [verificationCode, setVerificationCode] = useState('')
   const [verificationCodeState, setVerificationCodeState] = useState('idle')
@@ -1763,6 +1767,24 @@ export default function RegisterPage({
   const emailVerifiedLocally = resendState === 'verified' || verificationCodeState === 'verified'
   const showEmailVerify =
     isPaidCheckout && !emailVerifiedLocally && (emailBlocked || athlete?.emailVerifiedAt === null)
+  const documentsPurpose =
+    flow === 'membership'
+      ? 'membership'
+      : effectivePurchaseType === 'combo'
+        ? 'combo'
+        : 'registration'
+  const documentsGate = athlete
+    ? documentPackGate(athlete, athlete.documents, { purpose: documentsPurpose })
+    : { blocked: false, missing: [], complete: true }
+  const showDocumentsGate = isPaidCheckout && (documentsGate.blocked || documentsBlocked)
+  const documentsPackComplete = athlete
+    ? isDocumentPackComplete(athlete, athlete.documents).complete
+    : true
+  const showDocumentsGrandfatheredNotice =
+    flow === 'competition' &&
+    Boolean(athlete?.documentsGrandfathered) &&
+    !documentsPackComplete &&
+    !documentsGate.blocked
 
   useEffect(() => {
     if (!emailBlocked) return
@@ -2365,6 +2387,7 @@ export default function RegisterPage({
         !result.fields &&
         !businessRejection &&
         result.code !== 'EMAIL_NOT_VERIFIED' &&
+        result.code !== 'ATHLETE_DOCUMENTS_INCOMPLETE' &&
         result.code !== 'PLU08'
       if (canRecoverPayment) {
         showPaymentRecovery({ stage: 'order' })
@@ -2390,6 +2413,7 @@ export default function RegisterPage({
       )
       setMembershipPaymentInProgress(Boolean(result.resumeMembershipPayment))
       setEmailBlocked(result.code === 'EMAIL_NOT_VERIFIED')
+      setDocumentsBlocked(result.code === 'ATHLETE_DOCUMENTS_INCOMPLETE')
       setResendState('idle')
       return
     }
@@ -2529,6 +2553,13 @@ export default function RegisterPage({
     setSubmitNotice('')
     setMembershipPaymentInProgress(false)
     setEmailBlocked(false)
+    setDocumentsBlocked(false)
+    if (documentsGate.blocked) {
+      setDocumentsBlocked(true)
+      setSubmitError(t('pages.register.documentsIncompleteLead'))
+      submissionInFlightRef.current = false
+      return
+    }
     setSubmitting(true)
     let result
     try {
@@ -3976,6 +4007,27 @@ export default function RegisterPage({
                 </div>
               ) : null}
 
+              {showDocumentsGate ? (
+                <DocumentPackSection
+                  athlete={athlete}
+                  onUploadDocument={onUploadDocument}
+                  variant="checkout"
+                />
+              ) : showDocumentsGrandfatheredNotice ? (
+                <div className="register-eligibility-note" role="status">
+                  <p>{t('pages.register.documentsGrandfatheredNotice')}</p>
+                  {onNavigate ? (
+                    <button
+                      type="button"
+                      className="register-eligibility-note__action"
+                      onClick={() => onNavigate('profile', { tab: 'account-personal-data' })}
+                    >
+                      {t('pages.register.documentsIncompleteAction')}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+
               {flow === 'profile' && (
                 // Contenedor en grilla + mode="sync": los dos pasos comparten
                 // celda durante el crossfade, así la tarjeta no colapsa de alto
@@ -4343,7 +4395,7 @@ export default function RegisterPage({
                 </div>
               ) : null}
 
-              {submitError && !emailBlocked && (
+              {submitError && !emailBlocked && !documentsBlocked && (
                 <div className="form-submit-error" role="alert">
                   <p>
                     {membershipPaymentInProgress
@@ -4487,7 +4539,7 @@ export default function RegisterPage({
                             : packageLabel
                         }
                         submitting={submitting}
-                        disabled={accessRequirementsLoading}
+                        disabled={accessRequirementsLoading || showDocumentsGate}
                       />
                     ) : (
                       <>

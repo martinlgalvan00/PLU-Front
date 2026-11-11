@@ -1,4 +1,5 @@
 import { EXPORT_ROW_LIMIT, normalizeExportDate } from '../../../shared/exportRows.js'
+import { memberCodeLookupCandidates } from '../../../shared/spokenMemberCode.js'
 import { HttpError } from '../../lib/errors.js'
 import { PRIMARY_ORGANIZATION_ID } from '../../lib/organizations.js'
 import { authenticatedPortraitUrl } from '../../lib/publicPortraitUrl.js'
@@ -14,6 +15,9 @@ import { trashFilesOfOrders } from '../payments/paymentProofTrash.js'
 const PHOTO_BUCKET = 'athlete-photos'
 const PAYMENT_PROOF_BUCKET = 'athlete-payment-proofs'
 const STAFF_APPLICATION_BUCKET = 'staff-application-documents'
+const DOCUMENT_BUCKET = 'athlete-documents'
+const DOCUMENT_LIST_COLUMNS =
+  'id, athlete_id, kind, storage_path, content_type, size_bytes, original_name, uploaded_at'
 // Tope de la bandeja de validación: más de esto deja de ser una optimización
 // y pasa a ser trabajo especulativo.
 const PAYMENT_PROOF_BATCH_LIMIT = 60
@@ -104,6 +108,40 @@ export function createSupabaseAthleteRepository(
   requireSupabaseClient(client)
   const rpc = async (name, args, fallback) =>
     assertSupabaseResult(await client.rpc(name, args), fallback)
+
+  async function listDocumentPackSafe(athleteId) {
+    const empty = { birthDate: null, documentsGrandfathered: false, documents: [], unavailable: false }
+    try {
+      const athlete = assertSupabaseResult(
+        await client
+          .from('athletes')
+          .select('birth_date, documents_grandfathered')
+          .eq('id', athleteId)
+          .maybeSingle(),
+        'No se pudo leer el perfil.',
+      )
+      if (!athlete) return { ...empty, unavailable: true }
+      const documents = assertSupabaseResult(
+        await client
+          .from('athlete_documents')
+          .select(DOCUMENT_LIST_COLUMNS)
+          .eq('athlete_id', athleteId)
+          .order('kind', { ascending: true }),
+        'No se pudieron leer los documentos.',
+      )
+      return {
+        birthDate: athlete.birth_date ?? null,
+        documentsGrandfathered: athlete.documents_grandfathered === true,
+        documents: documents ?? [],
+        unavailable: false,
+      }
+    } catch (error) {
+      if (error?.details?.code === MISSING_RELATION_CODE || isMissingSchemaColumn(error)) {
+        return { ...empty, documentsGrandfathered: true, unavailable: true }
+      }
+      throw error
+    }
+  }
 
   /**
    * URL estable al proxy autenticado. Sin firma de Storage: el browser cachea
@@ -320,14 +358,21 @@ export function createSupabaseAthleteRepository(
       forgetAthleteSessionCache(athleteId)
       return result
     },
-    snapshot: async (athleteId) =>
-      attachPortraitUrls(
+    snapshot: async (athleteId) => {
+      const payload = attachPortraitUrls(
         await rpc(
           'get_athlete_snapshot',
           { p_athlete_id: athleteId },
           'No se pudo leer el perfil.',
         ),
-      ),
+      )
+      if (payload?.athlete) {
+        const pack = await listDocumentPackSafe(athleteId)
+        payload.athlete.documents = pack.documents
+        payload.athlete.documents_grandfathered = pack.documentsGrandfathered
+      }
+      return payload
+    },
 
     /**
      * Revision barata del snapshot de un atleta (count + max updated_at por
@@ -937,12 +982,50 @@ export function createSupabaseAthleteRepository(
       )
     },
 
-    async findProfileCompleteness(athleteId) {
+    async updateMembershipFile(athleteId, data) {
+      const documentId = String(data.documentId ?? '').replace(/[.\-\s]/g, '')
+      const taken = assertSupabaseResult(
+        await client
+          .from('athletes')
+          .select('id')
+          .eq('document_id', documentId)
+          .neq('id', athleteId)
+          .maybeSingle(),
+        'No se pudo verificar el documento.',
+      )
+      if (taken?.id) {
+        throw new HttpError(409, 'Ese documento ya está en otra cuenta.', { code: 'DOCUMENT_TAKEN' })
+      }
+
+      const row = assertSupabaseResult(
+        await client
+          .from('athletes')
+          .update({
+            full_name: data.fullName,
+            document_id: documentId,
+            birth_date: data.birthDate,
+            sex: data.sex,
+            phone: data.phone,
+            country: data.country,
+            province: data.province,
+            city: data.city,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', athleteId)
+          .select('*')
+          .single(),
+        'No se pudo guardar la ficha de afiliación.',
+      )
+      delete row.password_hash
+      return row
+    },
+
+  async findProfileCompleteness(athleteId) {
       return assertSupabaseResult(
         await client
           .from('athletes')
           .select(
-            'id, full_name, birth_date, sex, country, email, phone, city, province, street_address, postal_code, gym, division, category, estimated_weight, emergency_contact_name, emergency_contact_phone',
+            'id, full_name, birth_date, sex, country, email, phone, city, province, document_id, street_address, postal_code, gym, division, category, estimated_weight, emergency_contact_name, emergency_contact_phone',
           )
           .eq('id', athleteId)
           .eq('organization_id', organizationId)
@@ -957,7 +1040,7 @@ export function createSupabaseAthleteRepository(
         await client
           .from('athletes')
           .select(
-            'id, full_name, birth_date, sex, country, email, phone, city, province, street_address, postal_code, gym, division, category, estimated_weight, emergency_contact_name, emergency_contact_phone',
+            'id, full_name, birth_date, sex, country, email, phone, city, province, document_id, street_address, postal_code, gym, division, category, estimated_weight, emergency_contact_name, emergency_contact_phone',
           )
           .eq('organization_id', organizationId)
           .in('id', athleteIds),
@@ -1771,15 +1854,27 @@ export function createSupabaseAthleteRepository(
      * documento (el member_code es enumerable), pero en la puerta el operador
      * tiene que cotejar el DNI físico.
      */
-    staffCredential: (code, eventSlug) =>
-      rpc(
-        'staff_get_membership_by_code_or_token',
-        {
-          p_code: code,
-          p_event_slug: eventSlug ?? null,
-        },
-        'No se pudo leer la credencial.',
-      ),
+    staffCredential: async (code, eventSlug) => {
+      const candidates = memberCodeLookupCandidates(code)
+      const list = candidates.length > 0 ? candidates : [String(code ?? '')]
+      let lastError = new HttpError(404, 'No se pudo leer la credencial.')
+      for (const candidate of list) {
+        try {
+          return await rpc(
+            'staff_get_membership_by_code_or_token',
+            {
+              p_code: candidate,
+              p_event_slug: eventSlug ?? null,
+            },
+            'No se pudo leer la credencial.',
+          )
+        } catch (error) {
+          lastError = error
+          if (!(error instanceof HttpError) || error.status !== 404) throw error
+        }
+      }
+      throw lastError
+    },
 
     /**
      * Path de foto para verificación QR (sin firmar Storage).
@@ -1921,6 +2016,64 @@ export function createSupabaseAthleteRepository(
       if (!application?.[column]) throw new HttpError(404, 'Archivo no encontrado.')
       return application[column]
     },
+
+    async findDocumentPack(athleteId) {
+      return listDocumentPackSafe(athleteId)
+    },
+
+    async listAthleteDocuments(athleteId) {
+      const pack = await listDocumentPackSafe(athleteId)
+      return pack.documents
+    },
+
+    async createDocumentUpload(athleteId, { kind, fileName }) {
+      const safeName = String(fileName)
+        .replace(/[^\w.\-()+ ]/g, '_')
+        .slice(0, 120)
+      const path = `${athleteId}/${kind}/${Date.now()}-${safeName}`
+      const signed = assertSupabaseResult(
+        await client.storage.from(DOCUMENT_BUCKET).createSignedUploadUrl(path),
+        'No se pudo preparar la carga del documento.',
+      )
+      return { path, token: signed.token }
+    },
+
+    async registerDocument(athleteId, { kind, storagePath, contentType, sizeBytes, originalName }) {
+      const result = await rpc(
+        'register_athlete_document',
+        {
+          p_athlete_id: athleteId,
+          p_kind: kind,
+          p_storage_path: storagePath,
+          p_content_type: contentType,
+          p_size_bytes: sizeBytes,
+          p_original_name: originalName ?? null,
+        },
+        'No se pudo registrar el documento.',
+      )
+      const previousPath = result?.previousPath ?? result?.previous_path ?? null
+      if (previousPath && previousPath !== storagePath) {
+        const removal = await client.storage.from(DOCUMENT_BUCKET).remove([previousPath])
+        if (removal.error) {
+          console.warn('No se pudo borrar el documento anterior:', removal.error.message)
+        }
+      }
+      return result?.document ?? result
+    },
+
+    async athleteDocumentPath(athleteId, kind) {
+      const row = assertSupabaseResult(
+        await client
+          .from('athlete_documents')
+          .select('storage_path')
+          .eq('athlete_id', athleteId)
+          .eq('kind', kind)
+          .maybeSingle(),
+        'No se pudo leer el documento.',
+      )
+      if (!row?.storage_path) throw new HttpError(404, 'Documento no encontrado.')
+      return row.storage_path
+    },
     /**
      * Revision barata del padrón admin (count + max updated_at por segmento
      * del scope). Evita bajar atletas/membresías/inscripciones/órdenes en
@@ -2002,7 +2155,7 @@ export function createSupabaseAthleteRepository(
               let query = client
                 .from('athletes')
                 .select(
-                  'id, full_name, document_id, email, birth_date, phone, country, province, city, street_address, postal_code, gym, sex, division, category, estimated_weight, declared_best_total_kg, is_first_meet, training_best_total_kg, emergency_contact_name, emergency_contact_phone, instagram_handle, status, created_at, updated_at, photo_path, email_verified_at, credential_token',
+                  'id, full_name, document_id, email, birth_date, phone, country, province, city, street_address, postal_code, gym, sex, division, category, estimated_weight, declared_best_total_kg, is_first_meet, training_best_total_kg, emergency_contact_name, emergency_contact_phone, instagram_handle, status, created_at, updated_at, photo_path, email_verified_at, credential_token, documents_grandfathered',
                   { count: 'exact' },
                 )
                 .eq('organization_id', organizationId)
@@ -2156,6 +2309,33 @@ export function createSupabaseAthleteRepository(
         }
         for (const order of payload.paymentOrders) {
           order.attempts = byOrderId.get(order.id) ?? []
+        }
+      }
+
+      if (payload.athletes?.length) {
+        try {
+          const ids = payload.athletes.map((row) => row.id).filter(Boolean)
+          const documents =
+            assertSupabaseResult(
+              await client
+                .from('athlete_documents')
+                .select(DOCUMENT_LIST_COLUMNS)
+                .in('athlete_id', ids),
+              'No se pudieron leer los documentos.',
+            ) ?? []
+          const byAthlete = new Map()
+          for (const row of documents) {
+            const bucket = byAthlete.get(row.athlete_id)
+            if (bucket) bucket.push(row)
+            else byAthlete.set(row.athlete_id, [row])
+          }
+          for (const athlete of payload.athletes) {
+            athlete.documents = byAthlete.get(athlete.id) ?? []
+          }
+        } catch (error) {
+          if (error?.details?.code !== MISSING_RELATION_CODE && !isMissingSchemaColumn(error)) {
+            throw error
+          }
         }
       }
 
@@ -2617,5 +2797,11 @@ export function createSupabaseAthleteRepository(
 export function assertAthleteOwnsPath(athleteId, path) {
   if (!path || !String(path).startsWith(`${athleteId}/`)) {
     throw new HttpError(400, 'Ruta de foto invalida.')
+  }
+}
+
+export function assertAthleteOwnsDocumentPath(athleteId, kind, path) {
+  if (!path || !String(path).startsWith(`${athleteId}/${kind}/`)) {
+    throw new HttpError(400, 'Ruta de documento inválida.')
   }
 }

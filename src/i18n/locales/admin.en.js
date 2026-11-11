@@ -320,6 +320,10 @@ export default {
     profileAll: 'All profiles',
     profileIncomplete: 'Incomplete profile',
     profileComplete: 'Complete profile',
+    documentsCompleteness: 'Documents',
+    documentsAll: 'All files',
+    documentsIncomplete: 'Documents pending',
+    documentsComplete: 'Documents complete',
     registeredAt: 'Registration date',
     registrationDate: 'Registration date',
     registeredFrom: 'From',
@@ -955,6 +959,9 @@ export default {
       profileOk: 'Complete',
       profilePending_one: '{{count}} pending',
       profilePending_other: '{{count}} pending',
+      documentsOk: 'File ok',
+      documentsPending: 'Docs missing',
+      documentsGrandfathered: 'Legacy',
       selectIncompleteLabel: 'incomplete profiles',
       selectIncompleteAction: 'Select',
       selectIncompleteAria: 'Choose among {{count}} incomplete profiles',
@@ -2709,6 +2716,8 @@ export default {
         wrong_zone: 'This credential does not open this zone',
         not_yet_valid: 'This QR code is not valid yet',
         expired: 'This QR code has expired',
+        credential_expired: 'Credential expired',
+        needs_online: 'This credential has to be confirmed online. It cannot be admitted offline.',
         service_unavailable: 'No connection to the server: this QR could not be validated',
         session_expired: 'This station session expired: sign in again',
         door_malformed: 'The door code was not understood',
@@ -2720,6 +2729,11 @@ export default {
       },
       malformedAmbiguous: 'The door code does not use I, L, O, 0 or 1. Say it again.',
       malformedLength: 'Heard {{count}} characters. It has to be six: three, pause, three.',
+    },
+    kiosk: {
+      registeredNoPulse: 'Entry recorded, the turnstile did not respond',
+      retryPulse: 'Send the pulse again',
+      opening: 'Opening the turnstile…',
     },
     offline: {
       online: 'Online',
@@ -5234,6 +5248,7 @@ export default {
       ticketTypeRowValidityFixed: 'QR: fixed window',
       ticketTypeRowValidityFromPayment: 'QR: {{duration}} from payment',
       ticketTypeRowValidityFromFirstScan: 'QR: {{duration}} from first scan',
+      ticketTypeRowValidityFirstEntryDay: 'QR: day of first entry ({{days}})',
       ticketTypeValidityDurationValue: {
         minutes: '{{count}} min',
         hours: '{{count}} h',
@@ -5262,6 +5277,9 @@ export default {
         'The QR lasts {{duration}} from the first scan',
       ticketTypeValidityPreviewFromFirstScanDetail:
         'The clock starts when security reads it for the first time and expires at the exact limit.',
+      ticketTypeValidityPreviewFirstEntryDayTitle: 'Valid on the day of the first entry',
+      ticketTypeValidityPreviewFirstEntryDayDetail:
+        'They can use any of these days. That entry keeps it valid only until midnight.',
       ticketTypeValidityPreviewUsageOnceTotal: 'A single entry, on any of those days.',
       ticketTypeValidityPreviewUsageOncePerDay:
         'It can be scanned once on each marked day. The credential stays the same.',
@@ -5273,12 +5291,14 @@ export default {
         fixed_window: 'Fixed window',
         from_payment: 'From payment approval',
         from_first_scan: 'From the first scan',
+        first_entry_day: 'The day of the first entry',
       },
       ticketTypeValidityModeHint: {
         event_days: 'One day marked = a one-day QR. This is the usual public ticket.',
         fixed_window: 'A specific date and time, for example a session or weigh-in.',
         from_payment: 'For example 12 hours or 2 days from Mercado Pago approval.',
         from_first_scan: 'For example 12 hours or 2 days from the first entry.',
+        first_entry_day: 'They may enter any marked day. The first entry locks it to that day only.',
       },
       ticketTypeAccessUsageLabel: 'How it is consumed',
       ticketTypeAccessUsage: {
@@ -5310,6 +5330,8 @@ export default {
         'The duration is frozen when payment is approved; editing this type does not change issued QRs.',
       ticketTypeValidityNoteFromFirstScan:
         'The duration is frozen at the first scan; editing this type does not change issued QRs.',
+      ticketTypeValidityNoteFirstEntryDay:
+        'The first entry locks the calendar day in Argentina. The next day the credential is expired, even if 24 hours have not passed.',
       ticketTypeValidityDurationRequired: 'Set how long access lasts from payment approval.',
       ticketTypeValidityDurationInvalid: 'Duration must be between 1 minute and 366 days.',
       ticketTypeValidityDurationConflictsFixedWindow:
@@ -6610,6 +6632,20 @@ export default {
     groups: {
       contact: 'Contact',
       competition: 'Competition',
+    },
+    documents: {
+      title: 'Membership documents',
+      empty: 'No file uploaded yet.',
+      grandfathered: 'Legacy account: can still register without the pack, but renewal requires it.',
+      complete: 'File complete',
+      pending: 'Files missing',
+      open: 'Open',
+      kinds: {
+        dni_front: 'ID front',
+        dni_back: 'ID back',
+        medical_certificate: 'Medical certificate',
+        minor_authorization: 'Guardian authorization',
+      },
     },
     profileNotice: {
       title: 'Sheet / registration profile',

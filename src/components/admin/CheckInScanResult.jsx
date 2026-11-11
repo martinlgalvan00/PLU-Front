@@ -21,6 +21,7 @@ const DECISION_OUTCOMES = new Set([
   'wrong_zone',
   'not_yet_valid',
   'expired',
+  'needs_online',
 ])
 
 function formatRelativeValidityTime(milliseconds, direction, locale) {
@@ -52,6 +53,9 @@ export default function CheckInScanResult({
   scanResult,
   scanTicketPaid,
   scanVerdict,
+  kiosk = false,
+  turnstileGate = 'idle',
+  onRetryTurnstile = null,
 }) {
   const { t } = useI18n()
   const [clockNow, setClockNow] = useState(() => Date.now())
@@ -154,7 +158,13 @@ export default function CheckInScanResult({
       <div className="admin-checkin-result__header">
         <ScanVerdictIcon size={22} aria-hidden />
         <div>
-          <strong>{t(`admin.checkin.scanner.outcome.${effectiveOutcome}`)}</strong>
+          <strong>
+            {t(
+              scanResult.kind === 'ticket' && effectiveOutcome === 'expired'
+                ? 'admin.checkin.scanner.outcome.credential_expired'
+                : `admin.checkin.scanner.outcome.${effectiveOutcome}`,
+            )}
+          </strong>
           {validityReason ? (
             <span className="admin-checkin-result__reason">{validityReason}</span>
           ) : null}
@@ -421,8 +431,24 @@ export default function CheckInScanResult({
         )
       })()}
 
+      {kiosk && turnstileGate === 'failed' && (
+        <p className="admin-checkin-result__turnstile" role="alert">
+          {t('admin.checkin.kiosk.registeredNoPulse')}
+        </p>
+      )}
+      {kiosk && turnstileGate === 'opening' && (
+        <p className="admin-checkin-result__turnstile" role="status">
+          {t('admin.checkin.kiosk.opening')}
+        </p>
+      )}
+
       <div className="admin-checkin-result__actions">
-        {scanResult.canCheckIn && (
+        {kiosk && turnstileGate === 'failed' && (
+          <button type="button" className="btn btn--primary btn--sm" onClick={onRetryTurnstile}>
+            {t('admin.checkin.kiosk.retryPulse')}
+          </button>
+        )}
+        {scanResult.canCheckIn && !kiosk && (
           <button
             type="button"
             className="btn btn--primary btn--sm"

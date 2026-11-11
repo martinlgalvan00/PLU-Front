@@ -1335,6 +1335,8 @@ export default function App() {
             onSelectEvent={selectEvent}
             onUpdateProfile={app.updateAthleteProfileAction}
             onUpdatePhoto={app.updateAthletePhotoAction}
+            onUploadDocument={app.uploadAthleteDocumentAction}
+            onSaveMembershipFile={app.saveMembershipFileAction}
             onRemovePhoto={app.removeAthletePhotoAction}
             onReadProfileNotice={app.markAthleteProfileNoticeReadAction}
             onDismissProfileNotice={app.dismissAthleteProfileNoticeAction}
@@ -1381,6 +1383,7 @@ export default function App() {
             onApprovePayment={app.handleApprovePayment}
             onClearCreatedOrder={app.clearCreatedOrder}
             onNavigate={navigate}
+            onUploadDocument={app.uploadAthleteDocumentAction}
             onSubmit={app.submitCompetition}
             onUpdateForm={app.updateForm}
             // Con qué reconstruir la orden abierta después de una recarga: sin

@@ -2,7 +2,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import AccountTicketWallets from '../../components/ui/AccountTicketWallets.jsx'
 import { useAccountTickets } from '../../hooks/useAccountTickets.js'
 
-export default function AccountTicketsSection({ session = null }) {
+export default function AccountTicketsSection({ onNavigate, session = null }) {
   const { t } = useI18n()
   const accountTickets = useAccountTickets(session)
 
@@ -16,7 +16,7 @@ export default function AccountTicketsSection({ session = null }) {
           <h2>{t('account.tickets.title')}</h2>
         </div>
       </div>
-      {hasTickets ? <p className="account-section__lead">{t('account.tickets.lead')}</p> : null}
+      <p className="account-section__lead">{t('account.tickets.lead')}</p>
       {accountTickets.status === 'loading' ? (
         <p className="account-empty__lead" role="status">
           {t('account.tickets.loading')}
@@ -32,6 +32,15 @@ export default function AccountTicketsSection({ session = null }) {
         <div className="account-empty">
           <p className="account-empty__title">{t('account.tickets.emptyTitle')}</p>
           <p className="account-empty__lead">{t('account.tickets.emptyLead')}</p>
+          {onNavigate ? (
+            <button
+              className="account-empty__action"
+              type="button"
+              onClick={() => onNavigate('events')}
+            >
+              {t('account.tickets.emptyAction')}
+            </button>
+          ) : null}
         </div>
       ) : null}
       <AccountTicketWallets className="account-tickets__list" wallets={accountTickets.wallets} />

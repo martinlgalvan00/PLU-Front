@@ -3,7 +3,6 @@ import {
   AlertCircle,
   ArrowLeft,
   CalendarClock,
-  Check,
   ImageDown,
   KeyRound,
   LoaderCircle,
@@ -65,6 +64,10 @@ import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
 import RegistrationAccessGateModal from '../../components/checkout/RegistrationAccessGateModal.jsx'
 import PaymentRecoveryPanel from '../../components/checkout/PaymentRecoveryPanel.jsx'
 import { fetchRegistrationAccessRequirements } from '../../services/registrationAccessService.js'
+import { isDocumentPackComplete } from '../../lib/athleteDocuments.js'
+import DocumentPackSection from './DocumentPackSection.jsx'
+import MembershipFileSection from './MembershipFileSection.jsx'
+import { membershipFileStatus } from '../../../shared/membershipFile.js'
 import { channelOpen } from '../../lib/paymentChannels.js'
 import '../../styles/components/code-band.css'
 
@@ -81,6 +84,8 @@ export default function MembershipPurchaseSection({
   checkoutAvailability = {},
   onNavigate,
   onNavigateSection,
+  onUploadDocument,
+  onSaveMembershipFile,
   // Orden financiada abierta de esta persona: sostiene la afiliación que se ve
   // arriba y la puede dar de baja si vence. Se resuelve en AthleteProfilePage,
   // que es quien tiene la lista de pagos completa.
@@ -200,8 +205,17 @@ export default function MembershipPurchaseSection({
   // Wise se ofrece únicamente para inscripciones; una afiliación siempre se
   // cobra en ARS por Mercado Pago, transferencia o efectivo.
   const wiseOffered = false
-  const showPurchaseCheckout = membershipCanPurchase && paidCheckoutOpen
-  const showCheckoutSoon = membershipCanPurchase && !paidCheckoutOpen
+  const documentsPack = isDocumentPackComplete(athlete, athlete?.documents)
+  const documentsBlocked = !documentsPack.complete
+  const membershipFile = membershipFileStatus(athlete)
+  const fileBlocked = !membershipFile.complete
+  const showFileGate = membershipCanPurchase && fileBlocked
+  const showPurchaseCheckout =
+    membershipCanPurchase && !fileBlocked && paidCheckoutOpen && !documentsBlocked
+  const showDocumentsGate =
+    membershipCanPurchase && !fileBlocked && paidCheckoutOpen && documentsBlocked
+  const showCheckoutSoon =
+    membershipCanPurchase && !fileBlocked && !paidCheckoutOpen && !documentsBlocked
   // El combo se ofrece antes de vender la afiliación sola: el próximo evento
   // con oferta vigente es el candidato natural, no cualquiera del calendario.
   const comboEvent = useMemo(() => {
@@ -321,6 +335,27 @@ export default function MembershipPurchaseSection({
     : embeddedOrder
       ? t('account.membership.continuePayment')
       : t('account.membership.continueWith', { method: methodLabel })
+  const checkoutOffers = selectedPlan
+    ? [
+        {
+          featured: true,
+          id: selectedPlan.code,
+          name: selectedPlan.name,
+          priceLabel:
+            paymentMethod === 'wise_transfer'
+              ? wisePriceLabel(selectedPlanPrice, locale)
+              : money(
+                  mpSettling && embeddedOrder?.amount != null
+                    ? Number(embeddedOrder.amount)
+                    : activeDiscount
+                      ? activeDiscount.finalAmount
+                      : selectedPlanPrice,
+                  locale,
+                ),
+          comparePriceLabel: channelCompareLabel || undefined,
+        },
+      ]
+    : []
 
   const loadPlans = useCallback(
     async ({ force = false, signal } = {}) => {
@@ -905,6 +940,16 @@ export default function MembershipPurchaseSection({
             {statusMeta ? (
               <p className="account-membership__banner-meta-line">{statusMeta}</p>
             ) : null}
+            {showPurchaseCheckout ? (
+              <ul
+                className="account-benefits account-benefits--inline"
+                aria-label={t('account.membership.includes')}
+              >
+                <li>{t('account.membership.benefitCredential')}</li>
+                <li>{t('account.membership.benefitCode')}</li>
+                <li>{t('account.membership.benefitEvents')}</li>
+              </ul>
+            ) : null}
           </div>
         </header>
       ) : (
@@ -988,6 +1033,18 @@ export default function MembershipPurchaseSection({
         />
       ) : null}
 
+      {showFileGate ? (
+        <MembershipFileSection athlete={athlete} onSave={onSaveMembershipFile} />
+      ) : null}
+
+      {showDocumentsGate ? (
+        <DocumentPackSection
+          athlete={athlete}
+          onUploadDocument={onUploadDocument}
+          variant="checkout"
+        />
+      ) : null}
+
       {showPurchaseCheckout && comboEvent && comboOffer ? (
         <Reveal className="account-membership__combo" variant="up">
           <p className="account-membership__combo-kicker">
@@ -1006,21 +1063,6 @@ export default function MembershipPurchaseSection({
 
       {showPurchaseCheckout && (
         <div className="account-membership__decision account-membership__decision--solo">
-          <ul
-            className="account-benefits account-benefits--inline"
-            aria-label={t('account.membership.includes')}
-          >
-            <li>
-              <Check size={14} aria-hidden /> {t('account.membership.benefitCredential')}
-            </li>
-            <li>
-              <Check size={14} aria-hidden /> {t('account.membership.benefitCode')}
-            </li>
-            <li>
-              <Check size={14} aria-hidden /> {t('account.membership.benefitEvents')}
-            </li>
-          </ul>
-
           {mpSettling ? (
             <div className="account-membership__settle">
               <div className="account-membership__settle-bar">
@@ -1033,23 +1075,34 @@ export default function MembershipPurchaseSection({
                   {t('account.membership.changePaymentMethod')}
                 </button>
               </div>
-              <MercadoPagoEmbeddedCheckout
-                onCheckoutError={handleMercadoPagoError}
-                onResult={handleMercadoPagoResult}
-                order={embeddedOrder}
-                presentation="settle"
+              <CheckoutDesk
+                offers={checkoutOffers}
+                selectedOfferId={selectedPlan?.code}
+                bar={
+                  <>
+                    <p className="account-membership__pay-legend">
+                      {t('account.membership.paymentLegend')}
+                    </p>
+                    <MercadoPagoEmbeddedCheckout
+                      onCheckoutError={handleMercadoPagoError}
+                      onResult={handleMercadoPagoResult}
+                      order={embeddedOrder}
+                      presentation="settle"
+                    />
+                    {paymentRecovery ? (
+                      <PaymentRecoveryPanel
+                        amount={paymentRecovery.amount}
+                        concept={paymentRecovery.concept}
+                        currency={paymentRecovery.currency}
+                        onTransfer={() => void startMembershipPayment('transferencia')}
+                        reference={paymentRecovery.reference}
+                        transferAvailable={transferSelectable}
+                        transferBusy={submitting}
+                      />
+                    ) : null}
+                  </>
+                }
               />
-              {paymentRecovery ? (
-                <PaymentRecoveryPanel
-                  amount={paymentRecovery.amount}
-                  concept={paymentRecovery.concept}
-                  currency={paymentRecovery.currency}
-                  onTransfer={() => void startMembershipPayment('transferencia')}
-                  reference={paymentRecovery.reference}
-                  transferAvailable={transferSelectable}
-                  transferBusy={submitting}
-                />
-              ) : null}
             </div>
           ) : (
             <div className="account-membership__checkout">
@@ -1427,25 +1480,7 @@ export default function MembershipPurchaseSection({
                             ? t('pages.register.paymentMercadoPagoOnlyHint')
                             : ''
                 }
-                offers={
-                  selectedPlan
-                    ? [
-                        {
-                          featured: true,
-                          id: selectedPlan.code,
-                          name: selectedPlan.name,
-                          priceLabel:
-                            paymentMethod === 'wise_transfer'
-                              ? wisePriceLabel(selectedPlanPrice, locale)
-                              : money(
-                                  activeDiscount ? activeDiscount.finalAmount : selectedPlanPrice,
-                                  locale,
-                                ),
-                          comparePriceLabel: channelCompareLabel || undefined,
-                        },
-                      ]
-                    : []
-                }
+                offers={checkoutOffers}
                 paymentMethod={paymentMethod}
                 paymentName="membership-payment"
                 selectedOfferId={selectedPlan?.code}

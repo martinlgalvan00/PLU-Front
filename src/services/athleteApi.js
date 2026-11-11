@@ -69,6 +69,9 @@ function toCamelAthlete(row) {
     // `qrToken` de cada afiliación (que cambia con cada renovación y no existe
     // para un inscripto a un evento que no exige afiliación).
     credentialToken: row.credential_token ?? null,
+    documentsGrandfathered:
+      row.documents_grandfathered === true || row.documentsGrandfathered === true,
+    documents: (row.documents ?? []).map(toCamelAthleteDocument),
     ...(row.profile_notices !== undefined || row.profileNotices !== undefined
       ? {
           profileNotices: (row.profile_notices ?? row.profileNotices ?? []).map(
@@ -76,6 +79,17 @@ function toCamelAthlete(row) {
           ),
         }
       : {}),
+  }
+}
+
+function toCamelAthleteDocument(row) {
+  if (!row) return row
+  return {
+    kind: row.kind,
+    contentType: row.content_type ?? row.contentType ?? null,
+    sizeBytes: row.size_bytes ?? row.sizeBytes ?? null,
+    originalName: row.original_name ?? row.originalName ?? null,
+    uploadedAt: row.uploaded_at ?? row.uploadedAt ?? null,
   }
 }
 
@@ -617,6 +631,11 @@ export function checkAthleteAvailability({ email, documentId } = {}) {
   if (email) body.email = email
   if (documentId) body.documentId = documentId
   return apiPost('/api/athletes/check-availability', body)
+}
+
+export async function saveMembershipFile(file) {
+  const { athlete: row } = await apiPatch('/api/athletes/me/membership-file', file)
+  return { athlete: toCamelAthlete(row) }
 }
 
 export async function updateAthleteProfile(_athleteId, updates) {

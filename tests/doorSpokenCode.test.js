@@ -49,6 +49,25 @@ describe('código de puerta cantado', () => {
     expect(prepared.heard).toBe(3)
   })
 
+  it('canta la credencial como año y serial, sin pisar el código de entrada', () => {
+    expect(prepareCheckinScan('26 865')).toMatchObject({
+      kind: 'member',
+      display: '26 865',
+    })
+    expect(prepareCheckinScan('dos seis, ocho seis cinco')).toMatchObject({
+      kind: 'member',
+      display: '26 865',
+      repairs: ['speech'],
+    })
+    expect(prepareCheckinScan('26 2345').kind).toBe('member')
+    expect(prepareCheckinScan('262345').kind).toBe('door')
+    expect(formatManualScanInput('26865')).toBe('26 865')
+    expect(chooseSpokenDoorCode(['dos seis, ocho seis cinco'])).toMatchObject({
+      kind: 'member',
+      display: '26 865',
+    })
+  })
+
   it('canta el código en dos grupos y la entrada sin el documento', () => {
     expect(gateCodeUtterance('K4M-7QP')).toBe('ka cuatro eme. siete cu pe')
     expect(publicSpokenName('Ana Pérez 30111222')).toBe('Ana')
