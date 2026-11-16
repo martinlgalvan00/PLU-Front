@@ -10,6 +10,7 @@ import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmD
 import AdminSavedViews from '../../components/admin/AdminSavedViews.jsx'
 import MembershipCredentialModal from '../../components/admin/MembershipCredentialModal.jsx'
 import MembershipManualStatusDialog from '../../components/admin/MembershipManualStatusDialog.jsx'
+import { AdminAthleteDocumentsDialog } from '../../components/admin/AdminAthleteDocuments.jsx'
 import PaymentRecoveryAction from '../../components/admin/PaymentRecoveryAction.jsx'
 import Pill from '../../components/ui/Pill.jsx'
 import {
@@ -51,6 +52,7 @@ import {
   buildAdminFacetOptions,
   normalizeAdminFacetValue,
 } from '../../lib/adminPeopleFilters.js'
+import { isDocumentPackComplete } from '../../lib/athleteDocuments.js'
 
 // Una inscripción cancelada o todavía en borrador no cuenta como "inscripto
 // a un torneo" — el socio no tiene ahí una participación real en curso.
@@ -61,6 +63,13 @@ const NON_TOURNAMENT_REGISTRATION_STATUSES = new Set(['cancelada', 'borrador'])
  * cualquier orden de Mercado Pago sin importar el permiso (no acredita nada
  * por sí sola); acreditar a mano exige el permiso de Finanzas.
  */
+function documentPackStatus(athlete) {
+  const pack = isDocumentPackComplete(athlete, athlete?.documents)
+  if (pack.unavailable) return 'unknown'
+  if (pack.complete) return 'complete'
+  return 'pending'
+}
+
 function canRecoverMembershipPayment(payment, canForceSettle) {
   if (!payment) return false
   return payment.method === 'mercado_pago' || (canForceSettle && canForceSettleOrder(payment))
@@ -103,6 +112,7 @@ export default function MembershipsSection({
   // diálogo y las dos exigen motivo. `{ id, athlete, status }`.
   const [manualTarget, setManualTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [documentsTarget, setDocumentsTarget] = useState(null)
   // Default abierto: si el GET falla no bloqueamos la pantalla. Un `false`
   // explícito del interruptor es lo único que congela Activar / Dar de baja.
   const [validationEnabled, setValidationEnabled] = useState(true)
@@ -317,6 +327,15 @@ export default function MembershipsSection({
         document: item.athlete?.documentId ?? '—',
         gym: item.athlete?.gym ?? '',
         photoUrl: item.athlete?.photoUrl ?? null,
+        documentsAthlete: item.athlete
+          ? {
+              id: item.athlete.id ?? item.athleteId,
+              fullName: item.athlete.fullName,
+              birthDate: item.athlete.birthDate ?? null,
+              documents: item.athlete.documents ?? null,
+              documentsGrandfathered: item.athlete.documentsGrandfathered === true,
+            }
+          : null,
         memberCode: item.memberCode,
         year: item.year,
         status: item.status,
@@ -540,6 +559,40 @@ export default function MembershipsSection({
               ),
             },
             {
+              key: 'documents',
+              label: t('admin.athleteDetail.documents.column'),
+              width: 128,
+              mobile: 'default',
+              className: 'data-table__column--meta',
+              sortable: false,
+              mobileSortable: false,
+              render: (row) => {
+                const status = documentPackStatus(row.documentsAthlete)
+                const label =
+                  status === 'unknown'
+                    ? t('admin.athleteDetail.documents.unavailableShort')
+                    : status === 'complete'
+                      ? t('admin.athleteDetail.documents.complete')
+                      : t('admin.athleteDetail.documents.pending')
+                return (
+                  <button
+                    type="button"
+                    className={`athlete-documents-admin__peek is-${status}`}
+                    disabled={!row.documentsAthlete}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setDocumentsTarget(row.documentsAthlete)
+                    }}
+                  >
+                    <span className="athlete-documents-admin__peek-status">{label}</span>
+                    <span className="athlete-documents-admin__peek-action">
+                      {t('admin.athleteDetail.documents.open')}
+                    </span>
+                  </button>
+                )
+              },
+            },
+            {
               key: 'actions',
               label: t('admin.columns.action'),
               width: 84,
@@ -652,6 +705,13 @@ export default function MembershipsSection({
           <p className="form-submit-error" role="alert">
             {actionError}
           </p>
+        ) : null}
+
+        {documentsTarget ? (
+          <AdminAthleteDocumentsDialog
+            athlete={documentsTarget}
+            onClose={() => setDocumentsTarget(null)}
+          />
         ) : null}
 
         {credentialTarget ? (

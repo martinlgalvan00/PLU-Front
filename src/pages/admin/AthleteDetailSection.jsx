@@ -19,16 +19,11 @@ import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import { ATHLETE_FILTER_STATUSES, PAYMENT_METHODS } from '../../lib/constants.js'
-import { money } from '../../lib/format.js'
+import { formatShortDate, money } from '../../lib/format.js'
 import { actorLabel, formatStateDateTime } from '../../lib/stateProvenance.js'
 import { canApproveManualOrder } from '../../services/paymentValidationService.js'
-import { isProfileNoticeComplete, getMissingProfileNoticeFields } from '../../lib/athleteProfile.js'
-import {
-  isDocumentPackComplete,
-  OPTIONAL_ATHLETE_DOCUMENT_KINDS,
-  requiredDocumentKinds,
-} from '../../lib/athleteDocuments.js'
-import { adminAthleteDocumentUrl } from '../../services/athleteDocumentService.js'
+import { isProfileNoticeComplete, getMissingProfileNoticeFields, profileFieldLabel } from '../../lib/athleteProfile.js'
+import AdminAthleteDocuments from '../../components/admin/AdminAthleteDocuments.jsx'
 import { PROFILE_NOTICE_MESSAGE_MAX } from '../../../shared/profileNotice.js'
 import {
   findAthleteStateDivergences,
@@ -134,20 +129,7 @@ export default function AthleteDetailSection({
     complete: isProfileNoticeComplete(athlete),
     missing: profileMissing,
   }
-  const missingFieldLabels = profileStatus.missing
-    .map((field) => {
-      const keys = {
-        phone: 'admin.athleteDetail.fields.phone',
-        city: 'admin.athleteDetail.fields.city',
-        province: 'admin.athleteDetail.fields.province',
-        gym: 'admin.athleteDetail.fields.gym',
-        division: 'admin.athleteDetail.fields.division',
-        category: 'admin.athleteDetail.fields.category',
-        estimatedWeight: 'admin.athleteDetail.fields.estimatedWeight',
-      }
-      return t(keys[field] ?? field)
-    })
-    .join(', ')
+  const missingFieldLabels = profileStatus.missing.map((field) => profileFieldLabel(field, t)).join(', ')
 
   const tabs = useMemo(
     () => [
@@ -183,11 +165,35 @@ export default function AthleteDetailSection({
           { key: 'email', label: t('admin.athleteDetail.fields.email'), value: athlete?.email },
           { key: 'phone', label: t('admin.athleteDetail.fields.phone'), value: athlete?.phone },
           {
-            key: 'location',
-            label: t('admin.athleteDetail.fields.location'),
-            value: [athlete?.city, athlete?.province].filter(Boolean).join(', '),
+            key: 'birthDate',
+            label: t('admin.athleteDetail.fields.birthDate'),
+            value: athlete?.birthDate ? formatShortDate(String(athlete.birthDate).slice(0, 10), locale) : '',
+          },
+          { key: 'sex', label: t('admin.athleteDetail.fields.sex'), value: athlete?.sex },
+          { key: 'country', label: t('admin.athleteDetail.fields.country'), value: athlete?.country },
+          {
+            key: 'streetAddress',
+            label: t('admin.athleteDetail.fields.streetAddress'),
+            value: athlete?.streetAddress,
+          },
+          { key: 'city', label: t('admin.athleteDetail.fields.city'), value: athlete?.city },
+          { key: 'province', label: t('admin.athleteDetail.fields.province'), value: athlete?.province },
+          {
+            key: 'postalCode',
+            label: t('admin.athleteDetail.fields.postalCode'),
+            value: athlete?.postalCode,
           },
           { key: 'gym', label: t('admin.athleteDetail.fields.gym'), value: athlete?.gym },
+          {
+            key: 'emergencyContactName',
+            label: t('admin.athleteDetail.fields.emergencyContactName'),
+            value: athlete?.emergencyContactName,
+          },
+          {
+            key: 'emergencyContactPhone',
+            label: t('admin.athleteDetail.fields.emergencyContactPhone'),
+            value: athlete?.emergencyContactPhone,
+          },
         ],
       },
       {
@@ -238,7 +244,7 @@ export default function AthleteDetailSection({
         ],
       },
     ],
-    [athlete, t],
+    [athlete, locale, t],
   )
 
   if (!detail) {
@@ -468,6 +474,35 @@ export default function AthleteDetailSection({
 
       {activeTab === 'profile' && (
         <>
+          <div className="athlete-detail__sheet">
+            {profileGroups.map((group) => (
+              <section
+                key={group.id}
+                className={`athlete-detail__group athlete-detail__group--${group.id}`}
+                aria-labelledby={`athlete-group-${group.id}`}
+              >
+                <h3 id={`athlete-group-${group.id}`} className="athlete-detail__group-title">
+                  {group.title}
+                </h3>
+                <dl className="athlete-detail__rows">
+                  {group.fields.map((field) => (
+                    <div
+                      key={field.key}
+                      className={`athlete-detail__row${field.value ? '' : ' is-empty'}`}
+                    >
+                      <dt>{field.label}</dt>
+                      <dd title={typeof field.value === 'string' ? field.value : undefined}>
+                        {profileValue(field.value)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            ))}
+          </div>
+
+          <AdminAthleteDocuments athlete={athlete} />
+
           <section className="athlete-detail__notice" aria-labelledby="athlete-profile-notice-title">
             <h3 id="athlete-profile-notice-title" className="athlete-detail__group-title">
               {t('admin.athleteDetail.profileNotice.title')}
@@ -513,85 +548,6 @@ export default function AthleteDetailSection({
               </div>
             ) : null}
           </section>
-          <section className="athlete-detail__documents" aria-labelledby="athlete-documents-title">
-            <h3 id="athlete-documents-title" className="athlete-detail__group-title">
-              {t('admin.athleteDetail.documents.title')}
-            </h3>
-            {(() => {
-              const pack = isDocumentPackComplete(athlete, athlete.documents)
-              const kinds = requiredDocumentKinds(athlete)
-              const uploaded = new Map((athlete.documents ?? []).map((row) => [row.kind, row]))
-              const renderKind = (kind) => {
-                const row = uploaded.get(kind)
-                return (
-                  <li key={kind}>
-                    <span>{t(`admin.athleteDetail.documents.kinds.${kind}`)}</span>
-                    {row ? (
-                      <a
-                        href={adminAthleteDocumentUrl(
-                          athlete.id,
-                          kind,
-                          row.uploadedAt ?? row.uploaded_at,
-                        )}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {t('admin.athleteDetail.documents.open')}
-                      </a>
-                    ) : (
-                      <span>—</span>
-                    )}
-                  </li>
-                )
-              }
-              return (
-                <>
-                  <p className="athlete-detail__notice-status">
-                    {pack.complete
-                      ? t('admin.athleteDetail.documents.complete')
-                      : t('admin.athleteDetail.documents.pending')}
-                    {athlete.documentsGrandfathered
-                      ? ` · ${t('admin.athleteDetail.documents.grandfathered')}`
-                      : ''}
-                  </p>
-                  {kinds.length === 0 ? (
-                    <p>{t('admin.athleteDetail.documents.empty')}</p>
-                  ) : (
-                    <ul className="athlete-detail__documents-list">{kinds.map(renderKind)}</ul>
-                  )}
-                  <p className="athlete-detail__notice-status">
-                    {t('admin.athleteDetail.documents.optional')}
-                  </p>
-                  <ul className="athlete-detail__documents-list">
-                    {OPTIONAL_ATHLETE_DOCUMENT_KINDS.map(renderKind)}
-                  </ul>
-                </>
-              )
-            })()}
-          </section>
-          <div className="athlete-detail__sheet">
-            {profileGroups.map((group) => (
-              <section
-                key={group.id}
-                className={`athlete-detail__group athlete-detail__group--${group.id}`}
-                aria-labelledby={`athlete-group-${group.id}`}
-              >
-                <h3 id={`athlete-group-${group.id}`} className="athlete-detail__group-title">
-                  {group.title}
-                </h3>
-                <dl className="athlete-detail__rows">
-                  {group.fields.map((field) => (
-                    <div key={field.key} className="athlete-detail__row">
-                      <dt>{field.label}</dt>
-                      <dd title={typeof field.value === 'string' ? field.value : undefined}>
-                        {profileValue(field.value)}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              </section>
-            ))}
-          </div>
 
           {canGrantAccess && onCreateUser ? (
             <AthletePanelAccess

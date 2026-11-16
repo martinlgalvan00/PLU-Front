@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '../../server/app.js'
+import { prepareTestAthleteForCheckout } from './helpers/athleteSession.js'
 import { manualChannelsOpen } from './helpers/platformToggles.js'
 import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
 
@@ -190,10 +191,7 @@ describe('retiro de la oferta exclusiva por código contra Supabase', () => {
     expect(athleteResponse.status, JSON.stringify(athleteBody)).toBe(201)
     const athleteId = athleteBody.athlete.id
     createdAthleteIds.push(athleteId)
-    await admin
-      .from('athletes')
-      .update({ email_verified_at: new Date().toISOString() })
-      .eq('id', athleteId)
+    await prepareTestAthleteForCheckout(admin, athleteId)
 
     // 2. El canje no abre nada. La modalidad retirada se oculta como si no
     //    existiera para no filtrar ofertas exclusivas generadas por código.
@@ -314,10 +312,7 @@ describe('retiro de la oferta exclusiva por código contra Supabase', () => {
     const athleteBody = await athleteResponse.json()
     expect(athleteResponse.status, JSON.stringify(athleteBody)).toBe(201)
     createdAthleteIds.push(athleteBody.athlete.id)
-    await admin
-      .from('athletes')
-      .update({ email_verified_at: new Date().toISOString() })
-      .eq('id', athleteBody.athlete.id)
+    await prepareTestAthleteForCheckout(admin, athleteBody.athlete.id)
 
     const comboResponse = await fetch(`${listenTarget.url}/api/athletes/me/registration-combos`, {
       method: 'POST',

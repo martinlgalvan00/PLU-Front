@@ -18,7 +18,7 @@ import {
 } from '../../lib/constants.js'
 import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
 import { matchesDateRange } from '../../lib/adminDateRangeFilter.js'
-import { isProfileComplete } from '../../lib/athleteProfile.js'
+import { isProfileComplete, profileFieldLabel } from '../../lib/athleteProfile.js'
 import { isDocumentPackComplete } from '../../lib/athleteDocuments.js'
 import {
   createRegistrationPaymentIndex,
@@ -26,28 +26,6 @@ import {
   matchesRegistrationStatusFilter,
   resolveRegistrationPayment,
 } from '../../services/registrationAdminService.js'
-
-function profileFieldLabel(field, t) {
-  const keys = {
-    phone: 'admin.athleteDetail.fields.phone',
-    city: 'admin.athleteDetail.fields.city',
-    province: 'admin.athleteDetail.fields.province',
-    streetAddress: 'account.personalData.streetAddress',
-    postalCode: 'account.personalData.postalCode',
-    email: 'admin.athleteDetail.fields.email',
-    gym: 'admin.athleteDetail.fields.gym',
-    sex: 'admin.athleteDetail.fields.sex',
-    division: 'admin.athleteDetail.fields.division',
-    category: 'admin.athleteDetail.fields.category',
-    estimatedWeight: 'admin.athleteDetail.fields.estimatedWeight',
-    fullName: 'account.personalData.fullName',
-    birthDate: 'account.personalData.birthDate',
-    country: 'pages.register.country',
-    emergencyContactName: 'account.personalData.emergencyName',
-    emergencyContactPhone: 'account.personalData.emergencyPhone',
-  }
-  return t(keys[field] ?? field)
-}
 
 function normalizeGymName(name) {
   if (!name) return ''
