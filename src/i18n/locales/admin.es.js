@@ -6764,7 +6764,8 @@ export default {
     documents: {
       title: 'Documentos de afiliación',
       empty: 'Todavía no cargó el legajo.',
-      grandfathered: 'Cuenta anterior: puede inscribirse sin el pack, pero la renovación lo exige.',
+      grandfathered: 'Cuenta anterior: puede inscribirse a un torneo abierto sin el DNI. La renovación y un torneo que pida afiliación lo exigen.',
+      optional: 'Opcional',
       complete: 'Legajo completo',
       pending: 'Faltan archivos',
       open: 'Ver',

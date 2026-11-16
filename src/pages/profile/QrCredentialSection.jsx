@@ -7,25 +7,15 @@ import CredentialCard from '../../components/ui/CredentialCard.jsx'
 import CredentialMergeRitual from '../../components/ui/CredentialMergeRitual.jsx'
 import EventPassList from './EventPassList.jsx'
 import { supportsCredential3D } from '../../components/ui/credential3d/supportsCredential3D.js'
-import {
-  buildAthleteCredentialUrl,
-  credentialDisplayCode,
-  generateCredentialQr,
-  resolveCredentialCode,
-} from '../../lib/credentialQr.js'
+import { credentialDisplayCode } from '../../lib/credentialQr.js'
+import { useAthleteCredentialQr } from '../../hooks/useAthleteCredentialQr.js'
 import { hasCelebrated, markCelebrated } from '../../lib/celebration.js'
 import { hasPlayedCredentialMerge } from '../../lib/credentialMerge.js'
+import { describeAthleteCredential } from '../../lib/athleteCredential.js'
 import { listEventPasses } from '../../lib/eventPass.js'
 import { computeFinancingRemaining, formatFinancingCountdown } from '../../lib/financingCountdown.js'
 import { formatShortDate, formatShortStamp } from '../../lib/format.js'
 import { spokenMemberCode } from '../../../shared/spokenMemberCode.js'
-import {
-  getRegistrationGateLabelKey,
-  isGateAccessReady,
-  resolveRequiresMembership,
-} from '../../lib/gateAccess.js'
-import { isRegistrationAdmitted } from '../../lib/status.js'
-import { isMembershipCurrent } from '../../services/membershipService.js'
 
 // Three.js viaja en su propio chunk: solo se descarga al abrir la vista 3D.
 const Credential3DViewer = lazy(
@@ -120,6 +110,7 @@ export default function QrCredentialSection({
   latestMembership = null,
   registrations = [],
   events = [],
+  focusEventSlug = null,
   pendingFinancedPayment = null,
   onNavigateSection,
   onNavigate,
@@ -127,8 +118,6 @@ export default function QrCredentialSection({
   const { t, locale } = useI18n()
   const [modalOpen, setModalOpen] = useState(false)
   const [cardInitialFormat, setCardInitialFormat] = useState('square')
-  const [qrSrc, setQrSrc] = useState(null)
-  const [qrFailed, setQrFailed] = useState(false)
   const [mergeDone, setMergeDone] = useState(false)
   const [can3d] = useState(supportsCredential3D)
   const [view3dOpen, setView3dOpen] = useState(false)
@@ -139,30 +128,23 @@ export default function QrCredentialSection({
   const issueSealRef = useRef(null)
 
   const memberCode = membership?.memberCode ?? latestMembership?.memberCode
-  const credentialCode = resolveCredentialCode({ athlete, membership, latestMembership })
+  const credential = describeAthleteCredential({
+    athlete,
+    membership,
+    latestMembership,
+    registrations,
+    events,
+    focusEventSlug,
+  })
+  const credentialCode = credential.credentialCode
   const displayCode = credentialDisplayCode(memberCode ?? credentialCode)
-  const membershipCurrent = isMembershipCurrent(membership)
+  const membershipCurrent = credential.membershipCurrent
   const membershipForPass = membershipCurrent ? membership : latestMembership
-
-  const admittedRegistrations = useMemo(
-    () => registrations.filter((item) => isRegistrationAdmitted(item.status)),
-    [registrations],
-  )
-  const primaryMeet = admittedRegistrations[0] ?? null
-  const meetRequiresMembership = primaryMeet ? resolveRequiresMembership(primaryMeet) : false
-  const gateReady = primaryMeet
-    ? isGateAccessReady({
-        registrationStatus: primaryMeet.status,
-        requiresMembership: meetRequiresMembership,
-        membershipCurrent,
-      })
-    : membershipCurrent
-  const gateLabelKey = primaryMeet
-    ? getRegistrationGateLabelKey(primaryMeet, { membershipCurrent })
-    : null
-
-  const hasCredential =
-    Boolean(credentialCode) && (membershipCurrent || admittedRegistrations.length > 0)
+  const primaryMeet = credential.primaryMeet
+  const admittedRegistrations = credential.admittedRegistrations
+  const meetRequiresMembership = credential.meetRequiresMembership
+  const gateReady = credential.gateReady
+  const hasCredential = credential.hasCredential
   // Un renglón por evento con lo que va a decir la puerta (incluye pagos
   // pendientes, que antes caían en "Activá tu credencial" con un botón a la
   // afiliación aunque el evento no la pidiera).
@@ -198,7 +180,9 @@ export default function QrCredentialSection({
     Boolean(primaryMeet) &&
     !hasPlayedCredentialMerge(athlete?.id, membership.id) &&
     !mergeDone
-  const qrBusy = hasCredential && !qrSrc && !qrFailed
+  const { qrSrc, qrFailed, qrBusy } = useAthleteCredentialQr(
+    hasCredential ? credentialCode : null,
+  )
 
   // La credencial ya sale habilitada por financiamiento (afiliación 'activa',
   // inscripción 'confirmada'), pero ese derecho sigue provisorio mientras
@@ -237,32 +221,6 @@ export default function QrCredentialSection({
     membership?.expirationDate?.slice(0, 4) ??
     String(new Date().getFullYear())
 
-  useEffect(() => {
-    if (!hasCredential) {
-      setQrSrc(null)
-      setQrFailed(false)
-      return undefined
-    }
-    let cancelled = false
-    setQrFailed(false)
-    generateCredentialQr(buildAthleteCredentialUrl(credentialCode))
-      .then((dataUrl) => {
-        if (!cancelled) {
-          setQrSrc(dataUrl)
-          setQrFailed(false)
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setQrSrc(null)
-          setQrFailed(true)
-        }
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [credentialCode, hasCredential])
-
   /* El ritual de unificación ya es el festejo de esta credencial: sin esto, al
      terminar la fusión el componente volvía a la vista normal y el sello de
      emisión disparaba una segunda ráfaga a los dos segundos de la primera. */
@@ -286,14 +244,7 @@ export default function QrCredentialSection({
       }
     : null
 
-  const cardStatus =
-    membershipCurrent && primaryMeet
-      ? t('account.qr.unifiedStatus')
-      : membershipCurrent
-        ? t('account.membershipActive')
-        : gateLabelKey
-          ? t(gateLabelKey)
-          : t('account.qr.meetPassMeta')
+  const cardStatus = t(credential.statusKey)
   // Lo mismo que la credencial plana, para la vista 3D (memo: la escena se
   // vuelve a armar si cambia el objeto).
   const card3d = useMemo(

@@ -60,11 +60,13 @@ padrón de inscripciones, triage de pagos y KPIs operativos. Las cuentas
 ### Documentos de afiliación
 
 Para **pagar afiliación** (alta o renovación) y para el **combo** afiliación+inscripción
-el atleta tiene que tener cargados en Storage: DNI frente, DNI dorso y certificado
-médico (foto o PDF liviano). Si es menor de 18, también la autorización del tutor.
-No hay cola de aprobación: alcanza con subirlos. Los archivos no van a Postgres;
-solo se guarda el path. El frontend nunca confirma pagos: el cobro sigue en
-Mercado Pago o validación manual.
+el atleta tiene que tener cargados en Storage: DNI frente y DNI dorso (foto o PDF
+liviano). Si el teléfono no informa el formato, alcanza con que el archivo se
+llame `.jpg`, `.png`, `.webp` o `.pdf`. Una carga que se corta muestra el error
+y deja reintentar ese mismo archivo; no deja el botón trabado. Si es menor de 18, también la autorización del tutor. El certificado
+médico se puede subir y no bloquea el pago. No hay cola de aprobación: alcanza
+con subirlos. Los archivos no van a Postgres; solo se guarda el path. El frontend
+nunca confirma pagos: el cobro sigue en Mercado Pago o validación manual.
 
 Antes de los documentos y del pago, la ficha tiene que tener nombre, documento,
 fecha de nacimiento, sexo, teléfono, país, provincia y ciudad. La afiliación es
@@ -72,12 +74,52 @@ a partir de los 14 años. Categoría, peso, gimnasio y contacto de emergencia no
 bloquean este cobro. Si falta algo, la API responde 422
 `ATHLETE_MEMBERSHIP_DATA_INCOMPLETE` y Afiliación muestra el formulario. Se
 guarda con `PATCH /api/athletes/me/membership-file`, sin tocar la ficha
-competitiva.
+competitiva. Al guardarla, si todavía falta un archivo obligatorio, Afiliación nombra
+ese archivo (el DNI, la autorización del tutor, o los dos) y baja hasta esa
+carga. Si el legajo ya está y el checkout está abierto, avisa que ya se puede
+pagar y baja hasta el cobro.
+
+El aviso de la cuenta muestra un solo próximo paso: el correo si falta
+confirmarlo, si no la ficha, y si la ficha ya está el archivo que falte. La marca del menú
+abre Afiliación, igual que el aviso del DNI y el del torneo, aunque la persona
+ya esté afiliada. Datos personales no repite el cargador. El aviso de un torneo
+que pide afiliación espera a que ese paso no esté tapando el cobro.
+
+En una inscripción el cargador sigue en el checkout, porque la persona ya está
+pagando. Si ese cobro fue rechazado con 422 `ATHLETE_DOCUMENTS_INCOMPLETE` y
+después la cuenta tiene el legajo completo, el botón de pagar se habilita solo.
+El rechazo solo mantiene el cargador mientras la sesión todavía no trajo la
+lista de archivos.
 
 Cuentas existentes al momento del feature quedan `documents_grandfathered`: pueden
 seguir inscribiéndose a eventos sin el pack, pero el próximo pago de afiliación
 sí lo exige. Las cuentas nuevas no pueden inscribirse ni pagar afiliación sin el
 legajo.
+
+Quien ya tiene afiliación vigente, programada o vencida puede completar o
+reemplazar ese legajo desde Afiliación sin volver a pagar. Si el legajo ya
+está completo, queda cerrado: la foto no se descarga hasta que elige verla o
+reemplazarla. En el checkout, la vista previa cambia de dirección al reemplazar
+y no vuelve a bajar el archivo mientras no cambie. Un archivo faltante
+no corta la afiliación que ya cubre hoy. El aviso distingue a quien todavía
+no está afiliado (“Falta el DNI para afiliarte”) de quien ya tiene cobertura
+(“Falta el DNI en tu legajo”: la afiliación sigue vigente). Si el frente y el
+dorso ya están y la persona es menor, el aviso dice que falta la autorización
+del tutor, no el DNI. Un PDF de más de 200 KB se rechaza en la pantalla y en
+la API, sea DNI o certificado.
+
+Al subir el último archivo obligatorio con el checkout abierto, Afiliación
+avisa “Ya podés pagar la afiliación.” y baja hasta el cobro. Si el checkout
+está cerrado, el DNI se pide igual y el pago queda anunciado como próximo.
+
+La constancia de afiliación se emite solo si la afiliación está vigente hoy,
+en el día de Argentina. Quien está vigente la pide debajo de la card: la card
+es para compartir y la constancia se imprime desde el navegador.
+`GET /api/athletes/me/membership-certificate` devuelve nombre, documento, número
+de socio, vigencia y la URL del QR que el atleta ya tiene. No crea otro token.
+Cada emisión queda en `domain_audit_logs` con la acción
+`membership_certificate.issued`. La consulta pública de ese QR no muestra el
+documento.
 
 ### Inscripción
 
@@ -455,7 +497,13 @@ ventana abierta y cupo disponible. La afiliación activa vigente **no** es
 condición para crear ni pagar la inscripción: puede quedar pendiente en
 paralelo. Si el evento tiene `requires_membership`, el **check-in en puerta**
 sí exige afiliación activa y vigente; sin ese requisito, la inscripción
-confirmada alcanza para ingresar.
+confirmada alcanza para ingresar. La card del perfil, Mi QR, la página que
+abre el QR y la lista de check-in usan esa misma condición: una persona no
+puede figurar habilitada en una superficie y bloqueada en otra. Quien ya
+tiene afiliación vigente carga el DNI en el perfil, sin volver a pagar.
+Quien ya está inscripto y tiene código de credencial abre esa misma credencial desde el torneo: el botón nombra el evento y Mi QR muestra esa inscripción. Sin código, la fila no abre una credencial vacía. El QR de la persona se lee igual si el lector devuelve la URL, el token pelado, mayúsculas o un espacio de más. La puerta busca ese token en el evento que está acreditando, no en un evento viejo que haya quedado en el enlace. Un competidor
+entra cada día del torneo, una sola vez por día calendario de Argentina; el
+día en que levanta no le cierra el otro.
 
 Los pagos de Mercado Pago se acreditan únicamente por webhook firmado o por
 conciliación server-side. Finanzas puede aprobar solamente métodos manuales.

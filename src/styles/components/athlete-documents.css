@@ -14,7 +14,8 @@
   margin: 0;
 }
 
-.account-documents--checkout {
+.account-documents--checkout,
+.account-documents--member {
   margin-top: 28px;
 }
 
@@ -24,6 +25,15 @@
   list-style: none;
   margin: 8px 0 0;
   padding: 0;
+}
+
+.account-documents__optional-label {
+  margin: 18px 0 0;
+}
+
+.account-documents__list--optional .account-documents__item:first-child {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  padding-top: 16px;
 }
 
 .account-documents__item {
@@ -92,6 +102,10 @@
   color: var(--color-danger-text);
   font-size: 13px;
   margin: 4px 0 0;
+}
+
+.account-documents__manage {
+  margin-top: 4px;
 }
 
 .account-documents__action {

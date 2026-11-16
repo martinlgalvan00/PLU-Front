@@ -1,5 +1,7 @@
 import { createStore, del, get, keys, set } from 'idb-keyval'
 import { memberCodeLookupCandidates, spokenMemberCode } from '../../shared/spokenMemberCode.js'
+import { credentialLookupKeys } from './credentialQr.js'
+import { competitorAccessWindowKey, competitorCheckInCountsToday } from './ticketValidityPolicy.js'
 import { normalizeGateCode } from './ticketGateCode.js'
 
 /**
@@ -50,10 +52,47 @@ function forgetAllowlist(eventSlug) {
   invalidateAllowlistIndex(eventSlug)
 }
 
-function applyLocalAdmits(allowlist, admits) {
+function todayRegistrationIds(entries, now = new Date()) {
+  const today = competitorAccessWindowKey(now)
+  const ids = new Set()
+  for (const entry of entries ?? []) {
+    if (entry && typeof entry === 'object' && entry.registrationId && entry.windowKey === today) {
+      ids.add(entry.registrationId)
+    }
+  }
+  return ids
+}
+
+/** El ingreso de ayer no sigue bloqueando la credencial. */
+function refreshCompetitorDay(allowlist, now = new Date()) {
+  if (!allowlist) return false
+  const today = competitorAccessWindowKey(now)
+  if (!today || allowlist.competitorDay === today) return false
+  allowlist.competitorDay = today
+  let changed = false
+  for (const item of allowlist.registrations ?? []) {
+    if (
+      item.checkedInAt &&
+      item.checkedInAt !== 'offline' &&
+      !competitorCheckInCountsToday(item.checkedInAt, item.accessWindowKey, now)
+    ) {
+      item.checkedInAt = null
+      changed = true
+    }
+    if (item.checkedInLocally && item.localWindowKey !== today) {
+      item.checkedInLocally = false
+      changed = true
+    }
+  }
+  if (changed) invalidateAllowlistIndex(allowlist.eventSlug)
+  return changed
+}
+
+function applyLocalAdmits(allowlist, admits, now = new Date()) {
   if (!allowlist || !admits) return
   const tickets = new Set(admits.tickets ?? [])
-  const registrations = new Set(admits.registrations ?? [])
+  const registrations = todayRegistrationIds(admits.registrations, now)
+  const today = competitorAccessWindowKey(now)
   for (const item of allowlist.tickets ?? []) {
     if (item.qrToken && tickets.has(item.qrToken) && !item.checkedInAt) item.checkedInLocally = true
   }
@@ -61,7 +100,10 @@ function applyLocalAdmits(allowlist, admits) {
     const marked =
       (item.registrationId && registrations.has(item.registrationId)) ||
       (item.qrToken && tickets.has(item.qrToken))
-    if (marked && !item.checkedInAt) item.checkedInLocally = true
+    if (marked && !item.checkedInAt) {
+      item.checkedInLocally = true
+      item.localWindowKey = today
+    }
   }
 }
 
@@ -90,11 +132,23 @@ function indexGateCode(ticketsByCode, item) {
   ticketsByCode.set(gate.replace('-', '').toLowerCase(), item)
 }
 
+function indexOpaqueToken(map, token, item) {
+  for (const key of credentialLookupKeys(token)) map.set(key, item)
+}
+
+function readOpaqueToken(map, code) {
+  for (const key of credentialLookupKeys(code)) {
+    const found = map.get(key)
+    if (found) return found
+  }
+  return undefined
+}
+
 function buildAllowlistIndex(allowlist) {
   const ticketsByQr = new Map()
   const ticketsByCode = new Map()
   for (const item of allowlist.tickets ?? []) {
-    if (item.qrToken) ticketsByQr.set(item.qrToken, item)
+    indexOpaqueToken(ticketsByQr, item.qrToken, item)
     const code = (item.ticketCode ?? '').toLowerCase()
     if (code) ticketsByCode.set(code, item)
     indexGateCode(ticketsByCode, item)
@@ -104,8 +158,8 @@ function buildAllowlistIndex(allowlist) {
   const registrationsByQr = new Map()
   const registrationsByMember = new Map()
   for (const item of allowlist.registrations ?? []) {
-    if (item.credentialToken) registrationsByCredential.set(item.credentialToken, item)
-    if (item.qrToken) registrationsByQr.set(item.qrToken, item)
+    indexOpaqueToken(registrationsByCredential, item.credentialToken, item)
+    indexOpaqueToken(registrationsByQr, item.qrToken, item)
     rememberMemberCode(registrationsByMember, item.memberCode, item)
   }
 
@@ -213,9 +267,11 @@ export async function downloadAllowlist(eventSlug, data, { etag = null } = {}) {
     ),
     registrations: mergeLocalAdmissions(
       data.registrations,
-      previous?.registrations,
+      (previous?.registrations ?? []).filter(
+        (item) => item?.localWindowKey === competitorAccessWindowKey(),
+      ),
       (item) => item.registrationId,
-      admits.registrations,
+      [...todayRegistrationIds(admits.registrations)],
     ),
   }
   await set(ALLOWLIST_KEY(eventSlug), payload, store)
@@ -223,6 +279,7 @@ export async function downloadAllowlist(eventSlug, data, { etag = null } = {}) {
   // Se reemplaza la foto anterior recién cuando la nueva ya está en disco.
   // La vista es otra referencia: un 304 mueve la hora sin reescribir las entradas.
   const view = { ...payload }
+  refreshCompetitorDay(view)
   invalidateAllowlistIndex(eventSlug)
   allowlistMemory.set(eventSlug, view)
   indexFor(view)
@@ -261,7 +318,10 @@ export async function touchAllowlistDownload(eventSlug, etag = null) {
 
 export async function getAllowlist(eventSlug) {
   const cached = allowlistMemory.get(eventSlug)
-  if (cached) return cached
+  if (cached) {
+    if (refreshCompetitorDay(cached)) indexFor(cached)
+    return cached
+  }
 
   const payload = (await get(ALLOWLIST_KEY(eventSlug), store)) ?? null
   if (!payload) return null
@@ -274,6 +334,7 @@ export async function getAllowlist(eventSlug) {
     downloadedAt: meta?.downloadedAt ?? payload.downloadedAt,
     etag: meta?.etag ?? payload.etag ?? null,
   }
+  refreshCompetitorDay(view)
   applyLocalAdmits(view, admits)
   allowlistMemory.set(eventSlug, view)
   indexFor(view)
@@ -294,7 +355,7 @@ export async function findInAllowlist(eventSlug, code) {
   const memberKeys = new Set([normalized, ...memberCodeLookupCandidates(code).map((item) => item.toLowerCase())])
 
   const ticket =
-    index.ticketsByQr.get(code) ??
+    readOpaqueToken(index.ticketsByQr, code) ??
     index.ticketsByCode.get(normalized) ??
     (gate ? index.ticketsByCode.get(gate.toLowerCase()) : undefined)
   if (ticket) return { kind: 'ticket', entry: ticket }
@@ -302,7 +363,9 @@ export async function findInAllowlist(eventSlug, code) {
   // `credentialToken` es el QR del perfil (uno por persona); `qrToken`, la
   // credencial impresa de la membresía, que se sigue aceptando.
   let registration =
-    index.registrationsByCredential.get(code) ?? index.registrationsByQr.get(code) ?? null
+    readOpaqueToken(index.registrationsByCredential, code) ??
+    readOpaqueToken(index.registrationsByQr, code) ??
+    null
   if (!registration) {
     for (const key of memberKeys) {
       registration = index.registrationsByMember.get(key)
@@ -325,11 +388,17 @@ export function markCheckedInLocally(eventSlug, { qrToken, registrationId } = {}
     tickets: [],
     registrations: [],
   }
+  if (!Array.isArray(admits.registrations)) admits.registrations = []
+  if (!Array.isArray(admits.tickets)) admits.tickets = []
   // Inscripciones por id: un atleta sin membresía no tiene `qrToken`, y
   // comparar `null === null` marcaba como ingresados a todos los que tampoco.
   if (qrToken && !admits.tickets.includes(qrToken)) admits.tickets.push(qrToken)
-  if (registrationId && !admits.registrations.includes(registrationId)) {
-    admits.registrations.push(registrationId)
+  const windowKey = competitorAccessWindowKey()
+  const alreadyAdmitted = (admits.registrations ?? []).some(
+    (entry) => entry?.registrationId === registrationId && entry?.windowKey === windowKey,
+  )
+  if (registrationId && !alreadyAdmitted) {
+    admits.registrations.push({ registrationId, windowKey })
   }
   await set(LOCAL_ADMITS_KEY(eventSlug), admits, store)
 

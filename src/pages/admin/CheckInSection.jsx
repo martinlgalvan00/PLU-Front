@@ -15,20 +15,7 @@ import { getCheckInTourSteps } from '../../lib/adminTourSteps.js'
 import { useCheckInWorkspace } from '../../hooks/useCheckInWorkspace.js'
 import { formatDocumentWithKind } from '../../lib/format.js'
 import { checkinTypeLabel } from '../../services/checkinScanService.js'
-
-/** Etiqueta del día en el que compite una fila, según la grilla asignada. */
-function dayLabel(dayIndexes, eventDays, t) {
-  if (dayIndexes === 'all' || !Array.isArray(dayIndexes) || dayIndexes.length === 0) {
-    return t('admin.checkin.bothDays')
-  }
-  return dayIndexes
-    .map(
-      (dayIndex) =>
-        eventDays.find((day) => day.dayIndex === dayIndex)?.label ??
-        t('admin.checkin.dayNumber', { day: dayIndex + 1 }),
-    )
-    .join(' · ')
-}
+import { formatCheckinRowDay } from '../../services/checkinWorkspaceService.js'
 
 /**
  * Puerta del evento. Además del ingreso resuelve el cobro que lo traba: una
@@ -84,13 +71,12 @@ export default function CheckInSection({
     onRedeemTicketAddon,
     onRefreshTickets,
     onRejectTicketOrder,
+    memberships,
     payments,
     registrations,
     ticketTypes,
     tickets,
   })
-
-  void memberships
 
   return (
     <AdminListSection
@@ -267,10 +253,7 @@ export default function CheckInSection({
             key: 'day',
             label: t('admin.checkin.dayLabel'),
             mobile: 'default',
-            // `buildCheckinRows` arma `dayIndexes` ('all' o una lista): esta
-            // celda leía un `row.day` que nunca existió y devolvía "Día 2"
-            // para todo el roster.
-            render: (row) => dayLabel(row.dayIndexes, eventDays, t),
+            render: (row) => formatCheckinRowDay(row, eventDays, t),
           },
           {
             key: 'status',

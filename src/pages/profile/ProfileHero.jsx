@@ -8,7 +8,10 @@ import { resolveSessionIdentity } from '../../lib/roles.js'
 export default function ProfileHero({
   athlete,
   membership,
+  latestMembership = null,
   athleteRegistrations,
+  events,
+  focusEventSlug = null,
   nextEvent,
   onNavigateSection,
   session = null,
@@ -93,7 +96,14 @@ export default function ProfileHero({
           </button>
         </div>
 
-        <DigitalCredential athlete={athlete} membership={membership} />
+        <DigitalCredential
+          athlete={athlete}
+          membership={membership}
+          latestMembership={latestMembership}
+          registrations={athleteRegistrations}
+          events={events}
+          focusEventSlug={focusEventSlug}
+        />
       </div>
     </section>
   )

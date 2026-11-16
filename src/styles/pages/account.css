@@ -1152,6 +1152,18 @@
   }
 }
 
+.account-membership__pay-step {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.account-membership__ready {
+  color: var(--color-text-primary);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
 .account-membership__combo {
   border-bottom: 1px solid var(--color-border-subtle);
   margin: 4px auto 20px;

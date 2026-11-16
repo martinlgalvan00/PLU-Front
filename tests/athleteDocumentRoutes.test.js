@@ -25,13 +25,17 @@ describe('rutas de documentos de afiliación', () => {
   it('el checkout de afiliación y combo siempre exige el pack; la inscripción respeta grandfathering', () => {
     expect(routes).toContain("await assertAthleteDocumentsComplete(auth.athleteId, 'membership')")
     expect(routes).toContain("await assertAthleteDocumentsComplete(auth.athleteId, 'combo')")
-    expect(routes).toContain("await assertAthleteDocumentsComplete(auth.athleteId, 'registration')")
+    expect(routes).toContain("await assertAthleteDocumentsComplete(auth.athleteId, 'registration',")
+    expect(routes).toContain('requiresMembership: event.requires_membership === true')
     expect(routes).toContain("code: 'ATHLETE_DOCUMENTS_INCOMPLETE'")
+    expect(routes).toContain('ATHLETE_DOCUMENT_PDF_TOO_LARGE_MESSAGE')
   })
 
   it('el proxy de lectura usa el bucket privado athlete-documents', () => {
     expect(routes).toContain("'/me/documents/:kind'")
     expect(routes).toContain("'/admin/:athleteId/documents/:kind'")
     expect(repository).toMatch(/async athleteDocumentPath\(athleteId/)
+    expect(repository).toContain('listDocumentPackSafe(athleteId, payload.athlete)')
+    expect(repository).toContain('forgetPortraitCache(previousPath)')
   })
 })

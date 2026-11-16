@@ -1,3 +1,4 @@
+import { pickCompetitorCheckInToday } from '../../../src/lib/ticketValidityPolicy.js'
 import { EXPORT_ROW_LIMIT, normalizeExportDate } from '../../../shared/exportRows.js'
 import { memberCodeLookupCandidates } from '../../../shared/spokenMemberCode.js'
 import { HttpError } from '../../lib/errors.js'
@@ -109,17 +110,20 @@ export function createSupabaseAthleteRepository(
   const rpc = async (name, args, fallback) =>
     assertSupabaseResult(await client.rpc(name, args), fallback)
 
-  async function listDocumentPackSafe(athleteId) {
+  async function listDocumentPackSafe(athleteId, knownAthlete = null) {
     const empty = { birthDate: null, documentsGrandfathered: false, documents: [], unavailable: false }
     try {
-      const athlete = assertSupabaseResult(
-        await client
-          .from('athletes')
-          .select('birth_date, documents_grandfathered')
-          .eq('id', athleteId)
-          .maybeSingle(),
-        'No se pudo leer el perfil.',
-      )
+      // El snapshot ya trajo la fila del atleta. No la volvemos a leer.
+      const athlete =
+        knownAthlete ??
+        assertSupabaseResult(
+          await client
+            .from('athletes')
+            .select('birth_date, documents_grandfathered')
+            .eq('id', athleteId)
+            .maybeSingle(),
+          'No se pudo leer el perfil.',
+        )
       if (!athlete) return { ...empty, unavailable: true }
       const documents = assertSupabaseResult(
         await client
@@ -130,8 +134,9 @@ export function createSupabaseAthleteRepository(
         'No se pudieron leer los documentos.',
       )
       return {
-        birthDate: athlete.birth_date ?? null,
-        documentsGrandfathered: athlete.documents_grandfathered === true,
+        birthDate: athlete.birth_date ?? athlete.birthDate ?? null,
+        documentsGrandfathered:
+          athlete.documents_grandfathered === true || athlete.documentsGrandfathered === true,
         documents: documents ?? [],
         unavailable: false,
       }
@@ -367,7 +372,7 @@ export function createSupabaseAthleteRepository(
         ),
       )
       if (payload?.athlete) {
-        const pack = await listDocumentPackSafe(athleteId)
+        const pack = await listDocumentPackSafe(athleteId, payload.athlete)
         payload.athlete.documents = pack.documents
         payload.athlete.documents_grandfathered = pack.documentsGrandfathered
       }
@@ -548,7 +553,7 @@ export function createSupabaseAthleteRepository(
         await client
           .from('events')
           .select(
-            'id, slug, venue, location, starts_at, price, manual_price, currency, payment_channel_overrides, bank_transfer_alias, bank_transfer_cbu, bank_transfer_holder, bank_transfer_profile_id, mercado_pago_profile_id',
+            'id, slug, venue, location, starts_at, price, manual_price, currency, requires_membership, payment_channel_overrides, bank_transfer_alias, bank_transfer_cbu, bank_transfer_holder, bank_transfer_profile_id, mercado_pago_profile_id',
           )
           .eq('organization_id', organizationId)
           .eq('slug', eventSlug)
@@ -1749,6 +1754,44 @@ export function createSupabaseAthleteRepository(
       if (!membership) throw new HttpError(404, 'Afiliación no encontrada.')
       return membership
     },
+
+    async findMembershipCertificateSource(athleteId) {
+      const athlete = assertSupabaseResult(
+        await client
+          .from('athletes')
+          .select('id, full_name, document_id, credential_token')
+          .eq('id', athleteId)
+          .eq('organization_id', organizationId)
+          .maybeSingle(),
+        'No se pudo leer el perfil.',
+      )
+      if (!athlete) return null
+      const memberships = assertSupabaseResult(
+        await client
+          .from('memberships')
+          .select('id, status, start_date, expiration_date, member_code')
+          .eq('athlete_id', athleteId)
+          .eq('organization_id', organizationId),
+        'No se pudieron leer las afiliaciones.',
+      )
+      return { athlete, memberships: memberships ?? [] }
+    },
+
+    async recordMembershipCertificateIssued({ athleteId, membershipId, memberCode }) {
+      assertSupabaseResult(
+        await client.from('domain_audit_logs').insert({
+          organization_id: organizationId,
+          action: 'membership_certificate.issued',
+          entity_type: 'membership',
+          entity_id: String(membershipId),
+          actor_type: 'athlete',
+          actor_id: String(athleteId),
+          metadata: { memberCode: memberCode ?? null },
+        }),
+        'No se pudo registrar la constancia.',
+      )
+    },
+
     rotateMembershipQrToken: (membershipId, actor) =>
       rpc(
         'staff_rotate_membership_qr_token',
@@ -2053,6 +2096,7 @@ export function createSupabaseAthleteRepository(
       )
       const previousPath = result?.previousPath ?? result?.previous_path ?? null
       if (previousPath && previousPath !== storagePath) {
+        forgetPortraitCache(previousPath)
         const removal = await client.storage.from(DOCUMENT_BUCKET).remove([previousPath])
         if (removal.error) {
           console.warn('No se pudo borrar el documento anterior:', removal.error.message)
@@ -2193,7 +2237,7 @@ export function createSupabaseAthleteRepository(
                       id, athlete_id, category, additional_categories, division, secondary_division, modalities, bodyweight_kg, is_first_meet, competition_best_total_kg, training_best_total_kg, weigh_in_bodyweight_kg, declared_weight_class, official_weight_class, declared_weight_class_set_at, declared_weight_class_set_by, official_weight_class_set_at, official_weight_class_set_by, weigh_in_recorded_at, weigh_in_recorded_by, public_visible, status, payment_order_id, created_at, updated_at,
                       manual_override_status, manual_override_channel, manual_override_reason, manual_override_by, manual_override_at,
                       event:events(id, title, slug, starts_at, ends_at, requires_membership, roster_frozen_at),
-                      checkIn:check_ins(scanned_at),
+                      checkIn:check_ins(scanned_at, access_window_key),
                       eventDay:event_days(id, day_index, label, date),
                       eventSession:event_sessions(id, name, platform, weigh_in_at, starts_at)
                     `,
@@ -2238,7 +2282,7 @@ export function createSupabaseAthleteRepository(
         ).map((row) => ({
           registration: row,
           event: row.event,
-          checkIn: Array.isArray(row.checkIn) ? row.checkIn[0] : row.checkIn,
+          checkIn: pickCompetitorCheckInToday(row.checkIn),
           schedule: row.eventDay
             ? {
                 day_id: row.eventDay.id,

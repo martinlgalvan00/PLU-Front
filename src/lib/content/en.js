@@ -250,7 +250,7 @@ export const MEMBERSHIP_ANNUAL_STEPS = [
   {
     step: '2',
     title: 'Pay online',
-    text: 'After your ID and medical certificate are uploaded. Mercado Pago or transfer.',
+    text: 'After the ID front and back are uploaded. The medical certificate is optional. Mercado Pago or transfer.',
   },
   {
     step: '3',
@@ -273,7 +273,7 @@ export const MEMBERSHIP_FAQ = [
   {
     id: 'data',
     q: 'What information do I need to provide?',
-    a: 'Personal details, ID, contact, location, gym and competitive sex. To pay for membership you also upload ID front and back and a medical certificate. Under 18, guardian authorization too.',
+    a: 'Personal details, ID, contact, location, gym and competitive sex. To pay for membership you upload ID front and back. The medical certificate is optional. Under 18, guardian authorization too.',
   },
   {
     id: 'status',

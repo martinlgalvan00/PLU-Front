@@ -141,6 +141,43 @@ export function ticketRequiresLiveDoor(ticket) {
   return mode === TICKET_ACCESS_POLICY_MODE.FIRST_ENTRY_DAY
 }
 
+/**
+ * Clave de ingreso de un competidor: un acceso por día calendario del torneo,
+ * en Argentina. La misma forma que el día de una entrada (`event_day:YYYY-MM-DD`).
+ * La grilla dice cuándo levanta; no recorta los días en los que puede entrar.
+ */
+export function competitorAccessWindowKey(at = new Date()) {
+  const day = calendarDateInTimeZone(at)
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? `event_day:${day}` : null
+}
+
+/**
+ * El ingreso que cuenta para la puerta hoy. Un escaneo de otro día no quema
+ * la credencial: el competidor vuelve a entrar al día siguiente.
+ */
+/** ¿Este ingreso es el de hoy? Sin clave, manda el día del escaneo. */
+export function competitorCheckInCountsToday(checkedInAt, accessWindowKey, now = new Date()) {
+  if (!checkedInAt || checkedInAt === 'offline') return false
+  const today = competitorAccessWindowKey(now)
+  if (!today) return false
+  if (accessWindowKey) return accessWindowKey === today
+  return competitorAccessWindowKey(checkedInAt) === today
+}
+
+export function pickCompetitorCheckInToday(checkIns, at = new Date()) {
+  const rows = Array.isArray(checkIns) ? checkIns : checkIns ? [checkIns] : []
+  const key = competitorAccessWindowKey(at)
+  if (!key) return null
+  const byKey = rows.find((row) => (row?.access_window_key ?? row?.accessWindowKey) === key)
+  if (byKey) return byKey
+  return (
+    rows.find((row) => {
+      const scanned = row?.scanned_at ?? row?.scannedAt
+      return scanned && competitorAccessWindowKey(scanned) === key
+    }) ?? null
+  )
+}
+
 /** Suma un día de calendario a un `YYYY-MM-DD` sin pasar por la zona local. */
 export function addCalendarDay(isoDate) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(isoDate ?? '').trim())

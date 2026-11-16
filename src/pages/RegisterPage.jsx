@@ -58,7 +58,8 @@ import { resolveEventPricing } from '../lib/eventPricing.js'
 import { getStatusMeta, isRegistrationAdmitted, normalizeStatus } from '../lib/status.js'
 import { hasCurrentMembership, isMembershipCurrent } from '../services/membershipService.js'
 import { getEventComboAvailability } from '../services/comboOfferService.js'
-import { documentPackGate, isDocumentPackComplete } from '../lib/athleteDocuments.js'
+import { documentPackGate, documentsBlockCheckout, isDocumentPackComplete } from '../lib/athleteDocuments.js'
+import { ACCOUNT_MEMBERSHIP_TAB } from '../lib/navigation.js'
 import DocumentPackSection from './profile/DocumentPackSection.jsx'
 import { eventHasSubmissionLanding } from '../lib/eventLanding.js'
 import { env } from '../config/env.js'
@@ -1774,9 +1775,18 @@ export default function RegisterPage({
         ? 'combo'
         : 'registration'
   const documentsGate = athlete
-    ? documentPackGate(athlete, athlete.documents, { purpose: documentsPurpose })
+    ? documentPackGate(athlete, athlete.documents, {
+        purpose: documentsPurpose,
+        requiresMembership: event?.requiresMembership === true,
+      })
     : { blocked: false, missing: [], complete: true }
-  const showDocumentsGate = isPaidCheckout && (documentsGate.blocked || documentsBlocked)
+  const showDocumentsGate =
+    isPaidCheckout &&
+    documentsBlockCheckout({
+      gate: documentsGate,
+      documents: athlete?.documents,
+      rejectionPending: documentsBlocked,
+    })
   const documentsPackComplete = athlete
     ? isDocumentPackComplete(athlete, athlete.documents).complete
     : true
@@ -4020,7 +4030,7 @@ export default function RegisterPage({
                     <button
                       type="button"
                       className="register-eligibility-note__action"
-                      onClick={() => onNavigate('profile', { tab: 'account-personal-data' })}
+                      onClick={() => onNavigate('profile', { tab: ACCOUNT_MEMBERSHIP_TAB })}
                     >
                       {t('pages.register.documentsIncompleteAction')}
                     </button>

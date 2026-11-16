@@ -52,18 +52,23 @@ export default function MembershipFileSection({ athlete, onSave }) {
     setFormError('')
     if (!status.complete || !onSave) return
     setSaving(true)
-    const result = await onSave(athlete.id, {
-      fullName: form.fullName.trim(),
-      documentId: form.documentId,
-      birthDate: form.birthDate,
-      sex: form.sex,
-      phone: form.phone.trim(),
-      country: form.country,
-      province: form.province.trim(),
-      city: form.city.trim(),
-    })
-    setSaving(false)
-    if (result?.error) setFormError(result.error)
+    try {
+      const result = await onSave(athlete.id, {
+        fullName: form.fullName.trim(),
+        documentId: form.documentId,
+        birthDate: form.birthDate,
+        sex: form.sex,
+        phone: form.phone.trim(),
+        country: form.country,
+        province: form.province.trim(),
+        city: form.city.trim(),
+      })
+      if (result?.error) setFormError(result.error)
+    } catch (error) {
+      setFormError(error?.message || 'No se pudo guardar la ficha. Intentá de nuevo.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const show = (key) => asked.includes(key)

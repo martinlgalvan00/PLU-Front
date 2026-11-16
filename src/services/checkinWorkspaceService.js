@@ -1,4 +1,6 @@
-import { registrationCheckinStatus, scheduleDayIndexes } from './checkinScanService.js'
+import { applyAthleteCheckinGate } from '../lib/athleteCredential.js'
+import { competitorCheckInCountsToday } from '../lib/ticketValidityPolicy.js'
+import { registrationCheckinStatus } from './checkinScanService.js'
 import { findOpenManualOrderForRegistration } from './paymentValidationService.js'
 import { ticketIsCurrentlyValid } from '../lib/ticketValidity.js'
 
@@ -8,8 +10,7 @@ function belongsToEvent(record, eventSlug) {
 }
 
 /** Días a los que da acceso un ticket, resueltos vía su tipo de entrada.
- * 'all' = sin restricción de día (un atleta al que todavía no le asignaron
- * grilla entra en cualquiera; ver scheduleDayIndexes). */
+ * El competidor no pasa por acá: entra todos los días del torneo. */
 function ticketDayIndexes(ticket, ticketTypes) {
   const type = ticketTypes.find((item) => item.id === ticket.ticketTypeId)
   return type?.dayIndexes ?? []
@@ -64,7 +65,11 @@ export function mapAllowlistToCheckinSources(allowlist, eventSlug) {
     category: entry.category ?? null,
     division: entry.division ?? null,
     status: entry.status,
-    checkedInAt: entry.checkedInAt ?? (entry.checkedInLocally ? 'offline' : null),
+    checkedInAt: competitorCheckInCountsToday(entry.checkedInAt, entry.accessWindowKey)
+      ? entry.checkedInAt
+      : entry.checkedInLocally
+        ? 'offline'
+        : null,
   }))
   const athletes = (allowlist?.registrations ?? []).map((entry) => ({
     id: entry.registrationId,
@@ -135,6 +140,7 @@ const STATUS_ORDER = { pagada: 0, pendiente: 1, pendiente_pago: 1, confirmada: 1
 
 export function buildCheckinRows({
   athletes = [],
+  memberships = [],
   payments = [],
   registrations = [],
   tickets = [],
@@ -156,11 +162,12 @@ export function buildCheckinRows({
         name: athlete?.fullName,
         document: athlete?.documentId,
         meta: [registration.category, registration.division].filter(Boolean).join(' · '),
-        // Antes todos los atletas iban a 'all' y aparecían en la pestaña de
-        // cada día. Con la grilla asignada el roster de un día es el de ese día.
-        dayIndexes: scheduleDayIndexes(registration.schedule),
+        // La grilla dice cuándo levanta. El acceso al predio es los dos días.
+        dayIndexes: 'all',
         schedule: registration.schedule ?? null,
-        status: registrationCheckinStatus(registration),
+        status: applyAthleteCheckinGate(registrationCheckinStatus(registration), registration, {
+          memberships,
+        }),
         checkedInAt: registration.checkedInAt,
         // La orden manual que traba el ingreso, si la hay. Sin esto la puerta
         // veía "sin habilitar" y no tenía con qué resolverlo: el efectivo que
@@ -200,11 +207,20 @@ export function buildCheckinRows({
   })
 }
 
+function liftingDayLabel(row, eventDays) {
+  if (typeof row.schedule?.dayIndex !== 'number') return ''
+  const day = eventDays.find((item) => item.dayIndex === row.schedule.dayIndex)?.label
+  return [day, row.schedule.sessionName].filter(Boolean).join(' · ')
+}
+
 export function formatCheckinRowDay(row, eventDays = [], t) {
+  if (row.type === 'atleta') {
+    const access = t('admin.checkin.bothDays')
+    const lifting = liftingDayLabel(row, eventDays)
+    return lifting ? `${access} · ${lifting}` : access
+  }
   if (row.dayIndexes === 'all' || !eventDays.length) {
-    return row.type === 'atleta'
-      ? t('admin.checkin.scheduleUnassigned')
-      : t('admin.checkin.bothDays')
+    return t('admin.checkin.bothDays')
   }
   const labels = row.dayIndexes
     .map((dayIndex) => eventDays.find((item) => item.dayIndex === dayIndex)?.label)

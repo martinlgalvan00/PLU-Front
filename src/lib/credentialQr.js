@@ -105,11 +105,21 @@ function loadQrCode() {
   return import('qrcode').then((module) => module.default ?? module)
 }
 
+/**
+ * Zona muda en módulos. Con 1, el PNG compartido o impreso queda pegado al
+ * borde y el lector de la puerta lo mezcla con el fondo. 4 es el mínimo
+ * que el estándar pide para poder escanear.
+ */
+export const CREDENTIAL_QR_QUIET_MODULES = 4
+
+/** Margen en píxeles del QR de marca (512 px). Cubre al menos 4 módulos. */
+export const CREDENTIAL_QR_BRANDED_QUIET_PX = 48
+
 function renderPlainQr(url) {
   return loadQrCode().then((QRCode) =>
     QRCode.toDataURL(url, {
       width: 320,
-      margin: 1,
+      margin: CREDENTIAL_QR_QUIET_MODULES,
       errorCorrectionLevel: 'M',
       color: {
         dark: '#0d0e11',
@@ -128,7 +138,7 @@ function renderVectorQr(url) {
   return loadQrCode().then((QRCode) =>
     QRCode.toString(url, {
       type: 'svg',
-      margin: 1,
+      margin: CREDENTIAL_QR_QUIET_MODULES,
       errorCorrectionLevel: 'M',
       color: { dark: '#0d0e11', light: '#ffffff' },
     }).then((svg) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`),
@@ -223,7 +233,9 @@ function enqueueRender(task) {
  * Nivel de corrección de errores 'H' (máximo) porque el isotipo tapa el
  * centro del código: sin eso el logo degrada el escaneo. `hideBackgroundDots`
  * limpia los módulos que quedarían debajo del emblema, así el lector no
- * intenta interpretar píxeles del logo como datos.
+ * intenta interpretar píxeles del logo como datos. Los tres ojos quedan
+ * cuadrados: son lo que el lector engancha, y redondearlos de más hace
+ * fallar cámaras que el QR plano sí leen.
  *
  * Un solo renderer, en fila: varias credenciales en la misma pantalla no
  * arman varios canvas a la vez.
@@ -240,7 +252,7 @@ async function renderBrandedQr(url) {
       height: QR_RENDER_PX,
       type: 'canvas',
       data: url,
-      margin: 16,
+      margin: CREDENTIAL_QR_BRANDED_QUIET_PX,
       qrOptions: { errorCorrectionLevel: 'H' },
       image: seal,
       imageOptions: {
@@ -250,7 +262,7 @@ async function renderBrandedQr(url) {
         margin: 8,
       },
       dotsOptions: { type: 'rounded', color: '#0d0e11' },
-      cornersSquareOptions: { type: 'extra-rounded', color: '#0d0e11' },
+      cornersSquareOptions: { type: 'square', color: '#0d0e11' },
       cornersDotOptions: { type: 'dot', color: '#0d0e11' },
       backgroundOptions: { color: '#ffffff' },
     })
@@ -282,6 +294,7 @@ async function renderBrandedQr(url) {
  */
 const QR_CACHE_MAX_ENTRIES = 24
 const qrDataUrlCache = new Map()
+const qrResolvedCache = new Map()
 
 function rememberQr(url, pending) {
   // Map conserva orden de inserción: al volver a usar una entrada la movemos
@@ -292,7 +305,19 @@ function rememberQr(url, pending) {
   while (qrDataUrlCache.size > QR_CACHE_MAX_ENTRIES) {
     const oldestUrl = qrDataUrlCache.keys().next().value
     qrDataUrlCache.delete(oldestUrl)
+    qrResolvedCache.delete(oldestUrl)
   }
+}
+
+/**
+ * El PNG ya dibujado, si existe. Sirve para pintar la credencial en el primer
+ * frame, sin vaciar la placa y sin volver a encolar el canvas.
+ * @param {string | null | undefined} url
+ * @returns {string | null}
+ */
+export function peekCredentialQr(url) {
+  if (!url) return null
+  return qrResolvedCache.get(url) ?? null
 }
 
 export function generateCredentialQr(url) {
@@ -309,8 +334,13 @@ export function generateCredentialQr(url) {
     withTimeout(renderBrandedQr(url), BRANDED_QR_TIMEOUT_MS)
       .catch(() => renderPlainQr(url))
       .catch(() => renderVectorQr(url))
+      .then((dataUrl) => {
+        qrResolvedCache.set(url, dataUrl)
+        return dataUrl
+      })
       .catch((error) => {
         qrDataUrlCache.delete(url)
+        qrResolvedCache.delete(url)
         throw error
       }),
   )
@@ -360,37 +390,110 @@ export function buildRandomPreviewCredentialCode(prefix = 'PREV-MEMBERS') {
  * Lee los params de verificación desde la URL actual (si los hay).
  * @returns {{ code: string, eventSlug: string | null, type: string | null } | null}
  */
+const SCAN_INVISIBLES = /[\u200B-\u200D\uFEFF\u00A0]/g
+const UUID_CODE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function cleanScanText(raw) {
+  return String(raw ?? '')
+    .replace(SCAN_INVISIBLES, '')
+    .trim()
+    .replace(/^<+|>+$/g, '')
+    .replace(/^['"]+|['"]+$/g, '')
+    .trim()
+}
+
+/**
+ * Claves con las que se puede buscar un código opaco. Un UUID compara igual
+ * en mayúsculas o minúsculas (la base lo castea así); un código de socio no.
+ * @param {string | null | undefined} code
+ * @returns {string[]}
+ */
+export function credentialLookupKeys(code) {
+  const value = String(code ?? '').trim()
+  if (!value) return []
+  const compact = value.replace(/\s+/g, '')
+  if (!UUID_CODE.test(compact)) return [value]
+  const lower = compact.toLowerCase()
+  return lower === value ? [lower] : [value, lower]
+}
+
+function canonicalCredentialCode(code) {
+  const keys = credentialLookupKeys(code)
+  return keys[keys.length - 1] ?? ''
+}
+
+function readParam(params, name) {
+  const wanted = name.toLowerCase()
+  for (const [key, value] of params) {
+    if (key.toLowerCase() === wanted) return value
+  }
+  return null
+}
+
+function paramsFromSearch(search) {
+  const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search)
+  const code = canonicalCredentialCode(readParam(params, 'credencial'))
+  if (!code) return null
+  return {
+    code,
+    eventSlug: readParam(params, 'evento')?.trim() || null,
+    type: readParam(params, 'tipo')?.trim().toLowerCase() || null,
+  }
+}
+
+function paramsFromUrl(value) {
+  try {
+    const url = value.includes('://') ? new URL(value) : new URL(value, 'https://plu-arg.com')
+    const found = paramsFromSearch(url.search)
+    if (found) return found
+    const hash = url.hash.replace(/^#\/?/, '')
+    if (!hash || !/credencial=/i.test(hash)) return null
+    return paramsFromSearch(hash.startsWith('?') ? hash : `?${hash}`)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Saca `credencial`, `evento` y `tipo` de una URL. Null si el texto no es
+ * un enlace de credencial: un token pelado no entra acá.
+ * @param {string} value
+ * @returns {{ code: string, eventSlug: string | null, type: string | null } | null}
+ */
+function credentialParamsFromUrl(value) {
+  const direct = paramsFromUrl(value)
+  if (direct) return direct
+  if (!/credencial=/i.test(value)) return null
+  const query = value.includes('?') ? value.slice(value.indexOf('?')) : `?${value}`
+  return paramsFromSearch(query)
+}
+
+/**
+ * Lee los params de verificación desde la URL actual (si los hay).
+ * @returns {{ code: string, eventSlug: string | null, type: string | null } | null}
+ */
 export function readCredentialParams() {
   if (typeof window === 'undefined') return null
-  const params = new URLSearchParams(window.location.search)
-  const code = params.get('credencial')
-  if (!code) return null
-  return { code, eventSlug: params.get('evento'), type: params.get('tipo') }
+  return credentialParamsFromUrl(window.location.href)
 }
 
 /**
  * Interpreta el texto crudo de un escaneo QR o pegado manual.
- * Acepta URL completa con query params o solo el código/token.
+ * Acepta la URL (aunque el lector cambie mayúsculas, comillas o el hash),
+ * o el token pelado. Una URL que no es una credencial no se manda a buscar.
  * @param {string} raw
  * @returns {{ code: string, eventSlug: string | null, type: string | null } | null}
  */
 export function parseCredentialScan(raw) {
-  const value = raw?.trim()
+  const value = cleanScanText(raw)
   if (!value) return null
 
-  try {
-    const url = value.includes('://') ? new URL(value) : new URL(value, 'https://plu-arg.com')
-    const code = url.searchParams.get('credencial')
-    if (code) {
-      return {
-        code,
-        eventSlug: url.searchParams.get('evento'),
-        type: url.searchParams.get('tipo'),
-      }
-    }
-  } catch {
-    // No era una URL — seguimos con el valor plano.
-  }
+  const fromUrl = credentialParamsFromUrl(value)
+  if (fromUrl) return fromUrl
+  if (value.includes('://')) return null
 
-  return { code: value, eventSlug: null, type: null }
+  const code = canonicalCredentialCode(value)
+  if (!code) return null
+  return { code, eventSlug: null, type: null }
 }

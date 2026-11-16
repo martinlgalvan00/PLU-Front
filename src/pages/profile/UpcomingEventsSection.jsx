@@ -7,6 +7,7 @@ import { isPitbullClassicEvent } from '../../lib/eventNavigation.js'
 import { resolveComboDeal, resolveEventPricing } from '../../lib/eventPricing.js'
 import { money } from '../../lib/format.js'
 import { isMembershipCurrent } from '../../services/membershipService.js'
+import { ACCOUNT_MEMBERSHIP_TAB } from '../../lib/navigation.js'
 import { isProfileComplete } from '../../lib/athleteProfile.js'
 import {
   documentPackGate,
@@ -16,12 +17,13 @@ import {
   findAthleteEventRegistration,
   isPendingRegistration,
 } from '../../lib/athleteEventStatus.js'
+import { resolveCredentialCode } from '../../lib/credentialQr.js'
 import { isRegistrationAdmitted } from '../../lib/status.js'
 import { getEventComboAvailability } from '../../services/comboOfferService.js'
 import FinancedDebtNotice from '../../components/ui/FinancedDebtNotice.jsx'
 
 function eventRequiresMembership(event) {
-  return Boolean(event?.requiresMembership)
+  return event?.requiresMembership === true || event?.requires_membership === true
 }
 
 export default function UpcomingEventsSection({
@@ -31,7 +33,9 @@ export default function UpcomingEventsSection({
   onNavigate,
   onSelectEvent,
   athlete,
+  latestMembership = null,
   onNavigateSection,
+  onViewCredential,
   checkoutAvailability = {},
   // Orden financiada abierta. Sólo interesa si otorgó una inscripción: una
   // afiliación financiada se avisa en su propia ficha, no debajo de un torneo.
@@ -72,7 +76,10 @@ export default function UpcomingEventsSection({
       setDocumentsWarningEvent(null)
       return
     }
-    const documents = documentPackGate(athlete, athlete.documents, { purpose: 'registration' })
+    const documents = documentPackGate(athlete, athlete.documents, {
+      purpose: 'registration',
+      requiresMembership: eventRequiresMembership(event),
+    })
     if (documents.blocked) {
       setDocumentsWarningEvent(event.slug)
       setIncompleteWarningEvent(null)
@@ -89,6 +96,20 @@ export default function UpcomingEventsSection({
     if (onNavigateSection) {
       onNavigateSection('account-personal-data')
     }
+  }
+
+  function handleViewCredential(event) {
+    if (typeof onViewCredential === 'function') {
+      onViewCredential(event)
+      return
+    }
+    onNavigateSection?.('account-qr')
+  }
+
+  function handleGoToDocuments() {
+    setIncompleteWarningEvent(null)
+    setDocumentsWarningEvent(null)
+    onNavigateSection?.(ACCOUNT_MEMBERSHIP_TAB)
   }
 
   // Labels legibles de los campos requeridos faltantes
@@ -110,9 +131,15 @@ export default function UpcomingEventsSection({
 
   function getMissingDocumentsLabel() {
     if (!athlete) return ''
-    const { missing } = documentPackGate(athlete, athlete.documents, { purpose: 'registration' })
+    const event = availableEvents.find((item) => item.slug === documentsWarningEvent)
+    const { missing } = documentPackGate(athlete, athlete.documents, {
+      purpose: 'registration',
+      requiresMembership: eventRequiresMembership(event),
+    })
     return missing.map((kind) => t(`account.documents.kinds.${kind}`) ?? ATHLETE_DOCUMENT_KIND_LABELS[kind]).join(', ')
   }
+
+  const credentialCode = resolveCredentialCode({ athlete, membership, latestMembership })
 
   return (
     <section id="account-events" className="account-section account-section--events">
@@ -152,7 +179,7 @@ export default function UpcomingEventsSection({
             <strong>{t('account.events.documentsIncompleteTitle')}</strong>
             <p>{t('account.events.documentsIncompleteBody', { fields: getMissingDocumentsLabel() })}</p>
           </div>
-          <button type="button" className="account-inline-alert__action" onClick={handleGoToProfile}>
+          <button type="button" className="account-inline-alert__action" onClick={handleGoToDocuments}>
             {t('account.events.documentsIncompleteAction')}
             <ArrowRight size={14} aria-hidden />
           </button>
@@ -171,6 +198,7 @@ export default function UpcomingEventsSection({
               event,
             })
             const registered = isRegistrationAdmitted(registration?.status)
+            const credentialReady = registered && Boolean(credentialCode)
             const paymentPending = isPendingRegistration(registration)
             const registrationState = registered
               ? 'registered'
@@ -244,23 +272,34 @@ export default function UpcomingEventsSection({
                       : EVENT_STATUS[event.status]?.label}
                 </span>
                 <div className="account-events-list__actions">
-                  <button
-                    type="button"
-                    className={`account-events-list__cta${registered ? ' is-registered' : ''}${paymentPending ? ' is-payment-pending' : ''}${!profileStatus.complete && !registered ? ' is-profile-incomplete' : ''}`}
-                    onClick={() => !registered && handleRegisterClick(event)}
-                    disabled={registered || !registrationCheckoutEnabled}
-                    aria-describedby={
-                      showingWarningForThis ? 'account-profile-incomplete-warning' : undefined
-                    }
-                  >
-                    {registered
-                      ? t('account.events.alreadyRegistered', { event: event.title })
-                      : !registrationCheckoutEnabled
-                        ? t('pages.members.ctaCheckoutSoon')
-                        : paymentPending
-                          ? t('account.events.resumePayment')
-                          : t('account.events.register')}
-                  </button>
+                  {credentialReady ? (
+                    <button
+                      type="button"
+                      className="account-events-list__cta is-registered"
+                      aria-label={t('account.events.viewCredentialOf', { event: event.title })}
+                      onClick={() => handleViewCredential(event)}
+                    >
+                      {t('account.events.viewCredential')}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className={`account-events-list__cta${registered ? ' is-registered' : ''}${paymentPending ? ' is-payment-pending' : ''}${!profileStatus.complete && !registered ? ' is-profile-incomplete' : ''}`}
+                      onClick={() => !registered && handleRegisterClick(event)}
+                      disabled={registered || !registrationCheckoutEnabled}
+                      aria-describedby={
+                        showingWarningForThis ? 'account-profile-incomplete-warning' : undefined
+                      }
+                    >
+                      {registered
+                        ? t('account.events.alreadyRegistered', { event: event.title })
+                        : !registrationCheckoutEnabled
+                          ? t('pages.members.ctaCheckoutSoon')
+                          : paymentPending
+                            ? t('account.events.resumePayment')
+                            : t('account.events.register')}
+                    </button>
+                  )}
                   {paymentPending && registrationCheckoutEnabled ? (
                     <button
                       type="button"

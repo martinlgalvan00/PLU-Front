@@ -656,7 +656,7 @@ describe('requisitos previos comunes a todos los medios de pago', () => {
       expect(response.status).toBe(422)
       expect(await response.json()).toMatchObject({
         code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
-        missing: ['dni_front', 'dni_back', 'medical_certificate'],
+        missing: ['dni_front', 'dni_back'],
       })
       expect(createMembershipOrder).not.toHaveBeenCalled()
     } finally {
@@ -749,7 +749,7 @@ describe('requisitos previos comunes a todos los medios de pago', () => {
       expect(response.status).toBe(422)
       expect(await response.json()).toMatchObject({
         code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
-        missing: ['dni_front', 'dni_back', 'medical_certificate'],
+        missing: ['dni_front', 'dni_back'],
       })
       expect(createRegistrationCombo).not.toHaveBeenCalled()
     } finally {
@@ -792,7 +792,51 @@ describe('requisitos previos comunes a todos los medios de pago', () => {
       expect(response.status).toBe(422)
       expect(await response.json()).toMatchObject({
         code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
-        missing: ['dni_front', 'dni_back', 'medical_certificate'],
+        missing: ['dni_front', 'dni_back'],
+      })
+      expect(createRegistration).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('exige el DNI a una cuenta anterior si el torneo pide afiliación', async () => {
+    const createRegistration = vi.fn()
+    const target = listen(
+      createApp({
+        env: { PAID_CHECKOUT_ENABLED: 'true' },
+        supabaseAdmin: authenticatedSupabase(),
+        registrationAccessRepository: {
+          findActiveGate: vi.fn().mockResolvedValue(null),
+          recordUse: vi.fn(),
+        },
+        platformSettingsRepository: { get: vi.fn().mockResolvedValue({}) },
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+          findDocumentPack: vi.fn().mockResolvedValue({
+            birthDate: '1995-01-01',
+            documentsGrandfathered: true,
+            documents: [],
+            unavailable: false,
+          }),
+          findCompetitionProfile: vi.fn().mockResolvedValue(COMPLETE_COMPETITION_PROFILE),
+          findEventPricing: vi.fn().mockResolvedValue({
+            slug: 'pitbull-classic-2026',
+            price: DEFAULT_PRICE,
+            manual_price: MANUAL_PRICE,
+            requires_membership: true,
+          }),
+          discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
+          createRegistration,
+        },
+      }),
+    )
+    try {
+      const response = await post(target, '/api/athletes/me/registrations', registrationBody('mercado_pago'))
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({
+        code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+        missing: ['dni_front', 'dni_back'],
       })
       expect(createRegistration).not.toHaveBeenCalled()
     } finally {

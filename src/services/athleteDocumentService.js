@@ -5,16 +5,47 @@ import {
   ATHLETE_DOCUMENT_BUCKET,
   ATHLETE_DOCUMENT_MIME_TYPES,
   ATHLETE_DOCUMENT_PDF_MAX_BYTES,
+  ATHLETE_DOCUMENT_PDF_TOO_LARGE_MESSAGE,
   ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES,
 } from '../lib/athleteDocuments.js'
 
 const ALLOWED_MIME_TYPES = new Set(ATHLETE_DOCUMENT_MIME_TYPES)
+
+const EXTENSION_CONTENT_TYPES = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  pdf: 'application/pdf',
+}
 
 function sanitizeFileName(name) {
   return String(name ?? 'documento')
     .trim()
     .replace(/[^\w.\-()+ ]/g, '_')
     .slice(0, 120)
+}
+
+/**
+ * Algunos teléfonos entregan la foto con `type` vacío. El nombre alcanza
+ * para saber si es JPG, PNG, WEBP o PDF. HEIC sigue afuera.
+ */
+export function athleteDocumentContentType(file) {
+  const type = String(file?.type ?? '').toLowerCase()
+  if (ALLOWED_MIME_TYPES.has(type)) return type
+  const extension = String(file?.name ?? '')
+    .split('.')
+    .pop()
+    ?.toLowerCase()
+  return EXTENSION_CONTENT_TYPES[extension] ?? ''
+}
+
+function fileWithContentType(file, contentType) {
+  if (!contentType || file.type === contentType) return file
+  return new File([file], file.name || 'documento', {
+    type: contentType,
+    lastModified: file.lastModified,
+  })
 }
 
 export function validateAthleteDocumentFile(file) {
@@ -27,16 +58,17 @@ export function validateAthleteDocumentFile(file) {
   if (looksHeic) {
     return { error: 'Mandalo en JPG o sacá una captura. El iPhone HEIC no entra.' }
   }
-  if (!ALLOWED_MIME_TYPES.has(file.type)) {
+  const contentType = athleteDocumentContentType(file)
+  if (!contentType) {
     return { error: 'Formato no admitido. Usá JPG, PNG, WEBP o PDF.' }
   }
-  if (file.type === 'application/pdf' && file.size > ATHLETE_DOCUMENT_PDF_MAX_BYTES) {
-    return { error: 'Sacá una foto del certificado; el PDF es demasiado pesado.' }
+  if (contentType === 'application/pdf' && file.size > ATHLETE_DOCUMENT_PDF_MAX_BYTES) {
+    return { error: ATHLETE_DOCUMENT_PDF_TOO_LARGE_MESSAGE }
   }
   if (file.size > ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES) {
     return { error: 'El archivo supera el límite de 400 KB.' }
   }
-  return { ok: true }
+  return { ok: true, contentType }
 }
 
 export async function uploadAthleteDocument(kind, file) {
@@ -50,7 +82,9 @@ export async function uploadAthleteDocument(kind, file) {
     })
   }
 
-  const prepared = await compressAthleteDocumentFile(file)
+  const prepared = await compressAthleteDocumentFile(
+    fileWithContentType(file, validation.contentType),
+  )
   if (prepared.size > ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES) {
     throw new ApiError('El archivo sigue pesando demasiado después de comprimirlo.', { status: 400 })
   }
@@ -62,6 +96,10 @@ export async function uploadAthleteDocument(kind, file) {
     contentType: prepared.type,
     size: prepared.size,
   })
+  if (!upload?.path || !upload?.token) {
+    throw new ApiError('No se pudo preparar la carga del documento.', { status: 502 })
+  }
+
   const { error: uploadError } = await supabase.storage
     .from(ATHLETE_DOCUMENT_BUCKET)
     .uploadToSignedUrl(upload.path, upload.token, prepared, {
@@ -84,12 +122,21 @@ export async function uploadAthleteDocument(kind, file) {
   return { document, storagePath: upload.path }
 }
 
-export function athleteDocumentUrl(kind) {
-  return `/api/athletes/me/documents/${encodeURIComponent(kind)}`
+function withDocumentVersion(path, version) {
+  const stamp = String(version ?? '').trim()
+  if (!stamp) return path
+  return `${path}?v=${encodeURIComponent(stamp)}`
 }
 
-export function adminAthleteDocumentUrl(athleteId, kind) {
-  return `/api/athletes/admin/${encodeURIComponent(athleteId)}/documents/${encodeURIComponent(kind)}`
+export function athleteDocumentUrl(kind, version = null) {
+  return withDocumentVersion(`/api/athletes/me/documents/${encodeURIComponent(kind)}`, version)
+}
+
+export function adminAthleteDocumentUrl(athleteId, kind, version = null) {
+  return withDocumentVersion(
+    `/api/athletes/admin/${encodeURIComponent(athleteId)}/documents/${encodeURIComponent(kind)}`,
+    version,
+  )
 }
 
 export async function listAthleteDocuments() {

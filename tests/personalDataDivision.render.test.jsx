@@ -66,6 +66,29 @@ describe('PersonalDataSection — división', () => {
     expect(screen.getByLabelText(/categoría de competencia/i)).toBeTruthy()
   })
 
+  it('los documentos de afiliación se cargan en Afiliación, no en esta ficha', () => {
+    renderSection()
+    expect(screen.queryByRole('heading', { name: 'Documentos de afiliación' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Tu legajo' })).toBeNull()
+  })
+
+  it('quien ya está afiliado carga el DNI en el perfil', () => {
+    render(
+      <I18nProvider>
+        <PersonalDataSection
+          athlete={{ ...athlete, documents: [] }}
+          onUpdateProfile={vi.fn()}
+          onUpdatePhoto={vi.fn()}
+          onRemovePhoto={vi.fn()}
+          onUploadDocument={vi.fn()}
+          showMemberDocuments
+        />
+      </I18nProvider>,
+    )
+    expect(screen.getByRole('heading', { name: 'Tu legajo' })).toBeTruthy()
+    expect(screen.getAllByLabelText('Subir').length).toBeGreaterThan(0)
+  })
+
   it('explica que la división sale de la edad y que Open se elige al inscribirse', () => {
     renderSection()
     expect(screen.getByText(/tu división por edad es junior/i)).toBeTruthy()

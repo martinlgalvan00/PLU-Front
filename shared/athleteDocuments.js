@@ -10,7 +10,10 @@ export const ATHLETE_DOCUMENT_KINDS = [
   'minor_authorization',
 ]
 
-export const REQUIRED_ATHLETE_DOCUMENT_KINDS = ['dni_front', 'dni_back', 'medical_certificate']
+export const REQUIRED_ATHLETE_DOCUMENT_KINDS = ['dni_front', 'dni_back']
+
+/** Se puede subir, pero no bloquea afiliación, combo ni inscripción. */
+export const OPTIONAL_ATHLETE_DOCUMENT_KINDS = ['medical_certificate']
 
 export const ATHLETE_DOCUMENT_KIND_LABELS = {
   dni_front: 'DNI frente',
@@ -22,6 +25,8 @@ export const ATHLETE_DOCUMENT_KIND_LABELS = {
 export const ATHLETE_DOCUMENT_BUCKET = 'athlete-documents'
 export const ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES = 400 * 1024
 export const ATHLETE_DOCUMENT_PDF_MAX_BYTES = 200 * 1024
+export const ATHLETE_DOCUMENT_PDF_TOO_LARGE_MESSAGE =
+  'El PDF es demasiado pesado. Sacá una foto del documento.'
 
 export const ATHLETE_DOCUMENT_MIME_TYPES = [
   'image/jpeg',
@@ -85,22 +90,31 @@ export function isDocumentPackComplete(athlete, documents = athlete?.documents, 
 }
 
 /**
- * Inscripción a evento: las cuentas previas al legajo no se bloquean.
- * Pagar afiliación / combo siempre exige el pack, grandfathered o no.
+ * Pagar afiliación o combo siempre exige DNI frente y dorso (y la
+ * autorización del tutor si es menor). El certificado médico no entra.
+ * Una cuenta anterior puede inscribirse a un torneo abierto sin el DNI.
+ * Si el torneo exige afiliación, el DNI se pide igual.
  */
-export function needsDocumentGateForRegistration(athlete) {
+export function needsDocumentGateForRegistration(athlete, { requiresMembership = false } = {}) {
   if (!athlete) return true
+  if (requiresMembership === true) return true
   return athlete.documentsGrandfathered !== true && athlete.documents_grandfathered !== true
 }
 
-export function needsDocumentGate({ athlete, purpose }) {
+export function needsDocumentGate({ athlete, purpose, requiresMembership = false }) {
   if (purpose === 'membership' || purpose === 'combo') return true
-  if (purpose === 'registration') return needsDocumentGateForRegistration(athlete)
+  if (purpose === 'registration') {
+    return needsDocumentGateForRegistration(athlete, { requiresMembership })
+  }
   return true
 }
 
-export function documentPackGate(athlete, documents = athlete?.documents, { purpose, now } = {}) {
-  if (!needsDocumentGate({ athlete, purpose })) {
+export function documentPackGate(
+  athlete,
+  documents = athlete?.documents,
+  { purpose, now, requiresMembership = false } = {},
+) {
+  if (!needsDocumentGate({ athlete, purpose, requiresMembership })) {
     return { blocked: false, complete: true, missing: [], required: requiredDocumentKinds(athlete, { now }) }
   }
   const pack = isDocumentPackComplete(athlete, documents, { now })
@@ -109,7 +123,33 @@ export function documentPackGate(athlete, documents = athlete?.documents, { purp
     complete: pack.complete,
     missing: pack.missing,
     required: pack.required,
+    unavailable: pack.unavailable === true,
   }
+}
+
+/**
+ * El botón de pagar sigue el legajo que la cuenta ya tiene. Un rechazo
+ * `ATHLETE_DOCUMENTS_INCOMPLETE` solo mantiene el cargador mientras esa lista
+ * todavía no llegó (`documents == null`). Si la lista está y está completa,
+ * el rechazo anterior no deja el botón apagado.
+ */
+export function documentsBlockCheckout({ gate, documents, rejectionPending = false } = {}) {
+  if (gate?.blocked) return true
+  return rejectionPending === true && !Array.isArray(documents)
+}
+
+/**
+ * Qué archivo obligatorio falta, para no decir "DNI" cuando el frente y el
+ * dorso ya están y lo que traba es la autorización del tutor.
+ * `dni` también cubre un faltante vacío o desconocido: es el caso general.
+ */
+export function documentPackFocus(missing = []) {
+  const kinds = new Set(missing)
+  const dni = kinds.has('dni_front') || kinds.has('dni_back')
+  const guardian = kinds.has('minor_authorization')
+  if (dni && guardian) return 'dni_and_guardian'
+  if (guardian) return 'guardian'
+  return 'dni'
 }
 
 export function isSafeAthleteDocumentPath(path, { athleteId = null, kind = null } = {}) {

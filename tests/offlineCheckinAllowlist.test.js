@@ -33,6 +33,9 @@ describe('allowlist offline de inscripciones', () => {
     })
 
     expect((await db.findInAllowlist('pitbull', PERSON))?.entry.registrationId).toBe('r1')
+    expect((await db.findInAllowlist('pitbull', PERSON.toUpperCase()))?.entry.registrationId).toBe(
+      'r1',
+    )
     expect((await db.findInAllowlist('pitbull', 'm-viejo'))?.entry.registrationId).toBe('r1')
     expect((await db.findInAllowlist('pitbull', 'plu-0001'))?.entry.registrationId).toBe('r1')
   })
@@ -137,6 +140,24 @@ describe('allowlist offline de inscripciones', () => {
     expect(await db.listDoorSyncStatus()).toEqual([
       expect.objectContaining({ localId: entry.localId, label: 'TCK-1', status: 'synced' }),
     ])
+  })
+
+  it('el ingreso de ayer no deja usada la credencial del competidor', async () => {
+    await db.downloadAllowlist('pitbull-dias', {
+      registrations: [
+        {
+          registrationId: 'r-dia',
+          credentialToken: PERSON,
+          checkedInAt: '2026-08-15T15:00:00.000Z',
+          accessWindowKey: 'event_day:2026-08-15',
+          status: 'confirmada',
+        },
+      ],
+    })
+
+    const found = await db.findInAllowlist('pitbull-dias', PERSON)
+    expect(found?.entry.checkedInAt).toBeNull()
+    expect(found?.entry.checkedInLocally).toBeFalsy()
   })
 
   it('marcar un ingreso no reescribe la lista entera', async () => {

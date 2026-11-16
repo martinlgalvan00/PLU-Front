@@ -1,3 +1,5 @@
+import { ATHLETE_DOCUMENT_PDF_TOO_LARGE_MESSAGE } from '../../shared/athleteDocuments.js'
+
 /** Lado largo máximo del retrato. 512 cubre avatares 2x (~84–128 CSS px) sin sobrar. */
 export const ATHLETE_PHOTO_MAX_EDGE = 512
 export const ATHLETE_PHOTO_WEBP_QUALITY = 0.65
@@ -154,9 +156,7 @@ export async function compressShopProductImage(file) {
 export async function compressAthleteDocumentFile(file) {
   if (file?.type === 'application/pdf') {
     if (file.size > ATHLETE_DOCUMENT_PDF_MAX_BYTES) {
-      const error = new Error(
-        'Sacá una foto del certificado; el PDF es demasiado pesado.',
-      )
+      const error = new Error(ATHLETE_DOCUMENT_PDF_TOO_LARGE_MESSAGE)
       error.code = 'DOCUMENT_PDF_TOO_LARGE'
       throw error
     }

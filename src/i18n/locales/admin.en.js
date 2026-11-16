@@ -6636,7 +6636,8 @@ export default {
     documents: {
       title: 'Membership documents',
       empty: 'No file uploaded yet.',
-      grandfathered: 'Legacy account: can still register without the pack, but renewal requires it.',
+      grandfathered: 'Legacy account: can register for an open meet without the ID. Renewal and a meet that requires membership ask for it.',
+      optional: 'Optional',
       complete: 'File complete',
       pending: 'Files missing',
       open: 'Open',

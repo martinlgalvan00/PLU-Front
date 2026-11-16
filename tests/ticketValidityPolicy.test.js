@@ -3,6 +3,9 @@ import {
   TICKET_ACCESS_POLICY_MODE,
   TICKET_ACCESS_USAGE_MODE,
   addCalendarDay,
+  competitorAccessWindowKey,
+  competitorCheckInCountsToday,
+  pickCompetitorCheckInToday,
   resolveTicketAccessUsageMode,
   summarizeTicketQrValidity,
   ticketDoorAdmit,
@@ -14,6 +17,40 @@ const EVENT_DAYS = [
   { dayIndex: 0, label: 'Día 1', date: '2026-08-15' },
   { dayIndex: 1, label: 'Día 2', date: '2026-08-16' },
 ]
+
+describe('acceso diario del competidor', () => {
+  const saturdayNight = new Date('2026-08-16T02:30:00.000Z')
+  const sundayMorning = new Date('2026-08-16T03:30:00.000Z')
+
+  it('cambia de clave a la medianoche de Argentina, no a la de UTC', () => {
+    expect(competitorAccessWindowKey(saturdayNight)).toBe('event_day:2026-08-15')
+    expect(competitorAccessWindowKey(sundayMorning)).toBe('event_day:2026-08-16')
+  })
+
+  it('el ingreso de ayer no cuenta como el de hoy', () => {
+    const checkIns = [
+      { access_window_key: 'event_day:2026-08-15', scanned_at: '2026-08-15T15:00:00.000Z' },
+      { access_window_key: 'event_day:2026-08-16', scanned_at: '2026-08-16T14:00:00.000Z' },
+    ]
+
+    expect(pickCompetitorCheckInToday(checkIns, sundayMorning)?.scanned_at).toBe(
+      '2026-08-16T14:00:00.000Z',
+    )
+    expect(pickCompetitorCheckInToday(checkIns.slice(0, 1), sundayMorning)).toBeNull()
+  })
+
+  it('un escaneo sin clave cuenta solo si cayó hoy en Argentina', () => {
+    expect(
+      competitorCheckInCountsToday('2026-08-16T02:30:00.000Z', null, sundayMorning),
+    ).toBe(false)
+    expect(
+      competitorCheckInCountsToday('2026-08-16T03:30:00.000Z', null, sundayMorning),
+    ).toBe(true)
+    expect(
+      competitorCheckInCountsToday('2026-08-15T15:00:00.000Z', 'event_day:2026-08-16', sundayMorning),
+    ).toBe(true)
+  })
+})
 
 describe('ticketValidityPolicy', () => {
   it('suma un día de calendario sin pasar por la zona local', () => {

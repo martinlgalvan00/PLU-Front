@@ -9,6 +9,7 @@ import {
   resolveRegistrationScan,
 } from '../src/services/checkinScanService.js'
 import { ApiError } from '../src/lib/api.js'
+import { parseCredentialScan } from '../src/lib/credentialQr.js'
 
 vi.mock('../src/services/athleteApi.js', () => ({
   getMembershipByCodeOrToken: vi.fn(),
@@ -73,6 +74,35 @@ describe('estado de una credencial escaneada', () => {
     expect(result.canCheckIn).toBe(true)
     expect(result.row.memberCode).toBe('PLU-ARG-2026-014')
   })
+
+  it('no habilita el ingreso si el meet pide afiliación y no está vigente', async () => {
+    getMembershipByCodeOrToken.mockResolvedValue({
+      ...credential(),
+      membership: {
+        id: 'mem-1',
+        status: 'vencida',
+        memberCode: 'PLU-ARG-2026-014',
+        expirationDate: '2020-01-01',
+      },
+      registration: {
+        id: 'reg-1',
+        athleteId: 'ath-1',
+        status: 'confirmada',
+        requiresMembership: true,
+        checkedInAt: null,
+      },
+    })
+
+    const result = await resolveRegistrationScan(
+      { code: 'PLU-ARG-2026-014', eventSlug: 'pitbull-classic-2026' },
+      { defaultEventSlug: 'pitbull-classic-2026' },
+    )
+
+    expect(result.outcome).toBe('not_ready')
+    expect(result.canCheckIn).toBe(false)
+    expect(result.status).toBe('needs_membership')
+    expect(result.row.status).toBe('needs_membership')
+  })
 })
 
 describe('proyección según quién escanea', () => {
@@ -113,6 +143,18 @@ describe('proyección según quién escanea', () => {
       'pitbull-classic-2026',
     )
     expect(result.row.document).toBe('30111222')
+  })
+
+  it('un QR leído como URL se busca por el token, en el evento de la puerta', async () => {
+    const token = '11111111-1111-4111-8111-111111111111'
+    getMembershipByCodeOrToken.mockResolvedValue(credential())
+
+    const parsed = parseCredentialScan(
+      `https://plu.test/?CREDENCIAL=${token.toUpperCase()}&evento=meet-viejo`,
+    )
+    await resolveRegistrationScan(parsed, { defaultEventSlug: 'pitbull-classic-2026' })
+
+    expect(getMembershipByCodeOrToken).toHaveBeenCalledWith(token, 'pitbull-classic-2026')
   })
 
   it('sin sesión de staff usa la proyección pública, sin PII', async () => {

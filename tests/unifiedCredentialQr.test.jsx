@@ -83,6 +83,48 @@ describe('QR único por atleta', () => {
     expect(scannedUrl.searchParams.has('evento')).toBe(false)
   })
 
+  it('destaca el torneo que se pidió ver y reusa el mismo QR', async () => {
+    render(
+      <I18nProvider>
+        <QrCredentialSection
+          athlete={{
+            id: 'athlete-1',
+            fullName: 'Ana Torres',
+            credentialToken: 'credential-token-1',
+          }}
+          membership={null}
+          latestMembership={{
+            status: 'vencida',
+            memberCode: 'PLU-1',
+            expirationDate: '2020-01-01',
+          }}
+          registrations={[
+            {
+              id: 'registration-a',
+              status: 'confirmada',
+              event: 'Meet A',
+              eventSlug: 'meet-a',
+              requiresMembership: false,
+            },
+            {
+              id: 'registration-b',
+              status: 'confirmada',
+              event: 'Meet B',
+              eventSlug: 'meet-b',
+              requiresMembership: true,
+            },
+          ]}
+          focusEventSlug="meet-b"
+          onNavigateSection={vi.fn()}
+        />
+      </I18nProvider>,
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Meet B' })).toBeTruthy()
+    expect(screen.getByTestId('credential-status').textContent).toBe('Cupo reservado')
+    await waitFor(() => expect(generateCredentialQr).toHaveBeenCalledTimes(1))
+  })
+
   it('con financiamiento pendiente, la credencial suma el cartel del plazo', async () => {
     // La credencial ya sale habilitada (afiliación 'activa', inscripción
     // 'confirmada' — 20260909100000): el cartel es lo único que dice que ese

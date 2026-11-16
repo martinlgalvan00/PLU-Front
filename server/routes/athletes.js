@@ -109,6 +109,11 @@ import {
   assertAthleteOwnsPath,
   createSupabaseAthleteRepository,
 } from '../modules/athletes/supabaseAthleteRepository.js'
+import {
+  buildMembershipCertificate,
+  MEMBERSHIP_CERTIFICATE_NOT_CURRENT,
+  membershipCertificateNow,
+} from '../modules/athletes/membershipCertificate.js'
 import { assertAthleteOrderInScope } from '../modules/events/orderEventScope.js'
 import {
   PROFILE_NOTICE_BULK_MAX,
@@ -120,6 +125,8 @@ import {
 import { athleteProfileFromRow } from '../../shared/athleteProfile.js'
 import {
   ATHLETE_DOCUMENT_KIND_LABELS,
+  ATHLETE_DOCUMENT_PDF_MAX_BYTES,
+  ATHLETE_DOCUMENT_PDF_TOO_LARGE_MESSAGE,
   ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES,
   documentPackGate,
   isSafeAthleteDocumentPath,
@@ -774,6 +781,13 @@ function athleteExistsError(availability) {
   return new HttpError(409, message, { code: 'ATHLETE_EXISTS', fields })
 }
 
+/** La UI manda `?v=` con la fecha de carga. Esa URL no cambia hasta el reemplazo. */
+function athleteDocumentCacheControl(req) {
+  return String(req.query?.v ?? '').trim()
+    ? 'private, max-age=86400, immutable'
+    : 'private, max-age=300, stale-while-revalidate=60'
+}
+
 export function createAthleteRoutes({
   getPrisma,
   getSupabaseAdmin,
@@ -1187,7 +1201,7 @@ export function createAthleteRoutes({
    * terminan en un pago, y mandar un comprobante a una dirección con un typo
    * deja al atleta sin constancia y sin forma de reclamar.
    */
-  async function assertAthleteDocumentsComplete(athleteId, purpose) {
+  async function assertAthleteDocumentsComplete(athleteId, purpose, { requiresMembership = false } = {}) {
     if (typeof repo().findDocumentPack !== 'function') return
     const pack = await repo().findDocumentPack(athleteId)
     if (pack?.unavailable) return
@@ -1195,7 +1209,7 @@ export function createAthleteRoutes({
       birthDate: pack.birthDate,
       documentsGrandfathered: pack.documentsGrandfathered,
     }
-    const gate = documentPackGate(athlete, pack.documents, { purpose })
+    const gate = documentPackGate(athlete, pack.documents, { purpose, requiresMembership })
     if (!gate.blocked) return
     const labels = gate.missing
       .map((kind) => ATHLETE_DOCUMENT_KIND_LABELS[kind] ?? kind)
@@ -2286,11 +2300,13 @@ export function createAthleteRoutes({
         const registrationChannel = paymentChannelOf(req.validatedBody.paymentMethod)
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
-        await assertAthleteDocumentsComplete(auth.athleteId, 'registration')
         const competitionProfile = await repo().findCompetitionProfile(auth.athleteId)
         await assertCompetitionProfileComplete(competitionProfile)
         const event = await repo().findEventPricing(eventSlug)
         if (!event) throw new HttpError(404, 'Evento no encontrado.')
+        await assertAthleteDocumentsComplete(auth.athleteId, 'registration', {
+          requiresMembership: event.requires_membership === true,
+        })
         assertRosterOpen(event)
         assertRegistrationNotAnnounceOnly(event)
         const selection = assertCompetitionSelection(req.validatedBody, competitionProfile, event)
@@ -2944,6 +2960,12 @@ export function createAthleteRoutes({
     async (req, res, next) => {
       try {
         const auth = await athlete(req)
+        if (
+          req.validatedBody.contentType === 'application/pdf' &&
+          req.validatedBody.size > ATHLETE_DOCUMENT_PDF_MAX_BYTES
+        ) {
+          throw new HttpError(400, ATHLETE_DOCUMENT_PDF_TOO_LARGE_MESSAGE)
+        }
         res.json(await repo().createDocumentUpload(auth.athleteId, req.validatedBody))
       } catch (error) {
         next(error)
@@ -2957,6 +2979,12 @@ export function createAthleteRoutes({
     async (req, res, next) => {
       try {
         const auth = await athlete(req)
+        if (
+          req.validatedBody.contentType === 'application/pdf' &&
+          req.validatedBody.sizeBytes > ATHLETE_DOCUMENT_PDF_MAX_BYTES
+        ) {
+          throw new HttpError(400, ATHLETE_DOCUMENT_PDF_TOO_LARGE_MESSAGE)
+        }
         assertAthleteOwnsDocumentPath(
           auth.athleteId,
           req.validatedBody.kind,
@@ -2975,6 +3003,39 @@ export function createAthleteRoutes({
       }
     },
   )
+  router.get('/me/membership-certificate', athleteWriteLimiter, async (req, res, next) => {
+    try {
+      const auth = await athlete(req)
+      const source = await repo().findMembershipCertificateSource(auth.athleteId)
+      if (!source) throw new HttpError(404, 'Atleta no encontrado.')
+      const issuedAt = new Date()
+      const built = buildMembershipCertificate({
+        athlete: source.athlete,
+        memberships: source.memberships,
+        appUrl,
+        now: membershipCertificateNow(todayInBuenosAires(), issuedAt),
+        issuedAt,
+      })
+      if (!built.ok) {
+        throw new HttpError(
+          409,
+          built.code === MEMBERSHIP_CERTIFICATE_NOT_CURRENT
+            ? 'La constancia se emite solo con una afiliación vigente.'
+            : 'No se puede emitir la constancia.',
+          { code: built.code },
+        )
+      }
+      await repo().recordMembershipCertificateIssued({
+        athleteId: auth.athleteId,
+        membershipId: built.membershipId,
+        memberCode: built.certificate.memberCode,
+      })
+      res.set('Cache-Control', 'private, no-store')
+      res.json(built.certificate)
+    } catch (error) {
+      next(error)
+    }
+  })
   router.get('/me/documents', athleteWriteLimiter, async (req, res, next) => {
     try {
       const auth = await athlete(req)
@@ -3001,7 +3062,7 @@ export function createAthleteRoutes({
         client: supabase,
         path,
         bucket: 'athlete-documents',
-        cacheControl: 'private, max-age=300, stale-while-revalidate=60',
+        cacheControl: athleteDocumentCacheControl(req),
       })
     } catch (error) {
       next(error)
@@ -4816,7 +4877,7 @@ export function createAthleteRoutes({
           client: supabase,
           path,
           bucket: 'athlete-documents',
-          cacheControl: 'private, max-age=300, stale-while-revalidate=60',
+          cacheControl: athleteDocumentCacheControl(req),
         })
       } catch (error) {
         next(error)

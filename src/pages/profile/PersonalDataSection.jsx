@@ -22,10 +22,10 @@ import GymNameConfirmationDialog from '../../components/ui/GymNameConfirmationDi
 import { formatIdentityDocumentId, formatShortDate, initials } from '../../lib/format.js'
 import { isNewGymName } from '../../lib/gymNormalize.js'
 import { isProfileComplete, PROFILE_FIELD_GROUPS } from '../../lib/athleteProfile.js'
-import DocumentPackSection from './DocumentPackSection.jsx'
 import { getFormOptions } from '../../lib/formOptions.js'
 import { useAgeDivisionOptions } from '../../hooks/useAgeDivisionOptions.js'
 import { fetchGyms } from '../../services/athleteApi.js'
+import DocumentPackSection from './DocumentPackSection.jsx'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const RING_RADIUS = 48
@@ -83,7 +83,8 @@ export default function PersonalDataSection({
   onUpdateProfile,
   onUpdatePhoto,
   onRemovePhoto,
-  onUploadDocument,
+  onUploadDocument = null,
+  showMemberDocuments = false,
 }) {
   const { t } = useI18n()
   const [form, setForm] = useState({
@@ -433,6 +434,14 @@ export default function PersonalDataSection({
         </div>
       </header>
 
+      {showMemberDocuments ? (
+        <DocumentPackSection
+          athlete={athlete}
+          onUploadDocument={onUploadDocument}
+          variant="member"
+        />
+      ) : null}
+
       {!profileStatus.complete ? (
         <div className="account-profile-checklist" role="status">
           <p className="account-profile-checklist__lead">
@@ -457,8 +466,6 @@ export default function PersonalDataSection({
       <p className="account-section__lead account-section__lead--compact">
         {t('account.personalData.lead')}
       </p>
-
-      <DocumentPackSection athlete={athlete} onUploadDocument={onUploadDocument} />
 
       {/* Identidad: foto + datos oficiales readonly en una sola franja */}
       <div className="account-identity">

@@ -23,7 +23,11 @@ import { money } from '../../lib/format.js'
 import { actorLabel, formatStateDateTime } from '../../lib/stateProvenance.js'
 import { canApproveManualOrder } from '../../services/paymentValidationService.js'
 import { isProfileNoticeComplete, getMissingProfileNoticeFields } from '../../lib/athleteProfile.js'
-import { isDocumentPackComplete, requiredDocumentKinds } from '../../lib/athleteDocuments.js'
+import {
+  isDocumentPackComplete,
+  OPTIONAL_ATHLETE_DOCUMENT_KINDS,
+  requiredDocumentKinds,
+} from '../../lib/athleteDocuments.js'
 import { adminAthleteDocumentUrl } from '../../services/athleteDocumentService.js'
 import { PROFILE_NOTICE_MESSAGE_MAX } from '../../../shared/profileNotice.js'
 import {
@@ -517,6 +521,29 @@ export default function AthleteDetailSection({
               const pack = isDocumentPackComplete(athlete, athlete.documents)
               const kinds = requiredDocumentKinds(athlete)
               const uploaded = new Map((athlete.documents ?? []).map((row) => [row.kind, row]))
+              const renderKind = (kind) => {
+                const row = uploaded.get(kind)
+                return (
+                  <li key={kind}>
+                    <span>{t(`admin.athleteDetail.documents.kinds.${kind}`)}</span>
+                    {row ? (
+                      <a
+                        href={adminAthleteDocumentUrl(
+                          athlete.id,
+                          kind,
+                          row.uploadedAt ?? row.uploaded_at,
+                        )}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {t('admin.athleteDetail.documents.open')}
+                      </a>
+                    ) : (
+                      <span>—</span>
+                    )}
+                  </li>
+                )
+              }
               return (
                 <>
                   <p className="athlete-detail__notice-status">
@@ -530,28 +557,14 @@ export default function AthleteDetailSection({
                   {kinds.length === 0 ? (
                     <p>{t('admin.athleteDetail.documents.empty')}</p>
                   ) : (
-                    <ul className="athlete-detail__documents-list">
-                      {kinds.map((kind) => {
-                        const row = uploaded.get(kind)
-                        return (
-                          <li key={kind}>
-                            <span>{t(`admin.athleteDetail.documents.kinds.${kind}`)}</span>
-                            {row ? (
-                              <a
-                                href={adminAthleteDocumentUrl(athlete.id, kind)}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                {t('admin.athleteDetail.documents.open')}
-                              </a>
-                            ) : (
-                              <span>—</span>
-                            )}
-                          </li>
-                        )
-                      })}
-                    </ul>
+                    <ul className="athlete-detail__documents-list">{kinds.map(renderKind)}</ul>
                   )}
+                  <p className="athlete-detail__notice-status">
+                    {t('admin.athleteDetail.documents.optional')}
+                  </p>
+                  <ul className="athlete-detail__documents-list">
+                    {OPTIONAL_ATHLETE_DOCUMENT_KINDS.map(renderKind)}
+                  </ul>
                 </>
               )
             })()}

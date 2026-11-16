@@ -102,7 +102,7 @@ import {
 } from '../services/athleteApi.js'
 import { uploadAthletePhoto } from '../services/athletePhotoService.js'
 import { uploadAthleteDocument } from '../services/athleteDocumentService.js'
-import { documentPackGate } from '../lib/athleteDocuments.js'
+import { ATHLETE_DOCUMENT_KIND_LABELS, documentPackGate } from '../lib/athleteDocuments.js'
 import { membershipFileStatus } from '../../shared/membershipFile.js'
 import {
   invalidateEventLiveData,
@@ -261,6 +261,19 @@ const CATALOG_NOTICE_DEBOUNCE_MS = 400
 // upsert toca `events`). La respuesta del guardado ya trae la lista completa:
 // mientras dura y unos segundos después, el aviso no vuelve a pedirla.
 const LOCAL_EVENTS_WRITE_ECHO_MS = 3_000
+
+function missingDocumentsMessage(missing, purpose) {
+  const labels = missing.map((kind) => ATHLETE_DOCUMENT_KIND_LABELS[kind] ?? kind)
+  const list =
+    labels.length <= 1
+      ? (labels[0] ?? 'el DNI frente y dorso')
+      : labels.length === 2
+        ? `${labels[0]} y ${labels[1]}`
+        : `${labels.slice(0, -1).join(', ')} y ${labels.at(-1)}`
+  if (purpose === 'membership') return `Subí ${list} antes de pagar la afiliación.`
+  if (purpose === 'combo') return `Subí ${list} antes de pagar.`
+  return `Subí ${list} antes de inscribirte.`
+}
 
 /**
  * Precio de inscripción de UN evento. `admin.pricing.write` está reservado a Super Admin
@@ -1443,7 +1456,7 @@ export function useAppData() {
       const documentsGate = documentPackGate(athlete, athlete.documents, { purpose: 'membership' })
       if (documentsGate.blocked) {
         return {
-          error: 'Subí el DNI y el certificado médico antes de pagar la afiliación.',
+          error: missingDocumentsMessage(documentsGate.missing, 'membership'),
           code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
           missing: documentsGate.missing,
         }
@@ -1603,12 +1616,14 @@ export function useAppData() {
         }
       }
       const documentsPurpose = options.purchaseType === 'combo' ? 'combo' : 'registration'
+      const meet = options.event ?? selectedEvent
       const documentsGate = documentPackGate(athlete, athlete.documents, {
         purpose: documentsPurpose,
+        requiresMembership: meet?.requiresMembership === true || meet?.requires_membership === true,
       })
       if (documentsGate.blocked) {
         return {
-          error: 'Subí el DNI y el certificado médico antes de inscribirte.',
+          error: missingDocumentsMessage(documentsGate.missing, documentsPurpose),
           code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
           missing: documentsGate.missing,
         }
@@ -3648,7 +3663,7 @@ export function useAppData() {
       return { athlete }
     } catch (error) {
       if (error instanceof ApiError) return { error: error.message, code: error.body?.code ?? null }
-      throw error
+      return { error: 'No se pudo guardar la ficha. Intentá de nuevo.' }
     }
   }, [])
 
@@ -3682,21 +3697,22 @@ export function useAppData() {
 
   const uploadAthleteDocumentAction = useCallback(async (athleteId, kind, file) => {
     try {
-      await uploadAthleteDocument(kind, file)
+      const uploaded = await uploadAthleteDocument(kind, file)
+      const row = uploaded?.document ?? {}
       setAthletes((current) =>
         current.map((item) => {
           if (item.id !== athleteId) return item
-          const documents = (item.documents ?? []).filter((row) => row.kind !== kind)
+          const documents = (item.documents ?? []).filter((entry) => entry.kind !== kind)
           return {
             ...item,
             documents: [
               ...documents,
               {
-                kind,
-                contentType: file.type,
-                sizeBytes: file.size,
-                originalName: file.name,
-                uploadedAt: new Date().toISOString(),
+                kind: row.kind ?? kind,
+                contentType: row.content_type ?? row.contentType ?? file.type,
+                sizeBytes: row.size_bytes ?? row.sizeBytes ?? file.size,
+                originalName: row.original_name ?? row.originalName ?? file.name,
+                uploadedAt: row.uploaded_at ?? row.uploadedAt ?? new Date().toISOString(),
               },
             ],
           }
@@ -3705,7 +3721,7 @@ export function useAppData() {
       return { ok: true }
     } catch (error) {
       if (error instanceof ApiError) return { error: error.message }
-      throw error
+      return { error: 'No se pudo subir el documento. Intentá de nuevo.' }
     }
   }, [])
 

@@ -265,6 +265,7 @@ export function useCheckInWorkspace({
   onRedeemTicketAddon,
   onRefreshTickets,
   onRejectTicketOrder,
+  memberships = [],
   payments = [],
   registrations,
   /** Puesto de quien opera. Nulo = no filtra zona (misma regla que el API). */
@@ -458,6 +459,7 @@ export function useCheckInWorkspace({
     const rows = applyServerAdmissions(
       buildCheckinRows({
         athletes: athletes?.length ? athletes : (allowlistSources?.athletes ?? []),
+        memberships,
         payments,
         registrations: registrations?.length
           ? registrations
@@ -476,6 +478,7 @@ export function useCheckInWorkspace({
     allowlistSources,
     athletes,
     eventSlug,
+    memberships,
     localAdmittedIds,
     payments,
     registrations,

@@ -252,7 +252,7 @@ export const MEMBERSHIP_ANNUAL_STEPS = [
   {
     step: '2',
     title: 'Pagás online',
-    text: 'Con el DNI y el certificado médico ya subidos. Mercado Pago o transferencia.',
+    text: 'Con el DNI frente y dorso ya subidos. El certificado médico es opcional. Mercado Pago o transferencia.',
   },
   {
     step: '3',
@@ -275,7 +275,7 @@ export const MEMBERSHIP_FAQ = [
   {
     id: 'data',
     q: '¿Qué datos necesito cargar?',
-    a: 'Datos personales, documento, contacto, ubicación, gimnasio y sexo competitivo. Para pagar la afiliación subís DNI frente y dorso y el certificado médico. Menores de 18, también la autorización del tutor.',
+    a: 'Datos personales, documento, contacto, ubicación, gimnasio y sexo competitivo. Para pagar la afiliación subís DNI frente y dorso. El certificado médico es opcional. Menores de 18, también la autorización del tutor.',
   },
   {
     id: 'status',

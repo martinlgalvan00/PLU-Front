@@ -83,6 +83,22 @@ vi.mock('../src/config/env.js', () => ({
   },
 }))
 
+const certificateApi = vi.hoisted(() => ({
+  fetchMembershipCertificate: vi.fn(),
+}))
+
+vi.mock('../src/services/membershipCertificateService.js', () => ({
+  fetchMembershipCertificate: certificateApi.fetchMembershipCertificate,
+}))
+
+vi.mock('../src/lib/credentialQr.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    generateCredentialQr: vi.fn(async () => 'data:image/png;base64,aaa'),
+  }
+})
+
 vi.mock('../src/services/paymentService.js', () => ({
   createPreference: vi.fn(async () => ({})),
   listMembershipPlans: vi.fn(async () => ({
@@ -167,6 +183,7 @@ function renderRegister({
     requiresMembership: true,
   },
   onSubmit = () => {},
+  athlete = ATHLETE,
   total = 75000,
   form = {
     paymentMethod: 'mercado_pago',
@@ -180,7 +197,7 @@ function renderRegister({
   return render(
     <I18nProvider>
       <RegisterPage
-        athlete={ATHLETE}
+        athlete={athlete}
         createdOrder={order ? { ...order, type: flow } : null}
         event={event}
         flow={flow}
@@ -405,6 +422,67 @@ describe('credencial de inscripción a torneo', () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2))
     expect(screen.queryByRole('alert')).toBeNull()
   })
+
+  it('suelta el pago cuando el legajo queda completo después del rechazo', async () => {
+    const onSubmit = vi.fn(async () => ({
+      error: 'Subí los documentos obligatorios antes de continuar.',
+      code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+    }))
+    const event = {
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic 2026',
+      price: 75000,
+      requiresMembership: true,
+    }
+    const form = {
+      paymentMethod: 'mercado_pago',
+      division: 'Open',
+      category: 'Raw',
+      declaredWeightClass: '75',
+      estimatedWeight: '83',
+      competitionBestTotalKg: '500',
+    }
+    const view = renderRegister({
+      flow: 'competition',
+      order: null,
+      onSubmit,
+      event,
+      form,
+      athlete: { ...ATHLETE },
+    })
+
+    await waitForAccessValidation()
+    fireEvent.click(screen.getByRole('button', { name: /continuar al pago/i }))
+
+    expect(await screen.findByRole('heading', { name: 'Subí el DNI para pagar' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /continuar al pago/i }).disabled).toBe(true)
+
+    view.rerender(
+      <I18nProvider>
+        <RegisterPage
+          athlete={{
+            ...ATHLETE,
+            documents: [{ kind: 'dni_front' }, { kind: 'dni_back' }],
+          }}
+          createdOrder={null}
+          event={event}
+          flow="competition"
+          form={form}
+          memberships={[]}
+          registrations={[]}
+          total={75000}
+          onNavigate={() => {}}
+          onSubmit={onSubmit}
+          onUpdateForm={() => {}}
+        />
+      </I18nProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /continuar al pago/i }).disabled).toBe(false)
+    })
+    expect(screen.queryByRole('heading', { name: 'Subí el DNI para pagar' })).toBeNull()
+  })
 })
 
 describe('sección de afiliación de la cuenta', () => {
@@ -415,11 +493,57 @@ describe('sección de afiliación de la cuenta', () => {
 
     expect(screen.getByRole('heading', { name: 'Datos para afiliarte' })).toBeTruthy()
     expect(screen.getByLabelText('Ciudad')).toBeTruthy()
-    expect(screen.queryByRole('heading', { name: 'Completá el legajo para pagar' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Subí el DNI para pagar' })).toBeNull()
     expect(screen.queryByRole('button', { name: /continuar con mercado pago/i })).toBeNull()
   })
 
-  it('pide DNI y certificado en el mismo trámite, antes de cobrar', () => {
+  it('al guardar la ficha deja el DNI como siguiente paso', () => {
+    const view = renderPurchaseSection(null, {
+      athlete: { ...ATHLETE, city: '', documents: [] },
+      onUploadDocument: vi.fn(),
+    })
+
+    expect(screen.getByRole('heading', { name: 'Datos para afiliarte' })).toBeTruthy()
+    expect(screen.queryByText(/ahora subí el dni/i)).toBeNull()
+
+    view.rerender(
+      <I18nProvider>
+        <MembershipPurchaseSection
+          athlete={{ ...ATHLETE, documents: [] }}
+          membership={null}
+          onUploadDocument={vi.fn()}
+        />
+      </I18nProvider>,
+    )
+
+    const cue = screen.getByText(/ahora subí el dni para seguir/i)
+    const documentsHeading = screen.getByRole('heading', { name: 'Subí el DNI para pagar' })
+    expect(cue.compareDocumentPosition(documentsHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: 'Datos para afiliarte' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /continuar con mercado pago/i })).toBeNull()
+  })
+
+  it('al guardar la ficha con el DNI ya cargado deja el pago como siguiente paso', async () => {
+    const documents = [{ kind: 'dni_front' }, { kind: 'dni_back' }]
+    const view = renderPurchaseSection(null, {
+      athlete: { ...ATHLETE, city: '', documents },
+    })
+
+    expect(screen.getByRole('heading', { name: 'Datos para afiliarte' })).toBeTruthy()
+
+    view.rerender(
+      <I18nProvider>
+        <MembershipPurchaseSection athlete={{ ...ATHLETE, documents }} membership={null} />
+      </I18nProvider>,
+    )
+
+    expect(await waitForMembershipPayButton()).toBeTruthy()
+    expect(screen.getByText(/ya podés pagar la afiliación/i)).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: 'Datos para afiliarte' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Subí el DNI para pagar' })).toBeNull()
+  })
+
+  it('pide el DNI antes de cobrar y deja el certificado médico como opcional', () => {
     renderPurchaseSection(null, {
       athlete: {
         ...ATHLETE,
@@ -429,13 +553,59 @@ describe('sección de afiliación de la cuenta', () => {
       onUploadDocument: vi.fn(),
     })
 
-    expect(screen.getByRole('heading', { name: 'Completá el legajo para pagar' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Subí el DNI para pagar' })).toBeTruthy()
     expect(screen.getByText('DNI — frente')).toBeTruthy()
     expect(screen.getByText('DNI — dorso')).toBeTruthy()
     expect(screen.getByText('Certificado médico')).toBeTruthy()
+    expect(screen.getByText('Opcional')).toBeTruthy()
     expect(screen.queryByText('Autorización del tutor')).toBeNull()
     expect(screen.getAllByLabelText('Subir')).toHaveLength(3)
     expect(screen.queryByRole('button', { name: /continuar con mercado pago/i })).toBeNull()
+  })
+
+  it('pide el DNI aunque el checkout de afiliación esté cerrado', () => {
+    renderPurchaseSection(null, {
+      athlete: { ...ATHLETE, documents: [] },
+      checkoutAvailability: { membershipEnabled: false },
+      onUploadDocument: vi.fn(),
+    })
+
+    expect(screen.getByRole('heading', { name: 'Subí el DNI para pagar' })).toBeTruthy()
+    expect(screen.getByText('Afiliación con pago próximamente')).toBeTruthy()
+    const documentsHeading = screen.getByRole('heading', { name: 'Subí el DNI para pagar' })
+    const checkoutSoon = screen.getByText('Afiliación con pago próximamente')
+    expect(
+      documentsHeading.compareDocumentPosition(checkoutSoon) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /continuar con mercado pago/i })).toBeNull()
+  })
+
+  it('a un menor también le pide la autorización del tutor', () => {
+    const birth = new Date()
+    birth.setFullYear(birth.getFullYear() - 16)
+    renderPurchaseSection(null, {
+      athlete: {
+        ...ATHLETE,
+        birthDate: birth.toISOString().slice(0, 10),
+        documents: [],
+      },
+      onUploadDocument: vi.fn(),
+    })
+
+    expect(screen.getByText('Autorización del tutor')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /continuar con mercado pago/i })).toBeNull()
+  })
+
+  it('con el DNI cargado abre el pago aunque falte el certificado', async () => {
+    renderPurchaseSection(null, {
+      athlete: {
+        ...ATHLETE,
+        documents: [{ kind: 'dni_front' }, { kind: 'dni_back' }],
+      },
+    })
+
+    expect(await waitForMembershipPayButton()).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: 'Subí el DNI para pagar' })).toBeNull()
   })
 
   it('muestra el precio del catálogo, no un fallback local', async () => {
@@ -490,6 +660,86 @@ describe('sección de afiliación de la cuenta', () => {
     expect(screen.getByText('PLU-ARG-2026-014')).toBeTruthy()
     expect(screen.queryByRole('group', { name: /método de pago/i })).toBeNull()
     expect(accountCredentialAction()).toBeTruthy()
+    const certificateAction = screen.getByRole('button', { name: 'Pedir constancia' })
+    const cardTitle = screen.getByRole('heading', { name: 'Tu card de socio 2026' })
+    expect(cardTitle.closest('.account-card-share')?.contains(certificateAction)).toBe(false)
+  })
+
+  it('quien ya está afiliado puede completar el legajo sin volver a pagar', () => {
+    renderPurchaseSection(membership(), {
+      athlete: { ...ATHLETE, documents: [] },
+      onUploadDocument: vi.fn(),
+    })
+
+    expect(screen.getByRole('heading', { name: 'Tu legajo' })).toBeTruthy()
+    expect(screen.getByText(/no se interrumpe/i)).toBeTruthy()
+    expect(screen.getAllByLabelText('Subir').length).toBeGreaterThan(0)
+    expect(screen.queryByRole('group', { name: /método de pago/i })).toBeNull()
+    expect(screen.queryByText(/necesitás una afiliación vigente/i)).toBeNull()
+  })
+
+  it('arma la constancia con el documento y el QR que devuelve el servidor', async () => {
+    certificateApi.fetchMembershipCertificate.mockResolvedValueOnce({
+      fullName: 'Ana Torres',
+      documentId: '30111222',
+      memberCode: 'PLU-ARG-2026-014',
+      startDate: '2026-01-01',
+      expirationDate: '2027-12-31',
+      credentialUrl: 'https://plu.test/?credencial=token-1',
+      issuedAt: '2026-11-16T15:00:00.000Z',
+    })
+    renderPurchaseSection(membership(), {
+      athlete: { ...ATHLETE, documents: [] },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pedir constancia' }))
+
+    expect(await screen.findByRole('heading', { name: 'Constancia de afiliación' })).toBeTruthy()
+    expect(screen.getByText('30111222')).toBeTruthy()
+    expect(screen.getByText('https://plu.test/?credencial=token-1')).toBeTruthy()
+    expect(certificateApi.fetchMembershipCertificate).toHaveBeenCalledTimes(1)
+  })
+
+  it('con la afiliación vencida no emite constancia y, si falta el DNI, no cobra', () => {
+    renderPurchaseSection(membership({ expirationDate: '2020-12-31' }), {
+      athlete: { ...ATHLETE, documents: [] },
+      onUploadDocument: vi.fn(),
+    })
+
+    expect(screen.getByText(/necesitás una afiliación vigente/i)).toBeTruthy()
+    const documentsHeading = screen.getByRole('heading', { name: 'Subí el DNI para pagar' })
+    const certificateNote = screen.getByText(/necesitás una afiliación vigente/i)
+    expect(
+      documentsHeading.compareDocumentPosition(certificateNote) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Pedir constancia' })).toBeNull()
+    expect(screen.queryByRole('group', { name: /método de pago/i })).toBeNull()
+  })
+
+  it('al completar el DNI deja el pago como siguiente paso', async () => {
+    const view = renderPurchaseSection(null, {
+      athlete: { ...ATHLETE, documents: [] },
+      onUploadDocument: vi.fn(),
+    })
+
+    expect(screen.getByRole('heading', { name: 'Subí el DNI para pagar' })).toBeTruthy()
+
+    view.rerender(
+      <I18nProvider>
+        <MembershipPurchaseSection
+          athlete={{
+            ...ATHLETE,
+            documents: [{ kind: 'dni_front' }, { kind: 'dni_back' }],
+          }}
+          membership={null}
+          onUploadDocument={vi.fn()}
+        />
+      </I18nProvider>,
+    )
+
+    expect(await waitForMembershipPayButton()).toBeTruthy()
+    expect(screen.getByText(/ya podés pagar la afiliación/i)).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: 'Subí el DNI para pagar' })).toBeNull()
   })
 
   it('explica una renovación programada sin ofrecer cobrar otra vez', () => {

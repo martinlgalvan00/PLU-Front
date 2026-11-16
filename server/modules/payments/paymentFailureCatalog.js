@@ -397,7 +397,7 @@ const CATALOG = [
     match: /ATHLETE_DOCUMENTS_INCOMPLETE|documentos obligatorios/i,
     title: 'Faltan documentos de afiliación',
     cause:
-      'Pagar afiliación (y el alta de inscripción en cuentas nuevas) exige DNI frente/dorso y certificado médico cargados.',
+      'Pagar afiliación y el combo exigen DNI frente y dorso. El certificado médico es opcional. Quien ya estaba afiliado puede inscribirse a un torneo abierto sin el DNI. La renovación, y un torneo que exige afiliación, sí lo piden.',
     fix: [
       'El atleta sube los archivos desde Mi cuenta > Datos personales.',
       'Si es menor de 18, también tiene que cargar la autorización del tutor.',
