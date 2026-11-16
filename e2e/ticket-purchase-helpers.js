@@ -475,10 +475,17 @@ export async function assertOrderCreated(page, { expectedAmount, expectedQuantit
 }
 
 /**
- * Pases emitidos en la confirmación (no el preview PREV- del hero).
+ * Filas de la billetera en una confirmación todavía pendiente.
+ * Con el pago acreditado el pase queda abierto y estas filas no se dibujan.
  */
 export function confirmationPasses(page) {
-  return page.locator('.ticket-purchase--confirmation .ticket-purchase__pass-item')
+  return page.locator('.ticket-purchase--confirmation .buyer-tickets-wallet__row')
+}
+
+function foldLabel(value) {
+  return String(value ?? '')
+    .trim()
+    .toLocaleLowerCase('es-AR')
 }
 
 /**
@@ -555,70 +562,78 @@ function countBy(values) {
 }
 
 /**
- * Verifica los pases de la confirmación y devuelve sus QR.
+ * Verifica las credenciales de la confirmación y devuelve sus QR.
  *
- * Desde que el QR se retiene hasta acreditar el pago (TicketPurchaseSection,
- * `qrReady`), la confirmación de una orden pendiente ya no dibuja el pase: cada
- * credencial muestra DNI · código TCK y "QR pendiente de habilitación", sin
- * QR ni "Ver mi entrada". Por eso:
- *
- * - Pendiente: se afirma que el QR NO se filtra, y las etiquetas se comparan
- *   con lo que esos pases van a imprimir al habilitarse (orden guardada).
- * - Aprobada: el pase está dibujado y se lee la etiqueta y el QR de la pantalla.
- *
- * En los dos casos los tokens salen de la credencial que muestra cada fila
- * (por su código TCK), así que siguen sirviendo para abrir la verificación.
+ * Hasta acreditar, la billetera lista cada persona con el tipo y
+ * "Se habilita cuando se acredite el pago". No dibuja el pase ni el token.
+ * Acreditada, el pase queda abierto: el código impreso es el de puerta o el
+ * TCK, y el token sale de la orden guardada para abrir la verificación.
+ * Las etiquetas se comparan sin distinguir mayúsculas porque un rótulo en
+ * mayúsculas ("ENTRENADOR") se muestra en título.
  */
-export async function assertPassesOnConfirmation(page, { labels, ticketCodePattern = TICKET_CODE } = {}) {
+export async function assertPassesOnConfirmation(page, { labels } = {}) {
   const confirmation = page.locator('.ticket-purchase--confirmation')
   await expect(confirmation).toBeVisible({ timeout: 15_000 })
-  const passes = confirmationPasses(page)
-  if (labels?.length) await expect(passes).toHaveCount(labels.length)
 
   const order = await readCurrentTicketOrder(page)
+  const storedTickets = Array.isArray(order.tickets) ? order.tickets : []
+  const scopedTickets = storedTickets.filter(
+    (ticket) => !ticket.orderId || ticket.orderId === order.orderId,
+  )
+  const orderTickets = scopedTickets.length > 0 ? scopedTickets : storedTickets
   const approved = order.status === 'aprobado'
-  const count = await passes.count()
-  const shownTickets = []
+  const printed = await printedPassLabels(order)
 
-  for (let index = 0; index < count; index += 1) {
-    const pass = passes.nth(index)
-    const info = pass.locator('.ticket-purchase__ticket-info')
-    await expect(info).toContainText(ticketCodePattern)
-    const code = (await info.innerText()).match(TICKET_CODE)?.[0]
-    const ticket = order.tickets.find((item) => item.ticketCode === code)
-    expect(ticket, `el pase ${code} no está en la orden en curso`).toBeTruthy()
-    await expect(info).toContainText(`DNI ${ticket.attendeeDni}`)
-    shownTickets.push(ticket)
-
-    if (approved) {
-      const qr = (await pass.locator('.ticket-pass-preview__code').textContent())?.trim() ?? ''
-      expect(qr, 'el QR de confirmación no puede ser un preview PREV-').not.toMatch(/^PREV-/i)
-      expect(qr).toBe(ticket.qrToken)
-      await expect(pass.locator('.ticket-pass-preview__guest')).toHaveText(ticket.attendeeName)
-    } else {
-      await expect(pass.locator('.ticket-pass-preview')).toHaveCount(0)
-      await expect(pass).toContainText('QR pendiente de habilitación')
-      await expect(pass.getByRole('button', { name: /ver mi entrada/i })).toHaveCount(0)
-    }
-  }
-
-  if (labels?.length) {
-    if (approved) {
-      for (const [label, expected] of Object.entries(countBy(labels))) {
-        await expect(
-          confirmation.locator('.ticket-pass-preview__meta dd', { hasText: label }),
-        ).toHaveCount(expected)
-      }
-    } else {
-      const printed = await printedPassLabels(order)
-      expect(countBy(shownTickets.map((ticket) => printed.get(ticket.id)))).toEqual(
-        countBy(labels),
+  let shownTickets
+  if (!approved) {
+    const rows = confirmationPasses(page)
+    await expect(rows).toHaveCount(labels?.length ?? orderTickets.length)
+    shownTickets = []
+    const used = new Set()
+    const count = await rows.count()
+    for (let index = 0; index < count; index += 1) {
+      const row = rows.nth(index)
+      const name = (await row.locator('strong').innerText()).trim()
+      const type = foldLabel(await row.locator('.buyer-tickets-wallet__row-type').innerText())
+      const ticket = orderTickets.find(
+        (item) =>
+          !used.has(item.id) &&
+          item.attendeeName === name &&
+          foldLabel(printed.get(item.id)) === type,
       )
+      expect(ticket, `la fila ${name} / ${type} no está en la orden en curso`).toBeTruthy()
+      used.add(ticket.id)
+      shownTickets.push(ticket)
+      await expect(row).toContainText(/se habilita cuando se acredite el pago/i)
+    }
+    await expect(confirmation.locator('.ticket-pass-preview')).toHaveCount(0)
+    await expect(confirmation.getByRole('button', { name: /ver mi entrada/i })).toHaveCount(0)
+    if (labels?.length) {
+      expect(countBy(shownTickets.map((ticket) => foldLabel(printed.get(ticket.id))))).toEqual(
+        countBy(labels.map(foldLabel)),
+      )
+    }
+  } else {
+    const pass = confirmation.locator('.ticket-pass-preview')
+    await expect(pass).toBeVisible()
+    const code = (await pass.locator('.ticket-pass-preview__code').textContent())?.trim() ?? ''
+    expect(code, 'el código de confirmación no puede ser un preview PREV-').not.toMatch(/^PREV-/i)
+    expect(code.length).toBeGreaterThan(0)
+    const guest = (await pass.locator('.ticket-pass-preview__guest').innerText()).trim()
+    const ticket = orderTickets.find((item) => item.attendeeName === guest) ?? orderTickets[0]
+    expect(ticket, 'el pase abierto no está en la orden en curso').toBeTruthy()
+    await expect(pass.locator('.ticket-pass-preview__guest')).toHaveText(ticket.attendeeName)
+    shownTickets = orderTickets
+    if (labels?.length === 1) {
+      expect(foldLabel(printed.get(ticket.id))).toBe(foldLabel(labels[0]))
     }
   }
 
   const tokens = shownTickets.map((ticket) => ticket.qrToken)
-  for (const token of tokens) expect(token).toMatch(QR_TOKEN)
+  for (const token of tokens) {
+    expect(token).toMatch(QR_TOKEN)
+    if (!approved) await expect(confirmation).not.toContainText(token)
+  }
   expect(new Set(tokens).size).toBe(tokens.length)
   return tokens
 }
@@ -734,10 +749,10 @@ export const MINIMAL_JPEG = Buffer.from(
 export const OVERSIZED_JPEG = Buffer.concat([MINIMAL_JPEG, Buffer.alloc(2 * 1024 * 1024 + 1, 0xff)])
 
 /**
- * Confirmación de una compra pendiente vista por quien compró. `name` es
- * opcional: con el QR retenido hasta acreditar, una entrada suelta ya no
- * muestra el nombre del asistente (sólo DNI · código); un juego de varias
- * credenciales sí lo dice en el encabezado ("Credenciales de …").
+ * Confirmación de una compra pendiente vista por quien compró.
+ * La billetera muestra el nombre y que el QR se habilita al acreditar.
+ * El DNI y el código TCK quedan en la orden guardada: no se imprimen
+ * mientras el pase está retenido.
  */
 export async function assertCustomerConfirmation(page, { eventTitle, name, dni, amount }) {
   const confirmation = page.locator('.ticket-purchase--confirmation')
@@ -745,18 +760,22 @@ export async function assertCustomerConfirmation(page, { eventTitle, name, dni, 
   await expect(confirmation.getByRole('heading', { name: new RegExp(eventTitle, 'i') })).toBeVisible()
   await expect(confirmation).toContainText(/pendiente/i)
   await expect(confirmation).toContainText('Tu QR todavía no abre la puerta')
+  await expect(confirmation).toContainText(/se habilita cuando se acredite el pago/i)
   if (name) await expect(confirmation).toContainText(name)
-  await expect(confirmation).toContainText(`DNI ${String(dni).replace(/\D/g, '')}`)
-  await expect(confirmation).toContainText(TICKET_CODE)
+  const digits = String(dni).replace(/\D/g, '')
+  const order = await readCurrentTicketOrder(page)
+  const mine = order.tickets.filter((ticket) => ticket.attendeeDni === digits)
+  expect(mine.length).toBeGreaterThan(0)
+  for (const ticket of mine) expect(ticket.ticketCode).toMatch(TICKET_CODE)
   if (amount) await expect(confirmation).toContainText(amount)
 }
 
+/** El pase acreditado queda abierto en la confirmación, sin un modal aparte. */
 export async function openTicketPassModal(page, { name } = {}) {
-  await page.getByRole('button', { name: /ver mi entrada/i }).first().click()
-  const dialog = page.getByRole('dialog')
-  await expect(dialog).toBeVisible()
-  if (name) await expect(dialog).toContainText(name)
-  return dialog
+  const pass = page.locator('.ticket-purchase--confirmation .ticket-pass-preview')
+  await expect(pass).toBeVisible()
+  if (name) await expect(pass.locator('.ticket-pass-preview__guest')).toHaveText(name)
+  return pass
 }
 
 function proofUpload(page) {

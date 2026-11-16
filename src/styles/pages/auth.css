@@ -397,6 +397,108 @@
   text-decoration-color: color-mix(in srgb, var(--color-brand-gold) 55%, transparent);
 }
 
+.login-howto {
+  margin-top: 6px;
+}
+
+.login-howto__toggle {
+  align-items: center;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 500;
+  gap: 8px;
+  justify-content: flex-start;
+  letter-spacing: -0.015em;
+  list-style: none;
+  min-height: 44px;
+  width: 100%;
+}
+
+.login-howto__toggle::-webkit-details-marker {
+  display: none;
+}
+
+.login-howto__chevron {
+  flex: none;
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.login-howto[open] .login-howto__chevron {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-howto__chevron {
+    transition: none;
+  }
+}
+
+.login-howto__panel {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 2px 0 8px;
+}
+
+.login-howto__panel > li {
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  padding: 14px 0 12px;
+}
+
+.login-howto__panel > li:first-child {
+  border-top: 0;
+  padding-top: 2px;
+}
+
+.login-howto__step {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 550;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.login-howto__copy {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 36ch;
+}
+
+.login-howto__action {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: var(--plu-gold-500, var(--color-brand-gold));
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 550;
+  letter-spacing: -0.015em;
+  margin-top: 2px;
+  min-height: 44px;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 35%, transparent);
+  text-underline-offset: 3px;
+}
+
+.login-howto__action:hover {
+  color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 88%, white);
+  text-decoration-color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 55%, transparent);
+}
+
 .login-page__footer {
   color: color-mix(in oklab, var(--color-text-muted) 80%, transparent);
   font-size: 11.5px;
@@ -1731,8 +1833,8 @@ body:not(:has(.app-shell)) .auth-layout {
 }
 
 /* Foco: mismo anillo que la capa institucional en toda la superficie. */
-.auth-layout :where(button, a, input, select, [tabindex='0']):focus-visible,
-.auth-immersive-glass :where(button, a, input, select, [tabindex='0']):focus-visible {
+.auth-layout :where(button, a, input, select, summary, [tabindex='0']):focus-visible,
+.auth-immersive-glass :where(button, a, input, select, summary, [tabindex='0']):focus-visible {
   border-radius: 6px;
   outline: var(--institution-focus-width) solid var(--institution-focus);
   outline-offset: var(--institution-focus-offset);

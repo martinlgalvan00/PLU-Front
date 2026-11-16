@@ -1,15 +1,19 @@
 import '../styles/pages/design-phase2.css'
 import '../styles/pages/auth.css'
-import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowRight, Eye, EyeOff, Mic, ShieldCheck } from 'lucide-react'
 import { env } from '../config/env.js'
 import BrandLogo from '../components/ui/BrandLogo.jsx'
 import CheckInAppPage from './CheckInAppPage.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
+import { createDoorDictation } from '../lib/doorDictation.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
+import { formatManualScanInput } from '../lib/doorSpokenCode.js'
 import { canCheckIn, getRoleLabel } from '../lib/roles.js'
 import { canAccessSecurityEvent } from '../lib/permissions.js'
 import { normalizeGateCode } from '../lib/ticketGateCode.js'
+import { isRetryableCheckinFailure } from '../services/checkinFailure.js'
+import { runDoorAttempts } from '../services/doorRetry.js'
 
 function resolveGateEvent(adminEvents, eventSlug) {
   const fromAdmin = adminEvents?.find((item) => item.slug === eventSlug)
@@ -52,7 +56,10 @@ function stripGateCredentialFromUrl() {
 export default function SecurityGatePage({
   adminEvents,
   athletes,
+  canEnableTickets = false,
+  canForceCheckIn = false,
   eventSlug,
+  onApproveTicketOrder,
   onCheckInRegistration,
   onCheckInTicket,
   onExit,
@@ -61,6 +68,7 @@ export default function SecurityGatePage({
   onReauthenticate,
   onRedeemTicketAddon,
   onRefreshTickets,
+  onRejectTicketOrder,
   registrations,
   session,
   tickets,
@@ -86,10 +94,11 @@ export default function SecurityGatePage({
     }
     attemptedRef.current = true
     stripGateCredentialFromUrl()
-    const login = credential.code
-      ? onLoginWithToken({ code: credential.code, eventSlug })
-      : onLoginWithToken(credential.token)
-    login
+    const login = () =>
+      credential.code
+        ? onLoginWithToken({ code: credential.code, eventSlug })
+        : onLoginWithToken(credential.token)
+    runDoorAttempts(login)
       .then(() => {
         // El éxito re-renderiza con session activa (isAuthorized) y monta el scanner.
       })
@@ -99,17 +108,22 @@ export default function SecurityGatePage({
   if (isAuthorized) {
     return (
       <CheckInAppPage
+        kiosk={new URLSearchParams(window.location.search).get('puesto') === 'molinete'}
         athletes={athletes}
         canCheckIn={canCheckIn(session)}
+        canEnableTickets={canEnableTickets}
+        canForceCheckIn={canForceCheckIn}
         eventDays={event?.eventDays ?? []}
         eventSlug={eventSlug}
         eventTitle={event?.title}
+        onApproveTicketOrder={onApproveTicketOrder}
         onCheckInRegistration={onCheckInRegistration}
         onCheckInTicket={onCheckInTicket}
         onExit={onExit}
         onReauthenticate={onReauthenticate}
         onRedeemTicketAddon={onRedeemTicketAddon}
         onRefreshTickets={onRefreshTickets}
+        onRejectTicketOrder={onRejectTicketOrder}
         registrations={registrations}
         roleLabel={getRoleLabel(session)}
         securityZone={session?.securityZone ?? null}
@@ -174,6 +188,10 @@ function SecurityGateLogin({
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [listening, setListening] = useState(false)
+  const [speechNote, setSpeechNote] = useState('')
+  const submittingRef = useRef(false)
+  const submitCodeRef = useRef(async () => {})
 
   const eventTitle = event?.title ?? null
   const eventMeta = [event?.venue, event?.location, event?.date].filter(Boolean).join(' · ')
@@ -184,17 +202,8 @@ function SecurityGateLogin({
     setIsSubmitting(true)
 
     try {
-      const normalized = normalizeGateCode(doorCode)
-      if (doorCode.trim() && !normalized) {
-        setSubmitError(t('securityGate.tokenError'))
-        return
-      }
-      if (normalized && onLoginWithToken) {
-        try {
-          await onLoginWithToken({ code: normalized, eventSlug })
-        } catch {
-          setSubmitError(t('securityGate.tokenError'))
-        }
+      if (doorCode.trim()) {
+        await submitDoorCode(doorCode)
         return
       }
       await onLogin({ email, password, eventSlug })
@@ -204,6 +213,65 @@ function SecurityGateLogin({
       setIsSubmitting(false)
     }
   }
+
+  async function submitDoorCode(raw) {
+    const normalized = normalizeGateCode(raw)
+    if (!normalized || !onLoginWithToken) {
+      setSubmitError(t('securityGate.tokenError'))
+      return
+    }
+    setDoorCode(normalized)
+    setSubmitError('')
+    setSpeechNote('')
+    setIsSubmitting(true)
+    submittingRef.current = true
+    try {
+      await runDoorAttempts(() => onLoginWithToken({ code: normalized, eventSlug }))
+    } catch (error) {
+      setSubmitError(
+        isRetryableCheckinFailure(error)
+          ? t('securityGate.networkError')
+          : t('securityGate.tokenError'),
+      )
+    } finally {
+      submittingRef.current = false
+      setIsSubmitting(false)
+    }
+  }
+
+  submitCodeRef.current = submitDoorCode
+
+  const dictation = useMemo(
+    () =>
+      createDoorDictation({
+        onAccepted(display) {
+          if (submittingRef.current) return false
+          void submitCodeRef.current(display)
+          return 'keep'
+        },
+        onListening: setListening,
+        onNote: setSpeechNote,
+        onPreview: setDoorCode,
+      }),
+    [],
+  )
+
+  useEffect(() => () => dictation.dispose(), [dictation])
+
+  const speechNoteKey =
+    speechNote === 'ready'
+      ? 'securityGate.speechHeard'
+      : speechNote === 'ambiguous'
+        ? 'securityGate.speechAmbiguous'
+        : speechNote === 'denied'
+          ? 'securityGate.speechDenied'
+          : speechNote === 'unavailable'
+            ? 'securityGate.speechUnavailable'
+            : speechNote === 'missed'
+              ? 'securityGate.speechMissed'
+              : speechNote
+                ? 'securityGate.speechLength'
+                : ''
 
   return (
     <main className="page login-page--design login-page--gate">
@@ -238,15 +306,44 @@ function SecurityGateLogin({
                   type="text"
                   name="doorCode"
                   value={doorCode}
-                  onChange={(formEvent) => setDoorCode(formEvent.target.value.toUpperCase())}
+                  onChange={(formEvent) => {
+                    setSpeechNote('')
+                    setDoorCode(formatManualScanInput(formEvent.target.value))
+                  }}
                   autoComplete="off"
                   autoCapitalize="characters"
                   autoFocus
                   spellCheck={false}
                   inputMode="text"
+                  disabled={isSubmitting}
                 />
+                {dictation.supported ? (
+                  <button
+                    type="button"
+                    className="login-field__toggle"
+                    aria-pressed={listening}
+                    aria-label={t('securityGate.speakToggle')}
+                    disabled={isSubmitting}
+                    onClick={() => dictation.toggle()}
+                  >
+                    <Mic size={16} aria-hidden />
+                  </button>
+                ) : null}
               </span>
               <small className="security-gate-card__meta">{t('securityGate.doorCodeHint')}</small>
+              {listening ? (
+                <small className="security-gate-card__meta" role="status">
+                  {t('securityGate.speakListening')}
+                </small>
+              ) : null}
+              {speechNoteKey ? (
+                <small
+                  className="security-gate-card__meta"
+                  role={speechNote === 'ready' ? 'status' : 'alert'}
+                >
+                  {t(speechNoteKey, speechNote === 'ready' ? { code: doorCode } : undefined)}
+                </small>
+              ) : null}
             </label>
 
             <p className="security-gate-card__split">{t('securityGate.accountDivider')}</p>

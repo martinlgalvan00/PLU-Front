@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import '../styles/pages/admin.css'
 import '../styles/pages/checkin-app.css'
 import {
@@ -30,6 +30,7 @@ import {
   summarizeTicketControl,
 } from '../services/checkinWorkspaceService.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
+import { openTurnstile, shouldPulseTurnstile } from '../services/turnstileBridge.js'
 
 function CheckinMetric({ label, tone = 'neutral', value }) {
   return (
@@ -41,6 +42,40 @@ function CheckinMetric({ label, tone = 'neutral', value }) {
 }
 
 const DAY_TAB_PREFIX = 'day-'
+
+function useKioskGate({ enabled, scanResult, scanBusy, onAdmit }) {
+  const admitted = useRef('')
+  const pulsed = useRef('')
+  const [gate, setGate] = useState('idle')
+
+  useEffect(() => {
+    if (!enabled || scanBusy) return
+    if (!scanResult || scanResult.outcome !== 'ready' || !scanResult.canCheckIn || scanResult.offline) {
+      if (scanResult?.outcome !== 'ready') admitted.current = ''
+      return
+    }
+    const token = scanResult.qrToken || scanResult.row?.qrToken || ''
+    if (!token || admitted.current === token) return
+    admitted.current = token
+    onAdmit()
+  }, [enabled, onAdmit, scanBusy, scanResult])
+
+  useEffect(() => {
+    if (!enabled || !shouldPulseTurnstile(scanResult?.outcome)) return
+    const token = scanResult.qrToken || scanResult.row?.qrToken || scanResult.row?.id || ''
+    if (!token || pulsed.current === token) return
+    pulsed.current = token
+    setGate('opening')
+    openTurnstile().then((pulse) => setGate(pulse.opened ? 'open' : 'failed'))
+  }, [enabled, scanResult])
+
+  const retryPulse = useCallback(() => {
+    setGate('opening')
+    openTurnstile().then((pulse) => setGate(pulse.opened ? 'open' : 'failed'))
+  }, [])
+
+  return { gate, retryPulse }
+}
 
 function DoorClip({ children }) {
   const text = children == null || children === '' ? '—' : String(children)
@@ -54,25 +89,34 @@ function DoorClip({ children }) {
 export default function CheckInAppPage({
   athletes,
   canCheckIn,
+  canEnableTickets = false,
+  canForceCheckIn = false,
   eventDays = [],
   eventSlug = 'pitbull-classic-2026',
   eventTitle,
+  onApproveTicketOrder,
   onCheckInRegistration,
   onCheckInTicket,
   onExit,
   onReauthenticate = null,
   onRedeemTicketAddon,
   onRefreshTickets,
+  onRejectTicketOrder,
   registrations,
   roleLabel,
   /** Puesto asignado a la cuenta: nombre y alcance. Nulo = sin zona. */
   securityZone = null,
   ticketTypes = [],
   tickets,
+  kiosk = false,
 }) {
   const { locale, t, messages } = useI18n()
   const adminReady = Boolean(messages?.admin?.checkinApp?.exit)
   const [tab, setTab] = useState('scan')
+  const handleScanCheckInRef = useRef(null)
+  const admitKiosk = useCallback(() => {
+    handleScanCheckInRef.current?.()
+  }, [])
 
   // La ruta de la puerta ya espera estos textos. Si esta pantalla se monta
   // igual sin ellos, se piden una vez y no se pinta ninguna clave.
@@ -85,18 +129,33 @@ export default function CheckInAppPage({
   const workspace = useCheckInWorkspace({
     athletes,
     canCheckIn,
+    canEnableTickets,
+    canForceCheckIn,
     eventDays,
     eventSlug,
+    onApproveTicketOrder,
     onCheckInRegistration,
     onCheckInTicket,
     onRedeemTicketAddon,
     onRefreshTickets,
+    onRejectTicketOrder,
     registrations,
     securityZone,
     ticketTypes,
     tickets,
   })
   const { setDay, setType, setCheckinStatus, setCredential } = workspace
+  handleScanCheckInRef.current = workspace.handleScanCheckIn
+  const kioskGate = useKioskGate({
+    enabled: kiosk,
+    scanResult: workspace.scanResult,
+    scanBusy: workspace.scanBusy,
+    onAdmit: admitKiosk,
+  })
+
+  useEffect(() => {
+    if (kiosk) setTab('scan')
+  }, [kiosk])
 
   useEffect(() => {
     if (tab === 'scan' || !workspace.highlightRowId) return
@@ -187,6 +246,7 @@ export default function CheckInAppPage({
       pendingCount={workspace.offlineSync.pendingCount}
       queueLog={workspace.offlineSync.queueLog}
       onReauthenticate={onReauthenticate}
+      onRetryExhausted={workspace.offlineSync.continueExhausted}
       syncIssue={workspace.offlineSync.syncIssue}
       syncNow={workspace.offlineSync.syncNow}
       syncing={workspace.offlineSync.syncing}
@@ -197,9 +257,14 @@ export default function CheckInAppPage({
   const scanResultPanel = (
     <CheckInScanResult
       canCheckIn={canCheckIn}
+      canEnableTickets={canEnableTickets}
+      canForceCheckIn={canForceCheckIn}
       locale={locale}
       onDismiss={() => workspace.setScanResult(null)}
+      onEnableTicket={workspace.handleEnableTicket}
+      onForceCheckIn={workspace.handleForceCheckIn}
       onRedeemAddon={workspace.handleRedeemAddon}
+      onRejectTicket={workspace.handleRejectTicket}
       onScanCheckIn={workspace.handleScanCheckIn}
       redeemBusyId={workspace.redeemBusyId}
       redeemError={workspace.redeemError}
@@ -209,6 +274,9 @@ export default function CheckInAppPage({
       scanResult={workspace.scanResult}
       scanTicketPaid={workspace.scanTicketPaid}
       scanVerdict={workspace.scanVerdict}
+      kiosk={kiosk}
+      turnstileGate={kioskGate.gate}
+      onRetryTurnstile={kioskGate.retryPulse}
     />
   )
 
@@ -226,7 +294,7 @@ export default function CheckInAppPage({
     <div
       className={`checkin-app${tab === 'scan' ? ' checkin-app--scan' : ''}${
         verdictOnScan ? ' checkin-app--verdict' : ''
-      }`}
+      }${kiosk ? ' checkin-app--kiosk' : ''}`}
     >
       <header className="checkin-app__top">
         <div className="checkin-app__brand">
@@ -285,6 +353,7 @@ export default function CheckInAppPage({
           </div>
         </section>
 
+        {!kiosk && (
         <nav className="checkin-app__tabs" aria-label={t('admin.checkinApp.title')}>
           {tabs.map(({ id, Icon, label, count }) => (
             <button
@@ -300,6 +369,7 @@ export default function CheckInAppPage({
             </button>
           ))}
         </nav>
+        )}
       </div>
 
       <main className="checkin-app__main">
@@ -541,6 +611,33 @@ export default function CheckInAppPage({
                   width: 140,
                   render: (row) => <DoorClip>{formatCheckinRowDay(row, eventDays, t)}</DoorClip>,
                 },
+                ...(tab === 'tickets'
+                  ? [
+                      {
+                        key: 'validity',
+                        label: t('admin.checkin.validUntil'),
+                        className: 'data-table__column--clip',
+                        mobile: 'hidden',
+                        width: 140,
+                        render: (row) => (
+                          <DoorClip>
+                            {row.validUntil
+                              ? new Date(row.validUntil).toLocaleString(
+                                  locale === 'en' ? 'en-US' : 'es-AR',
+                                  {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: false,
+                                  },
+                                )
+                              : '—'}
+                          </DoorClip>
+                        ),
+                      },
+                    ]
+                  : []),
                 {
                   key: 'status',
                   label: t('admin.columns.status'),

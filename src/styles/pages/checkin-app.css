@@ -1167,3 +1167,25 @@
   font-weight: 600;
   letter-spacing: 0.02em;
 }
+
+.checkin-app--kiosk .checkin-app__overview,
+.checkin-app--kiosk .checkin-app__scan-aside {
+  display: none;
+}
+
+.checkin-app--kiosk .checkin-app__scan-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.checkin-app--kiosk .admin-checkin-scanner__manual-input {
+  font-size: 32px;
+  letter-spacing: 0.14em;
+  min-height: 72px;
+  text-align: center;
+}
+
+.checkin-app--kiosk .admin-checkin-result__turnstile {
+  font-size: clamp(20px, 2.4vw, 28px);
+  font-weight: 700;
+  margin: 0 0 12px;
+}

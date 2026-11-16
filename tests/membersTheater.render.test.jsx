@@ -102,7 +102,7 @@ describe('Teatro 3D de afiliación', () => {
     )
 
     expect(screen.getByRole('heading', { level: 2, name: 'Antes de afiliarte' })).toBeTruthy()
-    expect(screen.getByRole('heading', { level: 3, name: 'Documento' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 3, name: 'DNI — frente' })).toBeTruthy()
     expect(container.querySelector('.members-req--stage')).not.toBeNull()
     expect(container.querySelector('.members-req__stage')).not.toBeNull()
     expect(container.querySelectorAll('.members-req__timeline-item')).toHaveLength(4)

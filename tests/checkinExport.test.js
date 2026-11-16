@@ -50,7 +50,7 @@ describe('checkinExport', () => {
         Documento: '40111222',
         Tipo: 'Atleta',
         Categoría: 'Raw · Open',
-        Día: 'Día 1',
+        Día: 'Ambos',
         Estado: 'Pagada',
         Ingresó: '',
       },

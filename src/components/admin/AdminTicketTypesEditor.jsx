@@ -96,6 +96,10 @@ function ticketTypeValidityRowCopy(t, summary) {
       return t('admin.eventEditor.supabase.ticketTypeRowValidityFromFirstScan', {
         duration: formatValidityDuration(t, summary.durationMinutes),
       })
+    case 'first_entry_day':
+      return t('admin.eventEditor.supabase.ticketTypeRowValidityFirstEntryDay', {
+        days: summary.labels.join(' · '),
+      })
     default:
       return t('admin.eventEditor.supabase.ticketTypeRowValidityMissing')
   }
@@ -146,6 +150,14 @@ function ticketTypeValidityPreviewCopy(t, summary) {
       detail: t('admin.eventEditor.supabase.ticketTypeValidityPreviewFromFirstScanDetail'),
     }
   }
+  if (summary.kind === 'first_entry_day') {
+    return {
+      title: t('admin.eventEditor.supabase.ticketTypeValidityPreviewFirstEntryDayTitle', {
+        days: summary.labels.join(' · '),
+      }),
+      detail: t('admin.eventEditor.supabase.ticketTypeValidityPreviewFirstEntryDayDetail'),
+    }
+  }
   if (summary.mode === TICKET_ACCESS_POLICY_MODE.FIXED_WINDOW) {
     return {
       title: t('admin.eventEditor.supabase.ticketTypeValidityPreviewFixedTitle'),
@@ -189,6 +201,9 @@ function ticketTypeValidityNoteKey(mode) {
   if (mode === TICKET_ACCESS_POLICY_MODE.FROM_FIRST_SCAN) {
     return 'admin.eventEditor.supabase.ticketTypeValidityNoteFromFirstScan'
   }
+  if (mode === TICKET_ACCESS_POLICY_MODE.FIRST_ENTRY_DAY) {
+    return 'admin.eventEditor.supabase.ticketTypeValidityNoteFirstEntryDay'
+  }
   return 'admin.eventEditor.supabase.ticketTypeValidityNoteFromPayment'
 }
 
@@ -205,6 +220,15 @@ function nextTicketValidityPatch(validityMode, current) {
       validityDurationMinutes: null,
       validFrom: '',
       validUntil: '',
+    }
+  }
+  if (validityMode === TICKET_ACCESS_POLICY_MODE.FIRST_ENTRY_DAY) {
+    return {
+      validityMode,
+      validityDurationMinutes: null,
+      validFrom: '',
+      validUntil: '',
+      accessUsageMode: TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL,
     }
   }
   if (validityMode === TICKET_ACCESS_POLICY_MODE.FIXED_WINDOW) {

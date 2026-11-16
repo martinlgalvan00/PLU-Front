@@ -3,7 +3,6 @@ import {
   AlertCircle,
   ArrowLeft,
   CalendarClock,
-  Check,
   ImageDown,
   KeyRound,
   LoaderCircle,
@@ -65,8 +64,23 @@ import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
 import RegistrationAccessGateModal from '../../components/checkout/RegistrationAccessGateModal.jsx'
 import PaymentRecoveryPanel from '../../components/checkout/PaymentRecoveryPanel.jsx'
 import { fetchRegistrationAccessRequirements } from '../../services/registrationAccessService.js'
+import { documentPackFocus, isDocumentPackComplete } from '../../lib/athleteDocuments.js'
+import DocumentPackSection from './DocumentPackSection.jsx'
+import MembershipCertificateRequest from './MembershipCertificateRequest.jsx'
+import MembershipFileSection from './MembershipFileSection.jsx'
+import { membershipFileStatus } from '../../../shared/membershipFile.js'
 import { channelOpen } from '../../lib/paymentChannels.js'
 import '../../styles/components/code-band.css'
+
+function scrollStepIntoView(node) {
+  if (typeof node?.scrollIntoView !== 'function') return
+  const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true
+  try {
+    node.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' })
+  } catch {
+    // El aviso queda en el paso aunque el entorno no pueda desplazar.
+  }
+}
 
 export default function MembershipPurchaseSection({
   athlete,
@@ -81,6 +95,8 @@ export default function MembershipPurchaseSection({
   checkoutAvailability = {},
   onNavigate,
   onNavigateSection,
+  onUploadDocument,
+  onSaveMembershipFile,
   // Orden financiada abierta de esta persona: sostiene la afiliación que se ve
   // arriba y la puede dar de baja si vence. Se resuelve en AthleteProfilePage,
   // que es quien tiene la lista de pagos completa.
@@ -138,6 +154,12 @@ export default function MembershipPurchaseSection({
   const [discountError, setDiscountError] = useState('')
   const [discountOpen, setDiscountOpen] = useState(false)
   const discountInputRef = useRef(null)
+  const checkoutAnchorRef = useRef(null)
+  const documentsAnchorRef = useRef(null)
+  const documentsBlockedRef = useRef(null)
+  const fileBlockedRef = useRef(null)
+  const [packJustCompleted, setPackJustCompleted] = useState(false)
+  const [fileJustCompleted, setFileJustCompleted] = useState(false)
   const [membershipAccessRequired, setMembershipAccessRequired] = useState(false)
   // Mercado Pago es el único canal inicial. Transferencia y efectivo requieren
   // una habilitación explícita desde Administración: arrancar en `false` evita
@@ -200,8 +222,54 @@ export default function MembershipPurchaseSection({
   // Wise se ofrece únicamente para inscripciones; una afiliación siempre se
   // cobra en ARS por Mercado Pago, transferencia o efectivo.
   const wiseOffered = false
-  const showPurchaseCheckout = membershipCanPurchase && paidCheckoutOpen
-  const showCheckoutSoon = membershipCanPurchase && !paidCheckoutOpen
+  const documentsKnown = Array.isArray(athlete?.documents)
+  const documentsPack = isDocumentPackComplete(athlete, athlete?.documents)
+  const documentFocus = documentPackFocus(documentsPack.missing)
+  const readyForDocumentsKey =
+    documentFocus === 'guardian'
+      ? 'account.membership.readyForGuardian'
+      : documentFocus === 'dni_and_guardian'
+        ? 'account.membership.readyForDocumentsAndGuardian'
+        : 'account.membership.readyForDocuments'
+  // `documents == null` es una sesión vieja o un fixture: no es un legajo vacío.
+  const documentsBlocked = documentsKnown && !documentsPack.complete
+  const membershipFile = membershipFileStatus(athlete)
+  const fileBlocked = !membershipFile.complete
+  const showFileGate = membershipCanPurchase && fileBlocked
+  // El legajo se pide aunque el checkout esté cerrado. El pago espera a las dos.
+  const showDocumentsGate = membershipCanPurchase && !fileBlocked && documentsBlocked
+  const showCheckoutSoon = membershipCanPurchase && !fileBlocked && !paidCheckoutOpen
+  const showPurchaseCheckout =
+    membershipCanPurchase && !fileBlocked && paidCheckoutOpen && !documentsBlocked
+  const showMemberDocuments =
+    documentsKnown &&
+    !showDocumentsGate &&
+    (membershipActive ||
+      membershipScheduled ||
+      (membershipExpired && !fileBlocked && !documentsBlocked))
+
+  useEffect(() => {
+    const wasBlocked = fileBlockedRef.current
+    fileBlockedRef.current = fileBlocked
+    if (wasBlocked !== true || fileBlocked) return
+    if (showDocumentsGate) {
+      setFileJustCompleted(true)
+      scrollStepIntoView(documentsAnchorRef.current)
+      return
+    }
+    if (showPurchaseCheckout) {
+      setPackJustCompleted(true)
+      scrollStepIntoView(checkoutAnchorRef.current)
+    }
+  }, [fileBlocked, showDocumentsGate, showPurchaseCheckout])
+
+  useEffect(() => {
+    const wasBlocked = documentsBlockedRef.current
+    documentsBlockedRef.current = documentsBlocked
+    if (wasBlocked !== true || documentsBlocked || !showPurchaseCheckout) return
+    setPackJustCompleted(true)
+    scrollStepIntoView(checkoutAnchorRef.current)
+  }, [documentsBlocked, showPurchaseCheckout])
   // El combo se ofrece antes de vender la afiliación sola: el próximo evento
   // con oferta vigente es el candidato natural, no cualquiera del calendario.
   const comboEvent = useMemo(() => {
@@ -321,6 +389,27 @@ export default function MembershipPurchaseSection({
     : embeddedOrder
       ? t('account.membership.continuePayment')
       : t('account.membership.continueWith', { method: methodLabel })
+  const checkoutOffers = selectedPlan
+    ? [
+        {
+          featured: true,
+          id: selectedPlan.code,
+          name: selectedPlan.name,
+          priceLabel:
+            paymentMethod === 'wise_transfer'
+              ? wisePriceLabel(selectedPlanPrice, locale)
+              : money(
+                  mpSettling && embeddedOrder?.amount != null
+                    ? Number(embeddedOrder.amount)
+                    : activeDiscount
+                      ? activeDiscount.finalAmount
+                      : selectedPlanPrice,
+                  locale,
+                ),
+          comparePriceLabel: channelCompareLabel || undefined,
+        },
+      ]
+    : []
 
   const loadPlans = useCallback(
     async ({ force = false, signal } = {}) => {
@@ -905,6 +994,16 @@ export default function MembershipPurchaseSection({
             {statusMeta ? (
               <p className="account-membership__banner-meta-line">{statusMeta}</p>
             ) : null}
+            {showPurchaseCheckout ? (
+              <ul
+                className="account-benefits account-benefits--inline"
+                aria-label={t('account.membership.includes')}
+              >
+                <li>{t('account.membership.benefitCredential')}</li>
+                <li>{t('account.membership.benefitCode')}</li>
+                <li>{t('account.membership.benefitEvents')}</li>
+              </ul>
+            ) : null}
           </div>
         </header>
       ) : (
@@ -938,6 +1037,16 @@ export default function MembershipPurchaseSection({
         scope="membership"
         onSettle={() => onNavigateSection?.(ACCOUNT_PAYMENTS_TAB)}
       />
+
+      {showMemberDocuments && documentsBlocked ? (
+        <div id="account-member-documents">
+          <DocumentPackSection
+            athlete={athlete}
+            onUploadDocument={onUploadDocument}
+            variant="member"
+          />
+        </div>
+      ) : null}
 
       {!membershipCanPurchase && !transferUnderReview ? (
         <div className={`account-membership-status account-membership-status--${statusTone}`}>
@@ -976,51 +1085,35 @@ export default function MembershipPurchaseSection({
         </div>
       )}
 
-      {showCheckoutSoon ? (
-        <FeatureComingSoon
-          className="account-membership__checkout-soon"
-          eyebrow={t('account.membership.checkoutSoonEyebrow')}
-          icon={CalendarClock}
-          lead={t('account.membership.checkoutSoonLead')}
-          role="status"
-          title={t('account.membership.checkoutSoonTitle')}
-          variant="inline"
-        />
+      {membershipActive ? <MembershipCertificateRequest canIssue /> : null}
+
+      {showFileGate ? (
+        <MembershipFileSection athlete={athlete} onSave={onSaveMembershipFile} />
       ) : null}
 
-      {showPurchaseCheckout && comboEvent && comboOffer ? (
-        <Reveal className="account-membership__combo" variant="up">
-          <p className="account-membership__combo-kicker">
-            {t('account.membership.comboKicker', { event: comboEvent.title })}
-          </p>
-          <SeasonComboOffer
-            variant="band"
-            membershipPrice={comboPricing?.membership}
-            registrationPrice={comboPricing?.registration}
-            comboPrice={comboOffer.price}
-            endsAt={comboOffer.endsAt}
-            onCta={() => onSelectEvent?.(comboEvent)}
+      {showDocumentsGate ? (
+        <div ref={documentsAnchorRef} className="account-membership__pay-step">
+          {fileJustCompleted ? (
+            <p className="account-membership__ready" role="status">
+              {t(readyForDocumentsKey)}
+            </p>
+          ) : null}
+          <DocumentPackSection
+            athlete={athlete}
+            onUploadDocument={onUploadDocument}
+            variant="checkout"
           />
-        </Reveal>
+        </div>
       ) : null}
 
       {showPurchaseCheckout && (
-        <div className="account-membership__decision account-membership__decision--solo">
-          <ul
-            className="account-benefits account-benefits--inline"
-            aria-label={t('account.membership.includes')}
-          >
-            <li>
-              <Check size={14} aria-hidden /> {t('account.membership.benefitCredential')}
-            </li>
-            <li>
-              <Check size={14} aria-hidden /> {t('account.membership.benefitCode')}
-            </li>
-            <li>
-              <Check size={14} aria-hidden /> {t('account.membership.benefitEvents')}
-            </li>
-          </ul>
-
+        <div ref={checkoutAnchorRef} className="account-membership__pay-step">
+          {packJustCompleted ? (
+            <p className="account-membership__ready" role="status">
+              {t('account.membership.readyToPay')}
+            </p>
+          ) : null}
+          <div className="account-membership__decision account-membership__decision--solo">
           {mpSettling ? (
             <div className="account-membership__settle">
               <div className="account-membership__settle-bar">
@@ -1033,23 +1126,34 @@ export default function MembershipPurchaseSection({
                   {t('account.membership.changePaymentMethod')}
                 </button>
               </div>
-              <MercadoPagoEmbeddedCheckout
-                onCheckoutError={handleMercadoPagoError}
-                onResult={handleMercadoPagoResult}
-                order={embeddedOrder}
-                presentation="settle"
+              <CheckoutDesk
+                offers={checkoutOffers}
+                selectedOfferId={selectedPlan?.code}
+                bar={
+                  <>
+                    <p className="account-membership__pay-legend">
+                      {t('account.membership.paymentLegend')}
+                    </p>
+                    <MercadoPagoEmbeddedCheckout
+                      onCheckoutError={handleMercadoPagoError}
+                      onResult={handleMercadoPagoResult}
+                      order={embeddedOrder}
+                      presentation="settle"
+                    />
+                    {paymentRecovery ? (
+                      <PaymentRecoveryPanel
+                        amount={paymentRecovery.amount}
+                        concept={paymentRecovery.concept}
+                        currency={paymentRecovery.currency}
+                        onTransfer={() => void startMembershipPayment('transferencia')}
+                        reference={paymentRecovery.reference}
+                        transferAvailable={transferSelectable}
+                        transferBusy={submitting}
+                      />
+                    ) : null}
+                  </>
+                }
               />
-              {paymentRecovery ? (
-                <PaymentRecoveryPanel
-                  amount={paymentRecovery.amount}
-                  concept={paymentRecovery.concept}
-                  currency={paymentRecovery.currency}
-                  onTransfer={() => void startMembershipPayment('transferencia')}
-                  reference={paymentRecovery.reference}
-                  transferAvailable={transferSelectable}
-                  transferBusy={submitting}
-                />
-              ) : null}
             </div>
           ) : (
             <div className="account-membership__checkout">
@@ -1427,25 +1531,7 @@ export default function MembershipPurchaseSection({
                             ? t('pages.register.paymentMercadoPagoOnlyHint')
                             : ''
                 }
-                offers={
-                  selectedPlan
-                    ? [
-                        {
-                          featured: true,
-                          id: selectedPlan.code,
-                          name: selectedPlan.name,
-                          priceLabel:
-                            paymentMethod === 'wise_transfer'
-                              ? wisePriceLabel(selectedPlanPrice, locale)
-                              : money(
-                                  activeDiscount ? activeDiscount.finalAmount : selectedPlanPrice,
-                                  locale,
-                                ),
-                          comparePriceLabel: channelCompareLabel || undefined,
-                        },
-                      ]
-                    : []
-                }
+                offers={checkoutOffers}
                 paymentMethod={paymentMethod}
                 paymentName="membership-payment"
                 selectedOfferId={selectedPlan?.code}
@@ -1465,8 +1551,49 @@ export default function MembershipPurchaseSection({
               ) : null}
             </div>
           )}
+          </div>
         </div>
       )}
+
+      {showCheckoutSoon ? (
+        <FeatureComingSoon
+          className="account-membership__checkout-soon"
+          eyebrow={t('account.membership.checkoutSoonEyebrow')}
+          icon={CalendarClock}
+          lead={t('account.membership.checkoutSoonLead')}
+          role="status"
+          title={t('account.membership.checkoutSoonTitle')}
+          variant="inline"
+        />
+      ) : null}
+
+      {showPurchaseCheckout && comboEvent && comboOffer ? (
+        <Reveal className="account-membership__combo" variant="up">
+          <p className="account-membership__combo-kicker">
+            {t('account.membership.comboKicker', { event: comboEvent.title })}
+          </p>
+          <SeasonComboOffer
+            variant="band"
+            membershipPrice={comboPricing?.membership}
+            registrationPrice={comboPricing?.registration}
+            comboPrice={comboOffer.price}
+            endsAt={comboOffer.endsAt}
+            onCta={() => onSelectEvent?.(comboEvent)}
+          />
+        </Reveal>
+      ) : null}
+
+      {!transferUnderReview && (membershipExpired || membershipCancelled || membershipRefunded) ? (
+        <MembershipCertificateRequest canIssue={false} />
+      ) : null}
+
+      {showMemberDocuments && !documentsBlocked ? (
+        <DocumentPackSection
+          athlete={athlete}
+          onUploadDocument={onUploadDocument}
+          variant="member"
+        />
+      ) : null}
 
       {demoMode && !env.payments.isMock && (
         <div className="account-membership__demo">
@@ -1545,13 +1672,13 @@ export default function MembershipPurchaseSection({
       <TransferPayModal
         open={transferOpen}
         amount={transferAmount ?? selectedPlan?.price ?? 0}
-          currency={transferChannel === 'wise_transfer' ? 'USD' : 'ARS'}
-          channel={transferChannel}
-          orderId={transferOrderId}
-          financingAllowed={manualOrder?.financingAllowed === true}
-          manualPaymentDeclaredAt={manualOrder?.manualPaymentDeclaredAt ?? null}
-          financedEntitlementsAt={manualOrder?.financedEntitlementsAt ?? null}
-          onClose={() => setTransferOpen(false)}
+        currency={transferChannel === 'wise_transfer' ? 'USD' : 'ARS'}
+        channel={transferChannel}
+        orderId={transferOrderId}
+        financingAllowed={manualOrder?.financingAllowed === true}
+        manualPaymentDeclaredAt={manualOrder?.manualPaymentDeclaredAt ?? null}
+        financedEntitlementsAt={manualOrder?.financedEntitlementsAt ?? null}
+        onClose={() => setTransferOpen(false)}
       />
 
       <RegistrationAccessGateModal

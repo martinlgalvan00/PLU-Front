@@ -1,4 +1,7 @@
 import { createStore, del, get, keys, set } from 'idb-keyval'
+import { memberCodeLookupCandidates, spokenMemberCode } from '../../shared/spokenMemberCode.js'
+import { credentialLookupKeys } from './credentialQr.js'
+import { competitorAccessWindowKey, competitorCheckInCountsToday } from './ticketValidityPolicy.js'
 import { normalizeGateCode } from './ticketGateCode.js'
 
 /**
@@ -49,10 +52,47 @@ function forgetAllowlist(eventSlug) {
   invalidateAllowlistIndex(eventSlug)
 }
 
-function applyLocalAdmits(allowlist, admits) {
+function todayRegistrationIds(entries, now = new Date()) {
+  const today = competitorAccessWindowKey(now)
+  const ids = new Set()
+  for (const entry of entries ?? []) {
+    if (entry && typeof entry === 'object' && entry.registrationId && entry.windowKey === today) {
+      ids.add(entry.registrationId)
+    }
+  }
+  return ids
+}
+
+/** El ingreso de ayer no sigue bloqueando la credencial. */
+function refreshCompetitorDay(allowlist, now = new Date()) {
+  if (!allowlist) return false
+  const today = competitorAccessWindowKey(now)
+  if (!today || allowlist.competitorDay === today) return false
+  allowlist.competitorDay = today
+  let changed = false
+  for (const item of allowlist.registrations ?? []) {
+    if (
+      item.checkedInAt &&
+      item.checkedInAt !== 'offline' &&
+      !competitorCheckInCountsToday(item.checkedInAt, item.accessWindowKey, now)
+    ) {
+      item.checkedInAt = null
+      changed = true
+    }
+    if (item.checkedInLocally && item.localWindowKey !== today) {
+      item.checkedInLocally = false
+      changed = true
+    }
+  }
+  if (changed) invalidateAllowlistIndex(allowlist.eventSlug)
+  return changed
+}
+
+function applyLocalAdmits(allowlist, admits, now = new Date()) {
   if (!allowlist || !admits) return
   const tickets = new Set(admits.tickets ?? [])
-  const registrations = new Set(admits.registrations ?? [])
+  const registrations = todayRegistrationIds(admits.registrations, now)
+  const today = competitorAccessWindowKey(now)
   for (const item of allowlist.tickets ?? []) {
     if (item.qrToken && tickets.has(item.qrToken) && !item.checkedInAt) item.checkedInLocally = true
   }
@@ -60,13 +100,29 @@ function applyLocalAdmits(allowlist, admits) {
     const marked =
       (item.registrationId && registrations.has(item.registrationId)) ||
       (item.qrToken && tickets.has(item.qrToken))
-    if (marked && !item.checkedInAt) item.checkedInLocally = true
+    if (marked && !item.checkedInAt) {
+      item.checkedInLocally = true
+      item.localWindowKey = today
+    }
   }
 }
 
 function targetKey(entry) {
   if (entry?.kind === 'registration') return `r:${entry.registrationId ?? ''}`
   return `t:${entry?.qrToken ?? ''}`
+}
+
+function rememberMemberCode(map, memberCode, item) {
+  const member = String(memberCode ?? '').trim().toLowerCase()
+  if (!member) return
+  map.set(member, item)
+  const spoken = spokenMemberCode(memberCode)
+  if (!spoken) return
+  map.set(spoken.display.toLowerCase(), item)
+  map.set(spoken.compact.toLowerCase(), item)
+  for (const candidate of memberCodeLookupCandidates(spoken.display)) {
+    map.set(candidate.toLowerCase(), item)
+  }
 }
 
 function indexGateCode(ticketsByCode, item) {
@@ -76,11 +132,23 @@ function indexGateCode(ticketsByCode, item) {
   ticketsByCode.set(gate.replace('-', '').toLowerCase(), item)
 }
 
+function indexOpaqueToken(map, token, item) {
+  for (const key of credentialLookupKeys(token)) map.set(key, item)
+}
+
+function readOpaqueToken(map, code) {
+  for (const key of credentialLookupKeys(code)) {
+    const found = map.get(key)
+    if (found) return found
+  }
+  return undefined
+}
+
 function buildAllowlistIndex(allowlist) {
   const ticketsByQr = new Map()
   const ticketsByCode = new Map()
   for (const item of allowlist.tickets ?? []) {
-    if (item.qrToken) ticketsByQr.set(item.qrToken, item)
+    indexOpaqueToken(ticketsByQr, item.qrToken, item)
     const code = (item.ticketCode ?? '').toLowerCase()
     if (code) ticketsByCode.set(code, item)
     indexGateCode(ticketsByCode, item)
@@ -90,10 +158,9 @@ function buildAllowlistIndex(allowlist) {
   const registrationsByQr = new Map()
   const registrationsByMember = new Map()
   for (const item of allowlist.registrations ?? []) {
-    if (item.credentialToken) registrationsByCredential.set(item.credentialToken, item)
-    if (item.qrToken) registrationsByQr.set(item.qrToken, item)
-    const member = (item.memberCode ?? '').toLowerCase()
-    if (member) registrationsByMember.set(member, item)
+    indexOpaqueToken(registrationsByCredential, item.credentialToken, item)
+    indexOpaqueToken(registrationsByQr, item.qrToken, item)
+    rememberMemberCode(registrationsByMember, item.memberCode, item)
   }
 
   return {
@@ -200,15 +267,23 @@ export async function downloadAllowlist(eventSlug, data, { etag = null } = {}) {
     ),
     registrations: mergeLocalAdmissions(
       data.registrations,
-      previous?.registrations,
+      (previous?.registrations ?? []).filter(
+        (item) => item?.localWindowKey === competitorAccessWindowKey(),
+      ),
       (item) => item.registrationId,
-      admits.registrations,
+      [...todayRegistrationIds(admits.registrations)],
     ),
   }
   await set(ALLOWLIST_KEY(eventSlug), payload, store)
   await set(ALLOWLIST_META_KEY(eventSlug), { downloadedAt, etag }, store)
-  forgetAllowlist(eventSlug)
-  return payload
+  // Se reemplaza la foto anterior recién cuando la nueva ya está en disco.
+  // La vista es otra referencia: un 304 mueve la hora sin reescribir las entradas.
+  const view = { ...payload }
+  refreshCompetitorDay(view)
+  invalidateAllowlistIndex(eventSlug)
+  allowlistMemory.set(eventSlug, view)
+  indexFor(view)
+  return view
 }
 
 /**
@@ -216,6 +291,18 @@ export async function downloadAllowlist(eventSlug, data, { etag = null } = {}) {
  * entradas en IndexedDB. Los ingresos locales quedan donde estaban.
  */
 export async function touchAllowlistDownload(eventSlug, etag = null) {
+  const cached = allowlistMemory.get(eventSlug)
+  if (cached) {
+    const meta = {
+      downloadedAt: new Date().toISOString(),
+      etag: etag ?? cached.etag ?? null,
+    }
+    await set(ALLOWLIST_META_KEY(eventSlug), meta, store)
+    cached.downloadedAt = meta.downloadedAt
+    cached.etag = meta.etag
+    return cached
+  }
+
   const payload = await get(ALLOWLIST_KEY(eventSlug), store)
   if (!payload) return null
   const meta = {
@@ -223,18 +310,18 @@ export async function touchAllowlistDownload(eventSlug, etag = null) {
     etag: etag ?? payload.etag ?? null,
   }
   await set(ALLOWLIST_META_KEY(eventSlug), meta, store)
-  const cached = allowlistMemory.get(eventSlug)
-  if (cached) {
-    cached.downloadedAt = meta.downloadedAt
-    cached.etag = meta.etag
-    return cached
-  }
-  return { ...payload, downloadedAt: meta.downloadedAt, etag: meta.etag }
+  const view = { ...payload, downloadedAt: meta.downloadedAt, etag: meta.etag }
+  allowlistMemory.set(eventSlug, view)
+  indexFor(view)
+  return view
 }
 
 export async function getAllowlist(eventSlug) {
   const cached = allowlistMemory.get(eventSlug)
-  if (cached) return cached
+  if (cached) {
+    if (refreshCompetitorDay(cached)) indexFor(cached)
+    return cached
+  }
 
   const payload = (await get(ALLOWLIST_KEY(eventSlug), store)) ?? null
   if (!payload) return null
@@ -247,8 +334,10 @@ export async function getAllowlist(eventSlug) {
     downloadedAt: meta?.downloadedAt ?? payload.downloadedAt,
     etag: meta?.etag ?? payload.etag ?? null,
   }
+  refreshCompetitorDay(view)
   applyLocalAdmits(view, admits)
   allowlistMemory.set(eventSlug, view)
+  indexFor(view)
   return view
 }
 
@@ -263,19 +352,26 @@ export async function findInAllowlist(eventSlug, code) {
   const index = indexFor(allowlist)
   const normalized = code.toLowerCase()
   const gate = normalizeGateCode(code)
+  const memberKeys = new Set([normalized, ...memberCodeLookupCandidates(code).map((item) => item.toLowerCase())])
 
   const ticket =
-    index.ticketsByQr.get(code) ??
+    readOpaqueToken(index.ticketsByQr, code) ??
     index.ticketsByCode.get(normalized) ??
     (gate ? index.ticketsByCode.get(gate.toLowerCase()) : undefined)
   if (ticket) return { kind: 'ticket', entry: ticket }
 
   // `credentialToken` es el QR del perfil (uno por persona); `qrToken`, la
   // credencial impresa de la membresía, que se sigue aceptando.
-  const registration =
-    index.registrationsByCredential.get(code) ??
-    index.registrationsByQr.get(code) ??
-    index.registrationsByMember.get(normalized)
+  let registration =
+    readOpaqueToken(index.registrationsByCredential, code) ??
+    readOpaqueToken(index.registrationsByQr, code) ??
+    null
+  if (!registration) {
+    for (const key of memberKeys) {
+      registration = index.registrationsByMember.get(key)
+      if (registration) break
+    }
+  }
   if (registration) return { kind: 'registration', entry: registration }
 
   return null
@@ -286,21 +382,29 @@ export async function findInAllowlist(eventSlug, code) {
  * offline -- evita que ESTE dispositivo deje pasar dos veces el mismo QR
  * antes de poder sincronizar contra el servidor.
  */
-export async function markCheckedInLocally(eventSlug, { qrToken, registrationId } = {}) {
+export function markCheckedInLocally(eventSlug, { qrToken, registrationId } = {}) {
+  return withStoreWrite(async () => {
   const admits = (await get(LOCAL_ADMITS_KEY(eventSlug), store)) ?? {
     tickets: [],
     registrations: [],
   }
+  if (!Array.isArray(admits.registrations)) admits.registrations = []
+  if (!Array.isArray(admits.tickets)) admits.tickets = []
   // Inscripciones por id: un atleta sin membresía no tiene `qrToken`, y
   // comparar `null === null` marcaba como ingresados a todos los que tampoco.
   if (qrToken && !admits.tickets.includes(qrToken)) admits.tickets.push(qrToken)
-  if (registrationId && !admits.registrations.includes(registrationId)) {
-    admits.registrations.push(registrationId)
+  const windowKey = competitorAccessWindowKey()
+  const alreadyAdmitted = (admits.registrations ?? []).some(
+    (entry) => entry?.registrationId === registrationId && entry?.windowKey === windowKey,
+  )
+  if (registrationId && !alreadyAdmitted) {
+    admits.registrations.push({ registrationId, windowKey })
   }
   await set(LOCAL_ADMITS_KEY(eventSlug), admits, store)
 
   const allowlist = allowlistMemory.get(eventSlug) ?? (await getAllowlist(eventSlug))
   applyLocalAdmits(allowlist, admits)
+  })
 }
 
 async function getPendingQueue() {
@@ -311,12 +415,63 @@ async function setPendingQueue(queue) {
   await set(PENDING_KEY, queue, store)
 }
 
+// IndexedDB cede el hilo entre el get y el set. Sin esta cola, dos ingresos
+// a la vez leen la misma foto y el último write pisa al otro.
+let storeWrite = Promise.resolve()
+let storeWriteDepth = 0
+
+function withStoreWrite(task) {
+  if (storeWriteDepth > 0) return task()
+  const run = storeWrite.then(async () => {
+    storeWriteDepth += 1
+    try {
+      return await task()
+    } finally {
+      storeWriteDepth -= 1
+    }
+  })
+  storeWrite = run.then(
+    () => {},
+    () => {},
+  )
+  return run
+}
+
+function forcedEntry(force, reason) {
+  if (force !== 'validity' && force !== 'zone') return null
+  const trimmed = typeof reason === 'string' ? reason.trim() : ''
+  if (trimmed.length < 8) return null
+  return { force, reason: trimmed.slice(0, 500) }
+}
+
 /** Encola un check-in hecho sin conexión para sincronizar más tarde. */
-export async function enqueueCheckin({ eventSlug, kind, qrToken, registrationId, gate, label }) {
+export function enqueueCheckin({
+  eventSlug,
+  kind,
+  qrToken,
+  registrationId,
+  gate,
+  label,
+  force = null,
+  reason = null,
+}) {
+  return withStoreWrite(async () => {
   const queue = await getPendingQueue()
   const key = targetKey({ kind, qrToken, registrationId })
+  const exception = forcedEntry(force, reason)
   const existing = queue.find((item) => targetKey(item) === key)
-  if (existing) return existing
+  if (existing) {
+    if (!exception) return existing
+    const patched = {
+      ...existing,
+      ...exception,
+      status: 'pending',
+      attemptCount: 0,
+      nextAttemptAt: null,
+    }
+    await setPendingQueue(queue.map((item) => (item.localId === existing.localId ? patched : item)))
+    return patched
+  }
 
   const entry = {
     localId: crypto.randomUUID(),
@@ -331,15 +486,18 @@ export async function enqueueCheckin({ eventSlug, kind, qrToken, registrationId,
     attemptCount: 0,
     nextAttemptAt: null,
     status: 'pending',
+    ...(exception ?? {}),
   }
   await setPendingQueue([...queue, entry])
   await markCheckedInLocally(eventSlug, { qrToken, registrationId })
   await noteSyncJournal({ ...entry, status: 'pending' })
   return entry
+  })
 }
 
 /** Bitácora del puesto: qué QR quedó en el teléfono y en qué terminó. */
-export async function noteSyncJournal(entry) {
+export function noteSyncJournal(entry) {
+  return withStoreWrite(async () => {
   const journal = (await get(JOURNAL_KEY, store)) ?? []
   const next = {
     localId: entry.localId,
@@ -354,6 +512,7 @@ export async function noteSyncJournal(entry) {
     [next, ...journal.filter((item) => item.localId !== next.localId)].slice(0, JOURNAL_MAX),
     store,
   )
+  })
 }
 
 export async function listSyncJournal() {
@@ -379,20 +538,39 @@ export async function listDoorSyncStatus() {
 }
 
 /** Actualiza intentos, backoff o el tope de una entrada que sigue en la cola. */
-export async function updatePending(localId, patch) {
+export function updatePending(localId, patch) {
+  return withStoreWrite(async () => {
   const queue = await getPendingQueue()
   await setPendingQueue(
     queue.map((item) => (item.localId === localId ? { ...item, ...patch } : item)),
   )
+  })
 }
 
 export async function listPending() {
   return getPendingQueue()
 }
 
-export async function removePending(localId) {
+/** Vuelve a dejar en cola los ingresos que ya fallaron tres veces. */
+export function reopenExhaustedCheckins() {
+  return withStoreWrite(async () => {
+  const queue = await getPendingQueue()
+  let reopened = 0
+  const next = queue.map((item) => {
+    if (item.status !== 'exhausted') return item
+    reopened += 1
+    return { ...item, status: 'pending', attemptCount: 0, nextAttemptAt: null }
+  })
+  if (reopened > 0) await setPendingQueue(next)
+  return reopened
+  })
+}
+
+export function removePending(localId) {
+  return withStoreWrite(async () => {
   const queue = await getPendingQueue()
   await setPendingQueue(queue.filter((item) => item.localId !== localId))
+  })
 }
 
 export async function listResolvedConflicts() {
@@ -400,13 +578,15 @@ export async function listResolvedConflicts() {
 }
 
 /** Log corto de auditoría: check-ins offline que perdieron la carrera contra otro dispositivo. */
-export async function addResolvedConflict(entry) {
+export function addResolvedConflict(entry) {
+  return withStoreWrite(async () => {
   const conflicts = await listResolvedConflicts()
   await set(
     CONFLICTS_KEY,
     [{ ...entry, resolvedAt: new Date().toISOString() }, ...conflicts].slice(0, 50),
     store,
   )
+  })
 }
 
 /**
@@ -415,10 +595,12 @@ export async function addResolvedConflict(entry) {
  * para intentos, no para check-ins reales. Se drena cuando vuelve la
  * conexión (`useOfflineCheckinSync.js`).
  */
-export async function enqueueScanEvent(attempt) {
+export function enqueueScanEvent(attempt) {
+  return withStoreWrite(async () => {
   const queue = (await get(SCAN_TELEMETRY_KEY, store)) ?? []
   const next = [...queue, attempt].slice(-SCAN_TELEMETRY_MAX)
   await set(SCAN_TELEMETRY_KEY, next, store)
+  })
 }
 
 export async function listPendingScanEvents() {
@@ -426,7 +608,8 @@ export async function listPendingScanEvents() {
 }
 
 /** Saca del disco sólo los intentos ya confirmados por el servidor. */
-export async function clearScanEvents(clientIds) {
+export function clearScanEvents(clientIds) {
+  return withStoreWrite(async () => {
   const ids = new Set(clientIds)
   const queue = (await get(SCAN_TELEMETRY_KEY, store)) ?? []
   await set(
@@ -434,4 +617,5 @@ export async function clearScanEvents(clientIds) {
     queue.filter((item) => !ids.has(item.clientId)),
     store,
   )
+  })
 }

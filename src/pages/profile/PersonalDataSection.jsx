@@ -25,6 +25,7 @@ import { isProfileComplete, PROFILE_FIELD_GROUPS } from '../../lib/athleteProfil
 import { getFormOptions } from '../../lib/formOptions.js'
 import { useAgeDivisionOptions } from '../../hooks/useAgeDivisionOptions.js'
 import { fetchGyms } from '../../services/athleteApi.js'
+import DocumentPackSection from './DocumentPackSection.jsx'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const RING_RADIUS = 48
@@ -82,6 +83,8 @@ export default function PersonalDataSection({
   onUpdateProfile,
   onUpdatePhoto,
   onRemovePhoto,
+  onUploadDocument = null,
+  showMemberDocuments = false,
 }) {
   const { t } = useI18n()
   const [form, setForm] = useState({
@@ -430,6 +433,14 @@ export default function PersonalDataSection({
           ) : null}
         </div>
       </header>
+
+      {showMemberDocuments ? (
+        <DocumentPackSection
+          athlete={athlete}
+          onUploadDocument={onUploadDocument}
+          variant="member"
+        />
+      ) : null}
 
       {!profileStatus.complete ? (
         <div className="account-profile-checklist" role="status">

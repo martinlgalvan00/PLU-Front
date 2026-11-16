@@ -10,7 +10,11 @@ import {
   pushAdminEventRoute,
 } from '../lib/adminEventRoute.js'
 import { formatDayMonth } from '../lib/format.js'
-import { canManageEventTeam } from '../lib/roles.js'
+import {
+  canEnableTicketOrders,
+  canManageEventTeam,
+  canSetTicketAccessWindow,
+} from '../lib/roles.js'
 import { getStatusMeta } from '../lib/status.js'
 import { hasPermission } from '../lib/permissions.js'
 import '../styles/layout/admin-shell.css'
@@ -74,6 +78,8 @@ export default function OrganizerAppPage({
   const canReadRegistrations = hasPermission(authorization, 'admin.registrations.read')
   const canSetRegistrationStatus = hasPermission(authorization, 'admin.registrations.write')
   const canCheckIn = hasPermission(authorization, 'admin.checkin.execute')
+  const canEnableTickets = canEnableTicketOrders(authorization)
+  const canSetTicketWindow = canSetTicketAccessWindow(authorization)
   const workspaceOpen = Boolean(adminEventWorkspaceSlug)
   const singleEventSlug =
     !workspaceOpen && !adminEventsLoading && !adminEventsError && adminEvents.length === 1
@@ -160,12 +166,15 @@ export default function OrganizerAppPage({
               athletes={athletes}
               canDeleteEvents={false}
               canEdit={canEdit}
+              canEnableTickets={canEnableTickets}
               canManageEventTeam={teamAccess}
+              canSetTicketWindow={canSetTicketWindow}
               canManageUsers={false}
               canValidatePayments={canValidatePayments}
               canSetRegistrationStatus={canSetRegistrationStatus}
               canViewScanReport={false}
               eventScoped
+              showSoldTickets={!canEdit && canCheckIn}
               gatePendingIds={canReadRegistrations ? gatePendingIds : undefined}
               isLoading={adminEventsLoading}
               loadError={adminEventsError}

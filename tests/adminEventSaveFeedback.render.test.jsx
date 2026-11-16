@@ -57,6 +57,8 @@ const SOURCE = {
   slots: 180,
   startsAt: '2027-03-06T12:00:00.000Z',
   endsAt: '2027-03-06T23:00:00.000Z',
+  registrationOpensAt: '2027-01-10T10:00:00.000Z',
+  registrationClosesAt: '2027-03-01T18:00:00.000Z',
   pricing: { membership: 75000, registration: 75000, combo: 120000, ticketsEnabled: false },
 }
 

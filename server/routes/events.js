@@ -389,9 +389,11 @@ const ticketTypeSchema = z
       })
     }
     if (
-      [TICKET_QR_VALIDITY_MODE.FROM_PAYMENT, TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN].includes(
-        validityMode,
-      ) &&
+      [
+        TICKET_QR_VALIDITY_MODE.FROM_PAYMENT,
+        TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN,
+        TICKET_QR_VALIDITY_MODE.FIRST_ENTRY_DAY,
+      ].includes(validityMode) &&
       (type.validFrom || type.validUntil)
     ) {
       ctx.addIssue({

@@ -1,6 +1,8 @@
+import { applyAthleteCheckinGate } from '../lib/athleteCredential.js'
 import { ApiError } from '../lib/api.js'
 import { credentialOpensZone } from './securityZoneService.js'
 import { getMembershipByCodeOrToken, getStaffMembershipCredential } from './athleteApi.js'
+import { memberCodeLookupCandidates } from '../../shared/spokenMemberCode.js'
 import { resolveTicketDoorCredential } from '../lib/ticketGateCode.js'
 import {
   mapApiTicket,
@@ -42,9 +44,9 @@ export function registrationCheckinStatus(registration) {
 }
 
 /**
- * Días en los que esa persona figura. Sin grilla asignada devuelve 'all': un
- * atleta todavía sin día tiene que seguir apareciendo en la puerta, no
- * desaparecer del roster hasta que la organización arme el reparto.
+ * Día de levantamiento según la grilla. No es el acceso a la puerta: un
+ * competidor entra todos los días del torneo, aunque levante en uno solo.
+ * Sin grilla devuelve 'all'.
  */
 export function scheduleDayIndexes(schedule) {
   return typeof schedule?.dayIndex === 'number' ? [schedule.dayIndex] : 'all'
@@ -58,9 +60,11 @@ function buildAthleteRow(registration, athlete, membership) {
     name: athlete?.fullName,
     document: athlete?.documentId,
     meta: [registration.category, registration.division].filter(Boolean).join(' · '),
-    dayIndexes: scheduleDayIndexes(registration.schedule),
+    dayIndexes: 'all',
     schedule: registration.schedule ?? null,
-    status: registrationCheckinStatus(registration),
+    status: applyAthleteCheckinGate(registrationCheckinStatus(registration), registration, {
+      membership,
+    }),
     checkedInAt: registration.checkedInAt,
     membershipStatus: membership?.status ?? null,
     memberCode: membership?.memberCode ?? null,
@@ -107,12 +111,15 @@ export function buildTicketRow(ticket) {
     // puerta son indistinguibles.
     credentialLabel: ticket.credentialLabel ?? null,
     credentialScopes: ticket.credentialScopes ?? [],
+    orderId: ticket.orderId ?? ticket.order?.id ?? null,
+    paymentProofPath: ticket.paymentProofPath ?? ticket.order?.paymentProofPath ?? null,
     status: ticket.checkedInAt ? 'usada' : ticket.status,
     checkedInAt: ticket.checkedInAt,
     checkedInGate: ticket.checkedInGate ?? null,
     addons: ticket.addons ?? [],
     validFrom: ticket.validFrom ?? null,
     validUntil: ticket.validUntil ?? null,
+    validityMode: ticket.validityMode ?? null,
   }
 }
 
@@ -161,9 +168,12 @@ function readCredential(code, slug, staff) {
   })
 }
 
-export async function resolveRegistrationScan({ code, eventSlug }, ctx) {
+async function resolveOneRegistrationScan({ code, eventSlug }, ctx) {
   const { defaultEventSlug, staff = false } = ctx
-  const slug = eventSlug || defaultEventSlug
+  // El puesto acredita SU evento. Un `evento` viejo dentro del QR no puede
+  // mandar la búsqueda a otro meet: la persona es la misma, el torneo es el
+  // que tiene abierta la puerta.
+  const slug = defaultEventSlug || eventSlug
 
   try {
     const { athlete, membership, registration } = await readCredential(code, slug, staff)
@@ -184,8 +194,8 @@ export async function resolveRegistrationScan({ code, eventSlug }, ctx) {
       }
     }
 
-    const status = registrationCheckinStatus(registration)
-    const outcome = checkinOutcomeFromStatus(status)
+    const row = buildAthleteRow(registration, athlete, membership)
+    const outcome = checkinOutcomeFromStatus(row.status)
 
     return {
       kind: 'registration',
@@ -195,8 +205,8 @@ export async function resolveRegistrationScan({ code, eventSlug }, ctx) {
       membership,
       registration,
       registrationId: registration.id,
-      status,
-      row: buildAthleteRow(registration, athlete, membership),
+      status: row.status,
+      row,
     }
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
@@ -204,6 +214,18 @@ export async function resolveRegistrationScan({ code, eventSlug }, ctx) {
     }
     throw error
   }
+}
+
+export async function resolveRegistrationScan({ code, eventSlug }, ctx) {
+  const candidates = memberCodeLookupCandidates(code)
+  const list = candidates.length > 0 ? candidates : [String(code ?? '')]
+  let last = { kind: 'registration', outcome: 'not_found' }
+  for (const candidate of list) {
+    const result = await resolveOneRegistrationScan({ code: candidate, eventSlug }, ctx)
+    if (result.outcome !== 'not_found') return result
+    last = result
+  }
+  return last
 }
 
 export async function resolveTicketScan(rawCode, { zoneScope, staff = false } = {}) {

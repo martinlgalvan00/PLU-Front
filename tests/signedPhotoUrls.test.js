@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ATHLETE_DOCUMENT_MAX_EDGE,
+  ATHLETE_DOCUMENT_PDF_MAX_BYTES,
   ATHLETE_PHOTO_MAX_EDGE,
   SHOP_PRODUCT_MAX_EDGE,
+  compressAthleteDocumentFile,
   fitImageWithin,
 } from '../src/lib/compressImageFile.js'
 import {
@@ -26,6 +29,29 @@ describe('fitImageWithin', () => {
     expect(fitImageWithin(4000, 3000, SHOP_PRODUCT_MAX_EDGE)).toEqual({
       width: SHOP_PRODUCT_MAX_EDGE,
       height: Math.round((3000 * SHOP_PRODUCT_MAX_EDGE) / 4000),
+    })
+  })
+
+  it('acota documentos de afiliación a 1280 de lado largo', () => {
+    expect(fitImageWithin(4000, 3000, ATHLETE_DOCUMENT_MAX_EDGE)).toEqual({
+      width: ATHLETE_DOCUMENT_MAX_EDGE,
+      height: Math.round((3000 * ATHLETE_DOCUMENT_MAX_EDGE) / 4000),
+    })
+  })
+})
+
+describe('compressAthleteDocumentFile', () => {
+  it('deja un PDF liviano y rechaza uno pesado', async () => {
+    const small = new File([new Uint8Array(12 * 1024)], 'cert.pdf', { type: 'application/pdf' })
+    await expect(compressAthleteDocumentFile(small)).resolves.toBe(small)
+
+    const heavy = new File(
+      [new Uint8Array(ATHLETE_DOCUMENT_PDF_MAX_BYTES + 1)],
+      'cert.pdf',
+      { type: 'application/pdf' },
+    )
+    await expect(compressAthleteDocumentFile(heavy)).rejects.toMatchObject({
+      code: 'DOCUMENT_PDF_TOO_LARGE',
     })
   })
 })

@@ -24,6 +24,7 @@ export default function AdminOfflineSyncStatus({
   lastDownloadedAt,
   lastSyncedAt,
   onReauthenticate = null,
+  onRetryExhausted = null,
   onReloadAndSync = null,
   pendingCount,
   queueLog = [],
@@ -216,6 +217,17 @@ export default function AdminOfflineSyncStatus({
         >
           {t('admin.checkin.offline.exhausted', { count: failedCount })}
         </p>
+      ) : null}
+
+      {failedCount > 0 && onRetryExhausted ? (
+        <button
+          type="button"
+          className="btn btn--small"
+          onClick={onRetryExhausted}
+          disabled={!isOnline || syncing}
+        >
+          {t('admin.checkin.offline.retryExhausted')}
+        </button>
       ) : null}
 
       {syncIssue === 'auth' && hasPending ? (

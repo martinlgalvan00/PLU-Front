@@ -35,6 +35,7 @@ export function errorHandler(err, req, res, _next) {
   if (err.details?.fields && typeof err.details.fields === 'object') {
     body.fields = err.details.fields
   }
+  if (Array.isArray(err.details?.missing)) body.missing = err.details.missing
   // En un 5xx el mensaje es opaco a proposito. El id de correlacion es lo unico
   // que le permite a quien reporta el problema (atleta u operador) que podamos
   // encontrar el stack exacto en los logs.

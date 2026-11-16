@@ -258,6 +258,23 @@
   text-underline-offset: 3px;
 }
 
+.buyer-tickets-wallet__spent {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  padding: 8px 0 4px;
+}
+
+.buyer-tickets-wallet__alert {
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  margin: 0;
+  text-align: center;
+}
+
 .buyer-tickets-wallet__actions {
   display: flex;
   flex-wrap: wrap;

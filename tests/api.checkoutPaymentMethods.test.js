@@ -100,6 +100,24 @@ const COMPLETE_COMPETITION_PROFILE = {
   estimated_weight: 90,
 }
 
+const COMPLETE_MEMBERSHIP_FILE = {
+  full_name: 'Atleta de Prueba',
+  document_id: '30111222',
+  birth_date: '1995-01-01',
+  sex: 'Masculino',
+  phone: '1122334455',
+  country: 'Argentina',
+  province: 'Buenos Aires',
+  city: 'La Plata',
+}
+
+const COMPLETE_DOCUMENT_PACK = {
+  birthDate: '1995-01-01',
+  documentsGrandfathered: false,
+  documents: [{ kind: 'dni_front' }, { kind: 'dni_back' }, { kind: 'medical_certificate' }],
+  unavailable: false,
+}
+
 function buildApp({ toggles = {}, channelPolicy = null } = {}) {
   const createMembershipOrder = vi.fn().mockResolvedValue({ order: { id: 'order-membership' } })
   const createRegistration = vi.fn().mockResolvedValue({ order: { id: 'order-registration' } })
@@ -117,6 +135,8 @@ function buildApp({ toggles = {}, channelPolicy = null } = {}) {
     platformSettingsRepository: { get: vi.fn().mockResolvedValue(toggles) },
     athleteRepository: {
       findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+      findProfileCompleteness: vi.fn().mockResolvedValue(COMPLETE_MEMBERSHIP_FILE),
+      findDocumentPack: vi.fn().mockResolvedValue(COMPLETE_DOCUMENT_PACK),
       findCompetitionProfile: vi.fn().mockResolvedValue(COMPLETE_COMPETITION_PROFILE),
       findMembershipPlan: vi.fn().mockResolvedValue({
         code: 'plu-annual',
@@ -598,6 +618,229 @@ describe('requisitos previos comunes a todos los medios de pago', () => {
       } finally {
         await target.close()
       }
+    }
+  })
+
+  it('exige el legajo de documentos para pagar afiliación', async () => {
+    const createMembershipOrder = vi.fn()
+    const target = listen(
+      createApp({
+        env: { PAID_CHECKOUT_ENABLED: 'true' },
+        supabaseAdmin: authenticatedSupabase(),
+        registrationAccessRepository: {
+          findActiveGate: vi.fn().mockResolvedValue(null),
+          recordUse: vi.fn(),
+        },
+        platformSettingsRepository: { get: vi.fn().mockResolvedValue({}) },
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+          findDocumentPack: vi.fn().mockResolvedValue({
+            birthDate: '1995-01-01',
+            documentsGrandfathered: false,
+            documents: [],
+            unavailable: false,
+          }),
+          findMembershipPlan: vi.fn().mockResolvedValue({
+            code: 'plu-annual',
+            collection_mode: 'one_time',
+            price: DEFAULT_PRICE,
+            manual_price: MANUAL_PRICE,
+          }),
+          discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
+          createMembershipOrder,
+        },
+      }),
+    )
+    try {
+      const response = await post(target, '/api/athletes/me/membership-orders', membershipBody('mercado_pago'))
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({
+        code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+        missing: ['dni_front', 'dni_back'],
+      })
+      expect(createMembershipOrder).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('exige la ficha de afiliación antes de cobrar', async () => {
+    const createMembershipOrder = vi.fn()
+    const target = listen(
+      createApp({
+        env: { PAID_CHECKOUT_ENABLED: 'true' },
+        supabaseAdmin: authenticatedSupabase(),
+        registrationAccessRepository: {
+          findActiveGate: vi.fn().mockResolvedValue(null),
+          recordUse: vi.fn(),
+        },
+        platformSettingsRepository: { get: vi.fn().mockResolvedValue({}) },
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+          findProfileCompleteness: vi.fn().mockResolvedValue({
+            ...COMPLETE_MEMBERSHIP_FILE,
+            city: '',
+          }),
+          findDocumentPack: vi.fn().mockResolvedValue(COMPLETE_DOCUMENT_PACK),
+          findMembershipPlan: vi.fn().mockResolvedValue({
+            code: 'plu-annual',
+            collection_mode: 'one_time',
+            price: DEFAULT_PRICE,
+            manual_price: MANUAL_PRICE,
+          }),
+          discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
+          createMembershipOrder,
+        },
+      }),
+    )
+    try {
+      const response = await post(target, '/api/athletes/me/membership-orders', membershipBody('mercado_pago'))
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({
+        code: 'ATHLETE_MEMBERSHIP_DATA_INCOMPLETE',
+        missing: ['city'],
+      })
+      expect(createMembershipOrder).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('exige el legajo de documentos para el combo', async () => {
+    const createRegistrationCombo = vi.fn()
+    const target = listen(
+      createApp({
+        env: { PAID_CHECKOUT_ENABLED: 'true' },
+        supabaseAdmin: authenticatedSupabase(),
+        registrationAccessRepository: {
+          findActiveGate: vi.fn().mockResolvedValue(null),
+          recordUse: vi.fn(),
+        },
+        platformSettingsRepository: { get: vi.fn().mockResolvedValue({}) },
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+          findDocumentPack: vi.fn().mockResolvedValue({
+            birthDate: '1995-01-01',
+            documentsGrandfathered: false,
+            documents: [],
+            unavailable: false,
+          }),
+          findCompetitionProfile: vi.fn().mockResolvedValue(COMPLETE_COMPETITION_PROFILE),
+          findEventPricing: vi.fn().mockResolvedValue({
+            slug: 'pitbull-classic-2026',
+            price: DEFAULT_PRICE,
+            manual_price: MANUAL_PRICE,
+          }),
+          findEventComboOffer: vi.fn().mockResolvedValue({
+            price: COMBO_DEFAULT_PRICE,
+            manualPrice: COMBO_MANUAL_PRICE,
+          }),
+          discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
+          createRegistrationCombo,
+        },
+      }),
+    )
+    try {
+      const response = await post(
+        target,
+        '/api/athletes/me/registration-combos',
+        registrationBody('mercado_pago'),
+      )
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({
+        code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+        missing: ['dni_front', 'dni_back'],
+      })
+      expect(createRegistrationCombo).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('exige el legajo de documentos para inscribir una cuenta nueva', async () => {
+    const createRegistration = vi.fn()
+    const target = listen(
+      createApp({
+        env: { PAID_CHECKOUT_ENABLED: 'true' },
+        supabaseAdmin: authenticatedSupabase(),
+        registrationAccessRepository: {
+          findActiveGate: vi.fn().mockResolvedValue(null),
+          recordUse: vi.fn(),
+        },
+        platformSettingsRepository: { get: vi.fn().mockResolvedValue({}) },
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+          findDocumentPack: vi.fn().mockResolvedValue({
+            birthDate: '1995-01-01',
+            documentsGrandfathered: false,
+            documents: [],
+            unavailable: false,
+          }),
+          findCompetitionProfile: vi.fn().mockResolvedValue(COMPLETE_COMPETITION_PROFILE),
+          findEventPricing: vi.fn().mockResolvedValue({
+            slug: 'pitbull-classic-2026',
+            price: DEFAULT_PRICE,
+            manual_price: MANUAL_PRICE,
+          }),
+          discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
+          createRegistration,
+        },
+      }),
+    )
+    try {
+      const response = await post(target, '/api/athletes/me/registrations', registrationBody('mercado_pago'))
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({
+        code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+        missing: ['dni_front', 'dni_back'],
+      })
+      expect(createRegistration).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('exige el DNI a una cuenta anterior si el torneo pide afiliación', async () => {
+    const createRegistration = vi.fn()
+    const target = listen(
+      createApp({
+        env: { PAID_CHECKOUT_ENABLED: 'true' },
+        supabaseAdmin: authenticatedSupabase(),
+        registrationAccessRepository: {
+          findActiveGate: vi.fn().mockResolvedValue(null),
+          recordUse: vi.fn(),
+        },
+        platformSettingsRepository: { get: vi.fn().mockResolvedValue({}) },
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+          findDocumentPack: vi.fn().mockResolvedValue({
+            birthDate: '1995-01-01',
+            documentsGrandfathered: true,
+            documents: [],
+            unavailable: false,
+          }),
+          findCompetitionProfile: vi.fn().mockResolvedValue(COMPLETE_COMPETITION_PROFILE),
+          findEventPricing: vi.fn().mockResolvedValue({
+            slug: 'pitbull-classic-2026',
+            price: DEFAULT_PRICE,
+            manual_price: MANUAL_PRICE,
+            requires_membership: true,
+          }),
+          discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
+          createRegistration,
+        },
+      }),
+    )
+    try {
+      const response = await post(target, '/api/athletes/me/registrations', registrationBody('mercado_pago'))
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({
+        code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+        missing: ['dni_front', 'dni_back'],
+      })
+      expect(createRegistration).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
     }
   })
 

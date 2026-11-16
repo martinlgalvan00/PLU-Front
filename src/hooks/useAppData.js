@@ -37,6 +37,7 @@ import {
   updateStaffUserStatusRequest,
   setStaffUserEventAccessRequest,
 } from '../lib/api.js'
+import { isRetryableCheckinFailure } from '../services/checkinFailure.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
 import { normalizeAdminFacetValue, registrationMatchesDivision } from '../lib/adminPeopleFilters.js'
 import { env } from '../config/env.js'
@@ -92,6 +93,7 @@ import {
   previewRegistrationNotification as previewRegistrationNotificationRequest,
   setMembershipStatus as setMembershipStatusRequest,
   setRegistrationPublicVisibility as setRegistrationPublicVisibilityRequest,
+  saveMembershipFile as saveMembershipFileRequest,
   updateAthleteProfile as updateAthleteProfileRequest,
   sendAthleteProfileNotice as sendAthleteProfileNoticeRequest,
   sendAthleteProfileNoticesBulk as sendAthleteProfileNoticesBulkRequest,
@@ -99,6 +101,9 @@ import {
   dismissAthleteProfileNotice as dismissAthleteProfileNoticeRequest,
 } from '../services/athleteApi.js'
 import { uploadAthletePhoto } from '../services/athletePhotoService.js'
+import { uploadAthleteDocument } from '../services/athleteDocumentService.js'
+import { ATHLETE_DOCUMENT_KIND_LABELS, documentPackGate } from '../lib/athleteDocuments.js'
+import { membershipFileStatus } from '../../shared/membershipFile.js'
 import {
   invalidateEventLiveData,
   invalidateEventRegistrationSummary,
@@ -256,6 +261,19 @@ const CATALOG_NOTICE_DEBOUNCE_MS = 400
 // upsert toca `events`). La respuesta del guardado ya trae la lista completa:
 // mientras dura y unos segundos después, el aviso no vuelve a pedirla.
 const LOCAL_EVENTS_WRITE_ECHO_MS = 3_000
+
+function missingDocumentsMessage(missing, purpose) {
+  const labels = missing.map((kind) => ATHLETE_DOCUMENT_KIND_LABELS[kind] ?? kind)
+  const list =
+    labels.length <= 1
+      ? (labels[0] ?? 'el DNI frente y dorso')
+      : labels.length === 2
+        ? `${labels[0]} y ${labels[1]}`
+        : `${labels.slice(0, -1).join(', ')} y ${labels.at(-1)}`
+  if (purpose === 'membership') return `Subí ${list} antes de pagar la afiliación.`
+  if (purpose === 'combo') return `Subí ${list} antes de pagar.`
+  return `Subí ${list} antes de inscribirte.`
+}
 
 /**
  * Precio de inscripción de UN evento. `admin.pricing.write` está reservado a Super Admin
@@ -1427,6 +1445,22 @@ export function useAppData() {
     ) => {
       const athlete = athletes.find((item) => item.id === session?.athleteId)
       if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
+      const membershipFile = membershipFileStatus(athlete)
+      if (!membershipFile.complete) {
+        return {
+          error: 'Completá los datos de afiliación antes de pagar.',
+          code: 'ATHLETE_MEMBERSHIP_DATA_INCOMPLETE',
+          missing: membershipFile.missing,
+        }
+      }
+      const documentsGate = documentPackGate(athlete, athlete.documents, { purpose: 'membership' })
+      if (documentsGate.blocked) {
+        return {
+          error: missingDocumentsMessage(documentsGate.missing, 'membership'),
+          code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+          missing: documentsGate.missing,
+        }
+      }
 
       try {
         const normalizedMethod = paymentMethod === 'transferencia' ? 'manual_link' : paymentMethod
@@ -1571,6 +1605,29 @@ export function useAppData() {
       event.preventDefault()
       const athlete = athletes.find((item) => item.id === session?.athleteId)
       if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
+      if (options.purchaseType === 'combo') {
+        const membershipFile = membershipFileStatus(athlete)
+        if (!membershipFile.complete) {
+          return {
+            error: 'Completá los datos de afiliación antes de pagar.',
+            code: 'ATHLETE_MEMBERSHIP_DATA_INCOMPLETE',
+            missing: membershipFile.missing,
+          }
+        }
+      }
+      const documentsPurpose = options.purchaseType === 'combo' ? 'combo' : 'registration'
+      const meet = options.event ?? selectedEvent
+      const documentsGate = documentPackGate(athlete, athlete.documents, {
+        purpose: documentsPurpose,
+        requiresMembership: meet?.requiresMembership === true || meet?.requires_membership === true,
+      })
+      if (documentsGate.blocked) {
+        return {
+          error: missingDocumentsMessage(documentsGate.missing, documentsPurpose),
+          code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+          missing: documentsGate.missing,
+        }
+      }
 
       try {
         const purchaseType = options.purchaseType === 'combo' ? 'combo' : 'registration'
@@ -2084,8 +2141,8 @@ export function useAppData() {
   // Mercado Pago se acreditan exclusivamente mediante webhook.
   const approveTicketPurchase = useCallback(
     async (orderId, { overrideReason } = {}) => {
-      if (!hasPermission(session, 'admin.payments.approve')) {
-        return { error: 'Sin permisos para aprobar pagos.' }
+      if (!hasAnyPermission(session, ['admin.payments.approve', 'admin.tickets.enable'])) {
+        return { error: 'Sin permisos para habilitar esta entrada.' }
       }
       try {
         const { order, tickets: approvedTickets } = await approveTicketOrderRequest(orderId, {
@@ -2114,8 +2171,8 @@ export function useAppData() {
   // bandeja de pendientes, igual que una aprobación.
   const rejectTicketPurchase = useCallback(
     async (orderId, reason) => {
-      if (!hasPermission(session, 'admin.payments.approve')) {
-        return { error: 'Sin permisos para rechazar pagos.' }
+      if (!hasAnyPermission(session, ['admin.payments.approve', 'admin.tickets.enable'])) {
+        return { error: 'Sin permisos para rechazar esta entrada.' }
       }
       try {
         const { order, tickets: rejectedTickets } = await rejectTicketOrderRequest(orderId, reason)
@@ -2132,6 +2189,7 @@ export function useAppData() {
         return { order }
       } catch (error) {
         console.error('rejectTicketPurchase:', error)
+        if (isRetryableCheckinFailure(error)) throw error
         return { error: error?.message ?? 'No se pudo rechazar la orden.' }
       }
     },
@@ -2253,14 +2311,18 @@ export function useAppData() {
   }, [session, refreshPendingTicketOrders])
 
   const checkInTicketAction = useCallback(
-    async (qrToken) => {
+    async (qrToken, { force, reason } = {}) => {
       if (!hasPermission(session, 'admin.checkin.execute')) {
+        return { outcome: 'forbidden' }
+      }
+      if (force && !hasPermission(session, 'admin.checkin.override')) {
         return { outcome: 'forbidden' }
       }
       try {
         const { ticket, checkIn } = await checkInTicketRequest(
           qrToken,
           session.securityZone?.name,
+          { force, reason },
         )
         const updated = { ...mapApiTicket(ticket), checkedInAt: checkIn.scannedAt }
         setTickets((current) => current.map((item) => (item.qrToken === qrToken ? updated : item)))
@@ -3578,6 +3640,33 @@ export function useAppData() {
     return { success: true }
   }, [])
 
+  const saveMembershipFileAction = useCallback(async (athleteId, file) => {
+    try {
+      const { athlete } = await saveMembershipFileRequest(file)
+      setAthletes((current) =>
+        current.map((item) =>
+          item.id === athleteId
+            ? {
+                ...item,
+                fullName: athlete.fullName ?? item.fullName,
+                documentId: athlete.documentId ?? item.documentId,
+                birthDate: athlete.birthDate ?? item.birthDate,
+                sex: athlete.sex ?? item.sex,
+                phone: athlete.phone ?? item.phone,
+                country: athlete.country ?? item.country,
+                province: athlete.province ?? item.province,
+                city: athlete.city ?? item.city,
+              }
+            : item,
+        ),
+      )
+      return { athlete }
+    } catch (error) {
+      if (error instanceof ApiError) return { error: error.message, code: error.body?.code ?? null }
+      return { error: 'No se pudo guardar la ficha. Intentá de nuevo.' }
+    }
+  }, [])
+
   const updateAthleteProfileAction = useCallback(async (athleteId, updates) => {
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailPattern.test(updates.email ?? '')) {
@@ -3603,6 +3692,36 @@ export function useAppData() {
     } catch (error) {
       if (error instanceof ApiError) return { error: error.message }
       throw error
+    }
+  }, [])
+
+  const uploadAthleteDocumentAction = useCallback(async (athleteId, kind, file) => {
+    try {
+      const uploaded = await uploadAthleteDocument(kind, file)
+      const row = uploaded?.document ?? {}
+      setAthletes((current) =>
+        current.map((item) => {
+          if (item.id !== athleteId) return item
+          const documents = (item.documents ?? []).filter((entry) => entry.kind !== kind)
+          return {
+            ...item,
+            documents: [
+              ...documents,
+              {
+                kind: row.kind ?? kind,
+                contentType: row.content_type ?? row.contentType ?? file.type,
+                sizeBytes: row.size_bytes ?? row.sizeBytes ?? file.size,
+                originalName: row.original_name ?? row.originalName ?? file.name,
+                uploadedAt: row.uploaded_at ?? row.uploadedAt ?? new Date().toISOString(),
+              },
+            ],
+          }
+        }),
+      )
+      return { ok: true }
+    } catch (error) {
+      if (error instanceof ApiError) return { error: error.message }
+      return { error: 'No se pudo subir el documento. Intentá de nuevo.' }
     }
   }, [])
 
@@ -4584,8 +4703,10 @@ export function useAppData() {
     adminNavBadges,
     getAthleteDetail,
     updateForm,
+    saveMembershipFileAction,
     updateAthleteProfileAction,
     updateAthletePhotoAction,
+    uploadAthleteDocumentAction,
     removeAthletePhotoAction,
     registerAthlete,
     submitMembership,

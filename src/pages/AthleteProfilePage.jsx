@@ -15,12 +15,14 @@ import {
 import { isRegistrationAdmitted } from '../lib/status.js'
 import { isPaymentActionable } from '../lib/paymentProgress.js'
 import { isMembershipCurrent } from '../services/membershipService.js'
+import { affiliationAccountStep } from '../../shared/accountAffiliationStep.js'
 import { isProfileComplete, visibleProfileNotice } from '../lib/athleteProfile.js'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import EmailVerificationBanner from '../components/ui/EmailVerificationBanner.jsx'
 import GateMembershipBanner from '../components/ui/GateMembershipBanner.jsx'
 import ProfileIncompleteNoticeBanner from '../components/ui/ProfileIncompleteNoticeBanner.jsx'
+import DocumentsPendingBanner from '../components/ui/DocumentsPendingBanner.jsx'
 import AccountNav from './profile/AccountNav.jsx'
 import ProfileHero from './profile/ProfileHero.jsx'
 import QrCredentialSection from './profile/QrCredentialSection.jsx'
@@ -73,6 +75,8 @@ export default function AthleteProfilePage({
   onSelectEvent,
   onUpdateProfile,
   onUpdatePhoto,
+  onUploadDocument,
+  onSaveMembershipFile,
   onRemovePhoto,
   onReadProfileNotice,
   onDismissProfileNotice,
@@ -151,12 +155,18 @@ export default function AthleteProfilePage({
   // Cobro rechazado/vencido sin resolver: la ficha "Pagos" lo marca desde la
   // navegación para que se note sin tener que entrar a leer la lista.
   const paymentsNeedAttention = athletePayments.some((item) => isPaymentActionable(item.progress))
+  const affiliationStep = affiliationAccountStep({
+    athlete,
+    membershipCurrent: Boolean(membership),
+  })
   const profileNeedsAttention = Boolean(
-    visibleProfileNotice(athlete?.profileNotices) || (athlete && !isProfileComplete(athlete).complete),
+    visibleProfileNotice(athlete?.profileNotices) ||
+    (athlete && !isProfileComplete(athlete).complete),
   )
   const navAttentionIds = [
     paymentsNeedAttention ? 'account-payments' : null,
     profileNeedsAttention ? 'account-personal-data' : null,
+    affiliationStep === 'file' || affiliationStep === 'documents' ? ACCOUNT_MEMBERSHIP_TAB : null,
   ].filter(Boolean)
   const availableEvents = (events.length ? events : UPCOMING_EVENTS).filter(
     (event) => event.status !== 'finalizado',
@@ -260,6 +270,15 @@ export default function AthleteProfilePage({
       setActiveTab(id)
     },
     [reloadBundleOffers],
+  )
+
+  const [credentialEventSlug, setCredentialEventSlug] = useState(null)
+  const openCredential = useCallback(
+    (event) => {
+      setCredentialEventSlug(event?.slug ?? null)
+      openTab('account-qr')
+    },
+    [openTab],
   )
 
   // Intent local para el checkout de afiliación (vive en esta página). El de
@@ -381,6 +400,7 @@ export default function AthleteProfilePage({
         latestMembership={storedMembership}
         registrations={athleteRegistrations}
         events={events}
+        focusEventSlug={credentialEventSlug}
         pendingFinancedPayment={pendingFinancedPayment}
         onNavigateSection={openTab}
         onNavigate={onNavigate}
@@ -404,17 +424,18 @@ export default function AthleteProfilePage({
         onNavigate={onNavigate}
         onSelectEvent={onSelectEvent}
         athlete={athlete}
+        latestMembership={storedMembership}
         onNavigateSection={openTab}
+        onViewCredential={openCredential}
         checkoutAvailability={checkoutAvailability}
         pendingFinancedPayment={pendingFinancedPayment}
       />
     ),
-    'account-tickets': <AccountTicketsSection session={demoMode ? null : session} />,
+    'account-tickets': (
+      <AccountTicketsSection onNavigate={onNavigate} session={demoMode ? null : session} />
+    ),
     'account-history': (
-      <HistorySection
-        athleteRegistrations={athleteRegistrations}
-        onNavigateSection={openTab}
-      />
+      <HistorySection athleteRegistrations={athleteRegistrations} onNavigateSection={openTab} />
     ),
     'account-membership': (
       <MembershipPurchaseSection
@@ -433,6 +454,8 @@ export default function AthleteProfilePage({
         pendingFinancedPayment={pendingFinancedPayment}
         checkoutIntent={membershipCheckoutIntent}
         onCheckoutIntentConsumed={() => setMembershipCheckoutIntent(null)}
+        onUploadDocument={onUploadDocument}
+        onSaveMembershipFile={onSaveMembershipFile}
       />
     ),
     'account-payments': (
@@ -440,9 +463,7 @@ export default function AthleteProfilePage({
         payments={athletePayments}
         onNavigateSection={openTab}
         onContinuePayment={(payment) => resumePaymentCheckout(payment)}
-        onChangePaymentMethod={(payment) =>
-          resumePaymentCheckout(payment, { changeMethod: true })
-        }
+        onChangePaymentMethod={(payment) => resumePaymentCheckout(payment, { changeMethod: true })}
         // Reintentar es volver a la pantalla que abre un cobro nuevo: la orden
         // vieja quedó cerrada y no se reabre. La afiliación y el combo salen de
         // Afiliación; una inscripción suelta, de Torneos.
@@ -458,6 +479,8 @@ export default function AthleteProfilePage({
         athlete={athlete}
         onUpdateProfile={onUpdateProfile}
         onUpdatePhoto={onUpdatePhoto}
+        onUploadDocument={onUploadDocument}
+        showMemberDocuments={Boolean(membership)}
         onRemovePhoto={onRemovePhoto}
       />
     ),
@@ -472,7 +495,10 @@ export default function AthleteProfilePage({
             <ProfileHero
               athlete={athlete}
               membership={membership}
+              latestMembership={storedMembership}
               athleteRegistrations={athleteRegistrations}
+              events={events}
+              focusEventSlug={credentialEventSlug}
               nextEvent={nextEvent}
               onNavigateSection={openTab}
               session={session}
@@ -489,16 +515,34 @@ export default function AthleteProfilePage({
 
         <div className="account-main">
           <EmailVerificationBanner athlete={athlete} />
-          <ProfileIncompleteNoticeBanner
-            athlete={athlete}
-            onComplete={() => openTab('account-personal-data')}
-            onDismiss={onDismissProfileNotice}
-            onRead={onReadProfileNotice}
-          />
-          <GateMembershipBanner
-            pendingEvents={gatePendingRegistrations}
-            onCompleteMembership={() => openTab(ACCOUNT_MEMBERSHIP_TAB)}
-          />
+          {affiliationStep == null ? (
+            <ProfileIncompleteNoticeBanner
+              athlete={athlete}
+              onComplete={() => openTab('account-personal-data')}
+              onDismiss={onDismissProfileNotice}
+              onRead={onReadProfileNotice}
+            />
+          ) : null}
+          {affiliationStep === 'file' ? (
+            <DocumentsPendingBanner
+              athlete={athlete}
+              step="file"
+              onComplete={() => openTab(ACCOUNT_MEMBERSHIP_TAB)}
+            />
+          ) : null}
+          {affiliationStep === 'documents' ? (
+            <DocumentsPendingBanner
+              athlete={athlete}
+              membershipCurrent={Boolean(membership)}
+              onComplete={() => openTab(ACCOUNT_MEMBERSHIP_TAB)}
+            />
+          ) : null}
+          {affiliationStep == null ? (
+            <GateMembershipBanner
+              pendingEvents={gatePendingRegistrations}
+              onCompleteMembership={() => openTab(ACCOUNT_MEMBERSHIP_TAB)}
+            />
+          ) : null}
           {/* `sync` y no `wait`: el panel saliente sigue montado mientras entra
               el nuevo, así el contenedor no colapsa un frame y la página no da
               un salto de scroll en los tabs altos. Los dos paneles comparten la

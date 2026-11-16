@@ -80,6 +80,26 @@ describe('buildScanEventRow', () => {
     })
     expect(JSON.stringify(row.metadata)).not.toContain('30111222')
   })
+
+  it('guarda la excepción de ingreso sin el QR ni el documento', () => {
+    const row = buildScanEventRow({
+      eventId: 'evt-1',
+      outcome: 'checked_in',
+      evidence: 'server',
+      qrToken: 'qr-secreto',
+      metadata: {
+        override: { force: 'zone', reason: 'El puesto de VIP estaba cerrado' },
+        attendeeDni: '30111222',
+      },
+    })
+
+    expect(row.metadata).toEqual({
+      override: { force: 'zone', reason: 'El puesto de VIP estaba cerrado' },
+    })
+    expect(row.qr_fingerprint).toBeTruthy()
+    expect(JSON.stringify(row)).not.toContain('qr-secreto')
+    expect(JSON.stringify(row)).not.toContain('30111222')
+  })
 })
 
 describe('recordScanEvents', () => {

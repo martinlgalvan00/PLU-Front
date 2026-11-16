@@ -6,6 +6,7 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
+  ChevronDown,
   Mail,
   Lock,
 } from 'lucide-react'
@@ -347,6 +348,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
                 swapKey={mode}
               >
                 {mode === 'login' && (
+                  <>
                   <form className="login-form" onSubmit={handleLoginSubmit} noValidate>
                     <label className={`login-field${fieldErrors.email ? ' is-invalid' : ''}`}>
                       <span className="login-field__label">{t('login.email')}</span>
@@ -514,6 +516,38 @@ export default function LoginPage({ onLogin, onNavigate }) {
                       </p>
                     </div>
                   </form>
+
+                  {/* Tres caminos reales, cerrados: no compiten con Ingresar
+                      ni duplican el enlace Afiliate del pie. */}
+                  <details className="login-howto">
+                    <summary className="login-howto__toggle">
+                      {t('login.howToToggle')}
+                      <ChevronDown
+                        size={14}
+                        strokeWidth={1.75}
+                        className="login-howto__chevron"
+                        aria-hidden
+                      />
+                    </summary>
+                    <ul className="login-howto__panel" aria-label={t('login.howToTitle')}>
+                      <li>
+                        <p className="login-howto__step">{t('login.howToStep1Title')}</p>
+                        <p className="login-howto__copy">{t('login.howToStep1Body')}</p>
+                      </li>
+                      <li>
+                        <p className="login-howto__step">{t('login.howToStep2Title')}</p>
+                        <p className="login-howto__copy">{t('login.howToStep2Body')}</p>
+                        <button type="button" className="login-howto__action" onClick={openRecover}>
+                          {t('login.howToStep2Action')}
+                        </button>
+                      </li>
+                      <li>
+                        <p className="login-howto__step">{t('login.howToStep3Title')}</p>
+                        <p className="login-howto__copy">{t('login.howToStep3Body')}</p>
+                      </li>
+                    </ul>
+                  </details>
+                  </>
                 )}
 
                 {mode === 'recover' && (

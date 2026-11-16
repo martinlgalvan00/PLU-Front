@@ -1,6 +1,7 @@
 import '../../styles/components/buyer-tickets-wallet.css'
 import { useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Download, Printer } from 'lucide-react'
+import CredentialQr from './CredentialQr.jsx'
 import TicketPassPreview from './TicketPassPreview.jsx'
 import { zoneScopeList } from './TicketTypeOptions.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -14,6 +15,8 @@ import {
 import { ticketTypeNameParts } from '../../lib/eventPricing.js'
 import { groupCredentialsByBundle } from '../../lib/ticketCredentials.js'
 import { formatTicketRevealWhen } from '../../lib/ticketReveal.js'
+import { HOLDER_CREDENTIAL_STATE, holderCredentialState } from '../../lib/ticketHolderState.js'
+import { TICKET_ACCESS_POLICY_MODE } from '../../lib/ticketValidityPolicy.js'
 import { TICKET_VALIDITY_STATUS, ticketValidityStatus } from '../../lib/ticketValidity.js'
 import {
   buildCardFilename,
@@ -113,6 +116,16 @@ export default function BuyerTicketsWallet({
   const selectedRevealWhen = selectedSealed
     ? formatTicketRevealWhen(selected.revealAt, locale)
     : ''
+  const holderState = selected
+    ? selected.credentialState || holderCredentialState(selected)
+    : null
+  const qrLive = holderState === HOLDER_CREDENTIAL_STATE.LIVE && Boolean(selected?.qrToken)
+  const qrSpent =
+    holderState === HOLDER_CREDENTIAL_STATE.USED || holderState === HOLDER_CREDENTIAL_STATE.EXPIRED
+  const firstEntryHint =
+    qrLive &&
+    selected?.validityMode === TICKET_ACCESS_POLICY_MODE.FIRST_ENTRY_DAY &&
+    !selected?.accessActivatedAt
 
   const selectedIndex = Math.max(
     0,
@@ -345,22 +358,33 @@ export default function BuyerTicketsWallet({
         </div>
       ) : null}
 
-      {selected && qrReady && selected.qrToken ? (
+      {selected && qrReady && (qrLive || qrSpent) ? (
         <div className="buyer-tickets-wallet__pass">
-          <div ref={passRef}>
-            <TicketPassPreview
-              live
-              interactive={false}
-              attendeeName={selected.attendeeName}
-              date={displayEventDate(selected, event, locale)}
-              dayPassLabel={selectedDays?.label ?? ''}
-              eventSlug={selected.eventSlug || event?.slug || ''}
-              eventTitle={selected.eventTitle || event?.title || ''}
-              displayCode={selected.gateCode || selected.ticketCode || ''}
-              qrCode={selected.qrToken}
-              venue={selected.eventVenue || event?.venue || ''}
-            />
-          </div>
+          {qrLive ? (
+            <div ref={passRef}>
+              <TicketPassPreview
+                live
+                interactive={false}
+                attendeeName={selected.attendeeName}
+                date={displayEventDate(selected, event, locale)}
+                dayPassLabel={selectedDays?.label ?? ''}
+                eventSlug={selected.eventSlug || event?.slug || ''}
+                eventTitle={selected.eventTitle || event?.title || ''}
+                displayCode={selected.gateCode || selected.ticketCode || ''}
+                qrCode={selected.qrToken}
+                venue={selected.eventVenue || event?.venue || ''}
+              />
+            </div>
+          ) : (
+            <div className="buyer-tickets-wallet__spent">
+              <CredentialQr spent size="lg" alt="" />
+              <p className="buyer-tickets-wallet__alert" role="alert">
+                {holderState === HOLDER_CREDENTIAL_STATE.EXPIRED
+                  ? t('pages.tickets.wallet.credentialExpired')
+                  : t('pages.tickets.wallet.credentialUsed')}
+              </p>
+            </div>
+          )}
           <div className="buyer-tickets-wallet__sheet">
             {selectedAccess.title ? (
               <p className="buyer-tickets-wallet__access">{selectedAccess.title}</p>
@@ -374,6 +398,9 @@ export default function BuyerTicketsWallet({
             </p>
             {(selectedDays?.days.length ?? 0) > 1 ? (
               <p className="buyer-tickets-wallet__note">{t('pages.tickets.wallet.sameQr')}</p>
+            ) : null}
+            {firstEntryHint ? (
+              <p className="buyer-tickets-wallet__note">{t('pages.tickets.wallet.firstEntryDay')}</p>
             ) : null}
             {selected.addons?.length ? (
               <p className="buyer-tickets-wallet__note">
@@ -397,6 +424,7 @@ export default function BuyerTicketsWallet({
                 </button>
               </p>
             ) : null}
+            {qrLive ? (
             <div className="buyer-tickets-wallet__actions">
               <button
                 type="button"
@@ -417,6 +445,7 @@ export default function BuyerTicketsWallet({
                 {t('pages.tickets.printPass')}
               </button>
             </div>
+            ) : null}
             {downloadError ? (
               <p className="buyer-tickets-wallet__error" role="alert">
                 {downloadError}

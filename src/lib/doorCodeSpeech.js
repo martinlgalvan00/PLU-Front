@@ -36,6 +36,8 @@ const VERDICT = {
     wrong_zone: 'No abre esta zona.',
     not_yet_valid: 'Todavía no está vigente.',
     expired: 'Ya venció.',
+    credential_expired: 'Credencial vencida.',
+    needs_online: 'Hace falta internet para esta credencial.',
     service_unavailable: 'Sin conexión. No se pudo validar.',
     session_expired: 'La sesión del puesto venció.',
     not_in_allowlist: 'No está en la lista de este teléfono.',
@@ -54,6 +56,8 @@ const VERDICT = {
     wrong_zone: 'Does not open this zone.',
     not_yet_valid: 'Not valid yet.',
     expired: 'Expired.',
+    credential_expired: 'Credential expired.',
+    needs_online: 'This credential needs a connection.',
     service_unavailable: 'No connection. Could not validate.',
     session_expired: 'This station session expired.',
     not_in_allowlist: 'Not in the list on this phone.',
@@ -62,10 +66,17 @@ const VERDICT = {
   },
 }
 
-export function checkinVerdictUtterance({ outcome, name, credentialLabel, locale = 'es' } = {}) {
+export function checkinVerdictUtterance({
+  outcome,
+  kind,
+  name,
+  credentialLabel,
+  locale = 'es',
+} = {}) {
   const english = String(locale).toLowerCase().startsWith('en')
   const table = english ? VERDICT.en : VERDICT.es
-  const verdict = table[outcome]
+  const spokenOutcome = kind === 'ticket' && outcome === 'expired' ? 'credential_expired' : outcome
+  const verdict = table[spokenOutcome]
   if (!verdict) return ''
   const who = publicSpokenName(name)
   const entry = String(credentialLabel ?? '').trim()
@@ -98,16 +109,21 @@ export function listenForDoorUtterance({ onUtterance, onEnd, onError }) {
   recognition.continuous = false
   recognition.maxAlternatives = 3
   recognition.onresult = (event) => {
-    let best = ''
+    const transcripts = []
+    const segments = []
     for (let index = 0; index < event.results.length; index += 1) {
       const row = event.results[index]
       const alternatives = []
-      for (let alt = 0; alt < row.length; alt += 1) alternatives.push(row[alt]?.transcript ?? '')
-      const chosen = alternatives.sort((left, right) => right.length - left.length)[0] ?? ''
-      best = `${best} ${chosen}`.trim()
+      for (let alt = 0; alt < row.length; alt += 1) {
+        const text = String(row[alt]?.transcript ?? '').trim()
+        if (text) alternatives.push(text)
+      }
+      if (alternatives[0]) segments.push(alternatives[0])
+      transcripts.push(...alternatives)
     }
+    if (segments.length > 1) transcripts.unshift(segments.join(' '))
     const last = event.results[event.results.length - 1]
-    onUtterance?.(best, Boolean(last?.isFinal))
+    onUtterance?.(transcripts, Boolean(last?.isFinal))
   }
   recognition.onerror = (event) => onError?.(event?.error ?? 'unknown')
   recognition.onend = () => onEnd?.()

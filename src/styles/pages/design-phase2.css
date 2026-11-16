@@ -1255,6 +1255,10 @@
   text-transform: uppercase;
 }
 
+.security-gate-card__code .login-field__toggle[aria-pressed='true'] {
+  color: var(--color-brand-gold);
+}
+
 .security-gate-card__split {
   align-items: center;
   color: var(--color-text-muted);

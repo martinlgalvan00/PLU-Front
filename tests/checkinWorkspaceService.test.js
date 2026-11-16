@@ -65,6 +65,53 @@ const tickets = [
 ]
 
 describe('checkinWorkspaceService', () => {
+  it('no cuenta como listo al competidor que debe afiliación', () => {
+    const rows = buildCheckinRows({
+      athletes,
+      memberships: [],
+      registrations: [
+        {
+          id: 'reg-1',
+          athleteId: 'ath-1',
+          eventSlug: 'pitbull-2026',
+          status: 'confirmada',
+          requiresMembership: true,
+        },
+      ],
+      tickets: [],
+      eventSlug: 'pitbull-2026',
+      ticketTypes,
+    })
+
+    expect(rows[0].status).toBe('needs_membership')
+    expect(summarizeCheckinRows(rows, eventDays).ready).toBe(0)
+    expect(summarizeCheckinRows(rows, eventDays).pending).toBe(1)
+  })
+
+  it('cuenta como listo al mismo competidor cuando la afiliación está vigente', () => {
+    const rows = buildCheckinRows({
+      athletes,
+      memberships: [
+        { athleteId: 'ath-1', status: 'activa', expirationDate: '2099-01-01' },
+      ],
+      registrations: [
+        {
+          id: 'reg-1',
+          athleteId: 'ath-1',
+          eventSlug: 'pitbull-2026',
+          status: 'confirmada',
+          requiresMembership: true,
+        },
+      ],
+      tickets: [],
+      eventSlug: 'pitbull-2026',
+      ticketTypes,
+    })
+
+    expect(rows[0].status).toBe('pagada')
+    expect(summarizeCheckinRows(rows, eventDays).ready).toBe(1)
+  })
+
   it('limita atletas y entradas al evento asignado', () => {
     const rows = buildCheckinRows({
       athletes,
@@ -180,6 +227,26 @@ describe('checkinWorkspaceService', () => {
     })
   })
 
+  it('el ingreso de otro día no marca al competidor como ya ingresado', () => {
+    const sources = mapAllowlistToCheckinSources(
+      {
+        registrations: [
+          {
+            registrationId: 'reg-9',
+            athleteName: 'Martina Rivas',
+            status: 'confirmada',
+            checkedInAt: '2026-08-15T15:00:00.000Z',
+            accessWindowKey: 'event_day:2026-08-15',
+          },
+        ],
+      },
+      'pitbull-2026',
+    )
+    const [row] = buildCheckinRows({ ...sources, eventSlug: 'pitbull-2026', ticketTypes })
+    expect(row.checkedInAt).toBeNull()
+    expect(row.status).toBe('pagada')
+  })
+
   it('resuelve el día de acceso de cada ticket vía su tipo de entrada', () => {
     const rows = buildCheckinRows({
       athletes,
@@ -263,14 +330,22 @@ describe('checkinWorkspaceService', () => {
 describe('formatCheckinRowDay', () => {
   const t = (key) =>
     ({
-      'admin.checkin.scheduleUnassigned': 'Día a confirmar',
       'admin.checkin.bothDays': 'Ambos',
     })[key] ?? key
 
-  it('nombra el día de la grilla y deja claro cuando no hay asignación', () => {
-    expect(formatCheckinRowDay({ type: 'atleta', dayIndexes: 'all' }, eventDays, t)).toBe(
-      'Día a confirmar',
-    )
+  it('el competidor entra los dos días y la grilla queda como dato de levantamiento', () => {
+    expect(formatCheckinRowDay({ type: 'atleta', dayIndexes: 'all' }, eventDays, t)).toBe('Ambos')
+    expect(
+      formatCheckinRowDay(
+        {
+          type: 'atleta',
+          dayIndexes: 'all',
+          schedule: { dayIndex: 0, sessionName: 'Tanda A' },
+        },
+        eventDays,
+        t,
+      ),
+    ).toBe('Ambos · Día 1 · Tanda A')
     expect(formatCheckinRowDay({ type: 'espectador', dayIndexes: [0, 1] }, eventDays, t)).toBe(
       'Día 1 · Día 2',
     )

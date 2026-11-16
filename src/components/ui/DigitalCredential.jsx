@@ -3,11 +3,8 @@ import { useEffect, useState } from 'react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatShortDate, initials } from '../../lib/format.js'
 import { hasCelebrated, markCelebrated } from '../../lib/celebration.js'
-import {
-  buildAthleteCredentialUrl,
-  generateCredentialQr,
-  resolveCredentialCode,
-} from '../../lib/credentialQr.js'
+import { describeAthleteCredential } from '../../lib/athleteCredential.js'
+import { useAthleteCredentialQr } from '../../hooks/useAthleteCredentialQr.js'
 import CredentialQr from './CredentialQr.jsx'
 import TiltCard from '../../motion/TiltCard.tsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
@@ -20,9 +17,9 @@ import { SHOWCASE_TILT_MAX_DEG } from '../../motion/tokens.ts'
  * nombre, código y vigencia) y reverso operativo (datos personales en grilla
  * + el QR de verificación que se escanea en la puerta).
  *
- * El QR usa `resolveCredentialCode`, la misma regla que la sección Mi QR y la
- * card compartible: si cada superficie resolviera su código, la misma persona
- * vería QRs distintos según por dónde entrara.
+ * El QR y el estado salen de `describeAthleteCredential`, la misma lectura que
+ * Mi QR. Si la persona está inscripta, la card gira y muestra el QR aunque la
+ * afiliación no esté vigente.
  *
  * El flip vive en `.account-credential__card`: ese nodo no puede llevar
  * isolation, overflow ni filter, porque cualquier propiedad de agrupación
@@ -39,15 +36,30 @@ import { SHOWCASE_TILT_MAX_DEG } from '../../motion/tokens.ts'
  * ya vive en el acuse de la sección Mi QR (ver QrCredentialSection) y la
  * federación festeja una vez. Acá el festejo es la pieza misma.
  */
-export default function DigitalCredential({ athlete, membership }) {
+export default function DigitalCredential({
+  athlete,
+  membership,
+  latestMembership = null,
+  registrations = [],
+  events,
+  focusEventSlug = null,
+}) {
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
   const [flipped, setFlipped] = useState(false)
   // El giro con peso (se aleja y vuelve) solo puede dispararse después del
   // primer toggle: en el estado inicial la animación se ejecutaría al montar.
   const [flipTouched, setFlipTouched] = useState(false)
-  const membershipActive = membership?.status === 'activa'
-  const canFlip = membershipActive
+  const credential = describeAthleteCredential({
+    athlete,
+    membership,
+    latestMembership,
+    registrations,
+    events,
+    focusEventSlug,
+  })
+  const membershipActive = credential.membershipCurrent
+  const canFlip = credential.canShowQr
   const isFlipped = canFlip && flipped
 
   /* Clave propia, distinta de la que gobierna la ráfaga
@@ -65,35 +77,23 @@ export default function DigitalCredential({ athlete, membership }) {
     markCelebrated(issueKey)
   }, [isFirstIssue, issueKey])
 
-  /* El QR se genera con import dinámico y se cachea por URL en la lib, así que
-     montarlo acá no re-encodea nada si la sección Mi QR ya lo pidió. Solo se
-     pide cuando hay dorso: sin afiliación activa la card no gira. */
-  const credentialCode = resolveCredentialCode({ athlete, membership })
-  const [qrSrc, setQrSrc] = useState(null)
-  const [qrFailed, setQrFailed] = useState(false)
-
+  /* El dibujo del QR (isotipo + canvas) no entra en el primer pintado del
+     perfil. Se arma al girar, o en un hueco del hilo si la persona se queda.
+     Mi QR usa el mismo hook: si esta card ya lo pidió, allá no se redibuja. */
+  const [armQr, setArmQr] = useState(false)
   useEffect(() => {
-    if (!canFlip || !credentialCode) {
-      setQrSrc(null)
-      setQrFailed(false)
-      return undefined
+    if (!canFlip || armQr) return undefined
+    const arm = () => setArmQr(true)
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(arm, { timeout: 1200 })
+      return () => window.cancelIdleCallback(id)
     }
-    let cancelled = false
-    setQrFailed(false)
-    generateCredentialQr(buildAthleteCredentialUrl(credentialCode))
-      .then((dataUrl) => {
-        if (cancelled) return
-        setQrSrc(dataUrl)
-      })
-      .catch(() => {
-        if (cancelled) return
-        setQrSrc(null)
-        setQrFailed(true)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [canFlip, credentialCode])
+    const id = window.setTimeout(arm, 700)
+    return () => window.clearTimeout(id)
+  }, [armQr, canFlip])
+  const { qrSrc, qrFailed } = useAthleteCredentialQr(
+    canFlip && armQr ? credential.credentialCode : null,
+  )
   const location = [athlete.city, athlete.province].filter(Boolean).join(', ')
   const watermarkYear = String(new Date().getFullYear()).slice(-2)
   const expiration = membership?.expirationDate
@@ -137,6 +137,7 @@ export default function DigitalCredential({ athlete, membership }) {
 
   function toggleFlip() {
     if (!canFlip) return
+    setArmQr(true)
     setFlipTouched(true)
     setFlipped((value) => !value)
   }
@@ -226,10 +227,10 @@ export default function DigitalCredential({ athlete, membership }) {
                 </dl>
               ) : null}
               <span
-                className={`account-credential__status ${membershipActive ? 'is-active' : 'is-inactive'}`}
+                className={`account-credential__status ${credential.statusReady ? 'is-active' : 'is-inactive'}`}
               >
                 <span className="account-credential__status-dot" aria-hidden />
-                {membershipActive ? t('account.membershipActive') : t('account.membershipInactive')}
+                {t(credential.statusKey)}
               </span>
             </div>
           </div>

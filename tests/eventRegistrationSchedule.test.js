@@ -9,7 +9,7 @@ import {
   toCamelEventSchedule,
   toCamelSchedule,
 } from '../src/lib/eventSchedule.js'
-import { buildCheckinRows } from '../src/services/checkinWorkspaceService.js'
+import { buildCheckinRows, filterCheckinRows } from '../src/services/checkinWorkspaceService.js'
 import { resolveRegistrationScan, scheduleDayIndexes } from '../src/services/checkinScanService.js'
 
 /**
@@ -214,17 +214,15 @@ describe('formato de la grilla', () => {
 })
 
 describe('la grilla en el roster de check-in', () => {
-  it('un atleta con día asignado deja de figurar en todos los días', () => {
-    // Antes iba fijo a 'all' y aparecía en la pestaña de cada día.
+  it('la grilla sigue diciendo en qué día levanta', () => {
     expect(scheduleDayIndexes(toCamelSchedule(SCHEDULE_ROW))).toEqual([1])
   })
 
-  it('sin grilla asignada sigue entrando en cualquier día', () => {
-    // No se lo saca del roster: todavía no le asignaron nada.
+  it('sin grilla asignada el día de levantamiento queda abierto', () => {
     expect(scheduleDayIndexes(null)).toBe('all')
   })
 
-  it('la fila del roster arrastra el día real de la inscripción', () => {
+  it('el competidor entra los dos días aunque levante en uno solo', () => {
     const [row] = buildCheckinRows({
       athletes: [{ id: 'ath-1', fullName: 'Ana Torres', documentId: '30111222' }],
       registrations: [
@@ -241,8 +239,11 @@ describe('la grilla en el roster de check-in', () => {
       eventSlug: 'pitbull-classic-2026',
     })
 
-    expect(row.dayIndexes).toEqual([1])
+    expect(row.dayIndexes).toBe('all')
     expect(row.schedule.sessionName).toBe('Tanda B')
+    expect(row.schedule.dayIndex).toBe(1)
+    expect(filterCheckinRows([row], { day: 0 })).toHaveLength(1)
+    expect(filterCheckinRows([row], { day: 1 })).toHaveLength(1)
   })
 })
 

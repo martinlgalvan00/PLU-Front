@@ -214,23 +214,23 @@ export const MEMBERSHIP_INSTITUTIONAL = {
 export const MEMBERSHIP_REQUIREMENTS = [
   {
     id: 'id',
-    title: 'ID',
-    text: 'Valid national ID or passport. Required to validate the request.',
+    title: 'ID — front',
+    text: 'A clear photo of the front, or a small PDF. Upload it in your account before paying.',
   },
   {
-    id: 'age',
-    title: 'Age',
-    text: 'From 14 years old. Under 18: guardian authorization required.',
+    id: 'dni_back',
+    title: 'ID — back',
+    text: 'A clear photo of the back. Front and back are both required.',
   },
   {
     id: 'health',
-    title: 'Fitness',
-    text: 'Medical certificate or current health affidavit.',
+    title: 'Medical certificate',
+    text: 'A photo or a small PDF. Payment stays closed without this file.',
   },
   {
-    id: 'photo',
-    title: 'Photo',
-    text: 'Recent digital portrait, front-facing and well lit.',
+    id: 'age',
+    title: 'Under 18',
+    text: 'From 14 years old. Guardian authorization is uploaded as well.',
   },
 ]
 
@@ -250,7 +250,7 @@ export const MEMBERSHIP_ANNUAL_STEPS = [
   {
     step: '2',
     title: 'Pay online',
-    text: 'Mercado Pago or transfer with proof in the platform.',
+    text: 'After the ID front and back are uploaded. The medical certificate is optional. Mercado Pago or transfer.',
   },
   {
     step: '3',
@@ -273,7 +273,7 @@ export const MEMBERSHIP_FAQ = [
   {
     id: 'data',
     q: 'What information do I need to provide?',
-    a: 'Personal details, ID, contact, location, gym and competitive sex. Under 18 requires guardian authorization.',
+    a: 'Personal details, ID, contact, location, gym and competitive sex. To pay for membership you upload ID front and back. The medical certificate is optional. Under 18, guardian authorization too.',
   },
   {
     id: 'status',

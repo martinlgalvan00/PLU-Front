@@ -196,6 +196,25 @@ describe('LoginPage', () => {
       expect(screen.getByRole('heading', { name: 'Recuperar acceso' })).toBeTruthy()
     })
   })
+
+  it('la guía de acceso abre recuperar desde la clave temporal y no duplica Afiliate', async () => {
+    renderLogin()
+
+    fireEvent.click(screen.getByText('¿Cómo entro?'))
+
+    const tempKey = screen.getByRole('button', { name: 'Pedir enlace de acceso' })
+    expect(screen.getByText('Todavía no tengo cuenta')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Afiliarme' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Afiliate' })).toBeTruthy()
+
+    fireEvent.click(tempKey)
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Recuperar acceso' })).toBeTruthy()
+    })
+    await waitFor(() => {
+      expect(screen.queryByText('¿Cómo entro?')).toBeNull()
+    })
+  })
 })
 
 describe('LoginPage: errores accesibles', () => {

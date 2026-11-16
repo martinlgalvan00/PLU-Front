@@ -105,9 +105,15 @@ import {
   EMAIL_OTP_TTL_MS,
 } from '../services/emailVerificationOtp.js'
 import {
+  assertAthleteOwnsDocumentPath,
   assertAthleteOwnsPath,
   createSupabaseAthleteRepository,
 } from '../modules/athletes/supabaseAthleteRepository.js'
+import {
+  buildMembershipCertificate,
+  MEMBERSHIP_CERTIFICATE_NOT_CURRENT,
+  membershipCertificateNow,
+} from '../modules/athletes/membershipCertificate.js'
 import { assertAthleteOrderInScope } from '../modules/events/orderEventScope.js'
 import {
   PROFILE_NOTICE_BULK_MAX,
@@ -117,6 +123,15 @@ import {
   sendProfileNoticesBulk,
 } from '../modules/athletes/profileNoticeService.js'
 import { athleteProfileFromRow } from '../../shared/athleteProfile.js'
+import {
+  ATHLETE_DOCUMENT_KIND_LABELS,
+  ATHLETE_DOCUMENT_PDF_MAX_BYTES,
+  ATHLETE_DOCUMENT_PDF_TOO_LARGE_MESSAGE,
+  ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES,
+  documentPackGate,
+  isSafeAthleteDocumentPath,
+} from '../../shared/athleteDocuments.js'
+import { membershipFileStatus } from '../../shared/membershipFile.js'
 import { COMPETITION_DIVISIONS } from '../../shared/ageDivision.js'
 import { offeringFromRules, validateSelectionAgainstOffering } from '../../shared/eventOffering.js'
 import { isAnnounceOnly } from '../../shared/registrationSaleState.js'
@@ -530,6 +545,25 @@ const staffApplicationUploadSchema = z.object({
     .positive()
     .max(5 * 1024 * 1024),
 })
+const documentKindSchema = z.enum([
+  'dni_front',
+  'dni_back',
+  'medical_certificate',
+  'minor_authorization',
+])
+const documentUploadSchema = z.object({
+  kind: documentKindSchema,
+  fileName: z.string().trim().min(1).max(120),
+  contentType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
+  size: z.number().int().positive().max(ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES),
+})
+const registerDocumentSchema = z.object({
+  kind: documentKindSchema,
+  storagePath: z.string().trim().min(8).max(300),
+  contentType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
+  sizeBytes: z.number().int().positive().max(ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES),
+  originalName: z.string().trim().max(120).optional(),
+})
 // `technicalTrainingStatus` se exige en el `.refine` (no en el campo) porque
 // solo aplica al cuerpo técnico — la RPC vuelve a validar esto mismo, pero
 // el error acá es el que ve el formulario antes de gastar una llamada.
@@ -747,6 +781,13 @@ function athleteExistsError(availability) {
   return new HttpError(409, message, { code: 'ATHLETE_EXISTS', fields })
 }
 
+/** La UI manda `?v=` con la fecha de carga. Esa URL no cambia hasta el reemplazo. */
+function athleteDocumentCacheControl(req) {
+  return String(req.query?.v ?? '').trim()
+    ? 'private, max-age=86400, immutable'
+    : 'private, max-age=300, stale-while-revalidate=60'
+}
+
 export function createAthleteRoutes({
   getPrisma,
   getSupabaseAdmin,
@@ -843,10 +884,15 @@ export function createAthleteRoutes({
    *
    * Preferencia de nombre: entre variantes del mismo core, gana el más completo
    * (más largo). Si el input es más largo que el canónico guardado, se actualiza.
+   *
+   * El corte es antes de Prisma: sin `DATABASE_URL` el cliente igual loguea
+   * `Environment variable not found` y recién después tira. En CI la suite de
+   * integración no tiene ese esquema, y el alta tiene que seguir en silencio.
    */
   const resolveGymName = async (rawName) => {
     if (!rawName || !rawName.trim()) return rawName
     const cleanName = String(rawName).trim()
+    if (!process.env.DATABASE_URL?.trim()) return cleanName
     const core = getCoreName(cleanName)
 
     try {
@@ -1155,6 +1201,46 @@ export function createAthleteRoutes({
    * terminan en un pago, y mandar un comprobante a una dirección con un typo
    * deja al atleta sin constancia y sin forma de reclamar.
    */
+  async function assertAthleteDocumentsComplete(athleteId, purpose, { requiresMembership = false } = {}) {
+    if (typeof repo().findDocumentPack !== 'function') return
+    const pack = await repo().findDocumentPack(athleteId)
+    if (pack?.unavailable) return
+    const athlete = {
+      birthDate: pack.birthDate,
+      documentsGrandfathered: pack.documentsGrandfathered,
+    }
+    const gate = documentPackGate(athlete, pack.documents, { purpose, requiresMembership })
+    if (!gate.blocked) return
+    const labels = gate.missing
+      .map((kind) => ATHLETE_DOCUMENT_KIND_LABELS[kind] ?? kind)
+      .join(', ')
+    throw new HttpError(
+      422,
+      `Subí los documentos obligatorios antes de continuar: falta ${labels}.`,
+      {
+        code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+        missing: gate.missing,
+      },
+    )
+  }
+
+  async function assertMembershipFileComplete(athleteId) {
+    if (typeof repo().findProfileCompleteness !== 'function') return
+    const row = await repo().findProfileCompleteness(athleteId)
+    if (!row) return
+    const status = membershipFileStatus(row)
+    if (status.complete) return
+    throw new HttpError(
+      422,
+      `Completá los datos de afiliación antes de pagar: falta ${status.labels.join(', ')}.`,
+      {
+        code: 'ATHLETE_MEMBERSHIP_DATA_INCOMPLETE',
+        missing: status.missing,
+        invalid: status.invalid,
+      },
+    )
+  }
+
   async function assertEmailVerified(athleteId) {
     const contact = await repo().findContact(athleteId)
     if (contact && !contact.email_verified_at) {
@@ -1907,6 +1993,47 @@ export function createAthleteRoutes({
     }
   })
 
+  const membershipFileSchema = z.object({
+    fullName: z.string(),
+    documentId: z.string(),
+    birthDate: z.string(),
+    sex: z.string(),
+    phone: z.string(),
+    country: z.string(),
+    province: z.string(),
+    city: z.string(),
+  })
+
+  router.patch(
+    '/me/membership-file',
+    athleteWriteLimiter,
+    validateBody(membershipFileSchema),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        const status = membershipFileStatus(req.validatedBody)
+        if (!status.complete) {
+          throw new HttpError(
+            422,
+            `Completá los datos de afiliación: falta ${status.labels.join(', ')}.`,
+            {
+              code: 'ATHLETE_MEMBERSHIP_DATA_INCOMPLETE',
+              missing: status.missing,
+              invalid: status.invalid,
+            },
+          )
+        }
+        if (typeof repo().updateMembershipFile !== 'function') {
+          throw new HttpError(503, 'No se pudo guardar la ficha de afiliación.')
+        }
+        const row = await repo().updateMembershipFile(auth.athleteId, req.validatedBody)
+        res.json({ athlete: row })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
   router.post('/me/profile-notices/:noticeId/read', athleteWriteLimiter, async (req, res, next) => {
     try {
       const auth = await athlete(req)
@@ -2107,6 +2234,8 @@ export function createAthleteRoutes({
         await assertCodeAcceptsMercadoPago(req.validatedBody, 'membership')
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
+        await assertMembershipFileComplete(auth.athleteId)
+        await assertAthleteDocumentsComplete(auth.athleteId, 'membership')
         const plan = await repo().findMembershipPlan(req.validatedBody.planCode)
         if (!plan) throw new HttpError(404, 'Plan de afiliacion no encontrado.')
         if (isRecurringMembershipPlan(plan)) assertRecurringMembershipAvailable(env)
@@ -2175,6 +2304,9 @@ export function createAthleteRoutes({
         await assertCompetitionProfileComplete(competitionProfile)
         const event = await repo().findEventPricing(eventSlug)
         if (!event) throw new HttpError(404, 'Evento no encontrado.')
+        await assertAthleteDocumentsComplete(auth.athleteId, 'registration', {
+          requiresMembership: event.requires_membership === true,
+        })
         assertRosterOpen(event)
         assertRegistrationNotAnnounceOnly(event)
         const selection = assertCompetitionSelection(req.validatedBody, competitionProfile, event)
@@ -2305,6 +2437,8 @@ export function createAthleteRoutes({
         })
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
+        await assertMembershipFileComplete(auth.athleteId)
+        await assertAthleteDocumentsComplete(auth.athleteId, 'combo')
         const competitionProfile = await repo().findCompetitionProfile(auth.athleteId)
         await assertCompetitionProfileComplete(competitionProfile)
         const event = await repo().findEventPricing(eventSlug)
@@ -2819,6 +2953,121 @@ export function createAthleteRoutes({
       }
     },
   )
+  router.post(
+    '/me/documents/upload-url',
+    athleteWriteLimiter,
+    validateBody(documentUploadSchema),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        if (
+          req.validatedBody.contentType === 'application/pdf' &&
+          req.validatedBody.size > ATHLETE_DOCUMENT_PDF_MAX_BYTES
+        ) {
+          throw new HttpError(400, ATHLETE_DOCUMENT_PDF_TOO_LARGE_MESSAGE)
+        }
+        res.json(await repo().createDocumentUpload(auth.athleteId, req.validatedBody))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/me/documents',
+    athleteWriteLimiter,
+    validateBody(registerDocumentSchema),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        if (
+          req.validatedBody.contentType === 'application/pdf' &&
+          req.validatedBody.sizeBytes > ATHLETE_DOCUMENT_PDF_MAX_BYTES
+        ) {
+          throw new HttpError(400, ATHLETE_DOCUMENT_PDF_TOO_LARGE_MESSAGE)
+        }
+        assertAthleteOwnsDocumentPath(
+          auth.athleteId,
+          req.validatedBody.kind,
+          req.validatedBody.storagePath,
+        )
+        if (!isSafeAthleteDocumentPath(req.validatedBody.storagePath, {
+          athleteId: auth.athleteId,
+          kind: req.validatedBody.kind,
+        })) {
+          throw new HttpError(400, 'Ruta de documento inválida.')
+        }
+        const document = await repo().registerDocument(auth.athleteId, req.validatedBody)
+        res.status(201).json({ document })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.get('/me/membership-certificate', athleteWriteLimiter, async (req, res, next) => {
+    try {
+      const auth = await athlete(req)
+      const source = await repo().findMembershipCertificateSource(auth.athleteId)
+      if (!source) throw new HttpError(404, 'Atleta no encontrado.')
+      const issuedAt = new Date()
+      const built = buildMembershipCertificate({
+        athlete: source.athlete,
+        memberships: source.memberships,
+        appUrl,
+        now: membershipCertificateNow(todayInBuenosAires(), issuedAt),
+        issuedAt,
+      })
+      if (!built.ok) {
+        throw new HttpError(
+          409,
+          built.code === MEMBERSHIP_CERTIFICATE_NOT_CURRENT
+            ? 'La constancia se emite solo con una afiliación vigente.'
+            : 'No se puede emitir la constancia.',
+          { code: built.code },
+        )
+      }
+      await repo().recordMembershipCertificateIssued({
+        athleteId: auth.athleteId,
+        membershipId: built.membershipId,
+        memberCode: built.certificate.memberCode,
+      })
+      res.set('Cache-Control', 'private, no-store')
+      res.json(built.certificate)
+    } catch (error) {
+      next(error)
+    }
+  })
+  router.get('/me/documents', athleteWriteLimiter, async (req, res, next) => {
+    try {
+      const auth = await athlete(req)
+      const pack = await repo().findDocumentPack(auth.athleteId)
+      res.json({
+        documents: pack.documents,
+        documentsGrandfathered: pack.documentsGrandfathered,
+      })
+    } catch (error) {
+      next(error)
+    }
+  })
+  router.get('/me/documents/:kind', publicReadLimiter, async (req, res, next) => {
+    try {
+      const auth = await athlete(req)
+      const kind = documentKindSchema.safeParse(req.params.kind)
+      if (!kind.success) throw new HttpError(400, 'Documento inválido.')
+      const supabase = getSupabaseAdmin?.()
+      if (!supabase) throw new HttpError(503, 'Supabase no está configurado en el servidor.')
+      const path = await repo().athleteDocumentPath(auth.athleteId, kind.data)
+      await sendPortraitBinary({
+        req,
+        res,
+        client: supabase,
+        path,
+        bucket: 'athlete-documents',
+        cacheControl: athleteDocumentCacheControl(req),
+      })
+    } catch (error) {
+      next(error)
+    }
+  })
 
   /**
    * Binario del retrato autenticado. URL estable + ETag/LRU: If-None-Match
@@ -4585,6 +4834,51 @@ export function createAthleteRoutes({
           }),
         })
         res.status(201).json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.get(
+    '/admin/:athleteId/documents',
+    ...adminGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const athleteId = z.string().uuid().safeParse(req.params.athleteId)
+        if (!athleteId.success) throw new HttpError(400, 'Atleta inválido.')
+        const pack = await repo().findDocumentPack(athleteId.data)
+        res.json({
+          documents: pack.documents,
+          documentsGrandfathered: pack.documentsGrandfathered,
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.get(
+    '/admin/:athleteId/documents/:kind',
+    ...adminGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const athleteId = z.string().uuid().safeParse(req.params.athleteId)
+        const kind = documentKindSchema.safeParse(req.params.kind)
+        if (!athleteId.success) throw new HttpError(400, 'Atleta inválido.')
+        if (!kind.success) throw new HttpError(400, 'Documento inválido.')
+        const supabase = getSupabaseAdmin?.()
+        if (!supabase) throw new HttpError(503, 'Supabase no está configurado en el servidor.')
+        const path = await repo().athleteDocumentPath(athleteId.data, kind.data)
+        await sendPortraitBinary({
+          req,
+          res,
+          client: supabase,
+          path,
+          bucket: 'athlete-documents',
+          cacheControl: athleteDocumentCacheControl(req),
+        })
       } catch (error) {
         next(error)
       }

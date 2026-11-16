@@ -1,5 +1,5 @@
-import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import UpcomingEventsSection from '../src/pages/profile/UpcomingEventsSection.jsx'
 import { mapAthleteData } from '../src/services/athleteApi.js'
@@ -51,6 +51,8 @@ const CATALOG_EVENT = {
   price: 60000,
 }
 
+const CREDENTIAL_TOKEN = '11111111-1111-4111-8111-111111111111'
+
 const ATHLETE = {
   id: 'a1',
   fullName: 'Mateo Barbieri',
@@ -58,6 +60,7 @@ const ATHLETE = {
   city: 'CABA',
   province: 'Buenos Aires',
   gym: 'PLU',
+  credentialToken: CREDENTIAL_TOKEN,
 }
 
 /** Inscripciones tal como salen de `get_athlete_snapshot`, no a mano. */
@@ -82,29 +85,102 @@ function snapshotRegistrations(statuses) {
   }).registrations
 }
 
-function renderAccountEvents(statuses, event = CATALOG_EVENT) {
+function renderAccountEvents(statuses, event = CATALOG_EVENT, extras = {}) {
   return render(
     <I18nProvider>
       <UpcomingEventsSection
         availableEvents={[event]}
         athleteRegistrations={snapshotRegistrations(statuses)}
-        membership={null}
-        athlete={ATHLETE}
+        membership={extras.membership ?? null}
+        athlete={extras.athlete ?? ATHLETE}
         onNavigate={() => {}}
         onSelectEvent={() => {}}
+        latestMembership={extras.latestMembership ?? null}
+        onNavigateSection={extras.onNavigateSection}
+        onViewCredential={extras.onViewCredential}
       />
     </I18nProvider>,
   )
 }
 
 describe('cuenta · Próximos torneos', () => {
+  it('aunque ya esté afiliado, el aviso de documentos abre Afiliación', () => {
+    const onNavigateSection = vi.fn()
+    renderAccountEvents([], CATALOG_EVENT, {
+      onNavigateSection,
+      membership: {
+        athleteId: 'a1',
+        status: 'activa',
+        startDate: '2026-01-01',
+        expirationDate: '2027-06-01',
+      },
+      athlete: {
+        ...ATHLETE,
+        birthDate: '1994-04-12',
+        category: 'Open',
+        estimatedWeight: 83,
+        documents: [],
+      },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Inscribirme' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Subir documentos' }))
+
+    expect(onNavigateSection).toHaveBeenCalledWith('account-membership')
+    expect(onNavigateSection).not.toHaveBeenCalledWith('account-personal-data')
+  })
+
   it('muestra la inscripción confirmada y no ofrece inscribirse de nuevo', () => {
     renderAccountEvents(['confirmada'])
 
     expect(screen.getByText('Inscripción confirmada')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Ver credencial de Pitbull Classic' }).disabled).toBe(
+      false,
+    )
+    expect(screen.queryByRole('button', { name: 'Inscribirme' })).toBeNull()
+  })
+
+  it('abre la credencial de ese torneo', () => {
+    const onViewCredential = vi.fn()
+    renderAccountEvents(['confirmada'], CATALOG_EVENT, { onViewCredential })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver credencial de Pitbull Classic' }))
+
+    expect(onViewCredential).toHaveBeenCalledTimes(1)
+    expect(onViewCredential.mock.calls[0][0].slug).toBe(CATALOG_EVENT.slug)
+  })
+
+  it('sigue abriendo Mi QR si la página todavía no pasa el foco del torneo', () => {
+    const onNavigateSection = vi.fn()
+    renderAccountEvents(['confirmada'], CATALOG_EVENT, { onNavigateSection })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver credencial de Pitbull Classic' }))
+
+    expect(onNavigateSection).toHaveBeenCalledWith('account-qr')
+  })
+
+  it('no abre una credencial vacía si la persona no tiene código', () => {
+    renderAccountEvents(['confirmada'], CATALOG_EVENT, {
+      athlete: { ...ATHLETE, credentialToken: null },
+    })
+
+    expect(screen.queryByRole('button', { name: /Ver credencial/ })).toBeNull()
     expect(screen.getByRole('button', { name: 'Ya sos parte de Pitbull Classic' }).disabled).toBe(
       true,
     )
+  })
+
+  it('abre la credencial si el código vive en la última afiliación', () => {
+    const onViewCredential = vi.fn()
+    renderAccountEvents(['confirmada'], CATALOG_EVENT, {
+      athlete: { ...ATHLETE, credentialToken: null },
+      latestMembership: { memberCode: 'PLU-1', status: 'vencida', expirationDate: '2020-01-01' },
+      onViewCredential,
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver credencial de Pitbull Classic' }))
+
+    expect(onViewCredential).toHaveBeenCalledTimes(1)
   })
 
   it('sigue reconociendo la inscripción después de que el staff renombra el meet', () => {
@@ -113,9 +189,10 @@ describe('cuenta · Próximos torneos', () => {
     renderAccountEvents(['confirmada'], { ...CATALOG_EVENT, title: 'Pitbull Classic 2026' })
 
     expect(screen.getByText('Inscripción confirmada')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Ya sos parte de Pitbull Classic 2026' }).disabled).toBe(
-      true,
-    )
+    expect(
+      screen.getByRole('button', { name: 'Ver credencial de Pitbull Classic 2026' }).disabled,
+    ).toBe(false)
+    expect(screen.queryByRole('button', { name: 'Inscribirme' })).toBeNull()
   })
 
   it('no anuncia como confirmada una inscripción sin pago acreditado', () => {

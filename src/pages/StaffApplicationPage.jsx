@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Check, Upload } from 'lucide-react'
+import { ArrowRight, Check } from 'lucide-react'
 import '../styles/pages/institutional-pages.css'
 import '../styles/pages/institutional-editorial.css'
 import '../styles/pages/staff-application.css'
@@ -7,6 +7,7 @@ import StaffApplicationRail from '../components/ui/StaffApplicationRail.jsx'
 import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import { Field, Select } from '../components/ui/FormFields.jsx'
+import FileUploadField from '../components/ui/FileUploadField.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import {
   getStaffProgress,
@@ -67,42 +68,6 @@ function splitFullName(fullName) {
     .filter(Boolean)
   if (parts.length === 0) return { firstName: '', lastName: '' }
   return { firstName: parts[0], lastName: parts.slice(1).join(' ') }
-}
-
-function FileUploadField({ busy, done, error, hint, label, onFile }) {
-  const inputId = `staff-app-file-${label.replace(/\s+/g, '-').toLowerCase()}`
-  return (
-    <label className="staff-application__file" htmlFor={inputId}>
-      <span className="field__label">{label}</span>
-      <span className={`staff-application__file-drop${busy ? ' is-busy' : ''}`}>
-        <input
-          id={inputId}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,application/pdf"
-          disabled={busy}
-          onChange={(event) => {
-            const file = event.target.files?.[0]
-            event.target.value = ''
-            if (file) onFile(file)
-          }}
-        />
-        {done ? (
-          <Check size={16} aria-hidden />
-        ) : busy ? (
-          <span className="plu-spinner" aria-hidden />
-        ) : (
-          <Upload size={16} aria-hidden />
-        )}
-        <span>{done ? 'Archivo cargado' : busy ? 'Subiendo…' : 'Elegir archivo'}</span>
-      </span>
-      <small>{hint}</small>
-      {error ? (
-        <span className="field__error" role="alert">
-          {error}
-        </span>
-      ) : null}
-    </label>
-  )
 }
 
 /**

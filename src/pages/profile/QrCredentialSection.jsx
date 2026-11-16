@@ -7,24 +7,15 @@ import CredentialCard from '../../components/ui/CredentialCard.jsx'
 import CredentialMergeRitual from '../../components/ui/CredentialMergeRitual.jsx'
 import EventPassList from './EventPassList.jsx'
 import { supportsCredential3D } from '../../components/ui/credential3d/supportsCredential3D.js'
-import {
-  buildAthleteCredentialUrl,
-  credentialDisplayCode,
-  generateCredentialQr,
-  resolveCredentialCode,
-} from '../../lib/credentialQr.js'
+import { credentialDisplayCode } from '../../lib/credentialQr.js'
+import { useAthleteCredentialQr } from '../../hooks/useAthleteCredentialQr.js'
 import { hasCelebrated, markCelebrated } from '../../lib/celebration.js'
 import { hasPlayedCredentialMerge } from '../../lib/credentialMerge.js'
+import { describeAthleteCredential } from '../../lib/athleteCredential.js'
 import { listEventPasses } from '../../lib/eventPass.js'
 import { computeFinancingRemaining, formatFinancingCountdown } from '../../lib/financingCountdown.js'
-import { formatShortDate } from '../../lib/format.js'
-import {
-  getRegistrationGateLabelKey,
-  isGateAccessReady,
-  resolveRequiresMembership,
-} from '../../lib/gateAccess.js'
-import { isRegistrationAdmitted } from '../../lib/status.js'
-import { isMembershipCurrent } from '../../services/membershipService.js'
+import { formatShortDate, formatShortStamp } from '../../lib/format.js'
+import { spokenMemberCode } from '../../../shared/spokenMemberCode.js'
 
 // Three.js viaja en su propio chunk: solo se descarga al abrir la vista 3D.
 const Credential3DViewer = lazy(
@@ -42,12 +33,84 @@ function QrSectionHeading({ title, eyebrow }) {
   )
 }
 
+function CredentialStanding({
+  createdAt,
+  hasCredential,
+  locale,
+  memberCode,
+  scans,
+  t,
+  waitingPayment,
+}) {
+  const createdLabel = createdAt ? formatShortStamp(createdAt, locale) : ''
+  const lastScan = scans[0] ?? null
+  const lastScanLabel = lastScan?.checkedInAt
+    ? formatShortStamp(lastScan.checkedInAt, locale)
+    : ''
+  const habilitacion = hasCredential
+    ? t('account.qr.standingEnabled')
+    : waitingPayment
+      ? t('account.qr.standingWaitingPayment')
+      : t('account.qr.standingDisabled')
+  const spoken = memberCode ? spokenMemberCode(memberCode, locale) : null
+
+  return (
+    <div className="account-qr__standing">
+      {spoken ? (
+        <p className="account-qr__verify">
+          <span>{t('account.qr.verifyLabel')}</span>
+          <strong>{spoken.display}</strong>
+          <small>{t('account.qr.verifyHint', { words: spoken.utterance })}</small>
+        </p>
+      ) : memberCode ? (
+        <p className="account-qr__verify">
+          <span>{t('account.qr.verifyLabel')}</span>
+          <strong>{memberCode}</strong>
+          <small>{t('account.qr.verifyFallback')}</small>
+        </p>
+      ) : (
+        <p className="account-qr__verify-pending">{t('account.qr.verifyPending')}</p>
+      )}
+      <dl>
+        <div>
+          <dt>{t('account.qr.standingAlta')}</dt>
+          <dd>
+            {createdLabel
+              ? t('account.qr.standingAltaValue', { date: createdLabel })
+              : t('account.qr.standingAltaReady')}
+          </dd>
+        </div>
+        <div>
+          <dt>{t('account.qr.standingAccess')}</dt>
+          <dd>{habilitacion}</dd>
+        </div>
+        <div>
+          <dt>{t('account.qr.standingScans')}</dt>
+          <dd>
+            {scans.length === 0
+              ? t('account.qr.standingNoScans')
+              : t(
+                  `account.qr.standingScansValue_${scans.length === 1 ? 'one' : 'other'}`,
+                  {
+                    count: scans.length,
+                    event: lastScan?.event ?? '',
+                    date: lastScanLabel,
+                  },
+                )}
+          </dd>
+        </div>
+      </dl>
+    </div>
+  )
+}
+
 export default function QrCredentialSection({
   athlete,
   membership,
   latestMembership = null,
   registrations = [],
   events = [],
+  focusEventSlug = null,
   pendingFinancedPayment = null,
   onNavigateSection,
   onNavigate,
@@ -55,8 +118,6 @@ export default function QrCredentialSection({
   const { t, locale } = useI18n()
   const [modalOpen, setModalOpen] = useState(false)
   const [cardInitialFormat, setCardInitialFormat] = useState('square')
-  const [qrSrc, setQrSrc] = useState(null)
-  const [qrFailed, setQrFailed] = useState(false)
   const [mergeDone, setMergeDone] = useState(false)
   const [can3d] = useState(supportsCredential3D)
   const [view3dOpen, setView3dOpen] = useState(false)
@@ -67,36 +128,37 @@ export default function QrCredentialSection({
   const issueSealRef = useRef(null)
 
   const memberCode = membership?.memberCode ?? latestMembership?.memberCode
-  const credentialCode = resolveCredentialCode({ athlete, membership, latestMembership })
+  const credential = describeAthleteCredential({
+    athlete,
+    membership,
+    latestMembership,
+    registrations,
+    events,
+    focusEventSlug,
+  })
+  const credentialCode = credential.credentialCode
   const displayCode = credentialDisplayCode(memberCode ?? credentialCode)
-  const membershipCurrent = isMembershipCurrent(membership)
+  const membershipCurrent = credential.membershipCurrent
   const membershipForPass = membershipCurrent ? membership : latestMembership
-
-  const admittedRegistrations = useMemo(
-    () => registrations.filter((item) => isRegistrationAdmitted(item.status)),
-    [registrations],
-  )
-  const primaryMeet = admittedRegistrations[0] ?? null
-  const meetRequiresMembership = primaryMeet ? resolveRequiresMembership(primaryMeet) : false
-  const gateReady = primaryMeet
-    ? isGateAccessReady({
-        registrationStatus: primaryMeet.status,
-        requiresMembership: meetRequiresMembership,
-        membershipCurrent,
-      })
-    : membershipCurrent
-  const gateLabelKey = primaryMeet
-    ? getRegistrationGateLabelKey(primaryMeet, { membershipCurrent })
-    : null
-
-  const hasCredential =
-    Boolean(credentialCode) && (membershipCurrent || admittedRegistrations.length > 0)
+  const primaryMeet = credential.primaryMeet
+  const admittedRegistrations = credential.admittedRegistrations
+  const meetRequiresMembership = credential.meetRequiresMembership
+  const gateReady = credential.gateReady
+  const hasCredential = credential.hasCredential
   // Un renglón por evento con lo que va a decir la puerta (incluye pagos
   // pendientes, que antes caían en "Activá tu credencial" con un botón a la
   // afiliación aunque el evento no la pidiera).
   const passes = useMemo(
     () => listEventPasses(registrations, { membershipCurrent, events }),
     [events, membershipCurrent, registrations],
+  )
+  const scans = useMemo(
+    () =>
+      registrations
+        .filter((item) => item.checkedInAt)
+        .slice()
+        .sort((a, b) => String(b.checkedInAt).localeCompare(String(a.checkedInAt))),
+    [registrations],
   )
   const waitingPayment = passes.some(
     (pass) => pass.state === 'payment_pending' || pass.state === 'observed',
@@ -118,7 +180,9 @@ export default function QrCredentialSection({
     Boolean(primaryMeet) &&
     !hasPlayedCredentialMerge(athlete?.id, membership.id) &&
     !mergeDone
-  const qrBusy = hasCredential && !qrSrc && !qrFailed
+  const { qrSrc, qrFailed, qrBusy } = useAthleteCredentialQr(
+    hasCredential ? credentialCode : null,
+  )
 
   // La credencial ya sale habilitada por financiamiento (afiliación 'activa',
   // inscripción 'confirmada'), pero ese derecho sigue provisorio mientras
@@ -157,32 +221,6 @@ export default function QrCredentialSection({
     membership?.expirationDate?.slice(0, 4) ??
     String(new Date().getFullYear())
 
-  useEffect(() => {
-    if (!hasCredential) {
-      setQrSrc(null)
-      setQrFailed(false)
-      return undefined
-    }
-    let cancelled = false
-    setQrFailed(false)
-    generateCredentialQr(buildAthleteCredentialUrl(credentialCode))
-      .then((dataUrl) => {
-        if (!cancelled) {
-          setQrSrc(dataUrl)
-          setQrFailed(false)
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setQrSrc(null)
-          setQrFailed(true)
-        }
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [credentialCode, hasCredential])
-
   /* El ritual de unificación ya es el festejo de esta credencial: sin esto, al
      terminar la fusión el componente volvía a la vista normal y el sello de
      emisión disparaba una segunda ráfaga a los dos segundos de la primera. */
@@ -206,14 +244,7 @@ export default function QrCredentialSection({
       }
     : null
 
-  const cardStatus =
-    membershipCurrent && primaryMeet
-      ? t('account.qr.unifiedStatus')
-      : membershipCurrent
-        ? t('account.membershipActive')
-        : gateLabelKey
-          ? t(gateLabelKey)
-          : t('account.qr.meetPassMeta')
+  const cardStatus = t(credential.statusKey)
   // Lo mismo que la credencial plana, para la vista 3D (memo: la escena se
   // vuelve a armar si cambia el objeto).
   const card3d = useMemo(
@@ -299,6 +330,15 @@ export default function QrCredentialSection({
                     {primaryMeet?.event ?? t('account.qr.meetPassMeta')}
                   </h3>
                   <p className="account-qr__aside-note">{dualNote}</p>
+                  <CredentialStanding
+                    createdAt={athlete?.createdAt}
+                    hasCredential
+                    locale={locale}
+                    memberCode={memberCode ?? ''}
+                    scans={scans}
+                    t={t}
+                    waitingPayment={false}
+                  />
                   {qrFailed ? (
                     <p className="account-qr__error">{t('account.qr.generateError')}</p>
                   ) : null}
@@ -319,6 +359,15 @@ export default function QrCredentialSection({
                 </div>
 
                 <div className="account-qr__preview-col">
+                  <CredentialStanding
+                    createdAt={athlete?.createdAt}
+                    hasCredential
+                    locale={locale}
+                    memberCode={memberCode ?? displayCode ?? ''}
+                    scans={scans}
+                    t={t}
+                    waitingPayment={false}
+                  />
                   <p className="account-qr__aside-note">{t('account.qr.scanPreviewCaption')}</p>
                   <dl className="account-qr__facts">
                     <div>
@@ -431,7 +480,10 @@ export default function QrCredentialSection({
       ) : (
         <>
         <div className="account-qr account-qr--locked">
-          <div className="account-qr__plate" aria-hidden="true">
+          <div
+            className={`account-qr__plate${waitingPayment ? '' : ' account-qr__plate--draft'}`}
+            aria-hidden="true"
+          >
             <span className="account-qr__plate-stripe" />
             <span className="account-qr__plate-grain" />
             <span className="account-qr__plate-watermark">PLU</span>
@@ -439,12 +491,23 @@ export default function QrCredentialSection({
             <div className="account-qr__plate-body">
               <header className="account-qr__plate-head">
                 <span className="account-qr__plate-mark">PLU</span>
-                <span className="account-qr__plate-sub">Argentina</span>
+                {waitingPayment ? (
+                  <span className="account-qr__plate-sub">Argentina</span>
+                ) : (
+                  <span className="account-qr__plate-badge">{t('account.qr.emptyPlateBadge')}</span>
+                )}
               </header>
-              <p className="account-qr__plate-status">
-                <Lock size={14} strokeWidth={1.75} />
-                {t('account.qr.emptyStatus')}
-              </p>
+              {waitingPayment ? (
+                <p className="account-qr__plate-status">
+                  <Lock size={14} strokeWidth={1.75} />
+                  {t('account.qr.pendingPlateStatus')}
+                </p>
+              ) : (
+                <div className="account-qr__plate-identity">
+                  <p className="account-qr__plate-name">{athlete?.fullName}</p>
+                  <p className="account-qr__plate-status">{t('account.qr.emptyStatus')}</p>
+                </div>
+              )}
             </div>
           </div>
           <div className="account-qr__issue">
@@ -473,6 +536,15 @@ export default function QrCredentialSection({
               </button>
             ) : null}
           </div>
+          <CredentialStanding
+            createdAt={athlete?.createdAt}
+            hasCredential={false}
+            locale={locale}
+            memberCode={memberCode ?? ''}
+            scans={scans}
+            t={t}
+            waitingPayment={waitingPayment}
+          />
         </div>
         <EventPassList
           events={events}

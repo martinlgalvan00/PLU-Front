@@ -12,6 +12,7 @@ import {
 import { checkInRegistration, getEventCheckinAllowlist } from './athleteApi.js'
 import { checkInTicket } from './ticketApi.js'
 import { classifyCheckinFailure, isAlreadyAdmittedConflict } from './checkinFailure.js'
+import { runDoorAttempts } from './doorRetry.js'
 
 /**
  * offlineCheckinSync.js — PLU ARG
@@ -31,15 +32,30 @@ function asAllowlistResponse(result) {
   return { notModified: false, etag: result?.etag ?? null, data: result }
 }
 
-export async function downloadAllowlist(eventSlug) {
+const allowlistDownloads = new Map()
+
+async function downloadAllowlistOnce(eventSlug) {
   const cached = await getAllowlist(eventSlug)
   const result = asAllowlistResponse(
-    await getEventCheckinAllowlist(eventSlug, { etag: cached?.etag ?? null }),
+    await runDoorAttempts(() =>
+      getEventCheckinAllowlist(eventSlug, { etag: cached?.etag ?? null }),
+    ),
   )
   if (result.notModified) {
     return (await touchAllowlistDownload(eventSlug, result.etag)) ?? cached
   }
   return saveAllowlist(eventSlug, result.data ?? {}, { etag: result.etag ?? null })
+}
+
+/** Una sola descarga por evento aunque el puesto y el aviso en vivo la pidan juntos. */
+export function downloadAllowlist(eventSlug) {
+  const current = allowlistDownloads.get(eventSlug)
+  if (current) return current
+  const task = downloadAllowlistOnce(eventSlug).finally(() => {
+    if (allowlistDownloads.get(eventSlug) === task) allowlistDownloads.delete(eventSlug)
+  })
+  allowlistDownloads.set(eventSlug, task)
+  return task
 }
 
 function pendingKey(entry) {
@@ -80,7 +96,14 @@ async function scheduleRetry(entry, failure, now) {
 async function syncEntry(entry, now) {
   try {
     if (entry.kind === 'ticket') {
-      await checkInTicket(entry.qrToken, entry.gate)
+      const reason = typeof entry.reason === 'string' ? entry.reason.trim() : ''
+      const forced =
+        (entry.force === 'validity' || entry.force === 'zone') && reason.length >= 8
+      await checkInTicket(
+        entry.qrToken,
+        entry.gate,
+        forced ? { force: entry.force, reason } : {},
+      )
     } else {
       await checkInRegistration(entry.registrationId, entry.gate)
     }

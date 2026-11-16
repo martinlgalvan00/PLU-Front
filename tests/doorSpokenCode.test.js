@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   formatManualScanInput,
   gateCodeUtterance,
+  chooseSpokenDoorCode,
   prepareCheckinScan,
   publicSpokenName,
 } from '../src/lib/doorSpokenCode.js'
@@ -33,11 +34,38 @@ describe('código de puerta cantado', () => {
     expect(prepareCheckinScan('https://plu.test/?credencial=abc').kind).toBe('credential')
   })
 
+  it('entre varias escuchas se queda con el código que cierra y lo manda a validar', () => {
+    const chosen = chooseSpokenDoorCode([
+      'el código de la entrada por favor',
+      'ka cuatro eme siete cu pe',
+    ])
+    expect(chosen).toMatchObject({ kind: 'door', display: 'K4M-7QP' })
+  })
+
   it('pide los seis signos si la frase quedó corta', () => {
     const prepared = prepareCheckinScan('ka cuatro eme')
     expect(prepared.kind).toBe('malformed')
     expect(prepared.reason).toBe('length')
     expect(prepared.heard).toBe(3)
+  })
+
+  it('canta la credencial como año y serial, sin pisar el código de entrada', () => {
+    expect(prepareCheckinScan('26 865')).toMatchObject({
+      kind: 'member',
+      display: '26 865',
+    })
+    expect(prepareCheckinScan('dos seis, ocho seis cinco')).toMatchObject({
+      kind: 'member',
+      display: '26 865',
+      repairs: ['speech'],
+    })
+    expect(prepareCheckinScan('26 2345').kind).toBe('member')
+    expect(prepareCheckinScan('262345').kind).toBe('door')
+    expect(formatManualScanInput('26865')).toBe('26 865')
+    expect(chooseSpokenDoorCode(['dos seis, ocho seis cinco'])).toMatchObject({
+      kind: 'member',
+      display: '26 865',
+    })
   })
 
   it('canta el código en dos grupos y la entrada sin el documento', () => {

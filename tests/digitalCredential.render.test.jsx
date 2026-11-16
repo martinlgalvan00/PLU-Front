@@ -32,10 +32,10 @@ const athlete = {
   sex: 'M',
 }
 
-function renderCredential(membership) {
+function renderCredential(membership, props = {}) {
   return render(
     <I18nProvider>
-      <DigitalCredential athlete={athlete} membership={membership} />
+      <DigitalCredential athlete={athlete} membership={membership} {...props} />
     </I18nProvider>,
   )
 }
@@ -75,6 +75,44 @@ describe('DigitalCredential', () => {
     expect(status?.classList.contains('is-active')).toBe(false)
   })
 
+  it('flips a registered competitor even when membership is not current', () => {
+    const { container } = renderCredential(
+      { status: 'vencida', expirationDate: '2020-01-01' },
+      {
+        athlete: { ...athlete, credentialToken: '11111111-1111-4111-8111-111111111111' },
+        registrations: [{ status: 'confirmada', requiresMembership: false }],
+      },
+    )
+    const card = container.querySelector('.account-credential__card')
+    const status = container.querySelector('.account-credential__status')
+
+    expect(card?.dataset.flippable).toBe('1')
+    expect(status?.textContent).toMatch(/listo para ingresar/i)
+    expect(status?.classList.contains('is-active')).toBe(true)
+
+    fireEvent.click(card)
+    expect(card?.dataset.flipped).toBe('1')
+    expect(container.querySelector('.account-credential__face--back .credential-qr')).toBeTruthy()
+  })
+
+  it('la card del inicio dice el mismo torneo que se pidió ver', () => {
+    const { container } = renderCredential(
+      { status: 'vencida', expirationDate: '2020-01-01' },
+      {
+        athlete: { ...athlete, credentialToken: '11111111-1111-4111-8111-111111111111' },
+        registrations: [
+          { status: 'confirmada', eventSlug: 'meet-a', requiresMembership: false },
+          { status: 'confirmada', eventSlug: 'meet-b', requiresMembership: true },
+        ],
+        focusEventSlug: 'meet-b',
+      },
+    )
+    const status = container.querySelector('.account-credential__status')
+
+    expect(status?.textContent).toMatch(/cupo reservado/i)
+    expect(status?.classList.contains('is-active')).toBe(false)
+  })
+
   it('keeps the card solid when there is no active membership', () => {
     const { container } = renderCredential({ status: 'inactiva' })
     const card = container.querySelector('.account-credential__card')
@@ -89,7 +127,11 @@ describe('DigitalCredential', () => {
   })
 
   it('flips via card tap and flip button', () => {
-    const { container } = renderCredential({ status: 'activa', memberCode: 'PLU-9' })
+    const { container } = renderCredential({
+      status: 'activa',
+      memberCode: 'PLU-9',
+      expirationDate: '2027-01-01',
+    })
     const card = container.querySelector('.account-credential__card')
     const flip = container.querySelector('.account-credential__flip')
     expect(card?.dataset.flipped).toBe('0')
@@ -148,7 +190,11 @@ describe('DigitalCredential', () => {
   })
 
   it('marks the card as flipped by hand so the weighted turn can play', () => {
-    const { container } = renderCredential({ status: 'activa', memberCode: 'PLU-779' })
+    const { container } = renderCredential({
+      status: 'activa',
+      memberCode: 'PLU-779',
+      expirationDate: '2027-01-01',
+    })
     const card = container.querySelector('.account-credential__card')
     expect(card.dataset.flipTouched).toBe('0')
 

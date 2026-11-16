@@ -52,6 +52,9 @@ function toCamelTicket(row, { event, checkIn, order } = {}) {
     ticketCode: row.ticket_code,
     qrToken: row.qr_token ?? null,
     gateCode: row.gate_code ?? row.gateCode ?? null,
+    credentialState: row.credential_state ?? row.credentialState ?? null,
+    validityMode: row.qr_validity_mode ?? row.validityMode ?? null,
+    accessActivatedAt: row.access_activated_at ?? row.accessActivatedAt ?? null,
     passSealed: row.pass_sealed === true || row.passSealed === true,
     revealAt: row.reveal_at ?? row.revealAt ?? null,
     orderId: row.order_id,
@@ -345,8 +348,11 @@ export async function setTicketAccessOverride(ticketId, { enabled, validFrom = n
   return { ticket: toCamelTicket(result.ticket) }
 }
 
-export async function checkInTicket(qrToken, gate) {
-  const result = await apiPost(`/api/tickets/checkin/${qrToken}`, { gate })
+export async function checkInTicket(qrToken, gate, { force, reason } = {}) {
+  const result = await apiPost(`/api/tickets/checkin/${qrToken}`, {
+    gate,
+    ...(force ? { force, reason } : {}),
+  })
   return { ticket: toCamelTicket(result.ticket), checkIn: toCamelCheckIn(result.checkIn) }
 }
 
@@ -437,6 +443,9 @@ export function mapApiTicket(apiTicket, purchaseEvent) {
     ticketCode: apiTicket.ticketCode,
     qrToken: apiTicket.qrToken ?? null,
     gateCode: apiTicket.gateCode ?? null,
+    credentialState: apiTicket.credentialState ?? null,
+    validityMode: apiTicket.validityMode ?? null,
+    accessActivatedAt: apiTicket.accessActivatedAt ?? null,
     passSealed: apiTicket.passSealed === true,
     revealAt: apiTicket.revealAt ?? null,
     attendeeName: apiTicket.attendeeName,

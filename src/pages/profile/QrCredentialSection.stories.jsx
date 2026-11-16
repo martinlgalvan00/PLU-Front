@@ -108,7 +108,7 @@ export const MeetSinAfiliacion = {
   },
 }
 
-/** Sin afiliación ni inscripción: la placa bloqueada, sin festejo posible. */
+/** Sin afiliación ni inscripción: la ficha en curso, sin QR ni festejo. */
 export const SinCredencial = {
   args: {
     athlete: { id: 'ath-story-2', fullName: 'Bruno Sosa', credentialToken: null, photoUrl: null },

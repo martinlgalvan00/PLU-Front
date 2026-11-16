@@ -15,20 +15,7 @@ import { getCheckInTourSteps } from '../../lib/adminTourSteps.js'
 import { useCheckInWorkspace } from '../../hooks/useCheckInWorkspace.js'
 import { formatDocumentWithKind } from '../../lib/format.js'
 import { checkinTypeLabel } from '../../services/checkinScanService.js'
-
-/** Etiqueta del día en el que compite una fila, según la grilla asignada. */
-function dayLabel(dayIndexes, eventDays, t) {
-  if (dayIndexes === 'all' || !Array.isArray(dayIndexes) || dayIndexes.length === 0) {
-    return t('admin.checkin.bothDays')
-  }
-  return dayIndexes
-    .map(
-      (dayIndex) =>
-        eventDays.find((day) => day.dayIndex === dayIndex)?.label ??
-        t('admin.checkin.dayNumber', { day: dayIndex + 1 }),
-    )
-    .join(' · ')
-}
+import { formatCheckinRowDay } from '../../services/checkinWorkspaceService.js'
 
 /**
  * Puerta del evento. Además del ingreso resuelve el cobro que lo traba: una
@@ -42,18 +29,22 @@ function dayLabel(dayIndexes, eventDays, t) {
 export default function CheckInSection({
   athletes,
   canCheckIn,
+  canEnableTickets = false,
+  canForceCheckIn = false,
   canValidatePayments = false,
   eventDays = [],
   eventSlug = 'pitbull-classic-2026',
   eventTitle = null,
   memberships = [],
   onApprovePayment,
+  onApproveTicketOrder,
   onCheckInRegistration,
   onCheckInTicket,
   onReauthenticate = null,
   onRedeemTicketAddon,
   onRefreshTickets,
   onRejectPayment,
+  onRejectTicketOrder,
   payments = [],
   registrations,
   ticketTypes = [],
@@ -70,19 +61,22 @@ export default function CheckInSection({
   const workspace = useCheckInWorkspace({
     athletes,
     canCheckIn,
+    canEnableTickets,
+    canForceCheckIn,
     eventDays,
     eventSlug,
+    onApproveTicketOrder,
     onCheckInRegistration,
     onCheckInTicket,
     onRedeemTicketAddon,
     onRefreshTickets,
+    onRejectTicketOrder,
+    memberships,
     payments,
     registrations,
     ticketTypes,
     tickets,
   })
-
-  void memberships
 
   return (
     <AdminListSection
@@ -113,6 +107,7 @@ export default function CheckInSection({
             pendingCount={workspace.offlineSync.pendingCount}
             queueLog={workspace.offlineSync.queueLog}
             onReauthenticate={onReauthenticate}
+            onRetryExhausted={workspace.offlineSync.continueExhausted}
             syncIssue={workspace.offlineSync.syncIssue}
             syncNow={workspace.offlineSync.syncNow}
             syncing={workspace.offlineSync.syncing}
@@ -121,9 +116,14 @@ export default function CheckInSection({
 
           <CheckInScanResult
             canCheckIn={canCheckIn}
+            canEnableTickets={canEnableTickets}
+            canForceCheckIn={canForceCheckIn}
             locale={locale}
             onDismiss={() => workspace.setScanResult(null)}
+            onEnableTicket={workspace.handleEnableTicket}
+            onForceCheckIn={workspace.handleForceCheckIn}
             onRedeemAddon={workspace.handleRedeemAddon}
+            onRejectTicket={workspace.handleRejectTicket}
             onScanCheckIn={workspace.handleScanCheckIn}
             redeemBusyId={workspace.redeemBusyId}
             redeemError={workspace.redeemError}
@@ -253,10 +253,7 @@ export default function CheckInSection({
             key: 'day',
             label: t('admin.checkin.dayLabel'),
             mobile: 'default',
-            // `buildCheckinRows` arma `dayIndexes` ('all' o una lista): esta
-            // celda leía un `row.day` que nunca existió y devolvía "Día 2"
-            // para todo el roster.
-            render: (row) => dayLabel(row.dayIndexes, eventDays, t),
+            render: (row) => formatCheckinRowDay(row, eventDays, t),
           },
           {
             key: 'status',

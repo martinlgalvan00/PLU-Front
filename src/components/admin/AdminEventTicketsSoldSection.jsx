@@ -6,6 +6,7 @@ import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
 import AdminFilterSearch from './AdminFilterSearch.jsx'
 import AdminIconButton from './AdminIconButton.jsx'
 import AdminTicketQrPanel from './AdminTicketQrPanel.jsx'
+import DoorTicketDecision from './DoorTicketDecision.jsx'
 import TicketAccessOverrideDialog from './TicketAccessOverrideDialog.jsx'
 import ErrorState from '../ui/ErrorState.jsx'
 import ExportButton from '../ui/ExportButton.jsx'
@@ -16,6 +17,7 @@ import { money } from '../../lib/format.js'
 import { ticketTypeNameParts } from '../../lib/eventPricing.js'
 import { summarizeSoldTickets } from '../../lib/ticketAdmission.js'
 import { createCsv } from '../../services/exportService.js'
+import { runDoorAttempts } from '../../services/doorRetry.js'
 import { listTicketsForEvent, resendTicketOrder } from '../../services/ticketApi.js'
 // El bloque `admin-orders-block` (cabecera, buscador, filtros) vive en la hoja de
 // Cobros, que solo carga esa ruta: sin este import, "Vendidas" salía sin estilos.
@@ -67,9 +69,13 @@ function formatDate(value, locale) {
  * mismo patrón que `TicketSalesAnalyticsPanel`.
  */
 export default function AdminEventTicketsSoldSection({
+  canEnableTickets = false,
   canOverride = false,
+  canResendCredentials = true,
   event,
   fetchTickets = listTicketsForEvent,
+  onApproveTicketOrder,
+  onRejectTicketOrder,
   onSetTicketAccessOverride,
 }) {
   const { locale, t } = useI18n()
@@ -85,6 +91,9 @@ export default function AdminEventTicketsSoldSection({
   const [overrideBusy, setOverrideBusy] = useState(false)
   const [overrideError, setOverrideError] = useState('')
   const [resendingOrderId, setResendingOrderId] = useState(null)
+  const [decisionRow, setDecisionRow] = useState(null)
+  const [decisionBusy, setDecisionBusy] = useState(false)
+  const [decisionError, setDecisionError] = useState('')
 
   useEffect(() => {
     let active = true
@@ -165,11 +174,15 @@ export default function AdminEventTicketsSoldSection({
         status: ticket.status,
         buyer: ticket.order?.buyerName || ticket.order?.buyerEmail || '—',
         orderId: ticket.order?.id || ticket.orderId || null,
-        canResend: ticket.status === 'pagada' && Boolean(ticket.order?.id || ticket.orderId),
+        paymentProofPath: ticket.order?.paymentProofPath ?? ticket.paymentProofPath ?? null,
+        canResend:
+          canResendCredentials &&
+          ticket.status === 'pagada' &&
+          Boolean(ticket.order?.id || ticket.orderId),
         reference: ticket.order?.reference ?? '—',
         checkInAt: ticket.checkIn?.scannedAt ? formatDate(ticket.checkIn.scannedAt, locale) : null,
       })),
-    [facetedTickets, locale, t],
+    [canResendCredentials, facetedTickets, locale, t],
   )
 
   const rows = useMemo(() => {
@@ -258,6 +271,29 @@ export default function AdminEventTicketsSoldSection({
     }
   }
 
+  async function decidePending(row, action, reason) {
+    if (!row?.orderId || decisionBusy) return
+    setDecisionBusy(true)
+    setDecisionError('')
+    try {
+      const result = await runDoorAttempts(() =>
+        action === 'reject'
+          ? onRejectTicketOrder?.(row.orderId, reason)
+          : onApproveTicketOrder?.(row.orderId, { overrideReason: reason }),
+      )
+      if (result?.error) throw new Error(result.error)
+      notifySuccess(
+        t(action === 'reject' ? 'admin.checkin.rejectedOk' : 'admin.checkin.enabledOk'),
+      )
+      setDecisionRow(null)
+      setReloadKey((current) => current + 1)
+    } catch (err) {
+      setDecisionError(err?.message || t('admin.checkin.decisionShort'))
+    } finally {
+      setDecisionBusy(false)
+    }
+  }
+
   const stats = [
     ['issued', summary.issued],
     ['paid', summary.paid],
@@ -293,6 +329,25 @@ export default function AdminEventTicketsSoldSection({
             </div>
           ))}
         </dl>
+      ) : null}
+
+      {decisionRow ? (
+        <DoorTicketDecision
+          busy={decisionBusy}
+          error={decisionError}
+          kind="enable"
+          proofOrderId={decisionRow.paymentProofPath ? decisionRow.orderId : null}
+          onCancel={() => {
+            setDecisionRow(null)
+            setDecisionError('')
+          }}
+          onConfirm={(reason) => decidePending(decisionRow, 'enable', reason)}
+          onReject={
+            onRejectTicketOrder
+              ? (reason) => decidePending(decisionRow, 'reject', reason)
+              : null
+          }
+        />
       ) : null}
 
       <div className="admin-orders-block__toolbar sold-tickets__toolbar">
@@ -422,6 +477,17 @@ export default function AdminEventTicketsSoldSection({
               align: 'end',
               render: (row) => (
                 <span className="sold-tickets__actions">
+                  {canEnableTickets && row.status === 'pendiente_pago' && row.orderId ? (
+                    <AdminIconButton
+                      icon={Ticket}
+                      label={t('admin.checkin.enableEntry')}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        setDecisionError('')
+                        setDecisionRow(row)
+                      }}
+                    />
+                  ) : null}
                   {row.canResend ? (
                     <AdminIconButton
                       disabled={resendingOrderId === row.orderId}
