@@ -95,6 +95,30 @@ export const MobileProgressiveDisclosure = {
   },
 }
 
+export const LegajoAfiliado = {
+  args: {
+    showMemberDocuments: true,
+    onUploadDocument: fn(async () => ({})),
+    athlete: {
+      ...athlete,
+      documents: [
+        {
+          kind: 'dni_front',
+          contentType: 'image/jpeg',
+          originalName: 'frente.jpg',
+          uploadedAt: '2026-08-20T18:04:00.000Z',
+        },
+        {
+          kind: 'dni_back',
+          contentType: 'application/pdf',
+          originalName: 'dorso.pdf',
+          uploadedAt: '2026-08-20T18:05:00.000Z',
+        },
+      ],
+    },
+  },
+}
+
 export const ExclusiveAccordion = {
   args: {
     athlete: {

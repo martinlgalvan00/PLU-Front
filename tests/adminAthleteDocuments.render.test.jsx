@@ -47,11 +47,13 @@ describe('legajo en la ficha admin', () => {
     const photo = screen.getByRole('link', { name: 'Ver DNI frente' })
     expect(photo.getAttribute('href')).toContain('/api/athletes/admin/athlete-1/documents/dni_front')
     expect(photo.querySelector('img')).toBeTruthy()
+    expect(screen.getAllByText(/frente\.jpg/).length).toBeGreaterThan(0)
+    expect(screen.getByText('Opcional')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'DNI dorso' }))
     expect(screen.getByRole('link', { name: 'Abrir PDF' }).getAttribute('href')).toContain(
       'dni_back',
     )
-    expect(screen.getByText(/frente\.jpg/)).toBeTruthy()
-    expect(screen.getByText('Opcional')).toBeTruthy()
     expect(screen.queryByText('Autorización del tutor')).toBeNull()
   })
 
