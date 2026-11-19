@@ -27,18 +27,21 @@ export const SHOP_PRODUCT_MAX_EDGE = 1200
 export const SHOP_PRODUCT_WEBP_QUALITY = 0.7
 export const SHOP_PRODUCT_TARGET_MAX_BYTES = 280 * 1024
 
-/** Legajo (DNI / certificado): legible, lo más chico posible. */
-export const ATHLETE_DOCUMENT_MAX_EDGE = 1280
-export const ATHLETE_DOCUMENT_WEBP_QUALITY = 0.5
-export const ATHLETE_DOCUMENT_TARGET_MAX_BYTES = 150 * 1024
 /**
- * Si con 1280 px sigue por encima de 400 KB, se achica el lado largo.
- * Cada pasada también baja la calidad.
+ * Legajo (DNI / certificado): el texto tiene que leerse, el archivo no.
+ * 1024 px y ~80 KB cubren un DNI en el panel sin acercarse al tope de 400 KB.
+ */
+export const ATHLETE_DOCUMENT_MAX_EDGE = 1024
+export const ATHLETE_DOCUMENT_WEBP_QUALITY = 0.4
+export const ATHLETE_DOCUMENT_TARGET_MAX_BYTES = 80 * 1024
+/**
+ * Si la primera pasada no entra en ~80 KB, se achica el lado largo.
+ * El tope de Storage (400 KB) se controla después, por si ninguna pasada llega.
  */
 const ATHLETE_DOCUMENT_EDGE_FALLBACKS = [
-  { maxEdge: 1024, quality: 0.32, qualityPasses: [0.24] },
-  { maxEdge: 800, quality: 0.28, qualityPasses: [0.2] },
-  { maxEdge: 640, quality: 0.22, qualityPasses: [0.16] },
+  { maxEdge: 800, quality: 0.32, qualityPasses: [0.24] },
+  { maxEdge: 640, quality: 0.24, qualityPasses: [0.18] },
+  { maxEdge: 512, quality: 0.2, qualityPasses: [0.16] },
 ]
 const STORED_DOCUMENT_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
@@ -208,7 +211,7 @@ function throwDocumentError(message, code) {
 }
 
 /**
- * DNI / certificado: achica la foto hasta entrar en 400 KB.
+ * DNI / certificado: achica la foto hasta ~80 KB (tope duro 400 KB).
  * Si el navegador no puede abrir un HEIC, pide un JPG.
  * Un PDF que entra en el tope se deja; uno más pesado se rechaza.
  */
@@ -226,8 +229,8 @@ export async function compressAthleteDocumentFile(file) {
     quality: ATHLETE_DOCUMENT_WEBP_QUALITY,
     targetMaxBytes: ATHLETE_DOCUMENT_TARGET_MAX_BYTES,
     skipUnderBytes: ATHLETE_DOCUMENT_TARGET_MAX_BYTES,
-    qualityPasses: [0.4, 0.32],
-    hardMaxBytes: ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES,
+    qualityPasses: [0.32, 0.24],
+    hardMaxBytes: ATHLETE_DOCUMENT_TARGET_MAX_BYTES,
     edgeFallbacks: ATHLETE_DOCUMENT_EDGE_FALLBACKS,
   })
 

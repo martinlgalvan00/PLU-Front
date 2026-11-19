@@ -38,7 +38,7 @@ describe('fitImageWithin', () => {
     })
   })
 
-  it('acota documentos de afiliación a 1280 de lado largo', () => {
+  it('acota documentos de afiliación al lado largo del legajo', () => {
     expect(fitImageWithin(4000, 3000, ATHLETE_DOCUMENT_MAX_EDGE)).toEqual({
       width: ATHLETE_DOCUMENT_MAX_EDGE,
       height: Math.round((3000 * ATHLETE_DOCUMENT_MAX_EDGE) / 4000),
