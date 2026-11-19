@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ATHLETE_DOCUMENT_HEIC_UNSUPPORTED_MESSAGE,
+  ATHLETE_DOCUMENT_STILL_TOO_LARGE_MESSAGE,
+  ATHLETE_DOCUMENT_UNREADABLE_MESSAGE,
+} from '../shared/athleteDocuments.js'
+import {
   ATHLETE_DOCUMENT_MAX_EDGE,
   ATHLETE_DOCUMENT_PDF_MAX_BYTES,
+  ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES,
   ATHLETE_PHOTO_MAX_EDGE,
   SHOP_PRODUCT_MAX_EDGE,
   compressAthleteDocumentFile,
@@ -45,13 +51,40 @@ describe('compressAthleteDocumentFile', () => {
     const small = new File([new Uint8Array(12 * 1024)], 'cert.pdf', { type: 'application/pdf' })
     await expect(compressAthleteDocumentFile(small)).resolves.toBe(small)
 
-    const heavy = new File(
-      [new Uint8Array(ATHLETE_DOCUMENT_PDF_MAX_BYTES + 1)],
-      'cert.pdf',
-      { type: 'application/pdf' },
-    )
+    const heavy = new File([new Uint8Array(32)], 'cert.pdf', { type: 'application/pdf' })
+    Object.defineProperty(heavy, 'size', { value: ATHLETE_DOCUMENT_PDF_MAX_BYTES + 1 })
     await expect(compressAthleteDocumentFile(heavy)).rejects.toMatchObject({
       code: 'DOCUMENT_PDF_TOO_LARGE',
+    })
+  })
+
+  it('deja una foto chica si este entorno no puede rasterizar', async () => {
+    const photo = new File([new Uint8Array(80)], 'dni.jpg', { type: 'image/jpeg' })
+    await expect(compressAthleteDocumentFile(photo)).resolves.toBe(photo)
+  })
+
+  it('no devuelve una foto que sigue por encima de 400 KB', async () => {
+    const photo = new File([new Uint8Array(32)], 'dni.jpg', { type: 'image/jpeg' })
+    Object.defineProperty(photo, 'size', { value: ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES + 1 })
+    await expect(compressAthleteDocumentFile(photo)).rejects.toMatchObject({
+      code: 'DOCUMENT_STILL_TOO_LARGE',
+      message: ATHLETE_DOCUMENT_STILL_TOO_LARGE_MESSAGE,
+    })
+  })
+
+  it('pide un JPG si el navegador no puede abrir un HEIC', async () => {
+    const heic = new File([new Uint8Array(80)], 'dni.heic', { type: 'image/heic' })
+    await expect(compressAthleteDocumentFile(heic)).rejects.toMatchObject({
+      code: 'DOCUMENT_HEIC_UNSUPPORTED',
+      message: ATHLETE_DOCUMENT_HEIC_UNSUPPORTED_MESSAGE,
+    })
+  })
+
+  it('no deja pasar un GIF si no lo pudo convertir', async () => {
+    const gif = new File([new Uint8Array(80)], 'dni.gif', { type: 'image/gif' })
+    await expect(compressAthleteDocumentFile(gif)).rejects.toMatchObject({
+      code: 'DOCUMENT_UNREADABLE',
+      message: ATHLETE_DOCUMENT_UNREADABLE_MESSAGE,
     })
   })
 })

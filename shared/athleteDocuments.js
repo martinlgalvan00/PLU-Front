@@ -23,10 +23,22 @@ export const ATHLETE_DOCUMENT_KIND_LABELS = {
 }
 
 export const ATHLETE_DOCUMENT_BUCKET = 'athlete-documents'
+/** Tope del binario que se guarda. Storage y Postgres usan el mismo número. */
 export const ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES = 400 * 1024
-export const ATHLETE_DOCUMENT_PDF_MAX_BYTES = 200 * 1024
+/** Un PDF no se puede achicar en el navegador: el corte es el mismo tope de Storage. */
+export const ATHLETE_DOCUMENT_PDF_MAX_BYTES = ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES
+/** Tope de la foto original, antes de comprimir, para no trabar el celular. */
+export const ATHLETE_DOCUMENT_INTAKE_MAX_BYTES = 20 * 1024 * 1024
 export const ATHLETE_DOCUMENT_PDF_TOO_LARGE_MESSAGE =
   'El PDF es demasiado pesado. Sacá una foto del documento.'
+export const ATHLETE_DOCUMENT_HEIC_UNSUPPORTED_MESSAGE =
+  'Mandalo en JPG o sacá una captura. El iPhone HEIC no entra.'
+export const ATHLETE_DOCUMENT_INTAKE_TOO_LARGE_MESSAGE =
+  'La foto pesa demasiado para procesarla. Elegí otra o sacala de nuevo.'
+export const ATHLETE_DOCUMENT_STILL_TOO_LARGE_MESSAGE =
+  'El archivo sigue pesando demasiado después de comprimirlo.'
+export const ATHLETE_DOCUMENT_UNREADABLE_MESSAGE =
+  'No se pudo leer la foto. Mandala en JPG.'
 
 export const ATHLETE_DOCUMENT_MIME_TYPES = [
   'image/jpeg',

@@ -11,8 +11,9 @@ import {
   requiredDocumentKinds,
 } from '../../lib/athleteDocuments.js'
 import {
+  ATHLETE_DOCUMENT_FILE_ACCEPT,
   athleteDocumentUrl,
-  validateAthleteDocumentFile,
+  prepareAthleteDocumentFile,
 } from '../../services/athleteDocumentService.js'
 import '../../styles/components/athlete-documents.css'
 
@@ -175,16 +176,16 @@ export default function DocumentPackSection({ athlete, onUploadDocument, variant
   async function handleFile(kind, file) {
     if (!file || !onUploadDocument) return
     if (busyRef.current.has(kind)) return
-    const validation = validateAthleteDocumentFile(file)
-    if (validation.error) {
-      setErrors((current) => ({ ...current, [kind]: validation.error }))
-      return
-    }
     busyRef.current.add(kind)
     setBusyKinds(new Set(busyRef.current))
     setErrors((current) => ({ ...current, [kind]: '' }))
     try {
-      const result = await onUploadDocument(athlete.id, kind, file)
+      const prepared = await prepareAthleteDocumentFile(file)
+      if (prepared.error) {
+        setErrors((current) => ({ ...current, [kind]: prepared.error }))
+        return
+      }
+      const result = await onUploadDocument(athlete.id, kind, prepared.file)
       if (result?.error) {
         setErrors((current) => ({ ...current, [kind]: result.error }))
       }
@@ -199,23 +200,29 @@ export default function DocumentPackSection({ athlete, onUploadDocument, variant
     }
   }
 
-  function stageFile(kind, file) {
+  async function stageFile(kind, file) {
     if (!file || !onUploadDocument) return
     if (busyRef.current.has(kind)) return
-    const validation = validateAthleteDocumentFile(file)
-    if (validation.error) {
-      setErrors((current) => ({ ...current, [kind]: validation.error }))
-      return
-    }
-    const contentType = validation.contentType || file.type || ''
+    busyRef.current.add(kind)
+    setBusyKinds(new Set(busyRef.current))
     setErrors((current) => ({ ...current, [kind]: '' }))
-    setViewing(null)
-    setPending({
-      kind,
-      file,
-      pdf: contentType === 'application/pdf' || /\.pdf$/i.test(file.name || ''),
-      previewUrl: filePreviewUrl(file),
-    })
+    try {
+      const prepared = await prepareAthleteDocumentFile(file)
+      if (prepared.error) {
+        setErrors((current) => ({ ...current, [kind]: prepared.error }))
+        return
+      }
+      setViewing(null)
+      setPending({
+        kind,
+        file: prepared.file,
+        pdf: prepared.contentType === 'application/pdf',
+        previewUrl: filePreviewUrl(prepared.file),
+      })
+    } finally {
+      busyRef.current.delete(kind)
+      setBusyKinds(new Set(busyRef.current))
+    }
   }
 
   async function confirmPending() {
@@ -292,7 +299,10 @@ export default function DocumentPackSection({ athlete, onUploadDocument, variant
           busy={busy}
           chooseLabel={uploaded ? t('account.documents.replace') : t('account.documents.upload')}
           uploadingLabel={t('account.documents.uploading')}
-          onFile={(file) => (member ? stageFile(kind, file) : void handleFile(kind, file))}
+          accept={ATHLETE_DOCUMENT_FILE_ACCEPT}
+          onFile={(file) => {
+            void (member ? stageFile(kind, file) : handleFile(kind, file))
+          }}
         />
       </li>
     )

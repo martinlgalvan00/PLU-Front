@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   athleteAgeYears,
+  ATHLETE_DOCUMENT_INTAKE_MAX_BYTES,
+  ATHLETE_DOCUMENT_INTAKE_TOO_LARGE_MESSAGE,
   ATHLETE_DOCUMENT_PDF_MAX_BYTES,
+  ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES,
   documentPackFocus,
   documentPackGate,
   documentsBlockCheckout,
@@ -103,18 +106,42 @@ describe('legajo de documentos de afiliación', () => {
     expect(validateAthleteDocumentFile(photo)).toMatchObject({ ok: true, contentType: 'image/jpeg' })
   })
 
-  it('rechaza HEIC con un mensaje de captura en JPG', () => {
+  it('acepta una foto pesada para comprimirla después', () => {
+    const photo = new File([new Uint8Array(80)], 'dni.jpg', { type: 'image/jpeg' })
+    Object.defineProperty(photo, 'size', { value: 4 * 1024 * 1024 })
+    expect(photo.size).toBeGreaterThan(ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES)
+    expect(validateAthleteDocumentFile(photo)).toMatchObject({ ok: true, contentType: 'image/jpeg' })
+  })
+
+  it('acepta HEIC, GIF y AVIF para convertirlos al comprimir', () => {
     const heic = new File([new Uint8Array(80)], 'dni.heic', { type: 'image/heic' })
-    expect(validateAthleteDocumentFile(heic).error).toMatch(/JPG/i)
+    const gif = new File([new Uint8Array(80)], 'dni.gif', { type: '' })
+    const avif = new File([new Uint8Array(80)], 'dni.avif', { type: 'image/avif' })
+    expect(validateAthleteDocumentFile(heic)).toMatchObject({ ok: true, contentType: 'image/heic' })
+    expect(validateAthleteDocumentFile(gif)).toMatchObject({ ok: true, contentType: 'image/gif' })
+    expect(validateAthleteDocumentFile(avif)).toMatchObject({ ok: true, contentType: 'image/avif' })
+  })
+
+  it('corta una foto enorme antes de intentar comprimirla', () => {
+    const photo = new File([new Uint8Array(80)], 'dni.jpg', { type: 'image/jpeg' })
+    Object.defineProperty(photo, 'size', { value: ATHLETE_DOCUMENT_INTAKE_MAX_BYTES + 1 })
+    expect(validateAthleteDocumentFile(photo).error).toBe(ATHLETE_DOCUMENT_INTAKE_TOO_LARGE_MESSAGE)
   })
 
   it('nombra el archivo que falta y no llama certificado a un PDF de DNI', () => {
     expect(documentPackFocus(['dni_front'])).toBe('dni')
     expect(documentPackFocus(['minor_authorization'])).toBe('guardian')
     expect(documentPackFocus(['dni_back', 'minor_authorization'])).toBe('dni_and_guardian')
-    const pdf = new File([new Uint8Array(ATHLETE_DOCUMENT_PDF_MAX_BYTES + 1)], 'dni.pdf', {
+    const fittingPdf = new File([new Uint8Array(32)], 'dni.pdf', { type: 'application/pdf' })
+    Object.defineProperty(fittingPdf, 'size', { value: ATHLETE_DOCUMENT_PDF_MAX_BYTES })
+    expect(validateAthleteDocumentFile(fittingPdf)).toMatchObject({
+      ok: true,
+      contentType: 'application/pdf',
+    })
+    const pdf = new File([new Uint8Array(32)], 'dni.pdf', {
       type: 'application/pdf',
     })
+    Object.defineProperty(pdf, 'size', { value: ATHLETE_DOCUMENT_PDF_MAX_BYTES + 1 })
     const error = validateAthleteDocumentFile(pdf).error
     expect(error).toMatch(/foto del documento/i)
     expect(error).not.toMatch(/certificado/i)

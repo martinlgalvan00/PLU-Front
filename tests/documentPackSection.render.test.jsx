@@ -6,7 +6,12 @@ import DocumentPackSection from '../src/pages/profile/DocumentPackSection.jsx'
 
 vi.mock('../src/services/athleteDocumentService.js', () => ({
   athleteDocumentUrl: (kind) => `/docs/${kind}`,
-  validateAthleteDocumentFile: () => ({ error: '' }),
+  ATHLETE_DOCUMENT_FILE_ACCEPT: 'image/jpeg,image/png,image/webp,application/pdf',
+  prepareAthleteDocumentFile: async (file) => ({
+    ok: true,
+    file,
+    contentType: file.type || '',
+  }),
 }))
 
 const adult = {
@@ -119,7 +124,7 @@ describe('legajo en el perfil', () => {
     fireEvent.change(input, { target: { files: [file] } })
 
     expect(
-      screen.getByRole('dialog', { name: '¿Estás seguro de que querés subir este documento?' }),
+      await screen.findByRole('dialog', { name: '¿Estás seguro de que querés subir este documento?' }),
     ).toBeTruthy()
     expect(screen.getByRole('img', { name: 'DNI — frente' }).getAttribute('src')).toBe('blob:frente')
     expect(screen.getByText(/frente\.jpg/)).toBeTruthy()
@@ -131,10 +136,10 @@ describe('legajo en el perfil', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
 
     fireEvent.change(input, { target: { files: [file] } })
-    fireEvent.click(screen.getByRole('button', { name: 'Sí, subir' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Sí, subir' }))
 
-    expect(onUploadDocument).toHaveBeenCalledWith('athlete-1', 'dni_front', file)
     expect(await screen.findByText('Legajo completo')).toBeTruthy()
+    expect(onUploadDocument).toHaveBeenCalledWith('athlete-1', 'dni_front', file)
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
