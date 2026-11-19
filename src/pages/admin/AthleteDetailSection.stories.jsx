@@ -38,7 +38,22 @@ const athlete = {
   division: 'Open',
   category: 'Raw',
   estimatedWeight: 67.5,
+  birthDate: '1996-05-14',
   status: 'afiliado_activo',
+  documents: [
+    {
+      kind: 'dni_front',
+      contentType: 'image/jpeg',
+      originalName: 'dni-frente.jpg',
+      uploadedAt: '2026-08-20T18:04:00.000Z',
+    },
+    {
+      kind: 'dni_back',
+      contentType: 'application/pdf',
+      originalName: 'dni-dorso.pdf',
+      uploadedAt: '2026-08-20T18:05:00.000Z',
+    },
+  ],
 }
 
 const EXPLAINED_OVERRIDE = {

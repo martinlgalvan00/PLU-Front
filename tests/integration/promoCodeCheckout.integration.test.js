@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '../../server/app.js'
+import { prepareTestAthleteForCheckout } from './helpers/athleteSession.js'
 import { manualChannelsOpen } from './helpers/platformToggles.js'
 import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
 
@@ -99,10 +100,7 @@ describe('códigos de descuento y promoción en el checkout', () => {
     const body = await response.json()
     expect(response.status, JSON.stringify(body)).toBe(201)
     createdAthleteIds.push(body.athlete.id)
-    await admin
-      .from('athletes')
-      .update({ email_verified_at: new Date().toISOString() })
-      .eq('id', body.athlete.id)
+    await prepareTestAthleteForCheckout(admin, body.athlete.id)
     return { athlete: body.athlete, cookie: sessionCookie(response) }
   }
 

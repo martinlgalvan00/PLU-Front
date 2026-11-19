@@ -13,6 +13,38 @@ import {
  * El alta va directo a la tabla en vez de pasar por POST /api/athletes/register
  * para no arrastrar el envío de emails de onboarding a un test de cupos.
  */
+/**
+ * Afiliación, combo e inscripción exigen DNI frente y dorso. Los tests de
+ * checkout no están probando el legajo: sin estas dos filas la ruta corta en
+ * 422 ATHLETE_DOCUMENTS_INCOMPLETE antes del precio, el cupo o el interruptor.
+ */
+export async function seedRequiredAthleteDocuments(client, athleteId) {
+  const rows = ['dni_front', 'dni_back'].map((kind) => ({
+    athlete_id: athleteId,
+    kind,
+    storage_path: `${athleteId}/${kind}/integration.webp`,
+    content_type: 'image/webp',
+    size_bytes: 1024,
+    original_name: `${kind}.webp`,
+  }))
+  const { error } = await client.from('athlete_documents').upsert(rows, {
+    onConflict: 'athlete_id,kind',
+  })
+  if (error) {
+    throw new Error(`No se pudieron cargar los documentos de prueba: ${error.message}`)
+  }
+}
+
+/** Mail confirmado + DNI, que es lo que el checkout pide antes de crear la orden. */
+export async function prepareTestAthleteForCheckout(client, athleteId) {
+  const { error } = await client
+    .from('athletes')
+    .update({ email_verified_at: new Date().toISOString() })
+    .eq('id', athleteId)
+  if (error) throw new Error(`No se pudo verificar el email de prueba: ${error.message}`)
+  await seedRequiredAthleteDocuments(client, athleteId)
+}
+
 export async function createTestAthlete(client, overrides = {}) {
   const suffix = randomUUID().slice(0, 8)
   const { data, error } = await client
@@ -45,6 +77,7 @@ export async function createTestAthlete(client, overrides = {}) {
     .single()
 
   if (error) throw new Error(`No se pudo crear el atleta de prueba: ${error.message}`)
+  await seedRequiredAthleteDocuments(client, data.id)
   return data.id
 }
 

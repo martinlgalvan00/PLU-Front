@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import DocumentsPendingBanner from '../src/components/ui/DocumentsPendingBanner.jsx'
@@ -6,7 +6,12 @@ import DocumentPackSection from '../src/pages/profile/DocumentPackSection.jsx'
 
 vi.mock('../src/services/athleteDocumentService.js', () => ({
   athleteDocumentUrl: (kind) => `/docs/${kind}`,
-  validateAthleteDocumentFile: () => ({ error: '' }),
+  ATHLETE_DOCUMENT_FILE_ACCEPT: 'image/jpeg,image/png,image/webp,application/pdf',
+  prepareAthleteDocumentFile: async (file) => ({
+    ok: true,
+    file,
+    contentType: file.type || '',
+  }),
 }))
 
 const adult = {
@@ -61,7 +66,7 @@ describe('legajo en el perfil', () => {
     expect(screen.queryByText('Falta el DNI para afiliarte')).toBeNull()
   })
 
-  it('quien ya tiene el legajo completo no descarga las fotos hasta pedirlas', () => {
+  it('quien ya tiene el legajo completo ve los documentos y la foto solo al abrirla', () => {
     render(
       <I18nProvider>
         <DocumentPackSection
@@ -79,15 +84,63 @@ describe('legajo en el perfil', () => {
     )
 
     expect(screen.getByRole('heading', { name: 'Tu legajo' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Ver o reemplazar' })).toBeTruthy()
+    expect(screen.getByText('DNI — frente')).toBeTruthy()
+    expect(screen.getByText('DNI — dorso')).toBeTruthy()
+    expect(screen.getByText('Certificado médico')).toBeTruthy()
     expect(document.querySelector('img')).toBeNull()
-    expect(screen.queryByText('Subir')).toBeNull()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Ver o reemplazar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ver DNI — frente' }))
 
-    expect(screen.getAllByRole('link', { name: 'Ver' })).toHaveLength(2)
+    const preview = document.querySelector('.account-documents-dialog img')
+    expect(preview?.getAttribute('src')).toContain('/docs/dni_front')
     expect(screen.getAllByText('Reemplazar').length).toBeGreaterThan(0)
-    expect(document.querySelector('img')).toBeNull()
+
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cerrar' }))
+    expect(document.querySelector('.account-documents-dialog')).toBeNull()
+  })
+
+  it('una persona afiliada confirma la vista previa antes de subir', async () => {
+    const onUploadDocument = vi.fn().mockResolvedValue({})
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:frente')
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    render(
+      <I18nProvider>
+        <DocumentPackSection
+          athlete={{
+            ...adult,
+            documents: [
+              { kind: 'dni_front', uploadedAt: '2026-11-16T18:00:00.000Z' },
+              { kind: 'dni_back', uploadedAt: '2026-11-16T18:00:00.000Z' },
+            ],
+          }}
+          onUploadDocument={onUploadDocument}
+          variant="member"
+        />
+      </I18nProvider>,
+    )
+
+    const input = document.querySelector('#account-document-member-dni_front')
+    const file = new File([new Uint8Array(40)], 'frente.jpg', { type: 'image/jpeg' })
+    fireEvent.change(input, { target: { files: [file] } })
+
+    expect(
+      await screen.findByRole('dialog', { name: '¿Estás seguro de que querés subir este documento?' }),
+    ).toBeTruthy()
+    expect(screen.getByRole('img', { name: 'DNI — frente' }).getAttribute('src')).toBe('blob:frente')
+    expect(screen.getByText(/frente\.jpg/)).toBeTruthy()
+    expect(screen.getByText('Reemplaza el archivo que ya está cargado.')).toBeTruthy()
+    expect(onUploadDocument).not.toHaveBeenCalled()
+
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancelar' }))
+    expect(onUploadDocument).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).toBeNull()
+
+    fireEvent.change(input, { target: { files: [file] } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Sí, subir' }))
+
+    expect(await screen.findByText('Legajo completo')).toBeTruthy()
+    expect(onUploadDocument).toHaveBeenCalledWith('athlete-1', 'dni_front', file)
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it('si la carga se corta, muestra el error y vuelve a habilitar ese archivo', async () => {

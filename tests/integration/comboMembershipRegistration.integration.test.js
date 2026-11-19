@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '../../server/app.js'
+import { prepareTestAthleteForCheckout } from './helpers/athleteSession.js'
 import { manualChannelsOpen } from './helpers/platformToggles.js'
 import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
 
@@ -173,10 +174,7 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
     const athleteBody = await athleteResponse.json()
     expect(athleteResponse.status, JSON.stringify(athleteBody)).toBe(201)
     createdAthleteIds.push(athleteBody.athlete.id)
-    await admin
-      .from('athletes')
-      .update({ email_verified_at: new Date().toISOString() })
-      .eq('id', athleteBody.athlete.id)
+    await prepareTestAthleteForCheckout(admin, athleteBody.athlete.id)
 
     const idempotencyKey = randomUUID()
     const payload = {
@@ -308,10 +306,7 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
     const athleteBody = await athleteResponse.json()
     expect(athleteResponse.status, JSON.stringify(athleteBody)).toBe(201)
     createdAthleteIds.push(athleteBody.athlete.id)
-    await admin
-      .from('athletes')
-      .update({ email_verified_at: new Date().toISOString() })
-      .eq('id', athleteBody.athlete.id)
+    await prepareTestAthleteForCheckout(admin, athleteBody.athlete.id)
 
     const credentialBeforePayment = await admin
       .from('athletes')
@@ -562,10 +557,7 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
     expect(athleteResponse.status, JSON.stringify(athleteBody)).toBe(201)
     const athleteId = athleteBody.athlete.id
     createdAthleteIds.push(athleteId)
-    await admin
-      .from('athletes')
-      .update({ email_verified_at: new Date().toISOString() })
-      .eq('id', athleteId)
+    await prepareTestAthleteForCheckout(admin, athleteId)
 
     const cookie = sessionCookie(athleteResponse)
     const comboResponse = await fetch(`${listenTarget.url}/api/athletes/me/registration-combos`, {

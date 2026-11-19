@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '../../server/app.js'
+import { prepareTestAthleteForCheckout } from './helpers/athleteSession.js'
 import { manualChannelsOpen } from './helpers/platformToggles.js'
 import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
 
@@ -50,14 +51,10 @@ async function registerAthlete(baseUrl, suffix, { verifyEmail = false, admin } =
     )
   }
 
-  // membership-orders exige email_verified_at (assertEmailVerified → 403).
+  // membership-orders exige mail confirmado y DNI frente/dorso.
   if (verifyEmail) {
     if (!admin) throw new Error('registerAthlete(verifyEmail) requiere el client admin.')
-    const { error } = await admin
-      .from('athletes')
-      .update({ email_verified_at: new Date().toISOString() })
-      .eq('id', body.athlete.id)
-    if (error) throw new Error(`No se pudo verificar el email de prueba: ${error.message}`)
+    await prepareTestAthleteForCheckout(admin, body.athlete.id)
   }
 
   return { athlete: body.athlete, cookie: sessionCookie(response) }
