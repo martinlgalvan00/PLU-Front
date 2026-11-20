@@ -1063,6 +1063,8 @@ export default function App() {
           onNotifyRegistrations={app.notifyRegistrationsAction}
           onPreviewRegistrationNotification={app.previewRegistrationNotificationAction}
           onApproveTicketPurchase={app.approveTicketPurchase}
+          onReopenTicketOrder={app.reopenTicketPurchase}
+          onSettleTicketOrder={app.settleCancelledTicketPurchase}
           onRejectTicketOrder={app.rejectTicketPurchase}
           onCreateManualTicketOrder={app.createManualTicketSale}
           onCheckInRegistration={app.checkInRegistrationAction}

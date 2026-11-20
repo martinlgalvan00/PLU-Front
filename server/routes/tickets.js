@@ -310,6 +310,15 @@ export const createOrderSchema = z
   .superRefine(assertNoDuplicateDni)
 const accessSchema = z.object({ accessToken: z.string().trim().min(32) })
 const rejectOrderSchema = z.object({ reason: z.string().trim().min(3).max(500) })
+// Mismo piso que la RPC: reabrir una cancelación del cron no es un clic
+// vacío. Un motivo corto no explica por qué la orden vuelve a la cola.
+const reopenOrderSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(8, 'El motivo tiene que tener al menos 8 caracteres.')
+    .max(500),
+})
 // Mismo piso que afiliaciones: acreditar transferencia o Wise sin archivo
 // exige un motivo. La RPC lo vuelve a chequear. Un POST vacío sigue valiendo
 // para efectivo y para órdenes que ya tienen comprobante.
@@ -376,6 +385,10 @@ const ticketOrdersQuerySchema = z.object({
   sort: z.enum(['recent', 'aging']).optional().default('recent'),
   limit: z.coerce.number().int().min(1).max(200).optional().default(200),
   withCounts: booleanQueryParam.default(false),
+  /** "Por validar" incluye las canceladas que todavía tienen comprobante. */
+  includeHeldProof: booleanQueryParam.default(false),
+  /** El chip Canceladas no vuelve a listar las que ya están en la cola. */
+  excludeHeldProof: booleanQueryParam.default(false),
 })
 
 /**
@@ -1377,6 +1390,59 @@ export function createTicketRoutes({
           )
         }
         res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Reapertura de una orden que el vencimiento canceló con el comprobante ya
+   * cargado. No acredita y no manda mail: la deja `pendiente` para que
+   * Finanzas la apruebe o la rechace por el camino de siempre.
+   */
+  router.post(
+    '/orders/:orderId/reopen',
+    ...ticketDoorFinanceGuard,
+    staffLimiter,
+    validateBody(reopenOrderSchema),
+    async (req, res, next) => {
+      try {
+        const orderId = parseOrderId(req)
+        await assertTicketOrderInScope(req, getSupabaseAdmin?.(), orderId)
+        assertValidationEnabled(await platformSettingsRepo().get(), 'ticket')
+        const result = await repo().reopen(orderId, req.validatedBody.reason, actor(req))
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Un paso: reabre y acredita la orden que el vencimiento canceló con el
+   * comprobante cargado. El mail es el mismo de una aprobación común. Si el
+   * comprador está desuscripto, la orden igual queda paga y la respuesta lo
+   * dice para que Finanzas avise por otro canal.
+   */
+  router.post(
+    '/orders/:orderId/settle',
+    ...ticketDoorFinanceGuard,
+    staffLimiter,
+    validateBody(reopenOrderSchema),
+    async (req, res, next) => {
+      try {
+        const orderId = parseOrderId(req)
+        await assertTicketOrderInScope(req, getSupabaseAdmin?.(), orderId)
+        assertValidationEnabled(await platformSettingsRepo().get(), 'ticket')
+        const result = await repo().settleCancelled(orderId, req.validatedBody.reason, actor(req))
+        const sent = await sendTicketConfirmation(result).catch((error) => {
+          logger.warn('email.ticket_confirmation_failed', {
+            orderId: result?.order?.id,
+            err: error,
+          })
+          return { status: 'failed' }
+        })
+        const mail = sent?.status === 'suppressed' ? 'suppressed' : confirmationMailStatus(sent)
+        res.json({ ...result, mail })
       } catch (error) {
         next(error)
       }

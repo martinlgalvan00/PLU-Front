@@ -196,6 +196,33 @@ export async function rejectTicketOrder(orderId, reason) {
   }
 }
 
+/**
+ * Devuelve a la cola una orden manual que el vencimiento canceló con el
+ * comprobante todavía adjunto. No acredita: después se valida como cualquier
+ * transferencia pendiente.
+ */
+export async function reopenTicketOrder(orderId, reason) {
+  const result = await apiPost(`/api/tickets/orders/${orderId}/reopen`, { reason })
+  return {
+    order: toCamelOrder(result.order),
+    tickets: (result.tickets ?? []).map((ticket) => toCamelTicket(ticket)),
+  }
+}
+
+/**
+ * Acredita de una la orden que el vencimiento canceló con el comprobante
+ * cargado. `mail` dice si el comprador se enteró: `sent`, `suppressed` o
+ * `failed`. La orden queda paga igual.
+ */
+export async function settleCancelledTicketOrder(orderId, reason) {
+  const result = await apiPost(`/api/tickets/orders/${orderId}/settle`, { reason })
+  return {
+    order: toCamelOrder(result.order),
+    tickets: (result.tickets ?? []).map((ticket) => toCamelTicket(ticket)),
+    mail: result.mail ?? 'skipped',
+  }
+}
+
 export async function registerTicketPaymentProof(orderId, accessToken, proofPath) {
   const result = await apiPost(`/api/tickets/orders/${orderId}/proof`, { accessToken, proofPath })
   return { order: toCamelOrder(result.order) }
@@ -217,6 +244,7 @@ export function mapTicketOrderRow(row) {
     manualPaymentChannel: order.manualPaymentChannel,
     paymentProofPath: order.paymentProofPath,
     paymentProofUploadedAt: order.paymentProofUploadedAt,
+    rejectedAt: order.rejectedAt ?? null,
     buyerName: order.buyerName,
     buyerEmail: order.buyerEmail,
     createdAt: order.createdAt,
@@ -249,6 +277,8 @@ export async function listTicketOrders(filters = {}) {
   if (filters.sort) params.set('sort', filters.sort)
   if (filters.limit) params.set('limit', String(filters.limit))
   if (filters.withCounts) params.set('withCounts', 'true')
+  if (filters.includeHeldProof) params.set('includeHeldProof', 'true')
+  if (filters.excludeHeldProof) params.set('excludeHeldProof', 'true')
   const search = params.toString()
   const { orders, counts } = await apiGet(`/api/tickets/orders${search ? `?${search}` : ''}`)
   return { orders: (orders ?? []).map(mapTicketOrderRow), counts: counts ?? null }

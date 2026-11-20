@@ -42,6 +42,8 @@ const ORGANIZER_ALLOWED = new Set([
   // de la orden antes de actuar (tests/api.eventScopePayments.test.js).
   'GET /api/events/:eventSlug/payments',
   'POST /api/tickets/orders/:orderId/approve',
+  'POST /api/tickets/orders/:orderId/reopen',
+  'POST /api/tickets/orders/:orderId/settle',
   'POST /api/tickets/orders/:orderId/reject',
   'POST /api/tickets/orders/:orderId/resend',
   'GET /api/tickets/orders/:orderId/proof-url',
