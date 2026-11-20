@@ -66,12 +66,19 @@ const ORDER_ACCESS_SELECT = 'id,provider'
 const TICKET_ORDER_SELECT = `
   id, event_id, buyer_name, buyer_email, buyer_phone, amount, currency,
   provider, manual_payment_channel, status, reference, payment_proof_path,
-  payment_proof_uploaded_at, created_at, updated_at,
+  payment_proof_uploaded_at, rejected_at, created_at, updated_at,
   event:events(slug,title),
   tickets(attendee_name,attendee_dni)
 `
 const PENDING_MANUAL_ORDER_SELECT = TICKET_ORDER_SELECT
 const OPEN_TICKET_ORDER_STATUSES = ['creado', 'pendiente']
+// "Por validar" también muestra la transferencia que el vencimiento canceló
+// con el archivo todavía adjunto. El cron ya no las come; las que quedaron
+// canceladas siguen siendo trabajo de Finanzas, no historial.
+const OPEN_OR_HELD_PROOF =
+  'status.in.(creado,pendiente),and(status.eq.cancelado,provider.eq.manual,rejected_at.is.null,payment_proof_path.not.is.null)'
+const NOT_HELD_PROOF =
+  'provider.neq.manual,rejected_at.not.is.null,payment_proof_path.is.null'
 // Igual que en el repo de atletas: sumar el importe pendiente sobre una
 // muestra acotada en vez de traer la tabla entera para un número.
 const OPEN_AMOUNT_SAMPLE_LIMIT = 500
@@ -681,12 +688,21 @@ export function createSupabaseTicketRepository(client) {
       eventId = null,
       sort = 'recent',
       limit = 200,
+      includeHeldProof = false,
+      excludeHeldProof = false,
     } = {}) {
       let builder = client.from('ticket_orders').select(TICKET_ORDER_SELECT)
 
       if (eventId) builder = builder.eq('event_id', eventId)
 
-      if (Array.isArray(statuses) && statuses.length > 0) builder = builder.in('status', statuses)
+      if (includeHeldProof) {
+        builder = builder.or(OPEN_OR_HELD_PROOF)
+      } else if (excludeHeldProof) {
+        if (Array.isArray(statuses) && statuses.length > 0) builder = builder.in('status', statuses)
+        builder = builder.or(NOT_HELD_PROOF)
+      } else if (Array.isArray(statuses) && statuses.length > 0) {
+        builder = builder.in('status', statuses)
+      }
 
       // El canal sólo tiene sentido para `manual`: fijarlo sin fijar el
       // proveedor dejaría pasar filas de Mercado Pago con el campo en null.
@@ -731,17 +747,31 @@ export function createSupabaseTicketRepository(client) {
         .in('status', OPEN_TICKET_ORDER_STATUSES)
       if (eventId) pendingAmountsQuery = pendingAmountsQuery.eq('event_id', eventId)
 
-      const [pendingRes, approvedRes, rejectedRes, cancelledRes, totalRes, pendingAmounts] =
+      const heldProofQuery = scoped()
+        .eq('status', 'cancelado')
+        .eq('provider', 'manual')
+        .is('rejected_at', null)
+        .not('payment_proof_path', 'is', null)
+
+      const [pendingRes, approvedRes, rejectedRes, cancelledRes, heldProofRes, totalRes, pendingAmounts] =
         await Promise.all([
           scoped().in('status', OPEN_TICKET_ORDER_STATUSES),
           scoped().eq('status', 'aprobado'),
           scoped().eq('status', 'rechazado'),
           scoped().eq('status', 'cancelado'),
+          heldProofQuery,
           scoped(),
           pendingAmountsQuery.limit(OPEN_AMOUNT_SAMPLE_LIMIT),
         ])
 
-      for (const response of [pendingRes, approvedRes, rejectedRes, cancelledRes, totalRes]) {
+      for (const response of [
+        pendingRes,
+        approvedRes,
+        rejectedRes,
+        cancelledRes,
+        heldProofRes,
+        totalRes,
+      ]) {
         assertSupabaseResult(response, 'No se pudieron contar las ordenes de entradas.')
       }
       const amounts = assertSupabaseResult(
@@ -749,11 +779,15 @@ export function createSupabaseTicketRepository(client) {
         'No se pudo sumar lo pendiente de cobro.',
       )
 
+      const heldProof = heldProofRes.count ?? 0
       return {
         pending: pendingRes.count ?? 0,
+        heldProof,
         aprobado: approvedRes.count ?? 0,
         rechazado: rejectedRes.count ?? 0,
-        cancelado: cancelledRes.count ?? 0,
+        // Las que tienen comprobante viven en "Por validar", no en el historial
+        // de canceladas. Así los chips no cuentan dos veces la misma orden.
+        cancelado: Math.max(0, (cancelledRes.count ?? 0) - heldProof),
         all: totalRes.count ?? 0,
         openAmount: (amounts ?? []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0),
         openAmountTruncated: (pendingRes.count ?? 0) > (amounts?.length ?? 0),
@@ -863,6 +897,29 @@ export function createSupabaseTicketRepository(client) {
         'reject_ticket_payment_order',
         { p_order_id: orderId, p_reason: reason ?? null, p_actor: actor ?? null },
         'No se pudo rechazar la orden.',
+      )
+    },
+    /**
+     * Vuelve a pendiente una orden manual que el vencimiento canceló con el
+     * comprobante ya cargado. No acredita: Finanzas sigue aprobando por el
+     * camino de siempre. La RPC rechaza un rechazo explícito de staff.
+     */
+    async reopen(orderId, reason, actor) {
+      return rpc(
+        'staff_reopen_cancelled_ticket_order',
+        { p_order_id: orderId, p_actor: actor ?? null, p_reason: reason ?? null },
+        'No se pudo reabrir la orden.',
+      )
+    },
+    /**
+     * Reabre y acredita en la misma transacción. El mail lo manda la ruta,
+     * igual que una aprobación común: esta función no habla con el proveedor.
+     */
+    async settleCancelled(orderId, reason, actor) {
+      return rpc(
+        'staff_settle_cancelled_ticket_order',
+        { p_order_id: orderId, p_actor: actor ?? null, p_reason: reason ?? null },
+        'No se pudo acreditar la orden.',
       )
     },
     async createProofUpload(orderId, accessToken, fileName) {

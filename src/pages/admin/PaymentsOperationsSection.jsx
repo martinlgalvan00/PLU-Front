@@ -45,6 +45,8 @@ export default function PaymentsOperationsSection({
   onForceSettlePayment,
   onRejectPayment,
   onApproveTicketOrder,
+  onReopenTicketOrder,
+  onSettleTicketOrder,
   onRejectTicketOrder,
   onCreateManualTicketOrder,
   onRefresh: onRefreshManual,
@@ -270,6 +272,8 @@ export default function PaymentsOperationsSection({
           loadError={manualError}
           events={ticketEvents}
           onApproveTicketOrder={onApproveTicketOrder}
+          onReopenTicketOrder={onReopenTicketOrder}
+          onSettleTicketOrder={onSettleTicketOrder}
           onRejectTicketOrder={onRejectTicketOrder}
           onCreateManualTicketOrder={onCreateManualTicketOrder}
           onRefresh={onRefreshManual}

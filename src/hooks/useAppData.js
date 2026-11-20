@@ -153,6 +153,8 @@ import {
   redeemTicketAddon as redeemTicketAddonRequest,
   registerTicketPaymentProof as registerTicketPaymentProofRequest,
   rejectTicketOrder as rejectTicketOrderRequest,
+  reopenTicketOrder as reopenTicketOrderRequest,
+  settleCancelledTicketOrder as settleCancelledTicketOrderRequest,
   setTicketAccessOverride as setTicketAccessOverrideRequest,
 } from '../services/ticketApi.js'
 import { uploadTicketPaymentProof } from '../services/ticketProofService.js'
@@ -2191,6 +2193,66 @@ export function useAppData() {
         console.error('rejectTicketPurchase:', error)
         if (isRetryableCheckinFailure(error)) throw error
         return { error: error?.message ?? 'No se pudo rechazar la orden.' }
+      }
+    },
+    [session],
+  )
+
+  // El vencimiento automático a veces cierra una transferencia que ya tiene
+  // comprobante. Reabrir la devuelve a pendiente; acreditar sigue siendo el
+  // botón de validar, que es el que manda el mail.
+  const reopenTicketPurchase = useCallback(
+    async (orderId, reason) => {
+      if (!hasAnyPermission(session, ['admin.payments.approve', 'admin.tickets.enable'])) {
+        return { error: 'Sin permisos para reabrir esta entrada.' }
+      }
+      try {
+        const { order, tickets: reopenedTickets } = await reopenTicketOrderRequest(orderId, reason)
+        setTickets((current) => {
+          const byId = new Map(reopenedTickets.map((ticket) => [ticket.id, ticket]))
+          return current.map((item) =>
+            byId.has(item.id) ? { ...item, status: byId.get(item.id).status } : item,
+          )
+        })
+        setCreatedOrder((current) =>
+          current?.orderId === orderId ? { ...current, status: order.status } : current,
+        )
+        return { order }
+      } catch (error) {
+        console.error('reopenTicketPurchase:', error)
+        return { error: error?.message ?? 'No se pudo reabrir la orden.' }
+      }
+    },
+    [session],
+  )
+
+  // Un paso para el caso en que el dinero ya está: reabre y acredita, y
+  // devuelve si el mail salió. No saca de la cola una orden que la RPC rechazó.
+  const settleCancelledTicketPurchase = useCallback(
+    async (orderId, reason) => {
+      if (!hasAnyPermission(session, ['admin.payments.approve', 'admin.tickets.enable'])) {
+        return { error: 'Sin permisos para acreditar esta entrada.' }
+      }
+      try {
+        const {
+          order,
+          tickets: settledTickets,
+          mail,
+        } = await settleCancelledTicketOrderRequest(orderId, reason)
+        setTickets((current) => {
+          const byId = new Map(settledTickets.map((ticket) => [ticket.id, ticket]))
+          return current.map((item) =>
+            byId.has(item.id) ? { ...item, status: byId.get(item.id).status } : item,
+          )
+        })
+        setCreatedOrder((current) =>
+          current?.orderId === orderId ? { ...current, status: order.status } : current,
+        )
+        setPendingTicketOrders((current) => current.filter((item) => item.orderId !== orderId))
+        return { order, mail }
+      } catch (error) {
+        console.error('settleCancelledTicketPurchase:', error)
+        return { error: error?.message ?? 'No se pudo acreditar la orden.' }
       }
     },
     [session],
@@ -4724,6 +4786,8 @@ export function useAppData() {
     uploadTicketPaymentProofAction,
     approveTicketPurchase,
     rejectTicketPurchase,
+    reopenTicketPurchase,
+    settleCancelledTicketPurchase,
     refreshPendingTicketOrders,
     createManualTicketSale,
     checkInTicketAction,

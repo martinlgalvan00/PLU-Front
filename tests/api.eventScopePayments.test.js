@@ -114,6 +114,16 @@ describe('organizador: órdenes de entradas', () => {
         ['POST', `/api/tickets/orders/${T_B}/approve`, undefined],
         ['POST', `/api/tickets/orders/${T_B}/resend`, undefined],
         ['POST', `/api/tickets/orders/${T_B}/reject`, { reason: 'comprobante ilegible' }],
+        [
+          'POST',
+          `/api/tickets/orders/${T_B}/reopen`,
+          { reason: 'el comprobante ya estaba cargado' },
+        ],
+        [
+          'POST',
+          `/api/tickets/orders/${T_B}/settle`,
+          { reason: 'el comprobante ya estaba cargado' },
+        ],
         ['GET', `/api/tickets/orders/${T_B}/proof-url`, undefined],
         ['GET', `/api/tickets/orders/${T_B}/proof`, undefined],
       ]) {
@@ -135,9 +145,17 @@ describe('organizador: órdenes de entradas', () => {
       const reject = await call(ctx, 'POST', `/api/tickets/orders/${T_A}/reject`, {
         reason: 'comprobante ilegible',
       })
+      const reopen = await call(ctx, 'POST', `/api/tickets/orders/${T_A}/reopen`, {
+        reason: 'el comprobante ya estaba cargado',
+      })
+      const settle = await call(ctx, 'POST', `/api/tickets/orders/${T_A}/settle`, {
+        reason: 'el comprobante ya estaba cargado',
+      })
       expect(blockedByScope(approve)).toBe(false)
       expect(blockedByScope(resend)).toBe(false)
       expect(blockedByScope(reject)).toBe(false)
+      expect(blockedByScope(reopen)).toBe(false)
+      expect(blockedByScope(settle)).toBe(false)
       expect(approve.body?.code).not.toBe('event_scope_denied')
     } finally {
       await ctx.target.close()

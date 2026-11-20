@@ -99,6 +99,8 @@ export default function AdminPage({
   onNotifyRegistrations,
   onPreviewRegistrationNotification,
   onApproveTicketPurchase,
+  onReopenTicketOrder,
+  onSettleTicketOrder,
   onRejectTicketOrder,
   onCreateManualTicketOrder,
   onRefreshPendingTicketOrders,
@@ -663,6 +665,8 @@ export default function AdminPage({
           onForceSettlePayment={onForceSettlePayment}
           onRejectPayment={onRejectPayment}
           onApproveTicketOrder={onApproveTicketPurchase}
+          onReopenTicketOrder={onReopenTicketOrder}
+          onSettleTicketOrder={onSettleTicketOrder}
           onRejectTicketOrder={onRejectTicketOrder}
           onCreateManualTicketOrder={onCreateManualTicketOrder}
           onRefresh={onRefreshPendingTicketOrders}
