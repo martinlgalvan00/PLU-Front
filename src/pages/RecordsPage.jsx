@@ -156,7 +156,7 @@ export default function RecordsPage({ onNavigate }) {
       className={`page page--design page--plu-ref records-page records-page--plu-ref records-page--federated${hasRecords ? '' : ' records-page--soon'}`}
     >
       <PluPageHero
-        align={hasRecords ? 'center' : 'start'}
+        align="start"
         breadcrumbLabel={t('pages.records.heroBreadcrumb')}
         chapter={t('pages.records.heroEyebrow')}
         className={hasRecords ? '' : 'records-page__hero'}

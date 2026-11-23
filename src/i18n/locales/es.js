@@ -987,7 +987,7 @@ export default {
     navInstitution: 'Institucional',
   },
   design: {
-    home: 'Home',
+    home: 'Inicio',
   },
   contact: {
     motiveLabel: 'Motivo',

@@ -8,6 +8,9 @@
 
 import { BRAND } from './brand.js'
 
+/** Misma vista previa en la credencial de afiliación y en el pase del recorrido, para reusar el PNG. */
+export const HOME_PREVIEW_CREDENTIAL_CODE = 'PREV-HOME-MEMBER'
+
 /**
  * Arma la URL pública de verificación de una credencial.
  * @param {{ code: string, eventSlug?: string, type?: 'ticket' }} params

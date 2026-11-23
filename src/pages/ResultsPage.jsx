@@ -92,6 +92,7 @@ export default function ResultsPage({ onNavigate, events = UPCOMING_EVENTS }) {
   return (
     <main className="page page--design page--plu-ref results-page--design results-page--premium">
       <PluPageHero
+        align="start"
         breadcrumbLabel={t('pages.results.heroBreadcrumb')}
         chapter={t('pages.results.heroChapter')}
         description={t('pages.results.heroDesc')}

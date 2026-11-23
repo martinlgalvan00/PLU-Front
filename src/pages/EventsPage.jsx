@@ -794,6 +794,7 @@ export default function EventsPage({
   return (
     <main className="page page--design page--plu-ref events-page--design events-page--plu-ref events-page--list-first">
       <PluPageHero
+        align="start"
         className="events-page__hero"
         breadcrumbLabel={t('pages.events.heroBreadcrumb')}
         chapter={t('pages.events.heroChapter')}

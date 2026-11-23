@@ -133,7 +133,22 @@ function RevealLine({ motionProps = null, className, children, ...rest }) {
   )
 }
 
-function LaneBody({ dateParts, copy, title, venue, location, cue, lineMotion }) {
+function PageLink({ label, ariaLabel, onClick, motionProps = null }) {
+  const Tag = motionProps ? m.button : 'button'
+  return (
+    <Tag
+      type="button"
+      className="home-season-actions__page"
+      aria-label={ariaLabel}
+      onClick={onClick}
+      {...(motionProps ?? {})}
+    >
+      {label}
+    </Tag>
+  )
+}
+
+function LaneBody({ dateParts, copy, title, venue, location, metaExtra = null, lineMotion }) {
   const at = (slot, clip = false) => lineMotion?.(slot, clip) ?? null
   return (
     <span className="home-season-actions__body">
@@ -146,14 +161,16 @@ function LaneBody({ dateParts, copy, title, venue, location, cue, lineMotion }) 
       ) : null}
 
       <span className="home-season-actions__copy">
-        {cue ? <LaneCue cue={cue} decorative motionProps={at(4)} /> : null}
         <RevealLine className="home-season-actions__meet" motionProps={at(1, true)}>
           {title}
         </RevealLine>
         <LanePlace venue={venue} location={location} motionProps={at(2)} />
-        <RevealLine className="home-season-actions__status" motionProps={at(3)}>
-          {copy.status}
-        </RevealLine>
+        <span className="home-season-actions__meta">
+          <RevealLine className="home-season-actions__status" motionProps={at(3)}>
+            {copy.status}
+          </RevealLine>
+          {metaExtra}
+        </span>
       </span>
     </span>
   )
@@ -166,6 +183,7 @@ function SeasonLane({ action, onActivate, t, locale, lineMotion = null }) {
     event?.title ??
     (kind === 'tickets' ? t('hero.seasonTicketsFallback') : t('hero.seasonRegisterFallback'))
   const copy = laneCopy(kind, title, t)
+  const footMotion = lineMotion?.(4) ?? null
   const body = (
     <LaneBody
       dateParts={dateParts}
@@ -173,17 +191,24 @@ function SeasonLane({ action, onActivate, t, locale, lineMotion = null }) {
       title={title}
       venue={event?.venue}
       location={event?.location}
-      cue={kind === 'registration' ? null : copy.cue}
       lineMotion={lineMotion}
+      metaExtra={
+        kind === 'registration' ? (
+          <PageLink
+            label={t('hero.seasonRegisterPage')}
+            ariaLabel={t('hero.seasonRegisterPageAria', { event: title })}
+            motionProps={lineMotion?.(3) ?? null}
+            onClick={(clickEvent) => onActivate?.(action, clickEvent, 'page')}
+          />
+        ) : null
+      }
     />
   )
 
-  // Inscripción abierta: dos destinos. La página oficial (o el aviso de
-  // "en construcción" si todavía no se publicó) y el formulario directo; así
-  // la venta no espera a que la landing esté terminada.
+  // Inscripción abierta: dos destinos. "Página oficial" queda junto al estado;
+  // "Inscribirme" cierra el carril. La venta no espera a la landing.
   if (kind === 'registration') {
-    const footMotion = lineMotion?.(4) ?? null
-    const Foot = footMotion ? m.div : 'div'
+    const Foot = footMotion ? m.button : 'button'
     return (
       <div
         className="home-season-actions__lane home-season-actions__lane--registration home-season-actions__lane--split"
@@ -191,28 +216,20 @@ function SeasonLane({ action, onActivate, t, locale, lineMotion = null }) {
         aria-label={title}
       >
         {body}
-        <Foot className="home-season-actions__go home-season-actions__go--split" {...(footMotion ?? {})}>
-          <button
-            type="button"
-            className="home-season-actions__page"
-            aria-label={t('hero.seasonRegisterPageAria', { event: title })}
-            onClick={(clickEvent) => onActivate?.(action, clickEvent, 'page')}
-          >
-            {t('hero.seasonRegisterPage')}
-          </button>
-          <button
-            type="button"
-            className="home-season-actions__register"
-            aria-label={copy.aria}
-            onClick={(clickEvent) => onActivate?.(action, clickEvent, 'register')}
-          >
-            <LaneCue cue={copy.cue} />
-          </button>
+        <Foot
+          type="button"
+          className="home-season-actions__foot home-season-actions__register"
+          aria-label={copy.aria}
+          onClick={(clickEvent) => onActivate?.(action, clickEvent, 'register')}
+          {...(footMotion ?? {})}
+        >
+          <LaneCue cue={copy.cue} />
         </Foot>
       </div>
     )
   }
 
+  const Foot = footMotion ? m.span : 'span'
   return (
     <button
       type="button"
@@ -221,14 +238,17 @@ function SeasonLane({ action, onActivate, t, locale, lineMotion = null }) {
       onClick={(clickEvent) => onActivate?.(action, clickEvent)}
     >
       {body}
+      <Foot className="home-season-actions__foot" {...(footMotion ?? {})}>
+        <LaneCue cue={copy.cue} decorative />
+      </Foot>
     </button>
   )
 }
 
 /**
  * Díptico editorial del hero: una sola superficie, fecha y título al frente,
- * verbo alineado al cierre de cada carril. El carril de inscripción abierta no
- * es un botón entero: lleva "Página oficial" e "Inscribirme"
+ * verbo en un pie de ancho completo. El carril de inscripción abierta no es un
+ * botón entero: "Página oficial" acompaña al estado e "Inscribirme" cierra
  * (`onActivate(action, event, 'page' | 'register')`).
  */
 export default function HomeSeasonActions({ actions = [], onActivate }) {

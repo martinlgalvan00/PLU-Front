@@ -35,7 +35,7 @@
   container-type: inline-size;
   margin-top: calc(-1 * var(--header-height));
   overflow: hidden;
-  padding: calc(var(--header-height) + clamp(42px, 6vw, 76px)) clamp(20px, 5vw, 64px)
+  padding: calc(var(--header-height) + clamp(42px, 6vw, 76px)) var(--institution-gutter)
     clamp(42px, 6vw, 72px);
   position: relative;
   text-align: left;
@@ -198,7 +198,7 @@
 /* Fallback sin container queries + phones */
 @media (max-width: 900px) {
   .plu-page-hero {
-    padding: calc(var(--header-height) + 30px) 20px 40px;
+    padding: calc(var(--header-height) + 30px) var(--institution-gutter) 40px;
   }
 
   .plu-page-hero::after {
@@ -225,5 +225,49 @@
     border-top: 1px solid var(--color-border);
     max-width: 28rem;
     padding: 24px 0 0;
+  }
+}
+
+/* Índice: título corto y la colección en el primer viewport.
+   Showcase (Home, Pitbull) e institucional no usan esta variante. */
+.plu-page-hero--index {
+  padding: calc(var(--header-height) + clamp(16px, 2.2vw, 28px)) var(--institution-gutter)
+    clamp(14px, 2vw, 22px);
+}
+
+.plu-page-hero--index .plu-page-hero__breadcrumb {
+  margin-bottom: clamp(10px, 1.6vw, 16px);
+}
+
+.plu-page-hero--index .plu-page-hero__chapter {
+  margin-bottom: 8px;
+}
+
+.plu-page-hero--index .plu-page-hero__title {
+  font-size: clamp(28px, 4.2vw, 46px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  max-width: 18ch;
+}
+
+.plu-page-hero--index .plu-page-hero__desc {
+  font-size: clamp(14px, 1.35vw, 16px);
+  line-height: 1.55;
+  margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+  .plu-page-hero--index {
+    padding: calc(var(--header-height) + 16px) var(--institution-gutter) 16px;
+  }
+
+  .plu-page-hero--index .plu-page-hero__title {
+    font-size: clamp(28px, 8vw, 40px);
+    letter-spacing: -0.04em;
+  }
+
+  .plu-page-hero--index .plu-page-hero__breadcrumb {
+    margin-bottom: 12px;
   }
 }

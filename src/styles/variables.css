@@ -121,12 +121,12 @@
   --border-radius-2xl: 24px;
   --border-radius-pill: 999px;
 
-  /* ── Capa institucional compartida ─────────────── */
-  --institution-content-max: 1440px;
+  /* ── Capa pública compartida ─────────────────────
+     Índices, institucional, Pitbull y la tienda usan el mismo ancho y el
+     mismo borde. 1240 es --max-width-content; el gutter es el de PluPageHero. */
+  --institution-content-max: var(--max-width-content);
   --institution-reading-max: 760px;
-  /* Mínimo 20px: el mismo margen que traen PluPageHero y los cuerpos de las
-     páginas índice en un teléfono, para que todo el sitio alinee a un borde. */
-  --institution-gutter: clamp(20px, 4.6vw, 64px);
+  --institution-gutter: clamp(20px, 5vw, 64px);
   --institution-control-height: 44px;
   --institution-focus-width: 3px;
   --institution-focus-offset: 3px;

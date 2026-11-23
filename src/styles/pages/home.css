@@ -574,14 +574,16 @@
   white-space: nowrap;
 }
 
-/* Díptico de temporada: una superficie, oro solo en el verbo accionable. */
+/* Díptico de temporada: una superficie, fecha protagonista, oro solo en el verbo. */
 .home-season-actions {
   background: var(--home-hero-status-panel-bg);
   border: 1px solid var(--home-hero-status-panel-border);
   border-radius: 2px;
+  box-shadow: var(--home-hero-status-panel-shadow);
   display: grid;
   gap: 0;
   max-width: min(100%, 22.5rem);
+  overflow: hidden;
   width: 100%;
 }
 
@@ -605,63 +607,71 @@
 }
 
 .home-season-actions__lane--tickets {
+  box-shadow: inset 2px 0 0 var(--home-hero-status-tickets-rule);
   transition:
     background-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out),
     scale var(--motion-fast) var(--ease-out);
 }
 
 .home-season-actions__lane--tickets:hover {
-  background-color: color-mix(in oklab, var(--home-hero-status-panel-border) 55%, transparent);
+  background-color: var(--home-hero-status-tickets-hover-bg);
+  box-shadow: inset 2px 0 0 var(--home-hero-status-tickets-hover-rule);
 }
 
 .home-season-actions__lane--tickets:active {
   scale: 0.985;
 }
 
-.home-season-actions__lane:hover .home-season-actions__arrow {
+.home-season-actions__lane--tickets:hover .home-season-actions__arrow,
+.home-season-actions__lane--registration_soon:hover .home-season-actions__arrow,
+.home-season-actions__register:hover .home-season-actions__arrow {
   opacity: 1;
   transform: translateX(3px);
 }
 
-.home-season-actions__lane--tickets:hover .home-season-actions__cue,
-.home-season-actions__register:hover .home-season-actions__cue {
-  opacity: 1;
-}
-
-.home-season-actions__lane--registration_soon:hover .home-season-actions__copy > .home-season-actions__go {
+.home-season-actions__lane--registration_soon:hover .home-season-actions__go {
   color: var(--home-hero-status-year, var(--color-text-primary));
 }
 
-.home-season-actions__lane:focus-visible {
+.home-season-actions__lane:focus-visible,
+.home-season-actions__page:focus-visible,
+.home-season-actions__register:focus-visible {
   outline: 2px solid var(--color-brand-celeste);
   outline-offset: -2px;
   z-index: 1;
 }
 
 .home-season-actions__body {
-  align-items: start;
+  align-items: stretch;
   display: grid;
-  gap: 4px 14px;
+  gap: 0 14px;
   grid-template-columns: auto minmax(0, 1fr);
-  padding: 16px 16px 15px 18px;
+  padding: 16px 16px 14px 18px;
+}
+
+.home-season-actions__body:not(:has(.home-season-actions__date)) {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .home-season-actions__date {
   align-content: start;
+  border-right: 1px solid var(--home-hero-status-panel-border);
   display: grid;
-  gap: 2px;
+  gap: 3px;
   justify-items: start;
-  min-width: 3.6rem;
-  padding-top: 0.12rem;
+  min-width: 4.6rem;
+  padding: 1px 12px 0 0;
 }
 
 .home-season-actions__day {
   color: var(--home-hero-status-year);
   font-family: var(--font-display);
-  font-size: clamp(1.35rem, 2.4vw, 1.6rem);
+  font-size: clamp(1.75rem, 2.5vw, 2.05rem);
   font-weight: 650;
   letter-spacing: -0.045em;
-  line-height: 0.92;
+  line-height: 0.9;
+  white-space: nowrap;
 }
 
 .home-season-actions__month {
@@ -681,88 +691,78 @@
 }
 
 .home-season-actions__copy {
+  align-items: stretch;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
   min-width: 0;
-  padding-top: 0.08rem;
-}
-
-.home-season-actions__copy > .home-season-actions__go {
-  align-items: center;
-  align-self: flex-end;
-  color: var(--home-hero-status-value, var(--color-text-secondary));
-  display: inline-flex;
-  gap: 6px;
-  line-height: 1.18;
-  margin-top: 8px;
-  order: 1;
+  padding-top: 0.15rem;
 }
 
 .home-season-actions__meet {
   color: var(--home-hero-status-year, var(--color-text-primary));
   font-family: var(--font-display);
-  font-size: clamp(1.02rem, 1.55vw, 1.16rem);
+  font-size: clamp(1.08rem, 1.65vw, 1.28rem);
   font-weight: 650;
   letter-spacing: -0.03em;
   line-height: 1.18;
 }
 
 .home-season-actions__place {
-  display: grid;
-  gap: 1px;
+  color: var(--home-hero-status-value, var(--color-text-secondary));
+  font-size: 12.5px;
+  line-height: 1.35;
   margin-top: 6px;
   min-width: 0;
 }
 
-.home-season-actions__venue,
-.home-season-actions__locality {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.home-season-actions__venue + .home-season-actions__locality::before {
+  content: "·";
+  margin-right: 0.4em;
 }
 
-.home-season-actions__venue {
-  color: var(--home-hero-status-value, var(--color-text-secondary));
-  font-size: 12.5px;
-  line-height: 1.35;
-}
-
-.home-season-actions__locality {
-  color: var(--home-hero-status-value, var(--color-text-secondary));
-  font-size: 12px;
-  line-height: 1.35;
+.home-season-actions__meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 14px;
+  margin-top: 8px;
+  min-width: 0;
 }
 
 .home-season-actions__status {
-  color: var(--home-hero-status-value, var(--color-text-secondary));
-  display: block;
+  color: var(--home-hero-status-label, var(--color-text-muted));
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.01em;
-  margin-top: 8px;
+  line-height: 1.3;
 }
 
-.home-season-actions__lane--split .home-season-actions__status {
-  color: var(--home-hero-status-year, var(--color-text-primary));
-  margin-top: 10px;
+.home-season-actions__go {
+  align-items: center;
+  display: inline-flex;
+  gap: 7px;
+  line-height: 1.18;
 }
 
-.home-season-actions__lane--registration_soon .home-season-actions__status {
-  color: var(--home-hero-status-value, var(--color-text-secondary));
-}
-
-.home-season-actions__lane--registration_soon .home-season-actions__copy > .home-season-actions__go {
-  color: var(--home-hero-status-value, var(--color-text-secondary));
-}
-
-.home-season-actions__lane--tickets .home-season-actions__cue {
+.home-season-actions__lane--tickets .home-season-actions__go,
+.home-season-actions__register .home-season-actions__go {
   color: var(--home-hero-status-tickets-action, var(--color-brand-gold-ink));
+}
+
+/* En el primer viewport el oro es solo "Afiliarme". Inscribirme y comprar
+   siguen en el carril, como texto. */
+.hero--design .home-season-actions__lane--tickets .home-season-actions__go,
+.hero--design .home-season-actions__register .home-season-actions__go {
+  color: var(--home-hero-status-value, var(--color-text-secondary));
+}
+
+.home-season-actions__lane--registration_soon .home-season-actions__go {
+  color: var(--home-hero-status-value, var(--color-text-secondary));
 }
 
 .home-season-actions__cue {
   font-family: var(--font-display);
-  font-size: 0.84rem;
+  font-size: 0.92rem;
   font-weight: 650;
   letter-spacing: -0.018em;
   line-height: 1.18;
@@ -777,39 +777,41 @@
     transform var(--motion-fast, 160ms) var(--ease-out, ease);
 }
 
-/* Inscripción abierta: el pie es una fila quieta. "Página oficial" queda
-   subordinada; "Inscribirme" es el único oro del carril. */
+/* El verbo cierra el carril. En inscripción, "Página oficial" queda junto al
+   estado y "Inscribirme" es el único oro de ese carril. */
 .home-season-actions .home-season-actions__lane--split {
   cursor: default;
 }
 
-.home-season-actions__go--split {
+.home-season-actions__foot {
+  align-items: center;
   border-top: 1px solid var(--home-hero-status-panel-border);
-  display: grid;
-  gap: 0;
-  grid-template-columns: auto minmax(0, 1fr);
+  box-sizing: border-box;
+  display: flex;
+  justify-content: flex-end;
+  min-height: 44px;
+  padding: 0 16px 0 18px;
+  width: 100%;
 }
 
 .home-season-actions__page,
 .home-season-actions__register {
   -webkit-tap-highlight-color: transparent;
-  align-items: center;
   appearance: none;
   background: transparent;
   border: 0;
   color: inherit;
   cursor: pointer;
-  display: flex;
   font: inherit;
-  min-height: 44px;
 }
 
 .home-season-actions__page {
-  border-right: 1px solid var(--home-hero-status-panel-border);
   color: var(--home-hero-status-value, var(--color-text-secondary));
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 550;
-  padding: 0 16px 0 18px;
+  min-height: 44px;
+  padding: 0;
+  position: relative;
   text-decoration: underline;
   text-decoration-color: transparent;
   text-underline-offset: 3px;
@@ -825,33 +827,8 @@
 }
 
 .home-season-actions__register {
-  justify-content: stretch;
-  padding: 0 16px 0 14px;
-}
-
-.home-season-actions__register .home-season-actions__go {
-  align-items: center;
+  border-top: 1px solid var(--home-hero-status-panel-border);
   color: var(--home-hero-status-tickets-action, var(--color-brand-gold-ink));
-  display: flex;
-  flex: 1;
-  gap: 7px;
-  justify-content: space-between;
-  min-width: 0;
-}
-
-.home-season-actions__register .home-season-actions__cue {
-  color: var(--home-hero-status-tickets-action, var(--color-brand-gold-ink));
-}
-
-.home-season-actions__register:hover .home-season-actions__arrow {
-  opacity: 1;
-  transform: translateX(3px);
-}
-
-.home-season-actions__page:focus-visible,
-.home-season-actions__register:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
-  outline-offset: -2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -863,7 +840,8 @@
     transition: none;
   }
 
-  .home-season-actions__lane:hover .home-season-actions__arrow,
+  .home-season-actions__lane--tickets:hover .home-season-actions__arrow,
+  .home-season-actions__lane--registration_soon:hover .home-season-actions__arrow,
   .home-season-actions__register:hover .home-season-actions__arrow {
     transform: none;
   }
@@ -2017,8 +1995,8 @@
   display: flex;
   justify-content: center;
   margin: 0 auto;
-  max-width: min(var(--max-width-content), 1280px);
-  padding-inline: clamp(20px, 4vw, 64px);
+  max-width: var(--max-width-content);
+  padding-inline: var(--institution-gutter);
 }
 
 .home-quick-band__menu {
@@ -2333,7 +2311,7 @@
 @media (max-width: 1199px) {
   .home-section--immersive {
     padding-block: clamp(48px, 7vw, 88px);
-    padding-inline: var(--layout-gutter-lg);
+    padding-inline: var(--institution-gutter);
   }
 
   .community-spotlight__title {
@@ -3038,7 +3016,7 @@
   color: var(--home-spotlight-title);
   overflow-x: clip;
   overflow-y: visible;
-  padding: clamp(64px, 9vw, 112px) clamp(20px, 5vw, 64px);
+  padding: clamp(64px, 9vw, 112px) var(--institution-gutter);
   position: relative;
 }
 
@@ -3070,7 +3048,7 @@
   display: grid;
   gap: clamp(36px, 5vw, 64px);
   margin-inline: auto;
-  max-width: 1280px;
+  max-width: var(--max-width-content);
   width: 100%;
 }
 
@@ -4022,12 +4000,44 @@
   margin-top: 0;
 }
 
+.home-membership-band__cta {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--home-canvas-fg, var(--color-text-primary));
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 650;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0;
+  position: relative;
+}
+
+.home-membership-band__cta::after {
+  background: var(--color-brand-gold);
+  bottom: 10px;
+  content: '';
+  height: 1px;
+  left: 0;
+  position: absolute;
+  right: 18px;
+}
+
 .home-membership-band__cta-icon {
   transition: transform 0.18s var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
 .home-membership-band__cta:hover .home-membership-band__cta-icon {
   transform: translateX(4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-membership-band__cta:hover .home-membership-band__cta-icon {
+    transform: none;
+  }
 }
 
 .home-membership-band__cta:focus-visible {

@@ -16,7 +16,7 @@
 .records-page--plu-ref .records-page__body {
   margin: 0 auto;
   max-width: var(--max-width-content);
-  padding: clamp(48px, 6vw, 72px) clamp(20px, 5vw, 64px);
+  padding: clamp(10px, 1.6vw, 18px) var(--institution-gutter) clamp(48px, 6vw, 72px);
   width: 100%;
 }
 

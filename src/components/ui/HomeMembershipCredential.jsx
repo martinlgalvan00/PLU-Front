@@ -4,7 +4,11 @@ import { m } from 'motion/react'
 import TiltCard from '../../motion/TiltCard.tsx'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
+import {
+  buildCredentialUrl,
+  generateCredentialQr,
+  HOME_PREVIEW_CREDENTIAL_CODE,
+} from '../../lib/credentialQr.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import {
   MOTION_DURATION,
@@ -67,8 +71,6 @@ const layerItem = {
   },
 }
 
-const PREVIEW_MEMBER_CODE = 'PREV-HOME-MEMBER'
-
 /**
  * Showcase de afiliación — frente de la credencial digital real
  * (`DigitalCredential` + QR de cuenta), sin PII inventados:
@@ -110,7 +112,7 @@ export default function HomeMembershipCredential() {
   useEffect(() => {
     if (!shouldGenerateQr) return undefined
     let cancelled = false
-    const url = buildCredentialUrl({ code: PREVIEW_MEMBER_CODE })
+    const url = buildCredentialUrl({ code: HOME_PREVIEW_CREDENTIAL_CODE })
 
     generateCredentialQr(url)
       .then((dataUrl) => {

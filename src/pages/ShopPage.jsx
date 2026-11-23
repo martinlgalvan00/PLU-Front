@@ -21,7 +21,11 @@ import {
   getFeaturedEventDestination,
   getUpcomingEventsByDate,
 } from '../lib/eventNavigation.js'
-import { cheapestTicketTypePrice, ticketPricingFromEvent } from '../lib/eventPricing.js'
+import {
+  cheapestTicketTypePrice,
+  shortTicketTypeName,
+  ticketPricingFromEvent,
+} from '../lib/eventPricing.js'
 import { ticketOfferCopyKey } from '../lib/ticketSalesState.js'
 import { FEATURE_KEYS, isFeatureEnabled } from '../lib/featureAvailability.js'
 import { money } from '../lib/format.js'
@@ -171,24 +175,23 @@ function ShopFeatured({
             </>
           )}
 
-          <div className="shop-feature__actions">
-            <button
-              type="button"
-              className="shop-cta"
-              onClick={canBuy ? onBuyTickets : onViewDetail}
-            >
-              <span>
-                {canBuy ? t('pages.shop.buyTickets') : t('pages.shop.featuredViewDetail')}
-              </span>
-              <ArrowRight size={15} aria-hidden />
+          <div
+            className={`shop-feature__actions${canBuy ? '' : ' shop-feature__actions--quiet'}`}
+          >
+            {canBuy ? (
+              <button type="button" className="shop-cta" onClick={onBuyTickets}>
+                <span>{t('pages.shop.buyTickets')}</span>
+                <ArrowRight size={15} aria-hidden />
+              </button>
+            ) : null}
+            <button type="button" className="shop-link" onClick={onViewDetail}>
+              {t('pages.shop.featuredViewDetail')}
             </button>
-            <button
-              type="button"
-              className="shop-link"
-              onClick={canBuy ? onViewDetail : onBrowseCalendar}
-            >
-              {canBuy ? t('pages.shop.featuredViewDetail') : t('pages.shop.browseCalendar')}
-            </button>
+            {canBuy ? null : (
+              <button type="button" className="shop-link" onClick={onBrowseCalendar}>
+                {t('pages.shop.browseCalendar')}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -241,7 +244,7 @@ function ShopEventRow({ event, locale, checkoutOpen, onOpenDetail, t }) {
                 )
                 return (
                   <span key={type.id}>
-                    {type.name}
+                    {shortTicketTypeName(type.name, locale)}
                     {extraZones.length > 0
                       ? ` · ${extraZones.map((scope) => zoneScopeLabel(scope, t)).join(', ')}`
                       : ''}

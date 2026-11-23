@@ -23,8 +23,8 @@
 /* ── Hero editorial ─────────────────────────────── */
 
 .institutional-hero--editorial .institutional-hero__inner {
-  padding-bottom: clamp(52px, 7vw, 96px);
-  padding-top: clamp(28px, 4vw, 48px);
+  padding-bottom: clamp(28px, 4vw, 48px);
+  padding-top: clamp(20px, 3vw, 36px);
 }
 
 /* Firma: una sola marca breve en oro sobre la regla inferior del hero */
@@ -39,11 +39,11 @@
 }
 
 .institutional-hero--editorial h1 {
-  font-size: clamp(40px, 6.4vw, 88px);
-  font-weight: 760;
-  letter-spacing: -0.055em;
-  line-height: 0.95;
-  max-width: 13ch;
+  font-size: clamp(28px, 4.2vw, 46px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+  max-width: 16ch;
 }
 
 .institutional-hero--editorial.institutional-hero--solo h1 {
@@ -148,8 +148,8 @@
   }
 
   .institutional-hero--editorial h1 {
-    font-size: clamp(38px, 12.5vw, 52px);
-    max-width: 11ch;
+    font-size: clamp(28px, 8vw, 40px);
+    max-width: 14ch;
   }
 
   .institutional-hero--editorial.institutional-hero--solo h1 {

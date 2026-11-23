@@ -11,7 +11,7 @@
   gap: clamp(8px, 1.5vw, 16px);
   margin: 0 auto;
   max-width: var(--max-width-content);
-  padding: clamp(20px, 3vw, 32px) clamp(20px, 5vw, 64px) clamp(48px, 5vw, 72px);
+  padding: clamp(20px, 3vw, 32px) var(--institution-gutter) clamp(48px, 5vw, 72px);
 }
 
 /* ── Sections ──────────────────────────────── */
@@ -3375,14 +3375,13 @@
 
 .members-plu-hero {
   margin-top: calc(-1 * var(--header-height));
-  padding: calc(var(--header-height) + clamp(48px, 7vw, 88px)) clamp(20px, 5vw, 64px)
-    clamp(48px, 6.5vw, 80px);
+  padding: calc(var(--header-height) + clamp(18px, 2.6vw, 32px)) 0 clamp(16px, 2.4vw, 28px);
   text-align: left;
 }
 
 @media (max-width: 900px) {
   .members-plu-hero {
-    padding: calc(var(--header-height) + 36px) 20px 44px;
+    padding: calc(var(--header-height) + 18px) 0 20px;
   }
 }
 
@@ -3413,11 +3412,11 @@
   display: flex;
   flex-direction: column;
   font-family: var(--font-display);
-  font-size: clamp(2.15rem, 5.8vw, 3.75rem);
-  font-weight: 650;
+  font-size: clamp(28px, 4.2vw, 46px);
+  font-weight: 700;
   gap: 0.02em;
-  letter-spacing: -0.036em;
-  line-height: 1.02;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
   margin: 0;
   text-transform: none;
   text-wrap: balance;
@@ -3443,11 +3442,15 @@
 }
 
 .members-plu-hero__grid {
+  box-sizing: border-box;
   display: grid;
   gap: clamp(28px, 4.5vw, 48px);
   grid-template-columns: 1fr;
-  margin-top: 0;
+  margin: 0 auto;
+  max-width: var(--max-width-content);
+  padding-inline: var(--institution-gutter);
   text-align: left;
+  width: 100%;
 }
 
 .members-plu-hero__main {
@@ -4252,27 +4255,30 @@
 
 .membership-card--plu .membership-card__cta {
   align-items: center;
-  background: var(--color-brand-action);
-  border: 1px solid transparent;
-  border-radius: 2px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   box-shadow: none;
-  color: var(--color-brand-action-text);
+  color: var(--color-text-primary);
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   font-family: var(--font-family);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 650;
   gap: 8px;
-  justify-content: center;
+  justify-content: flex-start;
   letter-spacing: -0.01em;
   max-width: none;
-  min-height: 50px;
+  min-height: 44px;
   min-width: 0;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: var(--color-brand-gold);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
   text-transform: none;
-  transition:
-    background var(--motion-fast, 0.16s) var(--ease-out, ease),
-    border-color var(--motion-fast, 0.16s) var(--ease-out, ease);
-  width: 100%;
+  transition: color var(--motion-fast, 0.16s) var(--ease-out, ease);
+  width: auto;
 }
 
 .membership-card--plu .membership-card__cta:focus-visible {
@@ -4281,8 +4287,9 @@
 }
 
 .membership-card--plu .membership-card__cta:hover:not(:disabled) {
-  background: var(--color-brand-action-hover);
+  background: transparent;
   box-shadow: none;
+  color: var(--color-text-primary);
   transform: none;
 }
 
@@ -4298,14 +4305,14 @@
 }
 
 .membership-card--plu-featured .membership-card__cta {
-  background: var(--color-brand-action);
+  background: transparent;
   border-color: transparent;
-  color: var(--color-brand-action-text);
-  min-height: 50px;
+  color: var(--color-text-primary);
+  min-height: 44px;
 }
 
 .membership-card--plu-featured .membership-card__cta:hover:not(:disabled) {
-  background: var(--color-brand-action-hover);
+  background: transparent;
 }
 
 .membership-grid--plu-multi .membership-card--plu + .membership-card--plu {
@@ -4342,10 +4349,10 @@
   }
 
   .membership-card--plu .membership-card__cta {
-    max-width: 22rem;
+    max-width: none;
+    min-width: 0;
+    padding-inline: 0;
     width: auto;
-    min-width: min(100%, 16.5rem);
-    padding-inline: 24px;
   }
 
   .membership-grid--plu-solo + .members-plu-plans__reassure {
@@ -4384,10 +4391,10 @@
     }
 
     .membership-card--plu .membership-card__cta {
-      max-width: 22rem;
+      max-width: none;
+      min-width: 0;
+      padding-inline: 0;
       width: auto;
-      min-width: min(100%, 16.5rem);
-      padding-inline: 24px;
     }
 
     .membership-grid--plu-solo + .members-plu-plans__reassure {
@@ -4430,7 +4437,7 @@
 }
 
 [data-theme='light'] .membership-card--plu .membership-card__cta {
-  color: var(--color-brand-action-text);
+  color: var(--color-text-primary);
 }
 
 [data-theme='light'] .members-plu-plans__auto-renew-switch {
@@ -4458,7 +4465,7 @@
   container-name: members-page-body;
   container-type: inline-size;
   gap: 0;
-  padding-inline: clamp(16px, 4vw, 64px);
+  padding-inline: var(--institution-gutter);
 }
 
 .members-page--plu-ref .members-section {
@@ -4466,7 +4473,7 @@
 }
 
 .members-page--plu-ref .members-section.members-plu-plans {
-  padding-block: clamp(56px, 8vw, 96px);
+  padding-block: clamp(24px, 3.5vw, 40px);
 }
 
 .members-plu-block {
@@ -6484,7 +6491,7 @@
 
 @media (max-width: 430px) {
   .members-page--plu-ref .members-page__body {
-    padding-inline: 16px;
+    padding-inline: var(--institution-gutter);
   }
 
   .members-plu-block__head,

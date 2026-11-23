@@ -911,19 +911,11 @@
      contaba el padding dentro del max-width y el hero no: el título arrancaba
      en x=64 y la lista en x=127 (1366px), y al revés en 1920. */
   --events-shell-max: var(--max-width-content);
-  --events-shell-pad: clamp(20px, 5vw, 64px);
+  --events-shell-pad: var(--institution-gutter);
 }
 
 .events-page--plu-ref .events-page__hero .plu-page-hero__inner {
   max-width: calc(var(--events-shell-max) - 2 * var(--events-shell-pad));
-}
-
-/* Hasta 900px el hero usa 20px fijos de gutter (plu-page-hero.css): el cuerpo
-   acompaña, si no en tablet la lista quedaba 18px adentro del título. */
-@media (max-width: 900px) {
-  .events-page--plu-ref {
-    --events-shell-pad: 20px;
-  }
 }
 
 .events-page--plu-ref .events-page__body {
